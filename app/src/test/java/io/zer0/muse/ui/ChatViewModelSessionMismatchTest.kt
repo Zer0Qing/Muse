@@ -118,7 +118,7 @@ class ChatViewModelSessionMismatchTest {
     private val auditLogger: AuditLogger = mockk(relaxed = true)
     private val sessionPermissionStore: SessionPermissionStore = mockk(relaxed = true)
     private val networkMonitor: NetworkMonitor = mockk(relaxed = true)
-    private val deferredResultStore: DeferredResultStore = mockk(relaxed = true)
+    private val deferredResultStore: DeferredResultStore = DeferredResultStore()
     private val subagentThreadStore: SubagentThreadStore = mockk(relaxed = true)
     private val sessionManager: ConversationSessionManager = mockk(relaxed = true)
     private val activityProfile: UserActivityProfile = mockk(relaxed = true)
