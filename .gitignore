@@ -34,6 +34,7 @@ tmp_*.kt
 build_log*.txt
 build-log*.txt
 build_output*.txt
+.tmp/
 
 # 软著申请材料
 软件著作权申请资料/
