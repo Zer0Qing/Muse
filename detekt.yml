@@ -1,0 +1,33 @@
+﻿# detekt 静态分析配置
+build:
+  maxIssues: 100
+
+complexity:
+  TooManyFunctions:
+    active: true
+    threshold: 15
+    excludes: ['**/ui/**/*Screen*.kt', '**/ui/settings/*Section*.kt']
+  LongMethod:
+    active: true
+    threshold: 80
+  LargeClass:
+    active: true
+    threshold: 600
+
+style:
+  MagicNumber:
+    active: false
+  UnusedImports:
+    active: true
+  TrailingWhitespace:
+    active: true
+
+potential-bugs:
+  UnreachableCode:
+    active: true
+  DuplicateCaseInWhenExpression:
+    active: true
+
+performance:
+  CouldBeSequence:
+    active: true

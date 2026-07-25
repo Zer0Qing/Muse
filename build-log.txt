@@ -1,0 +1,200 @@
+﻿To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+Calculating task graph as configuration cache cannot be reused because Gradle property 'kotlin.daemon.jvmargs' has changed.
+w: Detected multiple Kotlin daemon sessions at 
+> Task :common:preBuild UP-TO-DATE
+> Task :memory:preBuild UP-TO-DATE
+> Task :ai:preBuild UP-TO-DATE
+> Task :app:preBuild UP-TO-DATE
+> Task :material3:preBuild UP-TO-DATE
+> Task :memory:preDebugBuild UP-TO-DATE
+> Task :common:preDebugBuild UP-TO-DATE
+> Task :ai:preDebugBuild UP-TO-DATE
+> Task :material3:preDebugBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :memory:generateDebugResources UP-TO-DATE
+> Task :material3:generateDebugResources UP-TO-DATE
+> Task :common:generateDebugResources UP-TO-DATE
+> Task :ai:generateDebugResources UP-TO-DATE
+> Task :memory:processDebugNavigationResources UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :material3:javaPreCompileDebug UP-TO-DATE
+> Task :common:javaPreCompileDebug UP-TO-DATE
+> Task :material3:processDebugNavigationResources UP-TO-DATE
+> Task :ai:javaPreCompileDebug UP-TO-DATE
+> Task :ai:generateDebugBuildConfig UP-TO-DATE
+> Task :memory:javaPreCompileDebug UP-TO-DATE
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :ai:processDebugNavigationResources UP-TO-DATE
+> Task :common:processDebugNavigationResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :memory:packageDebugResources UP-TO-DATE
+> Task :common:packageDebugResources UP-TO-DATE
+> Task :ai:packageDebugResources UP-TO-DATE
+> Task :material3:packageDebugResources UP-TO-DATE
+> Task :memory:parseDebugLocalResources UP-TO-DATE
+> Task :ai:parseDebugLocalResources UP-TO-DATE
+> Task :material3:parseDebugLocalResources UP-TO-DATE
+> Task :common:parseDebugLocalResources UP-TO-DATE
+> Task :ai:generateDebugRFile UP-TO-DATE
+> Task :common:generateDebugRFile UP-TO-DATE
+> Task :memory:generateDebugRFile UP-TO-DATE
+> Task :material3:generateDebugRFile UP-TO-DATE
+> Task :common:compileDebugKotlin UP-TO-DATE
+> Task :common:compileDebugJavaWithJavac NO-SOURCE
+> Task :common:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :material3:compileDebugKotlin UP-TO-DATE
+> Task :material3:compileDebugJavaWithJavac NO-SOURCE
+> Task :material3:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :app:processDebugNavigationResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:generateDebugRFile UP-TO-DATE
+> Task :ai:compileDebugKotlin UP-TO-DATE
+> Task :ai:compileDebugJavaWithJavac UP-TO-DATE
+> Task :ai:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :memory:kspDebugKotlin UP-TO-DATE
+
+> Task :memory:compileDebugKotlin
+.\gradlew.bat : e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/budget/LlmBudget.kt:7:24 Unresolved refer
+ence 'Model'.
+At line:15 char:8408
++ ... pgrep\bin'; .\gradlew.bat :app:compileDebugKotlin --no-daemon --conso ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (e: file:///D:/1...erence 'Model'.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/budget/LlmBudget.kt:40:16 Unresolved reference 'Model'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/budget/LlmBudget.kt:43:33 Unresolved reference 'id'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/budget/LlmBudget.kt:44:19 Unresolved reference 'id'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/budget/LlmBudget.kt:45:19 Unresolved reference 'id'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/budget/LlmBudget.kt:46:19 Unresolved reference 'id'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/budget/LlmBudget.kt:47:19 Unresolved reference 'id'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/budget/LlmBudget.kt:48:19 Unresolved reference 'id'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/budget/LlmBudget.kt:53:25 Unresolved reference 'maxOutput
+Tokens'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/budget/LlmBudget.kt:53:42 Cannot infer type for type para
+meter 'T'. Specify it explicitly.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/budget/LlmBudget.kt:53:49 Cannot infer type for type para
+meter 'T'. Specify it explicitly.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/budget/LlmBudget.kt:53:54 'operator' modifier is required
+ on 'fun <T> Comparable<T>.compareTo(other: T): Int'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/compile/MemoryCompiler.kt:5:24 Unresolved reference 'Mode
+l'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/compile/MemoryCompiler.kt:83:16 Unresolved reference 'Mod
+el'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/compile/MemoryCompiler.kt:144:16 Unresolved reference 'Mo
+del'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/compile/MemoryCompiler.kt:243:16 Unresolved reference 'Mo
+del'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/compile/MemoryCompiler.kt:298:16 Unresolved reference 'Mo
+del'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/compile/MemoryCompiler.kt:321:16 Unresolved reference 'Mo
+del'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/compile/MemoryCompiler.kt:327:16 Unresolved reference 'Mo
+del'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/compile/MemoryCompiler.kt:380:16 Unresolved reference 'Mo
+del'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/deep/DeepMemoryProcessor.kt:3:24 Unresolved reference 'Mo
+del'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/deep/DeepMemoryProcessor.kt:83:16 Unresolved reference 'M
+odel'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/deep/DeepMemoryProcessor.kt:121:16 Unresolved reference '
+Model'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/llm/MemoryLlmClient.kt:3:24 Unresolved reference 'Model'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/llm/MemoryLlmClient.kt:31:16 Unresolved reference 'Model'
+.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:3:24 Unresolved referenc
+e 'Model'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:4:24 Unresolved referenc
+e 'UIMessage'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:112:24 Unresolved refere
+nce 'UIMessage'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:113:16 Unresolved refere
+nce 'Model'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:128:24 Unresolved refere
+nce 'UIMessage'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:129:16 Unresolved refere
+nce 'Model'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:140:22 Cannot infer type
+ for type parameter 'T'. Specify it explicitly.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:140:22 Unresolved refere
+nce. None of the following candidates is applicable because of a receiver type mismatch:
+fun <T> Iterable<T>.drop(n: Int): List<T>
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:146:35 Cannot infer type
+ for type parameter 'T'. Specify it explicitly.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:146:35 Cannot infer type
+ for type parameter 'R'. Specify it explicitly.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:146:35 Unresolved refere
+nce. None of the following candidates is applicable because of a receiver type mismatch:
+fun <T, R> Iterable<T>.map(transform: (T) -> R): List<R>
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:146:39 Cannot infer type
+ for type parameter 'T'. Specify it explicitly.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:146:65 Unresolved refere
+nce 'createdAt'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:154:42 Unresolved refere
+nce 'it'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:154:69 Unresolved refere
+nce 'MessageRole'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:271:24 Unresolved refere
+nce 'UIMessage'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:280:31 Unresolved refere
+nce 'content'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:282:38 Unresolved refere
+nce 'createdAt'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:283:56 Unresolved refere
+nce 'createdAt'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:287:35 Unresolved refere
+nce 'role'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:287:59 Unresolved refere
+nce 'MessageRole'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/ticker/MemoryTicker.kt:3:24 Unresolved reference 'Model'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/ticker/MemoryTicker.kt:4:24 Unresolved reference 'UIMessa
+ge'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/ticker/MemoryTicker.kt:297:24 Unresolved reference 'UIMes
+sage'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/ticker/MemoryTicker.kt:298:16 Unresolved reference 'Model
+'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/ticker/MemoryTicker.kt:329:16 Unresolved reference 'Model
+'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/ticker/MemoryTicker.kt:351:40 Unresolved reference 'Model
+'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/ticker/MemoryTicker.kt:487:38 Unresolved reference 'Model
+'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/ticker/MemoryTicker.kt:513:24 Unresolved reference 'UIMes
+sage'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/ticker/MemoryTicker.kt:514:16 Unresolved reference 'Model
+'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/ticker/MemoryTicker.kt:545:24 Unresolved reference 'UIMes
+sage'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/ticker/MemoryTicker.kt:546:16 Unresolved reference 'Model
+'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/ticker/MemoryTicker.kt:573:24 Unresolved reference 'UIMes
+sage'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/ticker/MemoryTicker.kt:574:16 Unresolved reference 'Model
+'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/ticker/MemoryTicker.kt:648:16 Unresolved reference 'Model
+'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/ticker/MemoryTicker.kt:672:16 Unresolved reference 'Model
+'.
+
+> Task :memory:compileDebugKotlin FAILED
+w: Detected multiple Kotlin daemon sessions at 
+
+[Incubating] Problems report is available at: file:///D:/1test/1muse/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':memory:compileDebugKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.btapi.BuildToolsApiCompilationWork
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 40s
+40 actionable tasks: 1 executed, 39 up-to-date
+Configuration cache entry stored.

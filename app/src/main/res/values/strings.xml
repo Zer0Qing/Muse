@@ -1,0 +1,277 @@
+<resources>
+    <!-- App -->
+    <string name="app_name">Muse</string>
+    <!-- 启动页 -->
+    <string name="splash_subtitle">Your AI Companion</string>
+
+    <!-- 桌面小部件 -->
+    <string name="widget_description">快捷启动 Muse 对话</string>
+    <string name="widget_new_session">新对话</string>
+    <string name="widget_recent_sessions">最近会话</string>
+    <!-- P3-16: 4x2 对话小部件 -->
+    <string name="widget_chat_description">显示最近一条 AI 回复</string>
+    <string name="widget_chat_no_content">暂无对话,点击开始</string>
+
+    <!-- 底部导航 -->
+    <string name="tab_chats">对话</string>
+    <string name="tab_settings">设置</string>
+
+    <!-- Splash & Onboarding -->
+    <string name="splash_tagline">你的灵感,温柔地展开</string>
+    <string name="onboarding_welcome_desc">你的私人 AI 助手,对话、记忆、创作一站搞定</string>
+    <string name="onboarding_provider_desc">前往设置添加你的 OpenAI / Anthropic / Gemini 密钥</string>
+    <string name="onboarding_ready_title">准备就绪</string>
+    <string name="onboarding_ready_desc">开始你的第一次对话吧</string>
+    <string name="onboarding_skip">跳过</string>
+    <string name="onboarding_start">开始使用</string>
+    <string name="onboarding_next">下一步</string>
+    <string name="onboarding_config_provider">前往设置</string>
+
+    <!-- 设置页分区标题 -->
+    <string name="section_about">关于</string>
+    <string name="section_provider">Provider 列表</string>
+    <string name="section_asr">语音识别(ASR)</string>
+    <string name="section_theme">主题</string>
+    <string name="section_mcp">MCP 服务器</string>
+    <string name="section_web_server">Web 服务器</string>
+    <string name="section_web_search">联网搜索</string>
+    <string name="section_backup">备份与同步</string>
+    <string name="section_assistant">助手</string>
+    <string name="section_skill">Skill 管理</string>
+
+    <!-- 关于页 -->
+    <string name="about_brand_tagline">你的灵感,温柔地展开</string>
+    <string name="about_version">版本</string>
+    <string name="about_build_type">构建类型</string>
+    <string name="about_app_id">应用 ID</string>
+    <string name="about_android_version">Android 版本</string>
+    <string name="about_device">设备</string>
+    <string name="about_oss_licenses">开源许可</string>
+    <string name="about_oss_licenses_subtitle">查看 Muse 使用的第三方开源库及其许可证</string>
+    <string name="licenses_title">开源许可</string>
+    <string name="licenses_total_count">共 %1$d 个依赖</string>
+
+    <!-- 通用按钮 -->
+    <string name="action_back">返回</string>
+    <string name="action_save">保存</string>
+    <string name="action_cancel">取消</string>
+    <string name="action_delete">删除</string>
+    <string name="action_edit">编辑</string>
+    <string name="action_add">新增</string>
+    <string name="action_done">完成</string>
+    <string name="action_close">关闭</string>
+    <string name="action_more">更多</string>
+    <string name="action_send">发送</string>
+    <string name="action_stop">停止</string>
+    <string name="action_copy">复制</string>
+    <string name="action_translate">翻译</string>
+    <string name="action_share">分享</string>
+    <string name="action_expand">展开</string>
+    <string name="action_collapse">收起</string>
+
+    <!-- 引用回复 -->
+    <string name="message_action_quote">引用</string>
+    <string name="quote_label_user">引用 用户</string>
+    <string name="quote_label_assistant">引用 助手</string>
+    <string name="quote_clear">取消引用</string>
+
+    <!-- 编辑消息 Sheet -->
+    <string name="edit_message_title">编辑消息</string>
+    <string name="edit_message_content_label">内容</string>
+
+    <!-- 录音/语音识别状态 -->
+    <string name="voice_release_to_recognize">松开识别 · 上滑取消</string>
+    <string name="voice_recognizing">识别中…</string>
+    <!-- v1.0.4 (P2): ASR 连接中状态文案(Connecting 阶段尚未开始录音,不能显示波形) -->
+    <string name="voice_connecting">正在连接识别服务…</string>
+    <!-- 任务 1: ASR 断网重连中状态文案(WebSocket 断线后指数退避重连,期间继续录音并缓冲音频帧) -->
+    <string name="voice_reconnecting">网络异常,正在重连…</string>
+
+    <!-- ASR 配置提示 -->
+    <string name="asr_missing_api_key_error">当前未配置 API Key,语音输入将无法使用</string>
+
+    <!-- 语音对话模式(全屏连续对话:ASR + AI + TTS) -->
+    <string name="voice_conversation_open_cd">语音对话</string>
+    <string name="voice_conversation_close_cd">关闭语音对话</string>
+    <string name="voice_conversation_change_voice">切换语音</string>
+    <string name="voice_conversation_idle_hint">点击下方按钮开始对话</string>
+    <string name="voice_conversation_idle_tap_hint">说话时自动识别并发送,AI 回复会自动朗读</string>
+    <string name="voice_conversation_listening">正在聆听…</string>
+    <string name="voice_conversation_thinking">思考中…</string>
+    <string name="voice_conversation_speaking">正在朗读…</string>
+    <string name="voice_conversation_state_idle">点击开始</string>
+    <string name="voice_conversation_state_listening">聆听中</string>
+    <string name="voice_conversation_state_thinking">思考中</string>
+    <string name="voice_conversation_state_speaking">朗读中</string>
+    <string name="voice_conversation_pick_voice_title">选择语音</string>
+    <string name="voice_conversation_no_voices">未找到可用的系统语音,请先在系统设置中安装 TTS 引擎</string>
+
+    <!-- 网络代理 -->
+    <string name="proxy_title">网络代理</string>
+    <string name="proxy_enable">启用代理</string>
+    <string name="proxy_enabled">已启用</string>
+    <string name="proxy_disabled">未启用</string>
+    <string name="proxy_type">类型</string>
+    <string name="proxy_type_http">HTTP</string>
+    <string name="proxy_type_socks5">SOCKS5</string>
+    <string name="proxy_host">主机</string>
+    <string name="proxy_port">端口</string>
+    <string name="proxy_username">用户名</string>
+    <string name="proxy_password">密码</string>
+    <string name="proxy_restart_hint">修改后重启应用生效</string>
+
+    <!-- 记忆页新增元事实 -->
+    <string name="memory_add_fact">新增元事实</string>
+    <string name="memory_add_fact_dialog_title">添加元事实</string>
+
+    <!-- v2.0: 收藏分组预设类别 -->
+    <string name="favorites_group_all">全部</string>
+    <string name="favorites_group_inspiration">灵感</string>
+    <string name="favorites_group_code">代码</string>
+    <string name="favorites_group_learning">学习</string>
+    <string name="favorites_group_custom">自定义</string>
+    <string name="favorites_group_select_title">选择收藏分组</string>
+    <string name="favorites_group_select_hint">将消息收藏到: %1$s</string>
+    <string name="favorites_group_remove">移出分组</string>
+
+    <!-- v2.0: 数据管理页 -->
+    <string name="data_management_title">数据管理</string>
+    <string name="data_management_sessions">对话数</string>
+    <string name="data_management_messages">消息数</string>
+    <string name="data_management_memories">记忆数</string>
+    <string name="data_management_db_size">数据库大小</string>
+    <string name="data_management_cache_size">缓存大小</string>
+    <string name="data_management_clear_chats">清空所有对话</string>
+    <string name="data_management_clear_chats_confirm">确定清空所有对话？此操作不可撤销。</string>
+    <string name="data_management_clear_chats_done">已清空所有对话</string>
+    <string name="data_management_clear_cache">清理缓存</string>
+    <string name="data_management_clear_cache_confirm">确定清理所有缓存？重新加载数据可能需要一些时间。</string>
+    <string name="data_management_clear_cache_done">缓存已清理</string>
+    <string name="data_management_reset_memory">重置记忆</string>
+    <string name="data_management_reset_memory_confirm">确定重置所有记忆？AI 将忘记对你的了解。</string>
+    <string name="data_management_reset_memory_done">记忆已重置</string>
+    <string name="data_management_entry">数据管理</string>
+    <string name="data_management_entry_desc">查看用量、清理缓存和管理数据</string>
+
+    <!-- v2.0: 记忆筛选 -->
+    <string name="memory_filter_importance">重要性</string>
+    <string name="memory_filter_time">时间</string>
+    <string name="memory_filter_type">类型</string>
+    <string name="memory_filter_all">全部</string>
+    <string name="memory_filter_normal">普通</string>
+    <string name="memory_filter_important">重要</string>
+    <string name="memory_filter_critical">关键</string>
+    <string name="memory_filter_today">今天</string>
+    <string name="memory_filter_week">本周</string>
+    <string name="memory_filter_month">本月</string>
+    <string name="memory_filter_fact">事实</string>
+    <string name="memory_filter_summary">摘要</string>
+    <string name="memory_filter_compile">编译</string>
+
+    <!-- v2.0: 回收站 -->
+    <string name="recently_deleted_title">最近删除</string>
+    <string name="recently_deleted_empty">暂无删除记录</string>
+    <string name="recently_deleted_restore">恢复</string>
+    <string name="recently_deleted_restore_done">已恢复</string>
+    <string name="recently_deleted_permanent_delete">永久删除</string>
+    <string name="recently_deleted_permanent_delete_confirm">确定永久删除？此操作不可撤销。</string>
+    <string name="recently_deleted_permanent_delete_done">已永久删除</string>
+    <string name="recently_deleted_entry">最近删除</string>
+    <string name="recently_deleted_entry_subtitle">7 天内删除的会话可恢复</string>
+    <string name="recently_deleted_auto_clear">7 天后自动永久删除</string>
+
+    <!-- ai/memory 模块 ErrorCode 错误消息映射 -->
+    <string name="err_no_provider_configured">未配置任何 Provider,请先到设置页填写 API Key</string>
+    <string name="err_no_model_selected">Provider 未配置任何模型,请先到设置页添加模型</string>
+    <string name="err_auth_failed">鉴权失败,请检查 API Key</string>
+    <string name="err_rate_limited">请求过于频繁,请稍后重试</string>
+    <string name="err_request_timeout">请求超时</string>
+    <string name="err_service_unavailable">服务暂不可用,请稍后重试</string>
+    <string name="err_permission_denied">权限不足</string>
+    <string name="err_invalid_response">AI 响应格式异常(%1$s)</string>
+    <string name="err_api_error">AI 服务返回错误</string>
+    <string name="err_resource_exhausted">配额耗尽</string>
+    <string name="err_invalid_argument">请求参数错误</string>
+    <string name="err_precondition_failed">前置条件不满足</string>
+    <string name="err_overloaded">服务过载,请稍后重试</string>
+    <string name="err_not_found">资源不存在</string>
+    <string name="err_stream_interrupted">流式连接中断</string>
+    <string name="err_network_error">网络连接中断,请检查网络</string>
+    <string name="err_image_response_too_large">图片生成响应过大(%1$sMB),上限 20MB</string>
+    <string name="err_image_empty_response">图片生成返回空响应</string>
+    <string name="err_image_no_results">图片生成返回空结果</string>
+    <string name="err_image_unsupported_model">当前 Provider 不支持图片生成(%1$s)</string>
+    <string name="err_image_reference_too_large">参考图过大(%1$sMB),上限 10MB</string>
+    <string name="err_image_reference_download_failed">参考图下载失败(%1$s)</string>
+    <string name="err_image_invalid_uri">不支持的图片 URI 格式</string>
+    <string name="err_image_api_key_missing">未配置 API Key</string>
+    <string name="err_vertex_ai_config_invalid">Vertex AI 配置无效(%1$s)</string>
+    <string name="err_vertex_ai_token_failed">Vertex AI 鉴权失败(%1$s)</string>
+    <string name="err_memory_token_budget_invalid">记忆 Token 预算无效(%1$s)</string>
+    <string name="err_memory_config_invalid">记忆配置无效(%1$s)</string>
+    <!-- 功能1: 消息表情回应 -->
+    <string name="chat_reaction_add">回应</string>
+    <string name="chat_reaction_remove">取消回应</string>
+    <string name="chat_reaction_change">更换回应</string>
+    <string name="chat_reaction_picker_title">选择回应</string>
+    <!-- 功能2: 消息草稿 -->
+    <string name="chat_draft_label">草稿</string>
+    <!-- 功能3: 归档确认 -->
+    <string name="chat_list_archive_title">归档会话</string>
+    <string name="chat_list_archive_confirm">确定归档会话 \"%1$s\"? 归档后可从归档列表恢复。</string>
+    <string name="chat_list_archive_confirm_button">归档</string>
+
+    <!-- 工具审批卡片 -->
+    <string name="tool_approval_title">工具调用</string>
+    <string name="tool_approval_always_allow">始终允许 %1$s</string>
+    <string name="tool_approval_allow_all_this_run">本次开启期间批准全部工具</string>
+    <string name="tool_approval_approve">批准</string>
+    <string name="tool_approval_deny">拒绝</string>
+    <string name="tool_approval_confirm_deny">确认拒绝</string>
+    <string name="tool_approval_deny_reason">拒绝原因(可选)</string>
+    <!-- v1.0.20: 持久化策略按钮 — 点击后写入 ToolConfigStore,后续该工具不再弹审批卡片 -->
+    <string name="tool_approval_always_approve">始终允许</string>
+    <string name="tool_approval_always_deny">始终拒绝</string>
+    <!-- v1.x: 会话级临时允许按钮 — 本会话不再问,切换会话/冷启动后自动失效 -->
+    <string name="tool_approval_allow_this_session">本会话允许</string>
+
+    <!-- 消息分支选择器 -->
+    <string name="branch_previous">上一个版本</string>
+    <string name="branch_next">下一个版本</string>
+
+    <!-- 通用错误提示 -->
+    <string name="error_operation_failed">操作失败，请重试</string>
+    <string name="error_delete_failed">删除失败</string>
+    <string name="error_update_failed">更新失败</string>
+    <string name="error_create_failed">创建失败</string>
+
+    <!-- 定时任务未保存警告 -->
+    <string name="schedule_unsaved_title">放弃修改？</string>
+    <string name="schedule_unsaved_message">当前修改尚未保存，确定要关闭吗？</string>
+    <string name="schedule_discard">放弃</string>
+
+    <!-- Agent 私信 -->
+    <string name="agent_dm_title">Agent 私信</string>
+    <string name="agent_dm_empty">暂无私信</string>
+    <string name="agent_dm_mark_all_read">全部已读</string>
+    <string name="agent_dm_unread_count">%d 条未读</string>
+
+    <!-- 助手详情页：能力标签 -->
+    <string name="assistant_detail_capabilities_title">能力标签</string>
+    <string name="assistant_detail_capabilities_desc">标注该助手擅长的领域，供自动路由匹配</string>
+    <string name="assistant_detail_custom_capability">自定义能力</string>
+    <string name="assistant_detail_add">添加</string>
+
+    <!-- 多 Agent 团队工作流 -->
+    <string name="settings_multi_agent_workflow">工作流编排</string>
+    <string name="settings_multi_agent_workflow_desc">定义团队内 Agent 的执行顺序、依赖与结果聚合策略</string>
+    <string name="settings_multi_agent_aggregation">结果聚合</string>
+    <string name="settings_multi_agent_no_workflow">未配置工作流，将按成员顺序串行执行</string>
+    <string name="settings_multi_agent_add_node">添加节点</string>
+    <string name="settings_multi_agent_edit_node">编辑节点</string>
+    <string name="settings_multi_agent_node_name">节点名称</string>
+    <string name="settings_multi_agent_node_task">任务模板</string>
+    <string name="settings_multi_agent_node_assistant">执行助手</string>
+    <string name="settings_multi_agent_node_mode">执行模式</string>
+    <string name="settings_multi_agent_node_dependencies">依赖节点</string>
+</resources>

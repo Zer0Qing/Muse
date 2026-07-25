@@ -1,0 +1,337 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-05",
+  "appName": "Muse",
+  "appVersion": "0.22",
+  "licenseTexts": {
+    "apache-2.0": "licenses/apache-2.0.txt",
+    "mit": "licenses/mit.txt",
+    "bsd-3-clause": "licenses/bsd-3-clause.txt",
+    "bsd-2-clause": "licenses/bsd-2-clause.txt",
+    "epl-1.0": "licenses/epl-1.0.txt"
+  },
+  "dependencies": [
+    {
+      "groupId": "org.jetbrains.kotlin",
+      "name": "kotlin-stdlib",
+      "version": "2.4.0",
+      "licenseId": "apache-2.0",
+      "copyright": "Copyright 2000-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.",
+      "url": "https://github.com/JetBrains/kotlin"
+    },
+    {
+      "groupId": "org.jetbrains.kotlin",
+      "name": "kotlinx-coroutines-android",
+      "version": "1.9.0",
+      "licenseId": "apache-2.0",
+      "copyright": "Copyright 2016-2024 JetBrains s.r.o.",
+      "url": "https://github.com/Kotlin/kotlinx.coroutines"
+    },
+    {
+      "groupId": "org.jetbrains.kotlinx",
+      "name": "kotlinx-serialization-json",
+      "version": "1.7.3",
+      "licenseId": "apache-2.0",
+      "copyright": "Copyright 2017-2024 JetBrains s.r.o.",
+      "url": "https://github.com/Kotlin/kotlinx.serialization"
+    },
+    {
+      "groupId": "androidx.compose",
+      "name": "compose-bom",
+      "version": "2024.12.01",
+      "licenseId": "apache-2.0",
+      "copyright": "Copyright The Android Open Source Project",
+      "url": "https://developer.android.com/jetpack/compose"
+    },
+    {
+      "groupId": "androidx.compose.material3",
+      "name": "material3",
+      "version": "1.4.0-alpha04",
+      "licenseId": "apache-2.0",
+      "copyright": "Copyright The Android Open Source Project",
+      "url": "https://developer.android.com/jetpack/compose"
+    },
+    {
+      "groupId": "androidx.compose.material",
+      "name": "material-icons-extended",
+      "version": "2024.12.01",
+      "licenseId": "apache-2.0",
+      "copyright": "Copyright The Android Open Source Project",
+      "url": "https://developer.android.com/jetpack/compose"
+    },
+    {
+      "groupId": "androidx.activity",
+      "name": "activity-compose",
+      "version": "1.9.3",
+      "licenseId": "apache-2.0",
+      "copyright": "Copyright The Android Open Source Project",
+      "url": "https://developer.android.com/jetpack/androidx/releases/activity"
+    },
+    {
+      "groupId": "androidx.core",
+      "name": "core-ktx",
+      "version": "1.15.0",
+      "licenseId": "apache-2.0",
+      "copyright": "Copyright The Android Open Source Project",
+      "url": "https://developer.android.com/jetpack/androidx/releases/core"
+    },
+    {
+      "groupId": "androidx.lifecycle",
+      "name": "lifecycle-runtime-ktx",
+      "version": "2.8.7",
+      "licenseId": "apache-2.0",
+      "copyright": "Copyright The Android Open Source Project",
+      "url": "https://developer.android.com/jetpack/androidx/releases/lifecycle"
+    },
+    {
+      "groupId": "androidx.lifecycle",
+      "name": "lifecycle-viewmodel-compose",
+      "version": "2.8.7",
+      "licenseId": "apache-2.0",
+      "copyright": "Copyright The Android Open Source Project",
+      "url": "https://developer.android.com/jetpack/androidx/releases/lifecycle"
+    },
+    {
+      "groupId": "androidx.navigation",
+      "name": "navigation-compose",
+      "version": "2.8.5",
+      "licenseId": "apache-2.0",
+      "copyright": "Copyright The Android Open Source Project",
+      "url": "https://developer.android.com/jetpack/androidx/releases/navigation"
+    },
+    {
+      "groupId": "androidx.glance",
+      "name": "glance-appwidget",
+      "version": "1.1.1",
+      "licenseId": "apache-2.0",
+      "copyright": "Copyright The Android Open Source Project",
+      "url": "https://developer.android.com/jetpack/androidx/releases/glance"
+    },
+    {
+      "groupId": "androidx.glance",
+      "name": "glance-material3",
+      "version": "1.1.1",
+      "licenseId": "apache-2.0",
+      "copyright": "Copyright The Android Open Source Project",
+      "url": "https://developer.android.com/jetpack/androidx/releases/glance"
+    },
+    {
+      "groupId": "androidx.room",
+      "name": "room-runtime",
+      "version": "2.8.4",
+      "licenseId": "apache-2.0",
+      "copyright": "Copyright The Android Open Source Project",
+      "url": "https://developer.android.com/jetpack/androidx/releases/room"
+    },
+    {
+      "groupId": "androidx.room",
+      "name": "room-ktx",
+      "version": "2.8.4",
+      "licenseId": "apache-2.0",
+      "copyright": "Copyright The Android Open Source Project",
+      "url": "https://developer.android.com/jetpack/androidx/releases/room"
+    },
+    {
+      "groupId": "androidx.datastore",
+      "name": "datastore-preferences",
+      "version": "1.1.1",
+      "licenseId": "apache-2.0",
+      "copyright": "Copyright The Android Open Source Project",
+      "url": "https://developer.android.com/jetpack/androidx/releases/datastore"
+    },
+    {
+      "groupId": "io.insert-koin",
+      "name": "koin-bom",
+      "version": "4.0.0",
+      "licenseId": "apache-2.0",
+      "copyright": "Copyright 2017-2024 InsertCode, Arnaud GIULIANI and the Koin contributors.",
+      "url": "https://insert-koin.io/"
+    },
+    {
+      "groupId": "io.insert-koin",
+      "name": "koin-android",
+      "version": "4.0.0",
+      "licenseId": "apache-2.0",
+      "copyright": "Copyright 2017-2024 InsertCode, Arnaud GIULIANI and the Koin contributors.",
+      "url": "https://insert-koin.io/"
+    },
+    {
+      "groupId": "io.insert-koin",
+      "name": "koin-androidx-compose",
+      "version": "4.0.0",
+      "licenseId": "apache-2.0",
+      "copyright": "Copyright 2017-2024 InsertCode, Arnaud GIULIANI and the Koin contributors.",
+      "url": "https://insert-koin.io/"
+    },
+    {
+      "groupId": "io.coil-kt",
+      "name": "coil-compose",
+      "version": "2.7.0",
+      "licenseId": "apache-2.0",
+      "copyright": "Copyright 2023, Colin White and the Coil contributors.",
+      "url": "https://coil-kt.github.io/coil/"
+    },
+    {
+      "groupId": "io.coil-kt",
+      "name": "coil-svg",
+      "version": "2.7.0",
+      "licenseId": "apache-2.0",
+      "copyright": "Copyright 2023, Colin White and the Coil contributors.",
+      "url": "https://coil-kt.github.io/coil/"
+    },
+    {
+      "groupId": "io.coil-kt",
+      "name": "coil-gif",
+      "version": "2.7.0",
+      "licenseId": "apache-2.0",
+      "copyright": "Copyright 2023, Colin White and the Coil contributors.",
+      "url": "https://coil-kt.github.io/coil/"
+    },
+    {
+      "groupId": "com.squareup.okhttp3",
+      "name": "okhttp",
+      "version": "5.3.2",
+      "licenseId": "apache-2.0",
+      "copyright": "Copyright 2013-2024 Square, Inc.",
+      "url": "https://square.github.io/okhttp/"
+    },
+    {
+      "groupId": "com.squareup.okhttp3",
+      "name": "logging-interceptor",
+      "version": "5.3.2",
+      "licenseId": "apache-2.0",
+      "copyright": "Copyright 2013-2024 Square, Inc.",
+      "url": "https://square.github.io/okhttp/"
+    },
+    {
+      "groupId": "com.squareup.okhttp3",
+      "name": "okhttp-sse",
+      "version": "5.3.2",
+      "licenseId": "apache-2.0",
+      "copyright": "Copyright 2013-2024 Square, Inc.",
+      "url": "https://square.github.io/okhttp/"
+    },
+    {
+      "groupId": "dev.chrisbanes.haze",
+      "name": "haze",
+      "version": "1.2.2",
+      "licenseId": "apache-2.0",
+      "copyright": "Copyright 2024 Chris Banes and the Haze contributors.",
+      "url": "https://github.com/chrisbanes/haze"
+    },
+    {
+      "groupId": "dev.chrisbanes.haze",
+      "name": "haze-materials",
+      "version": "1.2.2",
+      "licenseId": "apache-2.0",
+      "copyright": "Copyright 2024 Chris Banes and the Haze contributors.",
+      "url": "https://github.com/chrisbanes/haze"
+    },
+    {
+      "groupId": "io.github.dokar3",
+      "name": "sonner",
+      "version": "0.3.9",
+      "licenseId": "apache-2.0",
+      "copyright": "Copyright 2024 dokar3 and the Sonner contributors.",
+      "url": "https://github.com/dokar3/sonner"
+    },
+    {
+      "groupId": "com.tom-roush",
+      "name": "pdfbox-android",
+      "version": "2.0.27.0",
+      "licenseId": "apache-2.0",
+      "copyright": "Copyright 2021 tom-roush and the PDFBox-Android contributors. Portions copyright The Apache Software Foundation.",
+      "url": "https://github.com/TomRoush/PdfBox-Android"
+    },
+    {
+      "groupId": "com.google.mlkit",
+      "name": "text-recognition-chinese",
+      "version": "16.0.1",
+      "licenseId": "apache-2.0",
+      "copyright": "Copyright Google LLC.",
+      "url": "https://developers.google.com/ml-kit",
+      "notes": "Google ML Kit 受 Google APIs 服务条款约束,免费使用,需遵守 Google Play 政策。"
+    },
+    {
+      "groupId": "io.ktor",
+      "name": "ktor-server-core",
+      "version": "3.0.3",
+      "licenseId": "apache-2.0",
+      "copyright": "Copyright 2014-2024 JetBrains s.r.o and respective authors and developers.",
+      "url": "https://ktor.io/"
+    },
+    {
+      "groupId": "io.ktor",
+      "name": "ktor-server-cio",
+      "version": "3.0.3",
+      "licenseId": "apache-2.0",
+      "copyright": "Copyright 2014-2024 JetBrains s.r.o and respective authors and developers.",
+      "url": "https://ktor.io/"
+    },
+    {
+      "groupId": "io.ktor",
+      "name": "ktor-server-auth",
+      "version": "3.0.3",
+      "licenseId": "apache-2.0",
+      "copyright": "Copyright 2014-2024 JetBrains s.r.o and respective authors and developers.",
+      "url": "https://ktor.io/"
+    },
+    {
+      "groupId": "io.ktor",
+      "name": "ktor-server-auth-jwt",
+      "version": "3.0.3",
+      "licenseId": "apache-2.0",
+      "copyright": "Copyright 2014-2024 JetBrains s.r.o and respective authors and developers.",
+      "url": "https://ktor.io/"
+    },
+    {
+      "groupId": "io.ktor",
+      "name": "ktor-server-content-negotiation",
+      "version": "3.0.3",
+      "licenseId": "apache-2.0",
+      "copyright": "Copyright 2014-2024 JetBrains s.r.o and respective authors and developers.",
+      "url": "https://ktor.io/"
+    },
+    {
+      "groupId": "io.ktor",
+      "name": "ktor-serialization-kotlinx-json",
+      "version": "3.0.3",
+      "licenseId": "apache-2.0",
+      "copyright": "Copyright 2014-2024 JetBrains s.r.o and respective authors and developers.",
+      "url": "https://ktor.io/"
+    },
+    {
+      "groupId": "io.ktor",
+      "name": "ktor-server-cors",
+      "version": "3.0.3",
+      "licenseId": "apache-2.0",
+      "copyright": "Copyright 2014-2024 JetBrains s.r.o and respective authors and developers.",
+      "url": "https://ktor.io/"
+    },
+    {
+      "groupId": "io.ktor",
+      "name": "ktor-server-status-pages",
+      "version": "3.0.3",
+      "licenseId": "apache-2.0",
+      "copyright": "Copyright 2014-2024 JetBrains s.r.o and respective authors and developers.",
+      "url": "https://ktor.io/"
+    },
+    {
+      "groupId": "com.auth0",
+      "name": "java-jwt",
+      "version": "3.18.1",
+      "licenseId": "mit",
+      "copyright": "Copyright 2015 Auth0, Inc.",
+      "url": "https://github.com/auth0/java-jwt"
+    },
+    {
+      "groupId": "junit",
+      "name": "junit",
+      "version": "4.13.2",
+      "licenseId": "epl-1.0",
+      "copyright": "Copyright JUnit contributors.",
+      "url": "https://junit.org/junit4/",
+      "notes": "EPL-1.0 与 Apache-2.0 兼容,允许闭源商业使用,需保留声明。"
+    }
+  ]
+}

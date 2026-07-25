@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== ErrorMessage i18n 映射 ===== -->
+    <!-- 与 io.zer0.common.ErrorMessage 一一对应,键名 = error_<code>。 -->
+    <!-- 修改时务必同步更新 values-en/strings_errors.xml 与 ErrorMessageMapper。 -->
+
+    <!-- ── 网络错误(NetworkError)── -->
+    <string name="error_network_timeout">网络连接超时,请检查网络后重试</string>
+    <string name="error_network_no_connection">无可用网络连接,请检查网络设置</string>
+    <string name="error_network_dns_failed">域名解析失败,请检查网络或代理配置</string>
+
+    <!-- ── 鉴权错误(AuthError)── -->
+    <string name="error_auth_invalid_key">API Key 无效,请检查模型服务设置</string>
+    <string name="error_auth_expired">登录已过期,请重新设置 API Key</string>
+    <string name="error_auth_unauthorized">无权访问该资源,请检查账户权限</string>
+
+    <!-- ── API 服务错误(ApiError)── -->
+    <!-- RATE_LIMIT 带可选 %1$d 秒参数(由 ErrorMessageMapper 注入) -->
+    <string name="error_api_rate_limit">请求过于频繁,请 %1$d 秒后重试</string>
+    <string name="error_api_rate_limit_nodelay">请求过于频繁,请稍后重试</string>
+    <string name="error_api_server_error">服务暂不可用,请稍后重试</string>
+    <string name="error_api_model_not_found">指定的模型不可用,请到设置页切换模型</string>
+    <string name="error_api_context_length">输入超出模型上下文长度上限,请精简后重试</string>
+
+    <!-- ── 存储错误(StorageError)── -->
+    <string name="error_storage_db_full">数据库已满,请清理数据后重试</string>
+    <string name="error_storage_io_error">本地存储读写失败,请重启应用</string>
+    <string name="error_storage_migration_failed">数据库升级失败,请重启或重装应用</string>
+
+    <!-- ── 校验错误(ValidationError)── -->
+    <string name="error_validation_empty_input">输入不能为空</string>
+    <string name="error_validation_invalid_format">输入格式不合法,请检查后重试</string>
+
+    <!-- ── 通用兜底(GenericError)── -->
+    <string name="error_generic_unknown">操作失败,请稍后重试</string>
+
+    <!-- ===== ViewModel/Coordinator 用户可见错误 i18n (v1.0.18) ===== -->
+
+    <!-- ── ImageGenCoordinator ── -->
+    <string name="err_image_gen_ocr_failed">OCR 识别失败或图片中未检测到文字</string>
+    <string name="err_image_gen_read_failed">图片读取失败</string>
+    <string name="err_image_gen_max_images">最多支持 4 张图片</string>
+    <string name="err_image_gen_process_failed">图片处理失败: %1$s</string>
+    <string name="err_image_gen_video_no_frames">视频处理失败:无法提取关键帧</string>
+    <string name="err_image_gen_video_too_many">视频关键帧 %1$d 张加上现有 %2$d 张超过 4 张上限</string>
+    <string name="err_image_gen_video_failed">视频处理失败: %1$s</string>
+    <string name="err_image_gen_read_failed_msg">图片读取失败: %1$s</string>
+    <string name="err_image_gen_no_provider">未配置绘画供应商</string>
+    <string name="err_image_gen_no_model">未选择绘画模型</string>
+    <string name="err_image_gen_model_no_output">所选模型不支持图像输出</string>
+    <string name="err_image_gen_provider_unsupported">当前 Provider(%1$s)不支持绘图。OpenAI 走 Image API,Gemini 走多模态输出。</string>
+    <string name="err_image_gen_failed">图片生成失败: %1$s</string>
+    <string name="err_image_gen_no_result">图片生成未返回结果</string>
+    <string name="err_image_gen_save_failed">绘图结果保存失败: %1$s</string>
+    <string name="err_image_gen_no_image">图片生成未返回图片,模型可能不支持绘图。请检查模型是否支持图像输出。</string>
+
+    <!-- ── GroupChatViewModel ── -->
+    <string name="err_group_chat_delete_failed">删除群聊失败</string>
+    <string name="err_group_chat_delete_msg_failed">删除消息失败</string>
+    <string name="err_group_chat_operation_failed">操作失败</string>
+    <string name="err_group_chat_update_failed">更新群聊失败</string>
+
+    <!-- ── ChatMiscCoordinator ── -->
+    <string name="err_chat_misc_create_folder_failed">新建文件夹失败: %1$s</string>
+    <string name="err_chat_misc_rename_folder_failed">重命名文件夹失败: %1$s</string>
+    <string name="err_chat_misc_delete_folder_failed">删除文件夹失败: %1$s</string>
+    <string name="err_chat_misc_move_session_failed">移动会话失败: %1$s</string>
+    <string name="err_chat_misc_toggle_pin_failed">切换置顶失败: %1$s</string>
+    <string name="err_chat_misc_favorite_failed">收藏失败: %1$s</string>
+    <string name="err_chat_misc_set_tag_failed">设置分组失败: %1$s</string>
+    <string name="err_chat_misc_delete_msg_failed">删除失败: %1$s</string>
+
+    <!-- ── ChatViewModel: 错误消息 / 状态字符串 / Toast ── -->
+    <string name="err_chat_queue_full">发送队列已满,请稍后重试</string>
+    <string name="err_chat_msg_save_failed">消息保存失败: %1$s</string>
+    <string name="err_chat_network_unresolvable">无法连接到服务器,请检查网络或 API 地址</string>
+    <string name="err_chat_network_timeout">连接超时,请稍后重试</string>
+    <string name="err_chat_auth_invalid">API Key 无效或权限不足</string>
+    <string name="err_chat_rate_limited">请求过于频繁,请稍后再试</string>
+    <string name="err_chat_server_error">服务器错误,请稍后重试</string>
+    <string name="err_chat_stream_broken">流式响应中断,请重试</string>
+    <string name="err_chat_request_failed">请求失败: %1$s</string>
+    <string name="err_chat_compress_too_few">消息太少,无需压缩</string>
+    <string name="err_chat_compress_memory_failed">记忆更新失败,仅压缩历史</string>
+    <string name="err_chat_compress_done">已压缩: %1$d → %2$d 条</string>
+    <string name="err_chat_compress_no_need">记忆已更新,消息无需压缩</string>
+    <string name="err_chat_compress_failed">压缩失败: %1$s</string>
+    <string name="err_chat_fetch_models_empty">上游未返回任何模型</string>
+    <string name="err_chat_fetch_models_failed">拉取失败</string>
+    <string name="err_chat_fetch_models_no_server">无法连接到服务器</string>
+    <string name="err_chat_fetch_models_timeout">连接超时</string>
+    <string name="err_chat_fetch_models_not_supported">该供应商不支持 /models 接口</string>
+    <string name="err_chat_fetch_models_failed_msg">拉取失败: %1$s</string>
+    <string name="err_chat_model_switched_toast">已切换模型,新消息将使用新模型生成(历史消息不变)</string>
+    <string name="err_chat_fork_failed">分叉对话失败: %1$s</string>
+    <string name="err_chat_context_restarted_toast">上下文已重启</string>
+    <string name="err_chat_translate_empty">翻译结果为空</string>
+    <string name="err_chat_translate_failed">翻译失败: %1$s</string>
+    <string name="err_chat_translate_prefix">翻译(%1$s):\n\n</string>
+    <string name="err_chat_rag_failed">知识库检索失败: %1$s</string>
+    <string name="err_chat_vision_fallback">视觉辅助失败,已注入降级提示(详见日志)</string>
+    <string name="err_chat_reply_save_failed">回复保存失败: %1$s</string>
+    <string name="err_chat_unknown">未知错误</string>
+    <string name="err_chat_ref_save_failed">引用记录保存失败: %1$s</string>
+    <string name="err_chat_reply_generated">已生成回复</string>
+    <string name="err_chat_resume_busy">正在生成中,请先停止后再恢复未完成的工具调用</string>
+    <string name="err_chat_resume_read_failed">读取未完成工具调用失败: %1$s</string>
+    <string name="err_chat_tool_result_save_failed">工具结果保存失败: %1$s</string>
+    <string name="err_chat_assistant_save_failed">助手保存失败: %1$s</string>
+    <string name="err_chat_assistant_delete_failed">助手删除失败: %1$s</string>
+    <string name="err_chat_voice_no_asr">语音对话模式需要先在设置中配置 ASR API</string>
+    <string name="err_chat_tool_timeout">[超时] 工具 %1$s %2$d 秒未响应,已终止</string>
+    <string name="err_chat_tool_result_truncated">…(结果已截断,如需完整结果请使用分页或限定范围的工具)</string>
+
+    <!-- ── ChatViewModel: 工具执行进度文案(updateAssistant content,用户可见) ── -->
+    <string name="err_chat_img_generating">正在生成图片…</string>
+    <string name="err_chat_img_gen_failed_no_result">图片生成失败: 未返回结果</string>
+    <string name="err_chat_img_generated">已生成图片</string>
+    <string name="err_chat_img_cancelled">图片生成已取消</string>
+    <string name="err_chat_img_gen_failed">图片生成失败: %1$s</string>
+    <string name="err_chat_video_generating">正在生成视频,这可能需要几十秒…</string>
+    <string name="err_chat_video_progress">视频生成中,已等待 %1$d 秒…</string>
+    <string name="err_chat_video_generated">已生成视频</string>
+    <string name="err_chat_video_cancelled">视频生成已取消</string>
+    <string name="err_chat_video_gen_failed">视频生成失败: %1$s</string>
+    <string name="err_chat_qr_generated">已生成二维码</string>
+</resources>

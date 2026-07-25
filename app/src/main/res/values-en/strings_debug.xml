@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== DebugScreen.kt ===== -->
+    <!-- Clear confirmation dialog -->
+    <string name="debug_clear_logs_title">Clear debug logs</string>
+    <string name="debug_clear_logs_confirm">Clear all %1$d logs? This cannot be undone.</string>
+    <string name="debug_action_clear">Clear</string>
+    <string name="debug_cleared_toast">Cleared</string>
+
+    <!-- Copy logs -->
+    <string name="debug_no_logs_to_copy">No logs to copy</string>
+    <string name="debug_logs_copied_toast">Copied %1$d logs to clipboard</string>
+
+    <!-- Export logs -->
+    <string name="debug_export_failed_no_logs">Export failed: no logs or directory not initialized</string>
+    <string name="debug_export_failed_no_uri">Export failed: cannot get file URI</string>
+    <string name="debug_share_log_chooser">Share debug logs</string>
+
+    <!-- Top bar / titles -->
+    <string name="debug_screen_title">Debug logs</string>
+    <string name="debug_cd_resume_follow">Resume following</string>
+    <string name="debug_cd_pause_follow">Pause following</string>
+    <string name="debug_cd_crash_logs">Crash logs</string>
+    <string name="debug_cd_analytics">Local analytics</string>
+    <string name="debug_cd_db_integrity">Database integrity</string>
+    <string name="debug_cd_clear">Clear</string>
+    <string name="debug_cd_export">Export</string>
+    <string name="debug_cd_copy">Copy</string>
+
+    <!-- Log count -->
+    <string name="debug_log_count">%1$d entries total</string>
+    <string name="debug_log_count_paused_suffix"> · Following paused</string>
+
+    <!-- Filter row -->
+    <string name="debug_level_label">Level</string>
+    <string name="debug_keyword_label">Keyword</string>
+
+    <!-- Empty state -->
+    <string name="debug_empty_title">No logs</string>
+    <string name="debug_empty_subtitle">Logs from Logger calls will appear here in real time</string>
+
+    <!-- Crash log panel (CrashLogSheet) -->
+    <string name="debug_crash_log_title">Crash logs</string>
+    <string name="debug_export_zip_and_share">Export ZIP and share</string>
+    <string name="debug_loading_crash_logs">Loading crash logs…</string>
+    <string name="debug_no_crash_logs">No crash logs\n\nThe app hasn\'t crashed, or logs have been auto-cleaned (only the latest 5 are kept).</string>
+    <string name="debug_crash_log_count">%1$d files (newest first, only the latest 5 are kept)</string>
+    <string name="debug_cd_share_crash_log">Share this log</string>
+    <string name="debug_loading">Loading…</string>
+    <string name="debug_crash_preview_truncated">Only the first %1$d characters are shown. Use the share button to export and view the full content.</string>
+
+    <!-- Crash log sharing (non-Composable helpers, use context.getString) -->
+    <string name="debug_export_failed_no_crash_logs">Export failed: no crash logs</string>
+    <string name="debug_share_crash_zip_chooser">Share crash log ZIP</string>
+    <string name="debug_share_failed_no_uri">Share failed: cannot get file URI</string>
+    <string name="debug_share_crash_log_chooser">Share crash log</string>
+
+    <!-- Local analytics panel (AnalyticsSheet) -->
+    <string name="debug_analytics_title">Local analytics</string>
+    <string name="debug_loading_analytics">Loading analytics…</string>
+    <string name="debug_analytics_load_failed">Cannot read analytics data</string>
+    <string name="debug_metric_dau_today">DAU today</string>
+    <string name="debug_metric_mau_month">MAU this month</string>
+    <string name="debug_metric_total_sessions">Total sessions</string>
+    <string name="debug_metric_total_messages">Total messages</string>
+    <string name="debug_metric_launch_count">Launches</string>
+    <string name="debug_metric_crash_count">Crashes</string>
+    <string name="debug_metric_crash_count_value">%1$d (%2$s)</string>
+    <string name="debug_status_first_chat">First chat completed</string>
+    <string name="debug_status_memory_adopted">Memory system adopted</string>
+    <string name="debug_status_last_active">Last active date</string>
+    <string name="debug_value_yes">Yes</string>
+    <string name="debug_value_no">No</string>
+
+    <!-- Retention card -->
+    <string name="debug_retention_title">Retention (since first launch)</string>
+    <string name="debug_retention_d1">Day 1 (D1)</string>
+    <string name="debug_retention_d7">Day 7 (D7)</string>
+    <string name="debug_retention_d30">Day 30 (D30)</string>
+
+    <!-- Feature usage -->
+    <string name="debug_feature_usage_top">Top 10 feature usage</string>
+    <string name="debug_no_feature_usage">No feature usage records</string>
+
+    <!-- Database integrity panel (DbIntegritySheet) -->
+    <string name="debug_db_integrity_title">Database integrity</string>
+    <string name="debug_loading_db_integrity">Loading last check record…</string>
+    <string name="debug_db_status_ok">Database OK</string>
+    <string name="debug_db_status_error">Database error</string>
+    <string name="debug_db_size_label">DB size: %1$s</string>
+    <string name="debug_db_check_time_label">Check time: %1$s</string>
+    <string name="debug_no_details">(No details)</string>
+    <string name="debug_db_error_advice">Suggestion: restore the latest automatic backup from \"Settings → Backup &amp; Recovery\", or export critical conversations and reinstall the app.</string>
+    <string name="debug_integrity_check_passed">Integrity check passed</string>
+    <string name="debug_integrity_check_failed">Integrity check failed, please view details</string>
+    <string name="debug_checking">Checking…</string>
+    <string name="debug_check_now">Check now</string>
+    <string name="debug_no_check_record">No check record yet\n\nTap the button below to run an integrity check now.</string>
+</resources>

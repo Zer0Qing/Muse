@@ -1,0 +1,292 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== ChatScreen ===== -->
+    <!-- Top bar -->
+    <string name="chat_session_cd">Current chat: %1$s, tap to switch</string>
+    <string name="chat_model_not_configured">Not configured</string>
+    <string name="chat_model_cd">Current model: %1$s, tap to switch</string>
+    <string name="chat_context_usage_cd">Context usage %1$s%%, %2$d tokens total</string>
+    <string name="chat_context_tokens_only_cd">Context token count %1$d, model has no context window</string>
+    <string name="chat_context_no_window_detail">%1$d tokens (model has no context window)</string>
+    <string name="chat_assistant_model_badge">Model: %1$s</string>
+    <string name="chat_update_compress_cd">Update &amp; Compress</string>
+    <string name="chat_scroll_to_bottom_cd">Scroll to bottom</string>
+
+    <!-- Errors and permissions -->
+    <string name="chat_err_mic_permission">Microphone permission is required for voice input</string>
+    <string name="chat_err_open_file_picker">Cannot open file picker: %1$s</string>
+    <string name="chat_err_open_image_picker">Cannot open image picker: %1$s</string>
+    <string name="chat_err_no_speech_service">No speech recognition service available. Configure DashScope or Step in Settings → Speech Recognition.</string>
+    <string name="chat_err_start_speech">Cannot start speech recognition: %1$s</string>
+    <string name="chat_error_cd">Error: %1$s, retry or close</string>
+    <string name="chat_retry">Retry</string>
+
+    <!-- Share -->
+    <string name="chat_share_subject">muse conversation</string>
+    <string name="chat_share_chooser_title">Share Chat</string>
+
+    <!-- Copy toast -->
+    <string name="chat_copied_toast">Copied</string>
+
+    <!-- Prompt templates -->
+    <string name="chat_prompt_templates_title">Prompt Templates</string>
+
+    <!-- Knowledge base -->
+    <string name="chat_knowledge_dialog_title">Reference Knowledge Base</string>
+    <string name="chat_knowledge_empty">Knowledge base is empty. Import documents in Settings first.</string>
+    <string name="chat_knowledge_doc_meta">%1$s · %2$d chars</string>
+
+    <!-- Session switch -->
+    <string name="chat_switch_session_title">Switch Chat</string>
+    <string name="chat_no_sessions">No chats yet</string>
+    <string name="chat_new_session">New Chat</string>
+
+    <!-- Delegate to assistant -->
+    <string name="chat_delegate_title">Delegate to Assistant</string>
+    <string name="chat_delegate_empty">No assistants or teams available. Create one in Assistant management first.</string>
+    <string name="chat_delegate_assistants">Available Assistants</string>
+    <string name="chat_delegate_unnamed_assistant">Unnamed Assistant</string>
+    <string name="chat_delegate_assistant_prompt_input">Please delegate to %1$s: %2$s</string>
+    <string name="chat_delegate_assistant_prompt_message">Please delegate the content above to %1$s:</string>
+    <string name="chat_delegate_no_text">This message has no text content to delegate</string>
+    <string name="chat_delegate_teams">Collaborative Teams</string>
+    <string name="chat_delegate_unnamed_team">Unnamed Team</string>
+    <string name="chat_delegate_team_prompt_input">Please handle as %1$s team: %2$s</string>
+    <string name="chat_delegate_team_prompt_message">Please handle the content above as %1$s team:</string>
+
+    <!-- Empty state guide -->
+    <string name="chat_avatar_assistant_cd">Assistant avatar</string>
+    <string name="chat_avatar_muse_cd">Muse icon</string>
+    <string name="chat_empty_guide_title">What would you like to chat about today?</string>
+    <string name="chat_suggested_prompt_report">Write a weekly report</string>
+    <string name="chat_suggested_prompt_summary">Summarize today\'s work</string>
+    <string name="chat_suggested_prompt_explain">Explain this concept</string>
+    <string name="chat_suggested_prompt_ideas">Give me some creative ideas</string>
+
+    <!-- Image generation placeholder -->
+    <string name="chat_image_generating">Generating image…</string>
+
+    <!-- ===== MessageBubble ===== -->
+    <!-- MOOD / Reasoning / Reflection collapsible blocks -->
+    <string name="chat_mood_collapse_cd">Collapse MOOD</string>
+    <string name="chat_mood_expand_cd">Expand MOOD</string>
+    <string name="chat_reasoning_title">Reasoning</string>
+    <string name="chat_reasoning_collapse_cd">Collapse Reasoning</string>
+    <string name="chat_reasoning_expand_cd">Expand Reasoning</string>
+    <string name="chat_reflection_title">Reflection</string>
+    <string name="chat_reflection_collapse_cd">Collapse Reflection</string>
+    <string name="chat_reflection_expand_cd">Expand Reflection</string>
+
+    <!-- Images -->
+    <string name="chat_user_image_cd">User image</string>
+    <string name="chat_generated_image_cd">Generated image</string>
+    <string name="chat_save_image_cd">Save Image</string>
+    <string name="chat_image_saved_toast">Saved to gallery: %1$s</string>
+    <string name="chat_image_save_failed_toast">Save failed: %1$s</string>
+    <string name="chat_image_page_cd">Image %1$d / %2$d</string>
+
+    <!-- Quick buttons and long-press menu -->
+    <string name="chat_regenerate_cd">Regenerate</string>
+    <string name="chat_regenerate_action">Regenerate</string>
+    <string name="chat_translate_action">Translate</string>
+    <string name="chat_translate_to_cd">Translate to %1$s</string>
+    <string name="chat_delegate_action">Delegate to Assistant</string>
+    <string name="chat_tts_stop">Stop Reading</string>
+    <string name="chat_tts_play">Read Aloud</string>
+    <string name="chat_favorite_remove">Remove Favorite</string>
+    <string name="chat_favorite_add">Favorite</string>
+    <string name="chat_fork_action">Fork Chat</string>
+    <string name="chat_share_action">Share Chat</string>
+    <string name="chat_delete_message">Delete Message</string>
+    <string name="chat_delete_message_confirm">This action cannot be undone. Delete this message?</string>
+    <string name="chat_translate_in_progress">Translating…</string>
+
+    <!-- Loading and tool calls -->
+    <string name="chat_loading_thinking">Thinking</string>
+    <string name="chat_tool_success_cd">Success</string>
+    <string name="chat_tool_failed_cd">Failed</string>
+    <string name="chat_tool_params">Parameters</string>
+    <string name="chat_tool_result">Result</string>
+
+    <!-- ===== InputBar ===== -->
+    <!-- Top toggles -->
+    <string name="chat_web_search_cd_on">Web Search (On)</string>
+    <string name="chat_web_search_cd">Web Search</string>
+    <string name="chat_deep_thinking_cd_on">Deep Thinking (On)</string>
+    <string name="chat_deep_thinking_cd">Deep Thinking</string>
+    <!-- v1.94: Tool call dynamic capsule -->
+    <string name="chat_tool_calls_cd">Tool call history</string>
+    <string name="chat_tool_calls_title">Tool Call History</string>
+    <string name="chat_tool_calls_empty">No tool calls</string>
+
+    <!-- Resume interrupted tool calls banner -->
+    <string name="chat_pending_tools_banner_title">%1$d tool call(s) unfinished last time</string>
+    <string name="chat_pending_tools_banner_subtitle">Streaming was interrupted. Resume?</string>
+    <string name="chat_pending_tools_resume">Resume</string>
+    <string name="chat_pending_tools_discard">Discard</string>
+    <string name="chat_pending_tools_cd">Pending tool calls recovery banner</string>
+
+    <!-- Quick messages and images -->
+    <string name="chat_unnamed">Unnamed</string>
+    <string name="chat_pending_image_cd">Pending image %1$d</string>
+    <string name="chat_remove_image_cd">Remove Image</string>
+
+    <!-- Quote reply -->
+    <string name="chat_edit_reply_cd">Edit Quote</string>
+    <string name="chat_edit_reply_title">Edit Quote Content</string>
+
+    <!-- Tool menu -->
+    <string name="chat_tools_cd">Tools</string>
+    <string name="chat_tools_pick_content">Choose content to send</string>
+    <string name="chat_tool_camera">Camera</string>
+    <string name="chat_tool_photo">Photos</string>
+    <!-- Video input: tool menu card label -->
+    <string name="chat_tool_video">Video</string>
+    <string name="chat_gallery_image_cd">Gallery image</string>
+    <string name="chat_gallery_cd">Gallery</string>
+    <string name="chat_authorize_gallery">Allow Gallery Access</string>
+    <string name="chat_tool_attachment">Attachment</string>
+    <string name="chat_tool_knowledge">Reference Knowledge Base</string>
+    <string name="chat_tool_knowledge_subtitle">@mention documents</string>
+    <string name="chat_tool_prompt_template_subtitle">Pick a scene prompt from templates</string>
+    <string name="chat_tool_draw_mode">Draw Mode</string>
+    <string name="chat_tool_draw_mode_subtitle_on">On · Describe an image to generate</string>
+    <string name="chat_tool_draw_mode_subtitle">Describe an image to generate</string>
+    <string name="chat_tool_delegate_subtitle">Pick a sub-assistant to handle this message</string>
+    <string name="chat_tool_restart_context">Restart Context</string>
+    <string name="chat_tool_restart_context_subtitle">Clear current chat and let the Agent start over</string>
+
+    <!-- Input field and buttons -->
+    <string name="chat_placeholder_draw">Describe an image to generate…</string>
+    <string name="chat_placeholder_send">Send a message…</string>
+    <string name="chat_stop_generation_cd">Stop Generating</string>
+    <string name="chat_recording_start_failed">Failed to start recording. Check permissions or model config.</string>
+    <string name="chat_recognizing_cd">Recognizing</string>
+    <string name="chat_recording_cd">Recording</string>
+    <string name="chat_hold_to_record_cd">Hold to Record</string>
+    <string name="chat_cancelled">Cancelled</string>
+    <!-- v1.95: System speech recognition first-use tip -->
+    <string name="chat_asr_tip_title">Speech Recognition Tip</string>
+    <string name="chat_asr_tip_message">System speech recognition shows a system dialog each time. For in-app recording, configure DashScope or Step in Settings → Speech Recognition.</string>
+    <string name="chat_asr_tip_confirm">Continue</string>
+
+    <!-- Draw params panel -->
+    <string name="chat_image_too_large">Image too large or unreadable</string>
+    <string name="chat_ref_image_load_failed">Reference image load failed: %1$s</string>
+    <string name="chat_ref_image_compressed">Reference image compressed: %1$s</string>
+    <string name="chat_ref_image_too_large_after_compress">Reference image still too large after compression, please pick a smaller one</string>
+    <!-- Video input: a11y descriptions + error messages -->
+    <string name="chat_pending_video_cd">Pending video attachment</string>
+    <string name="chat_remove_video_cd">Remove video</string>
+    <string name="chat_user_video_cd">Video sent by user</string>
+    <string name="chat_video_open_failed">Unable to open video: %1$s</string>
+    <string name="chat_video_too_large">Video too large (over 50MB). Please compress and retry.</string>
+    <string name="chat_video_load_failed">Video read failed: %1$s</string>
+    <string name="chat_draw_params">Draw Parameters</string>
+    <string name="chat_ref_image_add">+ Reference Image</string>
+    <string name="chat_ref_image_not_supported">Reference image not supported by current model</string>
+    <string name="chat_ref_image_cd">Reference Image</string>
+    <string name="chat_ref_image_clear_cd">Clear Reference Image</string>
+    <string name="chat_quality_standard">Standard</string>
+    <string name="chat_quality_hd">HD</string>
+    <string name="chat_quality_high">High</string>
+    <string name="chat_quality_medium">Medium</string>
+    <string name="chat_quality_low">Low</string>
+    <string name="chat_quality_auto">Auto</string>
+    <string name="chat_style_vivid">Vivid</string>
+    <string name="chat_style_natural">Natural</string>
+
+    <!-- ===== ChatListScreen ===== -->
+    <!-- Big entry cards -->
+    <string name="chat_list_scheduled_tasks">Scheduled Tasks</string>
+    <string name="chat_list_scheduled_subtitle">Auto-run</string>
+    <string name="chat_list_quick_notes">Quick Notes</string>
+    <string name="chat_list_quick_notes_subtitle">Light notes</string>
+    <string name="chat_list_quick_translate">Quick Translate</string>
+    <string name="chat_list_knowledge_base">Knowledge</string>
+
+    <!-- Filter cards -->
+    <string name="chat_list_filter_all">All</string>
+    <string name="chat_list_filter_pinned">Pinned</string>
+    <string name="chat_list_filter_archived">Archived</string>
+
+    <!-- Empty states -->
+    <string name="chat_list_empty_all">No tasks yet</string>
+    <string name="chat_list_empty_pinned">No pinned tasks yet</string>
+    <string name="chat_list_empty_archived">No archived tasks yet</string>
+    <string name="chat_list_empty_all_sub">Start recording your ideas and research</string>
+    <string name="chat_list_empty_pinned_sub">Long-press a chat to pin it</string>
+    <string name="chat_list_empty_archived_sub">Long-press a chat to archive it</string>
+
+    <!-- Section titles -->
+    <string name="chat_list_section_ungrouped">Ungrouped</string>
+    <string name="chat_list_section_recent">Recent</string>
+    <string name="chat_list_new_folder">New Folder</string>
+
+    <!-- Bottom button and dialogs -->
+    <string name="chat_list_new_task">New Task</string>
+    <string name="chat_list_new_task_card_subtitle">Capture ideas, create tasks, or start a chat</string>
+    <string name="chat_list_folder_name_placeholder">Folder name</string>
+    <string name="chat_list_create">Create</string>
+
+    <!-- Session long-press menu -->
+    <string name="chat_list_unpin">Unpin</string>
+    <string name="chat_list_move_ungrouped">Move to Ungrouped</string>
+    <string name="chat_list_move_to">Move to: %1$s</string>
+    <string name="chat_list_move_to_cd">Move to %1$s</string>
+    <string name="chat_list_rename">Rename</string>
+    <string name="chat_list_unarchive">Unarchive</string>
+
+    <!-- Session rename/delete dialogs -->
+    <string name="chat_list_rename_session_title">Rename Chat</string>
+    <string name="chat_list_confirm">OK</string>
+    <string name="chat_list_delete_session_title">Delete Chat</string>
+    <string name="chat_list_delete_session_confirm">This action cannot be undone. Delete \"%1$s\" and all its messages?</string>
+    <string name="chat_list_deleted_toast">Deleted</string>
+
+    <!-- Folder rename/delete dialogs -->
+    <string name="chat_list_delete_folder_title">Delete Folder</string>
+    <string name="chat_list_rename_folder_title">Rename Folder</string>
+    <string name="chat_list_delete_folder_confirm">Deleting folder \"%1$s\" will move its chats to Ungrouped. Confirm delete?</string>
+
+    <!-- v5: chat fork -->
+    <string name="chat_list_forked_from">Forked from %1$s</string>
+    <string name="chat_list_child_count">+%1$d</string>
+
+    <!-- ===== v1.95: Sticker Library ===== -->
+    <!-- ChatSettingsPage sticker library section -->
+    <string name="settings_chat_sticker_section">Sticker Library</string>
+    <string name="settings_sticker_enabled">Enable Stickers</string>
+    <string name="settings_sticker_enabled_subtitle">Allow the assistant to send stickers in replies</string>
+    <string name="settings_sticker_send_probability">Send Probability</string>
+    <string name="settings_sticker_send_probability_subtitle">Probability that the assistant sends a sticker per reply</string>
+    <string name="settings_sticker_upload_zip">Import ZIP</string>
+    <string name="settings_sticker_upload_zip_subtitle">Pick a ZIP file; categories are derived from folder structure</string>
+    <string name="settings_sticker_imported">Imported %1$d stickers</string>
+    <string name="settings_sticker_import_failed">Import failed: %1$s</string>
+    <string name="settings_sticker_empty_title">No stickers yet</string>
+    <string name="settings_sticker_empty_subtitle">Tap \"Import ZIP\" above to add a ZIP file</string>
+    <string name="settings_sticker_delete_confirm">Delete this sticker?</string>
+    <string name="settings_sticker_category_all">All</string>
+
+    <!-- SkillExecutor sticker tool feedback -->
+    <string name="skill_sticker_not_configured">Sticker library is not configured</string>
+    <string name="skill_sticker_not_found">Sticker with ID %1$s not found</string>
+    <string name="skill_sticker_sent">Sticker sent: %1$s</string>
+    <string name="skill_sticker_list_empty">Sticker library is empty</string>
+
+    <!-- v1.97: Slash commands -->
+    <string name="slash_command_hint">Type / for quick commands</string>
+    <string name="slash_command_new">/new New session</string>
+    <string name="slash_command_compact">/compact Compress session history</string>
+    <string name="slash_command_reset">/reset Reset context</string>
+    <string name="slash_command_pin">/pin Toggle pin</string>
+    <string name="slash_command_archive">/archive Archive session</string>
+    <string name="slash_command_unknown">Unknown command: %1$s</string>
+    <string name="slash_command_executed">Executed: %1$s</string>
+    <string name="slash_command_new_done">New session created</string>
+    <string name="slash_command_compact_done">Compressing session history...</string>
+    <string name="slash_command_reset_done">Context reset</string>
+    <string name="slash_command_pin_done">Pin toggled</string>
+    <string name="slash_command_archive_done">Session archived</string>
+</resources>

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 言語選択ピッカー(他の設定文字列は既定の中国語にフォールバック) -->
+    <string name="settings_theme_appearance">外観</string>
+    <string name="settings_theme_follow_system">システムに従う</string>
+    <string name="settings_theme_light">ライト</string>
+    <string name="settings_theme_dark">ダーク</string>
+    <string name="settings_theme_current_mode">現在のモード</string>
+    <string name="settings_theme_selected">選択中</string>
+    <string name="settings_theme_language">言語</string>
+    <string name="settings_theme_language_zh">中国語</string>
+    <string name="settings_theme_language_en">英語</string>
+    <string name="settings_theme_language_ja">日本語</string>
+    <string name="settings_theme_language_ko">韓国語</string>
+    <string name="settings_theme_language_ru">ロシア語</string>
+    <string name="settings_theme_current_language">現在の言語</string>
+
+    <!-- 設定サブページ見出し -->
+    <string name="settings_sub_model_services">モデルとサービス</string>
+    <string name="settings_sub_user_profile">ユーザープロフィール</string>
+    <string name="settings_sub_data_backup">データとバックアップ</string>
+
+    <!-- 共通ボタン -->
+    <string name="settings_about_check_update">更新を確認</string>
+    <string name="settings_about_checking">確認中</string>
+    <string name="settings_about_up_to_date">最新バージョンです</string>
+    <string name="settings_about_feedback">フィードバック</string>
+    <string name="settings_about_got_it">了解</string>
+    <string name="settings_about_logout">ログアウト</string>
+    <string name="settings_about_logout_button">ログアウト</string>
+    <string name="settings_about_download">ダウンロード</string>
+    <string name="settings_about_processing">処理中</string>
+
+    <!-- 既定ホームページ -->
+    <string name="settings_default_home_page_title">起動時の既定ページ</string>
+    <string name="settings_default_home_page_desc">アプリ起動時に表示するページを選択</string>
+
+    <!-- 外観/テーマ関連 -->
+    <string name="settings_theme_font_size">文字サイズ</string>
+    <string name="settings_theme_font_small">小</string>
+    <string name="settings_theme_font_medium">中</string>
+    <string name="settings_theme_font_large">大</string>
+    <string name="settings_theme_font_xlarge">特大</string>
+    <string name="settings_theme_current_font_size">現在のサイズ</string>
+    <string name="settings_theme_dynamic_color">ダイナミックカラー</string>
+    <string name="settings_theme_preview">テーマプレビュー</string>
+    <string name="settings_theme_preview_hello">こんにちは</string>
+    <string name="settings_theme_preview_reply">こんにちは!何かお手伝いしましょうか?</string>
+
+    <!-- カスタムテーマ -->
+    <string name="settings_theme_custom_section">カスタムテーマ</string>
+    <string name="settings_theme_custom_add">テーマを追加</string>
+    <string name="settings_theme_custom_edit">テーマを編集</string>
+    <string name="settings_theme_custom_create">テーマを作成</string>
+    <string name="settings_theme_custom_name">テーマ名</string>
+    <string name="settings_theme_custom_save">保存</string>
+    <string name="settings_theme_custom_delete">削除</string>
+    <string name="settings_theme_custom_delete_confirm">このテーマを削除しますか?</string>
+    <string name="settings_theme_custom_unnamed">無名</string>
+
+    <!-- 記憶と通知 -->
+    <string name="settings_memory_page_title">記憶と通知</string>
+    <string name="settings_memory_system_section">記憶システム</string>
+    <string name="settings_memory_notification_section">通知</string>
+    <string name="settings_memory_restore_default">既定に戻す</string>
+    <string name="settings_memory_advanced_section">詳細</string>
+    <string name="settings_memory_keep_awake">スリープ防止</string>
+    <string name="settings_memory_auto_launch">自動起動</string>
+    <string name="settings_memory_reply_notification">返信完了通知</string>
+
+    <!-- データインポート -->
+    <string name="settings_import_page_title">データインポート</string>
+    <string name="settings_import_select_backup">バックアップファイルを選択(ZIP 形式)</string>
+    <string name="settings_importing">インポート中です。お待ちください...</string>
+    <string name="settings_import_complete">インポート完了</string>
+    <string name="settings_import_ready">準備完了、ファイルを選択</string>
+</resources>

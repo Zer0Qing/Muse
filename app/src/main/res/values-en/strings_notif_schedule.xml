@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== notification ===== -->
+    <!-- Notification channel names -->
+    <string name="notif_channel_chat_completed_name">Message generation completed</string>
+    <string name="notif_channel_chat_completed_desc">Notification when background streaming generation completes</string>
+    <string name="notif_channel_chat_live_update_name">Generation progress</string>
+    <string name="notif_channel_chat_live_update_desc">Real-time progress notification during streaming generation</string>
+    <string name="notif_channel_web_server_name">Web server</string>
+    <string name="notif_channel_web_server_desc">Web server running status notification</string>
+    <string name="notif_channel_proactive_message_name">Proactive message</string>
+    <string name="notif_channel_proactive_message_desc">Notification when assistant proactively sends you a message</string>
+    <!-- Notification title/content -->
+    <string name="notif_chat_completed_title">Reply completed · %1$s</string>
+    <string name="notif_proactive_message_title">%1$s sent a message</string>
+    <string name="notif_live_progress_title">Generating · %1$s</string>
+    <string name="notif_live_progress_text">%1$d chars</string>
+    <string name="notif_web_server_title">muse Web server running</string>
+    <string name="notif_web_server_text">Port %1$d · LAN devices can access</string>
+    <!-- v1.133: App update notification (reuses CHANNEL_CHAT_COMPLETED) -->
+    <string name="update_notif_title">New version available</string>
+    <string name="update_notif_text">%1$s has been released, tap to view details</string>
+    <!-- v1.133: In-app update banner -->
+    <string name="update_banner_published">%1$s released</string>
+    <string name="update_banner_view_detail">View details</string>
+    <string name="update_banner_download_apk">Download APK</string>
+    <string name="update_banner_close_cd">Dismiss new version banner</string>
+    <string name="update_found_new">New version found, see banner at top</string>
+    <string name="update_already_latest">Already up to date</string>
+
+    <!-- ===== schedule ===== -->
+    <!-- Scheduled task notification channel -->
+    <string name="schedule_channel_name">Scheduled tasks</string>
+    <string name="schedule_channel_desc">Notification for scheduled task due</string>
+    <!-- Scheduled task default session name -->
+    <string name="schedule_default_session_name">Scheduled task</string>
+    <!-- Chat generation foreground service default notification title -->
+    <string name="schedule_generating_default_title">Generating</string>
+    <!-- v1.137: Execution summary when automation condition is not met -->
+    <string name="schedule_condition_not_met">Condition not met, skipped</string>
+
+    <!-- ===== main activity ===== -->
+    <!-- Safe mode -->
+    <string name="main_activity_safe_mode_title">muse is in safe mode</string>
+    <string name="main_activity_safe_mode_desc">A crash occurred last time. The crash log has been saved. Tap the button below to clear the flag and restart normally.</string>
+    <string name="main_activity_crash_log_copied">Crash log copied to clipboard</string>
+    <string name="main_activity_copy_crash_log">Copy crash log</string>
+    <string name="main_activity_clear_flag_and_exit">Clear flag and exit</string>
+    <string name="main_activity_send_crash_email">Send crash log via email</string>
+    <string name="main_activity_send_crash_email_failed">No email app found, log copied to clipboard</string>
+    <!-- v2.0+: SafeModeScreen new copy (modeled after rikkahub SafeModeActivity) -->
+    <string name="safe_mode_warning_title">Last launch crashed</string>
+    <string name="safe_mode_continue_normal">Continue normal startup</string>
+    <string name="safe_mode_view_full_log">View full crash log</string>
+    <string name="safe_mode_clear_data_restart">Clear all data and restart</string>
+    <string name="safe_mode_copy_crash_info">Copy crash info</string>
+    <string name="safe_mode_crash_time_label">Crash time</string>
+    <string name="safe_mode_stack_trace_label">Stack trace</string>
+    <string name="safe_mode_no_crash_log">No crash log recorded</string>
+    <string name="safe_mode_share_log_failed">Failed to share crash log</string>
+    <!-- PIN lock screen -->
+    <string name="main_activity_locked_title">muse is locked</string>
+    <string name="main_activity_pin_prompt">Enter PIN to continue</string>
+    <string name="main_activity_pin_locked">Too many incorrect PIN attempts, please wait %1$ds before retrying</string>
+    <string name="main_activity_pin_error">PIN incorrect, please retry</string>
+    <string name="main_activity_exit_app">Exit app</string>
+
+    <!-- ===== NotificationListenerScreen.kt ===== -->
+    <string name="notif_listener_screen_title">Notification Listener</string>
+    <string name="notif_listener_open_settings_failed">Unable to open system settings</string>
+    <string name="notif_listener_auth_settings">Grant Access</string>
+    <string name="notif_listener_cleared_toast">Notification records cleared</string>
+    <string name="notif_listener_clear_records">Clear Records</string>
+    <string name="notif_listener_feature_title">Feature Description</string>
+    <string name="notif_listener_feature_desc">Once authorized, Muse can sense notifications from other apps as event sources for AI to query in chat. For example, you can ask: \"What notifications did I get on WeChat today?\" \"Are there any important unread messages?\"</string>
+    <string name="notif_listener_privacy_title">Privacy Boundary</string>
+    <string name="notif_listener_privacy_desc">• Notification content is stored locally only (max 50 entries, oldest dropped when full)\n• System UI and Muse\'s own notifications are filtered out\n• No notification data is uploaded to any server\n• You can \"Clear Records\" here or revoke access in system settings at any time</string>
+    <string name="notif_listener_recent_header">Recent Notifications (%1$d/50)</string>
+    <string name="notif_listener_empty_connected">No notification records yet\nNew notifications will appear here automatically once authorized</string>
+    <string name="notif_listener_empty_disconnected">Not authorized yet\nPlease tap \"Grant Access\" above first</string>
+    <string name="notif_listener_authorized">Authorized</string>
+    <string name="notif_listener_unauthorized">Not Authorized</string>
+    <string name="notif_listener_recent_count_connected">Recent notifications: %1$d</string>
+    <string name="notif_listener_recent_count_disconnected">Recent notifications: %1$d · Please grant access in system settings first</string>
+    <string name="notif_listener_refresh_cd">Refresh status</string>
+</resources>

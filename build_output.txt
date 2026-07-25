@@ -1,0 +1,287 @@
+﻿To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+> Task :ai:preBuild UP-TO-DATE
+> Task :ai:preDebugBuild UP-TO-DATE
+> Task :ai:generateDebugBuildConfig
+> Task :ai:generateDebugResources
+> Task :ai:packageDebugResources
+> Task :ai:processDebugNavigationResources
+> Task :ai:parseDebugLocalResources
+> Task :ai:generateDebugRFile
+> Task :common:preBuild UP-TO-DATE
+> Task :common:preDebugBuild UP-TO-DATE
+> Task :common:generateDebugResources
+> Task :common:packageDebugResources
+> Task :common:processDebugNavigationResources
+> Task :common:parseDebugLocalResources
+> Task :common:generateDebugRFile
+> Task :common:compileDebugKotlin
+> Task :common:javaPreCompileDebug UP-TO-DATE
+> Task :common:compileDebugJavaWithJavac NO-SOURCE
+> Task :common:bundleLibCompileToJarDebug
+
+> Task :ai:compileDebugKotlin
+w: file:///D:/1test/1muse/ai/src/main/java/io/zer0/ai/anthropic/AnthropicProvider.kt:157:76 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
+w: file:///D:/1test/1muse/ai/src/main/java/io/zer0/ai/anthropic/AnthropicProvider.kt:167:82 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
+w: file:///D:/1test/1muse/ai/src/main/java/io/zer0/ai/anthropic/AnthropicProvider.kt:173:76 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
+w: file:///D:/1test/1muse/ai/src/main/java/io/zer0/ai/anthropic/AnthropicProvider.kt:191:82 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
+w: file:///D:/1test/1muse/ai/src/main/java/io/zer0/ai/anthropic/AnthropicProvider.kt:338:72 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
+w: file:///D:/1test/1muse/ai/src/main/java/io/zer0/ai/anthropic/AnthropicProvider.kt:347:78 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
+w: file:///D:/1test/1muse/ai/src/main/java/io/zer0/ai/anthropic/AnthropicProvider.kt:354:40 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
+w: file:///D:/1test/1muse/ai/src/main/java/io/zer0/ai/anthropic/AnthropicProvider.kt:362:47 Unnecessary safe call on a non-null receiver of type 'Response'.
+w: file:///D:/1test/1muse/ai/src/main/java/io/zer0/ai/anthropic/AnthropicProvider.kt:372:78 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
+w: file:///D:/1test/1muse/ai/src/main/java/io/zer0/ai/core/ProviderHttpSupport.kt:183:26 Unnecessary safe call on a non-null receiver of type 'ResponseBody'.
+w: file:///D:/1test/1muse/ai/src/main/java/io/zer0/ai/gemini/GeminiProvider.kt:206:68 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
+w: file:///D:/1test/1muse/ai/src/main/java/io/zer0/ai/gemini/GeminiProvider.kt:216:74 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
+w: file:///D:/1test/1muse/ai/src/main/java/io/zer0/ai/gemini/GeminiProvider.kt:313:110 Elvis operator (?:) always returns the left operand of non-nullable type 'String'.
+w: file:///D:/1test/1muse/ai/src/main/java/io/zer0/ai/gemini/GeminiProvider.kt:348:64 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
+w: file:///D:/1test/1muse/ai/src/main/java/io/zer0/ai/gemini/GeminiProvider.kt:357:70 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
+w: file:///D:/1test/1muse/ai/src/main/java/io/zer0/ai/image/AgnesImageProvider.kt:171:18 Unnecessary safe call on a non-null receiver of type 'ResponseBody'.
+w: file:///D:/1test/1muse/ai/src/main/java/io/zer0/ai/image/OpenAIImageProvider.kt:122:48 Unnecessary safe call on a non-null receiver of type 'ResponseBody'.
+w: file:///D:/1test/1muse/ai/src/main/java/io/zer0/ai/image/OpenAIImageProvider.kt:284:40 Unnecessary safe call on a non-null receiver of type 'ResponseBody'.
+w: file:///D:/1test/1muse/ai/src/main/java/io/zer0/ai/image/OpenAIImageProvider.kt:288:42 Unnecessary safe call on a non-null receiver of type 'ResponseBody'.
+w: file:///D:/1test/1muse/ai/src/main/java/io/zer0/ai/openai/OpenAIProvider.kt:195:40 Unnecessary safe call on a non-null receiver of type 'Call'.
+w: file:///D:/1test/1muse/ai/src/main/java/io/zer0/ai/openai/OpenAIProvider.kt:197:76 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
+w: file:///D:/1test/1muse/ai/src/main/java/io/zer0/ai/openai/OpenAIProvider.kt:319:49 Unnecessary safe call on a non-null receiver of type 'Response'.
+w: file:///D:/1test/1muse/ai/src/main/java/io/zer0/ai/openai/OpenAIProvider.kt:337:72 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
+w: file:///D:/1test/1muse/ai/src/main/java/io/zer0/ai/openai/OpenAIProvider.kt:427:36 Unnecessary safe call on a non-null receiver of type 'ResponseBody'.
+w: file:///D:/1test/1muse/ai/src/main/java/io/zer0/ai/openai/OpenAIProvider.kt:568:36 Unnecessary safe call on a non-null receiver of type 'ResponseBody'.
+w: file:///D:/1test/1muse/ai/src/main/java/io/zer0/ai/openai/OpenAIProvider.kt:1225:40 Unnecessary safe call on a non-null receiver of type 'Call'.
+w: file:///D:/1test/1muse/ai/src/main/java/io/zer0/ai/openai/OpenAIProvider.kt:1227:76 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
+w: file:///D:/1test/1muse/ai/src/main/java/io/zer0/ai/openai/OpenAIProvider.kt:1308:48 No cast needed.
+w: file:///D:/1test/1muse/ai/src/main/java/io/zer0/ai/openai/OpenAIProvider.kt:1350:72 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
+w: file:///D:/1test/1muse/ai/src/main/java/io/zer0/ai/openai/OpenAIProvider.kt:1425:36 Unnecessary safe call on a non-null receiver of type 'ResponseBody'.
+w: file:///D:/1test/1muse/ai/src/main/java/io/zer0/ai/video/AgnesVideoProvider.kt:363:30 Unnecessary safe call on a non-null receiver of type 'ResponseBody'.
+w: file:///D:/1test/1muse/ai/src/main/java/io/zer0/ai/video/GenericOpenAiVideoProvider.kt:298:30 Unnecessary safe call on a non-null receiver of type 'ResponseBody'.
+w: file:///D:/1test/1muse/ai/src/main/java/io/zer0/ai/video/KlingVideoProvider.kt:281:30 Unnecessary safe call on a non-null receiver of type 'ResponseBody'.
+
+> Task :ai:javaPreCompileDebug UP-TO-DATE
+> Task :ai:compileDebugJavaWithJavac
+> Task :ai:bundleLibCompileToJarDebug
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :material3:preBuild UP-TO-DATE
+> Task :material3:preDebugBuild UP-TO-DATE
+> Task :material3:processDebugNavigationResources UP-TO-DATE
+> Task :memory:preBuild UP-TO-DATE
+> Task :memory:preDebugBuild UP-TO-DATE
+> Task :memory:processDebugNavigationResources UP-TO-DATE
+> Task :app:processDebugNavigationResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:generateDebugRFile UP-TO-DATE
+> Task :material3:generateDebugResources UP-TO-DATE
+> Task :material3:packageDebugResources UP-TO-DATE
+> Task :material3:parseDebugLocalResources UP-TO-DATE
+> Task :material3:generateDebugRFile UP-TO-DATE
+> Task :material3:compileDebugKotlin UP-TO-DATE
+> Task :material3:javaPreCompileDebug UP-TO-DATE
+> Task :material3:compileDebugJavaWithJavac NO-SOURCE
+> Task :material3:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :memory:generateDebugResources UP-TO-DATE
+> Task :memory:packageDebugResources UP-TO-DATE
+> Task :memory:parseDebugLocalResources UP-TO-DATE
+> Task :memory:generateDebugRFile UP-TO-DATE
+> Task :memory:kspDebugKotlin
+.\gradlew.bat : WARN: Error while reading zip file: D:\1test\1muse\ai\build\intermediates\compile_library_classes_jar\d
+ebug\bundleLibCompileToJarDebug\classes.jar: java.lang.IllegalArgumentException: 0: 67324752
+At line:15 char:8408
++ ... pgrep\bin'; .\gradlew.bat :app:compileDebugKotlin --no-daemon --no-bu ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (WARN: Error whi...on: 0: 67324752:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+java.lang.IllegalArgumentException: 0: 67324752
+	at org.jetbrains.kotlin.cli.jvm.compiler.jarfs.ZipImplementationKt.parseCentralDirectory$lambda$0(ZipImplementation.kt
+:73)
+	at org.jetbrains.kotlin.cli.jvm.compiler.jarfs.LargeDynamicMappedBuffer.withMappedRange(LargeDynamicMappedBuffer.kt:55
+)
+	at org.jetbrains.kotlin.cli.jvm.compiler.jarfs.LargeDynamicMappedBuffer.withMappedRangeFrom(LargeDynamicMappedBuffer.k
+t:66)
+	at org.jetbrains.kotlin.cli.jvm.compiler.jarfs.ZipImplementationKt.parseCentralDirectory(ZipImplementation.kt:71)
+	at org.jetbrains.kotlin.cli.jvm.compiler.jarfs.FastJarHandler.<init>(FastJarHandler.kt:34)
+	at org.jetbrains.kotlin.cli.jvm.compiler.jarfs.FastJarFileSystem.myHandlers$lambda$0(FastJarFileSystem.kt:27)
+	at org.jetbrains.kotlin.cli.jvm.compiler.jarfs.FastJarFileSystem.myHandlers$lambda$1(FastJarFileSystem.kt:27)
+	at org.jetbrains.kotlin.com.intellij.util.containers.ConcurrentFactoryMap$2.create(ConcurrentFactoryMap.java:174)
+	at org.jetbrains.kotlin.com.intellij.util.containers.ConcurrentFactoryMap.get(ConcurrentFactoryMap.java:40)
+	at org.jetbrains.kotlin.cli.jvm.compiler.jarfs.FastJarFileSystem.findFileByPath(FastJarFileSystem.kt:60)
+	at org.jetbrains.kotlin.cli.jvm.compiler.legacy.pipeline.JvmCompilerPipelineKt.findJarRoot(jvmCompilerPipeline.kt:302)
+	at org.jetbrains.kotlin.cli.jvm.compiler.legacy.pipeline.JvmCompilerPipelineKt.contentRootToVirtualFile(jvmCompilerPip
+eline.kt:288)
+	at org.jetbrains.kotlin.cli.jvm.compiler.legacy.pipeline.JvmCompilerPipelineKt.createProjectEnvironment$lambda$0(jvmCo
+mpilerPipeline.kt:226)
+	at org.jetbrains.kotlin.cli.jvm.compiler.ClasspathRootsResolver.convertClasspathRoots(ClasspathRootsResolver.kt:83)
+	at org.jetbrains.kotlin.cli.jvm.compiler.legacy.pipeline.JvmCompilerPipelineKt.createProjectEnvironment(jvmCompilerPip
+eline.kt:236)
+	at org.jetbrains.kotlin.cli.pipeline.jvm.JvmFrontendPipelinePhase.createEnvironmentAndSources(JvmFrontendPipelinePhase
+.kt:202)
+	at org.jetbrains.kotlin.cli.pipeline.jvm.JvmFrontendPipelinePhase.executePhase(JvmFrontendPipelinePhase.kt:68)
+	at org.jetbrains.kotlin.cli.pipeline.jvm.JvmFrontendPipelinePhase.executePhase(JvmFrontendPipelinePhase.kt:51)
+	at org.jetbrains.kotlin.cli.pipeline.PipelinePhase.phaseBody(PipelinePhase.kt:63)
+	at org.jetbrains.kotlin.cli.pipeline.PipelinePhase.phaseBody(PipelinePhase.kt:53)
+	at org.jetbrains.kotlin.config.phaser.NamedCompilerPhase.invoke(CompilerPhase.kt:102)
+	at org.jetbrains.kotlin.backend.common.phaser.CompositePhase.invoke(PhaseBuilders.kt:22)
+	at org.jetbrains.kotlin.config.phaser.CompilerPhaseKt.invokeToplevel(CompilerPhase.kt:53)
+	at org.jetbrains.kotlin.cli.pipeline.AbstractCliPipeline.runPhasedPipeline(AbstractCliPipeline.kt:135)
+	at org.jetbrains.kotlin.cli.pipeline.AbstractCliPipeline.executeAndReturnPipeLineArtifact(AbstractCliPipeline.kt:89)
+	at org.jetbrains.kotlin.cli.pipeline.AbstractCliPipeline.executeAndReturnPipeLineArtifact$default(AbstractCliPipeline.
+kt:49)
+	at org.jetbrains.kotlin.cli.pipeline.AbstractCliPipeline.execute(AbstractCliPipeline.kt:40)
+	at org.jetbrains.kotlin.cli.jvm.K2JVMCompiler.doExecutePhased(K2JVMCompiler.kt:54)
+	at org.jetbrains.kotlin.cli.jvm.K2JVMCompiler.doExecutePhased(K2JVMCompiler.kt:45)
+	at org.jetbrains.kotlin.cli.common.CLICompiler.execImpl(CLICompiler.kt:94)
+	at org.jetbrains.kotlin.cli.common.CLICompiler.exec(CLICompiler.kt:366)
+	at org.jetbrains.kotlin.buildtools.internal.BaseCompilationOperationImpl.compileInProcessWithoutIc(BaseCompilationOper
+ationImpl.kt:294)
+	at org.jetbrains.kotlin.buildtools.internal.BaseCompilationOperationImpl.compileInProcess(BaseCompilationOperationImpl
+.kt:263)
+	at org.jetbrains.kotlin.buildtools.internal.jvm.operations.JvmCompilationOperationImpl.compileInProcess(JvmCompilation
+OperationImpl.kt:222)
+	at org.jetbrains.kotlin.buildtools.internal.BaseCompilationOperationImpl.executeCancellableImpl(BaseCompilationOperati
+onImpl.kt:88)
+	at org.jetbrains.kotlin.buildtools.internal.BaseCompilationOperationImpl.executeCancellableImpl(BaseCompilationOperati
+onImpl.kt:55)
+	at org.jetbrains.kotlin.buildtools.internal.CancellableBuildOperationImpl.executeImpl(CancellableBuildOperationImpl.kt
+:58)
+	at org.jetbrains.kotlin.buildtools.internal.BuildOperationImpl.execute(BuildOperationImpl.kt:33)
+	at org.jetbrains.kotlin.buildtools.internal.KotlinToolchainsImpl$BuildSessionImpl.executeOperation$lambda$1(KotlinTool
+chainsImpl.kt:74)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+
+> Task :memory:compileDebugKotlin FAILED
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/budget/LlmBudget.kt:7:16 Unresolved reference 'ai'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/budget/LlmBudget.kt:40:16 Unresolved reference 'Model'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/budget/LlmBudget.kt:43:33 Unresolved reference 'id'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/budget/LlmBudget.kt:44:19 Unresolved reference 'id'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/budget/LlmBudget.kt:45:19 Unresolved reference 'id'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/budget/LlmBudget.kt:46:19 Unresolved reference 'id'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/budget/LlmBudget.kt:47:19 Unresolved reference 'id'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/budget/LlmBudget.kt:48:19 Unresolved reference 'id'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/budget/LlmBudget.kt:53:25 Unresolved reference 'maxOutput
+Tokens'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/budget/LlmBudget.kt:53:42 Cannot infer type for type para
+meter 'T'. Specify it explicitly.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/budget/LlmBudget.kt:53:49 Cannot infer type for type para
+meter 'T'. Specify it explicitly.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/budget/LlmBudget.kt:53:54 'operator' modifier is required
+ on 'fun <T> Comparable<T>.compareTo(other: T): Int'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/compile/MemoryCompiler.kt:5:16 Unresolved reference 'ai'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/compile/MemoryCompiler.kt:83:16 Unresolved reference 'Mod
+el'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/compile/MemoryCompiler.kt:144:16 Unresolved reference 'Mo
+del'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/compile/MemoryCompiler.kt:243:16 Unresolved reference 'Mo
+del'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/compile/MemoryCompiler.kt:298:16 Unresolved reference 'Mo
+del'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/compile/MemoryCompiler.kt:321:16 Unresolved reference 'Mo
+del'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/compile/MemoryCompiler.kt:327:16 Unresolved reference 'Mo
+del'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/compile/MemoryCompiler.kt:380:16 Unresolved reference 'Mo
+del'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/deep/DeepMemoryProcessor.kt:3:16 Unresolved reference 'ai
+'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/deep/DeepMemoryProcessor.kt:83:16 Unresolved reference 'M
+odel'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/deep/DeepMemoryProcessor.kt:121:16 Unresolved reference '
+Model'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/llm/MemoryLlmClient.kt:3:16 Unresolved reference 'ai'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/llm/MemoryLlmClient.kt:31:16 Unresolved reference 'Model'
+.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:3:16 Unresolved referenc
+e 'ai'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:4:16 Unresolved referenc
+e 'ai'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:112:24 Unresolved refere
+nce 'UIMessage'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:113:16 Unresolved refere
+nce 'Model'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:128:24 Unresolved refere
+nce 'UIMessage'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:129:16 Unresolved refere
+nce 'Model'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:140:22 Cannot infer type
+ for type parameter 'T'. Specify it explicitly.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:140:22 Unresolved refere
+nce. None of the following candidates is applicable because of a receiver type mismatch:
+fun <T> Iterable<T>.drop(n: Int): List<T>
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:146:35 Cannot infer type
+ for type parameter 'T'. Specify it explicitly.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:146:35 Cannot infer type
+ for type parameter 'R'. Specify it explicitly.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:146:35 Unresolved refere
+nce. None of the following candidates is applicable because of a receiver type mismatch:
+fun <T, R> Iterable<T>.map(transform: (T) -> R): List<R>
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:146:39 Cannot infer type
+ for type parameter 'T'. Specify it explicitly.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:146:65 Unresolved refere
+nce 'createdAt'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:154:42 Unresolved refere
+nce 'it'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:154:61 Unresolved refere
+nce 'ai'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:271:24 Unresolved refere
+nce 'UIMessage'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:280:31 Unresolved refere
+nce 'content'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:282:38 Unresolved refere
+nce 'createdAt'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:283:56 Unresolved refere
+nce 'createdAt'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:287:35 Unresolved refere
+nce 'role'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/summary/SessionSummaryManager.kt:287:51 Unresolved refere
+nce 'ai'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/ticker/MemoryTicker.kt:3:16 Unresolved reference 'ai'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/ticker/MemoryTicker.kt:4:16 Unresolved reference 'ai'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/ticker/MemoryTicker.kt:297:24 Unresolved reference 'UIMes
+sage'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/ticker/MemoryTicker.kt:298:16 Unresolved reference 'Model
+'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/ticker/MemoryTicker.kt:329:16 Unresolved reference 'Model
+'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/ticker/MemoryTicker.kt:351:40 Unresolved reference 'Model
+'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/ticker/MemoryTicker.kt:487:38 Unresolved reference 'Model
+'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/ticker/MemoryTicker.kt:513:24 Unresolved reference 'UIMes
+sage'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/ticker/MemoryTicker.kt:514:16 Unresolved reference 'Model
+'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/ticker/MemoryTicker.kt:545:24 Unresolved reference 'UIMes
+sage'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/ticker/MemoryTicker.kt:546:16 Unresolved reference 'Model
+'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/ticker/MemoryTicker.kt:573:24 Unresolved reference 'UIMes
+sage'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/ticker/MemoryTicker.kt:574:16 Unresolved reference 'Model
+'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/ticker/MemoryTicker.kt:648:16 Unresolved reference 'Model
+'.
+e: file:///D:/1test/1muse/memory/src/main/java/io/zer0/memory/ticker/MemoryTicker.kt:672:16 Unresolved reference 'Model
+'.
+w: Detected multiple Kotlin daemon sessions at 
+
+[Incubating] Problems report is available at: file:///D:/1test/1muse/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':memory:compileDebugKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.btapi.BuildToolsApiCompilationWork
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 1m 22s
+39 actionable tasks: 18 executed, 21 up-to-date

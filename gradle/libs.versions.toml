@@ -1,0 +1,130 @@
+[versions]
+ktlint = "12.1.1"
+# 工具链(本机已缓存:Gradle 9.4.1 + AGP 9.2.1 + Kotlin 2.4.0)
+agp = "9.2.1"
+kotlin = "2.4.0"
+ksp = "2.3.9"
+# AndroidX — 选兼容 compileSdk 35 的稳定版(本机 SDK 仅到 android-36.1,装不了 37)
+coreKtx = "1.15.0"
+lifecycle = "2.8.7"
+activityCompose = "1.9.3"
+composeBom = "2024.12.01"
+navigationCompose = "2.8.5"
+koinBom = "4.0.0"
+room = "2.8.4"
+datastore = "1.1.1"
+coil = "2.7.0"
+okhttp = "5.3.2"
+# v1.94: Jsoup — HTML 解析(搜索结果 + web_fetch 正文提取)
+jsoup = "1.18.3"
+serialization = "1.7.3"
+coroutines = "1.9.0"
+# 重写 v0.22:Material3 alpha(MaterialExpressiveTheme + MotionScheme + LargeFlexibleTopAppBar)
+material3 = "1.4.0-alpha04"
+# 重写 v0.22:Haze 真毛玻璃(替代自实现 RenderEffect,彻底解决遮罩 bug)
+haze = "1.2.2"
+# 重写 v0.22:Sonner Toast(顶部居中 + richColors)
+sonner = "0.3.9"
+junit = "4.13.2"
+# Phase 8.6: 文档解析 + OCR
+pdfboxAndroid = "2.0.27.0"
+mlkitTextRecognition = "16.0.1"
+# Phase 8.11: Ktor 嵌入式 Web 服务器
+ktor = "3.0.3"
+# Phase 8.11: JWT 鉴权(与 Ktor auth-jwt 配合)
+# v1.89: 从 3.18.1 升级至 4.4.0 — 修复 CVE-2023-52428(3.x 系列已 EOL)
+jwt = "4.4.0"
+# v1.55: 真实 tokenizer(OpenAI tiktoken 的 Java 实现,BPE 编码)
+jtokkit = "1.1.0"
+
+[libraries]
+# AndroidX Core
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
+androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycle" }
+androidx-lifecycle-process = { group = "androidx.lifecycle", name = "lifecycle-process", version.ref = "lifecycle" }
+androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
+
+# Compose
+androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
+androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
+androidx-compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
+androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
+androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
+androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
+androidx-compose-runtime = { group = "androidx.compose.runtime", name = "runtime" }
+androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
+# Phase 6-A2: Google Fonts downloadable fonts(Inter + Noto Serif SC + JetBrains Mono)
+androidx-compose-ui-text-google-fonts = { group = "androidx.compose.ui", name = "ui-text-google-fonts" }
+
+# 重写 v0.22:Haze 真毛玻璃(替代自实现 RenderEffect)
+haze = { group = "dev.chrisbanes.haze", name = "haze", version.ref = "haze" }
+haze-materials = { group = "dev.chrisbanes.haze", name = "haze-materials", version.ref = "haze" }
+
+# 重写 v0.22:Sonner Toast(顶部居中 + richColors)
+sonner = { group = "io.github.dokar3", name = "sonner", version.ref = "sonner" }
+
+# Koin(BOM 统一版本)
+koin-bom = { group = "io.insert-koin", name = "koin-bom", version.ref = "koinBom" }
+koin-android = { group = "io.insert-koin", name = "koin-android" }
+koin-androidx-compose = { group = "io.insert-koin", name = "koin-androidx-compose" }
+
+# Room
+androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+
+# DataStore
+androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
+
+# Coil 2
+coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
+coil-svg = { group = "io.coil-kt", name = "coil-svg", version.ref = "coil" }
+# Phase 11.1.6: GIF 动图解码(api19+ 用 GifDecoder,api28+ 自动用 ImageDecoderDecoder)
+coil-gif = { group = "io.coil-kt", name = "coil-gif", version.ref = "coil" }
+
+# OkHttp
+okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
+okhttp-sse = { group = "com.squareup.okhttp3", name = "okhttp-sse", version.ref = "okhttp" }
+
+# v1.94: Jsoup — HTML 解析(搜索结果 + web_fetch 正文提取)
+jsoup = { group = "org.jsoup", name = "jsoup", version.ref = "jsoup" }
+
+# Serialization
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization" }
+
+# Coroutines
+kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
+kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
+
+# Testing
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+
+# Phase 8.6: PDF 文本提取 / OCR
+tom-roush-pdfbox-android = { group = "com.tom-roush", name = "pdfbox-android", version.ref = "pdfboxAndroid" }
+google-mlkit-text-recognition-chinese = { group = "com.google.mlkit", name = "text-recognition-chinese", version.ref = "mlkitTextRecognition" }
+
+# Phase 8.11: Ktor 嵌入式 Web 服务器(CIO 引擎 — 纯 Kotlin 协程实现,无 JNI,适合 Android)
+ktor-server-core = { group = "io.ktor", name = "ktor-server-core", version.ref = "ktor" }
+ktor-server-cio = { group = "io.ktor", name = "ktor-server-cio", version.ref = "ktor" }
+ktor-server-auth = { group = "io.ktor", name = "ktor-server-auth", version.ref = "ktor" }
+ktor-server-auth-jwt = { group = "io.ktor", name = "ktor-server-auth-jwt", version.ref = "ktor" }
+ktor-server-content-negotiation = { group = "io.ktor", name = "ktor-server-content-negotiation", version.ref = "ktor" }
+ktor-serialization-kotlinx-json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version.ref = "ktor" }
+ktor-server-cors = { group = "io.ktor", name = "ktor-server-cors", version.ref = "ktor" }
+ktor-server-status-pages = { group = "io.ktor", name = "ktor-server-status-pages", version.ref = "ktor" }
+# Phase 8.11: JWT 签发/验证(Ktor auth-jwt 依赖 com.auth0:java-jwt)
+auth0-java-jwt = { group = "com.auth0", name = "java-jwt", version.ref = "jwt" }
+# v1.55: 真实 tokenizer(BPE 编码,cl100k_base — GPT-4/3.5 通用,其他模型近似)
+jtokkit = { group = "com.knuddels", name = "jtokkit", version.ref = "jtokkit" }
+
+[plugins]
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }
+android-application = { id = "com.android.application", version.ref = "agp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

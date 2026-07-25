@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== Workflow 编辑器 WorkflowEditorScreen ===== -->
+    <string name="workflow_editor_title">工作流编排</string>
+    <string name="workflow_select_action">选择操作</string>
+
+    <!-- 清空画布确认 -->
+    <string name="workflow_clear_canvas_title">清空画布</string>
+    <string name="workflow_clear_canvas_confirm">将移除全部节点与连线,且不可撤销。确定继续?</string>
+    <string name="workflow_action_clear">清空</string>
+
+    <!-- 导出 JSON -->
+    <string name="workflow_export_json_title">导出 JSON</string>
+    <string name="workflow_export_copied">已复制到剪贴板</string>
+
+    <!-- 聚合策略 -->
+    <string name="workflow_label_aggregation">聚合</string>
+    <string name="workflow_agg_merge">合并</string>
+    <string name="workflow_agg_vote">投票</string>
+    <string name="workflow_agg_expert_review">专家评审</string>
+    <string name="workflow_agg_first_success">首个成功</string>
+    <string name="workflow_agg_llm_review">LLM 评审</string>
+
+    <!-- contentDescription -->
+    <string name="workflow_cd_add_node">添加节点</string>
+    <string name="workflow_cd_save">保存</string>
+    <string name="workflow_cd_load">加载</string>
+    <string name="workflow_cd_clear">清空</string>
+    <string name="workflow_cd_export_json">导出 JSON</string>
+    <string name="workflow_cd_remove_dependency">移除依赖</string>
+
+    <!-- 节点编辑面板 WorkflowNodeEditor -->
+    <string name="workflow_node_editor_title">编辑节点</string>
+    <string name="workflow_node_unbound_assistant">(未绑定助手)</string>
+    <string name="workflow_node_name_label">节点名称</string>
+    <string name="workflow_node_name_placeholder">如:资料搜集</string>
+    <string name="workflow_node_bind_assistant">绑定助手</string>
+    <string name="workflow_node_task_template_label">任务模板</string>
+    <string name="workflow_node_task_template_placeholder">如:请根据上下文完成 {task} 的调研,输出结构化结果</string>
+    <string name="workflow_node_mode_label">执行模式</string>
+    <string name="workflow_node_dependencies_label">依赖节点(dependsOn)</string>
+    <string name="workflow_node_no_dependencies_hint">(无依赖,本节点可作为起点执行)</string>
+    <string name="workflow_node_add_dependency_hint">添加依赖(点击添加)</string>
+    <string name="workflow_node_default_name">新节点</string>
+
+    <!-- 执行模式 -->
+    <string name="workflow_mode_sequential">串行</string>
+    <string name="workflow_mode_parallel">并行</string>
+
+    <!-- 画布 WorkflowCanvas -->
+    <string name="workflow_zoom_limit_reached">已到达缩放极限</string>
+    <string name="workflow_canvas_empty_title">画布为空</string>
+    <string name="workflow_canvas_empty_subtitle">双击空白处添加节点,或点击下方工具栏的添加按钮</string>
+</resources>

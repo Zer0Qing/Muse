@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- muse 品牌色: 暖纸 warm-paper + 强调蓝绿 -->
+    <!-- App 图标背景改为白底(用户要求) -->
+    <color name="ic_launcher_background">#FFFFFF</color>
+    <color name="ic_launcher_foreground">#F8F4ED</color>
+    <!-- v1.7: SplashScreen 背景色,与 warm-paper 主题背景一致 -->
+    <color name="splash_background">#FAFAF8</color>
+</resources>

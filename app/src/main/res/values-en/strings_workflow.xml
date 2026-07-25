@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== Workflow Editor (WorkflowEditorScreen) ===== -->
+    <string name="workflow_editor_title">Workflow Editor</string>
+    <string name="workflow_select_action">Select action</string>
+
+    <!-- Clear canvas confirmation -->
+    <string name="workflow_clear_canvas_title">Clear canvas</string>
+    <string name="workflow_clear_canvas_confirm">This will remove all nodes and connections, and cannot be undone. Continue?</string>
+    <string name="workflow_action_clear">Clear</string>
+
+    <!-- Export JSON -->
+    <string name="workflow_export_json_title">Export JSON</string>
+    <string name="workflow_export_copied">Copied to clipboard</string>
+
+    <!-- Aggregation strategy -->
+    <string name="workflow_label_aggregation">Aggregation</string>
+    <string name="workflow_agg_merge">Merge</string>
+    <string name="workflow_agg_vote">Vote</string>
+    <string name="workflow_agg_expert_review">Expert review</string>
+    <string name="workflow_agg_first_success">First success</string>
+    <string name="workflow_agg_llm_review">LLM review</string>
+
+    <!-- contentDescription -->
+    <string name="workflow_cd_add_node">Add node</string>
+    <string name="workflow_cd_save">Save</string>
+    <string name="workflow_cd_load">Load</string>
+    <string name="workflow_cd_clear">Clear</string>
+    <string name="workflow_cd_export_json">Export JSON</string>
+    <string name="workflow_cd_remove_dependency">Remove dependency</string>
+
+    <!-- Node editor panel (WorkflowNodeEditor) -->
+    <string name="workflow_node_editor_title">Edit node</string>
+    <string name="workflow_node_unbound_assistant">(No assistant bound)</string>
+    <string name="workflow_node_name_label">Node name</string>
+    <string name="workflow_node_name_placeholder">e.g. Research</string>
+    <string name="workflow_node_bind_assistant">Bind assistant</string>
+    <string name="workflow_node_task_template_label">Task template</string>
+    <string name="workflow_node_task_template_placeholder">e.g. Please research {task} based on context and output structured results</string>
+    <string name="workflow_node_mode_label">Execution mode</string>
+    <string name="workflow_node_dependencies_label">Dependencies (dependsOn)</string>
+    <string name="workflow_node_no_dependencies_hint">(No dependencies, this node can run as a starting point)</string>
+    <string name="workflow_node_add_dependency_hint">Add dependency (tap to add)</string>
+    <string name="workflow_node_default_name">New node</string>
+
+    <!-- Execution modes -->
+    <string name="workflow_mode_sequential">Sequential</string>
+    <string name="workflow_mode_parallel">Parallel</string>
+
+    <!-- Canvas (WorkflowCanvas) -->
+    <string name="workflow_zoom_limit_reached">Zoom limit reached</string>
+    <string name="workflow_canvas_empty_title">Canvas is empty</string>
+    <string name="workflow_canvas_empty_subtitle">Double-tap blank area to add a node, or tap the add button in the toolbar below</string>
+</resources>

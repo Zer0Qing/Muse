@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    ai / memory / transformer 三模块 i18n 审查结论:
+    - ai 模块(独立 Gradle 模块): 用户可见错误消息通过 Result.Error/异常传递到 UI,
+      但无法直接引用 app 的 R.string。已在各源文件标注 // TODO i18n 待提取,
+      待引入错误代码枚举方案后提取。
+    - memory 模块(独立 Gradle 模块): 验证错误(MemoryConfig.validate)与 isZh 时间标签
+      (重要事实/事情经过等)用户可见,但跨模块且部分标签参与 LLM 输出解析契约。
+      已在各源文件标注 // TODO i18n 待提取。
+    - transformer 模块(app 内): 经逐文件审查,所有中文字符串均为 LLM 提示词内容
+      (发给 LLM 的 SYSTEM 消息)、Logger 日志、代码注释或内部异常消息,
+      无直接面向用户的 UI 字符串,按"LLM 提示词不提取"规则保留原文。
+    因此本文件当前无字符串条目,作为后续提取的占位与审查记录。
+-->
+<resources>
+    <!-- v4: 记忆重要程度相关 -->
+    <string name="memory_importance_normal">普通</string>
+    <string name="memory_importance_important">重要</string>
+    <string name="memory_importance_critical">关键</string>
+    <string name="memory_importance_set_title">设置重要程度</string>
+    <string name="memory_importance_normal_desc">日常偏好,记错无妨</string>
+    <string name="memory_importance_important_desc">中等风险,记错会误事</string>
+    <string name="memory_importance_critical_desc">高风险,记错会出事(永不遗忘)</string>
+    <string name="memory_source_session">来源: 会话 %1$s</string>
+    <string name="memory_created_today">今天入库</string>
+    <string name="memory_created_yesterday">昨天入库</string>
+    <string name="memory_created_days_ago">%1$d 天前入库</string>
+    <string name="memory_sync_never">尚未编译记忆,对话内容暂未进入长期记忆</string>
+    <string name="memory_sync_recent">最近编译 %1$d 分钟前,记忆已同步</string>
+    <string name="memory_sync_stale">最近编译 %1$d 分钟前,最近的对话可能还未进入记忆,点击「立即编译」可手动同步</string>
+    <string name="memory_sync_set_importance_cd">设置重要程度</string>
+
+    <!-- v6: MemoryViewModel CRUD error messages -->
+    <string name="memory_delete_failed">删除失败: %1$s</string>
+    <string name="memory_edit_failed">编辑失败: %1$s</string>
+    <string name="memory_set_failed">设置失败: %1$s</string>
+    <string name="memory_add_failed">添加失败: %1$s</string>
+    <string name="memory_add_experience_failed">添加经验失败: %1$s</string>
+    <string name="memory_edit_experience_failed">编辑经验失败: %1$s</string>
+    <string name="memory_delete_experience_failed">删除经验失败: %1$s</string>
+
+    <!-- v6: Compile section display titles -->
+    <string name="memory_compile_section_facts">事实摘要</string>
+    <string name="memory_compile_section_today">今日</string>
+    <string name="memory_compile_section_week">本周</string>
+    <string name="memory_compile_section_longterm">长期</string>
+
+    <!-- v6: Summary item title -->
+    <string name="memory_summary_title">会话 %1$s</string>
+
+    <!-- v6: Error trace labels -->
+    <string name="memory_error_trace_header">== Muse Memory Error ==</string>
+    <string name="memory_error_trace_time">时间: </string>
+    <string name="memory_error_trace_exception">异常: </string>
+    <string name="memory_error_trace_message">消息: </string>
+    <string name="memory_error_trace_device">设备: </string>
+    <string name="memory_error_trace_stack_header">== Stack Trace ==</string>
+
+    <!-- v8: 记忆作用域(scope)相关 -->
+    <string name="memory_scope_all">全部</string>
+    <string name="memory_scope_main">主助手</string>
+    <string name="memory_scope_assistant">助手记忆</string>
+    <string name="memory_scope_label">记忆作用域</string>
+
+    <!-- MemoryScreen.kt: 视图模式切换 / 导出 / 统计卡片 -->
+    <string name="memory_stats_view_list">列表</string>
+    <string name="memory_stats_view_timeline">时间轴</string>
+    <string name="memory_stats_export_title">导出记忆</string>
+    <string name="memory_stats_export_format_hint">选择导出格式:</string>
+    <string name="memory_stats_section_title">记忆统计</string>
+    <string name="memory_stats_total">总计</string>
+    <string name="memory_stats_importance_distribution">重要度分布</string>
+    <string name="memory_stats_top_sessions">最活跃会话</string>
+    <string name="memory_stats_session_count">%1$d 条</string>
+    <string name="memory_stats_trend_30_days">近 30 天趋势</string>
+</resources>

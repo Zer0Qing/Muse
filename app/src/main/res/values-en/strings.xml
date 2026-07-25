@@ -1,0 +1,249 @@
+<resources>
+    <!-- App -->
+    <string name="app_name">Muse</string>
+    <!-- Splash -->
+    <string name="splash_subtitle">Your AI Companion</string>
+
+    <!-- Widget -->
+    <string name="widget_description">Quick launch Muse chat</string>
+    <string name="widget_new_session">New Chat</string>
+    <string name="widget_recent_sessions">Recent Chats</string>
+    <!-- P3-16: 4x2 chat widget -->
+    <string name="widget_chat_description">Show the latest AI reply</string>
+    <string name="widget_chat_no_content">No conversation yet, tap to start</string>
+
+    <!-- Bottom navigation -->
+    <string name="tab_chats">Chats</string>
+    <string name="tab_settings">Settings</string>
+
+    <!-- Splash & Onboarding -->
+    <string name="splash_tagline">Your inspiration, gently unfolded</string>
+    <string name="onboarding_welcome_desc">Your private AI assistant — chat, memory, and creation in one place</string>
+    <string name="onboarding_provider_desc">Go to Settings to add your OpenAI / Anthropic / Gemini key</string>
+    <string name="onboarding_ready_title">Ready to go</string>
+    <string name="onboarding_ready_desc">Start your first conversation</string>
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_start">Get started</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_config_provider">Open Settings</string>
+
+    <!-- Onboarding v2 (5-step redesign) -->
+    <string name="onboarding_hello">Hello, I am Muse</string>
+    <string name="onboarding_tagline">Your inspiration, gently unfolding</string>
+    <string name="onboarding_q_chat_style">Which chat style do you prefer?</string>
+    <string name="onboarding_chat_style_0">Late-night talk</string>
+    <string name="onboarding_chat_style_1">Morning greeting</string>
+    <string name="onboarding_chat_style_2">Creative collision</string>
+    <string name="onboarding_chat_style_3">Knowledge exploration</string>
+    <string name="onboarding_q_partner_style">What partner style do you prefer?</string>
+    <string name="onboarding_partner_style_0">Gentle listener</string>
+    <string name="onboarding_partner_style_1">Energetic chatterbox</string>
+    <string name="onboarding_partner_style_2">Rational analyst</string>
+    <string name="onboarding_partner_style_3">Imaginative dreamer</string>
+    <string name="onboarding_choose_partner">Recommended for you</string>
+    <string name="onboarding_see_more">See more characters</string>
+    <string name="onboarding_selected">Selected</string>
+    <string name="onboarding_start_conversation">Start conversation</string>
+    <string name="onboarding_api_key_title">Want more power?</string>
+    <string name="onboarding_api_key_desc">Add your API Key to unlock more models and capabilities</string>
+    <string name="onboarding_configure_now">Configure now</string>
+    <string name="onboarding_maybe_later">Maybe later</string>
+    <string name="onboarding_empty_chat_title">Ready to start your first conversation?</string>
+    <string name="onboarding_empty_chat_subtitle">Pick a partner and start your inspiration journey</string>
+    <string name="onboarding_chat_with_muse">Chat with Muse</string>
+    <string name="onboarding_meet_characters">Meet more characters</string>
+    <string name="chat_list_days_together">Day %d together</string>
+    <string name="chat_list_just_met_today">Just met today</string>
+    <string name="chat_list_day_together">Day %d</string>
+
+    <!-- Settings sections -->
+    <string name="section_about">About</string>
+    <string name="section_provider">Providers</string>
+    <string name="section_asr">Speech Recognition (ASR)</string>
+    <string name="section_theme">Theme</string>
+    <string name="section_mcp">MCP Servers</string>
+    <string name="section_web_server">Web Server</string>
+    <string name="section_web_search">Web Search</string>
+    <string name="section_backup">Backup &amp; Sync</string>
+    <string name="section_assistant">Assistant</string>
+    <string name="section_skill">Skill Manager</string>
+
+    <!-- About page -->
+    <string name="about_brand_tagline">Your inspiration, gently unfolded</string>
+    <string name="about_version">Version</string>
+    <string name="about_build_type">Build type</string>
+    <string name="about_app_id">Application ID</string>
+    <string name="about_android_version">Android version</string>
+    <string name="about_device">Device</string>
+    <string name="about_oss_licenses">Open Source Licenses</string>
+    <string name="about_oss_licenses_subtitle">View third-party open source libraries and their licenses used by Muse</string>
+    <string name="licenses_title">Open Source Licenses</string>
+    <string name="licenses_total_count">%1$d dependencies in total</string>
+
+    <!-- Common actions -->
+    <string name="action_back">Back</string>
+
+    <!-- Network proxy -->
+    <string name="proxy_title">Network Proxy</string>
+    <string name="proxy_enable">Enable Proxy</string>
+    <string name="proxy_enabled">Enabled</string>
+    <string name="proxy_disabled">Disabled</string>
+    <string name="proxy_type">Type</string>
+    <string name="proxy_type_http">HTTP</string>
+    <string name="proxy_type_socks5">SOCKS5</string>
+    <string name="proxy_host">Host</string>
+    <string name="proxy_port">Port</string>
+    <string name="proxy_username">Username</string>
+    <string name="proxy_password">Password</string>
+    <string name="proxy_restart_hint">Restart the app to take effect</string>
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_add">Add</string>
+    <string name="action_done">Done</string>
+    <string name="action_close">Close</string>
+    <string name="action_more">More</string>
+    <string name="action_send">Send</string>
+    <string name="action_stop">Stop</string>
+    <string name="action_copy">Copy</string>
+    <string name="action_translate">Translate</string>
+    <string name="action_share">Share</string>
+    <string name="action_expand">Expand</string>
+    <string name="action_collapse">Collapse</string>
+
+    <!-- Quote reply -->
+    <string name="message_action_quote">Quote</string>
+    <string name="quote_label_user">Quote User</string>
+    <string name="quote_label_assistant">Quote Assistant</string>
+    <string name="quote_clear">Cancel Quote</string>
+
+    <!-- Edit message sheet -->
+    <string name="edit_message_title">Edit Message</string>
+    <string name="edit_message_content_label">Content</string>
+
+    <!-- Recording / speech recognition status -->
+<string name="voice_release_to_recognize">Release to recognize · swipe up to cancel</string>
+<string name="voice_recognizing">Recognizing…</string>
+<!-- Task 1: ASR reconnecting status (WebSocket dropped, exponential backoff reconnect, audio buffered meanwhile) -->
+<string name="voice_reconnecting">Network error, reconnecting…</string>
+
+    <!-- ASR config hint -->
+    <string name="asr_missing_api_key_error">No API Key configured. Voice input is unavailable.</string>
+
+    <!-- Memory add fact -->
+    <string name="memory_add_fact">Add Fact</string>
+    <string name="memory_add_fact_dialog_title">Add Fact</string>
+
+    <!-- v2.0: Favorite groups -->
+    <string name="favorites_group_all">All</string>
+    <string name="favorites_group_inspiration">Inspiration</string>
+    <string name="favorites_group_code">Code</string>
+    <string name="favorites_group_learning">Learning</string>
+    <string name="favorites_group_custom">Custom</string>
+    <string name="favorites_group_select_title">Select Group</string>
+    <string name="favorites_group_select_hint">Add to group: %1$s</string>
+    <string name="favorites_group_remove">Remove from group</string>
+
+    <!-- v2.0: Data Management -->
+    <string name="data_management_title">Data Management</string>
+    <string name="data_management_sessions">Conversations</string>
+    <string name="data_management_messages">Messages</string>
+    <string name="data_management_memories">Memories</string>
+    <string name="data_management_db_size">Database size</string>
+    <string name="data_management_cache_size">Cache size</string>
+    <string name="data_management_clear_chats">Clear all conversations</string>
+    <string name="data_management_clear_chats_confirm">Clear all conversations? This cannot be undone.</string>
+    <string name="data_management_clear_chats_done">All conversations cleared</string>
+    <string name="data_management_clear_cache">Clear cache</string>
+    <string name="data_management_clear_cache_confirm">Clear all cache? Reloading data may take time.</string>
+    <string name="data_management_clear_cache_done">Cache cleared</string>
+    <string name="data_management_reset_memory">Reset memory</string>
+    <string name="data_management_reset_memory_confirm">Reset all memory? AI will forget what it knows about you.</string>
+    <string name="data_management_reset_memory_done">Memory reset</string>
+    <string name="data_management_entry">Data Management</string>
+    <string name="data_management_entry_desc">View usage, clear cache and manage data</string>
+
+    <!-- v2.0: Memory filters -->
+    <string name="memory_filter_importance">Importance</string>
+    <string name="memory_filter_time">Time</string>
+    <string name="memory_filter_type">Type</string>
+    <string name="memory_filter_all">All</string>
+    <string name="memory_filter_normal">Normal</string>
+    <string name="memory_filter_important">Important</string>
+    <string name="memory_filter_critical">Critical</string>
+    <string name="memory_filter_today">Today</string>
+    <string name="memory_filter_week">This week</string>
+    <string name="memory_filter_month">This month</string>
+    <string name="memory_filter_fact">Fact</string>
+    <string name="memory_filter_summary">Summary</string>
+    <string name="memory_filter_compile">Compile</string>
+
+    <!-- v2.0: Recently Deleted -->
+    <string name="recently_deleted_title">Recently Deleted</string>
+    <string name="recently_deleted_empty">No deleted conversations</string>
+    <string name="recently_deleted_restore">Restore</string>
+    <string name="recently_deleted_restore_done">Restored</string>
+    <string name="recently_deleted_permanent_delete">Delete permanently</string>
+    <string name="recently_deleted_permanent_delete_confirm">Delete permanently? This cannot be undone.</string>
+    <string name="recently_deleted_permanent_delete_done">Permanently deleted</string>
+    <string name="recently_deleted_entry">Recently Deleted</string>
+    <string name="recently_deleted_entry_subtitle">Restore conversations deleted within 7 days</string>
+    <string name="recently_deleted_auto_clear">Auto-deleted after 7 days</string>
+
+    <string name="chat_draft_label">Draft</string>
+    <string name="chat_list_archive_confirm">This chat will be archived and hidden from the list.</string>
+    <string name="chat_list_archive_confirm_button">Archive</string>
+    <string name="chat_list_archive_title">Archive Chat</string>
+    <string name="chat_reaction_add">Add Reaction</string>
+    <string name="chat_reaction_change">Change Reaction</string>
+    <string name="chat_reaction_picker_title">React to Message</string>
+    <string name="chat_reaction_remove">Remove Reaction</string>
+    <string name="err_api_error">API error occurred. Please try again.</string>
+    <string name="err_auth_failed">Authentication failed. Please check your API key.</string>
+    <string name="err_image_api_key_missing">Image generation requires an API key. Please configure it in Settings &gt; Provider.</string>
+    <string name="err_image_empty_response">Image generation returned an empty response.</string>
+    <string name="err_image_invalid_uri">Invalid image URI or path.</string>
+    <string name="err_image_no_results">No images were generated. Try a different prompt.</string>
+    <string name="err_image_reference_download_failed">Failed to download reference image.</string>
+    <string name="err_image_reference_too_large">Reference image is too large. Please use a smaller image.</string>
+    <string name="err_image_response_too_large">Generated image is too large to display.</string>
+    <string name="err_image_unsupported_model">The selected model does not support image generation.</string>
+    <string name="err_invalid_argument">Invalid argument provided.</string>
+    <string name="err_invalid_response">Invalid response from server.</string>
+    <string name="err_memory_config_invalid">Memory configuration is invalid.</string>
+    <string name="err_memory_token_budget_invalid">Invalid memory token budget.</string>
+    <string name="err_network_error">Network error. Please check your connection.</string>
+    <string name="err_no_model_selected">No model selected. Please choose a model in Settings.</string>
+    <string name="err_no_provider_configured">No provider configured. Please add a provider in Settings.</string>
+    <string name="err_not_found">Resource not found.</string>
+    <string name="err_overloaded">Server is overloaded. Please try again later.</string>
+    <string name="err_permission_denied">Permission denied.</string>
+    <string name="err_precondition_failed">Operation precondition failed.</string>
+    <string name="err_rate_limited">Rate limit exceeded. Please wait and try again.</string>
+    <string name="err_request_timeout">Request timed out. Please try again.</string>
+    <string name="err_resource_exhausted">Resource exhausted. Please try again later.</string>
+    <string name="err_service_unavailable">Service is temporarily unavailable.</string>
+    <string name="err_stream_interrupted">Stream was interrupted. Response may be incomplete.</string>
+    <string name="err_vertex_ai_config_invalid">Vertex AI configuration is invalid.</string>
+    <string name="err_vertex_ai_token_failed">Failed to obtain Vertex AI access token.</string>
+
+    <!-- Assistant detail: capabilities -->
+    <string name="assistant_detail_capabilities_title">Capabilities</string>
+    <string name="assistant_detail_capabilities_desc">Tag this assistant’s strengths for auto-routing</string>
+    <string name="assistant_detail_custom_capability">Custom capability</string>
+    <string name="assistant_detail_add">Add</string>
+
+    <!-- Multi-Agent team workflow -->
+    <string name="settings_multi_agent_workflow">Workflow</string>
+    <string name="settings_multi_agent_workflow_desc">Define execution order, dependencies and aggregation strategy</string>
+    <string name="settings_multi_agent_aggregation">Aggregation</string>
+    <string name="settings_multi_agent_no_workflow">No workflow configured; members will run sequentially</string>
+    <string name="settings_multi_agent_add_node">Add node</string>
+    <string name="settings_multi_agent_edit_node">Edit node</string>
+    <string name="settings_multi_agent_node_name">Node name</string>
+    <string name="settings_multi_agent_node_task">Task template</string>
+    <string name="settings_multi_agent_node_assistant">Agent</string>
+    <string name="settings_multi_agent_node_mode">Mode</string>
+    <string name="settings_multi_agent_node_dependencies">Dependencies</string>
+</resources>

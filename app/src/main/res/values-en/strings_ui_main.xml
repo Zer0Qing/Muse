@@ -1,0 +1,601 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== Assistant detail pages AssistantDetailPages ===== -->
+    <string name="assistant_detail_title_default">Assistant Details</string>
+    <string name="assistant_detail_unnamed">(Unnamed)</string>
+    <string name="assistant_detail_loading">Loading...</string>
+    <string name="assistant_detail_basic">Basic</string>
+    <string name="assistant_detail_basic_desc">Name / Avatar / Model / Sampling</string>
+    <string name="assistant_detail_prompt">Prompt</string>
+    <string name="assistant_detail_prompt_desc">systemPrompt / Message Template / Preset Messages</string>
+    <string name="assistant_detail_extensions">Extensions</string>
+    <string name="assistant_detail_extensions_desc">Quick Messages / Lorebook / Injection / Skills / MCP</string>
+    <string name="assistant_detail_memory">Memory</string>
+    <string name="assistant_detail_memory_desc">Memory Toggle / Global Memory / Recent Chat Reference / Time Reminder</string>
+    <string name="assistant_detail_advanced">Advanced</string>
+    <string name="assistant_detail_advanced_desc">Background / Custom Request / Tags</string>
+    <string name="assistant_detail_avatar_save_failed">Failed to save avatar</string>
+    <string name="assistant_detail_no_image_app">No app available to open images</string>
+    <string name="assistant_detail_pick_image">Pick Image</string>
+    <string name="assistant_detail_clear">Clear</string>
+    <string name="assistant_detail_avatar">Avatar</string>
+    <string name="assistant_detail_avatar_image_set">Image avatar set</string>
+    <string name="assistant_detail_avatar_emoji">Using Emoji avatar</string>
+    <string name="assistant_detail_avatar_initial">Using name initial</string>
+    <string name="assistant_detail_name">Name</string>
+    <string name="assistant_detail_avatar_emoji_label">Avatar Emoji (1-2 chars, optional)</string>
+    <string name="assistant_detail_global_default">Global Default</string>
+    <string name="assistant_detail_exclusive_model">Exclusive Model</string>
+    <string name="assistant_detail_temperature">Temperature: %1$s</string>
+    <string name="assistant_detail_default">Default</string>
+    <string name="assistant_detail_use_default">Use Default</string>
+    <string name="assistant_detail_top_p_label">Top P (leave empty for default, 0-1)</string>
+    <string name="assistant_detail_max_tokens_label">Max Tokens (leave empty for default)</string>
+    <string name="assistant_detail_context_message_count">Context message count: %1$d</string>
+    <string name="assistant_detail_reasoning_level">Reasoning Level</string>
+    <string name="assistant_detail_stream_output">Stream Output</string>
+    <string name="assistant_detail_stream_output_desc">When off, returns the full reply at once</string>
+    <!-- v1.0.19: Assistant field completion (summary / useAssistantName / allowGroupChat) -->
+    <string name="assistant_detail_summary">One-line summary</string>
+    <string name="assistant_detail_summary_hint">Used for group chat roster and assistant card subtitle</string>
+    <string name="assistant_detail_use_assistant_name">Show assistant name in chat</string>
+    <string name="assistant_detail_use_assistant_name_desc">When on, replaces model name with assistant name</string>
+    <string name="assistant_detail_allow_group_chat">Allow joining group chat</string>
+    <string name="assistant_detail_allow_group_chat_desc">When off, this assistant won\'t appear in group chat member selection</string>
+    <string name="assistant_detail_select_model">Select Exclusive Model</string>
+    <string name="assistant_detail_close">Close</string>
+    <string name="assistant_detail_global_default_selected">Global Default (Selected)</string>
+    <string name="assistant_detail_model_selected">%1$s (Selected)</string>
+    <!-- Phase 6: Model picker UX improvements -->
+    <string name="assistant_detail_use_global_default_card">Use Global Default Model</string>
+    <string name="assistant_detail_using_global_model">Currently using global default model: %1$s</string>
+    <string name="assistant_detail_model_hint">Tip: You can pick a dedicated model for each assistant in assistant settings.</string>
+    <string name="assistant_detail_system_prompt_label">System Prompt (Role / Rules)</string>
+    <string name="assistant_detail_message_template_label">Message Template (supports {{date}} {{time}} {{session_id}} etc.)</string>
+    <string name="assistant_detail_preset_messages_label">Preset Messages JSON (advanced, e.g. [{\"role\":\"system\",\"content\":\"...\"}])</string>
+    <string name="assistant_detail_ext_quick_message">Quick Messages</string>
+    <string name="assistant_detail_ext_lorebook">Lorebook</string>
+    <string name="assistant_detail_ext_mode_injection">Prompt Injection</string>
+    <string name="assistant_detail_ext_skill">Skill</string>
+    <string name="assistant_detail_ext_mcp_server">MCP Server</string>
+    <string name="assistant_detail_ext_tool">Tool</string>
+    <string name="assistant_detail_no_options">No options available</string>
+    <string name="assistant_detail_done">Done</string>
+    <string name="assistant_detail_select_all">Select All</string>
+    <string name="assistant_detail_clear_all">Clear All</string>
+    <string name="assistant_detail_selected_count">%1$d selected</string>
+    <string name="assistant_detail_enable_memory">Enable Memory</string>
+    <string name="assistant_detail_enable_memory_desc">When off, this assistant won\'t inject long-term memory</string>
+    <string name="assistant_detail_use_global_memory">Use Global Memory</string>
+    <string name="assistant_detail_use_global_memory_desc">When off, uses an independent memory pool (experimental)</string>
+    <string name="assistant_detail_recent_chats_reference">Recent Chat Reference</string>
+    <string name="assistant_detail_recent_chats_reference_desc">Inject recent chat summaries as context into the prompt</string>
+    <string name="assistant_detail_time_reminder">Time Reminder</string>
+    <string name="assistant_detail_time_reminder_desc">Inject current time into the conversation</string>
+    <string name="assistant_detail_manual_memory">Manual Memory</string>
+    <string name="assistant_detail_add_memory">Add Memory</string>
+    <string name="assistant_detail_add_memory_desc">Manually enter facts/knowledge for AI reference</string>
+    <string name="assistant_detail_saved_memory_count">Saved Memories (%1$d)</string>
+    <string name="assistant_detail_no_memory">No memories yet</string>
+    <string name="assistant_detail_delete_cd">Delete</string>
+    <string name="assistant_detail_delete_memory">Delete Memory</string>
+    <string name="assistant_detail_add_memory_dialog_title">Add Memory</string>
+    <string name="assistant_detail_input_fact">Enter fact/knowledge</string>
+    <string name="assistant_detail_save">Save</string>
+    <string name="assistant_detail_cancel">Cancel</string>
+    <string name="assistant_detail_background_url_label">Background Image URL (empty for no background)</string>
+    <string name="assistant_detail_background_opacity">Background opacity: %1$d%%</string>
+    <string name="assistant_detail_gradient_background">Gradient Background</string>
+    <string name="assistant_detail_gradient_background_desc">Overlay gradient mask on background image (improves readability)</string>
+    <string name="assistant_detail_custom_headers_label">Custom Headers JSON (e.g. {\"X-Custom\":\"value\"})</string>
+    <string name="assistant_detail_custom_bodies_label">Custom Body JSON (e.g. {\"user\":\"abc\"})</string>
+    <string name="assistant_detail_tags_label">Tags (comma separated, e.g. Writing, Translation, Code)</string>
+
+    <!-- ===== Memory screen MemoryScreen ===== -->
+    <string name="memory_screen_title">Memory</string>
+    <string name="memory_screen_back_cd">Back</string>
+    <string name="memory_screen_search_fact_hint">Search meta-facts…</string>
+    <string name="memory_screen_search_cd">Search</string>
+    <string name="memory_screen_add_fact_cd">Add meta-fact</string>
+    <string name="memory_screen_compile_now_cd">Compile now</string>
+    <string name="memory_screen_compile_now">Compile Now</string>
+    <string name="memory_screen_layer_summary">Session Summary</string>
+    <string name="memory_screen_layer_compile">Compiled Artifact</string>
+    <string name="memory_screen_layer_memory">Memory</string>
+    <string name="memory_screen_delete_layer">Delete %1$s</string>
+    <string name="memory_screen_confirm_delete_layer">Are you sure you want to delete this %1$s? This cannot be undone.</string>
+    <string name="memory_screen_delete">Delete</string>
+    <string name="memory_screen_cancel">Cancel</string>
+    <string name="memory_screen_edit_fact">Edit Meta-fact</string>
+    <string name="memory_screen_edit_summary">Edit Session Summary</string>
+    <string name="memory_screen_edit_compile">Edit Compiled Artifact</string>
+    <string name="memory_screen_edit_memory">Edit Memory</string>
+    <string name="memory_screen_no_match">No matching memories found</string>
+    <string name="memory_screen_search_results">Search Results (%1$d)</string>
+    <string name="memory_screen_fact_section">① Meta-facts (Fact)</string>
+    <string name="memory_screen_no_fact">No meta-facts yet</string>
+    <string name="memory_screen_fact_limit">Showing first 50 of %1$d</string>
+    <string name="memory_screen_summary_section">② Session Summaries (Summary)</string>
+    <string name="memory_screen_no_summary">No session summaries yet</string>
+    <string name="memory_screen_compile_section">③ Compiled Artifacts (Compile)</string>
+    <string name="memory_screen_no_compile">No compiled artifacts yet (waiting for scheduled compilation)</string>
+    <string name="memory_screen_deep_section">④ Deep Memory (Deep)</string>
+    <string name="memory_screen_deep_desc">The Deep layer is a processing layer with no independent storage</string>
+    <string name="memory_screen_fact_total">• Total meta-facts: %1$d</string>
+    <string name="memory_screen_summary_total">• Total session summaries: %1$d</string>
+    <string name="memory_screen_last_updated">• Last updated: %1$s</string>
+    <string name="memory_screen_none">None</string>
+    <string name="memory_screen_collapse">Collapse</string>
+    <string name="memory_screen_expand">Expand</string>
+    <string name="memory_screen_edit_cd">Edit</string>
+    <string name="memory_screen_delete_cd">Delete</string>
+    <string name="memory_screen_load_failed">Load failed — Full error details</string>
+    <string name="memory_screen_copied_trace">Full stack trace copied to clipboard</string>
+    <string name="memory_screen_copy_trace_cd">Copy full stack trace</string>
+    <string name="memory_screen_retry">Retry</string>
+    <string name="memory_screen_input_content">Enter content…</string>
+    <string name="memory_screen_save">Save</string>
+    <string name="memory_screen_not_running">Not running</string>
+    <string name="memory_screen_has_error">Issues found</string>
+    <string name="memory_screen_normal">Normal</string>
+    <string name="memory_screen_overview">Memory Overview</string>
+    <string name="memory_screen_fact_total_label">Total meta-facts</string>
+    <string name="memory_screen_last_compile">Last compilation</string>
+    <string name="memory_screen_no_compile_time">None yet</string>
+    <string name="memory_screen_health">Health status</string>
+    <string name="memory_screen_collapse_steps">Collapse step details</string>
+    <string name="memory_screen_view_steps">View step details</string>
+    <string name="memory_screen_failed_times">Failed %1$d time(s)</string>
+    <string name="memory_screen_last_success">Last success: %1$s</string>
+    <string name="memory_screen_error">Error: %1$s</string>
+    <string name="memory_screen_ai_understanding">AI\'s understanding of you</string>
+    <string name="memory_screen_no_summary_hint">No summary yet; it will be generated as you continue chatting</string>
+    <string name="memory_screen_click_collapse">Tap to collapse</string>
+    <string name="memory_screen_click_expand">Tap to expand full memory summary</string>
+    <!-- v1.98: Experience library -->
+    <string name="memory_screen_experience_title">Experience Library</string>
+    <string name="memory_screen_experience_desc">Accumulated best practices and know-how; AI will reference them on similar tasks</string>
+    <string name="memory_screen_experience_empty">No entries yet. Tap the + button to add one</string>
+    <string name="memory_screen_experience_add_cd">Add experience</string>
+    <string name="memory_screen_experience_count">%1$d entries</string>
+    <string name="memory_screen_experience_add_dialog_title">New Experience</string>
+    <string name="memory_screen_experience_edit_dialog_title">Edit Experience</string>
+    <string name="memory_screen_experience_title_label">Title</string>
+    <string name="memory_screen_experience_title_hint">Short description, e.g. \"Kotlin coroutine timeout handling\"</string>
+    <string name="memory_screen_experience_content_label">Details</string>
+    <string name="memory_screen_experience_content_hint">Steps, caveats, code snippets, etc.</string>
+    <string name="memory_screen_experience_category_label">Category (optional)</string>
+    <string name="memory_screen_experience_tags_label">Tags (comma-separated, optional)</string>
+    <string name="memory_screen_experience_delete_confirm">Delete this experience?</string>
+
+    <!-- ===== Settings screen SettingsScreen ===== -->
+    <string name="settings_screen_title">Settings</string>
+    <string name="settings_screen_back_cd">Back</string>
+    <string name="settings_screen_appearance_group_cd">General group</string>
+    <string name="settings_screen_appearance">Appearance &amp; Personalization</string>
+    <string name="settings_screen_general">General</string>
+    <string name="settings_screen_user_profile_cd">Profile, name/persona, tap to enter</string>
+    <string name="settings_screen_user_profile">Profile</string>
+    <string name="settings_screen_user_profile_desc">Name / Assistant Name / User Persona</string>
+    <string name="settings_screen_appearance_cd">Appearance, theme/font size, tap to enter</string>
+    <string name="settings_screen_appearance_label">Appearance</string>
+    <string name="settings_screen_appearance_desc">Theme / Font Size</string>
+    <string name="settings_screen_chat_cd">Chat, message display/interaction/advanced, tap to enter</string>
+    <string name="settings_screen_chat">Chat</string>
+    <string name="settings_screen_chat_desc">Message Display / Interaction / Advanced</string>
+    <string name="settings_screen_media_cd">Media, voice/TTS/audio output, tap to enter</string>
+    <string name="settings_screen_media">Media</string>
+    <string name="settings_screen_media_desc">Voice / TTS / Audio Output</string>
+    <string name="settings_screen_memory_data_group_cd">Memory &amp; Knowledge Base group</string>
+    <string name="settings_screen_memory_data">Memory &amp; Data</string>
+    <string name="settings_screen_memory_knowledge">Memory &amp; Knowledge Base</string>
+    <string name="settings_screen_memory_notification_cd">Memory &amp; Notifications, memory params/knowledge base/notification policy, tap to enter</string>
+    <string name="settings_screen_memory_notification">Memory &amp; Notifications</string>
+    <string name="settings_screen_memory_notification_desc">Memory Params / Knowledge Base / Notification Policy</string>
+    <string name="settings_screen_data_backup_cd">Data &amp; Backup, cloud backup/Web server, tap to enter</string>
+    <string name="settings_screen_data_backup">Data &amp; Backup</string>
+    <string name="settings_screen_data_backup_desc">Cloud Backup / Web Server</string>
+    <string name="settings_screen_data_import_cd">Data Import, migrate data from other apps, tap to enter</string>
+    <string name="settings_screen_data_import">Data Import</string>
+    <string name="settings_screen_data_import_desc">Migrate from RikkaHub / Kelivo</string>
+    <string name="settings_screen_rag_cd">Knowledge retrieval, RAG config/Embedding/chunk params, tap to enter</string>
+    <string name="settings_screen_rag">Knowledge Retrieval</string>
+    <string name="settings_screen_rag_desc">RAG Config / Embedding / Chunk Params</string>
+    <!-- Data &amp; Privacy group (PII Guard) -->
+    <string name="settings_screen_privacy_group_cd">Data &amp; Privacy group</string>
+    <string name="settings_screen_privacy">Data &amp; Privacy</string>
+    <string name="settings_screen_pii_guard_cd">PII privacy protection, mask sensitive info before sending, toggle</string>
+    <string name="settings_screen_pii_guard">PII Privacy Protection</string>
+    <string name="settings_screen_pii_guard_desc">Auto-mask phone/email/ID card etc. before sending</string>
+    <string name="settings_screen_model_service_group_cd">Models &amp; Services group</string>
+    <string name="settings_screen_model_service">Models &amp; Services</string>
+    <string name="settings_screen_provider_cd">Providers, manage AI service providers, tap to enter</string>
+    <string name="settings_screen_provider">Providers</string>
+    <string name="settings_screen_provider_desc">Manage model providers, API keys and web search</string>
+    <string name="settings_screen_assistant_cd">Assistants, manage assistants/world books, tap to enter</string>
+    <string name="settings_screen_assistant">Assistants</string>
+    <string name="settings_screen_assistant_desc">Manage assistants, models, personas and world books</string>
+    <string name="settings_screen_agent_cd">Agent, assistant selection/collaboration/proactive messages, tap to enter</string>
+    <string name="settings_screen_agent_desc">Assistant Selection / Collaboration / Proactive Messages</string>
+    <string name="settings_screen_advanced_group_cd">Advanced group</string>
+    <string name="settings_screen_advanced">Advanced</string>
+    <string name="settings_screen_security_cd">Security &amp; Sharing, PIN lock/share template/search engine, tap to enter</string>
+    <string name="settings_screen_security">Security &amp; Sharing</string>
+    <string name="settings_screen_security_desc">PIN Lock / Share Template / Search Engine</string>
+    <string name="settings_screen_proxy_cd">%1$s, %2$s, tap to enter</string>
+    <string name="settings_screen_experiments_cd">Experimental, unstable feature toggles, tap to enter</string>
+    <string name="settings_screen_experiments">Experimental</string>
+    <string name="settings_screen_experiments_desc">Unstable feature toggles</string>
+    <string name="settings_screen_stats_cd">Statistics, view usage stats and heatmap, tap to enter</string>
+    <string name="settings_screen_stats">Statistics</string>
+    <string name="settings_screen_stats_desc">View usage stats and heatmap</string>
+    <string name="quota_title">Daily Quota</string>
+    <string name="quota_plan_free">Free</string>
+    <string name="quota_plan_pro">Pro</string>
+    <string name="quota_chats">Chats</string>
+    <string name="quota_images">Image Gen</string>
+    <string name="quota_searches">Web Search</string>
+    <!-- v1.0.4: Notification listener -->
+    <string name="settings_screen_notification_listener">Notification Listener</string>
+    <string name="settings_screen_notification_listener_desc">Authorize AI to read other apps\' notifications</string>
+    <!-- v1.0.4: AI tools -->
+    <string name="settings_screen_tools">AI Tools</string>
+    <string name="settings_screen_tools_desc">View tools and permissions AI can invoke</string>
+    <string name="settings_screen_about_group_cd">About group</string>
+    <string name="settings_screen_about">About</string>
+    <string name="settings_screen_tutorial_cd">Tutorial, onboarding guide, tap to enter</string>
+    <string name="settings_screen_tutorial">Tutorial</string>
+    <string name="settings_screen_tutorial_desc">Onboarding / Feature Guide</string>
+    <string name="settings_screen_about_cd">About, version/open-source licenses, tap to enter</string>
+    <string name="settings_screen_about_desc">Version / Open-source Licenses</string>
+    <string name="settings_screen_debug_log_cd">Debug log, view app logs and errors, tap to enter</string>
+    <string name="settings_screen_debug_log">Debug Log</string>
+    <string name="settings_screen_debug_log_desc">View app logs and errors</string>
+
+    <!-- v1.133: Check for updates entry in About group -->
+    <string name="settings_screen_check_update_cd">Check for updates, manually check latest GitHub release, tap to trigger</string>
+    <string name="settings_screen_check_update">Check for updates</string>
+    <string name="settings_screen_check_update_desc">Check GitHub for new releases</string>
+
+    <!-- v1.132: Settings search + group reorg -->
+    <string name="settings_search_cd">Search settings</string>
+    <string name="settings_search_hint">Search settings…</string>
+    <string name="settings_search_prompt">Type keywords to search all settings</string>
+    <string name="settings_search_no_results">matches</string>
+    <string name="settings_screen_assistant_agent">Assistants &amp; Agent</string>
+    <string name="settings_screen_data_backup_group">Data &amp; Backup</string>
+    <string name="settings_screen_data_management_group">Data Management</string>
+
+    <!-- v1.97 gap8: Tools group (standalone translate page entry) -->
+    <string name="settings_screen_tools_group_cd">Tools group</string>
+    <string name="settings_screen_translate_cd">AI Translate, standalone translation tool, tap to enter</string>
+    <string name="settings_screen_translate">AI Translate</string>
+    <string name="settings_screen_translate_desc">Multi-language translation with source selection/swap/playback</string>
+
+    <!-- v1.25: Vision Assist (let text-only models "see" images via vision model) -->
+    <string name="settings_screen_vision">Vision Assist</string>
+    <string name="settings_screen_vision_desc">Let text-only models analyze images via vision model</string>
+    <string name="settings_vision_title">Vision Assist</string>
+    <string name="settings_vision_description">When using a text-only model that doesn\'t support image input, automatically call a vision model to analyze images and inject descriptions into the conversation.</string>
+    <string name="settings_vision_enabled">Enable Vision Assist</string>
+    <string name="settings_vision_enabled_subtitle">Automatically send images to vision model for analysis</string>
+    <string name="settings_vision_model_section">Vision Model</string>
+    <string name="settings_vision_no_models">No vision-capable models found. Please add a vision model in provider settings.</string>
+    <string name="vision_analysis_starting">Analyzing image with vision model</string>
+    <string name="vision_analysis_done">Analyzed %1$d image(s) with vision model</string>
+    <string name="vision_analysis_failed">Image analysis failed: %1$s</string>
+    <string name="vision_assist_label">Vision Assist</string>
+    <string name="vision_assist_analyzing">Vision Assist · Analyzing %1$d/%2$d</string>
+    <string name="vision_assist_done">Vision Assist · Done</string>
+    <string name="vision_assist_failed">Vision Assist · Failed</string>
+
+    <!-- ===== Search screen SearchScreen ===== -->
+    <string name="search_back_cd">Back</string>
+    <string name="search_placeholder">Search sessions/messages/settings...</string>
+    <string name="search_empty_hint">Enter keywords to search sessions, messages, or settings</string>
+    <string name="search_suggestion_backup">Backup</string>
+    <string name="search_no_result">No matching results</string>
+    <string name="search_try_other">Try other keywords</string>
+    <string name="search_section_sessions">Sessions</string>
+    <string name="search_section_messages">Messages</string>
+    <string name="search_section_settings">Settings</string>
+    <string name="search_new_session">New Session</string>
+    <string name="search_index_proactive_message">Proactive Messages</string>
+    <string name="search_index_chat_behavior">Chat behavior settings</string>
+    <string name="search_index_deep_thinking">Deep Thinking</string>
+    <string name="search_index_web_server">Web Server</string>
+    <string name="search_index_data_backup">Data &amp; Backup</string>
+    <string name="search_index_cloud_backup">Cloud Backup</string>
+    <string name="search_index_theme">Theme</string>
+    <string name="search_index_appearance">Appearance Settings</string>
+    <string name="search_index_font_size">Font Size</string>
+    <string name="search_index_pin_lock">PIN Lock</string>
+    <string name="search_index_security">Security &amp; Sharing</string>
+    <string name="search_index_assistant_manage">Assistant Management</string>
+    <string name="search_index_assistants_page">Assistants</string>
+    <string name="search_index_memory">Memory</string>
+    <string name="search_index_memory_settings">Memory &amp; Notification Settings</string>
+    <string name="search_index_skill">Skill</string>
+    <string name="search_index_skill_manage">Skill Management</string>
+    <string name="search_index_knowledge">Knowledge Base</string>
+    <string name="search_index_knowledge_page">Knowledge Base Page</string>
+    <string name="search_index_scheduled_task">Scheduled Tasks</string>
+    <string name="search_index_scheduled_task_page">Scheduled Tasks Page</string>
+    <string name="search_index_mcp">MCP</string>
+    <string name="search_index_model_service">Models &amp; Services</string>
+    <string name="search_index_provider">Provider</string>
+    <string name="search_index_user_profile">User Persona</string>
+    <string name="search_index_user_profile_edit">Edit User Persona</string>
+
+    <!-- ===== Skill screen SkillScreen ===== -->
+    <string name="skill_management">Skill Management</string>
+    <string name="skill_back_cd">Back</string>
+    <string name="skill_import_cd">Import .skill.json</string>
+    <string name="skill_intro">Skills are tools that the LLM can call. When enabled, the assistant can invoke them during conversations as needed; when disabled, they are not exposed to the model. Tap the import button in the top right to import a .skill.json file.</string>
+    <string name="skill_no_skill_title">No skills yet</string>
+    <string name="skill_no_skill_subtitle">Tap + in the bottom right to import a skill file</string>
+    <string name="skill_import_result">Import Result</string>
+    <string name="skill_got_it">Got it</string>
+    <string name="skill_importing">Importing</string>
+    <string name="skill_importing_detail">Reading and parsing document...</string>
+    <string name="skill_open_picker_failed">Cannot open file picker: %1$s</string>
+    <string name="skill_imported">Imported: %1$s</string>
+    <string name="skill_import_failed">Failed to save: %1$s</string>
+    <string name="skill_import_error">Import failed: %1$s</string>
+    <string name="skill_operation_failed">Operation failed: %1$s</string>
+    <string name="skill_unnamed">(Unnamed)</string>
+    <string name="skill_enabled">Enabled</string>
+    <string name="skill_disabled">Disabled</string>
+    <string name="skill_built_in">Built-in</string>
+    <string name="skill_built_in_seed">Built-in (seed)</string>
+    <string name="skill_custom">Custom</string>
+    <string name="skill_detail_cd">Details</string>
+    <string name="skill_parameters_schema">Parameters Schema</string>
+    <string name="skill_use_cases">Use Cases</string>
+    <string name="skill_label_category">Category</string>
+    <string name="skill_label_implementation">Implementation</string>
+    <string name="skill_label_source">Source</string>
+    <string name="skill_close">Close</string>
+    <string name="skill_row_cd">%1$s, %2$s, tap to view details</string>
+    <string name="skill_use_case_read_file">When you need to read notes, configs, or cached files in the app, the LLM will call this automatically.</string>
+    <string name="skill_use_case_write_file">When you need to save notes, generate documents, or persist data, the LLM will call this automatically.</string>
+    <string name="skill_use_case_http_get">When you need to request external APIs (e.g. weather, exchange rates), the LLM will call this automatically.</string>
+    <string name="skill_use_case_http_post">When you need to submit data to external services (e.g. send a webhook), the LLM will call this automatically.</string>
+    <string name="skill_use_case_web_search">When you ask about real-time information (news, market data, latest updates), the LLM will search the web automatically.</string>
+    <string name="skill_use_case_web_fetch">When you provide a web link and want to extract content, the LLM will fetch the page text automatically (up to 50,000 characters).</string>
+    <string name="skill_use_case_knowledge_search">When your question involves knowledge base documents, the LLM will search the knowledge base instead of guessing.</string>
+    <string name="skill_use_case_arxiv_search">When you ask about academic papers or research directions, the LLM will search the arXiv preprint repository.</string>
+    <string name="skill_use_case_install_skill">When you describe a new capability need (e.g. \"create a skill to check exchange rates\"), the LLM will generate and install a new skill automatically.</string>
+    <!-- ===== Assistant detail: regex rules ===== -->
+    <string name="assistant_detail_regex_title">Regex replacement rules</string>
+    <string name="assistant_detail_regex_desc">Apply regex replacements on user/assistant messages (role name replacement, sensitive word filtering, format normalization, etc.)</string>
+    <string name="assistant_detail_regex_add">Add rule</string>
+    <string name="assistant_detail_regex_empty">No rules yet. Tap \"Add rule\" to create one.</string>
+    <string name="assistant_detail_regex_edit_title">Edit rule</string>
+    <string name="assistant_detail_regex_name_label">Rule name</string>
+    <string name="assistant_detail_regex_name_hint">e.g. Role name replacement</string>
+    <string name="assistant_detail_regex_find_label">Find regex</string>
+    <string name="assistant_detail_regex_find_hint">e.g. \\bAI\\b</string>
+    <string name="assistant_detail_regex_replace_label">Replacement string</string>
+    <string name="assistant_detail_regex_replace_hint">e.g. Xiaoai (supports $1 backreference)</string>
+    <string name="assistant_detail_regex_scope_label">Scope</string>
+    <string name="assistant_detail_regex_scope_user">User messages only</string>
+    <string name="assistant_detail_regex_scope_assistant">Assistant messages only</string>
+    <string name="assistant_detail_regex_scope_both">Both (user + assistant)</string>
+    <string name="assistant_detail_regex_visual_only">Display replacement only (does not affect LLM input)</string>
+    <string name="assistant_detail_regex_enabled">Enabled</string>
+    <string name="assistant_detail_regex_delete_cd">Delete rule</string>
+    <string name="assistant_detail_regex_invalid">Invalid regex syntax</string>
+
+    <!-- ===== QR code share/scan ===== -->
+    <string name="qr_share_title">Share provider QR code</string>
+    <string name="qr_share_cd">Provider config QR code</string>
+    <string name="qr_share_warning">This QR code contains the API Key in plain text. Only share it with trusted recipients.</string>
+    <string name="qr_share_btn">Share QR code</string>
+    <string name="qr_scan_title">Scan QR code</string>
+    <string name="qr_scan_pick_image">Pick a QR code image from gallery</string>
+    <string name="qr_scan_pick_button">Pick image</string>
+    <string name="qr_scan_scanning">Recognizing…</string>
+    <string name="qr_scan_failed">Could not recognize the QR code. Make sure the image is clear and try again.</string>
+    <string name="qr_scan_btn">Scan QR code to import</string>
+    <string name="qr_import_success">Provider imported: %1$s</string>
+    <string name="qr_import_invalid">Invalid QR code format; not a provider config</string>
+
+    <!-- ===== Stats screen ===== -->
+    <string name="stats_unknown_model">Unknown Model</string>
+    <string name="stats_default_assistant">Default Assistant</string>
+    <string name="stats_deleted_session">Deleted Session</string>
+
+    <!-- ===== Assistant detail pages AssistantDetailPages ===== -->
+
+    <!-- ===== Memory screen MemoryScreen ===== -->
+    <!-- v1.98: Experience library -->
+
+    <!-- ===== Settings screen SettingsScreen ===== -->
+
+    <!-- v1.97 gap8: Tools group (standalone translate page entry) -->
+
+    <!-- ===== Search screen SearchScreen ===== -->
+
+    <!-- ===== Skill screen SkillScreen ===== -->
+    <!-- ===== Assistant detail: regex rules ===== -->
+
+    <!-- ===== QR code share/scan ===== -->
+
+    <!-- ===== Stats screen ===== -->
+
+    <!-- ===== P1-6: OAuth login (ProviderEditPage) ===== -->
+    <string name="oauth_login">OAuth Login</string>
+    <string name="oauth_login_success">OAuth login successful</string>
+    <string name="oauth_login_failed">OAuth login failed: %1$s</string>
+    <string name="oauth_device_code_prompt">Visit %1$s and enter code: %2$s</string>
+    <string name="oauth_polling">Waiting for authorization...</string>
+    <string name="oauth_open_verification_uri">Open link</string>
+
+    <!-- ===== P2-11: OAuth credential isolation (revoke / auto refresh) ===== -->
+    <string name="oauth_revoke">Revoke Access</string>
+    <string name="oauth_revoke_confirm">Confirm revoke OAuth access for this provider?</string>
+    <string name="oauth_revoke_success">Access revoked</string>
+    <string name="oauth_token_expired">Authorization expired, please login again</string>
+    <string name="oauth_token_refreshed">Authorization auto refreshed</string>
+    <string name="oauth_stored">Authorization stored</string>
+
+    <!-- ===== P1-4: Tablet adaptation (responsive layout) ===== -->
+    <string name="settings_adaptive_layout">Adaptive Layout</string>
+
+    <!-- ===== P2-2: Upstream model diff sheet (ModelDiffSheet) ===== -->
+    <string name="model_diff_title">Upstream Model Diff</string>
+    <string name="model_diff_new">Upstream New (%1$d)</string>
+    <string name="model_diff_removed">Removed (%1$d)</string>
+    <string name="model_diff_unchanged">Unchanged (%1$d)</string>
+    <string name="model_diff_add_all">Add All New</string>
+    <string name="model_diff_remove_all">Remove All Deleted</string>
+    <string name="model_diff_kept_badge">Deleted (Kept)</string>
+    <string name="model_diff_apply">Apply Selected</string>
+    <string name="model_diff_empty_new">No new models</string>
+    <string name="model_diff_empty_removed">No removed models</string>
+
+    <!-- ===== P2-3: Ollama vision/tools capability inference ===== -->
+    <string name="ollama_vision_inferred">Vision (Inferred)</string>
+    <string name="ollama_tools_inferred">Tool Use (Inferred)</string>
+    <!-- ===== P2-1: Provider collision detection (ProviderSection warning card) ===== -->
+    <string name="provider_collision_warning">Found %1$d potentially duplicate provider configurations</string>
+
+    <!-- ===== P2-4: Audit log (AuditLogPage) ===== -->
+    <string name="settings_audit_log">Audit Log</string>
+    <string name="audit_log_clear">Clear Log</string>
+    <string name="audit_log_empty">No log records</string>
+    <string name="audit_log_clear_confirm">Confirm clearing all audit logs?</string>
+    <string name="audit_log_category_all">All</string>
+    <string name="audit_log_category_api">API Call</string>
+    <string name="audit_log_category_user">User Action</string>
+    <string name="audit_log_category_auth">Authentication</string>
+    <string name="audit_log_category_system">System</string>
+    <string name="audit_log_search_hint">Search action / target / detail</string>
+    <string name="audit_log_clear_search">Clear search</string>
+    <string name="audit_log_no_match">No matching logs</string>
+    <string name="audit_log_result_count">Showing %1$d of %2$d</string>
+    <string name="audit_log_export">Export JSON</string>
+    <string name="audit_log_export_empty">No logs to export</string>
+    <string name="audit_log_export_subject">muse audit logs — %1$d entries</string>
+    <string name="audit_log_export_chooser">Share audit logs</string>
+    <string name="audit_log_export_failed">Export failed: cannot get file URI</string>
+
+    <!-- ===== P2-8: Video Generation (SettingsScreen entry + VideoGenerationPage) ===== -->
+    <string name="settings_screen_video_gen_cd">Video Generation, Kling API, click to open</string>
+    <string name="settings_screen_video_gen">Video Generation</string>
+    <string name="settings_screen_video_gen_desc">Text/image to video models and API configuration</string>
+
+    <!-- ===== v1.133: 5 standalone sub-page entries split out from SettingsModelPage ===== -->
+    <string name="settings_screen_web_search">Web Search</string>
+    <string name="settings_screen_web_search_desc">Search engine / API Key / endpoint</string>
+    <string name="settings_screen_asr">Speech Recognition</string>
+    <string name="settings_screen_asr_desc">Speech-to-text (System / DashScope / Step)</string>
+    <string name="settings_screen_image_gen">Image Generation</string>
+    <string name="settings_screen_image_gen_desc">Text-to-image model and sampling parameters</string>
+    <string name="settings_screen_mcp">MCP Servers</string>
+    <string name="settings_screen_mcp_desc">Model Context Protocol tool servers</string>
+    <string name="settings_screen_assistant_resources">Assistant Resources</string>
+    <string name="settings_screen_assistant_resources_desc">Favorites / Lorebook / Quick Messages / Prompt Injection / Skills / Memory toggle</string>
+    <string name="settings_assistant_resources_title">Assistant Resources</string>
+    <string name="video_gen_title">Video Generation</string>
+    <string name="video_gen_prompt">Describe the video you want to generate</string>
+    <string name="video_gen_model">Model</string>
+    <string name="video_gen_duration">Duration</string>
+    <string name="video_gen_resolution">Resolution</string>
+    <string name="video_gen_reference_image">Reference Image (optional)</string>
+    <string name="video_gen_submit">Generate Video</string>
+    <string name="video_gen_pending">Pending</string>
+    <string name="video_gen_processing">Generating...</string>
+    <string name="video_gen_success">Success</string>
+    <string name="video_gen_failed">Failed: %1$s</string>
+    <string name="video_gen_timeout">Timeout</string>
+    <string name="video_gen_open_video">Open Video</string>
+    <string name="video_gen_no_app">No app available to play video</string>
+    <string name="video_gen_apikey_required">API Key is required</string>
+    <string name="video_gen_provider">Provider</string>
+    <string name="video_gen_no_provider">No available provider configured. Please add one in the Providers menu with API Key.</string>
+
+    <!-- ===== P2-5: SiliconFlow free model fallback (PresetProviders / ProviderEditPage) ===== -->
+    <string name="preset_siliconflow_free">SiliconFlow Free Models</string>
+    <string name="preset_siliconflow_free_desc">Free open-source models from SiliconFlow</string>
+    <string name="siliconflow_fill_free_models">Fill Free Models</string>
+    <string name="siliconflow_fill_free_models_confirm">Replace current models with SiliconFlow free models, confirm?</string>
+
+    <!-- ===== P2-10: Provider plugin management (ProviderPluginPage) ===== -->
+    <string name="provider_plugins_title">Plugin Manager</string>
+    <string name="provider_plugins_empty">No plugins</string>
+    <string name="provider_plugins_import">Import Plugin</string>
+    <string name="provider_plugins_delete">Delete Plugin</string>
+    <string name="provider_plugins_convert">Convert to Provider</string>
+    <string name="provider_plugins_import_failed">Import failed: %1$s</string>
+    <string name="provider_plugins_import_success">Import success</string>
+    <string name="provider_plugins_delete_confirm">Confirm delete this plugin?</string>
+
+    <!-- ===== P2-7: Workspace (WorkspaceScreen + tool descriptions) ===== -->
+    <string name="workspace_title">Workspace</string>
+    <string name="workspace_desc">Local file management and temporary storage</string>
+    <string name="workspace_empty">Workspace is empty</string>
+    <string name="workspace_new_file">New File</string>
+    <string name="workspace_new_folder">New Folder</string>
+    <string name="workspace_file_name">File name</string>
+    <string name="workspace_delete_confirm">Confirm deleting \"%1$s\"? This action cannot be undone</string>
+    <string name="workspace_rename">Rename</string>
+    <string name="workspace_read_only_too_large">File too large to preview (limit 1MB)</string>
+    <string name="workspace_path_copied">Path copied</string>
+
+    <!-- ===== P2-6: Browser Automation (BrowserAutomationScreen) ===== -->
+    <string name="browser_automation_title">Browser Automation</string>
+    <string name="browser_address_bar">Enter URL or search</string>
+    <string name="browser_run_js">Run JavaScript</string>
+    <string name="browser_back">Back</string>
+    <string name="browser_forward">Forward</string>
+    <string name="browser_refresh">Refresh</string>
+    <string name="browser_close">Close</string>
+
+    <!-- ===== P2-9: Voice Cloning (VoiceCloningPage + MediaSettingsPage entry) ===== -->
+    <string name="voice_cloning_title">Voice Cloning</string>
+    <string name="voice_cloning_provider">Provider</string>
+    <string name="voice_cloning_api_key">API Key</string>
+    <string name="voice_cloning_new_voice">Clone New Voice</string>
+    <string name="voice_cloning_voice_name">Voice Name</string>
+    <string name="voice_cloning_select_audio">Select Sample Audio</string>
+    <string name="voice_cloning_submit">Start Cloning</string>
+    <string name="voice_cloning_list_empty">No cloned voices</string>
+    <string name="voice_cloning_list_title">Cloned voices</string>
+    <string name="voice_cloning_delete_confirm">Confirm delete this cloned voice?</string>
+    <string name="voice_cloning_success">Cloning Success</string>
+    <string name="voice_cloning_failed">Cloning failed: %1$s</string>
+    <string name="voice_cloning_audio_required">Please select sample audio first</string>
+
+    <!-- ===== P2-13: Desktop adaptation (ChromeOS / Android Desktop) ===== -->
+    <!-- Shortcut descriptions (shown in settings/help pages) -->
+    <string name="desktop_shortcuts_send">Enter: Send</string>
+    <string name="desktop_shortcuts_newline">Shift+Enter: Newline</string>
+    <string name="desktop_shortcuts_search">Ctrl+K: Search</string>
+    <string name="desktop_shortcuts_new_chat">Ctrl+N: New Chat</string>
+    <string name="desktop_shortcuts_settings">Ctrl+,: Settings</string>
+    <string name="desktop_shortcuts_copy_reply">Ctrl+Shift+C: Copy Reply</string>
+    <string name="desktop_shortcuts_close">Esc: Close</string>
+    <!-- Right-click context menu items -->
+    <string name="desktop_context_copy">Copy</string>
+    <string name="desktop_context_regenerate">Regenerate</string>
+    <string name="desktop_context_delete">Delete</string>
+    <string name="desktop_context_share">Share</string>
+
+    <!-- P2-12 Rich Text Input -->
+    <string name="settings_rich_input">Rich Text Input</string>
+    <string name="settings_rich_input_desc">Show Markdown format toolbar above input box</string>
+    <string name="rich_input_format">Format</string>
+    <string name="rich_input_bold">Bold</string>
+    <string name="rich_input_italic">Italic</string>
+    <string name="rich_input_inline_code">Inline Code</string>
+    <string name="rich_input_code_block">Code Block</string>
+    <string name="rich_input_quote">Quote</string>
+    <string name="rich_input_ulist">Unordered List</string>
+    <string name="rich_input_olist">Ordered List</string>
+    <string name="rich_input_link">Link</string>
+    <string name="rich_input_link_text">Link Text</string>
+    <string name="rich_input_link_url">Link URL</string>
+    <string name="rich_input_link_insert">Insert Link</string>
+</resources>

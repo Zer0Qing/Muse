@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Launcher 长按快捷方式:用户长按应用图标时弹出此菜单,直接进入对应功能。
+     参考 Android ShortcutManager 规范(静态快捷方式最多 4 个)。
+     每个 <shortcut> 必须包含 shortcutId / icon / shortcutShortLabel,intent 必须有 action 和 targetClass。 -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 新对话:创建新会话并进入主页 -->
+    <shortcut
+        android:shortcutId="new_chat"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_chat"
+        android:shortcutShortLabel="@string/shortcut_new_chat_short"
+        android:shortcutLongLabel="@string/shortcut_new_chat_long">
+        <intent
+            android:action="io.zer0.muse.ACTION_NEW_CHAT"
+            android:targetPackage="io.zer0.muse"
+            android:targetClass="io.zer0.muse.MainActivity" />
+    </shortcut>
+
+    <!-- 翻译:直接打开独立翻译页 -->
+    <shortcut
+        android:shortcutId="translate"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_translate"
+        android:shortcutShortLabel="@string/shortcut_translate_short"
+        android:shortcutLongLabel="@string/shortcut_translate_long">
+        <intent
+            android:action="io.zer0.muse.ACTION_TRANSLATE"
+            android:targetPackage="io.zer0.muse"
+            android:targetClass="io.zer0.muse.MainActivity" />
+    </shortcut>
+
+    <!-- 语音输入:进入主页并触发语音输入 -->
+    <shortcut
+        android:shortcutId="voice_input"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_mic"
+        android:shortcutShortLabel="@string/shortcut_voice_input_short"
+        android:shortcutLongLabel="@string/shortcut_voice_input_long">
+        <intent
+            android:action="io.zer0.muse.ACTION_VOICE_INPUT"
+            android:targetPackage="io.zer0.muse"
+            android:targetClass="io.zer0.muse.MainActivity" />
+    </shortcut>
+
+    <!-- 设置:直接打开设置页 -->
+    <shortcut
+        android:shortcutId="settings"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_settings"
+        android:shortcutShortLabel="@string/shortcut_settings_short"
+        android:shortcutLongLabel="@string/shortcut_settings_long">
+        <intent
+            android:action="io.zer0.muse.ACTION_SETTINGS"
+            android:targetPackage="io.zer0.muse"
+            android:targetClass="io.zer0.muse.MainActivity" />
+    </shortcut>
+
+    <!-- v1.0.18: 快速记录:直接打开快速记录页 -->
+    <shortcut
+        android:shortcutId="quick_notes"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_note"
+        android:shortcutShortLabel="@string/shortcut_quick_notes_short"
+        android:shortcutLongLabel="@string/shortcut_quick_notes_long">
+        <intent
+            android:action="io.zer0.muse.ACTION_QUICK_NOTES"
+            android:targetPackage="io.zer0.muse"
+            android:targetClass="io.zer0.muse.MainActivity" />
+    </shortcut>
+
+</shortcuts>

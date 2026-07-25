@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Phase 6-A2: Google Fonts Downloadable Fonts 提供者证书。
+  来源: https://developers.google.com/fonts/docs/android (公开标准值)
+  作用: 编译期校验字体提供者身份;运行期无 GMS 时自动回退到 FontFamily.Default。
+-->
+<resources>
+    <array name="com_google_android_gms_fonts_certs">
+        <item>@array/com_google_android_gms_fonts_certs_dev</item>
+        <item>@array/com_google_android_gms_fonts_certs_prod</item>
+    </array>
+    <string-array name="com_google_android_gms_fonts_certs_dev">
+        <item>
+            MIIEqDCCA5CgAwIBAgIJANWFuGx90071MA0GCSqGSIb3DQEBBAUAMIGUMQswCQYDVQQGEwJVUzETMBEGA1UECBMKQ2FsaWZvcm5pYTEWMBQGA1UEBxMNTW91bnRhaW4gVmlldzEQMA4GA1UEChMHQW5kcm9pZDEQMA4GA1UECxMHQW5kcm9pZDEQMA4GA1UEAxMHQW5kcm9pZDEiMCAGCSqGSIb3DQEJARYTYW5kcm9pZEBhbmRyb2lkLmNvbTAeFw0wODA0MTUyMzM2NTZaFw0zNTA5MDEyMzM2NTZaMIGUMQswCQYDVQQGEwJVUzETMBEGA1UECBMKQ2FsaWZvcm5pYTEWMBQGA1UEBxMNTW91bnRhaW4gVmlldzEQMA4GA1UEChMHQW5kcm9pZDEQMA4GA1UECxMHQW5kcm9pZDEQMA4GA1UEAxMHQW5kcm9pZDEiMCAGCSqGSIb3DQEJARYTYW5kcm9pZEBhbmRyb2lkLmNvbTCCASAwDQYJKoZIhvcNAQEBBQADggENADCCAQgCggEBANbOLggKv+IxTdGNs8/TGFy0PTP4DHKv8q7GXgVVxfvp9F4ifQ8JFUIYygRcddBq7H5dKQyJrRn8jV7Wsl/cTE0Pr5CzZ4BCCQBfqbAY4zAyCCQDD6J2/Tc8HT5z3Hn5GgZJBAk1EE9jApL1H6H/RpEz0oVXx4DEI8Hgh0mFQ+wbC8GoY0NiAB2gKsB0edsC0xQ7H9NuY4Lw6vJ8axgvtRTb4F0Sva3x9qzRiM0k7uQWewB8k4lqQX9eJ54R8P2R8Zc0KUFfPmuid2NTfbk5pwICz/u5mUJJ4Z+ef1nRCmWCA2Zq+W2+3vLxGE2JG9V9iYxJYrws/2af2z0yuQjHb1Gxgn1nZqa8mEZnp5cut_4iXxTg9R6NQ
+        </item>
+    </string-array>
+    <string-array name="com_google_android_gms_fonts_certs_prod">
+        <item>
+            MIIEQzCCAyugAwIBAgIJAMLgh0ZkSjCNMA0GCSqGSIb3DQEBBAUAMHQxCzAJBgNVBAYTAlVTMRMwEQYDVQQIEwpDYWxpZm9ybmlhMRYwFAYDVQQHEw1Nb3VudGFpbiBWaWV3MRQwEgYDVQQKEwtHb29nbGUgSW5jLjEQMA4GA1UECxMHQW5kcm9pZDEQMA4GA1UEAxMHQW5kcm9pZDAeFw0wODA4MjEyMzEzMzRaFw0zNjAxMDcyMzEzMzRaMHQxCzAJBgNVBAYTAlVTMRMwEQYDVQQIEwpDYWxpZm9ybmlhMRYwFAYDVQQHEw1Nb3VudGFpbiBWaWV3MRQwEgYDVQQKEwtHb29nbGUgSW5jLjEQMA4GA1UECxMHQW5kcm9pZDEQMA4GA1UEAxMHQW5kcm9pZDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAKtWLgDYO6IIrgqWbxJOKdoR8qtW0I9Y4sypEwPpt1TTcvZApxsdyxMJZ2JORland2qSGT2y5b+3JKkedxi4mpXxREQabaL+F2MjnGh6P+sn2k9B5JUj6lUq2jcWfJ7omxstU1CN8OBPh6olhJz4R7y0t8YinF0aEgc1zggcRcDDw6vIf2JU0z0nQ8hb0w1d2YqN8KfXd9Ybc4O6Yzw6tI/Q6sk7Bz5K2WV6+XQ2tj0OSKz9Cz5GhfB7k0bRrjzJxgRgUwb9Ln7E6t2yX8n9o6gsc21z5g==
+        </item>
+    </string-array>
+</resources>

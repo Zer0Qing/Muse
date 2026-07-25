@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 언어 선택 피커(다른 설정 문자열은 기본 중국어로 폴백) -->
+    <string name="settings_theme_appearance">외관</string>
+    <string name="settings_theme_follow_system">시스템 따르기</string>
+    <string name="settings_theme_light">라이트</string>
+    <string name="settings_theme_dark">다크</string>
+    <string name="settings_theme_current_mode">현재 모드</string>
+    <string name="settings_theme_selected">선택됨</string>
+    <string name="settings_theme_language">언어</string>
+    <string name="settings_theme_language_zh">중국어</string>
+    <string name="settings_theme_language_en">영어</string>
+    <string name="settings_theme_language_ja">일본어</string>
+    <string name="settings_theme_language_ko">한국어</string>
+    <string name="settings_theme_language_ru">러시아어</string>
+    <string name="settings_theme_current_language">현재 언어</string>
+
+    <!-- 설정 서브페이지 제목 -->
+    <string name="settings_sub_model_services">모델 및 서비스</string>
+    <string name="settings_sub_user_profile">사용자 프로필</string>
+    <string name="settings_sub_data_backup">데이터 및 백업</string>
+
+    <!-- 공통 버튼 -->
+    <string name="settings_about_check_update">업데이트 확인</string>
+    <string name="settings_about_checking">확인 중</string>
+    <string name="settings_about_up_to_date">최신 버전입니다</string>
+    <string name="settings_about_feedback">피드백</string>
+    <string name="settings_about_got_it">확인</string>
+    <string name="settings_about_logout">로그아웃</string>
+    <string name="settings_about_logout_button">로그아웃</string>
+    <string name="settings_about_download">다운로드</string>
+    <string name="settings_about_processing">처리 중</string>
+
+    <!-- 기본 홈 페이지 -->
+    <string name="settings_default_home_page_title">실행 시 기본 페이지</string>
+    <string name="settings_default_home_page_desc">앱 실행 시 표시할 페이지 선택</string>
+
+    <!-- 외관/테마 관련 -->
+    <string name="settings_theme_font_size">글자 크기</string>
+    <string name="settings_theme_font_small">소</string>
+    <string name="settings_theme_font_medium">중</string>
+    <string name="settings_theme_font_large">대</string>
+    <string name="settings_theme_font_xlarge">특대</string>
+    <string name="settings_theme_current_font_size">현재 크기</string>
+    <string name="settings_theme_dynamic_color">다이내믹 컬러</string>
+    <string name="settings_theme_preview">테마 미리보기</string>
+    <string name="settings_theme_preview_hello">안녕하세요</string>
+    <string name="settings_theme_preview_reply">안녕하세요! 무엇을 도와드릴까요?</string>
+
+    <!-- 커스텀 테마 -->
+    <string name="settings_theme_custom_section">커스텀 테마</string>
+    <string name="settings_theme_custom_add">테마 추가</string>
+    <string name="settings_theme_custom_edit">테마 편집</string>
+    <string name="settings_theme_custom_create">테마 생성</string>
+    <string name="settings_theme_custom_name">테마 이름</string>
+    <string name="settings_theme_custom_save">저장</string>
+    <string name="settings_theme_custom_delete">삭제</string>
+    <string name="settings_theme_custom_delete_confirm">이 테마를 삭제하시겠습니까?</string>
+    <string name="settings_theme_custom_unnamed">이름 없음</string>
+
+    <!-- 기억 및 알림 -->
+    <string name="settings_memory_page_title">기억 및 알림</string>
+    <string name="settings_memory_system_section">기억 시스템</string>
+    <string name="settings_memory_notification_section">알림</string>
+    <string name="settings_memory_restore_default">기본값 복원</string>
+    <string name="settings_memory_advanced_section">고급</string>
+    <string name="settings_memory_keep_awake">화면 켜짐 유지</string>
+    <string name="settings_memory_auto_launch">자동 실행</string>
+    <string name="settings_memory_reply_notification">답장 완료 알림</string>
+
+    <!-- 데이터 가져오기 -->
+    <string name="settings_import_page_title">데이터 가져오기</string>
+    <string name="settings_import_select_backup">백업 파일 선택(ZIP 형식)</string>
+    <string name="settings_importing">가져오는 중입니다. 잠시만 기다려 주십시오...</string>
+    <string name="settings_import_complete">가져오기 완료</string>
+    <string name="settings_import_ready">준비 완료, 파일 선택</string>
+</resources>

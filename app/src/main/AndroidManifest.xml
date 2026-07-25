@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- v0.32: keepAwake 设置(应用运行时保持 CPU 唤醒) -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- v0.32: autoLaunch 设置(开机后自动启动 muse) -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- 功能1: 生物识别解锁 -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <!-- Phase 5-D: 语音输入(ACTION_RECOGNIZE_SPEECH 系统会自动请求) -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Phase 8.10: 读取日历事件(calendar_today 工具需要) -->
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <!-- Phase 8.10: 写入日历事件(add_calendar_event 工具需要) -->
+    <uses-permission android:name="android.permission.WRITE_CALENDAR" />
+    <!-- Phase 8.10: 屏幕使用时间统计(screen_time 工具需要) -->
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
+    <!-- 手机端工具:get_location 粗略位置(运行时权限,工具内自检) -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- 手机端工具:get_contacts_count 联系人数量(运行时权限,工具内自检) -->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <!-- 手机端工具:send_sms 发送短信(运行时权限,工具内自检) -->
+    <uses-feature android:name="android.hardware.telephony" android:required="false" />
+    <uses-permission android:name="android.permission.SEND_SMS" />
+    <!-- 系统控制工具:toggle_wifi 读 WiFi 状态(普通权限,自动授予) -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <!-- 系统控制工具:toggle_wifi 切换 WiFi(Android 10+ 已限制直接开关,保留权限) -->
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <!-- 系统控制工具:toggle_bluetooth 读蓝牙状态 -->
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <!-- 系统控制工具:toggle_bluetooth 关闭蓝牙(API 31+ 已废弃但向后兼容) -->
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <!-- v1.136: 手电筒/闪光灯控制(toggle_flashlight) -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <!-- v1.136: 振动反馈(vibrate) -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- v1.136: 修改屏幕亮度(set_brightness) -->
+    <uses-permission android:name="android.permission.WRITE_SETTINGS"
+        tools:ignore="ProtectedPermissions" />
+    <!-- v1.136: Android 12+ 获取已配对蓝牙设备(get_bluetooth_devices) -->
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <!-- v1.136: 定时提醒(schedule_reminder)设置精确闹钟 -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <!-- v1.27: 相册访问权限(InputBar 授权访问相册需要) -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <!-- v1.43: 前台服务保活(切后台时保持 AI 生成) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <!-- Phase 5-I: 备份导出/导入(SAF 不需要权限,但读取外部文档需要) -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.RECOGNIZE_SPEECH" />
+        </intent>
+        <!-- v1.52: open_app 工具需要查询其他应用的 launcher intent(Android 11+ 包可见性) -->
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
+    <application
+        android:name=".MuseApp"
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Muse"
+        android:networkSecurityConfig="@xml/network_security_config">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|density|smallestScreenSize|uiMode"
+            android:windowSoftInputMode="adjustResize"
+            android:supportsPictureInPicture="false"
+            android:theme="@style/Theme.Muse.Starting">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- Phase 8.10: Deep Link muse:// scheme -->
+            <!-- M-06/M-8: 限制 host 为已知值,防止任意应用通过未授权 host 调起 DeepLink -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="muse" android:host="session" />
+                <data android:scheme="muse" android:host="new" />
+                <data android:scheme="muse" android:host="assistants" />
+                <data android:scheme="muse" android:host="settings" />
+                <data android:scheme="muse" android:host="scheduled-tasks" />
+            </intent-filter>
+            <!-- P1-6: OAuth 回调 io.zer0.muse://oauth/callback 已迁移到 OAuthCallbackActivity -->
+            <!-- (原 Phase 10.4 的 pathPrefix="/callback" filter 已移除,避免与 OAuthCallbackActivity 冲突) -->
+            <!-- Phase 8.10: 接收系统分享(纯文本) -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/*" />
+            </intent-filter>
+            <!-- Phase 8.10: 长按选中文本 → "在 muse 中发送" -->
+            <intent-filter>
+                <action android:name="android.intent.action.PROCESS_TEXT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+            <!-- Launcher 长按快捷方式:静态 shortcuts 注册(必须为 <activity> 直接子元素) -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+        </activity>
+
+        <!-- P1-6: OAuth 回调空 Activity — 接收 io.zer0.muse://oauth/callback Deep Link -->
+        <!-- exported=true 是 Deep Link 必需(浏览器/系统调起) -->
+        <!-- 透明主题避免无 UI Activity 启动时闪屏 -->
+        <activity
+            android:name=".auth.OAuthCallbackActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:excludeFromRecents="true"
+            android:noHistory="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="io.zer0.muse"
+                    android:host="oauth"
+                    android:path="/callback" />
+            </intent-filter>
+        </activity>
+
+        <!-- Phase 12: Glance Compose 桌面小部件(快捷启动到最近会话) -->
+        <receiver
+            android:name=".widget.MuseQuickWidgetReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/muse_quick_widget_info" />
+        </receiver>
+        <activity
+            android:name=".widget.MuseQuickWidgetConfigureActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Muse.Starting">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
+        <!-- P3-16: Glance Compose 桌面 4x2 对话小部件(显示最近 AI 回复) -->
+        <receiver
+            android:name=".widget.MuseChatWidgetReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/muse_chat_widget_info" />
+        </receiver>
+        <activity
+            android:name=".widget.MuseChatWidgetConfigureActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Muse.Starting">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
+        <!-- v0.32: 开机自启动 receiver(autoLaunch 设置开关控制 enabled 状态) -->
+        <receiver
+            android:name=".boot.BootReceiver"
+            android:enabled="false"
+            android:exported="true"
+            android:permission="android.permission.RECEIVE_BOOT_COMPLETED">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- v1.43: 聊天生成前台服务(切后台时保持 AI 生成不中断) -->
+        <service
+            android:name=".schedule.ChatGenerationService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
+        <!-- P2: 通知监听服务(用户需在系统设置→通知使用权中授权) -->
+        <service
+            android:name=".notification.MuseNotificationListenerService"
+            android:label="Muse 通知监听"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
+        <!-- v1.136: 定时提醒闹钟接收器 -->
+        <receiver
+            android:name=".tools.reminder.ReminderAlarmReceiver"
+            android:exported="false" />
+
+        <!-- 文件附件:用于把沙盒内文件通过 ACTION_VIEW 分享给其它应用打开 -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+    </application>
+
+</manifest>

@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== QuickMessageScreen 快捷消息页 ===== -->
+    <!-- 顶部栏 -->
+    <string name="quick_msg_screen_title">快捷消息 QuickMessage</string>
+    <string name="quick_msg_back_cd">返回</string>
+    <string name="quick_msg_new_cd">新建 QuickMessage</string>
+    <string name="quick_msg_intro">预设消息模板。支持变量: {{input}}(当前输入) / {{clipboard}}(剪贴板) / {{date}}(日期)。</string>
+    <string name="quick_msg_empty_title">还没有 QuickMessage</string>
+    <string name="quick_msg_empty_subtitle">点右下角 + 新建</string>
+    <string name="quick_msg_delete_title">删除 QuickMessage</string>
+    <!-- 卡片 -->
+    <string name="quick_msg_new_default_name">新快捷消息</string>
+    <string name="quick_msg_unnamed">(未命名)</string>
+    <string name="quick_msg_disabled">已禁用</string>
+    <string name="quick_msg_scope_global">全局</string>
+    <string name="quick_msg_scope_assistant">Assistant: %1$s</string>
+    <string name="quick_msg_scope_label">作用域: %1$s</string>
+    <string name="quick_msg_enabled_cd">已启用</string>
+    <string name="quick_msg_disabled_cd">已禁用</string>
+    <string name="quick_msg_edit_cd">编辑</string>
+    <string name="quick_msg_delete_cd">删除</string>
+    <!-- 编辑页 -->
+    <string name="quick_msg_unsaved_title">有未保存的修改</string>
+    <string name="quick_msg_unsaved_content">退出将丢失当前编辑,确认放弃?</string>
+    <string name="quick_msg_discard">放弃</string>
+    <string name="quick_msg_new_title">新建 QuickMessage</string>
+    <string name="quick_msg_edit_title">编辑 QuickMessage</string>
+    <string name="quick_msg_save">保存</string>
+    <string name="quick_msg_section_basic">基础</string>
+    <string name="quick_msg_field_name">名称</string>
+    <string name="quick_msg_section_content">模板内容</string>
+    <string name="quick_msg_field_content">内容(支持 {{input}} / {{clipboard}} / {{date}} 变量)</string>
+    <string name="quick_msg_section_scope">作用域</string>
+    <string name="quick_msg_field_scope">作用域</string>
+    <string name="quick_msg_scope_global_opt">全局(所有 Assistant 共享)</string>
+    <string name="quick_msg_scope_assistant_opt">Assistant 绑定(仅指定 Assistant 显示)</string>
+    <string name="quick_msg_field_bind_assistant">绑定 Assistant</string>
+    <string name="quick_msg_section_behavior">行为</string>
+    <string name="quick_msg_field_sort_index">排序序号(越小越靠前)</string>
+    <string name="quick_msg_field_enabled">启用</string>
+    <string name="quick_msg_field_enabled_desc">关闭后此条目不显示在 InputBar chip 行</string>
+
+    <!-- ===== LorebookScreen 世界书页 ===== -->
+    <!-- 顶部栏 -->
+    <string name="lorebook_screen_title">世界书 Lorebook</string>
+    <string name="lorebook_back_cd">返回</string>
+    <string name="lorebook_new_cd">新建 Lorebook</string>
+    <string name="lorebook_intro">关键词触发的上下文注入。当用户消息命中关键词时,把对应设定作为 SYSTEM 上下文注入。</string>
+    <string name="lorebook_empty_title">还没有 Lorebook</string>
+    <string name="lorebook_empty_subtitle">点右下角 + 新建</string>
+    <string name="lorebook_delete_title">删除 Lorebook</string>
+    <!-- 卡片 -->
+    <string name="lorebook_new_default_name">新条目</string>
+    <string name="lorebook_unnamed">(未命名)</string>
+    <string name="lorebook_disabled">已禁用</string>
+    <string name="lorebook_keywords_label">关键词: %1$s</string>
+    <string name="lorebook_enabled_cd">已启用</string>
+    <string name="lorebook_disabled_cd">已禁用</string>
+    <string name="lorebook_edit_cd">编辑</string>
+    <string name="lorebook_delete_cd">删除</string>
+    <!-- 编辑页 -->
+    <string name="lorebook_unsaved_title">有未保存的修改</string>
+    <string name="lorebook_unsaved_content">退出将丢失当前编辑,确认放弃?</string>
+    <string name="lorebook_discard">放弃</string>
+    <string name="lorebook_new_title">新建 Lorebook</string>
+    <string name="lorebook_edit_title">编辑 Lorebook</string>
+    <string name="lorebook_save">保存</string>
+    <string name="lorebook_section_basic">基础</string>
+    <string name="lorebook_field_name">名称</string>
+    <string name="lorebook_field_keywords">触发关键词(逗号分隔)</string>
+    <string name="lorebook_field_keywords_placeholder">如: 魔法, 法术, 咒语</string>
+    <string name="lorebook_section_content">注入内容</string>
+    <string name="lorebook_field_content">内容(命中关键词时作为 SYSTEM 上下文注入)</string>
+    <string name="lorebook_section_behavior">行为</string>
+    <string name="lorebook_field_priority">优先级(数字越大越先注入)</string>
+    <string name="lorebook_field_insertion_position">注入位置</string>
+    <string name="lorebook_field_case_sensitive">区分大小写</string>
+    <string name="lorebook_field_case_sensitive_desc">开启后关键词匹配区分大小写</string>
+    <string name="lorebook_field_enabled">启用</string>
+    <string name="lorebook_field_enabled_desc">关闭后此条目不再触发注入</string>
+
+    <!-- ===== PromptInjectionScreen 模式注入页 ===== -->
+    <!-- 顶部栏 -->
+    <string name="prompt_injection_screen_title">模式注入 PromptInjection</string>
+    <string name="prompt_injection_back_cd">返回</string>
+    <string name="prompt_injection_new_cd">新建 PromptInjection</string>
+    <string name="prompt_injection_intro">模式触发的上下文注入。用户在会话中切换模式(创意/编程/角色扮演等)时,对应注入立即生效。</string>
+    <string name="prompt_injection_empty_title">还没有 PromptInjection</string>
+    <string name="prompt_injection_empty_subtitle">点右下角 + 新建</string>
+    <string name="prompt_injection_delete_title">删除 PromptInjection</string>
+    <!-- 卡片 -->
+    <string name="prompt_injection_new_default_name">新注入</string>
+    <string name="prompt_injection_unnamed">(未命名)</string>
+    <string name="prompt_injection_disabled">已禁用</string>
+    <string name="prompt_injection_mode_label">模式: %1$s</string>
+    <string name="prompt_injection_enabled_cd">已启用</string>
+    <string name="prompt_injection_disabled_cd">已禁用</string>
+    <string name="prompt_injection_edit_cd">编辑</string>
+    <string name="prompt_injection_delete_cd">删除</string>
+    <!-- 编辑页 -->
+    <string name="prompt_injection_unsaved_title">有未保存的修改</string>
+    <string name="prompt_injection_unsaved_content">退出将丢失当前编辑,确认放弃?</string>
+    <string name="prompt_injection_discard">放弃</string>
+    <string name="prompt_injection_new_title">新建 PromptInjection</string>
+    <string name="prompt_injection_edit_title">编辑 PromptInjection</string>
+    <string name="prompt_injection_save">保存</string>
+    <string name="prompt_injection_section_basic">基础</string>
+    <string name="prompt_injection_field_name">名称</string>
+    <string name="prompt_injection_field_mode">模式</string>
+    <string name="prompt_injection_field_display_name">显示名(UI 中显示,留空用模式默认名)</string>
+    <string name="prompt_injection_section_content">注入内容</string>
+    <string name="prompt_injection_field_content">内容(切换到此模式时作为 SYSTEM 上下文注入)</string>
+    <string name="prompt_injection_section_behavior">行为</string>
+    <string name="prompt_injection_field_priority">优先级(同模式多个注入时排序,数字越大越先注入)</string>
+    <string name="prompt_injection_field_insertion_position">注入位置</string>
+    <string name="prompt_injection_field_enabled">启用</string>
+    <string name="prompt_injection_field_enabled_desc">关闭后此条目不再触发注入</string>
+
+    <!-- ===== AssistantScreen 助手页 ===== -->
+    <!-- 顶部栏 -->
+    <string name="assistant_screen_title">助手</string>
+    <string name="assistant_back_cd">返回</string>
+    <string name="assistant_import_card_cd">导入角色卡</string>
+    <string name="assistant_memory_entry_title">长期记忆</string>
+    <string name="assistant_memory_entry_subtitle">查看 4 层记忆系统</string>
+    <string name="assistant_empty_create">尚未创建助手,点击新建</string>
+    <string name="assistant_unnamed">(未命名)</string>
+    <string name="assistant_current">当前</string>
+    <string name="assistant_more_cd">更多操作</string>
+    <string name="assistant_new_action">新建助手</string>
+    <string name="assistant_new_default_name">新助手</string>
+    <string name="assistant_clone_name">%1$s 副本</string>
+    <!-- 操作菜单 -->
+    <string name="assistant_move_up_cd">上移</string>
+    <string name="assistant_move_up">上移</string>
+    <string name="assistant_move_down_cd">下移</string>
+    <string name="assistant_move_down">下移</string>
+    <string name="assistant_clone_cd">克隆</string>
+    <string name="assistant_clone">克隆</string>
+    <string name="assistant_export_card_cd">导出角色卡</string>
+    <string name="assistant_export_card">导出角色卡</string>
+    <string name="assistant_delete_cd">删除</string>
+    <string name="assistant_delete">删除</string>
+    <string name="assistant_close">关闭</string>
+    <string name="assistant_delete_title">删除助手</string>
+    <!-- Toast -->
+    <string name="assistant_toast_exported">已导出角色卡: %1$s</string>
+    <string name="assistant_toast_export_failed">导出失败: %1$s</string>
+    <string name="assistant_toast_imported">已导入角色卡: %1$s</string>
+    <string name="assistant_toast_import_invalid">导入失败: 文件格式无效</string>
+    <string name="assistant_toast_import_failed">导入失败: %1$s</string>
+
+    <!-- ===== SillyTavern 角色卡 (PNG/JSON 通用格式) ===== -->
+    <!-- 助手列表页: 导入入口 (列表项, 位于 + 新建助手 下方) -->
+    <string name="assistant_import_sillytavern_cd">导入 SillyTavern 角色卡</string>
+    <string name="assistant_import_sillytavern">导入 SillyTavern 角色卡</string>
+    <!-- 助手详情页: 角色卡分享区块 -->
+    <string name="assistant_detail_share_section">角色卡分享</string>
+    <string name="assistant_detail_export_png">导出为 PNG 角色卡</string>
+    <string name="assistant_detail_export_png_desc">SillyTavern 格式 (含元数据)</string>
+    <string name="assistant_detail_export_json">导出为 JSON 角色卡</string>
+    <string name="assistant_detail_export_json_desc">SillyTavern V2 JSON</string>
+    <!-- 助手详情页: Muse 角色卡分享(系统分享) -->
+    <string name="assistant_detail_share_muse_card">分享 Muse 角色卡</string>
+    <string name="assistant_detail_share_muse_card_desc">生成视觉化卡片并通过系统分享</string>
+    <string name="assistant_detail_share_muse_json">分享 Muse JSON</string>
+    <string name="assistant_detail_share_muse_json_desc">通过系统分享 Muse 格式 JSON</string>
+    <string name="assistant_detail_share_muse_failed">分享失败:%1$s</string>
+    <!-- Toast -->
+    <string name="assistant_toast_sillytavern_imported">已导入 SillyTavern 角色卡: %1$s</string>
+    <string name="assistant_toast_sillytavern_import_failed">SillyTavern 角色卡导入失败: %1$s</string>
+    <string name="assistant_toast_sillytavern_exported">已导出 SillyTavern 角色卡</string>
+    <string name="assistant_toast_sillytavern_export_failed">SillyTavern 角色卡导出失败: %1$s</string>
+</resources>

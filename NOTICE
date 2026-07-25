@@ -1,0 +1,56 @@
+muse
+Copyright (C) 2026 Mozi
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+================================================================================
+
+NOTICE
+
+This product includes software developed by the open source community.
+
+================================================================================
+
+This product includes code derived from the openhanako project:
+  - Project: https://github.com/liliMozi/openhanako
+  - Original License: Apache License 2.0
+  - Specifically used: lib/memory/* (memory system: FactStore, SessionSummary,
+    MemoryCompiler, MemoryTicker, DeepMemory, PinnedMemoryStore, etc.)
+  - Adapted from TypeScript to Kotlin for Android/Jetpack Compose
+
+  The Apache License 2.0 is one-way compatible with GPL v3: Apache-2.0
+  licensed code may be included in GPL v3 works, and the resulting
+  combination is governed by GPL v3. The original openhanako source files
+  retain their Apache 2.0 license notice; the Muse project as a whole is
+  distributed under GPL v3.
+
+================================================================================
+
+This product depends on the following open source libraries (each distributed
+under its own license; these are independent works and are not combined into
+the Muse codebase beyond static/dynamic linking):
+
+  - Kotlin (Apache 2.0)                https://kotlinlang.org/
+  - Jetpack Compose (Apache 2.0)       https://developer.android.com/jetpack/compose
+  - Koin (Apache 2.0)                  https://insert-koin.io/
+  - Room (Apache 2.0)                  https://developer.android.com/training/data-storage/room
+  - Coil (Apache 2.0)                  https://coil-kt.github.io/coil/
+  - OkHttp (Apache 2.0)                https://square.github.io/okhttp/
+  - kotlinx.serialization (Apache 2.0) https://github.com/Kotlin/kotlinx.serialization
+  - Material 3 (Apache 2.0)            https://m3.material.io/
+  - pdfbox-android (Apache 2.0)        https://github.com/TomRoush/PdfBox-Android
+  - Vosk (Apache 2.0)                  https://alphacephei.com/vosk/
+  - Glance (Apache 2.0)                https://developer.android.com/jetpack/compose/glance
+  - Ktor (Apache 2.0)                  https://ktor.io/
+  - Jsoup (MIT)                        https://jsoup.org/

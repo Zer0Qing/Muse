@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== ErrorMessage i18n mapping (English) ===== -->
+    <!-- Mirrors io.zer0.common.ErrorMessage; key = error_<code>. -->
+    <!-- Keep in sync with values/strings_errors.xml and ErrorMessageMapper. -->
+
+    <!-- ── NetworkError ── -->
+    <string name="error_network_timeout">Network connection timed out, please check your network and retry</string>
+    <string name="error_network_no_connection">No network connection available, please check your settings</string>
+    <string name="error_network_dns_failed">DNS resolution failed, please check your network or proxy</string>
+
+    <!-- ── AuthError ── -->
+    <string name="error_auth_invalid_key">API key is invalid, please check model service settings</string>
+    <string name="error_auth_expired">Authentication has expired, please reset the API key</string>
+    <string name="error_auth_unauthorized">Not authorized to access this resource</string>
+
+    <!-- ── ApiError ── -->
+    <string name="error_api_rate_limit">Too many requests, please retry in %1$d seconds</string>
+    <string name="error_api_rate_limit_nodelay">Too many requests, please retry later</string>
+    <string name="error_api_server_error">Service is temporarily unavailable, please retry later</string>
+    <string name="error_api_model_not_found">The requested model is unavailable, please switch in settings</string>
+    <string name="error_api_context_length">Input exceeds the model context length limit, please shorten and retry</string>
+
+    <!-- ── StorageError ── -->
+    <string name="error_storage_db_full">Database is full, please clear data and retry</string>
+    <string name="error_storage_io_error">Local storage read/write failed, please restart the app</string>
+    <string name="error_storage_migration_failed">Database upgrade failed, please restart or reinstall the app</string>
+
+    <!-- ── ValidationError ── -->
+    <string name="error_validation_empty_input">Input cannot be empty</string>
+    <string name="error_validation_invalid_format">Input format is invalid, please check and retry</string>
+
+    <!-- ── GenericError ── -->
+    <string name="error_generic_unknown">Operation failed, please retry later</string>
+
+    <!-- ===== ViewModel/Coordinator user-visible error i18n (v1.0.18) ===== -->
+
+    <!-- ── ImageGenCoordinator ── -->
+    <string name="err_image_gen_ocr_failed">OCR failed or no text detected in the image</string>
+    <string name="err_image_gen_read_failed">Failed to read image</string>
+    <string name="err_image_gen_max_images">Up to 4 images are supported</string>
+    <string name="err_image_gen_process_failed">Image processing failed: %1$s</string>
+    <string name="err_image_gen_video_no_frames">Video processing failed: unable to extract key frames</string>
+    <string name="err_image_gen_video_too_many">%1$d video key frames plus %2$d existing images exceed the 4-image limit</string>
+    <string name="err_image_gen_video_failed">Video processing failed: %1$s</string>
+    <string name="err_image_gen_read_failed_msg">Failed to read image: %1$s</string>
+    <string name="err_image_gen_no_provider">No image generation provider configured</string>
+    <string name="err_image_gen_no_model">No image generation model selected</string>
+    <string name="err_image_gen_model_no_output">The selected model does not support image output</string>
+    <string name="err_image_gen_provider_unsupported">The current Provider (%1$s) does not support image generation. OpenAI uses the Image API, Gemini uses multimodal output.</string>
+    <string name="err_image_gen_failed">Image generation failed: %1$s</string>
+    <string name="err_image_gen_no_result">Image generation returned no result</string>
+    <string name="err_image_gen_save_failed">Failed to save image generation result: %1$s</string>
+    <string name="err_image_gen_no_image">No image was returned; the model may not support image generation. Please verify the model supports image output.</string>
+
+    <!-- ── GroupChatViewModel ── -->
+    <string name="err_group_chat_delete_failed">Failed to delete group chat</string>
+    <string name="err_group_chat_delete_msg_failed">Failed to delete message</string>
+    <string name="err_group_chat_operation_failed">Operation failed</string>
+    <string name="err_group_chat_update_failed">Failed to update group chat</string>
+
+    <!-- ── ChatMiscCoordinator ── -->
+    <string name="err_chat_misc_create_folder_failed">Failed to create folder: %1$s</string>
+    <string name="err_chat_misc_rename_folder_failed">Failed to rename folder: %1$s</string>
+    <string name="err_chat_misc_delete_folder_failed">Failed to delete folder: %1$s</string>
+    <string name="err_chat_misc_move_session_failed">Failed to move session: %1$s</string>
+    <string name="err_chat_misc_toggle_pin_failed">Failed to toggle pin: %1$s</string>
+    <string name="err_chat_misc_favorite_failed">Failed to favorite: %1$s</string>
+    <string name="err_chat_misc_set_tag_failed">Failed to set group: %1$s</string>
+    <string name="err_chat_misc_delete_msg_failed">Failed to delete: %1$s</string>
+
+    <!-- ── ChatViewModel: error messages / state strings / Toast ── -->
+    <string name="err_chat_queue_full">Send queue is full, please retry later</string>
+    <string name="err_chat_msg_save_failed">Failed to save message: %1$s</string>
+    <string name="err_chat_network_unresolvable">Unable to connect to the server, please check your network or API address</string>
+    <string name="err_chat_network_timeout">Connection timed out, please retry later</string>
+    <string name="err_chat_auth_invalid">API key is invalid or insufficient permissions</string>
+    <string name="err_chat_rate_limited">Too many requests, please retry later</string>
+    <string name="err_chat_server_error">Server error, please retry later</string>
+    <string name="err_chat_stream_broken">Stream response interrupted, please retry</string>
+    <string name="err_chat_request_failed">Request failed: %1$s</string>
+    <string name="err_chat_compress_too_few">Too few messages to compress</string>
+    <string name="err_chat_compress_memory_failed">Memory update failed, only history compressed</string>
+    <string name="err_chat_compress_done">Compressed: %1$d → %2$d messages</string>
+    <string name="err_chat_compress_no_need">Memory updated, no message compression needed</string>
+    <string name="err_chat_compress_failed">Compression failed: %1$s</string>
+    <string name="err_chat_fetch_models_empty">The upstream returned no models</string>
+    <string name="err_chat_fetch_models_failed">Fetch failed</string>
+    <string name="err_chat_fetch_models_no_server">Unable to connect to the server</string>
+    <string name="err_chat_fetch_models_timeout">Connection timed out</string>
+    <string name="err_chat_fetch_models_not_supported">This provider does not support the /models endpoint</string>
+    <string name="err_chat_fetch_models_failed_msg">Fetch failed: %1$s</string>
+    <string name="err_chat_model_switched_toast">Model switched; new messages will use the new model (history unchanged)</string>
+    <string name="err_chat_fork_failed">Failed to fork conversation: %1$s</string>
+    <string name="err_chat_context_restarted_toast">Context restarted</string>
+    <string name="err_chat_translate_empty">Translation result is empty</string>
+    <string name="err_chat_translate_failed">Translation failed: %1$s</string>
+    <string name="err_chat_translate_prefix">Translation (%1$s):\n\n</string>
+    <string name="err_chat_rag_failed">Knowledge base retrieval failed: %1$s</string>
+    <string name="err_chat_vision_fallback">Vision assist failed, a fallback prompt was injected (see logs)</string>
+    <string name="err_chat_reply_save_failed">Failed to save reply: %1$s</string>
+    <string name="err_chat_unknown">Unknown error</string>
+    <string name="err_chat_ref_save_failed">Failed to save quoted message: %1$s</string>
+    <string name="err_chat_reply_generated">Reply generated</string>
+    <string name="err_chat_resume_busy">Generation in progress, please stop it before resuming unfinished tool calls</string>
+    <string name="err_chat_resume_read_failed">Failed to read unfinished tool calls: %1$s</string>
+    <string name="err_chat_tool_result_save_failed">Failed to save tool result: %1$s</string>
+    <string name="err_chat_assistant_save_failed">Failed to save assistant: %1$s</string>
+    <string name="err_chat_assistant_delete_failed">Failed to delete assistant: %1$s</string>
+    <string name="err_chat_voice_no_asr">Voice conversation mode requires configuring an ASR API in settings first</string>
+    <string name="err_chat_tool_timeout">[Timeout] Tool %1$s did not respond within %2$d seconds, terminated</string>
+    <string name="err_chat_tool_result_truncated">…(Result truncated; use paginated or scope-limited tools for the full result)</string>
+
+    <!-- ── ChatViewModel: tool execution progress text (updateAssistant content, user-visible) ── -->
+    <string name="err_chat_img_generating">Generating image…</string>
+    <string name="err_chat_img_gen_failed_no_result">Image generation failed: no result returned</string>
+    <string name="err_chat_img_generated">Image generated</string>
+    <string name="err_chat_img_cancelled">Image generation cancelled</string>
+    <string name="err_chat_img_gen_failed">Image generation failed: %1$s</string>
+    <string name="err_chat_video_generating">Generating video, this may take tens of seconds…</string>
+    <string name="err_chat_video_progress">Video generation in progress, waited %1$d seconds…</string>
+    <string name="err_chat_video_generated">Video generated</string>
+    <string name="err_chat_video_cancelled">Video generation cancelled</string>
+    <string name="err_chat_video_gen_failed">Video generation failed: %1$s</string>
+    <string name="err_chat_qr_generated">QR code generated</string>
+</resources>

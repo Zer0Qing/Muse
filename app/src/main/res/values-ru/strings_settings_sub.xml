@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Выбор языка (остальные строки настроек fallback на китайский по умолчанию) -->
+    <string name="settings_theme_appearance">Внешний вид</string>
+    <string name="settings_theme_follow_system">Системный</string>
+    <string name="settings_theme_light">Светлый</string>
+    <string name="settings_theme_dark">Тёмный</string>
+    <string name="settings_theme_current_mode">Текущий режим</string>
+    <string name="settings_theme_selected">Выбрано</string>
+    <string name="settings_theme_language">Язык</string>
+    <string name="settings_theme_language_zh">Китайский</string>
+    <string name="settings_theme_language_en">Английский</string>
+    <string name="settings_theme_language_ja">Японский</string>
+    <string name="settings_theme_language_ko">Корейский</string>
+    <string name="settings_theme_language_ru">Русский</string>
+    <string name="settings_theme_current_language">Текущий язык</string>
+
+    <!-- Заголовки подстраниц настроек -->
+    <string name="settings_sub_model_services">Модели и сервисы</string>
+    <string name="settings_sub_user_profile">Профиль пользователя</string>
+    <string name="settings_sub_data_backup">Данные и резервное копирование</string>
+
+    <!-- Общие кнопки -->
+    <string name="settings_about_check_update">Проверить обновления</string>
+    <string name="settings_about_checking">Проверка</string>
+    <string name="settings_about_up_to_date">Установлена последняя версия</string>
+    <string name="settings_about_feedback">Отзыв</string>
+    <string name="settings_about_got_it">Понятно</string>
+    <string name="settings_about_logout">Выйти</string>
+    <string name="settings_about_logout_button">Выйти</string>
+    <string name="settings_about_download">Скачать</string>
+    <string name="settings_about_processing">Обработка</string>
+
+    <!-- Главная страница по умолчанию -->
+    <string name="settings_default_home_page_title">Главная страница при запуске</string>
+    <string name="settings_default_home_page_desc">Выберите страницу, отображаемую при запуске приложения</string>
+
+    <!-- Внешний вид/тема -->
+    <string name="settings_theme_font_size">Размер шрифта</string>
+    <string name="settings_theme_font_small">М</string>
+    <string name="settings_theme_font_medium">С</string>
+    <string name="settings_theme_font_large">Б</string>
+    <string name="settings_theme_font_xlarge">ОБ</string>
+    <string name="settings_theme_current_font_size">Текущий размер</string>
+    <string name="settings_theme_dynamic_color">Динамические цвета</string>
+    <string name="settings_theme_preview">Предпросмотр темы</string>
+    <string name="settings_theme_preview_hello">Здравствуйте</string>
+    <string name="settings_theme_preview_reply">Здравствуйте! Чем могу помочь?</string>
+
+    <!-- Пользовательская тема -->
+    <string name="settings_theme_custom_section">Пользовательская тема</string>
+    <string name="settings_theme_custom_add">Добавить тему</string>
+    <string name="settings_theme_custom_edit">Редактировать тему</string>
+    <string name="settings_theme_custom_create">Создать тему</string>
+    <string name="settings_theme_custom_name">Название темы</string>
+    <string name="settings_theme_custom_save">Сохранить</string>
+    <string name="settings_theme_custom_delete">Удалить</string>
+    <string name="settings_theme_custom_delete_confirm">Удалить эту тему?</string>
+    <string name="settings_theme_custom_unnamed">Без названия</string>
+
+    <!-- Память и уведомления -->
+    <string name="settings_memory_page_title">Память и уведомления</string>
+    <string name="settings_memory_system_section">Система памяти</string>
+    <string name="settings_memory_notification_section">Уведомления</string>
+    <string name="settings_memory_restore_default">Сбросить по умолчанию</string>
+    <string name="settings_memory_advanced_section">Дополнительно</string>
+    <string name="settings_memory_keep_awake">Держать экран включённым</string>
+    <string name="settings_memory_auto_launch">Автозапуск</string>
+    <string name="settings_memory_reply_notification">Уведомление о завершении ответа</string>
+
+    <!-- Импорт данных -->
+    <string name="settings_import_page_title">Импорт данных</string>
+    <string name="settings_import_select_backup">Выбрать файл резервной копии (ZIP)</string>
+    <string name="settings_importing">Идёт импорт, подождите...</string>
+    <string name="settings_import_complete">Импорт завершён</string>
+    <string name="settings_import_ready">Готово, выбрать файл</string>
+</resources>

@@ -1,0 +1,25 @@
+产物卡片格式要求(当回复包含可复用内容块时必须使用):
+
+如果回复中包含代码片段、完整 HTML/SVG、文档、JSON、Markdown 表格、配置示例等
+用户可能需要单独查看/复制/复用的内容,请将其放入 <artifact> 标签内。
+
+<artifact title="起一个简短标题" type="类型" language="代码语言(可选)">
+这里是完整内容块。代码保持原始缩进,HTML/SVG 保持完整标签。
+</artifact>
+
+可用 type 值:
+- code: 代码片段/脚本(必须加 language 属性,如 kotlin/python/javascript/xml)
+- html: 完整 HTML 页面或片段
+- svg: SVG 矢量图形
+- json: JSON 数据
+- markdown: Markdown 文档/长文
+- document: 普通文档/文本说明
+- image: 图片 URL 或 base64(若为 base64 请尽量简短)
+
+规则:
+- 每个 <artifact> 只放一段完整内容,不要把多个无关片段塞在一起
+- title 必须简短且能说明内容(不超过 20 字)
+- language 只对 code 类型有意义,其他类型可省略
+- 正文里仍可对产物做简要说明,但完整内容请放在 artifact 内
+- 系统会自动提取 artifact 内容,在会话中生成可点击的产物卡片
+- 不要为了一句普通闲聊或不值得复用的内容使用 artifact
