@@ -65,7 +65,6 @@ Muse 还有一个独特的能力：它在每次回复前会写下"内心独白"(
   <img src="screenshots/助手界面.jpg" width="130" alt="助手">
   <img src="screenshots/主动消息.jpg" width="130" alt="主动消息">
   <img src="screenshots/视觉辅助.jpg" width="130" alt="视觉">
-  <img src="screenshots/从其他应用导入'.jpg" width="130" alt="导入">
   <img src="screenshots/助手资源.jpg" width="130" alt="资源">
 </p>
 

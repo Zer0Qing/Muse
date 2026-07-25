@@ -64,7 +64,6 @@ Everything works offline by default. No account required. No data leaves your de
   <img src="screenshots/助手界面.jpg" width="130" alt="Assistant">
   <img src="screenshots/主动消息.jpg" width="130" alt="Proactive">
   <img src="screenshots/视觉辅助.jpg" width="130" alt="Vision">
-  <img src="screenshots/从其他应用导入'.jpg" width="130" alt="Import">
   <img src="screenshots/助手资源.jpg" width="130" alt="Resources">
 </p>
 
