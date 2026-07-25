@@ -40,6 +40,9 @@ import io.zer0.muse.web.WebSearchService
 import io.zer0.ai.video.VideoGenerationService
 import io.zer0.memory.ticker.MemoryTicker
 import io.zer0.muse.network.NetworkMonitor
+import io.zer0.muse.tools.DeferredResultStore
+import io.zer0.muse.tools.SubagentThreadStore
+import io.zer0.muse.session.ConversationSessionManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -115,6 +118,9 @@ class ChatViewModelSessionMismatchTest {
     private val auditLogger: AuditLogger = mockk(relaxed = true)
     private val sessionPermissionStore: SessionPermissionStore = mockk(relaxed = true)
     private val networkMonitor: NetworkMonitor = mockk(relaxed = true)
+    private val deferredResultStore: DeferredResultStore = mockk(relaxed = true)
+    private val subagentThreadStore: SubagentThreadStore = mockk(relaxed = true)
+    private val sessionManager: ConversationSessionManager = mockk(relaxed = true)
     private val activityProfile: UserActivityProfile = mockk(relaxed = true)
     private lateinit var appContext: Context
 
@@ -185,6 +191,9 @@ class ChatViewModelSessionMismatchTest {
         sessionPermissionStore = sessionPermissionStore,
         networkMonitor = networkMonitor,
         activityProfile = activityProfile,
+        deferredResultStore = deferredResultStore,
+        subagentThreadStore = subagentThreadStore,
+        sessionManager = sessionManager,
     )
 
     /**
