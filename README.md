@@ -52,17 +52,22 @@ Muse 还有一个独特的能力：它在每次回复前会写下"内心独白"(
 
 ## 截图预览
 
-| 对话 | 记忆系统 | 主题系统 |
-|:----:|:--------:|:--------:|
-| ![对话](screenshots/对话.jpg) | ![记忆系统](screenshots/记忆系统.jpg) | ![主题系统](screenshots/主题系统.jpg) |
-
-| 知识库 | 表情包 | 设置 |
-|:------:|:------:|:----:|
-| ![知识库](screenshots/知识库.jpg) | ![表情包](screenshots/表情包.jpg) | ![设置](screenshots/设置.jpg) |
-
-| 助手资源 | 数据导入 |
-|:--------:|:--------:|
-| ![助手资源](screenshots/助手资源.jpg) | ![数据导入](screenshots/数据导入.jpg) |
+<p align="center">
+  <img src="screenshots/软件首页.jpg" width="130" alt="首页">
+  <img src="screenshots/对话截图.jpg" width="130" alt="对话">
+  <img src="screenshots/记忆面板.jpg" width="130" alt="记忆">
+  <img src="screenshots/知识库管理页.jpg" width="130" alt="知识库">
+  <img src="screenshots/主题选择页.jpg" width="130" alt="主题">
+  <img src="screenshots/表情包库页面.jpg" width="130" alt="表情包">
+</p>
+<p align="center">
+  <img src="screenshots/设置页面.jpg" width="130" alt="设置">
+  <img src="screenshots/助手界面.jpg" width="130" alt="助手">
+  <img src="screenshots/主动消息.jpg" width="130" alt="主动消息">
+  <img src="screenshots/视觉辅助.jpg" width="130" alt="视觉">
+  <img src="screenshots/从其他应用导入'.jpg" width="130" alt="导入">
+  <img src="screenshots/助手资源.jpg" width="130" alt="资源">
+</p>
 
 ---
 

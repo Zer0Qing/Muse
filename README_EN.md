@@ -51,17 +51,22 @@ Everything works offline by default. No account required. No data leaves your de
 
 ## Screenshots
 
-| Conversation | Memory System | Theme Picker |
-|:-----------:|:-------------:|:------------:|
-| ![Conversation](screenshots/对话.jpg) | ![Memory](screenshots/记忆系统.jpg) | ![Theme](screenshots/主题系统.jpg) |
-
-| Knowledge Base | Stickers | Settings |
-|:--------------:|:--------:|:--------:|
-| ![Knowledge](screenshots/知识库.jpg) | ![Stickers](screenshots/表情包.jpg) | ![Settings](screenshots/设置.jpg) |
-
-| Assistant Resources | Data Import |
-|:------------------:|:-----------:|
-| ![Resources](screenshots/助手资源.jpg) | ![Import](screenshots/数据导入.jpg) |
+<p align="center">
+  <img src="screenshots/软件首页.jpg" width="130" alt="Home">
+  <img src="screenshots/对话截图.jpg" width="130" alt="Chat">
+  <img src="screenshots/记忆面板.jpg" width="130" alt="Memory">
+  <img src="screenshots/知识库管理页.jpg" width="130" alt="Knowledge">
+  <img src="screenshots/主题选择页.jpg" width="130" alt="Themes">
+  <img src="screenshots/表情包库页面.jpg" width="130" alt="Stickers">
+</p>
+<p align="center">
+  <img src="screenshots/设置页面.jpg" width="130" alt="Settings">
+  <img src="screenshots/助手界面.jpg" width="130" alt="Assistant">
+  <img src="screenshots/主动消息.jpg" width="130" alt="Proactive">
+  <img src="screenshots/视觉辅助.jpg" width="130" alt="Vision">
+  <img src="screenshots/从其他应用导入'.jpg" width="130" alt="Import">
+  <img src="screenshots/助手资源.jpg" width="130" alt="Resources">
+</p>
 
 ---
 
