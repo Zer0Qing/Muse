@@ -32,6 +32,8 @@ compile_log2.txt
 tmp_head.kt
 tmp_*.kt
 build_log*.txt
+build-log*.txt
+build_output*.txt
 
 # 软著申请材料
 软件著作权申请资料/
