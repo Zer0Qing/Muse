@@ -393,4 +393,17 @@
     <!-- v1.0.4 P3-4: 性能模式(MessagePaginator 接入) -->
     <string name="settings_chat_performance_mode">性能模式</string>
     <string name="settings_chat_performance_mode_subtitle">超长会话仅渲染最近 50 条消息,上滑加载更多,降低列表卡顿</string>
+
+    <!-- ==================== v1.0.20: 工具调用批准 ==================== -->
+    <string name="settings_chat_tool_approval_section">工具调用批准</string>
+    <string name="settings_chat_tool_approval_title">工具批准</string>
+    <string name="settings_chat_tool_approval_subtitle">控制 AI 调用工具时是否需要你确认</string>
+    <string name="settings_chat_tool_approval_trusted">完全放权</string>
+    <string name="settings_chat_tool_approval_ask">按需批准</string>
+    <string name="settings_chat_tool_approval_strict">严格模式</string>
+    <string name="settings_chat_tool_approval_trusted_desc">完全放权:AI 可直接调用所有工具,无需确认(适合信任的工具集)</string>
+    <string name="settings_chat_tool_approval_ask_desc">按需批准:高风险工具调用前会询问你,安全工具自动放行</string>
+    <string name="settings_chat_tool_approval_strict_desc">严格模式:除只读查询类工具外,所有工具调用都需要你确认</string>
+    <string name="settings_chat_tool_approval_per_tool">单工具策略</string>
+    <string name="settings_chat_tool_approval_per_tool_subtitle">为每个工具单独设置允许 / 拒绝 / 询问</string>
 </resources>

@@ -3,6 +3,8 @@ package io.zer0.muse.tools.quicknote
 import android.content.Context
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
+import io.zer0.muse.data.quicknote.QuickNoteDao
+import io.zer0.muse.data.quicknote.QuickNoteEntity
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
@@ -12,6 +14,14 @@ import kotlinx.serialization.builtins.ListSerializer
  *
  * 数据以 JSON 文件保存在应用私有目录,支持标题、正文、标签、置顶。
  * 模型可通过 ToolRegistry 中的 quick_note_* 工具读写维护。
+ *
+ * v1.0.17: Room 迁移后,此类仅作为:
+ *  - 迁移源([migrateToRoom] 把旧 JSON 数据导入 Room)
+ *  - 兼容格式化(ToolRegistry 内部用于 QuickNote → 文本格式化)
+ *  - 历史数据兜底读取(若迁移失败可手动恢复)
+ *
+ * 真正的读写持久化由 [QuickNoteDao] / [QuickNoteEntity] 承担,UI 通过
+ * [io.zer0.muse.ui.quicknotes.QuickNotesViewModel] 观察 Room Flow。
  */
 class QuickNoteStore(private val context: Context) {
 
@@ -90,6 +100,52 @@ class QuickNoteStore(private val context: Context) {
         all[idx] = all[idx].copy(pinned = pinned, updatedAtMillis = System.currentTimeMillis())
         save(all)
         return true
+    }
+
+    /**
+     * v1.0.17: 一次性把旧 JSON 数据迁移到 Room。
+     *
+     * 调用时机:App 启动时由 [io.zer0.muse.MuseApp] 通过 SharedPreferences 标志
+     * `quick_notes_migrated` 控制仅执行一次(幂等保障):
+     *  - 首次升级到 v1.0.17 的用户:标志为 false → 执行迁移 → 置 true
+     *  - 已迁移过的用户:标志为 true → 跳过
+     *  - 新装用户:JSON 文件不存在,readAll() 返回 emptyList,空跑迁移后置 true
+     *
+     * 幂等性:[QuickNoteDao.upsert] 用 OnConflictStrategy.REPLACE,即使重复调用
+     * 也以 id 为主键覆盖,不会产生重复记录。但为避免每次启动都遍历 JSON 文件,
+     * 仍由调用方用 SharedPreferences 标志保证只执行一次。
+     *
+     * 迁移完成后不删除 JSON 文件,作为本地备份保留(用户可手动清理)。
+     *
+     * @param dao Room 数据访问对象
+     * @return 迁移的记录数(0 表示无数据或文件不存在)
+     */
+    suspend fun migrateToRoom(dao: QuickNoteDao): Int {
+        val notes = readAll()
+        if (notes.isEmpty()) {
+            Logger.i(TAG, "migrateToRoom: JSON 文件无数据,跳过迁移")
+            return 0
+        }
+        var migrated = 0
+        notes.forEach { n ->
+            dao.upsert(
+                QuickNoteEntity(
+                    id = n.id,
+                    title = n.title,
+                    content = n.content,
+                    tags = n.tags,
+                    pinned = n.pinned,
+                    // 旧 JSON 无回收站概念,迁移后全部为正常记录
+                    deleted = false,
+                    deletedAt = 0,
+                    createdAt = n.createdAtMillis,
+                    updatedAt = n.updatedAtMillis,
+                ),
+            )
+            migrated++
+        }
+        Logger.i(TAG, "migrateToRoom: 成功迁移 $migrated 条快速记录到 Room")
+        return migrated
     }
 
     private fun readAll(): List<QuickNote> {

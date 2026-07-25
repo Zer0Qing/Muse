@@ -5,7 +5,9 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -56,6 +58,7 @@ import io.zer0.muse.ui.theme.MuseHaptics
  * @param enableHaptic 是否启用触觉反馈 (默认 true)
  * @param content 卡片内容
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun IosCardPress(
     onClick: () -> Unit,
@@ -65,6 +68,8 @@ fun IosCardPress(
     elevation: Dp = 0.dp,
     enableScale: Boolean = false,
     enableHaptic: Boolean = true,
+    /** v1.0.16: 可选长按回调,用于长按菜单等场景;为空时使用普通 clickable。 */
+    onLongClick: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -109,20 +114,37 @@ fun IosCardPress(
         label = "card_press_scale",
     )
 
+    // v1.0.16: 根据是否有 onLongClick 选择 clickable/combinedClickable,两者均无 Material ripple 遮罩
+    val pressModifier = if (onLongClick != null) {
+        Modifier.combinedClickable(
+            interactionSource = interactionSource,
+            indication = null, // 无涟漪
+            onClick = {
+                if (enableHaptic) {
+                    MuseHaptics.light(haptic)
+                }
+                onClick()
+            },
+            onLongClick = onLongClick,
+        )
+    } else {
+        Modifier.clickable(
+            interactionSource = interactionSource,
+            indication = null, // 无涟漪
+            role = Role.Button,
+            onClick = {
+                if (enableHaptic) {
+                    MuseHaptics.light(haptic)
+                }
+                onClick()
+            },
+        )
+    }
+
     Surface(
         modifier = modifier
             .scale(animatedScale)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null, // 无涟漪
-                role = Role.Button,
-                onClick = {
-                    if (enableHaptic) {
-                        MuseHaptics.light(haptic)
-                    }
-                    onClick()
-                },
-            ),
+            .then(pressModifier),
         shape = shape,
         color = animatedColor,
         shadowElevation = elevation,

@@ -469,7 +469,12 @@ private fun TaskDialog(
 
     var nextTaskIds by rememberSaveable { mutableStateOf(existingTask?.nextTaskIdsJson?.toIdsList() ?: emptyList()) }
     var chainCandidates by remember { mutableStateOf<List<io.zer0.muse.data.schedule.TaskIdName>>(emptyList()) }
-    LaunchedEffect(existingTask?.id) { chainCandidates = dao.listChainCandidates(existingTask?.id ?: "") }
+    // v1.0.17: 全量任务映射,用于链式任务循环检测(DFS 遍历 nextTaskIdsJson)
+    var allTasksMap by remember { mutableStateOf<Map<String, ScheduledTaskEntity>>(emptyMap()) }
+    LaunchedEffect(existingTask?.id) {
+        chainCandidates = dao.listChainCandidates(existingTask?.id ?: "")
+        allTasksMap = dao.getAll().associateBy { it.id }
+    }
 
     var showAdvanced by rememberSaveable { mutableStateOf(false) }
     var errorMessage by rememberSaveable { mutableStateOf<String?>(null) }
@@ -608,7 +613,18 @@ private fun TaskDialog(
                     AutomationChainSection(
                         candidates = chainCandidates,
                         selectedIds = nextTaskIds,
-                        onSelectionChange = { nextTaskIds = it },
+                        onSelectionChange = { newIds ->
+                            // v1.0.17: 链式任务循环检测 — 勾选新任务时检查是否会形成环
+                            val currentTaskId = existingTask?.id ?: ""
+                            val addedId = newIds.firstOrNull { it !in nextTaskIds }
+                            if (addedId != null && currentTaskId.isNotBlank() &&
+                                hasChainCycle(addedId, currentTaskId, allTasksMap)
+                            ) {
+                                MuseToast.show("不能选择会形成循环链的任务")
+                            } else {
+                                nextTaskIds = newIds
+                            }
+                        },
                     )
                 }
 
@@ -684,6 +700,8 @@ private fun TaskDialog(
                     actionConfigJson = action.toJson(),
                     nextTaskIdsJson = nextTaskIds.toIdsJson(),
                     parentTaskId = existingTask?.parentTaskId ?: "",
+                    retryCount = existingTask?.retryCount ?: 0,
+                    maxRetries = existingTask?.maxRetries ?: 3,
                 ),
             )
         },
@@ -749,7 +767,21 @@ private fun AssistantSelector(
             } else {
                 assistants.forEach { a ->
                     DropdownMenuItem(
-                        text = { Text(a.name.ifBlank { a.id }) },
+                        text = {
+                            Column {
+                                Text(a.name.ifBlank { a.id })
+                                // v1.0.17: 能力标签 — 模型名 + 绑定工具数
+                                val toolCount = runCatching {
+                                    AppJson.decodeFromString<List<String>>(a.toolIdsJson).size
+                                }.getOrNull() ?: 0
+                                val modelLabel = a.modelId ?: "默认模型"
+                                Text(
+                                    "$modelLabel · $toolCount 个工具",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.outline,
+                                )
+                            }
+                        },
                         onClick = { onSelect(a.id); expanded = false },
                     )
                 }
@@ -964,6 +996,28 @@ private fun AutomationActionSection(
             }
         }
     }
+}
+
+/**
+ * v1.0.17: 检测从 taskId 出发沿 nextTaskIdsJson 链是否能回到 targetId(形成环)。
+ *
+ * DFS 遍历后续任务链,若途中遇到 targetId 则说明加入该任务会形成循环链。
+ */
+private fun hasChainCycle(
+    taskId: String,
+    targetId: String,
+    allTasks: Map<String, ScheduledTaskEntity>,
+    visited: MutableSet<String> = mutableSetOf(),
+): Boolean {
+    if (taskId == targetId) return true
+    if (taskId in visited) return false
+    visited.add(taskId)
+    val task = allTasks[taskId] ?: return false
+    val nextIds = task.nextTaskIdsJson.toIdsList()
+    for (nextId in nextIds) {
+        if (hasChainCycle(nextId, targetId, allTasks, visited)) return true
+    }
+    return false
 }
 
 /**

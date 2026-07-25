@@ -462,6 +462,14 @@ data class ChatUiState(
     val pendingToolCallCount: Int = 0,
     /** P3: 当前会话的工具权限模式(TRUSTED/ASK/STRICT),默认 ASK。 */
     val sessionPermissionMode: SessionPermissionMode = SessionPermissionMode.ASK,
+    /**
+     * v1.0.16: 本次应用开启期间批准全部工具调用(内存态,不持久化)。
+     *
+     * 用户在 ToolApprovalCard 勾选"本次开启期间批准全部工具"后置 true,
+     * 之后所有工具调用直接 Auto 执行,不再弹审批卡片。
+     * 应用冷启动后 ChatUiState 重建,自动回到 false。
+     */
+    val appRunAllowAllTools: Boolean = false,
     /** v1.201: 委派链路根节点(空列表表示无委派)。 */
     val delegationChain: List<io.zer0.muse.tools.DelegationChainTracker.ChainNode> = emptyList(),
     /** v1.201: 当前活跃的委派暂停请求(null 表示无待确认)。 */
@@ -487,6 +495,8 @@ data class PendingToolApproval(
     val toolName: String,
     val argumentsPreview: String,
     val alwaysAllow: Boolean = false,
+    /** v1.0.16: 本次开启期间批准全部工具(内存态,不持久化) */
+    val appRunAllowAll: Boolean = false,
 )
 
 /**
@@ -1232,11 +1242,12 @@ class ChatViewModel(
                 description = "根据用户描述生成图片。仅在用户明确要求画图、设计、头像、海报等场景调用。会消耗绘图 API 额度。",
                 parameters = mapOf(
                     "prompt" to "必填,详细的图片描述,英文或中文均可",
-                    "model" to "可选,绘图模型 ID,如 dall-e-3 / gpt-image-1;未指定时使用供应商默认",
-                    "size" to "可选,图片尺寸,如 1024x1024 / 1792x1024 / 1024x1792",
+                    "model" to "可选,绘图模型 ID,如 dall-e-3 / gpt-image-1 / agnes-image-2.1-flash;未指定时使用供应商默认",
+                    "size" to "可选,图片尺寸,如 1024x1024 / 1792x1024 / 1024x1792;Agnes 也支持比例如 1:1 / 16:9 / 3:2",
                     "quality" to "可选,图片质量,如 standard / hd",
                     "style" to "可选,图片风格,如 vivid / natural",
                     "n" to "可选,生成数量,默认 1",
+                    "reference_image" to "可选,参考图 URL 或 base64(用于图生图/图片编辑);非空时调用图生图端点",
                 ),
                 required = setOf("prompt"),
                 riskLevel = ToolRiskLevel.HIGH,
@@ -2120,11 +2131,17 @@ class ChatViewModel(
                     // v1.136: 切换会话清空工具调用历史与 Agent 计划,避免跨会话残留
                     toolCallHistory = emptyList(),
                     agentPlans = emptyMap(),
-                    // 清空视觉辅助状态,避免跨会话残留
-                    visionAssistedMessageIds = emptySet(),
+                    // v1.0.16: visionAssistedMessageIds 按 messageId(全局唯一)存储,
+                    // 切换会话不再清空 — 切回原会话时"已分析"标签仍应显示。
+                    // 仅清空 visionProgress(进度是瞬态的,不跨会话保留)。
                     visionProgress = null,
+                    // v1.0.16: 切换会话清空待发送图片,避免跨会话泄漏到新会话的 InputBar
+                    pendingImages = emptyList(),
                     // P3: 恢复本会话权限模式
                     sessionPermissionMode = permissionMode,
+                    // v1.0.16: 切换 Tab/会话后默认滚动到最新消息底部
+                    listFirstVisibleItemIndex = messages.lastIndex.coerceAtLeast(0),
+                    listFirstVisibleItemScrollOffset = 0,
                 )
             }
             // v0.45: 刷新上下文 token 占用(加载 contextWindow + 重建 system prompt)
@@ -2200,6 +2217,9 @@ class ChatViewModel(
                         agentPlans = emptyMap(),
                         // P3: 恢复 Agent 会话权限模式
                         sessionPermissionMode = permissionMode,
+                        // v1.0.16: 切换 Tab/会话后默认滚动到最新消息底部
+                        listFirstVisibleItemIndex = messages.lastIndex.coerceAtLeast(0),
+                        listFirstVisibleItemScrollOffset = 0,
                     )
                 }
                 refreshContextInfo()
@@ -2237,6 +2257,9 @@ class ChatViewModel(
                             lastHistoryLoadCount = 0,
                             // P3: 恢复任务会话权限模式
                             sessionPermissionMode = permissionMode,
+                            // v1.0.16: 切换 Tab/会话后默认滚动到最新消息底部
+                            listFirstVisibleItemIndex = messages.lastIndex.coerceAtLeast(0),
+                            listFirstVisibleItemScrollOffset = 0,
                         )
                     }
                     refreshContextInfo()
@@ -2614,10 +2637,14 @@ class ChatViewModel(
     /**
      * P5-F / P6-B3: 翻译指定消息到目标语言。
      *
+     * v1.0.30 gap4.9: prompt 构建策略与 [TranslateViewModel.buildTranslationPrompt] 统一,
+     * 支持可选 style 参数(默认"通用"),并对结果统一调用 stripThinkTags 处理。
+     *
      * @param targetLanguage 目标语言中文名(如"中文"/"English"/"日本語"),默认"中文"兼容旧调用
+     * @param style 翻译风格(默认"通用",与 TranslateViewModel.TRANSLATION_STYLES 对齐)
      * 翻译结果作为新的 ASSISTANT 消息追加("翻译(目标语言):\n\n...")。
      */
-    fun translateMessage(messageId: Uuid, targetLanguage: String = "中文") {
+    fun translateMessage(messageId: Uuid, targetLanguage: String = "中文", style: String = "通用") {
         if (_state.value.isStreaming || _state.value.isTranslating) return
         val target = _state.value.messages.firstOrNull { it.id == messageId }
             ?: return
@@ -2632,15 +2659,13 @@ class ChatViewModel(
         }
         translateJob = viewModelScope.launch(AppDispatchers.io) {
             try {
-                val prompt = buildString {
-                    appendLine("你是一个专业翻译助手。请将下面的文本翻译为$targetLanguage。")
-                    appendLine("- 只输出译文,不要加解释、前缀或注释")
-                    appendLine("- 保留原文的格式(换行/列表/代码块等)")
-                    appendLine("- 如果原文已经是$targetLanguage,原样输出")
-                    appendLine()
-                    appendLine("原文:")
-                    appendLine(target.content)
-                }
+                // v1.0.30 gap4.9: 统一使用 TranslateViewModel.buildTranslationPrompt,与独立翻译页保持一致
+                val prompt = io.zer0.muse.ui.translate.TranslateViewModel.buildTranslationPrompt(
+                    text = target.content,
+                    targetLanguage = targetLanguage,
+                    sourceLanguage = io.zer0.muse.ui.translate.TranslateViewModel.SOURCE_AUTO,
+                    style = style,
+                )
                 val messages = listOf(UIMessage(role = MessageRole.USER, content = prompt))
                 val sessionId = _state.value.currentSessionId ?: return@launch
 
@@ -2822,11 +2847,15 @@ class ChatViewModel(
      */
     fun approveToolCall(toolCallId: String, alwaysAllow: Boolean) {
         val pending = _state.value.pendingToolApprovals.firstOrNull { it.toolCallId == toolCallId } ?: return
-        // 如果勾选了“始终允许”,持久化策略
+        // 如果勾选了"始终允许",持久化策略
         if (alwaysAllow) {
             viewModelScope.launch {
                 toolConfigStore.setPolicy(pending.toolName, ToolApprovalPolicy.ALWAYS_ALLOW)
             }
+        }
+        // v1.0.16: 如果勾选了"本次开启期间批准全部工具",设置内存标志
+        if (pending.appRunAllowAll) {
+            _state.update { it.copy(appRunAllowAllTools = true) }
         }
         // 移除待审批项
         _state.update {
@@ -2837,7 +2866,7 @@ class ChatViewModel(
     }
 
     /**
-     * 更新待审批工具调用的“始终允许”勾选状态。
+     * 更新待审批工具调用的"始终允许"勾选状态。
      */
     fun setToolApprovalAlwaysAllow(toolCallId: String, alwaysAllow: Boolean) {
         _state.update { current ->
@@ -2845,6 +2874,23 @@ class ChatViewModel(
                 pendingToolApprovals = current.pendingToolApprovals.map { approval ->
                     if (approval.toolCallId == toolCallId) {
                         approval.copy(alwaysAllow = alwaysAllow)
+                    } else {
+                        approval
+                    }
+                }
+            )
+        }
+    }
+
+    /**
+     * v1.0.16: 更新待审批工具调用的"本次开启期间批准全部"勾选状态。
+     */
+    fun setToolApprovalAppRunAllowAll(toolCallId: String, allowAll: Boolean) {
+        _state.update { current ->
+            current.copy(
+                pendingToolApprovals = current.pendingToolApprovals.map { approval ->
+                    if (approval.toolCallId == toolCallId) {
+                        approval.copy(appRunAllowAll = allowAll)
                     } else {
                         approval
                     }
@@ -2900,6 +2946,10 @@ class ChatViewModel(
      * 最终由 [ToolPermissionResolver] 统一解析。
      */
     private suspend fun requestToolApproval(toolName: String, toolCallId: String, argsPreview: String): ToolApprovalState {
+        // v1.0.16: 本次开启期间已批准全部工具,直接 Auto 执行,不再弹审批卡片
+        if (_state.value.appRunAllowAllTools) {
+            return ToolApprovalState.Auto
+        }
         val perToolPolicy = toolConfigStore.getPolicy(toolName)
         val mode = _state.value.sessionPermissionMode
         val risk = toolRegistry.getToolRiskLevel(toolName)
@@ -3440,6 +3490,8 @@ class ChatViewModel(
                             images = lastUserMsg.imageBase64List,
                             userRequest = lastUserMsg.content, // 把用户问题传给视觉模型做针对性分析
                             sessionId = sessionId,
+                            // v1.0.16: 传 messageId 让进度只显示在该消息上,避免所有 USER 消息同时显示"分析中"
+                            messageId = lastUserMsg.id.toString(),
                         )
                         conversationHistory[lastIdx] = lastUserMsg.copy(
                             content = prepareResult.text,
@@ -4298,6 +4350,10 @@ class ChatViewModel(
     /**
      * v1.135: 工具调用入口 —— 根据用户描述生成图片。
      *
+     * v1.0.18: 通过 ImageProviderRegistry 选择 provider(支持 OpenAI / Agnes 等);
+     * 工具参数 [reference_image] 用于图生图;模型选择优先级:
+     *  args.model → imageGenConfig.modelId → provider 模型列表中 outputModalities 含 image 的模型。
+     *
      * 使用用户在设置中配置的绘图供应商/模型;未显式配置则回退到当前激活 Provider。
      * 生成成功后把图片 URL 写入当前助手消息的 [imageUrls],UI 立即展示。
      */
@@ -4312,6 +4368,9 @@ class ChatViewModel(
             ?: _state.value.imageGenParams.style
         val n = args["n"]?.toIntOrNull()?.coerceAtLeast(1)
             ?: _state.value.imageGenParams.n
+        // v1.0.18: 参考图(图生图),支持 URL / base64 / data URI
+        val referenceImage = args["reference_image"]?.takeIf { it.isNotBlank() }
+            ?: _state.value.imageGenParams.referenceImageUri
         val assistantId = toolAssistantId
             ?: return "错误: 无法确定当前助手消息,请重新发送请求"
 
@@ -4321,13 +4380,15 @@ class ChatViewModel(
             val providerConfig = imageGenConfig.providerId.takeIf { it.isNotBlank() }
                 ?.let { settings.getProviderById(it) }
                 ?: settings.get()
-                ?: return "未配置图片生成供应商,请先添加 OpenAI 兼容的绘图 Provider"
-            if (providerConfig.apiKey.isBlank()) {
+                ?: return "未配置图片生成供应商,请先添加支持绘图的 Provider(如 OpenAI / Agnes)"
+            if (providerConfig.apiKey.isBlank() && !providerConfig.allowMissingApiKey) {
                 return "图片生成供应商的 API Key 为空"
             }
-            // v1.136: 工具参数中的 model 优先级最高,未指定时回退到设置/状态中的模型
+            // 模型选择:args.model → imageGenConfig.modelId → provider 模型列表筛选(outputModalities 含 image)
+            // 留空时由 ImageService.resolveModelId 兜底(provider 默认值)
             val model = args["model"]?.takeIf { it.isNotBlank() }
                 ?: imageGenConfig.modelId.takeIf { it.isNotBlank() }
+                ?: providerConfig.models.firstOrNull { it.supportsImageOutput() }?.id
                 ?: _state.value.imageGenParams.model
             val params = io.zer0.ai.image.ImageGenParams(
                 model = model,
@@ -4336,6 +4397,7 @@ class ChatViewModel(
                 style = style,
                 responseFormat = _state.value.imageGenParams.responseFormat,
                 n = n,
+                referenceImageUri = referenceImage,
             )
             val urls = imageService.generate(prompt, params, providerConfig)
             if (urls.isEmpty()) {
@@ -4377,6 +4439,13 @@ class ChatViewModel(
         val resolution = args["resolution"]?.takeIf { it.isNotBlank() } ?: "720p"
         val requestedModelId = args["model"]?.takeIf { it.isNotBlank() }
         val requestedProviderId = args["provider_id"]?.takeIf { it.isNotBlank() }
+        // v1.137: 参考图列表(可选,用于图生视频/多图生视频)
+        // 支持逗号分隔的字符串(多图)或单个 data URI / URL
+        val referenceImages: List<String> = args["reference_images"]
+            ?.split(",")
+            ?.map { it.trim() }
+            ?.filter { it.isNotBlank() }
+            ?: emptyList()
         val assistantId = toolAssistantId
             ?: return "错误: 无法确定当前助手消息,请重新发送请求"
 
@@ -4424,19 +4493,16 @@ class ChatViewModel(
             }
         }
         return try {
-            val specific = providerConfig.resolvedSpecific() as? io.zer0.ai.core.ProviderSpecificConfig.OpenAI
-            val request = io.zer0.ai.video.VideoGenerationRequest(
+            val request = io.zer0.ai.video.VideoGenRequest(
                 prompt = prompt,
                 model = videoModel.id,
                 duration = duration,
                 resolution = resolution,
-                apiKey = providerConfig.apiKey,
-                baseUrl = providerConfig.resolvedBaseUrl(),
-                videoGenerationsPath = specific?.videoGenerationsPath,
+                referenceImages = referenceImages,
             )
-            // providerId 优先使用供应商 ID;Kling 保持原有 "kling" 路由,其余走通用兜底
-            val providerId = providerConfig.id
-            val result = videoGenerationService.generateVideo(providerId, request)
+            // v1.137: 通过 VideoProviderRegistry 按 specId/host 路由,
+            // 不再按 providerId 硬匹配(修复 preset_kling ≠ kling 的路由 bug)
+            val result = videoGenerationService.generateVideo(providerConfig, request)
             val videoUrl = result.getOrThrow()
             updateAssistant(
                 assistantId,

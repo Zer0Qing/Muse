@@ -320,6 +320,11 @@
     <string name="settings_screen_translate">AI 翻译</string>
     <string name="settings_screen_translate_desc">多语言互译，支持源语言选择/交换/朗读</string>
 
+    <!-- v1.0.18: 快速记录入口(通用分组) -->
+    <string name="settings_screen_quick_notes_cd">快速记录，随手记下灵感，点击进入</string>
+    <string name="settings_screen_quick_notes">快速记录</string>
+    <string name="settings_screen_quick_notes_desc">随手记下灵感，支持分类/提醒/加密</string>
+
     <!-- v1.25: 视觉辅助(让纯文本模型通过视觉模型"看到"图片) -->
     <string name="settings_screen_vision">视觉辅助</string>
     <string name="settings_screen_vision_desc">让纯文本模型通过视觉模型分析图片</string>

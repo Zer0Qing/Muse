@@ -126,6 +126,48 @@ object ModelContextWindowRegistry {
     )
 
     // ── 品牌级默认值(前缀匹配未命中时,按品牌兜底) ──
+    // v1.0.8 (7.2): 改为带版本区分的精细匹配 — 精确匹配优先,前缀匹配兜底。
+    // 旧实现 "deepseek" -> 64000 对 deepseek-v4(1M 上下文)严重低估,
+    // 现拆出 PRECISE_CONTEXT 精确表优先查询,未命中再用 BRAND_DEFAULTS 兜底。
+    private val PRECISE_CONTEXT: Map<String, Int> = mapOf(
+        // DeepSeek 系列(版本差异大: V3=64K, V4=1M)
+        "deepseek-v3" to 64000,
+        "deepseek-v3.1" to 64000,
+        "deepseek-v4" to 1000000,
+        "deepseek-v4-pro" to 1000000,
+        "deepseek-v4-flash" to 1000000,
+        "deepseek-r1" to 64000,
+        "deepseek-chat" to 64000,
+        "deepseek-reasoner" to 64000,
+        "deepseek-coder" to 128000,
+        // 通义 Qwen 系列(max=32K, plus/turbo/coder=1M)
+        "qwen-max" to 32000,
+        "qwen-plus" to 131072,
+        "qwen-turbo" to 1000000,
+        "qwen-long" to 1000000,
+        "qwen3-max" to 131072,
+        "qwen3-coder-plus" to 1048576,
+        // 智谱 GLM 系列(统一 128K)
+        "glm-4-plus" to 128000,
+        "glm-4-flash" to 128000,
+        "glm-4.5" to 128000,
+        "glm-4.6" to 128000,
+        "glm-5" to 128000,
+        "glm-5.2" to 128000,
+        // 豆包系列(pro=32K, 1.5/1.6=128K)
+        "doubao-pro" to 32000,
+        "doubao-1.5-pro" to 128000,
+        "doubao-1.6" to 128000,
+        // Kimi 系列(v1=8K/32K/128K, k2=128K/256K)
+        "kimi-k2" to 128000,
+        "kimi-k2.7" to 256000,
+        // Agnes 系列(chat=128K, image/video=0 不适用)
+        "agnes-2.0-flash" to 131072,
+        "agnes-2.0-pro" to 131072,
+        "agnes-image-2.1-flash" to 0,
+        "agnes-video-v2.0" to 0,
+    )
+
     private val BRAND_DEFAULTS: List<Pair<String, Int>> = listOf(
         "deepseek" to 64000,
         "gpt-4" to 128000,
@@ -146,6 +188,8 @@ object ModelContextWindowRegistry {
         "gemma" to 8192,
         "grok" to 131072,
         "command" to 128000,
+        // v1.0.8: 新增 agnes 品牌兜底(chat 模型默认 128K)
+        "agnes" to 131072,
     )
 
     // ── 模型名 token 数推断正则(如 "model-128k" / "model-1m" / "model-200k") ──
@@ -186,7 +230,11 @@ object ModelContextWindowRegistry {
     /**
      * 按 modelId 查询上下文窗口。未命中返回 null。
      *
-     * 匹配优先级:动态注册 → 剥前缀 → 精确 → 边界前缀 → 名称 token 推断 → 品牌默认 → null
+     * 匹配优先级:动态注册 → 剥前缀 → 精确(REGISTRY) → 边界前缀 → 名称 token 推断
+     *            → PRECISE_CONTEXT 精确版本表 → 品牌默认 → null
+     *
+     * v1.0.8 (7.2): 新增 PRECISE_CONTEXT 精确版本匹配层,在品牌默认前查询,
+     *  解决 "deepseek" 兜底 64000 对 deepseek-v4(1M)严重低估的问题。
      */
     fun lookup(modelId: String): Int? {
         var id = modelId.lowercase().trim()
@@ -222,6 +270,13 @@ object ModelContextWindowRegistry {
                 else -> null
             }
         }
+
+        // v1.0.8 (7.2): PRECISE_CONTEXT 精确版本匹配(优先于品牌兜底)
+        //  同样支持边界前缀:如 "deepseek-v4-pro-1024" 命中 "deepseek-v4-pro"
+        PRECISE_CONTEXT[id]?.let { return it }
+        PRECISE_CONTEXT.entries.firstOrNull { (pattern, _) ->
+            id.startsWith("$pattern-") || id.startsWith("${pattern}_")
+        }?.let { return it.value }
 
         // 4. 品牌级默认
         BRAND_DEFAULTS.firstOrNull { (brand, _) -> id.startsWith(brand) }?.let { return it.second }

@@ -47,7 +47,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.ai.core.ProviderConfig
-import io.zer0.ai.video.VideoGenerationRequest
+import io.zer0.ai.video.VideoGenRequest
 import io.zer0.ai.video.VideoGenerationService
 import io.zer0.ai.video.VideoTaskStatus
 import io.zer0.muse.R
@@ -388,20 +388,16 @@ fun VideoGenerationPage(
                             errorMessage = ""
                             videoUrl = ""
 
-                            val specific = provider.resolvedSpecific() as? io.zer0.ai.core.ProviderSpecificConfig.OpenAI
-                            val request = VideoGenerationRequest(
+                            val request = VideoGenRequest(
                                 prompt = prompt,
                                 model = selectedModel,
-                                imageUrl = imageUrl.takeIf { it.isNotBlank() },
+                                referenceImages = imageUrl.takeIf { it.isNotBlank() }?.let { listOf(it) } ?: emptyList(),
                                 duration = duration,
                                 resolution = resolution,
-                                apiKey = provider.apiKey,
-                                baseUrl = provider.resolvedBaseUrl(),
-                                videoGenerationsPath = specific?.videoGenerationsPath,
                             )
-                            // v1.136: 使用供应商 ID 作为路由 key,Kling 继续走 KlingVideoProvider,
-                            // 其他 OpenAI 兼容供应商走 GenericOpenAiVideoProvider 兜底。
-                            val result = videoService.generateVideo(provider.id, request)
+                            // v1.137: 通过 VideoProviderRegistry 按 specId/host 路由,
+                            // 不再按 providerId 硬匹配(修复 preset_kling ≠ kling 的路由 bug)
+                            val result = videoService.generateVideo(provider, request)
                             isGenerating = false
                             result.onSuccess { url ->
                                 taskStatus = VideoTaskStatus.SUCCESS

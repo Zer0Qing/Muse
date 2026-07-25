@@ -213,6 +213,8 @@ class VisionBridge(
         images: List<String>,
         userRequest: String,
         sessionId: String? = null,
+        /** v1.0.16: 正在分析的消息 id,驱动 UI 只在该消息上显示进度 */
+        messageId: String? = null,
     ): VisionPrepareResult {
         if (images.isEmpty()) {
             return VisionPrepareResult(text, images, success = true, descriptionCount = 0)
@@ -233,7 +235,7 @@ class VisionBridge(
         }
 
         return try {
-            val descriptions = analyzeImages(preparedImages, userRequest, sessionId)
+            val descriptions = analyzeImages(preparedImages, userRequest, sessionId, messageId)
             if (descriptions.isEmpty()) {
                 val notice = buildFailureNotice("视觉分析返回空结果")
                 VisionPrepareResult("$notice\n\n$text", emptyList(), success = false, descriptionCount = 0)
@@ -664,6 +666,8 @@ class VisionBridge(
         preparedImages: List<VisionImagePreprocessor.PreparedImage>,
         userRequest: String = "",
         sessionId: String? = null,
+        /** v1.0.16: 正在分析的消息 id,驱动 UI 只在该消息上显示进度 */
+        messageId: String? = null,
     ): List<String> {
         if (preparedImages.isEmpty()) return emptyList()
 
@@ -673,7 +677,7 @@ class VisionBridge(
         val lastError = java.util.concurrent.atomic.AtomicReference<VisionAnalysisException?>(null)
         val successCount = java.util.concurrent.atomic.AtomicInteger(0)
 
-        _progressFlow.value = VisionProgress(idle = false, index = 0, total = preparedImages.size)
+        _progressFlow.value = VisionProgress(idle = false, index = 0, total = preparedImages.size, messageId = messageId)
 
         try {
             val results = coroutineScope {
@@ -695,7 +699,7 @@ class VisionBridge(
                             if (cached != null) {
                                 Logger.d(TAG, "第 ${index + 1}/${preparedImages.size} 张图片命中视觉缓存")
                                 val done = successCount.incrementAndGet()
-                                _progressFlow.value = VisionProgress(idle = false, index = done, total = preparedImages.size)
+                                _progressFlow.value = VisionProgress(idle = false, index = done, total = preparedImages.size, messageId = messageId)
                                 "<vision-context>\n$cached\n</vision-context>"
                             } else {
                                 val description = analyzeImage(prepared, userRequest = userRequest)
@@ -708,7 +712,7 @@ class VisionBridge(
                                 }
 
                                 val done = successCount.incrementAndGet()
-                                _progressFlow.value = VisionProgress(idle = false, index = done, total = preparedImages.size)
+                                _progressFlow.value = VisionProgress(idle = false, index = done, total = preparedImages.size, messageId = messageId)
                                 description
                             }
                         } catch (e: VisionAnalysisException) {
@@ -727,7 +731,7 @@ class VisionBridge(
             return descriptions
         } finally {
             // 确保协程被取消时 progressFlow 也重置,避免 UI 卡在"分析中"
-            _progressFlow.value = VisionProgress(idle = true, index = preparedImages.size, total = preparedImages.size)
+            _progressFlow.value = VisionProgress(idle = true, index = preparedImages.size, total = preparedImages.size, messageId = null)
         }
     }
 
@@ -766,6 +770,8 @@ data class VisionProgress(
     val idle: Boolean,
     val index: Int,
     val total: Int,
+    /** v1.0.16: 正在分析的消息 id,用于 UI 只在该消息上显示进度,避免所有 USER 消息同时显示"分析中" */
+    val messageId: String? = null,
 ) {
     val isActive: Boolean get() = !idle && total > 0
     val ratio: Float get() = if (total > 0) index.toFloat() / total else 0f

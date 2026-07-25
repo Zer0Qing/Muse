@@ -95,6 +95,9 @@ fun AgentSettingsPage(
     // v1.95: 允许发送时段选择弹窗(开始/结束小时)
     var showAllowedStartPicker by remember { mutableStateOf(false) }
     var showAllowedEndPicker by remember { mutableStateOf(false) }
+    // v2.0 5.9: 每日上限与温度选择弹窗
+    var showMaxDailyPicker by remember { mutableStateOf(false) }
+    var showTemperaturePicker by remember { mutableStateOf(false) }
     // v1.52: 模型选择弹窗
     var showModelPicker by remember { mutableStateOf(false) }
     // v1.60-A: 工具模型选择弹窗
@@ -273,6 +276,26 @@ fun AgentSettingsPage(
                             scope.launch { settings.saveProactiveMessageConfig(proactiveConfig.copy(agentOnly = v)) }
                         },
                     )
+                    // v2.0 5.9: 每日主动消息上限(可配置,替代 ScoreEngine 硬编码)
+                    SettingsGroupDivider()
+                    SettingsItemRow(
+                        icon = Icons.Outlined.NotificationsActive,
+                        title = "每日上限",
+                        subtitle = "${proactiveConfig.maxDailyMessages} 条/天",
+                        onClick = { showMaxDailyPicker = true },
+                    ) {
+                        ChevronRight()
+                    }
+                    // v2.0 5.9: LLM 调用温度(决策阶段用 temperature×0.5,生成阶段用本值)
+                    SettingsGroupDivider()
+                    SettingsItemRow(
+                        icon = Icons.Outlined.Shuffle,
+                        title = "生成温度",
+                        subtitle = "%.1f".format(proactiveConfig.temperature),
+                        onClick = { showTemperaturePicker = true },
+                    ) {
+                        ChevronRight()
+                    }
                 }
             }
         }
@@ -541,6 +564,105 @@ fun AgentSettingsPage(
             },
             dismissText = stringResource(R.string.action_cancel),
             onDismiss = { showAllowedEndPicker = false },
+        )
+    }
+
+    // ── v2.0 5.9: 每日上限选择弹窗(1 ~ 10 条/天)──
+    if (showMaxDailyPicker) {
+        var sliderValue by rememberSaveable { mutableStateOf(proactiveConfig.maxDailyMessages.toFloat()) }
+        val alignedValue = sliderValue.toInt().coerceIn(1, 10)
+        MuseDialog(
+            onDismissRequest = { showMaxDailyPicker = false },
+            title = "每日上限",
+            content = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "$alignedValue 条/天",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(bottom = 8.dp),
+                    )
+                    Text(
+                        text = "每天最多发送的主动消息条数,超出后跳过直到次日",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.padding(bottom = 16.dp),
+                    )
+                    IosSlider(
+                        value = alignedValue.toFloat(),
+                        onValueChange = { sliderValue = it },
+                        valueRange = 1f..10f,
+                        valueFormatter = { "${it.toInt()} 条" },
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text("1 条", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                        Text("10 条", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                    }
+                }
+            },
+            confirmText = stringResource(R.string.action_save),
+            onConfirm = {
+                scope.launch {
+                    settings.saveProactiveMessageConfig(proactiveConfig.copy(maxDailyMessages = alignedValue))
+                }
+                showMaxDailyPicker = false
+            },
+            dismissText = stringResource(R.string.action_cancel),
+            onDismiss = { showMaxDailyPicker = false },
+        )
+    }
+
+    // ── v2.0 5.9: 生成温度选择弹窗(0.0 ~ 2.0,步长 0.1)──
+    if (showTemperaturePicker) {
+        var sliderValue by rememberSaveable { mutableStateOf(proactiveConfig.temperature) }
+        // 对齐到 0.1 步长:kotlin.math.round(Float) 返回 Float,避免 Math.round 重载歧义
+        val alignedValue = (kotlin.math.round(sliderValue * 10f) / 10f).coerceIn(0f, 2f)
+        MuseDialog(
+            onDismissRequest = { showTemperaturePicker = false },
+            title = "生成温度",
+            content = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "%.1f".format(alignedValue),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(bottom = 8.dp),
+                    )
+                    Text(
+                        text = "决策阶段用 temperature×0.5(更确定),生成阶段用本值。值越大越有创造力,越小越稳定",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.padding(bottom = 16.dp),
+                    )
+                    IosSlider(
+                        value = alignedValue,
+                        onValueChange = { sliderValue = it },
+                        valueRange = 0f..2f,
+                        valueFormatter = { "%.1f".format(it) },
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text("0.0 稳定", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                        Text("2.0 创造", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                    }
+                }
+            },
+            confirmText = stringResource(R.string.action_save),
+            onConfirm = {
+                scope.launch {
+                    settings.saveProactiveMessageConfig(proactiveConfig.copy(temperature = alignedValue))
+                }
+                showTemperaturePicker = false
+            },
+            dismissText = stringResource(R.string.action_cancel),
+            onDismiss = { showTemperaturePicker = false },
         )
     }
 

@@ -62,7 +62,8 @@ object ImageModelCatalog {
     fun defaultModel(): ImageModel = findById(DEFAULT_MODEL_ID) ?: models.first()
 
     // 注:wanx-v1(通义万相)与 minimax-image-01 已移除 —
-    // 二者协议不兼容 OpenAI /images/generations,需独立 Adapter,留后续实现。
+    // 二者协议不兼容 OpenAI /images/generations,需独立 Adapter。
+    // v1.0.18: agnes-image-2.1-flash 接入 AgnesImageProvider,不再走 OpenAI 兼容路径。
     private val models = listOf(
         ImageModel(
             id = "dall-e-2",
@@ -108,6 +109,25 @@ object ImageModelCatalog {
             supportsB64Json = true,
             // H-IMG2: gpt-image-1 不支持 response_format 参数
             supportsResponseFormatParam = false,
+        ),
+        ImageModel(
+            // v1.0.18: Agnes AI 图片模型,走 AgnesImageProvider(独立适配器,非 OpenAI 兼容)。
+            // 尺寸用比例表示(AgnesImageProvider.SIZE_RATIOS 会映射为像素值);
+            // 支持参考图(通过 extra_body.image 传入);同步返回;默认 b64_json。
+            id = "agnes-image-2.1-flash",
+            displayName = "Agnes Image 2.1 Flash",
+            provider = "Agnes",
+            supportedSizes = listOf("1:1", "16:9", "21:9", "9:16", "4:3", "3:4", "3:2", "2:3"),
+            supportedQualities = emptyList(),
+            supportedStyles = emptyList(),
+            supportsReferenceImage = true,
+            maxN = 1,
+            supportsB64Json = true,
+            supportsResponseFormatParam = true,
+            // 默认 3:2(对齐 openhanako AGNES_IMAGE_DEFAULTS.ratio)
+            defaultSize = "3:2",
+            // Agnes 输出 PNG
+            outputMime = "image/png",
         ),
     )
 

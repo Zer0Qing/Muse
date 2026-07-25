@@ -40,6 +40,7 @@ import androidx.compose.material.icons.outlined.Hub
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Mic
@@ -320,6 +321,8 @@ fun SettingsScreen(
                 SettingsEntry("媒体", listOf("媒体", "录音", "语音", "播报"), MuseRoutes.SETTINGS_MEDIA, "通用", Icons.Outlined.RecordVoiceOver, onOpenMediaSettings),
                 SettingsEntry("TTS 语音播报", listOf("TTS", "tts", "语音播报", "朗读", "文字转语音", "TextToSpeech"), MuseRoutes.SETTINGS_MEDIA, "通用", Icons.Outlined.RecordVoiceOver, onOpenMediaSettings),
                 SettingsEntry("AI 翻译", listOf("翻译", "translate", "语言", "互译", "源语言", "目标语言"), MuseRoutes.TRANSLATE, "通用", Icons.Outlined.Translate, onOpenTranslate),
+                // v1.0.18: 快速记录入口(通用分组)
+                SettingsEntry("快速记录", listOf("快速记录", "速记", "笔记", "quick note", "note", "记录"), MuseRoutes.QUICK_NOTES, "通用", Icons.Outlined.Lightbulb) { onNavigate(MuseRoutes.QUICK_NOTES) },
                 SettingsEntry("群聊", listOf("群聊", "群组", "group", "多人", "启动页"), MuseRoutes.SETTINGS_APPEARANCE, "通用", Icons.Outlined.Forum, onOpenAppearanceSettings),
                 SettingsEntry("用户画像", listOf("用户", "画像", "称呼", "年龄", "城市", "MBTI", "个性化"), MuseRoutes.USER_PROFILE_EDIT, "通用", Icons.Outlined.AccountCircle, onOpenUserProfile),
 
@@ -416,6 +419,8 @@ fun SettingsScreen(
     val debugLogCd = stringResource(R.string.settings_screen_debug_log_cd)
     val toolsGroupCd = stringResource(R.string.settings_screen_tools_group_cd)
     val translateCd = stringResource(R.string.settings_screen_translate_cd)
+    // v1.0.18: 快速记录入口 contentDescription
+    val quickNotesCd = stringResource(R.string.settings_screen_quick_notes_cd)
     val videoGenCd = stringResource(R.string.settings_screen_video_gen_cd)
     val checkUpdateCd = stringResource(R.string.settings_screen_check_update_cd)
     // P2-1: 大屏(Expanded)下 LazyColumn 居中限宽 720dp,避免列表项过度拉伸
@@ -648,6 +653,15 @@ fun SettingsScreen(
                             leadingContent = { IosSettingsIcon(Icons.Outlined.Translate) },
                             headlineContent = { Text(stringResource(R.string.settings_screen_translate)) },
                             supportingContent = { Text(stringResource(R.string.settings_screen_translate_desc)) },
+                            trailingContent = { ChevronRight() },
+                        )
+                        // v1.0.18: 快速记录入口
+                        item(
+                            modifier = Modifier.semantics { contentDescription = quickNotesCd },
+                            onClick = { onNavigate(MuseRoutes.QUICK_NOTES) },
+                            leadingContent = { IosSettingsIcon(Icons.Outlined.Lightbulb) },
+                            headlineContent = { Text(stringResource(R.string.settings_screen_quick_notes)) },
+                            supportingContent = { Text(stringResource(R.string.settings_screen_quick_notes_desc)) },
                             trailingContent = { ChevronRight() },
                         )
                         item(

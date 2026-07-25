@@ -167,4 +167,7 @@
     <string name="shortcut_voice_input_long">语音输入</string>
     <string name="shortcut_settings_short">设置</string>
     <string name="shortcut_settings_long">打开设置</string>
+    <!-- v1.0.18: 快速记录快捷方式 -->
+    <string name="shortcut_quick_notes_short">速记</string>
+    <string name="shortcut_quick_notes_long">快速记录</string>
 </resources>

@@ -754,6 +754,87 @@ object KnownModels {
             abilities = TOOL_ONLY,
             description = "MiniMax M3 视觉模型",
         ))
+
+        // ── 思必驰 Agnes 系列 ──
+        // v1.0.8: Agnes chat / image / video 模型(对齐 PresetProviders.agnes)
+        put("agnes-2.0-flash", KnownModelInfo(
+            contextWindow = 131072,
+            maxOutputTokens = 8192,
+            inputModalities = VISION_IN,
+            outputModalities = TEXT_OUT,
+            abilities = setOf(TOOL),
+            description = "Agnes 2.0 Flash 多模态对话",
+        ))
+        put("agnes-2.0-pro", KnownModelInfo(
+            contextWindow = 131072,
+            maxOutputTokens = 8192,
+            inputModalities = VISION_IN,
+            outputModalities = TEXT_OUT,
+            abilities = setOf(TOOL),
+            description = "Agnes 2.0 Pro 多模态对话",
+        ))
+        // 生图模型:context=0(不适用),仅输出 image 模态
+        put("agnes-image-2.1-flash", KnownModelInfo(
+            contextWindow = 0,
+            maxOutputTokens = null,
+            inputModalities = emptySet(),
+            outputModalities = setOf(Modality.IMAGE),
+            abilities = emptySet(),
+            description = "Agnes Image 2.1 Flash 文生图模型",
+        ))
+        // 视频模型:context=0(不适用),仅输出 video 模态
+        put("agnes-video-v2.0", KnownModelInfo(
+            contextWindow = 0,
+            maxOutputTokens = null,
+            inputModalities = emptySet(),
+            outputModalities = setOf(Modality.VIDEO),
+            abilities = emptySet(),
+            description = "Agnes Video 2.0 文生视频模型",
+        ))
+
+        // ── 近期新模型补全(2025-08 后陆续上线)──
+        // DeepSeek V4 系列(对齐 ModelContextWindowRegistry 精确匹配)
+        put("deepseek-v4", KnownModelInfo(
+            contextWindow = 1000000,
+            maxOutputTokens = 8192,
+            inputModalities = TEXT_IN,
+            outputModalities = TEXT_OUT,
+            abilities = setOf(TOOL, REASONING),
+            description = "DeepSeek V4 旗舰(1M 上下文)",
+        ))
+        put("deepseek-v4-pro", KnownModelInfo(
+            contextWindow = 1000000,
+            maxOutputTokens = 8192,
+            inputModalities = TEXT_IN,
+            outputModalities = TEXT_OUT,
+            abilities = setOf(TOOL, REASONING),
+            description = "DeepSeek V4 Pro",
+        ))
+        put("deepseek-v4-flash", KnownModelInfo(
+            contextWindow = 1000000,
+            maxOutputTokens = 8192,
+            inputModalities = TEXT_IN,
+            outputModalities = TEXT_OUT,
+            abilities = setOf(TOOL),
+            description = "DeepSeek V4 Flash 轻量版",
+        ))
+        // 通义 Qwen3-Max 旗舰
+        put("qwen3-max", KnownModelInfo(
+            contextWindow = 131072,
+            maxOutputTokens = 8192,
+            inputModalities = TEXT_IN,
+            outputModalities = TEXT_OUT,
+            abilities = setOf(TOOL, REASONING),
+            description = "通义千问 3 Max 旗舰",
+        ))
+        put("qwen3-coder-plus", KnownModelInfo(
+            contextWindow = 1048576,
+            maxOutputTokens = 8192,
+            inputModalities = TEXT_IN,
+            outputModalities = TEXT_OUT,
+            abilities = setOf(TOOL),
+            description = "通义千问 3 Coder Plus 代码模型",
+        ))
     }
 
     // ──────────────────────────────────────────────────────────────

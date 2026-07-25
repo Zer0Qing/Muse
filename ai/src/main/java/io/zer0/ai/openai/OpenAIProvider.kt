@@ -6,6 +6,7 @@ import io.zer0.ai.core.ChatCompletion
 import io.zer0.ai.core.ChatRequest
 import io.zer0.ai.core.ChatRequestMode
 import io.zer0.ai.core.ChatStreamEvent
+import io.zer0.ai.core.FreeModelConfig
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.Model
 import io.zer0.ai.core.ModelAbility
@@ -139,7 +140,8 @@ class OpenAIProvider(
         // v1.0.1: httpRequest 改为 var,429 切换 key 后重新构造
         fun buildHttpRequest(): Request = Request.Builder()
             .url(url)
-            .header("Authorization", "Bearer ${effectiveApiKey()}")
+            // v1.0.18: 走 Kelivo 式 fallback(用户未填 key + SiliconFlow 白名单模型 → 用内置 key)
+            .header("Authorization", "Bearer ${resolveEffectiveApiKey(request.model.id)}")
             .header("Content-Type", "application/json")
             .header("Accept", "text/event-stream")
             .post(body.toRequestBody(JSON_MEDIA_TYPE))
@@ -391,9 +393,10 @@ class OpenAIProvider(
         val url = baseUrl() + openAIConfig.chatCompletionsPath
         Logger.i("OpenAIProvider", "completeText: POST $url model=${request.model}")
         // v1.0.1: 用 effectiveApiKey() 支持多 key 轮换
+        // v1.0.18: 走 Kelivo 式 fallback(用户未填 key + SiliconFlow 白名单模型 → 用内置 key)
         val httpRequest = Request.Builder()
             .url(url)
-            .header("Authorization", "Bearer ${effectiveApiKey()}")
+            .header("Authorization", "Bearer ${resolveEffectiveApiKey(request.model.id)}")
             .header("Content-Type", "application/json")
             .header("Accept", "application/json")
             .post(body.toRequestBody(JSON_MEDIA_TYPE))
@@ -487,14 +490,42 @@ class OpenAIProvider(
      *  - 按 id 字母序排序,便于用户查找(参考 rikkahub 的 sortedBy)
      *  - 使用独立短超时 client(30s connect + 30s read),避免 listModels 卡顿占用 chat 长连接资源
      *  - 401/403 不 fallback,直接抛错(凭证问题不掩盖,参考 openhanako 的错误分级)
+     *
+     * v1.0.8 (7.3 / 7.5):
+     *  - 服务端 capabilities 多字段名解析:支持 supports_tool_calls / function_calling /
+     *    supports_vision / image_input / multimodal / supports_streaming / stream 等字段名,
+     *    覆盖不同中转站 / 聚合服务的命名差异。
+     *  - fetchModels 瀑布流错误分级日志:在 listModels 入口 / 命中层 / 失败层均记录 Logger,
+     *    便于排查"为什么没拉到模型"。
+     *  - 401/403 直接抛错(不 fallback);404 / 网络错误也抛错但分类标签不同,
+     *    由调用方(ProviderSection.fetchModels)走 URL 多策略补全兜底。
      */
     override suspend fun listModels(config: ProviderConfig): List<Model> = withContext(Dispatchers.IO) {
         val resolvedBaseUrl = config.resolvedBaseUrl()
+        // v1.0.18: Kelivo 式免费模型 provider(SiliconFlow + 用户未填 key)不调远程 /models,
+        //   直接返回预设的免费模型清单(对齐 FreeModelConfig.FREE_MODEL_IDS)。
+        //   避免因无 apiKey 调远程返回 401 / 403,让用户在 SiliconFlow 供应商页面看到
+        //   预填的 GLM-4-9B / Qwen3-8B 即可用。用户填 key 后 isFreeProvider 返回 false,
+        //   走原远程拉取逻辑解锁全部模型。
+        if (FreeModelConfig.isFreeProvider(resolvedBaseUrl, config.apiKey)) {
+            Logger.i("OpenAIProvider", "listModels: SiliconFlow 免费模型 provider(未填 key),返回预设 ${config.models.size} 个模型")
+            return@withContext config.models
+        }
         val url = resolvedBaseUrl.trimEnd('/') + "/models"
         // P2-3: 识别 Ollama 服务(baseUrl host 含 "ollama" 或端口 11434),
         //   命中时对每个模型调用 OllamaVisionInferrer 推断 supportsVision/supportsTools。
         val isOllama = isOllamaEndpoint(resolvedBaseUrl)
+        // v1.0.8 (7.5): 入口日志 — 记录目标 URL / providerId / 是否 ollama,
+        //   方便从日志中追溯 fetchModels 瀑布流走到了哪一层。
         Logger.i("OpenAIProvider", "listModels: GET $url" + if (isOllama) " (ollama)" else "")
+
+        // v1.0.8 (7.5): 凭证预检 — allowMissingApiKey=false 时 apiKey 为空直接抛错,
+        //   避免发无意义的 401 请求浪费一次网络往返。
+        if (!config.allowMissingApiKey && config.apiKey.isBlank()) {
+            Logger.w("OpenAIProvider", "listModels: apiKey 为空,跳过请求(providerId=${config.id})")
+            throw OpenAIHttpException(401, ErrorCode.INVALID_RESPONSE.toMessage("model_list_missing_key", 401))
+        }
+
         val builder = Request.Builder()
             .url(url)
             .header("Authorization", "Bearer ${config.apiKey}")
@@ -521,6 +552,14 @@ class OpenAIProvider(
                     val errText = ProviderHttpSupport.readBodySafely(resp)
                     val errMsg = ErrorCode.INVALID_RESPONSE.toMessage("model_list_fetch", resp.code) +
                         errText.takeIf { it.isNotBlank() }?.let { ": $it" }.orEmpty()
+                    // v1.0.8 (7.5): 错误分级日志 — 401/403 鉴权问题 vs 404/5xx 网络问题分别记录
+                    val category = when (resp.code) {
+                        401, 403 -> "auth_failed"
+                        404 -> "endpoint_not_found"
+                        in 500..599 -> "server_error"
+                        else -> "http_error"
+                    }
+                    Logger.w("OpenAIProvider", "listModels 失败 [$category] HTTP ${resp.code}: $errMsg")
                     // L-OAI16: 用 OpenAIHttpException 替代通用 RuntimeException,
                     //   保留 HTTP code 作为类型信息(与 completeText 一致),便于上层区分错误来源。
                     throw OpenAIHttpException(resp.code, errMsg)
@@ -529,6 +568,8 @@ class OpenAIProvider(
                 val raw = resp.body?.string()
                     ?: throw RuntimeException(ErrorCode.INVALID_RESPONSE.toMessage("model_list_empty", resp.code))
                 val parsed = AppJson.decodeFromString<OpenAIModelsResponse>(raw)
+                // v1.0.8 (7.5): 成功日志 — 记录上游返回的模型数量,便于排查"返回 0 个模型"场景
+                Logger.i("OpenAIProvider", "listModels 成功: 上游返回 ${parsed.data.size} 个模型")
                 // v1.132: 去重 + 过滤 + 排序 + 元信息丰富
                 val seen = HashSet<String>()
                 parsed.data.asSequence()
@@ -546,6 +587,10 @@ class OpenAIProvider(
                         }
                         // v1.0.8: 统一解析服务端 capabilities + modalities,构造 input/outputModalities。
                         // 优先级: 服务端显式声明 > Ollama 推断 > 默认 text-only。
+                        // v1.0.8 (7.3): 扩展多字段名解析 — 不同中转站用不同字段名声明能力,
+                        //  这里把所有可能的别名都纳入匹配,提升兼容性。
+                        //  例如 OpenRouter 用 "tools",部分中转用 "supports_tool_calls",
+                        //  Anthropic 兼容层用 "function_calling",Ollama 用 "tool_call" 等。
                         val capabilitySet = m.capabilities
                             ?.map { it.trim().lowercase() }
                             ?.toSet()
@@ -555,22 +600,51 @@ class OpenAIProvider(
                             ?.toSet()
                             ?: emptySet()
 
+                        // v1.0.8 (7.3): 视觉输入能力 — 支持的字段名变体
+                        //  vision / image / image_input / supports_vision / multimodal / image_input_enabled
                         val serverVision = capabilitySet.contains("vision") ||
                             capabilitySet.contains("image") ||
+                            capabilitySet.contains("image_input") ||
+                            capabilitySet.contains("supports_vision") ||
+                            capabilitySet.contains("multimodal") ||
                             modalitySet.contains("image")
-                        val serverAudio = capabilitySet.contains("audio") || modalitySet.contains("audio")
+                        // v1.0.8 (7.3): 音频输入 — audio / audio_input / supports_audio
+                        val serverAudio = capabilitySet.contains("audio") ||
+                            capabilitySet.contains("audio_input") ||
+                            capabilitySet.contains("supports_audio") ||
+                            modalitySet.contains("audio")
+                        // v1.0.8 (7.3): 视频输入 — video_input / video / supports_video_input
                         val serverVideoIn = capabilitySet.contains("video_input") ||
                             capabilitySet.contains("video") ||
+                            capabilitySet.contains("supports_video_input") ||
                             modalitySet.contains("video")
+                        // 视频输出 — video_output / video_generation / supports_video_output
                         val serverVideoOut = capabilitySet.contains("video_output") ||
-                            capabilitySet.contains("video_generation")
+                            capabilitySet.contains("video_generation") ||
+                            capabilitySet.contains("supports_video_output")
+                        // 图片输出 — image_generation / image_output / dall-e / supports_image_output
                         val serverImageOut = capabilitySet.contains("image_generation") ||
                             capabilitySet.contains("image_output") ||
-                            capabilitySet.contains("dall-e")
+                            capabilitySet.contains("dall-e") ||
+                            capabilitySet.contains("supports_image_output")
+                        // v1.0.8 (7.3): 工具调用 — 支持的字段名变体
+                        //  tools / tool_call / tool_calls / function_call / function_calling /
+                        //  supports_tool_calls / supports_tools / function_calling_enabled
                         val serverTools = capabilitySet.contains("tools") ||
                             capabilitySet.contains("tool_call") ||
-                            capabilitySet.contains("function_call")
-                        val serverReasoning = capabilitySet.contains("reasoning")
+                            capabilitySet.contains("tool_calls") ||
+                            capabilitySet.contains("function_call") ||
+                            capabilitySet.contains("function_calling") ||
+                            capabilitySet.contains("supports_tool_calls") ||
+                            capabilitySet.contains("supports_tools") ||
+                            capabilitySet.contains("function_calling_enabled")
+                        // v1.0.8 (7.3): 推理能力 — reasoning / reasoning_ability / supports_reasoning
+                        val serverReasoning = capabilitySet.contains("reasoning") ||
+                            capabilitySet.contains("reasoning_ability") ||
+                            capabilitySet.contains("supports_reasoning")
+                        // v1.0.8 (7.3): 流式输出字段名(streaming / stream / supports_streaming)
+                        //  目前仅在注释中列出,不影响 Model.supportsStreaming(默认 true)。
+                        //  如需根据上游声明禁用流式,可在此判断后写入 Model.supportsStreaming = false。
 
                         val inferredVision = isOllama && !serverVision &&
                             OllamaVisionInferrer.inferSupportsVision(m.id)
@@ -614,6 +688,7 @@ class OpenAIProvider(
                             outputModalities = outputModalities,
                         )
                         // v1.0.8: 用 registry 再补全一次能力/模态,覆盖服务端未声明的场景
+                        //  (内部会做中转站误标检测,详见 ModelRegistry.enhanceModel)
                         ModelRegistry.enhanceModel(rawModel)
                     }
                     // 按 id 字母序排序,便于用户查找
@@ -622,6 +697,10 @@ class OpenAIProvider(
             }
         } catch (e: kotlinx.coroutines.CancellationException) {
             call.cancel()
+            throw e
+        } catch (e: java.io.IOException) {
+            // v1.0.8 (7.5): 网络错误日志 — 记录具体 IOException 类型,便于排查 DNS / TLS / 超时
+            Logger.w("OpenAIProvider", "listModels 网络错误: ${e.javaClass.simpleName} - ${e.message}")
             throw e
         }
     }
@@ -1103,7 +1182,8 @@ class OpenAIProvider(
 
         fun buildHttpRequest(): Request = Request.Builder()
             .url(url)
-            .header("Authorization", "Bearer ${effectiveApiKey()}")
+            // v1.0.18: 走 Kelivo 式 fallback(用户未填 key + SiliconFlow 白名单模型 → 用内置 key)
+            .header("Authorization", "Bearer ${resolveEffectiveApiKey(request.model.id)}")
             .header("Content-Type", "application/json")
             .header("Accept", "text/event-stream")
             .post(body.toRequestBody(JSON_MEDIA_TYPE))
@@ -1317,7 +1397,8 @@ class OpenAIProvider(
         Logger.i("OpenAIProvider", "completeTextResponses: POST $url model=${request.model}")
         val httpRequest = Request.Builder()
             .url(url)
-            .header("Authorization", "Bearer ${effectiveApiKey()}")
+            // v1.0.18: 走 Kelivo 式 fallback(用户未填 key + SiliconFlow 白名单模型 → 用内置 key)
+            .header("Authorization", "Bearer ${resolveEffectiveApiKey(request.model.id)}")
             .header("Content-Type", "application/json")
             .header("Accept", "application/json")
             .post(body.toRequestBody(JSON_MEDIA_TYPE))

@@ -35,4 +35,34 @@
     <!-- 插件能力小字 -->
     <string name="tools_permissions_label">权限: </string>
     <string name="tools_activation_label">激活: </string>
+
+    <!-- ===== v1.0.20: ToolsSettingsPage.kt(工具批准管理页)===== -->
+    <!-- 标题与搜索 -->
+    <string name="tools_settings_title">工具批准管理</string>
+    <string name="tools_settings_search_hint">搜索工具名称或描述</string>
+
+    <!-- 统计信息(共 N 个工具 · 始终允许 X · 询问 Y · 始终拒绝 Z) -->
+    <string name="tools_settings_stats">共 %1$d 个工具 · 始终允许 %2$d · 询问 %3$d · 始终拒绝 %4$d</string>
+
+    <!-- 风险等级分组标题 -->
+    <string name="tools_settings_section_safe">安全工具(只读 / 查询)</string>
+    <string name="tools_settings_section_normal">普通工具(本地副作用)</string>
+    <string name="tools_settings_section_high">高风险工具(不可逆 / 敏感操作)</string>
+
+    <!-- 空态 -->
+    <string name="tools_settings_empty">未找到匹配的工具</string>
+
+    <!-- 底部策略说明区 -->
+    <string name="tools_settings_footer_section">策略说明</string>
+    <string name="tools_settings_policy_always_allow">始终允许</string>
+    <string name="tools_settings_policy_always_allow_desc">该工具调用直接放行,不再弹审批卡片</string>
+    <string name="tools_settings_policy_ask">每次询问</string>
+    <string name="tools_settings_policy_ask_desc">调用前弹审批卡片,由你决定批准或拒绝</string>
+    <string name="tools_settings_policy_always_deny">始终拒绝</string>
+    <string name="tools_settings_policy_always_deny_desc">该工具被禁用,AI 无法调用</string>
+
+    <!-- 分段控件短文案(单工具行内三档选择器) -->
+    <string name="tools_settings_policy_always_allow_short">允许</string>
+    <string name="tools_settings_policy_ask_short">询问</string>
+    <string name="tools_settings_policy_always_deny_short">拒绝</string>
 </resources>

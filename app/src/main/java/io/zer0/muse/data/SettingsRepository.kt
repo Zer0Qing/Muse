@@ -22,6 +22,7 @@ import io.zer0.muse.backup.CloudBackupConfig
 import io.zer0.muse.data.audit.AuditLogger
 import io.zer0.muse.data.preset.PresetProviders
 import io.zer0.muse.rag.RagConfig
+import io.zer0.muse.tools.SessionPermissionMode
 import io.zer0.muse.web.WebSearchConfig
 import io.zer0.muse.web.WebServerConfig
 import io.zer0.muse.data.prompttemplate.PromptTemplate
@@ -577,6 +578,29 @@ class SettingsRepository(
     /** 保存"启用自动更新检查"开关。 */
     suspend fun saveUpdateCheckEnabled(enabled: Boolean) {
         store.edit { it[KEY_UPDATE_CHECK_ENABLED] = enabled }
+    }
+
+    // ── v1.0.20: 全局默认会话权限模式(工具批准开关) ───────────────────────────
+    /**
+     * 全局默认会话权限模式 — 控制工具调用是否需要用户审批。
+     *
+     * 三档:
+     *  - [SessionPermissionMode.TRUSTED]:完全放权,所有工具直接调用,不需批准
+     *  - [SessionPermissionMode.ASK](默认):SAFE 工具自动放行,NORMAL/HIGH 需批准
+     *  - [SessionPermissionMode.STRICT]:严格模式,仅白名单工具可用,其余全部禁止
+     *
+     * 用户在"设置 → 聊天 → 工具调用批准"中切换。
+     * 新建会话时由 [io.zer0.muse.data.session.SessionRepository] 读取此值作为会话初始模式。
+     */
+    val defaultSessionPermissionModeFlow: Flow<SessionPermissionMode> = store.data.map { prefs ->
+        prefs[KEY_DEFAULT_SESSION_PERMISSION_MODE]?.let { name ->
+            runCatching { SessionPermissionMode.valueOf(name) }.getOrNull()
+        } ?: SessionPermissionMode.ASK
+    }
+
+    /** 保存全局默认会话权限模式。 */
+    suspend fun setDefaultSessionPermissionMode(mode: SessionPermissionMode) {
+        store.edit { it[KEY_DEFAULT_SESSION_PERMISSION_MODE] = mode.name }
     }
 
     // ── v2.0+: 崩溃上报配置保存方法 ───────────────────────────────────
@@ -1242,6 +1266,8 @@ class SettingsRepository(
         private val KEY_LAST_UPDATE_CHECK_TIME = longPreferencesKey("last_update_check_time")
         private val KEY_LATEST_RELEASE_INFO = stringPreferencesKey("latest_release_info_json")
         private val KEY_UPDATE_CHECK_ENABLED = booleanPreferencesKey("update_check_enabled")
+        // v1.0.20: 全局默认会话权限模式(TRUSTED / ASK / STRICT,默认 ASK)
+        private val KEY_DEFAULT_SESSION_PERMISSION_MODE = stringPreferencesKey("default_session_permission_mode")
         // v2.0+: 崩溃上报配置键(默认全部关闭,隐私优先)
         private val KEY_CRASH_REPORT_ENABLED = booleanPreferencesKey("crash_report_enabled")
         private val KEY_CRASH_REPORT_METHOD = stringPreferencesKey("crash_report_method")
@@ -1568,6 +1594,16 @@ data class MediaConfig(
     val ttsEndpoint: String = "",
     /** 系统 TTS 声音名称(空字符串表示使用默认声音)。 */
     val ttsVoiceName: String = "",
+    /** v1.99(4.8): ElevenLabs stability(0-1,默认 0.5)。 */
+    val ttsStability: Float = 0.5f,
+    /** v1.99(4.8): ElevenLabs similarity_boost(0-1,默认 0.75)。 */
+    val ttsSimilarityBoost: Float = 0.75f,
+    /** v1.99(4.8): MiniMax 情感(happy/sad/angry/neutral 等,空表示默认)。 */
+    val ttsEmotion: String = "",
+    /** v1.99(4.8): 云端 TTS 合成语速倍率(0.25-4.0,1.0 为正常)。 */
+    val ttsCloudSpeed: Float = 1.0f,
+    /** v1.99(4.8): 云端 TTS 音频格式(mp3/opus/aac/flac/wav,默认 mp3)。 */
+    val ttsResponseFormat: String = "mp3",
 )
 
 /**
@@ -1601,6 +1637,8 @@ data class ThemeScheduleConfig(
  * - [allowedHourStart] v1.95: 允许发送时段开始小时(0-23,24小时制),不在此时段跳过发送避免夜间打扰
  * - [allowedHourEnd] v1.95: 允许发送时段结束小时(0-23,24小时制),支持跨夜(如 22-8 表示22点到次日8点)
  * - [agentOnly] v1.95: 仅Agent会话可发主动消息(true=只发Agent Tab会话,false=不限制)
+ * - [maxDailyMessages] v2.0 5.9: 每日主动消息上限(默认 3),可在设置页调整
+ * - [temperature] v2.0 5.9: LLM 调用温度(默认 0.8),决策阶段用 temperature×0.5,生成阶段用本字段
  */
 @kotlinx.serialization.Serializable
 data class ProactiveMessageConfig(
@@ -1617,6 +1655,19 @@ data class ProactiveMessageConfig(
     val allowedHourEnd: Int = 22,
     /** v1.95: 仅Agent会话可发主动消息(true=只发Agent Tab会话,false=不限制)。 */
     val agentOnly: Boolean = true,
+    /**
+     * v2.0 5.9: 每日主动消息上限(默认 3)。
+     *
+     * 替代 ProactiveScoreEngine 中硬编码的 MAX_DAILY_MESSAGES,可在设置页调整。
+     * ScoreEngine.shouldSend 通过 ScoreContext.todaySentCount 与本字段比对。
+     */
+    val maxDailyMessages: Int = 3,
+    /**
+     * v2.0 5.9: LLM 调用温度(默认 0.8),用于决策与生成两阶段。
+     *
+     * 决策阶段实际使用 temperature × 0.5(决策需要确定性);生成阶段使用本字段。
+     */
+    val temperature: Float = 0.8f,
 )
 
 /**

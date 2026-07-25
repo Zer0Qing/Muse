@@ -3,7 +3,8 @@ package io.zer0.muse.ui.settings
 import io.zer0.muse.ui.common.MuseToast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -39,9 +40,11 @@ import kotlinx.coroutines.launch
 /**
  * 阶段 7: 语音识别(ASR)section — iOS 风格分组列表。
  *
- * Provider 选择(系统 / DashScope / Step)用胶囊分段控件放在分组外,
- * API Key / 模型 / 采样率 / 语言 用 [SettingsGroup] 包裹(SYSTEM 模式隐藏)。
+ * Provider 选择(系统 / DashScope / Step / 文件 / OpenAI Whisper / OpenAI Realtime / Agnes)
+ * 用 FlowRow 胶囊分段控件放在分组外(数量多,FlowRow 自动换行),
+ * API Key / baseUrl / 模型 / 采样率 / 语言 / 热词 / VAD 用 [SettingsGroup] 包裹(SYSTEM 模式隐藏)。
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun AsrSection(
     asrConfig: AsrConfig,
@@ -58,10 +61,11 @@ internal fun AsrSection(
         modifier = Modifier.padding(top = 4.dp),
     )
 
-    // Provider 选择(3 选 1 胶囊)
-    Row(
+    // Provider 选择(FlowRow 自动换行,7 个胶囊)
+    FlowRow(
         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         ThemeModeOption(stringResource(R.string.settings_asr_provider_system), asrConfig.provider == AsrProviderType.SYSTEM) {
             scope.launch {
@@ -98,9 +102,39 @@ internal fun AsrSection(
                 )
             }
         }
+        ThemeModeOption(stringResource(R.string.settings_asr_provider_openai_whisper), asrConfig.provider == AsrProviderType.OPENAI_WHISPER) {
+            scope.launch {
+                settings.saveAsrConfig(
+                    asrConfig.copy(
+                        provider = AsrProviderType.OPENAI_WHISPER,
+                        model = asrConfig.model.ifBlank { asrConfig.defaultModel() },
+                    )
+                )
+            }
+        }
+        ThemeModeOption(stringResource(R.string.settings_asr_provider_openai_realtime), asrConfig.provider == AsrProviderType.OPENAI_REALTIME) {
+            scope.launch {
+                settings.saveAsrConfig(
+                    asrConfig.copy(
+                        provider = AsrProviderType.OPENAI_REALTIME,
+                        model = asrConfig.model.ifBlank { asrConfig.defaultModel() },
+                    )
+                )
+            }
+        }
+        ThemeModeOption(stringResource(R.string.settings_asr_provider_agnes), asrConfig.provider == AsrProviderType.AGNES) {
+            scope.launch {
+                settings.saveAsrConfig(
+                    asrConfig.copy(
+                        provider = AsrProviderType.AGNES,
+                        model = asrConfig.model.ifBlank { asrConfig.defaultModel() },
+                    )
+                )
+            }
+        }
     }
 
-    // API Key / 模型 / 采样率 / 语言(SYSTEM 模式隐藏)
+    // API Key / baseUrl / 模型 / 采样率 / 语言 / 热词 / VAD(SYSTEM 模式隐藏)
     if (asrConfig.provider != AsrProviderType.SYSTEM) {
         SettingsGroup(
             modifier = Modifier.padding(top = 8.dp),
@@ -137,6 +171,37 @@ internal fun AsrSection(
                         }
                     },
                 ) { Text(stringResource(R.string.settings_asr_save_api_key)) }
+            }
+
+            // baseUrl(仅 OPENAI_WHISPER / OPENAI_REALTIME / AGNES 显示,可自定义中转站)
+            if (asrConfig.provider == AsrProviderType.OPENAI_WHISPER ||
+                asrConfig.provider == AsrProviderType.OPENAI_REALTIME ||
+                asrConfig.provider == AsrProviderType.AGNES
+            ) {
+                SettingsGroupDivider()
+                var asrBaseUrl by remember(asrConfig.provider) { mutableStateOf(asrConfig.baseUrl) }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(MusePaddings.cardInner),
+                ) {
+                    OutlinedTextField(
+                        value = asrBaseUrl,
+                        onValueChange = { asrBaseUrl = it },
+                        label = { Text(stringResource(R.string.settings_asr_base_url)) },
+                        placeholder = { Text(asrConfig.defaultBaseUrl().ifBlank { "https://api.openai.com/v1" }) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                    )
+                    TextButton(
+                        onClick = {
+                            scope.launch {
+                                settings.saveAsrConfig(asrConfig.copy(baseUrl = asrBaseUrl.trim()))
+                                MuseToast.show(context.getString(R.string.settings_asr_saved_base_url))
+                            }
+                        },
+                    ) { Text(stringResource(R.string.settings_asr_save_base_url)) }
+                }
             }
 
             SettingsGroupDivider()
@@ -201,6 +266,106 @@ internal fun AsrSection(
                         }
                     },
                 ) { Text(stringResource(R.string.settings_asr_save_language)) }
+            }
+
+            // 热词(除 SYSTEM 外均显示,用逗号分隔的输入框)
+            SettingsGroupDivider()
+            var asrHotwords by remember(asrConfig.provider) {
+                mutableStateOf(asrConfig.hotwords.joinToString(", "))
+            }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(MusePaddings.cardInner),
+            ) {
+                OutlinedTextField(
+                    value = asrHotwords,
+                    onValueChange = { asrHotwords = it },
+                    label = { Text(stringResource(R.string.settings_asr_hotwords)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = false,
+                    minLines = 1,
+                    maxLines = 3,
+                )
+                TextButton(
+                    onClick = {
+                        scope.launch {
+                            val list = asrHotwords.split(",")
+                                .map { it.trim() }
+                                .filter { it.isNotBlank() }
+                            settings.saveAsrConfig(asrConfig.copy(hotwords = list))
+                            MuseToast.show(context.getString(R.string.settings_asr_saved_hotwords))
+                        }
+                    },
+                ) { Text(stringResource(R.string.settings_asr_save_hotwords)) }
+            }
+
+            // VAD 配置(除 SYSTEM / OPENAI_REALTIME 外显示;OPENAI_REALTIME 走服务端 VAD)
+            if (asrConfig.provider != AsrProviderType.OPENAI_REALTIME) {
+                SettingsGroupDivider()
+                SwitchRow(
+                    label = stringResource(R.string.settings_asr_vad),
+                    description = stringResource(R.string.settings_asr_vad_desc),
+                    checked = asrConfig.vadEnabled,
+                    onCheckedChange = { v ->
+                        scope.launch { settings.saveAsrConfig(asrConfig.copy(vadEnabled = v)) }
+                    },
+                )
+                if (asrConfig.vadEnabled) {
+                    SettingsGroupDivider()
+                    var vadThreshold by remember(asrConfig.vadEnabled) {
+                        mutableStateOf(asrConfig.vadThreshold.toString())
+                    }
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(MusePaddings.cardInner),
+                    ) {
+                        OutlinedTextField(
+                            value = vadThreshold,
+                            onValueChange = { vadThreshold = it.filter { c -> c.isDigit() || c == '.' } },
+                            label = { Text(stringResource(R.string.settings_asr_vad_threshold)) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                        )
+                        TextButton(
+                            onClick = {
+                                scope.launch {
+                                    val v = vadThreshold.trim().toFloatOrNull() ?: 0.05f
+                                    settings.saveAsrConfig(asrConfig.copy(vadThreshold = v))
+                                    MuseToast.show(context.getString(R.string.settings_asr_saved_vad))
+                                }
+                            },
+                        ) { Text(stringResource(R.string.settings_asr_save_vad)) }
+                    }
+
+                    SettingsGroupDivider()
+                    var vadSilence by remember(asrConfig.vadEnabled) {
+                        mutableStateOf(asrConfig.vadSilenceDurationMs.toString())
+                    }
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(MusePaddings.cardInner),
+                    ) {
+                        OutlinedTextField(
+                            value = vadSilence,
+                            onValueChange = { vadSilence = it.filter { c -> c.isDigit() } },
+                            label = { Text(stringResource(R.string.settings_asr_vad_silence)) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                        )
+                        TextButton(
+                            onClick = {
+                                scope.launch {
+                                    val ms = vadSilence.trim().toLongOrNull() ?: 1_500L
+                                    settings.saveAsrConfig(asrConfig.copy(vadSilenceDurationMs = ms))
+                                    MuseToast.show(context.getString(R.string.settings_asr_saved_vad))
+                                }
+                            },
+                        ) { Text(stringResource(R.string.settings_asr_save_vad)) }
+                    }
+                }
             }
 
             // 阶段 F: DashScope 高级字段(仅 DASHSCOPE / DASHSCOPE_FILE 显示)

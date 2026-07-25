@@ -56,4 +56,17 @@
             android:targetClass="io.zer0.muse.MainActivity" />
     </shortcut>
 
+    <!-- v1.0.18: 快速记录:直接打开快速记录页 -->
+    <shortcut
+        android:shortcutId="quick_notes"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_note"
+        android:shortcutShortLabel="@string/shortcut_quick_notes_short"
+        android:shortcutLongLabel="@string/shortcut_quick_notes_long">
+        <intent
+            android:action="io.zer0.muse.ACTION_QUICK_NOTES"
+            android:targetPackage="io.zer0.muse"
+            android:targetClass="io.zer0.muse.MainActivity" />
+    </shortcut>
+
 </shortcuts>

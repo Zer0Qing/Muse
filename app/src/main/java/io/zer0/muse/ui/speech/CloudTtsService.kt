@@ -5,6 +5,7 @@ import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
@@ -23,6 +24,12 @@ import java.io.File
  * 返回 mp3 字节数组,写入临时文件后交由 MediaPlayer 播放(与系统 TTS 路径一致)。
  *
  * 设计参考 rikkahub 的 TTSProvider 抽象,但简化为单文件多 provider 分发。
+ *
+ * v1.99: 增强 —
+ *  - 修复 Edge TTS 假域名(改为可配置 endpoint,默认空)
+ *  - 补全 xAI TTS(POST /tts,body {text, voice_id, language})
+ *  - 新增 [listVoices] 动态拉取音色列表
+ *  - 新增 [CloudTtsConfig] 透传 stability/similarity/emotion/speed/response_format
  */
 class CloudTtsService(
     private val client: OkHttpClient,
@@ -41,8 +48,15 @@ class CloudTtsService(
         private const val MINIMAX_DEFAULT_MODEL = "speech-2.6-turbo"
         /** MiniMax TTS 默认音色。 */
         private const val MINIMAX_DEFAULT_VOICE = "female-shaonv"
-        /** Edge TTS 免费 endpoint(兼容 OpenAI 接口格式)。 */
-        private const val EDGE_DEFAULT_ENDPOINT = "https://edge-tts-api.example.com/v1"
+        /**
+         * Edge TTS 免费 endpoint(兼容 OpenAI 接口格式)。
+         *
+         * v1.99: 原默认值 https://edge-tts-api.example.com/v1 是占位假域名,
+         * 无法访问。Edge TTS 没有官方 OpenAI 兼容服务,需用户自行部署/填写
+         * 兼容代理地址(如社区 edge-tts-openai 代理)。默认空串:留空时合成失败,
+         * 上层回退系统 TTS,避免误导。
+         */
+        private const val EDGE_DEFAULT_ENDPOINT = ""
         /** DashScope TTS (阿里云) 默认 endpoint。 */
         private const val DASHSCOPE_DEFAULT_ENDPOINT = "https://dashscope.aliyuncs.com/compatible-mode/v1"
         /** DashScope TTS 默认模型。 */
@@ -77,24 +91,83 @@ class CloudTtsService(
         private const val STEP_DEFAULT_MODEL = "step-tts-mini"
         /** StepFun TTS 默认音色。 */
         private const val STEP_DEFAULT_VOICE = "speaker1"
-        /** xAI TTS 默认 endpoint(注:xAI 暂未提供 TTS 服务,接口预留)。 */
+        /** xAI TTS 默认 endpoint。 */
         private const val XAI_DEFAULT_ENDPOINT = "https://api.x.ai/v1"
-        /** xAI TTS 默认模型(占位,与 Groq 接口字段一致)。 */
-        private const val XAI_DEFAULT_MODEL = "groq-tts"
-        /** xAI TTS 默认音色(占位)。 */
+        /** xAI TTS 默认音色。 */
         private const val XAI_DEFAULT_VOICE = "Alloy"
+
+        // ── 各引擎硬编码常用音色(无 /voices 接口或离线兜底) ──
+        private val OPENAI_VOICES = listOf(
+            VoiceInfo("alloy", "Alloy", "en"),
+            VoiceInfo("echo", "Echo", "en"),
+            VoiceInfo("fable", "Fable", "en"),
+            VoiceInfo("onyx", "Onyx", "en"),
+            VoiceInfo("nova", "Nova", "en"),
+            VoiceInfo("shimmer", "Shimmer", "en"),
+            VoiceInfo("coral", "Coral", "en"),
+            VoiceInfo("sage", "Sage", "en"),
+            VoiceInfo("ash", "Ash", "en"),
+            VoiceInfo("ballad", "Ballad", "en"),
+        )
+        private val EDGE_VOICES = listOf(
+            VoiceInfo("zh-CN-XiaoxiaoNeural", "晓晓 (zh-CN)", "zh-CN", "female"),
+            VoiceInfo("zh-CN-YunxiNeural", "云希 (zh-CN)", "zh-CN", "male"),
+            VoiceInfo("zh-CN-YunyangNeural", "云扬 (zh-CN)", "zh-CN", "male"),
+            VoiceInfo("zh-CN-XiaoyiNeural", "晓伊 (zh-CN)", "zh-CN", "female"),
+            VoiceInfo("en-US-JennyNeural", "Jenny (en-US)", "en-US", "female"),
+            VoiceInfo("en-US-GuyNeural", "Guy (en-US)", "en-US", "male"),
+        )
+        private val GEMINI_VOICES = listOf(
+            VoiceInfo("Kore", "Kore", "en"),
+            VoiceInfo("Puck", "Puck", "en"),
+            VoiceInfo("Charon", "Charon", "en"),
+            VoiceInfo("Fenrir", "Fenrir", "en"),
+            VoiceInfo("Leda", "Leda", "en"),
+            VoiceInfo("Orus", "Orus", "en"),
+            VoiceInfo("Aoede", "Aoede", "en"),
+        )
+        private val DASHSCOPE_VOICES = listOf(
+            VoiceInfo("longxiaochun", "龙小淳", "zh-CN", "female"),
+            VoiceInfo("longyan", "龙岩", "zh-CN", "male"),
+            VoiceInfo("longxiao", "龙小", "zh-CN", "female"),
+            VoiceInfo("longshu", "龙叔", "zh-CN", "male"),
+            VoiceInfo("longjing", "龙晶", "zh-CN", "female"),
+            VoiceInfo("longmiao", "龙淼", "zh-CN", "female"),
+        )
+        private val FISH_VOICES = listOf(
+            VoiceInfo("", "默认音色(空 reference_id)"),
+        )
+        private val GROQ_VOICES = listOf(
+            VoiceInfo("Fritz-PlayAI", "Fritz", "en"),
+            VoiceInfo("Gwendolyn-PlayAI", "Gwendolyn", "en"),
+            VoiceInfo("Hugo-PlayAI", "Hugo", "en"),
+            VoiceInfo("Bella-PlayAI", "Bella", "en"),
+        )
+        private val QWEN_VOICES = DASHSCOPE_VOICES
+        private val STEP_VOICES = listOf(
+            VoiceInfo("speaker1", "speaker1", "zh-CN"),
+            VoiceInfo("speaker2", "speaker2", "zh-CN"),
+            VoiceInfo("speaker3", "speaker3", "zh-CN"),
+        )
+        private val XAI_VOICES = listOf(
+            VoiceInfo("Alloy", "Alloy", "en"),
+            VoiceInfo("Echo", "Echo", "en"),
+            VoiceInfo("Nova", "Nova", "en"),
+            VoiceInfo("Onyx", "Onyx", "en"),
+        )
     }
 
     /**
      * 合成文本为音频文件。
      *
      * @param text 待合成文本(已剥离 Markdown)
-     * @param engine TTS 引擎:"openai" / "minimax" / "edge"
+     * @param engine TTS 引擎:"openai" / "minimax" / "edge" 等
      * @param apiKey API Key
      * @param model 模型名(留空用默认)
      * @param voice 音色(留空用默认)
      * @param endpoint 自定义 endpoint(留空用默认)
      * @param outputFile 输出文件(.mp3)
+     * @param cloudConfig v1.99: 引擎参数(stability/similarity/emotion/speed/response_format)
      * @return 成功返回 true,失败返回 false
      */
     suspend fun synthesizeToFile(
@@ -105,7 +178,9 @@ class CloudTtsService(
         voice: String,
         endpoint: String,
         outputFile: File,
+        cloudConfig: CloudTtsConfig = CloudTtsConfig(),
     ): Boolean = withContext(AppDispatchers.io) {
+        // Edge TTS 走兼容代理,endpoint 必须由用户提供(无官方 endpoint)
         if (apiKey.isBlank() && engine != "edge") {
             Logger.w(TAG, "云端 TTS apiKey 为空,跳过")
             return@withContext false
@@ -113,16 +188,16 @@ class CloudTtsService(
 
         val audioBytes = resultOf {
             when (engine) {
-                "openai" -> synthesizeOpenAI(text, apiKey, model, voice, endpoint)
-                "minimax" -> synthesizeMiniMax(text, apiKey, model, voice, endpoint)
-                "edge" -> synthesizeEdge(text, apiKey, model, voice, endpoint)
+                "openai" -> synthesizeOpenAI(text, apiKey, model, voice, endpoint, cloudConfig)
+                "minimax" -> synthesizeMiniMax(text, apiKey, model, voice, endpoint, cloudConfig)
+                "edge" -> synthesizeEdge(text, apiKey, model, voice, endpoint, cloudConfig)
                 "gemini" -> synthesizeGemini(text, apiKey, model, voice, endpoint)
-                "dashscope" -> synthesizeDashScope(text, apiKey, model, voice, endpoint)
+                "dashscope" -> synthesizeDashScope(text, apiKey, model, voice, endpoint, cloudConfig)
                 "fish" -> synthesizeFishAudio(text, apiKey, model, voice, endpoint)
-                "elevenlabs" -> synthesizeElevenLabs(text, apiKey, model, voice, endpoint)
-                "groq" -> synthesizeGroq(text, apiKey, model, voice, endpoint)
+                "elevenlabs" -> synthesizeElevenLabs(text, apiKey, model, voice, endpoint, cloudConfig)
+                "groq" -> synthesizeGroq(text, apiKey, model, voice, endpoint, cloudConfig)
                 "qwen" -> synthesizeQwen(text, apiKey, model, voice, endpoint)
-                "step" -> synthesizeStep(text, apiKey, model, voice, endpoint)
+                "step" -> synthesizeStep(text, apiKey, model, voice, endpoint, cloudConfig)
                 "xai" -> synthesizeXai(text, apiKey, model, voice, endpoint)
                 else -> {
                     Logger.w(TAG, "未知 TTS 引擎: $engine")
@@ -145,9 +220,47 @@ class CloudTtsService(
     }
 
     /**
+     * v1.99: 动态拉取指定引擎的音色列表。
+     *
+     * - ElevenLabs / MiniMax: 走 /voices / /list_voice 实时拉取
+     * - 其他引擎: 返回硬编码常用音色(无公开接口或需鉴权)
+     * - CLONED: 由 [VoiceCloningService] 管理,返回空(TtsManager 侧处理)
+     *
+     * @param provider 引擎枚举
+     * @param apiKey API Key
+     * @param endpoint 自定义 endpoint(留空用默认)
+     * @return 音色列表;失败返回空列表
+     */
+    suspend fun listVoices(
+        provider: CloudTtsProvider,
+        apiKey: String,
+        endpoint: String,
+    ): List<VoiceInfo> = withContext(AppDispatchers.io) {
+        resultOf {
+            when (provider) {
+                CloudTtsProvider.ELEVENLABS -> listElevenLabsVoices(apiKey, endpoint)
+                CloudTtsProvider.MINIMAX -> listMiniMaxVoices(apiKey, endpoint)
+                CloudTtsProvider.OPENAI -> OPENAI_VOICES
+                CloudTtsProvider.EDGE -> EDGE_VOICES
+                CloudTtsProvider.GEMINI -> GEMINI_VOICES
+                CloudTtsProvider.DASHSCOPE -> DASHSCOPE_VOICES
+                CloudTtsProvider.FISH -> FISH_VOICES
+                CloudTtsProvider.GROQ -> GROQ_VOICES
+                CloudTtsProvider.QWEN -> QWEN_VOICES
+                CloudTtsProvider.STEP -> STEP_VOICES
+                CloudTtsProvider.XAI -> XAI_VOICES
+                CloudTtsProvider.CLONED -> emptyList()
+            }
+        }.onError { _, t ->
+            Logger.w(TAG, "listVoices($provider) 失败", t)
+        }.getOrNull() ?: emptyList()
+    }
+
+    /**
      * OpenAI TTS — POST {endpoint}/audio/speech
      *
-     * 请求体: {"model": "...", "input": "...", "voice": "...", "response_format": "mp3"}
+     * 请求体: {"model": "...", "input": "...", "voice": "...",
+     *          "response_format": "mp3", "speed": 1.0}
      * 响应: mp3 二进制流
      */
     private suspend fun synthesizeOpenAI(
@@ -156,6 +269,7 @@ class CloudTtsService(
         model: String,
         voice: String,
         endpoint: String,
+        cloudConfig: CloudTtsConfig,
     ): ByteArray {
         val baseUrl = endpoint.ifBlank { OPENAI_DEFAULT_ENDPOINT }
         val modelName = model.ifBlank { OPENAI_DEFAULT_MODEL }
@@ -165,7 +279,10 @@ class CloudTtsService(
             put("model", JsonPrimitive(modelName))
             put("input", JsonPrimitive(text))
             put("voice", JsonPrimitive(voiceName))
-            put("response_format", JsonPrimitive("mp3"))
+            put("response_format", JsonPrimitive(cloudConfig.responseFormat.ifBlank { "mp3" }))
+            if (cloudConfig.speed != 1.0f) {
+                put("speed", JsonPrimitive(cloudConfig.speed.coerceIn(0.25f, 4.0f).toDouble()))
+            }
         }.toString()
 
         val req = Request.Builder().url("$baseUrl/audio/speech")
@@ -186,7 +303,8 @@ class CloudTtsService(
     /**
      * MiniMax TTS — POST {endpoint}/t2a_v2
      *
-     * 请求体: {"model": "...", "text": "...", "voice_setting": {"voice_id": "..."}}
+     * 请求体: {"model": "...", "text": "...",
+     *         "voice_setting": {"voice_id": "...", "speed": ..., "emotion": "..."}}
      * 响应: {"data": {"audio": "hex_encoded_mp3"}}
      */
     private suspend fun synthesizeMiniMax(
@@ -195,6 +313,7 @@ class CloudTtsService(
         model: String,
         voice: String,
         endpoint: String,
+        cloudConfig: CloudTtsConfig,
     ): ByteArray {
         val baseUrl = endpoint.ifBlank { MINIMAX_DEFAULT_ENDPOINT }
         val modelName = model.ifBlank { MINIMAX_DEFAULT_MODEL }
@@ -205,6 +324,12 @@ class CloudTtsService(
             put("text", JsonPrimitive(text))
             put("voice_setting", kotlinx.serialization.json.buildJsonObject {
                 put("voice_id", JsonPrimitive(voiceName))
+                if (cloudConfig.speed != 1.0f) {
+                    put("speed", JsonPrimitive(cloudConfig.speed.coerceIn(0.5f, 2.0f).toDouble()))
+                }
+                if (cloudConfig.emotion.isNotBlank()) {
+                    put("emotion", JsonPrimitive(cloudConfig.emotion))
+                }
             })
         }.toString()
 
@@ -230,9 +355,10 @@ class CloudTtsService(
     }
 
     /**
-     * Edge TTS — 兼容 OpenAI 接口格式,免费使用。
+     * Edge TTS — 兼容 OpenAI 接口格式。
      *
-     * 使用兼容 OpenAI 的 edge-tts 代理服务,请求格式与 OpenAI TTS 相同。
+     * v1.99: 没有官方 OpenAI 兼容 endpoint,[endpoint] 必须由用户填写
+     * (社区自建 edge-tts 代理)。endpoint 为空时直接返回空,上层回退系统 TTS。
      */
     private suspend fun synthesizeEdge(
         text: String,
@@ -240,15 +366,23 @@ class CloudTtsService(
         model: String,
         voice: String,
         endpoint: String,
+        cloudConfig: CloudTtsConfig,
     ): ByteArray {
         val baseUrl = endpoint.ifBlank { EDGE_DEFAULT_ENDPOINT }
+        if (baseUrl.isBlank()) {
+            Logger.w(TAG, "Edge TTS endpoint 未配置,跳过(需用户在设置中填写兼容代理地址)")
+            return ByteArray(0)
+        }
         val voiceName = voice.ifBlank { "zh-CN-XiaoxiaoNeural" }
 
         val payload = kotlinx.serialization.json.buildJsonObject {
             put("model", JsonPrimitive(model.ifBlank { "tts-1" }))
             put("input", JsonPrimitive(text))
             put("voice", JsonPrimitive(voiceName))
-            put("response_format", JsonPrimitive("mp3"))
+            put("response_format", JsonPrimitive(cloudConfig.responseFormat.ifBlank { "mp3" }))
+            if (cloudConfig.speed != 1.0f) {
+                put("speed", JsonPrimitive(cloudConfig.speed.coerceIn(0.25f, 4.0f).toDouble()))
+            }
         }.toString()
 
         val reqBuilder = Request.Builder().url("$baseUrl/audio/speech")
@@ -337,10 +471,10 @@ class CloudTtsService(
             val json = Json { ignoreUnknownKeys = true }
             val root = json.parseToJsonElement(body) as? JsonObject ?: return ByteArray(0)
             // 从 candidates[0].content.parts[0].inlineData.data 提取 base64 音频
-            val candidates = root["candidates"]?.let { it as? kotlinx.serialization.json.JsonArray }
+            val candidates = root["candidates"]?.let { it as? JsonArray }
             val firstCandidate = candidates?.firstOrNull() as? JsonObject ?: return ByteArray(0)
             val content = firstCandidate["content"] as? JsonObject ?: return ByteArray(0)
-            val parts = content["parts"]?.let { it as? kotlinx.serialization.json.JsonArray } ?: return ByteArray(0)
+            val parts = content["parts"]?.let { it as? JsonArray } ?: return ByteArray(0)
             val firstPart = parts.firstOrNull() as? JsonObject ?: return ByteArray(0)
             val inlineData = firstPart["inlineData"] as? JsonObject ?: return ByteArray(0)
             val base64Audio = inlineData["data"]?.jsonPrimitive?.contentOrNull ?: return ByteArray(0)
@@ -352,7 +486,7 @@ class CloudTtsService(
      * DashScope TTS (阿里云) — OpenAI 兼容接口。
      *
      * POST {endpoint}/audio/speech
-     * 请求体与 OpenAI TTS 格式一致。
+     * 请求体与 OpenAI TTS 格式一致(支持 speed / response_format)。
      */
     private suspend fun synthesizeDashScope(
         text: String,
@@ -360,6 +494,7 @@ class CloudTtsService(
         model: String,
         voice: String,
         endpoint: String,
+        cloudConfig: CloudTtsConfig,
     ): ByteArray {
         val baseUrl = endpoint.ifBlank { DASHSCOPE_DEFAULT_ENDPOINT }
         val modelName = model.ifBlank { DASHSCOPE_DEFAULT_MODEL }
@@ -369,7 +504,10 @@ class CloudTtsService(
             put("model", JsonPrimitive(modelName))
             put("input", JsonPrimitive(text))
             put("voice", JsonPrimitive(voiceName))
-            put("response_format", JsonPrimitive("mp3"))
+            put("response_format", JsonPrimitive(cloudConfig.responseFormat.ifBlank { "mp3" }))
+            if (cloudConfig.speed != 1.0f) {
+                put("speed", JsonPrimitive(cloudConfig.speed.coerceIn(0.25f, 4.0f).toDouble()))
+            }
         }.toString()
 
         val req = Request.Builder().url("$baseUrl/audio/speech")
@@ -437,8 +575,8 @@ class CloudTtsService(
      *         "voice_settings": {"stability": 0.5, "similarity_boost": 0.75}}
      * 响应: audio/mpeg 二进制流
      *
-     * voice 参数为 ElevenLabs 的 Voice ID(如 21m00Tcm4TlvDq8ikWAM)。
-     * 失败返回空字节数组,由上层 [synthesizeToFile] 统一回退到系统 TTS。
+     * voice 参数为 ElevenLabs 的 Voice ID(如 21m00Tcm4TlvDq8ikWAM,含克隆音色)。
+     * v1.99: stability / similarity_boost 由 [cloudConfig] 透传(4.8 参数可配置)。
      */
     private suspend fun synthesizeElevenLabs(
         text: String,
@@ -446,6 +584,7 @@ class CloudTtsService(
         model: String,
         voice: String,
         endpoint: String,
+        cloudConfig: CloudTtsConfig,
     ): ByteArray {
         val baseUrl = endpoint.ifBlank { ELEVENLABS_DEFAULT_ENDPOINT }
         val modelName = model.ifBlank { ELEVENLABS_DEFAULT_MODEL }
@@ -455,8 +594,8 @@ class CloudTtsService(
             put("text", JsonPrimitive(text))
             put("model_id", JsonPrimitive(modelName))
             put("voice_settings", kotlinx.serialization.json.buildJsonObject {
-                put("stability", JsonPrimitive(0.5))
-                put("similarity_boost", JsonPrimitive(0.75))
+                put("stability", JsonPrimitive(cloudConfig.stability.coerceIn(0f, 1f).toDouble()))
+                put("similarity_boost", JsonPrimitive(cloudConfig.similarityBoost.coerceIn(0f, 1f).toDouble()))
             })
         }.toString()
 
@@ -482,8 +621,6 @@ class CloudTtsService(
      * 请求头: Authorization: Bearer {apiKey}
      * 请求体: {"model": "playai-tts", "input": "...", "voice": "Fritz-PlayAI"}
      * 响应: audio/mpeg 二进制流
-     *
-     * 失败返回空字节数组。
      */
     private suspend fun synthesizeGroq(
         text: String,
@@ -491,6 +628,7 @@ class CloudTtsService(
         model: String,
         voice: String,
         endpoint: String,
+        cloudConfig: CloudTtsConfig,
     ): ByteArray {
         val baseUrl = endpoint.ifBlank { GROQ_DEFAULT_ENDPOINT }
         val modelName = model.ifBlank { GROQ_DEFAULT_MODEL }
@@ -500,7 +638,10 @@ class CloudTtsService(
             put("model", JsonPrimitive(modelName))
             put("input", JsonPrimitive(text))
             put("voice", JsonPrimitive(voiceName))
-            put("response_format", JsonPrimitive("mp3"))
+            put("response_format", JsonPrimitive(cloudConfig.responseFormat.ifBlank { "mp3" }))
+            if (cloudConfig.speed != 1.0f) {
+                put("speed", JsonPrimitive(cloudConfig.speed.coerceIn(0.25f, 4.0f).toDouble()))
+            }
         }.toString()
 
         val req = Request.Builder().url("$baseUrl/audio/speech")
@@ -526,8 +667,6 @@ class CloudTtsService(
      * 请求体: {"model": "cosyvoice-v1", "input": {"text": "..."},
      *         "parameters": {"voice": "longxiaochun"}}
      * 响应: JSON,音频在 output.audio.url 字段(需二次下载)。
-     *
-     * 失败返回空字节数组。
      */
     private suspend fun synthesizeQwen(
         text: String,
@@ -596,8 +735,6 @@ class CloudTtsService(
      * 请求头: Authorization: Bearer {apiKey}
      * 请求体: {"model": "step-tts-mini", "input": "...", "voice": "speaker1"}
      * 响应: audio/mpeg 二进制流
-     *
-     * 失败返回空字节数组。
      */
     private suspend fun synthesizeStep(
         text: String,
@@ -605,6 +742,7 @@ class CloudTtsService(
         model: String,
         voice: String,
         endpoint: String,
+        cloudConfig: CloudTtsConfig,
     ): ByteArray {
         val baseUrl = endpoint.ifBlank { STEP_DEFAULT_ENDPOINT }
         val modelName = model.ifBlank { STEP_DEFAULT_MODEL }
@@ -614,7 +752,10 @@ class CloudTtsService(
             put("model", JsonPrimitive(modelName))
             put("input", JsonPrimitive(text))
             put("voice", JsonPrimitive(voiceName))
-            put("response_format", JsonPrimitive("mp3"))
+            put("response_format", JsonPrimitive(cloudConfig.responseFormat.ifBlank { "mp3" }))
+            if (cloudConfig.speed != 1.0f) {
+                put("speed", JsonPrimitive(cloudConfig.speed.coerceIn(0.25f, 4.0f).toDouble()))
+            }
         }.toString()
 
         val req = Request.Builder().url("$baseUrl/audio/speech")
@@ -633,11 +774,14 @@ class CloudTtsService(
     }
 
     /**
-     * xAI TTS — POST {endpoint}/audio/speech(OpenAI 兼容格式)
+     * xAI TTS — POST {endpoint}/tts
      *
-     * 注:xAI 暂未提供 TTS 服务,本方法仅保留接口占位。
-     * 调用时返回空字节数组,由上层 [synthesizeToFile] 回退到系统 TTS。
-     * 待 xAI 官方上线 TTS 后,补全请求体即可启用。
+     * v1.99: 补全占位实现。参考 QingTian XAITTSProvider 契约:
+     * 请求体: {"text": "...", "voice_id": "...", "language": "..."}
+     * 响应: 音频二进制流(mp3)。
+     *
+     * language 按音色名简单推断(含 "zh" → zh-CN,含 "en" → en-US,否则默认 zh-CN)。
+     * 若上游接口实际不可用,调用失败后由上层 [synthesizeToFile] 回退系统 TTS。
      */
     private suspend fun synthesizeXai(
         text: String,
@@ -646,11 +790,160 @@ class CloudTtsService(
         voice: String,
         endpoint: String,
     ): ByteArray {
-        // 保留参数避免未使用警告
         val baseUrl = endpoint.ifBlank { XAI_DEFAULT_ENDPOINT }
-        val modelName = model.ifBlank { XAI_DEFAULT_MODEL }
         val voiceName = voice.ifBlank { XAI_DEFAULT_VOICE }
-        Logger.w(TAG, "xAI 合成失败: 服务暂不可用 (endpoint=$baseUrl, model=$modelName, voice=$voiceName)")
-        return ByteArray(0)
+        val language = when {
+            voiceName.contains("zh", ignoreCase = true) -> "zh-CN"
+            voiceName.contains("en", ignoreCase = true) -> "en-US"
+            else -> "zh-CN"
+        }
+
+        val payload = kotlinx.serialization.json.buildJsonObject {
+            put("text", JsonPrimitive(text))
+            put("voice_id", JsonPrimitive(voiceName))
+            put("language", JsonPrimitive(language))
+        }.toString()
+
+        val reqBuilder = Request.Builder().url("$baseUrl/tts")
+            .header("Content-Type", "application/json")
+            .header("Accept", "audio/mpeg")
+            .post(payload.toRequestBody("application/json".toMediaType()))
+        if (apiKey.isNotBlank()) {
+            reqBuilder.header("Authorization", "Bearer $apiKey")
+        }
+        val req = reqBuilder.build()
+
+        client.newCall(req).execute().use { resp ->
+            if (!resp.isSuccessful) {
+                Logger.w(TAG, "xAI 合成失败: HTTP ${resp.code} (endpoint=$baseUrl, voice=$voiceName)")
+                return ByteArray(0)
+            }
+            return resp.body.bytes()
+        }
+    }
+
+    /**
+     * ElevenLabs 列出所有音色(含克隆 + 预设)。
+     *
+     * GET {baseUrl}/voices,响应:{"voices":[{"voice_id","name","category",...}]}
+     */
+    private suspend fun listElevenLabsVoices(apiKey: String, endpoint: String): List<VoiceInfo> {
+        if (apiKey.isBlank()) return emptyList()
+        val baseUrl = endpoint.ifBlank { ELEVENLABS_DEFAULT_ENDPOINT }
+        val req = Request.Builder().url("$baseUrl/voices")
+            .header("xi-api-key", apiKey)
+            .header("Accept", "application/json")
+            .get()
+            .build()
+        client.newCall(req).execute().use { resp ->
+            if (!resp.isSuccessful) {
+                Logger.w(TAG, "ElevenLabs listVoices failed: HTTP ${resp.code}")
+                return emptyList()
+            }
+            val root = Json { ignoreUnknownKeys = true }
+                .parseToJsonElement(resp.body.string()) as? JsonObject
+                ?: return emptyList()
+            val arr = root["voices"] as? JsonArray ?: return emptyList()
+            return arr.mapNotNull { item ->
+                val obj = item as? JsonObject ?: return@mapNotNull null
+                val id = obj["voice_id"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
+                val name = obj["name"]?.jsonPrimitive?.contentOrNull ?: id
+                val category = obj["category"]?.jsonPrimitive?.contentOrNull
+                VoiceInfo(id, name, description = category)
+            }
+        }
+    }
+
+    /**
+     * MiniMax 列出音色。
+     *
+     * GET {baseUrl}/list_voice,响应:{"voices":[{"voice_id","voice_name",...}]} 或
+     * {"system_support_voices":[{"voice_id",...}]}(兼容两种字段名)。
+     */
+    private suspend fun listMiniMaxVoices(apiKey: String, endpoint: String): List<VoiceInfo> {
+        if (apiKey.isBlank()) return emptyList()
+        val baseUrl = endpoint.ifBlank { MINIMAX_DEFAULT_ENDPOINT }
+        val req = Request.Builder().url("$baseUrl/list_voice")
+            .header("Authorization", "Bearer $apiKey")
+            .header("Accept", "application/json")
+            .get()
+            .build()
+        client.newCall(req).execute().use { resp ->
+            if (!resp.isSuccessful) {
+                Logger.w(TAG, "MiniMax listVoices failed: HTTP ${resp.code}")
+                return emptyList()
+            }
+            val root = Json { ignoreUnknownKeys = true }
+                .parseToJsonElement(resp.body.string()) as? JsonObject
+                ?: return emptyList()
+            val arr = (root["voices"] as? JsonArray)
+                ?: (root["system_support_voices"] as? JsonArray)
+                ?: return emptyList()
+            return arr.mapNotNull { item ->
+                val obj = item as? JsonObject ?: return@mapNotNull null
+                val id = obj["voice_id"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
+                val name = obj["voice_name"]?.jsonPrimitive?.contentOrNull
+                    ?: obj["name"]?.jsonPrimitive?.contentOrNull
+                    ?: id
+                VoiceInfo(id, name)
+            }
+        }
     }
 }
+
+/**
+ * v1.99: 云端 TTS 引擎枚举(用于 [CloudTtsService.listVoices] 类型安全)。
+ *
+ * 与 [MediaConfig.ttsEngine] 字符串一一对应,CLONED 由 [VoiceCloningService] 管理。
+ */
+enum class CloudTtsProvider(val engineId: String) {
+    OPENAI("openai"),
+    MINIMAX("minimax"),
+    EDGE("edge"),
+    GEMINI("gemini"),
+    DASHSCOPE("dashscope"),
+    FISH("fish"),
+    ELEVENLABS("elevenlabs"),
+    GROQ("groq"),
+    QWEN("qwen"),
+    STEP("step"),
+    XAI("xai"),
+    CLONED("cloned");
+
+    companion object {
+        fun fromEngine(id: String): CloudTtsProvider? = values().firstOrNull { it.engineId == id }
+    }
+}
+
+/**
+ * v1.99: 音色信息(用于动态拉取的音色列表展示与选择)。
+ */
+data class VoiceInfo(
+    val id: String,
+    val name: String,
+    val language: String? = null,
+    val gender: String? = null,
+    val description: String? = null,
+)
+
+/**
+ * v1.99: 云端 TTS 引擎参数(4.8 参数可配置)。
+ *
+ * 各引擎按需取用:
+ *  - ElevenLabs: [stability] / [similarityBoost]
+ *  - MiniMax: [emotion] / [speed]
+ *  - OpenAI 兼容(openai/dashscope/groq/step/edge): [speed] / [responseFormat]
+ *  - 不支持 SSML/参数的引擎降级为默认
+ */
+data class CloudTtsConfig(
+    /** ElevenLabs stability(0-1,默认 0.5)。 */
+    val stability: Float = 0.5f,
+    /** ElevenLabs similarity_boost(0-1,默认 0.75)。 */
+    val similarityBoost: Float = 0.75f,
+    /** MiniMax 情感(happy/sad/angry/neutral 等,空表示默认)。 */
+    val emotion: String = "",
+    /** 合成语速倍率(0.25-4.0,1.0 为正常)。 */
+    val speed: Float = 1.0f,
+    /** 音频格式(mp3/opus/aac/flac/wav)。 */
+    val responseFormat: String = "mp3",
+)

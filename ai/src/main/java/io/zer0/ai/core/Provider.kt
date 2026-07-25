@@ -1,6 +1,7 @@
 package io.zer0.ai.core
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * 流式推理过程中产生的增量事件。
@@ -184,4 +185,66 @@ interface Provider {
      * 默认返回空列表,表示该 Provider 未实现拉取(如自定义中转可走 OpenAI 兼容)。
      */
     suspend fun listModels(config: ProviderConfig): List<Model> = emptyList()
+
+    /**
+     * v1.0.8 (7.6): 模型健康检查 — 用真实 LLM 调用验证 apiKey / baseUrl / model 是否可用。
+     *
+     * 实现:向 [model] 发送一条 "Reply exactly OK." 的 user 消息,
+     *  15s 超时内若拿到非空响应即视为健康(返回 success=true)。
+     *  适用于:
+     *   - 设置页"测试"按钮:用户改完 apiKey/baseUrl 后一键验证连通性
+     *   - 启动时自动检查默认 Provider 是否可用
+     *
+     *  与 [listModels] 的区别:
+     *   - listModels 仅验证 /models 端点(轻量,但不保证 chat 接口可用)
+     *   - healthCheck 验证完整 chat 链路(发真实消息,能检测出 model id 错误 / 余额不足等)
+     *
+     *  默认实现走 [completeText],具体 Provider 如需特殊处理可覆盖。
+     *
+     * @param model 待测试的模型(必填,决定请求的 model 字段)
+     * @return [HealthCheckResult] 含 success 标志 + 失败时的提示消息
+     */
+    suspend fun healthCheck(model: Model): HealthCheckResult {
+        return try {
+            val result = withTimeoutOrNull(HEALTH_CHECK_TIMEOUT_MS) {
+                val request = ChatRequest(
+                    messages = listOf(
+                        UIMessage(role = MessageRole.USER, content = "Reply exactly OK."),
+                    ),
+                    model = model,
+                    // 限制输出长度,避免健康检查消耗过多 token
+                    maxTokens = 16,
+                    // 后台任务模式:关思考,降延迟
+                    mode = ChatRequestMode.UTILITY,
+                )
+                completeText(request)
+            }
+            if (result == null) {
+                HealthCheckResult(success = false, message = "timeout (15s)")
+            } else if (result.text.isBlank() && result.toolCalls.isNullOrEmpty()) {
+                HealthCheckResult(success = false, message = "empty response")
+            } else {
+                HealthCheckResult(success = true, message = result.text.take(80))
+            }
+        } catch (t: Throwable) {
+            if (t is kotlinx.coroutines.CancellationException) throw t
+            HealthCheckResult(success = false, message = t.message?.take(120))
+        }
+    }
+
+    companion object {
+        /** 健康检查超时时间(毫秒),15s 兼顾慢网络与用户体验。 */
+        const val HEALTH_CHECK_TIMEOUT_MS: Long = 15_000L
+    }
 }
+
+/**
+ * v1.0.8 (7.6): 健康检查结果。
+ *
+ * @param success 是否通过(真实 LLM 调用拿到非空响应)
+ * @param message 成功时为模型回复摘要(供 UI 展示);失败时为错误提示
+ */
+data class HealthCheckResult(
+    val success: Boolean,
+    val message: String?,
+)

@@ -174,6 +174,14 @@ object MuseRoutes {
     const val TOOLS = "tools"
 
     /**
+     * v1.0.20: 工具批准管理页 — 按风险等级分组列出所有工具,
+     * 每个工具可设置三档策略(ALWAYS_ALLOW / ALWAYS_DENY / ASK_EVERY_TIME)。
+     *
+     * 从"设置 → 聊天 → 工具调用批准"或"设置 → 助手与 Agent → AI 工具"二级入口进入。
+     */
+    const val TOOLS_SETTINGS = "tools_settings"
+
+    /**
      * v1.30: 构造群聊详情页路由(带 chatId 参数)。
      *
      * @param chatId 群聊 id

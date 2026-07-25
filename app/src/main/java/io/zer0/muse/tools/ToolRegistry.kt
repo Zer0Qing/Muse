@@ -1,17 +1,27 @@
 package io.zer0.muse.tools
 
 import android.content.Context
+import io.zer0.ai.ChatService
+import io.zer0.ai.core.ChatStreamEvent
+import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.ToolDefinition
+import io.zer0.ai.core.UIMessage
 import io.zer0.common.AppJson
 import android.annotation.SuppressLint
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
+import org.koin.core.context.GlobalContext
 import io.zer0.muse.R
+import io.zer0.muse.data.quicknote.QuickNoteDao
+import io.zer0.muse.data.quicknote.QuickNoteEntity
+import io.zer0.muse.data.schedule.ScheduledTaskDao
+import io.zer0.muse.data.schedule.ScheduledTaskEntity
+import io.zer0.muse.data.session.MuseDb
 import io.zer0.muse.notification.MuseNotificationListenerService
-import io.zer0.muse.tools.quicknote.QuickNoteStore
 import io.zer0.muse.tools.reminder.ReminderAlarmReceiver
 import io.zer0.muse.tools.reminder.ReminderStore
 import io.zer0.muse.tools.resource.ResourceLibraryStore
+import io.zer0.muse.transformer.stripThinkTags
 import io.zer0.muse.util.MusePatterns
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -28,6 +38,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -109,10 +120,10 @@ class ToolRegistry(private val context: Context) {
     private val tools = ConcurrentHashMap<String, ToolFn>()
     private val toolDefs = ConcurrentHashMap<String, ToolDef>()
 
-    // v1.136: 定时提醒、资源库与快速记录
+    // v1.136: 定时提醒、资源库
+    // v1.0.17: 快速记录改用 Room(MuseDb.get(context).quickNoteDao()),不再持有 QuickNoteStore
     private val reminderStore = ReminderStore(context)
     private val resourceLibrary = ResourceLibraryStore(context)
-    private val quickNoteStore = QuickNoteStore(context)
 
     init {
         // 注册内置 7 件套
@@ -698,11 +709,11 @@ class ToolRegistry(private val context: Context) {
             riskLevel = ToolRiskLevel.NORMAL,
         )
         registerBuiltIn("quick_note_delete",
-            "删除指定快速记录。",
+            "删除指定快速记录(移入回收站,可在回收站恢复)。",
             mapOf("id" to "必填,记录 id"),
             setOf("id"),
             ::execQuickNoteDelete,
-            riskLevel = ToolRiskLevel.HIGH,
+            riskLevel = ToolRiskLevel.NORMAL,
         )
         registerBuiltIn("quick_note_pin",
             "置顶/取消置顶某条快速记录。",
@@ -714,6 +725,88 @@ class ToolRegistry(private val context: Context) {
             ::execQuickNotePin,
             riskLevel = ToolRiskLevel.NORMAL,
             parameterTypes = mapOf("pinned" to "boolean"),
+        )
+
+        // v1.0.17: 定时任务工具(6 个,助手可创建/管理定时任务)
+        registerBuiltIn("scheduled_task_create",
+            "创建定时任务。助手可帮用户设定定时执行的自动化任务,如每日提醒、定时总结等。",
+            mapOf(
+                "name" to "必填,任务名称",
+                "prompt" to "必填,任务执行的 prompt 内容(如:总结今天的待办事项)",
+                "interval" to "可选,触发方式:once/hourly/daily/weekly/cron,默认 daily",
+                "cron_expr" to "可选,Cron 表达式(5字段: 分 时 日 月 周),仅 interval=cron 时需要",
+                "assistant_id" to "可选,关联的助手 ID,默认 default",
+                "action_type" to "可选,动作类型:ai_prompt/create_quick_note/call_tool/notify,默认 ai_prompt",
+                "condition_type" to "可选,条件类型:always/network_available/time_range/contains/quick_note_exists,默认 always",
+            ),
+            setOf("name", "prompt"),
+            ::execScheduledTaskCreate,
+            riskLevel = ToolRiskLevel.NORMAL,
+        )
+        registerBuiltIn("scheduled_task_list",
+            "列出定时任务。可按启用状态过滤,返回任务名称、间隔、下次执行时间和状态。",
+            mapOf(
+                "enabled" to "可选,true 仅列出启用的任务,false 仅列出禁用的任务,不传则全部",
+                "limit" to "可选,最多返回数量,默认 20",
+            ),
+            emptySet(),
+            ::execScheduledTaskList,
+            riskLevel = ToolRiskLevel.SAFE,
+            parameterTypes = mapOf("limit" to "integer"),
+        )
+        registerBuiltIn("scheduled_task_update",
+            "更新指定定时任务的字段。仅传需要修改的字段即可。",
+            mapOf(
+                "id" to "必填,任务 id",
+                "name" to "可选,新任务名称",
+                "prompt" to "可选,新 prompt 内容",
+                "interval" to "可选,新触发方式:once/hourly/daily/weekly/cron",
+                "cron_expr" to "可选,新 Cron 表达式,仅 interval=cron 时需要",
+                "enabled" to "可选,true/false 启用或禁用任务",
+            ),
+            setOf("id"),
+            ::execScheduledTaskUpdate,
+            riskLevel = ToolRiskLevel.NORMAL,
+            parameterTypes = mapOf("enabled" to "boolean"),
+        )
+        registerBuiltIn("scheduled_task_delete",
+            "删除指定定时任务。删除后不可恢复,请谨慎操作。",
+            mapOf("id" to "必填,任务 id"),
+            setOf("id"),
+            ::execScheduledTaskDelete,
+            riskLevel = ToolRiskLevel.HIGH,
+        )
+        registerBuiltIn("scheduled_task_execute",
+            "立即触发一次指定定时任务的执行(在下一轮轮询中执行,最多 60 秒内)。",
+            mapOf("id" to "必填,任务 id"),
+            setOf("id"),
+            ::execScheduledTaskExecute,
+            riskLevel = ToolRiskLevel.NORMAL,
+        )
+        registerBuiltIn("scheduled_task_get_history",
+            "查询指定定时任务的最近执行历史记录(含状态、摘要、错误信息)。",
+            mapOf(
+                "id" to "必填,任务 id",
+                "limit" to "可选,最多返回数量,默认 10",
+            ),
+            setOf("id"),
+            ::execScheduledTaskGetHistory,
+            riskLevel = ToolRiskLevel.SAFE,
+            parameterTypes = mapOf("limit" to "integer"),
+        )
+
+        // v1.0.17: 翻译工具 — 与 SkillExecutor 的 translate skill 对齐,统一走 ToolRegistry 体系
+        registerBuiltIn("translate",
+            "将文本翻译为指定语言。支持自动检测源语言和多种翻译风格。",
+            mapOf(
+                "text" to "必填,要翻译的文本",
+                "target_language" to "必填,目标语言(如:中文/English/日本語/한국어/Français/Deutsch/Español/Русский/العربية/Português)",
+                "source_language" to "可选,源语言(如:中文/English),不填则自动检测",
+                "style" to "可选,翻译风格:通用/学术/商务/口语化/润色/简洁,默认通用",
+            ),
+            setOf("text", "target_language"),
+            ::execTranslate,
+            riskLevel = ToolRiskLevel.SAFE,
         )
 
         // v1.136: 网络/编码/TTS 工具(6 个)
@@ -2366,7 +2459,7 @@ class ToolRegistry(private val context: Context) {
         )
     }
 
-    // ── v1.136: 快速记录工具 ───────────────────────────────────────────────
+    // ── v1.136: 快速记录工具(v1.0.17 改用 Room 持久化) ────────────────────
 
     /** 添加快速记录。 */
     private suspend fun execQuickNoteAdd(args: Map<String, String>): String {
@@ -2374,7 +2467,21 @@ class ToolRegistry(private val context: Context) {
             ?: return context.getString(R.string.tool_quick_note_missing_title)
         val content = args["content"] ?: ""
         val tags = args["tags"]?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() } ?: emptyList()
-        val id = quickNoteStore.add(title, content, tags)
+        val id = java.util.UUID.randomUUID().toString()
+        val now = System.currentTimeMillis()
+        MuseDb.get(context).quickNoteDao().upsert(
+            QuickNoteEntity(
+                id = id,
+                title = title,
+                content = content,
+                tags = tags,
+                pinned = false,
+                deleted = false,
+                deletedAt = 0,
+                createdAt = now,
+                updatedAt = now,
+            ),
+        )
         return context.getString(R.string.tool_quick_note_added, id, title)
     }
 
@@ -2383,21 +2490,24 @@ class ToolRegistry(private val context: Context) {
         val keyword = args["keyword"]
         val tag = args["tag"]
         val limit = args["limit"]?.toIntOrNull()?.takeIf { it > 0 } ?: 20
-        return formatQuickNoteList(quickNoteStore.list(keyword, tag, limit))
+        // DAO search 已排除 deleted=1,keyword/tag 为 null 时不过滤
+        val list = MuseDb.get(context).quickNoteDao().search(keyword, tag, limit)
+        return formatQuickNoteList(list)
     }
 
     /** 搜索快速记录。 */
     private suspend fun execQuickNoteSearch(args: Map<String, String>): String {
         val keyword = args["keyword"]
         val limit = args["limit"]?.toIntOrNull()?.takeIf { it > 0 } ?: 20
-        return formatQuickNoteList(quickNoteStore.search(keyword ?: "", limit))
+        val list = MuseDb.get(context).quickNoteDao().search(keyword, null, limit)
+        return formatQuickNoteList(list)
     }
 
     /** 获取单条快速记录。 */
     private suspend fun execQuickNoteGet(args: Map<String, String>): String {
         val id = args["id"]?.takeIf { it.isNotBlank() }
             ?: return context.getString(R.string.tool_quick_note_missing_id)
-        val note = quickNoteStore.get(id)
+        val note = MuseDb.get(context).quickNoteDao().getById(id)
             ?: return context.getString(R.string.tool_quick_note_not_found, id)
         return formatQuickNote(note)
     }
@@ -2406,41 +2516,53 @@ class ToolRegistry(private val context: Context) {
     private suspend fun execQuickNoteUpdate(args: Map<String, String>): String {
         val id = args["id"]?.takeIf { it.isNotBlank() }
             ?: return context.getString(R.string.tool_quick_note_missing_id)
+        val dao = MuseDb.get(context).quickNoteDao()
+        val existing = dao.getById(id)
+            ?: return context.getString(R.string.tool_quick_note_not_found, id)
         val title = args["title"]
         val content = args["content"]
         val tags = args["tags"]?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() }
-        return if (quickNoteStore.update(id, title, content, tags)) {
-            context.getString(R.string.tool_quick_note_updated, id)
-        } else {
-            context.getString(R.string.tool_quick_note_not_found, id)
-        }
+        dao.upsert(
+            existing.copy(
+                title = title ?: existing.title,
+                content = content ?: existing.content,
+                tags = tags ?: existing.tags,
+                updatedAt = System.currentTimeMillis(),
+            ),
+        )
+        return context.getString(R.string.tool_quick_note_updated, id)
     }
 
-    /** 删除快速记录。 */
+    /** 删除快速记录(soft delete,移入回收站)。 */
     private suspend fun execQuickNoteDelete(args: Map<String, String>): String {
         val id = args["id"]?.takeIf { it.isNotBlank() }
             ?: return context.getString(R.string.tool_quick_note_missing_id)
-        return if (quickNoteStore.remove(id)) {
-            context.getString(R.string.tool_quick_note_deleted, id)
-        } else {
-            context.getString(R.string.tool_quick_note_not_found, id)
+        val dao = MuseDb.get(context).quickNoteDao()
+        // 先校验记录存在(含已删除),不存在则返回 not_found
+        val existing = dao.getById(id)
+            ?: return context.getString(R.string.tool_quick_note_not_found, id)
+        // 已在回收站则直接返回成功(幂等),否则移入回收站
+        if (!existing.deleted) {
+            dao.moveToTrash(id)
         }
+        return context.getString(R.string.tool_quick_note_deleted, id)
     }
 
     /** 置顶/取消置顶快速记录。 */
     private suspend fun execQuickNotePin(args: Map<String, String>): String {
         val id = args["id"]?.takeIf { it.isNotBlank() }
             ?: return context.getString(R.string.tool_quick_note_missing_id)
+        val dao = MuseDb.get(context).quickNoteDao()
+        // 先校验记录存在,不存在则返回 not_found
+        dao.getById(id)
+            ?: return context.getString(R.string.tool_quick_note_not_found, id)
         val pinned = args["pinned"]?.equals("true", ignoreCase = true) ?: false
-        return if (quickNoteStore.setPinned(id, pinned)) {
-            context.getString(R.string.tool_quick_note_pinned, id, if (pinned) context.getString(R.string.tool_yes) else context.getString(R.string.tool_no))
-        } else {
-            context.getString(R.string.tool_quick_note_not_found, id)
-        }
+        dao.setPinned(id, pinned)
+        return context.getString(R.string.tool_quick_note_pinned, id, if (pinned) context.getString(R.string.tool_yes) else context.getString(R.string.tool_no))
     }
 
     /** 格式化快速记录列表。 */
-    private fun formatQuickNoteList(list: List<io.zer0.muse.tools.quicknote.QuickNote>): String {
+    private fun formatQuickNoteList(list: List<QuickNoteEntity>): String {
         if (list.isEmpty()) return context.getString(R.string.tool_quick_note_list_empty)
         val sb = StringBuilder(context.getString(R.string.tool_quick_note_list_header, list.size))
         list.forEach {
@@ -2450,7 +2572,7 @@ class ToolRegistry(private val context: Context) {
     }
 
     /** 格式化单条快速记录。 */
-    private fun formatQuickNote(note: io.zer0.muse.tools.quicknote.QuickNote): String {
+    private fun formatQuickNote(note: QuickNoteEntity): String {
         return context.getString(
             R.string.tool_quick_note_item_detail,
             note.id,
@@ -2459,6 +2581,273 @@ class ToolRegistry(private val context: Context) {
             note.tags.joinToString(","),
             note.content,
         )
+    }
+
+    // ── v1.0.17: 定时任务工具 ──────────────────────────────────────────
+
+    /**
+     * 计算下次执行时间(简化版,参考 ScheduledTaskRunner.computeNextRun)。
+     * - once: 立即(返回 now,由下一轮轮询执行)
+     * - hourly/daily/weekly: now + 固定间隔
+     * - cron: CronExpression 解析;空串或解析失败返回 0
+     * - 未知: 默认按 daily
+     */
+    private fun computeNextRun(interval: String, cronExpr: String, now: Long): Long {
+        return when (interval) {
+            "once" -> now
+            "hourly" -> now + 3_600_000L
+            "daily" -> now + 86_400_000L
+            "weekly" -> now + 604_800_000L
+            "cron" -> {
+                if (cronExpr.isBlank()) return 0
+                try {
+                    io.zer0.muse.schedule.CronExpression.parse(cronExpr).nextRunAfter(now)
+                } catch (e: Exception) {
+                    Logger.w("ToolRegistry", "Invalid cron expr '$cronExpr': ${e.message}")
+                    0
+                }
+            }
+            else -> now + 86_400_000L
+        }
+    }
+
+    /** 格式化时间戳为可读字符串(<=0 视为已禁用)。 */
+    private fun formatTimestamp(ts: Long): String {
+        return if (ts > 0) FMT_DATETIME_MIN.get()?.format(Date(ts)) ?: "未知" else "已禁用"
+    }
+
+    /** 格式化定时任务为单条摘要。 */
+    private fun formatScheduledTask(t: ScheduledTaskEntity): String {
+        val intervalDesc = when (t.interval) {
+            "once" -> "单次"
+            "hourly" -> "每小时"
+            "daily" -> "每天"
+            "weekly" -> "每周"
+            "cron" -> "Cron: ${t.cronExpr}"
+            else -> t.interval
+        }
+        return "• ${t.name}[id=${t.id}]\n  间隔: $intervalDesc | 下次: ${formatTimestamp(t.nextRunAt)} | ${if (t.enabled) "启用" else "禁用"}"
+    }
+
+    /** 创建定时任务。 */
+    private suspend fun execScheduledTaskCreate(args: Map<String, String>): String {
+        val name = args["name"]?.takeIf { it.isNotBlank() }
+            ?: return "缺少必填参数: name"
+        val prompt = args["prompt"]?.takeIf { it.isNotBlank() }
+            ?: return "缺少必填参数: prompt"
+        val interval = args["interval"]?.takeIf { it.isNotBlank() } ?: "daily"
+        val cronExpr = args["cron_expr"] ?: ""
+        val assistantId = args["assistant_id"]?.takeIf { it.isNotBlank() } ?: "default"
+        val actionType = args["action_type"]?.takeIf { it.isNotBlank() } ?: "ai_prompt"
+        val conditionType = args["condition_type"]?.takeIf { it.isNotBlank() } ?: "always"
+
+        if (interval == "cron" && cronExpr.isBlank()) {
+            return "interval=cron 时必须提供 cron_expr"
+        }
+
+        val now = System.currentTimeMillis()
+        val id = UUID.randomUUID().toString()
+        val task = ScheduledTaskEntity(
+            id = id,
+            name = name,
+            prompt = prompt,
+            assistantId = assistantId,
+            interval = interval,
+            cronExpr = cronExpr,
+            enabled = true,
+            nextRunAt = computeNextRun(interval, cronExpr, now),
+            createdAt = now,
+            updatedAt = now,
+            actionType = actionType,
+            // always 用空串保持与旧版兼容,其他类型写入最小 JSON 供 Runner 解析
+            conditionJson = if (conditionType == "always") "" else """{"type":"$conditionType"}""",
+            createdBy = "assistant",
+        )
+        MuseDb.get(context).scheduledTaskDao().upsert(task)
+        return "已创建定时任务: ${task.name}[id=$id] (间隔=$interval, 下次执行=${formatTimestamp(task.nextRunAt)})"
+    }
+
+    /** 列出定时任务。 */
+    private suspend fun execScheduledTaskList(args: Map<String, String>): String {
+        val enabledOnly = args["enabled"]?.let { it.equals("true", ignoreCase = true) }
+        val limit = args["limit"]?.toIntOrNull()?.takeIf { it > 0 } ?: 20
+        val all = MuseDb.get(context).scheduledTaskDao().getAll()
+        val filtered = when (enabledOnly) {
+            true -> all.filter { it.enabled }
+            false -> all.filter { !it.enabled }
+            null -> all
+        }.take(limit)
+        if (filtered.isEmpty()) return "暂无定时任务"
+        val sb = StringBuilder("定时任务 (${filtered.size}):\n")
+        filtered.forEach { sb.appendLine(formatScheduledTask(it)) }
+        return sb.toString().trimEnd()
+    }
+
+    /** 更新定时任务。仅传需要修改的字段,未传字段保留原值。 */
+    private suspend fun execScheduledTaskUpdate(args: Map<String, String>): String {
+        val id = args["id"]?.takeIf { it.isNotBlank() }
+            ?: return "缺少必填参数: id"
+        val dao = MuseDb.get(context).scheduledTaskDao()
+        val existing = dao.getById(id) ?: return "未找到任务: $id"
+        val name = args["name"] ?: existing.name
+        val prompt = args["prompt"] ?: existing.prompt
+        val interval = args["interval"] ?: existing.interval
+        val cronExpr = args["cron_expr"] ?: existing.cronExpr
+        val enabled = args["enabled"]?.let { it.equals("true", ignoreCase = true) } ?: existing.enabled
+
+        if (interval == "cron" && cronExpr.isBlank()) {
+            return "interval=cron 时必须提供 cron_expr"
+        }
+
+        val now = System.currentTimeMillis()
+        // 间隔或 cron 表达式变化时重新计算下次执行时间;仅切换 enabled 不重算
+        val nextRunAt = if (interval != existing.interval || cronExpr != existing.cronExpr) {
+            computeNextRun(interval, cronExpr, now)
+        } else {
+            existing.nextRunAt
+        }
+        val updated = existing.copy(
+            name = name,
+            prompt = prompt,
+            interval = interval,
+            cronExpr = cronExpr,
+            enabled = enabled,
+            nextRunAt = nextRunAt,
+            updatedAt = now,
+        )
+        dao.upsert(updated)
+        return "已更新定时任务: ${updated.name}[id=$id]"
+    }
+
+    /** 删除定时任务。 */
+    private suspend fun execScheduledTaskDelete(args: Map<String, String>): String {
+        val id = args["id"]?.takeIf { it.isNotBlank() }
+            ?: return "缺少必填参数: id"
+        val dao = MuseDb.get(context).scheduledTaskDao()
+        val existing = dao.getById(id) ?: return "未找到任务: $id"
+        dao.delete(id)
+        return "已删除定时任务: ${existing.name}[id=$id]"
+    }
+
+    /** 立即执行一次定时任务(把 next_run_at 设为现在,下一轮轮询执行)。 */
+    private suspend fun execScheduledTaskExecute(args: Map<String, String>): String {
+        val id = args["id"]?.takeIf { it.isNotBlank() }
+            ?: return "缺少必填参数: id"
+        val dao = MuseDb.get(context).scheduledTaskDao()
+        val existing = dao.getById(id) ?: return "未找到任务: $id"
+        if (!existing.enabled) return "任务已禁用,请先启用后再执行: $id"
+        // 触发下一轮轮询执行(最多 60 秒内由 ScheduledTaskRunner 拾取)
+        dao.triggerNextTasks(listOf(id))
+        return "已触发任务执行: ${existing.name}[id=$id],将在下一轮轮询中执行"
+    }
+
+    /** 查询定时任务执行历史。 */
+    private suspend fun execScheduledTaskGetHistory(args: Map<String, String>): String {
+        val id = args["id"]?.takeIf { it.isNotBlank() }
+            ?: return "缺少必填参数: id"
+        val limit = args["limit"]?.toIntOrNull()?.takeIf { it > 0 } ?: 10
+        val dao = MuseDb.get(context).scheduledTaskDao()
+        val existing = dao.getById(id) ?: return "未找到任务: $id"
+        val records = MuseDb.get(context).scheduledTaskExecutionDao().queryByTaskId(id)
+        if (records.isEmpty()) return "任务 ${existing.name}[id=$id] 暂无执行历史"
+        val sb = StringBuilder("执行历史 (任务=${existing.name}):\n")
+        records.take(limit).forEach { e ->
+            val time = FMT_DATETIME_MIN.get()?.format(Date(e.executedAt)) ?: "未知"
+            val detail = when (e.status) {
+                "success" -> "成功: ${e.replySummary.take(80)}"
+                "failed" -> "失败: ${e.errorMessage}"
+                "skipped" -> "跳过(条件不满足)"
+                else -> e.status
+            }
+            sb.appendLine("• [$time] $detail")
+        }
+        return sb.toString().trimEnd()
+    }
+
+    // ── v1.0.17: 翻译工具(translate)──────────────────────────────────────────
+
+    /**
+     * translate — 调用 ChatService 翻译文本,与 SkillExecutor 的 translate skill 对齐。
+     *
+     * 策略:completeText 优先(一次性,速度快)→ streamChat 降级(Provider 未实现 completeText 时)。
+     * 推理模型可能内嵌 <think> 标签,统一用 [stripThinkTags] 剥离,只返回纯净译文。
+     *
+     * 参数:
+     *  - text: 必填,要翻译的原文
+     *  - target_language: 必填,目标语言(中文/English/日本語 等)
+     *  - source_language: 可选,源语言,不填则自动检测
+     *  - style: 可选,翻译风格(通用/学术/商务/口语化/润色/简洁),默认通用
+     */
+    private suspend fun execTranslate(args: Map<String, String>): String {
+        val text = args["text"]?.takeIf { it.isNotBlank() }
+            ?: return "缺少必填参数: text"
+        val targetLanguage = args["target_language"]?.takeIf { it.isNotBlank() }
+            ?: return "缺少必填参数: target_language"
+        val sourceLanguage = args["source_language"]?.takeIf { it.isNotBlank() }
+        val style = args["style"]?.takeIf { it.isNotBlank() } ?: "通用"
+
+        val styleInstruction = when (style) {
+            "学术" -> "使用学术风格,用词正式严谨。"
+            "商务" -> "使用商务风格,用词专业得体。"
+            "口语化" -> "使用口语化风格,自然易懂。"
+            "润色" -> "在翻译基础上润色,使译文更流畅优美。"
+            "简洁" -> "使用简洁风格,用词精炼。"
+            else -> "" // 通用,无额外指令
+        }
+
+        // 构建 system prompt(参考 TranslateViewModel.buildTranslationPrompt)
+        val systemPrompt = buildString {
+            if (sourceLanguage != null) {
+                append("你是一个专业翻译助手。请将下面的文本从$sourceLanguage 翻译为$targetLanguage。")
+            } else {
+                append("你是一个专业翻译助手。请自动识别下面文本的语言,并将其翻译为$targetLanguage。")
+            }
+            append("要求:只输出译文,保留原文格式,原文已是目标语言则原样输出。")
+            append(styleInstruction)
+        }
+        val messages = listOf(
+            UIMessage(role = MessageRole.SYSTEM, content = systemPrompt),
+            UIMessage(role = MessageRole.USER, content = text),
+        )
+
+        // ChatService 通过 Koin 获取(Safe Mode 下 Koin 可能未初始化,走 resultOf 兜底)
+        val koin = resultOf { GlobalContext.get() }.getOrNull()
+            ?: return "翻译服务不可用(Koin 未初始化)"
+        val chatService = resultOf { koin.get<ChatService>() }.getOrNull()
+            ?: return "翻译服务不可用(ChatService 未注册)"
+
+        return resultOf {
+            // 优先 completeText(一次性返回,速度快)
+            val translated: String = try {
+                val completion = chatService.completeText(messages = messages)
+                stripThinkTags(completion.text).trim()
+            } catch (e: UnsupportedOperationException) {
+                // Provider 未实现 completeText,降级流式
+                collectTranslateStream(chatService, messages)
+            } catch (e: Exception) {
+                // 其他错误也降级流式(网络抖动等)
+                Logger.w("ToolRegistry", "translate completeText 失败,降级 streamChat", e)
+                collectTranslateStream(chatService, messages)
+            }
+            if (translated.isEmpty()) "翻译结果为空,请检查原文或目标语言。" else translated
+        }.onError { msg, _ -> Logger.w("ToolRegistry", "translate 失败: $msg") }
+            .getOrNull() ?: "翻译失败,请稍后重试。"
+    }
+
+    /** 流式收集翻译结果(completeText 不可用时的降级路径)。 */
+    private suspend fun collectTranslateStream(
+        chatService: ChatService,
+        messages: List<UIMessage>,
+    ): String {
+        val sb = StringBuilder()
+        chatService.streamChat(messages = messages).collect { event ->
+            when (event) {
+                is ChatStreamEvent.ContentDelta -> sb.append(event.delta)
+                is ChatStreamEvent.Error -> throw RuntimeException(event.message, event.throwable)
+                else -> { /* 忽略 ReasoningDelta / ToolCallDelta / ImageDelta / Done 等 */ }
+            }
+        }
+        return stripThinkTags(sb.toString()).trim()
     }
 
     // ── v1.136: 网络/编码/TTS 工具 ──────────────────────────────────────────
@@ -2661,6 +3050,11 @@ class ToolRegistry(private val context: Context) {
             // P2-7: 工作区文件管理工具(WorkspaceToolsRegistrar 注册)
             "workspace_list", "workspace_read", "workspace_write",
             "workspace_delete", "workspace_mkdir", "workspace_move",
+            // v1.0.17: 定时任务工具(助手可创建/管理定时任务)
+            "scheduled_task_create", "scheduled_task_list", "scheduled_task_update",
+            "scheduled_task_delete", "scheduled_task_execute", "scheduled_task_get_history",
+            // v1.0.17: 翻译工具(与 SkillExecutor translate skill 对齐,统一走 ToolRegistry)
+            "translate",
         )
 
         /**

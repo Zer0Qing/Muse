@@ -309,6 +309,8 @@ class MainActivity : ComponentActivity() {
             ShareIntentHandler.ACTION_TRANSLATE -> ShareIntentHandler.ShareResult.OpenTranslate
             ShareIntentHandler.ACTION_VOICE_INPUT -> ShareIntentHandler.ShareResult.StartVoiceInput
             ShareIntentHandler.ACTION_SETTINGS -> ShareIntentHandler.ShareResult.OpenSettings
+            // v1.0.18: 快速记录快捷方式
+            ShareIntentHandler.ACTION_QUICK_NOTES -> ShareIntentHandler.ShareResult.OpenQuickNotes
             else -> null
         }
     }
@@ -556,6 +558,10 @@ private fun MuseNavGraph(
                             // 注意:这里直接调用 sharedViewModel 上的 ASR 入口,
                             // UI(InputBar)会通过 asrState 状态观察并显示录音中状态。
                             sharedViewModel.startStreamingAsr()
+                        }
+                        // v1.0.18: Launcher 快捷方式:打开快速记录页
+                        is ShareIntentHandler.ShareResult.OpenQuickNotes -> {
+                            navController.navigate(MuseRoutes.QUICK_NOTES)
                         }
                         ShareIntentHandler.ShareResult.None -> Unit
                     }

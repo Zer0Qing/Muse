@@ -104,10 +104,12 @@ val appModule = module {
     single { get<MuseDb>().milestoneDao() }  // Phase 2 2B: milestone
     single { get<MuseDb>().agentMessageDao() }  // HanaAgent port: agent DM
     single { get<MuseDb>().auditLogDao() }  // P2-4: 审计日志
+    single { get<MuseDb>().quickNoteDao() }  // v1.0.17: 快速记录
     // v1.134 P1-1/P1-2: 孤儿组件接入所需的 DAO(AutoBackupHelper / StatsCacheManager 依赖)
     single { get<MuseDb>().autoBackupLogDao() }  // 自动备份日志
     single { get<MuseDb>().statsCacheDao() }  // 统计缓存
     single { get<MuseDb>().integrityLogDao() }  // P3-3: 数据库完整性日志
+    single { get<MuseDb>().translateHistoryDao() }  // v1.0.17: 翻译历史
     single { AuditLogger(get()) }  // P2-4: 审计日志记录器
     // P3-3: 数据库完整性校验器(供 DebugScreen 触发检查 + 展示最近一次结果)
     single {
@@ -162,10 +164,13 @@ val appModule = module {
     // 真正执行改�?注入 ChatService / SessionRepository / AssistantRepository(�?ProactiveMessageRunner)
     single { io.zer0.muse.schedule.ScheduledTaskRunner(get(), get(), get(), get(), androidContext(), get(), get(), get(), get()) }
 
-    // 主动消息调度�?陪伴助手定时主动给用户发消息 + 弹通知)
+    // 主动消息调度(陪伴助手定时主动给用户发消息 + 弹通知)
     // 依赖顺序:SettingsRepository / ChatService(ai 模块) / SessionRepository / AssistantRepository /
-    //         MuseNotificationManager / Context / AppScope 等运行时依赖
-    single { io.zer0.muse.schedule.ProactiveMessageRunner(get(), get(), get(), get(), get(), get(), androidContext(), get()) }
+    //         MuseNotificationManager / ProactiveScoreEngine / ExperienceRepository / MilestoneDao /
+    //         LorebookRepository / FactStore(memory 模块) / Context / AppScope 等运行时依赖
+    // v2.0 重构:接入 ExperienceRepository / MilestoneDao / LorebookRepository / FactStore,
+    //           用于巡检上下文构造(5.3/5.10)与新记忆/里程碑/经验差量检测
+    single { io.zer0.muse.schedule.ProactiveMessageRunner(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), androidContext(), get()) }
 
     // v1.30: 群聊调度�?用户发消息后串行触发�?Agent 轮转发言)
     // v1.111: �?appScope/appContext/chatGenerationManager �?群聊轮转运行�?appScope,切页/后台不中�?
@@ -358,6 +363,9 @@ val appModule = module {
     // Phase 8.6: 本地 OCR 管理�?ML Kit 中英文离线识�?
     single { io.zer0.muse.doc.OcrManager() }
 
+    // v1.0.30 gap4.6: 翻译术语表存储(JSON 文件持久化原文→译文映射)
+    single { io.zer0.muse.ui.translate.GlossaryStore(androidContext()) }
+
     // Phase 8.7: TTS 管理�?Android 系统 TextToSpeech,0 APK 体积)
     // v1.97: 注入 CloudTtsService 支持云端 TTS(OpenAI/MiniMax/Edge)
     // v1.97 修复: CloudTtsService 构造需�?OkHttpClient,必须�?named("chat") qualifier
@@ -533,11 +541,15 @@ val appModule = module {
     }
 
     // v1.97 gap8: 独立翻译 ViewModel(注入 ChatService + TtsManager,复用通用文本补全与朗读能力)
+    // v1.0.17: 注入 TranslateHistoryDao,翻译历史持久化到 Room
+    // v1.0.30 gap4.6: 注入 GlossaryStore,翻译时附加术语表指令
     viewModel {
         io.zer0.muse.ui.translate.TranslateViewModel(
             chatService = get(),
             ttsManager = get(),
             appContext = androidContext(),
+            translateHistoryDao = get(),
+            glossaryStore = get(),
         )
     }
 
@@ -563,6 +575,10 @@ val appModule = module {
             androidContext(),
         )
     }
+
+    // v1.0.17: 快速记录 ViewModel(注入 QuickNoteDao,Room 持久化 + 回收站)
+    // v1.0.18: 增加 androidContext()(ReminderStore + AlarmManager 调度提醒)
+    viewModel { io.zer0.muse.ui.quicknotes.QuickNotesViewModel(get(), androidContext()) }
 }
 
 /**

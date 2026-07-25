@@ -5,6 +5,8 @@ import io.zer0.muse.asr.ASRState
 import io.zer0.muse.asr.AsrConfig
 import io.zer0.muse.asr.AsrProviderType
 import io.zer0.muse.asr.DashScopeAsrController
+import io.zer0.muse.asr.OpenAiRealtimeAsrController
+import io.zer0.muse.asr.OpenAiWhisperAsrController
 import io.zer0.muse.asr.StepAsrController
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.speech.TtsManager
@@ -54,7 +56,7 @@ class ChatAudioCoordinator(
     /**
      * v1.91: 创建或复用 ASRController(根据当前 asrConfig)。
      * - SYSTEM / DASHSCOPE_FILE 返回 null(走旧路径)
-     * - DASHSCOPE / STEP 创建对应流式 Controller,并启动状态观察协程
+     * - DASHSCOPE / STEP / OPENAI_WHISPER / OPENAI_REALTIME / AGNES 创建对应流式 Controller,并启动状态观察协程
      */
     private fun getOrCreateAsrController(): ASRController? {
         val cfg = accessor.snapshot.asrConfig
@@ -65,6 +67,14 @@ class ChatAudioCoordinator(
         val controller = when (cfg.provider) {
             AsrProviderType.DASHSCOPE -> DashScopeAsrController(cfg)
             AsrProviderType.STEP -> StepAsrController(cfg)
+            // 通用 OpenAI Whisper 兼容端点(含 agnes 等中转站),分段批量非真流式
+            AsrProviderType.OPENAI_WHISPER -> OpenAiWhisperAsrController(cfg)
+            // Agnes 中转站(OpenAI 兼容),复用 Whisper 适配器,baseUrl 不同
+            AsrProviderType.AGNES -> OpenAiWhisperAsrController(cfg)
+            // OpenAI Realtime WebSocket 流式(服务端 VAD + 增量 transcription)
+            AsrProviderType.OPENAI_REALTIME -> OpenAiRealtimeAsrController(cfg)
+            // SYSTEM / DASHSCOPE_FILE 上面已 return null,此处不会到达
+            AsrProviderType.SYSTEM, AsrProviderType.DASHSCOPE_FILE -> return null
         }
         asrController = controller
         accessor.coroutineScope.launch {
@@ -134,12 +144,16 @@ class ChatAudioCoordinator(
 
     /**
      * Phase 9.3 (M2): 判断当前是否应走 API 录音路径(而非系统 Intent)。
-     * - true: DashScope/Step(均走流式 Controller),UI 用长按录音
+     * - true: DashScope/Step/OpenAI Whisper/OpenAI Realtime/Agnes(均走流式 Controller),UI 用长按录音
      * - false: SYSTEM,UI 用点击触发 Intent
      */
     fun shouldUseApiRecording(): Boolean {
         val p = accessor.snapshot.asrConfig.provider
-        return (p == AsrProviderType.DASHSCOPE || p == AsrProviderType.STEP)
+        return (p == AsrProviderType.DASHSCOPE ||
+                p == AsrProviderType.STEP ||
+                p == AsrProviderType.OPENAI_WHISPER ||
+                p == AsrProviderType.OPENAI_REALTIME ||
+                p == AsrProviderType.AGNES)
             && accessor.snapshot.asrConfig.isConfigured
     }
 }

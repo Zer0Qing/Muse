@@ -76,5 +76,10 @@ object AsrClientFactory {
         AsrProviderType.STEP -> null
         AsrProviderType.DASHSCOPE_FILE -> DashScopeFileAsrClient(config)
         AsrProviderType.SYSTEM -> null
+        // 新增的流式 Provider 均实现 ASRController 接口,不走旧 AsrClient 路径,
+        // 由 ChatAudioCoordinator.getOrCreateAsrController 创建 Controller。
+        AsrProviderType.OPENAI_WHISPER -> null
+        AsrProviderType.OPENAI_REALTIME -> null
+        AsrProviderType.AGNES -> null
     }
 }

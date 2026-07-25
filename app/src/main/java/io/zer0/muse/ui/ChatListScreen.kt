@@ -1,12 +1,16 @@
 package io.zer0.muse.ui
 
 import io.zer0.muse.ui.common.EmptyState
+import io.zer0.muse.ui.common.IosCardPress
 import io.zer0.muse.ui.common.LoadingState
 import io.zer0.muse.ui.common.MuseToast
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Box
@@ -35,8 +39,6 @@ import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Translate
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -56,13 +58,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -72,8 +73,8 @@ import io.zer0.muse.data.session.FolderEntity
 import io.zer0.muse.data.session.SessionEntity
 import io.zer0.muse.ui.common.MuseDialog
 import io.zer0.muse.ui.theme.MuseDateFormats
+import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseHaptics
-import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.huge
@@ -137,19 +138,8 @@ fun ChatListScreen(
                 .navigationBarsPadding()
                 .padding(horizontal = MusePaddings.screen),
         ) {
-            // v1.0.28: 顶部快捷工具栏 — 统一胶囊容器,避免零散按钮。
-            QuickToolsBar(
-                onOpenScheduledTasks = onOpenScheduledTasks,
-                onOpenQuickNotes = onOpenQuickNotes,
-                onOpenQuickTranslate = onOpenQuickTranslate,
-            )
-
-            Spacer(Modifier.height(MusePaddings.contentGap))
-
-            // 主 CTA 卡片 — 新建任务
-            NewTaskCard(onClick = onCreate)
-
-            Spacer(Modifier.height(MusePaddings.sectionGap))
+            // v1.0.16: 顶部快捷工具栏与新建任务卡片已移到 HomeScreen 的 tab 栏下方与右下角悬浮胶囊,
+            // 本页仅保留会话列表,让首页布局更清爽。
 
             // 会话列表或空状态
             // v0.36 性能优化:缓存排序结果,避免每次重组都重新计算。
@@ -172,7 +162,9 @@ fun ChatListScreen(
                 LazyColumn(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(bottom = 16.dp),
+                    // v1.0.17: 底部留出悬浮胶囊空间(胶囊高度~48dp + 底部间距 16dp + 余量),
+                    // 避免最后一条会话被右下角悬浮胶囊遮挡。
+                    contentPadding = PaddingValues(bottom = 88.dp),
                 ) {
                     // v1.0.28: 移除筛选器后统一展示全部会话。
                     // 置顶会话始终排在最前, followed by others sorted by updatedAt.
@@ -230,150 +222,6 @@ fun ChatListScreen(
             dismissText = stringResource(R.string.action_cancel),
             onDismiss = { showCreateFolderDialog = false },
         )
-    }
-}
-
-/**
- * v1.0.29: 顶部快捷工具栏 — 统一胶囊容器,三个 icon-only 按钮共享背景。
- */
-@Composable
-private fun QuickToolsBar(
-    onOpenScheduledTasks: () -> Unit,
-    onOpenQuickNotes: () -> Unit,
-    onOpenQuickTranslate: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.End,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Surface(
-            shape = MuseShapes.pill,
-            color = MaterialTheme.colorScheme.surfaceContainer,
-            tonalElevation = 0.dp,
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                QuickToolButton(
-                    icon = Icons.Outlined.Schedule,
-                    contentDescription = stringResource(R.string.chat_list_scheduled_tasks),
-                    onClick = onOpenScheduledTasks,
-                )
-                Box(
-                    modifier = Modifier
-                        .width(1.dp)
-                        .height(20.dp)
-                        .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-                )
-                QuickToolButton(
-                    icon = Icons.Default.Edit,
-                    contentDescription = stringResource(R.string.chat_list_quick_notes),
-                    onClick = onOpenQuickNotes,
-                )
-                Box(
-                    modifier = Modifier
-                        .width(1.dp)
-                        .height(20.dp)
-                        .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-                )
-                QuickToolButton(
-                    icon = Icons.Outlined.Translate,
-                    contentDescription = stringResource(R.string.chat_list_quick_translate),
-                    onClick = onOpenQuickTranslate,
-                )
-            }
-        }
-    }
-}
-
-/**
- * v1.0.29: 顶部快捷工具按钮 — 胶囊容器内的图标按钮。
- */
-@Composable
-private fun QuickToolButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    contentDescription: String,
-    onClick: () -> Unit,
-) {
-    IconButton(
-        onClick = onClick,
-        modifier = Modifier.size(MuseIconSizes.touchTarget),
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(MuseIconSizes.iconMedium),
-        )
-    }
-}
-
-/**
- * v1.0.29: 主页主 CTA 卡片 — 柔和品牌渐变 + 大圆角,降低色块压迫感。
- */
-@Composable
-private fun NewTaskCard(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val gradient = androidx.compose.ui.graphics.Brush.horizontalGradient(
-        colors = listOf(
-            MaterialTheme.colorScheme.primary,
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
-        ),
-    )
-    io.zer0.muse.ui.components.MuseSurface(
-        onClick = onClick,
-        modifier = modifier
-            .fillMaxWidth()
-            .height(118.dp),
-        shape = MuseShapes.huge,
-        color = MaterialTheme.colorScheme.primaryContainer,
-        elevation = 0.dp,
-        enableScale = true,
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(gradient)
-                .padding(horizontal = 22.dp, vertical = 18.dp),
-        ) {
-            Column(
-                modifier = Modifier.align(Alignment.CenterStart),
-            ) {
-                Text(
-                    text = stringResource(R.string.chat_list_new_task),
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.SemiBold,
-                    ),
-                    color = MaterialTheme.colorScheme.onPrimary,
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = stringResource(R.string.chat_list_new_task_card_subtitle),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f),
-                )
-            }
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.18f),
-                modifier = Modifier
-                    .size(48.dp)
-                    .align(Alignment.CenterEnd),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(24.dp),
-                    )
-                }
-            }
-        }
     }
 }
 
@@ -472,21 +320,17 @@ private fun ChatListItem(
         },
         enableDismissFromStartToEnd = onArchive != null || onUnarchive != null,
     ) {
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = if (isActive) MaterialTheme.colorScheme.primaryContainer
-            else MaterialTheme.colorScheme.surface,
-        ),
+    // v1.0.16: 用 IosCardPress 替换 Card.combinedClickable,消除 Material3 Card 默认 ripple 黑色遮罩
+    IosCardPress(
+        onClick = onSelect,
+        modifier = Modifier.fillMaxWidth(),
         shape = MuseShapes.medium,
-        modifier = Modifier
-            .fillMaxWidth()
-            .combinedClickable(
-                onClick = onSelect,
-                onLongClick = {
-                    MuseHaptics.medium(hapticFeedback)
-                    showMenu = true
-                },
-            ),
+        containerColor = if (isActive) MaterialTheme.colorScheme.primaryContainer
+        else MaterialTheme.colorScheme.surface,
+        onLongClick = {
+            MuseHaptics.medium(hapticFeedback)
+            showMenu = true
+        },
     ) {
         Row(
             modifier = Modifier.padding(MusePaddings.cardInnerLoose),
@@ -707,6 +551,7 @@ private fun ChatListItem(
 
 /**
  * iOS 风格 ActionSheet 行项 — 图标 + 文字,用于 ChatListItem 长按菜单。
+ * v1.0.17: 禁用 Material ripple,用按压色渐变替代,与 IosCardPress 风格一致。
  */
 @Composable
 private fun ActionSheetItem(
@@ -716,10 +561,24 @@ private fun ActionSheetItem(
     onClick: () -> Unit,
     tint: Color = MaterialTheme.colorScheme.onSurface,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val pressedColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+    val backgroundColor by animateColorAsState(
+        targetValue = if (isPressed) pressedColor else Color.Transparent,
+        animationSpec = tween(durationMillis = 180, easing = MuseAnimation.EaseOutCubic),
+        label = "action_sheet_press",
+    )
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                role = Role.Button,
+                onClick = onClick,
+            )
+            .background(backgroundColor)
             .padding(horizontal = 24.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),

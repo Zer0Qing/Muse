@@ -52,6 +52,9 @@ class ProactiveScoreEngine {
 
     /**
      * 是否应该发送主动消息(综合评分 + 安静时段 + 每日限制)。
+     *
+     * v2.0 5.9: 每日上限改用 [ScoreContext.maxDailyMessages](可配置),
+     * 替代硬编码的 [MAX_DAILY_MESSAGES]。ScoreContext 默认值仍为 3,向后兼容。
      */
     fun shouldSend(context: ScoreContext): Boolean {
         // 安静时段检查
@@ -59,9 +62,10 @@ class ProactiveScoreEngine {
             Logger.d(TAG, "Quiet hours, skipping")
             return false
         }
-        // 每日限制
-        if (context.todaySentCount >= MAX_DAILY_MESSAGES) {
-            Logger.d(TAG, "Daily limit reached ($MAX_DAILY_MESSAGES)")
+        // 每日限制(v2.0: 可配置,默认 3)
+        val dailyLimit = context.maxDailyMessages.coerceAtLeast(1)
+        if (context.todaySentCount >= dailyLimit) {
+            Logger.d(TAG, "Daily limit reached ($dailyLimit)")
             return false
         }
         // 评分检查
@@ -149,6 +153,13 @@ data class ScoreContext(
     val hasNewMemories: Boolean = false,
     /** 是否有新的可聊话题。 */
     val hasNewTopics: Boolean = false,
+    /**
+     * v2.0 5.9: 每日主动消息上限(默认 3)。
+     *
+     * 由 ProactiveMessageRunner 从 ProactiveMessageConfig.maxDailyMessages 传入,
+     * 替代 ScoreEngine 内部硬编码的 MAX_DAILY_MESSAGES。默认值 3 保持向后兼容。
+     */
+    val maxDailyMessages: Int = 3,
 )
 
 /** 情绪枚举。 */

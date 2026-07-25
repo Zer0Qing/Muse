@@ -620,18 +620,43 @@ class PresetProviders(
     /**
      * P2-5: SiliconFlow 免费模型兜底预设。
      *
-     * 与其他预设不同:预填 8 个当前已知免费的国产开源模型清单,用户填入 apiKey 即可用。
-     * 1muse 特有:UI 提供「一键填入免费模型」按钮(仅当 baseUrl 命中 siliconflow.cn 时显示)。
+     * v1.0.18: 对齐 Kelivo 免费模型机制 — 用户未填 apiKey 时通过
+     * [io.zer0.ai.core.FreeModelConfig] 注入内置 fallback key,
+     * 可直接调用 THUDM/GLM-4-9B-0414 与 Qwen/Qwen3-8B 两款免费模型。
+     * 用户填入自己的 apiKey 后 fallback 失效,走用户 key 调远程 /models 解锁更多模型。
+     *
+     * - [allowMissingApiKey]=true: 允许不填 key(fallback 机制兜底)
+     * - [models] 仅预填 2 个免费模型(对齐 Kelivo `_defaultModels` SiliconFlow 分支);
+     *   用户填 key 后可点击「一键填入免费模型」按钮([SiliconFlowFreeModels.MODELS])
+     *   或调远程 /models 拉取全部
+     * - 1muse 特有:UI 提供「一键填入免费模型」按钮(仅当 baseUrl 命中 siliconflow.cn 时显示)
      */
     private fun siliconFlowFree() = ProviderConfig(
         id = SiliconFlowFreeModels.PROVIDER_ID,
         displayName = context.getString(R.string.preset_siliconflow_free),
         type = ProviderType.OPENAI,
         baseUrl = ENDPOINT_SILICONFLOW,
-        apiKey = "",
+        apiKey = "",  // 空,触发 FreeModelConfig 免费模型 fallback 机制
         builtIn = true,
         category = ProviderCategory.OFFICIAL,
-        models = SiliconFlowFreeModels.MODELS,
+        allowMissingApiKey = true,  // v1.0.18: 允许不填 key,由 fallback key 兜底
+        models = listOf(
+            // v1.0.18: 与 FreeModelConfig.FREE_MODEL_IDS 保持一致(对齐 Kelivo 白名单)
+            chatModel(
+                SiliconFlowFreeModels.PROVIDER_ID,
+                "THUDM/GLM-4-9B-0414",
+                "GLM-4-9B 0414 (免费)",
+                contextWindow = 32_768,
+                supportsTools = true,
+            ),
+            chatModel(
+                SiliconFlowFreeModels.PROVIDER_ID,
+                "Qwen/Qwen3-8B",
+                "Qwen3-8B (免费)",
+                contextWindow = 32_768,
+                supportsTools = true,
+            ),
+        ),
     )
 
     // ── 国产官方(新增,对齐 openhanako)──────────────────────────────
@@ -713,7 +738,22 @@ class PresetProviders(
         ),
     )
 
-    /** v1.0.6: 思必驰 Agnes AI(对齐 openhanako)。 */
+    /**
+     * v1.0.6: 思必驰 Agnes AI(对齐 openhanako)。
+     *
+     * v1.0.8: 补全模型清单 — 2 个 chat 模型 + 1 个生图模型 + 1 个视频模型,
+     * 覆盖 Agnes 各模态能力。Agnes 走 OpenAI 兼容协议,
+     * GET /v1/models 可拉取上游完整模型列表(参见 [io.zer0.ai.openai.OpenAIProvider.listModels])。
+     *
+     * v1.0.8 (8.6): listModels 兼容性验证 — 无需改代码,仅注释。
+     *  已验证 OpenAIProvider.listModels 对 Agnes 完全兼容:
+     *   1. URL 拼接:resolvedBaseUrl + "/models" → https://apihub.agnes-ai.com/v1/models ✓
+     *   2. 鉴权:Bearer token(与 Agnes 官方文档一致)✓
+     *   3. 响应解析:OpenAIModelsResponse 标准 {"data":[...]} 格式 ✓
+     *   4. 能力字段:7.3 多字段名解析覆盖 Agnes 返回的 capabilities/modalities ✓
+     *   5. 错误分级:7.5 瀑布流日志在 401/403/404/5xx 各场景均记录分类标签 ✓
+     *   6. 上下文窗口:context_length 字段自动注册到 ModelContextWindowRegistry ✓
+     */
     private fun agnes() = ProviderConfig(
         id = "preset_agnes",
         displayName = "Agnes AI",
@@ -723,7 +763,36 @@ class PresetProviders(
         builtIn = true,
         category = ProviderCategory.OFFICIAL,
         models = listOf(
-            chatModel("preset_agnes", "agnes-2.0-flash", "Agnes 2.0 Flash", contextWindow = 131_072, supportsTools = true),
+            // chat 模型(支持视觉输入 + 工具调用)
+            chatModel(
+                "preset_agnes", "agnes-2.0-flash", "Agnes 2.0 Flash",
+                contextWindow = 131_072, supportsTools = true, supportsVision = true,
+            ),
+            chatModel(
+                "preset_agnes", "agnes-2.0-pro", "Agnes 2.0 Pro",
+                contextWindow = 131_072, supportsTools = true, supportsVision = true,
+            ),
+            // 生图模型(输出 image 模态)
+            Model(
+                id = "agnes-image-2.1-flash",
+                name = "Agnes Image 2.1 Flash",
+                providerId = "preset_agnes",
+                // 生图模型不适用文本上下文窗口
+                contextWindow = 0,
+                // 标记为图片生成模型(仅输出 image 模态,无文本输入输出)
+                inputModalities = emptySet(),
+                outputModalities = setOf("image"),
+            ),
+            // 视频模型(输出 video 模态)
+            Model(
+                id = "agnes-video-v2.0",
+                name = "Agnes Video 2.0",
+                providerId = "preset_agnes",
+                supportsVideo = true,
+                contextWindow = 0,
+                inputModalities = emptySet(),
+                outputModalities = setOf("video"),
+            ),
         ),
     )
 

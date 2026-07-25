@@ -243,8 +243,13 @@ class ImageGenCoordinator(
             try {
                 val imageGenConfig = settings.imageGenConfigFlow.first()
                 val providers = settings.providersFlow.first()
+                // v1.0.18: 放宽绘图供应商检查 — OpenAI / OpenAI Responses / Agnes / 任意 OpenAI 兼容
+                // 均可通过 ImageProviderRegistry 路由;Gemini 走 streamChat 多模态路径。
                 val hasImageProvider = providers.any {
-                    it.type == ProviderType.OPENAI || it.type == ProviderType.GEMINI
+                    it.type == ProviderType.OPENAI ||
+                        it.type == ProviderType.OPENAI_RESPONSES ||
+                        it.type == ProviderType.GEMINI ||
+                        it.baseUrl.contains("agnes", ignoreCase = true)
                 }
                 if (!hasImageProvider) {
                     accessor.update {
@@ -291,6 +296,8 @@ class ImageGenCoordinator(
                     return@launch
                 }
 
+                // v1.0.18: Gemini 走 streamChat 多模态;其余(OpenAI / Agnes / 中转站)统一走
+                // ImageService → ImageProviderRegistry,由 registry 按配置自动选择适配器。
                 when (config.type) {
                     ProviderType.GEMINI -> {
                         if (!model.supportsImageOutput()) {
@@ -304,16 +311,8 @@ class ImageGenCoordinator(
                         }
                         generateImageViaGemini(prompt, sessionId, assistantMsg.id, config, model, addError, updateAssistant)
                     }
-                    ProviderType.OPENAI -> {
-                        generateImageViaOpenAi(prompt, sessionId, assistantMsg.id, config, model, addError)
-                    }
                     else -> {
-                        accessor.update {
-                            it.copy(
-                                errors = listOf(ChatError(type = ChatErrorType.UNKNOWN, message = appContext.getString(R.string.err_image_gen_provider_unsupported, config.type))),
-                                isGeneratingImage = false,
-                            )
-                        }
+                        generateImageViaOpenAi(prompt, sessionId, assistantMsg.id, config, model, addError)
                     }
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {

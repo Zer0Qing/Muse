@@ -5,6 +5,8 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.os.BatteryManager
 import androidx.core.app.NotificationCompat
 import io.zer0.ai.ChatService
 import io.zer0.ai.core.MessageRole
@@ -21,12 +23,14 @@ import io.zer0.muse.data.schedule.AutomationConfig
 import io.zer0.muse.data.schedule.AutomationConfig.toAction
 import io.zer0.muse.data.schedule.AutomationConfig.toCondition
 import io.zer0.muse.data.schedule.AutomationConfig.toIdsList
+import io.zer0.muse.data.quicknote.QuickNoteDao
+import io.zer0.muse.data.quicknote.QuickNoteEntity
 import io.zer0.muse.data.schedule.ScheduledTaskDao
 import io.zer0.muse.data.schedule.ScheduledTaskEntity
 import io.zer0.muse.data.schedule.ScheduledTaskExecutionEntity
 import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.tools.ToolRegistry
-import io.zer0.muse.tools.quicknote.QuickNoteStore
+import io.zer0.muse.tools.ToolRiskLevel
 import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -70,7 +74,8 @@ class ScheduledTaskRunner(
     private val appScope: CoroutineScope,
     private val pendingMessageManager: io.zer0.muse.data.schedule.PendingMessageManager? = null,
     private val toolRegistry: ToolRegistry? = null,
-    private val quickNoteStore: QuickNoteStore? = null,
+    // v1.0.17: 改用 Room DAO(替代 QuickNoteStore JSON 存储)
+    private val quickNoteDao: QuickNoteDao? = null,
 ) {
     private var job: Job? = null
 
@@ -82,6 +87,12 @@ class ScheduledTaskRunner(
         private const val REPLY_SUMMARY_MAX_LEN = 200 // AI 回复摘要最大长度
         /** 单次任务 AI 调用超时(毫秒)。 */
         private const val LLM_TIMEOUT_MS = 60_000L
+        /** v1.0.17: 链式任务最大递归深度,防止无限循环。 */
+        private const val MAX_CHAIN_DEPTH = 10
+        /** v1.0.17: 重试退避上限(毫秒,5 分钟)。 */
+        private const val RETRY_BACKOFF_MAX_MS = 300_000L
+        /** v1.0.17: 重试退避步长(毫秒,每次递增 1 分钟)。 */
+        private const val RETRY_BACKOFF_STEP_MS = 60_000L
     }
 
     fun start() {
@@ -145,9 +156,18 @@ class ScheduledTaskRunner(
      *  3. 成功执行后触发链式任务(next_task_ids)
      *  4. 原子记录执行历史 + 推进下次执行时间
      *
+     * v1.0.17: 新增 [chainDepth] 参数用于链式任务递归深度限制;
+     *  执行失败时按指数退避重试(retry_count < max_retries 时递增,达上限后重置)。
+     *
      * 任何环节失败都记录一条 failed execution,不抛异常。
      */
-    suspend fun executeTask(task: ScheduledTaskEntity) {
+    suspend fun executeTask(task: ScheduledTaskEntity, chainDepth: Int = 0) {
+        // v1.0.17: 链式任务深度限制,防止无限递归
+        if (chainDepth >= MAX_CHAIN_DEPTH) {
+            Logger.w(TAG, "Chain depth limit reached ($MAX_CHAIN_DEPTH), skip task ${task.id}")
+            return
+        }
+
         val now = System.currentTimeMillis()
         var status = "success"
         var replySummary = ""
@@ -169,7 +189,7 @@ class ScheduledTaskRunner(
                 val output = executeAction(task, action)
                 replySummary = output.take(REPLY_SUMMARY_MAX_LEN)
                 // 3. 触发链式任务
-                triggerChainTasks(task)
+                triggerChainTasks(task, chainDepth)
             }
         } catch (e: Exception) {
             if (e is kotlin.coroutines.cancellation.CancellationException) throw e
@@ -187,16 +207,32 @@ class ScheduledTaskRunner(
             replySummary = replySummary,
             errorMessage = errorMessage,
         )
-        val nextRun = computeNextRun(task, now)
+        // v1.0.17: 重试策略 — 失败时按指数退避重试,成功/达上限时重置 retryCount
+        val isFailed = status == "failed"
+        val newRetryCount = when {
+            isFailed && task.retryCount < task.maxRetries -> task.retryCount + 1
+            isFailed -> 0 // 达到最大重试次数,重置
+            else -> 0 // 成功/跳过,重置
+        }
+        val nextRun = if (isFailed && task.retryCount < task.maxRetries) {
+            // 指数退避: retryCount * 60s,上限 5 分钟
+            val backoff = minOf(newRetryCount.toLong() * RETRY_BACKOFF_STEP_MS, RETRY_BACKOFF_MAX_MS)
+            now + backoff
+        } else {
+            computeNextRun(task, now)
+        }
         resultOf {
             dao.recordExecutionAndScheduleNext(execution, task.id, nextRun, now)
+            dao.updateRetryCount(task.id, newRetryCount)
         }.onError { msg, t -> Logger.w(TAG, "Record execution+scheduleNext failed: ${t?.message ?: msg}") }
     }
 
     /**
      * v1.137: 评估自动化条件。
+     *
+     * v1.0.17: 改为 suspend 以适配 Room DAO 的 suspend 查询(quick_note_exists 条件)。
      */
-    private fun evaluateCondition(task: ScheduledTaskEntity, condition: AutomationConfig.Condition): Boolean {
+    private suspend fun evaluateCondition(task: ScheduledTaskEntity, condition: AutomationConfig.Condition): Boolean {
         return when (condition.type) {
             AutomationConfig.Condition.ALWAYS -> true
             AutomationConfig.Condition.NETWORK_AVAILABLE -> isNetworkAvailable()
@@ -211,13 +247,29 @@ class ScheduledTaskRunner(
                 val cfg = condition.config
                 val tag = cfg["tag"]?.toString()?.trim('"')
                 val keyword = cfg["keyword"]?.toString()?.trim('"')
-                val store = quickNoteStore ?: return false
-                store.list(keyword = keyword, tag = tag, limit = 1).isNotEmpty()
+                val dao = quickNoteDao ?: return false
+                // DAO search 已排除 deleted=1,keyword/tag 为 null 时不过滤
+                dao.search(keyword, tag, limit = 1).isNotEmpty()
             }
             AutomationConfig.Condition.CONTAINS -> {
                 val cfg = condition.config
                 val keyword = cfg["keyword"]?.toString()?.trim('"') ?: ""
                 keyword.isNotBlank() && task.prompt.contains(keyword, ignoreCase = true)
+            }
+            AutomationConfig.Condition.BATTERY_LEVEL -> {
+                val minLevel = condition.config["minLevel"]?.toString()?.toIntOrNull() ?: 20
+                val bm = context.getSystemService(BatteryManager::class.java)
+                val level = bm?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY) ?: -1
+                level >= minLevel
+            }
+            AutomationConfig.Condition.CHARGING -> {
+                val mustCharging = condition.config["mustCharging"]?.toString()?.toBoolean() ?: true
+                if (mustCharging) {
+                    val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+                    val batteryStatus = context.registerReceiver(null, filter)
+                    val status = batteryStatus?.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
+                    status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
+                } else true
             }
             else -> true
         }
@@ -230,7 +282,7 @@ class ScheduledTaskRunner(
         return when (action.type) {
             AutomationConfig.Action.AI_PROMPT -> executeAiPrompt(task)
             AutomationConfig.Action.CREATE_QUICK_NOTE -> executeCreateQuickNote(action)
-            AutomationConfig.Action.CALL_TOOL -> executeCallTool(action)
+            AutomationConfig.Action.CALL_TOOL -> executeCallTool(task, action)
             AutomationConfig.Action.NOTIFY -> executeNotify(action)
             else -> executeAiPrompt(task)
         }
@@ -272,18 +324,32 @@ class ScheduledTaskRunner(
         return reply
     }
 
-    private fun executeCreateQuickNote(action: AutomationConfig.Action): String {
+    private suspend fun executeCreateQuickNote(action: AutomationConfig.Action): String {
         val cfg = action.config
         val title = cfg["title"]?.toString()?.trim('"')?.takeIf { it.isNotBlank() }
             ?: throw IllegalArgumentException("create_quick_note 缺少 title")
         val content = cfg["content"]?.toString()?.trim('"') ?: ""
         val tags = cfg["tags"]?.toString()?.trim('"')?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() } ?: emptyList()
-        val store = quickNoteStore ?: throw IllegalStateException("QuickNoteStore 未初始化")
-        val id = store.add(title, content, tags)
+        val dao = quickNoteDao ?: throw IllegalStateException("QuickNoteDao 未初始化")
+        val id = java.util.UUID.randomUUID().toString()
+        val now = System.currentTimeMillis()
+        dao.upsert(
+            QuickNoteEntity(
+                id = id,
+                title = title,
+                content = content,
+                tags = tags,
+                pinned = false,
+                deleted = false,
+                deletedAt = 0,
+                createdAt = now,
+                updatedAt = now,
+            ),
+        )
         return context.getString(R.string.tool_quick_note_added, id, title)
     }
 
-    private suspend fun executeCallTool(action: AutomationConfig.Action): String {
+    private suspend fun executeCallTool(task: ScheduledTaskEntity, action: AutomationConfig.Action): String {
         val cfg = action.config
         val toolId = cfg["toolId"]?.toString()?.trim('"')?.takeIf { it.isNotBlank() }
             ?: throw IllegalArgumentException("call_tool 缺少 toolId")
@@ -293,6 +359,13 @@ class ScheduledTaskRunner(
             else -> paramsElement?.toString()?.trim('"') ?: "{}"
         }
         val registry = toolRegistry ?: throw IllegalStateException("ToolRegistry 未初始化")
+        // v1.0.17: 定时任务 call_tool 动作增加风险审批,绕过 ToolPermissionResolver 的安全风险修复
+        // 定时任务在后台无用户交互执行,无法走会话级权限审批,故在此直接拦截 HIGH 风险工具
+        val toolDef = registry.listTools().firstOrNull { it.name == toolId }
+        if (toolDef?.riskLevel == ToolRiskLevel.HIGH) {
+            Logger.w(TAG, "call_tool skipped HIGH risk tool '$toolId' in scheduled task '${task.name}'")
+            return "跳过高风险工具: $toolId"
+        }
         return registry.executeFromJson(toolId, paramsJson)
     }
 
@@ -308,14 +381,23 @@ class ScheduledTaskRunner(
     /**
      * v1.137: 触发链式任务。
      *
-     * 把 next_task_ids_json 中列出的任务 next_run_at 设为当前时间,
-     * 使它们在下一轮轮询中立即执行。
+     * v1.0.17: 改为同步执行 — 对每个后续任务先更新 next_run_at,然后直接 executeTask,
+     * 不再等下一轮 60s 轮询。每个链式任务独立 try-catch,单个失败不影响其他。
+     * [chainDepth] 透传给 executeTask,达到 [MAX_CHAIN_DEPTH] 时停止递归。
      */
-    private suspend fun triggerChainTasks(task: ScheduledTaskEntity) {
+    private suspend fun triggerChainTasks(task: ScheduledTaskEntity, chainDepth: Int = 0) {
         val nextIds = task.nextTaskIdsJson.toIdsList()
         if (nextIds.isEmpty()) return
-        resultOf { dao.triggerNextTasks(nextIds) }
-            .onError { msg, t -> Logger.w(TAG, "触发链式任务失败: ${t?.message ?: msg}") }
+        for (nextId in nextIds) {
+            try {
+                dao.triggerNextTasks(listOf(nextId))
+                val nextTask = dao.getById(nextId) ?: continue
+                executeTask(nextTask, chainDepth + 1)
+            } catch (e: Exception) {
+                if (e is kotlin.coroutines.cancellation.CancellationException) throw e
+                Logger.w(TAG, "Chain task $nextId failed: ${e.message}")
+            }
+        }
     }
 
     /**

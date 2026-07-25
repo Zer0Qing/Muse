@@ -52,6 +52,8 @@ class ShareIntentHandler(private val context: Context) {
         object OpenTranslate : ShareResult()
         /** Launcher 快捷方式:进入主页并触发语音输入(来自 ACTION_VOICE_INPUT)。 */
         object StartVoiceInput : ShareResult()
+        /** v1.0.18: Launcher 快捷方式:打开快速记录页(来自 ACTION_QUICK_NOTES)。 */
+        object OpenQuickNotes : ShareResult()
         /** 预填文本到输入框(来自分享/PROCESS_TEXT)。 */
         data class PrefillText(val text: String) : ShareResult()
         /** 无匹配 Intent。 */
@@ -178,5 +180,7 @@ class ShareIntentHandler(private val context: Context) {
         const val ACTION_TRANSLATE = "io.zer0.muse.ACTION_TRANSLATE"
         const val ACTION_VOICE_INPUT = "io.zer0.muse.ACTION_VOICE_INPUT"
         const val ACTION_SETTINGS = "io.zer0.muse.ACTION_SETTINGS"
+        /** v1.0.18: 快速记录快捷方式 action。 */
+        const val ACTION_QUICK_NOTES = "io.zer0.muse.ACTION_QUICK_NOTES"
     }
 }

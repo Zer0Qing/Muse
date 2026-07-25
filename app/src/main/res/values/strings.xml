@@ -222,10 +222,14 @@
     <!-- 工具审批卡片 -->
     <string name="tool_approval_title">工具调用</string>
     <string name="tool_approval_always_allow">始终允许 %1$s</string>
+    <string name="tool_approval_allow_all_this_run">本次开启期间批准全部工具</string>
     <string name="tool_approval_approve">批准</string>
     <string name="tool_approval_deny">拒绝</string>
     <string name="tool_approval_confirm_deny">确认拒绝</string>
     <string name="tool_approval_deny_reason">拒绝原因(可选)</string>
+    <!-- v1.0.20: 持久化策略按钮 — 点击后写入 ToolConfigStore,后续该工具不再弹审批卡片 -->
+    <string name="tool_approval_always_approve">始终允许</string>
+    <string name="tool_approval_always_deny">始终拒绝</string>
 
     <!-- 消息分支选择器 -->
     <string name="branch_previous">上一个版本</string>

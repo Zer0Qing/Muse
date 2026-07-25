@@ -106,6 +106,15 @@
     <string name="settings_model_ability_multimodal">Multimodal</string>
     <string name="settings_model_ability_video">Video</string>
     <string name="settings_model_ability_chat">Chat</string>
+    <!-- v1.0.8 (7.7): Context window label (e.g. "128K context") -->
+    <string name="settings_model_context_label">%1$s context</string>
+    <!-- v1.0.8 (7.6): Model health check button + status text -->
+    <string name="settings_model_action_test">Test</string>
+    <string name="settings_model_test_in_progress">Testing</string>
+    <string name="settings_model_test_success">Healthy</string>
+    <string name="settings_model_test_failed">Failed</string>
+    <string name="settings_model_test_failed_with_msg">Failed: %1$s</string>
+    <string name="settings_model_test_success_with_msg">Healthy · %1$s</string>
 
     <!-- AssistantSection.kt -->
     <string name="settings_assistant_section">Assistant</string>

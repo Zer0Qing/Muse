@@ -252,6 +252,24 @@
     <string name="settings_asr_poll_timeout">轮询总超时(毫秒,默认 300000 = 5 分钟)</string>
     <string name="settings_asr_saved_poll_timeout">已保存轮询超时</string>
     <string name="settings_asr_save_poll_timeout">保存轮询超时</string>
+    <!-- 新增:OpenAI 兼容 / Realtime / Agnes Provider -->
+    <string name="settings_asr_provider_openai_whisper">Whisper</string>
+    <string name="settings_asr_provider_openai_realtime">Realtime</string>
+    <string name="settings_asr_provider_agnes">Agnes</string>
+    <string name="settings_asr_base_url">Base URL(自定义中转站,留空用默认)</string>
+    <string name="settings_asr_saved_base_url">已保存 Base URL</string>
+    <string name="settings_asr_save_base_url">保存 Base URL</string>
+    <!-- 新增:热词 -->
+    <string name="settings_asr_hotwords">热词(逗号分隔,提升专有名词识别率)</string>
+    <string name="settings_asr_saved_hotwords">已保存热词</string>
+    <string name="settings_asr_save_hotwords">保存热词</string>
+    <!-- 新增:VAD 静音检测 -->
+    <string name="settings_asr_vad">本地 VAD 静音检测</string>
+    <string name="settings_asr_vad_desc">静音超过阈值自动停止录音(OPENAI_REALTIME 走服务端 VAD,不需要本地)</string>
+    <string name="settings_asr_vad_threshold">VAD 阈值(0-1,默认 0.05 ≈ -46dB)</string>
+    <string name="settings_asr_vad_silence">静音自动停止时长(毫秒,默认 1500)</string>
+    <string name="settings_asr_saved_vad">已保存 VAD 配置</string>
+    <string name="settings_asr_save_vad">保存 VAD 配置</string>
 
     <!-- 知识库检索 RAG -->
     <string name="settings_rag_page_title">知识库检索</string>
@@ -437,4 +455,18 @@
     <string name="settings_media_tts_show">显示</string>
     <string name="settings_media_tts_hide">隐藏</string>
     <string name="settings_media_tts_saved">已保存</string>
+    <!-- v1.99: 云端 TTS 音色动态拉取 + 高级参数 -->
+    <string name="settings_media_tts_voice_fetch">拉取音色列表</string>
+    <string name="settings_media_tts_voice_fetching">正在拉取…</string>
+    <string name="settings_media_tts_voice_fetch_empty">未获取到音色</string>
+    <string name="settings_media_tts_voice_fetch_failed">拉取失败,请检查 API Key</string>
+    <string name="settings_media_tts_voice_pick">选择音色</string>
+    <string name="settings_media_tts_advanced_section">高级参数</string>
+    <string name="settings_media_tts_stability">Stability(ElevenLabs)</string>
+    <string name="settings_media_tts_similarity">Similarity Boost(ElevenLabs)</string>
+    <string name="settings_media_tts_emotion">情感(MiniMax)</string>
+    <string name="settings_media_tts_emotion_placeholder">happy / sad / angry / neutral</string>
+    <string name="settings_media_tts_cloud_speed">合成语速</string>
+    <string name="settings_media_tts_response_format">音频格式</string>
+    <string name="settings_media_tts_save_advanced">保存参数</string>
 </resources>

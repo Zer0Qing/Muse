@@ -420,6 +420,14 @@ object ModelRegistry {
      *
      * v1.0.8: 增强兜底链路 — 当 token 规则未命中时,回退到 [KnownModels] 与
      * [ModelContextWindowRegistry],补全 contextWindow / maxOutputTokens / modalities / abilities。
+     *
+     * v1.0.8 (7.4): 中转站误标检测 — 即使 registry 未命中(defs 为空),也用 KnownModels
+     *  作为权威来源覆盖上游的错误声明:
+     *  - 上游声明 supportsVision=true 但 KnownModels 明确标记为纯文本模型(inputModalities={text})
+     *    → 以 KnownModels 为准,移除 image 模态,supportsVision=false
+     *  - 上游声明 supportsVideo=true 但 KnownModels 未标记 video(outputModalities 不含 video)
+     *    → 忽略上游声明,supportsVideo=false
+     *  仅在 KnownModels 有明确声明时触发(避免对未知模型误覆盖)。
      */
     fun enhanceModel(model: Model): Model {
         val defs = resolveDefinitions(model.id)
@@ -444,6 +452,8 @@ object ModelRegistry {
         // 未命中时保持原逻辑(模型已有 > KnownModels > 默认)。
         // v1.137: 修复中转站错误标记文本模型(如 DeepSeek V4)为 vision,
         // 导致视觉辅助被跳过、图片直发纯文本模型触发 400 或被当作空白的问题。
+        // v1.0.8 (7.4): 进一步加强 — 即使上游声明 inputModalities 含 image(非纯 text),
+        //  只要 KnownModels 明确标记为纯文本(inputModalities={text}),覆盖上游声明。
         val newInput = when {
             defs.isNotEmpty() -> resolvedInput
             model.inputModalities.size == 1 && "text" in model.inputModalities -> {
@@ -453,10 +463,20 @@ object ModelRegistry {
                     else -> model.inputModalities
                 }
             }
-            else -> model.inputModalities
+            // v1.0.8 (7.4): 中转站误标检测 — 上游声明含 image 但 KnownModels 明确标记为纯文本
+            else -> {
+                val knownInput = knownInfo?.inputModalities?.map { it.wireName }?.toSet()
+                if (!knownInput.isNullOrEmpty() && "image" !in knownInput) {
+                    // KnownModels 明确声明该模型为纯文本(不含 image),覆盖上游误标
+                    knownInput
+                } else {
+                    model.inputModalities
+                }
+            }
         }
 
         // outputModalities: 同 inputModalities 逻辑
+        // v1.0.8 (7.4): 中转站误标检测 — 上游声明含 video 但 KnownModels 未标记 video
         val newOutput = when {
             defs.isNotEmpty() -> resolvedOutput
             model.outputModalities.size == 1 && "text" in model.outputModalities -> {
@@ -466,7 +486,16 @@ object ModelRegistry {
                     else -> model.outputModalities
                 }
             }
-            else -> model.outputModalities
+            // v1.0.8 (7.4): 中转站误标检测 — 上游声明含 video 但 KnownModels 不含 video
+            else -> {
+                val knownOutput = knownInfo?.outputModalities?.map { it.wireName }?.toSet()
+                if (!knownOutput.isNullOrEmpty() && "video" !in knownOutput && "video" in model.outputModalities) {
+                    // KnownModels 明确声明该模型输出不含 video,忽略上游误标
+                    knownOutput
+                } else {
+                    model.outputModalities
+                }
+            }
         }
 
         // contextWindow: 模型已有 > KnownModels > ModelContextWindowRegistry
@@ -485,15 +514,21 @@ object ModelRegistry {
             // v1.137: registry 命中时 supportsVision/supportsVideo 完全由 newInput/newOutput 派生,
             // 不保留上游可能错误的标记(中转站常见把纯文本模型误标为 vision)。
             // 未命中时保持原逻辑(上游 > newInput)。
-            supportsVision = if (defs.isNotEmpty()) {
-                "image" in newInput
-            } else {
-                model.supportsVision || "image" in newInput
+            // v1.0.8 (7.4): 进一步加强 — 即使 registry 未命中(defs 为空),
+            //  若 KnownModels 明确声明不含 image/video,也覆盖上游误标的 supportsVision/supportsVideo。
+            supportsVision = when {
+                defs.isNotEmpty() -> "image" in newInput
+                // v1.0.8 (7.4): KnownModels 明确声明为纯文本时,以上游 supportsVision 为 false
+                knownInfo?.inputModalities?.isNotEmpty() == true &&
+                    "image" !in (knownInfo.inputModalities.map { it.wireName }.toSet()) -> false
+                else -> model.supportsVision || "image" in newInput
             },
-            supportsVideo = if (defs.isNotEmpty()) {
-                "video" in newOutput
-            } else {
-                model.supportsVideo || "video" in newOutput
+            supportsVideo = when {
+                defs.isNotEmpty() -> "video" in newOutput
+                // v1.0.8 (7.4): KnownModels 明确声明输出不含 video 时,忽略上游 supportsVideo
+                knownInfo?.outputModalities?.isNotEmpty() == true &&
+                    "video" !in (knownInfo.outputModalities.map { it.wireName }.toSet()) -> false
+                else -> model.supportsVideo || "video" in newOutput
             },
             // v1.0.4: 仅当模型未显式声明时才用 registry 解析的值
             visionCapabilities = model.visionCapabilities ?: resolvedVisionCaps,

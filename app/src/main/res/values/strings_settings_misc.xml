@@ -106,6 +106,15 @@
     <string name="settings_model_ability_multimodal">多模态</string>
     <string name="settings_model_ability_video">视频</string>
     <string name="settings_model_ability_chat">聊天</string>
+    <!-- v1.0.8 (7.7): 上下文窗口标签(如 "128K 上下文") -->
+    <string name="settings_model_context_label">%1$s 上下文</string>
+    <!-- v1.0.8 (7.6): 模型健康检查按钮 + 状态文案 -->
+    <string name="settings_model_action_test">测试</string>
+    <string name="settings_model_test_in_progress">测试中</string>
+    <string name="settings_model_test_success">健康</string>
+    <string name="settings_model_test_failed">失败</string>
+    <string name="settings_model_test_failed_with_msg">失败:%1$s</string>
+    <string name="settings_model_test_success_with_msg">健康 · %1$s</string>
 
     <!-- AssistantSection.kt -->
     <string name="settings_assistant_section">助手</string>

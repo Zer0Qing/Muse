@@ -346,4 +346,17 @@
     <string name="settings_chat_performance_mode">Performance Mode</string>
     <string name="settings_chat_performance_mode_subtitle">For long chats, render only the latest 50 messages and load more on scroll-up to reduce lag</string>
     <string name="settings_provider_auto_detect">Auto-detect</string>
+
+    <!-- ==================== v1.0.20: Tool Call Approval ==================== -->
+    <string name="settings_chat_tool_approval_section">Tool Call Approval</string>
+    <string name="settings_chat_tool_approval_title">Tool Approval</string>
+    <string name="settings_chat_tool_approval_subtitle">Control whether the AI needs your confirmation before calling tools</string>
+    <string name="settings_chat_tool_approval_trusted">Fully Trust</string>
+    <string name="settings_chat_tool_approval_ask">Ask on Demand</string>
+    <string name="settings_chat_tool_approval_strict">Strict Mode</string>
+    <string name="settings_chat_tool_approval_trusted_desc">Fully Trust: the AI can call all tools directly without confirmation (for trusted toolsets)</string>
+    <string name="settings_chat_tool_approval_ask_desc">Ask on Demand: high-risk tools prompt you before invocation; safe tools are auto-approved</string>
+    <string name="settings_chat_tool_approval_strict_desc">Strict Mode: all tool calls require your confirmation except read-only query tools</string>
+    <string name="settings_chat_tool_approval_per_tool">Per-Tool Policy</string>
+    <string name="settings_chat_tool_approval_per_tool_subtitle">Set allow / deny / ask individually for each tool</string>
 </resources>

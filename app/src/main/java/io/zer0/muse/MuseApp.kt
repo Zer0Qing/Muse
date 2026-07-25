@@ -27,9 +27,11 @@ import io.zer0.muse.data.ThemeScheduleConfig
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.knowledge.KnowledgeDocDao
 import io.zer0.muse.data.knowledge.KnowledgeDocEntity
+import io.zer0.muse.data.quicknote.QuickNoteDao
 import io.zer0.muse.data.skill.SkillRepository
 import io.zer0.muse.notification.MuseNotificationManager
 import io.zer0.muse.tools.SkillExecutor
+import io.zer0.muse.tools.quicknote.QuickNoteStore
 import io.zer0.muse.ui.ChatViewModel
 import io.zer0.muse.ui.speech.TtsManager
 import io.zer0.muse.util.GlobalCoroutineExceptionHandler
@@ -85,6 +87,9 @@ class MuseApp : Application(), ImageLoaderFactory {
     private val chatViewModel: ChatViewModel by inject()
     /** v1.0.12: RAG 服务 — 启动时异步加载持久化的 HNSW 索引(若已落盘)。 */
     private val ragService: io.zer0.muse.rag.RagService by inject()
+    /** v1.0.17: 快速记录 Room 迁移 — 注入旧 JSON 存储 + Room DAO,启动时一次性迁移。 */
+    private val quickNoteStore: QuickNoteStore by inject()
+    private val quickNoteDao: QuickNoteDao by inject()
     /** 应用级 scope:启动一次性任务用,独立于 Koin 注册的 IO scope。 */
     // v0.53: 加 GlobalCoroutineExceptionHandler,防止协程内未捕获异常导致应用崩溃(企业级容错)
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO + GlobalCoroutineExceptionHandler)
@@ -192,6 +197,15 @@ class MuseApp : Application(), ImageLoaderFactory {
         appScope.launch {
             resultOf { seedDevDocs() }
                 .onError { msg, t -> Logger.w("MuseApp", "seedDevDocs 失败", t) }
+        }
+        // v1.0.17: 快速记录 JSON → Room 一次性迁移
+        // 通过 SharedPreferences 标志 quick_notes_migrated 保证仅执行一次:
+        //  - 首次升级用户:标志 false → 迁移 → 置 true
+        //  - 已迁移/新装用户:标志 true 或 JSON 无数据 → 空跑后置 true
+        // fire-and-forget,失败不阻塞启动(下次启动重试,upsert REPLACE 幂等)
+        appScope.launch {
+            resultOf { migrateQuickNotesIfNeeded() }
+                .onError { msg, t -> Logger.w("MuseApp", "快速记录迁移失败: ${t?.message ?: msg}", t) }
         }
         // v1.0.12: 启动时从 filesDir/rag/hnsw_index.bin 异步加载 HNSW 索引
         // (startKoin 之后、RagService 首次使用之前)。加载失败时首次检索走暴力遍历
@@ -578,6 +592,29 @@ class MuseApp : Application(), ImageLoaderFactory {
     }
 
     /**
+     * v1.0.17: 快速记录 JSON → Room 一次性迁移。
+     *
+     * 通过 SharedPreferences 标志 `quick_notes_migrated` 保证仅执行一次:
+     *  - 首次升级到 v1.0.17 的用户:标志为 false → 执行迁移 → 置 true
+     *  - 已迁移过的用户:标志为 true → 跳过
+     *  - 新装用户:JSON 文件不存在,[QuickNoteStore.migrateToRoom] 返回 0,仍置 true
+     *
+     * 幂等性:[QuickNoteDao.upsert] 用 OnConflictStrategy.REPLACE,即使标志丢失
+     * 重复调用也不会产生重复记录。但为避免每次启动都遍历 JSON 文件,仍用标志保证只执行一次。
+     *
+     * 迁移完成后不删除 JSON 文件,作为本地备份保留(用户可手动清理)。
+     */
+    private suspend fun migrateQuickNotesIfNeeded() {
+        val prefs = getSharedPreferences("muse_migration", Context.MODE_PRIVATE)
+        if (prefs.getBoolean(KEY_QUICK_NOTES_MIGRATED, false)) {
+            return
+        }
+        val count = quickNoteStore.migrateToRoom(quickNoteDao)
+        prefs.edit().putBoolean(KEY_QUICK_NOTES_MIGRATED, true).apply()
+        Logger.i("MuseApp", "快速记录迁移完成: $count 条记录已导入 Room")
+    }
+
+    /**
      * Phase 11.1.6: 全局 Coil ImageLoader 工厂。
      *
      * 注册 [SvgDecoder] 和 [GifDecoder] 后,所有 [coil.compose.AsyncImage] 调用
@@ -616,4 +653,9 @@ class MuseApp : Application(), ImageLoaderFactory {
         }
         .crossfade(true)
         .build()
+
+    companion object {
+        /** v1.0.17: 快速记录迁移标志的 SharedPreferences key(文件 muse_migration)。 */
+        private const val KEY_QUICK_NOTES_MIGRATED = "quick_notes_migrated"
+    }
 }

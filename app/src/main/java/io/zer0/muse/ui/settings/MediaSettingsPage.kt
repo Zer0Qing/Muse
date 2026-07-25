@@ -11,6 +11,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CloudQueue
 import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material.icons.outlined.RecordVoiceOver
+import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -46,6 +48,7 @@ import io.zer0.muse.ui.common.SettingsItemRow
 import io.zer0.muse.ui.common.SettingsSegmentedRow
 import io.zer0.muse.ui.common.SettingsSwitchRow
 import io.zer0.muse.ui.speech.TtsManager
+import io.zer0.muse.ui.speech.VoiceInfo
 import io.zer0.muse.ui.theme.MusePaddings
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -163,7 +166,19 @@ fun MediaSettingsPage(
             CloudTtsConfigSection(
                 config = config,
                 settings = settings,
+                ttsManager = ttsManager,
             )
+        }
+
+        // ── v1.99(4.8): 云端 TTS 高级参数(仅云端引擎显示)──
+        if (config.ttsEngine != "system" && hasAdvancedParams(config.ttsEngine)) {
+            item { SectionLabel(stringResource(R.string.settings_media_tts_advanced_section)) }
+            item {
+                AdvancedTtsParamsSection(
+                    config = config,
+                    settings = settings,
+                )
+            }
         }
 
         // ── P2-9: 语音克隆入口(独立 SettingsGroup,从云端 TTS 引擎下方进入)──
@@ -324,15 +339,23 @@ private fun TtsVoiceSelector(
  * 引擎选择(system + 11 家云端 Provider)→ API Key / Voice / Model / Endpoint 表单。
  * system 模式仅显示引擎选择,隐藏表单。
  * 表单交互参考 [AsrSection]:OutlinedTextField + 保存按钮 + Toast 反馈。
+ *
+ * v1.99(4.4): 在音色输入下方增加「拉取音色列表」按钮,调用 [TtsManager.listCloudVoices]
+ * 动态拉取并展示可选音色,选中后写回 [MediaConfig.ttsVoice]。
  */
 @Composable
 private fun CloudTtsConfigSection(
     config: MediaConfig,
     settings: SettingsRepository,
+    ttsManager: TtsManager,
 ) {
     val scope = rememberCoroutineScope()
     val systemLabel = stringResource(R.string.settings_media_tts_engine_system)
     val savedToast = stringResource(R.string.settings_media_tts_saved)
+    val fetchingLabel = stringResource(R.string.settings_media_tts_voice_fetching)
+    val fetchLabel = stringResource(R.string.settings_media_tts_voice_fetch)
+    val fetchFailedLabel = stringResource(R.string.settings_media_tts_voice_fetch_failed)
+    val pickLabel = stringResource(R.string.settings_media_tts_voice_pick)
 
     SettingsGroup(
         modifier = Modifier.padding(top = 8.dp),
@@ -414,9 +437,16 @@ private fun CloudTtsConfigSection(
             ) { Text(stringResource(R.string.settings_media_tts_save_api_key)) }
         }
 
-        // 音色 / Voice ID
+        // 音色 / Voice ID(手动输入 + 动态拉取)
         SettingsGroupDivider()
         var voice by remember(config.ttsEngine) { mutableStateOf(config.ttsVoice) }
+        var fetchedVoices by remember(config.ttsEngine) {
+            mutableStateOf<List<VoiceInfo>>(emptyList())
+        }
+        var isFetching by remember(config.ttsEngine) { mutableStateOf(false) }
+        var fetchError by remember(config.ttsEngine) { mutableStateOf(false) }
+        var voicePickerExpanded by remember { mutableStateOf(false) }
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -430,14 +460,91 @@ private fun CloudTtsConfigSection(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
             )
-            TextButton(
-                onClick = {
-                    scope.launch {
-                        settings.saveMediaConfig(config.copy(ttsVoice = voice.trim()))
-                        MuseToast.show(savedToast)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextButton(
+                    onClick = {
+                        scope.launch {
+                            settings.saveMediaConfig(config.copy(ttsVoice = voice.trim()))
+                            MuseToast.show(savedToast)
+                        }
+                    },
+                ) { Text(stringResource(R.string.settings_media_tts_save_voice)) }
+                TextButton(
+                    enabled = !isFetching,
+                    onClick = {
+                        scope.launch {
+                            isFetching = true
+                            fetchError = false
+                            val result = ttsManager.listCloudVoices()
+                            if (result.isEmpty()) {
+                                fetchError = true
+                            } else {
+                                fetchedVoices = result
+                            }
+                            isFetching = false
+                        }
+                    },
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Refresh,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Text(
+                        text = if (isFetching) fetchingLabel else fetchLabel,
+                        modifier = Modifier.padding(start = 4.dp),
+                    )
+                }
+            }
+            if (fetchError) {
+                Text(
+                    text = fetchFailedLabel,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+            if (fetchedVoices.isNotEmpty()) {
+                Box {
+                    TextButton(onClick = { voicePickerExpanded = true }) {
+                        Text(pickLabel)
                     }
-                },
-            ) { Text(stringResource(R.string.settings_media_tts_save_voice)) }
+                    DropdownMenu(
+                        expanded = voicePickerExpanded,
+                        onDismissRequest = { voicePickerExpanded = false },
+                    ) {
+                        fetchedVoices.forEach { v ->
+                            DropdownMenuItem(
+                                text = {
+                                    Column {
+                                        Text(v.name)
+                                        v.description?.takeIf { it.isNotBlank() }?.let { desc ->
+                                            Text(
+                                                text = desc,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.outline,
+                                            )
+                                        }
+                                    }
+                                },
+                                onClick = {
+                                    voice = v.id
+                                    scope.launch {
+                                        settings.saveMediaConfig(config.copy(ttsVoice = v.id))
+                                        MuseToast.show(savedToast)
+                                    }
+                                    voicePickerExpanded = false
+                                },
+                            )
+                        }
+                    }
+                }
+            }
         }
 
         // 模型
@@ -493,3 +600,161 @@ private fun CloudTtsConfigSection(
         }
     }
 }
+
+/**
+ * v1.99(4.8): 云端 TTS 高级参数配置区。
+ *
+ * 按引擎能力条件渲染:
+ *  - ElevenLabs: stability / similarity_boost 滑块
+ *  - MiniMax: 情感文本输入 + 语速滑块
+ *  - OpenAI 兼容(openai/dashscope/groq/step/edge): 语速滑块 + 音频格式
+ *  - 其他: 仅语速滑块(若支持)
+ */
+@Composable
+private fun AdvancedTtsParamsSection(
+    config: MediaConfig,
+    settings: SettingsRepository,
+) {
+    val scope = rememberCoroutineScope()
+    val savedToast = stringResource(R.string.settings_media_tts_saved)
+    val engine = config.ttsEngine
+
+    // 本地编辑态(随引擎切换重置)
+    var stability by remember(engine) { mutableStateOf(config.ttsStability) }
+    var similarity by remember(engine) { mutableStateOf(config.ttsSimilarityBoost) }
+    var emotion by remember(engine) { mutableStateOf(config.ttsEmotion) }
+    var speed by remember(engine) { mutableStateOf(config.ttsCloudSpeed) }
+    var responseFormat by remember(engine) { mutableStateOf(config.ttsResponseFormat.ifBlank { "mp3" }) }
+    var formatExpanded by remember { mutableStateOf(false) }
+
+    SettingsGroup(
+        modifier = Modifier.padding(top = 8.dp),
+    ) {
+        if (engine == "elevenlabs") {
+            SliderRow(
+                icon = Icons.Outlined.Tune,
+                title = stringResource(R.string.settings_media_tts_stability),
+                subtitle = stringResource(R.string.settings_media_tts_stability),
+                value = stability,
+                range = 0f..1f,
+                steps = 9,
+                valueText = "%.2f".format(stability),
+                onValueChange = { stability = it },
+            )
+            SettingsGroupDivider()
+            SliderRow(
+                icon = Icons.Outlined.Tune,
+                title = stringResource(R.string.settings_media_tts_similarity),
+                subtitle = stringResource(R.string.settings_media_tts_similarity),
+                value = similarity,
+                range = 0f..1f,
+                steps = 9,
+                valueText = "%.2f".format(similarity),
+                onValueChange = { similarity = it },
+            )
+            SettingsGroupDivider()
+        }
+
+        if (engine == "minimax") {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(MusePaddings.cardInner),
+            ) {
+                OutlinedTextField(
+                    value = emotion,
+                    onValueChange = { emotion = it },
+                    label = { Text(stringResource(R.string.settings_media_tts_emotion)) },
+                    placeholder = { Text(stringResource(R.string.settings_media_tts_emotion_placeholder)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                )
+            }
+            SettingsGroupDivider()
+        }
+
+        if (supportsSpeed(engine)) {
+            SliderRow(
+                icon = Icons.Outlined.Tune,
+                title = stringResource(R.string.settings_media_tts_cloud_speed),
+                subtitle = stringResource(R.string.settings_media_tts_cloud_speed),
+                value = speed,
+                range = 0.25f..4.0f,
+                steps = 14,
+                valueText = "%.2fx".format(speed),
+                onValueChange = { speed = it },
+            )
+            SettingsGroupDivider()
+        }
+
+        if (supportsResponseFormat(engine)) {
+            Box {
+                SettingsItemRow(
+                    icon = Icons.Outlined.Tune,
+                    title = stringResource(R.string.settings_media_tts_response_format),
+                    subtitle = responseFormat,
+                    onClick = { formatExpanded = true },
+                ) {
+                    ChevronRight()
+                }
+                DropdownMenu(
+                    expanded = formatExpanded,
+                    onDismissRequest = { formatExpanded = false },
+                ) {
+                    listOf("mp3", "opus", "aac", "flac", "wav").forEach { fmt ->
+                        DropdownMenuItem(
+                            text = { Text(fmt) },
+                            onClick = {
+                                responseFormat = fmt
+                                formatExpanded = false
+                            },
+                        )
+                    }
+                }
+            }
+            SettingsGroupDivider()
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(MusePaddings.cardInner),
+        ) {
+            TextButton(
+                onClick = {
+                    scope.launch {
+                        settings.saveMediaConfig(
+                            config.copy(
+                                ttsStability = stability,
+                                ttsSimilarityBoost = similarity,
+                                ttsEmotion = emotion.trim(),
+                                ttsCloudSpeed = speed,
+                                ttsResponseFormat = responseFormat,
+                            ),
+                        )
+                        MuseToast.show(savedToast)
+                    }
+                },
+            ) { Text(stringResource(R.string.settings_media_tts_save_advanced)) }
+        }
+    }
+}
+
+/**
+ * 引擎是否支持语速参数(OpenAI 兼容 + MiniMax + Edge)。
+ */
+private fun supportsSpeed(engine: String): Boolean =
+    engine in listOf("openai", "minimax", "dashscope", "groq", "step", "edge")
+
+/**
+ * 引擎是否支持音频格式选择(OpenAI 兼容 + Edge)。
+ */
+private fun supportsResponseFormat(engine: String): Boolean =
+    engine in listOf("openai", "dashscope", "groq", "step", "edge")
+
+/**
+ * 引擎是否有可配置的高级参数(决定是否显示「高级参数」section)。
+ */
+private fun hasAdvancedParams(engine: String): Boolean =
+    engine == "elevenlabs" || engine == "minimax" ||
+        supportsSpeed(engine) || supportsResponseFormat(engine)

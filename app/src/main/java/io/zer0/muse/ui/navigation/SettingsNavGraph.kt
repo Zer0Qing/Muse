@@ -35,6 +35,7 @@ import io.zer0.muse.ui.settings.SettingsMcpPage
 import io.zer0.muse.ui.settings.SettingsModelPage
 import io.zer0.muse.ui.settings.SettingsTutorialPage
 import io.zer0.muse.ui.settings.SettingsWebSearchPage
+import io.zer0.muse.ui.settings.ToolsSettingsPage
 import io.zer0.muse.ui.settings.UserProfileEditPage
 import io.zer0.muse.ui.settings.VisionSettingsPage
 import io.zer0.muse.ui.workflow.WorkflowEditorScreen
@@ -231,6 +232,7 @@ fun NavGraphBuilder.settingsNavGraph(
     ) {
         ChatSettingsPage(
             onBack = { navController.popBackStack() },
+            onOpenToolsSettings = { navController.navigate(MuseRoutes.TOOLS_SETTINGS) },
         )
     }
     // v0.32: 设置二级页 — 记忆与通知
@@ -420,6 +422,17 @@ fun NavGraphBuilder.settingsNavGraph(
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         ProviderPluginPage(
+            onBack = { navController.popBackStack() },
+        )
+    }
+    // v1.0.20: 工具批准管理页 — 从设置 → 聊天 → 工具调用批准 进入
+    // 按风险等级分组展示所有工具,每个工具可设置三档策略(ALWAYS_ALLOW / ASK_EVERY_TIME / ALWAYS_DENY)
+    composable(
+        route = MuseRoutes.TOOLS_SETTINGS,
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        ToolsSettingsPage(
             onBack = { navController.popBackStack() },
         )
     }

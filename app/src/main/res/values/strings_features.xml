@@ -263,6 +263,63 @@
     <string name="quick_notes_send_to_chat">发送到新会话</string>
     <string name="quick_notes_more">更多</string>
     <string name="quick_notes_clear_search">清空搜索</string>
+    <!-- v1.0.17: 快速记录回收站 -->
+    <string name="quick_notes_trash">回收站</string>
+    <string name="quick_notes_trash_title">回收站</string>
+    <string name="quick_notes_trash_empty">回收站为空</string>
+    <string name="quick_notes_trash_subtitle">已删除的记录会在此保留,可恢复或永久删除</string>
+    <string name="quick_notes_restore">恢复</string>
+    <string name="quick_notes_delete_permanent">永久删除</string>
+    <string name="quick_notes_delete_permanent_title">永久删除</string>
+    <string name="quick_notes_delete_permanent_confirm">此操作不可恢复,确定永久删除「%1$s」?</string>
+    <string name="quick_notes_clear_trash">清空回收站</string>
+    <string name="quick_notes_clear_trash_confirm">将永久删除回收站中的全部 %1$d 条记录,此操作不可恢复。</string>
+    <string name="quick_notes_trash_count">回收站 %1$d 条</string>
+
+    <!-- ===== v1.0.18: 快速记录 9 项增强(分类/导出/富文本/附件/提醒/加密/分页等) ===== -->
+    <!-- 文件夹/分类 -->
+    <string name="quick_notes_folder_all">全部</string>
+    <string name="quick_notes_folder_uncategorized">未分类</string>
+    <string name="quick_notes_folder_filter">文件夹</string>
+    <string name="quick_notes_folder_set">设置文件夹</string>
+    <string name="quick_notes_folder_new">新建文件夹</string>
+    <string name="quick_notes_folder_hint">输入文件夹名称</string>
+    <string name="quick_notes_folder_remove">移出文件夹</string>
+    <!-- 导出 / 导入 -->
+    <string name="quick_notes_export">导出</string>
+    <string name="quick_notes_export_markdown">导出为 Markdown</string>
+    <string name="quick_notes_export_json">导出为 JSON</string>
+    <string name="quick_notes_import_json">从 JSON 导入</string>
+    <string name="quick_notes_export_empty">没有可导出的记录</string>
+    <string name="quick_notes_export_done">已导出 %1$d 条记录</string>
+    <string name="quick_notes_import_done">已导入 %1$d 条记录</string>
+    <string name="quick_notes_import_failed">导入失败,请检查文件格式</string>
+    <string name="quick_notes_share_title">导出快速记录</string>
+    <!-- 富文本 -->
+    <string name="quick_notes_markdown_preview">预览</string>
+    <string name="quick_notes_markdown_edit">编辑</string>
+    <string name="quick_notes_content_type_markdown">Markdown</string>
+    <string name="quick_notes_content_type_plain">纯文本</string>
+    <string name="quick_notes_toggle_markdown">Markdown 模式</string>
+    <!-- 附件 -->
+    <string name="quick_notes_attachments">附件</string>
+    <string name="quick_notes_attachment_count">%1$d 个附件</string>
+    <!-- 提醒 -->
+    <string name="quick_notes_reminder">提醒</string>
+    <string name="quick_notes_reminder_set">设置提醒</string>
+    <string name="quick_notes_reminder_cancel">取消提醒</string>
+    <string name="quick_notes_reminder_at">提醒时间</string>
+    <string name="quick_notes_reminder_none">无提醒</string>
+    <string name="quick_notes_reminder_scheduled">已设提醒: %1$s</string>
+    <!-- 加密 -->
+    <string name="quick_notes_encrypt">加密</string>
+    <string name="quick_notes_encrypt_on">加密</string>
+    <string name="quick_notes_encrypt_off">解密</string>
+    <string name="quick_notes_encrypt_locked">已加密(需解锁查看)</string>
+    <string name="quick_notes_encrypt_placeholder">此记录已加密,点击解锁查看</string>
+    <!-- 分页 -->
+    <string name="quick_notes_load_more">加载更多</string>
+    <string name="quick_notes_loading">加载中…</string>
 
     <!-- ===== ui/knowledge ===== -->
     <string name="knowledge_title">知识库</string>

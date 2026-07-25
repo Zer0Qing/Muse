@@ -72,6 +72,24 @@ abstract class ProviderHttpSupport(
     }
 
     /**
+     * v1.0.18: 取当前应使用的 API key,Kelivo 式 fallback 兜底。
+     *
+     * 在 [effectiveApiKey] 基础上追加一层免费模型 fallback:
+     *  - 用户已填 apiKey(单/多 key)→ 返回用户 key,fallback 不生效
+     *  - 用户未填 apiKey + baseUrl 命中 siliconflow + modelId 在白名单
+     *    → 返回 [FreeModelConfig.FALLBACK_API_KEY](CI/CD 注入)
+     *  - 其余场景 → 返回空串(让调用方按 [ProviderConfig.allowMissingApiKey] 处理)
+     *
+     * @param modelId 当前请求的模型 id(用于白名单校验,空串表示未知)
+     */
+    protected fun resolveEffectiveApiKey(modelId: String = ""): String {
+        val userKey = effectiveApiKey()
+        if (userKey.isNotBlank()) return userKey
+        // v1.0.18: Kelivo 式免费模型 fallback(host + modelId 双重白名单校验)
+        return FreeModelConfig.resolveApiKey(config.resolvedBaseUrl(), modelId, userKey) ?: ""
+    }
+
+    /**
      * v1.0.1: 429 限流时切换到下一个 key。
      *
      * 把当前 key 加入软黑名单(60s),然后选取下一个 key。

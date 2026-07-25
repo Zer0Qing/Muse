@@ -1187,7 +1187,11 @@ fun ChatScreen(
                             // HTML/SVG 代码块全屏预览
                             onHtmlPreview = onHtmlPreview,
                             // v1.138: 视觉辅助 UI — 分析中进度 + 已完成标签
-                            visionAssistProgress = if (msg.role == MessageRole.USER) state.visionProgress else null,
+                            // v1.0.16: 进度只在正在分析的那条消息上显示(messageId 匹配),避免所有 USER 消息同时显示"分析中"
+                            visionAssistProgress = if (
+                                msg.role == MessageRole.USER &&
+                                state.visionProgress?.messageId == msg.id.toString()
+                            ) state.visionProgress else null,
                             visionAssisted = if (msg.role == MessageRole.USER) msg.id.toString() in state.visionAssistedMessageIds else false,
                         )
                         // 消息分支选择器:assistant 消息且有多分支时显示左右箭头切换
@@ -1246,6 +1250,11 @@ fun ChatScreen(
                             alwaysAllow = approval.alwaysAllow,
                             onAlwaysAllowChanged = { checked ->
                                 viewModel.setToolApprovalAlwaysAllow(approval.toolCallId, checked)
+                            },
+                            // v1.0.16: 本次开启期间批准全部工具
+                            appRunAllowAll = approval.appRunAllowAll,
+                            onAppRunAllowAllChanged = { checked ->
+                                viewModel.setToolApprovalAppRunAllowAll(approval.toolCallId, checked)
                             },
                         )
                     }

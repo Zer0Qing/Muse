@@ -3,6 +3,8 @@ package io.zer0.muse.ui.translate
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -16,6 +18,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -28,14 +31,20 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material.icons.outlined.SwapHoriz
+import androidx.compose.material.icons.outlined.Calculate
+import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -54,6 +63,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -73,7 +83,11 @@ import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -101,13 +115,48 @@ fun TranslateScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val ocrManager: io.zer0.muse.doc.OcrManager = koinInject()
     var showClearHistoryDialog by remember { mutableStateOf(false) }
+    // v1.0.30 gap4.4: 批量翻译对话框
+    var showBatchDialog by remember { mutableStateOf(false) }
+    // v1.0.30 gap4.5: 自定义风格对话框
+    var showCustomStyleDialog by remember { mutableStateOf(false) }
+    // v1.0.30 gap4.6: 术语表对话框
+    var showGlossaryDialog by remember { mutableStateOf(false) }
+    // v1.0.30 gap4.7: OCR 识别中标志
+    var ocrRecognizing by remember { mutableStateOf(false) }
 
     // 错误消息 → Toast 提示(单次消费,避免重复弹)
     LaunchedEffect(state.errorMessage) {
         state.errorMessage?.let { msg ->
             MuseToast.show(context.getString(R.string.translate_page_error_failed, msg))
             viewModel.consumeError()
+        }
+    }
+
+    // v1.0.30 gap4.7: 相册图片选择 → OCR 识别 → 填入输入框
+    val imagePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        ocrRecognizing = true
+        scope.launch {
+            val text = withContext(Dispatchers.IO) {
+                runCatching { ocrManager.recognize(uri, context) }
+                    .getOrElse {
+                        MuseToast.show(context.getString(R.string.translate_page_ocr_failed))
+                        ""
+                    }
+            }
+            ocrRecognizing = false
+            when {
+                text.isBlank() -> MuseToast.show(context.getString(R.string.translate_page_ocr_empty))
+                else -> {
+                    viewModel.applyOcrText(text)
+                    MuseToast.show(context.getString(R.string.translate_page_ocr_applied))
+                }
+            }
         }
     }
 
@@ -140,6 +189,8 @@ fun TranslateScreen(
                 text = state.inputText,
                 translating = state.translating,
                 translationStyle = state.translationStyle,
+                customStyles = state.customStyles,
+                glossaryCount = state.glossary.size,
                 onTextChange = { viewModel.updateInput(it) },
                 onStyleChange = { viewModel.updateTranslationStyle(it) },
                 onPaste = {
@@ -163,6 +214,15 @@ fun TranslateScreen(
                     }
                 },
                 onTranslate = { viewModel.translate() },
+                // gap4.4: 批量翻译入口
+                onBatchTranslate = { showBatchDialog = true },
+                // gap4.5: 自定义风格管理入口
+                onManageCustomStyles = { showCustomStyleDialog = true },
+                // gap4.6: 术语表管理入口
+                onManageGlossary = { showGlossaryDialog = true },
+                // gap4.7: OCR 拍照翻译入口
+                onOcr = { imagePicker.launch("image/*") },
+                ocrRecognizing = ocrRecognizing,
             )
 
             // ── 译文结果区 ──
@@ -196,6 +256,15 @@ fun TranslateScreen(
                     MuseToast.show(context.getString(R.string.translate_page_history_loaded))
                 },
                 onClearClick = { showClearHistoryDialog = true },
+                onToggleFavorite = { item ->
+                    viewModel.toggleFavorite(item)
+                    MuseToast.show(
+                        context.getString(
+                            if (item.favorite) R.string.translate_page_favorite_removed
+                            else R.string.translate_page_favorite_added
+                        )
+                    )
+                },
             )
 
             // 底部留白
@@ -224,6 +293,66 @@ fun TranslateScreen(
             dismissText = stringResource(R.string.common_cancel),
             onDismiss = { showClearHistoryDialog = false },
             destructive = true,
+        )
+    }
+
+    // gap4.4: 批量翻译对话框
+    if (showBatchDialog) {
+        BatchTranslateDialog(
+            translating = state.batchTranslating,
+            results = state.batchResults,
+            targetLanguage = state.targetLanguage,
+            onDismiss = {
+                viewModel.cancelBatchTranslation()
+                viewModel.clearBatchResults()
+                showBatchDialog = false
+            },
+            onTranslate = { texts ->
+                viewModel.translateBatch(texts, state.targetLanguage)
+            },
+            onCopyResults = { results ->
+                val merged = results.joinToString("\n\n") { it.translated }
+                copyToClipboard(context, merged)
+                MuseToast.show(context.getString(R.string.translate_page_copied))
+            },
+        )
+    }
+
+    // gap4.5: 自定义风格管理对话框
+    if (showCustomStyleDialog) {
+        CustomStyleDialog(
+            customStyles = state.customStyles,
+            onDismiss = { showCustomStyleDialog = false },
+            onAdd = { name, prompt ->
+                if (name.isBlank()) {
+                    MuseToast.show(context.getString(R.string.translate_page_custom_style_empty_name))
+                } else {
+                    viewModel.addCustomStyle(name, prompt)
+                    MuseToast.show(context.getString(R.string.translate_page_custom_style_added))
+                }
+            },
+            onRemove = { name ->
+                if (viewModel.removeCustomStyle(name)) {
+                    MuseToast.show(context.getString(R.string.translate_page_custom_style_removed))
+                }
+            },
+        )
+    }
+
+    // gap4.6: 术语表管理对话框
+    if (showGlossaryDialog) {
+        GlossaryDialog(
+            glossary = state.glossary,
+            onDismiss = { showGlossaryDialog = false },
+            onAdd = { original, translated ->
+                viewModel.addGlossaryEntry(original, translated)
+                MuseToast.show(context.getString(R.string.translate_page_glossary_added))
+            },
+            onRemove = { original ->
+                if (viewModel.removeGlossaryEntry(original)) {
+                    MuseToast.show(context.getString(R.string.translate_page_glossary_removed))
+                }
+            },
         )
     }
 }
@@ -440,6 +569,9 @@ private fun LanguagePickerDialog(
 
 /**
  * 原文输入大卡片 — 输入区域 + 风格选择 + 工具栏 + 主翻译按钮。
+ *
+ * v1.0.30 gap4.4 ~ gap4.7: 工具栏新增"批量翻译/拍照翻译/术语表"图标按钮,
+ * 风格选择区显示默认风格 + 用户自定义风格,并提供"+"入口管理自定义风格。
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -447,6 +579,8 @@ private fun SourceInputCard(
     text: String,
     translating: Boolean,
     translationStyle: String,
+    customStyles: List<TranslateViewModel.CustomStyle>,
+    glossaryCount: Int,
     onTextChange: (String) -> Unit,
     onStyleChange: (String) -> Unit,
     onPaste: () -> Unit,
@@ -454,6 +588,11 @@ private fun SourceInputCard(
     onCopy: () -> Unit,
     onSpeak: () -> Unit,
     onTranslate: () -> Unit,
+    onBatchTranslate: () -> Unit,
+    onManageCustomStyles: () -> Unit,
+    onManageGlossary: () -> Unit,
+    onOcr: () -> Unit,
+    ocrRecognizing: Boolean,
 ) {
     Surface(
         shape = MuseShapes.extraLarge,
@@ -496,39 +635,55 @@ private fun SourceInputCard(
                 shape = MuseShapes.large,
             )
 
-            // 翻译风格选择
-            Text(
-                text = stringResource(R.string.translate_page_style_label),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            // 翻译风格选择 — 默认风格 + 自定义风格 + 添加按钮
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(R.string.translate_page_style_label),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                // gap4.5: 自定义风格管理入口
+                TextButton(
+                    onClick = onManageCustomStyles,
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Add,
+                        contentDescription = stringResource(R.string.translate_page_custom_style_add),
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(Modifier.size(4.dp))
+                    Text(
+                        text = stringResource(R.string.translate_page_custom_style_add),
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                }
+            }
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
+                // 默认风格
                 TranslateViewModel.TRANSLATION_STYLES.forEach { style ->
-                    val selected = style == translationStyle
-                    Surface(
-                        shape = MuseShapes.pill,
-                        color = if (selected) {
-                            MaterialTheme.colorScheme.primaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                        },
-                        onClick = { if (!translating) onStyleChange(style) },
-                    ) {
-                        Text(
-                            text = style,
-                            style = MaterialTheme.typography.labelLarge,
-                            color = if (selected) {
-                                MaterialTheme.colorScheme.onPrimaryContainer
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        )
-                    }
+                    StyleChip(
+                        label = style,
+                        selected = style == translationStyle,
+                        enabled = !translating,
+                        onClick = { onStyleChange(style) },
+                    )
+                }
+                // gap4.5: 自定义风格
+                customStyles.forEach { cs ->
+                    StyleChip(
+                        label = cs.name,
+                        selected = cs.name == translationStyle,
+                        enabled = !translating,
+                        onClick = { onStyleChange(cs.name) },
+                    )
                 }
             }
 
@@ -565,6 +720,50 @@ private fun SourceInputCard(
                         onClick = onSpeak,
                         enabled = !translating && text.isNotBlank(),
                     )
+                    // gap4.4: 批量翻译入口
+                    ActionIconButton(
+                        icon = Icons.Outlined.Calculate,
+                        contentDescription = stringResource(R.string.translate_page_batch_translate),
+                        onClick = onBatchTranslate,
+                        enabled = !translating,
+                    )
+                    // gap4.6: 术语表入口(显示数量徽标)
+                    Box {
+                        ActionIconButton(
+                            icon = Icons.Outlined.MenuBook,
+                            contentDescription = stringResource(
+                                R.string.translate_page_glossary_count, glossaryCount
+                            ),
+                            onClick = onManageGlossary,
+                            enabled = true,
+                        )
+                        if (glossaryCount > 0) {
+                            // 简单的角标显示数量
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .size(14.dp)
+                                    .padding(0.dp),
+                            ) {
+                                Text(
+                                    text = if (glossaryCount > 9) "9+" else "$glossaryCount",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(2.dp),
+                                )
+                            }
+                        }
+                    }
+                    // gap4.7: OCR 拍照翻译入口
+                    ActionIconButton(
+                        icon = Icons.Outlined.PhotoCamera,
+                        contentDescription = stringResource(R.string.translate_page_ocr),
+                        onClick = onOcr,
+                        enabled = !translating && !ocrRecognizing,
+                    )
                 }
 
                 TranslateButton(
@@ -572,7 +771,54 @@ private fun SourceInputCard(
                     enabled = !translating && text.isNotBlank(),
                 )
             }
+            // gap4.7: OCR 识别中提示
+            if (ocrRecognizing) {
+                LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                )
+                Text(
+                    text = stringResource(R.string.translate_page_ocr_recognizing),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.outline,
+                )
+            }
         }
+    }
+}
+
+/**
+ * v1.0.30 gap4.5: 风格 chip — 默认风格与自定义风格共用。
+ */
+@Composable
+private fun StyleChip(
+    label: String,
+    selected: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    Surface(
+        shape = MuseShapes.pill,
+        color = if (selected) {
+            MaterialTheme.colorScheme.primaryContainer
+        } else {
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+        },
+        onClick = { if (enabled) onClick() },
+        enabled = enabled,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            color = if (selected) {
+                MaterialTheme.colorScheme.onPrimaryContainer
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+        )
     }
 }
 
@@ -791,12 +1037,15 @@ private fun copyToClipboard(context: Context, text: String) {
 
 /**
  * 翻译历史区 — 展示最近 N 条翻译记录,点击加载到输入框重新翻译或查看。
+ *
+ * v1.0.30 gap4.3: 每条记录右上角增加星标按钮,可切换收藏状态。
  */
 @Composable
 private fun TranslateHistorySection(
     history: List<TranslateViewModel.TranslateHistoryItem>,
     onItemClick: (TranslateViewModel.TranslateHistoryItem) -> Unit,
     onClearClick: () -> Unit,
+    onToggleFavorite: (TranslateViewModel.TranslateHistoryItem) -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -854,18 +1103,25 @@ private fun TranslateHistorySection(
 
     Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap)) {
         history.forEach { item ->
-            TranslateHistoryItemCard(item = item, onClick = { onItemClick(item) })
+            TranslateHistoryItemCard(
+                item = item,
+                onClick = { onItemClick(item) },
+                onToggleFavorite = { onToggleFavorite(item) },
+            )
         }
     }
 }
 
 /**
  * 单条翻译历史卡片 — 双行(原文/译文)布局,顶部展示源→目标语言流向 chip 和相对时间。
+ *
+ * v1.0.30 gap4.3: 右上角增加星标按钮,点击切换收藏状态(不触发卡片点击)。
  */
 @Composable
 private fun TranslateHistoryItemCard(
     item: TranslateViewModel.TranslateHistoryItem,
     onClick: () -> Unit,
+    onToggleFavorite: () -> Unit,
 ) {
     val timeText = remember(item.timestamp) { formatHistoryTime(item.timestamp) }
     val sourceLabel = stringResource(R.string.translate_page_history_source_label)
@@ -921,12 +1177,36 @@ private fun TranslateHistoryItemCard(
                         )
                     }
                 }
-                // 相对时间
-                Text(
-                    text = timeText,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline,
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    // 相对时间
+                    Text(
+                        text = timeText,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                    // gap4.3: 收藏星标按钮
+                    IconButton(
+                        onClick = onToggleFavorite,
+                        modifier = Modifier.size(28.dp),
+                    ) {
+                        Icon(
+                            imageVector = if (item.favorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                            contentDescription = stringResource(
+                                if (item.favorite) R.string.translate_page_favorite_remove
+                                else R.string.translate_page_favorite_add
+                            ),
+                            tint = if (item.favorite) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.outline
+                            },
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                }
             }
             // 原文(单行省略号)
             HistoryTextLine(label = sourceLabel, text = item.sourceText)
@@ -970,4 +1250,364 @@ private fun formatHistoryTime(timestamp: Long): String {
         diff < 24 * 60 * 60_000 -> "${diff / (60 * 60_000)} 小时前"
         else -> SimpleDateFormat("MM-dd HH:mm", Locale.getDefault()).format(Date(timestamp))
     }
+}
+
+// ── v1.0.30 gap4.4: 批量翻译对话框 ──
+
+/**
+ * 批量翻译对话框 — 输入多段文本(每行一段),一次性翻译并展示结果。
+ *
+ * 用户可关闭对话框(取消正在进行的翻译),也可在结果出来后一键复制全部译文。
+ */
+@Composable
+private fun BatchTranslateDialog(
+    translating: Boolean,
+    results: List<TranslateViewModel.BatchResult>,
+    targetLanguage: String,
+    onDismiss: () -> Unit,
+    onTranslate: (List<String>) -> Unit,
+    onCopyResults: (List<TranslateViewModel.BatchResult>) -> Unit,
+) {
+    var inputText by rememberSaveable { mutableStateOf("") }
+    MuseDialog(
+        onDismissRequest = onDismiss,
+        title = stringResource(R.string.translate_page_batch_title),
+        content = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+            ) {
+                OutlinedTextField(
+                    value = inputText,
+                    onValueChange = { inputText = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 120.dp, max = 240.dp),
+                    placeholder = { Text(stringResource(R.string.translate_page_batch_input_hint)) },
+                    enabled = !translating,
+                    minLines = 4,
+                    maxLines = 10,
+                    shape = MuseShapes.large,
+                )
+                if (translating) {
+                    LinearProgressIndicator(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    )
+                    Text(
+                        text = stringResource(R.string.translate_page_batch_translating),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                }
+                if (results.isNotEmpty()) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    Text(
+                        text = stringResource(R.string.translate_page_batch_results_title, results.size),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 200.dp)
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        results.forEach { r ->
+                            Surface(
+                                shape = MuseShapes.large,
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                                ) {
+                                    Text(
+                                        text = r.original,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.outline,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                    Text(
+                                        text = r.translated,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    TextButton(onClick = { onCopyResults(results) }) {
+                        Icon(
+                            imageVector = Icons.Filled.ContentCopy,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(Modifier.size(4.dp))
+                        Text(stringResource(R.string.translate_page_copy))
+                    }
+                }
+            }
+        },
+        confirmText = stringResource(R.string.translate_page_batch_run),
+        onConfirm = {
+            val texts = inputText.split("\n").map { it.trim() }.filter { it.isNotEmpty() }
+            if (texts.isEmpty()) return@MuseDialog
+            onTranslate(texts)
+        },
+        dismissText = stringResource(R.string.translate_page_batch_cancel),
+        onDismiss = onDismiss,
+    )
+}
+
+// ── v1.0.30 gap4.5: 自定义风格管理对话框 ──
+
+/**
+ * 自定义风格管理对话框 — 添加/删除自定义风格。
+ *
+ * 已添加的风格以列表项形式展示(名称 + 删除按钮),底部有"名称 + 指令 + 保存"添加区。
+ */
+@Composable
+private fun CustomStyleDialog(
+    customStyles: List<TranslateViewModel.CustomStyle>,
+    onDismiss: () -> Unit,
+    onAdd: (name: String, prompt: String) -> Unit,
+    onRemove: (name: String) -> Unit,
+) {
+    var name by rememberSaveable { mutableStateOf("") }
+    var prompt by rememberSaveable { mutableStateOf("") }
+    MuseDialog(
+        onDismissRequest = onDismiss,
+        title = stringResource(R.string.translate_page_custom_style_add),
+        content = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+            ) {
+                if (customStyles.isNotEmpty()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 200.dp)
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        customStyles.forEach { cs ->
+                            Surface(
+                                shape = MuseShapes.large,
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = cs.name,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            fontWeight = FontWeight.SemiBold,
+                                        )
+                                        if (cs.prompt.isNotEmpty()) {
+                                            Text(
+                                                text = cs.prompt,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.outline,
+                                                maxLines = 2,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
+                                        }
+                                    }
+                                    IconButton(
+                                        onClick = { onRemove(cs.name) },
+                                        modifier = Modifier.size(28.dp),
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.DeleteOutline,
+                                            contentDescription = stringResource(R.string.translate_page_custom_style_remove),
+                                            tint = MaterialTheme.colorScheme.outline,
+                                            modifier = Modifier.size(18.dp),
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                }
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(stringResource(R.string.translate_page_custom_style_name)) },
+                    singleLine = true,
+                    shape = MuseShapes.large,
+                )
+                OutlinedTextField(
+                    value = prompt,
+                    onValueChange = { prompt = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(stringResource(R.string.translate_page_custom_style_prompt)) },
+                    minLines = 2,
+                    maxLines = 4,
+                    shape = MuseShapes.large,
+                )
+            }
+        },
+        confirmText = stringResource(R.string.translate_page_custom_style_save),
+        onConfirm = {
+            if (name.isBlank()) return@MuseDialog
+            onAdd(name.trim(), prompt.trim())
+            name = ""
+            prompt = ""
+        },
+        dismissText = stringResource(R.string.common_cancel),
+        onDismiss = onDismiss,
+    )
+}
+
+// ── v1.0.30 gap4.6: 术语表管理对话框 ──
+
+/**
+ * 术语表管理对话框 — 添加/删除原文→译文映射。
+ *
+ * 已存在的术语以列表项形式展示(原文 → 译文 + 删除按钮),底部有添加输入区。
+ */
+@Composable
+private fun GlossaryDialog(
+    glossary: Map<String, String>,
+    onDismiss: () -> Unit,
+    onAdd: (original: String, translated: String) -> Unit,
+    onRemove: (original: String) -> Unit,
+) {
+    var original by rememberSaveable { mutableStateOf("") }
+    var translated by rememberSaveable { mutableStateOf("") }
+    MuseDialog(
+        onDismissRequest = onDismiss,
+        title = stringResource(R.string.translate_page_glossary_title),
+        content = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+            ) {
+                Text(
+                    text = stringResource(R.string.translate_page_glossary_count, glossary.size),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.outline,
+                )
+                if (glossary.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.translate_page_glossary_empty),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.padding(vertical = 8.dp),
+                    )
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 200.dp)
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        glossary.forEach { (src, dst) ->
+                            Surface(
+                                shape = MuseShapes.large,
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    Row(
+                                        modifier = Modifier.weight(1f),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    ) {
+                                        Text(
+                                            text = src,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            fontWeight = FontWeight.SemiBold,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                        )
+                                        Icon(
+                                            imageVector = Icons.Outlined.SwapHoriz,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.outline,
+                                            modifier = Modifier.size(12.dp),
+                                        )
+                                        Text(
+                                            text = dst,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                        )
+                                    }
+                                    IconButton(
+                                        onClick = { onRemove(src) },
+                                        modifier = Modifier.size(28.dp),
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.DeleteOutline,
+                                            contentDescription = stringResource(R.string.translate_page_glossary_remove),
+                                            tint = MaterialTheme.colorScheme.outline,
+                                            modifier = Modifier.size(18.dp),
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    OutlinedTextField(
+                        value = original,
+                        onValueChange = { original = it },
+                        modifier = Modifier.weight(1f),
+                        label = { Text(stringResource(R.string.translate_page_glossary_original)) },
+                        singleLine = true,
+                        shape = MuseShapes.large,
+                    )
+                    OutlinedTextField(
+                        value = translated,
+                        onValueChange = { translated = it },
+                        modifier = Modifier.weight(1f),
+                        label = { Text(stringResource(R.string.translate_page_glossary_translated)) },
+                        singleLine = true,
+                        shape = MuseShapes.large,
+                    )
+                }
+            }
+        },
+        confirmText = stringResource(R.string.translate_page_glossary_add),
+        onConfirm = {
+            if (original.isBlank() || translated.isBlank()) return@MuseDialog
+            onAdd(original.trim(), translated.trim())
+            original = ""
+            translated = ""
+        },
+        dismissText = stringResource(R.string.common_cancel),
+        onDismiss = onDismiss,
+    )
 }

@@ -28,13 +28,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.outlined.Bolt
+import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.Calculate
 import androidx.compose.material.icons.outlined.Expand
 import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material.icons.outlined.Height
 import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.SmartButton
 import androidx.compose.material.icons.outlined.Thermostat
@@ -74,6 +77,7 @@ import io.zer0.muse.data.ChatPreferences
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.sticker.StickerItem
 import io.zer0.muse.data.sticker.StickerLibraryRepository
+import io.zer0.muse.tools.SessionPermissionMode
 import io.zer0.muse.ui.common.ChevronRight
 import io.zer0.muse.ui.common.MuseDialog
 import io.zer0.muse.ui.common.MuseToast
@@ -104,10 +108,14 @@ import org.koin.compose.koinInject
  *
  * 所有开关打包到 [ChatPreferences] 数据类里一次序列化存储。
  * MessageBubble / ChatScreen / InputBar 读取这些开关决定渲染与交互行为。
+ *
+ * v1.0.20: 新增"工具调用批准"分组(置顶),含三档会话权限模式 + 单工具策略管理入口。
  */
 @Composable
 fun ChatSettingsPage(
     onBack: () -> Unit,
+    /** v1.0.20: 打开工具批准管理页(单工具策略)。 */
+    onOpenToolsSettings: () -> Unit = {},
 ) {
     val settings: SettingsRepository = koinInject()
     val prefs by settings.chatPreferencesFlow.collectAsStateWithLifecycle(initialValue = ChatPreferences())
@@ -117,7 +125,78 @@ fun ChatSettingsPage(
         scope.launch { settings.saveChatPreferences(block(prefs)) }
     }
 
+    // v1.0.20: 全局默认会话权限模式(三档:TRUSTED / ASK / STRICT)
+    val permissionMode by settings.defaultSessionPermissionModeFlow
+        .collectAsStateWithLifecycle(initialValue = SessionPermissionMode.ASK)
+
     SettingsSubPageScaffold(title = stringResource(R.string.settings_chat_title), onBack = onBack) {
+        // ── v1.0.20: 工具调用批准(置顶,用户最关心的安全开关)──
+        item { SectionLabel(stringResource(R.string.settings_chat_tool_approval_section)) }
+        item {
+            SettingsGroup {
+                // 三档会话权限模式分段选择
+                val modeOptions = listOf(
+                    stringResource(R.string.settings_chat_tool_approval_trusted),
+                    stringResource(R.string.settings_chat_tool_approval_ask),
+                    stringResource(R.string.settings_chat_tool_approval_strict),
+                )
+                val modeIndex = when (permissionMode) {
+                    SessionPermissionMode.TRUSTED -> 0
+                    SessionPermissionMode.ASK -> 1
+                    SessionPermissionMode.STRICT -> 2
+                }
+                SettingsSegmentedRow(
+                    icon = Icons.Outlined.Security,
+                    title = stringResource(R.string.settings_chat_tool_approval_title),
+                    subtitle = stringResource(R.string.settings_chat_tool_approval_subtitle),
+                    options = modeOptions,
+                    selectedIndex = modeIndex,
+                    onSelectedChange = { idx ->
+                        val newMode = when (idx) {
+                            0 -> SessionPermissionMode.TRUSTED
+                            2 -> SessionPermissionMode.STRICT
+                            else -> SessionPermissionMode.ASK
+                        }
+                        scope.launch { settings.setDefaultSessionPermissionMode(newMode) }
+                    },
+                )
+                SettingsGroupDivider()
+                // 跳转到单工具策略管理页
+                SettingsItemRow(
+                    icon = Icons.Outlined.Build,
+                    title = stringResource(R.string.settings_chat_tool_approval_per_tool),
+                    subtitle = stringResource(R.string.settings_chat_tool_approval_per_tool_subtitle),
+                    onClick = onOpenToolsSettings,
+                ) { ChevronRight() }
+                SettingsGroupDivider()
+                // 当前模式说明(动态显示)
+                val modeDescRes = when (permissionMode) {
+                    SessionPermissionMode.TRUSTED -> R.string.settings_chat_tool_approval_trusted_desc
+                    SessionPermissionMode.ASK -> R.string.settings_chat_tool_approval_ask_desc
+                    SessionPermissionMode.STRICT -> R.string.settings_chat_tool_approval_strict_desc
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(MusePaddings.cardInner),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Lock,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.size(MuseIconSizes.iconMedium),
+                    )
+                    Text(
+                        text = stringResource(modeDescRes),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                }
+            }
+        }
+
         // ── 1. 消息显示 ──
         item { SectionLabel(stringResource(R.string.settings_chat_message_display)) }
         item {

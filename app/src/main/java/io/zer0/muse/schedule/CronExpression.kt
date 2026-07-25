@@ -182,9 +182,13 @@ class CronExpression internal constructor(
             if (fields.size != 5) {
                 throw IllegalArgumentException("cron expression must have 5 fields: $expr")
             }
+            // v1.0.17: Quartz `?` 表示"不指定"(用于 day-of-month/day-of-week 互斥),
+            // 统一替换为 `*` 匹配任意值,避免下游解析报错。
+            val domField = if (fields[2] == "?") "*" else fields[2]
+            val dowField = if (fields[4] == "?") "*" else fields[4]
             // v1.134 P3: 先解析 day-of-month 和 day-of-week 的高级修饰符
-            val (domSet, domMod) = parseDayOfMonthField(fields[2])
-            val (dowSet, dowMod) = parseDayOfWeekField(fields[4])
+            val (domSet, domMod) = parseDayOfMonthField(domField)
+            val (dowSet, dowMod) = parseDayOfWeekField(dowField)
             return CronExpression(
                 minutes = parseField(fields[0], 0, 59),
                 hours = parseField(fields[1], 0, 23),
@@ -278,7 +282,8 @@ class CronExpression internal constructor(
 
         /** 解析单段:任意值 *、步进 * /N、精确值 N、范围 N-M。 */
         private fun parseSegment(segment: String, min: Int, max: Int): Set<Int> {
-            if (segment == "*") {
+            // v1.0.17: Quartz `?` 表示"不指定",视为 `*` 匹配任意值。
+            if (segment == "*" || segment == "?") {
                 return (min..max).toSet()
             }
             if (segment.startsWith("*/")) {

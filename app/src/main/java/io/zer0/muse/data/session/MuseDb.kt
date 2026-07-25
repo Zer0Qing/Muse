@@ -3,6 +3,7 @@ package io.zer0.muse.data.session
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import android.content.Context
@@ -29,6 +30,9 @@ import io.zer0.muse.data.promptinjection.PromptInjectionDao
 import io.zer0.muse.data.promptinjection.PromptInjectionEntity
 import io.zer0.muse.data.quickmsg.QuickMessageDao
 import io.zer0.muse.data.quickmsg.QuickMessageEntity
+import io.zer0.muse.data.quicknote.QuickNoteConverters
+import io.zer0.muse.data.quicknote.QuickNoteDao
+import io.zer0.muse.data.quicknote.QuickNoteEntity
 import io.zer0.muse.data.schedule.ScheduledTaskDao
 import io.zer0.muse.data.schedule.ScheduledTaskEntity
 import io.zer0.muse.data.schedule.ScheduledTaskExecutionDao
@@ -47,6 +51,8 @@ import io.zer0.muse.data.stats.DbIntegrityLogDao
 import io.zer0.muse.data.stats.DbIntegrityLogEntity
 import io.zer0.muse.data.stats.StatsCacheDao
 import io.zer0.muse.data.stats.StatsCacheEntity
+import io.zer0.muse.ui.translate.TranslateHistoryDao
+import io.zer0.muse.ui.translate.TranslateHistoryEntity
 import io.zer0.common.Logger
 
 /**
@@ -77,6 +83,14 @@ import io.zer0.common.Logger
  * v0.45: 版本 11 → 12,sessions 加 archived 字段(归档功能)。
  * v1.43: 版本 15 → 16,新增 artifacts 表 + messages.artifactIdsJson 字段(会话产物)。
  * v1.0.23 hotfix: 版本 41 → 42,修复"假 v41"数据库 integrity check 崩溃(防御性补字段,无 schema 变更)。
+ * v1.0.17: 版本 43 → 44,新增 translate_history 表(翻译历史持久化)。
+ * v1.0.17: 版本 44 → 45,新增 quick_notes 表(快速记录 Room 持久化 + 回收站)。
+ *   替代原 QuickNoteStore 的 JSON 文件存储;QuickNoteStore 保留作为迁移源 + 兼容格式化。
+ *   tags 列通过 QuickNoteConverters 逗号分隔 TypeConverter 处理 List<String>。
+ * v1.0.17: 版本 45 → 46,scheduled_tasks 加 retry_count + max_retries 列(执行失败重试策略)。
+ * v1.0.18: 版本 47 → 48,quick_notes 加 folder/content_type/attachments_json/reminder_at/
+ *   encrypted/encrypted_content 6 列(快速记录 9 项增强:分类/富文本/附件/提醒/加密/分页等)。
+ * v1.0.30 gap4.3: 版本 46 → 47,translate_history 加 favorite 列(翻译收藏夹)。
  */
 @Database(
     entities = [
@@ -112,10 +126,15 @@ import io.zer0.common.Logger
         KnowledgeBaseEntity::class,
         // v1.0.15: 消息发送 outbox(持久化发送队列,进程被杀后恢复未发送消息)
         MessageOutboxEntity::class,
+        // v1.0.17: 翻译历史持久化
+        TranslateHistoryEntity::class,
+        // v1.0.17: 快速记录(替代 JSON 文件存储 + 回收站)
+        QuickNoteEntity::class,
     ],
-    version = 43,
+    version = 48,
     exportSchema = true,
 )
+@TypeConverters(QuickNoteConverters::class)
 abstract class MuseDb : RoomDatabase() {
     abstract fun sessionDao(): SessionDao
     abstract fun messageDao(): MessageDao
@@ -149,6 +168,10 @@ abstract class MuseDb : RoomDatabase() {
     abstract fun integrityLogDao(): DbIntegrityLogDao
     // v1.0.15: 消息发送 outbox DAO
     abstract fun messageOutboxDao(): MessageOutboxDao
+    // v1.0.17: 翻译历史 DAO
+    abstract fun translateHistoryDao(): TranslateHistoryDao
+    // v1.0.17: 快速记录 DAO(替代 JSON 文件存储 + 回收站)
+    abstract fun quickNoteDao(): QuickNoteDao
 
     companion object {
         @Volatile
@@ -1290,6 +1313,123 @@ abstract class MuseDb : RoomDatabase() {
             }
         }
 
+        /**
+         * v1.0.17: MIGRATION_43_44 — 新增 translate_history 表(翻译历史持久化)。
+         *
+         * 翻译历史此前仅内存保留(MAX_HISTORY=50),进程被杀即丢失。
+         * 迁移仅建表 + 索引,无数据迁移(旧版历史本就不持久化)。
+         */
+        val MIGRATION_43_44 = object : Migration(43, 44) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // translate_history 表(SQL 必须与 TranslateHistoryEntity @Entity 注解生成的完全一致)
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS translate_history (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        source_text TEXT NOT NULL,
+                        translated_text TEXT NOT NULL,
+                        source_language TEXT NOT NULL,
+                        target_language TEXT NOT NULL,
+                        style TEXT NOT NULL,
+                        created_at INTEGER NOT NULL
+                    )
+                """.trimIndent())
+                // 索引: 按时间倒序查询历史(对应 @Index 注解)
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_translate_history_created_at ON translate_history(created_at)")
+                // 索引: 按语言对查询(对应 @Index 注解)
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_translate_history_source_language_target_language ON translate_history(source_language, target_language)")
+            }
+        }
+
+        /**
+         * v1.0.17: MIGRATION_44_45 — 新增 quick_notes 表(快速记录 Room 持久化 + 回收站)。
+         *
+         * 替代 QuickNoteStore 的 JSON 文件存储;App 启动时由 QuickNoteStore.migrateToRoom
+         * 把旧数据导入 Room(通过 SharedPreferences 标志 quick_notes_migrated 保证幂等)。
+         *
+         * tags 列存逗号分隔字符串(由 QuickNoteConverters TypeConverter 处理 List<String> ↔ String)。
+         */
+        val MIGRATION_44_45 = object : Migration(44, 45) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // quick_notes 表(SQL 必须与 QuickNoteEntity @Entity 注解生成的完全一致)
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS quick_notes (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        title TEXT NOT NULL,
+                        content TEXT NOT NULL,
+                        tags TEXT NOT NULL,
+                        pinned INTEGER NOT NULL DEFAULT 0,
+                        deleted INTEGER NOT NULL DEFAULT 0,
+                        deleted_at INTEGER NOT NULL DEFAULT 0,
+                        created_at INTEGER NOT NULL DEFAULT 0,
+                        updated_at INTEGER NOT NULL DEFAULT 0
+                    )
+                """.trimIndent())
+                // 索引: 覆盖 observeActive / observeTrash 的 WHERE + ORDER BY
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_quick_notes_deleted_updated_at ON quick_notes(deleted, updated_at)")
+                // 索引: 覆盖 ORDER BY pinned DESC, updated_at DESC
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_quick_notes_pinned_updated_at ON quick_notes(pinned, updated_at)")
+            }
+        }
+
+        /**
+         * v1.0.17: MIGRATION_45_46 — 为 scheduled_tasks 增加重试字段。
+         *
+         * 新增:
+         *  - retry_count: 当前重试次数(默认 0,失败递增,成功/达上限重置)
+         *  - max_retries: 最大重试次数(默认 3)
+         *
+         * 用于 executeTask 中的指数退避重试策略。
+         */
+        val MIGRATION_45_46 = object : Migration(45, 46) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE scheduled_tasks ADD COLUMN retry_count INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE scheduled_tasks ADD COLUMN max_retries INTEGER NOT NULL DEFAULT 3")
+            }
+        }
+
+        /**
+         * v1.0.30 gap4.3: MIGRATION_46_47 — translate_history 加 favorite 列(翻译收藏夹)。
+         *
+         * 新字段默认 0(未收藏),用户可在翻译历史中点击星标收藏常用翻译。
+         * 索引 index_translate_history_favorite 覆盖 observeFavorites 查询
+         * (WHERE favorite=1 ORDER BY created_at DESC)。
+         *
+         * 注: v1.0.17 已用 MIGRATION_45_46 为 scheduled_tasks 加重试字段,
+         * 故本次翻译收藏夹采用 46 → 47。
+         */
+        val MIGRATION_46_47 = object : Migration(46, 47) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE translate_history ADD COLUMN favorite INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_translate_history_favorite ON translate_history(favorite)")
+            }
+        }
+
+        /**
+         * v1.0.18: MIGRATION_47_48 — 快速记录增强(9 项)。
+         *
+         * 为 quick_notes 表添加 6 列:
+         *  - folder: 分类/文件夹(默认 '')
+         *  - content_type: 内容类型 plain/markdown(默认 'plain')
+         *  - attachments_json: 图片附件路径 JSON 数组(默认 '')
+         *  - reminder_at: 提醒时间戳(默认 0 = 无提醒)
+         *  - encrypted: 加密标记(默认 0)
+         *  - encrypted_content: 加密内容密文(默认 '')
+         *
+         * 新增 folder 列索引,覆盖 observeByFolder 查询。
+         */
+        val MIGRATION_47_48 = object : Migration(47, 48) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE quick_notes ADD COLUMN folder TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE quick_notes ADD COLUMN content_type TEXT NOT NULL DEFAULT 'plain'")
+                db.execSQL("ALTER TABLE quick_notes ADD COLUMN attachments_json TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE quick_notes ADD COLUMN reminder_at INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE quick_notes ADD COLUMN encrypted INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE quick_notes ADD COLUMN encrypted_content TEXT NOT NULL DEFAULT ''")
+                // 索引: 覆盖 observeByFolder(WHERE folder = ?) + observeFolders(DISTINCT folder)
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_quick_notes_folder ON quick_notes(folder)")
+            }
+        }
+
     fun get(context: Context): MuseDb {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -1318,6 +1458,11 @@ abstract class MuseDb : RoomDatabase() {
                         MIGRATION_40_41,
                         MIGRATION_41_42,
                         MIGRATION_42_43,
+                        MIGRATION_43_44,
+                        MIGRATION_44_45,
+                        MIGRATION_45_46,
+                        MIGRATION_46_47,
+                        MIGRATION_47_48,
                     )
                     // 启用外键约束(artifacts 表的 ON DELETE CASCADE 依赖此设置)
                     // onOpen 不在 onCreate 事务内,可以执行此类命令;onCreate 内禁止 PRAGMA

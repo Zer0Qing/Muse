@@ -229,6 +229,18 @@
     <string name="quick_notes_send_to_chat">Send to new chat</string>
     <string name="quick_notes_more">More</string>
     <string name="quick_notes_clear_search">Clear search</string>
+    <!-- v1.0.17: Quick notes trash -->
+    <string name="quick_notes_trash">Trash</string>
+    <string name="quick_notes_trash_title">Trash</string>
+    <string name="quick_notes_trash_empty">Trash is empty</string>
+    <string name="quick_notes_trash_subtitle">Deleted notes are kept here; restore or permanently delete them</string>
+    <string name="quick_notes_restore">Restore</string>
+    <string name="quick_notes_delete_permanent">Delete permanently</string>
+    <string name="quick_notes_delete_permanent_title">Delete permanently</string>
+    <string name="quick_notes_delete_permanent_confirm">This cannot be undone. Permanently delete \"%1$s\"?</string>
+    <string name="quick_notes_clear_trash">Clear trash</string>
+    <string name="quick_notes_clear_trash_confirm">This will permanently delete all %1$d notes in trash. This cannot be undone.</string>
+    <string name="quick_notes_trash_count">Trash: %1$d</string>
 
     <!-- ===== ui/knowledge ===== -->
     <string name="knowledge_title">Knowledge base</string>

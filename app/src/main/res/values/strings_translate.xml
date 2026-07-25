@@ -37,4 +37,51 @@
     <string name="translate_page_history_cleared">历史已清空</string>
     <string name="translate_page_history_source_label">原文</string>
     <string name="translate_page_history_translated_label">译文</string>
+
+    <!-- v1.0.30 gap4.3: 翻译收藏夹 -->
+    <string name="translate_page_favorite_add">收藏</string>
+    <string name="translate_page_favorite_remove">取消收藏</string>
+    <string name="translate_page_favorite_added">已收藏</string>
+    <string name="translate_page_favorite_removed">已取消收藏</string>
+    <string name="translate_page_favorites_section">收藏夹</string>
+
+    <!-- v1.0.30 gap4.4: 批量翻译 -->
+    <string name="translate_page_batch_translate">批量翻译</string>
+    <string name="translate_page_batch_title">批量翻译</string>
+    <string name="translate_page_batch_input_hint">每行一段文本,将批量翻译</string>
+    <string name="translate_page_batch_run">开始批量翻译</string>
+    <string name="translate_page_batch_cancel">取消</string>
+    <string name="translate_page_batch_translating">批量翻译中…</string>
+    <string name="translate_page_batch_empty">请输入待翻译的文本</string>
+    <string name="translate_page_batch_results_title">批量翻译结果(%1$d 条)</string>
+
+    <!-- v1.0.30 gap4.5: 自定义风格 -->
+    <string name="translate_page_custom_style_add">添加风格</string>
+    <string name="translate_page_custom_style_name">风格名称</string>
+    <string name="translate_page_custom_style_prompt">风格指令(如\"使用古风文言文翻译\")</string>
+    <string name="translate_page_custom_style_save">保存</string>
+    <string name="translate_page_custom_style_remove">删除</string>
+    <string name="translate_page_custom_style_added">已添加自定义风格</string>
+    <string name="translate_page_custom_style_removed">已删除自定义风格</string>
+    <string name="translate_page_custom_style_empty_name">名称不能为空</string>
+
+    <!-- v1.0.30 gap4.6: 术语表 -->
+    <string name="translate_page_glossary">术语表</string>
+    <string name="translate_page_glossary_title">翻译术语表</string>
+    <string name="translate_page_glossary_original">原文术语</string>
+    <string name="translate_page_glossary_translated">译文术语</string>
+    <string name="translate_page_glossary_add">添加</string>
+    <string name="translate_page_glossary_remove">删除</string>
+    <string name="translate_page_glossary_empty">暂无术语</string>
+    <string name="translate_page_glossary_count">术语表(%1$d 条)</string>
+    <string name="translate_page_glossary_added">已添加术语</string>
+    <string name="translate_page_glossary_removed">已删除术语</string>
+
+    <!-- v1.0.30 gap4.7: OCR 翻译 -->
+    <string name="translate_page_ocr">拍照翻译</string>
+    <string name="translate_page_ocr_pick_image">从相册选择图片</string>
+    <string name="translate_page_ocr_recognizing">识别中…</string>
+    <string name="translate_page_ocr_empty">未识别到文字</string>
+    <string name="translate_page_ocr_failed">OCR 识别失败</string>
+    <string name="translate_page_ocr_applied">已识别文字填入输入框</string>
 </resources>

@@ -1,100 +1,294 @@
 package io.zer0.ai.video
 
-/**
- * P2-8: 视频生成服务。
- *
- * 设计选择:
- *  - 直接用 OkHttp 调用各家视频生成 API,不走 Provider 抽象
- *    (视频生成是异步任务模型,与 chat completions 协议差异大)
- *  - 每个 Provider 实现 [VideoGenerationProvider] 接口,
- *    [VideoGenerationService] 按 providerId 路由到对应实现
- *  - 当前已实现 [KlingVideoProvider](可灵);后续可扩展 Runway/Pika 等
- *
- * 任务流程:
- *  1. submitTask(request) → 返回 taskId
- *  2. queryTask(taskId) → 返回 [VideoTaskStatus]
- *  3. waitForCompletion(taskId) → 轮询直到 SUCCESS/FAILED/超时,返回视频 URL
- *
- * 限制:
- *  - 生成耗时较长(30s ~ 5min),UI 层需 Loading 指示
- *  - 部分 Provider 不支持图生视频(imageUrl 为空时走文生视频)
- */
+import io.zer0.ai.core.ProviderConfig
+import io.zer0.common.Logger
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
+import java.util.concurrent.ConcurrentHashMap
 
 /**
- * 视频生成 Provider 接口。
+ * v1.137: 视频生成统一服务(重构)。
  *
- * 每个 Provider 实现:
- *  - [submitTask]: 提交生成任务,返回任务 ID
- *  - [queryTask]: 查询任务状态
- *  - [waitForCompletion]: 轮询直到完成,返回视频 URL
+ * 设计:
+ *  - 通过 [VideoProviderRegistry] 按 specId / host / type 选择 [VideoProvider]
+ *    (修复 v1.136 的 providerId 硬匹配 bug:preset_kling ≠ kling 导致路由失败)
+ *  - 统一异步轮询机制(对齐参考实现 openhanako plugins/image-gen/lib/poller.ts):
+ *    - 5 秒一个 tick
+ *    - 按任务年龄自适应频率:
+ *      <2min 每 5s, 2-10min 每 15s, >10min 每 30s
+ *    - 连续 [MAX_CONSECUTIVE_ERRORS] 次查询错误才标记失败
+ *    - 取消围栏([cancelledTasks])防止 in-flight 查询在用户取消后误写
+ *  - 进度回调([onProgress])每 5 秒刷新"已生成 Xs"
+ *
+ * 用法:
+ * ```
+ * val service = VideoGenerationService(registry)
+ * val videoUrl = service.generateVideo(
+ *     providerConfig = config,
+ *     request = VideoGenRequest(prompt = "...", model = "..."),
+ *     onProgress = { elapsed -> updateUI("已生成 ${elapsed}s") },
+ * ).getOrThrow()
+ * ```
+ *
+ * @param registry Video Provider 注册表
  */
-interface VideoGenerationProvider {
-    /** Provider 唯一标识(如 "kling" / "runway")。 */
-    val providerId: String
-
-    /** UI 展示名称(如「可灵」/「Runway」)。 */
-    val displayName: String
-
+class VideoGenerationService(
+    private val registry: VideoProviderRegistry,
+) {
     /**
-     * 提交视频生成任务,返回任务 ID。
+     * 按 taskId 的取消围栏。
      *
-     * @param request 生成请求(prompt / model / 参考图 / 时长 / 分辨率 / apiKey)
-     * @return Result.success(taskId) 或 Result.failure(exception)
+     * 用户取消([cancel])后加入此集合;in-flight 的 poll 返回后检查围栏,
+     * 若已取消则丢弃结果,避免取消后的查询误更新状态。
      */
-    suspend fun submitTask(request: VideoGenerationRequest): Result<String>
+    private val cancelledTasks: ConcurrentHashMap<String, Boolean> = ConcurrentHashMap()
 
     /**
-     * 查询任务状态。
+     * 生成视频 — 提交任务 → 等待完成 → 返回视频 URL。
      *
-     * @param taskId 由 [submitTask] 返回的任务 ID
-     * @return Result.success([VideoTaskStatus]) 或 Result.failure(exception)
-     */
-    suspend fun queryTask(taskId: String): Result<VideoTaskStatus>
-
-    /**
-     * 等待任务完成(轮询,默认超时 5 分钟)。
-     *
-     * @param taskId 由 [submitTask] 返回的任务 ID
-     * @param timeoutMs 超时时间(毫秒),默认 5 分钟
+     * @param providerConfig 供应商配置(用于 registry 路由 + 注入 apiKey/baseUrl)
+     * @param request 生成请求(prompt / model / 参考图 / 时长 / 分辨率等)
+     * @param onProgress 进度回调,参数为已用秒数;每 5 秒触发一次;可为 null
+     * @param timeoutMs 总超时(毫秒),默认 10 分钟(视频生成最长约 5-10 分钟)
      * @return Result.success(videoUrl) 或 Result.failure(exception)
      */
-    suspend fun waitForCompletion(taskId: String, timeoutMs: Long = 5 * 60 * 1000): Result<String>
+    suspend fun generateVideo(
+        providerConfig: ProviderConfig,
+        request: VideoGenRequest,
+        onProgress: ((elapsedSec: Long) -> Unit)? = null,
+        timeoutMs: Long = DEFAULT_TIMEOUT_MS,
+    ): Result<String> = withContext(Dispatchers.IO) {
+        runCatching {
+            val provider = registry.selectFor(providerConfig)
+            Logger.i(
+                TAG,
+                "generateVideo: provider=${provider.providerId} " +
+                    "specId=${providerConfig.specId} host=${VideoProviderRegistry.extractHost(providerConfig.resolvedBaseUrl())}",
+            )
+
+            // 注入凭证
+            val requestWithCreds = request.copy(
+                apiKey = request.apiKey.ifBlank { providerConfig.apiKey },
+                baseUrl = request.baseUrl ?: providerConfig.resolvedBaseUrl(),
+                videoGenerationsPath = request.videoGenerationsPath
+                    ?: (providerConfig.resolvedSpecific() as? io.zer0.ai.core.ProviderSpecificConfig.OpenAI)?.videoGenerationsPath,
+            )
+
+            // 1. 提交任务
+            val submitResult = provider.submit(requestWithCreds)
+            val taskId = submitResult.taskId
+            if (taskId.isNullOrBlank()) {
+                error("视频任务提交失败:无 taskId")
+            }
+
+            // 同步返回:直接取 videoUrl
+            if (!submitResult.isAsync) {
+                val url = submitResult.videoUrl
+                    ?: error("视频任务同步返回但未提供 videoUrl")
+                onProgress?.invoke(0)
+                return@runCatching url
+            }
+
+            // 2. 异步轮询
+            pollUntilCompletion(
+                provider = provider,
+                taskId = taskId,
+                onProgress = onProgress,
+                timeoutMs = timeoutMs,
+            )
+        }
+    }
+
+    /**
+     * 仅提交任务(不等待完成),返回提交结果。
+     *
+     * 适用于 UI 层需要手动轮询的场景(如 VideoGenerationPage 后续可拆分提交/轮询)。
+     */
+    suspend fun submit(
+        providerConfig: ProviderConfig,
+        request: VideoGenRequest,
+    ): Result<VideoSubmitResult> = withContext(Dispatchers.IO) {
+        runCatching {
+            val provider = registry.selectFor(providerConfig)
+            val requestWithCreds = request.copy(
+                apiKey = request.apiKey.ifBlank { providerConfig.apiKey },
+                baseUrl = request.baseUrl ?: providerConfig.resolvedBaseUrl(),
+                videoGenerationsPath = request.videoGenerationsPath
+                    ?: (providerConfig.resolvedSpecific() as? io.zer0.ai.core.ProviderSpecificConfig.OpenAI)?.videoGenerationsPath,
+            )
+            provider.submit(requestWithCreds)
+        }
+    }
+
+    /**
+     * 取消指定 taskId 的任务。
+     *
+     * 加入取消围栏,后续 in-flight 的 poll 结果将被丢弃。
+     * 注意:本方法只标记本地取消,不会通知远端 API(各 Provider 的 cancel 语义由其自身实现)。
+     */
+    fun cancel(taskId: String) {
+        cancelledTasks[taskId] = true
+        Logger.i(TAG, "任务已取消: taskId=$taskId")
+    }
+
+    /**
+     * 轮询直到任务完成 / 失败 / 超时 / 取消。
+     *
+     * 自适应频率(对齐 QingTian Poller):
+     *  - 5s 一个 tick
+     *  - ageMs < 2min:     每 tick 都查(5s)
+     *  - 2min <= ageMs < 10min:  每 3 个 tick 查一次(15s)
+     *  - ageMs >= 10min:   每 6 个 tick 查一次(30s)
+     *
+     * 错误处理:
+     *  - 单次 poll 抛异常或返回 PENDING+errorMessage → 计入连续错误计数
+     *  - 连续 [MAX_CONSECUTIVE_ERRORS] 次错误才判失败(瞬时网络抖动可自愈)
+     *  - 任何一次成功查询(返回明确 SUCCESS/FAILED)重置错误计数
+     *
+     * 取消围栏:
+     *  - 每次 poll 返回后检查 [cancelledTasks]
+     *  - 若已取消,丢弃结果并抛出 [CancellationException]
+     */
+    private suspend fun pollUntilCompletion(
+        provider: VideoProvider,
+        taskId: String,
+        onProgress: ((elapsedSec: Long) -> Unit)?,
+        timeoutMs: Long,
+    ): String {
+        val startedAt = System.currentTimeMillis()
+        var tickCount = 0
+        var consecutiveErrors = 0
+        var lastProgressSec = -1L
+
+        val result = withTimeoutOrNull(timeoutMs) {
+            while (true) {
+                // 协程取消会通过 delay() / provider.poll() 传播,无需显式检查 isActive
+
+                val ageMs = System.currentTimeMillis() - startedAt
+                tickCount++
+
+                // 进度回调:每 5s 触发一次(每个 tick)
+                val elapsedSec = ageMs / 1000
+                if (onProgress != null && elapsedSec != lastProgressSec) {
+                    lastProgressSec = elapsedSec
+                    onProgress.invoke(elapsedSec)
+                }
+
+                // 自适应频率判断
+                if (shouldCheckThisTick(ageMs, tickCount)) {
+                    try {
+                        val pollResult = provider.poll(taskId)
+
+                        // 取消围栏:poll 返回后检查是否已被取消
+                        if (cancelledTasks.remove(taskId) != null) {
+                            throw CancellationException("任务已被用户取消: taskId=$taskId")
+                        }
+
+                        when (pollResult.status) {
+                            PollStatus.SUCCESS -> {
+                                consecutiveErrors = 0
+                                val url = pollResult.videoUrl
+                                    ?: error("${provider.providerId} 任务成功但未返回 videoUrl")
+                                return@withTimeoutOrNull url
+                            }
+                            PollStatus.FAILED -> {
+                                consecutiveErrors = 0
+                                error(pollResult.errorMessage ?: "${provider.providerId} 任务失败")
+                            }
+                            PollStatus.PENDING -> {
+                                // PENDING + errorMessage 表示查询本身出错(网络/HTTP 错误)
+                                if (pollResult.errorMessage != null) {
+                                    consecutiveErrors++
+                                    if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+                                        error(
+                                            "${provider.providerId} 任务连续 $consecutiveErrors 次查询失败," +
+                                                "最后错误: ${pollResult.errorMessage}",
+                                        )
+                                    }
+                                    Logger.w(
+                                        TAG,
+                                        "查询失败 (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS})" +
+                                            ",将重试: ${pollResult.errorMessage}",
+                                    )
+                                } else {
+                                    // 纯 PENDING(正常处理中),重置错误计数
+                                    consecutiveErrors = 0
+                                }
+                            }
+                        }
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        consecutiveErrors++
+                        if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+                            error(
+                                "${provider.providerId} 任务连续 $consecutiveErrors 次查询异常: ${e.message}",
+                            )
+                        }
+                        Logger.w(
+                            TAG,
+                            "查询异常 (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS})" +
+                                ",将重试: ${e.message}",
+                        )
+                    }
+                }
+
+                delay(TICK_MS)
+            }
+            null
+        } ?: error("${provider.providerId} 任务超时(taskId=$taskId, timeoutMs=${timeoutMs})")
+
+        // 清理取消围栏(任务已正常完成)
+        cancelledTasks.remove(taskId)
+        return result
+    }
+
+    companion object {
+        private const val TAG = "VideoGenerationService"
+
+        /** 轮询 tick 间隔(5 秒)。 */
+        private const val TICK_MS = 5_000L
+
+        /** 2 分钟阈值(毫秒)。 */
+        private const val TWO_MINUTES_MS = 2L * 60 * 1000
+
+        /** 10 分钟阈值(毫秒)。 */
+        private const val TEN_MINUTES_MS = 10L * 60 * 1000
+
+        /** 连续查询错误上限(达到后判失败)。 */
+        private const val MAX_CONSECUTIVE_ERRORS = 5
+
+        /** 默认总超时(10 分钟)。 */
+        private const val DEFAULT_TIMEOUT_MS = 10L * 60 * 1000
+
+        /**
+         * 判断当前 tick 是否应该执行查询(自适应频率)。
+         *
+         * - ageMs < 2min:   每个 tick 都查(5s 间隔)
+         * - 2-10min:        每 3 个 tick 查一次(15s 间隔)
+         * - >10min:         每 6 个 tick 查一次(30s 间隔)
+         *
+         * 对齐参考实现 openhanako plugins/image-gen/lib/poller.ts shouldCheckThisTick。
+         */
+        internal fun shouldCheckThisTick(ageMs: Long, tickCount: Int): Boolean {
+            return when {
+                ageMs < TWO_MINUTES_MS -> true
+                ageMs < TEN_MINUTES_MS -> tickCount % 3 == 0
+                else -> tickCount % 6 == 0
+            }
+        }
+    }
 }
 
 /**
- * 视频生成请求参数。
+ * 视频任务状态(UI 层展示用)。
  *
- * @param prompt 视频描述/提示词
- * @param model 模型 ID(如 kling-v1 / kling-v2)
- * @param imageUrl 参考图 URL(非空时走图生视频,为空时走文生视频)
- * @param duration 视频时长(秒,通常 5 或 10)
- * @param resolution 分辨率(如 720p / 1080p)
- * @param apiKey Provider API Key
- */
-data class VideoGenerationRequest(
-    val prompt: String,
-    val model: String,
-    val imageUrl: String? = null,
-    val duration: Int = 5,
-    val resolution: String = "720p",
-    val apiKey: String,
-    /**
-     * v1.136: 视频生成基础 URL。
-     *
-     * 通用 OpenAI 兼容 Provider 使用;留空时回退到 OpenAI 官方默认值。
-     * Kling 等专用 Provider 忽略此字段(使用自身 baseUrl)。
-     */
-    val baseUrl: String? = null,
-    /**
-     * v1.136: 视频生成端点路径。
-     *
-     * 留空时通用 Provider 使用 /videos/generations。
-     */
-    val videoGenerationsPath: String? = null,
-)
-
-/**
- * 视频任务状态。
+ * v1.137: 保留给 UI 层(VideoGenerationPage)使用;内部逻辑使用 [PollStatus]。
+ * [PROCESSING] 仍保留用于 UI 区分"已开始处理"与"排队中"的展示,
+ * 但 [PollStatus] 不再区分二者(都归入 PENDING)。
  */
 enum class VideoTaskStatus {
     /** 排队中(任务已提交,尚未开始处理)。 */
@@ -108,123 +302,4 @@ enum class VideoTaskStatus {
 
     /** 失败(任务出错或被拒绝)。 */
     FAILED,
-}
-
-/**
- * 视频任务完整结果(内部使用,包含视频 URL 与错误信息)。
- *
- * [VideoGenerationProvider.queryTask] 仅返回 [VideoTaskStatus],
- * 实现内部通过本类型携带视频 URL 和错误信息,
- * 由 [VideoGenerationProvider.waitForCompletion] 提取 videoUrl 返回。
- *
- * @param status 任务状态
- * @param videoUrl 视频下载 URL(status=SUCCESS 时非空)
- * @param errorMessage 错误信息(status=FAILED 时非空)
- */
-data class VideoTaskResult(
-    val status: VideoTaskStatus,
-    val videoUrl: String? = null,
-    val errorMessage: String? = null,
-)
-
-/**
- * v1.136: 视频生成统一服务 — 按 [providerId] 路由到对应 [VideoGenerationProvider]。
- *
- * 不再硬编码 provider ID,而是通过构造时传入的 provider map 动态解析。
- * 对于未显式注册的 providerId(如用户自定义 OpenAI 兼容供应商),
- * 若存在 [GenericOpenAiVideoProvider],则作为通用兜底。
- *
- * 用法:
- * ```
- * val service = VideoGenerationService(mapOf(
- *     "kling" to KlingVideoProvider(client),
- *     GenericOpenAiVideoProvider.PROVIDER_ID to GenericOpenAiVideoProvider(client),
- * ))
- * val videoUrl = service.generateVideo("kling", request).getOrThrow()
- * ```
- *
- * @param providers providerId -> 实现的映射;key 建议与 [ProviderConfig.id] 对齐
- * @param genericProvider 通用 OpenAI 兼容兜底实现,未命中 map 时使用
- */
-class VideoGenerationService(
-    private val providers: Map<String, VideoGenerationProvider>,
-    private val genericProvider: GenericOpenAiVideoProvider? = null,
-) {
-    /**
-     * 生成视频 — 提交任务 → 等待完成 → 返回视频 URL。
-     *
-     * @param providerId Provider 标识(如 "kling")
-     * @param request 生成请求
-     * @return Result.success(videoUrl) 或 Result.failure(exception)
-     */
-    suspend fun generateVideo(
-        providerId: String,
-        request: VideoGenerationRequest,
-    ): Result<String> {
-        val provider = resolveProvider(providerId)
-            ?: return Result.failure(IllegalArgumentException("Unknown video provider: $providerId"))
-
-        // 提交任务
-        val taskId = provider.submitTask(request).getOrElse { e ->
-            return Result.failure(e)
-        }
-
-        // 等待完成
-        return provider.waitForCompletion(taskId)
-    }
-
-    /**
-     * 仅提交任务(不等待完成),返回任务 ID。
-     * 适用于 UI 层需要手动轮询的场景。
-     *
-     * @param providerId Provider 标识
-     * @param request 生成请求
-     * @return Result.success(taskId) 或 Result.failure(exception)
-     */
-    suspend fun submitTask(
-        providerId: String,
-        request: VideoGenerationRequest,
-    ): Result<String> {
-        val provider = resolveProvider(providerId)
-            ?: return Result.failure(IllegalArgumentException("Unknown video provider: $providerId"))
-        return provider.submitTask(request)
-    }
-
-    /**
-     * 查询任务状态(用于 UI 层手动轮询)。
-     *
-     * @param providerId Provider 标识
-     * @param taskId 任务 ID
-     * @return Result.success([VideoTaskStatus]) 或 Result.failure(exception)
-     */
-    suspend fun queryTask(
-        providerId: String,
-        taskId: String,
-    ): Result<VideoTaskStatus> {
-        val provider = resolveProvider(providerId)
-            ?: return Result.failure(IllegalArgumentException("Unknown video provider: $providerId"))
-        return provider.queryTask(taskId)
-    }
-
-    /**
-     * 根据 providerId 路由到对应实现。
-     *
-     * 优先查找显式注册的 provider;未命中时,若存在通用 OpenAI 兼容 Provider 则兜底返回。
-     *
-     * @param providerId Provider 标识(通常与 [io.zer0.ai.core.ProviderConfig.id] 一致)
-     * @return 对应的 [VideoGenerationProvider],未注册且没有兜底时返回 null
-     */
-    private fun resolveProvider(providerId: String): VideoGenerationProvider? {
-        return providers[providerId] ?: genericProvider
-    }
-
-    companion object {
-        /**
-         * 已注册的 Provider ID 列表(用于 UI 层展示可选 Provider)。
-         *
-         * 包含显式注册 key 与通用兜底 key(如果有)。
-         */
-        fun availableProviderIds(providers: Map<String, VideoGenerationProvider>): List<String> =
-            providers.keys.toList()
-    }
 }

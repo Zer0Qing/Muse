@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraphBuilder
@@ -24,7 +23,8 @@ import io.zer0.muse.ui.SearchScreen
 import io.zer0.muse.ui.common.WindowWidthClass
 import io.zer0.muse.ui.common.rememberWindowWidthClass
 import io.zer0.muse.ui.quicknotes.QuickNotesScreen
-import io.zer0.muse.tools.quicknote.QuickNoteStore
+import io.zer0.muse.ui.quicknotes.QuickNotesViewModel
+import org.koin.androidx.compose.koinViewModel
 
 /**
  * 聊天域 NavGraph — 包含首页、搜索、聊天详情、群聊详情、最近删除、快速记录、
@@ -195,14 +195,16 @@ fun NavGraphBuilder.chatNavGraph(
         )
     }
     // v1.136: 快速记录(首页大方块入口替代原知识库)
+    // v1.0.17: 改用 QuickNotesViewModel(Room 持久化 + 回收站),替代 QuickNoteStore
     composable(
         route = MuseRoutes.QUICK_NOTES,
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
+        val quickNotesViewModel: QuickNotesViewModel = koinViewModel()
         QuickNotesScreen(
             onBack = { navController.popBackStack() },
-            store = remember { QuickNoteStore(context) },
+            viewModel = quickNotesViewModel,
             onSendToNewChat = { text ->
                 sharedViewModel.sendToNewChat(text)
                 navController.navigate(MuseRoutes.CHAT_DETAIL)

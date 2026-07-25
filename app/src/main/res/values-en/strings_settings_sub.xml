@@ -231,6 +231,24 @@
     <string name="settings_asr_poll_timeout">Total poll timeout (ms, default 300000 = 5 min)</string>
     <string name="settings_asr_saved_poll_timeout">Poll timeout saved</string>
     <string name="settings_asr_save_poll_timeout">Save Poll Timeout</string>
+    <!-- New: OpenAI-compatible / Realtime / Agnes providers -->
+    <string name="settings_asr_provider_openai_whisper">Whisper</string>
+    <string name="settings_asr_provider_openai_realtime">Realtime</string>
+    <string name="settings_asr_provider_agnes">Agnes</string>
+    <string name="settings_asr_base_url">Base URL (custom relay, blank for default)</string>
+    <string name="settings_asr_saved_base_url">Base URL saved</string>
+    <string name="settings_asr_save_base_url">Save Base URL</string>
+    <!-- New: hot words -->
+    <string name="settings_asr_hotwords">Hot words (comma-separated, boosts proper noun recognition)</string>
+    <string name="settings_asr_saved_hotwords">Hot words saved</string>
+    <string name="settings_asr_save_hotwords">Save Hot Words</string>
+    <!-- New: VAD silence detection -->
+    <string name="settings_asr_vad">Local VAD silence detection</string>
+    <string name="settings_asr_vad_desc">Auto-stop recording after silence exceeds threshold (OPENAI_REALTIME uses server-side VAD)</string>
+    <string name="settings_asr_vad_threshold">VAD threshold (0-1, default 0.05 ≈ -46dB)</string>
+    <string name="settings_asr_vad_silence">Silence auto-stop duration (ms, default 1500)</string>
+    <string name="settings_asr_saved_vad">VAD config saved</string>
+    <string name="settings_asr_save_vad">Save VAD Config</string>
 
     <!-- Knowledge Base Retrieval (RAG) -->
     <string name="settings_rag_page_title">Knowledge Base Retrieval</string>
@@ -414,6 +432,21 @@
     <string name="settings_media_tts_show">Show</string>
     <string name="settings_media_tts_hide">Hide</string>
     <string name="settings_media_tts_saved">Saved</string>
+    <!-- v1.99: Cloud voice dynamic fetching -->
+    <string name="settings_media_tts_voice_fetch">Fetch voice list</string>
+    <string name="settings_media_tts_voice_fetching">Fetching…</string>
+    <string name="settings_media_tts_voice_fetch_empty">No voices returned</string>
+    <string name="settings_media_tts_voice_fetch_failed">Fetch failed. Please check API Key</string>
+    <string name="settings_media_tts_voice_pick">Pick a voice</string>
+    <!-- v1.99: Advanced TTS parameters -->
+    <string name="settings_media_tts_advanced_section">Advanced parameters</string>
+    <string name="settings_media_tts_stability">Stability (ElevenLabs)</string>
+    <string name="settings_media_tts_similarity">Similarity Boost (ElevenLabs)</string>
+    <string name="settings_media_tts_emotion">Emotion (MiniMax)</string>
+    <string name="settings_media_tts_emotion_placeholder">happy / sad / angry / neutral</string>
+    <string name="settings_media_tts_cloud_speed">Synthesis speed</string>
+    <string name="settings_media_tts_response_format">Audio format</string>
+    <string name="settings_media_tts_save_advanced">Save parameters</string>
     <!-- ===== Custom theme ===== -->
     <string name="settings_theme_custom_section">Custom theme</string>
     <string name="settings_theme_custom_add">Add theme</string>

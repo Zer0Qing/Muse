@@ -37,4 +37,51 @@
     <string name="translate_page_history_cleared">History cleared</string>
     <string name="translate_page_history_source_label">Source</string>
     <string name="translate_page_history_translated_label">Translated</string>
+
+    <!-- v1.0.30 gap4.3: Translation favorites -->
+    <string name="translate_page_favorite_add">Favorite</string>
+    <string name="translate_page_favorite_remove">Unfavorite</string>
+    <string name="translate_page_favorite_added">Favorited</string>
+    <string name="translate_page_favorite_removed">Unfavorited</string>
+    <string name="translate_page_favorites_section">Favorites</string>
+
+    <!-- v1.0.30 gap4.4: Batch translation -->
+    <string name="translate_page_batch_translate">Batch translate</string>
+    <string name="translate_page_batch_title">Batch translate</string>
+    <string name="translate_page_batch_input_hint">One text per line, will be batch translated</string>
+    <string name="translate_page_batch_run">Run batch translate</string>
+    <string name="translate_page_batch_cancel">Cancel</string>
+    <string name="translate_page_batch_translating">Batch translating…</string>
+    <string name="translate_page_batch_empty">Please enter texts to translate</string>
+    <string name="translate_page_batch_results_title">Batch results (%1$d items)</string>
+
+    <!-- v1.0.30 gap4.5: Custom styles -->
+    <string name="translate_page_custom_style_add">Add style</string>
+    <string name="translate_page_custom_style_name">Style name</string>
+    <string name="translate_page_custom_style_prompt">Style instruction (e.g. \"Translate in classical Chinese\")</string>
+    <string name="translate_page_custom_style_save">Save</string>
+    <string name="translate_page_custom_style_remove">Remove</string>
+    <string name="translate_page_custom_style_added">Custom style added</string>
+    <string name="translate_page_custom_style_removed">Custom style removed</string>
+    <string name="translate_page_custom_style_empty_name">Name cannot be empty</string>
+
+    <!-- v1.0.30 gap4.6: Glossary -->
+    <string name="translate_page_glossary">Glossary</string>
+    <string name="translate_page_glossary_title">Translation glossary</string>
+    <string name="translate_page_glossary_original">Source term</string>
+    <string name="translate_page_glossary_translated">Target term</string>
+    <string name="translate_page_glossary_add">Add</string>
+    <string name="translate_page_glossary_remove">Remove</string>
+    <string name="translate_page_glossary_empty">No glossary entries</string>
+    <string name="translate_page_glossary_count">Glossary (%1$d entries)</string>
+    <string name="translate_page_glossary_added">Glossary entry added</string>
+    <string name="translate_page_glossary_removed">Glossary entry removed</string>
+
+    <!-- v1.0.30 gap4.7: OCR translation -->
+    <string name="translate_page_ocr">Photo translate</string>
+    <string name="translate_page_ocr_pick_image">Pick image from gallery</string>
+    <string name="translate_page_ocr_recognizing">Recognizing…</string>
+    <string name="translate_page_ocr_empty">No text recognized</string>
+    <string name="translate_page_ocr_failed">OCR failed</string>
+    <string name="translate_page_ocr_applied">Recognized text filled into input</string>
 </resources>

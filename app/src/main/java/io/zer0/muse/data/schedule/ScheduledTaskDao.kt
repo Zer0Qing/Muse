@@ -78,6 +78,12 @@ interface ScheduledTaskDao {
     suspend fun triggerNextTasks(ids: List<String>, now: Long = System.currentTimeMillis())
 
     /**
+     * v1.0.17: 更新任务的重试次数(执行失败重试策略)。
+     */
+    @Query("UPDATE scheduled_tasks SET retry_count = :retryCount WHERE id = :id")
+    suspend fun updateRetryCount(id: String, retryCount: Int)
+
+    /**
      * v1.137: 查询可作为链式后续的任务候选(排除当前任务自身)。
      */
     @Query("SELECT id, name FROM scheduled_tasks WHERE id != :excludeId ORDER BY name ASC")

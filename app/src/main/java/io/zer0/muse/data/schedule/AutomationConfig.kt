@@ -29,6 +29,10 @@ object AutomationConfig {
             const val TIME_RANGE = "time_range"
             const val CONTAINS = "contains"
             const val QUICK_NOTE_EXISTS = "quick_note_exists"
+            /** v1.0.17: 电量阈值条件,config["minLevel"] 为最低电量百分比(默认 20)。 */
+            const val BATTERY_LEVEL = "battery_level"
+            /** v1.0.17: 充电状态条件,config["mustCharging"] 为是否必须充电(默认 true)。 */
+            const val CHARGING = "charging"
         }
     }
 

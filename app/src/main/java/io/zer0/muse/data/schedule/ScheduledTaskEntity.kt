@@ -56,4 +56,16 @@ data class ScheduledTaskEntity(
      * v1.137: 父任务 ID(用于链式任务溯源)。
      */
     @ColumnInfo(name = "parent_task_id", defaultValue = "") val parentTaskId: String = "",
+    /**
+     * v1.0.17: 任务创建来源("user"=用户通过 UI 创建, "assistant"=助手通过工具创建)。
+     */
+    @ColumnInfo(name = "created_by", defaultValue = "user") val createdBy: String = "user",
+    /**
+     * v1.0.17: 当前重试次数(执行失败后递增,成功或达到上限后重置为 0)。
+     */
+    @ColumnInfo(name = "retry_count", defaultValue = "0") val retryCount: Int = 0,
+    /**
+     * v1.0.17: 最大重试次数(达到后不再重试,正常推进到下次计划时间)。
+     */
+    @ColumnInfo(name = "max_retries", defaultValue = "3") val maxRetries: Int = 3,
 )

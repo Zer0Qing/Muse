@@ -129,6 +129,7 @@ import io.zer0.muse.ui.theme.tiny
 import io.zer0.muse.data.ProviderCollisionDetector
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.preset.SiliconFlowFreeModels
+import io.zer0.ai.core.FreeModelConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -596,6 +597,11 @@ internal fun ProviderEditPage(
     var testConnectionResult by rememberSaveable { mutableStateOf<String?>(null) }
     var testConnectionError by rememberSaveable { mutableStateOf<String?>(null) }
 
+    // v1.0.8 (7.6): 单个模型健康检查状态(按 model.id 索引)
+    //  - 进入页面时为空(Idle),点击测试按钮后变为 InProgress,完成后变 Success/Failed
+    //  - 不持久化(remember 而非 rememberSaveable),退出页面后丢失,符合"即时反馈"语义
+    var modelTestStatuses by remember { mutableStateOf<Map<String, ModelTestStatus>>(emptyMap()) }
+
     // 从 Google Service Account JSON 文件导入 Vertex AI 凭证
     val context = LocalContext.current
     val ioScope = rememberCoroutineScope()
@@ -898,6 +904,39 @@ internal fun ProviderEditPage(
             balanceApiPath = balanceApiPath.trim(),
             balanceResultPath = balanceResultPath.trim(),
         )
+    }
+
+    // v1.0.8 (7.6): 单个模型健康检查 — 用真实 LLM 调用验证 model + apiKey + baseUrl 是否可用
+    //  - 复用 buildTempConfig() 构造当前表单对应的临时配置(用户未保存的 apiKey/baseUrl 也能测)
+    //  - 调用 Provider.healthCheck(model) 发送 "Reply exactly OK." 测试消息,15s 超时
+    //  - 状态写入 modelTestStatuses(按 model.id 索引),ProviderModelRow 据此显示状态 chip
+    //  - 与 testConnection 区别:testConnection 只测 /models 端点(轻量),testModel 验证完整 chat 链路
+    fun testModel(model: io.zer0.ai.core.Model) {
+        if (apiKey.isBlank()) {
+            modelTestStatuses = modelTestStatuses + (model.id to ModelTestStatus.Failed("API Key 为空"))
+            return
+        }
+        // 置为 InProgress,禁用测试按钮
+        modelTestStatuses = modelTestStatuses + (model.id to ModelTestStatus.InProgress)
+        val tempConfig = buildTempConfig()
+        ioScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    io.zer0.ai.ProviderRegistry.create(tempConfig).healthCheck(model)
+                }.getOrElse { e ->
+                    io.zer0.ai.core.HealthCheckResult(
+                        success = false,
+                        message = e.message?.take(120),
+                    )
+                }
+            }
+            val status: ModelTestStatus = if (result.success) {
+                ModelTestStatus.Success(result.message)
+            } else {
+                ModelTestStatus.Failed(result.message)
+            }
+            modelTestStatuses = modelTestStatuses + (model.id to status)
+        }
     }
 
     // 查询余额业务逻辑
@@ -1358,6 +1397,9 @@ internal fun ProviderEditPage(
                         onAddModel = { showAddModelDialog = true },
                         // P2-5: 透传 baseUrl 给 ModelsTab,用于判定是否展示「一键填入免费模型」按钮
                         baseUrl = baseUrl,
+                        // v1.0.8 (7.6): 透传模型健康检查回调 + 状态 Map
+                        onTestModel = { testModel(it) },
+                        modelTestStatuses = modelTestStatuses,
                     )
                 }
                 }
@@ -2473,6 +2515,9 @@ private fun ModelsTab(
     onAddModel: () -> Unit,
     // P2-5: 透传 baseUrl,用于判定是否展示「一键填入免费模型」按钮
     baseUrl: String = "",
+    // v1.0.8 (7.6): 模型健康检查回调 + 状态透传(从 ProviderEditPage 传入)
+    onTestModel: (Model) -> Unit = {},
+    modelTestStatuses: Map<String, ModelTestStatus> = emptyMap(),
 ) {
     var editingModel by remember { mutableStateOf<Model?>(null) }
 
@@ -2493,6 +2538,18 @@ private fun ModelsTab(
                     .fillMaxWidth()
                     .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.contentGap),
             )
+            // v1.0.18: Kelivo 式免费模型 fallback 提示 — 用户未填 apiKey 时告知可用免费模型,
+            // 填写后可解锁 SiliconFlow 全部模型(由 listModels 调远程 /models 拉取)
+            if (apiKey.isBlank() && FreeModelConfig.isFreeProvider(baseUrl, apiKey)) {
+                Text(
+                    text = FreeModelConfig.FREE_PROVIDER_HINT,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.tightGap),
+                )
+            }
         }
 
         if (modelsState.isEmpty()) {
@@ -2542,6 +2599,9 @@ private fun ModelsTab(
                         providerName = config.displayName,
                         isAdded = true,
                         onAction = { editingModel = model },
+                        // v1.0.8 (7.6): 传入健康检查回调 + 当前状态(按 model.id 查询)
+                        onTest = { onTestModel(model) },
+                        testStatus = modelTestStatuses[model.id] ?: ModelTestStatus.Idle,
                     )
                     HorizontalDivider(
                         modifier = Modifier.padding(start = 68.dp),

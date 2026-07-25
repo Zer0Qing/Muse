@@ -86,6 +86,9 @@ class DashScopeAsrController(
     private val completedTranscripts = StringBuilder()
     private val partialTranscripts = ConcurrentHashMap<String, String>()
 
+    // 可选本地 VAD(用户在 config 中显式启用;DashScope 服务端已自带 VAD,通常不需要本地)
+    private var vadDetector: VadDetector? = null
+
     override fun start(onTranscriptChange: ((String) -> Unit)?) {
         // 仅在 Listening 态拒绝重复 start;Connecting/Stopping 过渡态允许新 start 接续
         if (_state.value.status == ASRStatus.Listening) {
@@ -100,6 +103,12 @@ class DashScopeAsrController(
         this.onTranscriptChange = onTranscriptChange
         completedTranscripts.setLength(0)
         partialTranscripts.clear()
+        vadDetector = if (config.vadEnabled) {
+            VadDetector(
+                threshold = config.vadThreshold,
+                silenceDurationMs = config.vadSilenceDurationMs,
+            )
+        } else null
         _state.update {
             it.copy(status = ASRStatus.Connecting, transcript = "", errorMessage = null, amplitudes = emptyList())
         }
@@ -202,7 +211,15 @@ class DashScopeAsrController(
                     val amp = AudioAmplitude.calculateRmsAmplitude(chunk, read)
                     _state.update { it.copy(amplitudes = it.amplitudes.appendAmplitude(amp)) }
 
-                    // 2. 背压检查:队列超限丢帧,避免内存堆积
+                    // 2. 本地 VAD(若启用):静音超阈值主动触发 stop
+                    //    DashScope 服务端已自带 VAD(sentence_end 自动断句),本地 VAD 仅用于自动停止录音
+                    if (vadDetector?.processFrame(chunk, read, amp) == true) {
+                        Logger.d(TAG, "本地 VAD 触发,主动停止")
+                        scope.launch { stop() }
+                        break
+                    }
+
+                    // 3. 背压检查:队列超限丢帧,避免内存堆积
                     val ws = webSocket
                     if (ws != null && ws.queueSize() < MAX_QUEUE_BYTES) {
                         // 用 okio.Buffer 构造 ByteString(二进制 PCM 直传,DashScope 协议支持)
@@ -330,7 +347,20 @@ class DashScopeAsrController(
         session = null
     }
 
-    /** 构造 run-task 指令 JSON。 */
+    /**
+     * 构造 run-task 指令 JSON。
+     *
+     * 支持的模型(config.model):
+     *  - paraformer-realtime-v2(默认,实时流式 Paraformer v2)
+     *  - paraformer-realtime-v3(v3,识别准确度提升,支持方言增强)
+     *  - sensevoice-v1(SenseVoice,支持情绪识别 + ASR,多语种强)
+     *
+     * 热词参数:DashScope Paraformer 支持通过 `vocabulary_id`(预创建词表 ID)传入热词,
+     * 当前 [AsrConfig.hotwords] 是 inline 列表,通过 `hotwords` 参数传入(DashScope 部分
+     * 模型版本支持 inline 热词 map,格式 {word: weight});如服务端不接受 inline 形式,
+     * 用户应改用 DashScope 控制台预创建词表并填入 [AsrConfig.hotwords] 第一个元素
+     * 作为 vocabulary_id(此处会自动检测:单元素且不以非字母数字结尾时视为 vocabulary_id)。
+     */
     private fun buildRunTaskMessage(taskId: String, sampleRate: Int): String {
         val parameters = buildJsonObject {
             put("format", "pcm")
@@ -338,6 +368,15 @@ class DashScopeAsrController(
             put("punctuation_prediction_enabled", config.enablePunctuation)
             put("inverse_text_normalization_enabled", config.enableInverseTextNormalization)
             config.language?.let { put("language_hints", JsonArray(listOf(JsonPrimitive(it)))) }
+            // 热词:inline 列表转为 hotwords map(word -> 默认权重 1)
+            if (config.hotwords.isNotEmpty()) {
+                val hotwordsMap = buildJsonObject {
+                    config.hotwords.forEach { word ->
+                        if (word.isNotBlank()) put(word.trim(), JsonPrimitive(1))
+                    }
+                }
+                put("hotwords", hotwordsMap)
+            }
         }
         val msg = buildJsonObject {
             put("header", buildJsonObject {

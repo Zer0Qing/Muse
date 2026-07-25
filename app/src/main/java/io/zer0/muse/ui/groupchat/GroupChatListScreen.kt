@@ -1,9 +1,6 @@
 package io.zer0.muse.ui.groupchat
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,8 +23,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Forum
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -45,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -56,9 +52,11 @@ import io.zer0.muse.data.groupchat.GroupChatEntity
 import io.zer0.muse.data.groupchat.GroupChatMessageEntity
 import io.zer0.muse.ui.common.AssistantAvatar
 import io.zer0.muse.ui.common.EmptyState
+import io.zer0.muse.ui.common.IosCardPress
 import io.zer0.muse.ui.common.rememberWindowWidthClass
 import io.zer0.muse.ui.common.MuseDialog
 import io.zer0.muse.ui.theme.MuseDateFormats
+import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import kotlinx.coroutines.delay
@@ -151,8 +149,11 @@ fun GroupChatListScreen(
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
-                    horizontal = MusePaddings.screen,
-                    vertical = MusePaddings.itemGap / 2,
+                    start = MusePaddings.screen,
+                    end = MusePaddings.screen,
+                    top = MusePaddings.itemGap / 2,
+                    // v1.0.17: 底部留出悬浮胶囊空间,避免最后一条群聊被遮挡
+                    bottom = 88.dp,
                 ),
                 verticalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
             ) {
@@ -200,7 +201,6 @@ fun GroupChatListScreen(
 /**
  * 群聊卡片 — 展示群聊名 + 成员头像行 + 最新消息预览 + 时间。
  */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun GroupChatCard(
     chat: GroupChatEntity,
@@ -221,18 +221,18 @@ private fun GroupChatCard(
 
     var showMenu by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    val hapticFeedback = LocalHapticFeedback.current
 
-    Card(
+    // v1.0.17: 用 IosCardPress 替换 Card.combinedClickable,消除 Material ripple 黑色遮罩
+    IosCardPress(
+        onClick = onClick,
+        onLongClick = {
+            MuseHaptics.medium(hapticFeedback)
+            showMenu = true
+        },
+        modifier = Modifier.fillMaxWidth(),
         shape = MuseShapes.extraLarge,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
-        modifier = Modifier
-            .fillMaxWidth()
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = { showMenu = true },
-            ),
+        containerColor = MaterialTheme.colorScheme.surface,
     ) {
         Column(
             modifier = Modifier

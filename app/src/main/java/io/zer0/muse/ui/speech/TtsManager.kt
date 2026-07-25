@@ -13,9 +13,10 @@ import io.zer0.muse.ui.common.MuseToast
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -127,6 +128,30 @@ class TtsManager(
         } else emptyList()
     }
 
+    /**
+     * v1.99(4.4): 动态拉取云端 TTS 引擎的音色列表。
+     *
+     * 供 TTS 设置页音色选择器使用,失败返回空列表。
+     */
+    suspend fun listCloudVoices(): List<VoiceInfo> {
+        val engine = mediaConfig.ttsEngine
+        val provider = CloudTtsProvider.fromEngine(engine) ?: return emptyList()
+        return cloudTtsService.listVoices(provider, mediaConfig.ttsApiKey, mediaConfig.ttsEndpoint)
+    }
+
+    /**
+     * v1.99(4.8): 由当前 [mediaConfig] 构造 [CloudTtsConfig]。
+     *
+     * 各引擎按需取用对应字段;留空/默认值由 [CloudTtsService] 各实现兜底。
+     */
+    private fun buildCloudConfig(): CloudTtsConfig = CloudTtsConfig(
+        stability = mediaConfig.ttsStability,
+        similarityBoost = mediaConfig.ttsSimilarityBoost,
+        emotion = mediaConfig.ttsEmotion,
+        speed = mediaConfig.ttsCloudSpeed,
+        responseFormat = mediaConfig.ttsResponseFormat.ifBlank { "mp3" },
+    )
+
     /** 当前播放速度(由 [setSpeed] 设置,影响 MediaPlayer 播放速率,不影响 TTS 合成)。 */
     @Volatile
     private var playbackSpeed: Float = 1.0f
@@ -157,6 +182,17 @@ class TtsManager(
 
     /** v1.4: 位置轮询协程(每 100ms 更新 positionMs)。 */
     private var positionUpdateJob: Job? = null
+
+    // ── v1.99: 云端 TTS 流式管线(4.3 流式朗读支持云端 TTS) ──
+    // 双 Channel 串联:句子队列 → 合成协程 → 文件队列 → 播放协程
+    // 合成协程跑在前,播放协程消费文件,实现"边合成边播放"的流水线,
+    // 第一句合成完成立即播放,同时合成第二句,显著降低首句延迟。
+    private var cloudSynthChannel: Channel<String> = Channel(Channel.UNLIMITED)
+    private var cloudPlayChannel: Channel<File> = Channel(Channel.UNLIMITED)
+    private var cloudSynthJob: Job? = null
+    private var cloudPlayJob: Job? = null
+    @Volatile
+    private var cloudStreamUtteranceId: String? = null
 
     /** v1.4: 播放协程 scope(Main 线程,MediaPlayer 必须主线程操作)。 */
     private val playbackScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -280,6 +316,7 @@ class TtsManager(
                 voice = mediaConfig.ttsVoice,
                 endpoint = mediaConfig.ttsEndpoint,
                 outputFile = file,
+                cloudConfig = buildCloudConfig(),
             )
             // v1.104: 云端 TTS 失败时回退到系统 TTS,避免网络断/额度用尽时朗读静默失败
             if (cloudOk) return true
@@ -607,22 +644,45 @@ class TtsManager(
      * 把增量 chunk 追加到缓冲区,遇到完整句子(以 。！？.!? 结尾)就切出交给 TTS,
      * 用 QUEUE_ADD 顺序排队,避免 token 级碎片化朗读(听起来更自然)。
      *
-     * 注意:流式朗读走旧 TextToSpeech.speak() 路径(无暂停/进度),与 [speak] 的新实现
-     * 互斥 — 调用 [speak] 会 stop 流式缓冲,调用 [speakStream] 会 stop 新播放。
+     * v1.99(4.3): 云端 TTS 引擎走双 Channel 流水线(合成协程 → 播放协程),
+     * 第一句合成完成立即播放,同时合成第二句,显著降低首句延迟。系统 TTS 仍走
+     * TextToSpeech.speak() 队列路径。
+     *
+     * 注意:流式朗读与 [speak] 的新实现互斥 — 调用 [speak] 会 stop 流式缓冲,
+     * 调用 [speakStream] 会 stop 新播放。
      *
      * @param chunk 流式增量文本(可能含 Markdown,按句切出后会剥离)
      * @param utteranceId 跟踪 id(用于 UI 切换图标)
      */
     fun speakStream(chunk: String, utteranceId: String) {
-        // v1.97: 云端 TTS 不需要等待系统 TTS 就绪(但流式朗读暂不支持云端,降级为系统 TTS)
-        if (mediaConfig.ttsEngine == "system" && !ready.get()) {
-            Logger.w("TtsManager", "TTS not ready yet (stream)")
+        if (chunk.isEmpty()) return
+        // 云端 TTS 路径:双 Channel 流水线
+        if (mediaConfig.ttsEngine != "system") {
+            // 新消息打断旧流(不同 utteranceId 视为新一段流式朗读)
+            if (cloudStreamUtteranceId != null && cloudStreamUtteranceId != utteranceId) {
+                stopCloudStream()
+            }
+            // 切到流式朗读前先停掉分片播放(MediaPlayer)
+            stopPlayback()
+            ensureCloudPipeline(utteranceId)
+            sentenceBuffer.append(chunk)
+            // 按句切分,送入合成 Channel
+            while (true) {
+                val match = SENTENCE_END_REGEX.find(sentenceBuffer) ?: break
+                val end = match.range.last + 1
+                val sentence = sentenceBuffer.substring(0, end)
+                sentenceBuffer.delete(0, end)
+                val clean = stripMarkdown(sentence).trim()
+                if (clean.isNotEmpty() && !cloudSynthChannel.isClosedForSend) {
+                    cloudSynthChannel.trySend(clean)
+                }
+            }
             return
         }
-        if (chunk.isEmpty()) return
-        // 流式朗读暂不支持云端 TTS(设计限制),此处仅记日志便于排查,仍走系统 TTS
-        if (mediaConfig.ttsEngine != "system") {
-            Logger.d("TtsManager", "流式朗读暂不支持云端TTS，使用系统TTS")
+        // 系统 TTS 路径
+        if (!ready.get()) {
+            Logger.w("TtsManager", "TTS not ready yet (stream)")
+            return
         }
         // 切到流式朗读前先停掉分片播放(MediaPlayer)
         stopPlayback()
@@ -645,35 +705,287 @@ class TtsManager(
     }
 
     /**
+     * v1.99(4.3): 确保云端流式管线运行。
+     *
+     * 双 Channel 串联:
+     *  - 合成协程:从 [cloudSynthChannel] 取句子 → [synthesizeToFile] → 文件送入 [cloudPlayChannel]
+     *  - 播放协程:从 [cloudPlayChannel] 取文件 → [playWithMediaPlayer] → 删除文件
+     *
+     * 合成协程跑在前(UNLIMITED 容量 Channel 背压不阻塞),播放协程消费,
+     * 自然实现"边合成边播放"流水线。flushStream 关闭 [cloudSynthChannel]
+     * 触发合成协程退出 → 关闭 [cloudPlayChannel] → 播放协程退出 → 触发 onStateChange(false)。
+     */
+    private fun ensureCloudPipeline(utteranceId: String) {
+        if (cloudSynthJob?.isActive == true && !cloudSynthChannel.isClosedForSend) {
+            // 管线运行中,仅更新 utterance id(追加模式)
+            cloudStreamUtteranceId = utteranceId
+            return
+        }
+        // 取消残留的旧协程(可能处于 close 后的收尾阶段)
+        cloudSynthJob?.cancel()
+        cloudPlayJob?.cancel()
+        // 重建 Channel(旧的已 close)
+        cloudSynthChannel = Channel(Channel.UNLIMITED)
+        cloudPlayChannel = Channel(Channel.UNLIMITED)
+        cloudStreamUtteranceId = utteranceId
+        currentUtteranceId = utteranceId
+        onStateChange?.invoke(utteranceId, true)
+        startPositionUpdates()
+        val uid = utteranceId
+        cloudSynthJob = playbackScope.launch {
+            try {
+                for (sentence in cloudSynthChannel) {
+                    if (!isActive) break
+                    val file = File(cacheDir, "tts_stream_${uid}_${System.nanoTime()}.mp3")
+                    val ok = try {
+                        synthesizeToFile(sentence, file)
+                    } catch (e: Exception) {
+                        Logger.w("TtsManager", "cloud stream synth failed: ${e.message}")
+                        false
+                    }
+                    if (ok) {
+                        cloudPlayChannel.send(file)
+                    } else {
+                        file.delete()
+                    }
+                }
+            } finally {
+                // 合成协程结束(Channel close 或取消)→ 关闭播放 Channel,触发播放协程收尾
+                cloudPlayChannel.close()
+            }
+        }
+        cloudPlayJob = playbackScope.launch {
+            for (file in cloudPlayChannel) {
+                if (!isActive) break
+                try {
+                    playWithMediaPlayer(file)
+                } catch (e: Exception) {
+                    Logger.w("TtsManager", "cloud stream play failed: ${e.message}")
+                } finally {
+                    file.delete()
+                }
+            }
+            // 全部播完,触发 UI 收起高亮
+            if (cloudStreamUtteranceId == uid && currentUtteranceId == uid) {
+                currentUtteranceId = null
+                cloudStreamUtteranceId = null
+                onStateChange?.invoke(uid, false)
+            }
+        }
+    }
+
+    /** v1.99(4.3): 停止云端流式管线(取消协程 + 关闭 Channel)。 */
+    private fun stopCloudStream() {
+        cloudSynthJob?.cancel()
+        cloudPlayJob?.cancel()
+        cloudSynthJob = null
+        cloudPlayJob = null
+        runCatching { cloudSynthChannel.close() }
+        runCatching { cloudPlayChannel.close() }
+        cloudStreamUtteranceId = null
+    }
+
+    /**
      * v0.52: 冲刷流式缓冲区剩余文本(流式朗读结束后调用)。
      *
      * 把缓冲区里未到句号的残余文本交给 TTS 读完。
      */
     fun flushStream() {
-        if (sentenceBuffer.isEmpty()) return
-        val clean = stripMarkdown(sentenceBuffer.toString()).trim()
-        sentenceBuffer.clear()
-        // v1.97: 云端 TTS 走 synthesizeToFile + MediaPlayer 路径
+        // 云端 TTS:把残余文本送入管线后关闭合成 Channel,触发自然收尾
         if (mediaConfig.ttsEngine != "system") {
-            if (clean.isNotEmpty()) {
-                playbackScope.launch {
-                    val file = File(cacheDir, "tts_stream_${System.nanoTime()}.mp3")
-                    try {
-                        if (synthesizeToFile(clean, file)) {
-                            playWithMediaPlayer(file)
-                        }
-                    } finally {
-                        file.delete()
+            if (sentenceBuffer.isNotEmpty()) {
+                val clean = stripMarkdown(sentenceBuffer.toString()).trim()
+                sentenceBuffer.clear()
+                if (clean.isNotEmpty()) {
+                    if (cloudSynthJob?.isActive != true || cloudSynthChannel.isClosedForSend) {
+                        // 管线未启动(仅 flushStream 被调用),临时启动一个
+                        val uid = currentUtteranceId ?: "flush"
+                        ensureCloudPipeline(uid)
+                    }
+                    if (!cloudSynthChannel.isClosedForSend) {
+                        cloudSynthChannel.trySend(clean)
                     }
                 }
             }
+            // 关闭合成 Channel,让管线在消费完最后一句后自然结束
+            runCatching { cloudSynthChannel.close() }
             return
         }
+        // 系统 TTS 路径
+        if (sentenceBuffer.isEmpty()) return
+        val clean = stripMarkdown(sentenceBuffer.toString()).trim()
+        sentenceBuffer.clear()
         if (clean.isNotEmpty() && ready.get()) {
             val mode = if (currentUtteranceId == null) TextToSpeech.QUEUE_FLUSH
                        else TextToSpeech.QUEUE_ADD
             tts.speak(clean, mode, null, currentUtteranceId ?: "flush")
         }
+    }
+
+    /**
+     * v1.99(4.7): 朗读 SSML 标记文本。
+     *
+     * 解析 SSML 标签(<break>、<prosody rate="slow">、<emphasis> 等):
+     *  - <break time="Xs"/> → 转为对应标点停顿(≥1s 句号,否则逗号)
+     *  - <prosody rate="slow|fast|1.5"> → 提取倍率,临时覆盖 [playbackSpeed](系统 TTS
+     *    还会同步 setSpeechRate)与音高
+     *  - <emphasis> → 提升音高(系统 TTS)
+     *  - 其他标签(<speak>、<s>、<phoneme> 等)剥离为纯文本
+     *
+     * 不支持 SSML 的云端引擎降级为纯文本播放。播放结束后自动恢复原速率/音高。
+     *
+     * @param ssml SSML 文本
+     * @param utteranceId 跟踪 id
+     * @param flush true 打断旧请求(默认)
+     * @return true 已开始播放;false 文本为空
+     */
+    fun speakSsml(ssml: String, utteranceId: String, flush: Boolean = true): Boolean {
+        val parsed = parseSsml(ssml)
+        if (parsed.plainText.isEmpty()) return false
+        val rateOverride = parsed.rate
+        val prevSpeed = playbackSpeed
+        // 速率:云端 TTS 影响 MediaPlayer 播放速率;系统 TTS 影响 setSpeechRate
+        if (rateOverride != null) {
+            playbackSpeed = (prevSpeed * rateOverride).coerceIn(0.5f, 2f)
+        }
+        if (mediaConfig.ttsEngine == "system" && ready.get()) {
+            val effRate = (mediaConfig.ttsSpeechRate * (rateOverride ?: 1f)).coerceIn(0.5f, 2f)
+            val effPitch = (mediaConfig.ttsPitch * (parsed.pitch ?: 1f)).coerceIn(0.5f, 2f)
+            runCatching {
+                tts.setSpeechRate(effRate)
+                tts.setPitch(effPitch)
+            }
+        }
+        val ok = speak(parsed.plainText, utteranceId, flush)
+        // 播放结束后恢复原速率/音高
+        if (rateOverride != null || parsed.pitch != null) {
+            playbackScope.launch {
+                runCatching { playbackJob?.join() }
+                playbackSpeed = prevSpeed
+                if (mediaConfig.ttsEngine == "system" && ready.get()) {
+                    runCatching {
+                        tts.setSpeechRate(mediaConfig.ttsSpeechRate.coerceIn(0.5f, 2f))
+                        tts.setPitch(mediaConfig.ttsPitch.coerceIn(0.5f, 2f))
+                    }
+                }
+            }
+        }
+        return ok
+    }
+
+    /**
+     * v1.99(4.7): SSML 解析结果。
+     *
+     * @property plainText 剥离标签后的纯文本(break 已转为标点)
+     * @property rate prosody rate 倍率(null 表示未指定)
+     * @property pitch prosody pitch 倍率(null 表示未指定)
+     */
+    private data class SsmlParsed(
+        val plainText: String,
+        val rate: Float? = null,
+        val pitch: Float? = null,
+    )
+
+    /**
+     * v1.99(4.7): 简易 SSML 解析器。
+     *
+     * 仅处理常见标签(break / prosody rate|pitch / emphasis),其余标签直接剥离。
+     * 不依赖 XML 解析器,正则实现,容错性强(对不规范 SSML 也能降级为纯文本)。
+     */
+    private fun parseSsml(ssml: String): SsmlParsed {
+        var text = ssml
+            .replace(Regex("<\\?xml[^>]*\\?>"), "")
+            .replace(Regex("</?speak[^>]*>"), "")
+        var rate: Float? = null
+        var pitch: Float? = null
+        // prosody rate="..."
+        val prosodyRateRegex = Regex(
+            "<prosody[^>]*rate=[\"']([^\"']+)[\"'][^>]*>(.*?)</prosody>",
+            RegexOption.DOT_MATCHES_ALL,
+        )
+        text = prosodyRateRegex.replace(text) { m ->
+            rate = parseProsodyValue(m.groupValues[1])
+            m.groupValues[2]
+        }
+        // prosody pitch="..."
+        val prosodyPitchRegex = Regex(
+            "<prosody[^>]*pitch=[\"']([^\"']+)[\"'][^>]*>(.*?)</prosody>",
+            RegexOption.DOT_MATCHES_ALL,
+        )
+        text = prosodyPitchRegex.replace(text) { m ->
+            pitch = parseProsodyValue(m.groupValues[1])
+            m.groupValues[2]
+        }
+        // 剩余 prosody(无 rate/pitch)直接保留内容
+        text = text.replace(Regex("<prosody[^>]*>(.*?)</prosody>", RegexOption.DOT_MATCHES_ALL), "$1")
+        // emphasis → 保留内容(系统 TTS 通过音高提升体现,这里不重复施加)
+        text = text.replace(Regex("<emphasis[^>]*>(.*?)</emphasis>", RegexOption.DOT_MATCHES_ALL), "$1")
+        // break → 转为标点停顿(≥1s 用句号,否则逗号;无 time 用逗号)
+        text = text.replace(Regex("<break[^>]*/?>")) { m ->
+            val timeMatch = Regex("time=[\"']([\\d.]+)\\s*(s|ms)[\"']").find(m.value)
+            if (timeMatch != null) {
+                val amt = timeMatch.groupValues[1].toFloatOrNull() ?: 0f
+                val unit = timeMatch.groupValues[2]
+                val secs = if (unit == "ms") amt / 1000f else amt
+                if (secs >= 1f) "。" else "，"
+            } else "，"
+        }
+        // 剥离其余未知标签
+        text = text.replace(Regex("<[^>]+>"), "")
+        // 解码基本 XML 实体
+        text = text
+            .replace("&amp;", "&")
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&quot;", "\"")
+            .replace("&apos;", "'")
+        return SsmlParsed(text.trim(), rate, pitch)
+    }
+
+    /** 解析 prosody rate/pitch 值(slow/medium/fast/百分比/小数)。 */
+    private fun parseProsodyValue(raw: String): Float? = when {
+        raw.equals("slow", true) -> 0.7f
+        raw.equals("medium", true) -> 1.0f
+        raw.equals("fast", true) -> 1.5f
+        raw.equals("low", true) -> 0.8f
+        raw.equals("high", true) -> 1.3f
+        raw.endsWith("%") -> (raw.dropLast(1).toFloatOrNull() ?: 100f) / 100f
+        else -> raw.toFloatOrNull()
+    }
+
+    /**
+     * v1.99(4.6): 用克隆音色朗读文本。
+     *
+     * 临时把 [mediaConfig] 切到对应 provider + 克隆 voiceId,调用 [speak] 后
+     * 在播放结束时恢复原配置。当前克隆 provider 仅有 elevenlabs
+     * (见 [ElevenLabsVoiceCloningProvider]),其 voiceId 可直接作为 TTS voice。
+     *
+     * @param text 待朗读文本
+     * @param utteranceId 跟踪 id
+     * @param voiceId 克隆音色 id(VoiceCloningService.cloneVoice 返回值)
+     * @param providerId 克隆服务商(默认 elevenlabs)
+     */
+    fun speakWithClonedVoice(
+        text: String,
+        utteranceId: String,
+        voiceId: String,
+        providerId: String = "elevenlabs",
+    ): Boolean {
+        if (voiceId.isBlank()) return false
+        val original = mediaConfig
+        // 仅当当前引擎不是该 provider,或当前 voice 不是该克隆音色时才覆盖
+        val needOverride = original.ttsEngine != providerId || original.ttsVoice != voiceId
+        if (needOverride) {
+            applyConfig(original.copy(ttsEngine = providerId, ttsVoice = voiceId))
+        }
+        val ok = speak(text, utteranceId, flush = true)
+        if (needOverride) {
+            playbackScope.launch {
+                runCatching { playbackJob?.join() }
+                applyConfig(original)
+            }
+        }
+        return ok
     }
 
     /** 停止当前朗读(同时停分片播放 + 流式朗读)。 */
@@ -684,6 +996,7 @@ class TtsManager(
     /** v1.4: 内部停止 — resetState=true 时把 playbackState 重置为 Idle(对外停止)。 */
     private fun stopInternal(resetState: Boolean) {
         stopPlayback()
+        stopCloudStream()
         // 停流式朗读
         if (currentUtteranceId != null) {
             tts.stop()
