@@ -17,8 +17,8 @@ android {
         applicationId = "io.zer0.muse"
         minSdk = 26
         targetSdk = 35
-        versionCode = 126
-        versionName = "1.0.26"
+        versionCode = 127
+        versionName = "1.0.25"
     }
 
     signingConfigs {
