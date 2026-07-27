@@ -145,6 +145,9 @@ class ChatViewModelSessionMismatchTest {
         every { delegationPauseManager.activePauses } returns MutableStateFlow<Map<String, DelegationPauseManager.PauseRequest>>(emptyMap())
         every { chatGenerationManager.activeGeneration } returns MutableStateFlow<ChatGenerationManager.ActiveGeneration?>(null)
         every { visionBridge.progressFlow } returns MutableStateFlow(VisionProgress(idle = true, index = 0, total = 0))
+        every { deferredResultStore.completedTasks } returns MutableStateFlow(emptyMap())
+        every { deferredResultStore.tasks } returns MutableStateFlow(emptyMap())
+        every { subagentThreadStore.listActiveThreads() } returns emptyList()
 
         // appendMessage 默认成功返回
         coEvery { sessionRepository.appendMessage(any(), any()) } returns "msg-id"
