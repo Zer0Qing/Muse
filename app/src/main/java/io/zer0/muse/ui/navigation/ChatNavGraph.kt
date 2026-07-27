@@ -67,6 +67,7 @@ fun NavGraphBuilder.chatNavGraph(
                 val encoded = java.net.URLEncoder.encode(html, "UTF-8")
                 navController.navigate(MuseRoutes.htmlPreviewRoute(encoded))
             },
+            onOpenSkills = { navController.navigate(MuseRoutes.SKILLS) },
         )
     }
     // v0.45: 独立全局搜索页(从首页右上角搜索按钮进入,右滑入场)
@@ -89,9 +90,6 @@ fun NavGraphBuilder.chatNavGraph(
                 sharedViewModel.setTargetMessage(messageId, query)
                 navController.popBackStack(MuseRoutes.HOME, inclusive = false)
             },
-            // v2.2: 翻译/快速记录结果点击 → 跳转对应页(全局搜索不再含设置项)
-            onOpenQuickTranslate = { navController.navigate(MuseRoutes.TRANSLATE) },
-            onOpenQuickNotes = { navController.navigate(MuseRoutes.QUICK_NOTES) },
         )
     }
     // v0.27: 聊天详情页 — 从首页 push 进入,右滑入场 + 左滑返回(对标 iOS push)
@@ -153,18 +151,27 @@ fun NavGraphBuilder.chatNavGraph(
                             val encoded = java.net.URLEncoder.encode(html, "UTF-8")
                             navController.navigate(MuseRoutes.htmlPreviewRoute(encoded))
                         },
+                        onOpenSkills = { navController.navigate(MuseRoutes.SKILLS) },
                     )
                 }
             }
         } else {
             ChatScreen(
                 onOpenAssistants = { navController.navigate(MuseRoutes.ASSISTANTS) },
-                onBack = { navController.popBackStack() },
+                onBack = {
+                    // 退出对话时触发 AI 摘要命名(仅当标题仍为默认值且有至少一轮完整对话)
+                    val currentSessionId = sharedViewModel.state.value.currentSessionId
+                    if (currentSessionId != null) {
+                        sharedViewModel.autoTitleOnExit(currentSessionId)
+                    }
+                    navController.popBackStack()
+                },
                 // HTML/SVG 代码块全屏预览:URL 编码后跳转 HtmlPreviewScreen
                 onHtmlPreview = { html ->
                     val encoded = java.net.URLEncoder.encode(html, "UTF-8")
                     navController.navigate(MuseRoutes.htmlPreviewRoute(encoded))
                 },
+                onOpenSkills = { navController.navigate(MuseRoutes.SKILLS) },
             )
         }
     }

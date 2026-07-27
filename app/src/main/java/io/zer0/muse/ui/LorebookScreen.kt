@@ -28,7 +28,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import io.zer0.muse.ui.common.IosTextField
 import androidx.compose.material3.Scaffold
 import io.zer0.muse.ui.common.IosDropdown
 import io.zer0.muse.ui.common.IosFloatingButton
@@ -366,43 +366,39 @@ private fun LorebookEditPage(
             Spacer(Modifier.height(4.dp))
 
             SectionLabel(stringResource(R.string.lorebook_section_basic))
-            OutlinedTextField(
+            IosTextField(
                 value = name,
                 onValueChange = { name = it },
                 label = { Text(stringResource(R.string.lorebook_field_name)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                shape = MuseShapes.medium,
             )
-            OutlinedTextField(
+            IosTextField(
                 value = keywordsText,
                 onValueChange = { keywordsText = it },
                 label = { Text(stringResource(R.string.lorebook_field_keywords)) },
                 placeholder = { Text(stringResource(R.string.lorebook_field_keywords_placeholder)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                shape = MuseShapes.medium,
             )
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
             SectionLabel(stringResource(R.string.lorebook_section_content))
-            OutlinedTextField(
+            IosTextField(
                 value = content,
                 onValueChange = { content = it },
                 label = { Text(stringResource(R.string.lorebook_field_content)) },
                 modifier = Modifier.fillMaxWidth().height(140.dp),
-                shape = MuseShapes.medium,
             )
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
             SectionLabel(stringResource(R.string.lorebook_section_behavior))
-            OutlinedTextField(
+            IosTextField(
                 value = priority,
                 onValueChange = { priority = it.filter(Char::isDigit) },
                 label = { Text(stringResource(R.string.lorebook_field_priority)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                shape = MuseShapes.medium,
             )
             IosDropdown(
                 value = insertionPosition,

@@ -281,6 +281,444 @@ class GroupChatScheduler(
         runCatching { ChatGenerationService.stop(appContext) }
     }
 
+    // ════════════════════════════════════════════════════════════════
+    // v2.x 群聊增强 — 重新生成 / 表决 / 总结 / 悄悄话
+    // ════════════════════════════════════════════════════════════════
+
+    /**
+     * v2.x: 指定 AI 重新生成其最后一条消息。
+     *
+     * 删除该 AI 在群聊中的最后一条发言,然后重新触发它生成新回复。
+     *
+     * @param chatId 群聊 id
+     * @param assistantId 要重新生成的 AI id
+     */
+    fun regenerateAgentMessage(chatId: String, assistantId: String) {
+        chatGenerationManager.launchGeneration(
+            sessionId = "group:$chatId",
+            assistantId = "group",
+            sessionTitle = "重新生成中",
+        ) {
+            try {
+                val chat = groupChatRepository.getChat(chatId) ?: return@launchGeneration
+                val assistant = resultOf { assistantRepository.getById(assistantId) }.getOrNull()
+                    ?: return@launchGeneration
+                val memberIds = groupChatRepository.parseMemberIds(chat)
+                val memberNames = memberIds.mapNotNull { id ->
+                    resultOf { assistantRepository.getById(id) }.getOrNull()?.name
+                }
+                val model = resultOf { settings.getSelectedModel() }.getOrNull()
+
+                _activeGroupGeneration.value = ActiveGroupGeneration(
+                    chatId = chatId,
+                    chatName = chat.name,
+                    isResponding = true,
+                    currentSpeakerId = assistant.id,
+                    currentSpeakerName = assistant.name,
+                )
+                runCatching { ChatGenerationService.start(appContext) }
+
+                val result = invokeAgent(chat, chatId, assistant, memberNames, model, isMentioned = false)
+                if (result is AgentResult.Error) {
+                    Logger.w(TAG, "重新生成失败: ${result.message}")
+                }
+            } catch (ce: CancellationException) {
+                throw ce
+            } catch (t: Exception) {
+                Logger.e(TAG, "重新生成异常", t)
+            } finally {
+                _activeGroupGeneration.value = null
+                runCatching { ChatGenerationService.stop(appContext) }
+            }
+        }
+    }
+
+    /**
+     * v2.x: 发起表决 — 让所有成员对指定议题投票。
+     *
+     * 每个 AI 按自身人设投出赞成/反对票并给出理由。
+     * 结果以 messageType="vote" 保存到群聊。
+     *
+     * @param chatId 群聊 id
+     * @param topic 表决议题
+     */
+    fun launchVote(chatId: String, topic: String) {
+        chatGenerationManager.launchGeneration(
+            sessionId = "group:$chatId",
+            assistantId = "group",
+            sessionTitle = "表决中",
+        ) {
+            try {
+                val chat = groupChatRepository.getChat(chatId) ?: return@launchGeneration
+                val memberIds = groupChatRepository.parseMemberIds(chat)
+                val assistants = memberIds.mapNotNull { id ->
+                    resultOf { assistantRepository.getById(id) }.getOrNull()
+                }
+                if (assistants.isEmpty()) return@launchGeneration
+
+                val memberNames = assistants.map { it.name }
+                val model = resultOf { settings.getSelectedModel() }.getOrNull()
+
+                _activeGroupGeneration.value = ActiveGroupGeneration(
+                    chatId = chatId,
+                    chatName = chat.name,
+                    isResponding = true,
+                )
+                runCatching { ChatGenerationService.start(appContext) }
+
+                // 保存系统提示消息
+                groupChatRepository.sendMessage(
+                    chatId = chatId,
+                    senderType = "user",
+                    senderId = "system",
+                    senderName = "系统",
+                    body = "发起了表决:$topic",
+                    messageType = "system",
+                )
+
+                activityHub.clear(chatId)
+                for (assistant in assistants) {
+                    _activeGroupGeneration.update {
+                        it?.copy(currentSpeakerId = assistant.id, currentSpeakerName = assistant.name)
+                    }
+                    val voteResult = invokeAgentForVote(chat, chatId, assistant, memberNames, topic, model)
+                    if (voteResult != null) {
+                        groupChatRepository.sendMessage(
+                            chatId = chatId,
+                            senderType = "assistant",
+                            senderId = assistant.id,
+                            senderName = assistant.name,
+                            body = voteResult,
+                            messageType = "vote",
+                        )
+                    }
+                }
+
+                // 保存表决结束系统提示
+                groupChatRepository.sendMessage(
+                    chatId = chatId,
+                    senderType = "user",
+                    senderId = "system",
+                    senderName = "系统",
+                    body = "表决结束",
+                    messageType = "system",
+                )
+            } catch (ce: CancellationException) {
+                throw ce
+            } catch (t: Exception) {
+                Logger.e(TAG, "表决异常", t)
+            } finally {
+                _activeGroupGeneration.value = null
+                runCatching { ChatGenerationService.stop(appContext) }
+            }
+        }
+    }
+
+    /**
+     * v2.x: 结论总结器 — 让指定 AI 总结当前群聊讨论的共识与分歧。
+     *
+     * @param chatId 群聊 id
+     * @param summarizerId 执行总结的 AI id(null 时用第一个成员)
+     */
+    fun launchSummary(chatId: String, summarizerId: String? = null) {
+        chatGenerationManager.launchGeneration(
+            sessionId = "group:$chatId",
+            assistantId = "group",
+            sessionTitle = "总结中",
+        ) {
+            try {
+                val chat = groupChatRepository.getChat(chatId) ?: return@launchGeneration
+                val memberIds = groupChatRepository.parseMemberIds(chat)
+                val assistants = memberIds.mapNotNull { id ->
+                    resultOf { assistantRepository.getById(id) }.getOrNull()
+                }
+                if (assistants.isEmpty()) return@launchGeneration
+
+                val summarizer = summarizerId?.let { id -> assistants.find { it.id == id } }
+                    ?: assistants.first()
+                val memberNames = assistants.map { it.name }
+                val model = resultOf { settings.getSelectedModel() }.getOrNull()
+
+                _activeGroupGeneration.value = ActiveGroupGeneration(
+                    chatId = chatId,
+                    chatName = chat.name,
+                    isResponding = true,
+                    currentSpeakerId = summarizer.id,
+                    currentSpeakerName = summarizer.name,
+                )
+                runCatching { ChatGenerationService.start(appContext) }
+
+                val recentMessages = groupChatRepository.getRecentMessages(chatId, DEFAULT_CONTEXT_SIZE)
+                val summary = invokeAgentForSummary(chat, summarizer, memberNames, recentMessages, model)
+                if (summary.isNotBlank()) {
+                    groupChatRepository.sendMessage(
+                        chatId = chatId,
+                        senderType = "assistant",
+                        senderId = summarizer.id,
+                        senderName = summarizer.name,
+                        body = summary,
+                        messageType = "summary",
+                    )
+                }
+            } catch (ce: CancellationException) {
+                throw ce
+            } catch (t: Exception) {
+                Logger.e(TAG, "总结异常", t)
+            } finally {
+                _activeGroupGeneration.value = null
+                runCatching { ChatGenerationService.stop(appContext) }
+            }
+        }
+    }
+
+    /**
+     * v2.x: 发送用户悄悄话给指定 AI,并触发该 AI 回复(仅目标 AI 可见)。
+     *
+     * @param chatId 群聊 id
+     * @param targetAssistantId 目标 AI id
+     * @param text 悄悄话内容
+     */
+    fun launchWhisper(chatId: String, targetAssistantId: String, text: String) {
+        chatGenerationManager.launchGeneration(
+            sessionId = "group:$chatId",
+            assistantId = "group",
+            sessionTitle = "私信中",
+        ) {
+            try {
+                val chat = groupChatRepository.getChat(chatId) ?: return@launchGeneration
+                val assistant = resultOf { assistantRepository.getById(targetAssistantId) }.getOrNull()
+                    ?: return@launchGeneration
+                val memberIds = groupChatRepository.parseMemberIds(chat)
+                val memberNames = memberIds.mapNotNull { id ->
+                    resultOf { assistantRepository.getById(id) }.getOrNull()?.name
+                }
+                val model = resultOf { settings.getSelectedModel() }.getOrNull()
+
+                _activeGroupGeneration.value = ActiveGroupGeneration(
+                    chatId = chatId,
+                    chatName = chat.name,
+                    isResponding = true,
+                    currentSpeakerId = assistant.id,
+                    currentSpeakerName = assistant.name,
+                )
+                runCatching { ChatGenerationService.start(appContext) }
+
+                // 1. 保存用户悄悄话(whisperTargetId 标记)
+                val userName = resultOf { settings.accountStateFlow.first().userName }
+                    .getOrNull()?.ifBlank { "我" } ?: "我"
+                groupChatRepository.sendMessage(
+                    chatId = chatId,
+                    senderType = "user",
+                    senderId = "local_user",
+                    senderName = userName,
+                    body = text,
+                    whisperTargetId = targetAssistantId,
+                )
+
+                // 2. 触发目标 AI 回复(也是悄悄话)
+                val recentMessages = groupChatRepository.getRecentMessages(chatId, DEFAULT_CONTEXT_SIZE)
+                val messages = buildWhisperMessages(chat.name, assistant, memberNames, recentMessages, text, model)
+                val temperature = assistant.temperature ?: DEFAULT_TEMPERATURE
+                val maxTokens = assistant.maxTokens ?: DEFAULT_MAX_TOKENS
+
+                activityHub.updateStatus(chatId, assistant.id, assistant.name, AgentActivityStatus.REPLYING)
+                val rawReply = resultOf {
+                    withTimeoutOrNull(AGENT_TIMEOUT_MS) {
+                        val builder = StringBuilder()
+                        chatService.streamChat(
+                            messages = messages,
+                            model = model,
+                            temperature = temperature,
+                            maxTokens = maxTokens,
+                        ).collect { event ->
+                            if (event is ChatStreamEvent.ContentDelta) builder.append(event.delta)
+                        }
+                        builder.toString().trim()
+                    }
+                }.getOrNull()
+
+                if (!rawReply.isNullOrBlank()) {
+                    val replyText = sanitizeAgentReply(rawReply)
+                    if (replyText.isNotBlank() && replyText != PASS_MARKER) {
+                        groupChatRepository.sendMessage(
+                            chatId = chatId,
+                            senderType = "assistant",
+                            senderId = assistant.id,
+                            senderName = assistant.name,
+                            body = replyText,
+                            mood = extractMood(rawReply),
+                            reasoning = extractReasoning(rawReply),
+                            whisperTargetId = "local_user",
+                        )
+                    }
+                }
+                scheduleIdleTransition(chatId, assistant)
+            } catch (ce: CancellationException) {
+                throw ce
+            } catch (t: Exception) {
+                Logger.e(TAG, "悄悄话异常", t)
+            } finally {
+                _activeGroupGeneration.value = null
+                runCatching { ChatGenerationService.stop(appContext) }
+            }
+        }
+    }
+
+    /**
+     * v2.x: 构造表决专用消息列表。
+     */
+    private suspend fun invokeAgentForVote(
+        chat: GroupChatEntity,
+        chatId: String,
+        assistant: AssistantEntity,
+        memberNames: List<String>,
+        topic: String,
+        model: io.zer0.ai.core.Model?,
+    ): String? {
+        activityHub.updateStatus(chatId, assistant.id, assistant.name, AgentActivityStatus.VIEWING)
+        val recentMessages = groupChatRepository.getRecentMessages(chatId, DEFAULT_CONTEXT_SIZE)
+
+        val systemContent = buildString {
+            if (assistant.systemPrompt.isNotBlank()) {
+                appendLine(assistant.systemPrompt)
+                appendLine()
+            }
+            appendLine(SystemPromptAssembler.buildGroupChatHintSection(chat.name, memberNames, assistant.name))
+            appendLine()
+            appendLine("【表决模式】群聊正在对以下议题进行表决:")
+            appendLine("议题:$topic")
+            appendLine()
+            appendLine("请按照你的人设和立场,投出你的票并给出理由。")
+            appendLine("格式:")
+            appendLine("立场:[赞成/反对/弃权]")
+            appendLine("理由:[你的理由,2-3 句]")
+        }
+
+        val userContent = buildString {
+            appendLine("${assistant.name},请对以下议题投票:")
+            appendLine(topic)
+            if (recentMessages.isNotEmpty()) {
+                appendLine()
+                appendLine("【讨论参考】")
+                appendLine(formatMessageTranscript(recentMessages.takeLast(10)))
+            }
+        }
+
+        val messages = listOf(
+            UIMessage(role = MessageRole.SYSTEM, content = systemContent),
+            UIMessage(role = MessageRole.USER, content = userContent),
+        )
+
+        activityHub.updateStatus(chatId, assistant.id, assistant.name, AgentActivityStatus.REPLYING)
+        val rawReply = resultOf {
+            withTimeoutOrNull(AGENT_TIMEOUT_MS) {
+                val builder = StringBuilder()
+                chatService.streamChat(
+                    messages = messages,
+                    model = model,
+                    temperature = assistant.temperature ?: DEFAULT_TEMPERATURE,
+                    maxTokens = assistant.maxTokens ?: 500,
+                ).collect { event ->
+                    if (event is ChatStreamEvent.ContentDelta) builder.append(event.delta)
+                }
+                builder.toString().trim()
+            }
+        }.getOrNull()
+
+        scheduleIdleTransition(chatId, assistant)
+        return rawReply?.takeIf { it.isNotBlank() }
+    }
+
+    /**
+     * v2.x: 构造总结专用消息列表。
+     */
+    private suspend fun invokeAgentForSummary(
+        chat: GroupChatEntity,
+        summarizer: AssistantEntity,
+        memberNames: List<String>,
+        recentMessages: List<GroupChatMessageEntity>,
+        model: io.zer0.ai.core.Model?,
+    ): String {
+        val systemContent = buildString {
+            if (summarizer.systemPrompt.isNotBlank()) {
+                appendLine(summarizer.systemPrompt)
+                appendLine()
+            }
+            appendLine("你是群聊「${chat.name}」的总结者。")
+            appendLine("请回顾讨论记录,总结:")
+            appendLine("1. 达成共识的部分")
+            appendLine("2. 尚有分歧的部分")
+            appendLine("3. 建议的下一步行动")
+            appendLine()
+            appendLine("用简洁清晰的格式输出,不要输出 [PASS]。")
+        }
+
+        val userContent = buildString {
+            appendLine("请总结以下群聊讨论:")
+            appendLine()
+            if (recentMessages.isNotEmpty()) {
+                appendLine(formatMessageTranscript(recentMessages))
+            }
+        }
+
+        val messages = listOf(
+            UIMessage(role = MessageRole.SYSTEM, content = systemContent),
+            UIMessage(role = MessageRole.USER, content = userContent),
+        )
+
+        val rawReply = resultOf {
+            withTimeoutOrNull(AGENT_TIMEOUT_MS) {
+                val builder = StringBuilder()
+                chatService.streamChat(
+                    messages = messages,
+                    model = model,
+                    temperature = 0.3f,
+                    maxTokens = 1000,
+                ).collect { event ->
+                    if (event is ChatStreamEvent.ContentDelta) builder.append(event.delta)
+                }
+                builder.toString().trim()
+            }
+        }.getOrNull()
+
+        return rawReply ?: ""
+    }
+
+    /**
+     * v2.x: 构造悄悄话专用消息列表。
+     */
+    private suspend fun buildWhisperMessages(
+        chatName: String,
+        assistant: AssistantEntity,
+        memberNames: List<String>,
+        recentMessages: List<GroupChatMessageEntity>,
+        whisperText: String,
+        model: io.zer0.ai.core.Model?,
+    ): List<UIMessage> {
+        val systemContent = buildString {
+            if (assistant.systemPrompt.isNotBlank()) {
+                appendLine(assistant.systemPrompt)
+                appendLine()
+            }
+            appendLine(SystemPromptAssembler.buildGroupChatHintSection(chatName, memberNames, assistant.name))
+            appendLine()
+            appendLine("【悄悄话】用户给你发了一条私信,仅你可见,其他群成员看不到。")
+            appendLine("请以私密方式回复,回复内容也仅用户可见。")
+        }
+
+        val userContent = buildString {
+            appendLine("${assistant.name},用户给你发了一条悄悄话:")
+            appendLine(whisperText)
+            appendLine()
+            appendLine("请私下回复。直接输出内容即可。")
+        }
+
+        return listOf(
+            UIMessage(role = MessageRole.SYSTEM, content = systemContent),
+            UIMessage(role = MessageRole.USER, content = userContent),
+        )
+    }
+
      /**
       * 触发群聊 Agent 轮转发言。
       *
@@ -319,6 +757,14 @@ class GroupChatScheduler(
                     ?.takeIf { it.isNotBlank() } ?: chat.name
                 return@withContext executeWithWorkflow(chat, chatId, team, userMessage)
             }
+        }
+
+        // v2.x: 根据讨论模式分流
+        when (chat.discussionMode) {
+            "auto" -> return@withContext executeAutoDiscussion(chat, chatId, onSpeakerChange)
+            "debate" -> return@withContext executeDebate(chat, chatId, onSpeakerChange)
+            "host" -> return@withContext executeHostMode(chat, chatId, onSpeakerChange)
+            else -> { /* round_robin: 继续走原有串行轮转逻辑 */ }
         }
 
         val memberIds = groupChatRepository.parseMemberIds(chat)
@@ -449,6 +895,595 @@ class GroupChatScheduler(
         )
     }
 
+    // ════════════════════════════════════════════════════════════════
+    // v2.x 群聊讨论模式 — Auto / Debate / Host
+    // ════════════════════════════════════════════════════════════════
+
+    /**
+     * Auto 自由讨论模式 — AI 之间自动连续对话,无需用户介入。
+     *
+     * 流程:
+     *  1. 用户发消息后,第一轮所有成员依次发言(与 round_robin 相同)
+     *  2. 之后每轮:取最近消息作为上下文,让每个 agent 再次发言
+     *     - 每个 agent 看到上一轮其他 agent 的发言,自行决定是否继续
+     *  3. 终止条件(任一满足):
+     *     - 达到 [GroupChatEntity.autoMaxRounds] 上限
+     *     - 某一轮所有 agent 都 PASS(无人有新内容要说)
+     *     - 用户手动停止或发新消息(外部取消)
+     *
+     * 与 round_robin 的区别:round_robin 只跑一轮就停;Auto 连续多轮直到收敛或超限。
+     *
+     * @param chat 群聊实体
+     * @param chatId 群聊 id
+     * @param onSpeakerChange 每个 agent 开始发言时回调
+     * @return 所有轮次累计的 agent 回复列表
+     */
+    private suspend fun executeAutoDiscussion(
+        chat: GroupChatEntity,
+        chatId: String,
+        onSpeakerChange: ((AssistantEntity) -> Unit)?,
+    ): List<GroupChatMessageEntity> = withContext(Dispatchers.IO) {
+        val memberIds = groupChatRepository.parseMemberIds(chat)
+        if (memberIds.isEmpty()) {
+            Logger.w(TAG, "Auto 模式:群聊「${chat.name}」无成员")
+            return@withContext emptyList()
+        }
+
+        val assistants = memberIds.mapNotNull { id ->
+            resultOf { assistantRepository.getById(id) }.getOrNull()
+        }
+        if (assistants.isEmpty()) {
+            Logger.w(TAG, "Auto 模式:群聊「${chat.name}」无有效成员")
+            return@withContext emptyList()
+        }
+
+        val memberNames = assistants.map { it.name }
+        val model = resultOf { settings.getSelectedModel() }.getOrNull()
+        val maxRounds = chat.autoMaxRounds.coerceAtLeast(1)
+
+        // 解析 @mention(第一轮仍需优先被@的成员)
+        val recentMessages = groupChatRepository.getRecentMessages(chatId, DEFAULT_CONTEXT_SIZE)
+        val mentionedAgentIds = parseMentions(recentMessages, assistants)
+        val orderedAssistants = assistants.sortedByDescending { it.id in mentionedAgentIds }
+
+        activityHub.clear(chatId)
+        val allReplies = mutableListOf<GroupChatMessageEntity>()
+
+        for (round in 1..maxRounds) {
+            Logger.i(TAG, "Auto 模式:群聊「${chat.name}」第 $round/$maxRounds 轮")
+            var roundReplyCount = 0
+
+            for (assistant in orderedAssistants) {
+                // 每轮都检查是否被取消(用户停止 / 新消息抢占)
+                if (!chatGenerationManager.isStreaming("group:$chatId")) {
+                    Logger.i(TAG, "Auto 模式:生成被取消,终止于第 $round 轮")
+                    return@withContext allReplies
+                }
+
+                val isMentioned = assistant.id in mentionedAgentIds && round == 1
+                onSpeakerChange?.invoke(assistant)
+
+                val result = invokeAgent(
+                    chat, chatId, assistant, memberNames, model,
+                    isMentioned = isMentioned,
+                    isRepair = false,
+                )
+                when (result) {
+                    is AgentResult.Reply -> {
+                        allReplies.add(result.message)
+                        roundReplyCount++
+                    }
+                    is AgentResult.Pass -> {
+                        // 第一轮被@但 PASS,重试一次
+                        if (isMentioned) {
+                            val retry = invokeAgent(chat, chatId, assistant, memberNames, model, isMentioned = true, isRepair = true)
+                            if (retry is AgentResult.Reply) {
+                                allReplies.add(retry.message)
+                                roundReplyCount++
+                            }
+                        }
+                    }
+                    is AgentResult.Error -> Logger.w(TAG, "Auto: Agent「${assistant.name}」错误: ${result.message}")
+                }
+            }
+
+            // 本轮无人发言 → 讨论收敛,终止
+            if (roundReplyCount == 0) {
+                Logger.i(TAG, "Auto 模式:第 $round 轮全员 PASS,讨论收敛")
+                break
+            }
+        }
+
+        Logger.i(TAG, "Auto 模式:群聊「${chat.name}」自由讨论完成,共 ${allReplies.size} 条回复")
+        allReplies
+    }
+
+    /**
+     * 辩论模式 — 固定链条顺序,每个 agent 必须回应上一人的观点。
+     *
+     * 链条:用户提问 → A 给方案 → B 找漏洞 → C 提改进 → (循环)
+     * 成员顺序由 memberIds 列表决定,每个 agent 收到的 prompt 会强调:
+     *  - 其在链条中的角色定位(提方案 / 找漏洞 / 改进)
+     *  - 上一人的发言内容(必须针对性回应)
+     *
+     * 与 round_robin 的区别:不允许 PASS(辩论中每个角色必须发言),
+     * 且 prompt 中注入角色定位和上一人发言。
+     *
+     * @param chat 群聊实体
+     * @param chatId 群聊 id
+     * @param onSpeakerChange 每个 agent 开始发言时回调
+     * @return 本轮所有 agent 的回复列表
+     */
+    private suspend fun executeDebate(
+        chat: GroupChatEntity,
+        chatId: String,
+        onSpeakerChange: ((AssistantEntity) -> Unit)?,
+    ): List<GroupChatMessageEntity> = withContext(Dispatchers.IO) {
+        val memberIds = groupChatRepository.parseMemberIds(chat)
+        if (memberIds.isEmpty()) {
+            Logger.w(TAG, "辩论模式:群聊「${chat.name}」无成员")
+            return@withContext emptyList()
+        }
+
+        val assistants = memberIds.mapNotNull { id ->
+            resultOf { assistantRepository.getById(id) }.getOrNull()
+        }
+        if (assistants.size < 2) {
+            Logger.w(TAG, "辩论模式:群聊「${chat.name}」成员不足 2 人,回退到 round_robin")
+            // 成员不足时无法辩论,回退
+            return@withContext triggerRoundRobinFallback(chat, chatId, assistants, onSpeakerChange)
+        }
+
+        val memberNames = assistants.map { it.name }
+        val model = resultOf { settings.getSelectedModel() }.getOrNull()
+
+        activityHub.clear(chatId)
+        val replies = mutableListOf<GroupChatMessageEntity>()
+
+        // 辩论角色:按位置分配(提方案 / 质疑 / 改进 / 补充)
+        val roles = generateDebateRoles(assistants.size)
+
+        for ((index, assistant) in assistants.withIndex()) {
+            if (!chatGenerationManager.isStreaming("group:$chatId")) {
+                Logger.i(TAG, "辩论模式:生成被取消")
+                return@withContext replies
+            }
+
+            val role = roles[index]
+            val previousReply = replies.lastOrNull()?.body
+            onSpeakerChange?.invoke(assistant)
+
+            val result = invokeAgentForDebate(
+                chat, chatId, assistant, memberNames, model,
+                role = role,
+                speakerIndex = index,
+                totalSpeakers = assistants.size,
+                previousReply = previousReply,
+            )
+            when (result) {
+                is AgentResult.Reply -> replies.add(result.message)
+                is AgentResult.Pass -> {
+                    // 辩论中不允许 PASS,重试一次强调必须发言
+                    Logger.i(TAG, "辩论:Agent「${assistant.name}」尝试 PASS,重试(辩论不允许跳过)")
+                    val retry = invokeAgentForDebate(
+                        chat, chatId, assistant, memberNames, model,
+                        role = role,
+                        speakerIndex = index,
+                        totalSpeakers = assistants.size,
+                        previousReply = previousReply,
+                        isRepair = true,
+                    )
+                    if (retry is AgentResult.Reply) replies.add(retry.message)
+                }
+                is AgentResult.Error -> Logger.w(TAG, "辩论:Agent「${assistant.name}」错误: ${result.message}")
+            }
+        }
+
+        Logger.i(TAG, "辩论模式:群聊「${chat.name}」链条完成,${replies.size} 条发言")
+        replies
+    }
+
+    /**
+     * 主持人路由模式 — 由指定 AI 分析问题后动态派发任务给其他成员。
+     *
+     * 流程:
+     *  1. 主持人 AI 先分析用户问题,输出 JSON 指定:哪些成员应该发言、以什么顺序、各自的任务
+     *  2. 调度器按主持人的指示,依次调用被派发的成员
+     *  3. 主持人最后可选地做一次总结
+     *
+     * 若 hostId 不存在或主持人分析失败,回退到 round_robin。
+     *
+     * @param chat 群聊实体
+     * @param chatId 群聊 id
+     * @param onSpeakerChange 每个 agent 开始发言时回调
+     * @return 本轮所有 agent 的回复列表
+     */
+    private suspend fun executeHostMode(
+        chat: GroupChatEntity,
+        chatId: String,
+        onSpeakerChange: ((AssistantEntity) -> Unit)?,
+    ): List<GroupChatMessageEntity> = withContext(Dispatchers.IO) {
+        val memberIds = groupChatRepository.parseMemberIds(chat)
+        if (memberIds.isEmpty()) {
+            Logger.w(TAG, "主持人模式:群聊「${chat.name}」无成员")
+            return@withContext emptyList()
+        }
+
+        val assistants = memberIds.mapNotNull { id ->
+            resultOf { assistantRepository.getById(id) }.getOrNull()
+        }
+        if (assistants.isEmpty()) {
+            Logger.w(TAG, "主持人模式:群聊「${chat.name}」无有效成员")
+            return@withContext emptyList()
+        }
+
+        // 找到主持人
+        val host = assistants.find { it.id == chat.hostId }
+        if (host == null) {
+            Logger.w(TAG, "主持人模式:hostId=${chat.hostId} 不在成员中,回退 round_robin")
+            return@withContext triggerRoundRobinFallback(chat, chatId, assistants, onSpeakerChange)
+        }
+
+        val otherMembers = assistants.filter { it.id != host.id }
+        if (otherMembers.isEmpty()) {
+            Logger.w(TAG, "主持人模式:除主持人外无其他成员,回退 round_robin")
+            return@withContext triggerRoundRobinFallback(chat, chatId, assistants, onSpeakerChange)
+        }
+
+        val memberNames = assistants.map { it.name }
+        val model = resultOf { settings.getSelectedModel() }.getOrNull()
+
+        activityHub.clear(chatId)
+
+        // 1. 主持人分析用户问题,输出派发计划
+        val recentMessages = groupChatRepository.getRecentMessages(chatId, DEFAULT_CONTEXT_SIZE)
+        val lastUserMsg = recentMessages.lastOrNull { it.senderType == "user" }?.body ?: chat.name
+
+        onSpeakerChange?.invoke(host)
+        val dispatchPlan = analyzeWithHost(chat, host, otherMembers, memberNames, lastUserMsg, model)
+
+        if (dispatchPlan.isEmpty()) {
+            Logger.w(TAG, "主持人模式:主持人未给出有效派发计划,回退 round_robin")
+            return@withContext triggerRoundRobinFallback(chat, chatId, assistants, onSpeakerChange)
+        }
+
+        Logger.i(TAG, "主持人模式:主持人「${host.name}」派发 ${dispatchPlan.size} 个成员: ${dispatchPlan.joinToString { it.name }}")
+
+        // 2. 按主持人指示依次调用被派发成员
+        val replies = mutableListOf<GroupChatMessageEntity>()
+        for (member in dispatchPlan) {
+            if (!chatGenerationManager.isStreaming("group:$chatId")) {
+                Logger.i(TAG, "主持人模式:生成被取消")
+                return@withContext replies
+            }
+            onSpeakerChange?.invoke(member)
+            val result = invokeAgent(chat, chatId, member, memberNames, model, isMentioned = false)
+            if (result is AgentResult.Reply) replies.add(result.message)
+        }
+
+        Logger.i(TAG, "主持人模式:群聊「${chat.name}」派发完成,${replies.size} 条回复")
+        replies
+    }
+
+    /**
+     * 辩论模式:根据成员数量生成角色定位列表。
+     *
+     * - 2 人:正方 / 反方
+     * - 3 人:提方案 / 找漏洞 / 提改进
+     * - 4+ 人:提方案 / 质疑 / 改进 / 补充(循环)
+     */
+    private fun generateDebateRoles(count: Int): List<String> {
+        val baseRoles = when {
+            count <= 2 -> listOf("提出方案", "质疑挑战")
+            count == 3 -> listOf("提出方案", "质疑挑战", "改进优化")
+            else -> listOf("提出方案", "质疑挑战", "改进优化", "补充扩展")
+        }
+        return (0 until count).map { baseRoles[it % baseRoles.size] }
+    }
+
+    /**
+     * 辩论模式:调用单个 agent 生成发言(带角色定位 + 上一人发言)。
+     *
+     * 与 [invokeAgent] 的区别:prompt 中注入辩论角色和上一人发言,
+     * 且强调不允许 PASS(辩论中每个角色必须发言)。
+     */
+    private suspend fun invokeAgentForDebate(
+        chat: GroupChatEntity,
+        chatId: String,
+        assistant: AssistantEntity,
+        memberNames: List<String>,
+        model: io.zer0.ai.core.Model?,
+        role: String,
+        speakerIndex: Int,
+        totalSpeakers: Int,
+        previousReply: String?,
+        isRepair: Boolean = false,
+    ): AgentResult {
+        activityHub.updateStatus(chatId, assistant.id, assistant.name, AgentActivityStatus.VIEWING)
+
+        val contextSize = assistant.contextMessageSize.takeIf { it > 0 } ?: DEFAULT_CONTEXT_SIZE
+        val recentMessages = groupChatRepository.getRecentMessages(chatId, contextSize)
+
+        val messages = buildDebateMessages(
+            chat.name, assistant, memberNames, recentMessages, model,
+            role, speakerIndex, totalSpeakers, previousReply, isRepair,
+        )
+
+        val temperature = assistant.temperature ?: DEFAULT_TEMPERATURE
+        val maxTokens = assistant.maxTokens ?: DEFAULT_MAX_TOKENS
+        activityHub.updateStatus(chatId, assistant.id, assistant.name, AgentActivityStatus.REPLYING)
+
+        val rawReplyText = resultOf {
+            withTimeoutOrNull(AGENT_TIMEOUT_MS) {
+                val builder = StringBuilder()
+                var streamError: String? = null
+                chatService.streamChat(
+                    messages = messages,
+                    model = model,
+                    temperature = temperature,
+                    maxTokens = maxTokens,
+                ).collect { event ->
+                    when (event) {
+                        is ChatStreamEvent.ContentDelta -> builder.append(event.delta)
+                        is ChatStreamEvent.ReasoningDelta -> {}
+                        is ChatStreamEvent.ImageDelta -> {}
+                        is ChatStreamEvent.ToolCallDelta -> {}
+                        is ChatStreamEvent.Done -> {}
+                        is ChatStreamEvent.Error -> streamError = event.message
+                        is ChatStreamEvent.StreamInterrupted -> streamError = event.message
+                    }
+                }
+                if (streamError != null) throw IllegalStateException(streamError)
+                builder.toString().trim()
+            }
+        }.onError { msg, _ ->
+            activityHub.updateStatus(chatId, assistant.id, assistant.name, AgentActivityStatus.ERROR)
+            scheduleIdleTransition(chatId, assistant)
+            return AgentResult.Error(msg)
+        }.getOrNull()
+
+        if (rawReplyText == null) {
+            activityHub.updateStatus(chatId, assistant.id, assistant.name, AgentActivityStatus.ERROR)
+            scheduleIdleTransition(chatId, assistant)
+            return AgentResult.Error("Agent「${assistant.name}」辩论调用超时")
+        }
+
+        val extractedMood = extractMood(rawReplyText)
+        val extractedReasoning = extractReasoning(rawReplyText)
+        val replyText = sanitizeAgentReply(rawReplyText)
+
+        if (replyText.isBlank() || replyText == PASS_MARKER) {
+            activityHub.updateStatus(chatId, assistant.id, assistant.name, AgentActivityStatus.NO_REPLY)
+            scheduleIdleTransition(chatId, assistant)
+            return AgentResult.Pass
+        }
+
+        val msgId = groupChatRepository.sendMessage(
+            chatId = chatId,
+            senderType = "assistant",
+            senderId = assistant.id,
+            senderName = assistant.name,
+            body = replyText,
+            mood = extractedMood,
+            reasoning = extractedReasoning,
+        )
+        scheduleIdleTransition(chatId, assistant)
+
+        if (groupChatMemoryRepository != null) {
+            val summary = buildGroupChatMemorySummary(chat.name, assistant, replyText)
+            resultOf { groupChatMemoryRepository.saveSummary(chatId, assistant.id, summary) }
+        }
+        return AgentResult.Reply(
+            GroupChatMessageEntity(
+                id = msgId,
+                chatId = chatId,
+                senderType = "assistant",
+                senderId = assistant.id,
+                senderName = assistant.name,
+                body = replyText,
+                timestamp = System.currentTimeMillis(),
+                mood = extractedMood,
+                reasoning = extractedReasoning,
+            )
+        )
+    }
+
+    /**
+     * 辩论模式:构造发给 LLM 的消息列表(含角色定位 + 上一人发言)。
+     */
+    private suspend fun buildDebateMessages(
+        chatName: String,
+        assistant: AssistantEntity,
+        memberNames: List<String>,
+        recentMessages: List<GroupChatMessageEntity>,
+        model: io.zer0.ai.core.Model?,
+        role: String,
+        speakerIndex: Int,
+        totalSpeakers: Int,
+        previousReply: String?,
+        isRepair: Boolean,
+    ): List<UIMessage> {
+        val systemContent = buildString {
+            if (assistant.systemPrompt.isNotBlank()) {
+                appendLine(assistant.systemPrompt)
+                appendLine()
+            }
+            appendLine(
+                SystemPromptAssembler.buildGroupChatHintSection(
+                    chatName = chatName,
+                    members = memberNames,
+                    currentAgentName = assistant.name,
+                )
+            )
+            appendLine()
+            appendLine(GROUP_CHAT_MOOD_SECTION)
+            appendLine()
+            appendLine("【辩论模式】你正在参与一场结构化辩论。")
+            appendLine("你在本轮链条中的角色定位:$role(第 ${speakerIndex + 1}/$totalSpeakers 位发言)")
+            appendLine("辩论规则:")
+            appendLine("- 每个人必须发言,不允许 [PASS]")
+            appendLine("- 必须针对上一人的发言进行回应(赞同/反对/补充/改进)")
+            appendLine("- 保持你的角色定位:提方案者给具体方案,质疑者找逻辑漏洞,改进者提出优化建议")
+            if (isRepair) {
+                appendLine("- 你上一轮没有发言,辩论中不允许跳过,请务必回应")
+            }
+        }
+
+        val messages = mutableListOf<UIMessage>()
+        messages.add(UIMessage(role = MessageRole.SYSTEM, content = systemContent))
+
+        // User message:包含最近消息 transcript + 上一人发言强调
+        val userContent = buildString {
+            appendLine("${assistant.name},你正在参与「$chatName」的辩论。")
+            appendLine()
+            if (recentMessages.isNotEmpty()) {
+                appendLine("【讨论记录】")
+                appendLine(formatMessageTranscript(recentMessages))
+                appendLine()
+            }
+            if (previousReply != null) {
+                appendLine("【上一人发言】请重点回应以下内容:")
+                appendLine(previousReply.take(800))
+                appendLine()
+            } else {
+                appendLine("你是第一位发言者,请基于用户的问题给出你的方案。")
+                appendLine()
+            }
+            appendLine("请以「$role」的视角发言。必须回应,不允许 [PASS]。")
+        }
+        messages.add(UIMessage(role = MessageRole.USER, content = userContent))
+        return messages
+    }
+
+    /**
+     * 主持人模式:让主持人 AI 分析用户问题,输出派发计划。
+     *
+     * 主持人收到用户问题后,输出一个简单的派发列表(每行一个成员名),
+     * 调度器据此决定哪些成员发言及顺序。
+     *
+     * @return 被派发的 AssistantEntity 列表(按主持人指定顺序);失败时返回空列表
+     */
+    private suspend fun analyzeWithHost(
+        chat: GroupChatEntity,
+        host: AssistantEntity,
+        otherMembers: List<AssistantEntity>,
+        memberNames: List<String>,
+        userMessage: String,
+        model: io.zer0.ai.core.Model?,
+    ): List<AssistantEntity> {
+        val systemContent = buildString {
+            if (host.systemPrompt.isNotBlank()) {
+                appendLine(host.systemPrompt)
+                appendLine()
+            }
+            appendLine("你是群聊「${chat.name}」的主持人。")
+            appendLine("群成员:${otherMembers.joinToString("、") { it.name }}")
+            appendLine()
+            appendLine("你的任务是分析用户的问题,决定哪些成员应该发言以及发言顺序。")
+            appendLine("请只输出需要发言的成员名字,每行一个,按发言顺序排列。")
+            appendLine("不要输出其他任何内容。如果不清楚,输出所有成员名字。")
+        }
+
+        val userContent = buildString {
+            appendLine("用户问题:$userMessage")
+            appendLine()
+            appendLine("可选成员:")
+            otherMembers.forEach { appendLine(it.name) }
+            appendLine()
+            appendLine("请列出应该发言的成员名字(每行一个):")
+        }
+
+        val messages = listOf(
+            UIMessage(role = MessageRole.SYSTEM, content = systemContent),
+            UIMessage(role = MessageRole.USER, content = userContent),
+        )
+
+        val hostReply = resultOf {
+            withTimeoutOrNull(AGENT_TIMEOUT_MS) {
+                val builder = StringBuilder()
+                chatService.streamChat(
+                    messages = messages,
+                    model = model,
+                    temperature = 0.3f,
+                    maxTokens = 200,
+                ).collect { event ->
+                    when (event) {
+                        is ChatStreamEvent.ContentDelta -> builder.append(event.delta)
+                        else -> {}
+                    }
+                }
+                builder.toString().trim()
+            }
+        }.getOrNull()
+
+        if (hostReply.isNullOrBlank()) {
+            Logger.w(TAG, "主持人模式:主持人「${host.name}」未给出有效回复")
+            return emptyList()
+        }
+
+        // 解析主持人输出的成员名(每行一个,模糊匹配)
+        val requestedNames = hostReply.lines()
+            .map { it.trim().removePrefix("-").removePrefix("•").trim() }
+            .filter { it.isNotBlank() }
+
+        val dispatched = mutableListOf<AssistantEntity>()
+        for (name in requestedNames) {
+            val matched = otherMembers.firstOrNull { member ->
+                member.name.equals(name, ignoreCase = true) ||
+                    member.name.contains(name, ignoreCase = true) ||
+                    name.contains(member.name, ignoreCase = true)
+            }
+            if (matched != null && matched !in dispatched) {
+                dispatched.add(matched)
+            }
+        }
+
+        // 如果主持人没有有效派发任何人,默认派发所有成员
+        if (dispatched.isEmpty()) {
+            Logger.w(TAG, "主持人模式:主持人输出「$hostReply」未匹配到成员,默认派发全部")
+            return otherMembers
+        }
+
+        return dispatched
+    }
+
+    /**
+     * 回退方法:当新模式条件不满足时,执行标准串行轮转。
+     */
+    private suspend fun triggerRoundRobinFallback(
+        chat: GroupChatEntity,
+        chatId: String,
+        assistants: List<AssistantEntity>,
+        onSpeakerChange: ((AssistantEntity) -> Unit)?,
+    ): List<GroupChatMessageEntity> = withContext(Dispatchers.IO) {
+        if (assistants.isEmpty()) return@withContext emptyList()
+        val memberNames = assistants.map { it.name }
+        val model = resultOf { settings.getSelectedModel() }.getOrNull()
+        val recentMessages = groupChatRepository.getRecentMessages(chatId, DEFAULT_CONTEXT_SIZE)
+        val mentionedAgentIds = parseMentions(recentMessages, assistants)
+        val orderedAssistants = assistants.sortedByDescending { it.id in mentionedAgentIds }
+
+        activityHub.clear(chatId)
+        val replies = mutableListOf<GroupChatMessageEntity>()
+        for (assistant in orderedAssistants) {
+            val isMentioned = assistant.id in mentionedAgentIds
+            onSpeakerChange?.invoke(assistant)
+            when (val result = invokeAgent(chat, chatId, assistant, memberNames, model, isMentioned)) {
+                is AgentResult.Reply -> replies.add(result.message)
+                is AgentResult.Pass -> {
+                    if (isMentioned) {
+                        when (val retry = invokeAgent(chat, chatId, assistant, memberNames, model, isMentioned = true, isRepair = true)) {
+                            is AgentResult.Reply -> replies.add(retry.message)
+                            else -> {}
+                        }
+                    }
+                }
+                is AgentResult.Error -> Logger.w(TAG, "Agent「${assistant.name}」错误: ${result.message}")
+            }
+        }
+        replies
+    }
+
     /**
      * v1.97: 从最近消息中解析 @mention,返回被提及的 assistant id 列表。
      *
@@ -555,7 +1590,7 @@ class GroupChatScheduler(
         )
 
         // b. 构造消息列表(改造 2 Phone Session:system 含身份 guidance,user 为推送式 phone prompt)
-        val messages = buildMessages(chatId, chat.name, assistant, memberNames, recentMessages, model, isMentioned, isRepair)
+        val messages = buildMessages(chat, assistant, memberNames, recentMessages, model, isMentioned, isRepair)
 
         // c. 调 LLM(流式,60s 超时)
         // v1.134 P1-4: 改为 streamChat 累积 ContentDelta,消除 completeText 的整包阻塞。
@@ -762,8 +1797,7 @@ class GroupChatScheduler(
      * @return UIMessage 列表
      */
     private suspend fun buildMessages(
-        chatId: String,
-        chatName: String,
+        chat: GroupChatEntity,
         assistant: AssistantEntity,
         memberNames: List<String>,
         recentMessages: List<GroupChatMessageEntity>,
@@ -771,7 +1805,21 @@ class GroupChatScheduler(
         isMentioned: Boolean = false,
         isRepair: Boolean = false,
     ): List<UIMessage> {
+        val chatId = chat.id
+        val chatName = chat.name
         val messages = mutableListOf<UIMessage>()
+
+        // v2.x: 悄悄话过滤 — 非目标 agent 看不到私信。
+        // 可见性规则:
+        //  - whisperTargetId == null:公开消息,所有人可见
+        //  - whisperTargetId == assistant.id:用户→本 agent 的私信,本 agent 可见
+        //  - senderId == assistant.id 且 whisperTargetId == "local_user":本 agent→用户的私信,本 agent 可见(自己说过的话)
+        //  - 其他:对当前 agent 不可见(过滤掉)
+        val visibleMessages = recentMessages.filter { msg ->
+            msg.whisperTargetId == null ||
+                msg.whisperTargetId == assistant.id ||
+                (msg.senderId == assistant.id && msg.whisperTargetId == "local_user")
+        }
 
         // System message: assistant.systemPrompt + 群聊提示(含改造 3 身份防混淆 guidance)
         // 改造 2 Phone Session:身份 guidance 由 buildGroupChatHintSection 内部注入,per-agent。
@@ -789,6 +1837,40 @@ class GroupChatScheduler(
             )
             appendLine()
             appendLine(GROUP_CHAT_MOOD_SECTION)
+
+            // v2.x: 注入群共享文档(所有成员可见的共享背景知识)
+            val sharedDocs = resultOf { groupChatRepository.parseSharedDocs(chat) }.getOrNull().orEmpty()
+            if (sharedDocs.isNotEmpty()) {
+                appendLine()
+                appendLine("【群共享文档】以下是本群共享的参考资料,请在发言时参考:")
+                for (doc in sharedDocs) {
+                    appendLine("— ${doc.title} —")
+                    // 单文档限 2000 字,避免 prompt 膨胀;超出截断
+                    val docContent = if (doc.content.length > 2000) {
+                        doc.content.take(2000) + "…(已截断)"
+                    } else {
+                        doc.content
+                    }
+                    appendLine(docContent)
+                    appendLine()
+                }
+            }
+
+            // v2.x: 注入本 agent 的专属上下文(仅当前 agent 可见,其他成员看不到)
+            val privateContextMap = resultOf { groupChatRepository.parseMemberPrivateContext(chat) }.getOrNull().orEmpty()
+            val myPrivateContext = privateContextMap[assistant.id]
+            if (!myPrivateContext.isNullOrBlank()) {
+                appendLine()
+                appendLine("【你的专属上下文】以下信息仅你可见,其他群成员不知道:")
+                // 限 1500 字,避免 prompt 膨胀
+                val privateText = if (myPrivateContext.length > 1500) {
+                    myPrivateContext.take(1500) + "…(已截断)"
+                } else {
+                    myPrivateContext
+                }
+                appendLine(privateText)
+            }
+
             // M5: 明确告知 Agent 不要输出 channel_* 工具调用文本(Prompt 中声称有 channel_* 工具但未注册)
             // TODO(channel_* 工具接入):工具注册后此提示需调整为"调用 channel_reply 发言 / channel_pass 跳过"
             appendLine()
@@ -799,7 +1881,8 @@ class GroupChatScheduler(
         // v1.137: RAG 注入 — 解析最近用户消息中的 @mention,检索知识库,
         // 将命中片段作为 SYSTEM 消息注入(参考单聊 ChatViewModel 的 RAG 注入逻辑)。
         // 失败不阻断主流程(resultOf 降级)。
-        val lastUserMsg = recentMessages.lastOrNull { it.senderType == "user" }
+        // v2.x: 使用过滤后的 visibleMessages,确保悄悄话不会被当作 RAG 查询源泄漏给非目标 agent。
+        val lastUserMsg = visibleMessages.lastOrNull { it.senderType == "user" }
         val ragQuery = lastUserMsg?.body?.takeIf { it.isNotBlank() }
         if (ragQuery != null) {
             val ragConfig = resultOf { settings.getRagConfig() }.getOrNull() ?: RagConfig()
@@ -818,10 +1901,11 @@ class GroupChatScheduler(
         // 改造 2 Phone Session:User message 改为"手机推送"式 prompt
         // 每个 agent 独立收到一条"你的手机收到了群聊新消息"的推送,而非把所有成员塞进同一上下文。
         // 参考 openhanako channel-router.ts:793-821。
+        // v2.x: 使用过滤后的 visibleMessages 构造 transcript,确保非目标 agent 看不到悄悄话。
         val userContent = buildPhonePrompt(
             chatName = chatName,
             assistant = assistant,
-            recentMessages = recentMessages,
+            recentMessages = visibleMessages,
             isMentioned = isMentioned,
             isRepair = isRepair,
         )

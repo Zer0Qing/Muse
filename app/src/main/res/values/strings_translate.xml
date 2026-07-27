@@ -25,6 +25,8 @@
     <string name="translate_page_speak_result">朗读译文</string>
     <string name="translate_page_use_as_input">使用译文继续翻译</string>
     <string name="translate_page_send_to_chat">发送</string>
+    <string name="translate_page_send_to_chat_session">发送到会话</string>
+    <string name="translate_page_more">更多</string>
     <string name="translate_page_style_label">翻译风格</string>
     <string name="translate_page_tts_not_ready">TTS 尚未就绪,请稍后重试</string>
     <!-- v1.97: 翻译历史记录(内存保留最近 20 条,不持久化) -->
@@ -37,6 +39,9 @@
     <string name="translate_page_history_cleared">历史已清空</string>
     <string name="translate_page_history_source_label">原文</string>
     <string name="translate_page_history_translated_label">译文</string>
+    <string name="translate_page_history_source_short">原</string>
+    <string name="translate_page_history_translated_short">译</string>
+    <string name="translate_page_history_clear_short">清空</string>
 
     <!-- v1.0.30 gap4.3: 翻译收藏夹 -->
     <string name="translate_page_favorite_add">收藏</string>

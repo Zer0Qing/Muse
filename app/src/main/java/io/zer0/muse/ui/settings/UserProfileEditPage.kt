@@ -8,12 +8,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Info
+import androidx.compose.foundation.text.KeyboardOptions
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -25,13 +25,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.UserProfile
+import io.zer0.muse.ui.common.IosTextField
 import io.zer0.muse.ui.components.CardGroup
 import io.zer0.muse.ui.theme.MusePaddings
-import io.zer0.muse.ui.theme.MuseShapes
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
@@ -80,9 +81,9 @@ fun UserProfileEditPage(onBack: () -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.Info,
+                    imageVector = TablerIcons.InfoCircle,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(20.dp),
                 )
                 Text(
@@ -98,7 +99,7 @@ fun UserProfileEditPage(onBack: () -> Unit) {
             CardGroup(title = { Text(stringResource(R.string.settings_user_profile_appellation)) }) {
                 item(
                     headlineContent = {
-                        OutlinedTextField(
+                        IosTextField(
                             value = profile.userNickName ?: "",
                             onValueChange = { v -> update { it.copy(userNickName = v.ifBlank { null }) } },
                             label = { Text(stringResource(R.string.settings_user_profile_assistant_name)) },
@@ -106,13 +107,12 @@ fun UserProfileEditPage(onBack: () -> Unit) {
                             supportingText = { Text(stringResource(R.string.settings_user_profile_assistant_name_desc)) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
-                            shape = MuseShapes.medium,
                         )
                     },
                 )
                 item(
                     headlineContent = {
-                        OutlinedTextField(
+                        IosTextField(
                             value = profile.assistantName ?: "",
                             onValueChange = { v -> update { it.copy(assistantName = v.ifBlank { null }) } },
                             label = { Text(stringResource(R.string.settings_user_profile_your_name)) },
@@ -120,7 +120,6 @@ fun UserProfileEditPage(onBack: () -> Unit) {
                             supportingText = { Text(stringResource(R.string.settings_user_profile_your_name_desc)) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
-                            shape = MuseShapes.medium,
                         )
                     },
                 )
@@ -133,7 +132,7 @@ fun UserProfileEditPage(onBack: () -> Unit) {
                 // v1.133: 个人简介(长文本,一段话自由介绍)
                 item(
                     headlineContent = {
-                        OutlinedTextField(
+                        IosTextField(
                             value = profile.bio ?: "",
                             onValueChange = { v -> update { it.copy(bio = v.ifBlank { null }) } },
                             label = { Text(stringResource(R.string.settings_user_profile_bio)) },
@@ -141,45 +140,42 @@ fun UserProfileEditPage(onBack: () -> Unit) {
                             supportingText = { Text(stringResource(R.string.settings_user_profile_bio_desc)) },
                             modifier = Modifier.fillMaxWidth(),
                             minLines = 2,
-                            shape = MuseShapes.medium,
                         )
                     },
                 )
                 item(
                     headlineContent = {
-                        OutlinedTextField(
+                        IosTextField(
                             value = profile.age ?: "",
-                            onValueChange = { v -> update { it.copy(age = v.ifBlank { null }) } },
+                            onValueChange = { v -> update { it.copy(age = v.filter { c -> c.isDigit() }.ifBlank { null }) } },
                             label = { Text(stringResource(R.string.settings_user_profile_age)) },
                             singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.fillMaxWidth(),
-                            shape = MuseShapes.medium,
                         )
                     },
                 )
                 item(
                     headlineContent = {
-                        OutlinedTextField(
+                        IosTextField(
                             value = profile.city ?: "",
                             onValueChange = { v -> update { it.copy(city = v.ifBlank { null }) } },
                             label = { Text(stringResource(R.string.settings_user_profile_city)) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
-                            shape = MuseShapes.medium,
                         )
                     },
                 )
                 // v1.133: 时区
                 item(
                     headlineContent = {
-                        OutlinedTextField(
+                        IosTextField(
                             value = profile.timezone ?: "",
                             onValueChange = { v -> update { it.copy(timezone = v.ifBlank { null }) } },
                             label = { Text(stringResource(R.string.settings_user_profile_timezone)) },
                             placeholder = { Text(stringResource(R.string.settings_user_profile_timezone_hint)) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
-                            shape = MuseShapes.medium,
                         )
                     },
                 )
@@ -191,66 +187,61 @@ fun UserProfileEditPage(onBack: () -> Unit) {
             CardGroup(title = { Text(stringResource(R.string.settings_user_profile_background)) }) {
                 item(
                     headlineContent = {
-                        OutlinedTextField(
+                        IosTextField(
                             value = profile.occupation ?: "",
                             onValueChange = { v -> update { it.copy(occupation = v.ifBlank { null }) } },
                             label = { Text(stringResource(R.string.settings_user_profile_occupation)) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
-                            shape = MuseShapes.medium,
                         )
                     },
                 )
                 // v1.133: 教育背景
                 item(
                     headlineContent = {
-                        OutlinedTextField(
+                        IosTextField(
                             value = profile.educationBackground ?: "",
                             onValueChange = { v -> update { it.copy(educationBackground = v.ifBlank { null }) } },
                             label = { Text(stringResource(R.string.settings_user_profile_education)) },
                             placeholder = { Text(stringResource(R.string.settings_user_profile_education_hint)) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
-                            shape = MuseShapes.medium,
                         )
                     },
                 )
                 item(
                     headlineContent = {
-                        OutlinedTextField(
+                        IosTextField(
                             value = profile.professionField ?: "",
                             onValueChange = { v -> update { it.copy(professionField = v.ifBlank { null }) } },
                             label = { Text(stringResource(R.string.settings_user_profile_profession_field)) },
                             placeholder = { Text(stringResource(R.string.settings_user_profile_profession_field_hint)) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
-                            shape = MuseShapes.medium,
                         )
                     },
                 )
                 // v1.133: 技能专长
                 item(
                     headlineContent = {
-                        OutlinedTextField(
+                        IosTextField(
                             value = profile.skills ?: "",
                             onValueChange = { v -> update { it.copy(skills = v.ifBlank { null }) } },
                             label = { Text(stringResource(R.string.settings_user_profile_skills)) },
                             placeholder = { Text(stringResource(R.string.settings_user_profile_skills_hint)) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
-                            shape = MuseShapes.medium,
                         )
                     },
                 )
                 item(
                     headlineContent = {
-                        OutlinedTextField(
+                        IosTextField(
                             value = profile.interests ?: "",
                             onValueChange = { v -> update { it.copy(interests = v.ifBlank { null }) } },
                             label = { Text(stringResource(R.string.settings_user_profile_interests_label)) },
                             modifier = Modifier.fillMaxWidth(),
                             minLines = 2,
-                            shape = MuseShapes.medium,
                         )
                     },
                 )
@@ -263,56 +254,52 @@ fun UserProfileEditPage(onBack: () -> Unit) {
                 // v1.133: 沟通风格
                 item(
                     headlineContent = {
-                        OutlinedTextField(
+                        IosTextField(
                             value = profile.communicationStyle ?: "",
                             onValueChange = { v -> update { it.copy(communicationStyle = v.ifBlank { null }) } },
                             label = { Text(stringResource(R.string.settings_user_profile_comm_style)) },
                             placeholder = { Text(stringResource(R.string.settings_user_profile_comm_style_hint)) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
-                            shape = MuseShapes.medium,
                         )
                     },
                 )
                 // v1.133: 回复长度偏好
                 item(
                     headlineContent = {
-                        OutlinedTextField(
+                        IosTextField(
                             value = profile.responseLength ?: "",
                             onValueChange = { v -> update { it.copy(responseLength = v.ifBlank { null }) } },
                             label = { Text(stringResource(R.string.settings_user_profile_resp_length)) },
                             placeholder = { Text(stringResource(R.string.settings_user_profile_resp_length_hint)) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
-                            shape = MuseShapes.medium,
                         )
                     },
                 )
                 // v1.133: 偏好语气
                 item(
                     headlineContent = {
-                        OutlinedTextField(
+                        IosTextField(
                             value = profile.preferredTone ?: "",
                             onValueChange = { v -> update { it.copy(preferredTone = v.ifBlank { null }) } },
                             label = { Text(stringResource(R.string.settings_user_profile_pref_tone)) },
                             placeholder = { Text(stringResource(R.string.settings_user_profile_pref_tone_hint)) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
-                            shape = MuseShapes.medium,
                         )
                     },
                 )
                 // v1.133: 偏好回复语言
                 item(
                     headlineContent = {
-                        OutlinedTextField(
+                        IosTextField(
                             value = profile.preferredLanguage ?: "",
                             onValueChange = { v -> update { it.copy(preferredLanguage = v.ifBlank { null }) } },
                             label = { Text(stringResource(R.string.settings_user_profile_pref_lang)) },
                             placeholder = { Text(stringResource(R.string.settings_user_profile_pref_lang_hint)) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
-                            shape = MuseShapes.medium,
                         )
                     },
                 )
@@ -325,7 +312,7 @@ fun UserProfileEditPage(onBack: () -> Unit) {
                 // v1.133: 忌讳话题
                 item(
                     headlineContent = {
-                        OutlinedTextField(
+                        IosTextField(
                             value = profile.avoidTopics ?: "",
                             onValueChange = { v -> update { it.copy(avoidTopics = v.ifBlank { null }) } },
                             label = { Text(stringResource(R.string.settings_user_profile_avoid_topics)) },
@@ -333,7 +320,6 @@ fun UserProfileEditPage(onBack: () -> Unit) {
                             supportingText = { Text(stringResource(R.string.settings_user_profile_avoid_topics_desc)) },
                             modifier = Modifier.fillMaxWidth(),
                             minLines = 2,
-                            shape = MuseShapes.medium,
                         )
                     },
                 )

@@ -126,6 +126,22 @@ interface SessionDao {
         autoTitle: String,
     )
 
+    /**
+     * 仅更新会话预览 + updatedAt,不改标题。
+     * 退出对话时由 AI 摘要统一命名,首条消息不再自动覆盖标题。
+     */
+    @Query("""
+        UPDATE sessions SET
+            lastMessagePreview = :preview,
+            updatedAt = :now
+        WHERE id = :id
+    """)
+    suspend fun updatePreviewOnly(
+        id: String,
+        preview: String,
+        now: Long,
+    )
+
     /** 按 id 删除会话(级联删消息)。 */
     @Query("DELETE FROM sessions WHERE id = :id")
     suspend fun deleteById(id: String)

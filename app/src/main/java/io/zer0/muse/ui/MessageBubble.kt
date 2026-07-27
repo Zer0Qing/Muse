@@ -1,4 +1,4 @@
-package io.zer0.muse.ui
+﻿package io.zer0.muse.ui
 
 import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
@@ -13,6 +13,7 @@ import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -41,20 +42,14 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Reply
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Compress
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.outlined.GroupWork
@@ -100,6 +95,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -119,6 +116,7 @@ import io.zer0.ai.core.UIMessage
 import io.zer0.muse.data.artifact.ArtifactEntity
 import io.zer0.muse.ui.artifact.ArtifactCardList
 import io.zer0.muse.ui.chat.parseQuotedContent
+import io.zer0.muse.ui.common.AssistantAvatar
 import io.zer0.muse.ui.common.AttachmentChip
 import io.zer0.muse.ui.common.ContextMenuItem
 import io.zer0.muse.ui.common.DesktopContextMenu
@@ -134,14 +132,12 @@ import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.ui.theme.tiny
-import io.zer0.muse.ui.theme.assistantBubble  // Phase 1 1A: AI 气泡形状令牌
-import io.zer0.muse.ui.theme.userBubble  // v1.48 (h18): 气泡形状令牌
+
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MusePaddings
 import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.VideoLibrary
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -264,7 +260,10 @@ internal fun MessageBubble(
     val desktopShortcutsEnabled = rememberDesktopShortcutsEnabled()
     // M-UI1: 长按菜单/桌面菜单手势统一收口,后续分别附加到用户/助手气泡上,
     // 避免整行 Column 都被点击高亮覆盖。
+    val bubbleInteractionSource = remember { MutableInteractionSource() }
     val bubbleClickModifier = Modifier.combinedClickable(
+        interactionSource = bubbleInteractionSource,
+        indication = null,
         // v1.48: 改为仅长按弹菜单 — 单击弹菜单过于激进,且与 MarkdownText 链接点击冲突
         // (点正文文字时 LinkableText 消费 tap 事件导致不弹菜单,行为不可预测)
         onClick = {},
@@ -278,58 +277,18 @@ internal fun MessageBubble(
         },
     )
 
+    // 按当前布局方向计算绝对对齐,避免 RTL 下用户/助手气泡左右颠倒
+    val layoutDirection = LocalLayoutDirection.current
+    val isLtr = layoutDirection == LayoutDirection.Ltr
+    val horizontalAlignment = if (isUser == isLtr) Alignment.End else Alignment.Start
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .then(if (isAnimating) Modifier.animateContentSize() else Modifier),
-        horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
+        horizontalAlignment = horizontalAlignment,
     ) {
-        // v0.48: 消息分组头 — AI 消息显示头像 + 助手名 + 时间戳(连续同角色时压缩)
-        // USER 消息不显示头像(右对齐气泡已足够),仅按 showTimestamp 在气泡下方显示时间戳
-        if (!isUser && showAvatar) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = MusePaddings.tightGap),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                if (assistant != null) {
-                    io.zer0.muse.ui.common.AssistantAvatar(
-                        assistant = assistant,
-                        avatarSize = 24.dp,
-                    )
-                } else {
-                    // 无助手配置时用首字母占位圆
-                    Box(
-                        modifier = Modifier
-                            .size(24.dp)
-                            .clip(androidx.compose.foundation.shape.CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = "M",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-                Text(
-                    text = assistant?.name?.takeIf { it.isNotBlank() } ?: "muse",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                if (showTimestamp && chatPrefs.showTimestamp) {
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        text = formatMessageTime(msg.createdAt, use24Hour = chatPrefs.use24Hour),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
-                }
-            }
-        }
+
         // v0.30-b: MOOD 块(6 步工作流第 2 步 — AI 内部腹稿,可折叠)
         // v0.31: 受 chatPrefs.showMoodBlock 开关控制,默认展开状态由 chatPrefs.moodExpandedByDefault 决定
         if (chatPrefs.showMoodBlock) {
@@ -497,16 +456,15 @@ internal fun MessageBubble(
         }
 
         if (isUser) {
-            // 用户消息: iMessage 风格灰泡,右下角小圆角模拟尾巴
+            // 用户消息: iOS 风格浅色暖灰/米白圆角气泡,无尾巴,18dp 统一圆角
             // Phase 8.6: 若有图片,放在气泡内文字上方
             val hasImages = msg.imageBase64List.isNotEmpty()
             Surface(
                 color = MaterialTheme.colorScheme.surfaceVariant,
-                // v1.48 (h18): 用 BubbleShape 令牌统一气泡圆角(原裸值 20/20/20/6)
-                shape = MuseShapes.userBubble,
+                shape = MuseShapes.large,
                 // M-UI1: 手势收口到气泡本身,避免整行高亮
                 // MANUS 风格:加 low 级别微阴影增强浮起质感
-                modifier = bubbleClickModifier.shadow(MuseShadow.low.elevation, MuseShapes.userBubble),
+                modifier = bubbleClickModifier.shadow(MuseShadow.low.elevation, MuseShapes.large),
             ) {
                 Column(
                     modifier = Modifier
@@ -590,7 +548,7 @@ internal fun MessageBubble(
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.PlayArrow,
+                                    imageVector = TablerIcons.PlayerPlay,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onPrimary,
                                     modifier = Modifier.size(MuseIconSizes.iconLarge),
@@ -641,7 +599,7 @@ internal fun MessageBubble(
                                 visionAssisted -> Triple(
                                     stringResource(R.string.vision_assist_done),
                                     MaterialTheme.colorScheme.primary,
-                                    Icons.Default.Check,
+                                    TablerIcons.Check,
                                 )
                                 else -> Triple(
                                     stringResource(R.string.vision_assist_label),
@@ -702,17 +660,56 @@ internal fun MessageBubble(
                 )
             }
         } else {
-            // Phase 1 1A: AI 消息添加 surfaceVariant 气泡背景 + assistantBubble 形状
+            // v0.48: AI 头像 — 消息分组时连续同角色消息压缩头像(showAvatar=false 时跳过)
+            if (showAvatar) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth(0.85f)
+                        .padding(bottom = 4.dp),
+                    horizontalArrangement = Arrangement.Start,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    AssistantAvatar(
+                        assistant = assistant ?: io.zer0.muse.data.assistant.AssistantEntity(
+                            id = "default",
+                            name = "Muse",
+                        ),
+                        avatarSize = 28.dp,
+                    )
+                    if (showTimestamp && chatPrefs.showTimestamp) {
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = (assistant?.name ?: "Muse") +
+                                " · " + formatMessageTime(msg.createdAt, use24Hour = chatPrefs.use24Hour),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.outline,
+                        )
+                    }
+                }
+            }
+            // AI 消息:白色卡片,左对齐,18dp 统一圆角,0.5dp 浅边框,极低阴影
             Surface(
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                shape = MuseShapes.assistantBubble,
-                // M-UI1: 手势收口到气泡本身,避免整行高亮
-                modifier = Modifier.fillMaxWidth(0.85f).then(bubbleClickModifier),
+                color = MaterialTheme.colorScheme.surface,
+                shape = MuseShapes.large,
+                tonalElevation = MuseElevation.card,
+                shadowElevation = MuseElevation.card,
+                modifier = Modifier
+                    .fillMaxWidth(0.85f)
+                    .border(
+                        width = 0.5.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                        shape = MuseShapes.large,
+                    )
+                    .then(bubbleClickModifier),
             ) {
                 Column(
                     modifier = Modifier.padding(MusePaddings.cardInner),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
+                    // 流式/思考状态:AI 消息顶部显示"正在思考…"带绿色脉动圆点
+                    if (isLastAssistant && isStreaming) {
+                        ThinkingIndicator()
+                    }
             // Phase 5-G / Phase 8.6: 渲染生成的图片(URL 或 base64 data URI)
             // 统一显示源:优先用 imageUrls,避免 Gemini 同时有 imageUrls(data URI) 和 imageBase64List 时重复渲染
             // v1.95: 同时扫描 content 中的表情包绝对路径(filesDir/stickers/...),由 send_sticker 工具产生
@@ -814,7 +811,7 @@ internal fun MessageBubble(
                     modifier = Modifier.padding(bottom = 4.dp),
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Compress,
+                        imageVector = TablerIcons.GitMerge,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.size(14.dp),
@@ -832,7 +829,25 @@ internal fun MessageBubble(
             } else body.ifEmpty {
                 if (msg.imageUrls.isEmpty() && msg.imageBase64List.isEmpty()) " " else ""
             }
+            // Markdown 标题提取:若内容以 # 标题开头,顶部显示粗体标题行,正文不再重复渲染标题
+            val firstLineEnd = content.indexOf('\n').takeIf { it >= 0 } ?: content.length
+            val firstLine = content.substring(0, firstLineEnd)
+            val hasHeading = !isStreaming && firstLine.isNotBlank() && firstLine.startsWith("#")
+            val titleText = if (hasHeading) firstLine else null
+            val bodyContent = if (hasHeading) content.substring(firstLineEnd + 1).trimStart() else content
             if (content.isNotBlank()) {
+                // Markdown 标题行
+                titleText?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    if (bodyContent.isNotBlank()) {
+                        Spacer(Modifier.height(4.dp))
+                    }
+                }
                 // 引用回复:AI 消息顶部显示引用块(兼容含引用标记的内容)
                 quote?.let {
                     Surface(
@@ -873,16 +888,16 @@ internal fun MessageBubble(
                 val markdownContent = @Composable {
                     // v1.79 (H-B3): 防御性处理 citationUrls,MarkdownText 内部应保证 [N] 不越界
                     val safeCitationUrls = msg.citationUrls ?: emptyList()
-                    if (highlightText != null && content.contains(highlightText, ignoreCase = true)) {
+                    if (highlightText != null && bodyContent.contains(highlightText, ignoreCase = true)) {
                         androidx.compose.material3.Text(
-                            text = buildHighlightedText(content, highlightText),
+                            text = buildHighlightedText(bodyContent, highlightText),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onBackground,
                             modifier = Modifier.fillMaxWidth(),
                         )
                     } else {
                         MarkdownText(
-                            text = content,
+                            text = bodyContent,
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onBackground,
                             modifier = Modifier.fillMaxWidth(),
@@ -900,7 +915,7 @@ internal fun MessageBubble(
             }
             // 功能3: 链接预览卡片(仅非流式时,避免流式增量导致重抓)
             if (!isStreaming) {
-                val linkPreviews = rememberLinkPreviews(content)
+                val linkPreviews = rememberLinkPreviews(bodyContent)
                 if (linkPreviews.isNotEmpty()) {
                     linkPreviews.forEach { preview ->
                         LinkPreviewCard(preview = preview)
@@ -920,42 +935,14 @@ internal fun MessageBubble(
                     modifier = Modifier.padding(top = 8.dp),
                 )
             }
-            // v0.29 P0-4: AI 消息底部显示模型名 + token 估算(流式结束后显示)
-            // v0.31: 受 chatPrefs.showModelName / showTokenEstimate 开关控制
-            val showModel = chatPrefs.showModelName && modelName != null
-            val showTokens = chatPrefs.showTokenEstimate && msg.content.isNotBlank()
-            // v1.79 (M-B3): estimatedTokens 用 remember 缓存,避免每次重组重复计算
-            // M-MB1: 流式期间不计算 estimatedTokens(展示时已有 !isStreaming 守卫),
-            //        避免流式每个 token 都触发 TokenEstimator.estimate
-            val estimatedTokens = remember(msg.content, showTokens, isStreaming) {
-                if (showTokens && !isStreaming) io.zer0.muse.util.TokenEstimator.estimate(msg.content) else 0
-            }
-            // v1.79 (L-B8): parts 用 remember 缓存,避免每次重组重建列表
-            val parts = remember(showModel, showTokens, modelName, estimatedTokens) {
-                buildList {
-                    if (showModel) add(modelName)
-                    if (showTokens) add("$estimatedTokens tokens")
-                }
-            }
-            // v1.79 (L-B3): 此处已在 else 分支,!isUser 恒为 true,删除冗余判断
-            if (!isStreaming && (showModel || showTokens || debugInfo != null)) {
-                if (parts.isNotEmpty()) {
-                    Text(
-                        text = parts.joinToString(" · "),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline,
-                        modifier = Modifier.padding(top = 4.dp),
-                    )
-                }
-                // v2.3: debug 模式性能摘要
-                if (debugInfo != null) {
-                    Text(
-                        text = debugInfo,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.tertiary,
-                        modifier = Modifier.padding(top = 2.dp),
-                    )
-                }
+            // v2.3: debug 模式性能摘要(可选)
+            if (!isStreaming && debugInfo != null) {
+                Text(
+                    text = debugInfo,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
             }
             // v1.43: 产物卡片列表(代码/文档/HTML/SVG/图片等)
             if (artifacts.isNotEmpty()) {
@@ -991,7 +978,7 @@ internal fun MessageBubble(
             ) {
                 // 复制
                 IosTactileButton(
-                    icon = Icons.Default.ContentCopy,
+                    icon = TablerIcons.Copy,
                     onClick = {
                         onCopyMessage(msg.content)
                         MuseHaptics.light(hapticFeedback)
@@ -1035,7 +1022,7 @@ internal fun MessageBubble(
                 // 重新生成(仅最后一条助手消息)
                 if (isLastAssistant) {
                     IosTactileButton(
-                        icon = Icons.Default.Refresh,
+                        icon = TablerIcons.Refresh,
                         onClick = {
                             MuseHaptics.light(hapticFeedback)
                             onRegenerate()
@@ -1112,7 +1099,7 @@ internal fun MessageBubble(
                             if (isUser) {
                                 // 用户消息保留完整菜单
                                 ActionMenuItem(
-                                    icon = Icons.Default.Edit,
+                                    icon = TablerIcons.Edit,
                                     text = stringResource(R.string.action_edit),
                                     contentDescription = stringResource(R.string.action_edit),
                                     onClick = {
@@ -1143,7 +1130,7 @@ internal fun MessageBubble(
                                 }
                                 if (msg.content.isNotBlank()) {
                                     ActionMenuItem(
-                                        icon = Icons.Default.ContentCopy,
+                                        icon = TablerIcons.Copy,
                                         text = stringResource(R.string.action_copy),
                                         contentDescription = stringResource(R.string.action_copy),
                                         onClick = {
@@ -1163,7 +1150,7 @@ internal fun MessageBubble(
                                     },
                                 )
                                 ActionMenuItem(
-                                    icon = Icons.Default.Delete,
+                                    icon = TablerIcons.Trash,
                                     text = stringResource(R.string.chat_delete_message),
                                     contentDescription = stringResource(R.string.chat_delete_message),
                                     tint = MaterialTheme.colorScheme.error,
@@ -1248,7 +1235,7 @@ internal fun MessageBubble(
                         add(
                             ContextMenuItem(
                                 label = copyLabel,
-                                icon = Icons.Default.ContentCopy,
+                                icon = TablerIcons.Copy,
                                 onClick = { onCopyMessage(msg.content) },
                             )
                         )
@@ -1258,7 +1245,7 @@ internal fun MessageBubble(
                         add(
                             ContextMenuItem(
                                 label = regenerateLabel,
-                                icon = Icons.Default.Refresh,
+                                icon = TablerIcons.Refresh,
                                 onClick = {
                                     MuseHaptics.light(hapticFeedback)
                                     onRegenerate()
@@ -1276,7 +1263,7 @@ internal fun MessageBubble(
                     add(
                         ContextMenuItem(
                             label = deleteLabel,
-                            icon = Icons.Default.Delete,
+                            icon = TablerIcons.Trash,
                             destructive = true,
                             onClick = { showDeleteConfirm = true },
                         )
@@ -1330,7 +1317,7 @@ private fun GeneratedImageCard(
                 ),
         ) {
             Icon(
-                imageVector = Icons.Default.Download,
+                imageVector = TablerIcons.Download,
                 contentDescription = stringResource(R.string.chat_save_image_cd),
                 tint = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -1580,6 +1567,40 @@ private fun StreamingCursor(
 }
 
 /**
+ * AI 流式/思考状态指示器 — 绿色脉动圆点 + "正在思考…"文案。
+ * 使用 MuseShapes.pill 绿色小点 + alpha 呼吸动画,符合 iOS/MANUS 风格。
+ */
+@Composable
+private fun ThinkingIndicator() {
+    val transition = rememberInfiniteTransition(label = "thinking_dot")
+    val alpha by transition.animateFloat(
+        initialValue = 1f,
+        targetValue = 0.35f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 900, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "thinking_alpha",
+    )
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(7.dp)
+                .clip(MuseShapes.pill)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = alpha)),
+        )
+        Text(
+            text = stringResource(R.string.chat_thinking),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+        )
+    }
+}
+
+/**
  * 功能2: TTS 语音消息播放器。显示在 AI 消息气泡下方,当前消息正在 TTS 朗读时出现。
  *
  * 包含波形条动画 + 播放/暂停按钮 + 进度条 + 倍速选择。
@@ -1618,7 +1639,7 @@ private fun TtsAudioPlayer(
                     modifier = Modifier.size(32.dp),
                 ) {
                     Icon(
-                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        imageVector = if (isPlaying) Icons.Default.Pause else TablerIcons.PlayerPlay,
                         contentDescription = if (isPlaying) stringResource(R.string.speech_pause_cd) else stringResource(R.string.speech_resume_cd),
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(20.dp),
@@ -1771,7 +1792,7 @@ internal fun ToolCallCard(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = if (isSuccess) Icons.Default.Check else Icons.Default.Close,
+                        imageVector = if (isSuccess) TablerIcons.Check else TablerIcons.X,
                         contentDescription = if (isSuccess) stringResource(R.string.chat_tool_success_cd) else stringResource(R.string.chat_tool_failed_cd),
                         tint = if (isSuccess) MaterialTheme.colorScheme.primary
                                else MaterialTheme.colorScheme.error,

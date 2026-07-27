@@ -1,4 +1,4 @@
-package io.zer0.muse.ui.settings
+﻿package io.zer0.muse.ui.settings
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -24,28 +24,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.outlined.Bolt
-import androidx.compose.material.icons.outlined.Build
-import androidx.compose.material.icons.outlined.Calculate
-import androidx.compose.material.icons.outlined.Expand
-import androidx.compose.material.icons.outlined.FileUpload
-import androidx.compose.material.icons.outlined.Height
-import androidx.compose.material.icons.outlined.Image
-import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.Psychology
-import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material.icons.outlined.Security
-import androidx.compose.material.icons.outlined.Speed
-import androidx.compose.material.icons.outlined.SmartButton
-import androidx.compose.material.icons.outlined.Thermostat
-import androidx.compose.material.icons.outlined.TouchApp
-import androidx.compose.material.icons.outlined.Tune
-import androidx.compose.material.icons.outlined.Visibility
-import androidx.compose.material.icons.automirrored.outlined.VolumeUp
-import androidx.compose.material.icons.outlined.Waves
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 import io.zer0.muse.ui.common.IosChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -146,7 +126,7 @@ fun ChatSettingsPage(
                     SessionPermissionMode.STRICT -> 2
                 }
                 SettingsSegmentedRow(
-                    icon = Icons.Outlined.Security,
+                    icon = TablerIcons.ShieldCheck,
                     title = stringResource(R.string.settings_chat_tool_approval_title),
                     subtitle = stringResource(R.string.settings_chat_tool_approval_subtitle),
                     options = modeOptions,
@@ -163,7 +143,7 @@ fun ChatSettingsPage(
                 SettingsGroupDivider()
                 // 跳转到单工具策略管理页
                 SettingsItemRow(
-                    icon = Icons.Outlined.Build,
+                    icon = TablerIcons.Tools,
                     title = stringResource(R.string.settings_chat_tool_approval_per_tool),
                     subtitle = stringResource(R.string.settings_chat_tool_approval_per_tool_subtitle),
                     onClick = onOpenToolsSettings,
@@ -183,7 +163,7 @@ fun ChatSettingsPage(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.Lock,
+                        imageVector = TablerIcons.Lock,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -202,7 +182,7 @@ fun ChatSettingsPage(
         item {
             SettingsGroup {
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.Psychology,
+                    icon = TablerIcons.Atom,
                     title = stringResource(R.string.settings_chat_show_mood),
                     subtitle = stringResource(R.string.settings_chat_show_mood_subtitle),
                     checked = prefs.showMoodBlock,
@@ -210,7 +190,7 @@ fun ChatSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.Psychology,
+                    icon = TablerIcons.Atom,
                     title = stringResource(R.string.settings_chat_show_reasoning),
                     subtitle = stringResource(R.string.settings_chat_show_reasoning_subtitle),
                     checked = prefs.showReasoning,
@@ -218,7 +198,7 @@ fun ChatSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.Psychology,
+                    icon = TablerIcons.Atom,
                     title = stringResource(R.string.settings_chat_show_reflection),
                     subtitle = stringResource(R.string.settings_chat_show_reflection_subtitle),
                     checked = prefs.showReflectionBlock,
@@ -226,7 +206,7 @@ fun ChatSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.Calculate,
+                    icon = TablerIcons.Calculator,
                     title = stringResource(R.string.settings_chat_show_token),
                     subtitle = stringResource(R.string.settings_chat_show_token_subtitle),
                     checked = prefs.showTokenEstimate,
@@ -234,7 +214,7 @@ fun ChatSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.SmartButton,
+                    icon = TablerIcons.ToggleLeft,
                     title = stringResource(R.string.settings_chat_show_model),
                     subtitle = stringResource(R.string.settings_chat_show_model_subtitle),
                     checked = prefs.showModelName,
@@ -242,7 +222,7 @@ fun ChatSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.Schedule,
+                    icon = TablerIcons.CalendarTime,
                     title = stringResource(R.string.settings_chat_show_timestamp),
                     subtitle = stringResource(R.string.settings_chat_show_timestamp_subtitle),
                     checked = prefs.showTimestamp,
@@ -264,7 +244,7 @@ fun ChatSettingsPage(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.Thermostat,
+                        imageVector = TablerIcons.Temperature,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -325,7 +305,7 @@ fun ChatSettingsPage(
                     "concise" -> 0; "detailed" -> 2; else -> 1
                 }
                 SettingsSegmentedRow(
-                    icon = Icons.Outlined.Psychology,
+                    icon = TablerIcons.Atom,
                     title = stringResource(R.string.settings_chat_style),
                     subtitle = stringResource(R.string.settings_chat_style_subtitle),
                     options = styleOptions,
@@ -347,7 +327,7 @@ fun ChatSettingsPage(
                     "neutral" -> 0; "friendly" -> 1; "formal" -> 2; "humorous" -> 3; else -> 0
                 }
                 SettingsSegmentedRow(
-                    icon = Icons.Outlined.SmartButton,
+                    icon = TablerIcons.ToggleLeft,
                     title = stringResource(R.string.settings_chat_tone),
                     subtitle = stringResource(R.string.settings_chat_tone_subtitle),
                     options = toneOptions,
@@ -368,7 +348,7 @@ fun ChatSettingsPage(
         item {
             SettingsGroup {
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.Expand,
+                    icon = TablerIcons.ArrowsMaximize,
                     title = stringResource(R.string.settings_chat_mood_expand),
                     subtitle = stringResource(R.string.settings_chat_mood_expand_subtitle),
                     checked = prefs.moodExpandedByDefault,
@@ -376,7 +356,7 @@ fun ChatSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.Expand,
+                    icon = TablerIcons.ArrowsMaximize,
                     title = stringResource(R.string.settings_chat_reasoning_expand),
                     subtitle = stringResource(R.string.settings_chat_reasoning_expand_subtitle),
                     checked = prefs.reasoningExpandedByDefault,
@@ -384,7 +364,7 @@ fun ChatSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.Expand,
+                    icon = TablerIcons.ArrowsMaximize,
                     title = stringResource(R.string.settings_chat_reflection_expand),
                     subtitle = stringResource(R.string.settings_chat_reflection_expand_subtitle),
                     checked = prefs.reflectionExpandedByDefault,
@@ -398,7 +378,7 @@ fun ChatSettingsPage(
         item {
             SettingsGroup {
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.Waves,
+                    icon = TablerIcons.Adjustments,
                     title = stringResource(R.string.settings_chat_streaming),
                     subtitle = stringResource(R.string.settings_chat_streaming_subtitle),
                     checked = prefs.streamResponse,
@@ -406,7 +386,7 @@ fun ChatSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = Icons.AutoMirrored.Filled.ArrowForward,
+                    icon = TablerIcons.ArrowRight,
                     title = stringResource(R.string.settings_chat_auto_scroll),
                     subtitle = stringResource(R.string.settings_chat_auto_scroll_subtitle),
                     checked = prefs.autoScrollToBottom,
@@ -414,7 +394,7 @@ fun ChatSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = Icons.AutoMirrored.Outlined.VolumeUp,
+                    icon = TablerIcons.Volume,
                     title = stringResource(R.string.settings_chat_volume_scroll),
                     subtitle = stringResource(R.string.settings_chat_volume_scroll_subtitle),
                     checked = prefs.volumeKeyScroll,
@@ -422,7 +402,7 @@ fun ChatSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.TouchApp,
+                    icon = TablerIcons.HandFinger,
                     title = stringResource(R.string.settings_chat_enter_send),
                     subtitle = stringResource(R.string.settings_chat_enter_send_subtitle),
                     checked = prefs.enterToSend,
@@ -430,7 +410,7 @@ fun ChatSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.Bolt,
+                    icon = TablerIcons.Bolt,
                     title = stringResource(R.string.settings_chat_haptic),
                     subtitle = stringResource(R.string.settings_chat_haptic_subtitle),
                     checked = prefs.hapticFeedback,
@@ -446,7 +426,7 @@ fun ChatSettingsPage(
                 // 注:长消息折叠阈值(longMessageThreshold)设置项已移除 ——
                 // MessageBubble 不再对助手回复正文做整体折叠,该阈值无消费方,保留会误导用户。
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.Visibility,
+                    icon = TablerIcons.Eye,
                     title = stringResource(R.string.settings_chat_show_tool_calls),
                     subtitle = stringResource(R.string.settings_chat_show_tool_calls_subtitle),
                     checked = prefs.showToolCallDetails,
@@ -454,7 +434,7 @@ fun ChatSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.Schedule,
+                    icon = TablerIcons.CalendarTime,
                     title = stringResource(R.string.settings_chat_24h),
                     subtitle = stringResource(R.string.settings_chat_24h_subtitle),
                     checked = prefs.use24Hour,
@@ -463,7 +443,7 @@ fun ChatSettingsPage(
                 SettingsGroupDivider()
                 // v1.110: 全局默认深度思考开关,免去每次新会话都要按按钮
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.Psychology,
+                    icon = TablerIcons.Atom,
                     title = stringResource(R.string.settings_chat_default_deep_thinking),
                     subtitle = stringResource(R.string.settings_chat_default_deep_thinking_subtitle),
                     checked = prefs.defaultDeepThinking,
@@ -472,7 +452,7 @@ fun ChatSettingsPage(
                 SettingsGroupDivider()
                 // v1.0.4 (P3-4): 性能模式 — 接入 MessagePaginator,超长会话仅渲染最近 N 条
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.Speed,
+                    icon = TablerIcons.Gauge,
                     title = stringResource(R.string.settings_chat_performance_mode),
                     subtitle = stringResource(R.string.settings_chat_performance_mode_subtitle),
                     checked = prefs.performanceMode,
@@ -576,7 +556,7 @@ private fun StickerLibrarySection(
         SettingsGroup {
             // 启用开关
             SettingsSwitchRow(
-                icon = Icons.Outlined.Image,
+                icon = TablerIcons.Photo,
                 title = stringResource(R.string.settings_sticker_enabled),
                 subtitle = stringResource(R.string.settings_sticker_enabled_subtitle),
                 checked = stickerEnabled,
@@ -592,7 +572,7 @@ private fun StickerLibrarySection(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.Tune,
+                    imageVector = TablerIcons.Adjustments,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.outline,
                     modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -644,7 +624,7 @@ private fun StickerLibrarySection(
             SettingsGroupDivider()
             // 导入 zip(通过 SAF 选取压缩包)
             SettingsItemRow(
-                icon = Icons.Outlined.FileUpload,
+                icon = TablerIcons.FileUpload,
                 title = stringResource(R.string.settings_sticker_upload_zip),
                 subtitle = stringResource(R.string.settings_sticker_upload_zip_subtitle),
                 onClick = {
@@ -719,7 +699,7 @@ private fun StickerLibrarySection(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
-                        imageVector = Icons.Outlined.Image,
+                        imageVector = TablerIcons.Photo,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
                         modifier = Modifier.size(MuseIconSizes.touchTarget),
@@ -798,7 +778,7 @@ private fun StickerLibrarySection(
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Check,
+                                    imageVector = TablerIcons.Check,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onPrimary,
                                     modifier = Modifier.size(28.dp),

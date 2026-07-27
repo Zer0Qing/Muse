@@ -122,6 +122,8 @@
     <string name="assistant_screen_title">助手</string>
     <string name="assistant_back_cd">返回</string>
     <string name="assistant_import_card_cd">导入角色卡</string>
+    <string name="assistant_section_my_assistants">我的助手</string>
+    <string name="assistant_section_actions">添加或导入</string>
     <string name="assistant_memory_entry_title">长期记忆</string>
     <string name="assistant_memory_entry_subtitle">查看 4 层记忆系统</string>
     <string name="assistant_empty_create">尚未创建助手,点击新建</string>

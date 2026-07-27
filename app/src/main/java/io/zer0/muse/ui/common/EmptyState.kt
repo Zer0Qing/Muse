@@ -4,17 +4,15 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Inbox
-import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -82,38 +80,27 @@ fun EmptyState(
         Column(
             modifier = modifier
                 .fillMaxWidth()
-                // L-ES3: 空状态用 2x screen 边距(32dp),比常规 16dp 更大留白,
-                // 强化"无内容"的呼吸感,对标 iOS 空态视觉。
                 .padding(MusePaddings.screen * 2),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
         ) {
-            // v1.0.20: MANUS 风格 — 圆形暖色背景容器包裹图标
-            // 图标尺寸 iconEmpty(64dp),容器尺寸 iconEmpty + screen*2(96dp),留出呼吸空间
-            Box(
-                modifier = Modifier
-                    .size(MuseIconSizes.iconEmpty + MusePaddings.screen * 2)
-                    .background(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                        shape = CircleShape,
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(MuseIconSizes.iconEmpty),
-                    // v1.0.20: 从冷灰 outline 改为暖色 primary,营造 MANUS 暖调质感
-                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+            // 小图标（不再用大圆圈包裹）
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(MuseIconSizes.iconLarge),  // 32dp
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),  // 灰色
+            )
+            // 标题
+            if (title.isNotBlank()) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-            )
-            if (subtitle != null) {
+            // 副标题
+            if (!subtitle.isNullOrBlank()) {
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodyMedium,
@@ -121,10 +108,15 @@ fun EmptyState(
                     textAlign = TextAlign.Center,
                 )
             }
+            // 操作按钮（如果有）
             if (actionText != null && onAction != null) {
-                FilledTonalButton(
+                Button(
                     onClick = onAction,
                     shape = MuseShapes.pill,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
                 ) {
                     Text(actionText)
                 }

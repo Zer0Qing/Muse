@@ -7,18 +7,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.outlined.Cloud
-import androidx.compose.material.icons.outlined.CloudOff
-import androidx.compose.material.icons.outlined.Folder
-import androidx.compose.material.icons.outlined.GraphicEq
-import androidx.compose.material.icons.outlined.Science
-import androidx.compose.material.icons.outlined.Splitscreen
-import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import io.zer0.muse.ui.common.IosSlider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,6 +27,7 @@ import io.zer0.ai.core.ProviderConfig
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.ChevronRight
+import io.zer0.muse.ui.common.IosTextField
 import io.zer0.muse.rag.RagConfig
 import io.zer0.muse.ui.common.SectionLabel
 import io.zer0.muse.ui.common.SettingsGroup
@@ -48,6 +39,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import kotlin.math.roundToInt
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 
 /**
  * v1.56: RAG 知识库检索配置页。
@@ -95,7 +88,7 @@ fun RagSettingsPage(
         item {
             SettingsGroup {
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.GraphicEq,
+                    icon = TablerIcons.Adjustments,
                     title = stringResource(R.string.settings_rag_auto_inject),
                     subtitle = stringResource(R.string.settings_rag_auto_inject_subtitle),
                     checked = config.enabled,
@@ -111,7 +104,7 @@ fun RagSettingsPage(
         item {
             SettingsGroup {
                 EmbeddingSourceOption(
-                    icon = Icons.Outlined.Cloud,
+                    icon = TablerIcons.Cloud,
                     title = stringResource(R.string.settings_rag_cloud_api),
                     subtitle = stringResource(R.string.settings_rag_cloud_api_subtitle),
                     selected = config.embeddingSource == RagConfig.EmbeddingSource.CLOUD,
@@ -123,7 +116,7 @@ fun RagSettingsPage(
                 )
                 SettingsGroupDivider()
                 EmbeddingSourceOption(
-                    icon = Icons.Outlined.CloudOff,
+                    icon = TablerIcons.CloudOff,
                     title = stringResource(R.string.settings_rag_local_keyword),
                     subtitle = stringResource(R.string.settings_rag_local_keyword_subtitle),
                     selected = config.embeddingSource == RagConfig.EmbeddingSource.LOCAL,
@@ -150,9 +143,9 @@ fun RagSettingsPage(
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             Icon(
-                                imageVector = Icons.Outlined.Science,
+                                imageVector = TablerIcons.Flask,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.tertiary,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             Text(
                                 text = stringResource(R.string.settings_rag_no_provider_hint),
@@ -164,7 +157,7 @@ fun RagSettingsPage(
                         val baseUrlNotSetText = stringResource(R.string.settings_rag_baseurl_not_set)
                         providers.forEach { provider ->
                             EmbeddingSourceOption(
-                                icon = Icons.Outlined.Cloud,
+                                icon = TablerIcons.Cloud,
                                 title = provider.displayName.ifBlank { provider.id },
                                 subtitle = provider.baseUrl.ifBlank { baseUrlNotSetText },
                                 selected = config.cloudProviderId == provider.id,
@@ -213,7 +206,7 @@ fun RagSettingsPage(
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                        OutlinedTextField(
+                        IosTextField(
                             // M-RAG1: 绑定临时状态,由 LaunchedEffect debounce 后写 DataStore
                             value = cloudModelTemp,
                             onValueChange = { v ->
@@ -253,7 +246,7 @@ fun RagSettingsPage(
         item {
             SettingsGroup {
                 SliderRow(
-                    icon = Icons.Outlined.Tune,
+                    icon = TablerIcons.Adjustments,
                     title = stringResource(R.string.settings_rag_top_k),
                     // M-RAG1: 绑定临时状态,仅在松手时写 DataStore
                     value = topKTemp.toFloat(),
@@ -271,7 +264,7 @@ fun RagSettingsPage(
                 )
                 SettingsGroupDivider()
                 SliderRow(
-                    icon = Icons.Outlined.Tune,
+                    icon = TablerIcons.Adjustments,
                     title = stringResource(R.string.settings_rag_similarity_threshold),
                     subtitle = stringResource(R.string.settings_rag_similarity_threshold_subtitle),
                     // M-RAG1: 绑定临时状态,仅在松手时写 DataStore
@@ -296,7 +289,7 @@ fun RagSettingsPage(
         item {
             SettingsGroup {
                 SliderRow(
-                    icon = Icons.Outlined.Splitscreen,
+                    icon = TablerIcons.LayoutColumns,
                     title = stringResource(R.string.settings_rag_chunk_size),
                     subtitle = stringResource(R.string.settings_rag_chunk_size_subtitle),
                     // M-RAG1: 绑定临时状态,仅在松手时写 DataStore
@@ -315,7 +308,7 @@ fun RagSettingsPage(
                 )
                 SettingsGroupDivider()
                 SliderRow(
-                    icon = Icons.Outlined.Splitscreen,
+                    icon = TablerIcons.LayoutColumns,
                     title = stringResource(R.string.settings_rag_chunk_overlap),
                     subtitle = stringResource(R.string.settings_rag_chunk_overlap_subtitle),
                     // M-RAG1: 绑定临时状态,仅在松手时写 DataStore
@@ -335,7 +328,7 @@ fun RagSettingsPage(
                 SettingsGroupDivider()
                 // v1.133: Markdown 感知分块
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.Splitscreen,
+                    icon = TablerIcons.LayoutColumns,
                     title = stringResource(R.string.settings_rag_markdown_aware),
                     subtitle = stringResource(R.string.settings_rag_markdown_aware_subtitle),
                     checked = config.markdownAware,
@@ -346,7 +339,7 @@ fun RagSettingsPage(
                 SettingsGroupDivider()
                 // v1.133: 按 token 分块
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.Splitscreen,
+                    icon = TablerIcons.LayoutColumns,
                     title = stringResource(R.string.settings_rag_chunk_by_token),
                     subtitle = stringResource(R.string.settings_rag_chunk_by_token_subtitle),
                     checked = config.chunkByToken,
@@ -363,7 +356,7 @@ fun RagSettingsPage(
             SettingsGroup {
                 // MMR 多样性
                 SliderRow(
-                    icon = Icons.Outlined.Tune,
+                    icon = TablerIcons.Adjustments,
                     title = stringResource(R.string.settings_rag_mmr_lambda),
                     subtitle = stringResource(R.string.settings_rag_mmr_lambda_subtitle),
                     value = mmrLambdaTemp,
@@ -382,7 +375,7 @@ fun RagSettingsPage(
                 SettingsGroupDivider()
                 // 混合检索
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.GraphicEq,
+                    icon = TablerIcons.Adjustments,
                     title = stringResource(R.string.settings_rag_hybrid),
                     subtitle = stringResource(R.string.settings_rag_hybrid_subtitle),
                     checked = config.hybridEnabled,
@@ -393,7 +386,7 @@ fun RagSettingsPage(
                 SettingsGroupDivider()
                 // Rerank
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.GraphicEq,
+                    icon = TablerIcons.Adjustments,
                     title = stringResource(R.string.settings_rag_rerank),
                     subtitle = stringResource(R.string.settings_rag_rerank_subtitle),
                     checked = config.rerankEnabled,
@@ -404,7 +397,7 @@ fun RagSettingsPage(
                 SettingsGroupDivider()
                 // Token 预算
                 SliderRow(
-                    icon = Icons.Outlined.Tune,
+                    icon = TablerIcons.Adjustments,
                     title = stringResource(R.string.settings_rag_token_budget),
                     subtitle = stringResource(R.string.settings_rag_token_budget_subtitle),
                     value = tokenBudgetTemp.toFloat(),
@@ -429,7 +422,7 @@ fun RagSettingsPage(
         item {
             SettingsGroup {
                 SettingsItemRow(
-                    icon = Icons.Outlined.Folder,
+                    icon = TablerIcons.Folder,
                     title = stringResource(R.string.settings_rag_manage_kbs),
                     subtitle = stringResource(R.string.settings_rag_manage_kbs_subtitle),
                     onClick = onManageKbs,
@@ -485,9 +478,9 @@ private fun EmbeddingSourceOption(
         trailing = {
             if (selected) {
                 Icon(
-                    imageVector = Icons.Default.Check,
+                    imageVector = TablerIcons.Check,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(20.dp),
                 )
             }

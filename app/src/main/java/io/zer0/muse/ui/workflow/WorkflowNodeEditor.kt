@@ -18,7 +18,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import io.zer0.muse.ui.common.IosChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import io.zer0.muse.ui.common.IosTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -106,7 +106,7 @@ fun WorkflowNodeEditor(
         }
 
         // ---- 节点名称 ----
-        OutlinedTextField(
+        IosTextField(
             value = name,
             onValueChange = {
                 name = it
@@ -130,7 +130,7 @@ fun WorkflowNodeEditor(
         )
 
         // ---- 任务模板(多行) ----
-        OutlinedTextField(
+        IosTextField(
             value = taskTemplate,
             onValueChange = {
                 taskTemplate = it

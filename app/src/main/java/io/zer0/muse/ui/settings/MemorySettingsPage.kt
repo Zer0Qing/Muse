@@ -1,4 +1,4 @@
-package io.zer0.muse.ui.settings
+﻿package io.zer0.muse.ui.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -7,13 +7,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Bolt
-import androidx.compose.material.icons.outlined.CloudOff
-import androidx.compose.material.icons.outlined.Compress
-import androidx.compose.material.icons.outlined.Memory
-import androidx.compose.material.icons.outlined.Speed
-import androidx.compose.material.icons.automirrored.outlined.TrendingDown
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import io.zer0.muse.ui.common.IosChip
@@ -92,7 +87,7 @@ fun MemorySettingsPage(
         item {
             SettingsGroup {
                 SliderRow(
-                    icon = Icons.Outlined.Memory,
+                    icon = TablerIcons.Server,
                     iconLabel = stringResource(R.string.settings_memory_token_budget),
                     title = stringResource(R.string.settings_memory_token_budget),
                     subtitle = stringResource(R.string.settings_memory_token_budget_subtitle),
@@ -106,7 +101,7 @@ fun MemorySettingsPage(
                 )
                 SettingsGroupDivider()
                 SliderRow(
-                    icon = Icons.AutoMirrored.Outlined.TrendingDown,
+                    icon = TablerIcons.TrendingDown,
                     iconLabel = stringResource(R.string.settings_memory_decay_rate),
                     title = stringResource(R.string.settings_memory_decay_rate_title),
                     subtitle = stringResource(R.string.settings_memory_decay_rate_subtitle),
@@ -120,7 +115,7 @@ fun MemorySettingsPage(
                 )
                 SettingsGroupDivider()
                 SliderRow(
-                    icon = Icons.Outlined.Bolt,
+                    icon = TablerIcons.Bolt,
                     iconLabel = stringResource(R.string.settings_memory_hit_bonus),
                     title = stringResource(R.string.settings_memory_hit_bonus),
                     // v7: hitBonus 已接入 factScore / cutoffDays / applyDecay
@@ -135,7 +130,7 @@ fun MemorySettingsPage(
                 )
                 SettingsGroupDivider()
                 SliderRow(
-                    icon = Icons.Outlined.Compress,
+                    icon = TablerIcons.ArrowsVertical,
                     iconLabel = stringResource(R.string.settings_memory_compile_threshold),
                     title = stringResource(R.string.settings_memory_compile_threshold),
                     subtitle = stringResource(R.string.settings_memory_compile_threshold_subtitle, localConfig.baseImportance),
@@ -149,7 +144,7 @@ fun MemorySettingsPage(
                 )
                 SettingsGroupDivider()
                 SliderRow(
-                    icon = Icons.Outlined.Speed,
+                    icon = TablerIcons.Gauge,
                     iconLabel = stringResource(R.string.settings_memory_forget_speed),
                     title = stringResource(R.string.settings_memory_forget_speed),
                     subtitle = stringResource(R.string.settings_memory_forget_speed_subtitle),
@@ -176,7 +171,7 @@ fun MemorySettingsPage(
         item {
             SettingsGroup {
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.Memory,
+                    icon = TablerIcons.Server,
                     title = stringResource(R.string.settings_memory_experience_lib),
                     subtitle = stringResource(R.string.settings_memory_experience_lib_subtitle),
                     checked = experienceEnabled,
@@ -186,7 +181,7 @@ fun MemorySettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.Bolt,
+                    icon = TablerIcons.Bolt,
                     title = stringResource(R.string.settings_memory_keep_awake),
                     subtitle = stringResource(R.string.settings_memory_keep_awake_subtitle),
                     checked = keepAwake,
@@ -233,7 +228,7 @@ private fun NotificationPolicyRow(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Icon(
-                imageVector = Icons.Outlined.CloudOff,
+                imageVector = TablerIcons.CloudOff,
                 contentDescription = replyNotificationCd,
                 tint = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.size(20.dp),

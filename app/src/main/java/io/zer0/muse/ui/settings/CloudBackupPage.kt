@@ -11,19 +11,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Cloud
-import androidx.compose.material.icons.outlined.CloudDownload
-import androidx.compose.material.icons.outlined.CloudUpload
-import androidx.compose.material.icons.outlined.DeleteOutline
-import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material.icons.outlined.Storage
-import androidx.compose.material.icons.outlined.Verified
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -52,6 +44,7 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.IosDropdown
 import io.zer0.muse.ui.common.IosSlider
 import io.zer0.muse.ui.common.IosSwitch
+import io.zer0.muse.ui.common.IosTextField
 import io.zer0.muse.ui.common.MuseDialog
 import io.zer0.muse.ui.common.MuseToast
 import io.zer0.muse.ui.common.SectionLabel
@@ -61,7 +54,6 @@ import io.zer0.muse.ui.common.SettingsItemRow
 import io.zer0.muse.ui.common.SettingsSwitchRow
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MusePaddings
-import io.zer0.muse.ui.theme.MuseShapes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -151,7 +143,7 @@ fun CloudBackupPage(
             SettingsGroup {
                 // 启用开关(切换 type 在 none / 之前类型之间)
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.Cloud,
+                    icon = TablerIcons.Cloud,
                     title = stringResource(R.string.cloud_backup_enable),
                     subtitle = if (draft.type != "none") {
                         when (draft.type) {
@@ -256,7 +248,7 @@ fun CloudBackupPage(
                         )
                         Spacer(Modifier.width(MusePaddings.contentGap))
                     } else {
-                        Icon(Icons.Outlined.Verified, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Icon(TablerIcons.CircleCheck, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(MusePaddings.contentGap))
                     }
                     Text(stringResource(R.string.cloud_backup_test_connection))
@@ -276,7 +268,7 @@ fun CloudBackupPage(
                     },
                     modifier = Modifier.weight(1f),
                 ) {
-                    Icon(Icons.Outlined.Storage, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Icon(TablerIcons.Database, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(MusePaddings.contentGap))
                     Text(stringResource(R.string.cloud_backup_save_config))
                 }
@@ -288,7 +280,7 @@ fun CloudBackupPage(
         item {
             SettingsGroup {
                 SettingsItemRow(
-                    icon = Icons.Outlined.CloudUpload,
+                    icon = TablerIcons.CloudUpload,
                     title = stringResource(R.string.cloud_backup_backup_now),
                     subtitle = if (cloudConfig.isConfigured) {
                         stringResource(R.string.settings_backup_upload_subtitle_configured)
@@ -321,7 +313,7 @@ fun CloudBackupPage(
                 )
                 SettingsGroupDivider()
                 SettingsItemRow(
-                    icon = Icons.Outlined.CloudDownload,
+                    icon = TablerIcons.CloudDownload,
                     title = stringResource(R.string.cloud_backup_restore_latest),
                     subtitle = if (cloudConfig.isConfigured) {
                         stringResource(R.string.settings_backup_restore_subtitle_configured)
@@ -356,7 +348,7 @@ fun CloudBackupPage(
             SettingsGroup {
                 // 刷新按钮(顶部独立行)
                 SettingsItemRow(
-                    icon = Icons.Outlined.Refresh,
+                    icon = TablerIcons.Refresh,
                     title = stringResource(R.string.cloud_backup_refresh_list),
                     subtitle = if (listLoading) stringResource(R.string.cloud_backup_list_loading) else null,
                     onClick = {
@@ -469,7 +461,7 @@ fun CloudBackupPage(
         item {
             SettingsGroup {
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.Schedule,
+                    icon = TablerIcons.CalendarTime,
                     title = stringResource(R.string.cloud_backup_auto_enable),
                     subtitle = stringResource(R.string.cloud_backup_auto_subtitle),
                     checked = cloudConfig.autoSync,
@@ -586,29 +578,26 @@ private fun WebDavFields(
             .padding(MusePaddings.cardInner),
         verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
     ) {
-        OutlinedTextField(
+        IosTextField(
             value = draft.webdavUrl,
             onValueChange = { onDraftChange(draft.copy(webdavUrl = it)) },
             label = { Text(stringResource(R.string.settings_backup_webdav_url)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
-            shape = MuseShapes.medium,
         )
-        OutlinedTextField(
+        IosTextField(
             value = draft.webdavUsername,
             onValueChange = { onDraftChange(draft.copy(webdavUsername = it)) },
             label = { Text(stringResource(R.string.settings_backup_username)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
-            shape = MuseShapes.medium,
         )
-        OutlinedTextField(
+        IosTextField(
             value = draft.webdavPassword,
             onValueChange = { onDraftChange(draft.copy(webdavPassword = it)) },
             label = { Text(stringResource(R.string.settings_backup_password)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
-            shape = MuseShapes.medium,
             visualTransformation = if (secretVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
                 TextButton(onClick = onToggleSecret) {
@@ -619,13 +608,12 @@ private fun WebDavFields(
                 }
             },
         )
-        OutlinedTextField(
+        IosTextField(
             value = draft.webdavPath,
             onValueChange = { onDraftChange(draft.copy(webdavPath = it)) },
             label = { Text(stringResource(R.string.settings_backup_remote_dir)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
-            shape = MuseShapes.medium,
         )
     }
 }
@@ -646,45 +634,40 @@ private fun S3Fields(
             .padding(MusePaddings.cardInner),
         verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
     ) {
-        OutlinedTextField(
+        IosTextField(
             value = draft.s3Endpoint,
             onValueChange = { onDraftChange(draft.copy(s3Endpoint = it)) },
             label = { Text(stringResource(R.string.settings_backup_endpoint)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
-            shape = MuseShapes.medium,
         )
-        OutlinedTextField(
+        IosTextField(
             value = draft.s3Region,
             onValueChange = { onDraftChange(draft.copy(s3Region = it)) },
             label = { Text(stringResource(R.string.settings_backup_region)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
-            shape = MuseShapes.medium,
         )
-        OutlinedTextField(
+        IosTextField(
             value = draft.s3Bucket,
             onValueChange = { onDraftChange(draft.copy(s3Bucket = it)) },
             label = { Text(stringResource(R.string.settings_backup_bucket)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
-            shape = MuseShapes.medium,
         )
-        OutlinedTextField(
+        IosTextField(
             value = draft.s3AccessKey,
             onValueChange = { onDraftChange(draft.copy(s3AccessKey = it)) },
             label = { Text(stringResource(R.string.settings_backup_access_key)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
-            shape = MuseShapes.medium,
         )
-        OutlinedTextField(
+        IosTextField(
             value = draft.s3SecretKey,
             onValueChange = { onDraftChange(draft.copy(s3SecretKey = it)) },
             label = { Text(stringResource(R.string.settings_backup_secret_key)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
-            shape = MuseShapes.medium,
             visualTransformation = if (secretVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
                 TextButton(onClick = onToggleSecret) {
@@ -695,13 +678,12 @@ private fun S3Fields(
                 }
             },
         )
-        OutlinedTextField(
+        IosTextField(
             value = draft.s3KeyPrefix,
             onValueChange = { onDraftChange(draft.copy(s3KeyPrefix = it)) },
             label = { Text(stringResource(R.string.settings_backup_key_prefix)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
-            shape = MuseShapes.medium,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
         )
     }
@@ -728,13 +710,12 @@ private fun EncryptionPasswordField(
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        OutlinedTextField(
+        IosTextField(
             value = password,
             onValueChange = onPasswordChange,
             label = { Text(stringResource(R.string.settings_backup_encrypt_password_hint)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
-            shape = MuseShapes.medium,
             visualTransformation = if (secretVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
                 TextButton(onClick = onToggleSecret) {
@@ -790,7 +771,7 @@ private fun RemoteBackupRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             TextButton(onClick = onRestore) {
-                Icon(Icons.Outlined.CloudDownload, contentDescription = null, modifier = Modifier.size(16.dp))
+                Icon(TablerIcons.CloudDownload, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(MusePaddings.tightGap))
                 Text(stringResource(R.string.cloud_backup_restore_this))
             }
@@ -802,7 +783,7 @@ private fun RemoteBackupRow(
                         strokeWidth = 2.dp,
                     )
                 } else {
-                    Icon(Icons.Outlined.DeleteOutline, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Icon(TablerIcons.Trash, contentDescription = null, modifier = Modifier.size(16.dp))
                 }
                 Spacer(Modifier.width(MusePaddings.tightGap))
                 Text(stringResource(R.string.cloud_backup_delete_this))

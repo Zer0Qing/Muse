@@ -172,6 +172,16 @@
     <string name="memory_filter_normal">Normal</string>
     <string name="memory_filter_important">Important</string>
     <string name="memory_filter_critical">Critical</string>
+
+    <!-- v9: Memory categories (reference: All / Core Facts / Preferences / Experiences / Relationships / Goals / Medical / Other) -->
+    <string name="memory_category_all">All</string>
+    <string name="memory_category_identity">Core Facts</string>
+    <string name="memory_category_preference">Preferences</string>
+    <string name="memory_category_event">Experiences</string>
+    <string name="memory_category_relationship">Relationships</string>
+    <string name="memory_category_goal">Goals</string>
+    <string name="memory_category_medical">Medical</string>
+    <string name="memory_category_other">Other</string>
     <string name="memory_filter_today">Today</string>
     <string name="memory_filter_week">This week</string>
     <string name="memory_filter_month">This month</string>
@@ -195,6 +205,10 @@
     <string name="chat_list_archive_confirm">This chat will be archived and hidden from the list.</string>
     <string name="chat_list_archive_confirm_button">Archive</string>
     <string name="chat_list_archive_title">Archive Chat</string>
+    <string name="chat_list_section_in_progress">In Progress</string>
+    <string name="chat_list_status_in_progress">In Progress</string>
+    <string name="chat_list_status_pending">Pending</string>
+    <string name="chat_list_status_completed">Completed</string>
     <string name="chat_reaction_add">Add Reaction</string>
     <string name="chat_reaction_change">Change Reaction</string>
     <string name="chat_reaction_picker_title">React to Message</string>

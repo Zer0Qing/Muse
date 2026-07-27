@@ -7,8 +7,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import io.zer0.muse.ui.common.IosChip
+import io.zer0.muse.ui.common.IosTextField
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -65,7 +65,7 @@ fun CreateGroupChatDialog(
         title = stringResource(R.string.groupchat_create_title),
         content = {
             // 群聊名输入框
-            OutlinedTextField(
+            IosTextField(
                 value = name,
                 onValueChange = { newName ->
                     showErrors = false
@@ -79,7 +79,6 @@ fun CreateGroupChatDialog(
                 } else {
                     { Text("${name.length}/$maxNameLength") }
                 },
-                shape = MuseShapes.semiLarge,
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(16.dp))

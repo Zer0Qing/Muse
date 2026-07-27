@@ -54,7 +54,7 @@ Muse 还有一个独特的能力：它在每次回复前会写下"内心独白"(
 
 <p align="center">
   <img src="screenshots/软件首页.jpg" width="130" alt="首页">
-  <img src="screenshots/对话截图.jpg" width="130" alt="对话">
+  <img src="screenshots/对话页面.jpg" width="130" alt="对话">
   <img src="screenshots/记忆面板.jpg" width="130" alt="记忆">
   <img src="screenshots/知识库管理页.jpg" width="130" alt="知识库">
   <img src="screenshots/主题选择页.jpg" width="130" alt="主题">
@@ -63,6 +63,7 @@ Muse 还有一个独特的能力：它在每次回复前会写下"内心独白"(
 <p align="center">
   <img src="screenshots/设置页面.jpg" width="130" alt="设置">
   <img src="screenshots/助手界面.jpg" width="130" alt="助手">
+  <img src="screenshots/通知监听.jpg" width="130" alt="通知监听">
   <img src="screenshots/主动消息.jpg" width="130" alt="主动消息">
   <img src="screenshots/视觉辅助.jpg" width="130" alt="视觉">
   <img src="screenshots/助手资源.jpg" width="130" alt="资源">
@@ -168,7 +169,9 @@ Muse 每次回复前会生成一个 `mood` 块，这是 AI 的"内心独白"—�
 - **主动消息**：久未联系时主动发起对话，发送间隔无级调节，时段控制，仅 Agent 会话触发
 - **文字转语音**：系统 TTS / 云端 TTS（OpenAI/MiniMax/Edge），语速音高语言按助手独立配置
 - **翻译功能**：内置翻译器，支持多语言互译并保留历史记录
-- **斜杠命令**：在输入框输入 `/` 快速执行操作——`/new` 新建对话、`/compact` 压缩上下文、`/reset` 重置、`/pin` 置顶、`/archive` 归档
+- **斜杠命令**
+- **通知监听**：监听设备通知，AI 可根据通知内容进行智能回复和建议
+- **主动消息**：久未联系时 AI 主动发起对话，发送间隔无级调节，时段可控，仅 Agent 会话触发：在输入框输入 `/` 快速执行操作——`/new` 新建对话、`/compact` 压缩上下文、`/reset` 重置、`/pin` 置顶、`/archive` 归档
 
 ### 主题系统
 

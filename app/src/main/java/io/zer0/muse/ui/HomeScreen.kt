@@ -1,4 +1,4 @@
-package io.zer0.muse.ui
+﻿package io.zer0.muse.ui
 
 import android.content.Intent
 import androidx.activity.compose.BackHandler
@@ -11,15 +11,6 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material.icons.outlined.Translate
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -48,6 +39,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.muse.R
@@ -107,6 +100,8 @@ fun HomeScreen(
     onOpenRecentlyDeleted: () -> Unit = {},
     /** HTML/SVG 代码块全屏预览回调(由 Tab 1 ChatScreen 触发)。 */
     onHtmlPreview: (String) -> Unit = {},
+    /** 加号菜单 → 技能入口。 */
+    onOpenSkills: () -> Unit = {},
     // v1.131: ChatViewModel 在 AppKoinModule 中以 `single { }` 注册(见 v1.92 注释),
     // 全应用共享同一实例,故用 koinInject() 直接取单例即可。
     // koinViewModel() 对 single 注册也会返回同一实例,但语义上 koinInject 更准确。
@@ -194,7 +189,7 @@ fun HomeScreen(
                 // 左侧:头像 → 设置
                 IconButton(onClick = onOpenSettings) {
                     Icon(
-                        imageVector = Icons.Default.Person,
+                        imageVector = TablerIcons.User,
                         contentDescription = stringResource(R.string.home_settings_cd),
                         modifier = Modifier.size(24.dp),
                     )
@@ -210,49 +205,20 @@ fun HomeScreen(
                     onSelect = { page ->
                         scope.launch { pagerState.animateScrollToPage(page) }
                     },
+                    // 顶部 Tab 收窄,右侧腾出空间给全局搜索按钮
+                    modifier = Modifier.width(172.dp),
                 )
 
-                // v1.0.17 顶部右侧:全局搜索按钮(所有 Tab 都显示)+ Agent Tab 模型选择器。
+                // v1.0.17 顶部右侧:全局搜索按钮(所有 Tab 都显示)。
                 // 移动端无物理键盘,Ctrl+K 不可用,搜索入口不能藏太深。
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.End,
                 ) {
-                    if (pagerState.currentPage == 1) {
-                        // v1.41: Agent Tab 右上角模型选择器(对标新会话顶部)
-                        // M-HS1: 用 remember 缓存模型名计算,避免每次 recomposition 重复查找 providers/models 列表
-                        // stringResource 需在 @Composable 直接调用位置提取,remember{} 非 @Composable,故预提取。
-                        val notConfiguredText = stringResource(R.string.model_switch_not_configured)
-                        val currentModelName = remember(state.providers, state.activeProviderId, state.selectedModelId) {
-                            val activeProvider = state.providers.firstOrNull { it.id == state.activeProviderId }
-                            val rawModelName = activeProvider?.models?.firstOrNull { it.id == state.selectedModelId }?.name
-                                ?: activeProvider?.models?.firstOrNull()?.name
-                                ?: notConfiguredText
-                            rawModelName.substringAfterLast("/").takeIf { it.isNotBlank() } ?: rawModelName
-                        }
-                        TextButton(
-                            onClick = { showModelSheet = true },
-                            enabled = !state.isStreaming,
-                            modifier = Modifier.widthIn(max = 140.dp),
-                        ) {
-                            Text(
-                                text = currentModelName,
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            Icon(
-                                imageVector = Icons.Default.ArrowDropDown,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurface,
-                            )
-                        }
-                    }
                     // 全局搜索入口(对话/翻译/快速记录)— 三 Tab 右侧常驻
                     IconButton(onClick = onOpenSearch) {
                         Icon(
-                            imageVector = Icons.Default.Search,
+                            imageVector = TablerIcons.Search,
                             contentDescription = stringResource(R.string.home_search_cd),
                             modifier = Modifier.size(24.dp),
                         )
@@ -298,16 +264,6 @@ fun HomeScreen(
             // v1.0.16: 新任务/新会话入口 — 放在 3 大切换 tab 栏正下方,
             // 从原来的 ChatListScreen 顶部上提到这里,方便所有 Tab 可见。
             // 仅在"任务"Tab 显示(Agent 页自己就能输入,群聊页有群聊列表入口)。
-            if (pagerState.currentPage == 0) {
-                NewTaskEntryCard(
-                    onClick = onCreateNewTask,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = MusePaddings.screen)
-                        .padding(top = MusePaddings.contentGap),
-                )
-            }
-
             // v1.133: 顶部"新版本可用"Banner — 有缓存 ReleaseInfo 且未被关闭时显示
             val release = remember(releaseJson, bannerDismissed) {
                 if (bannerDismissed || releaseJson.isNullOrBlank()) null
@@ -378,6 +334,7 @@ fun HomeScreen(
                     onOpenKnowledgeBase = onOpenKnowledgeBase,
                     onOpenRecentlyDeleted = onOpenRecentlyDeleted,
                     onOpenAssistants = onOpenAssistants,
+                    onCreateWithText = viewModel::sendToNewChat,
                     isSessionsLoading = state.isSessionsLoading,
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -388,6 +345,7 @@ fun HomeScreen(
                     onOpenAssistants = onOpenAssistants,
                     isAgentMode = true,
                     onHtmlPreview = onHtmlPreview,
+                    onOpenSkills = onOpenSkills,
                 )
                 // Tab 2 "群聊": 多 Agent 群聊列表
                 // 点击群聊卡片 → 跳转到群聊详情页(通过 NavHost 路由)
@@ -487,7 +445,7 @@ private fun UpdateAvailableBanner(
                 modifier = Modifier.semantics { contentDescription = closeCd },
             ) {
                 Icon(
-                    imageVector = Icons.Filled.Close,
+                    imageVector = TablerIcons.X,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
@@ -538,25 +496,25 @@ private fun HomeQuickActionCapsule(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             HomeCapsuleButton(
-                icon = Icons.Outlined.Schedule,
+                icon = TablerIcons.CalendarTime,
                 contentDescription = stringResource(R.string.chat_list_scheduled_tasks),
                 onClick = onOpenScheduledTasks,
             )
             HomeCapsuleDivider()
             HomeCapsuleButton(
-                icon = Icons.Default.Edit,
+                icon = TablerIcons.Edit,
                 contentDescription = stringResource(R.string.chat_list_quick_notes),
                 onClick = onOpenQuickNotes,
             )
             HomeCapsuleDivider()
             HomeCapsuleButton(
-                icon = Icons.Outlined.Translate,
+                icon = TablerIcons.Language,
                 contentDescription = stringResource(R.string.chat_list_quick_translate),
                 onClick = onOpenQuickTranslate,
             )
             HomeCapsuleDivider()
             HomeCapsuleButton(
-                icon = Icons.Default.Add,
+                icon = TablerIcons.Plus,
                 contentDescription = stringResource(R.string.chat_list_new_task),
                 onClick = onCreateNewTask,
                 containerColor = MaterialTheme.colorScheme.primary,
@@ -576,10 +534,9 @@ private fun HomeCapsuleButton(
     contentColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurfaceVariant,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    // 缩小 1/3: 48dp → 32dp(2/3 等比例)
     Box(
         modifier = modifier
-            .size(32.dp)
+            .size(56.dp)
             .background(containerColor)
             // v1.0.16: 禁用 Material ripple,避免黑色遮罩
             .clickable(
@@ -593,8 +550,7 @@ private fun HomeCapsuleButton(
             imageVector = icon,
             contentDescription = contentDescription,
             tint = contentColor,
-            // 缩小 1/3: 22dp → 15dp(2/3 等比例)
-            modifier = Modifier.size(15.dp),
+            modifier = Modifier.size(24.dp),
         )
     }
 }
@@ -604,81 +560,9 @@ private fun HomeCapsuleDivider() {
     Box(
         modifier = Modifier
             .width(1.dp)
-            // 缩小 1/3: 20dp → 14dp(2/3 等比例)
-            .height(14.dp)
+            .height(26.dp)
             .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
     )
 }
 
-/**
- * v1.0.16: tab 栏下方的新任务/新会话入口卡片。
- *
- * 从 ChatListScreen 顶部上提到 HomeScreen,位于 3 大 Tab 切换栏正下方,
- * 让所有 Tab 都能快速创建新任务;当前只在"任务"Tab 显示。
- */
-@Composable
-private fun NewTaskEntryCard(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val gradient = androidx.compose.ui.graphics.Brush.horizontalGradient(
-        colors = listOf(
-            MaterialTheme.colorScheme.primary,
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
-        ),
-    )
-    val interactionSource = remember { MutableInteractionSource() }
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(88.dp)
-            // v1.0.16: 禁用 Material ripple,避免点击时出现黑色遮罩
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick,
-            ),
-        shape = MuseShapes.huge,
-        color = MaterialTheme.colorScheme.primaryContainer,
-        tonalElevation = 0.dp,
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(gradient)
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-        ) {
-            Column(modifier = Modifier.align(Alignment.CenterStart)) {
-                Text(
-                    text = stringResource(R.string.chat_list_new_task),
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.SemiBold,
-                    ),
-                    color = MaterialTheme.colorScheme.onPrimary,
-                )
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    text = stringResource(R.string.chat_list_new_task_card_subtitle),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f),
-                )
-            }
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.18f),
-                modifier = Modifier
-                    .size(40.dp)
-                    .align(Alignment.CenterEnd),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(22.dp),
-                    )
-                }
-            }
-        }
-    }
-}
+

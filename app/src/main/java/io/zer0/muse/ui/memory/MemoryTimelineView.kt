@@ -127,7 +127,7 @@ private fun MonthHeader(month: String) {
     Text(
         text = month,
         style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.primary,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(vertical = 12.dp, horizontal = 4.dp),
     )
 }

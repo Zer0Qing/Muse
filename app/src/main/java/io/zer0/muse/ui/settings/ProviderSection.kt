@@ -32,29 +32,8 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.AccountBalanceWallet
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AutoFixHigh
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CloudDownload
-import androidx.compose.material.icons.outlined.SmartToy
-import androidx.compose.material.icons.outlined.Warning
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.FileUpload
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.NetworkCheck
-import androidx.compose.material.icons.filled.QrCode2
-import androidx.compose.material.icons.filled.QrCodeScanner
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Sync
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -64,7 +43,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
+import io.zer0.muse.ui.common.IosTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import io.zer0.muse.ui.common.IosChip
@@ -211,7 +190,7 @@ internal fun LazyListScope.providerListSection(
                 verticalArrangement = Arrangement.Center,
             ) {
                 EmptyState(
-                    icon = Icons.Outlined.SmartToy,
+                    icon = TablerIcons.Atom,
                     title = stringResource(R.string.settings_provider_empty_title),
                     subtitle = stringResource(R.string.settings_provider_empty_subtitle),
                     actionText = stringResource(R.string.settings_provider_empty_action),
@@ -293,9 +272,9 @@ internal fun LazyListScope.providerListSection(
                 horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
             ) {
                 Icon(
-                    imageVector = Icons.Default.Add,
+                    imageVector = TablerIcons.Plus,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(MuseIconSizes.iconMedium),
                 )
                 Text(
@@ -316,9 +295,9 @@ internal fun LazyListScope.providerListSection(
                 horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
             ) {
                 Icon(
-                    imageVector = Icons.Default.QrCodeScanner,
+                    imageVector = TablerIcons.Qrcode,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(MuseIconSizes.iconMedium),
                 )
                 Text(
@@ -339,7 +318,7 @@ internal fun LazyListScope.providerListSection(
  * 仅当检测到冲突时渲染警告卡片。卡片样式:
  *  - 形状:[MuseShapes.medium] 圆角
  *  - 背景:MaterialTheme.colorScheme.errorContainer
- *  - 图标:Icons.Outlined.Warning(着色 onErrorContainer)
+ *  - 图标:TablerIcons.AlertTriangle(着色 onErrorContainer)
  *  - 文案:provider_collision_warning(带冲突数量 %1$d)
  *
  * 仅提示,不展开详情,不阻断用户操作。
@@ -364,7 +343,7 @@ private fun ProviderCollisionWarning(providers: List<ProviderConfig>) {
             horizontalArrangement = Arrangement.spacedBy(MusePaddings.iconPadding),
         ) {
             Icon(
-                imageVector = Icons.Outlined.Warning,
+                imageVector = TablerIcons.AlertTriangle,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onErrorContainer,
                 modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -478,7 +457,7 @@ private fun ProviderRow(
             }
         }
         Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            imageVector = TablerIcons.ChevronRight,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.outline,
             modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -585,7 +564,7 @@ private fun ProviderTestStatusChip(status: ProviderTestStatus) {
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Check,
+                        imageVector = TablerIcons.Check,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.size(12.dp),
@@ -609,7 +588,7 @@ private fun ProviderTestStatusChip(status: ProviderTestStatus) {
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Close,
+                        imageVector = TablerIcons.X,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onErrorContainer,
                         modifier = Modifier.size(12.dp),
@@ -1373,7 +1352,7 @@ internal fun ProviderEditPage(
                     // v1.97: 分享二维码按钮(仅在已存在的 Provider 显示,新建时不显示)
                     if (!isNew) {
                         IosTactileButton(
-                            icon = Icons.Default.QrCode2,
+                            icon = TablerIcons.Qrcode,
                             onClick = { showQrShareDialog = true },
                             contentDescription = stringResource(R.string.qr_share_btn),
                         )
@@ -1806,7 +1785,7 @@ private fun ProviderEditBottomBar(
                         )
                     } else {
                         Icon(
-                            imageVector = Icons.Default.Sync,
+                            imageVector = TablerIcons.Refresh,
                             contentDescription = null,
                             modifier = Modifier.size(MuseIconSizes.iconSmall),
                             tint = fetchContentColor,
@@ -1840,7 +1819,7 @@ private fun ProviderEditBottomBar(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = Icons.Default.Add,
+                        imageVector = TablerIcons.Plus,
                         contentDescription = null,
                         modifier = Modifier.size(MuseIconSizes.iconSmall),
                         tint = MaterialTheme.colorScheme.onSurface,
@@ -1867,7 +1846,7 @@ private fun ProviderEditBottomBar(
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Delete,
+                        imageVector = TablerIcons.Trash,
                         contentDescription = stringResource(R.string.settings_common_delete),
                         tint = MaterialTheme.colorScheme.error,
                         modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -1888,13 +1867,12 @@ private fun AddModelDialog(
         onDismissRequest = onDismiss,
         title = stringResource(R.string.settings_provider_add_new_model),
         content = {
-            OutlinedTextField(
+            IosTextField(
                 value = modelId,
                 onValueChange = { modelId = it },
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text(stringResource(R.string.settings_provider_model_id)) },
                 singleLine = true,
-                shape = MuseShapes.medium,
             )
         },
         confirmText = stringResource(R.string.settings_common_add),
@@ -2044,17 +2022,16 @@ private fun ConfigTab(
                             ProviderType.OPENAI_RESPONSES -> ProviderConfig.DEFAULT_OPENAI_RESPONSES_BASE_URL
                         },
                     )
-                    OutlinedTextField(
+                    IosTextField(
                         value = apiKey,
                         onValueChange = onApiKeyChange,
                         modifier = Modifier.fillMaxWidth(),
                         label = { Text(stringResource(R.string.settings_provider_api_key)) },
                         singleLine = true,
-                        shape = MuseShapes.medium,
                         visualTransformation = if (apiKeyVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         trailingIcon = {
                             IosTactileButton(
-                                icon = if (apiKeyVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                icon = if (apiKeyVisible) TablerIcons.EyeOff else TablerIcons.Eye,
                                 onClick = { onApiKeyVisibleChange(!apiKeyVisible) },
                                 contentDescription = if (apiKeyVisible) stringResource(R.string.settings_common_hide) else stringResource(R.string.settings_common_show),
                             )
@@ -2102,7 +2079,7 @@ private fun ConfigTab(
                                         )
                                     } else {
                                         Icon(
-                                            imageVector = Icons.Default.Lock,
+                                            imageVector = TablerIcons.Lock,
                                             contentDescription = null,
                                             tint = oauthBtnContentColor,
                                             modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -2139,7 +2116,7 @@ private fun ConfigTab(
                                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                                     ) {
                                         Icon(
-                                            imageVector = Icons.Default.Close,
+                                            imageVector = TablerIcons.X,
                                             contentDescription = null,
                                             tint = revokeBtnContentColor,
                                             modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -2203,7 +2180,7 @@ private fun ConfigTab(
                                     )
                                 } else {
                                     Icon(
-                                        imageVector = Icons.Default.NetworkCheck,
+                                        imageVector = TablerIcons.World,
                                         contentDescription = null,
                                         tint = testBtnContentColor,
                                         modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -2241,7 +2218,7 @@ private fun ConfigTab(
                                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                                 ) {
                                     Icon(
-                                        imageVector = if (isSuccess) Icons.Default.Check else Icons.Default.Close,
+                                        imageVector = if (isSuccess) TablerIcons.Check else TablerIcons.X,
                                         contentDescription = null,
                                         tint = capsuleColor,
                                         modifier = Modifier.size(MuseIconSizes.iconTiny),
@@ -2254,7 +2231,7 @@ private fun ConfigTab(
                                     )
                                     // 关闭按钮:用 IosTactileButton 而非 Material3 IconButton
                                     IosTactileButton(
-                                        icon = Icons.Default.Close,
+                                        icon = TablerIcons.X,
                                         onClick = onTestResultDismiss,
                                         contentDescription = stringResource(R.string.settings_common_close),
                                         size = 20.dp,
@@ -2283,7 +2260,7 @@ private fun ConfigTab(
                         horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                     ) {
                         Icon(
-                            Icons.Default.Info,
+                            TablerIcons.InfoCircle,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(16.dp),
@@ -2295,7 +2272,7 @@ private fun ConfigTab(
                             modifier = Modifier.weight(1f),
                         )
                         IosTactileButton(
-                            icon = Icons.Default.Close,
+                            icon = TablerIcons.X,
                             onClick = { onFetchErrorDismiss() },
                             contentDescription = stringResource(R.string.settings_common_close),
                             tint = MaterialTheme.colorScheme.error,
@@ -2383,9 +2360,9 @@ private fun ConfigTab(
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
                                     Icon(
-                                        Icons.Default.FileUpload,
+                                        TablerIcons.FileUpload,
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
+                                        tint = MaterialTheme.colorScheme.onSurface,
                                         modifier = Modifier.size(MuseIconSizes.iconSmall),
                                     )
                                     Spacer(Modifier.size(MusePaddings.contentGap))
@@ -2398,7 +2375,7 @@ private fun ConfigTab(
                                     value = serviceAccountEmail,
                                     onValueChange = onServiceAccountEmailChange,
                                 )
-                                OutlinedTextField(
+                                IosTextField(
                                     value = privateKey,
                                     onValueChange = onPrivateKeyChange,
                                     modifier = Modifier.fillMaxWidth(),
@@ -2406,11 +2383,10 @@ private fun ConfigTab(
                                     placeholder = { Text("-----BEGIN PRIVATE KEY-----\n...") },
                                     minLines = 3,
                                     maxLines = 8,
-                                    shape = MuseShapes.medium,
                                     visualTransformation = if (privateKeyVisible) VisualTransformation.None else PasswordVisualTransformation(),
                                     trailingIcon = {
                                         IosTactileButton(
-                                            icon = if (privateKeyVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                            icon = if (privateKeyVisible) TablerIcons.EyeOff else TablerIcons.Eye,
                                             onClick = { onPrivateKeyVisibleChange(!privateKeyVisible) },
                                             contentDescription = if (privateKeyVisible) stringResource(R.string.settings_common_hide) else stringResource(R.string.settings_common_show),
                                         )
@@ -2444,7 +2420,7 @@ private fun ConfigTab(
                             color = MaterialTheme.colorScheme.outline,
                         )
                         Icon(
-                            imageVector = if (showAdvanced) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            imageVector = if (showAdvanced) TablerIcons.ChevronUp else TablerIcons.ChevronDown,
                             contentDescription = if (showAdvanced) stringResource(R.string.settings_common_collapse) else stringResource(R.string.settings_common_expand),
                             tint = MaterialTheme.colorScheme.outline,
                             modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -2503,7 +2479,7 @@ private fun ConfigTab(
                                     )
                                 } else {
                                     Icon(
-                                        Icons.Default.AccountBalanceWallet,
+                                        TablerIcons.Wallet,
                                         contentDescription = null,
                                         modifier = Modifier.size(MuseIconSizes.iconSmall),
                                     )
@@ -2535,7 +2511,7 @@ private fun ConfigTab(
                                     onValueChange = onCustomChatCompletionsPathChange,
                                     placeholder = "/chat/completions",
                                 )
-                                OutlinedTextField(
+                                IosTextField(
                                     value = customHeadersText,
                                     onValueChange = onCustomHeadersTextChange,
                                     modifier = Modifier.fillMaxWidth(),
@@ -2548,9 +2524,8 @@ private fun ConfigTab(
                                     placeholder = { Text("Authorization: Bearer xxx") },
                                     minLines = 3,
                                     maxLines = 8,
-                                    shape = MuseShapes.medium,
                                 )
-                                OutlinedTextField(
+                                IosTextField(
                                     value = customBodyText,
                                     onValueChange = onCustomBodyTextChange,
                                     modifier = Modifier.fillMaxWidth(),
@@ -2563,7 +2538,6 @@ private fun ConfigTab(
                                     placeholder = { Text("{\"seed\": 42}") },
                                     minLines = 3,
                                     maxLines = 8,
-                                    shape = MuseShapes.medium,
                                 )
                             } else {
                                 Text(
@@ -2761,7 +2735,7 @@ private fun ModelsTab(
                                     strokeWidth = 2.dp,
                                 )
                             } else {
-                                Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(MuseIconSizes.iconSmall))
+                                Icon(TablerIcons.Refresh, contentDescription = null, modifier = Modifier.size(MuseIconSizes.iconSmall))
                             }
                             Spacer(Modifier.size(MusePaddings.contentGap))
                             Text(stringResource(R.string.settings_provider_refresh_models))
@@ -2838,7 +2812,7 @@ private fun ModelsTab(
  *  - 用 [Surface] + [Modifier.clickable] + [MuseShapes.tiny],不使用 Material3 Button
  *    (与 OAuth 登录 / 测试连接等行内胶囊按钮风格一致)
  *  - 背景用 primaryContainer,文字/图标用 onPrimaryContainer,确保深浅色主题对比度
- *  - 图标用 [Icons.Default.AutoFixHigh](魔法棒),呼应"一键填入"的语义
+ *  - 图标用 [TablerIcons.Wand](魔法棒),呼应"一键填入"的语义
  */
 @Composable
 private fun SiliconFlowFreeModelsButton(
@@ -2859,7 +2833,7 @@ private fun SiliconFlowFreeModelsButton(
             horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
         ) {
             Icon(
-                imageVector = Icons.Default.AutoFixHigh,
+                imageVector = TablerIcons.Wand,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onPrimaryContainer,
                 modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -2924,7 +2898,7 @@ private fun ModelAbilityEditorDialog(
                         },
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.AutoFixHigh,
+                            imageVector = TablerIcons.Wand,
                             contentDescription = null,
                             modifier = Modifier.size(16.dp),
                         )
@@ -2943,22 +2917,20 @@ private fun ModelAbilityEditorDialog(
                 AbilitySwitchRow(stringResource(R.string.settings_provider_ability_vision), supportsVision) { supportsVision = it }
                 AbilitySwitchRow(stringResource(R.string.settings_provider_ability_video), supportsVideo) { supportsVideo = it }
                 Spacer(Modifier.size(MusePaddings.itemGap))
-                OutlinedTextField(
+                IosTextField(
                     value = contextWindow,
                     onValueChange = { contextWindow = it.filter { c -> c.isDigit() } },
                     label = { Text(stringResource(R.string.settings_provider_context_window)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    shape = MuseShapes.medium,
                 )
                 Spacer(Modifier.size(MusePaddings.contentGap))
-                OutlinedTextField(
+                IosTextField(
                     value = maxOutputTokens,
                     onValueChange = { maxOutputTokens = it.filter { c -> c.isDigit() } },
                     label = { Text(stringResource(R.string.settings_provider_max_output_tokens)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    shape = MuseShapes.medium,
                 )
                 Spacer(Modifier.size(MusePaddings.itemGap))
                 TextButton(
@@ -3072,7 +3044,7 @@ private fun EmptyModelsState(
                         strokeWidth = 2.dp,
                     )
                 } else {
-                    Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(MuseIconSizes.iconSmall))
+                    Icon(TablerIcons.Refresh, contentDescription = null, modifier = Modifier.size(MuseIconSizes.iconSmall))
                 }
                 Spacer(Modifier.size(MusePaddings.contentGap))
                 Text(stringResource(R.string.settings_provider_refresh_models))
@@ -3081,7 +3053,7 @@ private fun EmptyModelsState(
                 onClick = onAddModel,
                 shape = MuseShapes.pill,
             ) {
-                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(MuseIconSizes.iconSmall))
+                Icon(TablerIcons.Plus, contentDescription = null, modifier = Modifier.size(MuseIconSizes.iconSmall))
                 Spacer(Modifier.size(MusePaddings.contentGap))
                 Text(stringResource(R.string.settings_provider_add_new_model))
             }
@@ -3147,7 +3119,7 @@ private fun FetchedModelsPickerSheet(
                     horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Search,
+                        imageVector = TablerIcons.Search,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -3173,7 +3145,7 @@ private fun FetchedModelsPickerSheet(
                     }
                     if (query.isNotBlank()) {
                         IosTactileButton(
-                            icon = Icons.Default.Close,
+                            icon = TablerIcons.X,
                             onClick = { query = "" },
                             contentDescription = stringResource(R.string.settings_provider_clear),
                             tint = MaterialTheme.colorScheme.outline,
@@ -3231,7 +3203,7 @@ private fun FetchedModelsPickerSheet(
                         modifier = Modifier.weight(1f),
                     )
                     Icon(
-                        imageVector = if (groupExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        imageVector = if (groupExpanded) TablerIcons.ChevronUp else TablerIcons.ChevronDown,
                         contentDescription = if (groupExpanded) stringResource(R.string.settings_common_collapse) else stringResource(R.string.settings_common_expand),
                         tint = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -3267,7 +3239,7 @@ private fun FetchedModelsPickerSheet(
                             ) {
                                 if (isSelected) {
                                     Icon(
-                                        imageVector = Icons.Default.Check,
+                                        imageVector = TablerIcons.Check,
                                         contentDescription = stringResource(R.string.settings_provider_selected),
                                         tint = MaterialTheme.colorScheme.onPrimary,
                                         modifier = Modifier.size(MuseIconSizes.iconTiny),

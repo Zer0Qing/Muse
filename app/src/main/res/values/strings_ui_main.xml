@@ -203,12 +203,17 @@
     <string name="memory_screen_experience_tags_label">标签(逗号分隔,可选)</string>
     <string name="memory_screen_experience_delete_confirm">删除这条经验?</string>
 
+    <!-- v2.0: 概览统计卡片 -->
+    <string name="memory_overview_total">元事实总数</string>
+    <string name="memory_overview_important">重要/关键</string>
+    <string name="memory_overview_layers">记忆层数</string>
+
     <!-- ===== 设置页 SettingsScreen ===== -->
     <string name="settings_screen_title">设置</string>
     <string name="settings_screen_back_cd">返回</string>
     <string name="settings_screen_appearance_group_cd">通用分组</string>
     <string name="settings_screen_appearance">外观与个性化</string>
-    <string name="settings_screen_general">通用</string>
+    <string name="settings_screen_general">通用与外观</string>
     <string name="settings_screen_user_profile_cd">个人资料，称呼/画像，点击进入</string>
     <string name="settings_screen_user_profile">个人资料</string>
     <string name="settings_screen_user_profile_desc">称呼 / 助手名字 / 用户画像</string>
@@ -223,7 +228,7 @@
     <string name="settings_screen_media_desc">语音 / TTS / 音频输出</string>
     <string name="settings_screen_memory_data_group_cd">记忆与知识库分组</string>
     <string name="settings_screen_memory_data">记忆与数据</string>
-    <string name="settings_screen_memory_knowledge">记忆与知识库</string>
+    <string name="settings_screen_memory_knowledge">记忆与知识</string>
     <string name="settings_screen_memory_notification_cd">记忆与通知，记忆参数/经验库/通知策略，点击进入</string>
     <string name="settings_screen_memory_notification">记忆与通知</string>
     <string name="settings_screen_memory_notification_desc">记忆参数 / 经验库 / 通知策略</string>
@@ -238,12 +243,11 @@
     <string name="settings_screen_rag_desc">RAG 配置 / Embedding / 分块参数</string>
     <!-- 数据与隐私分组(PII Guard) -->
     <string name="settings_screen_privacy_group_cd">数据与隐私分组</string>
-    <string name="settings_screen_privacy">数据与隐私</string>
     <string name="settings_screen_pii_guard_cd">PII 隐私保护，发送前遮蔽敏感信息，开关</string>
     <string name="settings_screen_pii_guard">PII 隐私保护</string>
     <string name="settings_screen_pii_guard_desc">发送前自动遮蔽手机号/邮箱/身份证等</string>
-    <string name="settings_screen_model_service_group_cd">模型与服务分组</string>
     <string name="settings_screen_model_service">模型与服务</string>
+    <string name="settings_screen_model_service_group_cd">模型与服务分组</string>
     <string name="settings_screen_provider_cd">供应商，管理AI服务提供商，点击进入</string>
     <string name="settings_screen_provider">供应商</string>
     <string name="settings_screen_provider_desc">管理模型供应商、API Key 与联网搜索等</string>
@@ -298,9 +302,11 @@
     <string name="settings_search_hint">搜索设置项…</string>
     <string name="settings_search_prompt">输入关键词搜索全部设置项</string>
     <string name="settings_search_no_results">个匹配项</string>
+    <string name="settings_screen_cancel">取消</string>
     <string name="settings_screen_assistant_agent">助手与 Agent</string>
+    <string name="settings_screen_ai_models">AI 模型与能力</string>
     <string name="settings_screen_data_backup_group">数据与备份</string>
-    <string name="settings_screen_data_management_group">数据管理</string>
+    <string name="settings_screen_data_management_group">数据与隐私</string>
 
     <!-- v1.97 gap8: 工具分组(独立翻译页入口) -->
     <string name="settings_screen_tools_group_cd">工具分组</string>
@@ -367,9 +373,19 @@
 
     <!-- ===== 搜索页 SearchScreen ===== -->
     <string name="search_back_cd">返回</string>
+    <string name="search_cancel">取消</string>
     <string name="search_placeholder">搜索会话/消息/设置...</string>
     <string name="search_empty_hint">输入关键词搜索会话、消息或设置选项</string>
+    <string name="search_tab_sessions">会话</string>
+    <string name="search_tab_message_content">消息内容</string>
+    <string name="search_section_message_content">消息内容</string>
+    <string name="search_section_translate">翻译记录</string>
+    <string name="search_section_quick_notes">快速记录</string>
     <string name="search_suggestion_backup">备份</string>
+    <string name="search_suggestion_today">今天</string>
+    <string name="search_suggestion_summary">总结</string>
+    <string name="search_suggestion_report">周报</string>
+    <string name="search_suggestion_idea">灵感</string>
     <string name="search_no_result">未找到匹配结果</string>
     <string name="search_try_other">试试其他关键词</string>
     <string name="search_section_sessions">会话</string>
@@ -532,6 +548,10 @@
     <string name="video_gen_duration">时长</string>
     <string name="video_gen_resolution">分辨率</string>
     <string name="video_gen_reference_image">参考图片(可选)</string>
+    <string name="video_gen_select_image">从本地选择</string>
+    <string name="video_gen_clear_image">清除参考图</string>
+    <string name="video_gen_image_compressed">已压缩: %1$s</string>
+    <string name="video_gen_image_load_failed">图片读取失败: %1$s</string>
     <string name="video_gen_submit">生成视频</string>
     <string name="video_gen_pending">排队中</string>
     <string name="video_gen_processing">生成中...</string>

@@ -161,6 +161,16 @@
     <string name="memory_filter_normal">普通</string>
     <string name="memory_filter_important">重要</string>
     <string name="memory_filter_critical">关键</string>
+
+    <!-- v9: 记忆分类(按参考图: 全部 / 核心事实 / 偏好 / 经历 / 关系 / 目标 / 医疗 / 其他) -->
+    <string name="memory_category_all">全部</string>
+    <string name="memory_category_identity">核心事实</string>
+    <string name="memory_category_preference">偏好</string>
+    <string name="memory_category_event">经历</string>
+    <string name="memory_category_relationship">关系</string>
+    <string name="memory_category_goal">目标</string>
+    <string name="memory_category_medical">医疗</string>
+    <string name="memory_category_other">其他</string>
     <string name="memory_filter_today">今天</string>
     <string name="memory_filter_week">本周</string>
     <string name="memory_filter_month">本月</string>
@@ -218,8 +228,12 @@
     <string name="chat_draft_label">草稿</string>
     <!-- 功能3: 归档确认 -->
     <string name="chat_list_archive_title">归档会话</string>
-    <string name="chat_list_archive_confirm">确定归档会话 \"%1$s\"? 归档后可从归档列表恢复。</string>
+    <string name="chat_list_archive_confirm">确定归档会话 "%1$s"? 归档后可从归档列表恢复。</string>
     <string name="chat_list_archive_confirm_button">归档</string>
+    <string name="chat_list_section_in_progress">进行中</string>
+    <string name="chat_list_status_in_progress">进行中</string>
+    <string name="chat_list_status_pending">待确认</string>
+    <string name="chat_list_status_completed">已完成</string>
 
     <!-- 工具审批卡片 -->
     <string name="tool_approval_title">工具调用</string>

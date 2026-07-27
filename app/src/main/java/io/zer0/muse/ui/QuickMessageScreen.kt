@@ -30,7 +30,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import io.zer0.muse.ui.common.IosTextField
 import androidx.compose.material3.Scaffold
 import io.zer0.muse.ui.common.IosDropdown
 import io.zer0.muse.ui.common.IosFloatingButton
@@ -369,23 +369,21 @@ private fun QuickMessageEditPage(
             Spacer(Modifier.height(4.dp))
 
             SectionLabel(stringResource(R.string.quick_msg_section_basic))
-            OutlinedTextField(
+            IosTextField(
                 value = name,
                 onValueChange = { name = it },
                 label = { Text(stringResource(R.string.quick_msg_field_name)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                shape = MuseShapes.medium,
             )
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
             SectionLabel(stringResource(R.string.quick_msg_section_content))
-            OutlinedTextField(
+            IosTextField(
                 value = content,
                 onValueChange = { content = it },
                 label = { Text(stringResource(R.string.quick_msg_field_content)) },
                 modifier = Modifier.fillMaxWidth().height(120.dp),
-                shape = MuseShapes.medium,
             )
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
@@ -410,13 +408,12 @@ private fun QuickMessageEditPage(
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
             SectionLabel(stringResource(R.string.quick_msg_section_behavior))
-            OutlinedTextField(
+            IosTextField(
                 value = sortIndex,
                 onValueChange = { sortIndex = it.filter(Char::isDigit) },
                 label = { Text(stringResource(R.string.quick_msg_field_sort_index)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                shape = MuseShapes.medium,
             )
             SwitchRow(
                 label = stringResource(R.string.quick_msg_field_enabled),

@@ -168,12 +168,17 @@
     <string name="memory_screen_experience_tags_label">Tags (comma-separated, optional)</string>
     <string name="memory_screen_experience_delete_confirm">Delete this experience?</string>
 
+    <!-- v2.0: overview stat card -->
+    <string name="memory_overview_total">Total Facts</string>
+    <string name="memory_overview_important">Important/Critical</string>
+    <string name="memory_overview_layers">Memory Layers</string>
+
     <!-- ===== Settings screen SettingsScreen ===== -->
     <string name="settings_screen_title">Settings</string>
     <string name="settings_screen_back_cd">Back</string>
     <string name="settings_screen_appearance_group_cd">General group</string>
     <string name="settings_screen_appearance">Appearance &amp; Personalization</string>
-    <string name="settings_screen_general">General</string>
+    <string name="settings_screen_general">General &amp; Appearance</string>
     <string name="settings_screen_user_profile_cd">Profile, name/persona, tap to enter</string>
     <string name="settings_screen_user_profile">Profile</string>
     <string name="settings_screen_user_profile_desc">Name / Assistant Name / User Persona</string>
@@ -188,7 +193,7 @@
     <string name="settings_screen_media_desc">Voice / TTS / Audio Output</string>
     <string name="settings_screen_memory_data_group_cd">Memory &amp; Knowledge Base group</string>
     <string name="settings_screen_memory_data">Memory &amp; Data</string>
-    <string name="settings_screen_memory_knowledge">Memory &amp; Knowledge Base</string>
+    <string name="settings_screen_memory_knowledge">Memory &amp; Knowledge</string>
     <string name="settings_screen_memory_notification_cd">Memory &amp; Notifications, memory params/knowledge base/notification policy, tap to enter</string>
     <string name="settings_screen_memory_notification">Memory &amp; Notifications</string>
     <string name="settings_screen_memory_notification_desc">Memory Params / Knowledge Base / Notification Policy</string>
@@ -203,12 +208,11 @@
     <string name="settings_screen_rag_desc">RAG Config / Embedding / Chunk Params</string>
     <!-- Data &amp; Privacy group (PII Guard) -->
     <string name="settings_screen_privacy_group_cd">Data &amp; Privacy group</string>
-    <string name="settings_screen_privacy">Data &amp; Privacy</string>
     <string name="settings_screen_pii_guard_cd">PII privacy protection, mask sensitive info before sending, toggle</string>
     <string name="settings_screen_pii_guard">PII Privacy Protection</string>
     <string name="settings_screen_pii_guard_desc">Auto-mask phone/email/ID card etc. before sending</string>
-    <string name="settings_screen_model_service_group_cd">Models &amp; Services group</string>
     <string name="settings_screen_model_service">Models &amp; Services</string>
+    <string name="settings_screen_model_service_group_cd">Models &amp; Services group</string>
     <string name="settings_screen_provider_cd">Providers, manage AI service providers, tap to enter</string>
     <string name="settings_screen_provider">Providers</string>
     <string name="settings_screen_provider_desc">Manage model providers, API keys and web search</string>
@@ -262,9 +266,11 @@
     <string name="settings_search_hint">Search settings…</string>
     <string name="settings_search_prompt">Type keywords to search all settings</string>
     <string name="settings_search_no_results">matches</string>
-    <string name="settings_screen_assistant_agent">Assistants &amp; Agent</string>
+    <string name="settings_screen_cancel">Cancel</string>
+    <string name="settings_screen_assistant_agent">Assistant &amp; Agent</string>
+    <string name="settings_screen_ai_models">AI Models &amp; Capabilities</string>
     <string name="settings_screen_data_backup_group">Data &amp; Backup</string>
-    <string name="settings_screen_data_management_group">Data Management</string>
+    <string name="settings_screen_data_management_group">Data &amp; Privacy</string>
 
     <!-- v1.97 gap8: Tools group (standalone translate page entry) -->
     <string name="settings_screen_tools_group_cd">Tools group</string>
@@ -291,9 +297,19 @@
 
     <!-- ===== Search screen SearchScreen ===== -->
     <string name="search_back_cd">Back</string>
+    <string name="search_cancel">Cancel</string>
     <string name="search_placeholder">Search sessions/messages/settings...</string>
     <string name="search_empty_hint">Enter keywords to search sessions, messages, or settings</string>
+    <string name="search_tab_sessions">Sessions</string>
+    <string name="search_tab_message_content">Message Content</string>
+    <string name="search_section_message_content">Message Content</string>
+    <string name="search_section_translate">Translations</string>
+    <string name="search_section_quick_notes">Quick Notes</string>
     <string name="search_suggestion_backup">Backup</string>
+    <string name="search_suggestion_today">Today</string>
+    <string name="search_suggestion_summary">Summary</string>
+    <string name="search_suggestion_report">Report</string>
+    <string name="search_suggestion_idea">Ideas</string>
     <string name="search_no_result">No matching results</string>
     <string name="search_try_other">Try other keywords</string>
     <string name="search_section_sessions">Sessions</string>
@@ -504,6 +520,10 @@
     <string name="video_gen_duration">Duration</string>
     <string name="video_gen_resolution">Resolution</string>
     <string name="video_gen_reference_image">Reference Image (optional)</string>
+    <string name="video_gen_select_image">Choose from local</string>
+    <string name="video_gen_clear_image">Clear reference image</string>
+    <string name="video_gen_image_compressed">Compressed: %1$s</string>
+    <string name="video_gen_image_load_failed">Failed to load image: %1$s</string>
     <string name="video_gen_submit">Generate Video</string>
     <string name="video_gen_pending">Pending</string>
     <string name="video_gen_processing">Generating...</string>

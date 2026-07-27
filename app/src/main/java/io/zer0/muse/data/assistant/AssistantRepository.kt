@@ -66,6 +66,9 @@ class AssistantRepository(
                 id = defaultId,
                 name = context.getString(R.string.assistant_repo_default_name),
                 avatarEmoji = "",
+                // 默认助手头像:指向 drawable-nodpi/default_assistant_avatar.png
+                // 用 android.resource:// URI 形式,Coil 可直接加载内置资源
+                avatarImageUrl = "android.resource://${context.packageName}/drawable/default_assistant_avatar",
                 // v1.95: 默认助手人设 — 个人助手,感性与理性兼备
                 systemPrompt = DEFAULT_SYSTEM_PROMPT,
                 // v1.136: 默认助手关闭推理,避免简单问题过度思考;用户可在助手设置手动开启。

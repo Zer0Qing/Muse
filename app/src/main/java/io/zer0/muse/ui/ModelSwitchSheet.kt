@@ -25,7 +25,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import io.zer0.muse.ui.common.IosTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -292,7 +292,7 @@ internal fun ModelSwitchSheet(
                 }
 
                 // === 新增:搜索框(按 id / name 过滤模型) ===
-                OutlinedTextField(
+                IosTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
                     placeholder = {
@@ -322,8 +322,6 @@ internal fun ModelSwitchSheet(
                         }
                     },
                     singleLine = true,
-                    shape = MuseShapes.semiLarge,
-                    textStyle = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = MusePaddings.contentGap),

@@ -17,7 +17,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import io.zer0.muse.ui.common.IosTextField
 import androidx.compose.material3.Scaffold
 import io.zer0.muse.ui.common.IosFloatingButton
 import io.zer0.muse.ui.common.IosSwitch
@@ -104,7 +104,7 @@ fun ExperiencePanel(
                 .padding(horizontal = 16.dp),
         ) {
             // Search bar
-            OutlinedTextField(
+            IosTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 label = { Text(stringResource(R.string.experience_search_hint)) },
@@ -236,14 +236,14 @@ private fun AddExperienceDialog(
         title = { Text(stringResource(R.string.experience_add_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
+                IosTextField(
                     value = category,
                     onValueChange = { category = it },
                     label = { Text(stringResource(R.string.experience_add_category_hint)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                OutlinedTextField(
+                IosTextField(
                     value = content,
                     onValueChange = { content = it },
                     label = { Text(stringResource(R.string.experience_add_content_hint)) },

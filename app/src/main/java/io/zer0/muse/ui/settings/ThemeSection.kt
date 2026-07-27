@@ -19,23 +19,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.outlined.DarkMode
-import androidx.compose.material.icons.outlined.FormatSize
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Language
-import androidx.compose.material.icons.outlined.LightMode
-import androidx.compose.material.icons.outlined.Palette
-import androidx.compose.material.icons.outlined.SettingsBrightness
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import io.zer0.muse.ui.common.IosSlider
+import io.zer0.muse.ui.common.IosTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -87,7 +77,7 @@ import kotlin.math.roundToInt
  *  - 用 [SettingsGroup] 包裹多行 item,行间细分割线
  *  - 主题模式(系统/浅色/深色)用胶囊分段控件
  *  - 字号选择(小/中/大/特大)用胶囊分段控件
- *  - 主题变体(warm_paper/amoled/ocean_blue)已收敛,只保留浅色 + 深色
+ *  - 主题变体(mono/warm_paper/ocean_blue)已收敛,只保留浅色 + 深色
  *  - 几乎不用 elevation,靠 surfaceVariant 色块分组
  */
 @Composable
@@ -150,10 +140,10 @@ internal fun ThemeSection(
             else -> followSystem
         }
         val modeIcon = when (themeMode) {
-            "system" -> Icons.Outlined.SettingsBrightness
-            "light" -> Icons.Outlined.LightMode
-            "dark" -> Icons.Outlined.DarkMode
-            else -> Icons.Outlined.SettingsBrightness
+            "system" -> TablerIcons.Brightness
+            "light" -> TablerIcons.Sun
+            "dark" -> TablerIcons.Moon
+            else -> TablerIcons.Brightness
         }
         SettingsItemRow(
             icon = modeIcon,
@@ -277,7 +267,7 @@ internal fun ThemeSection(
         }
         SettingsGroupDivider()
         // 当前选择状态
-        val darkIcon = if (darkThemeId.isNotBlank()) Icons.Outlined.DarkMode else Icons.Outlined.LightMode
+        val darkIcon = if (darkThemeId.isNotBlank()) TablerIcons.Moon else TablerIcons.Sun
         SettingsItemRow(
             icon = darkIcon,
             title = "深色主题",
@@ -292,7 +282,7 @@ internal fun ThemeSection(
         modifier = Modifier.padding(top = 8.dp),
     ) {
         SettingsSwitchRow(
-            icon = Icons.Outlined.SettingsBrightness,
+            icon = TablerIcons.Brightness,
             title = "自动切换",
             subtitle = "在起床/睡觉时间自动切换亮暗模式",
             checked = schedule.enabled,
@@ -303,7 +293,7 @@ internal fun ThemeSection(
         if (schedule.enabled) {
             SettingsGroupDivider()
             SettingsItemRow(
-                icon = Icons.Outlined.LightMode,
+                icon = TablerIcons.Sun,
                 title = "起床时间(浅色)",
                 subtitle = "%02d:%02d".format(schedule.wakeUpHour, schedule.wakeUpMinute),
                 onClick = {
@@ -315,7 +305,7 @@ internal fun ThemeSection(
             )
             SettingsGroupDivider()
             SettingsItemRow(
-                icon = Icons.Outlined.DarkMode,
+                icon = TablerIcons.Moon,
                 title = "睡觉时间(深色)",
                 subtitle = "%02d:%02d".format(schedule.sleepHour, schedule.sleepMinute),
                 onClick = {
@@ -366,7 +356,7 @@ internal fun ThemeSection(
             else -> mediumScale
         }
         SettingsItemRow(
-            icon = Icons.Outlined.FormatSize,
+            icon = TablerIcons.Typography,
             title = stringResource(R.string.settings_theme_current_font_size),
             subtitle = scaleLabel,
         )
@@ -398,7 +388,7 @@ private fun DynamicColorRow(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Icon(
-            imageVector = Icons.Outlined.Palette,
+            imageVector = TablerIcons.Palette,
             contentDescription = null,
             tint = if (supported) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
             modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -506,9 +496,9 @@ private fun ThemeOptionRow(
         )
         if (isSelected) {
             Icon(
-                imageVector = Icons.Filled.Check,
+                imageVector = TablerIcons.Check,
                 contentDescription = stringResource(R.string.settings_theme_selected),
-                tint = MaterialTheme.colorScheme.primary,
+                tint = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.size(MuseIconSizes.iconMedium),
             )
         }
@@ -672,7 +662,7 @@ private fun ThemeGridCard(
             // 选中勾号
             if (isSelected) {
                 Icon(
-                    imageVector = Icons.Filled.Check,
+                    imageVector = TablerIcons.Check,
                     contentDescription = null,
                     tint = primaryColor,
                     modifier = Modifier
@@ -763,7 +753,7 @@ internal fun LanguageSection(
             else -> followSystem
         }
         SettingsItemRow(
-            icon = Icons.Outlined.Language,
+            icon = TablerIcons.Language,
             title = stringResource(R.string.settings_theme_current_language),
             subtitle = langLabel,
         )
@@ -811,7 +801,7 @@ internal fun DefaultHomePageSection(
             else -> taskLabel
         }
         SettingsItemRow(
-            icon = Icons.Outlined.Home,
+            icon = TablerIcons.Home,
             title = stringResource(R.string.settings_default_home_page_desc),
             subtitle = pageLabel,
         )
@@ -856,9 +846,9 @@ private fun CustomThemeSection(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Icon(
-                imageVector = Icons.Filled.Add,
+                imageVector = TablerIcons.Plus,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.size(MuseIconSizes.iconMedium),
             )
             Text(
@@ -965,7 +955,7 @@ private fun CustomThemeItemRow(
             // 选中时叠加白色对勾
             if (isSelected) {
                 Icon(
-                    imageVector = Icons.Filled.Check,
+                    imageVector = TablerIcons.Check,
                     contentDescription = stringResource(R.string.settings_theme_selected),
                     tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(16.dp),
@@ -983,7 +973,7 @@ private fun CustomThemeItemRow(
         // 编辑 / 删除按钮
         IconButton(onClick = onEdit) {
             Icon(
-                imageVector = Icons.Filled.Edit,
+                imageVector = TablerIcons.Edit,
                 contentDescription = stringResource(R.string.settings_theme_custom_edit),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -991,7 +981,7 @@ private fun CustomThemeItemRow(
         }
         IconButton(onClick = onDelete) {
             Icon(
-                imageVector = Icons.Filled.Delete,
+                imageVector = TablerIcons.Trash,
                 contentDescription = stringResource(R.string.settings_theme_custom_delete),
                 tint = MaterialTheme.colorScheme.error,
                 modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -1041,7 +1031,7 @@ private fun CustomThemeEditDialog(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 // 主题名称
-                OutlinedTextField(
+                IosTextField(
                     value = currentTheme.name,
                     onValueChange = { currentTheme = currentTheme.copy(name = it) },
                     label = { Text(stringResource(R.string.settings_theme_custom_name)) },
@@ -1236,7 +1226,7 @@ private fun ColorPickerRow(
             }
         }
         // HSL 文本输入(支持 hsl(267 36% 48%) 等格式)
-        OutlinedTextField(
+        IosTextField(
             value = hslCode,
             onValueChange = { value ->
                 hslCode = value

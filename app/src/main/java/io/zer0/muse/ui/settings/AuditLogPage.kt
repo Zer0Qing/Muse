@@ -20,22 +20,14 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.outlined.Api
-import androidx.compose.material.icons.outlined.DeleteOutline
-import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.Share
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 import androidx.compose.material3.CircularProgressIndicator
 import io.zer0.muse.ui.common.IosChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import io.zer0.muse.ui.common.IosTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -171,13 +163,13 @@ fun AuditLogPage(
                     // 导出 JSON(把当前筛选后的日志序列化为 JSON 文件并通过 ACTION_SEND 分享)
                     IconButton(onClick = { shareAuditLogsAsJson(context, filteredLogs) }) {
                         Icon(
-                            imageVector = Icons.Outlined.Share,
+                            imageVector = TablerIcons.Share,
                             contentDescription = stringResource(R.string.audit_log_export),
                         )
                     }
                     IconButton(onClick = { showClearDialog = true }) {
                         Icon(
-                            imageVector = Icons.Outlined.DeleteOutline,
+                            imageVector = TablerIcons.Trash,
                             contentDescription = stringResource(R.string.audit_log_clear),
                         )
                     }
@@ -415,7 +407,7 @@ private fun FilterHeader(
                 )
             }
         }
-        OutlinedTextField(
+        IosTextField(
             value = searchQuery,
             onValueChange = onSearchQueryChanged,
             modifier = Modifier.fillMaxWidth(),
@@ -427,7 +419,7 @@ private fun FilterHeader(
             },
             leadingIcon = {
                 Icon(
-                    imageVector = Icons.Outlined.Search,
+                    imageVector = TablerIcons.Search,
                     contentDescription = null,
                     modifier = Modifier.size(MuseIconSizes.iconSmall),
                 )
@@ -436,7 +428,7 @@ private fun FilterHeader(
                 {
                     IconButton(onClick = { onSearchQueryChanged("") }) {
                         Icon(
-                            imageVector = Icons.Default.Close,
+                            imageVector = TablerIcons.X,
                             contentDescription = stringResource(R.string.audit_log_clear_search),
                             modifier = Modifier.size(MuseIconSizes.iconSmall),
                         )
@@ -444,8 +436,6 @@ private fun FilterHeader(
                 }
             } else null,
             singleLine = true,
-            shape = MuseShapes.large,
-            textStyle = MaterialTheme.typography.bodyMedium,
         )
     }
 }
@@ -502,9 +492,9 @@ private fun AuditLogRow(
                         MaterialTheme.colorScheme.error
                     }
                     val statusIcon = if (log.success) {
-                        Icons.Filled.Check
+                        TablerIcons.Check
                     } else {
-                        Icons.Filled.Close
+                        TablerIcons.X
                     }
                     Surface(
                         shape = CircleShape,
@@ -555,11 +545,11 @@ private fun AuditLogRow(
 @Composable
 private fun CategoryIcon(category: String) {
     val (icon, tint) = when (category) {
-        "api_call" -> Icons.Outlined.Api to MaterialTheme.colorScheme.primary
-        "user_action" -> Icons.Outlined.Person to MaterialTheme.colorScheme.secondary
-        "auth" -> Icons.Outlined.Lock to MaterialTheme.colorScheme.tertiary
-        "system" -> Icons.Outlined.Settings to MaterialTheme.colorScheme.onSurfaceVariant
-        else -> Icons.Outlined.Settings to MaterialTheme.colorScheme.onSurfaceVariant
+        "api_call" -> TablerIcons.Code to MaterialTheme.colorScheme.onSurfaceVariant
+        "user_action" -> TablerIcons.User to MaterialTheme.colorScheme.onSurfaceVariant
+        "auth" -> TablerIcons.Lock to MaterialTheme.colorScheme.onSurfaceVariant
+        "system" -> TablerIcons.Settings to MaterialTheme.colorScheme.onSurfaceVariant
+        else -> TablerIcons.Settings to MaterialTheme.colorScheme.onSurfaceVariant
     }
     Surface(
         shape = CircleShape,

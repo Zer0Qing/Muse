@@ -19,7 +19,7 @@
     <string name="groupchat_thinking">Thinking…</string>
     <string name="groupchat_agent_thinking">%1$s is thinking…</string>
     <string name="groupchat_tools">Tools</string>
-    <string name="groupchat_input_placeholder">Send a message…</string>
+    <string name="groupchat_input_placeholder">Enter message…@Mention members</string>
     <string name="groupchat_send">Send</string>
     <string name="groupchat_pick_content">Choose content to send</string>
     <string name="groupchat_pick_from_gallery">Pick image from gallery</string>
@@ -35,7 +35,8 @@
     <string name="groupchat_unpin">Unpin</string>
     <string name="groupchat_pin">Pin</string>
     <string name="groupchat_delete_chat">Delete group chat</string>
-    <string name="groupchat_delete_chat_confirm">Are you sure you want to delete \"%1$s\"? All messages in this group chat will be cleared and cannot be recovered.</string>
+    <string name="groupchat_delete_chat_confirm">Are you sure you want to delete "%1$s"? All messages in this group chat will be cleared and cannot be recovered.</string>
+    <string name="groupchat_sender_user">Me</string>
     <string name="groupchat_member_count">%1$d members</string>
     <string name="groupchat_just_now">Just now</string>
     <string name="groupchat_minutes_ago">%1$d min ago</string>
@@ -97,6 +98,19 @@
     <string name="account_manage">Tap to manage account</string>
     <string name="account_login_register">Log in / Register</string>
     <string name="account_coming_soon">Coming soon</string>
+    <!-- v2.x: Edit profile page (no login/register UI, local avatar + name only) -->
+    <string name="account_edit_profile">Edit Profile</string>
+    <string name="account_edit_profile_subtitle">Tap avatar and name to customize</string>
+    <string name="account_avatar">Avatar</string>
+    <string name="account_change_avatar">Change Avatar</string>
+    <string name="account_change_avatar_hint">Tap avatar to pick from gallery</string>
+    <string name="account_name_label">Name</string>
+    <string name="account_name_placeholder">Enter your name</string>
+    <string name="account_save">Save</string>
+    <string name="account_saved">Saved</string>
+    <string name="account_remove_avatar">Remove Avatar</string>
+    <string name="account_user_profile_title">Profile</string>
+    <string name="account_user_profile_subtitle">Let AI know you better</string>
 
     <!-- ===== ui/onboarding ===== -->
     <!-- onboarding_next / onboarding_start defined in main strings.xml, not duplicated here -->
@@ -318,6 +332,23 @@
     <string name="stats_top_sessions">Top 10 active sessions</string>
     <string name="stats_message_count">%1$s messages</string>
     <string name="stats_no_data">No data yet</string>
+    <!-- v2.2 dashboard redesign -->
+    <string name="stats_dashboard_subtitle">%1$d sessions · %2$d active days</string>
+    <string name="stats_export_cd">Export stats summary</string>
+    <string name="stats_export_chooser">Share stats summary</string>
+    <string name="stats_export_subject">Muse stats summary</string>
+    <string name="stats_empty_title">Stats will appear here after you start chatting</string>
+    <string name="stats_empty_action">Start a conversation</string>
+    <string name="stats_view_all">View all</string>
+    <string name="stats_collapse">Collapse</string>
+    <string name="stats_trend_title">Activity trend</string>
+    <string name="stats_trend_window_7d">7d</string>
+    <string name="stats_trend_window_30d">30d</string>
+    <string name="stats_trend_window_90d">90d</string>
+    <string name="stats_tooltip_messages">%1$s · %2$d messages</string>
+    <string name="stats_tooltip_hint">Tap a cell to see details</string>
+    <string name="stats_avg_label">Avg %.1f</string>
+    <string name="stats_active_days_unit">days</string>
 
     <!-- ===== ui/taskcard ===== -->
     <string name="taskcard_phase_planning">Planning</string>
@@ -367,16 +398,73 @@
     <string name="model_profile_back">Back</string>
     <string name="model_profile_empty_title">No models yet</string>
     <string name="model_profile_empty_subtitle">Please add an AI provider in Settings first</string>
-    <string name="groupchat_edit_title">Edit group chat</string>
     <string name="groupchat_edit_cd">Edit group chat</string>
+    <string name="groupchat_edit">Edit</string>
+    <string name="groupchat_edit_title">Edit group chat</string>
     <string name="groupchat_edit_btn">Save</string>
     <string name="groupchat_edit_name_hint">Group chat name</string>
+    <!-- v2.x: Group chat discussion modes -->
+    <string name="groupchat_mode_title">Discussion Mode</string>
+    <string name="groupchat_mode_round_robin">Round Robin</string>
+    <string name="groupchat_mode_round_robin_desc">Each AI speaks in turn after user sends a message</string>
+    <string name="groupchat_mode_auto">Free Discussion</string>
+    <string name="groupchat_mode_auto_desc">AI agents converse automatically until limit or no one has more to say</string>
+    <string name="groupchat_mode_debate">Debate</string>
+    <string name="groupchat_mode_debate_desc">Fixed chain: propose → challenge → improve, each must respond to the previous</string>
+    <string name="groupchat_mode_host">Host Router</string>
+    <string name="groupchat_mode_host_desc">Host AI analyzes the question and dispatches to other members</string>
+    <string name="groupchat_mode_auto_rounds">Max Rounds</string>
+    <string name="groupchat_mode_select_host">Select Host</string>
+    <string name="groupchat_mode_no_host">None (fallback to round robin)</string>
+    <!-- v2.x: Group chat message operations & collaboration -->
+    <string name="groupchat_regenerate">Regenerate</string>
+    <string name="groupchat_reply">Reply</string>
+    <string name="groupchat_whisper">Whisper</string>
+    <string name="groupchat_whisper_hint">Type a private message…</string>
+    <string name="groupchat_whisper_to">Whisper to %1$s</string>
+    <string name="groupchat_whisper_label">Whisper</string>
+    <string name="groupchat_vote">Start Vote</string>
+    <string name="groupchat_vote_topic_hint">Enter voting topic…</string>
+    <string name="groupchat_vote_title">Start a Vote</string>
+    <string name="groupchat_summary">Summarize</string>
+    <string name="groupchat_summary_title">Summary</string>
+    <string name="groupchat_vote_system_started">Started a vote</string>
+    <string name="groupchat_vote_system_ended">Vote ended</string>
+    <string name="groupchat_message_whisper">[Whisper] Only you can see this</string>
+    <string name="groupchat_reply_quote">Quoting %1$s: %2$s</string>
+    <string name="groupchat_reply_hint">Type your reply…</string>
+    <string name="groupchat_summary_desc">Select an AI to summarize the consensus and disagreements</string>
+    <string name="groupchat_summary_auto">Auto-select (first member)</string>
+    <!-- v2.x: Group chat context management -->
+    <string name="groupchat_context_manage">Chat Context</string>
+    <string name="groupchat_context_shared_docs">Shared Documents</string>
+    <string name="groupchat_context_shared_docs_desc">Visible to all members, injected as shared background</string>
+    <string name="groupchat_context_add_doc">Add Document</string>
+    <string name="groupchat_context_doc_title">Title</string>
+    <string name="groupchat_context_doc_content">Content</string>
+    <string name="groupchat_context_doc_title_hint">Enter document title</string>
+    <string name="groupchat_context_doc_content_hint">Enter document content (plain text)</string>
+    <string name="groupchat_context_no_docs">No shared documents</string>
+    <string name="groupchat_context_doc_chars">%1$d chars</string>
+    <string name="groupchat_context_private_context">AI Private Context</string>
+    <string name="groupchat_context_private_context_desc">Only visible to the corresponding AI</string>
+    <string name="groupchat_context_private_context_hint">Enter private context for this AI (role settings, private constraints, etc.)</string>
+    <string name="groupchat_context_private_context_set">Set</string>
+    <string name="groupchat_context_private_context_empty">Not set</string>
+    <string name="groupchat_context_save">Save</string>
+    <string name="groupchat_context_clear">Clear</string>
     <string name="groupchat_edit_member_required">Please keep at least one member</string>
     <!-- ActivityHub: agent activity status chip labels (ref: openhanako ActivityHub five states) -->
     <string name="groupchat_activity_viewing">viewing</string>
     <string name="groupchat_activity_replying">replying</string>
     <string name="groupchat_activity_no_reply">skipped</string>
     <string name="groupchat_activity_error">error</string>
+    <!-- v2.1: Group chat tool sheet extras (members / vote / summary / context) -->
+    <string name="groupchat_tool_members">Members</string>
+    <string name="groupchat_tool_vote">Vote</string>
+    <string name="groupchat_tool_summary">Summary</string>
+    <string name="groupchat_tool_context">Group context</string>
+    <string name="groupchat_tool_mention">@Mention</string>
 
     <!-- ===== v1.201: human-in-the-loop / delegation pause ===== -->
     <string name="delegation_pause_section_title">Human-in-the-loop</string>

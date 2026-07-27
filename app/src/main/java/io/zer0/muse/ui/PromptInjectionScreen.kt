@@ -27,7 +27,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import io.zer0.muse.ui.common.IosTextField
 import androidx.compose.material3.Scaffold
 import io.zer0.muse.ui.common.IosDropdown
 import io.zer0.muse.ui.common.IosFloatingButton
@@ -368,13 +368,12 @@ private fun PromptInjectionEditPage(
             Spacer(Modifier.height(4.dp))
 
             SectionLabel(stringResource(R.string.prompt_injection_section_basic))
-            OutlinedTextField(
+            IosTextField(
                 value = name,
                 onValueChange = { name = it },
                 label = { Text(stringResource(R.string.prompt_injection_field_name)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                shape = MuseShapes.medium,
             )
             // 模式选择(预置模式 + 自定义)
             IosDropdown(
@@ -393,35 +392,32 @@ private fun PromptInjectionEditPage(
                     "analysis" to (stringResource(R.string.prompt_injection_mode_analysis) + " (analysis)"),
                 ),
             )
-            OutlinedTextField(
+            IosTextField(
                 value = displayName,
                 onValueChange = { displayName = it },
                 label = { Text(stringResource(R.string.prompt_injection_field_display_name)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                shape = MuseShapes.medium,
             )
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
             SectionLabel(stringResource(R.string.prompt_injection_section_content))
-            OutlinedTextField(
+            IosTextField(
                 value = content,
                 onValueChange = { content = it },
                 label = { Text(stringResource(R.string.prompt_injection_field_content)) },
                 modifier = Modifier.fillMaxWidth().height(140.dp),
-                shape = MuseShapes.medium,
             )
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
             SectionLabel(stringResource(R.string.prompt_injection_section_behavior))
-            OutlinedTextField(
+            IosTextField(
                 // L-PID3: 限制最多 6 位数字(最大 999999),避免超长输入导致 toIntOrNull 溢出后静默回落 0
                 value = priority,
                 onValueChange = { priority = it.filter(Char::isDigit).take(6) },
                 label = { Text(stringResource(R.string.prompt_injection_field_priority)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                shape = MuseShapes.medium,
             )
             // L-PID2: 仅提供 before_system/after_system。PromptInjectionTransformer 不支持 before_last
             // (其 when 分支仅显式处理 before_system,其余走 else=after_system);before_last 仅 Lorebook 支持。

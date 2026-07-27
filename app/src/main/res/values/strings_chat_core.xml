@@ -11,6 +11,11 @@
     <string name="chat_assistant_model_badge">助手模型: %1$s</string>
     <string name="chat_update_compress_cd">更新并压缩</string>
     <string name="chat_scroll_to_bottom_cd">滚到底</string>
+    <string name="chat_export_cd">导出对话</string>
+    <string name="chat_companion_days_zero">今天刚认识</string>
+    <string name="chat_companion_days">陪伴 %1$d 天</string>
+    <string name="chat_date_separator_today">今天 %1$s</string>
+    <string name="chat_thinking">正在思考…</string>
 
     <!-- 错误与权限提示 -->
     <string name="chat_err_mic_permission">需要麦克风权限才能使用语音输入</string>
@@ -149,6 +154,8 @@
     <string name="chat_tool_knowledge">引用知识库</string>
     <string name="chat_tool_knowledge_subtitle">@mention 文档</string>
     <string name="chat_tool_prompt_template_subtitle">从模板库选择场景提示词</string>
+    <string name="chat_tool_skills">技能</string>
+    <string name="chat_tool_skills_subtitle">管理和调用已启用的技能</string>
     <string name="chat_tool_draw_mode">绘图模式</string>
     <string name="chat_tool_draw_mode_subtitle_on">已开启 · 输入描述生成图片</string>
     <string name="chat_tool_draw_mode_subtitle">输入描述生成图片</string>
@@ -158,7 +165,7 @@
 
     <!-- 输入框与按钮 -->
     <string name="chat_placeholder_draw">描述要生成的图片…</string>
-    <string name="chat_placeholder_send">发送消息…</string>
+    <string name="chat_placeholder_send">回复 Muse…</string>
     <string name="chat_stop_generation_cd">停止生成</string>
     <string name="chat_recording_start_failed">录音启动失败,请检查权限或模型配置</string>
     <string name="chat_recognizing_cd">识别中</string>
@@ -221,7 +228,20 @@
     <!-- 分组标题 -->
     <string name="chat_list_section_ungrouped">未分组</string>
     <string name="chat_list_section_recent">最近</string>
+    <string name="chat_list_section_pinned">已置顶</string>
+    <string name="chat_list_section_folders">文件夹</string>
+    <string name="chat_list_section_knowledge">知识库</string>
     <string name="chat_list_new_folder">新建文件夹</string>
+
+    <!-- 任务首页 -->
+    <string name="chat_list_input_hint">输入任何想法…</string>
+    <string name="chat_list_send">发送</string>
+    <string name="chat_list_no_recent_title">暂无会话</string>
+    <string name="chat_list_no_recent_subtitle">点击下方 + 号开始新对话</string>
+    <string name="chat_list_knowledge_title">知识库</string>
+    <string name="chat_list_knowledge_count">%1$d 个文档</string>
+    <string name="chat_list_knowledge_empty">点击添加文档</string>
+    <string name="chat_list_quick_send">新建并发送</string>
 
     <!-- 底部按钮与对话框 -->
     <string name="chat_list_new_task">新任务</string>
@@ -230,7 +250,9 @@
     <string name="chat_list_create">创建</string>
 
     <!-- 会话长按菜单 -->
+    <string name="chat_list_pin">置顶</string>
     <string name="chat_list_unpin">取消置顶</string>
+    <string name="chat_list_archive">归档</string>
     <string name="chat_list_move_ungrouped">移到未分组</string>
     <string name="chat_list_move_to">移到: %1$s</string>
     <string name="chat_list_move_to_cd">移到 %1$s</string>

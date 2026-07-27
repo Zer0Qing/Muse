@@ -21,21 +21,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.GroupWork
-import androidx.compose.material.icons.outlined.Groups
-import androidx.compose.material.icons.outlined.SmartToy
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import io.zer0.muse.ui.common.IosChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -70,6 +63,7 @@ import io.zer0.muse.ui.common.EmptyState
 import io.zer0.muse.ui.common.IosDropdown
 import io.zer0.muse.ui.common.IosSlider
 import io.zer0.muse.ui.common.IosSwitch
+import io.zer0.muse.ui.common.IosTextField
 import io.zer0.muse.ui.common.MuseDialog
 import io.zer0.muse.ui.common.SectionLabel
 import io.zer0.muse.ui.common.SettingsGroup
@@ -120,7 +114,7 @@ fun MultiAgentSettingsPage(
         item {
             SettingsGroup {
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.GroupWork,
+                    icon = TablerIcons.Users,
                     title = stringResource(R.string.settings_multi_agent_enable),
                     subtitle = stringResource(R.string.settings_multi_agent_enable_subtitle),
                     checked = config.enabled,
@@ -136,7 +130,7 @@ fun MultiAgentSettingsPage(
         item {
             SettingsGroup {
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.SmartToy,
+                    icon = TablerIcons.User,
                     title = stringResource(R.string.multi_agent_llm_review_enabled),
                     subtitle = stringResource(R.string.multi_agent_llm_review_desc),
                     checked = config.llmReviewEnabled,
@@ -146,7 +140,7 @@ fun MultiAgentSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsItemRow(
-                    icon = Icons.Outlined.SmartToy,
+                    icon = TablerIcons.User,
                     title = stringResource(R.string.multi_agent_llm_review_model),
                     subtitle = resolveReviewModelName(
                         reviewModelId = config.reviewModelId,
@@ -164,7 +158,7 @@ fun MultiAgentSettingsPage(
             // v1.48: h14 团队列表空态改用 EmptyState 组件
             item {
                 EmptyState(
-                    icon = Icons.Outlined.Groups,
+                    icon = TablerIcons.Users,
                     title = stringResource(R.string.settings_multi_agent_no_team),
                     subtitle = stringResource(R.string.settings_multi_agent_no_team_hint),
                     actionText = stringResource(R.string.settings_multi_agent_new_team),
@@ -204,7 +198,7 @@ fun MultiAgentSettingsPage(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.Add,
+                        imageVector = TablerIcons.Plus,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.size(20.dp),
@@ -433,14 +427,14 @@ private fun TeamCard(
             // 工作流编排入口:点击进入可视化编排画布
             IconButton(onClick = onOpenWorkflowEditor) {
                 Icon(
-                    imageVector = Icons.Outlined.GroupWork,
+                    imageVector = TablerIcons.Users,
                     contentDescription = "工作流编排",
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = MaterialTheme.colorScheme.onSurface,
                 )
             }
             IconButton(onClick = onDelete) {
                 Icon(
-                    imageVector = Icons.Outlined.Delete,
+                    imageVector = TablerIcons.Trash,
                     contentDescription = stringResource(R.string.settings_multi_agent_delete),
                     tint = MaterialTheme.colorScheme.outline,
                 )
@@ -527,7 +521,7 @@ private fun TeamEditDialog(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                OutlinedTextField(
+                IosTextField(
                     value = name,
                     onValueChange = {
                         name = it
@@ -540,17 +534,15 @@ private fun TeamEditDialog(
                     supportingText = if (nameError) {
                         { Text(stringResource(R.string.settings_multi_agent_team_name_empty)) }
                     } else null,
-                    shape = MuseShapes.medium,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                OutlinedTextField(
+                IosTextField(
                     value = description,
                     onValueChange = { description = it },
                     label = { Text(stringResource(R.string.settings_multi_agent_description)) },
                     placeholder = { Text(stringResource(R.string.settings_multi_agent_description_hint)) },
                     minLines = 2,
                     maxLines = 3,
-                    shape = MuseShapes.medium,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Text(
@@ -585,7 +577,7 @@ private fun TeamEditDialog(
                                 leadingIcon = if (selected) {
                                     {
                                         Icon(
-                                            imageVector = Icons.Filled.Check,
+                                            imageVector = TablerIcons.Check,
                                             contentDescription = null,
                                             modifier = Modifier.size(16.dp),
                                         )
@@ -630,7 +622,7 @@ private fun TeamEditDialog(
                             leadingIcon = if (selected) {
                                 {
                                     Icon(
-                                        imageVector = Icons.Filled.Check,
+                                        imageVector = TablerIcons.Check,
                                         contentDescription = null,
                                         modifier = Modifier.size(16.dp),
                                     )
@@ -680,8 +672,9 @@ private fun TeamEditDialog(
                     modifier = Modifier.align(Alignment.Start),
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.Add,
+                        imageVector = TablerIcons.Plus,
                         contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(18.dp),
                     )
                     Spacer(Modifier.width(6.dp))
@@ -785,7 +778,7 @@ private fun WorkflowNodeRow(
         }
         IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
             Icon(
-                imageVector = Icons.Outlined.Edit,
+                imageVector = TablerIcons.Edit,
                 contentDescription = stringResource(R.string.settings_multi_agent_edit_node),
                 tint = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.size(18.dp),
@@ -793,7 +786,7 @@ private fun WorkflowNodeRow(
         }
         IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
             Icon(
-                imageVector = Icons.Outlined.Delete,
+                imageVector = TablerIcons.Trash,
                 contentDescription = stringResource(R.string.settings_multi_agent_delete),
                 tint = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.size(18.dp),
@@ -824,21 +817,19 @@ private fun WorkflowNodeEditDialog(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                OutlinedTextField(
+                IosTextField(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text(stringResource(R.string.settings_multi_agent_node_name)) },
                     singleLine = true,
-                    shape = MuseShapes.medium,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                OutlinedTextField(
+                IosTextField(
                     value = taskTemplate,
                     onValueChange = { taskTemplate = it },
                     label = { Text(stringResource(R.string.settings_multi_agent_node_task)) },
                     minLines = 2,
                     maxLines = 3,
-                    shape = MuseShapes.medium,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 IosDropdown(
@@ -868,7 +859,7 @@ private fun WorkflowNodeEditDialog(
                             leadingIcon = if (selected) {
                                 {
                                     Icon(
-                                        imageVector = Icons.Filled.Check,
+                                        imageVector = TablerIcons.Check,
                                         contentDescription = null,
                                         modifier = Modifier.size(16.dp),
                                     )
@@ -904,7 +895,7 @@ private fun WorkflowNodeEditDialog(
                                 leadingIcon = if (selected) {
                                     {
                                         Icon(
-                                            imageVector = Icons.Filled.Check,
+                                            imageVector = TablerIcons.Check,
                                             contentDescription = null,
                                             modifier = Modifier.size(16.dp),
                                         )

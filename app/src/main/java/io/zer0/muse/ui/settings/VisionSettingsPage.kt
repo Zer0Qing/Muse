@@ -9,11 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.BugReport
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.outlined.RadioButtonUnchecked
-import androidx.compose.material.icons.outlined.Visibility
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -108,7 +105,7 @@ fun VisionSettingsPage(
         item {
             SettingsGroup {
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.Visibility,
+                    icon = TablerIcons.Eye,
                     title = stringResource(R.string.settings_vision_enabled),
                     subtitle = stringResource(R.string.settings_vision_enabled_subtitle),
                     checked = enabled,
@@ -128,7 +125,7 @@ fun VisionSettingsPage(
             item {
                 SettingsGroup {
                     SettingsSwitchRow(
-                        icon = Icons.Outlined.Visibility,
+                        icon = TablerIcons.Eye,
                         title = stringResource(R.string.settings_vision_show_all_models),
                         subtitle = stringResource(R.string.settings_vision_show_all_models_subtitle),
                         checked = showAllModels,
@@ -248,7 +245,7 @@ fun VisionSettingsPage(
                                 enabled = !isRunning,
                             ) {
                                 Icon(
-                                    imageVector = Icons.Outlined.BugReport,
+                                    imageVector = TablerIcons.Bug,
                                     contentDescription = null,
                                     modifier = Modifier.size(18.dp),
                                 )
@@ -320,9 +317,9 @@ private fun VisionModelRow(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Icon(
-            imageVector = if (isSelected) Icons.Filled.CheckCircle else Icons.Outlined.RadioButtonUnchecked,
+            imageVector = if (isSelected) TablerIcons.CircleCheck else TablerIcons.Circle,
             contentDescription = null,
-            tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(24.dp),
         )
         Column(modifier = Modifier.weight(1f)) {

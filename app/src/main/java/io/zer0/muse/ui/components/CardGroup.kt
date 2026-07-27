@@ -1,5 +1,6 @@
 package io.zer0.muse.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,6 +14,7 @@ import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEachIndexed
+import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseShapes
 
 /**
@@ -155,9 +157,10 @@ fun CardGroup(
             modifier = Modifier.fillMaxWidth(),
             shape = MuseShapes.extraLarge,
             color = MaterialTheme.colorScheme.surface,
-            elevation = 0.dp,
+            elevation = MuseElevation.card,
             tonalElevation = 0.dp,
             enablePressedFeedback = false, // 容器本身不响应按压,按压反馈由内部 MuseListItem 处理
+            border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
         ) {
             Column {
                 val count = scope.items.size

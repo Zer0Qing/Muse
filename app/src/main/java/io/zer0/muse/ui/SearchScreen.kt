@@ -14,21 +14,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
-import androidx.compose.material.icons.outlined.Lightbulb
-import androidx.compose.material.icons.outlined.Translate
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -51,19 +48,19 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
-import org.koin.compose.koinInject
 import io.zer0.muse.R
-import io.zer0.muse.data.quicknote.QuickNoteDao
-import io.zer0.muse.data.quicknote.QuickNoteEntity
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.concurrent.TimeUnit
+import io.zer0.muse.ui.common.IosCapsuleTab
 import io.zer0.muse.ui.common.LoadingState
-import io.zer0.muse.ui.common.SegmentedControl
-import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.semiLarge
-import io.zer0.muse.ui.translate.TranslateHistoryDao
-import io.zer0.muse.ui.translate.TranslateHistoryEntity
 
 /**
  * v0.45: 独立全局搜索页。
@@ -72,38 +69,23 @@ import io.zer0.muse.ui.translate.TranslateHistoryEntity
  *  - 顶部搜索框(自动聚焦)
  *  - 无输入:大面积空白空状态 + 热门搜索建议 chip
  *  - 有输入(v2.x: 顶部 Tab 切换"会话/消息内容"):
- *      - Tab=会话:分"会话/消息/翻译/快速记录"四段
- *        (会话/消息走 FTS4 + buildSnippet;翻译/快速记录走对应 DAO 的 LIKE 搜索)
- *      - Tab=消息内容:展示 [ChatUiState.messageResults](FTS4 snippet + 高亮片段),
+ *      - Tab=会话:展示会话标题/最后预览匹配结果
+ *      - Tab=消息内容:展示消息内容匹配结果(FTS4/LIKE + 关键词黄色高亮),
  *        点击跳转对应会话并传 messageId 用于滚动定位 + 短暂高亮
  *
  * 数据源:
- *  - Tab=会话 消息搜索复用 [ChatViewModel.search](走 SessionRepository.searchMessages / FTS4)
- *  - Tab=消息内容 走 [ChatViewModel.searchMessageContent](走 SessionRepository.searchMessageContentFlow,
+ *  - Tab=会话:对 state.sessions 做内存 contains 过滤
+ *  - Tab=消息内容:走 [ChatViewModel.searchMessageContent](SessionRepository.searchMessageContentFlow,
  *    FTS4 snippet + LIKE 兜底)
- *  - 会话标题匹配:对 state.sessions 做内存 contains 过滤
- *  - 翻译历史:[TranslateHistoryDao.search](LIKE 匹配 source_text / translated_text)
- *  - 快速记录:[QuickNoteDao.search](LIKE 匹配 title / content)
  *
  * v2.x: 新增 [onOpenMessage] 回调,Tab=消息内容 点击消息项时触发,
  * MainActivity 据此 switchSession + setTargetMessage 后回到 HOME,
  * ChatScreen 监听 targetMessageId 滚动定位 + 短暂高亮。
- *
- * v2.2: 拆分全局搜索与设置搜索 — 本页只搜对话/翻译/快速记录,不再搜设置项
- *      (设置项搜索由 SettingsScreen 内置搜索框承担,避免结果混淆)。
  */
 @Composable
 fun SearchScreen(
     onBack: () -> Unit,
     onOpenSession: (String) -> Unit,
-    /**
-     * v2.2: 点击翻译结果项打开快速翻译页(可继续编辑/翻译)。
-     */
-    onOpenQuickTranslate: () -> Unit = {},
-    /**
-     * v2.2: 点击快速记录结果项打开快速记录页。
-     */
-    onOpenQuickNotes: () -> Unit = {},
     /**
      * v2.x: Tab=消息内容 点击消息项跳转回调。
      * @param sessionId 目标会话 id
@@ -112,8 +94,6 @@ fun SearchScreen(
      */
     onOpenMessage: (sessionId: String, messageId: String, query: String) -> Unit = { _, _, _ -> },
     viewModel: ChatViewModel = koinViewModel(),
-    translateHistoryDao: TranslateHistoryDao = koinInject(),
-    quickNoteDao: QuickNoteDao = koinInject(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val query = state.searchQuery
@@ -121,18 +101,13 @@ fun SearchScreen(
     val searchTab = state.searchTab
     val focusRequester = remember { FocusRequester() }
 
-    // v2.2: 翻译历史 / 快速记录 搜索结果(独立于 ChatViewModel,本页本地维护)
-    var translateResults by remember { mutableStateOf<List<TranslateHistoryEntity>>(emptyList()) }
-    var quickNoteResults by remember { mutableStateOf<List<QuickNoteEntity>>(emptyList()) }
-    var isSearchingExtra by remember { mutableStateOf(false) }
-
     // 自动聚焦搜索框
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
     }
 
     // 输入变化时(去抖 300ms)更新查询并触发搜索
-    // v2.x: 根据 searchTab 切换走原 search() 或 searchMessageContent()
+    // v2.x: 根据 searchTab 切换走 searchSessions() 或 searchMessageContent()
     LaunchedEffect(query, searchTab) {
         if (query.isNotBlank()) {
             delay(300)
@@ -147,29 +122,9 @@ fun SearchScreen(
         }
     }
 
-    // v2.2: 翻译历史 + 快速记录 搜索(去抖 300ms,Tab=会话 时触发)
-    // 设置项不再纳入全局搜索(由 SettingsScreen 内置搜索框承担)
-    LaunchedEffect(query, searchTab) {
-        if (query.isNotBlank() && searchTab == 0) {
-            delay(350) // 略晚于会话搜索,避免同时打 DB
-            isSearchingExtra = true
-            runCatching {
-                val t = translateHistoryDao.search(query, limit = 20)
-                val n = quickNoteDao.search(query, null, limit = 20)
-                translateResults = t
-                quickNoteResults = n
-            }
-            isSearchingExtra = false
-        } else {
-            translateResults = emptyList()
-            quickNoteResults = emptyList()
-            isSearchingExtra = false
-        }
-    }
-
     Scaffold(
         topBar = {
-            // iOS 风格搜索栏(替代 Material TopAppBar)
+            // iOS 风格搜索栏:Surface 凹槽 + 搜索图标 + BasicTextField + 取消文字
             Surface(
                 color = MaterialTheme.colorScheme.background,
                 modifier = Modifier
@@ -179,36 +134,58 @@ fun SearchScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                        .padding(horizontal = MusePaddings.screen, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    // 搜索图标
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(MuseIconSizes.iconMedium),
-                    )
-                    // 搜索输入框(胶囊形)
-                    OutlinedTextField(
-                        value = query,
-                        onValueChange = { viewModel.updateSearchQuery(it) },
-                        placeholder = { Text(stringResource(R.string.search_placeholder)) },
-                        singleLine = true,
+                    Surface(
                         shape = MuseShapes.semiLarge,
-                        modifier = Modifier
-                            .weight(1f)
-                            .focusRequester(focusRequester),
-                    )
-                    // Cancel 文字按钮
-                    TextButton(onClick = onBack) {
-                        Text(
-                            "Cancel",
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Medium,
-                        )
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp),
+                            )
+                            BasicTextField(
+                                value = query,
+                                onValueChange = { viewModel.updateSearchQuery(it) },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .focusRequester(focusRequester),
+                                singleLine = true,
+                                textStyle = MaterialTheme.typography.bodyMedium.copy(
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = FontWeight.Normal,
+                                ),
+                                decorationBox = { innerTextField ->
+                                    Box {
+                                        if (query.isEmpty()) {
+                                            Text(
+                                                text = stringResource(R.string.search_placeholder),
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            )
+                                        }
+                                        innerTextField()
+                                    }
+                                },
+                            )
+                        }
                     }
+                    Text(
+                        text = stringResource(R.string.search_cancel),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.clickable { onBack() },
+                    )
                 }
             }
         },
@@ -219,13 +196,18 @@ fun SearchScreen(
                 .fillMaxSize()
                 .padding(innerPadding),
         ) {
-            // v2.x: 有输入时显示 Tab 切换(会话 / 消息内容)
+            // v2.x: 有输入时显示胶囊 Tab 切换(会话 / 消息内容)
             if (query.isNotBlank()) {
-                SegmentedControl(
-                    options = listOf("会话", "消息内容"),
+                IosCapsuleTab(
+                    tabs = listOf(
+                        stringResource(R.string.search_tab_sessions),
+                        stringResource(R.string.search_tab_message_content),
+                    ),
                     selectedIndex = searchTab,
-                    onSelectedChange = { viewModel.switchSearchTab(it) },
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    onSelect = { viewModel.switchSearchTab(it) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = MusePaddings.screen, vertical = 4.dp),
                 )
             }
 
@@ -238,19 +220,13 @@ fun SearchScreen(
                     modifier = Modifier.fillMaxSize(),
                 )
             } else if (searchTab == 0) {
-                // Tab=会话:会话标题/预览匹配 + 消息 + 翻译 + 快速记录(v2.2: 移除设置段)
+                // Tab=会话:会话标题/预览匹配 + 消息内容匹配
                 SearchResults(
                     query = query,
                     sessions = state.sessions,
                     messageResults = state.searchResults,
                     isSearching = state.isSearching,
-                    translateResults = translateResults,
-                    quickNoteResults = quickNoteResults,
-                    isSearchingExtra = isSearchingExtra,
                     onOpenSession = onOpenSession,
-                    onOpenQuickTranslate = onOpenQuickTranslate,
-                    onOpenQuickNotes = onOpenQuickNotes,
-                    // 任务 2:Tab=会话 消息结果也支持点击跳转 messageId + 滚动定位
                     onOpenMessage = onOpenMessage,
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -294,14 +270,14 @@ private fun EmptySearchState(
                 color = MaterialTheme.colorScheme.outline,
             )
             Spacer(Modifier.height(24.dp))
-            // 热门搜索建议 chip
+            // 热门搜索建议 chip(基于会话/消息内容,不含设置项)
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                SuggestionChip(stringResource(R.string.search_index_proactive_message), onSuggestionClick)
-                SuggestionChip(stringResource(R.string.search_index_theme), onSuggestionClick)
-                SuggestionChip(stringResource(R.string.search_suggestion_backup), onSuggestionClick)
-                SuggestionChip(stringResource(R.string.search_index_pin_lock), onSuggestionClick)
+                SuggestionChip(stringResource(R.string.search_suggestion_today), onSuggestionClick)
+                SuggestionChip(stringResource(R.string.search_suggestion_summary), onSuggestionClick)
+                SuggestionChip(stringResource(R.string.search_suggestion_report), onSuggestionClick)
+                SuggestionChip(stringResource(R.string.search_suggestion_idea), onSuggestionClick)
             }
         }
     }
@@ -333,20 +309,14 @@ private fun SuggestionChip(
     }
 }
 
-/** 搜索结果:会话 + 消息 + 翻译 + 快速记录 四段(v2.2: 移除设置段)。 */
+/** Tab=会话 搜索结果:会话标题/预览匹配 + 消息内容匹配(参考图样式)。 */
 @Composable
 private fun SearchResults(
     query: String,
     sessions: List<io.zer0.muse.data.session.SessionEntity>,
     messageResults: List<io.zer0.muse.data.session.SearchResult>,
     isSearching: Boolean,
-    translateResults: List<TranslateHistoryEntity>,
-    quickNoteResults: List<QuickNoteEntity>,
-    isSearchingExtra: Boolean,
     onOpenSession: (String) -> Unit,
-    onOpenQuickTranslate: () -> Unit,
-    onOpenQuickNotes: () -> Unit,
-    // 任务 2:消息结果项点击跳转传 messageId 用于滚动定位 + 高亮
     onOpenMessage: (sessionId: String, messageId: String, query: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -355,17 +325,13 @@ private fun SearchResults(
         sessions.filter {
             it.title.contains(query, ignoreCase = true) ||
                 it.lastMessagePreview.contains(query, ignoreCase = true)
-        }.take(10)
+        }.take(20)
     }
 
-    val hasAny = matchedSessions.isNotEmpty() ||
-        messageResults.isNotEmpty() ||
-        translateResults.isNotEmpty() ||
-        quickNoteResults.isNotEmpty()
+    val hasAny = matchedSessions.isNotEmpty() || messageResults.isNotEmpty()
 
-    // v1.0.4 (P2): 搜索中且无结果时,居中显示大号 loading + "正在搜索…"文案
-    // (原仅列表顶部 20dp 小圈,体验偏弱,用户分不清是搜索中还是无结果)
-    if (!hasAny && (isSearching || isSearchingExtra)) {
+    // 搜索中且无结果:居中 loading
+    if (!hasAny && isSearching) {
         Box(
             modifier = modifier,
             contentAlignment = Alignment.Center,
@@ -385,8 +351,8 @@ private fun SearchResults(
         return
     }
 
-    if (!hasAny && !isSearching && !isSearchingExtra) {
-        // 无匹配结果
+    // 无匹配结果
+    if (!hasAny && !isSearching) {
         Box(
             modifier = modifier,
             contentAlignment = Alignment.Center,
@@ -410,48 +376,28 @@ private fun SearchResults(
 
     LazyColumn(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(
-            horizontal = 16.dp,
+            horizontal = MusePaddings.screen,
             vertical = 8.dp,
         ),
     ) {
-        if (isSearching) {
-            item(key = "loading") {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(8.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    // v1.0.4 (P2): 加文案,避免单纯小圈太弱
-                    Text(
-                        text = stringResource(R.string.search_searching),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        }
-        // 会话 section
+        // 会话结果 section
         if (matchedSessions.isNotEmpty()) {
             item(key = "section_sessions") { SectionTitle(stringResource(R.string.search_section_sessions)) }
             items(matchedSessions, key = { "session_${it.id}" }) { session ->
-                ResultRow(
+                SessionResultRow(
                     title = session.title.ifBlank { stringResource(R.string.search_new_session) },
-                    subtitle = session.lastMessagePreview,
-                    icon = Icons.Outlined.ChatBubbleOutline,
+                    preview = session.lastMessagePreview,
+                    updatedAt = session.updatedAt,
                     onClick = { onOpenSession(session.id) },
                 )
             }
         }
-        // 消息 section(FTS5 结果)
+        // 消息内容 section(FTS 结果)
         if (messageResults.isNotEmpty()) {
             item(key = "section_messages") { SectionTitle(stringResource(R.string.search_section_messages)) }
             items(messageResults, key = { "msg_${it.messageId}" }) { result ->
-                // 任务 2:消息结果项展示会话名 + 时间 + 前后 2 句上下文(关键词高亮),
-                // 点击跳转传 messageId 用于 ChatScreen 滚动定位 + 短暂高亮
                 MessageSearchResultRow(
                     sessionTitle = result.sessionTitle,
                     content = result.content,
@@ -462,30 +408,6 @@ private fun SearchResults(
                 )
             }
         }
-        // v2.2: 翻译历史 section(LIKE 匹配 source_text / translated_text)
-        if (translateResults.isNotEmpty()) {
-            item(key = "section_translate") { SectionTitle("翻译记录") }
-            items(translateResults, key = { "translate_${it.id}" }) { item ->
-                ResultRow(
-                    title = item.sourceText,
-                    subtitle = item.translatedText,
-                    icon = Icons.Outlined.Translate,
-                    onClick = onOpenQuickTranslate,
-                )
-            }
-        }
-        // v2.2: 快速记录 section(LIKE 匹配 title / content)
-        if (quickNoteResults.isNotEmpty()) {
-            item(key = "section_quick_notes") { SectionTitle("快速记录") }
-            items(quickNoteResults, key = { "note_${it.id}" }) { item ->
-                ResultRow(
-                    title = item.title.ifBlank { stringResource(R.string.search_new_session) },
-                    subtitle = item.content,
-                    icon = Icons.Outlined.Lightbulb,
-                    onClick = onOpenQuickNotes,
-                )
-            }
-        }
     }
 }
 
@@ -493,23 +415,32 @@ private fun SearchResults(
 private fun SectionTitle(title: String) {
     Text(
         text = title,
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.outline,
-        modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
+        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
     )
 }
 
+/** 会话结果项:左侧聊天气泡图标 + 标题 + 副标题(预览/来源 · 相对时间)。 */
 @Composable
-private fun ResultRow(
+private fun SessionResultRow(
     title: String,
-    subtitle: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    preview: String,
+    updatedAt: Long,
     onClick: () -> Unit,
 ) {
+    val timeText = remember(updatedAt) { formatSearchRelativeTime(updatedAt) }
+    val subtitle = if (preview.isNotBlank()) {
+        "$preview · $timeText"
+    } else {
+        timeText
+    }
     Surface(
         onClick = onClick,
-        color = MaterialTheme.colorScheme.surface,
         shape = MuseShapes.medium,
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = MuseElevation.card,
+        tonalElevation = 0.dp,
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
@@ -517,9 +448,9 @@ private fun ResultRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                imageVector = icon,
+                imageVector = Icons.Outlined.ChatBubbleOutline,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp),
             )
             Spacer(Modifier.size(12.dp))
@@ -535,8 +466,8 @@ private fun ResultRow(
                     Text(
                         text = subtitle,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                        maxLines = 2,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(top = 2.dp),
                     )
@@ -613,9 +544,9 @@ private fun MessageSearchResults(
 
     LazyColumn(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(
-            horizontal = 16.dp,
+            horizontal = MusePaddings.screen,
             vertical = 8.dp,
         ),
     ) {
@@ -637,7 +568,7 @@ private fun MessageSearchResults(
                 }
             }
         }
-        item(key = "section_messages_content") { SectionTitle("消息内容") }
+        item(key = "section_messages_content") { SectionTitle(stringResource(R.string.search_section_message_content)) }
         items(messageResults, key = { "msg_content_${it.messageId}" }) { result ->
             // 任务 2:Tab=消息内容结果项 — 优先用原文提取前后 2 句上下文 + 关键词高亮
             MessageSearchResultRow(
@@ -691,54 +622,46 @@ private fun MessageSearchResultRow(
     }
     Surface(
         onClick = onClick,
-        color = MaterialTheme.colorScheme.surface,
         shape = MuseShapes.medium,
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = MuseElevation.card,
+        tonalElevation = 0.dp,
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Row(
+        Column(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                imageVector = Icons.Outlined.ChatBubbleOutline,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp),
-            )
-            Spacer(Modifier.size(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                // 顶部行:会话名 + 时间(右侧)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = sessionTitle.ifBlank { stringResource(R.string.search_new_session) },
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Spacer(Modifier.size(8.dp))
-                    Text(
-                        text = remember(timestamp) { formatSearchTimestamp(timestamp) },
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
-                }
-                // 任务 2:前后 2 句上下文 + 关键词高亮(maxLines=3 容纳更长上下文)
-                if (annotatedText.isNotEmpty()) {
-                    Text(
-                        text = annotatedText,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 2.dp),
-                    )
-                }
+            // 顶部行:会话名 + 时间(右侧)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = sessionTitle.ifBlank { stringResource(R.string.search_new_session) },
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                Spacer(Modifier.size(8.dp))
+                Text(
+                    text = remember(timestamp) { formatSearchTimestamp(timestamp) },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            // 任务 2:前后 2 句上下文 + 关键词高亮(maxLines=3 容纳更长上下文)
+            if (annotatedText.isNotEmpty()) {
+                Text(
+                    text = annotatedText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 6.dp),
+                )
             }
         }
     }
@@ -840,10 +763,30 @@ private fun buildHighlightedSnippet(snippet: String): AnnotatedString = buildAnn
     }
 }
 
-/** v2.x: 格式化时间戳为 "MM-dd HH:mm"(本地时区,列表项时间显示用)。 */
-private fun formatSearchTimestamp(timestamp: Long): String {
-    return java.text.SimpleDateFormat(
-        MuseDateFormats.DATE_TIME_SHORT,
-        java.util.Locale.getDefault(),
-    ).format(java.util.Date(timestamp))
+/** v2.x: 格式化时间戳为相对时间(刚刚 / N分钟前 / 今天 HH:mm / 昨天 / MM-dd)。 */
+private fun formatSearchTimestamp(timestamp: Long): String =
+    formatSearchRelativeTime(timestamp)
+
+/** 搜索列表相对时间格式化(今天 HH:mm / 昨天 / MM-dd)。 */
+private fun formatSearchRelativeTime(timestamp: Long): String {
+    if (timestamp <= 0) return ""
+    val now = System.currentTimeMillis()
+    val diff = now - timestamp
+    val dayMillis = TimeUnit.DAYS.toMillis(1)
+    val timeSdf = SimpleDateFormat(MuseDateFormats.TIME_SHORT, Locale.getDefault())
+    val dateSdf = SimpleDateFormat(MuseDateFormats.DATE_SHORT, Locale.getDefault())
+    val calNow = java.util.Calendar.getInstance().apply { timeInMillis = now }
+    val calTarget = java.util.Calendar.getInstance().apply { timeInMillis = timestamp }
+    val isSameDay = calNow.get(java.util.Calendar.YEAR) == calTarget.get(java.util.Calendar.YEAR) &&
+        calNow.get(java.util.Calendar.DAY_OF_YEAR) == calTarget.get(java.util.Calendar.DAY_OF_YEAR)
+    val isYesterday = calNow.get(java.util.Calendar.YEAR) == calTarget.get(java.util.Calendar.YEAR) &&
+        calNow.get(java.util.Calendar.DAY_OF_YEAR) - calTarget.get(java.util.Calendar.DAY_OF_YEAR) == 1
+    return when {
+        diff < TimeUnit.MINUTES.toMillis(1) -> "刚刚"
+        diff < TimeUnit.HOURS.toMillis(1) -> "${diff / TimeUnit.MINUTES.toMillis(1)} 分钟前"
+        isSameDay -> "今天 ${timeSdf.format(Date(timestamp))}"
+        isYesterday -> "昨天 ${timeSdf.format(Date(timestamp))}"
+        diff < dayMillis * 7 -> "${diff / dayMillis} 天前"
+        else -> dateSdf.format(Date(timestamp))
+    }
 }

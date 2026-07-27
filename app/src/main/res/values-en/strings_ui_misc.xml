@@ -62,13 +62,13 @@
     <string name="theme_ocean">Ocean</string>
     <string name="theme_spring">Spring</string>
     <string name="theme_autumn">Autumn</string>
-    <string name="theme_amoled">AMOLED</string>
-        <string name="theme_sumi">Sumi (Ink)</string>
-        <string name="theme_washi">Washi (Paper)</string>
-        <string name="theme_aizome">Aizome (Indigo)</string>
-        <string name="theme_twilight_purple">Twilight Purple</string>
-        <string name="theme_amber_gold">Amber Gold</string>
-        <string name="theme_dusk_rose">Dusk Rose</string>
+    <string name="theme_mono">Mono</string>
+    <string name="theme_sumi">Sumi (Ink)</string>
+    <string name="theme_washi">Washi (Paper)</string>
+    <string name="theme_aizome">Aizome (Indigo)</string>
+    <string name="theme_twilight_purple">Twilight Purple</string>
+    <string name="theme_amber_gold">Amber Gold</string>
+    <string name="theme_dusk_rose">Dusk Rose</string>
 
     <!-- ===== ui/speech voice input and TTS ===== -->
     <string name="speech_speak_prompt">Please speak…</string>

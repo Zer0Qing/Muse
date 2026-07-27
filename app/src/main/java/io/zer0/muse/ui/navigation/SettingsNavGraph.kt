@@ -104,6 +104,7 @@ fun NavGraphBuilder.settingsNavGraph(
     ) {
         AccountScreen(
             onBack = { navController.popBackStack() },
+            onOpenUserProfile = { navController.navigate(MuseRoutes.USER_PROFILE_EDIT) },
         )
     }
     // v0.26: 设置二级页 — 模型与服务(v1.133: 仅供应商列表,其他拆为独立二级页)

@@ -94,6 +94,10 @@ interface KnowledgeDocDao {
     @Query("SELECT COUNT(*) FROM knowledge_docs")
     suspend fun count(): Int
 
+    /** 统计用户可见文档数(排除 is_internal=true 的内部开发文档)。 */
+    @Query("SELECT COUNT(*) FROM knowledge_docs WHERE is_internal = 0")
+    suspend fun countUserVisible(): Int
+
     /** v1.133: 统计 KB 下文档数(用于 KB 列表显示)。 */
     @Query("SELECT COUNT(*) FROM knowledge_docs WHERE kb_id = :kbId AND is_internal = 0")
     suspend fun countByKb(kbId: String): Int

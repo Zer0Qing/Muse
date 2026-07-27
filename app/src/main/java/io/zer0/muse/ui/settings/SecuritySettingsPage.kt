@@ -7,19 +7,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.BrowserUpdated
-import androidx.compose.material.icons.outlined.Fingerprint
-import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.LockReset
-import androidx.compose.material.icons.outlined.Public
-import androidx.compose.material.icons.outlined.Share
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import io.zer0.muse.ui.common.IosChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -40,6 +34,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.ShareTemplateConfig
+import io.zer0.muse.ui.common.IosTextField
 import io.zer0.muse.ui.common.SectionLabel
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.MusePaddings
@@ -90,9 +85,9 @@ fun SecuritySettingsPage(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Icon(
-                        imageVector = if (appPin.isNotEmpty()) Icons.Outlined.Lock else Icons.Outlined.LockReset,
+                        imageVector = if (appPin.isNotEmpty()) TablerIcons.Lock else TablerIcons.LockOpen,
                         contentDescription = null,
-                        tint = if (appPin.isNotEmpty()) MaterialTheme.colorScheme.primary
+                        tint = if (appPin.isNotEmpty()) MaterialTheme.colorScheme.onSurface
                         else MaterialTheme.colorScheme.outline,
                         modifier = Modifier.size(20.dp),
                     )
@@ -110,7 +105,7 @@ fun SecuritySettingsPage(
                     }
                 }
                 SettingsGroupDivider()
-                OutlinedTextField(
+                IosTextField(
                     value = pinDraft,
                     onValueChange = { v -> if (v.length <= 8 && v.all { it.isDigit() }) pinDraft = v },
                     label = { Text(stringResource(R.string.settings_security_set_new_pin)) },
@@ -161,7 +156,7 @@ fun SecuritySettingsPage(
             item {
                 SettingsGroup {
                     SettingsSwitchRow(
-                        icon = Icons.Outlined.Fingerprint,
+                        icon = TablerIcons.Fingerprint,
                         title = stringResource(R.string.settings_security_biometric_title),
                         subtitle = if (biometricAvailable) {
                             stringResource(R.string.settings_security_biometric_available)
@@ -184,7 +179,7 @@ fun SecuritySettingsPage(
         item {
             SettingsGroup {
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.Share,
+                    icon = TablerIcons.Share,
                     title = stringResource(R.string.settings_security_include_timestamp),
                     subtitle = stringResource(R.string.settings_security_include_timestamp_subtitle),
                     checked = shareTemplate.includeTimestamp,
@@ -194,7 +189,7 @@ fun SecuritySettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.Share,
+                    icon = TablerIcons.Share,
                     title = stringResource(R.string.settings_security_include_model),
                     subtitle = stringResource(R.string.settings_security_include_model_subtitle),
                     checked = shareTemplate.includeModelName,
@@ -204,7 +199,7 @@ fun SecuritySettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.Share,
+                    icon = TablerIcons.Share,
                     title = stringResource(R.string.settings_security_include_tokens),
                     subtitle = stringResource(R.string.settings_security_include_tokens_subtitle),
                     checked = shareTemplate.includeTokenCount,
@@ -214,7 +209,7 @@ fun SecuritySettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.Share,
+                    icon = TablerIcons.Share,
                     title = stringResource(R.string.settings_security_include_mood),
                     subtitle = stringResource(R.string.settings_security_include_mood_subtitle),
                     checked = shareTemplate.includeMoodBlock,
@@ -224,7 +219,7 @@ fun SecuritySettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.Share,
+                    icon = TablerIcons.Share,
                     title = stringResource(R.string.settings_security_include_reasoning),
                     subtitle = stringResource(R.string.settings_security_include_reasoning_subtitle),
                     checked = shareTemplate.includeReasoning,
@@ -241,7 +236,7 @@ fun SecuritySettingsPage(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.Share,
+                        imageVector = TablerIcons.Share,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.size(20.dp),
@@ -286,7 +281,7 @@ fun SecuritySettingsPage(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.Public,
+                        imageVector = TablerIcons.World,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.size(20.dp),

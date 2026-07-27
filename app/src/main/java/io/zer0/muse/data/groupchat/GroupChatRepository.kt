@@ -149,18 +149,24 @@ class GroupChatRepository(
     }
 
     /**
-     * 更新群聊信息(名称/描述/成员)。
+     * 更新群聊信息(名称/描述/成员/讨论模式)。
      *
      * @param chatId 群聊 id
      * @param name 新名称(null 表示不更新)
      * @param description 新描述(null 表示不更新)
      * @param memberIds 新成员列表(null 表示不更新)
+     * @param discussionMode 讨论模式(null 表示不更新)
+     * @param autoMaxRounds Auto 模式最大轮数(null 表示不更新)
+     * @param hostId 主持人 AI id(null 表示不更新;传 "" 清空)
      */
     suspend fun updateChat(
         chatId: String,
         name: String? = null,
         description: String? = null,
         memberIds: List<String>? = null,
+        discussionMode: String? = null,
+        autoMaxRounds: Int? = null,
+        hostId: String? = null,
     ) = withContext(Dispatchers.IO) {
         // M2: 用事务包裹读-改-写,防止并发更新丢失
         db.withTransaction {
@@ -169,6 +175,9 @@ class GroupChatRepository(
                 name = name ?: existing.name,
                 description = description ?: existing.description,
                 memberIdsJson = memberIds?.let { serializeMemberIds(it) } ?: existing.memberIdsJson,
+                discussionMode = discussionMode ?: existing.discussionMode,
+                autoMaxRounds = autoMaxRounds ?: existing.autoMaxRounds,
+                hostId = if (hostId != null) hostId.ifBlank { null } else existing.hostId,
                 updatedAt = System.currentTimeMillis(),
             )
             groupChatDao.upsert(updated)
@@ -197,6 +206,9 @@ class GroupChatRepository(
         imageBase64Json: String = "[]",
         mood: String? = null,
         reasoning: String? = null,
+        whisperTargetId: String? = null,
+        replyToId: String? = null,
+        messageType: String = "normal",
     ): String = withContext(Dispatchers.IO) {
         val msgId = UUID.randomUUID().toString()
         // H-GC2: 插入消息 + 更新会话时间戳必须原子,避免崩溃后消息已写但时间戳未更新
@@ -215,6 +227,9 @@ class GroupChatRepository(
                     timestamp = System.currentTimeMillis(),
                     mood = mood,
                     reasoning = reasoning,
+                    whisperTargetId = whisperTargetId,
+                    replyToId = replyToId,
+                    messageType = messageType,
                 )
             )
             // 更新群聊的 updatedAt(列表页排序用)
@@ -300,5 +315,122 @@ class GroupChatRepository(
         return resultOf {
             AppJson.decodeFromString(ListSerializer(String.serializer()), chat.memberIdsJson)
         }.getOrNull() ?: emptyList()
+    }
+
+    // ── v2.x 群聊上下文管理:群共享文档 ──
+
+    /** 把群共享文档列表序列化为 JSON 字符串。 */
+    fun serializeSharedDocs(docs: List<GroupSharedDoc>): String {
+        return AppJson.encodeToString(GroupSharedDoc.serializer().let { kotlinx.serialization.builtins.ListSerializer(it) }, docs)
+    }
+
+    /** 把 sharedDocsJson 反序列化为列表。 */
+    fun parseSharedDocs(chat: GroupChatEntity): List<GroupSharedDoc> {
+        if (chat.sharedDocsJson.isBlank() || chat.sharedDocsJson == "[]") return emptyList()
+        return resultOf {
+            AppJson.decodeFromString(
+                kotlinx.serialization.builtins.ListSerializer(GroupSharedDoc.serializer()),
+                chat.sharedDocsJson,
+            )
+        }.getOrNull() ?: emptyList()
+    }
+
+    /**
+     * v2.x: 添加一个群共享文档。
+     *
+     * @param chatId 群聊 id
+     * @param title 文档标题
+     * @param content 文档正文
+     * @return 新文档 id(失败返回 null)
+     */
+    suspend fun addSharedDoc(chatId: String, title: String, content: String): String? = withContext(Dispatchers.IO) {
+        db.withTransaction {
+            val chat = groupChatDao.getById(chatId) ?: return@withTransaction null
+            val docs = parseSharedDocs(chat).toMutableList()
+            val docId = UUID.randomUUID().toString()
+            docs.add(
+                GroupSharedDoc(
+                    id = docId,
+                    title = title.take(200),
+                    content = content,
+                    addedAt = System.currentTimeMillis(),
+                )
+            )
+            val updated = chat.copy(
+                sharedDocsJson = serializeSharedDocs(docs),
+                updatedAt = System.currentTimeMillis(),
+            )
+            groupChatDao.upsert(updated)
+            docId
+        }
+    }
+
+    /**
+     * v2.x: 删除一个群共享文档。
+     *
+     * @param chatId 群聊 id
+     * @param docId 文档 id
+     */
+    suspend fun removeSharedDoc(chatId: String, docId: String) = withContext(Dispatchers.IO) {
+        db.withTransaction {
+            val chat = groupChatDao.getById(chatId) ?: return@withTransaction
+            val docs = parseSharedDocs(chat).filterNot { it.id == docId }
+            val updated = chat.copy(
+                sharedDocsJson = serializeSharedDocs(docs),
+                updatedAt = System.currentTimeMillis(),
+            )
+            groupChatDao.upsert(updated)
+        }
+    }
+
+    // ── v2.x 群聊上下文管理:AI 专属上下文 ──
+
+    /** 把成员专属上下文 Map 序列化为 JSON 字符串。 */
+    fun serializeMemberPrivateContext(map: Map<String, String>): String {
+        return AppJson.encodeToString(
+            kotlinx.serialization.builtins.MapSerializer(
+                String.serializer(),
+                String.serializer(),
+            ),
+            map,
+        )
+    }
+
+    /** 把 memberPrivateContextJson 反序列化为 Map。 */
+    fun parseMemberPrivateContext(chat: GroupChatEntity): Map<String, String> {
+        if (chat.memberPrivateContextJson.isBlank() || chat.memberPrivateContextJson == "{}") return emptyMap()
+        return resultOf {
+            AppJson.decodeFromString(
+                kotlinx.serialization.builtins.MapSerializer(
+                    String.serializer(),
+                    String.serializer(),
+                ),
+                chat.memberPrivateContextJson,
+            )
+        }.getOrNull() ?: emptyMap()
+    }
+
+    /**
+     * v2.x: 设置某个群成员的专属上下文。
+     *
+     * @param chatId 群聊 id
+     * @param assistantId 成员 AI id
+     * @param contextText 专属上下文文本(传空字符串则清除该成员的专属上下文)
+     */
+    suspend fun setMemberPrivateContext(chatId: String, assistantId: String, contextText: String) = withContext(Dispatchers.IO) {
+        db.withTransaction {
+            val chat = groupChatDao.getById(chatId) ?: return@withTransaction
+            val map = parseMemberPrivateContext(chat).toMutableMap()
+            if (contextText.isBlank()) {
+                map.remove(assistantId)
+            } else {
+                map[assistantId] = contextText
+            }
+            val updated = chat.copy(
+                memberPrivateContextJson = serializeMemberPrivateContext(map),
+                updatedAt = System.currentTimeMillis(),
+            )
+            groupChatDao.upsert(updated)
+        }
     }
 }

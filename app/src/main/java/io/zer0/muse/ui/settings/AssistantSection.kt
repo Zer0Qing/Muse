@@ -1,15 +1,8 @@
-package io.zer0.muse.ui.settings
+﻿package io.zer0.muse.ui.settings
 
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.automirrored.outlined.MenuBook
-import androidx.compose.material.icons.outlined.AutoAwesome
-import androidx.compose.material.icons.outlined.Bookmark
-import androidx.compose.material.icons.outlined.Extension
-import androidx.compose.material.icons.outlined.SwapHoriz
-import androidx.compose.material.icons.outlined.Psychology
-import androidx.compose.material.icons.outlined.Bolt
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -49,7 +42,7 @@ internal fun AssistantEntriesSection(
         modifier = Modifier.padding(top = 8.dp),
     ) {
         SettingsItemRow(
-            icon = Icons.Outlined.AutoAwesome,
+            icon = TablerIcons.Stars,
             title = stringResource(R.string.settings_assistant_manage),
             subtitle = stringResource(R.string.settings_assistant_manage_subtitle),
             onClick = onOpenAssistants,
@@ -58,7 +51,7 @@ internal fun AssistantEntriesSection(
         }
         SettingsGroupDivider()
         SettingsItemRow(
-            icon = Icons.Outlined.Bookmark,
+            icon = TablerIcons.Bookmark,
             title = stringResource(R.string.settings_assistant_favorites),
             subtitle = stringResource(R.string.settings_assistant_favorites_subtitle),
             onClick = onOpenFavorites,
@@ -67,7 +60,7 @@ internal fun AssistantEntriesSection(
         }
         SettingsGroupDivider()
         SettingsItemRow(
-            icon = Icons.AutoMirrored.Outlined.MenuBook,
+            icon = TablerIcons.Book,
             title = stringResource(R.string.settings_assistant_lorebook),
             subtitle = stringResource(R.string.settings_assistant_lorebook_subtitle),
             onClick = onOpenLorebooks,
@@ -76,7 +69,7 @@ internal fun AssistantEntriesSection(
         }
         SettingsGroupDivider()
         SettingsItemRow(
-            icon = Icons.Outlined.Bolt,
+            icon = TablerIcons.Bolt,
             title = stringResource(R.string.settings_assistant_quick_messages),
             subtitle = stringResource(R.string.settings_assistant_quick_messages_subtitle),
             onClick = onOpenQuickMessages,
@@ -85,7 +78,7 @@ internal fun AssistantEntriesSection(
         }
         SettingsGroupDivider()
         SettingsItemRow(
-            icon = Icons.Outlined.SwapHoriz,
+            icon = TablerIcons.ArrowsLeftRight,
             title = stringResource(R.string.settings_assistant_prompt_injection),
             subtitle = stringResource(R.string.settings_assistant_prompt_injection_subtitle),
             onClick = onOpenPromptInjections,
@@ -94,7 +87,7 @@ internal fun AssistantEntriesSection(
         }
         SettingsGroupDivider()
         SettingsItemRow(
-            icon = Icons.Outlined.Extension,
+            icon = TablerIcons.Puzzle,
             title = stringResource(R.string.settings_assistant_skills),
             subtitle = stringResource(R.string.settings_assistant_skills_subtitle),
             onClick = onOpenSkills,
@@ -109,7 +102,7 @@ internal fun AssistantEntriesSection(
         modifier = Modifier.padding(top = 8.dp),
     ) {
         SettingsSwitchRow(
-            icon = Icons.Outlined.Psychology,
+            icon = TablerIcons.Atom,
             title = stringResource(R.string.settings_assistant_memory_enable),
             subtitle = stringResource(R.string.settings_assistant_memory_enable_subtitle),
             checked = memoryEnabled,

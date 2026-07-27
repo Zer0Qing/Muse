@@ -5,13 +5,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.SettingsEthernet
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 import androidx.compose.material3.Button
 import io.zer0.muse.ui.common.IosChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -29,6 +28,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.data.ProxyConfig
 import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.ui.common.IosTextField
 import io.zer0.muse.ui.common.MuseToast
 import io.zer0.muse.ui.common.SectionLabel
 import io.zer0.muse.ui.common.SettingsGroup
@@ -67,7 +67,7 @@ fun ProxySettingsPage(
         item {
             SettingsGroup {
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.SettingsEthernet,
+                    icon = TablerIcons.Route,
                     title = stringResource(R.string.proxy_enable),
                     subtitle = if (enabled) stringResource(R.string.proxy_enabled) else stringResource(R.string.proxy_disabled),
                     checked = enabled,
@@ -95,7 +95,7 @@ fun ProxySettingsPage(
                     }
                 }
                 SettingsGroupDivider()
-                OutlinedTextField(
+                IosTextField(
                     value = host,
                     onValueChange = { host = it },
                     label = { Text(stringResource(R.string.proxy_host)) },
@@ -105,7 +105,7 @@ fun ProxySettingsPage(
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                 )
                 SettingsGroupDivider()
-                OutlinedTextField(
+                IosTextField(
                     value = portText,
                     onValueChange = { v ->
                         portText = v.filter { it.isDigit() }.take(5)
@@ -118,7 +118,7 @@ fun ProxySettingsPage(
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                 )
                 SettingsGroupDivider()
-                OutlinedTextField(
+                IosTextField(
                     value = username,
                     onValueChange = { username = it },
                     label = { Text(stringResource(R.string.proxy_username)) },
@@ -128,7 +128,7 @@ fun ProxySettingsPage(
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                 )
                 SettingsGroupDivider()
-                OutlinedTextField(
+                IosTextField(
                     value = password,
                     onValueChange = { password = it },
                     label = { Text(stringResource(R.string.proxy_password)) },

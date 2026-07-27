@@ -36,7 +36,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import io.zer0.muse.ui.common.IosTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -421,12 +421,10 @@ fun WorkspaceScreen(
             onDismissRequest = { renameEntry = null },
             title = stringResource(R.string.workspace_rename),
             content = {
-                OutlinedTextField(
+                IosTextField(
                     value = newName,
                     onValueChange = { newName = it },
                     singleLine = true,
-                    shape = MuseShapes.semiLarge,
-                    textStyle = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
                 )
@@ -477,12 +475,10 @@ fun WorkspaceScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                 ) {
-                    OutlinedTextField(
+                    IosTextField(
                         value = newName,
                         onValueChange = { newName = it },
                         singleLine = true,
-                        shape = MuseShapes.semiLarge,
-                        textStyle = MaterialTheme.typography.bodyMedium,
                         placeholder = {
                             Text(text = stringResource(R.string.workspace_file_name))
                         },

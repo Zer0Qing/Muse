@@ -1,10 +1,9 @@
 package io.zer0.muse.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,16 +12,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.Extension
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,22 +29,23 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
+import io.zer0.muse.data.plugin.PluginManifest
 import io.zer0.muse.tools.ToolRegistry
 import io.zer0.muse.tools.ToolRiskLevel
-import io.zer0.muse.data.plugin.PluginManifest
+import io.zer0.muse.ui.common.IosTopBar
 import io.zer0.muse.ui.common.MuseDialog
 import io.zer0.muse.ui.components.CardGroup
-import io.zer0.muse.ui.settings.SettingsSubPageScaffold
+import io.zer0.muse.ui.components.CardGroupScope
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.tiny
 import org.koin.compose.koinInject
 
@@ -81,102 +79,101 @@ fun ToolsScreen(
     }
     var detailTarget by remember { mutableStateOf<ToolRegistry.ToolDef?>(null) }
 
-    SettingsSubPageScaffold(
-        title = stringResource(R.string.tools_screen_title),
-        onBack = onBack,
-    ) {
-        // ── 说明卡片 ────────────────────────────────────────────────────
-        item(key = "intro") {
-            CardGroup(modifier = Modifier.padding(horizontal = 16.dp)) {
-                item {
-                    Column(modifier = Modifier.padding(MusePaddings.cardInner)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+    Scaffold(
+        topBar = {
+            IosTopBar(
+                title = stringResource(R.string.tools_screen_title),
+                onBack = onBack,
+                largeTitle = true,
+            )
+        },
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .background(MaterialTheme.colorScheme.background),
+            contentPadding = PaddingValues(vertical = MusePaddings.sectionGap),
+            verticalArrangement = Arrangement.spacedBy(MusePaddings.sectionGap),
+        ) {
+            // ── 说明卡片 ────────────────────────────────────────────────────
+            item(key = "intro") {
+                CardGroup(modifier = Modifier.padding(horizontal = MusePaddings.screen)) {
+                    item(
+                        leadingContent = {
                             Icon(
                                 imageVector = Icons.Outlined.Info,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(18.dp),
+                                modifier = Modifier.size(22.dp),
                             )
-                            Spacer(Modifier.size(8.dp))
+                        },
+                        headlineContent = {
                             Text(
                                 text = stringResource(R.string.tools_intro_what),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.weight(1f),
                             )
-                        }
-                        Spacer(Modifier.height(MusePaddings.itemGap))
-                        Text(
-                            text = stringResource(R.string.tools_intro_manage),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                        },
+                        supportingContent = {
+                            Text(
+                                text = stringResource(R.string.tools_intro_manage),
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        },
+                    )
                 }
             }
-        }
 
-        // ── 工具总数 + 高风险数 ────────────────────────────────────────
-        item(key = "stats") {
-            val highRiskCount = tools.count { it.riskLevel == ToolRiskLevel.HIGH }
-            Text(
-                text = stringResource(R.string.tools_stats_count, tools.size, highRiskCount),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-            )
-        }
-
-        // ── 按分类分组展示 ─────────────────────────────────────────────
-        grouped.forEach { (category, toolsInCategory) ->
-            item(key = "category_$category") {
+            // ── 工具总数 + 高风险数 ────────────────────────────────────────
+            item(key = "stats") {
+                val highRiskCount = tools.count { it.riskLevel == ToolRiskLevel.HIGH }
                 Text(
-                    text = categoryLabel(category),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                    text = stringResource(R.string.tools_stats_count, tools.size, highRiskCount),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = MusePaddings.screen),
                 )
             }
-            item(key = "group_$category") {
-                CardGroup(modifier = Modifier.padding(horizontal = 16.dp)) {
-                    toolsInCategory.forEach { tool ->
-                        item(
-                            key = tool.name,
-                            onClick = { detailTarget = tool },
-                        ) {
-                            ToolRow(tool = tool)
+
+            // ── 按分类分组展示 ─────────────────────────────────────────────
+            grouped.forEach { (category, toolsInCategory) ->
+                item(key = "group_$category") {
+                    CardGroup(
+                        modifier = Modifier.padding(horizontal = MusePaddings.screen),
+                        title = {
+                            Text(text = categoryLabel(category))
+                        },
+                    ) {
+                        toolsInCategory.forEach { tool ->
+                            ToolRow(
+                                tool = tool,
+                                onClick = { detailTarget = tool },
+                            )
                         }
                     }
                 }
             }
-        }
 
-        // ── v1.0.4 (P3-6): 内置插件清单 ──────────────────────────────
-        // 后端 PluginManifest.BUILT_IN 声明了 5 个内置插件(image-gen / beautify /
-        // media / mcp-bridge / office),含 trust/capabilities/activationEvents。
-        // 此处透出给用户,提升能力边界透明度(只读展示,启用/禁用仍由代码控制)。
-        item(key = "plugins_section_header") {
-            Text(
-                text = stringResource(R.string.tools_plugins_section),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-            )
-        }
-        item(key = "plugins_section_desc") {
-            Text(
-                text = stringResource(R.string.tools_plugins_desc),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
-            )
-        }
-        item(key = "plugins_group") {
-            CardGroup(modifier = Modifier.padding(horizontal = 16.dp)) {
-                PluginManifest.BUILT_IN.forEach { plugin ->
-                    item(key = plugin.id) {
+            // ── v1.0.4 (P3-6): 内置插件清单 ──────────────────────────────
+            // 后端 PluginManifest.BUILT_IN 声明了 5 个内置插件(image-gen / beautify /
+            // media / mcp-bridge / office),含 trust/capabilities/activationEvents。
+            // 此处透出给用户,提升能力边界透明度(只读展示,启用/禁用仍由代码控制)。
+            item(key = "plugins_group") {
+                CardGroup(
+                    modifier = Modifier.padding(horizontal = MusePaddings.screen),
+                    title = {
+                        Column {
+                            Text(text = stringResource(R.string.tools_plugins_section))
+                            Text(
+                                text = stringResource(R.string.tools_plugins_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(top = 2.dp),
+                            )
+                        }
+                    },
+                ) {
+                    PluginManifest.BUILT_IN.forEach { plugin ->
                         PluginRow(plugin = plugin)
                     }
                 }
@@ -195,58 +192,43 @@ fun ToolsScreen(
 
 /**
  * 单条工具行 — 图标 + name + description + 风险等级徽章。
- *
- * v1.0.4: 点击逻辑由 [CardGroupScope.item] 的 onClick 接管,本组件只负责渲染内容。
  */
-@Composable
-private fun ToolRow(
+private fun CardGroupScope.ToolRow(
     tool: ToolRegistry.ToolDef,
+    onClick: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(MusePaddings.cardInner),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        // 高风险工具用 Warning 图标,普通/安全用 Build 图标
-        val icon = if (tool.riskLevel == ToolRiskLevel.HIGH) {
-            Icons.Outlined.Warning
-        } else {
-            Icons.Outlined.Build
-        }
-        val iconTint = when (tool.riskLevel) {
-            ToolRiskLevel.HIGH -> MaterialTheme.colorScheme.error
-            ToolRiskLevel.NORMAL -> MaterialTheme.colorScheme.onSurfaceVariant
-            ToolRiskLevel.SAFE -> MaterialTheme.colorScheme.primary
-        }
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = iconTint,
-            modifier = Modifier.size(22.dp),
-        )
-        Spacer(Modifier.size(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
+    item(
+        key = tool.name,
+        onClick = onClick,
+        leadingContent = {
+            Icon(
+                imageVector = Icons.Outlined.Build,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(22.dp),
+            )
+        },
+        headlineContent = {
             Text(
                 text = tool.name,
-                style = MaterialTheme.typography.bodyLarge,
                 fontFamily = MuseMonoFontFamily,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
             )
+        },
+        supportingContent = {
             Text(
                 text = tool.description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 2,
             )
-        }
-        RiskBadge(level = tool.riskLevel)
-    }
+        },
+        trailingContent = {
+            RiskBadge(level = tool.riskLevel)
+        },
+    )
 }
 
 /**
- * 风险等级徽章 — 颜色:SAFE 绿 / NORMAL 橙 / HIGH 红。
+ * 风险等级徽章 — 颜色:SAFE 绿 / NORMAL 橙 / HIGH 红,软胶囊样式。
  */
 @Composable
 private fun RiskBadge(level: ToolRiskLevel) {
@@ -256,15 +238,15 @@ private fun RiskBadge(level: ToolRiskLevel) {
         ToolRiskLevel.HIGH -> stringResource(R.string.tools_risk_high) to Color(0xFFD32F2F)
     }
     Surface(
-        shape = MuseShapes.extraSmall,
-        color = color.copy(alpha = 0.16f),
+        shape = MuseShapes.pill,
+        color = color.copy(alpha = 0.12f),
     ) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
+            fontWeight = FontWeight.SemiBold,
             color = color,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
         )
     }
 }
@@ -447,84 +429,83 @@ private fun categoryLabel(category: String): String = when (category) {
  * 只读展示(不带开关):插件的实际启用由代码内部决定,这里仅向用户透出能力边界。
  * trust=full-access 用红色徽章高亮,sandboxed 用中性色,让用户一眼识别高风险插件。
  */
-@Composable
-private fun PluginRow(plugin: PluginManifest) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(MusePaddings.cardInner),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            imageVector = Icons.Outlined.Extension,
-            contentDescription = null,
-            tint = if (plugin.trust == "full-access") {
-                MaterialTheme.colorScheme.error
-            } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            },
-            modifier = Modifier.size(22.dp),
-        )
-        Spacer(Modifier.size(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = plugin.name,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            if (plugin.description.isNotEmpty()) {
-                Text(
-                    text = plugin.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                )
-            }
-            // 能力 + 激活事件小字
-            val permissionsLabel = stringResource(R.string.tools_permissions_label)
-            val activationLabel = stringResource(R.string.tools_activation_label)
-            val capsText = buildString {
-                if (plugin.capabilities.isNotEmpty()) {
-                    append(permissionsLabel)
-                    append(plugin.capabilities.joinToString(", "))
-                }
-                if (plugin.activationEvents.isNotEmpty() && plugin.activationEvents != listOf("onStartup")) {
-                    if (isNotEmpty()) append(" · ")
-                    append(activationLabel)
-                    append(plugin.activationEvents.joinToString(", "))
-                }
-            }
-            if (capsText.isNotEmpty()) {
-                Text(
-                    text = capsText,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontFamily = MuseMonoFontFamily,
-                    color = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.padding(top = 2.dp),
-                )
-            }
-        }
-        // trust 徽章
-        Surface(
-            color = if (plugin.trust == "full-access") {
-                MaterialTheme.colorScheme.errorContainer
-            } else {
-                MaterialTheme.colorScheme.secondaryContainer
-            },
-            shape = MuseShapes.small,
-            modifier = Modifier.padding(start = 8.dp),
+private fun CardGroupScope.PluginRow(plugin: PluginManifest) {
+    item(key = plugin.id) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = plugin.trust,
-                style = MaterialTheme.typography.labelSmall,
-                color = if (plugin.trust == "full-access") {
-                    MaterialTheme.colorScheme.onErrorContainer
+            Icon(
+                imageVector = Icons.Outlined.Extension,
+                contentDescription = null,
+                tint = if (plugin.trust == "full-access") {
+                    MaterialTheme.colorScheme.error
                 } else {
-                    MaterialTheme.colorScheme.onSecondaryContainer
+                    MaterialTheme.colorScheme.onSurfaceVariant
                 },
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                modifier = Modifier.size(22.dp),
             )
+            Spacer(Modifier.size(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = plugin.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                if (plugin.description.isNotEmpty()) {
+                    Text(
+                        text = plugin.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                    )
+                }
+                // 能力 + 激活事件小字
+                val permissionsLabel = stringResource(R.string.tools_permissions_label)
+                val activationLabel = stringResource(R.string.tools_activation_label)
+                val capsText = buildString {
+                    if (plugin.capabilities.isNotEmpty()) {
+                        append(permissionsLabel)
+                        append(plugin.capabilities.joinToString(", "))
+                    }
+                    if (plugin.activationEvents.isNotEmpty() && plugin.activationEvents != listOf("onStartup")) {
+                        if (isNotEmpty()) append(" · ")
+                        append(activationLabel)
+                        append(plugin.activationEvents.joinToString(", "))
+                    }
+                }
+                if (capsText.isNotEmpty()) {
+                    Text(
+                        text = capsText,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontFamily = MuseMonoFontFamily,
+                        color = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.padding(top = 2.dp),
+                    )
+                }
+            }
+            // trust 徽章
+            Surface(
+                color = if (plugin.trust == "full-access") {
+                    MaterialTheme.colorScheme.errorContainer
+                } else {
+                    MaterialTheme.colorScheme.secondaryContainer
+                },
+                shape = MuseShapes.small,
+                modifier = Modifier.padding(start = 8.dp),
+            ) {
+                Text(
+                    text = plugin.trust,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (plugin.trust == "full-access") {
+                        MaterialTheme.colorScheme.onErrorContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSecondaryContainer
+                    },
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                )
+            }
         }
     }
 }

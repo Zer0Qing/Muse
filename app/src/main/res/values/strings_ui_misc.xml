@@ -62,10 +62,10 @@
     <string name="theme_ocean">海洋</string>
     <string name="theme_spring">春</string>
     <string name="theme_autumn">秋</string>
-    <string name="theme_amoled">AMOLED</string>
-        <string name="theme_sumi">墨 (Sumi)</string>
-        <string name="theme_washi">和紙 (Washi)</string>
-        <string name="theme_aizome">藍染 (Aizome)</string>
+    <string name="theme_mono">黑白</string>
+    <string name="theme_sumi">墨 (Sumi)</string>
+    <string name="theme_washi">和紙 (Washi)</string>
+    <string name="theme_aizome">藍染 (Aizome)</string>
     <string name="theme_twilight_purple">暮紫韵</string>
     <string name="theme_amber_gold">琥珀金</string>
     <string name="theme_dusk_rose">暮霭玫</string>

@@ -13,21 +13,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Message
-import androidx.compose.material.icons.outlined.Cloud
-import androidx.compose.material.icons.outlined.CloudDownload
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.outlined.CloudUpload
-import androidx.compose.material.icons.outlined.FileDownload
-import androidx.compose.material.icons.outlined.FileUpload
-import androidx.compose.material.icons.outlined.Forum
-import androidx.compose.material.icons.outlined.Schedule
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -51,6 +41,7 @@ import io.zer0.muse.backup.BackupService
 import io.zer0.muse.backup.CloudBackupConfig
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.ui.common.IosTextField
 import io.zer0.muse.ui.common.MuseDialog
 import io.zer0.muse.ui.common.SectionLabel
 import io.zer0.muse.ui.common.SettingsGroup
@@ -160,7 +151,7 @@ internal fun BackupSection(
         modifier = Modifier.padding(top = 8.dp),
     ) {
         SettingsItemRow(
-            icon = Icons.Outlined.Forum,
+            icon = TablerIcons.Messages,
             title = stringResource(R.string.settings_backup_session_count),
         ) {
             Text(
@@ -171,7 +162,7 @@ internal fun BackupSection(
         }
         SettingsGroupDivider()
         SettingsItemRow(
-            icon = Icons.AutoMirrored.Outlined.Message,
+            icon = TablerIcons.Message,
             title = stringResource(R.string.settings_backup_message_count),
         ) {
             Text(
@@ -188,7 +179,7 @@ internal fun BackupSection(
         modifier = Modifier.padding(top = 8.dp),
     ) {
         SettingsItemRow(
-            icon = Icons.Outlined.FileUpload,
+            icon = TablerIcons.FileUpload,
             title = stringResource(R.string.settings_backup_export),
             subtitle = stringResource(R.string.settings_backup_export_subtitle),
             onClick = {
@@ -201,7 +192,7 @@ internal fun BackupSection(
         )
         SettingsGroupDivider()
         SettingsItemRow(
-            icon = Icons.Outlined.FileDownload,
+            icon = TablerIcons.FileDownload,
             title = stringResource(R.string.settings_backup_import),
             subtitle = stringResource(R.string.settings_backup_import_subtitle),
             onClick = {
@@ -240,7 +231,7 @@ internal fun BackupSection(
             else -> stringResource(R.string.settings_backup_status_no_backup)
         }
         SettingsItemRow(
-            icon = Icons.Outlined.Cloud,
+            icon = TablerIcons.Cloud,
             title = stringResource(R.string.settings_backup_cloud_status),
             subtitle = statusText,
             trailing = {
@@ -252,7 +243,7 @@ internal fun BackupSection(
         )
         SettingsGroupDivider()
         SettingsItemRow(
-            icon = Icons.Outlined.Cloud,
+            icon = TablerIcons.Cloud,
             title = stringResource(R.string.settings_backup_cloud_type),
             subtitle = typeLabel,
             onClick = { showCloudConfigDialog = true },
@@ -260,7 +251,7 @@ internal fun BackupSection(
         SettingsGroupDivider()
         // 自动同步开关
         SettingsSwitchRow(
-            icon = Icons.Outlined.CloudUpload,
+            icon = TablerIcons.CloudUpload,
             title = stringResource(R.string.settings_backup_auto_sync),
             subtitle = stringResource(R.string.settings_backup_auto_sync_subtitle),
             checked = cloudConfig.autoSync,
@@ -274,7 +265,7 @@ internal fun BackupSection(
         if (cloudConfig.autoSync) {
             SettingsGroupDivider()
             SettingsItemRow(
-                icon = Icons.Outlined.Schedule,
+                icon = TablerIcons.CalendarTime,
                 title = stringResource(R.string.settings_backup_auto_sync_interval),
                 subtitle = "${cloudConfig.autoSyncIntervalHours} 小时",
                 onClick = { showIntervalDialog = true },
@@ -283,7 +274,7 @@ internal fun BackupSection(
         SettingsGroupDivider()
         // 立即上传
         SettingsItemRow(
-            icon = Icons.Outlined.CloudUpload,
+            icon = TablerIcons.CloudUpload,
             title = stringResource(R.string.settings_backup_upload_now),
             subtitle = if (cloudConfig.isConfigured) stringResource(R.string.settings_backup_upload_subtitle_configured) else stringResource(R.string.settings_backup_upload_subtitle_unconfigured),
             onClick = {
@@ -312,7 +303,7 @@ internal fun BackupSection(
         SettingsGroupDivider()
         // 从云端恢复
         SettingsItemRow(
-            icon = Icons.Outlined.CloudDownload,
+            icon = TablerIcons.CloudDownload,
             title = stringResource(R.string.settings_backup_restore_from_cloud),
             subtitle = if (cloudConfig.isConfigured) stringResource(R.string.settings_backup_restore_subtitle_configured) else stringResource(R.string.settings_backup_upload_subtitle_unconfigured),
             onClick = {
@@ -340,7 +331,7 @@ internal fun BackupSection(
         // v1.71: 用 remember 缓存 SimpleDateFormat
         val syncFmt = remember { SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL, Locale.getDefault()) }
         SettingsItemRow(
-            icon = Icons.Outlined.Cloud,
+            icon = TablerIcons.Cloud,
             title = stringResource(R.string.settings_backup_last_sync),
             subtitle = if (cloudConfig.lastSyncAt > 0) {
                 syncFmt.format(Date(cloudConfig.lastSyncAt))
@@ -404,13 +395,12 @@ internal fun BackupSection(
             onDismissRequest = { showIntervalDialog = false },
             title = stringResource(R.string.settings_backup_auto_sync_interval),
             content = {
-                OutlinedTextField(
+                IosTextField(
                     value = intervalInput,
                     onValueChange = { intervalInput = it.filter { c -> c.isDigit() }.take(3) },
                     label = { Text("间隔小时数 (1-168)") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = MuseShapes.medium,
                 )
             },
             confirmText = stringResource(R.string.settings_common_save),
@@ -471,7 +461,7 @@ private fun CloudBackupConfigDialog(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Info,
+                                imageVector = TablerIcons.InfoCircle,
                                 contentDescription = stringResource(R.string.settings_backup_error_hint),
                                 tint = MaterialTheme.colorScheme.error,
                                 modifier = Modifier.size(16.dp),
@@ -483,7 +473,7 @@ private fun CloudBackupConfigDialog(
                                 modifier = Modifier.weight(1f),
                             )
                             Icon(
-                                imageVector = Icons.Default.Close,
+                                imageVector = TablerIcons.X,
                                 contentDescription = stringResource(R.string.settings_common_close),
                                 tint = MaterialTheme.colorScheme.error,
                                 modifier = Modifier
@@ -504,35 +494,35 @@ private fun CloudBackupConfigDialog(
                 }
 
                 if (type == "s3") {
-                    OutlinedTextField(
+                    IosTextField(
                         value = s3Endpoint,
                         onValueChange = { s3Endpoint = it },
                         label = { Text(stringResource(R.string.settings_backup_endpoint)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                     )
-                    OutlinedTextField(
+                    IosTextField(
                         value = s3Region,
                         onValueChange = { s3Region = it },
                         label = { Text(stringResource(R.string.settings_backup_region)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                     )
-                    OutlinedTextField(
+                    IosTextField(
                         value = s3Bucket,
                         onValueChange = { s3Bucket = it },
                         label = { Text("Bucket") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                     )
-                    OutlinedTextField(
+                    IosTextField(
                         value = s3AccessKey,
                         onValueChange = { s3AccessKey = it },
                         label = { Text(stringResource(R.string.settings_backup_access_key)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                     )
-                    OutlinedTextField(
+                    IosTextField(
                         value = s3SecretKey,
                         onValueChange = { s3SecretKey = it },
                         label = { Text("Secret Key") },
@@ -545,7 +535,7 @@ private fun CloudBackupConfigDialog(
                             }
                         },
                     )
-                    OutlinedTextField(
+                    IosTextField(
                         value = s3KeyPrefix,
                         onValueChange = { s3KeyPrefix = it },
                         label = { Text(stringResource(R.string.settings_backup_key_prefix)) },
@@ -553,21 +543,21 @@ private fun CloudBackupConfigDialog(
                         modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                     )
                 } else if (type == "webdav") {
-                    OutlinedTextField(
+                    IosTextField(
                         value = webdavUrl,
                         onValueChange = { webdavUrl = it },
                         label = { Text(stringResource(R.string.settings_backup_webdav_url)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                     )
-                    OutlinedTextField(
+                    IosTextField(
                         value = webdavUsername,
                         onValueChange = { webdavUsername = it },
                         label = { Text(stringResource(R.string.settings_backup_username)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                     )
-                    OutlinedTextField(
+                    IosTextField(
                         value = webdavPassword,
                         onValueChange = { webdavPassword = it },
                         label = { Text(stringResource(R.string.settings_backup_password)) },
@@ -580,7 +570,7 @@ private fun CloudBackupConfigDialog(
                             }
                         },
                     )
-                    OutlinedTextField(
+                    IosTextField(
                         value = webdavPath,
                         onValueChange = { webdavPath = it },
                         label = { Text(stringResource(R.string.settings_backup_remote_dir)) },
@@ -596,7 +586,7 @@ private fun CloudBackupConfigDialog(
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            OutlinedTextField(
+            IosTextField(
                 value = backupPassword,
                 onValueChange = { backupPassword = it },
                 label = { Text(stringResource(R.string.settings_backup_encrypt_password_hint)) },

@@ -138,7 +138,7 @@ import io.zer0.common.Logger
         // v1.0.17: 快速记录(替代 JSON 文件存储 + 回收站)
         QuickNoteEntity::class,
     ],
-    version = 50,
+    version = 54,
     exportSchema = true,
 )
 @TypeConverters(QuickNoteConverters::class)
@@ -1470,6 +1470,137 @@ abstract class MuseDb : RoomDatabase() {
         }
 
         /**
+         * v2.x: MIGRATION_50_51 — 群聊讨论模式字段。
+         *
+         * 为 group_chats 表添加 3 列:
+         *  - discussion_mode: 讨论模式(round_robin/auto/debate/host,默认 round_robin)
+         *  - auto_max_rounds: Auto 模式最大连续对话轮数(默认 5)
+         *  - host_id: 主持人模式的 AI id(默认 NULL)
+         *
+         * 所有新列均带默认值,保持向后兼容;现有群聊自动获得 round_robin 模式。
+         */
+        val MIGRATION_50_51 = object : Migration(50, 51) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE group_chats ADD COLUMN discussionMode TEXT NOT NULL DEFAULT 'round_robin'")
+                db.execSQL("ALTER TABLE group_chats ADD COLUMN autoMaxRounds INTEGER NOT NULL DEFAULT 5")
+                db.execSQL("ALTER TABLE group_chats ADD COLUMN host_id TEXT DEFAULT NULL")
+            }
+        }
+
+        /**
+         * v2.x: MIGRATION_51_52 — 群聊消息增强字段(悄悄话 / 引用回复 / 消息类型)。
+         */
+        val MIGRATION_51_52 = object : Migration(51, 52) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE group_chat_messages ADD COLUMN whisper_target_id TEXT DEFAULT NULL")
+                db.execSQL("ALTER TABLE group_chat_messages ADD COLUMN reply_to_id TEXT DEFAULT NULL")
+                db.execSQL("ALTER TABLE group_chat_messages ADD COLUMN messageType TEXT NOT NULL DEFAULT 'normal'")
+            }
+        }
+
+        /**
+         * v2.x: MIGRATION_52_53 — 群聊上下文管理字段(群共享文档 + AI 专属上下文)。
+         *
+         * 为 group_chats 表添加 2 列:
+         *  - shared_docs_json: 群共享文档列表 JSON(默认 "[]"),所有成员可见
+         *  - member_private_context_json: 成员专属上下文 Map JSON(默认 "{}"),按 assistantId 隔离
+         *
+         * 所有新列均带默认值,保持向后兼容;现有群聊自动获得空列表/空映射。
+         */
+        val MIGRATION_52_53 = object : Migration(52, 53) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE group_chats ADD COLUMN shared_docs_json TEXT NOT NULL DEFAULT '[]'")
+                db.execSQL("ALTER TABLE group_chats ADD COLUMN member_private_context_json TEXT NOT NULL DEFAULT '{}'")
+            }
+        }
+
+        /**
+         * v1.0.24: MIGRATION_53_54 — 修正群聊表列默认值。
+         *
+         * 早期迁移(50_51 / 51_52)在 ALTER TABLE ADD COLUMN 时遗漏了 DEFAULT NULL,
+         * 导致已迁移数据库中 host_id / whisper_target_id / reply_to_id 的默认值为
+         * 'undefined'(Room 内部表示),与实体声明的 defaultValue = "NULL" 不匹配,
+         * 启动时抛出 IllegalStateException。
+         *
+         * SQLite 不支持 ALTER COLUMN,必须重建表:
+         *  1. 创建临时表(带正确 DEFAULT NULL)
+         *  2. 复制全部数据
+         *  3. DROP 旧表
+         *  4. RENAME 临时表为正式表名
+         *
+         * 同时重建 group_chats 与 group_chat_messages 两张表。
+         */
+        val MIGRATION_53_54 = object : Migration(53, 54) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // ── 重建 group_chats(host_id 默认值 NULL) ──
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS group_chats_new (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        name TEXT NOT NULL,
+                        description TEXT NOT NULL DEFAULT '',
+                        memberIdsJson TEXT NOT NULL,
+                        teamId TEXT,
+                        pinned INTEGER NOT NULL DEFAULT 0,
+                        createdAt INTEGER NOT NULL DEFAULT 0,
+                        updatedAt INTEGER NOT NULL DEFAULT 0,
+                        lastMessagePreview TEXT NOT NULL DEFAULT '',
+                        messageCount INTEGER NOT NULL DEFAULT 0,
+                        lastActivityAt INTEGER NOT NULL DEFAULT 0,
+                        discussionMode TEXT NOT NULL DEFAULT 'round_robin',
+                        autoMaxRounds INTEGER NOT NULL DEFAULT 5,
+                        host_id TEXT DEFAULT NULL,
+                        shared_docs_json TEXT NOT NULL DEFAULT '[]',
+                        member_private_context_json TEXT NOT NULL DEFAULT '{}'
+                    )
+                """.trimIndent())
+                db.execSQL("""
+                    INSERT INTO group_chats_new (id, name, description, memberIdsJson, teamId, pinned,
+                        createdAt, updatedAt, lastMessagePreview, messageCount, lastActivityAt,
+                        discussionMode, autoMaxRounds, host_id, shared_docs_json, member_private_context_json)
+                    SELECT id, name, description, memberIdsJson, teamId, pinned,
+                        createdAt, updatedAt, lastMessagePreview, messageCount, lastActivityAt,
+                        discussionMode, autoMaxRounds, host_id, shared_docs_json, member_private_context_json
+                    FROM group_chats
+                """.trimIndent())
+                db.execSQL("DROP TABLE group_chats")
+                db.execSQL("ALTER TABLE group_chats_new RENAME TO group_chats")
+
+                // ── 重建 group_chat_messages(whisper_target_id / reply_to_id 默认值 NULL) ──
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS group_chat_messages_new (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        chatId TEXT NOT NULL,
+                        senderType TEXT NOT NULL,
+                        senderId TEXT NOT NULL,
+                        senderName TEXT NOT NULL,
+                        body TEXT NOT NULL,
+                        imageBase64Json TEXT NOT NULL DEFAULT '[]',
+                        timestamp INTEGER NOT NULL DEFAULT 0,
+                        mood TEXT,
+                        reasoning TEXT,
+                        whisper_target_id TEXT DEFAULT NULL,
+                        reply_to_id TEXT DEFAULT NULL,
+                        messageType TEXT NOT NULL DEFAULT 'normal'
+                    )
+                """.trimIndent())
+                db.execSQL("""
+                    INSERT INTO group_chat_messages_new (id, chatId, senderType, senderId, senderName,
+                        body, imageBase64Json, timestamp, mood, reasoning,
+                        whisper_target_id, reply_to_id, messageType)
+                    SELECT id, chatId, senderType, senderId, senderName,
+                        body, imageBase64Json, timestamp, mood, reasoning,
+                        whisper_target_id, reply_to_id, messageType
+                    FROM group_chat_messages
+                """.trimIndent())
+                db.execSQL("DROP TABLE group_chat_messages")
+                db.execSQL("ALTER TABLE group_chat_messages_new RENAME TO group_chat_messages")
+
+                // 重建索引(随表 DROP 一起消失)
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_group_chat_messages_chatId ON group_chat_messages(chatId)")
+            }
+        }
+
+        /**
          * v1.0.19: MIGRATION_48_49 — Assistant 字段补齐(参考 rikkahub / kelivo)。
          *
          * 为 assistants 表添加 3 列:
@@ -1523,6 +1654,10 @@ abstract class MuseDb : RoomDatabase() {
                         MIGRATION_47_48,
                         MIGRATION_48_49,
                         MIGRATION_49_50,
+                        MIGRATION_50_51,
+                        MIGRATION_51_52,
+                        MIGRATION_52_53,
+                        MIGRATION_53_54,
                     )
                     // 启用外键约束(artifacts 表的 ON DELETE CASCADE 依赖此设置)
                     // onOpen 不在 onCreate 事务内,可以执行此类命令;onCreate 内禁止 PRAGMA

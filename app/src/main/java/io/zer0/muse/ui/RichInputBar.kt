@@ -8,8 +8,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -31,7 +29,6 @@ import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.TextFormat
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -42,12 +39,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.zer0.ai.core.UIMessage
@@ -58,6 +53,7 @@ import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.quickmsg.QuickMessageEntity
 import io.zer0.muse.ui.chat.VideoAttachment
 import io.zer0.muse.ui.common.IosTactileButton
+import io.zer0.muse.ui.common.IosTextField
 import io.zer0.muse.ui.common.MuseDialog
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseHaptics
@@ -106,6 +102,7 @@ internal fun RichInputBar(
     onDelegateToAssistant: () -> Unit = {},
     onPickKnowledge: () -> Unit = {},
     onOpenPromptTemplates: () -> Unit = {},
+    onOpenSkills: () -> Unit = {},
     enterToSend: Boolean = false,
     quickMessages: List<QuickMessageEntity> = emptyList(),
     onInsertQuickMessage: (QuickMessageEntity) -> Unit = {},
@@ -219,6 +216,7 @@ internal fun RichInputBar(
             onDelegateToAssistant = onDelegateToAssistant,
             onPickKnowledge = onPickKnowledge,
             onOpenPromptTemplates = onOpenPromptTemplates,
+            onOpenSkills = onOpenSkills,
             enterToSend = enterToSend,
             quickMessages = quickMessages,
             onInsertQuickMessage = onInsertQuickMessage,
@@ -372,7 +370,7 @@ private fun FormatButton(
 /**
  * P2-12: 链接插入对话框 — 收集链接文本 + URL,确认后生成 `[text](url)`。
  *
- * 使用 [MuseDialog] 自定义 content,内含两个 [OutlinedTextField]。
+ * 使用 [MuseDialog] 自定义 content,内含两个 [IosTextField]。
  * 不使用 AlertDialog(遵循项目规范)。
  */
 @Composable
@@ -388,26 +386,24 @@ private fun LinkInsertDialog(
         onDismissRequest = onDismiss,
         title = stringResource(R.string.rich_input_link_insert),
         content = {
-            // 用 Column 排列两个输入框;OutlinedTextField 仅在 Dialog 内部使用,不违反"不用 AlertDialog"约束
+            // 用 Column 排列两个输入框;IosTextField 仅在 Dialog 内部使用,不违反"不用 AlertDialog"约束
             androidx.compose.foundation.layout.Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                OutlinedTextField(
+                IosTextField(
                     value = linkText,
                     onValueChange = { linkText = it },
                     modifier = Modifier.fillMaxWidth(),
                     label = { Text(linkTextLabel) },
                     singleLine = true,
                 )
-                OutlinedTextField(
+                IosTextField(
                     value = url,
                     onValueChange = { url = it },
                     modifier = Modifier.fillMaxWidth(),
                     label = { Text(linkUrlLabel) },
                     singleLine = true,
-                    // URL 输入用等宽字体提示技术性
-                    textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.Monospace),
                 )
             }
         },

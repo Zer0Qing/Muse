@@ -45,7 +45,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -77,6 +76,7 @@ import io.zer0.muse.data.stats.IntegrityChecker
 import io.zer0.muse.debug.DebugLogEntry
 import io.zer0.muse.debug.DebugLogStore
 import io.zer0.muse.ui.common.IosDropdown
+import io.zer0.muse.ui.common.IosTextField
 import io.zer0.muse.ui.common.IosTopBar
 import io.zer0.muse.ui.common.MuseBottomSheet
 import io.zer0.muse.ui.common.MuseDialog
@@ -474,21 +474,19 @@ private fun FilterRow(
             modifier = Modifier.width(120.dp),
         )
         Spacer(Modifier.width(MusePaddings.contentGap))
-        OutlinedTextField(
+        IosTextField(
             value = tagQuery,
             onValueChange = onTagChange,
             label = { Text("Tag") },
             singleLine = true,
-            shape = MuseShapes.medium,
             modifier = Modifier.width(140.dp),
         )
         Spacer(Modifier.width(MusePaddings.contentGap))
-        OutlinedTextField(
+        IosTextField(
             value = keywordQuery,
             onValueChange = onKeywordChange,
             label = { Text(stringResource(R.string.debug_keyword_label)) },
             singleLine = true,
-            shape = MuseShapes.medium,
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Outlined.Search,

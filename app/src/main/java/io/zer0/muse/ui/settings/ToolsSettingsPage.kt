@@ -10,18 +10,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Block
-import androidx.compose.material.icons.outlined.Build
-import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.HelpOutline
-import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.VerifiedUser
-import androidx.compose.material.icons.outlined.Warning
-import androidx.compose.material.icons.outlined.Refresh
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -46,8 +38,8 @@ import io.zer0.muse.tools.ToolRiskLevel
 import io.zer0.muse.ui.common.SectionLabel
 import io.zer0.muse.ui.common.SettingsGroup
 import io.zer0.muse.ui.common.SettingsGroupDivider
+import io.zer0.muse.ui.common.IosTextField
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
-import io.zer0.muse.ui.theme.MuseShapes
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -110,18 +102,18 @@ fun ToolsSettingsPage(
     ) {
         // ── 顶部搜索框 ────────────────────────────────────────────────
         item(key = "search") {
-            OutlinedTextField(
+            IosTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = { Text(stringResource(R.string.tools_settings_search_hint)) },
                 leadingIcon = {
-                    Icon(Icons.Outlined.Search, contentDescription = null)
+                    Icon(TablerIcons.Search, contentDescription = null)
                 },
                 trailingIcon = {
                     if (searchQuery.isNotEmpty()) {
                         Icon(
-                            Icons.Outlined.Refresh,
+                            TablerIcons.Refresh,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.outline,
                             modifier = Modifier.size(20.dp),
@@ -187,7 +179,7 @@ fun ToolsSettingsPage(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
-                            imageVector = Icons.Outlined.Search,
+                            imageVector = TablerIcons.Search,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
                             modifier = Modifier.size(48.dp),
@@ -210,21 +202,21 @@ fun ToolsSettingsPage(
         item(key = "footer") {
             SettingsGroup {
                 PolicyExplanationRow(
-                    icon = Icons.Outlined.Check,
+                    icon = TablerIcons.Check,
                     iconTint = Color(0xFF2E7D32),
                     title = stringResource(R.string.tools_settings_policy_always_allow),
                     description = stringResource(R.string.tools_settings_policy_always_allow_desc),
                 )
                 SettingsGroupDivider()
                 PolicyExplanationRow(
-                    icon = Icons.Outlined.HelpOutline,
+                    icon = TablerIcons.Help,
                     iconTint = Color(0xFFEF6C00),
                     title = stringResource(R.string.tools_settings_policy_ask),
                     description = stringResource(R.string.tools_settings_policy_ask_desc),
                 )
                 SettingsGroupDivider()
                 PolicyExplanationRow(
-                    icon = Icons.Outlined.Block,
+                    icon = TablerIcons.Ban,
                     iconTint = Color(0xFFD32F2F),
                     title = stringResource(R.string.tools_settings_policy_always_deny),
                     description = stringResource(R.string.tools_settings_policy_always_deny_desc),
@@ -256,9 +248,9 @@ private fun ToolPolicyRow(
     ) {
         // 风险等级图标
         val (icon, iconTint) = when (riskLevel) {
-            ToolRiskLevel.SAFE -> Icons.Outlined.VerifiedUser to Color(0xFF2E7D32)
-            ToolRiskLevel.NORMAL -> Icons.Outlined.Build to Color(0xFFEF6C00)
-            ToolRiskLevel.HIGH -> Icons.Outlined.Warning to Color(0xFFD32F2F)
+            ToolRiskLevel.SAFE -> TablerIcons.ShieldCheck to Color(0xFF2E7D32)
+            ToolRiskLevel.NORMAL -> TablerIcons.Tools to Color(0xFFEF6C00)
+            ToolRiskLevel.HIGH -> TablerIcons.AlertTriangle to Color(0xFFD32F2F)
         }
         Icon(
             imageVector = icon,

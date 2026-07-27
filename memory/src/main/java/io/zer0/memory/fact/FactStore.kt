@@ -87,16 +87,35 @@ class FactStore(
     /**
      * v5: 按前缀匹配相似度判断两条事实是否相似。
      * 取较短文本,若较长文本以其开头则视为重复。
+     *
+     * v9: 先去常见主语前缀,避免"对青霉素过敏"和"用户对青霉素过敏"被当成两条事实。
      */
     private fun isSimilar(a: String, b: String): Boolean {
-        val short = if (a.length <= b.length) a else b
-        val long = if (a.length > b.length) a else b
-        return long.startsWith(short) || short.startsWith(long)
+        val na = normalizeForSimilarity(a)
+        val nb = normalizeForSimilarity(b)
+        if (na == nb) return true
+        if (na.isBlank() || nb.isBlank()) return false
+        val short = if (na.length <= nb.length) na else nb
+        val long = if (na.length > nb.length) na else nb
+        return long.startsWith(short)
+    }
+
+    /**
+     * v9: 为去重比较去除常见主语前缀。
+     * 如"用户对青霉素过敏" → "对青霉素过敏";
+     * "The user is allergic to penicillin" → "allergic to penicillin"。
+     */
+    private fun normalizeForSimilarity(text: String): String {
+        return text.trim().lowercase()
+            .replace(Regex("^(用户|我|他|她|这个用户|the user|i am|he is|she is)\\s*"), "")
+            .trim()
     }
 
     /**
      * v5: 合并两条相似事实,保留最高重要度、最高置信度与最新 created_at;
      *     分类优先采用新事实,来源以 user_explicit 优先。
+     *
+     * v9: 合并时若两条事实仅差主语,保留更短、不带主语的原始表述。
      */
     private fun mergeSimilar(existing: FactEntity, new: Fact): FactEntity {
         val mergedImportance = maxOf(existing.importance, if (new.importance > 0) new.importance else inferImportance(new.fact))
@@ -113,7 +132,7 @@ class FactStore(
         // v7: 合并视为一次命中,重置衰减时钟
         val mergedLastHitAt = Instant.now().toString()
         return existing.copy(
-            fact = if (new.fact.length > existing.fact.length) new.fact else existing.fact,
+            fact = chooseMergedFact(existing.fact, new.fact),
             tags = json.encodeToString(ListSerializer(String.serializer()), mergedTags),
             time = mergedTime,
             sessionId = mergedSessionId,
@@ -126,6 +145,43 @@ class FactStore(
             lastConfirmedAt = mergedLastConfirmedAt,
             lastHitAt = mergedLastHitAt,
         )
+    }
+
+    /**
+     * v9: 合并两条相似事实的文本。
+     * 若语义相同(去主语后相等),保留更短、更原始的表述;
+     * 否则保留信息更完整(更长)的版本。
+     */
+    private fun chooseMergedFact(existing: String, new: String): String {
+        val normExisting = normalizeForSimilarity(existing)
+        val normNew = normalizeForSimilarity(new)
+        return if (normExisting == normNew) {
+            // 仅差主语时保留更短的原始表述
+            if (new.length < existing.length) new else existing
+        } else {
+            if (new.length > existing.length) new else existing
+        }
+    }
+
+    /**
+     * v9: 查找数据库中与新事实语义相似的已有事实。
+     * 先用原始前缀匹配,再用去主语后的前缀匹配,最后用子串搜索兜底,
+     * 确保"对青霉素过敏"和"用户对青霉素过敏"能被识别为同一条。
+     */
+    private suspend fun findExistingSimilar(cleaned: String, scope: String): FactEntity? {
+        // 1) 原始前缀匹配(保持 v5 行为)
+        dao.findSimilar(cleaned.take(40), scope).firstOrNull { isSimilar(it.fact, cleaned) }?.let { return it }
+
+        // 2) 去主语后的前缀匹配
+        val normalized = normalizeForSimilarity(cleaned)
+        if (normalized != cleaned.lowercase() && normalized.isNotBlank()) {
+            dao.findSimilar(normalized.take(40), scope).firstOrNull { isSimilar(it.fact, cleaned) }?.let { return it }
+        }
+
+        // 3) 兜底:子串搜索,限制数量避免全表扫描
+        dao.likeSearch(cleaned.take(40), 20).firstOrNull { isSimilar(it.fact, cleaned) }?.let { return it }
+
+        return null
     }
 
     /**
@@ -144,7 +200,7 @@ class FactStore(
             io.zer0.common.Logger.d("FactStore", "PII detected in fact: $detected")
         }
         val newEntry = entry.copy(fact = cleaned, scope = scope)
-        val existingSimilar = dao.findSimilar(cleaned.take(40), scope).firstOrNull { isSimilar(it.fact, cleaned) }
+        val existingSimilar = findExistingSimilar(cleaned, scope)
         if (existingSimilar != null) {
             val merged = mergeSimilar(existingSimilar, newEntry)
             dao.updateEntity(
@@ -196,7 +252,7 @@ class FactStore(
                 io.zer0.common.Logger.d("FactStore", "PII detected in batch fact: $detected")
             }
             val newEntry = entry.copy(fact = cleaned, scope = scope)
-            val existingSimilar = dao.findSimilar(cleaned.take(40), scope).firstOrNull { isSimilar(it.fact, cleaned) }
+            val existingSimilar = findExistingSimilar(cleaned, scope)
             if (existingSimilar != null) {
                 val merged = mergeSimilar(existingSimilar, newEntry)
                 dao.updateEntity(

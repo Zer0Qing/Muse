@@ -11,6 +11,11 @@
     <string name="chat_assistant_model_badge">Model: %1$s</string>
     <string name="chat_update_compress_cd">Update &amp; Compress</string>
     <string name="chat_scroll_to_bottom_cd">Scroll to bottom</string>
+    <string name="chat_export_cd">Export Chat</string>
+    <string name="chat_companion_days_zero">Just met today</string>
+    <string name="chat_companion_days">Together for %1$d days</string>
+    <string name="chat_date_separator_today">Today %1$s</string>
+    <string name="chat_thinking">Thinking…</string>
 
     <!-- Errors and permissions -->
     <string name="chat_err_mic_permission">Microphone permission is required for voice input</string>
@@ -149,6 +154,8 @@
     <string name="chat_tool_knowledge">Reference Knowledge Base</string>
     <string name="chat_tool_knowledge_subtitle">@mention documents</string>
     <string name="chat_tool_prompt_template_subtitle">Pick a scene prompt from templates</string>
+    <string name="chat_tool_skills">Skills</string>
+    <string name="chat_tool_skills_subtitle">Manage and call enabled skills</string>
     <string name="chat_tool_draw_mode">Draw Mode</string>
     <string name="chat_tool_draw_mode_subtitle_on">On · Describe an image to generate</string>
     <string name="chat_tool_draw_mode_subtitle">Describe an image to generate</string>
@@ -158,7 +165,7 @@
 
     <!-- Input field and buttons -->
     <string name="chat_placeholder_draw">Describe an image to generate…</string>
-    <string name="chat_placeholder_send">Send a message…</string>
+    <string name="chat_placeholder_send">Reply to Muse…</string>
     <string name="chat_stop_generation_cd">Stop Generating</string>
     <string name="chat_recording_start_failed">Failed to start recording. Check permissions or model config.</string>
     <string name="chat_recognizing_cd">Recognizing</string>
@@ -221,7 +228,20 @@
     <!-- Section titles -->
     <string name="chat_list_section_ungrouped">Ungrouped</string>
     <string name="chat_list_section_recent">Recent</string>
+    <string name="chat_list_section_pinned">Pinned</string>
+    <string name="chat_list_section_folders">Folders</string>
+    <string name="chat_list_section_knowledge">Knowledge</string>
     <string name="chat_list_new_folder">New Folder</string>
+
+    <!-- Task home -->
+    <string name="chat_list_input_hint">Enter any idea…</string>
+    <string name="chat_list_send">Send</string>
+    <string name="chat_list_no_recent_title">No chats yet</string>
+    <string name="chat_list_no_recent_subtitle">Tap the + button below to start a new chat</string>
+    <string name="chat_list_knowledge_title">Knowledge Base</string>
+    <string name="chat_list_knowledge_count">%1$d documents</string>
+    <string name="chat_list_knowledge_empty">Tap to add documents</string>
+    <string name="chat_list_quick_send">New &amp; Send</string>
 
     <!-- Bottom button and dialogs -->
     <string name="chat_list_new_task">New Task</string>
@@ -230,7 +250,9 @@
     <string name="chat_list_create">Create</string>
 
     <!-- Session long-press menu -->
+    <string name="chat_list_pin">Pin</string>
     <string name="chat_list_unpin">Unpin</string>
+    <string name="chat_list_archive">Archive</string>
     <string name="chat_list_move_ungrouped">Move to Ungrouped</string>
     <string name="chat_list_move_to">Move to: %1$s</string>
     <string name="chat_list_move_to_cd">Move to %1$s</string>

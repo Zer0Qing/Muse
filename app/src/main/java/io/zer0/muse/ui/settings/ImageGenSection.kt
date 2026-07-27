@@ -15,9 +15,8 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.outlined.Image
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -313,14 +312,14 @@ private fun ImageModelSelectorDialog(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     if (models.isEmpty()) {
-                        // v1.48: h14 绘图模型空态改为带图标 Icons.Outlined.Image 的居中 Row
+                        // v1.48: h14 绘图模型空态改为带图标 TablerIcons.Photo 的居中 Row
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Icon(
-                                imageVector = Icons.Outlined.Image,
+                                imageVector = TablerIcons.Photo,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.outline,
                                 modifier = Modifier.size(16.dp),
@@ -398,9 +397,9 @@ private fun ModelGridCard(
             )
             if (selected) {
                 Icon(
-                    imageVector = Icons.Default.Check,
+                    imageVector = TablerIcons.Check,
                     contentDescription = stringResource(R.string.settings_image_gen_selected),
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(18.dp),
                 )
             }

@@ -10,23 +10,30 @@ import io.zer0.muse.R
 /**
  * 预设主题系统 (v0.22 重写,参考 rikkahub PresetTheme.kt)。
  *
- * 6 套预设主题:
- *  - warm_paper (暖纸 - 默认,保留现有配色)
+ * 12 套预设主题:
+ *  - mono (黑白 - 默认,纯黑白极简风格,参考 GPT/MANUS)
+ *  - warm_paper (暖纸 - 保留现有配色)
  *  - sakura (樱花 - 粉色系)
  *  - ocean (海洋 - 蓝色系)
  *  - spring (春 - 清新绿)
  *  - autumn (秋 - 橙黄)
- *  - amoled (AMOLED 纯黑 - OLED 省电)
+ *  - sumi (墨 - 灰调)
+ *  - washi (和紙 - 暖棕)
+ *  - aizome (藍染 - 靛蓝)
+ *  - twilight_purple (暮紫韵 - 紫调)
+ *  - amber_gold (琥珀金 - 琥珀)
+ *  - dusk_rose (暮霭玫 - 玫红)
  *
  * 设计原则:
  *  - 每套预设都包含 light + dark 两份完整 ColorScheme
  *  - 品牌色 (primary) 是稀缺资源,只用在 <5% 面积的交互元素上
- *  - 背景色遵循暖纸哲学:浅色用暖白而非纯白,深色用接近黑而非纯黑 (AMOLED 除外)
+ *  - mono 主题:primary 为纯黑(浅色)/纯白(深色),全灰阶无品牌色
+ *  - 背景色遵循暖纸哲学:浅色用暖白而非纯白,深色用接近黑而非纯黑 (mono 除外)
  *  - 用户气泡用 primary 区分,AI 气泡用 surfaceVariant
  *  - L-PT2:sakura / ocean / spring / autumn 的 secondary / tertiary 刻意与
  *    primary 同色。设计意图是"每套主题只在一个色相上做深浅",贯彻品牌色稀缺原则,
- *    避免每套主题额外引入 2 个色相(6 套 × 3 色 = 18 色相)造成视觉杂乱;
- *    warm_paper / amoled 为基准主题。如未来需要多色相强调,可在此单独差异化。
+ *    避免每套主题额外引入 2 个色相造成视觉杂乱;
+ *    mono / warm_paper 为基准主题。
  */
 @Immutable
 data class PresetTheme(
@@ -511,54 +518,96 @@ val AutumnTheme = PresetTheme(
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 6. AMOLED 主题 (OLED 纯黑 - 省电 + 对比度最高)
+// 6. 黑白主题 (Mono - 纯黑白极简风格,参考 GPT/MANUS,默认主题)
+// v1.0.25: 替换原 AMOLED 主题。primary 为纯黑(浅色)/纯白(深色),
+// 全灰阶无品牌色,OLED 省电 + 对比度最高 + 极简质感。
 // ─────────────────────────────────────────────────────────────────────────────
-private val AmoledDarkBg = Color(0xFF000000)
-private val AmoledDarkInk = Color(0xFFE8E8E8)
-private val AmoledDarkAiBubble = Color(0xFF1C1C1E)
+private val MonoLightBg = Color(0xFFFFFFFF)
+private val MonoLightInk = Color(0xFF000000)
+private val MonoLightSurfaceVariant = Color(0xFFF7F7F8)
+private val MonoLightOnSurfaceVariant = Color(0xFF6B6B6B)
+private val MonoDarkBg = Color(0xFF000000)
+private val MonoDarkInk = Color(0xFFFFFFFF)
+private val MonoDarkSurfaceVariant = Color(0xFF1C1C1E)
+private val MonoDarkOnSurfaceVariant = Color(0xFF98989F)
 
-val AmoledTheme = PresetTheme(
-    id = "amoled",
-    nameResId = R.string.theme_amoled,
-    // AMOLED 浅色模式沿用暖纸浅色 (OLED 用户多数时间用深色)
-    lightScheme = WarmPaperTheme.lightScheme,
+val MonoTheme = PresetTheme(
+    id = "mono",
+    nameResId = R.string.theme_mono,
+    lightScheme = lightColorScheme(
+        // primary 为纯黑:CTA 按钮、选中态、用户气泡均为黑底白字
+        primary = MonoLightInk,
+        onPrimary = MonoLightBg,
+        primaryContainer = Color(0xFFF0F0F0),
+        onPrimaryContainer = MonoLightInk,
+        inversePrimary = MonoLightBg,
+        secondary = MonoLightOnSurfaceVariant,
+        onSecondary = MonoLightBg,
+        secondaryContainer = Color(0xFFF0F0F0),
+        onSecondaryContainer = MonoLightInk,
+        tertiary = MonoLightOnSurfaceVariant,
+        onTertiary = MonoLightBg,
+        tertiaryContainer = Color(0xFFF0F0F0),
+        onTertiaryContainer = MonoLightInk,
+        // surface 容器梯度:纯白基底,逐级加深
+        surfaceContainer = MonoLightSurfaceVariant,
+        surfaceContainerLow = MonoLightBg,
+        surfaceContainerHigh = Color(0xFFECECEE),
+        surfaceDim = Color(0xFFE5E5E8),
+        surfaceBright = MonoLightBg,
+        background = MonoLightBg,
+        onBackground = MonoLightInk,
+        surface = MonoLightBg,
+        onSurface = MonoLightInk,
+        surfaceVariant = MonoLightSurfaceVariant,
+        onSurfaceVariant = MonoLightOnSurfaceVariant,
+        surfaceTint = MonoLightInk,
+        inverseSurface = MonoLightInk,
+        inverseOnSurface = MonoLightBg,
+        error = Danger,
+        onError = Color.White,
+        errorContainer = DangerLightContainer,
+        onErrorContainer = Danger,
+        outline = Color(0xFFD1D1D6),
+        outlineVariant = Color(0xFFE5E5EA),
+        scrim = Color.Black,
+    ),
     darkScheme = darkColorScheme(
-        // v1.0.21: 深色模式 primary 改用 LaurelGreenBright,与 warm_paper 保持一致
-        primary = LaurelGreenBright,
-        onPrimary = Color.White,
-        primaryContainer = LaurelGreenDarkContainer,
-        onPrimaryContainer = LaurelGreenLight,
-        inversePrimary = StarGold,
-        secondary = LaurelGreenBright,
-        onSecondary = Color.White,
-        secondaryContainer = LaurelGreenDarkContainer,
-        onSecondaryContainer = LaurelGreenLight,
-        tertiary = LaurelGreenBright,
-        onTertiary = Color.White,
-        // M-1: tertiary 与 primary 同色,container/onContainer 同步引用 primary 容器色。
-        tertiaryContainer = LaurelGreenDarkContainer,
-        onTertiaryContainer = LaurelGreenLight,
-        // M-2: surface 容器梯度,复用 warm_paper 深色取值(surface=纯黑,dim 同纯黑)。
-        surfaceContainer = Color(0xFF141416),
-        surfaceContainerLow = AmoledDarkBg,
-        surfaceContainerHigh = Color(0xFF1C1C1E),
-        surfaceDim = AmoledDarkBg,
-        surfaceBright = Color(0xFF2C2C2E),
-        background = AmoledDarkBg,
-        onBackground = AmoledDarkInk,
-        surface = AmoledDarkBg,
-        onSurface = AmoledDarkInk,
-        surfaceVariant = AmoledDarkAiBubble,
-        onSurfaceVariant = AmoledDarkInk,
-        surfaceTint = LaurelGreenBright,
-        inverseSurface = AmoledDarkInk,
-        inverseOnSurface = AmoledDarkBg,
+        // primary 为纯白:CTA 按钮、选中态、用户气泡均为白底黑字
+        primary = MonoDarkInk,
+        onPrimary = MonoDarkBg,
+        primaryContainer = Color(0xFF2C2C2E),
+        onPrimaryContainer = MonoDarkInk,
+        inversePrimary = MonoDarkBg,
+        secondary = MonoDarkOnSurfaceVariant,
+        onSecondary = MonoDarkBg,
+        secondaryContainer = Color(0xFF2C2C2E),
+        onSecondaryContainer = MonoDarkInk,
+        tertiary = MonoDarkOnSurfaceVariant,
+        onTertiary = MonoDarkBg,
+        tertiaryContainer = Color(0xFF2C2C2E),
+        onTertiaryContainer = MonoDarkInk,
+        // surface 容器梯度:纯黑基底,逐级加亮
+        surfaceContainer = MonoDarkSurfaceVariant,
+        surfaceContainerLow = MonoDarkBg,
+        surfaceContainerHigh = Color(0xFF2C2C2E),
+        surfaceDim = MonoDarkBg,
+        surfaceBright = Color(0xFF3A3A3C),
+        background = MonoDarkBg,
+        onBackground = MonoDarkInk,
+        surface = MonoDarkBg,
+        onSurface = MonoDarkInk,
+        surfaceVariant = MonoDarkSurfaceVariant,
+        onSurfaceVariant = MonoDarkOnSurfaceVariant,
+        surfaceTint = MonoDarkInk,
+        inverseSurface = MonoDarkInk,
+        inverseOnSurface = MonoDarkBg,
         error = Danger,
         onError = Color.White,
         errorContainer = DangerDarkContainer,
         onErrorContainer = Danger,
-        outline = Secondary,
-        outlineVariant = DarkDivider,
+        outline = Color(0xFF3A3A3C),
+        outlineVariant = Color(0xFF2C2C2E),
         scrim = Color.Black,
     ),
 )
@@ -1106,7 +1155,7 @@ val PresetThemes: List<PresetTheme> = listOf(
     OceanTheme,
     SpringTheme,
     AutumnTheme,
-    AmoledTheme,
+    MonoTheme,
     SumiTheme,
     WashiTheme,
     AizomeTheme,

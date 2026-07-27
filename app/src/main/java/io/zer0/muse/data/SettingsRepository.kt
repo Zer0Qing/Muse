@@ -251,7 +251,7 @@ class SettingsRepository(
     val themeModeFlow: Flow<String> = store.data.map { prefs -> prefs[KEY_THEME_MODE] ?: "system" }
     /** v1.60-C: 应用界面语言(system=跟随系统 / zh=中文 / en=英文 / ja=日语 / ko=韩语 / ru=俄语)。 */
     val languageFlow: Flow<String> = store.data.map { prefs -> prefs[KEY_LANGUAGE] ?: "system" }
-    val themeIdFlow: Flow<String> = store.data.map { prefs -> prefs[KEY_THEME_ID] ?: "warm_paper" }
+    val themeIdFlow: Flow<String> = store.data.map { prefs -> prefs[KEY_THEME_ID] ?: "mono" }
     /** 深色模式独立主题 id(空字符串表示跟随亮色主题的暗色版)。 */
     val darkThemeIdFlow: Flow<String> = store.data.map { prefs -> prefs[KEY_DARK_THEME_ID] ?: "" }
     /** 主题定时切换配置。 */
@@ -516,6 +516,7 @@ class SettingsRepository(
             loginAt = prefs[KEY_ACCOUNT_LOGIN_AT] ?: 0L,
             loginMethod = prefs[KEY_ACCOUNT_LOGIN_METHOD] ?: "",
             isGuestMode = prefs[KEY_ACCOUNT_GUEST_MODE] ?: false,
+            avatarUri = prefs[KEY_ACCOUNT_AVATAR_URI],
         )
     }
     /** 是否已登录(本地标记)。 */
@@ -716,6 +717,26 @@ class SettingsRepository(
     }
     suspend fun logout() {
         store.edit { prefs -> prefs[KEY_ACCOUNT_LOGGED_IN] = false; prefs[KEY_ACCOUNT_USER_NAME] = ""; prefs[KEY_ACCOUNT_LOGIN_AT] = 0L; prefs[KEY_ACCOUNT_LOGIN_METHOD] = ""; prefs[KEY_ACCOUNT_GUEST_MODE] = false }
+    }
+
+    /**
+     * v2.x: 保存用户个人资料(头像 + 昵称)。
+     *
+     * 用于"编辑个人资料"页 — 用户可本地选择头像图片和自定义昵称,
+     * 无需登录/注册即可生效。空昵称回退默认名 [R.string.settings_repo_default_user_name]。
+     *
+     * @param userName 新昵称(blank 时回退默认名)
+     * @param avatarUri 头像 URI 字符串(null 表示清除头像,用首字母占位)
+     */
+    suspend fun saveUserProfile(userName: String, avatarUri: String?) {
+        store.edit { prefs ->
+            prefs[KEY_ACCOUNT_USER_NAME] = userName.ifBlank { appContext.getString(R.string.settings_repo_default_user_name) }
+            if (avatarUri == null) {
+                prefs.remove(KEY_ACCOUNT_AVATAR_URI)
+            } else {
+                prefs[KEY_ACCOUNT_AVATAR_URI] = avatarUri
+            }
+        }
     }
 
     // ── Model profiles ──
@@ -1271,6 +1292,7 @@ class SettingsRepository(
         private val KEY_ACCOUNT_LOGIN_AT = longPreferencesKey("account_login_at")
         private val KEY_ACCOUNT_LOGIN_METHOD = stringPreferencesKey("account_login_method")
         private val KEY_ACCOUNT_GUEST_MODE = booleanPreferencesKey("account_guest_mode")
+    private val KEY_ACCOUNT_AVATAR_URI = stringPreferencesKey("account_avatar_uri")
         private val KEY_MODEL_PROFILES = stringPreferencesKey("model_profiles_json")
         // v0.30-a: 用户画像
         private val KEY_USER_PROFILE = stringPreferencesKey("user_profile_json")

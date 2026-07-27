@@ -206,7 +206,9 @@ Merge new candidate facts into existing facts.
 
 Principles:
 - Each fact must be atomic (one fact per line)
-- Merge duplicates; keep the most recent wording
+- Merge duplicates; keep the original wording. Do not add "the user" or "user" as a subject.
+  If the input says "allergic to penicillin", keep "allergic to penicillin"; do not rewrite it as "the user is allergic to penicillin".
+- When two facts differ only by the presence of a subject ("allergic to penicillin" vs "the user is allergic to penicillin"), keep the shorter, subject-less version.
 - Drop facts that are transient (task-level, one-time events)
 - Keep only durable user-profile facts (identity, preferences, long-term focus)
 - Format: one fact per line, no bullet prefix, no headings
@@ -219,12 +221,14 @@ Output the merged facts list. Max 100 words. Do not output Markdown headings. Do
 
 原则:
 - 每条 fact 必须原子(一行一条)
-- 合并重复项,保留最新表述
+- 合并重复项,保留原始表述;不要给事实补"用户"主语。
+  如果输入是"对青霉素过敏",就保留"对青霉素过敏",不要改写成"用户对青霉素过敏"。
+- 如果两条事实只差一个主语(如"对青霉素过敏"和"用户对青霉素过敏"),保留更短、不带主语的版本。
 - 丢弃短暂事实(任务级、一次性事件)
 - 只保留持久的用户画像事实(身份、偏好、长期关注)
 - 格式: 一行一条,无 bullet 前缀,无标题
 
-输出合并后的 facts 列表。最多 200 字。不要输出 Markdown 标题,不要以 #、##、### 开头;直接输出正文列表或段落。
+输出合并后的 facts 列表。最多 200 字。不要输出 Markdown headings,不要以 #、##、### 开头;直接输出正文列表或段落。
         """.trimIndent()
     }
 

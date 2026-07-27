@@ -45,7 +45,7 @@ fun Context.findActivity(): Activity? {
  *    (如未来需要,可在 settings 加开关,这里保留参数)
  *  - 字号缩放 [fontSizeScale] 通过 [MuseTypography.scaled] 应用到所有文字
  *
- * Safe Mode 说明 (L-13):各参数均带默认值(darkTheme 跟随系统、themeId=warm_paper、
+ * Safe Mode 说明 (L-13):各参数均带默认值(darkTheme 跟随系统、themeId=mono、
  * fontSizeScale=medium),故 `MuseTheme { content }` 即可独立运行。Safe Mode 设计目标
  * 是"最小可用":在 SettingsRepository 尚未就绪或读取失败的降级场景下,不依赖任何运行时
  * 状态即可渲染基本界面,因此刻意不接入动态色 / 自定义主题 / 字号缩放。
@@ -61,7 +61,7 @@ fun Context.findActivity(): Activity? {
 @Composable
 fun MuseTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    themeId: String = "warm_paper",
+    themeId: String = "mono",
     darkThemeId: String = "",
     fontSizeScale: String = "medium",
     dynamicColor: Boolean = false,

@@ -12,13 +12,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.CircularProgressIndicator
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -114,7 +110,7 @@ internal fun ProviderModelRow(
                     )
                 } else {
                     Icon(
-                        imageVector = Icons.Default.Speed,
+                        imageVector = TablerIcons.Gauge,
                         contentDescription = stringResource(R.string.settings_model_action_test),
                         tint = if (canTest) MaterialTheme.colorScheme.outline
                         else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
@@ -126,7 +122,7 @@ internal fun ProviderModelRow(
         // 右侧操作按钮
         IconButton(onClick = onAction) {
             Icon(
-                imageVector = if (isAdded) Icons.Default.Settings else Icons.Default.Add,
+                imageVector = if (isAdded) TablerIcons.Settings else TablerIcons.Plus,
                 contentDescription = if (isAdded) stringResource(R.string.settings_model_action_settings) else stringResource(R.string.settings_model_action_add),
                 tint = MaterialTheme.colorScheme.outline,
             )
@@ -227,7 +223,7 @@ internal fun ModelAbilityChips(
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     leading = {
                         Icon(
-                            imageVector = Icons.Default.Check,
+                            imageVector = TablerIcons.Check,
                             contentDescription = null,
                             modifier = Modifier.size(12.dp),
                         )
@@ -244,7 +240,7 @@ internal fun ModelAbilityChips(
                     contentColor = MaterialTheme.colorScheme.onErrorContainer,
                     leading = {
                         Icon(
-                            imageVector = Icons.Default.Close,
+                            imageVector = TablerIcons.X,
                             contentDescription = null,
                             modifier = Modifier.size(12.dp),
                         )

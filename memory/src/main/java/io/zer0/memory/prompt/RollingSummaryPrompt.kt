@@ -70,6 +70,8 @@ $formatRequirements
 **$factTitle section**
 Only record user-profile information: identity, personality, aesthetics, interests, likes/dislikes, long-term relationships, life or creative orientation, and broad current themes. Write `- None` if none.
 
+Preserve the user's original wording; do not add "the user" as a subject. If the user said "allergic to penicillin", write "allergic to penicillin", not "the user is allergic to penicillin".
+
 Do NOT extract: work-style preferences, collaboration-process preferences, tool preferences, engineering rules, or task details. When in doubt, skip. Better miss than mis-record.
 
 **$timelineTitle section**
@@ -115,6 +117,8 @@ $formatRequirements
 
 **$factTitle 一节**
 只记录用户画像类信息:身份属性、人格特质、审美和兴趣、喜欢或讨厌的事物、长期关系、生活或创作取向、近期正在关注/投入的大主题。没有则写 `- 无`。
+
+保留用户原话,不要给事实补"用户"主语。如果用户说"对青霉素过敏",就写"对青霉素过敏",不要改写成"用户对青霉素过敏"。
 
 不要抽:工作方式偏好、协作流程偏好、工具和平台偏好、工程纪律和项目规则、一次任务里的格式标准。只抽:用户是什么样的人、喜欢或讨厌什么、长期在意的主题、最近关注哪个领域/项目/主题(只保留大主题)。
 拿不准一律不抽。宁可漏,不可错。

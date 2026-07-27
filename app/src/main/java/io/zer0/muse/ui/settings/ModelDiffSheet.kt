@@ -20,11 +20,6 @@ import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.DeleteOutline
-import androidx.compose.material.icons.filled.Remove
 import io.zer0.muse.ui.common.IosChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -52,6 +47,8 @@ import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 
 /**
  * P2-2: 上游模型差异 Sheet。
@@ -150,7 +147,7 @@ fun ModelDiffSheet(
                 DiffActionButton(
                     modifier = Modifier.weight(1f),
                     label = stringResource(R.string.model_diff_add_all),
-                    icon = Icons.Default.Add,
+                    icon = TablerIcons.Plus,
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     enabled = newModels.isNotEmpty(),
@@ -159,7 +156,7 @@ fun ModelDiffSheet(
                 DiffActionButton(
                     modifier = Modifier.weight(1f),
                     label = stringResource(R.string.model_diff_remove_all),
-                    icon = Icons.Default.Remove,
+                    icon = TablerIcons.Minus,
                     containerColor = MaterialTheme.colorScheme.errorContainer,
                     contentColor = MaterialTheme.colorScheme.onErrorContainer,
                     enabled = removedModels.isNotEmpty(),
@@ -182,7 +179,7 @@ fun ModelDiffSheet(
                     DiffSectionHeader(
                         label = stringResource(R.string.model_diff_new, newModels.size),
                         chipText = stringResource(R.string.model_diff_new, newModels.size),
-                        chipIcon = Icons.Default.Add,
+                        chipIcon = TablerIcons.Plus,
                         chipColor = MaterialTheme.colorScheme.primaryContainer,
                         chipTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
@@ -210,7 +207,7 @@ fun ModelDiffSheet(
                     DiffSectionHeader(
                         label = stringResource(R.string.model_diff_removed, removedModels.size),
                         chipText = stringResource(R.string.model_diff_removed, removedModels.size),
-                        chipIcon = Icons.Default.DeleteOutline,
+                        chipIcon = TablerIcons.Trash,
                         chipColor = MaterialTheme.colorScheme.errorContainer,
                         chipTextColor = MaterialTheme.colorScheme.onErrorContainer,
                     )
@@ -239,7 +236,7 @@ fun ModelDiffSheet(
                     DiffSectionHeader(
                         label = stringResource(R.string.model_diff_unchanged, unchangedCount),
                         chipText = stringResource(R.string.model_diff_unchanged, unchangedCount),
-                        chipIcon = Icons.Default.Check,
+                        chipIcon = TablerIcons.Check,
                         chipColor = MaterialTheme.colorScheme.surfaceVariant,
                         chipTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -251,7 +248,7 @@ fun ModelDiffSheet(
             DiffActionButton(
                 modifier = Modifier.fillMaxWidth(),
                 label = stringResource(R.string.model_diff_apply),
-                icon = Icons.Default.Check,
+                icon = TablerIcons.Check,
                 containerColor = if (applyEnabled) MaterialTheme.colorScheme.inverseSurface
                 else MaterialTheme.colorScheme.inverseSurface.copy(alpha = 0.12f),
                 contentColor = if (applyEnabled) MaterialTheme.colorScheme.inverseOnSurface
@@ -410,7 +407,7 @@ private fun DiffModelRow(
         ) {
             if (selected) {
                 Icon(
-                    imageVector = Icons.Default.Check,
+                    imageVector = TablerIcons.Check,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(MuseIconSizes.iconTiny),

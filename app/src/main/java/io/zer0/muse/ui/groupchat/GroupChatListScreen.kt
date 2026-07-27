@@ -11,9 +11,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import io.zer0.muse.ui.common.WindowWidthClass
 import androidx.compose.foundation.layout.widthIn
@@ -21,12 +21,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.outlined.Forum
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -43,6 +43,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -51,12 +52,13 @@ import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.groupchat.GroupChatEntity
 import io.zer0.muse.data.groupchat.GroupChatMessageEntity
 import io.zer0.muse.ui.common.AssistantAvatar
-import io.zer0.muse.ui.common.EmptyState
+import io.zer0.muse.ui.common.ChevronRight
 import io.zer0.muse.ui.common.IosCardPress
 import io.zer0.muse.ui.common.rememberWindowWidthClass
 import io.zer0.muse.ui.common.MuseDialog
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseHaptics
+import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import kotlinx.coroutines.delay
@@ -105,28 +107,7 @@ fun GroupChatListScreen(
                 )
                 .navigationBarsPadding(),
         ) {
-        // 顶部标题栏(标题 + 新建按钮)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .padding(horizontal = MusePaddings.screen, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = stringResource(R.string.groupchat_list_title),
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
-            )
-            IconButton(onClick = { showCreateDialog = true }) {
-                Icon(
-                    imageVector = Icons.Filled.Add,
-                    contentDescription = stringResource(R.string.groupchat_create_cd),
-                    modifier = Modifier.size(24.dp),
-                )
-            }
-        }
-
+        // v2.1: 移除独立标题栏(Tab 已标注"群聊"),直接展示列表
         // v1.72: 首次加载时显示 loading,避免闪"还没有群聊"空状态
         if (state.isChatsLoading) {
             Box(
@@ -136,29 +117,58 @@ fun GroupChatListScreen(
                 CircularProgressIndicator()
             }
         } else if (state.chats.isEmpty()) {
-            // 空状态
-            EmptyState(
-                icon = Icons.Outlined.Forum,
-                title = stringResource(R.string.groupchat_empty_title),
-                subtitle = stringResource(R.string.groupchat_empty_subtitle),
-                actionText = stringResource(R.string.groupchat_create_cd),
-                onAction = { showCreateDialog = true },
-                modifier = Modifier.fillMaxSize(),
-            )
+            // 空状态：简洁的"新建群聊"磁贴
+            Surface(
+                onClick = { showCreateDialog = true },
+                shape = MuseShapes.extraLarge,
+                color = MaterialTheme.colorScheme.surface,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = MusePaddings.screen),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(MusePaddings.cardInner),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Add,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(MuseIconSizes.icon),
+                    )
+                    Text(
+                        text = stringResource(R.string.groupchat_create_cd),  // "新建群聊"
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            }
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
                     start = MusePaddings.screen,
                     end = MusePaddings.screen,
-                    top = MusePaddings.itemGap / 2,
-                    // v1.0.17: 底部留出悬浮胶囊空间,避免最后一条群聊被遮挡
+                    top = MusePaddings.itemGap,
                     bottom = 88.dp,
                 ),
-                verticalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                // M10 已知限制: 每卡片独立 DB 查询(N+1),群聊数量少时影响小;
-                // 后续群聊增多可改为批量查询最新消息 + 成员后一次性注入。
+                // v2.2: 页面标题"我的群聊"
+                item(key = "page_title") {
+                    Text(
+                        text = stringResource(R.string.groupchat_list_title),
+                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        textAlign = TextAlign.Center,
+                    )
+                }
                 items(
                     items = state.chats,
                     key = { it.id },
@@ -176,6 +186,44 @@ fun GroupChatListScreen(
                         onTogglePin = { viewModel.togglePin(chat.id) },
                         onDelete = { viewModel.deleteChat(chat.id) },
                     )
+                }
+                // v2.2: 底部"新建群聊"按钮(参考图:左侧绿色加号圆圈 + 居中绿色文字)
+                item(key = "create_new") {
+                    IosCardPress(
+                        onClick = { showCreateDialog = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MuseShapes.extraLarge,
+                        containerColor = MaterialTheme.colorScheme.surface,
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center,
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Add,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(22.dp),
+                                )
+                            }
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                text = stringResource(R.string.groupchat_create_cd),
+                                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -199,7 +247,7 @@ fun GroupChatListScreen(
 }
 
 /**
- * 群聊卡片 — 展示群聊名 + 成员头像行 + 最新消息预览 + 时间。
+ * v2.2: 群聊卡片 — 参考图样式(平铺成员头像 | 群名+发送者前缀消息 | 时间+箭头)。
  */
 @Composable
 private fun GroupChatCard(
@@ -223,7 +271,6 @@ private fun GroupChatCard(
     var showDeleteConfirm by remember { mutableStateOf(false) }
     val hapticFeedback = LocalHapticFeedback.current
 
-    // v1.0.17: 用 IosCardPress 替换 Card.combinedClickable,消除 Material ripple 黑色遮罩
     IosCardPress(
         onClick = onClick,
         onLongClick = {
@@ -234,45 +281,46 @@ private fun GroupChatCard(
         shape = MuseShapes.extraLarge,
         containerColor = MaterialTheme.colorScheme.surface,
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(MusePaddings.cardInner),
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            // 第一行:群聊名 + 时间
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
+            // 左侧:成员头像平铺(最多4个,40dp,间距4dp)
+            MemberAvatarRow(
+                members = members,
+                memberCount = memberCount,
+                avatarSize = 40.dp,
+            )
+            Spacer(Modifier.width(14.dp))
+            // 中间:群名 + 最新消息
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = chat.name,
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
                 )
                 Text(
-                    text = formatRelativeTime(chat.updatedAt),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    text = LatestMessagePreview(latestMessage),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 3.dp),
                 )
             }
-            Spacer(Modifier.height(4.dp))
-
-            // 第二行:最新消息预览
+            Spacer(Modifier.width(8.dp))
+            // 右侧:时间 + chevron
             Text(
-                text = latestMessage?.body ?: stringResource(R.string.groupchat_no_messages),
-                style = MaterialTheme.typography.bodySmall,
+                text = formatRelativeTime(chat.updatedAt),
+                style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
             )
-            Spacer(Modifier.height(8.dp))
-
-            // 第三行:成员头像行
-            MemberAvatarRow(members = members, totalCount = memberCount)
+            Spacer(Modifier.width(6.dp))
+            ChevronRight()
         }
     }
 
@@ -327,46 +375,63 @@ private fun GroupChatCard(
 }
 
 /**
- * 成员头像行 — 最多显示 3 个头像 + "+N"。
+ * v2.2: 成员头像平铺行 — 最多显示4个,紧凑排列。
  */
 @Composable
 private fun MemberAvatarRow(
     members: List<AssistantEntity>,
-    totalCount: Int,
+    memberCount: Int,
+    avatarSize: androidx.compose.ui.unit.Dp,
 ) {
+    val visibleCount = minOf(4, members.size)
     Row(
+        horizontalArrangement = Arrangement.spacedBy((-6).dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        val visibleCount = minOf(3, members.size)
         for (i in 0 until visibleCount) {
-            AssistantAvatar(
-                assistant = members[i],
-                avatarSize = 24.dp,
-            )
-        }
-        if (totalCount > visibleCount) {
-            Box(
-                modifier = Modifier
-                    .size(24.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center,
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surface,
+                modifier = Modifier.size(avatarSize),
             ) {
-                Text(
-                    text = "+${totalCount - visibleCount}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                AssistantAvatar(
+                    assistant = members[i],
+                    avatarSize = avatarSize,
                 )
             }
         }
-        Spacer(Modifier.width(4.dp))
-        Text(
-            text = stringResource(R.string.groupchat_member_count, totalCount),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.outline,
-        )
+        if (memberCount > visibleCount) {
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                modifier = Modifier.size(avatarSize),
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = "+${memberCount - visibleCount}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
     }
+}
+
+/**
+ * v2.2: 最新消息预览 — 发送者简称 + 冒号 + 内容。
+ */
+@Composable
+private fun LatestMessagePreview(message: GroupChatMessageEntity?): String {
+    if (message == null) return stringResource(R.string.groupchat_no_messages)
+    val prefix = when (message.senderType) {
+        "user" -> stringResource(R.string.groupchat_sender_user)
+        else -> message.senderName.take(1).ifBlank { "A" }
+    }
+    return "$prefix: ${message.body}"
 }
 
 /**

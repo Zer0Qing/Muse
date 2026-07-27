@@ -54,10 +54,8 @@ data class MemoryUiState(
     val isSearching: Boolean = false,
     val factCount: Int = 0,
     val summaryCount: Int = 0,
-    /** v2.0: 筛选条件 */
-    val importanceFilter: Int? = null,
-    val timeFilter: String? = null,
-    val typeFilter: String? = null,
+    /** v2.0: 筛选条件(旧三态已废弃,改为更直观的分类筛选) */
+    val categoryFilter: String? = null,
     val lastUpdatedAt: String? = null,
     /** 完整错误堆栈(供 UI 可滚动展示,方便用户复制给开发者定位问题)。 */
     val errorTrace: String? = null,
@@ -352,6 +350,8 @@ class MemoryViewModel(
                         createdAt = fact.createdAt,
                         // v8: 透传 scope,供 UI 显示徽章(主助手=默认色,子助手=tertiary 色)
                         scope = fact.scope,
+                        // v9: 透传 category,供新 UI 按分类筛选与展示
+                        category = fact.category,
                     )
                 }
                 val summaryItems = summaries.map { summary ->
@@ -475,6 +475,8 @@ class MemoryViewModel(
                     createdAt = fact.createdAt,
                     // v8: 透传 scope,搜索结果与列表项徽章一致
                     scope = fact.scope,
+                    // v9: 透传 category,搜索结果也按分类展示
+                    category = fact.category,
                 )
             }
             _state.update { it.copy(searchResults = items, isSearching = false) }
@@ -654,36 +656,17 @@ class MemoryViewModel(
         }
     }
 
-    // ── v2.0: 记忆筛选 CRUD ───────────────────────────────────────────────
+    // ── v2.0: 记忆分类筛选 CRUD ──────────────────────────────────────────
 
-    /** 设置重要性筛选(null=全部, 0=普通, 1=重要, 2=关键)。 */
-    fun setImportanceFilter(importance: Int?) {
-        _state.update { it.copy(importanceFilter = importance) }
+    /** v9: 设置分类筛选(null=全部, 对应 fact category: identity/preference/event/relationship/goal/medical)。 */
+    fun setCategoryFilter(category: String?) {
+        _state.update { it.copy(categoryFilter = category) }
     }
 
-    /** 设置时间范围筛选(null=全部, "today"/"week"/"month")。 */
-    fun setTimeFilter(time: String?) {
-        _state.update { it.copy(timeFilter = time) }
-    }
-
-    /** 设置类型筛选(null=全部, "fact"/"summary"/"compile")。 */
-    fun setTypeFilter(type: String?) {
-        _state.update { it.copy(typeFilter = type) }
-    }
-
-    /** v2.0: 根据筛选条件过滤记忆条目。 */
-    private fun filterItems(items: List<MemoryItem>, importance: Int?, time: String?, type: String?): List<MemoryItem> {
+    /** v9: 根据分类筛选记忆条目(null=全部)。 */
+    private fun filterItems(items: List<MemoryItem>, category: String?): List<MemoryItem> {
         return items.filter { item ->
-            val matchesImportance = importance == null || item.importance == importance
-            val matchesType = type == null || item.source.equals(type, ignoreCase = true)
-            val matchesTime = when (time) {
-                null -> true
-                "today" -> isToday(item.createdAt)
-                "week" -> isThisWeek(item.createdAt)
-                "month" -> isThisMonth(item.createdAt)
-                else -> true
-            }
-            matchesImportance && matchesType && matchesTime
+            category == null || item.category.equals(category, ignoreCase = true)
         }
     }
 

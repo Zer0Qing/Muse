@@ -464,6 +464,99 @@ class GroupChatViewModel(
     }
 
     /**
+     * v2.x: 指定 AI 重新生成其最后一条消息。
+     */
+    fun regenerateAgentMessage(assistantId: String) {
+        val chatId = currentChatId.value ?: return
+        if (scheduler.hasActiveGeneration(chatId)) return
+        scheduler.regenerateAgentMessage(chatId, assistantId)
+    }
+
+    /**
+     * v2.x: 发起表决。
+     */
+    fun launchVote(topic: String) {
+        val chatId = currentChatId.value ?: return
+        if (scheduler.hasActiveGeneration(chatId)) return
+        scheduler.launchVote(chatId, topic)
+    }
+
+    /**
+     * v2.x: 结论总结器。
+     */
+    fun launchSummary(summarizerId: String? = null) {
+        val chatId = currentChatId.value ?: return
+        if (scheduler.hasActiveGeneration(chatId)) return
+        scheduler.launchSummary(chatId, summarizerId)
+    }
+
+    /**
+     * v2.x: 发送悄悄话给指定 AI。
+     */
+    fun sendWhisper(targetAssistantId: String, text: String) {
+        val chatId = currentChatId.value ?: return
+        if (text.isBlank()) return
+        if (scheduler.hasActiveGeneration(chatId)) return
+        scheduler.launchWhisper(chatId, targetAssistantId, text)
+    }
+
+    // ── v2.x 群聊上下文管理:群共享文档 + AI 专属上下文 ──
+
+    /**
+     * v2.x: 添加群共享文档。
+     *
+     * @param title 文档标题
+     * @param content 文档正文
+     */
+    fun addSharedDoc(title: String, content: String) {
+        val chatId = currentChatId.value ?: return
+        if (title.isBlank() || content.isBlank()) return
+        viewModelScope.launch {
+            try {
+                groupChatRepository.addSharedDoc(chatId, title.trim(), content)
+            } catch (e: Exception) {
+                Logger.e(TAG, "添加群共享文档失败", e)
+                _state.update { it.copy(errorMessage = appContext.getString(R.string.err_group_chat_update_failed)) }
+            }
+        }
+    }
+
+    /**
+     * v2.x: 删除群共享文档。
+     *
+     * @param docId 文档 id
+     */
+    fun removeSharedDoc(docId: String) {
+        val chatId = currentChatId.value ?: return
+        viewModelScope.launch {
+            try {
+                groupChatRepository.removeSharedDoc(chatId, docId)
+            } catch (e: Exception) {
+                Logger.e(TAG, "删除群共享文档失败", e)
+                _state.update { it.copy(errorMessage = appContext.getString(R.string.err_group_chat_update_failed)) }
+            }
+        }
+    }
+
+    /**
+     * v2.x: 设置某个群成员的专属上下文(仅该 AI 可见)。
+     *
+     * @param assistantId 成员 AI id
+     * @param contextText 专属上下文文本(空字符串则清除)
+     */
+    fun setMemberPrivateContext(assistantId: String, contextText: String) {
+        val chatId = currentChatId.value ?: return
+        viewModelScope.launch {
+            try {
+                groupChatRepository.setMemberPrivateContext(chatId, assistantId, contextText)
+            } catch (e: Exception) {
+                Logger.e(TAG, "设置成员专属上下文失败", e)
+                _state.update { it.copy(errorMessage = appContext.getString(R.string.err_group_chat_update_failed)) }
+            }
+        }
+    }
+
+    /**
      * 创建新群聊。
      *
      * @param name 群聊名称
@@ -563,10 +656,13 @@ class GroupChatViewModel(
         name: String? = null,
         description: String? = null,
         memberIds: List<String>? = null,
+        discussionMode: String? = null,
+        autoMaxRounds: Int? = null,
+        hostId: String? = null,
     ) {
         viewModelScope.launch {
             try {
-                groupChatRepository.updateChat(chatId, name, description, memberIds)
+                groupChatRepository.updateChat(chatId, name, description, memberIds, discussionMode, autoMaxRounds, hostId)
             } catch (e: Exception) {
                 Logger.e(TAG, "更新群聊失败", e)
                 _state.update { it.copy(errorMessage = appContext.getString(R.string.err_group_chat_update_failed)) }
@@ -579,6 +675,18 @@ class GroupChatViewModel(
      */
     fun parseMemberIds(chat: GroupChatEntity): List<String> =
         groupChatRepository.parseMemberIds(chat)
+
+    /**
+     * v2.x: 解析群聊的共享文档列表(供 UI 渲染)。
+     */
+    fun parseSharedDocs(chat: GroupChatEntity): List<io.zer0.muse.data.groupchat.GroupSharedDoc> =
+        groupChatRepository.parseSharedDocs(chat)
+
+    /**
+     * v2.x: 解析群聊成员的专属上下文 Map(供 UI 渲染)。
+     */
+    fun parseMemberPrivateContext(chat: GroupChatEntity): Map<String, String> =
+        groupChatRepository.parseMemberPrivateContext(chat)
 
     /**
      * 取指定群聊的最新一条消息(用于列表页预览)。

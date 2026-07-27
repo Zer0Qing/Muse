@@ -32,25 +32,17 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.automirrored.filled.MenuBook
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.PhotoCamera
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.RecordVoiceOver
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.outlined.GroupWork
 import androidx.compose.material.icons.outlined.VideoLibrary
 import androidx.compose.material3.*
@@ -101,6 +93,7 @@ import io.zer0.muse.asr.ASRStatus
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.quickmsg.QuickMessageEntity
 import io.zer0.muse.ui.common.IosChip
+import io.zer0.muse.ui.common.IosTextField
 import io.zer0.muse.ui.common.MuseBottomSheet
 import io.zer0.muse.ui.common.MuseDialog
 import io.zer0.muse.ui.common.MuseToast
@@ -174,6 +167,8 @@ internal fun InputBar(
     onPickKnowledge: () -> Unit = {},
     // v1.58: Prompt 模板库入口(点击弹出模板选择 sheet)
     onOpenPromptTemplates: () -> Unit = {},
+    // v2.2: 技能入口(点击跳转技能列表)
+    onOpenSkills: () -> Unit = {},
     // v0.31: 回车键发送消息开关(关闭则回车换行)
     enterToSend: Boolean = false,
     quickMessages: List<QuickMessageEntity> = emptyList(),
@@ -242,71 +237,38 @@ internal fun InputBar(
             .padding(horizontal = 24.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        // v0.44: 联网搜索 + 深度思考 小图标开关(放在输入栏上方,替代原来的模式选择器)
+        // v0.44: 联网搜索 + 深度思考 小胶囊开关(放在输入栏上方,iOS 风格)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             // 联网搜索
-            val webInteractionSource = remember { MutableInteractionSource() }
-            val isWebPressed by webInteractionSource.collectIsPressedAsState()
-            val webBgColor by animateColorAsState(
-                targetValue = when {
-                    isWebPressed -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                    isWebSearchEnabled -> MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                    else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            IosChip(
+                selected = isWebSearchEnabled,
+                onClick = onToggleWebSearch,
+                label = stringResource(R.string.chat_web_search_cd),
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Language,
+                        contentDescription = null,
+                        modifier = Modifier.size(MuseIconSizes.iconSmall),
+                    )
                 },
-                label = "webSearchBg",
             )
-            Box(
-                modifier = Modifier
-                    .size(MuseIconSizes.touchTarget)
-                    .clip(CircleShape)
-                    .background(webBgColor)
-                    .clickable(
-                        interactionSource = webInteractionSource,
-                        indication = null,
-                    ) { onToggleWebSearch() },
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Language,
-                    contentDescription = if (isWebSearchEnabled) stringResource(R.string.chat_web_search_cd_on) else stringResource(R.string.chat_web_search_cd),
-                    tint = if (isWebSearchEnabled) MaterialTheme.colorScheme.primary
-                           else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(MuseIconSizes.iconSmall),
-                )
-            }
             // 深度思考
-            val deepInteractionSource = remember { MutableInteractionSource() }
-            val isDeepPressed by deepInteractionSource.collectIsPressedAsState()
-            val deepBgColor by animateColorAsState(
-                targetValue = when {
-                    isDeepPressed -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                    isDeepThinkingEnabled -> MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                    else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            IosChip(
+                selected = isDeepThinkingEnabled,
+                onClick = onToggleDeepThinking,
+                label = stringResource(R.string.chat_deep_thinking_cd),
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Psychology,
+                        contentDescription = null,
+                        modifier = Modifier.size(MuseIconSizes.iconSmall),
+                    )
                 },
-                label = "deepThinkBg",
             )
-            Box(
-                modifier = Modifier
-                    .size(MuseIconSizes.touchTarget)
-                    .clip(CircleShape)
-                    .background(deepBgColor)
-                    .clickable(
-                        interactionSource = deepInteractionSource,
-                        indication = null,
-                    ) { onToggleDeepThinking() },
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Psychology,
-                    contentDescription = if (isDeepThinkingEnabled) stringResource(R.string.chat_deep_thinking_cd_on) else stringResource(R.string.chat_deep_thinking_cd),
-                    tint = if (isDeepThinkingEnabled) MaterialTheme.colorScheme.primary
-                           else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(MuseIconSizes.iconSmall),
-                )
-            }
             // 语音对话模式入口(仅 ASR API 已配置时显示):点击进入全屏连续对话
             // 与长按麦克风区分:长按是单次识别填入输入框,语音对话是连续 ASR + AI + TTS 循环
             if (showMic) {
@@ -447,7 +409,7 @@ internal fun InputBar(
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Close,
+                                    imageVector = TablerIcons.X,
                                     contentDescription = stringResource(R.string.chat_remove_image_cd),
                                     tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                                     modifier = Modifier.fillMaxSize(),
@@ -506,7 +468,7 @@ internal fun InputBar(
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
-                            imageVector = Icons.Default.PlayArrow,
+                            imageVector = TablerIcons.PlayerPlay,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -533,7 +495,7 @@ internal fun InputBar(
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Close,
+                            imageVector = TablerIcons.X,
                             contentDescription = stringResource(R.string.chat_remove_video_cd),
                             tint = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -595,14 +557,14 @@ internal fun InputBar(
                 // v1.57: 编辑引用文本按钮(精准引用部分内容)
                 IconButton(onClick = { showEditReplyDialog = true }) {
                     Icon(
-                        imageVector = Icons.Default.Edit,
+                        imageVector = TablerIcons.Edit,
                         contentDescription = stringResource(R.string.chat_edit_reply_cd),
                         tint = MaterialTheme.colorScheme.outline,
                     )
                 }
                 IconButton(onClick = onClearReply) {
                     Icon(
-                        imageVector = Icons.Default.Close,
+                        imageVector = TablerIcons.X,
                         contentDescription = stringResource(R.string.quote_clear),
                         tint = MaterialTheme.colorScheme.outline,
                     )
@@ -614,7 +576,7 @@ internal fun InputBar(
                     onDismissRequest = { showEditReplyDialog = false },
                     title = stringResource(R.string.chat_edit_reply_title),
                     content = {
-                        OutlinedTextField(
+                        IosTextField(
                             value = editReplyText,
                             onValueChange = { editReplyText = it },
                             modifier = Modifier.fillMaxWidth(),
@@ -696,7 +658,7 @@ internal fun InputBar(
                     modifier = Modifier.size(MuseIconSizes.touchTarget),
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Add,
+                        imageVector = TablerIcons.Plus,
                         contentDescription = stringResource(R.string.chat_tools_cd),
                         // v1.79 (L-I7): 禁用态降低 alpha,提供视觉反馈
                         tint = if (isStreaming) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
@@ -843,7 +805,7 @@ internal fun InputBar(
                         ) {
                             Column(modifier = Modifier.padding(bottom = 32.dp)) {
                         ToolListRow(
-                            icon = Icons.Default.AttachFile,
+                            icon = TablerIcons.Paperclip,
                             title = stringResource(R.string.chat_tool_attachment),
                             onClick = {
                                 MuseHaptics.light(hapticFeedback)
@@ -856,7 +818,7 @@ internal fun InputBar(
                             thickness = 0.5.dp,
                         )
                         ToolListRow(
-                            icon = Icons.AutoMirrored.Filled.MenuBook,
+                            icon = TablerIcons.Book,
                             title = stringResource(R.string.chat_tool_knowledge),
                             subtitle = stringResource(R.string.chat_tool_knowledge_subtitle),
                             onClick = {
@@ -871,13 +833,28 @@ internal fun InputBar(
                         )
                         // v1.58: Prompt 模板库
                         ToolListRow(
-                            icon = Icons.AutoMirrored.Filled.MenuBook,
+                            icon = TablerIcons.Book,
                             title = stringResource(R.string.chat_prompt_templates_title),
                             subtitle = stringResource(R.string.chat_tool_prompt_template_subtitle),
                             onClick = {
                                 MuseHaptics.light(hapticFeedback)
                                 showToolSheet = false
                                 onOpenPromptTemplates()
+                            },
+                        )
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            thickness = 0.5.dp,
+                        )
+                        // v2.2: 技能入口
+                        ToolListRow(
+                            icon = Icons.Default.Build,
+                            title = stringResource(R.string.chat_tool_skills),
+                            subtitle = stringResource(R.string.chat_tool_skills_subtitle),
+                            onClick = {
+                                MuseHaptics.light(hapticFeedback)
+                                showToolSheet = false
+                                onOpenSkills()
                             },
                         )
                         HorizontalDivider(
@@ -918,7 +895,7 @@ internal fun InputBar(
                                 thickness = 0.5.dp,
                             )
                             ToolListRow(
-                                icon = Icons.Default.Refresh,
+                                icon = TablerIcons.Refresh,
                                 title = stringResource(R.string.chat_tool_restart_context),
                                 subtitle = stringResource(R.string.chat_tool_restart_context_subtitle),
                                 onClick = {
@@ -951,7 +928,7 @@ internal fun InputBar(
 
                 // 中间: TextField(无边框,透明背景)
                 // v0.31: 回车键发送(enterToSend 开启时,Enter 发送,Shift+Enter 换行)
-                OutlinedTextField(
+                IosTextField(
                     value = text,
                     // v1.79 (M-I12): 输入框 maxLength 字符上限
                     onValueChange = { if (it.length <= INPUT_TEXT_MAX_LENGTH) onTextChanged(it) },
@@ -993,35 +970,24 @@ internal fun InputBar(
                             }
                         },
                     ),
-                    shape = MuseShapes.extraLarge,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        disabledContainerColor = Color.Transparent,
-                        focusedBorderColor = Color.Transparent,
-                        unfocusedBorderColor = Color.Transparent,
-                        disabledBorderColor = Color.Transparent,
-                        cursorColor = MaterialTheme.colorScheme.primary,
-                    ),
-                    textStyle = MaterialTheme.typography.bodyLarge,
                     visualTransformation = mentionTransform,
                 )
 
                 // 右侧: 麦克风(空文本且无待发图片时) / 发送(有文本时) / 停止(流式中)
                 if (isStreaming) {
-                    // 任务 1: 停止生成按钮改用 Box + clickable(indication=null),避免 IconButton 默认涟漪方块
+                    // 停止生成:红色实心圆形按钮,白色停止图标
                     val stopInteractionSource = remember { MutableInteractionSource() }
                     val isStopPressed by stopInteractionSource.collectIsPressedAsState()
-                    val stopBgColor by animateColorAsState(
-                        targetValue = if (isStopPressed) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                        else Color.Transparent,
-                        label = "stopBg",
+                    val stopScale by animateFloatAsState(
+                        targetValue = if (isStopPressed) 0.9f else 1f,
+                        label = "stopScale",
                     )
                     Box(
                         modifier = Modifier
-                            .size(MuseIconSizes.touchTarget)
+                            .size(36.dp)
+                            .graphicsLayer { scaleX = stopScale; scaleY = stopScale }
                             .clip(CircleShape)
-                            .background(stopBgColor)
+                            .background(MaterialTheme.colorScheme.error)
                             .clickable(
                                 interactionSource = stopInteractionSource,
                                 indication = null,
@@ -1033,10 +999,10 @@ internal fun InputBar(
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Stop,
+                            imageVector = TablerIcons.Square,
                             contentDescription = stringResource(R.string.chat_stop_generation_cd),
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                            tint = MaterialTheme.colorScheme.onError,
+                            modifier = Modifier.size(MuseIconSizes.iconSmall),
                         )
                     }
                 } else if (text.isBlank() && pendingImages.isEmpty() && pendingVideo == null && showMic) {
@@ -1122,7 +1088,7 @@ internal fun InputBar(
                                 strokeWidth = 2.dp,
                             )
                             isRecording -> Icon(
-                                imageVector = Icons.Default.Mic,
+                                imageVector = TablerIcons.Microphone,
                                 contentDescription = recordingCd,
                                 tint = MaterialTheme.colorScheme.error,
                                 modifier = Modifier
@@ -1130,7 +1096,7 @@ internal fun InputBar(
                                     .scale(pulseScale),
                             )
                             else -> Icon(
-                                imageVector = Icons.Default.Mic,
+                                imageVector = TablerIcons.Microphone,
                                 contentDescription = holdToRecordCd,
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -1138,31 +1104,39 @@ internal fun InputBar(
                         }
                     }
                 } else {
-                    // 有文本时显示发送按钮
-                    // v1.79 (M-I9): 移除 sendTint animateColorAsState(目标值恒定,动画永不触发)
-                    // 发送按钮按下时的缩放反馈
+                    // 发送按钮:月桂绿实心圆形按钮,白色纸飞机图标
                     val sendInteractionSource = remember { MutableInteractionSource() }
                     val sendPressed by sendInteractionSource.collectIsPressedAsState()
                     val sendScale by animateFloatAsState(
-                        targetValue = if (sendPressed) 0.85f else 1f,
+                        targetValue = if (sendPressed) 0.9f else 1f,
                         label = "sendScale",
                     )
-                    IconButton(
-                        onClick = {
-                            MuseHaptics.medium(hapticFeedback)
-                            onSend()
-                        },
-                        // v1.79 (M-I9): 移除冗余 enabled = !isStreaming(此分支仅在 !isStreaming 时进入)
-                        interactionSource = sendInteractionSource,
+                    val canSend = text.isNotBlank() || pendingImages.isNotEmpty() || pendingVideo != null
+                    Box(
                         modifier = Modifier
-                            .size(MuseIconSizes.touchTarget)
-                            .graphicsLayer { scaleX = sendScale; scaleY = sendScale },
+                            .size(36.dp)
+                            .graphicsLayer { scaleX = sendScale; scaleY = sendScale }
+                            .clip(CircleShape)
+                            .background(
+                                if (canSend) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.primary.copy(alpha = 0.38f)
+                            )
+                            .clickable(
+                                interactionSource = sendInteractionSource,
+                                indication = null,
+                                enabled = canSend,
+                                onClick = {
+                                    MuseHaptics.medium(hapticFeedback)
+                                    onSend()
+                                },
+                            ),
+                        contentAlignment = Alignment.Center,
                     ) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Send,
+                            imageVector = TablerIcons.Send,
                             contentDescription = stringResource(R.string.action_send),
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(MuseIconSizes.iconSmall),
                         )
                     }
                 }
@@ -1411,7 +1385,7 @@ private fun ImageGenParamsPanel(
                         ),
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Close,
+                        imageVector = TablerIcons.X,
                         contentDescription = stringResource(R.string.chat_ref_image_clear_cd),
                         modifier = Modifier.size(16.dp),
                     )
@@ -1585,7 +1559,7 @@ private fun base64Length(byteCount: Int): Int {
 }
 
 /**
- * iOS/Manus 风格工具菜单中的媒体快捷卡片。
+ * v2.2: iOS/Manus 风格工具菜单中的媒体快捷卡片 — 加厚遮罩,更醒目。
  */
 @Composable
 private fun ToolMediaCard(
@@ -1594,10 +1568,10 @@ private fun ToolMediaCard(
     onClick: () -> Unit,
 ) {
     Surface(
-        shape = MuseShapes.semiLarge,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+        shape = MuseShapes.extraLarge,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.78f),
         modifier = Modifier
-            .size(width = 84.dp, height = 96.dp)
+            .size(width = 96.dp, height = 108.dp)
             .clickable(onClick = onClick),
     ) {
         Column(
@@ -1608,13 +1582,13 @@ private fun ToolMediaCard(
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                modifier = Modifier.size(28.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(32.dp),
+                tint = MaterialTheme.colorScheme.onSurface,
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(10.dp))
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
                 color = MaterialTheme.colorScheme.onSurface,
             )
         }

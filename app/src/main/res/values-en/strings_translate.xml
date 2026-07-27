@@ -25,6 +25,8 @@
     <string name="translate_page_speak_result">Speak translation</string>
     <string name="translate_page_use_as_input">Use as input</string>
     <string name="translate_page_send_to_chat">Send</string>
+    <string name="translate_page_send_to_chat_session">Send to chat</string>
+    <string name="translate_page_more">More</string>
     <string name="translate_page_style_label">Translation style</string>
     <string name="translate_page_tts_not_ready">TTS is not ready, please try again later</string>
     <!-- v1.97: Translation history (in-memory, last 20 entries, not persisted) -->
@@ -37,6 +39,9 @@
     <string name="translate_page_history_cleared">History cleared</string>
     <string name="translate_page_history_source_label">Source</string>
     <string name="translate_page_history_translated_label">Translated</string>
+    <string name="translate_page_history_source_short">S</string>
+    <string name="translate_page_history_translated_short">T</string>
+    <string name="translate_page_history_clear_short">Clear</string>
 
     <!-- v1.0.30 gap4.3: Translation favorites -->
     <string name="translate_page_favorite_add">Favorite</string>

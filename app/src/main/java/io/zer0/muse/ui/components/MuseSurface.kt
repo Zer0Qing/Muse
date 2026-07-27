@@ -2,6 +2,7 @@ package io.zer0.muse.ui.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -63,6 +64,7 @@ import io.zer0.muse.ui.theme.MuseShapes
  * @param color 背景色(默认 surface,Material3 会自动处理 tonalElevation 色调叠加)
  * @param elevation 阴影高度(默认 0dp,平贴;卡片场景建议 1-2dp)
  * @param tonalElevation 色调海拔(默认 0dp,避免在浅色模式下产生嵌套色块)
+ * @param border 可选边框(默认 null,卡片场景建议 0.5dp outlineVariant)
  * @param enablePressedFeedback 是否启用按压颜色渐变反馈(仅 [onClick] 非空时生效,默认 true)
  * @param enableHaptic 是否启用触觉反馈(默认 true)
  * @param enableScale 是否启用按压缩放(默认 false,仅特殊场景如大卡片建议开启)
@@ -76,6 +78,7 @@ fun MuseSurface(
     color: Color = MaterialTheme.colorScheme.surface,
     elevation: Dp = 0.dp,
     tonalElevation: Dp = 0.dp,
+    border: BorderStroke? = null,
     enablePressedFeedback: Boolean = true,
     enableHaptic: Boolean = true,
     enableScale: Boolean = false,
@@ -89,6 +92,7 @@ fun MuseSurface(
             color = color,
             tonalElevation = tonalElevation,
             shadowElevation = elevation,
+            border = border,
             content = { content() },
         )
         return
@@ -140,6 +144,7 @@ fun MuseSurface(
         color = animatedColor,
         tonalElevation = tonalElevation,
         shadowElevation = elevation,
+        border = border,
         content = { content() },
     )
 }

@@ -5,11 +5,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.BugReport
-import androidx.compose.material.icons.outlined.Memory
-import androidx.compose.material.icons.outlined.Psychology
-import androidx.compose.material.icons.outlined.Science
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -57,9 +54,9 @@ fun ExperimentsSettingsPage(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.Science,
+                        imageVector = TablerIcons.Flask,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.tertiary,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(24.dp),
                     )
                     Text(
@@ -75,7 +72,7 @@ fun ExperimentsSettingsPage(
         item {
             SettingsGroup {
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.Psychology,
+                    icon = TablerIcons.Atom,
                     title = stringResource(R.string.settings_experiments_force_mood),
                     subtitle = stringResource(R.string.settings_experiments_force_mood_subtitle),
                     checked = config.forceMoodBlock,
@@ -85,7 +82,7 @@ fun ExperimentsSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.BugReport,
+                    icon = TablerIcons.Bug,
                     title = stringResource(R.string.settings_experiments_debug_mode),
                     subtitle = stringResource(R.string.settings_experiments_debug_mode_subtitle),
                     checked = config.debugMode,
@@ -95,7 +92,7 @@ fun ExperimentsSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.Psychology,
+                    icon = TablerIcons.Atom,
                     title = stringResource(R.string.settings_experiments_self_reflection),
                     subtitle = stringResource(R.string.settings_experiments_self_reflection_subtitle),
                     checked = config.selfReflection,
@@ -105,7 +102,7 @@ fun ExperimentsSettingsPage(
                 )
                 SettingsGroupDivider()
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.Memory,
+                    icon = TablerIcons.Server,
                     title = stringResource(R.string.settings_experiments_long_memory_compression),
                     subtitle = stringResource(R.string.settings_experiments_long_memory_compression_subtitle),
                     checked = config.longMemoryCompression,

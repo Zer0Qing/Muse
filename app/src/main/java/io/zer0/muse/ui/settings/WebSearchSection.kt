@@ -5,8 +5,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Language
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -61,7 +61,7 @@ internal fun WebSearchSection(
     ) {
         // P3 修复: 全局启用开关(原仅 InputBar chip 临时切换,设置页不可见)
         io.zer0.muse.ui.common.SettingsSwitchRow(
-            icon = Icons.Outlined.Language,
+            icon = TablerIcons.Language,
             title = stringResource(R.string.settings_web_search_enable),
             subtitle = stringResource(R.string.settings_web_search_enable_subtitle),
             checked = webSearchConfig.enabled,
@@ -75,7 +75,7 @@ internal fun WebSearchSection(
         // v1.134 P0-7: 搜索引擎选择行 → 点击弹 MuseDialog 操作列表(替代 DropdownMenu)
         var wsProviderExpanded by remember { mutableStateOf(false) }
         SettingsItemRow(
-            icon = Icons.Outlined.Language,
+            icon = TablerIcons.Language,
             title = stringResource(R.string.settings_web_search_engine),
             subtitle = webSearchConfig.providerName,
             onClick = { wsProviderExpanded = true },

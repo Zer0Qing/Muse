@@ -83,14 +83,18 @@ object FactExtractionPrompt {
 11. expires_at 字段为事实过期时间 ISO 8601,仅对临时性、时间敏感事实填写
     (如"明天上午 10 点开会")。长期有效的事实填 null。
 
-12. 如果没有新增内容值得提取,返回空数组 []。
+12. 保留原始表述,不要给事实补主语。
+    如果用户说"对青霉素过敏",就写成"对青霉素过敏",不要改写成"用户对青霉素过敏"。
+    只有原句确实带主语时才保留。
+
+13. 如果没有新增内容值得提取,返回空数组 []。
 
 ## 输出格式
 
 严格 JSON 数组,不要 markdown 代码块:
 [
   {"fact": "用户最近在关注记忆系统", "tags": ["记忆系统", "近况"], "time": null, "importance": 0, "category": "other", "confidence": 0.9, "source": "inferred"},
-  {"fact": "用户对青霉素过敏", "tags": ["医疗", "过敏"], "time": null, "importance": 2, "category": "medical", "confidence": 1.0, "source": "user_explicit"}
+  {"fact": "对青霉素过敏", "tags": ["医疗", "过敏"], "time": null, "importance": 2, "category": "medical", "confidence": 1.0, "source": "user_explicit"}
 ]
             """.trimIndent()
         }
@@ -157,14 +161,18 @@ You are a memory splitter. $diffInstruction
 11. The expires_at field is an ISO 8601 expiration time; only fill it for temporary/time-sensitive facts
     (e.g. "meeting at 10am tomorrow"). Use null for long-term facts.
 
-12. If there is no new content worth extracting, return an empty array [].
+12. Preserve the original wording; do not add a subject to the fact.
+    If the user said "allergic to penicillin", write "allergic to penicillin", not "the user is allergic to penicillin".
+    Only keep an explicit subject when the original sentence already has one.
+
+13. If there is no new content worth extracting, return an empty array [].
 
 ## Output Format
 
 Strict JSON array, no markdown code fences:
 [
   {"fact": "The user has recently been focused on memory systems", "tags": ["memory", "current-state"], "time": null, "importance": 0, "category": "other", "confidence": 0.9, "source": "inferred"},
-  {"fact": "The user is allergic to penicillin", "tags": ["medical", "allergy"], "time": null, "importance": 2, "category": "medical", "confidence": 1.0, "source": "user_explicit"}
+  {"fact": "allergic to penicillin", "tags": ["medical", "allergy"], "time": null, "importance": 2, "category": "medical", "confidence": 1.0, "source": "user_explicit"}
 ]
         """.trimIndent()
     }

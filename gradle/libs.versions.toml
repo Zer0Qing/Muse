@@ -36,6 +36,8 @@ ktor = "3.0.3"
 jwt = "4.4.0"
 # v1.55: 真实 tokenizer(OpenAI tiktoken 的 Java 实现,BPE 编码)
 jtokkit = "1.1.0"
+# Tabler Icons Compose(线条图标库,Maven Central)
+composeIcons = "1.1.1"
 
 [libraries]
 # AndroidX Core
@@ -119,6 +121,8 @@ ktor-server-status-pages = { group = "io.ktor", name = "ktor-server-status-pages
 auth0-java-jwt = { group = "com.auth0", name = "java-jwt", version.ref = "jwt" }
 # v1.55: 真实 tokenizer(BPE 编码,cl100k_base — GPT-4/3.5 通用,其他模型近似)
 jtokkit = { group = "com.knuddels", name = "jtokkit", version.ref = "jtokkit" }
+# Tabler Icons Compose(线条图标库)
+composeIcons-tablerIcons = { module = "br.com.devsrsouza.compose.icons:tabler-icons", version.ref = "composeIcons" }
 
 [plugins]
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }

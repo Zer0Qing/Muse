@@ -119,7 +119,14 @@ class ChatMiscCoordinator(
         if (query.isEmpty()) return
         accessor.update { it.copy(isSearching = true) }
         accessor.coroutineScope.launch {
-            val results = sessionRepository.searchMessages(query)
+            val results = try {
+                kotlinx.coroutines.withTimeoutOrNull(5000L) {
+                    sessionRepository.searchMessages(query)
+                } ?: emptyList()
+            } catch (t: Throwable) {
+                Logger.w(tag, "Search failed: ${t.message}")
+                emptyList()
+            }
             accessor.update {
                 it.copy(
                     searchResults = results,
@@ -165,7 +172,14 @@ class ChatMiscCoordinator(
         }
         accessor.update { it.copy(isSearchingMessages = true) }
         accessor.coroutineScope.launch {
-            val results = sessionRepository.searchMessageContentFlow(query).first()
+            val results = try {
+                kotlinx.coroutines.withTimeoutOrNull(5000L) {
+                    sessionRepository.searchMessageContentFlow(query).first()
+                } ?: emptyList()
+            } catch (t: Throwable) {
+                Logger.w(tag, "Message content search failed: ${t.message}")
+                emptyList()
+            }
             accessor.update {
                 it.copy(
                     messageResults = results,

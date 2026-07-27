@@ -7,10 +7,9 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.GraphicEq
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -29,6 +28,7 @@ import io.zer0.muse.R
 import io.zer0.muse.asr.AsrConfig
 import io.zer0.muse.asr.AsrProviderType
 import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.ui.common.IosTextField
 import io.zer0.muse.ui.common.SectionLabel
 import io.zer0.muse.ui.common.SettingsGroup
 import io.zer0.muse.ui.common.SettingsGroupDivider
@@ -150,7 +150,7 @@ internal fun AsrSection(
                 if (asrConfig.apiKey.isBlank()) {
                     InlineError(stringResource(R.string.asr_missing_api_key_error))
                 }
-                OutlinedTextField(
+                IosTextField(
                     value = asrApiKey,
                     onValueChange = { asrApiKey = it },
                     label = { Text(stringResource(R.string.settings_asr_api_key)) },
@@ -185,7 +185,7 @@ internal fun AsrSection(
                         .fillMaxWidth()
                         .padding(MusePaddings.cardInner),
                 ) {
-                    OutlinedTextField(
+                    IosTextField(
                         value = asrBaseUrl,
                         onValueChange = { asrBaseUrl = it },
                         label = { Text(stringResource(R.string.settings_asr_base_url)) },
@@ -213,7 +213,7 @@ internal fun AsrSection(
                     .fillMaxWidth()
                     .padding(MusePaddings.cardInner),
             ) {
-                OutlinedTextField(
+                IosTextField(
                     value = asrModel,
                     onValueChange = { asrModel = it },
                     label = { Text(stringResource(R.string.settings_asr_model)) },
@@ -235,7 +235,7 @@ internal fun AsrSection(
 
             // 采样率(只读)
             SettingsItemRow(
-                icon = Icons.Outlined.GraphicEq,
+                icon = TablerIcons.Adjustments,
                 title = stringResource(R.string.settings_asr_sample_rate),
                 subtitle = stringResource(R.string.settings_asr_sample_rate_subtitle, asrConfig.sampleRate),
             )
@@ -251,7 +251,7 @@ internal fun AsrSection(
                     .fillMaxWidth()
                     .padding(MusePaddings.cardInner),
             ) {
-                OutlinedTextField(
+                IosTextField(
                     value = asrLang,
                     onValueChange = { asrLang = it },
                     label = { Text(stringResource(R.string.settings_asr_language_code)) },
@@ -278,7 +278,7 @@ internal fun AsrSection(
                     .fillMaxWidth()
                     .padding(MusePaddings.cardInner),
             ) {
-                OutlinedTextField(
+                IosTextField(
                     value = asrHotwords,
                     onValueChange = { asrHotwords = it },
                     label = { Text(stringResource(R.string.settings_asr_hotwords)) },
@@ -321,7 +321,7 @@ internal fun AsrSection(
                             .fillMaxWidth()
                             .padding(MusePaddings.cardInner),
                     ) {
-                        OutlinedTextField(
+                        IosTextField(
                             value = vadThreshold,
                             onValueChange = { vadThreshold = it.filter { c -> c.isDigit() || c == '.' } },
                             label = { Text(stringResource(R.string.settings_asr_vad_threshold)) },
@@ -348,7 +348,7 @@ internal fun AsrSection(
                             .fillMaxWidth()
                             .padding(MusePaddings.cardInner),
                     ) {
-                        OutlinedTextField(
+                        IosTextField(
                             value = vadSilence,
                             onValueChange = { vadSilence = it.filter { c -> c.isDigit() } },
                             label = { Text(stringResource(R.string.settings_asr_vad_silence)) },
@@ -405,7 +405,7 @@ internal fun AsrSection(
                         .fillMaxWidth()
                         .padding(MusePaddings.cardInner),
                 ) {
-                    OutlinedTextField(
+                    IosTextField(
                         value = fileUrl,
                         onValueChange = { fileUrl = it },
                         label = { Text(stringResource(R.string.settings_asr_audio_url)) },
@@ -431,7 +431,7 @@ internal fun AsrSection(
                         .fillMaxWidth()
                         .padding(MusePaddings.cardInner),
                 ) {
-                    OutlinedTextField(
+                    IosTextField(
                         value = pollInterval,
                         onValueChange = { pollInterval = it.filter { c -> c.isDigit() } },
                         label = { Text(stringResource(R.string.settings_asr_poll_interval)) },
@@ -458,7 +458,7 @@ internal fun AsrSection(
                         .fillMaxWidth()
                         .padding(MusePaddings.cardInner),
                 ) {
-                    OutlinedTextField(
+                    IosTextField(
                         value = pollTimeout,
                         onValueChange = { pollTimeout = it.filter { c -> c.isDigit() } },
                         label = { Text(stringResource(R.string.settings_asr_poll_timeout)) },

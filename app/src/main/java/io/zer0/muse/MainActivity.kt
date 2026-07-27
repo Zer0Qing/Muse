@@ -247,7 +247,9 @@ class MainActivity : ComponentActivity() {
                 "dark" -> true
                 else -> isSystemInDarkTheme()
             }
-            val themeId by settings.themeIdFlow.collectAsStateWithLifecycle(initialValue = "warm_paper")
+            // 修复:initialValue 改为 "mono" 与 SettingsRepository.themeIdFlow 默认值一致,
+            // 避免冷启动时首帧渲染 warm_paper 主题、随后切换到 mono 造成主题闪烁。
+            val themeId by settings.themeIdFlow.collectAsStateWithLifecycle(initialValue = "mono")
             // 深色模式独立主题
             val darkThemeId by settings.darkThemeIdFlow.collectAsStateWithLifecycle(initialValue = "")
             // v1.65: 动态取色开关(Android 12+,代码早已就绪,此前未传参导致永远不可用)

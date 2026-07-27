@@ -36,7 +36,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import io.zer0.muse.ui.common.IosTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -534,8 +534,8 @@ private fun TaskDialog(
         title = if (isEdit) stringResource(R.string.schedule_edit_title) else stringResource(R.string.schedule_new_task),
         content = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text(stringResource(R.string.schedule_task_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = prompt, onValueChange = { prompt = it }, label = { Text(stringResource(R.string.schedule_task_content)) }, placeholder = { Text(stringResource(R.string.schedule_content_placeholder)) }, modifier = Modifier.fillMaxWidth().heightIn(min = 60.dp))
+                IosTextField(value = name, onValueChange = { name = it }, label = { Text(stringResource(R.string.schedule_task_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                IosTextField(value = prompt, onValueChange = { prompt = it }, label = { Text(stringResource(R.string.schedule_task_content)) }, placeholder = { Text(stringResource(R.string.schedule_content_placeholder)) }, modifier = Modifier.fillMaxWidth().heightIn(min = 60.dp))
                 AssistantSelector(
                     selectedName = selectedAssistantName,
                     assistants = assistants,
@@ -555,7 +555,7 @@ private fun TaskDialog(
                     }
                 }
                 if (interval == "cron") {
-                    OutlinedTextField(value = cronExpr, onValueChange = { cronExpr = it }, label = { Text(stringResource(R.string.schedule_cron_label)) }, placeholder = { Text(stringResource(R.string.schedule_cron_placeholder)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    IosTextField(value = cronExpr, onValueChange = { cronExpr = it }, label = { Text(stringResource(R.string.schedule_cron_label)) }, placeholder = { Text(stringResource(R.string.schedule_cron_placeholder)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         listOf(
                             stringResource(R.string.schedule_preset_workday_9) to "0 9 * * 1-5",
@@ -840,14 +840,14 @@ private fun AutomationConditionSection(
         when (conditionType) {
             AutomationConfig.Condition.TIME_RANGE -> {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
+                    IosTextField(
                         value = startHour,
                         onValueChange = { onStartHourChange(it.filter { c -> c.isDigit() }.take(2)) },
                         label = { Text(stringResource(R.string.schedule_condition_start_hour)) },
                         singleLine = true,
                         modifier = Modifier.weight(1f),
                     )
-                    OutlinedTextField(
+                    IosTextField(
                         value = endHour,
                         onValueChange = { onEndHourChange(it.filter { c -> c.isDigit() }.take(2)) },
                         label = { Text(stringResource(R.string.schedule_condition_end_hour)) },
@@ -857,7 +857,7 @@ private fun AutomationConditionSection(
                 }
             }
             AutomationConfig.Condition.CONTAINS -> {
-                OutlinedTextField(
+                IosTextField(
                     value = keyword,
                     onValueChange = onKeywordChange,
                     label = { Text(stringResource(R.string.schedule_condition_keyword)) },
@@ -866,7 +866,7 @@ private fun AutomationConditionSection(
                 )
             }
             AutomationConfig.Condition.QUICK_NOTE_EXISTS -> {
-                OutlinedTextField(
+                IosTextField(
                     value = tag,
                     onValueChange = onTagChange,
                     label = { Text(stringResource(R.string.schedule_condition_tag)) },
@@ -874,7 +874,7 @@ private fun AutomationConditionSection(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                OutlinedTextField(
+                IosTextField(
                     value = keyword,
                     onValueChange = onKeywordChange,
                     label = { Text(stringResource(R.string.schedule_condition_keyword)) },
@@ -940,20 +940,20 @@ private fun AutomationActionSection(
         }
         when (actionType) {
             AutomationConfig.Action.CREATE_QUICK_NOTE -> {
-                OutlinedTextField(
+                IosTextField(
                     value = noteTitle,
                     onValueChange = onNoteTitleChange,
                     label = { Text(stringResource(R.string.schedule_action_note_title)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                OutlinedTextField(
+                IosTextField(
                     value = noteContent,
                     onValueChange = onNoteContentChange,
                     label = { Text(stringResource(R.string.schedule_action_note_content)) },
                     modifier = Modifier.fillMaxWidth().heightIn(min = 60.dp),
                 )
-                OutlinedTextField(
+                IosTextField(
                     value = noteTags,
                     onValueChange = onNoteTagsChange,
                     label = { Text(stringResource(R.string.schedule_action_note_tags)) },
@@ -963,7 +963,7 @@ private fun AutomationActionSection(
                 )
             }
             AutomationConfig.Action.CALL_TOOL -> {
-                OutlinedTextField(
+                IosTextField(
                     value = toolId,
                     onValueChange = onToolIdChange,
                     label = { Text(stringResource(R.string.schedule_action_tool_id)) },
@@ -971,7 +971,7 @@ private fun AutomationActionSection(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                OutlinedTextField(
+                IosTextField(
                     value = toolParams,
                     onValueChange = onToolParamsChange,
                     label = { Text(stringResource(R.string.schedule_action_tool_params)) },
@@ -980,14 +980,14 @@ private fun AutomationActionSection(
                 )
             }
             AutomationConfig.Action.NOTIFY -> {
-                OutlinedTextField(
+                IosTextField(
                     value = notifyTitle,
                     onValueChange = onNotifyTitleChange,
                     label = { Text(stringResource(R.string.schedule_action_notify_title)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                OutlinedTextField(
+                IosTextField(
                     value = notifyMessage,
                     onValueChange = onNotifyMessageChange,
                     label = { Text(stringResource(R.string.schedule_action_notify_message)) },

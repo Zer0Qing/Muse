@@ -1,12 +1,7 @@
 package io.zer0.muse.ui.settings
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Cloud
-import androidx.compose.material.icons.filled.Diamond
-import androidx.compose.material.icons.filled.Hub
-import androidx.compose.material.icons.filled.WaterDrop
-import androidx.compose.material.icons.filled.WbSunny
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
@@ -27,12 +22,12 @@ import io.zer0.muse.R
 fun providerBrandIcon(type: ProviderType, name: String): ImageVector {
     val lower = name.lowercase()
     return when {
-        lower.contains("deepseek") -> Icons.Default.WaterDrop
-        type == ProviderType.OPENAI && (lower.contains("relay") || lower.contains("中转")) -> Icons.Default.Hub
-        type == ProviderType.OPENAI -> Icons.Default.AutoAwesome
-        type == ProviderType.ANTHROPIC -> Icons.Default.WbSunny
-        type == ProviderType.GEMINI -> Icons.Default.Diamond
-        else -> Icons.Default.Cloud
+        lower.contains("deepseek") -> TablerIcons.Droplet
+        type == ProviderType.OPENAI && (lower.contains("relay") || lower.contains("中转")) -> TablerIcons.Sitemap
+        type == ProviderType.OPENAI -> TablerIcons.Stars
+        type == ProviderType.ANTHROPIC -> TablerIcons.Sun
+        type == ProviderType.GEMINI -> TablerIcons.Diamond
+        else -> TablerIcons.Cloud
     }
 }
 

@@ -34,7 +34,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import io.zer0.muse.ui.common.IosTextField
 import io.zer0.muse.ui.common.IosDropdown
 import io.zer0.muse.ui.common.IosSlider
 import io.zer0.muse.ui.common.IosSwitch
@@ -161,13 +161,12 @@ private fun DebouncedTextField(
             onPersist(transform(draft))
         }
     }
-    OutlinedTextField(
+    IosTextField(
         value = draft,
         onValueChange = { v -> draft = v },
         label = label,
         singleLine = singleLine,
         modifier = modifier,
-        shape = MuseShapes.medium,
     )
 }
 
@@ -623,7 +622,7 @@ fun AssistantBasicPage(
                 )
                 item(
                     headlineContent = {
-                        OutlinedTextField(
+                        IosTextField(
                             value = a.topP?.toString() ?: "",
                             onValueChange = { v ->
                                 val parsed = v.filter { it.isDigit() || it == '.' }.toFloatOrNull()
@@ -632,14 +631,13 @@ fun AssistantBasicPage(
                             label = { Text(stringResource(R.string.assistant_detail_top_p_label)) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
-                            shape = MuseShapes.medium,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         )
                     },
                 )
                 item(
                     headlineContent = {
-                        OutlinedTextField(
+                        IosTextField(
                             value = a.maxTokens?.toString() ?: "",
                             onValueChange = { v ->
                                 val parsed = v.filter(Char::isDigit).toIntOrNull()
@@ -648,7 +646,6 @@ fun AssistantBasicPage(
                             label = { Text(stringResource(R.string.assistant_detail_max_tokens_label)) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
-                            shape = MuseShapes.medium,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         )
                     },
@@ -1317,7 +1314,7 @@ fun AssistantMemoryPage(
             onDismissRequest = { showAddFactDialog = false },
             title = stringResource(R.string.assistant_detail_add_memory_dialog_title),
             content = {
-                OutlinedTextField(
+                IosTextField(
                     value = factInput,
                     onValueChange = { factInput = it },
                     label = { Text(stringResource(R.string.assistant_detail_input_fact)) },
@@ -1647,16 +1644,15 @@ private fun RegexRuleEditDialog(
         else stringResource(R.string.assistant_detail_regex_edit_title),
         content = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
+                IosTextField(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text(stringResource(R.string.assistant_detail_regex_name_label)) },
                     placeholder = { Text(stringResource(R.string.assistant_detail_regex_name_hint)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = MuseShapes.large,
                 )
-                OutlinedTextField(
+                IosTextField(
                     value = findRegex,
                     onValueChange = {
                         findRegex = it
@@ -1672,16 +1668,14 @@ private fun RegexRuleEditDialog(
                         { Text(stringResource(R.string.assistant_detail_regex_invalid)) }
                     } else null,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = MuseShapes.large,
                 )
-                OutlinedTextField(
+                IosTextField(
                     value = replaceString,
                     onValueChange = { replaceString = it },
                     label = { Text(stringResource(R.string.assistant_detail_regex_replace_label)) },
                     placeholder = { Text(stringResource(R.string.assistant_detail_regex_replace_hint)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = MuseShapes.large,
                 )
                 Text(
                     text = stringResource(R.string.assistant_detail_regex_scope_label),
@@ -1798,13 +1792,12 @@ private fun CapabilityChipsSection(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    OutlinedTextField(
+                    IosTextField(
                         value = customInput,
                         onValueChange = { customInput = it },
                         label = { Text(stringResource(R.string.assistant_detail_custom_capability)) },
                         singleLine = true,
                         modifier = Modifier.weight(1f),
-                        shape = MuseShapes.medium,
                     )
                     TextButton(
                         onClick = {

@@ -6,8 +6,10 @@ import io.zer0.muse.ui.common.IosFloatingButton
 import io.zer0.muse.ui.common.MuseToast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,28 +22,28 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
+import androidx.compose.material.icons.automirrored.outlined.Sort
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SortByAlpha
 import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.automirrored.outlined.MenuBook
-import androidx.compose.material.icons.automirrored.outlined.Sort
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -55,6 +57,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -68,11 +72,11 @@ import io.zer0.muse.data.knowledge.KnowledgeDocEntity
 import io.zer0.muse.ui.common.ConfirmDeleteDialog
 import io.zer0.muse.ui.common.MuseDialog
 import io.zer0.muse.ui.theme.MuseDateFormats
+import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
-import io.zer0.muse.ui.theme.mega
 import io.zer0.muse.ui.theme.semiLarge
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -101,10 +105,11 @@ fun KnowledgeScreen(
     // v1.66: 知识库排序切换(原仅按 updated_at DESC,现支持 4 种排序)
     var sortMode by remember { mutableStateOf(KnowledgeSortMode.UPDATED) }
     var showSortMenu by remember { mutableStateOf(false) }
-    // v1.48: h13 首次加载(observeAll)用 null 显示加载态;搜索场景保留 emptyList,避免每次输入闪加载态
+    // v1.48: h13 首次加载用 null 显示加载态;搜索场景保留 emptyList,避免每次输入闪加载态
     // M-KB1: 搜索时转义 LIKE 通配符(% _ \),配合 DAO 的 ESCAPE '\' 子句
+    // 用 observeAllUser() 在 DB 层排除 is_internal=true 的内部开发文档,避免向用户暴露
     val docs by remember(searchQuery) {
-        if (searchQuery.isBlank()) dao.observeAll() else dao.search(io.zer0.muse.data.knowledge.KnowledgeDocDao.escapeLikeQuery(searchQuery))
+        if (searchQuery.isBlank()) dao.observeAllUser() else dao.search(io.zer0.muse.data.knowledge.KnowledgeDocDao.escapeLikeQuery(searchQuery))
     }.collectAsStateWithLifecycle(initialValue = if (searchQuery.isBlank()) null else emptyList())
     var detailTarget by remember { mutableStateOf<KnowledgeDocEntity?>(null) }
     var importing by remember { mutableStateOf(false) }
@@ -316,6 +321,7 @@ fun KnowledgeScreen(
             IosTopBar(
                 title = stringResource(R.string.knowledge_title),
                 onBack = onBack,
+                largeTitle = true,
                 actions = {
                     // v1.66: 排序切换入口(iOS 风格动作弹窗)
                     IconButton(onClick = { showSortMenu = true }) {
@@ -333,27 +339,68 @@ fun KnowledgeScreen(
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
-        Column(Modifier.fillMaxSize().padding(innerPadding).padding(horizontal = 16.dp)) {
-            // v0.23: 搜索框(实时过滤标题 + 内容)
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                placeholder = { Text(stringResource(R.string.knowledge_search_placeholder)) },
-                leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(20.dp))
-                },
-                trailingIcon = {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(horizontal = MusePaddings.screen),
+        ) {
+            // iOS 风格搜索栏(surfaceVariant 背景 + 无框输入 + 圆角 + 搜索/清空图标)
+            Surface(
+                shape = MuseShapes.semiLarge,
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Box(
+                        modifier = Modifier.weight(1f),
+                        contentAlignment = Alignment.CenterStart,
+                    ) {
+                        if (searchQuery.isEmpty()) {
+                            Text(
+                                text = stringResource(R.string.knowledge_search_placeholder),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        BasicTextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            singleLine = true,
+                            textStyle = MaterialTheme.typography.bodyLarge.copy(
+                                color = MaterialTheme.colorScheme.onSurface,
+                            ),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                     if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { searchQuery = "" }) {
-                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.knowledge_clear), modifier = Modifier.size(20.dp))
+                        IconButton(
+                            onClick = { searchQuery = "" },
+                            modifier = Modifier.size(22.dp),
+                        ) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = stringResource(R.string.knowledge_clear),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp),
+                            )
                         }
                     }
-                },
-                singleLine = true,
-                shape = MuseShapes.medium,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.height(12.dp))
+                }
+            }
+            Spacer(Modifier.height(MusePaddings.itemGap))
 
             val docsList = docs
             if (docsList == null) {
@@ -383,7 +430,7 @@ fun KnowledgeScreen(
                     )
                 } else {
                     LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 80.dp),
                     ) {
                         items(visibleDocs, key = { it.id }) { doc ->
@@ -528,6 +575,36 @@ fun KnowledgeScreen(
     }
 }
 
+private data class FileTypeStyle(
+    val icon: ImageVector,
+    val iconColor: Color,
+    val containerColor: Color,
+)
+
+@Composable
+private fun fileTypeStyle(fileType: String): FileTypeStyle = when (fileType.lowercase(Locale.getDefault())) {
+    "pdf" -> FileTypeStyle(
+        icon = Icons.Outlined.Description,
+        iconColor = Color(0xFFFF2D55),
+        containerColor = Color(0xFFFF2D55).copy(alpha = 0.10f),
+    )
+    "md", "markdown" -> FileTypeStyle(
+        icon = Icons.Outlined.Description,
+        iconColor = Color(0xFF007AFF),
+        containerColor = Color(0xFF007AFF).copy(alpha = 0.10f),
+    )
+    "txt" -> FileTypeStyle(
+        icon = Icons.AutoMirrored.Outlined.MenuBook,
+        iconColor = Color(0xFF34C759),
+        containerColor = Color(0xFF34C759).copy(alpha = 0.10f),
+    )
+    else -> FileTypeStyle(
+        icon = Icons.Outlined.Description,
+        iconColor = Color(0xFF8E8E93),
+        containerColor = Color(0xFF8E8E93).copy(alpha = 0.10f),
+    )
+}
+
 @Composable
 private fun DocCard(
     doc: KnowledgeDocEntity,
@@ -536,12 +613,32 @@ private fun DocCard(
     onDelete: () -> Unit,
 ) {
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    val style = fileTypeStyle(doc.fileType)
     Surface(
         shape = MuseShapes.medium,
         color = MaterialTheme.colorScheme.surface,
+        shadowElevation = MuseElevation.card,
+        tonalElevation = 0.dp,
         modifier = Modifier.fillMaxWidth().clickable { onClick() },
     ) {
-        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier.padding(MusePaddings.cardInnerLoose),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(color = style.containerColor, shape = MuseShapes.small),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = style.icon,
+                    contentDescription = null,
+                    tint = style.iconColor,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
             Column(Modifier.weight(1f)) {
                 Text(
                     doc.title,
@@ -549,40 +646,24 @@ private fun DocCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                // 内容预览(若搜索匹配,截取匹配片段;否则取开头)
-                val preview = remember(doc.content, highlight) {
-                    if (highlight.isNullOrBlank()) {
-                        doc.content.take(120)
-                    } else {
-                        val idx = doc.content.indexOf(highlight, ignoreCase = true)
-                        if (idx < 0) doc.content.take(120)
-                        else {
-                            val start = (idx - 40).coerceAtLeast(0)
-                            val end = (idx + highlight.length + 80).coerceAtMost(doc.content.length)
-                            "..." + doc.content.substring(start, end) + "..."
-                        }
-                    }
-                }
-                Text(
-                    preview,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
                 // v1.71: 用 remember 缓存 SimpleDateFormat,避免列表项重组都新建对象
                 val dateFmt = remember { SimpleDateFormat(MuseDateFormats.DATE_TIME_SHORT, Locale.getDefault()) }
                 Text(
                     stringResource(R.string.knowledge_doc_meta_with_date, doc.fileType, doc.content.length, dateFmt.format(Date(doc.createdAt))),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
-            IconButton(onClick = { showDeleteConfirm = true }) {
+            IconButton(
+                onClick = { showDeleteConfirm = true },
+                modifier = Modifier.size(32.dp),
+            ) {
                 Icon(
-                    Icons.Default.Delete,
+                    Icons.Outlined.Delete,
                     contentDescription = stringResource(R.string.knowledge_delete),
-                    tint = MaterialTheme.colorScheme.error,
+                    tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
                     modifier = Modifier.size(18.dp),
                 )
             }

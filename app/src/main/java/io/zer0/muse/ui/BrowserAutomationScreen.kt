@@ -24,7 +24,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import io.zer0.muse.ui.common.IosTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -207,7 +207,7 @@ private fun AddressBar(
     onTextChange: (String) -> Unit,
     onNavigate: (String) -> Unit,
 ) {
-    OutlinedTextField(
+    IosTextField(
         value = text,
         onValueChange = onTextChange,
         modifier = Modifier
@@ -228,7 +228,6 @@ private fun AddressBar(
             )
         },
         singleLine = true,
-        shape = MuseShapes.semiLarge,
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
         keyboardActions = KeyboardActions(
             onGo = {
@@ -236,7 +235,6 @@ private fun AddressBar(
                 if (url.isNotEmpty()) onNavigate(url)
             },
         ),
-        textStyle = MaterialTheme.typography.bodyMedium,
     )
 }
 

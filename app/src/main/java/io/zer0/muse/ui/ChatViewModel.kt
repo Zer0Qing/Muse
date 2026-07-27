@@ -1,4 +1,4 @@
-﻿package io.zer0.muse.ui
+package io.zer0.muse.ui
 
 import android.content.Context
 import android.net.Uri
@@ -801,7 +801,10 @@ class ChatViewModel(
         val sessionId: String,
         val retryCount: Int = 0,
         // 乐观更新回滚用:enqueueSend 创建的 user/assistant 消息 id
-        val userMessageId: Uuid,
+        // P0 修复: 携带完整 userMessage(含原始 id + createdAt),消费端直接复用落盘,
+        //   避免 consumer 重新 new UIMessage 导致 createdAt 取到消费时刻(晚于 assistantMsg.createdAt),
+        //   切页重载后按 createdAt 排序时 user 消息会掉到 assistant 之下。
+        val userMessage: UIMessage,
         val assistantMessageId: Uuid,
         // v1.0.15: outbox 记录 id(持久化发送队列,进程被杀后恢复用)
         val outboxId: String,
@@ -830,7 +833,14 @@ class ChatViewModel(
             content = text,
             imageBase64List = images,
         )
-        val assistantMsg = UIMessage(role = MessageRole.ASSISTANT, content = "")
+        // P0 修复: 强制 assistantMsg.createdAt 严格晚于 userMsg.createdAt(+1ms),
+        //   避免同毫秒碰撞导致 DB ORDER BY createdAt ASC 排序不稳定(user/assistant 顺序错乱)。
+        //   原实现两者各自取 System.currentTimeMillis(),快速连续调用可能返回同值。
+        val assistantMsg = UIMessage(
+            role = MessageRole.ASSISTANT,
+            content = "",
+            createdAt = userMsg.createdAt + 1,
+        )
         // v1.0.15: 异步写入 outbox(保证"刚点击发送就退出"时消息不丢失)
         // 原 runBlocking 在主线程同步阻塞 5-10ms,低配设备可能 ANR;改为 viewModelScope.launch 异步写入。
         // 权衡:launch 是 fire-and-forget,若用户立即退出 App,viewModelScope 取消协程,
@@ -864,7 +874,7 @@ class ChatViewModel(
                 errors = emptyList(),
             )
         }
-        val sendResult = sendChannel.trySend(SendRequest(text, images, sessionId, userMessageId = userMsg.id, assistantMessageId = assistantMsg.id, outboxId = outboxId))
+        val sendResult = sendChannel.trySend(SendRequest(text, images, sessionId, userMessage = userMsg, assistantMessageId = assistantMsg.id, outboxId = outboxId))
         if (sendResult.isFailure) {
             // 队列已满,回滚乐观更新 + 删除 outbox(消息未入队,outbox 无用)
             // 异步删除:先 join 等待 insert 协程完成,避免 delete 先于 insert 落盘的竞态导致残留记录
@@ -1230,7 +1240,7 @@ class ChatViewModel(
                     // 移除属于该 req 的 user/assistant 消息并重置 isStreaming
                     _state.update {
                         val filtered = it.messages.filterNot { msg ->
-                            msg.id == req.userMessageId || msg.id == req.assistantMessageId
+                            msg.id == req.userMessage.id || msg.id == req.assistantMessageId
                         }
                         it.copy(
                             messages = filtered,
@@ -1243,11 +1253,12 @@ class ChatViewModel(
                     continue
                 }
                 try {
-                    sessionRepository.appendMessage(currentSid, UIMessage(
-                        role = MessageRole.USER,
-                        content = req.text,
-                        imageBase64List = req.images,
-                    ))
+                    // P0 修复: 直接复用 enqueueSend 创建的 userMessage(含原始 id + createdAt),
+                    //   保证 user 消息的 createdAt 严格 < assistant 消息(assistantMsg.createdAt = userMsg.createdAt + 1),
+                    //   切页重载按 createdAt ASC 排序时顺序正确(user 在前,assistant 在后)。
+                    //   原实现 new UIMessage 会让 createdAt 取到消费时刻(晚于 assistantMsg.createdAt),
+                    //   且 id 与乐观更新 id 不一致(导致 outbox 恢复时 messageExists 误判)。
+                    sessionRepository.appendMessage(currentSid, req.userMessage)
                 } catch (e: Exception) {
                     Logger.e("ChatVM", "appendMessage failed", e)
                     if (req.retryCount < 1) {
@@ -1361,10 +1372,20 @@ class ChatViewModel(
                         idListJson.decodeFromString<List<String>>(req.imageBase64Json)
                     }.getOrDefault(emptyList())
                     resultOf {
+                        // P0 修复: 复用 outbox 记录的 userMessageId + createdAt,
+                        //   避免重新 new UIMessage 让 createdAt 取到恢复时刻(远晚于原 assistant 消息),
+                        //   切页重载按 createdAt 排序时 user 消息会掉到 assistant 之下。
+                        //   createdAt 用 outbox 写入时刻(≈ enqueueSend 时刻),早于 assistant 消息的持久化时间。
+                        val userMsgId = runCatching { Uuid.parse(req.userMessageId) }.getOrElse {
+                            Logger.w("ChatVM", "outbox userMessageId 非 UUID,回退随机 id: ${req.userMessageId}")
+                            Uuid.random()
+                        }
                         sessionRepository.appendMessage(req.sessionId, UIMessage(
+                            id = userMsgId,
                             role = MessageRole.USER,
                             content = req.text,
                             imageBase64List = images,
+                            createdAt = req.createdAt,
                         ))
                     }.onError { msg, t ->
                         Logger.w("ChatVM", "outbox 恢复 appendMessage 失败: $msg", t)
@@ -1723,6 +1744,14 @@ class ChatViewModel(
     }
 
     /**
+     * 退出对话时触发 AI 摘要命名。
+     * 仅当标题仍为默认值"新会话"且有至少一轮完整对话时触发。
+     */
+    fun autoTitleOnExit(sessionId: String) {
+        autoTitleSession(sessionId)
+    }
+
+    /**
      * 功能2: 对话自动命名。
      *
      * 流式完成后,若会话标题为默认值(如"新会话"或空),调用 LLM 用 6 字以内概括对话。
@@ -1738,7 +1767,7 @@ class ChatViewModel(
         val preview = messages.take(4).joinToString("\n") { it.content.take(100) }
         if (preview.isBlank()) return
         viewModelScope.launch(AppDispatchers.io) {
-            val prompt = "基于以下对话摘要,用 6 个字以内概括这个对话:\n\n$preview"
+            val prompt = "请用4到8个字概括以下对话的主题,直接输出标题文字,不要加引号或其他标点:\n\n$preview"
             resultOf {
                 val completion = retryOnNetworkError {
                     chatService.completeText(
@@ -4554,8 +4583,6 @@ class ChatViewModel(
         // v1.42: 上下文溢出保护 — token 占用超过 80% 时在后台自动压缩,
         // 从流式启动关键路径移到响应结束后,避免阻塞首字返回。
         runCatching { triggerAutoCompress(sessionId) }
-        // 功能2: 对话自动命名 — 流式完成后,若会话标题为默认值则自动生成
-        autoTitleSession(sessionId)
 
         // v2.3: debugMode 下填充 debugInfo(含 TTFT/token 速率等性能指标)
         if (experiments.debugMode) {

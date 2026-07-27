@@ -36,7 +36,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import io.zer0.muse.ui.common.IosTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -189,12 +189,11 @@ fun VoiceCloningPage(
 
                 // ── API Key 输入 ──
                 FormSection(label = stringResource(R.string.voice_cloning_api_key)) {
-                    OutlinedTextField(
+                    IosTextField(
                         value = apiKey,
                         onValueChange = { apiKey = it },
                         modifier = Modifier.fillMaxWidth(),
                         placeholder = { Text("xi-api-key") },
-                        shape = MuseShapes.semiLarge,
                         singleLine = true,
                         visualTransformation = if (apiKeyVisible) VisualTransformation.None
                         else PasswordVisualTransformation(),
@@ -217,12 +216,11 @@ fun VoiceCloningPage(
                 // ── 克隆新语音表单 ──
                 FormSection(label = stringResource(R.string.voice_cloning_new_voice)) {
                     // 语音名称输入
-                    OutlinedTextField(
+                    IosTextField(
                         value = voiceName,
                         onValueChange = { voiceName = it },
                         modifier = Modifier.fillMaxWidth(),
                         placeholder = { Text(stringResource(R.string.voice_cloning_voice_name)) },
-                        shape = MuseShapes.semiLarge,
                         singleLine = true,
                         enabled = !isCloning,
                         leadingIcon = {

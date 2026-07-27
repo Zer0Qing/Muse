@@ -13,18 +13,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.outlined.EditNote
-import androidx.compose.material.icons.outlined.Extension
-import androidx.compose.material.icons.outlined.Inventory2
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -33,7 +23,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import io.zer0.muse.ui.common.IosTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -72,6 +62,7 @@ import io.zer0.muse.ui.common.SettingsGroup
 import io.zer0.muse.ui.common.SettingsGroupDivider
 import io.zer0.muse.ui.common.EmptyState
 import io.zer0.muse.ui.common.IosSwitch
+import io.zer0.muse.ui.common.IosTextField
 import io.zer0.muse.ui.common.IosTactileButton
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.MusePaddings
@@ -119,7 +110,7 @@ internal fun McpSection() {
             serverList.isEmpty() -> {
                 // v1.48: h14 MCP server 空态改用 EmptyState 组件
                 EmptyState(
-                    icon = Icons.Outlined.Extension,
+                    icon = TablerIcons.Puzzle,
                     title = stringResource(R.string.settings_mcp_empty_title),
                     subtitle = stringResource(R.string.settings_mcp_empty_subtitle),
                 )
@@ -165,7 +156,7 @@ internal fun McpSection() {
         onClick = { showAddDialog = true },
         modifier = Modifier.padding(top = 4.dp),
     ) {
-        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+        Icon(TablerIcons.Plus, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
         Text(stringResource(R.string.settings_mcp_add), style = MaterialTheme.typography.bodyMedium)
     }
 
@@ -255,7 +246,7 @@ private fun McpServerRow(
         )
         // v1.134 P0-6: 更多操作菜单按钮用 IosTactileButton(48dp 触摸目标 + 无 ripple)
         IosTactileButton(
-            icon = Icons.Default.MoreVert,
+            icon = TablerIcons.DotsVertical,
             onClick = { menuExpanded = true },
             contentDescription = stringResource(R.string.settings_mcp_more),
         )
@@ -317,12 +308,12 @@ private fun McpServerRow(
             )
         }
         IosTactileButton(
-            icon = Icons.Default.Edit,
+            icon = TablerIcons.Edit,
             onClick = onReconnect,
             contentDescription = stringResource(R.string.settings_mcp_reconnect),
         )
         IosTactileButton(
-            icon = Icons.Default.Delete,
+            icon = TablerIcons.Trash,
             onClick = onDelete,
             contentDescription = stringResource(R.string.settings_common_delete),
             tint = MaterialTheme.colorScheme.error,
@@ -448,21 +439,20 @@ private fun McpServerAddDialog(
                         color = MaterialTheme.colorScheme.outline,
                     )
                     Icon(
-                        imageVector = if (showAdvanced) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        imageVector = if (showAdvanced) TablerIcons.ChevronUp else TablerIcons.ChevronDown,
                         contentDescription = if (showAdvanced) stringResource(R.string.settings_common_collapse) else stringResource(R.string.settings_common_expand),
                         tint = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.size(20.dp),
                     )
                 }
                 if (showAdvanced) {
-                    OutlinedTextField(
+                    IosTextField(
                         value = headersText,
                         onValueChange = { headersText = it },
                         modifier = Modifier.fillMaxWidth(),
                         label = { Text(stringResource(R.string.settings_mcp_custom_headers)) },
                         placeholder = { Text("Authorization: Bearer xxx\nX-API-Key: yyy") },
                         singleLine = false,
-                        shape = MuseShapes.medium,
                     )
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -594,7 +584,7 @@ private fun ResourcesBrowserDialog(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.Inventory2,
+                            imageVector = TablerIcons.Box,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.outline,
                             modifier = Modifier.size(16.dp),
@@ -741,7 +731,7 @@ private fun PromptsBrowserDialog(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.EditNote,
+                            imageVector = TablerIcons.Notes,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.outline,
                             modifier = Modifier.size(16.dp),
@@ -821,7 +811,7 @@ private fun PromptsBrowserDialog(
                     } else {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             prompt.arguments.forEach { arg ->
-                                OutlinedTextField(
+                                IosTextField(
                                     value = argValues[arg.name] ?: "",
                                     onValueChange = { argValues[arg.name] = it },
                                     modifier = Modifier.fillMaxWidth(),
@@ -835,7 +825,6 @@ private fun PromptsBrowserDialog(
                                     },
                                     placeholder = arg.description?.let { { Text(it) } },
                                     singleLine = true,
-                                    shape = MuseShapes.medium,
                                 )
                             }
                         }
@@ -922,7 +911,7 @@ private fun InlineError(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Icon(
-                imageVector = Icons.Default.Info,
+                imageVector = TablerIcons.InfoCircle,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.error,
                 modifier = Modifier.size(16.dp),
@@ -934,7 +923,7 @@ private fun InlineError(
                 modifier = Modifier.weight(1f),
             )
             Icon(
-                imageVector = Icons.Default.Close,
+                imageVector = TablerIcons.X,
                 contentDescription = stringResource(R.string.settings_common_close),
                 tint = MaterialTheme.colorScheme.error,
                 modifier = Modifier

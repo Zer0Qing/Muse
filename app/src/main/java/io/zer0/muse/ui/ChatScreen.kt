@@ -51,15 +51,14 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Compress
-import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.PlayCircle
@@ -68,7 +67,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -124,6 +122,7 @@ import io.zer0.ai.core.UIMessage
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.ui.common.DesktopShortcuts
+import io.zer0.muse.ui.common.IosTextField
 import io.zer0.muse.ui.common.MuseDialog
 import io.zer0.muse.ui.common.MuseBottomSheet
 import io.zer0.muse.ui.common.MuseToast
@@ -146,6 +145,7 @@ import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseIconSizes
+import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.taskcard.AgentPlan
 import io.zer0.muse.ui.taskcard.AgentPlanStepStatus
@@ -228,6 +228,8 @@ fun ChatScreen(
      * MainActivity 的 NavGraph 中注入导航逻辑,跳转到 [HtmlPreviewScreen]。
      */
     onHtmlPreview: (String) -> Unit = {},
+    /** 加号菜单 → 技能入口。 */
+    onOpenSkills: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     // v1.0.20 (Task 3): 高频字段用 derivedStateOf 包裹,收窄重组范围。
@@ -293,7 +295,7 @@ fun ChatScreen(
     // 语音对话模式:全屏覆盖式 ASR + AI + TTS 连续对话
     var showVoiceConversation by remember { mutableStateOf(false) }
     val knowledgeDao: KnowledgeDocDao = koinInject()
-    val knowledgeDocs by knowledgeDao.observeAll().collectAsStateWithLifecycle(initialValue = emptyList())
+    val knowledgeDocs by knowledgeDao.observeAllUser().collectAsStateWithLifecycle(initialValue = emptyList())
     // v1.95: 注入 SettingsRepository 用于读取/保存 ASR 提示状态
     val settings: SettingsRepository = koinInject()
     // P2-12: 富文本输入开关 — 开启后 ChatScreen 的 InputBar 替换为 RichInputBar(顶部带 Markdown 格式工具条)
@@ -314,9 +316,15 @@ fun ChatScreen(
     }
     var savedPaginatorScrollOffset by remember { mutableStateOf(0) }
     val visibleMessages by produceState(
-        initialValue = state.messages,
-        state.messages, paginatorPageCount, performanceMode,
+        initialValue = if (isAgentMode && !state.isAgentMode) emptyList() else state.messages,
+        state.messages, paginatorPageCount, performanceMode, isAgentMode, state.isAgentMode,
     ) {
+        // 门禁:Agent Tab 模式下但 ViewModel 还没切换到 Agent 模式时,显示空白。
+        // 避免 HorizontalPager 动画期间目标页已 compose 但 setAgentMode 尚未执行时闪现旧对话内容。
+        if (isAgentMode && !state.isAgentMode) {
+            value = emptyList()
+            return@produceState
+        }
         if (!performanceMode) {
             value = state.messages
             return@produceState
@@ -532,19 +540,21 @@ fun ChatScreen(
             .collect { (size, _, autoScroll) ->
                 if (size == 0) return@collect
                 if (!autoScroll) return@collect
+                // 快照 visibleMessages,避免 produceState 异步更新导致 guard 与调用之间变空
+                val msgs = visibleMessages
+                if (msgs.isEmpty()) return@collect
+                val targetIndex = msgs.size - 1
                 val isUserSendMessage = size > lastMessageCount &&
                     state.messages.lastOrNull()?.role == MessageRole.USER
                 if (isUserSendMessage) {
                     // 用户刚发消息:瞬时滚到底部,并解锁跟随
-                    // v1.0.4 (P3-4): 性能模式下 LazyColumn 只渲染 visibleMessages,
-                    // 滚动目标必须用 visibleMessages 索引,否则 size-1 越界。
                     userScrolledUp = false
-                    listState.scrollToItem(visibleMessages.size - 1)
+                    listState.scrollToItem(targetIndex)
                 } else if (!userScrolledUp) {
                     // 流式增量:用户未上滑,平滑跟随底部
                     isProgrammaticScroll.value = true
                     try {
-                        listState.animateScrollToItem(visibleMessages.size - 1)
+                        listState.animateScrollToItem(targetIndex)
                     } finally {
                         isProgrammaticScroll.value = false
                     }
@@ -635,7 +645,7 @@ fun ChatScreen(
         topBar = {
             // v1.24: Agent Tab 模式下隐藏自带顶部栏,减少双层导航栏的间距感
             if (!isAgentMode) {
-                // iOS 风格自定义顶部栏(替代 Material TopAppBar)
+                // iOS/MANUS 风格顶部栏:居中大标题 + 关系副标题,右侧模型胶囊 + 导出按钮
                 Surface(
                     color = MaterialTheme.colorScheme.background,
                     modifier = Modifier
@@ -645,125 +655,118 @@ fun ChatScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(MusePaddings.chipInnerLoose),
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        // 返回按钮
+                        // 左侧返回按钮(从任务列表 push 进入时显示)
                         if (onBack != null) {
-                            IconButton(onClick = onBack) {
+                            IconButton(
+                                onClick = onBack,
+                                modifier = Modifier.size(MuseIconSizes.touchTarget),
+                            ) {
                                 Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    imageVector = TablerIcons.ArrowLeft,
                                     contentDescription = stringResource(R.string.action_back),
+                                    tint = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.size(MuseIconSizes.iconMedium),
                                 )
                             }
+                        } else {
+                            Spacer(Modifier.width(MuseIconSizes.touchTarget))
                         }
-                            // 会话标题 + 关系时长(点击弹出会话切换 sheet)
+
+                        // 居中标题区
                         val currentSession = remember(state.sessions, state.currentSessionId) {
                             state.sessions.find { it.id == state.currentSessionId }
                         }
                         val sessionTitle = currentSession?.title?.takeIf { it.isNotBlank() } ?: "muse"
                         val sessionCd = stringResource(R.string.chat_session_cd, sessionTitle)
+                        val rawModelName = modelName ?: state.providers
+                            .firstOrNull { it.id == state.activeProviderId }?.models
+                            ?.firstOrNull()?.name
+                            ?: stringResource(R.string.chat_model_not_configured)
+                        val currentModelName = rawModelName.substringAfterLast("/").takeIf { it.isNotBlank() } ?: rawModelName
                         Column(
                             modifier = Modifier
                                 .weight(1f)
                                 .clickable { showSessionSheet = true }
-                                .semantics {
-                                    contentDescription = sessionCd
-                                },
+                                .semantics { contentDescription = sessionCd },
+                            horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center,
                         ) {
                             Text(
                                 text = sessionTitle,
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.SemiBold,
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 22.sp,
                                 ),
+                                color = MaterialTheme.colorScheme.onBackground,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
-                            // Phase 1 WS4:关系存续时长副标题
+                            // 关系时长副标题:陪伴 X 天 · 模型名
                             currentSession?.let { s ->
                                 val days = (System.currentTimeMillis() - s.createdAt) / (24 * 60 * 60 * 1000)
+                                val daysText = if (days <= 0L) {
+                                    stringResource(R.string.chat_companion_days_zero)
+                                } else {
+                                    stringResource(R.string.chat_companion_days, days.toInt())
+                                }
                                 Text(
-                                    text = if (days <= 0L) stringResource(R.string.chat_list_just_met_today)
-                                    else stringResource(R.string.chat_list_day_together, days.toInt()),
+                                    text = "$daysText · $currentModelName",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
                                 )
                             }
-                            // Phase 6: 助手专属模型指示器 badge
-                            assistantModelShortName?.let { shortName ->
-                                Surface(
-                                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
-                                    shape = MuseShapes.small,
-                                ) {
-                                    Text(
-                                        text = stringResource(R.string.chat_assistant_model_badge, shortName),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                        modifier = Modifier.padding(MusePaddings.chipInner),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                }
+                        }
+
+                        // 右侧操作区:模型胶囊 + 导出按钮
+                        val modelCd = stringResource(R.string.chat_model_cd, currentModelName)
+                        Surface(
+                            onClick = { showModelSheet = true },
+                            enabled = !isStreaming,
+                            shape = MuseShapes.pill,
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                            modifier = Modifier
+                                .height(32.dp)
+                                .semantics { contentDescription = modelCd },
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                            ) {
+                                Text(
+                                    text = currentModelName,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.ArrowDropDown,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(18.dp),
+                                )
                             }
                         }
-                        // 右侧操作区
-                    // 阶段 5: 模型切换入口(iOS 风格顶部模型名)
-                    // 显示当前激活模型名,点击弹出底部 ModelSwitchSheet
-                    // M-CS3: 复用已缓存的 modelName(在 ChatScreen 作用域 remember 计算),
-                    //        避免在 actions 块内重复查找 providers + models
-                    val rawModelName = modelName ?: state.providers
-                        .firstOrNull { it.id == state.activeProviderId }?.models
-                        ?.firstOrNull()?.name
-                        ?: stringResource(R.string.chat_model_not_configured)
-                    // v0.53: 中转平台模型 ID 常带 provider 前缀(如 opencode-go/deepseek-v4-flash),
-                    // 顶部栏空间有限,仅显示最后一段模型名,避免与返回按钮堆叠
-                    val currentModelName = rawModelName.substringAfterLast("/").takeIf { it.isNotBlank() } ?: rawModelName
-                    val modelCd = stringResource(R.string.chat_model_cd, currentModelName)
-                    TextButton(
-                        onClick = { showModelSheet = true },
-                        // v1.0.20 (Task 3): 读派生值,避免 input 每次按键触发 topBar 重组
-                        enabled = !isStreaming,
-                        modifier = Modifier
-                            .widthIn(max = 180.dp)
-                            .semantics {
-                                contentDescription = modelCd
-                            },
-                    ) {
-                        Text(
-                            text = currentModelName,
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Icon(
-                            imageVector = Icons.Default.ArrowDropDown,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
-                    // v0.45: 更新记忆并压缩(手动触发常态化压缩)
-                    IconButton(
-                        onClick = { viewModel.manualCompress(updateMemoryFirst = true) },
-                        // v1.0.20 (Task 3): isStreaming 读派生值,避免 input 按键触发重组
-                        enabled = !isStreaming && !state.isCompressing && state.messages.size >= 2,
-                    ) {
-                        if (state.isCompressing) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(MuseIconSizes.iconSmall),
-                                strokeWidth = 2.dp,
-                            )
-                        } else {
+                        // 压缩上下文按钮(手动触发会话历史压缩 + 记忆更新)
+                        IconButton(
+                            onClick = { viewModel.manualCompress(updateMemoryFirst = true) },
+                            enabled = !isStreaming && !state.isCompressing && state.messages.size >= 2,
+                            modifier = Modifier.size(MuseIconSizes.touchTarget),
+                        ) {
                             Icon(
-                                imageVector = Icons.Default.Compress,
+                                imageVector = TablerIcons.GitMerge,
                                 contentDescription = stringResource(R.string.chat_update_compress_cd),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(MuseIconSizes.iconMedium),
                             )
                         }
-                    }
-                    // v0.53: 顶部栏移除设置按钮,释放空间避免模型选择器与返回按钮堆叠
                     }
                 }
             }
@@ -818,6 +821,8 @@ fun ChatScreen(
                 // v0.29 P1-6: 知识库 @mention 文档选择 sheet
                 onPickKnowledge = { showKnowledgeSheet = true },
                 onOpenPromptTemplates = { showPromptTemplateSheet = true },
+                // 加号菜单 → 技能入口
+                onOpenSkills = onOpenSkills,
                 // v0.31: 回车键发送开关传给 InputBar
                 enterToSend = state.chatPreferences.enterToSend,
                 // Phase 8.5:快捷消息
@@ -1350,11 +1355,11 @@ fun ChatScreen(
                             userScrolledUp = false
                             isProgrammaticScroll.value = true
                             scrollToBottomScope.launch {
-                                // M-S13: 空 list 防护,避免 size - 1 越界
-                                if (visibleMessages.isEmpty()) return@launch
+                                // M-S13: 快照 visibleMessages,避免异步更新导致 size-1 越界
+                                val msgs = visibleMessages
+                                if (msgs.isEmpty()) return@launch
                                 try {
-                                    // v1.0.4 (P3-4): 滚到 visibleMessages 末尾
-                                    listState.animateScrollToItem(visibleMessages.size - 1)
+                                    listState.animateScrollToItem(msgs.size - 1)
                                 } finally {
                                     isProgrammaticScroll.value = false
                                 }
@@ -1403,7 +1408,7 @@ fun ChatScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Error,
+                            imageVector = TablerIcons.AlertCircle,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onTertiaryContainer,
                             modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -1501,7 +1506,7 @@ fun ChatScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Compress,
+                            imageVector = TablerIcons.GitMerge,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onTertiaryContainer,
                             modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -1997,7 +2002,7 @@ fun ChatScreen(
                 title = stringResource(R.string.edit_message_title),
                 content = {
                     Column(modifier = Modifier.fillMaxWidth()) {
-                        OutlinedTextField(
+                        IosTextField(
                             value = draft,
                             onValueChange = { draft = it },
                             modifier = Modifier
@@ -2358,7 +2363,7 @@ private fun ImageGenerationPlaceholder() {
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.Image,
+                        imageVector = TablerIcons.Photo,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.size(40.dp),
@@ -2545,7 +2550,7 @@ private fun ToolCallHistorySheet(
                             Icon(Icons.Default.CheckCircle, null, tint = statusColor, modifier = Modifier.size(16.dp))
                         }
                         AgentPlanStepStatus.FAILED -> {
-                            Icon(Icons.Default.Error, null, tint = statusColor, modifier = Modifier.size(16.dp))
+                            Icon(TablerIcons.AlertCircle, null, tint = statusColor, modifier = Modifier.size(16.dp))
                         }
                         else -> {
                             Box(
@@ -2632,7 +2637,7 @@ private fun ToolCallRecordItem(
             )
             Spacer(Modifier.width(8.dp))
             Icon(
-                imageVector = if (record.isSuccess) Icons.Default.CheckCircle else Icons.Default.Error,
+                imageVector = if (record.isSuccess) Icons.Default.CheckCircle else TablerIcons.AlertCircle,
                 contentDescription = null,
                 tint = if (record.isSuccess) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
                 modifier = Modifier.size(16.dp),
@@ -2657,12 +2662,21 @@ private fun ToolCallRecordItem(
 
 /**
  * 日期分隔线 — 细线 + 居中日期文字,用于消息列表跨天分组。
+ * 当天消息显示“今天 HH:mm”,其他日期显示“MM-dd HH:mm”,颜色更淡。
  */
 @Composable
 private fun DateSeparator(timestamp: Long) {
-    val dateText = remember(timestamp) {
-        val sdf = java.text.SimpleDateFormat(MuseDateFormats.DATE_WEEKDAY_CN, java.util.Locale.getDefault())
-        sdf.format(java.util.Date(timestamp))
+    val now = System.currentTimeMillis()
+    val isToday = remember(timestamp) { isSameDay(timestamp, now) }
+    val dateText = remember(timestamp, isToday) {
+        val timeSdf = java.text.SimpleDateFormat(MuseDateFormats.TIME_SHORT, java.util.Locale.getDefault())
+        val timeText = timeSdf.format(java.util.Date(timestamp))
+        if (isToday) {
+            "今天 $timeText"
+        } else {
+            val dateSdf = java.text.SimpleDateFormat(MuseDateFormats.DATE_TIME_SHORT, java.util.Locale.getDefault())
+            dateSdf.format(java.util.Date(timestamp))
+        }
     }
     Row(
         modifier = Modifier
@@ -2673,16 +2687,16 @@ private fun DateSeparator(timestamp: Long) {
     ) {
         MuseDivider(
             modifier = Modifier.weight(1f),
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f),
         )
         Text(
             text = dateText,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
         )
         MuseDivider(
             modifier = Modifier.weight(1f),
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f),
         )
     }
 }

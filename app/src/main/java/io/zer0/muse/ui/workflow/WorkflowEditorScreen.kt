@@ -27,7 +27,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import io.zer0.muse.ui.common.IosTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -353,7 +353,7 @@ private fun ExportJsonDialog(
         title = { Text(stringResource(R.string.workflow_export_json_title), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)) },
         text = {
             Column {
-                OutlinedTextField(
+                IosTextField(
                     value = json,
                     onValueChange = { /* 只读 */ },
                     readOnly = true,

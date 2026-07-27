@@ -5,6 +5,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,6 +27,8 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.layout.ContentScale
+import io.zer0.muse.ui.theme.MuseShapes
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -44,7 +47,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import io.zer0.muse.ui.common.IosTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -340,7 +343,8 @@ private fun ProgressDots(
                 label = "dot_size",
             )
             val color = when {
-                isCurrent || isCompleted -> MaterialTheme.colorScheme.primary
+                isCurrent -> MaterialTheme.colorScheme.onSurface
+                isCompleted -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
                 else -> MaterialTheme.colorScheme.surfaceVariant
             }
             Box(
@@ -373,32 +377,20 @@ private fun StepWelcome() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        // 品牌图标:应用启动图标 + 柔和渐变圆形背景
+        // 品牌图标:使用项目图标
         Surface(
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.primaryContainer,
+            shape = MuseShapes.large,
+            color = MaterialTheme.colorScheme.surfaceContainer,
             modifier = Modifier.size(96.dp),
         ) {
-            Box(
+            Image(
+                painter = painterResource(R.drawable.ic_muse_logo),
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
-                                MaterialTheme.colorScheme.primary,
-                            ),
-                        ),
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_muse_logo),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(64.dp),
-                )
-            }
+                    .padding(12.dp),
+            )
         }
         Spacer(modifier = Modifier.height(MusePaddings.sectionGap))
         Text(
@@ -455,7 +447,7 @@ private fun FeatureChip(
             Icon(
                 imageVector = item.icon,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(18.dp),
             )
             Text(
@@ -543,22 +535,20 @@ private fun LanguageCard(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    val containerColor = if (selected) {
-        MaterialTheme.colorScheme.primaryContainer
+    val containerColor = MaterialTheme.colorScheme.surfaceContainer
+    val borderColor = if (selected) {
+        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
     } else {
-        MaterialTheme.colorScheme.surfaceContainer
+        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
     }
-    val contentColor = if (selected) {
-        MaterialTheme.colorScheme.onPrimaryContainer
-    } else {
-        MaterialTheme.colorScheme.onSurface
-    }
+    val borderWidth = if (selected) 1.5.dp else 1.dp
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = MuseShapes.medium,
         color = containerColor,
+        border = BorderStroke(borderWidth, borderColor),
     ) {
         Row(
             modifier = Modifier
@@ -569,14 +559,16 @@ private fun LanguageCard(
         ) {
             Text(
                 text = label,
-                style = MaterialTheme.typography.bodyLarge,
-                color = contentColor,
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                ),
+                color = MaterialTheme.colorScheme.onSurface,
             )
             if (selected) {
                 Icon(
                     imageVector = Icons.Filled.CheckCircle,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = MaterialTheme.colorScheme.onSurface,
                 )
             }
         }
@@ -591,11 +583,11 @@ private fun ThemeColorBlock(
     modifier: Modifier = Modifier,
 ) {
     val borderColor = if (selected) {
-        MaterialTheme.colorScheme.primary
+        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
     } else {
         MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
     }
-    val borderWidth = if (selected) 2.dp else 1.dp
+    val borderWidth = if (selected) 1.5.dp else 1.dp
     val label = stringResource(theme.nameResId)
     Surface(
         modifier = modifier
@@ -618,8 +610,10 @@ private fun ThemeColorBlock(
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = if (selected) MaterialTheme.colorScheme.primary
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                ),
+                color = if (selected) MaterialTheme.colorScheme.onSurface
                 else MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -649,21 +643,19 @@ private fun StepNames(
             color = MaterialTheme.colorScheme.onSurface,
         )
         Spacer(modifier = Modifier.height(MusePaddings.sectionGap))
-        OutlinedTextField(
+        IosTextField(
             value = userName,
             onValueChange = onUserNameChange,
             label = { Text(stringResource(R.string.onboarding_names_user_label)) },
             singleLine = true,
-            shape = MuseShapes.semiLarge,
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(modifier = Modifier.height(MusePaddings.itemGap))
-        OutlinedTextField(
+        IosTextField(
             value = agentName,
             onValueChange = onAgentNameChange,
             label = { Text(stringResource(R.string.onboarding_names_agent_label)) },
             singleLine = true,
-            shape = MuseShapes.semiLarge,
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(modifier = Modifier.height(MusePaddings.contentGap))
@@ -737,12 +729,11 @@ private fun StepProviderConfig(
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Spacer(modifier = Modifier.height(MusePaddings.contentGap))
-                OutlinedTextField(
+                IosTextField(
                     value = customBaseUrl,
                     onValueChange = onCustomBaseUrlChange,
                     label = { Text(stringResource(R.string.onboarding_provider_custom_baseurl_input)) },
                     singleLine = true,
-                    shape = MuseShapes.semiLarge,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(modifier = Modifier.height(MusePaddings.contentGap))
@@ -756,12 +747,11 @@ private fun StepProviderConfig(
             color = MaterialTheme.colorScheme.onSurface,
         )
         Spacer(modifier = Modifier.height(MusePaddings.contentGap))
-        OutlinedTextField(
+        IosTextField(
             value = apiKey,
             onValueChange = onApiKeyChange,
             label = { Text(stringResource(R.string.onboarding_provider_apikey_input)) },
             singleLine = true,
-            shape = MuseShapes.semiLarge,
             visualTransformation = if (apiKeyVisible) {
                 VisualTransformation.None
             } else {
@@ -798,7 +788,7 @@ private fun StepProviderConfig(
             enabled = testEnabled,
             shape = MuseShapes.pill,
             color = if (testEnabled) {
-                MaterialTheme.colorScheme.primary
+                MaterialTheme.colorScheme.onSurface
             } else {
                 MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
             },
@@ -814,7 +804,7 @@ private fun StepProviderConfig(
                     CircularProgressIndicator(
                         modifier = Modifier.size(20.dp),
                         strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary,
+                        color = MaterialTheme.colorScheme.surface,
                     )
                 } else {
                     Text(
@@ -823,7 +813,7 @@ private fun StepProviderConfig(
                             fontWeight = FontWeight.SemiBold,
                         ),
                         color = if (testEnabled) {
-                            MaterialTheme.colorScheme.onPrimary
+                            MaterialTheme.colorScheme.surface
                         } else {
                             MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                         },
@@ -840,13 +830,13 @@ private fun StepProviderConfig(
                     Icon(
                         imageVector = Icons.Filled.CheckCircle,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(modifier = Modifier.width(MusePaddings.iconPadding))
                     Text(
                         text = stringResource(R.string.onboarding_provider_test_success, testStatus.models.size),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                 }
             }
@@ -875,7 +865,10 @@ private fun StepProviderConfig(
             onClick = onSkip,
             modifier = Modifier.align(Alignment.CenterHorizontally),
         ) {
-            Text(stringResource(R.string.onboarding_provider_skip))
+            Text(
+                text = stringResource(R.string.onboarding_provider_skip),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            )
         }
     }
 }
@@ -936,12 +929,11 @@ private fun StepSelectModel(
             color = MaterialTheme.colorScheme.onSurface,
         )
         Spacer(modifier = Modifier.height(MusePaddings.contentGap))
-        OutlinedTextField(
+        IosTextField(
             value = searchQuery,
             onValueChange = onSearchQueryChange,
             label = { Text(stringResource(R.string.onboarding_model_search_label)) },
             singleLine = true,
-            shape = MuseShapes.semiLarge,
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(modifier = Modifier.height(MusePaddings.contentGap))
@@ -966,22 +958,20 @@ private fun ModelItem(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    val containerColor = if (selected) {
-        MaterialTheme.colorScheme.primaryContainer
+    val containerColor = MaterialTheme.colorScheme.surfaceContainer
+    val borderColor = if (selected) {
+        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
     } else {
-        MaterialTheme.colorScheme.surfaceContainer
+        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
     }
-    val contentColor = if (selected) {
-        MaterialTheme.colorScheme.onPrimaryContainer
-    } else {
-        MaterialTheme.colorScheme.onSurface
-    }
+    val borderWidth = if (selected) 1.5.dp else 1.dp
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = MuseShapes.medium,
         color = containerColor,
+        border = BorderStroke(borderWidth, borderColor),
     ) {
         Row(
             modifier = Modifier
@@ -993,8 +983,10 @@ private fun ModelItem(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = model.name,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = contentColor,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 Spacer(modifier = Modifier.height(MusePaddings.tightGap))
                 Text(
@@ -1007,7 +999,7 @@ private fun ModelItem(
                 Icon(
                     imageVector = Icons.Filled.CheckCircle,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = MaterialTheme.colorScheme.onSurface,
                 )
             }
         }
@@ -1032,23 +1024,18 @@ private fun StepComplete() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        // 完成图标:品牌色圆形背景 + 白色对勾
+        // 完成图标:使用默认助手头像
         Surface(
             shape = CircleShape,
-            color = MaterialTheme.colorScheme.primary,
+            color = MaterialTheme.colorScheme.surfaceContainer,
             modifier = Modifier.size(80.dp),
         ) {
-            Box(
+            Image(
+                painter = painterResource(R.drawable.default_assistant_avatar),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.CheckCircle,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(40.dp),
-                )
-            }
+            )
         }
         Spacer(modifier = Modifier.height(MusePaddings.sectionGap))
         Text(
@@ -1091,14 +1078,14 @@ private fun TutorialCard(item: FeatureItem) {
         ) {
             Surface(
                 shape = CircleShape,
-                color = MaterialTheme.colorScheme.primaryContainer,
+                color = MaterialTheme.colorScheme.surfaceVariant,
                 modifier = Modifier.size(44.dp),
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = item.icon,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(24.dp),
                     )
                 }
@@ -1138,7 +1125,7 @@ private fun PrimaryPillButton(
         enabled = enabled,
         shape = MuseShapes.pill,
         color = if (enabled) {
-            MaterialTheme.colorScheme.primary
+            MaterialTheme.colorScheme.onSurface
         } else {
             MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
         },
@@ -1155,7 +1142,7 @@ private fun PrimaryPillButton(
                     contentDescription = null,
                     modifier = Modifier.size(18.dp),
                     tint = if (enabled) {
-                        MaterialTheme.colorScheme.onPrimary
+                        MaterialTheme.colorScheme.surface
                     } else {
                         MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                     },
@@ -1168,7 +1155,7 @@ private fun PrimaryPillButton(
                     fontWeight = FontWeight.SemiBold,
                 ),
                 color = if (enabled) {
-                    MaterialTheme.colorScheme.onPrimary
+                    MaterialTheme.colorScheme.surface
                 } else {
                     MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                 },
@@ -1187,10 +1174,10 @@ private fun SecondaryPillButton(
     Surface(
         onClick = onClick,
         shape = MuseShapes.pill,
-        color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f),
+        color = MaterialTheme.colorScheme.surface,
         border = androidx.compose.foundation.BorderStroke(
             width = 1.dp,
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
         ),
         modifier = modifier.height(52.dp),
     ) {

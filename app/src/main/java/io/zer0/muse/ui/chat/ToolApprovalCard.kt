@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.tools.ToolApprovalPolicy
 import io.zer0.muse.ui.SmartImage
+import io.zer0.muse.ui.common.IosTextField
 import io.zer0.muse.ui.common.MuseToast
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseShapes
@@ -322,7 +323,7 @@ fun ToolApprovalCard(
 
             // 拒绝理由输入框
             if (showDenyReason) {
-                androidx.compose.material3.OutlinedTextField(
+                IosTextField(
                     value = denyReason,
                     onValueChange = { denyReason = it },
                     label = { Text(stringResource(R.string.tool_approval_deny_reason)) },

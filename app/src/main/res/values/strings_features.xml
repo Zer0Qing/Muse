@@ -19,7 +19,7 @@
     <string name="groupchat_thinking">正在思考…</string>
     <string name="groupchat_agent_thinking">%1$s 正在思考…</string>
     <string name="groupchat_tools">工具</string>
-    <string name="groupchat_input_placeholder">发送消息…</string>
+    <string name="groupchat_input_placeholder">输入消息…@提及成员</string>
     <string name="groupchat_send">发送</string>
     <string name="groupchat_pick_content">选择要发送的内容</string>
     <string name="groupchat_pick_from_gallery">从相册选择图片</string>
@@ -36,6 +36,7 @@
     <string name="groupchat_pin">置顶</string>
     <string name="groupchat_delete_chat">删除群聊</string>
     <string name="groupchat_delete_chat_confirm">确定要删除「%1$s」吗?群聊中的所有消息将被清空且不可恢复。</string>
+    <string name="groupchat_sender_user">我</string>
     <string name="groupchat_member_count">%1$d 位成员</string>
     <string name="groupchat_just_now">刚刚</string>
     <string name="groupchat_minutes_ago">%1$d分钟前</string>
@@ -50,15 +51,72 @@
     <string name="groupchat_selected_members">已选 %1$d 个成员</string>
     <string name="groupchat_create_btn">创建</string>
     <string name="groupchat_edit_cd">编辑群聊</string>
+    <string name="groupchat_edit">编辑</string>
     <string name="groupchat_edit_title">编辑群聊</string>
     <string name="groupchat_edit_btn">保存</string>
     <string name="groupchat_edit_member_required">请至少保留一名成员</string>
     <string name="groupchat_edit_name_hint">群聊名称</string>
+    <!-- v2.x: 群聊讨论模式 -->
+    <string name="groupchat_mode_title">讨论模式</string>
+    <string name="groupchat_mode_round_robin">轮转发言</string>
+    <string name="groupchat_mode_round_robin_desc">用户发消息后,每个 AI 依次发言一轮</string>
+    <string name="groupchat_mode_auto">自由讨论</string>
+    <string name="groupchat_mode_auto_desc">AI 之间自动连续对话,达到上限或无人发言时停止</string>
+    <string name="groupchat_mode_debate">辩论模式</string>
+    <string name="groupchat_mode_debate_desc">固定链条:提方案 → 质疑 → 改进,每人必须回应上一人</string>
+    <string name="groupchat_mode_host">主持人模式</string>
+    <string name="groupchat_mode_host_desc">由主持人 AI 分析问题后动态派发任务给其他成员</string>
+    <string name="groupchat_mode_auto_rounds">最大轮数</string>
+    <string name="groupchat_mode_select_host">选择主持人</string>
+    <string name="groupchat_mode_no_host">未选择(回退轮转)</string>
+    <!-- v2.x: 群聊消息操作与协同增强 -->
+    <string name="groupchat_regenerate">重新生成</string>
+    <string name="groupchat_reply">引用回复</string>
+    <string name="groupchat_whisper">悄悄话</string>
+    <string name="groupchat_whisper_hint">输入悄悄话内容…</string>
+    <string name="groupchat_whisper_to">私信给 %1$s</string>
+    <string name="groupchat_whisper_label">悄悄话</string>
+    <string name="groupchat_vote">发起表决</string>
+    <string name="groupchat_vote_topic_hint">输入表决议题…</string>
+    <string name="groupchat_vote_title">发起表决</string>
+    <string name="groupchat_summary">总结讨论</string>
+    <string name="groupchat_summary_title">结论总结</string>
+    <string name="groupchat_vote_system_started">发起了表决</string>
+    <string name="groupchat_vote_system_ended">表决结束</string>
+    <string name="groupchat_message_whisper">[悄悄话] 仅你可见</string>
+    <string name="groupchat_reply_quote">引用 %1$s:%2$s</string>
+    <string name="groupchat_reply_hint">输入回复内容…</string>
+    <string name="groupchat_summary_desc">选择一个 AI 来总结当前讨论的共识与分歧</string>
+    <string name="groupchat_summary_auto">自动选择(第一个成员)</string>
+    <!-- v2.x: 群聊上下文管理 -->
+    <string name="groupchat_context_manage">群聊上下文</string>
+    <string name="groupchat_context_shared_docs">群共享文档</string>
+    <string name="groupchat_context_shared_docs_desc">所有成员可见,作为共享背景知识注入</string>
+    <string name="groupchat_context_add_doc">添加文档</string>
+    <string name="groupchat_context_doc_title">标题</string>
+    <string name="groupchat_context_doc_content">正文</string>
+    <string name="groupchat_context_doc_title_hint">输入文档标题</string>
+    <string name="groupchat_context_doc_content_hint">输入文档正文(支持纯文本)</string>
+    <string name="groupchat_context_no_docs">暂无共享文档</string>
+    <string name="groupchat_context_doc_chars">%1$d 字</string>
+    <string name="groupchat_context_private_context">AI 专属上下文</string>
+    <string name="groupchat_context_private_context_desc">仅对应 AI 可见,其他成员看不到</string>
+    <string name="groupchat_context_private_context_hint">输入该 AI 的专属上下文(角色设定、私有约束等)</string>
+    <string name="groupchat_context_private_context_set">已设置</string>
+    <string name="groupchat_context_private_context_empty">未设置</string>
+    <string name="groupchat_context_save">保存</string>
+    <string name="groupchat_context_clear">清除</string>
     <!-- ActivityHub: agent 活动状态 chip 文案(参考 openhanako ActivityHub 五态) -->
     <string name="groupchat_activity_viewing">正在看消息</string>
     <string name="groupchat_activity_replying">正在回复</string>
     <string name="groupchat_activity_no_reply">选择不回复</string>
     <string name="groupchat_activity_error">出错</string>
+    <!-- v2.1: 群聊加号菜单增强(成员 / 表决 / 总结 / 上下文) -->
+    <string name="groupchat_tool_members">成员列表</string>
+    <string name="groupchat_tool_vote">发起表决</string>
+    <string name="groupchat_tool_summary">总结讨论</string>
+    <string name="groupchat_tool_context">群聊上下文</string>
+    <string name="groupchat_tool_mention">@提及成员</string>
 
     <!-- ===== ui/account ===== -->
     <string name="account_title">账户</string>
@@ -107,6 +165,19 @@
     <string name="account_manage">点击管理账户</string>
     <string name="account_login_register">登录 / 注册</string>
     <string name="account_coming_soon">即将推出</string>
+    <!-- v2.x: 编辑个人资料页(无登录注册 UI,仅本地头像 + 昵称) -->
+    <string name="account_edit_profile">编辑个人资料</string>
+    <string name="account_edit_profile_subtitle">点击头像和名字来自定义</string>
+    <string name="account_avatar">头像</string>
+    <string name="account_change_avatar">更换头像</string>
+    <string name="account_change_avatar_hint">点击头像从相册选择图片</string>
+    <string name="account_name_label">名字</string>
+    <string name="account_name_placeholder">输入你的名字</string>
+    <string name="account_save">保存</string>
+    <string name="account_saved">已保存</string>
+    <string name="account_remove_avatar">移除头像</string>
+    <string name="account_user_profile_title">个人资料</string>
+    <string name="account_user_profile_subtitle">让 AI 更了解你</string>
 
     <!-- ===== ui/onboarding ===== -->
     <!-- onboarding_next / onboarding_start 已在主 strings.xml 定义,此处不重复 -->
@@ -402,6 +473,23 @@
     <string name="stats_top_sessions">Top 10 活跃会话</string>
     <string name="stats_message_count">%1$s 条</string>
     <string name="stats_no_data">暂无数据</string>
+    <!-- v2.2 仪表盘重构 -->
+    <string name="stats_dashboard_subtitle">共 %1$d 个对话 · %2$d 天活跃</string>
+    <string name="stats_export_cd">导出统计摘要</string>
+    <string name="stats_export_chooser">分享统计摘要</string>
+    <string name="stats_export_subject">Muse 统计摘要</string>
+    <string name="stats_empty_title">开始对话后这里会显示统计</string>
+    <string name="stats_empty_action">去发起对话</string>
+    <string name="stats_view_all">查看全部</string>
+    <string name="stats_collapse">收起</string>
+    <string name="stats_trend_title">活跃趋势</string>
+    <string name="stats_trend_window_7d">7天</string>
+    <string name="stats_trend_window_30d">30天</string>
+    <string name="stats_trend_window_90d">90天</string>
+    <string name="stats_tooltip_messages">%1$s · %2$d 条消息</string>
+    <string name="stats_tooltip_hint">点击单元格查看详情</string>
+    <string name="stats_avg_label">平均 %.1f</string>
+    <string name="stats_active_days_unit">天</string>
 
     <!-- ===== ui/taskcard ===== -->
     <string name="taskcard_phase_planning">计划中</string>

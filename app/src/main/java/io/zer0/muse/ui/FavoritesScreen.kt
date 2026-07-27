@@ -31,11 +31,11 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import io.zer0.muse.ui.common.IosTopBar
+import io.zer0.muse.ui.common.IosTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -379,7 +379,7 @@ private fun FavoriteTagEditDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.favorites_tag_edit_title)) },
         text = {
-            OutlinedTextField(
+            IosTextField(
                 value = text,
                 onValueChange = { text = it },
                 label = { Text(stringResource(R.string.favorites_tag_edit_hint)) },

@@ -7,17 +7,14 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.BugReport
-import androidx.compose.material.icons.outlined.CloudUpload
-import androidx.compose.material.icons.outlined.Mail
-import androidx.compose.material.icons.outlined.Webhook
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import io.zer0.muse.ui.common.IosChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import io.zer0.muse.ui.common.IosTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -114,9 +111,9 @@ fun CrashReportSettingsPage(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.BugReport,
+                        imageVector = TablerIcons.Bug,
                         contentDescription = null,
-                        tint = if (pendingCount > 0) MaterialTheme.colorScheme.primary
+                        tint = if (pendingCount > 0) MaterialTheme.colorScheme.onSurface
                         else MaterialTheme.colorScheme.outline,
                         modifier = Modifier.size(20.dp),
                     )
@@ -150,7 +147,7 @@ fun CrashReportSettingsPage(
                     shape = MuseShapes.medium,
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.CloudUpload,
+                        imageVector = TablerIcons.CloudUpload,
                         contentDescription = null,
                         modifier = Modifier.size(18.dp),
                     )
@@ -165,7 +162,7 @@ fun CrashReportSettingsPage(
         item {
             SettingsGroup {
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.CloudUpload,
+                    icon = TablerIcons.CloudUpload,
                     title = stringResource(R.string.settings_crash_enable_title),
                     subtitle = stringResource(R.string.settings_crash_enable_subtitle),
                     checked = enabled,
@@ -189,7 +186,7 @@ fun CrashReportSettingsPage(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         Icon(
-                            imageVector = if (method == "email") Icons.Outlined.Mail else Icons.Outlined.Webhook,
+                            imageVector = if (method == "email") TablerIcons.Mail else TablerIcons.Link,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.outline,
                             modifier = Modifier.size(20.dp),
@@ -224,7 +221,7 @@ fun CrashReportSettingsPage(
                     // ── 邮件配置 ──
                     if (method == CrashReporterFactory.METHOD_EMAIL) {
                         SettingsGroupDivider()
-                        OutlinedTextField(
+                        IosTextField(
                             value = emailDraft,
                             onValueChange = { emailDraft = it },
                             label = { Text(stringResource(R.string.settings_crash_email_label)) },
@@ -233,7 +230,6 @@ fun CrashReportSettingsPage(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 8.dp),
-                            shape = MuseShapes.medium,
                         )
                         Button(
                             onClick = {
@@ -254,7 +250,7 @@ fun CrashReportSettingsPage(
                     // ── Webhook 配置 ──
                     if (method == CrashReporterFactory.METHOD_WEBHOOK) {
                         SettingsGroupDivider()
-                        OutlinedTextField(
+                        IosTextField(
                             value = webhookDraft,
                             onValueChange = { webhookDraft = it },
                             label = { Text("Webhook URL") },
@@ -263,7 +259,6 @@ fun CrashReportSettingsPage(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 8.dp),
-                            shape = MuseShapes.medium,
                         )
                         Button(
                             onClick = {

@@ -1,89 +1,107 @@
 package io.zer0.muse.ui
 
-import io.zer0.muse.ui.common.EmptyState
-import io.zer0.muse.ui.common.IosCardPress
 import io.zer0.muse.ui.common.LoadingState
-import io.zer0.muse.ui.common.MuseToast
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyItemScope
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.DriveFileMove
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.PushPin
-import androidx.compose.material.icons.filled.Unarchive
-import androidx.compose.material.icons.outlined.Archive
-import androidx.compose.material.icons.outlined.ChatBubbleOutline
-import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material.icons.outlined.Translate
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import io.zer0.muse.ui.common.IosTextField
+import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 import io.zer0.muse.R
 import io.zer0.muse.data.assistant.AssistantEntity
+import io.zer0.muse.data.knowledge.KnowledgeDocDao
 import io.zer0.muse.data.session.FolderEntity
 import io.zer0.muse.data.session.SessionEntity
+import io.zer0.muse.ui.common.MuseBottomSheet
 import io.zer0.muse.ui.common.MuseDialog
+import io.zer0.muse.ui.common.MuseToast
+import io.zer0.muse.ui.components.CardGroup
+import io.zer0.muse.ui.components.MuseDivider
+import io.zer0.muse.ui.components.MuseSurface
 import io.zer0.muse.ui.theme.MuseDateFormats
-import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
-import io.zer0.muse.ui.theme.huge
-import io.zer0.muse.ui.theme.mega
 import io.zer0.muse.ui.theme.pill
+import io.zer0.memory.fact.FactDao
+import io.zer0.memory.fact.FactEntity
+import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.TimeUnit
 
+/**
+ * 任务中心页 —— 按设计稿重构为 iOS / MANUS 风格任务首页。
+ *
+ * 视觉结构:
+ *  - 顶部大标题问候语 + 记忆数量副标题
+ *  - 全局输入条:输入任何想法,右侧绿色圆形发送按钮
+ *  - 已置顶:白色圆角卡片,状态圆点 + 标题 + 副标题 + 时间 + 箭头
+ *  - 文件夹:文件夹图标 + 名称 + 数量
+ *  - 最近:非置顶会话或空状态提示
+ *  - 知识库:入口卡片,显示文档数量
+ *
+ * 所有原有功能保留:
+ *  - 置顶、归档、文件夹、重命名、删除
+ *  - 滑动删除(左滑) / 归档(右滑)
+ *  - 长按菜单
+ */
 @Composable
 fun ChatListScreen(
     sessions: List<SessionEntity>,
@@ -91,6 +109,8 @@ fun ChatListScreen(
     currentSessionId: String?,
     onSelect: (String) -> Unit,
     onCreate: () -> Unit,
+    /** v1.0.27: 从任务页输入框直接发送并创建新会话。 */
+    onCreateWithText: (String) -> Unit = {},
     onDelete: (String) -> Unit,
     onRename: (SessionEntity) -> Unit,
     /** v1.48: 重命名(带新名字),修复旧实现传 session.title 导致重命名失效的 bug。 */
@@ -122,10 +142,38 @@ fun ChatListScreen(
     /** v1.72: 会话列表首次加载标志(避免闪空状态) */
     isSessionsLoading: Boolean = false,
     modifier: Modifier = Modifier,
+    /** 元事实 DAO,用于首页显示记忆数量。 */
+    factDao: FactDao = koinInject(),
+    /** 知识库文档 DAO,用于首页显示文档数量。 */
+    knowledgeDocDao: KnowledgeDocDao = koinInject(),
 ) {
+    val scope = rememberCoroutineScope()
+
     // v1.69: 文件夹分组 UI — 新建文件夹对话框状态
     var showCreateFolderDialog by remember { mutableStateOf(false) }
     var newFolderName by remember { mutableStateOf("") }
+
+    // 首页数据:记忆数量与知识库文档数量
+    var memoryCount by remember { mutableStateOf(0) }
+    var docCount by remember { mutableStateOf(0) }
+    // 问候语匹配用的近期记忆(取最近 100 条用于生日/近期事项提示)
+    var greetingFacts by remember { mutableStateOf<List<FactEntity>>(emptyList()) }
+    LaunchedEffect(Unit) {
+        scope.launch {
+            runCatching { memoryCount = factDao.count() }
+            runCatching { docCount = knowledgeDocDao.countUserVisible() }
+            runCatching { greetingFacts = factDao.getAll().take(100) }
+        }
+    }
+
+    // v0.36 性能优化:缓存排序结果,避免每次重组都重新计算。
+    val displayedSessions by remember(sessions) {
+        mutableStateOf(sessions.sortedWith(
+            compareByDescending<SessionEntity> { it.pinned }.thenByDescending { it.updatedAt }
+        ))
+    }
+    val pinned = remember(displayedSessions) { displayedSessions.filter { it.pinned } }
+    val recent = remember(displayedSessions) { displayedSessions.filterNot { it.pinned } }
 
     Scaffold(
         modifier = modifier,
@@ -138,18 +186,6 @@ fun ChatListScreen(
                 .navigationBarsPadding()
                 .padding(horizontal = MusePaddings.screen),
         ) {
-            // v1.0.16: 顶部快捷工具栏与新建任务卡片已移到 HomeScreen 的 tab 栏下方与右下角悬浮胶囊,
-            // 本页仅保留会话列表,让首页布局更清爽。
-
-            // 会话列表或空状态
-            // v0.36 性能优化:缓存排序结果,避免每次重组都重新计算。
-            // v1.0.28: 移除置顶/归档筛选,统一展示全部会话(置顶优先,按更新时间倒序)。
-            val displayedSessions by remember(sessions) {
-                mutableStateOf(sessions.sortedWith(
-                    compareByDescending<SessionEntity> { it.pinned }.thenByDescending { it.updatedAt }
-                ))
-            }
-
             // v1.72: 首次加载时显示 loading,避免 DB emit 前闪"还没有任务"空状态
             if (isSessionsLoading) {
                 Box(
@@ -161,36 +197,75 @@ fun ChatListScreen(
             } else {
                 LazyColumn(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    // v1.0.17: 底部留出悬浮胶囊空间(胶囊高度~48dp + 底部间距 16dp + 余量),
-                    // 避免最后一条会话被右下角悬浮胶囊遮挡。
+                    verticalArrangement = Arrangement.spacedBy(MusePaddings.sectionGap),
+                    // 底部留出悬浮胶囊空间(胶囊高度~48dp + 底部间距 16dp + 余量)
                     contentPadding = PaddingValues(bottom = 88.dp),
                 ) {
-                    // v1.0.28: 移除筛选器后统一展示全部会话。
-                    // 置顶会话始终排在最前, followed by others sorted by updatedAt.
-                    // v1.0.29: 空列表时不显示任何占位,保持页面简洁。
-                    val pinned = displayedSessions.filter { it.pinned }
-                    val others = displayedSessions.filterNot { it.pinned }
-                    items(pinned + others, key = { "session_${it.id}" }) { session ->
-                        val onSelectSession = remember(session.id) { { onSelect(session.id) } }
-                        val onDeleteSession = remember(session.id) { { onDelete(session.id) } }
-                        val onRenameSession = remember(session.id) { { onRename(session) } }
-                        val onRenameToSession = remember(session.id) { { newName: String -> onRenameTo(session, newName) } }
-                        val onTogglePinnedSession = remember(session.id) { { onTogglePinned(session.id) } }
-                        val onArchiveSession = remember(session.id) { { onArchive(session.id) } }
-                        val onMoveToFolderSession = remember(session.id) { { folderId: String? -> onMoveSessionToFolder(session.id, folderId) } }
-                        ChatListItem(
-                            modifier = Modifier.animateItem(),
-                            session = session,
-                            isActive = session.id == currentSessionId,
+                    // 问候标题
+                    item(key = "greeting") {
+                        GreetingHeader(memoryCount = memoryCount, facts = greetingFacts)
+                    }
+
+                    // 全局输入条
+                    item(key = "input") {
+                        TaskInputBar(
+                            onSend = { text ->
+                                if (text.isNotBlank()) {
+                                    onCreateWithText(text.trim())
+                                }
+                            },
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+                    }
+
+                    // 已置顶
+                    if (pinned.isNotEmpty()) {
+                        item(key = "section_pinned") {
+                            PinnedTasksCard(
+                                pinned = pinned,
+                                folders = folders,
+                                onSelect = onSelect,
+                                onDelete = onDelete,
+                                onRenameTo = onRenameTo,
+                                onTogglePinned = onTogglePinned,
+                                onMoveSessionToFolder = onMoveSessionToFolder,
+                                onArchive = onArchive,
+                            )
+                        }
+                    }
+
+                    // 文件夹
+                    if (folders.isNotEmpty()) {
+                        item(key = "section_folders") {
+                            FoldersCard(
+                                folders = folders,
+                                onSelectFolder = { /* 当前无文件夹详情页,可后续扩展 */ },
+                                onRenameFolder = onRenameFolder,
+                                onDeleteFolder = onDeleteFolder,
+                            )
+                        }
+                    }
+
+                    // 最近
+                    item(key = "section_recent") {
+                        RecentTasksCard(
+                            recent = recent,
                             folders = folders,
-                            onSelect = onSelectSession,
-                            onDelete = onDeleteSession,
-                            onRename = onRenameSession,
-                            onRenameTo = onRenameToSession,
-                            onTogglePinned = onTogglePinnedSession,
-                            onMoveToFolder = onMoveToFolderSession,
-                            onArchive = onArchiveSession,
+                            onSelect = onSelect,
+                            onDelete = onDelete,
+                            onRenameTo = onRenameTo,
+                            onTogglePinned = onTogglePinned,
+                            onMoveSessionToFolder = onMoveSessionToFolder,
+                            onArchive = onArchive,
+                            onCreate = onCreate,
+                        )
+                    }
+
+                    // 知识库
+                    item(key = "section_knowledge") {
+                        KnowledgeEntryCard(
+                            docCount = docCount,
+                            onClick = onOpenKnowledgeBase,
                         )
                     }
                 }
@@ -204,12 +279,11 @@ fun ChatListScreen(
             onDismissRequest = { showCreateFolderDialog = false },
             title = stringResource(R.string.chat_list_new_folder),
             content = {
-                OutlinedTextField(
+                IosTextField(
                     value = newFolderName,
                     onValueChange = { newFolderName = it },
                     placeholder = { Text(stringResource(R.string.chat_list_folder_name_placeholder)) },
                     singleLine = true,
-                    shape = MuseShapes.medium,
                 )
             },
             confirmText = stringResource(R.string.chat_list_create),
@@ -225,291 +299,361 @@ fun ChatListScreen(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+/** 顶部问候标题 + 记忆数量副标题。 */
 @Composable
-private fun ChatListItem(
-    session: SessionEntity,
-    isActive: Boolean,
-    folders: List<FolderEntity>,
-    onSelect: () -> Unit,
-    onDelete: () -> Unit,
-    onRename: () -> Unit,
-    /** v1.48: 重命名回调改为带新名字,修复重命名失效 bug(旧实现传原 session.title)。 */
-    onRenameTo: (String) -> Unit = { onRename() },
-    onTogglePinned: () -> Unit,
-    onMoveToFolder: (String?) -> Unit,
-    /** v0.45: 归档当前会话(主列表项菜单,非空才显示)。 */
-    onArchive: (() -> Unit)? = null,
-    /** v0.45: 取消归档(归档列表项菜单,非空才显示)。 */
-    onUnarchive: (() -> Unit)? = null,
+private fun GreetingHeader(
+    memoryCount: Int,
+    facts: List<FactEntity>,
     modifier: Modifier = Modifier,
 ) {
-    val hapticFeedback = LocalHapticFeedback.current
-    val context = LocalContext.current
-    var showMenu by remember { mutableStateOf(false) }
-    var showRenameDialog by remember { mutableStateOf(false) }
-    var renameText by remember { mutableStateOf(session.title) }
-    // v1.48: 删除前二次确认(滑动删除与菜单删除共用),避免误滑/误点导致会话不可恢复丢失
-    var showDeleteConfirm by remember { mutableStateOf(false) }
-    // 功能3: 归档前二次确认
-    var showArchiveConfirm by remember { mutableStateOf(false) }
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp, bottom = 4.dp),
+    ) {
+        Text(
+            text = GreetingHelper.buildGreeting(facts),
+            style = MaterialTheme.typography.headlineMedium.copy(
+                fontWeight = FontWeight.Bold,
+            ),
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = GreetingHelper.getMemoryCountText(memoryCount),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
 
-    // 滑动删除:v1.48 改为滑出阈值后弹确认框,不再立即删除
-    // 功能3: 左滑删除/右滑归档(或取消归档)
+/** 全局输入条:浅色圆角背景 + 占位文字 + 绿色圆形发送按钮。 */
+@Composable
+private fun TaskInputBar(
+    onSend: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var text by remember { mutableStateOf("") }
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(56.dp),
+        shape = MuseShapes.pill,
+        color = MaterialTheme.colorScheme.surfaceVariant,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            BasicTextField(
+                value = text,
+                onValueChange = { text = it },
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyLarge.copy(
+                    color = MaterialTheme.colorScheme.onSurface,
+                ),
+                decorationBox = { innerTextField ->
+                    Box {
+                        if (text.isEmpty()) {
+                            Text(
+                                text = stringResource(R.string.chat_list_input_hint),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        innerTextField()
+                    }
+                },
+            )
+            IconButton(
+                onClick = {
+                    if (text.isNotBlank()) {
+                        onSend(text)
+                        text = ""
+                    }
+                },
+                modifier = Modifier.size(40.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = TablerIcons.Send,
+                        contentDescription = stringResource(R.string.chat_list_send),
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** 任务分组卡片容器:标题 + 圆角白色 Surface。 */
+@Composable
+private fun TaskSectionCard(
+    title: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(modifier = modifier) {
+        CompositionLocalProvider(
+            LocalContentColor provides MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
+        ) {
+            ProvideTextStyle(MaterialTheme.typography.labelLarge) {
+                Box(
+                    modifier = Modifier
+                        .padding(start = 56.dp, top = 6.dp, bottom = 6.dp)
+                        .fillMaxWidth(),
+                ) {
+                    title()
+                }
+            }
+        }
+        MuseSurface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = MuseShapes.extraLarge,
+            color = MaterialTheme.colorScheme.surface,
+            elevation = MuseElevation.card,
+            tonalElevation = 0.dp,
+            enablePressedFeedback = false,
+            border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
+        ) {
+            Column {
+                content()
+            }
+        }
+    }
+}
+
+/** 已置顶任务卡片。 */
+@Composable
+private fun PinnedTasksCard(
+    pinned: List<SessionEntity>,
+    folders: List<FolderEntity>,
+    onSelect: (String) -> Unit,
+    onDelete: (String) -> Unit,
+    onRenameTo: (SessionEntity, String) -> Unit,
+    onTogglePinned: (String) -> Unit,
+    onMoveSessionToFolder: (String, String?) -> Unit,
+    onArchive: (String) -> Unit,
+) {
+    TaskSectionCard(
+        title = { Text(stringResource(R.string.chat_list_section_pinned)) },
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        pinned.forEachIndexed { index, session ->
+            TaskItem(
+                session = session,
+                folders = folders,
+                onSelect = onSelect,
+                onDelete = onDelete,
+                onRenameTo = onRenameTo,
+                onTogglePinned = onTogglePinned,
+                onMoveSessionToFolder = onMoveSessionToFolder,
+                onArchive = onArchive,
+            )
+            if (index != pinned.lastIndex) {
+                MuseDivider()
+            }
+        }
+    }
+}
+
+/** 最近任务卡片。 */
+@Composable
+private fun RecentTasksCard(
+    recent: List<SessionEntity>,
+    folders: List<FolderEntity>,
+    onSelect: (String) -> Unit,
+    onDelete: (String) -> Unit,
+    onRenameTo: (SessionEntity, String) -> Unit,
+    onTogglePinned: (String) -> Unit,
+    onMoveSessionToFolder: (String, String?) -> Unit,
+    onArchive: (String) -> Unit,
+    onCreate: () -> Unit,
+) {
+    TaskSectionCard(
+        title = { Text(stringResource(R.string.chat_list_section_recent)) },
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        if (recent.isEmpty()) {
+            EmptyPromptItem(onClick = onCreate)
+        } else {
+            recent.forEachIndexed { index, session ->
+                TaskItem(
+                    session = session,
+                    folders = folders,
+                    onSelect = onSelect,
+                    onDelete = onDelete,
+                    onRenameTo = onRenameTo,
+                    onTogglePinned = onTogglePinned,
+                    onMoveSessionToFolder = onMoveSessionToFolder,
+                    onArchive = onArchive,
+                )
+                if (index != recent.lastIndex) {
+                    MuseDivider()
+                }
+            }
+        }
+    }
+}
+
+/** 空状态提示项(最近列表无数据时显示)。 */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun EmptyPromptItem(
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .combinedClickable(onClick = onClick)
+            .padding(horizontal = MusePaddings.screen, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        TaskStatusDot(status = TaskStatus.PENDING)
+        Spacer(Modifier.width(MusePaddings.screen))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(R.string.chat_list_no_recent_title),
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontWeight = FontWeight.Medium,
+                ),
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = stringResource(R.string.chat_list_no_recent_subtitle),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Spacer(Modifier.width(MusePaddings.contentGap))
+        Icon(
+            imageVector = TablerIcons.ArrowRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.outline,
+            modifier = Modifier.size(16.dp),
+        )
+    }
+}
+
+/** 单个任务项:视觉行 + 左滑删除 + 右滑归档 + 长按菜单。 */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun TaskItem(
+    session: SessionEntity,
+    folders: List<FolderEntity>,
+    onSelect: (String) -> Unit,
+    onDelete: (String) -> Unit,
+    onRenameTo: (SessionEntity, String) -> Unit,
+    onTogglePinned: (String) -> Unit,
+    onMoveSessionToFolder: (String, String?) -> Unit,
+    onArchive: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val haptic = LocalHapticFeedback.current
+    var showActionSheet by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showRenameDialog by remember { mutableStateOf(false) }
+
+    // 这些文案会在非 @Composable 回调中使用,提前获取避免编译错误。
+    val archivedToast = stringResource(R.string.chat_list_filter_archived)
+    val deletedToast = stringResource(R.string.chat_list_deleted_toast)
+    val pinToast = stringResource(
+        if (session.pinned) R.string.chat_list_unpin else R.string.chat_list_pin
+    )
+    val archiveToast = stringResource(R.string.chat_list_archive)
+    val movedToast = stringResource(R.string.chat_list_move_ungrouped)
+
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
-            if (value == SwipeToDismissBoxValue.EndToStart) {
-                MuseHaptics.medium(hapticFeedback)
-                showDeleteConfirm = true
-                false  // 不立即消失,等用户确认
-            } else if (value == SwipeToDismissBoxValue.StartToEnd) {
-                if (onArchive != null) {
-                    MuseHaptics.medium(hapticFeedback)
-                    showArchiveConfirm = true
-                } else if (onUnarchive != null) {
-                    MuseHaptics.medium(hapticFeedback)
-                    onUnarchive()
+            when (value) {
+                SwipeToDismissBoxValue.StartToEnd -> {
+                    onArchive(session.id)
+                    MuseToast.show(archivedToast)
+                    false
                 }
-                false
-            } else {
-                false
+                SwipeToDismissBoxValue.EndToStart -> {
+                    showDeleteConfirm = true
+                    false
+                }
+                else -> false
             }
         },
     )
 
-    SwipeToDismissBox(
-        state = dismissState,
-        modifier = modifier,
-        backgroundContent = {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(MuseShapes.medium),
-            ) {
-                // 右侧:删除(滑出 EndToStart 时显示)
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.errorContainer)
-                        .padding(horizontal = MusePaddings.messageGap),
-                    contentAlignment = Alignment.CenterEnd,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = stringResource(R.string.action_delete),
-                        tint = MaterialTheme.colorScheme.error,
-                    )
-                }
-                // 左侧:归档/取消归档(滑出 StartToEnd 时显示,覆盖在删除背景上方)
-                if (onArchive != null || onUnarchive != null) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.primaryContainer)
-                            .padding(horizontal = MusePaddings.messageGap),
-                        contentAlignment = Alignment.CenterStart,
-                    ) {
-                        Icon(
-                            imageVector = if (onArchive != null) Icons.Outlined.Archive else Icons.Default.Unarchive,
-                            contentDescription = if (onArchive != null) stringResource(R.string.chat_list_filter_archived) else stringResource(R.string.chat_list_unarchive),
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        )
-                    }
-                }
-            }
-        },
-        enableDismissFromStartToEnd = onArchive != null || onUnarchive != null,
-    ) {
-    // v1.0.16: 用 IosCardPress 替换 Card.combinedClickable,消除 Material3 Card 默认 ripple 黑色遮罩
-    IosCardPress(
-        onClick = onSelect,
-        modifier = Modifier.fillMaxWidth(),
-        shape = MuseShapes.medium,
-        containerColor = if (isActive) MaterialTheme.colorScheme.primaryContainer
-        else MaterialTheme.colorScheme.surface,
-        onLongClick = {
-            MuseHaptics.medium(hapticFeedback)
-            showMenu = true
-        },
-    ) {
-        Row(
-            modifier = Modifier.padding(MusePaddings.cardInnerLoose),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (session.pinned) {
-                        Icon(
-                            imageVector = Icons.Default.PushPin,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(14.dp),
-                        )
-                        Spacer(Modifier.size(6.dp))
-                    }
-                    Text(
-                        text = session.title.ifBlank { stringResource(R.string.chat_new_session) },
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = FontWeight.Medium,
-                        ),
-                        color = if (isActive) MaterialTheme.colorScheme.onPrimaryContainer
-                        else MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    // v5: 分叉子会话计数标签
-                    if (session.childCount > 0) {
-                        Spacer(Modifier.size(4.dp))
-                        Surface(
-                            shape = MuseShapes.pill,
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                        ) {
-                            Text(
-                                text = stringResource(R.string.chat_list_child_count, session.childCount),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                            )
-                        }
-                    }
-                }
-                // v5: 分叉来源提示
-                if (session.parentSessionId != null) {
-                    Text(
-                        text = stringResource(R.string.chat_list_forked_from, session.parentSessionId.take(8)),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.tertiary,
-                        modifier = Modifier.padding(top = 2.dp),
-                    )
-                }
-                if (session.lastMessagePreview.isNotBlank()) {
-                    Text(
-                        text = session.lastMessagePreview,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 4.dp),
-                    )
-                }
-                Text(
-                    text = formatTime(session.updatedAt),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
-            }
-        }
-    }
+    if (showActionSheet) {
+        TaskActionSheet(
+            session = session,
+            folders = folders,
+            onDismiss = { showActionSheet = false },
+            onTogglePinned = {
+                onTogglePinned(session.id)
+                MuseToast.show(pinToast)
+            },
+            onArchive = {
+                onArchive(session.id)
+                MuseToast.show(archiveToast)
+            },
+            onDelete = { showDeleteConfirm = true },
+            onRename = { showRenameDialog = true },
+            onMoveToFolder = { folderId ->
+                onMoveSessionToFolder(session.id, folderId)
+                MuseToast.show(movedToast)
+            },
+        )
     }
 
-    if (showMenu) {
+    if (showDeleteConfirm) {
         MuseDialog(
-            onDismissRequest = { showMenu = false },
-            title = session.title.ifBlank { stringResource(R.string.chat_new_session) },
+            onDismissRequest = { showDeleteConfirm = false },
+            title = stringResource(R.string.chat_list_delete_session_title),
             content = {
-                Column {
-                    ActionSheetItem(
-                        icon = Icons.Default.PushPin,
-                        text = if (session.pinned) stringResource(R.string.chat_list_unpin) else stringResource(R.string.chat_list_filter_pinned),
-                        contentDescription = if (session.pinned) stringResource(R.string.chat_list_unpin) else stringResource(R.string.chat_list_filter_pinned),
-                        onClick = {
-                            showMenu = false
-                            MuseHaptics.light(hapticFeedback)
-                            onTogglePinned()
-                        },
-                    )
-                    if (folders.isNotEmpty()) {
-                        ActionSheetItem(
-                            icon = Icons.AutoMirrored.Filled.DriveFileMove,
-                            text = stringResource(R.string.chat_list_move_ungrouped),
-                            contentDescription = stringResource(R.string.chat_list_move_ungrouped),
-                            onClick = {
-                                showMenu = false
-                                onMoveToFolder(null)
-                            },
-                        )
-                        folders.forEach { folder ->
-                            ActionSheetItem(
-                                icon = Icons.AutoMirrored.Filled.DriveFileMove,
-                                text = stringResource(R.string.chat_list_move_to, folder.name),
-                                contentDescription = stringResource(R.string.chat_list_move_to_cd, folder.name),
-                                onClick = {
-                                    showMenu = false
-                                    onMoveToFolder(folder.id)
-                                },
-                            )
-                        }
-                    }
-                    ActionSheetItem(
-                        icon = Icons.Default.Edit,
-                        text = stringResource(R.string.chat_list_rename),
-                        contentDescription = stringResource(R.string.chat_list_rename),
-                        onClick = {
-                            showMenu = false
-                            renameText = session.title
-                            showRenameDialog = true
-                        },
-                    )
-                    // v0.45: 归档 / 取消归档
-                    if (onArchive != null) {
-                        ActionSheetItem(
-                            icon = Icons.Outlined.Archive,
-                            text = stringResource(R.string.chat_list_filter_archived),
-                            contentDescription = stringResource(R.string.chat_list_filter_archived),
-                            onClick = {
-                                showMenu = false
-                                MuseHaptics.light(hapticFeedback)
-                            onArchive()
-                            },
-                        )
-                    }
-                    if (onUnarchive != null) {
-                        ActionSheetItem(
-                            icon = Icons.Default.Unarchive,
-                            text = stringResource(R.string.chat_list_unarchive),
-                            contentDescription = stringResource(R.string.chat_list_unarchive),
-                            onClick = {
-                                showMenu = false
-                                onUnarchive()
-                            },
-                        )
-                    }
-                    ActionSheetItem(
-                        icon = Icons.Default.Delete,
-                        text = stringResource(R.string.action_delete),
-                        contentDescription = stringResource(R.string.action_delete),
-                        tint = MaterialTheme.colorScheme.error,
-                        onClick = {
-                            showMenu = false
-                            MuseHaptics.light(hapticFeedback)
-                            showDeleteConfirm = true
-                        },
-                    )
-                }
+                Text(
+                    text = stringResource(
+                        R.string.chat_list_delete_session_confirm,
+                        session.title.ifBlank { stringResource(R.string.chat_new_session) }
+                    ),
+                )
             },
-            onConfirm = null,
+            confirmText = stringResource(R.string.action_delete),
+            onConfirm = {
+                onDelete(session.id)
+                MuseToast.show(deletedToast)
+                showDeleteConfirm = false
+            },
             dismissText = stringResource(R.string.action_cancel),
-            onDismiss = { showMenu = false },
+            onDismiss = { showDeleteConfirm = false },
+            destructive = true,
         )
     }
 
     if (showRenameDialog) {
+        var newName by remember { mutableStateOf(session.title) }
         MuseDialog(
             onDismissRequest = { showRenameDialog = false },
             title = stringResource(R.string.chat_list_rename_session_title),
             content = {
-                OutlinedTextField(
-                    value = renameText,
-                    onValueChange = { renameText = it },
+                IosTextField(
+                    value = newName,
+                    onValueChange = { newName = it },
                     singleLine = true,
-                    shape = MuseShapes.medium,
                 )
             },
             confirmText = stringResource(R.string.chat_list_confirm),
             onConfirm = {
-                if (renameText.isNotBlank()) {
-                    onRenameTo(renameText.trim())
+                if (newName.isNotBlank()) {
+                    onRenameTo(session, newName.trim())
                 }
                 showRenameDialog = false
             },
@@ -518,91 +662,558 @@ private fun ChatListItem(
         )
     }
 
-    // v1.48: 删除会话二次确认
-    if (showDeleteConfirm) {
-        MuseDialog(
-            onDismissRequest = { showDeleteConfirm = false },
-            title = stringResource(R.string.chat_list_delete_session_title),
-            content = { Text(stringResource(R.string.chat_list_delete_session_confirm, session.title)) },
-            confirmText = stringResource(R.string.action_delete),
-            onConfirm = {
-                showDeleteConfirm = false
-                onDelete()
-                MuseToast.show(context.getString(R.string.chat_list_deleted_toast))
-            },
-            destructive = true,
-        )
-    }
-
-    // 功能3: 归档确认对话框
-    if (showArchiveConfirm) {
-        MuseDialog(
-            onDismissRequest = { showArchiveConfirm = false },
-            title = stringResource(R.string.chat_list_archive_title),
-            content = { Text(stringResource(R.string.chat_list_archive_confirm, session.title)) },
-            confirmText = stringResource(R.string.chat_list_archive_confirm_button),
-            onConfirm = {
-                showArchiveConfirm = false
-                onArchive?.invoke()
-            },
-        )
+    SwipeToDismissBox(
+        state = dismissState,
+        modifier = modifier,
+        backgroundContent = {
+            val direction = dismissState.dismissDirection
+            val color = when (direction) {
+                SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.primaryContainer
+                SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.errorContainer
+                else -> Color.Transparent
+            }
+            val icon = when (direction) {
+                SwipeToDismissBoxValue.StartToEnd -> TablerIcons.Archive
+                SwipeToDismissBoxValue.EndToStart -> TablerIcons.Trash
+                else -> null
+            }
+            val align = when (direction) {
+                SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
+                SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
+                else -> Alignment.Center
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(color),
+                contentAlignment = align,
+            ) {
+                if (icon != null) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = when (direction) {
+                            SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.primary
+                            else -> MaterialTheme.colorScheme.error
+                        },
+                        modifier = Modifier.padding(horizontal = 20.dp),
+                    )
+                }
+            }
+        },
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 56.dp)
+                .background(MaterialTheme.colorScheme.surface)
+                .combinedClickable(
+                    onClick = { onSelect(session.id) },
+                    onLongClick = {
+                        MuseHaptics.heavy(haptic)
+                        showActionSheet = true
+                    },
+                )
+                .padding(horizontal = MusePaddings.screen, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TaskStatusDot(session = session)
+            Spacer(Modifier.width(MusePaddings.screen))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = session.title.ifBlank { stringResource(R.string.chat_new_session) },
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontWeight = FontWeight.Medium,
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                val preview = session.lastMessagePreview
+                Text(
+                    text = if (preview.isNotBlank()) preview else formatTaskStatus(session),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Spacer(Modifier.width(MusePaddings.contentGap))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = formatTime(session.updatedAt),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline,
+                )
+                Icon(
+                    imageVector = TablerIcons.ArrowRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.outline,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+        }
     }
 }
 
-/**
- * iOS 风格 ActionSheet 行项 — 图标 + 文字,用于 ChatListItem 长按菜单。
- * v1.0.17: 禁用 Material ripple,用按压色渐变替代,与 IosCardPress 风格一致。
- */
+/** 长按底部动作菜单。 */
 @Composable
-private fun ActionSheetItem(
-    icon: ImageVector,
+private fun TaskActionSheet(
+    session: SessionEntity,
+    folders: List<FolderEntity>,
+    onDismiss: () -> Unit,
+    onTogglePinned: () -> Unit,
+    onArchive: () -> Unit,
+    onDelete: () -> Unit,
+    onRename: () -> Unit,
+    onMoveToFolder: (String?) -> Unit,
+) {
+    MuseBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier.verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            // 标题
+            Text(
+                text = session.title.ifBlank { stringResource(R.string.chat_new_session) },
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.SemiBold,
+                ),
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(bottom = 8.dp),
+            )
+            // 置顶 / 取消置顶
+            ActionSheetRow(
+                icon = TablerIcons.Pinned,
+                text = stringResource(
+                    if (session.pinned) R.string.chat_list_unpin else R.string.chat_list_pin
+                ),
+                onClick = {
+                    onTogglePinned()
+                    onDismiss()
+                },
+            )
+            // 重命名
+            ActionSheetRow(
+                icon = TablerIcons.Edit,
+                text = stringResource(R.string.chat_list_rename),
+                onClick = {
+                    onRename()
+                    onDismiss()
+                },
+            )
+            // 归档
+            ActionSheetRow(
+                icon = TablerIcons.Archive,
+                text = stringResource(R.string.chat_list_archive),
+                onClick = {
+                    onArchive()
+                    onDismiss()
+                },
+            )
+            // 删除
+            ActionSheetRow(
+                icon = TablerIcons.Trash,
+                text = stringResource(R.string.action_delete),
+                contentColor = MaterialTheme.colorScheme.error,
+                onClick = {
+                    onDelete()
+                    onDismiss()
+                },
+            )
+            // 移动到文件夹
+            if (folders.isNotEmpty() || session.folderId != null) {
+                Spacer(Modifier.height(8.dp))
+                MuseDivider(startIndent = 0.dp)
+                Spacer(Modifier.height(8.dp))
+                ActionSheetRow(
+                    icon = TablerIcons.ArrowRight,
+                    text = stringResource(R.string.chat_list_move_ungrouped),
+                    onClick = {
+                        onMoveToFolder(null)
+                        onDismiss()
+                    },
+                )
+                folders.forEach { folder ->
+                    if (folder.id != session.folderId) {
+                        ActionSheetRow(
+                            icon = TablerIcons.Folder,
+                            text = stringResource(R.string.chat_list_move_to, folder.name),
+                            onClick = {
+                                onMoveToFolder(folder.id)
+                                onDismiss()
+                            },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** 底部菜单动作行。 */
+@Composable
+private fun ActionSheetRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
     text: String,
-    contentDescription: String,
     onClick: () -> Unit,
-    tint: Color = MaterialTheme.colorScheme.onSurface,
+    modifier: Modifier = Modifier,
+    contentColor: Color = MaterialTheme.colorScheme.onSurface,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val pressedColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-    val backgroundColor by animateColorAsState(
-        targetValue = if (isPressed) pressedColor else Color.Transparent,
-        animationSpec = tween(durationMillis = 180, easing = MuseAnimation.EaseOutCubic),
-        label = "action_sheet_press",
-    )
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
+            .clip(MuseShapes.medium)
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
                 role = Role.Button,
                 onClick = onClick,
             )
-            .background(backgroundColor)
-            .padding(horizontal = 24.dp, vertical = 16.dp),
+            .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Icon(
             imageVector = icon,
-            contentDescription = contentDescription,
-            tint = tint,
+            contentDescription = null,
+            tint = contentColor,
             modifier = Modifier.size(22.dp),
         )
         Text(
             text = text,
             style = MaterialTheme.typography.bodyLarge,
-            color = tint,
+            color = contentColor,
         )
     }
 }
 
-// H-CL1: SimpleDateFormat 提为文件级 lazy val 复用,避免每次调用都新建(与 MessageBubble.kt 的 sdf24Hour 模式一致)
+/** 文件夹卡片。 */
+@Composable
+private fun FoldersCard(
+    folders: List<FolderEntity>,
+    onSelectFolder: (FolderEntity) -> Unit,
+    onRenameFolder: (String, String) -> Unit,
+    onDeleteFolder: (String) -> Unit,
+) {
+    TaskSectionCard(
+        title = { Text(stringResource(R.string.chat_list_section_folders)) },
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        folders.forEachIndexed { index, folder ->
+            FolderItem(
+                folder = folder,
+                onSelectFolder = onSelectFolder,
+                onRenameFolder = onRenameFolder,
+                onDeleteFolder = onDeleteFolder,
+            )
+            if (index != folders.lastIndex) {
+                MuseDivider()
+            }
+        }
+    }
+}
+
+/** 单个文件夹项:点击展开(预留) + 长按重命名/删除。 */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun FolderItem(
+    folder: FolderEntity,
+    onSelectFolder: (FolderEntity) -> Unit,
+    onRenameFolder: (String, String) -> Unit,
+    onDeleteFolder: (String) -> Unit,
+) {
+    var showFolderSheet by remember { mutableStateOf(false) }
+    var showRenameDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    if (showFolderSheet) {
+        FolderActionSheet(
+            folder = folder,
+            onDismiss = { showFolderSheet = false },
+            onRename = { showRenameDialog = true },
+            onDelete = { showDeleteDialog = true },
+        )
+    }
+
+    if (showRenameDialog) {
+        var newName by remember { mutableStateOf(folder.name) }
+        MuseDialog(
+            onDismissRequest = { showRenameDialog = false },
+            title = stringResource(R.string.chat_list_rename_folder_title),
+            content = {
+                IosTextField(
+                    value = newName,
+                    onValueChange = { newName = it },
+                    singleLine = true,
+                )
+            },
+            confirmText = stringResource(R.string.chat_list_confirm),
+            onConfirm = {
+                if (newName.isNotBlank()) {
+                    onRenameFolder(folder.id, newName.trim())
+                }
+                showRenameDialog = false
+                showFolderSheet = false
+            },
+            dismissText = stringResource(R.string.action_cancel),
+            onDismiss = { showRenameDialog = false },
+        )
+    }
+
+    if (showDeleteDialog) {
+        MuseDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = stringResource(R.string.chat_list_delete_folder_title),
+            content = {
+                Text(
+                    text = stringResource(
+                        R.string.chat_list_delete_folder_confirm,
+                        folder.name
+                    ),
+                )
+            },
+            confirmText = stringResource(R.string.action_delete),
+            onConfirm = {
+                onDeleteFolder(folder.id)
+                showDeleteDialog = false
+                showFolderSheet = false
+            },
+            dismissText = stringResource(R.string.action_cancel),
+            onDismiss = { showDeleteDialog = false },
+            destructive = true,
+        )
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .combinedClickable(
+                onClick = { onSelectFolder(folder) },
+                onLongClick = { showFolderSheet = true },
+            )
+            .padding(horizontal = MusePaddings.screen, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = TablerIcons.Folder,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(22.dp),
+            )
+        }
+        Spacer(Modifier.width(MusePaddings.screen))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = folder.name,
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontWeight = FontWeight.Medium,
+                ),
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+        Spacer(Modifier.width(MusePaddings.contentGap))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = folder.sessionCount.toString(),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Icon(
+                imageVector = TablerIcons.ArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.size(16.dp),
+            )
+        }
+    }
+}
+
+/** 文件夹长按菜单。 */
+@Composable
+private fun FolderActionSheet(
+    folder: FolderEntity,
+    onDismiss: () -> Unit,
+    onRename: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    MuseBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier.verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = folder.name,
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.SemiBold,
+                ),
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(bottom = 8.dp),
+            )
+            ActionSheetRow(
+                icon = TablerIcons.Edit,
+                text = stringResource(R.string.chat_list_rename),
+                onClick = {
+                    onRename()
+                    onDismiss()
+                },
+            )
+            ActionSheetRow(
+                icon = TablerIcons.Trash,
+                text = stringResource(R.string.action_delete),
+                contentColor = MaterialTheme.colorScheme.error,
+                onClick = {
+                    onDelete()
+                    onDismiss()
+                },
+            )
+        }
+    }
+}
+
+/** 知识库入口卡片。空状态显示添加提示，有文档时显示知识库名称。 */
+@Composable
+private fun KnowledgeEntryCard(
+    docCount: Int,
+    onClick: () -> Unit,
+) {
+    CardGroup(
+        title = { Text(stringResource(R.string.chat_list_section_knowledge)) },
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        item(
+            onClick = onClick,
+            leadingContent = {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = if (docCount == 0) TablerIcons.Plus else TablerIcons.Book,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+            },
+            headlineContent = {
+                Text(
+                    text = stringResource(R.string.chat_list_knowledge_title),
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontWeight = FontWeight.Medium,
+                    ),
+                )
+            },
+            supportingContent = {
+                Text(
+                    text = if (docCount == 0) {
+                        stringResource(R.string.chat_list_knowledge_empty)
+                    } else {
+                        stringResource(R.string.chat_list_knowledge_count, docCount)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+            trailingContent = {
+                Icon(
+                    imageVector = if (docCount == 0) TablerIcons.Plus else TablerIcons.ArrowRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.outline,
+                    modifier = Modifier.size(16.dp),
+                )
+            },
+        )
+    }
+}
+
+/** 任务状态推断(后端暂无状态字段,由前端按活动度推断)。 */
+private enum class TaskStatus { IN_PROGRESS, PENDING, COMPLETED }
+
+private fun inferTaskStatus(session: SessionEntity, now: Long): TaskStatus {
+    // 空会话 / 仅创建无消息 -> 待确认
+    if (session.lastMessagePreview.isBlank() || session.messageCount <= 0) return TaskStatus.PENDING
+    val dayMillis = TimeUnit.DAYS.toMillis(1)
+    val threeDays = dayMillis * 3
+    // 3 天内有更新且消息数 >=2 -> 进行中
+    if ((now - session.updatedAt) < threeDays && session.messageCount >= 2) return TaskStatus.IN_PROGRESS
+    // 超过 3 天未更新 -> 已完成
+    if ((now - session.updatedAt) >= threeDays) return TaskStatus.COMPLETED
+    // 其余 -> 待确认
+    return TaskStatus.PENDING
+}
+
+@Composable
+private fun TaskStatusDot(session: SessionEntity) {
+    val status = remember(session, System.currentTimeMillis()) {
+        inferTaskStatus(session, System.currentTimeMillis())
+    }
+    TaskStatusDot(status = status)
+}
+
+@Composable
+private fun TaskStatusDot(status: TaskStatus) {
+    val color = when (status) {
+        TaskStatus.IN_PROGRESS -> MaterialTheme.colorScheme.primary
+        TaskStatus.PENDING -> MaterialTheme.colorScheme.tertiary
+        TaskStatus.COMPLETED -> MaterialTheme.colorScheme.outline
+    }
+    Box(
+        modifier = Modifier
+            .size(10.dp)
+            .clip(CircleShape)
+            .background(color),
+    )
+}
+
+private fun formatTaskStatus(session: SessionEntity): String {
+    val status = inferTaskStatus(session, System.currentTimeMillis())
+    return when (status) {
+        TaskStatus.IN_PROGRESS -> "进行中"
+        TaskStatus.PENDING -> "待确认"
+        TaskStatus.COMPLETED -> "已完成"
+    }
+}
+
+// H-CL1: SimpleDateFormat 提为文件级 lazy val 复用
 private val chatListSdf by lazy {
     SimpleDateFormat(MuseDateFormats.DATE_TIME_SHORT, Locale.getDefault())
 }
 
 private fun formatTime(timestamp: Long): String {
     if (timestamp <= 0) return ""
-    return chatListSdf.format(Date(timestamp))
+    val now = System.currentTimeMillis()
+    val diff = now - timestamp
+    val dayMillis = TimeUnit.DAYS.toMillis(1)
+    return when {
+        diff < TimeUnit.MINUTES.toMillis(1) -> "刚刚"
+        diff < TimeUnit.HOURS.toMillis(1) -> "${diff / TimeUnit.MINUTES.toMillis(1)} 分钟前"
+        diff < dayMillis -> "${diff / TimeUnit.HOURS.toMillis(1)} 小时前"
+        diff < dayMillis * 2 -> "昨天"
+        diff < dayMillis * 7 -> "${diff / dayMillis} 天前"
+        else -> chatListSdf.format(Date(timestamp))
+    }
 }

@@ -60,9 +60,14 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.HowToVote
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Summarize
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -71,12 +76,14 @@ import io.zer0.muse.ui.common.IosChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import io.zer0.muse.ui.common.IosTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import io.zer0.muse.ui.common.IosTopBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -124,6 +131,7 @@ import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.MuseIconSizes
+import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.ui.theme.userBubble  // v1.48 (h18): 气泡形状令牌
 import io.zer0.muse.ui.theme.assistantBubble  // v1.48 (h18): 气泡形状令牌
@@ -179,6 +187,13 @@ fun GroupChatDetailScreen(
     // v1.77: 消息长按菜单 + 删除确认
     var messageMenuTarget by remember { mutableStateOf<GroupChatMessageEntity?>(null) }
     var deleteMessageTarget by remember { mutableStateOf<GroupChatMessageEntity?>(null) }
+    // v2.x: 引用回复 / 悄悄话 / 表决 / 总结 对话框状态
+    var replyToMessage by remember { mutableStateOf<GroupChatMessageEntity?>(null) }
+    var whisperTarget by remember { mutableStateOf<GroupChatMessageEntity?>(null) }
+    var showVoteDialog by remember { mutableStateOf(false) }
+    var showSummaryDialog by remember { mutableStateOf(false) }
+    // v2.x: 群聊上下文管理 sheet(群共享文档 + AI 专属上下文)
+    var showContextSheet by remember { mutableStateOf(false) }
     val keyboard = LocalSoftwareKeyboardController.current
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -339,24 +354,42 @@ fun GroupChatDetailScreen(
 
     Scaffold(
         topBar = {
-            IosTopBar(
-                title = chatName,
-                onBack = onBack,
-                actions = {
-                    // v1.97: 编辑群聊(改名/改成员)
-                    IconButton(onClick = { showEditDialog = true }) {
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        text = chatName,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
                         Icon(
-                            imageVector = Icons.Filled.Edit,
-                            contentDescription = stringResource(R.string.groupchat_edit_cd),
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.groupchat_back),
                         )
                     }
+                },
+                actions = {
                     IconButton(onClick = { showMembersDialog = true }) {
                         Icon(
                             imageVector = Icons.Filled.Group,
                             contentDescription = stringResource(R.string.groupchat_members_cd),
                         )
                     }
+                    IconButton(onClick = { showEditDialog = true }) {
+                        Icon(
+                            imageVector = Icons.Filled.Edit,
+                            contentDescription = stringResource(R.string.groupchat_edit_cd),
+                        )
+                    }
                 },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    scrolledContainerColor = MaterialTheme.colorScheme.background,
+                ),
             )
         },
         containerColor = MaterialTheme.colorScheme.background,
@@ -551,6 +584,16 @@ fun GroupChatDetailScreen(
                 viewModel.updateInput("$current$prefix@")
             },
             onPickPromptTemplate = { showPromptTemplateSheet = true },
+            onOpenMembers = { showMembersDialog = true },
+            onLaunchVote = { showVoteDialog = true },
+            onLaunchSummary = { showSummaryDialog = true },
+            onOpenContext = { showContextSheet = true },
+            onMentionMember = {
+                val current = state.inputText
+                val prefix = if (current.isBlank() || current.endsWith(" ") || current.endsWith("\n")) "" else " "
+                viewModel.updateInput("$current$prefix@")
+            },
+            onEditGroup = { showEditDialog = true },
             onDismiss = { showToolSheet = false },
         )
     }
@@ -615,19 +658,25 @@ fun GroupChatDetailScreen(
             initialName = chat?.name ?: "",
             assistants = state.assistants,
             initialMemberIds = initialMemberIds,
+            initialDiscussionMode = chat?.discussionMode ?: "round_robin",
+            initialAutoMaxRounds = chat?.autoMaxRounds ?: 5,
+            initialHostId = chat?.hostId,
             onDismiss = { showEditDialog = false },
-            onConfirm = { newName, newMemberIds ->
+            onConfirm = { newName, newMemberIds, newMode, newMaxRounds, newHostId ->
                 viewModel.updateChat(
                     chatId = chatId,
                     name = newName,
                     memberIds = newMemberIds,
+                    discussionMode = newMode,
+                    autoMaxRounds = newMaxRounds,
+                    hostId = newHostId,
                 )
                 showEditDialog = false
             },
         )
     }
 
-    // v1.77: 消息长按操作菜单(复制 / 删除)
+    // v2.x: 消息长按操作菜单(复制 / 重新生成 / 引用回复 / 悄悄话 / 删除)
     messageMenuTarget?.let { msg ->
         MuseDialog(
             onDismissRequest = { messageMenuTarget = null },
@@ -641,6 +690,31 @@ fun GroupChatDetailScreen(
                         io.zer0.muse.ui.common.MuseToast.show(context.getString(R.string.groupchat_copied))
                     }) {
                         Text(stringResource(R.string.groupchat_copy))
+                    }
+                    // v2.x: AI 消息 → 重新生成
+                    if (msg.senderType == "assistant") {
+                        TextButton(onClick = {
+                            messageMenuTarget = null
+                            viewModel.regenerateAgentMessage(msg.senderId)
+                        }) {
+                            Text(stringResource(R.string.groupchat_regenerate))
+                        }
+                    }
+                    // v2.x: 引用回复
+                    TextButton(onClick = {
+                        messageMenuTarget = null
+                        replyToMessage = msg
+                    }) {
+                        Text(stringResource(R.string.groupchat_reply))
+                    }
+                    // v2.x: AI 消息 → 悄悄话
+                    if (msg.senderType == "assistant") {
+                        TextButton(onClick = {
+                            messageMenuTarget = null
+                            whisperTarget = msg
+                        }) {
+                            Text(stringResource(R.string.groupchat_whisper))
+                        }
                     }
                     TextButton(onClick = {
                         messageMenuTarget = null
@@ -676,6 +750,352 @@ fun GroupChatDetailScreen(
             dismissText = stringResource(R.string.groupchat_cancel),
             onDismiss = { deleteMessageTarget = null },
         )
+    }
+
+    // v2.x: 引用回复对话框
+    replyToMessage?.let { msg ->
+        var replyText by remember { mutableStateOf("") }
+        MuseDialog(
+            onDismissRequest = { replyToMessage = null },
+            title = stringResource(R.string.groupchat_reply),
+            content = {
+                Column {
+                    Text(
+                        text = stringResource(R.string.groupchat_reply_quote, msg.senderName, msg.body.take(80)),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    )
+                    IosTextField(
+                        value = replyText,
+                        onValueChange = { replyText = it },
+                        label = { Text(stringResource(R.string.groupchat_reply_hint)) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            },
+            confirmText = stringResource(R.string.groupchat_send),
+            onConfirm = {
+                if (replyText.isNotBlank()) {
+                    viewModel.sendMessage(replyText.trim())
+                    replyToMessage = null
+                }
+            },
+            dismissText = stringResource(R.string.groupchat_cancel),
+            onDismiss = { replyToMessage = null },
+        )
+    }
+
+    // v2.x: 悄悄话对话框
+    whisperTarget?.let { target ->
+        var whisperText by remember { mutableStateOf("") }
+        MuseDialog(
+            onDismissRequest = { whisperTarget = null },
+            title = stringResource(R.string.groupchat_whisper_to, target.senderName),
+            content = {
+                Column {
+                    Text(
+                        text = stringResource(R.string.groupchat_whisper_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    )
+                    IosTextField(
+                        value = whisperText,
+                        onValueChange = { whisperText = it },
+                        label = { Text(stringResource(R.string.groupchat_whisper_hint)) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            },
+            confirmText = stringResource(R.string.groupchat_send),
+            onConfirm = {
+                if (whisperText.isNotBlank()) {
+                    viewModel.sendWhisper(target.senderId, whisperText.trim())
+                    whisperTarget = null
+                }
+            },
+            dismissText = stringResource(R.string.groupchat_cancel),
+            onDismiss = { whisperTarget = null },
+        )
+    }
+
+    // v2.x: 发起表决对话框
+    if (showVoteDialog) {
+        var voteTopic by remember { mutableStateOf("") }
+        MuseDialog(
+            onDismissRequest = { showVoteDialog = false },
+            title = stringResource(R.string.groupchat_vote_title),
+            content = {
+                IosTextField(
+                    value = voteTopic,
+                    onValueChange = { voteTopic = it },
+                    label = { Text(stringResource(R.string.groupchat_vote_topic_hint)) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+            confirmText = stringResource(R.string.groupchat_vote),
+            onConfirm = {
+                if (voteTopic.isNotBlank()) {
+                    viewModel.launchVote(voteTopic.trim())
+                    showVoteDialog = false
+                }
+            },
+            dismissText = stringResource(R.string.groupchat_cancel),
+            onDismiss = { showVoteDialog = false },
+        )
+    }
+
+    // v2.x: 总结对话框(选择总结者)
+    if (showSummaryDialog) {
+        MuseDialog(
+            onDismissRequest = { showSummaryDialog = false },
+            title = stringResource(R.string.groupchat_summary_title),
+            content = {
+                Column {
+                    Text(
+                        text = stringResource(R.string.groupchat_summary_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    )
+                    state.assistants.filter { it.id in (state.currentChat?.let { c -> viewModel.parseMemberIds(c) } ?: emptyList()) }
+                        .forEach { assistant ->
+                            TextButton(onClick = {
+                                viewModel.launchSummary(assistant.id)
+                                showSummaryDialog = false
+                            }) {
+                                Text(assistant.name)
+                            }
+                        }
+                    // 默认用第一个成员
+                    TextButton(onClick = {
+                        viewModel.launchSummary(null)
+                        showSummaryDialog = false
+                    }) {
+                        Text(stringResource(R.string.groupchat_summary_auto))
+                    }
+                }
+            },
+            onConfirm = null,
+            dismissText = stringResource(R.string.groupchat_cancel),
+            onDismiss = { showSummaryDialog = false },
+        )
+    }
+
+    // v2.x: 群聊上下文管理 sheet(群共享文档 + AI 专属上下文)
+    if (showContextSheet) {
+        val chat = state.currentChat
+        val sharedDocs = remember(chat) {
+            chat?.let { viewModel.parseSharedDocs(it) } ?: emptyList()
+        }
+        val privateContextMap = remember(chat) {
+            chat?.let { viewModel.parseMemberPrivateContext(it) } ?: emptyMap()
+        }
+        val memberIds = remember(chat) {
+            chat?.let { viewModel.parseMemberIds(it) } ?: emptyList()
+        }
+        val members = remember(memberIds, state.assistants) {
+            memberIds.mapNotNull { id -> state.assistants.find { it.id == id } }
+        }
+        // 新文档输入字段
+        var newDocTitle by remember { mutableStateOf("") }
+        var newDocContent by remember { mutableStateOf("") }
+        // 当前编辑中的成员专属上下文(assistantId -> 编辑中文本)
+        val editingContexts = remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+
+        MuseBottomSheet(onDismissRequest = { showContextSheet = false }) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                // ── 群共享文档 ──
+                Text(
+                    text = stringResource(R.string.groupchat_context_shared_docs),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = stringResource(R.string.groupchat_context_shared_docs_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (sharedDocs.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.groupchat_context_no_docs),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 8.dp),
+                    )
+                } else {
+                    sharedDocs.forEach { doc ->
+                        Surface(
+                            color = MaterialTheme.colorScheme.surface,
+                            shape = MuseShapes.semiLarge,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Column(modifier = Modifier.padding(MusePaddings.itemGap)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Text(
+                                        text = doc.title,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.Medium,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.groupchat_context_doc_chars, doc.content.length),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.outline,
+                                    )
+                                    IconButton(onClick = { viewModel.removeSharedDoc(doc.id) }) {
+                                        Icon(
+                                            imageVector = Icons.Filled.Close,
+                                            contentDescription = stringResource(R.string.groupchat_delete),
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                // 添加新文档表单
+                IosTextField(
+                    value = newDocTitle,
+                    onValueChange = { newDocTitle = it },
+                    label = { Text(stringResource(R.string.groupchat_context_doc_title)) },
+                    placeholder = { Text(stringResource(R.string.groupchat_context_doc_title_hint)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                IosTextField(
+                    value = newDocContent,
+                    onValueChange = { newDocContent = it },
+                    label = { Text(stringResource(R.string.groupchat_context_doc_content)) },
+                    placeholder = { Text(stringResource(R.string.groupchat_context_doc_content_hint)) },
+                    minLines = 3,
+                    maxLines = 6,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                TextButton(
+                    onClick = {
+                        if (newDocTitle.isNotBlank() && newDocContent.isNotBlank()) {
+                            viewModel.addSharedDoc(newDocTitle, newDocContent)
+                            newDocTitle = ""
+                            newDocContent = ""
+                        }
+                    },
+                    enabled = newDocTitle.isNotBlank() && newDocContent.isNotBlank(),
+                    modifier = Modifier.align(Alignment.End),
+                ) {
+                    Text(stringResource(R.string.groupchat_context_add_doc))
+                }
+
+                // 分隔线
+                Surface(
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp),
+                ) {}
+
+                // ── AI 专属上下文 ──
+                Text(
+                    text = stringResource(R.string.groupchat_context_private_context),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = stringResource(R.string.groupchat_context_private_context_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (members.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.groupchat_no_members),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    members.forEach { assistant ->
+                        val savedText = privateContextMap[assistant.id] ?: ""
+                        val editingText = editingContexts.value[assistant.id] ?: savedText
+                        val isEditing = editingContexts.value.containsKey(assistant.id)
+                        Surface(
+                            color = MaterialTheme.colorScheme.surface,
+                            shape = MuseShapes.semiLarge,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Column(modifier = Modifier.padding(MusePaddings.itemGap)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Text(
+                                        text = assistant.name,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.Medium,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    if (!isEditing) {
+                                        Text(
+                                            text = stringResource(
+                                                if (savedText.isNotBlank()) R.string.groupchat_context_private_context_set
+                                                else R.string.groupchat_context_private_context_empty,
+                                            ),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.outline,
+                                        )
+                                        TextButton(onClick = {
+                                            editingContexts.value = editingContexts.value + (assistant.id to savedText)
+                                        }) {
+                                            Text(stringResource(R.string.groupchat_edit))
+                                        }
+                                    }
+                                }
+                                if (isEditing) {
+                                    IosTextField(
+                                        value = editingText,
+                                        onValueChange = { newText ->
+                                            editingContexts.value = editingContexts.value + (assistant.id to newText)
+                                        },
+                                        label = { Text(stringResource(R.string.groupchat_context_private_context_hint)) },
+                                        minLines = 2,
+                                        maxLines = 6,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 8.dp),
+                                    )
+                                    Row(
+                                        horizontalArrangement = Arrangement.End,
+                                        modifier = Modifier.fillMaxWidth(),
+                                    ) {
+                                        TextButton(onClick = {
+                                            // 清除该成员的专属上下文
+                                            viewModel.setMemberPrivateContext(assistant.id, "")
+                                            editingContexts.value = editingContexts.value - assistant.id
+                                        }) {
+                                            Text(stringResource(R.string.groupchat_context_clear))
+                                        }
+                                        TextButton(onClick = {
+                                            viewModel.setMemberPrivateContext(assistant.id, editingText)
+                                            editingContexts.value = editingContexts.value - assistant.id
+                                        }) {
+                                            Text(stringResource(R.string.groupchat_context_save))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -721,16 +1141,34 @@ private fun GroupChatMessageBubble(
                 horizontalAlignment = Alignment.End,
             ) {
                 Surface(
-                    // v1.48 (h18): 用 BubbleShape 令牌统一气泡圆角(原 18/18/4/18 → 20/20/20/6)
                     shape = MuseShapes.userBubble,
-                    // v1.115: 统一为 surfaceVariant,与单聊 MessageBubble 一致(品牌色稀缺原则)
                     color = MaterialTheme.colorScheme.surfaceVariant,
                 ) {
-                    Column(modifier = Modifier.padding(MusePaddings.cardInnerMedium)) {
+                    Column(modifier = Modifier.padding(MusePaddings.cardInner)) {
+                        // v2.x: 悄悄话标记
+                        if (message.whisperTargetId != null) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(bottom = 4.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Lock,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.outline,
+                                    modifier = Modifier.size(12.dp),
+                                )
+                                Spacer(Modifier.width(4.dp))
+                                Text(
+                                    text = stringResource(R.string.groupchat_message_whisper),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.outline,
+                                )
+                            }
+                        }
                         Text(
                             text = message.body,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onPrimary,
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
                         // 图片附件
                         MessageImageGrid(
@@ -766,7 +1204,7 @@ private fun GroupChatMessageBubble(
                 // 兜底:首字母圆形头像
                 Box(
                     modifier = Modifier
-                        .size(MuseIconSizes.iconLarge)
+                        .size(32.dp)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center,
@@ -783,21 +1221,18 @@ private fun GroupChatMessageBubble(
             Column(modifier = Modifier.widthIn(max = 280.dp)) {
                 Text(
                     text = message.senderName,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(start = 4.dp, bottom = 2.dp),
                 )
-                // v1.46: MOOD 块(Agent 内部腹稿,可折叠)
+                // v1.46: MOOD 标签胶囊(Agent 内部腹稿,可折叠)
                 if (chatPrefs.showMoodBlock) {
                     message.mood?.takeIf { it.isNotBlank() }?.let { mood ->
                         val moodExpanded = isMoodExpanded ?: chatPrefs.moodExpandedByDefault
-                        GroupChatExpandableBlock(
-                            title = "MOOD",
-                            content = mood,
+                        MoodCapsule(
+                            mood = mood,
                             expanded = moodExpanded,
                             onToggle = onToggleMoodExpanded,
-                            titleColor = MaterialTheme.colorScheme.primary,
-                            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
                         )
                     }
                 }
@@ -816,11 +1251,10 @@ private fun GroupChatMessageBubble(
                     }
                 }
                 Surface(
-                    // v1.48 (h18): 用 BubbleShape 令牌统一气泡圆角(原 4/18/18/18 → 6/20/20/20)
                     shape = MuseShapes.assistantBubble,
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
                 ) {
-                    Column(modifier = Modifier.padding(MusePaddings.cardInnerMedium)) {
+                    Column(modifier = Modifier.padding(MusePaddings.cardInner)) {
                         MarkdownText(
                             text = message.body,
                             style = MaterialTheme.typography.bodyMedium,
@@ -834,6 +1268,53 @@ private fun GroupChatMessageBubble(
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+/**
+ * MOOD 标签胶囊 — 浅绿色背景,品牌色文字,可展开查看完整腹稿。
+ */
+@Composable
+private fun MoodCapsule(
+    mood: String,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = MuseShapes.pill,
+        modifier = Modifier
+            .padding(bottom = 6.dp)
+            .clickable { onToggle() },
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "MOOD",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Icon(
+                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (expanded) stringResource(R.string.groupchat_collapse) else stringResource(R.string.groupchat_expand),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(MuseIconSizes.iconTiny),
+                )
+            }
+            if (expanded) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = mood,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }
@@ -970,7 +1451,7 @@ private fun ThinkingIndicator(currentSpeaker: AssistantEntity? = null) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(14.dp),
                     strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.primary,  // v1.115: 显式指定,深色模式可见性
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,  // v1.115: 显式指定,深色模式可见性
                 )
                 Text(
                     text = thinkingText,
@@ -1063,43 +1544,57 @@ private fun GroupChatInputBar(
                     .imePadding()
                     .padding(horizontal = MusePaddings.screen, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
             ) {
                 // 加号菜单入口
-                IconButton(
+                Surface(
                     onClick = onOpenToolSheet,
                     enabled = enabled,
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
                     modifier = Modifier.size(MuseIconSizes.touchTarget),
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = stringResource(R.string.groupchat_tools),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(MuseIconSizes.icon),
-                    )
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = stringResource(R.string.groupchat_tools),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.icon),
+                        )
+                    }
                 }
-                OutlinedTextField(
+                IosTextField(
                     value = text,
                     onValueChange = onTextChange,
                     placeholder = { Text(stringResource(R.string.groupchat_input_placeholder)) },
-                    shape = MuseShapes.semiLarge,
                     enabled = enabled,
                     modifier = Modifier.weight(1f),
                     maxLines = 4,
+                    singleLine = false,
                 )
-                IconButton(
+                Surface(
                     onClick = onSend,
                     enabled = enabled && canSend,
+                    shape = CircleShape,
+                    color = if (enabled && canSend) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant
+                    },
+                    modifier = Modifier.size(MuseIconSizes.touchTarget),
                 ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Send,
-                        contentDescription = stringResource(R.string.groupchat_send),
-                        tint = if (enabled && canSend) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
-                        },
-                    )
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Send,
+                            contentDescription = stringResource(R.string.groupchat_send),
+                            tint = if (enabled && canSend) {
+                                MaterialTheme.colorScheme.onPrimary
+                            } else {
+                                MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+                            },
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    }
                 }
             }
         }
@@ -1202,8 +1697,11 @@ private fun AgentActivityChip(activity: AgentActivity) {
                 contentDescription = null,
                 modifier = Modifier.size(14.dp),
             )
+            val agentInitial = remember(activity.assistantName) {
+                activity.assistantName.firstOrNull()?.toString() ?: ""
+            }
             Text(
-                text = "${activity.assistantName} $statusLabel",
+                text = "$agentInitial $statusLabel",
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
@@ -1215,11 +1713,12 @@ private fun AgentActivityChip(activity: AgentActivity) {
 /**
  * 群聊加号菜单 — MANUS 风格底部展开面板。
  *
- * v1.112 (C2): 补全功能项,与单聊/Agent 加号菜单对齐:
+ * v2.1: 将原顶部栏功能移入加号菜单:
  *  - 图片(相册)
  *  - 附件(文本文件,读取内容插入输入框)
  *  - 引用知识库(插入 @ 标记)
  *  - Prompt 模板(从 settings 读取模板列表,选择后插入输入框)
+ *  - 成员列表 / 发起表决 / 总结讨论 / 群聊上下文 / @提及成员 / 编辑群聊
  */
 @Composable
 private fun GroupChatToolSheet(
@@ -1227,6 +1726,12 @@ private fun GroupChatToolSheet(
     onPickDocument: () -> Unit,
     onInsertKnowledge: () -> Unit,
     onPickPromptTemplate: () -> Unit,
+    onOpenMembers: () -> Unit,
+    onLaunchVote: () -> Unit,
+    onLaunchSummary: () -> Unit,
+    onOpenContext: () -> Unit,
+    onMentionMember: () -> Unit,
+    onEditGroup: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     MuseBottomSheet(onDismissRequest = onDismiss) {
@@ -1236,58 +1741,116 @@ private fun GroupChatToolSheet(
             color = MaterialTheme.colorScheme.outline,
         )
         Spacer(Modifier.height(16.dp))
-        // v1.63: 预防性加 verticalScroll,未来功能增多时不会被截断
-        // v1.125: 内层 Column(bottom padding) 避免滚动到底时最后一项被裁剪
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(max = 400.dp)
+                .heightIn(max = 460.dp)
                 .verticalScroll(rememberScrollState()),
         ) {
             Column(modifier = Modifier.padding(bottom = 32.dp)) {
-            // 图片附件入口
-            GroupChatToolRow(
-                icon = Icons.Default.Photo,
-                title = stringResource(R.string.groupchat_image),
-                subtitle = stringResource(R.string.groupchat_pick_from_gallery),
-                onClick = {
-                    onPickImage()
-                    onDismiss()
-                },
-            )
-            GroupChatToolDivider()
-            // v1.112: 附件入口
-            GroupChatToolRow(
-                icon = Icons.Default.AttachFile,
-                title = stringResource(R.string.chat_tool_attachment),
-                onClick = {
-                    onPickDocument()
-                    onDismiss()
-                },
-            )
-            GroupChatToolDivider()
-            // v1.112: 引用知识库
-            GroupChatToolRow(
-                icon = Icons.AutoMirrored.Filled.MenuBook,
-                title = stringResource(R.string.chat_tool_knowledge),
-                subtitle = stringResource(R.string.chat_tool_knowledge_subtitle),
-                onClick = {
-                    onInsertKnowledge()
-                    onDismiss()
-                },
-            )
-            GroupChatToolDivider()
-            // v1.112: Prompt 模板
-            GroupChatToolRow(
-                icon = Icons.AutoMirrored.Filled.MenuBook,
-                title = stringResource(R.string.chat_prompt_templates_title),
-                onClick = {
-                    onPickPromptTemplate()
-                    onDismiss()
-                },
-            )
-            } // end of inner padding Column
-        } // end of verticalScroll Column
+                // 图片附件入口
+                GroupChatToolRow(
+                    icon = Icons.Default.Photo,
+                    title = stringResource(R.string.groupchat_image),
+                    subtitle = stringResource(R.string.groupchat_pick_from_gallery),
+                    onClick = {
+                        onPickImage()
+                        onDismiss()
+                    },
+                )
+                GroupChatToolDivider()
+                // 附件入口
+                GroupChatToolRow(
+                    icon = Icons.Default.AttachFile,
+                    title = stringResource(R.string.chat_tool_attachment),
+                    onClick = {
+                        onPickDocument()
+                        onDismiss()
+                    },
+                )
+                GroupChatToolDivider()
+                // 引用知识库
+                GroupChatToolRow(
+                    icon = Icons.AutoMirrored.Filled.MenuBook,
+                    title = stringResource(R.string.chat_tool_knowledge),
+                    subtitle = stringResource(R.string.chat_tool_knowledge_subtitle),
+                    onClick = {
+                        onInsertKnowledge()
+                        onDismiss()
+                    },
+                )
+                GroupChatToolDivider()
+                // Prompt 模板
+                GroupChatToolRow(
+                    icon = Icons.AutoMirrored.Filled.MenuBook,
+                    title = stringResource(R.string.chat_prompt_templates_title),
+                    onClick = {
+                        onPickPromptTemplate()
+                        onDismiss()
+                    },
+                )
+                GroupChatToolDivider()
+                // 成员列表(原顶部栏)
+                GroupChatToolRow(
+                    icon = Icons.Filled.Group,
+                    title = stringResource(R.string.groupchat_tool_members),
+                    onClick = {
+                        onOpenMembers()
+                        onDismiss()
+                    },
+                )
+                GroupChatToolDivider()
+                // 发起表决(原顶部栏)
+                GroupChatToolRow(
+                    icon = Icons.Filled.HowToVote,
+                    title = stringResource(R.string.groupchat_tool_vote),
+                    onClick = {
+                        onLaunchVote()
+                        onDismiss()
+                    },
+                )
+                GroupChatToolDivider()
+                // 总结讨论(原顶部栏)
+                GroupChatToolRow(
+                    icon = Icons.Filled.Summarize,
+                    title = stringResource(R.string.groupchat_tool_summary),
+                    onClick = {
+                        onLaunchSummary()
+                        onDismiss()
+                    },
+                )
+                GroupChatToolDivider()
+                // 群聊上下文(原顶部栏)
+                GroupChatToolRow(
+                    icon = Icons.Filled.Folder,
+                    title = stringResource(R.string.groupchat_tool_context),
+                    onClick = {
+                        onOpenContext()
+                        onDismiss()
+                    },
+                )
+                GroupChatToolDivider()
+                // @提及成员
+                GroupChatToolRow(
+                    icon = Icons.Filled.Edit,
+                    title = stringResource(R.string.groupchat_tool_mention),
+                    onClick = {
+                        onMentionMember()
+                        onDismiss()
+                    },
+                )
+                GroupChatToolDivider()
+                // 编辑群聊(原顶部栏)
+                GroupChatToolRow(
+                    icon = Icons.Filled.Edit,
+                    title = stringResource(R.string.groupchat_edit_cd),
+                    onClick = {
+                        onEditGroup()
+                        onDismiss()
+                    },
+                )
+            }
+        }
     }
 }
 
@@ -1345,7 +1908,7 @@ private fun GroupChatToolRow(
 /** v1.112: 群聊工具菜单分隔线。 */
 @Composable
 private fun GroupChatToolDivider() {
-    androidx.compose.material3.HorizontalDivider(
+    HorizontalDivider(
         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
         thickness = 0.5.dp,
     )
@@ -1458,8 +2021,17 @@ private fun EditGroupChatDialog(
     initialName: String,
     assistants: List<AssistantEntity>,
     initialMemberIds: List<String>,
+    initialDiscussionMode: String = "round_robin",
+    initialAutoMaxRounds: Int = 5,
+    initialHostId: String? = null,
     onDismiss: () -> Unit,
-    onConfirm: (newName: String, newMemberIds: List<String>) -> Unit,
+    onConfirm: (
+        newName: String,
+        newMemberIds: List<String>,
+        newDiscussionMode: String,
+        newAutoMaxRounds: Int,
+        newHostId: String?,
+    ) -> Unit,
 ) {
     // v1.97: 用 rememberSaveable 持久化编辑中的状态,旋转屏不丢
     var name by rememberSaveable(initialName) { mutableStateOf(initialName) }
@@ -1467,17 +2039,35 @@ private fun EditGroupChatDialog(
         mutableStateOf(initialMemberIds.toSet())
     }
     var showErrors by rememberSaveable { mutableStateOf(false) }
+    // v2.x: 讨论模式状态
+    var discussionMode by rememberSaveable(initialDiscussionMode) { mutableStateOf(initialDiscussionMode) }
+    var autoMaxRounds by rememberSaveable(initialAutoMaxRounds) { mutableStateOf(initialAutoMaxRounds) }
+    var hostId by rememberSaveable(initialHostId ?: "") { mutableStateOf(initialHostId ?: "") }
 
     val maxNameLength = 30
     val nameError = showErrors && name.isBlank()
     val memberError = showErrors && selectedMemberIds.isEmpty()
+
+    // 讨论模式列表
+    val modeOptions = listOf(
+        "round_robin" to R.string.groupchat_mode_round_robin,
+        "auto" to R.string.groupchat_mode_auto,
+        "debate" to R.string.groupchat_mode_debate,
+        "host" to R.string.groupchat_mode_host,
+    )
+    val modeDescMap = mapOf(
+        "round_robin" to R.string.groupchat_mode_round_robin_desc,
+        "auto" to R.string.groupchat_mode_auto_desc,
+        "debate" to R.string.groupchat_mode_debate_desc,
+        "host" to R.string.groupchat_mode_host_desc,
+    )
 
     MuseDialog(
         onDismissRequest = onDismiss,
         title = stringResource(R.string.groupchat_edit_title),
         content = {
             // 群聊名输入框
-            OutlinedTextField(
+            IosTextField(
                 value = name,
                 onValueChange = { newName ->
                     showErrors = false
@@ -1491,7 +2081,6 @@ private fun EditGroupChatDialog(
                 } else {
                     { Text("${name.length}/$maxNameLength") }
                 },
-                shape = MuseShapes.semiLarge,
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(16.dp))
@@ -1554,12 +2143,109 @@ private fun EditGroupChatDialog(
                 color = MaterialTheme.colorScheme.outline.copy(alpha = 0.7f),
                 modifier = Modifier.fillMaxWidth(),
             )
+
+            // ── v2.x: 讨论模式选择 ──
+            Spacer(Modifier.height(20.dp))
+            Text(
+                text = stringResource(R.string.groupchat_mode_title),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(8.dp))
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                modeOptions.forEach { (mode, labelRes) ->
+                    IosChip(
+                        selected = discussionMode == mode,
+                        onClick = { discussionMode = mode },
+                        label = stringResource(labelRes),
+                    )
+                }
+            }
+            // 当前模式描述
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = stringResource(modeDescMap[discussionMode] ?: R.string.groupchat_mode_round_robin_desc),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            // Auto 模式:最大轮数滑块
+            if (discussionMode == "auto") {
+                Spacer(Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(R.string.groupchat_mode_auto_rounds),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Text(
+                        text = "$autoMaxRounds",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+                Slider(
+                    value = autoMaxRounds.toFloat(),
+                    onValueChange = { autoMaxRounds = it.toInt().coerceIn(1, 20) },
+                    valueRange = 1f..20f,
+                    steps = 18,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+
+            // 主持人模式:选择主持人
+            if (discussionMode == "host") {
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = stringResource(R.string.groupchat_mode_select_host),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.outline,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(8.dp))
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    // "不选"选项
+                    IosChip(
+                        selected = hostId.isBlank(),
+                        onClick = { hostId = "" },
+                        label = stringResource(R.string.groupchat_mode_no_host),
+                    )
+                    // 只能选已选成员做主持人
+                    assistants.filter { it.id in selectedMemberIds }.forEach { assistant ->
+                        IosChip(
+                            selected = hostId == assistant.id,
+                            onClick = { hostId = assistant.id },
+                            label = assistant.name,
+                        )
+                    }
+                }
+            }
         },
         confirmText = stringResource(R.string.groupchat_edit_btn),
         onConfirm = {
             val trimmedName = name.trim()
             if (trimmedName.isNotBlank() && selectedMemberIds.isNotEmpty()) {
-                onConfirm(trimmedName, selectedMemberIds.toList())
+                onConfirm(
+                    trimmedName,
+                    selectedMemberIds.toList(),
+                    discussionMode,
+                    autoMaxRounds,
+                    hostId.ifBlank { null },
+                )
             } else {
                 showErrors = true
             }

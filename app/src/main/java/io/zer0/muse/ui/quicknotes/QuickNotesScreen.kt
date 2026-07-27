@@ -6,11 +6,13 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,14 +21,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AttachFile
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
@@ -36,16 +39,17 @@ import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.IosShare
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import io.zer0.muse.ui.common.IosTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -54,11 +58,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -71,15 +77,18 @@ import io.zer0.muse.R
 import io.zer0.muse.data.quicknote.QuickNoteEntity
 import io.zer0.muse.ui.common.ConfirmDeleteDialog
 import io.zer0.muse.ui.common.EmptyState
+import io.zer0.muse.ui.common.IosChip
 import io.zer0.muse.ui.common.IosTopBar
 import io.zer0.muse.ui.common.MuseDialog
 import io.zer0.muse.ui.common.MuseToast
 import io.zer0.muse.ui.markdown.MarkdownText
+import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -87,17 +96,19 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * v1.0.17: 快速记录页面 UI/UX 升级 + Room 迁移。
+ * v1.0.19: 快速记录页面按新设计重写。
  *
- * 改动相对 v1.137:
- *  - 数据源从 [io.zer0.muse.tools.quicknote.QuickNoteStore] 切换到 [QuickNotesViewModel]
- *    (Room 持久化 + 回收站)
- *  - 用 [collectAsStateWithLifecycle] 收集 state,移除本地 notes/query/selectedTag 缓存
- *  - 顶栏新增回收站入口(显示回收站条目数)
- *  - 删除按钮改为 soft delete(移入回收站),而非直接物理删除
- *  - 新增回收站面板:支持恢复 / 永久删除 / 清空全部
- *
- * 其余 UI(搜索框 / 输入卡 / 标签过滤 / 卡片列表 / 编辑弹窗)与原版保持一致。
+ * 主要变化:
+ *  - 顶部栏改为标题居中 + 两侧操作图标(导出/删除),使用大标题
+ *  - 搜索框胶囊化、居中占位符
+ *  - 标签筛选使用 IosChip,选中态为品牌绿
+ *  - 历史记录区域显示"历史记录 / 共 N 条"
+ *  - 卡片列表重新设计:
+ *    - 置顶记录:浅绿背景 + AutoAwesome 图标 + 无底部操作按钮
+ *    - 普通记录:白色卡片 + 复制/发送/更多 操作
+ *    - 加密记录显示 Lock 图标 + 占位文案
+ *    - 文件夹/提醒使用独立小 chip 展示
+ *  - 保留回收站、导入导出、文件夹、提醒、加密、编辑等全部既有能力
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -118,7 +129,7 @@ fun QuickNotesScreen(
     // 回收站相关弹窗状态
     var noteToPermanentDelete by remember { mutableStateOf<QuickNoteEntity?>(null) }
     var showClearTrashConfirm by remember { mutableStateOf(false) }
-    // v1.0.18: 导出/导入菜单 + 文件夹设置 + 提醒设置 弹窗状态
+    // 导出/导入菜单 + 文件夹设置 + 提醒设置 弹窗状态
     var showExportMenu by remember { mutableStateOf(false) }
     var noteForFolder by remember { mutableStateOf<QuickNoteEntity?>(null) }
     var noteForReminder by remember { mutableStateOf<QuickNoteEntity?>(null) }
@@ -143,7 +154,7 @@ fun QuickNotesScreen(
         }
     }
 
-    // v1.0.18: 分页 — 列表滚动接近底部时自动加载更多
+    // 分页 — 列表滚动接近底部时自动加载更多
     val reachedBottom by remember {
         derivedStateOf {
             val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
@@ -184,7 +195,7 @@ fun QuickNotesScreen(
         onSendToNewChat(text)
     }
 
-    // v1.0.18: 导出为 Markdown/JSON — 通过系统分享面板让用户保存或转发
+    // 导出为 Markdown/JSON — 通过系统分享面板让用户保存或转发
     fun shareText(text: String, mimeType: String) {
         val intent = Intent(Intent.ACTION_SEND).apply {
             type = mimeType
@@ -195,7 +206,6 @@ fun QuickNotesScreen(
         context.startActivity(Intent.createChooser(intent, context.getString(R.string.quick_notes_export)))
     }
 
-    // v1.0.18: 导出为 Markdown/JSON — 通过系统分享面板让用户保存或转发
     fun exportMarkdown() {
         scope.launch {
             val md = viewModel.exportToMarkdown()
@@ -225,20 +235,22 @@ fun QuickNotesScreen(
                 onBack = onBack,
                 largeTitle = true,
                 actions = {
-                    // v1.0.18: 导出/导入入口
+                    // 导出/导入入口
                     IconButton(onClick = { showExportMenu = true }) {
                         Icon(
                             imageVector = Icons.Default.IosShare,
                             contentDescription = stringResource(R.string.quick_notes_export),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(MuseIconSizes.icon),
                         )
                     }
-                    // v1.0.17: 回收站入口(显示当前回收站条目数,点击进入回收站面板)
+                    // 回收站入口
                     IconButton(onClick = { viewModel.toggleTrash(true) }) {
                         Icon(
                             imageVector = Icons.Default.DeleteOutline,
                             contentDescription = stringResource(R.string.quick_notes_trash),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(MuseIconSizes.icon),
                         )
                     }
                 },
@@ -267,7 +279,7 @@ fun QuickNotesScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(MusePaddings.sectionGap))
-            // v1.0.18: 文件夹筛选条(有文件夹时展示)
+            // 文件夹筛选条(有文件夹时展示)
             if (state.folders.isNotEmpty()) {
                 QuickNoteFolderFilterRow(
                     folders = state.folders,
@@ -309,14 +321,14 @@ fun QuickNotesScreen(
                 ) {
                     Text(
                         text = stringResource(R.string.quick_notes_history),
-                        style = MaterialTheme.typography.titleSmall.copy(
+                        style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.SemiBold,
                         ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
                         text = stringResource(R.string.quick_notes_count, state.notes.size),
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.outline,
                     )
                 }
@@ -329,9 +341,6 @@ fun QuickNotesScreen(
                     items(state.notes, key = { it.id }) { note ->
                         QuickNoteCard(
                             note = note,
-                            onPin = {
-                                viewModel.setPinned(note.id, !note.pinned)
-                            },
                             onCopy = { copyNote(note) },
                             onSendToChat = { sendNoteToChat(note) },
                             onEdit = { editingNote = note },
@@ -339,7 +348,7 @@ fun QuickNotesScreen(
                             onMore = { noteForMenu = note },
                         )
                     }
-                    // v1.0.18: 分页 — 还有更多时显示加载更多提示
+                    // 分页 — 还有更多时显示加载更多提示
                     if (state.hasMore) {
                         item(key = "load_more") {
                             Row(
@@ -378,7 +387,7 @@ fun QuickNotesScreen(
             title = stringResource(R.string.quick_notes_delete_title),
             itemName = note.title,
             onConfirm = {
-                // v1.0.17: 改为 soft delete(移入回收站),用户可在回收站恢复或永久删除
+                // 改为 soft delete(移入回收站),用户可在回收站恢复或永久删除
                 viewModel.delete(note.id)
                 noteToDelete = null
             },
@@ -417,7 +426,7 @@ fun QuickNotesScreen(
         )
     }
 
-    // v1.0.18: 导出/导入菜单
+    // 导出/导入菜单
     if (showExportMenu) {
         QuickNoteExportMenu(
             onDismiss = { showExportMenu = false },
@@ -436,7 +445,7 @@ fun QuickNotesScreen(
         )
     }
 
-    // v1.0.18: 文件夹设置弹窗
+    // 文件夹设置弹窗
     noteForFolder?.let { note ->
         QuickNoteFolderDialog(
             folders = state.folders,
@@ -448,7 +457,7 @@ fun QuickNotesScreen(
         )
     }
 
-    // v1.0.18: 提醒设置弹窗(日期 + 时间选择器)
+    // 提醒设置弹窗(日期 + 时间选择器)
     noteForReminder?.let { note ->
         QuickNoteReminderDialog(
             currentReminderAt = note.reminderAt,
@@ -464,7 +473,7 @@ fun QuickNotesScreen(
         )
     }
 
-    // v1.0.17: 回收站面板
+    // 回收站面板
     if (state.showTrash) {
         QuickNoteTrashDialog(
             items = state.trashItems,
@@ -528,15 +537,22 @@ private fun QuickNoteSearchField(
     placeholder: String,
     modifier: Modifier = Modifier,
 ) {
-    OutlinedTextField(
+    IosTextField(
         value = value,
         onValueChange = onValueChange,
-        placeholder = { Text(placeholder) },
+        placeholder = {
+            Text(
+                text = placeholder,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
         leadingIcon = {
             Icon(
                 imageVector = Icons.Outlined.Search,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.size(MuseIconSizes.iconMedium),
             )
         },
         trailingIcon = {
@@ -546,12 +562,12 @@ private fun QuickNoteSearchField(
                         imageVector = Icons.Default.Clear,
                         contentDescription = stringResource(R.string.quick_notes_clear_search),
                         tint = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.size(MuseIconSizes.iconMedium),
                     )
                 }
             }
         },
         singleLine = true,
-        shape = MuseShapes.pill,
         modifier = modifier,
     )
 }
@@ -571,7 +587,7 @@ private fun QuickNoteInputCard(
         Column(
             modifier = Modifier.padding(MusePaddings.cardInner),
         ) {
-            OutlinedTextField(
+            IosTextField(
                 value = value,
                 onValueChange = onValueChange,
                 placeholder = { Text(stringResource(R.string.quick_notes_input_hint)) },
@@ -580,7 +596,6 @@ private fun QuickNoteInputCard(
                     .heightIn(min = 90.dp),
                 minLines = 3,
                 maxLines = 6,
-                shape = MuseShapes.large,
             )
             Spacer(Modifier.height(MusePaddings.contentGap))
             Row(
@@ -656,32 +671,11 @@ private fun QuickNoteTagFilterRow(
         verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
     ) {
         tags.forEach { tag ->
-            val selected = tag == selectedTag
-            Surface(
+            IosChip(
+                selected = tag == selectedTag,
                 onClick = { onTagSelected(tag) },
-                shape = MuseShapes.pill,
-                color = if (selected) {
-                    MaterialTheme.colorScheme.primaryContainer
-                } else {
-                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                },
-            ) {
-                Text(
-                    text = "#$tag",
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-                    ),
-                    color = if (selected) {
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                    modifier = Modifier.padding(
-                        horizontal = MusePaddings.iconPadding,
-                        vertical = MusePaddings.labelVerticalGap,
-                    ),
-                )
-            }
+                label = "#$tag",
+            )
         }
     }
 }
@@ -689,61 +683,86 @@ private fun QuickNoteTagFilterRow(
 @Composable
 private fun QuickNoteCard(
     note: QuickNoteEntity,
-    onPin: () -> Unit,
     onCopy: () -> Unit,
     onSendToChat: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onMore: () -> Unit,
 ) {
-    val fmt = remember { SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()) }
+    val isPinned = note.pinned
+    val cardBackground = if (isPinned) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+    } else {
+        MaterialTheme.colorScheme.surface
+    }
+    val contentTint = if (isPinned) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
     val attachments = remember(note.attachmentsJson) {
         QuickNotesViewModel.parseAttachments(note.attachmentsJson)
     }
+
     Surface(
         shape = MuseShapes.extraLarge,
-        color = if (note.pinned) {
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
-        } else {
-            MaterialTheme.colorScheme.surface
-        },
+        color = cardBackground,
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
             modifier = Modifier.padding(MusePaddings.cardInner),
         ) {
-            // v1.0.18: 加密标记 + 标题行(加密时标题仍可见,内容隐藏)
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (note.encrypted) {
-                    Icon(
-                        imageVector = Icons.Outlined.Lock,
-                        contentDescription = stringResource(R.string.quick_notes_encrypt_locked),
-                        tint = MaterialTheme.colorScheme.tertiary,
+            // 标题行:置顶时左侧显示 AI 星星图标
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+            ) {
+                if (isPinned) {
+                    Box(
                         modifier = Modifier
-                            .size(MuseIconSizes.iconSmall)
-                            .padding(end = MusePaddings.tightGap),
-                    )
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.AutoAwesome,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(MuseIconSizes.iconSmall),
+                        )
+                    }
                 }
                 Text(
                     text = note.title,
-                    style = MaterialTheme.typography.bodyMedium.copy(
+                    style = MaterialTheme.typography.bodyLarge.copy(
                         fontWeight = FontWeight.SemiBold,
                     ),
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = contentTint,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
             }
-            // v1.0.18: 内容区 — 加密时显示占位,Markdown 时用 MarkdownText 渲染
+
+            // 内容区 — 加密时显示占位,Markdown 时用 MarkdownText 渲染
             if (note.encrypted) {
                 Spacer(Modifier.height(MusePaddings.tightGap))
-                Text(
-                    text = stringResource(R.string.quick_notes_encrypt_placeholder),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
-                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Outlined.Lock,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.size(MuseIconSizes.iconSmall),
+                    )
+                    Spacer(Modifier.width(MusePaddings.tightGap))
+                    Text(
+                        text = stringResource(R.string.quick_notes_encrypt_placeholder),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                    )
+                }
             } else if (note.content.isNotBlank()) {
                 Spacer(Modifier.height(MusePaddings.tightGap))
                 if (note.contentType == "markdown") {
@@ -751,19 +770,20 @@ private fun QuickNoteCard(
                         text = note.content,
                         modifier = Modifier.fillMaxWidth(),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = if (isPinned) contentTint else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else {
                     Text(
                         text = note.content,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = if (isPinned) contentTint else MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 3,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
-            // v1.0.18: 附件指示(显示数量,完整缩略图渲染为后续增强占位)
+
+            // 附件指示
             if (attachments.isNotEmpty()) {
                 Spacer(Modifier.height(MusePaddings.labelVerticalGap))
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -781,17 +801,24 @@ private fun QuickNoteCard(
                     )
                 }
             }
+
+            // 标签
             if (note.tags.isNotEmpty()) {
                 Spacer(Modifier.height(MusePaddings.labelVerticalGap))
                 Text(
                     text = note.tags.joinToString("  #", prefix = "#"),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = if (isPinned) {
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                    } else {
+                        MaterialTheme.colorScheme.primary
+                    },
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            // v1.0.18: 元信息行 — 文件夹 / 提醒 标记
+
+            // 文件夹/提醒 chip
             val showFolder = note.folder.isNotBlank()
             val showReminder = note.reminderAt > 0
             if (showFolder || showReminder) {
@@ -802,72 +829,76 @@ private fun QuickNoteCard(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     if (showFolder) {
-                        ReminderInfoChip(
+                        NoteMetaChip(
                             icon = Icons.Default.Folder,
                             text = note.folder,
-                            tint = MaterialTheme.colorScheme.secondary,
                         )
                     }
                     if (showReminder) {
-                        ReminderInfoChip(
-                            icon = Icons.Default.Notifications,
-                            text = fmt.format(Date(note.reminderAt)),
+                        NoteMetaChip(
+                            icon = Icons.Outlined.Notifications,
+                            text = formatReminderAt(note.reminderAt),
                             tint = MaterialTheme.colorScheme.tertiary,
                         )
                     }
                 }
             }
+
             Spacer(Modifier.height(MusePaddings.auxGap))
+            HorizontalDivider(
+                thickness = 0.5.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+            )
+            Spacer(Modifier.height(MusePaddings.auxGap))
+
+            // 底部:时间 + 操作
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = fmt.format(Date(note.updatedAt)),
+                    text = formatNoteTime(note.updatedAt),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.outline,
                 )
                 Spacer(Modifier.weight(1f))
-                IconButton(
-                    onClick = onPin,
-                    modifier = Modifier.size(MuseIconSizes.touchTarget),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.PushPin,
-                        contentDescription = stringResource(
-                            if (note.pinned) R.string.quick_notes_unpin else R.string.quick_notes_pin
-                        ),
-                        tint = if (note.pinned) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.outline
-                        },
-                        modifier = Modifier.size(MuseIconSizes.iconSmall),
-                    )
-                }
-                IconButton(
-                    onClick = onCopy,
-                    modifier = Modifier.size(MuseIconSizes.touchTarget),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ContentCopy,
-                        contentDescription = stringResource(R.string.quick_notes_copy),
-                        tint = MaterialTheme.colorScheme.outline,
-                        modifier = Modifier.size(MuseIconSizes.iconSmall),
-                    )
-                }
-                IconButton(
-                    onClick = onSendToChat,
-                    modifier = Modifier.size(MuseIconSizes.touchTarget),
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Chat,
-                        contentDescription = stringResource(R.string.quick_notes_send_to_chat),
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(MuseIconSizes.iconSmall),
-                    )
-                }
-                Box {
+
+                if (isPinned) {
+                    // 置顶记录只保留"更多"入口(编辑/删除等)
+                    IconButton(
+                        onClick = onMore,
+                        modifier = Modifier.size(MuseIconSizes.touchTarget),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = stringResource(R.string.quick_notes_more),
+                            tint = MaterialTheme.colorScheme.outline,
+                            modifier = Modifier.size(MuseIconSizes.iconSmall),
+                        )
+                    }
+                } else {
+                    IconButton(
+                        onClick = onCopy,
+                        modifier = Modifier.size(MuseIconSizes.touchTarget),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ContentCopy,
+                            contentDescription = stringResource(R.string.quick_notes_copy),
+                            tint = MaterialTheme.colorScheme.outline,
+                            modifier = Modifier.size(MuseIconSizes.iconSmall),
+                        )
+                    }
+                    IconButton(
+                        onClick = onSendToChat,
+                        modifier = Modifier.size(MuseIconSizes.touchTarget),
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Chat,
+                            contentDescription = stringResource(R.string.quick_notes_send_to_chat),
+                            tint = MaterialTheme.colorScheme.outline,
+                            modifier = Modifier.size(MuseIconSizes.iconSmall),
+                        )
+                    }
                     IconButton(
                         onClick = onMore,
                         modifier = Modifier.size(MuseIconSizes.touchTarget),
@@ -885,16 +916,16 @@ private fun QuickNoteCard(
     }
 }
 
-/** v1.0.18: 卡片元信息小胶囊(文件夹 / 提醒时间标记)。 */
+/** 卡片元信息小胶囊(文件夹 / 提醒时间标记)。 */
 @Composable
-private fun ReminderInfoChip(
+private fun NoteMetaChip(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     text: String,
-    tint: androidx.compose.ui.graphics.Color,
+    tint: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.primary,
 ) {
     Surface(
         shape = MuseShapes.pill,
-        color = tint.copy(alpha = 0.12f),
+        color = tint.copy(alpha = 0.10f),
     ) {
         Row(
             modifier = Modifier.padding(
@@ -908,7 +939,7 @@ private fun ReminderInfoChip(
                 imageVector = icon,
                 contentDescription = null,
                 tint = tint,
-                modifier = Modifier.size(MuseIconSizes.iconSmall),
+                modifier = Modifier.size(MuseIconSizes.iconTiny),
             )
             Text(
                 text = text,
@@ -921,6 +952,40 @@ private fun ReminderInfoChip(
     }
 }
 
+/** 按设计图显示相对时间:今天 HH:mm / 昨天 / N 天前 / MM-dd。 */
+@Composable
+private fun formatNoteTime(timestamp: Long): String {
+    val fmtTime = remember { SimpleDateFormat(MuseDateFormats.TIME_SHORT, Locale.getDefault()) }
+    val fmtDate = remember { SimpleDateFormat(MuseDateFormats.DATE_SHORT, Locale.getDefault()) }
+    val now by produceState(initialValue = System.currentTimeMillis()) {
+        while (true) {
+            delay(60_000)
+            value = System.currentTimeMillis()
+        }
+    }
+    if (timestamp <= 0) return ""
+
+    val nowCal = Calendar.getInstance().apply { timeInMillis = now }
+    val noteCal = Calendar.getInstance().apply { timeInMillis = timestamp }
+    val daysDiff = ((now - timestamp) / 86_400_000).toInt()
+
+    return when {
+        nowCal.get(Calendar.YEAR) == noteCal.get(Calendar.YEAR) &&
+            nowCal.get(Calendar.DAY_OF_YEAR) == noteCal.get(Calendar.DAY_OF_YEAR) -> {
+            "${stringResource(R.string.memory_filter_today)} ${fmtTime.format(Date(timestamp))}"
+        }
+        daysDiff == 1 -> stringResource(R.string.memory_created_yesterday)
+        daysDiff in 2..6 -> stringResource(R.string.memory_created_days_ago, daysDiff)
+        else -> fmtDate.format(Date(timestamp))
+    }
+}
+
+@Composable
+private fun formatReminderAt(timestamp: Long): String {
+    val fmt = remember { SimpleDateFormat("MM-dd HH:mm", Locale.getDefault()) }
+    return fmt.format(Date(timestamp))
+}
+
 @Composable
 private fun QuickNoteActionMenu(
     note: QuickNoteEntity,
@@ -928,7 +993,6 @@ private fun QuickNoteActionMenu(
     onEdit: () -> Unit,
     onCopy: () -> Unit,
     onDelete: () -> Unit,
-    // v1.0.18: 新增动作
     onSetFolder: () -> Unit = {},
     onSetReminder: () -> Unit = {},
     onToggleEncrypt: () -> Unit = {},
@@ -951,13 +1015,13 @@ private fun QuickNoteActionMenu(
                     label = stringResource(R.string.quick_notes_copy),
                     onClick = onCopy,
                 )
-                // v1.0.18: 设置文件夹
+                // 设置文件夹
                 QuickNoteActionRow(
                     icon = Icons.Outlined.FolderOpen,
                     label = stringResource(R.string.quick_notes_folder_set),
                     onClick = onSetFolder,
                 )
-                // v1.0.18: 设置提醒
+                // 设置提醒
                 QuickNoteActionRow(
                     icon = Icons.Outlined.Notifications,
                     label = if (note.reminderAt > 0) {
@@ -967,7 +1031,7 @@ private fun QuickNoteActionMenu(
                     },
                     onClick = onSetReminder,
                 )
-                // v1.0.18: 加密/解密
+                // 加密/解密
                 QuickNoteActionRow(
                     icon = Icons.Outlined.Lock,
                     label = if (note.encrypted) {
@@ -1038,7 +1102,6 @@ private fun QuickNoteDialog(
     var title by remember { mutableStateOf(existing?.title ?: "") }
     var content by remember { mutableStateOf(existing?.content ?: "") }
     var tags by remember { mutableStateOf(existing?.tags?.joinToString(",") ?: "") }
-    // v1.0.18: 富文本支持 — 编辑时切换 plain/markdown,预览切换 编辑/预览
     var isMarkdown by remember { mutableStateOf(existing?.contentType == "markdown") }
     var previewMode by remember { mutableStateOf(false) }
     val errorRequired = stringResource(R.string.quick_notes_error_required)
@@ -1051,15 +1114,14 @@ private fun QuickNoteDialog(
         ),
         content = {
             Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap)) {
-                OutlinedTextField(
+                IosTextField(
                     value = title,
                     onValueChange = { title = it; errorMessage = null },
                     label = { Text(stringResource(R.string.quick_notes_title_label)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = MuseShapes.large,
                 )
-                // v1.0.18: Markdown 模式切换 + 预览切换
+                // Markdown 模式切换 + 预览切换
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -1109,7 +1171,7 @@ private fun QuickNoteDialog(
                         }
                     }
                 }
-                // v1.0.18: 内容区 — Markdown 预览模式用 MarkdownText 渲染
+                // Markdown 预览模式用 MarkdownText 渲染
                 if (isMarkdown && previewMode) {
                     Surface(
                         shape = MuseShapes.large,
@@ -1128,23 +1190,21 @@ private fun QuickNoteDialog(
                         }
                     }
                 } else {
-                    OutlinedTextField(
+                    IosTextField(
                         value = content,
                         onValueChange = { content = it },
                         label = { Text(stringResource(R.string.quick_notes_content_label)) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .heightIn(min = 120.dp),
-                        shape = MuseShapes.large,
                     )
                 }
-                OutlinedTextField(
+                IosTextField(
                     value = tags,
                     onValueChange = { tags = it },
                     label = { Text(stringResource(R.string.quick_notes_tags_label)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = MuseShapes.large,
                 )
                 errorMessage?.let {
                     Text(
@@ -1174,7 +1234,7 @@ private fun QuickNoteDialog(
 }
 
 /**
- * v1.0.17: 回收站面板 — 列出已删除记录,支持恢复 / 永久删除 / 清空全部。
+ * 回收站面板 — 列出已删除记录,支持恢复 / 永久删除 / 清空全部。
  */
 @Composable
 private fun QuickNoteTrashDialog(
@@ -1184,7 +1244,7 @@ private fun QuickNoteTrashDialog(
     onPermanentDelete: (QuickNoteEntity) -> Unit,
     onClearAll: () -> Unit,
 ) {
-    val fmt = remember { SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()) }
+    val fmt = remember { SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL, Locale.getDefault()) }
     MuseDialog(
         onDismissRequest = onDismiss,
         title = stringResource(R.string.quick_notes_trash_title),
@@ -1206,7 +1266,7 @@ private fun QuickNoteTrashDialog(
                         modifier = Modifier.padding(vertical = MusePaddings.contentGap),
                     )
                 } else {
-                    LazyColumn(
+                    androidx.compose.foundation.lazy.LazyColumn(
                         modifier = Modifier
                             .fillMaxWidth()
                             .heightIn(max = 360.dp),
@@ -1369,7 +1429,7 @@ private fun deriveTitle(text: String, tags: List<String>): String {
     }
 }
 
-// ── v1.0.18: 快速记录增强组件 ───────────────────────────────────────────────
+// ── 快速记录增强组件 ───────────────────────────────────────────────────────
 
 /**
  * 文件夹筛选条 — FlowRow 胶囊,与标签筛选风格一致。
@@ -1390,13 +1450,11 @@ private fun QuickNoteFolderFilterRow(
         horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
         verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
     ) {
-        // 全部
         FolderChip(
             label = stringResource(R.string.quick_notes_folder_all),
             selected = selectedFolder == null,
             onClick = { onFolderSelected(null) },
         )
-        // 未分类
         FolderChip(
             label = stringResource(R.string.quick_notes_folder_uncategorized),
             selected = selectedFolder == "",
@@ -1418,48 +1476,18 @@ private fun FolderChip(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    Surface(
+    IosChip(
+        selected = selected,
         onClick = onClick,
-        shape = MuseShapes.pill,
-        color = if (selected) {
-            MaterialTheme.colorScheme.primaryContainer
-        } else {
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-        },
-    ) {
-        Row(
-            modifier = Modifier.padding(
-                horizontal = MusePaddings.iconPadding,
-                vertical = MusePaddings.labelVerticalGap,
-            ),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
-        ) {
+        label = label,
+        leadingIcon = {
             Icon(
                 imageVector = Icons.Default.Folder,
                 contentDescription = null,
-                modifier = Modifier.size(MuseIconSizes.iconSmall),
-                tint = if (selected) {
-                    MaterialTheme.colorScheme.onPrimaryContainer
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
+                modifier = Modifier.size(MuseIconSizes.iconTiny),
             )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium.copy(
-                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-                ),
-                color = if (selected) {
-                    MaterialTheme.colorScheme.onPrimaryContainer
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
+        },
+    )
 }
 
 /**
@@ -1520,13 +1548,11 @@ private fun QuickNoteFolderDialog(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
             ) {
-                // 未分类选项
                 QuickNoteActionRow(
                     icon = Icons.Outlined.FolderOpen,
                     label = stringResource(R.string.quick_notes_folder_uncategorized),
                     onClick = { onSelect("") },
                 )
-                // 已有文件夹
                 folders.forEach { folder ->
                     QuickNoteActionRow(
                         icon = Icons.Default.Folder,
@@ -1545,13 +1571,12 @@ private fun QuickNoteFolderDialog(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
                 ) {
-                    OutlinedTextField(
+                    IosTextField(
                         value = newFolder,
                         onValueChange = { newFolder = it },
                         label = { Text(stringResource(R.string.quick_notes_folder_hint)) },
                         singleLine = true,
                         modifier = Modifier.weight(1f),
-                        shape = MuseShapes.large,
                     )
                     Surface(
                         onClick = {
@@ -1581,9 +1606,6 @@ private fun QuickNoteFolderDialog(
 
 /**
  * 提醒设置弹窗 — 展示当前提醒状态,点击设置依次弹出日期/时间选择器。
- *
- * 使用平台 DatePickerDialog + TimePickerDialog(简单可靠,无需额外依赖)。
- * 选择完成后回调 [onSet] 传入毫秒时间戳;[onCancel] 取消已有提醒。
  */
 @Composable
 private fun QuickNoteReminderDialog(
@@ -1593,9 +1615,8 @@ private fun QuickNoteReminderDialog(
     onCancel: () -> Unit,
 ) {
     val context = LocalContext.current
-    val fmt = remember { SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()) }
+    val fmt = remember { SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL, Locale.getDefault()) }
 
-    // 启动日期选择器(选完日期后紧接着弹出时间选择器)
     fun showDatePicker() {
         val now = Calendar.getInstance()
         DatePickerDialog(
@@ -1606,7 +1627,6 @@ private fun QuickNoteReminderDialog(
                     set(Calendar.MONTH, month)
                     set(Calendar.DAY_OF_MONTH, day)
                 }
-                // 紧接着弹出时间选择器
                 TimePickerDialog(
                     context,
                     { _, hour, minute ->

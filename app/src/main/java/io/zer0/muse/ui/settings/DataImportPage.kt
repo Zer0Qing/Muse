@@ -12,11 +12,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.outlined.CloudUpload
-import androidx.compose.material.icons.outlined.FileUpload
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -120,9 +117,9 @@ fun SettingsDataImportPage(
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = Icons.Outlined.CloudUpload,
+                            imageVector = TablerIcons.CloudUpload,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = MaterialTheme.colorScheme.onSurface,
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(stringResource(R.string.settings_import_migrate_title), style = MaterialTheme.typography.titleMedium)
@@ -209,7 +206,7 @@ fun SettingsDataImportPage(
                 shape = MuseShapes.medium,
                 enabled = !isImporting,
             ) {
-                Icon(Icons.Outlined.FileUpload, contentDescription = null)
+                Icon(TablerIcons.FileUpload, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
                 Text(stringResource(R.string.settings_import_select_backup))
             }
@@ -296,7 +293,7 @@ private fun ImportSourceCard(
                 }
                 IconButton(onClick = { expanded = !expanded }) {
                     Icon(
-                        imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                        imageVector = if (expanded) TablerIcons.ChevronUp else TablerIcons.ChevronDown,
                         contentDescription = if (expanded) collapseText else expandText,
                     )
                 }

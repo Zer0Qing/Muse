@@ -1,4 +1,4 @@
-package io.zer0.muse.ui.settings
+﻿package io.zer0.muse.ui.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -10,16 +10,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.outlined.Build
-import androidx.compose.material.icons.outlined.Email
-import androidx.compose.material.icons.outlined.GroupWork
-import androidx.compose.material.icons.outlined.NotificationsActive
-import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material.icons.outlined.Shuffle
-import androidx.compose.material.icons.outlined.SmartToy
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -134,7 +126,7 @@ fun AgentSettingsPage(
                     ?: assistants?.firstOrNull { it.id == "default" }
                     ?: assistants?.firstOrNull()
                 SettingsItemRow(
-                    icon = Icons.Outlined.SmartToy,
+                    icon = TablerIcons.User,
                     title = stringResource(R.string.settings_agent_default_assistant_title),
                     subtitle = if (assistants == null) stringResource(R.string.settings_agent_loading) else currentAgent?.name ?: stringResource(R.string.settings_agent_use_first_assistant),
                     onClick = { showAssistantPicker = true },
@@ -151,7 +143,7 @@ fun AgentSettingsPage(
                 modifier = Modifier.padding(top = 8.dp),
             ) {
                 SettingsItemRow(
-                    icon = Icons.Outlined.SmartToy,
+                    icon = TablerIcons.User,
                     title = stringResource(R.string.settings_agent_current_model),
                     subtitle = currentModelName,
                     onClick = { showModelPicker = true },
@@ -161,7 +153,7 @@ fun AgentSettingsPage(
                 SettingsGroupDivider()
                 // v1.60-A: 工具模型 — 工具调用轮次使用的轻量模型,null 时沿用主对话模型
                 SettingsItemRow(
-                    icon = Icons.Outlined.Build,
+                    icon = TablerIcons.Tools,
                     title = stringResource(R.string.settings_agent_tool_model_title),
                     subtitle = toolModelName,
                     onClick = { showToolModelPicker = true },
@@ -178,7 +170,7 @@ fun AgentSettingsPage(
                 modifier = Modifier.padding(top = 8.dp),
             ) {
                 SettingsItemRow(
-                    icon = Icons.Outlined.GroupWork,
+                    icon = TablerIcons.Users,
                     title = stringResource(R.string.settings_agent_collab_team),
                     subtitle = if (multiAgentConfig.enabled) {
                         stringResource(R.string.settings_agent_multi_agent_enabled, multiAgentConfig.teams.size)
@@ -192,7 +184,7 @@ fun AgentSettingsPage(
                 SettingsGroupDivider()
                 // v1.126: Agent 私信收件箱入口
                 SettingsItemRow(
-                    icon = Icons.Outlined.Email,
+                    icon = TablerIcons.Mail,
                     title = stringResource(R.string.agent_dm_title),
                     subtitle = "查看 Agent 间私信往来",
                     onClick = onOpenAgentDm,
@@ -209,7 +201,7 @@ fun AgentSettingsPage(
                 modifier = Modifier.padding(top = 8.dp),
             ) {
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.NotificationsActive,
+                    icon = TablerIcons.Bell,
                     title = stringResource(R.string.settings_agent_proactive_title),
                     subtitle = stringResource(R.string.settings_agent_proactive_subtitle),
                     checked = proactiveConfig.enabled,
@@ -220,7 +212,7 @@ fun AgentSettingsPage(
                 if (proactiveConfig.enabled) {
                     SettingsGroupDivider()
                     SettingsItemRow(
-                        icon = Icons.Outlined.Schedule,
+                        icon = TablerIcons.CalendarTime,
                         title = stringResource(R.string.settings_agent_send_interval),
                         subtitle = intervalLabel(proactiveConfig.intervalMinutes),
                         onClick = { showIntervalPicker = true },
@@ -229,7 +221,7 @@ fun AgentSettingsPage(
                     }
                     SettingsGroupDivider()
                     SettingsItemRow(
-                        icon = Icons.Outlined.Shuffle,
+                        icon = TablerIcons.Switch,
                         title = stringResource(R.string.settings_agent_random_offset),
                         subtitle = offsetLabel(proactiveConfig.randomOffsetMinutes),
                         onClick = { showOffsetPicker = true },
@@ -239,7 +231,7 @@ fun AgentSettingsPage(
                     SettingsGroupDivider()
                     val senderAgent = assistants?.find { it.id == proactiveConfig.agentId }
                     SettingsItemRow(
-                        icon = Icons.Outlined.Person,
+                        icon = TablerIcons.User,
                         title = stringResource(R.string.settings_agent_send_agent),
                         subtitle = senderAgent?.name ?: stringResource(R.string.settings_agent_default_assistant_fallback),
                         onClick = { showAssistantPicker = true },
@@ -249,7 +241,7 @@ fun AgentSettingsPage(
                     // v1.95: 允许发送时段(避免夜间打扰)
                     SettingsGroupDivider()
                     SettingsItemRow(
-                        icon = Icons.Outlined.Schedule,
+                        icon = TablerIcons.CalendarTime,
                         title = "允许时段开始",
                         subtitle = "${proactiveConfig.allowedHourStart}:00",
                         onClick = { showAllowedStartPicker = true },
@@ -258,7 +250,7 @@ fun AgentSettingsPage(
                     }
                     SettingsGroupDivider()
                     SettingsItemRow(
-                        icon = Icons.Outlined.Schedule,
+                        icon = TablerIcons.CalendarTime,
                         title = "允许时段结束",
                         subtitle = "${proactiveConfig.allowedHourEnd}:00",
                         onClick = { showAllowedEndPicker = true },
@@ -268,7 +260,7 @@ fun AgentSettingsPage(
                     // v1.95: 仅Agent会话开关
                     SettingsGroupDivider()
                     SettingsSwitchRow(
-                        icon = Icons.Outlined.SmartToy,
+                        icon = TablerIcons.User,
                         title = "仅Agent会话",
                         subtitle = "开启后只有Agent助手会发送主动消息,任务会话不会",
                         checked = proactiveConfig.agentOnly,
@@ -279,7 +271,7 @@ fun AgentSettingsPage(
                     // v2.0 5.9: 每日主动消息上限(可配置,替代 ScoreEngine 硬编码)
                     SettingsGroupDivider()
                     SettingsItemRow(
-                        icon = Icons.Outlined.NotificationsActive,
+                        icon = TablerIcons.Bell,
                         title = "每日上限",
                         subtitle = "${proactiveConfig.maxDailyMessages} 条/天",
                         onClick = { showMaxDailyPicker = true },
@@ -289,7 +281,7 @@ fun AgentSettingsPage(
                     // v2.0 5.9: LLM 调用温度(决策阶段用 temperature×0.5,生成阶段用本值)
                     SettingsGroupDivider()
                     SettingsItemRow(
-                        icon = Icons.Outlined.Shuffle,
+                        icon = TablerIcons.Switch,
                         title = "生成温度",
                         subtitle = "%.1f".format(proactiveConfig.temperature),
                         onClick = { showTemperaturePicker = true },
@@ -712,7 +704,7 @@ fun AgentSettingsPage(
                                         modifier = Modifier.weight(1f),
                                     )
                                     if (isSelected) {
-                                        Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                                        Icon(TablerIcons.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
                                     }
                                 }
                             }
@@ -760,7 +752,7 @@ fun AgentSettingsPage(
                             modifier = Modifier.weight(1f),
                         )
                         if (isCleared) {
-                            Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                            Icon(TablerIcons.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
                         }
                     }
                     // 跨 Provider 列出所有模型,选中即保存其 id(不切换激活 Provider)
@@ -792,7 +784,7 @@ fun AgentSettingsPage(
                                         modifier = Modifier.weight(1f),
                                     )
                                     if (isSelected) {
-                                        Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                                        Icon(TablerIcons.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
                                     }
                                 }
                             }
@@ -844,7 +836,7 @@ private fun AgentPickerRow(
             modifier = Modifier.weight(1f),
         )
         if (selected) {
-            Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+            Icon(TablerIcons.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
         }
     }
 }

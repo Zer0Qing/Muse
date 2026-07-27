@@ -165,7 +165,9 @@ Create multiple assistants with different personalities and specialties, delegat
 - **Multimodal input**: ML Kit offline Chinese OCR; PDF parsing; auto-detects TXT/DOCX/EPUB; built-in DALL-E / Gemini image generation
 - **Web search**: Jina AI Reader (Markdown summaries), Bing (Jsoup structured extraction), SearXNG/Tavily/custom endpoints
 - **Proactive messaging**: sends when you have been out of touch; continuously adjustable send interval, time-window control, Agent-session only
-- **Text-to-speech**: system TTS / cloud TTS (OpenAI/MiniMax/Edge); per-assistant rate/pitch/language; routing to speaker/earpiece/Bluetooth
+- **Text-to-speech**
+- **Notification listener**: listen to device notifications, AI can provide smart replies and suggestions based on notification content
+- **Proactive messaging**: AI proactively starts conversations when you have been out of touch; adjustable interval, time-window control, Agent-session only: system TTS / cloud TTS (OpenAI/MiniMax/Edge); per-assistant rate/pitch/language; routing to speaker/earpiece/Bluetooth
 - **Translation**: built-in translator with multi-language support and history retention
 - **Slash commands**: type `/` in the input bar for quick actions -- `/new` new chat, `/compact` compress context, `/reset` reset, `/pin` pin, `/archive` archive
 

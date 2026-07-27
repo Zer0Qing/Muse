@@ -19,11 +19,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Extension
-import androidx.compose.material.icons.outlined.SwapHoriz
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -162,7 +159,7 @@ fun ProviderPluginPage(
         containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
             IosFloatingButton(
-                icon = Icons.Filled.Add,
+                icon = TablerIcons.Plus,
                 onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
                 contentDescription = stringResource(R.string.provider_plugins_import),
             )
@@ -191,7 +188,7 @@ fun ProviderPluginPage(
                 }
                 plugins.isEmpty() -> {
                     EmptyState(
-                        icon = Icons.Outlined.Extension,
+                        icon = TablerIcons.Puzzle,
                         title = stringResource(R.string.provider_plugins_empty),
                         modifier = Modifier
                             .fillMaxSize()
@@ -283,9 +280,9 @@ private fun PluginCard(
         ) {
             // 左侧:扩展图标 + 名称 + 描述
             Icon(
-                imageVector = Icons.Outlined.Extension,
+                imageVector = TablerIcons.Puzzle,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.size(MuseIconSizes.iconMedium),
             )
             Spacer(Modifier.size(MusePaddings.iconPadding))
@@ -331,9 +328,9 @@ private fun PluginCard(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.SwapHoriz,
+                        imageVector = TablerIcons.SwitchHorizontal,
                         contentDescription = stringResource(R.string.provider_plugins_convert),
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(MuseIconSizes.iconSmall),
                     )
                     Spacer(Modifier.size(MusePaddings.tightGap))
@@ -348,7 +345,7 @@ private fun PluginCard(
             Spacer(Modifier.size(MusePaddings.contentGap))
             // v1.134 P0-6: 删除按钮用 IosTactileButton(48dp 触摸目标 + 无 ripple)
             IosTactileButton(
-                icon = Icons.Outlined.Delete,
+                icon = TablerIcons.Trash,
                 onClick = onDelete,
                 contentDescription = stringResource(R.string.provider_plugins_delete),
                 tint = MaterialTheme.colorScheme.error,

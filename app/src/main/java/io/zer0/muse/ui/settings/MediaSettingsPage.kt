@@ -7,19 +7,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CloudQueue
-import androidx.compose.material.icons.outlined.GraphicEq
-import androidx.compose.material.icons.outlined.RecordVoiceOver
-import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material.icons.outlined.Tune
-import androidx.compose.material.icons.automirrored.outlined.VolumeUp
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import io.zer0.muse.ui.common.IosSlider
-import androidx.compose.material3.OutlinedTextField
+import io.zer0.muse.ui.common.IosTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -80,7 +75,7 @@ fun MediaSettingsPage(
                 modifier = Modifier.padding(top = 8.dp),
             ) {
                 SliderRow(
-                    icon = Icons.Outlined.GraphicEq,
+                    icon = TablerIcons.Adjustments,
                     title = stringResource(R.string.settings_media_sample_rate),
                     subtitle = stringResource(R.string.settings_media_sample_rate_subtitle),
                     value = config.recordingSampleRate.toFloat(),
@@ -93,7 +88,7 @@ fun MediaSettingsPage(
                 )
                 SettingsGroupDivider()
                 SliderRow(
-                    icon = Icons.Outlined.GraphicEq,
+                    icon = TablerIcons.Adjustments,
                     title = stringResource(R.string.settings_media_bit_rate),
                     subtitle = stringResource(R.string.settings_media_bit_rate_subtitle),
                     value = config.recordingBitRate.toFloat(),
@@ -114,7 +109,7 @@ fun MediaSettingsPage(
                 modifier = Modifier.padding(top = 8.dp),
             ) {
                 SettingsSwitchRow(
-                    icon = Icons.Outlined.RecordVoiceOver,
+                    icon = TablerIcons.Microphone,
                     title = stringResource(R.string.settings_media_tts_enable),
                     subtitle = stringResource(R.string.settings_media_tts_enable_subtitle),
                     checked = config.ttsEnabled,
@@ -124,7 +119,7 @@ fun MediaSettingsPage(
                 )
                 SettingsGroupDivider()
                 SliderRow(
-                    icon = Icons.Outlined.RecordVoiceOver,
+                    icon = TablerIcons.Microphone,
                     title = stringResource(R.string.settings_media_speech_rate),
                     subtitle = stringResource(R.string.settings_media_speech_rate_subtitle),
                     value = config.ttsSpeechRate,
@@ -137,7 +132,7 @@ fun MediaSettingsPage(
                 )
                 SettingsGroupDivider()
                 SliderRow(
-                    icon = Icons.Outlined.RecordVoiceOver,
+                    icon = TablerIcons.Microphone,
                     title = stringResource(R.string.settings_media_pitch),
                     subtitle = stringResource(R.string.settings_media_pitch_subtitle),
                     value = config.ttsPitch,
@@ -187,7 +182,7 @@ fun MediaSettingsPage(
                 modifier = Modifier.padding(top = 8.dp),
             ) {
                 SettingsItemRow(
-                    icon = Icons.Outlined.RecordVoiceOver,
+                    icon = TablerIcons.Microphone,
                     title = stringResource(R.string.voice_cloning_title),
                     subtitle = stringResource(R.string.voice_cloning_new_voice),
                     onClick = onOpenVoiceCloning,
@@ -211,7 +206,7 @@ fun MediaSettingsPage(
                 modifier = Modifier.padding(top = 8.dp),
             ) {
                 SettingsSegmentedRow(
-                    icon = Icons.AutoMirrored.Outlined.VolumeUp,
+                    icon = TablerIcons.Volume,
                     title = stringResource(R.string.settings_media_output_method),
                     subtitle = stringResource(R.string.settings_media_output_method_subtitle),
                     options = outputOptions,
@@ -302,7 +297,7 @@ private fun TtsVoiceSelector(
 
     Box {
         SettingsItemRow(
-            icon = Icons.Outlined.RecordVoiceOver,
+            icon = TablerIcons.Microphone,
             title = stringResource(R.string.settings_media_tts_voice_selector),
             subtitle = displayName,
             onClick = { expanded = true },
@@ -370,7 +365,7 @@ private fun CloudTtsConfigSection(
 
         Box {
             SettingsItemRow(
-                icon = Icons.Outlined.CloudQueue,
+                icon = TablerIcons.Cloud,
                 title = stringResource(R.string.settings_media_tts_engine),
                 subtitle = currentLabel,
                 onClick = { engineExpanded = true },
@@ -412,7 +407,7 @@ private fun CloudTtsConfigSection(
                 .fillMaxWidth()
                 .padding(MusePaddings.cardInner),
         ) {
-            OutlinedTextField(
+            IosTextField(
                 value = apiKey,
                 onValueChange = { apiKey = it },
                 label = { Text(stringResource(R.string.settings_media_tts_api_key)) },
@@ -452,7 +447,7 @@ private fun CloudTtsConfigSection(
                 .fillMaxWidth()
                 .padding(MusePaddings.cardInner),
         ) {
-            OutlinedTextField(
+            IosTextField(
                 value = voice,
                 onValueChange = { voice = it },
                 label = { Text(stringResource(R.string.settings_media_tts_voice)) },
@@ -492,7 +487,7 @@ private fun CloudTtsConfigSection(
                     },
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.Refresh,
+                        imageVector = TablerIcons.Refresh,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp),
                     )
@@ -555,7 +550,7 @@ private fun CloudTtsConfigSection(
                 .fillMaxWidth()
                 .padding(MusePaddings.cardInner),
         ) {
-            OutlinedTextField(
+            IosTextField(
                 value = model,
                 onValueChange = { model = it },
                 label = { Text(stringResource(R.string.settings_media_tts_model)) },
@@ -581,7 +576,7 @@ private fun CloudTtsConfigSection(
                 .fillMaxWidth()
                 .padding(MusePaddings.cardInner),
         ) {
-            OutlinedTextField(
+            IosTextField(
                 value = endpoint,
                 onValueChange = { endpoint = it },
                 label = { Text(stringResource(R.string.settings_media_tts_endpoint)) },
@@ -632,7 +627,7 @@ private fun AdvancedTtsParamsSection(
     ) {
         if (engine == "elevenlabs") {
             SliderRow(
-                icon = Icons.Outlined.Tune,
+                icon = TablerIcons.Adjustments,
                 title = stringResource(R.string.settings_media_tts_stability),
                 subtitle = stringResource(R.string.settings_media_tts_stability),
                 value = stability,
@@ -643,7 +638,7 @@ private fun AdvancedTtsParamsSection(
             )
             SettingsGroupDivider()
             SliderRow(
-                icon = Icons.Outlined.Tune,
+                icon = TablerIcons.Adjustments,
                 title = stringResource(R.string.settings_media_tts_similarity),
                 subtitle = stringResource(R.string.settings_media_tts_similarity),
                 value = similarity,
@@ -661,7 +656,7 @@ private fun AdvancedTtsParamsSection(
                     .fillMaxWidth()
                     .padding(MusePaddings.cardInner),
             ) {
-                OutlinedTextField(
+                IosTextField(
                     value = emotion,
                     onValueChange = { emotion = it },
                     label = { Text(stringResource(R.string.settings_media_tts_emotion)) },
@@ -675,7 +670,7 @@ private fun AdvancedTtsParamsSection(
 
         if (supportsSpeed(engine)) {
             SliderRow(
-                icon = Icons.Outlined.Tune,
+                icon = TablerIcons.Adjustments,
                 title = stringResource(R.string.settings_media_tts_cloud_speed),
                 subtitle = stringResource(R.string.settings_media_tts_cloud_speed),
                 value = speed,
@@ -690,7 +685,7 @@ private fun AdvancedTtsParamsSection(
         if (supportsResponseFormat(engine)) {
             Box {
                 SettingsItemRow(
-                    icon = Icons.Outlined.Tune,
+                    icon = TablerIcons.Adjustments,
                     title = stringResource(R.string.settings_media_tts_response_format),
                     subtitle = responseFormat,
                     onClick = { formatExpanded = true },

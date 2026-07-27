@@ -42,4 +42,26 @@ data class GroupChatMessageEntity(
     @ColumnInfo(defaultValue = "0") val timestamp: Long = System.currentTimeMillis(),
     val mood: String? = null,
     val reasoning: String? = null,
+    // ── v2.x 群聊增强功能 ──
+    /**
+     * 悄悄话目标 AI id(null = 公开消息;非 null = 仅目标 AI 可见的私信)。
+     *
+     * - 用户发的悄悄话:[senderType]="user", [whisperTargetId]=目标 assistantId
+     * - AI 收到时,系统 prompt 中标注"这是私信";其他 AI 看不到这条消息的 body
+     * - UI 中显示锁图标标注为"悄悄话"
+     */
+    @ColumnInfo(name = "whisper_target_id", defaultValue = "NULL") val whisperTargetId: String? = null,
+    /**
+     * 引用回复的目标消息 id(null = 普通消息;非 null = 引用了指定消息)。
+     * UI 中显示引用预览块,点击可跳转到原消息。
+     */
+    @ColumnInfo(name = "reply_to_id", defaultValue = "NULL") val replyToId: String? = null,
+    /**
+     * 消息类型标记:
+     * - "normal": 普通消息(默认)
+     * - "vote": 表决投票(各 AI 按人设投票,body 为投票内容)
+     * - "summary": 结论总结(由总结器生成)
+     * - "system": 系统提示(如"XXX 发起了表决")
+     */
+    @ColumnInfo(defaultValue = "normal") val messageType: String = "normal",
 )

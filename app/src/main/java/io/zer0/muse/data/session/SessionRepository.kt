@@ -738,21 +738,15 @@ class SessionRepository(
     /**
      * 更新会话预览 + updatedAt。
      *
-     * H-SESS2: 改用原子 UPDATE(含 CASE 条件标题),彻底避免读-改-写竞态。
-     * 首条 user 消息自动用内容前 [AUTO_TITLE_LENGTH] 字作标题(若标题仍是默认"新会话")。
+     * 不再用首条消息前缀自动命名标题,标题保持默认值"新会话",
+     * 改由 UI 退出对话时调用 [io.zer0.muse.ui.ChatViewModel.autoTitleOnExit] 触发 AI 摘要命名。
      */
     private suspend fun updateSessionPreview(sessionId: String, message: UIMessage) {
         val preview = message.content.take(MESSAGE_PREVIEW_LENGTH).ifBlank { "…" }
-        val isUser = if (message.role == MessageRole.USER) 1 else 0
-        val defaultTitle = context.getString(R.string.session_repo_default_title)
-        val autoTitle = message.content.take(AUTO_TITLE_LENGTH).ifBlank { defaultTitle }
-        sessionDao.updatePreviewAndTitle(
+        sessionDao.updatePreviewOnly(
             id = sessionId,
             preview = preview,
             now = System.currentTimeMillis(),
-            defaultTitle = defaultTitle,
-            isUser = isUser,
-            autoTitle = autoTitle,
         )
     }
 

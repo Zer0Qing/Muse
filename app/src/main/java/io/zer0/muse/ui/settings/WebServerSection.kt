@@ -11,18 +11,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ContentCopy
-import androidx.compose.material.icons.outlined.Http
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.Password
-import androidx.compose.material.icons.outlined.Router
-import androidx.compose.material.icons.outlined.Wifi
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import io.zer0.muse.ui.common.IosTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -108,7 +102,7 @@ internal fun WebServerSection(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.Info,
+                    imageVector = TablerIcons.InfoCircle,
                     contentDescription = stringResource(R.string.settings_web_security_hint),
                     tint = MaterialTheme.colorScheme.onSecondaryContainer,
                     modifier = Modifier.size(20.dp),
@@ -141,7 +135,7 @@ internal fun WebServerSection(
     ) {
         // 启停开关
         SettingsSwitchRow(
-            icon = Icons.Outlined.Router,
+            icon = TablerIcons.Router,
             title = stringResource(R.string.settings_web_enable),
             subtitle = stringResource(R.string.settings_web_enable_subtitle),
             checked = config.enabled,
@@ -157,7 +151,7 @@ internal fun WebServerSection(
         SettingsGroupDivider()
         // 端口
         SettingsItemRow(
-            icon = Icons.Outlined.Http,
+            icon = TablerIcons.Globe,
             title = stringResource(R.string.settings_web_port),
             subtitle = stringResource(R.string.settings_web_port_subtitle, config.port),
             onClick = {
@@ -168,14 +162,14 @@ internal fun WebServerSection(
         SettingsGroupDivider()
         // 密码(脱敏显示)
         SettingsItemRow(
-            icon = Icons.Outlined.Lock,
+            icon = TablerIcons.Lock,
             title = stringResource(R.string.settings_web_password),
             subtitle = if (config.password.isBlank()) stringResource(R.string.settings_web_password_not_set) else "${config.password.take(2)}****",
         )
         SettingsGroupDivider()
         // 重新生成密码
         SettingsItemRow(
-            icon = Icons.Outlined.Lock,
+            icon = TablerIcons.Lock,
             title = stringResource(R.string.settings_web_regenerate_password),
             subtitle = stringResource(R.string.settings_web_regenerate_password_subtitle),
             onClick = {
@@ -194,7 +188,7 @@ internal fun WebServerSection(
         SettingsGroupDivider()
         // P2-13: 当前 PIN(明文显示,带复制按钮)
         SettingsItemRow(
-            icon = Icons.Outlined.Password,
+            icon = TablerIcons.Key,
             title = stringResource(R.string.settings_web_pin),
             subtitle = if (config.pin.isBlank()) stringResource(R.string.settings_web_pin_not_set) else config.pin,
         ) {
@@ -205,9 +199,9 @@ internal fun WebServerSection(
                     MuseToast.show(context.getString(R.string.settings_web_pin_copied, config.pin))
                 }) {
                     Icon(
-                        imageVector = Icons.Outlined.ContentCopy,
+                        imageVector = TablerIcons.Copy,
                         contentDescription = stringResource(R.string.settings_web_copy_pin),
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(20.dp),
                     )
                 }
@@ -216,7 +210,7 @@ internal fun WebServerSection(
         SettingsGroupDivider()
         // P2-13: 重新生成 PIN
         SettingsItemRow(
-            icon = Icons.Outlined.Password,
+            icon = TablerIcons.Key,
             title = stringResource(R.string.settings_web_regenerate_pin),
             subtitle = stringResource(R.string.settings_web_regenerate_pin_subtitle),
             onClick = {
@@ -235,7 +229,7 @@ internal fun WebServerSection(
         SettingsGroupDivider()
         // 访问地址(动态 IP + 复制按钮)
         SettingsItemRow(
-            icon = Icons.Outlined.Wifi,
+            icon = TablerIcons.Wifi,
             title = stringResource(R.string.settings_web_access_address),
             subtitle = accessUrl ?: stringResource(R.string.settings_web_no_lan),
         ) {
@@ -246,9 +240,9 @@ internal fun WebServerSection(
                     MuseToast.show(context.getString(R.string.settings_web_address_copied, accessUrl))
                 }) {
                     Icon(
-                        imageVector = Icons.Outlined.ContentCopy,
+                        imageVector = TablerIcons.Copy,
                         contentDescription = stringResource(R.string.settings_web_copy_address),
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(20.dp),
                     )
                 }
@@ -263,7 +257,7 @@ internal fun WebServerSection(
             title = stringResource(R.string.settings_web_edit_port),
             content = {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
+                    IosTextField(
                         value = portInput,
                         onValueChange = { portInput = it.filter(Char::isDigit).take(5) },
                         label = { Text(stringResource(R.string.settings_web_port_number)) },
