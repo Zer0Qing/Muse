@@ -3019,13 +3019,15 @@ class ChatViewModel(
      */
     fun regenerateLastAssistant() {
         if (_state.value.isStreaming) return
-        val sessionId = _state.value.currentSessionId ?: return
+        // v1.0.21: Agent 模式用 agentSessionId,与 send() 保持一致,避免重试操作错误会话
+        val sessionId = if (_state.value.isAgentMode) {
+            _state.value.agentSessionId ?: return
+        } else {
+            _state.value.currentSessionId ?: return
+        }
         val messages = _state.value.messages
         val last = messages.lastOrNull() ?: return
         if (last.role != MessageRole.ASSISTANT) return
-
-        // 标记分支管理器准备新分支(保留旧回复)
-        branchManager.prepareRegeneration()
 
         val history = messages.dropLast(1)
         val assistantMsg = UIMessage(role = MessageRole.ASSISTANT, content = "")
@@ -3038,10 +3040,18 @@ class ChatViewModel(
                 errors = emptyList(),
             )
         }
-
-        // 不删除旧消息,保留为分支;直接启动流式生成
+        // v1.0.21: 同步分支管理器,避免 node ID 与当前消息不匹配导致分页选择器时有时无
+        branchManager.syncFromMessages(_state.value.messages)
+        _state.update { it.copy(messageNodes = branchManager.nodes.value) }
+        // v1.0.21: 删除旧回复的 DB 记录,避免切屏后从 DB 加载出多余消息(分支不持久化到 DB)
+        // 同步清除内存缓存,避免切回时命中含旧回复的过期快照
+        sessionMemoryCache.remove(sessionId)
         viewModelScope.launch {
-            launchStream(assistantMsg.id, sessionId, isNewBranch = true)
+            runCatching { sessionRepository.deleteMessage(last.id.toString()) }
+            // v1.0.21: isNewBranch=false — 用 replaceCurrent 替换空占位,不再创建分支
+            //   原 isNewBranch=true 会在旧 node 上 addBranch,但 node ID 不匹配新消息,
+            //   导致分支选择器时有时无;且旧回复已从 DB 删除,分支无法持久化
+            launchStream(assistantMsg.id, sessionId, isNewBranch = false)
         }
     }
 
@@ -3404,6 +3414,9 @@ class ChatViewModel(
             } finally {
                 // v1.43: 生成结束(正常/异常/取消)都停止前台服务
                 runCatching { ChatGenerationService.stop(appContext) }
+                // v1.0.21: 生成结束后清除内存缓存,避免切回时命中过期快照(缺少最终回复)
+                //   后台生成期间 DB 已写入最新消息,切回时应从 DB 加载而非用旧缓存
+                sessionMemoryCache.remove(sessionId)
             }
         }
         // v1.x: 把生成任务交给 ConversationSessionManager 跟踪(参考 rikkahub ConversationSession),

@@ -22,6 +22,8 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 /**
  * 群聊 UI 状态。
@@ -128,6 +130,7 @@ class GroupChatViewModel(
     }
 
     private val _state = MutableStateFlow(GroupChatUiState())
+    private val json = Json { ignoreUnknownKeys = true }
     val state: StateFlow<GroupChatUiState> = _state.asStateFlow()
 
     /** v1.126: 上次发送时间戳,用于 debounce */
@@ -157,8 +160,9 @@ class GroupChatViewModel(
             }
         }
         // v1.53-GC: 观察当前群聊最近一页消息(Flow),增量追加新消息到 currentMessages。
-        // 首屏全量加载由 [selectChat] -> [loadInitialPage] 负责,此处只负责追加新到达的消息
-        // (Agent 轮转发言 / 用户发消息后 DB 写入触发 Flow 重发)。
+        // v1.0.21: 重写 collect 块 — 移除 isEmpty() 守卫(会导致首条消息丢失),
+        //   用 it.currentMessages 替代陈旧快照 current(避免覆盖并发修改),
+        //   currentMessages 为空时直接用 recentWindow 作为首屏(Flow 接管初始加载)。
         viewModelScope.launch {
             currentChatId.flatMapLatest { chatId ->
                 if (chatId != null) {
@@ -167,21 +171,51 @@ class GroupChatViewModel(
                     flowOf(emptyList())
                 }
             }.collect { recentWindow ->
-                // 首屏尚未加载(currentMessages 为空)时由 loadInitialPage 负责,跳过避免覆盖
-                val current = _state.value.currentMessages
-                if (current.isEmpty()) return@collect
-                // recentWindow 为空(消息被全删)时无新消息可追加,跳过
                 if (recentWindow.isEmpty()) return@collect
                 // 同 chatId 守卫:防切换群聊时旧消息与新 Flow 串扰
-                val lastLoaded = current.last()
-                if (lastLoaded.chatId != recentWindow.first().chatId) return@collect
-                // 增量合并:仅追加比 currentMessages 最新一条 (timestamp, id) 更新的消息
-                val newMessages = recentWindow.filter { msg ->
-                    msg.timestamp > lastLoaded.timestamp ||
-                        (msg.timestamp == lastLoaded.timestamp && msg.id > lastLoaded.id)
-                }
-                if (newMessages.isNotEmpty()) {
-                    _state.update { it.copy(currentMessages = current + newMessages) }
+                val windowChatId = recentWindow.first().chatId
+                if (windowChatId != currentChatId.value) return@collect
+                _state.update { state ->
+                    val current = state.currentMessages
+                    if (current.isEmpty()) {
+                        // 首屏:直接用 recentWindow(Flow 接管初始加载,与 loadInitialPage 互补)
+                        state.copy(currentMessages = recentWindow)
+                    } else {
+                        // v1.0.22: 乐观消息去重 — recentWindow 已包含对应真实消息时,
+                        //   移除乐观消息(id 以 "optimistic-" 前缀标识)避免重复显示。
+                        //   匹配条件:senderType + body 一致 且 timestamp 接近(±2s,
+                        //   覆盖 scheduler 异步写入 DB 的延迟)。
+                        val hasOptimistic = current.any { it.id.startsWith("optimistic-") }
+                        val dedupedCurrent = if (hasOptimistic) {
+                            val realMessages = recentWindow.filterNot { it.id.startsWith("optimistic-") }
+                            val filtered = current.filter { optMsg ->
+                                if (!optMsg.id.startsWith("optimistic-")) return@filter true
+                                val matched = realMessages.any { real ->
+                                    real.senderType == optMsg.senderType &&
+                                        real.body == optMsg.body &&
+                                        kotlin.math.abs(real.timestamp - optMsg.timestamp) < 2000L
+                                }
+                                !matched
+                            }
+                            // 去重后为空(全部乐观消息都已匹配到真实消息)则直接用 recentWindow
+                            if (filtered.isEmpty() && recentWindow.isNotEmpty()) recentWindow else filtered
+                        } else {
+                            current
+                        }
+                        // 同 chatId 二次守卫
+                        val lastLoaded = dedupedCurrent.last()
+                        if (lastLoaded.chatId != windowChatId) return@update state
+                        // 增量合并:仅追加比 dedupedCurrent 最新一条 (timestamp, id) 更新的消息
+                        val newMessages = recentWindow.filter { msg ->
+                            msg.timestamp > lastLoaded.timestamp ||
+                                (msg.timestamp == lastLoaded.timestamp && msg.id > lastLoaded.id)
+                        }
+                        if (newMessages.isNotEmpty() || dedupedCurrent.size != current.size) {
+                            state.copy(currentMessages = dedupedCurrent + newMessages)
+                        } else {
+                            state
+                        }
+                    }
                 }
             }
         }
@@ -451,6 +485,24 @@ class GroupChatViewModel(
         val images = _state.value.pendingImages
         // 立即清空输入框(常见交互:点发送后输入框立即清空)
         _state.update { it.copy(inputText = "", pendingImages = emptyList()) }
+        // v1.0.21: 乐观 UI 更新 — 立即把用户消息追加到 currentMessages,
+        //   不依赖 Room Flow 回流(原实现因 collect 守卫/竞态导致消息发送后不显示)
+        // v1.0.22: 乐观消息 id 加 "optimistic-" 前缀,collect 合并时据此识别并去重,
+        //   避免 scheduler 写入 DB 的真实消息回流后被追加导致重复显示
+        val imageJson = if (images.isNotEmpty()) {
+            json.encodeToString(images)
+        } else "[]"
+        val optimisticMsg = GroupChatMessageEntity(
+            id = "optimistic-" + java.util.UUID.randomUUID().toString(),
+            chatId = chatId,
+            senderType = "user",
+            senderId = "local_user",
+            senderName = "我",
+            body = text,
+            imageBase64Json = imageJson,
+            timestamp = now,
+        )
+        _state.update { it.copy(currentMessages = it.currentMessages + optimisticMsg) }
         // v1.111: 委托给 scheduler,轮转运行在 appScope
         scheduler.launchRoundRobin(chatId, text, images)
     }

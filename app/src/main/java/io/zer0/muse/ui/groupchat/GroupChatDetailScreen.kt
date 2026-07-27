@@ -1284,7 +1284,7 @@ private fun MoodCapsule(
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant,
-        shape = MuseShapes.pill,
+        shape = MuseShapes.medium,
         modifier = Modifier
             .padding(bottom = 6.dp)
             .clickable { onToggle() },

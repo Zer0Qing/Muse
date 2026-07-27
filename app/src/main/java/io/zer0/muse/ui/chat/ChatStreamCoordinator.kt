@@ -111,21 +111,12 @@ class ChatStreamCoordinator(
     ) {
         val messages = accessor.snapshot.messages
         val index = messages.indexOfFirst { it.id == id }
-        // v1.125: index==-1 时不再静默跳过,改为 fallback 追加新消息,
-        // 防止切后台再切回时 assistant 消息不在列表中导致流式数据丢失。
-        if (index == -1) {
-            val fallbackMsg = UIMessage(
-                id = id,
-                role = io.zer0.ai.core.MessageRole.ASSISTANT,
-                content = content,
-                reasoning = reasoning,
-                imageBase64List = imageBase64List ?: emptyList(),
-                imageUrls = imageUrls ?: emptyList(),
-                videoFileUri = videoFileUri,
-            )
-            accessor.update { it.copy(messages = messages + fallbackMsg) }
-            return
-        }
+        // v1.0.21: index==-1 时静默跳过,不 fallback 追加。
+        // v1.125 的 fallback append 会导致切会话后后台生成把旧会话的流式内容
+        // 追加到新会话的消息列表中,造成跨会话消息污染(用户消息变助手消息的根因)。
+        // 后台生成的持久化走 persistCurrentAssistant(msg=...) 直接落盘,不依赖 _state.messages。
+        // 切回原会话时从 DB 加载最新内容(含中间落盘),不会丢失数据。
+        if (index == -1) return
         val msg = messages[index]
 
         // v1.42: 快速路径 — 流式过程中绝大多数 chunk 不含特殊标签,直接按索引更新,避免遍历全列表与正则。

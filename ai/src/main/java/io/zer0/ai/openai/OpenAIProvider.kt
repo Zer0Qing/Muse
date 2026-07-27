@@ -173,6 +173,9 @@ class OpenAIProvider(
         // v1.0.20: stream-guard — 累积 tool_call 的 name / arguments / 已发送标志,
         //   用于拦截空 name 的无效 tool call 并在 Done 时恢复为 ContentDelta(参考 openhanako)
         val toolCallAccMap = mutableMapOf<Int, ToolCallAccState>()
+        // v1.0.21: 防止 emitDoneWithStreamGuard 被双重执行(finishReason + [DONE] 各触发一次),
+        //   导致空 name tool call 恢复的文本被发送两遍,产生重复内容。
+        val streamGuardDone = AtomicBoolean(false)
 
         /**
          * v1.0.20: stream-guard — 在 Done 事件前检查累积的 toolCallAccMap,
@@ -184,6 +187,13 @@ class OpenAIProvider(
          *  - 拦截发生在 Done 事件而非每个 delta,因为流式中 name 可能稍后才到
          */
         fun emitDoneWithStreamGuard(finishReason: String?) {
+            // v1.0.21: 防止双重执行 — finishReason 和 [DONE] 各触发一次时,
+            //   第二次直接发 Done 并 close,跳过已恢复的文本,避免重复内容。
+            if (!streamGuardDone.compareAndSet(false, true)) {
+                trySend(ChatStreamEvent.Done(finishReason))
+                close()
+                return
+            }
             toolCallAccMap.forEach { (localIndex, acc) ->
                 if (acc.name.isNullOrBlank() && acc.args.isNotEmpty()) {
                     val recoveredText = acc.args.toString()
@@ -195,6 +205,8 @@ class OpenAIProvider(
                     trySend(ChatStreamEvent.ContentDelta(recoveredText))
                 }
             }
+            // 清空 map,防止后续误触发再次恢复
+            toolCallAccMap.clear()
             trySend(ChatStreamEvent.Done(finishReason))
             close()
         }
@@ -1272,6 +1284,8 @@ class OpenAIProvider(
         // v1.0.20: stream-guard — 累积 tool_call 的 name / arguments / 已发送标志,
         //   用于拦截空 name 的无效 tool call 并在 Done 时恢复为 ContentDelta(参考 openhanako)
         val toolCallAccMap = mutableMapOf<Int, ToolCallAccState>()
+        // v1.0.21: 防止 emitDoneWithStreamGuard 被双重执行
+        val streamGuardDone = AtomicBoolean(false)
 
         /**
          * v1.0.20: stream-guard — 在 Done 事件前检查累积的 toolCallAccMap,
@@ -1279,6 +1293,11 @@ class OpenAIProvider(
          *   与 ChatCompletions 路径的 emitDoneWithStreamGuard 对称。
          */
         fun emitDoneWithStreamGuard(finishReason: String?) {
+            if (!streamGuardDone.compareAndSet(false, true)) {
+                trySend(ChatStreamEvent.Done(finishReason))
+                close()
+                return
+            }
             toolCallAccMap.forEach { (localIndex, acc) ->
                 if (acc.name.isNullOrBlank() && acc.args.isNotEmpty()) {
                     val recoveredText = acc.args.toString()
@@ -1290,6 +1309,7 @@ class OpenAIProvider(
                     trySend(ChatStreamEvent.ContentDelta(recoveredText))
                 }
             }
+            toolCallAccMap.clear()
             trySend(ChatStreamEvent.Done(finishReason))
             close()
         }
