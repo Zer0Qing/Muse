@@ -17,8 +17,8 @@ android {
         applicationId = "io.zer0.muse"
         minSdk = 26
         targetSdk = 35
-        versionCode = 122
-        versionName = "1.0.22"
+        versionCode = 125
+        versionName = "1.0.25"
     }
 
     signingConfigs {
@@ -154,6 +154,8 @@ dependencies {
     // 缺少 MaterialExpressiveTheme / MotionScheme.expressive,运行时 NoClassDefFoundError 崩溃)
     implementation("androidx.compose.material3:material3:1.4.0-alpha04")
     implementation(libs.androidx.compose.material.icons.extended)
+    // Tabler Icons Compose(线条图标库,补充 Material Icons)
+    implementation(libs.composeIcons.tablerIcons)
     implementation(libs.androidx.navigation.compose)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
