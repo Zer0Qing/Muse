@@ -34,7 +34,6 @@
 
 <p align="center">
   <a href="#what-is-muse">What is Muse</a> -
-  <a href="#screenshots">Screenshots</a> -
   <a href="#features">Features</a> -
   <a href="软件功能.md">Feature Guide</a> -
   <a href="#quick-start">Quick Start</a> -
@@ -56,24 +55,7 @@ Everything works offline by default. No account required. No data leaves your de
 
 ---
 
-## Screenshots
 
-<p align="center">
-  <img src="screenshots/APP首页.jpg" width="130" alt="Home">
-  <img src="screenshots/对话页面.jpg" width="130" alt="Chat">
-  <img src="screenshots/记忆系统.jpg" width="130" alt="Memory">
-  <img src="screenshots/群聊界面.jpg" width="130" alt="Group Chat">
-  <img src="screenshots/联网搜索.jpg" width="130" alt="Web Search">
-  <img src="screenshots/工具菜单.jpg" width="130" alt="Tools">
-</p>
-<p align="center">
-  <img src="screenshots/设置菜单.jpg" width="130" alt="Settings">
-  <img src="screenshots/助手界面.jpg" width="130" alt="Assistants">
-  <img src="screenshots/通知监听.jpg" width="130" alt="Notifications">
-  <img src="screenshots/视觉辅助.jpg" width="130" alt="Vision">
-  <img src="screenshots/MOOD块单独截图.jpg" width="130" alt="Mood">
-  <img src="screenshots/外观菜单.jpg" width="130" alt="Appearance">
-</p>
 
 ---
 
@@ -141,6 +123,23 @@ Before each reply, Muse generates a `mood` block -- its "inner monologue." These
 - **Will**: The intent and desire crystallized after feeling (Vibe), diverging (Sparks), and reflecting (Reflections). Where the AI wants to go, what it wants to do.
 
 These four dimensions progress from intuition to action: feel first (Vibe), then diverge (Sparks), then reflect (Reflections), finally crystallize into intent (Will). Every reply becomes more than text generation -- it is a complete thought process made visible.
+
+<p align="center">
+  <img src="screenshots/APP首页.jpg" width="130" alt="Home">
+  <img src="screenshots/对话页面.jpg" width="130" alt="Chat">
+  <img src="screenshots/记忆系统.jpg" width="130" alt="Memory">
+  <img src="screenshots/群聊界面.jpg" width="130" alt="Group Chat">
+  <img src="screenshots/联网搜索.jpg" width="130" alt="Web Search">
+  <img src="screenshots/工具菜单.jpg" width="130" alt="Tools">
+</p>
+<p align="center">
+  <img src="screenshots/设置菜单.jpg" width="130" alt="Settings">
+  <img src="screenshots/助手界面.jpg" width="130" alt="Assistants">
+  <img src="screenshots/通知监听.jpg" width="130" alt="Notifications">
+  <img src="screenshots/视觉辅助.jpg" width="130" alt="Vision">
+  <img src="screenshots/MOOD块单独截图.jpg" width="130" alt="Mood">
+  <img src="screenshots/外观菜单.jpg" width="130" alt="Appearance">
+</p>
 
 ### Three-Layer Persona Architecture
 
