@@ -56,7 +56,24 @@ Muse 还有一个独特的能力：它在每次回复前会写下"内心独白"(
 
 ---
 
+## 截图预览
 
+<p align="center">
+  <img src="screenshots/APP首页.jpg" width="130" alt="首页">
+  <img src="screenshots/对话页面.jpg" width="130" alt="对话">
+  <img src="screenshots/记忆系统.jpg" width="130" alt="记忆">
+  <img src="screenshots/群聊界面.jpg" width="130" alt="群聊">
+  <img src="screenshots/联网搜索.jpg" width="130" alt="搜索">
+  <img src="screenshots/工具菜单.jpg" width="130" alt="工具">
+</p>
+<p align="center">
+  <img src="screenshots/设置菜单.jpg" width="130" alt="设置">
+  <img src="screenshots/助手界面.jpg" width="130" alt="助手">
+  <img src="screenshots/通知监听.jpg" width="130" alt="通知监听">
+  <img src="screenshots/视觉辅助.jpg" width="130" alt="视觉">
+  <img src="screenshots/搜索页面.jpg" width="130" alt="全局搜索">
+  <img src="screenshots/外观菜单.jpg" width="130" alt="外观">
+</p>
 
 ---
 
@@ -126,20 +143,7 @@ Muse 每次回复前会生成一个 `mood` 块，这是 AI 的"内心独白"—�
 这四个维度从直觉到行动层层递进：先感受（Vibe），然后发散（Sparks），再反思（Reflections），最后凝聚为意志（Will）。它们让每一次回复都不只是生成文本，而是经历了一次完整的思维过程。
 
 <p align="center">
-  <img src="screenshots/APP首页.jpg" width="130" alt="首页">
-  <img src="screenshots/对话页面.jpg" width="130" alt="对话">
-  <img src="screenshots/记忆系统.jpg" width="130" alt="记忆">
-  <img src="screenshots/群聊界面.jpg" width="130" alt="群聊">
-  <img src="screenshots/联网搜索.jpg" width="130" alt="搜索">
-  <img src="screenshots/工具菜单.jpg" width="130" alt="工具">
-</p>
-<p align="center">
-  <img src="screenshots/设置菜单.jpg" width="130" alt="设置">
-  <img src="screenshots/助手界面.jpg" width="130" alt="助手">
-  <img src="screenshots/通知监听.jpg" width="130" alt="通知监听">
-  <img src="screenshots/视觉辅助.jpg" width="130" alt="视觉">
   <img src="screenshots/MOOD块单独截图.jpg" width="130" alt="MOOD">
-  <img src="screenshots/外观菜单.jpg" width="130" alt="外观">
 </p>
 
 ### 三层人设架构
