@@ -9,11 +9,11 @@
 
 <p align="center">
   <b>Your AI Companion That Remembers</b><br>
-  <i>4-tier memory · Multi-model · Offline-first · Extensible</i>
+  <i>4-tier memory - Multi-model - Offline-first - Extensible</i>
 </p>
 
 <p align="center">
-  <a href="README.md">中文</a> · <b>English</b>
+  <a href="README.md">中文</a> - <b>English</b>
 </p>
 
 <p align="center">
@@ -27,11 +27,12 @@
 </p>
 
 <p align="center">
-  <a href="#what-is-muse">What is Muse</a> ·
-  <a href="#screenshots">Screenshots</a> ·
-  <a href="#features">Features</a> ·
-  <a href="#quick-start">Quick Start</a> ·
-  <a href="#docs--contributing">Docs & Contributing</a> ·
+  <a href="#what-is-muse">What is Muse</a> -
+  <a href="#screenshots">Screenshots</a> -
+  <a href="#features">Features</a> -
+  <a href="软件功能.md">Feature Guide</a> -
+  <a href="#quick-start">Quick Start</a> -
+  <a href="#docs--contributing">Docs and Contributing</a> -
   <a href="#license">License</a>
 </p>
 
@@ -41,7 +42,7 @@
 
 Most AI apps treat every conversation like meeting a stranger -- no memory, no continuity, no personality. Muse is different.
 
-Muse is a local-first AI companion app built for Android. It builds a persistent relationship with you through a 4-tier progressive memory system that remembers your preferences, your history, and what matters to you. It lets you choose the underlying model freely (OpenAI, Anthropic, Gemini, DeepSeek, or any OpenAI-compatible endpoint). It speaks, searches the web, executes tools, and even proactively starts a conversation when it hasn't heard from you in a while.
+Muse is a local-first AI companion app built for Android. It builds a persistent relationship with you through a 4-tier progressive memory system that remembers your preferences, your history, and what matters to you. It lets you choose the underlying model freely (OpenAI, Anthropic, Gemini, DeepSeek, or any OpenAI-compatible endpoint). It speaks, searches the web, executes tools, and even proactively starts a conversation when it has not heard from you in a while.
 
 Muse has a unique capability: before each reply, it writes an "inner monologue" (Mood) with four dimensions -- Vibe, Sparks, Reflections, and Will. These thoughts are not shown in the main reply (collapsed by default), but you can expand them to glimpse the AI's genuine thinking process: its current feeling, passing associations, self-doubts, and what it wants to do next.
 
@@ -53,7 +54,7 @@ Everything works offline by default. No account required. No data leaves your de
 
 <p align="center">
   <img src="screenshots/软件首页.jpg" width="130" alt="Home">
-  <img src="screenshots/对话截图.jpg" width="130" alt="Chat">
+  <img src="screenshots/对话页面.jpg" width="130" alt="Chat">
   <img src="screenshots/记忆面板.jpg" width="130" alt="Memory">
   <img src="screenshots/知识库管理页.jpg" width="130" alt="Knowledge">
   <img src="screenshots/主题选择页.jpg" width="130" alt="Themes">
@@ -62,6 +63,7 @@ Everything works offline by default. No account required. No data leaves your de
 <p align="center">
   <img src="screenshots/设置页面.jpg" width="130" alt="Settings">
   <img src="screenshots/助手界面.jpg" width="130" alt="Assistant">
+  <img src="screenshots/通知监听.jpg" width="130" alt="Notifications">
   <img src="screenshots/主动消息.jpg" width="130" alt="Proactive">
   <img src="screenshots/视觉辅助.jpg" width="130" alt="Vision">
   <img src="screenshots/助手资源.jpg" width="130" alt="Resources">
@@ -76,8 +78,8 @@ Everything works offline by default. No account required. No data leaves your de
 Muse has a 4-tier memory architecture, progressing from short-term conversation to long-term deep processing. Each tier has a clear responsibility:
 
 ```
-Conversation --> Fact Extraction --> Rolling Summary --> Compile & Aggregate --> Deep Processing
-  Short-term      Key info            Compression         Dedup & merge         Deep understanding
+Conversation --> Fact Extraction --> Rolling Summary --> Compile and Aggregate --> Deep Processing
+  Short-term      Key info            Compression         Dedup and merge         Deep understanding
 ```
 
 - **Tier 1 Conversation**: the raw message stream, retains full context for the current session
@@ -98,7 +100,7 @@ Conversation --> Fact Extraction --> Rolling Summary --> Compile & Aggregate -->
 |----------|-----------|
 | International | OpenAI, Anthropic, Gemini, xAI Grok, Groq, Together, Mistral, OpenRouter, DeepInfra, Fireworks, Perplexity, GitHub Copilot |
 | Chinese providers | DeepSeek, Qwen, GLM (Zhipu), Moonshot, Doubao, Baichuan, Lingyi, StepFun, MiniMax, Xiaomi MiMo |
-| Local & others | Ollama (local), OpenCode, API2D, AIHubMix, DeepBricks, Agnes AI + custom templates |
+| Local and others | Ollama (local), OpenCode, API2D, AIHubMix, DeepBricks, Agnes AI, custom templates |
 
 Model IDs are fetched dynamically from each provider's `/models` endpoint -- no hardcoded lists, no app updates needed when new models launch.
 
@@ -115,13 +117,13 @@ When you send an image to a model that does not support multimodal input, Muse d
 Engineering details:
 
 - Concurrent multi-image analysis with real-time progress (e.g. "analyzing 2/4")
-- 60-second per-image timeout + automatic 3-retry on network errors
+- 60-second per-image timeout plus automatic 3-retry on network errors
 - Image pre-compression (2000x2000, JPEG 80%) -- oversized images are no longer dropped
 - Automatic fallback to streaming when a provider does not support non-streaming requests
-- Descriptions are cached by "image + request + prompt version" -- resending the same image returns instantly
+- Descriptions are cached by "image plus request plus prompt version" -- resending the same image returns instantly
 - On analysis failure, a fallback hint is injected and the image is cleared -- the original image is never sent to a text-only model
 
-This means even if your primary model is a text-only reasoning model, it can still "understand" the screenshots, tables, and photos you send.
+This means even if your primary model is a text-only reasoning model, it can still understand the screenshots, tables, and photos you send.
 
 ### Mood System -- The Four Dimensions of Thought
 
@@ -153,22 +155,21 @@ Create multiple assistants with different personalities and specialties, delegat
 - Team mode supports multi-assistant round-robin collaboration
 - Group chat: multiple assistants share one session, replying in sequence or free rotation
 
-### Skill System + MCP Protocol
+### Skill System and MCP Protocol
 
 - 20+ built-in tools: file I/O, web search, knowledge base, calendar, clipboard, calculator, SMS, alarms, stickers, and more
 - `.skill.json` import: create and share custom Skills with parameter schemas
 - MCP Protocol: connect external MCP Servers to dynamically extend tool capabilities (OAuth auth, SSE transport, auto-discovery)
 
-### Interaction & Media
+### Interaction and Media
 
 - **Streaming voice recognition**: DashScope Paraformer / Step Whisper API; real-time transcription, long-press to record, swipe up to cancel, live waveform
 - **Multimodal input**: ML Kit offline Chinese OCR; PDF parsing; auto-detects TXT/DOCX/EPUB; built-in DALL-E / Gemini image generation
 - **Web search**: Jina AI Reader (Markdown summaries), Bing (Jsoup structured extraction), SearXNG/Tavily/custom endpoints
-- **Proactive messaging**: sends when you have been out of touch; continuously adjustable send interval, time-window control, Agent-session only
-- **Text-to-speech**
-- **Notification listener**: listen to device notifications, AI can provide smart replies and suggestions based on notification content
-- **Proactive messaging**: AI proactively starts conversations when you have been out of touch; adjustable interval, time-window control, Agent-session only: system TTS / cloud TTS (OpenAI/MiniMax/Edge); per-assistant rate/pitch/language; routing to speaker/earpiece/Bluetooth
+- **Proactive messaging**: AI proactively starts conversations when you have been out of touch; adjustable interval, time-window control, Agent-session only
+- **Text-to-speech**: system TTS / cloud TTS (OpenAI/MiniMax/Edge); per-assistant rate/pitch/language; routing to speaker/earpiece/Bluetooth
 - **Translation**: built-in translator with multi-language support and history retention
+- **Notification listener**: listen to device notifications, AI can provide smart replies and suggestions based on notification content
 - **Slash commands**: type `/` in the input bar for quick actions -- `/new` new chat, `/compact` compress context, `/reset` reset, `/pin` pin, `/archive` archive
 
 ### Theme System
@@ -197,12 +198,12 @@ Plus 8 colorblind-friendly palettes for custom themes. Every theme fully defines
 - Home screen widgets: Glance Compose -- one-tap new conversation
 - Embedded web server: Ktor + JWT + mDNS -- local network API access
 - Config import: one-tap migration from CherryStudio / Chatbox
-- Backup & restore: local file + S3 / WebDAV cloud sync
+- Backup and restore: local file + S3 / WebDAV cloud sync
 - Full-text search: Room FTS5 -- instant conversation history retrieval
 - Sticker library: import zip archives, auto-categorize, probability-based auto-send
 - Markdown rich text rendering: code highlighting (20+ languages), KaTeX math formulas, Mermaid diagrams
 
-### Security & Privacy
+### Security and Privacy
 
 - App PIN lock (exponential backoff: 5 failures -> 30s lockout); Deep Links blocked during lockout
 - Sensitive config encrypted via Android Keystore (AES-256-GCM)
@@ -224,7 +225,7 @@ Plus 8 colorblind-friendly palettes for custom themes. Every theme fully defines
 - Android 8.0 (API 26) or later device
 - An API key for any AI provider (OpenAI / Gemini / DeepSeek, etc.)
 
-### Build & Install (for developers)
+### Build and Install (for developers)
 
 ```bash
 git clone https://github.com/5352124/Muse.git
@@ -247,7 +248,7 @@ APK output: `app/build/outputs/apk/release/app-{abi}-release.apk`
 Onboarding walks you through initial setup in six steps:
 
 1. **Welcome** -- discover Muse's core capabilities
-2. **Language & Appearance** -- choose interface language and theme
+2. **Language and Appearance** -- choose interface language and theme
 3. **Your Name** -- set your name and your assistant's name
 4. **Configure Provider** -- pick a built-in provider and enter your API key (supports connection test)
 5. **Select Model** -- choose a default model from the fetched model list
@@ -255,7 +256,7 @@ Onboarding walks you through initial setup in six steps:
 
 ---
 
-## Docs & Contributing
+## Docs and Contributing
 
 ### User Documentation
 
@@ -267,10 +268,10 @@ The app ships with a full in-app tutorial (Settings -> Tutorial). A standalone f
 
 The [docs/](docs) directory contains full developer docs:
 
-- [Project Structure](docs/03-project-structure.md) · [Core Flows](docs/04-core-flows.md) · [UI & Navigation](docs/05-ui-navigation.md)
-- [Data Layer](docs/06-data-layer.md) · [Koin Modules](docs/07-koin-modules.md) · [Design Conventions](docs/08-design-conventions.md)
-- [Tool System](docs/10-tools-overview.md) · [Image Generation](docs/11-image-generation.md) · [Version History](docs/12-version-history.md)
-- [Architecture Overview](docs/14-architecture.md) · [Development Standards](docs/15-development-standards.md) · [Changelog](docs/CHANGELOG.md)
+- [Project Structure](docs/03-project-structure.md) - [Core Flows](docs/04-core-flows.md) - [UI and Navigation](docs/05-ui-navigation.md)
+- [Data Layer](docs/06-data-layer.md) - [Koin Modules](docs/07-koin-modules.md) - [Design Conventions](docs/08-design-conventions.md)
+- [Tool System](docs/10-tools-overview.md) - [Image Generation](docs/11-image-generation.md) - [Version History](docs/12-version-history.md)
+- [Architecture Overview](docs/14-architecture.md) - [Development Standards](docs/15-development-standards.md) - [Changelog](docs/CHANGELOG.md)
 
 ### Contributing
 
