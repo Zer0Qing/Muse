@@ -17,6 +17,9 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/Zer0Qing/Muse/stargazers"><img src="https://img.shields.io/github/stars/Zer0Qing/Muse?style=social" alt="Stars"></a>
+</p>
+<p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPLv3-blue.svg" alt="License: GPL v3"></a>
   <img src="https://img.shields.io/badge/Android-8.0%2B%20(minSdk%2026)-brightgreen" alt="Min SDK">
   <img src="https://img.shields.io/badge/Kotlin-2.4-purple" alt="Kotlin">
@@ -24,6 +27,9 @@
   <a href="https://github.com/5352124/Muse/actions/workflows/ci.yml"><img src="https://github.com/5352124/Muse/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/5352124/Muse/releases/latest"><img src="https://img.shields.io/github/v/release/5352124/Muse?include_prereleases" alt="Latest release"></a>
   <a href="https://qm.qq.com/q/905451314"><img src="https://img.shields.io/badge/QQ群-905451314-blue" alt="QQ群"></a>
+</p>
+<p align="center">
+  <a href="https://github.com/Zer0Qing/Muse/releases/latest"><img src="https://img.shields.io/badge/Download-APK-brightgreen?style=for-the-badge&logo=android" alt="Download"></a>
 </p>
 
 <p align="center">
@@ -65,7 +71,7 @@ Everything works offline by default. No account required. No data leaves your de
   <img src="screenshots/助手界面.jpg" width="130" alt="Assistants">
   <img src="screenshots/通知监听.jpg" width="130" alt="Notifications">
   <img src="screenshots/视觉辅助.jpg" width="130" alt="Vision">
-  <img src="screenshots/搜索页面.jpg" width="130" alt="Search">
+  <img src="screenshots/MOOD块单独截图.jpg" width="130" alt="Mood">
   <img src="screenshots/外观菜单.jpg" width="130" alt="Appearance">
 </p>
 
@@ -223,6 +229,25 @@ Plus 8 colorblind-friendly palettes for custom themes. Every theme fully defines
 - All conversations/memories/knowledge base stored in local Room database -- no telemetry, no analytics, no data collection
 - Network features off by default, opt-in only
 - Crash logs stored locally only -- exportable via email in safe mode
+
+---
+
+## Tech Stack
+
+| Category | Technology |
+|----------|------------|
+| Language | Kotlin 2.4 |
+| UI | Jetpack Compose + Material 3 |
+| Architecture | MVVM + unidirectional data flow |
+| DI | Koin |
+| Database | Room (SQLite) + DataStore |
+| Network | OkHttp + Ktor |
+| Serialization | kotlinx.serialization |
+| Images | Coil (SVG/GIF) |
+| AI Inference | ONNX Runtime (local embedding + rerank) |
+| Document parsing | PDFBox + ML Kit OCR |
+| Web server | Ktor (JWT + mDNS) |
+| Code analysis | detekt + ktlint |
 
 ---
 

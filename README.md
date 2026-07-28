@@ -17,6 +17,9 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/Zer0Qing/Muse/stargazers"><img src="https://img.shields.io/github/stars/Zer0Qing/Muse?style=social" alt="Stars"></a>
+</p>
+<p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPLv3-blue.svg" alt="License: GPL v3"></a>
   <img src="https://img.shields.io/badge/Android-8.0%2B%20(minSdk%2026)-brightgreen" alt="Min SDK">
   <img src="https://img.shields.io/badge/Kotlin-2.4-purple" alt="Kotlin">
@@ -24,6 +27,9 @@
   <a href="https://github.com/5352124/Muse/actions/workflows/ci.yml"><img src="https://github.com/5352124/Muse/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/5352124/Muse/releases/latest"><img src="https://img.shields.io/github/v/release/5352124/Muse?include_prereleases" alt="Latest release"></a>
   <a href="https://qm.qq.com/q/905451314"><img src="https://img.shields.io/badge/QQ群-905451314-blue" alt="QQ群"></a>
+</p>
+<p align="center">
+  <a href="https://github.com/Zer0Qing/Muse/releases/latest"><img src="https://img.shields.io/badge/Download-APK-brightgreen?style=for-the-badge&logo=android" alt="Download"></a>
 </p>
 
 <p align="center">
@@ -65,7 +71,7 @@ Muse 还有一个独特的能力：它在每次回复前会写下"内心独白"(
   <img src="screenshots/助手界面.jpg" width="130" alt="助手">
   <img src="screenshots/通知监听.jpg" width="130" alt="通知监听">
   <img src="screenshots/视觉辅助.jpg" width="130" alt="视觉">
-  <img src="screenshots/搜索页面.jpg" width="130" alt="全局搜索">
+  <img src="screenshots/MOOD块单独截图.jpg" width="130" alt="MOOD">
   <img src="screenshots/外观菜单.jpg" width="130" alt="外观">
 </p>
 
@@ -224,6 +230,25 @@ Muse 每次回复前会生成一个 `mood` 块，这是 AI 的"内心独白"—�
 - 所有对话/记忆/知识库存储在本地 Room 数据库，无遥测、无分析、无数据收集
 - 联网功能默认关闭，按需开启
 - 崩溃日志仅存储在本地，安全模式下可手动导出
+
+---
+
+## 技术栈
+
+| 类别 | 技术 |
+|------|------|
+| 语言 | Kotlin 2.4 |
+| UI 框架 | Jetpack Compose + Material 3 |
+| 架构 | MVVM + 单向数据流 |
+| 依赖注入 | Koin |
+| 数据库 | Room (SQLite) + DataStore |
+| 网络 | OkHttp + Ktor |
+| 序列化 | kotlinx.serialization |
+| 图片加载 | Coil (SVG/GIF) |
+| AI 推理 | ONNX Runtime (本地 embedding + rerank) |
+| 文档解析 | PDFBox + ML Kit OCR |
+| Web 服务器 | Ktor (JWT + mDNS) |
+| 代码分析 | detekt + ktlint |
 
 ---
 
