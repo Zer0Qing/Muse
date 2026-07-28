@@ -53,20 +53,20 @@ Muse 还有一个独特的能力：它在每次回复前会写下"内心独白"(
 ## 截图预览
 
 <p align="center">
-  <img src="screenshots/软件首页.jpg" width="130" alt="首页">
+  <img src="screenshots/APP首页.jpg" width="130" alt="首页">
   <img src="screenshots/对话页面.jpg" width="130" alt="对话">
-  <img src="screenshots/记忆面板.jpg" width="130" alt="记忆">
-  <img src="screenshots/知识库管理页.jpg" width="130" alt="知识库">
-  <img src="screenshots/主题选择页.jpg" width="130" alt="主题">
-  <img src="screenshots/表情包库页面.jpg" width="130" alt="表情包">
+  <img src="screenshots/记忆系统.jpg" width="130" alt="记忆">
+  <img src="screenshots/群聊界面.jpg" width="130" alt="群聊">
+  <img src="screenshots/联网搜索.jpg" width="130" alt="搜索">
+  <img src="screenshots/工具菜单.jpg" width="130" alt="工具">
 </p>
 <p align="center">
-  <img src="screenshots/设置页面.jpg" width="130" alt="设置">
+  <img src="screenshots/设置菜单.jpg" width="130" alt="设置">
   <img src="screenshots/助手界面.jpg" width="130" alt="助手">
   <img src="screenshots/通知监听.jpg" width="130" alt="通知监听">
-  <img src="screenshots/主动消息.jpg" width="130" alt="主动消息">
   <img src="screenshots/视觉辅助.jpg" width="130" alt="视觉">
-  <img src="screenshots/助手资源.jpg" width="130" alt="资源">
+  <img src="screenshots/搜索页面.jpg" width="130" alt="全局搜索">
+  <img src="screenshots/外观菜单.jpg" width="130" alt="外观">
 </p>
 
 ---
@@ -153,7 +153,17 @@ Muse 每次回复前会生成一个 `mood` 块，这是 AI 的"内心独白"—�
 - 输入栏 `@助手名` 即可委派
 - 任务卡片可视化显示每一步委派的执行状态
 - 支持团队模式，多助手轮询协作
-- 群聊功能：多助手共处一个会话，按顺序或自由轮转回复
+
+### 群聊
+
+把多个助手拉进同一个会话，让它们像群聊一样协同回复：
+
+- 支持顺序发言和自由轮转两种模式
+- 每轮群聊前 AI 会先读取群聊上下文，了解当前讨论进度
+- 可跳过本轮发言（channel_pass），让其他助手先回复
+- 每个助手在群聊中保留独立记忆（独立 fact store），不污染主对话
+- 群聊活动状态实时显示在界面上：当前谁在思考、谁已完成、谁在等待
+- 适合多角色讨论、集体 brainstorm、模拟圆桌会议
 
 ### Skill 系统 + MCP 协议
 

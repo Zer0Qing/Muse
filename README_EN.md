@@ -53,20 +53,20 @@ Everything works offline by default. No account required. No data leaves your de
 ## Screenshots
 
 <p align="center">
-  <img src="screenshots/软件首页.jpg" width="130" alt="Home">
+  <img src="screenshots/APP首页.jpg" width="130" alt="Home">
   <img src="screenshots/对话页面.jpg" width="130" alt="Chat">
-  <img src="screenshots/记忆面板.jpg" width="130" alt="Memory">
-  <img src="screenshots/知识库管理页.jpg" width="130" alt="Knowledge">
-  <img src="screenshots/主题选择页.jpg" width="130" alt="Themes">
-  <img src="screenshots/表情包库页面.jpg" width="130" alt="Stickers">
+  <img src="screenshots/记忆系统.jpg" width="130" alt="Memory">
+  <img src="screenshots/群聊界面.jpg" width="130" alt="Group Chat">
+  <img src="screenshots/联网搜索.jpg" width="130" alt="Web Search">
+  <img src="screenshots/工具菜单.jpg" width="130" alt="Tools">
 </p>
 <p align="center">
-  <img src="screenshots/设置页面.jpg" width="130" alt="Settings">
-  <img src="screenshots/助手界面.jpg" width="130" alt="Assistant">
+  <img src="screenshots/设置菜单.jpg" width="130" alt="Settings">
+  <img src="screenshots/助手界面.jpg" width="130" alt="Assistants">
   <img src="screenshots/通知监听.jpg" width="130" alt="Notifications">
-  <img src="screenshots/主动消息.jpg" width="130" alt="Proactive">
   <img src="screenshots/视觉辅助.jpg" width="130" alt="Vision">
-  <img src="screenshots/助手资源.jpg" width="130" alt="Resources">
+  <img src="screenshots/搜索页面.jpg" width="130" alt="Search">
+  <img src="screenshots/外观菜单.jpg" width="130" alt="Appearance">
 </p>
 
 ---
@@ -153,7 +153,17 @@ Create multiple assistants with different personalities and specialties, delegat
 - Type `@assistant-name` in the input bar to delegate
 - Task cards visualize the execution status of each delegation step
 - Team mode supports multi-assistant round-robin collaboration
-- Group chat: multiple assistants share one session, replying in sequence or free rotation
+
+### Group Chat
+
+Pull multiple assistants into one session for collaborative discussions:
+
+- Supports sequential and free-rotation reply modes
+- AI reads the full group context before each round to track discussion progress
+- Assistants can pass (channel_pass) to let others speak first
+- Each assistant maintains an independent fact store in group chat, isolated from the main memory
+- Real-time activity status: who is thinking, who has finished, who is waiting
+- Ideal for multi-role discussions, collective brainstorming, and roundtable simulations
 
 ### Skill System and MCP Protocol
 
