@@ -3858,11 +3858,6 @@ class ChatViewModel(
                                 _state.update { it.copy(isWaitingFirstToken = false) }
                             }
                             params.reasoningBuilder.append(event.delta)
-                            // v1.0.30: 如果正文 builder 还空（某些模型只发 reasoning 不发 content），
-                            // 同步写 content builder 让正文区也能实时看到流式文字
-                            if (params.builder.isEmpty()) {
-                                params.builder.append(event.delta)
-                            }
                             val now = System.currentTimeMillis()
                             val charsSinceUi = params.builder.length - lastUiUpdateChars
                             val timeSinceUi = now - lastUiUpdateAt
