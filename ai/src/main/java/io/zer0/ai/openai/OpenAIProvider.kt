@@ -872,6 +872,8 @@ class OpenAIProvider(
                 request.tools?.mapNotNull { it.toOpenAISafely() }?.distinctBy { it.function.name }
                     ?.takeIf { it.isNotEmpty() }
             else null,
+            // v1.0.40: tools 为空时强制 tool_choice="none"，防止模型幻觉空名 tool call
+            tool_choice = if (compat.supportsToolCalling && request.tools?.isNotEmpty() == true) null else "none",
             // compat.supportsReasoningEffort=false 时强制不发 reasoning_effort
             //   (如 DeepSeek / Zhipu / Gemini OpenAI 兼容层,各自用 reasoning_content / thinking 字段)
             // v1.0.5: stripDisabledReasoningEffort — 值为 false/none/off 时视为未启用,

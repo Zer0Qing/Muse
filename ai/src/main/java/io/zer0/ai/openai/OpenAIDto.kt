@@ -176,6 +176,8 @@ internal data class OpenAIRequest(
     val stream: Boolean = true,
     /** Phase 7: 工具定义列表,启用 function calling。 */
     val tools: List<OpenAITool>? = null,
+    /** v1.0.40: 工具选择策略。tools=null 时强制 "none" 防止模型幻觉 tool call。 */
+    val tool_choice: String? = null,
     /**
      * Phase 8.5 修复: 推理等级(o1/gpt-5 系列的 reasoning_effort 字段)。
      * 仅当 reasoningLevel != OFF/AUTO 且 effort 非空时发送,值 "minimal"/"low"/"medium"/"high"。
