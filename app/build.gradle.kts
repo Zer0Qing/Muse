@@ -7,8 +7,6 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.ktlint)
-    // Phase 2.1: Kover — 插桩本模块字节码,数据上提到 root 聚合报告
-    alias(libs.plugins.kover)
 }
 
 android {
@@ -19,19 +17,8 @@ android {
         applicationId = "io.zer0.muse"
         minSdk = 26
         targetSdk = 35
-        // v1.0.27 P0-1.1: 版本号支持从 Gradle property 注入,CI 从 git tag 自动提取
-        // 优先级: -PversionCode/-PversionName > 环境变量 > 默认值
-        // 本地构建用默认值,CI 通过 ./gradlew assembleRelease -PversionName=1.0.26 注入
-        // 空字符串视为未注入(workflow_dispatch 无 tag 时回退默认值)
-        versionCode = (project.findProperty("versionCode") as? String)
-            ?.takeIf { it.isNotBlank() }
-            ?.toIntOrNull()
-            ?: System.getenv("VERSION_CODE")?.takeIf { it.isNotBlank() }?.toIntOrNull()
-            ?: 129
-        versionName = (project.findProperty("versionName") as? String)
-            ?.takeIf { it.isNotBlank() }
-            ?: System.getenv("VERSION_NAME")?.takeIf { it.isNotBlank() }
-            ?: "1.0.30"
+        versionCode = 127
+        versionName = "1.0.25"
     }
 
     signingConfigs {
