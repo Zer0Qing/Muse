@@ -14,19 +14,24 @@ jobs:
       - name: set up JDK 21
         uses: actions/setup-java@v4
         with:
-          # v1.0.27 P0-1.2: 对齐 gradle-daemon-jvm.properties 的 toolchainVersion=21
           java-version: '21'
           distribution: 'temurin'
           cache: gradle
 
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
 
-      - name: Run unit tests
-        run: ./gradlew testDebugUnitTest
+      - name: Build and test
+        run: ./gradlew testDebugUnitTest lintDebug assembleDebug
 
-      - name: Run Lint
-        run: ./gradlew lintDebug
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-apk
+          path: app/build/outputs/apk/debug/*.apk
 
       - name: Build debug APK
         run: ./gradlew assembleDebug
