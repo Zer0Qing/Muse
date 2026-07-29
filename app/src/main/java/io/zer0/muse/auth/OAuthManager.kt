@@ -493,7 +493,7 @@ object OAuthManager {
                         body,
                     )
                 }
-            }.getOrNull()
+            }.onFailure { Logger.w(TAG, "refresh_token 请求异常: ${it.message}", it) }.getOrNull()
         }
     }
 
@@ -566,7 +566,7 @@ object OAuthManager {
                     }
                     token
                 }
-            }.getOrNull()
+            }.onFailure { Logger.w(TAG, "token 交换请求异常: ${it.message}", it) }.getOrNull()
         }
     }
 

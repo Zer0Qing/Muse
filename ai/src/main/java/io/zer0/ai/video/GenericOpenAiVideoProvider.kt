@@ -1,6 +1,7 @@
 package io.zer0.ai.video
 
 import io.zer0.common.Logger
+import io.zer0.common.resultOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
@@ -77,7 +78,7 @@ class GenericOpenAiVideoProvider(
      */
     override suspend fun submit(request: VideoGenRequest): VideoSubmitResult =
         withContext(Dispatchers.IO) {
-            runCatching {
+            resultOf {
                 if (request.apiKey.isBlank()) {
                     error("视频生成 API Key 为空")
                 }
@@ -143,9 +144,7 @@ class GenericOpenAiVideoProvider(
                     Logger.i(TAG, "submit 异步任务: taskId=$taskId")
                     VideoSubmitResult(taskId = taskId, isAsync = true, modelName = request.model)
                 }
-            }.getOrElse { e ->
-                throw e
-            }
+            }.getOrThrow()
         }
 
     /**
@@ -155,10 +154,10 @@ class GenericOpenAiVideoProvider(
      */
     override suspend fun poll(taskId: String): VideoPollResult =
         withContext(Dispatchers.IO) {
-            runCatching {
+            val r = resultOf {
                 val ctx = taskContext[taskId]
                 if (ctx == null) {
-                    return@runCatching VideoPollResult(
+                    return@resultOf VideoPollResult(
                         status = PollStatus.FAILED,
                         errorMessage = "GenericOpenAi poll 缺少任务上下文(taskId=$taskId, 可能是同步任务被误调 poll)",
                     )
@@ -209,10 +208,12 @@ class GenericOpenAiVideoProvider(
                         PollStatus.PENDING -> VideoPollResult(status = status)
                     }
                 }
-            }.getOrElse { e ->
-                VideoPollResult(
+            }
+            when (r) {
+                is io.zer0.common.Result.Success -> r.data
+                is io.zer0.common.Result.Error -> VideoPollResult(
                     status = PollStatus.PENDING,
-                    errorMessage = "GenericOpenAi poll 异常: ${e.message ?: e.toString()}",
+                    errorMessage = "GenericOpenAi poll 异常: ${r.throwable?.message ?: r.throwable?.toString() ?: r.message}",
                 )
             }
         }

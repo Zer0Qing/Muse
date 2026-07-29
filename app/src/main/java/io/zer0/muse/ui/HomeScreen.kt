@@ -334,7 +334,10 @@ fun HomeScreen(
                     onOpenKnowledgeBase = onOpenKnowledgeBase,
                     onOpenRecentlyDeleted = onOpenRecentlyDeleted,
                     onOpenAssistants = onOpenAssistants,
-                    onCreateWithText = viewModel::sendToNewChat,
+                    onCreateWithText = { text ->
+                        viewModel.sendToNewChat(text)
+                        onOpenChat()
+                    },
                     isSessionsLoading = state.isSessionsLoading,
                     modifier = Modifier.fillMaxSize(),
                 )

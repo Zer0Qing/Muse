@@ -23,8 +23,8 @@ class ChatDocumentCoordinator(
     private val tag = "ChatVM"
 
     companion object {
-        /** 文档解析结果最大字符数(避免输入框爆炸)。 */
-        private const val DOC_MAX_CHARS = 8000
+        /** 文档解析结果最大字符数(避免输入框爆炸和超长消息)。 */
+        private const val DOC_MAX_CHARS = 4000
     }
 
     /**
@@ -42,7 +42,10 @@ class ChatDocumentCoordinator(
                     reportError("文档内容为空或不支持的格式")
                     return@launch
                 }
-                val truncated = if (text.length > DOC_MAX_CHARS) text.take(DOC_MAX_CHARS) + "\n…(已截断)" else text
+                val truncated = if (text.length > DOC_MAX_CHARS) {
+                    val remain = text.length - DOC_MAX_CHARS
+                    text.take(DOC_MAX_CHARS) + "\n\n…(文档过长，已截断 $remain 字)"
+                } else text
                 val current = accessor.snapshot.input
                 val merged = if (current.isBlank()) truncated else "$current\n\n---\n\n$truncated"
                 accessor.update { it.copy(input = merged) }

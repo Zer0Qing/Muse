@@ -91,6 +91,8 @@ class StatsViewModel(
         val messagesThisWeek: Int = 0,
         /** 本月消息数(本月 1 日 00:00 起的全部消息)。 */
         val messagesThisMonth: Int = 0,
+        /** v1.0.30: 累计接收字符数（ASSISTANT 消息，≈ token 估算）。 */
+        val totalCharsReceived: Long = 0,
         /** 最近 7 天每日消息数(用于每周趋势柱状图, oldest → today)。 */
         val weeklyTrend: List<Pair<LocalDate, Int>> = emptyList(),
         /** v0.47: 按模型使用占比(环形图),按数量降序。 */
@@ -137,6 +139,8 @@ class StatsViewModel(
         val assistantCounts: List<io.zer0.muse.data.session.AssistantCount>,
         val hourCounts: List<io.zer0.muse.data.session.HourCount>,
         val topSessions: List<io.zer0.muse.data.session.SessionMessageCount>,
+        /** v1.0.30: ASSISTANT 消息累计字符数。 */
+        val totalAssistantChars: Long,
     )
 
     private val _state = MutableStateFlow(StatsUiState())
@@ -186,7 +190,8 @@ class StatsViewModel(
                 val assistantCounts = resultOf { messageDao.countByAssistant() }.getOrNull() ?: emptyList()
                 val hourCounts = resultOf { messageDao.countByHour() }.getOrNull() ?: emptyList()
                 val topSessions = resultOf { messageDao.topSessionsByMessageCount(10) }.getOrNull() ?: emptyList()
-                val ext = RawExtendedStats(modelCounts, assistantCounts, hourCounts, topSessions)
+                val totalAssistantChars = resultOf { messageDao.sumAssistantContentLength() }.getOrNull() ?: 0L
+                val ext = RawExtendedStats(modelCounts, assistantCounts, hourCounts, topSessions, totalAssistantChars)
 
                 // 反查名称用:providers(含 model 列表)+ 助手名映射
                 val providers = resultOf { settingsRepository.providersFlow.first() }.getOrNull() ?: emptyList()
@@ -330,6 +335,7 @@ class StatsViewModel(
                 avgMessagesPerDay = avgPerDay,
                 messagesThisWeek = messagesThisWeek,
                 messagesThisMonth = messagesThisMonth,
+                totalCharsReceived = io.ext.totalAssistantChars,
                 weeklyTrend = weeklyTrend,
                 modelCounts = modelUsages,
                 assistantCounts = assistantUsages,

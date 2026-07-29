@@ -83,6 +83,7 @@ class SkillExecutor(
     private val stickerLibraryRepository: io.zer0.muse.data.sticker.StickerLibraryRepository? = null,
     /** v1.???: generate_image 用。 */
     private val imageService: io.zer0.ai.image.ImageService? = null,
+    private val imageDrawConfigProvider: suspend () -> Pair<io.zer0.ai.core.ProviderConfig?, String?> = { null to null },
     /** v1.200: 多 Agent 团队配置提供,用于 delegateAgent 处理 TEAM 目标。 */
     private val multiAgentConfigProvider: () -> io.zer0.muse.data.MultiAgentConfig = { io.zer0.muse.data.MultiAgentConfig() },
     /** v1.201: LLM 综合评审聚合器,TeamWorkflowExecutor 的 LLM_REVIEW 策略时使用;为 null 时降级为 EXPERT_REVIEW。 */
@@ -1905,18 +1906,21 @@ class SkillExecutor(
             ?: return context.getString(R.string.skill_missing_param_prompt)
         val size = args["size"]?.takeIf { it.isNotBlank() } ?: "1024x1024"
         // v1.136: Skill 可显式指定 model,未指定时由 ImageService 按 ProviderSpecificConfig / Catalog 兜底
-        val model = args["model"]?.takeIf { it.isNotBlank() } ?: ""
-        // v1.x: 参考图(图生图),支持 URL / base64 / data URI。
-        // 由用户在工具审批卡片中从相册选择后通过 argOverrides 注入(reference_image 键)。
+        val (drawProviderConfig, configModelId) = imageDrawConfigProvider()
+        val model = args["model"]?.takeIf { it.isNotBlank() } ?: configModelId ?: ""
         val referenceImage = args["reference_image"]?.takeIf { it.isNotBlank() }
         return resultOf {
-            val urls = service.generate(prompt, io.zer0.ai.image.ImageGenParams(
-                model = model,
-                size = size,
-                responseFormat = "url",
-                n = 1,
-                referenceImageUri = referenceImage,
-            ))
+            val urls = service.generate(
+                prompt = prompt,
+                params = io.zer0.ai.image.ImageGenParams(
+                    model = model,
+                    size = size,
+                    responseFormat = "url",
+                    n = 1,
+                    referenceImageUri = referenceImage,
+                ),
+                providerConfig = drawProviderConfig,
+            )
             if (urls.isEmpty()) return@resultOf context.getString(R.string.skill_image_no_result, prompt)
             context.getString(R.string.skill_image_generated, prompt, urls.joinToString("\n"))
         }.onError { msg, _ -> Logger.w("SkillExecutor", "generate_image 失败: $msg") }

@@ -226,7 +226,8 @@ class DeepMemoryProcessor(
      * 解析 fact extraction 结果。
      * LLM 输出可能带 ```json 围栏或 <think> 块,需清洗。
      */
-    private fun parseFactExtractionResult(
+    // Phase 2.3: 改为 internal 以便单元测试 JSON 容错逻辑(无需通过 LLM 调用进入此方法)
+    internal fun parseFactExtractionResult(
         raw: String,
         summary: SessionSummaryManager.SummaryData,
         locale: String,

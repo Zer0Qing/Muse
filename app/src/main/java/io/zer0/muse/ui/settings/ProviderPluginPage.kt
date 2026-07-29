@@ -42,6 +42,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.ai.plugin.ProviderPlugin
 import io.zer0.ai.plugin.ProviderPluginRegistry
+import io.zer0.common.Logger
+import io.zer0.common.resultOf
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.EmptyState
@@ -143,7 +145,10 @@ fun ProviderPluginPage(
         if (uri == null) return@rememberLauncherForActivityResult
         scope.launch {
             importing = true
-            runCatching { importFromUri(uri) }
+            resultOf { importFromUri(uri) }
+                .onError { msg, t ->
+                    Logger.w("ProviderPluginPage", "importFromUri failed: $msg", t)
+                }
             importing = false
         }
     }

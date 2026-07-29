@@ -357,6 +357,14 @@ fun ChatSettingsPage(
                 SettingsGroupDivider()
                 SettingsSwitchRow(
                     icon = TablerIcons.ArrowsMaximize,
+                    title = stringResource(R.string.settings_chat_expand_button),
+                    subtitle = stringResource(R.string.settings_chat_expand_button_subtitle),
+                    checked = prefs.showExpandButton,
+                    onCheckedChange = { v -> update { it.copy(showExpandButton = v) } },
+                )
+                SettingsGroupDivider()
+                SettingsSwitchRow(
+                    icon = TablerIcons.ArrowsMaximize,
                     title = stringResource(R.string.settings_chat_reasoning_expand),
                     subtitle = stringResource(R.string.settings_chat_reasoning_expand_subtitle),
                     checked = prefs.reasoningExpandedByDefault,

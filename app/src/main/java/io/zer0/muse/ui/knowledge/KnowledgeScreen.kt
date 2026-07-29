@@ -1,6 +1,7 @@
 package io.zer0.muse.ui.knowledge
 
 import io.zer0.common.Logger
+import io.zer0.common.resultOf
 import io.zer0.muse.ui.common.EmptyState
 import io.zer0.muse.ui.common.IosFloatingButton
 import io.zer0.muse.ui.common.MuseToast
@@ -225,11 +226,13 @@ fun KnowledgeScreen(
                 }
                 // v1.103: 不再静默吞异常。runCatching 失败时把原因拼进 toast,
                 // 让用户知道为什么没建索引(网络/模型名/Provider 不兼容等),而不是只看到"已导入但未索引"。
-                val indexResult = runCatching {
+                var indexError: Throwable? = null
+                var indexErrorMsg: String? = null
+                val indexResult = resultOf {
                     ragService.indexDocument(docId, truncatedContent, ragConfig) { current, total ->
                         importProgress = context.getString(R.string.knowledge_generating_vector, current, total)
                     }
-                }
+                }.onError { msg, t -> indexErrorMsg = msg; indexError = t }
                 val chunkCount = indexResult.getOrNull()
                 if (chunkCount != null && chunkCount > 0) {
                     // 更新文档的分块数和 embedding 模型
@@ -244,19 +247,19 @@ fun KnowledgeScreen(
                     MuseToast.show(context.getString(R.string.knowledge_imported_indexed, fileName, chunkCount))
                 } else {
                     // v1.103: 索引失败时显示具体原因,引导用户去 RAG 设置检查配置
-                    val reason = indexResult.exceptionOrNull()?.message?.take(100)
+                    val reason = indexErrorMsg?.take(100)
                     val msg = if (reason.isNullOrBlank()) {
                         context.getString(R.string.knowledge_imported_no_index, fileName)
                     } else {
                         "${context.getString(R.string.knowledge_imported_no_index, fileName)}\n原因:$reason"
                     }
                     MuseToast.show(msg)
-                    Logger.w("KnowledgeScreen", "indexDocument failed for $fileName", indexResult.exceptionOrNull())
+                    Logger.w("KnowledgeScreen", "indexDocument failed for $fileName", indexError)
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 // v1.67-B: 用户取消导入,清理半成品文档 + 已生成的分块
                 createdDocId?.let { id ->
-                    runCatching { dao.deleteDocWithChunks(id) }
+                    resultOf { dao.deleteDocWithChunks(id) }
                 }
                 MuseToast.show(context.getString(R.string.knowledge_import_cancelled))
                 throw e

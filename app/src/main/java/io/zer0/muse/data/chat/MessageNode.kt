@@ -35,12 +35,20 @@ data class MessageNode(
         return copy(selectIndex = safeIndex)
     }
 
-    /** 添加一个新分支（例如来自重新生成）。自动选中该新分支。 */
+    /** 添加一个新分支（例如来自重新生成）。若同 ID 已存在则替换。 */
     fun addBranch(message: UIMessage): MessageNode {
-        return copy(
-            messages = messages + message,
-            selectIndex = messages.size, // 选中新增的分支
-        )
+        val existingIdx = messages.indexOfFirst { it.id == message.id }
+        return if (existingIdx >= 0) {
+            copy(
+                messages = messages.toMutableList().apply { this[existingIdx] = message },
+                selectIndex = existingIdx,
+            )
+        } else {
+            copy(
+                messages = messages + message,
+                selectIndex = messages.size,
+            )
+        }
     }
 
     /** 替换当前分支的消息。 */

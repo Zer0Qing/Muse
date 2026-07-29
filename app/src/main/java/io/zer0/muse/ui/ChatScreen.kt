@@ -54,7 +54,6 @@ import androidx.compose.foundation.verticalScroll
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
@@ -62,6 +61,7 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -105,6 +105,8 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -177,9 +179,6 @@ private const val VOLUME_SCROLL_DISTANCE_PX = 200f
 
 /** v1.79 (M-S12): 消息分组时间间隔(5 分钟),超过此间隔显示头像和时间戳。 */
 private const val MESSAGE_GROUP_INTERVAL_MS = 5 * 60 * 1000L
-
-/** v1.79 (L-S2): 滚动到底部按钮的底部 padding(避开 InputBar)。 */
-private val SCROLL_TO_BOTTOM_BUTTON_BOTTOM_PADDING = 80.dp
 
 /**
  * Phase 8.10: 拦截音量键上/下键事件,转为滚动操作。
@@ -519,6 +518,10 @@ fun ChatScreen(
             }
     }
 
+    // v1.0.30: 预计算流式跟随偏移量（不能在 snapshotFlow 内调 @Composable）
+    val density = LocalDensity.current
+    val streamFollowOffsetPx = with(density) { 120.dp.roundToPx() }
+
     // 新消息到来时自动滚到底部(v0.31: 受 chatPrefs.autoScrollToBottom 控制)
     // v0.48: 仅当用户已在底部(isAtBottom)时才自动滚动,用户主动上翻查看历史时不打断
     // v1.28: 用户发消息时(消息数增加)用瞬时滚动(snap),避免动画导致页面跳动;
@@ -536,7 +539,7 @@ fun ChatScreen(
             )
         }
             .distinctUntilChanged()
-            .sample(100L)
+            .sample(300L)
             .collect { (size, _, autoScroll) ->
                 if (size == 0) return@collect
                 if (!autoScroll) return@collect
@@ -551,10 +554,13 @@ fun ChatScreen(
                     userScrolledUp = false
                     listState.scrollToItem(targetIndex)
                 } else if (!userScrolledUp) {
-                    // 流式增量:用户未上滑,平滑跟随底部
+                    // v1.0.30: 流式跟随 — 加偏移让消息底部（新文字出现处）保持在可见区
                     isProgrammaticScroll.value = true
                     try {
-                        listState.animateScrollToItem(targetIndex)
+                        listState.animateScrollToItem(
+                            targetIndex,
+                            scrollOffset = streamFollowOffsetPx,
+                        )
                     } finally {
                         isProgrammaticScroll.value = false
                     }
@@ -627,6 +633,9 @@ fun ChatScreen(
         uri?.let { viewModel.pickDocument(it, context) }
     }
 
+    // v1.0.30: 发送后自动收起键盘
+    val focusManager = LocalFocusManager.current
+
     // v1.135: 媒体选择 launcher — 同时支持图片和视频。
     // 照片按钮点击后走统一视觉媒体选择器;视频会被提取关键帧降级为图片发送。
     var imagePickAsOcr by remember { mutableStateOf(false) }
@@ -647,6 +656,7 @@ fun ChatScreen(
             if (!isAgentMode) {
                 // iOS/MANUS 风格顶部栏:居中大标题 + 关系副标题,右侧模型胶囊 + 导出按钮
                 Surface(
+                    shadowElevation = 0.dp,
                     color = MaterialTheme.colorScheme.background,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -723,33 +733,27 @@ fun ChatScreen(
                             }
                         }
 
-                        // 右侧操作区:模型胶囊 + 导出按钮
+                        // 右侧操作区:模型胶囊 + 压缩上下文按钮
+                        // v1.0.29: 模型选择改为圆形小胶囊,节省顶部空间让标题完整显示。
+                        // 当前模型名仍展示在副标题"陪伴 X 天 · 模型名"中。
                         val modelCd = stringResource(R.string.chat_model_cd, currentModelName)
                         Surface(
                             onClick = { showModelSheet = true },
                             enabled = !isStreaming,
-                            shape = MuseShapes.pill,
+                            shape = CircleShape,
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
                             modifier = Modifier
-                                .height(32.dp)
+                                .size(32.dp)
                                 .semantics { contentDescription = modelCd },
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center,
                             ) {
-                                Text(
-                                    text = currentModelName,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
                                 Icon(
-                                    imageVector = Icons.Default.ArrowDropDown,
+                                    imageVector = Icons.Outlined.AutoAwesome,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    tint = MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier.size(18.dp),
                                 )
                             }
@@ -789,6 +793,7 @@ fun ChatScreen(
                 onImageGenParamsChange = viewModel::updateImageGenParams,
                 // P2-12: 富文本输入开关 — 开启后显示 Markdown 格式工具条
                 formatEnabled = richInputEnabled,
+                showExpandButton = state.chatPreferences.showExpandButton,
                 onTextChanged = viewModel::updateInput,
                 // v1.97: 斜杠命令拦截 — / 开头的输入走 executeSlashCommand,不发送给 LLM
                 onSend = {
@@ -797,6 +802,7 @@ fun ChatScreen(
                         viewModel.executeSlashCommand(text)
                     } else {
                         viewModel.send()
+                        focusManager.clearFocus()
                     }
                 },
                 onStop = viewModel::stop,
@@ -806,7 +812,16 @@ fun ChatScreen(
                 onEditReply = { viewModel.setReplyQuoteOverride(it) },
                 onPickDocument = {
                     runCatching {
-                        documentLauncher.launch(arrayOf("text/*", "application/pdf"))
+                        documentLauncher.launch(arrayOf(
+                            "text/*",
+                            "application/pdf",
+                            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                            "application/msword",
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            "application/vnd.ms-excel",
+                            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                            "application/epub+zip",
+                        ))
                     }.onFailure { viewModel.reportError(context.getString(R.string.chat_err_open_file_picker, it.message)) }
                 },
                 onToggleDrawMode = viewModel::toggleDrawMode,
@@ -1100,7 +1115,8 @@ fun ChatScreen(
                             viewModel.observeArtifactsByMessage(msg.id.toString()).collect { value = it }
                         }
                         // v0.48: 消息分组 — 上一条同 role 且时间间隔 < 5 分钟 → 压缩头像和时间戳
-                        val showAvatar = prevMsg == null
+                        // v1.0.30: assistant 消息始终显示头像，不参与分组压缩
+                        val showAvatar = msg.role == MessageRole.ASSISTANT || prevMsg == null
                             || prevMsg.role != msg.role
                             || (msg.createdAt - prevMsg.createdAt) > MESSAGE_GROUP_INTERVAL_MS
                         val showTimestamp = showAvatar // 头像和时间戳同步显示
@@ -1218,7 +1234,9 @@ fun ChatScreen(
                         )
                         // 消息分支选择器:assistant 消息且有多分支时显示左右箭头切换
                         if (msg.role == MessageRole.ASSISTANT && !isStreaming) {
-                            val node = state.messageNodes.firstOrNull { it.id == msg.id.toString() }
+                            val node = state.messageNodes.firstOrNull {
+                                it.id == msg.id.toString() || it.id == msg.variantGroupId
+                            }
                             if (node != null && node.hasBranches) {
                                 BranchSelector(
                                     currentIndex = node.selectIndex,
@@ -1330,32 +1348,28 @@ fun ChatScreen(
                 }
             }
 
-            // v1.28: 滚动到底部按钮 — 用户上翻查看历史时显示一个小箭头按钮,
-            // 点击平滑滚回底部。去掉"有新消息"文字提示(用户反馈体验奇怪)。
-            // 仅当不在底部且有消息时显示。
+            // v1.0.29: 滚动到底部按钮 — 改为 GPT 风格小圆形透明按钮,
+            // 仅在用户主动上滑(userScrolledUp)后显示,位于输入栏上方。
             AnimatedVisibility(
-                // v1.0.4 (P3-4): 用 visibleMessages 判断是否有可滚动内容
-                visible = !isAtBottom && visibleMessages.isNotEmpty(),
+                visible = userScrolledUp && visibleMessages.isNotEmpty(),
                 enter = fadeIn() + slideInVertically { it / 2 },
                 exit = fadeOut() + slideOutVertically { it / 2 },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = SCROLL_TO_BOTTOM_BUTTON_BOTTOM_PADDING)
+                    .padding(bottom = 16.dp)
                     .navigationBarsPadding(),
             ) {
-                // L-CS2: 触摸目标扩大到 48dp(touchTarget),Icon 保持小尺寸居中
                 Surface(
-                    color = MaterialTheme.colorScheme.primary,
-                    shape = MuseShapes.extraLarge,
-                    tonalElevation = 3.dp,
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+                    shape = CircleShape,
+                    tonalElevation = 0.dp,
+                    shadowElevation = 0.dp,
                     modifier = Modifier
-                        .size(MuseIconSizes.touchTarget)
+                        .size(36.dp)
                         .clickable {
-                            // v1.52: 点击"滚到底"按钮解锁跟随,并平滑滚到底部
                             userScrolledUp = false
                             isProgrammaticScroll.value = true
                             scrollToBottomScope.launch {
-                                // M-S13: 快照 visibleMessages,避免异步更新导致 size-1 越界
                                 val msgs = visibleMessages
                                 if (msgs.isEmpty()) return@launch
                                 try {
@@ -1373,7 +1387,7 @@ fun ChatScreen(
                         Icon(
                             imageVector = Icons.Default.ArrowDownward,
                             contentDescription = stringResource(R.string.chat_scroll_to_bottom_cd),
-                            tint = MaterialTheme.colorScheme.onPrimary,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(MuseIconSizes.iconSmall),
                         )
                     }

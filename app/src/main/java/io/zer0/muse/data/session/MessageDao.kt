@@ -212,6 +212,16 @@ interface MessageDao {
     @Query("SELECT COUNT(*) FROM messages")
     fun observeCount(): Flow<Int>
 
+    // ── v1.0.30: 变体管理 ──
+
+    /** 获取同一变体组的所有消息（按 variantIndex 排序）。 */
+    @Query("SELECT * FROM messages WHERE variantGroupId = :groupId ORDER BY variantIndex ASC")
+    suspend fun getVariants(groupId: String): List<MessageEntity>
+
+    /** 更新变体组内所有消息的 variantCount。 */
+    @Query("UPDATE messages SET variantCount = :count WHERE variantGroupId = :groupId")
+    suspend fun updateVariantCount(groupId: String, count: Int)
+
     // ── Phase 10.3: FTS4 索引同步 ──
 
     /** 插入 FTS 索引(message_id 不索引,content_ngram 全文索引)。 */
@@ -330,6 +340,10 @@ interface MessageDao {
     fun observeAllFavoriteTags(): Flow<List<String>>
 
     // ── v0.47: 统计页扩展(零迁移,纯查询) ──
+
+    /** v1.0.30: ASSISTANT 消息累计内容长度（≈ token 估算基准）。 */
+    @Query("SELECT COALESCE(SUM(LENGTH(content)), 0) FROM messages WHERE role = 'ASSISTANT'")
+    suspend fun sumAssistantContentLength(): Long
 
     /**
      * v0.47: 按 modelId 分组统计 ASSISTANT 消息数(环形图用)。

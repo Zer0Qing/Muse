@@ -149,6 +149,12 @@ data class UIMessage(
     val quotedContent: String? = null,
     /** 功能1: 消息表情回应键(ThumbUp/Favorite/SentimentSatisfied/SentimentDissatisfied/MoodBad/Bolt,null=无)。 */
     val reaction: String? = null,
+    /** v1.0.30: 变体组 ID（同位置多个 assistant 回复共享），null = 非变体消息。 */
+    val variantGroupId: String? = null,
+    /** v1.0.30: 变体序号（0-based，在当前组中的位置）。 */
+    val variantIndex: Int = 0,
+    /** v1.0.30: 变体总数（组内消息数）。 */
+    val variantCount: Int = 1,
 ) {
     /** 拼出用于显示的纯文本(不含推理过程)。 */
     fun toText(): String = content

@@ -964,7 +964,10 @@ private fun ActionIconButton(
             tint = if (enabled) {
                 MaterialTheme.colorScheme.onSurfaceVariant
             } else {
-                MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                // v1.0.28 修复: outline.copy(alpha=0.5f) 与背景过于接近,
+                // 在浅色主题下看起来像空方框。改用 onSurfaceVariant 并保留 0.5f alpha,
+                // 既表达 disabled 状态,又不会让用户误以为是无用占位。
+                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
             },
             modifier = Modifier.size(MuseIconSizes.iconMedium),
         )

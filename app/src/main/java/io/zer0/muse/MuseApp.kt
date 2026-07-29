@@ -163,21 +163,29 @@ class MuseApp : Application(), ImageLoaderFactory {
             when (event) {
                 Lifecycle.Event.ON_STOP -> {
                     Logger.i("MuseApp", "Process ON_STOP: 释放 ChatViewModel 资源 + 停止 MemoryTicker")
+                    // v1.0.29: 切后台时如果正在生成,启动前台服务保活。必须同步执行。
+                    resultOf { chatViewModel.onAppBackground() }
+                        .onError { msg, t -> Logger.w("MuseApp", "chatViewModel.onAppBackground 失败: $msg", t) }
                     resultOf { chatViewModel.release() }
                         .onError { msg, t -> Logger.w("MuseApp", "chatViewModel.release 失败: $msg", t) }
+                    // v1.0.30: memoryTicker.stop 含 30s 超时等待，移入协程
                     appScope.launch {
                         resultOf { memoryTicker.stop() }
                             .onError { msg, t -> Logger.w("MuseApp", "memoryTicker.stop 失败: $msg", t) }
                     }
                 }
                 Lifecycle.Event.ON_START -> {
-                    // 回前台时重启 memory ticker(stop 时 _timerJob 已置 null,可安全重启)
+                    // v1.0.29: 切回前台时停止前台服务通知。必须同步执行。
+                    resultOf { chatViewModel.onAppForeground() }
+                        .onError { msg, t -> Logger.w("MuseApp", "chatViewModel.onAppForeground 失败: $msg", t) }
+                    // 回前台时重启 memory ticker
                     resultOf { memoryTicker.start() }
                         .onError { msg, t -> Logger.w("MuseApp", "memoryTicker.start 失败: $msg", t) }
-                    // v1.0.16: 回前台清理 OkHttp 空闲连接,避免复用后台期间被系统关闭的
-                    // 失效 socket 导致首次 HTTP 请求即失败(切页/后台回来报错的常见原因)
-                    resultOf { io.zer0.ai.core.ProviderHttpSupport.evictIdleConnections() }
-                        .onError { msg, t -> Logger.w("MuseApp", "evictIdleConnections 失败: $msg", t) }
+                    // v1.0.16: 回前台清理 OkHttp 空闲连接，移入协程
+                    appScope.launch {
+                        resultOf { io.zer0.ai.core.ProviderHttpSupport.evictIdleConnections() }
+                            .onError { msg, t -> Logger.w("MuseApp", "evictIdleConnections 失败: $msg", t) }
+                    }
                 }
                 else -> {}
             }

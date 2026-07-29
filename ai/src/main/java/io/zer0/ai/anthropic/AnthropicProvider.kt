@@ -10,9 +10,12 @@ import io.zer0.ai.core.Model
 import io.zer0.ai.core.ModelContextWindowRegistry
 import io.zer0.ai.core.ProviderCompat
 import io.zer0.ai.core.ProviderConfig
+import io.zer0.ai.core.ProviderError
+import io.zer0.ai.core.ProviderException
 import io.zer0.ai.core.ProviderHttpSupport
 import io.zer0.ai.core.ProviderPayloadNormalizer
 import io.zer0.ai.core.ProviderSpecificConfig
+import io.zer0.ai.core.toProviderException
 import io.zer0.ai.core.ReasoningLevel
 import io.zer0.ai.core.ToolCall
 import io.zer0.ai.core.ToolDefinition
@@ -462,7 +465,7 @@ class AnthropicProvider(
                     val errText = readBodyCapped(resp)
                     val msg = parseErrorMessage(code, errText)
                     Logger.w("AnthropicProvider", "completeText HTTP $code: $msg")
-                    throw RuntimeException(msg)
+                    throw ProviderException(ProviderError.from(code = code, body = errText))
                 }
                 val raw = resp.body.string()
                 val parsed = AppJson.decodeFromString<AnthropicCompletionResponse>(raw)
@@ -489,7 +492,7 @@ class AnthropicProvider(
                     .takeIf { it.isNotEmpty() }
                 if (text.isBlank() && toolCalls.isNullOrEmpty()) {
                     Logger.w("AnthropicProvider", "completeText 返回空文本(thinking 可能被吃掉)")
-                    throw RuntimeException(ErrorCode.INVALID_RESPONSE.toMessage("empty_text"))
+                    throw ErrorCode.INVALID_RESPONSE.toProviderException("empty_text")
                 }
                 Logger.d("AnthropicProvider", "completeText OK: ${text.length} chars, toolCalls=${toolCalls?.size ?: 0}")
                 ChatCompletion(text = text, finishReason = parsed.stop_reason, toolCalls = toolCalls)
@@ -712,9 +715,11 @@ class AnthropicProvider(
                 if (!resp.isSuccessful) {
                     // M-ANT10: readBodyCapped 替代 runCatching
                     val errText = readBodyCapped(resp)
-                    throw RuntimeException(
-                        ErrorCode.INVALID_RESPONSE.toMessage("model_list_fetch", resp.code)
-                            + errText.takeIf { it.isNotBlank() }?.let { ": $it" }.orEmpty()
+                    throw ProviderException(
+                        ProviderError.from(
+                            code = resp.code,
+                            body = errText,
+                        ),
                     )
                 }
                 val raw = resp.body.string()

@@ -64,4 +64,5 @@ data class GroupChatMessageEntity(
      * - "system": 系统提示(如"XXX 发起了表决")
      */
     @ColumnInfo(defaultValue = "normal") val messageType: String = "normal",
+    @ColumnInfo(defaultValue = "[]") val fileAttachmentsJson: String = "[]",
 )

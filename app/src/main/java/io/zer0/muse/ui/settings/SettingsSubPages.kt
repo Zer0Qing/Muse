@@ -61,6 +61,8 @@ import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import androidx.compose.runtime.mutableStateMapOf
 import io.zer0.ai.ProviderRegistry
+import io.zer0.common.Result
+import io.zer0.common.resultOf
 
 /**
  * v0.34: 通用二级设置页容器 — iOS 风格 Large Title 顶部栏。
@@ -188,16 +190,14 @@ fun SettingsModelPage(
                                     )
                                 } else {
                                     val start = System.currentTimeMillis()
-                                    val result = runCatching {
+                                    val result = resultOf {
                                         ProviderRegistry.create(config).listModels(config)
                                     }
                                     val latency = System.currentTimeMillis() - start
-                                    result.fold(
-                                        onSuccess = { models ->
-                                            ProviderTestStatus.Success(latency, models.size)
-                                        },
-                                        onFailure = { e ->
-                                            val msg = e.message.orEmpty()
+                                    when (result) {
+                                        is Result.Success -> ProviderTestStatus.Success(latency, result.data.size)
+                                        is Result.Error -> {
+                                            val msg = result.throwable?.message.orEmpty()
                                             val classified = when {
                                                 msg.contains("401") || msg.contains("403") ->
                                                     context.getString(R.string.settings_provider_test_error_auth)
@@ -214,8 +214,8 @@ fun SettingsModelPage(
                                                 )
                                             }
                                             ProviderTestStatus.Failed(classified)
-                                        },
-                                    )
+                                        }
+                                    }
                                 }
                                 // 单条完成 — 独立更新自己的 key(原子,无竞态)
                                 providerTestStatuses[config.id] = status

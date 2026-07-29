@@ -76,4 +76,10 @@ data class MessageEntity(
     @ColumnInfo(defaultValue = "NULL") val deletedAt: Long? = null,
     /** 功能1: 消息表情回应(ThumbUp/Favorite/SentimentSatisfied/SentimentDissatisfied/MoodBad/Bolt,null=无)。 */
     @ColumnInfo(defaultValue = "NULL") val reaction: String? = null,
+    /** v1.0.30: 变体组 ID（同一位置多个 assistant 回复共享）。null = 非变体消息。 */
+    @ColumnInfo(defaultValue = "NULL") val variantGroupId: String? = null,
+    /** v1.0.30: 变体序号（0-based，在当前组中的位置）。 */
+    @ColumnInfo(defaultValue = "0") val variantIndex: Int = 0,
+    /** v1.0.30: 变体总数（组内消息数，所有变体记录相同值）。 */
+    @ColumnInfo(defaultValue = "1") val variantCount: Int = 1,
 )

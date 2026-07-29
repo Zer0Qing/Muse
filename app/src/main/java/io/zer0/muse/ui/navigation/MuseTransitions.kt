@@ -6,9 +6,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.slideOutVertically
 import io.zer0.muse.ui.theme.MuseAnimation
 
 /**
@@ -45,23 +43,13 @@ object MuseTransitions {
         slideOutHorizontally(tween(MuseAnimation.NAV_HORIZONTAL_MS), targetOffsetX = { it }) +
             fadeOut(tween(MuseAnimation.NAV_HORIZONTAL_MS))
 
-    /** 垂直 push 入场(从下方滑入 + 淡入)— HOME 专用 enterTransition。 */
-    fun verticalPushEnter(): EnterTransition =
-        slideInVertically(tween(MuseAnimation.NAV_VERTICAL_ENTER_MS), initialOffsetY = { it }) +
-            fadeIn(tween(MuseAnimation.NAV_VERTICAL_ENTER_MS))
+    /** 水平 push 退场(向左滑出 1/3 + 淡出)— 根页面被覆盖时的退场。 */
+    fun horizontalPushExit(): ExitTransition =
+        slideOutHorizontally(tween(MuseAnimation.NAV_HORIZONTAL_MS), targetOffsetX = { -it / 3 }) +
+            fadeOut(tween(MuseAnimation.NAV_HORIZONTAL_MS))
 
-    /** 垂直 push 退场(向上滑出 1/3 + 淡出)— HOME 专用 exitTransition。 */
-    fun verticalPushExit(): ExitTransition =
-        slideOutVertically(tween(MuseAnimation.NAV_VERTICAL_ENTER_MS), targetOffsetY = { -it / 3 }) +
-            fadeOut(tween(MuseAnimation.NAV_VERTICAL_EXIT_MS))
-
-    /** 垂直 push 重新入场(从上方滑入 1/3 + 淡入)— HOME 专用 popEnterTransition。 */
-    fun verticalPushPopEnter(): EnterTransition =
-        slideInVertically(tween(MuseAnimation.NAV_VERTICAL_ENTER_MS), initialOffsetY = { -it / 3 }) +
-            fadeIn(tween(MuseAnimation.NAV_VERTICAL_EXIT_MS))
-
-    /** 垂直 push 弹出退场(向下滑出 + 淡出)— HOME 专用 popExitTransition。 */
-    fun verticalPushPopExit(): ExitTransition =
-        slideOutVertically(tween(MuseAnimation.NAV_VERTICAL_ENTER_MS), targetOffsetY = { it }) +
-            fadeOut(tween(MuseAnimation.NAV_VERTICAL_EXIT_MS))
+    /** 水平 pop 入场(从左侧滑入 1/3 + 淡入)— 回到根页面时的入场。 */
+    fun horizontalPopEnter(): EnterTransition =
+        slideInHorizontally(tween(MuseAnimation.NAV_HORIZONTAL_MS), initialOffsetX = { -it / 3 }) +
+            fadeIn(tween(MuseAnimation.NAV_HORIZONTAL_MS))
 }

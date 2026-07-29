@@ -66,8 +66,8 @@ class ConfigImporter(
     suspend fun importFromUri(context: Context, uri: Uri): Result = withContext(Dispatchers.IO) {
         val text = resultOf {
             context.contentResolver.openInputStream(uri)?.use { input ->
-                // v1.114: 限制读取 10MB,防止超大文件 OOM
-                val MAX_READ_BYTES = 10L * 1024 * 1024
+                // v1.0.30: 限制读取 200MB,防止超大文件 OOM
+                val MAX_READ_BYTES = 200L * 1024 * 1024
                 val sb = StringBuilder()
                 val buffer = CharArray(8192)
                 var total = 0L

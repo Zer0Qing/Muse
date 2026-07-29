@@ -612,7 +612,18 @@ class  MemoryTicker(
      */
     suspend fun stop() {
         _stopped = true
-        _timerJob?.cancel()
+        // v1.0.27 修复: 用 cancelAndJoin 等待 timer job 真正退出,
+        // 原 cancel() 不等待导致测试 advanceUntilIdle 后 job 仍在 children 中。
+        _timerJob?.let { job ->
+            job.cancel()
+            try {
+                job.join()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                // timer job join 失败不阻塞后续清理
+            }
+        }
         _timerJob = null
         // v1.78: 超时等待,避免永久阻塞
         val jobs: List<Job> = synchronized(_activeJobsLock) { _activeJobs.toList() }

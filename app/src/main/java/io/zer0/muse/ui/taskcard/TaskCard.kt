@@ -78,7 +78,7 @@ data class TaskCardData(
     val title: String,
     val steps: List<TaskStep>,
     val phase: TaskCardPhase = TaskCardPhase.PLANNING,
-    val isExpanded: Boolean = true,
+    val isExpanded: Boolean = false,
     val createdAt: Long = System.currentTimeMillis(),
 ) {
     /** 整体进度(0..1),只算 SUCCESS。 */

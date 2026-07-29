@@ -11,10 +11,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - name: Set up JDK 17
+    - name: Set up JDK 21
       uses: actions/setup-java@v4
       with:
-        java-version: '17'
+        # v1.0.27 P0-1.2: 对齐 gradle-daemon-jvm.properties 的 toolchainVersion=21
+        java-version: '21'
         distribution: 'temurin'
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v4
@@ -24,6 +25,9 @@ jobs:
       run: ./gradlew lint
     - name: Unit tests
       run: ./gradlew test
+    # Phase 2.1: 生成 Kover 聚合覆盖率报告(push 到 main 时也产出,便于追踪覆盖率趋势)
+    - name: Generate Kover coverage report
+      run: ./gradlew :koverXmlReport :koverHtmlReport --stacktrace --no-daemon
     - name: Build debug APK
       run: ./gradlew assembleDebug
     - name: Build release APK
@@ -42,3 +46,13 @@ jobs:
       with:
         name: Muse-release-apk
         path: app/build/outputs/apk/release/*.apk
+    # Phase 2.1: 上传 Kover 覆盖率报告 artifact
+    - name: Upload Kover coverage report
+      uses: actions/upload-artifact@v4
+      with:
+        name: Muse-coverage-report
+        path: |
+          build/reports/kover/report.xml
+          build/reports/kover/html/
+        retention-days: 14
+        if-no-files-found: warn

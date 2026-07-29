@@ -4,6 +4,8 @@ import android.content.Context
 import io.zer0.ai.ChatService
 import io.zer0.ai.core.ChatStreamEvent
 import io.zer0.ai.core.MessageRole
+import io.zer0.ai.core.Model
+import io.zer0.ai.core.ProviderConfig
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
@@ -17,6 +19,7 @@ import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.groupchat.GroupChatEntity
 import io.zer0.muse.data.groupchat.GroupChatMemoryRepository
+import io.zer0.muse.ui.groupchat.FileAttachment
 import io.zer0.muse.data.groupchat.GroupChatMessageEntity
 import io.zer0.muse.data.groupchat.GroupChatRepository
 import io.zer0.muse.rag.RagConfig
@@ -197,8 +200,9 @@ class GroupChatScheduler(
      * @param chatId 群聊 id
      * @param text 用户消息正文
      * @param images 待发送图片(base64 列表,可为空)
+     * @param fileAttachments 待发送文件附件(可为空)
      */
-    fun launchRoundRobin(chatId: String, text: String, images: List<String>) {
+    fun launchRoundRobin(chatId: String, text: String, images: List<String>, fileAttachments: List<FileAttachment> = emptyList()) {
         chatGenerationManager.launchGeneration(
             sessionId = "group:$chatId",
             assistantId = "group",
@@ -218,15 +222,19 @@ class GroupChatScheduler(
                     isResponding = true,
                 )
 
-                // 2. 启动前台服务(切后台保活)
-                runCatching { ChatGenerationService.start(appContext) }
-                    .onFailure { Logger.w(TAG, "群聊前台服务启动失败", it) }
+                // v1.0.29: 前台服务通知由 MuseApp ON_STOP 统一管理,不再在此启动
 
                 // 3. 保存用户消息
                 val imageBase64Json = AppJson.encodeToString(
                     ListSerializer(String.serializer()),
                     images,
                 )
+                val fileAttachmentsJson = if (fileAttachments.isNotEmpty()) {
+                    AppJson.encodeToString(
+                        kotlinx.serialization.builtins.ListSerializer(FileAttachment.serializer()),
+                        fileAttachments,
+                    )
+                } else "[]"
                 groupChatRepository.sendMessage(
                     chatId = chatId,
                     senderType = "user",
@@ -234,6 +242,7 @@ class GroupChatScheduler(
                     senderName = userName,
                     body = text,
                     imageBase64Json = imageBase64Json,
+                    fileAttachmentsJson = fileAttachmentsJson,
                 )
 
                 // 4. 触发 Agent 轮转
@@ -307,7 +316,7 @@ class GroupChatScheduler(
                 val memberNames = memberIds.mapNotNull { id ->
                     resultOf { assistantRepository.getById(id) }.getOrNull()?.name
                 }
-                val model = resultOf { settings.getSelectedModel() }.getOrNull()
+                // v1.0.29: invokeAgent 内部通过 resolveAssistantModel 解析助手专属模型
 
                 _activeGroupGeneration.value = ActiveGroupGeneration(
                     chatId = chatId,
@@ -316,9 +325,9 @@ class GroupChatScheduler(
                     currentSpeakerId = assistant.id,
                     currentSpeakerName = assistant.name,
                 )
-                runCatching { ChatGenerationService.start(appContext) }
+                // v1.0.29: 前台服务通知由 MuseApp ON_STOP 统一管理
 
-                val result = invokeAgent(chat, chatId, assistant, memberNames, model, isMentioned = false)
+                val result = invokeAgent(chat, chatId, assistant, memberNames, isMentioned = false)
                 if (result is AgentResult.Error) {
                     Logger.w(TAG, "重新生成失败: ${result.message}")
                 }
@@ -357,14 +366,14 @@ class GroupChatScheduler(
                 if (assistants.isEmpty()) return@launchGeneration
 
                 val memberNames = assistants.map { it.name }
-                val model = resultOf { settings.getSelectedModel() }.getOrNull()
+                // v1.0.29: invokeAgentForVote 内部通过 resolveAssistantModel 解析助手专属模型
 
                 _activeGroupGeneration.value = ActiveGroupGeneration(
                     chatId = chatId,
                     chatName = chat.name,
                     isResponding = true,
                 )
-                runCatching { ChatGenerationService.start(appContext) }
+                // v1.0.29: 前台服务通知由 MuseApp ON_STOP 统一管理
 
                 // 保存系统提示消息
                 groupChatRepository.sendMessage(
@@ -381,7 +390,7 @@ class GroupChatScheduler(
                     _activeGroupGeneration.update {
                         it?.copy(currentSpeakerId = assistant.id, currentSpeakerName = assistant.name)
                     }
-                    val voteResult = invokeAgentForVote(chat, chatId, assistant, memberNames, topic, model)
+                    val voteResult = invokeAgentForVote(chat, chatId, assistant, memberNames, topic)
                     if (voteResult != null) {
                         groupChatRepository.sendMessage(
                             chatId = chatId,
@@ -437,7 +446,7 @@ class GroupChatScheduler(
                 val summarizer = summarizerId?.let { id -> assistants.find { it.id == id } }
                     ?: assistants.first()
                 val memberNames = assistants.map { it.name }
-                val model = resultOf { settings.getSelectedModel() }.getOrNull()
+                // v1.0.29: invokeAgentForSummary 内部通过 resolveAssistantModel 解析助手专属模型
 
                 _activeGroupGeneration.value = ActiveGroupGeneration(
                     chatId = chatId,
@@ -446,10 +455,10 @@ class GroupChatScheduler(
                     currentSpeakerId = summarizer.id,
                     currentSpeakerName = summarizer.name,
                 )
-                runCatching { ChatGenerationService.start(appContext) }
+                // v1.0.29: 前台服务通知由 MuseApp ON_STOP 统一管理
 
                 val recentMessages = groupChatRepository.getRecentMessages(chatId, DEFAULT_CONTEXT_SIZE)
-                val summary = invokeAgentForSummary(chat, summarizer, memberNames, recentMessages, model)
+                val summary = invokeAgentForSummary(chat, summarizer, memberNames, recentMessages)
                 if (summary.isNotBlank()) {
                     groupChatRepository.sendMessage(
                         chatId = chatId,
@@ -492,7 +501,8 @@ class GroupChatScheduler(
                 val memberNames = memberIds.mapNotNull { id ->
                     resultOf { assistantRepository.getById(id) }.getOrNull()?.name
                 }
-                val model = resultOf { settings.getSelectedModel() }.getOrNull()
+                // v1.0.29: per-assistant 模型解析 — 用目标助手配置的模型,不再用全局 selectedModel
+                val (model, providerConfig) = resolveAssistantModel(assistant)
 
                 _activeGroupGeneration.value = ActiveGroupGeneration(
                     chatId = chatId,
@@ -501,7 +511,7 @@ class GroupChatScheduler(
                     currentSpeakerId = assistant.id,
                     currentSpeakerName = assistant.name,
                 )
-                runCatching { ChatGenerationService.start(appContext) }
+                // v1.0.29: 前台服务通知由 MuseApp ON_STOP 统一管理
 
                 // 1. 保存用户悄悄话(whisperTargetId 标记)
                 val userName = resultOf { settings.accountStateFlow.first().userName }
@@ -517,7 +527,7 @@ class GroupChatScheduler(
 
                 // 2. 触发目标 AI 回复(也是悄悄话)
                 val recentMessages = groupChatRepository.getRecentMessages(chatId, DEFAULT_CONTEXT_SIZE)
-                val messages = buildWhisperMessages(chat.name, assistant, memberNames, recentMessages, text, model)
+                val messages = buildWhisperMessages(chat.name, assistant, memberNames, recentMessages, text)
                 val temperature = assistant.temperature ?: DEFAULT_TEMPERATURE
                 val maxTokens = assistant.maxTokens ?: DEFAULT_MAX_TOKENS
 
@@ -530,6 +540,7 @@ class GroupChatScheduler(
                             model = model,
                             temperature = temperature,
                             maxTokens = maxTokens,
+                            providerConfig = providerConfig,
                         ).collect { event ->
                             if (event is ChatStreamEvent.ContentDelta) builder.append(event.delta)
                         }
@@ -566,6 +577,7 @@ class GroupChatScheduler(
 
     /**
      * v2.x: 构造表决专用消息列表。
+     * v1.0.29: 移除 model 参数,内部通过 [resolveAssistantModel] 解析助手专属模型。
      */
     private suspend fun invokeAgentForVote(
         chat: GroupChatEntity,
@@ -573,10 +585,12 @@ class GroupChatScheduler(
         assistant: AssistantEntity,
         memberNames: List<String>,
         topic: String,
-        model: io.zer0.ai.core.Model?,
     ): String? {
         activityHub.updateStatus(chatId, assistant.id, assistant.name, AgentActivityStatus.VIEWING)
         val recentMessages = groupChatRepository.getRecentMessages(chatId, DEFAULT_CONTEXT_SIZE)
+
+        // v1.0.29: per-assistant 模型解析
+        val (model, providerConfig) = resolveAssistantModel(assistant)
 
         val systemContent = buildString {
             if (assistant.systemPrompt.isNotBlank()) {
@@ -618,6 +632,7 @@ class GroupChatScheduler(
                     model = model,
                     temperature = assistant.temperature ?: DEFAULT_TEMPERATURE,
                     maxTokens = assistant.maxTokens ?: 500,
+                    providerConfig = providerConfig,
                 ).collect { event ->
                     if (event is ChatStreamEvent.ContentDelta) builder.append(event.delta)
                 }
@@ -631,14 +646,17 @@ class GroupChatScheduler(
 
     /**
      * v2.x: 构造总结专用消息列表。
+     * v1.0.29: 移除 model 参数,内部通过 [resolveAssistantModel] 解析助手专属模型。
      */
     private suspend fun invokeAgentForSummary(
         chat: GroupChatEntity,
         summarizer: AssistantEntity,
         memberNames: List<String>,
         recentMessages: List<GroupChatMessageEntity>,
-        model: io.zer0.ai.core.Model?,
     ): String {
+        // v1.0.29: per-assistant 模型解析
+        val (model, providerConfig) = resolveAssistantModel(summarizer)
+
         val systemContent = buildString {
             if (summarizer.systemPrompt.isNotBlank()) {
                 appendLine(summarizer.systemPrompt)
@@ -674,6 +692,7 @@ class GroupChatScheduler(
                     model = model,
                     temperature = 0.3f,
                     maxTokens = 1000,
+                    providerConfig = providerConfig,
                 ).collect { event ->
                     if (event is ChatStreamEvent.ContentDelta) builder.append(event.delta)
                 }
@@ -686,6 +705,7 @@ class GroupChatScheduler(
 
     /**
      * v2.x: 构造悄悄话专用消息列表。
+     * v1.0.29: 移除未使用的 model 参数。
      */
     private suspend fun buildWhisperMessages(
         chatName: String,
@@ -693,7 +713,6 @@ class GroupChatScheduler(
         memberNames: List<String>,
         recentMessages: List<GroupChatMessageEntity>,
         whisperText: String,
-        model: io.zer0.ai.core.Model?,
     ): List<UIMessage> {
         val systemContent = buildString {
             if (assistant.systemPrompt.isNotBlank()) {
@@ -784,8 +803,8 @@ class GroupChatScheduler(
         }
         val memberNames = assistants.map { it.name }
 
-        // 3. 获取当前选中的 Model(供 LLM 调用使用)
-        val model = resultOf { settings.getSelectedModel() }.getOrNull()
+        // v1.0.29: 不再获取全局 selectedModel — invokeAgent 内部通过 resolveAssistantModel
+        // 解析每个助手配置的 modelId/providerId,实现 per-assistant 模型路由。
 
         // v1.97: 4. 解析 @mention — 从最近用户消息中提取被提及的 agent
         val recentMessages = groupChatRepository.getRecentMessages(chatId, DEFAULT_CONTEXT_SIZE)
@@ -807,13 +826,13 @@ class GroupChatScheduler(
             val isMentioned = assistant.id in mentionedAgentIds
             // v1.104: 通知 UI 当前轮到谁发言
             onSpeakerChange?.invoke(assistant)
-            when (val result = invokeAgent(chat, chatId, assistant, memberNames, model, isMentioned)) {
+            when (val result = invokeAgent(chat, chatId, assistant, memberNames, isMentioned = isMentioned)) {
                 is AgentResult.Reply -> replies.add(result.message)
                 is AgentResult.Pass -> {
                     // v1.97: 决策修复 — 被提及的 agent 如果 PASS,重试一次
                     if (isMentioned) {
                         Logger.i(TAG, "Agent「${assistant.name}」被@提及但 PASS,决策修复重试")
-                        when (val retry = invokeAgent(chat, chatId, assistant, memberNames, model, isMentioned = true, isRepair = true)) {
+                        when (val retry = invokeAgent(chat, chatId, assistant, memberNames, isMentioned = true, isRepair = true)) {
                             is AgentResult.Reply -> replies.add(retry.message)
                             is AgentResult.Error -> Logger.w(TAG, "Agent「${assistant.name}」决策修复失败: ${retry.message}")
                             is AgentResult.Pass -> Logger.i(TAG, "Agent「${assistant.name}」决策修复仍 PASS")
@@ -938,7 +957,7 @@ class GroupChatScheduler(
         }
 
         val memberNames = assistants.map { it.name }
-        val model = resultOf { settings.getSelectedModel() }.getOrNull()
+        // v1.0.29: 不再获取全局 selectedModel — invokeAgent 内部通过 resolveAssistantModel 解析
         val maxRounds = chat.autoMaxRounds.coerceAtLeast(1)
 
         // 解析 @mention(第一轮仍需优先被@的成员)
@@ -964,7 +983,7 @@ class GroupChatScheduler(
                 onSpeakerChange?.invoke(assistant)
 
                 val result = invokeAgent(
-                    chat, chatId, assistant, memberNames, model,
+                    chat, chatId, assistant, memberNames,
                     isMentioned = isMentioned,
                     isRepair = false,
                 )
@@ -976,7 +995,7 @@ class GroupChatScheduler(
                     is AgentResult.Pass -> {
                         // 第一轮被@但 PASS,重试一次
                         if (isMentioned) {
-                            val retry = invokeAgent(chat, chatId, assistant, memberNames, model, isMentioned = true, isRepair = true)
+                            val retry = invokeAgent(chat, chatId, assistant, memberNames, isMentioned = true, isRepair = true)
                             if (retry is AgentResult.Reply) {
                                 allReplies.add(retry.message)
                                 roundReplyCount++
@@ -1035,7 +1054,7 @@ class GroupChatScheduler(
         }
 
         val memberNames = assistants.map { it.name }
-        val model = resultOf { settings.getSelectedModel() }.getOrNull()
+        // v1.0.29: 不再获取全局 selectedModel — invokeAgentForDebate 内部通过 resolveAssistantModel 解析
 
         activityHub.clear(chatId)
         val replies = mutableListOf<GroupChatMessageEntity>()
@@ -1054,7 +1073,7 @@ class GroupChatScheduler(
             onSpeakerChange?.invoke(assistant)
 
             val result = invokeAgentForDebate(
-                chat, chatId, assistant, memberNames, model,
+                chat, chatId, assistant, memberNames,
                 role = role,
                 speakerIndex = index,
                 totalSpeakers = assistants.size,
@@ -1066,7 +1085,7 @@ class GroupChatScheduler(
                     // 辩论中不允许 PASS,重试一次强调必须发言
                     Logger.i(TAG, "辩论:Agent「${assistant.name}」尝试 PASS,重试(辩论不允许跳过)")
                     val retry = invokeAgentForDebate(
-                        chat, chatId, assistant, memberNames, model,
+                        chat, chatId, assistant, memberNames,
                         role = role,
                         speakerIndex = index,
                         totalSpeakers = assistants.size,
@@ -1131,7 +1150,7 @@ class GroupChatScheduler(
         }
 
         val memberNames = assistants.map { it.name }
-        val model = resultOf { settings.getSelectedModel() }.getOrNull()
+        // v1.0.29: 不再获取全局 selectedModel — analyzeWithHost / invokeAgent 内部通过 resolveAssistantModel 解析
 
         activityHub.clear(chatId)
 
@@ -1140,7 +1159,7 @@ class GroupChatScheduler(
         val lastUserMsg = recentMessages.lastOrNull { it.senderType == "user" }?.body ?: chat.name
 
         onSpeakerChange?.invoke(host)
-        val dispatchPlan = analyzeWithHost(chat, host, otherMembers, memberNames, lastUserMsg, model)
+        val dispatchPlan = analyzeWithHost(chat, host, otherMembers, memberNames, lastUserMsg)
 
         if (dispatchPlan.isEmpty()) {
             Logger.w(TAG, "主持人模式:主持人未给出有效派发计划,回退 round_robin")
@@ -1157,7 +1176,7 @@ class GroupChatScheduler(
                 return@withContext replies
             }
             onSpeakerChange?.invoke(member)
-            val result = invokeAgent(chat, chatId, member, memberNames, model, isMentioned = false)
+            val result = invokeAgent(chat, chatId, member, memberNames, isMentioned = false)
             if (result is AgentResult.Reply) replies.add(result.message)
         }
 
@@ -1186,13 +1205,13 @@ class GroupChatScheduler(
      *
      * 与 [invokeAgent] 的区别:prompt 中注入辩论角色和上一人发言,
      * 且强调不允许 PASS(辩论中每个角色必须发言)。
+     * v1.0.29: 移除 model 参数,内部通过 [resolveAssistantModel] 解析助手专属模型。
      */
     private suspend fun invokeAgentForDebate(
         chat: GroupChatEntity,
         chatId: String,
         assistant: AssistantEntity,
         memberNames: List<String>,
-        model: io.zer0.ai.core.Model?,
         role: String,
         speakerIndex: Int,
         totalSpeakers: Int,
@@ -1200,6 +1219,9 @@ class GroupChatScheduler(
         isRepair: Boolean = false,
     ): AgentResult {
         activityHub.updateStatus(chatId, assistant.id, assistant.name, AgentActivityStatus.VIEWING)
+
+        // v1.0.29: per-assistant 模型解析
+        val (model, providerConfig) = resolveAssistantModel(assistant)
 
         val contextSize = assistant.contextMessageSize.takeIf { it > 0 } ?: DEFAULT_CONTEXT_SIZE
         val recentMessages = groupChatRepository.getRecentMessages(chatId, contextSize)
@@ -1222,6 +1244,7 @@ class GroupChatScheduler(
                     model = model,
                     temperature = temperature,
                     maxTokens = maxTokens,
+                    providerConfig = providerConfig,
                 ).collect { event ->
                     when (event) {
                         is ChatStreamEvent.ContentDelta -> builder.append(event.delta)
@@ -1360,6 +1383,7 @@ class GroupChatScheduler(
      *
      * 主持人收到用户问题后,输出一个简单的派发列表(每行一个成员名),
      * 调度器据此决定哪些成员发言及顺序。
+     * v1.0.29: 移除 model 参数,内部通过 [resolveAssistantModel] 解析主持人专属模型。
      *
      * @return 被派发的 AssistantEntity 列表(按主持人指定顺序);失败时返回空列表
      */
@@ -1369,8 +1393,10 @@ class GroupChatScheduler(
         otherMembers: List<AssistantEntity>,
         memberNames: List<String>,
         userMessage: String,
-        model: io.zer0.ai.core.Model?,
     ): List<AssistantEntity> {
+        // v1.0.29: per-assistant 模型解析(用主持人配置的模型)
+        val (model, providerConfig) = resolveAssistantModel(host)
+
         val systemContent = buildString {
             if (host.systemPrompt.isNotBlank()) {
                 appendLine(host.systemPrompt)
@@ -1406,6 +1432,7 @@ class GroupChatScheduler(
                     model = model,
                     temperature = 0.3f,
                     maxTokens = 200,
+                    providerConfig = providerConfig,
                 ).collect { event ->
                     when (event) {
                         is ChatStreamEvent.ContentDelta -> builder.append(event.delta)
@@ -1458,7 +1485,7 @@ class GroupChatScheduler(
     ): List<GroupChatMessageEntity> = withContext(Dispatchers.IO) {
         if (assistants.isEmpty()) return@withContext emptyList()
         val memberNames = assistants.map { it.name }
-        val model = resultOf { settings.getSelectedModel() }.getOrNull()
+        // v1.0.29: 不再获取全局 selectedModel — invokeAgent 内部通过 resolveAssistantModel 解析
         val recentMessages = groupChatRepository.getRecentMessages(chatId, DEFAULT_CONTEXT_SIZE)
         val mentionedAgentIds = parseMentions(recentMessages, assistants)
         val orderedAssistants = assistants.sortedByDescending { it.id in mentionedAgentIds }
@@ -1468,11 +1495,11 @@ class GroupChatScheduler(
         for (assistant in orderedAssistants) {
             val isMentioned = assistant.id in mentionedAgentIds
             onSpeakerChange?.invoke(assistant)
-            when (val result = invokeAgent(chat, chatId, assistant, memberNames, model, isMentioned)) {
+            when (val result = invokeAgent(chat, chatId, assistant, memberNames, isMentioned = isMentioned)) {
                 is AgentResult.Reply -> replies.add(result.message)
                 is AgentResult.Pass -> {
                     if (isMentioned) {
-                        when (val retry = invokeAgent(chat, chatId, assistant, memberNames, model, isMentioned = true, isRepair = true)) {
+                        when (val retry = invokeAgent(chat, chatId, assistant, memberNames, isMentioned = true, isRepair = true)) {
                             is AgentResult.Reply -> replies.add(retry.message)
                             else -> {}
                         }
@@ -1539,9 +1566,71 @@ class GroupChatScheduler(
     }
 
     /**
+     * v1.0.29: per-assistant 模型解析 — 让群聊中每个助手使用各自配置的模型。
+     *
+     * 解析顺序(参考单聊 [ChatStreamCoordinator.resolveToolsAndModel]):
+     *  1. 助手配置了 `modelId + providerId`:精确匹配 Provider+Model
+     *  2. 助手仅配置 `modelId`(无 providerId):跨所有 Provider 查找匹配 id 的 Model
+     *  3. 助手未配置:回退到全局 selectedModelId 对应的 Model
+     *  4. 全局也未选:回退到激活 Provider 首个模型,再回退到首个有模型的 Provider 首个模型
+     *
+     * ProviderConfig 解析:
+     *  - 优先用 model.providerId 找到对应 Provider
+     *  - 找不到时回退到激活 Provider(且必须有模型),再回退到首个有模型的 Provider
+     *
+     * 这样可保证:
+     *  - 群聊 A 助手用 OpenCode 的 DeepSeek-V4, B 助手用 SiliconFlow 的 GLM-4-9B,
+     *    各自的 streamChat 调用路由到不同 Provider。
+     *  - 助手未配置时与历史行为一致(用全局 selectedModel)。
+     *
+     * @param assistant 当前 agent
+     * @return (Model, ProviderConfig) — Model 为 null 时由 ChatService 兜底;
+     *         ProviderConfig 为 null 时 ChatService 会调 configStore.get() 兜底
+     */
+    private suspend fun resolveAssistantModel(assistant: AssistantEntity): Pair<Model?, ProviderConfig?> {
+        val allProviders = resultOf { settings.providersFlow.first() }.getOrNull().orEmpty()
+        if (allProviders.isEmpty()) return Pair(null, null)
+
+        val assistantModelId = assistant.modelId?.takeIf { it.isNotBlank() }
+        val assistantProviderId = assistant.providerId?.takeIf { it.isNotBlank() }
+        val activeProviderId = resultOf { settings.activeProviderIdFlow.first() }.getOrNull()
+        val selectedModelId = resultOf { settings.selectedModelIdFlow.first() }.getOrNull()
+
+        // 1. 解析 Model
+        val resolvedModel: Model? = if (assistantModelId != null && assistantProviderId != null) {
+            // 精确匹配:provider + model id
+            allProviders.firstOrNull { it.id == assistantProviderId }
+                ?.models?.firstOrNull { it.id == assistantModelId }
+        } else {
+            // 仅 modelId:跨所有 Provider 查找
+            assistantModelId?.let { aid ->
+                allProviders.flatMap { it.models }.firstOrNull { it.id == aid }
+            }
+        } ?: selectedModelId?.let { sid ->
+            // 回退到全局 selectedModelId
+            allProviders.flatMap { it.models }.firstOrNull { it.id == sid }
+        } ?: allProviders.firstOrNull { it.id == activeProviderId && it.models.isNotEmpty() }?.let { p ->
+            // 回退到激活 Provider 首个模型
+            p.models.firstOrNull()
+        } ?: allProviders.firstOrNull { it.models.isNotEmpty() }?.let { p ->
+            // 二级兜底:首个有模型的 Provider 首个模型
+            p.models.firstOrNull()
+        }
+
+        // 2. 解析 ProviderConfig
+        val resolvedProviderConfig: ProviderConfig? = resolvedModel?.let { m ->
+            allProviders.firstOrNull { it.id == m.providerId }
+        } ?: allProviders.firstOrNull { it.id == activeProviderId && it.models.isNotEmpty() }
+            ?: allProviders.firstOrNull { it.models.isNotEmpty() }
+
+        return Pair(resolvedModel, resolvedProviderConfig)
+    }
+
+    /**
      * 调用单个 agent 生成发言。
      *
      * v1.97: 新增 isMentioned / isRepair 参数,支持 @mention 提示和决策修复。
+     * v1.0.29: 移除 model 参数,内部通过 [resolveAssistantModel] 解析助手专属模型。
      * 改造 2(Phone Session 模式):通过 [buildMessages] 构造 Phone Session 式 prompt,
      * 每个 agent 独立收到"手机推送"而非共享上下文;身份防混淆 guidance 由
      * [SystemPromptAssembler.buildGroupChatHintSection] 注入(per-agent)。
@@ -1551,7 +1640,6 @@ class GroupChatScheduler(
      * @param chatId 群聊 id
      * @param assistant 当前 agent 配置
      * @param memberNames 群聊所有成员显示名
-     * @param model 当前选中的 Model(null 时由 ChatService 用默认)
      * @param isMentioned v1.97: 是否被 @提及(影响 prompt 提示)
      * @param isRepair v1.97: 是否为决策修复重试(提示 agent 上一轮没有回复)
      * @return [AgentResult] — Pass 表示主动跳过,Reply 表示正常回复,Error 表示流式异常/超时
@@ -1561,13 +1649,17 @@ class GroupChatScheduler(
         chatId: String,
         assistant: AssistantEntity,
         memberNames: List<String>,
-        model: io.zer0.ai.core.Model?,
         isMentioned: Boolean = false,
         isRepair: Boolean = false,
     ): AgentResult {
         // ActivityHub: 进入 invokeAgent 即标记为 VIEWING(正在看消息),
         // 让 UI 立即显示该 agent 开始处理本轮消息。
         activityHub.updateStatus(chatId, assistant.id, assistant.name, AgentActivityStatus.VIEWING)
+
+        // v1.0.29: per-assistant 模型解析 — 让每个助手用各自配置的模型,
+        // 而非全局 selectedModel。这样群聊中 A 助手可用 OpenCode 的 DeepSeek,
+        // B 助手可用 SiliconFlow 的 GLM,各自路由到对应 Provider。
+        val (model, providerConfig) = resolveAssistantModel(assistant)
 
         // a. 构造上下文
         val contextSize = assistant.contextMessageSize.takeIf { it > 0 } ?: DEFAULT_CONTEXT_SIZE
@@ -1596,6 +1688,7 @@ class GroupChatScheduler(
         // v1.134 P1-4: 改为 streamChat 累积 ContentDelta,消除 completeText 的整包阻塞。
         // 流式优势:首 token 即建立连接,后续增量返回;长思考模型不再被 60s 整包超时误杀。
         // UI 仅依赖 currentSpeakerId 显示"谁在思考",不订阅增量文本,因此这里只累积成完整字符串。
+        // v1.0.29: 补 providerConfig 参数,确保跨 Provider 路由到助手配置的 Provider。
         val temperature = assistant.temperature ?: DEFAULT_TEMPERATURE
         val maxTokens = assistant.maxTokens ?: DEFAULT_MAX_TOKENS
         // ActivityHub: 即将调 LLM 流式,标记为 REPLYING(正在回复)。
@@ -1609,6 +1702,7 @@ class GroupChatScheduler(
                     model = model,
                     temperature = temperature,
                     maxTokens = maxTokens,
+                    providerConfig = providerConfig,
                 ).collect { event ->
                     when (event) {
                         is ChatStreamEvent.ContentDelta -> builder.append(event.delta)
@@ -1987,18 +2081,30 @@ class GroupChatScheduler(
             appendLine(formatMessageTranscript(recentMessages))
             appendLine()
         }
-        // @提及提示:被提及时是"本轮优先被提醒的成员",否则"可选择 pass"
+        // v1.0.28 修复: 被提及时强制要求回复,不再让 agent "选择性 pass"。
+        // 原 prompt 说"你是本轮优先被提醒的成员"语气太弱,LLM 经常仍然 [PASS]。
+        // 改为明确指令"必须回复",并解释原因。
         if (isMentioned) {
-            appendLine("这轮消息明确 @ 了你,你是本轮优先被提醒的成员。")
+            appendLine("⚠️ 这轮消息明确 @ 了你,你必须回复这条消息。")
+            appendLine("- 用户 @ 你,是因为想听到你的回应。回复应当自然、贴合你的角色。")
+            appendLine("- 不得输出 [PASS]。即使消息内容简单(如问候),也要给出你的回应。")
         } else {
-            appendLine("你也能看到这段群聊消息,但如果没有有价值的贡献可以选择 pass。")
+            // v1.0.28: 未被 @ 时降低 pass 阈值 — 原 prompt"如果没有有价值的贡献可以选择 pass"
+            // 让 LLM 几乎对所有简短消息都 pass。改为鼓励发言。
+            appendLine("你也是群聊成员,看到这段消息后可以主动参与。")
+            appendLine("- 简单问候/寒暄/闲聊:回复一句即可,不要 pass。")
+            appendLine("- 只有确实与自己无关、无话可说时,才输出 [PASS]。")
         }
-        // v1.97: 决策修复提示(被 @ 但上一轮 PASS 时重试)
         if (isRepair) {
-            appendLine("上一轮你没有回复,但你被 @ 提及了。请回应这条消息。")
+            appendLine()
+            appendLine("⚠️ 上一轮你没有回复,但你被 @ 提及了。本轮必须回复,不得再次 [PASS]。")
         }
         appendLine()
-        appendLine("请决定是否回复。回复请直接输出内容,不回复请输出 [PASS]。")
+        appendLine("回复要求:")
+        appendLine("- 先输出 <mood>...</mood> 块(内部腹稿,系统会自动剥离)")
+        appendLine("- 然后直接输出正文(像群聊里的自然发言,口语化)")
+        appendLine("- 不回复时才输出 [PASS](被 @ 提及时不得 [PASS])")
+        appendLine("- 不要输出 [mood]...[/mood](方括号),必须用 <mood>...</mood>(尖括号)")
     }
 
     /**

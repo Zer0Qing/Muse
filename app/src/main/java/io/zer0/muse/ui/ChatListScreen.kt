@@ -203,7 +203,11 @@ fun ChatListScreen(
                 ) {
                     // 问候标题
                     item(key = "greeting") {
-                        GreetingHeader(memoryCount = memoryCount, facts = greetingFacts)
+                        GreetingHeader(
+                            memoryCount = memoryCount,
+                            facts = greetingFacts,
+                            assistantName = currentAssistant?.name
+                        )
                     }
 
                     // 全局输入条
@@ -304,8 +308,10 @@ fun ChatListScreen(
 private fun GreetingHeader(
     memoryCount: Int,
     facts: List<FactEntity>,
+    assistantName: String? = null,
     modifier: Modifier = Modifier,
 ) {
+    val name = assistantName ?: "Muse"
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -320,7 +326,7 @@ private fun GreetingHeader(
         )
         Spacer(Modifier.height(4.dp))
         Text(
-            text = GreetingHelper.getMemoryCountText(memoryCount),
+            text = GreetingHelper.getMemoryCountText(memoryCount, name),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

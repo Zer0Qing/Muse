@@ -50,10 +50,10 @@ class MemoryFileWriter(
         runCatching {
             val file = File(memoryDir, "memory.md")
             file.writeText(content)
-            Logger.d(TAG, "memory.md updated (${content.length} chars, locale=$locale)")
         }.onFailure {
             Logger.w(TAG, "写入 memory.md 失败: ${it.message}", it)
         }
+        Logger.d(TAG, "memory.md updated (${content.length} chars, locale=$locale)")
     }
 
     /** 读取当前 memory.md 内容,不存在或失败返回 null。 */

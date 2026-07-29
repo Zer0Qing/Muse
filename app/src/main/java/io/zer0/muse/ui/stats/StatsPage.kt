@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
@@ -30,7 +29,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
+import io.zer0.muse.ui.common.MuseScaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -111,7 +110,7 @@ fun StatsScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    Scaffold(
+    MuseScaffold(
         topBar = {
             DashboardHeader(
                 state = state,
@@ -223,10 +222,7 @@ private fun DashboardHeader(
     onExport: () -> Unit,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .statusBarsPadding()
-            .background(MaterialTheme.colorScheme.background),
+        modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
             modifier = Modifier
@@ -382,6 +378,19 @@ private fun KeyMetricsGrid(
                     label = stringResource(R.string.stats_streak),
                     modifier = Modifier.weight(1f),
                 )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+            ) {
+                MetricCell(
+                    icon = TablerIcons.MessageCircle,
+                    value = formatTokenCount(state.totalCharsReceived),
+                    label = "累计 Token(~)",
+                    modifier = Modifier.weight(1f),
+                )
+                Spacer(Modifier.weight(1f))
+                Spacer(Modifier.weight(1f))
             }
         }
     }
@@ -1285,6 +1294,11 @@ private fun formatAvg(avg: Double): String = when {
     avg >= 1_000_000 -> formatWithSuffix(avg / 1_000_000.0, "M")
     avg >= 1_000 -> formatWithSuffix(avg / 1_000.0, "K")
     else -> String.format(Locale.US, "%.1f", avg)
+}
+
+private fun formatTokenCount(chars: Long): String {
+    val estimatedTokens = chars / 2  // 粗略估算:中文约 2 字符/token
+    return formatCount(estimatedTokens.toInt())
 }
 
 /** 带后缀格式化:四舍五入到 1 位小数,整数部分省略小数点。 */

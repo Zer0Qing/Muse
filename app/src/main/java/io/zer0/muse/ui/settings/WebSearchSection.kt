@@ -1,14 +1,21 @@
 package io.zer0.muse.ui.settings
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,7 +44,9 @@ import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.web.WebSearchConfig
+import io.zer0.muse.web.WebSearchService
 import kotlinx.coroutines.launch
+import org.koin.core.context.GlobalContext
 
 /**
  * 阶段 7: 联网搜索 section — iOS 风格分组列表。
@@ -179,6 +188,71 @@ internal fun WebSearchSection(
                         }
                     },
                 )
+                Spacer(Modifier.height(8.dp))
+                var testQuery by remember { mutableStateOf("") }
+                var testing by remember { mutableStateOf(false) }
+                var testResult by remember { mutableStateOf<String?>(null) }
+                SettingField(
+                    label = "测试搜索词",
+                    value = testQuery,
+                    onValueChange = { testQuery = it },
+                    placeholder = "输入关键词进行搜索测试…",
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    OutlinedButton(
+                        onClick = {
+                            val q = testQuery.trim()
+                            if (q.isEmpty() || testing) return@OutlinedButton
+                            testing = true
+                            testResult = null
+                            scope.launch {
+                                try {
+                                    val service = GlobalContext.get().get<WebSearchService>()
+                                    val results = service.search(q, maxResults = 5)
+                                    val count = results.size
+                                    if (count > 0) {
+                                        val titles = results.take(3).joinToString("\n") { "  • ${it.title}" }
+                                        testResult = "搜索成功，返回 $count 条结果：\n$titles"
+                                    } else {
+                                        testResult = "搜索完成，但未返回结果"
+                                    }
+                                } catch (e: Exception) {
+                                    testResult = "测试失败: ${e.message ?: "未知错误"}"
+                                } finally {
+                                    testing = false
+                                }
+                            }
+                        },
+                        enabled = testQuery.isNotBlank() && !testing,
+                        shape = MuseShapes.pill,
+                    ) {
+                        if (testing) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            Spacer(Modifier.width(6.dp))
+                        }
+                        Text(
+                            text = if (testing) "搜索中…" else "测试搜索",
+                            style = MaterialTheme.typography.labelLarge,
+                        )
+                    }
+                }
+                testResult?.let { result ->
+                    val isError = result.startsWith("测试失败")
+                    Text(
+                        text = result,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (isError) MaterialTheme.colorScheme.error
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 8.dp).fillMaxWidth(),
+                    )
+                }
             }
         }
 

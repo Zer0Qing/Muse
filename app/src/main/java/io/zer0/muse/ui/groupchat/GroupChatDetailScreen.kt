@@ -2,6 +2,7 @@
 
 package io.zer0.muse.ui.groupchat
 
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -17,6 +18,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -205,77 +207,52 @@ fun GroupChatDetailScreen(
     ) { uri: Uri? ->
         uri ?: return@rememberLauncherForActivityResult
         scope.launch {
-            // H3: 用 resultOf 替代 runCatching,避免吞 CancellationException;失败时记录日志而非静默忽略
-            resultOf {
+            try {
+                runCatching { context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
                 val dataUri = withContext(Dispatchers.IO) {
-                    // H5: 图片降采样 + 大小限制,防止 OOM 和 DB 膨胀
-                    // 1. 先用 inJustDecodeBounds 获取图片尺寸
+                    val bytes = readImageBytes(context, uri)
                     val boundsOptions = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-                    context.contentResolver.openInputStream(uri)?.use { input ->
-                        BitmapFactory.decodeStream(input, null, boundsOptions)
-                    } ?: throw IllegalStateException("无法读取图片")
-
+                    BitmapFactory.decodeByteArray(bytes, 0, bytes.size, boundsOptions)
                     if (boundsOptions.outWidth <= 0 || boundsOptions.outHeight <= 0) {
                         throw IllegalStateException("无法解析图片尺寸")
                     }
-
-                    // 2. 计算 inSampleSize 使最大边长 <= 1024px
                     val maxDim = maxOf(boundsOptions.outWidth, boundsOptions.outHeight)
                     var sampleSize = 1
                     while (maxDim / sampleSize > 1024) sampleSize *= 2
-
-                    // 3. 重新打开流并用 inSampleSize 解码 Bitmap
-                    val bitmap = context.contentResolver.openInputStream(uri)?.use { input ->
-                        val decodeOptions = BitmapFactory.Options().apply { inSampleSize = sampleSize }
-                        BitmapFactory.decodeStream(input, null, decodeOptions)
-                    } ?: throw IllegalStateException("无法重新读取图片")
-
-                    try {
-                        // 4. 编码为 base64,超过 2MB 则递减 quality 压缩
-                        encodeBitmapToBase64(bitmap)
-                    } finally {
-                        bitmap.recycle()
-                    }
+                    val decodeOptions = BitmapFactory.Options().apply { inSampleSize = sampleSize }
+                    val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, decodeOptions)
+                        ?: throw IllegalStateException("无法解码图片")
+                    try { encodeBitmapToBase64(bitmap) } finally { bitmap.recycle() }
                 }
                 viewModel.addPendingImage("data:image/jpeg;base64,$dataUri")
-            }.onError { msg, t ->
-                // H3/L11: 记录图片读取失败日志,不再静默忽略
-                Logger.w("GroupChatDetail", "图片读取失败: $msg", t)
+            } catch (t: Throwable) {
+                if (t is kotlinx.coroutines.CancellationException) throw t
+                Logger.w("GroupChatDetail", "图片读取失败: ${t.message}", t)
             }
         }
     }
 
-    // v1.137: 注入 DocumentParser(与单聊一致,支持 PDF 二进制解析)
-    val documentParser: DocumentParser = org.koin.compose.koinInject()
-
-    // v1.112 (C2): 文件附件选择器 — 读取文本内容追加到输入框
-    // v1.137: 改用 DocumentParser 解析(替代 bufferedReader 字符流,支持 PDF)
+    // v1.0.30: 文件附件选择器 — 保存文件为 base64 附件
     val documentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
     ) { uri: Uri? ->
         uri ?: return@rememberLauncherForActivityResult
         scope.launch {
-            resultOf {
-                withContext(Dispatchers.IO) {
-                    documentParser.parse(uri, context)
+            try {
+                runCatching { context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+                val (bytes, mimeType, fileName) = withContext(Dispatchers.IO) {
+                    val stream = context.contentResolver.openInputStream(uri)
+                        ?: context.contentResolver.openFileDescriptor(uri, "r")?.let { java.io.FileInputStream(it.fileDescriptor) }
+                        ?: throw IllegalStateException("无法读取文件")
+                    val data = stream.use { it.readBytes() }
+                    Triple(data, context.contentResolver.getType(uri) ?: "application/octet-stream", uri.lastPathSegment ?: "文件")
                 }
-            }.onSuccess { text ->
-                if (text.isNotBlank()) {
-                    // 截断到 8000 字符(与单聊 ChatDocumentCoordinator 一致,避免输入框爆炸)
-                    val DOC_MAX_CHARS = 8000
-                    val truncated = if (text.length > DOC_MAX_CHARS) {
-                        text.take(DOC_MAX_CHARS) + "\n…(已截断)"
-                    } else {
-                        text
-                    }
-                    val current = state.inputText
-                    val merged = if (current.isBlank()) truncated else "$current\n\n---\n\n$truncated"
-                    viewModel.updateInput(merged)
-                } else {
-                    Logger.w("GroupChatDetail", "文档内容为空或不支持的格式")
-                }
-            }.onError { msg, t ->
-                Logger.w("GroupChatDetail", "文档解析失败: $msg", t)
+                if (bytes.size > 10 * 1024 * 1024) return@launch
+                val base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+                viewModel.addPendingFileAttachment(FileAttachment(name = fileName, mimeType = mimeType, base64 = base64))
+            } catch (t: Throwable) {
+                if (t is kotlinx.coroutines.CancellationException) throw t
+                Logger.w("GroupChatDetail", "文件读取失败: ${t.message}", t)
             }
         }
     }
@@ -429,7 +406,7 @@ fun GroupChatDetailScreen(
                         showToolSheet = true
                     },
                     enabled = !state.isAgentResponding,
-                    canSend = state.inputText.isNotBlank() || state.pendingImages.isNotEmpty(),
+                    canSend = state.inputText.isNotBlank() || state.pendingImages.isNotEmpty() || state.pendingFileAttachments.isNotEmpty(),
                     members = members,
                 )
             }
@@ -469,10 +446,10 @@ fun GroupChatDetailScreen(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.HelpOutline,
+                        painter = androidx.compose.ui.res.painterResource(io.zer0.muse.R.drawable.ic_muse_logo),
                         contentDescription = null,
-                        modifier = Modifier.size(MuseIconSizes.touchTarget),
-                        tint = MaterialTheme.colorScheme.outlineVariant,
+                        modifier = Modifier.size(72.dp),
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
                     )
                     Spacer(Modifier.height(12.dp))
                     Text(
@@ -1125,24 +1102,32 @@ private fun GroupChatMessageBubble(
     onHtmlPreview: (String) -> Unit = {},
 ) {
     val isUser = message.senderType == "user"
+    val haptic = LocalHapticFeedback.current
+    val interactionSource = remember { MutableInteractionSource() }
     if (isUser) {
         // 用户消息:右侧气泡
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .combinedClickable(
-                    onClick = {},
-                    onLongClick = onLongClick,
-                ),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End,
         ) {
             Column(
                 modifier = Modifier.widthIn(max = 280.dp),
                 horizontalAlignment = Alignment.End,
             ) {
+                // v1.0.29: combinedClickable 移到 Surface 上,避免 MarkdownText/Text 消费触摸事件
+                // 导致 Row 层 combinedClickable 长按不触发(只能长按空白区域)
                 Surface(
                     shape = MuseShapes.userBubble,
                     color = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.combinedClickable(
+                        interactionSource = interactionSource,
+                        indication = null,
+                        onClick = {},
+                        onLongClick = {
+                            MuseHaptics.medium(haptic)
+                            onLongClick()
+                        },
+                    ),
                 ) {
                     Column(modifier = Modifier.padding(MusePaddings.cardInner)) {
                         // v2.x: 悄悄话标记
@@ -1182,31 +1167,50 @@ private fun GroupChatMessageBubble(
     } else {
         // Agent 消息:左侧 + 头像 + senderName
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .combinedClickable(
-                    onClick = {},
-                    onLongClick = onLongClick,
-                ),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Start,
             verticalAlignment = Alignment.Top,
         ) {
-            // 头像
+            // 头像(也可长按触发菜单)
             val assistant = remember(message.senderId, assistants) {
                 assistants.find { it.id == message.senderId }
             }
+            val avatarInteraction = remember { MutableInteractionSource() }
             if (assistant != null) {
-                AssistantAvatar(
-                    assistant = assistant,
-                    avatarSize = 32.dp,
-                )
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .combinedClickable(
+                            interactionSource = avatarInteraction,
+                            indication = null,
+                            onClick = {},
+                            onLongClick = {
+                                MuseHaptics.medium(haptic)
+                                onLongClick()
+                            },
+                        ),
+                ) {
+                    AssistantAvatar(
+                        assistant = assistant,
+                        avatarSize = 32.dp,
+                    )
+                }
             } else {
                 // 兜底:首字母圆形头像
                 Box(
                     modifier = Modifier
                         .size(32.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .combinedClickable(
+                            interactionSource = avatarInteraction,
+                            indication = null,
+                            onClick = {},
+                            onLongClick = {
+                                MuseHaptics.medium(haptic)
+                                onLongClick()
+                            },
+                        ),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -1250,9 +1254,19 @@ private fun GroupChatMessageBubble(
                         )
                     }
                 }
+                // v1.0.29: combinedClickable 移到 Surface 上,避免 MarkdownText 消费触摸事件
                 Surface(
                     shape = MuseShapes.assistantBubble,
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                    modifier = Modifier.combinedClickable(
+                        interactionSource = interactionSource,
+                        indication = null,
+                        onClick = {},
+                        onLongClick = {
+                            MuseHaptics.medium(haptic)
+                            onLongClick()
+                        },
+                    ),
                 ) {
                     Column(modifier = Modifier.padding(MusePaddings.cardInner)) {
                         MarkdownText(
@@ -1510,9 +1524,11 @@ private fun GroupChatInputBar(
                 .sortedByDescending { it.name.length }
         }
     }
+    // v1.0.28: 输入框重写,对齐任务页面样式(IosTextField + 圆形按钮在同一行,去掉外层 Surface 色块)
+    // 原 Surface(tonalElevation=2.dp) 会产生一块与背景不一致的色块,视觉上很突兀。
     Surface(
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 2.dp,
+        tonalElevation = 0.dp,
     ) {
         Box {
             // @mention 自动补全下拉(锚定在输入框上方)
@@ -1535,26 +1551,27 @@ private fun GroupChatInputBar(
                     )
                 }
             }
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     // v1.99: 大R角/曲面屏横向安全区避让
                     .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
                     .navigationBarsPadding()
                     .imePadding()
-                    .padding(horizontal = MusePaddings.screen, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
+                    .padding(horizontal = MusePaddings.screen, vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
             ) {
-                // 加号菜单入口
-                Surface(
-                    onClick = onOpenToolSheet,
-                    enabled = enabled,
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    modifier = Modifier.size(MuseIconSizes.touchTarget),
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
+                    // 加号菜单入口(保留,但改为小型图标按钮,不再用大圆形 Surface)
+                    IconButton(
+                        onClick = onOpenToolSheet,
+                        enabled = enabled,
+                        modifier = Modifier.size(MuseIconSizes.touchTarget),
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Add,
                             contentDescription = stringResource(R.string.groupchat_tools),
@@ -1562,33 +1579,26 @@ private fun GroupChatInputBar(
                             modifier = Modifier.size(MuseIconSizes.icon),
                         )
                     }
-                }
-                IosTextField(
-                    value = text,
-                    onValueChange = onTextChange,
-                    placeholder = { Text(stringResource(R.string.groupchat_input_placeholder)) },
-                    enabled = enabled,
-                    modifier = Modifier.weight(1f),
-                    maxLines = 4,
-                    singleLine = false,
-                )
-                Surface(
-                    onClick = onSend,
-                    enabled = enabled && canSend,
-                    shape = CircleShape,
-                    color = if (enabled && canSend) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.surfaceVariant
-                    },
-                    modifier = Modifier.size(MuseIconSizes.touchTarget),
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
+                    IosTextField(
+                        value = text,
+                        onValueChange = onTextChange,
+                        placeholder = { Text(stringResource(R.string.groupchat_input_placeholder)) },
+                        enabled = enabled,
+                        modifier = Modifier.weight(1f),
+                        maxLines = 4,
+                        singleLine = false,
+                    )
+                    // 发送按钮(保留,改为小型图标按钮)
+                    IconButton(
+                        onClick = onSend,
+                        enabled = enabled && canSend,
+                        modifier = Modifier.size(MuseIconSizes.touchTarget),
+                    ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Send,
                             contentDescription = stringResource(R.string.groupchat_send),
                             tint = if (enabled && canSend) {
-                                MaterialTheme.colorScheme.onPrimary
+                                MaterialTheme.colorScheme.primary
                             } else {
                                 MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
                             },
@@ -2261,6 +2271,14 @@ private fun EditGroupChatDialog(
  * 用 JPEG 递减 quality 压缩,直到 base64 字符串不超过 2MB。
  * 最终仍超过 2MB 则抛异常,提示用户选择较小图片。
  */
+private fun readImageBytes(context: android.content.Context, uri: Uri): ByteArray {
+    val stream = context.contentResolver.openInputStream(uri)
+    if (stream != null) return stream.use { it.readBytes() }
+    val fd = context.contentResolver.openFileDescriptor(uri, "r")
+        ?: throw IllegalStateException("无法读取图片")
+    return fd.use { java.io.FileInputStream(it.fileDescriptor).use { fis -> fis.readBytes() } }
+}
+
 private fun encodeBitmapToBase64(bitmap: Bitmap): String {
     val maxBase64Length = 2 * 1024 * 1024 // 2MB(base64 字符串长度上限)
     val baos = ByteArrayOutputStream()

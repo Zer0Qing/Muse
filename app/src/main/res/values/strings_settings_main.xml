@@ -133,6 +133,7 @@
     <string name="settings_provider_models_count">共 %1$d 个模型 · 上下文自动识别</string>
     <string name="settings_provider_search_models">搜索模型 id</string>
     <string name="settings_provider_clear">清空</string>
+    <string name="settings_provider_deselect_all">取消全选</string>
     <string name="settings_provider_select_all">全选</string>
     <string name="settings_provider_model_list">模型列表</string>
     <string name="settings_provider_selected">已选中</string>
@@ -378,6 +379,8 @@
     <string name="settings_chat_default_expand">默认展开状态</string>
     <string name="settings_chat_mood_expand">MOOD 默认展开</string>
     <string name="settings_chat_mood_expand_subtitle">关闭后默认折叠,点击展开</string>
+    <string name="settings_chat_expand_button">显示全屏编辑按钮</string>
+    <string name="settings_chat_expand_button_subtitle">在输入栏右侧显示全屏编辑按钮</string>
     <string name="settings_chat_reasoning_expand">思考过程默认展开</string>
     <string name="settings_chat_reasoning_expand_subtitle">关闭后默认折叠</string>
     <string name="settings_chat_reflection_expand">反思块默认展开</string>

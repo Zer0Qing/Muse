@@ -177,6 +177,9 @@ class SystemPromptAssembler(
         val styleSection = buildStyleSection(chatPrefs)
         if (styleSection.isNotBlank()) sections.add(styleSection)
 
+        // v1.0.30: 始终注入中文思考指令（不受 chatPrefs 影响）
+        sections.add("思考语言\n- 所有内部推理、思考过程、分析都必须使用中文")
+
         // ── 2. 用户画像 ──
         val profile = buildUserProfileSection()
         if (profile.isNotBlank()) sections.add(profile)

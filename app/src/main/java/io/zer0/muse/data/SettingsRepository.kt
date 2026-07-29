@@ -1561,6 +1561,8 @@ data class ChatPreferences(
     val moodExpandedByDefault: Boolean = false,
     /** 思考过程默认展开还是折叠。 */
     val reasoningExpandedByDefault: Boolean = false,
+    /** v1.0.30: 输入栏是否显示全屏编辑按钮。 */
+    val showExpandButton: Boolean = false,
     /** v1.64: 反思块默认展开还是折叠。 */
     val reflectionExpandedByDefault: Boolean = false,
     // ── 交互行为 ──

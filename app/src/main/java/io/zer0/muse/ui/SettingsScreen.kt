@@ -241,8 +241,8 @@ fun SettingsScreen(
         mutableStateOf(
             listOf(
                 // 通用
-                SettingsEntry(chatTitle, listOf("聊天", "对话", "消息", "输入", "发送", "liaotian", "duihua", "xiaoxi", "shuru", "fasong", "lt", "dh", "xx"), MuseRoutes.SETTINGS_CHAT, groupGeneral, TablerIcons.MessageCircle, onOpenChatSettings),
-                SettingsEntry(appearanceTitle, listOf("外观", "显示", "界面", "字号", "字体", "waiguan", "xianshi", "jiemian", "zihao", "ziti", "wg", "xs", "jm", "zt"), MuseRoutes.SETTINGS_APPEARANCE, groupGeneral, TablerIcons.ColorSwatch, onOpenAppearanceSettings),
+                SettingsEntry(chatTitle, listOf("聊天", "对话", "消息", "输入", "发送", "liaotian", "duihua", "xiaoxi", "shuru", "fasong", "lt", "dh", "xx", "全屏编辑", "展开", "气泡", "阴影", "模型", "MOOD", "思维链", "快捷键", "引用回复"), MuseRoutes.SETTINGS_CHAT, groupGeneral, TablerIcons.MessageCircle, onOpenChatSettings),
+                SettingsEntry(appearanceTitle, listOf("外观", "显示", "界面", "字号", "字体", "waiguan", "xianshi", "jiemian", "zihao", "ziti", "wg", "xs", "jm", "zt", "主题", "圆角", "启动页", "引导", "壁纸"), MuseRoutes.SETTINGS_APPEARANCE, groupGeneral, TablerIcons.ColorSwatch, onOpenAppearanceSettings),
                 SettingsEntry("主题", listOf("主题", "配色", "深色", "浅色", "暗黑", "AMOLED", "颜色", "zhuti", "peise", "shense", "qianse", "anhe", "yase", "zt", "ps", "ss", "qs"), MuseRoutes.SETTINGS_APPEARANCE, groupGeneral, TablerIcons.ColorSwatch, onOpenAppearanceSettings),
                 SettingsEntry(mediaTitle, listOf("媒体", "录音", "语音", "播报", "meiti", "luyin", "yuyin", "bobao", "mt", "ly", "yy", "bb"), MuseRoutes.SETTINGS_MEDIA, groupGeneral, TablerIcons.Microphone, onOpenMediaSettings),
                 SettingsEntry("TTS 语音播报", listOf("TTS", "tts", "语音播报", "朗读", "文字转语音", "TextToSpeech", "yuyinbobao", "langdu", "wenzi", "yybb", "ld"), MuseRoutes.SETTINGS_MEDIA, groupGeneral, TablerIcons.Microphone, onOpenMediaSettings),
@@ -260,7 +260,7 @@ fun SettingsScreen(
                 SettingsEntry(toolsTitle, listOf("工具", "AI工具", "ToolRegistry", "tool", "插件", "gongju", "AIgongju", "chajian", "gj", "AIgj", "cj"), MuseRoutes.TOOLS, groupAssistantAgent, TablerIcons.Tools, onOpenTools),
 
                 // AI 模型与能力(从原「助手与 Agent」拆分)
-                SettingsEntry(providerTitle, listOf("供应商", "模型", "provider", "API", "密钥", "gongyingshang", "moxing", "miyao", "gys", "mx", "my"), MuseRoutes.SETTINGS_MODEL, groupAiModels, TablerIcons.Settings, onOpenModelSettings),
+                SettingsEntry(providerTitle, listOf("供应商", "模型", "provider", "API", "密钥", "gongyingshang", "moxing", "miyao", "gys", "mx", "my", "绘图", "Agnes", "DALL-E", "绘图供应商"), MuseRoutes.SETTINGS_MODEL, groupAiModels, TablerIcons.Settings, onOpenModelSettings),
                 SettingsEntry("API Key", listOf("API Key", "密钥", "key", "token", "凭证", "apiKey", "miyao", "pingzheng"), MuseRoutes.SETTINGS_MODEL, groupAiModels, TablerIcons.Lock, onOpenModelSettings),
                 SettingsEntry(visionTitle, listOf("视觉辅助", "视觉", "vision", "看图", "图像理解", "shijuefuzhu", "shijue", "kantu", "tuxianglijie", "sjfz", "sj", "kt", "txlj"), MuseRoutes.SETTINGS_VISION, groupAiModels, TablerIcons.Eye, onOpenVisionSettings),
                 SettingsEntry("OCR 文字识别", listOf("OCR", "ocr", "文字识别", "图片文字", "识别", "wenzi", "shibie", "tupianwenzi", "wzsb", "tpwz", "sb"), MuseRoutes.SETTINGS_VISION, groupAiModels, TablerIcons.Eye, onOpenVisionSettings),

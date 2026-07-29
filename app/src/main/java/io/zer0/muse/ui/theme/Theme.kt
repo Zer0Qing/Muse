@@ -11,25 +11,36 @@ import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.Indication
+import androidx.compose.runtime.RememberObserver
 
 /**
  * v0.52: 从 Context 链中查找 Activity(用于操作 Window)。
  * Compose 里 LocalContext 可能是 ContextWrapper 包裹的,需向上回溯找到 Activity。
  */
-fun Context.findActivity(): Activity? {
-    var ctx: Context? = this
-    while (ctx is ContextWrapper) {
-        if (ctx is Activity) return ctx
-        ctx = ctx.baseContext
+private fun Context.findActivity(): Activity? {
+    var context = this
+    while (context is ContextWrapper) {
+        if (context is Activity) return context
+        context = context.baseContext
     }
     return null
 }
+
+/**
+ * v1.0.29: 全局 no-op Indication,替代默认 ripple。
+ * 用于 [LocalIndication] 以根除所有 clickable/combinedClickable 产生的黑色遮罩。
+ * Material3 Button/IconButton 等组件自带 indication,不受影响。
+ */
+private val NoOpIndication: Indication = object : Indication {}
 
 /**
  * Muse 主题入口 (v0.22 重写,参考 rikkahub Theme.kt)。
@@ -142,6 +153,12 @@ fun MuseTheme(
         typography = scaledTypography,
         shapes = MuseShapes,
         motionScheme = motionScheme,
-        content = content,
-    )
+    ) {
+        // v1.0.29: 全局禁用默认 ripple indication,根除所有 clickable/combinedClickable
+        // 产生的黑色遮罩。Material3 Button/IconButton 等组件自带 indication,不受影响。
+        // 需要按压反馈的组件应自行实现(如 SharedComponents 的 pressColor 动画)。
+        CompositionLocalProvider(LocalIndication provides NoOpIndication) {
+            content()
+        }
+    }
 }

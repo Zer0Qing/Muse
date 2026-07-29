@@ -782,6 +782,9 @@ class SessionRepository(
         reflection = reflection,
         // 功能1: 消息表情回应往返
         reaction = reaction,
+        variantGroupId = variantGroupId,
+        variantIndex = variantIndex,
+        variantCount = variantCount,
     )
 
     /** UIMessage → MessageEntity。 */
@@ -812,7 +815,29 @@ class SessionRepository(
         reflection = reflection,
         // 功能1: 消息表情回应往返
         reaction = reaction,
+        // v1.0.30: 变体信息持久化
+        variantGroupId = variantGroupId,
+        variantIndex = variantIndex,
+        variantCount = variantCount,
     )
+
+    /** v1.0.30: 按 id 获取消息（变体查询用）。 */
+    suspend fun getMessageById(messageId: String): MessageEntity? =
+        withContext(Dispatchers.IO) { messageDao.getByMessageId(messageId) }
+
+    /** v1.0.30: 获取同变体组所有消息。 */
+    suspend fun getVariants(groupId: String): List<MessageEntity> =
+        withContext(Dispatchers.IO) { messageDao.getVariants(groupId) }
+
+    /** v1.0.30: 更新变体组计数。 */
+    suspend fun updateVariantCount(groupId: String, count: Int) {
+        withContext(Dispatchers.IO) { messageDao.updateVariantCount(groupId, count) }
+    }
+
+    /** v1.0.30: 直接 upsert MessageEntity（变体字段更新用）。 */
+    suspend fun upsertMessageEntity(entity: MessageEntity) {
+        withContext(Dispatchers.IO) { messageDao.upsert(entity) }
+    }
 
     private fun encodeImageUrls(urls: List<String>): String =
         // v1.100: 空列表短路,避免周期性落盘(每 300 字符)时对 4 个空字段

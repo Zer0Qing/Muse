@@ -22,6 +22,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 private const val TAG = "GenerationHandler"
 private const val MAX_TOOL_OUTPUT_CHARS = 32 * 1024
@@ -118,6 +119,9 @@ class GenerationHandler(
                 collectStream(flow, builder, toolCallAccumulator) { error ->
                     streamError = error
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                // v1.0.27 P0-1.4: 重抛取消信号,避免吞协程取消
+                throw e
             } catch (e: Exception) {
                 Logger.e(TAG, "Stream error at step $step: ${e.message}")
                 streamError = e.message ?: "Unknown error"
@@ -161,11 +165,15 @@ class GenerationHandler(
 
                 when (approvalState) {
                     is ToolApprovalState.Denied -> {
+                        // v1.0.27 P0-1.4: 用 buildJsonObject 安全构造 JSON,避免 reason 含双引号破坏结构
                         toolResults.add(
                             ToolResult(
                                 toolCallId = tc.id,
                                 toolName = tc.name,
-                                output = """{"error": "Tool denied by user", "reason": "${approvalState.reason}"}""",
+                                output = buildJsonObject {
+                                    put("error", "Tool denied by user")
+                                    put("reason", approvalState.reason)
+                                }.toString(),
                                 isSuccess = false,
                                 approvalState = approvalState,
                             )
@@ -240,12 +248,18 @@ class GenerationHandler(
                 output = result,
                 isSuccess = true,
             )
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            // v1.0.27 P0-1.4: 重抛取消信号,避免吞协程取消
+            throw e
         } catch (e: Exception) {
             Logger.e(TAG, "Tool execution failed: ${tc.name}: ${e.message}")
+            // v1.0.27 P0-1.4: 用 buildJsonObject 安全构造 JSON,避免 e.message 含双引号/反斜杠破坏结构
             ToolResult(
                 toolCallId = tc.id,
                 toolName = tc.name,
-                output = """{"error": "${e.message ?: "Unknown error"}"}""",
+                output = buildJsonObject {
+                    put("error", e.message ?: "Unknown error")
+                }.toString(),
                 isSuccess = false,
             )
         }

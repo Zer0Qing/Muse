@@ -8,15 +8,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -124,11 +119,7 @@ fun ModelDiffSheet(
 
     MuseBottomSheet(onDismissRequest = onDismiss) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                // v1.0.16: 兜底处理 Dialog 内 navigationBarsPadding 偶发失效,
-                // 确保底部按钮不被系统导航栏/手势条遮挡
-                .navigationBarsPadding(),
+            modifier = Modifier.fillMaxWidth(),
         ) {
             // 标题区
             Text(
@@ -165,12 +156,16 @@ fun ModelDiffSheet(
             }
             Spacer(Modifier.size(MusePaddings.contentGap))
 
-            // 主体列表区(LazyColumn 限高,避免内容过多撑爆 Sheet)
-            // v1.0.16: 高度从 420dp 降到 340dp,给底部按钮 + 导航栏留出足够空间
+            // 主体列表区:用 weight(1f) 占满剩余空间,避免底部按钮被内容顶出可视区域
+            // v1.0.28 修复: 之前用固定 heightIn(max=340dp),在高分辨率/小屏手机上仍可能
+            // 因总内容高度超过 MuseBottomSheet 85% 限制而截断底部"应用所选变更"按钮。
+            // v1.0.29 修复: fill=false 改为默认 fill=true,确保在 MuseBottomSheet 的
+            // heightIn(max=0.85*screenHeight) 限制下,LazyColumn 始终只占用剩余空间,
+            // 底部"应用所选变更"按钮不会被顶出可视区域。
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 340.dp),
+                    .weight(1f),
                 contentPadding = PaddingValues(vertical = MusePaddings.contentGap),
                 verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
             ) {
@@ -262,9 +257,6 @@ fun ModelDiffSheet(
                     onDismiss()
                 },
             )
-            // v1.0.16: 底部额外 spacer 等于系统导航栏高度,防止 Dialog 内 insets 失效
-            // 导致按钮被三键导航栏/手势小白条遮挡
-            Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
         }
     }
 }

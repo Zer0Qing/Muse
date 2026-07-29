@@ -575,7 +575,9 @@ private fun MuseNavGraph(
                 NavHost(
                     navController = navController,
                     startDestination = startDestination,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background),
                     // v1.40: 统一 iOS push 动画 — 新页右滑入 + 旧页左滑出,返回时反向
                     // 二级路由会覆盖 enterTransition;这里作为默认保证所有路由都有完整 4 段动画
                     // Phase 7: 使用 MuseAnimation 令牌统一动画规范

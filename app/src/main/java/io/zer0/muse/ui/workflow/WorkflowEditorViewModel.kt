@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
+import io.zer0.common.resultOf
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantEntity
@@ -303,7 +304,7 @@ class WorkflowEditorViewModel(
     fun save() {
         viewModelScope.launch {
             val current = _state.value
-            runCatching {
+            resultOf {
                 // 1. 写工作流 JSON 文件
                 workflowFile.parentFile?.mkdirs()
                 workflowFile.writeText(exportJson())
@@ -320,9 +321,9 @@ class WorkflowEditorViewModel(
                     }
                 }
                 _state.update { it.copy(toast = "已保存") }
-            }.onFailure { e ->
-                Logger.w(TAG, "保存工作流失败", e)
-                _state.update { it.copy(toast = "保存失败: ${e.message}") }
+            }.onError { _, t ->
+                Logger.w(TAG, "保存工作流失败", t)
+                _state.update { it.copy(toast = "保存失败: ${t?.message}") }
             }
         }
     }

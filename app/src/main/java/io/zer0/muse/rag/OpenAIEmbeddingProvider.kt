@@ -84,9 +84,11 @@ class OpenAIEmbeddingProvider(
             .post(body)
             .build()
 
-        // 协程取消检查:execute() 为阻塞同步调用,取消后无法中断,至少在调用前检查
         coroutineContext.ensureActive()
-        val response = client.newCall(request).execute()
+        // v1.0.30: 加 10s 超时，防止 embedding API 挂了阻塞整个生成链路
+        val response = kotlinx.coroutines.withTimeout(10_000L) {
+            client.newCall(request).execute()
+        }
         if (!response.isSuccessful) {
             val errBody = response.body?.string()?.take(500) ?: ""
             throw RuntimeException("Embedding API failed ${response.code}: $errBody")

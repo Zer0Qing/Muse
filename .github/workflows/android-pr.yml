@@ -21,17 +21,20 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      checks: write  # 上传测试报告所需权限
+      checks: write  # EnricoMi/publish-unit-test-result-action 上传 check 所需权限
+      pull-requests: write  # Phase 2.1: 在 PR 上发布测试结果评论所需权限
     steps:
       # 1. 拉取 PR 代码(基于 merge commit,GitHub 自动生成)
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 2. 配置 JDK 17(项目 compileOptions 要求 Java 17)
-      - name: Set up JDK 17
+      # 2. 配置 JDK 21(v1.0.27 P0-1.2: 对齐 gradle-daemon-jvm.properties 的 toolchainVersion=21)
+      #    compileOptions 仍用 Java 17(sourceCompatibility/targetCompatibility),
+      #    但 Gradle daemon 需要 JDK 21 才能启动,CI 不再依赖 foojay 自动下载
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
           cache: gradle  # actions/setup-java 内置 gradle 缓存
 
@@ -48,10 +51,43 @@ jobs:
 
       # 6. 运行单元测试 — 关键业务逻辑不回归
       #    覆盖 ai/core 模块(ChatStreamEvent/ProviderConfig/Serialization/UIMessage)与 app 模块测试
+      #    Phase 2.1: Kover 已在 root + 5 模块应用,testDebugUnitTest 会自动插桩字节码
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest --stacktrace --no-daemon
 
-      # 7. 失败时上传测试报告便于排查(默认 artifact 保留 14 天)
+      # 7. Phase 2.1: 生成 Kover 聚合覆盖率报告(root merging module)
+      #    运行 :koverXmlReport 会自动触发各模块 test 任务(已在上一步跑过则跳过) + 聚合 XML/HTML
+      - name: Generate Kover coverage report
+        run: ./gradlew :koverXmlReport :koverHtmlReport --stacktrace --no-daemon
+
+      # 8. Phase 2.1: 发布单元测试结果为 PR Check 评论
+      #    EnricoMi/publish-unit-test-result-action 会读取 **/build/test-results/**/*.xml,
+      #    在 PR 上发布一条带失败用例详情的 check 评论(成功时只追加 check 状态)
+      #    需要 checks: write + pull-requests: write 权限
+      - name: Publish unit test results to PR
+        if: always()
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: |
+            **/build/test-results/**/*.xml
+          check_name: "Unit Test Results"
+          comment_title: "单元测试结果"
+          comment_mode: always
+
+      # 9. Phase 2.1: 上传 Kover 覆盖率报告 artifact(HTML + XML)
+      #    HTML 可下载后用浏览器打开查看行级覆盖;XML 是 Jacoco 格式,可后续接入 Codecov
+      - name: Upload Kover coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-coverage-report-${{ github.event.pull_request.number }}
+          path: |
+            build/reports/kover/report.xml
+            build/reports/kover/html/
+          retention-days: 14
+          if-no-files-found: warn
+
+      # 10. 失败时上传测试报告便于排查(默认 artifact 保留 14 天)
       - name: Upload test reports on failure
         if: failure()
         uses: actions/upload-artifact@v4

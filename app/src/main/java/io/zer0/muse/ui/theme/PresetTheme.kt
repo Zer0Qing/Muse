@@ -1150,12 +1150,12 @@ val DuskRoseTheme = PresetTheme(
 // 预设主题注册表(必须在所有 theme val 声明之后)
 // ─────────────────────────────────────────────────────────────────────────────
 val PresetThemes: List<PresetTheme> = listOf(
+    MonoTheme,
     WarmPaperTheme,
     SakuraTheme,
     OceanTheme,
     SpringTheme,
     AutumnTheme,
-    MonoTheme,
     SumiTheme,
     WashiTheme,
     AizomeTheme,

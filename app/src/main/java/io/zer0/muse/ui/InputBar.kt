@@ -38,6 +38,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.PhotoCamera
@@ -147,6 +148,7 @@ internal fun InputBar(
     isDrawMode: Boolean,
     isWebSearchEnabled: Boolean,
     isDeepThinkingEnabled: Boolean = false,
+    showExpandButton: Boolean = false,
     // v0.34: 绘图参数(临时覆盖设置默认值)
     imageGenParams: ImageGenParams = ImageGenParams(),
     onImageGenParamsChange: (ImageGenParams) -> Unit = {},
@@ -218,6 +220,46 @@ internal fun InputBar(
             showCancelledHint = false
         }
     }
+    var expanded by remember { mutableStateOf(false) }
+    if (expanded) {
+        Box(
+            modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface.copy(alpha = 0.97f)).systemBarsPadding()
+                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = {}),
+        ) {
+            Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    IconButton(onClick = { expanded = false }) {
+                        Icon(compose.icons.TablerIcons.ArrowLeft, contentDescription = stringResource(R.string.action_cancel), tint = MaterialTheme.colorScheme.onSurface)
+                    }
+                    Text(text = stringResource(R.string.chat_expand_input_title), style = MaterialTheme.typography.titleMedium)
+                    Spacer(Modifier.size(48.dp))
+                }
+                Spacer(Modifier.height(12.dp))
+                IosTextField(
+                    value = text,
+                    onValueChange = { if (it.length <= 50000) onTextChanged(it) },
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    minLines = 10, maxLines = 100,
+                    placeholder = { Text(stringResource(R.string.chat_placeholder_send)) },
+                )
+                Spacer(Modifier.height(12.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    Surface(
+                        onClick = { if (text.isNotBlank()) { onSend(); expanded = false } },
+                        enabled = text.isNotBlank(),
+                        shape = io.zer0.muse.ui.theme.MuseShapes.pill,
+                        color = if (text.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                    ) {
+                        Row(modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(compose.icons.TablerIcons.Send, contentDescription = null, modifier = Modifier.size(MuseIconSizes.iconSmall), tint = if (text.isNotBlank()) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                            Spacer(Modifier.width(6.dp))
+                            Text(text = stringResource(R.string.action_send), style = MaterialTheme.typography.labelLarge, color = if (text.isNotBlank()) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                        }
+                    }
+                }
+            }
+        }
+    }
     // 进入聊天页时自动聚焦输入框(仅在文本为空且允许自动聚焦时,避免打断已有草稿)
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) {
@@ -234,41 +276,17 @@ internal fun InputBar(
             .imePadding()
             // v1.132: 输入栏横向宽度缩小(两侧 padding 12dp → 24dp,总宽度减少 24dp);
             // 纵向 padding 恢复 8dp(v1.131 误改成 4dp 缩小了高度,实际需求是缩小宽度)
-            .padding(horizontal = 24.dp, vertical = 8.dp),
+            .padding(horizontal = 24.dp, vertical = 4.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        // v0.44: 联网搜索 + 深度思考 小胶囊开关(放在输入栏上方,iOS 风格)
+        // v1.0.29: 联网搜索 / 深度思考 已移入加号菜单,
+        // 输入栏上方仅保留语音对话入口和工具进度 pill(有内容时才显示)。
+        if (showMic || toolCallTotal > 0) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // 联网搜索
-            IosChip(
-                selected = isWebSearchEnabled,
-                onClick = onToggleWebSearch,
-                label = stringResource(R.string.chat_web_search_cd),
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Language,
-                        contentDescription = null,
-                        modifier = Modifier.size(MuseIconSizes.iconSmall),
-                    )
-                },
-            )
-            // 深度思考
-            IosChip(
-                selected = isDeepThinkingEnabled,
-                onClick = onToggleDeepThinking,
-                label = stringResource(R.string.chat_deep_thinking_cd),
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Psychology,
-                        contentDescription = null,
-                        modifier = Modifier.size(MuseIconSizes.iconSmall),
-                    )
-                },
-            )
             // 语音对话模式入口(仅 ASR API 已配置时显示):点击进入全屏连续对话
             // 与长按麦克风区分:长按是单次识别填入输入框,语音对话是连续 ASR + AI + TTS 循环
             if (showMic) {
@@ -341,6 +359,7 @@ internal fun InputBar(
                     )
                 }
             }
+        }
         }
         // QuickMessages 气泡
         if (quickMessages.isNotEmpty()) {
@@ -668,8 +687,11 @@ internal fun InputBar(
                 }
                 if (showToolSheet) {
                     // v1.46: MANUS 风格底部展开面板(替代 MuseDialog 弹窗)
+                    // v1.0.29: maxHeightFraction=0.55f,让加号菜单高度对齐
+                    // 摄像头/照片磁贴底部,位置更自然。
                     MuseBottomSheet(
                         onDismissRequest = { showToolSheet = false },
+                        maxHeightFraction = 0.55f,
                     ) {
                         Text(
                             text = stringResource(R.string.chat_tools_pick_content),
@@ -804,6 +826,36 @@ internal fun InputBar(
                                 .verticalScroll(rememberScrollState()),
                         ) {
                             Column(modifier = Modifier.padding(bottom = 32.dp)) {
+                        // v1.0.29: 联网搜索 / 深度思考 移入加号菜单,
+                        // 放在媒体入口下方、附件上方,与下方功能列表保持同一样式。
+                        ToolListRow(
+                            icon = Icons.Default.Language,
+                            title = stringResource(R.string.chat_web_search_cd),
+                            isActive = isWebSearchEnabled,
+                            showArrow = false,
+                            onClick = {
+                                MuseHaptics.light(hapticFeedback)
+                                onToggleWebSearch()
+                            },
+                        )
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            thickness = 0.5.dp,
+                        )
+                        ToolListRow(
+                            icon = Icons.Default.Psychology,
+                            title = stringResource(R.string.chat_deep_thinking_cd),
+                            isActive = isDeepThinkingEnabled,
+                            showArrow = false,
+                            onClick = {
+                                MuseHaptics.light(hapticFeedback)
+                                onToggleDeepThinking()
+                            },
+                        )
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            thickness = 0.5.dp,
+                        )
                         ToolListRow(
                             icon = TablerIcons.Paperclip,
                             title = stringResource(R.string.chat_tool_attachment),
@@ -910,7 +962,7 @@ internal fun InputBar(
                     }
                 }
 
-                // 功能2: "草稿"标记 — 输入框左侧显示小标签
+                // 功能2: "草稿"标记 — 输入框左侧显示小标签，点击可清除
                 if (hasDraft && text.isNotBlank()) {
                     Text(
                         text = stringResource(R.string.chat_draft_label),
@@ -922,6 +974,7 @@ internal fun InputBar(
                                 MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                                 shape = MuseShapes.pill,
                             )
+                            .clickable { onTextChanged("") }
                             .padding(MusePaddings.chipInner),
                     )
                 }
@@ -973,6 +1026,19 @@ internal fun InputBar(
                     visualTransformation = mentionTransform,
                 )
 
+                if (showExpandButton && !isStreaming) {
+                    IconButton(
+                        onClick = { expanded = true },
+                        modifier = Modifier.size(36.dp),
+                    ) {
+                        Icon(
+                            imageVector = compose.icons.TablerIcons.ArrowsMaximize,
+                            contentDescription = stringResource(R.string.chat_expand_input_cd),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    }
+                }
                 // 右侧: 麦克风(空文本且无待发图片时) / 发送(有文本时) / 停止(流式中)
                 if (isStreaming) {
                     // 停止生成:红色实心圆形按钮,白色停止图标
@@ -1571,7 +1637,7 @@ private fun ToolMediaCard(
         shape = MuseShapes.extraLarge,
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.78f),
         modifier = Modifier
-            .size(width = 96.dp, height = 108.dp)
+            .size(72.dp)
             .clickable(onClick = onClick),
     ) {
         Column(
@@ -1619,17 +1685,13 @@ private fun ToolListRow(
             imageVector = icon,
             contentDescription = null,
             modifier = Modifier.size(24.dp),
-            tint = if (isActive) MaterialTheme.colorScheme.primary
-            else MaterialTheme.colorScheme.onSurface,
+            tint = MaterialTheme.colorScheme.onSurface,
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
-                ),
-                color = if (isActive) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
             )
             if (!subtitle.isNullOrBlank()) {
                 Spacer(Modifier.height(2.dp))
@@ -1640,7 +1702,16 @@ private fun ToolListRow(
                 )
             }
         }
-        if (showArrow) {
+        // v1.0.29: 激活态显示黑白小勾(参考 iOS 设置页选中样式),
+        // 非激活态按 showArrow 决定是否显示右箭头。
+        if (isActive) {
+            Icon(
+                imageVector = Icons.Default.Check,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.onSurface,
+            )
+        } else if (showArrow) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,

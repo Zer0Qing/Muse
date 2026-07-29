@@ -41,10 +41,10 @@ fun NavGraphBuilder.chatNavGraph(
     // v0.22: 首页 — 顶部 Tab 导航(垂直过渡,HOME 专属)
     composable(
         route = MuseRoutes.HOME,
-        enterTransition = { MuseTransitions.verticalPushEnter() },
-        exitTransition = { MuseTransitions.verticalPushExit() },
-        popEnterTransition = { MuseTransitions.verticalPushPopEnter() },
-        popExitTransition = { MuseTransitions.verticalPushPopExit() },
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        exitTransition = { MuseTransitions.horizontalPushExit() },
+        popEnterTransition = { MuseTransitions.horizontalPopEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         HomeScreen(
             onOpenSettings = { navController.navigate(MuseRoutes.SETTINGS) },

@@ -204,6 +204,7 @@ class GroupChatRepository(
         senderName: String,
         body: String,
         imageBase64Json: String = "[]",
+        fileAttachmentsJson: String = "[]",
         mood: String? = null,
         reasoning: String? = null,
         whisperTargetId: String? = null,
@@ -224,6 +225,7 @@ class GroupChatRepository(
                     senderName = senderName,
                     body = body,
                     imageBase64Json = imageBase64Json,
+                    fileAttachmentsJson = fileAttachmentsJson,
                     timestamp = System.currentTimeMillis(),
                     mood = mood,
                     reasoning = reasoning,
@@ -236,9 +238,9 @@ class GroupChatRepository(
             groupChatDao.touchUpdatedAt(chatId)
             // v1.107 冗余: 更新群聊冗余字段(最后消息预览 + 计数 + 最后活动时间)
             val preview = body.take(50).ifBlank { "…" }
-            runCatching {
+            resultOf {
                 groupChatDao.updateLastMessageAndCount(chatId, preview, 1, System.currentTimeMillis())
-            }.onFailure { Logger.w(TAG, "updateLastMessageAndCount failed: ${it.message}") }
+            }.onError { msg, _ -> Logger.w(TAG, "updateLastMessageAndCount failed: $msg") }
         }
         msgId
     }

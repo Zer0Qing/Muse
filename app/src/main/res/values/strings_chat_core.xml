@@ -166,6 +166,8 @@
     <!-- 输入框与按钮 -->
     <string name="chat_placeholder_draw">描述要生成的图片…</string>
     <string name="chat_placeholder_send">回复 Muse…</string>
+    <string name="chat_expand_input_cd">全屏编辑</string>
+    <string name="chat_expand_input_title">编辑消息</string>
     <string name="chat_stop_generation_cd">停止生成</string>
     <string name="chat_recording_start_failed">录音启动失败,请检查权限或模型配置</string>
     <string name="chat_recognizing_cd">识别中</string>

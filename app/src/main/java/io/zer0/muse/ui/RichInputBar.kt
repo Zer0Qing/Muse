@@ -131,6 +131,7 @@ internal fun RichInputBar(
     onOpenVoiceConversation: () -> Unit = {},
     // P2-12: 是否启用 Markdown 格式工具条(开关关闭时等价于直接调用 InputBar)
     formatEnabled: Boolean = true,
+    showExpandButton: Boolean = false,
     // v1.0.29: 是否进入页面时自动聚焦输入框并呼出输入法。
     autoFocus: Boolean = true,
 ) {
@@ -201,6 +202,7 @@ internal fun RichInputBar(
             isDrawMode = isDrawMode,
             isWebSearchEnabled = isWebSearchEnabled,
             isDeepThinkingEnabled = isDeepThinkingEnabled,
+            showExpandButton = showExpandButton,
             imageGenParams = imageGenParams,
             onImageGenParamsChange = onImageGenParamsChange,
             onTextChanged = onTextChanged,

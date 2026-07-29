@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 54,
-    "identityHash": "3f2a684ff98d6b6ac5db26a87aa65d3a",
+    "identityHash": "df9b751bec710467283430daf6457067",
     "entities": [
       {
         "tableName": "sessions",
@@ -1708,7 +1708,7 @@
       },
       {
         "tableName": "group_chat_messages",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `chatId` TEXT NOT NULL, `senderType` TEXT NOT NULL, `senderId` TEXT NOT NULL, `senderName` TEXT NOT NULL, `body` TEXT NOT NULL, `imageBase64Json` TEXT NOT NULL DEFAULT '[]', `timestamp` INTEGER NOT NULL DEFAULT 0, `mood` TEXT, `reasoning` TEXT, `whisper_target_id` TEXT DEFAULT NULL, `reply_to_id` TEXT DEFAULT NULL, `messageType` TEXT NOT NULL DEFAULT 'normal', PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `chatId` TEXT NOT NULL, `senderType` TEXT NOT NULL, `senderId` TEXT NOT NULL, `senderName` TEXT NOT NULL, `body` TEXT NOT NULL, `imageBase64Json` TEXT NOT NULL DEFAULT '[]', `timestamp` INTEGER NOT NULL DEFAULT 0, `mood` TEXT, `reasoning` TEXT, `whisper_target_id` TEXT DEFAULT NULL, `reply_to_id` TEXT DEFAULT NULL, `messageType` TEXT NOT NULL DEFAULT 'normal', `fileAttachmentsJson` TEXT NOT NULL DEFAULT '[]', PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -1788,6 +1788,13 @@
             "affinity": "TEXT",
             "notNull": true,
             "defaultValue": "'normal'"
+          },
+          {
+            "fieldPath": "fileAttachmentsJson",
+            "columnName": "fileAttachmentsJson",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'[]'"
           }
         ],
         "primaryKey": {
@@ -2660,7 +2667,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '3f2a684ff98d6b6ac5db26a87aa65d3a')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'df9b751bec710467283430daf6457067')"
     ]
   }
 }

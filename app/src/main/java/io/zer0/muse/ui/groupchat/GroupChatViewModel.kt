@@ -52,6 +52,7 @@ data class GroupChatUiState(
     val currentMessages: List<GroupChatMessageEntity> = emptyList(),
     val inputText: String = "",
     val pendingImages: List<String> = emptyList(),
+    val pendingFileAttachments: List<FileAttachment> = emptyList(),
     val isAgentResponding: Boolean = false,
     /** v1.104: 当前正在发言的 Agent(用于"谁在思考"指示),null=无人在发言 */
     val currentSpeaker: AssistantEntity? = null,
@@ -464,6 +465,18 @@ class GroupChatViewModel(
         _state.update { it.copy(pendingImages = emptyList()) }
     }
 
+    fun addPendingFileAttachment(attachment: FileAttachment) {
+        _state.update { it.copy(pendingFileAttachments = it.pendingFileAttachments + attachment) }
+    }
+
+    fun removePendingFileAttachment(index: Int) {
+        val list = _state.value.pendingFileAttachments.toMutableList()
+        if (index in list.indices) {
+            list.removeAt(index)
+            _state.update { it.copy(pendingFileAttachments = list) }
+        }
+    }
+
     /**
      * 发送用户消息并触发 Agent 轮转回复。
      *
@@ -474,7 +487,7 @@ class GroupChatViewModel(
      */
     fun sendMessage(text: String) {
         val chatId = currentChatId.value ?: return
-        if (text.isBlank() && _state.value.pendingImages.isEmpty()) return
+        if (text.isBlank() && _state.value.pendingImages.isEmpty() && _state.value.pendingFileAttachments.isEmpty()) return
         // v1.126: debounce — 防止快速点击重复发送
         val now = System.currentTimeMillis()
         if (now - lastSendTimestamp < SEND_DEBOUNCE_MS) return
@@ -483,8 +496,8 @@ class GroupChatViewModel(
         if (scheduler.hasActiveGeneration(chatId)) return
 
         val images = _state.value.pendingImages
-        // 立即清空输入框(常见交互:点发送后输入框立即清空)
-        _state.update { it.copy(inputText = "", pendingImages = emptyList()) }
+        val fileAttachments = _state.value.pendingFileAttachments
+        _state.update { it.copy(inputText = "", pendingImages = emptyList(), pendingFileAttachments = emptyList()) }
         // v1.0.21: 乐观 UI 更新 — 立即把用户消息追加到 currentMessages,
         //   不依赖 Room Flow 回流(原实现因 collect 守卫/竞态导致消息发送后不显示)
         // v1.0.22: 乐观消息 id 加 "optimistic-" 前缀,collect 合并时据此识别并去重,
@@ -500,11 +513,13 @@ class GroupChatViewModel(
             senderName = "我",
             body = text,
             imageBase64Json = imageJson,
+            fileAttachmentsJson = if (fileAttachments.isNotEmpty()) kotlinx.serialization.json.Json.encodeToString(
+                kotlinx.serialization.builtins.ListSerializer(FileAttachment.serializer()), fileAttachments
+            ) else "[]",
             timestamp = now,
         )
         _state.update { it.copy(currentMessages = it.currentMessages + optimisticMsg) }
-        // v1.111: 委托给 scheduler,轮转运行在 appScope
-        scheduler.launchRoundRobin(chatId, text, images)
+        scheduler.launchRoundRobin(chatId, text, images, fileAttachments)
     }
 
     /**

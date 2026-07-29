@@ -100,14 +100,14 @@ object GreetingHelper {
     }
 
     // 记忆提示语（人性化）
-    fun getMemoryCountText(count: Int): String {
+    fun getMemoryCountText(count: Int, assistantName: String = "Muse"): String {
         return when (count) {
-            0 -> "Muse 还跟你不够熟悉"
-            in 1..9 -> "Muse 正在慢慢认识你"
-            in 10..49 -> "Muse 已经记住了 $count 条记忆，开始熟悉了"
-            in 50..99 -> "Muse 和你已经很熟了"
-            in 100..199 -> "Muse 和你无话不谈了"
-            else -> "Muse 比谁都懂你，已记住 $count 条记忆"
+            0 -> "$assistantName 还跟你不够熟悉"
+            in 1..9 -> "$assistantName 正在慢慢认识你"
+            in 10..49 -> "$assistantName 已经记住了 $count 条记忆，开始熟悉了"
+            in 50..99 -> "$assistantName 和你已经很熟了"
+            in 100..199 -> "$assistantName 和你无话不谈了"
+            else -> "$assistantName 比谁都懂你，已记住 $count 条记忆"
         }
     }
 

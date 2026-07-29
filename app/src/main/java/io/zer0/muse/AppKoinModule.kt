@@ -1,5 +1,6 @@
 package io.zer0.muse
 
+import io.zer0.common.resultOf
 import io.zer0.ai.aiModule
 import io.zer0.ai.ProviderConfigStore
 import io.zer0.memory.memoryModule
@@ -78,7 +79,7 @@ val appModule = module {
             .connectTimeout(30, TimeUnit.SECONDS)
             // v1.114 修复: 思考模�?�?Claude 3.5 thinking)首字延迟可能�?2 分钟,
             //   readTimeout 120s 会导致思考阶段未输出即超�?改为 300s(5分钟)足够长思�?
-            .readTimeout(300, TimeUnit.SECONDS)
+            .readTimeout(120, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
             .applyProxy(proxyConfig)
             .build()
@@ -287,6 +288,15 @@ val appModule = module {
             ragConfigProvider = { get<io.zer0.muse.data.SettingsRepository>().getRagConfig() },
             stickerLibraryRepository = get(),
             imageService = get(),
+            imageDrawConfigProvider = suspend {
+                val settings = get<io.zer0.muse.data.SettingsRepository>()
+                val cfg = settings.imageGenConfigFlow.first()
+                val provider = if (cfg.providerId.isNotBlank()) {
+                    kotlin.runCatching { settings.getProviderById(cfg.providerId) }.getOrNull()
+                } else null
+                val modelId = if (provider != null && cfg.modelId.isNotBlank()) cfg.modelId else null
+                provider to modelId
+            },
             multiAgentConfigProvider = { get<io.zer0.muse.data.SettingsRepository>().multiAgentConfigCache },
             llmAggregator = get(),
             pauseManager = get(),
@@ -372,9 +382,9 @@ val appModule = module {
                 val docDao = get<io.zer0.muse.data.knowledge.KnowledgeDocDao>()
                 val chunkDao = get<io.zer0.muse.data.knowledge.KnowledgeChunkDao>()
                 docDao.search(query).first().take(topK).map { doc ->
-                    val firstChunkContent = runCatching {
+                    val firstChunkContent = resultOf {
                         chunkDao.getByDoc(doc.id).firstOrNull()?.content ?: ""
-                    }.getOrDefault("")
+                    }.getOrNull() ?: ""
                     doc.title to (firstChunkContent.ifBlank { doc.content.take(500) })
                 }
             },

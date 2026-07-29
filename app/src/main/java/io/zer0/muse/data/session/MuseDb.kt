@@ -138,7 +138,7 @@ import io.zer0.common.Logger
         // v1.0.17: 快速记录(替代 JSON 文件存储 + 回收站)
         QuickNoteEntity::class,
     ],
-    version = 54,
+    version = 55,
     exportSchema = true,
 )
 @TypeConverters(QuickNoteConverters::class)
@@ -1619,6 +1619,20 @@ abstract class MuseDb : RoomDatabase() {
             }
         }
 
+        /**
+         * v1.0.30: MIGRATION_54_55 — 消息表加变体字段(variantGroupId/variantIndex/variantCount)。
+         *
+         * 用于持久化"重新生成"产生的多版本 assistant 回复。
+         * ALTER TABLE ADD COLUMN 全用 NULL/0/1 默认值,兼容已有数据。
+         */
+        val MIGRATION_54_55 = object : Migration(54, 55) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE messages ADD COLUMN variantGroupId TEXT DEFAULT NULL")
+                db.execSQL("ALTER TABLE messages ADD COLUMN variantIndex INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE messages ADD COLUMN variantCount INTEGER NOT NULL DEFAULT 1")
+            }
+        }
+
     fun get(context: Context): MuseDb {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -1658,6 +1672,7 @@ abstract class MuseDb : RoomDatabase() {
                         MIGRATION_51_52,
                         MIGRATION_52_53,
                         MIGRATION_53_54,
+                        MIGRATION_54_55,
                     )
                     // 启用外键约束(artifacts 表的 ON DELETE CASCADE 依赖此设置)
                     // onOpen 不在 onCreate 事务内,可以执行此类命令;onCreate 内禁止 PRAGMA

@@ -33,13 +33,32 @@ class MessageBranchManager {
     /** 每个节点位置的当前分支状态。 */
     private val branchStates = mutableMapOf<String, Int>() // nodeId → 选中索引
 
-    /** 从外部消息列表更新（例如从数据库加载）。 */
+    /** 从外部消息列表更新（例如从数据库加载）。
+     * v1.0.30: 按 variantGroupId 分组重建分支，跨会话/重启后恢复。 */
     fun syncFromMessages(messages: List<UIMessage>) {
-        val nodes = messages.map { msg ->
+        val variantGroups = LinkedHashMap<String, MutableList<UIMessage>>()
+        val orderedNodeIds = mutableListOf<String>()
+        for (msg in messages) {
+            val gid = msg.variantGroupId
+            if (gid != null) {
+                if (!variantGroups.containsKey(gid)) {
+                    variantGroups[gid] = mutableListOf()
+                    orderedNodeIds.add(gid)
+                }
+                variantGroups[gid]!!.add(msg)
+            } else {
+                orderedNodeIds.add(msg.id.toString())
+                variantGroups[msg.id.toString()] = mutableListOf(msg)
+            }
+        }
+        val nodes = orderedNodeIds.map { nodeKey ->
+            val msgs = variantGroups[nodeKey] ?: return@map MessageNode.from(messages.first { it.id.toString() == nodeKey })
+            val sorted = msgs.sortedBy { it.variantIndex }
+            val selectIdx = branchStates[nodeKey]?.coerceIn(0, sorted.size - 1) ?: 0
             MessageNode(
-                id = msg.id.toString(),
-                messages = listOf(msg),
-                selectIndex = branchStates[msg.id.toString()] ?: 0,
+                id = nodeKey,
+                messages = sorted,
+                selectIndex = selectIdx,
             )
         }
         _nodes.value = nodes

@@ -29,7 +29,9 @@ class FactDbProvider(private val context: Context) {
 
     /** 获取指定 assistant 的 FactStore（便捷方法）。 */
     fun getFactStore(assistantId: String): FactStore {
-        return FactStore(getFactDb(assistantId).factDao())
+        // v1.0.27 P0-1.3: FactStore 现在需要 FactDb 实例以支持 addBatch 事务
+        val db = getFactDb(assistantId)
+        return FactStore(db.factDao(), db)
     }
 
     /**
