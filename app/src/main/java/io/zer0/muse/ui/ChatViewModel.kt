@@ -2455,7 +2455,8 @@ class ChatViewModel(
             refreshContextInfo()
             // 同步消息分支状态
             branchManager.syncFromMessages(messages)
-            _state.update { it.copy(messageNodes = branchManager.nodes.value) }
+            _state.update { it.copy(messageNodes = branchManager.nodes.value,
+                messages = branchManager.displayMessages.value) }
             // 切换会话取消所有待审批(防止幽灵审批卡片 + requestToolApproval 协程挂起)
             cancelAllPendingApprovals()
             // 断点续传:检查本会话是否有未完成的工具调用,有则更新 pendingToolCallCount
