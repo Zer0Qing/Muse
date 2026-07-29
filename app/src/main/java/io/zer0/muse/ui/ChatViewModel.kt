@@ -2374,9 +2374,8 @@ class ChatViewModel(
         }
         sessionManager.acquire(sessionId)
         // v1.93+: 切换前把当前会话消息快照存入 LRU 缓存,切回时可直接命中避免 DB 查询。
-        // 注:流式输出已同步落库,此处仅缓存内存快照,不涉及数据持久化;
-        // 存的是 List 引用,依赖 _state 的"复制即更新"模式,不会就地修改已缓存列表。
-        if (currentSession != null) {
+        // v1.0.44: 如果有变体分支则不缓存，强制从 DB 加载完整变体列表
+        if (currentSession != null && _state.value.messageNodes.none { it.hasBranches }) {
             sessionMemoryCache.put(currentSession, _state.value.messages)
         }
         viewModelScope.launch {
@@ -2445,7 +2444,8 @@ class ChatViewModel(
             // v1.0.30: 回话安全网 — 后台生成中的会话显式重刷分支状态 + 清内存缓存
             if (isBackgroundStreaming) {
                 branchManager.syncFromMessages(messages)
-                _state.update { it.copy(messageNodes = branchManager.nodes.value) }
+                _state.update { it.copy(messageNodes = branchManager.nodes.value,
+                    messages = branchManager.displayMessages.value) }
                 sessionMemoryCache.remove(sessionId)
             }
             // v1.0.30: 标记回话时间戳，供 onAppForeground 判断是否需要强制刷新
@@ -2623,7 +2623,8 @@ class ChatViewModel(
             }
             // 加载更多历史后同步消息分支状态
             branchManager.syncFromMessages(merged)
-            _state.update { it.copy(messageNodes = branchManager.nodes.value) }
+            _state.update { it.copy(messageNodes = branchManager.nodes.value,
+                messages = branchManager.displayMessages.value) }
         }
     }
 
