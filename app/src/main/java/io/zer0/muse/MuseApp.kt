@@ -157,27 +157,51 @@ class MuseApp : Application(), ImageLoaderFactory {
         // 启动 memory ticker(每小时 daily check,主触发仍是 ChatViewModel.notifyTurn)
         memoryTicker.start()
         // v1.92: ChatViewModel 为 single 单例,onCleared 永不调用。
-        // 注册 ProcessLifecycleOwner 观察者,在 ON_STOP 时释放 TTS/ASR 资源并停止 memory ticker,
-        // 在 ON_START 时重启 memory ticker。
+        // v1.0.30: 加生命周期互斥锁,防止 ON_STOP/ON_START 快速交替时的竞态条件。
+        val lifecycleMutex = kotlinx.coroutines.sync.Mutex()
         ProcessLifecycleOwner.get().lifecycle.addObserver(LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_STOP -> {
-                    Logger.i("MuseApp", "Process ON_STOP: 释放 ChatViewModel 资源 + 停止 MemoryTicker")
-                    resultOf { chatViewModel.release() }
-                        .onError { msg, t -> Logger.w("MuseApp", "chatViewModel.release 失败: $msg", t) }
-                    appScope.launch {
-                        resultOf { memoryTicker.stop() }
-                            .onError { msg, t -> Logger.w("MuseApp", "memoryTicker.stop 失败: $msg", t) }
+                    if (!lifecycleMutex.tryLock()) {
+                        Logger.w("MuseApp", "ON_STOP 跳过: 生命周期操作进行中")
+                        return@LifecycleEventObserver
+                    }
+                    try {
+                        Logger.i("MuseApp", "Process ON_STOP: 前台服务保活 + 释放非关键资源")
+                        // 优先启动前台服务保活,确保正在流式生成不被中断
+                        resultOf { chatViewModel.onAppBackground() }
+                            .onError { msg, t -> Logger.w("MuseApp", "chatViewModel.onAppBackground 失败: $msg", t) }
+                        // release() 不取消流式生成,仅释放 TTS/ASR 等非关键资源
+                        // 但 notifySessionEndForCurrent 在流式未结束时跳过
+                        resultOf { chatViewModel.release() }
+                            .onError { msg, t -> Logger.w("MuseApp", "chatViewModel.release 失败: $msg", t) }
+                        appScope.launch {
+                            resultOf { memoryTicker.stop() }
+                                .onError { msg, t -> Logger.w("MuseApp", "memoryTicker.stop 失败: $msg", t) }
+                        }
+                    } finally {
+                        lifecycleMutex.unlock()
                     }
                 }
                 Lifecycle.Event.ON_START -> {
-                    // 回前台时重启 memory ticker(stop 时 _timerJob 已置 null,可安全重启)
-                    resultOf { memoryTicker.start() }
-                        .onError { msg, t -> Logger.w("MuseApp", "memoryTicker.start 失败: $msg", t) }
-                    // v1.0.16: 回前台清理 OkHttp 空闲连接,避免复用后台期间被系统关闭的
-                    // 失效 socket 导致首次 HTTP 请求即失败(切页/后台回来报错的常见原因)
-                    resultOf { io.zer0.ai.core.ProviderHttpSupport.evictIdleConnections() }
-                        .onError { msg, t -> Logger.w("MuseApp", "evictIdleConnections 失败: $msg", t) }
+                    if (!lifecycleMutex.tryLock()) {
+                        Logger.w("MuseApp", "ON_START 跳过: 生命周期操作进行中")
+                        return@LifecycleEventObserver
+                    }
+                    try {
+                        // v1.0.29: 切回前台时停止前台服务通知(不再打扰用户)
+                        resultOf { chatViewModel.onAppForeground() }
+                            .onError { msg, t -> Logger.w("MuseApp", "chatViewModel.onAppForeground 失败: $msg", t) }
+                        // 回前台时重启 memory ticker(stop 时 _timerJob 已置 null,可安全重启)
+                        resultOf { memoryTicker.start() }
+                            .onError { msg, t -> Logger.w("MuseApp", "memoryTicker.start 失败: $msg", t) }
+                        // v1.0.16: 回前台清理 OkHttp 空闲连接,避免复用后台期间被系统关闭的
+                        // 失效 socket 导致首次 HTTP 请求即失败(切页/后台回来报错的常见原因)
+                        resultOf { io.zer0.ai.core.ProviderHttpSupport.evictIdleConnections() }
+                            .onError { msg, t -> Logger.w("MuseApp", "evictIdleConnections 失败: $msg", t) }
+                    } finally {
+                        lifecycleMutex.unlock()
+                    }
                 }
                 else -> {}
             }

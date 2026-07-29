@@ -14,6 +14,7 @@ import io.zer0.ai.core.Model
 import io.zer0.ai.core.ModelContextWindowRegistry
 import io.zer0.ai.core.ProviderConfig
 import io.zer0.ai.core.ProviderError
+import io.zer0.ai.core.ProviderException
 import io.zer0.ai.core.ProviderType
 import io.zer0.ai.core.RagCitation
 import io.zer0.ai.core.ReasoningLevel
@@ -93,6 +94,7 @@ import io.zer0.muse.ui.chat.ChatTaskCardCoordinator
 import io.zer0.muse.ui.chat.ImageGenCoordinator
 import io.zer0.muse.ui.chat.buildQuotedContent
 import io.zer0.muse.ui.chat.SlashCommand
+import io.zer0.muse.ui.chat.StreamRunState
 import io.zer0.muse.ui.common.MuseToast
 import io.zer0.muse.ui.speech.TtsManager
 import io.zer0.muse.ui.speech.PlaybackState
@@ -848,7 +850,7 @@ class ChatViewModel(
         // 保留 outboxInsertJob 引用,队列满回滚时通过 join 等待 insert 完成再 delete,避免竞态。
         val outboxId = Uuid.random().toString()
         val outboxInsertJob = viewModelScope.launch(Dispatchers.IO) {
-            runCatching {
+            resultOf {
                 sessionRepository.insertOutbox(io.zer0.muse.data.session.MessageOutboxEntity(
                     id = outboxId,
                     sessionId = sessionId,
@@ -858,7 +860,7 @@ class ChatViewModel(
                     assistantMessageId = assistantMsg.id.toString(),
                     createdAt = System.currentTimeMillis(),
                 ))
-            }.onFailure { Logger.w("ChatVM", "outbox 写入失败,进程被杀可能丢失此消息", it) }
+            }.onError { _, t -> Logger.w("ChatVM", "outbox 写入失败,进程被杀可能丢失此消息", t) }
         }
         _state.update {
             it.copy(
@@ -874,13 +876,18 @@ class ChatViewModel(
                 errors = emptyList(),
             )
         }
+        // v1.0.29: 发送消息后清除 DataStore 中的草稿,
+        // 避免下次 switchSession 时恢复已发送过的旧文本。
+        viewModelScope.launch(Dispatchers.IO) {
+            settings.saveChatDraft(sessionId, "")
+        }
         val sendResult = sendChannel.trySend(SendRequest(text, images, sessionId, userMessage = userMsg, assistantMessageId = assistantMsg.id, outboxId = outboxId))
         if (sendResult.isFailure) {
             // 队列已满,回滚乐观更新 + 删除 outbox(消息未入队,outbox 无用)
             // 异步删除:先 join 等待 insert 协程完成,避免 delete 先于 insert 落盘的竞态导致残留记录
             viewModelScope.launch(Dispatchers.IO) {
                 outboxInsertJob.join()
-                runCatching { sessionRepository.deleteOutbox(outboxId) }
+                resultOf { sessionRepository.deleteOutbox(outboxId) }
             }
             _state.update {
                 val filtered = it.messages.filterNot { msg ->
@@ -939,11 +946,32 @@ class ChatViewModel(
         assistantRepository = assistantRepository,
         appContext = appContext,
     )
+    /** Phase 8.5: 复用的 Json 实例(避免每次解析都新建)。 */
+    private val idListJson = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+
+    // v0.45: 提取为字段,manualCompress 直接调用 transform 做手动压缩
+    // v1.0.17: 注入 ConversationCompressor,启用分块并行 + 独立便宜模型(参考 rikkahub)
+    private val conversationCompressor = io.zer0.muse.transformer.ConversationCompressor(chatService, settings)
+    private val contextCompressTransformer = ContextCompressTransformer(chatService, conversationCompressor)
+
+    private val transformerPipeline: TransformerPipeline by lazy { buildTransformerPipeline() }
+
     // v1.105 阶段 3 拆分: 流式辅助 Coordinator(detach / updateAssistant / 持久化 / 标签提取)
     private val streamCoordinator = ChatStreamCoordinator(
         accessor = this,
         sessionRepository = sessionRepository,
         memoryTicker = memoryTicker,
+        settings = settings,
+        appContext = appContext,
+        notificationManager = notificationManager,
+        assistantRepository = assistantRepository,
+        visionBridge = visionBridge,
+        toolRegistry = toolRegistry,
+        skillRepository = skillRepository,
+        idListJson = idListJson,
+        lorebookRepository = lorebookRepository,
+        promptInjectionRepository = promptInjectionRepository,
+        transformerPipeline = transformerPipeline,
     )
     // v1.134 P1-5: 任务卡 Coordinator(任务卡阶段/步骤/展开/重试/工具结果判定)
     private val taskCardCoordinator = ChatTaskCardCoordinator(
@@ -963,9 +991,6 @@ class ChatViewModel(
         context = appContext,
     )
 
-    /** Phase 8.5: 复用的 Json 实例(避免每次解析都新建)。 */
-    private val idListJson = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
-
     /**
      * Phase 8.1 H1 + Phase 8.2 + Phase 8.5: Transformer 管道。
      * 顺序: MemoryInjection → TimeReminder → Lorebook → PromptInjection → Template(变量替换) → ThinkTag
@@ -973,12 +998,7 @@ class ChatViewModel(
      * - Assistant 配置通过 [TransformContext.extras] 注入,各 Transformer 自行读取
      * - Phase 8.5: LorebookTransformer(关键词触发) + PromptInjectionTransformer(模式开关)
      */
-    // v0.45: 提取为字段,manualCompress 直接调用 transform 做手动压缩
-    // v1.0.17: 注入 ConversationCompressor,启用分块并行 + 独立便宜模型(参考 rikkahub)
-    private val conversationCompressor = io.zer0.muse.transformer.ConversationCompressor(chatService, settings)
-    private val contextCompressTransformer = ContextCompressTransformer(chatService, conversationCompressor)
-
-    private val transformerPipeline: TransformerPipeline = TransformerPipeline.Builder()
+    private fun buildTransformerPipeline(): TransformerPipeline = TransformerPipeline.Builder()
         // v8: MemoryInjectionTransformer 新增可选 factStore 参数(默认 null)用于按 scope 过滤。
         // 本文件按任务约定"仅输出修改建议不直接修改",这里仍用单参数构造(走 fallback 路径)。
         // 启用 scope 过滤需补 factStore 参数,详见最终回复 ChatViewModel.kt 修改建议清单。
@@ -1249,7 +1269,7 @@ class ChatViewModel(
                         )
                     }
                     // v1.0.15: 消息未投递,删除 outbox
-                    runCatching { sessionRepository.deleteOutbox(req.outboxId) }
+                    resultOf { sessionRepository.deleteOutbox(req.outboxId) }
                     continue
                 }
                 try {
@@ -1269,20 +1289,20 @@ class ChatViewModel(
                             addError(ChatErrorType.UNKNOWN, appContext.getString(R.string.err_chat_msg_save_failed, e.message ?: appContext.getString(R.string.err_chat_unknown)))
                             _state.update { it.copy(isStreaming = false) }
                             // v1.0.15: 重试也失败,删除 outbox(消息无法投递)
-                            runCatching { sessionRepository.deleteOutbox(req.outboxId) }
+                            resultOf { sessionRepository.deleteOutbox(req.outboxId) }
                         }
                     } else {
                         addError(ChatErrorType.UNKNOWN, appContext.getString(R.string.err_chat_msg_save_failed, e.message ?: appContext.getString(R.string.err_chat_unknown)))
                         _state.update { it.copy(isStreaming = false) }
                         // v1.0.15: 重试耗尽,删除 outbox
-                        runCatching { sessionRepository.deleteOutbox(req.outboxId) }
+                        resultOf { sessionRepository.deleteOutbox(req.outboxId) }
                     }
                     continue
                 }
                 launchStream(assistantId = _state.value.messages.lastOrNull { it.role == MessageRole.ASSISTANT }?.id
                     ?: kotlin.uuid.Uuid.random(), sessionId = currentSid)
                 // v1.0.15: 生成已启动,outbox 完成使命,删除记录
-                runCatching { sessionRepository.deleteOutbox(req.outboxId) }
+                resultOf { sessionRepository.deleteOutbox(req.outboxId) }
             }
         }
 
@@ -1523,16 +1543,19 @@ class ChatViewModel(
      * v0.49: 根据异常消息分类错误类型(用于 launchStream 主要 catch 块)。
      *
      * v1.0.1 (P4): 改用 [ProviderError] 类型分类,替代原字符串 contains 匹配。
+     * v1.0.27 Phase 5-B: 优先走类型路径 `(throwable as? ProviderException)?.providerError`,
+     * 兜底才用 [inferFromMessage] 字符串推断 (向后兼容)。
+     *
      *  - ProviderError.Network → NETWORK(IOException / timeout / 连接断开)
      *  - ProviderError.RateLimit → RATE_LIMIT(429 / RESOURCE_EXHAUSTED)
      *  - ProviderError.ServerError → NETWORK(5xx / 529 overloaded,可重试)
      *  - ProviderError.AuthError → API_KEY(401 / 403)
      *  - 其余 → UNKNOWN
-     *
-     * 原实现用 `message.contains("429")` 等字符串匹配,脆弱且不识别 5xx(原 5xx 落入 UNKNOWN 不重试)。
      */
     private fun classifyErrorType(message: String, throwable: Throwable? = null): ChatErrorType {
-        val providerError = inferFromMessage(message, throwable)
+        // 优先走类型路径 (Provider 已抛 ProviderException)
+        val providerError = (throwable as? ProviderException)?.providerError
+            ?: inferFromMessage(message, throwable)
         return when (providerError) {
             is ProviderError.Network -> ChatErrorType.NETWORK
             is ProviderError.RateLimit -> ChatErrorType.RATE_LIMIT
@@ -1999,8 +2022,11 @@ class ChatViewModel(
 
     /**
      * 阶段 5: 切换激活 Provider(底部模型切换面板调用)。
-     * 内部会清空 selectedModelId(SettingsRepository 已处理),所以 UI 切换后
-     * 下次发送会回退到新 Provider 的首个模型。
+     *
+     * v1.0.28 修复: 之前注释说"内部会清空 selectedModelId"但实际未清空,
+     * 导致用户从 A Provider 切到 B Provider 后,旧 selectedModelId 仍指向 A 的模型,
+     * resolveToolsAndModel 跨 Provider 查找命中 A 的模型 → 请求误发到 A。
+     * 现显式调用 saveSelectedModel(null) 清空,对齐注释承诺。
      *
      * v1.22: 若目标 Provider 尚未拉取到模型,自动触发 /models 拉取。
      */
@@ -2008,6 +2034,8 @@ class ChatViewModel(
         if (_state.value.isStreaming) return
         viewModelScope.launch {
             settings.setActiveProvider(providerId)
+            // v1.0.28: 切换 Provider 必须清空旧 selectedModelId,否则跨 Provider 误用旧模型
+            settings.saveSelectedModel(null)
             val provider = _state.value.providers.firstOrNull { it.id == providerId }
             if (provider != null && provider.models.isEmpty() && provider.apiKey.isNotBlank()) {
                 refreshModels(providerId)
@@ -2160,6 +2188,7 @@ class ChatViewModel(
                     currentSessionId = id,
                     messages = emptyList(),
                     input = "",
+                    hasDraft = false,
                     errors = emptyList(),
                     isDrawerOpen = false,
                     currentAssistant = assistant,
@@ -2214,6 +2243,7 @@ class ChatViewModel(
                     currentSessionId = id,
                     messages = emptyList(),
                     input = text,
+                    hasDraft = false,
                     errors = emptyList(),
                     isDrawerOpen = false,
                     currentAssistant = assistant,
@@ -2964,11 +2994,15 @@ class ChatViewModel(
      * 当前实现:返回工具列表 + 执行结果字符串。
      */
     suspend fun callTool(name: String, args: Map<String, String>): String {
-        return runCatching {
-            toolRegistry.execute(name, args)
-        }.getOrElse {
-            Logger.e("ChatVM", "tool $name failed", it)
-            "工具执行失败: ${it.message}"
+        // v1.0.28 Phase 3: 改 resultOf 避免 toolRegistry.execute (suspend) 被吞 CancellationException
+        return resultOf { toolRegistry.execute(name, args) }.let { r ->
+            when (r) {
+                is io.zer0.common.Result.Success -> r.data
+                is io.zer0.common.Result.Error -> {
+                    Logger.e("ChatVM", "tool $name failed", r.throwable)
+                    "工具执行失败: ${r.message}"
+                }
+            }
         }
     }
 
@@ -3047,7 +3081,7 @@ class ChatViewModel(
         // 同步清除内存缓存,避免切回时命中含旧回复的过期快照
         sessionMemoryCache.remove(sessionId)
         viewModelScope.launch {
-            runCatching { sessionRepository.deleteMessage(last.id.toString()) }
+            resultOf { sessionRepository.deleteMessage(last.id.toString()) }
             // v1.0.21: isNewBranch=false — 用 replaceCurrent 替换空占位,不再创建分支
             //   原 isNewBranch=true 会在旧 node 上 addBranch,但 node ID 不匹配新消息,
             //   导致分支选择器时有时无;且旧回复已从 DB 删除,分支无法持久化
@@ -3344,10 +3378,9 @@ class ChatViewModel(
     private fun launchStream(assistantId: Uuid, sessionId: String, isNewBranch: Boolean = false) {
         // v1.94: 每次启动流式生成前清空工具调用历史(InputBar 动态胶囊计数归零)
         _state.update { it.copy(toolCallHistory = emptyList()) }
-        // v1.43: 启动前台服务,确保切后台后进程不被系统回收
-        // v1.70: 失败时记录日志,便于排查切后台被杀问题(不加 Toast,避免罕见场景打扰用户)
-        runCatching { ChatGenerationService.start(appContext) }
-            .onFailure { Logger.w("ChatViewModel", "前台服务启动失败,切后台可能被回收", it) }
+        // v1.0.29: 不再在前台启动前台服务通知(用户反馈"正在生成"通知极度无用)。
+        // 改为仅在应用切到后台时启动(由 MuseApp ON_STOP → onAppBackground 触发),
+        // 切回前台时自动停止(由 MuseApp ON_START → onAppForeground 触发)。
         val generationJob = chatGenerationManager.launchGeneration(
             sessionId = sessionId,
             assistantId = assistantId.toString(),
@@ -3359,12 +3392,12 @@ class ChatViewModel(
             // 落盘部分回复时还原占位符,避免 [PHONE_001] 等占位符被持久化到数据库。
             val state = StreamRunState(sessionId = sessionId, assistantId = assistantId, isNewBranch = isNewBranch)
             try {
-                prepareHistory(state)
+                streamCoordinator.prepareHistory(state)
                 buildSystemPromptForStream(state)
-                applyTransformers(state)
-                resolveToolsAndModel(state)
-                applyPiiGuard(state)
-                prepareVisionContext(state)
+                streamCoordinator.applyTransformers(state)
+                streamCoordinator.resolveToolsAndModel(state)
+                streamCoordinator.applyPiiGuard(state)
+                streamCoordinator.prepareVisionContext(state)
                 val success = runToolLoop(state)
                 if (success) {
                     finalizeResponse(state)
@@ -3410,7 +3443,7 @@ class ChatViewModel(
                 // 通知:错误时取消进度通知
                 runCatching {
                     notificationManager.updateLiveProgress("", 0, false)
-                }
+                }.onFailure { Logger.w("ChatVM", "取消进度通知失败: ${it.message}") }
             } finally {
                 // v1.43: 生成结束(正常/异常/取消)都停止前台服务
                 runCatching { ChatGenerationService.stop(appContext) }
@@ -3424,145 +3457,11 @@ class ChatViewModel(
         sessionManager.setGenerationJob(sessionId, generationJob)
     }
 
-    /**
-     * 流式生成过程中的可变状态容器。
-     *
-     * builder/reasoningBuilder/currentAssistantId/piiMatches 提到 try 块外声明(现收入本类),
-     * 让 catch 块也能访问 —— 切页后 catch 块用 builder 内容 + currentAssistantId 构造部分回复落盘,
-     * PII Guard 还原占位符避免 [PHONE_001] 等占位符被持久化到数据库。
-     */
-    private class StreamRunState(
-        val sessionId: String,
-        val assistantId: Uuid,
-        val isNewBranch: Boolean,
-    ) {
-        // Phase A: prepareHistory
-        var streamStartedAt: Long = 0L
-        var sessionTitle: String = ""
-        var experiments: ExperimentsConfig = ExperimentsConfig()
-        var assistant: AssistantEntity? = null
-        var requestedReasoningLevel: ReasoningLevel = ReasoningLevel.OFF
-        var effectiveTemperature: Float = 0f
-        var contextSize: Int = 20
-        var rawHistory: List<UIMessage> = emptyList()
-        var truncatedHistory: List<UIMessage> = emptyList()
-
-        // Phase B: buildSystemPromptForStream
-        var systemMessages: List<UIMessage> = emptyList()
-        var prefixMessages: List<UIMessage> = emptyList()
-        var pendingRagCitations: List<RagCitation> = emptyList()
-
-        // Phase D: applyTransformers
-        var transformedMessages: List<UIMessage> = emptyList()
-        // v1.x: 三钩子接入 — 保存 applyTransformers 构造的 context,
-        // 供后续 applyVisualTransform / applyOnGenerationFinish 复用,避免重复构造
-        var transformContext: TransformContext? = null
-
-        // Phase E: resolveToolsAndModel
-        var tools: List<io.zer0.ai.core.ToolDefinition> = emptyList()
-        var skillMap: Map<String, io.zer0.muse.data.skill.SkillEntity> = emptyMap()
-        var effectiveModel: Model? = null
-        var effectiveProviderConfig: ProviderConfig? = null
-        var reasoningLevel: ReasoningLevel = ReasoningLevel.OFF
-        var conversationHistory: MutableList<UIMessage> = mutableListOf()
-
-        // Phase F: applyPiiGuard — 也需被 catch 块通过 unmaskPii 访问
-        var piiMatches: List<PiiGuard.PiiMatch> = emptyList()
-
-        // Phase H: runToolLoop 结果(也供 finalizeResponse 读取)
-        var currentAssistantId: Uuid = assistantId
-        var round: Int = 0
-        var totalCharCount: Int = 0
-        var totalToolCallCount: Int = 0
-        var firstTokenTime: Long = 0L
-
-        // builder/reasoningBuilder:catch 块用(流式过程中 streamRound 使用 params.builder,
-        // 此处 builder 保留与原实现一致的行为)
-        val builder: StringBuilder = StringBuilder()
-        val reasoningBuilder: StringBuilder = StringBuilder()
-
-        fun unmaskPii(text: String): String =
-            if (piiMatches.isEmpty()) text else PiiGuard.unmask(text, piiMatches)
-    }
+    // v1.0.27 Phase 4-A.1: StreamRunState 抽到 chat/StreamRunState.kt (internal class)
+    // 由 ChatStreamCoordinator 与本类共享,catch 块仍可访问 state.builder / state.unmaskPii
 
     // ===== Phase A: 历史准备 =====
-    private suspend fun prepareHistory(state: StreamRunState) {
-        with(state) {
-            // 通知:启动流式进度通知(LOW importance,不发声)
-            sessionTitle = _state.value.sessions
-                .firstOrNull { it.id == sessionId }?.title ?: appContext.getString(R.string.chat_new_session)
-            runCatching {
-                notificationManager.updateLiveProgress(sessionTitle, 0, true)
-            }
-            // v1.133: RAG 检索引用列表,流式结束后附加到 assistant 消息
-            // 用于 MessageBubble 渲染可点击 chip(点击展开 snippet,长按跳转文档详情)
-            pendingRagCitations = emptyList()
-            // Phase 8.2: 取 Assistant 配置(找不到则用默认助手)
-            assistant = _state.value.currentAssistant
-                ?: assistantRepository.getById("default")
-            // v1.136: 用户/助手请求的推理等级,后续会根据 effectiveModel 是否支持推理再降级。
-            // 未开启深度思考且助手 reasoningLevel 为 AUTO 时,按 OFF 处理,避免简单问题被模型过度思考。
-            requestedReasoningLevel = if (_state.value.deepThinkingEnabled) {
-                ReasoningLevel.HIGH
-            } else assistant?.let {
-                runCatching { ReasoningLevel.valueOf(it.reasoningLevel) }
-                    .getOrElse { ReasoningLevel.DEFAULT }
-                    .let { if (it == ReasoningLevel.AUTO) ReasoningLevel.OFF else it }
-            } ?: ReasoningLevel.OFF
-            // 全局温度回退:助手未单独设 temperature 时用 ChatPreferences.globalTemperature
-            effectiveTemperature = assistant?.temperature
-                ?: _state.value.chatPreferences.globalTemperature
-            // v0.32 实验性:读取 ExperimentsConfig(debugMode + longMemoryCompression)
-            // 用 settings.experimentsCache @Volatile 字段零阻塞读取,与 SystemPromptAssembler 同源
-            experiments = runCatching { settings.experimentsCache }
-                .getOrDefault(ExperimentsConfig())
-            // v0.32 实验性 debugMode:重置 debugInfo,启动计时器与计数器
-            if (experiments.debugMode) {
-                _state.update { it.copy(debugInfo = null) }
-                Logger.d("ChatVM-Debug", "launchStream start | sessionId=$sessionId | assistantId=${assistant?.id} | requestedReasoningLevel=$requestedReasoningLevel")
-            }
-            streamStartedAt = System.currentTimeMillis()
-
-            // v0.32 实验性 longMemoryCompression:context 截断阈值减半(更激进保留近期上下文)
-            // coerceAtLeast(5) 避免极端情况下 context 过小导致无法对话
-            contextSize = assistant?.contextMessageSize?.coerceAtLeast(1) ?: 20
-            if (experiments.longMemoryCompression) {
-                contextSize = (contextSize / 2).coerceAtLeast(5)
-                if (experiments.debugMode) {
-                    Logger.d("ChatVM-Debug", "longMemoryCompression enabled | contextSize $contextSize (halved)")
-                }
-            }
-
-            // 去掉占位 assistant,并按 Assistant.contextMessageSize 截断(取最近 N 条)
-            val messagesExceptPlaceholder = _state.value.messages.dropLast(1)
-            // v1.0.2 修复 HTTP 400: 防御性清理孤儿 tool_call(参考 kelivo message_builder_service.dart:127-193)。
-            // 检测:assistant.toolCalls 非空,但下一条消息不是 role=TOOL(无对应工具响应)。
-            // 处理:整块丢弃该 assistant 消息,避免上游 API 因孤儿 tool_call 返回 400 invalid_request_error。
-            // 场景:ToolOrchestrator 持久化含 tool_calls 的 assistant 后被中断(stop / 崩溃 / 网络错误),
-            // PendingToolCallStore 残留,用户忽略 UI Banner 直接发新消息 → 历史含孤儿 tool_call。
-            // 三大参考项目均主动清理:rikkahub 用 finishInterruptedPendingTools 补 cancelled;
-            // openhanako 用 stripOrphanToolResults 删孤儿 tool 结果;kelivo 整块丢弃 tool_calls。
-            // 这里采用 kelivo 的"整块丢弃"策略(最简单,且对用户无感知 — 用户已忽略 Banner)。
-            rawHistory = messagesExceptPlaceholder.filterIndexed { index, msg ->
-                if (msg.role == MessageRole.ASSISTANT && !msg.toolCalls.isNullOrEmpty()) {
-                    messagesExceptPlaceholder.getOrNull(index + 1)?.role == MessageRole.TOOL
-                } else {
-                    true
-                }
-            }
-            if (rawHistory.size < messagesExceptPlaceholder.size) {
-                Logger.w(
-                    "ChatViewModel",
-                    "清理孤儿 tool_call: ${messagesExceptPlaceholder.size - rawHistory.size} 条 assistant 消息被丢弃",
-                )
-            }
-            // v1.116 (C1-4): 改为 var,发送前 token 预警时可重新截断
-            // v1.x: 改用工具依赖感知截断(limitContextWithContext),避免 takeLast 切到
-            // tool_call/tool_result 之间导致截断后孤儿 tool_call 触发 provider HTTP 400。
-            // 参考 rikkahub Message.kt limitContext。
-            truncatedHistory = rawHistory.limitContextWithContext(contextSize)
-        }
-    }
+    // v1.0.27 Phase 4-A.2: prepareHistory 抽到 ChatStreamCoordinator
 
     // ===== Phase B: system prompt 组装 + prefix 消息(含 RAG 注入)=====
     private suspend fun buildSystemPromptForStream(state: StreamRunState) {
@@ -3682,313 +3581,16 @@ class ChatViewModel(
     }
 
     // ===== Phase C+D: Transformer 管道 =====
-    private suspend fun applyTransformers(state: StreamRunState) {
-        with(state) {
-            // Phase 8.1 H1: Transformer 管道(职责收敛:Assembler 接管 system 提示后,
-            // MemoryInjection / TimeReminder 改为禁用,只保留 Lorebook/PromptInjection/Template/ThinkTag)
-            // Phase 8.5: 预查询 Assistant 绑定的 Lorebook 条目
-            val lorebookIds = assistant?.let { parseIdList(it.lorebookIdsJson) } ?: emptyList()
-            val lorebookEntries: List<LorebookEntity> = if (lorebookIds.isNotEmpty()) {
-                resultOf { lorebookRepository.getByIdsEnabled(lorebookIds) }
-                    .getOrNull() ?: emptyList()
-            } else emptyList()
-            // Phase 8.5: 预查询当前模式对应的 PromptInjection 条目
-            val modeInjections: List<PromptInjectionEntity> = if (_state.value.currentMode != "default") {
-                val injIds = assistant?.let { parseIdList(it.modeInjectionIdsJson) } ?: emptyList()
-                if (injIds.isNotEmpty()) {
-                    (resultOf { promptInjectionRepository.getByIdsEnabled(injIds) }
-                        .getOrNull() ?: emptyList())
-                        .filter { it.mode == _state.value.currentMode }
-                } else {
-                    resultOf { promptInjectionRepository.getEnabledByMode(_state.value.currentMode) }
-                        .getOrNull() ?: emptyList()
-                }
-            } else emptyList()
-            // v1.97: 读取用户画像,把 user_nickname / assistant_name 注入模板变量
-            val userProfile = resultOf { settings.getUserProfile() }.getOrNull()
-            val assistantName = userProfile?.assistantName
-                ?: assistant?.name
-            val userNickname = userProfile?.userNickName
-            val context = TransformContext(
-                sessionId = sessionId,
-                modelId = assistant?.modelId,
-                temperature = effectiveTemperature,
-                maxTokens = assistant?.maxTokens,
-                extras = mapOf(
-                    // v0.30-a: 已由 SystemPromptAssembler 接管,关闭 Transformer 管道里的对应职责
-                    "memory_enabled" to false,
-                    "time_reminder_enabled" to false,
-                    // Phase 8.5
-                    "lorebook_entries" to lorebookEntries,
-                    "prompt_injections" to modeInjections,
-                    // v1.97: 助手级正则规则(预解析,供 RegexMessageTransformer 使用)
-                    "regex_rules" to (assistant?.let {
-                        io.zer0.muse.transformer.RegexTransformer.parseRules(it)
-                    } ?: emptyList()),
-                    // v1.97: 模板变量 — 用户昵称与助手名(供 {{user}} / {{char}} 等)
-                    "user_nickname" to userNickname,
-                    "assistant_name" to assistantName,
-                    // v0.25: 长上下文压缩 — 默认启用,20 条触发,保留最近 15 条
-                    // v0.32 实验性 longMemoryCompression:阈值从 20 降到 10,更早触发摘要压缩
-                    "compress_enabled" to true,
-                    // v1.138: 修复 compress_threshold < compress_keep_recent 导致压缩无法触发。
-                    // longMemoryCompression 模式下 threshold=10,keep_recent 必须小于 threshold。
-                    "compress_threshold" to if (experiments.longMemoryCompression) 10 else 20,
-                    "compress_keep_recent" to if (experiments.longMemoryCompression) 8 else 15,
-                ),
-            )
-            transformedMessages = transformerPipeline.execute(prefixMessages + truncatedHistory, context)
-            // v1.x: 三钩子接入 — 保存 context,供后续 applyVisualTransform / applyOnGenerationFinish 复用
-            transformContext = context
-        }
-    }
+    // v1.0.27 Phase 4-A.2: applyTransformers 抽到 ChatStreamCoordinator
 
     // ===== Phase E: 工具定义 + 模型解析 =====
-    private suspend fun resolveToolsAndModel(state: StreamRunState) {
-        with(state) {
-            // Phase 7+8.8: 工具定义 — 按 Assistant.toolIdsJson 过滤本地工具,
-            // 再合并启用的 Skills 作为额外工具(空列表表示全部启用,向后兼容)
-            val enabledToolIds = assistant?.let { ast ->
-                runCatching {
-                    idListJson.decodeFromString<List<String>>(ast.toolIdsJson)
-                }.getOrNull()
-            }
-            val localToolDefs = toolRegistry.listToolsAsToolDefinitions(enabledToolIds)
-
-            // Phase 8.8: 加载启用的 Skills(按 Assistant.skillIdsJson 过滤)并转为 ToolDefinition
-            val enabledSkillIds = assistant?.let { ast ->
-                runCatching { idListJson.decodeFromString<List<String>>(ast.skillIdsJson) }.getOrNull()
-            }
-            val enabledSkills = skillRepository.listEnabledByIds(enabledSkillIds)
-            // 缓存 skill id → SkillEntity 映射,工具执行时用
-            skillMap = enabledSkills.associateBy { it.id }
-            // v1.116: 表情包概率控制 — 读取设置缓存,决定本轮是否向 LLM 暴露 sticker 工具。
-            // stickerEnabled=false:完全不暴露 list_stickers / send_sticker
-            // stickerEnabled=true:按 stickerSendProbability 概率掷骰子,命中才暴露
-            // 这样 LLM 只能在概率命中时看到工具,实现了用户设置的概率控制
-            val stickerToolsEnabled = settings.stickerEnabledCache &&
-                (kotlin.random.Random.nextInt(100) < settings.stickerSendProbabilityCache)
-            val skillToolDefs = enabledSkills.map { sk ->
-                io.zer0.ai.core.ToolDefinition(
-                    name = sk.id,
-                    description = sk.description,
-                    parametersJsonSchema = sk.parametersJson,
-                )
-            }.filter { def ->
-                // 概率未命中时过滤掉 sticker 相关工具
-                if (stickerToolsEnabled) true else def.name !in STICKER_TOOL_IDS
-            }
-            // v1.0.4 修复 HTTP 400 "Tool names must be unique":
-            // `generate_image` 同时被注册为 ToolRegistry 内置工具(registerMediaTools)
-            // 和 SkillExecutor.BUILT_IN_SKILLS 中的 Skill,默认助手同时启用两份,
-            // 直接拼接会发出重复 tools,DeepSeek/中转站严格校验工具名唯一性会返回 400。
-            // 这里按 name 去重,ToolDef(本地工具实现)优先保留,同名 Skill 被丢弃。
-            tools = (localToolDefs + skillToolDefs).distinctBy { it.name }
-
-            // v1.52: per-assistant 模型解析 — 助手配置了 modelId 则用助手专属模型,
-            // 否则回退到全局 selectedModelId,再否则由 ChatService 兜底(激活 Provider 首个模型)。
-            // 同时解析模型所属的 ProviderConfig,确保跨 Provider 的助手模型也能正确路由。
-            val allProviders = _state.value.providers
-            val assistantModelId = assistant?.modelId?.takeIf { it.isNotBlank() }
-            val assistantProviderId = assistant?.providerId?.takeIf { it.isNotBlank() }
-            val resolvedModel: Model? = if (assistantModelId != null && assistantProviderId != null) {
-                allProviders.firstOrNull { it.id == assistantProviderId }
-                    ?.models?.firstOrNull { it.id == assistantModelId }
-            } else {
-                assistantModelId?.let { aid ->
-                    allProviders.flatMap { it.models }.firstOrNull { it.id == aid }
-                }
-            } ?: _state.value.selectedModelId?.let { sid ->
-                allProviders.flatMap { it.models }.firstOrNull { it.id == sid }
-            }
-            // 兜底:selectedModelId 为 null 且 assistant 未配 modelId 时,
-            // 从激活 Provider 列表中取第一个有模型的 Provider 的首个模型。
-            // 避免 effectiveModel=null 导致视觉辅助等依赖模型的逻辑被跳过。
-            ?: allProviders.firstOrNull { it.models.isNotEmpty() }?.let { p ->
-                p.models.firstOrNull()
-            }
-            val resolvedProviderConfig = resolvedModel?.let { m ->
-                allProviders.firstOrNull { it.id == m.providerId }
-            } ?: allProviders.firstOrNull { it.models.isNotEmpty() }
-
-            // v1.60-A: 工具模型路由 — 工具调用轮次优先使用用户配置的轻量 toolModel
-            val toolModelId = _state.value.toolModelId
-            val toolModel: Model? = toolModelId?.let { tid ->
-                allProviders.flatMap { it.models }.firstOrNull { it.id == tid }
-            }
-            val toolProviderConfig = toolModel?.let { m ->
-                allProviders.firstOrNull { it.id == m.providerId }
-            }
-            // 工具轮(tools 非空)且有 toolModel 时,用 toolModel 替代主模型
-            val rawEffectiveModel = if (tools.isNotEmpty() && toolModel != null) toolModel else resolvedModel
-            // v1.135: 用 ModelRegistry 增强模型能力识别,解决 opencode-go/ 等前缀导致
-            // supportsVision / supportsReasoning 误判的问题。ChatService 内部也会再增强一次。
-            effectiveModel = rawEffectiveModel?.let { ModelRegistry.enhanceModel(it) }
-            effectiveProviderConfig = if (tools.isNotEmpty() && toolModel != null) toolProviderConfig else resolvedProviderConfig
-
-            // v1.136: 若当前模型不支持推理,将推理等级降级到 AUTO/OFF。
-            // 避免向非推理模型发送 reasoning_effort 导致简单问题过度思考,或对不支持的模型返回 400。
-            val effectiveModelForReasoning = effectiveModel
-            reasoningLevel = if (effectiveModelForReasoning != null && !effectiveModelForReasoning.supportsReasoning()) {
-                if (requestedReasoningLevel == ReasoningLevel.OFF) ReasoningLevel.OFF else ReasoningLevel.AUTO
-            } else requestedReasoningLevel
-
-            // 累积的对话历史(含工具调用结果,每轮可能追加 assistant+tool 消息)
-            conversationHistory = transformedMessages.toMutableList()
-        }
-    }
+    // v1.0.27 Phase 4-A.2: resolveToolsAndModel 抽到 ChatStreamCoordinator
 
     // ===== Phase F: PII Guard 遮蔽 =====
-    private suspend fun applyPiiGuard(state: StreamRunState) {
-        with(state) {
-            // PII Guard:发送给 LLM 前对最新一条 USER 消息做敏感信息遮蔽,
-            // AI 回复中出现的占位符在写入 UI / DB 前用 unmaskPii 还原。
-            // 仅遮蔽最新用户消息(保守策略,避免误检历史消息中的正常数字);
-            // 工具调用循环内 conversationHistory 中保留占位符,确保下一轮 LLM 仍看到一致上下文。
-            // piiMatches 与 unmaskPii 已在 StreamRunState 中声明,catch 块可访问。
-            val piiGuardEnabled = settings.piiGuardEnabledCache
-            if (piiGuardEnabled) {
-                val lastUserIdx = conversationHistory.indexOfLast { it.role == MessageRole.USER }
-                if (lastUserIdx >= 0) {
-                    val originalContent = conversationHistory[lastUserIdx].content
-                    if (originalContent.isNotEmpty()) {
-                        val (maskedContent, matches) = PiiGuard.mask(originalContent)
-                        if (matches.isNotEmpty()) {
-                            conversationHistory[lastUserIdx] =
-                                conversationHistory[lastUserIdx].copy(content = maskedContent)
-                            piiMatches = matches
-                        }
-                    }
-                }
-            }
-        }
-    }
+    // v1.0.27 Phase 4-A.2: applyPiiGuard 抽到 ChatStreamCoordinator
 
     // ===== Phase G: 视觉辅助 =====
-    private suspend fun prepareVisionContext(state: StreamRunState) {
-        with(state) {
-            // v1.25: 视觉辅助 — 当前模型不支持视觉时,通过视觉模型分析图片并注入描述
-            // v1.135 修复:无论视觉分析成功或失败,都必须清空原消息的 imageBase64List,
-            // 否则后续 streamChat 仍会向不支持视觉的模型发送图片,导致中转站返回 HTTP 400。
-            // 失败时注入 buildFailureNotice 提示文本,让模型明确知道本轮无图片内容。
-            //
-            // v1.0.5 重写(参考 openhanako):遍历所有带图片的 USER 消息,避免历史图片直达纯文本模型触发 HTTP 400。
-            //  - 最后一条 USER 消息:调用 visionBridge.prepare() 做完整视觉分析 + 注入 <vision-context>
-            //  - 历史 USER 消息:仅清空 imageBase64List(content 保留;若上一轮已 prepare 过则 content
-            //    已含 vision-context;若是切换模型前的残留图片,清空即可避免 400)
-            //
-            // v1.138: 添加完整诊断日志,覆盖触发/跳过/成功/失败全链路,帮助定位"视觉辅助没工作"的问题。
-            val historyImageCount = conversationHistory.count { it.role == MessageRole.USER && it.imageBase64List.isNotEmpty() }
-            val effectiveModelLocal = effectiveModel
-            val modelSupportsVision = effectiveModelLocal?.supportsVisionInput() ?: false
-            Logger.i(
-                "ChatVM",
-                "视觉辅助[前置检查]: effectiveModel=${effectiveModelLocal?.id} " +
-                    "supportsVisionInput=$modelSupportsVision " +
-                    "inputModalities=${effectiveModelLocal?.inputModalities} " +
-                    "history中图片消息数=$historyImageCount",
-            )
-            if (effectiveModelLocal != null && !visionBridge.supportsVision(effectiveModelLocal)) {
-                // 收集所有带图片的 USER 消息索引(按对话顺序)
-                val userImageIndexes = conversationHistory.indices.filter { idx ->
-                    conversationHistory[idx].role == MessageRole.USER &&
-                        conversationHistory[idx].imageBase64List.isNotEmpty()
-                }
-                Logger.i("ChatVM", "视觉辅助[条件满足]: userImageIndexes=${userImageIndexes.size}")
-                if (userImageIndexes.isNotEmpty()) {
-                    val lastIdx = userImageIndexes.last()
-                    val lastUserMsg = conversationHistory[lastIdx]
-                    val imageCount = lastUserMsg.imageBase64List.size
-                    Logger.i(
-                        "ChatVM",
-                        "视觉辅助[触发]: model=${effectiveModelLocal.id} supportsVision=false " +
-                            "图片数=$imageCount 历史待清理=${userImageIndexes.size - 1}",
-                    )
-                    // v1.0.2 (P0): 分析开始时 Toast 提示(原 vision_analysis_starting 字符串未使用)
-                    MuseToast.show(appContext.getString(R.string.vision_analysis_starting))
-                    // v1.0.4: 改用 prepare 方法(参考 openhanako),失败时自动降级注入提示
-                    // v1.0.20: 视觉辅助异步化 — 传 onProgress 回调直接更新 _state.visionProgress,
-                    //   与 visionBridge.progressFlow 收集器(行 1137)并行;回调在 IO 线程触发,
-                    //   _state.update 内部线程安全(MutableStateFlow.update 是原子的)。
-                    //   try/finally 确保异常/取消时 visionProgress 被清空,避免 UI 卡在"分析中"。
-                    val prepareResult = run {
-                        _state.update {
-                            it.copy(visionProgress = io.zer0.muse.vision.VisionProgress(
-                                idle = false, index = 0, total = lastUserMsg.imageBase64List.size,
-                                messageId = lastUserMsg.id.toString(),
-                            ))
-                        }
-                        try {
-                            visionBridge.prepare(
-                                text = lastUserMsg.content,
-                                images = lastUserMsg.imageBase64List,
-                                userRequest = lastUserMsg.content, // 把用户问题传给视觉模型做针对性分析
-                                sessionId = sessionId,
-                                // v1.0.16: 传 messageId 让进度只显示在该消息上,避免所有 USER 消息同时显示"分析中"
-                                messageId = lastUserMsg.id.toString(),
-                                // v1.0.20: 进度回调 — 直接更新 _state.visionProgress
-                                onProgress = { current, total ->
-                                    _state.update {
-                                        it.copy(visionProgress = io.zer0.muse.vision.VisionProgress(
-                                            idle = false,
-                                            index = current,
-                                            total = total,
-                                            messageId = lastUserMsg.id.toString(),
-                                        ))
-                                    }
-                                },
-                            )
-                        } finally {
-                            // prepare 内部 finally 已重置 progressFlow(行 763),触发收集器置 null;
-                            //   这里冗余置空确保即使收集器延迟也能立即清除 UI 进度。
-                            _state.update { it.copy(visionProgress = null) }
-                        }
-                    }
-                    conversationHistory[lastIdx] = lastUserMsg.copy(
-                        content = prepareResult.text,
-                        imageBase64List = prepareResult.images, // prepare 已清空(成功/失败均空)
-                    )
-                    if (prepareResult.success) {
-                        Logger.i("ChatVM", "视觉辅助[成功]: 已注入 ${prepareResult.descriptionCount} 条视觉描述")
-                        MuseToast.show(appContext.getString(R.string.vision_analysis_done, prepareResult.descriptionCount))
-                    } else {
-                        // v1.138: 失败时通过 Toast 显示失败原因,让用户知道为什么视觉辅助没工作
-                        val failDetail = prepareResult.text.take(200)
-                        Logger.w("ChatVM", "视觉辅助[失败]: prepare 降级,详情=$failDetail")
-                        MuseToast.show(appContext.getString(R.string.err_chat_vision_fallback))
-                    }
-
-                    // v1.138: 将消息 ID 标记为"已视觉辅助",驱动 UI 在图片下方显示标签
-                    _state.update {
-                        it.copy(visionAssistedMessageIds = it.visionAssistedMessageIds + lastUserMsg.id.toString())
-                    }
-
-                    // v1.0.5: 清空历史 USER 消息的 imageBase64List(不调 prepare,content 保留原样)
-                    //  避免历史图片以 image_url 格式发给纯文本模型触发 HTTP 400。
-                    for (idx in userImageIndexes) {
-                        if (idx == lastIdx) continue // 最后一条已处理
-                        val histMsg = conversationHistory[idx]
-                        if (histMsg.imageBase64List.isNotEmpty()) {
-                            conversationHistory[idx] = histMsg.copy(imageBase64List = emptyList())
-                            Logger.d(
-                                "ChatVM",
-                                "视觉辅助: 已清空历史消息 #$idx 的 ${histMsg.imageBase64List.size} 张图片" +
-                                    "(避免直达纯文本模型)",
-                            )
-                        }
-                    }
-                } else {
-                    Logger.i("ChatVM", "视觉辅助[跳过]: userImageIndexes 为空,未找到带图片的 USER 消息")
-                }
-            } else {
-                Logger.i(
-                    "ChatVM",
-                    "视觉辅助[跳过]: effectiveModel 为空或模型支持视觉,不触发视觉辅助 " +
-                        "effectiveModel=${effectiveModel?.id} supportsVisionInput=$modelSupportsVision",
-                )
-            }
-        }
-    }
+    // v1.0.27 Phase 4-A.2: prepareVisionContext 抽到 ChatStreamCoordinator
 
     // ===== Phase H: 工具调用循环(含流式 streamRound)=====
     // 返回 true 表示成功完成(可继续 finalizeResponse),false 表示已处理错误并应跳过 finalize。
@@ -4134,7 +3736,7 @@ class ChatViewModel(
                                 lastNotifAt = now
                                 runCatching {
                                     notificationManager.updateLiveProgress(sessionTitle, params.builder.length, true)
-                                }
+                                }.onFailure { Logger.w("ChatVM", "更新进度通知失败: ${it.message}") }
                             }
                             if (experiments.debugMode && params.builder.length - lastLoggedCharCount >= 100) {
                                 lastLoggedCharCount = params.builder.length
@@ -4574,10 +4176,10 @@ class ChatViewModel(
         // 跑一遍 onGenerationFinish 钩子,如果最终 assistant 消息被改变则写回 _state.messages + DB。
         // 仅处理最后一条 assistant 消息(本轮生成的),避免误改历史消息。
         // 容错:钩子内部失败由 TransformerPipeline 兜底跳过,不阻塞 finalizeResponse。
-        runCatching {
-            val ctx = state.transformContext ?: return@runCatching
+        resultOf {
+            val ctx = state.transformContext ?: return@resultOf
             val currentAssistantId = state.currentAssistantId
-            val finalAssistant = _state.value.messages.firstOrNull { it.id == currentAssistantId } ?: return@runCatching
+            val finalAssistant = _state.value.messages.firstOrNull { it.id == currentAssistantId } ?: return@resultOf
             // 单条消息跑 onGenerationFinish(列表形式,与接口签名一致)
             val transformed = transformerPipeline.applyOnGenerationFinish(listOf(finalAssistant), ctx)
             val newAssistant = transformed.firstOrNull()
@@ -4585,17 +4187,17 @@ class ChatViewModel(
                 _state.update { s ->
                     s.copy(messages = s.messages.map { if (it.id == currentAssistantId) newAssistant else it })
                 }
-                runCatching { sessionRepository.upsertMessage(sessionId, newAssistant) }
-                    .onFailure { Logger.w("ChatVM", "onGenerationFinish upsertMessage failed: ${it.message}") }
+                resultOf { sessionRepository.upsertMessage(sessionId, newAssistant) }
+                    .onError { msg, _ -> Logger.w("ChatVM", "onGenerationFinish upsertMessage failed: $msg") }
             }
-        }.onFailure { Logger.w("ChatVM", "applyOnGenerationFinish failed: ${it.message}") }
+        }.onError { msg, _ -> Logger.w("ChatVM", "applyOnGenerationFinish failed: $msg") }
 
         // v0.45: 流式结束后刷新上下文 token 占用(完整回复已写入 messages)
         refreshContextInfo()
 
         // v1.42: 上下文溢出保护 — token 占用超过 80% 时在后台自动压缩,
         // 从流式启动关键路径移到响应结束后,避免阻塞首字返回。
-        runCatching { triggerAutoCompress(sessionId) }
+        resultOf { triggerAutoCompress(sessionId) }
 
         // v2.3: debugMode 下填充 debugInfo(含 TTFT/token 速率等性能指标)
         if (experiments.debugMode) {
@@ -4691,7 +4293,7 @@ class ChatViewModel(
         // 通知:用户停止时取消进度通知
         runCatching {
             notificationManager.updateLiveProgress("", 0, false)
-        }
+        }.onFailure { Logger.w("ChatVM", "取消进度通知失败: ${it.message}") }
         // v1.79 (H-CV4): 移除 stop() 中的持久化逻辑。
         // 原:stop() 读取 state 持久化 assistant 消息,与流式 catch(CancellationException) 块的
         // persistCurrentAssistant / upsertMessage 竞态(两个协程同时 upsert 同一条消息)。
@@ -4889,12 +4491,46 @@ class ChatViewModel(
         stopTts()
         // v1.53: 清除 TTS 状态回调,避免单例 TtsManager 持有已销毁 ViewModel 的回调导致内存泄漏
         ttsManager.onStateChange = null
-        notifySessionEndForCurrent()
+        // v1.0.30: 仅当没有正在进行的流式生成时才通知 session 结束,
+        // 避免切后台时对不完整会话生成摘要
+        val hasActiveStream = chatGenerationManager.activeGeneration.value?.isStreaming == true
+        if (!hasActiveStream) {
+            notifySessionEndForCurrent()
+        } else {
+            Logger.i("ChatViewModel", "release: 流式生成进行中,跳过 notifySessionEnd")
+        }
         // v1.91: 释放流式 ASR Controller(AudioRecord / WebSocket / 协程 scope)
         // v1.105: 委托至 ChatAudioCoordinator
         audioCoordinator.disposeAsr()
         // v1.x: 释放当前会话的引用计数(与 switchSession / createNewSession 中的 acquire 配对)
         currentSessionIdForApproval()?.let { sessionManager.release(it) }
+    }
+
+    /**
+     * v1.0.29: 应用切到后台时调用。
+     *
+     * 如果当前有正在进行的流式生成,启动前台服务通知(让用户知道后台生成进度,
+     * 同时保持进程前台优先级防止被系统回收)。前台时不显示通知(避免"正在生成"打扰)。
+     */
+    fun onAppBackground() {
+        val active = chatGenerationManager.activeGeneration.value
+        if (active != null && active.isStreaming) {
+            Logger.i("ChatViewModel", "应用切后台,启动前台服务保活(会话: ${active.sessionTitle})")
+            runCatching { ChatGenerationService.start(appContext) }
+                .onFailure { Logger.w("ChatViewModel", "前台服务启动失败,切后台可能被回收", it) }
+        }
+    }
+
+    /**
+     * v1.0.29: 应用切回前台时调用。
+     *
+     * 停止前台服务通知(不再需要保活通知打扰用户)。生成任务继续在应用级协程中运行。
+     */
+    fun onAppForeground() {
+        runCatching { ChatGenerationService.stop(appContext) }
+        // 取消可能残留的进度通知
+        runCatching { notificationManager.updateLiveProgress("", 0, false) }
+            .onFailure { Logger.w("ChatVM", "取消进度通知失败: ${it.message}") }
     }
 
     /**
@@ -5655,7 +5291,7 @@ class ChatViewModel(
         val newConfig = currentConfig.copy(ttsVoiceName = voiceName)
         ttsManager.applyConfig(newConfig)
         viewModelScope.launch {
-            runCatching { settings.saveMediaConfig(newConfig) }
+            resultOf { settings.saveMediaConfig(newConfig) }
         }
     }
 
