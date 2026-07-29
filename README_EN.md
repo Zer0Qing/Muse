@@ -46,19 +46,19 @@
 
 ## What is Muse
 
-Tired of introducing yourself every time you open a new AI chat? Muse doesn't need that.
+Most AI apps make you reintroduce yourself every time. Muse remembers.
 
-Muse is the Android AI companion that **actually remembers you** — your preferences, your habits, what matters to you. Switch models, switch conversations, close the app and come back — it all stays.
+Muse is an Android AI companion with a four-tier memory system that actually keeps track of who you are. Switch models, switch conversations, close the app and come back. It all stays.
 
-Every response starts with an inner monologue (Mood) — four dimensions of what the AI is thinking, feeling, and reflecting on. Folded by default, but one tap away when you're curious.
+Every response starts with an inner monologue (Mood). Four dimensions of what the AI is thinking, feeling, and reflecting. Folded by default, one tap to see.
 
 **Your choice, your way:**
-- Any model: OpenAI, Anthropic, Gemini, DeepSeek, or any OpenAI-compatible API
-- No signup, no accounts, data stays local by default
-- Voice, web search, tools, multi-agent group chat
-- Even reaches out when you've been away too long
+- Pick any model: OpenAI, Anthropic, Gemini, DeepSeek, you name it
+- No signup, no accounts, data stays local
+- Voice, search, tools, multi-agent group chat
+- Even checks in when you have been away too long
 
-All built around one idea: make AI conversations **continue**, not restart.
+All built around one idea: make conversations continue, not restart from zero.
 
 Muse is a local-first AI companion app built for Android. It builds a persistent relationship with you through a 4-tier progressive memory system that remembers your preferences, your history, and what matters to you. It lets you choose the underlying model freely (OpenAI, Anthropic, Gemini, DeepSeek, or any OpenAI-compatible endpoint). It speaks, searches the web, executes tools, and even proactively starts a conversation when it has not heard from you in a while.
 
