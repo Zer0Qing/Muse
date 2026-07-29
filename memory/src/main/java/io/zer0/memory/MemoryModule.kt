@@ -55,7 +55,7 @@ val memoryModule: Module = module {
     // v6: 记忆编译产物同时输出到文件系统(memory.md + daily/)
     single { io.zer0.memory.compile.MemoryFileWriter(androidContext().filesDir) }
     single { MemoryCompiler(get(), get(), get()) }    // sectionDao + llmClient + fileWriter
-    single { FactStore(get()) }                       // factDao
+    single { FactStore(get(), get()) }                // factDao + factDb（v1.0.27 P0-1.3: addBatch 事务需要）
     single { DeepMemoryProcessor(get<io.zer0.memory.fact.FactDbProvider>(), get()) }  // factDbProvider + llmClient
 
     // 置顶记忆存储(openhanako pinned-memory-store.ts)

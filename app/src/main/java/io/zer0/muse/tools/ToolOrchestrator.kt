@@ -728,7 +728,7 @@ class ToolOrchestrator(
      * 所有值统一以 JSON 字符串形式写入(对齐 ToolRegistry.executeFromJson 的解析约定:
      * `v.toString().trim('"')`)。
      */
-    private fun mergeToolArguments(originalArguments: String, overrides: Map<String, String>): String {
+    internal fun mergeToolArguments(originalArguments: String, overrides: Map<String, String>): String {
         if (overrides.isEmpty()) return originalArguments
         val base: JsonObject = resultOf {
             AppJson.decodeFromString(JsonObject.serializer(), originalArguments)
@@ -791,7 +791,7 @@ class ToolOrchestrator(
      *  - 否则简单任务默认 [DEFAULT_MAX_TOOL_ROUNDS](10 轮)
      *  - 上限 [MAX_TOOL_ROUNDS_HARD_CAP](25)兜底,且不超过 [hardCap](向后兼容调用方传入的 params.maxRounds)
      */
-    private fun computeMaxRounds(
+    internal fun computeMaxRounds(
         messages: List<UIMessage>,
         hardCap: Int = MAX_TOOL_ROUNDS_HARD_CAP,
     ): Int {
@@ -804,7 +804,7 @@ class ToolOrchestrator(
      * 统计 task_plan 步骤数:优先用 SkillExecutor 内存中的活跃计划,
      * 回退到从历史消息中解析 task_plan 工具调用的 steps 参数(断点续传/继续会话场景)。
      */
-    private fun countTaskPlanSteps(messages: List<UIMessage>): Int {
+    internal fun countTaskPlanSteps(messages: List<UIMessage>): Int {
         val activePlanSteps = skillExecutor.getActivePlans().values.sumOf { it.steps.size }
         if (activePlanSteps > 0) return activePlanSteps
         return messages.asSequence()
@@ -819,7 +819,7 @@ class ToolOrchestrator(
      * 从 task_plan 工具调用的 arguments JSON 中解析 steps 数组长度。
      * 解析失败返回 null(容错,不影响主流程)。
      */
-    private fun parseTaskPlanStepCount(argumentsJson: String): Int? {
+    internal fun parseTaskPlanStepCount(argumentsJson: String): Int? {
         return resultOf {
             val obj = AppJson.decodeFromString(JsonObject.serializer(), argumentsJson)
             val stepsEl = obj["steps"] ?: return@resultOf 0
@@ -837,13 +837,13 @@ class ToolOrchestrator(
      * 签名 = 按 id 排序后的 "name(arguments)" 拼接,顺序无关,避免并行工具顺序抖动误判。
      * 空列表返回空字符串(不参与卡死检测)。
      */
-    private fun toolCallSignature(toolCalls: List<ToolCall>): String {
+    internal fun toolCallSignature(toolCalls: List<ToolCall>): String {
         if (toolCalls.isEmpty()) return ""
         return toolCalls.sortedBy { it.id }
             .joinToString("|") { "${it.name}(${it.arguments})" }
     }
 
-    private fun extractWebSearchUrls(result: String): List<String> {
+    internal fun extractWebSearchUrls(result: String): List<String> {
         val regex = Regex("""^\s*URL:\s*(.+)$""", RegexOption.MULTILINE)
         return regex.findAll(result).map { it.groupValues[1].trim() }.toList()
     }

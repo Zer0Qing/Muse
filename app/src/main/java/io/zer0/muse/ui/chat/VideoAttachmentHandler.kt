@@ -5,6 +5,7 @@ import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.util.Base64
 import io.zer0.common.Logger
+import io.zer0.common.resultOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
@@ -83,7 +84,7 @@ class VideoAttachmentHandler {
      * @return 成功返回 [VideoAttachment]；失败（文件过大 / 无法读取 / 无元数据）返回 Result.failure
      */
     suspend fun handleVideoAttachment(uri: Uri, context: Context): Result<VideoAttachment> {
-        return runCatching {
+        val r = resultOf {
             withContext(Dispatchers.IO) {
                 // 1. 校验文件大小（>50MB 拒绝）
                 val size = queryFileSize(uri, context)
@@ -124,8 +125,11 @@ class VideoAttachmentHandler {
                     runCatching { retriever.release() }
                 }
             }
-        }.onFailure { e ->
-            Logger.e(TAG, "handleVideoAttachment failed", e)
+        }
+        r.onError { _, t -> Logger.e(TAG, "handleVideoAttachment failed", t) }
+        return when (r) {
+            is io.zer0.common.Result.Success -> Result.success(r.data)
+            is io.zer0.common.Result.Error -> Result.failure(r.throwable ?: IllegalStateException(r.message))
         }
     }
 

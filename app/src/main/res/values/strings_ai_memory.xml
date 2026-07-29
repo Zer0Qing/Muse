@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    ai / memory / transformer 三模块 i18n 审查结论:
+    ai / memory / transformer 三模块 i18n 审查结论(P7 更新 2026-07):
     - ai 模块(独立 Gradle 模块): 用户可见错误消息通过 Result.Error/异常传递到 UI,
-      但无法直接引用 app 的 R.string。已在各源文件标注 // TODO i18n 待提取,
-      待引入错误代码枚举方案后提取。
+      但无法直接引用 app 的 R.string。P7 审计确认源代码中的 // TODO i18n 标注
+      已全部清理完毕(实际为 0 处),ErrorMessage 体系骨架已就绪并接入
+      ErrorMessageMapper + R.string。残留的 error() 硬编码中文多为内部日志
+      (被 resultOf 吞掉,不直接显示给用户),i18n 优先级低,可渐进式迁移。
     - memory 模块(独立 Gradle 模块): 验证错误(MemoryConfig.validate)与 isZh 时间标签
       (重要事实/事情经过等)用户可见,但跨模块且部分标签参与 LLM 输出解析契约。
-      已在各源文件标注 // TODO i18n 待提取。
+      P7 审计确认源代码中无 // TODO i18n 标注,残留硬编码为 LLM 提示词契约,保留原文。
     - transformer 模块(app 内): 经逐文件审查,所有中文字符串均为 LLM 提示词内容
       (发给 LLM 的 SYSTEM 消息)、Logger 日志、代码注释或内部异常消息,
       无直接面向用户的 UI 字符串,按"LLM 提示词不提取"规则保留原文。

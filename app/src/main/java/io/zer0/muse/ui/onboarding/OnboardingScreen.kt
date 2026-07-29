@@ -123,7 +123,7 @@ fun OnboardingScreen(onComplete: () -> Unit) {
 
     // ── 各步骤状态 ──
     var selectedLanguage by rememberSaveable { mutableStateOf("zh") }
-    var selectedThemeId by rememberSaveable { mutableStateOf("warm_paper") }
+    var selectedThemeId by rememberSaveable { mutableStateOf("mono") }
     var userName by rememberSaveable { mutableStateOf("") }
     var agentName by rememberSaveable { mutableStateOf("Muse") }
     var selectedPresetId by rememberSaveable { mutableStateOf("") }
@@ -643,18 +643,31 @@ private fun StepNames(
             color = MaterialTheme.colorScheme.onSurface,
         )
         Spacer(modifier = Modifier.height(MusePaddings.sectionGap))
+        // v1.0.28: label 放到输入框上方,避免 OutlinedTextField 内部 label 的白色背景块
+        Text(
+            text = stringResource(R.string.onboarding_names_user_label),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Spacer(modifier = Modifier.height(MusePaddings.tightGap))
         IosTextField(
             value = userName,
             onValueChange = onUserNameChange,
-            label = { Text(stringResource(R.string.onboarding_names_user_label)) },
+            placeholder = { Text(stringResource(R.string.onboarding_names_user_label)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
-        Spacer(modifier = Modifier.height(MusePaddings.itemGap))
+        Spacer(modifier = Modifier.height(MusePaddings.contentGap))
+        Text(
+            text = stringResource(R.string.onboarding_names_agent_label),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Spacer(modifier = Modifier.height(MusePaddings.tightGap))
         IosTextField(
             value = agentName,
             onValueChange = onAgentNameChange,
-            label = { Text(stringResource(R.string.onboarding_names_agent_label)) },
+            placeholder = { Text(stringResource(R.string.onboarding_names_agent_label)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -1301,6 +1314,15 @@ private suspend fun saveStepData(
             if (defaultAssistant != null && agentName.isNotBlank()) {
                 assistantRepo.upsert(defaultAssistant.copy(name = agentName))
             }
+            // v1.0.27 修复: 引导页填写的称呼同步到 UserProfile,让个人资料页能看到且注入 system prompt
+            // 旧实现只写到 account_user_name + Assistant 表,UserProfileEditPage 读的是 user_profile_json,三套独立存储无同步
+            val profile = settings.getUserProfile()
+            settings.saveUserProfile(
+                profile.copy(
+                    userNickName = userName.ifBlank { profile.userNickName },
+                    assistantName = agentName.ifBlank { profile.assistantName },
+                ),
+            )
         }
         3 -> {
             // 创建并保存供应商配置（仅当测试成功且未跳过时）

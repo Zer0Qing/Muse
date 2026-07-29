@@ -43,6 +43,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import io.zer0.common.Result
+import io.zer0.common.resultOf
 import io.zer0.muse.ui.common.IosTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -779,7 +781,7 @@ internal fun ProviderEditPage(
     ) { uri ->
         uri ?: return@rememberLauncherForActivityResult
         ioScope.launch {
-            runCatching {
+            resultOf {
                 withContext(Dispatchers.IO) {
                     context.contentResolver.openInputStream(uri)?.use { stream ->
                         // v1.114: 限制读取 10MB,防止超大文件 OOM
@@ -812,8 +814,8 @@ internal fun ProviderEditPage(
                 privateKey = parsed.second
                 vertexProjectId = parsed.third
                 MuseToast.show(context.getString(R.string.settings_provider_imported_from_json))
-            }.onFailure { e ->
-                fetchError = context.getString(R.string.settings_provider_import_failed, e.message ?: "")
+            }.onError { msg, t ->
+                fetchError = context.getString(R.string.settings_provider_import_failed, msg)
             }
         }
     }
@@ -886,7 +888,7 @@ internal fun ProviderEditPage(
                 var lastError: Throwable? = null
                 var lastHttpCode: Int? = null
                 for (url in urlsToTry) {
-                    val result = runCatching {
+                    val result = resultOf {
                         withContext(Dispatchers.IO) {
                             ProviderRegistry.create(tempConfig.copy(baseUrl = url))
                                 .listModels(tempConfig.copy(baseUrl = url))
@@ -911,7 +913,7 @@ internal fun ProviderEditPage(
                         }
                         return@launch
                     } else {
-                        lastError = result.exceptionOrNull()
+                        lastError = (result as Result.Error).throwable
                         // v1.132: 401/403 立即报错,不 fallback(凭证问题)
                         val msg = lastError?.message.orEmpty()
                         if (msg.contains("401") || msg.contains("403")) {
@@ -974,13 +976,16 @@ internal fun ProviderEditPage(
         testConnectionError = null
         ioScope.launch {
             val (result, isSuccess) = withContext(Dispatchers.IO) {
-                runCatching {
+                val r = resultOf {
                     // 轻量测试:仅调用 listModels 验证 baseUrl + apiKey 是否可达
                     val models = ProviderRegistry.create(tempConfig).listModels(tempConfig)
                     context.getString(R.string.settings_provider_test_success_count, models.size) to true
-                }.getOrElse { e ->
+                }
+                if (r.isSuccess) {
+                    r.getOrThrow()
+                } else {
                     // 错误分级(按 task spec 短消息展示)
-                    val msg = e.message.orEmpty()
+                    val msg = (r as Result.Error).throwable?.message.orEmpty()
                     val classified = when {
                         msg.contains("401") || msg.contains("403") ->
                             context.getString(R.string.settings_provider_test_error_auth)
@@ -1076,12 +1081,15 @@ internal fun ProviderEditPage(
         val tempConfig = buildTempConfig()
         ioScope.launch {
             val result = withContext(Dispatchers.IO) {
-                runCatching {
+                val r = resultOf {
                     io.zer0.ai.ProviderRegistry.create(tempConfig).healthCheck(model)
-                }.getOrElse { e ->
+                }
+                if (r.isSuccess) {
+                    r.getOrThrow()
+                } else {
                     io.zer0.ai.core.HealthCheckResult(
                         success = false,
-                        message = e.message?.take(120),
+                        message = (r as Result.Error).throwable?.message?.take(120),
                     )
                 }
             }

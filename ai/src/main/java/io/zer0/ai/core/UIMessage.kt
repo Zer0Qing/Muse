@@ -47,6 +47,45 @@ data class ToolCallInfo(
  * UI 层使用的消息体。独立于任何 Provider 的请求格式,
  * 由各 Provider 自己把它翻译成对应 API 的 payload。
  *
+ * ============================================================================
+ * P5-E 字段职责分组(2026-07 重构审计)
+ * ============================================================================
+ *
+ * 本 data class 承载多类职责,按使用场景分组如下。新增字段请明确归入其中一类,
+ * 并同步更新 [toPersistable] 的字段过滤逻辑。
+ *
+ * ── A. 核心字段(传输 + 持久化 + UI 共用) ─────────────────────────────────
+ *   [id] [role] [content] [reasoning] [modelId] [createdAt]
+ *
+ * ── B. 传输协议字段(Provider 通信使用,不持久化) ────────────────────────
+ *   [thinkingSignature]   Anthropic thinking 签名(多轮 thinking 回放必需)
+ *   [toolCalls]           ASSISTANT 决策调用工具(OpenAI/Anthropic/Gemini 各自转译)
+ *   [toolCallId]          TOOL 消息回填工具结果(对应 tool_call_id)
+ *   [imageBase64List]     USER 视觉输入 / Gemini inlineData 绘图返回
+ *   [videoFileUri]        Gemini Files API 上传后的 uri(仅 Gemini 读取)
+ *   [videoMimeType]       同上配套 MIME
+ *
+ *   ⚠ 持久化时全部丢弃,重启后从 DB 加载为默认值;[imageBase64List] 通过
+ *      MessageImageStore 落盘到 filesDir 后以 file:// 路径还原。
+ *
+ * ── C. 持久化字段(落盘到 MessageEntity,UI 也读取) ─────────────────────
+ *   [imageUrls]           AI 生图结果 URL(ASSISTANT 专用,Provider 发送时忽略)
+ *   [citationUrls]        联网搜索引用 URL(ASSISTANT 专用,Provider 发送时忽略)
+ *   [ragCitations]        知识库检索引用(ASSISTANT 专用,Provider 发送时忽略)
+ *   [artifactIds]         关联 Artifact id 列表(由 ArtifactExtractor 生成)
+ *   [mood] [reflection]   LLM 输出的内部腹稿 / 自我反思(从 content 剥离后存此)
+ *   [favorite] [favoriteTag]  收藏标记 + 分组标签(混合:UI 触发 + 已落盘)
+ *   [reaction]            消息表情回应键(混合:UI 触发 + 已落盘)
+ *
+ * ── D. 纯 UI 状态字段(仅 UI 层使用,绝不持久化) ────────────────────────
+ *   [toolCallInfo]        工具调用卡片信息(历史会话回放时为 null,content 兜底)
+ *   [quotedContent]       引用回复内容(持久化时通过 content 开头 `> ` 间接承载)
+ *
+ *   ⚠ 这两个字段是 UIMessage 中仅有的"纯 UI 状态",P5-E 审计确认分离成本
+ *      (60+ 调用点)高于收益(仅 5/3 文件使用),故保持内联,仅文档化边界。
+ *
+ * ============================================================================
+ *
  * Phase 1 仅支持纯文本;[parts] 的多模态结构留给 Phase 3。
  *
  * Phase 5-G: [imageUrls] 用于图片生成结果(ASSISTANT 消息),
@@ -74,6 +113,7 @@ data class ToolCallInfo(
 @Immutable
 @Serializable
 data class UIMessage(
+    // ── A. 核心字段(传输 + 持久化 + UI 共用) ─────────────────────────────
     val id: Uuid = Uuid.random(),
     val role: MessageRole,
     val content: String,
@@ -85,15 +125,18 @@ data class UIMessage(
      * 下一轮请求需在 assistant 消息的 thinking 块里回传该 signature 才能继续思考链。
      * 由 ChatViewModel 从 [io.zer0.ai.core.ChatStreamEvent.ReasoningDelta.signature] 累积并存入此字段。
      * v1.121: AnthropicProvider.splitSystem 已处理 reasoning/thinkingSignature 回传,
- * ASSISTANT 消息的 thinking content block 包含 thinking+signature,服务端可验证前序思考完整性。
+     * ASSISTANT 消息的 thinking content block 包含 thinking+signature,服务端可验证前序思考完整性。
      * 其他 Provider 忽略此字段。
      */
     val thinkingSignature: String? = null,
     val modelId: String? = null,
     val createdAt: Long = System.currentTimeMillis(),
+    // ── C. 持久化字段(落盘到 MessageEntity,UI 也读取) ─────────────────
     val imageUrls: List<String> = emptyList(),
+    // ── B. 传输协议字段(Provider 通信使用,不持久化) ───────────────────
     val toolCalls: List<ToolCall>? = null,
     val toolCallId: String? = null,
+    // ── C. 持久化字段(混合:UI 触发 + 已落盘) ───────────────────────────
     val favorite: Boolean = false,
     /**
      * v1.104 U7: 收藏分组标签(用户自定义,如"灵感"/"代码片段")。
@@ -135,6 +178,7 @@ data class UIMessage(
      * 3 字段(准确性/完整性/语气)。UI 渲染先不做,后续 UI 任务再展示。
      */
     val reflection: String? = null,
+    // ── D. 纯 UI 状态字段(仅 UI 层使用,绝不持久化) ─────────────────────
     /**
      * v0.47: 工具调用卡片信息(用于 MessageBubble 渲染折叠卡片,替代纯文本"调用工具 xxx"消息)。
      *
@@ -150,6 +194,29 @@ data class UIMessage(
     /** 功能1: 消息表情回应键(ThumbUp/Favorite/SentimentSatisfied/SentimentDissatisfied/MoodBad/Bolt,null=无)。 */
     val reaction: String? = null,
 ) {
+    /**
+     * P5-E: 返回剥离传输协议字段 + 纯 UI 状态字段后的副本,供持久化使用。
+     *
+     * 显式管理"哪些字段不落盘到 MessageEntity"的边界,避免新增字段时
+     * 被意外持久化或意外丢失。当前剥离的字段:
+     *  - 传输协议(B 类):thinkingSignature / toolCalls / toolCallId /
+     *    imageBase64List / videoFileUri / videoMimeType
+     *  - 纯 UI 状态(D 类):toolCallInfo / quotedContent
+     *
+     * 注意:[imageBase64List] 本身不落盘,但 USER 上传的图片会通过
+     * MessageImageStore 落盘到 filesDir 后以 file:// 路径由调用方另行处理。
+     * 此函数仅做字段剥离,不涉及 filesDir 落盘逻辑。
+     */
+    fun toPersistable(): UIMessage = copy(
+        thinkingSignature = null,
+        toolCalls = null,
+        toolCallId = null,
+        imageBase64List = emptyList(),
+        videoFileUri = null,
+        videoMimeType = null,
+        toolCallInfo = null,
+        quotedContent = null,
+    )
     /** 拼出用于显示的纯文本(不含推理过程)。 */
     fun toText(): String = content
 

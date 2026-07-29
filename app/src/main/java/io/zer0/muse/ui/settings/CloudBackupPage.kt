@@ -1,5 +1,6 @@
 package io.zer0.muse.ui.settings
 
+import io.zer0.common.resultOf
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -116,9 +117,9 @@ fun CloudBackupPage(
         if (cloudConfig.isConfigured) {
             listLoading = true
             listLoadFailed = false
-            val result = runCatching { cloudBackupService.listBackups(cloudConfig) }
+            val result = resultOf { cloudBackupService.listBackups(cloudConfig) }
             result.onSuccess { remoteBackups = it }
-                .onFailure { listLoadFailed = true }
+                .onError { _, _ -> listLoadFailed = true }
             listLoading = false
         } else {
             remoteBackups = emptyList()
@@ -257,12 +258,12 @@ fun CloudBackupPage(
                 TextButton(
                     onClick = {
                         scope.launch {
-                            runCatching { settings.saveCloudBackupConfig(draft) }
+                            resultOf { settings.saveCloudBackupConfig(draft) }
                                 .onSuccess {
                                     MuseToast.show(context.getString(R.string.cloud_backup_config_saved))
                                 }
-                                .onFailure {
-                                    MuseToast.show(it.message ?: "Save failed", 2500)
+                                .onError { _, t ->
+                                    MuseToast.show(t?.message ?: "Save failed", 2500)
                                 }
                         }
                     },
@@ -305,7 +306,7 @@ fun CloudBackupPage(
                             )
                             // 上传成功后刷新远端列表
                             if (ok) {
-                                val list = runCatching { cloudBackupService.listBackups(cloudConfig) }.getOrDefault(emptyList())
+                                val list = resultOf { cloudBackupService.listBackups(cloudConfig) }.getOrNull() ?: emptyList()
                                 remoteBackups = list
                             }
                         }
@@ -360,9 +361,9 @@ fun CloudBackupPage(
                         listLoading = true
                         listLoadFailed = false
                         scope.launch {
-                            val result = runCatching { cloudBackupService.listBackups(cloudConfig) }
+                            val result = resultOf { cloudBackupService.listBackups(cloudConfig) }
                             result.onSuccess { remoteBackups = it }
-                                .onFailure { listLoadFailed = true }
+                                .onError { _, _ -> listLoadFailed = true }
                             listLoading = false
                         }
                     },
@@ -428,9 +429,9 @@ fun CloudBackupPage(
                                             )
                                         )
                                         if (ok) {
-                                            remoteBackups = runCatching {
+                                            remoteBackups = resultOf {
                                                 cloudBackupService.listBackups(cloudConfig)
-                                            }.getOrDefault(emptyList())
+                                            }.getOrNull() ?: emptyList()
                                         }
                                     }
                                 },

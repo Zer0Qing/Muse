@@ -1,6 +1,8 @@
 package io.zer0.ai.core
 
+import io.zer0.common.ErrorCode
 import io.zer0.common.Logger
+import io.zer0.common.toMessage
 import java.io.IOException
 
 /**
@@ -259,7 +261,12 @@ val ChatStreamEvent.Error.providerError: ProviderError?
  *
  * v1.0.1 (P4): 改为 public,供 ChatViewModel.classifyErrorType 使用,
  * 替代原字符串 contains 匹配。
+ *
+ * v1.0.27 Phase 5-A: 现已不推荐使用,Provider 应直接抛 [ProviderException] 让类型路径
+ * `(throwable as? ProviderException)?.providerError` 生效。保留作为向后兼容兜底,
+ * 供未迁移的 Provider 使用。
  */
+@Deprecated("Provider 应直接抛 ProviderException,用 (throwable as? ProviderException)?.providerError 替代字符串推断", ReplaceWith("(throwable as? ProviderException)?.providerError"))
 fun inferFromMessage(message: String, throwable: Throwable?): ProviderError? {
     if (message.isBlank() && throwable == null) return null
     val msg = message.lowercase()
@@ -280,3 +287,85 @@ fun inferFromMessage(message: String, throwable: Throwable?): ProviderError? {
         else -> null  // 不强推断为 Unknown,让上层保留原行为
     }
 }
+
+/**
+ * v1.0.27 Phase 5-A: 把 [ErrorCode] 映射到类型化的 [ProviderError]。
+ *
+ * 用于激活 [ProviderException] 类型路径 — Provider 抛 [ProviderException] 后,
+ * 消费端用 `(throwable as? ProviderException)?.providerError` 即可拿到强类型错误,
+ * 不再需要 [inferFromMessage] 字符串解析。
+ *
+ * [displayMessage] 保留原 [ErrorCode.toMessage] 字符串,向后兼容 —
+ * 即便消费端仍走 inferFromMessage 路径,也能解析出对应类型。
+ *
+ * 映射策略 (基于 ErrorCode 语义):
+ *  - 请求/参数错误 → [ProviderError.InvalidRequest] (不可重试)
+ *  - 认证/权限 → [ProviderError.AuthError] (不可重试)
+ *  - 限流/资源耗尽 → [ProviderError.RateLimit] (可重试)
+ *  - 服务端错误 → [ProviderError.ServerError] (可重试)
+ *  - 网络/超时 → [ProviderError.Network] (可重试)
+ *  - 其他 → [ProviderError.Unknown] (不可重试)
+ */
+fun ErrorCode.toProviderError(vararg args: Any?): ProviderError {
+    val message = toMessage(*args)
+    return when (this) {
+        // 请求/参数错误 (不可重试)
+        ErrorCode.NO_PROVIDER_CONFIGURED,
+        ErrorCode.NO_MODEL_SELECTED,
+        ErrorCode.INVALID_RESPONSE,
+        ErrorCode.INVALID_ARGUMENT,
+        ErrorCode.NOT_FOUND,
+        ErrorCode.IMAGE_EMPTY_RESPONSE,
+        ErrorCode.IMAGE_NO_RESULTS,
+        ErrorCode.IMAGE_UNSUPPORTED_MODEL,
+        ErrorCode.IMAGE_INVALID_URI,
+        ErrorCode.VERTEX_AI_CONFIG_INVALID,
+        ErrorCode.MEMORY_CONFIG_INVALID,
+        ErrorCode.MEMORY_TOKEN_BUDGET_INVALID -> ProviderError.InvalidRequest(displayMessage = message)
+
+        // 认证错误 (不可重试)
+        ErrorCode.AUTH_FAILED,
+        ErrorCode.IMAGE_API_KEY_MISSING,
+        ErrorCode.VERTEX_AI_TOKEN_FAILED -> ProviderError.AuthError(displayMessage = message)
+
+        // 限流/资源耗尽 (可重试)
+        ErrorCode.RATE_LIMITED,
+        ErrorCode.RESOURCE_EXHAUSTED,
+        ErrorCode.IMAGE_RESPONSE_TOO_LARGE,
+        ErrorCode.IMAGE_REFERENCE_TOO_LARGE -> ProviderError.RateLimit(displayMessage = message)
+
+        // 服务端错误 (可重试)
+        ErrorCode.SERVICE_UNAVAILABLE,
+        ErrorCode.OVERLOADED,
+        ErrorCode.API_ERROR -> ProviderError.ServerError(httpCode = 500, displayMessage = message)
+
+        // 网络/超时 (可重试)
+        ErrorCode.REQUEST_TIMEOUT,
+        ErrorCode.STREAM_INTERRUPTED,
+        ErrorCode.NETWORK_ERROR,
+        ErrorCode.IMAGE_REFERENCE_DOWNLOAD_FAILED -> ProviderError.Network(displayMessage = message)
+
+        // 权限 (不可重试,归为 AuthError)
+        ErrorCode.PERMISSION_DENIED,
+        ErrorCode.PRECONDITION_FAILED -> ProviderError.AuthError(displayMessage = message)
+
+        // 图像生成失败 (其他,不可重试)
+        ErrorCode.IMAGE_GEN_FAILED -> ProviderError.Unknown(displayMessage = message)
+    }
+}
+
+/**
+ * v1.0.27 Phase 5-A: 便捷构造 [ProviderException]。
+ *
+ * 等价于 `ProviderException(errorCode.toProviderError(*args))`,
+ * 让 Provider 的 throw 点更简洁:
+ *
+ * ```kotlin
+ * // 旧:
+ * throw RuntimeException(ErrorCode.INVALID_RESPONSE.toMessage("empty_body", resp.code))
+ * // 新:
+ * throw errorCode.toProviderException("empty_body", resp.code)
+ * ```
+ */
+fun ErrorCode.toProviderException(vararg args: Any?): ProviderException =
+    ProviderException(toProviderError(*args))

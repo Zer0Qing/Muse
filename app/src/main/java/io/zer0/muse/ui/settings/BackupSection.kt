@@ -1,5 +1,6 @@
 package io.zer0.muse.ui.settings
 
+import io.zer0.common.resultOf
 import io.zer0.muse.ui.common.MuseToast
 import io.zer0.muse.ui.theme.MusePaddings
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -99,9 +100,9 @@ internal fun BackupSection(
             checkingCloudBackup = true
             cloudCheckError = false
             // v1.48: h17 用 onSuccess/onFailure 区分错误态,失败不再伪装成"无备份"
-            runCatching { backupService.hasCloudBackup() }
+            resultOf { backupService.hasCloudBackup() }
                 .onSuccess { hasCloudBackup = it }
-                .onFailure { cloudCheckError = true }
+                .onError { _, _ -> cloudCheckError = true }
             checkingCloudBackup = false
         } else {
             hasCloudBackup = false
@@ -116,11 +117,11 @@ internal fun BackupSection(
         uri?.let {
             scope.launch {
                 exporting = true
-                runCatching {
+                resultOf {
                     val (s, m) = backupService.exportStreaming(context, it)
                     MuseToast.show(context.getString(R.string.settings_backup_export_success, s, m))
-                }.onFailure { t ->
-                    MuseToast.show(context.getString(R.string.settings_backup_export_failed, t.message), 3500)
+                }.onError { _, t ->
+                    MuseToast.show(context.getString(R.string.settings_backup_export_failed, t?.message), 3500)
                 }
                 exporting = false
             }
@@ -134,11 +135,11 @@ internal fun BackupSection(
         uri?.let {
             scope.launch {
                 importing = true
-                runCatching {
+                resultOf {
                     val (s, m) = backupService.import(context, it)
                     MuseToast.show(context.getString(R.string.settings_backup_import_success, s, m))
-                }.onFailure { t ->
-                    MuseToast.show(context.getString(R.string.settings_backup_import_failed, t.message), 3500)
+                }.onError { _, t ->
+                    MuseToast.show(context.getString(R.string.settings_backup_import_failed, t?.message), 3500)
                 }
                 importing = false
             }
@@ -290,9 +291,9 @@ internal fun BackupSection(
                     // 上传成功后刷新云端备份状态
                     if (ok) {
                         checkingCloudBackup = true
-                        runCatching { backupService.hasCloudBackup() }
+                        resultOf { backupService.hasCloudBackup() }
                             .onSuccess { hasCloudBackup = it }
-                            .onFailure { cloudCheckError = true }
+                            .onError { _, _ -> cloudCheckError = true }
                         checkingCloudBackup = false
                     }
                     cloudUploading = false

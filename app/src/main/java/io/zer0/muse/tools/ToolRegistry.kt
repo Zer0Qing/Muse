@@ -3,6 +3,9 @@ package io.zer0.muse.tools
 import android.content.Context
 import io.zer0.ai.ChatService
 import io.zer0.ai.core.ChatStreamEvent
+import io.zer0.ai.core.ProviderError
+import io.zer0.ai.core.ProviderException
+import io.zer0.ai.core.providerError
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.ToolDefinition
 import io.zer0.ai.core.UIMessage
@@ -2843,7 +2846,10 @@ class ToolRegistry(private val context: Context) {
         chatService.streamChat(messages = messages).collect { event ->
             when (event) {
                 is ChatStreamEvent.ContentDelta -> sb.append(event.delta)
-                is ChatStreamEvent.Error -> throw RuntimeException(event.message, event.throwable)
+                is ChatStreamEvent.Error -> throw ProviderException(
+                    providerError = event.providerError ?: ProviderError.Unknown(displayMessage = event.message),
+                    cause = event.throwable,
+                )
                 else -> { /* 忽略 ReasoningDelta / ToolCallDelta / ImageDelta / Done 等 */ }
             }
         }

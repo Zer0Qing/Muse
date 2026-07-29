@@ -95,6 +95,8 @@ class MuseApp : Application(), ImageLoaderFactory {
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO + GlobalCoroutineExceptionHandler)
     /** v0.32: keepAwake 设置开启时持有的 PARTIAL_WAKE_LOCK,null 表示未持有。 */
     private var wakeLock: PowerManager.WakeLock? = null
+    /** v1.0.30: 生命周期互斥锁,防止 ON_STOP/ON_START 快速交替时的竞态条件。 */
+    private val lifecycleMutex = kotlinx.coroutines.sync.Mutex()
 
     override fun onCreate() {
         // Phase 8.10: CrashHandler 必须最先安装(在 startKoin 之前,避免 Koin 初始化崩溃漏捕获)
@@ -162,22 +164,38 @@ class MuseApp : Application(), ImageLoaderFactory {
         ProcessLifecycleOwner.get().lifecycle.addObserver(LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_STOP -> {
-                    Logger.i("MuseApp", "Process ON_STOP: 释放 ChatViewModel 资源 + 停止 MemoryTicker")
-                    resultOf { chatViewModel.release() }
-                        .onError { msg, t -> Logger.w("MuseApp", "chatViewModel.release 失败: $msg", t) }
-                    appScope.launch {
-                        resultOf { memoryTicker.stop() }
-                            .onError { msg, t -> Logger.w("MuseApp", "memoryTicker.stop 失败: $msg", t) }
+                    if (!lifecycleMutex.tryLock()) {
+                        Logger.w("MuseApp", "ON_STOP 跳过: 生命周期操作进行中")
+                        return@LifecycleEventObserver
+                    }
+                    try {
+                        Logger.i("MuseApp", "Process ON_STOP: 释放 ChatViewModel 资源 + 停止 MemoryTicker")
+                        resultOf { chatViewModel.release() }
+                            .onError { msg, t -> Logger.w("MuseApp", "chatViewModel.release 失败: $msg", t) }
+                        appScope.launch {
+                            resultOf { memoryTicker.stop() }
+                                .onError { msg, t -> Logger.w("MuseApp", "memoryTicker.stop 失败: $msg", t) }
+                        }
+                    } finally {
+                        lifecycleMutex.unlock()
                     }
                 }
                 Lifecycle.Event.ON_START -> {
-                    // 回前台时重启 memory ticker(stop 时 _timerJob 已置 null,可安全重启)
-                    resultOf { memoryTicker.start() }
-                        .onError { msg, t -> Logger.w("MuseApp", "memoryTicker.start 失败: $msg", t) }
-                    // v1.0.16: 回前台清理 OkHttp 空闲连接,避免复用后台期间被系统关闭的
-                    // 失效 socket 导致首次 HTTP 请求即失败(切页/后台回来报错的常见原因)
-                    resultOf { io.zer0.ai.core.ProviderHttpSupport.evictIdleConnections() }
-                        .onError { msg, t -> Logger.w("MuseApp", "evictIdleConnections 失败: $msg", t) }
+                    if (!lifecycleMutex.tryLock()) {
+                        Logger.w("MuseApp", "ON_START 跳过: 生命周期操作进行中")
+                        return@LifecycleEventObserver
+                    }
+                    try {
+                        // 回前台时重启 memory ticker(stop 时 _timerJob 已置 null,可安全重启)
+                        resultOf { memoryTicker.start() }
+                            .onError { msg, t -> Logger.w("MuseApp", "memoryTicker.start 失败: $msg", t) }
+                        // v1.0.16: 回前台清理 OkHttp 空闲连接,避免复用后台期间被系统关闭的
+                        // 失效 socket 导致首次 HTTP 请求即失败(切页/后台回来报错的常见原因)
+                        resultOf { io.zer0.ai.core.ProviderHttpSupport.evictIdleConnections() }
+                            .onError { msg, t -> Logger.w("MuseApp", "evictIdleConnections 失败: $msg", t) }
+                    } finally {
+                        lifecycleMutex.unlock()
+                    }
                 }
                 else -> {}
             }
@@ -272,6 +290,9 @@ class MuseApp : Application(), ImageLoaderFactory {
         // KEEP 策略:已存在则保留旧 schedule(避免重复注册);与 ScheduledTaskWorker 兜底对齐
         resultOf { cloudBackupScheduler.registerWorkManagerFallback(this) }
             .onError { msg, t -> Logger.w("MuseApp", "CloudBackupWorker 注册失败", t) }
+        // v1.0.30: 消息出站箱 WorkManager 兜底 — 进程被杀后由系统每 15 分钟拉起一次检查待重试消息
+        resultOf { io.zer0.muse.schedule.OutboxRetryWorker.register(this) }
+            .onError { msg, t -> Logger.w("MuseApp", "OutboxRetryWorker 注册失败", t) }
         // v1.134 P1-1: 自动本地备份 Worker — 每日 1 次 WAL checkpoint + 复制 muse.db 到 backups/
         // 接入原 v1.107 孤儿组件 AutoBackupHelper,App 被杀后由 WorkManager 拉起
         resultOf {

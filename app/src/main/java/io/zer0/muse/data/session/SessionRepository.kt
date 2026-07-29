@@ -420,6 +420,11 @@ class SessionRepository(
         database.messageOutboxDao().deleteById(id)
     }
 
+    /** v1.0.30: 流式完成后按 session 批量删除 outbox。 */
+    suspend fun deleteOutboxBySession(sessionId: String) {
+        database.messageOutboxDao().deleteBySessionId(sessionId)
+    }
+
     /** App 启动时扫描所有未完成 outbox 记录(按创建时间升序)。 */
     suspend fun getPendingOutbox(): List<MessageOutboxEntity> {
         return database.messageOutboxDao().getAll()

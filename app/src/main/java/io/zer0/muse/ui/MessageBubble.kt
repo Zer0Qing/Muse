@@ -1,4 +1,4 @@
-﻿package io.zer0.muse.ui
+package io.zer0.muse.ui
 
 import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
@@ -66,6 +66,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import io.zer0.common.Logger
+import io.zer0.common.resultOf
 import io.zer0.muse.ui.common.MuseDialog
 import io.zer0.muse.ui.common.MuseToast
 import androidx.compose.runtime.Composable
@@ -83,7 +85,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
+
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -126,17 +128,15 @@ import io.zer0.muse.ui.markdown.MarkdownText
 import io.zer0.muse.ui.taskcard.AgentPlan
 import io.zer0.muse.ui.taskcard.PlanCard
 import io.zer0.muse.ui.theme.MuseDateFormats
+import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseHaptics
-import io.zer0.muse.ui.theme.MuseShadow
+import io.zer0.muse.ui.theme.MuseIconSizes
+import io.zer0.muse.ui.theme.MuseMonoFontFamily
+import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.ui.theme.tiny
-
-import io.zer0.muse.ui.theme.MuseIconSizes
-import io.zer0.muse.ui.theme.MuseElevation
-import io.zer0.muse.ui.theme.MuseMonoFontFamily
-import io.zer0.muse.ui.theme.MusePaddings
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.outlined.VideoLibrary
 import androidx.compose.runtime.mutableIntStateOf
@@ -462,9 +462,9 @@ internal fun MessageBubble(
             Surface(
                 color = MaterialTheme.colorScheme.surfaceVariant,
                 shape = MuseShapes.large,
-                // M-UI1: 手势收口到气泡本身,避免整行高亮
-                // MANUS 风格:加 low 级别微阴影增强浮起质感
-                modifier = bubbleClickModifier.shadow(MuseShadow.low.elevation, MuseShapes.large),
+                // v1.0.29: 移除阴影,避免浅色气泡在深色/浅色背景下出现奇怪阴影边缘。
+                modifier = bubbleClickModifier
+                    .padding(horizontal = 4.dp, vertical = 3.dp),
             ) {
                 Column(
                     modifier = Modifier
@@ -687,12 +687,12 @@ internal fun MessageBubble(
                     }
                 }
             }
-            // AI 消息:白色卡片,左对齐,18dp 统一圆角,0.5dp 浅边框,极低阴影
+            // AI 消息:白色卡片,左对齐,18dp 统一圆角,0.5dp 浅边框,无阴影
             Surface(
                 color = MaterialTheme.colorScheme.surface,
                 shape = MuseShapes.large,
                 tonalElevation = MuseElevation.card,
-                shadowElevation = MuseElevation.card,
+                shadowElevation = 0.dp,
                 modifier = Modifier
                     .fillMaxWidth(0.85f)
                     .border(
@@ -731,13 +731,13 @@ internal fun MessageBubble(
                     onPreview = { mediaPreview = displayImageUris to index },
                     onSave = {
                         scope.launch {
-                            runCatching {
+                            resultOf {
                                 saveImageToGallery(context, imageUri)
                             }.onSuccess { path ->
                                 // M-MB2: 改用 MuseToast 替代原生 Toast,保持主题一致
                                 MuseToast.show(context.getString(R.string.chat_image_saved_toast, path))
-                            }.onFailure { e ->
-                                MuseToast.show(context.getString(R.string.chat_image_save_failed_toast, e.message))
+                            }.onError { msg, t ->
+                                MuseToast.show(context.getString(R.string.chat_image_save_failed_toast, msg))
                             }
                         }
                     },
@@ -1497,7 +1497,7 @@ fun SmartImage(
                         }
                         val decodeOptions = android.graphics.BitmapFactory.Options().apply { inSampleSize = sampleSize }
                         android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, decodeOptions)
-                    }.getOrNull()
+                    }.onFailure { Logger.w("MessageBubble", "base64 image decode failed: ${it.message}", it) }.getOrNull()
                 }
                 // v1.79 (M-B11): produceState 退出时显式回收 Bitmap,避免内存泄漏
                 awaitDispose {

@@ -1,5 +1,6 @@
 package io.zer0.muse.ui.chat
 
+import io.zer0.common.resultOf
 import io.zer0.muse.tools.ToolRegistry
 import io.zer0.muse.ui.taskcard.TaskCardPhase
 import io.zer0.muse.ui.taskcard.TaskStep
@@ -111,9 +112,12 @@ class ChatTaskCardCoordinator(
             // 简化:用 step.detail 作为 arguments(大部分场景够用)
             stepsToUpdate.forEach { step ->
                 val startedAt = System.currentTimeMillis()
-                val toolResult = runCatching {
+                val toolResult = when (val r = resultOf {
                     toolRegistry.executeFromJson(step.title, step.detail)
-                }.getOrElse { "重试执行异常: ${it.message}" }
+                }) {
+                    is io.zer0.common.Result.Success -> r.data
+                    is io.zer0.common.Result.Error -> "重试执行异常: ${r.message}"
+                }
                 val isSuccess = isToolResultSuccess(toolResult)
                 val finishedAt = System.currentTimeMillis()
                 accessor.update {

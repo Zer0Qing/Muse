@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemGesturesPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -68,6 +69,7 @@ import androidx.compose.ui.window.DialogProperties
 @Composable
 fun MuseBottomSheet(
     onDismissRequest: () -> Unit,
+    maxHeightFraction: Float = 0.85f,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     // M-BS2: 用 rememberSaveable 持久化进入/退出动画状态,配置变更(旋转/暗色切换)
@@ -126,6 +128,11 @@ fun MuseBottomSheet(
                 ),
             contentAlignment = Alignment.BottomCenter,
         ) {
+            // v1.0.27 修复 Bug 2: 长按会话菜单"删除被遮挡"。
+            // 旧实现 Surface 只有 fillMaxWidth 无最大高度约束,内容多时从 BottomCenter
+            // 向上无界撑开,末尾的"删除/移动到文件夹"被推出可视区域,且调用方的 verticalScroll
+            // 因父级无高度约束而形同虚设。加 heightIn(max) 让 verticalScroll 真正生效。
+            val screenHeight = LocalConfiguration.current.screenHeightDp.dp
             AnimatedVisibility(
                 visible = visible,
                 // M-BS3: 显式指定 tween 时长,与 delay(SHEET_EXIT_DURATION_MS) 复用同一常量,
@@ -140,6 +147,9 @@ fun MuseBottomSheet(
                     shadowElevation = MuseElevation.none,
                     modifier = Modifier
                         .fillMaxWidth()
+                        // v1.0.27 Bug 2: 限制最大高度为屏幕 85%,让内容超出时 verticalScroll 生效
+                        // v1.0.29: maxHeightFraction 可配置,加号菜单用较小值避免面板过高影响观感
+                        .heightIn(max = screenHeight * maxHeightFraction)
                         .imePadding()
                         // v1.97: navigationBarsPadding 移到内部 Column,
                         // 让 Surface 背景色延伸到小白条区域(沉浸式)
@@ -155,7 +165,10 @@ fun MuseBottomSheet(
                         modifier = Modifier
                             .fillMaxWidth()
                             // v1.97: 内容避开小白条,Surface 背景色延伸到导航栏区域(沉浸式)
-                            .navigationBarsPadding(),
+                            // v1.0.29: 额外避开系统手势提示条(Android 三键/手势导航条),防止
+                            // 底部操作项(如"删除")被小白条遮挡无法点击。
+                            .navigationBarsPadding()
+                            .systemGesturesPadding(),
                     ) {
                         // iOS 风格底部 Sheet 把手 — 36x4dp 灰色圆角条,居中于顶部
                         SheetHandle()
@@ -164,9 +177,13 @@ fun MuseBottomSheet(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 // L-BS4: 20.dp → MusePaddings.screen 令牌(16dp)。
-                                .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.screen),
+                                // v1.0.29: 左右留空减小为 12dp,使底部面板内容更舒展
+                            .padding(horizontal = 12.dp, vertical = MusePaddings.screen),
                             content = content,
                         )
+                        // v1.0.29: 底部增加额外冗余,让底部菜单整体上抬,
+                        // 避免内容紧贴系统导航条/手势条,提升操作舒适度。
+                        Spacer(Modifier.height(MusePaddings.largeGap))
                     }
                 }
             }
@@ -303,7 +320,8 @@ fun MuseDraggableBottomSheet(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .navigationBarsPadding(),
+                            .navigationBarsPadding()
+                            .systemGesturesPadding(),
                     ) {
                         // 拖拽把手区域
                         Box(
@@ -333,7 +351,8 @@ fun MuseDraggableBottomSheet(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.screen),
+                                // v1.0.29: 左右留空减小为 12dp,使底部面板内容更舒展
+                                .padding(horizontal = 12.dp, vertical = MusePaddings.screen),
                             content = content,
                         )
                     }
