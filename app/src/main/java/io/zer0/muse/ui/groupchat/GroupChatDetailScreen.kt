@@ -17,7 +17,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -1126,32 +1125,24 @@ private fun GroupChatMessageBubble(
     onHtmlPreview: (String) -> Unit = {},
 ) {
     val isUser = message.senderType == "user"
-    val haptic = LocalHapticFeedback.current
-    val interactionSource = remember { MutableInteractionSource() }
     if (isUser) {
         // 用户消息:右侧气泡
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .combinedClickable(
+                    onClick = {},
+                    onLongClick = onLongClick,
+                ),
             horizontalArrangement = Arrangement.End,
         ) {
             Column(
                 modifier = Modifier.widthIn(max = 280.dp),
                 horizontalAlignment = Alignment.End,
             ) {
-                // v1.0.29: combinedClickable 移到 Surface 上,避免 MarkdownText/Text 消费触摸事件
-                // 导致 Row 层 combinedClickable 长按不触发(只能长按空白区域)
                 Surface(
                     shape = MuseShapes.userBubble,
                     color = MaterialTheme.colorScheme.surfaceVariant,
-                    modifier = Modifier.combinedClickable(
-                        interactionSource = interactionSource,
-                        indication = null,
-                        onClick = {},
-                        onLongClick = {
-                            MuseHaptics.medium(haptic)
-                            onLongClick()
-                        },
-                    ),
                 ) {
                     Column(modifier = Modifier.padding(MusePaddings.cardInner)) {
                         // v2.x: 悄悄话标记
@@ -1191,50 +1182,31 @@ private fun GroupChatMessageBubble(
     } else {
         // Agent 消息:左侧 + 头像 + senderName
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .combinedClickable(
+                    onClick = {},
+                    onLongClick = onLongClick,
+                ),
             horizontalArrangement = Arrangement.Start,
             verticalAlignment = Alignment.Top,
         ) {
-            // 头像(也可长按触发菜单)
+            // 头像
             val assistant = remember(message.senderId, assistants) {
                 assistants.find { it.id == message.senderId }
             }
-            val avatarInteraction = remember { MutableInteractionSource() }
             if (assistant != null) {
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .combinedClickable(
-                            interactionSource = avatarInteraction,
-                            indication = null,
-                            onClick = {},
-                            onLongClick = {
-                                MuseHaptics.medium(haptic)
-                                onLongClick()
-                            },
-                        ),
-                ) {
-                    AssistantAvatar(
-                        assistant = assistant,
-                        avatarSize = 32.dp,
-                    )
-                }
+                AssistantAvatar(
+                    assistant = assistant,
+                    avatarSize = 32.dp,
+                )
             } else {
                 // 兜底:首字母圆形头像
                 Box(
                     modifier = Modifier
                         .size(32.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .combinedClickable(
-                            interactionSource = avatarInteraction,
-                            indication = null,
-                            onClick = {},
-                            onLongClick = {
-                                MuseHaptics.medium(haptic)
-                                onLongClick()
-                            },
-                        ),
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -1278,19 +1250,9 @@ private fun GroupChatMessageBubble(
                         )
                     }
                 }
-                // v1.0.29: combinedClickable 移到 Surface 上,避免 MarkdownText 消费触摸事件
                 Surface(
                     shape = MuseShapes.assistantBubble,
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                    modifier = Modifier.combinedClickable(
-                        interactionSource = interactionSource,
-                        indication = null,
-                        onClick = {},
-                        onLongClick = {
-                            MuseHaptics.medium(haptic)
-                            onLongClick()
-                        },
-                    ),
                 ) {
                     Column(modifier = Modifier.padding(MusePaddings.cardInner)) {
                         MarkdownText(
@@ -1548,11 +1510,9 @@ private fun GroupChatInputBar(
                 .sortedByDescending { it.name.length }
         }
     }
-    // v1.0.28: 输入框重写,对齐任务页面样式(IosTextField + 圆形按钮在同一行,去掉外层 Surface 色块)
-    // 原 Surface(tonalElevation=2.dp) 会产生一块与背景不一致的色块,视觉上很突兀。
     Surface(
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 0.dp,
+        tonalElevation = 2.dp,
     ) {
         Box {
             // @mention 自动补全下拉(锚定在输入框上方)
@@ -1575,7 +1535,7 @@ private fun GroupChatInputBar(
                     )
                 }
             }
-            Column(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     // v1.99: 大R角/曲面屏横向安全区避让
@@ -1583,19 +1543,18 @@ private fun GroupChatInputBar(
                     .navigationBarsPadding()
                     .imePadding()
                     .padding(horizontal = MusePaddings.screen, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.Bottom,
-                    horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
+                // 加号菜单入口
+                Surface(
+                    onClick = onOpenToolSheet,
+                    enabled = enabled,
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.size(MuseIconSizes.touchTarget),
                 ) {
-                    // 加号菜单入口(保留,但改为小型图标按钮,不再用大圆形 Surface)
-                    IconButton(
-                        onClick = onOpenToolSheet,
-                        enabled = enabled,
-                        modifier = Modifier.size(MuseIconSizes.touchTarget),
-                    ) {
+                    Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.Default.Add,
                             contentDescription = stringResource(R.string.groupchat_tools),
@@ -1603,26 +1562,33 @@ private fun GroupChatInputBar(
                             modifier = Modifier.size(MuseIconSizes.icon),
                         )
                     }
-                    IosTextField(
-                        value = text,
-                        onValueChange = onTextChange,
-                        placeholder = { Text(stringResource(R.string.groupchat_input_placeholder)) },
-                        enabled = enabled,
-                        modifier = Modifier.weight(1f),
-                        maxLines = 4,
-                        singleLine = false,
-                    )
-                    // 发送按钮(保留,改为小型图标按钮)
-                    IconButton(
-                        onClick = onSend,
-                        enabled = enabled && canSend,
-                        modifier = Modifier.size(MuseIconSizes.touchTarget),
-                    ) {
+                }
+                IosTextField(
+                    value = text,
+                    onValueChange = onTextChange,
+                    placeholder = { Text(stringResource(R.string.groupchat_input_placeholder)) },
+                    enabled = enabled,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 4,
+                    singleLine = false,
+                )
+                Surface(
+                    onClick = onSend,
+                    enabled = enabled && canSend,
+                    shape = CircleShape,
+                    color = if (enabled && canSend) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant
+                    },
+                    modifier = Modifier.size(MuseIconSizes.touchTarget),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Send,
                             contentDescription = stringResource(R.string.groupchat_send),
                             tint = if (enabled && canSend) {
-                                MaterialTheme.colorScheme.primary
+                                MaterialTheme.colorScheme.onPrimary
                             } else {
                                 MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
                             },

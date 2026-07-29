@@ -131,19 +131,18 @@ internal fun ModelSwitchSheet(
                     return@Column
                 }
 
-                // v1.0.28: Provider 改为纵向列排列,避免长名称(如 OpenCode Go)在横向 Row 中
-                // 空间不足导致文字竖排崩坏,也便于展示更多 Provider。
+                // 上半:Provider 横向 chip 行
                 Text(
                     text = stringResource(R.string.model_switch_provider_label),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.outline,
                     modifier = Modifier.padding(vertical = MusePaddings.tightGap),
                 )
-                Column(
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = MusePaddings.tightGap),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                            .padding(vertical = MusePaddings.tightGap),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     providers.forEach { provider ->
                         val isSelected = provider.id == activeProviderId
@@ -152,13 +151,10 @@ internal fun ModelSwitchSheet(
                                 MaterialTheme.colorScheme.primaryContainer
                             else MaterialTheme.colorScheme.surfaceVariant,
                             shape = MuseShapes.large,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onPickProvider(provider.id) },
+                            modifier = Modifier.clickable { onPickProvider(provider.id) },
                         ) {
                             Row(
                                 modifier = Modifier
-                                    .fillMaxWidth()
                                     .padding(MusePaddings.bubbleInner),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -175,7 +171,6 @@ internal fun ModelSwitchSheet(
                                     color = if (isSelected)
                                         MaterialTheme.colorScheme.onPrimaryContainer
                                     else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.weight(1f),
                                 )
                                 // v1.0.18: SiliconFlow 免费供应商(未填 key)追加「免费」徽章
                                 if (FreeModelConfig.isFreeProvider(

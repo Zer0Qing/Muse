@@ -928,10 +928,6 @@ class ChatViewModel(
         accessor = this,
         documentParser = documentParser,
     )
-    // v1.0.30: streamCoordinator 从 init 块初始化(绕过 Kotlin 2.4.0 对超长参数列表内
-    // 嵌套构造调用的解析问题)。lateinit var 声明放在所有属性之后、companion 之前。
-    private lateinit var streamCoordinator: ChatStreamCoordinator
-
     // v1.105 阶段 2 拆分: 杂项 Coordinator(文件夹 / 搜索 / 收藏 / 管理页 CRUD)
     private val miscCoordinator = ChatMiscCoordinator(
         accessor = this,
@@ -942,6 +938,12 @@ class ChatViewModel(
         quickMessageRepository = quickMessageRepository,
         assistantRepository = assistantRepository,
         appContext = appContext,
+    )
+    // v1.105 阶段 3 拆分: 流式辅助 Coordinator(detach / updateAssistant / 持久化 / 标签提取)
+    private val streamCoordinator = ChatStreamCoordinator(
+        accessor = this,
+        sessionRepository = sessionRepository,
+        memoryTicker = memoryTicker,
     )
     // v1.134 P1-5: 任务卡 Coordinator(任务卡阶段/步骤/展开/重试/工具结果判定)
     private val taskCardCoordinator = ChatTaskCardCoordinator(
@@ -1279,6 +1281,8 @@ class ChatViewModel(
                 }
                 launchStream(assistantId = _state.value.messages.lastOrNull { it.role == MessageRole.ASSISTANT }?.id
                     ?: kotlin.uuid.Uuid.random(), sessionId = currentSid)
+                // v1.0.15: 生成已启动,outbox 完成使命,删除记录
+                runCatching { sessionRepository.deleteOutbox(req.outboxId) }
             }
         }
 
@@ -4566,10 +4570,6 @@ class ChatViewModel(
         // v1.80 (M-CVM5): 原子更新,避免读-改-写竞态
         _state.update { it.copy(isStreaming = false, isWaitingFirstToken = false, toolProgressMessage = null) }
 
-        // v1.0.30: 流式成功完成,删除该会话的 outbox 记录(消息已送达)
-        runCatching { sessionRepository.deleteOutboxBySession(sessionId) }
-            .onFailure { Logger.w("ChatVM", "finalizeResponse: deleteOutboxBySession 失败", it) }
-
         // v1.x: 三钩子接入 — 生成完成后调用 applyOnGenerationFinish。
         // 跑一遍 onGenerationFinish 钩子,如果最终 assistant 消息被改变则写回 _state.messages + DB。
         // 仅处理最后一条 assistant 消息(本轮生成的),避免误改历史消息。
@@ -5762,59 +5762,4 @@ class ChatViewModel(
 
     /** QuickMessage: 删除。 */
     fun deleteQuickMessage(id: String) = miscCoordinator.deleteQuickMessage(id)
-
-    init {
-        streamCoordinator = createChatStreamCoordinator(
-            accessor = this,
-            sessionRepository = sessionRepository,
-            memoryTicker = memoryTicker,
-            settings = settings,
-            appContext = appContext,
-            notificationManager = notificationManager,
-            assistantRepository = assistantRepository,
-            visionBridge = visionBridge,
-            toolRegistry = toolRegistry,
-            skillRepository = skillRepository,
-            idListJson = idListJson,
-            lorebookRepository = lorebookRepository,
-            promptInjectionRepository = promptInjectionRepository,
-            transformerPipeline = transformerPipeline,
-        )
-    }
 }
-
-/**
- * v1.0.30: 提取到顶层函数以绕过 Kotlin 2.4.0 编译器在超长构造函数参数列表时
- * 无法正确解析 ChatStreamCoordinator 构造调用的 bug。
- */
-private fun createChatStreamCoordinator(
-    accessor: ChatStateAccessor,
-    sessionRepository: io.zer0.muse.data.session.SessionRepository,
-    memoryTicker: io.zer0.memory.ticker.MemoryTicker,
-    settings: io.zer0.muse.data.SettingsRepository,
-    appContext: android.content.Context,
-    notificationManager: io.zer0.muse.notification.MuseNotificationManager,
-    assistantRepository: io.zer0.muse.data.assistant.AssistantRepository,
-    visionBridge: io.zer0.muse.vision.VisionBridge,
-    toolRegistry: io.zer0.muse.tools.ToolRegistry,
-    skillRepository: io.zer0.muse.data.skill.SkillRepository,
-    idListJson: kotlinx.serialization.json.Json,
-    lorebookRepository: io.zer0.muse.data.lorebook.LorebookRepository,
-    promptInjectionRepository: io.zer0.muse.data.promptinjection.PromptInjectionRepository,
-    transformerPipeline: io.zer0.muse.transformer.TransformerPipeline,
-): ChatStreamCoordinator = ChatStreamCoordinator(
-    accessor = accessor,
-    sessionRepository = sessionRepository,
-    memoryTicker = memoryTicker,
-    settings = settings,
-    appContext = appContext,
-    notificationManager = notificationManager,
-    assistantRepository = assistantRepository,
-    visionBridge = visionBridge,
-    toolRegistry = toolRegistry,
-    skillRepository = skillRepository,
-    idListJson = idListJson,
-    lorebookRepository = lorebookRepository,
-    promptInjectionRepository = promptInjectionRepository,
-    transformerPipeline = transformerPipeline,
-)

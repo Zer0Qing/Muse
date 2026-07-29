@@ -5,7 +5,6 @@ import okhttp3.ConnectionPool
 import okhttp3.OkHttpClient
 import okhttp3.Protocol
 import okhttp3.Response
-import okhttp3.sse.EventSources
 import java.util.concurrent.TimeUnit
 
 /**
@@ -37,12 +36,6 @@ abstract class ProviderHttpSupport(
      * 可用 `httpClient.newBuilder().xxx().build()` 派生,共享连接池。
      */
     protected val httpClient: OkHttpClient get() = sharedHttpClient
-
-    /**
-     * v1.0.30 (P5-D): 共享 SSE 工厂 — 消除三个 Provider 各自重复的
-     * `private val sseFactory by lazy { EventSources.createFactory(httpClient) }`。
-     */
-    protected val sseFactory by lazy { EventSources.createFactory(httpClient) }
 
     /**
      * v1.0.1: 当前 Provider 实例使用的 API key。
@@ -213,30 +206,6 @@ abstract class ProviderHttpSupport(
             429 -> "rate limited"
             in 500..599 -> "server error"
             else -> null
-        }
-
-        /**
-         * v1.0.30 (P5-D): 判断 HTTP 状态码是否可重试。
-         *
-         * 三家 Provider(OpenAI/Anthropic/Gemini)原先各自重复同一组字面量:
-         * `code == 429 || code == 408 || code == 503 || code == 529 || code in 500..599`。
-         */
-        fun isRetryableHttpCode(code: Int): Boolean =
-            code == 429 || code == 408 || code == 503 || code == 529 || code in 500..599
-
-        /**
-         * v1.0.30 (P5-D): 计算重试延迟(指数退避 + jitter)。
-         *
-         * @param retryCount 当前重试次数(从 1 开始)
-         * @param retryAfterHeader HTTP `Retry-After` 响应头值(秒),仅 429 时有效;null 表示无
-         * @return 延迟毫秒数
-         */
-        fun calculateRetryDelay(retryCount: Int, retryAfterHeader: String?): Long {
-            // 429 限流优先用 Retry-After 头
-            retryAfterHeader?.toIntOrNull()?.let { return it * 1000L }
-            // 指数退避: 1s / 2s / 4s + 0~499ms jitter
-            val baseDelay = 1000L shl (retryCount - 1)
-            return baseDelay + kotlin.random.Random.nextLong(0, 500)
         }
 
         /**

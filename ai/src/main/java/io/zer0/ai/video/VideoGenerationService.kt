@@ -2,7 +2,6 @@ package io.zer0.ai.video
 
 import io.zer0.ai.core.ProviderConfig
 import io.zer0.common.Logger
-import io.zer0.common.resultOf
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -62,12 +61,12 @@ class VideoGenerationService(
         onProgress: ((elapsedSec: Long) -> Unit)? = null,
         timeoutMs: Long = DEFAULT_TIMEOUT_MS,
     ): Result<String> = withContext(Dispatchers.IO) {
-        val r = resultOf {
+        runCatching {
             val provider = registry.selectFor(providerConfig)
             Logger.i(
                 TAG,
                 "generateVideo: provider=${provider.providerId} " +
-                    "specId=${providerConfig.specId} host=${runCatching { java.net.URI(providerConfig.resolvedBaseUrl()).host?.lowercase() }.getOrNull().orEmpty()}",
+                    "specId=${providerConfig.specId} host=${VideoProviderRegistry.extractHost(providerConfig.resolvedBaseUrl())}",
             )
 
             // 注入凭证
@@ -90,7 +89,7 @@ class VideoGenerationService(
                 val url = submitResult.videoUrl
                     ?: error("视频任务同步返回但未提供 videoUrl")
                 onProgress?.invoke(0)
-                return@resultOf url
+                return@runCatching url
             }
 
             // 2. 异步轮询
@@ -100,10 +99,6 @@ class VideoGenerationService(
                 onProgress = onProgress,
                 timeoutMs = timeoutMs,
             )
-        }
-        when (r) {
-            is io.zer0.common.Result.Success -> Result.success(r.data)
-            is io.zer0.common.Result.Error -> Result.failure(r.throwable ?: IllegalStateException(r.message))
         }
     }
 
@@ -116,7 +111,7 @@ class VideoGenerationService(
         providerConfig: ProviderConfig,
         request: VideoGenRequest,
     ): Result<VideoSubmitResult> = withContext(Dispatchers.IO) {
-        val r = resultOf {
+        runCatching {
             val provider = registry.selectFor(providerConfig)
             val requestWithCreds = request.copy(
                 apiKey = request.apiKey.ifBlank { providerConfig.apiKey },
@@ -125,10 +120,6 @@ class VideoGenerationService(
                     ?: (providerConfig.resolvedSpecific() as? io.zer0.ai.core.ProviderSpecificConfig.OpenAI)?.videoGenerationsPath,
             )
             provider.submit(requestWithCreds)
-        }
-        when (r) {
-            is io.zer0.common.Result.Success -> Result.success(r.data)
-            is io.zer0.common.Result.Error -> Result.failure(r.throwable ?: IllegalStateException(r.message))
         }
     }
 

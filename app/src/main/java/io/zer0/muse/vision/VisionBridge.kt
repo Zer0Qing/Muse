@@ -6,14 +6,11 @@ import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.Model
 import io.zer0.ai.core.ProviderConfig
 import io.zer0.ai.core.ProviderError
-import io.zer0.ai.core.ProviderException
 import io.zer0.ai.core.UIMessage
 import io.zer0.ai.core.VisionCapabilities
 import io.zer0.ai.core.inferFromMessage
-import io.zer0.ai.core.providerError
 import io.zer0.ai.registry.ModelRegistry
 import io.zer0.common.Logger
-import io.zer0.common.resultOf
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.util.retryOnNetworkError
 import kotlinx.coroutines.CancellationException
@@ -630,10 +627,7 @@ class VisionBridge(
         ).collect { event ->
             when (event) {
                 is ChatStreamEvent.ContentDelta -> builder.append(event.delta)
-                is ChatStreamEvent.Error -> throw ProviderException(
-                    providerError = event.providerError ?: ProviderError.Unknown(displayMessage = event.message),
-                    cause = event.throwable,
-                )
+                is ChatStreamEvent.Error -> throw RuntimeException(event.message, event.throwable)
                 is ChatStreamEvent.Done -> return@collect
                 else -> Unit
             }
@@ -643,14 +637,10 @@ class VisionBridge(
 
     /**
      * v1.0.1 (P2): 将底层异常归一化为用户友好的视觉分析错误消息。
-     *
-     * v1.0.27 Phase 5-B: 优先走类型路径 `(e as? ProviderException)?.providerError`,
-     * 兜底才用 [inferFromMessage] 字符串推断。
      */
     private fun friendlyVisionError(e: Throwable): String {
         val message = e.message.orEmpty()
-        val providerError = (e as? ProviderException)?.providerError
-            ?: inferFromMessage(message, e)
+        val providerError = inferFromMessage(message, e)
         return when (providerError) {
             is ProviderError.AuthError -> "视觉模型 API Key 无效或权限不足(401/403),请检查供应商配置"
             is ProviderError.RateLimit -> "视觉模型限流(429),请稍后重试或切换视觉模型"
@@ -704,7 +694,7 @@ class VisionBridge(
     ): List<String> {
         if (preparedImages.isEmpty()) return emptyList()
 
-        val visionModelId = resultOf { settings.visionModelIdFlow.first() }.getOrNull() ?: ""
+        val visionModelId = runCatching { settings.visionModelIdFlow.first() }.getOrNull() ?: ""
         val userRequestHash = VisionImagePreprocessor.hashShort(userRequest)
 
         val lastError = java.util.concurrent.atomic.AtomicReference<VisionAnalysisException?>(null)

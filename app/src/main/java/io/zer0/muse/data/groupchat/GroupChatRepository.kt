@@ -236,9 +236,9 @@ class GroupChatRepository(
             groupChatDao.touchUpdatedAt(chatId)
             // v1.107 冗余: 更新群聊冗余字段(最后消息预览 + 计数 + 最后活动时间)
             val preview = body.take(50).ifBlank { "…" }
-            resultOf {
+            runCatching {
                 groupChatDao.updateLastMessageAndCount(chatId, preview, 1, System.currentTimeMillis())
-            }.onError { msg, _ -> Logger.w(TAG, "updateLastMessageAndCount failed: $msg") }
+            }.onFailure { Logger.w(TAG, "updateLastMessageAndCount failed: ${it.message}") }
         }
         msgId
     }

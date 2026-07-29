@@ -12,7 +12,6 @@ import io.zer0.ai.core.UIMessage
 import io.zer0.ai.image.ImageService
 import io.zer0.common.AppDispatchers
 import io.zer0.common.Logger
-import io.zer0.common.resultOf
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.R
@@ -152,8 +151,7 @@ class ImageGenCoordinator(
     /** Phase 8.6: 把图片 URI 读为 base64(无 data: 前缀)。 */
     private suspend fun readImageAsBase64(uri: Uri, context: Context, addError: (ChatErrorType, String) -> Unit): String {
         return withContext(AppDispatchers.io) {
-            var errThrowable: Throwable? = null
-            resultOf {
+            runCatching {
                 val resolver = context.contentResolver
                 val target = IMAGE_SCALE_TARGET
 
@@ -190,7 +188,7 @@ class ImageGenCoordinator(
 
                 if (bitmap == null) {
                     Logger.e(tag, "readImageAsBase64: bitmap is null, uri=$uri")
-                    return@resultOf ""
+                    return@runCatching ""
                 }
 
                 val baos = java.io.ByteArrayOutputStream()
@@ -199,11 +197,9 @@ class ImageGenCoordinator(
                 val result = android.util.Base64.encodeToString(baos.toByteArray(), android.util.Base64.NO_WRAP)
                 Logger.i(tag, "readImageAsBase64: success, base64 length=${result.length}")
                 result
-            }.onError { _, t -> errThrowable = t }
-                .getOrNull() ?: run {
-                val e = errThrowable
+            }.getOrElse { e ->
                 Logger.e(tag, "readImageAsBase64 failed", e)
-                addError(ChatErrorType.UNKNOWN, context.getString(R.string.err_image_gen_read_failed_msg, e?.message ?: context.getString(R.string.err_chat_unknown)))
+                addError(ChatErrorType.UNKNOWN, context.getString(R.string.err_image_gen_read_failed_msg, e.message ?: context.getString(R.string.err_chat_unknown)))
                 ""
             }
         }

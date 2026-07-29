@@ -288,23 +288,4 @@
     <string name="settings_multi_agent_node_assistant">执行助手</string>
     <string name="settings_multi_agent_node_mode">执行模式</string>
     <string name="settings_multi_agent_node_dependencies">依赖节点</string>
-    <!-- Report Screen (统计报表页) -->
-    <string name="reports_title">统计报表</string>
-    <string name="reports_generating">正在生成报表…</string>
-    <string name="reports_empty">暂无报表数据</string>
-    <string name="reports_weekly_title">本周概览</string>
-    <string name="reports_monthly_title">本月概览</string>
-    <string name="reports_chats">对话数</string>
-    <string name="reports_messages">消息数</string>
-    <string name="reports_words">总字数</string>
-    <string name="reports_new_memories">新增记忆</string>
-    <string name="reports_emotion_title">情绪轨迹</string>
-    <string name="reports_emotion_desc">基于对话内容的情感分析统计</string>
-    <string name="reports_emotion_avg">平均情感</string>
-    <string name="reports_emotion_high">最高情感</string>
-    <string name="reports_emotion_low">最低情感</string>
-    <string name="reports_emotion_positive">积极</string>
-    <string name="reports_emotion_neutral">中性</string>
-    <string name="reports_emotion_negative">消极</string>
-
 </resources>

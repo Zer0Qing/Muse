@@ -1,6 +1,5 @@
 package io.zer0.muse.ui.settings
 
-import io.zer0.common.resultOf
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -142,9 +141,9 @@ internal fun WebServerSection(
             checked = config.enabled,
             onCheckedChange = { enabled ->
                 scope.launch {
-                    resultOf { settings.saveWebServerConfig(config.copy(enabled = enabled)) }
-                        .onError { _, t ->
-                            MuseToast.show(context.getString(R.string.settings_web_failed, t?.message))
+                    runCatching { settings.saveWebServerConfig(config.copy(enabled = enabled)) }
+                        .onFailure {
+                            MuseToast.show(context.getString(R.string.settings_web_failed, it.message))
                         }
                 }
             },
@@ -176,12 +175,12 @@ internal fun WebServerSection(
             onClick = {
                 val newPassword = WebServerConfig.generateRandomPassword()
                 scope.launch {
-                    resultOf { settings.saveWebServerConfig(config.copy(password = newPassword)) }
+                    runCatching { settings.saveWebServerConfig(config.copy(password = newPassword)) }
                         .onSuccess {
                             MuseToast.show(context.getString(R.string.settings_web_new_password, newPassword), 3500)
                         }
-                        .onError { _, t ->
-                            MuseToast.show(context.getString(R.string.settings_web_failed, t?.message))
+                        .onFailure {
+                            MuseToast.show(context.getString(R.string.settings_web_failed, it.message))
                         }
                 }
             },
@@ -217,12 +216,12 @@ internal fun WebServerSection(
             onClick = {
                 val newPin = WebServerConfig.generateRandomPin()
                 scope.launch {
-                    resultOf { settings.saveWebServerConfig(config.copy(pin = newPin)) }
+                    runCatching { settings.saveWebServerConfig(config.copy(pin = newPin)) }
                         .onSuccess {
                             MuseToast.show(context.getString(R.string.settings_web_new_pin, newPin), 3500)
                         }
-                        .onError { _, t ->
-                            MuseToast.show(context.getString(R.string.settings_web_failed, t?.message))
+                        .onFailure {
+                            MuseToast.show(context.getString(R.string.settings_web_failed, it.message))
                         }
                 }
             },
@@ -281,13 +280,13 @@ internal fun WebServerSection(
                     return@MuseDialog
                 }
                 scope.launch {
-                    resultOf { settings.saveWebServerConfig(config.copy(port = port)) }
+                    runCatching { settings.saveWebServerConfig(config.copy(port = port)) }
                         .onSuccess {
                             showPortDialog = false
                             MuseToast.show(context.getString(R.string.settings_web_port_updated))
                         }
-                        .onError { _, t ->
-                            MuseToast.show(context.getString(R.string.settings_web_failed, t?.message))
+                        .onFailure {
+                            MuseToast.show(context.getString(R.string.settings_web_failed, it.message))
                         }
                 }
             },

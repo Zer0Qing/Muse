@@ -28,17 +28,10 @@ object MusePatterns {
     val THINK_TAG_REGEX = Regex("""<think>([\s\S]*?)</think>""", RegexOption.IGNORE_CASE)
 
     /**
-     * 匹配 `<mood>...</mood>` 或 `[mood]...[/mood]` 块(非贪婪,跨行 `[\s\S]`,忽略大小写)。
+     * 匹配 `<mood>...</mood>` 块(非贪婪,跨行 `[\s\S]`,忽略大小写)。
      * 捕获组 1 = mood 内容。
      *
      * 用于:MoodTagTransformer 包装/剥离、群聊调度器剥离。
-     *
-     * v1.0.28 修复: 同时匹配尖括号 `<mood>` 和方括号 `[mood]` 两种格式。
-     * 原因: prompt 模板要求 `<mood>`,但部分 LLM(尤其 deepseek 系列)会输出 `[mood]`,
-     * 导致 mood 块不被剥离,直接展示给用户,后面跟着的 [PASS] 也作为正文残留。
      */
-    val MOOD_TAG_REGEX = Regex(
-        """(?:<mood>|\[mood\])([\s\S]*?)(?:</mood>|\[/mood\])""",
-        RegexOption.IGNORE_CASE,
-    )
+    val MOOD_TAG_REGEX = Regex("""<mood>([\s\S]*?)</mood>""", RegexOption.IGNORE_CASE)
 }

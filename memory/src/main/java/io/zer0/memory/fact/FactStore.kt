@@ -1,8 +1,6 @@
 package io.zer0.memory.fact
 
-import androidx.room.withTransaction
 import androidx.sqlite.db.SimpleSQLiteQuery
-import io.zer0.common.resultOf
 import io.zer0.memory.pii.PiiGuard
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -25,13 +23,9 @@ import java.time.Instant
  * 所有写入前对 fact 字段做 PII 脱敏。
  *
  * v5: 添加事实去重(按内容前缀匹配)与智能重要度判定(关键词驱动)。
- *
- * v1.0.27 P0-1.3: addBatch 加事务,避免中途失败留下半完成状态(facts 表有数据但 facts_fts 缺失)。
- *  注入 FactDb 实例以使用 [androidx.room.withTransaction]。
  */
 class FactStore(
     private val dao: FactDao,
-    private val db: FactDb,
 ) {
 
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
@@ -185,8 +179,7 @@ class FactStore(
         }
 
         // 3) 兜底:子串搜索,限制数量避免全表扫描
-        // v1.0.27 修复: 传 scope 避免跨作用域合并(原代码漏传 scope,导致不同 scope 的相同事实被错误合并)
-        dao.likeSearch(cleaned.take(40), 20, scope).firstOrNull { isSimilar(it.fact, cleaned) }?.let { return it }
+        dao.likeSearch(cleaned.take(40), 20).firstOrNull { isSimilar(it.fact, cleaned) }?.let { return it }
 
         return null
     }
@@ -248,53 +241,48 @@ class FactStore(
      *
      * v8: 新增 scope 参数(默认 "main"),批量写入时统一使用该作用域。
      * 去重时仅在相同 scope 内查找,避免跨作用域误合并。
-     *
-     * v1.0.27 P0-1.3: 用 [FactDb.withTransaction] 包裹整个循环,确保 facts 与 facts_fts
-     * 两表的写入要么全部成功要么全部回滚,避免中途失败留下半完成状态。
      */
     suspend fun addBatch(entries: List<Fact>, scope: String = "main"): Int = withContext(Dispatchers.IO) {
         if (entries.isEmpty()) return@withContext 0
         val now = Instant.now().toString()
-        db.withTransaction {
-            var inserted = 0
-            for (entry in entries) {
-                val (cleaned, detected) = PiiGuard.scrub(entry.fact)
-                if (detected.isNotEmpty()) {
-                    io.zer0.common.Logger.d("FactStore", "PII detected in batch fact: $detected")
-                }
-                val newEntry = entry.copy(fact = cleaned, scope = scope)
-                val existingSimilar = findExistingSimilar(cleaned, scope)
-                if (existingSimilar != null) {
-                    val merged = mergeSimilar(existingSimilar, newEntry)
-                    dao.updateEntity(
-                        merged.id, merged.fact, merged.tags, merged.time, merged.sessionId,
-                        merged.createdAt, merged.importance, merged.category, merged.confidence,
-                        merged.source, merged.expiresAt, merged.lastConfirmedAt, merged.lastHitAt,
-                    )
-                    dao.insertFts(merged.id, FactFtsManager.toNgram(merged.fact))
-                } else {
-                    val importance = if (newEntry.importance > 0) newEntry.importance else inferImportance(cleaned)
-                    val insertedId = dao.insert(FactEntity(
-                        fact = cleaned,
-                        tags = json.encodeToString(ListSerializer(String.serializer()), newEntry.tags),
-                        time = newEntry.time,
-                        sessionId = newEntry.sessionId,
-                        createdAt = now,
-                        importance = importance.coerceIn(0, 2),
-                        category = newEntry.category.takeIf { it.isNotBlank() } ?: "general",
-                        confidence = newEntry.confidence.coerceIn(0f, 1f),
-                        source = newEntry.source.takeIf { it.isNotBlank() } ?: "inferred",
-                        expiresAt = newEntry.expiresAt,
-                        lastConfirmedAt = newEntry.lastConfirmedAt,
-                        lastHitAt = newEntry.lastHitAt ?: now,
-                        scope = scope,
-                    ))
-                    dao.insertFts(insertedId, FactFtsManager.toNgram(cleaned))
-                }
-                inserted++
+        var inserted = 0
+        for (entry in entries) {
+            val (cleaned, detected) = PiiGuard.scrub(entry.fact)
+            if (detected.isNotEmpty()) {
+                io.zer0.common.Logger.d("FactStore", "PII detected in batch fact: $detected")
             }
-            inserted
+            val newEntry = entry.copy(fact = cleaned, scope = scope)
+            val existingSimilar = findExistingSimilar(cleaned, scope)
+            if (existingSimilar != null) {
+                val merged = mergeSimilar(existingSimilar, newEntry)
+                dao.updateEntity(
+                    merged.id, merged.fact, merged.tags, merged.time, merged.sessionId,
+                    merged.createdAt, merged.importance, merged.category, merged.confidence,
+                    merged.source, merged.expiresAt, merged.lastConfirmedAt, merged.lastHitAt,
+                )
+                dao.insertFts(merged.id, FactFtsManager.toNgram(merged.fact))
+            } else {
+                val importance = if (newEntry.importance > 0) newEntry.importance else inferImportance(cleaned)
+                val insertedId = dao.insert(FactEntity(
+                    fact = cleaned,
+                    tags = json.encodeToString(ListSerializer(String.serializer()), newEntry.tags),
+                    time = newEntry.time,
+                    sessionId = newEntry.sessionId,
+                    createdAt = now,
+                    importance = importance.coerceIn(0, 2),
+                    category = newEntry.category.takeIf { it.isNotBlank() } ?: "general",
+                    confidence = newEntry.confidence.coerceIn(0f, 1f),
+                    source = newEntry.source.takeIf { it.isNotBlank() } ?: "inferred",
+                    expiresAt = newEntry.expiresAt,
+                    lastConfirmedAt = newEntry.lastConfirmedAt,
+                    lastHitAt = newEntry.lastHitAt ?: now,
+                    scope = scope,
+                ))
+                dao.insertFts(insertedId, FactFtsManager.toNgram(cleaned))
+            }
+            inserted++
         }
+        inserted
     }
 
     /**
@@ -315,9 +303,10 @@ class FactStore(
             return@withContext dao.likeSearch(trimmed, limit).map { it.toFact() }
         }
 
-        val ftsResults = resultOf { dao.searchFts(matchQuery, limit) }
-            .onError { msg, t -> io.zer0.common.Logger.w("FactStore", "FTS search failed, fallback to LIKE: $msg", t) }
-            .getOrNull() ?: emptyList()
+        val ftsResults = runCatching { dao.searchFts(matchQuery, limit) }.getOrElse { e ->
+            io.zer0.common.Logger.w("FactStore", "FTS search failed, fallback to LIKE: ${e.message}")
+            emptyList()
+        }
 
         // FTS 异常返回空时回退 LIKE,保证结果可用性
         if (ftsResults.isEmpty()) {
@@ -338,39 +327,27 @@ class FactStore(
     ): List<Fact> = withContext(Dispatchers.IO) {
         if (queryTags.isEmpty()) return@withContext emptyList()
 
-        // v1.0.27 修复: 原 `je.value IN (?, ?)` 在 Room 2.8 + Robolectric 下抛 SQLiteException
-        // "near (: syntax error" — 实际是 Robolectric Android SQLite 不支持 json_each 函数。
-        // 改为内存过滤:先 LIKE OR 拉候选,再在 Kotlin 中解析 tags JSON 做精确匹配 + matchCount 统计。
-        val likeClauses = queryTags.joinToString(" OR ") { "tags LIKE ?" }
+        val placeholders = queryTags.joinToString(", ") { "?" }
         val dateWhere = buildString {
-            if (dateRange?.from != null) append(" AND time >= ?")
-            if (dateRange?.to != null) append(" AND time <= ?")
+            if (dateRange?.from != null) append(" AND f.time >= ?")
+            if (dateRange?.to != null) append(" AND f.time <= ?")
         }
         val sql = """
-            SELECT *, 0 as matchCount FROM facts
-            WHERE ($likeClauses)$dateWhere
-            ORDER BY importance DESC, time DESC
+            SELECT f.*, COUNT(DISTINCT je.value) as matchCount
+            FROM facts f, json_each(f.tags) je
+            WHERE je.value IN ($placeholders)$dateWhere
+            GROUP BY f.id
+            ORDER BY f.importance DESC, matchCount DESC, f.time DESC
             LIMIT ?
         """.trimIndent()
 
         val args = mutableListOf<Any>().apply {
-            queryTags.forEach { add("%\"$it\"%") }
+            addAll(queryTags)
             dateRange?.from?.let { add(it) }
             dateRange?.to?.let { add(it) }
-            add(limit * 2) // 多拉候选,内存过滤后可能丢弃部分
+            add(limit)
         }
-        val rows = dao.tagSearch(SimpleSQLiteQuery(sql, args.toTypedArray()))
-        // 内存中精确匹配 + 计算 matchCount
-        val tagSet = queryTags.toSet()
-        val results = rows.mapNotNull { row ->
-            val tags = runCatching {
-                kotlinx.serialization.json.Json.decodeFromString<List<String>>(row.tags ?: "[]")
-            }.getOrDefault(emptyList())
-            val matchCount = tags.count { it in tagSet }
-            if (matchCount > 0) row.toFact().copy(matchCount = matchCount) else null
-        }.sortedWith(compareByDescending<Fact> { it.importance }.thenByDescending { it.matchCount }.thenByDescending { it.time })
-            .take(limit)
-        results
+        dao.tagSearch(SimpleSQLiteQuery(sql, args.toTypedArray())).map { it.toFact() }
     }
 
     /**
@@ -449,8 +426,8 @@ class FactStore(
     suspend fun ensureFtsIndexConsistent() = withContext(Dispatchers.IO) {
         if (ftsConsistencyChecked) return@withContext
         ftsConsistencyChecked = true
-        val factCount = resultOf { dao.countFacts() }.getOrNull() ?: -1
-        val ftsCount = resultOf { dao.countFts() }.getOrNull() ?: -1
+        val factCount = runCatching { dao.countFacts() }.getOrDefault(-1)
+        val ftsCount = runCatching { dao.countFts() }.getOrDefault(-1)
         if (factCount < 0 || ftsCount < 0) {
             io.zer0.common.Logger.w("FactStore", "FTS count check failed: facts=$factCount fts=$ftsCount")
             return@withContext
@@ -473,11 +450,11 @@ class FactStore(
         val rows = dao.getAllForFtsRebuild()
         var ok = 0
         rows.forEach { row ->
-            resultOf {
+            runCatching {
                 dao.insertFts(row.id, FactFtsManager.toNgram(row.fact))
                 ok++
-            }.onError { msg, t ->
-                io.zer0.common.Logger.w("FactStore", "FTS rebuild insert failed for ${row.id}: $msg", t)
+            }.onFailure {
+                io.zer0.common.Logger.w("FactStore", "FTS rebuild insert failed for ${row.id}: ${it.message}")
             }
         }
         io.zer0.common.Logger.i("FactStore", "FTS rebuild done: $ok/${rows.size} facts indexed")

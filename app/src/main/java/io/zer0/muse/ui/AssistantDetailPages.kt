@@ -191,16 +191,8 @@ fun AssistantDetailPage(
     onOpenAdvanced: () -> Unit,
 ) {
     val assistant = rememberAssistant(assistantId)
-    val update = rememberAssistantUpdater(assistantId)
     val titleDefault = stringResource(R.string.assistant_detail_title_default)
     val title = assistant?.name?.ifBlank { titleDefault } ?: titleDefault
-
-    // v1.0.28: 助手详情页直接展示模型选择入口,避免用户不知道基础页有模型选择
-    val settings: SettingsRepository = koinInject()
-    val providers by settings.providersFlow.collectAsStateWithLifecycle(initialValue = emptyList())
-    val allModels = remember(providers) { providers.flatMap { it.models } }
-    val globalSelectedModelId by settings.selectedModelIdFlow.collectAsStateWithLifecycle(initialValue = null)
-    var showModelPicker by remember { mutableStateOf(false) }
 
     // ── SillyTavern 角色卡导出 (PNG/JSON) ──
     // SillyTavern 卡是业内通用格式: PNG tEXt chunk (key="chara") 存 base64 JSON, 或纯 JSON
@@ -281,55 +273,6 @@ fun AssistantDetailPage(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-            }
-        }
-        // v1.0.28: 模型选择入口 — 在详情页直接展示当前使用的模型,点击可切换
-        item {
-            CardGroup {
-                item(
-                    onClick = { showModelPicker = true },
-                    leadingContent = {
-                        Icon(
-                            imageVector = Icons.Outlined.AutoAwesome,
-                            contentDescription = null,
-                            tint = if (assistant?.modelId != null) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(24.dp),
-                        )
-                    },
-                    headlineContent = {
-                        val a = assistant
-                        val globalModelName = allModels
-                            .firstOrNull { it.id == globalSelectedModelId }?.name
-                            ?.substringAfterLast('/')
-                            ?.takeIf { it.isNotBlank() }
-                            ?: stringResource(R.string.assistant_detail_global_default)
-                        val currentModelName = a?.modelId?.let { mid ->
-                            allModels.firstOrNull { it.id == mid }?.name ?: mid
-                        }
-                        Column {
-                            Text(
-                                text = stringResource(R.string.assistant_detail_exclusive_model),
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                            if (currentModelName != null) {
-                                Text(
-                                    text = currentModelName,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.Medium,
-                                )
-                            } else {
-                                Text(
-                                    text = stringResource(R.string.assistant_detail_using_global_model, globalModelName),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-                    },
-                    trailingContent = { ChevronRight() },
-                )
             }
         }
         item {
@@ -466,87 +409,6 @@ fun AssistantDetailPage(
                 )
             }
         }
-    }
-
-    // v1.0.28: 模型选择对话框(与 AssistantBasicPage 共用同一 UI 模式)
-    if (showModelPicker) {
-        val globalDefaultSelected = stringResource(R.string.assistant_detail_global_default_selected)
-        val globalDefaultCard = stringResource(R.string.assistant_detail_use_global_default_card)
-        val globalModelName = allModels
-            .firstOrNull { it.id == globalSelectedModelId }?.name
-            ?.substringAfterLast('/')
-            ?.takeIf { it.isNotBlank() }
-            ?: stringResource(R.string.assistant_detail_global_default)
-        MuseDialog(
-            onDismissRequest = { showModelPicker = false },
-            title = stringResource(R.string.assistant_detail_select_model),
-            confirmText = stringResource(R.string.assistant_detail_close),
-            onConfirm = { showModelPicker = false },
-            content = {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    val currentModelId = assistant?.modelId
-                    Surface(
-                        color = if (currentModelId == null)
-                            MaterialTheme.colorScheme.primaryContainer
-                        else MaterialTheme.colorScheme.surfaceVariant,
-                        shape = MuseShapes.medium,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                update { it.copy(modelId = null, providerId = null) }
-                                showModelPicker = false
-                            }
-                            .padding(vertical = 4.dp),
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(12.dp),
-                        ) {
-                            Text(
-                                text = if (currentModelId == null) globalDefaultSelected else globalDefaultCard,
-                                fontWeight = FontWeight.Medium,
-                                color = if (currentModelId == null)
-                                    MaterialTheme.colorScheme.onPrimaryContainer
-                                else MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Text(
-                                text = globalModelName,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = if (currentModelId == null)
-                                    MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                                else MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    providers.forEach { provider ->
-                        if (provider.models.isNotEmpty()) {
-                            Text(
-                                text = provider.displayName,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.outline,
-                                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
-                            )
-                            provider.models.forEach { model ->
-                                TextButton(
-                                    onClick = {
-                                        update { it.copy(modelId = model.id, providerId = provider.id) }
-                                        showModelPicker = false
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                ) {
-                                    Text(
-                                        text = if (model.id == currentModelId)
-                                            stringResource(R.string.assistant_detail_model_selected, model.name)
-                                        else model.name,
-                                        fontWeight = if (model.id == currentModelId) FontWeight.Bold else FontWeight.Normal,
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-        )
     }
 }
 
@@ -760,31 +622,31 @@ fun AssistantBasicPage(
                 )
                 item(
                     headlineContent = {
-                        // v1.0.27: 改用 DebouncedTextField 避免 IME composing 被 update 异步回写打断
-                        DebouncedTextField(
+                        IosTextField(
                             value = a.topP?.toString() ?: "",
-                            onPersist = { v ->
+                            onValueChange = { v ->
                                 val parsed = v.filter { it.isDigit() || it == '.' }.toFloatOrNull()
                                 update { it.copy(topP = parsed) }
                             },
                             label = { Text(stringResource(R.string.assistant_detail_top_p_label)) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         )
                     },
                 )
                 item(
                     headlineContent = {
-                        // v1.0.27: 改用 DebouncedTextField 避免 IME composing 被 update 异步回写打断
-                        DebouncedTextField(
+                        IosTextField(
                             value = a.maxTokens?.toString() ?: "",
-                            onPersist = { v ->
+                            onValueChange = { v ->
                                 val parsed = v.filter(Char::isDigit).toIntOrNull()
                                 update { it.copy(maxTokens = parsed) }
                             },
                             label = { Text(stringResource(R.string.assistant_detail_max_tokens_label)) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         )
                     },
                 )

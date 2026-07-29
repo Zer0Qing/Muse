@@ -8,7 +8,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.ConcurrentLinkedDeque
-import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * 调试日志内存存储 — 参考 rikkahub LogPage / kelivo log_viewer_page 实现。
@@ -42,16 +41,6 @@ object DebugLogStore {
     /** 线程安全的双端队列,尾部为最新。 */
     private val buffer = ConcurrentLinkedDeque<DebugLogEntry>()
 
-    /**
-     * v1.0.28: 全局自增 id 生成器,为每条日志分配唯一 id。
-     *
-     * 用于 DebugScreen LazyColumn 的 item key:之前的 `timestamp_tag_messageHash`
-     * 组合在"同一毫秒内相同内容日志"(如 MemoryFileWriter 并发触发多次 memory.md updated)
-     * 时会冲突导致 IllegalArgumentException 崩溃。改用自增 id 既保证唯一性,
-     * 又能稳定识别同一条目(展开状态不会因列表增删错乱)。
-     */
-    private val idGenerator = AtomicInteger(0)
-
     /** 导出日志文件的目录(cacheDir/logs,与 Logger 文件日志同目录,卸载自动清理)。 */
     @Volatile
     private var exportDir: File? = null
@@ -80,7 +69,6 @@ object DebugLogStore {
      */
     fun log(level: String, tag: String, message: String, throwable: Throwable? = null) {
         val entry = DebugLogEntry(
-            id = idGenerator.incrementAndGet(),
             timestamp = System.currentTimeMillis(),
             level = level,
             tag = tag,
@@ -153,12 +141,6 @@ object DebugLogStore {
  * @param throwable 可选 stack trace 字符串;非 null 时 UI 展开后可见
  */
 data class DebugLogEntry(
-    /**
-     * v1.0.28: 全局唯一自增 id(由 [DebugLogStore.idGenerator] 分配)。
-     *
-     * 用于 UI LazyColumn item key,避免同毫秒同内容日志 key 冲突导致崩溃。
-     */
-    val id: Int,
     val timestamp: Long,
     val level: String,
     val tag: String,

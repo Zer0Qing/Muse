@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 54,
-    "identityHash": "7e59d18f438e278690d21556121fe550",
+    "identityHash": "3f2a684ff98d6b6ac5db26a87aa65d3a",
     "entities": [
       {
         "tableName": "sessions",
@@ -2337,7 +2337,7 @@
       },
       {
         "tableName": "message_outbox",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `sessionId` TEXT NOT NULL, `text` TEXT NOT NULL, `imageBase64Json` TEXT NOT NULL DEFAULT '[]', `userMessageId` TEXT NOT NULL, `assistantMessageId` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `retryCount` INTEGER NOT NULL DEFAULT 0, `lastError` TEXT NOT NULL DEFAULT '', PRIMARY KEY(`id`), FOREIGN KEY(`sessionId`) REFERENCES `sessions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `sessionId` TEXT NOT NULL, `text` TEXT NOT NULL, `imageBase64Json` TEXT NOT NULL DEFAULT '[]', `userMessageId` TEXT NOT NULL, `assistantMessageId` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`sessionId`) REFERENCES `sessions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
@@ -2381,20 +2381,6 @@
             "columnName": "createdAt",
             "affinity": "INTEGER",
             "notNull": true
-          },
-          {
-            "fieldPath": "retryCount",
-            "columnName": "retryCount",
-            "affinity": "INTEGER",
-            "notNull": true,
-            "defaultValue": "0"
-          },
-          {
-            "fieldPath": "lastError",
-            "columnName": "lastError",
-            "affinity": "TEXT",
-            "notNull": true,
-            "defaultValue": "''"
           }
         ],
         "primaryKey": {
@@ -2674,7 +2660,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '7e59d18f438e278690d21556121fe550')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '3f2a684ff98d6b6ac5db26a87aa65d3a')"
     ]
   }
 }

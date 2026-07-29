@@ -130,8 +130,8 @@ interface FactDao {
      * 全文搜索(LIKE,兼容所有 ROM)。
      * 在 fact 字段上做子串匹配,v4: 按 importance 降序 + time 降序。
      */
-    @Query("SELECT * FROM facts WHERE fact LIKE '%' || :query || '%' AND (scope = :scope OR :scope IS NULL) ORDER BY importance DESC, time DESC LIMIT :limit")
-    suspend fun likeSearch(query: String, limit: Int, scope: String? = null): List<FactEntity>
+    @Query("SELECT * FROM facts WHERE fact LIKE '%' || :query || '%' ORDER BY importance DESC, time DESC LIMIT :limit")
+    suspend fun likeSearch(query: String, limit: Int): List<FactEntity>
 
     /**
      * v6: FTS4 全文搜索。

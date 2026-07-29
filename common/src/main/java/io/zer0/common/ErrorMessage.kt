@@ -8,13 +8,9 @@ package io.zer0.common
  * ============================================================================
  *
  * 背景:
- *   v1.90 曾在 ai / memory / app 三层留下 `// TODO i18n` 标注。P7 审计(2026-07)
- *   确认源代码中的 `// TODO i18n` 标注已全部清理完毕(实际为 0 处),
- *   ErrorMessage 体系骨架已就绪并接入 [ErrorMessageMapper] + R.string。
- *
- *   残留工作仅剩少量硬编码中文(约 20 处,集中在 SessionRepository /
- *   QuickMessageScreen / PromptInjectionScreen / LorebookScreen / AssistantScreen),
- *   可渐进式迁移,无阻塞。
+ *   v1.90 在 ai / memory / app 三层共留下约 800 处 `// TODO i18n` 标注,
+ *   根因是 ai / memory 是独立 Gradle 模块,ViewModel 无 context,无法直接引用
+ *   app 的 R.string,导致硬编码中文消息散落各处。
  *
  * 本文件作用:
  *   提供"错误代码 → UI 字符串"解耦的骨架。所有跨模块错误统一表达为
@@ -28,20 +24,20 @@ package io.zer0.common
  *   3. ViewModel:接住 [ErrorMessage] 后通过 `appContext.getString(R.string.xxx)`
  *      渲染给 UI,无需向上冒泡硬编码字符串
  *
- * 新增错误类型的步骤:
- *   a. 识别错误属于哪一类(网络 / 鉴权 / API / 存储 / 校验 / 通用)
- *   b. 在对应 sealed class 下新增 data object / data class 子类
- *      (如 `ErrorMessage.NetworkError.TIMEOUT`),携带稳定 [code] + 英文 [defaultMessage]
+ * 迁移步骤(对每个标 `// TODO i18n` 的位置):
+ *   a. 识别现有硬编码中文错误消息是哪一类(网络 / 鉴权 / API / 存储 / 校验 / 通用)
+ *   b. 替换为对应 [ErrorMessage] 子类(如 `ErrorMessage.NetworkError.TIMEOUT`)
  *   c. 在 app/src/main/res/values/strings_errors.xml(及 values-en / values-ja
  *      等已有 locale)中补对应 error_xxx 字符串
- *   d. 在 [ErrorMessageMapper] 中补映射条目(exhaustive when 会强制覆盖)
+ *   d. 在 [ErrorMessageMapper] 中补映射条目
+ *   e. 删除源代码处的 `// TODO i18n` 标注
  *
  * 注意事项:
  *   - [code] 一旦发布不可变更(UI / 日志 / 埋点 / 服务端联调都会引用)
  *   - [defaultMessage] 必须为英文(用作品质兜底,避免 locale 缺失时显示空白)
  *   - 带可变参数的错误(如 RATE_LIMIT 的 retryAfter)用 data class 而非 object
  *   - 与 [io.zer0.common.ErrorCode] 旧枚举共存:新代码优先用 [ErrorMessage],
- *     旧枚举保留作向后兼容兜底
+ *     旧枚举将在全部 TODO 清理完毕后废弃(详见 [ErrorCode] 顶部注释)
  * ============================================================================
  */
 sealed class ErrorMessage {

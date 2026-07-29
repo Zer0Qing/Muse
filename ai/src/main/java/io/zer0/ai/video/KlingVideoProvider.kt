@@ -1,7 +1,6 @@
 package io.zer0.ai.video
 
 import io.zer0.common.Logger
-import io.zer0.common.resultOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
@@ -83,7 +82,7 @@ class KlingVideoProvider(
      */
     override suspend fun submit(request: VideoGenRequest): VideoSubmitResult =
         withContext(Dispatchers.IO) {
-            resultOf {
+            runCatching {
                 if (request.apiKey.isBlank()) {
                     error("Kling API key 为空")
                 }
@@ -133,7 +132,9 @@ class KlingVideoProvider(
                     Logger.i(TAG, "submit 成功: taskId=$taskId")
                     VideoSubmitResult(taskId = taskId, isAsync = true, modelName = request.model)
                 }
-            }.getOrThrow()
+            }.getOrElse { e ->
+                throw e
+            }
         }
 
     /**
@@ -144,7 +145,7 @@ class KlingVideoProvider(
      */
     override suspend fun poll(taskId: String): VideoPollResult =
         withContext(Dispatchers.IO) {
-            val r = resultOf {
+            runCatching {
                 val url = "${baseUrl.trimEnd('/')}/videos/generations/$taskId"
                 val apiKey = apiKeyForQuery[taskId] ?: ""
                 val httpRequest = Request.Builder()
@@ -211,12 +212,11 @@ class KlingVideoProvider(
                         PollStatus.PENDING -> VideoPollResult(status = status)
                     }
                 }
-            }
-            when (r) {
-                is io.zer0.common.Result.Success -> r.data
-                is io.zer0.common.Result.Error -> VideoPollResult(
+            }.getOrElse { e ->
+                // 网络异常:返回 PENDING + errorMessage,让上层按连续错误计数处理
+                VideoPollResult(
                     status = PollStatus.PENDING,
-                    errorMessage = "Kling poll 异常: ${r.throwable?.message ?: r.throwable?.toString() ?: r.message}",
+                    errorMessage = "Kling poll 异常: ${e.message ?: e.toString()}",
                 )
             }
         }

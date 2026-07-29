@@ -7,10 +7,7 @@ import io.zer0.ai.ChatService
 import io.zer0.ai.core.ChatCompletion
 import io.zer0.ai.core.ChatStreamEvent
 import io.zer0.ai.core.MessageRole
-import io.zer0.ai.core.ProviderError
-import io.zer0.ai.core.ProviderException
 import io.zer0.ai.core.UIMessage
-import io.zer0.ai.core.providerError
 import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.ui.speech.TtsManager
@@ -609,10 +606,7 @@ class TranslateViewModel(
                     _state.update { it.copy(translatedText = sb.toString()) }
                 }
                 is ChatStreamEvent.Error -> {
-                    throw ProviderException(
-                        providerError = event.providerError ?: ProviderError.Unknown(displayMessage = event.message),
-                        cause = event.throwable,
-                    )
+                    throw RuntimeException(event.message, event.throwable)
                 }
                 is ChatStreamEvent.Done -> {
                     // 流结束,返回收集到的完整文本

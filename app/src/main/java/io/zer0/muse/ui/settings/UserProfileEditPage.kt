@@ -16,9 +16,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -58,25 +58,15 @@ fun UserProfileEditPage(onBack: () -> Unit) {
     val settings: SettingsRepository = koinInject()
     val scope = rememberCoroutineScope()
 
-    // v1.0.27 修复 IME bug: 用本地 mutableStateOf 同步持有 profile,避免 produceState + scope.launch
-    // 的异步往返破坏 IME composing text (用户反馈"打逗号时光标跳到逗号前面")。
-    // 旧实现:profile 从 userProfileFlow 异步收集 → update 启动协程读 DB → transform → 写 DB →
-    //        flow emit → produceState 更新 → TextField value 变化 → IME composing 错乱。
-    // 新实现:本地 state 同步更新 → 异步写 DB;外部 flow 变化时同步到本地(若内容确实不同)。
-    var profile by remember { mutableStateOf(UserProfile()) }
-    LaunchedEffect(Unit) {
-        settings.userProfileFlow.collect { incoming ->
-            // 仅当 DB 值与本地不一致时同步(避免写回后 echo 导致重组打断 IME)
-            if (incoming != profile) profile = incoming
-        }
+    // 收集当前用户画像,跟随 DataStore 自动更新
+    val profile by produceState<UserProfile>(initialValue = UserProfile()) {
+        settings.userProfileFlow.collect { value = it }
     }
 
-    // 同步更新本地 state + 异步写回 DataStore
+    // 即时保存:读取 DB 最新值,应用 transform 后写回(避免并发覆盖)
     fun update(transform: (UserProfile) -> UserProfile) {
-        val next = transform(profile)
-        profile = next // 同步更新,IME 立即看到新 value
         scope.launch {
-            settings.saveUserProfile(next)
+            settings.saveUserProfile(transform(settings.getUserProfile()))
         }
     }
 
@@ -110,8 +100,8 @@ fun UserProfileEditPage(onBack: () -> Unit) {
                 item(
                     headlineContent = {
                         IosTextField(
-                            value = profile.assistantName ?: "",
-                            onValueChange = { v -> update { it.copy(assistantName = v.ifBlank { null }) } },
+                            value = profile.userNickName ?: "",
+                            onValueChange = { v -> update { it.copy(userNickName = v.ifBlank { null }) } },
                             label = { Text(stringResource(R.string.settings_user_profile_assistant_name)) },
                             placeholder = { Text(stringResource(R.string.settings_user_profile_assistant_name_hint)) },
                             supportingText = { Text(stringResource(R.string.settings_user_profile_assistant_name_desc)) },
@@ -123,8 +113,8 @@ fun UserProfileEditPage(onBack: () -> Unit) {
                 item(
                     headlineContent = {
                         IosTextField(
-                            value = profile.userNickName ?: "",
-                            onValueChange = { v -> update { it.copy(userNickName = v.ifBlank { null }) } },
+                            value = profile.assistantName ?: "",
+                            onValueChange = { v -> update { it.copy(assistantName = v.ifBlank { null }) } },
                             label = { Text(stringResource(R.string.settings_user_profile_your_name)) },
                             placeholder = { Text(stringResource(R.string.settings_user_profile_your_name_hint)) },
                             supportingText = { Text(stringResource(R.string.settings_user_profile_your_name_desc)) },

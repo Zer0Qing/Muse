@@ -1,6 +1,5 @@
 package io.zer0.muse.ui.chat
 
-import io.zer0.common.resultOf
 import io.zer0.muse.asr.ASRController
 import io.zer0.muse.asr.ASRState
 import io.zer0.muse.asr.AsrConfig
@@ -139,7 +138,7 @@ class ChatAudioCoordinator(
     /** Phase 9.3 (M2): 保存 ASR 配置(Settings 页编辑后调用)。 */
     fun saveAsrConfig(config: AsrConfig) {
         accessor.coroutineScope.launch {
-            resultOf { settings.saveAsrConfig(config) }
+            runCatching { settings.saveAsrConfig(config) }
         }
     }
 

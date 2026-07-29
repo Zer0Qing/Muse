@@ -87,22 +87,22 @@ val Shapes.pill: RoundedCornerShape get() = PillShape
  * `RoundedCornerShape(20.dp,20.dp,20.dp,6.dp)`(单聊)与
  * `RoundedCornerShape(18.dp,18.dp,4.dp,18.dp)`(群聊)混用。
  *
- *  - [userBubble]:      (20,20,6,20) — 用户气泡,右下小尾巴
- *  - [assistantBubble]: (20,20,20,6) — AI 气泡,左下小尾巴
+ *  - [userBubble]:      (20,20,20,6) — 用户气泡,右下小尾巴
+ *  - [assistantBubble]: (6,20,20,20) — AI 气泡,左下小尾巴
  *
  * 数值对应 [MuseCornerRadius.BUBBLE_TAIL] (6) 与 [MuseCornerRadius.CARD] (20)。
  */
 /** 用户气泡:右下角小圆角模拟尾巴(主体 20dp + 尾巴 6dp)。 */
 private val UserBubbleShape = RoundedCornerShape(
     MuseCornerRadius.CARD.dp, MuseCornerRadius.CARD.dp,
-    MuseCornerRadius.BUBBLE_TAIL.dp, MuseCornerRadius.CARD.dp,
+    MuseCornerRadius.CARD.dp, MuseCornerRadius.BUBBLE_TAIL.dp,
 )
 val Shapes.userBubble: RoundedCornerShape get() = UserBubbleShape
 
 /** AI 气泡:左下角小圆角模拟尾巴(主体 20dp + 尾巴 6dp)。 */
 private val AssistantBubbleShape = RoundedCornerShape(
+    MuseCornerRadius.BUBBLE_TAIL.dp, MuseCornerRadius.CARD.dp,
     MuseCornerRadius.CARD.dp, MuseCornerRadius.CARD.dp,
-    MuseCornerRadius.CARD.dp, MuseCornerRadius.BUBBLE_TAIL.dp,
 )
 val Shapes.assistantBubble: RoundedCornerShape get() = AssistantBubbleShape
 

@@ -357,40 +357,9 @@ class BackupService(
      *  - 内存峰值 = 一批记录(约几百条),而非全量
      *  - 容错:跳过无法解析的行(继续后续记录,部分恢复)
      *
-     * P6(2026-07): 跨 DB 事务治理 — 补齐快照回滚安全网。
-     *  - 导入前先 buildBackup() 拿当前数据快照(内存中)
-     *  - 任一 DB 写入抛异常时用快照重新 applyBackupInternal 一次,尽力恢复导入前状态
-     *  - 与单 JSON 路径([applyBackup])的回滚策略保持一致,消除"清空后中途失败导致数据全丢"风险
-     *  - 快照本身可能因数据量大而 OOM,此时降级为"无回滚安全网"(同 [applyBackup] 策略)
-     *
      * @return 导入的会话数 + 消息数
-     * @throws Exception 导入中途失败且回滚也失败(或无快照)时向上抛出,让调用方感知
      */
     private suspend fun applyNdJsonStreaming(text: String): Pair<Int, Int> {
-        // P6: 导入前先快照当前数据作为回滚点(内存中,失败时用其恢复)
-        val preImportSnapshot = resultOf { buildBackup() }
-            .onError { msg, t -> Logger.w("BackupService", "NDJSON 导入前快照失败,无回滚安全网: ${t?.message ?: msg}") }
-            .getOrNull()
-
-        return try {
-            applyNdJsonStreamingInternal(text)
-        } catch (e: Exception) {
-            // P6: 导入中途失败,尝试用导入前快照回滚,避免数据全丢
-            Logger.w("BackupService", "NDJSON 流式导入失败,尝试回滚到导入前状态: ${e.message}", e)
-            if (preImportSnapshot != null) {
-                resultOf { applyBackupInternal(preImportSnapshot) }
-                    .onError { msg, t -> Logger.w("BackupService", "回滚失败,数据可能仍处于不一致状态: $msg", t) }
-            }
-            throw e
-        }
-    }
-
-    /**
-     * 实际执行 NDJSON 流式导入的逻辑(供 [applyNdJsonStreaming] 与回滚解耦)。
-     *
-     * 不带回滚,调用方([applyNdJsonStreaming])负责快照 + 回滚。
-     */
-    private suspend fun applyNdJsonStreamingInternal(text: String): Pair<Int, Int> {
         // 1. 先清空所有表
         db.withTransaction {
             db.messageDao().deleteAll()

@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalLayoutApi::class)
-
 package io.zer0.muse.ui.schedule
 
 import androidx.activity.compose.BackHandler
@@ -7,8 +5,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -65,7 +61,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.common.AppJson
-import io.zer0.common.resultOf
 import io.zer0.muse.R
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.assistant.AssistantRepository
@@ -324,7 +319,7 @@ private fun TaskCard(
                     onClick = {
                         scope.launch {
                             executing = true
-                            resultOf { runner.executeTask(task) }
+                            runCatching { runner.executeTask(task) }
                             executing = false
                             // 执行完成后若已展开,刷新执行历史
                             if (expanded) {
@@ -546,13 +541,7 @@ private fun TaskDialog(
                     assistants = assistants,
                     onSelect = { assistantId = it },
                 )
-                // v1.0.28: 改用 FlowRow 自动换行,避免 5 个选项在横向 Row 中空间不足
-                // 导致"自定义 Cron"等长文本竖排崩坏。
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf(
                         "once" to stringResource(R.string.schedule_interval_once),
                         "hourly" to stringResource(R.string.schedule_interval_hourly),
@@ -567,11 +556,7 @@ private fun TaskDialog(
                 }
                 if (interval == "cron") {
                     IosTextField(value = cronExpr, onValueChange = { cronExpr = it }, label = { Text(stringResource(R.string.schedule_cron_label)) }, placeholder = { Text(stringResource(R.string.schedule_cron_placeholder)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                    FlowRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         listOf(
                             stringResource(R.string.schedule_preset_workday_9) to "0 9 * * 1-5",
                             stringResource(R.string.schedule_preset_daily_8) to "0 8 * * *",
@@ -830,11 +815,7 @@ private fun AutomationConditionSection(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(stringResource(R.string.schedule_condition_title), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
             listOf(
                 AutomationConfig.Condition.ALWAYS to stringResource(R.string.schedule_condition_type_always),
                 AutomationConfig.Condition.NETWORK_AVAILABLE to stringResource(R.string.schedule_condition_type_network_available),
@@ -936,11 +917,7 @@ private fun AutomationActionSection(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(stringResource(R.string.schedule_action_title), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
             listOf(
                 AutomationConfig.Action.AI_PROMPT to stringResource(R.string.schedule_action_type_ai_prompt),
                 AutomationConfig.Action.CREATE_QUICK_NOTE to stringResource(R.string.schedule_action_type_create_quick_note),

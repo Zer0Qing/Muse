@@ -1,6 +1,5 @@
 package io.zer0.muse.ui.settings
 
-import io.zer0.common.resultOf
 import android.content.Intent
 import android.net.Uri
 import io.zer0.muse.ui.common.MuseDialog
@@ -126,23 +125,23 @@ internal fun McpSection() {
                         mcpRegistry = mcpRegistry,
                         onToggleEnabled = { enabled ->
                             scope.launch {
-                                resultOf { mcpRegistry.updateServer(server.copy(enabled = enabled)) }
-                                    .onError { _, t ->
-                                        MuseToast.show(context.getString(R.string.settings_mcp_failed, t?.message))
+                                runCatching { mcpRegistry.updateServer(server.copy(enabled = enabled)) }
+                                    .onFailure {
+                                        MuseToast.show(context.getString(R.string.settings_mcp_failed, it.message))
                                     }
                             }
                         },
                         onReconnect = {
-                            resultOf { mcpRegistry.reconnect(server.id) }
-                                .onError { _, t ->
-                                    MuseToast.show(context.getString(R.string.settings_mcp_failed, t?.message))
+                            runCatching { mcpRegistry.reconnect(server.id) }
+                                .onFailure {
+                                    MuseToast.show(context.getString(R.string.settings_mcp_failed, it.message))
                                 }
                         },
                         onDelete = {
                             scope.launch {
-                                resultOf { mcpRegistry.removeServer(server.id) }
-                                    .onError { _, t ->
-                                        MuseToast.show(context.getString(R.string.settings_mcp_failed, t?.message))
+                                runCatching { mcpRegistry.removeServer(server.id) }
+                                    .onFailure {
+                                        MuseToast.show(context.getString(R.string.settings_mcp_failed, it.message))
                                     }
                             }
                         },
@@ -264,7 +263,7 @@ private fun McpServerRow(
                         if (oauthSupported) {
                             McpActionRow(stringResource(R.string.settings_mcp_oauth_authorize)) {
                                 menuExpanded = false
-                                resultOf { mcpRegistry.startOAuthFlow(server.id) }
+                                runCatching { mcpRegistry.startOAuthFlow(server.id) }
                                     .onSuccess { url ->
                                         if (url == null) {
                                             MuseToast.show(context.getString(R.string.settings_mcp_oauth_cannot_start))
@@ -276,19 +275,19 @@ private fun McpServerRow(
                                             }
                                         }
                                     }
-                                    .onError { _, t ->
-                                        MuseToast.show(context.getString(R.string.settings_mcp_failed, t?.message))
+                                    .onFailure {
+                                        MuseToast.show(context.getString(R.string.settings_mcp_failed, it.message))
                                     }
                             }
                             McpActionRow(stringResource(R.string.settings_mcp_oauth_revoke)) {
                                 menuExpanded = false
                                 scope.launch {
-                                    resultOf { mcpRegistry.revokeOAuth(server.id) }
+                                    runCatching { mcpRegistry.revokeOAuth(server.id) }
                                         .onSuccess {
                                             MuseToast.show(context.getString(R.string.settings_mcp_oauth_revoked))
                                         }
-                                        .onError { _, t ->
-                                            MuseToast.show(context.getString(R.string.settings_mcp_oauth_revoke_failed, t?.message))
+                                        .onFailure {
+                                            MuseToast.show(context.getString(R.string.settings_mcp_oauth_revoke_failed, it.message))
                                         }
                                 }
                             }
@@ -547,12 +546,12 @@ private fun ResourcesBrowserDialog(
     LaunchedEffect(serverId) {
         loading = true
         loadError = null
-        resultOf {
+        runCatching {
             val all = mcpRegistry.listAllResources()
             all[serverId] ?: emptyList()
         }.onSuccess { resources = it }
-            .onError { _, t ->
-                loadError = context.getString(R.string.settings_mcp_load_resources_failed, t?.message)
+            .onFailure {
+                loadError = context.getString(R.string.settings_mcp_load_resources_failed, it.message)
             }
         loading = false
     }
@@ -697,12 +696,12 @@ private fun PromptsBrowserDialog(
     LaunchedEffect(serverId) {
         loading = true
         loadError = null
-        resultOf {
+        runCatching {
             val all = mcpRegistry.listAllPrompts()
             all[serverId] ?: emptyList()
         }.onSuccess { prompts = it }
-            .onError { _, t ->
-                loadError = context.getString(R.string.settings_mcp_load_prompts_failed, t?.message)
+            .onFailure {
+                loadError = context.getString(R.string.settings_mcp_load_prompts_failed, it.message)
             }
         loading = false
     }
@@ -838,10 +837,10 @@ private fun PromptsBrowserDialog(
                     loadingResult = true
                     promptError = null
                     scope.launch {
-                        val result = resultOf {
+                        val result = runCatching {
                             mcpRegistry.getPrompt(serverId, prompt.name, argValues.toMap())
-                        }.onError { _, t ->
-                            promptError = context.getString(R.string.settings_mcp_get_failed, t?.message)
+                        }.onFailure {
+                            promptError = context.getString(R.string.settings_mcp_get_failed, it.message)
                         }.getOrNull()
                         loadingResult = false
                         if (result != null) {

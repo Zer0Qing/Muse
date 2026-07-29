@@ -10,12 +10,9 @@ import io.zer0.ai.core.Model
 import io.zer0.ai.core.ModelContextWindowRegistry
 import io.zer0.ai.core.ProviderCompat
 import io.zer0.ai.core.ProviderConfig
-import io.zer0.ai.core.ProviderError
-import io.zer0.ai.core.ProviderException
 import io.zer0.ai.core.ProviderHttpSupport
 import io.zer0.ai.core.ProviderPayloadNormalizer
 import io.zer0.ai.core.ProviderSpecificConfig
-import io.zer0.ai.core.toProviderException
 import io.zer0.ai.core.ReasoningLevel
 import io.zer0.ai.core.ToolCall
 import io.zer0.ai.core.ToolDefinition
@@ -44,6 +41,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import okhttp3.sse.EventSource
 import okhttp3.sse.EventSourceListener
+import okhttp3.sse.EventSources
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
@@ -84,7 +82,8 @@ class AnthropicProvider(
             ?: ProviderSpecificConfig.Anthropic()
 
     // M-ANT9: writeTimeout 已由 ProviderHttpSupport 统一配置,不再自行创建 client
-    // v1.0.30 (P5-D): sseFactory 已移至 ProviderHttpSupport 共享
+
+    private val sseFactory by lazy { EventSources.createFactory(httpClient) }
 
     override fun streamChat(request: ChatRequest): Flow<ChatStreamEvent> = callbackFlow {
         val producerScope = this
@@ -150,8 +149,9 @@ class AnthropicProvider(
                         // M-ANT10 / M-ANT11: readBodyCapped + 先 cancel 再 close
                         val errText = readBodyCapped(response)
                         val code = response.code
-                        // v1.0.30 (P5-D): 用 ProviderHttpSupport.isRetryableHttpCode 替代字面量
-                        val isRetryable = ProviderHttpSupport.isRetryableHttpCode(code)
+                        // v1.0.1 (P1): 重试条件对齐 OpenAI/Gemini — 429/408/5xx 均重试
+                        //   原 Anthropic 仅重试 529/503,429 限流时用户只能手动重试
+                        val isRetryable = code == 429 || code == 408 || code == 503 || code == 529 || code in 500..599
                         // v1.0.1 (P0): 429 限流时先尝试切换 key(多 key 场景)
                         if (code == 429 && !anyDeltaSent.get() && retryCount < maxRetries &&
                             !request.abortSignal.aborted && !producerScope.isClosedForSend &&
@@ -173,9 +173,14 @@ class AnthropicProvider(
                             !request.abortSignal.aborted && !producerScope.isClosedForSend
                         ) {
                             retryCount++
-                            // v1.0.30 (P5-D): 用 ProviderHttpSupport.calculateRetryDelay 统一退避逻辑
-                            val retryAfter = if (code == 429) response.header("Retry-After") else null
-                            val finalDelay = ProviderHttpSupport.calculateRetryDelay(retryCount, retryAfter)
+                            // v1.0.1 (P1): 加 jitter(0~499ms),与 OpenAI 对齐
+                            val baseDelay = 1000L shl (retryCount - 1)  // 1s / 2s / 4s
+                            val delayMs = baseDelay + kotlin.random.Random.nextLong(0, 500)
+                            // v1.0.1: 429 限流优先用 Retry-After 头
+                            val retryAfter = if (code == 429) {
+                                response.header("Retry-After")?.toIntOrNull()?.let { it * 1000L }
+                            } else null
+                            val finalDelay = retryAfter ?: delayMs
                             Logger.w("AnthropicProvider",
                                 "streamChat onOpen retryable HTTP $code, " +
                                     "retry $retryCount/$maxRetries after ${finalDelay}ms")
@@ -457,7 +462,7 @@ class AnthropicProvider(
                     val errText = readBodyCapped(resp)
                     val msg = parseErrorMessage(code, errText)
                     Logger.w("AnthropicProvider", "completeText HTTP $code: $msg")
-                    throw ProviderException(ProviderError.from(code = code, body = errText))
+                    throw RuntimeException(msg)
                 }
                 val raw = resp.body.string()
                 val parsed = AppJson.decodeFromString<AnthropicCompletionResponse>(raw)
@@ -484,7 +489,7 @@ class AnthropicProvider(
                     .takeIf { it.isNotEmpty() }
                 if (text.isBlank() && toolCalls.isNullOrEmpty()) {
                     Logger.w("AnthropicProvider", "completeText 返回空文本(thinking 可能被吃掉)")
-                    throw ErrorCode.INVALID_RESPONSE.toProviderException("empty_text")
+                    throw RuntimeException(ErrorCode.INVALID_RESPONSE.toMessage("empty_text"))
                 }
                 Logger.d("AnthropicProvider", "completeText OK: ${text.length} chars, toolCalls=${toolCalls?.size ?: 0}")
                 ChatCompletion(text = text, finishReason = parsed.stop_reason, toolCalls = toolCalls)
@@ -707,11 +712,9 @@ class AnthropicProvider(
                 if (!resp.isSuccessful) {
                     // M-ANT10: readBodyCapped 替代 runCatching
                     val errText = readBodyCapped(resp)
-                    throw ProviderException(
-                        ProviderError.from(
-                            code = resp.code,
-                            body = errText,
-                        ),
+                    throw RuntimeException(
+                        ErrorCode.INVALID_RESPONSE.toMessage("model_list_fetch", resp.code)
+                            + errText.takeIf { it.isNotBlank() }?.let { ": $it" }.orEmpty()
                     )
                 }
                 val raw = resp.body.string()

@@ -422,11 +422,10 @@ private fun ScaffoldLayout(
                 ) {
                     items(
                         items = logs,
-                        // v1.0.28: 用全局自增 id 作为 key,避免同毫秒同内容日志
-                        // (如 MemoryFileWriter 并发触发)key 冲突导致 IllegalArgumentException 崩溃
-                        key = { entry -> entry.id },
+                        // 用 index+timestamp+tag 组合 key,避免相同内容条目被复用导致展开状态错乱
+                        key = { entry -> "${entry.timestamp}_${entry.tag}_${entry.message.hashCode()}" },
                     ) { entry ->
-                        val entryKey = entry.id.toString()
+                        val entryKey = "${entry.timestamp}_${entry.tag}_${entry.message.hashCode()}"
                         LogEntryItem(
                             entry = entry,
                             expanded = expandedKey == entryKey,

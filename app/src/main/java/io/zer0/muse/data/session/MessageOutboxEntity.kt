@@ -41,8 +41,6 @@ data class MessageOutboxEntity(
     val userMessageId: String,
     val assistantMessageId: String,
     val createdAt: Long,
-    @ColumnInfo(defaultValue = "0") val retryCount: Int = 0,
-    @ColumnInfo(defaultValue = "") val lastError: String = "",
 )
 
 @Dao
@@ -59,9 +57,6 @@ interface MessageOutboxDao {
 
     @Query("SELECT * FROM message_outbox WHERE sessionId = :sessionId ORDER BY createdAt ASC")
     suspend fun getBySessionId(sessionId: String): List<MessageOutboxEntity>
-
-    @Query("DELETE FROM message_outbox WHERE sessionId = :sessionId")
-    suspend fun deleteBySessionId(sessionId: String)
 
     @Query("SELECT COUNT(*) FROM message_outbox")
     suspend fun count(): Int

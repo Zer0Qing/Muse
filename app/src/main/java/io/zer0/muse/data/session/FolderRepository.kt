@@ -3,7 +3,6 @@ package io.zer0.muse.data.session
 import android.content.Context
 import androidx.room.withTransaction
 import io.zer0.common.Logger
-import io.zer0.common.resultOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
@@ -85,13 +84,13 @@ class FolderRepository(
                 sessionDao.setFolderId(sessionId, folderId)
                 // v1.107 冗余: 旧文件夹 sessionCount - 1
                 if (oldFolderId != null) {
-                    resultOf { folderDao.incrementSessionCount(oldFolderId, -1) }
-                        .onError { msg, _ -> Logger.w(TAG, "decrement old folder sessionCount failed: $msg") }
+                    runCatching { folderDao.incrementSessionCount(oldFolderId, -1) }
+                        .onFailure { Logger.w(TAG, "decrement old folder sessionCount failed: ${it.message}") }
                 }
                 // v1.107 冗余: 新文件夹 sessionCount + 1
                 if (folderId != null) {
-                    resultOf { folderDao.incrementSessionCount(folderId, 1) }
-                        .onError { msg, _ -> Logger.w(TAG, "increment new folder sessionCount failed: $msg") }
+                    runCatching { folderDao.incrementSessionCount(folderId, 1) }
+                        .onFailure { Logger.w(TAG, "increment new folder sessionCount failed: ${it.message}") }
                 }
             }
         }

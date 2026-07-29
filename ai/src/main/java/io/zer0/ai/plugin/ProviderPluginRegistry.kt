@@ -7,7 +7,6 @@ import io.zer0.ai.core.ProviderCategory
 import io.zer0.ai.core.ProviderConfig
 import io.zer0.ai.core.ProviderType
 import io.zer0.common.Logger
-import io.zer0.common.resultOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -113,17 +112,14 @@ class ProviderPluginRegistry(
      * 成功时插件已 [register] 到内存表并持久化,直接返回插件实例。
      */
     suspend fun loadFromFile(file: File): Result<ProviderPlugin> = withContext(Dispatchers.IO) {
-        val r = resultOf {
+        runCatching {
             val text = file.readText()
             val plugin = json.decodeFromString<ProviderPlugin>(text)
             validate(plugin)
             register(plugin)
             plugin
-        }
-        r.onError { _, t -> Logger.e(TAG, "加载插件失败: ${file.absolutePath}", t) }
-        when (r) {
-            is io.zer0.common.Result.Success -> Result.success(r.data)
-            is io.zer0.common.Result.Error -> Result.failure(r.throwable ?: IllegalStateException(r.message))
+        }.onFailure { e ->
+            Logger.e(TAG, "加载插件失败: ${file.absolutePath}", e)
         }
     }
 

@@ -38,7 +38,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.PhotoCamera
@@ -238,14 +237,38 @@ internal fun InputBar(
             .padding(horizontal = 24.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        // v1.0.29: 联网搜索 / 深度思考 已移入加号菜单,
-        // 输入栏上方仅保留语音对话入口和工具进度 pill(有内容时才显示)。
-        if (showMic || toolCallTotal > 0) {
+        // v0.44: 联网搜索 + 深度思考 小胶囊开关(放在输入栏上方,iOS 风格)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            // 联网搜索
+            IosChip(
+                selected = isWebSearchEnabled,
+                onClick = onToggleWebSearch,
+                label = stringResource(R.string.chat_web_search_cd),
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Language,
+                        contentDescription = null,
+                        modifier = Modifier.size(MuseIconSizes.iconSmall),
+                    )
+                },
+            )
+            // 深度思考
+            IosChip(
+                selected = isDeepThinkingEnabled,
+                onClick = onToggleDeepThinking,
+                label = stringResource(R.string.chat_deep_thinking_cd),
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Psychology,
+                        contentDescription = null,
+                        modifier = Modifier.size(MuseIconSizes.iconSmall),
+                    )
+                },
+            )
             // 语音对话模式入口(仅 ASR API 已配置时显示):点击进入全屏连续对话
             // 与长按麦克风区分:长按是单次识别填入输入框,语音对话是连续 ASR + AI + TTS 循环
             if (showMic) {
@@ -318,7 +341,6 @@ internal fun InputBar(
                     )
                 }
             }
-        }
         }
         // QuickMessages 气泡
         if (quickMessages.isNotEmpty()) {
@@ -646,11 +668,8 @@ internal fun InputBar(
                 }
                 if (showToolSheet) {
                     // v1.46: MANUS 风格底部展开面板(替代 MuseDialog 弹窗)
-                    // v1.0.29: maxHeightFraction=0.55f,让加号菜单高度对齐
-                    // 摄像头/照片磁贴底部,位置更自然。
                     MuseBottomSheet(
                         onDismissRequest = { showToolSheet = false },
-                        maxHeightFraction = 0.55f,
                     ) {
                         Text(
                             text = stringResource(R.string.chat_tools_pick_content),
@@ -785,36 +804,6 @@ internal fun InputBar(
                                 .verticalScroll(rememberScrollState()),
                         ) {
                             Column(modifier = Modifier.padding(bottom = 32.dp)) {
-                        // v1.0.29: 联网搜索 / 深度思考 移入加号菜单,
-                        // 放在媒体入口下方、附件上方,与下方功能列表保持同一样式。
-                        ToolListRow(
-                            icon = Icons.Default.Language,
-                            title = stringResource(R.string.chat_web_search_cd),
-                            isActive = isWebSearchEnabled,
-                            showArrow = false,
-                            onClick = {
-                                MuseHaptics.light(hapticFeedback)
-                                onToggleWebSearch()
-                            },
-                        )
-                        HorizontalDivider(
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                            thickness = 0.5.dp,
-                        )
-                        ToolListRow(
-                            icon = Icons.Default.Psychology,
-                            title = stringResource(R.string.chat_deep_thinking_cd),
-                            isActive = isDeepThinkingEnabled,
-                            showArrow = false,
-                            onClick = {
-                                MuseHaptics.light(hapticFeedback)
-                                onToggleDeepThinking()
-                            },
-                        )
-                        HorizontalDivider(
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                            thickness = 0.5.dp,
-                        )
                         ToolListRow(
                             icon = TablerIcons.Paperclip,
                             title = stringResource(R.string.chat_tool_attachment),
@@ -1630,13 +1619,17 @@ private fun ToolListRow(
             imageVector = icon,
             contentDescription = null,
             modifier = Modifier.size(24.dp),
-            tint = MaterialTheme.colorScheme.onSurface,
+            tint = if (isActive) MaterialTheme.colorScheme.primary
+            else MaterialTheme.colorScheme.onSurface,
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
+                ),
+                color = if (isActive) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.onSurface,
             )
             if (!subtitle.isNullOrBlank()) {
                 Spacer(Modifier.height(2.dp))
@@ -1647,16 +1640,7 @@ private fun ToolListRow(
                 )
             }
         }
-        // v1.0.29: 激活态显示黑白小勾(参考 iOS 设置页选中样式),
-        // 非激活态按 showArrow 决定是否显示右箭头。
-        if (isActive) {
-            Icon(
-                imageVector = Icons.Default.Check,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.onSurface,
-            )
-        } else if (showArrow) {
+        if (showArrow) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,

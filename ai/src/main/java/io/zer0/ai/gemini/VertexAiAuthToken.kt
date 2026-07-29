@@ -1,7 +1,5 @@
 package io.zer0.ai.gemini
 
-import io.zer0.ai.core.ProviderError
-import io.zer0.ai.core.ProviderException
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import kotlinx.coroutines.CancellationException
@@ -121,10 +119,8 @@ class VertexAiAuthToken(
             Logger.w(TAG, "Token 刷新失败,降级用旧 token(剩余 ${cachedExpiresAt - now}ms)")
             return@withContext stale
         }
-        // M-GEM7: 无可用 token,抛含原因的异常 (v1.0.27 Phase 5-A: 改用 ProviderException)
-        throw ProviderException(
-            ProviderError.AuthError(displayMessage = "Vertex AI token 刷新失败且无可用旧 token"),
-        )
+        // M-GEM7: 无可用 token,抛含原因的异常
+        throw RuntimeException("Vertex AI token 刷新失败且无可用旧 token")
     }
 
     /**

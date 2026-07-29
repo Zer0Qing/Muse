@@ -54,6 +54,7 @@ import androidx.compose.foundation.verticalScroll
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
@@ -61,7 +62,6 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.PlayCircle
-import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -177,6 +177,9 @@ private const val VOLUME_SCROLL_DISTANCE_PX = 200f
 
 /** v1.79 (M-S12): 消息分组时间间隔(5 分钟),超过此间隔显示头像和时间戳。 */
 private const val MESSAGE_GROUP_INTERVAL_MS = 5 * 60 * 1000L
+
+/** v1.79 (L-S2): 滚动到底部按钮的底部 padding(避开 InputBar)。 */
+private val SCROLL_TO_BOTTOM_BUTTON_BOTTOM_PADDING = 80.dp
 
 /**
  * Phase 8.10: 拦截音量键上/下键事件,转为滚动操作。
@@ -720,27 +723,33 @@ fun ChatScreen(
                             }
                         }
 
-                        // 右侧操作区:模型胶囊 + 压缩上下文按钮
-                        // v1.0.29: 模型选择改为圆形小胶囊,节省顶部空间让标题完整显示。
-                        // 当前模型名仍展示在副标题"陪伴 X 天 · 模型名"中。
+                        // 右侧操作区:模型胶囊 + 导出按钮
                         val modelCd = stringResource(R.string.chat_model_cd, currentModelName)
                         Surface(
                             onClick = { showModelSheet = true },
                             enabled = !isStreaming,
-                            shape = CircleShape,
+                            shape = MuseShapes.pill,
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
                             modifier = Modifier
-                                .size(32.dp)
+                                .height(32.dp)
                                 .semantics { contentDescription = modelCd },
                         ) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center,
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp),
                             ) {
+                                Text(
+                                    text = currentModelName,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
                                 Icon(
-                                    imageVector = Icons.Outlined.AutoAwesome,
+                                    imageVector = Icons.Default.ArrowDropDown,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurface,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(18.dp),
                                 )
                             }
@@ -1321,28 +1330,32 @@ fun ChatScreen(
                 }
             }
 
-            // v1.0.29: 滚动到底部按钮 — 改为 GPT 风格小圆形透明按钮,
-            // 仅在用户主动上滑(userScrolledUp)后显示,位于输入栏上方。
+            // v1.28: 滚动到底部按钮 — 用户上翻查看历史时显示一个小箭头按钮,
+            // 点击平滑滚回底部。去掉"有新消息"文字提示(用户反馈体验奇怪)。
+            // 仅当不在底部且有消息时显示。
             AnimatedVisibility(
-                visible = userScrolledUp && visibleMessages.isNotEmpty(),
+                // v1.0.4 (P3-4): 用 visibleMessages 判断是否有可滚动内容
+                visible = !isAtBottom && visibleMessages.isNotEmpty(),
                 enter = fadeIn() + slideInVertically { it / 2 },
                 exit = fadeOut() + slideOutVertically { it / 2 },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 16.dp)
+                    .padding(bottom = SCROLL_TO_BOTTOM_BUTTON_BOTTOM_PADDING)
                     .navigationBarsPadding(),
             ) {
+                // L-CS2: 触摸目标扩大到 48dp(touchTarget),Icon 保持小尺寸居中
                 Surface(
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-                    shape = CircleShape,
-                    tonalElevation = 0.dp,
-                    shadowElevation = 0.dp,
+                    color = MaterialTheme.colorScheme.primary,
+                    shape = MuseShapes.extraLarge,
+                    tonalElevation = 3.dp,
                     modifier = Modifier
-                        .size(36.dp)
+                        .size(MuseIconSizes.touchTarget)
                         .clickable {
+                            // v1.52: 点击"滚到底"按钮解锁跟随,并平滑滚到底部
                             userScrolledUp = false
                             isProgrammaticScroll.value = true
                             scrollToBottomScope.launch {
+                                // M-S13: 快照 visibleMessages,避免异步更新导致 size-1 越界
                                 val msgs = visibleMessages
                                 if (msgs.isEmpty()) return@launch
                                 try {
@@ -1360,7 +1373,7 @@ fun ChatScreen(
                         Icon(
                             imageVector = Icons.Default.ArrowDownward,
                             contentDescription = stringResource(R.string.chat_scroll_to_bottom_cd),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.size(MuseIconSizes.iconSmall),
                         )
                     }

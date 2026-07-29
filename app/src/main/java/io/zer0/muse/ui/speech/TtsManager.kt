@@ -467,7 +467,7 @@ class TtsManager(
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                         runCatching {
                             player.playbackParams = player.playbackParams.setSpeed(playbackSpeed)
-                        }.onFailure { Logger.w("TtsManager", "apply playback speed failed: ${it.message}", it) }
+                        }
                     }
                     player.start()
                     updateState { it.copy(durationMs = player.duration.toLong()) }
@@ -510,7 +510,7 @@ class TtsManager(
                     runCatching {
                         val pos = mp.currentPosition.toLong()
                         updateState { it.copy(positionMs = pos) }
-                    }.onFailure { Logger.w("TtsManager", "position update failed: ${it.message}", it) }
+                    }
                 }
                 delay(100)
             }
@@ -527,7 +527,7 @@ class TtsManager(
                         it.copy(status = PlaybackStatus.Paused, positionMs = mp.currentPosition.toLong())
                     }
                 }
-            }.onFailure { Logger.w("TtsManager", "pause failed: ${it.message}", it) }
+            }
         }
     }
 
@@ -539,7 +539,7 @@ class TtsManager(
                     mp.start()
                     updateState { it.copy(status = PlaybackStatus.Playing) }
                 }
-            }.onFailure { Logger.w("TtsManager", "resume failed: ${it.message}", it) }
+            }
         }
     }
 
@@ -550,7 +550,7 @@ class TtsManager(
                 val target = (mp.currentPosition + ms).coerceIn(0, mp.duration.coerceAtLeast(0))
                 mp.seekTo(target)
                 updateState { it.copy(positionMs = target.toLong()) }
-            }.onFailure { Logger.w("TtsManager", "seekBy failed: ${it.message}", it) }
+            }
         }
     }
 
@@ -561,7 +561,7 @@ class TtsManager(
                 val target = ms.coerceIn(0, mp.duration.coerceAtLeast(0).toLong())
                 mp.seekTo(target.toInt())
                 updateState { it.copy(positionMs = target) }
-            }.onFailure { Logger.w("TtsManager", "seekTo failed: ${it.message}", it) }
+            }
         }
     }
 
@@ -633,7 +633,7 @@ class TtsManager(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 runCatching {
                     mp.playbackParams = mp.playbackParams.setSpeed(speed)
-                }.onFailure { Logger.w("TtsManager", "setSpeed failed: ${it.message}", it) }
+                }
             }
         }
     }
@@ -944,7 +944,7 @@ class TtsManager(
             runCatching {
                 tts.setSpeechRate(effRate)
                 tts.setPitch(effPitch)
-            }.onFailure { Logger.w("TtsManager", "set speech rate/pitch failed: ${it.message}", it) }
+            }
         }
         val ok = speak(parsed.plainText, utteranceId, flush)
         // 播放结束后恢复原速率/音高
@@ -956,7 +956,7 @@ class TtsManager(
                     runCatching {
                         tts.setSpeechRate(mediaConfig.ttsSpeechRate.coerceIn(0.5f, 2f))
                         tts.setPitch(mediaConfig.ttsPitch.coerceIn(0.5f, 2f))
-                    }.onFailure { Logger.w("TtsManager", "restore speech rate/pitch failed: ${it.message}", it) }
+                    }
                 }
             }
         }

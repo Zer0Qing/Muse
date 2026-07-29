@@ -10,11 +10,8 @@ import io.zer0.ai.core.Model
 import io.zer0.ai.core.ModelContextWindowRegistry
 import io.zer0.ai.core.ProviderCompat
 import io.zer0.ai.core.ProviderConfig
-import io.zer0.ai.core.ProviderError
-import io.zer0.ai.core.ProviderException
 import io.zer0.ai.core.ProviderHttpSupport
 import io.zer0.ai.core.ProviderSpecificConfig
-import io.zer0.ai.core.toProviderException
 import io.zer0.ai.core.ReasoningLevel
 import io.zer0.ai.core.ToolCall
 import io.zer0.ai.core.ToolDefinition
@@ -45,6 +42,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import okhttp3.sse.EventSource
 import okhttp3.sse.EventSourceListener
+import okhttp3.sse.EventSources
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
@@ -115,7 +113,7 @@ class GeminiProvider(
         } else null
     }
 
-    // v1.0.30 (P5-D): sseFactory 已移至 ProviderHttpSupport 共享
+    private val sseFactory by lazy { EventSources.createFactory(httpClient) }
 
     override fun streamChat(request: ChatRequest): Flow<ChatStreamEvent> = callbackFlow {
         val scope = this
@@ -454,11 +452,8 @@ class GeminiProvider(
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Exception) {
-            // M-GEM7: buildUrl/resolveToken 异常统一抛 ProviderException,由下方 catch 记录日志
-            throw ProviderException(
-                ProviderError.Unknown(displayMessage = e.message ?: ErrorCode.SERVICE_UNAVAILABLE.toMessage("request_build")),
-                cause = e,
-            )
+            // M-GEM7: buildUrl/resolveToken 异常统一抛 RuntimeException,由下方 catch 记录日志
+            throw RuntimeException(e.message ?: ErrorCode.SERVICE_UNAVAILABLE.toMessage("request_build"), e)
         }
         try {
             val response = call.execute()
@@ -477,16 +472,16 @@ class GeminiProvider(
                     }
                     // M-GEM14: 用 readBodyCapped 替代 runCatching { resp.body.string() }
                     val errText = ProviderHttpSupport.readBodyCapped(resp)
-                    throw ProviderException(ProviderError.from(code = code, body = errText))
+                    throw RuntimeException(parseErrorMessage(code, errText))
                 }
                 val raw = resp.body.string()
                 val parsed = AppJson.decodeFromString<GeminiResponse>(raw)
                 // H-GEM4: promptFeedback 安全过滤
                 parsed.promptFeedback?.blockReason?.takeIf { it.isNotBlank() }?.let { reason ->
-                    throw ErrorCode.PERMISSION_DENIED.toProviderException("safety", reason)
+                    throw RuntimeException(ErrorCode.PERMISSION_DENIED.toMessage("safety", reason))
                 }
                 val candidate = parsed.candidates.firstOrNull()
-                    ?: throw ErrorCode.INVALID_RESPONSE.toProviderException("empty_candidates")
+                    ?: throw RuntimeException(ErrorCode.INVALID_RESPONSE.toMessage("empty_candidates"))
                 // H-GEM2: 收集 functionCall → toolCalls
                 // M-GEM6: 用 takeIf { it.isNotEmpty() } 确保无工具调用时返回 null(原返回空列表)
                 val toolCalls = candidate.content?.parts?.mapNotNull { it.functionCall }?.map { fc ->
@@ -501,10 +496,10 @@ class GeminiProvider(
                 // M-GEM4: 安全相关 finishReason 抛错
                 val reason = candidate.finishReason
                 if (reason in SAFETY_FINISH_REASONS) {
-                    throw ErrorCode.PERMISSION_DENIED.toProviderException("safety", reason)
+                    throw RuntimeException(ErrorCode.PERMISSION_DENIED.toMessage("safety", reason))
                 }
                 if (text.isBlank() && toolCalls.isNullOrEmpty()) {
-                    throw ErrorCode.INVALID_RESPONSE.toProviderException("empty_text")
+                    throw RuntimeException(ErrorCode.INVALID_RESPONSE.toMessage("empty_text"))
                 }
                 ChatCompletion(text = text, finishReason = reason, toolCalls = toolCalls)
             }
@@ -575,11 +570,9 @@ class GeminiProvider(
                 if (!resp.isSuccessful) {
                     // M-GEM14: 用 readBodyCapped
                     val errText = ProviderHttpSupport.readBodyCapped(resp)
-                    throw ProviderException(
-                        ProviderError.from(
-                            code = resp.code,
-                            body = "model_list_fetch: $errText",
-                        ),
+                    throw RuntimeException(
+                        ErrorCode.INVALID_RESPONSE.toMessage("model_list_fetch", resp.code)
+                            + errText.takeIf { it.isNotBlank() }?.let { ": $it" }.orEmpty()
                     )
                 }
                 val raw = resp.body.string()
@@ -822,8 +815,7 @@ class GeminiProvider(
      */
     private fun isRetryableError(code: Int?, t: Throwable?): Boolean {
         if (t != null && t is java.io.IOException) return true
-        // v1.0.30 (P5-D): 用 ProviderHttpSupport.isRetryableHttpCode 替代字面量
-        if (code != null && ProviderHttpSupport.isRetryableHttpCode(code)) return true
+        if (code != null && (code == 429 || code in 500..599)) return true
         return false
     }
 
@@ -878,14 +870,14 @@ class GeminiProvider(
         // by lazy 委托属性无法智能转换,用局部变量捕获
         val auth = vertexAiAuthToken
         if (auth == null) {
-            throw ErrorCode.VERTEX_AI_CONFIG_INVALID.toProviderException()
+            throw RuntimeException(ErrorCode.VERTEX_AI_CONFIG_INVALID.toMessage())
         }
         return try {
             auth.getValidToken()
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            throw ErrorCode.VERTEX_AI_TOKEN_FAILED.toProviderException(e.message ?: "")
+            throw RuntimeException(ErrorCode.VERTEX_AI_TOKEN_FAILED.toMessage(e.message ?: ""))
         }
     }
 
@@ -948,23 +940,17 @@ class GeminiProvider(
         val fileName: String = httpClient.newCall(uploadReq).execute().use { resp ->
             if (!resp.isSuccessful) {
                 val errText = ProviderHttpSupport.readBodyCapped(resp)
-                throw ProviderException(ProviderError.from(code = resp.code, body = "上传文件失败: $errText"))
+                throw RuntimeException("上传文件失败 HTTP ${resp.code}: $errText")
             }
             val raw = resp.body.string()
             val parsed = AppJson.decodeFromString<GeminiFileUploadResponse>(raw)
-            val f = parsed.file ?: throw ProviderException(
-                ProviderError.InvalidRequest(displayMessage = "上传响应缺少 file 字段: $raw"),
-            )
+            val f = parsed.file ?: throw RuntimeException("上传响应缺少 file 字段: $raw")
             if (f.uri.isBlank() || f.name.isBlank()) {
-                throw ProviderException(
-                    ProviderError.InvalidRequest(displayMessage = "上传响应 file.uri/file.name 为空: $raw"),
-                )
+                throw RuntimeException("上传响应 file.uri/file.name 为空: $raw")
             }
             // 上传成功但服务端已报错(如 mime 不支持),直接抛
             f.error?.let { e ->
-                throw ProviderException(
-                    ProviderError.Unknown(displayMessage = "上传文件被拒绝: ${e.message ?: "未知错误"}"),
-                )
+                throw RuntimeException("上传文件被拒绝: ${e.message ?: "未知错误"}")
             }
             f.name
         }
@@ -984,7 +970,7 @@ class GeminiProvider(
             val fileUri = httpClient.newCall(pollReq).execute().use { resp ->
                 if (!resp.isSuccessful) {
                     val errText = ProviderHttpSupport.readBodyCapped(resp)
-                    throw ProviderException(ProviderError.from(code = resp.code, body = "查询文件状态失败: $errText"))
+                    throw RuntimeException("查询文件状态失败 HTTP ${resp.code}: $errText")
                 }
                 val raw = resp.body.string()
                 val f = AppJson.decodeFromString<GeminiFileResource>(raw)
@@ -993,7 +979,7 @@ class GeminiProvider(
                     "ACTIVE" -> return@use f.uri // 上传完成,返回可用 uri
                     "FAILED" -> {
                         val errMsg = f.error?.message ?: "服务端处理失败"
-                        throw ProviderException(ProviderError.ServerError(httpCode = 500, displayMessage = "文件处理失败: $errMsg"))
+                        throw RuntimeException("文件处理失败: $errMsg")
                     }
                     else -> null // PROCESSING 等中间态,继续轮询
                 }
@@ -1001,7 +987,7 @@ class GeminiProvider(
             if (fileUri != null) return@withContext fileUri
             delay(FILE_POLL_INTERVAL_MS)
         }
-        throw ProviderException(ProviderError.Unknown(displayMessage = "文件处理超时(60s),最后状态: $lastState"))
+        throw RuntimeException("文件处理超时(60s),最后状态: $lastState")
     }
 
     /** V-GEM1: uploadFile 的 metadata 子结构(仅含 name 字段,服务端忽略其他)。 */

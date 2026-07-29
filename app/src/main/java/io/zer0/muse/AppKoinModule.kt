@@ -78,8 +78,7 @@ val appModule = module {
             .connectTimeout(30, TimeUnit.SECONDS)
             // v1.114 修复: 思考模�?�?Claude 3.5 thinking)首字延迟可能�?2 分钟,
             //   readTimeout 120s 会导致思考阶段未输出即超�?改为 300s(5分钟)足够长思�?
-            // v1.0.30: 降为 120s,配合自动重试。思考模型首字延迟通常 <60s。
-            .readTimeout(120, TimeUnit.SECONDS)
+            .readTimeout(300, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
             .applyProxy(proxyConfig)
             .build()
@@ -288,15 +287,6 @@ val appModule = module {
             ragConfigProvider = { get<io.zer0.muse.data.SettingsRepository>().getRagConfig() },
             stickerLibraryRepository = get(),
             imageService = get(),
-            imageDrawConfigProvider = suspend {
-                val settings = get<io.zer0.muse.data.SettingsRepository>()
-                val cfg = settings.imageGenConfigFlow.first()
-                val provider = if (cfg.providerId.isNotBlank()) {
-                    kotlin.runCatching { settings.getProviderById(cfg.providerId) }.getOrNull()
-                } else null
-                val modelId = if (provider != null && cfg.modelId.isNotBlank()) cfg.modelId else null
-                provider to modelId
-            },
             multiAgentConfigProvider = { get<io.zer0.muse.data.SettingsRepository>().multiAgentConfigCache },
             llmAggregator = get(),
             pauseManager = get(),

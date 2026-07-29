@@ -1,6 +1,7 @@
 package io.zer0.ai.openai
 
 import io.zer0.common.ErrorCode
+import io.zer0.common.toMessage
 import io.zer0.ai.core.ChatCompletion
 import io.zer0.ai.core.ChatRequest
 import io.zer0.ai.core.ChatRequestMode
@@ -12,8 +13,6 @@ import io.zer0.ai.core.ModelAbility
 import io.zer0.ai.core.ModelContextWindowRegistry
 import io.zer0.ai.core.ProviderCompat
 import io.zer0.ai.core.ProviderConfig
-import io.zer0.ai.core.ProviderError
-import io.zer0.ai.core.ProviderException
 import io.zer0.ai.core.ProviderHttpSupport
 import io.zer0.ai.core.ProviderPayloadNormalizer
 import io.zer0.ai.core.ProviderPromptPatches
@@ -24,13 +23,11 @@ import io.zer0.ai.core.ThinkingFormat
 import io.zer0.ai.core.ToolCall
 import io.zer0.ai.core.ToolDefinition
 import io.zer0.ai.core.UIMessage
-import io.zer0.ai.core.toProviderException
 import io.zer0.ai.ollama.OllamaVisionInferrer
 import io.zer0.ai.registry.ModelRegistry
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
-import io.zer0.common.toMessage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.awaitClose
@@ -56,6 +53,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import okhttp3.sse.EventSource
 import okhttp3.sse.EventSourceListener
+import okhttp3.sse.EventSources
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.random.Random
@@ -98,7 +96,7 @@ class OpenAIProvider(
      */
     private val useResponsesApi: Boolean by lazy { openAIConfig.useResponseApi }
 
-    // v1.0.30 (P5-D): sseFactory 已移至 ProviderHttpSupport 共享
+    private val sseFactory by lazy { EventSources.createFactory(httpClient) }
 
     /**
      * 获取实际发送给 API 的 model id。
@@ -248,11 +246,6 @@ class OpenAIProvider(
                         val errText = ProviderHttpSupport.readBodySafely(response)
                         val msg = parseErrorMessage(code, errText)
                         Logger.w("OpenAIProvider", "streamChat onOpen HTTP $code: $msg")
-                        // v1.0.28: HTTP 400 时记录请求体和完整响应体,帮助诊断中转站参数错误
-                        if (code == 400) {
-                            Logger.w("OpenAIProvider", "streamChat 400 请求体(前500字符): ${body.take(500)}")
-                            Logger.w("OpenAIProvider", "streamChat 400 完整响应体: $errText")
-                        }
                         // v1.0.1: 401/403 鉴权失败时标记当前 key 失败(多 key 场景)
                         if (code == 401 || code == 403) {
                             markKeyFailed(hardBlock = true)
@@ -389,8 +382,7 @@ class OpenAIProvider(
                     // H-OAI1: 重试条件改用 anyDeltaSent(覆盖 Content/Reasoning/ToolCall 三类增量),
                     //   原仅检查 toolCallDeltaSent 会导致已流出的正文/推理被重发。
                     val code = response?.code
-                    // v1.0.30 (P5-D): 用 ProviderHttpSupport.isRetryableHttpCode 替代字面量
-                    val isRetryable = (code != null && ProviderHttpSupport.isRetryableHttpCode(code))
+                    val isRetryable = (code != null && (code == 408 || code == 429 || code in 500..599))
                         || (t is java.io.IOException)
                     if (isRetryable && !anyDeltaSent.get()
                         && retryCount.incrementAndGet() <= MAX_RETRIES
@@ -507,20 +499,15 @@ class OpenAIProvider(
                     val errText = ProviderHttpSupport.readBodySafely(resp)
                     val msg = parseErrorMessage(code, errText)
                     Logger.w("OpenAIProvider", "completeText HTTP $code: $msg")
-                    // v1.0.28: HTTP 400 时记录请求体和完整响应体,帮助诊断中转站参数错误
-                    if (code == 400) {
-                        Logger.w("OpenAIProvider", "completeText 400 请求体(前500字符): ${body.take(500)}")
-                        Logger.w("OpenAIProvider", "completeText 400 完整响应体: $errText")
-                    }
                     // L-OAI11: 用自定义异常替代字符串前缀判断
                     throw OpenAIHttpException(code, msg)
                 }
                 // M-OAI6: body 可能为 null(虽然 OkHttp 实际几乎不为 null,但类型上 Nullable),统一做空安全
                 val raw = resp.body?.string()
-                    ?: throw ErrorCode.INVALID_RESPONSE.toProviderException("empty_body", resp.code)
+                    ?: throw RuntimeException(ErrorCode.INVALID_RESPONSE.toMessage("empty_body", resp.code))
                 val parsed = AppJson.decodeFromString<OpenAICompletionResponse>(raw)
                 val choice = parsed.choices.firstOrNull()
-                    ?: throw ErrorCode.INVALID_RESPONSE.toProviderException("empty_choices")
+                    ?: throw RuntimeException(ErrorCode.INVALID_RESPONSE.toMessage("empty_choices"))
                 val msg = choice.message
                 val text = msg?.content.orEmpty()
                 val reasoningContent = msg?.reasoningContent.orEmpty()
@@ -532,7 +519,7 @@ class OpenAIProvider(
                 //   (部分推理模型在非流式响应中可能只返回 reasoning_content 而 content 为空)
                 if (text.isBlank() && toolCalls.isNullOrEmpty() && reasoningContent.isBlank()) {
                     Logger.w("OpenAIProvider", "completeText 返回空文本(无 content/reasoning_content/tool_calls)")
-                    throw ErrorCode.INVALID_RESPONSE.toProviderException("empty_text")
+                    throw RuntimeException(ErrorCode.INVALID_RESPONSE.toMessage("empty_text"))
                 }
                 Logger.d("OpenAIProvider", "completeText OK: text=${text.length} chars, reasoning=${reasoningContent.length} chars, toolCalls=${toolCalls?.size ?: 0}")
                 ChatCompletion(
@@ -658,7 +645,7 @@ class OpenAIProvider(
                 }
                 // M-OAI6: body 空安全
                 val raw = resp.body?.string()
-                    ?: throw ErrorCode.INVALID_RESPONSE.toProviderException("model_list_empty", resp.code)
+                    ?: throw RuntimeException(ErrorCode.INVALID_RESPONSE.toMessage("model_list_empty", resp.code))
                 val parsed = AppJson.decodeFromString<OpenAIModelsResponse>(raw)
                 // v1.0.8 (7.5): 成功日志 — 记录上游返回的模型数量,便于排查"返回 0 个模型"场景
                 Logger.i("OpenAIProvider", "listModels 成功: 上游返回 ${parsed.data.size} 个模型")
@@ -822,14 +809,13 @@ class OpenAIProvider(
         }
         // v1.138: 思考等级优化 — 避免简单问题模型过度思考。
         // - AUTO: 不发 reasoning_effort(让服务端自行决定)
-        // - OFF: 仅 OpenAI 官方 API(api.openai.com)发 "minimal"(o1/o3 系列最小推理);
-        //        第三方中转站不发("minimal" 是 OpenAI 专有值,中转站不识别会返回 400)
+        // - OFF: 模型支持推理时发 "minimal"(最小推理,比不发 effort 让服务端用默认 medium 更少);
+        //        模型不支持推理时不发(避免对 GPT-4o 等非推理模型发 reasoning_effort 导致 400)
         // - LOW/MEDIUM/HIGH/XHIGH: 显式发送对应 effort
-        val isOpenAIOfficial = baseUrl().contains("api.openai.com")
         val effort = when (effectiveReasoningLevel) {
             io.zer0.ai.core.ReasoningLevel.AUTO -> null
             io.zer0.ai.core.ReasoningLevel.OFF ->
-                if (request.model.supportsReasoning() && isOpenAIOfficial) "minimal" else null
+                if (request.model.supportsReasoning()) "minimal" else null
             else -> effectiveReasoningLevel.effort
         }
         // compat 派生:按 type + baseUrl + modelId 三层匹配,决定是否注入 reasoning_effort / tools。
@@ -1589,7 +1575,7 @@ class OpenAIProvider(
                     throw OpenAIHttpException(code, msg)
                 }
                 val raw = resp.body?.string()
-                    ?: throw ErrorCode.INVALID_RESPONSE.toProviderException("empty_body", resp.code)
+                    ?: throw RuntimeException(ErrorCode.INVALID_RESPONSE.toMessage("empty_body", resp.code))
                 val parsed = AppJson.decodeFromString<ResponsesResult>(raw)
                 val text = extractResponsesVisibleText(parsed)
                 val reasoningContent = extractResponsesReasoning(parsed)
@@ -1597,7 +1583,7 @@ class OpenAIProvider(
 
                 if (text.isBlank() && toolCalls.isNullOrEmpty() && reasoningContent.isBlank()) {
                     Logger.w("OpenAIProvider", "completeTextResponses 返回空(output 无 message/reasoning/function_call)")
-                    throw ErrorCode.INVALID_RESPONSE.toProviderException("empty_text")
+                    throw RuntimeException(ErrorCode.INVALID_RESPONSE.toMessage("empty_text"))
                 }
                 Logger.d("OpenAIProvider", "completeTextResponses OK: text=${text.length} chars, reasoning=${reasoningContent.length} chars, toolCalls=${toolCalls?.size ?: 0}")
                 ChatCompletion(
@@ -1879,19 +1865,8 @@ class OpenAIProvider(
 
 /**
  * L-OAI11: OpenAI HTTP 错误异常,携带状态码,替代字符串前缀判断。
- *
- * v1.0.27 Phase 5-A: 改为继承 [ProviderException],让消费端可通过
- * `(throwable as? ProviderException)?.providerError` 拿到类型化错误。
  */
-internal class OpenAIHttpException(val code: Int, message: String) : ProviderException(
-    providerError = when (code) {
-        401, 403 -> ProviderError.AuthError(httpCode = code, displayMessage = message)
-        400, 422, 404 -> ProviderError.InvalidRequest(httpCode = code, displayMessage = message)
-        429 -> ProviderError.RateLimit(httpCode = code, displayMessage = message)
-        in 500..599 -> ProviderError.ServerError(httpCode = code, displayMessage = message)
-        else -> ProviderError.Unknown(httpCode = code, displayMessage = message)
-    },
-)
+internal class OpenAIHttpException(val code: Int, message: String) : RuntimeException(message)
 
 /**
  * v1.0.20: stream-guard 累积器 — 累积单个 tool_call 的 name / arguments / 是否已发送。

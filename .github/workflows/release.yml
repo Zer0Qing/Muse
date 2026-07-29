@@ -13,8 +13,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
-          # v1.0.27 P0-1.2: 对齐 gradle-daemon-jvm.properties 的 toolchainVersion=21
-          java-version: '21'
+          java-version: '17'
           distribution: 'temurin'
           cache: gradle
       - run: chmod +x ./gradlew

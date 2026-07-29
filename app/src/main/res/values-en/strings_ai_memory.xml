@@ -1,18 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    i18n review summary for ai / memory / transformer modules (P7 update 2026-07):
+    i18n review summary for ai / memory / transformer modules:
     - ai module (standalone Gradle module): user-visible error messages are delivered
       to UI via Result.Error/exceptions, but cannot reference app's R.string directly.
-      P7 audit confirms all // TODO i18n annotations in source code have been cleaned
-      (actual count: 0). ErrorMessage framework is ready and wired into
-      ErrorMessageMapper + R.string. Remaining error() hardcoded Chinese are mostly
-      internal logs (swallowed by resultOf, not directly shown to users); low i18n
-      priority, can be migrated incrementally.
+      Each source file is annotated with // TODO i18n pending extraction; extraction
+      requires an error-code enum approach.
     - memory module (standalone Gradle module): validation errors (MemoryConfig.validate)
       and isZh time labels (Key Facts/Timeline etc.) are user-visible, but cross-module
       and some labels participate in LLM output parsing contracts.
-      P7 audit confirms no // TODO i18n annotations in source code; remaining hardcoded
-      strings are LLM prompt contracts, kept as-is.
+      Each source file is annotated with // TODO i18n pending extraction.
     - transformer module (inside app): per file review, all Chinese strings are LLM
       prompt content (SYSTEM messages sent to LLM), logger messages, code comments, or
       internal exception messages. No directly user-visible UI strings; kept as-is per
