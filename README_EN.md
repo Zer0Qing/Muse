@@ -8,8 +8,8 @@
 <h1 align="center">Muse</h1>
 
 <p align="center">
-  <b>Your AI Companion That Remembers</b><br>
-  <i>4-tier memory - Multi-model - Offline-first - Extensible</i>
+  <b>Not just chat — an AI that truly knows you</b><br>
+  <i>Four-tier memory · Free model switching · Privacy-first · Open source</i>
 </p>
 
 <p align="center">
@@ -46,7 +46,19 @@
 
 ## What is Muse
 
-Most AI apps treat every conversation like meeting a stranger -- no memory, no continuity, no personality. Muse is different.
+Tired of introducing yourself every time you open a new AI chat? Muse doesn't need that.
+
+Muse is the Android AI companion that **actually remembers you** — your preferences, your habits, what matters to you. Switch models, switch conversations, close the app and come back — it all stays.
+
+Every response starts with an inner monologue (Mood) — four dimensions of what the AI is thinking, feeling, and reflecting on. Folded by default, but one tap away when you're curious.
+
+**Your choice, your way:**
+- Any model: OpenAI, Anthropic, Gemini, DeepSeek, or any OpenAI-compatible API
+- No signup, no accounts, data stays local by default
+- Voice, web search, tools, multi-agent group chat
+- Even reaches out when you've been away too long
+
+All built around one idea: make AI conversations **continue**, not restart.
 
 Muse is a local-first AI companion app built for Android. It builds a persistent relationship with you through a 4-tier progressive memory system that remembers your preferences, your history, and what matters to you. It lets you choose the underlying model freely (OpenAI, Anthropic, Gemini, DeepSeek, or any OpenAI-compatible endpoint). It speaks, searches the web, executes tools, and even proactively starts a conversation when it has not heard from you in a while.
 
