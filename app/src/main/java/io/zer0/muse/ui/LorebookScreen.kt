@@ -28,14 +28,14 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import io.zer0.muse.ui.common.IosTextField
+import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Scaffold
-import io.zer0.muse.ui.common.IosDropdown
-import io.zer0.muse.ui.common.IosFloatingButton
-import io.zer0.muse.ui.common.IosSwitch
+import io.zer0.muse.ui.common.form.MuseDropdown
+import io.zer0.muse.ui.common.form.MuseFloatingButton
+import io.zer0.muse.ui.common.form.MuseSwitch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import io.zer0.muse.ui.common.IosTopBar
+import io.zer0.muse.ui.common.navigation.MuseTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -55,11 +55,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.data.lorebook.LorebookEntity
 import io.zer0.muse.data.lorebook.LorebookRepository
-import io.zer0.muse.ui.common.ConfirmDeleteDialog
-import io.zer0.muse.ui.common.EmptyState
-import io.zer0.muse.ui.common.MuseDialog
-import io.zer0.muse.ui.common.SectionLabel
-import io.zer0.muse.ui.common.SwitchRow
+import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
+import io.zer0.muse.ui.common.state.MuseEmptyState
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.settings.SectionLabel
+import io.zer0.muse.ui.common.settings.SwitchRow
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.mega
 import io.zer0.muse.ui.theme.MuseIconSizes
@@ -103,13 +103,13 @@ fun LorebookScreen(
 
     Scaffold(
         topBar = {
-            IosTopBar(
+            MuseTopBar(
                 title = stringResource(R.string.lorebook_screen_title),
                 onBack = onBack,
             )
         },
         floatingActionButton = {
-            IosFloatingButton(
+            MuseFloatingButton(
                 icon = Icons.Default.Add,
                 onClick = {
                     val now = System.currentTimeMillis()
@@ -152,7 +152,7 @@ fun LorebookScreen(
             }
             if (state.lorebooks.isEmpty()) {
                 item {
-                    EmptyState(
+                    MuseEmptyState(
                         icon = Icons.AutoMirrored.Outlined.MenuBook,
                         title = stringResource(R.string.lorebook_empty_title),
                         subtitle = stringResource(R.string.lorebook_empty_subtitle),
@@ -252,7 +252,7 @@ private fun LorebookCard(
                     )
                 }
             }
-            IosSwitch(
+            MuseSwitch(
                 checked = entry.enabled,
                 onCheckedChange = { onToggleEnabled() },
                 modifier = Modifier.semantics {
@@ -325,7 +325,7 @@ private fun LorebookEditPage(
 
     Scaffold(
         topBar = {
-            IosTopBar(
+            MuseTopBar(
                 title = if (isNew) newTitleText else editTitleText,
                 onBack = {
                     if (hasUnsavedChanges) showDiscardConfirm = true else onBack()
@@ -366,14 +366,14 @@ private fun LorebookEditPage(
             Spacer(Modifier.height(4.dp))
 
             SectionLabel(stringResource(R.string.lorebook_section_basic))
-            IosTextField(
+            MuseTextField(
                 value = name,
                 onValueChange = { name = it },
                 label = { Text(stringResource(R.string.lorebook_field_name)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
-            IosTextField(
+            MuseTextField(
                 value = keywordsText,
                 onValueChange = { keywordsText = it },
                 label = { Text(stringResource(R.string.lorebook_field_keywords)) },
@@ -384,7 +384,7 @@ private fun LorebookEditPage(
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
             SectionLabel(stringResource(R.string.lorebook_section_content))
-            IosTextField(
+            MuseTextField(
                 value = content,
                 onValueChange = { content = it },
                 label = { Text(stringResource(R.string.lorebook_field_content)) },
@@ -393,14 +393,14 @@ private fun LorebookEditPage(
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
             SectionLabel(stringResource(R.string.lorebook_section_behavior))
-            IosTextField(
+            MuseTextField(
                 value = priority,
                 onValueChange = { priority = it.filter(Char::isDigit) },
                 label = { Text(stringResource(R.string.lorebook_field_priority)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
-            IosDropdown(
+            MuseDropdown(
                 value = insertionPosition,
                 onValueChange = { insertionPosition = it },
                 label = stringResource(R.string.lorebook_field_insertion_position),

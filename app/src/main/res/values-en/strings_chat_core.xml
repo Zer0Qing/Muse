@@ -46,6 +46,13 @@
     <string name="chat_no_sessions">No chats yet</string>
     <string name="chat_new_session">New Chat</string>
 
+    <!-- v1.136 T1: Switch assistant within chat -->
+    <string name="chat_switch_assistant_title">Switch Assistant</string>
+    <string name="chat_switch_assistant_empty">No assistants available</string>
+    <string name="chat_switch_assistant_current">Current</string>
+    <string name="chat_switch_assistant_applied">Switched to %1$s</string>
+    <string name="chat_switch_assistant_long_press_hint">Long-press the title to switch assistant</string>
+
     <!-- Delegate to assistant -->
     <string name="chat_delegate_title">Delegate to Assistant</string>
     <string name="chat_delegate_empty">No assistants or teams available. Create one in Assistant management first.</string>
@@ -135,6 +142,9 @@
     <string name="chat_unnamed">Unnamed</string>
     <string name="chat_pending_image_cd">Pending image %1$d</string>
     <string name="chat_remove_image_cd">Remove Image</string>
+    <!-- v1.136 T10: Pending document chip -->
+    <string name="chat_pending_document_cd">Pending document %1$s</string>
+    <string name="chat_remove_document_cd">Remove Document</string>
 
     <!-- Quote reply -->
     <string name="chat_edit_reply_cd">Edit Quote</string>
@@ -166,6 +176,10 @@
     <!-- Input field and buttons -->
     <string name="chat_placeholder_draw">Describe an image to generate…</string>
     <string name="chat_placeholder_send">Reply to Muse…</string>
+    <string name="chat_expand_input_cd">Full-screen edit</string>
+    <string name="chat_expand_input_title">Edit Message</string>
+    <!-- Long-press input bar action menu -->
+    <string name="chat_input_action_fullscreen">Full-screen Input Mode</string>
     <string name="chat_stop_generation_cd">Stop Generating</string>
     <string name="chat_recording_start_failed">Failed to start recording. Check permissions or model config.</string>
     <string name="chat_recognizing_cd">Recognizing</string>

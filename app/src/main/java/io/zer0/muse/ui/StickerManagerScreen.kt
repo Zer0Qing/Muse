@@ -1,5 +1,7 @@
 package io.zer0.muse.ui
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,15 +39,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import io.zer0.muse.R
 import io.zer0.muse.data.sticker.StickerItem
 import io.zer0.muse.data.sticker.StickerLibraryRepository
-import io.zer0.muse.ui.common.IosFloatingButton
-import io.zer0.muse.ui.common.IosTactileButton
-import io.zer0.muse.ui.common.SectionLabel
+import io.zer0.muse.ui.common.form.MuseFloatingButton
+import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -65,13 +71,36 @@ fun StickerManagerScreen(
 ) {
     val repo: StickerLibraryRepository = koinInject()
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     var categories by remember { mutableStateOf<List<String>>(emptyList()) }
     var stickers by remember { mutableStateOf<List<StickerItem>>(emptyList()) }
     var selectedCategory by remember { mutableStateOf<String?>(null) }
+    // 导入后自增,触发 LaunchedEffect 重新加载
+    var refreshTrigger by remember { mutableStateOf(0) }
+    var importing by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
+    // ZIP 导入 launcher
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        importing = true
+        scope.launch {
+            repo.importZip(uri)
+                .onSuccess { count ->
+                    MuseToast.show(context.getString(R.string.settings_sticker_imported, count))
+                    refreshTrigger++
+                }
+                .onError { msg, _ ->
+                    MuseToast.show(context.getString(R.string.settings_sticker_import_failed, msg))
+                }
+            importing = false
+        }
+    }
+
+    LaunchedEffect(refreshTrigger) {
         categories = repo.listCategories()
-        stickers = repo.listStickers()
+        stickers = repo.listStickers(selectedCategory)
     }
 
     Scaffold(
@@ -82,7 +111,7 @@ fun StickerManagerScreen(
                     .padding(horizontal = 4.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                IosTactileButton(
+                MuseTactileButton(
                     icon = Icons.AutoMirrored.Filled.ArrowBack,
                     onClick = onBack,
                     contentDescription = stringResource(R.string.action_back),
@@ -102,17 +131,16 @@ fun StickerManagerScreen(
             }
         },
         floatingActionButton = {
-            IosFloatingButton(
+            MuseFloatingButton(
                 icon = Icons.Filled.Add,
                 onClick = {
-                    // TODO: 触发 ZIP 导入 — 需要 ActivityResultContracts.GetContent
-                    // 暂时留空，后续集成文件选择器
+                    importLauncher.launch(arrayOf("application/zip", "application/x-zip-compressed"))
                 },
                 contentDescription = "导入",
             )
         },
     ) { paddingValues ->
-        if (stickers.isEmpty()) {
+        if (stickers.isEmpty() && !importing) {
             // 空态
             Column(
                 modifier = Modifier
@@ -175,6 +203,7 @@ fun StickerManagerScreen(
                     items(items, key = { it.id }) { sticker ->
                         StickerRow(
                             sticker = sticker,
+                            repo = repo,
                             onDelete = {
                                 scope.launch {
                                     repo.deleteSticker(sticker.id)
@@ -256,6 +285,7 @@ private fun CategoryChips(
 @Composable
 private fun StickerRow(
     sticker: StickerItem,
+    repo: StickerLibraryRepository,
     onDelete: () -> Unit,
 ) {
     Surface(
@@ -267,18 +297,18 @@ private fun StickerRow(
             modifier = Modifier.padding(MusePaddings.cardInner),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // 贴纸缩略图占位
+            // 贴纸缩略图
             Surface(
                 modifier = Modifier.size(48.dp),
                 shape = MuseShapes.small,
                 color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f),
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Filled.EmojiEmotions,
+                    AsyncImage(
+                        model = repo.getStickerFileByPath(sticker.relativePath),
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
-                        modifier = Modifier.size(24.dp),
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
                     )
                 }
             }

@@ -95,7 +95,7 @@ import io.zer0.muse.ui.chat.ImageGenCoordinator
 import io.zer0.muse.ui.chat.buildQuotedContent
 import io.zer0.muse.ui.chat.SlashCommand
 import io.zer0.muse.ui.chat.StreamRunState
-import io.zer0.muse.ui.common.MuseToast
+import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.speech.TtsManager
 import io.zer0.muse.ui.speech.PlaybackState
 import io.zer0.muse.ui.speech.VoiceConversationState
@@ -412,6 +412,8 @@ data class ChatUiState(
     val promptTemplates: List<io.zer0.muse.data.prompttemplate.PromptTemplate> = emptyList(),
     /** Phase 8.6: 待发送的本地图片 base64 列表(无 data: 前缀)。 */
     val pendingImages: List<String> = emptyList(),
+    /** v1.136 T10: 待发送的文档列表(已解析为纯文本,发送时合并到消息内容)。 */
+    val pendingDocuments: List<io.zer0.muse.ui.chat.PendingDocument> = emptyList(),
     /** Phase 8.7: TTS 是否正在朗读(用于 InputBar 禁用/MessageBubble 高亮)。 */
     val isSpeaking: Boolean = false,
     /** Phase 8.7: 正在朗读的消息 id(null 表示无)。 */
@@ -874,6 +876,7 @@ class ChatViewModel(
                 input = "",
                 hasDraft = false,
                 pendingImages = emptyList(),
+                pendingDocuments = emptyList(),
                 replyingTo = null,
                 replyQuoteOverride = null,
                 isStreaming = true,
@@ -2434,6 +2437,8 @@ class ChatViewModel(
                     visionProgress = null,
                     // v1.0.16: 切换会话清空待发送图片,避免跨会话泄漏到新会话的 InputBar
                     pendingImages = emptyList(),
+                    // v1.136 T10: 同步清空待发送文档
+                    pendingDocuments = emptyList(),
                     // P3: 恢复本会话权限模式
                     sessionPermissionMode = permissionMode,
                     // v1.0.16: 切换 Tab/会话后默认滚动到最新消息底部
@@ -2737,8 +2742,14 @@ class ChatViewModel(
      * v1.28: Agent 模式用 agentSessionId,无会话时自动创建(Agent 日常聊天不依赖任务)。
      */
     fun send() {
-        val text = _state.value.input.trim()
+        val rawText = _state.value.input.trim()
         val images = _state.value.pendingImages
+        val docs = _state.value.pendingDocuments
+        // v1.136 T10: 合并待发送文档内容到消息文本(文档文本 + 用户输入)
+        val text = if (docs.isNotEmpty()) {
+            val docText = docs.joinToString("\n\n---\n\n") { it.content }
+            if (rawText.isBlank()) docText else "$docText\n\n---\n\n$rawText"
+        } else rawText
         if ((text.isEmpty() && images.isEmpty()) || _state.value.isStreaming) return
 
         // v1.28: Agent 模式用独立的 agentSessionId,无会话时自动创建
@@ -2896,6 +2907,15 @@ class ChatViewModel(
      */
     fun pickDocument(uri: Uri, context: Context) {
         documentCoordinator.pickDocument(uri, context, ::reportError)
+    }
+
+    /** v1.136 T10: 移除待发送文档(用户在 InputBar 芯片上点击移除)。 */
+    fun removePendingDocument(index: Int) {
+        val docs = _state.value.pendingDocuments.toMutableList()
+        if (index in docs.indices) {
+            docs.removeAt(index)
+            _state.update { it.copy(pendingDocuments = docs) }
+        }
     }
 
     /**
@@ -4795,6 +4815,8 @@ class ChatViewModel(
 
         // v1.136: 自动选择支持视频输出的供应商/模型
         val providers = settings.getAllProviders().filter { it.enabled && it.apiKey.isNotBlank() }
+        // 读取用户在"设置→视频生成"配置的默认供应商/模型(LLM 未显式指定时优先使用)
+        val videoGenConfig = settings.videoGenConfigFlow.first()
         val (providerConfig, videoModel) = when {
             requestedProviderId != null -> {
                 val config = providers.firstOrNull { it.id == requestedProviderId }
@@ -4810,6 +4832,16 @@ class ChatViewModel(
                     p.models.any { it.id == requestedModelId && it.supportsVideoOutput() }
                 } ?: return "未找到支持模型 $requestedModelId 的供应商"
                 val model = config.models.first { it.id == requestedModelId && it.supportsVideoOutput() }
+                config to model
+            }
+            // 优先使用用户配置的视频供应商(VideoGenConfig.providerId)
+            videoGenConfig.providerId.isNotBlank() -> {
+                val config = providers.firstOrNull { it.id == videoGenConfig.providerId }
+                    ?: return "未找到视频生成供应商: ${videoGenConfig.providerId}"
+                val model = videoGenConfig.modelId.takeIf { it.isNotBlank() }?.let { id ->
+                    config.models.firstOrNull { it.id == id && it.supportsVideoOutput() }
+                } ?: config.models.firstOrNull { it.supportsVideoOutput() }
+                    ?: return "供应商 ${config.displayName} 没有支持视频输出的模型"
                 config to model
             }
             else -> {

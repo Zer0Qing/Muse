@@ -17,11 +17,11 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import io.zer0.muse.ui.common.IosTextField
+import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Scaffold
-import io.zer0.muse.ui.common.IosFloatingButton
-import io.zer0.muse.ui.common.IosSwitch
-import io.zer0.muse.ui.common.IosTopBar
+import io.zer0.muse.ui.common.form.MuseFloatingButton
+import io.zer0.muse.ui.common.form.MuseSwitch
+import io.zer0.muse.ui.common.navigation.MuseTopBar
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -76,20 +76,20 @@ fun ExperiencePanel(
 
     Scaffold(
         topBar = {
-            IosTopBar(
+            MuseTopBar(
                 title = stringResource(R.string.experience_title),
                 onBack = onBack,
                 actions = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(stringResource(R.string.experience_enabled), style = MaterialTheme.typography.labelSmall)
-                        IosSwitch(checked = enabled, onCheckedChange = onToggleEnabled)
+                        MuseSwitch(checked = enabled, onCheckedChange = onToggleEnabled)
                     }
                 },
             )
         },
         floatingActionButton = {
             if (enabled) {
-                IosFloatingButton(
+                MuseFloatingButton(
                     icon = Icons.Default.Add,
                     onClick = { showAddDialog = true },
                     contentDescription = stringResource(R.string.experience_add_cd),
@@ -104,7 +104,7 @@ fun ExperiencePanel(
                 .padding(horizontal = 16.dp),
         ) {
             // Search bar
-            IosTextField(
+            MuseTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 label = { Text(stringResource(R.string.experience_search_hint)) },
@@ -236,14 +236,14 @@ private fun AddExperienceDialog(
         title = { Text(stringResource(R.string.experience_add_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                IosTextField(
+                MuseTextField(
                     value = category,
                     onValueChange = { category = it },
                     label = { Text(stringResource(R.string.experience_add_category_hint)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                IosTextField(
+                MuseTextField(
                     value = content,
                     onValueChange = { content = it },
                     label = { Text(stringResource(R.string.experience_add_content_hint)) },

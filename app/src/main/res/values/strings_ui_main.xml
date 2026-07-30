@@ -529,6 +529,9 @@
     <string name="settings_screen_video_gen_cd">视频生成,可灵 API,点击进入</string>
     <string name="settings_screen_video_gen">视频生成</string>
     <string name="settings_screen_video_gen_desc">文/图生视频模型与 API 配置</string>
+    <!-- 视频生成默认参数配置入口(供应商/模型/时长/分辨率) -->
+    <string name="settings_screen_video_gen_config">视频生成配置</string>
+    <string name="settings_screen_video_gen_config_desc">默认视频供应商、模型、时长与分辨率</string>
 
     <!-- ===== v1.133: 从 SettingsModelPage 拆出的 5 个独立二级页入口 ===== -->
     <string name="settings_screen_web_search">联网搜索</string>

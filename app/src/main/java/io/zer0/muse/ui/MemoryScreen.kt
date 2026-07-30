@@ -20,7 +20,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import io.zer0.muse.ui.common.WindowWidthClass
+import io.zer0.muse.ui.common.media.WindowWidthClass
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -53,8 +53,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import io.zer0.muse.ui.common.IosChip
-import io.zer0.muse.ui.common.rememberWindowWidthClass
+import io.zer0.muse.ui.common.form.MuseChip
+import io.zer0.muse.ui.common.media.rememberWindowWidthClass
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -62,9 +62,9 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import io.zer0.muse.ui.common.IosTextField
-import io.zer0.muse.ui.common.IosTopBar
-import io.zer0.muse.ui.common.LoadingState
+import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.navigation.MuseTopBar
+import io.zer0.muse.ui.common.state.MuseLoadingState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -83,15 +83,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
-import io.zer0.muse.ui.common.MuseDialog
-import io.zer0.muse.ui.common.MuseToast
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.markdown.MarkdownText
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
-import io.zer0.muse.ui.components.CardGroup
+import io.zer0.muse.ui.common.surface.CardGroup
 import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
 import java.time.DayOfWeek
@@ -106,9 +106,9 @@ import java.time.temporal.TemporalAdjusters
  *
  * 设计要点:
  *  - 背景 warm-paper (#FAFAF8),卡片纯白圆角 20dp + 0.5dp 描边 + 极淡阴影。
- *  - 顶部 [IosTopBar] 使用 largeTitle,标题为「记忆」。
+ *  - 顶部 [MuseTopBar] 使用 largeTitle,标题为「记忆」。
  *  - 搜索框固定顶部,iOS 风格圆角搜索栏(surfaceVariant 背景)。
- *  - 筛选胶囊 [IosChip] 横向滚动。
+ *  - 筛选胶囊 [MuseChip] 横向滚动。
  *  - 概览统计卡片:3 列大数字 + 细分割线。
  *  - 分组标题采用 iOS 风格小字 muted 色。
  *  - 记忆行统一使用 [CardGroup] 容器,行与行之间自动 divider。
@@ -131,7 +131,7 @@ fun MemoryScreen(
 
     Scaffold(
         topBar = {
-            IosTopBar(
+            MuseTopBar(
                 title = stringResource(R.string.memory_screen_title),
                 onBack = onBack,
                 largeTitle = true,
@@ -195,18 +195,18 @@ fun MemoryScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        IosChip(
+                        MuseChip(
                             selected = !showTimelineView,
                             onClick = { showTimelineView = false },
                             label = stringResource(R.string.memory_stats_view_list),
                         )
-                        IosChip(
+                        MuseChip(
                             selected = showTimelineView,
                             onClick = { showTimelineView = true },
                             label = stringResource(R.string.memory_stats_view_timeline),
                         )
                     }
-                    // v8: 作用域筛选器(横向滚动 IosChip)
+                    // v8: 作用域筛选器(横向滚动 MuseChip)
                     if (availableScopes.isNotEmpty()) {
                         ScopeFilterChipRow(
                             options = availableScopes,
@@ -223,7 +223,7 @@ fun MemoryScreen(
                             .padding(MusePaddings.emptyStateGap),
                         contentAlignment = Alignment.Center,
                     ) {
-                        LoadingState()
+                        MuseLoadingState()
                     }
                     return@Column
                 }
@@ -646,7 +646,7 @@ private fun CategoryChip(
 }
 
 /**
- * v8: 作用域筛选行 — 横向滚动 IosChip。
+ * v8: 作用域筛选行 — 横向滚动 MuseChip。
  */
 @Composable
 private fun ScopeFilterChipRow(
@@ -674,7 +674,7 @@ private fun ScopeFilterChipRow(
     ) {
         options.forEach { option ->
             val isSelected = selectedScope == option.id
-            IosChip(
+            MuseChip(
                 selected = isSelected,
                 onClick = { onSelect(option.id) },
                 label = option.displayName,
@@ -1333,7 +1333,7 @@ private fun FactEditDialog(
         onDismissRequest = onDismiss,
         title = title,
         content = {
-            IosTextField(
+            MuseTextField(
                 value = text,
                 onValueChange = { text = it },
                 modifier = Modifier
@@ -2095,7 +2095,7 @@ private fun ExperienceEditDialog(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                IosTextField(
+                MuseTextField(
                     value = titleText,
                     onValueChange = { titleText = it },
                     modifier = Modifier.fillMaxWidth(),
@@ -2103,7 +2103,7 @@ private fun ExperienceEditDialog(
                     placeholder = { Text(stringResource(R.string.memory_screen_experience_title_hint)) },
                     singleLine = true,
                 )
-                IosTextField(
+                MuseTextField(
                     value = contentText,
                     onValueChange = { contentText = it },
                     modifier = Modifier
@@ -2112,14 +2112,14 @@ private fun ExperienceEditDialog(
                     label = { Text(stringResource(R.string.memory_screen_experience_content_label)) },
                     placeholder = { Text(stringResource(R.string.memory_screen_experience_content_hint)) },
                 )
-                IosTextField(
+                MuseTextField(
                     value = categoryText,
                     onValueChange = { categoryText = it },
                     modifier = Modifier.fillMaxWidth(),
                     label = { Text(stringResource(R.string.memory_screen_experience_category_label)) },
                     singleLine = true,
                 )
-                IosTextField(
+                MuseTextField(
                     value = tagsText,
                     onValueChange = { tagsText = it },
                     modifier = Modifier.fillMaxWidth(),

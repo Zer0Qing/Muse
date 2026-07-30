@@ -15,14 +15,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.data.export.ExportFormat
-import io.zer0.muse.ui.common.MuseDialog
-import io.zer0.muse.ui.common.SegmentedControl
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.form.MuseSegmentedControl
 
 /**
  * 导出格式选择对话框(Markdown / HTML / PDF 三选一)。
  *
  * 设计要点:
- *  - iOS 风格分段选择器([SegmentedControl])做格式切换
+ *  - iOS 风格分段选择器([MuseSegmentedControl])做格式切换
  *  - 选中后点击底部"导出"按钮触发回调 [onFormatSelected]
  *  - 每种格式下方显示简短说明,帮助用户理解差异
  *
@@ -64,7 +64,7 @@ fun ExportFormatPickerDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 // iOS 风格分段选择器
-                SegmentedControl(
+                MuseSegmentedControl(
                     options = labels,
                     selectedIndex = selectedIndex,
                     onSelectedChange = { selectedIndex = it },

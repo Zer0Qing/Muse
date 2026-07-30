@@ -60,8 +60,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.tools.DelegationContract
-import io.zer0.muse.ui.common.EmptyState
-import io.zer0.muse.ui.common.MuseToast
+import io.zer0.muse.ui.common.state.MuseEmptyState
+import io.zer0.muse.ui.common.feedback.MuseToast
 import kotlinx.coroutines.launch
 
 /**
@@ -339,13 +339,13 @@ fun WorkflowCanvas(
         }
 
         // ---- 空状态引导:画布为空时居中提示 ----
-        // EmptyState 无 pointerInput,触摸事件会穿透到父 Box 的双击/单击手势,不影响添加节点
+        // MuseEmptyState 无 pointerInput,触摸事件会穿透到父 Box 的双击/单击手势,不影响添加节点
         if (nodes.isEmpty() && ghosts.isEmpty()) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center,
             ) {
-                EmptyState(
+                MuseEmptyState(
                     icon = Icons.Outlined.Add,
                     title = stringResource(R.string.workflow_canvas_empty_title),
                     subtitle = stringResource(R.string.workflow_canvas_empty_subtitle),

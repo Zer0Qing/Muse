@@ -485,6 +485,11 @@ class SettingsRepository(
         decodePrefsOrNull(prefs[KEY_IMAGE_GEN_CONFIG], ImageGenConfig.serializer(), "ImageGenConfig") ?: ImageGenConfig()
     }
 
+    /** 视频生成默认参数配置流(用户在设置页配置)。 */
+    val videoGenConfigFlow: Flow<VideoGenConfig> = store.data.map { prefs ->
+        decodePrefsOrNull(prefs[KEY_VIDEO_GEN_CONFIG], VideoGenConfig.serializer(), "VideoGenConfig") ?: VideoGenConfig()
+    }
+
     // v1.25: 多 Agent 协作配置(团队列表与总开关)
     // v1.201: 合并独立 DataStore key(multi_agent_review_model / multi_agent_llm_review_enabled)
     //         到 MultiAgentConfig —— 这两个字段为 @Transient,不随 JSON 序列化,
@@ -906,6 +911,9 @@ class SettingsRepository(
     // v0.34: 图片生成默认参数配置读写
     suspend fun saveImageGenConfig(config: ImageGenConfig) { store.edit { it[KEY_IMAGE_GEN_CONFIG] = AppJson.encodeToString(ImageGenConfig.serializer(), config) } }
 
+    /** 保存视频生成默认参数配置。 */
+    suspend fun saveVideoGenConfig(config: VideoGenConfig) { store.edit { it[KEY_VIDEO_GEN_CONFIG] = AppJson.encodeToString(VideoGenConfig.serializer(), config) } }
+
     // v1.25: 多 Agent 协作配置读写
     suspend fun saveMultiAgentConfig(config: MultiAgentConfig) { store.edit { it[KEY_MULTI_AGENT_CONFIG] = AppJson.encodeToString(MultiAgentConfig.serializer(), config) } }
 
@@ -1184,7 +1192,7 @@ class SettingsRepository(
             "prompt_templates_json", "user_profile_json", "chat_preferences_json",
             "memory_config_json", "notification_policy", "experiments_json",
             "share_template_json", "media_config_json", "default_search_engine",
-            "proactive_message_json", "image_gen_config_json",
+            "proactive_message_json", "image_gen_config_json", "video_gen_config_json",
             "multi_agent_config_json", "rag_config_json", "chat_drafts_json",
             "task_routing_config_json", "model_profiles_json",
             "account_user_name", "account_login_method",
@@ -1322,6 +1330,8 @@ class SettingsRepository(
         private val KEY_PROXY_CONFIG = stringPreferencesKey("proxy_config_v1")
         private val KEY_PROACTIVE_MESSAGE = stringPreferencesKey("proactive_message_json")
         private val KEY_IMAGE_GEN_CONFIG = stringPreferencesKey("image_gen_config_json")
+        /** 视频生成默认参数配置。 */
+        private val KEY_VIDEO_GEN_CONFIG = stringPreferencesKey("video_gen_config_json")
         /** v1.25: 多 Agent 协作配置（团队列表与总开关）。 */
         private val KEY_MULTI_AGENT_CONFIG = stringPreferencesKey("multi_agent_config_json")
         /** v1.201: LLM 综合评审使用的模型 id(独立 key,不随 MultiAgentConfig JSON 序列化)。 */
@@ -1487,6 +1497,25 @@ data class ImageGenConfig(
     val responseFormat: String = "url",
     /** 生成数量,通常 1。 */
     val n: Int = 1,
+)
+
+/**
+ * 视频生成默认参数配置。
+ *
+ * 用户在"设置→视频生成"中设定默认供应商/模型,
+ * ChatViewModel.execGenerateVideo 优先使用此配置;
+ * 留空时回退到自动选择(第一个支持视频输出的供应商)。
+ */
+@kotlinx.serialization.Serializable
+data class VideoGenConfig(
+    /** 视频生成使用的供应商 ID(留空则自动选择支持视频输出的供应商)。 */
+    val providerId: String = "",
+    /** 视频模型 ID(留空则使用供应商的默认视频模型)。 */
+    val modelId: String = "",
+    /** 默认视频时长(秒),通常 5 或 10。 */
+    val duration: Int = 5,
+    /** 默认分辨率,如 720p / 1080p。 */
+    val resolution: String = "720p",
 )
 
 /**

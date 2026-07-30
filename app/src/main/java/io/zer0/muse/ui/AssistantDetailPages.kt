@@ -29,15 +29,15 @@ import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Science
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.ExperimentalMaterial3Api
-import io.zer0.muse.ui.common.IosChip
+import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import io.zer0.muse.ui.common.IosTextField
-import io.zer0.muse.ui.common.IosDropdown
-import io.zer0.muse.ui.common.IosSlider
-import io.zer0.muse.ui.common.IosSwitch
+import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.form.MuseDropdown
+import io.zer0.muse.ui.common.form.MuseSlider
+import io.zer0.muse.ui.common.form.MuseSwitch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -79,13 +79,13 @@ import io.zer0.muse.data.skill.SkillRepository
 import io.zer0.muse.mcp.McpServerConfig
 import io.zer0.muse.tools.AgentCapability
 import io.zer0.muse.tools.ToolRegistry
-import io.zer0.muse.ui.common.AssistantAvatar
-import io.zer0.muse.ui.common.ChevronRight
-import io.zer0.muse.ui.common.ConfirmDeleteDialog
-import io.zer0.muse.ui.common.MuseDialog
-import io.zer0.muse.ui.common.MuseToast
-import io.zer0.muse.ui.components.CardGroup
-import io.zer0.muse.ui.components.CardGroupScope
+import io.zer0.muse.ui.common.media.AssistantAvatar
+import io.zer0.muse.ui.common.settings.ChevronRight
+import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.surface.CardGroup
+import io.zer0.muse.ui.common.surface.CardGroupScope
 import io.zer0.muse.ui.settings.SettingsSubPageScaffold
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.memory.fact.FactDao
@@ -161,7 +161,7 @@ private fun DebouncedTextField(
             onPersist(transform(draft))
         }
     }
-    IosTextField(
+    MuseTextField(
         value = draft,
         onValueChange = { v -> draft = v },
         label = label,
@@ -271,15 +271,21 @@ fun AssistantDetailPage(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (assistant != null && assistant.systemPrompt.isNotBlank()) {
-                    Text(
-                        text = assistant.systemPrompt.take(100) +
-                            if (assistant.systemPrompt.length > 100) "..." else "",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                if (assistant != null) {
+                    val desc = assistant.summary.ifBlank {
+                        assistant.systemPrompt.take(100).let {
+                            it + if (assistant.systemPrompt.length > 100) "..." else ""
+                        }
+                    }
+                    if (desc.isNotBlank()) {
+                        Text(
+                            text = desc,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
             }
         }
@@ -338,35 +344,35 @@ fun AssistantDetailPage(
             ) {
                 item(
                     onClick = onOpenBasic,
-                    leadingContent = { io.zer0.muse.ui.common.IosSettingsIcon(Icons.Outlined.Tune) },
+                    leadingContent = { io.zer0.muse.ui.common.form.MuseSettingsIcon(Icons.Outlined.Tune) },
                     headlineContent = { Text(stringResource(R.string.assistant_detail_basic)) },
                     supportingContent = { Text(stringResource(R.string.assistant_detail_basic_desc)) },
                     trailingContent = { ChevronRight() },
                 )
                 item(
                     onClick = onOpenPrompt,
-                    leadingContent = { io.zer0.muse.ui.common.IosSettingsIcon(Icons.AutoMirrored.Outlined.Article) },
+                    leadingContent = { io.zer0.muse.ui.common.form.MuseSettingsIcon(Icons.AutoMirrored.Outlined.Article) },
                     headlineContent = { Text(stringResource(R.string.assistant_detail_prompt)) },
                     supportingContent = { Text(stringResource(R.string.assistant_detail_prompt_desc)) },
                     trailingContent = { ChevronRight() },
                 )
                 item(
                     onClick = onOpenExtensions,
-                    leadingContent = { io.zer0.muse.ui.common.IosSettingsIcon(Icons.Outlined.Extension) },
+                    leadingContent = { io.zer0.muse.ui.common.form.MuseSettingsIcon(Icons.Outlined.Extension) },
                     headlineContent = { Text(stringResource(R.string.assistant_detail_extensions)) },
                     supportingContent = { Text(stringResource(R.string.assistant_detail_extensions_desc)) },
                     trailingContent = { ChevronRight() },
                 )
                 item(
                     onClick = onOpenMemory,
-                    leadingContent = { io.zer0.muse.ui.common.IosSettingsIcon(Icons.Outlined.Psychology) },
+                    leadingContent = { io.zer0.muse.ui.common.form.MuseSettingsIcon(Icons.Outlined.Psychology) },
                     headlineContent = { Text(stringResource(R.string.assistant_detail_memory)) },
                     supportingContent = { Text(stringResource(R.string.assistant_detail_memory_desc)) },
                     trailingContent = { ChevronRight() },
                 )
                 item(
                     onClick = onOpenAdvanced,
-                    leadingContent = { io.zer0.muse.ui.common.IosSettingsIcon(Icons.Outlined.Science) },
+                    leadingContent = { io.zer0.muse.ui.common.form.MuseSettingsIcon(Icons.Outlined.Science) },
                     headlineContent = { Text(stringResource(R.string.assistant_detail_advanced)) },
                     supportingContent = { Text(stringResource(R.string.assistant_detail_advanced_desc)) },
                     trailingContent = { ChevronRight() },
@@ -387,7 +393,7 @@ fun AssistantDetailPage(
                             .replace(Regex("[\\\\/:*?\"<>|]"), "_")
                         exportPngLauncher.launch("$safeName.png")
                     },
-                    leadingContent = { io.zer0.muse.ui.common.IosSettingsIcon(Icons.Outlined.Image) },
+                    leadingContent = { io.zer0.muse.ui.common.form.MuseSettingsIcon(Icons.Outlined.Image) },
                     headlineContent = { Text(stringResource(R.string.assistant_detail_export_png)) },
                     supportingContent = { Text(stringResource(R.string.assistant_detail_export_png_desc)) },
                     trailingContent = { ChevronRight() },
@@ -400,7 +406,7 @@ fun AssistantDetailPage(
                             .replace(Regex("[\\\\/:*?\"<>|]"), "_")
                         exportJsonLauncher.launch("$safeName.json")
                     },
-                    leadingContent = { io.zer0.muse.ui.common.IosSettingsIcon(Icons.AutoMirrored.Outlined.Article) },
+                    leadingContent = { io.zer0.muse.ui.common.form.MuseSettingsIcon(Icons.AutoMirrored.Outlined.Article) },
                     headlineContent = { Text(stringResource(R.string.assistant_detail_export_json)) },
                     supportingContent = { Text(stringResource(R.string.assistant_detail_export_json_desc)) },
                     trailingContent = { ChevronRight() },
@@ -437,7 +443,7 @@ fun AssistantDetailPage(
                             )
                         }
                     },
-                    leadingContent = { io.zer0.muse.ui.common.IosSettingsIcon(Icons.Outlined.Share) },
+                    leadingContent = { io.zer0.muse.ui.common.form.MuseSettingsIcon(Icons.Outlined.Share) },
                     headlineContent = { Text(stringResource(R.string.assistant_detail_share_muse_card)) },
                     supportingContent = { Text(stringResource(R.string.assistant_detail_share_muse_card_desc)) },
                     trailingContent = { ChevronRight() },
@@ -459,7 +465,7 @@ fun AssistantDetailPage(
                             .replace(Regex("[\\\\/:*?\"<>|]"), "_")
                         CharacterSharer.shareJson(context, json, "${safeName}_muse.json")
                     },
-                    leadingContent = { io.zer0.muse.ui.common.IosSettingsIcon(Icons.AutoMirrored.Outlined.Article) },
+                    leadingContent = { io.zer0.muse.ui.common.form.MuseSettingsIcon(Icons.AutoMirrored.Outlined.Article) },
                     headlineContent = { Text(stringResource(R.string.assistant_detail_share_muse_json)) },
                     supportingContent = { Text(stringResource(R.string.assistant_detail_share_muse_json_desc)) },
                     trailingContent = { ChevronRight() },
@@ -744,7 +750,7 @@ fun AssistantBasicPage(
                                 ),
                                 style = MaterialTheme.typography.bodyMedium,
                             )
-                            IosSlider(
+                            MuseSlider(
                                 value = a.temperature ?: 1.0f,
                                 onValueChange = { v -> update { it.copy(temperature = v) } },
                                 valueRange = 0f..2f,
@@ -795,7 +801,7 @@ fun AssistantBasicPage(
                                 text = stringResource(R.string.assistant_detail_context_message_count, a.contextMessageSize),
                                 style = MaterialTheme.typography.bodyMedium,
                             )
-                            IosSlider(
+                            MuseSlider(
                                 value = a.contextMessageSize.toFloat(),
                                 onValueChange = { v ->
                                     update { it.copy(contextMessageSize = v.toInt().coerceAtLeast(1)) }
@@ -809,7 +815,7 @@ fun AssistantBasicPage(
                 item(
                     headlineContent = {
                         // 推理等级下拉
-                        IosDropdown(
+                        MuseDropdown(
                             value = a.reasoningLevel,
                             onValueChange = { selected -> update { it.copy(reasoningLevel = selected) } },
                             label = stringResource(R.string.assistant_detail_reasoning_level),
@@ -821,7 +827,7 @@ fun AssistantBasicPage(
                     headlineContent = { Text(stringResource(R.string.assistant_detail_stream_output)) },
                     supportingContent = { Text(stringResource(R.string.assistant_detail_stream_output_desc)) },
                     trailingContent = {
-                        IosSwitch(
+                        MuseSwitch(
                             checked = a.streamOutput,
                             onCheckedChange = { v -> update { it.copy(streamOutput = v) } },
                         )
@@ -848,7 +854,7 @@ fun AssistantBasicPage(
                     headlineContent = { Text(stringResource(R.string.assistant_detail_use_assistant_name)) },
                     supportingContent = { Text(stringResource(R.string.assistant_detail_use_assistant_name_desc)) },
                     trailingContent = {
-                        IosSwitch(
+                        MuseSwitch(
                             checked = a.useAssistantName,
                             onCheckedChange = { v -> update { it.copy(useAssistantName = v) } },
                         )
@@ -858,7 +864,7 @@ fun AssistantBasicPage(
                     headlineContent = { Text(stringResource(R.string.assistant_detail_allow_group_chat)) },
                     supportingContent = { Text(stringResource(R.string.assistant_detail_allow_group_chat_desc)) },
                     trailingContent = {
-                        IosSwitch(
+                        MuseSwitch(
                             checked = a.allowGroupChat,
                             onCheckedChange = { v -> update { it.copy(allowGroupChat = v) } },
                         )
@@ -1093,7 +1099,7 @@ private fun <T> MultiSelectChipsDialog(
                     items.forEach { item ->
                         val id = itemId(item)
                         val selected = id in selectedIds
-                        IosChip(
+                        MuseChip(
                             selected = selected,
                             onClick = { onToggle(id) },
                             label = itemLabel(item),
@@ -1359,7 +1365,7 @@ fun AssistantMemoryPage(
                     headlineContent = { Text(stringResource(R.string.assistant_detail_enable_memory)) },
                     supportingContent = { Text(stringResource(R.string.assistant_detail_enable_memory_desc)) },
                     trailingContent = {
-                        IosSwitch(
+                        MuseSwitch(
                             checked = a.memoryEnabled,
                             onCheckedChange = { v -> update { it.copy(memoryEnabled = v) } },
                         )
@@ -1369,7 +1375,7 @@ fun AssistantMemoryPage(
                     headlineContent = { Text(stringResource(R.string.assistant_detail_use_global_memory)) },
                     supportingContent = { Text(stringResource(R.string.assistant_detail_use_global_memory_desc)) },
                     trailingContent = {
-                        IosSwitch(
+                        MuseSwitch(
                             checked = a.useGlobalMemory,
                             onCheckedChange = { v -> update { it.copy(useGlobalMemory = v) } },
                         )
@@ -1379,7 +1385,7 @@ fun AssistantMemoryPage(
                     headlineContent = { Text(stringResource(R.string.assistant_detail_recent_chats_reference)) },
                     supportingContent = { Text(stringResource(R.string.assistant_detail_recent_chats_reference_desc)) },
                     trailingContent = {
-                        IosSwitch(
+                        MuseSwitch(
                             checked = a.enableRecentChatsReference,
                             onCheckedChange = { v -> update { it.copy(enableRecentChatsReference = v) } },
                         )
@@ -1389,7 +1395,7 @@ fun AssistantMemoryPage(
                     headlineContent = { Text(stringResource(R.string.assistant_detail_time_reminder)) },
                     supportingContent = { Text(stringResource(R.string.assistant_detail_time_reminder_desc)) },
                     trailingContent = {
-                        IosSwitch(
+                        MuseSwitch(
                             checked = a.enableTimeReminder,
                             onCheckedChange = { v -> update { it.copy(enableTimeReminder = v) } },
                         )
@@ -1452,7 +1458,7 @@ fun AssistantMemoryPage(
             onDismissRequest = { showAddFactDialog = false },
             title = stringResource(R.string.assistant_detail_add_memory_dialog_title),
             content = {
-                IosTextField(
+                MuseTextField(
                     value = factInput,
                     onValueChange = { factInput = it },
                     label = { Text(stringResource(R.string.assistant_detail_input_fact)) },
@@ -1529,7 +1535,7 @@ fun AssistantAdvancedPage(
                                 text = stringResource(R.string.assistant_detail_background_opacity, (a.backgroundOpacity * 100).toInt()),
                                 style = MaterialTheme.typography.bodyMedium,
                             )
-                            IosSlider(
+                            MuseSlider(
                                 value = a.backgroundOpacity,
                                 onValueChange = { v -> update { it.copy(backgroundOpacity = v) } },
                                 valueRange = 0f..1f,
@@ -1542,7 +1548,7 @@ fun AssistantAdvancedPage(
                     headlineContent = { Text(stringResource(R.string.assistant_detail_gradient_background)) },
                     supportingContent = { Text(stringResource(R.string.assistant_detail_gradient_background_desc)) },
                     trailingContent = {
-                        IosSwitch(
+                        MuseSwitch(
                             checked = a.useGradientBackground,
                             onCheckedChange = { v -> update { it.copy(useGradientBackground = v) } },
                         )
@@ -1674,7 +1680,7 @@ private fun RegexRulesSection(
                     },
                     trailingContent = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            IosSwitch(
+                            MuseSwitch(
                                 checked = rule.enabled,
                                 onCheckedChange = { v ->
                                     val updated = rules.map { if (it.id == rule.id) it.copy(enabled = v) else it }
@@ -1782,7 +1788,7 @@ private fun RegexRuleEditDialog(
         else stringResource(R.string.assistant_detail_regex_edit_title),
         content = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                IosTextField(
+                MuseTextField(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text(stringResource(R.string.assistant_detail_regex_name_label)) },
@@ -1790,7 +1796,7 @@ private fun RegexRuleEditDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                IosTextField(
+                MuseTextField(
                     value = findRegex,
                     onValueChange = {
                         findRegex = it
@@ -1807,7 +1813,7 @@ private fun RegexRuleEditDialog(
                     } else null,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                IosTextField(
+                MuseTextField(
                     value = replaceString,
                     onValueChange = { replaceString = it },
                     label = { Text(stringResource(R.string.assistant_detail_regex_replace_label)) },
@@ -1825,7 +1831,7 @@ private fun RegexRuleEditDialog(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     scopeOptions.forEach { (value, label) ->
-                        IosChip(
+                        MuseChip(
                             selected = scope == value,
                             onClick = { scope = value },
                             label = label,
@@ -1842,7 +1848,7 @@ private fun RegexRuleEditDialog(
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.weight(1f),
                     )
-                    IosSwitch(checked = visualOnly, onCheckedChange = { visualOnly = it })
+                    MuseSwitch(checked = visualOnly, onCheckedChange = { visualOnly = it })
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1854,7 +1860,7 @@ private fun RegexRuleEditDialog(
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.weight(1f),
                     )
-                    IosSwitch(checked = enabled, onCheckedChange = { enabled = it })
+                    MuseSwitch(checked = enabled, onCheckedChange = { enabled = it })
                 }
             }
         },
@@ -1910,7 +1916,7 @@ private fun CapabilityChipsSection(
                 ) {
                     AgentCapability.ALL_CAPABILITIES.forEach { capability ->
                         val isSelected = capability in selected
-                        IosChip(
+                        MuseChip(
                             selected = isSelected,
                             onClick = {
                                 val current = AgentCapability.parseCapabilitiesJson(capabilitiesJson)
@@ -1930,7 +1936,7 @@ private fun CapabilityChipsSection(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    IosTextField(
+                    MuseTextField(
                         value = customInput,
                         onValueChange = { customInput = it },
                         label = { Text(stringResource(R.string.assistant_detail_custom_capability)) },

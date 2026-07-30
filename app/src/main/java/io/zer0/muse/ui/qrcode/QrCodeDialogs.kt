@@ -33,8 +33,8 @@ import coil.compose.AsyncImage
 import coil.imageLoader
 import coil.request.ImageRequest
 import io.zer0.muse.R
-import io.zer0.muse.ui.common.MuseDialog
-import io.zer0.muse.ui.common.MuseToast
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.feedback.MuseToast
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext

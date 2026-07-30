@@ -1,6 +1,6 @@
 package io.zer0.muse.ui.settings
 
-import io.zer0.muse.ui.common.MuseToast
+import io.zer0.muse.ui.common.feedback.MuseToast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -28,12 +28,12 @@ import io.zer0.muse.R
 import io.zer0.muse.asr.AsrConfig
 import io.zer0.muse.asr.AsrProviderType
 import io.zer0.muse.data.SettingsRepository
-import io.zer0.muse.ui.common.IosTextField
-import io.zer0.muse.ui.common.SectionLabel
-import io.zer0.muse.ui.common.SettingsGroup
-import io.zer0.muse.ui.common.SettingsGroupDivider
-import io.zer0.muse.ui.common.SettingsItemRow
-import io.zer0.muse.ui.common.SwitchRow
+import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.settings.SectionLabel
+import io.zer0.muse.ui.common.settings.SettingsGroup
+import io.zer0.muse.ui.common.settings.SettingsGroupDivider
+import io.zer0.muse.ui.common.settings.SettingsItemRow
+import io.zer0.muse.ui.common.settings.SwitchRow
 import io.zer0.muse.ui.theme.MusePaddings
 import kotlinx.coroutines.launch
 
@@ -150,7 +150,7 @@ internal fun AsrSection(
                 if (asrConfig.apiKey.isBlank()) {
                     InlineError(stringResource(R.string.asr_missing_api_key_error))
                 }
-                IosTextField(
+                MuseTextField(
                     value = asrApiKey,
                     onValueChange = { asrApiKey = it },
                     label = { Text(stringResource(R.string.settings_asr_api_key)) },
@@ -185,7 +185,7 @@ internal fun AsrSection(
                         .fillMaxWidth()
                         .padding(MusePaddings.cardInner),
                 ) {
-                    IosTextField(
+                    MuseTextField(
                         value = asrBaseUrl,
                         onValueChange = { asrBaseUrl = it },
                         label = { Text(stringResource(R.string.settings_asr_base_url)) },
@@ -213,7 +213,7 @@ internal fun AsrSection(
                     .fillMaxWidth()
                     .padding(MusePaddings.cardInner),
             ) {
-                IosTextField(
+                MuseTextField(
                     value = asrModel,
                     onValueChange = { asrModel = it },
                     label = { Text(stringResource(R.string.settings_asr_model)) },
@@ -251,7 +251,7 @@ internal fun AsrSection(
                     .fillMaxWidth()
                     .padding(MusePaddings.cardInner),
             ) {
-                IosTextField(
+                MuseTextField(
                     value = asrLang,
                     onValueChange = { asrLang = it },
                     label = { Text(stringResource(R.string.settings_asr_language_code)) },
@@ -278,7 +278,7 @@ internal fun AsrSection(
                     .fillMaxWidth()
                     .padding(MusePaddings.cardInner),
             ) {
-                IosTextField(
+                MuseTextField(
                     value = asrHotwords,
                     onValueChange = { asrHotwords = it },
                     label = { Text(stringResource(R.string.settings_asr_hotwords)) },
@@ -321,7 +321,7 @@ internal fun AsrSection(
                             .fillMaxWidth()
                             .padding(MusePaddings.cardInner),
                     ) {
-                        IosTextField(
+                        MuseTextField(
                             value = vadThreshold,
                             onValueChange = { vadThreshold = it.filter { c -> c.isDigit() || c == '.' } },
                             label = { Text(stringResource(R.string.settings_asr_vad_threshold)) },
@@ -348,7 +348,7 @@ internal fun AsrSection(
                             .fillMaxWidth()
                             .padding(MusePaddings.cardInner),
                     ) {
-                        IosTextField(
+                        MuseTextField(
                             value = vadSilence,
                             onValueChange = { vadSilence = it.filter { c -> c.isDigit() } },
                             label = { Text(stringResource(R.string.settings_asr_vad_silence)) },
@@ -405,7 +405,7 @@ internal fun AsrSection(
                         .fillMaxWidth()
                         .padding(MusePaddings.cardInner),
                 ) {
-                    IosTextField(
+                    MuseTextField(
                         value = fileUrl,
                         onValueChange = { fileUrl = it },
                         label = { Text(stringResource(R.string.settings_asr_audio_url)) },
@@ -431,7 +431,7 @@ internal fun AsrSection(
                         .fillMaxWidth()
                         .padding(MusePaddings.cardInner),
                 ) {
-                    IosTextField(
+                    MuseTextField(
                         value = pollInterval,
                         onValueChange = { pollInterval = it.filter { c -> c.isDigit() } },
                         label = { Text(stringResource(R.string.settings_asr_poll_interval)) },
@@ -458,7 +458,7 @@ internal fun AsrSection(
                         .fillMaxWidth()
                         .padding(MusePaddings.cardInner),
                 ) {
-                    IosTextField(
+                    MuseTextField(
                         value = pollTimeout,
                         onValueChange = { pollTimeout = it.filter { c -> c.isDigit() } },
                         label = { Text(stringResource(R.string.settings_asr_poll_timeout)) },

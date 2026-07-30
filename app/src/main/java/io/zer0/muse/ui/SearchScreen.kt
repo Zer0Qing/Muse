@@ -53,8 +53,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
-import io.zer0.muse.ui.common.IosCapsuleTab
-import io.zer0.muse.ui.common.LoadingState
+import io.zer0.muse.ui.common.form.MuseCapsuleTab
+import io.zer0.muse.ui.common.state.MuseLoadingState
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -198,7 +198,7 @@ fun SearchScreen(
         ) {
             // v2.x: 有输入时显示胶囊 Tab 切换(会话 / 消息内容)
             if (query.isNotBlank()) {
-                IosCapsuleTab(
+                MuseCapsuleTab(
                     tabs = listOf(
                         stringResource(R.string.search_tab_sessions),
                         stringResource(R.string.search_tab_message_content),
@@ -340,7 +340,7 @@ private fun SearchResults(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                LoadingState()
+                MuseLoadingState()
                 Text(
                     text = stringResource(R.string.search_searching),
                     style = MaterialTheme.typography.bodyMedium,
@@ -508,7 +508,7 @@ private fun MessageSearchResults(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                LoadingState()
+                MuseLoadingState()
                 Text(
                     text = stringResource(R.string.search_searching),
                     style = MaterialTheme.typography.bodyMedium,

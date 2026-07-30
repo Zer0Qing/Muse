@@ -38,8 +38,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.data.milestone.MilestoneDao
 import io.zer0.muse.data.milestone.MilestoneEntity
-import io.zer0.muse.ui.common.IosTactileButton
-import io.zer0.muse.ui.common.SectionLabel
+import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -72,7 +72,7 @@ fun MilestoneScreen(
                     .padding(horizontal = 4.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                IosTactileButton(
+                MuseTactileButton(
                     icon = Icons.AutoMirrored.Filled.ArrowBack,
                     onClick = onBack,
                     contentDescription = stringResource(R.string.action_back),

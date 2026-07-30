@@ -80,10 +80,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
-import io.zer0.muse.ui.common.IosTextField
-import io.zer0.muse.ui.common.IosTopBar
-import io.zer0.muse.ui.common.MuseDialog
-import io.zer0.muse.ui.common.MuseToast
+import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.navigation.MuseTopBar
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -372,7 +372,7 @@ fun TranslateScreen(
 private fun TranslateTopBar(
     onBack: () -> Unit,
 ) {
-    IosTopBar(
+    MuseTopBar(
         title = stringResource(R.string.translate_page_title),
         onBack = onBack,
         largeTitle = true,
@@ -621,7 +621,7 @@ private fun SourceInputCard(
             }
 
             // 输入框
-            IosTextField(
+            MuseTextField(
                 value = text,
                 onValueChange = onTextChange,
                 modifier = Modifier.fillMaxWidth(),
@@ -1338,7 +1338,7 @@ private fun BatchTranslateDialog(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
             ) {
-                IosTextField(
+                MuseTextField(
                     value = inputText,
                     onValueChange = { inputText = it },
                     modifier = Modifier
@@ -1508,14 +1508,14 @@ private fun CustomStyleDialog(
                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                     )
                 }
-                IosTextField(
+                MuseTextField(
                     value = name,
                     onValueChange = { name = it },
                     modifier = Modifier.fillMaxWidth(),
                     label = { Text(stringResource(R.string.translate_page_custom_style_name)) },
                     singleLine = true,
                 )
-                IosTextField(
+                MuseTextField(
                     value = prompt,
                     onValueChange = { prompt = it },
                     modifier = Modifier.fillMaxWidth(),
@@ -1644,14 +1644,14 @@ private fun GlossaryDialog(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    IosTextField(
+                    MuseTextField(
                         value = original,
                         onValueChange = { original = it },
                         modifier = Modifier.weight(1f),
                         label = { Text(stringResource(R.string.translate_page_glossary_original)) },
                         singleLine = true,
                     )
-                    IosTextField(
+                    MuseTextField(
                         value = translated,
                         onValueChange = { translated = it },
                         modifier = Modifier.weight(1f),

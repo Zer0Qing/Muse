@@ -20,8 +20,8 @@ import io.zer0.muse.ui.HtmlPreviewScreen
 import io.zer0.muse.ui.MuseRoutes
 import io.zer0.muse.ui.RecentlyDeletedScreen
 import io.zer0.muse.ui.SearchScreen
-import io.zer0.muse.ui.common.WindowWidthClass
-import io.zer0.muse.ui.common.rememberWindowWidthClass
+import io.zer0.muse.ui.common.media.WindowWidthClass
+import io.zer0.muse.ui.common.media.rememberWindowWidthClass
 import io.zer0.muse.ui.quicknotes.QuickNotesScreen
 import io.zer0.muse.ui.quicknotes.QuickNotesViewModel
 import org.koin.androidx.compose.koinViewModel

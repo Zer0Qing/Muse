@@ -31,7 +31,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import io.zer0.muse.ui.common.IosTopBar
+import io.zer0.muse.ui.common.navigation.MuseTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -47,13 +47,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.zer0.common.resultOf
 import io.zer0.muse.R
-import io.zer0.muse.ui.common.EmptyState
-import io.zer0.muse.ui.common.MuseDialog
-import io.zer0.muse.ui.common.MuseToast
-import io.zer0.muse.ui.common.SectionLabel
-import io.zer0.muse.ui.common.SettingsGroup
-import io.zer0.muse.ui.common.SettingsGroupDivider
-import io.zer0.muse.ui.common.SettingsItemRow
+import io.zer0.muse.ui.common.state.MuseEmptyState
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.settings.SectionLabel
+import io.zer0.muse.ui.common.settings.SettingsGroup
+import io.zer0.muse.ui.common.settings.SettingsGroupDivider
+import io.zer0.muse.ui.common.settings.SettingsItemRow
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MuseShapes
 import org.koin.compose.koinInject
@@ -101,7 +101,7 @@ fun LicensesScreen(
 
     Scaffold(
         topBar = {
-            IosTopBar(
+            MuseTopBar(
                 title = stringResource(R.string.licenses_title),
                 onBack = onBack,
             )
@@ -129,7 +129,7 @@ fun LicensesScreen(
                     .padding(innerPadding),
                 contentAlignment = Alignment.Center,
             ) {
-                EmptyState(
+                MuseEmptyState(
                     icon = Icons.Outlined.Info,
                     title = "暂无许可数据",
                 )

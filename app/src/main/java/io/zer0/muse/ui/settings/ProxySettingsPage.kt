@@ -8,7 +8,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import androidx.compose.material3.Button
-import io.zer0.muse.ui.common.IosChip
+import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -28,12 +28,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.data.ProxyConfig
 import io.zer0.muse.data.SettingsRepository
-import io.zer0.muse.ui.common.IosTextField
-import io.zer0.muse.ui.common.MuseToast
-import io.zer0.muse.ui.common.SectionLabel
-import io.zer0.muse.ui.common.SettingsGroup
-import io.zer0.muse.ui.common.SettingsGroupDivider
-import io.zer0.muse.ui.common.SettingsSwitchRow
+import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.settings.SectionLabel
+import io.zer0.muse.ui.common.settings.SettingsGroup
+import io.zer0.muse.ui.common.settings.SettingsGroupDivider
+import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
@@ -87,7 +87,7 @@ fun ProxySettingsPage(
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     proxyTypes.forEach { (value, label) ->
-                        IosChip(
+                        MuseChip(
                             selected = type == value,
                             onClick = { type = value },
                             label = label,
@@ -95,7 +95,7 @@ fun ProxySettingsPage(
                     }
                 }
                 SettingsGroupDivider()
-                IosTextField(
+                MuseTextField(
                     value = host,
                     onValueChange = { host = it },
                     label = { Text(stringResource(R.string.proxy_host)) },
@@ -105,7 +105,7 @@ fun ProxySettingsPage(
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                 )
                 SettingsGroupDivider()
-                IosTextField(
+                MuseTextField(
                     value = portText,
                     onValueChange = { v ->
                         portText = v.filter { it.isDigit() }.take(5)
@@ -118,7 +118,7 @@ fun ProxySettingsPage(
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                 )
                 SettingsGroupDivider()
-                IosTextField(
+                MuseTextField(
                     value = username,
                     onValueChange = { username = it },
                     label = { Text(stringResource(R.string.proxy_username)) },
@@ -128,7 +128,7 @@ fun ProxySettingsPage(
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                 )
                 SettingsGroupDivider()
-                IosTextField(
+                MuseTextField(
                     value = password,
                     onValueChange = { password = it },
                     label = { Text(stringResource(R.string.proxy_password)) },

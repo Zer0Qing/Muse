@@ -27,7 +27,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import io.zer0.muse.ui.common.IosTextField
+import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -261,7 +261,7 @@ private fun DelegationConfirmDialogContent(
         if (modifyMode) {
             // MODIFY 编辑模式:多行输入框 + 确认按钮
             Column(verticalArrangement = Arrangement.spacedBy(DialogSpacing)) {
-                IosTextField(
+                MuseTextField(
                     value = modifiedInput,
                     onValueChange = { modifiedInput = it },
                     label = { Text(stringResource(R.string.delegation_confirm_modify_hint)) },

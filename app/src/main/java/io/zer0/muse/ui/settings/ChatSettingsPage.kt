@@ -1,4 +1,4 @@
-﻿package io.zer0.muse.ui.settings
+package io.zer0.muse.ui.settings
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -26,10 +26,10 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
-import io.zer0.muse.ui.common.IosChip
+import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import io.zer0.muse.ui.common.IosSlider
+import io.zer0.muse.ui.common.form.MuseSlider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -58,15 +58,15 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.sticker.StickerItem
 import io.zer0.muse.data.sticker.StickerLibraryRepository
 import io.zer0.muse.tools.SessionPermissionMode
-import io.zer0.muse.ui.common.ChevronRight
-import io.zer0.muse.ui.common.MuseDialog
-import io.zer0.muse.ui.common.MuseToast
-import io.zer0.muse.ui.common.SectionLabel
-import io.zer0.muse.ui.common.SettingsGroup
-import io.zer0.muse.ui.common.SettingsGroupDivider
-import io.zer0.muse.ui.common.SettingsItemRow
-import io.zer0.muse.ui.common.SettingsSegmentedRow
-import io.zer0.muse.ui.common.SettingsSwitchRow
+import io.zer0.muse.ui.common.settings.ChevronRight
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.settings.SectionLabel
+import io.zer0.muse.ui.common.settings.SettingsGroup
+import io.zer0.muse.ui.common.settings.SettingsGroupDivider
+import io.zer0.muse.ui.common.settings.SettingsItemRow
+import io.zer0.muse.ui.common.settings.SettingsSegmentedRow
+import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -285,7 +285,7 @@ fun ChatSettingsPage(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.outline,
                         )
-                        IosSlider(
+                        MuseSlider(
                             value = temperatureDraft,
                             onValueChange = { v -> temperatureDraft = v },
                             valueRange = 0f..2f,
@@ -619,7 +619,7 @@ private fun StickerLibrarySection(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline,
                     )
-                    IosSlider(
+                    MuseSlider(
                         value = probDraft,
                         onValueChange = { v -> probDraft = v },
                         valueRange = 0f..100f,
@@ -681,13 +681,13 @@ private fun StickerLibrarySection(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                IosChip(
+                MuseChip(
                     selected = selectedCategory.isBlank(),
                     onClick = { selectedCategory = "" },
                     label = stringResource(R.string.settings_sticker_category_all),
                 )
                 categories.forEach { cat ->
-                    IosChip(
+                    MuseChip(
                         selected = selectedCategory == cat,
                         onClick = { selectedCategory = cat },
                         label = cat,

@@ -56,10 +56,11 @@ object ThirdPartyImporter {
 
     private const val TAG = "ThirdPartyImporter"
 
-    // H-IMP1: ZIP 解压安全限制,防止 ZIP 炸弹 / 内存耗尽
-    private const val MAX_TOTAL_SIZE = 100L * 1024 * 1024 // 100MB
-    private const val MAX_SINGLE_FILE = 10L * 1024 * 1024 // 10MB
-    private const val MAX_FILE_COUNT = 1000
+    // 解压安全限制已移除(用户需求:完整去除导入数据大小限制)。
+    // 保留极高的兜底值防止恶意 ZIP 炸弹,但正常用户不会触达。
+    private const val MAX_TOTAL_SIZE = 4L * 1024 * 1024 * 1024 // 4GB(兜底防炸弹)
+    private const val MAX_SINGLE_FILE = 1L * 1024 * 1024 * 1024 // 1GB(兜底防炸弹)
+    private const val MAX_FILE_COUNT = 100000 // 10万(兜底防炸弹)
 
     /** UTF-8 BOM 前缀(部分 Windows 编辑器导出的 JSON 会带 BOM,需跳过)。 */
     private val UTF8_BOM = byteArrayOf(0xEF.toByte(), 0xBB.toByte(), 0xBF.toByte())
@@ -76,15 +77,25 @@ object ThirdPartyImporter {
         sessionRepo: SessionRepository,
     ): ImportResult = withContext(Dispatchers.IO) {
         val ctx = context
-        // H-IMP2: 所有磁盘 IO 在 IO 线程执行
-        val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-            ?: return@withContext ImportResult(errors = listOf(context.getString(R.string.import_error_read_file_failed)))
 
-        // 读取 ZIP 内所有条目(H-IMP1: 限制总大小/单文件大小/文件数量)
+        // 流式复制到缓存文件,避免 readBytes() 把整个 ZIP 一次性读进内存导致 OOM。
+        // 这是"之前尝试去除大小限制没成功"的根因:即使放大常量,readBytes() 在读取阶段就会 OOM。
+        val tempZip = java.io.File.createTempFile("import_", ".zip", context.cacheDir)
+        try {
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                tempZip.outputStream().use { output -> input.copyTo(output) }
+            } ?: return@withContext ImportResult(errors = listOf(context.getString(R.string.import_error_read_file_failed)))
+        } catch (e: Exception) {
+            Logger.w(TAG, "无法读取导入文件", e)
+            tempZip.delete()
+            return@withContext ImportResult(errors = listOf(context.getString(R.string.import_error_read_file_failed)))
+        }
+
+        // 读取 ZIP 内所有条目(保留极高的兜底限制防止 ZIP 炸弹,正常用户不会触达)
         val entries = mutableMapOf<String, ByteArray>()
         var totalSize = 0L
         try {
-            ZipInputStream(bytes.inputStream()).use { zis ->
+            ZipInputStream(tempZip.inputStream()).use { zis ->
                 var entry = zis.nextEntry
                 while (entry != null) {
                     if (!entry.isDirectory) {
@@ -94,15 +105,15 @@ object ThirdPartyImporter {
                             entry = zis.nextEntry
                             continue
                         }
-                        // 文件数量限制
+                        // 文件数量兜底限制
                         if (entries.size >= MAX_FILE_COUNT) {
                             throw IllegalStateException("解压条目数超过限制($MAX_FILE_COUNT)")
                         }
-                        // 单文件大小限制(先查 entry.size,可能为 -1;实际读取时再校验)
+                        // 单文件兜底限制
                         val buf = readZipEntryWithLimit(zis, MAX_SINGLE_FILE)
                         totalSize += buf.size.toLong()
                         if (totalSize > MAX_TOTAL_SIZE) {
-                            throw IllegalStateException("解压内容总大小超过限制(${MAX_TOTAL_SIZE / 1024 / 1024}MB)")
+                            throw IllegalStateException("解压内容总大小超过限制(${MAX_TOTAL_SIZE / 1024 / 1024 / 1024}GB)")
                         }
                         entries[entry.name] = buf
                     }
@@ -111,10 +122,14 @@ object ThirdPartyImporter {
             }
         } catch (e: IllegalStateException) {
             Logger.w(TAG, "解压终止: ${e.message}")
+            tempZip.delete()
             return@withContext ImportResult(errors = listOf(e.message ?: context.getString(R.string.import_error_unzip_size_exceeded)))
         } catch (e: Exception) {
             Logger.w(TAG, "无法解压文件", e)
+            tempZip.delete()
             return@withContext ImportResult(errors = listOf(context.getString(R.string.import_error_unzip_failed, e.message)))
+        } finally {
+            tempZip.delete()
         }
 
         // 判断格式:Kelivo 有 chats.json;RikkaHub 有 settings.json 且不含 chats.json

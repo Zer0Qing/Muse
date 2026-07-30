@@ -1,7 +1,7 @@
 package io.zer0.muse.ui.settings
 
 import io.zer0.common.resultOf
-import io.zer0.muse.ui.common.MuseToast
+import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.theme.MusePaddings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -42,14 +42,14 @@ import io.zer0.muse.backup.BackupService
 import io.zer0.muse.backup.CloudBackupConfig
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
-import io.zer0.muse.ui.common.IosTextField
-import io.zer0.muse.ui.common.MuseDialog
-import io.zer0.muse.ui.common.SectionLabel
-import io.zer0.muse.ui.common.SettingsGroup
-import io.zer0.muse.ui.common.SettingsGroupDivider
-import io.zer0.muse.ui.common.SettingsItemRow
-import io.zer0.muse.ui.common.SettingsSwitchRow
-import io.zer0.muse.ui.common.StatusDot
+import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.settings.SectionLabel
+import io.zer0.muse.ui.common.settings.SettingsGroup
+import io.zer0.muse.ui.common.settings.SettingsGroupDivider
+import io.zer0.muse.ui.common.settings.SettingsItemRow
+import io.zer0.muse.ui.common.settings.SettingsSwitchRow
+import io.zer0.muse.ui.common.settings.StatusDot
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseShapes
 import kotlinx.coroutines.launch
@@ -396,7 +396,7 @@ internal fun BackupSection(
             onDismissRequest = { showIntervalDialog = false },
             title = stringResource(R.string.settings_backup_auto_sync_interval),
             content = {
-                IosTextField(
+                MuseTextField(
                     value = intervalInput,
                     onValueChange = { intervalInput = it.filter { c -> c.isDigit() }.take(3) },
                     label = { Text("间隔小时数 (1-168)") },
@@ -495,35 +495,35 @@ private fun CloudBackupConfigDialog(
                 }
 
                 if (type == "s3") {
-                    IosTextField(
+                    MuseTextField(
                         value = s3Endpoint,
                         onValueChange = { s3Endpoint = it },
                         label = { Text(stringResource(R.string.settings_backup_endpoint)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                     )
-                    IosTextField(
+                    MuseTextField(
                         value = s3Region,
                         onValueChange = { s3Region = it },
                         label = { Text(stringResource(R.string.settings_backup_region)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                     )
-                    IosTextField(
+                    MuseTextField(
                         value = s3Bucket,
                         onValueChange = { s3Bucket = it },
                         label = { Text("Bucket") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                     )
-                    IosTextField(
+                    MuseTextField(
                         value = s3AccessKey,
                         onValueChange = { s3AccessKey = it },
                         label = { Text(stringResource(R.string.settings_backup_access_key)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                     )
-                    IosTextField(
+                    MuseTextField(
                         value = s3SecretKey,
                         onValueChange = { s3SecretKey = it },
                         label = { Text("Secret Key") },
@@ -536,7 +536,7 @@ private fun CloudBackupConfigDialog(
                             }
                         },
                     )
-                    IosTextField(
+                    MuseTextField(
                         value = s3KeyPrefix,
                         onValueChange = { s3KeyPrefix = it },
                         label = { Text(stringResource(R.string.settings_backup_key_prefix)) },
@@ -544,21 +544,21 @@ private fun CloudBackupConfigDialog(
                         modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                     )
                 } else if (type == "webdav") {
-                    IosTextField(
+                    MuseTextField(
                         value = webdavUrl,
                         onValueChange = { webdavUrl = it },
                         label = { Text(stringResource(R.string.settings_backup_webdav_url)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                     )
-                    IosTextField(
+                    MuseTextField(
                         value = webdavUsername,
                         onValueChange = { webdavUsername = it },
                         label = { Text(stringResource(R.string.settings_backup_username)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                     )
-                    IosTextField(
+                    MuseTextField(
                         value = webdavPassword,
                         onValueChange = { webdavPassword = it },
                         label = { Text(stringResource(R.string.settings_backup_password)) },
@@ -571,7 +571,7 @@ private fun CloudBackupConfigDialog(
                             }
                         },
                     )
-                    IosTextField(
+                    MuseTextField(
                         value = webdavPath,
                         onValueChange = { webdavPath = it },
                         label = { Text(stringResource(R.string.settings_backup_remote_dir)) },
@@ -587,7 +587,7 @@ private fun CloudBackupConfigDialog(
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            IosTextField(
+            MuseTextField(
                 value = backupPassword,
                 onValueChange = { backupPassword = it },
                 label = { Text(stringResource(R.string.settings_backup_encrypt_password_hint)) },

@@ -30,8 +30,8 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.Schedule
-import io.zer0.muse.ui.common.EmptyState
-import io.zer0.muse.ui.common.IosFloatingButton
+import io.zer0.muse.ui.common.state.MuseEmptyState
+import io.zer0.muse.ui.common.form.MuseFloatingButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -40,13 +40,13 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import io.zer0.muse.ui.common.IosTextField
+import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import io.zer0.muse.ui.common.IosSwitch
-import io.zer0.muse.ui.common.IosTopBar
+import io.zer0.muse.ui.common.form.MuseSwitch
+import io.zer0.muse.ui.common.navigation.MuseTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -83,10 +83,10 @@ import io.zer0.muse.data.schedule.TaskIdName
 import io.zer0.muse.schedule.CronExpression
 import io.zer0.muse.schedule.ScheduledTaskRunner
 import kotlinx.serialization.json.JsonObject
-import io.zer0.muse.ui.common.ConfirmDeleteDialog
-import io.zer0.muse.ui.common.MuseDialog
-import io.zer0.muse.ui.common.MuseToast
-import io.zer0.muse.ui.common.SettingsGroupDivider
+import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.settings.SettingsGroupDivider
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseShapes
@@ -186,14 +186,14 @@ fun ScheduledTasksScreen(
 
     Scaffold(
         topBar = {
-            IosTopBar(
+            MuseTopBar(
                 title = stringResource(R.string.schedule_title),
                 onBack = onBack,
             )
         },
         floatingActionButton = {
-            // L-SC5: 使用 IosFloatingButton,与应用 iOS 风格一致
-            IosFloatingButton(
+            // L-SC5: 使用 MuseFloatingButton,与应用 iOS 风格一致
+            MuseFloatingButton(
                 icon = Icons.Default.Add,
                 onClick = { showCreate = true },
                 contentDescription = stringResource(R.string.schedule_new_task),
@@ -213,7 +213,7 @@ fun ScheduledTasksScreen(
             }
         } else if (tasksList.isEmpty()) {
             Column(Modifier.fillMaxSize().padding(innerPadding), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-                EmptyState(
+                MuseEmptyState(
                     icon = Icons.Outlined.Schedule,
                     title = stringResource(R.string.schedule_empty_title),
                     subtitle = stringResource(R.string.schedule_empty_subtitle),
@@ -318,7 +318,7 @@ private fun TaskCard(
                         Text(stringResource(R.string.schedule_next_run, fmt.format(Date(task.nextRunAt))), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                     }
                 }
-                IosSwitch(checked = task.enabled, onCheckedChange = onToggle)
+                MuseSwitch(checked = task.enabled, onCheckedChange = onToggle)
                 // "立即执行"按钮(调试用):直接调用 runner 执行该任务,不等 nextRunAt
                 IconButton(
                     onClick = {
@@ -539,8 +539,8 @@ private fun TaskDialog(
         title = if (isEdit) stringResource(R.string.schedule_edit_title) else stringResource(R.string.schedule_new_task),
         content = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                IosTextField(value = name, onValueChange = { name = it }, label = { Text(stringResource(R.string.schedule_task_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                IosTextField(value = prompt, onValueChange = { prompt = it }, label = { Text(stringResource(R.string.schedule_task_content)) }, placeholder = { Text(stringResource(R.string.schedule_content_placeholder)) }, modifier = Modifier.fillMaxWidth().heightIn(min = 60.dp))
+                MuseTextField(value = name, onValueChange = { name = it }, label = { Text(stringResource(R.string.schedule_task_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                MuseTextField(value = prompt, onValueChange = { prompt = it }, label = { Text(stringResource(R.string.schedule_task_content)) }, placeholder = { Text(stringResource(R.string.schedule_content_placeholder)) }, modifier = Modifier.fillMaxWidth().heightIn(min = 60.dp))
                 AssistantSelector(
                     selectedName = selectedAssistantName,
                     assistants = assistants,
@@ -566,7 +566,7 @@ private fun TaskDialog(
                     }
                 }
                 if (interval == "cron") {
-                    IosTextField(value = cronExpr, onValueChange = { cronExpr = it }, label = { Text(stringResource(R.string.schedule_cron_label)) }, placeholder = { Text(stringResource(R.string.schedule_cron_placeholder)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    MuseTextField(value = cronExpr, onValueChange = { cronExpr = it }, label = { Text(stringResource(R.string.schedule_cron_label)) }, placeholder = { Text(stringResource(R.string.schedule_cron_placeholder)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                     FlowRow(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -859,14 +859,14 @@ private fun AutomationConditionSection(
         when (conditionType) {
             AutomationConfig.Condition.TIME_RANGE -> {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    IosTextField(
+                    MuseTextField(
                         value = startHour,
                         onValueChange = { onStartHourChange(it.filter { c -> c.isDigit() }.take(2)) },
                         label = { Text(stringResource(R.string.schedule_condition_start_hour)) },
                         singleLine = true,
                         modifier = Modifier.weight(1f),
                     )
-                    IosTextField(
+                    MuseTextField(
                         value = endHour,
                         onValueChange = { onEndHourChange(it.filter { c -> c.isDigit() }.take(2)) },
                         label = { Text(stringResource(R.string.schedule_condition_end_hour)) },
@@ -876,7 +876,7 @@ private fun AutomationConditionSection(
                 }
             }
             AutomationConfig.Condition.CONTAINS -> {
-                IosTextField(
+                MuseTextField(
                     value = keyword,
                     onValueChange = onKeywordChange,
                     label = { Text(stringResource(R.string.schedule_condition_keyword)) },
@@ -885,7 +885,7 @@ private fun AutomationConditionSection(
                 )
             }
             AutomationConfig.Condition.QUICK_NOTE_EXISTS -> {
-                IosTextField(
+                MuseTextField(
                     value = tag,
                     onValueChange = onTagChange,
                     label = { Text(stringResource(R.string.schedule_condition_tag)) },
@@ -893,7 +893,7 @@ private fun AutomationConditionSection(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                IosTextField(
+                MuseTextField(
                     value = keyword,
                     onValueChange = onKeywordChange,
                     label = { Text(stringResource(R.string.schedule_condition_keyword)) },
@@ -963,20 +963,20 @@ private fun AutomationActionSection(
         }
         when (actionType) {
             AutomationConfig.Action.CREATE_QUICK_NOTE -> {
-                IosTextField(
+                MuseTextField(
                     value = noteTitle,
                     onValueChange = onNoteTitleChange,
                     label = { Text(stringResource(R.string.schedule_action_note_title)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                IosTextField(
+                MuseTextField(
                     value = noteContent,
                     onValueChange = onNoteContentChange,
                     label = { Text(stringResource(R.string.schedule_action_note_content)) },
                     modifier = Modifier.fillMaxWidth().heightIn(min = 60.dp),
                 )
-                IosTextField(
+                MuseTextField(
                     value = noteTags,
                     onValueChange = onNoteTagsChange,
                     label = { Text(stringResource(R.string.schedule_action_note_tags)) },
@@ -986,7 +986,7 @@ private fun AutomationActionSection(
                 )
             }
             AutomationConfig.Action.CALL_TOOL -> {
-                IosTextField(
+                MuseTextField(
                     value = toolId,
                     onValueChange = onToolIdChange,
                     label = { Text(stringResource(R.string.schedule_action_tool_id)) },
@@ -994,7 +994,7 @@ private fun AutomationActionSection(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                IosTextField(
+                MuseTextField(
                     value = toolParams,
                     onValueChange = onToolParamsChange,
                     label = { Text(stringResource(R.string.schedule_action_tool_params)) },
@@ -1003,14 +1003,14 @@ private fun AutomationActionSection(
                 )
             }
             AutomationConfig.Action.NOTIFY -> {
-                IosTextField(
+                MuseTextField(
                     value = notifyTitle,
                     onValueChange = onNotifyTitleChange,
                     label = { Text(stringResource(R.string.schedule_action_notify_title)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                IosTextField(
+                MuseTextField(
                     value = notifyMessage,
                     onValueChange = onNotifyMessageChange,
                     label = { Text(stringResource(R.string.schedule_action_notify_message)) },
@@ -1068,7 +1068,7 @@ private fun AutomationChainSection(
                         .padding(vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    IosSwitch(checked = selected, onCheckedChange = null)
+                    MuseSwitch(checked = selected, onCheckedChange = null)
                     Spacer(Modifier.size(12.dp))
                     Text(candidate.name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                 }

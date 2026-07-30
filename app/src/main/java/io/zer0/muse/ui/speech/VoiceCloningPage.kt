@@ -31,12 +31,12 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.CircularProgressIndicator
-import io.zer0.muse.ui.common.IosChip
+import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import io.zer0.muse.ui.common.IosTextField
+import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -60,9 +60,9 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
-import io.zer0.muse.ui.common.IosTopBar
-import io.zer0.muse.ui.common.MuseDialog
-import io.zer0.muse.ui.common.MuseToast
+import io.zer0.muse.ui.common.navigation.MuseTopBar
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.semiLarge
@@ -75,7 +75,7 @@ import org.koin.compose.koinInject
  * P2-9: 语音克隆页 — iOS 风格全屏工具页。
  *
  * 布局:
- *  - IosTopBar:返回 + 标题「语音克隆」
+ *  - MuseTopBar:返回 + 标题「语音克隆」
  *  - Provider 选择(FilterChip,当前仅 elevenlabs,后续可扩展)
  *  - API Key 输入框(OutlinedTextField + PasswordVisualTransformation)
  *  - 「克隆新语音」表单:语音名称输入 + 选择样本音频按钮 + 提交按钮(Surface + clickable)
@@ -152,7 +152,7 @@ fun VoiceCloningPage(
 
     Scaffold(
         topBar = {
-            IosTopBar(
+            MuseTopBar(
                 title = stringResource(R.string.voice_cloning_title),
                 onBack = onBack,
             )
@@ -178,7 +178,7 @@ fun VoiceCloningPage(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         voiceCloningService.availableProviders().forEach { pid ->
-                            IosChip(
+                            MuseChip(
                                 selected = pid == selectedProvider,
                                 onClick = { selectedProvider = pid },
                                 label = pid,
@@ -189,7 +189,7 @@ fun VoiceCloningPage(
 
                 // ── API Key 输入 ──
                 FormSection(label = stringResource(R.string.voice_cloning_api_key)) {
-                    IosTextField(
+                    MuseTextField(
                         value = apiKey,
                         onValueChange = { apiKey = it },
                         modifier = Modifier.fillMaxWidth(),
@@ -216,7 +216,7 @@ fun VoiceCloningPage(
                 // ── 克隆新语音表单 ──
                 FormSection(label = stringResource(R.string.voice_cloning_new_voice)) {
                     // 语音名称输入
-                    IosTextField(
+                    MuseTextField(
                         value = voiceName,
                         onValueChange = { voiceName = it },
                         modifier = Modifier.fillMaxWidth(),

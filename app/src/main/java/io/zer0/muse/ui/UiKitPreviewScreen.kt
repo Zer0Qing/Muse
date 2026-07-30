@@ -18,8 +18,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Cloud
+import androidx.compose.material.icons.outlined.Forum
 import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Lock
@@ -44,19 +46,26 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import io.zer0.muse.ui.common.EmptyState
-import io.zer0.muse.ui.common.ErrorStateBox
-import io.zer0.muse.ui.common.IosChip
-import io.zer0.muse.ui.common.IosSwitch
-import io.zer0.muse.ui.common.IosTopBar
-import io.zer0.muse.ui.common.LoadingState
-import io.zer0.muse.ui.common.MuseToast
-import io.zer0.muse.ui.common.SegmentedControl
-import io.zer0.muse.ui.components.CardGroup
-import io.zer0.muse.ui.components.MuseDivider
-import io.zer0.muse.ui.components.MuseSurface
+import io.zer0.muse.ui.common.state.MuseEmptyState
+import io.zer0.muse.ui.common.state.MuseEmotionalEmptyState
+import io.zer0.muse.ui.common.state.MuseErrorStateBox
+import io.zer0.muse.ui.common.form.MuseChip
+import io.zer0.muse.ui.common.form.MuseCapsuleTab
+import io.zer0.muse.ui.common.form.MuseDropdown
+import io.zer0.muse.ui.common.form.MuseFloatingButton
+import io.zer0.muse.ui.common.form.MuseSlider
+import io.zer0.muse.ui.common.form.MuseSwitch
+import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.navigation.MuseTopBar
+import io.zer0.muse.ui.common.state.MuseLoadingState
+import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.form.MuseSegmentedControl
+import io.zer0.muse.ui.common.surface.CardGroup
+import io.zer0.muse.ui.common.surface.MuseDivider
+import io.zer0.muse.ui.common.surface.MuseSurface
 import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.ui.theme.MuseElevation
+import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.mega
@@ -66,13 +75,24 @@ import io.zer0.muse.ui.theme.mega
  *
  * 用于开发期回归验证和视觉一致性检查。
  * 入口:设置 → 关于 → UI 库预览。
+ *
+ * ── 门禁规约(强制) ────────────────────────────────────────────────────
+ * 新增/变更 Muse 组件库(common/surface|form|feedback|navigation|state|settings|media)
+ * 内的组件时，必须同步在本文件登记对应预览，否则不予合并。
+ *
+ * 登记步骤:
+ *  1. 在下方 item 列表添加 `item { XxxSection() }`
+ *  2. 在文件末尾追加 `@Composable private fun XxxSection()` 实现
+ *  3. 预览须覆盖:默认态 / 交互态(点击/聚焦/禁用) / 极端文本长度
+ *  4. 组件签名变更时同步更新预览调用
+ * ──────────────────────────────────────────────────────────────────────
  */
 @Composable
 fun UiKitPreviewScreen(
     onBack: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        IosTopBar(
+        MuseTopBar(
             title = "UI 库预览",
             onBack = onBack,
         )
@@ -89,8 +109,11 @@ fun UiKitPreviewScreen(
             item { DividerSection() }
             item { CardGroupSection() }
             item { StateComponentsSection() }
+            item { EmotionalEmptyStateSection() }
             item { InteractiveComponentsSection() }
+            item { InputComponentsSection() }
             item { ButtonsSection() }
+            item { FloatingButtonSection() }
             item { ChipsAndTabsSection() }
         }
     }
@@ -361,7 +384,7 @@ private fun CardGroupSection() {
                 headlineContent = { Text("通知") },
                 supportingContent = { Text("推送与提醒") },
                 trailingContent = {
-                    IosSwitch(
+                    MuseSwitch(
                         checked = switchChecked,
                         onCheckedChange = { switchChecked = it },
                     )
@@ -387,9 +410,9 @@ private fun StateComponentsSection() {
     Column {
         SectionTitle("状态页组件")
 
-        // EmptyState
+        // MuseEmptyState
         Text(
-            "EmptyState",
+            "MuseEmptyState",
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -402,7 +425,7 @@ private fun StateComponentsSection() {
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
             contentAlignment = Alignment.Center,
         ) {
-            EmptyState(
+            MuseEmptyState(
                 icon = Icons.Outlined.Inbox,
                 title = "暂无内容",
                 subtitle = "下拉刷新或创建新项目",
@@ -411,9 +434,9 @@ private fun StateComponentsSection() {
 
         Spacer(Modifier.height(MusePaddings.sectionGap))
 
-        // ErrorStateBox
+        // MuseErrorStateBox
         Text(
-            "ErrorStateBox",
+            "MuseErrorStateBox",
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -426,7 +449,7 @@ private fun StateComponentsSection() {
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
             contentAlignment = Alignment.Center,
         ) {
-            ErrorStateBox(
+            MuseErrorStateBox(
                 message = "加载失败，请检查网络连接",
                 onRetry = { MuseToast.show("重试中...") },
             )
@@ -434,9 +457,9 @@ private fun StateComponentsSection() {
 
         Spacer(Modifier.height(MusePaddings.sectionGap))
 
-        // LoadingState
+        // MuseLoadingState
         Text(
-            "LoadingState",
+            "MuseLoadingState",
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -449,7 +472,7 @@ private fun StateComponentsSection() {
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
             contentAlignment = Alignment.Center,
         ) {
-            LoadingState(message = "加载中...")
+            MuseLoadingState(message = "加载中...")
         }
     }
 }
@@ -473,7 +496,7 @@ private fun InteractiveComponentsSection() {
                 leadingContent = { Icon(Icons.Outlined.Lock, contentDescription = null) },
                 headlineContent = { Text("生物识别锁") },
                 trailingContent = {
-                    IosSwitch(
+                    MuseSwitch(
                         checked = switchChecked,
                         onCheckedChange = { switchChecked = it },
                     )
@@ -482,7 +505,7 @@ private fun InteractiveComponentsSection() {
             item(
                 headlineContent = { Text("音量") },
                 supportingContent = {
-                    io.zer0.muse.ui.common.IosSlider(
+                    MuseSlider(
                         value = sliderValue,
                         onValueChange = { sliderValue = it },
                     )
@@ -492,14 +515,14 @@ private fun InteractiveComponentsSection() {
 
         Spacer(Modifier.height(MusePaddings.sectionGap))
 
-        // SegmentedControl
+        // MuseSegmentedControl
         Text(
-            "SegmentedControl",
+            "MuseSegmentedControl",
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(MusePaddings.contentGap))
-        SegmentedControl(
+        MuseSegmentedControl(
             options = listOf("全部", "未读", "已读"),
             selectedIndex = segIndex,
             onSelectedChange = { segIndex = it },
@@ -577,9 +600,9 @@ private fun ChipsAndTabsSection() {
     Column {
         SectionTitle("Chip 与 Tab")
 
-        // IosChip
+        // MuseChip
         Text(
-            "IosChip",
+            "MuseChip",
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -588,7 +611,7 @@ private fun ChipsAndTabsSection() {
             horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
         ) {
             listOf("月桂绿", "樱花粉", "海洋蓝", "琥珀金").forEachIndexed { index, label ->
-                IosChip(
+                MuseChip(
                     selected = chipSelected == index,
                     onClick = { chipSelected = index },
                     label = label,
@@ -599,17 +622,122 @@ private fun ChipsAndTabsSection() {
 
         Spacer(Modifier.height(MusePaddings.sectionGap))
 
-        // IosCapsuleTab
+        // MuseCapsuleTab
         Text(
-            "IosCapsuleTab",
+            "MuseCapsuleTab",
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(MusePaddings.contentGap))
-        io.zer0.muse.ui.common.IosCapsuleTab(
+        MuseCapsuleTab(
             tabs = listOf("任务", "Agent", "群聊"),
             selectedIndex = tabSelected,
             onSelect = { tabSelected = it },
         )
+    }
+}
+
+// ============================================================
+// 9. MuseEmotionalEmptyState
+// ============================================================
+
+@Composable
+private fun EmotionalEmptyStateSection() {
+    Column {
+        SectionTitle("MuseEmotionalEmptyState 情感空状态")
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(220.dp)
+                .clip(MuseShapes.extraLarge)
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+        ) {
+            MuseEmotionalEmptyState(
+                onChatWithMuse = { MuseToast.show("跳转聊天") },
+                onMeetCharacters = { MuseToast.show("浏览角色") },
+            )
+        }
+    }
+}
+
+// ============================================================
+// 10. 输入组件 (MuseTextField / MuseDropdown)
+// ============================================================
+
+@Composable
+private fun InputComponentsSection() {
+    var textValue by remember { mutableStateOf("") }
+    var dropdownValue by remember { mutableStateOf("option2") }
+
+    Column {
+        SectionTitle("输入组件")
+
+        // MuseTextField
+        Text(
+            "MuseTextField",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(MusePaddings.contentGap))
+        MuseTextField(
+            value = textValue,
+            onValueChange = { textValue = it },
+            label = { Text("用户名") },
+            placeholder = { Text("请输入用户名") },
+            singleLine = true,
+        )
+
+        Spacer(Modifier.height(MusePaddings.sectionGap))
+
+        // MuseDropdown
+        Text(
+            "MuseDropdown",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(MusePaddings.contentGap))
+        MuseDropdown(
+            value = dropdownValue,
+            onValueChange = { dropdownValue = it },
+            label = "选项",
+            options = listOf(
+                "option1" to "选项一",
+                "option2" to "选项二",
+                "option3" to "选项三",
+            ),
+        )
+    }
+}
+
+// ============================================================
+// 11. MuseFloatingButton
+// ============================================================
+
+@Composable
+private fun FloatingButtonSection() {
+    Column {
+        SectionTitle("MuseFloatingButton 浮动按钮")
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(MusePaddings.sectionGap),
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            MuseFloatingButton(
+                icon = Icons.Filled.Add,
+                onClick = { MuseToast.show("默认 FAB") },
+                contentDescription = "添加",
+            )
+            MuseFloatingButton(
+                icon = Icons.Filled.Add,
+                onClick = { MuseToast.show("小尺寸 FAB") },
+                contentDescription = "添加",
+                size = 48.dp,
+                iconSize = MuseIconSizes.iconMedium,
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+        }
     }
 }

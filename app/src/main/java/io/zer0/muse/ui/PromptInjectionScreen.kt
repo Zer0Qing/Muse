@@ -27,14 +27,14 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import io.zer0.muse.ui.common.IosTextField
+import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Scaffold
-import io.zer0.muse.ui.common.IosDropdown
-import io.zer0.muse.ui.common.IosFloatingButton
-import io.zer0.muse.ui.common.IosSwitch
+import io.zer0.muse.ui.common.form.MuseDropdown
+import io.zer0.muse.ui.common.form.MuseFloatingButton
+import io.zer0.muse.ui.common.form.MuseSwitch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import io.zer0.muse.ui.common.IosTopBar
+import io.zer0.muse.ui.common.navigation.MuseTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -53,11 +53,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.data.promptinjection.PromptInjectionEntity
-import io.zer0.muse.ui.common.ConfirmDeleteDialog
-import io.zer0.muse.ui.common.EmptyState
-import io.zer0.muse.ui.common.MuseDialog
-import io.zer0.muse.ui.common.SectionLabel
-import io.zer0.muse.ui.common.SwitchRow
+import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
+import io.zer0.muse.ui.common.state.MuseEmptyState
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.settings.SectionLabel
+import io.zer0.muse.ui.common.settings.SwitchRow
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.mega
 import io.zer0.muse.ui.theme.MuseIconSizes
@@ -110,13 +110,13 @@ fun PromptInjectionScreen(
 
     Scaffold(
         topBar = {
-            IosTopBar(
+            MuseTopBar(
                 title = stringResource(R.string.prompt_injection_screen_title),
                 onBack = onBack,
             )
         },
         floatingActionButton = {
-            IosFloatingButton(
+            MuseFloatingButton(
                 icon = Icons.Default.Add,
                 onClick = {
                     val now = System.currentTimeMillis()
@@ -161,7 +161,7 @@ fun PromptInjectionScreen(
             }
             if (state.promptInjections.isEmpty()) {
                 item {
-                    EmptyState(
+                    MuseEmptyState(
                         icon = Icons.Filled.SmartToy,
                         title = stringResource(R.string.prompt_injection_empty_title),
                         subtitle = stringResource(R.string.prompt_injection_empty_subtitle),
@@ -261,7 +261,7 @@ private fun PromptInjectionCard(
                     )
                 }
             }
-            IosSwitch(
+            MuseSwitch(
                 checked = entry.enabled,
                 onCheckedChange = { onToggleEnabled() },
                 modifier = Modifier.semantics {
@@ -332,7 +332,7 @@ private fun PromptInjectionEditPage(
 
     Scaffold(
         topBar = {
-            IosTopBar(
+            MuseTopBar(
                 title = if (isNew) newTitleText else editTitleText,
                 onBack = {
                     if (hasUnsavedChanges) showDiscardConfirm = true else onBack()
@@ -368,7 +368,7 @@ private fun PromptInjectionEditPage(
             Spacer(Modifier.height(4.dp))
 
             SectionLabel(stringResource(R.string.prompt_injection_section_basic))
-            IosTextField(
+            MuseTextField(
                 value = name,
                 onValueChange = { name = it },
                 label = { Text(stringResource(R.string.prompt_injection_field_name)) },
@@ -376,7 +376,7 @@ private fun PromptInjectionEditPage(
                 modifier = Modifier.fillMaxWidth(),
             )
             // 模式选择(预置模式 + 自定义)
-            IosDropdown(
+            MuseDropdown(
                 value = mode,
                 onValueChange = { selected ->
                     mode = selected
@@ -392,7 +392,7 @@ private fun PromptInjectionEditPage(
                     "analysis" to (stringResource(R.string.prompt_injection_mode_analysis) + " (analysis)"),
                 ),
             )
-            IosTextField(
+            MuseTextField(
                 value = displayName,
                 onValueChange = { displayName = it },
                 label = { Text(stringResource(R.string.prompt_injection_field_display_name)) },
@@ -402,7 +402,7 @@ private fun PromptInjectionEditPage(
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
             SectionLabel(stringResource(R.string.prompt_injection_section_content))
-            IosTextField(
+            MuseTextField(
                 value = content,
                 onValueChange = { content = it },
                 label = { Text(stringResource(R.string.prompt_injection_field_content)) },
@@ -411,7 +411,7 @@ private fun PromptInjectionEditPage(
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
             SectionLabel(stringResource(R.string.prompt_injection_section_behavior))
-            IosTextField(
+            MuseTextField(
                 // L-PID3: 限制最多 6 位数字(最大 999999),避免超长输入导致 toIntOrNull 溢出后静默回落 0
                 value = priority,
                 onValueChange = { priority = it.filter(Char::isDigit).take(6) },
@@ -421,7 +421,7 @@ private fun PromptInjectionEditPage(
             )
             // L-PID2: 仅提供 before_system/after_system。PromptInjectionTransformer 不支持 before_last
             // (其 when 分支仅显式处理 before_system,其余走 else=after_system);before_last 仅 Lorebook 支持。
-            IosDropdown(
+            MuseDropdown(
                 value = insertionPosition,
                 onValueChange = { insertionPosition = it },
                 label = stringResource(R.string.prompt_injection_field_insertion_position),

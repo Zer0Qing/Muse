@@ -49,7 +49,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import io.zer0.muse.ui.common.IosTextField
+import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -75,12 +75,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.data.quicknote.QuickNoteEntity
-import io.zer0.muse.ui.common.ConfirmDeleteDialog
-import io.zer0.muse.ui.common.EmptyState
-import io.zer0.muse.ui.common.IosChip
-import io.zer0.muse.ui.common.IosTopBar
-import io.zer0.muse.ui.common.MuseDialog
-import io.zer0.muse.ui.common.MuseToast
+import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
+import io.zer0.muse.ui.common.state.MuseEmptyState
+import io.zer0.muse.ui.common.form.MuseChip
+import io.zer0.muse.ui.common.navigation.MuseTopBar
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.markdown.MarkdownText
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseIconSizes
@@ -101,7 +101,7 @@ import java.util.Locale
  * 主要变化:
  *  - 顶部栏改为标题居中 + 两侧操作图标(导出/删除),使用大标题
  *  - 搜索框胶囊化、居中占位符
- *  - 标签筛选使用 IosChip,选中态为品牌绿
+ *  - 标签筛选使用 MuseChip,选中态为品牌绿
  *  - 历史记录区域显示"历史记录 / 共 N 条"
  *  - 卡片列表重新设计:
  *    - 置顶记录:浅绿背景 + AutoAwesome 图标 + 无底部操作按钮
@@ -230,7 +230,7 @@ fun QuickNotesScreen(
 
     Scaffold(
         topBar = {
-            IosTopBar(
+            MuseTopBar(
                 title = stringResource(R.string.quick_notes_title),
                 onBack = onBack,
                 largeTitle = true,
@@ -297,7 +297,7 @@ fun QuickNotesScreen(
                 Spacer(Modifier.height(MusePaddings.sectionGap))
             }
             if (state.notes.isEmpty()) {
-                EmptyState(
+                MuseEmptyState(
                     icon = Icons.Outlined.Lightbulb,
                     title = if (state.searchKeyword.isBlank()) {
                         stringResource(R.string.quick_notes_empty_title)
@@ -537,7 +537,7 @@ private fun QuickNoteSearchField(
     placeholder: String,
     modifier: Modifier = Modifier,
 ) {
-    IosTextField(
+    MuseTextField(
         value = value,
         onValueChange = onValueChange,
         placeholder = {
@@ -587,7 +587,7 @@ private fun QuickNoteInputCard(
         Column(
             modifier = Modifier.padding(MusePaddings.cardInner),
         ) {
-            IosTextField(
+            MuseTextField(
                 value = value,
                 onValueChange = onValueChange,
                 placeholder = { Text(stringResource(R.string.quick_notes_input_hint)) },
@@ -671,7 +671,7 @@ private fun QuickNoteTagFilterRow(
         verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
     ) {
         tags.forEach { tag ->
-            IosChip(
+            MuseChip(
                 selected = tag == selectedTag,
                 onClick = { onTagSelected(tag) },
                 label = "#$tag",
@@ -1114,7 +1114,7 @@ private fun QuickNoteDialog(
         ),
         content = {
             Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap)) {
-                IosTextField(
+                MuseTextField(
                     value = title,
                     onValueChange = { title = it; errorMessage = null },
                     label = { Text(stringResource(R.string.quick_notes_title_label)) },
@@ -1190,7 +1190,7 @@ private fun QuickNoteDialog(
                         }
                     }
                 } else {
-                    IosTextField(
+                    MuseTextField(
                         value = content,
                         onValueChange = { content = it },
                         label = { Text(stringResource(R.string.quick_notes_content_label)) },
@@ -1199,7 +1199,7 @@ private fun QuickNoteDialog(
                             .heightIn(min = 120.dp),
                     )
                 }
-                IosTextField(
+                MuseTextField(
                     value = tags,
                     onValueChange = { tags = it },
                     label = { Text(stringResource(R.string.quick_notes_tags_label)) },
@@ -1476,7 +1476,7 @@ private fun FolderChip(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    IosChip(
+    MuseChip(
         selected = selected,
         onClick = onClick,
         label = label,
@@ -1571,7 +1571,7 @@ private fun QuickNoteFolderDialog(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
                 ) {
-                    IosTextField(
+                    MuseTextField(
                         value = newFolder,
                         onValueChange = { newFolder = it },
                         label = { Text(stringResource(R.string.quick_notes_folder_hint)) },

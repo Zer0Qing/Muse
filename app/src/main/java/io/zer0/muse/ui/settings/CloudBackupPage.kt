@@ -42,17 +42,17 @@ import io.zer0.muse.backup.CloudBackupConfig
 import io.zer0.muse.backup.CloudBackupService
 import io.zer0.muse.backup.RemoteBackup
 import io.zer0.muse.data.SettingsRepository
-import io.zer0.muse.ui.common.IosDropdown
-import io.zer0.muse.ui.common.IosSlider
-import io.zer0.muse.ui.common.IosSwitch
-import io.zer0.muse.ui.common.IosTextField
-import io.zer0.muse.ui.common.MuseDialog
-import io.zer0.muse.ui.common.MuseToast
-import io.zer0.muse.ui.common.SectionLabel
-import io.zer0.muse.ui.common.SettingsGroup
-import io.zer0.muse.ui.common.SettingsGroupDivider
-import io.zer0.muse.ui.common.SettingsItemRow
-import io.zer0.muse.ui.common.SettingsSwitchRow
+import io.zer0.muse.ui.common.form.MuseDropdown
+import io.zer0.muse.ui.common.form.MuseSlider
+import io.zer0.muse.ui.common.form.MuseSwitch
+import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.settings.SectionLabel
+import io.zer0.muse.ui.common.settings.SettingsGroup
+import io.zer0.muse.ui.common.settings.SettingsGroupDivider
+import io.zer0.muse.ui.common.settings.SettingsItemRow
+import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MusePaddings
 import kotlinx.coroutines.Dispatchers
@@ -173,7 +173,7 @@ fun CloudBackupPage(
                             .fillMaxWidth()
                             .padding(MusePaddings.cardInner),
                     ) {
-                        IosDropdown(
+                        MuseDropdown(
                             value = draft.type,
                             onValueChange = { draft = draft.copy(type = it) },
                             label = stringResource(R.string.cloud_backup_type_label),
@@ -499,7 +499,7 @@ fun CloudBackupPage(
                             )
                         }
                         Spacer(Modifier.height(MusePaddings.contentGap))
-                        IosSlider(
+                        MuseSlider(
                             value = sliderValue,
                             onValueChange = { intervalDaysDraft = it },
                             valueRange = 1f..30f,
@@ -579,21 +579,21 @@ private fun WebDavFields(
             .padding(MusePaddings.cardInner),
         verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
     ) {
-        IosTextField(
+        MuseTextField(
             value = draft.webdavUrl,
             onValueChange = { onDraftChange(draft.copy(webdavUrl = it)) },
             label = { Text(stringResource(R.string.settings_backup_webdav_url)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
-        IosTextField(
+        MuseTextField(
             value = draft.webdavUsername,
             onValueChange = { onDraftChange(draft.copy(webdavUsername = it)) },
             label = { Text(stringResource(R.string.settings_backup_username)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
-        IosTextField(
+        MuseTextField(
             value = draft.webdavPassword,
             onValueChange = { onDraftChange(draft.copy(webdavPassword = it)) },
             label = { Text(stringResource(R.string.settings_backup_password)) },
@@ -609,7 +609,7 @@ private fun WebDavFields(
                 }
             },
         )
-        IosTextField(
+        MuseTextField(
             value = draft.webdavPath,
             onValueChange = { onDraftChange(draft.copy(webdavPath = it)) },
             label = { Text(stringResource(R.string.settings_backup_remote_dir)) },
@@ -635,35 +635,35 @@ private fun S3Fields(
             .padding(MusePaddings.cardInner),
         verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
     ) {
-        IosTextField(
+        MuseTextField(
             value = draft.s3Endpoint,
             onValueChange = { onDraftChange(draft.copy(s3Endpoint = it)) },
             label = { Text(stringResource(R.string.settings_backup_endpoint)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
-        IosTextField(
+        MuseTextField(
             value = draft.s3Region,
             onValueChange = { onDraftChange(draft.copy(s3Region = it)) },
             label = { Text(stringResource(R.string.settings_backup_region)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
-        IosTextField(
+        MuseTextField(
             value = draft.s3Bucket,
             onValueChange = { onDraftChange(draft.copy(s3Bucket = it)) },
             label = { Text(stringResource(R.string.settings_backup_bucket)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
-        IosTextField(
+        MuseTextField(
             value = draft.s3AccessKey,
             onValueChange = { onDraftChange(draft.copy(s3AccessKey = it)) },
             label = { Text(stringResource(R.string.settings_backup_access_key)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
-        IosTextField(
+        MuseTextField(
             value = draft.s3SecretKey,
             onValueChange = { onDraftChange(draft.copy(s3SecretKey = it)) },
             label = { Text(stringResource(R.string.settings_backup_secret_key)) },
@@ -679,7 +679,7 @@ private fun S3Fields(
                 }
             },
         )
-        IosTextField(
+        MuseTextField(
             value = draft.s3KeyPrefix,
             onValueChange = { onDraftChange(draft.copy(s3KeyPrefix = it)) },
             label = { Text(stringResource(R.string.settings_backup_key_prefix)) },
@@ -711,7 +711,7 @@ private fun EncryptionPasswordField(
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        IosTextField(
+        MuseTextField(
             value = password,
             onValueChange = onPasswordChange,
             label = { Text(stringResource(R.string.settings_backup_encrypt_password_hint)) },

@@ -29,7 +29,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import io.zer0.muse.ui.common.MuseScaffold
+import io.zer0.muse.ui.common.surface.MuseScaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -61,7 +61,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
-import io.zer0.muse.ui.common.IosChip
+import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.semiLarge
@@ -436,7 +436,7 @@ private fun MetricCell(
 // ── 4. 时间范围筛选行 ──────────────────────────────────────────────────
 
 /**
- * 时间范围筛选行:横向滚动的 IosChip(全部 / 本月 / 本周 / 今天)。
+ * 时间范围筛选行:横向滚动的 MuseChip(全部 / 本月 / 本周 / 今天)。
  * 仅关键指标网格响应筛选;图表卡片保持全量。
  */
 @Composable
@@ -459,7 +459,7 @@ private fun TimeRangeFilterRow(
     ) {
         items(ranges.size) { index ->
             val (range, labelRes) = ranges[index]
-            IosChip(
+            MuseChip(
                 selected = currentRange == range,
                 onClick = { onRangeChange(range) },
                 label = stringResource(labelRes),
@@ -793,7 +793,7 @@ private fun TrendCard(
             ) {
                 items(windowOptions.size) { idx ->
                     val (days, labelRes) = windowOptions[idx]
-                    IosChip(
+                    MuseChip(
                         selected = windowDays == days,
                         onClick = { windowDays = days },
                         label = stringResource(labelRes),

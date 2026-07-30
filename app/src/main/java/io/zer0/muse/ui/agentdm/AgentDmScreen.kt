@@ -41,8 +41,8 @@ import io.zer0.muse.R
 import io.zer0.muse.data.agentdm.AgentDmRepository
 import io.zer0.muse.data.agentdm.AgentMessageEntity
 import io.zer0.muse.data.assistant.AssistantRepository
-import io.zer0.muse.ui.common.EmptyState
-import io.zer0.muse.ui.common.IosTopBar
+import io.zer0.muse.ui.common.state.MuseEmptyState
+import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -102,7 +102,7 @@ fun AgentDmScreen(
 
     Scaffold(
         topBar = {
-            IosTopBar(
+            MuseTopBar(
                 title = stringResource(R.string.agent_dm_title),
                 onBack = onBack,
                 actions = {
@@ -139,7 +139,7 @@ fun AgentDmScreen(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                EmptyState(
+                MuseEmptyState(
                     icon = Icons.Outlined.Mail,
                     title = stringResource(R.string.agent_dm_empty),
                     subtitle = "",

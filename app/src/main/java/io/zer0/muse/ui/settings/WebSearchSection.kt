@@ -33,18 +33,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
-import io.zer0.muse.ui.common.ChevronRight
-import io.zer0.muse.ui.common.MuseDialog
-import io.zer0.muse.ui.common.MuseToast
-import io.zer0.muse.ui.common.SectionLabel
-import io.zer0.muse.ui.common.SettingsGroup
-import io.zer0.muse.ui.common.SettingsGroupDivider
-import io.zer0.muse.ui.common.SettingsItemRow
+import io.zer0.muse.ui.common.settings.ChevronRight
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.settings.SectionLabel
+import io.zer0.muse.ui.common.settings.SettingsGroup
+import io.zer0.muse.ui.common.settings.SettingsGroupDivider
+import io.zer0.muse.ui.common.settings.SettingsItemRow
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.web.WebSearchConfig
-import io.zer0.muse.web.WebSearchService
 import kotlinx.coroutines.launch
 import org.koin.core.context.GlobalContext
 
@@ -69,7 +68,7 @@ internal fun WebSearchSection(
         modifier = Modifier.padding(top = 8.dp),
     ) {
         // P3 修复: 全局启用开关(原仅 InputBar chip 临时切换,设置页不可见)
-        io.zer0.muse.ui.common.SettingsSwitchRow(
+        io.zer0.muse.ui.common.settings.SettingsSwitchRow(
             icon = TablerIcons.Language,
             title = stringResource(R.string.settings_web_search_enable),
             subtitle = stringResource(R.string.settings_web_search_enable_subtitle),
@@ -210,8 +209,15 @@ internal fun WebSearchSection(
                             testResult = null
                             scope.launch {
                                 try {
-                                    val service = GlobalContext.get().get<WebSearchService>()
-                                    val results = service.search(q, maxResults = 5)
+                                    // v1.136 T3: 测试按钮直接调用对应 Provider,绕过 Composite 层限速与 stale config。
+                                    // 使用 UI 中最新的 webSearchConfig(可能用户刚改了 key/endpoint 还没保存到全局),
+                                    // 直接实例化对应 Provider 进行搜索,使测试 = 实际调用该 Provider 的 API。
+                                    val client = GlobalContext.get().get<okhttp3.OkHttpClient>(
+                                        org.koin.core.qualifier.named("webSearch")
+                                    )
+                                    val provider = io.zer0.muse.web.CompositeWebSearchService
+                                        .buildDelegate(client, webSearchConfig)
+                                    val results = provider.search(q, maxResults = 5)
                                     val count = results.size
                                     if (count > 0) {
                                         val titles = results.take(3).joinToString("\n") { "  • ${it.title}" }

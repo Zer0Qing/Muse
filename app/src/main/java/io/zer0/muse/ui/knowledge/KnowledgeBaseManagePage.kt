@@ -47,13 +47,13 @@ import io.zer0.muse.data.knowledge.KnowledgeBaseEntity
 import io.zer0.muse.data.knowledge.KnowledgeDocDao
 import io.zer0.muse.rag.RagConfig
 import io.zer0.muse.rag.RagService
-import io.zer0.muse.ui.common.ConfirmDeleteDialog
-import io.zer0.muse.ui.common.EmptyState
-import io.zer0.muse.ui.common.IosTopBar
-import io.zer0.muse.ui.common.MuseDialog
-import io.zer0.muse.ui.common.MuseToast
-import io.zer0.muse.ui.common.rememberWindowWidthClass
-import io.zer0.muse.ui.common.WindowWidthClass
+import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
+import io.zer0.muse.ui.common.state.MuseEmptyState
+import io.zer0.muse.ui.common.navigation.MuseTopBar
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.media.rememberWindowWidthClass
+import io.zer0.muse.ui.common.media.WindowWidthClass
 import io.zer0.muse.ui.settings.SettingField
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -66,7 +66,7 @@ import org.koin.compose.koinInject
  * v1.133: 知识库管理页 — 创建/重命名/删除 KB,查看文档数,一键重索引。
  *
  * 设计:
- *  - IosTopBar + LazyColumn(iOS Large Title 风格)
+ *  - MuseTopBar + LazyColumn(iOS Large Title 风格)
  *  - KB 卡片显示名称/描述/文档数,右侧编辑/删除/重索引按钮
  *  - 默认 KB(id="default")不可删除,只可编辑名称/描述
  *  - "重新索引全部文档"按钮调 [RagService.reindexAllInKbs],进度对话框实时显示
@@ -92,7 +92,7 @@ fun KnowledgeBaseManagePage(
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
-            IosTopBar(
+            MuseTopBar(
                 title = stringResource(R.string.kb_manage_page_title),
                 onBack = onBack,
                 largeTitle = true,
@@ -128,7 +128,7 @@ fun KnowledgeBaseManagePage(
                         CircularProgressIndicator()
                     }
                 } else if (list.isEmpty()) {
-                    EmptyState(
+                    MuseEmptyState(
                         icon = Icons.Outlined.Folder,
                         title = stringResource(R.string.kb_manage_empty),
                         modifier = Modifier.fillMaxSize(),

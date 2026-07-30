@@ -13,8 +13,8 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import io.zer0.muse.ui.common.IosSlider
-import io.zer0.muse.ui.common.IosTextField
+import io.zer0.muse.ui.common.form.MuseSlider
+import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -34,14 +34,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.data.MediaConfig
 import io.zer0.muse.data.SettingsRepository
-import io.zer0.muse.ui.common.ChevronRight
-import io.zer0.muse.ui.common.MuseToast
-import io.zer0.muse.ui.common.SectionLabel
-import io.zer0.muse.ui.common.SettingsGroup
-import io.zer0.muse.ui.common.SettingsGroupDivider
-import io.zer0.muse.ui.common.SettingsItemRow
-import io.zer0.muse.ui.common.SettingsSegmentedRow
-import io.zer0.muse.ui.common.SettingsSwitchRow
+import io.zer0.muse.ui.common.settings.ChevronRight
+import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.settings.SectionLabel
+import io.zer0.muse.ui.common.settings.SettingsGroup
+import io.zer0.muse.ui.common.settings.SettingsGroupDivider
+import io.zer0.muse.ui.common.settings.SettingsItemRow
+import io.zer0.muse.ui.common.settings.SettingsSegmentedRow
+import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.speech.TtsManager
 import io.zer0.muse.ui.speech.VoiceInfo
 import io.zer0.muse.ui.theme.MusePaddings
@@ -267,7 +267,7 @@ private fun SliderRow(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.outline,
             )
-            IosSlider(
+            MuseSlider(
                 value = value,
                 onValueChange = { v -> onValueChange(v) },
                 valueRange = range,
@@ -407,7 +407,7 @@ private fun CloudTtsConfigSection(
                 .fillMaxWidth()
                 .padding(MusePaddings.cardInner),
         ) {
-            IosTextField(
+            MuseTextField(
                 value = apiKey,
                 onValueChange = { apiKey = it },
                 label = { Text(stringResource(R.string.settings_media_tts_api_key)) },
@@ -447,7 +447,7 @@ private fun CloudTtsConfigSection(
                 .fillMaxWidth()
                 .padding(MusePaddings.cardInner),
         ) {
-            IosTextField(
+            MuseTextField(
                 value = voice,
                 onValueChange = { voice = it },
                 label = { Text(stringResource(R.string.settings_media_tts_voice)) },
@@ -550,7 +550,7 @@ private fun CloudTtsConfigSection(
                 .fillMaxWidth()
                 .padding(MusePaddings.cardInner),
         ) {
-            IosTextField(
+            MuseTextField(
                 value = model,
                 onValueChange = { model = it },
                 label = { Text(stringResource(R.string.settings_media_tts_model)) },
@@ -576,7 +576,7 @@ private fun CloudTtsConfigSection(
                 .fillMaxWidth()
                 .padding(MusePaddings.cardInner),
         ) {
-            IosTextField(
+            MuseTextField(
                 value = endpoint,
                 onValueChange = { endpoint = it },
                 label = { Text(stringResource(R.string.settings_media_tts_endpoint)) },
@@ -656,7 +656,7 @@ private fun AdvancedTtsParamsSection(
                     .fillMaxWidth()
                     .padding(MusePaddings.cardInner),
             ) {
-                IosTextField(
+                MuseTextField(
                     value = emotion,
                     onValueChange = { emotion = it },
                     label = { Text(stringResource(R.string.settings_media_tts_emotion)) },

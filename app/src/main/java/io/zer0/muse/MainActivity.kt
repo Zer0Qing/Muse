@@ -81,9 +81,9 @@ import io.zer0.muse.ui.ChatViewModel
 import io.zer0.muse.ui.MuseRoutes
 import io.zer0.muse.ui.onboarding.OnboardingScreen
 import io.zer0.muse.ui.SafeModeScreen
-import io.zer0.muse.ui.common.DesktopShortcuts
-import io.zer0.muse.ui.common.MuseToastHost
-import io.zer0.muse.ui.common.rememberDesktopShortcutsEnabled
+import io.zer0.muse.ui.common.media.DesktopShortcuts
+import io.zer0.muse.ui.common.feedback.MuseToastHost
+import io.zer0.muse.ui.common.media.rememberDesktopShortcutsEnabled
 import io.zer0.muse.ui.navigation.assistantNavGraph
 import io.zer0.muse.ui.navigation.chatNavGraph
 import io.zer0.muse.ui.navigation.settingsNavGraph

@@ -34,6 +34,7 @@ import io.zer0.muse.ui.settings.SettingsImageGenPage
 import io.zer0.muse.ui.settings.SettingsMcpPage
 import io.zer0.muse.ui.settings.SettingsModelPage
 import io.zer0.muse.ui.settings.SettingsTutorialPage
+import io.zer0.muse.ui.settings.SettingsVideoGenPage
 import io.zer0.muse.ui.settings.SettingsWebSearchPage
 import io.zer0.muse.ui.settings.ToolsSettingsPage
 import io.zer0.muse.ui.settings.UserProfileEditPage
@@ -91,6 +92,7 @@ fun NavGraphBuilder.settingsNavGraph(
             onOpenWebSearch = { navController.navigate(MuseRoutes.SETTINGS_WEB_SEARCH) },
             onOpenAsr = { navController.navigate(MuseRoutes.SETTINGS_ASR) },
             onOpenImageGen = { navController.navigate(MuseRoutes.SETTINGS_IMAGE_GEN) },
+            onOpenVideoGenSettings = { navController.navigate(MuseRoutes.SETTINGS_VIDEO_GEN) },
             onOpenMcp = { navController.navigate(MuseRoutes.SETTINGS_MCP) },
             onOpenAssistantResources = { navController.navigate(MuseRoutes.SETTINGS_ASSISTANT_RESOURCES) },
             onNavigate = { route -> navController.navigate(route) },
@@ -144,6 +146,16 @@ fun NavGraphBuilder.settingsNavGraph(
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         SettingsImageGenPage(
+            onBack = { navController.popBackStack() },
+        )
+    }
+    // 设置二级页 — 视频生成(默认供应商/模型/时长/分辨率配置)
+    composable(
+        route = MuseRoutes.SETTINGS_VIDEO_GEN,
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        SettingsVideoGenPage(
             onBack = { navController.popBackStack() },
         )
     }

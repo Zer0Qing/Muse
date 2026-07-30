@@ -75,12 +75,12 @@ import io.zer0.muse.data.stats.DbIntegrityLogEntity
 import io.zer0.muse.data.stats.IntegrityChecker
 import io.zer0.muse.debug.DebugLogEntry
 import io.zer0.muse.debug.DebugLogStore
-import io.zer0.muse.ui.common.IosDropdown
-import io.zer0.muse.ui.common.IosTextField
-import io.zer0.muse.ui.common.IosTopBar
-import io.zer0.muse.ui.common.MuseBottomSheet
-import io.zer0.muse.ui.common.MuseDialog
-import io.zer0.muse.ui.common.MuseToast
+import io.zer0.muse.ui.common.form.MuseDropdown
+import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.navigation.MuseTopBar
+import io.zer0.muse.ui.common.form.MuseBottomSheet
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -99,7 +99,7 @@ import java.util.Locale
  * 调试日志页 — 参考 rikkahub LogPage / kelivo log_viewer_page 设计。
  *
  * 功能:
- *  - 顶部 IosTopBar 标题"调试日志" + 返回按钮 + 操作区(暂停/继续、导出、清空)
+ *  - 顶部 MuseTopBar 标题"调试日志" + 返回按钮 + 操作区(暂停/继续、导出、清空)
  *  - 过滤器行:等级下拉(ALL/ERROR/WARN/INFO/DEBUG) + Tag 搜索 + 关键字搜索
  *  - 主体 LazyColumn 展示日志,每条可展开查看完整消息 + stack trace
  *  - 自动滚动到底部(最新日志);新日志到达时若用户在底部则继续跟随,
@@ -204,7 +204,7 @@ fun DebugScreen(
     var expandedKey by remember { mutableStateOf<String?>(null) }
 
     // ── 崩溃日志面板(P1-4:把 MuseCrashHandler 已有但未 UI 化的崩溃日志列表/导出能力透出)
-    //  - 入口:IosTopBar 上的 History 图标
+    //  - 入口:MuseTopBar 上的 History 图标
     //  - 面板内列出 listCrashLogs() 全部崩溃日志文件,可展开查看内容、单条分享、一键打包 ZIP 分享
     var showCrashSheet by remember { mutableStateOf(false) }
     if (showCrashSheet) {
@@ -212,7 +212,7 @@ fun DebugScreen(
     }
 
     // ── 本地数据分析面板(P3-2:把 LocalAnalyticsTracker 已采集但未 UI 化的指标透出)
-    //  - 入口:IosTopBar 上的 Analytics 图标
+    //  - 入口:MuseTopBar 上的 Analytics 图标
     //  - 面板内展示 DAU/MAU/总会话/总消息/启动次数/崩溃率 + D1/D7/D30 留存 + 功能使用 Top 10
     var showAnalyticsSheet by remember { mutableStateOf(false) }
     if (showAnalyticsSheet) {
@@ -220,7 +220,7 @@ fun DebugScreen(
     }
 
     // ── 数据库完整性面板(P3-3:把 IntegrityChecker 已有但未 UI 化的完整性检查结果透出)
-    //  - 入口:IosTopBar 上的 HealthAndSafety 图标
+    //  - 入口:MuseTopBar 上的 HealthAndSafety 图标
     //  - 面板内展示最近一次完整性检查结果(状态 / DB 大小 / 时间)+ "立即检查"按钮
     var showDbIntegritySheet by remember { mutableStateOf(false) }
     if (showDbIntegritySheet) {
@@ -322,7 +322,7 @@ private fun ScaffoldLayout(
 ) {
     Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Column(modifier = Modifier.fillMaxSize()) {
-            IosTopBar(
+            MuseTopBar(
                 title = stringResource(R.string.debug_screen_title),
                 onBack = onBack,
                 actions = {
@@ -453,7 +453,7 @@ private fun FilterRow(
     keywordQuery: String,
     onKeywordChange: (String) -> Unit,
 ) {
-    // ALL + 全部等级;IosDropdown 期望 List<Pair<value, displayText>>
+    // ALL + 全部等级;MuseDropdown 期望 List<Pair<value, displayText>>
     val levelOptions = buildList {
         add("ALL" to "ALL")
         DebugLogStore.LEVELS.forEach { add(it to it) }
@@ -467,7 +467,7 @@ private fun FilterRow(
         // 横向滚动起始留白(与屏幕水平边距对齐)
         Spacer(Modifier.width(MusePaddings.screen))
         // 等级下拉(固定宽度,避免横向滚动时占位过多)
-        IosDropdown(
+        MuseDropdown(
             value = levelFilter,
             onValueChange = onLevelChange,
             label = stringResource(R.string.debug_level_label),
@@ -475,7 +475,7 @@ private fun FilterRow(
             modifier = Modifier.width(120.dp),
         )
         Spacer(Modifier.width(MusePaddings.contentGap))
-        IosTextField(
+        MuseTextField(
             value = tagQuery,
             onValueChange = onTagChange,
             label = { Text("Tag") },
@@ -483,7 +483,7 @@ private fun FilterRow(
             modifier = Modifier.width(140.dp),
         )
         Spacer(Modifier.width(MusePaddings.contentGap))
-        IosTextField(
+        MuseTextField(
             value = keywordQuery,
             onValueChange = onKeywordChange,
             label = { Text(stringResource(R.string.debug_keyword_label)) },

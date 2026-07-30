@@ -18,7 +18,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
-import io.zer0.muse.ui.common.IosTextField
+import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.theme.MuseShapes
 
 /**
@@ -32,7 +32,7 @@ internal fun SettingField(
     placeholder: String? = null,
     visualTransformation: VisualTransformation = VisualTransformation.None,
 ) {
-    IosTextField(
+    MuseTextField(
         value = value,
         onValueChange = onValueChange,
         modifier = Modifier.fillMaxWidth(),

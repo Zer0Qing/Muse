@@ -46,14 +46,14 @@ import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
-import io.zer0.muse.ui.common.EmptyState
-import io.zer0.muse.ui.common.IosFloatingButton
-import io.zer0.muse.ui.common.IosTactileButton
-import io.zer0.muse.ui.common.IosTopBar
-import io.zer0.muse.ui.common.MuseDialog
-import io.zer0.muse.ui.common.MuseToast
-import io.zer0.muse.ui.common.WindowWidthClass
-import io.zer0.muse.ui.common.rememberWindowWidthClass
+import io.zer0.muse.ui.common.state.MuseEmptyState
+import io.zer0.muse.ui.common.form.MuseFloatingButton
+import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.navigation.MuseTopBar
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.media.WindowWidthClass
+import io.zer0.muse.ui.common.media.rememberWindowWidthClass
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -68,12 +68,12 @@ import java.io.File
  * P2-10: Provider 插件管理页 — iOS 风格全屏工具页。
  *
  * 布局:
- *  - 顶部 [IosTopBar]:返回 + 标题「插件管理」
+ *  - 顶部 [MuseTopBar]:返回 + 标题「插件管理」
  *  - 中间 [LazyColumn]:已注册插件列表;每项展示 displayName + description,
  *    右侧两个图标按钮:删除 / 转为供应商
  *  - 底部 [FloatingActionButton]:从文件导入(SAF 选择 JSON 文件 → 拷贝到
  *    cacheDir → 调 [ProviderPluginRegistry.loadFromFile])
- *  - 空列表时展示 [EmptyState]
+ *  - 空列表时展示 [MuseEmptyState]
  *
  * 设计令牌:MuseShapes / MusePaddings,不使用 Material3 默认 Button / AlertDialog。
  *
@@ -155,7 +155,7 @@ fun ProviderPluginPage(
 
     Scaffold(
         topBar = {
-            IosTopBar(
+            MuseTopBar(
                 title = stringResource(R.string.provider_plugins_title),
                 onBack = onBack,
                 largeTitle = true,
@@ -163,7 +163,7 @@ fun ProviderPluginPage(
         },
         containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
-            IosFloatingButton(
+            MuseFloatingButton(
                 icon = TablerIcons.Plus,
                 onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
                 contentDescription = stringResource(R.string.provider_plugins_import),
@@ -192,7 +192,7 @@ fun ProviderPluginPage(
                     }
                 }
                 plugins.isEmpty() -> {
-                    EmptyState(
+                    MuseEmptyState(
                         icon = TablerIcons.Puzzle,
                         title = stringResource(R.string.provider_plugins_empty),
                         modifier = Modifier
@@ -348,8 +348,8 @@ private fun PluginCard(
                 }
             }
             Spacer(Modifier.size(MusePaddings.contentGap))
-            // v1.134 P0-6: 删除按钮用 IosTactileButton(48dp 触摸目标 + 无 ripple)
-            IosTactileButton(
+            // v1.134 P0-6: 删除按钮用 MuseTactileButton(48dp 触摸目标 + 无 ripple)
+            MuseTactileButton(
                 icon = TablerIcons.Trash,
                 onClick = onDelete,
                 contentDescription = stringResource(R.string.provider_plugins_delete),

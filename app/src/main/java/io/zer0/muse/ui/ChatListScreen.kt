@@ -1,6 +1,6 @@
 package io.zer0.muse.ui
 
-import io.zer0.muse.ui.common.LoadingState
+import io.zer0.muse.ui.common.state.MuseLoadingState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -32,7 +32,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import io.zer0.muse.ui.common.IosTextField
+import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -65,12 +65,12 @@ import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.knowledge.KnowledgeDocDao
 import io.zer0.muse.data.session.FolderEntity
 import io.zer0.muse.data.session.SessionEntity
-import io.zer0.muse.ui.common.MuseBottomSheet
-import io.zer0.muse.ui.common.MuseDialog
-import io.zer0.muse.ui.common.MuseToast
-import io.zer0.muse.ui.components.CardGroup
-import io.zer0.muse.ui.components.MuseDivider
-import io.zer0.muse.ui.components.MuseSurface
+import io.zer0.muse.ui.common.form.MuseBottomSheet
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.surface.CardGroup
+import io.zer0.muse.ui.common.surface.MuseDivider
+import io.zer0.muse.ui.common.surface.MuseSurface
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseHaptics
@@ -192,7 +192,7 @@ fun ChatListScreen(
                     modifier = Modifier.weight(1f),
                     contentAlignment = Alignment.Center,
                 ) {
-                    LoadingState()
+                    MuseLoadingState()
                 }
             } else {
                 LazyColumn(
@@ -283,7 +283,7 @@ fun ChatListScreen(
             onDismissRequest = { showCreateFolderDialog = false },
             title = stringResource(R.string.chat_list_new_folder),
             content = {
-                IosTextField(
+                MuseTextField(
                     value = newFolderName,
                     onValueChange = { newFolderName = it },
                     placeholder = { Text(stringResource(R.string.chat_list_folder_name_placeholder)) },
@@ -650,7 +650,7 @@ private fun TaskItem(
             onDismissRequest = { showRenameDialog = false },
             title = stringResource(R.string.chat_list_rename_session_title),
             content = {
-                IosTextField(
+                MuseTextField(
                     value = newName,
                     onValueChange = { newName = it },
                     singleLine = true,
@@ -955,7 +955,7 @@ private fun FolderItem(
             onDismissRequest = { showRenameDialog = false },
             title = stringResource(R.string.chat_list_rename_folder_title),
             content = {
-                IosTextField(
+                MuseTextField(
                     value = newName,
                     onValueChange = { newName = it },
                     singleLine = true,

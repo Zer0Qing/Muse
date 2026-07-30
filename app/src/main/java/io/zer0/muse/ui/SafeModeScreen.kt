@@ -51,7 +51,7 @@ import androidx.core.content.FileProvider
 import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.crash.MuseCrashHandler
-import io.zer0.muse.ui.common.IosCardPress
+import io.zer0.muse.ui.common.surface.MuseCardPress
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -62,7 +62,7 @@ import io.zer0.muse.ui.theme.MuseShapes
  * 参考 rikkahub 项目的 SafeModeActivity 设计,使用 muse 设计 token 体系:
  *  - 顶部:警告图标(Icons.Outlined.Warning) + "上次启动崩溃" 标题
  *  - 中部:崩溃时间 + 崩溃堆栈摘要(垂直滚动,等宽字体)
- *  - 底部:垂直排列的操作按钮(IosCardPress 触觉风格,无涟漪)
+ *  - 底部:垂直排列的操作按钮(MuseCardPress 触觉风格,无涟漪)
  *    a) 继续正常启动 — 清除 Safe Mode 标记并杀进程冷启动
  *    b) 查看完整崩溃日志 — 通过 Intent 分享崩溃日志文件
  *    c) 清除所有数据并重启 — ActivityManager.clearApplicationUserData
@@ -110,7 +110,7 @@ fun SafeModeScreen() {
 
             Spacer(Modifier.height(MusePaddings.sectionGap))
 
-            // ── 底部:操作按钮(垂直排列,IosCardPress 触觉风格) ──────────────
+            // ── 底部:操作按钮(垂直排列,MuseCardPress 触觉风格) ──────────────
             ActionButtons(
                 crashTrace = crashTrace,
                 onContinueNormal = {
@@ -230,7 +230,7 @@ private fun CrashInfoCard(
 }
 
 /**
- * 操作按钮组(垂直排列,每个按钮使用 IosCardPress 触觉风格)。
+ * 操作按钮组(垂直排列,每个按钮使用 MuseCardPress 触觉风格)。
  *
  * 每个按钮:图标 + 标题文字,左对齐,无涟漪按压反馈,对标 iOS 列表项。
  */
@@ -284,7 +284,7 @@ private fun ActionButtons(
 }
 
 /**
- * 单个 Safe Mode 操作按钮 — IosCardPress 包装,左侧图标 + 文字。
+ * 单个 Safe Mode 操作按钮 — MuseCardPress 包装,左侧图标 + 文字。
  *
  * @param icon 图标
  * @param label 按钮文字
@@ -302,7 +302,7 @@ private fun SafeModeActionButton(
     onClick: () -> Unit,
     enabled: Boolean = true,
 ) {
-    IosCardPress(
+    MuseCardPress(
         onClick = { if (enabled) onClick() },
         modifier = Modifier.fillMaxWidth(),
         shape = MuseShapes.medium,

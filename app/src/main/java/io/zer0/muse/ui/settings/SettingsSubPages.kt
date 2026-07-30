@@ -5,7 +5,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import io.zer0.muse.ui.common.MuseToast
+import io.zer0.muse.ui.common.feedback.MuseToast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -24,7 +24,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import io.zer0.muse.ui.common.IosTopBar
+import io.zer0.muse.ui.common.navigation.MuseTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,15 +43,15 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.BuildConfig
 import io.zer0.muse.UpdateChecker
 import io.zer0.muse.data.SettingsRepository
-import io.zer0.muse.ui.common.ChevronRight
-import io.zer0.muse.ui.common.MuseAlertDialog
-import io.zer0.muse.ui.common.MuseDialog
-import io.zer0.muse.ui.common.SectionLabel
-import io.zer0.muse.ui.common.SettingsGroup
-import io.zer0.muse.ui.common.SettingsGroupDivider
-import io.zer0.muse.ui.common.SettingsItemRow
-import io.zer0.muse.ui.common.WindowWidthClass
-import io.zer0.muse.ui.common.rememberWindowWidthClass
+import io.zer0.muse.ui.common.settings.ChevronRight
+import io.zer0.muse.ui.common.feedback.MuseAlertDialog
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.settings.SectionLabel
+import io.zer0.muse.ui.common.settings.SettingsGroup
+import io.zer0.muse.ui.common.settings.SettingsGroupDivider
+import io.zer0.muse.ui.common.settings.SettingsItemRow
+import io.zer0.muse.ui.common.media.WindowWidthClass
+import io.zer0.muse.ui.common.media.rememberWindowWidthClass
 import io.zer0.muse.ui.theme.MusePaddings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -83,7 +83,7 @@ fun SettingsSubPageScaffold(
     val widthClass = rememberWindowWidthClass()
     Scaffold(
         topBar = {
-            IosTopBar(
+            MuseTopBar(
                 title = title,
                 onBack = onBack,
                 largeTitle = true,
@@ -169,7 +169,7 @@ fun SettingsModelPage(
             // 正在检测中或列表未加载完成,忽略重复触发
             isTestingAllProviders || list == null -> Unit
             list.isEmpty() -> {
-                io.zer0.muse.ui.common.MuseToast.show(
+                io.zer0.muse.ui.common.feedback.MuseToast.show(
                     context.getString(R.string.settings_provider_test_all_no_providers),
                 )
             }
@@ -226,7 +226,7 @@ fun SettingsModelPage(
                     // 汇总:成功 / 失败计数,Toast 通知用户最终结果
                     val successCount = providerTestStatuses.values.count { it is ProviderTestStatus.Success }
                     val failedCount = providerTestStatuses.values.count { it is ProviderTestStatus.Failed }
-                    io.zer0.muse.ui.common.MuseToast.show(
+                    io.zer0.muse.ui.common.feedback.MuseToast.show(
                         context.getString(R.string.settings_provider_test_all_done, successCount, failedCount),
                     )
                 }
@@ -251,12 +251,12 @@ fun SettingsModelPage(
                     )
                     scope.launch {
                         settings.addProvider(imported)
-                        io.zer0.muse.ui.common.MuseToast.show(
+                        io.zer0.muse.ui.common.feedback.MuseToast.show(
                             context.getString(R.string.qr_import_success, imported.displayName),
                         )
                     }
                 } else {
-                    io.zer0.muse.ui.common.MuseToast.show(
+                    io.zer0.muse.ui.common.feedback.MuseToast.show(
                         context.getString(R.string.qr_import_invalid),
                     )
                 }
@@ -438,6 +438,20 @@ fun SettingsImageGenPage(
     val scope = rememberCoroutineScope()
     SettingsSubPageScaffold(title = stringResource(R.string.settings_image_gen_section), onBack = onBack) {
         item { ImageGenSection(settings = settings, scope = scope) }
+    }
+}
+
+/**
+ * 二级页 — 视频生成(默认供应商/模型/时长/分辨率配置)。
+ */
+@Composable
+fun SettingsVideoGenPage(
+    onBack: () -> Unit,
+) {
+    val settings: SettingsRepository = koinInject()
+    val scope = rememberCoroutineScope()
+    SettingsSubPageScaffold(title = stringResource(R.string.settings_video_gen_section), onBack = onBack) {
+        item { VideoGenSection(settings = settings, scope = scope) }
     }
 }
 

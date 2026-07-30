@@ -59,12 +59,12 @@ import io.zer0.muse.data.assistant.AssistantCardExporter
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.assistant.CharacterCardImporter
-import io.zer0.muse.ui.common.AssistantAvatar
-import io.zer0.muse.ui.common.ConfirmDeleteDialog
-import io.zer0.muse.ui.common.IosTopBar
-import io.zer0.muse.ui.common.MuseDialog
-import io.zer0.muse.ui.common.MuseToast
-import io.zer0.muse.ui.components.CardGroup
+import io.zer0.muse.ui.common.media.AssistantAvatar
+import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
+import io.zer0.muse.ui.common.navigation.MuseTopBar
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -78,7 +78,7 @@ import org.koin.compose.koinInject
  * 助手列表页 —— iOS / MANUS 风格重写。
  *
  * 设计要点:
- *  - 大标题 IosTopBar,右侧导入角色卡入口
+ *  - 大标题 MuseTopBar,右侧导入角色卡入口
  *  - 暖白背景,白色圆角卡片分组
  *  - 长期记忆入口独立 CardGroup
  *  - 助手列表 CardGroup:头像 + 名称 + 当前状态绿点 + 系统提示预览 + 更多菜单
@@ -218,7 +218,7 @@ fun AssistantScreen(
 
     Scaffold(
         topBar = {
-            IosTopBar(
+            MuseTopBar(
                 title = screenTitle,
                 onBack = onBack,
                 largeTitle = true,
@@ -337,15 +337,18 @@ fun AssistantScreen(
                                             }
                                         }
                                     },
-                                    supportingContent = if (assistant.systemPrompt.isNotEmpty()) {
-                                        {
+                                    supportingContent = {
+                                        val desc = assistant.summary.ifBlank {
+                                            assistant.systemPrompt.take(40).replace("\n", " ")
+                                        }
+                                        if (desc.isNotEmpty()) {
                                             Text(
-                                                text = assistant.systemPrompt.take(40).replace("\n", " "),
+                                                text = desc,
                                                 maxLines = 1,
                                                 overflow = TextOverflow.Ellipsis,
                                             )
                                         }
-                                    } else null,
+                                    },
                                     trailingContent = {
                                         IconButton(
                                             onClick = { actionSheetAssistant = assistant },

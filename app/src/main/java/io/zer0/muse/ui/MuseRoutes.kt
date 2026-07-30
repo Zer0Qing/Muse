@@ -158,6 +158,8 @@ object MuseRoutes {
     const val SETTINGS_ASR = "settings_asr"
     /** v1.133: 设置二级页 — 图像生成(从 SettingsModelPage 拆出)。 */
     const val SETTINGS_IMAGE_GEN = "settings_image_gen"
+    /** 设置二级页 — 视频生成。 */
+    const val SETTINGS_VIDEO_GEN = "settings_video_gen"
     /** v1.133: 设置二级页 — MCP 服务器(从 SettingsModelPage 拆出)。 */
     const val SETTINGS_MCP = "settings_mcp"
 

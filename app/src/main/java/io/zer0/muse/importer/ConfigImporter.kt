@@ -64,10 +64,10 @@ class ConfigImporter(
      * @return [Result];解析失败时 imported=0
      */
     suspend fun importFromUri(context: Context, uri: Uri): Result = withContext(Dispatchers.IO) {
+        // 大小限制已移除(用户需求:完整去除导入数据大小限制),保留 2GB 兜底防 OOM
         val text = resultOf {
             context.contentResolver.openInputStream(uri)?.use { input ->
-                // v1.0.30: 限制读取 200MB,防止超大文件 OOM
-                val MAX_READ_BYTES = 200L * 1024 * 1024
+                val MAX_READ_BYTES = 2L * 1024 * 1024 * 1024 // 2GB 兜底
                 val sb = StringBuilder()
                 val buffer = CharArray(8192)
                 var total = 0L
@@ -77,7 +77,7 @@ class ConfigImporter(
                         if (read <= 0) break
                         total += read
                         if (total > MAX_READ_BYTES) {
-                            error("文件过大,超过 ${MAX_READ_BYTES / 1024 / 1024}MB 限制")
+                            error("文件过大,超过 ${MAX_READ_BYTES / 1024 / 1024 / 1024}GB 限制")
                         }
                         sb.append(buffer, 0, read)
                     }

@@ -1,4 +1,4 @@
-﻿package io.zer0.muse.ui.settings
+package io.zer0.muse.ui.settings
 
 import androidx.compose.foundation.layout.padding
 import compose.icons.TablerIcons
@@ -10,12 +10,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
-import io.zer0.muse.ui.common.ChevronRight
-import io.zer0.muse.ui.common.SectionLabel
-import io.zer0.muse.ui.common.SettingsGroup
-import io.zer0.muse.ui.common.SettingsGroupDivider
-import io.zer0.muse.ui.common.SettingsItemRow
-import io.zer0.muse.ui.common.SettingsSwitchRow
+import io.zer0.muse.ui.common.settings.ChevronRight
+import io.zer0.muse.ui.common.settings.SectionLabel
+import io.zer0.muse.ui.common.settings.SettingsGroup
+import io.zer0.muse.ui.common.settings.SettingsGroupDivider
+import io.zer0.muse.ui.common.settings.SettingsItemRow
+import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 
 /**
  * 阶段 7: 入口卡片 section — iOS 风格分组列表。

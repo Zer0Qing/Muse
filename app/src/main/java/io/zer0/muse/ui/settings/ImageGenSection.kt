@@ -43,9 +43,9 @@ import io.zer0.ai.core.ProviderConfig
 import io.zer0.ai.core.ProviderType
 import io.zer0.muse.data.ImageGenConfig
 import io.zer0.muse.data.SettingsRepository
-import io.zer0.muse.ui.common.IosChip
-import io.zer0.muse.ui.common.SectionLabel
-import io.zer0.muse.ui.common.SettingsGroup
+import io.zer0.muse.ui.common.form.MuseChip
+import io.zer0.muse.ui.common.settings.SectionLabel
+import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.semiLarge
 import kotlinx.coroutines.CoroutineScope
@@ -295,7 +295,7 @@ private fun ImageModelSelectorDialog(
                     ) {
                         providers.forEach { p ->
                             // v1.134 P0-8: FilterChip → 自定义胶囊(Surface + clickable)
-                            IosChip(
+                            MuseChip(
                                 selected = p.id == currentProviderId,
                                 onClick = { currentProviderId = p.id },
                                 label = p.displayName,
@@ -429,8 +429,8 @@ private fun LabeledChipGroup(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             options.forEach { (value, display) ->
-                // v1.134 P0-8: FilterChip → IosChip
-                IosChip(
+                // v1.134 P0-8: FilterChip → MuseChip
+                MuseChip(
                     selected = selected == value,
                     onClick = { onSelect(value) },
                     label = display,

@@ -380,6 +380,21 @@
     <string name="settings_image_gen_no_model">No image models available for this provider</string>
     <string name="settings_image_gen_selected">Selected</string>
 
+    <!-- Video Generation -->
+    <string name="settings_video_gen_section">Video Generation</string>
+    <string name="settings_video_gen_duration">Duration</string>
+    <string name="settings_video_gen_duration_5">5 sec</string>
+    <string name="settings_video_gen_duration_10">10 sec</string>
+    <string name="settings_video_gen_resolution">Resolution</string>
+    <string name="settings_video_gen_select_provider">Select a video provider</string>
+    <string name="settings_video_gen_select_model">Select Video Model</string>
+    <string name="settings_video_gen_select_default">Tap to select the default video provider</string>
+    <string name="settings_video_gen_no_provider">No video providers available</string>
+    <string name="settings_video_gen_provider">Provider</string>
+    <string name="settings_video_gen_model_label">Model</string>
+    <string name="settings_video_gen_no_model">No video models available for this provider</string>
+    <string name="settings_video_gen_selected">Selected</string>
+
     <!-- Media -->
     <string name="settings_media_page_title">Media</string>
     <string name="settings_media_recording_section">Voice Recording</string>

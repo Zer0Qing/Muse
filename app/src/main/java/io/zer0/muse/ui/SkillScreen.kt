@@ -25,10 +25,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import io.zer0.muse.ui.common.IosSwitch
+import io.zer0.muse.ui.common.form.MuseSwitch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import io.zer0.muse.ui.common.IosTopBar
+import io.zer0.muse.ui.common.navigation.MuseTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -51,15 +51,15 @@ import io.zer0.common.AppJson
 import io.zer0.common.resultOf
 import io.zer0.muse.R
 import io.zer0.muse.data.skill.SkillEntity
-import io.zer0.muse.ui.common.EmptyState
+import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.data.skill.SkillRepository
 import io.zer0.muse.tools.SkillExecutor
 import io.zer0.muse.tools.SkillImporter
-import io.zer0.muse.ui.common.MuseAlertDialog
-import io.zer0.muse.ui.common.MuseDialog
-import io.zer0.muse.ui.common.MuseToast
-import io.zer0.muse.ui.common.SectionLabel
-import io.zer0.muse.ui.common.SettingsGroup
+import io.zer0.muse.ui.common.feedback.MuseAlertDialog
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.settings.SectionLabel
+import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import kotlinx.coroutines.Dispatchers
@@ -150,7 +150,7 @@ fun SkillScreen(
 
     Scaffold(
         topBar = {
-            IosTopBar(
+            MuseTopBar(
                 title = stringResource(R.string.skill_management),
                 onBack = onBack,
                 actions = {
@@ -208,7 +208,7 @@ fun SkillScreen(
                     }
                     if (skillList.isEmpty()) {
                         item {
-                            EmptyState(
+                            MuseEmptyState(
                                 icon = Icons.Outlined.Extension,
                                 title = stringResource(R.string.skill_no_skill_title),
                                 subtitle = stringResource(R.string.skill_no_skill_subtitle),
@@ -352,7 +352,7 @@ private fun SkillRow(
                     )
                 }
             }
-            IosSwitch(
+            MuseSwitch(
                 checked = skill.enabled,
                 onCheckedChange = onToggleEnabled,
                 modifier = Modifier.semantics {

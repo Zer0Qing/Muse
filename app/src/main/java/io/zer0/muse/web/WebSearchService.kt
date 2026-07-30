@@ -480,7 +480,14 @@ class CompositeWebSearchService(
         }
     }
 
-    private fun buildDelegate(cfg: WebSearchConfig): WebSearchService = when (cfg.providerName) {
+    private fun buildDelegate(cfg: WebSearchConfig): WebSearchService = Companion.buildDelegate(client, cfg)
+
+    companion object {
+        /**
+         * 根据配置构造对应的搜索 Provider(供测试按钮直接调用,绕过限速与 stale config)。
+         * 使用 UI 中最新的 WebSearchConfig,直接实例化对应 Provider,不经过 Composite 层。
+         */
+        fun buildDelegate(client: OkHttpClient, cfg: WebSearchConfig): WebSearchService = when (cfg.providerName) {
         // v1.135: Auto 多引擎 fallback
         "Auto" -> AutoWebSearchService(client, cfg)
         "Bing" -> BingProvider(client)
@@ -507,6 +514,7 @@ class CompositeWebSearchService(
         "Perplexity" -> PerplexitySearchProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://api.perplexity.ai" })
         // 默认用 Bing(免费,无需 API key)
         else -> BingProvider(client)
+    }
     }
 }
 

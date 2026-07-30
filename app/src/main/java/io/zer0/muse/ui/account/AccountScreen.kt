@@ -47,8 +47,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
-import io.zer0.muse.ui.common.IosTextField
-import io.zer0.muse.ui.common.IosTopBar
+import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.huge
@@ -65,7 +65,7 @@ import org.koin.compose.koinInject
  *  - 保存后立即生效,AccountCard 等订阅 accountStateFlow 的 UI 自动刷新
  *
  * UI 结构:
- *  - 顶部:IosTopBar("编辑个人资料" + 返回)
+ *  - 顶部:MuseTopBar("编辑个人资料" + 返回)
  *  - 主体:大头像(可点击更换) + 头像提示 + 昵称输入框 + 保存按钮
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -102,7 +102,7 @@ fun AccountScreen(
 
     Scaffold(
         topBar = {
-            IosTopBar(
+            MuseTopBar(
                 title = stringResource(R.string.account_edit_profile),
                 onBack = onBack,
             )
@@ -149,7 +149,7 @@ fun AccountScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(start = 4.dp, bottom = 6.dp),
                 )
-                IosTextField(
+                MuseTextField(
                     value = editName,
                     onValueChange = { editName = it },
                     modifier = Modifier.fillMaxWidth(),

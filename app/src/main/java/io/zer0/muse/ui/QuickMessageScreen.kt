@@ -30,14 +30,14 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import io.zer0.muse.ui.common.IosTextField
+import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Scaffold
-import io.zer0.muse.ui.common.IosDropdown
-import io.zer0.muse.ui.common.IosFloatingButton
-import io.zer0.muse.ui.common.IosSwitch
+import io.zer0.muse.ui.common.form.MuseDropdown
+import io.zer0.muse.ui.common.form.MuseFloatingButton
+import io.zer0.muse.ui.common.form.MuseSwitch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import io.zer0.muse.ui.common.IosTopBar
+import io.zer0.muse.ui.common.navigation.MuseTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -56,11 +56,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.data.quickmsg.QuickMessageEntity
-import io.zer0.muse.ui.common.ConfirmDeleteDialog
-import io.zer0.muse.ui.common.EmptyState
-import io.zer0.muse.ui.common.MuseDialog
-import io.zer0.muse.ui.common.SectionLabel
-import io.zer0.muse.ui.common.SwitchRow
+import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
+import io.zer0.muse.ui.common.state.MuseEmptyState
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.settings.SectionLabel
+import io.zer0.muse.ui.common.settings.SwitchRow
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.mega
 import io.zer0.muse.ui.theme.MuseIconSizes
@@ -106,13 +106,13 @@ fun QuickMessageScreen(
 
     Scaffold(
         topBar = {
-            IosTopBar(
+            MuseTopBar(
                 title = stringResource(R.string.quick_msg_screen_title),
                 onBack = onBack,
             )
         },
         floatingActionButton = {
-            IosFloatingButton(
+            MuseFloatingButton(
                 icon = Icons.Default.Add,
                 onClick = {
                     val now = System.currentTimeMillis()
@@ -156,7 +156,7 @@ fun QuickMessageScreen(
             }
             if (state.allQuickMessages.isEmpty()) {
                 item {
-                    EmptyState(
+                    MuseEmptyState(
                         icon = Icons.Filled.Bolt,
                         title = stringResource(R.string.quick_msg_empty_title),
                         subtitle = stringResource(R.string.quick_msg_empty_subtitle),
@@ -262,7 +262,7 @@ private fun QuickMessageCard(
                     )
                 }
             }
-            IosSwitch(
+            MuseSwitch(
                 checked = entry.enabled,
                 onCheckedChange = { onToggleEnabled() },
                 modifier = Modifier.semantics {
@@ -334,7 +334,7 @@ private fun QuickMessageEditPage(
 
     Scaffold(
         topBar = {
-            IosTopBar(
+            MuseTopBar(
                 title = if (isNew) newTitleText else editTitleText,
                 onBack = {
                     if (hasUnsavedChanges) showDiscardConfirm = true else onBack()
@@ -369,7 +369,7 @@ private fun QuickMessageEditPage(
             Spacer(Modifier.height(4.dp))
 
             SectionLabel(stringResource(R.string.quick_msg_section_basic))
-            IosTextField(
+            MuseTextField(
                 value = name,
                 onValueChange = { name = it },
                 label = { Text(stringResource(R.string.quick_msg_field_name)) },
@@ -379,7 +379,7 @@ private fun QuickMessageEditPage(
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
             SectionLabel(stringResource(R.string.quick_msg_section_content))
-            IosTextField(
+            MuseTextField(
                 value = content,
                 onValueChange = { content = it },
                 label = { Text(stringResource(R.string.quick_msg_field_content)) },
@@ -388,7 +388,7 @@ private fun QuickMessageEditPage(
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
             SectionLabel(stringResource(R.string.quick_msg_section_scope))
-            IosDropdown(
+            MuseDropdown(
                 value = scope,
                 onValueChange = { scope = it },
                 label = stringResource(R.string.quick_msg_field_scope),
@@ -398,7 +398,7 @@ private fun QuickMessageEditPage(
                 ),
             )
             if (scope == "assistant") {
-                IosDropdown(
+                MuseDropdown(
                     value = assistantId,
                     onValueChange = { assistantId = it },
                     label = stringResource(R.string.quick_msg_field_bind_assistant),
@@ -408,7 +408,7 @@ private fun QuickMessageEditPage(
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
             SectionLabel(stringResource(R.string.quick_msg_section_behavior))
-            IosTextField(
+            MuseTextField(
                 value = sortIndex,
                 onValueChange = { sortIndex = it.filter(Char::isDigit) },
                 label = { Text(stringResource(R.string.quick_msg_field_sort_index)) },

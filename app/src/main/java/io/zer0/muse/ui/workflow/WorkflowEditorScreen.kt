@@ -27,7 +27,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import io.zer0.muse.ui.common.IosTextField
+import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -49,10 +49,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.tools.DelegationContract
-import io.zer0.muse.ui.common.IosDropdown
-import io.zer0.muse.ui.common.IosTopBar
-import io.zer0.muse.ui.common.MuseBottomSheet
-import io.zer0.muse.ui.common.MuseToast
+import io.zer0.muse.ui.common.form.MuseDropdown
+import io.zer0.muse.ui.common.navigation.MuseTopBar
+import io.zer0.muse.ui.common.form.MuseBottomSheet
+import io.zer0.muse.ui.common.feedback.MuseToast
 import androidx.compose.foundation.shape.RoundedCornerShape
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -61,7 +61,7 @@ import org.koin.core.parameter.parametersOf
  * Multi-Agent 工作流可视化编排全屏页。
  *
  * 装配关系:
- *  - 顶部:[IosTopBar](返回 + 标题)
+ *  - 顶部:[MuseTopBar](返回 + 标题)
  *  - 中部:[WorkflowCanvas](画布,占满剩余空间)
  *  - 底部工具栏:添加节点 / 保存 / 加载 / 清空 / 导出 JSON / 聚合策略下拉
  *  - 选中节点时:弹出 [MuseBottomSheet] 装载 [WorkflowNodeEditor]
@@ -121,7 +121,7 @@ fun WorkflowEditorScreen(
 
     Scaffold(
         topBar = {
-            IosTopBar(
+            MuseTopBar(
                 title = stringResource(R.string.workflow_editor_title),
                 onBack = onBack,
                 actions = {
@@ -315,7 +315,7 @@ private fun WorkflowToolbar(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 // 聚合策略下拉
-                IosDropdown(
+                MuseDropdown(
                     value = aggregationStrategy.name,
                     onValueChange = { name ->
                         DelegationContract.TeamWorkflow.AggregationStrategy.entries
@@ -353,7 +353,7 @@ private fun ExportJsonDialog(
         title = { Text(stringResource(R.string.workflow_export_json_title), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)) },
         text = {
             Column {
-                IosTextField(
+                MuseTextField(
                     value = json,
                     onValueChange = { /* 只读 */ },
                     readOnly = true,

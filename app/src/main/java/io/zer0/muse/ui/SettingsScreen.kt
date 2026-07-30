@@ -64,13 +64,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.data.ProxyConfig
 import io.zer0.muse.data.SettingsRepository
-import io.zer0.muse.ui.common.IosSettingsIcon
-import io.zer0.muse.ui.common.IosSwitch
-import io.zer0.muse.ui.common.IosTopBar
-import io.zer0.muse.ui.common.MuseToast
-import io.zer0.muse.ui.common.WindowWidthClass
-import io.zer0.muse.ui.common.rememberWindowWidthClass
-import io.zer0.muse.ui.components.CardGroup
+import io.zer0.muse.ui.common.form.MuseSettingsIcon
+import io.zer0.muse.ui.common.form.MuseSwitch
+import io.zer0.muse.ui.common.navigation.MuseTopBar
+import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.media.WindowWidthClass
+import io.zer0.muse.ui.common.media.rememberWindowWidthClass
+import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -85,9 +85,9 @@ import org.koin.compose.koinInject
  *
  * 保持 v1.132 的搜索索引与分组结构不变,仅重写视觉层:
  *  - 暖白背景(background),白色卡片浮于其上
- *  - IosTopBar 大标题,右侧搜索入口
+ *  - MuseTopBar 大标题,右侧搜索入口
  *  - 搜索态顶部切换为圆角搜索框,结果以独立卡片呈现
- *  - 所有设置项统一使用 IosSettingsIcon + CardGroup
+ *  - 所有设置项统一使用 MuseSettingsIcon + CardGroup
  *  - 分组标题使用次级文字色,营造清晰层级
  */
 @Composable
@@ -123,6 +123,7 @@ fun SettingsScreen(
     onOpenWebSearch: () -> Unit = {},
     onOpenAsr: () -> Unit = {},
     onOpenImageGen: () -> Unit = {},
+    onOpenVideoGenSettings: () -> Unit = {},
     onOpenMcp: () -> Unit = {},
     onOpenAssistantResources: () -> Unit = {},
     onOpenNotificationListener: () -> Unit = {},
@@ -175,6 +176,8 @@ fun SettingsScreen(
     val providerPluginsTitle = stringResource(R.string.provider_plugins_title)
     val videoGenTitle = stringResource(R.string.settings_screen_video_gen)
     val videoGenDesc = stringResource(R.string.settings_screen_video_gen_desc)
+    val videoGenConfigTitle = stringResource(R.string.settings_screen_video_gen_config)
+    val videoGenConfigDesc = stringResource(R.string.settings_screen_video_gen_config_desc)
     val memoryTitle = stringResource(R.string.settings_screen_memory_notification)
     val memoryDesc = stringResource(R.string.settings_screen_memory_notification_desc)
     val ragTitle = stringResource(R.string.settings_screen_rag)
@@ -266,6 +269,7 @@ fun SettingsScreen(
                 SettingsEntry("OCR 文字识别", listOf("OCR", "ocr", "文字识别", "图片文字", "识别", "wenzi", "shibie", "tupianwenzi", "wzsb", "tpwz", "sb"), MuseRoutes.SETTINGS_VISION, groupAiModels, TablerIcons.Eye, onOpenVisionSettings),
                 SettingsEntry(providerPluginsTitle, listOf("插件", "plugin", "Provider插件", "导入", "chajian", "daoru", "cj", "dr"), MuseRoutes.PROVIDER_PLUGINS, groupAiModels, TablerIcons.Puzzle, onOpenProviderPlugins),
                 SettingsEntry(videoGenTitle, listOf("视频", "video", "生成视频", "shipin", "shengchengshipin", "sp", "scsp"), MuseRoutes.VIDEO_GENERATION, groupAiModels, TablerIcons.Video, onOpenVideoGeneration),
+                SettingsEntry(videoGenConfigTitle, listOf("视频配置", "视频生成配置", "video gen settings", "shipinpeizhi", "spsc", "spgenpeizhi", "sppeizhi"), MuseRoutes.SETTINGS_VIDEO_GEN, groupAiModels, TablerIcons.Settings, onOpenVideoGenSettings),
                 SettingsEntry(webSearchEntryTitle, listOf("联网搜索", "搜索", "web search", "网络搜索", "在线搜索", "lianwang", "sousuo", "wangluosousuo", "zaixiansousuo", "lwss", "ss", "wlss", "zxss"), MuseRoutes.SETTINGS_WEB_SEARCH, groupAiModels, TablerIcons.World, onOpenWebSearch),
                 SettingsEntry(asrEntryTitle, listOf("ASR", "asr", "语音识别", "speech", "转文字", "识别语音", "yuyinshibie", "zhuanwenzi", "shibieyuyin", "yysb", "zwz", "sbyy"), MuseRoutes.SETTINGS_ASR, groupAiModels, TablerIcons.Microphone, onOpenAsr),
                 SettingsEntry(imageGenEntryTitle, listOf("图像生成", "画图", "AI画", "image gen", "绘图", "tuxiangshengcheng", "huatu", "AIhua", "huitu", "txsc", "ht", "AIht", "ht"), MuseRoutes.SETTINGS_IMAGE_GEN, groupAiModels, TablerIcons.Photo, onOpenImageGen),
@@ -373,7 +377,7 @@ fun SettingsScreen(
                     searchHint = searchHint,
                 )
             } else {
-                IosTopBar(
+                MuseTopBar(
                     title = stringResource(R.string.settings_screen_title),
                     onBack = onBack,
                     largeTitle = true,
@@ -457,7 +461,7 @@ fun SettingsScreen(
                                         searchQuery = ""
                                         entry.onClick()
                                     },
-                                    leadingContent = { IosSettingsIcon(entry.icon) },
+                                    leadingContent = { MuseSettingsIcon(entry.icon) },
                                     headlineContent = { Text(entry.title) },
                                     supportingContent = { Text(entry.groupName) },
                                     trailingContent = { ChevronRight() },
@@ -501,6 +505,7 @@ fun SettingsScreen(
                             link(visionTitle, R.string.settings_screen_vision_desc, TablerIcons.Eye, onOpenVisionSettings)
                             link(providerPluginsTitle, TablerIcons.Puzzle, onOpenProviderPlugins)
                             link(videoGenTitle, R.string.settings_screen_video_gen_desc, TablerIcons.Video, onOpenVideoGeneration)
+                            link(videoGenConfigTitle, R.string.settings_screen_video_gen_config_desc, TablerIcons.Settings, onOpenVideoGenSettings)
                             link(webSearchEntryTitle, R.string.settings_screen_web_search_desc, TablerIcons.World, onOpenWebSearch)
                             link(asrEntryTitle, R.string.settings_screen_asr_desc, TablerIcons.Microphone, onOpenAsr)
                             link(imageGenEntryTitle, R.string.settings_screen_image_gen_desc, TablerIcons.Photo, onOpenImageGen)
@@ -661,7 +666,7 @@ private fun SettingsCardGroup(
         title = {
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         },
@@ -675,7 +680,7 @@ private fun SettingsCardGroup(
  * DSL 作用域,用于在 SettingsCardGroup 内快速声明链接项/开关项。
  */
 private class CardGroupContentScopeImpl(
-    private val cardGroupScope: io.zer0.muse.ui.components.CardGroupScope,
+    private val cardGroupScope: io.zer0.muse.ui.common.surface.CardGroupScope,
 ) : CardGroupContentScope {
     override fun link(
         headline: String,
@@ -685,7 +690,7 @@ private class CardGroupContentScopeImpl(
     ) {
         cardGroupScope.item(
             onClick = onClick,
-            leadingContent = { IosSettingsIcon(icon) },
+            leadingContent = { MuseSettingsIcon(icon) },
             headlineContent = { Text(headline) },
             supportingContent = { Text(stringResource(descRes)) },
             trailingContent = { ChevronRight() },
@@ -700,7 +705,7 @@ private class CardGroupContentScopeImpl(
     ) {
         cardGroupScope.item(
             onClick = onClick,
-            leadingContent = { IosSettingsIcon(icon) },
+            leadingContent = { MuseSettingsIcon(icon) },
             headlineContent = { Text(headline) },
             supportingContent = { Text(desc) },
             trailingContent = { ChevronRight() },
@@ -714,7 +719,7 @@ private class CardGroupContentScopeImpl(
     ) {
         cardGroupScope.item(
             onClick = onClick,
-            leadingContent = { IosSettingsIcon(icon) },
+            leadingContent = { MuseSettingsIcon(icon) },
             headlineContent = { Text(headline) },
             trailingContent = { ChevronRight() },
         )
@@ -728,11 +733,11 @@ private class CardGroupContentScopeImpl(
         onCheckedChange: (Boolean) -> Unit,
     ) {
         cardGroupScope.item(
-            leadingContent = { IosSettingsIcon(icon) },
+            leadingContent = { MuseSettingsIcon(icon) },
             headlineContent = { Text(headline) },
             supportingContent = { Text(stringResource(descRes)) },
             trailingContent = {
-                IosSwitch(
+                MuseSwitch(
                     checked = checked,
                     onCheckedChange = onCheckedChange,
                 )
@@ -746,7 +751,7 @@ private class CardGroupContentScopeImpl(
     ) {
         cardGroupScope.item(
             onClick = onCheck,
-            leadingContent = { IosSettingsIcon(TablerIcons.Refresh) },
+            leadingContent = { MuseSettingsIcon(TablerIcons.Refresh) },
             headlineContent = { Text(stringResource(R.string.settings_screen_check_update)) },
             supportingContent = { Text(stringResource(R.string.settings_screen_check_update_desc)) },
             trailingContent = {

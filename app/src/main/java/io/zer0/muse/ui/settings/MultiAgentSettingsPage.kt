@@ -25,7 +25,7 @@ import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import io.zer0.muse.ui.common.IosChip
+import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -57,19 +57,19 @@ import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.tools.DelegationContract
 import io.zer0.muse.ui.ModelSwitchSheet
-import io.zer0.muse.ui.common.AssistantAvatar
-import io.zer0.muse.ui.common.ConfirmDeleteDialog
-import io.zer0.muse.ui.common.EmptyState
-import io.zer0.muse.ui.common.IosDropdown
-import io.zer0.muse.ui.common.IosSlider
-import io.zer0.muse.ui.common.IosSwitch
-import io.zer0.muse.ui.common.IosTextField
-import io.zer0.muse.ui.common.MuseDialog
-import io.zer0.muse.ui.common.SectionLabel
-import io.zer0.muse.ui.common.SettingsGroup
-import io.zer0.muse.ui.common.SettingsGroupDivider
-import io.zer0.muse.ui.common.SettingsItemRow
-import io.zer0.muse.ui.common.SettingsSwitchRow
+import io.zer0.muse.ui.common.media.AssistantAvatar
+import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
+import io.zer0.muse.ui.common.state.MuseEmptyState
+import io.zer0.muse.ui.common.form.MuseDropdown
+import io.zer0.muse.ui.common.form.MuseSlider
+import io.zer0.muse.ui.common.form.MuseSwitch
+import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.settings.SectionLabel
+import io.zer0.muse.ui.common.settings.SettingsGroup
+import io.zer0.muse.ui.common.settings.SettingsGroupDivider
+import io.zer0.muse.ui.common.settings.SettingsItemRow
+import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -155,9 +155,9 @@ fun MultiAgentSettingsPage(
         item { SectionLabel(stringResource(R.string.settings_multi_agent_team_list)) }
 
         if (config.teams.isEmpty()) {
-            // v1.48: h14 团队列表空态改用 EmptyState 组件
+            // v1.48: h14 团队列表空态改用 MuseEmptyState 组件
             item {
-                EmptyState(
+                MuseEmptyState(
                     icon = TablerIcons.Users,
                     title = stringResource(R.string.settings_multi_agent_no_team),
                     subtitle = stringResource(R.string.settings_multi_agent_no_team_hint),
@@ -521,7 +521,7 @@ private fun TeamEditDialog(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                IosTextField(
+                MuseTextField(
                     value = name,
                     onValueChange = {
                         name = it
@@ -536,7 +536,7 @@ private fun TeamEditDialog(
                     } else null,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                IosTextField(
+                MuseTextField(
                     value = description,
                     onValueChange = { description = it },
                     label = { Text(stringResource(R.string.settings_multi_agent_description)) },
@@ -564,7 +564,7 @@ private fun TeamEditDialog(
                     ) {
                         assistants.forEach { assistant ->
                             val selected = assistant.id in selectedIds
-                            IosChip(
+                            MuseChip(
                                 selected = selected,
                                 onClick = {
                                     selectedIds = if (selected) {
@@ -615,7 +615,7 @@ private fun TeamEditDialog(
                 ) {
                     DelegationContract.TeamWorkflow.AggregationStrategy.entries.forEach { strategy ->
                         val selected = workflow.aggregationStrategy == strategy
-                        IosChip(
+                        MuseChip(
                             selected = selected,
                             onClick = { workflow = workflow.copy(aggregationStrategy = strategy) },
                             label = aggregationName(strategy),
@@ -817,14 +817,14 @@ private fun WorkflowNodeEditDialog(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                IosTextField(
+                MuseTextField(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text(stringResource(R.string.settings_multi_agent_node_name)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                IosTextField(
+                MuseTextField(
                     value = taskTemplate,
                     onValueChange = { taskTemplate = it },
                     label = { Text(stringResource(R.string.settings_multi_agent_node_task)) },
@@ -832,7 +832,7 @@ private fun WorkflowNodeEditDialog(
                     maxLines = 3,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                IosDropdown(
+                MuseDropdown(
                     value = assistantId,
                     onValueChange = { assistantId = it },
                     label = stringResource(R.string.settings_multi_agent_node_assistant),
@@ -852,7 +852,7 @@ private fun WorkflowNodeEditDialog(
                 ) {
                     DelegationContract.TeamWorkflowNode.Mode.entries.forEach { entry ->
                         val selected = mode == entry
-                        IosChip(
+                        MuseChip(
                             selected = selected,
                             onClick = { mode = entry },
                             label = modeName(entry),
@@ -882,7 +882,7 @@ private fun WorkflowNodeEditDialog(
                     ) {
                         existingNodeIds.forEach { id ->
                             val selected = id in dependencies
-                            IosChip(
+                            MuseChip(
                                 selected = selected,
                                 onClick = {
                                     dependencies = if (selected) {
@@ -945,7 +945,7 @@ private fun modeShortName(mode: DelegationContract.TeamWorkflowNode.Mode): Strin
 }
 
 /**
- * v1.201: 委派暂停超时滑块行(标题 + 当前值 + IosSlider)。
+ * v1.201: 委派暂停超时滑块行(标题 + 当前值 + MuseSlider)。
  *
  * 取值范围 60-600 秒,步进 30,共 19 个离散点(steps = 17)。
  * 与 [SettingsSwitchRow] 同样的 padding,使其在 [SettingsGroup] 内视觉对齐。
@@ -979,7 +979,7 @@ private fun DelegationTimeoutSliderRow(
                 fontWeight = FontWeight.SemiBold,
             )
         }
-        IosSlider(
+        MuseSlider(
             value = timeoutSec.toFloat(),
             onValueChange = { v -> onValueChange(v.toInt()) },
             valueRange = 60f..600f,

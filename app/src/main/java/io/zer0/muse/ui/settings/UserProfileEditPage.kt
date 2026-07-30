@@ -30,8 +30,8 @@ import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.UserProfile
-import io.zer0.muse.ui.common.IosTextField
-import io.zer0.muse.ui.components.CardGroup
+import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.theme.MusePaddings
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -109,7 +109,7 @@ fun UserProfileEditPage(onBack: () -> Unit) {
             CardGroup(title = { Text(stringResource(R.string.settings_user_profile_appellation)) }) {
                 item(
                     headlineContent = {
-                        IosTextField(
+                        MuseTextField(
                             value = profile.assistantName ?: "",
                             onValueChange = { v -> update { it.copy(assistantName = v.ifBlank { null }) } },
                             label = { Text(stringResource(R.string.settings_user_profile_assistant_name)) },
@@ -122,7 +122,7 @@ fun UserProfileEditPage(onBack: () -> Unit) {
                 )
                 item(
                     headlineContent = {
-                        IosTextField(
+                        MuseTextField(
                             value = profile.userNickName ?: "",
                             onValueChange = { v -> update { it.copy(userNickName = v.ifBlank { null }) } },
                             label = { Text(stringResource(R.string.settings_user_profile_your_name)) },
@@ -142,7 +142,7 @@ fun UserProfileEditPage(onBack: () -> Unit) {
                 // v1.133: 个人简介(长文本,一段话自由介绍)
                 item(
                     headlineContent = {
-                        IosTextField(
+                        MuseTextField(
                             value = profile.bio ?: "",
                             onValueChange = { v -> update { it.copy(bio = v.ifBlank { null }) } },
                             label = { Text(stringResource(R.string.settings_user_profile_bio)) },
@@ -155,7 +155,7 @@ fun UserProfileEditPage(onBack: () -> Unit) {
                 )
                 item(
                     headlineContent = {
-                        IosTextField(
+                        MuseTextField(
                             value = profile.age ?: "",
                             onValueChange = { v -> update { it.copy(age = v.filter { c -> c.isDigit() }.ifBlank { null }) } },
                             label = { Text(stringResource(R.string.settings_user_profile_age)) },
@@ -167,7 +167,7 @@ fun UserProfileEditPage(onBack: () -> Unit) {
                 )
                 item(
                     headlineContent = {
-                        IosTextField(
+                        MuseTextField(
                             value = profile.city ?: "",
                             onValueChange = { v -> update { it.copy(city = v.ifBlank { null }) } },
                             label = { Text(stringResource(R.string.settings_user_profile_city)) },
@@ -179,7 +179,7 @@ fun UserProfileEditPage(onBack: () -> Unit) {
                 // v1.133: 时区
                 item(
                     headlineContent = {
-                        IosTextField(
+                        MuseTextField(
                             value = profile.timezone ?: "",
                             onValueChange = { v -> update { it.copy(timezone = v.ifBlank { null }) } },
                             label = { Text(stringResource(R.string.settings_user_profile_timezone)) },
@@ -197,7 +197,7 @@ fun UserProfileEditPage(onBack: () -> Unit) {
             CardGroup(title = { Text(stringResource(R.string.settings_user_profile_background)) }) {
                 item(
                     headlineContent = {
-                        IosTextField(
+                        MuseTextField(
                             value = profile.occupation ?: "",
                             onValueChange = { v -> update { it.copy(occupation = v.ifBlank { null }) } },
                             label = { Text(stringResource(R.string.settings_user_profile_occupation)) },
@@ -209,7 +209,7 @@ fun UserProfileEditPage(onBack: () -> Unit) {
                 // v1.133: 教育背景
                 item(
                     headlineContent = {
-                        IosTextField(
+                        MuseTextField(
                             value = profile.educationBackground ?: "",
                             onValueChange = { v -> update { it.copy(educationBackground = v.ifBlank { null }) } },
                             label = { Text(stringResource(R.string.settings_user_profile_education)) },
@@ -221,7 +221,7 @@ fun UserProfileEditPage(onBack: () -> Unit) {
                 )
                 item(
                     headlineContent = {
-                        IosTextField(
+                        MuseTextField(
                             value = profile.professionField ?: "",
                             onValueChange = { v -> update { it.copy(professionField = v.ifBlank { null }) } },
                             label = { Text(stringResource(R.string.settings_user_profile_profession_field)) },
@@ -234,7 +234,7 @@ fun UserProfileEditPage(onBack: () -> Unit) {
                 // v1.133: 技能专长
                 item(
                     headlineContent = {
-                        IosTextField(
+                        MuseTextField(
                             value = profile.skills ?: "",
                             onValueChange = { v -> update { it.copy(skills = v.ifBlank { null }) } },
                             label = { Text(stringResource(R.string.settings_user_profile_skills)) },
@@ -246,7 +246,7 @@ fun UserProfileEditPage(onBack: () -> Unit) {
                 )
                 item(
                     headlineContent = {
-                        IosTextField(
+                        MuseTextField(
                             value = profile.interests ?: "",
                             onValueChange = { v -> update { it.copy(interests = v.ifBlank { null }) } },
                             label = { Text(stringResource(R.string.settings_user_profile_interests_label)) },
@@ -264,7 +264,7 @@ fun UserProfileEditPage(onBack: () -> Unit) {
                 // v1.133: 沟通风格
                 item(
                     headlineContent = {
-                        IosTextField(
+                        MuseTextField(
                             value = profile.communicationStyle ?: "",
                             onValueChange = { v -> update { it.copy(communicationStyle = v.ifBlank { null }) } },
                             label = { Text(stringResource(R.string.settings_user_profile_comm_style)) },
@@ -277,7 +277,7 @@ fun UserProfileEditPage(onBack: () -> Unit) {
                 // v1.133: 回复长度偏好
                 item(
                     headlineContent = {
-                        IosTextField(
+                        MuseTextField(
                             value = profile.responseLength ?: "",
                             onValueChange = { v -> update { it.copy(responseLength = v.ifBlank { null }) } },
                             label = { Text(stringResource(R.string.settings_user_profile_resp_length)) },
@@ -290,7 +290,7 @@ fun UserProfileEditPage(onBack: () -> Unit) {
                 // v1.133: 偏好语气
                 item(
                     headlineContent = {
-                        IosTextField(
+                        MuseTextField(
                             value = profile.preferredTone ?: "",
                             onValueChange = { v -> update { it.copy(preferredTone = v.ifBlank { null }) } },
                             label = { Text(stringResource(R.string.settings_user_profile_pref_tone)) },
@@ -303,7 +303,7 @@ fun UserProfileEditPage(onBack: () -> Unit) {
                 // v1.133: 偏好回复语言
                 item(
                     headlineContent = {
-                        IosTextField(
+                        MuseTextField(
                             value = profile.preferredLanguage ?: "",
                             onValueChange = { v -> update { it.copy(preferredLanguage = v.ifBlank { null }) } },
                             label = { Text(stringResource(R.string.settings_user_profile_pref_lang)) },
@@ -322,7 +322,7 @@ fun UserProfileEditPage(onBack: () -> Unit) {
                 // v1.133: 忌讳话题
                 item(
                     headlineContent = {
-                        IosTextField(
+                        MuseTextField(
                             value = profile.avoidTopics ?: "",
                             onValueChange = { v -> update { it.copy(avoidTopics = v.ifBlank { null }) } },
                             label = { Text(stringResource(R.string.settings_user_profile_avoid_topics)) },

@@ -66,7 +66,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
-import io.zer0.muse.ui.common.MuseToast
+import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.MuseIconSizes
@@ -419,7 +419,7 @@ private fun LinkableText(
 
     // v1.97: URL 点击二级确认对话框(含"本会话不再确认"选项)
     pendingUrl?.let { url ->
-        io.zer0.muse.ui.common.MuseDialog(
+        io.zer0.muse.ui.common.feedback.MuseDialog(
             onDismissRequest = { pendingUrl = null },
             title = context.getString(R.string.markdown_open_link_confirm_title),
             content = {

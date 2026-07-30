@@ -10,7 +10,7 @@ import androidx.compose.ui.unit.dp
  *
  * 令牌层级(从大到小):
  *  - [touchTarget]: 48.dp — 触摸目标最小尺寸(MD3 红线,所有 IconButton 必须用此尺寸)
- *  - [iconEmpty]:   64.dp — 空状态/错误态大图标(EmptyState / ErrorStateBox 顶部)
+ *  - [iconEmpty]:   64.dp — 空状态/错误态大图标(MuseEmptyState / MuseErrorStateBox 顶部)
  *  - [iconLarge]:   32.dp — 大图标(头像 / 强调图标)
  *  - [icon]:        24.dp — 图标视觉尺寸(MD3 标准)
  *  - [iconMedium]:  20.dp — 中图标(导航 / 操作行)
@@ -30,7 +30,7 @@ import androidx.compose.ui.unit.dp
 object MuseIconSizes {
     /** 触摸目标最小尺寸(MD3 红线,所有 IconButton 必须用此尺寸)。 */
     val touchTarget = 48.dp
-    /** 空状态/错误态大图标(EmptyState / ErrorStateBox 顶部,L-ES2)。 */
+    /** 空状态/错误态大图标(MuseEmptyState / MuseErrorStateBox 顶部,L-ES2)。 */
     val iconEmpty = 64.dp
     /** 大图标(头像 / 强调图标)。 */
     val iconLarge = 32.dp

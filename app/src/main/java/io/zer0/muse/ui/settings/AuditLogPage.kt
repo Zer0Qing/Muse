@@ -23,11 +23,11 @@ import androidx.compose.foundation.shape.CircleShape
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import androidx.compose.material3.CircularProgressIndicator
-import io.zer0.muse.ui.common.IosChip
+import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import io.zer0.muse.ui.common.IosTextField
+import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -52,11 +52,11 @@ import io.zer0.common.AppJson
 import io.zer0.muse.R
 import io.zer0.muse.data.audit.AuditLogEntity
 import io.zer0.muse.data.audit.AuditLogger
-import io.zer0.muse.ui.common.IosTopBar
-import io.zer0.muse.ui.common.MuseDialog
-import io.zer0.muse.ui.common.MuseToast
-import io.zer0.muse.ui.common.WindowWidthClass
-import io.zer0.muse.ui.common.rememberWindowWidthClass
+import io.zer0.muse.ui.common.navigation.MuseTopBar
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.media.WindowWidthClass
+import io.zer0.muse.ui.common.media.rememberWindowWidthClass
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
@@ -76,7 +76,7 @@ import java.util.Locale
  * P2-4: 审计日志页 — 展示应用内关键操作日志,并支持类别筛选 / 关键词搜索 / JSON 导出。
  *
  * 结构:
- *  - 顶部 IosTopBar(返回 + 标题 + 导出 JSON + 清空按钮)
+ *  - 顶部 MuseTopBar(返回 + 标题 + 导出 JSON + 清空按钮)
  *  - 筛选区:类别 FlowRow Chips(全部 / API 调用 / 用户操作 / 认证 / 系统)+ 关键词搜索框
  *  - 中间 LazyColumn 显示日志条目(分页加载,每页 100 条,客户端筛选)
  *  - 每条目:时间戳(yyyy-MM-dd HH:mm:ss)+ 分类图标 + action + target + success/fail 标记
@@ -155,7 +155,7 @@ fun AuditLogPage(
 
     Scaffold(
         topBar = {
-            IosTopBar(
+            MuseTopBar(
                 title = stringResource(R.string.settings_audit_log),
                 onBack = onBack,
                 largeTitle = true,
@@ -398,7 +398,7 @@ private fun FilterHeader(
             verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
         ) {
             categories.forEach { (cat, labelRes) ->
-                IosChip(
+                MuseChip(
                     selected = selectedCategory == cat,
                     onClick = {
                         onCategorySelected(if (selectedCategory == cat) null else cat)
@@ -407,7 +407,7 @@ private fun FilterHeader(
                 )
             }
         }
-        IosTextField(
+        MuseTextField(
             value = searchQuery,
             onValueChange = onSearchQueryChanged,
             modifier = Modifier.fillMaxWidth(),

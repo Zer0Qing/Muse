@@ -47,7 +47,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import io.zer0.muse.ui.common.IosTextField
+import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -650,7 +650,7 @@ private fun StepNames(
             color = MaterialTheme.colorScheme.onSurface,
         )
         Spacer(modifier = Modifier.height(MusePaddings.tightGap))
-        IosTextField(
+        MuseTextField(
             value = userName,
             onValueChange = onUserNameChange,
             placeholder = { Text(stringResource(R.string.onboarding_names_user_label)) },
@@ -664,7 +664,7 @@ private fun StepNames(
             color = MaterialTheme.colorScheme.onSurface,
         )
         Spacer(modifier = Modifier.height(MusePaddings.tightGap))
-        IosTextField(
+        MuseTextField(
             value = agentName,
             onValueChange = onAgentNameChange,
             placeholder = { Text(stringResource(R.string.onboarding_names_agent_label)) },
@@ -742,7 +742,7 @@ private fun StepProviderConfig(
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Spacer(modifier = Modifier.height(MusePaddings.contentGap))
-                IosTextField(
+                MuseTextField(
                     value = customBaseUrl,
                     onValueChange = onCustomBaseUrlChange,
                     label = { Text(stringResource(R.string.onboarding_provider_custom_baseurl_input)) },
@@ -760,7 +760,7 @@ private fun StepProviderConfig(
             color = MaterialTheme.colorScheme.onSurface,
         )
         Spacer(modifier = Modifier.height(MusePaddings.contentGap))
-        IosTextField(
+        MuseTextField(
             value = apiKey,
             onValueChange = onApiKeyChange,
             label = { Text(stringResource(R.string.onboarding_provider_apikey_input)) },
@@ -942,7 +942,7 @@ private fun StepSelectModel(
             color = MaterialTheme.colorScheme.onSurface,
         )
         Spacer(modifier = Modifier.height(MusePaddings.contentGap))
-        IosTextField(
+        MuseTextField(
             value = searchQuery,
             onValueChange = onSearchQueryChange,
             label = { Text(stringResource(R.string.onboarding_model_search_label)) },

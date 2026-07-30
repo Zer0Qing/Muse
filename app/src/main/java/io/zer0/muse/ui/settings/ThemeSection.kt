@@ -24,8 +24,8 @@ import compose.icons.tablericons.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import io.zer0.muse.ui.common.IosSlider
-import io.zer0.muse.ui.common.IosTextField
+import io.zer0.muse.ui.common.form.MuseSlider
+import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -51,14 +51,14 @@ import androidx.core.graphics.ColorUtils
 import io.zer0.muse.R
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.data.SettingsRepository
-import io.zer0.muse.ui.common.IosSwitch
-import io.zer0.muse.ui.common.MuseDialog
-import io.zer0.muse.ui.common.SectionLabel
-import io.zer0.muse.ui.common.SegmentedControl
-import io.zer0.muse.ui.common.SettingsGroup
-import io.zer0.muse.ui.common.SettingsGroupDivider
-import io.zer0.muse.ui.common.SettingsItemRow
-import io.zer0.muse.ui.common.SettingsSwitchRow
+import io.zer0.muse.ui.common.form.MuseSwitch
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.settings.SectionLabel
+import io.zer0.muse.ui.common.form.MuseSegmentedControl
+import io.zer0.muse.ui.common.settings.SettingsGroup
+import io.zer0.muse.ui.common.settings.SettingsGroupDivider
+import io.zer0.muse.ui.common.settings.SettingsItemRow
+import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.theme.CustomTheme
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
@@ -120,7 +120,7 @@ internal fun ThemeSection(
         val selectedMode = when (themeMode) {
             "system" -> 0; "light" -> 1; "dark" -> 2; else -> 0
         }
-        SegmentedControl(
+        MuseSegmentedControl(
             options = modeOptions,
             selectedIndex = selectedMode,
             onSelectedChange = { idx ->
@@ -336,7 +336,7 @@ internal fun ThemeSection(
         val selectedFont = when (fontSizeScale) {
             "small" -> 0; "large" -> 2; "xlarge" -> 3; else -> 1
         }
-        SegmentedControl(
+        MuseSegmentedControl(
             options = fontOptions,
             selectedIndex = selectedFont,
             onSelectedChange = { idx ->
@@ -405,7 +405,7 @@ private fun DynamicColorRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        IosSwitch(
+        MuseSwitch(
             checked = enabled && supported,
             onCheckedChange = if (supported) { { onToggle(it) } } else null,
             contentDescription = dynamicColorLabel,
@@ -1031,7 +1031,7 @@ private fun CustomThemeEditDialog(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 // 主题名称
-                IosTextField(
+                MuseTextField(
                     value = currentTheme.name,
                     onValueChange = { currentTheme = currentTheme.copy(name = it) },
                     label = { Text(stringResource(R.string.settings_theme_custom_name)) },
@@ -1185,7 +1185,7 @@ private fun ColorPickerRow(
                         style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier.width(16.dp),
                     )
-                    IosSlider(
+                    MuseSlider(
                         value = hue,
                         onValueChange = { updateColor(it, saturation, lightness) },
                         valueRange = 0f..360f,
@@ -1200,7 +1200,7 @@ private fun ColorPickerRow(
                         style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier.width(16.dp),
                     )
-                    IosSlider(
+                    MuseSlider(
                         value = saturation,
                         onValueChange = { updateColor(hue, it, lightness) },
                         valueRange = 0f..1f,
@@ -1215,7 +1215,7 @@ private fun ColorPickerRow(
                         style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier.width(16.dp),
                     )
-                    IosSlider(
+                    MuseSlider(
                         value = lightness,
                         onValueChange = { updateColor(hue, saturation, it) },
                         valueRange = 0f..1f,
@@ -1226,7 +1226,7 @@ private fun ColorPickerRow(
             }
         }
         // HSL 文本输入(支持 hsl(267 36% 48%) 等格式)
-        IosTextField(
+        MuseTextField(
             value = hslCode,
             onValueChange = { value ->
                 hslCode = value

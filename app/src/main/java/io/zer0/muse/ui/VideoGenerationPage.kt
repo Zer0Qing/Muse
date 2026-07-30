@@ -37,7 +37,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import io.zer0.muse.ui.common.IosTextField
+import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -65,8 +65,8 @@ import io.zer0.ai.video.VideoGenerationService
 import io.zer0.ai.video.VideoTaskStatus
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
-import io.zer0.muse.ui.common.IosTopBar
-import io.zer0.muse.ui.common.MuseToast
+import io.zer0.muse.ui.common.navigation.MuseTopBar
+import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -92,10 +92,10 @@ private val VideoTaskStatusSaver = Saver<VideoTaskStatus?, String>(
  * P2-8: 视频生成页 — iOS 风格全屏工具页。
  *
  * 布局:
- *  - IosTopBar:返回 + 标题「视频生成」
+ *  - MuseTopBar:返回 + 标题「视频生成」
  *  - 表单区(可滚动):
  *    - Prompt 输入框(多行)
- *    - 模型选择(可灵 v1 / v2,SegmentedControl 风格)
+ *    - 模型选择(可灵 v1 / v2,MuseSegmentedControl 风格)
  *    - 时长选择(5s / 10s)
  *    - 分辨率(720p / 1080p)
  *    - 参考图(从本地相册选择,可选;留空走文生视频)
@@ -200,7 +200,7 @@ fun VideoGenerationPage(
 
     Scaffold(
         topBar = {
-            IosTopBar(
+            MuseTopBar(
                 title = stringResource(R.string.video_gen_title),
                 onBack = onBack,
             )
@@ -219,7 +219,7 @@ fun VideoGenerationPage(
         ) {
             // ── Prompt 输入 ──
             FormSection(label = stringResource(R.string.video_gen_prompt)) {
-                IosTextField(
+                MuseTextField(
                     value = prompt,
                     onValueChange = { prompt = it },
                     modifier = Modifier
@@ -597,7 +597,7 @@ private fun FormSection(
 }
 
 /**
- * 分段选择器(用 Surface + clickable 实现 iOS 风格 SegmentedControl)。
+ * 分段选择器(用 Surface + clickable 实现 iOS 风格 MuseSegmentedControl)。
  */
 @Composable
 private fun <T> SegmentedOptions(

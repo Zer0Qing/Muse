@@ -18,7 +18,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
-import io.zer0.muse.ui.common.LifecycleAwareWebViewContainer
+import io.zer0.muse.ui.common.media.LifecycleAwareWebViewContainer
 
 /** M8 修复: 公式源码长度上限,超过则降级为纯文本,避免 WebView 内存压力。 */
 private const val MAX_LATEX_LENGTH = 5000

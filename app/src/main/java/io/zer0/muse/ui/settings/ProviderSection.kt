@@ -45,14 +45,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import io.zer0.common.Result
 import io.zer0.common.resultOf
-import io.zer0.muse.ui.common.IosTextField
+import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import io.zer0.muse.ui.common.IosChip
-import io.zer0.muse.ui.common.IosSwitch
+import io.zer0.muse.ui.common.form.MuseChip
+import io.zer0.muse.ui.common.form.MuseSwitch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import io.zer0.muse.ui.common.IosTopBar
+import io.zer0.muse.ui.common.navigation.MuseTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -93,13 +93,13 @@ import io.zer0.ai.core.ProviderType
 import io.zer0.common.AppJson
 import io.zer0.muse.R
 import io.zer0.muse.auth.OAuthManager
-import io.zer0.muse.ui.common.EmptyState
-import io.zer0.muse.ui.common.IosTactileButton
-import io.zer0.muse.ui.common.MuseDialog
-import io.zer0.muse.ui.common.MuseToast
-import io.zer0.muse.ui.common.SectionLabel
-import io.zer0.muse.ui.common.SettingsGroup
-import io.zer0.muse.ui.common.SettingsGroupDivider
+import io.zer0.muse.ui.common.state.MuseEmptyState
+import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.settings.SectionLabel
+import io.zer0.muse.ui.common.settings.SettingsGroup
+import io.zer0.muse.ui.common.settings.SettingsGroupDivider
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -191,7 +191,7 @@ internal fun LazyListScope.providerListSection(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
-                EmptyState(
+                MuseEmptyState(
                     icon = TablerIcons.Atom,
                     title = stringResource(R.string.settings_provider_empty_title),
                     subtitle = stringResource(R.string.settings_provider_empty_subtitle),
@@ -1351,7 +1351,7 @@ internal fun ProviderEditPage(
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
-            IosTopBar(
+            MuseTopBar(
                 title = displayName.ifBlank {
                     if (isNew) stringResource(R.string.settings_provider_new) else config.displayName.ifBlank { config.id }
                 },
@@ -1359,7 +1359,7 @@ internal fun ProviderEditPage(
                 actions = {
                     // v1.97: 分享二维码按钮(仅在已存在的 Provider 显示,新建时不显示)
                     if (!isNew) {
-                        IosTactileButton(
+                        MuseTactileButton(
                             icon = TablerIcons.Qrcode,
                             onClick = { showQrShareDialog = true },
                             contentDescription = stringResource(R.string.qr_share_btn),
@@ -1875,7 +1875,7 @@ private fun AddModelDialog(
         onDismissRequest = onDismiss,
         title = stringResource(R.string.settings_provider_add_new_model),
         content = {
-            IosTextField(
+            MuseTextField(
                 value = modelId,
                 onValueChange = { modelId = it },
                 modifier = Modifier.fillMaxWidth(),
@@ -2005,8 +2005,8 @@ private fun ConfigTab(
                     Text(stringResource(R.string.settings_provider_type), style = MaterialTheme.typography.labelMedium)
                     Row(horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap)) {
                         ProviderType.entries.forEach { t ->
-                            // v1.134 P0-8: FilterChip → IosChip 胶囊
-                            IosChip(
+                            // v1.134 P0-8: FilterChip → MuseChip 胶囊
+                            MuseChip(
                                 selected = type == t,
                                 onClick = { onTypeChange(t) },
                                 label = providerDisplayTypeName(t),
@@ -2030,7 +2030,7 @@ private fun ConfigTab(
                             ProviderType.OPENAI_RESPONSES -> ProviderConfig.DEFAULT_OPENAI_RESPONSES_BASE_URL
                         },
                     )
-                    IosTextField(
+                    MuseTextField(
                         value = apiKey,
                         onValueChange = onApiKeyChange,
                         modifier = Modifier.fillMaxWidth(),
@@ -2038,7 +2038,7 @@ private fun ConfigTab(
                         singleLine = true,
                         visualTransformation = if (apiKeyVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         trailingIcon = {
-                            IosTactileButton(
+                            MuseTactileButton(
                                 icon = if (apiKeyVisible) TablerIcons.EyeOff else TablerIcons.Eye,
                                 onClick = { onApiKeyVisibleChange(!apiKeyVisible) },
                                 contentDescription = if (apiKeyVisible) stringResource(R.string.settings_common_hide) else stringResource(R.string.settings_common_show),
@@ -2155,7 +2155,7 @@ private fun ConfigTab(
                     // - 成功: 绿色 ✓ 胶囊 + "连接正常 · N 个模型"
                     // - 失败: 红色 ✗ 胶囊 + 分级错误信息(API Key 无效 / URL 不支持 / 连接超时 / 无法连接服务器)
                     // - 用 MuseShapes.pill 胶囊形,与 iOS 风格一致
-                    // - 关闭按钮用 IosTactileButton 而非 Material3 IconButton
+                    // - 关闭按钮用 MuseTactileButton 而非 Material3 IconButton
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -2237,8 +2237,8 @@ private fun ConfigTab(
                                         color = capsuleColor,
                                         modifier = Modifier.weight(1f),
                                     )
-                                    // 关闭按钮:用 IosTactileButton 而非 Material3 IconButton
-                                    IosTactileButton(
+                                    // 关闭按钮:用 MuseTactileButton 而非 Material3 IconButton
+                                    MuseTactileButton(
                                         icon = TablerIcons.X,
                                         onClick = onTestResultDismiss,
                                         contentDescription = stringResource(R.string.settings_common_close),
@@ -2279,7 +2279,7 @@ private fun ConfigTab(
                             color = MaterialTheme.colorScheme.onErrorContainer,
                             modifier = Modifier.weight(1f),
                         )
-                        IosTactileButton(
+                        MuseTactileButton(
                             icon = TablerIcons.X,
                             onClick = { onFetchErrorDismiss() },
                             contentDescription = stringResource(R.string.settings_common_close),
@@ -2320,7 +2320,7 @@ private fun ConfigTab(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            IosSwitch(
+                            MuseSwitch(
                                 checked = useVertexAi,
                                 onCheckedChange = onUseVertexAiChange,
                                 modifier = Modifier.semantics {
@@ -2349,7 +2349,7 @@ private fun ConfigTab(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                IosSwitch(
+                                MuseSwitch(
                                     checked = useServiceAccount,
                                     onCheckedChange = onUseServiceAccountChange,
                                     modifier = Modifier.semantics {
@@ -2383,7 +2383,7 @@ private fun ConfigTab(
                                     value = serviceAccountEmail,
                                     onValueChange = onServiceAccountEmailChange,
                                 )
-                                IosTextField(
+                                MuseTextField(
                                     value = privateKey,
                                     onValueChange = onPrivateKeyChange,
                                     modifier = Modifier.fillMaxWidth(),
@@ -2393,7 +2393,7 @@ private fun ConfigTab(
                                     maxLines = 8,
                                     visualTransformation = if (privateKeyVisible) VisualTransformation.None else PasswordVisualTransformation(),
                                     trailingIcon = {
-                                        IosTactileButton(
+                                        MuseTactileButton(
                                             icon = if (privateKeyVisible) TablerIcons.EyeOff else TablerIcons.Eye,
                                             onClick = { onPrivateKeyVisibleChange(!privateKeyVisible) },
                                             contentDescription = if (privateKeyVisible) stringResource(R.string.settings_common_hide) else stringResource(R.string.settings_common_show),
@@ -2439,7 +2439,7 @@ private fun ConfigTab(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            IosSwitch(
+                            MuseSwitch(
                                 checked = enabled,
                                 onCheckedChange = onEnabledChange,
                                 modifier = Modifier.semantics {
@@ -2519,7 +2519,7 @@ private fun ConfigTab(
                                     onValueChange = onCustomChatCompletionsPathChange,
                                     placeholder = "/chat/completions",
                                 )
-                                IosTextField(
+                                MuseTextField(
                                     value = customHeadersText,
                                     onValueChange = onCustomHeadersTextChange,
                                     modifier = Modifier.fillMaxWidth(),
@@ -2533,7 +2533,7 @@ private fun ConfigTab(
                                     minLines = 3,
                                     maxLines = 8,
                                 )
-                                IosTextField(
+                                MuseTextField(
                                     value = customBodyText,
                                     onValueChange = onCustomBodyTextChange,
                                     modifier = Modifier.fillMaxWidth(),
@@ -2562,7 +2562,7 @@ private fun ConfigTab(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                    IosSwitch(
+                                    MuseSwitch(
                                         checked = openAIUseResponseApi,
                                         onCheckedChange = onOpenAIUseResponseApiChange,
                                         modifier = Modifier.semantics {
@@ -2579,7 +2579,7 @@ private fun ConfigTab(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                    IosSwitch(
+                                    MuseSwitch(
                                         checked = openAIIncludeHistoryReasoning,
                                         onCheckedChange = onOpenAIIncludeHistoryReasoningChange,
                                         modifier = Modifier.semantics {
@@ -2621,7 +2621,7 @@ private fun ConfigTab(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                    IosSwitch(
+                                    MuseSwitch(
                                         checked = anthropicPromptCaching,
                                         onCheckedChange = onAnthropicPromptCachingChange,
                                         modifier = Modifier.semantics {
@@ -2934,7 +2934,7 @@ private fun ModelAbilityEditorDialog(
                 AbilitySwitchRow(stringResource(R.string.settings_provider_ability_vision), supportsVision) { supportsVision = it }
                 AbilitySwitchRow(stringResource(R.string.settings_provider_ability_video), supportsVideo) { supportsVideo = it }
                 Spacer(Modifier.size(MusePaddings.itemGap))
-                IosTextField(
+                MuseTextField(
                     value = contextWindow,
                     onValueChange = { contextWindow = it.filter { c -> c.isDigit() } },
                     label = { Text(stringResource(R.string.settings_provider_context_window)) },
@@ -2942,7 +2942,7 @@ private fun ModelAbilityEditorDialog(
                     singleLine = true,
                 )
                 Spacer(Modifier.size(MusePaddings.contentGap))
-                IosTextField(
+                MuseTextField(
                     value = maxOutputTokens,
                     onValueChange = { maxOutputTokens = it.filter { c -> c.isDigit() } },
                     label = { Text(stringResource(R.string.settings_provider_max_output_tokens)) },
@@ -3013,7 +3013,7 @@ private fun AbilitySwitchRow(
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface,
         )
-        IosSwitch(
+        MuseSwitch(
             checked = checked,
             onCheckedChange = onCheckedChange,
         )
@@ -3161,7 +3161,7 @@ private fun FetchedModelsPickerSheet(
                         )
                     }
                     if (query.isNotBlank()) {
-                        IosTactileButton(
+                        MuseTactileButton(
                             icon = TablerIcons.X,
                             onClick = { query = "" },
                             contentDescription = stringResource(R.string.settings_provider_clear),

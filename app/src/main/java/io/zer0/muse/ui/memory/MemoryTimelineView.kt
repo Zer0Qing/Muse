@@ -18,7 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material.icons.filled.Circle
-import io.zer0.muse.ui.common.IosChip
+import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -96,7 +96,7 @@ fun MemoryTimelineView(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 filters.forEach { (key, label) ->
-                    IosChip(
+                    MuseChip(
                         selected = selectedFilter == key,
                         onClick = { selectedFilter = key },
                         label = label,

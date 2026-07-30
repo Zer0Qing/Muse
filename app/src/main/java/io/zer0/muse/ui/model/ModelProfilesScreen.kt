@@ -28,9 +28,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import io.zer0.muse.ui.common.IosSwitch
+import io.zer0.muse.ui.common.form.MuseSwitch
 import androidx.compose.material3.Text
-import io.zer0.muse.ui.common.IosTopBar
+import io.zer0.muse.ui.common.navigation.MuseTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,7 +45,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import io.zer0.muse.data.ModelProfile
 import io.zer0.muse.data.SettingsRepository
-import io.zer0.muse.ui.common.EmptyState
+import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.theme.MuseShapes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -83,7 +83,7 @@ fun ModelProfilesScreen(
 
     Scaffold(
         topBar = {
-            IosTopBar(
+            MuseTopBar(
                 title = "模型头像",
                 onBack = onBack,
             )
@@ -106,7 +106,7 @@ fun ModelProfilesScreen(
 
                 if (allModels.isEmpty()) {
                     Box(Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
-                        EmptyState(
+                        MuseEmptyState(
                             icon = Icons.Outlined.Memory,
                             title = "暂无模型",
                             subtitle = "请先在设置中添加 AI 提供商",
@@ -169,7 +169,7 @@ private fun ModelProfileRow(
                 Text(modelName, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
                 Text(providerName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
             }
-            IosSwitch(checked = profile.showAvatar, onCheckedChange = onToggleShow)
+            MuseSwitch(checked = profile.showAvatar, onCheckedChange = onToggleShow)
         }
     }
 }

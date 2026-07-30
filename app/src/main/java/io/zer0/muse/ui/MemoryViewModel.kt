@@ -16,7 +16,7 @@ import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.experience.ExperienceEntity
 import io.zer0.muse.data.experience.ExperienceRepository
-import io.zer0.muse.ui.common.MuseToast
+import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.theme.MuseDateFormats
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -288,7 +288,8 @@ class MemoryViewModel(
                 resultOf { memoryTicker.forceCompileNow() }
                     .onError { msg, t -> Logger.w("MemoryViewModel", "forceCompileNow 失败: $msg", t) }
             }
-            loadAll()
+            // 编译完成后静默刷新:不触发 isLoading,避免替换当前视图(时间轴/列表)导致闪屏
+            loadAll(silent = true)
         }
     }
 
@@ -301,8 +302,11 @@ class MemoryViewModel(
      *  - "main" / assistantId:仅拉取该作用域的事实
      * Summary / Compile 层不区分 scope(由 MemoryTicker 全局编译,不按助手隔离)。
      */
-    fun loadAll() {
-        _state.update { it.copy(isLoading = true, errorTrace = null) }
+    fun loadAll(silent: Boolean = false) {
+        // silent=true 时不触发 isLoading,避免编译完成后替换当前视图导致闪屏
+        if (!silent) {
+            _state.update { it.copy(isLoading = true, errorTrace = null) }
+        }
         viewModelScope.launch {
             try {
                 val scope = _selectedScope.value

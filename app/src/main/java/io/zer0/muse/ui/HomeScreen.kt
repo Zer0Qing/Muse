@@ -1,10 +1,16 @@
-﻿package io.zer0.muse.ui
+package io.zer0.muse.ui
 
 import android.content.Intent
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
@@ -19,6 +25,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,8 +53,8 @@ import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.schedule.ProactiveMessageRunner
-import io.zer0.muse.ui.common.DesktopShortcuts
-import io.zer0.muse.ui.common.rememberDesktopShortcutsEnabled
+import io.zer0.muse.ui.common.media.DesktopShortcuts
+import io.zer0.muse.ui.common.media.rememberDesktopShortcutsEnabled
 import io.zer0.muse.ui.groupchat.GroupChatListScreen
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -121,6 +128,8 @@ fun HomeScreen(
     var showModelSheet by remember { mutableStateOf(false) }
     // v1.133: 用户主动关闭 Banner 后,本次会话不再展示(下次冷启动恢复)
     var bannerDismissed by remember { mutableStateOf(false) }
+    // v1.136 T8: 首页右下快捷工具栏展开/收起状态(长按 Plus 切换)
+    var capsuleExpanded by rememberSaveable { mutableStateOf(true) }
     val context = LocalContext.current
 
     // v2.0 5.6: 注入 ProactiveMessageRunner,在 onResume 时触发事件巡检
@@ -171,6 +180,8 @@ fun HomeScreen(
                     onOpenQuickNotes = onOpenQuickNotes,
                     onOpenQuickTranslate = onOpenQuickTranslate,
                     onCreateNewTask = onCreateNewTask,
+                    expanded = capsuleExpanded,
+                    onToggleExpanded = { capsuleExpanded = !capsuleExpanded },
                 )
             }
         },
@@ -195,16 +206,18 @@ fun HomeScreen(
                     )
                 }
 
-                // 中间:胶囊 Tab 切换器(iOS 风格 IosCapsuleTab 组件)
+                // 中间:胶囊 Tab 切换器(iOS 风格 MuseCapsuleTab 组件)
                 val tabLabels = HomeTabs.map { (labelResId, _) ->
                     if (labelResId != 0) stringResource(labelResId) else "Agent"
                 }
-                io.zer0.muse.ui.common.IosCapsuleTab(
+                io.zer0.muse.ui.common.form.MuseCapsuleTab(
                     tabs = tabLabels,
                     selectedIndex = pagerState.currentPage,
                     onSelect = { page ->
                         scope.launch { pagerState.animateScrollToPage(page) }
                     },
+                    // v1.136 T9: 传入 pager 偏移分数,使指示器连续跟踪手指滑动(与点击动效分离)
+                    pageOffset = pagerState.currentPageOffsetFraction,
                     // 顶部 Tab 收窄,右侧腾出空间给全局搜索按钮
                     modifier = Modifier.width(172.dp),
                 )
@@ -479,11 +492,14 @@ private fun parseReleaseInfo(json: String?): UpdateChecker.ReleaseInfo? {
  *  - 背景使用 surfaceContainer,漂浮在内容之上
  */
 @Composable
+@OptIn(ExperimentalFoundationApi::class)
 private fun HomeQuickActionCapsule(
     onOpenScheduledTasks: () -> Unit,
     onOpenQuickNotes: () -> Unit,
     onOpenQuickTranslate: () -> Unit,
     onCreateNewTask: () -> Unit,
+    expanded: Boolean,
+    onToggleExpanded: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -495,31 +511,40 @@ private fun HomeQuickActionCapsule(
         tonalElevation = 2.dp,
         shadowElevation = 4.dp,
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            HomeCapsuleButton(
-                icon = TablerIcons.CalendarTime,
-                contentDescription = stringResource(R.string.chat_list_scheduled_tasks),
-                onClick = onOpenScheduledTasks,
-            )
-            HomeCapsuleDivider()
-            HomeCapsuleButton(
-                icon = TablerIcons.Edit,
-                contentDescription = stringResource(R.string.chat_list_quick_notes),
-                onClick = onOpenQuickNotes,
-            )
-            HomeCapsuleDivider()
-            HomeCapsuleButton(
-                icon = TablerIcons.Language,
-                contentDescription = stringResource(R.string.chat_list_quick_translate),
-                onClick = onOpenQuickTranslate,
-            )
-            HomeCapsuleDivider()
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            // v1.136 T8: 收起时仅显示 Plus 按钮;展开时显示全部 4 个按钮(长按 Plus 切换)
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandHorizontally(animationSpec = tween(220)),
+                exit = shrinkHorizontally(animationSpec = tween(220)),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    HomeCapsuleButton(
+                        icon = TablerIcons.CalendarTime,
+                        contentDescription = stringResource(R.string.chat_list_scheduled_tasks),
+                        onClick = onOpenScheduledTasks,
+                    )
+                    HomeCapsuleDivider()
+                    HomeCapsuleButton(
+                        icon = TablerIcons.Edit,
+                        contentDescription = stringResource(R.string.chat_list_quick_notes),
+                        onClick = onOpenQuickNotes,
+                    )
+                    HomeCapsuleDivider()
+                    HomeCapsuleButton(
+                        icon = TablerIcons.Language,
+                        contentDescription = stringResource(R.string.chat_list_quick_translate),
+                        onClick = onOpenQuickTranslate,
+                    )
+                    HomeCapsuleDivider()
+                }
+            }
+            // Plus 按钮始终显示;长按切换展开/收起
             HomeCapsuleButton(
                 icon = TablerIcons.Plus,
                 contentDescription = stringResource(R.string.chat_list_new_task),
                 onClick = onCreateNewTask,
+                onLongClick = onToggleExpanded,
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
             )
@@ -528,11 +553,13 @@ private fun HomeQuickActionCapsule(
 }
 
 @Composable
+@OptIn(ExperimentalFoundationApi::class)
 private fun HomeCapsuleButton(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     contentDescription: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onLongClick: (() -> Unit)? = null,
     containerColor: androidx.compose.ui.graphics.Color = androidx.compose.ui.graphics.Color.Transparent,
     contentColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurfaceVariant,
 ) {
@@ -542,10 +569,11 @@ private fun HomeCapsuleButton(
             .size(56.dp)
             .background(containerColor)
             // v1.0.16: 禁用 Material ripple,避免黑色遮罩
-            .clickable(
+            .combinedClickable(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = onClick,
+                onLongClick = onLongClick,
             ),
         contentAlignment = Alignment.Center,
     ) {

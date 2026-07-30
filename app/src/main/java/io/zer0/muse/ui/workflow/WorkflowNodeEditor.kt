@@ -15,10 +15,10 @@ import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material3.ExperimentalMaterial3Api
-import io.zer0.muse.ui.common.IosChip
+import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import io.zer0.muse.ui.common.IosTextField
+import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -33,8 +33,8 @@ import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.tools.DelegationContract
-import io.zer0.muse.ui.common.IosDropdown
-import io.zer0.muse.ui.common.SegmentedControl
+import io.zer0.muse.ui.common.form.MuseDropdown
+import io.zer0.muse.ui.common.form.MuseSegmentedControl
 
 /**
  * 工作流节点编辑面板 Composable。
@@ -43,7 +43,7 @@ import io.zer0.muse.ui.common.SegmentedControl
  *  - [assistantId](下拉选择,数据源为 [assistants])
  *  - [name](单行文本)
  *  - [taskTemplate](多行文本)
- *  - [mode](SEQUENTIAL / PARALLEL,SegmentedControl;CONDITIONAL 暂不在 UI 暴露)
+ *  - [mode](SEQUENTIAL / PARALLEL,MuseSegmentedControl;CONDITIONAL 暂不在 UI 暴露)
  *  - [dependsOn](展示当前依赖列表,每项可勾选移除)
  *
  * 设计为底部 Sheet / 侧栏内容,由 [WorkflowEditorScreen] 装载。
@@ -106,7 +106,7 @@ fun WorkflowNodeEditor(
         }
 
         // ---- 节点名称 ----
-        IosTextField(
+        MuseTextField(
             value = name,
             onValueChange = {
                 name = it
@@ -119,7 +119,7 @@ fun WorkflowNodeEditor(
         )
 
         // ---- 助手绑定(下拉) ----
-        IosDropdown(
+        MuseDropdown(
             value = node.assistantId,
             onValueChange = { selectedId ->
                 onUpdate(node.copy(assistantId = selectedId))
@@ -130,7 +130,7 @@ fun WorkflowNodeEditor(
         )
 
         // ---- 任务模板(多行) ----
-        IosTextField(
+        MuseTextField(
             value = taskTemplate,
             onValueChange = {
                 taskTemplate = it
@@ -145,13 +145,13 @@ fun WorkflowNodeEditor(
                 .heightIn(min = 96.dp),
         )
 
-        // ---- 执行模式(SegmentedControl) ----
+        // ---- 执行模式(MuseSegmentedControl) ----
         Text(
             text = stringResource(R.string.workflow_node_mode_label),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.outline,
         )
-        SegmentedControl(
+        MuseSegmentedControl(
             options = modeLabels,
             selectedIndex = if (node.mode == DelegationContract.TeamWorkflowNode.Mode.PARALLEL) 1 else 0,
             onSelectedChange = { idx ->
@@ -181,7 +181,7 @@ fun WorkflowNodeEditor(
             ) {
                 node.dependsOn.forEach { depId ->
                     val depNode = allNodes.firstOrNull { it.id == depId }
-                    IosChip(
+                    MuseChip(
                         selected = false,
                         onClick = { onRemoveDependency(depId, node.id) },
                         label = depNode?.name?.ifBlank { depId } ?: depId,
@@ -218,7 +218,7 @@ fun WorkflowNodeEditor(
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 candidates.forEach { candidate ->
-                    IosChip(
+                    MuseChip(
                         selected = false,
                         onClick = { onAddDependency(candidate.id, node.id) },
                         label = candidate.name.ifBlank { candidate.id },

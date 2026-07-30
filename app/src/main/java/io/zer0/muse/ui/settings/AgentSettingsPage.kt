@@ -1,4 +1,4 @@
-﻿package io.zer0.muse.ui.settings
+package io.zer0.muse.ui.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -15,7 +15,7 @@ import compose.icons.tablericons.*
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import io.zer0.muse.ui.common.IosSlider
+import io.zer0.muse.ui.common.form.MuseSlider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -37,14 +37,14 @@ import io.zer0.muse.data.ProactiveMessageConfig
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.assistant.AssistantRepository
-import io.zer0.muse.ui.common.AssistantAvatar
-import io.zer0.muse.ui.common.ChevronRight
-import io.zer0.muse.ui.common.MuseDialog
-import io.zer0.muse.ui.common.SectionLabel
-import io.zer0.muse.ui.common.SettingsGroup
-import io.zer0.muse.ui.common.SettingsGroupDivider
-import io.zer0.muse.ui.common.SettingsItemRow
-import io.zer0.muse.ui.common.SettingsSwitchRow
+import io.zer0.muse.ui.common.media.AssistantAvatar
+import io.zer0.muse.ui.common.settings.ChevronRight
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.settings.SectionLabel
+import io.zer0.muse.ui.common.settings.SettingsGroup
+import io.zer0.muse.ui.common.settings.SettingsGroupDivider
+import io.zer0.muse.ui.common.settings.SettingsItemRow
+import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.theme.MusePaddings
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -369,7 +369,7 @@ fun AgentSettingsPage(
                         color = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.padding(bottom = 16.dp),
                     )
-                    IosSlider(
+                    MuseSlider(
                         value = alignedMinutes.toFloat(),
                         onValueChange = { sliderMinutes = it.toInt() },
                         valueRange = 15f..1440f,
@@ -428,7 +428,7 @@ fun AgentSettingsPage(
                         color = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.padding(bottom = 16.dp),
                     )
-                    IosSlider(
+                    MuseSlider(
                         value = alignedMinutes.toFloat(),
                         onValueChange = { sliderMinutes = it.toInt() },
                         valueRange = 0f..maxOffset.toFloat(),
@@ -481,7 +481,7 @@ fun AgentSettingsPage(
                         color = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.padding(bottom = 16.dp),
                     )
-                    IosSlider(
+                    MuseSlider(
                         value = alignedHour.toFloat(),
                         onValueChange = { sliderHour = it.toInt() },
                         valueRange = 0f..23f,
@@ -531,7 +531,7 @@ fun AgentSettingsPage(
                         color = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.padding(bottom = 16.dp),
                     )
-                    IosSlider(
+                    MuseSlider(
                         value = alignedHour.toFloat(),
                         onValueChange = { sliderHour = it.toInt() },
                         valueRange = 0f..23f,
@@ -581,7 +581,7 @@ fun AgentSettingsPage(
                         color = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.padding(bottom = 16.dp),
                     )
-                    IosSlider(
+                    MuseSlider(
                         value = alignedValue.toFloat(),
                         onValueChange = { sliderValue = it },
                         valueRange = 1f..10f,
@@ -631,7 +631,7 @@ fun AgentSettingsPage(
                         color = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.padding(bottom = 16.dp),
                     )
-                    IosSlider(
+                    MuseSlider(
                         value = alignedValue,
                         onValueChange = { sliderValue = it },
                         valueRange = 0f..2f,

@@ -21,9 +21,11 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,9 +43,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import io.zer0.muse.ui.common.WindowWidthClass
-import io.zer0.muse.ui.components.MuseDivider
-import io.zer0.muse.ui.components.MuseListItem
+import io.zer0.muse.ui.common.media.WindowWidthClass
+import io.zer0.muse.ui.common.surface.MuseDivider
+import io.zer0.muse.ui.common.surface.MuseListItem
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.items
@@ -55,6 +57,7 @@ import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Download
@@ -123,16 +126,18 @@ import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
-import io.zer0.muse.ui.common.DesktopShortcuts
-import io.zer0.muse.ui.common.IosTextField
-import io.zer0.muse.ui.common.MuseDialog
-import io.zer0.muse.ui.common.MuseBottomSheet
-import io.zer0.muse.ui.common.MuseToast
-import io.zer0.muse.ui.common.rememberDesktopShortcutsEnabled
-import io.zer0.muse.ui.common.rememberWindowWidthClass
+import io.zer0.muse.ui.common.media.DesktopShortcuts
+import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.form.MuseBottomSheet
+import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.media.AssistantAvatar
+import io.zer0.muse.ui.common.media.rememberDesktopShortcutsEnabled
+import io.zer0.muse.ui.common.media.rememberWindowWidthClass
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.artifact.ArtifactEntity
+import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.knowledge.KnowledgeDocDao
 import io.zer0.muse.data.knowledge.KnowledgeDocEntity
 import io.zer0.muse.ui.chat.BranchSelector
@@ -211,7 +216,7 @@ private fun Modifier.onVolumeKeyEvent(onScroll: (Float) -> Unit): Modifier = thi
  *  - 音量键滚动、MessageBubble、InputBar
  *  - 错误显示、滚动到底按钮、自动滚动
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ChatScreen(
     onOpenAssistants: () -> Unit = {},
@@ -279,6 +284,8 @@ fun ChatScreen(
     var showPromptTemplateSheet by remember { mutableStateOf(false) }
     // v0.29 P3-17: 会话快速切换 sheet(标题点击触发)
     var showSessionSheet by remember { mutableStateOf(false) }
+    // v1.136 T1: 对话内更换助手 sheet(标题长按触发)
+    var showAssistantSwitchSheet by remember { mutableStateOf(false) }
     // v1.25: 委托给助手/团队选择 sheet(Input=前置到当前输入,Message=引用原消息新建)
     var showDelegateSheet by remember { mutableStateOf<DelegateSheetMode?>(null) }
     // v1.94: 工具调用历史 sheet(InputBar 动态胶囊点击展开)
@@ -700,7 +707,11 @@ fun ChatScreen(
                         Column(
                             modifier = Modifier
                                 .weight(1f)
-                                .clickable { showSessionSheet = true }
+                                // v1.136 T1: 点击=切换会话,长按=更换助手
+                                .combinedClickable(
+                                    onClick = { showSessionSheet = true },
+                                    onLongClick = { showAssistantSwitchSheet = true },
+                                )
                                 .semantics { contentDescription = sessionCd },
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center,
@@ -857,6 +868,9 @@ fun ChatScreen(
                     viewModel.pickImage(uri, context, asOcr = false)
                 },
                 onRemovePendingImage = viewModel::removePendingImage,
+                // v1.136 T10: 待发送文档芯片
+                pendingDocuments = state.pendingDocuments,
+                onRemovePendingDocument = viewModel::removePendingDocument,
                 onInsertQuickMessage = { qm ->
                     // Phase 8.5 修复: clipboard 读取切到 IO 线程,避免主线程 IPC ANR
                     ioScope.launch {
@@ -1821,6 +1835,85 @@ fun ChatScreen(
                 onDismiss = { showSessionSheet = false },
             )
         }
+        // v1.136 T1: 对话内更换助手(标题长按触发)
+        if (showAssistantSwitchSheet) {
+            val currentAssistantId = state.currentAssistant?.id
+            MuseDialog(
+                onDismissRequest = { showAssistantSwitchSheet = false },
+                title = stringResource(R.string.chat_switch_assistant_title),
+                content = {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        if (state.assistants.isEmpty()) {
+                            Text(
+                                text = stringResource(R.string.chat_switch_assistant_empty),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(vertical = MusePaddings.largeGap),
+                            )
+                        } else {
+                            state.assistants.forEach { assistant ->
+                                val isCurrent = assistant.id == currentAssistantId
+                                val unnamedAssistant = stringResource(R.string.chat_delegate_unnamed_assistant)
+                                MuseListItem(
+                                    leadingContent = {
+                                        AssistantAvatar(
+                                            assistant = assistant,
+                                            avatarSize = 36.dp,
+                                        )
+                                    },
+                                    headlineContent = {
+                                        Text(
+                                            text = assistant.name.takeIf { it.isNotBlank() } ?: unnamedAssistant,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            color = if (isCurrent) MaterialTheme.colorScheme.primary
+                                                    else MaterialTheme.colorScheme.onSurface,
+                                            fontWeight = if (isCurrent) FontWeight.SemiBold else FontWeight.Normal,
+                                        )
+                                    },
+                                    supportingContent = {
+                                        // v1.136 T5: 优先显示 summary(助手简介),无则回退到 systemPrompt 截断
+                                        val desc = assistant.summary.takeIf { it.isNotBlank() }
+                                            ?: assistant.systemPrompt.take(60)
+                                        if (desc.isNotBlank()) {
+                                            Text(
+                                                text = desc,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.outline,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
+                                        }
+                                    },
+                                    trailingContent = if (isCurrent) {
+                                        {
+                                            Icon(
+                                                imageVector = Icons.Default.Check,
+                                                contentDescription = stringResource(R.string.chat_switch_assistant_current),
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(18.dp),
+                                            )
+                                        }
+                                    } else null,
+                                    modifier = Modifier.clickable {
+                                        if (!isCurrent) {
+                                            viewModel.setSessionAssistant(assistant.id)
+                                            val name = assistant.name.takeIf { it.isNotBlank() } ?: unnamedAssistant
+                                            MuseToast.show(
+                                                context.getString(R.string.chat_switch_assistant_applied, name)
+                                            )
+                                        }
+                                        showAssistantSwitchSheet = false
+                                    },
+                                )
+                            }
+                        }
+                    }
+                },
+                onConfirm = null,
+                dismissText = stringResource(R.string.action_close),
+                onDismiss = { showAssistantSwitchSheet = false },
+            )
+        }
         // v1.25: 委托给助手/团队选择(MuseDialog 替代原 ModalBottomSheet,避免真机 scrim 卡死)
         val delegateMode = showDelegateSheet
         if (delegateMode != null) {
@@ -2016,7 +2109,7 @@ fun ChatScreen(
                 title = stringResource(R.string.edit_message_title),
                 content = {
                     Column(modifier = Modifier.fillMaxWidth()) {
-                        IosTextField(
+                        MuseTextField(
                             value = draft,
                             onValueChange = { draft = it },
                             modifier = Modifier
@@ -2120,7 +2213,7 @@ private fun EmptyChatGuide(
             if (currentAssistant != null &&
                 (currentAssistant.hasImageAvatar() || currentAssistant.avatarEmoji.isNotBlank())
             ) {
-                io.zer0.muse.ui.common.AssistantAvatar(
+                io.zer0.muse.ui.common.media.AssistantAvatar(
                     assistant = currentAssistant,
                     avatarSize = 48.dp,
                 )

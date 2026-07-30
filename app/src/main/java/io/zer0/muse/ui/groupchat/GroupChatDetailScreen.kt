@@ -74,11 +74,11 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import io.zer0.muse.ui.common.IosChip
+import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import io.zer0.muse.ui.common.IosTextField
+import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
@@ -124,10 +124,10 @@ import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.groupchat.GroupChatMessageEntity
 import io.zer0.muse.doc.DocumentParser
 import io.zer0.muse.ui.SmartImage
-import io.zer0.muse.ui.common.AssistantAvatar
-import io.zer0.muse.ui.common.FullScreenMediaViewer
-import io.zer0.muse.ui.common.MuseBottomSheet
-import io.zer0.muse.ui.common.MuseDialog
+import io.zer0.muse.ui.common.media.AssistantAvatar
+import io.zer0.muse.ui.common.media.FullScreenMediaViewer
+import io.zer0.muse.ui.common.form.MuseBottomSheet
+import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.markdown.MarkdownText
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MusePaddings
@@ -664,7 +664,7 @@ fun GroupChatDetailScreen(
                         messageMenuTarget = null
                         val clipboard = context.getSystemService(android.content.ClipboardManager::class.java)
                         clipboard?.setPrimaryClip(android.content.ClipData.newPlainText("message", msg.body))
-                        io.zer0.muse.ui.common.MuseToast.show(context.getString(R.string.groupchat_copied))
+                        io.zer0.muse.ui.common.feedback.MuseToast.show(context.getString(R.string.groupchat_copied))
                     }) {
                         Text(stringResource(R.string.groupchat_copy))
                     }
@@ -743,7 +743,7 @@ fun GroupChatDetailScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                     )
-                    IosTextField(
+                    MuseTextField(
                         value = replyText,
                         onValueChange = { replyText = it },
                         label = { Text(stringResource(R.string.groupchat_reply_hint)) },
@@ -777,7 +777,7 @@ fun GroupChatDetailScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                     )
-                    IosTextField(
+                    MuseTextField(
                         value = whisperText,
                         onValueChange = { whisperText = it },
                         label = { Text(stringResource(R.string.groupchat_whisper_hint)) },
@@ -804,7 +804,7 @@ fun GroupChatDetailScreen(
             onDismissRequest = { showVoteDialog = false },
             title = stringResource(R.string.groupchat_vote_title),
             content = {
-                IosTextField(
+                MuseTextField(
                     value = voteTopic,
                     onValueChange = { voteTopic = it },
                     label = { Text(stringResource(R.string.groupchat_vote_topic_hint)) },
@@ -942,7 +942,7 @@ fun GroupChatDetailScreen(
                     }
                 }
                 // 添加新文档表单
-                IosTextField(
+                MuseTextField(
                     value = newDocTitle,
                     onValueChange = { newDocTitle = it },
                     label = { Text(stringResource(R.string.groupchat_context_doc_title)) },
@@ -950,7 +950,7 @@ fun GroupChatDetailScreen(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                IosTextField(
+                MuseTextField(
                     value = newDocContent,
                     onValueChange = { newDocContent = it },
                     label = { Text(stringResource(R.string.groupchat_context_doc_content)) },
@@ -1036,7 +1036,7 @@ fun GroupChatDetailScreen(
                                     }
                                 }
                                 if (isEditing) {
-                                    IosTextField(
+                                    MuseTextField(
                                         value = editingText,
                                         onValueChange = { newText ->
                                             editingContexts.value = editingContexts.value + (assistant.id to newText)
@@ -1524,7 +1524,7 @@ private fun GroupChatInputBar(
                 .sortedByDescending { it.name.length }
         }
     }
-    // v1.0.28: 输入框重写,对齐任务页面样式(IosTextField + 圆形按钮在同一行,去掉外层 Surface 色块)
+    // v1.0.28: 输入框重写,对齐任务页面样式(MuseTextField + 圆形按钮在同一行,去掉外层 Surface 色块)
     // 原 Surface(tonalElevation=2.dp) 会产生一块与背景不一致的色块,视觉上很突兀。
     Surface(
         color = MaterialTheme.colorScheme.surface,
@@ -1579,7 +1579,7 @@ private fun GroupChatInputBar(
                             modifier = Modifier.size(MuseIconSizes.icon),
                         )
                     }
-                    IosTextField(
+                    MuseTextField(
                         value = text,
                         onValueChange = onTextChange,
                         placeholder = { Text(stringResource(R.string.groupchat_input_placeholder)) },
@@ -2077,7 +2077,7 @@ private fun EditGroupChatDialog(
         title = stringResource(R.string.groupchat_edit_title),
         content = {
             // 群聊名输入框
-            IosTextField(
+            MuseTextField(
                 value = name,
                 onValueChange = { newName ->
                     showErrors = false
@@ -2121,7 +2121,7 @@ private fun EditGroupChatDialog(
                 ) {
                     assistants.forEach { assistant ->
                         val selected = assistant.id in selectedMemberIds
-                        IosChip(
+                        MuseChip(
                             selected = selected,
                             onClick = {
                                 showErrors = false
@@ -2169,7 +2169,7 @@ private fun EditGroupChatDialog(
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 modeOptions.forEach { (mode, labelRes) ->
-                    IosChip(
+                    MuseChip(
                         selected = discussionMode == mode,
                         onClick = { discussionMode = mode },
                         label = stringResource(labelRes),
@@ -2229,14 +2229,14 @@ private fun EditGroupChatDialog(
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     // "不选"选项
-                    IosChip(
+                    MuseChip(
                         selected = hostId.isBlank(),
                         onClick = { hostId = "" },
                         label = stringResource(R.string.groupchat_mode_no_host),
                     )
                     // 只能选已选成员做主持人
                     assistants.filter { it.id in selectedMemberIds }.forEach { assistant ->
-                        IosChip(
+                        MuseChip(
                             selected = hostId == assistant.id,
                             onClick = { hostId = assistant.id },
                             label = assistant.name,

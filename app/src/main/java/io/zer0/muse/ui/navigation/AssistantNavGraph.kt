@@ -32,9 +32,9 @@ import io.zer0.muse.ui.MuseRoutes
 import io.zer0.muse.ui.PromptInjectionScreen
 import io.zer0.muse.ui.QuickMessageScreen
 import io.zer0.muse.ui.SkillScreen
-import io.zer0.muse.ui.common.EmptyState
-import io.zer0.muse.ui.common.WindowWidthClass
-import io.zer0.muse.ui.common.rememberWindowWidthClass
+import io.zer0.muse.ui.common.state.MuseEmptyState
+import io.zer0.muse.ui.common.media.WindowWidthClass
+import io.zer0.muse.ui.common.media.rememberWindowWidthClass
 
 /**
  * 助手域 NavGraph — 包含助手管理、助手详情及 5 个子页、收藏夹、世界书、
@@ -83,7 +83,7 @@ fun NavGraphBuilder.assistantNavGraph(
                         )
                     } else {
                         // P1-4: 未选中助手时的占位空状态(右侧详情区空提示)
-                        EmptyState(
+                        MuseEmptyState(
                             icon = Icons.Outlined.AccountCircle,
                             title = stringResource(R.string.assistant_detail_title_default),
                             modifier = Modifier.fillMaxSize(),

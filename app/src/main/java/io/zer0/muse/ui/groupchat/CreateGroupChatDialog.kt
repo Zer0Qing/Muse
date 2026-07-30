@@ -6,8 +6,8 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import io.zer0.muse.ui.common.IosChip
-import io.zer0.muse.ui.common.IosTextField
+import io.zer0.muse.ui.common.form.MuseChip
+import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.data.AgentTeam
 import io.zer0.muse.data.assistant.AssistantEntity
-import io.zer0.muse.ui.common.MuseDialog
+import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.semiLarge
 
@@ -65,7 +65,7 @@ fun CreateGroupChatDialog(
         title = stringResource(R.string.groupchat_create_title),
         content = {
             // 群聊名输入框
-            IosTextField(
+            MuseTextField(
                 value = name,
                 onValueChange = { newName ->
                     showErrors = false
@@ -109,7 +109,7 @@ fun CreateGroupChatDialog(
                 ) {
                     assistants.forEach { assistant ->
                         val selected = assistant.id in selectedMemberIds
-                        IosChip(
+                        MuseChip(
                             selected = selected,
                             onClick = {
                                 showErrors = false
@@ -149,14 +149,14 @@ fun CreateGroupChatDialog(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    IosChip(
+                    MuseChip(
                         selected = selectedTeamId == null,
                         onClick = { selectedTeamId = null },
                         label = stringResource(R.string.groupchat_no_team),
                     )
                     teams.forEach { team ->
                         val selected = selectedTeamId == team.id
-                        IosChip(
+                        MuseChip(
                             selected = selected,
                             onClick = { selectedTeamId = team.id },
                             label = team.name,

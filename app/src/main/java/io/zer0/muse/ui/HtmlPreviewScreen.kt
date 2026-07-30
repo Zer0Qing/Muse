@@ -27,17 +27,17 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
 import io.zer0.muse.R
-import io.zer0.muse.ui.common.IosTopBar
-import io.zer0.muse.ui.common.IosTactileButton
-import io.zer0.muse.ui.common.LifecycleAwareWebView
-import io.zer0.muse.ui.common.LifecycleAwareWebViewFactory
-import io.zer0.muse.ui.common.MuseToast
+import io.zer0.muse.ui.common.navigation.MuseTopBar
+import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.media.LifecycleAwareWebView
+import io.zer0.muse.ui.common.media.LifecycleAwareWebViewFactory
+import io.zer0.muse.ui.common.feedback.MuseToast
 
 /**
  * HTML 全屏预览页 — 在 WebView 中渲染 LLM 输出的 HTML / SVG 代码。
  *
  * 参考 kelivo 项目的 html_preview_page.dart / webview_page.dart 实现:
- *  - 顶部 IosTopBar 标题"HTML 预览" + 返回按钮 + "在浏览器中打开" + "复制源码"
+ *  - 顶部 MuseTopBar 标题"HTML 预览" + 返回按钮 + "在浏览器中打开" + "复制源码"
  *  - 中间 WebView 加载 html(loadDataWithBaseURL)
  *  - 启用 JavaScript 与 DOM storage,支持缩放
  *  - 设置 WebViewClient 防止外部链接跳转(仅放行 about:blank)
@@ -87,18 +87,18 @@ fun HtmlPreviewScreen(
         modifier = Modifier.fillMaxSize(),
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            IosTopBar(
+            MuseTopBar(
                 title = stringResource(R.string.html_preview_title),
                 onBack = onBack,
                 actions = {
                     // 在浏览器中打开:把 HTML 编码为 data URL,用 ACTION_VIEW 交给系统浏览器
-                    IosTactileButton(
+                    MuseTactileButton(
                         icon = Icons.Default.OpenInBrowser,
                         contentDescription = stringResource(R.string.html_preview_open_in_browser_cd),
                         onClick = { openInExternalBrowser(context, html) },
                     )
                     // 复制源码:写入剪贴板 + Toast 反馈
-                    IosTactileButton(
+                    MuseTactileButton(
                         icon = Icons.Default.ContentCopy,
                         contentDescription = stringResource(R.string.html_preview_copy_source_cd),
                         onClick = { copyHtmlToClipboard(context, html) },

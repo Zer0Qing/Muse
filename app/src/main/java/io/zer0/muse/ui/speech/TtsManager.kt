@@ -9,7 +9,7 @@ import android.speech.tts.UtteranceProgressListener
 import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.data.MediaConfig
-import io.zer0.muse.ui.common.MuseToast
+import io.zer0.muse.ui.common.feedback.MuseToast
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

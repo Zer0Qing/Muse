@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import io.zer0.muse.ui.common.WindowWidthClass
+import io.zer0.muse.ui.common.media.WindowWidthClass
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -51,11 +51,11 @@ import io.zer0.muse.R
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.groupchat.GroupChatEntity
 import io.zer0.muse.data.groupchat.GroupChatMessageEntity
-import io.zer0.muse.ui.common.AssistantAvatar
-import io.zer0.muse.ui.common.ChevronRight
-import io.zer0.muse.ui.common.IosCardPress
-import io.zer0.muse.ui.common.rememberWindowWidthClass
-import io.zer0.muse.ui.common.MuseDialog
+import io.zer0.muse.ui.common.media.AssistantAvatar
+import io.zer0.muse.ui.common.settings.ChevronRight
+import io.zer0.muse.ui.common.surface.MuseCardPress
+import io.zer0.muse.ui.common.media.rememberWindowWidthClass
+import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MuseIconSizes
@@ -189,7 +189,7 @@ fun GroupChatListScreen(
                 }
                 // v2.2: 底部"新建群聊"按钮(参考图:左侧绿色加号圆圈 + 居中绿色文字)
                 item(key = "create_new") {
-                    IosCardPress(
+                    MuseCardPress(
                         onClick = { showCreateDialog = true },
                         modifier = Modifier.fillMaxWidth(),
                         shape = MuseShapes.extraLarge,
@@ -271,7 +271,7 @@ private fun GroupChatCard(
     var showDeleteConfirm by remember { mutableStateOf(false) }
     val hapticFeedback = LocalHapticFeedback.current
 
-    IosCardPress(
+    MuseCardPress(
         onClick = onClick,
         onLongClick = {
             MuseHaptics.medium(hapticFeedback)

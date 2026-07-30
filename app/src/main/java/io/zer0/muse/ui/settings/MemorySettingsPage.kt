@@ -1,4 +1,4 @@
-﻿package io.zer0.muse.ui.settings
+package io.zer0.muse.ui.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -11,8 +11,8 @@ import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import io.zer0.muse.ui.common.IosChip
-import io.zer0.muse.ui.common.IosSlider
+import io.zer0.muse.ui.common.form.MuseChip
+import io.zer0.muse.ui.common.form.MuseSlider
 import io.zer0.muse.ui.theme.MuseShapes
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,10 +31,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.memory.ticker.MemoryConfig
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
-import io.zer0.muse.ui.common.SectionLabel
-import io.zer0.muse.ui.common.SettingsGroup
-import io.zer0.muse.ui.common.SettingsGroupDivider
-import io.zer0.muse.ui.common.SettingsSwitchRow
+import io.zer0.muse.ui.common.settings.SectionLabel
+import io.zer0.muse.ui.common.settings.SettingsGroup
+import io.zer0.muse.ui.common.settings.SettingsGroupDivider
+import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -73,7 +73,7 @@ fun MemorySettingsPage(
             // v1.78 (H7): 保存前校验,拒绝 compileThreshold >= baseImportance 等危险配置
             val err = MemoryConfig.validate(localConfig)
             if (err != null) {
-                io.zer0.muse.ui.common.MuseToast.show(err)
+                io.zer0.muse.ui.common.feedback.MuseToast.show(err)
                 localConfig = memoryConfig // 回退到上次合法值
             } else {
                 scope.launch { settings.saveMemoryConfig(localConfig) }
@@ -253,7 +253,7 @@ private fun NotificationPolicyRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             policies.forEach { (value, labelRes) ->
-                IosChip(
+                MuseChip(
                     selected = current == value,
                     onClick = { onChange(value) },
                     label = stringResource(labelRes),
@@ -312,7 +312,7 @@ private fun SliderRow(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.outline,
             )
-            IosSlider(
+            MuseSlider(
                 value = value,
                 onValueChange = { v -> onValueChange(v) },
                 valueRange = range,

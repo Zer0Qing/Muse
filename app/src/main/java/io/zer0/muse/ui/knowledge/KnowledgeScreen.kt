@@ -2,9 +2,9 @@ package io.zer0.muse.ui.knowledge
 
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
-import io.zer0.muse.ui.common.EmptyState
-import io.zer0.muse.ui.common.IosFloatingButton
-import io.zer0.muse.ui.common.MuseToast
+import io.zer0.muse.ui.common.state.MuseEmptyState
+import io.zer0.muse.ui.common.form.MuseFloatingButton
+import io.zer0.muse.ui.common.feedback.MuseToast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -49,7 +49,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import io.zer0.muse.ui.common.IosTopBar
+import io.zer0.muse.ui.common.navigation.MuseTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -70,8 +70,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.data.knowledge.KnowledgeDocDao
 import io.zer0.muse.data.knowledge.KnowledgeDocEntity
-import io.zer0.muse.ui.common.ConfirmDeleteDialog
-import io.zer0.muse.ui.common.MuseDialog
+import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
+import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseIconSizes
@@ -321,7 +321,7 @@ fun KnowledgeScreen(
 
     Scaffold(
         topBar = {
-            IosTopBar(
+            MuseTopBar(
                 title = stringResource(R.string.knowledge_title),
                 onBack = onBack,
                 largeTitle = true,
@@ -334,7 +334,7 @@ fun KnowledgeScreen(
             )
         },
         floatingActionButton = {
-            IosFloatingButton(
+            MuseFloatingButton(
                 icon = Icons.Default.Add,
                 onClick = { if (!importing) importLauncher.launch("*/*") },
                 contentDescription = stringResource(R.string.knowledge_import),
@@ -426,7 +426,7 @@ fun KnowledgeScreen(
                         .sortedWith(sortMode.comparator)
                 }
                 if (visibleDocs.isEmpty()) {
-                    EmptyState(
+                    MuseEmptyState(
                         icon = if (searchQuery.isNotBlank()) Icons.Outlined.Description else Icons.AutoMirrored.Outlined.MenuBook,
                         title = if (searchQuery.isNotBlank()) stringResource(R.string.knowledge_no_match_title) else stringResource(R.string.knowledge_empty_title),
                         subtitle = if (searchQuery.isNotBlank()) stringResource(R.string.knowledge_no_match_subtitle) else stringResource(R.string.knowledge_empty_subtitle),

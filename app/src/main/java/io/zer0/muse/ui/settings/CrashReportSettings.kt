@@ -11,10 +11,10 @@ import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import io.zer0.muse.ui.common.IosChip
+import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import io.zer0.muse.ui.common.IosTextField
+import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -38,12 +38,12 @@ import io.zer0.muse.crash.MuseCrashHandler
 import io.zer0.muse.crash.NoopCrashReporter
 import io.zer0.muse.crash.buildStandardMetadata
 import io.zer0.muse.data.SettingsRepository
-import io.zer0.muse.ui.common.MuseDialog
-import io.zer0.muse.ui.common.MuseToast
-import io.zer0.muse.ui.common.SectionLabel
-import io.zer0.muse.ui.common.SettingsGroup
-import io.zer0.muse.ui.common.SettingsGroupDivider
-import io.zer0.muse.ui.common.SettingsSwitchRow
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.settings.SectionLabel
+import io.zer0.muse.ui.common.settings.SettingsGroup
+import io.zer0.muse.ui.common.settings.SettingsGroupDivider
+import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import kotlinx.coroutines.launch
@@ -207,7 +207,7 @@ fun CrashReportSettingsPage(
                                     CrashReporterFactory.METHOD_EMAIL to stringResource(R.string.settings_crash_method_email),
                                     CrashReporterFactory.METHOD_WEBHOOK to "Webhook",
                                 ).forEach { (value, label) ->
-                                    IosChip(
+                                    MuseChip(
                                         selected = method == value,
                                         onClick = {
                                             scope.launch { settings.saveCrashReportMethod(value) }
@@ -221,7 +221,7 @@ fun CrashReportSettingsPage(
                     // ── 邮件配置 ──
                     if (method == CrashReporterFactory.METHOD_EMAIL) {
                         SettingsGroupDivider()
-                        IosTextField(
+                        MuseTextField(
                             value = emailDraft,
                             onValueChange = { emailDraft = it },
                             label = { Text(stringResource(R.string.settings_crash_email_label)) },
@@ -250,7 +250,7 @@ fun CrashReportSettingsPage(
                     // ── Webhook 配置 ──
                     if (method == CrashReporterFactory.METHOD_WEBHOOK) {
                         SettingsGroupDivider()
-                        IosTextField(
+                        MuseTextField(
                             value = webhookDraft,
                             onValueChange = { webhookDraft = it },
                             label = { Text("Webhook URL") },

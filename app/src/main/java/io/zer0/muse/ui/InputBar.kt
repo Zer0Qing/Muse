@@ -19,7 +19,9 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.tween
 import io.zer0.muse.ui.theme.MuseAnimation
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.horizontalScroll
@@ -93,11 +95,11 @@ import io.zer0.muse.R
 import io.zer0.muse.asr.ASRStatus
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.quickmsg.QuickMessageEntity
-import io.zer0.muse.ui.common.IosChip
-import io.zer0.muse.ui.common.IosTextField
-import io.zer0.muse.ui.common.MuseBottomSheet
-import io.zer0.muse.ui.common.MuseDialog
-import io.zer0.muse.ui.common.MuseToast
+import io.zer0.muse.ui.common.form.MuseChip
+import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.form.MuseBottomSheet
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MuseElevation
@@ -140,7 +142,7 @@ private val MENTION_HIGHLIGHT_REGEX = Regex("@[\\u4e00-\\u9fa5\\w]+")
  *  - 快捷消息 chips、模式选择器、待发送图片预览
  *  - 边缘到边缘: navigationBarsPadding + imePadding
  */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
 internal fun InputBar(
     text: String,
@@ -180,6 +182,9 @@ internal fun InputBar(
     // v0.53: 工具菜单中最近相册图片点击回调
     onPickGalleryImage: (Uri) -> Unit = {},
     onRemovePendingImage: (Int) -> Unit = {},
+    // v1.136 T10: 待发送文档(已解析为纯文本,发送时合并到消息内容)
+    pendingDocuments: List<io.zer0.muse.ui.chat.PendingDocument> = emptyList(),
+    onRemovePendingDocument: (Int) -> Unit = {},
     // 视频输入支持:待发送视频附件(null 表示无);与 pendingImages 互斥,避免一次发送超大 payload
     pendingVideo: VideoAttachment? = null,
     onPickVideo: () -> Unit = {},
@@ -221,6 +226,8 @@ internal fun InputBar(
         }
     }
     var expanded by remember { mutableStateOf(false) }
+    // 长按输入栏弹出的动作菜单(全屏输入模式入口)
+    var showActionMenu by remember { mutableStateOf(false) }
     if (expanded) {
         Box(
             modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface.copy(alpha = 0.97f)).systemBarsPadding()
@@ -235,7 +242,7 @@ internal fun InputBar(
                     Spacer(Modifier.size(48.dp))
                 }
                 Spacer(Modifier.height(12.dp))
-                IosTextField(
+                MuseTextField(
                     value = text,
                     onValueChange = { if (it.length <= 50000) onTextChanged(it) },
                     modifier = Modifier.fillMaxWidth().weight(1f),
@@ -370,7 +377,7 @@ internal fun InputBar(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 quickMessages.forEach { qm ->
-                    IosChip(
+                    MuseChip(
                         selected = false,
                         onClick = { onInsertQuickMessage(qm) },
                         label = qm.name.ifBlank { stringResource(R.string.chat_unnamed) },
@@ -434,6 +441,67 @@ internal fun InputBar(
                                     modifier = Modifier.fillMaxSize(),
                                 )
                             }
+                        }
+                    }
+                }
+            }
+        }
+
+        // v1.136 T10: 待发送文档预览(可移除的文件芯片)
+        if (pendingDocuments.isNotEmpty()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(top = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                pendingDocuments.forEachIndexed { index, doc ->
+                    val docInteractionSource = remember { MutableInteractionSource() }
+                    Surface(
+                        shape = MuseShapes.medium,
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                        modifier = Modifier
+                            .padding(top = 4.dp)
+                            .clickable(
+                                interactionSource = docInteractionSource,
+                                indication = null,
+                            ) { onRemovePendingDocument(index) },
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                        ) {
+                            Icon(
+                                imageVector = TablerIcons.FileText,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Column {
+                                Text(
+                                    text = doc.name,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.widthIn(max = 120.dp),
+                                )
+                                Text(
+                                    text = "${doc.charCount} 字",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Spacer(Modifier.width(4.dp))
+                            Icon(
+                                imageVector = TablerIcons.X,
+                                contentDescription = stringResource(R.string.chat_remove_document_cd),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                modifier = Modifier.size(14.dp),
+                            )
                         }
                     }
                 }
@@ -595,7 +663,7 @@ internal fun InputBar(
                     onDismissRequest = { showEditReplyDialog = false },
                     title = stringResource(R.string.chat_edit_reply_title),
                     content = {
-                        IosTextField(
+                        MuseTextField(
                             value = editReplyText,
                             onValueChange = { editReplyText = it },
                             modifier = Modifier.fillMaxWidth(),
@@ -641,7 +709,17 @@ internal fun InputBar(
                 modifier = Modifier
                     .fillMaxWidth()
                     // v1.131: 内部 Row vertical padding 6dp → 3dp,缩小输入栏高度
-                    .padding(horizontal = 8.dp, vertical = 3.dp),
+                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                    // 长按输入栏弹出动作菜单(全屏输入模式入口)
+                    .combinedClickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = {},
+                        onLongClick = {
+                            MuseHaptics.medium(hapticFeedback)
+                            showActionMenu = true
+                        },
+                    ),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
@@ -981,7 +1059,7 @@ internal fun InputBar(
 
                 // 中间: TextField(无边框,透明背景)
                 // v0.31: 回车键发送(enterToSend 开启时,Enter 发送,Shift+Enter 换行)
-                IosTextField(
+                MuseTextField(
                     value = text,
                     // v1.79 (M-I12): 输入框 maxLength 字符上限
                     onValueChange = { if (it.length <= INPUT_TEXT_MAX_LENGTH) onTextChanged(it) },
@@ -1038,6 +1116,26 @@ internal fun InputBar(
                             modifier = Modifier.size(MuseIconSizes.iconMedium),
                         )
                     }
+                }
+                // 长按输入栏弹出的动作菜单(全屏输入模式入口)
+                DropdownMenu(
+                    expanded = showActionMenu,
+                    onDismissRequest = { showActionMenu = false },
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.chat_input_action_fullscreen)) },
+                        onClick = {
+                            showActionMenu = false
+                            expanded = true
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = compose.icons.TablerIcons.ArrowsMaximize,
+                                contentDescription = null,
+                                modifier = Modifier.size(MuseIconSizes.iconMedium),
+                            )
+                        },
+                    )
                 }
                 // 右侧: 麦克风(空文本且无待发图片时) / 发送(有文本时) / 停止(流式中)
                 if (isStreaming) {
@@ -1351,7 +1449,7 @@ private fun ImageGenParamsPanel(
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 sizes.map { it to it }.forEach { (value, label) ->
-                    IosChip(
+                    MuseChip(
                         selected = params.size == value,
                         onClick = { onParamsChange(params.copy(size = value)) },
                         label = label,
@@ -1377,7 +1475,7 @@ private fun ImageGenParamsPanel(
                         "auto" -> stringResource(R.string.chat_quality_auto)
                         else -> value
                     }
-                    IosChip(
+                    MuseChip(
                         selected = params.quality == value,
                         onClick = { onParamsChange(params.copy(quality = value)) },
                         label = label,
@@ -1399,7 +1497,7 @@ private fun ImageGenParamsPanel(
                         "natural" -> stringResource(R.string.chat_style_natural)
                         else -> value
                     }
-                    IosChip(
+                    MuseChip(
                         selected = params.style == value,
                         onClick = { onParamsChange(params.copy(style = value)) },
                         label = label,
@@ -1411,7 +1509,7 @@ private fun ImageGenParamsPanel(
         // 参考图
         val supportsRef = model?.supportsReferenceImage == true
         if (params.referenceImageUri.isNullOrBlank()) {
-            IosChip(
+            MuseChip(
                 selected = false,
                 onClick = {
                     if (supportsRef) imagePicker.launch("image/*")

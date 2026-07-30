@@ -52,9 +52,9 @@ import io.zer0.muse.asr.ASRStatus
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.quickmsg.QuickMessageEntity
 import io.zer0.muse.ui.chat.VideoAttachment
-import io.zer0.muse.ui.common.IosTactileButton
-import io.zer0.muse.ui.common.IosTextField
-import io.zer0.muse.ui.common.MuseDialog
+import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MuseIconSizes
@@ -75,7 +75,7 @@ import io.zer0.muse.ui.theme.semiLarge
  *  - 链接点击弹 [MuseDialog] 收集 URL,生成 `[text](url)` 占位符。
  *
  * 不引入新依赖,全部使用 MuseShapes / MusePaddings / MuseIconSizes 设计令牌,
- * 不使用 Material3 默认 Button / AlertDialog,统一 [IosTactileButton] / [MuseDialog]。
+ * 不使用 Material3 默认 Button / AlertDialog,统一 [MuseTactileButton] / [MuseDialog]。
  *
  * 注:VisualTransformation 实时预览因 InputBar 内部已绑定 MentionHighlightTransformation,
  * 此处不再叠加(任务描述标记为可选),格式预览交由 MessageBubble 渲染时统一处理。
@@ -110,6 +110,9 @@ internal fun RichInputBar(
     onPickImage: (asOcr: Boolean) -> Unit = {},
     onPickGalleryImage: (Uri) -> Unit = {},
     onRemovePendingImage: (Int) -> Unit = {},
+    // v1.136 T10: 待发送文档(转发到 InputBar)
+    pendingDocuments: List<io.zer0.muse.ui.chat.PendingDocument> = emptyList(),
+    onRemovePendingDocument: (Int) -> Unit = {},
     pendingVideo: VideoAttachment? = null,
     onPickVideo: () -> Unit = {},
     onRemovePendingVideo: () -> Unit = {},
@@ -182,7 +185,7 @@ internal fun RichInputBar(
                 // 格式切换按钮(展开时高亮,提示当前状态)
                 val toggleTint = if (showFormatToolbar) MaterialTheme.colorScheme.primary
                 else MaterialTheme.colorScheme.onSurfaceVariant
-                IosTactileButton(
+                MuseTactileButton(
                     icon = Icons.Default.TextFormat,
                     onClick = {
                         MuseHaptics.light(hapticFeedback)
@@ -226,6 +229,8 @@ internal fun RichInputBar(
             onPickImage = onPickImage,
             onPickGalleryImage = onPickGalleryImage,
             onRemovePendingImage = onRemovePendingImage,
+            pendingDocuments = pendingDocuments,
+            onRemovePendingDocument = onRemovePendingDocument,
             pendingVideo = pendingVideo,
             onPickVideo = onPickVideo,
             onRemovePendingVideo = onRemovePendingVideo,
@@ -279,9 +284,9 @@ enum class MarkdownFormat {
 /**
  * P2-12: 工具条 Surface 容器 — 横向滚动的格式按钮 Row。
  *
- * 使用 [Surface] + [Row] + 多个 [IosTactileButton] 组合,遵循设计令牌:
+ * 使用 [Surface] + [Row] + 多个 [MuseTactileButton] 组合,遵循设计令牌:
  *  - 容器:[MuseShapes.semiLarge] 圆角 + surfaceVariant 半透明背景
- *  - 按钮:[IosTactileButton](无涟漪、按下渐变反馈)
+ *  - 按钮:[MuseTactileButton](无涟漪、按下渐变反馈)
  *  - 间距:[MusePaddings.contentGap]
  *  - 横向滚动:防止小屏溢出
  */
@@ -351,7 +356,7 @@ private fun FormatToolbarSurface(
 }
 
 /**
- * P2-12: 单个格式按钮 — 用 [IosTactileButton] 保持 iOS 触觉反馈一致性。
+ * P2-12: 单个格式按钮 — 用 [MuseTactileButton] 保持 iOS 触觉反馈一致性。
  */
 @Composable
 private fun FormatButton(
@@ -359,7 +364,7 @@ private fun FormatButton(
     contentDescription: String,
     onClick: () -> Unit,
 ) {
-    IosTactileButton(
+    MuseTactileButton(
         icon = icon,
         onClick = onClick,
         contentDescription = contentDescription,
@@ -372,7 +377,7 @@ private fun FormatButton(
 /**
  * P2-12: 链接插入对话框 — 收集链接文本 + URL,确认后生成 `[text](url)`。
  *
- * 使用 [MuseDialog] 自定义 content,内含两个 [IosTextField]。
+ * 使用 [MuseDialog] 自定义 content,内含两个 [MuseTextField]。
  * 不使用 AlertDialog(遵循项目规范)。
  */
 @Composable
@@ -388,19 +393,19 @@ private fun LinkInsertDialog(
         onDismissRequest = onDismiss,
         title = stringResource(R.string.rich_input_link_insert),
         content = {
-            // 用 Column 排列两个输入框;IosTextField 仅在 Dialog 内部使用,不违反"不用 AlertDialog"约束
+            // 用 Column 排列两个输入框;MuseTextField 仅在 Dialog 内部使用,不违反"不用 AlertDialog"约束
             androidx.compose.foundation.layout.Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                IosTextField(
+                MuseTextField(
                     value = linkText,
                     onValueChange = { linkText = it },
                     modifier = Modifier.fillMaxWidth(),
                     label = { Text(linkTextLabel) },
                     singleLine = true,
                 )
-                IosTextField(
+                MuseTextField(
                     value = url,
                     onValueChange = { url = it },
                     modifier = Modifier.fillMaxWidth(),

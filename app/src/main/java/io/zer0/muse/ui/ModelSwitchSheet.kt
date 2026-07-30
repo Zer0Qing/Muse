@@ -25,7 +25,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import io.zer0.muse.ui.common.IosTextField
+import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -49,8 +49,8 @@ import io.zer0.ai.core.Model
 import io.zer0.ai.core.ProviderConfig
 import io.zer0.ai.core.ProviderType
 import io.zer0.muse.R
-import io.zer0.muse.ui.common.IosCardPress
-import io.zer0.muse.ui.common.MuseDialog
+import io.zer0.muse.ui.common.surface.MuseCardPress
+import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -67,7 +67,7 @@ import io.zer0.muse.ui.theme.semiLarge
  *  - 几乎不用 elevation,靠 surfaceVariant 色块和 divider 分组
  *
  * v1.x: 模型列表改造为分组折叠结构(参考 kelivo ModelGrouping 实现),
- *  - 每组头部用 [IosCardPress] 风格的卡片,点击切换展开/折叠
+ *  - 每组头部用 [MuseCardPress] 风格的卡片,点击切换展开/折叠
  *  - 折叠状态用 [rememberSaveable] + 自定义 Saver 持久化(默认折叠)
  *  - 顶部加搜索框过滤模型 id / name
  *  - 多组时显示"全部展开 / 全部折叠"批量操作按钮
@@ -297,7 +297,7 @@ internal fun ModelSwitchSheet(
                 }
 
                 // === 新增:搜索框(按 id / name 过滤模型) ===
-                IosTextField(
+                MuseTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
                     placeholder = {
@@ -448,7 +448,7 @@ internal fun ModelSwitchSheet(
 /**
  * 分组头部 — iOS 风格可点击卡片,显示组名 + 模型数量 + 展开/折叠箭头。
  *
- * 用 [IosCardPress] 替代裸 clickable,获得 200ms easeOutCubic 颜色渐变按压效果
+ * 用 [MuseCardPress] 替代裸 clickable,获得 200ms easeOutCubic 颜色渐变按压效果
  * 和触觉反馈,与项目 Kelivo 风格一致。
  *
  * @param groupName 组名(如 "GPT" / "Claude")
@@ -463,7 +463,7 @@ private fun GroupHeader(
     isCollapsed: Boolean,
     onToggle: () -> Unit,
 ) {
-    IosCardPress(
+    MuseCardPress(
         onClick = onToggle,
         shape = MuseShapes.medium,
         containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),

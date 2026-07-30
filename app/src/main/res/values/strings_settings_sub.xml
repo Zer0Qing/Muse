@@ -403,6 +403,21 @@
     <string name="settings_image_gen_no_model">该供应商下没有可用的绘图模型</string>
     <string name="settings_image_gen_selected">已选择</string>
 
+    <!-- 视频生成 -->
+    <string name="settings_video_gen_section">视频生成</string>
+    <string name="settings_video_gen_duration">时长</string>
+    <string name="settings_video_gen_duration_5">5 秒</string>
+    <string name="settings_video_gen_duration_10">10 秒</string>
+    <string name="settings_video_gen_resolution">分辨率</string>
+    <string name="settings_video_gen_select_provider">请选择视频供应商</string>
+    <string name="settings_video_gen_select_model">选择视频模型</string>
+    <string name="settings_video_gen_select_default">点击选择默认使用的视频供应商</string>
+    <string name="settings_video_gen_no_provider">没有可用的视频供应商</string>
+    <string name="settings_video_gen_provider">供应商</string>
+    <string name="settings_video_gen_model_label">模型</string>
+    <string name="settings_video_gen_no_model">该供应商下没有可用的视频模型</string>
+    <string name="settings_video_gen_selected">已选择</string>
+
     <!-- 媒体 -->
     <string name="settings_media_page_title">媒体</string>
     <string name="settings_media_recording_section">语音录制</string>

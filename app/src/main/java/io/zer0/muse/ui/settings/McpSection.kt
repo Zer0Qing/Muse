@@ -3,8 +3,8 @@ package io.zer0.muse.ui.settings
 import io.zer0.common.resultOf
 import android.content.Intent
 import android.net.Uri
-import io.zer0.muse.ui.common.MuseDialog
-import io.zer0.muse.ui.common.MuseToast
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.feedback.MuseToast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,7 +24,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import io.zer0.muse.ui.common.IosTextField
+import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -58,13 +58,13 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
-import io.zer0.muse.ui.common.SectionLabel
-import io.zer0.muse.ui.common.SettingsGroup
-import io.zer0.muse.ui.common.SettingsGroupDivider
-import io.zer0.muse.ui.common.EmptyState
-import io.zer0.muse.ui.common.IosSwitch
-import io.zer0.muse.ui.common.IosTextField
-import io.zer0.muse.ui.common.IosTactileButton
+import io.zer0.muse.ui.common.settings.SectionLabel
+import io.zer0.muse.ui.common.settings.SettingsGroup
+import io.zer0.muse.ui.common.settings.SettingsGroupDivider
+import io.zer0.muse.ui.common.state.MuseEmptyState
+import io.zer0.muse.ui.common.form.MuseSwitch
+import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.MusePaddings
 import org.koin.compose.koinInject
@@ -109,8 +109,8 @@ internal fun McpSection() {
                 }
             }
             serverList.isEmpty() -> {
-                // v1.48: h14 MCP server 空态改用 EmptyState 组件
-                EmptyState(
+                // v1.48: h14 MCP server 空态改用 MuseEmptyState 组件
+                MuseEmptyState(
                     icon = TablerIcons.Puzzle,
                     title = stringResource(R.string.settings_mcp_empty_title),
                     subtitle = stringResource(R.string.settings_mcp_empty_subtitle),
@@ -204,7 +204,7 @@ private fun McpServerRow(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         // 状态指示小圆点(高级感)
-        io.zer0.muse.ui.common.StatusDot(
+        io.zer0.muse.ui.common.settings.StatusDot(
             color = when (state) {
                 McpConnectionState.CONNECTED -> MaterialTheme.colorScheme.primary
                 McpConnectionState.CONNECTING -> MaterialTheme.colorScheme.tertiary
@@ -238,15 +238,15 @@ private fun McpServerRow(
             )
         }
         // 阶段 D: 启停开关(独立于连接,允许保留配置但不连接)
-        IosSwitch(
+        MuseSwitch(
             checked = server.enabled,
             onCheckedChange = onToggleEnabled,
             modifier = Modifier.semantics {
                 stateDescription = if (server.enabled) stateEnabledText else stateDisabledText
             },
         )
-        // v1.134 P0-6: 更多操作菜单按钮用 IosTactileButton(48dp 触摸目标 + 无 ripple)
-        IosTactileButton(
+        // v1.134 P0-6: 更多操作菜单按钮用 MuseTactileButton(48dp 触摸目标 + 无 ripple)
+        MuseTactileButton(
             icon = TablerIcons.DotsVertical,
             onClick = { menuExpanded = true },
             contentDescription = stringResource(R.string.settings_mcp_more),
@@ -308,12 +308,12 @@ private fun McpServerRow(
                 onDismiss = { menuExpanded = false },
             )
         }
-        IosTactileButton(
+        MuseTactileButton(
             icon = TablerIcons.Edit,
             onClick = onReconnect,
             contentDescription = stringResource(R.string.settings_mcp_reconnect),
         )
-        IosTactileButton(
+        MuseTactileButton(
             icon = TablerIcons.Trash,
             onClick = onDelete,
             contentDescription = stringResource(R.string.settings_common_delete),
@@ -447,7 +447,7 @@ private fun McpServerAddDialog(
                     )
                 }
                 if (showAdvanced) {
-                    IosTextField(
+                    MuseTextField(
                         value = headersText,
                         onValueChange = { headersText = it },
                         modifier = Modifier.fillMaxWidth(),
@@ -459,7 +459,7 @@ private fun McpServerAddDialog(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        IosSwitch(
+                        MuseSwitch(
                             checked = autoReconnect,
                             onCheckedChange = { autoReconnect = it },
                             modifier = Modifier.semantics {
@@ -578,7 +578,7 @@ private fun ResourcesBrowserDialog(
                         Text(stringResource(R.string.settings_mcp_loading), style = MaterialTheme.typography.bodySmall)
                     }
                 } else if (resources.isEmpty()) {
-                    // v1.48: h14 Resources 空态改为带图标的居中 Row(空间小,不用 EmptyState 大组件)
+                    // v1.48: h14 Resources 空态改为带图标的居中 Row(空间小,不用 MuseEmptyState 大组件)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
@@ -725,7 +725,7 @@ private fun PromptsBrowserDialog(
                         Text(stringResource(R.string.settings_mcp_loading), style = MaterialTheme.typography.bodySmall)
                     }
                 } else if (prompts.isEmpty()) {
-                    // v1.48: h14 Prompts 空态改为带图标的居中 Row(空间小,不用 EmptyState 大组件)
+                    // v1.48: h14 Prompts 空态改为带图标的居中 Row(空间小,不用 MuseEmptyState 大组件)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
@@ -812,7 +812,7 @@ private fun PromptsBrowserDialog(
                     } else {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             prompt.arguments.forEach { arg ->
-                                IosTextField(
+                                MuseTextField(
                                     value = argValues[arg.name] ?: "",
                                     onValueChange = { argValues[arg.name] = it },
                                     modifier = Modifier.fillMaxWidth(),
@@ -965,7 +965,7 @@ private fun JsonElement.toDisplayText(): String {
 /**
  * v1.134 P0-7: MCP 操作菜单行 — 用于 MuseDialog 内部的可点击行。
  *
- * 替代 Material3 DropdownMenuItem,视觉风格与 IosDropdown 选项行一致:
+ * 替代 Material3 DropdownMenuItem,视觉风格与 MuseDropdown 选项行一致:
  * 全宽 + 左对齐文本 + 适度 padding,点击触发回调。
  */
 @Composable

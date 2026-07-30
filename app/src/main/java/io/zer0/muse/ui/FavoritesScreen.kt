@@ -26,7 +26,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import io.zer0.muse.ui.common.IosChip
+import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -34,8 +34,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import io.zer0.muse.ui.common.IosTopBar
-import io.zer0.muse.ui.common.IosTextField
+import io.zer0.muse.ui.common.navigation.MuseTopBar
+import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -51,7 +51,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
 import io.zer0.muse.R
-import io.zer0.muse.ui.common.EmptyState
+import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.markdown.MarkdownText
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseShapes
@@ -104,7 +104,7 @@ fun FavoritesScreen(
 
     Scaffold(
         topBar = {
-            IosTopBar(
+            MuseTopBar(
                 title = stringResource(R.string.favorites_title, state.favoriteMessages.size),
                 onBack = onBack,
             )
@@ -143,7 +143,7 @@ fun FavoritesScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center,
                 ) {
-                    EmptyState(
+                    MuseEmptyState(
                         icon = Icons.Outlined.Star,
                         title = stringResource(R.string.favorites_empty_title),
                         subtitle = stringResource(R.string.favorites_empty_subtitle),
@@ -155,7 +155,7 @@ fun FavoritesScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center,
                 ) {
-                    EmptyState(
+                    MuseEmptyState(
                         icon = Icons.Outlined.Star,
                         title = stringResource(R.string.favorites_empty_in_filter),
                         subtitle = null,
@@ -229,7 +229,7 @@ private fun FavoriteGroupFilterRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         items(groups, key = { it.first ?: "all" }) { (group, label) ->
-            IosChip(
+            MuseChip(
                 selected = currentGroup == group,
                 onClick = { onGroupChange(group) },
                 label = label,
@@ -335,7 +335,7 @@ private fun FavoriteTagFilterRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item(key = "all") {
-            IosChip(
+            MuseChip(
                 selected = currentFilter == null,
                 onClick = { onFilterChange(null) },
                 label = stringResource(R.string.favorites_filter_all, allCount),
@@ -343,7 +343,7 @@ private fun FavoriteTagFilterRow(
         }
         if (ungroupedCount > 0) {
             item(key = "ungrouped") {
-                IosChip(
+                MuseChip(
                     selected = currentFilter == ChatViewModel.FAVORITE_TAG_UNGROUPED,
                     onClick = { onFilterChange(ChatViewModel.FAVORITE_TAG_UNGROUPED) },
                     label = stringResource(R.string.favorites_filter_ungrouped, ungroupedCount),
@@ -351,7 +351,7 @@ private fun FavoriteTagFilterRow(
             }
         }
         items(tags, key = { it }) { tag ->
-            IosChip(
+            MuseChip(
                 selected = currentFilter == tag,
                 onClick = { onFilterChange(tag) },
                 label = stringResource(R.string.favorites_tag_chip, tag, tagCounts[tag] ?: 0),
@@ -379,7 +379,7 @@ private fun FavoriteTagEditDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.favorites_tag_edit_title)) },
         text = {
-            IosTextField(
+            MuseTextField(
                 value = text,
                 onValueChange = { text = it },
                 label = { Text(stringResource(R.string.favorites_tag_edit_hint)) },

@@ -501,6 +501,9 @@
     <string name="settings_screen_video_gen_cd">Video Generation, Kling API, click to open</string>
     <string name="settings_screen_video_gen">Video Generation</string>
     <string name="settings_screen_video_gen_desc">Text/image to video models and API configuration</string>
+    <!-- Video generation default params entry (provider/model/duration/resolution) -->
+    <string name="settings_screen_video_gen_config">Video Generation Settings</string>
+    <string name="settings_screen_video_gen_config_desc">Default video provider, model, duration and resolution</string>
 
     <!-- ===== v1.133: 5 standalone sub-page entries split out from SettingsModelPage ===== -->
     <string name="settings_screen_web_search">Web Search</string>

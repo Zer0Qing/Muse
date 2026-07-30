@@ -35,10 +35,10 @@ import io.zer0.muse.tools.ToolApprovalPolicy
 import io.zer0.muse.tools.ToolConfigStore
 import io.zer0.muse.tools.ToolRegistry
 import io.zer0.muse.tools.ToolRiskLevel
-import io.zer0.muse.ui.common.SectionLabel
-import io.zer0.muse.ui.common.SettingsGroup
-import io.zer0.muse.ui.common.SettingsGroupDivider
-import io.zer0.muse.ui.common.IosTextField
+import io.zer0.muse.ui.common.settings.SectionLabel
+import io.zer0.muse.ui.common.settings.SettingsGroup
+import io.zer0.muse.ui.common.settings.SettingsGroupDivider
+import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -63,7 +63,7 @@ import org.koin.compose.koinInject
  *  3. 每个工具一行:名称 + 描述 + 三档分段控件
  *  4. 底部说明卡片:解释三档策略与会话权限模式的关系
  *
- * 风格与 [ChatSettingsPage] 一致(SettingsSubPageScaffold + SettingsGroup + SegmentedControl)。
+ * 风格与 [ChatSettingsPage] 一致(SettingsSubPageScaffold + SettingsGroup + MuseSegmentedControl)。
  */
 @Composable
 fun ToolsSettingsPage(
@@ -102,7 +102,7 @@ fun ToolsSettingsPage(
     ) {
         // ── 顶部搜索框 ────────────────────────────────────────────────
         item(key = "search") {
-            IosTextField(
+            MuseTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 modifier = Modifier.fillMaxWidth(),
@@ -285,7 +285,7 @@ private fun ToolPolicyRow(
                 ToolApprovalPolicy.ASK_EVERY_TIME -> 1
                 ToolApprovalPolicy.ALWAYS_DENY -> 2
             }
-            io.zer0.muse.ui.common.SegmentedControl(
+            io.zer0.muse.ui.common.form.MuseSegmentedControl(
                 options = options,
                 selectedIndex = selectedIndex,
                 onSelectedChange = { idx ->

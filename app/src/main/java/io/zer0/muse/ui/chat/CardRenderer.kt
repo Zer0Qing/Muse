@@ -11,7 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import io.zer0.muse.ui.common.LifecycleAwareWebViewContainer
+import io.zer0.muse.ui.common.media.LifecycleAwareWebViewContainer
 
 /**
  * 卡片渲染器(openhanako show-card-tool.ts + card-guide-tool.ts 移植)。

@@ -48,7 +48,7 @@ import io.zer0.muse.data.report.ReportGenerator
 import io.zer0.muse.data.report.WeeklyReport
 import io.zer0.muse.data.session.MessageDao
 import io.zer0.muse.data.session.SessionDao
-import io.zer0.muse.ui.components.CardGroup
+import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.settings.SettingsSubPageScaffold
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.MusePaddings

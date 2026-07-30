@@ -36,7 +36,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import io.zer0.muse.ui.common.IosTextField
+import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -57,15 +57,15 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
-import io.zer0.muse.ui.common.EmptyState
-import io.zer0.muse.ui.common.ErrorStateBox
-import io.zer0.muse.ui.common.IosFloatingButton
-import io.zer0.muse.ui.common.IosTopBar
-import io.zer0.muse.ui.common.LoadingState
-import io.zer0.muse.ui.common.MuseDialog
-import io.zer0.muse.ui.common.MuseToast
-import io.zer0.muse.ui.common.WindowWidthClass
-import io.zer0.muse.ui.common.rememberWindowWidthClass
+import io.zer0.muse.ui.common.state.MuseEmptyState
+import io.zer0.muse.ui.common.state.MuseErrorStateBox
+import io.zer0.muse.ui.common.form.MuseFloatingButton
+import io.zer0.muse.ui.common.navigation.MuseTopBar
+import io.zer0.muse.ui.common.state.MuseLoadingState
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.media.WindowWidthClass
+import io.zer0.muse.ui.common.media.rememberWindowWidthClass
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -83,13 +83,13 @@ import java.util.Locale
  * P2-7: 工作区文件管理器 UI。
  *
  * 结构:
- *  - 顶部 [IosTopBar]:当前路径(根目录显示"工作区",子目录显示当前目录名 + 返回上级)
+ *  - 顶部 [MuseTopBar]:当前路径(根目录显示"工作区",子目录显示当前目录名 + 返回上级)
  *  - 中间 [LazyColumn]:目录在前/文件在后,每条 [WorkspaceManager.WorkspaceEntry]
  *    点击目录进入子目录;点击文件弹 [MuseDialog] 显示内容;
  *    长按弹 [MuseDialog] 操作菜单(删除 / 重命名 / 复制路径)
- *  - 底部 [IosFloatingButton]:弹出"新建"对话框
+ *  - 底部 [MuseFloatingButton]:弹出"新建"对话框
  *    (新建文件 / 新建文件夹 二选一)
- *  - 空目录展示 [EmptyState]
+ *  - 空目录展示 [MuseEmptyState]
  *
  * 路径安全由 [WorkspaceManager.resolveSafe] 严格保证,UI 仅展示其返回结果。
  *
@@ -161,7 +161,7 @@ fun WorkspaceScreen(
 
     Scaffold(
         topBar = {
-            IosTopBar(
+            MuseTopBar(
                 title = currentName,
                 onBack = if (currentPath.isEmpty()) onBack else ({ currentPath = parentPath(currentPath) }),
                 largeTitle = true,
@@ -180,7 +180,7 @@ fun WorkspaceScreen(
         },
         containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
-            IosFloatingButton(
+            MuseFloatingButton(
                 icon = Icons.Filled.Add,
                 onClick = { createDialog = CreateType.FILE },
                 contentDescription = stringResource(R.string.workspace_new_file),
@@ -201,7 +201,7 @@ fun WorkspaceScreen(
                             .padding(top = innerPadding.calculateTopPadding()),
                         contentAlignment = Alignment.Center,
                     ) {
-                        LoadingState()
+                        MuseLoadingState()
                     }
                 }
                 errorMsg != null -> {
@@ -211,7 +211,7 @@ fun WorkspaceScreen(
                             .padding(top = innerPadding.calculateTopPadding()),
                         contentAlignment = Alignment.Center,
                     ) {
-                        ErrorStateBox(
+                        MuseErrorStateBox(
                             message = errorMsg ?: "",
                             onRetry = { reload() },
                         )
@@ -224,7 +224,7 @@ fun WorkspaceScreen(
                             .padding(top = innerPadding.calculateTopPadding()),
                         contentAlignment = Alignment.Center,
                     ) {
-                        EmptyState(
+                        MuseEmptyState(
                             icon = Icons.Outlined.Folder,
                             title = stringResource(R.string.workspace_empty),
                         )
@@ -421,7 +421,7 @@ fun WorkspaceScreen(
             onDismissRequest = { renameEntry = null },
             title = stringResource(R.string.workspace_rename),
             content = {
-                IosTextField(
+                MuseTextField(
                     value = newName,
                     onValueChange = { newName = it },
                     singleLine = true,
@@ -475,7 +475,7 @@ fun WorkspaceScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                 ) {
-                    IosTextField(
+                    MuseTextField(
                         value = newName,
                         onValueChange = { newName = it },
                         singleLine = true,

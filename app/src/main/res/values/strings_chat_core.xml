@@ -46,6 +46,13 @@
     <string name="chat_no_sessions">暂无会话</string>
     <string name="chat_new_session">新会话</string>
 
+    <!-- v1.136 T1: 对话内更换助手 -->
+    <string name="chat_switch_assistant_title">更换助手</string>
+    <string name="chat_switch_assistant_empty">暂无可用助手</string>
+    <string name="chat_switch_assistant_current">当前</string>
+    <string name="chat_switch_assistant_applied">已切换为 %1$s</string>
+    <string name="chat_switch_assistant_long_press_hint">长按标题可切换助手</string>
+
     <!-- 委托给助手 -->
     <string name="chat_delegate_title">委托给助手</string>
     <string name="chat_delegate_empty">暂无可用的助手或团队,请先在助手管理中创建。</string>
@@ -135,6 +142,9 @@
     <string name="chat_unnamed">未命名</string>
     <string name="chat_pending_image_cd">待发送图片 %1$d</string>
     <string name="chat_remove_image_cd">移除图片</string>
+    <!-- v1.136 T10: 待发送文档芯片 -->
+    <string name="chat_pending_document_cd">待发送文档 %1$s</string>
+    <string name="chat_remove_document_cd">移除文档</string>
 
     <!-- 引用回复 -->
     <string name="chat_edit_reply_cd">编辑引用</string>
@@ -168,6 +178,8 @@
     <string name="chat_placeholder_send">回复 Muse…</string>
     <string name="chat_expand_input_cd">全屏编辑</string>
     <string name="chat_expand_input_title">编辑消息</string>
+    <!-- 长按输入栏动作菜单 -->
+    <string name="chat_input_action_fullscreen">全屏输入模式</string>
     <string name="chat_stop_generation_cd">停止生成</string>
     <string name="chat_recording_start_failed">录音启动失败,请检查权限或模型配置</string>
     <string name="chat_recognizing_cd">识别中</string>

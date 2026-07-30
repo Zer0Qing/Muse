@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import io.zer0.muse.ui.common.IosChip
+import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -36,8 +36,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.zer0.ai.core.Model
 import io.zer0.muse.R
-import io.zer0.muse.ui.common.MuseBottomSheet
-import io.zer0.muse.ui.common.SectionLabel
+import io.zer0.muse.ui.common.form.MuseBottomSheet
+import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -327,7 +327,7 @@ private fun DiffSectionHeader(
         horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
     ) {
         SectionLabel(label)
-        IosChip(
+        MuseChip(
             selected = true,
             onClick = { /* 只读徽标,不响应点击 */ },
             label = chipText,

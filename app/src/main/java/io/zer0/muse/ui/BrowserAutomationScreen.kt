@@ -24,7 +24,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import io.zer0.muse.ui.common.IosTextField
+import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -42,11 +42,11 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.LifecycleOwner
 import io.zer0.muse.R
-import io.zer0.muse.ui.common.IosTactileButton
-import io.zer0.muse.ui.common.IosTopBar
-import io.zer0.muse.ui.common.LifecycleAwareWebView
-import io.zer0.muse.ui.common.LifecycleAwareWebViewFactory
-import io.zer0.muse.ui.common.MuseToast
+import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.navigation.MuseTopBar
+import io.zer0.muse.ui.common.media.LifecycleAwareWebView
+import io.zer0.muse.ui.common.media.LifecycleAwareWebViewFactory
+import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -67,11 +67,11 @@ import kotlinx.serialization.json.jsonPrimitive
  *  - 本页仅供用户演示与手动测试,不影响 AI 工具行为
  *
  * 设计要点(遵循项目设计令牌):
- *  - 顶部 [IosTopBar]:标题"浏览器自动化" + 返回按钮
+ *  - 顶部 [MuseTopBar]:标题"浏览器自动化" + 返回按钮
  *  - 地址栏:[OutlinedTextField] + 软键盘"前往"动作触发导航(loadUrl 到展示 WebView)
- *  - 底部操作栏:[IosTactileButton] x 5(后退/前进/刷新/执行 JS/关闭)
+ *  - 底部操作栏:[MuseTactileButton] x 5(后退/前进/刷新/执行 JS/关闭)
  *  - 全部使用 [MuseShapes] / [MusePaddings] / [MuseIconSizes] 令牌
- *  - 不使用 Material3 默认 Button(用 IosTactileButton 替代)
+ *  - 不使用 Material3 默认 Button(用 MuseTactileButton 替代)
  *
  * 安全说明:
  *  - WebView 严格禁用 file/content access(防止 file:// 跨域读取)
@@ -115,7 +115,7 @@ fun BrowserAutomationScreen(
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             // ── 顶部栏:返回 + 标题 ──
-            IosTopBar(
+            MuseTopBar(
                 title = stringResource(R.string.browser_automation_title),
                 onBack = onBack,
             )
@@ -207,7 +207,7 @@ private fun AddressBar(
     onTextChange: (String) -> Unit,
     onNavigate: (String) -> Unit,
 ) {
-    IosTextField(
+    MuseTextField(
         value = text,
         onValueChange = onTextChange,
         modifier = Modifier
@@ -271,27 +271,27 @@ private fun BottomActionBar(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IosTactileButton(
+            MuseTactileButton(
                 icon = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = stringResource(R.string.browser_back),
                 onClick = onBack,
             )
-            IosTactileButton(
+            MuseTactileButton(
                 icon = Icons.AutoMirrored.Filled.ArrowForward,
                 contentDescription = stringResource(R.string.browser_forward),
                 onClick = onForward,
             )
-            IosTactileButton(
+            MuseTactileButton(
                 icon = Icons.Default.Refresh,
                 contentDescription = stringResource(R.string.browser_refresh),
                 onClick = onRefresh,
             )
-            IosTactileButton(
+            MuseTactileButton(
                 icon = Icons.Default.Code,
                 contentDescription = stringResource(R.string.browser_run_js),
                 onClick = onRunJs,
             )
-            IosTactileButton(
+            MuseTactileButton(
                 icon = Icons.Default.Close,
                 contentDescription = stringResource(R.string.browser_close),
                 onClick = onClose,

@@ -68,8 +68,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
-import io.zer0.muse.ui.common.MuseDialog
-import io.zer0.muse.ui.common.MuseToast
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.feedback.MuseToast
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -118,12 +118,12 @@ import io.zer0.ai.core.UIMessage
 import io.zer0.muse.data.artifact.ArtifactEntity
 import io.zer0.muse.ui.artifact.ArtifactCardList
 import io.zer0.muse.ui.chat.parseQuotedContent
-import io.zer0.muse.ui.common.AssistantAvatar
-import io.zer0.muse.ui.common.AttachmentChip
-import io.zer0.muse.ui.common.ContextMenuItem
-import io.zer0.muse.ui.common.DesktopContextMenu
-import io.zer0.muse.ui.common.IosTactileButton
-import io.zer0.muse.ui.common.rememberDesktopShortcutsEnabled
+import io.zer0.muse.ui.common.media.AssistantAvatar
+import io.zer0.muse.ui.common.media.AttachmentChip
+import io.zer0.muse.ui.common.media.ContextMenuItem
+import io.zer0.muse.ui.common.media.DesktopContextMenu
+import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.media.rememberDesktopShortcutsEnabled
 import io.zer0.muse.ui.markdown.MarkdownText
 import io.zer0.muse.ui.taskcard.AgentPlan
 import io.zer0.muse.ui.taskcard.PlanCard
@@ -141,8 +141,8 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.outlined.VideoLibrary
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import io.zer0.muse.ui.common.FullScreenMediaViewer
-import io.zer0.muse.ui.common.IosSlider
+import io.zer0.muse.ui.common.media.FullScreenMediaViewer
+import io.zer0.muse.ui.common.form.MuseSlider
 import io.zer0.muse.ui.chat.VideoAttachment
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -977,7 +977,7 @@ internal fun MessageBubble(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 // 复制
-                IosTactileButton(
+                MuseTactileButton(
                     icon = TablerIcons.Copy,
                     onClick = {
                         onCopyMessage(msg.content)
@@ -989,7 +989,7 @@ internal fun MessageBubble(
                     iconSize = MuseIconSizes.iconSmall,
                 )
                 // 翻译(弹语言子菜单)
-                IosTactileButton(
+                MuseTactileButton(
                     icon = Icons.Outlined.Language,
                     onClick = {
                         MuseHaptics.light(hapticFeedback)
@@ -1002,7 +1002,7 @@ internal fun MessageBubble(
                     iconSize = MuseIconSizes.iconSmall,
                 )
                 // 分享(系统 share sheet 分享单条消息)
-                IosTactileButton(
+                MuseTactileButton(
                     icon = Icons.Outlined.Share,
                     onClick = {
                         MuseHaptics.light(hapticFeedback)
@@ -1021,7 +1021,7 @@ internal fun MessageBubble(
                 )
                 // 重新生成(仅最后一条助手消息)
                 if (isLastAssistant) {
-                    IosTactileButton(
+                    MuseTactileButton(
                         icon = TablerIcons.Refresh,
                         onClick = {
                             MuseHaptics.light(hapticFeedback)
@@ -1665,7 +1665,7 @@ private fun TtsAudioPlayer(
             }
             Spacer(Modifier.height(4.dp))
             // 进度条
-            IosSlider(
+            MuseSlider(
                 value = progress,
                 onValueChange = { v ->
                     val targetMs = (v * state.durationMs).toLong()

@@ -25,7 +25,7 @@ import io.zer0.muse.transformer.TransformContext
 import io.zer0.muse.transformer.TransformerPipeline
 import io.zer0.muse.ui.ChatError
 import io.zer0.muse.ui.ChatErrorType
-import io.zer0.muse.ui.common.MuseToast
+import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.util.MusePatterns
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch

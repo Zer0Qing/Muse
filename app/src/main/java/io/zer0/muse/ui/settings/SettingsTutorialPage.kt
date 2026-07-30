@@ -50,8 +50,8 @@ import androidx.compose.ui.unit.dp
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import io.zer0.muse.R
-import io.zer0.muse.ui.common.IosTextField
-import io.zer0.muse.ui.common.IosTopBar
+import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -67,7 +67,7 @@ import kotlinx.coroutines.launch
  * v1.0.16: 右侧增加章节快速跳转竖条,点击对应章节序号可快速滚动定位。
  *
  * v1.0.17:
- *  - 顶部增加搜索框(IosTextField),输入关键词过滤匹配小节(标题+正文)。
+ *  - 顶部增加搜索框(MuseTextField),输入关键词过滤匹配小节(标题+正文)。
  *  - 章节卡片支持折叠/展开,默认第一章展开,其余折叠;展开图标使用 TablerIcons.ChevronDown/Right。
  *  - 跳转条改为显示章节首字(开/配/日/高/个/数/常),选中态用 onSurface 黑白风格。
  *  - 用 rememberSaveable 保存最后查看的章节索引,进入页面自动滚动到上次查看位置。
@@ -247,7 +247,7 @@ fun SettingsTutorialPage(
 
     Scaffold(
         topBar = {
-            IosTopBar(
+            MuseTopBar(
                 title = stringResource(R.string.settings_tutorial_title),
                 onBack = onBack,
                 largeTitle = true,
@@ -276,7 +276,7 @@ fun SettingsTutorialPage(
             ) {
                 // 顶部搜索框 — 始终作为第 0 项
                 item {
-                    IosTextField(
+                    MuseTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
                         modifier = Modifier.fillMaxWidth(),
