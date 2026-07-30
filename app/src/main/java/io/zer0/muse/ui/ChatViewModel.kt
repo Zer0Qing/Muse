@@ -95,6 +95,7 @@ import io.zer0.muse.ui.chat.ImageGenCoordinator
 import io.zer0.muse.ui.chat.buildQuotedContent
 import io.zer0.muse.ui.chat.SlashCommand
 import io.zer0.muse.ui.chat.StreamRunState
+import io.zer0.muse.ui.chat.TokenCountSnapshot
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.speech.TtsManager
 import io.zer0.muse.ui.speech.PlaybackState
@@ -391,6 +392,22 @@ data class ChatUiState(
      */
     val contextMaxTokens: Int = 0,
     /**
+     * v1.0.47: Token 估算开关(默认关闭)。
+     *
+     * 用户在设置页显式开启后,输入框显示当前输入 token 估算,
+     * AI 消息底部显示 completionTokens,顶部栏显示上下文占用。
+     * 关闭时不做任何 token 计算,避免 BPE 编码性能开销。
+     */
+    val tokenEstimateEnabled: Boolean = false,
+    /** v1.0.47 P5-2: 长文本粘贴转文件开关(默认开启)。 */
+    val pasteAsFileEnabled: Boolean = true,
+    /** v1.0.47 P5-2: 长文本粘贴转文件阈值(字符数)。 */
+    val pasteAsFileThreshold: Int = 2000,
+    /** v1.0.47 P5-3: Token 计数菜单是否展开。仅 tokenEstimateEnabled=true 时可触发。 */
+    val tokenCountVisible: Boolean = false,
+    /** v1.0.47 P5-3: Token 计数快照(打开菜单时计算一次,避免每次按键重算 BPE)。 */
+    val tokenSnapshot: TokenCountSnapshot? = null,
+    /**
      * v0.45: 是否正在执行"更新记忆并压缩"。
      *
      * 手动压缩按钮点击后置 true,完成后置 false。UI 据此显示转圈 + 禁用按钮。
@@ -398,6 +415,14 @@ data class ChatUiState(
     val isCompressing: Boolean = false,
     /** v0.39: 深度思考开关(聊天时临时启用 HIGH 推理,覆盖助手默认 reasoningLevel)。 */
     val deepThinkingEnabled: Boolean = false,
+    /**
+     * v1.0.47 P5-6: 深度思考级别(仅在 [deepThinkingEnabled]=true 时生效)。
+     *
+     * 默认 HIGH(向后兼容 v0.39 行为)。用户可点击输入栏级别胶囊在
+     * LOW → MEDIUM → HIGH → XHIGH 之间循环。
+     * 不支持推理的模型在 [ChatStreamCoordinator] 内自动降级为 AUTO,不会报错。
+     */
+    val deepThinkingLevel: ReasoningLevel = ReasoningLevel.HIGH,
     /** Phase 8.4: Web 搜索配置(用于 Settings 页编辑)。 */
     val webSearchConfig: WebSearchConfig = WebSearchConfig(),
     /** Phase 8.5: 当前会话绑定的快捷消息列表(InputBar 上方 chip 行用)。 */
@@ -484,6 +509,15 @@ data class ChatUiState(
      * [ChatViewModel.clearHistoryLoadCount] 清空。
      */
     val lastHistoryLoadCount: Int = 0,
+    /**
+     * v1.0.47 P5: 输入历史(本会话内已发送的消息文本,用于输入框上箭头回调)。
+     *
+     * 最近 N 条(默认 50),上箭头按时间倒序遍历,下箭头正向遍历。
+     * 仅存内存,不持久化(会话结束清空)。
+     */
+    val inputHistory: List<String> = emptyList(),
+    /** v1.0.47 P5: 输入历史导航索引(null=不在历史导航中,0=最近一条)。 */
+    val inputHistoryIndex: Int? = null,
     /** v1.94: 当前会话的工具调用记录(用于 InputBar 动态胶囊展示)。 */
     val toolCallHistory: List<ToolCallRecord> = emptyList(),
     /** 功能2: 当前输入是否为从 DataStore 恢复的草稿。 */
@@ -502,6 +536,14 @@ data class ChatUiState(
      * [ChatViewModel.discardPendingToolCalls] 维护。
      */
     val pendingToolCallCount: Int = 0,
+    /**
+     * v1.0.47 P1: 上下文压缩状态(流式 Compaction UI)。
+     *
+     * 压缩进行中时 ChatScreen 顶部显示"正在压缩上下文..."进度条,
+     * 压缩完成后显示"已压缩 N 条历史"短暂提示。
+     * null 表示无压缩活动。
+     */
+    val compactionState: CompactionState? = null,
     /** P3: 当前会话的工具权限模式(TRUSTED/ASK/STRICT),默认 ASK。 */
     val sessionPermissionMode: SessionPermissionMode = SessionPermissionMode.ASK,
     /**
@@ -520,6 +562,15 @@ data class ChatUiState(
     val activeSubagentThreads: List<io.zer0.muse.tools.SubagentThreadStore.ThreadEntry> = emptyList(),
     /** v1.202: 当前会话待处理(PENDING)的后台子 agent 任务(SubagentTaskListCard 渲染用)。 */
     val pendingSubagentTasks: List<io.zer0.muse.tools.DeferredResultStore.DeferredTask> = emptyList(),
+    // ── P6: Agent Mode 增强 ──────────────────────────────────────────
+    /** v1.0.47 P6-2: 当前模型是否为弱工具调用模型(Agent Mode 下显示降级提示)。 */
+    val isWeakToolModel: Boolean = false,
+    /** v1.0.47 P6-2: 弱工具模型降级提示文案(null = 非弱工具模型,不显示)。 */
+    val weakToolHint: String? = null,
+    /** v1.0.47 P6-3: 会话锁定(Agent Mode ON 时锁定,禁止切换助手/清空消息)。 */
+    val isSessionLocked: Boolean = false,
+    /** v1.0.47 P6-4: Agent Mode 提示卡片文案(null = 不显示卡片)。 */
+    val agentModeHint: String? = null,
 ) {
     /** v0.49: 向后兼容 — 现有读 state.error 的地方取第一条错误消息。 */
     val error: String? get() = errors.firstOrNull()?.message
@@ -536,6 +587,19 @@ data class ToolCallRecord(
 )
 
 /** 待审批的工具调用(ToolApprovalCard 用)。 */
+/**
+ * v1.0.47 P1: 上下文压缩状态机。
+ *
+ * - [Compacting]: 压缩进行中,显示进度(messageCount 为待压缩消息数)
+ * - [Compacted]: 压缩完成,显示短暂成功提示(compressedCount 为已压缩条数)
+ * - [Failed]: 压缩失败,降级为截断(reason 为失败原因)
+ */
+sealed class CompactionState {
+    data class Compacting(val messageCount: Int) : CompactionState()
+    data class Compacted(val compressedCount: Int) : CompactionState()
+    data class Failed(val reason: String) : CompactionState()
+}
+
 data class PendingToolApproval(
     val toolCallId: String,
     val toolName: String,
@@ -724,6 +788,8 @@ class ChatViewModel(
         private const val STREAM_SLICE_MAX = 240
         /** chunk 间隔滑动窗口大小(最近 N 个 chunk 的间隔用于计算平均速率)。 */
         private const val STREAM_SLIDE_WINDOW = 10
+        /** v1.0.47 P5: 输入历史保留条数(本会话内,内存态,不持久化)。 */
+        private const val MAX_INPUT_HISTORY = 50
         // v1.117: 删除 6 个孤儿常量(STREAM_NOTIF_*/STREAM_TOKEN_*/STREAM_PERSIST_*),
         // 实际节流逻辑在 launchStream 内用字面量实现,这些常量从未被引用。
 
@@ -840,6 +906,9 @@ class ChatViewModel(
             viewModelScope.launch { settings.saveSelectedModel(routedModelId) }
             _state.update { it.copy(selectedModelId = routedModelId) }
         }
+        // v1.0.47 P5: 记录输入历史(新→旧,去重,截断到 MAX_INPUT_HISTORY)
+        val newHistory = (listOf(text) + _state.value.inputHistory.filter { it != text })
+            .take(MAX_INPUT_HISTORY)
         val userMsg = UIMessage(
             role = MessageRole.USER,
             content = text,
@@ -885,6 +954,9 @@ class ChatViewModel(
                 // v1.0.3: 进入"等待首 token"阶段,UI 显示 ShimmerBubble
                 isWaitingFirstToken = true,
                 errors = emptyList(),
+                // v1.0.47 P5: 记录输入历史,重置导航索引(发送后退出历史导航)
+                inputHistory = newHistory,
+                inputHistoryIndex = null,
             )
         }
         // v1.0.29: 发送消息后清除 DataStore 中的草稿,
@@ -1077,6 +1149,23 @@ class ChatViewModel(
         viewModelScope.launch {
             settings.toolModelIdFlow.collect { modelId ->
                 _state.update { it.copy(toolModelId = modelId) }
+            }
+        }
+        // v1.0.47: Token 估算开关
+        viewModelScope.launch {
+            settings.tokenEstimateEnabledFlow.collect { enabled ->
+                _state.update { it.copy(tokenEstimateEnabled = enabled) }
+            }
+        }
+        // v1.0.47 P5-2: 长文本粘贴转文件开关 + 阈值
+        viewModelScope.launch {
+            settings.pasteAsFileEnabledFlow.collect { enabled ->
+                _state.update { it.copy(pasteAsFileEnabled = enabled) }
+            }
+        }
+        viewModelScope.launch {
+            settings.pasteAsFileThresholdFlow.collect { threshold ->
+                _state.update { it.copy(pasteAsFileThreshold = threshold) }
             }
         }
         // 观察会话列表(侧栏用)
@@ -1507,12 +1596,93 @@ class ChatViewModel(
     }
 
     fun updateInput(text: String) {
-        _state.update { it.copy(input = text, hasDraft = false) }
+        // v1.0.47 P5: 用户手动编辑输入时退出历史导航,重置 inputHistoryIndex
+        _state.update { it.copy(input = text, hasDraft = false, inputHistoryIndex = null) }
         // v1.0.30: 清空输入时同步删除 DataStore 草稿
         if (text.isBlank()) {
             val sid = _state.value.currentSessionId ?: return
             viewModelScope.launch(Dispatchers.IO) { settings.saveChatDraft(sid, "") }
         }
+    }
+
+    /**
+     * v1.0.47 P5: 输入框上/下箭头回调,遍历本会话输入历史。
+     *
+     * 约定:[ChatUiState.inputHistory] 按"新→旧"顺序存储(index 0 = 最近一条)。
+     * - direction < 0(上箭头):向更旧的历史移动
+     *   - 当前未在导航中(index==null):跳到 index 0(最近一条)
+     *   - 当前在 index i:跳到 i+1(更旧);已到末尾则不动
+     * - direction > 0(下箭头):向更新的历史移动
+     *   - 当前在 index 0:退出导航,清空输入
+     *   - 当前在 index i>0:跳到 i-1
+     *   - 未在导航中:不动
+     * - direction == 0:无操作
+     * - 历史为空时直接返回
+     *
+     * 用户手动编辑输入(见 [updateInput])会重置 [ChatUiState.inputHistoryIndex] 为 null,
+     * 再次按上箭头会从最近一条开始。
+     */
+    fun navigateInputHistory(direction: Int) {
+        if (direction == 0) return
+        val history = _state.value.inputHistory
+        if (history.isEmpty()) return
+        val current = _state.value.inputHistoryIndex
+        val next: Int? = when {
+            direction < 0 -> {
+                // 上箭头:向更旧
+                val candidate = (current ?: -1) + 1
+                if (candidate >= history.size) return // 已到末尾,保持当前
+                candidate
+            }
+            else -> {
+                // 下箭头:向更新
+                val c = current ?: return // 未在导航中,不动
+                val candidate = c - 1
+                if (candidate < 0) null else candidate
+            }
+        }
+        if (next == null) {
+            // 退出导航,清空输入
+            _state.update { it.copy(input = "", inputHistoryIndex = null) }
+        } else {
+            _state.update { it.copy(input = history[next], inputHistoryIndex = next) }
+        }
+    }
+
+    /**
+     * v1.0.47 P5-3: 打开 Token 计数菜单。
+     *
+     * 仅在 [ChatUiState.tokenEstimateEnabled] 开启时由 UI 调用。
+     * 计算一次性快照(当前输入 + 历史消息 + 模型上下文窗口),存入 state 供菜单展示,
+     * 避免每次按键都做 BPE 编码(性能开销大)。
+     *
+     * BPE 编码是 CPU 密集型操作,在 Dispatchers.Default 上执行;
+     * [settings.getSelectedModel] 是 suspend,需在协程中调用。
+     * 历史消息 token 数复用 [TokenEstimator.estimate] 的 messages 重载,
+     * 已计入 reasoning/mood/reflection/toolCalls.arguments 与每条 4 token 固定开销。
+     */
+    fun showTokenCountMenu() {
+        val input = _state.value.input
+        val messages = _state.value.messages
+        viewModelScope.launch(Dispatchers.Default) {
+            val inputTokens = TokenEstimator.estimate(input)
+            val historyTokens = TokenEstimator.estimate(messages)
+            val contextWindow = resultOf { settings.getSelectedModel() }
+                .getOrNull()
+                ?.contextWindow
+                ?.takeIf { it > 0 }
+            val snapshot = TokenCountSnapshot(
+                inputTokens = inputTokens,
+                historyTokens = historyTokens,
+                contextWindow = contextWindow,
+            )
+            _state.update { it.copy(tokenSnapshot = snapshot, tokenCountVisible = true) }
+        }
+    }
+
+    /** v1.0.47 P5-3: 关闭 Token 计数菜单。 */
+    fun dismissTokenCountMenu() {
+        _state.update { it.copy(tokenCountVisible = false) }
     }
 
     /** 清空全部错误(向后兼容入口,UI"关闭"按钮调用)。 */
@@ -1732,6 +1902,11 @@ class ChatViewModel(
      */
     private fun computeStaticSnapshotKey(assistant: AssistantEntity?, memoryEnabled: Boolean): String {
         val prefs = _state.value.chatPreferences
+        // v1.0.47 P3: 会话级 skill 覆盖影响工具列表,加入缓存键(随 currentSessionId 变化失效)
+        val state = _state.value
+        val effectiveSessionId = if (state.isAgentMode) state.agentSessionId else state.currentSessionId
+        val sessionSkillHash = state.sessions
+            .firstOrNull { it.id == effectiveSessionId }?.skillIdsJson?.hashCode() ?: 0
         return buildString {
             append(assistant?.id ?: "null")
             append("|")
@@ -1742,6 +1917,8 @@ class ChatViewModel(
             append(assistant?.toolIdsJson?.hashCode() ?: 0)
             append("|")
             append(assistant?.skillIdsJson?.hashCode() ?: 0)
+            append("|")
+            append(sessionSkillHash)
             append("|")
             append(assistant?.memoryEnabled ?: true)
             append("|")
@@ -2215,6 +2392,9 @@ class ChatViewModel(
                     // v1.136: 新会话清空工具调用历史与 Agent 计划,避免跨会话残留
                     toolCallHistory = emptyList(),
                     agentPlans = emptyMap(),
+                    // v1.0.47 P5: 新会话清空输入历史(本会话内内存态)
+                    inputHistory = emptyList(),
+                    inputHistoryIndex = null,
                     // 清空视觉辅助状态,避免跨会话残留
                     visionAssistedMessageIds = emptySet(),
                     visionProgress = null,
@@ -2441,6 +2621,9 @@ class ChatViewModel(
                     pendingImages = emptyList(),
                     // v1.136 T10: 同步清空待发送文档
                     pendingDocuments = emptyList(),
+                    // v1.0.47 P5: 切换会话清空输入历史(本会话内内存态,不跨会话保留)
+                    inputHistory = emptyList(),
+                    inputHistoryIndex = null,
                     // P3: 恢复本会话权限模式
                     sessionPermissionMode = permissionMode,
                     // v1.0.16: 切换 Tab/会话后默认滚动到最新消息底部
@@ -2539,6 +2722,17 @@ class ChatViewModel(
                         // v1.0.16: 切换 Tab/会话后默认滚动到最新消息底部
                         listFirstVisibleItemIndex = messages.lastIndex.coerceAtLeast(0),
                         listFirstVisibleItemScrollOffset = 0,
+                        // v1.0.47 P6-3: 进入 Agent Mode 时锁定会话
+                        isSessionLocked = true,
+                    )
+                }
+                // v1.0.47 P6-2: 检测弱工具调用模型,设置降级提示
+                val model = resultOf { settings.getSelectedModel() }.getOrNull()
+                val weakHint = io.zer0.muse.tools.WeakToolUseDetector.getWeakToolHint(model)
+                _state.update {
+                    it.copy(
+                        isWeakToolModel = weakHint != null,
+                        weakToolHint = weakHint,
                     )
                 }
                 refreshContextInfo()
@@ -2556,6 +2750,12 @@ class ChatViewModel(
                     // 清空视觉辅助状态,避免跨会话残留
                     visionAssistedMessageIds = emptySet(),
                     visionProgress = null,
+                    // v1.0.47 P6-3: 退出 Agent Mode 时解锁会话
+                    isSessionLocked = false,
+                    // v1.0.47 P6-2: 清空弱工具模型提示
+                    isWeakToolModel = false,
+                    weakToolHint = null,
+                    agentModeHint = null,
                 )
             }
             // v1.x: 释放 Agent 会话引用(若存在),重新获取任务会话引用
@@ -2588,6 +2788,20 @@ class ChatViewModel(
                 }
             }
         }
+    }
+
+    /**
+     * v1.0.47 P6-4: 关闭 Agent Mode 提示卡片(用户点击"知道了"后调用)。
+     */
+    fun dismissAgentModeHint() {
+        _state.update { it.copy(agentModeHint = null) }
+    }
+
+    /**
+     * v1.0.47 P6-2: 关闭弱工具模型提示(用户点击关闭后调用)。
+     */
+    fun dismissWeakToolHint() {
+        _state.update { it.copy(weakToolHint = null) }
     }
 
     /**
@@ -2916,6 +3130,27 @@ class ChatViewModel(
             docs.removeAt(index)
             _state.update { it.copy(pendingDocuments = docs) }
         }
+    }
+
+    /**
+     * v1.0.47 P5-2: 把大段粘贴文本作为 txt 附件加入 [ChatUiState.pendingDocuments]。
+     *
+     * 用户在输入框粘贴超阈值文本并选择"作为文件附加"时调用。
+     * 命名带时间戳避免重名;内容截断到 [io.zer0.muse.ui.chat.ChatDocumentCoordinator.DOC_MAX_CHARS]。
+     * 不清空输入框(保留用户已输入的其他内容)。
+     */
+    fun addPastedTextAsDocument(text: String) {
+        if (text.isBlank()) return
+        val maxChars = io.zer0.muse.ui.chat.ChatDocumentCoordinator.DOC_MAX_CHARS
+        val safeContent = if (text.length > maxChars) text.take(maxChars) else text
+        val stamp = java.text.SimpleDateFormat("MMdd_HHmm", java.util.Locale.getDefault())
+            .format(java.util.Date())
+        val doc = io.zer0.muse.ui.chat.PendingDocument(
+            name = "粘贴文本_$stamp.txt",
+            content = safeContent,
+            charCount = text.length,
+        )
+        _state.update { it.copy(pendingDocuments = it.pendingDocuments + doc) }
     }
 
     /**
@@ -4472,8 +4707,17 @@ class ChatViewModel(
                 return@launch
             }
             // 加载启用的 skill 列表,构建 id → SkillEntity 映射(与 launchStream 内的逻辑一致)
-            val enabledSkillIds = _state.value.currentAssistant?.let { ast ->
-                runCatching { idListJson.decodeFromString<List<String>>(ast.skillIdsJson) }.getOrNull()
+            // v1.0.47 P3: 会话级 skill 覆盖 — 优先用 session.skillIdsJson(非"[]"且非空),
+            // 否则回退到 assistant.skillIdsJson(默认行为不变)
+            val sessionSkillIdsJson = _state.value.sessions
+                .firstOrNull { it.id == chatId }?.skillIdsJson
+            val effectiveSkillIdsJson = if (!sessionSkillIdsJson.isNullOrEmpty() && sessionSkillIdsJson != "[]") {
+                sessionSkillIdsJson
+            } else {
+                _state.value.currentAssistant?.skillIdsJson
+            }
+            val enabledSkillIds = effectiveSkillIdsJson?.let { json ->
+                runCatching { idListJson.decodeFromString<List<String>>(json) }.getOrNull()
             }
             val skillMap = resultOf { skillRepository.listEnabledByIds(enabledSkillIds) }
                 .getOrNull()?.associateBy { it.id } ?: emptyMap()
@@ -5139,6 +5383,25 @@ class ChatViewModel(
     fun toggleDeepThinking() {
         // v1.80 (M-CVM5): 原子更新,基于 lambda 内的 it 取反避免读-改-写竞态
         _state.update { it.copy(deepThinkingEnabled = !it.deepThinkingEnabled) }
+    }
+
+    /**
+     * v1.0.47 P5-6: 循环深度思考级别(LOW → MEDIUM → HIGH → XHIGH → LOW)。
+     *
+     * 仅在 [ChatUiState.deepThinkingEnabled]=true 时由 UI 级别胶囊调用。
+     * 不含 OFF/OFF 由 toggleDeepThinking 负责;此处只调档位。
+     */
+    fun cycleDeepThinkingLevel() {
+        _state.update { state ->
+            val next = when (state.deepThinkingLevel) {
+                ReasoningLevel.LOW -> ReasoningLevel.MEDIUM
+                ReasoningLevel.MEDIUM -> ReasoningLevel.HIGH
+                ReasoningLevel.HIGH -> ReasoningLevel.XHIGH
+                ReasoningLevel.XHIGH -> ReasoningLevel.LOW
+                else -> ReasoningLevel.HIGH // 兜底:OFF/AUTO 回到默认 HIGH
+            }
+            state.copy(deepThinkingLevel = next)
+        }
     }
 
     /** v1.43: 选中产物卡片,打开 ArtifactViewerDialog。 */

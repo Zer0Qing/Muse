@@ -107,6 +107,52 @@ class DocumentParser {
         parseResult(uri, context).getOrNull() ?: ""
 
     /**
+     * v1.0.47 P7-1: 根据 [RagConfig.documentParserType] 路由文档解析。
+     *
+     * - LOCAL: 调用本地 [parseResult](默认)
+     * - CLOUD/MINERU: 需要 endpoint 配置,当前实现 fallback 到 LOCAL 并 log warning
+     *   (完整云端调用需 HTTP 客户端 + 异步处理,留作后续扩展)
+     *
+     * @param uri 内容 URI
+     * @param context Context
+     * @param parserType 解析器类型(来自 RagConfig)
+     * @param cloudEndpoint 云端解析 endpoint(CLOUD 类型用)
+     * @param mineruEndpoint MinerU endpoint(MINERU 类型用)
+     */
+    fun parseResult(
+        uri: Uri,
+        context: Context,
+        parserType: io.zer0.muse.rag.RagConfig.ParserType,
+        cloudEndpoint: String = "",
+        mineruEndpoint: String = "",
+    ): Result<String> {
+        return when (parserType) {
+            io.zer0.muse.rag.RagConfig.ParserType.LOCAL ->
+                parseResult(uri, context)
+            io.zer0.muse.rag.RagConfig.ParserType.CLOUD -> {
+                if (cloudEndpoint.isBlank()) {
+                    Logger.w("DocumentParser", "CLOUD 解析器未配置 endpoint,降级到 LOCAL")
+                    parseResult(uri, context)
+                } else {
+                    // TODO: 实现 CLOUD API 调用(上传文件 → 获取解析结果)
+                    Logger.w("DocumentParser", "CLOUD 解析器暂未实现 HTTP 调用,降级到 LOCAL | endpoint=$cloudEndpoint")
+                    parseResult(uri, context)
+                }
+            }
+            io.zer0.muse.rag.RagConfig.ParserType.MINERU -> {
+                if (mineruEndpoint.isBlank()) {
+                    Logger.w("DocumentParser", "MINERU 解析器未配置 endpoint,降级到 LOCAL")
+                    parseResult(uri, context)
+                } else {
+                    // TODO: 实现 MinerU API 调用(擅长学术 PDF/公式/表格)
+                    Logger.w("DocumentParser", "MINERU 解析器暂未实现 HTTP 调用,降级到 LOCAL | endpoint=$mineruEndpoint")
+                    parseResult(uri, context)
+                }
+            }
+        }
+    }
+
+    /**
      * 读取纯文本文件(txt/md/csv/json/xml/html)。1MB 截断防 OOM。
      *
      * M-DP3: 编码检测——

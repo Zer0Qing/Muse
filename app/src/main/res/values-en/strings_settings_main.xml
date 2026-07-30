@@ -354,6 +354,9 @@
     <!-- v1.0.4 P3-4: Performance mode (MessagePaginator integration) -->
     <string name="settings_chat_performance_mode">Performance Mode</string>
     <string name="settings_chat_performance_mode_subtitle">For long chats, render only the latest 50 messages and load more on scroll-up to reduce lag</string>
+    <!-- v1.0.47 P5-3: Token estimate (experimental) -->
+    <string name="settings_chat_token_estimate">Token Estimate (Experimental)</string>
+    <string name="settings_chat_token_estimate_subtitle">Show a token count button in the input bar; off by default to avoid encoding overhead</string>
     <string name="settings_provider_auto_detect">Auto-detect</string>
 
     <!-- ==================== v1.0.20: Tool Call Approval ==================== -->

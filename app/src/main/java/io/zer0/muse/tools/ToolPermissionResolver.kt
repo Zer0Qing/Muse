@@ -52,11 +52,9 @@ object ToolPermissionResolver {
 
         // 4. 默认策略(按会话模式 + risk)
         return when (mode) {
-            SessionPermissionMode.TRUSTED -> when (effectiveRisk) {
-                ToolRiskLevel.SAFE -> ToolApprovalState.Auto
-                ToolRiskLevel.NORMAL -> ToolApprovalState.Auto
-                ToolRiskLevel.HIGH -> ToolApprovalState.Pending
-            }
+            // v1.0.48: TRUSTED = 完全放权,所有风险等级都自动执行,不再对 HIGH 工具弹审批
+            //   与 SettingsRepository 中"完全放权,所有工具直接调用,不需批准"的注释语义对齐
+            SessionPermissionMode.TRUSTED -> ToolApprovalState.Auto
             SessionPermissionMode.ASK -> when (effectiveRisk) {
                 ToolRiskLevel.SAFE -> ToolApprovalState.Auto
                 ToolRiskLevel.NORMAL -> ToolApprovalState.Pending

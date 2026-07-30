@@ -290,6 +290,16 @@
     <string name="settings_rag_markdown_aware_subtitle">Preserve code blocks/headers/tables, avoid splitting</string>
     <string name="settings_rag_chunk_by_token">Token-based Chunking</string>
     <string name="settings_rag_chunk_by_token_subtitle">When enabled, chunk by token count (more accurate for mixed CJK+Latin)</string>
+    <!-- v1.0.47 P7-1: Document parser config -->
+    <string name="settings_rag_parser_section">Document Parser</string>
+    <string name="settings_rag_parser_local">Local Parser</string>
+    <string name="settings_rag_parser_local_subtitle">Local parsing, supports txt/pdf/docx/pptx/xlsx/epub</string>
+    <string name="settings_rag_parser_cloud">Cloud Parser</string>
+    <string name="settings_rag_parser_cloud_subtitle">Cloud API, for complex layouts/scanned docs (requires endpoint)</string>
+    <string name="settings_rag_parser_mineru">MinerU</string>
+    <string name="settings_rag_parser_mineru_subtitle">MinerU API, excels at academic PDF/formulas/tables (requires endpoint)</string>
+    <string name="settings_rag_cloud_parser_endpoint">Cloud parser endpoint</string>
+    <string name="settings_rag_mineru_endpoint">MinerU endpoint</string>
     <string name="settings_rag_notes_section">Notes</string>
     <string name="settings_rag_note1">• After changing chunk parameters, newly imported documents will use the new parameters</string>
     <string name="settings_rag_note2">• Already indexed documents are not re-chunked automatically; delete and re-import them</string>

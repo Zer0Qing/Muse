@@ -27,6 +27,10 @@ class MemoryFileWriter(
     private val memoryDir by lazy { File(baseDir, "memory").apply { mkdirs() } }
     private val dailyDir by lazy { File(memoryDir, "daily").apply { mkdirs() } }
 
+    // v1.0.47: 记录上次写入的 memory.md 内容,相同则跳过 IO,避免 59 字节小文件反复写。
+    @Volatile
+    private var lastWrittenMemoryMd: String? = null
+
     companion object {
         private const val TAG = "MemoryFileWriter"
 
@@ -47,9 +51,15 @@ class MemoryFileWriter(
      * @param locale 语言,仅用于日志
      */
     fun writeMemoryMd(content: String, locale: String = "zh-CN") {
+        // v1.0.47: 内容未变则跳过 IO,避免短时间多次重复写入相同的小文件
+        if (content == lastWrittenMemoryMd) {
+            Logger.d(TAG, "memory.md unchanged, skip write (${content.length} chars)")
+            return
+        }
         runCatching {
             val file = File(memoryDir, "memory.md")
             file.writeText(content)
+            lastWrittenMemoryMd = content
         }.onFailure {
             Logger.w(TAG, "写入 memory.md 失败: ${it.message}", it)
         }
@@ -183,8 +193,10 @@ class MemoryFileWriter(
         }
 
         val blocks = entries.mapNotNull { entry ->
+            // v1.0.51: daily 文件由 writeDailyMd 写入时已带 "## $date" 抬头,
+            // 这里直接使用文件原文,避免重复标题污染 longterm fold 输入。
             val text = entry.file.readText().trim()
-            text.takeIf { it.isNotEmpty() }?.let { "## ${entry.date}\n\n$it" }
+            text.takeIf { it.isNotEmpty() }
         }
 
         if (blocks.isEmpty()) {

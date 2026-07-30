@@ -96,6 +96,13 @@ class RagService(
         val chunkIndex: Int,
     )
 
+    // v1.0.47: embedding 熔断器 — embed 失败后 5 分钟内 retrieve 直接返回空,
+    //   让 buildInjectionContextWithCitations 自然降级到 keywordSearchFallback(本地数据库搜索),
+    //   避免每次对话都打 404 浪费 60-200ms + 刷屏 + 触发商汤 rpm 限制。
+    //   5 分钟后自愈:重新尝试 embed,成功则清熔断,失败则续 5 分钟。
+    @Volatile
+    private var embeddingFailureUntil: Long = 0L
+
     // v1.133: docTitle TTL 缓存 — 避免每次检索都查全表(原 docTitleProvider 每次 observeAll().first())
     // 5 分钟过期,文档增删后最多 5 分钟同步;indexDocument/deleteDocIndex 时主动失效
     @Volatile
@@ -413,11 +420,24 @@ class RagService(
     ): List<VectorSearchService.SearchResult> {
         if (query.isBlank()) return emptyList()
         val start = System.currentTimeMillis()
+        // v1.0.47: 熔断期内直接返回空,让上层走 keywordSearchFallback(本地数据库搜索),
+        //   不再调 embed 触发 404。5 分钟后自愈。
+        if (System.currentTimeMillis() < embeddingFailureUntil) {
+            Perf.log("rag-retrieve", System.currentTimeMillis() - start)
+            return emptyList()
+        }
         val provider = embeddingService.getProvider(ragConfig)
         val queryVector: FloatArray = resultOf { provider.embed(query) }
-            .onError { msg, e -> Logger.w("RagService", "Query embedding 失败: $msg", e) }
+            .onError { msg, e ->
+                Logger.w("RagService", "Query embedding 失败: $msg", e)
+                // v1.0.47: 设熔断 5 分钟,期间 retrieve 直接返回空 → 上层降级本地搜索
+                embeddingFailureUntil = System.currentTimeMillis() + EMBEDDING_CIRCUIT_BREAKER_MS
+                Logger.i("RagService", "embedding 熔断 ${EMBEDDING_CIRCUIT_BREAKER_MS / 1000}s,期间检索降级到本地关键词")
+            }
             .getOrNull()
             ?: return emptyList<VectorSearchService.SearchResult>().also { Perf.log("rag-retrieve", System.currentTimeMillis() - start) }
+        // v1.0.47: embed 成功 → 清熔断(自愈),下次恢复走正常向量检索
+        embeddingFailureUntil = 0L
 
         // v1.133: 混合检索路径
         if (ragConfig.hybridEnabled && hybridSearchService != null) {
@@ -776,6 +796,8 @@ class RagService(
         const val TITLES_TTL_MS = 5L * 60 * 1000
         /** v1.55: HNSW 索引自动保存阈值(累计新增 SAVE_INTERVAL 个 chunk 后触发一次 save)。 */
         const val SAVE_INTERVAL = 50
+        /** v1.0.47: embedding 熔断时长 — 失败后 5 分钟内 retrieve 直接返回空,降级本地搜索。 */
+        const val EMBEDDING_CIRCUIT_BREAKER_MS = 5L * 60 * 1000
     }
 
     /** v1.133: 计算 content 的 SHA-256 哈希(增量更新用)。 */

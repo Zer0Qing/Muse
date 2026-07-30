@@ -108,6 +108,12 @@ fun ChatSettingsPage(
     // v1.0.20: 全局默认会话权限模式(三档:TRUSTED / ASK / STRICT)
     val permissionMode by settings.defaultSessionPermissionModeFlow
         .collectAsStateWithLifecycle(initialValue = SessionPermissionMode.ASK)
+    // v1.0.47 P5-3: Token 估算开关(默认关闭,实验性,避免 BPE 性能开销)
+    val tokenEstimateEnabled by settings.tokenEstimateEnabledFlow
+        .collectAsStateWithLifecycle(initialValue = false)
+    // v1.0.47 P5-2: 长文本粘贴转文件开关(默认开启)
+    val pasteAsFileEnabled by settings.pasteAsFileEnabledFlow
+        .collectAsStateWithLifecycle(initialValue = true)
 
     SettingsSubPageScaffold(title = stringResource(R.string.settings_chat_title), onBack = onBack) {
         // ── v1.0.20: 工具调用批准(置顶,用户最关心的安全开关)──
@@ -465,6 +471,15 @@ fun ChatSettingsPage(
                     subtitle = stringResource(R.string.settings_chat_performance_mode_subtitle),
                     checked = prefs.performanceMode,
                     onCheckedChange = { v -> update { it.copy(performanceMode = v) } },
+                )
+                SettingsGroupDivider()
+                // v1.0.47 P5-3: Token 估算(实验性,默认关闭)——开启后输入栏显示 Token 计数按钮
+                SettingsSwitchRow(
+                    icon = TablerIcons.ChartBar,
+                    title = stringResource(R.string.settings_chat_token_estimate),
+                    subtitle = stringResource(R.string.settings_chat_token_estimate_subtitle),
+                    checked = tokenEstimateEnabled,
+                    onCheckedChange = { v -> scope.launch { settings.saveTokenEstimateEnabled(v) } },
                 )
             }
         }

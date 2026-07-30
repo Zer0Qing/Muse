@@ -235,8 +235,8 @@ val appModule = module {
     // Phase 4 4D: 主动消息评分引擎
     single { io.zer0.muse.data.proactive.ProactiveScoreEngine() }
 
-    // Phase 5 5E: MCP 扩展注册表
-    single { io.zer0.muse.mcp.extension.McpExtensionRegistry() }
+    // v1.0.47 P9: 移除 McpExtensionRegistry(原 Phase 5 5E 孤儿组件,三个扩展均为 stub,
+    // isAvailable=false 永不启用,execute 永远返回 Error,无任何外部调用方)
 
     // Phase 6 6E: 本地分析追踪器
     single { io.zer0.muse.data.analytics.LocalAnalyticsTracker(androidContext()) }
@@ -269,6 +269,21 @@ val appModule = module {
     // P2-7: 工作区工具注册器(把 workspace_list/read/write/delete/mkdir/move 注册到 ToolRegistry)
     // 依赖 ToolRegistry + WorkspaceManager,init 块自动完成注册
     single { io.zer0.muse.tools.WorkspaceToolsRegistrar(get(), get()) }
+    // v1.0.47 P2: 文件与链接工具注册器(read_file/create_download/parse_link)
+    single {
+        io.zer0.muse.tools.FileToolsRegistrar(
+            get(),
+            androidContext(),
+            io.zer0.muse.workspace.WorkspaceManager(androidContext()).rootDir,
+        )
+    }
+    // v1.0.47 P2-6: Shell 沙箱工具注册器(execute_shell,仅 Agent Mode + 审批可用)
+    single {
+        io.zer0.muse.tools.ShellSandboxToolRegistrar(
+            get(),
+            androidContext().filesDir,
+        )
+    }
 
     // Phase 8.8: Skill 执行�?Kotlin 直实�?不用 QuickJS)
     // v0.24: 注入 WebSearchService / KnowledgeDocDao / SkillRepository 用于搜索�?+ install_skill
@@ -400,6 +415,8 @@ val appModule = module {
     }
     // v1.133: KnowledgeBaseDao 单独注册(多知识库管理页用)
     single { get<io.zer0.muse.data.session.MuseDb>().knowledgeBaseDao() }
+    // v1.0.47 P7-2: 会话级附件索引服务
+    single { io.zer0.muse.rag.SessionAttachmentService(get(), get()) }
 
     // Phase 8.6: 本地 OCR 管理�?ML Kit 中英文离线识�?
     single { io.zer0.muse.doc.OcrManager() }

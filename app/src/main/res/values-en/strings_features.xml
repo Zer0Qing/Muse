@@ -281,6 +281,10 @@
     <string name="knowledge_chunking">Chunking and building vector index…</string>
     <string name="knowledge_generating_vector">Generating vectors %1$d/%2$d…</string>
     <string name="knowledge_import_empty">Import failed: file content is empty</string>
+    <!-- v1.0.47 P7-3: File size friendly prompt -->
+    <string name="knowledge_file_too_large_title">File Too Large</string>
+    <string name="knowledge_file_too_large_msg">File size %1$s exceeds the %2$s limit.\nSuggestions:\n• Upload smaller files in batches\n• Use the cloud parser (Settings → RAG → Document Parser)</string>
+    <string name="knowledge_file_too_large_confirm">Got it</string>
     <string name="knowledge_imported_indexed">Imported: %1$s (%2$d chunks indexed)</string>
     <string name="knowledge_imported_no_index">Imported: %1$s (vector indexing failed, text search available)</string>
     <string name="knowledge_import_cancelled">Import cancelled</string>

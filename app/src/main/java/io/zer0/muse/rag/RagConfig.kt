@@ -58,6 +58,14 @@ data class RagConfig(
     val markdownAware: Boolean = false,
     /** 是否按 token 数分块(true=按 [chunkSize] token,false=按字符)。 */
     val chunkByToken: Boolean = false,
+
+    // ── v1.0.47 P7-1 新增 ──
+    /** 文档解析器类型。默认 LOCAL(本地解析),可选 CLOUD/MINERU(需配置 endpoint)。 */
+    val documentParserType: ParserType = ParserType.LOCAL,
+    /** 云端解析器 endpoint(CLOUD 类型用,空串表示未配置)。 */
+    val cloudParserEndpoint: String = "",
+    /** MinerU 解析器 endpoint(MINERU 类型用,空串表示未配置)。 */
+    val mineruEndpoint: String = "",
 ) {
     init {
         require(chunkSize > 0) { "chunkSize must be > 0, current: $chunkSize" }
@@ -81,5 +89,19 @@ data class RagConfig(
         LOCAL,
         /** v1.133: 本地关键词哈希(无 ONNX 时的离线降级方案,非真正语义)。 */
         LOCAL_KEYWORD,
+    }
+
+    /**
+     * v1.0.47 P7-1: 文档解析器类型。
+     *
+     * - LOCAL: 本地解析(默认,DocumentParser 自实现,支持 txt/pdf/docx/pptx/xlsx/epub)
+     * - CLOUD: 云端解析 API(需配置 endpoint,适合复杂版式/扫描件,未配置时降级到 LOCAL)
+     * - MINERU: MinerU API(需配置 endpoint,擅长学术 PDF/公式/表格,未配置时降级到 LOCAL)
+     */
+    @Serializable
+    enum class ParserType {
+        LOCAL,
+        CLOUD,
+        MINERU,
     }
 }

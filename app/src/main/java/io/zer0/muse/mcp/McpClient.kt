@@ -476,20 +476,51 @@ class McpClient(
         return sendInitialize()
     }
 
-    /** SSE 事件处理:解析 JSON-RPC 响应,匹配 pending 请求。 */
+    /** SSE 事件处理:解析 JSON-RPC 消息,按 response / notification / server request 分发。 */
     private fun handleSseEvent(data: String) {
         if (data.isBlank()) return
         val obj = runCatching {
             AppJson.decodeFromString(JsonObject.serializer(), data)
         }.getOrNull() ?: return
 
-        // 取 id(响应才有,通知无)
-        val idEl = obj["id"] ?: return
-        val id = (idEl as? JsonPrimitive)?.content?.toLongOrNull() ?: return
+        val idEl = obj["id"]
+        val methodEl = obj["method"]
 
+        if (idEl == null) {
+            // 无 id: notification(必须有 method)
+            val method = (methodEl as? JsonPrimitive)?.content ?: return
+            val params = obj["params"] as? JsonObject ?: buildJsonObject {}
+            handleNotification(method, params)
+            return
+        }
+
+        val id = (idEl as? JsonPrimitive)?.content?.toLongOrNull()
+        if (id == null) {
+            Logger.w(TAG, "[${config.name}] 收到无效 id 的消息: ${data.take(200)}")
+            return
+        }
+
+        if (methodEl != null) {
+            // 有 id 且有 method: server→client request(暂不支持)
+            val method = (methodEl as? JsonPrimitive)?.content
+            Logger.w(TAG, "[${config.name}] 收到 server request(id=$id, method=$method),暂不支持")
+            return
+        }
+
+        // 有 id 无 method: response,匹配 pending channel
         val channel = pendingRequests.remove(id) ?: return
         channel.trySend(obj)
         channel.close()
+    }
+
+    /**
+     * v1.0.47 P4: 处理 server→client notification(无 id)。
+     * 目前仅记录日志,后续接入 tools/list_changed 等触发的重新拉取。
+     */
+    private fun handleNotification(method: String, params: JsonObject) {
+        Logger.i(TAG, "收到 notification: $method (params=${params.toString().take(200)})")
+        // TODO P4-后续: tools/list_changed → 触发 McpRegistry.registerTools 重新拉取
+        // TODO P4-后续: prompts/list_changed → 触发重新拉取 prompts
     }
 
     /** SSE 传输模式下的 POST 请求(initialize / tools/list / tools/call 等)。 */
@@ -630,31 +661,58 @@ class McpClient(
         }
     }
 
-    /** 解析 SSE 响应体(纯文本 data: 行),返回最后一个 JSON 事件。 */
+    /**
+     * 解析 SSE 响应体(纯文本 data: 行)。
+     * v1.0.47 P4: 遍历所有事件 — notification 立即调用 handleNotification,
+     * response 记录并返回最后一个(避免被 notification 覆盖)。
+     */
     private fun parseSseResponse(body: String): JsonObject? {
-        var last: JsonObject? = null
+        var lastResponse: JsonObject? = null
         val sb = StringBuilder()
+
+        // 处理单个已解析 JSON 事件:按类型分发
+        fun processEvent(text: String) {
+            val json = runCatching {
+                AppJson.decodeFromString(JsonObject.serializer(), text)
+            }.getOrNull() ?: return
+
+            val idEl = json["id"]
+            val methodEl = json["method"]
+            when {
+                // notification(无 id,有 method):立即分发
+                idEl == null && methodEl != null -> {
+                    val method = (methodEl as? JsonPrimitive)?.content ?: return
+                    val params = json["params"] as? JsonObject ?: buildJsonObject {}
+                    handleNotification(method, params)
+                }
+                // server→client request(有 id 且有 method):暂不支持,记录日志
+                idEl != null && methodEl != null -> {
+                    val method = (methodEl as? JsonPrimitive)?.content
+                    val id = (idEl as? JsonPrimitive)?.content?.toLongOrNull()
+                    Logger.w(TAG, "[${config.name}] 收到 server request(id=$id, method=$method),暂不支持")
+                }
+                // response(有 id,无 method):记录并返回最后一个
+                else -> {
+                    lastResponse = json
+                }
+            }
+        }
+
         for (line in body.lines()) {
             if (line.startsWith("data:")) {
                 // L-MCP4: 按 SSE 规范,多行 data 用 \n 连接
                 if (sb.isNotEmpty()) sb.append('\n')
                 sb.append(line.removePrefix("data:").trim())
             } else if (line.isBlank() && sb.isNotEmpty()) {
-                val json = runCatching {
-                    AppJson.decodeFromString(JsonObject.serializer(), sb.toString())
-                }.getOrNull()
-                if (json != null) last = json
+                processEvent(sb.toString())
                 sb.clear()
             }
         }
         // 处理末尾未以空行结束的情况
         if (sb.isNotEmpty()) {
-            val json = runCatching {
-                AppJson.decodeFromString(JsonObject.serializer(), sb.toString())
-            }.getOrNull()
-            if (json != null) last = json
+            processEvent(sb.toString())
         }
-        return last
+        return lastResponse
     }
 
     // ── JSON-RPC 请求 ─────────────────────────────────────────────────────────
@@ -668,7 +726,14 @@ class McpClient(
             put("method", "initialize")
             put("params", buildJsonObject {
                 put("protocolVersion", PROTOCOL_VERSION)
-                put("capabilities", buildJsonObject {})
+                // v1.0.47 P4: 声明 sampling 能力(允许 server 请求客户端 LLM)
+                put("capabilities", buildJsonObject {
+                    put("sampling", buildJsonObject {})
+                    // v1.0.47 P4: 声明 roots 能力(允许 server 访问客户端文件系统根)
+                    put("roots", buildJsonObject {
+                        put("listChanged", true)
+                    })
+                })
                 put("clientInfo", buildJsonObject {
                     put("name", "muse")
                     put("version", "1.0.0")

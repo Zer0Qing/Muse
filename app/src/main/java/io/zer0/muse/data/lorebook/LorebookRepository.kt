@@ -47,8 +47,10 @@ class LorebookRepository(
      * 在给定文本中匹配 Lorebook 条目。
      * 任一关键词命中即视为匹配;返回所有匹配的条目。
      *
-     * 匹配方式: contains 子串匹配,大小写由 [LorebookEntity.caseSensitive] 控制
-     * (L-LB7/L-LB8: 为向后兼容保留 contains;TODO:增加 wholeWord 模式以减少误触发)。
+     * 匹配方式:
+     *  - wholeWord=false(默认): contains 子串匹配,大小写由 [LorebookEntity.caseSensitive] 控制
+     *  - wholeWord=true(v1.0.47): 全词匹配,关键词前后必须是单词边界(\b),减少误触发
+     *    (例如关键词"cat"不会命中"category")
      * M-LB2: 显式按 priority 降序 + name 升序排序。
      * L-LB10: 防御性过滤已禁用条目(正常情况调用方已过滤)。
      *
@@ -65,11 +67,30 @@ class LorebookRepository(
                 if (keywords.isEmpty()) return@filter false
                 keywords.any { kw ->
                     if (kw.isBlank()) false
-                    else if (entry.caseSensitive) text.contains(kw)
-                    else text.contains(kw, ignoreCase = true)
+                    else matchKeyword(text, kw, entry.caseSensitive, entry.wholeWord)
                 }
             }
             .sortedWith(compareByDescending<LorebookEntity> { it.priority }.thenBy { it.name })  // M-LB2
+    }
+
+    /**
+     * v1.0.47: 关键词匹配核心逻辑,支持子串匹配和全词匹配两种模式。
+     *
+     * 全词匹配使用 Regex \b 单词边界:
+     *  - \b 定义为单词字符([A-Za-z0-9_])与非单词字符之间的位置
+     *  - 关键词中的正则元字符用 Regex.escape 转义,防止注入
+     *  - 大小写由 [caseSensitive] 控制(ignoreCase = !caseSensitive)
+     */
+    private fun matchKeyword(text: String, keyword: String, caseSensitive: Boolean, wholeWord: Boolean): Boolean {
+        return if (wholeWord) {
+            // 全词匹配:\b 转义关键词\b,正则元字符已转义
+            val pattern = Regex("\\b" + Regex.escape(keyword) + "\\b", if (caseSensitive) setOf() else setOf(RegexOption.IGNORE_CASE))
+            pattern.containsMatchIn(text)
+        } else {
+            // 子串匹配(向后兼容)
+            if (caseSensitive) text.contains(keyword)
+            else text.contains(keyword, ignoreCase = true)
+        }
     }
 
     companion object {

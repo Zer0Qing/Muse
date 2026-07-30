@@ -121,6 +121,8 @@ fun KnowledgeScreen(
     var reindexing by remember { mutableStateOf(false) }
     var reindexProgress by remember { mutableStateOf("") }
     var reindexTarget by remember { mutableStateOf<KnowledgeDocEntity?>(null) }
+    // v1.0.47 P7-3: 文件过大友好提示
+    var fileSizeWarning by remember { mutableStateOf<Pair<String, String>?>(null) }
 
     // v1.54: 支持导入 txt/md/pdf/docx/epub/图片(OCR),导入后自动分块+生成 embedding 向量索引
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -139,6 +141,19 @@ fun KnowledgeScreen(
                         if (idx >= 0 && cursor.moveToFirst()) cursor.getString(idx) else null
                     } ?: uri.lastPathSegment?.substringAfterLast('/')?.substringAfterLast('%')
                 } ?: "doc-$now"
+                // v1.0.47 P7-3: 文件大小检查 — 超限弹出友好提示,不继续导入
+                val MAX_FILE_SIZE_BYTES = 50L * 1024 * 1024  // 50MB
+                val fileSize = withContext(Dispatchers.IO) {
+                    context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                        val idx = cursor.getColumnIndex(android.provider.OpenableColumns.SIZE)
+                        if (idx >= 0 && cursor.moveToFirst()) cursor.getLong(idx) else -1L
+                    } ?: -1L
+                }
+                if (fileSize > MAX_FILE_SIZE_BYTES) {
+                    importing = false
+                    fileSizeWarning = formatFileSize(fileSize) to formatFileSize(MAX_FILE_SIZE_BYTES)
+                    return@launch
+                }
                 val lowerName = fileName.lowercase()
                 // 根据扩展名选择解析方式
                 val content = when {
@@ -477,6 +492,23 @@ fun KnowledgeScreen(
             },
             confirmText = stringResource(R.string.knowledge_cancel),
             onConfirm = { importJob?.cancel() },
+            dismissText = null,
+        )
+    }
+
+    // v1.0.47 P7-3: 文件过大友好提示弹窗
+    fileSizeWarning?.let { (actual, limit) ->
+        MuseDialog(
+            onDismissRequest = { fileSizeWarning = null },
+            title = stringResource(R.string.knowledge_file_too_large_title),
+            content = {
+                Text(
+                    text = stringResource(R.string.knowledge_file_too_large_msg, actual, limit),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            },
+            confirmText = stringResource(R.string.knowledge_file_too_large_confirm),
+            onConfirm = { fileSizeWarning = null },
             dismissText = null,
         )
     }
@@ -923,4 +955,20 @@ enum class KnowledgeSortMode(
     CREATED(R.string.knowledge_sort_created, Icons.Default.CalendarToday, compareByDescending { it.createdAt }),
     TITLE(R.string.knowledge_sort_title, Icons.Default.SortByAlpha, compareBy { it.title.lowercase(Locale.getDefault()) }),
     SIZE(R.string.knowledge_sort_size, Icons.Default.Storage, compareByDescending { it.content.length }),
+}
+
+/**
+ * v1.0.47 P7-3: 格式化文件大小为人类可读字符串。
+ */
+private fun formatFileSize(bytes: Long): String {
+    if (bytes <= 0) return "0 B"
+    val units = arrayOf("B", "KB", "MB", "GB")
+    var size = bytes.toDouble()
+    var unitIdx = 0
+    while (size >= 1024 && unitIdx < units.lastIndex) {
+        size /= 1024
+        unitIdx++
+    }
+    return if (unitIdx == 0) "${bytes} ${units[unitIdx]}"
+    else "%.1f ${units[unitIdx]}".format(size)
 }

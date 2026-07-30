@@ -164,7 +164,8 @@ class TtsManager(
             // v1.0.4 (P2): 同步暴露给 UI
             _isReady.value = true
         } else {
-            Logger.e("TtsManager", "TTS init failed: status=$status")
+            // v1.0.47: TTS init 失败多为设备无 TTS 引擎,属常见情况,从 Logger.e 降为 Logger.d 减少启动日志噪音
+            Logger.d("TtsManager", "TTS init failed: status=$status")
             // v1.98: 移除 Toast 提示,静默处理(朗读功能不可用时用户自然知晓)
         }
     }

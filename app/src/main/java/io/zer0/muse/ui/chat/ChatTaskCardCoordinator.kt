@@ -53,7 +53,14 @@ class ChatTaskCardCoordinator(
             if (stepIndex !in card.steps.indices) return@update state
             val newSteps = card.steps.toMutableList()
             newSteps[stepIndex] = transform(newSteps[stepIndex])
-            state.copy(taskCards = state.taskCards + (taskCardId to card.copy(steps = newSteps)))
+            // v1.0.47 P8-3: 工具失败时自动展开 TaskCard,让用户立即看到错误详情
+            val shouldAutoExpand = newSteps[stepIndex].status == TaskStepStatus.FAILED
+            state.copy(
+                taskCards = state.taskCards + (taskCardId to card.copy(
+                    steps = newSteps,
+                    isExpanded = if (shouldAutoExpand) true else card.isExpanded,
+                )),
+            )
         }
     }
 
@@ -124,15 +131,19 @@ class ChatTaskCardCoordinator(
                     it.copy(
                         taskCards = it.taskCards.mapValues { (k, v) ->
                             if (k == taskCardId) {
-                                v.copy(steps = v.steps.map { s ->
-                                    if (s.id == step.id) s.copy(
-                                        status = if (isSuccess) TaskStepStatus.SUCCESS
-                                        else TaskStepStatus.FAILED,
-                                        result = toolResult,
-                                        startedAt = startedAt,
-                                        finishedAt = finishedAt,
-                                    ) else s
-                                })
+                                // v1.0.47 P8-3: 工具失败时自动展开 TaskCard,让用户立即看到错误详情
+                                v.copy(
+                                    isExpanded = if (!isSuccess) true else v.isExpanded,
+                                    steps = v.steps.map { s ->
+                                        if (s.id == step.id) s.copy(
+                                            status = if (isSuccess) TaskStepStatus.SUCCESS
+                                            else TaskStepStatus.FAILED,
+                                            result = toolResult,
+                                            startedAt = startedAt,
+                                            finishedAt = finishedAt,
+                                        ) else s
+                                    },
+                                )
                             } else v
                         },
                     )

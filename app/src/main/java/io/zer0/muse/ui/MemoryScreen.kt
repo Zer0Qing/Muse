@@ -53,6 +53,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.media.rememberWindowWidthClass
 import androidx.compose.material3.Icon
@@ -128,6 +129,14 @@ fun MemoryScreen(
     var showExportDialog by rememberSaveable { mutableStateOf(false) }
     // P2-1: 大屏(Expanded)下内容区居中限宽 720dp
     val widthClass = rememberWindowWidthClass()
+    // v1.0.51: 记忆 Tab 切换 — 0=当下 1=短期 2=长期 3=事实
+    var selectedMemoryTab by rememberSaveable { mutableStateOf(3) }
+    val memoryTabTitles = listOf(
+        stringResource(R.string.memory_tab_today),
+        stringResource(R.string.memory_tab_week),
+        stringResource(R.string.memory_tab_longterm),
+        stringResource(R.string.memory_tab_facts),
+    )
 
     Scaffold(
         topBar = {
@@ -164,6 +173,91 @@ fun MemoryScreen(
                     )
                     .padding(padding),
             ) {
+                // v1.0.51: 记忆 Tab 切换栏
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.contentGap),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    memoryTabTitles.forEachIndexed { index, title ->
+                        FilterChip(
+                            selected = selectedMemoryTab == index,
+                            onClick = { selectedMemoryTab = index },
+                            label = { Text(title) },
+                        )
+                    }
+                }
+
+                // v1.0.51: 当下/短期/长期 Tab — 直接展示编译产物,支持编辑
+                if (selectedMemoryTab != 3) {
+                    // 立即编译按钮(Tab 0-2 共用)
+                    OutlinedButton(
+                        onClick = { viewModel.compileNow() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = MusePaddings.screen),
+                        shape = MuseShapes.large,
+                    ) {
+                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(R.string.memory_screen_compile_now))
+                    }
+
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(
+                            horizontal = MusePaddings.screen,
+                            vertical = MusePaddings.contentGap,
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
+                    ) {
+                        // 健康状态卡片
+                        item {
+                            MemoryHealthCard(
+                                healthMap = state.healthMap.mapValues { (_, h) ->
+                                    StepHealthInfo(
+                                        lastSuccessAt = h.lastSuccessAt,
+                                        lastErrorAt = h.lastErrorAt,
+                                        lastErrorMsg = h.lastErrorMsg,
+                                        failCount = h.failCount,
+                                    )
+                                },
+                            )
+                        }
+                        // 根据 Tab 展示对应段
+                        when (selectedMemoryTab) {
+                            0 -> item {
+                                MemorySectionView(
+                                    title = memoryTabTitles[0],
+                                    content = state.compileItems.find { it.id == "today" }?.content ?: "",
+                                    onEdit = { newContent -> viewModel.editCompile("today", newContent) },
+                                )
+                            }
+                            1 -> item {
+                                MemoryWeekView(
+                                    content = state.compileItems.find { it.id == "week" }?.content ?: "",
+                                    onEditDay = { date, newContent ->
+                                        // week 段编辑:整体替换(简化处理,不按日单独编辑)
+                                        viewModel.editCompile("week", newContent)
+                                    },
+                                )
+                            }
+                            2 -> item {
+                                MemorySectionView(
+                                    title = memoryTabTitles[2],
+                                    content = state.compileItems.find { it.id == "longterm" }?.content ?: "",
+                                    onEdit = { newContent -> viewModel.editCompile("longterm", newContent) },
+                                )
+                            }
+                        }
+                    }
+                    return@Column
+                }
+
+                // ════════ 以下为"事实"Tab(原有逻辑) ════════
+
                 // v1.78 (#1): 搜索防抖 — 本地 state + 300ms delay,避免每次按键都查库
                 var searchQuery by rememberSaveable { mutableStateOf("") }
                 LaunchedEffect(searchQuery) {

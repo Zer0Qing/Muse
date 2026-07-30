@@ -219,6 +219,7 @@
     <string name="err_vertex_ai_token_failed">Vertex AI 鉴权失败(%1$s)</string>
     <string name="err_memory_token_budget_invalid">记忆 Token 预算无效(%1$s)</string>
     <string name="err_memory_config_invalid">记忆配置无效(%1$s)</string>
+    <string name="memory_llm_empty_response">模型 %1$s 返回空响应(text 与 reasoning 均为空),记忆编译失败</string>
     <!-- 功能1: 消息表情回应 -->
     <string name="chat_reaction_add">回应</string>
     <string name="chat_reaction_remove">取消回应</string>

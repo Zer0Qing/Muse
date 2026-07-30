@@ -55,8 +55,14 @@ class MemoryCompiler(
         }
     }
 
-    /** 编译结果。 */
-    enum class Result { COMPILED, SKIPPED }
+    /**
+     * 编译结果。
+     * v1.0.51: 新增 FAILED — LLM 调用失败或返回空响应时使用。
+     *   - COMPILED: 成功编译并写入
+     *   - SKIPPED: 指纹命中,无需编译(安全)
+     *   - FAILED: LLM 失败或空响应,不写入,不标记 checkpoint,下次重试
+     */
+    enum class Result { COMPILED, SKIPPED, FAILED }
 
     /** 读取某块当前内容。 */
     suspend fun readSection(section: Section): String = withContext(Dispatchers.IO) {
@@ -108,7 +114,16 @@ class MemoryCompiler(
             return@withContext Result.SKIPPED
         }
 
-        val input = sessions.joinToString("\n\n---\n\n") { it.summary }
+        val sessionInput = sessions.joinToString("\n\n---\n\n") { it.summary }
+        // v1.0.51: 注入当前 facts,让 LLM 知道哪些事实已记录,避免 today 里重复
+        val currentFacts = readSection(Section.FACTS).trim()
+        val input = if (currentFacts.isNotBlank()) {
+            val isZh = locale.startsWith("zh")
+            val factsLabel = if (isZh) "## 已记录的重要事实(供参考,不要在 today 里重复)" else "## Already Recorded Facts (for reference, do not repeat in today)"
+            "$factsLabel\n\n$currentFacts\n\n---\n\n$sessionInput"
+        } else {
+            sessionInput
+        }
         val result = resultOf {
             llmClient.callText(
                 systemPrompt = CompilePrompts.buildTodayPrompt(locale),
@@ -120,9 +135,14 @@ class MemoryCompiler(
         }.onError { msg, t ->
             // v1.78 (M1): 记录 LLM 失败原因,避免静默吞异常
             Logger.w("MemoryCompiler", "compileToday LLM 调用失败: $msg", t)
-        }.getOrNull() ?: return@withContext Result.SKIPPED
+        }.getOrNull() ?: return@withContext Result.FAILED
 
+        // v1.0.51: 空响应防御 — LLM 返回空/纯标签时不覆盖已有内容,返回 FAILED 供下次重试
         val normalized = CompiledMemoryState.normalizeLlmResult(result, "compileToday")
+        if (normalized.isBlank()) {
+            Logger.w("MemoryCompiler", "compileToday: LLM 返回空响应,保留旧内容,返回 FAILED")
+            return@withContext Result.FAILED
+        }
         sectionDao.updateContent(Section.TODAY.key, normalized, fp, Instant.now().toString())
         Result.COMPILED
     }
@@ -186,13 +206,21 @@ class MemoryCompiler(
                 userContent = input,
                 model = model,
                 temperature = 0.3f,
-                maxTokens = 100,
+                // v1.0.51: 100 → 250 — 100 token 对中文约 50-70 字,作为一天的定稿过短,
+                // 会导致 daily → week → longterm 链路丢失过多细节。
+                // 250 token 约 120-175 字,与 week 的 1200 字符窗口(6天 × 200字)匹配
+                maxTokens = 250,
             )
         }.onError { msg, t ->
             Logger.w("MemoryCompiler", "compileDaily($logicalDate) LLM 调用失败: $msg", t)
-        }.getOrNull() ?: return@withContext Result.SKIPPED
+        }.getOrNull() ?: return@withContext Result.FAILED
 
+        // v1.0.51: 空响应防御 — 不写空 daily 文件,返回 FAILED 供下次重试
         val normalized = CompiledMemoryState.normalizeLlmResult(result, "compileDaily")
+        if (normalized.isBlank()) {
+            Logger.w("MemoryCompiler", "compileDaily($logicalDate): LLM 返回空响应,返回 FAILED")
+            return@withContext Result.FAILED
+        }
         fileWriter.writeDailyMd(logicalDate, normalized)
         fileWriter.writeDailyFingerprint(logicalDate, fp)
         Result.COMPILED
@@ -283,9 +311,14 @@ class MemoryCompiler(
             )
         }.onError { msg, t ->
             Logger.w("MemoryCompiler", "compileWeek LLM 调用失败: $msg", t)
-        }.getOrNull() ?: return@withContext Result.SKIPPED
+        }.getOrNull() ?: return@withContext Result.FAILED
 
+        // v1.0.51: 空响应防御 — 不覆盖已有 week,不写指纹(避免锁死),返回 FAILED 供下次重试
         val normalized = CompiledMemoryState.normalizeLlmResult(result, "compileWeek")
+        if (normalized.isBlank()) {
+            Logger.w("MemoryCompiler", "compileWeek: LLM 返回空响应,保留旧内容,返回 FAILED")
+            return@withContext Result.FAILED
+        }
         sectionDao.updateContent(Section.WEEK.key, normalized, fp, Instant.now().toString())
         Result.COMPILED
     }
@@ -307,6 +340,8 @@ class MemoryCompiler(
         }
 
         val result = foldIntoLongterm(roll.combinedContent, model, locale)
+        // v1.0.51: 仅 COMPILED 时删除源文件 — FAILED 时保留供下次重试,SKIPPED(指纹命中)时
+        //   longterm 已包含相同内容,可安全删除
         if (result == Result.COMPILED || result == Result.SKIPPED) {
             fileWriter.deleteDailyFiles(roll.folded)
         }
@@ -337,11 +372,19 @@ class MemoryCompiler(
         }
 
         val prevLongterm = readSection(Section.LONGTERM).trim()
+        // v1.0.51: 截断旧 longterm 防累积膨胀 — 每次 fold 时旧内容最多保留 2000 字符,
+        // 给新内容留足 LLM 输出空间(maxTokens=600 约 2400 字符),避免长年使用后 fold 输入超长
+        val prevLongtermCapped = if (prevLongterm.length > 2000) {
+            Logger.d("MemoryCompiler", "foldIntoLongterm: 截断旧 longterm(${prevLongterm.length} → 2000 chars)")
+            prevLongterm.take(2000)
+        } else {
+            prevLongterm
+        }
         val isZh = locale.startsWith("zh")
-        val input = if (prevLongterm.isNotBlank()) {
+        val input = if (prevLongtermCapped.isNotBlank()) {
             val prevLabel = if (isZh) "## 上一份长期情况" else "## Previous long-term context"
             val newLabel = if (isZh) "## 新沉淀内容" else "## Newly settled content"
-            "$prevLabel\n\n$prevLongterm\n\n$newLabel\n\n$trimmed"
+            "$prevLabel\n\n$prevLongtermCapped\n\n$newLabel\n\n$trimmed"
         } else {
             val newLabel = if (isZh) "## 新沉淀内容" else "## Newly settled content"
             "$newLabel\n\n$trimmed"
@@ -357,9 +400,14 @@ class MemoryCompiler(
             )
         }.onError { msg, t ->
             Logger.w("MemoryCompiler", "foldIntoLongterm LLM 调用失败: $msg", t)
-        }.getOrNull() ?: return@withContext Result.SKIPPED
+        }.getOrNull() ?: return@withContext Result.FAILED
 
+        // v1.0.51: 空响应防御 — 不覆盖已有 longterm,不写指纹(避免锁死),返回 FAILED
         val normalized = CompiledMemoryState.normalizeLlmResult(result, "compileLongterm")
+        if (normalized.isBlank()) {
+            Logger.w("MemoryCompiler", "foldIntoLongterm: LLM 返回空响应,保留旧内容,返回 FAILED")
+            return@withContext Result.FAILED
+        }
         sectionDao.updateContent(Section.LONGTERM.key, normalized, fp, Instant.now().toString())
         Result.COMPILED
     }
@@ -440,9 +488,14 @@ class MemoryCompiler(
         }.onError { msg, t ->
             // v1.78 (M1): 记录 LLM 失败原因
             Logger.w("MemoryCompiler", "compileFacts LLM 调用失败: $msg", t)
-        }.getOrNull() ?: return@withContext Result.SKIPPED
+        }.getOrNull() ?: return@withContext Result.FAILED
 
+        // v1.0.51: 空响应防御 — 不覆盖已有 facts,返回 FAILED 供下次重试
         val normalized = CompiledMemoryState.normalizeLlmResult(result, "compileFacts")
+        if (normalized.isBlank()) {
+            Logger.w("MemoryCompiler", "compileFacts: LLM 返回空响应,保留旧 facts,返回 FAILED")
+            return@withContext Result.FAILED
+        }
         sectionDao.updateContent(Section.FACTS.key, normalized, null, Instant.now().toString())
         Result.COMPILED
     }

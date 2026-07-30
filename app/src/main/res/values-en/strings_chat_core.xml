@@ -109,6 +109,9 @@
     <string name="chat_favorite_add">Favorite</string>
     <string name="chat_fork_action">Fork Chat</string>
     <string name="chat_share_action">Share Chat</string>
+    <string name="chat_agent_weak_tool_title">Tool Call Degraded</string>
+    <string name="chat_agent_hint_dismiss">Got it</string>
+    <string name="chat_agent_session_locked">Session locked in Agent Mode</string>
     <string name="chat_delete_message">Delete Message</string>
     <string name="chat_delete_message_confirm">This action cannot be undone. Delete this message?</string>
     <string name="chat_translate_in_progress">Translating…</string>
@@ -178,6 +181,20 @@
     <string name="chat_placeholder_send">Reply to Muse…</string>
     <string name="chat_expand_input_cd">Full-screen edit</string>
     <string name="chat_expand_input_title">Edit Message</string>
+    <!-- v1.0.47 P5-3: Token count menu -->
+    <string name="chat_token_count_cd">Token count</string>
+    <string name="chat_token_menu_title">Token Estimate</string>
+    <string name="chat_token_input">Current input</string>
+    <string name="chat_token_history">History messages</string>
+    <string name="chat_token_context_window">Context window</string>
+    <string name="chat_token_remaining">Available</string>
+    <string name="chat_token_usage">Context usage</string>
+    <string name="chat_token_disclaimer">Approximate estimate based on cl100k_base, for reference only.</string>
+    <!-- v1.0.47 P5-2: Paste long text as file -->
+    <string name="chat_paste_as_file_title">Large text detected</string>
+    <string name="chat_paste_as_file_msg">Pasted content is %1$d chars. Attach as a file? (keeps the input box short)</string>
+    <string name="chat_paste_as_file_attach">Attach as file</string>
+    <string name="chat_paste_as_file_paste">Paste directly</string>
     <!-- Long-press input bar action menu -->
     <string name="chat_input_action_fullscreen">Full-screen Input Mode</string>
     <string name="chat_stop_generation_cd">Stop Generating</string>

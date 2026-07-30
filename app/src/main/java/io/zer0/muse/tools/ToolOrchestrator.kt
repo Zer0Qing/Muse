@@ -415,8 +415,31 @@ class ToolOrchestrator(
                     }
 
                     val assistantToolMsg = outcome.assistantMessage
-                    val toolCallList = assistantToolMsg.toolCalls ?: emptyList()
+                    val rawToolCallList = assistantToolMsg.toolCalls ?: emptyList()
+                    // v1.0.48: 过滤无效 toolCalls — 商汤 completeText 回退等场景可能返回
+                    //   空 name 或空 arguments 的 toolCall,直接执行会引发 HTTP 400
+                    //   (invalid tool_call function, function/name/arguments cannot be empty)
+                    //   过滤后若无有效调用,按"无工具调用"处理本轮,避免卡死
+                    val toolCallList = rawToolCallList.filter { tc ->
+                        tc.name.isNotBlank() && tc.arguments.isNotBlank()
+                    }
+                    if (rawToolCallList.size != toolCallList.size) {
+                        Logger.w(
+                            TAG,
+                            "过滤无效 toolCalls: ${rawToolCallList.size} -> ${toolCallList.size}" +
+                                " | sessionId=${params.sessionId}",
+                        )
+                    }
                     totalToolCallCount += toolCallList.size
+
+                    // v1.0.48: 过滤后无有效 toolCalls,按"无工具调用"处理本轮
+                    if (toolCallList.isEmpty()) {
+                        hasToolCalls = false
+                        // 清空无效 toolCalls 后作为本轮最终 assistant 消息(对齐 line 412 的赋值类型)
+                        finalAssistantMessage = assistantToolMsg.copy(toolCalls = emptyList())
+                        Logger.d(TAG, "Agent Loop step $round/$maxRounds 结束(过滤后无有效工具调用)")
+                        break
+                    }
 
                     // v1.x: 连续无进展早停检测 — 在回填前判断,避免卡死时还执行重复工具
                     val currentSignature = toolCallSignature(toolCallList)
@@ -457,11 +480,16 @@ class ToolOrchestrator(
                     taskCardCoordinator.updateTaskCardPhase(taskCardId, TaskCardPhase.EXECUTING)
 
                     // 并行/串行执行工具调用
+                    // v1.0.47 P6-2: 弱工具模型降级为串行执行,避免并行 tool_calls 导致格式错乱
                     val executeToolCall: suspend (Int, ToolCall) -> ToolExecResult = { idx, tc ->
                         executeSingleToolCall(params, taskCardId, tc, idx, host)
                     }
 
-                    val execResults: List<ToolExecResult> = if (toolCallList.size <= 1) {
+                    val isWeakToolModel = WeakToolUseDetector.isWeakToolModel(params.model)
+                    val execResults: List<ToolExecResult> = if (toolCallList.size <= 1 || isWeakToolModel) {
+                        if (isWeakToolModel && toolCallList.size > 1) {
+                            Logger.i(TAG, "弱工具模型检测到 ${toolCallList.size} 个并行调用,降级为串行执行 | model=${params.model?.id}")
+                        }
                         toolCallList.mapIndexed { idx, tc -> executeToolCall(idx, tc) }
                     } else {
                         coroutineScope {
@@ -691,7 +719,13 @@ class ToolOrchestrator(
         val rawFinal = if (isSuccess) {
             toolResult
         } else {
-            "$toolResult\n\n[提示] 此工具调用失败。请判断:1) 是否需要重试(最多 1 次);2) 换用其他工具或方案;3) 若无法解决,直接告知用户具体失败原因,不要硬撑。"
+            // v1.0.47 P2-1: 结构化失败引导 — 给 LLM 明确的决策路径,避免无效重试循环
+            // runToolLoop 已有 consecutiveToolFailures 计数和 MAX 终止逻辑,此处只负责引导措辞
+            "$toolResult\n\n[工具调用失败引导] 请按以下优先级判断:\n" +
+                "1. 参数/路径错误 → 修正后重试本工具(最多 1 次)\n" +
+                "2. 权限/资源不可用 → 换用其他工具或告知用户限制\n" +
+                "3. 网络超时 → 可重试一次,仍失败则告知用户\n" +
+                "4. 无法解决 → 直接告知用户失败原因和建议,不要硬撑"
         }
         // v1.x: 超长工具输出走"预览 + 写文件 + 引用"模式,完整内容落盘到
         // filesDir/tool_outputs/,LLM 上下文仅保留 4K 预览 + read_file 引用,

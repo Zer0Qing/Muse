@@ -65,7 +65,6 @@ fun NavGraphBuilder.assistantNavGraph(
                         viewModel = sharedViewModel,
                         onBack = { navController.popBackStack() },
                         onOpenDetail = { id -> selectedAssistantId = id },
-                        onOpenMemory = { navController.navigate(MuseRoutes.MEMORY) },
                     )
                 }
                 // 右列:助手详情页(无选中时显示空状态)
@@ -96,7 +95,6 @@ fun NavGraphBuilder.assistantNavGraph(
                 viewModel = sharedViewModel,
                 onBack = { navController.popBackStack() },
                 onOpenDetail = { id -> navController.navigate("${MuseRoutes.ASSISTANT_DETAIL}/$id") },
-                onOpenMemory = { navController.navigate(MuseRoutes.MEMORY) },
             )
         }
     }

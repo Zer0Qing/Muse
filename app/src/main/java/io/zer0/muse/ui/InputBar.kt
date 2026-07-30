@@ -29,6 +29,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -121,6 +122,24 @@ import kotlinx.coroutines.withContext
 private const val INPUT_TEXT_MAX_LENGTH = 5000
 
 /**
+ * v1.0.47 P5-2: 从新旧文本中提取被插入(粘贴)的片段。
+ *
+ * 通过剥离最长公共前缀与最长公共后缀,剩下的即为新增内容。
+ * 适用于光标在任意位置的粘贴场景(不只是末尾追加)。
+ */
+private fun extractInsertedSegment(oldText: String, newText: String): String {
+    if (oldText.isEmpty()) return newText
+    val minLen = minOf(oldText.length, newText.length)
+    var prefix = 0
+    while (prefix < minLen && oldText[prefix] == newText[prefix]) prefix++
+    var suffix = 0
+    while (suffix < minLen - prefix &&
+        oldText[oldText.length - 1 - suffix] == newText[newText.length - 1 - suffix]
+    ) suffix++
+    return newText.substring(prefix, newText.length - suffix)
+}
+
+/**
  * v1.131: @mention 高亮正则 — 文件级常量,避免每次 [MentionHighlightTransformation.filter]
  * 重组都新建(输入框文本变化时 filter 会被高频调用)。
  * 匹配 @ 后跟中文/英文/数字/下划线序列(避免误高亮邮箱)。
@@ -150,6 +169,9 @@ internal fun InputBar(
     isDrawMode: Boolean,
     isWebSearchEnabled: Boolean,
     isDeepThinkingEnabled: Boolean = false,
+    // v1.0.47 P5-6: 深度思考级别(仅 isDeepThinkingEnabled=true 时有意义),输入栏点击胶囊循环切换
+    deepThinkingLevel: io.zer0.ai.core.ReasoningLevel = io.zer0.ai.core.ReasoningLevel.HIGH,
+    onCycleDeepThinkingLevel: () -> Unit = {},
     showExpandButton: Boolean = false,
     // v0.34: 绘图参数(临时覆盖设置默认值)
     imageGenParams: ImageGenParams = ImageGenParams(),
@@ -157,6 +179,9 @@ internal fun InputBar(
     onTextChanged: (String) -> Unit,
     onSend: () -> Unit,
     onStop: () -> Unit,
+    // v1.0.47 P5: 输入框上/下箭头回调,遍历本会话输入历史(direction<0=上/旧,direction>0=下/新)。
+    // 仅硬件键盘生效;软键盘无箭头键,不触发。
+    onNavigateInputHistory: (Int) -> Unit = {},
     onPickDocument: () -> Unit,
     onToggleDrawMode: () -> Unit,
     onToggleWebSearch: () -> Unit,
@@ -215,6 +240,13 @@ internal fun InputBar(
     // v1.0.29: 是否进入页面时自动聚焦输入框并呼出输入法。
     // Agent Tab 首次切换时不应主动弹键盘,避免抢占屏幕。
     autoFocus: Boolean = true,
+    // v1.0.47 P5-3: Token 估算开关(默认关闭)。开启时输入栏显示 Token 计数按钮。
+    tokenEstimateEnabled: Boolean = false,
+    onShowTokenCount: () -> Unit = {},
+    // v1.0.47 P5-2: 长文本粘贴转文件(默认开启),粘贴超阈值文本时弹窗提示转为 txt 附件
+    pasteAsFileEnabled: Boolean = true,
+    pasteAsFileThreshold: Int = 2000,
+    onAddPastedTextAsDocument: (String) -> Unit = {},
 ) {
     val hapticFeedback = LocalHapticFeedback.current
     // v1.26: 上滑取消后的"已取消"瞬态提示(1.5s 后自动消失)
@@ -692,6 +724,39 @@ internal fun InputBar(
             )
         }
 
+        // v1.0.47 P5-6: 深度思考激活时显示级别胶囊,点击循环 LOW → MEDIUM → HIGH → XHIGH
+        if (isDeepThinkingEnabled) {
+            val levelLabel = when (deepThinkingLevel) {
+                io.zer0.ai.core.ReasoningLevel.LOW -> "LOW"
+                io.zer0.ai.core.ReasoningLevel.MEDIUM -> "MED"
+                io.zer0.ai.core.ReasoningLevel.HIGH -> "HIGH"
+                io.zer0.ai.core.ReasoningLevel.XHIGH -> "XHIGH"
+                else -> "AUTO"
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = MusePaddings.inputPadding, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                AssistChip(
+                    onClick = {
+                        MuseHaptics.light(hapticFeedback)
+                        onCycleDeepThinkingLevel()
+                    },
+                    label = { Text("思考 $levelLabel", style = MaterialTheme.typography.labelMedium) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Psychology,
+                            contentDescription = null,
+                            modifier = Modifier.size(MuseIconSizes.iconSmall),
+                        )
+                    },
+                )
+            }
+        }
+
         // 主输入栏: 圆角容器
         // H-IB1: 预设主题未定义 surfaceContainerLow,改用 surfaceVariant 保持主题一致
         // v1.0.22: 加 MuseShadow.low 微阴影,增强 MANUS 风格浮起感
@@ -1041,83 +1106,28 @@ internal fun InputBar(
                     }
                 }
 
-                // 功能2: "草稿"标记 — 输入框左侧显示小标签，点击可清除
-                if (hasDraft && text.isNotBlank()) {
-                    Text(
-                        text = stringResource(R.string.chat_draft_label),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier
-                            .background(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                shape = MuseShapes.pill,
-                            )
-                            .clickable { onTextChanged("") }
-                            .padding(MusePaddings.chipInner),
-                    )
-                }
-
-                // 中间: TextField(无边框,透明背景)
-                // v0.31: 回车键发送(enterToSend 开启时,Enter 发送,Shift+Enter 换行)
-                MuseTextField(
-                    value = text,
-                    // v1.79 (M-I12): 输入框 maxLength 字符上限
-                    onValueChange = { if (it.length <= INPUT_TEXT_MAX_LENGTH) onTextChanged(it) },
-                    modifier = Modifier
-                        .weight(1f)
-                        // v1.132: heightIn 恢复 40-160dp(v1.131 误改成 32-140dp 缩小了高度);
-                        // v1.137 B5: min 40dp → 36dp,进一步降低单行输入栏高度
-                        .heightIn(min = 36.dp, max = 160.dp)
-                        .focusRequester(focusRequester)
-                        .onKeyEvent { event ->
-                            if (enterToSend && event.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER &&
-                                event.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
-                                (event.nativeKeyEvent.metaState and KeyEvent.META_SHIFT_ON) == 0
-                            ) {
-                                if (text.isNotBlank() && !isStreaming) {
-                                    onSend()
-                                }
-                                true
-                            } else {
-                                false
-                            }
-                        },
-                    placeholder = {
-                        Text(
-                            if (isDrawMode) stringResource(R.string.chat_placeholder_draw) else stringResource(R.string.chat_placeholder_send),
-                            color = MaterialTheme.colorScheme.outline,
-                            style = MaterialTheme.typography.bodyLarge,
-                        )
-                    },
-                    // v1.79 (M-I1): 通过 keyboardOptions/keyboardActions 处理软键盘 IME Action,
-                    // 修复 enterToSend 在软键盘上失效的问题(onKeyEvent 仅捕获硬件键盘)
-                    keyboardOptions = KeyboardOptions(
-                        imeAction = if (enterToSend) ImeAction.Send else ImeAction.Default,
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onSend = {
-                            if (text.isNotBlank() && !isStreaming) {
-                                onSend()
-                            }
-                        },
-                    ),
-                    visualTransformation = mentionTransform,
+                // v1.0.47 P5-4: 抽取 MessageInputField 子组件,隔离输入框高频重组,
+                // 避免 onValueChange 触发整个 InputBar(含工具 Sheet/图片预览等)重组。
+                MessageInputField(
+                    text = text,
+                    isStreaming = isStreaming,
+                    isDrawMode = isDrawMode,
+                    enterToSend = enterToSend,
+                    hasDraft = hasDraft,
+                    showExpandButton = showExpandButton,
+                    focusRequester = focusRequester,
+                    mentionTransform = mentionTransform,
+                    pasteAsFileEnabled = pasteAsFileEnabled,
+                    pasteAsFileThreshold = pasteAsFileThreshold,
+                    tokenEstimateEnabled = tokenEstimateEnabled,
+                    onTextChanged = onTextChanged,
+                    onSend = onSend,
+                    onNavigateInputHistory = onNavigateInputHistory,
+                    onShowTokenCount = onShowTokenCount,
+                    onAddPastedTextAsDocument = onAddPastedTextAsDocument,
+                    onExpand = { expanded = true },
+                    onClearDraft = { onTextChanged("") },
                 )
-
-                if (showExpandButton && !isStreaming) {
-                    IconButton(
-                        onClick = { expanded = true },
-                        modifier = Modifier.size(36.dp),
-                    ) {
-                        Icon(
-                            imageVector = compose.icons.TablerIcons.ArrowsMaximize,
-                            contentDescription = stringResource(R.string.chat_expand_input_cd),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(MuseIconSizes.iconMedium),
-                        )
-                    }
-                }
                 // 长按输入栏弹出的动作菜单(全屏输入模式入口)
                 DropdownMenu(
                     expanded = showActionMenu,
@@ -1895,4 +1905,231 @@ private fun formatVideoDuration(durationMs: Long): String {
     val m = (totalSec % 3600) / 60
     val s = totalSec % 60
     return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
+}
+
+/**
+ * v1.0.47 P5-4: 消息输入框子组件 — 渲染隔离。
+ *
+ * 从 [InputBar] 抽取的独立 Composable,封装:
+ *  - 草稿标记
+ *  - TextField(含 @mention 高亮、回车发送、箭头历史导航)
+ *  - 长文本粘贴检测 + 转文件对话框
+ *  - 展开按钮(全屏输入)
+ *  - Token 计数按钮(仅 tokenEstimateEnabled 时)
+ *
+ * 渲染隔离原理:
+ *  - Compose 编译器对参数稳定的 Composable 生成 skippable 代码
+ *  - 当 InputBar 其他参数变化(如 toolCallCompleted/isStreaming)时,
+ *    只要 MessageInputField 的参数未变,它不会被重新组合
+ *  - 反之,当 text 变化时,只有本组件重组,InputBar 中的工具 Sheet/
+ *    图片预览/文档芯片等(已抽取为独立 Composable 或 if 块)不受影响
+ *
+ * 内部状态(粘贴检测)随组件生命周期管理,切会话时随 InputBar 重组自动重置。
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RowScope.MessageInputField(
+    text: String,
+    isStreaming: Boolean,
+    isDrawMode: Boolean,
+    enterToSend: Boolean,
+    hasDraft: Boolean,
+    showExpandButton: Boolean,
+    focusRequester: FocusRequester,
+    mentionTransform: VisualTransformation,
+    pasteAsFileEnabled: Boolean,
+    pasteAsFileThreshold: Int,
+    tokenEstimateEnabled: Boolean,
+    onTextChanged: (String) -> Unit,
+    onSend: () -> Unit,
+    onNavigateInputHistory: (Int) -> Unit,
+    onShowTokenCount: () -> Unit,
+    onAddPastedTextAsDocument: (String) -> Unit,
+    onExpand: () -> Unit,
+    onClearDraft: () -> Unit,
+) {
+    // ── 长文本粘贴检测状态 ──────────────────────────────────────────
+    // v1.0.47 P5-2: 记录上一次输入文本,用于判断是否为大段粘贴
+    var prevInputText by remember { mutableStateOf(text) }
+    // 待确认的粘贴内容(newText=完整新文本, inserted=提取出的粘贴片段)
+    var pendingPaste by remember { mutableStateOf<Pair<String, String>?>(null) }
+
+    /**
+     * 输入变化处理,拦截大段粘贴。
+     * 检测到粘贴(新增字符数 >= [pasteAsFileThreshold])时暂存待确认,弹窗让用户选择
+     * 「作为文件附加」或「直接粘贴」,而非直接塞入输入框。
+     */
+    fun handleInputChange(newText: String) {
+        if (newText.length > INPUT_TEXT_MAX_LENGTH) return
+        val delta = newText.length - prevInputText.length
+        if (pasteAsFileEnabled && delta >= pasteAsFileThreshold && pendingPaste == null) {
+            val inserted = extractInsertedSegment(prevInputText, newText)
+            if (inserted.length >= pasteAsFileThreshold) {
+                pendingPaste = newText to inserted
+                return // 不立即更新 text,等用户选择
+            }
+        }
+        prevInputText = newText
+        onTextChanged(newText)
+    }
+
+    // 外部清空输入(发送/切会话/历史导航)时同步 prevInputText,避免误判
+    LaunchedEffect(text) {
+        if (pendingPaste == null) prevInputText = text
+    }
+
+    // ── 草稿标记 ─────────────────────────────────────────────────────
+    if (hasDraft && text.isNotBlank()) {
+        Text(
+            text = stringResource(R.string.chat_draft_label),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier
+                .background(
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                    shape = MuseShapes.pill,
+                )
+                .clickable { onClearDraft() }
+                .padding(MusePaddings.chipInner),
+        )
+    }
+
+    // ── TextField ────────────────────────────────────────────────────
+    // 回车键发送(enterToSend 开启时,Enter 发送,Shift+Enter 换行)
+    MuseTextField(
+        value = text,
+        onValueChange = { handleInputChange(it) },
+        modifier = Modifier
+            .weight(1f)
+            .heightIn(min = 36.dp, max = 160.dp)
+            .focusRequester(focusRequester)
+            .onKeyEvent { event ->
+                if (enterToSend && event.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER &&
+                    event.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
+                    (event.nativeKeyEvent.metaState and KeyEvent.META_SHIFT_ON) == 0
+                ) {
+                    if (text.isNotBlank() && !isStreaming) {
+                        onSend()
+                    }
+                    true
+                } else if (event.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
+                    event.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_UP
+                ) {
+                    // 上箭头 → 输入历史向更旧移动(硬件方向键映射为 DPAD)
+                    onNavigateInputHistory(-1)
+                    true
+                } else if (event.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
+                    event.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_DOWN
+                ) {
+                    // 下箭头 → 输入历史向更新移动
+                    onNavigateInputHistory(1)
+                    true
+                } else {
+                    false
+                }
+            },
+        placeholder = {
+            Text(
+                if (isDrawMode) stringResource(R.string.chat_placeholder_draw) else stringResource(R.string.chat_placeholder_send),
+                color = MaterialTheme.colorScheme.outline,
+                style = MaterialTheme.typography.bodyLarge,
+            )
+        },
+        keyboardOptions = KeyboardOptions(
+            imeAction = if (enterToSend) ImeAction.Send else ImeAction.Default,
+        ),
+        keyboardActions = KeyboardActions(
+            onSend = {
+                if (text.isNotBlank() && !isStreaming) {
+                    onSend()
+                }
+            },
+        ),
+        visualTransformation = mentionTransform,
+    )
+
+    // ── 展开按钮(全屏输入) ──────────────────────────────────────────
+    if (showExpandButton && !isStreaming) {
+        IconButton(
+            onClick = onExpand,
+            modifier = Modifier.size(36.dp),
+        ) {
+            Icon(
+                imageVector = compose.icons.TablerIcons.ArrowsMaximize,
+                contentDescription = stringResource(R.string.chat_expand_input_cd),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(MuseIconSizes.iconMedium),
+            )
+        }
+    }
+
+    // ── Token 计数按钮(仅 tokenEstimateEnabled 时显示) ─────────────
+    // 点击打开详情面板;按钮上实时显示当前输入 token 数(防抖 400ms,避免每次按键 BPE)。
+    if (tokenEstimateEnabled) {
+        var liveInputTokens by remember { mutableStateOf(0) }
+        LaunchedEffect(text) {
+            kotlinx.coroutines.delay(400)
+            liveInputTokens = io.zer0.muse.util.TokenEstimator.estimate(text)
+        }
+        BadgedBox(
+            badge = {
+                if (liveInputTokens > 0) {
+                    Badge {
+                        Text(
+                            text = if (liveInputTokens > 999) "999+" else liveInputTokens.toString(),
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    }
+                }
+            },
+        ) {
+            IconButton(
+                onClick = onShowTokenCount,
+                modifier = Modifier.size(36.dp),
+            ) {
+                Icon(
+                    imageVector = compose.icons.TablerIcons.ChartBar,
+                    contentDescription = stringResource(R.string.chat_token_count_cd),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                )
+            }
+        }
+    }
+
+    // ── 大段粘贴确认对话框 ──────────────────────────────────────────
+    val pending = pendingPaste
+    if (pending != null) {
+        val (fullText, inserted) = pending
+        val charCount = inserted.length
+        MuseDialog(
+            onDismissRequest = {
+                // 取消:不粘贴也不转文件,保持原输入
+                pendingPaste = null
+            },
+            title = stringResource(R.string.chat_paste_as_file_title),
+            content = {
+                Text(
+                    stringResource(R.string.chat_paste_as_file_msg, charCount),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            },
+            confirmText = stringResource(R.string.chat_paste_as_file_attach),
+            onConfirm = {
+                onAddPastedTextAsDocument(inserted)
+                prevInputText = fullText.removeRange(
+                    fullText.indexOf(inserted),
+                    fullText.indexOf(inserted) + inserted.length,
+                )
+                pendingPaste = null
+            },
+            dismissText = stringResource(R.string.chat_paste_as_file_paste),
+            onDismiss = {
+                prevInputText = fullText
+                onTextChanged(fullText)
+                pendingPaste = null
+            },
+        )
+    }
 }

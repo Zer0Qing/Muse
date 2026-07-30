@@ -215,7 +215,7 @@ class FactStore(
                 merged.createdAt, merged.importance, merged.category, merged.confidence,
                 merged.source, merged.expiresAt, merged.lastConfirmedAt, merged.lastHitAt,
             )
-            dao.insertFts(merged.id, FactFtsManager.toNgram(merged.fact))
+            upsertFts(merged.id, FactFtsManager.toNgram(merged.fact))
             io.zer0.common.Logger.d("FactStore", "合并相似事实(scope=$scope): ${existingSimilar.fact.take(30)}… ↔ ${cleaned.take(30)}… → id=${existingSimilar.id}")
             return@withContext existingSimilar.id
         }
@@ -271,7 +271,7 @@ class FactStore(
                         merged.createdAt, merged.importance, merged.category, merged.confidence,
                         merged.source, merged.expiresAt, merged.lastConfirmedAt, merged.lastHitAt,
                     )
-                    dao.insertFts(merged.id, FactFtsManager.toNgram(merged.fact))
+                    upsertFts(merged.id, FactFtsManager.toNgram(merged.fact))
                 } else {
                     val importance = if (newEntry.importance > 0) newEntry.importance else inferImportance(cleaned)
                     val insertedId = dao.insert(FactEntity(
@@ -290,6 +290,7 @@ class FactStore(
                         scope = scope,
                     ))
                     dao.insertFts(insertedId, FactFtsManager.toNgram(cleaned))
+                    // 新插入的 id 不会有重复 FTS,直接 insertFts 即可(upsertFts 多一次 DELETE 无必要)
                 }
                 inserted++
             }
@@ -416,7 +417,8 @@ class FactStore(
         if (trimmed.isEmpty()) return@withContext false
         val updated = dao.updateContent(id, trimmed, scope) > 0
         if (updated) {
-            dao.insertFts(id, FactFtsManager.toNgram(trimmed))
+            // v1.0.51: 用 upsertFts 避免更新已有事实时产生重复 FTS 条目
+            upsertFts(id, FactFtsManager.toNgram(trimmed))
         }
         updated
     }
@@ -553,6 +555,17 @@ class FactStore(
     // ════════════════════════════
     //  内部转换
     // ════════════════════════════
+
+    /**
+     * v1.0.51: 安全 upsert FTS 索引 — 先删后插,避免 FTS4 表产生重复 fact_id 条目。
+     *
+     * FTS4 虚拟表无唯一约束,`INSERT OR REPLACE` 只按 rowid 去重不按 fact_id 去重,
+     * 合并/更新事实时直接 insertFts 会产生重复索引行,导致搜索返回重复结果。
+     */
+    private suspend fun upsertFts(factId: Long, contentNgram: String) {
+        dao.deleteFts(factId)
+        dao.insertFts(factId, contentNgram)
+    }
 
     private fun FactEntity.toFact(): Fact = Fact(
         id = id,

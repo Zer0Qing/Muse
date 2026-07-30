@@ -4,27 +4,39 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.VerifiedUser
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -77,6 +89,10 @@ import kotlinx.coroutines.withContext
  * ChatViewModel 注入 [io.zer0.muse.tools.ToolApprovalState.Approved.argOverrides],
  * ToolOrchestrator 合并进工具执行参数。LLM 自身无法访问用户本地相册,
  * 故图生图的参考图主要从此入口提供。
+ *
+ * v1.0.48: UI 重构 — 紧凑单行主操作(批准/拒绝/更多)+ 折叠次级操作,
+ * 替代原三行按钮 + 双复选框的臃肿布局;配色由 tertiaryContainer 改为
+ * surface + primary 强调色,视觉更清爽。
  */
 @Composable
 fun ToolApprovalCard(
@@ -127,6 +143,8 @@ fun ToolApprovalCard(
     var denyReason by remember { mutableStateOf("") }
     // 参考图读取中标志(避免大图阻塞主线程时按钮无响应)
     var isLoadingRefImage by remember { mutableStateOf(false) }
+    // v1.0.48: 次级操作折叠状态(本会话允许 / 始终允许 / 始终拒绝 / 复选框)
+    var showMoreOptions by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -164,38 +182,63 @@ fun ToolApprovalCard(
     Card(
         modifier = modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+            containerColor = MaterialTheme.colorScheme.surface,
         ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
-        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            // Header
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = stringResource(R.string.tool_approval_title),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.tertiary,
-                )
-                Text(
-                    text = toolName,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontFamily = FontFamily.Monospace,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer,
-                )
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            // Header: 工具图标徽标 + 标题/工具名
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Build,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(MuseIconSizes.iconSmall),
+                    )
+                }
+                Column {
+                    Text(
+                        text = stringResource(R.string.tool_approval_title),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Text(
+                        text = toolName,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontFamily = FontFamily.Monospace,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
             }
 
-            // Arguments preview (truncated)
+            // Arguments preview (truncated) — 放入圆角代码框,视觉更清爽
             val preview = if (argumentsPreview.length > 200) {
                 argumentsPreview.take(200) + "..."
             } else {
                 argumentsPreview
             }
-            Text(
-                text = preview,
-                style = MaterialTheme.typography.bodySmall,
-                fontFamily = FontFamily.Monospace,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 6,
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(MuseShapes.small)
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
+            ) {
+                Text(
+                    text = preview,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontFamily = FontFamily.Monospace,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 6,
+                )
+            }
 
             // v1.x: 参考图选择区(仅 generate_image 等支持参考图的工具显示)
             // LLM 无法访问用户本地相册,故图生图参考图由此入口提供
@@ -216,48 +259,23 @@ fun ToolApprovalCard(
                 )
             }
 
-            // "始终允许"复选框(本次批准时附带勾选,与"始终允许"按钮的区别:
-            // 复选框是 onApprove 时附带 alwaysAllow=true,按钮是直接持久化策略)
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(
-                    checked = alwaysAllow,
-                    onCheckedChange = onAlwaysAllowChanged,
-                )
-                Text(
-                    text = stringResource(R.string.tool_approval_always_allow, toolName),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            // v1.0.16: "本次开启期间批准全部工具"复选框(内存态,不持久化,冷启动后失效)
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(
-                    checked = appRunAllowAll,
-                    onCheckedChange = onAppRunAllowAllChanged,
-                )
-                Text(
-                    text = stringResource(R.string.tool_approval_allow_all_this_run),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            // 操作按钮行(三行布局:本次操作 + 会话级 + 持久化策略)
-            // v1.0.20: 第一行 — 本次批准 / 本次拒绝
+            // 主操作行:批准(强调) + 拒绝 + 更多(折叠次级操作)
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                OutlinedButton(
+                // 批准 — 主按钮,最高优先级,使用 filled 强调
+                Button(
                     onClick = onApprove,
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 4.dp),
                 ) {
-                    Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.padding(end = 4.dp))
-                    Text(stringResource(R.string.tool_approval_approve), style = MaterialTheme.typography.labelMedium)
+                    Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(MuseIconSizes.iconSmall))
+                    Spacer(Modifier.width(4.dp))
+                    Text(stringResource(R.string.tool_approval_approve), style = MaterialTheme.typography.labelLarge)
                 }
 
-                TextButton(
+                // 拒绝 — 次级,OutlinedButton
+                OutlinedButton(
                     onClick = {
                         if (showDenyReason) {
                             onDeny(denyReason)
@@ -265,63 +283,34 @@ fun ToolApprovalCard(
                             showDenyReason = true
                         }
                     },
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp, vertical = 4.dp),
                 ) {
-                    Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.padding(end = 4.dp))
-                    Text(if (showDenyReason) stringResource(R.string.tool_approval_confirm_deny) else stringResource(R.string.tool_approval_deny), style = MaterialTheme.typography.labelMedium)
-                }
-            }
-
-            // v1.x: 第二行 — 本会话允许(会话级临时允许,切换会话/冷启动后自动失效)
-            // 介于"批准本次"(单次)与"始终允许"(持久)之间的中间地带,平衡安全与流畅
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                OutlinedButton(
-                    onClick = {
-                        // 把工具加入会话级临时允许缓存,并触发本次批准
-                        onAllowThisSession()
-                        onApprove()
-                    },
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                ) {
-                    Icon(Icons.Default.Bookmark, contentDescription = null, modifier = Modifier.padding(end = 4.dp))
-                    Text(stringResource(R.string.tool_approval_allow_this_session), style = MaterialTheme.typography.labelMedium)
-                }
-            }
-
-            // v1.0.20: 第三行 — 始终允许(持久化)/ 始终拒绝(持久化)
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                OutlinedButton(
-                    onClick = {
-                        // 持久化 ALWAYS_ALLOW 策略,并触发本次批准
-                        onPersistPolicy(ToolApprovalPolicy.ALWAYS_ALLOW)
-                        onApprove()
-                    },
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                ) {
-                    Icon(Icons.Default.VerifiedUser, contentDescription = null, modifier = Modifier.padding(end = 4.dp))
-                    Text(stringResource(R.string.tool_approval_always_approve), style = MaterialTheme.typography.labelMedium)
+                    Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(MuseIconSizes.iconSmall))
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        if (showDenyReason) stringResource(R.string.tool_approval_confirm_deny)
+                        else stringResource(R.string.tool_approval_deny),
+                        style = MaterialTheme.typography.labelMedium,
+                    )
                 }
 
+                Spacer(Modifier.width(2.dp))
+
+                // 更多 — 折叠/展开次级操作
                 TextButton(
-                    onClick = {
-                        // 持久化 ALWAYS_DENY 策略,并触发本次拒绝
-                        onPersistPolicy(ToolApprovalPolicy.ALWAYS_DENY)
-                        onDeny("")
-                    },
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                    onClick = { showMoreOptions = !showMoreOptions },
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                 ) {
-                    Icon(Icons.Default.Block, contentDescription = null, modifier = Modifier.padding(end = 4.dp))
-                    Text(stringResource(R.string.tool_approval_always_deny), style = MaterialTheme.typography.labelMedium)
+                    Text(stringResource(R.string.action_more), style = MaterialTheme.typography.labelMedium)
+                    Icon(
+                        imageVector = if (showMoreOptions) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = null,
+                        modifier = Modifier.size(MuseIconSizes.iconSmall),
+                    )
                 }
             }
 
-            // 拒绝理由输入框
+            // 拒绝理由输入框(点击拒绝后展开)
             if (showDenyReason) {
                 MuseTextField(
                     value = denyReason,
@@ -330,6 +319,95 @@ fun ToolApprovalCard(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
+            }
+
+            // 次级操作(折叠区):本会话允许 / 始终允许 / 始终拒绝 + 持久化复选框
+            AnimatedVisibility(
+                visible = showMoreOptions,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut(),
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                    // 第二行 — 本会话允许 / 始终允许
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        OutlinedButton(
+                            onClick = {
+                                // 把工具加入会话级临时允许缓存,并触发本次批准
+                                onAllowThisSession()
+                                onApprove()
+                            },
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                        ) {
+                            Icon(Icons.Default.Bookmark, contentDescription = null, modifier = Modifier.size(MuseIconSizes.iconSmall))
+                            Spacer(Modifier.width(4.dp))
+                            Text(stringResource(R.string.tool_approval_allow_this_session), style = MaterialTheme.typography.labelMedium)
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                // 持久化 ALWAYS_ALLOW 策略,并触发本次批准
+                                onPersistPolicy(ToolApprovalPolicy.ALWAYS_ALLOW)
+                                onApprove()
+                            },
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                        ) {
+                            Icon(Icons.Default.VerifiedUser, contentDescription = null, modifier = Modifier.size(MuseIconSizes.iconSmall))
+                            Spacer(Modifier.width(4.dp))
+                            Text(stringResource(R.string.tool_approval_always_approve), style = MaterialTheme.typography.labelMedium)
+                        }
+                    }
+
+                    // 第三行 — 始终拒绝(持久化)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        TextButton(
+                            onClick = {
+                                // 持久化 ALWAYS_DENY 策略,并触发本次拒绝
+                                onPersistPolicy(ToolApprovalPolicy.ALWAYS_DENY)
+                                onDeny("")
+                            },
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                        ) {
+                            Icon(Icons.Default.Block, contentDescription = null, modifier = Modifier.size(MuseIconSizes.iconSmall))
+                            Spacer(Modifier.width(4.dp))
+                            Text(stringResource(R.string.tool_approval_always_deny), style = MaterialTheme.typography.labelMedium)
+                        }
+                    }
+
+                    // "始终允许"复选框(本次批准时附带勾选,与"始终允许"按钮的区别:
+                    // 复选框是 onApprove 时附带 alwaysAllow=true,按钮是直接持久化策略)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = alwaysAllow,
+                            onCheckedChange = onAlwaysAllowChanged,
+                        )
+                        Text(
+                            text = stringResource(R.string.tool_approval_always_allow, toolName),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+
+                    // v1.0.16: "本次开启期间批准全部工具"复选框(内存态,不持久化,冷启动后失效)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = appRunAllowAll,
+                            onCheckedChange = onAppRunAllowAllChanged,
+                        )
+                        Text(
+                            text = stringResource(R.string.tool_approval_allow_all_this_run),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
             }
         }
     }

@@ -25,6 +25,7 @@ import io.zer0.muse.transformer.TransformContext
 import io.zer0.muse.transformer.TransformerPipeline
 import io.zer0.muse.ui.ChatError
 import io.zer0.muse.ui.ChatErrorType
+import io.zer0.muse.ui.CompactionState
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.util.MusePatterns
 import kotlinx.coroutines.NonCancellable
@@ -367,8 +368,9 @@ class ChatStreamCoordinator(
             assistant = accessor.snapshot.currentAssistant
                 ?: assistantRepository.getById("default")
             // v1.136: 用户/助手请求的推理等级
+            // v1.0.47 P5-6: deepThinkingEnabled 时使用用户选择的级别(默认 HIGH),不再硬编码 HIGH
             requestedReasoningLevel = if (accessor.snapshot.deepThinkingEnabled) {
-                ReasoningLevel.HIGH
+                accessor.snapshot.deepThinkingLevel
             } else assistant?.let {
                 runCatching { ReasoningLevel.valueOf(it.reasoningLevel) }
                     .getOrElse { ReasoningLevel.DEFAULT }
@@ -624,7 +626,26 @@ class ChatStreamCoordinator(
                     "compress_keep_recent" to if (experiments.longMemoryCompression) 8 else 15,
                 ),
             )
+            // v1.0.47 P1: 流式 Compaction UI — 消息数超过阈值时显示"正在压缩上下文"状态
+            val compressThreshold = if (experiments.longMemoryCompression) 10 else 20
+            val totalMsgCount = prefixMessages.size + truncatedHistory.size
+            if (totalMsgCount > compressThreshold) {
+                accessor.update { it.copy(compactionState = CompactionState.Compacting(totalMsgCount)) }
+            }
             transformedMessages = transformerPipeline.execute(prefixMessages + truncatedHistory, context)
+            // v1.0.47 P1: 压缩完成 — 更新状态为 Compacted(显示短暂提示)或清除
+            if (totalMsgCount > compressThreshold) {
+                val compressedCount = totalMsgCount - (if (experiments.longMemoryCompression) 8 else 15)
+                accessor.update { it.copy(compactionState = CompactionState.Compacted(compressedCount.coerceAtLeast(0))) }
+                // 3 秒后清除 Compacted 状态
+                accessor.coroutineScope.launch {
+                    kotlinx.coroutines.delay(3000)
+                    accessor.update { curr ->
+                        if (curr.compactionState is CompactionState.Compacted) curr.copy(compactionState = null)
+                        else curr
+                    }
+                }
+            }
             // v1.x: 三钩子接入 — 保存 context,供后续 applyVisualTransform / applyOnGenerationFinish 复用
             transformContext = context
         }
@@ -655,9 +676,18 @@ class ChatStreamCoordinator(
             }
             val localToolDefs = toolRegistry.listToolsAsToolDefinitions(enabledToolIds)
 
-            // Phase 8.8: 加载启用的 Skills(按 Assistant.skillIdsJson 过滤)并转为 ToolDefinition
-            val enabledSkillIds = assistant?.let { ast ->
-                runCatching { idListJson.decodeFromString<List<String>>(ast.skillIdsJson) }.getOrNull()
+            // Phase 8.8: 加载启用的 Skills 并转为 ToolDefinition
+            // v1.0.47 P3: 会话级 skill 覆盖 — 优先用 session.skillIdsJson(非"[]"且非空),
+            // 否则回退到 assistant.skillIdsJson(默认行为不变)
+            val sessionSkillIdsJson = accessor.snapshot.sessions
+                .firstOrNull { it.id == sessionId }?.skillIdsJson
+            val effectiveSkillIdsJson = if (!sessionSkillIdsJson.isNullOrEmpty() && sessionSkillIdsJson != "[]") {
+                sessionSkillIdsJson
+            } else {
+                assistant?.skillIdsJson
+            }
+            val enabledSkillIds = effectiveSkillIdsJson?.let { json ->
+                runCatching { idListJson.decodeFromString<List<String>>(json) }.getOrNull()
             }
             val enabledSkills = skillRepository.listEnabledByIds(enabledSkillIds)
             // 缓存 skill id → SkillEntity 映射,工具执行时用

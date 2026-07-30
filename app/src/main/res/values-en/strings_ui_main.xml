@@ -99,6 +99,10 @@
     <string name="memory_screen_add_fact_cd">Add meta-fact</string>
     <string name="memory_screen_compile_now_cd">Compile now</string>
     <string name="memory_screen_compile_now">Compile Now</string>
+    <string name="memory_tab_today">Today</string>
+    <string name="memory_tab_week">Short-term</string>
+    <string name="memory_tab_longterm">Long-term</string>
+    <string name="memory_tab_facts">Facts</string>
     <string name="memory_screen_layer_summary">Session Summary</string>
     <string name="memory_screen_layer_compile">Compiled Artifact</string>
     <string name="memory_screen_layer_memory">Memory</string>
@@ -194,9 +198,9 @@
     <string name="settings_screen_memory_data_group_cd">Memory &amp; Knowledge Base group</string>
     <string name="settings_screen_memory_data">Memory &amp; Data</string>
     <string name="settings_screen_memory_knowledge">Memory &amp; Knowledge</string>
-    <string name="settings_screen_memory_notification_cd">Memory &amp; Notifications, memory params/knowledge base/notification policy, tap to enter</string>
-    <string name="settings_screen_memory_notification">Memory &amp; Notifications</string>
-    <string name="settings_screen_memory_notification_desc">Memory Params / Knowledge Base / Notification Policy</string>
+    <string name="settings_screen_memory_notification_cd">Memory Center, view/edit memory · memory params · compile now, tap to enter</string>
+    <string name="settings_screen_memory_notification">Memory Center</string>
+    <string name="settings_screen_memory_notification_desc">Today / Short-term / Long-term · Facts · Params</string>
     <string name="settings_screen_data_backup_cd">Data &amp; Backup, cloud backup/Web server, tap to enter</string>
     <string name="settings_screen_data_backup">Data &amp; Backup</string>
     <string name="settings_screen_data_backup_desc">Cloud Backup / Web Server</string>

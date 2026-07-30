@@ -44,6 +44,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import io.zer0.muse.ui.common.media.WindowWidthClass
+import io.zer0.muse.ui.common.state.MuseLoadingState
 import io.zer0.muse.ui.common.surface.MuseDivider
 import io.zer0.muse.ui.common.surface.MuseListItem
 import androidx.compose.foundation.lazy.LazyColumn
@@ -142,6 +143,7 @@ import io.zer0.muse.data.knowledge.KnowledgeDocDao
 import io.zer0.muse.data.knowledge.KnowledgeDocEntity
 import io.zer0.muse.ui.chat.BranchSelector
 import io.zer0.muse.ui.chat.ToolApprovalCard
+import io.zer0.muse.ui.chat.TokenCountMenu
 import io.zer0.muse.ui.chat.buildQuotedContent
 import io.zer0.muse.ui.chat.SlashCommand
 import io.zer0.muse.ui.speech.SpeechInput
@@ -801,12 +803,17 @@ fun ChatScreen(
                 isDrawMode = state.isDrawMode,
                 isWebSearchEnabled = state.webSearchEnabled,
                 isDeepThinkingEnabled = state.deepThinkingEnabled,
+                // v1.0.47 P5-6: 深度思考级别胶囊(激活时显示,点击循环)
+                deepThinkingLevel = state.deepThinkingLevel,
+                onCycleDeepThinkingLevel = viewModel::cycleDeepThinkingLevel,
                 imageGenParams = state.imageGenParams,
                 onImageGenParamsChange = viewModel::updateImageGenParams,
                 // P2-12: 富文本输入开关 — 开启后显示 Markdown 格式工具条
                 formatEnabled = richInputEnabled,
                 showExpandButton = state.chatPreferences.showExpandButton,
                 onTextChanged = viewModel::updateInput,
+                // v1.0.47 P5: 硬件键盘上/下箭头遍历输入历史
+                onNavigateInputHistory = viewModel::navigateInputHistory,
                 // v1.97: 斜杠命令拦截 — / 开头的输入走 executeSlashCommand,不发送给 LLM
                 onSend = {
                     val text = currentInput
@@ -955,6 +962,13 @@ fun ChatScreen(
                 onOpenVoiceConversation = { showVoiceConversation = true },
                 // v1.0.29: Agent Tab 不主动呼出输入法
                 autoFocus = !isAgentMode,
+                // v1.0.47 P5-3: Token 估算(默认关闭,设置页开启后输入栏显示 Token 按钮)
+                tokenEstimateEnabled = state.tokenEstimateEnabled,
+                onShowTokenCount = viewModel::showTokenCountMenu,
+                // v1.0.47 P5-2: 长文本粘贴转文件(默认开启,粘贴超阈值文本时提示转为附件)
+                pasteAsFileEnabled = state.pasteAsFileEnabled,
+                pasteAsFileThreshold = state.pasteAsFileThreshold,
+                onAddPastedTextAsDocument = viewModel::addPastedTextAsDocument,
             )
         },
         containerColor = MaterialTheme.colorScheme.background,
@@ -1011,13 +1025,31 @@ fun ChatScreen(
             )
             // 空状态与消息列表 Crossfade 过渡,避免硬切换
             // v1.0.4 (P3-4): 用 visibleMessages 判空,性能模式下 visibleMessages 反映实际渲染状态
+            // v1.0.48: 修复 Agent Tab 进入时闪烁空状态 — HorizontalPager 动画期间目标页已 compose
+            //   但 setAgentMode 尚未执行(settledPage 触发),此时 visibleMessages=emptyList() 会闪现
+            //   "今天想聊点什么"引导。新增 loading 中间态:isAgentMode && !state.isAgentMode 期间
+            //   显示 loading 而非空状态,等 ViewModel 切换完成后再渲染消息或真正的空状态。
+            val isAgentTabLoading = isAgentMode && !state.isAgentMode
+            val chatScreenState = when {
+                isAgentTabLoading -> 2  // Agent Tab 加载中
+                visibleMessages.isEmpty() -> 1  // 真正空会话
+                else -> 0  // 有消息
+            }
             Crossfade(
-                targetState = visibleMessages.isEmpty(),
+                targetState = chatScreenState,
                 animationSpec = tween(300),
                 label = "chatState",
                 modifier = Modifier.fillMaxSize(),
-            ) { isEmpty ->
-                if (isEmpty) {
+            ) { screenState ->
+                if (screenState == 2) {
+                    // Agent Tab 加载中 — 显示 loading,不闪空状态引导
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        MuseLoadingState()
+                    }
+                } else if (screenState == 1) {
                     // 空状态引导 — 居中轻量提示 + 建议 prompt 胶囊(不遮罩,点击填入输入框)
                     Box(
                         modifier = Modifier.fillMaxSize(),
@@ -1084,6 +1116,22 @@ fun ChatScreen(
                     verticalArrangement = Arrangement.spacedBy(MusePaddings.messageGap),
                     contentPadding = PaddingValues(bottom = MusePaddings.screen),
                 ) {
+                    // v1.0.47 P6: Agent Mode 提示卡片 — 会话锁定/弱工具降级/Agent Mode 提示。
+                    // 仅在 Agent Mode 相关状态激活时显示,随消息列表滚动,避免与顶部悬浮 Banner 堆叠。
+                    val showAgentHint = state.isSessionLocked ||
+                        !state.weakToolHint.isNullOrEmpty() ||
+                        !state.agentModeHint.isNullOrEmpty()
+                    if (showAgentHint) {
+                        item(key = "agent_mode_hint") {
+                            AgentModeHintCard(
+                                isSessionLocked = state.isSessionLocked,
+                                weakToolHint = state.weakToolHint,
+                                agentModeHint = state.agentModeHint,
+                                onDismissWeakToolHint = viewModel::dismissWeakToolHint,
+                                onDismissAgentModeHint = viewModel::dismissAgentModeHint,
+                            )
+                        }
+                    }
                     // v1.0.4 (P1): 历史加载更多顶部占位 — 上滑触发 loadMoreHistory 后,
                     // 在 LazyColumn 顶部插入一条 shimmer 占位条,让用户看到"正在加载"反馈。
                     // 加载完成后 lastHistoryLoadCount > 0,scrollToItem 跳过新插入条数保持视觉位置不跳。
@@ -1709,6 +1757,14 @@ fun ChatScreen(
                     agentPlan = latestPlan,
                 )
             }
+        }
+        // v1.0.47 P5-3: Token 计数详情面板(仅 tokenEstimateEnabled 时可达)
+        val tokenSnapshot = state.tokenSnapshot
+        if (state.tokenCountVisible && tokenSnapshot != null) {
+            TokenCountMenu(
+                snapshot = tokenSnapshot,
+                onDismissRequest = viewModel::dismissTokenCountMenu,
+            )
         }
         // v1.95: 系统语音识别首次使用提示(用户确认后调起系统 Intent)
         if (asrTipDialogShown) {

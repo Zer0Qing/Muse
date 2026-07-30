@@ -87,11 +87,16 @@ internal fun RichInputBar(
     isDrawMode: Boolean,
     isWebSearchEnabled: Boolean,
     isDeepThinkingEnabled: Boolean = false,
+    // v1.0.47 P5-6: 深度思考级别,透传到 InputBar
+    deepThinkingLevel: io.zer0.ai.core.ReasoningLevel = io.zer0.ai.core.ReasoningLevel.HIGH,
+    onCycleDeepThinkingLevel: () -> Unit = {},
     imageGenParams: ImageGenParams = ImageGenParams(),
     onImageGenParamsChange: (ImageGenParams) -> Unit = {},
     onTextChanged: (String) -> Unit,
     onSend: () -> Unit,
     onStop: () -> Unit,
+    // v1.0.47 P5: 输入框上/下箭头回调,透传到 InputBar
+    onNavigateInputHistory: (Int) -> Unit = {},
     onPickDocument: () -> Unit,
     onToggleDrawMode: () -> Unit,
     onToggleWebSearch: () -> Unit,
@@ -137,6 +142,13 @@ internal fun RichInputBar(
     showExpandButton: Boolean = false,
     // v1.0.29: 是否进入页面时自动聚焦输入框并呼出输入法。
     autoFocus: Boolean = true,
+    // v1.0.47 P5-3: Token 估算开关,透传到 InputBar
+    tokenEstimateEnabled: Boolean = false,
+    onShowTokenCount: () -> Unit = {},
+    // v1.0.47 P5-2: 长文本粘贴转文件,透传到 InputBar
+    pasteAsFileEnabled: Boolean = true,
+    pasteAsFileThreshold: Int = 2000,
+    onAddPastedTextAsDocument: (String) -> Unit = {},
 ) {
     // 工具条展开状态(配置变更后保留,避免旋转屏 / 切后台后丢失)
     var showFormatToolbar by rememberSaveable { mutableStateOf(false) }
@@ -205,12 +217,15 @@ internal fun RichInputBar(
             isDrawMode = isDrawMode,
             isWebSearchEnabled = isWebSearchEnabled,
             isDeepThinkingEnabled = isDeepThinkingEnabled,
+            deepThinkingLevel = deepThinkingLevel,
+            onCycleDeepThinkingLevel = onCycleDeepThinkingLevel,
             showExpandButton = showExpandButton,
             imageGenParams = imageGenParams,
             onImageGenParamsChange = onImageGenParamsChange,
             onTextChanged = onTextChanged,
             onSend = onSend,
             onStop = onStop,
+            onNavigateInputHistory = onNavigateInputHistory,
             onPickDocument = onPickDocument,
             onToggleDrawMode = onToggleDrawMode,
             onToggleWebSearch = onToggleWebSearch,
@@ -251,6 +266,11 @@ internal fun RichInputBar(
             hasDraft = hasDraft,
             onOpenVoiceConversation = onOpenVoiceConversation,
             autoFocus = autoFocus,
+            tokenEstimateEnabled = tokenEstimateEnabled,
+            onShowTokenCount = onShowTokenCount,
+            pasteAsFileEnabled = pasteAsFileEnabled,
+            pasteAsFileThreshold = pasteAsFileThreshold,
+            onAddPastedTextAsDocument = onAddPastedTextAsDocument,
         )
     }
 

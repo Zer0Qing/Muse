@@ -55,6 +55,10 @@
     <string name="html_preview_open_in_browser_failed">Cannot open in external browser: %1$s</string>
     <string name="html_preview_source_copied">HTML source copied</string>
     <string name="html_preview_button_cd">Full-screen preview</string>
+    <!-- v1.0.47 P8-2: Download artifact -->
+    <string name="html_preview_download_cd">Download</string>
+    <string name="html_preview_download_success">Saved to Downloads: %1$s</string>
+    <string name="html_preview_download_failed">Download failed: %1$s</string>
 
     <!-- ===== ui/theme preset theme names ===== -->
     <string name="theme_warm_paper">Warm Paper</string>

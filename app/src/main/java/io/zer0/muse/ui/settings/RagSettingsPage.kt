@@ -284,6 +284,75 @@ fun RagSettingsPage(
             }
         }
 
+        // ── v1.0.47 P7-1: 文档解析器 ──
+        item { SectionLabel(stringResource(R.string.settings_rag_parser_section)) }
+        item {
+            SettingsGroup {
+                EmbeddingSourceOption(
+                    icon = TablerIcons.DeviceMobile,
+                    title = stringResource(R.string.settings_rag_parser_local),
+                    subtitle = stringResource(R.string.settings_rag_parser_local_subtitle),
+                    selected = config.documentParserType == RagConfig.ParserType.LOCAL,
+                    onClick = {
+                        scope.launch {
+                            settings.saveRagConfig(config.copy(documentParserType = RagConfig.ParserType.LOCAL))
+                        }
+                    },
+                )
+                SettingsGroupDivider()
+                EmbeddingSourceOption(
+                    icon = TablerIcons.Cloud,
+                    title = stringResource(R.string.settings_rag_parser_cloud),
+                    subtitle = stringResource(R.string.settings_rag_parser_cloud_subtitle),
+                    selected = config.documentParserType == RagConfig.ParserType.CLOUD,
+                    onClick = {
+                        scope.launch {
+                            settings.saveRagConfig(config.copy(documentParserType = RagConfig.ParserType.CLOUD))
+                        }
+                    },
+                )
+                SettingsGroupDivider()
+                EmbeddingSourceOption(
+                    icon = TablerIcons.FileText,
+                    title = stringResource(R.string.settings_rag_parser_mineru),
+                    subtitle = stringResource(R.string.settings_rag_parser_mineru_subtitle),
+                    selected = config.documentParserType == RagConfig.ParserType.MINERU,
+                    onClick = {
+                        scope.launch {
+                            settings.saveRagConfig(config.copy(documentParserType = RagConfig.ParserType.MINERU))
+                        }
+                    },
+                )
+            }
+        }
+        // CLOUD / MINERU endpoint 配置(仅选中时显示)
+        if (config.documentParserType == RagConfig.ParserType.CLOUD) {
+            item {
+                SettingsGroup {
+                    EndpointInputRow(
+                        title = stringResource(R.string.settings_rag_cloud_parser_endpoint),
+                        value = config.cloudParserEndpoint,
+                        onValueChange = { v ->
+                            scope.launch { settings.saveRagConfig(config.copy(cloudParserEndpoint = v)) }
+                        },
+                    )
+                }
+            }
+        }
+        if (config.documentParserType == RagConfig.ParserType.MINERU) {
+            item {
+                SettingsGroup {
+                    EndpointInputRow(
+                        title = stringResource(R.string.settings_rag_mineru_endpoint),
+                        value = config.mineruEndpoint,
+                        onValueChange = { v ->
+                            scope.launch { settings.saveRagConfig(config.copy(mineruEndpoint = v)) }
+                        },
+                    )
+                }
+            }
+        }
+
         // ── 分块参数 ──
         item { SectionLabel(stringResource(R.string.settings_rag_chunk_params_section)) }
         item {
@@ -540,6 +609,43 @@ private fun SliderRow(
             valueRange = valueRange,
             steps = steps,
             showValueLabel = false,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp),
+        )
+    }
+}
+
+/**
+ * v1.0.47 P7-1: endpoint 输入行(用于 CLOUD/MINERU 解析器配置)。
+ * 用 debounce 保存(与 cloudModel 一致),避免每次按键写 DataStore。
+ */
+@Composable
+private fun EndpointInputRow(
+    title: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+) {
+    var temp by remember(value) { mutableStateOf(value) }
+    LaunchedEffect(temp) {
+        delay(300)
+        if (temp != value) onValueChange(temp)
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(MusePaddings.cardInner),
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        MuseTextField(
+            value = temp,
+            onValueChange = { temp = it },
+            placeholder = { Text("https://example.com/api/parse") },
+            singleLine = true,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 8.dp),

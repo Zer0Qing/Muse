@@ -45,4 +45,10 @@ data class SessionEntity(
     @ColumnInfo(defaultValue = "NULL") val parentSessionId: String? = null,
     /** v5: 分叉子会话数量(仅在原始会话上维护)。 */
     @ColumnInfo(defaultValue = "0") val childCount: Int = 0,
+    /**
+     * v1.0.47 P3: 会话级 skill 覆盖。
+     * "[]" = 继承 Assistant 的 skillIdsJson(默认行为不变);
+     * 非空数组 = 覆盖 Assistant,仅启用指定 skill。
+     */
+    @ColumnInfo(defaultValue = "[]") val skillIdsJson: String = "[]",
 )

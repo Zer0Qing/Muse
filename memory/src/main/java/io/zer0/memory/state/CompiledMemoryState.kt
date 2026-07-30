@@ -18,7 +18,9 @@ object CompiledMemoryState {
     /**
      * 规范化 section body:
      *  - 去除 <think>...</think> 块(部分模型输出思考标签)
-     *  - 去除 markdown 标题行(避免 LLM 输出标题污染 assemble)
+     *  - 去除开头的前置 markdown 标题行(避免 LLM 输出 # 标题污染 assemble)
+     *    注意: 只去掉 body 开头的连续标题,保留正文中的子标题结构
+     *    (例如 facts 段内的 ### Work / ### Personal 子分类)
      *  - 压缩多空行为单空行
      *  - JSON 字符串数组 ["a","b"] 转 bullet list
      */
@@ -26,10 +28,9 @@ object CompiledMemoryState {
         if (value.isEmpty()) return ""
         var s = value
         s = stripThinkTagBlocks(s)
-        // 去掉首行 markdown 标题(避免 LLM 输出 # 标题污染 assemble)
-        s = s.lineSequence()
-            .filterNot { line -> RollingSummaryFormat.parseMarkdownHeading(line) != null }
-            .joinToString("\n")
+        // 只去掉 body 开头的连续标题行(前置标题),保留正文中的子标题结构。
+        // 遇到第一个非标题、非空行即停止剥离,后续内容原样保留。
+        s = stripLeadingHeadings(s)
         // JSON 字符串数组 → bullet list (["a","b"] → "- a\n- b")
         val jsonArrMatch = Regex("""^\s*\[\s*("(?:[^"\\]|\\.)*"(?:\s*,\s*"(?:[^"\\]|\\.)*")*)\s*]\s*$""", RegexOption.MULTILINE).find(s)
         if (jsonArrMatch != null) {
@@ -43,6 +44,29 @@ object CompiledMemoryState {
         // 压缩 3+ 换行为 2 换行
         s = s.replace(Regex("\n{3,}"), "\n\n")
         return s.trim()
+    }
+
+    /**
+     * 剥离开头的连续标题行(允许标题行之间有空行)。
+     * 遇到第一个非标题、非空行即停止,后续内容(含子标题)原样保留。
+     */
+    private fun stripLeadingHeadings(value: String): String {
+        val lines = value.split(Regex("\\r?\\n"))
+        var idx = 0
+        // 跳过开头的空行 + 标题行
+        while (idx < lines.size) {
+            val line = lines[idx]
+            if (line.isBlank()) {
+                idx++
+                continue
+            }
+            if (RollingSummaryFormat.parseMarkdownHeading(line) != null) {
+                idx++
+                continue
+            }
+            break
+        }
+        return lines.drop(idx).joinToString("\n")
     }
 
     /**

@@ -34,8 +34,9 @@ class ChatDocumentCoordinator(
         /**
          * 文档解析结果最大字符数(避免输入框爆炸和超长消息)。
          * v1.136 T10: 从 4000 提升到 32000,适配现代 LLM 更大的上下文窗口。
+         * v1.0.47 P5-2: 改为 public,供 [io.zer0.muse.ui.ChatViewModel.addPastedTextAsDocument] 复用截断阈值。
          */
-        private const val DOC_MAX_CHARS = 32000
+        const val DOC_MAX_CHARS = 32000
     }
 
     /**

@@ -89,7 +89,6 @@ import org.koin.compose.koinInject
 fun AssistantScreen(
     onBack: () -> Unit,
     onOpenDetail: (String) -> Unit,
-    onOpenMemory: () -> Unit = {},
     viewModel: ChatViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -103,8 +102,6 @@ fun AssistantScreen(
     // i18n: 预提取字符串资源
     val screenTitle = stringResource(R.string.assistant_screen_title)
     val importCardCd = stringResource(R.string.assistant_import_card_cd)
-    val memoryEntryTitle = stringResource(R.string.assistant_memory_entry_title)
-    val memoryEntrySubtitle = stringResource(R.string.assistant_memory_entry_subtitle)
     val emptyCreateText = stringResource(R.string.assistant_empty_create)
     val unnamedText = stringResource(R.string.assistant_unnamed)
     val currentText = stringResource(R.string.assistant_current)
@@ -245,38 +242,6 @@ fun AssistantScreen(
             contentPadding = PaddingValues(vertical = MusePaddings.sectionGap),
             verticalArrangement = Arrangement.spacedBy(MusePaddings.sectionGap),
         ) {
-            // 长期记忆入口
-            item {
-                CardGroup {
-                    item(
-                        onClick = onOpenMemory,
-                        leadingContent = {
-                            Icon(
-                                imageVector = Icons.Outlined.Psychology,
-                                contentDescription = null,
-                                modifier = Modifier.size(MuseIconSizes.icon),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        },
-                        headlineContent = {
-                            Text(
-                                text = memoryEntryTitle,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        },
-                        supportingContent = {
-                            Text(
-                                text = memoryEntrySubtitle,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        },
-                        trailingContent = { ChevronRight() },
-                    )
-                }
-            }
-
             // 助手列表
             if (state.isAssistantsLoading) {
                 item {

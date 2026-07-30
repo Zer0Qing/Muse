@@ -55,6 +55,10 @@
     <string name="html_preview_open_in_browser_failed">无法在外部浏览器打开: %1$s</string>
     <string name="html_preview_source_copied">已复制 HTML 源码</string>
     <string name="html_preview_button_cd">全屏预览</string>
+    <!-- v1.0.47 P8-2: 下载产物 -->
+    <string name="html_preview_download_cd">下载</string>
+    <string name="html_preview_download_success">已保存到下载目录: %1$s</string>
+    <string name="html_preview_download_failed">下载失败: %1$s</string>
 
     <!-- ===== ui/theme 预设主题名称 ===== -->
     <string name="theme_warm_paper">暖纸</string>

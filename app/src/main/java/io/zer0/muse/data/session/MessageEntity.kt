@@ -82,4 +82,6 @@ data class MessageEntity(
     @ColumnInfo(defaultValue = "0") val variantIndex: Int = 0,
     /** v1.0.30: 变体总数（组内消息数，所有变体记录相同值）。 */
     @ColumnInfo(defaultValue = "1") val variantCount: Int = 1,
+    /** v1.0.47: 消息附件列表(JSON 序列化 [io.zer0.ai.core.AttachmentRef])。 */
+    @ColumnInfo(defaultValue = "[]") val attachmentsJson: String = "[]",
 )

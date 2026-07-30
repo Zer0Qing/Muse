@@ -105,7 +105,7 @@ class SessionSummaryManager(
      * @param messages 完整对话历史(含 system / user / assistant)
      * @param model 目标模型
      * @param locale 语言
-     * @return 更新后的摘要文本(失败时返回旧摘要,不抛错)
+     * @return 更新结果(含摘要文本和是否变化标志;空对话返回 changed=false + 空摘要)
      */
     suspend fun rollingSummary(
         sessionId: String,
@@ -114,13 +114,20 @@ class SessionSummaryManager(
         locale: String = "zh-CN",
         timeZone: String = TimeContext.DEFAULT_TIMEZONE,
         assistantId: String = "",
-    ): String = withContext(Dispatchers.IO) {
-        val draft = createRollingSummaryDraft(sessionId, messages, model, locale, timeZone, assistantId) ?: return@withContext ""
+    ): RollingResult = withContext(Dispatchers.IO) {
+        val draft = createRollingSummaryDraft(sessionId, messages, model, locale, timeZone, assistantId)
+            ?: return@withContext RollingResult(summary = "", changed = false)
         if (draft.changed && draft.data != null) {
             saveSummary(sessionId, draft.data)
         }
-        draft.summary
+        RollingResult(summary = draft.summary, changed = draft.changed)
     }
+
+    /** rollingSummary 的返回结果。v1.0.50: 增加 changed 字段,让调用方区分"真变化"与"LLM 返回空"。 */
+    data class RollingResult(
+        val summary: String,
+        val changed: Boolean,
+    )
 
     /** 生成草稿(不落盘)。null 表示空对话直接跳过。 */
     suspend fun createRollingSummaryDraft(

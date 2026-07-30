@@ -6,6 +6,7 @@ import io.zer0.memory.fact.FactDbProvider
 import io.zer0.memory.llm.MemoryLlmClient
 import io.zer0.memory.summary.SessionSummaryManager
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -52,18 +53,18 @@ class DeepMemoryProcessorParseTest {
 
     @Test
     fun `empty input returns empty list`() {
-        assertTrue(processor.parseFactExtractionResult("", sampleSummary(), "zh-CN").isEmpty())
+        assertTrue(processor.parseFactExtractionResult("", sampleSummary(), "zh-CN")!!.isEmpty())
     }
 
     @Test
     fun `blank input returns empty list`() {
-        assertTrue(processor.parseFactExtractionResult("   \n\t  ", sampleSummary(), "zh-CN").isEmpty())
+        assertTrue(processor.parseFactExtractionResult("   \n\t  ", sampleSummary(), "zh-CN")!!.isEmpty())
     }
 
     @Test
     fun `pure json array is parsed`() {
         val raw = """[{"fact":"用户喜欢深色模式","tags":["preference"],"importance":1,"category":"preference"}]"""
-        val result = processor.parseFactExtractionResult(raw, sampleSummary(), "zh-CN")
+        val result = processor.parseFactExtractionResult(raw, sampleSummary(), "zh-CN")!!
 
         assertEquals(1, result.size)
         assertEquals("用户喜欢深色模式", result[0].fact)
@@ -80,7 +81,7 @@ class DeepMemoryProcessorParseTest {
             [{"fact":"生日: 1990-05-20","tags":["identity"],"importance":2}]
             ```
         """.trimIndent()
-        val result = processor.parseFactExtractionResult(raw, sampleSummary(), "zh-CN")
+        val result = processor.parseFactExtractionResult(raw, sampleSummary(), "zh-CN")!!
 
         assertEquals(1, result.size)
         assertEquals("生日: 1990-05-20", result[0].fact)
@@ -95,7 +96,7 @@ class DeepMemoryProcessorParseTest {
             </thinking>
             [{"fact":"用户提及偏好","tags":[],"importance":0}]
         """.trimIndent()
-        val result = processor.parseFactExtractionResult(raw, sampleSummary(), "zh-CN")
+        val result = processor.parseFactExtractionResult(raw, sampleSummary(), "zh-CN")!!
 
         assertEquals(1, result.size)
         assertEquals("用户提及偏好", result[0].fact)
@@ -108,26 +109,26 @@ class DeepMemoryProcessorParseTest {
             Result: [{"fact":"用户喜欢 Kotlin","tags":["preference"],"importance":1}]
             Done.
         """.trimIndent()
-        val result = processor.parseFactExtractionResult(raw, sampleSummary(), "zh-CN")
+        val result = processor.parseFactExtractionResult(raw, sampleSummary(), "zh-CN")!!
 
         assertEquals(1, result.size)
         assertEquals("用户喜欢 Kotlin", result[0].fact)
     }
 
     @Test
-    fun `invalid json returns empty list without throwing`() {
+    fun `invalid json returns null without throwing`() {
         val raw = """```json
             [{ this is not valid json ]
             ```"""
         val result = processor.parseFactExtractionResult(raw, sampleSummary(), "zh-CN")
 
-        assertTrue("JSON 解析失败应返回空列表而非抛异常", result.isEmpty())
+        assertNull("JSON 解析失败应返回 null(触发重试)而非空列表", result)
     }
 
     @Test
     fun `missing fields use defaults`() {
         val raw = """[{"fact":"最小化字段"}]"""
-        val result = processor.parseFactExtractionResult(raw, sampleSummary(), "zh-CN")
+        val result = processor.parseFactExtractionResult(raw, sampleSummary(), "zh-CN")!!
 
         assertEquals(1, result.size)
         val fact = result[0]
@@ -142,7 +143,7 @@ class DeepMemoryProcessorParseTest {
     @Test
     fun `user_explicit source gets higher default confidence`() {
         val raw = """[{"fact":"用户明确告知","source":"user_explicit"}]"""
-        val result = processor.parseFactExtractionResult(raw, sampleSummary(), "zh-CN")
+        val result = processor.parseFactExtractionResult(raw, sampleSummary(), "zh-CN")!!
 
         assertEquals(1, result.size)
         assertEquals(1.0f, result[0].confidence, 0.001f)
@@ -154,7 +155,7 @@ class DeepMemoryProcessorParseTest {
             {"fact":"过低 importance","importance":-5},
             {"fact":"过高 importance","importance":99}
         ]"""
-        val result = processor.parseFactExtractionResult(raw, sampleSummary(), "zh-CN")
+        val result = processor.parseFactExtractionResult(raw, sampleSummary(), "zh-CN")!!
 
         assertEquals(2, result.size)
         assertEquals("负值应 coerce 到 0", 0, result[0].importance)
@@ -165,7 +166,7 @@ class DeepMemoryProcessorParseTest {
     fun `sessionId is propagated from summary`() {
         val raw = """[{"fact":"测试 sessionId 传递"}]"""
         val summary = sampleSummary(sessionId = "session-xyz-123")
-        val result = processor.parseFactExtractionResult(raw, summary, "zh-CN")
+        val result = processor.parseFactExtractionResult(raw, summary, "zh-CN")!!
 
         assertEquals(1, result.size)
         assertEquals("sessionId 应从 summary 透传到 Fact", "session-xyz-123", result[0].sessionId)
@@ -178,7 +179,7 @@ class DeepMemoryProcessorParseTest {
             {"fact":"事实 B","importance":1},
             {"fact":"事实 C","importance":2,"category":"identity"}
         ]"""
-        val result = processor.parseFactExtractionResult(raw, sampleSummary(), "zh-CN")
+        val result = processor.parseFactExtractionResult(raw, sampleSummary(), "zh-CN")!!
 
         assertEquals(3, result.size)
         assertEquals("事实 A", result[0].fact)
@@ -198,7 +199,7 @@ class DeepMemoryProcessorParseTest {
             {"fact":"过低 confidence","confidence":-0.3},
             {"fact":"正常 confidence","confidence":0.85}
         ]"""
-        val result = processor.parseFactExtractionResult(raw, sampleSummary(), "zh-CN")
+        val result = processor.parseFactExtractionResult(raw, sampleSummary(), "zh-CN")!!
 
         assertEquals(3, result.size)
         assertEquals("1.5 应截到 1.0", 1.0f, result[0].confidence, 0.001f)
@@ -210,7 +211,7 @@ class DeepMemoryProcessorParseTest {
     fun `blank category falls back to general`() {
         // category 显式提供空字符串时,应回退到默认 "general"
         val raw = """[{"fact":"空 category","category":""}]"""
-        val result = processor.parseFactExtractionResult(raw, sampleSummary(), "zh-CN")
+        val result = processor.parseFactExtractionResult(raw, sampleSummary(), "zh-CN")!!
 
         assertEquals(1, result.size)
         assertEquals("空字符串 category 应回退到 general", "general", result[0].category)
@@ -220,7 +221,7 @@ class DeepMemoryProcessorParseTest {
     fun `blank source falls back to inferred`() {
         // source 显式提供空字符串时,应回退到默认 "inferred"
         val raw = """[{"fact":"空 source","source":""}]"""
-        val result = processor.parseFactExtractionResult(raw, sampleSummary(), "zh-CN")
+        val result = processor.parseFactExtractionResult(raw, sampleSummary(), "zh-CN")!!
 
         assertEquals(1, result.size)
         assertEquals("空字符串 source 应回退到 inferred", "inferred", result[0].source)
@@ -232,7 +233,7 @@ class DeepMemoryProcessorParseTest {
     fun `tags default to empty list when not provided`() {
         // tags 字段缺失时应为空列表(DTO 默认值)
         val raw = """[{"fact":"无 tags 字段"}]"""
-        val result = processor.parseFactExtractionResult(raw, sampleSummary(), "zh-CN")
+        val result = processor.parseFactExtractionResult(raw, sampleSummary(), "zh-CN")!!
 
         assertEquals(1, result.size)
         assertEquals("缺失 tags 字段应为空列表", emptyList<String>(), result[0].tags)
@@ -246,7 +247,7 @@ class DeepMemoryProcessorParseTest {
             "expiresAt":"2027-12-31T23:59:59Z",
             "lastConfirmedAt":"2026-07-28T10:00:00Z"
         }]"""
-        val result = processor.parseFactExtractionResult(raw, sampleSummary(), "zh-CN")
+        val result = processor.parseFactExtractionResult(raw, sampleSummary(), "zh-CN")!!
 
         assertEquals(1, result.size)
         assertEquals("2027-12-31T23:59:59Z", result[0].expiresAt)
@@ -254,28 +255,28 @@ class DeepMemoryProcessorParseTest {
     }
 
     @Test
-    fun `text with no opening bracket returns empty list`() {
-        // 无 [ 字符时 findJsonArrayCandidate 返回 null
+    fun `text with no opening bracket returns null`() {
+        // 无 [ 字符时 findJsonArrayCandidate 返回 null → parseFactExtractionResult 返回 null
         val raw = """这是一段完全没有 JSON 数组的文本,只有普通文字。"""
         val result = processor.parseFactExtractionResult(raw, sampleSummary(), "zh-CN")
 
-        assertTrue("无 [ 字符的文本应返回空列表", result.isEmpty())
+        assertNull("无 [ 字符的文本应返回 null(解析失败)", result)
     }
 
     @Test
-    fun `unterminated json array returns empty list`() {
-        // 括号深度状态机扫描到结尾仍未闭合 → 返回 null → 空列表
+    fun `unterminated json array returns null`() {
+        // 括号深度状态机扫描到结尾仍未闭合 → 返回 null
         val raw = """分析结果:[{"fact":"未闭合的 JSON","tags":["test"]"""
         val result = processor.parseFactExtractionResult(raw, sampleSummary(), "zh-CN")
 
-        assertTrue("未闭合的 JSON 数组应返回空列表", result.isEmpty())
+        assertNull("未闭合的 JSON 数组应返回 null(解析失败)", result)
     }
 
     @Test
     fun `brackets inside json strings do not affect depth tracking`() {
         // JSON 字符串内的 [ ] 不应影响括号深度状态机
         val raw = """结果:[{"fact":"包含 [ 和 ] 字符的字符串","tags":["a[b]c"]}] 完成"""
-        val result = processor.parseFactExtractionResult(raw, sampleSummary(), "zh-CN")
+        val result = processor.parseFactExtractionResult(raw, sampleSummary(), "zh-CN")!!
 
         assertEquals(1, result.size)
         assertEquals("包含 [ 和 ] 字符的字符串", result[0].fact)
@@ -288,7 +289,7 @@ class DeepMemoryProcessorParseTest {
         // 应正确处理转义,不因 \" 错误地切换 inString 状态导致括号深度计算错误
         // 注:raw 不以 [ 开头,强制走 findJsonArrayCandidate 路径
         val raw = """提取结果:[{"fact":"用户说\"你好\"","tags":[]}] 结束"""
-        val result = processor.parseFactExtractionResult(raw, sampleSummary(), "zh-CN")
+        val result = processor.parseFactExtractionResult(raw, sampleSummary(), "zh-CN")!!
 
         assertEquals(1, result.size)
         assertEquals("用户说\"你好\"", result[0].fact)
@@ -299,7 +300,7 @@ class DeepMemoryProcessorParseTest {
         // <thinking> 未闭合时,正则不匹配,但流程不应崩溃
         val raw = """<thinking>这段思考没有闭合标签
 [{"fact":"仍然能提取的事实","importance":0}]"""
-        val result = processor.parseFactExtractionResult(raw, sampleSummary(), "zh-CN")
+        val result = processor.parseFactExtractionResult(raw, sampleSummary(), "zh-CN")!!
 
         // 未闭合的 <thinking> 不被正则匹配,但后续 findJsonArrayCandidate 仍能提取 JSON
         assertEquals(

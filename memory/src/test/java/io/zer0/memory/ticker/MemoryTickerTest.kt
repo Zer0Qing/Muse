@@ -189,18 +189,21 @@ class MemoryTickerTest {
     }
 
     @Test
-    fun `healthFlow initial value is empty until first markSuccess or markFailure`() {
-        // 源码行为: _healthFlow 初始化为 emptyMap(), 仅在 markSuccess/markFailure → publishHealth() 时更新。
-        // 而 getHealthStatus() 直接读 _health(初始化时已填充 6 个 step)。
-        // 这造成初始时两者不同步(源码潜在不一致, 此处只验证真实行为)。
+    fun `healthFlow initial value matches getHealthStatus after v1_0_51 fix`() {
+        // v1.0.51: _healthFlow 初始化为 _health.toMap(),与 getHealthStatus() 保持一致。
         val scope = TestScope(testDispatcher)
         val ticker = newTicker(scope = scope, isMemoryEnabled = { true })
 
-        // healthFlow 初始为空 (源码: MutableStateFlow(emptyMap()))
-        assertEquals("healthFlow 初始应为空 map", 0, ticker.healthFlow.value.size)
+        // healthFlow 初始即包含 6 个 step (v1.0.51 修复后不再是空 map)
+        assertEquals("healthFlow 初始应包含 6 个 step", 6, ticker.healthFlow.value.size)
 
-        // getHealthStatus 已填充 6 个默认 step
+        // getHealthStatus 同样有 6 个 step,两者一致
         assertEquals("getHealthStatus 应有 6 个 step", 6, ticker.getHealthStatus().size)
+        assertEquals(
+            "healthFlow 与 getHealthStatus 初始应一致",
+            ticker.getHealthStatus().keys,
+            ticker.healthFlow.value.keys,
+        )
     }
 
     // ──────────────────────────────────────────────

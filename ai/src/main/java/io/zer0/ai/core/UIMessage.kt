@@ -44,6 +44,31 @@ data class ToolCallInfo(
 )
 
 /**
+ * v1.0.47: 消息附件引用(结构化持久化原始文件元数据)。
+ *
+ * 现状:文档解析后合并进 content,原始文件元数据丢弃。
+ * 本字段保留原始附件信息,UI 可还原文档芯片(点击查看全文),
+ * Provider 发送请求时仍用 content(兼容旧 Provider)。
+ *
+ * @param id 附件唯一 id
+ * @param name 文件名
+ * @param mimeType MIME 类型
+ * @param size 文件大小(字节)
+ * @param sourceType 来源类型(FILE=本地文件 / URL=网络链接)
+ * @param extractedText 提取的文本内容(文档解析后)
+ */
+@Immutable
+@Serializable
+data class AttachmentRef(
+    val id: String = kotlin.uuid.Uuid.random().toString(),
+    val name: String,
+    val mimeType: String = "application/octet-stream",
+    val size: Long = 0L,
+    val sourceType: String = "FILE",
+    val extractedText: String? = null,
+)
+
+/**
  * UI 层使用的消息体。独立于任何 Provider 的请求格式,
  * 由各 Provider 自己把它翻译成对应 API 的 payload。
  *
@@ -155,6 +180,8 @@ data class UIMessage(
     val variantIndex: Int = 0,
     /** v1.0.30: 变体总数（组内消息数）。 */
     val variantCount: Int = 1,
+    /** v1.0.47: 消息附件列表(结构化持久化原始文件元数据,Provider 发送请求时忽略,用 content)。 */
+    val attachments: List<AttachmentRef> = emptyList(),
 ) {
     /** 拼出用于显示的纯文本(不含推理过程)。 */
     fun toText(): String = content

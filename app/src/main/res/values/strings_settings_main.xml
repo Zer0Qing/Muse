@@ -405,6 +405,9 @@
     <!-- v1.0.4 P3-4: 性能模式(MessagePaginator 接入) -->
     <string name="settings_chat_performance_mode">性能模式</string>
     <string name="settings_chat_performance_mode_subtitle">超长会话仅渲染最近 50 条消息,上滑加载更多,降低列表卡顿</string>
+    <!-- v1.0.47 P5-3: Token 估算(实验性) -->
+    <string name="settings_chat_token_estimate">Token 估算(实验性)</string>
+    <string name="settings_chat_token_estimate_subtitle">在输入栏显示 Token 计数按钮,默认关闭以避免编码开销</string>
 
     <!-- ==================== v1.0.20: 工具调用批准 ==================== -->
     <string name="settings_chat_tool_approval_section">工具调用批准</string>

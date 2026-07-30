@@ -185,6 +185,12 @@ class OpenAIProvider(
         //   记录 ContentDelta 总字符数,在 Done 时检查,若过少且耗时极短则回退到 completeText。
         val contentCharsSent = AtomicInteger(0)
         val firstDeltaTimestamp = AtomicLong(0L)
+        // v1.0.48: reasoning 字符计数 — 当流式只发 reasoning 不发 content 就结束时
+        //   (商汤 deepseek-v4-flash 的已知行为),不应触发非流式回退,否则会导致:
+        //   1) 回退请求也容易 Connection reset,耗时 20s+ 让对话"卡住不结束"
+        //   2) generation finished 后回退仍在后台跑,产生孤立请求
+        //   有 reasoning 说明模型确实响应了,直接结束流式让用户看到思考过程即可。
+        val reasoningCharsSent = AtomicInteger(0)
         // v1.0.24: 回退协程进行中标志 — 防止第二次 emitDoneWithStreamGuard 调用
         //   (finishReason + [DONE] 各触发一次)在回退协程完成前提前 close flow,
         //   导致 completeText 的结果无法通过已关闭的 channel 发送。
@@ -201,10 +207,11 @@ class OpenAIProvider(
          */
         fun emitDoneWithStreamGuard(finishReason: String?) {
             // v1.0.24: 诊断日志 — 确认 emitDoneWithStreamGuard 是否被调用及各变量值
-            Logger.i(
+            // v1.0.47: 从 Logger.i 降为 Logger.d,减少正常路径的日志噪音
+            Logger.d(
                 "OpenAIProvider",
                 "stream-guard diagnose: emitDone called | finishReason=$finishReason | " +
-                    "contentChars=${contentCharsSent.get()} | anyDeltaSent=${anyDeltaSent.get()} | " +
+                    "contentChars=${contentCharsSent.get()} | reasoningChars=${reasoningCharsSent.get()} | anyDeltaSent=${anyDeltaSent.get()} | " +
                     "aborted=${request.abortSignal.aborted} | useResponsesApi=$useResponsesApi | " +
                     "firstDeltaTs=${firstDeltaTimestamp.get()}",
             )
@@ -244,38 +251,105 @@ class OpenAIProvider(
             //   v1.0.24: 放宽到 0-9 chars,覆盖仅发 reasoning 而不发 content 的情况。
             //   检测条件:ContentDelta 总字符 0-9 且收到过 anyDeltaSent(first delta 已到),
             //   且 first delta 后 500ms 内就 finish,未被用户 abort,非 Responses API。
+            //   v1.0.48: reasoning 也要纳入总字符判断 — 商汤流式只发 1-4 个 reasoning 字符就结束,
+            //     这不是完整响应(非流式能返回 253+ chars reasoning)。
+            //     contentChars + reasoningChars 合计 < 10 才算"过早结束",触发非流式回退。
+            //   v1.0.51: 新增"只有 reasoning 没有 content"的回退条件 — 商汤流式可能发大量 reasoning
+            //     但 content 始终为 0,combined > 9 跳过回退,用户看到空回复。
+            //     此时也应触发非流式回退(非流式能返回 text 或用 reasoning 兜底)。
             val totalChars = contentCharsSent.get()
+            val reasoningChars = reasoningCharsSent.get()
+            val combinedChars = totalChars + reasoningChars
             val firstDeltaTime = firstDeltaTimestamp.get()
             val deltaDuration = if (firstDeltaTime > 0) System.currentTimeMillis() - firstDeltaTime else Long.MAX_VALUE
-            val shouldFallback = totalChars in 0..9 &&
-                anyDeltaSent.get() &&
-                deltaDuration < 500 &&
+            val shouldFallback = anyDeltaSent.get() &&
                 !request.abortSignal.aborted &&
-                !useResponsesApi
+                !useResponsesApi &&
+                (
+                    // 条件 A: 内容极少(combined < 10),且持续时间短(< 500ms) — 原有逻辑
+                    (combinedChars in 0..9 && deltaDuration < 500) ||
+                    // 条件 B(v1.0.51): content 为 0 但有 reasoning,且持续时间短(< 2s) —
+                    //   模型只输出了思考没有产出正文,用户看到空回复,需回退
+                    (totalChars == 0 && reasoningChars > 0 && deltaDuration < 2000)
+                )
 
             if (shouldFallback) {
                 pendingFallback.set(true)
                 Logger.w(
                     "OpenAIProvider",
-                    "stream-guard: 检测到流式过早结束 (chars=$totalChars, duration=${deltaDuration}ms), 自动回退到非流式请求 | url=$url",
+                    "stream-guard: 检测到流式过早结束 (chars=$totalChars, reasoning=$reasoningChars, duration=${deltaDuration}ms), 自动回退到非流式请求 | url=$url",
                 )
                 scope.launch {
                     try {
-                        val completion = completeText(request)
-                        val text = completion.text.orEmpty()
-                        if (text.isNotEmpty()) {
-                            trySend(ChatStreamEvent.ContentDelta(text))
+                        // v1.0.48: 缩短退避到 500ms+jitter — 原 1.5s 导致结束后卡顿明显,
+                        //   429 已有重试机制兜底,无需过长退避
+                        val backoffMs = 500L + Random.nextLong(0, 300)
+                        Logger.d("OpenAIProvider", "stream-guard: 回退前等待 ${backoffMs}ms(rpm 退避)")
+                        delay(backoffMs)
+                        if (request.abortSignal.aborted) {
+                            Logger.d("OpenAIProvider", "stream-guard: 等待期间用户取消,放弃回退")
+                            pendingFallback.set(false)
+                            trySend(ChatStreamEvent.Done(finishReason))
+                            close()
+                            return@launch
                         }
-                        val reasoning = completion.reasoningContent.orEmpty()
-                        if (reasoning.isNotEmpty()) {
-                            trySend(ChatStreamEvent.ReasoningDelta(reasoning))
+                        // v1.0.49: 二次校验 — 等待期间若流式已恢复正常(收到更多 content/reasoning),
+                        //   说明商汤流式的"过早结束"是假告警(后续 delta 延迟到达),放弃回退。
+                        //   不发 Done 不 close — 让 SSE 继续接收后续 delta,直到真正的 finishReason
+                        //   或 onClosed 正常结束。重置 streamGuardDone 允许后续 emitDone 重新触发
+                        //   (此时 contentChars 已 > 9, shouldFallback=false, 直接 Done+close)。
+                        // v1.0.51: 必须要求 content 增长才认为"流恢复" — 商汤模型可能只发 reasoning
+                        //   不发 content,如果仅 reasoning 增长就放弃回退,后续假 finishReason 到达时
+                        //   content 仍为 0,用户看到空回复。只有 content > 0 才说明模型开始产出可见内容。
+                        val currentContent = contentCharsSent.get()
+                        val currentReasoning = reasoningCharsSent.get()
+                        if (currentContent > 0) {
+                            Logger.i(
+                                "OpenAIProvider",
+                                "stream-guard: 等待期间流式已恢复(content=$currentContent, reasoning=$currentReasoning),放弃回退,继续接收流式",
+                            )
+                            pendingFallback.set(false)
+                            streamGuardDone.set(false)
+                            return@launch
                         }
-                        Logger.i(
-                            "OpenAIProvider",
-                            "stream-guard: 非流式回退成功 (text=${text.length} chars, reasoning=${reasoning.length} chars)",
-                        )
+                        // v1.0.48: 回退重试 — 商汤 API 偶发 Connection reset,重试 1 次提高成功率
+                        var completion: ChatCompletion? = null
+                        var lastError: Exception? = null
+                        for (attempt in 1..2) {
+                            if (request.abortSignal.aborted) break
+                            try {
+                                completion = completeText(request)
+                                break
+                            } catch (e: Exception) {
+                                lastError = e
+                                Logger.w("OpenAIProvider", "stream-guard: 非流式回退第 $attempt 次失败: ${e.message}")
+                                if (attempt < 2 && !request.abortSignal.aborted) {
+                                    delay(1000L)
+                                }
+                            }
+                        }
+                        if (completion != null) {
+                            val text = completion.text.orEmpty()
+                            val reasoning = completion.reasoningContent.orEmpty()
+                            // v1.0.51: reasoning 兜底 — deepseek-v4-flash 等推理模型可能把全部输出
+                            //   放在 reasoning_content 里(text 为空),此时用 reasoning 作为正文发送,
+                            //   否则用户看到空回复。与 MemoryLlmClient 的兜底逻辑一致。
+                            val effectiveText = text.ifBlank { reasoning }
+                            if (effectiveText.isNotEmpty()) {
+                                trySend(ChatStreamEvent.ContentDelta(effectiveText))
+                            }
+                            if (text.isNotEmpty() && reasoning.isNotEmpty()) {
+                                trySend(ChatStreamEvent.ReasoningDelta(reasoning))
+                            }
+                            Logger.i(
+                                "OpenAIProvider",
+                                "stream-guard: 非流式回退成功 (text=${text.length} chars, reasoning=${reasoning.length} chars, effective=${effectiveText.length} chars)",
+                            )
+                        } else {
+                            Logger.w("OpenAIProvider", "stream-guard: 非流式回退最终失败: ${lastError?.message}")
+                        }
                     } catch (e: Exception) {
-                        Logger.w("OpenAIProvider", "stream-guard: 非流式回退失败: ${e.message}")
+                        Logger.w("OpenAIProvider", "stream-guard: 非流式回退异常: ${e.message}")
                     }
                     pendingFallback.set(false)
                     trySend(ChatStreamEvent.Done(finishReason))
@@ -346,6 +420,9 @@ class OpenAIProvider(
                     data: String,
                 ) {
                     if (data == "[DONE]") {
+                        // v1.0.47: 回退进行中时直接丢弃后续 [DONE] 事件,不进 emitDoneWithStreamGuard,
+                        //   从源头减少冗余日志(原商汤会连发 8-10 个空事件触发 diagnose 日志刷屏)
+                        if (pendingFallback.get()) return
                         // v1.0.20: stream-guard — Done 事件时检查累积 toolCallAccMap,
                         //   空 name 的 tool call 恢复为 ContentDelta(参考 openhanako)
                         emitDoneWithStreamGuard(null)
@@ -368,9 +445,13 @@ class OpenAIProvider(
                                     "(TTFB=${firstByteAt - requestStartAt}ms) | url=$url",
                             )
                         }
+                        // v1.0.49: 回退等待期间仍正常发送 delta — 商汤"假过早结束"后后续 delta 会延迟到达,
+                        //   若丢弃则放弃回退时内容已丢失且 flow 被 close,用户只看到首字符。
+                        //   改为正常发送:放弃回退时内容不丢;回退成功时仅开头 <10 字符可能重复,可接受。
                         delta.reasoningContent?.takeIf { it.isNotEmpty() }
                             ?.let {
                                 anyDeltaSent.set(true)
+                                reasoningCharsSent.addAndGet(it.length)
                                 trySend(ChatStreamEvent.ReasoningDelta(it))
                             }
                         delta.content?.takeIf { it.isNotEmpty() }
@@ -462,7 +543,9 @@ class OpenAIProvider(
                             }
                         }
                     }
-                    if (choice.finishReason != null) {
+                    if (!choice.finishReason.isNullOrBlank()) {
+                        // v1.0.47: 回退进行中时丢弃 finishReason 事件(同 [DONE] 早退逻辑)
+                        if (pendingFallback.get()) return
                         // v1.0.20: stream-guard — Done 事件时检查累积 toolCallAccMap,
                         //   空 name 的 tool call 恢复为 ContentDelta(参考 openhanako)
                         emitDoneWithStreamGuard(choice.finishReason)

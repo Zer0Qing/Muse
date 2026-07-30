@@ -247,6 +247,12 @@ class SettingsRepository(
      * 用户可在此设置一个便宜的模型(如 SiliconFlow 免费模型)专做摘要压缩,避免主模型阻塞。
      */
     val compressModelIdFlow: Flow<String?> = store.data.map { prefs -> prefs[KEY_COMPRESS_MODEL_ID] }
+    /** v1.0.47: Token 估算开关(默认关闭,用户显式开启以避免性能开销)。 */
+    val tokenEstimateEnabledFlow: Flow<Boolean> = store.data.map { prefs -> prefs[KEY_TOKEN_ESTIMATE_ENABLED] ?: false }
+    /** v1.0.47 P5-2: 长文本粘贴转文件开关(默认开启,粘贴超阈值文本时提示转为 txt 附件)。 */
+    val pasteAsFileEnabledFlow: Flow<Boolean> = store.data.map { prefs -> prefs[KEY_PASTE_AS_FILE_ENABLED] ?: true }
+    /** v1.0.47 P5-2: 长文本粘贴转文件阈值(字符数,超过则提示转文件)。 */
+    val pasteAsFileThresholdFlow: Flow<Int> = store.data.map { prefs -> prefs[KEY_PASTE_AS_FILE_THRESHOLD] ?: 2000 }
     val memoryEnabledFlow: Flow<Boolean> = store.data.map { prefs -> prefs[KEY_MEMORY_ENABLED] ?: true }
     val themeModeFlow: Flow<String> = store.data.map { prefs -> prefs[KEY_THEME_MODE] ?: "system" }
     /** v1.60-C: 应用界面语言(system=跟随系统 / zh=中文 / en=英文 / ja=日语 / ko=韩语 / ru=俄语)。 */
@@ -1017,6 +1023,12 @@ class SettingsRepository(
      * 供 ConversationCompressor 使用,建议设置为便宜模型(如 SiliconFlow 免费模型)。
      */
     suspend fun saveCompressModel(modelId: String?) { store.edit { if (modelId != null) it[KEY_COMPRESS_MODEL_ID] = modelId else it.remove(KEY_COMPRESS_MODEL_ID) } }
+    /** v1.0.47: 保存 Token 估算开关。 */
+    suspend fun saveTokenEstimateEnabled(enabled: Boolean) { store.edit { it[KEY_TOKEN_ESTIMATE_ENABLED] = enabled } }
+    /** v1.0.47 P5-2: 保存长文本粘贴转文件开关。 */
+    suspend fun savePasteAsFileEnabled(enabled: Boolean) { store.edit { it[KEY_PASTE_AS_FILE_ENABLED] = enabled } }
+    /** v1.0.47 P5-2: 保存长文本粘贴转文件阈值(字符数)。 */
+    suspend fun savePasteAsFileThreshold(threshold: Int) { store.edit { it[KEY_PASTE_AS_FILE_THRESHOLD] = threshold } }
     /**
      * v1.60-C: 保存应用界面语言(system / zh / en)。
      *
@@ -1267,6 +1279,10 @@ class SettingsRepository(
         private val KEY_TOOL_MODEL_ID = stringPreferencesKey("tool_model_id")
         /** 压缩模型 id(独立便宜模型,供 ConversationCompressor 使用)。 */
         private val KEY_COMPRESS_MODEL_ID = stringPreferencesKey("compress_model_id")
+        /** v1.0.47: Token 估算开关。 */
+        private val KEY_TOKEN_ESTIMATE_ENABLED = booleanPreferencesKey("token_estimate_enabled")
+        private val KEY_PASTE_AS_FILE_ENABLED = booleanPreferencesKey("paste_as_file_enabled")
+        private val KEY_PASTE_AS_FILE_THRESHOLD = intPreferencesKey("paste_as_file_threshold")
         private val KEY_MEMORY_ENABLED = booleanPreferencesKey("memory_enabled")
         private val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
         private val KEY_LANGUAGE = stringPreferencesKey("language")

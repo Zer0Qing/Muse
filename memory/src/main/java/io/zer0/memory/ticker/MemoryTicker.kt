@@ -16,12 +16,15 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
@@ -116,6 +119,26 @@ class  MemoryTicker(
     private val _summaryInProgress = mutableSetOf<String>()
     private val _summaryInProgressLock = Mutex()
 
+    /**
+     * v1.0.51: compileToday 互斥锁 — serialize 对 TODAY section 的写入。
+     *
+     * notifyTurn 和 notifySessionEnd 可能并发触发 doCompileTodayAndAssemble,
+     * 两者都调用 compiler.compileToday 写同一行 Room 记录(TODAY section),
+     * 不加锁会导致 fingerprint 竞态写覆盖 + LLM 双调用浪费。
+     */
+    private val _compileTodayLock = Mutex()
+
+    /**
+     * v1.0.50: 全局并发上限 — 限制同时进行的 rollingSummary 数量。
+     *
+     * 对齐 openhanako 的并发控制理念。原实现仅按 sessionId 去重,快速切 N 个会话
+     * 会触发 N 个 rollingSummary 并行跑,叠加 daily pipeline 的 deepMemory(已有 Semaphore(3)),
+     * 13 秒内可能累积十几个 completeText 请求轰炸 API,触发限流甚至 ban。
+     *
+     * 上限 3:与 DeepMemoryProcessor.MAX_CONCURRENT 对齐,避免记忆后台任务挤占用户对话的 API 配额。
+     */
+    private val _rollingSummaryConcurrency = Semaphore(3)
+
     /** 后台 Job 集合(stop 时统一 await)。 */
     private val _activeJobs = mutableSetOf<Job>()
     private val _activeJobsLock = Any()
@@ -141,12 +164,19 @@ class  MemoryTicker(
     private val _health = STEP_KEYS.associateWith { StepHealth() }.toMutableMap()
     private val _healthLock = Any()
 
-    private val _healthFlow = MutableStateFlow<Map<String, StepHealth>>(emptyMap())
+    // v1.0.51: healthFlow 初始化为当前 _health 快照,而非空 map,
+    // 订阅方首次读取即可看到全部步骤的初始健康状态(而非等首次 publishHealth)
+    private val _healthFlow = MutableStateFlow<Map<String, StepHealth>>(_health.toMap())
     val healthFlow: StateFlow<Map<String, StepHealth>> = _healthFlow.asStateFlow()
 
-    /** 错误去重签名(label|msg),相同根因只在 console 打一次。v1.78: 加 @Volatile 防并发脏读。 */
-    @Volatile
-    private var _lastErrorSig: String? = null
+    /**
+     * v1.0.51: per-step 错误去重签名 — 替代原全局单一 _lastErrorSig。
+     *
+     * 原实现用单一全局 sig,step A 失败后 step B 成功会错误地清除 step A 的 sig,
+     * 导致 step A 下次失败不被去重(刷屏),且 step B 的恢复日志归属错误。
+     * 改为 per-step map 后,各步骤的恢复/去重互不干扰。
+     */
+    private val _errorSigs = ConcurrentHashMap<String, String>()
 
     private fun markSuccess(stepKey: String) {
         synchronized(_healthLock) {
@@ -180,19 +210,17 @@ class  MemoryTicker(
     private fun logStepError(label: String, err: Throwable) {
         val msg = err.message ?: err.toString()
         val sig = "$label|$msg"
-        if (sig == _lastErrorSig) {
-            // 同一根因重复 → 只 debug log,不打 warn
+        // v1.0.51: per-step 去重 — 同一 step 的相同根因只打一次 warn
+        if (_errorSigs[label] == sig) {
             Logger.d(TAG, "$label (dup suppressed): $msg")
             return
         }
-        _lastErrorSig = sig
+        _errorSigs[label] = sig
         Logger.w(TAG, "$label 失败: $msg", err)
     }
 
     private fun markStepRecovered(label: String) {
-        if (_lastErrorSig == null) return
-        val prev = _lastErrorSig
-        _lastErrorSig = null
+        val prev = _errorSigs.remove(label) ?: return
         Logger.i(TAG, "$label 恢复正常(之前: $prev)")
     }
 
@@ -292,6 +320,9 @@ class  MemoryTicker(
     //  内部: rollingSummary
     // ──────────────────────────────────────────────
 
+    /**
+     * @return true 表示 rollingSummary 成功且有变化(session 摘要已更新,适合立即跑事实提取)
+     */
     private suspend fun doRollingSummary(
         sessionId: String,
         messages: List<UIMessage>,
@@ -300,22 +331,35 @@ class  MemoryTicker(
         timeZone: String,
         trigger: String,
         assistantId: String = "",
-    ) {
+    ): Boolean {
         // 重入保护: 同一 session 不并发跑两次 rolling
         _summaryInProgressLock.withLock {
-            if (sessionId in _summaryInProgress) return
+            if (sessionId in _summaryInProgress) return false
             _summaryInProgress.add(sessionId)
         }
         try {
-            summaryManager.rollingSummary(sessionId, messages, model, locale, timeZone, assistantId)
-            Logger.d(TAG, "rolling summary updated: ${sessionId.take(8)}… (trigger=$trigger)")
-            markSuccess("rollingSummary")
-            markStepRecovered("滚动摘要")
+            // v1.0.50: 全局并发限制 — 即使快速切多个会话,同时只有 3 个 rollingSummary 在跑
+            val result = _rollingSummaryConcurrency.withPermit {
+                summaryManager.rollingSummary(sessionId, messages, model, locale, timeZone, assistantId)
+            }
+            // v1.0.50: 根据 changed 区分日志,避免"LLM 返回空 → changed=false → 误打 updated"掩盖故障
+            if (result.changed) {
+                Logger.d(TAG, "rolling summary updated: ${sessionId.take(8)}… (trigger=$trigger, ${result.summary.length} chars)")
+                markSuccess("rollingSummary")
+                markStepRecovered("滚动摘要")
+                return true
+            } else {
+                // changed=false 可能是: 空对话 / LLM 返回空 / 增量无新内容
+                Logger.d(TAG, "rolling summary unchanged: ${sessionId.take(8)}… (trigger=$trigger, summary=${result.summary.length} chars)")
+                // 不标记失败 — 空对话/无增量是正常情况;真正的 LLM 失败会走 catch 分支
+                return false
+            }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
             markFailure("rollingSummary", e)
             logStepError("滚动摘要 ($sessionId)", e)
+            return false
         } finally {
             _summaryInProgressLock.withLock { _summaryInProgress.remove(sessionId) }
         }
@@ -331,7 +375,10 @@ class  MemoryTicker(
         timeZone: String,
     ) {
         try {
-            compiler.compileToday(summaryManager, model, locale, timeZone)
+            // v1.0.51: serialize compileToday 调用,避免 notifyTurn/notifySessionEnd 并发写 TODAY section 竞态
+            _compileTodayLock.withLock {
+                compiler.compileToday(summaryManager, model, locale, timeZone)
+            }
             // assemble 在 muse 是 lazy 的:readCompiledMemoryMarkdown 由 ChatService 实时调用
             // 这里不显式触发文件写,只通知 health
             markSuccess("compileToday")
@@ -554,8 +601,21 @@ class  MemoryTicker(
         if (!isMemoryEnabled()) return scope.launch { /* no-op */ }
         return launchTracked {
             try {
-                doRollingSummary(sessionId, messages, model, locale, timeZone, "session_end", assistantId)
+                // v1.0.51: rollingSummary 成功且有变化后,立即跑事实提取(不等 daily pipeline)
+                // 用户退出对话后,刚说的事实(如"下周三有考试")能立刻进 FactStore,下次对话即可用
+                val changed = doRollingSummary(sessionId, messages, model, locale, timeZone, "session_end", assistantId)
                 doCompileTodayAndAssemble(model, locale, timeZone)
+                if (changed) {
+                    // rollingSummary 有变化 → session 变成 dirty → 立即提取事实
+                    // processSession 内部会检查 dirty 状态,复用 Semaphore(3) 排队
+                    resultOf {
+                        deepProcessor.processSession(
+                            sessionId, summaryManager, model, locale, getConfig(),
+                        )
+                    }.onError { msg, t ->
+                        Logger.w(TAG, "notifySessionEnd: processSession 失败: $msg", t)
+                    }
+                }
             } catch (e: CancellationException) {
                 // v1.78 (H3): 必须重抛协程取消信号,否则会破坏协程取消语义
                 throw e
@@ -628,25 +688,21 @@ class  MemoryTicker(
         // v1.78: 超时等待,避免永久阻塞
         val jobs: List<Job> = synchronized(_activeJobsLock) { _activeJobs.toList() }
         if (jobs.isNotEmpty()) {
+            // v1.0.51: 先 cancel 全部 job 让它们开始退出,再用 joinAll 并行等待,
+            // 替代原 forEach 顺序 join(5 个 job 各 5s → 25s 串行 vs 5s 并行)
+            synchronized(_activeJobsLock) {
+                _activeJobs.forEach { it.cancel() }
+            }
             // v1.78 (H8): join 不用 runCatching(会吞 CancellationException);
-            // cancel 块用 try/finally 必达,即使 withTimeoutOrNull 超时或 join 抛取消异常也要执行
+            // cancel 块用 try/finally 必达,即使 withTimeoutOrNull 超时也要执行
             try {
                 withTimeoutOrNull(30_000L) {
-                    jobs.forEach {
-                        try {
-                            it.join()
-                        } catch (e: CancellationException) {
-                            throw e
-                        } catch (e: Throwable) {
-                            // 单个 Job join 失败不阻塞后续 Job 等待
-                        }
-                    }
+                    jobs.joinAll()
                 }
-            } finally {
-                // 超时或取消后强制取消仍未完成的 Job(cancel 本身不抛异常)
-                synchronized(_activeJobsLock) {
-                    _activeJobs.forEach { it.cancel() }
-                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                // joinAll 中单个 Job 异常不阻塞整体退出
             }
         }
     }

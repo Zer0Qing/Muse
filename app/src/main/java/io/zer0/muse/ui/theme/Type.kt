@@ -145,6 +145,7 @@ val MuseMonoFontFamily: FontFamily = FontFamily.Monospace
 fun Typography.scaled(scale: String): Typography {
     val factor = when (scale) {
         "small" -> 0.85f
+        "medium" -> 1.0f  // v1.0.47: 显式列出默认档位,避免 medium 走 else 被当"未知"告警刷屏
         "large" -> 1.15f
         "xlarge" -> 1.3f
         else -> {

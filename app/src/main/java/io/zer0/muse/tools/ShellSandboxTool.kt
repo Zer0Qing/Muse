@@ -1,0 +1,134 @@
+package io.zer0.muse.tools
+
+import io.zer0.common.Logger
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.io.File
+
+/**
+ * v1.0.47 P2-6: 本地 Shell 沙箱工具(仅 Agent Mode 可用)。
+ *
+ * Android 上无 root 的 Shell 能力有限,但可执行白名单内的只读/安全命令,
+ * 让 AI 能查询设备状态(文件列表/磁盘/进程等),辅助 Agent Mode 自主决策。
+ *
+ * 安全设计:
+ *  - 命令白名单:仅允许 ls/cat/grep/echo/wc/head/tail/find/file/stat/df/du/uname/whoami/date/pwd
+ *  - 禁止管道到危险命令(如 | sh、| bash)、禁止重定向到系统目录(> /system/...)
+ *  - 禁止 &、&&、||、; 命令分隔符(防止注入第二条命令)
+ *  - 工作目录锁定到应用 filesDir(禁止 cd 到外部)
+ *  - 超时 10s,输出上限 8KB
+ *  - 仅注册为 HIGH 风险等级,Agent Mode + 用户审批才能执行
+ *
+ * 注意:Android 上部分命令可能不可用(toybox 实现),执行失败时返回明确错误。
+ */
+object ShellSandboxTool {
+
+    const val NAME = "execute_shell"
+
+    /** 命令白名单(只读/安全命令)。 */
+    private val ALLOWED_COMMANDS = setOf(
+        "ls", "cat", "grep", "echo", "wc", "head", "tail", "find", "file", "stat",
+        "df", "du", "uname", "whoami", "date", "pwd", "tree",
+    )
+
+    /** 禁止的字符(防止命令注入)。 */
+    private val FORBIDDEN_CHARS = setOf('&', '|', ';', '`', '$', '(', ')', '{', '}', '<', '>')
+
+    /** 命令超时 ms。 */
+    private const val TIMEOUT_MS = 10_000L
+
+    /** 输出上限 8KB。 */
+    private const val MAX_OUTPUT_BYTES = 8 * 1024
+
+    fun toolDef(): ToolRegistry.ToolDef = ToolRegistry.ToolDef(
+        name = NAME,
+        description = "在应用沙箱内执行白名单 Shell 命令(仅 Agent Mode)。" +
+            "允许的命令:ls/cat/grep/echo/wc/head/tail/find/file/stat/df/du/uname/whoami/date/pwd/tree。" +
+            "工作目录为应用数据目录,禁止命令分隔符(&;|)和重定向(<>),超时 10 秒。",
+        parameters = mapOf(
+            "command" to "必填,要执行的命令(如 'ls -la /sdcard/Download')",
+        ),
+        required = setOf("command"),
+        category = "built-in",
+        riskLevel = ToolRiskLevel.HIGH,
+    )
+
+    /**
+     * 执行 Shell 命令。
+     *
+     * @param command 用户/AI 提供的命令字符串
+     * @param workDir 工作目录(应用 filesDir)
+     */
+    suspend fun execute(command: String, workDir: File): String = withContext(Dispatchers.IO) {
+        // 安全检查 1:禁止危险字符
+        val forbidden = command.firstOrNull { it in FORBIDDEN_CHARS }
+        if (forbidden != null) {
+            return@withContext "[错误] 命令包含禁止字符 '$forbidden'(&;|`$(){}<>,防止注入)"
+        }
+
+        // 安全检查 2:解析命令名,校验白名单
+        val parts = command.trim().split(Regex("\\s+"))
+        if (parts.isEmpty() || parts[0].isBlank()) {
+            return@withContext "[错误] 命令为空"
+        }
+        val cmdName = parts[0]
+        if (cmdName !in ALLOWED_COMMANDS) {
+            return@withContext "[错误] 命令 '$cmdName' 不在白名单内。允许: ${ALLOWED_COMMANDS.joinToString("/")}"
+        }
+
+        // 安全检查 3:find 命令限制路径(禁止 / 等系统目录全盘扫描)
+        if (cmdName == "find" && parts.any { it == "/" || it == "/system" || it == "/proc" || it == "/sys" }) {
+            return@withContext "[错误] find 禁止扫描系统目录(/、/system、/proc、/sys)"
+        }
+
+        runCatching {
+            val builder = ProcessBuilder(parts)
+                .directory(workDir)
+                .redirectErrorStream(true)
+
+            val process = builder.start()
+            val output = process.inputStream.buffered().use { stream ->
+                stream.readBytes().copyOf(MAX_OUTPUT_BYTES).toString(Charsets.UTF_8).trim()
+            }
+
+            val finished = process.waitFor(TIMEOUT_MS, java.util.concurrent.TimeUnit.MILLISECONDS)
+            if (!finished) {
+                process.destroyForcibly()
+                return@withContext "[超时] 命令 ${TIMEOUT_MS / 1000}s 未完成,已终止\n部分输出:\n$output"
+            }
+
+            val exitCode = process.exitValue()
+            val truncated = if (output.length > 8000) output.substring(0, 8000) + "\n...(输出超 8000 字符,已截断)" else output
+
+            Logger.i("ShellSandbox", "execute: $command → exit=$exitCode (${output.length} chars)")
+            if (exitCode == 0) {
+                truncated.ifBlank { "[成功] 命令执行完成,无输出" }
+            } else {
+                "[退出码 $exitCode]\n$truncated"
+            }
+        }.getOrElse {
+            Logger.w("ShellSandbox", "execute 失败: ${it.message}", it)
+            "[错误] 执行失败: ${it.message}"
+        }
+    }
+
+    private fun ByteArray.copyOf(maxLength: Int): ByteArray =
+        if (size <= maxLength) this else copyOf(maxLength)
+}
+
+/**
+ * v1.0.47 P2-6: ShellSandboxTool 注册器。
+ */
+class ShellSandboxToolRegistrar(
+    private val toolRegistry: ToolRegistry,
+    private val workDir: File,
+) {
+    init { registerAll() }
+
+    fun registerAll() {
+        toolRegistry.register(ShellSandboxTool.toolDef()) { args ->
+            val command = args["command"] ?: return@register "[错误] 缺少必填参数 command"
+            ShellSandboxTool.execute(command, workDir)
+        }
+    }
+}

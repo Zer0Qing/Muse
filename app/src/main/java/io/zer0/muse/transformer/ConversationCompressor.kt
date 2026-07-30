@@ -13,6 +13,8 @@ import io.zer0.muse.data.SettingsRepository
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 
 /**
  * 对话压缩器 — 分块并行 LLM 摘要,使用独立便宜模型。
@@ -47,7 +49,12 @@ class ConversationCompressor(
         private const val COMPRESS_MAX_TOKENS = 1000
         /** 单条消息送入 LLM 时的最大字符数(超过则截断,与 ContextCompressTransformer 对齐)。 */
         private const val MAX_MSG_CHARS = 1500
+        /** v1.0.51: 并行压缩块数上限 — 避免长对话切出大量块时并发轰炸 API。 */
+        private const val MAX_CONCURRENT_CHUNKS = 3
     }
+
+    /** v1.0.51: 并发限制信号量,与 DeepMemoryProcessor/MemoryTicker 对齐(上限 3)。 */
+    private val chunkSemaphore = Semaphore(MAX_CONCURRENT_CHUNKS)
 
     /**
      * 压缩对话历史 — 分块并行 + 独立便宜模型。
@@ -62,10 +69,10 @@ class ConversationCompressor(
         val chunks = chunkMessages(toCompress, CHUNK_SIZE)
         Logger.i(TAG, "compress: ${toCompress.size} 条消息分为 ${chunks.size} 块并行压缩")
 
-        // 并行压缩每块
+        // 并行压缩每块(v1.0.51: 用 Semaphore 限制并发,避免大量块同时调 LLM 轰炸 API)
         return coroutineScope {
             chunks.map { chunk ->
-                async { compressChunk(chunk) }
+                async { chunkSemaphore.withPermit { compressChunk(chunk) } }
             }.let { deferredList ->
                 deferredList.map { it.await() }
             }

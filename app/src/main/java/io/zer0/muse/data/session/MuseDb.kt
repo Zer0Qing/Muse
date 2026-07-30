@@ -138,7 +138,7 @@ import io.zer0.common.Logger
         // v1.0.17: 快速记录(替代 JSON 文件存储 + 回收站)
         QuickNoteEntity::class,
     ],
-    version = 55,
+    version = 57,
     exportSchema = true,
 )
 @TypeConverters(QuickNoteConverters::class)
@@ -1633,6 +1633,34 @@ abstract class MuseDb : RoomDatabase() {
             }
         }
 
+        /**
+         * v1.0.47: MIGRATION_55_56 — 消息表加附件字段(attachmentsJson)。
+         *
+         * 用于结构化持久化原始文件元数据(文件名/MIME/大小/提取文本),
+         * 替代之前文档解析后合并进 content、原始文件元数据丢弃的方式。
+         * 默认 '[]'(空数组),兼容已有数据。
+         */
+        val MIGRATION_55_56 = object : Migration(55, 56) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE messages ADD COLUMN attachmentsJson TEXT NOT NULL DEFAULT '[]'")
+                // v1.0.47: lorebooks 表加 wholeWord 列(全词匹配模式,默认 false)
+                db.execSQL("ALTER TABLE lorebooks ADD COLUMN wholeWord INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        /**
+         * v1.0.47 P3: MIGRATION_56_57 — sessions 表加 skillIdsJson 列(会话级 skill 覆盖)。
+         *
+         * "[]" 表示继承 Assistant 的 skillIdsJson(默认行为不变);
+         * 非空数组表示覆盖 Assistant,仅启用指定 skill。
+         * 默认 '[]' 兼容已有数据。
+         */
+        val MIGRATION_56_57 = object : Migration(56, 57) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE sessions ADD COLUMN skillIdsJson TEXT NOT NULL DEFAULT '[]'")
+            }
+        }
+
     fun get(context: Context): MuseDb {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -1673,6 +1701,8 @@ abstract class MuseDb : RoomDatabase() {
                         MIGRATION_52_53,
                         MIGRATION_53_54,
                         MIGRATION_54_55,
+                        MIGRATION_55_56,
+                        MIGRATION_56_57,
                     )
                     // 启用外键约束(artifacts 表的 ON DELETE CASCADE 依赖此设置)
                     // onOpen 不在 onCreate 事务内,可以执行此类命令;onCreate 内禁止 PRAGMA

@@ -2,9 +2,13 @@ package io.zer0.muse.ui
 
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
 import android.webkit.WebResourceRequest
 import android.webkit.WebStorage
 import android.webkit.WebView
@@ -15,6 +19,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -96,6 +101,12 @@ fun HtmlPreviewScreen(
                         icon = Icons.Default.OpenInBrowser,
                         contentDescription = stringResource(R.string.html_preview_open_in_browser_cd),
                         onClick = { openInExternalBrowser(context, html) },
+                    )
+                    // v1.0.47 P8-2: 下载产物 — 保存到 Downloads 目录
+                    MuseTactileButton(
+                        icon = Icons.Default.Download,
+                        contentDescription = stringResource(R.string.html_preview_download_cd),
+                        onClick = { downloadHtml(context, html) },
                     )
                     // 复制源码:写入剪贴板 + Toast 反馈
                     MuseTactileButton(
@@ -195,4 +206,45 @@ private fun copyHtmlToClipboard(context: Context, html: String) {
     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     clipboard.setPrimaryClip(ClipData.newPlainText("html", html))
     MuseToast.show(context.getString(R.string.html_preview_source_copied))
+}
+
+/**
+ * v1.0.47 P8-2: 下载 HTML 到 Downloads 目录。
+ *
+ * Android 10+(API 29+)用 MediaStore.Downloads,自动添加到系统下载列表;
+ * 旧版本直接写入 Environment.DIRECTORY_DOWNLOADS 公共目录。
+ *
+ * 文件名格式:muse_artifact_{时间戳}.html
+ */
+private fun downloadHtml(context: Context, html: String) {
+    val fileName = "muse_artifact_${System.currentTimeMillis()}.html"
+    runCatching {
+        val bytes = html.toByteArray(Charsets.UTF_8)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // Android 10+: MediaStore.Downloads
+            val resolver = context.contentResolver
+            val values = ContentValues().apply {
+                put(MediaStore.Downloads.DISPLAY_NAME, fileName)
+                put(MediaStore.Downloads.MIME_TYPE, "text/html")
+                put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                put(MediaStore.Downloads.IS_PENDING, 1)
+            }
+            val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                ?: error("MediaStore 插入失败")
+            resolver.openOutputStream(uri)?.use { it.write(bytes) }
+                ?: error("无法打开输出流")
+            values.clear()
+            values.put(MediaStore.Downloads.IS_PENDING, 0)
+            resolver.update(uri, values, null, null)
+        } else {
+            // Android 9 及以下:直接写公共 Downloads 目录
+            @Suppress("DEPRECATION")
+            val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            if (!dir.exists()) dir.mkdirs()
+            java.io.File(dir, fileName).writeBytes(bytes)
+        }
+        MuseToast.show(context.getString(R.string.html_preview_download_success, fileName))
+    }.onFailure { e ->
+        MuseToast.show(context.getString(R.string.html_preview_download_failed, e.message ?: ""))
+    }
 }

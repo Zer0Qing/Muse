@@ -422,6 +422,10 @@
     <string name="knowledge_chunking">正在分块和生成向量索引…</string>
     <string name="knowledge_generating_vector">正在生成向量 %1$d/%2$d…</string>
     <string name="knowledge_import_empty">导入失败: 文件内容为空</string>
+    <!-- v1.0.47 P7-3: 文件大小友好提示 -->
+    <string name="knowledge_file_too_large_title">文件过大</string>
+    <string name="knowledge_file_too_large_msg">文件大小 %1$s,超过 %2$s 限制。\n建议:\n• 分批上传较小的文件\n• 使用云端解析器(设置→RAG→文档解析器)</string>
+    <string name="knowledge_file_too_large_confirm">知道了</string>
     <string name="knowledge_imported_indexed">已导入: %1$s (%2$d 块已索引)</string>
     <string name="knowledge_imported_no_index">已导入: %1$s (向量索引失败,可用文本搜索)</string>
     <string name="knowledge_import_cancelled">已取消导入</string>

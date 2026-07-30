@@ -114,6 +114,40 @@ class DeepMemoryProcessor(
         ProcessResult(processed.get(), factsAdded.get(), failures.get())
     }
 
+    /**
+     * v1.0.51: 处理指定 session 的事实提取(用于会话结束后立即处理)。
+     *
+     * 与 [processDirtySessions] 的差异:
+     *  - 只处理指定 sessionId,不扫描全部 dirty sessions
+     *  - 供 [io.zer0.memory.ticker.MemoryTicker.notifySessionEnd] 在 rollingSummary 成功后调用
+     *  - 复用 [concurrency] Semaphore(3) 限制全局并发
+     *
+     * @return 新增 fact 数量(session 不存在/非 dirty/提取失败均返回 0)
+     */
+    suspend fun processSession(
+        sessionId: String,
+        summaryManager: SessionSummaryManager,
+        model: Model?,
+        locale: String = "zh-CN",
+        config: MemoryConfig = MemoryConfig(),
+    ): Int = withContext(Dispatchers.IO) {
+        val summary = summaryManager.getSummary(sessionId) ?: return@withContext 0
+        // 只处理 dirty session(summary !== snapshot)
+        if (summary.summary == summary.snapshot) return@withContext 0
+
+        concurrency.withPermit {
+            resultOf {
+                processSingleSession(summary, summaryManager, model, locale, config)
+            }.onSuccess { added ->
+                if (added > 0) {
+                    Logger.i("DeepMemoryProcessor", "processSession(${sessionId.take(8)}…): $added 条新事实")
+                }
+            }.onError { msg, t ->
+                Logger.w("DeepMemoryProcessor", "processSession(${sessionId.take(8)}…) 失败: $msg", t)
+            }.getOrNull() ?: 0
+        }
+    }
+
     /** 处理单个 session。返回新增 fact 数量。 */
     private suspend fun processSingleSession(
         summary: SessionSummaryManager.SummaryData,
@@ -165,9 +199,12 @@ class DeepMemoryProcessor(
                     maxTokens = FACT_EXTRACTION_MAX_TOKENS,
                 )
                 val facts = parseFactExtractionResult(rawResult, summary, locale)
+                // v1.0.51: 解析失败(null)→ 不 markProcessed,抛异常走重试,避免永久跳过丢事实
+                if (facts == null) {
+                    throw RuntimeException("fact extraction 解析失败(rawLen=${rawResult.length})")
+                }
                 if (facts.isEmpty()) {
-                    // v1.78: 区分"解析失败返回空"与"LLM 真的判定无事实"
-                    // 这里无法完全区分,但记录原始返回长度便于排查
+                    // LLM 合法判定无事实 → markProcessed,下次不再处理
                     Logger.d("DeepMemoryProcessor", "fact extraction returned empty (rawLen=${rawResult.length}, session=${summary.sessionId.take(8)}…)")
                     failureCounts.remove(summary.sessionId)
                     summaryManager.markProcessed(summary.sessionId)
@@ -225,13 +262,17 @@ class DeepMemoryProcessor(
     /**
      * 解析 fact extraction 结果。
      * LLM 输出可能带 ```json 围栏或 <think> 块,需清洗。
+     *
+     * v1.0.51: 返回类型改 nullable —— 解析失败返回 null(调用方不应 markProcessed),
+     * LLM 合法判定无事实返回 emptyList(调用方可 markProcessed)。
+     * 修复"JSON 解析失败 → emptyList → markProcessed → session 永久跳过 → 事实丢失"的致命 bug。
      */
     // Phase 2.3: 改为 internal 以便单元测试 JSON 容错逻辑(无需通过 LLM 调用进入此方法)
     internal fun parseFactExtractionResult(
         raw: String,
         summary: SessionSummaryManager.SummaryData,
         locale: String,
-    ): List<FactStore.Fact> {
+    ): List<FactStore.Fact>? {
         if (raw.isBlank()) return emptyList()
 
         // 1. 去前置 <think>...</think> 块
@@ -244,16 +285,22 @@ class DeepMemoryProcessor(
 
         // 3. 提取 JSON 数组(若不以 [ 开头,扫描括号深度)
         if (!s.startsWith("[")) {
-            s = findJsonArrayCandidate(s) ?: return emptyList()
+            // v1.0.51: 找不到 JSON 数组候选 → 解析失败,返回 null 触发重试
+            val candidate = findJsonArrayCandidate(s)
+            if (candidate == null) {
+                Logger.w("DeepMemoryProcessor", "fact extraction 未找到 JSON 数组 (rawLen=${raw.length}, session=${summary.sessionId.take(8)}…)")
+                return null
+            }
+            s = candidate
         }
 
         // 4. 解析
         val dtos = runCatching {
             json.decodeFromString(ListSerializer(FactDto.serializer()), s)
         }.getOrElse {
-            // v1.78: 记录解析失败,便于排查 LLM 输出格式问题
-            Logger.w("DeepMemoryProcessor", "fact extraction JSON 解析失败 (rawLen=${raw.length}): ${it.message}")
-            return emptyList()
+            // v1.0.51: JSON 解析失败 → 返回 null,调用方不 markProcessed,下次 daily 重试
+            Logger.w("DeepMemoryProcessor", "fact extraction JSON 解析失败 (rawLen=${raw.length}, session=${summary.sessionId.take(8)}…): ${it.message}")
+            return null
         }
 
         // 5. 时间规范化 + 转 Fact

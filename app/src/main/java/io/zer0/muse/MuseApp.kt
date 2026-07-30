@@ -87,6 +87,12 @@ class MuseApp : Application(), ImageLoaderFactory {
     private val chatViewModel: ChatViewModel by inject()
     /** v1.0.12: RAG 服务 — 启动时异步加载持久化的 HNSW 索引(若已落盘)。 */
     private val ragService: io.zer0.muse.rag.RagService by inject()
+    /**
+     * v1.0.47: 系统提示组装器 — 启动时异步预热 buildStaticSnapshot,
+     * 让 DataStore(chatPreferences/userProfile) + buildToolManifestSection 子缓存提前加载,
+     * 把用户首次进会话的 system prompt 构建从 ~690ms 降到 ~200ms。
+     */
+    private val systemPromptAssembler: io.zer0.muse.transformer.SystemPromptAssembler by inject()
     /** v1.0.17: 快速记录 Room 迁移 — 注入旧 JSON 存储 + Room DAO,启动时一次性迁移。 */
     private val quickNoteStore: QuickNoteStore by inject()
     private val quickNoteDao: QuickNoteDao by inject()
@@ -350,6 +356,24 @@ class MuseApp : Application(), ImageLoaderFactory {
         appScope.launch {
             resultOf { io.zer0.muse.tools.cleanupOldToolOutputs(this@MuseApp) }
                 .onError { msg, t -> Logger.w("MuseApp", "工具输出文件清理失败: ${t?.message ?: msg}", t) }
+        }
+        // v1.0.47: 预热 system prompt 静态快照 — 异步触发一次 buildStaticSnapshot(default 助手),
+        // 让 DataStore(chatPreferences/userProfile 首次读取约 50-100ms) + buildToolManifestSection
+        // (工具清单构建约 100-200ms) 的子缓存提前加载。用户首次进会话时 refreshContextInfo 调用
+        // buildStaticSnapshot 会命中这些子缓存,把首次构建从 ~690ms 降到 ~200ms。
+        // fire-and-forget:结果丢弃,仅利用副作用(子缓存填充);失败不影响启动。
+        appScope.launch {
+            resultOf {
+                val defaultAssistant = assistantRepository.getById("default")
+                systemPromptAssembler.buildStaticSnapshot(
+                    assistant = defaultAssistant,
+                    memoryEnabled = true,
+                )
+            }.onError { msg, t ->
+                Logger.w("MuseApp", "system prompt 预热失败: ${t?.message ?: msg}", t)
+            }.onSuccess {
+                Logger.d("MuseApp", "system prompt 预热完成 (${it.length} chars)")
+            }
         }
     }
 

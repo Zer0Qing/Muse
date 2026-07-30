@@ -109,6 +109,10 @@
     <string name="chat_favorite_add">收藏</string>
     <string name="chat_fork_action">分叉对话</string>
     <string name="chat_share_action">分享对话</string>
+    <!-- v1.0.47 P6: Agent Mode 增强提示 -->
+    <string name="chat_agent_weak_tool_title">工具调用降级提示</string>
+    <string name="chat_agent_hint_dismiss">知道了</string>
+    <string name="chat_agent_session_locked">Agent 模式已锁定会话</string>
     <string name="chat_delete_message">删除消息</string>
     <string name="chat_delete_message_confirm">此操作不可撤销,确认删除这条消息?</string>
     <string name="chat_translate_in_progress">翻译中…</string>
@@ -178,6 +182,20 @@
     <string name="chat_placeholder_send">回复 Muse…</string>
     <string name="chat_expand_input_cd">全屏编辑</string>
     <string name="chat_expand_input_title">编辑消息</string>
+    <!-- v1.0.47 P5-3: Token 计数菜单 -->
+    <string name="chat_token_count_cd">Token 计数</string>
+    <string name="chat_token_menu_title">Token 估算</string>
+    <string name="chat_token_input">当前输入</string>
+    <string name="chat_token_history">历史消息</string>
+    <string name="chat_token_context_window">上下文窗口</string>
+    <string name="chat_token_remaining">可用剩余</string>
+    <string name="chat_token_usage">上下文占用</string>
+    <string name="chat_token_disclaimer">基于 cl100k_base 的近似估算,仅供参考。</string>
+    <!-- v1.0.47 P5-2: 长文本粘贴转文件 -->
+    <string name="chat_paste_as_file_title">检测到大段文本</string>
+    <string name="chat_paste_as_file_msg">粘贴内容共 %1$d 字,是否作为文件附加?(避免输入框过长)</string>
+    <string name="chat_paste_as_file_attach">作为文件附加</string>
+    <string name="chat_paste_as_file_paste">直接粘贴</string>
     <!-- 长按输入栏动作菜单 -->
     <string name="chat_input_action_fullscreen">全屏输入模式</string>
     <string name="chat_stop_generation_cd">停止生成</string>
