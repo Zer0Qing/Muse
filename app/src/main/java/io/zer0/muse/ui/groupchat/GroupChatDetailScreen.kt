@@ -1558,7 +1558,8 @@ private fun GroupChatInputBar(
                     .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
                     .navigationBarsPadding()
                     .imePadding()
-                    .padding(horizontal = MusePaddings.screen, vertical = 4.dp),
+                    // v1.137 B5: vertical padding 4dp → 2dp,降低群聊输入栏高度
+                    .padding(horizontal = MusePaddings.screen, vertical = 2.dp),
                 verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
             ) {
                 Row(

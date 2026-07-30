@@ -270,6 +270,8 @@ data class ChatUiState(
     val toolProgressMessage: String? = null,
     /** v1.28: 是否为 Agent Tab 模式(决定 send 用 agentSessionId 还是 currentSessionId)。 */
     val isAgentMode: Boolean = false,
+    /** v1.137 B2: 会话切换中标志 — true 时 UI 保持上一帧消息(不显示空列表),消除切换闪烁。 */
+    val isSwitchingSession: Boolean = false,
     val errors: List<ChatError> = emptyList(),
     val isConfigured: Boolean = false,
     /** 是否正在拉取上游模型列表(底部模型切换面板用)。 */
@@ -2496,6 +2498,9 @@ class ChatViewModel(
         // 进入 Agent Tab 时释放任务会话引用,退出时释放 Agent 会话引用,与对应 acquire 配对。
         val prevSessionId = currentSessionIdForApproval()
         if (enabled) {
+            // v1.137 B2: 修复 Agent 切换闪烁 — 先同步设置 isSwitchingSession=true 阻止 UI 渲染旧消息,
+            // 再在协程中预加载消息,最后一次性更新状态(消息+模式+权限),消除空列表闪屏。
+            _state.update { it.copy(isSwitchingSession = true) }
             viewModelScope.launch {
                 // 恢复最近的 Agent 会话,没有则创建新的
                 val agentSession = sessionRepository.getLatestAgentSession()
@@ -2505,24 +2510,16 @@ class ChatViewModel(
                 sessionManager.acquire(sessionId)
                 // P3: 加载 Agent 会话的权限模式
                 val permissionMode = sessionPermissionStore.getMode(sessionId)
-                _state.update {
-                    it.copy(
-                        isAgentMode = true,
-                        agentSessionId = sessionId,
-                        // v1.136: 立即清空旧消息,避免切换到 Agent Tab 时短暂显示任务会话内容。
-                        messages = emptyList(),
-                        // 清空视觉辅助状态,避免跨会话残留
-                        visionAssistedMessageIds = emptySet(),
-                        visionProgress = null,
-                    )
-                }
-                // v1.53-A1: 分页加载 Agent 会话消息
+                // v1.137 B2: 先预加载消息(不更新 UI),再一次性切换 — 消除闪烁
                 val (messages, hasMore) = loadMessagesPaged(sessionId)
                 val assistantId = sessionRepository.getAssistantId(sessionId)
                 val assistant = assistantRepository.getById(assistantId)
                     ?: assistantRepository.getById("default")
                 _state.update {
                     it.copy(
+                        isAgentMode = true,
+                        agentSessionId = sessionId,
+                        isSwitchingSession = false,
                         messages = messages,
                         currentAssistant = assistant,
                         errors = emptyList(),
@@ -2534,6 +2531,9 @@ class ChatViewModel(
                         // v1.136: 进入 Agent 模式清空工具调用历史与 Agent 计划
                         toolCallHistory = emptyList(),
                         agentPlans = emptyMap(),
+                        // 清空视觉辅助状态,避免跨会话残留
+                        visionAssistedMessageIds = emptySet(),
+                        visionProgress = null,
                         // P3: 恢复 Agent 会话权限模式
                         sessionPermissionMode = permissionMode,
                         // v1.0.16: 切换 Tab/会话后默认滚动到最新消息底部

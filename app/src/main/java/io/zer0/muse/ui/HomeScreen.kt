@@ -131,6 +131,12 @@ fun HomeScreen(
     // v1.136 T8: 首页右下快捷工具栏展开/收起状态(长按 Plus 切换)
     var capsuleExpanded by rememberSaveable { mutableStateOf(true) }
     val context = LocalContext.current
+    // v1.137 B3: 区分用户拖拽和点击动画 — 点击时设 clickAnimating=true,
+    // isScrollInProgress 结束后清除,使 MuseCapsuleTab 在拖拽时用连续跟踪、点击时用 tween。
+    var clickAnimating by remember { mutableStateOf(false) }
+    LaunchedEffect(pagerState.isScrollInProgress) {
+        if (!pagerState.isScrollInProgress) clickAnimating = false
+    }
 
     // v2.0 5.6: 注入 ProactiveMessageRunner,在 onResume 时触发事件巡检
     val proactiveRunner: ProactiveMessageRunner = koinInject()
@@ -214,10 +220,12 @@ fun HomeScreen(
                     tabs = tabLabels,
                     selectedIndex = pagerState.currentPage,
                     onSelect = { page ->
+                        clickAnimating = true
                         scope.launch { pagerState.animateScrollToPage(page) }
                     },
-                    // v1.136 T9: 传入 pager 偏移分数,使指示器连续跟踪手指滑动(与点击动效分离)
+                    // v1.137 B3: 拖拽时连续跟踪手指,点击时用 tween 平滑过渡
                     pageOffset = pagerState.currentPageOffsetFraction,
+                    isDragging = pagerState.isScrollInProgress && !clickAnimating,
                     // 顶部 Tab 收窄,右侧腾出空间给全局搜索按钮
                     modifier = Modifier.width(172.dp),
                 )

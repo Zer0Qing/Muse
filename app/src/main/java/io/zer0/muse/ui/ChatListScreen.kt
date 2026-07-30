@@ -311,7 +311,7 @@ private fun GreetingHeader(
     assistantName: String? = null,
     modifier: Modifier = Modifier,
 ) {
-    val name = assistantName ?: "Muse"
+    val name = assistantName ?: stringResource(R.string.assistant_repo_default_name)
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -343,7 +343,8 @@ private fun TaskInputBar(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .height(56.dp),
+            // v1.137 B5: 56dp → 48dp,降低任务页输入栏高度
+            .height(48.dp),
         shape = MuseShapes.pill,
         color = MaterialTheme.colorScheme.surfaceVariant,
     ) {

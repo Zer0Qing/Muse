@@ -37,37 +37,19 @@ import kotlin.math.abs
  *
  * 样式:surfaceVariant 凹槽容器(20dp 圆角),选中项白色凸起(16dp 圆角) + 阴影。
  *
- * v1.136 T9: 动效分离修复。
- *  - 滑动([pageOffset] != null):指示器颜色随手指连续插值(lerp),实时跟踪 pager 偏移,
- *    不再套 200ms tween,消除"滑动也像点击"的离散淡入感。
- *  - 点击([pageOffset] == null,默认):保留 200ms tween 平滑过渡(用于无 pager 的场景)。
- *  - 滑动结束后 [pageOffset] 归 0、selectedIndex 翻转为目标页,lerp 自然落在终态,
- *    无需额外的 settle 动画,无闪屏。
- *
- * 用法(绑定 pager,启用连续跟踪):
- * ```
- * MuseCapsuleTab(
- *     tabs = listOf("Tasks", "Agent", "Group"),
- *     selectedIndex = pagerState.currentPage,
- *     onSelect = { scope.launch { pagerState.animateScrollToPage(it) } },
- *     pageOffset = pagerState.currentPageOffsetFraction,
- * )
- * ```
- *
- * 用法(无 pager,使用 tween 动画):
- * ```
- * MuseCapsuleTab(
- *     tabs = listOf("Basic", "Prompt"),
- *     selectedIndex = idx,
- *     onSelect = { idx = it },
- * )
- * ```
+ * v1.137 B3: 真正实现滑动/点按动效分离。
+ *  - 用户拖拽([isDragging] = true):指示器颜色随手指连续插值(lerp),实时跟踪 pager 偏移,
+ *    无 tween,手指移到哪指示器跟到哪。
+ *  - 点击切换([isDragging] = false):用 200ms tween 平滑过渡,有"弹"的质感。
+ *  - 调用方通过 [isDragging] 区分:HomeScreen 在 onSelect 时设 clickAnimating=true,
+ *    isScrollInProgress 结束时清除,从而区分用户拖拽和 animateScrollToPage。
  *
  * @param tabs Tab 标签文本列表
  * @param selectedIndex 当前选中索引
  * @param onSelect 选中回调(参数为新索引)
  * @param modifier Modifier
  * @param pageOffset pager 偏移分数(连续跟踪手指滑动);null 时回退到 tween 动画(默认)
+ * @param isDragging 用户是否正在拖拽 pager(仅拖拽时用连续跟踪;点击动画/静止时用 tween)
  */
 @Composable
 fun MuseCapsuleTab(
@@ -76,8 +58,9 @@ fun MuseCapsuleTab(
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
     pageOffset: Float? = null,
+    isDragging: Boolean = false,
 ) {
-    val useContinuous = pageOffset != null
+    val useContinuous = pageOffset != null && isDragging
     val fractionalIndex = pageOffset?.let { selectedIndex + it } ?: selectedIndex.toFloat()
 
     val selectedBg = MaterialTheme.colorScheme.surface
@@ -101,8 +84,8 @@ fun MuseCapsuleTab(
         ) {
             tabs.forEachIndexed { index, label ->
                 val selected = selectedIndex == index
-                // v1.136 T9: 连续模式下直接根据 fractionalIndex 计算"选中度"(0~1);
-                // 离散模式下用 animateFloatAsState 平滑过渡(替代原 animateColorAsState)。
+                // B3: 拖拽时直接根据 fractionalIndex 计算"选中度"(0~1),无延迟;
+                // 点击/静止时用 animateFloatAsState 平滑过渡,有 tween 质感。
                 val directFraction = (1f - abs(fractionalIndex - index)).coerceIn(0f, 1f)
                 val animatedFraction by animateFloatAsState(
                     targetValue = if (selected) 1f else 0f,

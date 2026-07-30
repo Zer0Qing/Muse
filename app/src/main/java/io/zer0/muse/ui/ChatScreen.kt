@@ -322,12 +322,13 @@ fun ChatScreen(
     }
     var savedPaginatorScrollOffset by remember { mutableStateOf(0) }
     val visibleMessages by produceState(
-        initialValue = if (isAgentMode && !state.isAgentMode) emptyList() else state.messages,
-        state.messages, paginatorPageCount, performanceMode, isAgentMode, state.isAgentMode,
+        initialValue = if (isAgentMode && !state.isAgentMode && !state.isSwitchingSession) emptyList() else state.messages,
+        state.messages, paginatorPageCount, performanceMode, isAgentMode, state.isAgentMode, state.isSwitchingSession,
     ) {
         // 门禁:Agent Tab 模式下但 ViewModel 还没切换到 Agent 模式时,显示空白。
         // 避免 HorizontalPager 动画期间目标页已 compose 但 setAgentMode 尚未执行时闪现旧对话内容。
-        if (isAgentMode && !state.isAgentMode) {
+        // v1.137 B2: isSwitchingSession=true 时保持上一帧(不清空),消除空列表闪屏。
+        if (isAgentMode && !state.isAgentMode && !state.isSwitchingSession) {
             value = emptyList()
             return@produceState
         }

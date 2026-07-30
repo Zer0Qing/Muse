@@ -1777,102 +1777,77 @@ internal fun ToolCallCard(
     LaunchedEffect(attachments.isNotEmpty()) {
         if (attachments.isNotEmpty()) expanded = true
     }
+    // v1.x: 重构为紧凑可折叠卡片,对齐 mood/reasoning 块的视觉与交互模式
+    // (primary.copy(0.08f) 底色 + bubbleInner 内边距 + 整行可点击头部 + 14dp 图标)
     Surface(
-        color = if (isSuccess) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        color = if (isSuccess) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
                 else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
         shape = MuseShapes.medium,
-        modifier = modifier.fillMaxWidth(),
+        tonalElevation = MuseElevation.none,
+        modifier = modifier.widthIn(max = 360.dp),
     ) {
-        Column(modifier = Modifier.padding(MusePaddings.itemGap)) {
-            // 头部:工具名 + 状态图标 + 展开箭头
+        Column(modifier = Modifier.padding(MusePaddings.bubbleInner)) {
+            // 头部:状态图标 + 工具名(+ 折叠摘要) + 展开箭头,整行可点击
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded }
+                    .padding(vertical = MusePaddings.tinyGap),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = if (isSuccess) TablerIcons.Check else TablerIcons.X,
-                        contentDescription = if (isSuccess) stringResource(R.string.chat_tool_success_cd) else stringResource(R.string.chat_tool_failed_cd),
-                        tint = if (isSuccess) MaterialTheme.colorScheme.primary
-                               else MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = toolName,
-                        style = MaterialTheme.typography.labelLarge,
-                        fontFamily = MuseMonoFontFamily,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
+                Icon(
+                    imageVector = if (isSuccess) TablerIcons.Check else TablerIcons.X,
+                    contentDescription = if (isSuccess) stringResource(R.string.chat_tool_success_cd) else stringResource(R.string.chat_tool_failed_cd),
+                    tint = if (isSuccess) MaterialTheme.colorScheme.primary
+                           else MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(MuseIconSizes.iconTiny),
+                )
+                Spacer(Modifier.width(MusePaddings.tightGap))
+                // 折叠时标题显示工具名 + 结果摘要(前 40 字符),展开时只显示工具名
+                val titleText = if (expanded) {
+                    toolName
+                } else {
+                    val cleaned = result.replace("\n", " ").trim()
+                    when {
+                        cleaned.length > 40 -> "$toolName · ${cleaned.take(40)}…"
+                        cleaned.isNotEmpty() -> "$toolName · $cleaned"
+                        else -> toolName
+                    }
                 }
-                // v1.48 (h19): 触摸目标 24→48dp(MuseIconSizes.touchTarget),图标视觉保持 18dp
-                // L-MB4: 图标尺寸用 MuseIconSizes.iconSmall 令牌替代硬编码 18dp
-                IconButton(onClick = { expanded = !expanded }, modifier = Modifier.size(MuseIconSizes.touchTarget)) {
-                    Icon(
-                        imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = if (expanded) stringResource(R.string.action_collapse) else stringResource(R.string.action_expand),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(MuseIconSizes.iconSmall),
-                    )
-                }
+                Text(
+                    text = titleText,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                Icon(
+                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (expanded) stringResource(R.string.action_collapse) else stringResource(R.string.action_expand),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(MuseIconSizes.iconTiny),
+                )
             }
-            // 展开内容:入参 + 出参
+            // 展开内容:入参 + 出参 合并为单段 bodySmall 文本(不再使用两个嵌套 Surface)
             AnimatedVisibility(visible = expanded) {
-                Column(modifier = Modifier.padding(top = 8.dp)) {
-                    Text(stringResource(R.string.chat_tool_params), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                    Spacer(Modifier.height(2.dp))
-                    Surface(
-                        color = MaterialTheme.colorScheme.surface,
-                        shape = MuseShapes.extraSmall,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(
-                            text = arguments.ifBlank { "{}" },
-                            style = MaterialTheme.typography.bodySmall,
-                            fontFamily = MuseMonoFontFamily,
-                            modifier = Modifier.padding(MusePaddings.contentGap),
-                        )
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    Text(stringResource(R.string.chat_tool_result), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                    Spacer(Modifier.height(2.dp))
-                    Surface(
-                        color = MaterialTheme.colorScheme.surface,
-                        shape = MuseShapes.extraSmall,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        val isTruncated = result.length > 500
-                        Box {
-                            Text(
-                                text = result,
-                                style = MaterialTheme.typography.bodySmall,
-                                fontFamily = MuseMonoFontFamily,
-                                modifier = Modifier.padding(MusePaddings.contentGap),
-                                maxLines = if (isTruncated) 15 else Int.MAX_VALUE,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            if (isTruncated) {
-                                val bgColor = MaterialTheme.colorScheme.surfaceVariant
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(
-                                            Brush.verticalGradient(
-                                                0.5f to Color.Transparent,
-                                                1.0f to bgColor,
-                                            ),
-                                        ),
-                                )
-                            }
-                        }
-                    }
+                val paramsLabel = stringResource(R.string.chat_tool_params)
+                val resultLabel = stringResource(R.string.chat_tool_result)
+                val isTruncated = result.length > 500
+                val displayResult = if (isTruncated) result.take(500) + "…" else result
+                val content = "$paramsLabel: ${arguments.ifBlank { "{}" }}\n$resultLabel: $displayResult"
+                Column(modifier = Modifier.padding(top = MusePaddings.contentGap)) {
+                    Text(
+                        text = content,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                     // 结果文本下方:若检测到沙盒内文件路径,渲染可点击附件芯片
                     if (attachments.isNotEmpty()) {
                         FlowRow(
-                            modifier = Modifier.padding(top = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.padding(top = MusePaddings.contentGap),
+                            horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+                            verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                         ) {
                             attachments.forEach { (path, size) ->
                                 AttachmentChip(

@@ -282,8 +282,8 @@ internal fun InputBar(
             .navigationBarsPadding()
             .imePadding()
             // v1.132: 输入栏横向宽度缩小(两侧 padding 12dp → 24dp,总宽度减少 24dp);
-            // 纵向 padding 恢复 8dp(v1.131 误改成 4dp 缩小了高度,实际需求是缩小宽度)
-            .padding(horizontal = 24.dp, vertical = 4.dp),
+            // v1.137 B5: 纵向 padding 4dp → 2dp,进一步降低输入栏高度
+            .padding(horizontal = 24.dp, vertical = 2.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         // v1.0.29: 联网搜索 / 深度思考 已移入加号菜单,
@@ -709,7 +709,8 @@ internal fun InputBar(
                 modifier = Modifier
                     .fillMaxWidth()
                     // v1.131: 内部 Row vertical padding 6dp → 3dp,缩小输入栏高度
-                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                    // v1.137 B5: vertical padding 3dp → 1dp,进一步降低高度
+                    .padding(horizontal = 8.dp, vertical = 1.dp)
                     // 长按输入栏弹出动作菜单(全屏输入模式入口)
                     .combinedClickable(
                         interactionSource = remember { MutableInteractionSource() },
@@ -1066,8 +1067,8 @@ internal fun InputBar(
                     modifier = Modifier
                         .weight(1f)
                         // v1.132: heightIn 恢复 40-160dp(v1.131 误改成 32-140dp 缩小了高度);
-                        // 横向长度仍由 weight(1f) 自适应分配
-                        .heightIn(min = 40.dp, max = 160.dp)
+                        // v1.137 B5: min 40dp → 36dp,进一步降低单行输入栏高度
+                        .heightIn(min = 36.dp, max = 160.dp)
                         .focusRequester(focusRequester)
                         .onKeyEvent { event ->
                             if (enterToSend && event.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER &&

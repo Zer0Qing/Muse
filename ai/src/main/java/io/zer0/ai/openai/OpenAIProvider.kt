@@ -59,6 +59,7 @@ import okhttp3.sse.EventSourceListener
 import okhttp3.sse.EventSources
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.random.Random
 
 /**
@@ -179,6 +180,15 @@ class OpenAIProvider(
         // v1.0.21: 防止 emitDoneWithStreamGuard 被双重执行(finishReason + [DONE] 各触发一次),
         //   导致空 name tool call 恢复的文本被发送两遍,产生重复内容。
         val streamGuardDone = AtomicBoolean(false)
+        // v1.0.23: 流式过早结束检测 — 商汤 deepseek-v4-flash 等 API 流式实现有 bug,
+        //   first delta 后立即 finish(只输出 1-4 个字符),但非流式能正常返回完整内容。
+        //   记录 ContentDelta 总字符数,在 Done 时检查,若过少且耗时极短则回退到 completeText。
+        val contentCharsSent = AtomicInteger(0)
+        val firstDeltaTimestamp = AtomicLong(0L)
+        // v1.0.24: 回退协程进行中标志 — 防止第二次 emitDoneWithStreamGuard 调用
+        //   (finishReason + [DONE] 各触发一次)在回退协程完成前提前 close flow,
+        //   导致 completeText 的结果无法通过已关闭的 channel 发送。
+        val pendingFallback = AtomicBoolean(false)
 
         /**
          * v1.0.20: stream-guard — 在 Done 事件前检查累积的 toolCallAccMap,
@@ -190,14 +200,30 @@ class OpenAIProvider(
          *  - 拦截发生在 Done 事件而非每个 delta,因为流式中 name 可能稍后才到
          */
         fun emitDoneWithStreamGuard(finishReason: String?) {
+            // v1.0.24: 诊断日志 — 确认 emitDoneWithStreamGuard 是否被调用及各变量值
+            Logger.i(
+                "OpenAIProvider",
+                "stream-guard diagnose: emitDone called | finishReason=$finishReason | " +
+                    "contentChars=${contentCharsSent.get()} | anyDeltaSent=${anyDeltaSent.get()} | " +
+                    "aborted=${request.abortSignal.aborted} | useResponsesApi=$useResponsesApi | " +
+                    "firstDeltaTs=${firstDeltaTimestamp.get()}",
+            )
             // v1.0.21: 防止双重执行 — finishReason 和 [DONE] 各触发一次时,
             //   第二次直接发 Done 并 close,跳过已恢复的文本,避免重复内容。
+            // v1.0.24: 若回退协程进行中,第二次调用直接 return,不 close,
+            //   等回退协程完成后自行发 Done + close
             if (!streamGuardDone.compareAndSet(false, true)) {
+                if (pendingFallback.get()) {
+                    Logger.d("OpenAIProvider", "stream-guard: 回退进行中, 跳过 Done 事件")
+                    return
+                }
                 trySend(ChatStreamEvent.Done(finishReason))
                 close()
                 return
             }
             toolCallAccMap.forEach { (localIndex, acc) ->
+                // v1.0.22: 跳过已增量恢复的 acc,避免重复发送
+                if (acc.recoveredAsContent) return@forEach
                 if (acc.name.isNullOrBlank() && acc.args.isNotEmpty()) {
                     val recoveredText = acc.args.toString()
                     Logger.w(
@@ -205,11 +231,59 @@ class OpenAIProvider(
                         "stream-guard: 拦截空 name tool call (localIndex=$localIndex, args=${acc.args.length} chars)," +
                             "恢复为文本: ${recoveredText.take(50)}",
                     )
+                    contentCharsSent.addAndGet(recoveredText.length)
                     trySend(ChatStreamEvent.ContentDelta(recoveredText))
                 }
             }
             // 清空 map,防止后续误触发再次恢复
             toolCallAccMap.clear()
+
+            // v1.0.23: 商汤 deepseek-v4-flash 等流式过早结束 bug 检测
+            //   商汤 API 流式实现有 bug:first delta 后立即 finish(只输出 0-4 个字符,
+            //   甚至只发 reasoningContent 不发 content),但非流式能正常返回完整内容(text=50-200 chars)。
+            //   v1.0.24: 放宽到 0-9 chars,覆盖仅发 reasoning 而不发 content 的情况。
+            //   检测条件:ContentDelta 总字符 0-9 且收到过 anyDeltaSent(first delta 已到),
+            //   且 first delta 后 500ms 内就 finish,未被用户 abort,非 Responses API。
+            val totalChars = contentCharsSent.get()
+            val firstDeltaTime = firstDeltaTimestamp.get()
+            val deltaDuration = if (firstDeltaTime > 0) System.currentTimeMillis() - firstDeltaTime else Long.MAX_VALUE
+            val shouldFallback = totalChars in 0..9 &&
+                anyDeltaSent.get() &&
+                deltaDuration < 500 &&
+                !request.abortSignal.aborted &&
+                !useResponsesApi
+
+            if (shouldFallback) {
+                pendingFallback.set(true)
+                Logger.w(
+                    "OpenAIProvider",
+                    "stream-guard: 检测到流式过早结束 (chars=$totalChars, duration=${deltaDuration}ms), 自动回退到非流式请求 | url=$url",
+                )
+                scope.launch {
+                    try {
+                        val completion = completeText(request)
+                        val text = completion.text.orEmpty()
+                        if (text.isNotEmpty()) {
+                            trySend(ChatStreamEvent.ContentDelta(text))
+                        }
+                        val reasoning = completion.reasoningContent.orEmpty()
+                        if (reasoning.isNotEmpty()) {
+                            trySend(ChatStreamEvent.ReasoningDelta(reasoning))
+                        }
+                        Logger.i(
+                            "OpenAIProvider",
+                            "stream-guard: 非流式回退成功 (text=${text.length} chars, reasoning=${reasoning.length} chars)",
+                        )
+                    } catch (e: Exception) {
+                        Logger.w("OpenAIProvider", "stream-guard: 非流式回退失败: ${e.message}")
+                    }
+                    pendingFallback.set(false)
+                    trySend(ChatStreamEvent.Done(finishReason))
+                    close()
+                }
+                return
+            }
+
             trySend(ChatStreamEvent.Done(finishReason))
             close()
         }
@@ -287,6 +361,7 @@ class OpenAIProvider(
                     if (delta != null) {
                         if (firstDeltaAt == 0L) {
                             firstDeltaAt = System.currentTimeMillis()
+                            firstDeltaTimestamp.set(firstDeltaAt)
                             Logger.i(
                                 "OpenAIProvider",
                                 "streamChat first delta: ${firstDeltaAt - requestStartAt}ms " +
@@ -301,6 +376,7 @@ class OpenAIProvider(
                         delta.content?.takeIf { it.isNotEmpty() }
                             ?.let {
                                 anyDeltaSent.set(true)
+                                contentCharsSent.addAndGet(it.length)
                                 trySend(ChatStreamEvent.ContentDelta(it))
                             }
                         // Phase 7: 解析 tool_calls 增量(每个 index 对应一个工具调用,arguments 分片累积)
@@ -329,16 +405,37 @@ class OpenAIProvider(
                             tc.function?.name?.takeIf { it.isNotBlank() }?.let { acc.name = it }
                             tc.function?.arguments?.let { acc.args.append(it) }
 
-                            // stream-guard: 空 name 缓冲,不发送 ToolCallDelta
-                            //   (参考 openhanako:空 name 的 tool call 缓冲,不向下游传递无效事件)
+                            // v1.0.22: 已增量恢复为 ContentDelta 的 acc,后续 args 继续作为 ContentDelta 发送
+                            //   (一旦判定为空 name 异常 tool call 并增量恢复,name 后到也不撤回已发送的正文)
+                            if (acc.recoveredAsContent) {
+                                val argsDelta = tc.function?.arguments.orEmpty()
+                                if (argsDelta.isNotEmpty()) {
+                                    trySend(ChatStreamEvent.ContentDelta(argsDelta))
+                                }
+                                return@forEach
+                            }
+
+                            // stream-guard: 空 name 处理
+                            //   v1.0.20: 缓冲到 Done 才恢复 — 导致 GLM-4-9B 等小模型"只输出首字即结束"假象
+                            //   v1.0.22: 改为立即增量恢复为 ContentDelta,让用户能看到流式输出
                             val currentName = acc.name
                             if (currentName.isNullOrBlank()) {
                                 toolCallDeltaSent.set(true)
                                 anyDeltaSent.set(true)
-                                Logger.d(
-                                    "OpenAIProvider",
-                                    "stream-guard: 缓冲空 name tool call (localIndex=$localIndex, 累积 args=${acc.args.length} chars)",
-                                )
+                                val argsDelta = tc.function?.arguments.orEmpty()
+                                if (argsDelta.isNotEmpty()) {
+                                    acc.recoveredAsContent = true
+                                    trySend(ChatStreamEvent.ContentDelta(argsDelta))
+                                    Logger.d(
+                                        "OpenAIProvider",
+                                        "stream-guard: 增量恢复空 name tool call 为 ContentDelta (localIndex=$localIndex, 本次=${argsDelta.length} chars, 累积=${acc.args.length} chars)",
+                                    )
+                                } else {
+                                    Logger.d(
+                                        "OpenAIProvider",
+                                        "stream-guard: 空 name tool call 无 args 增量,跳过 (localIndex=$localIndex, 累积 args=${acc.args.length} chars)",
+                                    )
+                                }
                                 return@forEach
                             }
 
@@ -373,7 +470,19 @@ class OpenAIProvider(
                 }
 
                 override fun onClosed(eventSource: EventSource) {
-                    close()
+                    // v1.0.23: 商汤等 API 可能直接关闭连接,不发 [DONE] 也不发 finishReason
+                    //   若尚未触发 stream-guard,在此触发以检测流式过早结束并回退
+                    // v1.0.24: 回退进行中时不 close,等回退协程完成
+                    if (pendingFallback.get()) {
+                        Logger.d("OpenAIProvider", "streamChat onClosed: 回退进行中, 等待完成")
+                        return
+                    }
+                    if (!streamGuardDone.get()) {
+                        Logger.d("OpenAIProvider", "streamChat onClosed: 未收到 Done 事件, 触发 stream-guard")
+                        emitDoneWithStreamGuard(null)
+                    } else {
+                        close()
+                    }
                 }
 
                 override fun onFailure(
@@ -381,8 +490,17 @@ class OpenAIProvider(
                     t: Throwable?,
                     response: Response?,
                 ) {
+                    // v1.0.24: 回退进行中时不 close,等回退协程完成
+                    if (pendingFallback.get()) {
+                        Logger.d("OpenAIProvider", "streamChat onFailure: 回退进行中, 忽略连接错误 t=${t?.message}")
+                        return
+                    }
                     if (request.abortSignal.aborted) {
-                        Logger.d("OpenAIProvider", "streamChat aborted by user")
+                        Logger.d(
+                            "OpenAIProvider",
+                            "streamChat aborted by user | contentChars=${contentCharsSent.get()} | " +
+                                "streamGuardDone=${streamGuardDone.get()} | anyDeltaSent=${anyDeltaSent.get()}",
+                        )
                         close()
                         return
                     }
@@ -1313,6 +1431,8 @@ class OpenAIProvider(
                 return
             }
             toolCallAccMap.forEach { (localIndex, acc) ->
+                // v1.0.22: 跳过已增量恢复的 acc,避免重复发送
+                if (acc.recoveredAsContent) return@forEach
                 if (acc.name.isNullOrBlank() && acc.args.isNotEmpty()) {
                     val recoveredText = acc.args.toString()
                     Logger.w(
@@ -1427,13 +1547,34 @@ class OpenAIProvider(
                             }
                             event.delta?.let { acc.args.append(it) }
 
-                            // stream-guard: 空 name 缓冲,不发送 ToolCallDelta
+                            // v1.0.22: 已增量恢复为 ContentDelta 的 acc,后续 args 继续作为 ContentDelta 发送
+                            if (acc.recoveredAsContent) {
+                                val argsDelta = event.delta.orEmpty()
+                                if (argsDelta.isNotEmpty()) {
+                                    trySend(ChatStreamEvent.ContentDelta(argsDelta))
+                                }
+                                return
+                            }
+
+                            // stream-guard: 空 name 处理
+                            //   v1.0.20: 缓冲到 Done 才恢复 — 导致小模型"只输出首字即结束"假象
+                            //   v1.0.22: 改为立即增量恢复为 ContentDelta
                             val currentName = acc.name
                             if (currentName.isNullOrBlank()) {
-                                Logger.d(
-                                    "OpenAIProvider",
-                                    "stream-guard(Responses): 缓冲空 name tool call (localIndex=$localIndex, 累积 args=${acc.args.length} chars)",
-                                )
+                                val argsDelta = event.delta.orEmpty()
+                                if (argsDelta.isNotEmpty()) {
+                                    acc.recoveredAsContent = true
+                                    trySend(ChatStreamEvent.ContentDelta(argsDelta))
+                                    Logger.d(
+                                        "OpenAIProvider",
+                                        "stream-guard(Responses): 增量恢复空 name tool call 为 ContentDelta (localIndex=$localIndex, 本次=${argsDelta.length} chars, 累积=${acc.args.length} chars)",
+                                    )
+                                } else {
+                                    Logger.d(
+                                        "OpenAIProvider",
+                                        "stream-guard(Responses): 空 name tool call 无 args 增量,跳过 (localIndex=$localIndex, 累积 args=${acc.args.length} chars)",
+                                    )
+                                }
                                 return
                             }
 
@@ -1487,7 +1628,13 @@ class OpenAIProvider(
                 }
 
                 override fun onClosed(eventSource: EventSource) {
-                    close()
+                    // v1.0.23: 同 ChatCompletions 路径,未收到 Done 事件时触发 stream-guard
+                    if (!streamGuardDone.get()) {
+                        Logger.d("OpenAIProvider", "streamChatResponses onClosed: 未收到 Done 事件, 触发 stream-guard")
+                        emitDoneWithStreamGuard(null)
+                    } else {
+                        close()
+                    }
                 }
 
                 override fun onFailure(
@@ -1912,4 +2059,18 @@ private class ToolCallAccState {
     val args: StringBuilder = StringBuilder()
     /** 是否已向下游发送过 ToolCallDelta(用于 name 来晚时的追赶发送)。 */
     var hasEmitted: Boolean = false
+    /**
+     * v1.0.22: 是否已作为 ContentDelta 增量恢复过(空 name tool call 增量恢复模式)。
+     *
+     * v1.0.20 的缓冲到 Done 模式存在严重体验问题:GLM-4-9B-0414 等小模型会把
+     * 整段正文拆成大量独立 index 的空 name tool call(每个 1-4 chars),
+     * stream-guard 全部缓冲到 Done 才一次性恢复,用户只看到 1 个字就以为结束按了停止。
+     *
+     * v1.0.22 改为增量恢复:首个 args 到达时若 name 仍为空,立即作为 ContentDelta 发送,
+     * 后续 args 直接增量发送,避免缓冲导致"看似只输出首字即结束"的假象。
+     *
+     * 正常 tool call 的 name 通常在首片就携带(OpenAI 规范),若首片无 name 基本可判定为
+     * 小模型异常输出,直接增量恢复为正文是合理的。
+     */
+    var recoveredAsContent: Boolean = false
 }
