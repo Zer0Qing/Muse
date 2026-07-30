@@ -68,8 +68,10 @@ object MuseRoutes {
     const val SETTINGS_ABOUT = "settings_about"
     /** v0.31: 设置二级页 — 聊天行为。 */
     const val SETTINGS_CHAT = "settings_chat"
-    /** v0.32: 设置二级页 — 记忆与通知。 */
+    /** v1.0.51: 记忆中心(4 Tab 查看+编辑)。 */
     const val SETTINGS_MEMORY = "settings_memory"
+    /** v1.0.51: 记忆参数配置页(原"记忆与通知",从记忆中心齿轮入口进入)。 */
+    const val SETTINGS_MEMORY_CONFIG = "settings_memory_config"
     /** v0.32: 设置二级页 — 媒体。 */
     const val SETTINGS_MEDIA = "settings_media"
     /** v0.32: 设置二级页 — 实验性功能。 */

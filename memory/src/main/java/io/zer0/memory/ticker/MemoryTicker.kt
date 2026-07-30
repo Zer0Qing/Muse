@@ -170,6 +170,24 @@ class  MemoryTicker(
     val healthFlow: StateFlow<Map<String, StepHealth>> = _healthFlow.asStateFlow()
 
     /**
+     * v1.0.51: 存量记忆迁移进度 — 升级后首次启动补跑历史 session 摘要时实时报告。
+     *
+     * null 表示未在迁移中(空闲);非 null 表示正在跑或刚完成(UI 据此显示/隐藏进度条)。
+     * [done]=true 后 UI 自动隐藏进度条,下次启动不再进入迁移流程(标志位已持久化)。
+     */
+    data class BackfillProgress(
+        val total: Int,
+        val processed: Int,
+        val succeeded: Int,
+        val failed: Int,
+        val currentSessionId: String?,
+        val done: Boolean,
+    )
+
+    private val _backfillProgressFlow = MutableStateFlow<BackfillProgress?>(null)
+    val backfillProgressFlow: StateFlow<BackfillProgress?> = _backfillProgressFlow.asStateFlow()
+
+    /**
      * v1.0.51: per-step 错误去重签名 — 替代原全局单一 _lastErrorSig。
      *
      * 原实现用单一全局 sig,step A 失败后 step B 成功会错误地清除 step A 的 sig,
@@ -723,6 +741,47 @@ class  MemoryTicker(
             doDaily(model, locale, timeZone)
         }
         doCompileTodayAndAssemble(model, locale, timeZone)
+    }
+
+    // ──────────────────────────────────────────────
+    //  v1.0.51: 存量记忆迁移(backfill)
+    // ──────────────────────────────────────────────
+
+    /**
+     * 获取所有已有摘要的 session id 集合(summary 非空)。
+     * 用于 backfill 时计算差集:allSessions - summarizedSessions = 需补跑的 session。
+     */
+    suspend fun getAllSummarizedSessionIds(): Set<String> = summaryManager.getAllSummaries().map { it.sessionId }.toSet()
+
+    /**
+     * v1.0.51: 为单个 session 补跑 rollingSummary(用于存量迁移)。
+     *
+     * 复用 [doRollingSummary] 内部逻辑(含 _summaryInProgress 重入保护 + Semaphore(3) 全局并发限流),
+     * trigger="backfill" 便于日志区分。失败不抛异常,返回 false,由调用方统计 failed 计数。
+     *
+     * @return true 表示摘要有变化(成功);false 表示空对话/LLM 返回空/失败
+     */
+    suspend fun backfillSession(
+        sessionId: String,
+        messages: List<UIMessage>,
+        model: Model?,
+        locale: String = "zh-CN",
+        timeZone: String = TimeContext.DEFAULT_TIMEZONE,
+        assistantId: String = "",
+    ): Boolean {
+        if (_stopped) return false
+        if (!isMemoryEnabled()) return false
+        return doRollingSummary(sessionId, messages, model, locale, timeZone, "backfill", assistantId)
+    }
+
+    /** v1.0.51: 报告 backfill 进度(供 UI 实时展示)。 */
+    fun reportBackfillProgress(progress: BackfillProgress) {
+        _backfillProgressFlow.value = progress
+    }
+
+    /** v1.0.51: 清除 backfill 进度(迁移完成后调用,UI 进度条自动隐藏)。 */
+    fun clearBackfillProgress() {
+        _backfillProgressFlow.value = null
     }
 
     /**

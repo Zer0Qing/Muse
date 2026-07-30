@@ -11,7 +11,6 @@ import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseSlider
 import io.zer0.muse.ui.theme.MuseShapes
 import androidx.compose.material3.Text
@@ -49,10 +48,9 @@ import kotlin.math.roundToInt
  *  - 命中加成(常提起的记忆不易消失)
  *  - 编译阈值(低于此分的记忆不进入 memory.md)
  *  - 遗忘倍率(1.0 正常 / 2.0 忘得快一倍)
+ *  - 保持唤醒(默认关)
  *
- * + 经验库开关(默认关)
- * + 保持唤醒(默认关)
- * + 通知策略(never / when_unfocused / always)
+ * v1.0.51: 经验库开关移至聊天设置页;通知策略移至聊天设置页。
  */
 @Composable
 fun MemorySettingsPage(
@@ -60,9 +58,7 @@ fun MemorySettingsPage(
 ) {
     val settings: SettingsRepository = koinInject()
     val memoryConfig by settings.memoryConfigFlow.collectAsStateWithLifecycle(initialValue = MemoryConfig())
-    val experienceEnabled by settings.experienceEnabledFlow.collectAsStateWithLifecycle(initialValue = false)
     val keepAwake by settings.keepAwakeFlow.collectAsStateWithLifecycle(initialValue = false)
-    val notificationPolicy by settings.notificationPolicyFlow.collectAsStateWithLifecycle(initialValue = "when_unfocused")
     val scope = rememberCoroutineScope()
 
     // v1.78 (#19): 滑块防抖 — 拖动时只更新 localConfig,停止 400ms 后才持久化到 DataStore
@@ -157,29 +153,7 @@ fun MemorySettingsPage(
                     },
                 )
                 SettingsGroupDivider()
-                // v1.78 (#21): 恢复默认按钮
-                SettingsActionRow(
-                    title = stringResource(R.string.settings_memory_restore_default),
-                    subtitle = stringResource(R.string.settings_memory_restore_default_subtitle),
-                    onClick = { localConfig = MemoryConfig() },
-                )
-            }
-        }
-
-        // ── 2. 高级开关 ──
-        item { SectionLabel(stringResource(R.string.settings_memory_advanced_section)) }
-        item {
-            SettingsGroup {
-                SettingsSwitchRow(
-                    icon = TablerIcons.Server,
-                    title = stringResource(R.string.settings_memory_experience_lib),
-                    subtitle = stringResource(R.string.settings_memory_experience_lib_subtitle),
-                    checked = experienceEnabled,
-                    onCheckedChange = { v ->
-                        scope.launch { settings.saveExperienceEnabled(v) }
-                    },
-                )
-                SettingsGroupDivider()
+                // v1.0.51: 保持唤醒移到记忆系统 section(对应记忆后台运行)
                 SettingsSwitchRow(
                     icon = TablerIcons.Bolt,
                     title = stringResource(R.string.settings_memory_keep_awake),
@@ -189,74 +163,12 @@ fun MemorySettingsPage(
                         scope.launch { settings.saveKeepAwake(v) }
                     },
                 )
-            }
-        }
-
-        // ── 3. 通知策略 ──
-        item { SectionLabel(stringResource(R.string.settings_memory_notification_section)) }
-        item {
-            SettingsGroup {
-                NotificationPolicyRow(
-                    current = notificationPolicy,
-                    onChange = { v ->
-                        scope.launch { settings.saveNotificationPolicy(v) }
-                    },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun NotificationPolicyRow(
-    current: String,
-    onChange: (String) -> Unit,
-) {
-    val replyNotificationCd = stringResource(R.string.settings_memory_reply_notification_cd)
-    val replyNotificationTitle = stringResource(R.string.settings_memory_reply_notification)
-    val replyNotificationSubtitle = stringResource(R.string.settings_memory_reply_notification_subtitle)
-    // 通知策略选项(值 -> 资源 ID),R.string.xxx 为编译期常量,无需 remember
-    val policies = listOf(
-        "never" to R.string.settings_memory_policy_never,
-        "when_unfocused" to R.string.settings_memory_policy_when_unfocused,
-        "always" to R.string.settings_memory_policy_always,
-    )
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Icon(
-                imageVector = TablerIcons.CloudOff,
-                contentDescription = replyNotificationCd,
-                tint = MaterialTheme.colorScheme.outline,
-                modifier = Modifier.size(20.dp),
-            )
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = replyNotificationTitle,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = replyNotificationSubtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
-                )
-            }
-        }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            policies.forEach { (value, labelRes) ->
-                MuseChip(
-                    selected = current == value,
-                    onClick = { onChange(value) },
-                    label = stringResource(labelRes),
+                SettingsGroupDivider()
+                // v1.78 (#21): 恢复默认按钮
+                SettingsActionRow(
+                    title = stringResource(R.string.settings_memory_restore_default),
+                    subtitle = stringResource(R.string.settings_memory_restore_default_subtitle),
+                    onClick = { localConfig = MemoryConfig() },
                 )
             }
         }

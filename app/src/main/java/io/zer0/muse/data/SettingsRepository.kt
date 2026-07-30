@@ -75,6 +75,8 @@ class SettingsRepository(
     private val memoryEnabledCache = AtomicBoolean(true)
     // M-SR5: 防止 migrateLegacyProviderIfNeeded 在并发首调时重复执行(读旧 JSON + addProvider + remove 之间存在竞态)
     private val migrationDone = AtomicBoolean(false)
+    /** v1.0.51: 防止 memory backfill 迁移在并发首调时重复执行(读标志位 + 跑 backfill + 写标志位之间存在竞态)。 */
+    private val memoryBackfillMigrationDone = AtomicBoolean(false)
 
     /**
      * v1.0.7: 内置供应商规格声明(对齐 openhanako BUILTIN_PLUGINS)。
@@ -254,6 +256,8 @@ class SettingsRepository(
     /** v1.0.47 P5-2: 长文本粘贴转文件阈值(字符数,超过则提示转文件)。 */
     val pasteAsFileThresholdFlow: Flow<Int> = store.data.map { prefs -> prefs[KEY_PASTE_AS_FILE_THRESHOLD] ?: 2000 }
     val memoryEnabledFlow: Flow<Boolean> = store.data.map { prefs -> prefs[KEY_MEMORY_ENABLED] ?: true }
+    /** v1.0.51: 存量记忆迁移是否已完成(升级后首次启动补跑历史 session 摘要)。 */
+    val memoryBackfillMigrationDoneFlow: Flow<Boolean> = store.data.map { prefs -> prefs[KEY_MEMORY_MIGRATION_V1_0_51_DONE] ?: false }
     val themeModeFlow: Flow<String> = store.data.map { prefs -> prefs[KEY_THEME_MODE] ?: "system" }
     /** v1.60-C: 应用界面语言(system=跟随系统 / zh=中文 / en=英文 / ja=日语 / ko=韩语 / ru=俄语)。 */
     val languageFlow: Flow<String> = store.data.map { prefs -> prefs[KEY_LANGUAGE] ?: "system" }
@@ -767,6 +771,9 @@ class SettingsRepository(
 
     fun isMemoryEnabled(): Boolean = memoryEnabledCache.get()
     suspend fun saveMemoryEnabled(enabled: Boolean) { store.edit { it[KEY_MEMORY_ENABLED] = enabled } }
+    /** v1.0.51: 存量记忆迁移并发守卫 — compareAndSet 保证只跑一次,即使两个协程同时读到 false。 */
+    fun tryStartMemoryBackfillMigration(): Boolean = memoryBackfillMigrationDone.compareAndSet(false, true)
+    suspend fun saveMemoryBackfillMigrationDone(done: Boolean) { store.edit { it[KEY_MEMORY_MIGRATION_V1_0_51_DONE] = done } }
     suspend fun saveThemeMode(mode: String) { store.edit { it[KEY_THEME_MODE] = mode } }
     suspend fun saveThemeId(id: String) { store.edit { it[KEY_THEME_ID] = id } }
     /** 保存深色模式独立主题 id(空字符串表示跟随亮色主题的暗色版)。 */
@@ -1284,6 +1291,8 @@ class SettingsRepository(
         private val KEY_PASTE_AS_FILE_ENABLED = booleanPreferencesKey("paste_as_file_enabled")
         private val KEY_PASTE_AS_FILE_THRESHOLD = intPreferencesKey("paste_as_file_threshold")
         private val KEY_MEMORY_ENABLED = booleanPreferencesKey("memory_enabled")
+        /** v1.0.51: 一次性存量记忆迁移标志位 — 升级后首次启动补跑历史 session 的 rollingSummary。 */
+        private val KEY_MEMORY_MIGRATION_V1_0_51_DONE = booleanPreferencesKey("memory_migration_v1_0_51_done")
         private val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
         private val KEY_LANGUAGE = stringPreferencesKey("language")
         /** v1.131: [KEY_LANGUAGE] 的字符串形式,供 SharedPreferences 同步缓存使用(见 [getLanguageSync])。 */

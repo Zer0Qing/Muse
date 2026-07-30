@@ -169,6 +169,17 @@ class SystemPromptAssembler(
             .onError { _, t -> Logger.w(TAG, "getChatPreferences 失败", t) }
             .getOrNull()
 
+        // v1.0.51: 获取当前 locale 用于模板加载(zh/en/ja/ko/ru,system 取实际值)
+        val lang = settings.getLanguageSync()
+        val locale = when (lang) {
+            "system", "" -> java.util.Locale.getDefault().language
+            else -> lang
+        }
+
+        // ── 0. 平台声明(v1.0.51 新增) ──
+        val platformDecl = promptLoader.render("platform_decl", locale = locale, fallback = PLATFORM_DECL_FALLBACK)
+        if (platformDecl.isNotBlank()) sections.add(platformDecl)
+
         // ── 1. 人格定义 ──
         val persona = buildPersonaSection(assistant)
         if (persona.isNotBlank()) sections.add(persona)
@@ -177,8 +188,13 @@ class SystemPromptAssembler(
         val styleSection = buildStyleSection(chatPrefs)
         if (styleSection.isNotBlank()) sections.add(styleSection)
 
-        // v1.0.30: 始终注入中文思考指令（不受 chatPrefs 影响）
-        sections.add("思考语言\n- 所有内部推理、思考过程、分析都必须使用中文")
+        // v1.0.51: 思考指令跟随 locale(zh 用中文思考,en 用英文思考)
+        val thinkingLang = if (locale == "zh") "中文" else "the user's language"
+        sections.add(if (locale == "zh") {
+            "思考语言\n- 所有内部推理、思考过程、分析都必须使用中文"
+        } else {
+            "Thinking language\n- All internal reasoning, thinking process, and analysis must use $thinkingLang"
+        })
 
         // ── 2. 用户画像 ──
         val profile = buildUserProfileSection()
@@ -193,6 +209,9 @@ class SystemPromptAssembler(
         if (memoryEnabled && !forSubagent) {
             val memory = buildLongTermMemorySection()
             if (memory.isNotBlank()) sections.add(memory)
+            // v1.0.51: 记忆使用规则(不让用户感觉记忆存在 + 当前对话优先)
+            val memoryRules = promptLoader.render("memory_rules", locale = locale, fallback = MEMORY_RULES_FALLBACK)
+            if (memoryRules.isNotBlank()) sections.add(memoryRules)
         }
 
         // ── 4.6 群聊记忆摘要(隔离 fact store)──
@@ -247,20 +266,20 @@ class SystemPromptAssembler(
         val workspace = buildWorkspaceSection()
         if (workspace.isNotBlank()) sections.add(workspace)
 
-        // ── 7. 决策树规则(第三步) ──
+        // ── 7. 决策树规则(第三步) — v1.0.51 瘦身版 ──
         // L-ASM11: 常量 section 统一加 isNotBlank 判断,保持风格一致
-        val decisionTree = promptLoader.render("decision_tree", fallback = DECISION_TREE_SECTION)
+        val decisionTree = promptLoader.render("decision_tree", locale = locale, fallback = DECISION_TREE_SECTION)
         if (decisionTree.isNotBlank()) sections.add(decisionTree)
 
         // ── 8. 工具使用纪律(借鉴 openhanako)──
-        val toolDiscipline = promptLoader.render("tool_discipline", fallback = TOOL_DISCIPLINE_SECTION)
+        val toolDiscipline = promptLoader.render("tool_discipline", locale = locale, fallback = TOOL_DISCIPLINE_SECTION)
         if (toolDiscipline.isNotBlank()) sections.add(toolDiscipline)
 
         // ── 9. 操作安全(借鉴 openhanako)──
-        val safety = promptLoader.render("operation_safety", fallback = OPERATION_SAFETY_SECTION)
+        val safety = promptLoader.render("operation_safety", locale = locale, fallback = OPERATION_SAFETY_SECTION)
         if (safety.isNotBlank()) sections.add(safety)
 
-        // ── 10. MOOD 格式要求(第六步) ──
+        // ── 10. MOOD 格式要求(第六步) — v1.0.51 恢复固定条数 ──
         // v0.32 实验性 forceMoodBlock 接入:
         //  - forceMoodBlock=true → 即使 chatPrefs.showMoodBlock=false,也强制包含 MOOD section
         //  - forceMoodBlock=false → 由 chatPrefs.showMoodBlock 决定(默认 true,旧行为)
@@ -269,19 +288,19 @@ class SystemPromptAssembler(
         // H-ASM1 + L-ASM10: 复用顶部已读的 chatPrefs,默认 true(读取失败时)
         val showMood = chatPrefs?.showMoodBlock ?: true
         if (experiments.forceMoodBlock || showMood) {
-            sections.add(promptLoader.render("mood_format", fallback = MOOD_FORMAT_SECTION))
+            sections.add(promptLoader.render("mood_format", locale = locale, fallback = MOOD_FORMAT_SECTION))
         }
 
         // v0.32 实验性 selfReflection:在 MOOD section 之后追加反思块要求
         // 要求 LLM 在每轮回复末尾输出 <reflection>...</reflection>,反思准确性/完整性/语气
         // MoodTagTransformer / ChatViewModel.updateAssistant 会剥离该块存到 UIMessage.reflection
         if (experiments.selfReflection) {
-            sections.add(SELF_REFLECTION_SECTION)
+            sections.add(promptLoader.render("self_reflection", locale = locale, fallback = SELF_REFLECTION_SECTION))
         }
 
         // v1.43: 产物卡片格式要求,让 LLM 知道如何输出可提取为会话内嵌产物的内容块
         // L-ASM11: 常量 section 统一加 isNotBlank 判断
-        if (ARTIFACT_FORMAT_SECTION.isNotBlank()) sections.add(promptLoader.render("artifact_format", fallback = ARTIFACT_FORMAT_SECTION))
+        if (ARTIFACT_FORMAT_SECTION.isNotBlank()) sections.add(promptLoader.render("artifact_format", locale = locale, fallback = ARTIFACT_FORMAT_SECTION))
 
         if (sections.isEmpty()) return@trackSuspend ""
         sections.joinToString(separator = "\n\n---\n\n") { it }
@@ -670,6 +689,12 @@ class SystemPromptAssembler(
     companion object {
         /** 日志 TAG。 */
         private const val TAG = "SystemPromptAssembler"
+
+        /** v1.0.51: 平台声明 fallback(模板加载失败时使用)。 */
+        private val PLATFORM_DECL_FALLBACK = "平台声明:你运行在 Muse 应用内 — 一个 Android 端的 AI 助手应用。你拥有文件读写、联网搜索、设置闹钟、发送短信、打开应用、知识库检索、多 Agent 协作等能力。当用户问及 Muse 应用自身功能时,可以调用 knowledge_search 并传 include_internal=true 查询。"
+
+        /** v1.0.51: 记忆使用规则 fallback(模板加载失败时使用)。 */
+        private val MEMORY_RULES_FALLBACK = "记忆使用规则(内部约束,不向用户展示):\n- 永远不要让用户感觉到记忆系统的存在。不要说\"根据你的长期记忆\"\"我记得你之前说过\"这类话。\n- 记忆可能过时或不准确,当前对话永远优先。信息冲突时以对话为准,不要用旧记忆纠正用户。\n- 自然地运用记忆中的信息,就像是你自己想起来的,而不是从数据库里查到的。"
 
         /** L-ASM7: pinned_memories.json 文件大小上限(1MB),超过则跳过注入。 */
         private const val PINNED_MAX_FILE_BYTES = 1L * 1024 * 1024

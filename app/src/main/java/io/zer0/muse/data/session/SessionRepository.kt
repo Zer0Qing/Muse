@@ -12,6 +12,7 @@ import io.zer0.common.resultOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
@@ -361,6 +362,26 @@ class SessionRepository(
      */
     suspend fun getOlderMessages(sessionId: String, beforeCreatedAt: Long, limit: Int): List<UIMessage> {
         return messageDao.getOlderBySession(sessionId, beforeCreatedAt, limit).reversed().map { it.toUIMessage() }
+    }
+
+    /**
+     * v1.0.51: 一次性获取指定会话的【全量】消息(按 createdAt 升序),供存量记忆迁移 backfill 用。
+     *
+     * 与 [observeMessages] / [getRecentMessages] 的差异:不走分页 limit,加载完整历史。
+     * backfill 需要全量 messages 喂给 SessionSummaryManager.rollingSummary 重建摘要。
+     * 用 Flow.first() 拿一次性快照,不持续观察。
+     */
+    suspend fun getAllMessagesForBackfill(sessionId: String): List<UIMessage> = withContext(Dispatchers.IO) {
+        messageDao.observeBySession(sessionId).first().map { it.toUIMessage() }
+    }
+
+    /**
+     * v1.0.51: 一次性获取所有未归档未删除的会话(含 Agent 会话),供存量记忆迁移遍历用。
+     *
+     * 用 Flow.first() 拿一次性快照,不持续观察。backfill 只关心启动时刻的 session 列表。
+     */
+    suspend fun getAllActiveSessionsForBackfill(): List<SessionEntity> = withContext(Dispatchers.IO) {
+        sessionDao.observeActive().first()
     }
 
     /** v1.53-A1: 会话消息总数(分页判断 hasMoreHistory 用)。 */

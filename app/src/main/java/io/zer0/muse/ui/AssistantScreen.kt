@@ -190,6 +190,8 @@ fun AssistantScreen(
                 AssistantEntity(
                     id = newId,
                     name = context.getString(R.string.assistant_new_default_name),
+                    // v1.0.51: 新建助手预填默认 prompt(从 assets 加载,带 locale 回落)
+                    systemPrompt = repo.loadDefaultPrompt(),
                     createdAt = now,
                     updatedAt = now,
                 ),

@@ -188,6 +188,7 @@ fun NavGraphBuilder.assistantNavGraph(
     ) {
         MemoryScreen(
             onBack = { navController.popBackStack() },
+            onOpenSettings = { navController.navigate(MuseRoutes.SETTINGS_MEMORY_CONFIG) },
         )
     }
     composable(

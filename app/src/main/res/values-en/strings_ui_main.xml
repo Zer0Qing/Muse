@@ -103,6 +103,9 @@
     <string name="memory_tab_week">Short-term</string>
     <string name="memory_tab_longterm">Long-term</string>
     <string name="memory_tab_facts">Facts</string>
+    <!-- v1.0.51: memory backfill migration progress -->
+    <string name="memory_backfill_in_progress">Organizing history memories %1$d/%2$d</string>
+    <string name="memory_backfill_done">History memories organized, %1$d summaries restored</string>
     <string name="memory_screen_layer_summary">Session Summary</string>
     <string name="memory_screen_layer_compile">Compiled Artifact</string>
     <string name="memory_screen_layer_memory">Memory</string>

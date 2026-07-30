@@ -67,6 +67,7 @@ import java.util.concurrent.TimeUnit
 class MuseApp : Application(), ImageLoaderFactory {
 
     private val memoryTicker: MemoryTicker by inject()
+    private val memoryBackfillMigration: io.zer0.muse.data.MemoryBackfillMigration by inject()
     private val assistantRepository: AssistantRepository by inject()
     private val skillRepository: SkillRepository by inject()
     private val knowledgeDocDao: KnowledgeDocDao by inject()
@@ -162,6 +163,14 @@ class MuseApp : Application(), ImageLoaderFactory {
         notificationManager.ensureChannels()
         // 启动 memory ticker(每小时 daily check,主触发仍是 ChatViewModel.notifyTurn)
         memoryTicker.start()
+        // v1.0.51: 存量记忆迁移 — 升级后首次启动补跑历史 session 的 rollingSummary
+        // 三道守卫保证幂等:DataStore 标志位 + AtomicBoolean + 记忆开关
+        // 通过 backfillProgressFlow 实时报告进度,MemoryScreen 顶部显示进度条
+        appScope.launch {
+            resultOf { memoryBackfillMigration.migrateIfNeeded() }
+                .onError { msg, t -> Logger.w("MuseApp", "memory backfill 迁移失败: $msg", t) }
+                .onSuccess { ran -> if (ran) Logger.i("MuseApp", "memory backfill 迁移已执行") }
+        }
         // v1.92: ChatViewModel 为 single 单例,onCleared 永不调用。
         // 注册 ProcessLifecycleOwner 观察者,在 ON_STOP 时释放 TTS/ASR 资源并停止 memory ticker,
         // 在 ON_START 时重启 memory ticker。

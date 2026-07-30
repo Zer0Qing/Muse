@@ -114,6 +114,12 @@ fun ChatSettingsPage(
     // v1.0.47 P5-2: 长文本粘贴转文件开关(默认开启)
     val pasteAsFileEnabled by settings.pasteAsFileEnabledFlow
         .collectAsStateWithLifecycle(initialValue = true)
+    // v1.0.51: 经验库开关(从记忆设置页移入,与聊天行为更相关)
+    val experienceEnabled by settings.experienceEnabledFlow
+        .collectAsStateWithLifecycle(initialValue = false)
+    // v1.0.51: 回复通知策略(从记忆设置页移入,与聊天行为更相关)
+    val notificationPolicy by settings.notificationPolicyFlow
+        .collectAsStateWithLifecycle(initialValue = "when_unfocused")
 
     SettingsSubPageScaffold(title = stringResource(R.string.settings_chat_title), onBack = onBack) {
         // ── v1.0.20: 工具调用批准(置顶,用户最关心的安全开关)──
@@ -484,9 +490,94 @@ fun ChatSettingsPage(
             }
         }
 
+        // ── v1.0.51: 记忆与通知(从记忆设置页移入,与聊天行为更相关)──
+        item { SectionLabel(stringResource(R.string.settings_memory_advanced_section)) }
+        item {
+            SettingsGroup {
+                // 经验库开关(默认关)
+                SettingsSwitchRow(
+                    icon = TablerIcons.Server,
+                    title = stringResource(R.string.settings_memory_experience_lib),
+                    subtitle = stringResource(R.string.settings_memory_experience_lib_subtitle),
+                    checked = experienceEnabled,
+                    onCheckedChange = { v ->
+                        scope.launch { settings.saveExperienceEnabled(v) }
+                    },
+                )
+                SettingsGroupDivider()
+                // 回复通知策略(never / when_unfocused / always)
+                NotificationPolicyRow(
+                    current = notificationPolicy,
+                    onChange = { v ->
+                        scope.launch { settings.saveNotificationPolicy(v) }
+                    },
+                )
+            }
+        }
+
         // ── v1.95: 表情包库 ──
         item { SectionLabel(stringResource(R.string.settings_chat_sticker_section)) }
         item { StickerLibrarySection(settings = settings, scope = scope) }
+    }
+}
+
+/**
+ * v1.0.51: 回复通知策略选择行(从 MemorySettingsPage 移入)。
+ *
+ * 三档:never / when_unfocused / always,用 MuseChip 横向排列。
+ */
+@Composable
+private fun NotificationPolicyRow(
+    current: String,
+    onChange: (String) -> Unit,
+) {
+    val replyNotificationCd = stringResource(R.string.settings_memory_reply_notification_cd)
+    val replyNotificationTitle = stringResource(R.string.settings_memory_reply_notification)
+    val replyNotificationSubtitle = stringResource(R.string.settings_memory_reply_notification_subtitle)
+    val policies = listOf(
+        "never" to R.string.settings_memory_policy_never,
+        "when_unfocused" to R.string.settings_memory_policy_when_unfocused,
+        "always" to R.string.settings_memory_policy_always,
+    )
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Icon(
+                imageVector = TablerIcons.CloudOff,
+                contentDescription = replyNotificationCd,
+                tint = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.size(20.dp),
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = replyNotificationTitle,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = replyNotificationSubtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline,
+                )
+            }
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            policies.forEach { (value, labelRes) ->
+                MuseChip(
+                    selected = current == value,
+                    onClick = { onChange(value) },
+                    label = stringResource(labelRes),
+                )
+            }
+        }
     }
 }
 

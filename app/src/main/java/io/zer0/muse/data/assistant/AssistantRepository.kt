@@ -20,16 +20,21 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.floatOrNull
 import kotlinx.serialization.json.intOrNull
 import io.zer0.muse.R
+import io.zer0.muse.data.SettingsRepository
 
 /**
  * Assistant 领域模型 + 仓库(Phase 8.2)。
  *
  * 把 [AssistantEntity] 的 JSON 字段(presetMessagesJson / tagsJson / toolIdsJson 等)
  * 反序列化为强类型,供 UI 和 ChatViewModel 使用。
+ *
+ * v1.0.51: 默认 prompt 从 assets/prompt_templates/default_persona_{locale}.prompt 加载,
+ * 支持 locale 回落(zh → en → 通用),不再硬编码在常量里。
  */
 class AssistantRepository(
     private val dao: AssistantDao,
     private val context: Context,
+    private val settings: SettingsRepository? = null,
 ) {
 
     val observeAll: Flow<List<AssistantEntity>> = dao.observeAll()
@@ -69,8 +74,8 @@ class AssistantRepository(
                 // 默认助手头像:指向 drawable-nodpi/default_assistant_avatar.png
                 // 用 android.resource:// URI 形式,Coil 可直接加载内置资源
                 avatarImageUrl = "android.resource://${context.packageName}/drawable/default_assistant_avatar",
-                // v1.95: 默认助手人设 — 个人助手,感性与理性兼备
-                systemPrompt = DEFAULT_SYSTEM_PROMPT,
+                // v1.0.51: 默认 prompt 从 assets 模板加载(带 locale 回落)
+                systemPrompt = loadDefaultPrompt(),
                 // v1.136: 默认助手关闭推理,避免简单问题过度思考;用户可在助手设置手动开启。
                 reasoningLevel = ReasoningLevel.OFF.name,
                 skillIdsJson = serializeStringList(allSkillIds),
@@ -86,6 +91,47 @@ class AssistantRepository(
         // 检测缺失的 id 并补全,确保老用户也能使用新功能。
         migrateDefaultSkillAndToolIdsIfNeeded()
         return defaultId
+    }
+
+    /**
+     * v1.0.51: 从 assets 加载默认 prompt(带 locale 回落)。
+     *
+     * 加载顺序:
+     * 1. prompt_templates/default_persona_{locale}.prompt
+     * 2. prompt_templates/default_persona_zh.prompt(中文作为最终回落)
+     * 3. DEFAULT_SYSTEM_PROMPT 常量(代码内硬编码,最终保险)
+     *
+     * 供以下场景使用:
+     * - [ensureDefaultExists] 创建 default 助手
+     * - [migrateDefaultPromptIfNeeded] 老用户 prompt 迁移
+     * - 外部新建助手时预填默认 prompt(AssistantScreen.createNewAssistant / ChatViewModel.createAssistant)
+     */
+    fun loadDefaultPrompt(): String {
+        val lang = settings?.getLanguageSync()
+        val locale = when (lang) {
+            null, "system", "" -> java.util.Locale.getDefault().language
+            else -> lang
+        }
+        // 1. 尝试 locale 专属模板
+        if (locale.isNotBlank()) {
+            try {
+                context.assets.open("prompt_templates/default_persona_$locale.prompt").bufferedReader().use {
+                    return it.readText()
+                }
+            } catch (e: Exception) {
+                // locale 专属模板不存在,继续回落
+            }
+        }
+        // 2. 回落到中文模板(中文是项目的母语,作为最终回落)
+        try {
+            context.assets.open("prompt_templates/default_persona_zh.prompt").bufferedReader().use {
+                return it.readText()
+            }
+        } catch (e: Exception) {
+            // assets 文件也缺失,回落到代码内常量
+        }
+        // 3. 最终保险:代码内常量
+        return DEFAULT_SYSTEM_PROMPT
     }
 
     /**
@@ -143,11 +189,14 @@ class AssistantRepository(
         val current = dao.getById("default") ?: return
         when (current.systemPrompt) {
             LEGACY_SYSTEM_PROMPT_V1_95 -> {
-                dao.upsert(current.copy(systemPrompt = DEFAULT_SYSTEM_PROMPT))
-                Logger.i("AssistantRepo", "Migrated default prompt: v1.95 → v1.97 (three-layer persona)")
+                // v1.95 → v1.0.51: 直接升级到新版 assets 模板
+                dao.upsert(current.copy(systemPrompt = loadDefaultPrompt()))
+                Logger.i("AssistantRepo", "Migrated default prompt: v1.95 → v1.0.51 (assets template)")
             }
             DEFAULT_SYSTEM_PROMPT -> {
-                // 已是最新版,无需迁移
+                // v1.97 常量 → v1.0.51: 升级到新版 assets 模板(补了任务模式 + 平台声明)
+                dao.upsert(current.copy(systemPrompt = loadDefaultPrompt()))
+                Logger.i("AssistantRepo", "Migrated default prompt: v1.97 → v1.0.51 (assets template + task mode)")
             }
             else -> {
                 // 用户自定义过 prompt,保留不动

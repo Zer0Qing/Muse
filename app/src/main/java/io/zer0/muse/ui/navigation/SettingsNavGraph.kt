@@ -18,6 +18,7 @@ import io.zer0.muse.ui.settings.ChatSettingsPage
 import io.zer0.muse.ui.settings.CloudBackupPage
 import io.zer0.muse.ui.settings.ExperimentsSettingsPage
 import io.zer0.muse.ui.settings.MediaSettingsPage
+import io.zer0.muse.ui.MemoryScreen
 import io.zer0.muse.ui.settings.MemorySettingsPage
 import io.zer0.muse.ui.settings.MultiAgentSettingsPage
 import io.zer0.muse.ui.settings.ProviderPluginPage
@@ -247,9 +248,20 @@ fun NavGraphBuilder.settingsNavGraph(
             onOpenToolsSettings = { navController.navigate(MuseRoutes.TOOLS_SETTINGS) },
         )
     }
-    // v0.32: 设置二级页 — 记忆与通知
+    // v1.0.51: 记忆中心 — 4 Tab 查看+编辑(当下/短期/长期/事实)
     composable(
         route = MuseRoutes.SETTINGS_MEMORY,
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        MemoryScreen(
+            onBack = { navController.popBackStack() },
+            onOpenSettings = { navController.navigate(MuseRoutes.SETTINGS_MEMORY_CONFIG) },
+        )
+    }
+    // v1.0.51: 记忆参数配置页(原"记忆与通知",从记忆中心齿轮入口进入)
+    composable(
+        route = MuseRoutes.SETTINGS_MEMORY_CONFIG,
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {

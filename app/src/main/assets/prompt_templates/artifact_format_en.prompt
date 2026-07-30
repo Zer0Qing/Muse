@@ -1,0 +1,25 @@
+Artifact format requirement (must be used when the reply contains reusable content blocks):
+
+If the reply contains code snippets, complete HTML/SVG, documents, JSON, Markdown tables, config examples,
+or other content the user may want to view/copy/reuse separately, wrap it in an <artifact> tag.
+
+<artifact title="a short title" type="type" language="code language (optional)">
+Complete content block here. Preserve original indentation for code, full tags for HTML/SVG.
+</artifact>
+
+Available type values:
+- code: code snippet/script (must include language attribute, e.g. kotlin/python/javascript/xml)
+- html: complete HTML page or fragment
+- svg: SVG vector graphic
+- json: JSON data
+- markdown: Markdown document/long text
+- document: plain document/text description
+- image: image URL or base64 (keep base64 as short as possible)
+
+Rules:
+- Each <artifact> contains only one complete content block; don't bundle unrelated fragments
+- title must be short and descriptive (max 20 characters)
+- language only applies to code type; may be omitted for other types
+- The main text may briefly describe the artifact, but put complete content inside the artifact
+- The system automatically extracts artifact content and generates clickable artifact cards in the conversation
+- Don't use artifact for casual chat or content not worth reusing

@@ -1,6 +1,10 @@
 package io.zer0.muse.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +16,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -27,6 +33,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -392,29 +399,67 @@ fun MemoryHealthCard(
     healthMap: Map<String, StepHealthInfo>,
     modifier: Modifier = Modifier,
 ) {
+    // v1.0.51: 默认收起,避免占位过多。标题行可点击切换展开/收起。
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    val hasAnyError = healthMap.values.any { it.failCount > 0 }
+
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = MuseShapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(modifier = Modifier.padding(MusePaddings.cardInner)) {
-            Text(
-                text = "记忆系统状态",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Spacer(Modifier.size(MusePaddings.contentGap))
-            if (healthMap.isEmpty()) {
-                Text(
-                    text = "暂无状态数据",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
+            // 标题行(可点击折叠/展开)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // 状态指示圆点:有错误显红色,否则显绿色(收起时也能一眼看出状态)
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .background(
+                                color = if (hasAnyError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                                shape = CircleShape,
+                            ),
+                    )
+                    Spacer(Modifier.size(MusePaddings.contentGap))
+                    Text(
+                        text = "记忆系统状态",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+                Icon(
+                    imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.outline,
+                    modifier = Modifier.size(20.dp),
                 )
-            } else {
-                Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap)) {
-                    healthMap.forEach { (step, health) ->
-                        HealthStepRow(stepKey = step, health = health)
+            }
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically(),
+                exit = shrinkVertically(),
+            ) {
+                Column(modifier = Modifier.padding(top = MusePaddings.contentGap)) {
+                    if (healthMap.isEmpty()) {
+                        Text(
+                            text = "暂无状态数据",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.outline,
+                        )
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap)) {
+                            healthMap.forEach { (step, health) ->
+                                HealthStepRow(stepKey = step, health = health)
+                            }
+                        }
                     }
                 }
             }

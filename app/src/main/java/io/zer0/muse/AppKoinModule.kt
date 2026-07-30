@@ -133,7 +133,7 @@ val appModule = module {
     }
     single { SessionRepository(get(), get(), get(), androidContext(), get(), get(), get()) }  // +MuseDb: 跨表事务(H-SESS1)
     single { io.zer0.muse.data.artifact.ArtifactRepository(get()) }  // v1.43: 会话产物仓库
-    single { AssistantRepository(get(), androidContext()) }  // Phase 8.2
+    single { AssistantRepository(get(), androidContext(), get()) }  // Phase 8.2 + v1.0.51: 注入 SettingsRepository 用于 locale
     single { LorebookRepository(get()) }  // Phase 8.5
     single { QuickMessageRepository(get()) }  // Phase 8.5
     single { PromptInjectionRepository(get(), androidContext()) }  // Phase 8.5
@@ -559,6 +559,14 @@ val appModule = module {
             isMemoryEnabled = { settings.isMemoryEnabled() },
             scope = get(),
             getConfig = { settings.memoryConfigCache },
+        )
+    }
+    // v1.0.51: 存量记忆迁移 — 升级后首次启动补跑历史 session 的 rollingSummary
+    single {
+        io.zer0.muse.data.MemoryBackfillMigration(
+            sessionRepository = get(),
+            memoryTicker = get(),
+            settings = get(),
         )
     }
 

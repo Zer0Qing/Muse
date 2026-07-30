@@ -197,6 +197,16 @@ class MemoryViewModel(
     private val _availableScopes = MutableStateFlow<List<ScopeOption>>(emptyList())
     val availableScopes: StateFlow<List<ScopeOption>> = _availableScopes.asStateFlow()
 
+    /**
+     * v1.0.51: 存量记忆迁移进度 — 升级后首次启动补跑历史 session 摘要时实时反映。
+     * null 表示未在迁移中;非 null 时 MemoryScreen 顶部显示进度条。
+     * 直接转发 MemoryTicker.backfillProgressFlow,无需 ViewModel 中转状态。
+     */
+    val backfillProgress: StateFlow<MemoryTicker.BackfillProgress?> = memoryTicker.backfillProgressFlow
+
+    /** v1.0.51: 清除迁移进度(用户已看到完成提示后由 MemoryScreen 调用)。 */
+    fun clearBackfillProgress() = memoryTicker.clearBackfillProgress()
+
     init {
         // v0.51: 收集 MemoryTicker 的 healthFlow,实时反映记忆健康状态到 UI。
         // 各步骤成功/失败时间会在 dashboard 卡片展示,无需用户手动刷新。

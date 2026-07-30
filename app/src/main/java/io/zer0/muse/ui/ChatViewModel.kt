@@ -5239,7 +5239,8 @@ class ChatViewModel(
                     id = id,
                     name = name.ifBlank { "新助手" },
                     avatarEmoji = "",
-                    systemPrompt = io.zer0.muse.data.assistant.AssistantRepository.DEFAULT_SYSTEM_PROMPT,
+                    // v1.0.51: 新建助手预填默认 prompt(从 assets 加载,带 locale 回落)
+                    systemPrompt = assistantRepository.loadDefaultPrompt(),
                     createdAt = now,
                     updatedAt = now,
                 )

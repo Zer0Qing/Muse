@@ -138,6 +138,9 @@
     <string name="memory_tab_week">短期</string>
     <string name="memory_tab_longterm">长期</string>
     <string name="memory_tab_facts">事实</string>
+    <!-- v1.0.51: 存量记忆迁移进度条 -->
+    <string name="memory_backfill_in_progress">正在整理历史记忆 %1$d/%2$d</string>
+    <string name="memory_backfill_done">历史记忆整理完成,已恢复 %1$d 条摘要</string>
     <string name="memory_screen_layer_summary">会话摘要</string>
     <string name="memory_screen_layer_compile">编译产物</string>
     <string name="memory_screen_layer_memory">记忆</string>

@@ -43,6 +43,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.TrendingUp
 import androidx.compose.ui.draw.drawBehind
@@ -54,6 +55,7 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.LinearProgressIndicator
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.media.rememberWindowWidthClass
 import androidx.compose.material3.Icon
@@ -119,9 +121,12 @@ import java.time.temporal.TemporalAdjusters
 @Composable
 fun MemoryScreen(
     onBack: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
     viewModel: MemoryViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // v1.0.51: 存量记忆迁移进度(升级后首次启动补跑历史 session 摘要时显示)
+    val backfillProgress by viewModel.backfillProgress.collectAsStateWithLifecycle()
     // v8: 作用域筛选状态(从 ViewModel 直接 collect,与 state 同级更新)
     val selectedScope by viewModel.selectedScope.collectAsStateWithLifecycle()
     val availableScopes by viewModel.availableScopes.collectAsStateWithLifecycle()
@@ -145,6 +150,13 @@ fun MemoryScreen(
                 onBack = onBack,
                 largeTitle = true,
                 actions = {
+                    // v1.0.51: 记忆参数配置入口(齿轮)
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(
+                            imageVector = Icons.Outlined.Settings,
+                            contentDescription = stringResource(R.string.settings_memory_page_title),
+                        )
+                    }
                     // Phase 2 2D: Export button
                     IconButton(onClick = { showExportDialog = true }) {
                         Icon(
@@ -173,6 +185,62 @@ fun MemoryScreen(
                     )
                     .padding(padding),
             ) {
+                // v1.0.51: 存量记忆迁移进度条(迁移中或刚完成时显示)
+                backfillProgress?.let { bp ->
+                    // done=true 时延迟 5 秒自动清除,避免用户离开页面后进度条残留
+                    LaunchedEffect(bp.done) {
+                        if (bp.done) {
+                            delay(5000)
+                            viewModel.clearBackfillProgress()
+                        }
+                    }
+                    Surface(
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = MusePaddings.screen, vertical = 12.dp),
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                if (!bp.done) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        strokeWidth = 2.dp,
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Filled.Check,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.primary,
+                                    )
+                                }
+                                Text(
+                                    text = if (bp.done) {
+                                        stringResource(R.string.memory_backfill_done, bp.succeeded)
+                                    } else {
+                                        stringResource(
+                                            R.string.memory_backfill_in_progress,
+                                            bp.processed + 1,
+                                            bp.total,
+                                        )
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                )
+                            }
+                            LinearProgressIndicator(
+                                progress = { if (bp.total > 0) bp.processed.toFloat() / bp.total else 0f },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp),
+                            )
+                        }
+                    }
+                }
                 // v1.0.51: 记忆 Tab 切换栏
                 Row(
                     modifier = Modifier
