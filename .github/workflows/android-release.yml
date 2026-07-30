@@ -59,6 +59,10 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
 
+      # 5b. 安装 Android SDK(CI 镜像默认不装)
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
       # 6. 解码签名 keystore(从 GitHub Secrets 读取 base64 编码的 .jks/.keystore 文件)
       #    并生成 keystore.properties(app/build.gradle.kts 中 signingConfigs.release 会读取)
       - name: Decode signing keystore

@@ -312,12 +312,6 @@ APK 输出路径：`app/build/outputs/apk/release/app-{abi}-release.apk`
 
 ### 开发者文档
 
-[docs/](docs) 目录下提供完整的开发文档：
-
-- [项目结构](docs/03-project-structure.md) · [核心流程](docs/04-core-flows.md) · [UI 与导航](docs/05-ui-navigation.md)
-- [数据层](docs/06-data-layer.md) · [Koin 模块](docs/07-koin-modules.md) · [设计约定](docs/08-design-conventions.md)
-- [工具系统](docs/10-tools-overview.md) · [图片生成](docs/11-image-generation.md) · [版本历史](docs/12-version-history.md)
-- [架构总览](docs/14-architecture.md) · [开发规范](docs/15-development-standards.md) · [更新日志](docs/CHANGELOG.md)
 
 ### 贡献
 

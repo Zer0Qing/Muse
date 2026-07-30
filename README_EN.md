@@ -317,12 +317,6 @@ The app ships with a full in-app tutorial (Settings -> Tutorial). A standalone f
 
 ### Developer Documentation
 
-The [docs/](docs) directory contains full developer docs:
-
-- [Project Structure](docs/03-project-structure.md) - [Core Flows](docs/04-core-flows.md) - [UI and Navigation](docs/05-ui-navigation.md)
-- [Data Layer](docs/06-data-layer.md) - [Koin Modules](docs/07-koin-modules.md) - [Design Conventions](docs/08-design-conventions.md)
-- [Tool System](docs/10-tools-overview.md) - [Image Generation](docs/11-image-generation.md) - [Version History](docs/12-version-history.md)
-- [Architecture Overview](docs/14-architecture.md) - [Development Standards](docs/15-development-standards.md) - [Changelog](docs/CHANGELOG.md)
 
 ### Contributing
 
