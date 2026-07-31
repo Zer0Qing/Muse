@@ -78,6 +78,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -130,6 +132,9 @@ fun MemoryScreen(
     // v8: 作用域筛选状态(从 ViewModel 直接 collect,与 state 同级更新)
     val selectedScope by viewModel.selectedScope.collectAsStateWithLifecycle()
     val availableScopes by viewModel.availableScopes.collectAsStateWithLifecycle()
+    // v1.0.52 P2-2: 记忆空间切换状态(与 Scope 正交:Space 按场景隔离)
+    val selectedSpaceId by viewModel.selectedSpaceId.collectAsStateWithLifecycle()
+    val availableSpaces by viewModel.availableSpaces.collectAsStateWithLifecycle()
     // Phase 2 2D: Export dialog state (declared before Scaffold for topbar access)
     var showExportDialog by rememberSaveable { mutableStateOf(false) }
     // P2-1: 大屏(Expanded)下内容区居中限宽 720dp
@@ -374,6 +379,15 @@ fun MemoryScreen(
                             options = availableScopes,
                             selectedScope = selectedScope,
                             onSelect = viewModel::selectScope,
+                        )
+                    }
+                    // v1.0.52 P2-2: 记忆空间切换器(横向滚动 MuseChip)
+                    // 与 Scope 正交:Space 按场景隔离(工作/生活/学习),Scope 按 Agent 隔离
+                    if (availableSpaces.isNotEmpty()) {
+                        io.zer0.muse.ui.memory.SpaceSwitcherRow(
+                            spaces = availableSpaces,
+                            selectedSpaceId = selectedSpaceId,
+                            onSelect = viewModel::selectSpace,
                         )
                     }
                 }
@@ -1916,7 +1930,7 @@ private fun ImportancePieChart(distribution: Map<Int, Int>) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Canvas(modifier = Modifier.size(80.dp)) {
+            Canvas(modifier = Modifier.size(80.dp).semantics { contentDescription = "记忆类型分布环形图" }) {
             var startAngle = -90f
             segments.forEach { (key, color, ratio) ->
                 if (ratio > 0f) {
@@ -1961,7 +1975,7 @@ private fun TrendLineChart(dailyData: List<Pair<String, Int>>) {
     val lineColor = MaterialTheme.colorScheme.outlineVariant
     val baselineColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
     Box(modifier = Modifier.fillMaxWidth().height(100.dp)) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
+        Canvas(modifier = Modifier.fillMaxSize().semantics { contentDescription = "每日记忆趋势图" }) {
             val stepX = size.width / (dailyData.size - 1).coerceAtLeast(1)
             val points = dailyData.mapIndexed { index, (_, count) ->
                 Offset(

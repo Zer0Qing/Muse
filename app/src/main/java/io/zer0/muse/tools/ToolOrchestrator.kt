@@ -168,11 +168,14 @@ interface ToolLoopHost {
 
     /**
      * 请求用户审批工具调用,挂起直到用户做出决定。
+     *
+     * @param args v1.0.53: 完整工具参数,供参数化权限判定(带默认值,旧实现不受影响)
      */
     suspend fun requestToolApproval(
         toolName: String,
         toolCallId: String,
         argsPreview: String,
+        args: Map<String, Any?> = emptyMap(),
     ): ToolApprovalState
 
     /**
@@ -281,6 +284,8 @@ class ToolOrchestrator(
     // v1.x: 注入 Context 用于把超长工具输出落盘到 filesDir/tool_outputs/,
     // 让 LLM 通过 read_file 工具按需读取完整内容(参考 rikkahub GenerationHandler)。
     private val context: Context,
+    // P1-1: Hook 注册表 — 在工具调用各阶段调用 ToolLifecycleHook
+    private val hookRegistry: io.zer0.muse.hook.HookRegistry? = null,
 ) {
 
     private companion object {
@@ -643,8 +648,37 @@ class ToolOrchestrator(
         val toolStartAt = System.currentTimeMillis()
         host.onToolStart(tc.id, tc.name)
 
-        // 工具审批检查
-        val approvalState = host.requestToolApproval(tc.name, tc.id, tc.arguments.take(200))
+        // v1.0.53: 统一解析参数(Hook 拦截与参数化审批共用)
+        val paramsMap = parseToolCallArgs(tc.arguments)
+
+        // P1-1: ToolLifecycleHook.onToolCallRequested — 可拦截工具调用
+        if (hookRegistry != null) {
+            var blocked: io.zer0.muse.hook.ToolCallAction.Block? = null
+            hookRegistry.executeNoResult(io.zer0.muse.hook.ToolLifecycleHook::class) { hook ->
+                if (blocked != null) return@executeNoResult
+                when (val action = hook.onToolCallRequested(tc.name, paramsMap)) {
+                    is io.zer0.muse.hook.ToolCallAction.Block -> blocked = action
+                    is io.zer0.muse.hook.ToolCallAction.Allow -> { /* 继续 */ }
+                }
+            }
+            if (blocked != null) {
+                val blockResult = """{"error": "Tool blocked by hook", "reason": "${blocked!!.reason}"}"""
+                host.onToolFinish(tc.id, tc.name, false, System.currentTimeMillis() - toolStartAt)
+                return ToolExecResult(idx, tc, blockResult, false)
+            }
+        }
+
+        // 工具审批检查(v1.0.53: 传完整 args 供参数化权限判定)
+        val approvalState = host.requestToolApproval(tc.name, tc.id, tc.arguments.take(200), paramsMap)
+
+        // P1-1: ToolLifecycleHook.onToolPermissionChecked
+        if (hookRegistry != null) {
+            val approved = approvalState !is ToolApprovalState.Denied
+            hookRegistry.executeNoResult(io.zer0.muse.hook.ToolLifecycleHook::class) { hook ->
+                hook.onToolPermissionChecked(tc.name, approved)
+            }
+        }
+
         if (approvalState is ToolApprovalState.Denied) {
             val deniedResult = """{"error": "Tool denied by user", "reason": "${approvalState.reason}"}"""
             taskCardCoordinator.updateTaskCardStep(taskCardId, idx) { s ->
@@ -748,8 +782,36 @@ class ToolOrchestrator(
             Logger.w("ToolOrchestrator", "PendingToolCallStore.remove 失败: ${e.message}", e)
         }
 
+        // P1-1: ToolLifecycleHook.onToolExecutionResult
+        if (hookRegistry != null) {
+            val execResult = io.zer0.muse.hook.ToolExecutionResult(
+                toolName = tc.name,
+                success = isSuccess,
+                output = finalToolResult,
+                durationMs = System.currentTimeMillis() - toolStartAt,
+            )
+            hookRegistry.executeNoResult(io.zer0.muse.hook.ToolLifecycleHook::class) { hook ->
+                hook.onToolExecutionResult(execResult)
+            }
+        }
+
         host.onToolFinish(tc.id, tc.name, isSuccess, System.currentTimeMillis() - toolStartAt)
         return ToolExecResult(idx, tc, finalToolResult, isSuccess)
+    }
+
+    /** P1-1: 解析工具调用 JSON 参数为 Map(供 ToolLifecycleHook 使用)。 */
+    private fun parseToolCallArgs(argumentsJson: String): Map<String, Any> {
+        return runCatching {
+            val element = AppJson.parseToJsonElement(argumentsJson)
+            if (element is JsonObject) {
+                element.mapValues { (_, v) ->
+                    when (v) {
+                        is JsonPrimitive -> v.content
+                        else -> v.toString()
+                    }
+                }
+            } else emptyMap()
+        }.getOrDefault(emptyMap())
     }
 
     /**

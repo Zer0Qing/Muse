@@ -559,7 +559,7 @@ data class ChatUiState(
     /** v1.201: 当前活跃的委派暂停请求(null 表示无待确认)。 */
     val activePauseRequest: io.zer0.muse.tools.DelegationPauseManager.PauseRequest? = null,
     /** v1.202: 当前会话活跃的后台子 agent 线程(SubagentTaskListCard 渲染用,空列表表示无)。 */
-    val activeSubagentThreads: List<io.zer0.muse.tools.SubagentThreadStore.ThreadEntry> = emptyList(),
+    val activeSubagentThreads: List<io.zer0.muse.data.subagent.SubagentThreadStore.ThreadEntry> = emptyList(),
     /** v1.202: 当前会话待处理(PENDING)的后台子 agent 任务(SubagentTaskListCard 渲染用)。 */
     val pendingSubagentTasks: List<io.zer0.muse.tools.DeferredResultStore.DeferredTask> = emptyList(),
     // ── P6: Agent Mode 增强 ──────────────────────────────────────────
@@ -723,9 +723,13 @@ class ChatViewModel(
     // v1.202: 异步委派结果回灌(订阅 completedTasks,把后台完成的子 agent 结果作为 interlude 注入主对话)
     private val deferredResultStore: io.zer0.muse.tools.DeferredResultStore,
     // v1.202: 子 agent 线程管理器(暴露活跃子 agent 线程给 UI 展示)
-    private val subagentThreadStore: io.zer0.muse.tools.SubagentThreadStore,
+    private val subagentThreadStore: io.zer0.muse.data.subagent.SubagentThreadStore,
     // v1.x: 会话级资源管理器(引用计数 + idle 清理,参考 rikkahub ConversationSession)
     private val sessionManager: io.zer0.muse.session.ConversationSessionManager,
+    // P1-1: Hook 注册表(注入 ToolOrchestrator + 消息处理 Hook)
+    private val hookRegistry: io.zer0.muse.hook.HookRegistry? = null,
+    // v1.0.52 P2-3: AI 记忆自动保存(对话中实时提取实体/关系/合并/分类)
+    private val memoryAutoSaveScheduler: io.zer0.memory.ai.MemoryAutoSaveScheduler? = null,
 ) : ViewModel(), ChatStateAccessor {
 
     companion object {
@@ -1055,6 +1059,7 @@ class ChatViewModel(
         lorebookRepository = lorebookRepository,
         promptInjectionRepository = promptInjectionRepository,
         transformerPipeline = transformerPipeline,
+        hookRegistry = hookRegistry,
     )
     // v1.134 P1-5: 任务卡 Coordinator(任务卡阶段/步骤/展开/重试/工具结果判定)
     private val taskCardCoordinator = ChatTaskCardCoordinator(
@@ -1072,6 +1077,7 @@ class ChatViewModel(
         accessor = this,
         taskCardCoordinator = taskCardCoordinator,
         context = appContext,
+        hookRegistry = hookRegistry,
     )
 
     /**
@@ -1983,7 +1989,15 @@ class ChatViewModel(
         val preview = messages.take(4).joinToString("\n") { it.content.take(100) }
         if (preview.isBlank()) return
         viewModelScope.launch(AppDispatchers.io) {
-            val prompt = "请用4到8个字概括以下对话的主题,直接输出标题文字,不要加引号或其他标点:\n\n$preview"
+            // v1.0.52: 读取用户自定义对话命名 prompt(null/空串表示用默认)
+            val customTitlePrompt = resultOf { settings.customTitlePromptFlow.first() }
+                .getOrNull()
+                ?.takeIf { it.isNotBlank() }
+            val prompt = if (customTitlePrompt != null) {
+                "$customTitlePrompt\n\n$preview"
+            } else {
+                "请用4到8个字概括以下对话的主题,直接输出标题文字,不要加引号或其他标点:\n\n$preview"
+            }
             resultOf {
                 val completion = retryOnNetworkError {
                     chatService.completeText(
@@ -3267,9 +3281,10 @@ class ChatViewModel(
      */
     suspend fun callTool(name: String, args: Map<String, String>): String {
         // v1.0.28 Phase 3: 改 resultOf 避免 toolRegistry.execute (suspend) 被吞 CancellationException
+        // v1.0.53: execute 返回 ToolOutcome,取 content 保持 String 语义
         return resultOf { toolRegistry.execute(name, args) }.let { r ->
             when (r) {
-                is io.zer0.common.Result.Success -> r.data
+                is io.zer0.common.Result.Success -> r.data.content
                 is io.zer0.common.Result.Error -> {
                     Logger.e("ChatVM", "tool $name failed", r.throwable)
                     "工具执行失败: ${r.message}"
@@ -3604,7 +3619,7 @@ class ChatViewModel(
      *  - 工具自身风险等级([ToolRiskLevel])
      * 最终由 [ToolPermissionResolver] 统一解析。
      */
-    private suspend fun requestToolApproval(toolName: String, toolCallId: String, argsPreview: String): ToolApprovalState {
+    private suspend fun requestToolApproval(toolName: String, toolCallId: String, argsPreview: String, args: Map<String, Any?> = emptyMap()): ToolApprovalState {
         // v1.0.16: 本次开启期间已批准全部工具,直接 Auto 执行,不再弹审批卡片
         if (_state.value.appRunAllowAllTools) {
             return ToolApprovalState.Auto
@@ -3618,7 +3633,8 @@ class ChatViewModel(
         val perToolPolicy = toolConfigStore.getPolicy(toolName)
         val mode = _state.value.sessionPermissionMode
         val risk = toolRegistry.getToolRiskLevel(toolName)
-        val resolved = ToolPermissionResolver.resolve(toolName, risk, mode, perToolPolicy)
+        // v1.0.53: 传完整 args,参数化策略(open_url/execute_javascript)生效
+        val resolved = ToolPermissionResolver.resolve(toolName, risk, mode, perToolPolicy, args)
         // 状态机闭环:显式列出所有终态分支,确保 ToolApprovalState.Answered 有处理路径
         when (resolved) {
             is ToolApprovalState.Pending -> { /* 待审批,继续走下方用户审批流程 */ }
@@ -4382,8 +4398,8 @@ class ChatViewModel(
                 )
             }
 
-            override suspend fun requestToolApproval(toolName: String, toolCallId: String, argsPreview: String): ToolApprovalState {
-                return this@ChatViewModel.requestToolApproval(toolName, toolCallId, argsPreview)
+            override suspend fun requestToolApproval(toolName: String, toolCallId: String, argsPreview: String, args: Map<String, Any?>): ToolApprovalState {
+                return this@ChatViewModel.requestToolApproval(toolName, toolCallId, argsPreview, args)
             }
 
             override fun onToolLoopError(type: ChatErrorType, message: String, recoverable: Boolean) {
@@ -4909,7 +4925,41 @@ class ChatViewModel(
      * 改为:model 传 null(MemoryTicker 内部 launchTracked 异步执行,能处理 null model
      * 的降级场景),完全去掉 runBlocking。
      */
-    private fun notifySessionEndForCurrent() = streamCoordinator.notifySessionEndForCurrent()
+    private fun notifySessionEndForCurrent() {
+        // v1.0.52 P2-3: 会话结束/切换前触发 AI 记忆自动保存(非阻塞,后台执行)
+        triggerMemoryAutoSaveIfNeeded()
+        streamCoordinator.notifySessionEndForCurrent()
+    }
+
+    /**
+     * v1.0.52 P2-3: 触发 AI 记忆自动保存(会话结束/切换时)。
+     *
+     * 把当前会话的对话历史交给 [MemoryAutoSaveScheduler],由其在后台 scope 中
+     * 调 LLM 提取实体/关系/合并/分类,非阻塞,不影响 UI。
+     *
+     * 仅在 [memoryAutoSaveScheduler] 非空时触发;
+     * 历史为空或过短(<2 条)时跳过。
+     */
+    private fun triggerMemoryAutoSaveIfNeeded() {
+        val scheduler = memoryAutoSaveScheduler ?: return
+        val sessionId = _state.value.currentSessionId ?: return
+        val history = _state.value.messages
+        if (history.size < 2) return
+        val assistantId = _state.value.currentAssistant?.id ?: "default"
+        val spaceId = "default" // v1.0.52: 当前 Space 由 SettingsRepository 持有,此处简化用 default
+        val scope = if (assistantId == "default") "main" else assistantId
+        val locale = "zh-CN"
+        // model 传 null,MemoryLlmClient 实现侧用 Provider 配置的默认模型
+        scheduler.scheduleAutoSave(
+            sessionId = sessionId,
+            history = history,
+            assistantId = assistantId,
+            spaceId = spaceId,
+            scope = scope,
+            model = null,
+            locale = locale,
+        )
+    }
 
     /**
      * v1.80 (M-CVM2): 标记当前 assistant 消息为 [已中断] 并把部分回复落盘。

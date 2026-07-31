@@ -45,6 +45,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.data.sticker.StickerItem
 import io.zer0.muse.data.sticker.StickerLibraryRepository
@@ -79,19 +80,28 @@ fun StickerManagerScreen(
     var refreshTrigger by remember { mutableStateOf(0) }
     var importing by remember { mutableStateOf(false) }
 
-    // ZIP 导入 launcher
+    // 导入 launcher — v1.0.53: 使用 */* MIME 类型,允许选择所有文件,
+    // 由 StickerLibraryRepository.importUri 根据文件扩展名判断 ZIP 还是图片。
+    // 之前用 application/zip + application/x-zip-compressed 时,部分文件管理器
+    // 不识别这些 MIME 类型,导致用户看不到任何文件可选。
     val importLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
     ) { uri ->
-        if (uri == null) return@rememberLauncherForActivityResult
+        if (uri == null) {
+            Logger.i("StickerManager", "导入取消: uri 为 null")
+            return@rememberLauncherForActivityResult
+        }
+        Logger.i("StickerManager", "导入开始: uri=$uri")
         importing = true
         scope.launch {
-            repo.importZip(uri)
+            repo.importUri(uri)
                 .onSuccess { count ->
+                    Logger.i("StickerManager", "导入成功: $count 张图片")
                     MuseToast.show(context.getString(R.string.settings_sticker_imported, count))
                     refreshTrigger++
                 }
                 .onError { msg, _ ->
+                    Logger.w("StickerManager", "导入失败: $msg")
                     MuseToast.show(context.getString(R.string.settings_sticker_import_failed, msg))
                 }
             importing = false
@@ -134,7 +144,9 @@ fun StickerManagerScreen(
             MuseFloatingButton(
                 icon = Icons.Filled.Add,
                 onClick = {
-                    importLauncher.launch(arrayOf("application/zip", "application/x-zip-compressed"))
+                    // v1.0.53: 使用 */* 让文件管理器显示所有文件,
+                    // importUri 会根据扩展名(.zip / .png / .jpg 等)自动判断导入方式
+                    importLauncher.launch(arrayOf("*/*"))
                 },
                 contentDescription = "导入",
             )
@@ -164,7 +176,7 @@ fun StickerManagerScreen(
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = "点击右下角按钮导入 ZIP 表情包",
+                    text = "点击右下角按钮导入 ZIP 表情包或单张图片",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                 )

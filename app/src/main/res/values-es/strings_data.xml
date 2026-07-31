@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== data/prompttemplate ===== -->
+    <!-- Preset template categories (UI grouping) -->
+    <string name="prompt_template_category_writing">Escribiendo</string>
+    <string name="prompt_template_category_translation">Traducción</string>
+    <string name="prompt_template_category_summary">Resumen</string>
+    <string name="prompt_template_category_code">Código</string>
+    <string name="prompt_template_category_learning">Aprendiendo</string>
+    <string name="prompt_template_category_creative">Creativo</string>
+    <!-- Preset template names (UI list) -->
+    <string name="prompt_template_name_write_email">Escribir correo electrónico</string>
+    <string name="prompt_template_name_write_article">Escribir artículo</string>
+    <string name="prompt_template_name_translate_zh_en">Chino al inglés</string>
+    <string name="prompt_template_name_translate_en_zh">Inglés al chino</string>
+    <string name="prompt_template_name_summarize">Resumir</string>
+    <string name="prompt_template_name_summarize_meeting">Notas de la reunión</string>
+    <string name="prompt_template_name_code_review">Revisión de código</string>
+    <string name="prompt_template_name_code_explain">Explicar el código</string>
+    <string name="prompt_template_name_code_refactor">Código de refactorización</string>
+    <string name="prompt_template_name_learn_concept">Explicar el concepto</string>
+    <string name="prompt_template_name_learn_quiz">Generar cuestionario</string>
+    <string name="prompt_template_name_creative_story">Historia creativa</string>
+    <string name="prompt_template_name_creative_brainstorm">Idea genial</string>
+
+    <!-- ===== data/preset ===== -->
+    <!-- Preset provider displayName (domestic + relay with Chinese) -->
+    <string name="preset_provider_deepseek">búsqueda profunda</string>
+    <string name="preset_provider_qwen">Qwen</string>
+    <string name="preset_provider_zhipu">Zhipu GLM</string>
+    <string name="preset_provider_moonshot">kimi</string>
+    <string name="preset_provider_doubao">Doubao</string>
+    <string name="preset_provider_baichuan">Baichuan</string>
+    <string name="preset_provider_lingyi">yi</string>
+    <string name="preset_provider_stepfun">paso divertido</string>
+    <string name="preset_provider_api2d">API2D</string>
+    <string name="preset_provider_aihubmix">AiHubMix</string>
+    <string name="preset_provider_deepbricks">Ladrillos profundos</string>
+    <string name="preset_provider_oneapi">OneAPI (autohospedado)</string>
+    <string name="preset_provider_newapi">Nueva API (autohospedada)</string>
+    <!-- v1.0.6: New providers (aligned with openhanako) -->
+    <string name="preset_provider_hunyuan">Tencent Hunyuan</string>
+    <string name="preset_provider_baidu_cloud">Nube de Baidu (ERNIE)</string>
+    <string name="preset_provider_modelscope">ModeloScope</string>
+    <string name="preset_provider_infini">infinito</string>
+    <string name="preset_provider_mimo">Xiaomi MiMo</string>
+    <string name="preset_provider_dashscope_coding">Plan de codificación DashScope</string>
+    <string name="preset_provider_volcengine_coding">Plan de codificación Volcengine</string>
+    <string name="preset_provider_zhipu_coding">Plan de codificación Zhipu GLM</string>
+
+    <!-- ===== data/import ===== -->
+    <!-- Third-party import error messages (via ImportResult.errors to UI) -->
+    <string name="import_error_read_file_failed">No se puede leer el archivo</string>
+    <string name="import_error_unzip_size_exceeded">El contenido descomprimido supera el límite de tamaño</string>
+    <string name="import_error_unzip_failed">No se puede descomprimir el archivo: %1$s</string>
+    <string name="import_error_unknown_format">Formato de copia de seguridad no reconocido.</string>
+    <string name="import_error_entry_count_exceeded">El número de entradas descomprimidas supera el límite (%1$d)</string>
+    <string name="import_error_total_size_exceeded">El tamaño total descomprimido excede el límite (%1$d MB)</string>
+    <string name="import_error_single_file_exceeded">El tamaño del archivo único excede el límite (%1$d MB)</string>
+    <string name="import_default_provider_name">Proveedor importado</string>
+    <string name="import_default_assistant_name">Asistente importado</string>
+    <string name="import_default_session_title">Conversación importada</string>
+    <string name="import_error_provider_failed">Error al importar el proveedor: %1$s</string>
+    <string name="import_error_provider_with_key_failed">Error al importar el proveedor \'%1$s\': %2$s</string>
+    <string name="import_error_assistant_failed">Error al importar el asistente: %1$s</string>
+    <string name="import_error_session_failed">Error al importar la conversación: %1$s</string>
+    <string name="import_error_rikka_parse_failed">Error en el análisis de la copia de seguridad de RikkaHub: %1$s</string>
+    <string name="import_error_kelivo_parse_failed">Error en el análisis de la copia de seguridad de Kelivo: %1$s</string>
+    <string name="import_error_messages_skipped">%1$d los mensajes no se pudieron analizar y se omitieron</string>
+
+    <!-- ===== data/SettingsRepository ===== -->
+    <!-- Account default user name (persisted to DataStore) -->
+    <string name="settings_repo_default_user_name">Usuario de musa</string>
+    <string name="settings_repo_guest_name">Invitado</string>
+
+    <!-- ===== data/promptinjection ===== -->
+    <!-- Preset mode display names (UI selector) -->
+    <string name="prompt_injection_mode_default">Por defecto</string>
+    <string name="prompt_injection_mode_creative">Escritura creativa</string>
+    <string name="prompt_injection_mode_coding">Codificación</string>
+    <string name="prompt_injection_mode_roleplay">Juego de roles</string>
+    <string name="prompt_injection_mode_translation">Traducción</string>
+    <string name="prompt_injection_mode_analysis">Análisis</string>
+
+    <!-- ===== data/session ===== -->
+    <!-- Session default title + fork title (persisted to Room) -->
+    <string name="session_repo_default_title">Nueva conversación</string>
+    <string name="session_repo_fork_title">Bifurcado de %1$s</string>
+
+    <!-- ===== data/assistant ===== -->
+    <!-- Default assistant name (persisted to Room) -->
+    <string name="assistant_repo_default_name">Asistente predeterminado</string>
+
+    <!-- ===== data/session/FolderRepository ===== -->
+    <!-- New folder default name (persisted to Room) -->
+    <string name="folder_repo_default_name">Nueva carpeta</string>
+
+    <!-- ===== data/artifact ===== -->
+    <!-- Untitled artifact default title (persisted to Room) -->
+    <string name="artifact_default_title">Intitulado</string>
+
+    <!-- ===== data/DocumentParser ===== -->
+    <!-- Document parsing error messages (via Result.Error to UI) -->
+    <string name="doc_err_open_pdf">No se puede abrir el archivo PDF</string>
+    <string name="doc_err_pdf_text_empty">La extracción de texto PDF está vacía (puede ser un PDF escaneado, se requiere OCR).</string>
+    <string name="doc_err_docx_no_document">No se puede leer DOCX: falta palabra/document.xml</string>
+    <string name="doc_err_pptx_no_slides">No se puede leer PPTX: no se encontraron diapositivas</string>
+    <string name="doc_err_xlsx_no_sheets">No se puede leer XLSX: no se encontraron hojas de trabajo</string>
+    <string name="doc_err_epub_no_container">No se puede leer EPUB: falta META-INF/container.xml</string>
+    <string name="doc_err_epub_no_opf">No se puede leer EPUB: contenedor.xml no declara OPF</string>
+    <string name="doc_err_epub_missing_opf">No se puede leer EPUB: falta el archivo OPF (%1$s)</string>
+
+    <!-- ===== data/MemoryLlmClientImpl ===== -->
+    <!-- Memory compilation exception messages (may surface to UI) -->
+    <string name="memory_llm_no_model_configured">Ningún modelo configurado.</string>
+    <string name="memory_llm_call_text_failed">llamada de texto falló</string>
+
+    <!-- ===== mcp/McpRegistry ===== -->
+    <string name="mcp_tool_no_description">(sin descripción)</string>
+    <string name="mcp_tool_call_timeout">Se agotó el tiempo de espera de la llamada a la herramienta MCP: %1$s</string>
+    <string name="mcp_tool_call_failed">Error en la llamada a la herramienta MCP: %1$s</string>
+</resources>

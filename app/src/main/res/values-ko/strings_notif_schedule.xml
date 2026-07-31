@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== notification ===== -->
+    <!-- Notification channel names -->
+    <string name="notif_channel_chat_completed_name">메시지 생성 완료</string>
+    <string name="notif_channel_chat_completed_desc">백그라운드 스트리밍 생성이 완료되면 알림</string>
+    <string name="notif_channel_chat_live_update_name">세대 진행</string>
+    <string name="notif_channel_chat_live_update_desc">스트리밍 생성 중 실시간 진행 알림</string>
+    <string name="notif_channel_web_server_name">웹 서버</string>
+    <string name="notif_channel_web_server_desc">웹 서버 실행 상태 알림</string>
+    <string name="notif_channel_proactive_message_name">사전 메시지</string>
+    <string name="notif_channel_proactive_message_desc">어시스턴트가 적극적으로 메시지를 보낼 때 알림</string>
+    <!-- Notification title/content -->
+    <string name="notif_chat_completed_title">답글 완료 · %1$s</string>
+    <string name="notif_proactive_message_title">%1$s 메시지를 보냈습니다</string>
+    <string name="notif_live_progress_title">생성 중 · %1$s</string>
+    <string name="notif_live_progress_text">%1$d 문자</string>
+    <string name="notif_web_server_title">Muse 웹 서버 실행 중</string>
+    <string name="notif_web_server_text">포트 %1$d · LAN 장치에 액세스할 수 있습니다.</string>
+    <!-- v1.133: App update notification (reuses CHANNEL_CHAT_COMPLETED) -->
+    <string name="update_notif_title">새 버전 사용 가능</string>
+    <string name="update_notif_text">%1$s이 출시되었습니다. 세부정보를 보려면 탭하세요.</string>
+    <!-- v1.133: In-app update banner -->
+    <string name="update_banner_published">%1$s 출시됨</string>
+    <string name="update_banner_view_detail">세부정보 보기</string>
+    <string name="update_banner_download_apk">APK 다운로드</string>
+    <string name="update_banner_close_cd">새 버전 배너 닫기</string>
+    <string name="update_found_new">새 버전이 발견되었습니다. 상단 배너를 참조하세요.</string>
+    <string name="update_already_latest">이미 최신 상태입니다.</string>
+
+    <!-- ===== schedule ===== -->
+    <!-- Scheduled task notification channel -->
+    <string name="schedule_channel_name">예약된 작업</string>
+    <string name="schedule_channel_desc">예정된 작업에 대한 알림 기한</string>
+    <!-- Scheduled task default session name -->
+    <string name="schedule_default_session_name">예약된 작업</string>
+    <!-- Chat generation foreground service default notification title -->
+    <string name="schedule_generating_default_title">생성 중</string>
+    <!-- v1.137: Execution summary when automation condition is not met -->
+    <string name="schedule_condition_not_met">조건이 충족되지 않아 건너뛰었습니다.</string>
+
+    <!-- ===== main activity ===== -->
+    <!-- Safe mode -->
+    <string name="main_activity_safe_mode_title">Muse가 안전 모드에 있습니다</string>
+    <string name="main_activity_safe_mode_desc">지난번에 충돌이 발생했습니다.</string>
+    <string name="main_activity_crash_log_copied">충돌 로그가 클립보드에 복사되었습니다.</string>
+    <string name="main_activity_copy_crash_log">충돌 로그 복사</string>
+    <string name="main_activity_clear_flag_and_exit">플래그를 지우고 종료</string>
+    <string name="main_activity_send_crash_email">이메일로 충돌 로그 보내기</string>
+    <string name="main_activity_send_crash_email_failed">이메일 앱을 찾을 수 없습니다. 로그가 클립보드에 복사되었습니다.</string>
+    <!-- v2.0+: SafeModeScreen new copy (modeled after rikkahub SafeModeActivity) -->
+    <string name="safe_mode_warning_title">마지막 발사가 중단되었습니다</string>
+    <string name="safe_mode_continue_normal">정상 시작 계속</string>
+    <string name="safe_mode_view_full_log">전체 충돌 로그 보기</string>
+    <string name="safe_mode_clear_data_restart">모든 데이터를 지우고 다시 시작하세요</string>
+    <string name="safe_mode_copy_crash_info">충돌 정보 복사</string>
+    <string name="safe_mode_crash_time_label">충돌 시간</string>
+    <string name="safe_mode_stack_trace_label">스택 추적</string>
+    <string name="safe_mode_no_crash_log">충돌 로그가 기록되지 않았습니다.</string>
+    <string name="safe_mode_share_log_failed">충돌 로그를 공유하지 못했습니다.</string>
+    <!-- PIN lock screen -->
+    <string name="main_activity_locked_title">뮤즈가 잠겨있습니다</string>
+    <string name="main_activity_pin_prompt">계속하려면 PIN을 입력하세요.</string>
+    <string name="main_activity_pin_locked">잘못된 PIN 시도 횟수가 너무 많습니다. %1$d초 후에 다시 시도하세요.</string>
+    <string name="main_activity_pin_error">PIN이 잘못되었습니다. 다시 시도해 주세요.</string>
+    <string name="main_activity_exit_app">앱 종료</string>
+
+    <!-- ===== NotificationListenerScreen.kt ===== -->
+    <string name="notif_listener_screen_title">알림 수신기</string>
+    <string name="notif_listener_open_settings_failed">시스템 설정을 열 수 없습니다.</string>
+    <string name="notif_listener_auth_settings">액세스 권한 부여</string>
+    <string name="notif_listener_cleared_toast">알림 기록이 삭제되었습니다.</string>
+    <string name="notif_listener_clear_records">기록 지우기</string>
+    <string name="notif_listener_feature_title">기능 설명</string>
+    <string name="notif_listener_feature_desc">승인되면 Muse는 AI가 채팅에서 쿼리할 수 있는 이벤트 소스로 다른 앱의 알림을 감지할 수 있습니다.</string>
+    <string name="notif_listener_privacy_title">개인 정보 보호 경계</string>
+    <string name="notif_listener_privacy_desc">• 알림 내용은 로컬에만 저장됩니다(최대 50개 항목, 꽉 차면 가장 오래된 항목 삭제)\n• 시스템 UI 및 Muse의 자체 알림은 필터링됩니다\n• 알림 데이터는 어떤 서버에도 업로드되지 않습니다\n• 여기서 \"기록 지우기\"를 수행하거나 언제든지 시스템 설정에서 액세스를 취소할 수 있습니다</string>
+    <string name="notif_listener_recent_header">최근 알림(%1$d/50)</string>
+    <string name="notif_listener_empty_connected">아직 알림 기록이 없습니다\n승인되면 새 알림이 자동으로 여기에 표시됩니다.</string>
+    <string name="notif_listener_empty_disconnected">아직 승인되지 않았습니다\n먼저 위의 \"액세스 권한 부여\"를 탭하세요</string>
+    <string name="notif_listener_authorized">인정 받은</string>
+    <string name="notif_listener_unauthorized">승인되지 않음</string>
+    <string name="notif_listener_recent_count_connected">최근 알림: %1$d</string>
+    <string name="notif_listener_recent_count_disconnected">최근 알림: %1$d · 먼저 시스템 설정에서 액세스 권한을 부여하세요.</string>
+    <string name="notif_listener_refresh_cd">새로고침 상태</string>
+</resources>

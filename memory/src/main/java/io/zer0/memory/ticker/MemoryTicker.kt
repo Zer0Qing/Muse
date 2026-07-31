@@ -419,6 +419,12 @@ class  MemoryTicker(
         try {
             val context = currentContext()
             var completed = restoreDailyProgress(context)
+            // v1.0.53: 进度失效校验 — daily_state 记录完成但 compiled_sections 为空
+            // (旧版 updateContent UPDATE 语义在空表上静默丢写),重置进度让编译重跑。
+            if (completed.isNotEmpty() && !compiler.hasAnyCompiledSection()) {
+                Logger.w(TAG, "每日任务: checkpoint 存在但 compiled_sections 为空(旧版写入 bug),重置进度重跑")
+                completed = emptyMap()
+            }
             Logger.i(TAG, "每日任务开始 (${context.logicalDate})")
             var hasFailed = false
 

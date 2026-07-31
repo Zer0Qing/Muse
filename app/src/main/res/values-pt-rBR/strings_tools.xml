@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== ToolsScreen.kt ===== -->
+    <!-- Title and intro -->
+    <string name="tools_screen_title">Ferramentas de IA</string>
+    <string name="tools_intro_what">Ferramentas são recursos que a IA pode chamar, como ler notificações, calcular, executar código, etc.</string>
+    <string name="tools_intro_manage">Na página de detalhes do Assistente → Extensões → Ferramentas, você pode ativar/desativar ferramentas por assistente.</string>
+
+    <!-- Stats -->
+    <string name="tools_stats_count">%1$d ferramentas · %2$d alto risco</string>
+
+    <!-- Built-in plugins -->
+    <string name="tools_plugins_section">Plug-ins integrados</string>
+    <string name="tools_plugins_desc">Plugins são conjuntos de recursos mais refinados que declaram as permissões necessárias e o tempo de ativação.</string>
+
+    <!-- Risk level badges -->
+    <string name="tools_risk_safe">Seguro</string>
+    <string name="tools_risk_normal">Normal</string>
+    <string name="tools_risk_high">Alto</string>
+
+    <!-- Tool detail dialog -->
+    <string name="tools_detail_category_label">Categoria: %1$s</string>
+    <string name="tools_detail_params">Parâmetros</string>
+    <string name="tools_detail_sandbox_title">Limites de segurança do sandbox</string>
+    <string name="tools_detail_sandbox_content">• Baseado no mecanismo WebView V8, isolado das páginas do sistema\n• fetch / XHR / WebSocket desativado, sem acesso à rede\n• blockNetworkLoads intercepta todas as solicitações de rede\n• Tempo limite padrão de 10 segundos para evitar loops infinitos\n• É necessária a confirmação do usuário antes da invocação (permissão da ferramenta de alto risco)</string>
+
+    <!-- Parameter row -->
+    <string name="tools_param_required">Obrigatório</string>
+
+    <!-- Tool categories -->
+    <string name="tools_category_built_in">Ferramentas integradas</string>
+    <string name="tools_category_local">Ferramentas locais</string>
+    <string name="tools_category_mcp">Ferramentas MCP</string>
+
+    <!-- Plugin capability captions -->
+    <string name="tools_permissions_label">Permissões:</string>
+    <string name="tools_activation_label">Ativação:</string>
+
+    <!-- ===== v1.0.20: ToolsSettingsPage.kt (Tool Approval Management) ===== -->
+    <!-- Title and search -->
+    <string name="tools_settings_title">Gerenciamento de aprovação de ferramentas</string>
+    <string name="tools_settings_search_hint">Nome ou descrição da ferramenta de pesquisa</string>
+
+    <!-- Stats (N tools · always-allow X · ask Y · always-deny Z) -->
+    <string name="tools_settings_stats">%1$d ferramentas · sempre permitir %2$d · perguntar %3$d · sempre negar %4$d</string>
+
+    <!-- Risk level group titles -->
+    <string name="tools_settings_section_safe">Ferramentas seguras (somente leitura/consulta)</string>
+    <string name="tools_settings_section_normal">Ferramentas normais (efeitos colaterais locais)</string>
+    <string name="tools_settings_section_high">Ferramentas de alto risco (irreversíveis/sensíveis)</string>
+
+    <!-- Empty state -->
+    <string name="tools_settings_empty">Nenhuma ferramenta correspondente encontrada</string>
+
+    <!-- Footer policy explanation -->
+    <string name="tools_settings_footer_section">Explicação da política</string>
+    <string name="tools_settings_policy_always_allow">Sempre permitir</string>
+    <string name="tools_settings_policy_always_allow_desc">As chamadas de ferramentas são aprovadas automaticamente;</string>
+    <string name="tools_settings_policy_ask">Pergunte sempre</string>
+    <string name="tools_settings_policy_ask_desc">Um cartão de aprovação é mostrado antes da invocação;</string>
+    <string name="tools_settings_policy_always_deny">Sempre negar</string>
+    <string name="tools_settings_policy_always_deny_desc">A ferramenta está desabilitada;</string>
+
+    <!-- Short labels for the per-tool segmented control -->
+    <string name="tools_settings_policy_always_allow_short">Permitir</string>
+    <string name="tools_settings_policy_ask_short">Perguntar</string>
+    <string name="tools_settings_policy_always_deny_short">Negar</string>
+</resources>

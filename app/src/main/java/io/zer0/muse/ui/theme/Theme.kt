@@ -157,7 +157,14 @@ fun MuseTheme(
         // v1.0.29: 全局禁用默认 ripple indication,根除所有 clickable/combinedClickable
         // 产生的黑色遮罩。Material3 Button/IconButton 等组件自带 indication,不受影响。
         // 需要按压反馈的组件应自行实现(如 SharedComponents 的 pressColor 动画)。
-        CompositionLocalProvider(LocalIndication provides NoOpIndication) {
+        // v1.0.52: 同步注入语义状态色与代码高亮色,业务代码不再硬编码裸色。
+        val statusColors = if (darkTheme) DarkStatusColors else LightStatusColors
+        val codeColors = if (darkTheme) DarkCodeColors else LightCodeColors
+        CompositionLocalProvider(
+            LocalIndication provides NoOpIndication,
+            LocalStatusColors provides statusColors,
+            LocalCodeColors provides codeColors,
+        ) {
             content()
         }
     }

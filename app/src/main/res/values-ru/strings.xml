@@ -1,0 +1,263 @@
+<resources>
+    <!-- App -->
+    <string name="app_name">Муза</string>
+    <!-- Splash -->
+    <string name="splash_subtitle">Ваш AI-компаньон</string>
+
+    <!-- Widget -->
+    <string name="widget_description">Быстрый запуск чата Muse</string>
+    <string name="widget_new_session">Новый чат</string>
+    <string name="widget_recent_sessions">Недавние чаты</string>
+    <!-- P3-16: 4x2 chat widget -->
+    <string name="widget_chat_description">Показать последний ответ AI</string>
+    <string name="widget_chat_no_content">Разговоров пока нет. Нажмите, чтобы начать.</string>
+
+    <!-- Bottom navigation -->
+    <string name="tab_chats">Чаты</string>
+    <string name="tab_settings">Настройки</string>
+
+    <!-- Splash & Onboarding -->
+    <string name="splash_tagline">Ваше вдохновение, нежно раскрытое</string>
+    <string name="onboarding_welcome_desc">Ваш личный ИИ-помощник — чат, память и творчество в одном месте</string>
+    <string name="onboarding_provider_desc">Перейдите в «Настройки», чтобы добавить ключ OpenAI / Anthropic / Gemini.</string>
+    <string name="onboarding_ready_title">Готов к работе</string>
+    <string name="onboarding_ready_desc">Начните свой первый разговор</string>
+    <string name="onboarding_skip">Пропускать</string>
+    <string name="onboarding_start">Начать</string>
+    <string name="onboarding_next">Следующий</string>
+    <string name="onboarding_config_provider">Открыть настройки</string>
+
+    <!-- Onboarding v2 (5-step redesign) -->
+    <string name="onboarding_hello">Привет, я Муза</string>
+    <string name="onboarding_tagline">Ваше вдохновение, нежно раскрывающееся</string>
+    <string name="onboarding_q_chat_style">Какой стиль чата вы предпочитаете?</string>
+    <string name="onboarding_chat_style_0">Ночной разговор</string>
+    <string name="onboarding_chat_style_1">Утреннее приветствие</string>
+    <string name="onboarding_chat_style_2">Творческое столкновение</string>
+    <string name="onboarding_chat_style_3">Исследование знаний</string>
+    <string name="onboarding_q_partner_style">Какой стиль партнёрства вы предпочитаете?</string>
+    <string name="onboarding_partner_style_0">Нежный слушатель</string>
+    <string name="onboarding_partner_style_1">Энергичный болтун</string>
+    <string name="onboarding_partner_style_2">Рациональный аналитик</string>
+    <string name="onboarding_partner_style_3">Творческий мечтатель</string>
+    <string name="onboarding_choose_partner">Рекомендуется для вас</string>
+    <string name="onboarding_see_more">Посмотреть больше персонажей</string>
+    <string name="onboarding_selected">Выбрано</string>
+    <string name="onboarding_start_conversation">Начать разговор</string>
+    <string name="onboarding_api_key_title">Хотите больше мощности?</string>
+    <string name="onboarding_api_key_desc">Добавьте свой ключ API, чтобы разблокировать больше моделей и возможностей.</string>
+    <string name="onboarding_configure_now">Настроить сейчас</string>
+    <string name="onboarding_maybe_later">Может быть, позже</string>
+    <string name="onboarding_empty_chat_title">Готовы начать свой первый разговор?</string>
+    <string name="onboarding_empty_chat_subtitle">Выберите партнера и начните свое путешествие вдохновения</string>
+    <string name="onboarding_chat_with_muse">Пообщаться с Музой</string>
+    <string name="onboarding_meet_characters">Познакомьтесь с другими персонажами</string>
+    <string name="chat_list_days_together">День %d вместе</string>
+    <string name="chat_list_just_met_today">Только сегодня встретились</string>
+    <string name="chat_list_day_together">День %д</string>
+
+    <!-- Settings sections -->
+    <string name="section_about">О</string>
+    <string name="section_provider">Провайдеры</string>
+    <string name="section_asr">Распознавание речи (ASR)</string>
+    <string name="section_theme">Тема</string>
+    <string name="section_mcp">MCP-серверы</string>
+    <string name="section_web_server">Веб-сервер</string>
+    <string name="section_web_search">Веб-поиск</string>
+    <string name="section_backup">Резервное копирование &amp; Синхронизация</string>
+    <string name="section_assistant">Ассистент</string>
+    <string name="section_skill">Менеджер по навыкам</string>
+
+    <!-- About page -->
+    <string name="about_brand_tagline">Ваше вдохновение, нежно раскрытое</string>
+    <string name="about_version">Версия</string>
+    <string name="about_build_type">Тип сборки</string>
+    <string name="about_app_id">Идентификатор приложения</string>
+    <string name="about_android_version">Android-версия</string>
+    <string name="about_device">Устройство</string>
+    <string name="about_oss_licenses">Лицензии с открытым исходным кодом</string>
+    <string name="about_oss_licenses_subtitle">Просмотр сторонних библиотек с открытым исходным кодом и их лицензий, используемых Muse.</string>
+    <string name="licenses_title">Лицензии с открытым исходным кодом</string>
+    <string name="licenses_total_count">%1$d зависимости всего</string>
+
+    <!-- Common actions -->
+    <string name="action_back">Назад</string>
+
+    <!-- Network proxy -->
+    <string name="proxy_title">Сетевой прокси</string>
+    <string name="proxy_enable">Включить прокси</string>
+    <string name="proxy_enabled">Включено</string>
+    <string name="proxy_disabled">Неполноценный</string>
+    <string name="proxy_type">Тип</string>
+    <string name="proxy_type_http">HTTP</string>
+    <string name="proxy_type_socks5">НОСКИ5</string>
+    <string name="proxy_host">Хозяин</string>
+    <string name="proxy_port">Порт</string>
+    <string name="proxy_username">Имя пользователя</string>
+    <string name="proxy_password">Пароль</string>
+    <string name="proxy_restart_hint">Перезапустите приложение, чтобы изменения вступили в силу.</string>
+    <string name="action_save">Сохранять</string>
+    <string name="action_cancel">Отмена</string>
+    <string name="action_delete">Удалить</string>
+    <string name="action_edit">Редактировать</string>
+    <string name="action_add">Добавлять</string>
+    <string name="action_done">Сделанный</string>
+    <string name="action_close">Закрывать</string>
+    <string name="action_more">Более</string>
+    <string name="action_send">Отправлять</string>
+    <string name="action_stop">Останавливаться</string>
+    <string name="action_copy">Копировать</string>
+    <string name="action_translate">Переводить</string>
+    <string name="action_share">Делиться</string>
+    <string name="action_expand">Расширять</string>
+    <string name="action_collapse">Крах</string>
+
+    <!-- Quote reply -->
+    <string name="message_action_quote">Цитировать</string>
+    <string name="quote_label_user">Цитата пользователя</string>
+    <string name="quote_label_assistant">Помощник по цитатам</string>
+    <string name="quote_clear">Отменить цитату</string>
+
+    <!-- Edit message sheet -->
+    <string name="edit_message_title">Редактировать сообщение</string>
+    <string name="edit_message_content_label">Содержание</string>
+
+    <!-- Recording / speech recognition status -->
+<string name="voice_release_to_recognize">Отпустите, чтобы распознать · проведите пальцем вверх, чтобы отменить</string>
+<string name="voice_recognizing">Признавая…</string>
+<!-- Task 1: ASR reconnecting status (WebSocket dropped, exponential backoff reconnect, audio buffered meanwhile) -->
+<string name="voice_reconnecting">Ошибка сети, повторное подключение…</string>
+
+    <!-- ASR config hint -->
+    <string name="asr_missing_api_key_error">Ключ API не настроен.</string>
+
+    <!-- Memory add fact -->
+    <string name="memory_add_fact">Добавить факт</string>
+    <string name="memory_add_fact_dialog_title">Добавить факт</string>
+
+    <!-- v2.0: Favorite groups -->
+    <string name="favorites_group_all">Все</string>
+    <string name="favorites_group_inspiration">Вдохновение</string>
+    <string name="favorites_group_code">Код</string>
+    <string name="favorites_group_learning">Обучение</string>
+    <string name="favorites_group_custom">Обычай</string>
+    <string name="favorites_group_select_title">Выберите группу</string>
+    <string name="favorites_group_select_hint">Добавить в группу: %1$s</string>
+    <string name="favorites_group_remove">Удалить из группы</string>
+
+    <!-- v2.0: Data Management -->
+    <string name="data_management_title">Управление данными</string>
+    <string name="data_management_sessions">Разговоры</string>
+    <string name="data_management_messages">Сообщения</string>
+    <string name="data_management_memories">Воспоминания</string>
+    <string name="data_management_db_size">Размер базы данных</string>
+    <string name="data_management_cache_size">Размер кэша</string>
+    <string name="data_management_clear_chats">Очистить все разговоры</string>
+    <string name="data_management_clear_chats_confirm">Очистить все разговоры?</string>
+    <string name="data_management_clear_chats_done">Все разговоры удалены</string>
+    <string name="data_management_clear_cache">Очистить кеш</string>
+    <string name="data_management_clear_cache_confirm">Очистить весь кеш?</string>
+    <string name="data_management_clear_cache_done">Кэш очищен</string>
+    <string name="data_management_reset_memory">Сбросить память</string>
+    <string name="data_management_reset_memory_confirm">Сбросить всю память?</string>
+    <string name="data_management_reset_memory_done">Сброс памяти</string>
+    <string name="data_management_entry">Управление данными</string>
+    <string name="data_management_entry_desc">Просмотр использования, очистка кэша и управление данными</string>
+
+    <!-- v2.0: Memory filters -->
+    <string name="memory_filter_importance">Важность</string>
+    <string name="memory_filter_time">Время</string>
+    <string name="memory_filter_type">Тип</string>
+    <string name="memory_filter_all">Все</string>
+    <string name="memory_filter_normal">Нормальный</string>
+    <string name="memory_filter_important">Важный</string>
+    <string name="memory_filter_critical">Критический</string>
+
+    <!-- v9: Memory categories (reference: All / Core Facts / Preferences / Experiences / Relationships / Goals / Medical / Other) -->
+    <string name="memory_category_all">Все</string>
+    <string name="memory_category_identity">Основные факты</string>
+    <string name="memory_category_preference">Предпочтения</string>
+    <string name="memory_category_event">Опыт</string>
+    <string name="memory_category_relationship">Отношения</string>
+    <string name="memory_category_goal">Цели</string>
+    <string name="memory_category_medical">Медицинский</string>
+    <string name="memory_category_other">Другой</string>
+    <string name="memory_filter_today">Сегодня</string>
+    <string name="memory_filter_week">На этой неделе</string>
+    <string name="memory_filter_month">В этом месяце</string>
+    <string name="memory_filter_fact">Факт</string>
+    <string name="memory_filter_summary">Краткое содержание</string>
+    <string name="memory_filter_compile">Скомпилировать</string>
+
+    <!-- v2.0: Recently Deleted -->
+    <string name="recently_deleted_title">Недавно удалено</string>
+    <string name="recently_deleted_empty">Нет удаленных разговоров</string>
+    <string name="recently_deleted_restore">Восстановить</string>
+    <string name="recently_deleted_restore_done">Восстановлен</string>
+    <string name="recently_deleted_permanent_delete">Удалить навсегда</string>
+    <string name="recently_deleted_permanent_delete_confirm">Удалить навсегда?</string>
+    <string name="recently_deleted_permanent_delete_done">Удалено навсегда</string>
+    <string name="recently_deleted_entry">Недавно удалено</string>
+    <string name="recently_deleted_entry_subtitle">Восстановить разговоры, удаленные в течение 7 дней</string>
+    <string name="recently_deleted_auto_clear">Автоматически удаляется через 7 дней.</string>
+
+    <string name="chat_draft_label">Черновик</string>
+    <string name="chat_list_archive_confirm">Этот чат будет заархивирован и скрыт из списка.</string>
+    <string name="chat_list_archive_confirm_button">Архив</string>
+    <string name="chat_list_archive_title">Архив чата</string>
+    <string name="chat_list_section_in_progress">В ходе выполнения</string>
+    <string name="chat_list_status_in_progress">В ходе выполнения</string>
+    <string name="chat_list_status_pending">В ожидании</string>
+    <string name="chat_list_status_completed">Завершенный</string>
+    <string name="chat_reaction_add">Добавить реакцию</string>
+    <string name="chat_reaction_change">Изменить реакцию</string>
+    <string name="chat_reaction_picker_title">Реагировать на сообщение</string>
+    <string name="chat_reaction_remove">Удалить реакцию</string>
+    <string name="err_api_error">Произошла ошибка API.</string>
+    <string name="err_auth_failed">Аутентификация не удалась.</string>
+    <string name="err_image_api_key_missing">Для генерации изображения требуется ключ API.</string>
+    <string name="err_image_empty_response">Генерация изображения вернула пустой ответ.</string>
+    <string name="err_image_invalid_uri">Неверный URI изображения или путь.</string>
+    <string name="err_image_no_results">Изображения не были созданы.</string>
+    <string name="err_image_reference_download_failed">Не удалось загрузить эталонное изображение.</string>
+    <string name="err_image_reference_too_large">Эталонное изображение слишком велико.</string>
+    <string name="err_image_response_too_large">Сгенерированное изображение слишком велико для отображения.</string>
+    <string name="err_image_unsupported_model">Выбранная модель не поддерживает создание изображений.</string>
+    <string name="err_invalid_argument">Указан неверный аргумент.</string>
+    <string name="err_invalid_response">Неверный ответ от сервера.</string>
+    <string name="err_memory_config_invalid">Конфигурация памяти недействительна.</string>
+    <string name="err_memory_token_budget_invalid">Неверный бюджет токена памяти.</string>
+    <string name="err_network_error">Ошибка сети.</string>
+    <string name="err_no_model_selected">Модель не выбрана.</string>
+    <string name="err_no_provider_configured">Поставщик не настроен.</string>
+    <string name="err_not_found">Ресурс не найден.</string>
+    <string name="err_overloaded">Сервер перегружен.</string>
+    <string name="err_permission_denied">Доступ запрещен.</string>
+    <string name="err_precondition_failed">Предварительное условие операции не выполнено.</string>
+    <string name="err_rate_limited">Превышен лимит скорости.</string>
+    <string name="err_request_timeout">Время запроса истекло.</string>
+    <string name="err_resource_exhausted">Ресурс исчерпан.</string>
+    <string name="err_service_unavailable">Сервис временно недоступен.</string>
+    <string name="err_stream_interrupted">Трансляция была прервана.</string>
+    <string name="err_vertex_ai_config_invalid">Конфигурация Vertex AI недействительна.</string>
+    <string name="err_vertex_ai_token_failed">Не удалось получить токен доступа Vertex AI.</string>
+
+    <!-- Assistant detail: capabilities -->
+    <string name="assistant_detail_capabilities_title">Возможности</string>
+    <string name="assistant_detail_capabilities_desc">Отметьте сильные стороны этого помощника для автоматической маршрутизации</string>
+    <string name="assistant_detail_custom_capability">Пользовательские возможности</string>
+    <string name="assistant_detail_add">Добавлять</string>
+
+    <!-- Multi-Agent team workflow -->
+    <string name="settings_multi_agent_workflow">Рабочий процесс</string>
+    <string name="settings_multi_agent_workflow_desc">Определить порядок выполнения, зависимости и стратегию агрегации.</string>
+    <string name="settings_multi_agent_aggregation">Агрегация</string>
+    <string name="settings_multi_agent_no_workflow">Рабочий процесс не настроен;</string>
+    <string name="settings_multi_agent_add_node">Добавить узел</string>
+    <string name="settings_multi_agent_edit_node">Редактировать узел</string>
+    <string name="settings_multi_agent_node_name">Имя узла</string>
+    <string name="settings_multi_agent_node_task">Шаблон задачи</string>
+    <string name="settings_multi_agent_node_assistant">Агент</string>
+    <string name="settings_multi_agent_node_mode">Режим</string>
+    <string name="settings_multi_agent_node_dependencies">Зависимости</string>
+</resources>

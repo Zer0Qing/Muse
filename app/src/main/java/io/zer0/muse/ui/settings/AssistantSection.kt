@@ -30,6 +30,7 @@ internal fun AssistantEntriesSection(
     onOpenAssistants: () -> Unit,
     onOpenFavorites: () -> Unit,
     onOpenLorebooks: () -> Unit,
+    onOpenWorldbook: () -> Unit,
     onOpenQuickMessages: () -> Unit,
     onOpenPromptInjections: () -> Unit,
     onOpenSkills: () -> Unit,
@@ -64,6 +65,16 @@ internal fun AssistantEntriesSection(
             title = stringResource(R.string.settings_assistant_lorebook),
             subtitle = stringResource(R.string.settings_assistant_lorebook_subtitle),
             onClick = onOpenLorebooks,
+        ) {
+            ChevronRight()
+        }
+        SettingsGroupDivider()
+        // P1-2: 动态世界书(常驻/关键词/正则/深度注入,独立于 Lorebook)
+        SettingsItemRow(
+            icon = TablerIcons.World,
+            title = stringResource(R.string.settings_assistant_worldbook),
+            subtitle = stringResource(R.string.settings_assistant_worldbook_subtitle),
+            onClick = onOpenWorldbook,
         ) {
             ChevronRight()
         }

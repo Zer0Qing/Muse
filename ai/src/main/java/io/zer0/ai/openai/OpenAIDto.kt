@@ -305,6 +305,26 @@ internal data class OpenAIDeltaToolCallFunction(
 @Serializable
 internal data class OpenAICompletionResponse(
     val choices: List<OpenAICompletionChoice> = emptyList(),
+    /** v1.0.53 Phase 3: token 用量(Chat Completions API 返回)。 */
+    val usage: OpenAICompletionUsage? = null,
+)
+
+/**
+ * v1.0.53 Phase 3: Chat Completions API 的 token 用量(对齐 OpenAI usage 字段)。
+ *
+ * 部分模型在 completion_tokens_details 里单独返回 reasoning_tokens(如 o1)。
+ */
+@Serializable
+internal data class OpenAICompletionUsage(
+    @SerialName("prompt_tokens") val promptTokens: Int = 0,
+    @SerialName("completion_tokens") val completionTokens: Int = 0,
+    @SerialName("total_tokens") val totalTokens: Int = 0,
+    @SerialName("completion_tokens_details") val completionTokensDetails: OpenAICompletionTokensDetails? = null,
+)
+
+@Serializable
+internal data class OpenAICompletionTokensDetails(
+    @SerialName("reasoning_tokens") val reasoningTokens: Int = 0,
 )
 
 @Serializable
@@ -386,4 +406,18 @@ internal data class OpenAIModelPricing(
     val prompt: String? = null,
     /** completion 价格(per token)。 */
     val completion: String? = null,
+)
+
+/** v1.0.53 Phase 3: Chat Completions usage -> [io.zer0.ai.core.UsageTokens]。 */
+internal fun OpenAICompletionUsage.toUsageTokens(): io.zer0.ai.core.UsageTokens = io.zer0.ai.core.UsageTokens(
+    promptTokens = promptTokens,
+    completionTokens = completionTokens,
+    reasoningTokens = completionTokensDetails?.reasoningTokens ?: 0,
+)
+
+/** v1.0.53 Phase 3: Responses API usage -> [io.zer0.ai.core.UsageTokens]。 */
+internal fun ResponsesUsage.toUsageTokens(): io.zer0.ai.core.UsageTokens = io.zer0.ai.core.UsageTokens(
+    promptTokens = input_tokens ?: 0,
+    completionTokens = output_tokens ?: 0,
+    reasoningTokens = reasoning_tokens ?: 0,
 )

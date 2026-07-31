@@ -9,8 +9,108 @@ package io.zer0.muse.tools
  *  3. 用户针对该工具单独设置的 [ToolApprovalPolicy]
  *
  * 优先级:单工具 ALWAYS_DENY > 会话 STRICT > 单工具 ALWAYS_ALLOW > 会话 TRUSTED/ASK。
+ *
+ * v1.0.52: 新增规则型硬边界防线([isUnsafeCommand]),作为 shell 类工具的第一道防线。
+ * 即使会话处于 TRUSTED 模式(全部放权),黑名单内的命令也永远不会执行。
  */
 object ToolPermissionResolver {
+
+    init {
+        // v1.0.53: 注册内置参数化权限策略(open_url / execute_javascript)
+        ParamPolicies.registerBuiltIn()
+    }
+
+    /**
+     * v1.0.52: 危险可执行文件黑名单(规则型硬边界防线)。
+     *
+     * 无论会话权限模式如何(TRUSTED/ASK/STRICT),只要命令中出现这些可执行文件名,
+     * [isUnsafeCommand] 立即返回 true,调用方必须拒绝执行。
+     *
+     * 收录依据(参考 openhanako 行动纪律 + 安全最佳实践):
+     *  - 文件删除/破坏:rm, rmdir, shred, mkfs
+     *  - 权限提升:sudo, su, doas
+     *  - 版本控制破坏:git(可 push --force / reset --hard 破坏仓库)
+     *  - 网络下载执行:curl, wget(可下载并执行恶意脚本)
+     *  - 包管理:apt, pip, npm, yarn, pnpm(可安装恶意包)
+     *  - 解释器/shell:bash, sh, zsh, fish, dash(可执行任意脚本)
+     *  - 进程管理:kill, killall, pkill(可终止关键进程)
+     *  - 权限变更:chmod, chown, chgrp(可破坏文件权限)
+     *  - 挂载/系统:mount, umount, reboot, shutdown, poweroff
+     *  - 调试/注入:strace, ltrace, ptrace, gdb(可窃取运行时数据)
+     */
+    private val BLOCKED_EXECUTABLES: Set<String> = setOf(
+        // 文件删除/破坏
+        "rm", "rmdir", "shred", "mkfs",
+        // 权限提升
+        "sudo", "su", "doas",
+        // 版本控制
+        "git",
+        // 网络下载
+        "curl", "wget",
+        // 包管理
+        "apt", "apt-get", "pip", "pip3", "npm", "yarn", "pnpm", "gem", "cargo",
+        // 解释器/shell
+        "bash", "sh", "zsh", "fish", "dash", "python", "python3", "perl", "ruby", "node",
+        // 进程管理
+        "kill", "killall", "pkill",
+        // 权限变更
+        "chmod", "chown", "chgrp",
+        // 挂载/系统
+        "mount", "umount", "reboot", "shutdown", "poweroff",
+        // 调试/注入
+        "strace", "ltrace", "ptrace", "gdb",
+        // 重定向到执行
+        "exec", "eval",
+    )
+
+    /**
+     * v1.0.52: 不安全的 Shell 语法正则(规则型硬边界防线)。
+     *
+     * 检测命令字符串中的危险语法字符,防止命令注入。与 [ShellSandboxTool.FORBIDDEN_CHARS]
+     * 互补(后者是逐字符集合,本正则覆盖更多场景):
+     *  - `\r` `\n`:换行注入(在第一条命令后注入第二条命令)
+     *  - `` ` ``:反引号命令替换
+     *  - `$`:变量展开/命令替换 `$(...)`
+     *  - `|`:管道(可管道到危险命令如 `| sh`)
+     *  - `;`:命令分隔符
+     *  - `&`:后台执行/命令分隔符 `&&`
+     *  - `<` `>`:重定向(可覆盖文件)
+     *  - `*` `?`:通配符(可意外匹配大量文件)
+     *  - `{` `}`:花括号展开(可构造复杂参数)
+     *
+     * 注意:本正则与 [ShellSandboxTool.FORBIDDEN_CHARS] 有重叠,这是故意的——
+     * 多层防御(defense in depth),任一层有 bug 时另一层仍能拦截。
+     */
+    private val UNSAFE_SHELL_SYNTAX: Regex = Regex("[\r\n`$|;&<>*?{}]")
+
+    /**
+     * v1.0.52: 规则型硬边界防线 — 检测命令是否含危险可执行文件或不安全语法。
+     *
+     * 作为 shell 类工具(如 [ShellSandboxTool])的第一道防线,在白名单校验之前执行。
+     * 返回 true 时调用方必须立即拒绝执行,不进入后续权限/白名单流程。
+     *
+     * 设计原则(参考 openhanako 行动纪律):
+     *  - 黑名单优先于白名单:先确认不是已知危险命令,再检查是否在白名单
+     *  - 即使会话处于 TRUSTED 模式(全部放权),黑名单仍然生效——这是"硬边界"
+     *  - 与 [ShellSandboxTool] 的白名单 + [FORBIDDEN_CHARS] 互补,形成多层防御
+     *
+     * @param command 待检查的命令字符串
+     * @return true 表示命令不安全,必须拒绝;false 表示通过硬边界,可进入后续校验
+     */
+    fun isUnsafeCommand(command: String): Boolean {
+        if (command.isBlank()) return false
+        // 1. 不安全语法字符检查(换行注入/命令替换/管道/重定向/通配符等)
+        if (UNSAFE_SHELL_SYNTAX.containsMatchIn(command)) return true
+        // 2. 危险可执行文件检查:按空白分割后检查每个 token 的裸命令名
+        //    裸命令名 = 去掉路径前缀(/usr/bin/rm → rm)后的部分
+        val tokens = command.trim().split(Regex("\\s+"))
+        for (token in tokens) {
+            // 取最后一段作为命令名(处理 /path/to/cmd 形式)
+            val bareName = token.substringAfterLast('/').lowercase()
+            if (bareName in BLOCKED_EXECUTABLES) return true
+        }
+        return false
+    }
 
     /**
      * 解析工具调用的初始审批状态。
@@ -19,18 +119,23 @@ object ToolPermissionResolver {
      * @param risk 工具风险等级(UNKNOWN 时使用 [fallbackRiskFor] 推断)
      * @param mode 当前会话权限模式
      * @param perToolPolicy 用户对该工具设置的持久化策略,未设置为 null
+     * @param args v1.0.53: 工具参数,供参数化策略([ParamPolicies])判定
      */
     fun resolve(
         toolName: String,
         risk: ToolRiskLevel?,
         mode: SessionPermissionMode,
         perToolPolicy: ToolApprovalPolicy?,
+        args: Map<String, Any?> = emptyMap(),
     ): ToolApprovalState {
         val effectiveRisk = risk ?: fallbackRiskFor(toolName)
         // 1. 用户显式禁用某工具时,任何模式都拒绝
         if (perToolPolicy == ToolApprovalPolicy.ALWAYS_DENY) {
             return ToolApprovalState.Denied("工具 $toolName 已被用户禁用")
         }
+
+        // v1.0.53: 参数化策略(返回非 null 时采用,覆盖静态风险判定)
+        ParamPolicies.evaluate(toolName, args)?.let { return it }
 
         // 2. 严格模式:安全工具之外全部审批;安全工具中若涉及外部应用/网络也审批
         if (mode == SessionPermissionMode.STRICT) {
@@ -96,6 +201,8 @@ object ToolPermissionResolver {
             toolName.startsWith("send_") -> ToolRiskLevel.HIGH
             toolName.startsWith("delete_") -> ToolRiskLevel.HIGH
             toolName.startsWith("browser_") -> ToolRiskLevel.HIGH
+            // P3-3: UI 自动化工具(操控设备屏幕/读取 UI/截图),隐私与安全敏感,统一 HIGH
+            toolName.startsWith("ui_") -> ToolRiskLevel.HIGH
             // open_url / open_maps 是 HIGH,但 open_app / open_system_setting 归 NORMAL — 用显式映射区分
             // set_brightness / set_volume / set_alarm / set_timer 是 HIGH,但其他 set_* 归 NORMAL — 用显式映射区分
             // 高风险显式列表
@@ -173,6 +280,8 @@ object ToolPermissionResolver {
         // HIGH 族显式(不可逆/跨设备/隐私)
         "install_skill" to ToolRiskLevel.HIGH,
         "delegate_agent" to ToolRiskLevel.HIGH,
+        // v1.0.52 P2-1: subagent_run 同步阻塞式独立子 agent,可调用多个工具,潜在副作用大
+        "subagent_run" to ToolRiskLevel.HIGH,
         "execute_javascript" to ToolRiskLevel.HIGH,
         "workspace_write" to ToolRiskLevel.HIGH,
         "workspace_delete" to ToolRiskLevel.HIGH,
@@ -221,6 +330,8 @@ object ToolPermissionResolver {
         "pin_memory",
         "unpin_memory",
         "subagent_task",
+        // v1.0.52 P2-1: 同步阻塞式独立子 agent,与 subagent_task 同列 HIGH
+        "subagent_run",
     )
 
     /**

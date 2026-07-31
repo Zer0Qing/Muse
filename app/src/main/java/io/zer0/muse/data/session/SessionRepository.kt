@@ -384,6 +384,17 @@ class SessionRepository(
         sessionDao.observeActive().first()
     }
 
+    /**
+     * v1.0.52: 获取指定助手最近 N 条会话(供 Recent Chats Reference 注入 system prompt)。
+     *
+     * 排除已归档/软删除/Agent Tab 会话,按 updatedAt DESC 限制条数。
+     * 调用方(SystemPromptAssembler.buildRecentChatsSection)用标题 + lastMessagePreview
+     * 构造简洁的最近对话列表,让 LLM 感知用户近期上下文,但不作为指令执行。
+     */
+    suspend fun getRecentByAssistant(assistantId: String, limit: Int): List<SessionEntity> = withContext(Dispatchers.IO) {
+        sessionDao.getRecentByAssistant(assistantId, limit)
+    }
+
     /** v1.53-A1: 会话消息总数(分页判断 hasMoreHistory 用)。 */
     suspend fun getMessageCount(sessionId: String): Int = messageDao.countBySession(sessionId)
 

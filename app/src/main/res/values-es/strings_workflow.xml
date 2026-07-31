@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== Workflow Editor (WorkflowEditorScreen) ===== -->
+    <string name="workflow_editor_title">Editor de flujo de trabajo</string>
+    <string name="workflow_select_action">Seleccionar acción</string>
+
+    <!-- Clear canvas confirmation -->
+    <string name="workflow_clear_canvas_title">Lienzo transparente</string>
+    <string name="workflow_clear_canvas_confirm">Esto eliminará todos los nodos y conexiones y no se puede deshacer.</string>
+    <string name="workflow_action_clear">Claro</string>
+
+    <!-- Export JSON -->
+    <string name="workflow_export_json_title">Exportar JSON</string>
+    <string name="workflow_export_copied">Copiado al portapapeles</string>
+
+    <!-- Aggregation strategy -->
+    <string name="workflow_label_aggregation">Agregación</string>
+    <string name="workflow_agg_merge">Unir</string>
+    <string name="workflow_agg_vote">Votar</string>
+    <string name="workflow_agg_expert_review">Revisión de expertos</string>
+    <string name="workflow_agg_first_success">Primer éxito</string>
+    <string name="workflow_agg_llm_review">revisión de maestría</string>
+
+    <!-- contentDescription -->
+    <string name="workflow_cd_add_node">Agregar nodo</string>
+    <string name="workflow_cd_save">Ahorrar</string>
+    <string name="workflow_cd_load">Carga</string>
+    <string name="workflow_cd_clear">Claro</string>
+    <string name="workflow_cd_export_json">Exportar JSON</string>
+    <string name="workflow_cd_remove_dependency">Eliminar dependencia</string>
+
+    <!-- Node editor panel (WorkflowNodeEditor) -->
+    <string name="workflow_node_editor_title">Editar nodo</string>
+    <string name="workflow_node_unbound_assistant">(Sin asistente obligado)</string>
+    <string name="workflow_node_name_label">Nombre de nodo</string>
+    <string name="workflow_node_name_placeholder">p.ej.</string>
+    <string name="workflow_node_bind_assistant">asistente de enlace</string>
+    <string name="workflow_node_task_template_label">Plantilla de tarea</string>
+    <string name="workflow_node_task_template_placeholder">p.ej.</string>
+    <string name="workflow_node_mode_label">Modo de ejecución</string>
+    <string name="workflow_node_dependencies_label">Dependencias (depende)</string>
+    <string name="workflow_node_no_dependencies_hint">(Sin dependencias, este nodo puede ejecutarse como punto de partida)</string>
+    <string name="workflow_node_add_dependency_hint">Agregar dependencia (toque para agregar)</string>
+    <string name="workflow_node_default_name">Nuevo nodo</string>
+
+    <!-- Execution modes -->
+    <string name="workflow_mode_sequential">Secuencial</string>
+    <string name="workflow_mode_parallel">Paralelo</string>
+
+    <!-- Canvas (WorkflowCanvas) -->
+    <string name="workflow_zoom_limit_reached">Límite de zoom alcanzado</string>
+    <string name="workflow_canvas_empty_title">El lienzo está vacío.</string>
+    <string name="workflow_canvas_empty_subtitle">Toque dos veces el área en blanco para agregar un nodo, o toque el botón Agregar en la barra de herramientas a continuación</string>
+</resources>

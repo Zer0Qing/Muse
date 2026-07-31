@@ -203,7 +203,11 @@ class AnrWatcher(
      * @param silenceMs 主线程无响应时长(毫秒)
      */
     private fun writeAnrLog(anrTime: Long, silenceMs: Long) {
-        val crashDir = File(appContext.filesDir, "crash").apply { mkdirs() }
+        // v1.0.53: 优先写 externalFilesDir(/sdcard/Android/data/io.zer0.muse/files/crash/),
+        //   adb 与文件管理器可直接访问;external 不可用时回退私有 filesDir。
+        //   私有目录(/data/user/0/...)在 Android 文件管理器不可见,真机排查困难。
+        val externalCrashDir = appContext.getExternalFilesDir("crash")
+        val crashDir = (externalCrashDir ?: File(appContext.filesDir, "crash")).apply { mkdirs() }
         val fmt = SimpleDateFormat(TIME_FMT, Locale.US)
         val fileName = "anr_${fmt.format(Date(anrTime))}.txt"
         val logFile = File(crashDir, fileName)

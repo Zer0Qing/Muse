@@ -98,6 +98,36 @@ object ProviderCompatRules {
     private const val TAG = "ProviderCompatRules"
 
     /**
+     * v1.0.53: 已知 host 集合(与 [overrideByHost] 的 when 分支一一对应)。
+     *
+     * 用于判断 baseUrl 的 host 是否为已知的官方端点或聚合站。
+     * 未知 host(用户自建中转站,如 tokenrhythm.studio)不在此集合内,
+     * [overrideByModelId] 将跳过厂商扩展 thinkingFormat 注入,避免中转站不支持
+     * thinking / enable_thinking 等字段而返回 HTTP 400。
+     */
+    private val KNOWN_HOSTS: Set<String> = setOf(
+        // 国内直连
+        "api.deepseek.com", "api.moonshot.cn", "api.kimi.com",
+        "open.bigmodel.cn", "api.z.ai",
+        "dashscope.aliyuncs.com", "coding.dashscope.aliyuncs.com",
+        "api.minimax.chat",
+        "api.baichuan-ai.com", "api.lingyiwanwu.com", "api.stepfun.com",
+        "ark.cn-beijing.volces.com",
+        "api.hunyuan.cloud.tencent.com", "qianfan.baidubce.com",
+        "api-inference.modelscope.cn", "cloud.infini-ai.com",
+        "api.xiaomimimo.com", "token-plan-cn.xiaomimimo.com",
+        "apihub.agnes-ai.com", "api.longcat.chat",
+        // 海外直连
+        "api.x.ai", "cli-chat-proxy.grok.com", "api.perplexity.ai",
+        "api.groq.com", "api.together.xyz", "api.mistral.ai",
+        "api.deepinfra.com", "api.fireworks.ai",
+        "api.githubcopilot.com", "models.inference.ai.azure.com",
+        "localhost",
+        // 中转/聚合站
+        "api.siliconflow.cn", "openrouter.ai",
+    )
+
+    /**
      * 派生 [ProviderCompat]。
      *
      * @param providerType Provider 类型(决定协议级基础规则)
@@ -114,13 +144,17 @@ object ProviderCompatRules {
 
         // 第 2 层:按 baseUrl host 细化
         val host = extractHost(baseUrl)
+        // v1.0.53: 判断 host 是否为已知端点(官方/聚合站)。
+        // 未知中转站(如 tokenrhythm.studio)的 host 不在 KNOWN_HOSTS 内,
+        // 第 3 层 modelId 细化将跳过厂商扩展 thinkingFormat 注入,保守不发 thinking 字段。
+        val hostKnown = host.isNotEmpty() && host in KNOWN_HOSTS
         if (host.isNotEmpty()) {
             compat = compat.overrideByHost(host)
         }
 
         // 第 3 层:按 modelId 细化
         if (!modelId.isNullOrBlank()) {
-            compat = compat.overrideByModelId(modelId)
+            compat = compat.overrideByModelId(modelId, hostKnown)
         }
 
         return compat
@@ -320,10 +354,16 @@ object ProviderCompatRules {
      *  - deepseek-r1 / deepseek-reasoner:DEEPSEEK(若 host 未匹配,如 SiliconFlow 聚合下)
      *  - longcat-*:LONGCAT(若 host 未匹配,如 SiliconFlow 聚合下)
      *
+     * v1.0.53: 厂商扩展 thinkingFormat(Qwen/Doubao/GLM/Kimi/LongCat)仅在 [hostKnown]=true
+     *  时注入。未知中转站(如 tokenrhythm.studio)不支持 thinking / enable_thinking 等扩展字段,
+     *  无条件注入会导致 HTTP 400 "未知请求字段"。
+     *  DeepSeek-R1 例外:ThinkingFormat.DEEPSEEK 不发任何思考参数,仅消费流式 reasoning_content,
+     *  对中转站透明,因此无需 hostKnown 守卫。
+     *
      * 其他 o1/o3/o4 系列保留 supportsToolCalling=true(后续版本已支持,
      * 不做版本猜测避免误关)。如后续发现具体版本不支持,可在此处补充。
      */
-    private fun ProviderCompat.overrideByModelId(modelId: String): ProviderCompat {
+    private fun ProviderCompat.overrideByModelId(modelId: String, hostKnown: Boolean): ProviderCompat {
         val id = modelId.lowercase()
         return when {
             // 早期 o1 推理模型不支持 tool calling(OpenAI 官方文档已声明)
@@ -335,6 +375,7 @@ object ProviderCompatRules {
             id == "deepseek-reasoner" || id == "deepseek-r1" -> copy(
                 supportsToolCalling = false,
                 // v1.0.7: 即使在聚合站(SiliconFlow / OpenRouter 等)上,DeepSeek-R1 仍走 DEEPSEEK 协议
+                // v1.0.53: DEEPSEEK 不发任何思考参数,对中转站透明,无需 hostKnown 守卫
                 thinkingFormat = ThinkingFormat.DEEPSEEK,
                 reasoningReplayContract = ReasoningReplayContract(
                     ReasoningCarrier.REASONING_CONTENT,
@@ -343,19 +384,23 @@ object ProviderCompatRules {
             )
             // v1.0.7: Qwen3-Coder 系列走 chat_template_kwargs.enable_thinking
             //   (Qwen3-Coder 模型用 chat_template 协议,enable_thinking 必须嵌在 chat_template_kwargs 内)
-            id.startsWith("qwen3-coder") -> copy(
+            // v1.0.53: 仅已知 host 注入,未知中转站不支持 chat_template_kwargs 字段
+            id.startsWith("qwen3-coder") && hostKnown -> copy(
                 thinkingFormat = ThinkingFormat.QWEN_CHAT_TEMPLATE,
             )
             // v1.0.7: Qwen3 / QwQ / Qwen-VL 系列走 enable_thinking + thinking_budget
-            id.startsWith("qwen3") || id.startsWith("qwq-") || id.startsWith("qwen-vl") -> copy(
+            // v1.0.53: 仅已知 host 注入,未知中转站不支持 enable_thinking 字段
+            (id.startsWith("qwen3") || id.startsWith("qwq-") || id.startsWith("qwen-vl")) && hostKnown -> copy(
                 thinkingFormat = ThinkingFormat.QWEN,
             )
             // v1.0.7: 火山引擎 Doubao Thinking 系列走 thinking.type
-            id.startsWith("doubao") && id.contains("thinking") -> copy(
+            // v1.0.53: 仅已知 host 注入,未知中转站不支持 thinking 字段
+            id.startsWith("doubao") && id.contains("thinking") && hostKnown -> copy(
                 thinkingFormat = ThinkingFormat.VOLCENGINE,
             )
             // v1.0.7: 智谱 GLM-Z1 系列走 thinking.type + clear_thinking(覆盖 host 未匹配场景,如聚合站)
-            id.startsWith("glm-z1") || id.startsWith("glm-4-thinking") -> copy(
+            // v1.0.53: 仅已知 host 注入,未知中转站不支持 thinking 字段
+            (id.startsWith("glm-z1") || id.startsWith("glm-4-thinking")) && hostKnown -> copy(
                 thinkingFormat = ThinkingFormat.ZHIPU,
                 reasoningReplayContract = ReasoningReplayContract(
                     ReasoningCarrier.REASONING_CONTENT,
@@ -363,7 +408,9 @@ object ProviderCompatRules {
                 ),
             )
             // v1.0.7: Kimi K1/K2 系列走 thinking.type + keep(覆盖 host 未匹配场景)
-            id.startsWith("kimi-k1") || id.startsWith("kimi-k2") -> copy(
+            // v1.0.53: 仅已知 host 注入,未知中转站(如 tokenrhythm.studio)不支持 thinking 字段,
+            //   无条件注入会导致 HTTP 400 "未知请求字段：thinking"
+            (id.startsWith("kimi-k1") || id.startsWith("kimi-k2")) && hostKnown -> copy(
                 thinkingFormat = ThinkingFormat.KIMI,
                 reasoningReplayContract = ReasoningReplayContract(
                     ReasoningCarrier.REASONING_CONTENT,
@@ -371,7 +418,8 @@ object ProviderCompatRules {
                 ),
             )
             // v1.0.7: 美团 LongCat 系列(覆盖 host 未匹配场景)
-            id.startsWith("longcat") -> copy(
+            // v1.0.53: 仅已知 host 注入,未知中转站不支持 thinking 字段
+            id.startsWith("longcat") && hostKnown -> copy(
                 thinkingFormat = ThinkingFormat.LONGCAT,
             )
             else -> this

@@ -117,9 +117,9 @@ class MemoryLlmClientImpl(
                         // v1.0.50: 流式降级同样 reasoning 兜底
                         val raw = contentSb.toString().ifBlank { reasoningSb.toString() }
                         if (raw.isBlank()) {
-                            throw IllegalStateException(
-                                context.getString(R.string.memory_llm_empty_response, resolvedModel.id),
-                            )
+                            // v1.0.53: 流式降级后仍为空,优先抛出原始 HTTP 400 错误(如 thinking 字段不支持),
+                            // 而非"空响应"错误 — 避免掩盖真正的失败原因(如 UNKNOWN_FIELD: thinking)
+                            throw e
                         }
                         stripThinkTags(raw)
                     }

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== Workflow Editor (WorkflowEditorScreen) ===== -->
+    <string name="workflow_editor_title">워크플로 편집기</string>
+    <string name="workflow_select_action">작업 선택</string>
+
+    <!-- Clear canvas confirmation -->
+    <string name="workflow_clear_canvas_title">캔버스 지우기</string>
+    <string name="workflow_clear_canvas_confirm">이렇게 하면 모든 노드와 연결이 제거되며 실행 취소할 수 없습니다.</string>
+    <string name="workflow_action_clear">분명한</string>
+
+    <!-- Export JSON -->
+    <string name="workflow_export_json_title">JSON 내보내기</string>
+    <string name="workflow_export_copied">클립보드에 복사됨</string>
+
+    <!-- Aggregation strategy -->
+    <string name="workflow_label_aggregation">집합</string>
+    <string name="workflow_agg_merge">병합</string>
+    <string name="workflow_agg_vote">투표</string>
+    <string name="workflow_agg_expert_review">전문가 검토</string>
+    <string name="workflow_agg_first_success">첫 번째 성공</string>
+    <string name="workflow_agg_llm_review">법학 석사 검토</string>
+
+    <!-- contentDescription -->
+    <string name="workflow_cd_add_node">노드 추가</string>
+    <string name="workflow_cd_save">구하다</string>
+    <string name="workflow_cd_load">짐</string>
+    <string name="workflow_cd_clear">분명한</string>
+    <string name="workflow_cd_export_json">JSON 내보내기</string>
+    <string name="workflow_cd_remove_dependency">종속성 제거</string>
+
+    <!-- Node editor panel (WorkflowNodeEditor) -->
+    <string name="workflow_node_editor_title">노드 편집</string>
+    <string name="workflow_node_unbound_assistant">(어시스턴트 바인딩 없음)</string>
+    <string name="workflow_node_name_label">노드 이름</string>
+    <string name="workflow_node_name_placeholder">예를 들어</string>
+    <string name="workflow_node_bind_assistant">바인딩 어시스턴트</string>
+    <string name="workflow_node_task_template_label">작업 템플릿</string>
+    <string name="workflow_node_task_template_placeholder">예를 들어</string>
+    <string name="workflow_node_mode_label">실행 모드</string>
+    <string name="workflow_node_dependencies_label">종속성(종속)</string>
+    <string name="workflow_node_no_dependencies_hint">(종속성 없음, 이 노드는 시작점으로 실행될 수 있음)</string>
+    <string name="workflow_node_add_dependency_hint">종속성 추가(추가하려면 탭하세요)</string>
+    <string name="workflow_node_default_name">새 노드</string>
+
+    <!-- Execution modes -->
+    <string name="workflow_mode_sequential">잇달아 일어나는</string>
+    <string name="workflow_mode_parallel">평행한</string>
+
+    <!-- Canvas (WorkflowCanvas) -->
+    <string name="workflow_zoom_limit_reached">확대/축소 한도에 도달했습니다.</string>
+    <string name="workflow_canvas_empty_title">캔버스가 비어 있습니다.</string>
+    <string name="workflow_canvas_empty_subtitle">빈 영역을 두 번 탭하여 노드를 추가하거나 아래 도구 모음에서 추가 버튼을 탭하세요.</string>
+</resources>

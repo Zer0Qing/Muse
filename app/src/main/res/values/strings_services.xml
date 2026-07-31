@@ -38,6 +38,7 @@
     <string name="skill_web_search_not_configured">web_search 未配置:WebSearchService 未注入</string>
     <string name="skill_search_no_result">搜索 \"%1$s\" 无结果(可能未配置搜索 provider 或网络失败)</string>
     <string name="skill_search_result_header">搜索 \"%1$s\" 的结果(%2$d 条):\n</string>
+    <string name="skill_search_result_guidance">\n\n提示:请综合以上多个网页的信息给出回答,不要在回复中说\"根据搜索结果\"\"根据搜索\"或类似的话,直接给出答案,就像你自己知道一样。</string>
     <string name="skill_knowledge_not_configured">knowledge_search 未配置:KnowledgeDocDao 未注入</string>
     <string name="skill_query_blank">查询词不能为空</string>
     <string name="skill_knowledge_vector_header">知识库语义搜索 \"%1$s\" 命中 %2$d 个片段(阈值 %3$s,上限 %4$d):\n</string>
@@ -72,6 +73,14 @@
     <string name="skill_skipped">已跳过(chatId=%1$s, assistantId=%2$s)</string>
     <string name="skill_channel_read_not_configured">channel_read_context 未配置:GroupChatRepository 未注入</string>
     <string name="skill_chat_no_messages">群聊 %1$s 暂无消息</string>
+    <!-- v1.0.53 Phase 5: Agent Phone(agent_phone 工具) -->
+    <string name="skill_missing_param_target_assistant_id">缺少参数: targetAssistantId(目标 agent id)</string>
+    <string name="skill_missing_param_message">缺少参数: message(消息正文)</string>
+    <string name="skill_message_blank">message 不能为空</string>
+    <string name="skill_agent_phone_not_configured">agent_phone 未配置:GroupChatScheduler 未注入</string>
+    <string name="skill_agent_phone_target_not_found">目标 agent 不存在</string>
+    <string name="skill_whisper_sent">已向 %1$s 发起私聊</string>
+    <string name="skill_progress_whispering">正在发起私聊...</string>
     <string name="skill_chat_messages_header">--- 群聊最近消息 ---\n</string>
     <string name="skill_dir_not_exist">目录不存在: %1$s</string>
     <string name="skill_not_dir">不是目录: %1$s</string>

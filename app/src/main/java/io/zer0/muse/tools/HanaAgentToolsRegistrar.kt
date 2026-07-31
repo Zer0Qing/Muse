@@ -3,6 +3,7 @@ package io.zer0.muse.tools
 import io.zer0.memory.fact.FactStore
 import io.zer0.memory.pin.PinnedMemoryStore
 import io.zer0.muse.data.experience.ExperienceRepository
+import io.zer0.muse.data.subagent.SubagentThreadStore
 import io.zer0.muse.notification.MuseNotificationManager
 import android.content.Context
 import kotlinx.coroutines.CoroutineScope
@@ -19,6 +20,7 @@ import kotlinx.coroutines.CoroutineScope
  *  - notify（Phase 4C）
  *  - current_status（Phase 4D）
  *  - subagent_task（Phase 5A / v1.202: launch+reply+close 三件套）
+ *  - subagent_run（v1.0.52 P2-1: 同步阻塞式独立子 agent,完整工具循环 + XML 协议）
  */
 class HanaAgentToolsRegistrar(
     private val toolRegistry: ToolRegistry,
@@ -32,6 +34,8 @@ class HanaAgentToolsRegistrar(
     private val subagentThreadStore: SubagentThreadStore,
     private val deferredResultStore: DeferredResultStore,
     private val appScope: CoroutineScope,
+    // v1.0.52 P2-1: SubagentRunSkill 所需 — 同步阻塞式独立子 agent 运行器
+    private val subagentRunner: SubagentRunner,
 ) {
     init { registerAll() }
 
@@ -87,6 +91,18 @@ class HanaAgentToolsRegistrar(
                 deferredResultStore = deferredResultStore,
                 appScope = appScope,
             )
+        }
+
+        // v1.0.52 P2-1: 同步阻塞式独立子 agent(完整工具循环 + maxToolCalls 限制 + XML 协议)
+        // 与 subagent_task(非阻塞异步)互补:适合短调研任务,主 agent 等待并收到结构化 XML
+        toolRegistry.register(SubagentRunSkill.toolDef()) { args ->
+            SubagentRunSkill.execute(args, subagentRunner)
+        }
+
+        // v1.0.53 Phase 1: subagent_close — 主动关闭子 agent 线程(对标 Hana subagent_close)
+        // 主 agent 用此工具释放不再需要的线程;子 agent 内部禁止调用(SubagentRunner RECURSIVE_FORBIDDEN_TOOLS)
+        toolRegistry.register(SubagentCloseTool.toolDef()) { args ->
+            SubagentCloseTool.execute(args, subagentThreadStore)
         }
 
     }

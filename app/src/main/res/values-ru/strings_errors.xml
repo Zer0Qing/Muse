@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== ErrorMessage i18n mapping (English) ===== -->
+    <!-- Mirrors io.zer0.common.ErrorMessage; key = error_<code>. -->
+    <!-- Keep in sync with values/strings_errors.xml and ErrorMessageMapper. -->
+
+    <!-- ── NetworkError ── -->
+    <string name="error_network_timeout">Время ожидания сетевого подключения истекло. Проверьте сеть и повторите попытку.</string>
+    <string name="error_network_no_connection">Нет доступного сетевого подключения, проверьте настройки.</string>
+    <string name="error_network_dns_failed">Не удалось разрешить DNS. Проверьте свою сеть или прокси-сервер.</string>
+
+    <!-- ── AuthError ── -->
+    <string name="error_auth_invalid_key">Ключ API недействителен. Проверьте настройки сервиса модели.</string>
+    <string name="error_auth_expired">Срок аутентификации истек, пожалуйста, сбросьте ключ API</string>
+    <string name="error_auth_unauthorized">Не авторизован для доступа к этому ресурсу</string>
+
+    <!-- ── ApiError ── -->
+    <string name="error_api_rate_limit">Слишком много запросов. Повторите попытку через %1$d секунд.</string>
+    <string name="error_api_rate_limit_nodelay">Слишком много запросов. Повторите попытку позже.</string>
+    <string name="error_api_server_error">Сервис временно недоступен, повторите попытку позже.</string>
+    <string name="error_api_model_not_found">Запрошенная модель недоступна, пожалуйста, переключитесь в настройках.</string>
+    <string name="error_api_context_length">Введенные данные превышают ограничение на длину контекста модели. Сократите их и повторите попытку.</string>
+
+    <!-- ── StorageError ── -->
+    <string name="error_storage_db_full">База данных заполнена, пожалуйста, удалите данные и повторите попытку.</string>
+    <string name="error_storage_io_error">Не удалось выполнить чтение/запись в локальном хранилище. Перезапустите приложение.</string>
+    <string name="error_storage_migration_failed">Не удалось обновить базу данных. Перезапустите или переустановите приложение.</string>
+
+    <!-- ── ValidationError ── -->
+    <string name="error_validation_empty_input">Ввод не может быть пустым</string>
+    <string name="error_validation_invalid_format">Неверный формат ввода. Проверьте и повторите попытку.</string>
+
+    <!-- ── GenericError ── -->
+    <string name="error_generic_unknown">Операция не удалась, повторите попытку позже</string>
+
+    <!-- ===== ViewModel/Coordinator user-visible error i18n (v1.0.18) ===== -->
+
+    <!-- ── ImageGenCoordinator ── -->
+    <string name="err_image_gen_ocr_failed">Ошибка распознавания текста или на изображении не обнаружен текст</string>
+    <string name="err_image_gen_read_failed">Не удалось прочитать изображение</string>
+    <string name="err_image_gen_max_images">Поддерживается до 4 изображений.</string>
+    <string name="err_image_gen_process_failed">Ошибка обработки изображения: %1$s</string>
+    <string name="err_image_gen_video_no_frames">Ошибка обработки видео: невозможно извлечь ключевые кадры</string>
+    <string name="err_image_gen_video_too_many">%1$d ключевые кадры видео плюс %2$d существующие изображения превышают лимит в 4 изображения</string>
+    <string name="err_image_gen_video_failed">Ошибка обработки видео: %1$s</string>
+    <string name="err_image_gen_read_failed_msg">Не удалось прочитать изображение: %1$s</string>
+    <string name="err_image_gen_no_provider">Не настроен поставщик создания изображений</string>
+    <string name="err_image_gen_no_model">Модель создания изображения не выбрана</string>
+    <string name="err_image_gen_model_no_output">Выбранная модель не поддерживает вывод изображения.</string>
+    <string name="err_image_gen_provider_unsupported">Текущий поставщик (%1$s) не поддерживает создание изображений.</string>
+    <string name="err_image_gen_failed">Не удалось создать изображение: %1$s</string>
+    <string name="err_image_gen_no_result">Генерация изображения не дала результата</string>
+    <string name="err_image_gen_save_failed">Не удалось сохранить результат создания изображения: %1$s</string>
+    <string name="err_image_gen_no_image">Ни одно изображение не было возвращено;</string>
+
+    <!-- ── GroupChatViewModel ── -->
+    <string name="err_group_chat_delete_failed">Не удалось удалить групповой чат.</string>
+    <string name="err_group_chat_delete_msg_failed">Не удалось удалить сообщение</string>
+    <string name="err_group_chat_operation_failed">Операция не удалась</string>
+    <string name="err_group_chat_update_failed">Не удалось обновить групповой чат.</string>
+
+    <!-- ── ChatMiscCoordinator ── -->
+    <string name="err_chat_misc_create_folder_failed">Не удалось создать папку: %1$s</string>
+    <string name="err_chat_misc_rename_folder_failed">Не удалось переименовать папку: %1$s</string>
+    <string name="err_chat_misc_delete_folder_failed">Не удалось удалить папку: %1$s</string>
+    <string name="err_chat_misc_move_session_failed">Не удалось переместить сеанс: %1$s</string>
+    <string name="err_chat_misc_toggle_pin_failed">Не удалось переключить вывод: %1$s</string>
+    <string name="err_chat_misc_favorite_failed">Не удалось добавить в избранное: %1$s</string>
+    <string name="err_chat_misc_set_tag_failed">Не удалось установить группу: %1$s</string>
+    <string name="err_chat_misc_delete_msg_failed">Не удалось удалить: %1$s</string>
+
+    <!-- ── ChatViewModel: error messages / state strings / Toast ── -->
+    <string name="err_chat_queue_full">Очередь отправки заполнена, повторите попытку позже</string>
+    <string name="err_chat_msg_save_failed">Не удалось сохранить сообщение: %1$s</string>
+    <string name="err_chat_network_unresolvable">Невозможно подключиться к серверу. Проверьте свою сеть или адрес API.</string>
+    <string name="err_chat_network_timeout">Время подключения истекло, повторите попытку позже</string>
+    <string name="err_chat_auth_invalid">Ключ API недействителен или недостаточно прав.</string>
+    <string name="err_chat_rate_limited">Слишком много запросов. Повторите попытку позже.</string>
+    <string name="err_chat_server_error">Ошибка сервера, повторите попытку позже</string>
+    <string name="err_chat_stream_broken">Ответ на трансляцию прерван, повторите попытку.</string>
+    <string name="err_chat_request_failed">Запрос не выполнен: %1$s</string>
+    <string name="err_chat_compress_too_few">Слишком мало сообщений для сжатия</string>
+    <string name="err_chat_compress_memory_failed">Обновление памяти не выполнено, сжата только история</string>
+    <string name="err_chat_compress_done">Сжатые: %1$d → %2$d сообщения.</string>
+    <string name="err_chat_compress_no_need">Память обновлена, сжатие сообщений не требуется.</string>
+    <string name="err_chat_compress_failed">Сжатие не удалось: %1$s</string>
+    <string name="err_chat_fetch_models_empty">Восходящий поток не вернул ни одной модели</string>
+    <string name="err_chat_fetch_models_failed">Не удалось получить данные.</string>
+    <string name="err_chat_fetch_models_no_server">Невозможно подключиться к серверу</string>
+    <string name="err_chat_fetch_models_timeout">Время подключения истекло</string>
+    <string name="err_chat_fetch_models_not_supported">Этот поставщик не поддерживает конечную точку /models.</string>
+    <string name="err_chat_fetch_models_failed_msg">Не удалось получить: %1$s</string>
+    <string name="err_chat_model_switched_toast">Модель переключена;</string>
+    <string name="err_chat_fork_failed">Не удалось разветвить беседу: %1$s</string>
+    <string name="err_chat_context_restarted_toast">Контекст перезапущен</string>
+    <string name="err_chat_translate_empty">Результат перевода пуст</string>
+    <string name="err_chat_translate_failed">Не удалось выполнить перевод: %1$s</string>
+    <string name="err_chat_translate_prefix">Перевод (%1$s):\n\n</string>
+    <string name="err_chat_rag_failed">Не удалось получить базу знаний: %1$s</string>
+    <string name="err_chat_vision_fallback">Ошибка системы Vision Assist, было введено резервное приглашение (см. журналы).</string>
+    <string name="err_chat_reply_save_failed">Не удалось сохранить ответ: %1$s</string>
+    <string name="err_chat_unknown">Неизвестная ошибка</string>
+    <string name="err_chat_ref_save_failed">Не удалось сохранить цитируемое сообщение: %1$s</string>
+    <string name="err_chat_reply_generated">Ответ создан</string>
+    <string name="err_chat_resume_busy">Выполняется генерация. Остановите ее, прежде чем возобновить незавершенные вызовы инструментов.</string>
+    <string name="err_chat_resume_read_failed">Не удалось прочитать незавершенные вызовы инструментов: %1$s</string>
+    <string name="err_chat_tool_result_save_failed">Не удалось сохранить результат работы инструмента: %1$s</string>
+    <string name="err_chat_assistant_save_failed">Не удалось сохранить помощника: %1$s</string>
+    <string name="err_chat_assistant_delete_failed">Не удалось удалить помощника: %1$s</string>
+    <string name="err_chat_voice_no_asr">Для режима голосового разговора необходимо сначала настроить API ASR в настройках.</string>
+    <string name="err_chat_tool_timeout">[Таймаут] Инструмент %1$s не ответил в течение %2$d секунд, прекращено</string>
+    <string name="err_chat_tool_result_truncated">…(Результат усечен; для получения полного результата используйте инструменты с разбивкой на страницы или ограниченной областью действия)</string>
+
+    <!-- ── ChatViewModel: tool execution progress text (updateAssistant content, user-visible) ── -->
+    <string name="err_chat_img_generating">Создание изображения…</string>
+    <string name="err_chat_img_gen_failed_no_result">Не удалось создать изображение: результат не возвращен</string>
+    <string name="err_chat_img_generated">Изображение создано</string>
+    <string name="err_chat_img_cancelled">Создание изображения отменено.</string>
+    <string name="err_chat_img_gen_failed">Не удалось создать изображение: %1$s</string>
+    <string name="err_chat_video_generating">Генерация видео может занять десятки секунд…</string>
+    <string name="err_chat_video_progress">Выполняется создание видео, ожидание %1$d секунд…</string>
+    <string name="err_chat_video_generated">Видео создано</string>
+    <string name="err_chat_video_cancelled">Создание видео отменено.</string>
+    <string name="err_chat_video_gen_failed">Не удалось создать видео: %1$s</string>
+    <string name="err_chat_qr_generated">QR-код создан</string>
+</resources>

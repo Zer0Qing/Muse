@@ -58,6 +58,7 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.sticker.StickerItem
 import io.zer0.muse.data.sticker.StickerLibraryRepository
 import io.zer0.muse.tools.SessionPermissionMode
+import io.zer0.muse.ui.common.media.FullScreenMediaViewer
 import io.zer0.muse.ui.common.settings.ChevronRight
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
@@ -120,6 +121,11 @@ fun ChatSettingsPage(
     // v1.0.51: 回复通知策略(从记忆设置页移入,与聊天行为更相关)
     val notificationPolicy by settings.notificationPolicyFlow
         .collectAsStateWithLifecycle(initialValue = "when_unfocused")
+    // P1-4: 楼层式上下文限制
+    val floorLimiterEnabled by settings.floorLimiterEnabledFlow
+        .collectAsStateWithLifecycle(initialValue = false)
+    val floorLimit by settings.floorLimitFlow
+        .collectAsStateWithLifecycle(initialValue = 16)
 
     SettingsSubPageScaffold(title = stringResource(R.string.settings_chat_title), onBack = onBack) {
         // ── v1.0.20: 工具调用批准(置顶,用户最关心的安全开关)──
@@ -217,14 +223,8 @@ fun ChatSettingsPage(
                     onCheckedChange = { v -> update { it.copy(showReflectionBlock = v) } },
                 )
                 SettingsGroupDivider()
-                SettingsSwitchRow(
-                    icon = TablerIcons.Calculator,
-                    title = stringResource(R.string.settings_chat_show_token),
-                    subtitle = stringResource(R.string.settings_chat_show_token_subtitle),
-                    checked = prefs.showTokenEstimate,
-                    onCheckedChange = { v -> update { it.copy(showTokenEstimate = v) } },
-                )
-                SettingsGroupDivider()
+                // v1.0.52: 移除 showTokenEstimate 死开关 — 该开关从未被任何 UI 读取,
+                // 用户反复开启它但无效果。真正生效的是"性能"分组里的"Token 估算"开关。
                 SettingsSwitchRow(
                     icon = TablerIcons.ToggleLeft,
                     title = stringResource(R.string.settings_chat_show_model),
@@ -479,7 +479,8 @@ fun ChatSettingsPage(
                     onCheckedChange = { v -> update { it.copy(performanceMode = v) } },
                 )
                 SettingsGroupDivider()
-                // v1.0.47 P5-3: Token 估算(实验性,默认关闭)——开启后输入栏显示 Token 计数按钮
+                // v1.0.47 P5-3: Token 估算(默认关闭)——开启后输入栏显示 Token 计数按钮,点击查看上下文占用
+                // v1.0.52: 这是唯一真正生效的 Token 开关(消息显示分组里的"显示Token"已移除,因为它从未工作)
                 SettingsSwitchRow(
                     icon = TablerIcons.ChartBar,
                     title = stringResource(R.string.settings_chat_token_estimate),
@@ -492,6 +493,42 @@ fun ChatSettingsPage(
 
         // ── v1.0.51: 记忆与通知(从记忆设置页移入,与聊天行为更相关)──
         item { SectionLabel(stringResource(R.string.settings_memory_advanced_section)) }
+        // P1-4: 楼层式上下文限制(在记忆与通知之前,与上下文管理更相关)
+        item {
+            SettingsGroup {
+                SettingsSwitchRow(
+                    icon = TablerIcons.ArrowsVertical,
+                    title = "楼层式上下文限制",
+                    subtitle = "以用户消息为楼层,保留最近 N 层完整对话,避免截断到对话中间",
+                    checked = floorLimiterEnabled,
+                    onCheckedChange = { v -> scope.launch { settings.saveFloorLimiterEnabled(v) } },
+                )
+                if (floorLimiterEnabled) {
+                    SettingsGroupDivider()
+                    val floorOptions = listOf("8 层", "16 层", "32 层")
+                    val floorIndex = when (floorLimit) {
+                        8 -> 0
+                        32 -> 2
+                        else -> 1
+                    }
+                    SettingsSegmentedRow(
+                        icon = TablerIcons.ArrowsVertical,
+                        title = "保留楼层数",
+                        subtitle = "超过此层数的旧消息会被截断",
+                        options = floorOptions,
+                        selectedIndex = floorIndex,
+                        onSelectedChange = { idx ->
+                            val limit = when (idx) {
+                                0 -> 8
+                                2 -> 32
+                                else -> 16
+                            }
+                            scope.launch { settings.saveFloorLimit(limit) }
+                        },
+                    )
+                }
+            }
+        }
         item {
             SettingsGroup {
                 // 经验库开关(默认关)
@@ -625,6 +662,8 @@ private fun StickerLibrarySection(
     var selectedCategory by remember { mutableStateOf("") }
     // 待删除的表情包项(非 null 时弹删除确认对话框)
     var pendingDelete by remember { mutableStateOf<StickerItem?>(null) }
+    // v1.0.52: 点击预览的表情包项(非 null 时弹全屏查看器)
+    var previewItem by remember { mutableStateOf<StickerItem?>(null) }
     // v1.112 (F1-F2): 批量删除模式
     var batchDeleteMode by remember { mutableStateOf(false) }
     val selectedIds = remember { androidx.compose.runtime.mutableStateMapOf<String, Boolean>() }
@@ -864,6 +903,9 @@ private fun StickerLibrarySection(
                                 onClick = {
                                     if (batchDeleteMode) {
                                         selectedIds[item.id] = !isSelected
+                                    } else {
+                                        // v1.0.52: 非批量模式点击预览大图
+                                        previewItem = item
                                     }
                                 },
                                 onLongClick = {
@@ -943,6 +985,16 @@ private fun StickerLibrarySection(
             dismissText = stringResource(R.string.common_cancel),
             onDismiss = { pendingDelete = null },
             destructive = true,
+        )
+    }
+
+    // v1.0.52: 点击大图预览(复用聊天消息的全屏媒体查看器)
+    previewItem?.let { item ->
+        val file = stickerRepo.getStickerFileByPath(item.relativePath)
+        FullScreenMediaViewer(
+            images = listOf("file://${file.absolutePath}"),
+            initialIndex = 0,
+            onDismiss = { previewItem = null },
         )
     }
 

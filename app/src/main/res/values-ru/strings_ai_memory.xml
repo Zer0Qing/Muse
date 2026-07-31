@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    i18n review summary for ai / memory / transformer modules:
+    - ai module (standalone Gradle module): user-visible error messages are delivered
+      to UI via Result.Error/exceptions, but cannot reference app's R.string directly.
+      Each source file is annotated with // TODO i18n pending extraction; extraction
+      requires an error-code enum approach.
+    - memory module (standalone Gradle module): validation errors (MemoryConfig.validate)
+      and isZh time labels (Key Facts/Timeline etc.) are user-visible, but cross-module
+      and some labels participate in LLM output parsing contracts.
+      Each source file is annotated with // TODO i18n pending extraction.
+    - transformer module (inside app): per file review, all Chinese strings are LLM
+      prompt content (SYSTEM messages sent to LLM), logger messages, code comments, or
+      internal exception messages. No directly user-visible UI strings; kept as-is per
+      the "LLM prompts not extracted" rule.
+    This file currently has no string entries; it serves as a placeholder and review record.
+-->
+<resources>
+    <!-- v4: memory importance related -->
+    <string name="memory_importance_normal">Нормальный</string>
+    <string name="memory_importance_important">Важный</string>
+    <string name="memory_importance_critical">Критический</string>
+    <string name="memory_importance_set_title">Установить важность</string>
+    <string name="memory_importance_normal_desc">Ежедневные предпочтения, безвредные, если их забыть</string>
+    <string name="memory_importance_important_desc">Средний риск, ошибки доставляют неудобства</string>
+    <string name="memory_importance_critical_desc">Высокий риск, ошибки причиняют вред (никогда не забывайте)</string>
+    <string name="memory_source_session">Источник: Сеанс %1$s</string>
+    <string name="memory_created_today">Добавлено сегодня</string>
+    <string name="memory_created_yesterday">Добавлено вчера</string>
+    <string name="memory_created_days_ago">Добавлено %1$d дней назад</string>
+    <string name="memory_sync_never">Память еще не сформирована, разговоров нет в долговременной памяти.</string>
+    <string name="memory_sync_recent">Последняя компиляция %1$d мин назад, память синхронизирована</string>
+    <string name="memory_sync_stale">Последняя компиляция %1$d мин назад, возможно, недавних разговоров еще нет в памяти.</string>
+    <string name="memory_sync_set_importance_cd">Установить важность</string>
+
+    <!-- v6: MemoryViewModel CRUD error messages -->
+    <string name="memory_delete_failed">Не удалось удалить: %1$s</string>
+    <string name="memory_edit_failed">Не удалось изменить: %1$s</string>
+    <string name="memory_set_failed">Установить не удалось: %1$s</string>
+    <string name="memory_add_failed">Не удалось добавить: %1$s</string>
+    <string name="memory_add_experience_failed">Не удалось добавить опыт: %1$s</string>
+    <string name="memory_edit_experience_failed">Не удалось изменить опыт: %1$s</string>
+    <string name="memory_delete_experience_failed">Не удалось удалить опыт: %1$s</string>
+
+    <!-- v6: Compile section display titles -->
+    <string name="memory_compile_section_facts">Краткое изложение фактов</string>
+    <string name="memory_compile_section_today">Сегодня</string>
+    <string name="memory_compile_section_week">На этой неделе</string>
+    <string name="memory_compile_section_longterm">Долгосрочный</string>
+
+    <!-- v6: Summary item title -->
+    <string name="memory_summary_title">Сеанс %1$s</string>
+
+    <!-- v6: Error trace labels -->
+    <string name="memory_error_trace_header">== Ошибка памяти музы ==</string>
+    <string name="memory_error_trace_time">Время:</string>
+    <string name="memory_error_trace_exception">Исключение:</string>
+    <string name="memory_error_trace_message">Сообщение:</string>
+    <string name="memory_error_trace_device">Устройство:</string>
+    <string name="memory_error_trace_stack_header">== Трассировка стека ==</string>
+
+    <!-- v8: memory scope related -->
+    <string name="memory_scope_all">Все</string>
+    <string name="memory_scope_main">Главный помощник</string>
+    <string name="memory_scope_assistant">Помощник Памяти</string>
+    <string name="memory_scope_label">Объем памяти</string>
+
+    <!-- v1.0.52 P2-2: memory space related -->
+    <string name="memory_space_manage_title">Пространства памяти</string>
+    <string name="memory_space_create">Создать пространство</string>
+    <string name="memory_space_create_title">Новое пространство памяти</string>
+    <string name="memory_space_rename">Переименовать</string>
+    <string name="memory_space_rename_title">Переименовать пространство памяти</string>
+    <string name="memory_space_delete">Удалить</string>
+    <string name="memory_space_name_label">Имя пространства</string>
+    <string name="memory_space_fact_count">%1$d факты</string>
+    <string name="memory_space_entry">Пространства памяти</string>
+
+    <!-- MemoryScreen.kt: view mode toggle / export / stats card -->
+    <string name="memory_stats_view_list">Список</string>
+    <string name="memory_stats_view_timeline">Хронология</string>
+    <string name="memory_stats_export_title">Экспортировать память</string>
+    <string name="memory_stats_export_format_hint">Выберите формат экспорта:</string>
+    <string name="memory_stats_section_title">Статистика памяти</string>
+    <string name="memory_stats_total">Общий</string>
+    <string name="memory_stats_importance_distribution">Распределение важности</string>
+    <string name="memory_stats_top_sessions">Самые активные сессии</string>
+    <string name="memory_stats_session_count">%1$d записи</string>
+    <string name="memory_stats_trend_30_days">Тенденция за последние 30 дней</string>
+</resources>

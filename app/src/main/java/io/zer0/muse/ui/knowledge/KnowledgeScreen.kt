@@ -14,9 +14,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -58,9 +60,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -79,6 +83,7 @@ import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.semiLarge
+import io.zer0.muse.ui.theme.statusColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -99,6 +104,8 @@ fun KnowledgeScreen(
     documentParser: io.zer0.muse.doc.DocumentParser = koinInject(),
     ocrManager: io.zer0.muse.doc.OcrManager = koinInject(),
     settings: io.zer0.muse.data.SettingsRepository = koinInject(),
+    // v1.0.53: 封面库路由回调(文档详情 → 封面管理页)
+    onOpenCoverManager: () -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -121,6 +128,9 @@ fun KnowledgeScreen(
     var reindexing by remember { mutableStateOf(false) }
     var reindexProgress by remember { mutableStateOf("") }
     var reindexTarget by remember { mutableStateOf<KnowledgeDocEntity?>(null) }
+    // v1.0.53: AI 封面生成状态
+    var generatingCover by remember { mutableStateOf(false) }
+    val coverGenerator: io.zer0.muse.tools.CoverGenerator = koinInject()
     // v1.0.47 P7-3: 文件过大友好提示
     var fileSizeWarning by remember { mutableStateOf<Pair<String, String>?>(null) }
 
@@ -334,6 +344,52 @@ fun KnowledgeScreen(
         }
     }
 
+    /**
+     * v1.0.53: AI 生成封面并写回文档 frontmatter。
+     *
+     * 流程: CoverGenerator 生图入库 → FrontmatterParser.withCover 写回 →
+     * dao.upsert 持久化 → 刷新列表。生成失败 Toast 提示,不残留状态。
+     */
+    fun generateCoverFor(doc: KnowledgeDocEntity) {
+        if (generatingCover) return
+        generatingCover = true
+        scope.launch {
+            try {
+                var failureMsg: String? = null
+                val item = coverGenerator.generateCover(
+                    title = doc.title,
+                    description = doc.content.take(200),
+                ).onError { msg, _ -> failureMsg = msg }.getOrNull()
+                if (item == null) {
+                    MuseToast.show(
+                        context.getString(
+                            if (failureMsg?.contains("未配置绘图模型") == true) {
+                                R.string.cover_generate_no_provider
+                            } else {
+                                R.string.cover_generate_failed
+                            },
+                            failureMsg?.take(60) ?: "",
+                        ),
+                    )
+                    return@launch
+                }
+                // 写回 frontmatter(covers/ 相对路径)
+                val newContent = io.zer0.muse.common.markdown.FrontmatterParser.withCover(
+                    doc.content,
+                    "covers/${item.fileName}",
+                )
+                dao.upsert(doc.copy(content = newContent, updatedAt = System.currentTimeMillis()))
+                MuseToast.show(context.getString(R.string.cover_applied))
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                MuseToast.show(context.getString(R.string.cover_generate_failed, e.message?.take(60) ?: ""))
+            } finally {
+                generatingCover = false
+            }
+        }
+    }
+
     Scaffold(
         topBar = {
             MuseTopBar(
@@ -475,6 +531,9 @@ fun KnowledgeScreen(
             doc = doc,
             onDismiss = { detailTarget = null },
             onReindex = { reindexDoc(doc) },
+            onOpenCoverManager = onOpenCoverManager,
+            onGenerateCover = { generateCoverFor(doc) },
+            generatingCover = generatingCover,
         )
     }
 
@@ -617,27 +676,31 @@ private data class FileTypeStyle(
 )
 
 @Composable
-private fun fileTypeStyle(fileType: String): FileTypeStyle = when (fileType.lowercase(Locale.getDefault())) {
-    "pdf" -> FileTypeStyle(
-        icon = Icons.Outlined.Description,
-        iconColor = Color(0xFFFF2D55),
-        containerColor = Color(0xFFFF2D55).copy(alpha = 0.10f),
-    )
-    "md", "markdown" -> FileTypeStyle(
-        icon = Icons.Outlined.Description,
-        iconColor = Color(0xFF007AFF),
-        containerColor = Color(0xFF007AFF).copy(alpha = 0.10f),
-    )
-    "txt" -> FileTypeStyle(
-        icon = Icons.AutoMirrored.Outlined.MenuBook,
-        iconColor = Color(0xFF34C759),
-        containerColor = Color(0xFF34C759).copy(alpha = 0.10f),
-    )
-    else -> FileTypeStyle(
-        icon = Icons.Outlined.Description,
-        iconColor = Color(0xFF8E8E93),
-        containerColor = Color(0xFF8E8E93).copy(alpha = 0.10f),
-    )
+private fun fileTypeStyle(fileType: String): FileTypeStyle {
+    // v1.0.52: 文档类型色接入语义状态色,深色模式自动切亮档保证图标可读
+    val statusColors = MaterialTheme.statusColors
+    return when (fileType.lowercase(Locale.getDefault())) {
+        "pdf" -> FileTypeStyle(
+            icon = Icons.Outlined.Description,
+            iconColor = statusColors.error,
+            containerColor = statusColors.error.copy(alpha = 0.10f),
+        )
+        "md", "markdown" -> FileTypeStyle(
+            icon = Icons.Outlined.Description,
+            iconColor = statusColors.info,
+            containerColor = statusColors.info.copy(alpha = 0.10f),
+        )
+        "txt" -> FileTypeStyle(
+            icon = Icons.AutoMirrored.Outlined.MenuBook,
+            iconColor = statusColors.success,
+            containerColor = statusColors.success.copy(alpha = 0.10f),
+        )
+        else -> FileTypeStyle(
+            icon = Icons.Outlined.Description,
+            iconColor = statusColors.neutral,
+            containerColor = statusColors.neutral.copy(alpha = 0.10f),
+        )
+    }
 }
 
 @Composable
@@ -719,7 +782,13 @@ private fun DocDetailDialog(
     doc: KnowledgeDocEntity,
     onDismiss: () -> Unit,
     onReindex: () -> Unit,
+    // v1.0.53: 封面能力(打开封面库 / 生成封面 / 生成中状态)
+    onOpenCoverManager: () -> Unit = {},
+    onGenerateCover: () -> Unit = {},
+    generatingCover: Boolean = false,
 ) {
+    // v1.0.53: 封面区解析需要 context(filesDir/covers)
+    val context = LocalContext.current
     // v1.0.4 P2-2:从 doc.content 中分离 PDF 元数据块 / 目录块 / 正文,
     // 让用户在详情弹窗里看到结构化的文档信息卡片(而不是混在等宽正文中)。
     // DocumentParser 输出格式:[文档信息]\n字段: 值\n...\n\n[目录]\n• 条目\n...\n\n<正文>
@@ -734,6 +803,59 @@ private fun DocDetailDialog(
             Column(
                 modifier = Modifier.fillMaxWidth(),
             ) {
+                // v1.0.53: 封面区(frontmatter cover 字段 → filesDir/covers/)
+                val coverPath = io.zer0.muse.common.markdown.FrontmatterParser.parse(doc.content)?.cover
+                val coverFile = coverPath?.let { path ->
+                    if (path.startsWith("covers/")) {
+                        java.io.File(java.io.File(context.filesDir, "covers"), path.removePrefix("covers/"))
+                    } else null
+                }
+                if (coverFile != null && coverFile.exists()) {
+                    androidx.compose.foundation.layout.Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(16f / 5f)
+                            .clip(MuseShapes.large),
+                    ) {
+                        coil.compose.AsyncImage(
+                            model = coverFile,
+                            contentDescription = doc.title,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                    Spacer(Modifier.height(10.dp))
+                }
+
+                // v1.0.53: 封面操作行(封面库 + 生成封面)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    androidx.compose.material3.OutlinedButton(
+                        onClick = onOpenCoverManager,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text(stringResource(R.string.cover_import))
+                    }
+                    androidx.compose.material3.Button(
+                        onClick = onGenerateCover,
+                        enabled = !generatingCover,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        if (generatingCover) {
+                            androidx.compose.material3.CircularProgressIndicator(
+                                modifier = Modifier.size(14.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                            )
+                            Spacer(Modifier.width(6.dp))
+                        }
+                        Text(if (generatingCover) stringResource(R.string.cover_generating) else stringResource(R.string.cover_generate))
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+
                 Text(
                     // v1.67-A: 显示分块数和 embedding 模型,让用户判断是否需要重新索引
                     text = buildString {

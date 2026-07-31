@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shared.kt -->
+    <string name="settings_selected_suffix">, Выбрано</string>
+
+    <!-- ProviderBrandAssets.kt -->
+    <string name="settings_provider_type_openai">Совместимость с OpenAI</string>
+    <string name="settings_provider_type_anthropic">Клод</string>
+    <string name="settings_provider_type_gemini">Близнецы</string>
+
+    <!-- WebSearchSection.kt -->
+    <string name="settings_web_search_section">Веб-поиск</string>
+    <string name="settings_web_search_enable">Включить веб-поиск</string>
+    <string name="settings_web_search_enable_subtitle">Глобальное состояние по умолчанию;</string>
+    <string name="settings_web_search_engine">Поисковая система</string>
+    <string name="settings_web_search_api_key_label">Ключ API (необязательно)</string>
+    <string name="settings_saved">Сохранено</string>
+    <string name="settings_web_search_save_api_key">Сохранить ключ API</string>
+    <string name="settings_web_search_endpoint_label">Конечная точка API поиска</string>
+    <string name="settings_web_search_save_endpoint">Сохранить конечную точку</string>
+    <!-- v1.98: New search provider names (bilingual, for UI display / logs / error hints) -->
+    <string name="settings_web_search_provider_brave">Смелый поиск</string>
+    <string name="settings_web_search_provider_perplexity">Поиск недоумения</string>
+    <string name="settings_web_search_provider_exa">Экса Поиск</string>
+    <string name="settings_web_search_provider_bocha">Боча Поиск</string>
+
+    <!-- ExperimentsSettingsPage.kt -->
+    <string name="settings_experiments_title">Эксперименты</string>
+    <string name="settings_experiments_hint">Уведомление</string>
+    <string name="settings_experiments_warning">Следующие функции являются экспериментальными и могут работать нестабильно или влиять на вашу работу.</string>
+    <string name="settings_experiments_features">Экспериментальные возможности</string>
+    <string name="settings_experiments_force_mood">Форсировать вывод НАСТРОЕНИЯ</string>
+    <string name="settings_experiments_force_mood_subtitle">Попытайтесь потребовать вывод блока MOOD, даже если модель его не поддерживает.</string>
+    <string name="settings_experiments_debug_mode">Режим отладки</string>
+    <string name="settings_experiments_debug_mode_subtitle">Показать больше внутреннего состояния (MOOD/вызовы инструментов/токены)</string>
+    <string name="settings_experiments_self_reflection">Саморефлексия</string>
+    <string name="settings_experiments_self_reflection_subtitle">Автоматически проверять качество после ответа</string>
+    <string name="settings_experiments_long_memory_compression">Сжатие длинной памяти</string>
+    <string name="settings_experiments_long_memory_compression_subtitle">Автоматическое суммирование очень длинных разговоров (включено по умолчанию, начиная с версии 1.55)</string>
+
+    <!-- UserProfileEditPage.kt -->
+    <string name="settings_user_profile_title">Профиль пользователя</string>
+    <string name="settings_user_profile_appellation">наименование</string>
+    <string name="settings_user_profile_assistant_name">Имя помощника</string>
+    <string name="settings_user_profile_assistant_name_hint">например</string>
+    <string name="settings_user_profile_your_name">Ваше имя</string>
+    <string name="settings_user_profile_your_name_hint">например</string>
+    <string name="settings_user_profile_basic_info">Основная информация</string>
+    <string name="settings_user_profile_age">Возраст</string>
+    <string name="settings_user_profile_city">Город</string>
+    <string name="settings_user_profile_occupation">Занятие</string>
+    <string name="settings_user_profile_profession_field">Профессиональная сфера</string>
+    <string name="settings_user_profile_profession_field_hint">например</string>
+    <string name="settings_user_profile_interests">Интересы &amp; Предпочтения</string>
+    <string name="settings_user_profile_interests_label">Интересы (через запятую, например, чтение, программирование, путешествия)</string>
+    <!-- v1.133: Rewritten User Profile — all fields are injected into the system prompt -->
+    <string name="settings_user_profile_intro">Все, что вы здесь вводите, вводится в системную подсказку ИИ, поэтому он действительно вас знает.</string>
+    <string name="settings_user_profile_assistant_name_desc">ИИ будет называть себя этим именем</string>
+    <string name="settings_user_profile_your_name_desc">ИИ будет обращаться к вам по этому имени</string>
+    <string name="settings_user_profile_bio">Био</string>
+    <string name="settings_user_profile_bio_hint">Абзац, представляющий вас, дающий ИИ общее представление о том, кто вы.</string>
+    <string name="settings_user_profile_bio_desc">Высший приоритет;</string>
+    <string name="settings_user_profile_timezone">Часовой пояс</string>
+    <string name="settings_user_profile_timezone_hint">например</string>
+    <string name="settings_user_profile_background">Справочная информация &amp; Опыт</string>
+    <string name="settings_user_profile_education">Образование</string>
+    <string name="settings_user_profile_education_hint">например</string>
+    <string name="settings_user_profile_skills">Навыки</string>
+    <string name="settings_user_profile_skills_hint">например</string>
+    <string name="settings_user_profile_communication">Настройки связи</string>
+    <string name="settings_user_profile_comm_style">Стиль общения</string>
+    <string name="settings_user_profile_comm_style_hint">например</string>
+    <string name="settings_user_profile_resp_length">Предпочтительная длина ответа</string>
+    <string name="settings_user_profile_resp_length_hint">например</string>
+    <string name="settings_user_profile_pref_tone">Предпочтительный тон</string>
+    <string name="settings_user_profile_pref_tone_hint">например</string>
+    <string name="settings_user_profile_pref_lang">Предпочтительный язык ответа</string>
+    <string name="settings_user_profile_pref_lang_hint">например</string>
+    <string name="settings_user_profile_boundaries">Границы &amp; Избегаемые темы</string>
+    <string name="settings_user_profile_avoid_topics">Избегаемые темы</string>
+    <string name="settings_user_profile_avoid_topics_hint">Через запятую, например.</string>
+    <string name="settings_user_profile_avoid_topics_desc">ИИ будет активно избегать этих тем.</string>
+
+    <!-- PresetProviderPickerDialog.kt -->
+    <string name="settings_preset_select_provider">Выберите поставщика</string>
+    <string name="settings_preset_back">Назад</string>
+    <string name="settings_preset_subtitle">Охватывает зарубежных, отечественных официальных лиц и ретрансляторов — просто введите свой ключ API после выбора</string>
+    <string name="settings_preset_group_overseas">Зарубежный чиновник</string>
+    <string name="settings_preset_group_domestic">Внутренний чиновник</string>
+    <string name="settings_preset_group_relay">Реле</string>
+    <string name="settings_preset_no_match">Нет подходящих поставщиков</string>
+    <string name="settings_preset_search_hint">Поиск провайдеров или доменов</string>
+    <string name="settings_preset_clear">Прозрачный</string>
+    <string name="settings_preset_need_baseurl">Требуется базовый URL</string>
+    <string name="settings_preset_model_count">%1$d модели</string>
+    <string name="settings_preset_custom">Пользовательский поставщик</string>
+    <string name="settings_preset_custom_desc">Вручную введите baseUrl, ключ API и список моделей.</string>
+
+    <!-- ProviderModelRow.kt -->
+    <string name="settings_model_action_settings">Настройки</string>
+    <string name="settings_model_action_add">Добавлять</string>
+    <string name="settings_model_ability_tool">Инструменты</string>
+    <string name="settings_model_ability_reasoning">Рассуждение</string>
+    <string name="settings_model_ability_streaming">Потоковое вещание</string>
+    <string name="settings_model_ability_image">Изображение</string>
+    <string name="settings_model_ability_multimodal">Мультимодальный</string>
+    <string name="settings_model_ability_video">Видео</string>
+    <string name="settings_model_ability_chat">Чат</string>
+    <!-- v1.0.8 (7.7): Context window label (e.g. "128K context") -->
+    <string name="settings_model_context_label">%1$s контекст</string>
+    <!-- v1.0.8 (7.6): Model health check button + status text -->
+    <string name="settings_model_action_test">Тест</string>
+    <string name="settings_model_test_in_progress">Тестирование</string>
+    <string name="settings_model_test_success">Здоровый</string>
+    <string name="settings_model_test_failed">Неуспешный</string>
+    <string name="settings_model_test_failed_with_msg">Не удалось: %1$s</string>
+    <string name="settings_model_test_success_with_msg">Здоров · %1$s</string>
+
+    <!-- AssistantSection.kt -->
+    <string name="settings_assistant_section">Ассистент</string>
+    <string name="settings_assistant_manage">Помощник управляющего</string>
+    <string name="settings_assistant_manage_subtitle">Управление помощниками и книгами знаний</string>
+    <string name="settings_assistant_favorites">Избранное</string>
+    <string name="settings_assistant_favorites_subtitle">Просмотр избранных сообщений в разных сеансах</string>
+    <string name="settings_assistant_lorebook">книга знаний</string>
+    <string name="settings_assistant_lorebook_subtitle">Внедрение контекста, инициируемое ключевыми словами (ролевая игра/построение мира)</string>
+    <string name="settings_assistant_quick_messages">Быстрые сообщения</string>
+    <string name="settings_assistant_quick_messages_subtitle">Предустановленные шаблоны сообщений с подстановкой переменных, вставка одним нажатием</string>
+    <string name="settings_assistant_prompt_injection">Режим инъекции</string>
+    <string name="settings_assistant_prompt_injection_subtitle">Автоматическое внедрение подсказок, специфичных для режима, при переключении режимов (творчество/кодирование/ролевая игра и т. д.)</string>
+    <string name="settings_assistant_skills">Менеджер по навыкам</string>
+    <string name="settings_assistant_skills_subtitle">Просмотр/включение/отключение инструментов, которые LLM может вызывать (файловый ввод-вывод, HTTP и т. д.)</string>
+    <string name="settings_assistant_long_memory">Долговременная память</string>
+    <string name="settings_assistant_memory_enable">Включить систему памяти</string>
+    <string name="settings_assistant_memory_enable_subtitle">Если этот параметр отключен, разговоры больше не задействуют долговременную память, и фоновое обобщение прекращается.</string>
+
+    <!-- MultiAgentSettingsPage.kt -->
+    <string name="settings_multi_agent_title">Мультиагентное сотрудничество</string>
+    <string name="settings_multi_agent_enable">Включить многоагентное сотрудничество</string>
+    <string name="settings_multi_agent_enable_subtitle">Если эта функция включена, главный помощник может делегировать задачи членам команды.</string>
+    <string name="settings_multi_agent_team_list">Список команд</string>
+    <string name="settings_multi_agent_no_team">Пока нет команд</string>
+    <string name="settings_multi_agent_no_team_hint">Нажмите ниже, чтобы создать команду</string>
+    <string name="settings_multi_agent_new_team">Новая команда</string>
+    <string name="settings_multi_agent_delete_team">Удалить команду</string>
+    <string name="settings_multi_agent_unnamed_team">Безымянная команда</string>
+    <string name="settings_multi_agent_no_members">Нет участников</string>
+    <string name="settings_multi_agent_delete">Удалить</string>
+    <string name="settings_multi_agent_edit_team">Редактировать команду</string>
+    <string name="settings_multi_agent_team_name">Название команды</string>
+    <string name="settings_multi_agent_team_name_hint">например</string>
+    <string name="settings_multi_agent_team_name_empty">Название команды не может быть пустым.</string>
+    <string name="settings_multi_agent_description">Описание (необязательно)</string>
+    <string name="settings_multi_agent_description_hint">Цель команды или сценарий сотрудничества</string>
+    <string name="settings_multi_agent_select_members">Выберите участников</string>
+    <string name="settings_multi_agent_no_assistants">Помощников нет.</string>
+    <string name="settings_multi_agent_save">Сохранять</string>
+    <string name="settings_multi_agent_cancel">Отмена</string>
+
+    <!-- SettingsTutorialPage.kt -->
+    <string name="settings_tutorial_title">Учебное пособие</string>
+
+    <!-- Chapter 1 -->
+    <string name="settings_tutorial_ch1_title">Глава 1: Начало работы (требуется новичок)</string>
+    <string name="settings_tutorial_ch1_s1_title">Что такое Муза?</string>
+    <string name="settings_tutorial_ch1_s1_content">Muse — это приложение-умный помощник с искусственным интеллектом.</string>
+    <string name="settings_tutorial_ch1_s2_title">Что делать при первом использовании?</string>
+    <string name="settings_tutorial_ch1_s2_content">Не волнуйтесь, для начала всего три шага:\n\n1.</string>
+    <string name="settings_tutorial_ch1_s3_title">Как начать свой первый разговор</string>
+    <string name="settings_tutorial_ch1_s3_content">1. Откройте приложение и перейдите на страницу чата\n2.</string>
+    <string name="settings_tutorial_ch1_s4_title">Введение в интерфейс: страницы задач, агентов и чата</string>
+    <string name="settings_tutorial_ch1_s4_content">Основной интерфейс Muse обычно разделен на три области.</string>
+    <string name="settings_tutorial_ch1_s5_title">Подводные камни и советы для начинающих</string>
+    <string name="settings_tutorial_ch1_s5_content">• Ловушка 1: Предполагается, что ИИ всеведущ.</string>
+
+    <!-- Chapter 2 -->
+    <string name="settings_tutorial_ch2_title">Глава 2. Настройка модели ИИ (важно)</string>
+    <string name="settings_tutorial_ch2_s1_title">Зачем мне нужно настраивать модель?</string>
+    <string name="settings_tutorial_ch2_s1_content">Сама Muse не содержит ИИ — ей необходимо подключиться к внешнему сервису ИИ.</string>
+    <string name="settings_tutorial_ch2_s2_title">Где подать заявку на получение API-ключа?</string>
+    <string name="settings_tutorial_ch2_s2_content">Here are some commonly used AI providers (in no particular order):\n\n• DeepSeek — domestic, affordable, great results\n  Website: platform.deepseek.com\n\n• Zhipu AI — domestic, free quota available\n  Website: open.bigmodel.cn\n\n• Alibaba Tongyi Qianwen — domestic, free quota available\n  Website: dashscope.aliyun.com\n\n• Moonshot Kimi — domestic, strong long-context capability\n  Website: platform.moonshot.cn\n\n• OpenAI (ChatGPT) — international, best results but requires overseas payment\n  Website: platform.openai.com\n\n• Anthropic (Claude) — international, excellent at writing and reasoning\n  Website: console.anthropic.com\n\n• Google Gemini — international, strong multimodal capability\n  Website: ai.google.dev\n\nBeginners should start with DeepSeek or Zhipu. After registering, find the \"API Keys\" page in the dashboard, click \"Create new Key\", and copy the code. Most domestic providers offer free credit on signup, so you can try it for free first.</string>
+    <string name="settings_tutorial_ch2_s3_title">Как добавить провайдера в Muse</string>
+    <string name="settings_tutorial_ch2_s3_content">1. Нажмите в правом нижнем или левом верхнем углу, чтобы войти в «Настройки» \n2.</string>
+    <string name="settings_tutorial_ch2_s4_title">Как выбрать текущую модель</string>
+    <string name="settings_tutorial_ch2_s4_content">На странице чата название модели отображается вверху или на панели ввода.</string>
+    <string name="settings_tutorial_ch2_s5_title">Как выбрать подходящую модель &amp; возможности модели</string>
+    <string name="settings_tutorial_ch2_s5_content">Столкнувшись со многими моделями, новички могут выбрать следующее:\n\n• Ежедневный чат, написание: работает общая модель чата, например.</string>
+    <string name="settings_tutorial_ch2_s6_title">Многоключевые запросы ротации и баланса</string>
+    <string name="settings_tutorial_ch2_s6_content">Если ключ одного провайдера исчерпан или его скорость ограничена, вы можете настроить несколько ключей для автоматической ротации Muse, чтобы разговоры не прерывались.\n\n• Добавить несколько ключей: в настройках провайдера вы можете ввести несколько ключей API (по одному в каждой строке);</string>
+
+    <!-- Chapter 3 -->
+    <string name="settings_tutorial_ch3_title">Глава 3: Ежедневный чат</string>
+    <string name="settings_tutorial_ch3_s1_title">Как начать новый разговор</string>
+    <string name="settings_tutorial_ch3_s1_content">На странице списка чатов (боковая панель или список бесед) нажмите кнопку «Новый чат» (обычно это значок плюса).</string>
+    <string name="settings_tutorial_ch3_s2_title">Как переключаться между разговорами</string>
+    <string name="settings_tutorial_ch3_s2_content">Откройте боковую панель на странице чата (коснитесь меню в верхнем левом углу или проведите пальцем от левого края), чтобы просмотреть всю историю разговоров.</string>
+    <string name="settings_tutorial_ch3_s3_title">Как удалить разговор</string>
+    <string name="settings_tutorial_ch3_s3_content">В списке истории разговоров нажмите и удерживайте разговор, который хотите удалить.</string>
+    <string name="settings_tutorial_ch3_s4_title">Как искать историю сообщений</string>
+    <string name="settings_tutorial_ch3_s4_content">На странице чата или в списке бесед найдите значок поиска (увеличительное стекло), введите ключевое слово, и будут показаны все исторические сообщения, содержащие это слово.\n\nСодержимое, доступное для поиска, включает как ваши сообщения, так и ответы AI.</string>
+    <string name="settings_tutorial_ch3_s5_title">Что такое потоковый вывод</string>
+    <string name="settings_tutorial_ch3_s5_content">Когда ИИ отвечает, текст не появляется весь сразу — он выводится слово за словом, как при вводе текста.</string>
+    <string name="settings_tutorial_ch3_s6_title">Отправка изображений, файлов &amp; визуальная помощь</string>
+    <string name="settings_tutorial_ch3_s6_content">• Отправка изображений: коснитесь значка плюса слева от поля ввода, выберите «Изображение» и выберите фотографию из своей галереи.</string>
+    <string name="settings_tutorial_ch3_s7_title">Использование инструментов &amp; ветвей сообщений</string>
+    <string name="settings_tutorial_ch3_s7_content">• Использование инструментов (Инструмент): некоторые модели поддерживают «вызов инструментов», что означает, что ИИ может выполнять за вас реальные действия — устанавливать будильники, проверять погоду, читать SMS, планировать события, просматривать акции.</string>
+
+    <!-- Chapter 4 -->
+    <string name="settings_tutorial_ch4_title">Глава 4: Расширенные функции</string>
+    <string name="settings_tutorial_ch4_s1_title">Что такое роли помощника</string>
+    <string name="settings_tutorial_ch4_s1_content">Роли помощников подобны надеванию на ИИ разных «шляп».</string>
+    <string name="settings_tutorial_ch4_s2_title">Как использовать веб-поиск</string>
+    <string name="settings_tutorial_ch4_s2_content">Над полем ввода есть значок глобуса.</string>
+    <string name="settings_tutorial_ch4_s3_title">Как использовать режим глубокого мышления</string>
+    <string name="settings_tutorial_ch4_s3_content">Над полем ввода есть значок мозга.</string>
+    <string name="settings_tutorial_ch4_s4_title">Система долговременной памяти</string>
+    <string name="settings_tutorial_ch4_s4_content">При включенной долговременной памяти ИИ автоматически записывает важную информацию из разговоров (ваши предпочтения, личность, соглашения, ключевые события) и вспоминает ее в будущих разговорах — не нужно каждый раз повторяться.\n\n• Включить: Настройки → Помощник → Долговременная память, включить «Включить систему памяти».\n• Как это работает: в фоновом режиме, в нужные моменты подводит итоги</string>
+    <string name="settings_tutorial_ch4_s5_title">Голосовой ввод</string>
+    <string name="settings_tutorial_ch4_s5_content">Коснитесь значка микрофона справа от поля ввода, говорите и отпустите, чтобы автоматически преобразовать в текст.</string>
+    <string name="settings_tutorial_ch4_s6_title">Библиотека шаблонов подсказок</string>
+    <string name="settings_tutorial_ch4_s6_content">Нажмите значок плюса слева от поля ввода и выберите «Шаблон запроса», чтобы просмотреть список предустановленных шаблонов (например, написать электронное письмо, перевести, подвести итог, переписать).</string>
+    <string name="settings_tutorial_ch4_s7_title">База знаний RAG (пусть ИИ изучает ваши документы)</string>
+    <string name="settings_tutorial_ch4_s7_content">RAG (Поисковая дополненная генерация) позволяет ИИ отвечать на основе предоставленных вами документов — например, давать ИИ «личный справочник».\n\n• Использование: найдите «Базу знаний» или «RAG» в настройках, загрузите свои документы (PDF, Word, TXT, Markdown).</string>
+    <string name="settings_tutorial_ch4_s8_title">Групповой чат с несколькими агентами (несколько ролей ИИ общаются вместе)</string>
+    <string name="settings_tutorial_ch4_s8_content">Мультиагентное сотрудничество позволяет нескольким ролям ИИ выполнять свою роль в одном разговоре, координируя свои действия — и вы также можете присоединиться к групповому чату.\n\n• Создайте команду: Настройки → Мультиагентная совместная работа, создайте команду, выберите помощников в качестве участников (например, «Копирайтер», «Креативный планировщик»,</string>
+    <string name="settings_tutorial_ch4_s9_title">Создание видео &amp; запланированных задач</string>
+    <string name="settings_tutorial_ch4_s9_content">• Генерация видео: если модель провайдера поддерживает возможность видео, вы можете заставить ИИ генерировать короткие видеоролики из текстовых описаний.</string>
+    <string name="settings_tutorial_ch4_s10_title">Система навыков &amp; Плагины MCP</string>
+    <string name="settings_tutorial_ch4_s10_content">• Система навыков: навыки — это возможности инструментов, которые ИИ может использовать — чтение/запись локальных файлов, отправка HTTP-запросов, запросы к базам данных, работа с календарем.</string>
+
+    <!-- Chapter 5 -->
+    <string name="settings_tutorial_ch5_title">Глава 5: Персонализация</string>
+    <string name="settings_tutorial_ch5_s1_title">Тема &amp; Динамический цвет</string>
+    <string name="settings_tutorial_ch5_s1_content">«Настройки» → «Внешний вид» → «Режим темы», выберите «Следовать за системой» (автоматически следует настройкам телефона), «Светлый» или «Темный».</string>
+    <string name="settings_tutorial_ch5_s2_title">Отрегулировать размер шрифта</string>
+    <string name="settings_tutorial_ch5_s2_content">«Настройки» → «Внешний вид» → «Размер текста», выберите «Маленький/Средний/Большой/Очень большой».</string>
+    <string name="settings_tutorial_ch5_s3_title">Переключить язык интерфейса</string>
+    <string name="settings_tutorial_ch5_s3_content">Настройки → Внешний вид → Язык, выберите «Следовать системе», «Китайский» или «Английский».</string>
+    <string name="settings_tutorial_ch5_s4_title">Настройка помощника: трехуровневая архитектура персона/отношения/стиль</string>
+    <string name="settings_tutorial_ch5_s4_content">Настройка помощника Muse использует трехуровневую архитектуру, которая определяет поведение ИИ изнутри: \n\n• Уровень персоны (основной): определяет, «кто» ИИ — имя, личность, предыстория, личность.</string>
+    <string name="settings_tutorial_ch5_s5_title">Профиль пользователя &amp; настройки</string>
+    <string name="settings_tutorial_ch5_s5_content">Настройки → Профиль пользователя, заполните свою основную информацию (имя, род занятий, интересы, предпочтения в общении, избегаемые темы).</string>
+
+    <!-- Chapter 6 -->
+    <string name="settings_tutorial_ch6_title">Глава 6: Управление данными</string>
+    <string name="settings_tutorial_ch6_s1_title">Резервное копирование истории чата (облако WebDAV/S3)</string>
+    <string name="settings_tutorial_ch6_s1_content">Настройки → Данные &amp; Резервное копирование позволяет настроить резервное копирование в облако (WebDAV или S3).</string>
+    <string name="settings_tutorial_ch6_s2_title">Импортируйте данные из других приложений</string>
+    <string name="settings_tutorial_ch6_s2_content">Настройки → Импорт данных поддерживает импорт из RikkaHub или Kelivo.</string>
+    <string name="settings_tutorial_ch6_s3_title">Экспорт карточек персонажей &amp; данных</string>
+    <string name="settings_tutorial_ch6_s3_content">На странице «Менеджер помощников» нажмите и удерживайте помощника и выберите «Экспортировать карту персонажа», чтобы создать файл, которым вы сможете поделиться с друзьями.</string>
+    <string name="settings_tutorial_ch6_s4_title">Очистить кэш &amp; сэкономить место</string>
+    <string name="settings_tutorial_ch6_s4_content">После длительного использования приложение накапливает кэш (изображения, временные файлы, списки моделей), который занимает место на телефоне.\n\n• Как: Настройки → Хранилище/Управление данными → Очистить кэш.</string>
+    <string name="settings_tutorial_ch6_s5_title">Безопасность данных &amp; конфиденциальность</string>
+    <string name="settings_tutorial_ch6_s5_content">Безопасность ваших данных имеет значение:\n• Данные разговоров по умолчанию хранятся только на вашем устройстве и в вашей облачной резервной копии — никогда не загружаются на серверы Muse.\n• Конфиденциальная информация, такая как ключи API, шифруется локально и никогда не хранится в виде обычного текста.\n• Контент, отправляемый ИИ, проходит через серверы провайдера — не раскрывайте номера банковских карт, пароли и т. д.</string>
+
+    <!-- Chapter 7 -->
+    <string name="settings_tutorial_ch7_title">Глава 7: Часто задаваемые вопросы</string>
+    <string name="settings_tutorial_ch7_s1_title">Нет ответа в разговоре?</string>
+    <string name="settings_tutorial_ch7_s1_content">Наиболее распространенные причины:\n1.</string>
+    <string name="settings_tutorial_ch7_s2_title">Медленные ответы?</string>
+    <string name="settings_tutorial_ch7_s2_content">1. Переключитесь на более быструю модель (модели меньшего размера обычно быстрее, например gpt-4o-mini, deepseek-chat)\n2.</string>
+    <string name="settings_tutorial_ch7_s3_title">Как сэкономить использование токена?</string>
+    <string name="settings_tutorial_ch7_s3_content">Токены оплачиваются по количеству символов — сохранение токенов экономит деньги:\n1.</string>
+    <string name="settings_tutorial_ch7_s4_title">Как очистить все данные</string>
+    <string name="settings_tutorial_ch7_s4_content">Настройки → Безопасность &amp; Общий доступ может иметь соответствующие параметры.</string>
+    <string name="settings_tutorial_ch7_s5_title">Ошибки API 401/400?</string>
+    <string name="settings_tutorial_ch7_s5_content">• 401 Unauthorized: обычно проблема с ключом API.</string>
+    <string name="settings_tutorial_ch7_s6_title">Как защитить конфиденциальность (редактирование личных данных)?</string>
+    <string name="settings_tutorial_ch7_s6_content">Редактирование PII (личной информации) автоматически заменяет конфиденциальную информацию в разговорах (номера телефонов, идентификационные номера, банковские карты, электронные письма) заполнителями перед отправкой ИИ — ИИ не может видеть реальную информацию;</string>
+
+    <!-- CrashReportSettings.kt -->
+    <string name="settings_crash_page_title">Отчеты о сбоях</string>
+    <string name="settings_crash_pending_section">Ожидаемые отчеты о сбоях</string>
+    <string name="settings_crash_pending_count">Ожидаемые отчеты о сбоях: %1$d</string>
+    <string name="settings_crash_pending_hint_active">Нажмите кнопку ниже, чтобы сообщить о проблеме (сначала включите и настройте)</string>
+    <string name="settings_crash_pending_hint_idle">Сбои будут автоматически добавлены в очередь ожидания.</string>
+    <string name="settings_crash_report_now_button">Сообщите об ожидающих сбоях прямо сейчас</string>
+    <string name="settings_crash_settings_section">Настройки отчета</string>
+    <string name="settings_crash_enable_title">Включить отчеты о сбоях</string>
+    <string name="settings_crash_enable_subtitle">По умолчанию отключено — если включено, сбои попадают в очередь ожидания и требуют ручного подтверждения для сообщения.</string>
+    <string name="settings_crash_method_section">Метод отчета</string>
+    <string name="settings_crash_method_label">Выберите метод отчета</string>
+    <string name="settings_crash_method_email">Электронная почта</string>
+    <string name="settings_crash_email_label">Адрес электронной почты получателя</string>
+    <string name="settings_crash_email_placeholder">например</string>
+    <string name="settings_crash_email_saved_toast">Электронная почта сохранена.</string>
+    <string name="settings_crash_email_save_button">Сохранить электронную почту</string>
+    <string name="settings_crash_webhook_saved_toast">URL-адрес вебхука сохранен.</string>
+    <string name="settings_crash_webhook_save_button">Сохранить URL-адрес</string>
+    <string name="settings_crash_privacy_section">Конфиденциальность</string>
+    <string name="settings_crash_privacy_title">Обещание конфиденциальности при сообщении о сбоях</string>
+    <string name="settings_crash_privacy_content">• Выкл. по умолчанию;</string>
+    <string name="settings_crash_confirm_dialog_title">Подтвердить отчет о сбое</string>
+    <string name="settings_crash_confirm_target_email">Электронная почта (%1$s)</string>
+    <string name="settings_crash_confirm_target_webhook">Вебхук (%1$s)</string>
+    <string name="settings_crash_confirm_dialog_content">Содержимое отчета включает в себя: стек сбоев + модель устройства + версию Android + версию приложения + метку времени.\nСтеки сбоев удалены.</string>
+    <string name="settings_crash_confirm_button">Подтвердить отчет</string>
+    <string name="settings_crash_no_pending">Нет ожидающих сбоев, о которых можно сообщить</string>
+    <string name="settings_crash_no_email">Пожалуйста, сначала настройте адрес электронной почты получателя</string>
+    <string name="settings_crash_no_webhook">Сначала настройте действительный URL-адрес веб-перехватчика.</string>
+    <string name="settings_crash_no_method">Метод отчета не настроен, пропущен</string>
+    <string name="settings_crash_reported_count">Сообщено %1$d записей о сбоях</string>
+</resources>

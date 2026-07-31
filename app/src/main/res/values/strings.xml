@@ -66,6 +66,7 @@
     <string name="action_copy">复制</string>
     <string name="action_translate">翻译</string>
     <string name="action_share">分享</string>
+    <string name="action_retry">重试</string>
     <string name="action_expand">展开</string>
     <string name="action_collapse">收起</string>
 

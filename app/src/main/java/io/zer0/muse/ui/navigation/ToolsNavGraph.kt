@@ -109,6 +109,18 @@ fun NavGraphBuilder.toolsNavGraph(
     ) {
         KnowledgeScreen(
             onBack = { navController.popBackStack() },
+            onOpenCoverManager = { navController.navigate(MuseRoutes.COVER_MANAGER) },
+        )
+    }
+
+    // v1.0.53: 封面库管理页(知识库文档详情 → 封面库 / 生成封面)
+    composable(
+        route = MuseRoutes.COVER_MANAGER,
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        io.zer0.muse.ui.CoverManagerScreen(
+            onBack = { navController.popBackStack() },
         )
     }
 }

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    i18n review summary for ai / memory / transformer modules:
+    - ai module (standalone Gradle module): user-visible error messages are delivered
+      to UI via Result.Error/exceptions, but cannot reference app's R.string directly.
+      Each source file is annotated with // TODO i18n pending extraction; extraction
+      requires an error-code enum approach.
+    - memory module (standalone Gradle module): validation errors (MemoryConfig.validate)
+      and isZh time labels (Key Facts/Timeline etc.) are user-visible, but cross-module
+      and some labels participate in LLM output parsing contracts.
+      Each source file is annotated with // TODO i18n pending extraction.
+    - transformer module (inside app): per file review, all Chinese strings are LLM
+      prompt content (SYSTEM messages sent to LLM), logger messages, code comments, or
+      internal exception messages. No directly user-visible UI strings; kept as-is per
+      the "LLM prompts not extracted" rule.
+    This file currently has no string entries; it serves as a placeholder and review record.
+-->
+<resources>
+    <!-- v4: memory importance related -->
+    <string name="memory_importance_normal">Normal</string>
+    <string name="memory_importance_important">Importante</string>
+    <string name="memory_importance_critical">Crítico</string>
+    <string name="memory_importance_set_title">Establecer importancia</string>
+    <string name="memory_importance_normal_desc">Preferencias diarias, inofensivas si se olvidan</string>
+    <string name="memory_importance_important_desc">Riesgo medio, los errores causan inconvenientes.</string>
+    <string name="memory_importance_critical_desc">Alto riesgo, los errores causan daño (nunca lo olvides)</string>
+    <string name="memory_source_session">Fuente: Sesión %1$s</string>
+    <string name="memory_created_today">Agregado hoy</string>
+    <string name="memory_created_yesterday">Añadido ayer</string>
+    <string name="memory_created_days_ago">Agregado hace %1$d días</string>
+    <string name="memory_sync_never">Memoria aún no compilada, conversaciones no en la memoria a largo plazo</string>
+    <string name="memory_sync_recent">Última compilación hace %1$d minutos, memoria sincronizada</string>
+    <string name="memory_sync_stale">Última compilación hace %1$d minutos, es posible que las conversaciones recientes aún no estén en la memoria.</string>
+    <string name="memory_sync_set_importance_cd">Establecer importancia</string>
+
+    <!-- v6: MemoryViewModel CRUD error messages -->
+    <string name="memory_delete_failed">Error al eliminar: %1$s</string>
+    <string name="memory_edit_failed">Error de edición: %1$s</string>
+    <string name="memory_set_failed">Error al configurar: %1$s</string>
+    <string name="memory_add_failed">Error al agregar: %1$s</string>
+    <string name="memory_add_experience_failed">Error al agregar experiencia: %1$s</string>
+    <string name="memory_edit_experience_failed">Error al editar la experiencia: %1$s</string>
+    <string name="memory_delete_experience_failed">Error al eliminar la experiencia: %1$s</string>
+
+    <!-- v6: Compile section display titles -->
+    <string name="memory_compile_section_facts">Resumen de hechos</string>
+    <string name="memory_compile_section_today">Hoy</string>
+    <string name="memory_compile_section_week">Esta semana</string>
+    <string name="memory_compile_section_longterm">A largo plazo</string>
+
+    <!-- v6: Summary item title -->
+    <string name="memory_summary_title">Sesión %1$s</string>
+
+    <!-- v6: Error trace labels -->
+    <string name="memory_error_trace_header">== Error de memoria de Muse ==</string>
+    <string name="memory_error_trace_time">Tiempo:</string>
+    <string name="memory_error_trace_exception">Excepción:</string>
+    <string name="memory_error_trace_message">Mensaje:</string>
+    <string name="memory_error_trace_device">Dispositivo:</string>
+    <string name="memory_error_trace_stack_header">== Seguimiento de pila ==</string>
+
+    <!-- v8: memory scope related -->
+    <string name="memory_scope_all">Todo</string>
+    <string name="memory_scope_main">Asistente principal</string>
+    <string name="memory_scope_assistant">Asistente de memoria</string>
+    <string name="memory_scope_label">Alcance de la memoria</string>
+
+    <!-- v1.0.52 P2-2: memory space related -->
+    <string name="memory_space_manage_title">Espacios de memoria</string>
+    <string name="memory_space_create">Crear espacio</string>
+    <string name="memory_space_create_title">Nuevo espacio de memoria</string>
+    <string name="memory_space_rename">Rebautizar</string>
+    <string name="memory_space_rename_title">Cambiar el nombre del espacio de memoria</string>
+    <string name="memory_space_delete">Borrar</string>
+    <string name="memory_space_name_label">Nombre del espacio</string>
+    <string name="memory_space_fact_count">%1$d hechos</string>
+    <string name="memory_space_entry">Espacios de memoria</string>
+
+    <!-- MemoryScreen.kt: view mode toggle / export / stats card -->
+    <string name="memory_stats_view_list">Lista</string>
+    <string name="memory_stats_view_timeline">Línea de tiempo</string>
+    <string name="memory_stats_export_title">Exportar memoria</string>
+    <string name="memory_stats_export_format_hint">Seleccione el formato de exportación:</string>
+    <string name="memory_stats_section_title">Estadísticas de memoria</string>
+    <string name="memory_stats_total">Total</string>
+    <string name="memory_stats_importance_distribution">Distribución de importancia</string>
+    <string name="memory_stats_top_sessions">Sesiones más activas</string>
+    <string name="memory_stats_session_count">%1$d entradas</string>
+    <string name="memory_stats_trend_30_days">Tendencia de los últimos 30 días</string>
+</resources>

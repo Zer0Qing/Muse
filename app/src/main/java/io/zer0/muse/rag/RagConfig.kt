@@ -20,8 +20,16 @@ import kotlinx.serialization.Serializable
 data class RagConfig(
     /** RAG 总开关(自动注入)。关闭后知识库仍可被 knowledge_search 工具手动检索。 */
     val enabled: Boolean = true,
-    /** Embedding 来源。 */
-    val embeddingSource: EmbeddingSource = EmbeddingSource.CLOUD,
+    /**
+     * Embedding 来源。
+     *
+     * v1.0.53: 默认改为 [EmbeddingSource.LOCAL_KEYWORD] — 首次开启应用时使用本地关键词检索,
+     * 避免用户添加的 Provider 不提供 embedding 模型(如 tokenrhythm.studio)
+     * 导致 RAG 注入时持续报错 MODEL_NOT_AVAILABLE。
+     *
+     * 用户添加 API 后可在设置里手动切换到 CLOUD,UI 不隐藏该选项。
+     */
+    val embeddingSource: EmbeddingSource = EmbeddingSource.LOCAL_KEYWORD,
     /**
      * 云端 embedding 使用的 Provider ID(对应 SettingsRepository 里的 ProviderConfig.id)。
      * 空串表示用当前激活的 chat Provider。

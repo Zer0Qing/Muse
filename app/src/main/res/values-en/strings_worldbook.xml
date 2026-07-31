@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- P1-2: Worldbook dynamic world info strings (English). -->
+<resources>
+    <!-- Screen -->
+    <string name="worldbook_screen_title">Dynamic Worldbook</string>
+    <string name="worldbook_intro">Dynamic Worldbook injects relevant lore based on conversation context. Supports constant activation, keyword triggers, regex matching and depth injection. Compatible with SillyTavern World Info import/export.</string>
+    <string name="worldbook_new_cd">New worldbook entry</string>
+    <string name="worldbook_new_default_name">New entry</string>
+    <string name="worldbook_new_title">New Worldbook</string>
+    <string name="worldbook_edit_title">Edit Worldbook</string>
+    <string name="worldbook_save">Save</string>
+    <string name="worldbook_back_cd">Back</string>
+    <string name="worldbook_unsaved_title">Unsaved Changes</string>
+    <string name="worldbook_unsaved_content">You have unsaved changes. Discard them?</string>
+    <string name="worldbook_discard">Discard</string>
+    <string name="worldbook_unnamed">Unnamed</string>
+    <string name="worldbook_disabled">Disabled</string>
+    <string name="worldbook_enabled_cd">Enabled</string>
+    <string name="worldbook_disabled_cd">Disabled</string>
+    <string name="worldbook_edit_cd">Edit</string>
+    <string name="worldbook_delete_cd">Delete</string>
+    <string name="worldbook_delete_title">Delete Worldbook</string>
+    <string name="worldbook_empty_title">No worldbook entries</string>
+    <string name="worldbook_empty_subtitle">Tap the button below to create your first entry</string>
+    <string name="worldbook_keywords_label">Keywords: %1$s</string>
+    <string name="worldbook_badge_always_active">Constant</string>
+    <string name="worldbook_export">Export</string>
+
+    <!-- Sections -->
+    <string name="worldbook_section_basic">Basic</string>
+    <string name="worldbook_section_content">Content</string>
+    <string name="worldbook_section_injection">Injection</string>
+    <string name="worldbook_section_behavior">Matching</string>
+
+    <!-- Fields -->
+    <string name="worldbook_field_name">Name</string>
+    <string name="worldbook_field_keywords">Keywords</string>
+    <string name="worldbook_field_keywords_placeholder">Separate multiple keywords with commas</string>
+    <string name="worldbook_field_content">Content</string>
+    <string name="worldbook_field_priority">Priority (higher = injected first)</string>
+    <string name="worldbook_field_inject_target">Inject Target</string>
+    <string name="worldbook_field_inject_position">Inject Position</string>
+    <string name="worldbook_field_insertion_depth">Insertion Depth (Nth USER from end)</string>
+    <string name="worldbook_field_scan_depth">Scan Depth (last N USER messages)</string>
+    <string name="worldbook_field_case_sensitive">Case Sensitive</string>
+    <string name="worldbook_field_case_sensitive_desc">Match keywords with case sensitivity</string>
+    <string name="worldbook_field_is_regex">Regex Match</string>
+    <string name="worldbook_field_is_regex_desc">Treat keywords as regular expressions (advanced)</string>
+    <string name="worldbook_field_always_active">Always Active</string>
+    <string name="worldbook_field_always_active_desc">Inject without keyword trigger (constant)</string>
+    <string name="worldbook_field_enabled">Enabled</string>
+    <string name="worldbook_field_enabled_desc">Disabled entries are not injected</string>
+
+    <!-- Settings entry -->
+    <string name="settings_assistant_worldbook">Dynamic Worldbook</string>
+    <string name="settings_assistant_worldbook_subtitle">Advanced dynamic prompt injection</string>
+</resources>

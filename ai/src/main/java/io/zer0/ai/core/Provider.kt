@@ -157,7 +157,24 @@ data class ChatCompletion(
     val finishReason: String? = null,
     val toolCalls: List<ToolCall>? = null,
     val reasoningContent: String? = null,
+    /** v1.0.53 Phase 3: token 用量(prompt + completion + reasoning 合计)。null 表示上游未返回。 */
+    val usageTokens: UsageTokens? = null,
 )
+
+/**
+ * v1.0.53 Phase 3: token 用量明细(对齐 OpenAI usage 字段)。
+ *
+ * Provider 未返回 usage 时为 null,AgentTokenBudget 跳过累加(避免误判耗尽)。
+ */
+data class UsageTokens(
+    val promptTokens: Int = 0,
+    val completionTokens: Int = 0,
+    /** 推理 token(部分模型单独计入,如 OpenAI o1 的 completion_tokens_details.reasoning_tokens)。 */
+    val reasoningTokens: Int = 0,
+) {
+    /** 总消耗 = prompt + completion(已含 reasoning,不重复加)。 */
+    val total: Int get() = promptTokens + completionTokens
+}
 
 /**
  * Provider 抽象。每个具体厂商(OpenAI / Google / Anthropic)实现一份,

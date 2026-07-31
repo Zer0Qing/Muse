@@ -160,4 +160,18 @@
     <!-- ===== ui/activity/ActivityPanel ===== -->
     <string name="activity_log_title">Activity Log</string>
     <string name="activity_empty">No activity recorded yet.</string>
+    <string name="model_switch_retry">重试</string>
+    <string name="shortcut_new_chat_long">开始新对话</string>
+    <string name="shortcut_new_chat_short">新对话</string>
+    <string name="shortcut_quick_notes_long">快速记录</string>
+    <string name="shortcut_quick_notes_short">速记</string>
+    <string name="shortcut_settings_long">打开设置</string>
+    <string name="shortcut_settings_short">设置</string>
+    <string name="shortcut_translate_long">打开翻译</string>
+    <string name="shortcut_translate_short">翻译</string>
+    <string name="shortcut_voice_input_long">语音输入</string>
+    <string name="shortcut_voice_input_short">语音</string>
+    <string name="speech_next_chunk_cd">下一段</string>
+    <string name="speech_previous_chunk_cd">上一段</string>
+    <string name="speech_seek_backward_5s_cd">后退 5 秒</string>
 </resources>

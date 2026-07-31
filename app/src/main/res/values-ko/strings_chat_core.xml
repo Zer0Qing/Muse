@@ -1,0 +1,345 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== ChatScreen ===== -->
+    <!-- Top bar -->
+    <string name="chat_session_cd">현재 채팅: %1$s, 전환하려면 탭하세요.</string>
+    <string name="chat_model_not_configured">구성되지 않음</string>
+    <string name="chat_model_cd">현재 모델: %1$s, 전환하려면 탭하세요.</string>
+    <string name="chat_context_usage_cd">컨텍스트 사용량 %1$s%%, %2$d 총 토큰</string>
+    <string name="chat_context_tokens_only_cd">컨텍스트 토큰 수 %1$d, 모델에 컨텍스트 창이 없습니다.</string>
+    <string name="chat_context_no_window_detail">%1$d 토큰(모델에 컨텍스트 창이 없음)</string>
+    <string name="chat_assistant_model_badge">모델: %1$s</string>
+    <string name="chat_update_compress_cd">업데이트 &amp; 압축</string>
+    <string name="chat_scroll_to_bottom_cd">맨 아래로 스크롤</string>
+    <string name="chat_export_cd">채팅 내보내기</string>
+    <string name="chat_companion_days_zero">오늘 막 만났어요</string>
+    <string name="chat_companion_days">%1$d일 동안 함께</string>
+    <string name="chat_date_separator_today">오늘 %1$s</string>
+    <string name="chat_thinking">생각…</string>
+
+    <!-- Errors and permissions -->
+    <string name="chat_err_mic_permission">음성 입력을 위해서는 마이크 권한이 필요합니다.</string>
+    <string name="chat_err_open_file_picker">파일 선택기를 열 수 없습니다: %1$s</string>
+    <string name="chat_err_open_image_picker">이미지 선택기를 열 수 없습니다: %1$s</string>
+    <string name="chat_err_no_speech_service">음성인식 서비스를 이용할 수 없습니다.</string>
+    <string name="chat_err_start_speech">음성 인식을 시작할 수 없습니다: %1$s</string>
+    <string name="chat_error_cd">오류: %1$s, 다시 시도하거나 닫으세요.</string>
+    <string name="chat_retry">다시 해 보다</string>
+
+    <!-- Share -->
+    <string name="chat_share_subject">뮤즈 대화</string>
+    <string name="chat_share_chooser_title">채팅 공유</string>
+
+    <!-- Copy toast -->
+    <string name="chat_copied_toast">복사됨</string>
+
+    <!-- Prompt templates -->
+    <string name="chat_prompt_templates_title">프롬프트 템플릿</string>
+
+    <!-- Knowledge base -->
+    <string name="chat_knowledge_dialog_title">참조 기술 자료</string>
+    <string name="chat_knowledge_empty">기술 자료가 비어 있습니다.</string>
+    <string name="chat_knowledge_doc_meta">%1$s · %2$d 문자</string>
+
+    <!-- Session switch -->
+    <string name="chat_switch_session_title">채팅 전환</string>
+    <string name="chat_no_sessions">아직 채팅이 없습니다.</string>
+    <string name="chat_new_session">새 채팅</string>
+
+    <!-- v1.136 T1: Switch assistant within chat -->
+    <string name="chat_switch_assistant_title">스위치 어시스턴트</string>
+    <string name="chat_switch_assistant_empty">보조자 없음</string>
+    <string name="chat_switch_assistant_current">현재의</string>
+    <string name="chat_switch_assistant_applied">%1$s으로 전환됨</string>
+    <string name="chat_switch_assistant_long_press_hint">어시스턴트를 전환하려면 제목을 길게 누르세요.</string>
+
+    <!-- Delegate to assistant -->
+    <string name="chat_delegate_title">어시스턴트에게 위임</string>
+    <string name="chat_delegate_empty">보조자나 팀이 없습니다.</string>
+    <string name="chat_delegate_assistants">사용 가능한 보조자</string>
+    <string name="chat_delegate_unnamed_assistant">이름 없는 어시스턴트</string>
+    <string name="chat_delegate_assistant_prompt_input">%1$s에 위임하세요: %2$s</string>
+    <string name="chat_delegate_assistant_prompt_message">위 내용을 %1$s에 위임하세요:</string>
+    <string name="chat_delegate_no_text">이 메시지에는 위임할 텍스트 콘텐츠가 없습니다.</string>
+    <string name="chat_delegate_teams">협업 팀</string>
+    <string name="chat_delegate_unnamed_team">이름이 없는 팀</string>
+    <string name="chat_delegate_team_prompt_input">%1$s 팀으로 처리해 주세요: %2$s</string>
+    <string name="chat_delegate_team_prompt_message">위 콘텐츠를 %1$s 팀에서 처리해 주세요.</string>
+
+    <!-- Empty state guide -->
+    <string name="chat_avatar_assistant_cd">어시스턴트 아바타</string>
+    <string name="chat_avatar_muse_cd">뮤즈 아이콘</string>
+    <string name="chat_empty_guide_title">오늘은 어떤 이야기를 나누고 싶으신가요?</string>
+    <string name="chat_suggested_prompt_report">주간 보고서 작성</string>
+    <string name="chat_suggested_prompt_summary">오늘의 작업을 요약해 보세요</string>
+    <string name="chat_suggested_prompt_explain">이 개념을 설명하세요.</string>
+    <string name="chat_suggested_prompt_ideas">창의적인 아이디어를 주세요</string>
+
+    <!-- Image generation placeholder -->
+    <string name="chat_image_generating">이미지 생성 중…</string>
+
+    <!-- ===== MessageBubble ===== -->
+    <!-- MOOD / Reasoning / Reflection collapsible blocks -->
+    <string name="chat_mood_collapse_cd">기분 접기</string>
+    <string name="chat_mood_expand_cd">기분 확장</string>
+    <string name="chat_reasoning_title">추리</string>
+    <string name="chat_reasoning_collapse_cd">추론 축소</string>
+    <string name="chat_reasoning_expand_cd">추론 확장</string>
+    <string name="chat_reflection_title">반사</string>
+    <string name="chat_reflection_collapse_cd">반사 축소</string>
+    <string name="chat_reflection_expand_cd">반사 확장</string>
+
+    <!-- Images -->
+    <string name="chat_user_image_cd">사용자 이미지</string>
+    <string name="chat_generated_image_cd">생성된 이미지</string>
+    <string name="chat_save_image_cd">이미지 저장</string>
+    <string name="chat_image_saved_toast">갤러리에 저장됨: %1$s</string>
+    <string name="chat_image_save_failed_toast">저장 실패: %1$s</string>
+    <string name="chat_image_page_cd">이미지 %1$d / %2$d</string>
+
+    <!-- Quick buttons and long-press menu -->
+    <string name="chat_regenerate_cd">재생성</string>
+    <string name="chat_regenerate_action">재생성</string>
+    <string name="chat_translate_action">번역하다</string>
+    <string name="chat_translate_to_cd">%1$s로 번역하세요</string>
+    <string name="chat_delegate_action">어시스턴트에게 위임</string>
+    <string name="chat_tts_stop">읽기 중지</string>
+    <string name="chat_tts_play">소리내어 읽기</string>
+    <string name="chat_favorite_remove">즐겨찾기 제거</string>
+    <string name="chat_favorite_add">가장 좋아하는</string>
+    <string name="chat_fork_action">포크 채팅</string>
+    <string name="chat_share_action">채팅 공유</string>
+    <string name="chat_agent_weak_tool_title">도구 호출 성능 저하</string>
+    <string name="chat_agent_hint_dismiss">알았어요</string>
+    <string name="chat_agent_session_locked">에이전트 모드에서 세션이 잠겼습니다.</string>
+    <string name="chat_delete_message">메시지 삭제</string>
+    <string name="chat_delete_message_confirm">이 작업은 취소할 수 없습니다.</string>
+    <string name="chat_translate_in_progress">번역 중…</string>
+
+    <!-- Loading and tool calls -->
+    <string name="chat_loading_thinking">생각</string>
+    <string name="chat_tool_success_cd">성공</string>
+    <string name="chat_tool_failed_cd">실패한</string>
+    <string name="chat_tool_params">매개변수</string>
+    <string name="chat_tool_result">결과</string>
+
+    <!-- ===== InputBar ===== -->
+    <!-- Top toggles -->
+    <string name="chat_web_search_cd_on">웹 검색(켜짐)</string>
+    <string name="chat_web_search_cd">웹 검색</string>
+    <string name="chat_deep_thinking_cd_on">깊은 생각(켜짐)</string>
+    <string name="chat_deep_thinking_cd">깊은 생각</string>
+    <!-- v1.94: Tool call dynamic capsule -->
+    <string name="chat_tool_calls_cd">도구 통화 내역</string>
+    <string name="chat_tool_calls_title">도구 호출 내역</string>
+    <string name="chat_tool_calls_empty">도구 호출 없음</string>
+
+    <!-- Resume interrupted tool calls banner -->
+    <string name="chat_pending_tools_banner_title">%1$d 지난번에 완료되지 않은 도구 호출</string>
+    <string name="chat_pending_tools_banner_subtitle">스트리밍이 중단되었습니다.</string>
+    <string name="chat_pending_tools_resume">재개하다</string>
+    <string name="chat_pending_tools_discard">버리다</string>
+    <string name="chat_pending_tools_cd">보류 중인 도구 호출 복구 배너</string>
+
+    <!-- Quick messages and images -->
+    <string name="chat_unnamed">이름 없음</string>
+    <string name="chat_pending_image_cd">보류 중인 이미지 %1$d</string>
+    <string name="chat_remove_image_cd">이미지 제거</string>
+    <!-- v1.136 T10: Pending document chip -->
+    <string name="chat_pending_document_cd">보류 중인 문서 %1$s</string>
+    <string name="chat_remove_document_cd">문서 제거</string>
+
+    <!-- Quote reply -->
+    <string name="chat_edit_reply_cd">견적 편집</string>
+    <string name="chat_edit_reply_title">견적 내용 편집</string>
+
+    <!-- Tool menu -->
+    <string name="chat_tools_cd">도구</string>
+    <string name="chat_tools_pick_content">보낼 콘텐츠 선택</string>
+    <string name="chat_tool_camera">카메라</string>
+    <string name="chat_tool_photo">사진</string>
+    <!-- Video input: tool menu card label -->
+    <string name="chat_tool_video">동영상</string>
+    <string name="chat_gallery_image_cd">갤러리 이미지</string>
+    <string name="chat_gallery_cd">갱도</string>
+    <string name="chat_authorize_gallery">갤러리 접근 허용</string>
+    <string name="chat_tool_attachment">부착</string>
+    <string name="chat_tool_knowledge">참조 기술 자료</string>
+    <string name="chat_tool_knowledge_subtitle">@멘션 문서</string>
+    <string name="chat_tool_prompt_template_subtitle">템플릿에서 장면 프롬프트 선택</string>
+    <string name="chat_tool_skills">기술</string>
+    <string name="chat_tool_skills_subtitle">활성화된 기술 관리 및 호출</string>
+    <string name="chat_tool_draw_mode">그리기 모드</string>
+    <string name="chat_tool_draw_mode_subtitle_on">On · 생성할 이미지 설명</string>
+    <string name="chat_tool_draw_mode_subtitle">생성할 이미지 설명</string>
+    <string name="chat_tool_delegate_subtitle">이 메시지를 처리할 보조 도우미를 선택하세요.</string>
+    <string name="chat_tool_restart_context">컨텍스트 다시 시작</string>
+    <string name="chat_tool_restart_context_subtitle">현재 채팅을 지우고 상담원이 다시 시작하도록 합니다.</string>
+
+    <!-- Input field and buttons -->
+    <string name="chat_placeholder_draw">생성할 이미지를 설명합니다…</string>
+    <string name="chat_placeholder_send">뮤즈에게 답장하세요…</string>
+    <string name="chat_expand_input_cd">전체 화면 편집</string>
+    <string name="chat_expand_input_title">메시지 편집</string>
+    <!-- v1.0.47 P5-3: Token count menu -->
+    <string name="chat_token_count_cd">토큰 수</string>
+    <string name="chat_token_menu_title">토큰 추정</string>
+    <string name="chat_token_input">현재 입력</string>
+    <string name="chat_token_history">기록 메시지</string>
+    <string name="chat_token_context_window">컨텍스트 창</string>
+    <string name="chat_token_remaining">사용 가능</string>
+    <string name="chat_token_usage">컨텍스트 사용법</string>
+    <string name="chat_token_disclaimer">참고용으로만 cl100k_base를 기준으로 한 대략적인 추정치입니다.</string>
+    <!-- v1.0.47 P5-2: Paste long text as file -->
+    <string name="chat_paste_as_file_title">큰 텍스트가 감지되었습니다.</string>
+    <string name="chat_paste_as_file_msg">붙여넣은 내용은 %1$d 문자입니다.</string>
+    <string name="chat_paste_as_file_attach">파일로 첨부</string>
+    <string name="chat_paste_as_file_paste">직접 붙여넣기</string>
+    <!-- Long-press input bar action menu -->
+    <string name="chat_input_action_fullscreen">전체 화면 입력 모드</string>
+    <string name="chat_stop_generation_cd">생성 중지</string>
+    <string name="chat_recording_start_failed">녹화를 시작하지 못했습니다.</string>
+    <string name="chat_recognizing_cd">인식</string>
+    <string name="chat_recording_cd">녹음</string>
+    <string name="chat_hold_to_record_cd">길게 눌러 녹음</string>
+    <string name="chat_cancelled">취소</string>
+    <!-- v1.95: System speech recognition first-use tip -->
+    <string name="chat_asr_tip_title">음성 인식 팁</string>
+    <string name="chat_asr_tip_message">시스템 음성 인식은 매번 시스템 대화 상자를 표시합니다.</string>
+    <string name="chat_asr_tip_confirm">계속하다</string>
+
+    <!-- Draw params panel -->
+    <string name="chat_image_too_large">이미지가 너무 크거나 읽을 수 없음</string>
+    <string name="chat_ref_image_load_failed">참조 이미지 로드 실패: %1$s</string>
+    <string name="chat_ref_image_compressed">압축된 참조 이미지: %1$s</string>
+    <string name="chat_ref_image_too_large_after_compress">압축 후에도 참조 이미지가 너무 큽니다. 더 작은 이미지를 선택하세요.</string>
+    <!-- Video input: a11y descriptions + error messages -->
+    <string name="chat_pending_video_cd">동영상 첨부 대기 중</string>
+    <string name="chat_remove_video_cd">동영상 삭제</string>
+    <string name="chat_user_video_cd">사용자가 보낸 영상</string>
+    <string name="chat_video_open_failed">비디오를 열 수 없습니다: %1$s</string>
+    <string name="chat_video_too_large">동영상이 너무 큽니다(50MB 이상).</string>
+    <string name="chat_video_load_failed">비디오 읽기 실패: %1$s</string>
+    <string name="chat_draw_params">그리기 매개변수</string>
+    <string name="chat_ref_image_add">+ 참조 이미지</string>
+    <string name="chat_ref_image_not_supported">현재 모델에서는 지원되지 않는 참조 이미지</string>
+    <string name="chat_ref_image_cd">참조 이미지</string>
+    <string name="chat_ref_image_clear_cd">참조 이미지 지우기</string>
+    <string name="chat_quality_standard">기준</string>
+    <string name="chat_quality_hd">HD</string>
+    <string name="chat_quality_high">높은</string>
+    <string name="chat_quality_medium">중간</string>
+    <string name="chat_quality_low">낮은</string>
+    <string name="chat_quality_auto">자동</string>
+    <string name="chat_style_vivid">생생한</string>
+    <string name="chat_style_natural">자연스러운</string>
+
+    <!-- ===== ChatListScreen ===== -->
+    <!-- Big entry cards -->
+    <string name="chat_list_scheduled_tasks">예약된 작업</string>
+    <string name="chat_list_scheduled_subtitle">자동 실행</string>
+    <string name="chat_list_quick_notes">빠른 메모</string>
+    <string name="chat_list_quick_notes_subtitle">가벼운 노트</string>
+    <string name="chat_list_quick_translate">빠른 번역</string>
+    <string name="chat_list_knowledge_base">지식</string>
+
+    <!-- Filter cards -->
+    <string name="chat_list_filter_all">모두</string>
+    <string name="chat_list_filter_pinned">고정됨</string>
+    <string name="chat_list_filter_archived">보관됨</string>
+
+    <!-- Empty states -->
+    <string name="chat_list_empty_all">아직 할 일이 없습니다.</string>
+    <string name="chat_list_empty_pinned">아직 고정된 작업이 없습니다.</string>
+    <string name="chat_list_empty_archived">아직 보관된 작업이 없습니다.</string>
+    <string name="chat_list_empty_all_sub">아이디어와 연구 기록을 시작하세요</string>
+    <string name="chat_list_empty_pinned_sub">고정하려면 채팅을 길게 누르세요.</string>
+    <string name="chat_list_empty_archived_sub">보관처리하려면 채팅을 길게 누르세요.</string>
+
+    <!-- Section titles -->
+    <string name="chat_list_section_ungrouped">그룹 해제됨</string>
+    <string name="chat_list_section_recent">최근의</string>
+    <string name="chat_list_section_pinned">고정됨</string>
+    <string name="chat_list_section_folders">폴더</string>
+    <string name="chat_list_section_knowledge">지식</string>
+    <string name="chat_list_new_folder">새 폴더</string>
+
+    <!-- Task home -->
+    <string name="chat_list_input_hint">아이디어를 입력하세요…</string>
+    <string name="chat_list_send">보내다</string>
+    <string name="chat_list_no_recent_title">아직 채팅이 없습니다.</string>
+    <string name="chat_list_no_recent_subtitle">새 채팅을 시작하려면 아래의 + 버튼을 탭하세요.</string>
+    <string name="chat_list_knowledge_title">기술 자료</string>
+    <string name="chat_list_knowledge_count">%1$d 문서</string>
+    <string name="chat_list_knowledge_empty">문서를 추가하려면 탭하세요.</string>
+    <string name="chat_list_quick_send">신규 &amp; 보내기</string>
+
+    <!-- Bottom button and dialogs -->
+    <string name="chat_list_new_task">새 작업</string>
+    <string name="chat_list_new_task_card_subtitle">아이디어 포착, 작업 생성, 채팅 시작</string>
+    <string name="chat_list_folder_name_placeholder">폴더 이름</string>
+    <string name="chat_list_create">만들다</string>
+
+    <!-- Session long-press menu -->
+    <string name="chat_list_pin">핀</string>
+    <string name="chat_list_unpin">고정 해제</string>
+    <string name="chat_list_archive">보관소</string>
+    <string name="chat_list_move_ungrouped">그룹 해제됨으로 이동</string>
+    <string name="chat_list_move_to">다음으로 이동: %1$s</string>
+    <string name="chat_list_move_to_cd">%1$s으로 이동</string>
+    <string name="chat_list_rename">이름 바꾸기</string>
+    <string name="chat_list_unarchive">보관 취소</string>
+
+    <!-- Session rename/delete dialogs -->
+    <string name="chat_list_rename_session_title">채팅 이름 바꾸기</string>
+    <string name="chat_list_confirm">좋아요</string>
+    <string name="chat_list_delete_session_title">채팅 삭제</string>
+    <string name="chat_list_delete_session_confirm">이 작업은 취소할 수 없습니다.</string>
+    <string name="chat_list_deleted_toast">삭제됨</string>
+
+    <!-- Folder rename/delete dialogs -->
+    <string name="chat_list_delete_folder_title">폴더 삭제</string>
+    <string name="chat_list_rename_folder_title">폴더 이름 바꾸기</string>
+    <string name="chat_list_delete_folder_confirm">\"%1$s\" 폴더를 삭제하면 해당 채팅이 그룹 해제됨으로 이동됩니다.</string>
+
+    <!-- v5: chat fork -->
+    <string name="chat_list_forked_from">%1$s에서 분기됨</string>
+    <string name="chat_list_child_count">+%1$d</string>
+
+    <!-- ===== v1.95: Sticker Library ===== -->
+    <!-- ChatSettingsPage sticker library section -->
+    <string name="settings_chat_sticker_section">스티커 라이브러리</string>
+    <string name="settings_sticker_enabled">스티커 활성화</string>
+    <string name="settings_sticker_enabled_subtitle">어시스턴트가 답장으로 스티커를 보낼 수 있도록 허용</string>
+    <string name="settings_sticker_send_probability">전송 확률</string>
+    <string name="settings_sticker_send_probability_subtitle">어시스턴트가 답장당 스티커를 보낼 확률</string>
+    <string name="settings_sticker_upload_zip">우편번호 가져오기</string>
+    <string name="settings_sticker_upload_zip_subtitle">ZIP 파일을 선택하세요.</string>
+    <string name="settings_sticker_imported">가져온 %1$d 스티커</string>
+    <string name="settings_sticker_import_failed">가져오기 실패: %1$s</string>
+    <string name="settings_sticker_empty_title">아직 스티커가 없습니다.</string>
+    <string name="settings_sticker_empty_subtitle">ZIP 파일을 추가하려면 위의 \"ZIP 가져오기\"를 탭하세요.</string>
+    <string name="settings_sticker_delete_confirm">이 스티커를 삭제하시겠습니까?</string>
+    <string name="settings_sticker_category_all">모두</string>
+
+    <!-- SkillExecutor sticker tool feedback -->
+    <string name="skill_sticker_not_configured">스티커 라이브러리가 구성되지 않았습니다.</string>
+    <string name="skill_sticker_not_found">ID가 %1$s인 스티커를 찾을 수 없습니다.</string>
+    <string name="skill_sticker_sent">보낸 스티커: %1$s</string>
+    <string name="skill_sticker_list_empty">스티커 라이브러리가 비어 있습니다.</string>
+
+    <!-- v1.97: Slash commands -->
+    <string name="slash_command_hint">빠른 명령을 보려면 /를 입력하세요.</string>
+    <string name="slash_command_new">/new 새 세션</string>
+    <string name="slash_command_compact">/compact 세션 기록 압축</string>
+    <string name="slash_command_reset">/reset 컨텍스트 재설정</string>
+    <string name="slash_command_pin">/pin 토글 핀</string>
+    <string name="slash_command_archive">/archive 아카이브 세션</string>
+    <string name="slash_command_unknown">알 수 없는 명령: %1$s</string>
+    <string name="slash_command_executed">실행됨: %1$s</string>
+    <string name="slash_command_new_done">새 세션이 생성되었습니다.</string>
+    <string name="slash_command_compact_done">세션 기록을 압축하는 중...</string>
+    <string name="slash_command_reset_done">컨텍스트 재설정</string>
+    <string name="slash_command_pin_done">핀이 전환됨</string>
+    <string name="slash_command_archive_done">세션이 보관되었습니다.</string>
+</resources>

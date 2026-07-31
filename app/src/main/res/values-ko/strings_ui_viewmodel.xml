@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== QuickMessageScreen ===== -->
+    <!-- Top bar -->
+    <string name="quick_msg_screen_title">빠른 메시지</string>
+    <string name="quick_msg_back_cd">뒤쪽에</string>
+    <string name="quick_msg_new_cd">새 빠른 메시지</string>
+    <string name="quick_msg_intro">사전 설정된 메시지 템플릿.</string>
+    <string name="quick_msg_empty_title">아직 빠른 메시지가 없습니다.</string>
+    <string name="quick_msg_empty_subtitle">오른쪽 하단의 +를 눌러 생성하세요.</string>
+    <string name="quick_msg_delete_title">빠른 메시지 삭제</string>
+    <!-- Card -->
+    <string name="quick_msg_new_default_name">새 빠른 메시지</string>
+    <string name="quick_msg_unnamed">(이름 없음)</string>
+    <string name="quick_msg_disabled">장애가 있는</string>
+    <string name="quick_msg_scope_global">글로벌</string>
+    <string name="quick_msg_scope_assistant">보조자: %1$s</string>
+    <string name="quick_msg_scope_label">범위: %1$s</string>
+    <string name="quick_msg_enabled_cd">활성화됨</string>
+    <string name="quick_msg_disabled_cd">장애가 있는</string>
+    <string name="quick_msg_edit_cd">편집하다</string>
+    <string name="quick_msg_delete_cd">삭제</string>
+    <!-- Edit page -->
+    <string name="quick_msg_unsaved_title">저장되지 않은 변경사항</string>
+    <string name="quick_msg_unsaved_content">종료하면 현재 수정사항이 삭제됩니다.</string>
+    <string name="quick_msg_discard">버리다</string>
+    <string name="quick_msg_new_title">새 빠른 메시지</string>
+    <string name="quick_msg_edit_title">빠른 메시지 편집</string>
+    <string name="quick_msg_save">구하다</string>
+    <string name="quick_msg_section_basic">기초적인</string>
+    <string name="quick_msg_field_name">이름</string>
+    <string name="quick_msg_section_content">템플릿 콘텐츠</string>
+    <string name="quick_msg_field_content">콘텐츠({{input}} / {{clipboard}} / {{date}} 변수 지원)</string>
+    <string name="quick_msg_section_scope">범위</string>
+    <string name="quick_msg_field_scope">범위</string>
+    <string name="quick_msg_scope_global_opt">글로벌(모든 어시스턴트가 공유)</string>
+    <string name="quick_msg_scope_assistant_opt">어시스턴트 바인딩(지정된 어시스턴트에 대해서만 표시됨)</string>
+    <string name="quick_msg_field_bind_assistant">바인딩 어시스턴트</string>
+    <string name="quick_msg_section_behavior">행동</string>
+    <string name="quick_msg_field_sort_index">색인 정렬(더 작음 = 더 빠름)</string>
+    <string name="quick_msg_field_enabled">활성화됨</string>
+    <string name="quick_msg_field_enabled_desc">끄면 이 항목이 InputBar 칩 행에 표시되지 않습니다.</string>
+
+    <!-- ===== LorebookScreen ===== -->
+    <!-- Top bar -->
+    <string name="lorebook_screen_title">설화집</string>
+    <string name="lorebook_back_cd">뒤쪽에</string>
+    <string name="lorebook_new_cd">새로운 설화집</string>
+    <string name="lorebook_intro">키워드에 의해 트리거되는 컨텍스트 주입.</string>
+    <string name="lorebook_empty_title">아직 지식북이 없습니다</string>
+    <string name="lorebook_empty_subtitle">오른쪽 하단의 +를 눌러 생성하세요.</string>
+    <string name="lorebook_delete_title">설화집 삭제</string>
+    <!-- Card -->
+    <string name="lorebook_new_default_name">신규 항목</string>
+    <string name="lorebook_unnamed">(이름 없음)</string>
+    <string name="lorebook_disabled">장애가 있는</string>
+    <string name="lorebook_keywords_label">키워드: %1$s</string>
+    <string name="lorebook_enabled_cd">활성화됨</string>
+    <string name="lorebook_disabled_cd">장애가 있는</string>
+    <string name="lorebook_edit_cd">편집하다</string>
+    <string name="lorebook_delete_cd">삭제</string>
+    <!-- Edit page -->
+    <string name="lorebook_unsaved_title">저장되지 않은 변경사항</string>
+    <string name="lorebook_unsaved_content">종료하면 현재 수정사항이 삭제됩니다.</string>
+    <string name="lorebook_discard">버리다</string>
+    <string name="lorebook_new_title">새로운 설화집</string>
+    <string name="lorebook_edit_title">설화집 편집</string>
+    <string name="lorebook_save">구하다</string>
+    <string name="lorebook_section_basic">기초적인</string>
+    <string name="lorebook_field_name">이름</string>
+    <string name="lorebook_field_keywords">트리거 키워드(쉼표로 구분)</string>
+    <string name="lorebook_field_keywords_placeholder">예를 들어</string>
+    <string name="lorebook_section_content">주입 내용</string>
+    <string name="lorebook_field_content">콘텐츠(키워드가 일치할 때 SYSTEM 컨텍스트로 삽입됨)</string>
+    <string name="lorebook_section_behavior">행동</string>
+    <string name="lorebook_field_priority">우선순위(큰 숫자 = 먼저 주입)</string>
+    <string name="lorebook_field_insertion_position">삽입 위치</string>
+    <string name="lorebook_field_case_sensitive">대소문자 구분</string>
+    <string name="lorebook_field_case_sensitive_desc">켜져 있으면 키워드 일치에서 대소문자를 구분합니다.</string>
+    <string name="lorebook_field_enabled">활성화됨</string>
+    <string name="lorebook_field_enabled_desc">끄면 이 항목이 더 이상 주입을 트리거하지 않습니다.</string>
+
+    <!-- ===== PromptInjectionScreen ===== -->
+    <!-- Top bar -->
+    <string name="prompt_injection_screen_title">신속한 주입</string>
+    <string name="prompt_injection_back_cd">뒤쪽에</string>
+    <string name="prompt_injection_new_cd">새로운 프롬프트 주입</string>
+    <string name="prompt_injection_intro">모드로 트리거되는 컨텍스트 주입.</string>
+    <string name="prompt_injection_empty_title">아직 PromptInjection이 없습니다.</string>
+    <string name="prompt_injection_empty_subtitle">오른쪽 하단의 +를 눌러 생성하세요.</string>
+    <string name="prompt_injection_delete_title">프롬프트 삽입 삭제</string>
+    <!-- Card -->
+    <string name="prompt_injection_new_default_name">새로운 주입</string>
+    <string name="prompt_injection_unnamed">(이름 없음)</string>
+    <string name="prompt_injection_disabled">장애가 있는</string>
+    <string name="prompt_injection_mode_label">모드: %1$s</string>
+    <string name="prompt_injection_enabled_cd">활성화됨</string>
+    <string name="prompt_injection_disabled_cd">장애가 있는</string>
+    <string name="prompt_injection_edit_cd">편집하다</string>
+    <string name="prompt_injection_delete_cd">삭제</string>
+    <!-- Edit page -->
+    <string name="prompt_injection_unsaved_title">저장되지 않은 변경사항</string>
+    <string name="prompt_injection_unsaved_content">종료하면 현재 수정사항이 삭제됩니다.</string>
+    <string name="prompt_injection_discard">버리다</string>
+    <string name="prompt_injection_new_title">새로운 프롬프트 주입</string>
+    <string name="prompt_injection_edit_title">프롬프트 삽입 편집</string>
+    <string name="prompt_injection_save">구하다</string>
+    <string name="prompt_injection_section_basic">기초적인</string>
+    <string name="prompt_injection_field_name">이름</string>
+    <string name="prompt_injection_field_mode">방법</string>
+    <string name="prompt_injection_field_display_name">표시 이름(UI에 표시됨, 모드 기본값을 사용하려면 비워 두세요)</string>
+    <string name="prompt_injection_section_content">주입 내용</string>
+    <string name="prompt_injection_field_content">콘텐츠(이 모드로 전환할 때 SYSTEM 컨텍스트로 주입됨)</string>
+    <string name="prompt_injection_section_behavior">행동</string>
+    <string name="prompt_injection_field_priority">우선순위(동일 모드의 다중 주입 주문, 숫자가 클수록 먼저 주입됨)</string>
+    <string name="prompt_injection_field_insertion_position">삽입 위치</string>
+    <string name="prompt_injection_field_enabled">활성화됨</string>
+    <string name="prompt_injection_field_enabled_desc">끄면 이 항목이 더 이상 주입을 트리거하지 않습니다.</string>
+
+    <!-- ===== AssistantScreen ===== -->
+    <!-- Top bar -->
+    <string name="assistant_screen_title">어시스턴트</string>
+    <string name="assistant_back_cd">뒤쪽에</string>
+    <string name="assistant_import_card_cd">캐릭터 카드 가져오기</string>
+    <string name="assistant_section_my_assistants">내 어시스턴트</string>
+    <string name="assistant_section_actions">추가 또는 가져오기</string>
+    <string name="assistant_memory_entry_title">장기 기억</string>
+    <string name="assistant_memory_entry_subtitle">4레이어 메모리 시스템 보기</string>
+    <string name="assistant_empty_create">아직 어시스턴트가 없습니다.</string>
+    <string name="assistant_unnamed">(이름 없음)</string>
+    <string name="assistant_current">현재의</string>
+    <string name="assistant_more_cd">추가 작업</string>
+    <string name="assistant_new_action">새로운 어시스턴트</string>
+    <string name="assistant_new_default_name">새로운 어시스턴트</string>
+    <string name="assistant_clone_name">%1$s (복사)</string>
+    <!-- Action menu -->
+    <string name="assistant_move_up_cd">위로 이동</string>
+    <string name="assistant_move_up">위로 이동</string>
+    <string name="assistant_move_down_cd">아래로 이동</string>
+    <string name="assistant_move_down">아래로 이동</string>
+    <string name="assistant_clone_cd">클론</string>
+    <string name="assistant_clone">클론</string>
+    <string name="assistant_export_card_cd">캐릭터 카드 내보내기</string>
+    <string name="assistant_export_card">캐릭터카드 수출</string>
+    <string name="assistant_delete_cd">삭제</string>
+    <string name="assistant_delete">삭제</string>
+    <string name="assistant_close">닫다</string>
+    <string name="assistant_delete_title">어시스턴트 삭제</string>
+    <!-- Toast -->
+    <string name="assistant_toast_exported">내보낸 캐릭터 카드: %1$s</string>
+    <string name="assistant_toast_export_failed">내보내기 실패: %1$s</string>
+    <string name="assistant_toast_imported">가져온 캐릭터 카드: %1$s</string>
+    <string name="assistant_toast_import_invalid">가져오기 실패: 잘못된 파일 형식</string>
+    <string name="assistant_toast_import_failed">가져오기 실패: %1$s</string>
+
+    <!-- ===== SillyTavern character card (PNG/JSON universal format) ===== -->
+    <!-- Assistant list: import entry (list item, below + New Assistant) -->
+    <string name="assistant_import_sillytavern_cd">SillyTavern 캐릭터 카드 가져오기</string>
+    <string name="assistant_import_sillytavern">SillyTavern 캐릭터 카드 가져오기</string>
+    <!-- Assistant detail: character card sharing section -->
+    <string name="assistant_detail_share_section">캐릭터 카드 공유</string>
+    <string name="assistant_detail_export_png">PNG 캐릭터 카드로 내보내기</string>
+    <string name="assistant_detail_export_png_desc">SillyTavern 형식(메타데이터 포함)</string>
+    <string name="assistant_detail_export_json">JSON 캐릭터 카드로 내보내기</string>
+    <string name="assistant_detail_export_json_desc">SillyTavern V2 JSON</string>
+    <string name="assistant_detail_share_muse_card">뮤즈 캐릭터 카드 공유</string>
+    <string name="assistant_detail_share_muse_card_desc">비주얼 카드 생성 및 시스템을 통한 공유</string>
+    <string name="assistant_detail_share_muse_json">Muse JSON 공유</string>
+    <string name="assistant_detail_share_muse_json_desc">시스템을 통해 Muse JSON 공유</string>
+    <string name="assistant_detail_share_muse_failed">공유 실패: %1$s</string>
+    <!-- Toast -->
+    <string name="assistant_toast_sillytavern_imported">SillyTavern 캐릭터 카드 가져오기: %1$s</string>
+    <string name="assistant_toast_sillytavern_import_failed">SillyTavern 가져오기 실패: %1$s</string>
+    <string name="assistant_toast_sillytavern_exported">SillyTavern 캐릭터 카드 내보내기</string>
+    <string name="assistant_toast_sillytavern_export_failed">SillyTavern 내보내기 실패: %1$s</string>
+</resources>

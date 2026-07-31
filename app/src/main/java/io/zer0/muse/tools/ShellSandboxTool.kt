@@ -60,6 +60,14 @@ object ShellSandboxTool {
      * @param workDir 工作目录(应用 filesDir)
      */
     suspend fun execute(command: String, workDir: File): String = withContext(Dispatchers.IO) {
+        // 安全检查 0:规则型硬边界防线(借鉴 openhanako)
+        // v1.0.52: 调用 ToolPermissionResolver.isUnsafeCommand 做第一道拦截,
+        // 即使白名单/权限模式有 bug,黑名单(rm/sudo/git/curl/wget 等)和不安全语法
+        // (换行注入/通配符)仍然会被拦截。这是"硬边界"——TRUSTED 模式也无法绕过。
+        if (ToolPermissionResolver.isUnsafeCommand(command)) {
+            return@withContext "[错误] 命令命中硬边界黑名单(危险可执行文件或不安全语法),已被拒绝执行"
+        }
+
         // 安全检查 1:禁止危险字符
         val forbidden = command.firstOrNull { it in FORBIDDEN_CHARS }
         if (forbidden != null) {

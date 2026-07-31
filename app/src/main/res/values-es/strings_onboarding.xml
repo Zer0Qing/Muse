@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== ui/onboarding ===== Boot onboarding -->
+    <!-- Step 0: Welcome -->
+    <string name="onboarding_welcome_title">Musa</string>
+    <string name="onboarding_welcome_subtitle">Tu compañero de inspiración de IA</string>
+    <string name="onboarding_feature_chat_title">Chat de IA</string>
+    <string name="onboarding_feature_chat_desc">Conversación fluida en streaming</string>
+    <string name="onboarding_feature_memory_title">Memoria a largo plazo</string>
+    <string name="onboarding_feature_memory_desc">La IA recuerda tus preferencias</string>
+    <string name="onboarding_feature_tools_title">Sistema de herramientas</string>
+    <string name="onboarding_feature_tools_desc">Más de 70 herramientas integradas a tu disposición</string>
+    <string name="onboarding_feature_knowledge_title">Base de conocimientos</string>
+    <string name="onboarding_feature_knowledge_desc">Deje que la IA aprenda de sus documentos</string>
+
+    <!-- Step 1: Language & Appearance -->
+    <string name="onboarding_language_title">Idioma de la interfaz</string>
+    <string name="onboarding_theme_title">Apariencia del tema</string>
+    <string name="onboarding_lang_zh">简体中文</string>
+    <string name="onboarding_lang_zh_tw">繁體中文</string>
+    <string name="onboarding_lang_en">Inglés</string>
+    <string name="onboarding_lang_ja">日本語</string>
+    <string name="onboarding_lang_ko">한국어</string>
+
+    <!-- Step 2: Your Name -->
+    <string name="onboarding_names_title">Conozcámonos</string>
+    <string name="onboarding_names_user_label">Su nombre</string>
+    <string name="onboarding_names_agent_label">Nombre del asistente de IA</string>
+    <string name="onboarding_names_hint">El nombre del asistente AI se aplicará al asistente predeterminado.</string>
+
+    <!-- Step 3: Configure Provider -->
+    <string name="onboarding_provider_title">Configurar proveedor de IA</string>
+    <string name="onboarding_provider_subtitle">Seleccione un proveedor e ingrese su clave API.</string>
+    <string name="onboarding_provider_select_label">Seleccionar Proveedor</string>
+    <string name="onboarding_provider_apikey_label">Clave API</string>
+    <string name="onboarding_provider_apikey_input">Ingrese la clave API</string>
+    <string name="onboarding_provider_apikey_show">Mostrar clave</string>
+    <string name="onboarding_provider_apikey_hide">Ocultar clave</string>
+    <string name="onboarding_provider_test_button">Conexión de prueba</string>
+    <string name="onboarding_provider_test_success">Conexión exitosa.</string>
+    <string name="onboarding_provider_skip">Saltar y configurar más tarde</string>
+    <string name="onboarding_provider_custom">Personalizado (compatible con OpenAI)</string>
+    <string name="onboarding_provider_custom_baseurl_label">URL base personalizada</string>
+    <string name="onboarding_provider_custom_baseurl_input">https://api.example.com/v1</string>
+
+    <!-- Step 4: Select Model -->
+    <string name="onboarding_model_title">Seleccionar modelo predeterminado</string>
+    <string name="onboarding_model_search_label">Buscar modelos</string>
+    <string name="onboarding_model_empty_title">Ningún proveedor configurado</string>
+    <string name="onboarding_model_empty_desc">Puede configurar un proveedor y seleccionar un modelo más adelante en Configuración.</string>
+
+    <!-- Step 5: Complete -->
+    <string name="onboarding_complete_title">Listo</string>
+    <string name="onboarding_complete_subtitle">Esto es lo que puedes empezar a explorar</string>
+    <string name="onboarding_tutorial_chat_title">Chat diario</string>
+    <string name="onboarding_tutorial_chat_desc">Envíe texto, imágenes y archivos: la IA responderá de forma inteligente</string>
+    <string name="onboarding_tutorial_assistant_title">Asistentes &amp; Memoria</string>
+    <string name="onboarding_tutorial_assistant_desc">Personaliza la personalidad de IA;</string>
+    <string name="onboarding_tutorial_tools_title">Herramientas &amp; Base de conocimientos</string>
+    <string name="onboarding_tutorial_tools_desc">La IA puede configurar alarmas, comprobar el tiempo y buscar documentos</string>
+    <string name="onboarding_tutorial_backup_title">Copia de seguridad de datos</string>
+    <string name="onboarding_tutorial_backup_desc">Compatible con copia de seguridad en la nube WebDAV/S3: nunca pierda sus datos</string>
+
+    <!-- Bottom buttons -->
+    <string name="onboarding_button_start">Iniciar configuración</string>
+    <string name="onboarding_button_previous">Anterior</string>
+    <string name="onboarding_button_next">Próximo</string>
+    <string name="onboarding_button_finish">Empezar</string>
+</resources>

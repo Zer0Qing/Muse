@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    P3-3: 无障碍服务配置。
+    - accessibilityEventTypes: 监听全部事件类型(点击/滚动/窗口变化等),供 getCurrentActivityName 使用
+    - accessibilityFlags: FLAG_RETRIEVE_INTERACTIVE_WINDOWS 支持多窗口;FLAG_REQUEST_FILTER_KEY_EVENTS 可选
+    - canRetrieveWindowContent: true 允许读取 UI 树(getUiHierarchy/setTextOnNode 依赖)
+    - canPerformGestures: true 允许手势(performClick/performSwipe 依赖)
+    - canTakeScreenshots: 在 onServiceConnected 中通过 serviceInfo 动态设置(API 34+)
+    - notificationTimeout: 事件节流 100ms
+    - packageNames: 留空 = 监听所有应用
+-->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged|typeViewClicked|typeViewScrolled"
+    android:accessibilityFlags="flagDefault|flagRetrieveInteractiveWindows"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:canRetrieveWindowContent="true"
+    android:canPerformGestures="true"
+    android:description="@string/accessibility_service_description"
+    android:notificationTimeout="100"
+    android:packageNames="" />

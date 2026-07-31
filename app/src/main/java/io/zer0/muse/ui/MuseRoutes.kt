@@ -38,6 +38,8 @@ object MuseRoutes {
     const val FAVORITES = "favorites"
     /** Lorebook(子页面,从设置入口)。 */
     const val LOREBOOKS = "lorebooks"
+    /** P1-2: Worldbook 动态世界书(子页面,从设置入口)。 */
+    const val WORLDBOOK = "worldbook"
     /** 快捷消息(子页面,从设置入口)。 */
     const val QUICK_MESSAGES = "quick_messages"
     /** Prompt 注入(子页面,从设置入口)。 */
@@ -72,6 +74,8 @@ object MuseRoutes {
     const val SETTINGS_MEMORY = "settings_memory"
     /** v1.0.51: 记忆参数配置页(原"记忆与通知",从记忆中心齿轮入口进入)。 */
     const val SETTINGS_MEMORY_CONFIG = "settings_memory_config"
+    /** v1.0.52 P2-2: 记忆空间管理页(Space CRUD)。 */
+    const val SETTINGS_MEMORY_SPACE = "settings_memory_space"
     /** v0.32: 设置二级页 — 媒体。 */
     const val SETTINGS_MEDIA = "settings_media"
     /** v0.32: 设置二级页 — 实验性功能。 */
@@ -117,6 +121,9 @@ object MuseRoutes {
 
     /** v2.0: 数据管理页(从设置 → 数据与备份 进入)。 */
     const val DATA_MANAGEMENT = "data_management"
+
+    /** v1.0.53: 封面库管理页(知识库文档详情 → 封面)。 */
+    const val COVER_MANAGER = "cover_manager"
 
     /** v2.0: 最近删除页。 */
     const val RECENTLY_DELETED = "recently_deleted"
@@ -167,6 +174,9 @@ object MuseRoutes {
 
     /** v1.133: 设置二级页 — 助手资源(从 SettingsModelPage 拆出:收藏夹/世界书/快捷消息/模式注入/Skills/记忆开关)。 */
     const val SETTINGS_ASSISTANT_RESOURCES = "settings_assistant_resources"
+
+    /** P3-3: 权限引导页 — 三通道(无障碍/Shizuku/Root)权限配置向导。 */
+    const val SETTINGS_PERMISSION_WIZARD = "settings_permission_wizard"
 
     /** v1.0.4: 通知监听页(从设置 → 助手与 Agent 进入,引导用户授权通知使用权 + 查看最近通知)。 */
     const val NOTIFICATION_LISTENER = "notification_listener"

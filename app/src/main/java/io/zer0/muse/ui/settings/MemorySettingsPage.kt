@@ -33,6 +33,7 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
+import io.zer0.muse.ui.common.settings.SettingsItemRow
 import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -55,6 +56,7 @@ import kotlin.math.roundToInt
 @Composable
 fun MemorySettingsPage(
     onBack: () -> Unit,
+    onOpenMemorySpace: () -> Unit = {},
 ) {
     val settings: SettingsRepository = koinInject()
     val memoryConfig by settings.memoryConfigFlow.collectAsStateWithLifecycle(initialValue = MemoryConfig())
@@ -78,6 +80,18 @@ fun MemorySettingsPage(
     }
 
     SettingsSubPageScaffold(title = stringResource(R.string.settings_memory_page_title), onBack = onBack) {
+        // ── 0. 记忆空间管理(P2-2) ──
+        item { SectionLabel(stringResource(R.string.memory_space_entry)) }
+        item {
+            SettingsGroup {
+                SettingsItemRow(
+                    icon = null,
+                    title = stringResource(R.string.memory_space_manage_title),
+                    subtitle = "管理工作 / 生活 / 学习等多个记忆空间,切换时互不干扰",
+                    onClick = onOpenMemorySpace,
+                )
+            }
+        }
         // ── 1. 记忆系统 ──
         item { SectionLabel(stringResource(R.string.settings_memory_system_section)) }
         item {

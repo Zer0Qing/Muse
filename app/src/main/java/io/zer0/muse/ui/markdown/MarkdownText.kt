@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -46,9 +47,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -63,11 +66,15 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
+import coil.compose.AsyncImage
+import java.io.File
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
+import io.zer0.muse.common.markdown.FrontmatterParser
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.common.resultOf
@@ -140,7 +147,25 @@ fun MarkdownText(
      * 由 [MessageBubble] / [ChatScreen] 注入导航逻辑,跳转到 [HtmlPreviewScreen]。
      */
     onHtmlPreview: (String) -> Unit = {},
+    /**
+     * v1.0.53: 是否渲染 frontmatter 封面(默认 false;文档详情页传 true)。
+     * 聊天消息场景不渲染封面,保持现状。
+     */
+    renderCover: Boolean = false,
+    /**
+     * v1.0.53: 封面图片解析器(默认按 filesDir 相对路径解析;测试可注入)。
+     * 返回 null 表示解析失败,降级为纯正文渲染。
+     */
+    coverResolver: ((String) -> File?)? = null,
 ) {
+    // v1.0.53: frontmatter 封面 — renderCover=true 且有 cover 字段时,
+    // 正文用 strip 后的文本解析,封面区渲染在正文上方。
+    val coverFrontmatter = if (renderCover) FrontmatterParser.parse(text) else null
+    val bodyText = if (coverFrontmatter != null) FrontmatterParser.strip(text) else text
+    val coverFile: File? = if (coverFrontmatter?.cover != null) {
+        resolveCoverFile(coverFrontmatter.cover, coverResolver)
+    } else null
+
     // v1.101 (P9): 流式时把 parseMarkdown 移到后台线程,避免主线程高频正则解析。
     // 流式每 80ms 更新一次文本,原 remember(text) 会在主线程对全量文本(随消息增长
     // 可达数千字符)反复正则扫描,是流式卡顿的主要剩余瓶颈。
@@ -148,21 +173,14 @@ fun MarkdownText(
     // value 保留上一次解析结果(流式时视觉上本就有 ~80ms 延迟,滞后一帧可接受)。
     // 非流式(历史消息)保持 remember(text) 同步解析,避免滚动入屏时闪空。
     val allBlocks: List<MarkdownBlock> = if (isStreaming) {
-        val streamed by produceState<List<MarkdownBlock>>(emptyList(), text) {
-            // v1.114: 修复流式闪烁。
-            // produceState 在 key(text)变化时会取消旧协程并启动新协程,但 value 保留上一次值
-            // (initialValue 仅首次组合使用)。原代码直接 value = withContext { ... } 在协程
-            // 被取消前若解析未完成,value 会停留在旧值;但流式 text 每 ~80ms 更新一次,
-            // 解析协程频繁被取消重启,导致 value 长时间得不到更新、视觉闪烁。
-            // 修复:1) 启动新解析前不重置 value(直接计算新值后赋值,保留 previous);
-            //      2) 加 50ms 防抖,合并短时间内连续的 text 变化,避免协程被频繁取消。
+        val streamed by produceState<List<MarkdownBlock>>(emptyList(), bodyText) {
             delay(50)
-            val parsed = withContext(Dispatchers.Default) { parseMarkdown(text) }
+            val parsed = withContext(Dispatchers.Default) { parseMarkdown(bodyText) }
             value = parsed
         }
         streamed
     } else {
-        remember(text) { parseMarkdown(text) }
+        remember(bodyText) { parseMarkdown(bodyText) }
     }
     // v1.97 (P2): 流式 + 块数超阈值时只渲染尾部,降低 Compose 重组成本
     val truncated = isStreaming && allBlocks.size > STREAMING_BLOCK_CAP
@@ -176,6 +194,47 @@ fun MarkdownText(
     val citationColor = MaterialTheme.colorScheme.secondary
 
     Column(modifier = modifier.fillMaxWidth()) {
+        // v1.0.53: 封面区 — 16:5 横幅 + 底部渐变遮罩叠标题(仅文档场景)
+        if (coverFile != null && coverFile.exists()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(16f / 5f)
+                    .clip(MuseShapes.large),
+            ) {
+                AsyncImage(
+                    model = coverFile,
+                    contentDescription = coverFrontmatter?.title ?: "封面",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+                // 底部渐变遮罩 + 标题
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(64.dp)
+                        .align(Alignment.BottomCenter)
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color.Transparent, Color.Black.copy(alpha = 0.6f)),
+                            )
+                        ),
+                    contentAlignment = Alignment.BottomStart,
+                ) {
+                    if (!coverFrontmatter?.title.isNullOrBlank()) {
+                        Text(
+                            text = coverFrontmatter!!.title!!,
+                            style = MaterialTheme.typography.titleLarge,
+                            color = Color.White,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(16.dp))
+        }
         // v1.97 (P2): 截断时顶部显示省略占位,提示用户上方内容已折叠(流式结束后恢复)
         if (truncated) {
             Text(
@@ -949,5 +1008,25 @@ private fun TableView(table: MarkdownBlock.Table) {
             }
             HorizontalDivider(color = borderColor.copy(alpha = 0.5f), thickness = 0.5.dp)
         }
+    }
+}
+
+/**
+ * v1.0.53: 解析 cover 字段为本地文件。
+ *
+ * 规则:
+ *  - "covers/xxx.jpg" → filesDir/covers/xxx.jpg
+ *  - "file:///path/xxx.jpg" → 直接解析路径
+ *  - 其他 → filesDir/xxx
+ *  - 注入 [resolver] 时优先使用(测试/自定义存储)
+ */
+@Composable
+private fun resolveCoverFile(cover: String, resolver: ((String) -> File?)?): File? {
+    if (resolver != null) return resolver(cover)
+    val context = LocalContext.current
+    return when {
+        cover.startsWith("covers/") -> File(File(context.filesDir, "covers"), cover.removePrefix("covers/"))
+        cover.startsWith("file://") -> File(cover.removePrefix("file://"))
+        else -> File(context.filesDir, cover)
     }
 }

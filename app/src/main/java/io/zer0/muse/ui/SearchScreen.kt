@@ -61,6 +61,7 @@ import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.semiLarge
+import io.zer0.muse.ui.theme.statusColors
 
 /**
  * v0.45: 独立全局搜索页。
@@ -616,9 +617,11 @@ private fun MessageSearchResultRow(
         else fallbackSnippet
     }
     // 任务 2:高亮 — 原文可用时直接用 query 高亮;否则解析 FTS4 snippet 的 [xxx] 标记
-    val annotatedText = remember(displayText, content, query) {
-        if (content.isNotBlank()) buildHighlightedText(displayText, query)
-        else buildHighlightedSnippet(displayText)
+    // v1.0.52: 高亮色从主题状态色读取,不再硬编码裸色
+    val highlightColor = MaterialTheme.statusColors.highlight
+    val annotatedText = remember(displayText, content, query, highlightColor) {
+        if (content.isNotBlank()) buildHighlightedText(displayText, query, highlightColor)
+        else buildHighlightedSnippet(displayText, highlightColor)
     }
     Surface(
         onClick = onClick,
@@ -709,7 +712,7 @@ private fun extractContext(content: String, query: String, sentencesAround: Int 
  *
  * 用于搜索结果项展示原文上下文时高亮关键词。
  */
-private fun buildHighlightedText(text: String, query: String): AnnotatedString {
+private fun buildHighlightedText(text: String, query: String, highlightColor: Color): AnnotatedString {
     if (query.isBlank()) return buildAnnotatedString { append(text) }
     return buildAnnotatedString {
         var idx = 0
@@ -722,7 +725,7 @@ private fun buildHighlightedText(text: String, query: String): AnnotatedString {
             if (found > idx) {
                 append(text.substring(idx, found))
             }
-            withStyle(SpanStyle(background = Color(0x66FFEB3B), fontWeight = FontWeight.Bold)) {
+            withStyle(SpanStyle(background = highlightColor, fontWeight = FontWeight.Bold)) {
                 append(text.substring(found, found + query.length))
             }
             idx = found + query.length
@@ -737,7 +740,7 @@ private fun buildHighlightedText(text: String, query: String): AnnotatedString {
  * snippet() 生成片段格式:"前缀[匹配]后缀",可能含多个 [xxx] 段。
  * 解析时把 [ ] 标记剥离,在原匹配文本上应用 SpanStyle。
  */
-private fun buildHighlightedSnippet(snippet: String): AnnotatedString = buildAnnotatedString {
+private fun buildHighlightedSnippet(snippet: String, highlightColor: Color): AnnotatedString = buildAnnotatedString {
     var i = 0
     while (i < snippet.length) {
         val start = snippet.indexOf('[', i)
@@ -756,7 +759,7 @@ private fun buildHighlightedSnippet(snippet: String): AnnotatedString = buildAnn
             break
         }
         val matched = snippet.substring(start + 1, end)
-        withStyle(SpanStyle(background = Color(0x66FFEB3B))) {
+        withStyle(SpanStyle(background = highlightColor)) {
             append(matched)
         }
         i = end + 1

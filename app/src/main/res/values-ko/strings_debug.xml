@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== DebugScreen.kt ===== -->
+    <!-- Clear confirmation dialog -->
+    <string name="debug_clear_logs_title">디버그 로그 지우기</string>
+    <string name="debug_clear_logs_confirm">%1$d 로그를 모두 지우시겠습니까?</string>
+    <string name="debug_action_clear">분명한</string>
+    <string name="debug_cleared_toast">삭제됨</string>
+
+    <!-- Copy logs -->
+    <string name="debug_no_logs_to_copy">복사할 로그가 없습니다.</string>
+    <string name="debug_logs_copied_toast">%1$d 로그를 클립보드에 복사했습니다.</string>
+
+    <!-- Export logs -->
+    <string name="debug_export_failed_no_logs">내보내기 실패: 로그가 없거나 디렉터리가 초기화되지 않았습니다.</string>
+    <string name="debug_export_failed_no_uri">내보내기 실패: 파일 URI를 가져올 수 없습니다.</string>
+    <string name="debug_share_log_chooser">디버그 로그 공유</string>
+
+    <!-- Top bar / titles -->
+    <string name="debug_screen_title">디버그 로그</string>
+    <string name="debug_cd_resume_follow">다음 재개</string>
+    <string name="debug_cd_pause_follow">팔로우 일시중지</string>
+    <string name="debug_cd_crash_logs">충돌 로그</string>
+    <string name="debug_cd_analytics">지역 분석</string>
+    <string name="debug_cd_db_integrity">데이터베이스 무결성</string>
+    <string name="debug_cd_clear">분명한</string>
+    <string name="debug_cd_export">내보내다</string>
+    <string name="debug_cd_copy">복사</string>
+
+    <!-- Log count -->
+    <string name="debug_log_count">%1$d 총 항목 수</string>
+    <string name="debug_log_count_paused_suffix">· 팔로우 일시중지됨</string>
+
+    <!-- Filter row -->
+    <string name="debug_level_label">수준</string>
+    <string name="debug_keyword_label">예어</string>
+
+    <!-- Empty state -->
+    <string name="debug_empty_title">로그 없음</string>
+    <string name="debug_empty_subtitle">Logger 호출의 로그가 여기에 실시간으로 표시됩니다.</string>
+
+    <!-- Crash log panel (CrashLogSheet) -->
+    <string name="debug_crash_log_title">충돌 로그</string>
+    <string name="debug_export_zip_and_share">ZIP 내보내기 및 공유</string>
+    <string name="debug_loading_crash_logs">충돌 로그 로드 중…</string>
+    <string name="debug_no_crash_logs">충돌 로그 없음\n\n앱이 충돌하지 않았거나 로그가 자동으로 정리되었습니다(최근 5개만 유지됨).</string>
+    <string name="debug_crash_log_count">%1$d 파일(최신 파일 먼저, 최신 5개만 보관됨)</string>
+    <string name="debug_cd_share_crash_log">이 로그를 공유하세요</string>
+    <string name="debug_loading">로드 중…</string>
+    <string name="debug_crash_preview_truncated">처음 %1$d 문자만 표시됩니다.</string>
+
+    <!-- Crash log sharing (non-Composable helpers, use context.getString) -->
+    <string name="debug_export_failed_no_crash_logs">내보내기 실패: 충돌 로그 없음</string>
+    <string name="debug_share_crash_zip_chooser">충돌 로그 ZIP 공유</string>
+    <string name="debug_share_failed_no_uri">공유 실패: 파일 URI를 가져올 수 없습니다.</string>
+    <string name="debug_share_crash_log_chooser">충돌 로그 공유</string>
+
+    <!-- Local analytics panel (AnalyticsSheet) -->
+    <string name="debug_analytics_title">지역 분석</string>
+    <string name="debug_loading_analytics">분석 로드 중…</string>
+    <string name="debug_analytics_load_failed">분석 데이터를 읽을 수 없습니다.</string>
+    <string name="debug_metric_dau_today">오늘의 DAU</string>
+    <string name="debug_metric_mau_month">이번 달 MAU</string>
+    <string name="debug_metric_total_sessions">총 세션수</string>
+    <string name="debug_metric_total_messages">총 메시지</string>
+    <string name="debug_metric_launch_count">출시</string>
+    <string name="debug_metric_crash_count">충돌</string>
+    <string name="debug_metric_crash_count_value">%1$d (%2$s)</string>
+    <string name="debug_status_first_chat">첫 번째 채팅이 완료되었습니다.</string>
+    <string name="debug_status_memory_adopted">메모리 시스템 채택</string>
+    <string name="debug_status_last_active">마지막 활동 날짜</string>
+    <string name="debug_value_yes">예</string>
+    <string name="debug_value_no">아니요</string>
+
+    <!-- Retention card -->
+    <string name="debug_retention_title">보유(처음 출시 이후)</string>
+    <string name="debug_retention_d1">1일차(D1)</string>
+    <string name="debug_retention_d7">7일차(D7)</string>
+    <string name="debug_retention_d30">30일차(D30)</string>
+
+    <!-- Feature usage -->
+    <string name="debug_feature_usage_top">상위 10가지 기능 사용법</string>
+    <string name="debug_no_feature_usage">기능 사용 기록이 없습니다.</string>
+
+    <!-- Database integrity panel (DbIntegritySheet) -->
+    <string name="debug_db_integrity_title">데이터베이스 무결성</string>
+    <string name="debug_loading_db_integrity">마지막 확인 기록 로드 중…</string>
+    <string name="debug_db_status_ok">데이터베이스 확인</string>
+    <string name="debug_db_status_error">데이터베이스 오류</string>
+    <string name="debug_db_size_label">DB 크기: %1$s</string>
+    <string name="debug_db_check_time_label">시간 확인: %1$s</string>
+    <string name="debug_no_details">(세부정보 없음)</string>
+    <string name="debug_db_error_advice">제안: \"설정 → 백업 &amp; 복구\"에서 최신 자동 백업을 복원하거나 중요한 대화를 내보내고 앱을 다시 설치하세요.</string>
+    <string name="debug_integrity_check_passed">무결성 검사 통과</string>
+    <string name="debug_integrity_check_failed">무결성 검사에 실패했습니다. 세부정보를 확인하세요.</string>
+    <string name="debug_checking">확인 중…</string>
+    <string name="debug_check_now">지금 확인하세요</string>
+    <string name="debug_no_check_record">아직 확인 기록이 없습니다\n\n지금 무결성 확인을 실행하려면 아래 버튼을 누르세요.</string>
+</resources>

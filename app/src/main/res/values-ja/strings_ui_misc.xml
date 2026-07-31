@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== ui/common shared components ===== -->
+    <string name="common_state_enabled">有効</string>
+    <string name="common_state_disabled">無効</string>
+    <string name="common_confirm_delete_message">「%1$s」を削除しますか?</string>
+    <string name="common_delete">消去</string>
+    <string name="common_cancel">キャンセル</string>
+    <string name="common_confirm">確認する</string>
+    <string name="common_got_it">わかった</string>
+    <string name="common_close">近い</string>
+    <string name="common_retry">リトライ</string>
+    <string name="common_collapse">崩壊</string>
+    <string name="common_expand">拡大する</string>
+    <string name="common_no_options">利用可能なオプションはありません</string>
+    <string name="common_selectable">オプション</string>
+    <string name="common_remove">取り除く</string>
+    <string name="common_avatar_cd">%1$s アバター</string>
+    <string name="common_slider_cd">スライダー、現在値 %1$s</string>
+    <string name="common_dropdown_cd">%1$s、現在値 %2$s</string>
+    <string name="common_open_file_failed">ファイルを開けません: %1$s</string>
+
+    <!-- ===== ui/markdown Markdown rendering ===== -->
+    <string name="markdown_only_http">http/https リンクのみがサポートされています</string>
+    <string name="markdown_open_link_failed">リンクを開けません: %1$s</string>
+    <!-- v1.97: URL click confirmation -->
+    <string name="markdown_open_link_confirm_title">リンクを開く</string>
+    <string name="markdown_open_link_confirm_message">このリンクをブラウザで開きますか?</string>
+    <string name="markdown_open_link_confirm_open">開ける</string>
+    <string name="markdown_open_link_confirm_copy">リンクをコピー</string>
+    <string name="markdown_open_link_dont_ask_again">このセッションでは再度質問しないでください (長押しすると直接開きます)</string>
+    <string name="markdown_link_copied">リンクがコピーされました</string>
+    <string name="markdown_line_count">%1$d 行</string>
+    <string name="markdown_copied_lines">コードの%1$d行をコピーしました</string>
+    <string name="markdown_copy_code_cd">コードをコピーする</string>
+    <string name="markdown_collapse_remaining">%1$d 行をさらに表示</string>
+    <string name="markdown_svg_label">SVGグラフィック</string>
+    <string name="markdown_html_label">HTMLカード</string>
+    <string name="markdown_chart_label">チャート</string>
+    <string name="markdown_mermaid_label">マーメイドダイアグラム</string>
+    <string name="markdown_plantuml_label">PlantUML ダイアグラム</string>
+    <string name="markdown_svg_cd">SVGグラフィック</string>
+    <string name="markdown_html_cd">HTMLコンテンツ</string>
+    <string name="markdown_chart_cd">チャート: %1$s</string>
+    <string name="markdown_mermaid_cd">人魚の図: %1$s</string>
+    <string name="markdown_plantuml_cd">PlantUML 図: %1$s</string>
+    <string name="markdown_formula_cd">数学式: %1$s</string>
+    <string name="markdown_chart_render_failed">チャートのレンダリングに失敗しました</string>
+    <string name="markdown_chart_show_source">ソースを表示</string>
+    <string name="markdown_chart_loading">レンダリング…</string>
+    <!-- HTML preview feature -->
+    <string name="html_preview_title">HTMLプレビュー</string>
+    <string name="html_preview_open_in_browser_cd">ブラウザで開く</string>
+    <string name="html_preview_copy_source_cd">ソースをコピーする</string>
+    <string name="html_preview_open_in_browser_failed">外部ブラウザでは開けません: %1$s</string>
+    <string name="html_preview_source_copied">HTMLソースがコピーされました</string>
+    <string name="html_preview_button_cd">全画面プレビュー</string>
+    <!-- v1.0.47 P8-2: Download artifact -->
+    <string name="html_preview_download_cd">ダウンロード</string>
+    <string name="html_preview_download_success">ダウンロードに保存されました: %1$s</string>
+    <string name="html_preview_download_failed">ダウンロードに失敗しました: %1$s</string>
+
+    <!-- ===== ui/theme preset theme names ===== -->
+    <string name="theme_warm_paper">温かい紙</string>
+    <string name="theme_sakura">さくら</string>
+    <string name="theme_ocean">海</string>
+    <string name="theme_spring">春</string>
+    <string name="theme_autumn">秋</string>
+    <string name="theme_mono">単核症</string>
+    <string name="theme_sumi">墨（墨）</string>
+    <string name="theme_washi">和紙</string>
+    <string name="theme_aizome">藍染（インディゴ）</string>
+    <string name="theme_twilight_purple">トワイライトパープル</string>
+    <string name="theme_amber_gold">アンバーゴールド</string>
+    <string name="theme_dusk_rose">ダスクローズ</string>
+
+    <!-- ===== ui/speech voice input and TTS ===== -->
+    <string name="speech_speak_prompt">話してください…</string>
+    <string name="speech_tts_init_failed">音声エンジンの初期化に失敗しました。読み上げは利用できません</string>
+    <string name="speech_tts_play_error">音声再生エラー</string>
+    <string name="speech_tts_fallback_to_system">ネットワークの問題、システム TTS に切り替え</string>
+    <string name="speech_stop_reading_cd">読むのをやめる</string>
+    <string name="speech_playback_speed_cd">再生速度%1$sx</string>
+    <string name="speech_seek_forward_5s_cd">5秒進む</string>
+    <string name="speech_pause_cd">一時停止</string>
+    <string name="speech_resume_cd">再開する</string>
+
+    <!-- ===== ui/ModelSwitchSheet model switcher ===== -->
+    <string name="model_switch_title">モデル</string>
+    <string name="model_switch_no_provider">プロバイダが設定されていません\n「設定」→「プロバイダ管理」でプロバイダを追加してください</string>
+    <string name="model_switch_provider_label">プロバイダー</string>
+    <string name="model_switch_no_provider_selected">プロバイダーが選択されていません</string>
+    <string name="model_switch_models_label">モデル (%1$s)</string>
+    <string name="model_switch_fetching">フェッチ中</string>
+    <string name="model_switch_refresh">リフレッシュ</string>
+    <string name="model_switch_fetching_upstream">上流からモデルを取得しています…</string>
+    <string name="model_switch_no_models">このプロバイダにはモデルがありません\n右上の更新をタップして上流リストを取得してください</string>
+    <string name="model_switch_default">%1$s (デフォルト)</string>
+    <string name="model_switch_not_configured">未設定</string>
+    <string name="model_switch_selected_cd">選択済み</string>
+    <string name="model_switch_ability_vision">ビジョン</string>
+    <string name="model_switch_ability_reasoning">推論</string>
+    <string name="model_switch_ability_tool">ツール</string>
+    <string name="model_switch_ability_image">画像</string>
+    <string name="model_switch_ability_search">ウェブ</string>
+    <string name="model_switch_search_placeholder">モデルを検索する</string>
+    <string name="model_switch_expand_all">すべて展開</string>
+    <string name="model_switch_collapse_all">すべて折りたたむ</string>
+    <string name="model_switch_group_count">%1$s (%2$d)</string>
+    <!-- v1.0.18: Free model badge/hint (aligns with FreeModelConfig) -->
+    <string name="model_switch_free_badge">無料</string>
+    <string name="model_switch_free_provider_hint">ログイン不要ですぐに使える</string>
+
+    <!-- ===== ui/HomeScreen home ===== -->
+    <string name="home_tab_tasks">タスク</string>
+    <string name="home_tab_group_chat">グループ</string>
+    <string name="home_settings_cd">設定</string>
+    <string name="home_search_cd">検索</string>
+    <string name="home_tab_selected_suffix">、選択済み</string>
+
+    <!-- ===== ui/FavoritesScreen favorites ===== -->
+    <string name="favorites_title">お気に入り (%1$d)</string>
+    <string name="favorites_back_cd">戻る</string>
+    <string name="favorites_empty_title">まだお気に入りはありません</string>
+    <string name="favorites_empty_subtitle">チャット内のメッセージの星をタップしてお気に入りに追加します</string>
+    <string name="favorites_role_user">自分</string>
+    <string name="favorites_role_system">システム</string>
+    <string name="favorites_role_tool">道具</string>
+    <string name="favorites_unfavorite_cd">お気に入りを削除</string>
+    <!-- v1.104 U7: favorite groups/tags -->
+    <string name="favorites_filter_all">すべて (%1$d)</string>
+    <string name="favorites_filter_ungrouped">グループ化されていない (%1$d)</string>
+    <string name="favorites_tag_chip">%1$s (%2$d)</string>
+    <string name="favorites_tag_edit_title">グループを設定する</string>
+    <string name="favorites_tag_edit_hint">グループ名 (空 = グループ化されていない)</string>
+    <string name="favorites_tag_edit_clear">グループをクリアする</string>
+    <string name="favorites_tag_edit_confirm">わかりました</string>
+    <string name="favorites_tag_edit_cancel">キャンセル</string>
+    <string name="favorites_tag_label">グループ: %1$s</string>
+    <string name="favorites_empty_in_filter">このグループにはお気に入りがありません</string>
+    <string name="favorites_card_long_click_cd">長押ししてグループを設定します</string>
+
+    <!-- ===== ui/ImageSaveUtils image saving ===== -->
+    <string name="image_save_decode_failed">画像をデコードできません</string>
+    <string name="image_save_mediastore_insert_failed">MediaStore の挿入に失敗しました</string>
+    <string name="image_save_open_stream_failed">出力ストリームを開けません</string>
+
+    <!-- ===== ui/experience/ExperiencePanel ===== -->
+    <string name="experience_title">体験ライブラリ</string>
+    <string name="experience_enabled">有効</string>
+    <string name="experience_back_cd">戻る</string>
+    <string name="experience_add_cd">経験値を追加する</string>
+    <string name="experience_search_hint">エクスペリエンスを検索…</string>
+    <string name="experience_add_title">経験の追加</string>
+    <string name="experience_add_category_hint">カテゴリ (例: 「ツールの使用法」)</string>
+    <string name="experience_add_content_hint">体験内容（一文）</string>
+    <string name="experience_add_confirm">追加</string>
+    <string name="experience_add_cancel">キャンセル</string>
+
+    <!-- ===== ui/activity/ActivityPanel ===== -->
+    <string name="activity_log_title">アクティビティログ</string>
+    <string name="activity_empty">アクティビティはまだ記録されていません。</string>
+    <string name="model_switch_retry">再试</string>
+    <string name="shortcut_new_chat_long">開始新对话</string>
+    <string name="shortcut_new_chat_short">新对话</string>
+    <string name="shortcut_quick_notes_long">快速记录</string>
+    <string name="shortcut_quick_notes_short">速记</string>
+    <string name="shortcut_settings_long">設置場所を開く</string>
+    <string name="shortcut_settings_short">設置</string>
+    <string name="shortcut_translate_long">開封翻訳</string>
+    <string name="shortcut_translate_short">翻訳</string>
+    <string name="shortcut_voice_input_long">语音输入力</string>
+    <string name="shortcut_voice_input_short">语音</string>
+    <string name="speech_next_chunk_cd">下段</string>
+    <string name="speech_previous_chunk_cd">上一段</string>
+    <string name="speech_seek_backward_5s_cd">後退5秒</string>
+</resources>

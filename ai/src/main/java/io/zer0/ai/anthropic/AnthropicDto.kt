@@ -106,6 +106,8 @@ internal data class AnthropicMessage(
 internal data class AnthropicCompletionResponse(
     val content: List<AnthropicContentBlock>,
     val stop_reason: String? = null,
+    /** v1.0.53 Phase 3: token 用量(非流式响应返回)。 */
+    val usage: AnthropicUsage? = null,
 )
 
 /**
@@ -222,4 +224,11 @@ internal data class AnthropicModelsResponse(
 @Serializable
 internal data class AnthropicModelInfo(
     val id: String = "",
+)
+
+/** v1.0.53 Phase 3: Anthropic usage -> [io.zer0.ai.core.UsageTokens]。 */
+internal fun AnthropicUsage.toUsageTokens(): io.zer0.ai.core.UsageTokens = io.zer0.ai.core.UsageTokens(
+    promptTokens = input_tokens,
+    completionTokens = output_tokens,
+    reasoningTokens = 0,  // Anthropic 不单独计 reasoning tokens
 )

@@ -22,11 +22,16 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Circle
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -48,9 +53,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
+import io.zer0.muse.ui.theme.statusColors
 import io.zer0.muse.tools.DelegationChainTracker
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -263,6 +270,21 @@ fun TaskCard(
                     contentDescription = if (data.isExpanded) "折叠" else "展开",
                     tint = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f),
                     modifier = Modifier.size(20.dp),
+                )
+            }
+
+            // ── 折叠态紧凑步骤行(v1.0.52) ──
+            // 步骤数 ≥ 2 时显示单行步骤条,用户无需展开即可知晓进度。
+            // 全部完成 → "已完成 N 步";进行中 → 步骤名+状态图标水平排列。
+            AnimatedVisibility(
+                visible = !data.isExpanded && data.steps.size >= 2,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically(),
+            ) {
+                CompactStepRow(
+                    data = data,
+                    modifier = Modifier
+                        .padding(horizontal = 12.dp, vertical = 4.dp),
                 )
             }
 
@@ -592,6 +614,97 @@ private fun formatDuration(ms: Long): String {
             val min = ms / 60_000
             val sec = (ms % 60_000) / 1000
             "${min}m ${sec}s"
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// CompactStepRow — 折叠态步骤条(v1.0.52)
+// 步骤数 ≥2 时替代纯标题,水平排列各步骤状态图标 + 缩写名称。
+// ═══════════════════════════════════════════════════════════════════════
+
+/** 单步最大显示字符数(超长截断加省略号)。 */
+private const val STEP_NAME_MAX_CHARS = 8
+
+/**
+ * 紧凑步骤行 — 折叠态显示,水平排列各步骤的"图标 名称"。
+ *
+ * - 全部完成 → "已完成 N 步"
+ * - 进行中 → 每步 "✓/⏳/✗ 名称" 水平排列(箭头分隔)
+ * - 有失败步骤 → 失败步骤红色标记
+ */
+@Composable
+private fun CompactStepRow(data: TaskCardData, modifier: Modifier = Modifier) {
+    val colorScheme = MaterialTheme.colorScheme
+    if (data.steps.size < 2) return
+
+    // 全部完成:显示摘要
+    if (data.isAllDone) {
+        Row(
+            modifier = modifier,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = if (data.hasFailedSteps) Icons.Default.Warning else Icons.Default.CheckCircle,
+                contentDescription = null,
+                modifier = Modifier.size(14.dp),
+                tint = if (data.hasFailedSteps) MaterialTheme.statusColors.error
+                    else MaterialTheme.statusColors.success,
+            )
+            Spacer(Modifier.size(6.dp))
+            Text(
+                text = if (data.hasFailedSteps)
+                    "${data.steps.size} 步中 ${data.steps.count { it.status == TaskStepStatus.FAILED }} 步失败"
+                else
+                    "已完成 ${data.steps.size} 步",
+                style = MaterialTheme.typography.labelSmall,
+                color = colorScheme.onSurfaceVariant,
+            )
+        }
+        return
+    }
+
+    // 进行中:步骤条
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        data.steps.forEachIndexed { index, step ->
+            // 步骤图标(成功/进行中/待定/失败)
+            val (icon, tint) = when (step.status) {
+                TaskStepStatus.SUCCESS -> Icons.Default.CheckCircle to MaterialTheme.statusColors.success
+                TaskStepStatus.RUNNING -> Icons.Default.Circle to colorScheme.primary
+                TaskStepStatus.FAILED -> Icons.Default.Cancel to MaterialTheme.statusColors.error
+                TaskStepStatus.PENDING -> Icons.Default.Circle to colorScheme.outline
+            }
+            Icon(
+                imageVector = icon,
+                contentDescription = step.title,
+                modifier = Modifier.size(12.dp),
+                tint = tint,
+            )
+            Spacer(Modifier.size(2.dp))
+            // 缩写名称
+            Text(
+                text = if (step.title.length > STEP_NAME_MAX_CHARS)
+                    step.title.take(STEP_NAME_MAX_CHARS) + "…" else step.title,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = if (step.status == TaskStepStatus.RUNNING) FontWeight.SemiBold else FontWeight.Normal,
+                color = if (step.status == TaskStepStatus.RUNNING) colorScheme.onSurface
+                    else colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            // 步骤间箭头分隔(最后一步不加)
+            if (index < data.steps.size - 1) {
+                Icon(
+                    imageVector = Icons.Default.ArrowForward,
+                    contentDescription = null,
+                    modifier = Modifier.size(10.dp),
+                    tint = colorScheme.outline,
+                )
+            }
         }
     }
 }

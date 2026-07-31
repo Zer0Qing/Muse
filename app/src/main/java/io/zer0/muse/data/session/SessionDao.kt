@@ -179,4 +179,16 @@ interface SessionDao {
     /** v5: 查询指定会话的父会话标题。 */
     @Query("SELECT title FROM sessions WHERE id = :parentId")
     suspend fun getParentSessionTitle(parentId: String): String?
+
+    /**
+     * v1.0.52: 查询某助手最近 N 条会话(供 Recent Chats Reference 注入 system prompt)。
+     *
+     * 过滤规则与 [observeTaskSessions] 对齐:
+     *  - 排除已归档(archived=1)
+     *  - 排除已软删除(deletedAt IS NOT NULL)
+     *  - 排除 Agent Tab 会话(isAgentSession=1,Agent 日常聊天不参与参考)
+     * 按 updatedAt DESC 排序,LIMIT :limit。
+     */
+    @Query("SELECT * FROM sessions WHERE assistantId = :assistantId AND archived = 0 AND deletedAt IS NULL AND isAgentSession = 0 ORDER BY updatedAt DESC LIMIT :limit")
+    suspend fun getRecentByAssistant(assistantId: String, limit: Int): List<SessionEntity>
 }

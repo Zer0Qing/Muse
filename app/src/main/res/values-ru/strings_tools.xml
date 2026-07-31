@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== ToolsScreen.kt ===== -->
+    <!-- Title and intro -->
+    <string name="tools_screen_title">Инструменты искусственного интеллекта</string>
+    <string name="tools_intro_what">Инструменты — это возможности, которые ИИ может использовать, например, чтение уведомлений, вычисления, выполнение кода и т. д.</string>
+    <string name="tools_intro_manage">На странице сведений о помощнике → Расширения → Инструменты вы можете включать/отключать инструменты для каждого помощника.</string>
+
+    <!-- Stats -->
+    <string name="tools_stats_count">%1$d инструменты · %2$d высокий риск</string>
+
+    <!-- Built-in plugins -->
+    <string name="tools_plugins_section">Встроенные плагины</string>
+    <string name="tools_plugins_desc">Плагины — это более детальные наборы возможностей, которые объявляют необходимые разрешения и время активации.</string>
+
+    <!-- Risk level badges -->
+    <string name="tools_risk_safe">Безопасный</string>
+    <string name="tools_risk_normal">Нормальный</string>
+    <string name="tools_risk_high">Высокий</string>
+
+    <!-- Tool detail dialog -->
+    <string name="tools_detail_category_label">Категория: %1$s</string>
+    <string name="tools_detail_params">Параметры</string>
+    <string name="tools_detail_sandbox_title">Ограничения безопасности песочницы</string>
+    <string name="tools_detail_sandbox_content">• На основе механизма WebView V8, изолированного от системных страниц\n• выборка / XHR / WebSocket отключена, нет доступа к сети\n• блокировкаNetworkLoads перехватывает все сетевые запросы\n• Тайм-аут по умолчанию 10 секунд, чтобы избежать бесконечных циклов\n• Перед вызовом требуется подтверждение пользователя (инструмент высокого риска)</string>
+
+    <!-- Parameter row -->
+    <string name="tools_param_required">Необходимый</string>
+
+    <!-- Tool categories -->
+    <string name="tools_category_built_in">Встроенные инструменты</string>
+    <string name="tools_category_local">Локальные инструменты</string>
+    <string name="tools_category_mcp">Инструменты MCP</string>
+
+    <!-- Plugin capability captions -->
+    <string name="tools_permissions_label">Разрешения:</string>
+    <string name="tools_activation_label">Активация:</string>
+
+    <!-- ===== v1.0.20: ToolsSettingsPage.kt (Tool Approval Management) ===== -->
+    <!-- Title and search -->
+    <string name="tools_settings_title">Управление одобрением инструментов</string>
+    <string name="tools_settings_search_hint">Название или описание инструмента поиска</string>
+
+    <!-- Stats (N tools · always-allow X · ask Y · always-deny Z) -->
+    <string name="tools_settings_stats">%1$d инструменты · всегда разрешать %2$d · спрашивать %3$d · всегда запрещать %4$d</string>
+
+    <!-- Risk level group titles -->
+    <string name="tools_settings_section_safe">Безопасные инструменты (только чтение/запрос)</string>
+    <string name="tools_settings_section_normal">Обычные средства (местные побочные эффекты)</string>
+    <string name="tools_settings_section_high">Инструменты высокого риска (необратимые/чувствительные)</string>
+
+    <!-- Empty state -->
+    <string name="tools_settings_empty">Подходящие инструменты не найдены</string>
+
+    <!-- Footer policy explanation -->
+    <string name="tools_settings_footer_section">Объяснение политики</string>
+    <string name="tools_settings_policy_always_allow">Всегда разрешать</string>
+    <string name="tools_settings_policy_always_allow_desc">Вызовы инструментов одобряются автоматически;</string>
+    <string name="tools_settings_policy_ask">Спрашивайте каждый раз</string>
+    <string name="tools_settings_policy_ask_desc">Карточка одобрения отображается перед вызовом;</string>
+    <string name="tools_settings_policy_always_deny">Всегда отрицать</string>
+    <string name="tools_settings_policy_always_deny_desc">Инструмент отключен;</string>
+
+    <!-- Short labels for the per-tool segmented control -->
+    <string name="tools_settings_policy_always_allow_short">Позволять</string>
+    <string name="tools_settings_policy_ask_short">Просить</string>
+    <string name="tools_settings_policy_always_deny_short">Отрицать</string>
+</resources>

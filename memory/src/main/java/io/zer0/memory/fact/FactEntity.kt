@@ -13,6 +13,8 @@ import kotlinx.serialization.Serializable
  * v4 schema: 新增 importance 字段(0=普通,1=重要,2=关键),关键事实永不衰减。
  * v8 schema: 新增 scope 字段(记忆作用域,默认 "main" 表示主助手作用域,
  *   子助手/团队成员使用各自的 assistantId),用于隔离不同 Agent 的记忆。
+ * v9 schema: 新增 space_id 字段(记忆空间,默认 "default" 表示默认空间),
+ *   用于多 Space 隔离(类似 Notion 工作区),与 scope 正交。
  *
  * Phase 7: @Serializable 用于备份导出/导入。id 自增主键在导入时清表后重新分配。
  */
@@ -25,6 +27,7 @@ import kotlinx.serialization.Serializable
         Index(value = ["importance"], name = "idx_facts_importance"),
         Index(value = ["category"], name = "idx_facts_category"),
         Index(value = ["scope"], name = "index_facts_scope"),
+        Index(value = ["space_id"], name = "index_facts_space_id"),
     ],
 )
 data class FactEntity(
@@ -113,4 +116,14 @@ data class FactEntity(
      */
     @ColumnInfo(name = "scope", defaultValue = "main")
     val scope: String = "main",
+
+    /**
+     * v9: 记忆空间 id,用于多 Space 隔离(类似 Notion 工作区)。
+     *  - "default":默认空间(兼容旧数据)
+     *  - 自定义 id:用户创建的工作/生活/学习等空间
+     * 与 [scope] 正交:scope 按 Agent 隔离,spaceId 按场景隔离。
+     * 一个 fact 既属于某 Agent scope,也属于某 Space。
+     */
+    @ColumnInfo(name = "space_id", defaultValue = "default")
+    val spaceId: String = "default",
 )

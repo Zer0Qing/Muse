@@ -47,11 +47,17 @@ class MuseCrashHandler private constructor(private val appContext: Context) : Th
         // v1.52: 启动时清理旧崩溃日志(保留最近 MAX_CRASH_LOGS 份),
         // 避免 crash/ 目录越积越大(之前只在崩溃时清理,正常启动不触发)。
         resultOf {
-            val crashDir = File(appContext.filesDir, "crash")
-            crashDir.listFiles()
-                ?.sortedByDescending { it.lastModified() }
-                ?.drop(MAX_CRASH_LOGS)
-                ?.forEach { it.delete() }
+            // v1.0.53: 清理 external + 私有两处目录(新日志写 external,旧日志可能残留在私有目录)
+            val dirs = listOfNotNull(
+                appContext.getExternalFilesDir("crash"),
+                File(appContext.filesDir, "crash"),
+            )
+            dirs.forEach { crashDir ->
+                crashDir.listFiles()
+                    ?.sortedByDescending { it.lastModified() }
+                    ?.drop(MAX_CRASH_LOGS)
+                    ?.forEach { it.delete() }
+            }
         }
         Logger.i(TAG, "Crash handler installed")
     }
@@ -80,7 +86,9 @@ class MuseCrashHandler private constructor(private val appContext: Context) : Th
      * SafeModeScreen 可直接从 SP 读取展示,无需再读文件。
      */
     private fun writeCrashLog(t: Thread, e: Throwable): String {
-        val crashDir = File(appContext.filesDir, "crash").apply { mkdirs() }
+        // v1.0.53: 优先 externalFilesDir(adb/文件管理器可见),回退私有 filesDir
+        val externalCrashDir = appContext.getExternalFilesDir("crash")
+        val crashDir = (externalCrashDir ?: File(appContext.filesDir, "crash")).apply { mkdirs() }
         val fmt = SimpleDateFormat(CRASH_TIME_FMT, Locale.US)
         val fileName = "crash-${fmt.format(Date())}.txt"
         val logFile = File(crashDir, fileName)

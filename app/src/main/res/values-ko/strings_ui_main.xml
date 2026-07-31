@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- ===== 어시스턴트 상세 페이지 AssistantDetailPages ===== -->
+    <!-- ===== Assistant detail pages AssistantDetailPages ===== -->
     <string name="assistant_detail_title_default">어시스턴트 상세</string>
     <string name="assistant_detail_unnamed">(이름 없음)</string>
     <string name="assistant_detail_loading">불러오는 중...</string>
@@ -26,7 +26,7 @@
     <string name="assistant_detail_avatar_emoji_label">아바타 Emoji(1-2자, 비워도 됨)</string>
     <string name="assistant_detail_global_default">전역 기본</string>
     <string name="assistant_detail_exclusive_model">전용 모델</string>
-    <string name="assistant_detail_temperature">Temperature: %1$s</string>
+    <string name="assistant_detail_temperature">온도: %1$s</string>
     <string name="assistant_detail_default">기본</string>
     <string name="assistant_detail_use_default">기본 사용</string>
     <string name="assistant_detail_top_p_label">Top P(비워두면 기본값, 0-1)</string>
@@ -35,11 +35,18 @@
     <string name="assistant_detail_reasoning_level">추론 등급</string>
     <string name="assistant_detail_stream_output">스트림 출력</string>
     <string name="assistant_detail_stream_output_desc">끄면 전체 응답을 한 번에 반환합니다</string>
+    <!-- v1.0.19: Assistant field completion (summary / useAssistantName / allowGroupChat) -->
+    <string name="assistant_detail_summary">한 줄 요약</string>
+    <string name="assistant_detail_summary_hint">그룹 채팅 명단 및 보조 카드 자막에 사용됩니다.</string>
+    <string name="assistant_detail_use_assistant_name">채팅에 어시스턴트 이름 표시</string>
+    <string name="assistant_detail_use_assistant_name_desc">켜져 있으면 모델 이름을 보조자 이름으로 바꿉니다.</string>
+    <string name="assistant_detail_allow_group_chat">그룹 채팅 참여 허용</string>
+    <string name="assistant_detail_allow_group_chat_desc">꺼져 있으면 이 도우미는 그룹 채팅 멤버 선택에 표시되지 않습니다.</string>
     <string name="assistant_detail_select_model">전용 모델 선택</string>
     <string name="assistant_detail_close">닫기</string>
     <string name="assistant_detail_global_default_selected">전역 기본(선택됨)</string>
     <string name="assistant_detail_model_selected">%1$s(선택됨)</string>
-    <!-- Phase 6: 모델 선택 UX 개선 -->
+    <!-- Phase 6: Model picker UX improvements -->
     <string name="assistant_detail_use_global_default_card">전역 기본 모델 사용</string>
     <string name="assistant_detail_using_global_model">현재 전역 기본 모델 사용 중: %1$s</string>
     <string name="assistant_detail_model_hint">팁: 어시스턴트 설정에서 전용 모델을 선택할 수 있습니다. 어시스턴트마다 다른 AI 모델을 사용할 수 있습니다.</string>
@@ -47,10 +54,10 @@
     <string name="assistant_detail_message_template_label">메시지 템플릿({{date}} {{time}} {{session_id}} 등 변수 지원)</string>
     <string name="assistant_detail_preset_messages_label">사전 설정 메시지 JSON(고급, 예: [{\"role\":\"system\",\"content\":\"...\"}])</string>
     <string name="assistant_detail_ext_quick_message">빠른 메시지</string>
-    <string name="assistant_detail_ext_lorebook">Lorebook</string>
+    <string name="assistant_detail_ext_lorebook">설화집</string>
     <string name="assistant_detail_ext_mode_injection">Prompt 주입</string>
     <string name="assistant_detail_ext_skill">스킬</string>
-    <string name="assistant_detail_ext_mcp_server">MCP Server</string>
+    <string name="assistant_detail_ext_mcp_server">MCP 서버</string>
     <string name="assistant_detail_ext_tool">도구</string>
     <string name="assistant_detail_no_options">선택 가능한 항목이 없습니다</string>
     <string name="assistant_detail_done">완료</string>
@@ -84,59 +91,7 @@
     <string name="assistant_detail_custom_bodies_label">사용자 지정 본문 JSON(예: {\"user\":\"abc\"})</string>
     <string name="assistant_detail_tags_label">태그(쉼표 구분, 예: 작문, 번역, 코드)</string>
 
-    <!-- ===== v1.97: 어시스턴트 수준 정규식 치환 규칙 ===== -->
-    <string name="assistant_detail_regex_title">정규식 치환 규칙</string>
-    <string name="assistant_detail_regex_desc">사용자/어시스턴트 메시지에 정규식 치환을 적용합니다(역할명 치환, 민감어 필터, 포맷 정규화 등)</string>
-    <string name="assistant_detail_regex_add">규칙 추가</string>
-    <string name="assistant_detail_regex_empty">규칙이 없습니다. 「규칙 추가」를 눌러 만드세요</string>
-    <string name="assistant_detail_regex_edit_title">규칙 편집</string>
-    <string name="assistant_detail_regex_name_label">규칙 이름</string>
-    <string name="assistant_detail_regex_name_hint">예: 역할명 치환</string>
-    <string name="assistant_detail_regex_find_label">검색 정규식</string>
-    <string name="assistant_detail_regex_find_hint">예: \\bAI\\b</string>
-    <string name="assistant_detail_regex_replace_label">치환 문자열</string>
-    <string name="assistant_detail_regex_replace_hint">예: 아이($1 역참조 지원)</string>
-    <string name="assistant_detail_regex_scope_label">영향 범위</string>
-    <string name="assistant_detail_regex_scope_user">사용자 메시지만</string>
-    <string name="assistant_detail_regex_scope_assistant">어시스턴트 메시지만</string>
-    <string name="assistant_detail_regex_scope_both">양방향(사용자+어시스턴트)</string>
-    <string name="assistant_detail_regex_visual_only">표시만 치환(LLM 입력에는 영향 없음)</string>
-    <string name="assistant_detail_regex_enabled">활성화</string>
-    <string name="assistant_detail_regex_delete_cd">규칙 삭제</string>
-    <string name="assistant_detail_regex_invalid">정규식 문법 오류</string>
-
-    <!-- ===== v1.97: QR 코드 공유/가져오기 ===== -->
-    <string name="qr_share_title">프로바이더 QR 코드 공유</string>
-    <string name="qr_share_cd">프로바이더 설정 QR 코드</string>
-    <string name="qr_share_warning">이 QR 코드에는 API Key가 평문으로 포함되어 있습니다. 신뢰할 수 있는 수신자에게만 공유하세요</string>
-    <string name="qr_scan_title">QR 코드 스캔</string>
-    <string name="qr_scan_pick_image">갤러리에서 QR 이미지 선택</string>
-    <string name="qr_scan_scanning">인식 중…</string>
-    <string name="qr_scan_pick_button">이미지 선택</string>
-    <string name="qr_scan_failed">QR 코드를 인식하지 못했습니다. 이미지가 선명한지 확인 후 다시 시도하세요</string>
-    <string name="qr_import_success">프로바이더를 가져왔습니다: %1$s</string>
-    <string name="qr_import_invalid">QR 코드 형식이 올바르지 않습니다. 프로바이더 설정이 아닙니다</string>
-    <string name="qr_share_btn">QR 코드 공유</string>
-    <string name="qr_scan_btn">QR 코드 스캔하여 가져오기</string>
-
-    <!-- ===== OAuth 로그인（P1-6）===== -->
-    <string name="oauth_login">OAuth 로그인</string>
-    <string name="oauth_login_success">OAuth 로그인 성공</string>
-    <string name="oauth_login_failed">OAuth 로그인 실패: %1$s</string>
-    <string name="oauth_device_code_prompt">%1$s에 접속하여 코드 입력: %2$s</string>
-    <string name="oauth_polling">인증 완료 대기 중...</string>
-    <string name="oauth_open_verification_uri">링크 열기</string>
-
-    <!-- ===== P2-11: OAuth 인증 정보 격리 (접근 권한 취소 / 자동 갱신) ===== -->
-    <string name="oauth_revoke">접근 권한 취소</string>
-    <string name="oauth_revoke_confirm">이 공급자의 OAuth 접근 권한을 취소하시겠습니까?</string>
-    <string name="oauth_revoke_success">접근 권한이 취소되었습니다</string>
-    <string name="oauth_token_expired">인증이 만료되었습니다. 다시 로그인하세요</string>
-    <string name="oauth_token_refreshed">인증이 자동으로 갱신되었습니다</string>
-    <string name="oauth_stored">인증이 저장되었습니다</string>
-
-
-    <!-- ===== 기억 페이지 MemoryScreen ===== -->
+    <!-- ===== Memory screen MemoryScreen ===== -->
     <string name="memory_screen_title">기억</string>
     <string name="memory_screen_back_cd">뒤로</string>
     <string name="memory_screen_search_fact_hint">메타 사실 검색…</string>
@@ -144,6 +99,13 @@
     <string name="memory_screen_add_fact_cd">메타 사실 추가</string>
     <string name="memory_screen_compile_now_cd">지금 컴파일</string>
     <string name="memory_screen_compile_now">지금 컴파일</string>
+    <string name="memory_tab_today">오늘</string>
+    <string name="memory_tab_week">단기</string>
+    <string name="memory_tab_longterm">장기</string>
+    <string name="memory_tab_facts">사리</string>
+    <!-- v1.0.51: memory backfill migration progress -->
+    <string name="memory_backfill_in_progress">기록 메모리 정리 %1$d/%2$d</string>
+    <string name="memory_backfill_done">역사 추억 정리, %1$d 요약 복원</string>
     <string name="memory_screen_layer_summary">세션 요약</string>
     <string name="memory_screen_layer_compile">컴파일 결과물</string>
     <string name="memory_screen_layer_memory">기억</string>
@@ -197,7 +159,7 @@
     <string name="memory_screen_no_summary_hint">아직 요약이 없습니다. 대화를 계속하면 자동 생성됩니다</string>
     <string name="memory_screen_click_collapse">탭하여 접기</string>
     <string name="memory_screen_click_expand">탭하여 전체 기억 요약 펼치기</string>
-    <!-- v1.98: 경험 라이브러리 -->
+    <!-- v1.98: Experience library -->
     <string name="memory_screen_experience_title">경험 라이브러리</string>
     <string name="memory_screen_experience_desc">축적된 모범 사례와 노하우. AI가 비슷한 작업에서 참고합니다</string>
     <string name="memory_screen_experience_empty">항목이 없습니다. 우측 하단 + 버튼을 눌러 추가하세요</string>
@@ -213,11 +175,17 @@
     <string name="memory_screen_experience_tags_label">태그(쉼표 구분, 선택)</string>
     <string name="memory_screen_experience_delete_confirm">이 경험을 삭제하시겠습니까?</string>
 
-    <!-- ===== 설정 페이지 SettingsScreen ===== -->
+    <!-- v2.0: overview stat card -->
+    <string name="memory_overview_total">총 사실</string>
+    <string name="memory_overview_important">중요/중요</string>
+    <string name="memory_overview_layers">메모리 레이어</string>
+
+    <!-- ===== Settings screen SettingsScreen ===== -->
     <string name="settings_screen_title">설정</string>
     <string name="settings_screen_back_cd">뒤로</string>
     <string name="settings_screen_appearance_group_cd">외형 및 개인화 그룹</string>
     <string name="settings_screen_appearance">외형 및 개인화</string>
+    <string name="settings_screen_general">일반 &amp; 모양</string>
     <string name="settings_screen_user_profile_cd">프로필, 이름/페르소나, 탭하여 진입</string>
     <string name="settings_screen_user_profile">프로필</string>
     <string name="settings_screen_user_profile_desc">호칭 / 어시스턴트 이름 / 사용자 페르소나</string>
@@ -232,6 +200,7 @@
     <string name="settings_screen_media_desc">음성 / TTS / 오디오 출력</string>
     <string name="settings_screen_memory_data_group_cd">기억 및 데이터 그룹</string>
     <string name="settings_screen_memory_data">기억 및 데이터</string>
+    <string name="settings_screen_memory_knowledge">메모리 &amp; 지식</string>
     <string name="settings_screen_memory_notification_cd">기억 및 알림, 기억 파라미터/경험 라이브러리/알림 정책, 탭하여 진입</string>
     <string name="settings_screen_memory_notification">기억 및 알림</string>
     <string name="settings_screen_memory_notification_desc">기억 파라미터 / 경험 라이브러리 / 알림 정책</string>
@@ -244,8 +213,13 @@
     <string name="settings_screen_rag_cd">지식 검색, RAG 설정/Embedding/청크 파라미터, 탭하여 진입</string>
     <string name="settings_screen_rag">지식 검색</string>
     <string name="settings_screen_rag_desc">RAG 설정 / Embedding / 청크 파라미터</string>
-    <string name="settings_screen_model_service_group_cd">모델 및 서비스 그룹</string>
+    <!-- Data &amp; Privacy group (PII Guard) -->
+    <string name="settings_screen_privacy_group_cd">데이터 &amp; 개인정보 보호 그룹</string>
+    <string name="settings_screen_pii_guard_cd">PII 개인 정보 보호, 보내기 전에 민감한 정보 마스크, 전환</string>
+    <string name="settings_screen_pii_guard">PII 개인정보 보호</string>
+    <string name="settings_screen_pii_guard_desc">보내기 전 전화/이메일/신분증 등을 자동 마스킹하세요.</string>
     <string name="settings_screen_model_service">모델 및 서비스</string>
+    <string name="settings_screen_model_service_group_cd">모델 및 서비스 그룹</string>
     <string name="settings_screen_provider_cd">프로바이더, AI 서비스 프로바이더 관리, 탭하여 진입</string>
     <string name="settings_screen_provider">프로바이더</string>
     <string name="settings_screen_provider_desc">AI 서비스 프로바이더 관리</string>
@@ -266,6 +240,18 @@
     <string name="settings_screen_stats_cd">통계, 사용 통계 및 히트맵 보기, 탭하여 진입</string>
     <string name="settings_screen_stats">통계</string>
     <string name="settings_screen_stats_desc">사용 통계 및 히트맵 보기</string>
+    <string name="quota_title">일일 할당량</string>
+    <string name="quota_plan_free">무료</string>
+    <string name="quota_plan_pro">찬성</string>
+    <string name="quota_chats">채팅</string>
+    <string name="quota_images">이미지 생성</string>
+    <string name="quota_searches">웹 검색</string>
+    <!-- v1.0.4: Notification listener -->
+    <string name="settings_screen_notification_listener">알림 수신기</string>
+    <string name="settings_screen_notification_listener_desc">AI가 다른 앱의 알림을 읽을 수 있도록 승인</string>
+    <!-- v1.0.4: AI tools -->
+    <string name="settings_screen_tools">도구</string>
+    <string name="settings_screen_tools_desc">AI가 호출할 수 있는 도구 및 권한 보기</string>
     <string name="settings_screen_about_group_cd">정보 그룹</string>
     <string name="settings_screen_about">정보</string>
     <string name="settings_screen_tutorial_cd">사용 가이드, 초보자 가이드, 탭하여 진입</string>
@@ -277,22 +263,29 @@
     <string name="settings_screen_debug_log">디버그 로그</string>
     <string name="settings_screen_debug_log_desc">앱 로그 및 오류 보기</string>
 
-    <!-- v1.132: 설정 검색 + 그룹 재편성 -->
+    <!-- v1.133: Check for updates entry in About group -->
+    <string name="settings_screen_check_update_cd">업데이트 확인, 최신 GitHub 릴리스 수동 확인, 탭하여 트리거</string>
+    <string name="settings_screen_check_update">업데이트 확인</string>
+    <string name="settings_screen_check_update_desc">GitHub에서 새 릴리스를 확인하세요.</string>
+
+    <!-- v1.132: Settings search + group reorg -->
     <string name="settings_search_cd">설정 항목 검색</string>
     <string name="settings_search_hint">설정 항목 검색…</string>
     <string name="settings_search_prompt">키워드로 모든 설정 항목 검색</string>
     <string name="settings_search_no_results">개 일치</string>
+    <string name="settings_screen_cancel">취소</string>
     <string name="settings_screen_assistant_agent">어시스턴트와 Agent</string>
+    <string name="settings_screen_ai_models">AI 모델 &amp; 기능</string>
     <string name="settings_screen_data_backup_group">데이터와 백업</string>
+    <string name="settings_screen_data_management_group">데이터 &amp; 개인정보 보호</string>
 
-    <!-- v1.97 gap8: 도구 그룹(독립 번역 페이지 진입점) -->
+    <!-- v1.97 gap8: Tools group (standalone translate page entry) -->
     <string name="settings_screen_tools_group_cd">도구 그룹</string>
-    <string name="settings_screen_tools">도구</string>
     <string name="settings_screen_translate_cd">AI 번역, 독립 번역 도구, 탭하여 진입</string>
     <string name="settings_screen_translate">AI 번역</string>
     <string name="settings_screen_translate_desc">다국어 번역, 붙여넣기/복사 지원</string>
 
-    <!-- v1.25: 비전 보조(텍스트 전용 모델에 비전 모델로 이미지를 "보게" 함) -->
+    <!-- v1.25: Vision Assist (let text-only models "see" images via vision model) -->
     <string name="settings_screen_vision">비전 보조</string>
     <string name="settings_screen_vision_desc">텍스트 전용 모델도 비전 모델로 이미지 분석 가능</string>
     <string name="settings_vision_title">비전 보조</string>
@@ -301,12 +294,29 @@
     <string name="settings_vision_enabled_subtitle">이미지를 비전 모델에 자동 전송하여 분석</string>
     <string name="settings_vision_model_section">비전 모델</string>
     <string name="settings_vision_no_models">비전 입력 지원 모델을 찾지 못했습니다. 프로바이더 설정에서 비전 모델을 추가하세요.</string>
+    <string name="vision_analysis_starting">비전 모델을 이용한 이미지 분석</string>
+    <string name="vision_analysis_done">비전 모델을 사용하여 %1$d 이미지를 분석했습니다.</string>
+    <string name="vision_analysis_failed">이미지 분석 실패: %1$s</string>
+    <string name="vision_assist_label">비전 어시스트</string>
+    <string name="vision_assist_analyzing">Vision Assist · 분석 %1$d/%2$d</string>
+    <string name="vision_assist_done">비전 어시스트 · 완료</string>
+    <string name="vision_assist_failed">비전 어시스트 · 실패</string>
 
-    <!-- ===== 검색 페이지 SearchScreen ===== -->
+    <!-- ===== Search screen SearchScreen ===== -->
     <string name="search_back_cd">뒤로</string>
+    <string name="search_cancel">취소</string>
     <string name="search_placeholder">세션/메시지/설정 검색...</string>
     <string name="search_empty_hint">키워드를 입력하여 세션, 메시지, 설정을 검색하세요</string>
+    <string name="search_tab_sessions">세션</string>
+    <string name="search_tab_message_content">메시지 내용</string>
+    <string name="search_section_message_content">메시지 내용</string>
+    <string name="search_section_translate">번역</string>
+    <string name="search_section_quick_notes">빠른 메모</string>
     <string name="search_suggestion_backup">백업</string>
+    <string name="search_suggestion_today">오늘</string>
+    <string name="search_suggestion_summary">요약</string>
+    <string name="search_suggestion_report">보고서</string>
+    <string name="search_suggestion_idea">아이디어</string>
     <string name="search_no_result">일치하는 결과가 없습니다</string>
     <string name="search_try_other">다른 키워드로 시도해 보세요</string>
     <string name="search_section_sessions">세션</string>
@@ -340,7 +350,7 @@
     <string name="search_index_user_profile">사용자 페르소나</string>
     <string name="search_index_user_profile_edit">사용자 페르소나 편집</string>
 
-    <!-- ===== 스킬 페이지 SkillScreen ===== -->
+    <!-- ===== Skill screen SkillScreen ===== -->
     <string name="skill_management">스킬 관리</string>
     <string name="skill_back_cd">뒤로</string>
     <string name="skill_import_cd">.skill.json 가져오기</string>
@@ -379,16 +389,84 @@
     <string name="skill_use_case_knowledge_search">지식 베이스 문서 내용과 관련된 질문일 때 LLM이 추측 대신 지식 베이스를 검색합니다.</string>
     <string name="skill_use_case_arxiv_search">학술 논문이나 연구 방향을 물으면 LLM이 arXiv 학술 프리프린트 저장소를 검색합니다.</string>
     <string name="skill_use_case_install_skill">새로운 능력 요구(예: 「환율 조회 스킬 만들기」)를 설명하면 LLM이 자동으로 새 스킬을 생성하고 설치합니다.</string>
+    <!-- ===== Assistant detail: regex rules ===== -->
+    <string name="assistant_detail_regex_title">정규식 치환 규칙</string>
+    <string name="assistant_detail_regex_desc">사용자/어시스턴트 메시지에 정규식 치환을 적용합니다(역할명 치환, 민감어 필터, 포맷 정규화 등)</string>
+    <string name="assistant_detail_regex_add">규칙 추가</string>
+    <string name="assistant_detail_regex_empty">규칙이 없습니다. 「규칙 추가」를 눌러 만드세요</string>
+    <string name="assistant_detail_regex_edit_title">규칙 편집</string>
+    <string name="assistant_detail_regex_name_label">규칙 이름</string>
+    <string name="assistant_detail_regex_name_hint">예: 역할명 치환</string>
+    <string name="assistant_detail_regex_find_label">검색 정규식</string>
+    <string name="assistant_detail_regex_find_hint">예: \\bAI\\b</string>
+    <string name="assistant_detail_regex_replace_label">치환 문자열</string>
+    <string name="assistant_detail_regex_replace_hint">예: 아이($1 역참조 지원)</string>
+    <string name="assistant_detail_regex_scope_label">영향 범위</string>
+    <string name="assistant_detail_regex_scope_user">사용자 메시지만</string>
+    <string name="assistant_detail_regex_scope_assistant">어시스턴트 메시지만</string>
+    <string name="assistant_detail_regex_scope_both">양방향(사용자+어시스턴트)</string>
+    <string name="assistant_detail_regex_visual_only">표시만 치환(LLM 입력에는 영향 없음)</string>
+    <string name="assistant_detail_regex_enabled">활성화</string>
+    <string name="assistant_detail_regex_delete_cd">규칙 삭제</string>
+    <string name="assistant_detail_regex_invalid">정규식 문법 오류</string>
 
-    <!-- ===== 통계 화면 ===== -->
+    <!-- ===== QR code share/scan ===== -->
+    <string name="qr_share_title">프로바이더 QR 코드 공유</string>
+    <string name="qr_share_cd">프로바이더 설정 QR 코드</string>
+    <string name="qr_share_warning">이 QR 코드에는 API Key가 평문으로 포함되어 있습니다. 신뢰할 수 있는 수신자에게만 공유하세요</string>
+    <string name="qr_share_btn">QR 코드 공유</string>
+    <string name="qr_scan_title">QR 코드 스캔</string>
+    <string name="qr_scan_pick_image">갤러리에서 QR 이미지 선택</string>
+    <string name="qr_scan_pick_button">이미지 선택</string>
+    <string name="qr_scan_scanning">인식 중…</string>
+    <string name="qr_scan_failed">QR 코드를 인식하지 못했습니다. 이미지가 선명한지 확인 후 다시 시도하세요</string>
+    <string name="qr_scan_btn">QR 코드 스캔하여 가져오기</string>
+    <string name="qr_import_success">프로바이더를 가져왔습니다: %1$s</string>
+    <string name="qr_import_invalid">QR 코드 형식이 올바르지 않습니다. 프로바이더 설정이 아닙니다</string>
+
+    <!-- ===== Stats screen ===== -->
     <string name="stats_unknown_model">알 수 없는 모델</string>
     <string name="stats_default_assistant">기본 어시스턴트</string>
     <string name="stats_deleted_session">삭제된 세션</string>
 
-    <!-- ===== P1-4: 태블릿 대응(반응형 레이아웃) ===== -->
+    <!-- ===== Assistant detail pages AssistantDetailPages ===== -->
+
+    <!-- ===== Memory screen MemoryScreen ===== -->
+    <!-- v1.98: Experience library -->
+
+    <!-- ===== Settings screen SettingsScreen ===== -->
+
+    <!-- v1.97 gap8: Tools group (standalone translate page entry) -->
+
+    <!-- ===== Search screen SearchScreen ===== -->
+
+    <!-- ===== Skill screen SkillScreen ===== -->
+    <!-- ===== Assistant detail: regex rules ===== -->
+
+    <!-- ===== QR code share/scan ===== -->
+
+    <!-- ===== Stats screen ===== -->
+
+    <!-- ===== P1-6: OAuth login (ProviderEditPage) ===== -->
+    <string name="oauth_login">OAuth 로그인</string>
+    <string name="oauth_login_success">OAuth 로그인 성공</string>
+    <string name="oauth_login_failed">OAuth 로그인 실패: %1$s</string>
+    <string name="oauth_device_code_prompt">%1$s에 접속하여 코드 입력: %2$s</string>
+    <string name="oauth_polling">인증 완료 대기 중...</string>
+    <string name="oauth_open_verification_uri">링크 열기</string>
+
+    <!-- ===== P2-11: OAuth credential isolation (revoke / auto refresh) ===== -->
+    <string name="oauth_revoke">접근 권한 취소</string>
+    <string name="oauth_revoke_confirm">이 공급자의 OAuth 접근 권한을 취소하시겠습니까?</string>
+    <string name="oauth_revoke_success">접근 권한이 취소되었습니다</string>
+    <string name="oauth_token_expired">인증이 만료되었습니다. 다시 로그인하세요</string>
+    <string name="oauth_token_refreshed">인증이 자동으로 갱신되었습니다</string>
+    <string name="oauth_stored">인증이 저장되었습니다</string>
+
+    <!-- ===== P1-4: Tablet adaptation (responsive layout) ===== -->
     <string name="settings_adaptive_layout">적응형 레이아웃</string>
 
-    <!-- ===== P2-2: 업스트림 모델 차이 시트(ModelDiffSheet) ===== -->
+    <!-- ===== P2-2: Upstream model diff sheet (ModelDiffSheet) ===== -->
     <string name="model_diff_title">업스트림 모델 차이</string>
     <string name="model_diff_new">업스트림 신규(%1$d)</string>
     <string name="model_diff_removed">삭제됨(%1$d)</string>
@@ -400,32 +478,62 @@
     <string name="model_diff_empty_new">신규 모델 없음</string>
     <string name="model_diff_empty_removed">삭제된 모델 없음</string>
 
-    <!-- ===== P2-3: Ollama 비전/도구 능력 추론 ===== -->
+    <!-- ===== P2-3: Ollama vision/tools capability inference ===== -->
     <string name="ollama_vision_inferred">비전 (추론)</string>
     <string name="ollama_tools_inferred">도구 사용 (추론)</string>
-    <!-- ===== P2-1: Provider 충돌 감지(ProviderSection 경고 카드) ===== -->
+    <!-- ===== P2-1: Provider collision detection (ProviderSection warning card) ===== -->
     <string name="provider_collision_warning">%1$d개의 중복 가능성이 있는 공급자 구성 발견</string>
 
-    <!-- ===== P2-4: 감사 로그(AuditLogPage) ===== -->
+    <!-- ===== P2-4: Audit log (AuditLogPage) ===== -->
     <string name="settings_audit_log">감사 로그</string>
     <string name="audit_log_clear">로그 지우기</string>
     <string name="audit_log_empty">로그 기록 없음</string>
     <string name="audit_log_clear_confirm">모든 감사 로그를 지우시겠습니까?</string>
+    <string name="audit_log_category_all">모두</string>
     <string name="audit_log_category_api">API 호출</string>
     <string name="audit_log_category_user">사용자 작업</string>
     <string name="audit_log_category_auth">인증</string>
     <string name="audit_log_category_system">시스템</string>
+    <string name="audit_log_search_hint">검색 액션/타겟/상세</string>
+    <string name="audit_log_clear_search">검색 지우기</string>
+    <string name="audit_log_no_match">일치하는 로그가 없습니다.</string>
+    <string name="audit_log_result_count">%2$d 중 %1$d 표시 중</string>
+    <string name="audit_log_export">JSON 내보내기</string>
+    <string name="audit_log_export_empty">내보낼 로그가 없습니다.</string>
+    <string name="audit_log_export_subject">Muse 감사 로그 — %1$d 항목</string>
+    <string name="audit_log_export_chooser">감사 로그 공유</string>
+    <string name="audit_log_export_failed">내보내기 실패: 파일 URI를 가져올 수 없습니다.</string>
 
-    <!-- ===== P2-8: 동영상 생성(SettingsScreen 입구 + VideoGenerationPage) ===== -->
+    <!-- ===== P2-8: Video Generation (SettingsScreen entry + VideoGenerationPage) ===== -->
     <string name="settings_screen_video_gen_cd">동영상 생성, Kling API, 클릭하여 열기</string>
     <string name="settings_screen_video_gen">동영상 생성</string>
     <string name="settings_screen_video_gen_desc">Kling API 텍스트/이미지 to 비디오</string>
+    <!-- Video generation default params entry (provider/model/duration/resolution) -->
+    <string name="settings_screen_video_gen_config">비디오 생성 설정</string>
+    <string name="settings_screen_video_gen_config_desc">기본 비디오 공급자, 모델, 기간 및 해상도</string>
+
+    <!-- ===== v1.133: 5 standalone sub-page entries split out from SettingsModelPage ===== -->
+    <string name="settings_screen_web_search">웹 검색</string>
+    <string name="settings_screen_web_search_desc">검색 엔진/API 키/엔드포인트</string>
+    <string name="settings_screen_asr">음성 인식</string>
+    <string name="settings_screen_asr_desc">음성-텍스트(시스템/DashScope/단계)</string>
+    <string name="settings_screen_image_gen">이미지 생성</string>
+    <string name="settings_screen_image_gen_desc">텍스트-이미지 모델 및 샘플링 매개변수</string>
+    <string name="settings_screen_mcp">MCP 서버</string>
+    <string name="settings_screen_mcp_desc">모델 컨텍스트 프로토콜 도구 서버</string>
+    <string name="settings_screen_assistant_resources">어시스턴트 리소스</string>
+    <string name="settings_screen_assistant_resources_desc">즐겨찾기 / 지식서 / 빠른 메시지 / 프롬프트 주입 / 스킬 / 메모리 토글</string>
+    <string name="settings_assistant_resources_title">어시스턴트 리소스</string>
     <string name="video_gen_title">동영상 생성</string>
     <string name="video_gen_prompt">생성할 동영상을 설명하세요</string>
     <string name="video_gen_model">모델</string>
     <string name="video_gen_duration">길이</string>
     <string name="video_gen_resolution">해상도</string>
     <string name="video_gen_reference_image">참조 이미지(선택)</string>
+    <string name="video_gen_select_image">현지에서 선택하세요</string>
+    <string name="video_gen_clear_image">참조 이미지 지우기</string>
+    <string name="video_gen_image_compressed">압축됨: %1$s</string>
+    <string name="video_gen_image_load_failed">이미지를 로드하지 못했습니다: %1$s</string>
     <string name="video_gen_submit">동영상 생성</string>
     <string name="video_gen_pending">대기 중</string>
     <string name="video_gen_processing">생성 중...</string>
@@ -438,13 +546,13 @@
     <string name="video_gen_provider">공급자</string>
     <string name="video_gen_no_provider">사용 가능한 공급자가 없습니다. 공급자 메뉴에서 API Key를 추가하세요.</string>
 
-    <!-- ===== P2-5: SiliconFlow 무료 모델 폴백(PresetProviders / ProviderEditPage) ===== -->
+    <!-- ===== P2-5: SiliconFlow free model fallback (PresetProviders / ProviderEditPage) ===== -->
     <string name="preset_siliconflow_free">SiliconFlow 무료 모델</string>
     <string name="preset_siliconflow_free_desc">SiliconFlow에서 제공하는 무료 오픈소스 모델 모음</string>
     <string name="siliconflow_fill_free_models">무료 모델 채우기</string>
     <string name="siliconflow_fill_free_models_confirm">현재 모델을 SiliconFlow 무료 모델 목록으로 교체하시겠습니까?</string>
 
-    <!-- ===== P2-10: Provider 플러그인 관리(ProviderPluginPage) ===== -->
+    <!-- ===== P2-10: Provider plugin management (ProviderPluginPage) ===== -->
     <string name="provider_plugins_title">플러그인 관리</string>
     <string name="provider_plugins_empty">플러그인 없음</string>
     <string name="provider_plugins_import">플러그인 가져오기</string>
@@ -454,8 +562,9 @@
     <string name="provider_plugins_import_success">가져오기 성공</string>
     <string name="provider_plugins_delete_confirm">이 플러그인을 삭제하시겠습니까?</string>
 
-    <!-- ===== P2-7: 워크스페이스(WorkspaceScreen + 도구 설명) ===== -->
+    <!-- ===== P2-7: Workspace (WorkspaceScreen + tool descriptions) ===== -->
     <string name="workspace_title">워크스페이스</string>
+    <string name="workspace_desc">로컬 파일 관리 및 임시 저장</string>
     <string name="workspace_empty">워크스페이스가 비어 있습니다</string>
     <string name="workspace_new_file">새 파일</string>
     <string name="workspace_new_folder">새 폴더</string>
@@ -465,7 +574,7 @@
     <string name="workspace_read_only_too_large">파일이 너무 커서 미리보기할 수 없습니다(상한 1MB)</string>
     <string name="workspace_path_copied">경로가 복사되었습니다</string>
 
-    <!-- ===== P2-6: 브라우저 자동화(BrowserAutomationScreen) ===== -->
+    <!-- ===== P2-6: Browser Automation (BrowserAutomationScreen) ===== -->
     <string name="browser_automation_title">브라우저 자동화</string>
     <string name="browser_address_bar">URL 또는 검색어 입력</string>
     <string name="browser_run_js">JavaScript 실행</string>
@@ -474,10 +583,10 @@
     <string name="browser_refresh">새로고침</string>
     <string name="browser_close">닫기</string>
 
-    <!-- ===== P2-9: 음성 클로닝(VoiceCloningPage + MediaSettingsPage 입구) ===== -->
+    <!-- ===== P2-9: Voice Cloning (VoiceCloningPage + MediaSettingsPage entry) ===== -->
     <string name="voice_cloning_title">음성 클로닝</string>
     <string name="voice_cloning_provider">제공자</string>
-    <string name="voice_cloning_api_key">API Key</string>
+    <string name="voice_cloning_api_key">API 키</string>
     <string name="voice_cloning_new_voice">새 음성 클로닝</string>
     <string name="voice_cloning_voice_name">음성 이름</string>
     <string name="voice_cloning_select_audio">샘플 오디오 선택</string>
@@ -489,8 +598,8 @@
     <string name="voice_cloning_failed">클로닝 실패: %1$s</string>
     <string name="voice_cloning_audio_required">먼저 샘플 오디오를 선택하세요</string>
 
-    <!-- ===== P2-13: 데스크톱 환경 적응(ChromeOS / Android Desktop) ===== -->
-    <!-- 단축키 설명(설정 또는 도움말 페이지에서 표시) -->
+    <!-- ===== P2-13: Desktop adaptation (ChromeOS / Android Desktop) ===== -->
+    <!-- Shortcut descriptions (shown in settings/help pages) -->
     <string name="desktop_shortcuts_send">Enter: 전송</string>
     <string name="desktop_shortcuts_newline">Shift+Enter: 줄바꿈</string>
     <string name="desktop_shortcuts_search">Ctrl+K: 검색</string>
@@ -498,13 +607,13 @@
     <string name="desktop_shortcuts_settings">Ctrl+,: 설정</string>
     <string name="desktop_shortcuts_copy_reply">Ctrl+Shift+C: 답장 복사</string>
     <string name="desktop_shortcuts_close">Esc: 닫기</string>
-    <!-- 우클릭 컨텍스트 메뉴 항목 -->
+    <!-- Right-click context menu items -->
     <string name="desktop_context_copy">복사</string>
     <string name="desktop_context_regenerate">재생성</string>
     <string name="desktop_context_delete">삭제</string>
     <string name="desktop_context_share">공유</string>
 
-    <!-- P2-12 리치 텍스트 입력 -->
+    <!-- P2-12 Rich Text Input -->
     <string name="settings_rich_input">리치 텍스트 입력</string>
     <string name="settings_rich_input_desc">입력 상자 위에 Markdown 형식 도구 모음 표시</string>
     <string name="rich_input_format">형식</string>
@@ -519,4 +628,33 @@
     <string name="rich_input_link_text">링크 텍스트</string>
     <string name="rich_input_link_url">링크 URL</string>
     <string name="rich_input_link_insert">링크 삽입</string>
+    <string name="chat_compressing_banner">정재压缩会话历史…</string>
+    <string name="chat_delegation_banner">委派中 · %1$d 个子任务执行中</string>
+    <string name="chat_draft_restored">草稿已恢复</string>
+    <string name="chat_loading_more_history">더 많은 정보를…</string>
+    <string name="chat_performance_indicator">已显示 %1$d / %2$d 条</string>
+    <string name="chat_video_generating">正生成视频,可能需要几十秒…</string>
+    <string name="ocr_processing_hint">정재 识别图文字…</string>
+    <string name="search_searching">정재搜索…</string>
+    <string name="settings_screen_quick_notes">快速记录</string>
+    <string name="settings_screen_quick_notes_cd">快速记录，随手记下灵感，点击进入</string>
+    <string name="settings_screen_quick_notes_desc">随手记下灵感，支持分类/提醒/加密</string>
+    <string name="settings_vision_manual_selected">수공择</string>
+    <string name="settings_vision_probe_button">测试所选视觉模型</string>
+    <string name="settings_vision_probe_desc">发送一张内置测试图 Images 给所选视觉模型，验证其是否真的支持视觉输入并可用.</string>
+    <string name="settings_vision_probe_disabled">请先启用视觉辅助并选择视觉模型.</string>
+    <string name="settings_vision_probe_failed">测试失败：%1$s</string>
+    <string name="settings_vision_probe_no_model">请先选择视觉模型.</string>
+    <string name="settings_vision_probe_running">测试中…</string>
+    <string name="settings_vision_probe_section">探针测试</string>
+    <string name="settings_vision_probe_success">测试成功：视觉模型返回了 %1$d 字符的描述。</string>
+    <string name="settings_vision_show_all_models">显示전체부模型</string>
+    <string name="settings_vision_show_all_models_subtitle">中转站高级模式：显示所有模型，可手动选择未被自动识别的视觉模型</string>
+    <string name="skill_delete">删除</string>
+    <string name="skill_delete_confirm_message">确定要删除「%1$s」吗？此操작품불可撤销。</string>
+    <string name="skill_delete_confirm_title">确认删除</string>
+    <string name="skill_delete_failed_ui">删除失败：%1$s</string>
+    <string name="tool_resume_starting">실제로 사용하는 것이 좋습니다…</string>
+    <string name="tool_resume_step">정재执行 %1$s (%2$d/%3$d)…</string>
+    <string name="tts_not_ready">TTS 正재初始化,请稍后중화</string>
 </resources>

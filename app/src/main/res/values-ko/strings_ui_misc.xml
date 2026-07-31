@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== ui/common shared components ===== -->
+    <string name="common_state_enabled">활성화됨</string>
+    <string name="common_state_disabled">장애가 있는</string>
+    <string name="common_confirm_delete_message">\"%1$s\"을(를) 삭제하시겠습니까?</string>
+    <string name="common_delete">삭제</string>
+    <string name="common_cancel">취소</string>
+    <string name="common_confirm">확인하다</string>
+    <string name="common_got_it">알았어요</string>
+    <string name="common_close">닫다</string>
+    <string name="common_retry">다시 해 보다</string>
+    <string name="common_collapse">무너지다</string>
+    <string name="common_expand">확장하다</string>
+    <string name="common_no_options">사용 가능한 옵션이 없습니다.</string>
+    <string name="common_selectable">선택 과목</string>
+    <string name="common_remove">제거하다</string>
+    <string name="common_avatar_cd">%1$s 아바타</string>
+    <string name="common_slider_cd">슬라이더, 현재 값 %1$s</string>
+    <string name="common_dropdown_cd">%1$s, 현재 값 %2$s</string>
+    <string name="common_open_file_failed">파일을 열 수 없습니다: %1$s</string>
+
+    <!-- ===== ui/markdown Markdown rendering ===== -->
+    <string name="markdown_only_http">http/https 링크만 지원됩니다.</string>
+    <string name="markdown_open_link_failed">링크를 열 수 없습니다: %1$s</string>
+    <!-- v1.97: URL click confirmation -->
+    <string name="markdown_open_link_confirm_title">링크 열기</string>
+    <string name="markdown_open_link_confirm_message">브라우저에서 이 링크를 여시겠습니까?</string>
+    <string name="markdown_open_link_confirm_open">열려 있는</string>
+    <string name="markdown_open_link_confirm_copy">링크 복사</string>
+    <string name="markdown_open_link_dont_ask_again">이 세션에서 다시 묻지 않음(길게 누르면 바로 열림)</string>
+    <string name="markdown_link_copied">링크가 복사되었습니다</string>
+    <string name="markdown_line_count">%1$d 라인</string>
+    <string name="markdown_copied_lines">%1$d 코드 줄을 복사했습니다.</string>
+    <string name="markdown_copy_code_cd">코드 복사</string>
+    <string name="markdown_collapse_remaining">%1$d 행 더보기</string>
+    <string name="markdown_svg_label">SVG 그래픽</string>
+    <string name="markdown_html_label">HTML 카드</string>
+    <string name="markdown_chart_label">차트</string>
+    <string name="markdown_mermaid_label">인어 다이어그램</string>
+    <string name="markdown_plantuml_label">PlantUML 다이어그램</string>
+    <string name="markdown_svg_cd">SVG 그래픽</string>
+    <string name="markdown_html_cd">HTML 콘텐츠</string>
+    <string name="markdown_chart_cd">차트: %1$s</string>
+    <string name="markdown_mermaid_cd">인어 다이어그램: %1$s</string>
+    <string name="markdown_plantuml_cd">PlantUML 다이어그램: %1$s</string>
+    <string name="markdown_formula_cd">수학 공식: %1$s</string>
+    <string name="markdown_chart_render_failed">차트 렌더링 실패</string>
+    <string name="markdown_chart_show_source">소스 표시</string>
+    <string name="markdown_chart_loading">표현…</string>
+    <!-- HTML preview feature -->
+    <string name="html_preview_title">HTML 미리보기</string>
+    <string name="html_preview_open_in_browser_cd">브라우저에서 열기</string>
+    <string name="html_preview_copy_source_cd">소스 복사</string>
+    <string name="html_preview_open_in_browser_failed">외부 브라우저에서 열 수 없습니다: %1$s</string>
+    <string name="html_preview_source_copied">HTML 소스가 복사되었습니다.</string>
+    <string name="html_preview_button_cd">전체 화면 미리보기</string>
+    <!-- v1.0.47 P8-2: Download artifact -->
+    <string name="html_preview_download_cd">다운로드</string>
+    <string name="html_preview_download_success">다운로드에 저장됨: %1$s</string>
+    <string name="html_preview_download_failed">다운로드 실패: %1$s</string>
+
+    <!-- ===== ui/theme preset theme names ===== -->
+    <string name="theme_warm_paper">따뜻한 종이</string>
+    <string name="theme_sakura">사쿠라</string>
+    <string name="theme_ocean">대양</string>
+    <string name="theme_spring">봄</string>
+    <string name="theme_autumn">가을</string>
+    <string name="theme_mono">단핵증</string>
+    <string name="theme_sumi">수미(잉크)</string>
+    <string name="theme_washi">와시(종이)</string>
+    <string name="theme_aizome">아이조메(인디고)</string>
+    <string name="theme_twilight_purple">트와일라잇 퍼플</string>
+    <string name="theme_amber_gold">앰버 골드</string>
+    <string name="theme_dusk_rose">황혼의 장미</string>
+
+    <!-- ===== ui/speech voice input and TTS ===== -->
+    <string name="speech_speak_prompt">말해주세요…</string>
+    <string name="speech_tts_init_failed">음성 엔진 초기화에 실패했습니다. 소리내어 읽을 수 없습니다.</string>
+    <string name="speech_tts_play_error">음성 재생 오류</string>
+    <string name="speech_tts_fallback_to_system">네트워크 문제, 시스템 TTS로 전환됨</string>
+    <string name="speech_stop_reading_cd">읽기 중지</string>
+    <string name="speech_playback_speed_cd">재생 속도 %1$sx</string>
+    <string name="speech_seek_forward_5s_cd">5초 앞으로</string>
+    <string name="speech_pause_cd">정지시키다</string>
+    <string name="speech_resume_cd">재개하다</string>
+
+    <!-- ===== ui/ModelSwitchSheet model switcher ===== -->
+    <string name="model_switch_title">모델</string>
+    <string name="model_switch_no_provider">구성된 공급자 없음\n설정 → 공급자 관리에서 공급자 추가</string>
+    <string name="model_switch_provider_label">공급자</string>
+    <string name="model_switch_no_provider_selected">선택한 제공업체가 없습니다.</string>
+    <string name="model_switch_models_label">모델(%1$s)</string>
+    <string name="model_switch_fetching">가져오는 중</string>
+    <string name="model_switch_refresh">새로 고치다</string>
+    <string name="model_switch_fetching_upstream">업스트림에서 모델을 가져오는 중…</string>
+    <string name="model_switch_no_models">이 제공업체에는 모델이 없습니다\n업스트림 목록을 가져오려면 오른쪽 상단의 새로고침을 탭하세요.</string>
+    <string name="model_switch_default">%1$s (기본값)</string>
+    <string name="model_switch_not_configured">구성되지 않음</string>
+    <string name="model_switch_selected_cd">선택된</string>
+    <string name="model_switch_ability_vision">비전</string>
+    <string name="model_switch_ability_reasoning">추리</string>
+    <string name="model_switch_ability_tool">도구</string>
+    <string name="model_switch_ability_image">영상</string>
+    <string name="model_switch_ability_search">편물</string>
+    <string name="model_switch_search_placeholder">모델 검색</string>
+    <string name="model_switch_expand_all">모두 펼치기</string>
+    <string name="model_switch_collapse_all">모두 접기</string>
+    <string name="model_switch_group_count">%1$s (%2$d)</string>
+    <!-- v1.0.18: Free model badge/hint (aligns with FreeModelConfig) -->
+    <string name="model_switch_free_badge">무료</string>
+    <string name="model_switch_free_provider_hint">로그인이 필요하지 않으며 바로 사용할 수 있습니다.</string>
+
+    <!-- ===== ui/HomeScreen home ===== -->
+    <string name="home_tab_tasks">작업</string>
+    <string name="home_tab_group_chat">그룹</string>
+    <string name="home_settings_cd">설정</string>
+    <string name="home_search_cd">찾다</string>
+    <string name="home_tab_selected_suffix">, 선택됨</string>
+
+    <!-- ===== ui/FavoritesScreen favorites ===== -->
+    <string name="favorites_title">즐겨찾기(%1$d)</string>
+    <string name="favorites_back_cd">뒤쪽에</string>
+    <string name="favorites_empty_title">아직 즐겨찾기가 없습니다.</string>
+    <string name="favorites_empty_subtitle">즐겨찾기에 추가하려면 채팅 메시지의 별표를 탭하세요.</string>
+    <string name="favorites_role_user">나</string>
+    <string name="favorites_role_system">체계</string>
+    <string name="favorites_role_tool">도구</string>
+    <string name="favorites_unfavorite_cd">즐겨찾기 삭제</string>
+    <!-- v1.104 U7: favorite groups/tags -->
+    <string name="favorites_filter_all">모두(%1$d)</string>
+    <string name="favorites_filter_ungrouped">그룹 해제됨(%1$d)</string>
+    <string name="favorites_tag_chip">%1$s (%2$d)</string>
+    <string name="favorites_tag_edit_title">그룹 설정</string>
+    <string name="favorites_tag_edit_hint">그룹 이름(비어 있음 = 그룹 해제됨)</string>
+    <string name="favorites_tag_edit_clear">그룹 지우기</string>
+    <string name="favorites_tag_edit_confirm">좋아요</string>
+    <string name="favorites_tag_edit_cancel">취소</string>
+    <string name="favorites_tag_label">그룹: %1$s</string>
+    <string name="favorites_empty_in_filter">이 그룹에는 즐겨찾기가 없습니다.</string>
+    <string name="favorites_card_long_click_cd">그룹을 설정하려면 길게 누르세요.</string>
+
+    <!-- ===== ui/ImageSaveUtils image saving ===== -->
+    <string name="image_save_decode_failed">이미지를 디코딩할 수 없습니다</string>
+    <string name="image_save_mediastore_insert_failed">MediaStore 삽입 실패</string>
+    <string name="image_save_open_stream_failed">출력 스트림을 열 수 없습니다.</string>
+
+    <!-- ===== ui/experience/ExperiencePanel ===== -->
+    <string name="experience_title">체험도서관</string>
+    <string name="experience_enabled">활성화됨</string>
+    <string name="experience_back_cd">뒤쪽에</string>
+    <string name="experience_add_cd">경험 추가</string>
+    <string name="experience_search_hint">경험 검색…</string>
+    <string name="experience_add_title">경험 추가</string>
+    <string name="experience_add_category_hint">카테고리(예: \'도구 사용\')</string>
+    <string name="experience_add_content_hint">체험내용(한문장)</string>
+    <string name="experience_add_confirm">추가하다</string>
+    <string name="experience_add_cancel">취소</string>
+
+    <!-- ===== ui/activity/ActivityPanel ===== -->
+    <string name="activity_log_title">활동 로그</string>
+    <string name="activity_empty">아직 기록된 활동이 없습니다.</string>
+    <string name="model_switch_retry">무거운 말</string>
+    <string name="shortcut_new_chat_long">开始新对话</string>
+    <string name="shortcut_new_chat_short">새로운 이야기</string>
+    <string name="shortcut_quick_notes_long">快速记录</string>
+    <string name="shortcut_quick_notes_short">速记</string>
+    <string name="shortcut_settings_long">打开设置</string>
+    <string name="shortcut_settings_short">设置</string>
+    <string name="shortcut_translate_long">打开翻译</string>
+    <string name="shortcut_translate_short">翻译</string>
+    <string name="shortcut_voice_input_long">语输入</string>
+    <string name="shortcut_voice_input_short">음성</string>
+    <string name="speech_next_chunk_cd">下一段</string>
+    <string name="speech_previous_chunk_cd">상일전</string>
+    <string name="speech_seek_backward_5s_cd">后退 5 秒</string>
+</resources>

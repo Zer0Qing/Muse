@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== DebugScreen.kt ===== -->
+    <!-- Clear confirmation dialog -->
+    <string name="debug_clear_logs_title">デバッグログをクリアする</string>
+    <string name="debug_clear_logs_confirm">すべての%1$dログをクリアしますか?</string>
+    <string name="debug_action_clear">クリア</string>
+    <string name="debug_cleared_toast">クリア済み</string>
+
+    <!-- Copy logs -->
+    <string name="debug_no_logs_to_copy">コピーするログがありません</string>
+    <string name="debug_logs_copied_toast">%1$d ログをクリップボードにコピーしました</string>
+
+    <!-- Export logs -->
+    <string name="debug_export_failed_no_logs">エクスポートに失敗しました: ログがないか、ディレクトリが初期化されていません</string>
+    <string name="debug_export_failed_no_uri">エクスポートに失敗しました: ファイル URI を取得できません</string>
+    <string name="debug_share_log_chooser">デバッグログを共有する</string>
+
+    <!-- Top bar / titles -->
+    <string name="debug_screen_title">デバッグログ</string>
+    <string name="debug_cd_resume_follow">以下を再開します</string>
+    <string name="debug_cd_pause_follow">フォローを一時停止する</string>
+    <string name="debug_cd_crash_logs">クラッシュログ</string>
+    <string name="debug_cd_analytics">ローカル分析</string>
+    <string name="debug_cd_db_integrity">データベースの整合性</string>
+    <string name="debug_cd_clear">クリア</string>
+    <string name="debug_cd_export">輸出</string>
+    <string name="debug_cd_copy">コピー</string>
+
+    <!-- Log count -->
+    <string name="debug_log_count">%1$d エントリの合計</string>
+    <string name="debug_log_count_paused_suffix">・フォロー一時停止中</string>
+
+    <!-- Filter row -->
+    <string name="debug_level_label">レベル</string>
+    <string name="debug_keyword_label">キーワード</string>
+
+    <!-- Empty state -->
+    <string name="debug_empty_title">ログがありません</string>
+    <string name="debug_empty_subtitle">ロガー呼び出しからのログがリアルタイムでここに表示されます</string>
+
+    <!-- Crash log panel (CrashLogSheet) -->
+    <string name="debug_crash_log_title">クラッシュログ</string>
+    <string name="debug_export_zip_and_share">ZIP をエクスポートして共有する</string>
+    <string name="debug_loading_crash_logs">クラッシュ ログを読み込んでいます…</string>
+    <string name="debug_no_crash_logs">クラッシュ ログなし\n\nアプリがクラッシュしていないか、ログが自動消去されています (最新の 5 件のみが保持されます)。</string>
+    <string name="debug_crash_log_count">%1$d ファイル (新しい順、最新の 5 つだけが保持されます)</string>
+    <string name="debug_cd_share_crash_log">このログを共有する</string>
+    <string name="debug_loading">読み込み中…</string>
+    <string name="debug_crash_preview_truncated">最初の %1$d 文字のみが表示されます。</string>
+
+    <!-- Crash log sharing (non-Composable helpers, use context.getString) -->
+    <string name="debug_export_failed_no_crash_logs">エクスポートに失敗しました: クラッシュ ログはありません</string>
+    <string name="debug_share_crash_zip_chooser">クラッシュログのZIPを共有する</string>
+    <string name="debug_share_failed_no_uri">共有に失敗しました: ファイル URI を取得できません</string>
+    <string name="debug_share_crash_log_chooser">クラッシュログを共有する</string>
+
+    <!-- Local analytics panel (AnalyticsSheet) -->
+    <string name="debug_analytics_title">ローカル分析</string>
+    <string name="debug_loading_analytics">分析を読み込み中…</string>
+    <string name="debug_analytics_load_failed">分析データを読み取れません</string>
+    <string name="debug_metric_dau_today">今日のDAU</string>
+    <string name="debug_metric_mau_month">今月のMAU</string>
+    <string name="debug_metric_total_sessions">合計セッション数</string>
+    <string name="debug_metric_total_messages">総メッセージ数</string>
+    <string name="debug_metric_launch_count">打ち上げ</string>
+    <string name="debug_metric_crash_count">クラッシュ</string>
+    <string name="debug_metric_crash_count_value">%1$d (%2$s)</string>
+    <string name="debug_status_first_chat">最初のチャットが完了しました</string>
+    <string name="debug_status_memory_adopted">メモリーシステム採用</string>
+    <string name="debug_status_last_active">最後にアクティブだった日付</string>
+    <string name="debug_value_yes">はい</string>
+    <string name="debug_value_no">いいえ</string>
+
+    <!-- Retention card -->
+    <string name="debug_retention_title">保持期間 (最初のリリース以来)</string>
+    <string name="debug_retention_d1">1日目 (D1)</string>
+    <string name="debug_retention_d7">7日目 (D7)</string>
+    <string name="debug_retention_d30">30日目 (D30)</string>
+
+    <!-- Feature usage -->
+    <string name="debug_feature_usage_top">上位 10 個の機能の使用状況</string>
+    <string name="debug_no_feature_usage">機能の使用記録がありません</string>
+
+    <!-- Database integrity panel (DbIntegritySheet) -->
+    <string name="debug_db_integrity_title">データベースの整合性</string>
+    <string name="debug_loading_db_integrity">最終チェック記録をロード中…</string>
+    <string name="debug_db_status_ok">データベースOK</string>
+    <string name="debug_db_status_error">データベースエラー</string>
+    <string name="debug_db_size_label">DB サイズ: %1$s</string>
+    <string name="debug_db_check_time_label">時刻を確認: %1$s</string>
+    <string name="debug_no_details">(詳細なし)</string>
+    <string name="debug_db_error_advice">提案: 「設定 → バックアップ &amp; 回復」から最新の自動バックアップを復元するか、重要な会話をエクスポートしてアプリを再インストールします。</string>
+    <string name="debug_integrity_check_passed">整合性チェックに合格しました</string>
+    <string name="debug_integrity_check_failed">整合性チェックに失敗しました。詳細を表示してください</string>
+    <string name="debug_checking">チェック中…</string>
+    <string name="debug_check_now">今すぐチェック</string>
+    <string name="debug_no_check_record">まだチェック記録がありません\n\n今すぐ整合性チェックを実行するには、下のボタンをタップしてください。</string>
+</resources>

@@ -1,6 +1,7 @@
 package io.zer0.ai.gemini
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.json.JsonElement
 
 /**
@@ -152,6 +153,16 @@ internal data class GeminiResponse(
     val candidates: List<GeminiCandidate> = emptyList(),
     /** H-GEM4: 提示级安全反馈(含 blockReason 时表示请求被整体拦截)。 */
     val promptFeedback: GeminiPromptFeedback? = null,
+    /** v1.0.53 Phase 3: token 用量(Gemini usageMetadata)。 */
+    val usageMetadata: GeminiUsageMetadata? = null,
+)
+
+/** v1.0.53 Phase 3: Gemini token 用量(对齐 Google API usageMetadata)。 */
+@Serializable
+internal data class GeminiUsageMetadata(
+    @SerialName("promptTokenCount") val promptTokenCount: Int = 0,
+    @SerialName("candidatesTokenCount") val candidatesTokenCount: Int = 0,
+    @SerialName("totalTokenCount") val totalTokenCount: Int = 0,
 )
 
 /** H-GEM4: 提示级安全反馈。 */
@@ -236,4 +247,11 @@ internal data class GeminiFileResource(
     val mimeType: String = "",
     val state: String = "",
     val error: GeminiErrorDetail? = null,
+)
+
+/** v1.0.53 Phase 3: Gemini usageMetadata -> [io.zer0.ai.core.UsageTokens]。 */
+internal fun GeminiUsageMetadata.toUsageTokens(): io.zer0.ai.core.UsageTokens = io.zer0.ai.core.UsageTokens(
+    promptTokens = promptTokenCount,
+    completionTokens = candidatesTokenCount,
+    reasoningTokens = 0,  // Gemini 不单独计 reasoning tokens
 )

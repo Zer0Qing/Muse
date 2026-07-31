@@ -42,7 +42,7 @@ fun BranchSelector(
     if (totalCount <= 1) return
 
     Row(
-        modifier = modifier.padding(start = 48.dp, top = 2.dp, bottom = 2.dp),
+        modifier = modifier.padding(top = 2.dp, bottom = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {

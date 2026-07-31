@@ -211,6 +211,16 @@ fun NavGraphBuilder.assistantNavGraph(
             onBack = { navController.popBackStack() },
         )
     }
+    // P1-2: Worldbook 动态世界书(独立 ViewModel,不依赖 ChatViewModel)
+    composable(
+        route = MuseRoutes.WORLDBOOK,
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        io.zer0.muse.ui.worldbook.WorldBookScreen(
+            onBack = { navController.popBackStack() },
+        )
+    }
     composable(
         route = MuseRoutes.QUICK_MESSAGES,
         enterTransition = { MuseTransitions.horizontalPushEnter() },

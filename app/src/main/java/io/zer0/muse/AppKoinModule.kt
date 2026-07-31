@@ -92,6 +92,7 @@ val appModule = module {
     single { get<MuseDb>().artifactDao() }  // v1.43: 会话产物
     single { get<MuseDb>().assistantDao() }  // Phase 8.2
     single { get<MuseDb>().lorebookDao() }  // Phase 8.5
+    single { get<MuseDb>().worldBookDao() }  // P1-2: Worldbook 动态世界书
     single { get<MuseDb>().quickMessageDao() }  // Phase 8.5
     single { get<MuseDb>().promptInjectionDao() }  // Phase 8.5
     single { get<MuseDb>().skillDao() }  // Phase 8.8
@@ -135,6 +136,7 @@ val appModule = module {
     single { io.zer0.muse.data.artifact.ArtifactRepository(get()) }  // v1.43: 会话产物仓库
     single { AssistantRepository(get(), androidContext(), get()) }  // Phase 8.2 + v1.0.51: 注入 SettingsRepository 用于 locale
     single { LorebookRepository(get()) }  // Phase 8.5
+    single { io.zer0.muse.worldbook.WorldBookRepository(get()) }  // P1-2: Worldbook 动态世界书
     single { QuickMessageRepository(get()) }  // Phase 8.5
     single { PromptInjectionRepository(get(), androidContext()) }  // Phase 8.5
     single { io.zer0.muse.data.skill.SkillRepository(get()) }  // Phase 8.8
@@ -186,7 +188,8 @@ val appModule = module {
     // v1.202: 接 DelegationChainTracker,invokeAgent 中同步链路状态(主会话 UI 可见群聊执行过程)
     single { io.zer0.muse.ui.groupchat.GroupChatActivityHub() }
     // v2.x: 末尾追加 GroupChatMemoryRepository,用于群聊记忆隔离(agent 回复摘要写入独立 fact store)
-    single { io.zer0.muse.schedule.GroupChatScheduler(get(), get(), get(), get(), get(), androidContext(), get(), get(), get(), get(), get(), get(), get()) }
+    // v1.0.53: 追加 SystemPromptAssembler,用于在群聊 system prompt 中注入长期记忆和群聊记忆
+    single { io.zer0.muse.schedule.GroupChatScheduler(get(), get(), get(), get(), get(), androidContext(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
     // v1.43: 应用级聊天生成管理器(切页/后台保持生成不中断)
     single { io.zer0.muse.schedule.ChatGenerationManager(get()) }
@@ -260,6 +263,19 @@ val appModule = module {
             subagentThreadStore = get(),
             deferredResultStore = get(),
             appScope = get(),
+            subagentRunner = get(),
+        )
+    }
+    // v1.0.52 P2-1: Passive Subagent 运行器(同步阻塞式独立子 agent,完整工具循环)
+    // v1.0.53 Phase 1: 加 threadStore(持久化续接)+ concurrencyLimiter(全局并发限流)
+    // v1.0.53 Phase 4: 加 toolConfigStore(deny_on_prompt 审批策略)
+    single {
+        io.zer0.muse.tools.SubagentRunner(
+            chatService = get(),
+            toolRegistry = get(),
+            threadStore = get(),
+            concurrencyLimiter = get(),
+            toolConfigStore = get(),
         )
     }
 
@@ -277,11 +293,61 @@ val appModule = module {
             io.zer0.muse.workspace.WorkspaceManager(androidContext()).rootDir,
         )
     }
+    // v1.0.52 P2-4: PDF 视觉解析(PdfRenderer + 4 路并发 + 视觉模型 OCR)
+    // 依赖 ChatService + ProviderConfigStore(检查视觉模型可用性)+ Context
+    single {
+        io.zer0.muse.tools.DefaultVisionOcrClient(
+            chatService = get(),
+            configStore = get(),
+        )
+    }
+    single {
+        io.zer0.muse.tools.PdfVisionParser(
+            context = androidContext(),
+            ocrClient = get(),
+        )
+    }
+    // P2-4: parse_pdf 工具注册器(init 块自动注册到 ToolRegistry)
+    single {
+        io.zer0.muse.tools.PdfVisionToolsRegistrar(
+            toolRegistry = get(),
+            parser = get(),
+            context = androidContext(),
+            workspaceRoot = io.zer0.muse.workspace.WorkspaceManager(androidContext()).rootDir,
+        )
+    }
     // v1.0.47 P2-6: Shell 沙箱工具注册器(execute_shell,仅 Agent Mode + 审批可用)
     single {
         io.zer0.muse.tools.ShellSandboxToolRegistrar(
             get(),
             androidContext().filesDir,
+        )
+    }
+
+    // P3-3: 无障碍 + Shizuku + Root 三通道路由 — UI 自动化能力底座
+    // AccessibilityClient: bindService 绑定无障碍服务,提供 UI 操作 AIDL 代理
+    single { io.zer0.muse.tools.system.AccessibilityClient(androidContext()) }
+    // ShizukuAuthorizer: Shizuku SDK 集成,以 shell 权限执行命令(无需 root)
+    single { io.zer0.muse.tools.system.ShizukuAuthorizer(androidContext()) }
+    // RootAuthorizer: root 检测 + su 执行(降级通道)
+    single { io.zer0.muse.tools.system.RootAuthorizer() }
+    // ShellExecutor: 三通道路由统一抽象(SHIZUKU 优先,ROOT 降级)
+    single {
+        io.zer0.muse.tools.system.ShellExecutor(
+            shizukuAuthorizer = get(),
+            rootAuthorizer = get(),
+            accessibilityClient = get(),
+        )
+    }
+    // 安装器(引导启用/安装)
+    single { io.zer0.muse.tools.system.AccessibilityProviderInstaller(androidContext()) }
+    single { io.zer0.muse.tools.system.ShizukuInstaller(androidContext()) }
+    // P3-3: UI 工具注册器(init 块自动注册 10 个 ui_* 工具到 ToolRegistry,均为 HIGH 风险)
+    single {
+        io.zer0.muse.tools.defaultTool.UIToolsRegistrar(
+            toolRegistry = get(),
+            accessibilityClient = get(),
+            context = androidContext(),
         )
     }
 
@@ -320,6 +386,18 @@ val appModule = module {
             // v1.202 改造 2: 非阻塞委派所需基础设施(已在下方注册为单例)
             deferredResultStore = get(),
             subagentThreadStore = get(),
+            // v1.0.53: 子 agent 全局并发限流器(所有委派入口共享)
+            agentConcurrencyLimiter = get(),
+            // v1.0.53 Phase 2: 工作流断点恢复日志
+            journal = get(),
+            // v1.0.53 Phase 5: GroupChatScheduler 懒加载 provider(agent_phone 工具用)。
+            // 用 lambda 延迟解析:SkillExecutor 在此注册(下方 single 块),GroupChatScheduler 在
+            // line 192 注册(已先于 SkillExecutor 注册),但 lambda 体内 get() 在工具实际执行时才解析,
+            // 此时两者均已初始化完成,避免循环依赖。
+            // 用 runCatching 兜底:测试环境或 Koin 未启动时返回 null,agent_phone 工具降级为"未配置"。
+            groupChatSchedulerProvider = {
+                runCatching { get<io.zer0.muse.schedule.GroupChatScheduler>() }.getOrNull()
+            },
         )
     }
 
@@ -332,8 +410,32 @@ val appModule = module {
     // v1.200: Agent 自动路由(根据任务文本 + 能力标签推荐最佳助手/团队)
     // v2.x: 注入 ChatService 支持 LLM 语义路由(开关默认关闭,见 MultiAgentConfig.llmRoutingEnabled)
     single { io.zer0.muse.tools.AgentRouter(get(), get(), get()) }
-    // v1.202: 子 agent 线程管理器(可续接的子 agent 会话线程,串行执行避免并发竞争)
-    single { io.zer0.muse.tools.SubagentThreadStore() }
+    // v1.0.53 Phase 1: 子 agent 线程账本(持久化版,替代旧 tools.SubagentThreadStore 内存版)
+    //  - Room 表 subagent_threads(MIGRATION_58_59 创建):线程元数据 + 状态 + runCount
+    //  - JSONL 子会话历史(filesDir/subagent_sessions/<threadId>.jsonl):每轮 LLM + 工具结果增量追加
+    //  - 两条 subagent 路径共享:路径 A(SubagentTool + delegateAgent nonBlocking)+ 路径 B(SubagentRunner)
+    single {
+        io.zer0.muse.data.subagent.SubagentSessionStore(
+            sessionsDir = java.io.File(androidContext().filesDir, "subagent_sessions").apply { mkdirs() },
+            tokenEstimator = io.zer0.muse.util.TokenEstimator,
+        )
+    }
+    single {
+        io.zer0.muse.data.subagent.SubagentThreadStore(
+            dao = get<io.zer0.muse.data.session.MuseDb>().subagentThreadDao(),
+            sessionStore = get(),
+        )
+    }
+    // v1.0.53: 子 agent 全局并发限流器(对标 Hana workflow createLimiter;所有委派入口共享同一配额)
+    single { io.zer0.muse.tools.AgentConcurrencyLimiter() }
+    // v1.0.53 Phase 2: 工作流断点恢复日志(对标 Hana lib/workflow/journal.ts)
+    //  - 文件: filesDir/workflow_journals/<runId>.jsonl
+    //  - TeamWorkflowExecutor resume 时命中缓存的节点秒回,首个未缓存节点起重跑
+    single {
+        io.zer0.muse.tools.WorkflowJournal(
+            journalDir = java.io.File(androidContext().filesDir, "workflow_journals").apply { mkdirs() },
+        )
+    }
     // v1.202: 异步委派任务结果回灌(非阻塞委派核心基础设施,主 agent 立即返回 taskId)
     single { io.zer0.muse.tools.DeferredResultStore() }
 
@@ -475,6 +577,22 @@ val appModule = module {
     // Phase 12: PromptTemplateLoader �?�?assets/prompt_templates/ 加载提示词模�?
     single { io.zer0.muse.transformer.PromptTemplateLoader(androidContext()) }
 
+    // v1.0.53: 封面库 + AI 封面生成(Beautify 封面工作流)
+    single { io.zer0.muse.data.cover.CoverLibraryRepository(androidContext()) }
+    single {
+        io.zer0.muse.tools.CoverGenerator(
+            context = androidContext(),
+            templateLoader = get(),
+            chatService = get(),
+            imageService = getOrNull(),
+            coverLibraryRepository = get(),
+            okHttpClient = get(named("chat")),
+        )
+    }
+
+    // P1-1: Hook 注册表(全局单例,所有 Hook 通过此注册)
+    single { io.zer0.muse.hook.HookRegistry() }
+
     single {
         val settings = get<SettingsRepository>()
         io.zer0.muse.transformer.SystemPromptAssembler(
@@ -494,6 +612,11 @@ val appModule = module {
             // v2.x: 透传 groupChatMemoryRepository,主助手构建 system prompt 时注入群聊记忆摘要
             // (用 <group_chat_memory> 标签与主记忆 <long_term_memory> 区分,不污染主记忆)
             groupChatMemoryRepository = get(),
+            // v1.0.52: 透传 sessionRepository,主助手构建 system prompt 时注入 Recent Chats Reference
+            // (用 <recent_chats> 标签包裹最近会话标题+预览,提供对话连续性上下文)
+            sessionRepository = get(),
+            // P1-1: 透传 hookRegistry,SystemPromptComposeHook 在 build 末尾调用
+            hookRegistry = get(),
         )
     }
 
@@ -570,6 +693,15 @@ val appModule = module {
         )
     }
 
+    // v1.0.52 P2-3: AI 驱动记忆自动管理(对话中实时提取实体/关系/合并/分类)
+    single {
+        io.zer0.memory.ai.MemoryAutoSaveScheduler(
+            factDbProvider = get(),
+            llmClient = get(),
+            scope = get(),
+        )
+    }
+
     // Phase 8.2 / 8.4 / 8.5 / 8.6 / 8.7 / 8.8 / 9.1: ChatViewModel 注入 20 个依�?
     // v0.30-a: 新增 systemPromptAssembler
     // v1.43: 新增 chatGenerationManager / artifactRepository / appContext
@@ -589,6 +721,10 @@ val appModule = module {
             get(), get(),
             // v1.x: ConversationSessionManager(会话级引用计数 + idle 清理)
             get(),
+            // P1-1: HookRegistry(注入 ToolOrchestrator + 消息处理 Hook)
+            get(),
+            // v1.0.52 P2-3: MemoryAutoSaveScheduler(AI 记忆自动保存)
+            get(),
         )
     }
 
@@ -605,6 +741,15 @@ val appModule = module {
             settings = get(),
             experienceRepository = get(),
             assistantRepository = get(),
+            spaceRepository = get(),
+        )
+    }
+
+    // v1.0.52 P2-2: 记忆空间管理 ViewModel
+    viewModel {
+        io.zer0.muse.ui.memory.MemorySpaceViewModel(
+            application = androidContext() as Application,
+            spaceRepository = get(),
         )
     }
 
@@ -662,6 +807,8 @@ val appModule = module {
     // v1.0.17: 快速记录 ViewModel(注入 QuickNoteDao,Room 持久化 + 回收站)
     // v1.0.18: 增加 androidContext()(ReminderStore + AlarmManager 调度提醒)
     viewModel { io.zer0.muse.ui.quicknotes.QuickNotesViewModel(get(), androidContext()) }
+    // P1-2: Worldbook 管理 ViewModel
+    viewModel { io.zer0.muse.ui.worldbook.WorldBookViewModel(get()) }
 }
 
 /**

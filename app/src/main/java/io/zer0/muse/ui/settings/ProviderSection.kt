@@ -32,6 +32,8 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import androidx.compose.material3.Button
@@ -634,6 +636,9 @@ internal fun ProviderEditPage(
     var isQueryingBalance by rememberSaveable { mutableStateOf(false) }
     var balanceResult by rememberSaveable { mutableStateOf<String?>(null) }
     var showAdvanced by rememberSaveable { mutableStateOf(false) }
+    // P1-3: 限流参数(RPM + 最大并发)。用 String 状态绑定文本框,保存时解析为 Int(空/非法 → 0=不限)
+    var requestLimitPerMinuteText by rememberSaveable { mutableStateOf(config.requestLimitPerMinute.takeIf { it > 0 }?.toString() ?: "") }
+    var maxConcurrentRequestsText by rememberSaveable { mutableStateOf(config.maxConcurrentRequests.takeIf { it > 0 }?.toString() ?: "") }
 
     // Vertex AI 配置(仅 GEMINI 类型显示)
     val geminiSpecific = (config.resolvedSpecific() as? io.zer0.ai.core.ProviderSpecificConfig.Gemini)
@@ -1063,6 +1068,9 @@ internal fun ProviderEditPage(
             specific = tempSpecific,
             balanceApiPath = balanceApiPath.trim(),
             balanceResultPath = balanceResultPath.trim(),
+            // P1-3: 限流参数(健康检查/拉取模型时也带上,保持配置一致)
+            requestLimitPerMinute = requestLimitPerMinuteText.trim().toIntOrNull() ?: 0,
+            maxConcurrentRequests = maxConcurrentRequestsText.trim().toIntOrNull() ?: 0,
         )
     }
 
@@ -1216,6 +1224,9 @@ internal fun ProviderEditPage(
             balanceApiPath = balanceApiPath.trim(),
             balanceResultPath = balanceResultPath.trim(),
             category = savedCategory,
+            // P1-3: 限流参数(0 表示不限,RateLimitDecorator 在 ProviderRegistry.create 时按需叠加)
+            requestLimitPerMinute = requestLimitPerMinuteText.trim().toIntOrNull() ?: 0,
+            maxConcurrentRequests = maxConcurrentRequestsText.trim().toIntOrNull() ?: 0,
         )
     }
 
@@ -1542,6 +1553,11 @@ internal fun ProviderEditPage(
                         // P2-11: 透传已存储 token 状态 + 撤销回调
                         hasStoredOAuthToken = hasStoredOAuthToken,
                         onRevokeOAuth = onRevokeOAuth,
+                        // P1-3: 透传限流参数
+                        requestLimitPerMinuteText = requestLimitPerMinuteText,
+                        onRequestLimitPerMinuteTextChange = { requestLimitPerMinuteText = it.filter { ch -> ch.isDigit() } },
+                        maxConcurrentRequestsText = maxConcurrentRequestsText,
+                        onMaxConcurrentRequestsTextChange = { maxConcurrentRequestsText = it.filter { ch -> ch.isDigit() } },
                         onImportServiceAccountJson = {
                             runCatching {
                                 serviceAccountJsonLauncher.launch(arrayOf("application/json"))
@@ -1976,6 +1992,11 @@ private fun ConfigTab(
     // P2-11: 已存储 OAuth token 状态 + 撤销回调
     hasStoredOAuthToken: Boolean = false,
     onRevokeOAuth: () -> Unit = {},
+    // P1-3: 限流参数(RPM + 最大并发,空串表示不限)
+    requestLimitPerMinuteText: String = "",
+    onRequestLimitPerMinuteTextChange: (String) -> Unit = {},
+    maxConcurrentRequestsText: String = "",
+    onMaxConcurrentRequestsTextChange: (String) -> Unit = {},
 ) {
     // 前缀匹配字符串(用于 startsWith/contains 判断)
     val connectionSuccessPrefix = stringResource(R.string.settings_provider_prefix_connection_success)
@@ -2463,6 +2484,22 @@ private fun ConfigTab(
                             value = balanceResultPath,
                             onValueChange = onBalanceResultPathChange,
                             placeholder = "\$.data.total_usage",
+                        )
+                        // P1-3: 限流参数 — RPM(每分钟最大请求数)+ 最大并发请求数
+                        // 空 = 不限;> 0 时 ProviderRegistry.create 叠加 RateLimitDecorator
+                        SettingField(
+                            label = stringResource(R.string.settings_provider_rate_limit_rpm),
+                            value = requestLimitPerMinuteText,
+                            onValueChange = onRequestLimitPerMinuteTextChange,
+                            placeholder = stringResource(R.string.settings_provider_rate_limit_rpm_hint),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        )
+                        SettingField(
+                            label = stringResource(R.string.settings_provider_max_concurrent),
+                            value = maxConcurrentRequestsText,
+                            onValueChange = onMaxConcurrentRequestsTextChange,
+                            placeholder = stringResource(R.string.settings_provider_max_concurrent_hint),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         )
                         // v1.134 P0-3: 余额查询按钮用 Surface+clickable 胶囊
                         val balanceEnabled = !isQueryingBalance && balanceApiPath.isNotBlank() && baseUrl.isNotBlank()

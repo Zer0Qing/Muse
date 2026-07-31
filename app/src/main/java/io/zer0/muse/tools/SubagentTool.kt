@@ -1,6 +1,8 @@
 package io.zer0.muse.tools
 
 import io.zer0.common.Logger
+// v1.0.53: 持久化版 SubagentThreadStore(替代旧 tools.SubagentThreadStore 内存版)
+import io.zer0.muse.data.subagent.SubagentThreadStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -93,7 +95,7 @@ object SubagentTool {
      * @param deferredResultStore 异步结果回灌存储(非阻塞结果回灌主对话)
      * @param appScope 应用级 CoroutineScope(后台执行非阻塞任务,切页/后台不中断)
      */
-    fun execute(
+    suspend fun execute(
         args: Map<String, String>,
         skillExecutor: SkillExecutor,
         subagentThreadStore: SubagentThreadStore,
@@ -165,7 +167,7 @@ object SubagentTool {
      *  5. appScope 后台异步执行 delegateAgent,完成后回灌结果
      *  6. 立即返回 taskId + threadId
      */
-    private fun doLaunch(
+    private suspend fun doLaunch(
         args: Map<String, String>,
         skillExecutor: SkillExecutor,
         subagentThreadStore: SubagentThreadStore,
@@ -231,7 +233,7 @@ object SubagentTool {
      *  3. 注册新 taskId(复用同一 threadId)
      *  4. appScope 后台异步执行,通过 runSerialized 串行化(同一 threadId 任务排队)
      */
-    private fun doReply(
+    private suspend fun doReply(
         args: Map<String, String>,
         skillExecutor: SkillExecutor,
         subagentThreadStore: SubagentThreadStore,
@@ -289,7 +291,7 @@ object SubagentTool {
      *
      * 关闭后该 threadId 不可再 reply;正在执行的任务会跑完,但后续 reply 会失败。
      */
-    private fun doClose(
+    private suspend fun doClose(
         args: Map<String, String>,
         subagentThreadStore: SubagentThreadStore,
     ): String {

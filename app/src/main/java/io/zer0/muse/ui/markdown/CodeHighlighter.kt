@@ -4,13 +4,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
+import io.zer0.muse.ui.theme.codeColors
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -148,39 +148,20 @@ object CodeHighlighter {
     /**
      * Phase 12: 从 MaterialTheme 派生高亮配色。
      *
-     * 代码高亮色属于"功能性语义色",非品牌色,因此保留独立硬编码色板
-     * 以保证代码块语义对比度,不与"深夜台灯"主题铁律冲突。
-     *
-     * - keyword(蓝灰): 关键字
-     * - string(青绿): 字符串
-     * - outline(暖灰): 注释(暗色主题自动亮化)
-     * - tertiary + 橙色混合: 数字
-     * - primaryContainer: 注解
+     * v1.0.52: 色板上移至 ui/theme/StatusColors.kt 的 [MuseCodeColors],
+     * 由 MuseTheme 按深浅色注入 CompositionLocal,这里只做字段映射。
+     * 后续自定义主题可覆盖代码高亮色。
      */
     @Composable
     fun highlightColors(): HighlightColors {
-        val scheme = MaterialTheme.colorScheme
-        // 暗色主题判断(背景 luminance < 0.5 = 暗色)
-        val isDark = scheme.background.luminance() < 0.5f
-        return if (isDark) {
-            // 暗色主题:亮化版配色,保证深底可读
-            HighlightColors(
-                keyword = Color(0xFF8AB4CC),      // 蓝灰亮化
-                string = Color(0xFF7FD4B0),       // 青绿亮化
-                comment = Color(0xFFA89F8E),      // 暖灰亮化
-                number = Color(0xFFD49060),       // 橙亮化
-                annotation = Color(0xFFC8B860),   // 黄亮化
-            )
-        } else {
-            // 亮色主题:原配色
-            HighlightColors(
-                keyword = Color(0xFF537D96),      // 蓝灰
-                string = Color(0xFF10A37F),       // 青绿
-                comment = Color(0xFF8A8275),      // 暖灰
-                number = Color(0xFFB8702C),       // 橙
-                annotation = Color(0xFF9C8A2C),   // 黄褐
-            )
-        }
+        val c = MaterialTheme.codeColors
+        return HighlightColors(
+            keyword = c.keyword,
+            string = c.string,
+            comment = c.comment,
+            number = c.number,
+            annotation = c.annotation,
+        )
     }
 
     /**

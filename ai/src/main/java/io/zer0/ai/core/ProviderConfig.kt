@@ -50,6 +50,13 @@ enum class ProviderCategory {
  *    - 当内置供应商更新默认模型列表后,已添加的用户自动看到新模型
  *   为 null 时表示纯自定义供应商,不参与合并(向后兼容旧数据)。
  *   数据迁移时给已有 "preset_" 前缀 id 的配置自动推断 specId。
+ * @param requestLimitPerMinute P1-3: 每分钟最大请求数(RPM),0 表示不限。
+ *   [io.zer0.ai.decorator.RateLimitDecorator] 在请求发出前用滑动窗口限流,
+ *   超限时挂起等待空位而非直接拒绝,避免用户请求失败。
+ *   与 KeyRoulette(429 后置 key 切换)互补:decorator 前置限流,KeyRoulette 后置重试。
+ * @param maxConcurrentRequests P1-3: 最大并发在途请求数,0 表示不限。
+ *   通过协程 Semaphore 控制,限制同一 Provider 同时进行的流式/非流式请求数,
+ *   防止短时间大量并发请求打爆上游(尤其多 Key 池场景下 KeyRoulette 只管 key 轮询不管总并发)。
  */
 @Serializable
 data class ProviderConfig(
@@ -68,6 +75,8 @@ data class ProviderConfig(
     val oauthConfig: OAuthConfig? = null,
     val allowMissingApiKey: Boolean = false,
     val specId: String? = null,
+    val requestLimitPerMinute: Int = 0,
+    val maxConcurrentRequests: Int = 0,
 ) {
     /**
      * v1.80 (H-CORE1): 自定义 toString 防止 apiKey 明文泄露到日志/调试输出。

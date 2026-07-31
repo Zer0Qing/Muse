@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== Workflow Editor (WorkflowEditorScreen) ===== -->
+    <string name="workflow_editor_title">Редактор рабочего процесса</string>
+    <string name="workflow_select_action">Выберите действие</string>
+
+    <!-- Clear canvas confirmation -->
+    <string name="workflow_clear_canvas_title">Прозрачный холст</string>
+    <string name="workflow_clear_canvas_confirm">Это приведет к удалению всех узлов и соединений, и это действие нельзя будет отменить.</string>
+    <string name="workflow_action_clear">Прозрачный</string>
+
+    <!-- Export JSON -->
+    <string name="workflow_export_json_title">Экспорт JSON</string>
+    <string name="workflow_export_copied">Скопировано в буфер обмена</string>
+
+    <!-- Aggregation strategy -->
+    <string name="workflow_label_aggregation">Агрегация</string>
+    <string name="workflow_agg_merge">Объединить</string>
+    <string name="workflow_agg_vote">Голосование</string>
+    <string name="workflow_agg_expert_review">Экспертный обзор</string>
+    <string name="workflow_agg_first_success">Первый успех</string>
+    <string name="workflow_agg_llm_review">LLM обзор</string>
+
+    <!-- contentDescription -->
+    <string name="workflow_cd_add_node">Добавить узел</string>
+    <string name="workflow_cd_save">Сохранять</string>
+    <string name="workflow_cd_load">Нагрузка</string>
+    <string name="workflow_cd_clear">Прозрачный</string>
+    <string name="workflow_cd_export_json">Экспорт JSON</string>
+    <string name="workflow_cd_remove_dependency">Удалить зависимость</string>
+
+    <!-- Node editor panel (WorkflowNodeEditor) -->
+    <string name="workflow_node_editor_title">Редактировать узел</string>
+    <string name="workflow_node_unbound_assistant">(без привязки помощника)</string>
+    <string name="workflow_node_name_label">Имя узла</string>
+    <string name="workflow_node_name_placeholder">например</string>
+    <string name="workflow_node_bind_assistant">Привязать помощника</string>
+    <string name="workflow_node_task_template_label">Шаблон задачи</string>
+    <string name="workflow_node_task_template_placeholder">например</string>
+    <string name="workflow_node_mode_label">Режим выполнения</string>
+    <string name="workflow_node_dependencies_label">Зависимости (зависитон)</string>
+    <string name="workflow_node_no_dependencies_hint">(Нет зависимостей, этот узел может работать как отправная точка)</string>
+    <string name="workflow_node_add_dependency_hint">Добавить зависимость (нажмите, чтобы добавить)</string>
+    <string name="workflow_node_default_name">Новый узел</string>
+
+    <!-- Execution modes -->
+    <string name="workflow_mode_sequential">Последовательный</string>
+    <string name="workflow_mode_parallel">Параллельно</string>
+
+    <!-- Canvas (WorkflowCanvas) -->
+    <string name="workflow_zoom_limit_reached">Достигнут предел масштабирования</string>
+    <string name="workflow_canvas_empty_title">Холст пуст</string>
+    <string name="workflow_canvas_empty_subtitle">Дважды коснитесь пустой области, чтобы добавить узел, или нажмите кнопку «Добавить» на панели инструментов ниже.</string>
+</resources>

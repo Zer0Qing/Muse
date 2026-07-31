@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  locales_config.xml — Android 13+ per-app language preferences.
+
+  声明应用支持的所有语言,系统设置 → 应用语言 中会列出这些选项。
+  用户选择后,系统自动应用对应 locale,无需应用层 attachBaseContext 手动切换。
+
+  支持的语言:
+    - zh (中文,默认)
+    - en (English)
+    - ja (日本語)
+    - ko (한국어)
+    - ru (Русский)
+    - es (Español)
+    - pt-rBR (Português do Brasil)
+
+  注意:新增语言时需同步:
+    1. 在此文件添加 <locale android:name="..."/>
+    2. 创建对应的 values-<locale>/strings_*.xml
+    3. 运行 ci/script/check_localizations.py 校验完整性
+-->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="zh" />
+    <locale android:name="en" />
+    <locale android:name="ja" />
+    <locale android:name="ko" />
+    <locale android:name="ru" />
+    <locale android:name="es" />
+    <locale android:name="pt-rBR" />
+</locale-config>

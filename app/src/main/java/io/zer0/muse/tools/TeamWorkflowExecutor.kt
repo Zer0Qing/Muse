@@ -44,6 +44,10 @@ class TeamWorkflowExecutor(
     private val delegationChainTracker: DelegationChainTracker? = null,
     /** v1.202: ChatService,用于 CONDITIONAL 节点的 LLM 条件判断;为 null 时 CONDITIONAL 节点降级为直接执行。 */
     private val chatService: ChatService? = null,
+    /** v1.0.53: 全局并发限流器(必填,由 SkillExecutor 注入)。并行节点执行时包裹 limiter.run,防止团队并行 + 主 agent 委派叠加爆并发。 */
+    private val concurrencyLimiter: AgentConcurrencyLimiter,
+    /** v1.0.53 Phase 2: 工作流断点恢复日志;为 null 时跳过 journal 读写(无 resume 能力)。 */
+    private val journal: WorkflowJournal? = null,
 ) {
 
     /**
@@ -70,6 +74,10 @@ class TeamWorkflowExecutor(
         parentRequestId: String,
         teamMembers: List<String>,
         baseContext: List<UIMessage> = emptyList(),
+        /** v1.0.53 Phase 2: journal run id;为 null 时自动生成并写入结果 metadata 供后续 resume。 */
+        runId: String? = null,
+        /** v1.0.53 Phase 2: 是否从 journal 恢复(resume=true 时命中缓存的节点秒回,首个未缓存节点起重跑)。 */
+        resume: Boolean = false,
     ): DelegationContract.DelegationResult {
         val startedAt = System.currentTimeMillis()
         val nodes = workflow.nodes.takeIf { it.isNotEmpty() }
@@ -92,9 +100,47 @@ class TeamWorkflowExecutor(
             return errorResult(parentRequestId, "工作流节点缺少 assistantId: ${invalidNodes.map { it.id }}", startedAt)
         }
 
+        // v1.0.53 Phase 2: 生成/复用 runId,建立 nodeSeq 映射 + 计算 expectedKeys
+        val effectiveRunId = runId ?: "workflow-${startedAt}-${(100..999).random()}"
+        val nodeSeqMap: Map<String, Int> = nodes.mapIndexed { idx, node -> node.id to idx }.toMap()
+        val expectedKeys: Map<Int, String> = if (journal != null && resume) {
+            nodes.associate { node ->
+                val seq = nodeSeqMap[node.id]!!
+                val prompt = node.taskTemplate.ifBlank { teamTask }
+                val identity = "${node.id}|${node.assistantId}|${node.taskTemplate}"
+                seq to journal.computeKey(prompt, identity)
+            }
+        } else emptyMap()
+
         // H-TWE1: 用 ConcurrentHashMap 替代 mutableMapOf,async 并发写入安全
         val executed = java.util.concurrent.ConcurrentHashMap<String, DelegationContract.DelegationResult>()
         val errors = mutableListOf<String>()
+
+        // v1.0.53 Phase 2: resume 时预加载缓存,命中节点直接填入 executed 并从 pending 移除
+        val cachedNodeIds = mutableSetOf<String>()
+        if (journal != null && resume) {
+            val resumeResult = journal.resume(effectiveRunId, expectedKeys)
+            resumeResult.cached.forEach { (seq, entry) ->
+                val node = nodes.getOrNull(seq) ?: return@forEach
+                // delegation 类节点:缓存命中即用(result 原样);llm_generative:已置空,仍需重跑
+                if (entry.nodeKind != WorkflowJournal.NODE_KIND_LLM_GENERATIVE && entry.result.isNotEmpty()) {
+                    executed[node.id] = DelegationContract.DelegationResult(
+                        requestId = "$parentRequestId/${node.id}",
+                        success = true,
+                        resultText = entry.result,
+                        metadata = DelegationContract.DelegationResult.ResultMetadata(
+                            startedAt = entry.ts,
+                            finishedAt = entry.ts,
+                            durationMs = 0,
+                            assistantId = node.assistantId,
+                            assistantName = node.name.ifBlank { node.id },
+                        ),
+                    )
+                    cachedNodeIds.add(node.id)
+                }
+            }
+            Logger.d("TeamWorkflowExecutor", "journal resume runId=$effectiveRunId: ${cachedNodeIds.size}/${nodes.size} 节点命中缓存")
+        }
 
         try {
             // v1.201: 团队执行前暂停(pauseBeforeTeam)
@@ -127,7 +173,8 @@ class TeamWorkflowExecutor(
             }
 
             // 按依赖拓扑分层:无依赖的先执行,完成后解锁依赖它的节点
-            val pending = nodes.toMutableList()
+            // v1.0.53 Phase 2: 已命中 journal 缓存的节点从 pending 移除(无需重跑)
+            val pending = nodes.filter { it.id !in cachedNodeIds }.toMutableList()
             while (pending.isNotEmpty()) {
                 val ready = pending.filter { node ->
                     node.dependsOn.all { executed.containsKey(it) }
@@ -188,12 +235,12 @@ class TeamWorkflowExecutor(
                 val sequential = ready.first().mode == DelegationContract.TeamWorkflowNode.Mode.SEQUENTIAL
                 val layerResults: List<DelegationContract.DelegationResult> = if (sequential) {
                     ready.map { node ->
-                        executed[node.id] ?: executeNode(node, teamTask, parentRequestId, baseContext, executed).also {
+                        executed[node.id] ?: executeNode(node, teamTask, parentRequestId, baseContext, executed, effectiveRunId, nodeSeqMap[node.id] ?: -1).also {
                             executed[node.id] = it
                         }
                     }
                 } else {
-                    executeParallel(ready, teamTask, parentRequestId, baseContext, executed).also {
+                    executeParallel(ready, teamTask, parentRequestId, baseContext, executed, effectiveRunId, nodeSeqMap).also {
                         executed.putAll(it)
                     }.values.toList()
                 }
@@ -218,6 +265,7 @@ class TeamWorkflowExecutor(
                     startedAt = startedAt,
                     finishedAt = finishedAt,
                     durationMs = finishedAt - startedAt,
+                    journalRunId = effectiveRunId,
                 ),
                 subResults = orderedResults,
                 subResultTree = subResultTree,
@@ -233,6 +281,10 @@ class TeamWorkflowExecutor(
         parentRequestId: String,
         baseContext: List<UIMessage>,
         executed: Map<String, DelegationContract.DelegationResult>,
+        /** v1.0.53 Phase 2: journal run id(null 时跳过 journal 记录)。 */
+        runId: String? = null,
+        /** v1.0.53 Phase 2: 节点序号(用于 journal 记录;-1 时跳过)。 */
+        nodeSeq: Int = -1,
     ): DelegationContract.DelegationResult {
         val childRequestId = "$parentRequestId/${node.id}"
         val task = buildNodeTask(node, teamTask, executed)
@@ -264,6 +316,8 @@ class TeamWorkflowExecutor(
                     success = true,
                     resultText = "(已跳过: 条件不满足)",
                 )
+                // v1.0.53 Phase 2: CONDITIONAL 判定为 NO 属确定性结果(温度=0),记为 llm_deterministic
+                recordToJournal(runId, nodeSeq, task, node, "(skipped)", "done", WorkflowJournal.NODE_KIND_LLM_DETERMINISTIC)
                 return skippedResult(childRequestId)
             }
         }
@@ -300,7 +354,27 @@ class TeamWorkflowExecutor(
             error = result.error,
         )
 
+        // v1.0.53 Phase 2: 记录委派节点结果到 journal(delegation 类,工具结果可缓存)
+        recordToJournal(runId, nodeSeq, task, node, result.resultText, if (result.success) "done" else "failed", WorkflowJournal.NODE_KIND_DELEGATION)
         return result
+    }
+
+    /**
+     * v1.0.53 Phase 2: 记录节点结果到 journal(忽略 null runId / -1 nodeSeq)。
+     */
+    private suspend fun recordToJournal(
+        runId: String?,
+        nodeSeq: Int,
+        task: String,
+        node: DelegationContract.TeamWorkflowNode,
+        result: String,
+        status: String,
+        nodeKind: String,
+    ) {
+        if (journal == null || runId == null || nodeSeq < 0) return
+        val identity = "${node.id}|${node.assistantId}|${node.taskTemplate}"
+        val key = journal.computeKey(task, identity)
+        journal.record(runId, nodeSeq, key, result, status, nodeKind)
     }
 
     private suspend fun executeParallel(
@@ -309,10 +383,17 @@ class TeamWorkflowExecutor(
         parentRequestId: String,
         baseContext: List<UIMessage>,
         executed: Map<String, DelegationContract.DelegationResult>,
+        /** v1.0.53 Phase 2: journal run id。 */
+        runId: String? = null,
+        /** v1.0.53 Phase 2: 节点 id → seq 映射。 */
+        nodeSeqMap: Map<String, Int> = emptyMap(),
     ): Map<String, DelegationContract.DelegationResult> = coroutineScope {
         nodes.associate { node ->
             node.id to async {
-                executeNode(node, teamTask, parentRequestId, baseContext, executed)
+                // v1.0.53: 并行节点也走全局 limiter,防止团队并行 + 主 agent 委派叠加爆并发
+                concurrencyLimiter.run {
+                    executeNode(node, teamTask, parentRequestId, baseContext, executed, runId, nodeSeqMap[node.id] ?: -1)
+                }
             }
         }.mapValues { it.value.await() }
     }

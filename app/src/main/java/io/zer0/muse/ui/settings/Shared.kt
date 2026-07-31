@@ -16,6 +16,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.form.MuseTextField
@@ -31,6 +32,7 @@ internal fun SettingField(
     onValueChange: (String) -> Unit,
     placeholder: String? = null,
     visualTransformation: VisualTransformation = VisualTransformation.None,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
 ) {
     MuseTextField(
         value = value,
@@ -40,6 +42,7 @@ internal fun SettingField(
         placeholder = placeholder?.let { { Text(it) } },
         singleLine = true,
         visualTransformation = visualTransformation,
+        keyboardOptions = keyboardOptions,
     )
 }
 

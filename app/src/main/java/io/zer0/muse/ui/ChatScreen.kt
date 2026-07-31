@@ -141,9 +141,7 @@ import io.zer0.muse.data.artifact.ArtifactEntity
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.knowledge.KnowledgeDocDao
 import io.zer0.muse.data.knowledge.KnowledgeDocEntity
-import io.zer0.muse.ui.chat.BranchSelector
 import io.zer0.muse.ui.chat.ToolApprovalCard
-import io.zer0.muse.ui.chat.TokenCountMenu
 import io.zer0.muse.ui.chat.buildQuotedContent
 import io.zer0.muse.ui.chat.SlashCommand
 import io.zer0.muse.ui.speech.SpeechInput
@@ -962,9 +960,10 @@ fun ChatScreen(
                 onOpenVoiceConversation = { showVoiceConversation = true },
                 // v1.0.29: Agent Tab 不主动呼出输入法
                 autoFocus = !isAgentMode,
-                // v1.0.47 P5-3: Token 估算(默认关闭,设置页开启后输入栏显示 Token 按钮)
+                // v1.0.47 P5-3: Token 估算(默认关闭,设置页开启后输入栏底部显示 Token 统计条)
                 tokenEstimateEnabled = state.tokenEstimateEnabled,
-                onShowTokenCount = viewModel::showTokenCountMenu,
+                historyTokens = state.contextTokenCount,
+                contextWindow = state.contextMaxTokens,
                 // v1.0.47 P5-2: 长文本粘贴转文件(默认开启,粘贴超阈值文本时提示转为附件)
                 pasteAsFileEnabled = state.pasteAsFileEnabled,
                 pasteAsFileThreshold = state.pasteAsFileThreshold,
@@ -1155,6 +1154,14 @@ fun ChatScreen(
                         // 都重新计算所有可见 item 的 isLast。只有最后一条消息变化时才重组。
                         // v1.0.4 (P3-4): isLast 基于 visibleMessages,性能模式下指"已渲染列表的最后一条"
                         val isLast by remember { derivedStateOf { msg.id == visibleMessages.lastOrNull()?.id } }
+                        // v1.0.53: 当前消息对应的分支节点(用于快捷菜单里的变体切换器)
+                        val branchNode by remember(msg.id) {
+                            derivedStateOf {
+                                state.messageNodes.firstOrNull {
+                                    it.id == msg.id.toString() || it.id == msg.variantGroupId
+                                }
+                            }
+                        }
                         // v1.100: expandedState 用 derivedStateOf 包裹,只有该 msg 对应的
                         // 展开状态变化时才重组,避免其他消息的折叠操作波及本 item。
                         val expandedState by remember(msg.id) {
@@ -1294,23 +1301,17 @@ fun ChatScreen(
                                 visionProgress?.messageId == msg.id.toString()
                             ) visionProgress else null,
                             visionAssisted = if (msg.role == MessageRole.USER) msg.id.toString() in state.visionAssistedMessageIds else false,
+                            // v1.0.53: 最后一条标记 + 分支切换数据
+                            isLast = isLast,
+                            branchIndex = branchNode?.selectIndex ?: 0,
+                            branchCount = branchNode?.branchCount ?: 1,
+                            onBranchPrevious = {
+                                branchNode?.let { viewModel.selectBranch(it.id, it.selectIndex - 1) }
+                            },
+                            onBranchNext = {
+                                branchNode?.let { viewModel.selectBranch(it.id, it.selectIndex + 1) }
+                            },
                         )
-                        // 消息分支选择器:assistant 消息且有多分支时显示左右箭头切换
-                        if (msg.role == MessageRole.ASSISTANT && !isStreaming) {
-                            val node = state.messageNodes.firstOrNull {
-                                it.id == msg.id.toString() || it.id == msg.variantGroupId
-                            }
-                            if (node != null && node.hasBranches) {
-                                BranchSelector(
-                                    currentIndex = node.selectIndex,
-                                    totalCount = node.branchCount,
-                                    onPrevious = { viewModel.selectBranch(node.id, node.selectIndex - 1) },
-                                    onNext = { viewModel.selectBranch(node.id, node.selectIndex + 1) },
-                                    onRegenerate = if (isLast) viewModel::regenerateLastAssistant else null,
-                                    modifier = Modifier.fillMaxWidth(),
-                                )
-                            }
-                        }
                         }
                     }
                     // 任务 2B: 等待首 token 阶段用 shimmer 骨架屏占位(替代旧 LoadingDots "思考中"文字)
@@ -1757,14 +1758,6 @@ fun ChatScreen(
                     agentPlan = latestPlan,
                 )
             }
-        }
-        // v1.0.47 P5-3: Token 计数详情面板(仅 tokenEstimateEnabled 时可达)
-        val tokenSnapshot = state.tokenSnapshot
-        if (state.tokenCountVisible && tokenSnapshot != null) {
-            TokenCountMenu(
-                snapshot = tokenSnapshot,
-                onDismissRequest = viewModel::dismissTokenCountMenu,
-            )
         }
         // v1.95: 系统语音识别首次使用提示(用户确认后调起系统 Intent)
         if (asrTipDialogShown) {

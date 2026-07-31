@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== ToolsScreen.kt ===== -->
+    <!-- Title and intro -->
+    <string name="tools_screen_title">Herramientas de IA</string>
+    <string name="tools_intro_what">Las herramientas son capacidades a las que la IA puede recurrir, como leer notificaciones, calcular, ejecutar código, etc.</string>
+    <string name="tools_intro_manage">En la página de detalles del Asistente → Extensiones → Herramientas, puede habilitar/deshabilitar herramientas por asistente.</string>
+
+    <!-- Stats -->
+    <string name="tools_stats_count">%1$d herramientas · %2$d alto riesgo</string>
+
+    <!-- Built-in plugins -->
+    <string name="tools_plugins_section">Complementos integrados</string>
+    <string name="tools_plugins_desc">Los complementos son conjuntos de capacidades más generales que declaran los permisos necesarios y el momento de activación.</string>
+
+    <!-- Risk level badges -->
+    <string name="tools_risk_safe">Seguro</string>
+    <string name="tools_risk_normal">Normal</string>
+    <string name="tools_risk_high">Alto</string>
+
+    <!-- Tool detail dialog -->
+    <string name="tools_detail_category_label">Categoría: %1$s</string>
+    <string name="tools_detail_params">Parámetros</string>
+    <string name="tools_detail_sandbox_title">Límites de seguridad de la zona de pruebas</string>
+    <string name="tools_detail_sandbox_content">• Basado en el motor WebView V8, aislado de las páginas del sistema\n• fetch / XHR / WebSocket deshabilitado, sin acceso a la red\n• blockNetworkLoads intercepta todas las solicitudes de red\n• Tiempo de espera predeterminado de 10 segundos para evitar bucles infinitos\n• Se requiere confirmación del usuario antes de la invocación (permiso de herramienta de alto riesgo)</string>
+
+    <!-- Parameter row -->
+    <string name="tools_param_required">Requerido</string>
+
+    <!-- Tool categories -->
+    <string name="tools_category_built_in">Herramientas integradas</string>
+    <string name="tools_category_local">Herramientas locales</string>
+    <string name="tools_category_mcp">herramientas MCP</string>
+
+    <!-- Plugin capability captions -->
+    <string name="tools_permissions_label">Permisos:</string>
+    <string name="tools_activation_label">Activación:</string>
+
+    <!-- ===== v1.0.20: ToolsSettingsPage.kt (Tool Approval Management) ===== -->
+    <!-- Title and search -->
+    <string name="tools_settings_title">Gestión de aprobación de herramientas</string>
+    <string name="tools_settings_search_hint">Nombre o descripción de la herramienta de búsqueda</string>
+
+    <!-- Stats (N tools · always-allow X · ask Y · always-deny Z) -->
+    <string name="tools_settings_stats">%1$d herramientas · permitir siempre %2$d · preguntar %3$d · negar siempre %4$d</string>
+
+    <!-- Risk level group titles -->
+    <string name="tools_settings_section_safe">Herramientas seguras (solo lectura/consulta)</string>
+    <string name="tools_settings_section_normal">Herramientas normales (efectos secundarios locales)</string>
+    <string name="tools_settings_section_high">Herramientas de alto riesgo (irreversibles/sensibles)</string>
+
+    <!-- Empty state -->
+    <string name="tools_settings_empty">No se encontraron herramientas coincidentes</string>
+
+    <!-- Footer policy explanation -->
+    <string name="tools_settings_footer_section">Explicación de la política</string>
+    <string name="tools_settings_policy_always_allow">Permitir siempre</string>
+    <string name="tools_settings_policy_always_allow_desc">Las llamadas a herramientas se aprueban automáticamente;</string>
+    <string name="tools_settings_policy_ask">Pregunta cada vez</string>
+    <string name="tools_settings_policy_ask_desc">Se muestra una tarjeta de aprobación antes de la invocación;</string>
+    <string name="tools_settings_policy_always_deny">Negar siempre</string>
+    <string name="tools_settings_policy_always_deny_desc">La herramienta está deshabilitada;</string>
+
+    <!-- Short labels for the per-tool segmented control -->
+    <string name="tools_settings_policy_always_allow_short">Permitir</string>
+    <string name="tools_settings_policy_ask_short">Preguntar</string>
+    <string name="tools_settings_policy_always_deny_short">Denegar</string>
+</resources>

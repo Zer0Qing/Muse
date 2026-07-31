@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- P1-2: Worldbook dynamic world info strings (English). -->
+<resources>
+    <!-- Screen -->
+    <string name="worldbook_screen_title">Динамическая книга мира</string>
+    <string name="worldbook_intro">Dynamic Worldbook добавляет соответствующую информацию на основе контекста разговора.</string>
+    <string name="worldbook_new_cd">Новая запись в книге мира</string>
+    <string name="worldbook_new_default_name">Новая запись</string>
+    <string name="worldbook_new_title">Новая книга мира</string>
+    <string name="worldbook_edit_title">Редактировать книгу мира</string>
+    <string name="worldbook_save">Сохранять</string>
+    <string name="worldbook_back_cd">Назад</string>
+    <string name="worldbook_unsaved_title">Несохраненные изменения</string>
+    <string name="worldbook_unsaved_content">У вас есть несохраненные изменения.</string>
+    <string name="worldbook_discard">Отказаться</string>
+    <string name="worldbook_unnamed">Безымянный</string>
+    <string name="worldbook_disabled">Неполноценный</string>
+    <string name="worldbook_enabled_cd">Включено</string>
+    <string name="worldbook_disabled_cd">Неполноценный</string>
+    <string name="worldbook_edit_cd">Редактировать</string>
+    <string name="worldbook_delete_cd">Удалить</string>
+    <string name="worldbook_delete_title">Удалить Всемирную книгу</string>
+    <string name="worldbook_empty_title">Нет записей в мировой книге</string>
+    <string name="worldbook_empty_subtitle">Нажмите кнопку ниже, чтобы создать свою первую запись</string>
+    <string name="worldbook_keywords_label">Ключевые слова: %1$s</string>
+    <string name="worldbook_badge_always_active">Постоянный</string>
+    <string name="worldbook_export">Экспорт</string>
+
+    <!-- Sections -->
+    <string name="worldbook_section_basic">Базовый</string>
+    <string name="worldbook_section_content">Содержание</string>
+    <string name="worldbook_section_injection">Инъекция</string>
+    <string name="worldbook_section_behavior">Соответствие</string>
+
+    <!-- Fields -->
+    <string name="worldbook_field_name">Имя</string>
+    <string name="worldbook_field_keywords">Ключевые слова</string>
+    <string name="worldbook_field_keywords_placeholder">Разделяйте несколько ключевых слов запятыми</string>
+    <string name="worldbook_field_content">Содержание</string>
+    <string name="worldbook_field_priority">Приоритет (более высокий = вводится первым)</string>
+    <string name="worldbook_field_inject_target">Ввести цель</string>
+    <string name="worldbook_field_inject_position">Позиция инъекции</string>
+    <string name="worldbook_field_insertion_depth">Глубина введения (N-й ПОЛЬЗОВАТЕЛЬ от конца)</string>
+    <string name="worldbook_field_scan_depth">Глубина сканирования (последние N сообщений ПОЛЬЗОВАТЕЛЯ)</string>
+    <string name="worldbook_field_case_sensitive">С учетом регистра</string>
+    <string name="worldbook_field_case_sensitive_desc">Сопоставление ключевых слов с учетом регистра</string>
+    <string name="worldbook_field_is_regex">Соответствие регулярному выражению</string>
+    <string name="worldbook_field_is_regex_desc">Рассматривать ключевые слова как регулярные выражения (дополнительно)</string>
+    <string name="worldbook_field_always_active">Всегда активен</string>
+    <string name="worldbook_field_always_active_desc">Внедрить без триггера по ключевому слову (постоянно)</string>
+    <string name="worldbook_field_enabled">Включено</string>
+    <string name="worldbook_field_enabled_desc">Отключенные записи не вводятся</string>
+
+    <!-- Settings entry -->
+    <string name="settings_assistant_worldbook">Динамическая книга мира</string>
+    <string name="settings_assistant_worldbook_subtitle">Расширенное динамическое внедрение подсказок</string>
+</resources>

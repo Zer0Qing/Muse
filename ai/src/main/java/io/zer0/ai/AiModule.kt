@@ -32,16 +32,29 @@ object ProviderRegistry {
     private val cache = java.util.concurrent.ConcurrentHashMap<CacheKey, Provider>()
 
     fun create(config: ProviderConfig): Provider {
-        // 指纹:id + type + baseUrl + apiKey 前后4位,变化即失效
-        val fp = "${config.type}|${config.resolvedBaseUrl()}|${config.apiKey.takeLast(4)}|${config.specific}"
+        // 指纹:id + type + baseUrl + apiKey 后4位 + specific + P1-3 限流参数,变化即失效
+        // P1-3: 限流参数纳入指纹,确保用户修改 RPM/并发后缓存失效重建 decorator
+        val fp = "${config.type}|${config.resolvedBaseUrl()}|${config.apiKey.takeLast(4)}|${config.specific}" +
+            "|rpm=${config.requestLimitPerMinute}|conc=${config.maxConcurrentRequests}"
         val key = CacheKey(config.id, fp)
         return cache.getOrPut(key) {
-            when (config.type) {
+            val base = when (config.type) {
                 ProviderType.OPENAI -> OpenAIProvider(config)
                 ProviderType.ANTHROPIC -> AnthropicProvider(config)
                 ProviderType.GEMINI -> GeminiProvider(config)
                 // v1.0.6: OPENAI_RESPONSES 暂复用 OpenAIProvider(其内部通过 specific.useResponseApi 切换到 /v1/responses)
                 ProviderType.OPENAI_RESPONSES -> OpenAIProvider(config)
+            }
+            // P1-3: 任一限流参数 > 0 时叠加 RateLimitDecorator(RPM 滑动窗口 + 并发 Semaphore)
+            // decorator 是前置控制,与 KeyRoulette(后置 429 key 切换)互补;两者可叠加共存
+            if (config.requestLimitPerMinute > 0 || config.maxConcurrentRequests > 0) {
+                io.zer0.ai.decorator.RateLimitDecorator(
+                    delegate = base,
+                    requestLimitPerMinute = config.requestLimitPerMinute,
+                    maxConcurrentRequests = config.maxConcurrentRequests,
+                )
+            } else {
+                base
             }
         }
     }

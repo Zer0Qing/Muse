@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== notification ===== -->
+    <!-- Notification channel names -->
+    <string name="notif_channel_chat_completed_name">Generación de mensajes completada</string>
+    <string name="notif_channel_chat_completed_desc">Notificación cuando se completa la generación de transmisión en segundo plano</string>
+    <string name="notif_channel_chat_live_update_name">Progreso de generación</string>
+    <string name="notif_channel_chat_live_update_desc">Notificación de progreso en tiempo real durante la generación de streaming</string>
+    <string name="notif_channel_web_server_name">servidor web</string>
+    <string name="notif_channel_web_server_desc">Notificación de estado de ejecución del servidor web</string>
+    <string name="notif_channel_proactive_message_name">Mensaje proactivo</string>
+    <string name="notif_channel_proactive_message_desc">Notificación cuando el asistente le envía un mensaje de forma proactiva</string>
+    <!-- Notification title/content -->
+    <string name="notif_chat_completed_title">Respuesta completada · %1$s</string>
+    <string name="notif_proactive_message_title">%1$s envió un mensaje</string>
+    <string name="notif_live_progress_title">Generando · %1$s</string>
+    <string name="notif_live_progress_text">%1$d caracteres</string>
+    <string name="notif_web_server_title">servidor web muse ejecutándose</string>
+    <string name="notif_web_server_text">Puerto %1$d · Los dispositivos LAN pueden acceder</string>
+    <!-- v1.133: App update notification (reuses CHANNEL_CHAT_COMPLETED) -->
+    <string name="update_notif_title">Nueva versión disponible</string>
+    <string name="update_notif_text">%1$s ha sido lanzado, toque para ver detalles</string>
+    <!-- v1.133: In-app update banner -->
+    <string name="update_banner_published">%1$s liberado</string>
+    <string name="update_banner_view_detail">Ver detalles</string>
+    <string name="update_banner_download_apk">Descargar APK</string>
+    <string name="update_banner_close_cd">Descartar banner de nueva versión</string>
+    <string name="update_found_new">Se encontró una nueva versión, vea el banner en la parte superior</string>
+    <string name="update_already_latest">Ya al ​​día</string>
+
+    <!-- ===== schedule ===== -->
+    <!-- Scheduled task notification channel -->
+    <string name="schedule_channel_name">Tareas programadas</string>
+    <string name="schedule_channel_desc">Notificación de tarea programada vencida</string>
+    <!-- Scheduled task default session name -->
+    <string name="schedule_default_session_name">tarea programada</string>
+    <!-- Chat generation foreground service default notification title -->
+    <string name="schedule_generating_default_title">generando</string>
+    <!-- v1.137: Execution summary when automation condition is not met -->
+    <string name="schedule_condition_not_met">Condición no cumplida, omitida</string>
+
+    <!-- ===== main activity ===== -->
+    <!-- Safe mode -->
+    <string name="main_activity_safe_mode_title">musa está en modo seguro</string>
+    <string name="main_activity_safe_mode_desc">La última vez se produjo un accidente.</string>
+    <string name="main_activity_crash_log_copied">Registro de fallos copiado al portapapeles</string>
+    <string name="main_activity_copy_crash_log">Copiar registro de fallos</string>
+    <string name="main_activity_clear_flag_and_exit">Borrar bandera y salir</string>
+    <string name="main_activity_send_crash_email">Enviar registro de fallos por correo electrónico</string>
+    <string name="main_activity_send_crash_email_failed">No se encontró ninguna aplicación de correo electrónico, el registro se copió en el portapapeles</string>
+    <!-- v2.0+: SafeModeScreen new copy (modeled after rikkahub SafeModeActivity) -->
+    <string name="safe_mode_warning_title">El último lanzamiento falló</string>
+    <string name="safe_mode_continue_normal">Continuar con el inicio normal</string>
+    <string name="safe_mode_view_full_log">Ver registro de fallos completo</string>
+    <string name="safe_mode_clear_data_restart">Borrar todos los datos y reiniciar</string>
+    <string name="safe_mode_copy_crash_info">Copiar información de fallo</string>
+    <string name="safe_mode_crash_time_label">tiempo de choque</string>
+    <string name="safe_mode_stack_trace_label">Seguimiento de pila</string>
+    <string name="safe_mode_no_crash_log">No se registró ningún registro de fallos</string>
+    <string name="safe_mode_share_log_failed">No se pudo compartir el registro de fallas</string>
+    <!-- PIN lock screen -->
+    <string name="main_activity_locked_title">musa está bloqueada</string>
+    <string name="main_activity_pin_prompt">Ingrese el PIN para continuar</string>
+    <string name="main_activity_pin_locked">Demasiados intentos de PIN incorrectos, espere %1$ds antes de volver a intentarlo</string>
+    <string name="main_activity_pin_error">PIN incorrecto, vuelva a intentarlo</string>
+    <string name="main_activity_exit_app">Salir de la aplicación</string>
+
+    <!-- ===== NotificationListenerScreen.kt ===== -->
+    <string name="notif_listener_screen_title">Oyente de notificaciones</string>
+    <string name="notif_listener_open_settings_failed">No se puede abrir la configuración del sistema</string>
+    <string name="notif_listener_auth_settings">Conceder acceso</string>
+    <string name="notif_listener_cleared_toast">Registros de notificación borrados</string>
+    <string name="notif_listener_clear_records">Borrar registros</string>
+    <string name="notif_listener_feature_title">Descripción de la característica</string>
+    <string name="notif_listener_feature_desc">Una vez autorizado, Muse puede detectar notificaciones de otras aplicaciones como fuentes de eventos para que la IA las consulte en el chat.</string>
+    <string name="notif_listener_privacy_title">Límite de privacidad</string>
+    <string name="notif_listener_privacy_desc">• El contenido de las notificaciones se almacena solo localmente (máximo 50 entradas, las más antiguas se eliminan cuando están llenas)\n• La interfaz de usuario del sistema y las notificaciones propias de Muse se filtran\n• No se cargan datos de notificaciones en ningún servidor\n• Puede \"Borrar registros\" aquí o revocar el acceso en la configuración del sistema en cualquier momento</string>
+    <string name="notif_listener_recent_header">Notificaciones recientes (%1$d/50)</string>
+    <string name="notif_listener_empty_connected">Aún no hay registros de notificaciones\nLas nuevas notificaciones aparecerán aquí automáticamente una vez autorizadas</string>
+    <string name="notif_listener_empty_disconnected">Aún no autorizado\nPrimero toque \"Conceder acceso\" arriba</string>
+    <string name="notif_listener_authorized">Autorizado</string>
+    <string name="notif_listener_unauthorized">No autorizado</string>
+    <string name="notif_listener_recent_count_connected">Notificaciones recientes: %1$d</string>
+    <string name="notif_listener_recent_count_disconnected">Notificaciones recientes: %1$d · Primero conceda acceso en la configuración del sistema</string>
+    <string name="notif_listener_refresh_cd">Actualizar estado</string>
+</resources>

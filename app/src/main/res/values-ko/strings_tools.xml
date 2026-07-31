@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== ToolsScreen.kt ===== -->
+    <!-- Title and intro -->
+    <string name="tools_screen_title">AI 도구</string>
+    <string name="tools_intro_what">도구는 알림 읽기, 계산, 코드 실행 등과 같이 AI가 호출할 수 있는 기능입니다.</string>
+    <string name="tools_intro_manage">어시스턴트 상세 페이지 → 확장 기능 → 도구에서 어시스턴트별 도구를 활성화/비활성화할 수 있습니다.</string>
+
+    <!-- Stats -->
+    <string name="tools_stats_count">%1$d 도구 · %2$d 고위험</string>
+
+    <!-- Built-in plugins -->
+    <string name="tools_plugins_section">내장 플러그인</string>
+    <string name="tools_plugins_desc">플러그인은 필요한 권한과 활성화 시기를 선언하는 대략적인 기능 세트입니다.</string>
+
+    <!-- Risk level badges -->
+    <string name="tools_risk_safe">안전한</string>
+    <string name="tools_risk_normal">정상</string>
+    <string name="tools_risk_high">높은</string>
+
+    <!-- Tool detail dialog -->
+    <string name="tools_detail_category_label">카테고리: %1$s</string>
+    <string name="tools_detail_params">매개변수</string>
+    <string name="tools_detail_sandbox_title">샌드박스 보안 제한</string>
+    <string name="tools_detail_sandbox_content">• 시스템 페이지에서 격리된 WebView V8 엔진 기반\n• 가져오기/XHR/WebSocket 비활성화, 네트워크 액세스 없음\n• blockNetworkLoads는 모든 네트워크 요청을 가로챕니다\n• 무한 루프를 방지하기 위한 기본 제한 시간은 10초입니다\n• 호출 전 사용자 확인 필요(고위험 도구 권한)</string>
+
+    <!-- Parameter row -->
+    <string name="tools_param_required">필수의</string>
+
+    <!-- Tool categories -->
+    <string name="tools_category_built_in">내장 도구</string>
+    <string name="tools_category_local">로컬 도구</string>
+    <string name="tools_category_mcp">MCP 도구</string>
+
+    <!-- Plugin capability captions -->
+    <string name="tools_permissions_label">권한:</string>
+    <string name="tools_activation_label">활성화:</string>
+
+    <!-- ===== v1.0.20: ToolsSettingsPage.kt (Tool Approval Management) ===== -->
+    <!-- Title and search -->
+    <string name="tools_settings_title">공구 승인 관리</string>
+    <string name="tools_settings_search_hint">검색 도구 이름 또는 설명</string>
+
+    <!-- Stats (N tools · always-allow X · ask Y · always-deny Z) -->
+    <string name="tools_settings_stats">%1$d 도구 · 항상 허용 %2$d · 요청 %3$d · 항상 거부 %4$d</string>
+
+    <!-- Risk level group titles -->
+    <string name="tools_settings_section_safe">안전한 도구(읽기 전용/쿼리)</string>
+    <string name="tools_settings_section_normal">일반 도구(국소적 부작용)</string>
+    <string name="tools_settings_section_high">고위험 도구(되돌릴 수 없음/민감함)</string>
+
+    <!-- Empty state -->
+    <string name="tools_settings_empty">일치하는 도구를 찾을 수 없습니다.</string>
+
+    <!-- Footer policy explanation -->
+    <string name="tools_settings_footer_section">정책 설명</string>
+    <string name="tools_settings_policy_always_allow">항상 허용</string>
+    <string name="tools_settings_policy_always_allow_desc">도구 호출은 자동으로 승인됩니다.</string>
+    <string name="tools_settings_policy_ask">매번 물어보세요</string>
+    <string name="tools_settings_policy_ask_desc">호출 전에 승인 카드가 표시됩니다.</string>
+    <string name="tools_settings_policy_always_deny">항상 거부</string>
+    <string name="tools_settings_policy_always_deny_desc">도구가 비활성화되었습니다.</string>
+
+    <!-- Short labels for the per-tool segmented control -->
+    <string name="tools_settings_policy_always_allow_short">허용하다</string>
+    <string name="tools_settings_policy_ask_short">묻다</string>
+    <string name="tools_settings_policy_always_deny_short">부인하다</string>
+</resources>

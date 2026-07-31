@@ -63,6 +63,13 @@ interface FactDao {
     @Query("UPDATE facts SET importance = :importance WHERE id = :id")
     suspend fun updateImportance(id: Long, importance: Int): Int
 
+    /**
+     * v10 P2-3: 更新指定 fact 的分类和标签(用于 AI 记忆管理的 updatedEntities/autoCategorize)。
+     * category 或 tags 为 null 时保留原值(COALESCE 语义)。
+     */
+    @Query("UPDATE facts SET category = COALESCE(:category, category), tags = COALESCE(:tags, tags) WHERE id = :id")
+    suspend fun updateCategoryAndTags(id: Long, category: String? = null, tags: String? = null): Int
+
     /** v5: 全字段更新(用于合并去重后替换内容)。 */
     @Query("UPDATE facts SET fact = :fact, tags = :tags, time = :time, session_id = :sessionId, created_at = :createdAt, importance = :importance, category = :category, confidence = :confidence, source = :source, expires_at = :expiresAt, last_confirmed_at = :lastConfirmedAt, last_hit_at = :lastHitAt WHERE id = :id")
     suspend fun updateEntity(id: Long, fact: String, tags: String, time: String?, sessionId: String?, createdAt: String, importance: Int, category: String, confidence: Float, source: String, expiresAt: String?, lastConfirmedAt: String?, lastHitAt: String?)
@@ -75,6 +82,22 @@ interface FactDao {
      */
     @Query("SELECT * FROM facts WHERE fact LIKE :prefix || '%' AND (:scope IS NULL OR scope = :scope) ORDER BY importance DESC, created_at DESC LIMIT 5")
     suspend fun findSimilar(prefix: String, scope: String? = null): List<FactEntity>
+
+    /**
+     * v9: 按 scope + space_id 双重过滤查找相似事实(用于去重)。
+     * 与 [findSimilar] 的区别:严格按 scope + space_id 过滤,不接受 null。
+     */
+    @Query(
+        """
+        SELECT * FROM facts
+        WHERE fact LIKE :prefix || '%'
+          AND scope = :scope
+          AND space_id = :spaceId
+        ORDER BY importance DESC, created_at DESC
+        LIMIT 5
+        """
+    )
+    suspend fun findSimilarBySpace(prefix: String, scope: String, spaceId: String): List<FactEntity>
 
     @Query("DELETE FROM facts")
     suspend fun deleteAll(): Int
@@ -132,6 +155,21 @@ interface FactDao {
      */
     @Query("SELECT * FROM facts WHERE fact LIKE '%' || :query || '%' AND (scope = :scope OR :scope IS NULL) ORDER BY importance DESC, time DESC LIMIT :limit")
     suspend fun likeSearch(query: String, limit: Int, scope: String? = null): List<FactEntity>
+
+    /**
+     * v9: 按 scope + space_id 双重过滤的 LIKE 全文搜索(用于去重兜底)。
+     */
+    @Query(
+        """
+        SELECT * FROM facts
+        WHERE fact LIKE '%' || :query || '%'
+          AND scope = :scope
+          AND space_id = :spaceId
+        ORDER BY importance DESC, time DESC
+        LIMIT :limit
+        """
+    )
+    suspend fun likeSearchBySpace(query: String, limit: Int, scope: String, spaceId: String): List<FactEntity>
 
     /**
      * v6: FTS4 全文搜索。
@@ -204,6 +242,49 @@ interface FactDao {
     /** facts_fts 表行数(ensureFtsIndexConsistent 比较用)。 */
     @Query("SELECT COUNT(*) FROM facts_fts")
     suspend fun countFts(): Int
+
+    // ── v9: 按 Space(space_id)查询/观察/衰减 ───────────────────────────
+
+    /**
+     * v9: 按 space_id 观察事实列表(Flow 形式),用于 UI 实时刷新。
+     * 排序与 [getAll] 一致:importance DESC + time DESC。
+     */
+    @Query("SELECT * FROM facts WHERE space_id = :spaceId ORDER BY importance DESC, time DESC")
+    fun observeBySpace(spaceId: String): Flow<List<FactEntity>>
+
+    /**
+     * v9: 按 space_id 同步查询事实列表。
+     * 用于 system prompt 注入、记忆页 UI 展示等场景。
+     */
+    @Query("SELECT * FROM facts WHERE space_id = :spaceId ORDER BY importance DESC, time DESC")
+    suspend fun getBySpace(spaceId: String): List<FactEntity>
+
+    /**
+     * v9: 按 scope + space_id 双重过滤查询事实列表。
+     * scope 按 Agent 隔离,space_id 按场景隔离,两者正交。
+     */
+    @Query("SELECT * FROM facts WHERE scope = :scope AND space_id = :spaceId ORDER BY importance DESC, time DESC")
+    suspend fun getByScopeAndSpace(scope: String, spaceId: String): List<FactEntity>
+
+    /**
+     * v9: 按 scope + space_id 双重过滤观察事实列表(Flow 形式)。
+     */
+    @Query("SELECT * FROM facts WHERE scope = :scope AND space_id = :spaceId ORDER BY importance DESC, time DESC")
+    fun observeByScopeAndSpace(scope: String, spaceId: String): Flow<List<FactEntity>>
+
+    /**
+     * v9: 按 space_id 衰减删除 — 仅删除指定 Space 下早于 [cutoffIso] 且 importance < [minImportance] 的事实。
+     *
+     * @return 实际删除的行数
+     */
+    @Query("DELETE FROM facts WHERE space_id = :spaceId AND created_at < :cutoffIso AND importance < :minImportance")
+    suspend fun deleteBySpaceExceptImportant(spaceId: String, cutoffIso: String, minImportance: Int): Int
+
+    /**
+     * v9: 按 space_id 统计事实数量。
+     */
+    @Query("SELECT COUNT(*) FROM facts WHERE space_id = :spaceId")
+    suspend fun countBySpace(spaceId: String): Int
 }
 
 /** 标签搜索结果(带 matchCount)。v4: 含 importance 字段。 */

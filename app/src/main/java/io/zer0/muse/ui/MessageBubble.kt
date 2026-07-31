@@ -81,6 +81,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
@@ -117,6 +119,7 @@ import io.zer0.ai.core.RagCitation
 import io.zer0.ai.core.UIMessage
 import io.zer0.muse.data.artifact.ArtifactEntity
 import io.zer0.muse.ui.artifact.ArtifactCardList
+import io.zer0.muse.ui.chat.BranchSelector
 import io.zer0.muse.ui.chat.parseQuotedContent
 import io.zer0.muse.ui.common.media.AssistantAvatar
 import io.zer0.muse.ui.common.media.AttachmentChip
@@ -166,6 +169,13 @@ internal fun MessageBubble(
     isStreaming: Boolean,
     isLastAssistant: Boolean,
     isTranslating: Boolean,
+    // v1.0.53: 是否为会话最后一条消息(快捷菜单/分支切换用)
+    isLast: Boolean = false,
+    // v1.0.53: 当前消息的分支索引与总数(助手消息多版本切换)
+    branchIndex: Int = 0,
+    branchCount: Int = 1,
+    onBranchPrevious: () -> Unit = {},
+    onBranchNext: () -> Unit = {},
     onEdit: () -> Unit,
     onQuote: () -> Unit,
     onRegenerate: () -> Unit,
@@ -885,6 +895,12 @@ internal fun MessageBubble(
                 //        流式中不启用选择,避免与光标/内容更新冲突;
                 //        SelectionContainer 会消费文本上的长按手势(用于选择),
                 //        父 Column 的 combinedClickable 仅在非文本区域触发操作菜单。
+                // v1.0.53: 数据卡片(```card JSON)优先渲染,其余走 markdown
+                val dataCard = remember(bodyContent) {
+                    if (io.zer0.muse.ui.markdown.DataCardParser.containsCardBlock(bodyContent)) {
+                        io.zer0.muse.ui.markdown.DataCardParser.parse(bodyContent)
+                    } else null
+                }
                 val markdownContent = @Composable {
                     // v1.79 (H-B3): 防御性处理 citationUrls,MarkdownText 内部应保证 [N] 不越界
                     val safeCitationUrls = msg.citationUrls ?: emptyList()
@@ -907,7 +923,9 @@ internal fun MessageBubble(
                         )
                     }
                 }
-                if (isLastAssistant && isStreaming) {
+                if (dataCard != null) {
+                    io.zer0.muse.ui.markdown.DataCardRenderer(card = dataCard)
+                } else if (isLastAssistant && isStreaming) {
                     markdownContent()
                 } else {
                     SelectionContainer { markdownContent() }
@@ -968,11 +986,46 @@ internal fun MessageBubble(
             }       // closes AI bubble Surface
         }
 
-        // v1.138: 助手消息底部快捷按钮 — 复制/翻译/分享(所有助手消息),重新生成(仅最后一条)
+        // v1.0.53: 用户消息底部快捷按钮 — 复制 + 重试(仅最后一条)
+        if (isUser && msg.content.isNotEmpty() && !isStreaming && !isTranslating) {
+            Row(
+                modifier = Modifier.padding(top = 2.dp, end = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                MuseTactileButton(
+                    icon = TablerIcons.Copy,
+                    onClick = {
+                        MuseHaptics.light(hapticFeedback)
+                        onCopyMessage(msg.content)
+                    },
+                    contentDescription = stringResource(R.string.action_copy),
+                    tint = MaterialTheme.colorScheme.outline,
+                    size = MuseIconSizes.touchTarget,
+                    iconSize = MuseIconSizes.iconSmall,
+                )
+                if (isLast) {
+                    MuseTactileButton(
+                        icon = TablerIcons.Refresh,
+                        onClick = {
+                            MuseHaptics.light(hapticFeedback)
+                            onRegenerate()
+                        },
+                        contentDescription = stringResource(R.string.action_retry),
+                        tint = MaterialTheme.colorScheme.outline,
+                        size = MuseIconSizes.touchTarget,
+                        iconSize = MuseIconSizes.iconSmall,
+                    )
+                }
+            }
+        }
+
+        // v1.138 / v1.0.53: 助手消息底部快捷按钮 — 复制/翻译/分享/重新生成 + 分支切换器
         // 翻译按钮复用长按菜单的语言子菜单(showActionMenu + showLanguageSubmenu)
         // 分享按钮用系统 share sheet 分享单条消息内容
         if (!isUser && msg.content.isNotEmpty() && !isStreaming && !isTranslating) {
             Row(
+                modifier = Modifier.padding(top = 2.dp),
                 horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -1031,6 +1084,16 @@ internal fun MessageBubble(
                         tint = MaterialTheme.colorScheme.outline,
                         size = MuseIconSizes.touchTarget,
                         iconSize = MuseIconSizes.iconSmall,
+                    )
+                }
+                // 多分支变体切换器
+                if (branchCount > 1) {
+                    Spacer(Modifier.width(4.dp))
+                    BranchSelector(
+                        currentIndex = branchIndex,
+                        totalCount = branchCount,
+                        onPrevious = onBranchPrevious,
+                        onNext = onBranchNext,
                     )
                 }
             }
@@ -1689,6 +1752,10 @@ private fun WaveformBars(
     Row(
         horizontalArrangement = Arrangement.spacedBy(2.dp),
         verticalAlignment = Alignment.CenterVertically,
+        // v1.0.52: 无障碍 — TalkBack 可播报波形状态
+        modifier = Modifier.semantics {
+            contentDescription = if (isActive) "语音播放中" else "语音就绪"
+        },
     ) {
         val heights = listOf(12.dp, 18.dp, 14.dp, 20.dp)
         heights.forEachIndexed { index, maxHeight ->

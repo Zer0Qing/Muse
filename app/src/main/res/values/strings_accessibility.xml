@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- P3-3: 权限引导页 -->
+    <string name="permission_wizard_title">权限配置向导</string>
+    <string name="permission_wizard_desc">Muse 的 UI 自动化能力依赖三通道权限模型。按下方步骤逐个启用,等级越高可执行的操作越多。UI 操作仅需「无障碍服务」;Shell 命令需 Shizuku 或 Root。</string>
+    <string name="permission_wizard_entry">权限配置向导</string>
+    <string name="permission_wizard_entry_desc">配置无障碍 / Shizuku / Root 三通道权限</string>
+    <string name="permission_current_level">当前权限等级</string>
+    <string name="permission_level_none">未授权(无法执行 UI 自动化)</string>
+    <string name="permission_level_accessibility">无障碍已启用(UI 操作可用)</string>
+    <string name="permission_level_shizuku">Shizuku 已授权(UI + Shell 命令可用)</string>
+    <string name="permission_level_root">Root 已授权(全部能力可用)</string>
+
+    <!-- 无障碍服务 -->
+    <string name="accessibility_section_title">无障碍服务</string>
+    <string name="accessibility_status_enabled">无障碍服务已启用,可执行 UI 操作(点击/滑动/输入/截图/读取 UI 树)</string>
+    <string name="accessibility_status_disabled">未启用。需在系统设置中授权「Muse UI 自动化」服务</string>
+    <string name="accessibility_enable_btn">前往系统设置启用</string>
+
+    <!-- Shizuku -->
+    <string name="shizuku_section_title">Shizuku(推荐)</string>
+    <string name="shizuku_status_installed">Shizuku 已安装</string>
+    <string name="shizuku_status_not_installed">Shizuku 未安装</string>
+    <string name="shizuku_status_authorized">已授权 Muse 使用 Shizuku</string>
+    <string name="shizuku_status_unauthorized">未授权</string>
+    <string name="shizuku_install_btn">下载安装 Shizuku</string>
+    <string name="shizuku_authorize_btn">授权 Muse</string>
+
+    <!-- Root -->
+    <string name="root_section_title">Root 权限</string>
+    <string name="root_status_available">Root 已授权(降级通道,可直接执行 su 命令)</string>
+    <string name="root_status_unavailable">未 root 或未授权(Shizuku 不可用时使用 Root 降级)</string>
+</resources>

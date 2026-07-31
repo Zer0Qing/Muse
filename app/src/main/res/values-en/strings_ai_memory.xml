@@ -65,6 +65,17 @@
     <string name="memory_scope_assistant">Assistant Memory</string>
     <string name="memory_scope_label">Memory Scope</string>
 
+    <!-- v1.0.52 P2-2: memory space related -->
+    <string name="memory_space_manage_title">Memory Spaces</string>
+    <string name="memory_space_create">Create Space</string>
+    <string name="memory_space_create_title">New Memory Space</string>
+    <string name="memory_space_rename">Rename</string>
+    <string name="memory_space_rename_title">Rename Memory Space</string>
+    <string name="memory_space_delete">Delete</string>
+    <string name="memory_space_name_label">Space Name</string>
+    <string name="memory_space_fact_count">%1$d facts</string>
+    <string name="memory_space_entry">Memory Spaces</string>
+
     <!-- MemoryScreen.kt: view mode toggle / export / stats card -->
     <string name="memory_stats_view_list">List</string>
     <string name="memory_stats_view_timeline">Timeline</string>

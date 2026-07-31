@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    i18n review summary for ai / memory / transformer modules:
+    - ai module (standalone Gradle module): user-visible error messages are delivered
+      to UI via Result.Error/exceptions, but cannot reference app's R.string directly.
+      Each source file is annotated with // TODO i18n pending extraction; extraction
+      requires an error-code enum approach.
+    - memory module (standalone Gradle module): validation errors (MemoryConfig.validate)
+      and isZh time labels (Key Facts/Timeline etc.) are user-visible, but cross-module
+      and some labels participate in LLM output parsing contracts.
+      Each source file is annotated with // TODO i18n pending extraction.
+    - transformer module (inside app): per file review, all Chinese strings are LLM
+      prompt content (SYSTEM messages sent to LLM), logger messages, code comments, or
+      internal exception messages. No directly user-visible UI strings; kept as-is per
+      the "LLM prompts not extracted" rule.
+    This file currently has no string entries; it serves as a placeholder and review record.
+-->
+<resources>
+    <!-- v4: memory importance related -->
+    <string name="memory_importance_normal">普通</string>
+    <string name="memory_importance_important">重要</string>
+    <string name="memory_importance_critical">致命的</string>
+    <string name="memory_importance_set_title">重要度の設定</string>
+    <string name="memory_importance_normal_desc">毎日の好み、忘れても無害</string>
+    <string name="memory_importance_important_desc">中リスク、間違いは迷惑を引き起こす</string>
+    <string name="memory_importance_critical_desc">リスクが高く、間違いは害をもたらします（決して忘れないでください）</string>
+    <string name="memory_source_session">出典: セッション%1$s</string>
+    <string name="memory_created_today">本日追加されました</string>
+    <string name="memory_created_yesterday">昨日追加されました</string>
+    <string name="memory_created_days_ago">%1$d 日前に追加されました</string>
+    <string name="memory_sync_never">記憶はまだ編集されておらず、会話は長期記憶に残っていない</string>
+    <string name="memory_sync_recent">最後にコンパイルされたのは %1$d 分前、メモリは同期されました</string>
+    <string name="memory_sync_stale">最後にコンパイルされたのは %1$d 分前ですが、最近の会話はまだメモリにない可能性があります。</string>
+    <string name="memory_sync_set_importance_cd">重要度を設定する</string>
+
+    <!-- v6: MemoryViewModel CRUD error messages -->
+    <string name="memory_delete_failed">削除に失敗しました: %1$s</string>
+    <string name="memory_edit_failed">編集に失敗しました: %1$s</string>
+    <string name="memory_set_failed">設定に失敗しました: %1$s</string>
+    <string name="memory_add_failed">追加に失敗しました: %1$s</string>
+    <string name="memory_add_experience_failed">エクスペリエンスの追加に失敗しました: %1$s</string>
+    <string name="memory_edit_experience_failed">編集エクスペリエンスが失敗しました: %1$s</string>
+    <string name="memory_delete_experience_failed">エクスペリエンスの削除に失敗しました: %1$s</string>
+
+    <!-- v6: Compile section display titles -->
+    <string name="memory_compile_section_facts">事実の概要</string>
+    <string name="memory_compile_section_today">今日</string>
+    <string name="memory_compile_section_week">今週</string>
+    <string name="memory_compile_section_longterm">長期</string>
+
+    <!-- v6: Summary item title -->
+    <string name="memory_summary_title">セッション%1$s</string>
+
+    <!-- v6: Error trace labels -->
+    <string name="memory_error_trace_header">== ミューズメモリエラー ==</string>
+    <string name="memory_error_trace_time">時間：</string>
+    <string name="memory_error_trace_exception">例外：</string>
+    <string name="memory_error_trace_message">メッセージ：</string>
+    <string name="memory_error_trace_device">デバイス：</string>
+    <string name="memory_error_trace_stack_header">== スタック トレース ==</string>
+
+    <!-- v8: memory scope related -->
+    <string name="memory_scope_all">全て</string>
+    <string name="memory_scope_main">メインアシスタント</string>
+    <string name="memory_scope_assistant">アシスタントメモリー</string>
+    <string name="memory_scope_label">メモリスコープ</string>
+
+    <!-- v1.0.52 P2-2: memory space related -->
+    <string name="memory_space_manage_title">メモリ空間</string>
+    <string name="memory_space_create">スペースを作成する</string>
+    <string name="memory_space_create_title">新しいメモリ空間</string>
+    <string name="memory_space_rename">名前の変更</string>
+    <string name="memory_space_rename_title">メモリ空間の名前を変更する</string>
+    <string name="memory_space_delete">消去</string>
+    <string name="memory_space_name_label">スペース名</string>
+    <string name="memory_space_fact_count">%1$d 事実</string>
+    <string name="memory_space_entry">メモリ空間</string>
+
+    <!-- MemoryScreen.kt: view mode toggle / export / stats card -->
+    <string name="memory_stats_view_list">リスト</string>
+    <string name="memory_stats_view_timeline">タイムライン</string>
+    <string name="memory_stats_export_title">エクスポートメモリ</string>
+    <string name="memory_stats_export_format_hint">エクスポート形式を選択します:</string>
+    <string name="memory_stats_section_title">メモリ統計</string>
+    <string name="memory_stats_total">合計</string>
+    <string name="memory_stats_importance_distribution">重要度の分布</string>
+    <string name="memory_stats_top_sessions">最もアクティブなセッション</string>
+    <string name="memory_stats_session_count">%1$d エントリ</string>
+    <string name="memory_stats_trend_30_days">過去 30 日間の傾向</string>
+</resources>

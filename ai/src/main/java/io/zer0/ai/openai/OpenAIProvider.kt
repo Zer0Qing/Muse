@@ -224,26 +224,17 @@ class OpenAIProvider(
                     Logger.d("OpenAIProvider", "stream-guard: 回退进行中, 跳过 Done 事件")
                     return
                 }
-                trySend(ChatStreamEvent.Done(finishReason))
+                // v1.0.53: 第一次 emitDone 已发送 Done+close,此处只需确保流关闭,不重发 Done。
+                //   finishReason 和 [DONE] 双触发时,第二次 Done 会带 null finishReason,
+                //   冗余的 Done(null) 可能让上层误判流异常结束并触发 abort。
                 close()
                 return
             }
-            toolCallAccMap.forEach { (localIndex, acc) ->
-                // v1.0.22: 跳过已增量恢复的 acc,避免重复发送
-                if (acc.recoveredAsContent) return@forEach
-                if (acc.name.isNullOrBlank() && acc.args.isNotEmpty()) {
-                    val recoveredText = acc.args.toString()
-                    Logger.w(
-                        "OpenAIProvider",
-                        "stream-guard: 拦截空 name tool call (localIndex=$localIndex, args=${acc.args.length} chars)," +
-                            "恢复为文本: ${recoveredText.take(50)}",
-                    )
-                    contentCharsSent.addAndGet(recoveredText.length)
-                    trySend(ChatStreamEvent.ContentDelta(recoveredText))
-                }
-            }
-            // 清空 map,防止后续误触发再次恢复
-            toolCallAccMap.clear()
+            // v1.0.52: 在恢复逻辑之前计算 fallback 条件 —
+            //   如果 finishReason=tool_calls 且存在空 name tool_call,说明模型流式模式下
+            //   没有正确输出工具名,需触发非流式回退(非流式模式下 tool_calls 通常完整返回)。
+            //   此时不能把 args 恢复为 ContentDelta(那是工具参数,不是正文),否则用户看到 JSON 幻觉。
+            val hasEmptyNameToolCall = toolCallAccMap.values.any { it.name.isNullOrBlank() && it.args.isNotEmpty() }
 
             // v1.0.23: 商汤 deepseek-v4-flash 等流式过早结束 bug 检测
             //   商汤 API 流式实现有 bug:first delta 后立即 finish(只输出 0-4 个字符,
@@ -270,8 +261,33 @@ class OpenAIProvider(
                     (combinedChars in 0..9 && deltaDuration < 500) ||
                     // 条件 B(v1.0.51): content 为 0 但有 reasoning,且持续时间短(< 2s) —
                     //   模型只输出了思考没有产出正文,用户看到空回复,需回退
-                    (totalChars == 0 && reasoningChars > 0 && deltaDuration < 2000)
+                    (totalChars == 0 && reasoningChars > 0 && deltaDuration < 2000) ||
+                    // 条件 C(v1.0.52): finishReason=tool_calls 但存在空 name tool_call —
+                    //   模型流式模式下没有正确输出工具名(如 GLM-4-9B-0414),
+                    //   args 被缓冲但不能作为正文(是工具参数),触发非流式回退让模型重新生成
+                    (finishReason == "tool_calls" && hasEmptyNameToolCall)
                 )
+
+            // v1.0.52: 只在不回退时才恢复空 name tool_call 为 ContentDelta
+            //   回退时不恢复(避免把工具参数当正文发给用户,然后又回退重复发送)
+            if (!shouldFallback) {
+                toolCallAccMap.forEach { (localIndex, acc) ->
+                    // v1.0.22: 跳过已增量恢复的 acc,避免重复发送
+                    if (acc.recoveredAsContent) return@forEach
+                    if (acc.name.isNullOrBlank() && acc.args.isNotEmpty()) {
+                        val recoveredText = acc.args.toString()
+                        Logger.w(
+                            "OpenAIProvider",
+                            "stream-guard: 拦截空 name tool call (localIndex=$localIndex, args=${acc.args.length} chars)," +
+                                "恢复为文本: ${recoveredText.take(50)}",
+                        )
+                        contentCharsSent.addAndGet(recoveredText.length)
+                        trySend(ChatStreamEvent.ContentDelta(recoveredText))
+                    }
+                }
+            }
+            // 清空 map,防止后续误触发再次恢复
+            toolCallAccMap.clear()
 
             if (shouldFallback) {
                 pendingFallback.set(true)
@@ -324,26 +340,53 @@ class OpenAIProvider(
                                 lastError = e
                                 Logger.w("OpenAIProvider", "stream-guard: 非流式回退第 $attempt 次失败: ${e.message}")
                                 if (attempt < 2 && !request.abortSignal.aborted) {
-                                    delay(1000L)
+                                    // v1.0.53: 429 限流时等满 RPM 窗口(10s)再重试,避免连续撞限流
+                                    val isRateLimited = e.message?.contains("429") == true ||
+                                        e.message?.contains("rate limited") == true
+                                    delay(if (isRateLimited) 10_000L else 1_000L)
                                 }
                             }
                         }
                         if (completion != null) {
                             val text = completion.text.orEmpty()
                             val reasoning = completion.reasoningContent.orEmpty()
-                            // v1.0.51: reasoning 兜底 — deepseek-v4-flash 等推理模型可能把全部输出
-                            //   放在 reasoning_content 里(text 为空),此时用 reasoning 作为正文发送,
-                            //   否则用户看到空回复。与 MemoryLlmClient 的兜底逻辑一致。
-                            val effectiveText = text.ifBlank { reasoning }
-                            if (effectiveText.isNotEmpty()) {
-                                trySend(ChatStreamEvent.ContentDelta(effectiveText))
-                            }
-                            if (text.isNotEmpty() && reasoning.isNotEmpty()) {
-                                trySend(ChatStreamEvent.ReasoningDelta(reasoning))
+                            val toolCalls = completion.toolCalls.orEmpty()
+                            if (toolCalls.isNotEmpty()) {
+                                // v1.0.53: 回退成功且模型决策调用工具 — 发送 ToolCallDelta,
+                                // 不能把 reasoning 当正文(那是思考过程);工具调用交给上层执行。
+                                // 此前 toolCalls 被静默丢弃,导致群聊 channel_pass/reply 丢失、
+                                // 单聊工具调用(web_search 等)丢失,用户只看到思考文本。
+                                toolCalls.forEachIndexed { idx, tc ->
+                                    trySend(
+                                        ChatStreamEvent.ToolCallDelta(
+                                            index = idx,
+                                            id = tc.id,
+                                            name = tc.name,
+                                            argumentsDelta = "",
+                                        ),
+                                    )
+                                    trySend(
+                                        ChatStreamEvent.ToolCallDelta(
+                                            index = idx,
+                                            argumentsDelta = tc.arguments,
+                                        ),
+                                    )
+                                }
+                            } else {
+                                // v1.0.51: reasoning 兜底 — deepseek-v4-flash 等推理模型可能把全部输出
+                                //   放在 reasoning_content 里(text 为空),此时用 reasoning 作为正文发送,
+                                //   否则用户看到空回复。与 MemoryLlmClient 的兜底逻辑一致。
+                                val effectiveText = text.ifBlank { reasoning }
+                                if (effectiveText.isNotEmpty()) {
+                                    trySend(ChatStreamEvent.ContentDelta(effectiveText))
+                                }
+                                if (text.isNotEmpty() && reasoning.isNotEmpty()) {
+                                    trySend(ChatStreamEvent.ReasoningDelta(reasoning))
+                                }
                             }
                             Logger.i(
                                 "OpenAIProvider",
-                                "stream-guard: 非流式回退成功 (text=${text.length} chars, reasoning=${reasoning.length} chars, effective=${effectiveText.length} chars)",
+                                "stream-guard: 非流式回退成功 (text=${text.length} chars, reasoning=${reasoning.length} chars, toolCalls=${toolCalls.size})",
                             )
                         } else {
                             Logger.w("OpenAIProvider", "stream-guard: 非流式回退最终失败: ${lastError?.message}")
@@ -488,6 +531,8 @@ class OpenAIProvider(
 
                             // v1.0.22: 已增量恢复为 ContentDelta 的 acc,后续 args 继续作为 ContentDelta 发送
                             //   (一旦判定为空 name 异常 tool call 并增量恢复,name 后到也不撤回已发送的正文)
+                            // v1.0.52: recoveredAsContent 不再被增量设置为 true(改为 Done 时根据 finishReason 决定),
+                            //   此分支保留向后兼容但实际不会进入
                             if (acc.recoveredAsContent) {
                                 val argsDelta = tc.function?.arguments.orEmpty()
                                 if (argsDelta.isNotEmpty()) {
@@ -497,26 +542,22 @@ class OpenAIProvider(
                             }
 
                             // stream-guard: 空 name 处理
-                            //   v1.0.20: 缓冲到 Done 才恢复 — 导致 GLM-4-9B 等小模型"只输出首字即结束"假象
-                            //   v1.0.22: 改为立即增量恢复为 ContentDelta,让用户能看到流式输出
+                            //   v1.0.20: 缓冲到 Done 才恢复
+                            //   v1.0.22: 改为立即增量恢复为 ContentDelta
+                            //   v1.0.52: 回退为只缓冲不发送 — v1.0.22 的增量恢复导致真实工具调用
+                            //     (finishReason=tool_calls) 的 arguments 被误转为正文,用户看到 JSON 片段幻觉。
+                            //     改为缓冲到 Done,Done 时根据 finishReason 决定:
+                            //       - tool_calls + 空 name → 触发非流式回退(模型流式模式未正确输出工具名)
+                            //       - 其他 + 空 name → 恢复为 ContentDelta(正文幻觉)
                             val currentName = acc.name
                             if (currentName.isNullOrBlank()) {
                                 toolCallDeltaSent.set(true)
                                 anyDeltaSent.set(true)
-                                val argsDelta = tc.function?.arguments.orEmpty()
-                                if (argsDelta.isNotEmpty()) {
-                                    acc.recoveredAsContent = true
-                                    trySend(ChatStreamEvent.ContentDelta(argsDelta))
-                                    Logger.d(
-                                        "OpenAIProvider",
-                                        "stream-guard: 增量恢复空 name tool call 为 ContentDelta (localIndex=$localIndex, 本次=${argsDelta.length} chars, 累积=${acc.args.length} chars)",
-                                    )
-                                } else {
-                                    Logger.d(
-                                        "OpenAIProvider",
-                                        "stream-guard: 空 name tool call 无 args 增量,跳过 (localIndex=$localIndex, 累积 args=${acc.args.length} chars)",
-                                    )
-                                }
+                                // v1.0.52: 只缓冲,不发送 ContentDelta
+                                Logger.d(
+                                    "OpenAIProvider",
+                                    "stream-guard: 空 name tool call 缓冲中 (localIndex=$localIndex, 累积 args=${acc.args.length} chars)",
+                                )
                                 return@forEach
                             }
 
@@ -741,6 +782,7 @@ class OpenAIProvider(
                     finishReason = choice.finishReason,
                     toolCalls = toolCalls,
                     reasoningContent = reasoningContent.takeIf { it.isNotBlank() },
+                    usageTokens = parsed.usage?.toUsageTokens(),
                 )
             }
         } catch (e: kotlinx.coroutines.CancellationException) {
@@ -1835,6 +1877,7 @@ class OpenAIProvider(
                     finishReason = parsed.status,
                     toolCalls = toolCalls,
                     reasoningContent = reasoningContent.takeIf { it.isNotBlank() },
+                    usageTokens = parsed.usage?.toUsageTokens(),
                 )
             }
         } catch (e: kotlinx.coroutines.CancellationException) {

@@ -223,6 +223,19 @@ class McpClient(
     private val oauthEnabled: Boolean get() = config.oauthConfig.enabled && settings != null
 
     /**
+     * Phase 9.5 (P3-2): tools/list_changed 通知回调。
+     *
+     * 当 server 发出 `notifications/tools/list_changed`(MCP 2025-03-26 §Tools)时触发,
+     * 由 [McpRegistry] 注入实现:重新拉取 tools/list 并重新注册到 ToolRegistry。
+     *
+     * 解耦设计:McpClient 不依赖 Registry,仅通过回调上抛事件,保持依赖方向单一。
+     * 回调在 [handleNotification] 的 IO 协程上下文执行,实现方应避免长时间阻塞
+     * (Registry 端会 launch 独立协程做实际拉取)。
+     */
+    @Volatile
+    var onToolsListChanged: (() -> Unit)? = null
+
+    /**
      * 启动 MCP client。建立连接 + initialize 握手。
      * 失败则触发重连流程(若 [McpServerConfig.autoReconnect] 为 true)。
      */
@@ -514,13 +527,41 @@ class McpClient(
     }
 
     /**
-     * v1.0.47 P4: 处理 server→client notification(无 id)。
-     * 目前仅记录日志,后续接入 tools/list_changed 等触发的重新拉取。
+     * v1.0.47 P4 / Phase 9.5 (P3-2): 处理 server→client notification(无 id)。
+     *
+     * 支持的 notification(MCP 2025-03-26):
+     *  - `notifications/tools/list_changed`: 工具列表变更,触发 [onToolsListChanged] 回调,
+     *    由 Registry 重新拉取 tools/list 并重新注册。
+     *  - `notifications/prompts/list_changed`: prompt 列表变更(记录日志,后续接入)。
+     *  - `notifications/resources/list_changed`: 资源列表变更(记录日志,后续接入)。
+     *  - `notifications/initialized`: 握手完成通知(忽略,client 主动发)。
+     *  - `notifications/progress`: 长任务进度(记录日志)。
+     *  - 其他: 记录日志。
+     *
+     * 回调安全:[onToolsListChanged] 调用包裹在 runCatching 中,避免 Registry 端异常
+     * 影响后续 notification 处理(如 SSE 流中多个事件)。
      */
     private fun handleNotification(method: String, params: JsonObject) {
         Logger.i(TAG, "收到 notification: $method (params=${params.toString().take(200)})")
-        // TODO P4-后续: tools/list_changed → 触发 McpRegistry.registerTools 重新拉取
-        // TODO P4-后续: prompts/list_changed → 触发重新拉取 prompts
+        when (method) {
+            "notifications/tools/list_changed" -> {
+                // 触发 Registry 重新拉取工具;回调内会 launch 独立协程,不阻塞此处
+                runCatching { onToolsListChanged?.invoke() }
+                    .onFailure { e -> Logger.w(TAG, "[${config.name}] onToolsListChanged 回调异常: ${e.message}") }
+            }
+            "notifications/prompts/list_changed",
+            "notifications/resources/list_changed",
+            "notifications/progress",
+            -> {
+                // 已记录日志,后续按需接入 Registry 层回调
+            }
+            "notifications/initialized" -> {
+                // client 主动发出的握手通知,server 不应回发;忽略
+            }
+            else -> {
+                Logger.d(TAG, "[${config.name}] 未处理的 notification: $method")
+            }
+        }
     }
 
     /** SSE 传输模式下的 POST 请求(initialize / tools/list / tools/call 等)。 */

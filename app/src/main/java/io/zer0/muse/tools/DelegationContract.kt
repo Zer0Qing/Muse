@@ -62,6 +62,14 @@ object DelegationContract {
         /** v1.202: 主 agent 的 assistantId,用于委派完成后通过 AgentDmRepository 回填结果私信。
          *  默认 null 保持向后兼容(不发送 DM)。 */
         val callerAssistantId: String? = null,
+        /** v1.0.53 Phase 2: 工作流 journal run id;TEAM 目标传入时复用,否则由 executor 生成。
+         *  调用方可从 DelegationResult.metadata.journalRunId 取回,用于失败后 resume 重试。 */
+        val journalRunId: String? = null,
+        /** v1.0.53 Phase 2: 是否从 journal 恢复(仅 TEAM 目标生效;true 时命中缓存的节点秒回)。 */
+        val resumeFromJournal: Boolean = false,
+        /** v1.0.53 Phase 3: token 预算上限(prompt + completion 合计);null=不限制。
+         *  仅最外层委派需设置;递归子委派(subRequest)应置 null 以继承父级 budget(通过 ThreadLocal 传递)。 */
+        val tokenBudget: Int? = null,
     ) {
         enum class TargetType { ASSISTANT, TEAM }
         enum class ResponseFormat { TEXT, JSON, MARKDOWN, CODE }
@@ -117,6 +125,8 @@ object DelegationContract {
             val modelId: String? = null,
             val assistantId: String? = null,
             val assistantName: String? = null,
+            /** v1.0.53 Phase 2: 工作流 journal runId(供调用方 resume 重试用)。 */
+            val journalRunId: String? = null,
         )
 
         /** 是否存在可阅读的文本结果。 */

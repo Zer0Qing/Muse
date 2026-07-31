@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== v1.0.53: 封面库(Beautify 封面工作流) ===== -->
+    <string name="cover_imported">封面已导入</string>
+    <string name="cover_import_failed">封面导入失败: %1$s</string>
+    <string name="cover_import">导入封面</string>
+    <string name="cover_delete_confirm">删除这张封面?</string>
+    <string name="cover_delete">删除封面</string>
+    <string name="cover_pick">使用此封面</string>
+    <string name="cover_generate">生成封面</string>
+    <string name="cover_generating">正在生成封面…</string>
+    <string name="cover_generate_failed">封面生成失败: %1$s</string>
+    <string name="cover_generate_no_provider">未配置绘图模型,请到 设置→模型与服务 中配置后重试</string>
+    <string name="cover_applied">封面已应用</string>
+</resources>

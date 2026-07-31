@@ -152,7 +152,7 @@ class ProactiveMessageRunner(
     suspend fun triggerByEvent(eventType: String) {
         val now = System.currentTimeMillis()
         if (now - lastEventTriggerAt < EVENT_COOLDOWN_MS) {
-            Logger.i(TAG, "事件触发冷却中(剩余 ${EVENT_COOLDOWN_MS - (now - lastEventTriggerAt)}ms),跳过 (eventType=$eventType)")
+            Logger.d(TAG, "事件触发冷却中(剩余 ${EVENT_COOLDOWN_MS - (now - lastEventTriggerAt)}ms),跳过 (eventType=$eventType)")
             return
         }
         lastEventTriggerAt = now

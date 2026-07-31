@@ -1,12 +1,81 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Выбор языка (остальные строки настроек fallback на китайский по умолчанию) -->
+    <!-- Agent Settings -->
+    <string name="settings_agent_model_not_configured">Не настроено</string>
+    <string name="settings_agent_tool_model_not_set">Не установлено</string>
+    <string name="settings_agent_tool_model_not_set_inherit">Не установлено (используйте основную модель)</string>
+    <string name="settings_agent_section_assistant">Помощник агента</string>
+    <string name="settings_agent_default_assistant_title">Помощник агента по умолчанию</string>
+    <string name="settings_agent_loading">Загрузка...</string>
+    <string name="settings_agent_use_first_assistant">Используйте первого помощника</string>
+    <string name="settings_agent_section_model">Модель</string>
+    <string name="settings_agent_current_model">Текущая модель</string>
+    <string name="settings_agent_tool_model_title">Модель инструмента</string>
+    <string name="settings_agent_multi_agent_section">Мультиагентное сотрудничество</string>
+    <string name="settings_agent_collab_team">Команды сотрудничества</string>
+    <string name="settings_agent_multi_agent_enabled">Включено · Команды %1$d</string>
+    <string name="settings_agent_manage_collab_team">Управляйте командами совместной работы</string>
+    <string name="settings_agent_proactive_section">Проактивные сообщения</string>
+    <string name="settings_agent_proactive_title">Проактивные сообщения</string>
+    <string name="settings_agent_proactive_subtitle">Агент заранее сообщает, что вам нравится реальный человек</string>
+    <!-- v1.0.4 (P3-5): Boot auto-launch toggle — when enabled Muse auto-launches after boot,
+         ensuring proactive messages and scheduled tasks keep running after device restart. -->
+    <string name="settings_agent_boot_section">Загрузка автозапуска</string>
+    <string name="settings_agent_boot_title">Автозапуск после загрузки</string>
+    <string name="settings_agent_boot_subtitle">Автоматически открывать Muse после завершения загрузки, сохраняя упреждающие сообщения и запланированные задачи.</string>
+    <string name="settings_agent_boot_warning">Некоторые бренды требуют дополнительного разрешения «автозапуска» в настройках системы;</string>
+    <string name="settings_agent_send_interval">Интервал отправки</string>
+    <string name="settings_agent_random_offset">Случайное смещение</string>
+    <string name="settings_agent_send_agent">Отправляющий агент</string>
+    <string name="settings_agent_default_assistant_fallback">Помощник по умолчанию</string>
+    <string name="settings_agent_select_assistant_title">Выберите помощника агента</string>
+    <string name="settings_agent_no_assistants_hint">Помощников пока нет.</string>
+    <string name="settings_agent_interval_hint">Перетащите ползунок, чтобы установить интервал от 15 минут до 24 часов.</string>
+    <string name="settings_agent_interval_15min">15 мин.</string>
+    <string name="settings_agent_interval_24h">24 часа</string>
+    <string name="settings_agent_offset_hint">Пусть время отправки естественным образом дрейфует вокруг интервала.</string>
+    <string name="settings_agent_offset_off_label">Выключенный</string>
+    <string name="settings_agent_select_model">Выберите модель агента</string>
+    <string name="settings_agent_no_models_hint">Нет доступных моделей.</string>
+    <string name="settings_agent_select_tool_model">Выберите модель инструмента</string>
+    <string name="settings_agent_clear_tool_model">Очистить (использовать основную модель)</string>
+    <string name="settings_agent_unnamed_assistant">Безымянный помощник</string>
+    <string name="settings_agent_interval_minutes">Каждые %1$d мин.</string>
+    <string name="settings_agent_interval_hourly">Ежечасно</string>
+    <string name="settings_agent_interval_daily">Ежедневно</string>
+    <string name="settings_agent_interval_hours">Каждые %1$d ч</string>
+    <string name="settings_agent_interval_hours_minutes">Каждые %1$d ч %2$d мин.</string>
+    <string name="settings_agent_offset_disabled">Выкл. (фиксированный интервал)</string>
+    <string name="settings_agent_offset_minutes">± %1$d мин</string>
+    <string name="settings_agent_offset_hours">± %1$d ч</string>
+    <string name="settings_agent_offset_hours_minutes">± %1$d ч %2$d мин</string>
+
+    <!-- Appearance / Theme -->
     <string name="settings_theme_appearance">Внешний вид</string>
     <string name="settings_theme_follow_system">Системный</string>
     <string name="settings_theme_light">Светлый</string>
     <string name="settings_theme_dark">Тёмный</string>
     <string name="settings_theme_current_mode">Текущий режим</string>
+    <string name="settings_theme_font_size">Размер шрифта</string>
+    <string name="settings_theme_font_small">М</string>
+    <string name="settings_theme_font_medium">С</string>
+    <string name="settings_theme_font_large">Б</string>
+    <string name="settings_theme_font_xlarge">ОБ</string>
+    <string name="settings_theme_font_small_label">Маленький (0,85x)</string>
+    <string name="settings_theme_font_large_label">Большой (1,15x)</string>
+    <string name="settings_theme_font_xlarge_label">Очень большой (1,3x)</string>
+    <string name="settings_theme_font_medium_label">Средний (по умолчанию)</string>
+    <string name="settings_theme_current_font_size">Текущий размер</string>
+    <string name="settings_theme_dynamic_color">Динамические цвета</string>
+    <string name="settings_theme_dynamic_color_supported">Извлечение цветов из обоев (Android 12+)</string>
+    <string name="settings_theme_dynamic_color_unsupported">Требуется Android 12 или выше.</string>
+    <string name="settings_theme_font_preview_title">Предварительный просмотр: эффект размера шрифта</string>
+    <string name="settings_theme_font_preview_body">Это образец основного текста.</string>
+    <string name="settings_theme_font_preview_note">Небольшое примечание · Для вспомогательных подсказок</string>
     <string name="settings_theme_selected">Выбрано</string>
+    <string name="settings_theme_preview">Предпросмотр темы</string>
+    <string name="settings_theme_preview_hello">Здравствуйте</string>
+    <string name="settings_theme_preview_reply">Здравствуйте! Чем могу помочь?</string>
     <string name="settings_theme_language">Язык</string>
     <string name="settings_theme_language_zh">Китайский</string>
     <string name="settings_theme_language_en">Английский</string>
@@ -14,64 +83,414 @@
     <string name="settings_theme_language_ko">Корейский</string>
     <string name="settings_theme_language_ru">Русский</string>
     <string name="settings_theme_current_language">Текущий язык</string>
-
-    <!-- Заголовки подстраниц настроек -->
-    <string name="settings_sub_model_services">Модели и сервисы</string>
-    <string name="settings_sub_user_profile">Профиль пользователя</string>
-    <string name="settings_sub_data_backup">Данные и резервное копирование</string>
-
-    <!-- Общие кнопки -->
-    <string name="settings_about_check_update">Проверить обновления</string>
-    <string name="settings_about_checking">Проверка</string>
-    <string name="settings_about_up_to_date">Установлена последняя версия</string>
-    <string name="settings_about_feedback">Отзыв</string>
-    <string name="settings_about_got_it">Понятно</string>
-    <string name="settings_about_logout">Выйти</string>
-    <string name="settings_about_logout_button">Выйти</string>
-    <string name="settings_about_download">Скачать</string>
-    <string name="settings_about_processing">Обработка</string>
-
-    <!-- Главная страница по умолчанию -->
     <string name="settings_default_home_page_title">Главная страница при запуске</string>
     <string name="settings_default_home_page_desc">Выберите страницу, отображаемую при запуске приложения</string>
 
-    <!-- Внешний вид/тема -->
-    <string name="settings_theme_font_size">Размер шрифта</string>
-    <string name="settings_theme_font_small">М</string>
-    <string name="settings_theme_font_medium">С</string>
-    <string name="settings_theme_font_large">Б</string>
-    <string name="settings_theme_font_xlarge">ОБ</string>
-    <string name="settings_theme_current_font_size">Текущий размер</string>
-    <string name="settings_theme_dynamic_color">Динамические цвета</string>
-    <string name="settings_theme_preview">Предпросмотр темы</string>
-    <string name="settings_theme_preview_hello">Здравствуйте</string>
-    <string name="settings_theme_preview_reply">Здравствуйте! Чем могу помочь?</string>
+    <!-- Settings Sub-pages / About -->
+    <string name="settings_sub_model_services">Модели и сервисы</string>
+    <string name="settings_sub_user_profile">Профиль пользователя</string>
+    <string name="settings_sub_user_profile_subtitle">Возраст/Город/MBTI и т. д. (для персонализации AI)</string>
+    <string name="settings_sub_data_backup">Данные и резервное копирование</string>
+    <string name="settings_about_version_full">Версия %1$s (%2$d)</string>
+    <string name="settings_about_app_info">Информация о приложении</string>
+    <string name="settings_about_feedback_section">Обратная связь</string>
+    <string name="settings_about_update_section">Обновления</string>
+    <string name="settings_about_legal_section">Юридический</string>
+    <string name="settings_about_repo_section">Открытый исходный код</string>
+    <string name="settings_about_account_section">Счет</string>
+    <string name="settings_about_feedback_cd">Отзыв, нажмите, чтобы открыть</string>
+    <string name="settings_about_feedback">Отзыв</string>
+    <string name="settings_about_update_check_failed">Проверка обновлений не удалась: %1$s</string>
+    <string name="settings_about_check_update_prefix">Проверьте наличие обновлений,</string>
+    <string name="settings_about_checking">Проверка</string>
+    <string name="settings_about_click_to_enter">нажмите, чтобы открыть</string>
+    <string name="settings_about_check_update">Проверить обновления</string>
+    <string name="settings_about_licenses_cd">Лицензии с открытым исходным кодом. Нажмите, чтобы открыть.</string>
+    <!-- v1.119: Open source repo entries (GitHub 5352124/Muse) -->
+    <string name="settings_about_repo_home">Репозиторий с открытым исходным кодом</string>
+    <string name="settings_about_repo_home_cd">Репозиторий с открытым исходным кодом. Нажмите, чтобы открыть GitHub в браузере.</string>
+    <string name="settings_about_star">Звезда этого проекта</string>
+    <string name="settings_about_star_cd">Отметьте этот проект, нажмите, чтобы открыть GitHub в браузере.</string>
+    <string name="settings_about_issues">Обратная связь (проблемы с GitHub)</string>
+    <string name="settings_about_issues_cd">Обратная связь. Нажмите, чтобы открыть «Проблемы GitHub» в браузере.</string>
+    <string name="settings_about_open_url_failed">Не найдено приложение, позволяющее открыть эту ссылку</string>
+    <string name="settings_about_show_onboarding_cd">Показать регистрацию еще раз. Нажмите, чтобы открыть.</string>
+    <string name="settings_about_show_onboarding">Показать регистрацию еще раз</string>
+    <string name="settings_about_logout_prefix">Выйти,</string>
+    <string name="settings_about_processing">Обработка</string>
+    <string name="settings_about_logout">Выйти</string>
+    <string name="settings_about_logout_confirm">После выхода из системы вы вернетесь на страницу входа.</string>
+    <string name="settings_about_logout_button">Выйти</string>
+    <string name="settings_about_new_version_title">Доступна новая версия</string>
+    <string name="settings_about_new_version_desc">Найдена новая версия %1$s.</string>
+    <string name="settings_about_download">Скачать</string>
+    <string name="settings_about_up_to_date">Установлена последняя версия</string>
+    <string name="settings_about_got_it">Понятно</string>
+    <string name="settings_feedback_android_version">Версия Android: %1$s (API %2$d)</string>
+    <string name="settings_feedback_device_model">Модель устройства: %1$s %2$s</string>
+    <string name="settings_feedback_app_version">Версия приложения: %1$s</string>
+    <string name="settings_feedback_subject">обратная связь с музой</string>
+    <string name="settings_feedback_chooser_title">Отправить отзыв</string>
+    <string name="settings_feedback_recipient">Получатель: 2119280571@qq.com</string>
+    <string name="settings_feedback_subject_label">Тема: отзыв музы</string>
+    <string name="settings_feedback_no_email_app">Приложение электронной почты не найдено.</string>
 
-    <!-- Пользовательская тема -->
+    <!-- Memory & Notifications -->
+    <string name="settings_memory_policy_never">Никогда</string>
+    <string name="settings_memory_policy_when_unfocused">Когда не сфокусирован</string>
+    <string name="settings_memory_policy_always">Всегда</string>
+    <string name="settings_memory_page_title">Память и уведомления</string>
+    <string name="settings_memory_system_section">Система памяти</string>
+    <string name="settings_memory_token_budget">Бюджет токена</string>
+    <string name="settings_memory_token_budget_subtitle">Целевая длина Memory.md влияет на количество введенного контекста.</string>
+    <string name="settings_memory_decay_rate">Скорость распада</string>
+    <string name="settings_memory_decay_rate_title">Скорость затухания λ</string>
+    <string name="settings_memory_decay_rate_subtitle">Выше означает более быстрое забывание (0,01 медленно / 0,02 по умолчанию / 0,04 быстро).</string>
+    <string name="settings_memory_hit_bonus">Хит Бонус</string>
+    <string name="settings_memory_hit_bonus_subtitle">Часто упоминаемые воспоминания распадаются медленнее;</string>
+    <string name="settings_memory_compile_threshold">Порог компиляции</string>
+    <string name="settings_memory_compile_threshold_subtitle">Воспоминания ниже этого значения не добавляются в Memory.md (должно быть ниже %1$s)</string>
+    <string name="settings_memory_forget_speed">Забудьте о скорости</string>
+    <string name="settings_memory_forget_speed_subtitle">1.0 нормально / 2.0 забывает в два раза быстрее</string>
+    <string name="settings_memory_restore_default">Сбросить по умолчанию</string>
+    <string name="settings_memory_restore_default_subtitle">Сброс параметров памяти к заводским значениям</string>
+    <string name="settings_memory_advanced_section">Дополнительно</string>
+    <string name="settings_memory_experience_lib">Библиотека опыта</string>
+    <string name="settings_memory_experience_lib_subtitle">Ассистент обобщает опыт работы и ссылается на него в последующих задачах (может испортить контекст).</string>
+    <string name="settings_memory_keep_awake">Держать экран включённым</string>
+    <string name="settings_memory_keep_awake_subtitle">Держите экран включенным во время зарядки</string>
+    <string name="settings_memory_auto_launch">Автозапуск</string>
+    <string name="settings_memory_auto_launch_subtitle">Автоматически запускать Muse при загрузке устройства</string>
+    <string name="settings_memory_notification_section">Уведомления</string>
+    <string name="settings_memory_reply_notification_cd">Уведомление о завершении ответа</string>
+    <string name="settings_memory_reply_notification">Уведомление о завершении ответа</string>
+    <string name="settings_memory_reply_notification_subtitle">Когда уведомлять после завершения ответа ИИ</string>
+
+    <!-- Data Import -->
+    <string name="settings_import_page_title">Импорт данных</string>
+    <string name="settings_import_migrate_title">Перенос данных из других приложений</string>
+    <string name="settings_import_migrate_desc">Если вы ранее использовали RikkaHub или Kelivo, вы можете импортировать их файлы резервных копий в Muse.</string>
+    <string name="settings_import_step1">Шаг 1. Узнайте, как экспортировать резервную копию</string>
+    <string name="settings_import_rikkahub_desc">Android-клиент чата с искусственным интеллектом</string>
+    <string name="settings_import_rikkahub_step1">1. Откройте «Настройки» в приложении RikkaHub.</string>
+    <string name="settings_import_rikkahub_step2">2. Найдите параметр «Резервное копирование &amp; Синхронизация».</string>
+    <string name="settings_import_rikkahub_step3">3. Нажмите «Создать резервную копию», чтобы создать ZIP-файл.</string>
+    <string name="settings_import_step_remember">4. Запомните, где сохранен этот файл</string>
+    <string name="settings_import_kelivo_desc">Кроссплатформенный чат-клиент AI (Flutter)</string>
+    <string name="settings_import_kelivo_step1">1. Откройте «Настройки» в приложении Kelivo.</string>
+    <string name="settings_import_kelivo_step2">2. Найдите параметр «Резервное копирование &amp; Восстановить».</string>
+    <string name="settings_import_kelivo_step3">3. Нажмите «Экспортировать резервную копию», чтобы создать ZIP-файл.</string>
+    <string name="settings_import_step2_title">Шаг 2. Выберите файл резервной копии.</string>
+    <string name="settings_import_select_backup">Выбрать файл резервной копии (ZIP)</string>
+    <string name="settings_importing">Идёт импорт, подождите...</string>
+    <string name="settings_import_tips">Советы:\n• Для импортированных конфигураций поставщика вам может потребоваться вручную проверить правильность ключей API\n• Импортированные разговоры создаются как новые сеансы и не перезаписывают существующие данные\n• Если импорт не удался, убедитесь, что файл резервной копии завершен.</string>
+    <string name="settings_import_ready">Готово, выбрать файл</string>
+    <string name="settings_import_complete">Импорт завершён</string>
+    <string name="settings_import_providers_count">Поставщики: %1$d</string>
+    <string name="settings_import_assistants_count">Помощники: %1$d</string>
+    <string name="settings_import_conversations_count">Разговоры: %1$d</string>
+    <string name="settings_import_messages_count">Сообщения: %1$d</string>
+    <string name="settings_import_errors_count">Некоторые ошибки (%1$d):</string>
+    <!-- P3-1: CherryStudio / Chatbox JSON import (reuses ConfigImporter) -->
+    <string name="settings_import_cherrystudio_title">CherryStudio / Чат</string>
+    <string name="settings_import_cherrystudio_desc">Настольный AI-клиент (конфигурация JSON)</string>
+    <string name="settings_import_cherrystudio_step1">1. Откройте настройки в CherryStudio/Чатбокс.</string>
+    <string name="settings_import_cherrystudio_step2">2. Найдите «Экспорт данных» или «Экспорт конфигурации».</string>
+    <string name="settings_import_cherrystudio_step3">3. Экспортируйте конфигурацию поставщика в виде файла JSON.</string>
+    <string name="settings_import_json_skipped_count">Пропущено (конфликт или отсутствие полей): %1$d</string>
+    <string name="settings_import_json_names">Поставщики: %1$s</string>
+    <string name="settings_import_json_no_result">Поставщики не обнаружены.</string>
+
+    <!-- Speech Recognition (ASR) -->
+    <string name="settings_asr_provider_hint">СИСТЕМА использует системное намерение (может быть недоступно на китайских ПЗУ);</string>
+    <string name="settings_asr_provider_system">Система</string>
+    <string name="settings_asr_provider_file">Файл (Экспериментальный)</string>
+    <string name="settings_asr_api_key">API-ключ</string>
+    <string name="settings_asr_hide">Скрывать</string>
+    <string name="settings_asr_show">Показывать</string>
+    <string name="settings_asr_saved_api_key">Ключ API сохранен.</string>
+    <string name="settings_asr_save_api_key">Сохранить ключ API</string>
+    <string name="settings_asr_model">Модель</string>
+    <string name="settings_asr_saved_model">Модель сохранена</string>
+    <string name="settings_asr_save_model">Сохранить модель</string>
+    <string name="settings_asr_sample_rate">Частота дискретизации</string>
+    <string name="settings_asr_sample_rate_subtitle">%1$d Гц (рекомендуется 16000; изменение требует перезаписи)</string>
+    <string name="settings_asr_language_code">Код языка (например, zh/en/ja)</string>
+    <string name="settings_asr_saved_language">Язык сохранен.</string>
+    <string name="settings_asr_save_language">Сохранить язык</string>
+    <string name="settings_asr_punctuation">Предсказание пунктуации</string>
+    <string name="settings_asr_punctuation_desc">DashScope v2 автоматически добавляет знаки препинания (китайские запятые/точки)</string>
+    <string name="settings_asr_itn">Обратная нормализация текста</string>
+    <string name="settings_asr_itn_desc">Китайские цифры → арабские цифры (например, «триста» → «300»)</string>
+    <string name="settings_asr_audio_url">URL-адрес аудиофайла (общедоступный, например OSS)</string>
+    <string name="settings_asr_saved_audio_url">URL-адрес аудио сохранен.</string>
+    <string name="settings_asr_save_audio_url">Сохранить URL-адрес аудио</string>
+    <string name="settings_asr_poll_interval">Интервал опроса (мс, по умолчанию 3000)</string>
+    <string name="settings_asr_saved_poll_interval">Интервал опроса сохранен.</string>
+    <string name="settings_asr_save_poll_interval">Сохранить интервал опроса</string>
+    <string name="settings_asr_poll_timeout">Общий таймаут опроса (мс, по умолчанию 300000 = 5 минут)</string>
+    <string name="settings_asr_saved_poll_timeout">Тайм-аут опроса сохранен.</string>
+    <string name="settings_asr_save_poll_timeout">Сохранить тайм-аут опроса</string>
+    <!-- New: OpenAI-compatible / Realtime / Agnes providers -->
+    <string name="settings_asr_provider_openai_whisper">Шепот</string>
+    <string name="settings_asr_provider_openai_realtime">В реальном времени</string>
+    <string name="settings_asr_provider_agnes">Агнес</string>
+    <string name="settings_asr_base_url">Базовый URL-адрес (пользовательское реле, по умолчанию пусто)</string>
+    <string name="settings_asr_saved_base_url">Базовый URL сохранен.</string>
+    <string name="settings_asr_save_base_url">Сохранить базовый URL-адрес</string>
+    <!-- New: hot words -->
+    <string name="settings_asr_hotwords">Горячие слова (разделенные запятыми, улучшают распознавание собственных существительных)</string>
+    <string name="settings_asr_saved_hotwords">Горячие слова сохранены</string>
+    <string name="settings_asr_save_hotwords">Сохраните горячие слова</string>
+    <!-- New: VAD silence detection -->
+    <string name="settings_asr_vad">Локальное обнаружение молчания VAD</string>
+    <string name="settings_asr_vad_desc">Автоматическая остановка записи после превышения порога тишины (OPENAI_REALTIME использует VAD на стороне сервера)</string>
+    <string name="settings_asr_vad_threshold">Порог VAD (0-1, по умолчанию 0,05 ≈ -46 дБ)</string>
+    <string name="settings_asr_vad_silence">Продолжительность автоматической остановки тишины (мс, по умолчанию 1500)</string>
+    <string name="settings_asr_saved_vad">Конфигурация VAD сохранена.</string>
+    <string name="settings_asr_save_vad">Сохранить конфигурацию VAD</string>
+
+    <!-- Knowledge Base Retrieval (RAG) -->
+    <string name="settings_rag_page_title">Поиск в базе знаний</string>
+    <string name="settings_rag_injection_section">Восстановительная инъекция</string>
+    <string name="settings_rag_auto_inject">База знаний с автоматическим внедрением</string>
+    <string name="settings_rag_auto_inject_subtitle">Автоматически извлекайте соответствующие знания и добавляйте их в контекст во время чата.</string>
+    <string name="settings_rag_embedding_source_section">Встраивание исходного кода</string>
+    <string name="settings_rag_cloud_api">Облачный API</string>
+    <string name="settings_rag_cloud_api_subtitle">Качество прежде всего, требуется сеть и ключ API</string>
+    <string name="settings_rag_local_keyword">Локальные ключевые слова (офлайн)</string>
+    <string name="settings_rag_local_keyword_subtitle">Никакая сеть не требуется;</string>
+    <string name="settings_rag_cloud_provider_section">Облачный провайдер</string>
+    <string name="settings_rag_no_provider_hint">Поставщик еще не настроен.</string>
+    <string name="settings_rag_baseurl_not_set">baseUrl не установлен</string>
+    <string name="settings_rag_deselect_hint">Нажмите выбранного провайдера, чтобы отменить выбор (возврат к активному провайдеру)</string>
+    <string name="settings_rag_embedding_model_section">Встраивание модели</string>
+    <string name="settings_rag_model_name_hint">Название модели (оставьте пустым, чтобы использовать значение по умолчанию поставщика)</string>
+    <string name="settings_rag_common_models">Распространенные модели: text-embedding-3-small (1536d)/text-embedding-3-large (3072d)/embedding-2 (1024d)</string>
+    <string name="settings_rag_search_params_section">Параметры извлечения</string>
+    <string name="settings_rag_top_k">Количество извлечений (top-K)</string>
+    <string name="settings_rag_similarity_threshold">Порог сходства</string>
+    <string name="settings_rag_similarity_threshold_subtitle">Результаты ниже этого значения не вводятся (чем выше, тем строже).</string>
+    <string name="settings_rag_chunk_params_section">Параметры чанка</string>
+    <string name="settings_rag_chunk_size">Размер куска</string>
+    <string name="settings_rag_chunk_size_subtitle">Целевое количество символов (больше означает более полный контекст, больше токенов)</string>
+    <string name="settings_rag_chunk_overlap">Перекрытие фрагментов</string>
+    <string name="settings_rag_chunk_overlap_subtitle">Перекрытие символов между соседними фрагментами (сохраняет связность контекста)</string>
+    <!-- v1.133: RAG advanced retrieval -->
+    <string name="settings_rag_advanced_section">Расширенный поиск</string>
+    <string name="settings_rag_mmr_lambda">Разнообразие MMR</string>
+    <string name="settings_rag_mmr_lambda_subtitle">0 = чистое разнообразие, 1 = чистое сходство, по умолчанию 0,5.</string>
+    <string name="settings_rag_hybrid">Гибридный поиск</string>
+    <string name="settings_rag_hybrid_subtitle">Ключевое слово BM25 + объединение векторного сходства RRF</string>
+    <string name="settings_rag_rerank">Изменить рейтинг</string>
+    <string name="settings_rag_rerank_subtitle">Изменение рейтинга перекрестных кодировщиков среди лучших кандидатов K×5</string>
+    <string name="settings_rag_token_budget">Бюджет токена</string>
+    <string name="settings_rag_token_budget_subtitle">0 = без ограничений;</string>
+    <string name="settings_rag_markdown_aware">Чанкинг с учетом Markdown</string>
+    <string name="settings_rag_markdown_aware_subtitle">Сохраняйте блоки кода/заголовки/таблицы, избегайте разделения</string>
+    <string name="settings_rag_chunk_by_token">Разделение на основе токенов</string>
+    <string name="settings_rag_chunk_by_token_subtitle">Если эта функция включена, фрагментация по количеству токенов (более точно для смешанного CJK+латиницы)</string>
+    <!-- v1.0.47 P7-1: Document parser config -->
+    <string name="settings_rag_parser_section">Парсер документов</string>
+    <string name="settings_rag_parser_local">Локальный парсер</string>
+    <string name="settings_rag_parser_local_subtitle">Локальный анализ, поддерживает txt/pdf/docx/pptx/xlsx/epub</string>
+    <string name="settings_rag_parser_cloud">Облачный парсер</string>
+    <string name="settings_rag_parser_cloud_subtitle">Cloud API для сложных макетов/отсканированных документов (требуется конечная точка)</string>
+    <string name="settings_rag_parser_mineru">МайнерУ</string>
+    <string name="settings_rag_parser_mineru_subtitle">MinerU API превосходно работает с академическими PDF/формулами/таблицами (требуется конечная точка)</string>
+    <string name="settings_rag_cloud_parser_endpoint">Конечная точка облачного парсера</string>
+    <string name="settings_rag_mineru_endpoint">Конечная точка MinerU</string>
+    <string name="settings_rag_notes_section">Примечания</string>
+    <string name="settings_rag_note1">• После изменения параметров фрагмента вновь импортированные документы будут использовать новые параметры.</string>
+    <string name="settings_rag_note2">• Уже проиндексированные документы не разбиваются автоматически;</string>
+    <string name="settings_rag_note3">• Инструмент Knowledge_search доступен всегда, независимо от переключателя автоматического внедрения.</string>
+
+    <!-- v1.133: Multi-KB management -->
+    <string name="settings_rag_manage_kbs">Управление базами знаний</string>
+    <string name="settings_rag_manage_kbs_subtitle">Создание, переименование, удаление баз знаний</string>
+    <string name="kb_manage_page_title">Базы знаний</string>
+    <string name="kb_manage_default_name">База знаний по умолчанию</string>
+    <string name="kb_manage_default_desc">Документы без указанной базы знаний по умолчанию помещаются сюда.</string>
+    <string name="kb_manage_create">Новая база знаний</string>
+    <string name="kb_manage_name_label">Имя</string>
+    <string name="kb_manage_desc_label">Описание (необязательно)</string>
+    <string name="kb_manage_edit">Редактировать</string>
+    <string name="kb_manage_delete">Удалить</string>
+    <string name="kb_manage_delete_confirm">Удалить базу знаний "%1$s"?</string>
+    <string name="kb_manage_delete_warning">Это приведет к удалению всех документов и индексов в этой базе знаний.</string>
+    <string name="kb_manage_default_no_delete">Базу знаний по умолчанию нельзя удалить.</string>
+    <string name="kb_manage_doc_count">%1$d документы</string>
+    <string name="kb_manage_empty">Баз знаний пока нет.</string>
+    <string name="kb_manage_name_empty">Имя не может быть пустым</string>
+    <string name="kb_manage_created">Создана база знаний "%1$s"</string>
+    <string name="kb_manage_updated">Обновлена ​​база знаний "%1$s"</string>
+    <string name="kb_manage_deleted">Удалена база знаний "%1$s"</string>
+    <string name="kb_switch_title">Переключить базу знаний</string>
+    <string name="kb_switch_all">Все базы знаний</string>
+    <string name="kb_reindex_all">Переиндексировать все документы</string>
+    <string name="kb_reindex_all_confirm">Переиндексировать все документы в текущей базе знаний?</string>
+    <string name="kb_reindex_all_warning">Существующие фрагменты и векторные индексы будут удалены и восстановлены с использованием текущих параметров фрагментирования.</string>
+    <string name="kb_reindex_in_progress">Переиндексация…%1$d/%2$d</string>
+    <string name="kb_reindex_done">Переиндексация завершена.</string>
+    <string name="kb_reindex_failed">Ошибка переиндексации: %1$s</string>
+    <string name="assistant_detail_ext_knowledge_base">База знаний</string>
+
+    <!-- Security & Sharing -->
+    <string name="settings_security_page_title">Безопасность &amp; Общий доступ</string>
+    <string name="settings_security_app_lock_section">Блокировка приложения</string>
+    <string name="settings_security_pin_enabled">PIN-код включен</string>
+    <string name="settings_security_pin_disabled">ПИН-код отключен</string>
+    <string name="settings_security_pin_enabled_subtitle">PIN-код необходим для входа в приложение</string>
+    <string name="settings_security_pin_disabled_subtitle">Установите 4-8-значный PIN-код блокировки экрана</string>
+    <string name="settings_security_set_new_pin">Установите новый PIN-код (4–8 цифр)</string>
+    <string name="settings_security_set_pin">Установить PIN-код</string>
+    <string name="settings_security_remove">Удалять</string>
+    <string name="settings_security_biometric_section">Биометрический</string>
+    <string name="settings_security_biometric_title">Биометрическая разблокировка</string>
+    <string name="settings_security_biometric_available">Доступна разблокировка по отпечатку пальца или лицу</string>
+    <string name="settings_security_biometric_unavailable">Биометрические данные недоступны на этом устройстве.</string>
+    <string name="biometric_prompt_title">Разблокировать Музу</string>
+    <string name="biometric_prompt_subtitle">Используйте отпечаток пальца или лицо для подтверждения</string>
+    <string name="settings_security_share_template_section">Поделиться шаблоном</string>
+    <string name="settings_security_include_timestamp">Включить временную метку</string>
+    <string name="settings_security_include_timestamp_subtitle">Прикрепите время сообщения при совместном использовании беседы</string>
+    <string name="settings_security_include_model">Включить название модели</string>
+    <string name="settings_security_include_model_subtitle">Прикрепите название генерирующей модели при совместном использовании</string>
+    <string name="settings_security_include_tokens">Включить количество токенов</string>
+    <string name="settings_security_include_tokens_subtitle">Прикрепляйте токены для каждого сообщения при совместном использовании</string>
+    <string name="settings_security_include_mood">Включить блок НАСТРОЕНИЯ</string>
+    <string name="settings_security_include_mood_subtitle">Прикрепите внутренний черновик ИИ при публикации</string>
+    <string name="settings_security_include_reasoning">Включить рассуждения</string>
+    <string name="settings_security_include_reasoning_subtitle">Прикрепите процесс рассуждения ИИ при совместном использовании</string>
+    <string name="settings_security_share_format">Поделиться форматом</string>
+    <string name="settings_security_format_plain_text">Обычный текст</string>
+    <string name="settings_security_browser_section">Браузер</string>
+    <string name="settings_security_default_search_engine">Поисковая система по умолчанию</string>
+    <string name="settings_security_default_search_engine_subtitle">Механизм, используемый ИИ при поиске в Интернете</string>
+    <string name="settings_security_search_auto">Авто</string>
+    <string name="settings_security_search_custom_api">Пользовательский API</string>
+
+    <!-- Image Generation -->
+    <string name="settings_image_gen_section">Генерация изображений</string>
+    <string name="settings_image_gen_size">Размер</string>
+    <string name="settings_image_gen_quality">Качество</string>
+    <string name="settings_image_gen_quality_standard">Стандартный</string>
+    <string name="settings_image_gen_quality_hd">HD</string>
+    <string name="settings_image_gen_style">Стиль</string>
+    <string name="settings_image_gen_style_vivid">Яркий</string>
+    <string name="settings_image_gen_style_natural">Естественный</string>
+    <string name="settings_image_gen_count">Считать</string>
+    <string name="settings_image_gen_count_n">%1$d изображения</string>
+    <string name="settings_image_gen_select_provider">Выберите поставщика изображений</string>
+    <string name="settings_image_gen_select_model">Выберите модель изображения</string>
+    <string name="settings_image_gen_select_default">Нажмите, чтобы выбрать поставщика изображений по умолчанию.</string>
+    <string name="settings_image_gen_no_provider">Нет доступных поставщиков изображений</string>
+    <string name="settings_image_gen_provider">Поставщик</string>
+    <string name="settings_image_gen_model_label">Модель</string>
+    <string name="settings_image_gen_no_model">Для этого поставщика нет доступных моделей изображений.</string>
+    <string name="settings_image_gen_selected">Выбрано</string>
+
+    <!-- Video Generation -->
+    <string name="settings_video_gen_section">Создание видео</string>
+    <string name="settings_video_gen_duration">Продолжительность</string>
+    <string name="settings_video_gen_duration_5">5 секунд</string>
+    <string name="settings_video_gen_duration_10">10 секунд</string>
+    <string name="settings_video_gen_resolution">Разрешение</string>
+    <string name="settings_video_gen_select_provider">Выберите поставщика видео</string>
+    <string name="settings_video_gen_select_model">Выберите модель видео</string>
+    <string name="settings_video_gen_select_default">Нажмите, чтобы выбрать поставщика видео по умолчанию.</string>
+    <string name="settings_video_gen_no_provider">Нет доступных поставщиков видео</string>
+    <string name="settings_video_gen_provider">Поставщик</string>
+    <string name="settings_video_gen_model_label">Модель</string>
+    <string name="settings_video_gen_no_model">Для этого провайдера нет доступных видеомоделей</string>
+    <string name="settings_video_gen_selected">Выбрано</string>
+
+    <!-- Media -->
+    <string name="settings_media_page_title">СМИ</string>
+    <string name="settings_media_recording_section">Запись голоса</string>
+    <string name="settings_media_sample_rate">Частота дискретизации</string>
+    <string name="settings_media_sample_rate_subtitle">Выше означает лучшее качество, но файлы большего размера.</string>
+    <string name="settings_media_bit_rate">Битрейт</string>
+    <string name="settings_media_bit_rate_subtitle">Размер и качество записи файла</string>
+    <string name="settings_media_tts_section">Воспроизведение речи</string>
+    <string name="settings_media_tts_enable">Включить воспроизведение речи TTS</string>
+    <string name="settings_media_tts_enable_subtitle">Автоматически читать вслух после ответов ИИ</string>
+    <string name="settings_media_speech_rate">Скорость речи</string>
+    <string name="settings_media_speech_rate_subtitle">0,5x медленнее/1,0x нормально/2,0x быстрее</string>
+    <string name="settings_media_pitch">Подача</string>
+    <string name="settings_media_pitch_subtitle">0,5 низкий / 1,0 нормальный / 2,0 высокий</string>
+    <string name="settings_media_output_section">Аудиовыход</string>
+    <string name="settings_media_output_method">Метод вывода</string>
+    <string name="settings_media_output_method_subtitle">Переключение между динамиком и наушником</string>
+    <string name="settings_media_output_speaker">Спикер</string>
+    <string name="settings_media_output_earpiece">наушник</string>
+    <string name="settings_media_output_bluetooth">Bluetooth</string>
+
+    <!-- Cloud TTS engine configuration -->
+    <string name="settings_media_cloud_tts_section">Облачный механизм TTS</string>
+    <string name="settings_media_tts_engine">Двигатель ТТС</string>
+    <string name="settings_media_tts_engine_system">Система ТТС</string>
+    <string name="settings_media_tts_engine_openai">OpenAI TTS</string>
+    <string name="settings_media_tts_engine_minimax">МиниМакс ТТС</string>
+    <string name="settings_media_tts_engine_edge">Край TTS</string>
+    <string name="settings_media_tts_engine_gemini">Близнецы ТТС</string>
+    <string name="settings_media_tts_engine_dashscope">DashScope TTS (совместим с OpenAI)</string>
+    <string name="settings_media_tts_engine_fish">Рыба Аудио TTS</string>
+    <string name="settings_media_tts_engine_elevenlabs">ОдиннадцатьЛабс ТТС</string>
+    <string name="settings_media_tts_engine_groq">Грок ТТС</string>
+    <string name="settings_media_tts_engine_qwen">Квен ТТС</string>
+    <string name="settings_media_tts_engine_step">Шаг ТТС</string>
+    <string name="settings_media_tts_engine_xai">xAI ТТС</string>
+    <string name="settings_media_tts_api_key">API-ключ</string>
+    <string name="settings_media_tts_voice">Голос / Голосовой идентификатор</string>
+    <string name="settings_media_tts_voice_selector">ТТС Голос</string>
+    <string name="settings_media_tts_voice_default">По умолчанию</string>
+    <string name="settings_media_tts_voice_placeholder">Оставьте пустым по умолчанию</string>
+    <string name="settings_media_tts_model">Модель</string>
+    <string name="settings_media_tts_model_placeholder">Оставьте пустым по умолчанию</string>
+    <string name="settings_media_tts_endpoint">Пользовательская конечная точка</string>
+    <string name="settings_media_tts_endpoint_placeholder">Оставьте пустым для официальной конечной точки</string>
+    <string name="settings_media_tts_save_api_key">Сохранить ключ API</string>
+    <string name="settings_media_tts_save_voice">Сохранить голос</string>
+    <string name="settings_media_tts_save_model">Сохранить модель</string>
+    <string name="settings_media_tts_save_endpoint">Сохранить конечную точку</string>
+    <string name="settings_media_tts_show">Показывать</string>
+    <string name="settings_media_tts_hide">Скрывать</string>
+    <string name="settings_media_tts_saved">Сохранено</string>
+    <!-- v1.99: Cloud voice dynamic fetching -->
+    <string name="settings_media_tts_voice_fetch">Получить список голосов</string>
+    <string name="settings_media_tts_voice_fetching">Получение…</string>
+    <string name="settings_media_tts_voice_fetch_empty">Ни один голос не вернулся</string>
+    <string name="settings_media_tts_voice_fetch_failed">Получить не удалось.</string>
+    <string name="settings_media_tts_voice_pick">Выберите голос</string>
+    <!-- v1.99: Advanced TTS parameters -->
+    <string name="settings_media_tts_advanced_section">Расширенные параметры</string>
+    <string name="settings_media_tts_stability">Стабильность (ElevenLabs)</string>
+    <string name="settings_media_tts_similarity">Повышение сходства (ElevenLabs)</string>
+    <string name="settings_media_tts_emotion">Эмоция (МиниМакс)</string>
+    <string name="settings_media_tts_emotion_placeholder">счастливый/грустный/злой/нейтральный</string>
+    <string name="settings_media_tts_cloud_speed">Скорость синтеза</string>
+    <string name="settings_media_tts_response_format">Аудио формат</string>
+    <string name="settings_media_tts_save_advanced">Сохранить параметры</string>
+    <!-- ===== Custom theme ===== -->
     <string name="settings_theme_custom_section">Пользовательская тема</string>
     <string name="settings_theme_custom_add">Добавить тему</string>
     <string name="settings_theme_custom_edit">Редактировать тему</string>
     <string name="settings_theme_custom_create">Создать тему</string>
     <string name="settings_theme_custom_name">Название темы</string>
+    <string name="settings_theme_custom_name_placeholder">Дайте вашей теме имя</string>
+    <string name="settings_theme_custom_presets">Кураторские палитры (нажмите, чтобы заполнить)</string>
+    <string name="settings_theme_custom_primary_color">Основной цвет</string>
+    <string name="settings_theme_custom_secondary_color">Дополнительный цвет (необязательно)</string>
+    <string name="settings_theme_custom_tertiary_color">Третичный цвет (необязательно)</string>
+    <string name="settings_theme_custom_preview">Предварительный просмотр цвета</string>
     <string name="settings_theme_custom_save">Сохранить</string>
     <string name="settings_theme_custom_delete">Удалить</string>
     <string name="settings_theme_custom_delete_confirm">Удалить эту тему?</string>
+    <string name="settings_theme_custom_delete_confirm_msg">Это невозможно отменить.</string>
+    <string name="settings_theme_custom_empty">Пользовательских тем пока нет.</string>
     <string name="settings_theme_custom_unnamed">Без названия</string>
-
-    <!-- Память и уведомления -->
-    <string name="settings_memory_page_title">Память и уведомления</string>
-    <string name="settings_memory_system_section">Система памяти</string>
-    <string name="settings_memory_notification_section">Уведомления</string>
-    <string name="settings_memory_restore_default">Сбросить по умолчанию</string>
-    <string name="settings_memory_advanced_section">Дополнительно</string>
-    <string name="settings_memory_keep_awake">Держать экран включённым</string>
-    <string name="settings_memory_auto_launch">Автозапуск</string>
-    <string name="settings_memory_reply_notification">Уведомление о завершении ответа</string>
-
-    <!-- Импорт данных -->
-    <string name="settings_import_page_title">Импорт данных</string>
-    <string name="settings_import_select_backup">Выбрать файл резервной копии (ZIP)</string>
-    <string name="settings_importing">Идёт импорт, подождите...</string>
-    <string name="settings_import_complete">Импорт завершён</string>
-    <string name="settings_import_ready">Готово, выбрать файл</string>
+    <string name="settings_theme_custom_color_h">Хюэ</string>
+    <string name="settings_theme_custom_color_s">Насыщенность</string>
+    <string name="settings_theme_custom_color_l">Легкость</string>
 </resources>

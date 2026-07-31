@@ -22,7 +22,6 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.ui.theme.MuseAnimation
@@ -81,14 +80,6 @@ object MuseSnackbar {
     /** 移除指定通知。 */
     fun dismiss(id: Long) {
         _messages.removeAll { it.id == id }
-    }
-
-    /** 类型对应颜色。 */
-    fun typeColor(type: Type): Color = when (type) {
-        Type.SUCCESS -> Color(0xFF34C759)
-        Type.ERROR -> Color(0xFFFF3B30)
-        Type.WARNING -> Color(0xFFFF9500)
-        Type.INFO -> Color(0xFF007AFF)
     }
 }
 

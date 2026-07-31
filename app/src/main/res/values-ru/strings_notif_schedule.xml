@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== notification ===== -->
+    <!-- Notification channel names -->
+    <string name="notif_channel_chat_completed_name">Создание сообщения завершено</string>
+    <string name="notif_channel_chat_completed_desc">Уведомление о завершении генерации фоновой потоковой передачи</string>
+    <string name="notif_channel_chat_live_update_name">Прогресс поколения</string>
+    <string name="notif_channel_chat_live_update_desc">Уведомление о ходе работы в режиме реального времени во время создания потоковой передачи</string>
+    <string name="notif_channel_web_server_name">Веб-сервер</string>
+    <string name="notif_channel_web_server_desc">Уведомление о рабочем состоянии веб-сервера</string>
+    <string name="notif_channel_proactive_message_name">Проактивное сообщение</string>
+    <string name="notif_channel_proactive_message_desc">Уведомление, когда помощник заранее отправляет вам сообщение</string>
+    <!-- Notification title/content -->
+    <string name="notif_chat_completed_title">Ответ завершен · %1$s</string>
+    <string name="notif_proactive_message_title">%1$s отправил сообщение</string>
+    <string name="notif_live_progress_title">Генерация · %1$s</string>
+    <string name="notif_live_progress_text">%1$d символы</string>
+    <string name="notif_web_server_title">Веб-сервер Muse работает</string>
+    <string name="notif_web_server_text">Порт %1$d · Устройства локальной сети имеют доступ</string>
+    <!-- v1.133: App update notification (reuses CHANNEL_CHAT_COMPLETED) -->
+    <string name="update_notif_title">Доступна новая версия</string>
+    <string name="update_notif_text">%1$s выпущен, нажмите, чтобы просмотреть подробности</string>
+    <!-- v1.133: In-app update banner -->
+    <string name="update_banner_published">%1$s выпущено</string>
+    <string name="update_banner_view_detail">Посмотреть детали</string>
+    <string name="update_banner_download_apk">Скачать АПК</string>
+    <string name="update_banner_close_cd">Закрыть баннер новой версии</string>
+    <string name="update_found_new">Найдена новая версия, см. баннер вверху.</string>
+    <string name="update_already_latest">Уже в курсе</string>
+
+    <!-- ===== schedule ===== -->
+    <!-- Scheduled task notification channel -->
+    <string name="schedule_channel_name">Запланированные задачи</string>
+    <string name="schedule_channel_desc">Уведомление о запланированной задаче</string>
+    <!-- Scheduled task default session name -->
+    <string name="schedule_default_session_name">Запланированная задача</string>
+    <!-- Chat generation foreground service default notification title -->
+    <string name="schedule_generating_default_title">Создание</string>
+    <!-- v1.137: Execution summary when automation condition is not met -->
+    <string name="schedule_condition_not_met">Условие не выполнено, пропущено</string>
+
+    <!-- ===== main activity ===== -->
+    <!-- Safe mode -->
+    <string name="main_activity_safe_mode_title">муза в безопасном режиме</string>
+    <string name="main_activity_safe_mode_desc">Авария произошла в прошлый раз.</string>
+    <string name="main_activity_crash_log_copied">Журнал сбоев скопирован в буфер обмена.</string>
+    <string name="main_activity_copy_crash_log">Копировать журнал сбоев</string>
+    <string name="main_activity_clear_flag_and_exit">Очистить флаг и выйти</string>
+    <string name="main_activity_send_crash_email">Отправить журнал сбоев по электронной почте</string>
+    <string name="main_activity_send_crash_email_failed">Приложение электронной почты не найдено, журнал скопирован в буфер обмена.</string>
+    <!-- v2.0+: SafeModeScreen new copy (modeled after rikkahub SafeModeActivity) -->
+    <string name="safe_mode_warning_title">Последний запуск завершился сбоем</string>
+    <string name="safe_mode_continue_normal">Продолжить нормальный запуск</string>
+    <string name="safe_mode_view_full_log">Посмотреть полный журнал сбоев</string>
+    <string name="safe_mode_clear_data_restart">Очистите все данные и перезапустите</string>
+    <string name="safe_mode_copy_crash_info">Копировать информацию о сбое</string>
+    <string name="safe_mode_crash_time_label">Время аварии</string>
+    <string name="safe_mode_stack_trace_label">Трассировка стека</string>
+    <string name="safe_mode_no_crash_log">Журнал сбоев не записан</string>
+    <string name="safe_mode_share_log_failed">Не удалось поделиться журналом сбоев.</string>
+    <!-- PIN lock screen -->
+    <string name="main_activity_locked_title">муза заблокирована</string>
+    <string name="main_activity_pin_prompt">Введите PIN-код, чтобы продолжить</string>
+    <string name="main_activity_pin_locked">Слишком много попыток неправильного ввода PIN-кода. Подождите %1$dсек, прежде чем повторить попытку.</string>
+    <string name="main_activity_pin_error">Неверный PIN-код, повторите попытку.</string>
+    <string name="main_activity_exit_app">Выйти из приложения</string>
+
+    <!-- ===== NotificationListenerScreen.kt ===== -->
+    <string name="notif_listener_screen_title">Прослушиватель уведомлений</string>
+    <string name="notif_listener_open_settings_failed">Не могу открыть настройки системы</string>
+    <string name="notif_listener_auth_settings">Предоставить доступ</string>
+    <string name="notif_listener_cleared_toast">Записи уведомлений удалены.</string>
+    <string name="notif_listener_clear_records">Очистить записи</string>
+    <string name="notif_listener_feature_title">Описание функции</string>
+    <string name="notif_listener_feature_desc">После авторизации Muse может воспринимать уведомления от других приложений как источники событий, которые ИИ может запрашивать в чате.</string>
+    <string name="notif_listener_privacy_title">Граница конфиденциальности</string>
+    <string name="notif_listener_privacy_desc">• Содержимое уведомлений сохраняется только локально (максимум 50 записей, самые старые удаляются при заполнении)\n• Системный интерфейс и собственные уведомления Muse отфильтровываются\n• Никакие данные уведомлений не загружаются ни на один сервер\n• Вы можете «Очистить записи» здесь или отозвать доступ в настройках системы в любое время.</string>
+    <string name="notif_listener_recent_header">Недавние уведомления (%1$d/50)</string>
+    <string name="notif_listener_empty_connected">Записей уведомлений пока нет\nНовые уведомления будут появляться здесь автоматически после авторизации.</string>
+    <string name="notif_listener_empty_disconnected">Пока не авторизован\nСначала нажмите «Предоставить доступ» выше.</string>
+    <string name="notif_listener_authorized">Авторизованный</string>
+    <string name="notif_listener_unauthorized">Не авторизовано</string>
+    <string name="notif_listener_recent_count_connected">Последние уведомления: %1$d</string>
+    <string name="notif_listener_recent_count_disconnected">Недавние уведомления: %1$d · Сначала предоставьте доступ в настройках системы.</string>
+    <string name="notif_listener_refresh_cd">Обновить статус</string>
+</resources>

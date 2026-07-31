@@ -495,6 +495,25 @@ object KnownModels {
             abilities = setOf(TOOL, REASONING),
             description = "Moonshot Kimi K2",
         ))
+        // v1.0.53: Kimi K2.6 — 多模态版本(视觉+文本),支持工具+推理。
+        // 修正:此前误标 TEXT_IN 导致中转站即使声明多模态也被 v1.137 纠错逻辑覆盖为纯文本,
+        // 图片只能走视觉辅助而不能直发。
+        put("kimi-k2.6", KnownModelInfo(
+            contextWindow = 128000,
+            maxOutputTokens = 8192,
+            inputModalities = VISION_IN,
+            outputModalities = TEXT_OUT,
+            abilities = setOf(TOOL, REASONING),
+            description = "Moonshot Kimi K2.6(多模态)",
+        ))
+        put("kimi-k1", KnownModelInfo(
+            contextWindow = 128000,
+            maxOutputTokens = 8192,
+            inputModalities = TEXT_IN,
+            outputModalities = TEXT_OUT,
+            abilities = REASONING_ONLY,
+            description = "Moonshot Kimi K1",
+        ))
 
         // ── 通义 Qwen 系列 ──
         put("qwen-max", KnownModelInfo(

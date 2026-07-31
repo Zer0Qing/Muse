@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shared.kt -->
+    <string name="settings_selected_suffix">, Selecionado</string>
+
+    <!-- ProviderBrandAssets.kt -->
+    <string name="settings_provider_type_openai">Compatível com OpenAI</string>
+    <string name="settings_provider_type_anthropic">Cláudio</string>
+    <string name="settings_provider_type_gemini">Gêmeos</string>
+
+    <!-- WebSearchSection.kt -->
+    <string name="settings_web_search_section">Pesquisa na Web</string>
+    <string name="settings_web_search_enable">Ativar pesquisa na Web</string>
+    <string name="settings_web_search_enable_subtitle">Estado padrão global;</string>
+    <string name="settings_web_search_engine">Mecanismo de pesquisa</string>
+    <string name="settings_web_search_api_key_label">Chave API (opcional)</string>
+    <string name="settings_saved">Salvo</string>
+    <string name="settings_web_search_save_api_key">Salvar chave de API</string>
+    <string name="settings_web_search_endpoint_label">Ponto final da API de pesquisa</string>
+    <string name="settings_web_search_save_endpoint">Salvar ponto final</string>
+    <!-- v1.98: New search provider names (bilingual, for UI display / logs / error hints) -->
+    <string name="settings_web_search_provider_brave">Busca corajosa</string>
+    <string name="settings_web_search_provider_perplexity">Pesquisa de perplexidade</string>
+    <string name="settings_web_search_provider_exa">Pesquisa de exames</string>
+    <string name="settings_web_search_provider_bocha">Pesquisa Bocha</string>
+
+    <!-- ExperimentsSettingsPage.kt -->
+    <string name="settings_experiments_title">Experimentos</string>
+    <string name="settings_experiments_hint">Perceber</string>
+    <string name="settings_experiments_warning">Os seguintes recursos são experimentais e podem ser instáveis ​​ou afetar sua experiência</string>
+    <string name="settings_experiments_features">Recursos experimentais</string>
+    <string name="settings_experiments_force_mood">Forçar saída MOOD</string>
+    <string name="settings_experiments_force_mood_subtitle">Tentar exigir a saída do bloco MOOD mesmo que o modelo não suporte isso</string>
+    <string name="settings_experiments_debug_mode">Modo de depuração</string>
+    <string name="settings_experiments_debug_mode_subtitle">Mostrar mais estado interno (MOOD/chamadas de ferramentas/tokens)</string>
+    <string name="settings_experiments_self_reflection">Auto-reflexão</string>
+    <string name="settings_experiments_self_reflection_subtitle">Verifique automaticamente a qualidade após responder</string>
+    <string name="settings_experiments_long_memory_compression">Compressão de memória longa</string>
+    <string name="settings_experiments_long_memory_compression_subtitle">Resumir automaticamente conversas muito longas (ativado por padrão desde a versão 1.55)</string>
+
+    <!-- UserProfileEditPage.kt -->
+    <string name="settings_user_profile_title">Perfil de usuário</string>
+    <string name="settings_user_profile_appellation">Denominação</string>
+    <string name="settings_user_profile_assistant_name">Nome do assistente</string>
+    <string name="settings_user_profile_assistant_name_hint">por exemplo</string>
+    <string name="settings_user_profile_your_name">Seu nome</string>
+    <string name="settings_user_profile_your_name_hint">por exemplo</string>
+    <string name="settings_user_profile_basic_info">Informações básicas</string>
+    <string name="settings_user_profile_age">Idade</string>
+    <string name="settings_user_profile_city">Cidade</string>
+    <string name="settings_user_profile_occupation">Ocupação</string>
+    <string name="settings_user_profile_profession_field">Campo Profissional</string>
+    <string name="settings_user_profile_profession_field_hint">por exemplo</string>
+    <string name="settings_user_profile_interests">Interesses &amp; Preferências</string>
+    <string name="settings_user_profile_interests_label">Interesses (separados por vírgula, por exemplo, leitura, codificação, viagens)</string>
+    <!-- v1.133: Rewritten User Profile — all fields are injected into the system prompt -->
+    <string name="settings_user_profile_intro">Tudo o que você preenche aqui é injetado no prompt do sistema da IA ​​para que ela realmente conheça você.</string>
+    <string name="settings_user_profile_assistant_name_desc">A IA se autodenominará por este nome</string>
+    <string name="settings_user_profile_your_name_desc">A IA irá se dirigir a você por este nome</string>
+    <string name="settings_user_profile_bio">Biografia</string>
+    <string name="settings_user_profile_bio_hint">Um parágrafo apresentando você, dando à IA uma noção geral de quem você é</string>
+    <string name="settings_user_profile_bio_desc">Maior prioridade;</string>
+    <string name="settings_user_profile_timezone">Fuso horário</string>
+    <string name="settings_user_profile_timezone_hint">por exemplo</string>
+    <string name="settings_user_profile_background">Histórico &amp; Experiência</string>
+    <string name="settings_user_profile_education">Educação</string>
+    <string name="settings_user_profile_education_hint">por exemplo</string>
+    <string name="settings_user_profile_skills">Habilidades</string>
+    <string name="settings_user_profile_skills_hint">por exemplo</string>
+    <string name="settings_user_profile_communication">Preferências de comunicação</string>
+    <string name="settings_user_profile_comm_style">Estilo de comunicação</string>
+    <string name="settings_user_profile_comm_style_hint">por exemplo</string>
+    <string name="settings_user_profile_resp_length">Preferência de comprimento de resposta</string>
+    <string name="settings_user_profile_resp_length_hint">por exemplo</string>
+    <string name="settings_user_profile_pref_tone">Tom preferido</string>
+    <string name="settings_user_profile_pref_tone_hint">por exemplo</string>
+    <string name="settings_user_profile_pref_lang">Idioma de resposta preferido</string>
+    <string name="settings_user_profile_pref_lang_hint">por exemplo</string>
+    <string name="settings_user_profile_boundaries">Limites &amp; Tópicos Evitados</string>
+    <string name="settings_user_profile_avoid_topics">Tópicos evitados</string>
+    <string name="settings_user_profile_avoid_topics_hint">Separados por vírgula, por ex.</string>
+    <string name="settings_user_profile_avoid_topics_desc">A IA evitará proativamente esses tópicos</string>
+
+    <!-- PresetProviderPickerDialog.kt -->
+    <string name="settings_preset_select_provider">Selecione o provedor</string>
+    <string name="settings_preset_back">Voltar</string>
+    <string name="settings_preset_subtitle">Abrange fornecedores estrangeiros, oficiais nacionais e de retransmissão - basta inserir sua chave API após selecionar</string>
+    <string name="settings_preset_group_overseas">Oficial estrangeiro</string>
+    <string name="settings_preset_group_domestic">Oficial Doméstico</string>
+    <string name="settings_preset_group_relay">Relé</string>
+    <string name="settings_preset_no_match">Nenhum provedor correspondente</string>
+    <string name="settings_preset_search_hint">Pesquisar provedores ou domínios</string>
+    <string name="settings_preset_clear">Claro</string>
+    <string name="settings_preset_need_baseurl">baseUrl obrigatório</string>
+    <string name="settings_preset_model_count">%1$d modelos</string>
+    <string name="settings_preset_custom">Provedor personalizado</string>
+    <string name="settings_preset_custom_desc">Insira manualmente baseUrl, chave de API e lista de modelos</string>
+
+    <!-- ProviderModelRow.kt -->
+    <string name="settings_model_action_settings">Configurações</string>
+    <string name="settings_model_action_add">Adicionar</string>
+    <string name="settings_model_ability_tool">Ferramentas</string>
+    <string name="settings_model_ability_reasoning">Raciocínio</string>
+    <string name="settings_model_ability_streaming">Transmissão</string>
+    <string name="settings_model_ability_image">Imagem</string>
+    <string name="settings_model_ability_multimodal">Multimodal</string>
+    <string name="settings_model_ability_video">Vídeo</string>
+    <string name="settings_model_ability_chat">Bater papo</string>
+    <!-- v1.0.8 (7.7): Context window label (e.g. "128K context") -->
+    <string name="settings_model_context_label">%1$s contexto</string>
+    <!-- v1.0.8 (7.6): Model health check button + status text -->
+    <string name="settings_model_action_test">Teste</string>
+    <string name="settings_model_test_in_progress">Teste</string>
+    <string name="settings_model_test_success">Saudável</string>
+    <string name="settings_model_test_failed">Fracassado</string>
+    <string name="settings_model_test_failed_with_msg">Falha: %1$s</string>
+    <string name="settings_model_test_success_with_msg">Saudável · %1$s</string>
+
+    <!-- AssistantSection.kt -->
+    <string name="settings_assistant_section">Assistente</string>
+    <string name="settings_assistant_manage">Assistente de gerente</string>
+    <string name="settings_assistant_manage_subtitle">Gerenciar assistentes e livros de história</string>
+    <string name="settings_assistant_favorites">Favoritos</string>
+    <string name="settings_assistant_favorites_subtitle">Veja mensagens favoritas em todas as sessões</string>
+    <string name="settings_assistant_lorebook">Livro de história</string>
+    <string name="settings_assistant_lorebook_subtitle">Injeção de contexto acionada por palavra-chave (roleplay/construção de mundo)</string>
+    <string name="settings_assistant_quick_messages">Mensagens rápidas</string>
+    <string name="settings_assistant_quick_messages_subtitle">Modelos de mensagens predefinidos com substituição de variáveis, insira com um toque</string>
+    <string name="settings_assistant_prompt_injection">Injeção de modo</string>
+    <string name="settings_assistant_prompt_injection_subtitle">Injete automaticamente avisos específicos do modo ao alternar entre modos (criativo/codificação/representação, etc.)</string>
+    <string name="settings_assistant_skills">Gerente de Habilidades</string>
+    <string name="settings_assistant_skills_subtitle">Visualizar/ativar/desativar ferramentas que o LLM pode chamar (E/S de arquivo, HTTP, etc.)</string>
+    <string name="settings_assistant_long_memory">Memória de longo prazo</string>
+    <string name="settings_assistant_memory_enable">Habilitar sistema de memória</string>
+    <string name="settings_assistant_memory_enable_subtitle">Quando desativado, as conversas não injetam mais memória de longo prazo e o resumo em segundo plano é interrompido</string>
+
+    <!-- MultiAgentSettingsPage.kt -->
+    <string name="settings_multi_agent_title">Colaboração multiagente</string>
+    <string name="settings_multi_agent_enable">Habilite a colaboração multiagente</string>
+    <string name="settings_multi_agent_enable_subtitle">Quando ativado, o assistente principal pode delegar tarefas aos membros da equipe</string>
+    <string name="settings_multi_agent_team_list">Lista de equipes</string>
+    <string name="settings_multi_agent_no_team">Ainda não há equipes</string>
+    <string name="settings_multi_agent_no_team_hint">Toque abaixo para criar uma equipe</string>
+    <string name="settings_multi_agent_new_team">Nova equipe</string>
+    <string name="settings_multi_agent_delete_team">Excluir equipe</string>
+    <string name="settings_multi_agent_unnamed_team">Equipe sem título</string>
+    <string name="settings_multi_agent_no_members">Nenhum membro</string>
+    <string name="settings_multi_agent_delete">Excluir</string>
+    <string name="settings_multi_agent_edit_team">Editar equipe</string>
+    <string name="settings_multi_agent_team_name">Nome da equipe</string>
+    <string name="settings_multi_agent_team_name_hint">por exemplo</string>
+    <string name="settings_multi_agent_team_name_empty">O nome da equipe não pode ficar vazio</string>
+    <string name="settings_multi_agent_description">Descrição (opcional)</string>
+    <string name="settings_multi_agent_description_hint">Objetivo da equipe ou cenário de colaboração</string>
+    <string name="settings_multi_agent_select_members">Selecione membros</string>
+    <string name="settings_multi_agent_no_assistants">Nenhum assistente disponível.</string>
+    <string name="settings_multi_agent_save">Salvar</string>
+    <string name="settings_multi_agent_cancel">Cancelar</string>
+
+    <!-- SettingsTutorialPage.kt -->
+    <string name="settings_tutorial_title">Tutorial</string>
+
+    <!-- Chapter 1 -->
+    <string name="settings_tutorial_ch1_title">Capítulo 1: Primeiros passos (requer iniciante)</string>
+    <string name="settings_tutorial_ch1_s1_title">O que é Musa?</string>
+    <string name="settings_tutorial_ch1_s1_content">Muse é um aplicativo de assistente inteligente de IA.</string>
+    <string name="settings_tutorial_ch1_s2_title">O que fazer no primeiro uso?</string>
+    <string name="settings_tutorial_ch1_s2_content">Não se preocupe, apenas três passos para começar:\n\n1.</string>
+    <string name="settings_tutorial_ch1_s3_title">Como iniciar sua primeira conversa</string>
+    <string name="settings_tutorial_ch1_s3_content">1. Abra o aplicativo e vá para a página de bate-papo\n2.</string>
+    <string name="settings_tutorial_ch1_s4_title">Introdução à interface: páginas de tarefas, agentes e bate-papo</string>
+    <string name="settings_tutorial_ch1_s4_content">A interface principal do Muse geralmente é dividida em três áreas.</string>
+    <string name="settings_tutorial_ch1_s5_title">Armadilhas e dicas para iniciantes</string>
+    <string name="settings_tutorial_ch1_s5_content">• Armadilha 1: Presumir que a IA é onisciente.</string>
+
+    <!-- Chapter 2 -->
+    <string name="settings_tutorial_ch2_title">Capítulo 2: Configurar modelo de IA (importante)</string>
+    <string name="settings_tutorial_ch2_s1_title">Por que preciso configurar um modelo?</string>
+    <string name="settings_tutorial_ch2_s1_content">O próprio Muse não contém IA – ele precisa se conectar a um serviço de IA externo.</string>
+    <string name="settings_tutorial_ch2_s2_title">Onde solicitar uma chave de API?</string>
+    <string name="settings_tutorial_ch2_s2_content">Here are some commonly used AI providers (in no particular order):\n\n• DeepSeek — domestic, affordable, great results\n  Website: platform.deepseek.com\n\n• Zhipu AI — domestic, free quota available\n  Website: open.bigmodel.cn\n\n• Alibaba Tongyi Qianwen — domestic, free quota available\n  Website: dashscope.aliyun.com\n\n• Moonshot Kimi — domestic, strong long-context capability\n  Website: platform.moonshot.cn\n\n• OpenAI (ChatGPT) — international, best results but requires overseas payment\n  Website: platform.openai.com\n\n• Anthropic (Claude) — international, excellent at writing and reasoning\n  Website: console.anthropic.com\n\n• Google Gemini — international, strong multimodal capability\n  Website: ai.google.dev\n\nBeginners should start with DeepSeek or Zhipu. After registering, find the \"API Keys\" page in the dashboard, click \"Create new Key\", and copy the code. Most domestic providers offer free credit on signup, so you can try it for free first.</string>
+    <string name="settings_tutorial_ch2_s3_title">Como adicionar um provedor no Muse</string>
+    <string name="settings_tutorial_ch2_s3_content">1. Toque no canto inferior direito ou superior esquerdo para entrar em \"Configurações\"\n2.</string>
+    <string name="settings_tutorial_ch2_s4_title">Como selecionar o modelo atual</string>
+    <string name="settings_tutorial_ch2_s4_content">Na página de bate-papo, o nome do modelo é mostrado próximo à barra superior ou de entrada.</string>
+    <string name="settings_tutorial_ch2_s5_title">Como escolher um modelo adequado &amp; capacidades do modelo</string>
+    <string name="settings_tutorial_ch2_s5_content">Diante de muitos modelos, os iniciantes podem escolher assim:\n\n• Bate-papo diário, escrita: um modelo de bate-papo geral funciona, por exemplo.</string>
+    <string name="settings_tutorial_ch2_s6_title">Rotação multichave e consultas de equilíbrio</string>
+    <string name="settings_tutorial_ch2_s6_content">Se a chave de um provedor acabar ou ficar com taxa limitada, você pode configurar várias chaves para o Muse girar automaticamente para que as conversas não sejam interrompidas.\n\n• Adicione várias chaves: nas configurações do provedor, você pode inserir várias chaves de API (uma por linha);</string>
+
+    <!-- Chapter 3 -->
+    <string name="settings_tutorial_ch3_title">Capítulo 3: Bate-papo Diário</string>
+    <string name="settings_tutorial_ch3_s1_title">Como iniciar uma nova conversa</string>
+    <string name="settings_tutorial_ch3_s1_content">Na página da lista de bate-papo (barra lateral ou lista de conversas), toque no botão \"Novo bate-papo\" (geralmente um ícone de adição).</string>
+    <string name="settings_tutorial_ch3_s2_title">Como alternar entre conversas</string>
+    <string name="settings_tutorial_ch3_s2_content">Abra a barra lateral da página de bate-papo (toque no menu superior esquerdo ou deslize da borda esquerda) para ver todo o histórico de conversas.</string>
+    <string name="settings_tutorial_ch3_s3_title">Como excluir uma conversa</string>
+    <string name="settings_tutorial_ch3_s3_content">Na lista do histórico de conversas, mantenha pressionada a conversa que deseja excluir.</string>
+    <string name="settings_tutorial_ch3_s4_title">Como pesquisar o histórico de mensagens</string>
+    <string name="settings_tutorial_ch3_s4_content">Na página de bate-papo ou na lista de conversas, encontre o ícone de pesquisa (lupa), insira uma palavra-chave e todas as mensagens históricas contendo essa palavra serão mostradas.\n\nO conteúdo pesquisável inclui suas mensagens e respostas de IA.</string>
+    <string name="settings_tutorial_ch3_s5_title">O que é saída de streaming</string>
+    <string name="settings_tutorial_ch3_s5_content">Quando a IA responde, o texto não aparece todo de uma vez – ele aparece palavra por palavra, como se estivesse digitando.</string>
+    <string name="settings_tutorial_ch3_s6_title">Enviar imagens, arquivos &amp; assistência visual</string>
+    <string name="settings_tutorial_ch3_s6_content">• Enviar imagens: toque no ícone de adição à esquerda da caixa de entrada, selecione \"Imagem\" e escolha uma foto da sua galeria.</string>
+    <string name="settings_tutorial_ch3_s7_title">Usando ferramentas &amp; ramificações de mensagens</string>
+    <string name="settings_tutorial_ch3_s7_content">• Uso de ferramentas (Tool): alguns modelos suportam "chamada de ferramentas", o que significa que a IA pode realizar ações reais para você — definir alarmes, verificar o clima, ler SMS, agendar eventos, consultar ações.</string>
+
+    <!-- Chapter 4 -->
+    <string name="settings_tutorial_ch4_title">Capítulo 4: Recursos Avançados</string>
+    <string name="settings_tutorial_ch4_s1_title">Quais são as funções de assistente</string>
+    <string name="settings_tutorial_ch4_s1_content">As funções de assistente são como colocar “chapéus” diferentes na IA.</string>
+    <string name="settings_tutorial_ch4_s2_title">Como usar a pesquisa na web</string>
+    <string name="settings_tutorial_ch4_s2_content">Há um ícone de globo acima da caixa de entrada.</string>
+    <string name="settings_tutorial_ch4_s3_title">Como usar o modo de pensamento profundo</string>
+    <string name="settings_tutorial_ch4_s3_content">Há um ícone de cérebro acima da caixa de entrada.</string>
+    <string name="settings_tutorial_ch4_s4_title">Sistema de memória de longo prazo</string>
+    <string name="settings_tutorial_ch4_s4_content">Com a memória de longo prazo ativada, a IA grava automaticamente informações importantes de conversas (suas preferências, identidade, acordos, eventos importantes) e as recupera em conversas futuras — não há necessidade de se repetir todas as vezes.\n\n• Habilite: Configurações → Assistente → Memória de longo prazo, ative \"Ativar sistema de memória\".\n• Como funciona: em segundo plano, nos momentos apropriados, ela</string>
+    <string name="settings_tutorial_ch4_s5_title">Entrada de voz</string>
+    <string name="settings_tutorial_ch4_s5_content">Toque no ícone do microfone à direita da caixa de entrada, fale e solte para converter automaticamente em texto.</string>
+    <string name="settings_tutorial_ch4_s6_title">Biblioteca de modelos de prompt</string>
+    <string name="settings_tutorial_ch4_s6_content">Toque no ícone de adição à esquerda da caixa de entrada e selecione "Modelo de prompt" para ver uma lista de modelos predefinidos (por exemplo, escrever e-mail, traduzir, resumir, reescrever).</string>
+    <string name="settings_tutorial_ch4_s7_title">Base de conhecimento RAG (deixe a IA aprender seus documentos)</string>
+    <string name="settings_tutorial_ch4_s7_content">RAG (Retrieval-Augmented Generation) permite que a IA responda com base nos documentos que você fornece, como fornecer à IA um \"livro de referência pessoal\".\n\n• Uso: encontre \"Base de conhecimento\" ou \"RAG\" em Configurações, carregue seus documentos (PDF, Word, TXT, Markdown).</string>
+    <string name="settings_tutorial_ch4_s8_title">Multiagente de bate-papo em grupo (várias funções de IA conversam juntas)</string>
+    <string name="settings_tutorial_ch4_s8_content">A colaboração multiagente permite que várias funções de IA cuidem de sua parte em uma conversa, coordenando-se - e você também pode participar do bate-papo em grupo.\n\n• Construa uma equipe: Configurações → Colaboração multiagente, crie uma equipe, escolha assistentes como membros (por exemplo, \"Redator\", \"Planejador criativo\",</string>
+    <string name="settings_tutorial_ch4_s9_title">Geração de vídeo &amp; tarefas agendadas</string>
+    <string name="settings_tutorial_ch4_s9_content">• Geração de vídeo: se o modelo do provedor suportar capacidade de vídeo, você poderá fazer com que a IA gere vídeos curtos a partir de descrições de texto.</string>
+    <string name="settings_tutorial_ch4_s10_title">Sistema de habilidades &amp; Plug-ins MCP</string>
+    <string name="settings_tutorial_ch4_s10_content">• Sistema de habilidades: habilidades são recursos de ferramentas que a IA pode chamar – leitura/gravação de arquivos locais, envio de solicitações HTTP, consulta de bancos de dados, operação do calendário.</string>
+
+    <!-- Chapter 5 -->
+    <string name="settings_tutorial_ch5_title">Capítulo 5: Personalização</string>
+    <string name="settings_tutorial_ch5_s1_title">Tema &amp; Cor Dinâmica</string>
+    <string name="settings_tutorial_ch5_s1_content">Configurações → Aparência → Modo Tema, escolha \"Seguir Sistema\" (segue automaticamente as configurações do telefone), \"Claro\" ou \"Escuro\".</string>
+    <string name="settings_tutorial_ch5_s2_title">Ajustar o tamanho da fonte</string>
+    <string name="settings_tutorial_ch5_s2_content">Configurações → Aparência → Tamanho do texto, escolha Pequeno/Médio/Grande/Extra Grande.</string>
+    <string name="settings_tutorial_ch5_s3_title">Mudar idioma da interface</string>
+    <string name="settings_tutorial_ch5_s3_content">Configurações → Aparência → Idioma, escolha \"Seguir Sistema\", \"Chinês\" ou \"Inglês\".</string>
+    <string name="settings_tutorial_ch5_s4_title">Personalização do assistente: arquitetura de três camadas de persona/relacionamento/estilo</string>
+    <string name="settings_tutorial_ch5_s4_content">A personalização do assistente do Muse usa uma arquitetura de três camadas que determina o comportamento da IA ​​de dentro para fora:\n\n• Camada Persona (núcleo): define “quem” é a IA — nome, identidade, história de fundo, personalidade.</string>
+    <string name="settings_tutorial_ch5_s5_title">Preferências de perfil de usuário &amp;</string>
+    <string name="settings_tutorial_ch5_s5_content">Configurações → Perfil do usuário, preencha suas informações básicas (nome, ocupação, interesses, preferências de comunicação, tópicos evitados).</string>
+
+    <!-- Chapter 6 -->
+    <string name="settings_tutorial_ch6_title">Capítulo 6: Gerenciamento de Dados</string>
+    <string name="settings_tutorial_ch6_s1_title">Histórico de bate-papo de backup (nuvem WebDAV/S3)</string>
+    <string name="settings_tutorial_ch6_s1_content">Configurações → Dados &amp; Backup permite configurar o backup na nuvem (WebDAV ou S3).</string>
+    <string name="settings_tutorial_ch6_s2_title">Importe dados de outros aplicativos</string>
+    <string name="settings_tutorial_ch6_s2_content">Configurações → Importação de dados suporta importação de RikkaHub ou Kelivo.</string>
+    <string name="settings_tutorial_ch6_s3_title">Exportar dados de cartões de caracteres &amp;</string>
+    <string name="settings_tutorial_ch6_s3_content">Na página do Gerenciador Assistente, mantenha pressionado um assistente e selecione "Exportar cartão de personagem" para gerar um arquivo que você pode compartilhar com amigos.</string>
+    <string name="settings_tutorial_ch6_s4_title">Limpe o cache &amp; economize espaço</string>
+    <string name="settings_tutorial_ch6_s4_content">Após uso prolongado, o aplicativo acumula cache (imagens, arquivos temporários, listas de modelos) que ocupam espaço no telefone.\n\n• Como: Configurações → Armazenamento/Gerenciamento de dados → Limpar cache.</string>
+    <string name="settings_tutorial_ch6_s5_title">Segurança de dados &amp; privacidade</string>
+    <string name="settings_tutorial_ch6_s5_content">A segurança dos seus dados é importante:\n• Os dados de conversas ficam apenas no seu dispositivo e no seu backup na nuvem por padrão — nunca são carregados nos servidores do Muse.\n• Informações confidenciais, como chaves de API, são criptografadas localmente, nunca armazenadas em texto simples.\n• O conteúdo enviado à IA passa pelos servidores do provedor — não revela números de cartões bancários, senhas ou outros</string>
+
+    <!-- Chapter 7 -->
+    <string name="settings_tutorial_ch7_title">Capítulo 7: Perguntas frequentes</string>
+    <string name="settings_tutorial_ch7_s1_title">Nenhuma resposta na conversa?</string>
+    <string name="settings_tutorial_ch7_s1_content">Causas mais comuns:\n1.</string>
+    <string name="settings_tutorial_ch7_s2_title">Respostas lentas?</string>
+    <string name="settings_tutorial_ch7_s2_content">1. Mude para um modelo mais rápido (modelos menores geralmente são mais rápidos, por exemplo, gpt-4o-mini, deepseek-chat)\n2.</string>
+    <string name="settings_tutorial_ch7_s3_title">Como economizar o uso de token?</string>
+    <string name="settings_tutorial_ch7_s3_content">Os tokens são cobrados por contagem de caracteres — economizar tokens economiza dinheiro:\n1.</string>
+    <string name="settings_tutorial_ch7_s4_title">Como limpar todos os dados</string>
+    <string name="settings_tutorial_ch7_s4_content">Configurações → Segurança &amp; O compartilhamento pode ter opções relevantes.</string>
+    <string name="settings_tutorial_ch7_s5_title">Erros de API 401/400?</string>
+    <string name="settings_tutorial_ch7_s5_content">• 401 Não autorizado: geralmente um problema de chave de API.</string>
+    <string name="settings_tutorial_ch7_s6_title">Como proteger a privacidade (redação de PII)?</string>
+    <string name="settings_tutorial_ch7_s6_content">A redação de PII (informações de identificação pessoal) substitui automaticamente informações confidenciais em conversas (números de telefone, números de identificação, cartões bancários, e-mails) por espaços reservados antes de enviar para a IA – a IA não consegue ver as informações reais;</string>
+
+    <!-- CrashReportSettings.kt -->
+    <string name="settings_crash_page_title">Relatório de falhas</string>
+    <string name="settings_crash_pending_section">Relatórios de falhas pendentes</string>
+    <string name="settings_crash_pending_count">Relatórios de falhas pendentes: %1$d</string>
+    <string name="settings_crash_pending_hint_active">Toque no botão abaixo para denunciar (habilite e configure primeiro)</string>
+    <string name="settings_crash_pending_hint_idle">As falhas serão adicionadas à fila pendente automaticamente</string>
+    <string name="settings_crash_report_now_button">Relate falhas pendentes agora</string>
+    <string name="settings_crash_settings_section">Configurações de relatório</string>
+    <string name="settings_crash_enable_title">Ativar relatórios de falhas</string>
+    <string name="settings_crash_enable_subtitle">Desativado por padrão — quando ativado, as falhas entram na fila de pendências e exigem confirmação manual para serem relatadas</string>
+    <string name="settings_crash_method_section">Método de relatório</string>
+    <string name="settings_crash_method_label">Escolha o método de relatório</string>
+    <string name="settings_crash_method_email">E-mail</string>
+    <string name="settings_crash_email_label">E-mail do destinatário</string>
+    <string name="settings_crash_email_placeholder">por exemplo</string>
+    <string name="settings_crash_email_saved_toast">E-mail salvo</string>
+    <string name="settings_crash_email_save_button">Salvar e-mail</string>
+    <string name="settings_crash_webhook_saved_toast">URL do webhook salvo</string>
+    <string name="settings_crash_webhook_save_button">Salvar URL</string>
+    <string name="settings_crash_privacy_section">Privacidade</string>
+    <string name="settings_crash_privacy_title">Promessa de privacidade para relatórios de falhas</string>
+    <string name="settings_crash_privacy_content">• Desligado por padrão;</string>
+    <string name="settings_crash_confirm_dialog_title">Confirmar relatório de falha</string>
+    <string name="settings_crash_confirm_target_email">E-mail (%1$s)</string>
+    <string name="settings_crash_confirm_target_webhook">Webhook (%1$s)</string>
+    <string name="settings_crash_confirm_dialog_content">Prestes a relatar registros de falhas %1$d para %2$s\n\nO conteúdo do relatório inclui: pilha de falhas + modelo do dispositivo + versão do Android + versão do aplicativo + carimbo de data/hora.\nAs pilhas de falhas são editadas.</string>
+    <string name="settings_crash_confirm_button">Confirmar relatório</string>
+    <string name="settings_crash_no_pending">Nenhuma falha pendente para relatar</string>
+    <string name="settings_crash_no_email">Configure primeiro o e-mail do destinatário</string>
+    <string name="settings_crash_no_webhook">Configure primeiro um URL de Webhook válido</string>
+    <string name="settings_crash_no_method">Método de relatório não configurado, ignorado</string>
+    <string name="settings_crash_reported_count">Registros de falhas %1$d relatados</string>
+</resources>

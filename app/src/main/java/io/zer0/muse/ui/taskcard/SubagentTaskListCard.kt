@@ -47,7 +47,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.tools.DeferredResultStore
-import io.zer0.muse.tools.SubagentThreadStore
+import io.zer0.muse.data.subagent.SubagentThreadStore
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes

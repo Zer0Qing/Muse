@@ -1,0 +1,263 @@
+<resources>
+    <!-- App -->
+    <string name="app_name">뮤즈 신</string>
+    <!-- Splash -->
+    <string name="splash_subtitle">당신의 AI 동반자</string>
+
+    <!-- Widget -->
+    <string name="widget_description">빠른 실행 Muse 채팅</string>
+    <string name="widget_new_session">새 채팅</string>
+    <string name="widget_recent_sessions">최근 채팅</string>
+    <!-- P3-16: 4x2 chat widget -->
+    <string name="widget_chat_description">최신 AI 답변 표시</string>
+    <string name="widget_chat_no_content">아직 대화가 없습니다. 시작하려면 탭하세요.</string>
+
+    <!-- Bottom navigation -->
+    <string name="tab_chats">채팅</string>
+    <string name="tab_settings">설정</string>
+
+    <!-- Splash & Onboarding -->
+    <string name="splash_tagline">당신의 영감이 부드럽게 펼쳐집니다</string>
+    <string name="onboarding_welcome_desc">개인 AI 비서 — 한 곳에서 채팅, 기억, 생성</string>
+    <string name="onboarding_provider_desc">OpenAI / Anthropic / Gemini 키를 추가하려면 설정으로 이동하세요.</string>
+    <string name="onboarding_ready_title">갈 준비가 됐어요</string>
+    <string name="onboarding_ready_desc">첫 번째 대화를 시작하세요</string>
+    <string name="onboarding_skip">건너뛰다</string>
+    <string name="onboarding_start">시작하기</string>
+    <string name="onboarding_next">다음</string>
+    <string name="onboarding_config_provider">설정 열기</string>
+
+    <!-- Onboarding v2 (5-step redesign) -->
+    <string name="onboarding_hello">안녕하세요 뮤즈입니다</string>
+    <string name="onboarding_tagline">당신의 영감이 부드럽게 펼쳐집니다</string>
+    <string name="onboarding_q_chat_style">어떤 채팅 스타일을 선호하시나요?</string>
+    <string name="onboarding_chat_style_0">심야대화</string>
+    <string name="onboarding_chat_style_1">아침인사</string>
+    <string name="onboarding_chat_style_2">창조적 충돌</string>
+    <string name="onboarding_chat_style_3">지식 탐구</string>
+    <string name="onboarding_q_partner_style">어떤 파트너 스타일을 선호하시나요?</string>
+    <string name="onboarding_partner_style_0">온화한 경청자</string>
+    <string name="onboarding_partner_style_1">활기찬 수다쟁이</string>
+    <string name="onboarding_partner_style_2">합리적 분석가</string>
+    <string name="onboarding_partner_style_3">상상력이 풍부한 몽상가</string>
+    <string name="onboarding_choose_partner">당신에게 추천</string>
+    <string name="onboarding_see_more">더 많은 캐릭터 보기</string>
+    <string name="onboarding_selected">선택된</string>
+    <string name="onboarding_start_conversation">대화 시작</string>
+    <string name="onboarding_api_key_title">더 많은 힘을 원하시나요?</string>
+    <string name="onboarding_api_key_desc">더 많은 모델과 기능을 잠금 해제하려면 API 키를 추가하세요.</string>
+    <string name="onboarding_configure_now">지금 구성</string>
+    <string name="onboarding_maybe_later">어쩌면 나중에</string>
+    <string name="onboarding_empty_chat_title">첫 번째 대화를 시작할 준비가 되셨나요?</string>
+    <string name="onboarding_empty_chat_subtitle">파트너를 선택하고 영감의 여정을 시작하세요</string>
+    <string name="onboarding_chat_with_muse">뮤즈와 ​​채팅</string>
+    <string name="onboarding_meet_characters">더 많은 캐릭터를 만나보세요</string>
+    <string name="chat_list_days_together">%d일 함께</string>
+    <string name="chat_list_just_met_today">오늘 막 만났어요</string>
+    <string name="chat_list_day_together">%d일</string>
+
+    <!-- Settings sections -->
+    <string name="section_about">에 대한</string>
+    <string name="section_provider">공급자</string>
+    <string name="section_asr">음성 인식(ASR)</string>
+    <string name="section_theme">주제</string>
+    <string name="section_mcp">MCP 서버</string>
+    <string name="section_web_server">웹 서버</string>
+    <string name="section_web_search">웹 검색</string>
+    <string name="section_backup">백업 &amp; 동기화</string>
+    <string name="section_assistant">어시스턴트</string>
+    <string name="section_skill">스킬 매니저</string>
+
+    <!-- About page -->
+    <string name="about_brand_tagline">당신의 영감이 부드럽게 펼쳐집니다</string>
+    <string name="about_version">버전</string>
+    <string name="about_build_type">빌드 유형</string>
+    <string name="about_app_id">애플리케이션 ID</string>
+    <string name="about_android_version">안드로이드 버전</string>
+    <string name="about_device">장치</string>
+    <string name="about_oss_licenses">오픈 소스 라이선스</string>
+    <string name="about_oss_licenses_subtitle">Muse에서 사용하는 타사 오픈 소스 라이브러리 및 해당 라이선스 보기</string>
+    <string name="licenses_title">오픈 소스 라이선스</string>
+    <string name="licenses_total_count">%1$d 전체 종속성</string>
+
+    <!-- Common actions -->
+    <string name="action_back">뒤쪽에</string>
+
+    <!-- Network proxy -->
+    <string name="proxy_title">네트워크 프록시</string>
+    <string name="proxy_enable">프록시 활성화</string>
+    <string name="proxy_enabled">활성화됨</string>
+    <string name="proxy_disabled">장애가 있는</string>
+    <string name="proxy_type">유형</string>
+    <string name="proxy_type_http">HTTP</string>
+    <string name="proxy_type_socks5">양말5</string>
+    <string name="proxy_host">주인</string>
+    <string name="proxy_port">포트</string>
+    <string name="proxy_username">사용자 이름</string>
+    <string name="proxy_password">비밀번호</string>
+    <string name="proxy_restart_hint">적용하려면 앱을 다시 시작하세요.</string>
+    <string name="action_save">구하다</string>
+    <string name="action_cancel">취소</string>
+    <string name="action_delete">삭제</string>
+    <string name="action_edit">편집하다</string>
+    <string name="action_add">추가하다</string>
+    <string name="action_done">완료</string>
+    <string name="action_close">닫다</string>
+    <string name="action_more">더</string>
+    <string name="action_send">보내다</string>
+    <string name="action_stop">멈추다</string>
+    <string name="action_copy">복사</string>
+    <string name="action_translate">번역하다</string>
+    <string name="action_share">공유하다</string>
+    <string name="action_expand">확장하다</string>
+    <string name="action_collapse">무너지다</string>
+
+    <!-- Quote reply -->
+    <string name="message_action_quote">인용하다</string>
+    <string name="quote_label_user">견적 사용자</string>
+    <string name="quote_label_assistant">견적 도우미</string>
+    <string name="quote_clear">견적 취소</string>
+
+    <!-- Edit message sheet -->
+    <string name="edit_message_title">메시지 편집</string>
+    <string name="edit_message_content_label">콘텐츠</string>
+
+    <!-- Recording / speech recognition status -->
+<string name="voice_release_to_recognize">인식하려면 손을 떼고 취소하려면 위로 스와이프하세요.</string>
+<string name="voice_recognizing">인식 중…</string>
+<!-- Task 1: ASR reconnecting status (WebSocket dropped, exponential backoff reconnect, audio buffered meanwhile) -->
+<string name="voice_reconnecting">네트워크 오류가 발생했습니다. 다시 연결하는 중…</string>
+
+    <!-- ASR config hint -->
+    <string name="asr_missing_api_key_error">API 키가 구성되지 않았습니다.</string>
+
+    <!-- Memory add fact -->
+    <string name="memory_add_fact">사실 추가</string>
+    <string name="memory_add_fact_dialog_title">사실 추가</string>
+
+    <!-- v2.0: Favorite groups -->
+    <string name="favorites_group_all">모두</string>
+    <string name="favorites_group_inspiration">영감</string>
+    <string name="favorites_group_code">암호</string>
+    <string name="favorites_group_learning">학습</string>
+    <string name="favorites_group_custom">관습</string>
+    <string name="favorites_group_select_title">그룹 선택</string>
+    <string name="favorites_group_select_hint">그룹에 추가: %1$s</string>
+    <string name="favorites_group_remove">그룹에서 제거</string>
+
+    <!-- v2.0: Data Management -->
+    <string name="data_management_title">데이터 관리</string>
+    <string name="data_management_sessions">대화</string>
+    <string name="data_management_messages">메시지</string>
+    <string name="data_management_memories">추억</string>
+    <string name="data_management_db_size">데이터베이스 크기</string>
+    <string name="data_management_cache_size">캐시 크기</string>
+    <string name="data_management_clear_chats">모든 대화 지우기</string>
+    <string name="data_management_clear_chats_confirm">모든 대화를 삭제하시겠습니까?</string>
+    <string name="data_management_clear_chats_done">모든 대화가 삭제되었습니다.</string>
+    <string name="data_management_clear_cache">캐시 지우기</string>
+    <string name="data_management_clear_cache_confirm">캐시를 모두 지우시겠습니까?</string>
+    <string name="data_management_clear_cache_done">캐시가 삭제되었습니다.</string>
+    <string name="data_management_reset_memory">메모리 재설정</string>
+    <string name="data_management_reset_memory_confirm">모든 메모리를 재설정하시겠습니까?</string>
+    <string name="data_management_reset_memory_done">메모리 리셋</string>
+    <string name="data_management_entry">데이터 관리</string>
+    <string name="data_management_entry_desc">사용량 보기, 캐시 지우기, 데이터 관리</string>
+
+    <!-- v2.0: Memory filters -->
+    <string name="memory_filter_importance">중요성</string>
+    <string name="memory_filter_time">시간</string>
+    <string name="memory_filter_type">유형</string>
+    <string name="memory_filter_all">모두</string>
+    <string name="memory_filter_normal">정상</string>
+    <string name="memory_filter_important">중요한</string>
+    <string name="memory_filter_critical">비판적인</string>
+
+    <!-- v9: Memory categories (reference: All / Core Facts / Preferences / Experiences / Relationships / Goals / Medical / Other) -->
+    <string name="memory_category_all">모두</string>
+    <string name="memory_category_identity">핵심 사실</string>
+    <string name="memory_category_preference">환경설정</string>
+    <string name="memory_category_event">경험담</string>
+    <string name="memory_category_relationship">관계</string>
+    <string name="memory_category_goal">목표</string>
+    <string name="memory_category_medical">의료</string>
+    <string name="memory_category_other">다른</string>
+    <string name="memory_filter_today">오늘</string>
+    <string name="memory_filter_week">이번 주</string>
+    <string name="memory_filter_month">이번 달</string>
+    <string name="memory_filter_fact">사실</string>
+    <string name="memory_filter_summary">요약</string>
+    <string name="memory_filter_compile">엮다</string>
+
+    <!-- v2.0: Recently Deleted -->
+    <string name="recently_deleted_title">최근 삭제된 항목</string>
+    <string name="recently_deleted_empty">삭제된 대화 없음</string>
+    <string name="recently_deleted_restore">복원하다</string>
+    <string name="recently_deleted_restore_done">복원됨</string>
+    <string name="recently_deleted_permanent_delete">영구 삭제</string>
+    <string name="recently_deleted_permanent_delete_confirm">영구적으로 삭제하시겠습니까?</string>
+    <string name="recently_deleted_permanent_delete_done">영구적으로 삭제됨</string>
+    <string name="recently_deleted_entry">최근 삭제된 항목</string>
+    <string name="recently_deleted_entry_subtitle">7일 이내에 삭제된 대화 복원</string>
+    <string name="recently_deleted_auto_clear">7일 후 자동 삭제됨</string>
+
+    <string name="chat_draft_label">초안</string>
+    <string name="chat_list_archive_confirm">이 채팅은 보관처리되며 목록에서 숨겨집니다.</string>
+    <string name="chat_list_archive_confirm_button">보관소</string>
+    <string name="chat_list_archive_title">보관 채팅</string>
+    <string name="chat_list_section_in_progress">진행 중</string>
+    <string name="chat_list_status_in_progress">진행 중</string>
+    <string name="chat_list_status_pending">보류 중</string>
+    <string name="chat_list_status_completed">완전한</string>
+    <string name="chat_reaction_add">반응 추가</string>
+    <string name="chat_reaction_change">변화 반응</string>
+    <string name="chat_reaction_picker_title">메시지에 반응</string>
+    <string name="chat_reaction_remove">반응 제거</string>
+    <string name="err_api_error">API 오류가 발생했습니다.</string>
+    <string name="err_auth_failed">인증에 실패했습니다.</string>
+    <string name="err_image_api_key_missing">이미지를 생성하려면 API 키가 필요합니다.</string>
+    <string name="err_image_empty_response">이미지 생성이 빈 응답을 반환했습니다.</string>
+    <string name="err_image_invalid_uri">이미지 URI 또는 ​​경로가 잘못되었습니다.</string>
+    <string name="err_image_no_results">이미지가 생성되지 않았습니다.</string>
+    <string name="err_image_reference_download_failed">참조 이미지를 다운로드하지 못했습니다.</string>
+    <string name="err_image_reference_too_large">참조 이미지가 너무 큽니다.</string>
+    <string name="err_image_response_too_large">생성된 이미지가 너무 커서 표시할 수 없습니다.</string>
+    <string name="err_image_unsupported_model">선택한 모델은 이미지 생성을 지원하지 않습니다.</string>
+    <string name="err_invalid_argument">잘못된 인수가 제공되었습니다.</string>
+    <string name="err_invalid_response">서버의 응답이 잘못되었습니다.</string>
+    <string name="err_memory_config_invalid">메모리 구성이 잘못되었습니다.</string>
+    <string name="err_memory_token_budget_invalid">메모리 토큰 예산이 잘못되었습니다.</string>
+    <string name="err_network_error">네트워크 오류입니다.</string>
+    <string name="err_no_model_selected">선택한 모델이 없습니다.</string>
+    <string name="err_no_provider_configured">구성된 제공업체가 없습니다.</string>
+    <string name="err_not_found">리소스를 찾을 수 없습니다.</string>
+    <string name="err_overloaded">서버가 과부하되었습니다.</string>
+    <string name="err_permission_denied">허가가 거부되었습니다.</string>
+    <string name="err_precondition_failed">작업 전제 조건이 실패했습니다.</string>
+    <string name="err_rate_limited">비율 제한을 초과했습니다.</string>
+    <string name="err_request_timeout">요청 시간이 초과되었습니다.</string>
+    <string name="err_resource_exhausted">리소스가 소진되었습니다.</string>
+    <string name="err_service_unavailable">일시적으로 서비스를 이용할 수 없습니다.</string>
+    <string name="err_stream_interrupted">스트림이 중단되었습니다.</string>
+    <string name="err_vertex_ai_config_invalid">Vertex AI 구성이 잘못되었습니다.</string>
+    <string name="err_vertex_ai_token_failed">Vertex AI 액세스 토큰을 가져올 수 없습니다.</string>
+
+    <!-- Assistant detail: capabilities -->
+    <string name="assistant_detail_capabilities_title">기능</string>
+    <string name="assistant_detail_capabilities_desc">자동 라우팅에 대한 이 어시스턴트의 장점을 태그하세요.</string>
+    <string name="assistant_detail_custom_capability">맞춤형 기능</string>
+    <string name="assistant_detail_add">추가하다</string>
+
+    <!-- Multi-Agent team workflow -->
+    <string name="settings_multi_agent_workflow">작업 흐름</string>
+    <string name="settings_multi_agent_workflow_desc">실행 순서, 종속성 및 집계 전략 정의</string>
+    <string name="settings_multi_agent_aggregation">집합</string>
+    <string name="settings_multi_agent_no_workflow">구성된 워크플로가 없습니다.</string>
+    <string name="settings_multi_agent_add_node">노드 추가</string>
+    <string name="settings_multi_agent_edit_node">노드 편집</string>
+    <string name="settings_multi_agent_node_name">노드 이름</string>
+    <string name="settings_multi_agent_node_task">작업 템플릿</string>
+    <string name="settings_multi_agent_node_assistant">대리인</string>
+    <string name="settings_multi_agent_node_mode">방법</string>
+    <string name="settings_multi_agent_node_dependencies">종속성</string>
+</resources>

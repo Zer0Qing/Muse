@@ -90,6 +90,8 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+        // P3-3: 启用 AIDL — IShellService(Shizuku UserService 接口)需要生成 Stub/Proxy
+        aidl = true
     }
 
     // v1.89: packaging 配置 — 排除重复的 META-INF 文件,避免构建冲突
@@ -142,6 +144,12 @@ dependencies {
     // v1.97 gap7: :material3 模块 — DynamicScheme.toColorScheme() 扩展,
     // 供 CustomTheme 基于种子色生成完整 ColorScheme
     implementation(project(":material3"))
+    // P3-3: 无障碍服务模块 — MuseAccessibilityService + IAccessibilityProvider AIDL
+    implementation(project(":accessibility"))
+
+    // P3-3: Shizuku SDK — 以 shell 权限执行命令(三通道路由之一,无需 root)
+    implementation(libs.shizuku.api)
+    implementation(libs.shizuku.provider)
 
     // AndroidX
     implementation(libs.androidx.core.ktx)

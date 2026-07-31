@@ -74,7 +74,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Muse"
-        android:networkSecurityConfig="@xml/network_security_config">
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:localeConfig="@xml/locales_config">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -212,6 +213,15 @@
             android:name=".tools.reminder.ReminderAlarmReceiver"
             android:exported="false" />
 
+        <!--
+            P3-3: Shizuku UserService — 以 shell 权限执行命令。
+            通过 Shizuku.bindUserService() 在独立进程中启动,继承 Shizuku 的 shell 权限。
+            exported=false: 仅本应用 + Shizuku 服务可绑定。
+        -->
+        <service
+            android:name=".tools.system.ShellService"
+            android:exported="false" />
+
         <!-- 文件附件:用于把沙盒内文件通过 ACTION_VIEW 分享给其它应用打开 -->
         <provider
             android:name="androidx.core.content.FileProvider"
@@ -222,6 +232,16 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <!-- P3-3: Shizuku Provider — Shizuku SDK 要求声明,用于 binder 通信 -->
+        <!-- authorities=${applicationId}.shizuku,Shizuku 应用通过此 provider 授权 -->
+        <provider
+            android:name="rikka.shizuku.ShizukuProvider"
+            android:authorities="${applicationId}.shizuku"
+            android:multiprocess="false"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
     </application>
 
 </manifest>

@@ -98,6 +98,10 @@
     <string name="settings_provider_balance_api_path">余额查询端点路径(如 /dashboard/billing/usage)</string>
     <string name="settings_provider_balance_result_path">余额结果 JSON 路径(如 $.data.total_usage)</string>
     <string name="settings_provider_query_balance">查询余额</string>
+    <string name="settings_provider_rate_limit_rpm">每分钟最大请求数 (RPM)</string>
+    <string name="settings_provider_rate_limit_rpm_hint">留空表示不限,如 60</string>
+    <string name="settings_provider_max_concurrent">最大并发请求数</string>
+    <string name="settings_provider_max_concurrent_hint">留空表示不限,如 5</string>
     <string name="settings_provider_custom_specific">自定义特定</string>
     <string name="settings_provider_chat_completions_path">Chat Completions 路径</string>
     <string name="settings_provider_custom_headers">Custom Headers(每行 Key: Value)</string>

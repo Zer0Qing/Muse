@@ -249,15 +249,36 @@ class SettingsRepository(
      * 用户可在此设置一个便宜的模型(如 SiliconFlow 免费模型)专做摘要压缩,避免主模型阻塞。
      */
     val compressModelIdFlow: Flow<String?> = store.data.map { prefs -> prefs[KEY_COMPRESS_MODEL_ID] }
+    /**
+     * v1.0.52: 自定义压缩 prompt(用户可覆盖默认压缩指令)。
+     * null 或空串表示用 ConversationCompressor 内置默认 prompt。
+     * 用户可在设置中覆盖,实现自定义压缩风格(如更简短/更详细/特定格式)。
+     */
+    val customCompressPromptFlow: Flow<String?> = store.data.map { prefs -> prefs[KEY_CUSTOM_COMPRESS_PROMPT] }
+    /**
+     * v1.0.52: 自定义对话命名 prompt(用户可覆盖默认命名指令)。
+     * null 或空串表示用 ChatViewModel.autoTitleSession 内置默认 prompt。
+     * 用户可在设置中覆盖,实现自定义命名风格(如英文标题/带日期/带前缀)。
+     */
+    val customTitlePromptFlow: Flow<String?> = store.data.map { prefs -> prefs[KEY_CUSTOM_TITLE_PROMPT] }
     /** v1.0.47: Token 估算开关(默认关闭,用户显式开启以避免性能开销)。 */
     val tokenEstimateEnabledFlow: Flow<Boolean> = store.data.map { prefs -> prefs[KEY_TOKEN_ESTIMATE_ENABLED] ?: false }
     /** v1.0.47 P5-2: 长文本粘贴转文件开关(默认开启,粘贴超阈值文本时提示转为 txt 附件)。 */
     val pasteAsFileEnabledFlow: Flow<Boolean> = store.data.map { prefs -> prefs[KEY_PASTE_AS_FILE_ENABLED] ?: true }
     /** v1.0.47 P5-2: 长文本粘贴转文件阈值(字符数,超过则提示转文件)。 */
     val pasteAsFileThresholdFlow: Flow<Int> = store.data.map { prefs -> prefs[KEY_PASTE_AS_FILE_THRESHOLD] ?: 2000 }
+    /** P1-4: 楼层式上下文限制开关(以 USER 消息为楼层,保留最近 N 层完整对话)。 */
+    val floorLimiterEnabledFlow: Flow<Boolean> = store.data.map { prefs -> prefs[KEY_FLOOR_LIMITER_ENABLED] ?: false }
+    /** P1-4: 楼层式上下文限制楼层数(8/16/32,默认 16)。 */
+    val floorLimitFlow: Flow<Int> = store.data.map { prefs -> prefs[KEY_FLOOR_LIMIT] ?: 16 }
     val memoryEnabledFlow: Flow<Boolean> = store.data.map { prefs -> prefs[KEY_MEMORY_ENABLED] ?: true }
     /** v1.0.51: 存量记忆迁移是否已完成(升级后首次启动补跑历史 session 摘要)。 */
     val memoryBackfillMigrationDoneFlow: Flow<Boolean> = store.data.map { prefs -> prefs[KEY_MEMORY_MIGRATION_V1_0_51_DONE] ?: false }
+    /**
+     * v1.0.52 P2-2: 当前选中的记忆空间 id(默认 "default")。
+     * 用户在记忆页切换 Space 时写入,MemoryViewModel 读取后按 spaceId 过滤事实列表。
+     */
+    val currentSpaceIdFlow: Flow<String> = store.data.map { prefs -> prefs[KEY_CURRENT_SPACE_ID] ?: "default" }
     val themeModeFlow: Flow<String> = store.data.map { prefs -> prefs[KEY_THEME_MODE] ?: "system" }
     /** v1.60-C: 应用界面语言(system=跟随系统 / zh=中文 / en=英文 / ja=日语 / ko=韩语 / ru=俄语)。 */
     val languageFlow: Flow<String> = store.data.map { prefs -> prefs[KEY_LANGUAGE] ?: "system" }
@@ -356,7 +377,17 @@ class SettingsRepository(
 
     /** v1.54: RAG 配置(embedding 来源 + 检索参数)。 */
     val ragConfigFlow: Flow<RagConfig> = store.data.map { prefs ->
-        decodePrefsOrNull(prefs[KEY_RAG_CONFIG], RagConfig.serializer(), "RagConfig") ?: RagConfig()
+        val config = decodePrefsOrNull(prefs[KEY_RAG_CONFIG], RagConfig.serializer(), "RagConfig") ?: RagConfig()
+        // v1.0.53: 迁移 — 旧用户 RagConfig 缺 embeddingSource 字段,反序列化后默认为 LOCAL_KEYWORD。
+        // 若用户曾显式配置过云端 embedding(cloudProviderId 或 cloudModel 非空),说明他们已在用云端,
+        // 保留原 CLOUD 设置避免破坏可用配置;否则采用新默认值 LOCAL_KEYWORD(避免 embedding 报错)。
+        if (config.embeddingSource == RagConfig.EmbeddingSource.LOCAL_KEYWORD &&
+            (config.cloudProviderId.isNotBlank() || config.cloudModel.isNotBlank())
+        ) {
+            config.copy(embeddingSource = RagConfig.EmbeddingSource.CLOUD)
+        } else {
+            config
+        }
     }
     // H-SR2: McpServerConfig.authToken 是 Bearer token(敏感凭据),读写均走 SecureKeyStore
     val mcpServersFlow: Flow<List<io.zer0.muse.mcp.McpServerConfig>> = store.data.map { prefs ->
@@ -774,6 +805,8 @@ class SettingsRepository(
     /** v1.0.51: 存量记忆迁移并发守卫 — compareAndSet 保证只跑一次,即使两个协程同时读到 false。 */
     fun tryStartMemoryBackfillMigration(): Boolean = memoryBackfillMigrationDone.compareAndSet(false, true)
     suspend fun saveMemoryBackfillMigrationDone(done: Boolean) { store.edit { it[KEY_MEMORY_MIGRATION_V1_0_51_DONE] = done } }
+    /** v1.0.52 P2-2: 保存当前选中的记忆空间 id。 */
+    suspend fun saveCurrentSpaceId(spaceId: String) { store.edit { it[KEY_CURRENT_SPACE_ID] = spaceId } }
     suspend fun saveThemeMode(mode: String) { store.edit { it[KEY_THEME_MODE] = mode } }
     suspend fun saveThemeId(id: String) { store.edit { it[KEY_THEME_ID] = id } }
     /** 保存深色模式独立主题 id(空字符串表示跟随亮色主题的暗色版)。 */
@@ -1030,12 +1063,20 @@ class SettingsRepository(
      * 供 ConversationCompressor 使用,建议设置为便宜模型(如 SiliconFlow 免费模型)。
      */
     suspend fun saveCompressModel(modelId: String?) { store.edit { if (modelId != null) it[KEY_COMPRESS_MODEL_ID] = modelId else it.remove(KEY_COMPRESS_MODEL_ID) } }
+    /** v1.0.52: 保存自定义压缩 prompt(null 或空串表示恢复默认)。 */
+    suspend fun saveCustomCompressPrompt(prompt: String?) { store.edit { if (!prompt.isNullOrBlank()) it[KEY_CUSTOM_COMPRESS_PROMPT] = prompt else it.remove(KEY_CUSTOM_COMPRESS_PROMPT) } }
+    /** v1.0.52: 保存自定义对话命名 prompt(null 或空串表示恢复默认)。 */
+    suspend fun saveCustomTitlePrompt(prompt: String?) { store.edit { if (!prompt.isNullOrBlank()) it[KEY_CUSTOM_TITLE_PROMPT] = prompt else it.remove(KEY_CUSTOM_TITLE_PROMPT) } }
     /** v1.0.47: 保存 Token 估算开关。 */
     suspend fun saveTokenEstimateEnabled(enabled: Boolean) { store.edit { it[KEY_TOKEN_ESTIMATE_ENABLED] = enabled } }
     /** v1.0.47 P5-2: 保存长文本粘贴转文件开关。 */
     suspend fun savePasteAsFileEnabled(enabled: Boolean) { store.edit { it[KEY_PASTE_AS_FILE_ENABLED] = enabled } }
     /** v1.0.47 P5-2: 保存长文本粘贴转文件阈值(字符数)。 */
     suspend fun savePasteAsFileThreshold(threshold: Int) { store.edit { it[KEY_PASTE_AS_FILE_THRESHOLD] = threshold } }
+    /** P1-4: 保存楼层式上下文限制开关。 */
+    suspend fun saveFloorLimiterEnabled(enabled: Boolean) { store.edit { it[KEY_FLOOR_LIMITER_ENABLED] = enabled } }
+    /** P1-4: 保存楼层式上下文限制楼层数。 */
+    suspend fun saveFloorLimit(limit: Int) { store.edit { it[KEY_FLOOR_LIMIT] = limit } }
     /**
      * v1.60-C: 保存应用界面语言(system / zh / en)。
      *
@@ -1286,13 +1327,22 @@ class SettingsRepository(
         private val KEY_TOOL_MODEL_ID = stringPreferencesKey("tool_model_id")
         /** 压缩模型 id(独立便宜模型,供 ConversationCompressor 使用)。 */
         private val KEY_COMPRESS_MODEL_ID = stringPreferencesKey("compress_model_id")
+        /** v1.0.52: 自定义压缩 prompt(用户可覆盖默认压缩指令,null 表示用默认)。 */
+        private val KEY_CUSTOM_COMPRESS_PROMPT = stringPreferencesKey("custom_compress_prompt")
+        /** v1.0.52: 自定义对话命名 prompt(用户可覆盖默认命名指令,null 表示用默认)。 */
+        private val KEY_CUSTOM_TITLE_PROMPT = stringPreferencesKey("custom_title_prompt")
         /** v1.0.47: Token 估算开关。 */
         private val KEY_TOKEN_ESTIMATE_ENABLED = booleanPreferencesKey("token_estimate_enabled")
         private val KEY_PASTE_AS_FILE_ENABLED = booleanPreferencesKey("paste_as_file_enabled")
         private val KEY_PASTE_AS_FILE_THRESHOLD = intPreferencesKey("paste_as_file_threshold")
+        /** P1-4: 楼层式上下文限制 */
+        private val KEY_FLOOR_LIMITER_ENABLED = booleanPreferencesKey("floor_limiter_enabled")
+        private val KEY_FLOOR_LIMIT = intPreferencesKey("floor_limit")
         private val KEY_MEMORY_ENABLED = booleanPreferencesKey("memory_enabled")
         /** v1.0.51: 一次性存量记忆迁移标志位 — 升级后首次启动补跑历史 session 的 rollingSummary。 */
         private val KEY_MEMORY_MIGRATION_V1_0_51_DONE = booleanPreferencesKey("memory_migration_v1_0_51_done")
+        /** v1.0.52 P2-2: 当前选中的记忆空间 id(默认 "default")。 */
+        private val KEY_CURRENT_SPACE_ID = stringPreferencesKey("current_space_id")
         private val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
         private val KEY_LANGUAGE = stringPreferencesKey("language")
         /** v1.131: [KEY_LANGUAGE] 的字符串形式,供 SharedPreferences 同步缓存使用(见 [getLanguageSync])。 */

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- P1-2: Worldbook dynamic world info strings (English). -->
+<resources>
+    <!-- Screen -->
+    <string name="worldbook_screen_title">다이내믹 월드북</string>
+    <string name="worldbook_intro">Dynamic Worldbook은 대화 맥락을 기반으로 관련 지식을 주입합니다.</string>
+    <string name="worldbook_new_cd">새로운 월드북 항목</string>
+    <string name="worldbook_new_default_name">신규 항목</string>
+    <string name="worldbook_new_title">새로운 월드북</string>
+    <string name="worldbook_edit_title">월드북 편집</string>
+    <string name="worldbook_save">구하다</string>
+    <string name="worldbook_back_cd">뒤쪽에</string>
+    <string name="worldbook_unsaved_title">저장되지 않은 변경사항</string>
+    <string name="worldbook_unsaved_content">저장되지 않은 변경사항이 있습니다.</string>
+    <string name="worldbook_discard">버리다</string>
+    <string name="worldbook_unnamed">이름 없음</string>
+    <string name="worldbook_disabled">장애가 있는</string>
+    <string name="worldbook_enabled_cd">활성화됨</string>
+    <string name="worldbook_disabled_cd">장애가 있는</string>
+    <string name="worldbook_edit_cd">편집하다</string>
+    <string name="worldbook_delete_cd">삭제</string>
+    <string name="worldbook_delete_title">월드북 삭제</string>
+    <string name="worldbook_empty_title">월드북 항목이 없습니다.</string>
+    <string name="worldbook_empty_subtitle">첫 번째 항목을 만들려면 아래 버튼을 누르세요.</string>
+    <string name="worldbook_keywords_label">키워드: %1$s</string>
+    <string name="worldbook_badge_always_active">끊임없는</string>
+    <string name="worldbook_export">내보내다</string>
+
+    <!-- Sections -->
+    <string name="worldbook_section_basic">기초적인</string>
+    <string name="worldbook_section_content">콘텐츠</string>
+    <string name="worldbook_section_injection">주입</string>
+    <string name="worldbook_section_behavior">어울리는</string>
+
+    <!-- Fields -->
+    <string name="worldbook_field_name">이름</string>
+    <string name="worldbook_field_keywords">키워드</string>
+    <string name="worldbook_field_keywords_placeholder">여러 키워드를 쉼표로 구분하세요.</string>
+    <string name="worldbook_field_content">콘텐츠</string>
+    <string name="worldbook_field_priority">우선순위(높음 = 먼저 주입)</string>
+    <string name="worldbook_field_inject_target">주입 대상</string>
+    <string name="worldbook_field_inject_position">주입 위치</string>
+    <string name="worldbook_field_insertion_depth">삽입 깊이(끝에서 N번째 사용자)</string>
+    <string name="worldbook_field_scan_depth">스캔 깊이(마지막 N USER 메시지)</string>
+    <string name="worldbook_field_case_sensitive">대소문자 구분</string>
+    <string name="worldbook_field_case_sensitive_desc">대소문자를 구분하여 키워드 일치</string>
+    <string name="worldbook_field_is_regex">정규식 일치</string>
+    <string name="worldbook_field_is_regex_desc">키워드를 정규식으로 처리(고급)</string>
+    <string name="worldbook_field_always_active">항상 활성</string>
+    <string name="worldbook_field_always_active_desc">키워드 트리거 없이 주입(상수)</string>
+    <string name="worldbook_field_enabled">활성화됨</string>
+    <string name="worldbook_field_enabled_desc">비활성화된 항목은 삽입되지 않습니다.</string>
+
+    <!-- Settings entry -->
+    <string name="settings_assistant_worldbook">다이내믹 월드북</string>
+    <string name="settings_assistant_worldbook_subtitle">고급 동적 프롬프트 주입</string>
+</resources>

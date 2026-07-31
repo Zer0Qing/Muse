@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== ui/common shared components ===== -->
+    <string name="common_state_enabled">Activado</string>
+    <string name="common_state_disabled">Desactivado</string>
+    <string name="common_confirm_delete_message">¿Eliminar \"%1$s\"?</string>
+    <string name="common_delete">Borrar</string>
+    <string name="common_cancel">Cancelar</string>
+    <string name="common_confirm">Confirmar</string>
+    <string name="common_got_it">Entiendo</string>
+    <string name="common_close">Cerca</string>
+    <string name="common_retry">Rever</string>
+    <string name="common_collapse">Colapsar</string>
+    <string name="common_expand">Expandir</string>
+    <string name="common_no_options">No hay opciones disponibles</string>
+    <string name="common_selectable">Opcional</string>
+    <string name="common_remove">Eliminar</string>
+    <string name="common_avatar_cd">%1$s avatar</string>
+    <string name="common_slider_cd">Control deslizante, valor actual %1$s</string>
+    <string name="common_dropdown_cd">%1$s, valor actual %2$s</string>
+    <string name="common_open_file_failed">No se puede abrir el archivo: %1$s</string>
+
+    <!-- ===== ui/markdown Markdown rendering ===== -->
+    <string name="markdown_only_http">Sólo se admiten enlaces http/https</string>
+    <string name="markdown_open_link_failed">No se puede abrir el enlace: %1$s</string>
+    <!-- v1.97: URL click confirmation -->
+    <string name="markdown_open_link_confirm_title">Abrir enlace</string>
+    <string name="markdown_open_link_confirm_message">¿Abrir este enlace en su navegador?</string>
+    <string name="markdown_open_link_confirm_open">Abierto</string>
+    <string name="markdown_open_link_confirm_copy">Copiar enlace</string>
+    <string name="markdown_open_link_dont_ask_again">No volver a preguntar en esta sesión (una pulsación larga abre directamente)</string>
+    <string name="markdown_link_copied">Enlace copiado</string>
+    <string name="markdown_line_count">%1$d líneas</string>
+    <string name="markdown_copied_lines">Copiado %1$d líneas de código</string>
+    <string name="markdown_copy_code_cd">Copiar código</string>
+    <string name="markdown_collapse_remaining">Mostrar %1$d más líneas</string>
+    <string name="markdown_svg_label">Gráfico SVG</string>
+    <string name="markdown_html_label">Tarjeta HTML</string>
+    <string name="markdown_chart_label">Cuadro</string>
+    <string name="markdown_mermaid_label">Diagrama de sirena</string>
+    <string name="markdown_plantuml_label">Diagrama UML de planta</string>
+    <string name="markdown_svg_cd">gráfico SVG</string>
+    <string name="markdown_html_cd">contenido HTML</string>
+    <string name="markdown_chart_cd">Gráfico: %1$s</string>
+    <string name="markdown_mermaid_cd">Diagrama de sirena: %1$s</string>
+    <string name="markdown_plantuml_cd">Diagrama PlantUML: %1$s</string>
+    <string name="markdown_formula_cd">Fórmula matemática: %1$s</string>
+    <string name="markdown_chart_render_failed">Error al renderizar el gráfico</string>
+    <string name="markdown_chart_show_source">Mostrar fuente</string>
+    <string name="markdown_chart_loading">Representación…</string>
+    <!-- HTML preview feature -->
+    <string name="html_preview_title">Vista previa HTML</string>
+    <string name="html_preview_open_in_browser_cd">Abrir en el navegador</string>
+    <string name="html_preview_copy_source_cd">Copiar fuente</string>
+    <string name="html_preview_open_in_browser_failed">No se puede abrir en un navegador externo: %1$s</string>
+    <string name="html_preview_source_copied">fuente HTML copiada</string>
+    <string name="html_preview_button_cd">Vista previa en pantalla completa</string>
+    <!-- v1.0.47 P8-2: Download artifact -->
+    <string name="html_preview_download_cd">Descargar</string>
+    <string name="html_preview_download_success">Guardado en Descargas: %1$s</string>
+    <string name="html_preview_download_failed">Error en la descarga: %1$s</string>
+
+    <!-- ===== ui/theme preset theme names ===== -->
+    <string name="theme_warm_paper">Papel caliente</string>
+    <string name="theme_sakura">sakura</string>
+    <string name="theme_ocean">Océano</string>
+    <string name="theme_spring">Primavera</string>
+    <string name="theme_autumn">Otoño</string>
+    <string name="theme_mono">Mononucleosis infecciosa</string>
+    <string name="theme_sumi">Sumi (tinta)</string>
+    <string name="theme_washi">Washi (papel)</string>
+    <string name="theme_aizome">Aizome (índigo)</string>
+    <string name="theme_twilight_purple">Púrpura crepuscular</string>
+    <string name="theme_amber_gold">Ámbar Oro</string>
+    <string name="theme_dusk_rose">Rosa del anochecer</string>
+
+    <!-- ===== ui/speech voice input and TTS ===== -->
+    <string name="speech_speak_prompt">Por favor habla...</string>
+    <string name="speech_tts_init_failed">Error al inicializar el motor de voz, la lectura en voz alta no está disponible</string>
+    <string name="speech_tts_play_error">Error de reproducción de voz</string>
+    <string name="speech_tts_fallback_to_system">Problema de red, cambiado al sistema TTS</string>
+    <string name="speech_stop_reading_cd">dejar de leer</string>
+    <string name="speech_playback_speed_cd">Velocidad de reproducción %1$sx</string>
+    <string name="speech_seek_forward_5s_cd">Adelante 5 segundos</string>
+    <string name="speech_pause_cd">Pausa</string>
+    <string name="speech_resume_cd">Reanudar</string>
+
+    <!-- ===== ui/ModelSwitchSheet model switcher ===== -->
+    <string name="model_switch_title">Modelo</string>
+    <string name="model_switch_no_provider">Ningún proveedor configurado\nAgregue uno en Configuración → Gestión de proveedores</string>
+    <string name="model_switch_provider_label">Proveedor</string>
+    <string name="model_switch_no_provider_selected">Ningún proveedor seleccionado</string>
+    <string name="model_switch_models_label">Modelos (%1$s)</string>
+    <string name="model_switch_fetching">Atractivo</string>
+    <string name="model_switch_refresh">Refrescar</string>
+    <string name="model_switch_fetching_upstream">Obteniendo modelos desde aguas arriba...</string>
+    <string name="model_switch_no_models">Este proveedor no tiene modelos\nToque actualizar en la parte superior derecha para obtener la lista ascendente</string>
+    <string name="model_switch_default">%1$s (predeterminado)</string>
+    <string name="model_switch_not_configured">No configurado</string>
+    <string name="model_switch_selected_cd">Seleccionado</string>
+    <string name="model_switch_ability_vision">Visión</string>
+    <string name="model_switch_ability_reasoning">Razonamiento</string>
+    <string name="model_switch_ability_tool">Herramientas</string>
+    <string name="model_switch_ability_image">Imagen</string>
+    <string name="model_switch_ability_search">Web</string>
+    <string name="model_switch_search_placeholder">Buscar modelos</string>
+    <string name="model_switch_expand_all">Expandir todo</string>
+    <string name="model_switch_collapse_all">Contraer todo</string>
+    <string name="model_switch_group_count">%1$s (%2$d)</string>
+    <!-- v1.0.18: Free model badge/hint (aligns with FreeModelConfig) -->
+    <string name="model_switch_free_badge">Gratis</string>
+    <string name="model_switch_free_provider_hint">No es necesario iniciar sesión, listo para usar</string>
+
+    <!-- ===== ui/HomeScreen home ===== -->
+    <string name="home_tab_tasks">Tareas</string>
+    <string name="home_tab_group_chat">Grupo</string>
+    <string name="home_settings_cd">Ajustes</string>
+    <string name="home_search_cd">Buscar</string>
+    <string name="home_tab_selected_suffix">, seleccionado</string>
+
+    <!-- ===== ui/FavoritesScreen favorites ===== -->
+    <string name="favorites_title">Favoritos (%1$d)</string>
+    <string name="favorites_back_cd">Atrás</string>
+    <string name="favorites_empty_title">Aún no hay favoritos</string>
+    <string name="favorites_empty_subtitle">Toque la estrella en un mensaje en el chat para marcarlo como favorito.</string>
+    <string name="favorites_role_user">A mí</string>
+    <string name="favorites_role_system">Sistema</string>
+    <string name="favorites_role_tool">Herramienta</string>
+    <string name="favorites_unfavorite_cd">Eliminar favorito</string>
+    <!-- v1.104 U7: favorite groups/tags -->
+    <string name="favorites_filter_all">Todo (%1$d)</string>
+    <string name="favorites_filter_ungrouped">Desagrupado (%1$d)</string>
+    <string name="favorites_tag_chip">%1$s (%2$d)</string>
+    <string name="favorites_tag_edit_title">Establecer grupo</string>
+    <string name="favorites_tag_edit_hint">Nombre del grupo (vacío = desagrupado)</string>
+    <string name="favorites_tag_edit_clear">Borrar grupo</string>
+    <string name="favorites_tag_edit_confirm">DE ACUERDO</string>
+    <string name="favorites_tag_edit_cancel">Cancelar</string>
+    <string name="favorites_tag_label">Grupo: %1$s</string>
+    <string name="favorites_empty_in_filter">No hay favoritos en este grupo.</string>
+    <string name="favorites_card_long_click_cd">Mantenga presionado para configurar el grupo</string>
+
+    <!-- ===== ui/ImageSaveUtils image saving ===== -->
+    <string name="image_save_decode_failed">No se puede decodificar la imagen</string>
+    <string name="image_save_mediastore_insert_failed">Error al insertar MediaStore</string>
+    <string name="image_save_open_stream_failed">No se puede abrir el flujo de salida</string>
+
+    <!-- ===== ui/experience/ExperiencePanel ===== -->
+    <string name="experience_title">Biblioteca de experiencias</string>
+    <string name="experience_enabled">Activado</string>
+    <string name="experience_back_cd">Atrás</string>
+    <string name="experience_add_cd">Añadir experiencia</string>
+    <string name="experience_search_hint">Buscar experiencias…</string>
+    <string name="experience_add_title">Agregar experiencia</string>
+    <string name="experience_add_category_hint">Categoría (por ejemplo, \'uso de herramientas\')</string>
+    <string name="experience_add_content_hint">Contenido de la experiencia (una frase)</string>
+    <string name="experience_add_confirm">Agregar</string>
+    <string name="experience_add_cancel">Cancelar</string>
+
+    <!-- ===== ui/activity/ActivityPanel ===== -->
+    <string name="activity_log_title">Registro de actividad</string>
+    <string name="activity_empty">Aún no se ha registrado actividad.</string>
+    <string name="model_switch_retry">重试</string>
+    <string name="shortcut_new_chat_long">开始新对话</string>
+    <string name="shortcut_new_chat_short">新对话</string>
+    <string name="shortcut_quick_notes_long">快速记录</string>
+    <string name="shortcut_quick_notes_short">速记</string>
+    <string name="shortcut_settings_long">打开设置</string>
+    <string name="shortcut_settings_short">设置</string>
+    <string name="shortcut_translate_long">打开翻译</string>
+    <string name="shortcut_translate_short">翻译</string>
+    <string name="shortcut_voice_input_long">语音输入</string>
+    <string name="shortcut_voice_input_short">语音</string>
+    <string name="speech_next_chunk_cd">下一段</string>
+    <string name="speech_previous_chunk_cd">上一段</string>
+    <string name="speech_seek_backward_5s_cd">后退 5 秒</string>
+</resources>

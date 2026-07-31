@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== ui/common shared components ===== -->
+    <string name="common_state_enabled">Включено</string>
+    <string name="common_state_disabled">Неполноценный</string>
+    <string name="common_confirm_delete_message">Удалить \"%1$s\"?</string>
+    <string name="common_delete">Удалить</string>
+    <string name="common_cancel">Отмена</string>
+    <string name="common_confirm">Подтверждать</string>
+    <string name="common_got_it">Понятно</string>
+    <string name="common_close">Закрывать</string>
+    <string name="common_retry">Повторить попытку</string>
+    <string name="common_collapse">Крах</string>
+    <string name="common_expand">Расширять</string>
+    <string name="common_no_options">Нет доступных вариантов</string>
+    <string name="common_selectable">Необязательный</string>
+    <string name="common_remove">Удалять</string>
+    <string name="common_avatar_cd">%1$s аватар</string>
+    <string name="common_slider_cd">Ползунок, текущее значение %1$s</string>
+    <string name="common_dropdown_cd">%1$s, текущее значение %2$s</string>
+    <string name="common_open_file_failed">Невозможно открыть файл: %1$s</string>
+
+    <!-- ===== ui/markdown Markdown rendering ===== -->
+    <string name="markdown_only_http">Поддерживаются только ссылки http/https.</string>
+    <string name="markdown_open_link_failed">Невозможно открыть ссылку: %1$s</string>
+    <!-- v1.97: URL click confirmation -->
+    <string name="markdown_open_link_confirm_title">Открыть ссылку</string>
+    <string name="markdown_open_link_confirm_message">Открыть эту ссылку в браузере?</string>
+    <string name="markdown_open_link_confirm_open">Открыть</string>
+    <string name="markdown_open_link_confirm_copy">Копировать ссылку</string>
+    <string name="markdown_open_link_dont_ask_again">Не спрашивать больше об этом сеансе (длительное нажатие открывает напрямую)</string>
+    <string name="markdown_link_copied">Ссылка скопирована</string>
+    <string name="markdown_line_count">%1$d строк</string>
+    <string name="markdown_copied_lines">Скопировано %1$d строк кода.</string>
+    <string name="markdown_copy_code_cd">Скопировать код</string>
+    <string name="markdown_collapse_remaining">Показать %1$d еще строк</string>
+    <string name="markdown_svg_label">SVG-графика</string>
+    <string name="markdown_html_label">HTML-карта</string>
+    <string name="markdown_chart_label">Диаграмма</string>
+    <string name="markdown_mermaid_label">Схема Русалки</string>
+    <string name="markdown_plantuml_label">Схема PlantUML</string>
+    <string name="markdown_svg_cd">SVG-графика</string>
+    <string name="markdown_html_cd">HTML-контент</string>
+    <string name="markdown_chart_cd">Диаграмма: %1$s</string>
+    <string name="markdown_mermaid_cd">Диаграмма русалки: %1$s</string>
+    <string name="markdown_plantuml_cd">Диаграмма PlantUML: %1$s</string>
+    <string name="markdown_formula_cd">Математическая формула: %1$s</string>
+    <string name="markdown_chart_render_failed">Отрисовка диаграммы не удалась</string>
+    <string name="markdown_chart_show_source">Показать источник</string>
+    <string name="markdown_chart_loading">Рендеринг…</string>
+    <!-- HTML preview feature -->
+    <string name="html_preview_title">Предварительный просмотр HTML</string>
+    <string name="html_preview_open_in_browser_cd">Открыть в браузере</string>
+    <string name="html_preview_copy_source_cd">Копировать источник</string>
+    <string name="html_preview_open_in_browser_failed">Невозможно открыть во внешнем браузере: %1$s</string>
+    <string name="html_preview_source_copied">Исходный код HTML скопирован</string>
+    <string name="html_preview_button_cd">Полноэкранный просмотр</string>
+    <!-- v1.0.47 P8-2: Download artifact -->
+    <string name="html_preview_download_cd">Скачать</string>
+    <string name="html_preview_download_success">Сохранено в загрузках: %1$s</string>
+    <string name="html_preview_download_failed">Не удалось загрузить: %1$s</string>
+
+    <!-- ===== ui/theme preset theme names ===== -->
+    <string name="theme_warm_paper">Теплая бумага</string>
+    <string name="theme_sakura">Сакура</string>
+    <string name="theme_ocean">Океан</string>
+    <string name="theme_spring">Весна</string>
+    <string name="theme_autumn">Осень</string>
+    <string name="theme_mono">Мононуклеоз</string>
+    <string name="theme_sumi">Суми (Чернила)</string>
+    <string name="theme_washi">Васи (Бумага)</string>
+    <string name="theme_aizome">Айдзоме (Индиго)</string>
+    <string name="theme_twilight_purple">Сумерки Пурпурные</string>
+    <string name="theme_amber_gold">Янтарное золото</string>
+    <string name="theme_dusk_rose">Сумеречная роза</string>
+
+    <!-- ===== ui/speech voice input and TTS ===== -->
+    <string name="speech_speak_prompt">Пожалуйста, говорите…</string>
+    <string name="speech_tts_init_failed">Не удалось инициализировать речевой механизм, чтение вслух недоступно</string>
+    <string name="speech_tts_play_error">Ошибка воспроизведения речи</string>
+    <string name="speech_tts_fallback_to_system">Проблема с сетью, переключился на систему TTS</string>
+    <string name="speech_stop_reading_cd">Хватит читать</string>
+    <string name="speech_playback_speed_cd">Скорость воспроизведения %1$sx</string>
+    <string name="speech_seek_forward_5s_cd">Вперед на 5 секунд</string>
+    <string name="speech_pause_cd">Пауза</string>
+    <string name="speech_resume_cd">Резюме</string>
+
+    <!-- ===== ui/ModelSwitchSheet model switcher ===== -->
+    <string name="model_switch_title">Модель</string>
+    <string name="model_switch_no_provider">Ни один провайдер не настроен\nДобавить его в Настройках → Управление провайдерами.</string>
+    <string name="model_switch_provider_label">Поставщик</string>
+    <string name="model_switch_no_provider_selected">Поставщик не выбран</string>
+    <string name="model_switch_models_label">Модели (%1$s)</string>
+    <string name="model_switch_fetching">Получение</string>
+    <string name="model_switch_refresh">Обновить</string>
+    <string name="model_switch_fetching_upstream">Получение моделей из восходящего потока…</string>
+    <string name="model_switch_no_models">У этого поставщика нет моделей\nНажмите «Обновить» в правом верхнем углу, чтобы просмотреть список исходящих поставщиков.</string>
+    <string name="model_switch_default">%1$s (по умолчанию)</string>
+    <string name="model_switch_not_configured">Не настроено</string>
+    <string name="model_switch_selected_cd">Выбрано</string>
+    <string name="model_switch_ability_vision">Зрение</string>
+    <string name="model_switch_ability_reasoning">Рассуждение</string>
+    <string name="model_switch_ability_tool">Инструменты</string>
+    <string name="model_switch_ability_image">Изображение</string>
+    <string name="model_switch_ability_search">Интернет</string>
+    <string name="model_switch_search_placeholder">Поиск моделей</string>
+    <string name="model_switch_expand_all">Развернуть все</string>
+    <string name="model_switch_collapse_all">Свернуть все</string>
+    <string name="model_switch_group_count">%1$s (%2$d)</string>
+    <!-- v1.0.18: Free model badge/hint (aligns with FreeModelConfig) -->
+    <string name="model_switch_free_badge">Бесплатно</string>
+    <string name="model_switch_free_provider_hint">Вход в систему не требуется, готов к использованию</string>
+
+    <!-- ===== ui/HomeScreen home ===== -->
+    <string name="home_tab_tasks">Задачи</string>
+    <string name="home_tab_group_chat">Группа</string>
+    <string name="home_settings_cd">Настройки</string>
+    <string name="home_search_cd">Поиск</string>
+    <string name="home_tab_selected_suffix">, выбрано</string>
+
+    <!-- ===== ui/FavoritesScreen favorites ===== -->
+    <string name="favorites_title">Избранное (%1$d)</string>
+    <string name="favorites_back_cd">Назад</string>
+    <string name="favorites_empty_title">Пока нет избранных</string>
+    <string name="favorites_empty_subtitle">Нажмите звездочку на сообщении в чате, чтобы добавить его в избранное.</string>
+    <string name="favorites_role_user">Мне</string>
+    <string name="favorites_role_system">Система</string>
+    <string name="favorites_role_tool">Инструмент</string>
+    <string name="favorites_unfavorite_cd">Удалить избранное</string>
+    <!-- v1.104 U7: favorite groups/tags -->
+    <string name="favorites_filter_all">Все (%1$d)</string>
+    <string name="favorites_filter_ungrouped">Разгруппировано (%1$d)</string>
+    <string name="favorites_tag_chip">%1$s (%2$d)</string>
+    <string name="favorites_tag_edit_title">Установить группу</string>
+    <string name="favorites_tag_edit_hint">Имя группы (пусто = разгруппировано)</string>
+    <string name="favorites_tag_edit_clear">Очистить группу</string>
+    <string name="favorites_tag_edit_confirm">ХОРОШО</string>
+    <string name="favorites_tag_edit_cancel">Отмена</string>
+    <string name="favorites_tag_label">Группа: %1$s</string>
+    <string name="favorites_empty_in_filter">В этой группе нет избранных</string>
+    <string name="favorites_card_long_click_cd">Длительное нажатие, чтобы установить группу</string>
+
+    <!-- ===== ui/ImageSaveUtils image saving ===== -->
+    <string name="image_save_decode_failed">Невозможно декодировать изображение</string>
+    <string name="image_save_mediastore_insert_failed">Вставка в MediaStore не удалась</string>
+    <string name="image_save_open_stream_failed">Невозможно открыть выходной поток</string>
+
+    <!-- ===== ui/experience/ExperiencePanel ===== -->
+    <string name="experience_title">Библиотека опыта</string>
+    <string name="experience_enabled">Включено</string>
+    <string name="experience_back_cd">Назад</string>
+    <string name="experience_add_cd">Добавить опыт</string>
+    <string name="experience_search_hint">Поиск опыта…</string>
+    <string name="experience_add_title">Добавить опыт</string>
+    <string name="experience_add_category_hint">Категория (например, «использование инструмента»)</string>
+    <string name="experience_add_content_hint">Содержание опыта (одно предложение)</string>
+    <string name="experience_add_confirm">Добавлять</string>
+    <string name="experience_add_cancel">Отмена</string>
+
+    <!-- ===== ui/activity/ActivityPanel ===== -->
+    <string name="activity_log_title">Журнал активности</string>
+    <string name="activity_empty">Никаких действий пока не зафиксировано.</string>
+    <string name="model_switch_retry">重试</string>
+    <string name="shortcut_new_chat_long">开始新对话</string>
+    <string name="shortcut_new_chat_short">新对话</string>
+    <string name="shortcut_quick_notes_long">快速记录</string>
+    <string name="shortcut_quick_notes_short">速记</string>
+    <string name="shortcut_settings_long">打开设置</string>
+    <string name="shortcut_settings_short">设置</string>
+    <string name="shortcut_translate_long">打开翻译</string>
+    <string name="shortcut_translate_short">翻译</string>
+    <string name="shortcut_voice_input_long">语音输入</string>
+    <string name="shortcut_voice_input_short">语音</string>
+    <string name="speech_next_chunk_cd">下一段</string>
+    <string name="speech_previous_chunk_cd">上一段</string>
+    <string name="speech_seek_backward_5s_cd">后退 5 秒</string>
+</resources>

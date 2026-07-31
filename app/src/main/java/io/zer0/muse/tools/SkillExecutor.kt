@@ -100,7 +100,21 @@ class SkillExecutor(
     private val deferredResultStore: DeferredResultStore? = null,
     /** v1.202: 子 agent 线程管理器(可续接的子 agent 会话线程,串行执行避免并发竞争)。
      *  为 null 时 nonBlocking=true 自动降级为阻塞模式。 */
-    private val subagentThreadStore: SubagentThreadStore? = null,
+    private val subagentThreadStore: io.zer0.muse.data.subagent.SubagentThreadStore? = null,
+    /** v1.0.53: 子 agent 全局并发限流器(Koin 注入)。所有委派入口(TeamWorkflowExecutor 并行节点 / delegateAgent nonBlocking / SubagentRunner)共享同一配额。 */
+    private val agentConcurrencyLimiter: AgentConcurrencyLimiter,
+    /** v1.0.53 Phase 2: 工作流断点恢复日志(Koin 注入);null 时 TeamWorkflowExecutor 跳过 journal 读写。 */
+    private val journal: WorkflowJournal? = null,
+    /**
+     * v1.0.53 Phase 5: GroupChatScheduler 懒加载 provider(避免与 SkillExecutor 循环依赖)。
+     *
+     * agent_phone 工具触发 whisper 私聊时调用 [io.zer0.muse.schedule.GroupChatScheduler.launchWhisper]。
+     * 用 lambda 形式延迟解析:SkillExecutor 在 Koin 中先于 GroupChatScheduler 注册,
+     * 但 lambda 体内 get() 在工具实际执行时才解析,此时 GroupChatScheduler 已初始化完成。
+     *
+     * 为 null 时(测试环境)agent_phone 工具返回"未配置"提示。
+     */
+    private val groupChatSchedulerProvider: (() -> io.zer0.muse.schedule.GroupChatScheduler?)? = null,
 ) {
     /**
      * 执行 skill。
@@ -139,6 +153,8 @@ class SkillExecutor(
                 "channel_reply" -> execChannelReply(args)
                 "channel_pass" -> execChannelPass(args)
                 "channel_read_context" -> execChannelReadContext(args)
+                // v1.0.53 Phase 5: Agent Phone(主 agent 触发群聊成员私聊)
+                "agent_phone" -> { onProgress(context.getString(R.string.skill_progress_whispering)); execAgentPhone(args) }
                 // 文件管理类
                 "list_dir" -> execListDir(args)
                 "delete_file" -> execDeleteFile(args)
@@ -442,6 +458,9 @@ class SkillExecutor(
             sb.appendLine("    URL: ${r.url}")
             sb.appendLine("    摘要: ${r.snippet}")
         }
+        // v1.0.52: 追加搜索结果回答引导(借鉴 openhanako 网页工具纪律)
+        // 让 LLM 综合多网页信息回答,且不说"根据搜索结果"——直接给出答案
+        sb.append(context.getString(R.string.skill_search_result_guidance))
         return sb.toString().trimEnd()
     }
 
@@ -855,8 +874,11 @@ class SkillExecutor(
             )
             CoroutineScope(Dispatchers.IO).launch {
                 try {
-                    val subResult = subagentThreadStore.runSerialized(threadId) {
-                        delegateAgent(bgRequest, policy)
+                    // v1.0.53: 非阻塞委派也走全局 limiter,防止绕过限流
+                    val subResult = agentConcurrencyLimiter.run {
+                        subagentThreadStore.runSerialized(threadId) {
+                            delegateAgent(bgRequest, policy)
+                        }
                     }
                     if (subResult.success) {
                         deferredResultStore.resolve(taskId, subResult.resultText)
@@ -943,12 +965,18 @@ class SkillExecutor(
                     delegationChainTracker = delegationChainTracker,
                     // v1.202: CONDITIONAL 节点用 LLM 做真条件判断(NO 则跳过)
                     chatService = chatService,
+                    // v1.0.53: 全局并发限流器,并行节点共享配额
+                    concurrencyLimiter = agentConcurrencyLimiter,
+                    // v1.0.53 Phase 2: 工作流断点恢复日志
+                    journal = journal,
                 ).execute(
                     workflow = team.workflow ?: DelegationContract.TeamWorkflow(),
                     teamTask = effectiveTask,
                     parentRequestId = request.requestId,
                     teamMembers = team.memberIds,
                     baseContext = request.contextMessages,
+                    runId = request.journalRunId,
+                    resume = request.resumeFromJournal,
                 )
             }
             if (request.targetType != DelegationContract.DelegationRequest.TargetType.ASSISTANT) {
@@ -1517,6 +1545,57 @@ class SkillExecutor(
         return sb.toString().trimEnd()
     }
 
+    /**
+     * v1.0.53 Phase 5: agent_phone — 主 agent 触发群聊成员私聊(whisper)。
+     *
+     * 对应文档 8.2 节 Agent Phone 入口之一:"主 agent 用工具 agent_phone(参数:target_assistant_id, message)"。
+     *
+     * 参数:
+     *  - chatId: 群聊 id(必填,用于隔离 whisper 上下文)
+     *  - targetAssistantId: 目标 agent id(必填)
+     *  - message: 私聊消息正文(必填)
+     *
+     * 执行流程:
+     *  1. 通过 [groupChatSchedulerProvider] 拿到 GroupChatScheduler 实例(lazy 解析,避免循环依赖)
+     *  2. 调 [GroupChatScheduler.launchWhisper] — 该方法内部:
+     *     a. 保存用户悄悄话到 group_chat_messages(whisperTargetId 标记)
+     *     b. 复用 SubagentThreadStore 注册 threadId + 持久化到 JSONL
+     *     c. 触发目标 AI 流式回复(60s 超时)
+     *     d. 保存 AI 回复到 group_chat_messages(whisperTargetId 标记)
+     *  3. 返回"已发起私聊"提示(launchWhisper 是异步的,不等待 AI 回复完成)
+     *
+     * 安全:私聊内容写入独立 JSONL(filesDir/subagent_sessions/<threadId>.jsonl),
+     * 不参与群聊总结/投票(因 whisperTargetId 标记,群聊轮转上下文构造时会过滤)。
+     *
+     * @return "已发起私聊"提示;scheduler 未注入时返回"未配置"提示
+     */
+    private suspend fun execAgentPhone(args: Map<String, String>): String {
+        val chatId = args["chatId"]?.trim()
+            ?: return context.getString(R.string.skill_missing_param_chat_id)
+        val targetAssistantId = args["targetAssistantId"]?.trim()
+            ?: return context.getString(R.string.skill_missing_param_target_assistant_id)
+        val message = args["message"]?.trim()
+            ?: return context.getString(R.string.skill_missing_param_message)
+        if (message.isBlank()) return context.getString(R.string.skill_message_blank)
+
+        val scheduler = groupChatSchedulerProvider?.invoke()
+            ?: return context.getString(R.string.skill_agent_phone_not_configured)
+
+        // 校验目标 assistant 存在(避免无效私聊请求)
+        val target = resultOf { assistantRepository.getById(targetAssistantId) }
+            .onError { msg, _ -> Logger.w("SkillExecutor", "agent_phone getById 失败: ") }
+            .getOrNull()
+        if (target == null) return context.getString(R.string.skill_agent_phone_target_not_found)
+
+        // launchWhisper 是非阻塞的(内部用 chatGenerationManager.launchGeneration 启动协程),
+        // 立即返回"已发起",AI 回复异步到达群聊消息流。
+        scheduler.launchWhisper(
+            chatId = chatId,
+            targetAssistantId = targetAssistantId,
+            text = message,
+        )
+        return context.getString(R.string.skill_whisper_sent, target.name)
+    }
     // ── 文件管理类 ──────────────────────────────────────────────────────
 
     /** list_dir — 列出目录下的文件和子目录(沙盒内)。 */
@@ -2196,7 +2275,7 @@ class SkillExecutor(
             SkillEntity(
                 id = "web_search",
                 name = "网页搜索",
-                description = "用配置好的搜索引擎(SearXNG/Tavily)搜索网页。返回标题、URL 和摘要。当用户问到需要最新信息的问题时调用此工具。",
+                description = "用配置好的搜索引擎(SearXNG/Tavily)搜索网页。返回标题、URL 和摘要。当用户问到需要最新信息的问题时调用此工具。使用时机: 用户问到需要最新/实时信息的问题(价格、版本、政策、行情、天气等),或你知识不确定时。不要使用: 常识性问题或用户已提供足够信息时;搜索结果不全时换关键词重搜,不要编造。",
                 parametersJson = buildJsonObject {
                     put("type", "object")
                     put("properties", buildJsonObject {
@@ -2226,7 +2305,7 @@ class SkillExecutor(
             SkillEntity(
                 id = "web_fetch",
                 name = "网页抓取",
-                description = "抓取指定 URL 的网页正文(自动去除 HTML 标签,返回纯文本)。用于读取 web_search 返回的 URL 全文内容。",
+                description = "抓取指定 URL 的网页正文(自动去除 HTML 标签,返回纯文本)。用于读取 web_search 返回的 URL 全文内容。使用时机: 读取 web_search 返回的 URL 全文,或用户给出明确 URL 时。不要使用: 无 URL 时;页面需要登录/交互时说明无法获取,不要猜测内容。",
                 parametersJson = buildJsonObject {
                     put("type", "object")
                     put("properties", buildJsonObject {
@@ -2446,6 +2525,35 @@ class SkillExecutor(
                 }.toString(),
                 requiredJson = """["chatId"]""",
                 implementationKotlin = "channel_read_context",
+                category = "agent",
+            ),
+            // ── v1.0.53 Phase 5: Agent Phone(主 agent 触发群聊成员私聊) ─────
+            SkillEntity(
+                id = "agent_phone",
+                name = "Agent 私聊",
+                description = "在群聊中向指定 agent 发起私聊(whisper)。传入 chatId(群聊 id)、targetAssistantId(目标 agent id)和 message(私聊内容)。私聊消息仅目标 agent 可见,不参与群聊轮转上下文,且会持久化到独立会话账本(App 重启后可续接)。调用后立即返回,目标 agent 的回复异步到达群聊消息流。",
+                parametersJson = buildJsonObject {
+                    put("type", "object")
+                    put("properties", buildJsonObject {
+                        put("chatId", buildJsonObject {
+                            put("type", "string")
+                            put("description", "群聊 id(用于隔离 whisper 上下文)")
+                        })
+                        put("targetAssistantId", buildJsonObject {
+                            put("type", "string")
+                            put("description", "目标 agent 的 id(assistantId)")
+                        })
+                        put("message", buildJsonObject {
+                            put("type", "string")
+                            put("description", "私聊消息正文")
+                        })
+                    })
+                    put("required", kotlinx.serialization.json.JsonArray(listOf(
+                        JsonPrimitive("chatId"), JsonPrimitive("targetAssistantId"), JsonPrimitive("message"),
+                    )))
+                }.toString(),
+                requiredJson = """["chatId","targetAssistantId","message"]""",
+                implementationKotlin = "agent_phone",
                 category = "agent",
             ),
             // ── 文件管理类 ─────────────────────────────────────────────────
@@ -2744,13 +2852,13 @@ class SkillExecutor(
             SkillEntity(
                 id = "list_stickers",
                 name = "列出表情包",
-                description = "列出表情包库中可用的表情包(可按分类筛选)。仅当用户已上传表情包时可用。",
+                description = "列出表情包库中可用的表情包(可按分类筛选)。仅当用户已上传表情包时可用。发送前先判断对话情绪:用户生气/难过时优先筛选安慰、可爱、治愈类分类;开心/兴奋时优先筛选庆祝、搞笑类分类。",
                 parametersJson = buildJsonObject {
                     put("type", "object")
                     put("properties", buildJsonObject {
                         put("category", buildJsonObject {
                             put("type", "string")
-                            put("description", "可选,按分类筛选表情包(如 猫猫/狗子)。不传则列出全部")
+                            put("description", "可选,按分类筛选表情包(如 猫猫/狗子)。不传则列出全部;建议结合对话情绪传入合适分类")
                         })
                     })
                     put("required", kotlinx.serialization.json.JsonArray(listOf()))
@@ -2762,7 +2870,7 @@ class SkillExecutor(
             SkillEntity(
                 id = "send_sticker",
                 name = "发送表情包",
-                description = "向用户发送一个表情包。先用 list_stickers 查看可用表情包,再用此工具发送。",
+                description = "向用户发送一个表情包。先用 list_stickers 查看可用表情包,再用此工具发送。选图原则:匹配对话情绪与语境,生气/难过时发安抚治愈类,开心时发庆祝搞笑类,避免在严肃话题中发过于沙雕的表情包。",
                 parametersJson = buildJsonObject {
                     put("type", "object")
                     put("properties", buildJsonObject {
@@ -2781,7 +2889,7 @@ class SkillExecutor(
             SkillEntity(
                 id = "generate_image",
                 name = "生成图片",
-                description = "根据文字描述生成图片。调用 AI 绘图模型(需配置 OpenAI 兼容绘图供应商)。返回图片 URL。",
+                description = "根据文字描述生成图片。调用 AI 绘图模型(需配置 OpenAI 兼容绘图供应商)。返回图片 URL。使用时机: 用户要求生成图片/海报/封面时。不要使用: 未配置绘图模型时(会失败,应告知用户去设置配置);prompt 尽量用英文描述主体/风格/构图。",
                 parametersJson = buildJsonObject {
                     put("type", "object")
                     put("properties", buildJsonObject {

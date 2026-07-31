@@ -1,77 +1,496 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- 言語選択ピッカー(他の設定文字列は既定の中国語にフォールバック) -->
+    <!-- Agent Settings -->
+    <string name="settings_agent_model_not_configured">未設定</string>
+    <string name="settings_agent_tool_model_not_set">未設定</string>
+    <string name="settings_agent_tool_model_not_set_inherit">未設定 (メインモデルを使用)</string>
+    <string name="settings_agent_section_assistant">エージェントアシスタント</string>
+    <string name="settings_agent_default_assistant_title">デフォルトのエージェントアシスタント</string>
+    <string name="settings_agent_loading">読み込み中...</string>
+    <string name="settings_agent_use_first_assistant">最初のアシスタントを使用する</string>
+    <string name="settings_agent_section_model">モデル</string>
+    <string name="settings_agent_current_model">現行モデル</string>
+    <string name="settings_agent_tool_model_title">ツールモデル</string>
+    <string name="settings_agent_multi_agent_section">マルチエージェントのコラボレーション</string>
+    <string name="settings_agent_collab_team">コラボレーションチーム</string>
+    <string name="settings_agent_multi_agent_enabled">有効 · %1$d チーム</string>
+    <string name="settings_agent_manage_collab_team">コラボレーションチームを管理する</string>
+    <string name="settings_agent_proactive_section">プロアクティブなメッセージ</string>
+    <string name="settings_agent_proactive_title">プロアクティブなメッセージ</string>
+    <string name="settings_agent_proactive_subtitle">エージェントはあなたが実際の人を好きだと積極的にメッセージを送ります</string>
+    <!-- v1.0.4 (P3-5): Boot auto-launch toggle — when enabled Muse auto-launches after boot,
+         ensuring proactive messages and scheduled tasks keep running after device restart. -->
+    <string name="settings_agent_boot_section">ブート自動起動</string>
+    <string name="settings_agent_boot_title">起動後の自動起動</string>
+    <string name="settings_agent_boot_subtitle">ブート完了後に自動的に Muse を開き、プロアクティブなメッセージとスケジュールされたタスクの実行を維持します。</string>
+    <string name="settings_agent_boot_warning">一部のブランドでは、システム設定で追加の「自動起動」権限が必要です。</string>
+    <string name="settings_agent_send_interval">送信間隔</string>
+    <string name="settings_agent_random_offset">ランダムオフセット</string>
+    <string name="settings_agent_send_agent">送り出しエージェント</string>
+    <string name="settings_agent_default_assistant_fallback">デフォルトのアシスタント</string>
+    <string name="settings_agent_select_assistant_title">エージェント アシスタントを選択します</string>
+    <string name="settings_agent_no_assistants_hint">まだアシスタントはいません。</string>
+    <string name="settings_agent_interval_hint">スライダーをドラッグして間隔を 15 分から 24 時間まで設定します。</string>
+    <string name="settings_agent_interval_15min">15分</string>
+    <string name="settings_agent_interval_24h">24時間</string>
+    <string name="settings_agent_offset_hint">送信時間が間隔内で自然に変動するようにします。</string>
+    <string name="settings_agent_offset_off_label">オフ</string>
+    <string name="settings_agent_select_model">エージェントモデルの選択</string>
+    <string name="settings_agent_no_models_hint">利用可能なモデルはありません。</string>
+    <string name="settings_agent_select_tool_model">ツールモデルの選択</string>
+    <string name="settings_agent_clear_tool_model">クリア（メインモデルを使用）</string>
+    <string name="settings_agent_unnamed_assistant">名前のないアシスタント</string>
+    <string name="settings_agent_interval_minutes">%1$d 分ごと</string>
+    <string name="settings_agent_interval_hourly">毎時</string>
+    <string name="settings_agent_interval_daily">毎日</string>
+    <string name="settings_agent_interval_hours">%1$d 時間ごと</string>
+    <string name="settings_agent_interval_hours_minutes">%1$d 時間 %2$d 分ごと</string>
+    <string name="settings_agent_offset_disabled">オフ（一定間隔）</string>
+    <string name="settings_agent_offset_minutes">±%1$d分</string>
+    <string name="settings_agent_offset_hours">±%1$d 時間</string>
+    <string name="settings_agent_offset_hours_minutes">± %1$d 時間 %2$d 分</string>
+
+    <!-- Appearance / Theme -->
     <string name="settings_theme_appearance">外観</string>
-    <string name="settings_theme_follow_system">システムに従う</string>
+    <string name="settings_theme_follow_system">フォローシステム</string>
     <string name="settings_theme_light">ライト</string>
     <string name="settings_theme_dark">ダーク</string>
     <string name="settings_theme_current_mode">現在のモード</string>
-    <string name="settings_theme_selected">選択中</string>
+    <string name="settings_theme_font_size">文字サイズ</string>
+    <string name="settings_theme_font_small">S</string>
+    <string name="settings_theme_font_medium">M</string>
+    <string name="settings_theme_font_large">L</string>
+    <string name="settings_theme_font_xlarge">XL</string>
+    <string name="settings_theme_font_small_label">小 (0.85x)</string>
+    <string name="settings_theme_font_large_label">大(1.15倍)</string>
+    <string name="settings_theme_font_xlarge_label">特大 (1.3x)</string>
+    <string name="settings_theme_font_medium_label">中 (デフォルト)</string>
+    <string name="settings_theme_current_font_size">現在のサイズ</string>
+    <string name="settings_theme_dynamic_color">ダイナミックカラー</string>
+    <string name="settings_theme_dynamic_color_supported">壁紙から色を抽出 (Android 12 以降)</string>
+    <string name="settings_theme_dynamic_color_unsupported">Android 12以降が必要です</string>
+    <string name="settings_theme_font_preview_title">プレビュー: フォント サイズ効果</string>
+    <string name="settings_theme_font_preview_body">本文サンプルです。</string>
+    <string name="settings_theme_font_preview_note">ちょっとしたメモ・補助ヒント用</string>
+    <string name="settings_theme_selected">選択済み</string>
+    <string name="settings_theme_preview">テーマプレビュー</string>
+    <string name="settings_theme_preview_hello">こんにちは</string>
+    <string name="settings_theme_preview_reply">こんにちは！</string>
     <string name="settings_theme_language">言語</string>
     <string name="settings_theme_language_zh">中国語</string>
     <string name="settings_theme_language_en">英語</string>
     <string name="settings_theme_language_ja">日本語</string>
-    <string name="settings_theme_language_ko">韓国語</string>
-    <string name="settings_theme_language_ru">ロシア語</string>
+    <string name="settings_theme_language_ko">韓国人</string>
+    <string name="settings_theme_language_ru">ロシア</string>
     <string name="settings_theme_current_language">現在の言語</string>
+    <string name="settings_default_home_page_title">デフォルトのホームページ</string>
+    <string name="settings_default_home_page_desc">アプリ起動時に表示されるページを選択してください</string>
 
-    <!-- 設定サブページ見出し -->
+    <!-- Settings Sub-pages / About -->
     <string name="settings_sub_model_services">モデルとサービス</string>
     <string name="settings_sub_user_profile">ユーザープロフィール</string>
+    <string name="settings_sub_user_profile_subtitle">年齢 / 都市 / MBTI など (AI パーソナライズ用)</string>
     <string name="settings_sub_data_backup">データとバックアップ</string>
-
-    <!-- 共通ボタン -->
-    <string name="settings_about_check_update">更新を確認</string>
-    <string name="settings_about_checking">確認中</string>
-    <string name="settings_about_up_to_date">最新バージョンです</string>
+    <string name="settings_about_version_full">バージョン %1$s (%2$d)</string>
+    <string name="settings_about_app_info">アプリ情報</string>
+    <string name="settings_about_feedback_section">フィードバック</string>
+    <string name="settings_about_update_section">アップデート</string>
+    <string name="settings_about_legal_section">法律上の</string>
+    <string name="settings_about_repo_section">オープンソース</string>
+    <string name="settings_about_account_section">アカウント</string>
+    <string name="settings_about_feedback_cd">フィードバック、タップして開きます</string>
     <string name="settings_about_feedback">フィードバック</string>
-    <string name="settings_about_got_it">了解</string>
+    <string name="settings_about_update_check_failed">更新チェックに失敗しました: %1$s</string>
+    <string name="settings_about_check_update_prefix">アップデートを確認し、</string>
+    <string name="settings_about_checking">チェック中</string>
+    <string name="settings_about_click_to_enter">タップして開きます</string>
+    <string name="settings_about_check_update">アップデートをチェックする</string>
+    <string name="settings_about_licenses_cd">オープンソースライセンス、タップして開きます</string>
+    <!-- v1.119: Open source repo entries (GitHub 5352124/Muse) -->
+    <string name="settings_about_repo_home">オープンソースリポジトリ</string>
+    <string name="settings_about_repo_home_cd">ソース リポジトリを開き、タップしてブラウザで GitHub を開きます</string>
+    <string name="settings_about_star">このプロジェクトにスターを付ける</string>
+    <string name="settings_about_star_cd">このプロジェクトにスターを付けて、タップしてブラウザで GitHub を開きます</string>
+    <string name="settings_about_issues">フィードバック (GitHub の問題)</string>
+    <string name="settings_about_issues_cd">フィードバック、タップしてブラウザで GitHub の問題を開きます</string>
+    <string name="settings_about_open_url_failed">このリンクを開くアプリが見つかりませんでした</string>
+    <string name="settings_about_show_onboarding_cd">オンボーディングを再度表示します。タップして開きます</string>
+    <string name="settings_about_show_onboarding">オンボーディングを再度表示する</string>
+    <string name="settings_about_logout_prefix">ログアウト、</string>
+    <string name="settings_about_processing">処理</string>
     <string name="settings_about_logout">ログアウト</string>
+    <string name="settings_about_logout_confirm">ログアウト後はログインページに戻ります。</string>
     <string name="settings_about_logout_button">ログアウト</string>
+    <string name="settings_about_new_version_title">新しいバージョンが利用可能になりました</string>
+    <string name="settings_about_new_version_desc">新しいバージョン%1$sが見つかりました。</string>
     <string name="settings_about_download">ダウンロード</string>
-    <string name="settings_about_processing">処理中</string>
+    <string name="settings_about_up_to_date">すでに最新です</string>
+    <string name="settings_about_got_it">わかった</string>
+    <string name="settings_feedback_android_version">Android バージョン: %1$s (API %2$d)</string>
+    <string name="settings_feedback_device_model">デバイスモデル: %1$s %2$s</string>
+    <string name="settings_feedback_app_version">アプリのバージョン: %1$s</string>
+    <string name="settings_feedback_subject">ミューズフィードバック</string>
+    <string name="settings_feedback_chooser_title">フィードバックを送信する</string>
+    <string name="settings_feedback_recipient">受信者: 2119280571@qq.com</string>
+    <string name="settings_feedback_subject_label">件名: ミューズフィードバック</string>
+    <string name="settings_feedback_no_email_app">メールアプリが見つかりませんでした。</string>
 
-    <!-- 既定ホームページ -->
-    <string name="settings_default_home_page_title">起動時の既定ページ</string>
-    <string name="settings_default_home_page_desc">アプリ起動時に表示するページを選択</string>
-
-    <!-- 外観/テーマ関連 -->
-    <string name="settings_theme_font_size">文字サイズ</string>
-    <string name="settings_theme_font_small">小</string>
-    <string name="settings_theme_font_medium">中</string>
-    <string name="settings_theme_font_large">大</string>
-    <string name="settings_theme_font_xlarge">特大</string>
-    <string name="settings_theme_current_font_size">現在のサイズ</string>
-    <string name="settings_theme_dynamic_color">ダイナミックカラー</string>
-    <string name="settings_theme_preview">テーマプレビュー</string>
-    <string name="settings_theme_preview_hello">こんにちは</string>
-    <string name="settings_theme_preview_reply">こんにちは!何かお手伝いしましょうか?</string>
-
-    <!-- カスタムテーマ -->
-    <string name="settings_theme_custom_section">カスタムテーマ</string>
-    <string name="settings_theme_custom_add">テーマを追加</string>
-    <string name="settings_theme_custom_edit">テーマを編集</string>
-    <string name="settings_theme_custom_create">テーマを作成</string>
-    <string name="settings_theme_custom_name">テーマ名</string>
-    <string name="settings_theme_custom_save">保存</string>
-    <string name="settings_theme_custom_delete">削除</string>
-    <string name="settings_theme_custom_delete_confirm">このテーマを削除しますか?</string>
-    <string name="settings_theme_custom_unnamed">無名</string>
-
-    <!-- 記憶と通知 -->
-    <string name="settings_memory_page_title">記憶と通知</string>
-    <string name="settings_memory_system_section">記憶システム</string>
+    <!-- Memory & Notifications -->
+    <string name="settings_memory_policy_never">一度もない</string>
+    <string name="settings_memory_policy_when_unfocused">焦点が合っていないとき</string>
+    <string name="settings_memory_policy_always">いつも</string>
+    <string name="settings_memory_page_title">メモリ&amp;通知</string>
+    <string name="settings_memory_system_section">メモリーシステム</string>
+    <string name="settings_memory_token_budget">トークンの予算</string>
+    <string name="settings_memory_token_budget_subtitle">ターゲットのmemory.mdの長さは、注入されるコンテキストの量に影響します</string>
+    <string name="settings_memory_decay_rate">減衰率</string>
+    <string name="settings_memory_decay_rate_title">減衰率 λ</string>
+    <string name="settings_memory_decay_rate_subtitle">高いほど忘れる速度が速くなります (0.01 遅い / 0.02 デフォルト / 0.04 速い)</string>
+    <string name="settings_memory_hit_bonus">ヒットボーナス</string>
+    <string name="settings_memory_hit_bonus_subtitle">頻繁に言及される記憶は、よりゆっくりと減衰します。</string>
+    <string name="settings_memory_compile_threshold">コンパイルしきい値</string>
+    <string name="settings_memory_compile_threshold_subtitle">このスコア未満のメモリは、memory.md に追加されません (%1$s 未満でなければなりません)</string>
+    <string name="settings_memory_forget_speed">スピードを忘れてください</string>
+    <string name="settings_memory_forget_speed_subtitle">1.0 通常 / 2.0 は 2 倍早く忘れます</string>
+    <string name="settings_memory_restore_default">デフォルトに戻す</string>
+    <string name="settings_memory_restore_default_subtitle">メモリパラメータを工場出荷時の値にリセット</string>
+    <string name="settings_memory_advanced_section">高度な</string>
+    <string name="settings_memory_experience_lib">体験ライブラリ</string>
+    <string name="settings_memory_experience_lib_subtitle">アシスタントは職務経験を要約し、後のタスクで参照します (文脈を汚す可能性があります)</string>
+    <string name="settings_memory_keep_awake">起きていてください</string>
+    <string name="settings_memory_keep_awake_subtitle">充電中は画面をオンにしておく</string>
+    <string name="settings_memory_auto_launch">起動時に自動起動</string>
+    <string name="settings_memory_auto_launch_subtitle">デバイスの起動時に Muse を自動的に開始する</string>
     <string name="settings_memory_notification_section">通知</string>
-    <string name="settings_memory_restore_default">既定に戻す</string>
-    <string name="settings_memory_advanced_section">詳細</string>
-    <string name="settings_memory_keep_awake">スリープ防止</string>
-    <string name="settings_memory_auto_launch">自動起動</string>
+    <string name="settings_memory_reply_notification_cd">返信完了通知</string>
     <string name="settings_memory_reply_notification">返信完了通知</string>
+    <string name="settings_memory_reply_notification_subtitle">AI 応答完了後に通知するタイミング</string>
 
-    <!-- データインポート -->
+    <!-- Data Import -->
     <string name="settings_import_page_title">データインポート</string>
-    <string name="settings_import_select_backup">バックアップファイルを選択(ZIP 形式)</string>
-    <string name="settings_importing">インポート中です。お待ちください...</string>
-    <string name="settings_import_complete">インポート完了</string>
-    <string name="settings_import_ready">準備完了、ファイルを選択</string>
+    <string name="settings_import_migrate_title">他のアプリからデータを移行する</string>
+    <string name="settings_import_migrate_desc">以前に RikkaHub または Kelivo を使用していた場合は、そのバックアップ ファイルを Muse にインポートできます。</string>
+    <string name="settings_import_step1">ステップ 1: バックアップをエクスポートする方法を学ぶ</string>
+    <string name="settings_import_rikkahub_desc">Android AIチャットクライアント</string>
+    <string name="settings_import_rikkahub_step1">1. RikkaHub アプリで設定を開きます</string>
+    <string name="settings_import_rikkahub_step2">2. 「バックアップ &amp; 同期」 オプションを見つけます。</string>
+    <string name="settings_import_rikkahub_step3">3. 「バックアップの作成」をタップして ZIP ファイルを生成します</string>
+    <string name="settings_import_step_remember">4. このファイルが保存された場所を覚えておいてください</string>
+    <string name="settings_import_kelivo_desc">クロスプラットフォーム AI チャット クライアント (Flutter)</string>
+    <string name="settings_import_kelivo_step1">1. Kelivo アプリで設定を開きます</string>
+    <string name="settings_import_kelivo_step2">2.「バックアップ&amp;復元」オプションを見つけます。</string>
+    <string name="settings_import_kelivo_step3">3. 「バックアップのエクスポート」をタップして ZIP ファイルを生成します</string>
+    <string name="settings_import_step2_title">ステップ 2: バックアップ ファイルを選択する</string>
+    <string name="settings_import_select_backup">バックアップファイル（ZIP形式）を選択</string>
+    <string name="settings_importing">インポート中です。お待​​ちください...</string>
+    <string name="settings_import_tips">ヒント:\n• インポートされたプロバイダー設定の場合、API キーが正しいことを手動で確認する必要がある場合があります\n• インポートされた会話は新しいセッションとして作成され、既存のデータは上書きされません\n• インポートが失敗した場合は、バックアップ ファイルが完了していることを確認してください</string>
+    <string name="settings_import_ready">準備ができました。ファイルを選択してください</string>
+    <string name="settings_import_complete">インポートが完了しました</string>
+    <string name="settings_import_providers_count">プロバイダー: %1$d</string>
+    <string name="settings_import_assistants_count">アシスタント: %1$d</string>
+    <string name="settings_import_conversations_count">会話: %1$d</string>
+    <string name="settings_import_messages_count">メッセージ: %1$d</string>
+    <string name="settings_import_errors_count">いくつかのエラー (%1$d):</string>
+    <!-- P3-1: CherryStudio / Chatbox JSON import (reuses ConfigImporter) -->
+    <string name="settings_import_cherrystudio_title">CherryStudio / チャットボックス</string>
+    <string name="settings_import_cherrystudio_desc">デスクトップ AI クライアント (JSON 構成)</string>
+    <string name="settings_import_cherrystudio_step1">1.CherryStudio/チャットボックスで設定を開きます</string>
+    <string name="settings_import_cherrystudio_step2">2. 「データのエクスポート」または「構成のエクスポート」を見つけます。</string>
+    <string name="settings_import_cherrystudio_step3">3. プロバイダー構成を JSON ファイルとしてエクスポートする</string>
+    <string name="settings_import_json_skipped_count">スキップされました (フィールドの競合または欠落): %1$d</string>
+    <string name="settings_import_json_names">プロバイダー: %1$s</string>
+    <string name="settings_import_json_no_result">プロバイダーが検出されませんでした。</string>
+
+    <!-- Speech Recognition (ASR) -->
+    <string name="settings_asr_provider_hint">SYSTEM はシステム インテントを使用します (中国の ROM では使用できない場合があります)。</string>
+    <string name="settings_asr_provider_system">システム</string>
+    <string name="settings_asr_provider_file">ファイル (実験的)</string>
+    <string name="settings_asr_api_key">APIキー</string>
+    <string name="settings_asr_hide">隠れる</string>
+    <string name="settings_asr_show">見せる</string>
+    <string name="settings_asr_saved_api_key">APIキーが保存されました</string>
+    <string name="settings_asr_save_api_key">APIキーの保存</string>
+    <string name="settings_asr_model">モデル</string>
+    <string name="settings_asr_saved_model">モデルが保存されました</string>
+    <string name="settings_asr_save_model">モデルの保存</string>
+    <string name="settings_asr_sample_rate">サンプルレート</string>
+    <string name="settings_asr_sample_rate_subtitle">%1$d Hz (16000 を推奨、変更するには再録音が必要)</string>
+    <string name="settings_asr_language_code">言語コード (例: zh / en / ja)</string>
+    <string name="settings_asr_saved_language">言語が保存されました</string>
+    <string name="settings_asr_save_language">言語を保存</string>
+    <string name="settings_asr_punctuation">句読点の予測</string>
+    <string name="settings_asr_punctuation_desc">DashScope v2 は句読点 (中国語のカンマ/ピリオド) を自動的に追加します</string>
+    <string name="settings_asr_itn">逆テキスト正規化</string>
+    <string name="settings_asr_itn_desc">漢数字 → アラビア数字 (例: 「三百」 → 「300」)</string>
+    <string name="settings_asr_audio_url">音声ファイルの URL (一般にアクセス可能、OSS など)</string>
+    <string name="settings_asr_saved_audio_url">音声 URL が保存されました</string>
+    <string name="settings_asr_save_audio_url">音声 URL を保存</string>
+    <string name="settings_asr_poll_interval">ポーリング間隔 (ミリ秒、デフォルトは 3000)</string>
+    <string name="settings_asr_saved_poll_interval">ポーリング間隔が保存されました</string>
+    <string name="settings_asr_save_poll_interval">ポーリング間隔の保存</string>
+    <string name="settings_asr_poll_timeout">合計ポーリング タイムアウト (ミリ秒、デフォルトは 300000 = 5 分)</string>
+    <string name="settings_asr_saved_poll_timeout">ポーリングタイムアウトが保存されました</string>
+    <string name="settings_asr_save_poll_timeout">ポーリングタイムアウトの保存</string>
+    <!-- New: OpenAI-compatible / Realtime / Agnes providers -->
+    <string name="settings_asr_provider_openai_whisper">ささやき</string>
+    <string name="settings_asr_provider_openai_realtime">リアルタイム</string>
+    <string name="settings_asr_provider_agnes">アグネス</string>
+    <string name="settings_asr_base_url">ベース URL (カスタムリレー、デフォルトでは空白)</string>
+    <string name="settings_asr_saved_base_url">ベース URL が保存されました</string>
+    <string name="settings_asr_save_base_url">ベース URL を保存</string>
+    <!-- New: hot words -->
+    <string name="settings_asr_hotwords">ホットワード (カンマ区切り、固有名詞の認識を向上)</string>
+    <string name="settings_asr_saved_hotwords">ホットワードが保存されました</string>
+    <string name="settings_asr_save_hotwords">ホットワードを保存する</string>
+    <!-- New: VAD silence detection -->
+    <string name="settings_asr_vad">ローカル VAD 無音検出</string>
+    <string name="settings_asr_vad_desc">無音がしきい値を超えると録音を自動停止します (OPENAI_REALTIME はサーバー側の VAD を使用します)</string>
+    <string name="settings_asr_vad_threshold">VAD しきい値 (0 ～ 1、デフォルト 0.05 ≈ -46dB)</string>
+    <string name="settings_asr_vad_silence">無音自動停止時間 (ms、デフォルト 1500)</string>
+    <string name="settings_asr_saved_vad">VAD 設定が保存されました</string>
+    <string name="settings_asr_save_vad">VAD 構成の保存</string>
+
+    <!-- Knowledge Base Retrieval (RAG) -->
+    <string name="settings_rag_page_title">ナレッジベースの検索</string>
+    <string name="settings_rag_injection_section">回収注入</string>
+    <string name="settings_rag_auto_inject">自動インジェクトのナレッジベース</string>
+    <string name="settings_rag_auto_inject_subtitle">関連する知識を自動的に取得し、チャット中にそれをコンテキストに挿入します</string>
+    <string name="settings_rag_embedding_source_section">埋め込みソース</string>
+    <string name="settings_rag_cloud_api">クラウドAPI</string>
+    <string name="settings_rag_cloud_api_subtitle">品質第一、ネットワークと API キーが必要</string>
+    <string name="settings_rag_local_keyword">ローカルキーワード (オフライン)</string>
+    <string name="settings_rag_local_keyword_subtitle">ネットワークは必要ありません。</string>
+    <string name="settings_rag_cloud_provider_section">クラウドプロバイダー</string>
+    <string name="settings_rag_no_provider_hint">まだプロバイダーが設定されていません。</string>
+    <string name="settings_rag_baseurl_not_set">ベースURLが設定されていません</string>
+    <string name="settings_rag_deselect_hint">選択したプロバイダーをタップして選択を解除します (アクティブなプロバイダーに戻ります)。</string>
+    <string name="settings_rag_embedding_model_section">埋め込みモデル</string>
+    <string name="settings_rag_model_name_hint">モデル名 (プロバイダーのデフォルトを使用するには空白のままにします)</string>
+    <string name="settings_rag_common_models">一般的なモデル: text-embedding-3-small (1536d) / text-embedding-3-large (3072d) /embedding-2 (1024d)</string>
+    <string name="settings_rag_search_params_section">取得パラメータ</string>
+    <string name="settings_rag_top_k">取得数 (上位 K)</string>
+    <string name="settings_rag_similarity_threshold">類似性のしきい値</string>
+    <string name="settings_rag_similarity_threshold_subtitle">この値を下回る結果は挿入されません (値が大きいほど厳密です)</string>
+    <string name="settings_rag_chunk_params_section">チャンクパラメータ</string>
+    <string name="settings_rag_chunk_size">チャンクサイズ</string>
+    <string name="settings_rag_chunk_size_subtitle">ターゲット文字数 (大きいほど、より完全なコンテキスト、より多くのトークンを意味します)</string>
+    <string name="settings_rag_chunk_overlap">チャンクのオーバーラップ</string>
+    <string name="settings_rag_chunk_overlap_subtitle">隣接するチャンク間で重複する文字 (コンテキストの一貫性を維持)</string>
+    <!-- v1.133: RAG advanced retrieval -->
+    <string name="settings_rag_advanced_section">高度な検索</string>
+    <string name="settings_rag_mmr_lambda">MMR ダイバーシティ</string>
+    <string name="settings_rag_mmr_lambda_subtitle">0=純粋な多様性、1=純粋な類似性、デフォルトは0.5</string>
+    <string name="settings_rag_hybrid">ハイブリッド検索</string>
+    <string name="settings_rag_hybrid_subtitle">BM25 キーワード + ベクトル類似性 RRF 融合</string>
+    <string name="settings_rag_rerank">リランク</string>
+    <string name="settings_rag_rerank_subtitle">上位 K×5 候補に対するクロスエンコーダーの再ランキング</string>
+    <string name="settings_rag_token_budget">トークンの予算</string>
+    <string name="settings_rag_token_budget_subtitle">0=無制限。</string>
+    <string name="settings_rag_markdown_aware">マークダウン対応のチャンク化</string>
+    <string name="settings_rag_markdown_aware_subtitle">コードブロック/ヘッダー/テーブルを保持し、分割を回避します</string>
+    <string name="settings_rag_chunk_by_token">トークンベースのチャンキング</string>
+    <string name="settings_rag_chunk_by_token_subtitle">有効にすると、トークン数によってチャンク化されます (CJK+ラテン語混合の場合により正確です)。</string>
+    <!-- v1.0.47 P7-1: Document parser config -->
+    <string name="settings_rag_parser_section">ドキュメントパーサー</string>
+    <string name="settings_rag_parser_local">ローカルパーサー</string>
+    <string name="settings_rag_parser_local_subtitle">ローカル解析、txt/pdf/docx/pptx/xlsx/epub をサポート</string>
+    <string name="settings_rag_parser_cloud">クラウドパーサー</string>
+    <string name="settings_rag_parser_cloud_subtitle">クラウド API、複雑なレイアウト/スキャンされたドキュメント用 (エンドポイントが必要)</string>
+    <string name="settings_rag_parser_mineru">マイナーU</string>
+    <string name="settings_rag_parser_mineru_subtitle">MinerU API、学術的な PDF/数式/表に優れています (エンドポイントが必要)</string>
+    <string name="settings_rag_cloud_parser_endpoint">クラウドパーサーエンドポイント</string>
+    <string name="settings_rag_mineru_endpoint">MinerU エンドポイント</string>
+    <string name="settings_rag_notes_section">注意事項</string>
+    <string name="settings_rag_note1">• チャンクパラメータを変更すると、新しくインポートされたドキュメントは新しいパラメータを使用します。</string>
+    <string name="settings_rag_note2">• すでにインデックスが作成されているドキュメントは、自動的に再チャンク化されません。</string>
+    <string name="settings_rag_note3">•Knowledge_search ツールは、自動挿入の切り替えに関係なく、常に使用できます。</string>
+
+    <!-- v1.133: Multi-KB management -->
+    <string name="settings_rag_manage_kbs">ナレッジベースの管理</string>
+    <string name="settings_rag_manage_kbs_subtitle">ナレッジベースの作成、名前変更、削除</string>
+    <string name="kb_manage_page_title">知識ベース</string>
+    <string name="kb_manage_default_name">デフォルトのナレッジベース</string>
+    <string name="kb_manage_default_desc">KB が指定されていないドキュメントはデフォルトでここに移動します</string>
+    <string name="kb_manage_create">新しい知識ベース</string>
+    <string name="kb_manage_name_label">名前</string>
+    <string name="kb_manage_desc_label">説明 (オプション)</string>
+    <string name="kb_manage_edit">編集</string>
+    <string name="kb_manage_delete">消去</string>
+    <string name="kb_manage_delete_confirm">ナレッジベース「%1$s」を削除しますか?</string>
+    <string name="kb_manage_delete_warning">これにより、このナレッジ ベース内のすべてのドキュメントとインデックスが削除されます。</string>
+    <string name="kb_manage_default_no_delete">デフォルトのナレッジベースは削除できません</string>
+    <string name="kb_manage_doc_count">%1$d ドキュメント</string>
+    <string name="kb_manage_empty">ナレッジベースはまだありません。</string>
+    <string name="kb_manage_name_empty">名前を空にすることはできません</string>
+    <string name="kb_manage_created">ナレッジベース「%1$s」を作成しました</string>
+    <string name="kb_manage_updated">ナレッジベース「%1$s」を更新しました。</string>
+    <string name="kb_manage_deleted">ナレッジベース「%1$s」を削除しました</string>
+    <string name="kb_switch_title">スイッチのナレッジベース</string>
+    <string name="kb_switch_all">すべてのナレッジベース</string>
+    <string name="kb_reindex_all">すべてのドキュメントのインデックスを再作成する</string>
+    <string name="kb_reindex_all_confirm">現在のナレッジ ベース内のすべてのドキュメントのインデックスを再作成しますか?</string>
+    <string name="kb_reindex_all_warning">既存のチャンクとベクトル インデックスは削除され、現在のチャンク パラメータを使用して再生成されます。</string>
+    <string name="kb_reindex_in_progress">インデックスを再作成中…%1$d/%2$d</string>
+    <string name="kb_reindex_done">インデックスの再作成が完了しました。</string>
+    <string name="kb_reindex_failed">インデックスの再作成に失敗しました: %1$s</string>
+    <string name="assistant_detail_ext_knowledge_base">ナレッジベース</string>
+
+    <!-- Security & Sharing -->
+    <string name="settings_security_page_title">セキュリティ&amp; 共有</string>
+    <string name="settings_security_app_lock_section">アプリロック</string>
+    <string name="settings_security_pin_enabled">PIN が有効です</string>
+    <string name="settings_security_pin_disabled">PIN が無効です</string>
+    <string name="settings_security_pin_enabled_subtitle">アプリに入るにはPINが必要です</string>
+    <string name="settings_security_pin_disabled_subtitle">4～8桁のPINロック画面を設定する</string>
+    <string name="settings_security_set_new_pin">新しいPINを設定(4～8桁)</string>
+    <string name="settings_security_set_pin">暗証番号を設定する</string>
+    <string name="settings_security_remove">取り除く</string>
+    <string name="settings_security_biometric_section">生体認証</string>
+    <string name="settings_security_biometric_title">生体認証によるロック解除</string>
+    <string name="settings_security_biometric_available">指紋認証または顔認証によるロック解除が可能</string>
+    <string name="settings_security_biometric_unavailable">このデバイスでは生体認証を利用できません</string>
+    <string name="biometric_prompt_title">ミューズのロックを解除する</string>
+    <string name="biometric_prompt_subtitle">指紋または顔を使用して認証します</string>
+    <string name="settings_security_share_template_section">テンプレートを共有する</string>
+    <string name="settings_security_include_timestamp">タイムスタンプを含める</string>
+    <string name="settings_security_include_timestamp_subtitle">会話を共有するときにメッセージ時間を追加する</string>
+    <string name="settings_security_include_model">モデル名を含める</string>
+    <string name="settings_security_include_model_subtitle">共有時に生成モデル名を付ける</string>
+    <string name="settings_security_include_tokens">トークン数を含める</string>
+    <string name="settings_security_include_tokens_subtitle">共有時にメッセージごとのトークンを添付する</string>
+    <string name="settings_security_include_mood">MOODブロックを含める</string>
+    <string name="settings_security_include_mood_subtitle">共有するときに AI の内部ドラフトを添付します</string>
+    <string name="settings_security_include_reasoning">推論を含める</string>
+    <string name="settings_security_include_reasoning_subtitle">共有するときに AI の推論プロセスを添付する</string>
+    <string name="settings_security_share_format">共有フォーマット</string>
+    <string name="settings_security_format_plain_text">プレーンテキスト</string>
+    <string name="settings_security_browser_section">ブラウザ</string>
+    <string name="settings_security_default_search_engine">デフォルトの検索エンジン</string>
+    <string name="settings_security_default_search_engine_subtitle">AIがウェブを検索する際に使用されるエンジン</string>
+    <string name="settings_security_search_auto">自動</string>
+    <string name="settings_security_search_custom_api">カスタムAPI</string>
+
+    <!-- Image Generation -->
+    <string name="settings_image_gen_section">画像生成</string>
+    <string name="settings_image_gen_size">サイズ</string>
+    <string name="settings_image_gen_quality">品質</string>
+    <string name="settings_image_gen_quality_standard">標準</string>
+    <string name="settings_image_gen_quality_hd">HD</string>
+    <string name="settings_image_gen_style">スタイル</string>
+    <string name="settings_image_gen_style_vivid">鮮やかな</string>
+    <string name="settings_image_gen_style_natural">自然</string>
+    <string name="settings_image_gen_count">カウント</string>
+    <string name="settings_image_gen_count_n">%1$d 画像</string>
+    <string name="settings_image_gen_select_provider">画像プロバイダーを選択してください</string>
+    <string name="settings_image_gen_select_model">画像モデルの選択</string>
+    <string name="settings_image_gen_select_default">タップしてデフォルトの画像プロバイダーを選択します</string>
+    <string name="settings_image_gen_no_provider">利用可能な画像プロバイダーがありません</string>
+    <string name="settings_image_gen_provider">プロバイダー</string>
+    <string name="settings_image_gen_model_label">モデル</string>
+    <string name="settings_image_gen_no_model">このプロバイダーで使用できるイメージ モデルはありません</string>
+    <string name="settings_image_gen_selected">選択済み</string>
+
+    <!-- Video Generation -->
+    <string name="settings_video_gen_section">ビデオ生成</string>
+    <string name="settings_video_gen_duration">間隔</string>
+    <string name="settings_video_gen_duration_5">5秒</string>
+    <string name="settings_video_gen_duration_10">10秒</string>
+    <string name="settings_video_gen_resolution">解決</string>
+    <string name="settings_video_gen_select_provider">ビデオプロバイダーを選択してください</string>
+    <string name="settings_video_gen_select_model">ビデオモデルの選択</string>
+    <string name="settings_video_gen_select_default">タップしてデフォルトのビデオプロバイダーを選択します</string>
+    <string name="settings_video_gen_no_provider">利用可能なビデオプロバイダーがありません</string>
+    <string name="settings_video_gen_provider">プロバイダー</string>
+    <string name="settings_video_gen_model_label">モデル</string>
+    <string name="settings_video_gen_no_model">このプロバイダーで利用できるビデオ モデルはありません</string>
+    <string name="settings_video_gen_selected">選択済み</string>
+
+    <!-- Media -->
+    <string name="settings_media_page_title">メディア</string>
+    <string name="settings_media_recording_section">音声録音</string>
+    <string name="settings_media_sample_rate">サンプルレート</string>
+    <string name="settings_media_sample_rate_subtitle">高いほど品質は高くなりますが、ファイルが大きくなります</string>
+    <string name="settings_media_bit_rate">ビットレート</string>
+    <string name="settings_media_bit_rate_subtitle">録音ファイルのサイズと品質</string>
+    <string name="settings_media_tts_section">音声の再生</string>
+    <string name="settings_media_tts_enable">TTS 音声再生を有効にする</string>
+    <string name="settings_media_tts_enable_subtitle">AIが応答したら自動で読み上げます</string>
+    <string name="settings_media_speech_rate">発話速度</string>
+    <string name="settings_media_speech_rate_subtitle">0.5x 低速 / 1.0x 通常 / 2.0x 高速</string>
+    <string name="settings_media_pitch">ピッチ</string>
+    <string name="settings_media_pitch_subtitle">0.5 低 / 1.0 標準 / 2.0 高</string>
+    <string name="settings_media_output_section">オーディオ出力</string>
+    <string name="settings_media_output_method">出力方法</string>
+    <string name="settings_media_output_method_subtitle">スピーカーとイヤホンを切り替える</string>
+    <string name="settings_media_output_speaker">スピーカー</string>
+    <string name="settings_media_output_earpiece">イヤホン</string>
+    <string name="settings_media_output_bluetooth">ブルートゥース</string>
+
+    <!-- Cloud TTS engine configuration -->
+    <string name="settings_media_cloud_tts_section">クラウドTTSエンジン</string>
+    <string name="settings_media_tts_engine">TTSエンジン</string>
+    <string name="settings_media_tts_engine_system">システムTTS</string>
+    <string name="settings_media_tts_engine_openai">OpenAI TTS</string>
+    <string name="settings_media_tts_engine_minimax">ミニマックス TTS</string>
+    <string name="settings_media_tts_engine_edge">エッジTTS</string>
+    <string name="settings_media_tts_engine_gemini">ジェミニTTS</string>
+    <string name="settings_media_tts_engine_dashscope">DashScope TTS (OpenAI 互換)</string>
+    <string name="settings_media_tts_engine_fish">フィッシュオーディオTTS</string>
+    <string name="settings_media_tts_engine_elevenlabs">イレブンラボ TTS</string>
+    <string name="settings_media_tts_engine_groq">グロク TTS</string>
+    <string name="settings_media_tts_engine_qwen">クウェンTTS</string>
+    <string name="settings_media_tts_engine_step">ステップTTS</string>
+    <string name="settings_media_tts_engine_xai">xAI TTS</string>
+    <string name="settings_media_tts_api_key">APIキー</string>
+    <string name="settings_media_tts_voice">音声 / 音声 ID</string>
+    <string name="settings_media_tts_voice_selector">TTSボイス</string>
+    <string name="settings_media_tts_voice_default">デフォルト</string>
+    <string name="settings_media_tts_voice_placeholder">デフォルトでは空白のままにしておきます</string>
+    <string name="settings_media_tts_model">モデル</string>
+    <string name="settings_media_tts_model_placeholder">デフォルトでは空白のままにしておきます</string>
+    <string name="settings_media_tts_endpoint">カスタムエンドポイント</string>
+    <string name="settings_media_tts_endpoint_placeholder">公式エンドポイントの場合は空白のままにします</string>
+    <string name="settings_media_tts_save_api_key">APIキーの保存</string>
+    <string name="settings_media_tts_save_voice">音声を保存する</string>
+    <string name="settings_media_tts_save_model">モデルの保存</string>
+    <string name="settings_media_tts_save_endpoint">エンドポイントの保存</string>
+    <string name="settings_media_tts_show">見せる</string>
+    <string name="settings_media_tts_hide">隠れる</string>
+    <string name="settings_media_tts_saved">保存されました</string>
+    <!-- v1.99: Cloud voice dynamic fetching -->
+    <string name="settings_media_tts_voice_fetch">ボイスリストを取得する</string>
+    <string name="settings_media_tts_voice_fetching">取得中…</string>
+    <string name="settings_media_tts_voice_fetch_empty">声は返ってこない</string>
+    <string name="settings_media_tts_voice_fetch_failed">フェッチに失敗しました。</string>
+    <string name="settings_media_tts_voice_pick">声を選ぶ</string>
+    <!-- v1.99: Advanced TTS parameters -->
+    <string name="settings_media_tts_advanced_section">高度なパラメータ</string>
+    <string name="settings_media_tts_stability">安定性 (イレブンラボ)</string>
+    <string name="settings_media_tts_similarity">類似性ブースト (イレブンラボ)</string>
+    <string name="settings_media_tts_emotion">エモーション (ミニマックス)</string>
+    <string name="settings_media_tts_emotion_placeholder">嬉しい / 悲しい / 怒っている / 中立</string>
+    <string name="settings_media_tts_cloud_speed">合成速度</string>
+    <string name="settings_media_tts_response_format">音声フォーマット</string>
+    <string name="settings_media_tts_save_advanced">パラメータの保存</string>
+    <!-- ===== Custom theme ===== -->
+    <string name="settings_theme_custom_section">カスタムテーマ</string>
+    <string name="settings_theme_custom_add">テーマの追加</string>
+    <string name="settings_theme_custom_edit">テーマの編集</string>
+    <string name="settings_theme_custom_create">テーマの作成</string>
+    <string name="settings_theme_custom_name">テーマ名</string>
+    <string name="settings_theme_custom_name_placeholder">テーマに名前を付けます</string>
+    <string name="settings_theme_custom_presets">厳選されたパレット (タップして入力)</string>
+    <string name="settings_theme_custom_primary_color">原色</string>
+    <string name="settings_theme_custom_secondary_color">二次色 (オプション)</string>
+    <string name="settings_theme_custom_tertiary_color">三次色 (オプション)</string>
+    <string name="settings_theme_custom_preview">カラープレビュー</string>
+    <string name="settings_theme_custom_save">保存</string>
+    <string name="settings_theme_custom_delete">消去</string>
+    <string name="settings_theme_custom_delete_confirm">このテーマを削除しますか?</string>
+    <string name="settings_theme_custom_delete_confirm_msg">これを元に戻すことはできません。</string>
+    <string name="settings_theme_custom_empty">カスタムテーマはまだありません。</string>
+    <string name="settings_theme_custom_unnamed">無題</string>
+    <string name="settings_theme_custom_color_h">色相</string>
+    <string name="settings_theme_custom_color_s">飽和</string>
+    <string name="settings_theme_custom_color_l">軽さ</string>
 </resources>

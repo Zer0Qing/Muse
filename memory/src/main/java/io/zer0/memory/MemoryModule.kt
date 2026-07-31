@@ -49,6 +49,10 @@ val memoryModule: Module = module {
     single { get<MemoryDb>().dailyStateDao() }
     single { get<MemoryDb>().compiledSectionDao() }
     single { get<FactDb>().factDao() }
+    // v1.0.52 P2-2: 多 Space 隔离 DAO
+    single { get<FactDb>().memorySpaceDao() }
+    // v1.0.52 P2-3: 记忆知识图谱边 DAO
+    single { get<FactDb>().memoryLinkDao() }
 
     // ── 核心服务 ──
     single { SessionSummaryManager(get(), get()) }   // dao + llmClient
@@ -57,6 +61,9 @@ val memoryModule: Module = module {
     single { MemoryCompiler(get(), get(), get()) }    // sectionDao + llmClient + fileWriter
     single { FactStore(get(), get()) }                // factDao + factDb（v1.0.27 P0-1.3: addBatch 事务需要）
     single { DeepMemoryProcessor(get<io.zer0.memory.fact.FactDbProvider>(), get()) }  // factDbProvider + llmClient
+
+    // v1.0.52 P2-2: 记忆空间仓库(Space CRUD + 事实迁移)
+    single { io.zer0.memory.space.MemorySpaceRepository(get()) }
 
     // 置顶记忆存储(openhanako pinned-memory-store.ts)
     single { io.zer0.memory.pin.PinnedMemoryStore(java.io.File(androidContext().filesDir, "pinned_memory")) }

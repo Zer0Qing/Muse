@@ -69,10 +69,18 @@ class ConversationCompressor(
         val chunks = chunkMessages(toCompress, CHUNK_SIZE)
         Logger.i(TAG, "compress: ${toCompress.size} 条消息分为 ${chunks.size} 块并行压缩")
 
+        // v1.0.52: 读取用户自定义压缩 prompt(null/空串表示用默认)
+        val customPrompt = resultOf { settingsRepository.customCompressPromptFlow.first() }
+            .getOrNull()
+            ?.takeIf { it.isNotBlank() }
+        if (customPrompt != null) {
+            Logger.i(TAG, "compress: 使用用户自定义压缩 prompt")
+        }
+
         // 并行压缩每块(v1.0.51: 用 Semaphore 限制并发,避免大量块同时调 LLM 轰炸 API)
         return coroutineScope {
             chunks.map { chunk ->
-                async { chunkSemaphore.withPermit { compressChunk(chunk) } }
+                async { chunkSemaphore.withPermit { compressChunk(chunk, customPrompt) } }
             }.let { deferredList ->
                 deferredList.map { it.await() }
             }
@@ -98,15 +106,32 @@ class ConversationCompressor(
     /**
      * 压缩单块消息为摘要文本。
      * 失败时返回占位文本(不抛异常),保证并行流程不因单块失败而中断。
+     *
+     * v1.0.52: 支持 [customPrompt] 参数 — 用户可在设置中覆盖默认压缩指令。
+     * 非空时用用户自定义指令替代默认的结构化指令,对话历史仍以相同格式追加。
+     *
+     * @param chunk 待压缩的消息块
+     * @param customPrompt 用户自定义压缩指令(null/空串表示用默认结构化指令)
      */
-    private suspend fun compressChunk(chunk: List<UIMessage>): String {
+    private suspend fun compressChunk(chunk: List<UIMessage>, customPrompt: String? = null): String {
         val (providerConfig, model) = resolveCompressModel()
 
         val prompt = buildString {
-            appendLine("请把下面的对话历史压缩成简洁的摘要,保留关键信息(事实/决策/用户偏好)。")
-            appendLine("- 用要点形式,每点一行")
-            appendLine("- 不要编造未提及的内容")
-            appendLine("- 总长度不超过 800 字")
+            if (!customPrompt.isNullOrBlank()) {
+                // v1.0.52: 用户自定义压缩指令
+                appendLine(customPrompt)
+            } else {
+                // 默认结构化压缩指令
+                appendLine("请把下面的对话历史压缩成简洁的摘要,保留关键信息(事实/决策/用户偏好)。")
+                appendLine("按以下结构组织摘要(每节用要点形式,每点一行;某节无内容可省略):")
+                appendLine("- Key topics: 讨论了哪些主题,以及为什么重要(粗颗粒,不要流水账)")
+                appendLine("- Decisions: 做出了哪些决策,以及背后的理由")
+                appendLine("- Current work: 正在进行的工作及其当前状态")
+                appendLine("- Next steps: 待办的下一步、未解决的问题、需要后续跟进的事项")
+                appendLine("- User preferences: 用户表现出的偏好或约束(如有)")
+                appendLine("- 不要编造未提及的内容")
+                appendLine("- 总长度不超过 800 字")
+            }
             appendLine()
             appendLine("对话历史:")
             chunk.forEach { msg ->

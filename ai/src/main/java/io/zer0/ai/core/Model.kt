@@ -46,6 +46,17 @@ data class Model(
      * null 或 grounding=false 表示模型只能描述图片(note-only 路径)。
      */
     val visionCapabilities: VisionCapabilities? = null,
+    /**
+     * v1.0.53: 模型数据来源与可信度标注,让 UI 向用户提示"未验证/异常字段"。
+     *
+     * - [ModelVerification.VERIFIED]: 命中本地规格文档(KnownModels),字段已校准,可放心使用
+     * - [ModelVerification.UNVERIFIED]: 未命中本地文档,完全采用上游返回数据,字段可能不准
+     * - [ModelVerification.SUSPICIOUS]: 命中本地文档但上游返回存在明显异常(如 contextWindow=0、
+     *   纯文本模型被标为 vision),已用本地数据覆盖,但提示用户上游声明可疑
+     *
+     * 默认 UNVERIFIED,由 [ModelRegistry.enhanceModel] 在 listModels 流程中填充。
+     */
+    val verification: ModelVerification = ModelVerification.UNVERIFIED,
 ) {
     /**
      * 便捷判断:是否支持工具调用。
@@ -107,3 +118,21 @@ enum class ModelAbility { TOOL, REASONING }
  */
 @Serializable
 enum class BuiltInTool { SEARCH, URL_CONTEXT, IMAGE_GENERATION }
+
+/**
+ * v1.0.53: 模型数据可信度标注。
+ *
+ * 用于让 UI 向用户提示模型字段是否经过本地校准:
+ * - [VERIFIED]: 命中本地规格文档(KnownModels),关键字段已校准
+ * - [UNVERIFIED]: 未命中本地文档,完全采用上游返回数据
+ * - [SUSPICIOUS]: 命中本地文档但上游声明存在明显异常,已用本地数据覆盖
+ *
+ * 由 [io.zer0.ai.registry.ModelRegistry.enhanceModel] 在 listModels 流程中填充,
+ * UI 可据此在模型选择页加角标(如"已校准"/"未验证"/"上游声明可疑")。
+ */
+@Serializable
+enum class ModelVerification {
+    VERIFIED,
+    UNVERIFIED,
+    SUSPICIOUS,
+}

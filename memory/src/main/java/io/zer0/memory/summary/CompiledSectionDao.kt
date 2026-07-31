@@ -17,7 +17,17 @@ interface CompiledSectionDao {
     @Query("SELECT * FROM compiled_sections")
     suspend fun getAll(): List<CompiledSectionEntity>
 
-    @Query("UPDATE compiled_sections SET content = :content, fingerprint = :fingerprint, updated_at = :now WHERE section_key = :key")
+    /**
+     * v1.0.53: 改为 UPSERT 语义 — 原 UPDATE 在表初始为空时影响 0 行,
+     * 首次编译写入静默丢失,导致 compiled_sections 永远为空、memory.md 全空。
+     * INSERT ... ON CONFLICT DO UPDATE 兼容首次与后续写入。
+     */
+    @Query(
+        "INSERT INTO compiled_sections (section_key, content, fingerprint, updated_at) " +
+            "VALUES (:key, :content, :fingerprint, :now) " +
+            "ON CONFLICT(section_key) DO UPDATE SET " +
+            "content = :content, fingerprint = :fingerprint, updated_at = :now",
+    )
     suspend fun updateContent(key: String, content: String, fingerprint: String?, now: String)
 
     @Query("UPDATE compiled_sections SET content = '', fingerprint = NULL, updated_at = :now")

@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shared.kt -->
+    <string name="settings_selected_suffix">、選択済み</string>
+
+    <!-- ProviderBrandAssets.kt -->
+    <string name="settings_provider_type_openai">OpenAI対応</string>
+    <string name="settings_provider_type_anthropic">クロード</string>
+    <string name="settings_provider_type_gemini">ジェミニ</string>
+
+    <!-- WebSearchSection.kt -->
+    <string name="settings_web_search_section">ウェブ検索</string>
+    <string name="settings_web_search_enable">Web検索を有効にする</string>
+    <string name="settings_web_search_enable_subtitle">グローバルなデフォルト状態。</string>
+    <string name="settings_web_search_engine">検索エンジン</string>
+    <string name="settings_web_search_api_key_label">API キー (オプション)</string>
+    <string name="settings_saved">保存されました</string>
+    <string name="settings_web_search_save_api_key">APIキーの保存</string>
+    <string name="settings_web_search_endpoint_label">検索 API エンドポイント</string>
+    <string name="settings_web_search_save_endpoint">エンドポイントの保存</string>
+    <!-- v1.98: New search provider names (bilingual, for UI display / logs / error hints) -->
+    <string name="settings_web_search_provider_brave">ブレイブサーチ</string>
+    <string name="settings_web_search_provider_perplexity">パープレキシティ検索</string>
+    <string name="settings_web_search_provider_exa">エクササーチ</string>
+    <string name="settings_web_search_provider_bocha">棒茶検索</string>
+
+    <!-- ExperimentsSettingsPage.kt -->
+    <string name="settings_experiments_title">実験</string>
+    <string name="settings_experiments_hint">知らせ</string>
+    <string name="settings_experiments_warning">次の機能は実験的なものであり、不安定になったり、エクスペリエンスに影響を与える可能性があります。</string>
+    <string name="settings_experiments_features">実験的な機能</string>
+    <string name="settings_experiments_force_mood">MOOD 出力を強制する</string>
+    <string name="settings_experiments_force_mood_subtitle">モデルがサポートしていない場合でも、MOOD ブロック出力を要求しようとします</string>
+    <string name="settings_experiments_debug_mode">デバッグモード</string>
+    <string name="settings_experiments_debug_mode_subtitle">内部状態をさらに表示 (MOOD/ツール呼び出し/トークン)</string>
+    <string name="settings_experiments_self_reflection">内省</string>
+    <string name="settings_experiments_self_reflection_subtitle">返信後に自動的に品質をチェックする</string>
+    <string name="settings_experiments_long_memory_compression">ロングメモリ圧縮</string>
+    <string name="settings_experiments_long_memory_compression_subtitle">非常に長い会話の自動要約 (v1.55 以降、デフォルトで有効になっています)</string>
+
+    <!-- UserProfileEditPage.kt -->
+    <string name="settings_user_profile_title">ユーザープロフィール</string>
+    <string name="settings_user_profile_appellation">名称</string>
+    <string name="settings_user_profile_assistant_name">アシスタント名</string>
+    <string name="settings_user_profile_assistant_name_hint">例えば</string>
+    <string name="settings_user_profile_your_name">あなたの名前</string>
+    <string name="settings_user_profile_your_name_hint">例えば</string>
+    <string name="settings_user_profile_basic_info">基本情報</string>
+    <string name="settings_user_profile_age">年</string>
+    <string name="settings_user_profile_city">市</string>
+    <string name="settings_user_profile_occupation">職業</string>
+    <string name="settings_user_profile_profession_field">専門分野</string>
+    <string name="settings_user_profile_profession_field_hint">例えば</string>
+    <string name="settings_user_profile_interests">興味&amp; プリファレンス</string>
+    <string name="settings_user_profile_interests_label">興味 (カンマ区切り、例: 読書、コーディング、旅行)</string>
+    <!-- v1.133: Rewritten User Profile — all fields are injected into the system prompt -->
+    <string name="settings_user_profile_intro">ここに入力した内容はすべて AI のシステム プロンプトに挿入されるため、AI はあなたを本当に認識します。</string>
+    <string name="settings_user_profile_assistant_name_desc">AIは自分自身をこの名前で呼びます</string>
+    <string name="settings_user_profile_your_name_desc">AI はこの名前であなたに呼びかけます</string>
+    <string name="settings_user_profile_bio">バイオ</string>
+    <string name="settings_user_profile_bio_hint">自己紹介の段落。AI にあなたが誰であるかを全体的に認識させる</string>
+    <string name="settings_user_profile_bio_desc">最も高い優先度。</string>
+    <string name="settings_user_profile_timezone">タイムゾーン</string>
+    <string name="settings_user_profile_timezone_hint">例えば</string>
+    <string name="settings_user_profile_background">背景 &amp; 専門知識</string>
+    <string name="settings_user_profile_education">教育</string>
+    <string name="settings_user_profile_education_hint">例えば</string>
+    <string name="settings_user_profile_skills">スキル</string>
+    <string name="settings_user_profile_skills_hint">例えば</string>
+    <string name="settings_user_profile_communication">通信設定</string>
+    <string name="settings_user_profile_comm_style">コミュニケーションスタイル</string>
+    <string name="settings_user_profile_comm_style_hint">例えば</string>
+    <string name="settings_user_profile_resp_length">応答の長さの設定</string>
+    <string name="settings_user_profile_resp_length_hint">例えば</string>
+    <string name="settings_user_profile_pref_tone">好みのトーン</string>
+    <string name="settings_user_profile_pref_tone_hint">例えば</string>
+    <string name="settings_user_profile_pref_lang">優先される応答言語</string>
+    <string name="settings_user_profile_pref_lang_hint">例えば</string>
+    <string name="settings_user_profile_boundaries">境界&amp; 避けるべきトピック</string>
+    <string name="settings_user_profile_avoid_topics">避けたトピック</string>
+    <string name="settings_user_profile_avoid_topics_hint">カンマ区切り、例:</string>
+    <string name="settings_user_profile_avoid_topics_desc">AI はこれらのトピックを積極的に回避します</string>
+
+    <!-- PresetProviderPickerDialog.kt -->
+    <string name="settings_preset_select_provider">プロバイダーの選択</string>
+    <string name="settings_preset_back">戻る</string>
+    <string name="settings_preset_subtitle">海外、国内公式、中継プロバイダーを網羅 - 選択後APIキーを入力するだけ</string>
+    <string name="settings_preset_group_overseas">海外関係者</string>
+    <string name="settings_preset_group_domestic">国内オフィシャル</string>
+    <string name="settings_preset_group_relay">リレー</string>
+    <string name="settings_preset_no_match">一致するプロバイダーがありません</string>
+    <string name="settings_preset_search_hint">プロバイダーまたはドメインを検索する</string>
+    <string name="settings_preset_clear">クリア</string>
+    <string name="settings_preset_need_baseurl">ベースURLが必要です</string>
+    <string name="settings_preset_model_count">%1$d モデル</string>
+    <string name="settings_preset_custom">カスタムプロバイダー</string>
+    <string name="settings_preset_custom_desc">BaseUrl、API キー、モデル リストを手動で入力します</string>
+
+    <!-- ProviderModelRow.kt -->
+    <string name="settings_model_action_settings">設定</string>
+    <string name="settings_model_action_add">追加</string>
+    <string name="settings_model_ability_tool">ツール</string>
+    <string name="settings_model_ability_reasoning">推論</string>
+    <string name="settings_model_ability_streaming">ストリーミング</string>
+    <string name="settings_model_ability_image">画像</string>
+    <string name="settings_model_ability_multimodal">マルチモーダル</string>
+    <string name="settings_model_ability_video">ビデオ</string>
+    <string name="settings_model_ability_chat">チャット</string>
+    <!-- v1.0.8 (7.7): Context window label (e.g. "128K context") -->
+    <string name="settings_model_context_label">%1$s コンテキスト</string>
+    <!-- v1.0.8 (7.6): Model health check button + status text -->
+    <string name="settings_model_action_test">テスト</string>
+    <string name="settings_model_test_in_progress">テスト</string>
+    <string name="settings_model_test_success">健康</string>
+    <string name="settings_model_test_failed">失敗した</string>
+    <string name="settings_model_test_failed_with_msg">失敗しました: %1$s</string>
+    <string name="settings_model_test_success_with_msg">健康 · %1$s</string>
+
+    <!-- AssistantSection.kt -->
+    <string name="settings_assistant_section">アシスタント</string>
+    <string name="settings_assistant_manage">アシスタントマネージャー</string>
+    <string name="settings_assistant_manage_subtitle">アシスタントと伝承書の管理</string>
+    <string name="settings_assistant_favorites">お気に入り</string>
+    <string name="settings_assistant_favorites_subtitle">セッション全体でお気に入りのメッセージを表示する</string>
+    <string name="settings_assistant_lorebook">ロアブック</string>
+    <string name="settings_assistant_lorebook_subtitle">キーワードトリガーによるコンテキストインジェクション (ロールプレイ/ワールド構築)</string>
+    <string name="settings_assistant_quick_messages">クイックメッセージ</string>
+    <string name="settings_assistant_quick_messages_subtitle">変数置換を備えたプリセットメッセージテンプレート、ワンタップで挿入</string>
+    <string name="settings_assistant_prompt_injection">モードインジェクション</string>
+    <string name="settings_assistant_prompt_injection_subtitle">モードを切り替えるときにモード固有のプロンプトを自動挿入します (クリエイティブ/コーディング/ロールプレイなど)。</string>
+    <string name="settings_assistant_skills">スキルマネージャー</string>
+    <string name="settings_assistant_skills_subtitle">LLM が呼び出すことができるツール (ファイル I/O、HTTP など) を表示/有効化/無効化します。</string>
+    <string name="settings_assistant_long_memory">長期記憶</string>
+    <string name="settings_assistant_memory_enable">メモリシステムを有効にする</string>
+    <string name="settings_assistant_memory_enable_subtitle">オフにすると、会話によって長期記憶が注入されなくなり、バックグラウンドでの要約が停止します。</string>
+
+    <!-- MultiAgentSettingsPage.kt -->
+    <string name="settings_multi_agent_title">マルチエージェントのコラボレーション</string>
+    <string name="settings_multi_agent_enable">マルチエージェントのコラボレーションを有効にする</string>
+    <string name="settings_multi_agent_enable_subtitle">有効にすると、メイン アシスタントはチーム メンバーにタスクを委任できます。</string>
+    <string name="settings_multi_agent_team_list">チーム一覧</string>
+    <string name="settings_multi_agent_no_team">まだチームがありません</string>
+    <string name="settings_multi_agent_no_team_hint">以下をタップしてチームを作成します</string>
+    <string name="settings_multi_agent_new_team">新しいチーム</string>
+    <string name="settings_multi_agent_delete_team">チームの削除</string>
+    <string name="settings_multi_agent_unnamed_team">無題のチーム</string>
+    <string name="settings_multi_agent_no_members">メンバーがいません</string>
+    <string name="settings_multi_agent_delete">消去</string>
+    <string name="settings_multi_agent_edit_team">チームの編集</string>
+    <string name="settings_multi_agent_team_name">チーム名</string>
+    <string name="settings_multi_agent_team_name_hint">例えば</string>
+    <string name="settings_multi_agent_team_name_empty">チーム名を空にすることはできません</string>
+    <string name="settings_multi_agent_description">説明 (オプション)</string>
+    <string name="settings_multi_agent_description_hint">チームの目的またはコラボレーションのシナリオ</string>
+    <string name="settings_multi_agent_select_members">メンバーの選択</string>
+    <string name="settings_multi_agent_no_assistants">アシスタントはいません。</string>
+    <string name="settings_multi_agent_save">保存</string>
+    <string name="settings_multi_agent_cancel">キャンセル</string>
+
+    <!-- SettingsTutorialPage.kt -->
+    <string name="settings_tutorial_title">チュートリアル</string>
+
+    <!-- Chapter 1 -->
+    <string name="settings_tutorial_ch1_title">第 1 章: はじめに (初心者必須)</string>
+    <string name="settings_tutorial_ch1_s1_title">ミューズとは何ですか？</string>
+    <string name="settings_tutorial_ch1_s1_content">MuseはAIスマートアシスタントアプリです。</string>
+    <string name="settings_tutorial_ch1_s2_title">初めて使用する場合は何をすればよいですか?</string>
+    <string name="settings_tutorial_ch1_s2_content">心配しないでください。開始するには、次の 3 つのステップだけを行ってください:\n\n1.</string>
+    <string name="settings_tutorial_ch1_s3_title">最初の会話の始め方</string>
+    <string name="settings_tutorial_ch1_s3_content">1. アプリを開いてチャット ページに移動します\n2.</string>
+    <string name="settings_tutorial_ch1_s4_title">インターフェイスの概要: タスク、エージェント、およびチャット ページ</string>
+    <string name="settings_tutorial_ch1_s4_content">Muse のメイン インターフェイスは通常 3 つの領域に分かれています。</string>
+    <string name="settings_tutorial_ch1_s5_title">初心者の落とし穴とヒント</string>
+    <string name="settings_tutorial_ch1_s5_content">• 落とし穴 1: AI は全知であると仮定します。</string>
+
+    <!-- Chapter 2 -->
+    <string name="settings_tutorial_ch2_title">第 2 章: AI モデルの構成 (重要)</string>
+    <string name="settings_tutorial_ch2_s1_title">なぜモデルを構成する必要があるのですか?</string>
+    <string name="settings_tutorial_ch2_s1_content">Muse 自体には AI は含まれていません。外部の AI サービスに接続する必要があります。</string>
+    <string name="settings_tutorial_ch2_s2_title">API キーはどこに申請すればよいですか?</string>
+    <string name="settings_tutorial_ch2_s2_content">Here are some commonly used AI providers (in no particular order):\n\n• DeepSeek — domestic, affordable, great results\n  Website: platform.deepseek.com\n\n• Zhipu AI — domestic, free quota available\n  Website: open.bigmodel.cn\n\n• Alibaba Tongyi Qianwen — domestic, free quota available\n  Website: dashscope.aliyun.com\n\n• Moonshot Kimi — domestic, strong long-context capability\n  Website: platform.moonshot.cn\n\n• OpenAI (ChatGPT) — international, best results but requires overseas payment\n  Website: platform.openai.com\n\n• Anthropic (Claude) — international, excellent at writing and reasoning\n  Website: console.anthropic.com\n\n• Google Gemini — international, strong multimodal capability\n  Website: ai.google.dev\n\nBeginners should start with DeepSeek or Zhipu. After registering, find the \"API Keys\" page in the dashboard, click \"Create new Key\", and copy the code. Most domestic providers offer free credit on signup, so you can try it for free first.</string>
+    <string name="settings_tutorial_ch2_s3_title">Muse にプロバイダーを追加する方法</string>
+    <string name="settings_tutorial_ch2_s3_content">1. 右下または左上をタップして「設定」に入ります\n2。</string>
+    <string name="settings_tutorial_ch2_s4_title">現行モデルの選び方</string>
+    <string name="settings_tutorial_ch2_s4_content">チャットページでは、上部または入力バーの近くにモデル名が表示されます。</string>
+    <string name="settings_tutorial_ch2_s5_title">適切なモデルの選択方法 &amp; モデルの機能</string>
+    <string name="settings_tutorial_ch2_s5_content">多くのモデルに直面して、初心者は次のように選択できます:\n\n• 毎日のチャット、書き込み: 一般的なチャット モデルが機能します。</string>
+    <string name="settings_tutorial_ch2_s6_title">マルチキーのローテーションとバランスクエリ</string>
+    <string name="settings_tutorial_ch2_s6_content">1 つのプロバイダのキーがなくなったり、レート制限がかかったりした場合、会話が中断されないように Muse の複数のキーを自動ローテーションするように設定できます。\n\n• 複数のキーの追加: プロバイダの設定で複数の API キー (1 行に 1 つ) を入力できます。</string>
+
+    <!-- Chapter 3 -->
+    <string name="settings_tutorial_ch3_title">第 3 章: デイリーチャット</string>
+    <string name="settings_tutorial_ch3_s1_title">新しい会話を始める方法</string>
+    <string name="settings_tutorial_ch3_s1_content">チャット リスト ページ (サイドバーまたは会話リスト) で、「新しいチャット」ボタン (通常はプラス アイコン) をタップします。</string>
+    <string name="settings_tutorial_ch3_s2_title">会話を切り替える方法</string>
+    <string name="settings_tutorial_ch3_s2_content">チャット ページからサイドバーを開くと (左上のメニューをタップするか、左端からスワイプします)、すべての会話履歴を表示します。</string>
+    <string name="settings_tutorial_ch3_s3_title">会話を削除する方法</string>
+    <string name="settings_tutorial_ch3_s3_content">会話履歴リストで、削除したい会話を長押しします。</string>
+    <string name="settings_tutorial_ch3_s4_title">メッセージ履歴の検索方法</string>
+    <string name="settings_tutorial_ch3_s4_content">チャット ページまたは会話リストで、検索アイコン (虫眼鏡) を見つけてキーワードを入力すると、その単語を含むすべての履歴メッセージが表示されます。\n\n検索可能なコンテンツには、メッセージと AI 返信の両方が含まれます。</string>
+    <string name="settings_tutorial_ch3_s5_title">ストリーミング出力とは</string>
+    <string name="settings_tutorial_ch3_s5_content">AI が応答するとき、テキストは一度に表示されるのではなく、入力するように単語ごとに表示されます。</string>
+    <string name="settings_tutorial_ch3_s6_title">画像、ファイルを送信&amp;視覚支援</string>
+    <string name="settings_tutorial_ch3_s6_content">• 画像を送信する: 入力ボックスの左側にあるプラス アイコンをタップし、「画像」を選択し、ギャラリーから写真を選択します。</string>
+    <string name="settings_tutorial_ch3_s7_title">ツールの使用 &amp; メッセージ ブランチ</string>
+    <string name="settings_tutorial_ch3_s7_content">• ツールの使用 (ツール): 一部のモデルは「ツール呼び出し」をサポートしています。つまり、アラームの設定、天気の確認、SMS の読み取り、イベントのスケジュール、株式の検索など、AI が実際のアクションを実行できます。</string>
+
+    <!-- Chapter 4 -->
+    <string name="settings_tutorial_ch4_title">第 4 章: 高度な機能</string>
+    <string name="settings_tutorial_ch4_s1_title">アシスタントの役割とは</string>
+    <string name="settings_tutorial_ch4_s1_content">アシスタントの役割は、AI にさまざまな「帽子」を付けるようなものです。</string>
+    <string name="settings_tutorial_ch4_s2_title">ウェブ検索の使い方</string>
+    <string name="settings_tutorial_ch4_s2_content">入力ボックスの上に地球儀のアイコンがあります。</string>
+    <string name="settings_tutorial_ch4_s3_title">深層思考モードの使い方</string>
+    <string name="settings_tutorial_ch4_s3_content">入力ボックスの上に脳のアイコンがあります。</string>
+    <string name="settings_tutorial_ch4_s4_title">長期記憶システム</string>
+    <string name="settings_tutorial_ch4_s4_content">長期記憶を有効にすると、AI が会話からの重要な情報 (ユーザーの好み、アイデンティティ、合意、重要なイベント) を自動的に記録し、今後の会話でそれを呼び出します。毎回同じことを繰り返す必要はありません。\n\n• 有効にする: 設定 → アシスタント → 長期記憶で、「メモリ システムを有効にする」をオンにします。\n• 仕組み: バックグラウンドで、必要に応じて実行します。</string>
+    <string name="settings_tutorial_ch4_s5_title">音声入力</string>
+    <string name="settings_tutorial_ch4_s5_content">入力ボックスの右側にあるマイクのアイコンをタップして話し、放すと自動的にテキストに変換されます。</string>
+    <string name="settings_tutorial_ch4_s6_title">プロンプトテンプレートライブラリ</string>
+    <string name="settings_tutorial_ch4_s6_content">入力ボックスの左側にあるプラス アイコンをタップし、「プロンプト テンプレート」を選択すると、プリセット テンプレートのリストが表示されます (電子メールの作成、翻訳、要約、書き換えなど)。</string>
+    <string name="settings_tutorial_ch4_s7_title">ナレッジベース RAG (AI にドキュメントを学習させます)</string>
+    <string name="settings_tutorial_ch4_s7_content">RAG (検索拡張生成) により、AI に「個人用参考書」を与えるなど、ユーザーが提供したドキュメントに基づいて AI が回答します。\n\n• 使用方法: 設定で「ナレッジベース」または「RAG」を見つけ、ドキュメント (PDF、Word、TXT、Markdown) をアップロードします。</string>
+    <string name="settings_tutorial_ch4_s8_title">グループ チャット マルチ エージェント (複数の AI ロールが一緒にチャット)</string>
+    <string name="settings_tutorial_ch4_s8_content">マルチエージェント コラボレーションでは、複数の AI ロールが 1 つの会話でそれぞれの役割を処理し、調整します。また、グループ チャットに参加することもできます。\n\n• チームを構築する: [設定] → [マルチエージェント コラボレーション]、チームを作成し、アシスタントをメンバーとして選択します (例: 「コピーライター」、「クリエイティブ プランナー」、</string>
+    <string name="settings_tutorial_ch4_s9_title">ビデオ生成&amp;スケジュールされたタスク</string>
+    <string name="settings_tutorial_ch4_s9_content">• ビデオ生成: プロバイダーのモデルがビデオ機能をサポートしている場合、AI にテキストの説明から短いビデオを生成させることができます。</string>
+    <string name="settings_tutorial_ch4_s10_title">スキル システム &amp; MCP プラグイン</string>
+    <string name="settings_tutorial_ch4_s10_content">• スキル システム: スキルは、ローカル ファイルの読み取り/書き込み、HTTP リクエストの送信、データベースのクエリ、カレンダーの操作など、AI が呼び出すことができるツールの機能です。</string>
+
+    <!-- Chapter 5 -->
+    <string name="settings_tutorial_ch5_title">第 5 章: パーソナライゼーション</string>
+    <string name="settings_tutorial_ch5_s1_title">テーマ&amp; ダイナミックカラー</string>
+    <string name="settings_tutorial_ch5_s1_content">[設定] → [外観] → [テーマ モード] で、[システムをフォロー] (携帯電話の設定を自動フォロー)、[ライト]、または [ダーク] を選択します。</string>
+    <string name="settings_tutorial_ch5_s2_title">フォントサイズを調整する</string>
+    <string name="settings_tutorial_ch5_s2_content">設定→外観→テキストサイズで、小/中/大/特大を選択します。</string>
+    <string name="settings_tutorial_ch5_s3_title">インターフェース言語を切り替える</string>
+    <string name="settings_tutorial_ch5_s3_content">設定 → 外観 → 言語で、「システムに従う」、「中国語」、または「英語」を選択します。</string>
+    <string name="settings_tutorial_ch5_s4_title">アシスタントのカスタマイズ: ペルソナ/関係性/スタイルの 3 層アーキテクチャ</string>
+    <string name="settings_tutorial_ch5_s4_content">Muse のアシスタントのカスタマイズでは、AI の動作を徹底的に決定する 3 層アーキテクチャが使用されています。\n\n• ペルソナ層 (コア): AI が「誰」であるかを定義します (名前、身元、バックストーリー、性格)。</string>
+    <string name="settings_tutorial_ch5_s5_title">ユーザー プロファイル &amp; の設定</string>
+    <string name="settings_tutorial_ch5_s5_content">「設定」→「ユーザープロフィール」に基本情報（名前、職業、興味、コミュニケーションの好み、避けたトピック）を入力します。</string>
+
+    <!-- Chapter 6 -->
+    <string name="settings_tutorial_ch6_title">第 6 章: データ管理</string>
+    <string name="settings_tutorial_ch6_s1_title">チャット履歴のバックアップ（クラウドWebDAV/S3）</string>
+    <string name="settings_tutorial_ch6_s1_content">[設定] → [データ&amp; バックアップ] では、クラウド バックアップ (WebDAV または S3) を構成できます。</string>
+    <string name="settings_tutorial_ch6_s2_title">他のアプリからデータをインポートする</string>
+    <string name="settings_tutorial_ch6_s2_content">「設定」→「データインポート」は、RikkaHub または Kelivo からのインポートをサポートします。</string>
+    <string name="settings_tutorial_ch6_s3_title">キャラクターカード&amp;データのエクスポート</string>
+    <string name="settings_tutorial_ch6_s3_content">[アシスタント マネージャー] ページでアシスタントを長押しし、[キャラクター カードのエクスポート] を選択して、友人と共有できるファイルを生成します。</string>
+    <string name="settings_tutorial_ch6_s4_title">キャッシュをクリーンアップ&amp;スペースを節約</string>
+    <string name="settings_tutorial_ch6_s4_content">長時間使用すると、アプリはキャッシュ (画像、一時ファイル、モデル リスト) を蓄積し、電話の容量を占有します。\n\n• 方法: 設定 → ストレージ/データ管理 → キャッシュの消去。</string>
+    <string name="settings_tutorial_ch6_s5_title">データセキュリティ&amp;プライバシー</string>
+    <string name="settings_tutorial_ch6_s5_content">データのセキュリティは重要です:\n• デフォルトでは、会話データはデバイスとクラウド バックアップにのみ保存され、Muse のサーバーにアップロードされることはありません。\n• API キーなどの機密情報はローカルで暗号化され、プレーン テキストで保存されることはありません。\n• AI に送信されるコンテンツはプロバイダーのサーバーを通過します。銀行カード番号、パスワード、その他の情報は公開されません。</string>
+
+    <!-- Chapter 7 -->
+    <string name="settings_tutorial_ch7_title">第 7 章: よくある質問</string>
+    <string name="settings_tutorial_ch7_s1_title">会話に応答がありませんか?</string>
+    <string name="settings_tutorial_ch7_s1_content">最も一般的な原因:\n1.</string>
+    <string name="settings_tutorial_ch7_s2_title">反応が遅いですか？</string>
+    <string name="settings_tutorial_ch7_s2_content">1. より高速なモデルに切り替えます (通常、gpt-4o-mini、deepseek-chat など、小さいモデルの方が高速です)\n2.</string>
+    <string name="settings_tutorial_ch7_s3_title">トークンの使用量を節約するにはどうすればよいですか?</string>
+    <string name="settings_tutorial_ch7_s3_content">トークンは文字数に応じて請求されます。トークンを節約すると、\n1 の費用が節約されます。</string>
+    <string name="settings_tutorial_ch7_s4_title">すべてのデータを消去する方法</string>
+    <string name="settings_tutorial_ch7_s4_content">[設定] → [セキュリティ] &amp; [共有] には関連するオプションがある場合があります。</string>
+    <string name="settings_tutorial_ch7_s5_title">API エラー 401/400?</string>
+    <string name="settings_tutorial_ch7_s5_content">• 401 Unauthorized: 通常は API キーの問題です。</string>
+    <string name="settings_tutorial_ch7_s6_title">プライバシー (PII 編集) を保護するにはどうすればよいですか?</string>
+    <string name="settings_tutorial_ch7_s6_content">PII (個人を特定できる情報) の編集では、会話内の機密情報 (電話番号、ID 番号、銀行カード、電子メール) が AI に送信される前に自動的にプレースホルダーに置き換えられます。AI は実際の情報を見ることができません。</string>
+
+    <!-- CrashReportSettings.kt -->
+    <string name="settings_crash_page_title">クラッシュレポート</string>
+    <string name="settings_crash_pending_section">保留中のクラッシュレポート</string>
+    <string name="settings_crash_pending_count">保留中のクラッシュ レポート: %1$d</string>
+    <string name="settings_crash_pending_hint_active">報告するには下のボタンをタップしてください (最初に有効にして設定します)</string>
+    <string name="settings_crash_pending_hint_idle">クラッシュは保留キューに自動的に追加されます</string>
+    <string name="settings_crash_report_now_button">保留中のクラッシュを今すぐ報告する</string>
+    <string name="settings_crash_settings_section">レポート設定</string>
+    <string name="settings_crash_enable_title">クラッシュレポートを有効にする</string>
+    <string name="settings_crash_enable_subtitle">デフォルトではオフ — 有効にすると、クラッシュは保留キューに入り、報告するには手動による確認が必要になります。</string>
+    <string name="settings_crash_method_section">報告方法</string>
+    <string name="settings_crash_method_label">レポート方法を選択してください</string>
+    <string name="settings_crash_method_email">電子メール</string>
+    <string name="settings_crash_email_label">受信者の電子メール</string>
+    <string name="settings_crash_email_placeholder">例えば</string>
+    <string name="settings_crash_email_saved_toast">メールが保存されました</string>
+    <string name="settings_crash_email_save_button">メールを保存する</string>
+    <string name="settings_crash_webhook_saved_toast">Webhook URL が保存されました</string>
+    <string name="settings_crash_webhook_save_button">URLを保存</string>
+    <string name="settings_crash_privacy_section">プライバシー</string>
+    <string name="settings_crash_privacy_title">クラッシュレポートのプライバシーに関する約束</string>
+    <string name="settings_crash_privacy_content">• デフォルトではオフ。</string>
+    <string name="settings_crash_confirm_dialog_title">クラッシュレポートを確認する</string>
+    <string name="settings_crash_confirm_target_email">電子メール (%1$s)</string>
+    <string name="settings_crash_confirm_target_webhook">Webhook (%1$s)</string>
+    <string name="settings_crash_confirm_dialog_content">%1$d クラッシュ レコードを %2$s\n\n にレポートしようとしています。レポートの内容には次のものが含まれます: クラッシュ スタック + デバイス モデル + Android バージョン + アプリ バージョン + タイムスタンプ。\nクラッシュ スタックは編集されています。</string>
+    <string name="settings_crash_confirm_button">レポートの確認</string>
+    <string name="settings_crash_no_pending">報告する保留中のクラッシュはありません</string>
+    <string name="settings_crash_no_email">最初に受信者の電子メールを設定してください</string>
+    <string name="settings_crash_no_webhook">最初に有効な Webhook URL を構成してください</string>
+    <string name="settings_crash_no_method">レポート方法が設定されていないため、スキップされました</string>
+    <string name="settings_crash_reported_count">報告された%1$dクラッシュ記録</string>
+</resources>

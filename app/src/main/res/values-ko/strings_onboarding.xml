@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== ui/onboarding ===== Boot onboarding -->
+    <!-- Step 0: Welcome -->
+    <string name="onboarding_welcome_title">뮤즈 신</string>
+    <string name="onboarding_welcome_subtitle">AI 영감의 동반자</string>
+    <string name="onboarding_feature_chat_title">AI채팅</string>
+    <string name="onboarding_feature_chat_desc">원활한 스트리밍 대화</string>
+    <string name="onboarding_feature_memory_title">장기 기억</string>
+    <string name="onboarding_feature_memory_desc">AI가 당신의 취향을 기억한다</string>
+    <string name="onboarding_feature_tools_title">도구 시스템</string>
+    <string name="onboarding_feature_tools_desc">마음대로 사용할 수 있는 70개 이상의 내장 도구</string>
+    <string name="onboarding_feature_knowledge_title">기술 자료</string>
+    <string name="onboarding_feature_knowledge_desc">AI가 문서에서 학습하도록 하세요</string>
+
+    <!-- Step 1: Language & Appearance -->
+    <string name="onboarding_language_title">인터페이스 언어</string>
+    <string name="onboarding_theme_title">테마 모양</string>
+    <string name="onboarding_lang_zh">简体中文</string>
+    <string name="onboarding_lang_zh_tw">繁체중국어</string>
+    <string name="onboarding_lang_en">영어</string>
+    <string name="onboarding_lang_ja">일본어</string>
+    <string name="onboarding_lang_ko">한국어</string>
+
+    <!-- Step 2: Your Name -->
+    <string name="onboarding_names_title">서로 알아가자</string>
+    <string name="onboarding_names_user_label">당신의 이름</string>
+    <string name="onboarding_names_agent_label">AI 비서 이름</string>
+    <string name="onboarding_names_hint">기본 어시스턴트에는 AI 어시스턴트 이름이 적용됩니다.</string>
+
+    <!-- Step 3: Configure Provider -->
+    <string name="onboarding_provider_title">AI 공급자 구성</string>
+    <string name="onboarding_provider_subtitle">공급자를 선택하고 API 키를 입력하세요.</string>
+    <string name="onboarding_provider_select_label">제공업체 선택</string>
+    <string name="onboarding_provider_apikey_label">API 키</string>
+    <string name="onboarding_provider_apikey_input">API 키 입력</string>
+    <string name="onboarding_provider_apikey_show">키 표시</string>
+    <string name="onboarding_provider_apikey_hide">키 숨기기</string>
+    <string name="onboarding_provider_test_button">연결 테스트</string>
+    <string name="onboarding_provider_test_success">연결에 성공했습니다.</string>
+    <string name="onboarding_provider_skip">건너뛰고 나중에 구성</string>
+    <string name="onboarding_provider_custom">맞춤형(OpenAI 호환)</string>
+    <string name="onboarding_provider_custom_baseurl_label">맞춤 기본 URL</string>
+    <string name="onboarding_provider_custom_baseurl_input">https://api.example.com/v1</string>
+
+    <!-- Step 4: Select Model -->
+    <string name="onboarding_model_title">기본 모델 선택</string>
+    <string name="onboarding_model_search_label">모델 검색</string>
+    <string name="onboarding_model_empty_title">구성된 공급자 없음</string>
+    <string name="onboarding_model_empty_desc">나중에 설정에서 공급자를 구성하고 모델을 선택할 수 있습니다.</string>
+
+    <!-- Step 5: Complete -->
+    <string name="onboarding_complete_title">모든 세트</string>
+    <string name="onboarding_complete_subtitle">탐색을 시작할 수 있는 항목은 다음과 같습니다.</string>
+    <string name="onboarding_tutorial_chat_title">일일채팅</string>
+    <string name="onboarding_tutorial_chat_desc">텍스트, 이미지, 파일 보내기 - AI가 지능적으로 응답합니다.</string>
+    <string name="onboarding_tutorial_assistant_title">보조자 &amp; 메모리</string>
+    <string name="onboarding_tutorial_assistant_desc">AI 페르소나를 맞춤화하세요.</string>
+    <string name="onboarding_tutorial_tools_title">도구 &amp; 기술 자료</string>
+    <string name="onboarding_tutorial_tools_desc">AI는 알람 설정, 날씨 확인, 문서 검색 등을 수행할 수 있습니다.</string>
+    <string name="onboarding_tutorial_backup_title">데이터 백업</string>
+    <string name="onboarding_tutorial_backup_desc">WebDAV/S3 클라우드 백업 지원 - 데이터 손실 없음</string>
+
+    <!-- Bottom buttons -->
+    <string name="onboarding_button_start">설정 시작</string>
+    <string name="onboarding_button_previous">이전의</string>
+    <string name="onboarding_button_next">다음</string>
+    <string name="onboarding_button_finish">시작하기</string>
+</resources>

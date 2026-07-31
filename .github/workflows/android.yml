@@ -52,3 +52,17 @@ jobs:
             app/build/reports/tests/
             app/build/reports/lint-results-*.html
           retention-days: 14
+
+  # P2-5: 多语言翻译完整性校验
+  # 对比 values/(基准) 与各 locale 目录的 strings_*.xml, 报告缺失的 key
+  # PR 阶段强制校验, 确保新增字符串同步到所有语言
+  localization:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check localization completeness
+        run: python ci/script/check_localizations.py --res-dir app/src/main/res --verbose

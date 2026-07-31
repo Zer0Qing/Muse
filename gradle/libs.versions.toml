@@ -40,6 +40,8 @@ jwt = "4.4.0"
 jtokkit = "1.1.0"
 # Tabler Icons Compose(线条图标库,Maven Central)
 composeIcons = "1.1.1"
+# P3-3: Shizuku SDK(以 Shell 权限运行命令,无需 root;rikk.shizuku:api + provider)
+shizuku = "13.1.5"
 
 [libraries]
 # AndroidX Core
@@ -125,6 +127,9 @@ auth0-java-jwt = { group = "com.auth0", name = "java-jwt", version.ref = "jwt" }
 jtokkit = { group = "com.knuddels", name = "jtokkit", version.ref = "jtokkit" }
 # Tabler Icons Compose(线条图标库)
 composeIcons-tablerIcons = { module = "br.com.devsrsouza.compose.icons:tabler-icons", version.ref = "composeIcons" }
+# P3-3: Shizuku SDK — 以 Shell 权限执行命令(无需 root),三通道路由之一
+shizuku-api = { group = "dev.rikka.shizuku", name = "api", version.ref = "shizuku" }
+shizuku-provider = { group = "dev.rikka.shizuku", name = "provider", version.ref = "shizuku" }
 
 [plugins]
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }

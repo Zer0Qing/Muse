@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== QuickMessageScreen ===== -->
+    <!-- Top bar -->
+    <string name="quick_msg_screen_title">クイックメッセージ</string>
+    <string name="quick_msg_back_cd">戻る</string>
+    <string name="quick_msg_new_cd">新しいクイックメッセージ</string>
+    <string name="quick_msg_intro">プリセットされたメッセージテンプレート。</string>
+    <string name="quick_msg_empty_title">クイックメッセージはまだありません</string>
+    <string name="quick_msg_empty_subtitle">右下の＋をタップして作成します</string>
+    <string name="quick_msg_delete_title">クイックメッセージの削除</string>
+    <!-- Card -->
+    <string name="quick_msg_new_default_name">新しいクイックメッセージ</string>
+    <string name="quick_msg_unnamed">(名前なし)</string>
+    <string name="quick_msg_disabled">無効</string>
+    <string name="quick_msg_scope_global">グローバル</string>
+    <string name="quick_msg_scope_assistant">アシスタント: %1$s</string>
+    <string name="quick_msg_scope_label">範囲: %1$s</string>
+    <string name="quick_msg_enabled_cd">有効</string>
+    <string name="quick_msg_disabled_cd">無効</string>
+    <string name="quick_msg_edit_cd">編集</string>
+    <string name="quick_msg_delete_cd">消去</string>
+    <!-- Edit page -->
+    <string name="quick_msg_unsaved_title">未保存の変更</string>
+    <string name="quick_msg_unsaved_content">終了すると、現在の編集内容が破棄されます。</string>
+    <string name="quick_msg_discard">破棄</string>
+    <string name="quick_msg_new_title">新しいクイックメッセージ</string>
+    <string name="quick_msg_edit_title">クイックメッセージの編集</string>
+    <string name="quick_msg_save">保存</string>
+    <string name="quick_msg_section_basic">基本</string>
+    <string name="quick_msg_field_name">名前</string>
+    <string name="quick_msg_section_content">テンプレートの内容</string>
+    <string name="quick_msg_field_content">コンテンツ ({{input}} / {{clipboard}} / {{date}} 変数をサポート)</string>
+    <string name="quick_msg_section_scope">範囲</string>
+    <string name="quick_msg_field_scope">範囲</string>
+    <string name="quick_msg_scope_global_opt">グローバル (すべてのアシスタントによって共有)</string>
+    <string name="quick_msg_scope_assistant_opt">アシスタント限定 (指定されたアシスタントに対してのみ表示)</string>
+    <string name="quick_msg_field_bind_assistant">バインドアシスタント</string>
+    <string name="quick_msg_section_behavior">行動</string>
+    <string name="quick_msg_field_sort_index">ソートインデックス (小さい = 前)</string>
+    <string name="quick_msg_field_enabled">有効</string>
+    <string name="quick_msg_field_enabled_desc">オフの場合、このエントリはInputBarチップ行に表示されません。</string>
+
+    <!-- ===== LorebookScreen ===== -->
+    <!-- Top bar -->
+    <string name="lorebook_screen_title">ロアブック</string>
+    <string name="lorebook_back_cd">戻る</string>
+    <string name="lorebook_new_cd">新しい伝承書</string>
+    <string name="lorebook_intro">キーワードによってトリガーされるコンテキスト インジェクション。</string>
+    <string name="lorebook_empty_title">ロアブックはまだありません</string>
+    <string name="lorebook_empty_subtitle">右下の＋をタップして作成します</string>
+    <string name="lorebook_delete_title">伝承書の削除</string>
+    <!-- Card -->
+    <string name="lorebook_new_default_name">新規エントリー</string>
+    <string name="lorebook_unnamed">(名前なし)</string>
+    <string name="lorebook_disabled">無効</string>
+    <string name="lorebook_keywords_label">キーワード: %1$s</string>
+    <string name="lorebook_enabled_cd">有効</string>
+    <string name="lorebook_disabled_cd">無効</string>
+    <string name="lorebook_edit_cd">編集</string>
+    <string name="lorebook_delete_cd">消去</string>
+    <!-- Edit page -->
+    <string name="lorebook_unsaved_title">未保存の変更</string>
+    <string name="lorebook_unsaved_content">終了すると、現在の編集内容が破棄されます。</string>
+    <string name="lorebook_discard">破棄</string>
+    <string name="lorebook_new_title">新しい伝承書</string>
+    <string name="lorebook_edit_title">伝承書の編集</string>
+    <string name="lorebook_save">保存</string>
+    <string name="lorebook_section_basic">基本</string>
+    <string name="lorebook_field_name">名前</string>
+    <string name="lorebook_field_keywords">トリガーキーワード (カンマ区切り)</string>
+    <string name="lorebook_field_keywords_placeholder">例えば</string>
+    <string name="lorebook_section_content">注入内容</string>
+    <string name="lorebook_field_content">コンテンツ (キーワードが一致した場合に SYSTEM コンテキストとして挿入)</string>
+    <string name="lorebook_section_behavior">行動</string>
+    <string name="lorebook_field_priority">優先順位 (数値が大きい = 最初に注入される)</string>
+    <string name="lorebook_field_insertion_position">挿入位置</string>
+    <string name="lorebook_field_case_sensitive">大文字と小文字を区別</string>
+    <string name="lorebook_field_case_sensitive_desc">オンの場合、キーワード一致では大文字と小文字が区別されます。</string>
+    <string name="lorebook_field_enabled">有効</string>
+    <string name="lorebook_field_enabled_desc">オフにすると、このエントリはインジェクションをトリガーしなくなります</string>
+
+    <!-- ===== PromptInjectionScreen ===== -->
+    <!-- Top bar -->
+    <string name="prompt_injection_screen_title">即時注入</string>
+    <string name="prompt_injection_back_cd">戻る</string>
+    <string name="prompt_injection_new_cd">新しいプロンプトインジェクション</string>
+    <string name="prompt_injection_intro">モードによってトリガーされるコンテキスト インジェクション。</string>
+    <string name="prompt_injection_empty_title">PromptInjection はまだありません</string>
+    <string name="prompt_injection_empty_subtitle">右下の＋をタップして作成します</string>
+    <string name="prompt_injection_delete_title">プロンプトインジェクションの削除</string>
+    <!-- Card -->
+    <string name="prompt_injection_new_default_name">新しいインジェクション</string>
+    <string name="prompt_injection_unnamed">(名前なし)</string>
+    <string name="prompt_injection_disabled">無効</string>
+    <string name="prompt_injection_mode_label">モード: %1$s</string>
+    <string name="prompt_injection_enabled_cd">有効</string>
+    <string name="prompt_injection_disabled_cd">無効</string>
+    <string name="prompt_injection_edit_cd">編集</string>
+    <string name="prompt_injection_delete_cd">消去</string>
+    <!-- Edit page -->
+    <string name="prompt_injection_unsaved_title">未保存の変更</string>
+    <string name="prompt_injection_unsaved_content">終了すると、現在の編集内容が破棄されます。</string>
+    <string name="prompt_injection_discard">破棄</string>
+    <string name="prompt_injection_new_title">新しいプロンプトインジェクション</string>
+    <string name="prompt_injection_edit_title">プロンプトインジェクションの編集</string>
+    <string name="prompt_injection_save">保存</string>
+    <string name="prompt_injection_section_basic">基本</string>
+    <string name="prompt_injection_field_name">名前</string>
+    <string name="prompt_injection_field_mode">モード</string>
+    <string name="prompt_injection_field_display_name">表示名 (UI に表示されます。モードのデフォルトを使用するには空白のままにします)</string>
+    <string name="prompt_injection_section_content">注入内容</string>
+    <string name="prompt_injection_field_content">コンテンツ (このモードに切り替えるときに SYSTEM コンテキストとして挿入されます)</string>
+    <string name="prompt_injection_section_behavior">行動</string>
+    <string name="prompt_injection_field_priority">優先順位 (同じモードの複数の注入の順序、数値が大きい = 最初に注入)</string>
+    <string name="prompt_injection_field_insertion_position">挿入位置</string>
+    <string name="prompt_injection_field_enabled">有効</string>
+    <string name="prompt_injection_field_enabled_desc">オフにすると、このエントリはインジェクションをトリガーしなくなります</string>
+
+    <!-- ===== AssistantScreen ===== -->
+    <!-- Top bar -->
+    <string name="assistant_screen_title">アシスタント</string>
+    <string name="assistant_back_cd">戻る</string>
+    <string name="assistant_import_card_cd">キャラクターカードをインポート</string>
+    <string name="assistant_section_my_assistants">私のアシスタント</string>
+    <string name="assistant_section_actions">追加またはインポート</string>
+    <string name="assistant_memory_entry_title">長期記憶</string>
+    <string name="assistant_memory_entry_subtitle">4層メモリシステムを見る</string>
+    <string name="assistant_empty_create">まだアシスタントはいません。</string>
+    <string name="assistant_unnamed">(名前なし)</string>
+    <string name="assistant_current">現在</string>
+    <string name="assistant_more_cd">さらなるアクション</string>
+    <string name="assistant_new_action">新しいアシスタント</string>
+    <string name="assistant_new_default_name">新しいアシスタント</string>
+    <string name="assistant_clone_name">%1$s (コピー)</string>
+    <!-- Action menu -->
+    <string name="assistant_move_up_cd">上に移動</string>
+    <string name="assistant_move_up">上に移動</string>
+    <string name="assistant_move_down_cd">下に移動</string>
+    <string name="assistant_move_down">下に移動</string>
+    <string name="assistant_clone_cd">クローン</string>
+    <string name="assistant_clone">クローン</string>
+    <string name="assistant_export_card_cd">キャラクターカードをエクスポートする</string>
+    <string name="assistant_export_card">キャラクターカードのエクスポート</string>
+    <string name="assistant_delete_cd">消去</string>
+    <string name="assistant_delete">消去</string>
+    <string name="assistant_close">近い</string>
+    <string name="assistant_delete_title">アシスタントの削除</string>
+    <!-- Toast -->
+    <string name="assistant_toast_exported">エクスポートされたキャラクター カード: %1$s</string>
+    <string name="assistant_toast_export_failed">エクスポートに失敗しました: %1$s</string>
+    <string name="assistant_toast_imported">インポートされたキャラクターカード: %1$s</string>
+    <string name="assistant_toast_import_invalid">インポートに失敗しました: 無効なファイル形式</string>
+    <string name="assistant_toast_import_failed">インポートに失敗しました: %1$s</string>
+
+    <!-- ===== SillyTavern character card (PNG/JSON universal format) ===== -->
+    <!-- Assistant list: import entry (list item, below + New Assistant) -->
+    <string name="assistant_import_sillytavern_cd">SillyTavern キャラクターカードをインポート</string>
+    <string name="assistant_import_sillytavern">SillyTavern キャラクターカードをインポート</string>
+    <!-- Assistant detail: character card sharing section -->
+    <string name="assistant_detail_share_section">キャラクターカードの共有</string>
+    <string name="assistant_detail_export_png">PNG キャラクターカードとしてエクスポート</string>
+    <string name="assistant_detail_export_png_desc">SillyTavern 形式 (メタデータ付き)</string>
+    <string name="assistant_detail_export_json">JSON 文字カードとしてエクスポート</string>
+    <string name="assistant_detail_export_json_desc">SillyTavern V2 JSON</string>
+    <string name="assistant_detail_share_muse_card">ミューズキャラクターカードをシェアする</string>
+    <string name="assistant_detail_share_muse_card_desc">ビジュアルカードを生成し、システム経由で共有</string>
+    <string name="assistant_detail_share_muse_json">Muse JSONを共有する</string>
+    <string name="assistant_detail_share_muse_json_desc">システム経由で Muse JSON を共有する</string>
+    <string name="assistant_detail_share_muse_failed">共有に失敗しました: %1$s</string>
+    <!-- Toast -->
+    <string name="assistant_toast_sillytavern_imported">SillyTavern キャラクター カードがインポートされました: %1$s</string>
+    <string name="assistant_toast_sillytavern_import_failed">SillyTavern のインポートに失敗しました: %1$s</string>
+    <string name="assistant_toast_sillytavern_exported">SillyTavern キャラクターカードがエクスポートされました</string>
+    <string name="assistant_toast_sillytavern_export_failed">SillyTavern のエクスポートに失敗しました: %1$s</string>
+</resources>

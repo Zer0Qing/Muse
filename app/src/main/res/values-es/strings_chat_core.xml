@@ -1,0 +1,345 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== ChatScreen ===== -->
+    <!-- Top bar -->
+    <string name="chat_session_cd">Chat actual: %1$s, toque para cambiar</string>
+    <string name="chat_model_not_configured">No configurado</string>
+    <string name="chat_model_cd">Modelo actual: %1$s, toque para cambiar</string>
+    <string name="chat_context_usage_cd">Uso de contexto %1$s%%, %2$d total de tokens</string>
+    <string name="chat_context_tokens_only_cd">Recuento de tokens de contexto %1$d, el modelo no tiene ventana de contexto</string>
+    <string name="chat_context_no_window_detail">%1$d tokens (el modelo no tiene ventana de contexto)</string>
+    <string name="chat_assistant_model_badge">Modelo: %1$s</string>
+    <string name="chat_update_compress_cd">Actualizar &amp; Comprimir</string>
+    <string name="chat_scroll_to_bottom_cd">Desplazarse hacia abajo</string>
+    <string name="chat_export_cd">Exportar chat</string>
+    <string name="chat_companion_days_zero">Recién nos conocimos hoy</string>
+    <string name="chat_companion_days">Juntos durante %1$d días</string>
+    <string name="chat_date_separator_today">Hoy %1$s</string>
+    <string name="chat_thinking">Pensamiento…</string>
+
+    <!-- Errors and permissions -->
+    <string name="chat_err_mic_permission">Se requiere permiso del micrófono para la entrada de voz</string>
+    <string name="chat_err_open_file_picker">No se puede abrir el selector de archivos: %1$s</string>
+    <string name="chat_err_open_image_picker">No se puede abrir el selector de imágenes: %1$s</string>
+    <string name="chat_err_no_speech_service">No hay servicio de reconocimiento de voz disponible.</string>
+    <string name="chat_err_start_speech">No se puede iniciar el reconocimiento de voz: %1$s</string>
+    <string name="chat_error_cd">Error: %1$s, vuelva a intentarlo o cierre</string>
+    <string name="chat_retry">Rever</string>
+
+    <!-- Share -->
+    <string name="chat_share_subject">conversación musa</string>
+    <string name="chat_share_chooser_title">Compartir chat</string>
+
+    <!-- Copy toast -->
+    <string name="chat_copied_toast">copiado</string>
+
+    <!-- Prompt templates -->
+    <string name="chat_prompt_templates_title">Plantillas de mensajes</string>
+
+    <!-- Knowledge base -->
+    <string name="chat_knowledge_dialog_title">Base de conocimientos de referencia</string>
+    <string name="chat_knowledge_empty">La base de conocimientos está vacía.</string>
+    <string name="chat_knowledge_doc_meta">%1$s · %2$d caracteres</string>
+
+    <!-- Session switch -->
+    <string name="chat_switch_session_title">Cambiar de chat</string>
+    <string name="chat_no_sessions">Aún no hay chats</string>
+    <string name="chat_new_session">Nuevo chat</string>
+
+    <!-- v1.136 T1: Switch assistant within chat -->
+    <string name="chat_switch_assistant_title">Asistente de cambio</string>
+    <string name="chat_switch_assistant_empty">No hay asistentes disponibles</string>
+    <string name="chat_switch_assistant_current">Actual</string>
+    <string name="chat_switch_assistant_applied">Cambiado a %1$s</string>
+    <string name="chat_switch_assistant_long_press_hint">Mantenga presionado el título para cambiar de asistente</string>
+
+    <!-- Delegate to assistant -->
+    <string name="chat_delegate_title">Delegar al asistente</string>
+    <string name="chat_delegate_empty">No hay asistentes ni equipos disponibles.</string>
+    <string name="chat_delegate_assistants">Asistentes disponibles</string>
+    <string name="chat_delegate_unnamed_assistant">Asistente sin nombre</string>
+    <string name="chat_delegate_assistant_prompt_input">Por favor delega a %1$s: %2$s</string>
+    <string name="chat_delegate_assistant_prompt_message">Delega el contenido anterior a %1$s:</string>
+    <string name="chat_delegate_no_text">Este mensaje no tiene contenido de texto para delegar.</string>
+    <string name="chat_delegate_teams">Equipos colaborativos</string>
+    <string name="chat_delegate_unnamed_team">Equipo sin nombre</string>
+    <string name="chat_delegate_team_prompt_input">Por favor maneje como %1$s equipo: %2$s</string>
+    <string name="chat_delegate_team_prompt_message">Maneje el contenido anterior como equipo %1$s:</string>
+
+    <!-- Empty state guide -->
+    <string name="chat_avatar_assistant_cd">avatar asistente</string>
+    <string name="chat_avatar_muse_cd">icono de musa</string>
+    <string name="chat_empty_guide_title">¿Sobre qué te gustaría charlar hoy?</string>
+    <string name="chat_suggested_prompt_report">Escribe un informe semanal.</string>
+    <string name="chat_suggested_prompt_summary">Resumir el trabajo de hoy.</string>
+    <string name="chat_suggested_prompt_explain">Explica este concepto</string>
+    <string name="chat_suggested_prompt_ideas">Dame algunas ideas creativas</string>
+
+    <!-- Image generation placeholder -->
+    <string name="chat_image_generating">Generando imagen…</string>
+
+    <!-- ===== MessageBubble ===== -->
+    <!-- MOOD / Reasoning / Reflection collapsible blocks -->
+    <string name="chat_mood_collapse_cd">Colapso ESTADO DE ÁNIMO</string>
+    <string name="chat_mood_expand_cd">Expandir ESTADO DE ÁNIMO</string>
+    <string name="chat_reasoning_title">Razonamiento</string>
+    <string name="chat_reasoning_collapse_cd">Colapso de razonamiento</string>
+    <string name="chat_reasoning_expand_cd">Expandir razonamiento</string>
+    <string name="chat_reflection_title">Reflexión</string>
+    <string name="chat_reflection_collapse_cd">Colapso de reflexión</string>
+    <string name="chat_reflection_expand_cd">Expandir reflexión</string>
+
+    <!-- Images -->
+    <string name="chat_user_image_cd">Imagen de usuario</string>
+    <string name="chat_generated_image_cd">Imagen generada</string>
+    <string name="chat_save_image_cd">Salvar el imagen</string>
+    <string name="chat_image_saved_toast">Guardado en la galería: %1$s</string>
+    <string name="chat_image_save_failed_toast">Error al guardar: %1$s</string>
+    <string name="chat_image_page_cd">Imagen %1$d / %2$d</string>
+
+    <!-- Quick buttons and long-press menu -->
+    <string name="chat_regenerate_cd">Regenerado</string>
+    <string name="chat_regenerate_action">Regenerado</string>
+    <string name="chat_translate_action">Traducir</string>
+    <string name="chat_translate_to_cd">Traducir a %1$s</string>
+    <string name="chat_delegate_action">Delegar al asistente</string>
+    <string name="chat_tts_stop">dejar de leer</string>
+    <string name="chat_tts_play">Leer en voz alta</string>
+    <string name="chat_favorite_remove">Eliminar favorito</string>
+    <string name="chat_favorite_add">Favorito</string>
+    <string name="chat_fork_action">Chat de horquilla</string>
+    <string name="chat_share_action">Compartir chat</string>
+    <string name="chat_agent_weak_tool_title">Llamada a herramienta degradada</string>
+    <string name="chat_agent_hint_dismiss">Entiendo</string>
+    <string name="chat_agent_session_locked">Sesión bloqueada en modo agente</string>
+    <string name="chat_delete_message">Eliminar mensaje</string>
+    <string name="chat_delete_message_confirm">Esta acción no se puede deshacer.</string>
+    <string name="chat_translate_in_progress">Traductorio…</string>
+
+    <!-- Loading and tool calls -->
+    <string name="chat_loading_thinking">Pensamiento</string>
+    <string name="chat_tool_success_cd">Éxito</string>
+    <string name="chat_tool_failed_cd">Fallido</string>
+    <string name="chat_tool_params">Parámetros</string>
+    <string name="chat_tool_result">Resultado</string>
+
+    <!-- ===== InputBar ===== -->
+    <!-- Top toggles -->
+    <string name="chat_web_search_cd_on">Búsqueda web (activada)</string>
+    <string name="chat_web_search_cd">Búsqueda web</string>
+    <string name="chat_deep_thinking_cd_on">Pensamiento profundo (activado)</string>
+    <string name="chat_deep_thinking_cd">Pensamiento profundo</string>
+    <!-- v1.94: Tool call dynamic capsule -->
+    <string name="chat_tool_calls_cd">Historial de llamadas de herramientas</string>
+    <string name="chat_tool_calls_title">Historial de llamadas de herramientas</string>
+    <string name="chat_tool_calls_empty">Sin llamadas de herramientas</string>
+
+    <!-- Resume interrupted tool calls banner -->
+    <string name="chat_pending_tools_banner_title">%1$d llamadas de herramienta no finalizadas la última vez</string>
+    <string name="chat_pending_tools_banner_subtitle">La transmisión fue interrumpida.</string>
+    <string name="chat_pending_tools_resume">Reanudar</string>
+    <string name="chat_pending_tools_discard">Desechar</string>
+    <string name="chat_pending_tools_cd">Banner de recuperación de llamadas de herramienta pendientes</string>
+
+    <!-- Quick messages and images -->
+    <string name="chat_unnamed">Sin nombre</string>
+    <string name="chat_pending_image_cd">Imagen pendiente %1$d</string>
+    <string name="chat_remove_image_cd">Quitar imagen</string>
+    <!-- v1.136 T10: Pending document chip -->
+    <string name="chat_pending_document_cd">Documento pendiente %1$s</string>
+    <string name="chat_remove_document_cd">Eliminar documento</string>
+
+    <!-- Quote reply -->
+    <string name="chat_edit_reply_cd">Editar cotización</string>
+    <string name="chat_edit_reply_title">Editar contenido de cotización</string>
+
+    <!-- Tool menu -->
+    <string name="chat_tools_cd">Herramientas</string>
+    <string name="chat_tools_pick_content">Elige contenido para enviar</string>
+    <string name="chat_tool_camera">Cámara</string>
+    <string name="chat_tool_photo">Fotos</string>
+    <!-- Video input: tool menu card label -->
+    <string name="chat_tool_video">Video</string>
+    <string name="chat_gallery_image_cd">Imagen de la galería</string>
+    <string name="chat_gallery_cd">Galería</string>
+    <string name="chat_authorize_gallery">Permitir acceso a la galería</string>
+    <string name="chat_tool_attachment">Adjunto</string>
+    <string name="chat_tool_knowledge">Base de conocimientos de referencia</string>
+    <string name="chat_tool_knowledge_subtitle">@mencionar documentos</string>
+    <string name="chat_tool_prompt_template_subtitle">Elija un mensaje de escena de las plantillas</string>
+    <string name="chat_tool_skills">Habilidades</string>
+    <string name="chat_tool_skills_subtitle">Administrar y llamar habilidades habilitadas</string>
+    <string name="chat_tool_draw_mode">Modo de dibujo</string>
+    <string name="chat_tool_draw_mode_subtitle_on">Activado · Describir una imagen para generar</string>
+    <string name="chat_tool_draw_mode_subtitle">Describir una imagen para generar</string>
+    <string name="chat_tool_delegate_subtitle">Elija un subasistente para manejar este mensaje</string>
+    <string name="chat_tool_restart_context">Reiniciar contexto</string>
+    <string name="chat_tool_restart_context_subtitle">Borra el chat actual y deja que el Agente comience de nuevo</string>
+
+    <!-- Input field and buttons -->
+    <string name="chat_placeholder_draw">Describe una imagen para generar...</string>
+    <string name="chat_placeholder_send">Responder a Musa...</string>
+    <string name="chat_expand_input_cd">Edición de pantalla completa</string>
+    <string name="chat_expand_input_title">Editar mensaje</string>
+    <!-- v1.0.47 P5-3: Token count menu -->
+    <string name="chat_token_count_cd">Recuento de tokens</string>
+    <string name="chat_token_menu_title">Estimación de tokens</string>
+    <string name="chat_token_input">Entrada actual</string>
+    <string name="chat_token_history">Mensajes históricos</string>
+    <string name="chat_token_context_window">ventana contextual</string>
+    <string name="chat_token_remaining">Disponible</string>
+    <string name="chat_token_usage">Uso del contexto</string>
+    <string name="chat_token_disclaimer">Estimación aproximada basada en cl100k_base, solo como referencia.</string>
+    <!-- v1.0.47 P5-2: Paste long text as file -->
+    <string name="chat_paste_as_file_title">Texto grande detectado</string>
+    <string name="chat_paste_as_file_msg">El contenido pegado tiene %1$d caracteres.</string>
+    <string name="chat_paste_as_file_attach">Adjuntar como archivo</string>
+    <string name="chat_paste_as_file_paste">Pegar directamente</string>
+    <!-- Long-press input bar action menu -->
+    <string name="chat_input_action_fullscreen">Modo de entrada de pantalla completa</string>
+    <string name="chat_stop_generation_cd">dejar de generar</string>
+    <string name="chat_recording_start_failed">No se pudo iniciar la grabación.</string>
+    <string name="chat_recognizing_cd">Reconociendo</string>
+    <string name="chat_recording_cd">Grabación</string>
+    <string name="chat_hold_to_record_cd">Mantener para grabar</string>
+    <string name="chat_cancelled">Cancelado</string>
+    <!-- v1.95: System speech recognition first-use tip -->
+    <string name="chat_asr_tip_title">Consejo de reconocimiento de voz</string>
+    <string name="chat_asr_tip_message">El reconocimiento de voz del sistema muestra un cuadro de diálogo del sistema cada vez.</string>
+    <string name="chat_asr_tip_confirm">Continuar</string>
+
+    <!-- Draw params panel -->
+    <string name="chat_image_too_large">Imagen demasiado grande o ilegible</string>
+    <string name="chat_ref_image_load_failed">Error al cargar la imagen de referencia: %1$s</string>
+    <string name="chat_ref_image_compressed">Imagen de referencia comprimida: %1$s</string>
+    <string name="chat_ref_image_too_large_after_compress">La imagen de referencia aún es demasiado grande después de la compresión; elija una más pequeña</string>
+    <!-- Video input: a11y descriptions + error messages -->
+    <string name="chat_pending_video_cd">Adjunto de vídeo pendiente</string>
+    <string name="chat_remove_video_cd">Eliminar vídeo</string>
+    <string name="chat_user_video_cd">Vídeo enviado por el usuario</string>
+    <string name="chat_video_open_failed">No se puede abrir el vídeo: %1$s</string>
+    <string name="chat_video_too_large">Vídeo demasiado grande (más de 50 MB).</string>
+    <string name="chat_video_load_failed">Error en la lectura del vídeo: %1$s</string>
+    <string name="chat_draw_params">Dibujar parámetros</string>
+    <string name="chat_ref_image_add">+ Imagen de referencia</string>
+    <string name="chat_ref_image_not_supported">Imagen de referencia no compatible con el modelo actual.</string>
+    <string name="chat_ref_image_cd">Imagen de referencia</string>
+    <string name="chat_ref_image_clear_cd">Borrar imagen de referencia</string>
+    <string name="chat_quality_standard">Estándar</string>
+    <string name="chat_quality_hd">alta definición</string>
+    <string name="chat_quality_high">Alto</string>
+    <string name="chat_quality_medium">Medio</string>
+    <string name="chat_quality_low">Bajo</string>
+    <string name="chat_quality_auto">Auto</string>
+    <string name="chat_style_vivid">Vívido</string>
+    <string name="chat_style_natural">Natural</string>
+
+    <!-- ===== ChatListScreen ===== -->
+    <!-- Big entry cards -->
+    <string name="chat_list_scheduled_tasks">Tareas programadas</string>
+    <string name="chat_list_scheduled_subtitle">Ejecución automática</string>
+    <string name="chat_list_quick_notes">Notas rápidas</string>
+    <string name="chat_list_quick_notes_subtitle">notas ligeras</string>
+    <string name="chat_list_quick_translate">Traducción rápida</string>
+    <string name="chat_list_knowledge_base">Conocimiento</string>
+
+    <!-- Filter cards -->
+    <string name="chat_list_filter_all">Todo</string>
+    <string name="chat_list_filter_pinned">Fijado</string>
+    <string name="chat_list_filter_archived">Archivado</string>
+
+    <!-- Empty states -->
+    <string name="chat_list_empty_all">Aún no hay tareas</string>
+    <string name="chat_list_empty_pinned">Aún no hay tareas fijadas</string>
+    <string name="chat_list_empty_archived">Aún no hay tareas archivadas</string>
+    <string name="chat_list_empty_all_sub">Comience a registrar sus ideas e investigaciones.</string>
+    <string name="chat_list_empty_pinned_sub">Mantenga presionado un chat para fijarlo</string>
+    <string name="chat_list_empty_archived_sub">Mantenga presionado un chat para archivarlo</string>
+
+    <!-- Section titles -->
+    <string name="chat_list_section_ungrouped">Desagrupados</string>
+    <string name="chat_list_section_recent">Reciente</string>
+    <string name="chat_list_section_pinned">Fijado</string>
+    <string name="chat_list_section_folders">Carpetas</string>
+    <string name="chat_list_section_knowledge">Conocimiento</string>
+    <string name="chat_list_new_folder">Nueva carpeta</string>
+
+    <!-- Task home -->
+    <string name="chat_list_input_hint">Introduzca cualquier idea...</string>
+    <string name="chat_list_send">Enviar</string>
+    <string name="chat_list_no_recent_title">Aún no hay chats</string>
+    <string name="chat_list_no_recent_subtitle">Toque el botón + a continuación para iniciar un nuevo chat</string>
+    <string name="chat_list_knowledge_title">Base de conocimientos</string>
+    <string name="chat_list_knowledge_count">%1$d documentos</string>
+    <string name="chat_list_knowledge_empty">Toque para agregar documentos</string>
+    <string name="chat_list_quick_send">Nuevo &amp; Enviar</string>
+
+    <!-- Bottom button and dialogs -->
+    <string name="chat_list_new_task">Nueva tarea</string>
+    <string name="chat_list_new_task_card_subtitle">Capture ideas, cree tareas o inicie un chat</string>
+    <string name="chat_list_folder_name_placeholder">Nombre de la carpeta</string>
+    <string name="chat_list_create">Crear</string>
+
+    <!-- Session long-press menu -->
+    <string name="chat_list_pin">Alfiler</string>
+    <string name="chat_list_unpin">Desprender</string>
+    <string name="chat_list_archive">Archivo</string>
+    <string name="chat_list_move_ungrouped">Mover a Desagrupado</string>
+    <string name="chat_list_move_to">Mover a: %1$s</string>
+    <string name="chat_list_move_to_cd">Mover a %1$s</string>
+    <string name="chat_list_rename">Rebautizar</string>
+    <string name="chat_list_unarchive">Desarchivar</string>
+
+    <!-- Session rename/delete dialogs -->
+    <string name="chat_list_rename_session_title">Cambiar el nombre del chat</string>
+    <string name="chat_list_confirm">DE ACUERDO</string>
+    <string name="chat_list_delete_session_title">Eliminar chat</string>
+    <string name="chat_list_delete_session_confirm">Esta acción no se puede deshacer.</string>
+    <string name="chat_list_deleted_toast">Eliminado</string>
+
+    <!-- Folder rename/delete dialogs -->
+    <string name="chat_list_delete_folder_title">Eliminar carpeta</string>
+    <string name="chat_list_rename_folder_title">Cambiar nombre de carpeta</string>
+    <string name="chat_list_delete_folder_confirm">Al eliminar la carpeta \"%1$s\" sus chats se moverán a Desagrupados.</string>
+
+    <!-- v5: chat fork -->
+    <string name="chat_list_forked_from">Bifurcado de %1$s</string>
+    <string name="chat_list_child_count">+%1$d</string>
+
+    <!-- ===== v1.95: Sticker Library ===== -->
+    <!-- ChatSettingsPage sticker library section -->
+    <string name="settings_chat_sticker_section">Biblioteca de pegatinas</string>
+    <string name="settings_sticker_enabled">Habilitar pegatinas</string>
+    <string name="settings_sticker_enabled_subtitle">Permitir que el asistente envíe pegatinas en las respuestas</string>
+    <string name="settings_sticker_send_probability">Enviar probabilidad</string>
+    <string name="settings_sticker_send_probability_subtitle">Probabilidad de que el asistente envíe una pegatina por respuesta</string>
+    <string name="settings_sticker_upload_zip">Importar ZIP</string>
+    <string name="settings_sticker_upload_zip_subtitle">Elija un archivo ZIP;</string>
+    <string name="settings_sticker_imported">Pegatinas %1$d importadas</string>
+    <string name="settings_sticker_import_failed">Error de importación: %1$s</string>
+    <string name="settings_sticker_empty_title">Aún no hay pegatinas</string>
+    <string name="settings_sticker_empty_subtitle">Toca \"Importar ZIP\" arriba para agregar un archivo ZIP</string>
+    <string name="settings_sticker_delete_confirm">¿Eliminar esta pegatina?</string>
+    <string name="settings_sticker_category_all">Todo</string>
+
+    <!-- SkillExecutor sticker tool feedback -->
+    <string name="skill_sticker_not_configured">La biblioteca de stickers no está configurada</string>
+    <string name="skill_sticker_not_found">Etiqueta con ID %1$s no encontrada</string>
+    <string name="skill_sticker_sent">Etiqueta enviada: %1$s</string>
+    <string name="skill_sticker_list_empty">La biblioteca de pegatinas está vacía</string>
+
+    <!-- v1.97: Slash commands -->
+    <string name="slash_command_hint">Escriba / para comandos rápidos</string>
+    <string name="slash_command_new">/nueva Nueva sesión</string>
+    <string name="slash_command_compact">/compact Comprimir historial de sesiones</string>
+    <string name="slash_command_reset">/reset Restablecer contexto</string>
+    <string name="slash_command_pin">/pin Pin de alternancia</string>
+    <string name="slash_command_archive">/archive Archivar sesión</string>
+    <string name="slash_command_unknown">Comando desconocido: %1$s</string>
+    <string name="slash_command_executed">Ejecutado: %1$s</string>
+    <string name="slash_command_new_done">Nueva sesión creada</string>
+    <string name="slash_command_compact_done">Comprimiendo el historial de sesiones...</string>
+    <string name="slash_command_reset_done">Restablecimiento de contexto</string>
+    <string name="slash_command_pin_done">Pin alternado</string>
+    <string name="slash_command_archive_done">Sesión archivada</string>
+</resources>

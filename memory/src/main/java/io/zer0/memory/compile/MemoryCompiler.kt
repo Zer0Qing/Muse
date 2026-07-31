@@ -69,6 +69,15 @@ class MemoryCompiler(
         sectionDao.get(section.key)?.content ?: ""
     }
 
+    /**
+     * v1.0.53: 是否存在任何已编译 section。
+     * 用于 daily pipeline 进度校验:旧版 updateContent 是 UPDATE 语义,
+     * 表初始为空时写入静默丢失,但 daily_state 仍记录完成 → 需重置进度重跑。
+     */
+    suspend fun hasAnyCompiledSection(): Boolean = withContext(Dispatchers.IO) {
+        sectionDao.getAll().isNotEmpty()
+    }
+
     /** 读取四块拼装后的 memory.md(注入 system prompt 用)。 */
     suspend fun readCompiledMemoryMarkdown(locale: String = "zh-CN"): String = withContext(Dispatchers.IO) {
         val facts = CompiledMemoryState.normalizeSectionBody(readSection(Section.FACTS))

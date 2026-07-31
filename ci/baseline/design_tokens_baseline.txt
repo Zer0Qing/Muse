@@ -1,0 +1,5 @@
+# design_tokens baseline — 存量硬编码裸色豁免清单
+# 格式: <file>: <违规数>;CI 只允许违规数下降,新增或上升都会失败
+# 清理存量后运行: py -3 ci/script/check_design_tokens.py --update-baseline
+#
+# 当前共 0 处,分布 0 个文件

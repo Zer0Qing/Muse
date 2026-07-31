@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== ui/onboarding ===== Boot onboarding -->
+    <!-- Step 0: Welcome -->
+    <string name="onboarding_welcome_title">Муза</string>
+    <string name="onboarding_welcome_subtitle">Ваш спутник вдохновения в области искусственного интеллекта</string>
+    <string name="onboarding_feature_chat_title">AI-чат</string>
+    <string name="onboarding_feature_chat_desc">Плавный потоковый разговор</string>
+    <string name="onboarding_feature_memory_title">Долговременная память</string>
+    <string name="onboarding_feature_memory_desc">ИИ запоминает ваши предпочтения</string>
+    <string name="onboarding_feature_tools_title">Система инструментов</string>
+    <string name="onboarding_feature_tools_desc">В вашем распоряжении более 70 встроенных инструментов</string>
+    <string name="onboarding_feature_knowledge_title">База знаний</string>
+    <string name="onboarding_feature_knowledge_desc">Позвольте ИИ учиться на ваших документах</string>
+
+    <!-- Step 1: Language & Appearance -->
+    <string name="onboarding_language_title">Язык интерфейса</string>
+    <string name="onboarding_theme_title">Внешний вид темы</string>
+    <string name="onboarding_lang_zh">简体中文</string>
+    <string name="onboarding_lang_zh_tw">繁體中文</string>
+    <string name="onboarding_lang_en">Английский</string>
+    <string name="onboarding_lang_ja">日本語</string>
+    <string name="onboarding_lang_ko">한국어</string>
+
+    <!-- Step 2: Your Name -->
+    <string name="onboarding_names_title">Давайте познакомимся</string>
+    <string name="onboarding_names_user_label">Ваше имя</string>
+    <string name="onboarding_names_agent_label">Имя помощника ИИ</string>
+    <string name="onboarding_names_hint">Имя помощника AI будет применено к помощнику по умолчанию.</string>
+
+    <!-- Step 3: Configure Provider -->
+    <string name="onboarding_provider_title">Настройка поставщика AI</string>
+    <string name="onboarding_provider_subtitle">Выберите провайдера и введите свой ключ API.</string>
+    <string name="onboarding_provider_select_label">Выберите поставщика</string>
+    <string name="onboarding_provider_apikey_label">API-ключ</string>
+    <string name="onboarding_provider_apikey_input">Введите ключ API</string>
+    <string name="onboarding_provider_apikey_show">Показать ключ</string>
+    <string name="onboarding_provider_apikey_hide">Скрыть ключ</string>
+    <string name="onboarding_provider_test_button">Тестовое соединение</string>
+    <string name="onboarding_provider_test_success">Соединение успешное.</string>
+    <string name="onboarding_provider_skip">Пропустить и настроить позже</string>
+    <string name="onboarding_provider_custom">Пользовательский (совместимый с OpenAI)</string>
+    <string name="onboarding_provider_custom_baseurl_label">Пользовательский базовый URL-адрес</string>
+    <string name="onboarding_provider_custom_baseurl_input">https://api.example.com/v1</string>
+
+    <!-- Step 4: Select Model -->
+    <string name="onboarding_model_title">Выберите модель по умолчанию</string>
+    <string name="onboarding_model_search_label">Поиск моделей</string>
+    <string name="onboarding_model_empty_title">Поставщик не настроен</string>
+    <string name="onboarding_model_empty_desc">Вы можете настроить поставщика и выбрать модель позже в настройках.</string>
+
+    <!-- Step 5: Complete -->
+    <string name="onboarding_complete_title">Все готово</string>
+    <string name="onboarding_complete_subtitle">Вот что вы можете начать изучать</string>
+    <string name="onboarding_tutorial_chat_title">Ежедневный чат</string>
+    <string name="onboarding_tutorial_chat_desc">Отправляйте текст, изображения, файлы — ИИ ответит разумно</string>
+    <string name="onboarding_tutorial_assistant_title">Помощники &amp; Память</string>
+    <string name="onboarding_tutorial_assistant_desc">Настройте AI-персону;</string>
+    <string name="onboarding_tutorial_tools_title">Инструменты &amp; База знаний</string>
+    <string name="onboarding_tutorial_tools_desc">ИИ может устанавливать будильники, проверять погоду, искать документы</string>
+    <string name="onboarding_tutorial_backup_title">Резервное копирование данных</string>
+    <string name="onboarding_tutorial_backup_desc">Поддержка облачного резервного копирования WebDAV/S3 — никогда не потеряйте свои данные</string>
+
+    <!-- Bottom buttons -->
+    <string name="onboarding_button_start">Начать установку</string>
+    <string name="onboarding_button_previous">Предыдущий</string>
+    <string name="onboarding_button_next">Следующий</string>
+    <string name="onboarding_button_finish">Начать</string>
+</resources>

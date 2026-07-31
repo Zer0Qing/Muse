@@ -495,7 +495,12 @@ class AnthropicProvider(
                     throw ErrorCode.INVALID_RESPONSE.toProviderException("empty_text")
                 }
                 Logger.d("AnthropicProvider", "completeText OK: ${text.length} chars, toolCalls=${toolCalls?.size ?: 0}")
-                ChatCompletion(text = text, finishReason = parsed.stop_reason, toolCalls = toolCalls)
+                ChatCompletion(
+                    text = text,
+                    finishReason = parsed.stop_reason,
+                    toolCalls = toolCalls,
+                    usageTokens = parsed.usage?.toUsageTokens(),
+                )
             }
         } catch (e: kotlinx.coroutines.CancellationException) {
             call.cancel()

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== ui/onboarding ===== Boot onboarding -->
+    <!-- Step 0: Welcome -->
+    <string name="onboarding_welcome_title">ミューズ</string>
+    <string name="onboarding_welcome_subtitle">AI インスピレーションの相棒</string>
+    <string name="onboarding_feature_chat_title">AIチャット</string>
+    <string name="onboarding_feature_chat_desc">スムーズなストリーミング会話</string>
+    <string name="onboarding_feature_memory_title">長期記憶</string>
+    <string name="onboarding_feature_memory_desc">AIがあなたの好みを記憶します</string>
+    <string name="onboarding_feature_tools_title">ツールシステム</string>
+    <string name="onboarding_feature_tools_desc">70 以上の組み込みツールを自由に使用可能</string>
+    <string name="onboarding_feature_knowledge_title">ナレッジベース</string>
+    <string name="onboarding_feature_knowledge_desc">AI にドキュメントから学習させましょう</string>
+
+    <!-- Step 1: Language & Appearance -->
+    <string name="onboarding_language_title">インターフェース言語</string>
+    <string name="onboarding_theme_title">テーマの外観</string>
+    <string name="onboarding_lang_zh">简体中文</string>
+    <string name="onboarding_lang_zh_tw">繁体中文</string>
+    <string name="onboarding_lang_en">英語</string>
+    <string name="onboarding_lang_ja">日本語</string>
+    <string name="onboarding_lang_ko">한국어</string>
+
+    <!-- Step 2: Your Name -->
+    <string name="onboarding_names_title">お互いを知りましょう</string>
+    <string name="onboarding_names_user_label">あなたの名前</string>
+    <string name="onboarding_names_agent_label">AIアシスタント名</string>
+    <string name="onboarding_names_hint">AI アシスタント名はデフォルトのアシスタントに適用されます。</string>
+
+    <!-- Step 3: Configure Provider -->
+    <string name="onboarding_provider_title">AI プロバイダーの構成</string>
+    <string name="onboarding_provider_subtitle">プロバイダーを選択し、API キーを入力します。</string>
+    <string name="onboarding_provider_select_label">プロバイダーの選択</string>
+    <string name="onboarding_provider_apikey_label">APIキー</string>
+    <string name="onboarding_provider_apikey_input">APIキーを入力してください</string>
+    <string name="onboarding_provider_apikey_show">キーを表示</string>
+    <string name="onboarding_provider_apikey_hide">キーを隠す</string>
+    <string name="onboarding_provider_test_button">テスト接続</string>
+    <string name="onboarding_provider_test_success">接続に成功しました。</string>
+    <string name="onboarding_provider_skip">スキップして後で設定する</string>
+    <string name="onboarding_provider_custom">カスタム（OpenAI互換）</string>
+    <string name="onboarding_provider_custom_baseurl_label">カスタムベースURL</string>
+    <string name="onboarding_provider_custom_baseurl_input">https://api.example.com/v1</string>
+
+    <!-- Step 4: Select Model -->
+    <string name="onboarding_model_title">デフォルトのモデルを選択</string>
+    <string name="onboarding_model_search_label">モデルを検索する</string>
+    <string name="onboarding_model_empty_title">プロバイダーが構成されていません</string>
+    <string name="onboarding_model_empty_desc">後で [設定] でプロバイダーを構成し、モデルを選択できます。</string>
+
+    <!-- Step 5: Complete -->
+    <string name="onboarding_complete_title">オールセット</string>
+    <string name="onboarding_complete_subtitle">ここから探索を開始できます</string>
+    <string name="onboarding_tutorial_chat_title">デイリーチャット</string>
+    <string name="onboarding_tutorial_chat_desc">テキスト、画像、ファイルを送信 — AI がインテリジェントに応答します</string>
+    <string name="onboarding_tutorial_assistant_title">アシスタント&amp; メモリ</string>
+    <string name="onboarding_tutorial_assistant_desc">AI ペルソナをカスタマイズします。</string>
+    <string name="onboarding_tutorial_tools_title">ツール&amp; ナレッジベース</string>
+    <string name="onboarding_tutorial_tools_desc">AI はアラームの設定、天気の確認、ドキュメントの検索を行うことができます</string>
+    <string name="onboarding_tutorial_backup_title">データのバックアップ</string>
+    <string name="onboarding_tutorial_backup_desc">WebDAV/S3 クラウド バックアップをサポート - データを失うことはありません</string>
+
+    <!-- Bottom buttons -->
+    <string name="onboarding_button_start">セットアップの開始</string>
+    <string name="onboarding_button_previous">前の</string>
+    <string name="onboarding_button_next">次</string>
+    <string name="onboarding_button_finish">始めましょう</string>
+</resources>

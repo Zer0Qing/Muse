@@ -39,6 +39,7 @@ import io.zer0.muse.ui.settings.SettingsVideoGenPage
 import io.zer0.muse.ui.settings.SettingsWebSearchPage
 import io.zer0.muse.ui.settings.ToolsSettingsPage
 import io.zer0.muse.ui.settings.UserProfileEditPage
+import io.zer0.muse.ui.settings.PermissionWizardScreen
 import io.zer0.muse.ui.settings.VisionSettingsPage
 import io.zer0.muse.ui.workflow.WorkflowEditorScreen
 
@@ -181,9 +182,20 @@ fun NavGraphBuilder.settingsNavGraph(
             onOpenAssistants = { navController.navigate(MuseRoutes.ASSISTANTS) },
             onOpenFavorites = { navController.navigate(MuseRoutes.FAVORITES) },
             onOpenLorebooks = { navController.navigate(MuseRoutes.LOREBOOKS) },
+            onOpenWorldbook = { navController.navigate(MuseRoutes.WORLDBOOK) },
             onOpenQuickMessages = { navController.navigate(MuseRoutes.QUICK_MESSAGES) },
             onOpenPromptInjections = { navController.navigate(MuseRoutes.PROMPT_INJECTIONS) },
             onOpenSkills = { navController.navigate(MuseRoutes.SKILLS) },
+        )
+    }
+    // P3-3: 权限配置向导(无障碍 / Shizuku / Root 三通道)
+    composable(
+        route = MuseRoutes.SETTINGS_PERMISSION_WIZARD,
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        PermissionWizardScreen(
+            onBack = { navController.popBackStack() },
         )
     }
     // 用户画像编辑页(年龄/城市/MBTI 等)
@@ -266,6 +278,17 @@ fun NavGraphBuilder.settingsNavGraph(
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         MemorySettingsPage(
+            onBack = { navController.popBackStack() },
+            onOpenMemorySpace = { navController.navigate(MuseRoutes.SETTINGS_MEMORY_SPACE) },
+        )
+    }
+    // v1.0.52 P2-2: 记忆空间管理页(Space CRUD)
+    composable(
+        route = MuseRoutes.SETTINGS_MEMORY_SPACE,
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        io.zer0.muse.ui.memory.MemorySpaceManageScreen(
             onBack = { navController.popBackStack() },
         )
     }

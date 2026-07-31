@@ -66,6 +66,8 @@ class ChatStreamCoordinator(
     private val lorebookRepository: LorebookRepository,
     private val promptInjectionRepository: PromptInjectionRepository,
     private val transformerPipeline: TransformerPipeline,
+    // P1-1: Hook 注册表 — 在管道执行后调用 PromptFinalizeHook
+    private val hookRegistry: io.zer0.muse.hook.HookRegistry? = null,
 ) {
 
     private val tag = "ChatVM"
@@ -75,6 +77,26 @@ class ChatStreamCoordinator(
      * sticker 概率控制时,未命中则从 tools 过滤掉这两个工具。
      */
     private val STICKER_TOOL_IDS = setOf("list_stickers", "send_sticker")
+
+    /**
+     * v1.0.52: 情绪调制系数 — 基于最近用户消息检测情绪强度。
+     *
+     * 返回 ≥1.0 的倍数:中性对话 1.0,强情绪最高约 3.0。
+     * 配合 stickerSendProbability 基线,让 AI 在用户情绪强烈时更愿意发贴纸。
+     */
+    private fun stickerEmotionBoost(): Float {
+        val recentUserMessages = accessor.snapshot.messages
+            .filter { it.role == io.zer0.ai.core.MessageRole.USER && it.content.isNotBlank() }
+            .takeLast(6)
+        val result = StickerEmotionDetector.detectEmotion(recentUserMessages)
+        return when (result.dominant) {
+            StickerEmotionDetector.EmotionType.ANGRY -> 1f + result.intensity * 2f
+            StickerEmotionDetector.EmotionType.SAD -> 1f + result.intensity * 2f
+            StickerEmotionDetector.EmotionType.JOYFUL -> 1f + result.intensity * 1.5f
+            StickerEmotionDetector.EmotionType.EXCITED -> 1f + result.intensity * 1.5f
+            StickerEmotionDetector.EmotionType.NEUTRAL -> 1f
+        }
+    }
 
     /**
      * v1.0.27 Phase 4-A.2: id 列表 JSON 解析辅助。
@@ -633,6 +655,25 @@ class ChatStreamCoordinator(
                 accessor.update { it.copy(compactionState = CompactionState.Compacting(totalMsgCount)) }
             }
             transformedMessages = transformerPipeline.execute(prefixMessages + truncatedHistory, context)
+
+            // P1-1: 调用 PromptFinalizeHook — 在管道执行后、发送给 LLM 前做最终修改
+            // 典型用途: 楼层式上下文限制(P1-4)、Worldbook 关键词触发注入(P1-2)
+            if (hookRegistry != null) {
+                val finalizeEvent = io.zer0.muse.hook.PromptFinalizeEvent(
+                    preparedHistory = transformedMessages,
+                    assistantId = accessor.snapshot.currentAssistant?.id,
+                    sessionId = accessor.snapshot.currentSessionId,
+                    transformContext = context,
+                )
+                val finalizeResult = hookRegistry.execute(
+                    io.zer0.muse.hook.PromptFinalizeHook::class,
+                    initial = io.zer0.muse.hook.PromptFinalizeResult(finalizeEvent.preparedHistory),
+                ) { hook, acc ->
+                    val event = finalizeEvent.copy(preparedHistory = acc.preparedHistory)
+                    hook.beforeFinalizePrompt(event)
+                }
+                transformedMessages = finalizeResult.preparedHistory
+            }
             // v1.0.47 P1: 压缩完成 — 更新状态为 Compacted(显示短暂提示)或清除
             if (totalMsgCount > compressThreshold) {
                 val compressedCount = totalMsgCount - (if (experiments.longMemoryCompression) 8 else 15)
@@ -696,8 +737,14 @@ class ChatStreamCoordinator(
             // stickerEnabled=false:完全不暴露 list_stickers / send_sticker
             // stickerEnabled=true:按 stickerSendProbability 概率掷骰子,命中才暴露
             // 这样 LLM 只能在概率命中时看到工具,实现了用户设置的概率控制
-            val stickerToolsEnabled = settings.stickerEnabledCache &&
-                (kotlin.random.Random.nextInt(100) < settings.stickerSendProbabilityCache)
+            // v1.0.52: 情绪调制 — 检测最近对话情绪,情绪强烈时放大暴露概率(封顶 100%),
+            // 中性对话保持用户设置的基线概率。
+            val stickerToolsEnabled = settings.stickerEnabledCache && run {
+                val base = settings.stickerSendProbabilityCache
+                val boost = stickerEmotionBoost()
+                val adjusted = (base * boost).toInt().coerceIn(0, 100)
+                kotlin.random.Random.nextInt(100) < adjusted
+            }
             val skillToolDefs = enabledSkills.map { sk ->
                 io.zer0.ai.core.ToolDefinition(
                     name = sk.id,

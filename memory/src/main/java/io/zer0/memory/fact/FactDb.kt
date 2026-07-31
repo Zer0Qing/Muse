@@ -6,6 +6,10 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import io.zer0.memory.ai.MemoryLinkEntity
+import io.zer0.memory.space.MemorySpaceEntity
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 /**
  * Fact 数据库 (openhanako fact-store.ts schema 移植)。
@@ -17,6 +21,12 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  * v7 schema: 新增 last_hit_at 字段,支持命中加成(hitBonus)重置衰减时钟。
  * v8 schema: 新增 scope 字段(记忆作用域,默认 "main" 表示主助手作用域),
  *   用于隔离不同 Agent 的记忆,避免子助手误用主助手事实或团队成员记忆混淆。
+ * v9 schema: 新增 space_id 字段(记忆空间,默认 "default"),用于多 Space 隔离
+ *   (类似 Notion 工作区,工作/生活/学习场景互不干扰);同时新增 memory_spaces 表
+ *   存储 Space 元数据。space_id 与 scope 正交:scope 按 Agent 隔离,space_id 按场景隔离。
+ * v10 schema: 新增 memory_links 表(记忆知识图谱边),存储事实间关系
+ *   (causes/explains/part_of/related_to/contradicts),用于 AI 驱动记忆管理
+ *   构建用户记忆图谱(P2-3)。
  *
  * FTS4 选型说明:
  *  - 部分国产 ROM(如 OPPO Android 16)的 SQLite 未编译 FTS5 模块,
@@ -25,8 +35,8 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  *  - 中文检索由应用层 [FactFtsManager.toNgram] 预处理为 2-gram,不依赖内置 tokenizer。
  */
 @Database(
-    entities = [FactEntity::class, FactFtsEntity::class],
-    version = 8,
+    entities = [FactEntity::class, FactFtsEntity::class, MemorySpaceEntity::class, MemoryLinkEntity::class],
+    version = 10,
     // v1.78 (H4): 开启 schema 导出,未来 v4+ 升级时编写 Migration 替代 destructive
     // 历史 v1→v2→v3 的 destructive migration 已无法补救,从 v3 开始留基线
     exportSchema = true,
@@ -34,6 +44,11 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 abstract class FactDb : RoomDatabase() {
 
     abstract fun factDao(): FactDao
+
+    abstract fun memorySpaceDao(): io.zer0.memory.space.MemorySpaceDao
+
+    /** v10: 记忆知识图谱边 DAO(P2-3)。 */
+    abstract fun memoryLinkDao(): io.zer0.memory.ai.MemoryLinkDao
 
     companion object {
         /**
@@ -121,14 +136,112 @@ abstract class FactDb : RoomDatabase() {
             }
         }
 
+        /**
+         * v8→v9 迁移: P2-2 多 Space 记忆隔离。
+         *
+         *  1. facts 表新增 space_id 列(默认 "default"),并建索引。
+         *  2. 新建 memory_spaces 表存储 Space 元数据(id/name/icon/description/created_at/sort_index)。
+         *  3. 插入默认 Space("default"),历史 facts 通过 DEFAULT 'default' 自动归入。
+         *
+         * 注意:
+         *  - ALTER TABLE ADD COLUMN 在 SQLite 中是 O(1) 元数据操作,不会重写整张表。
+         *  - memory_spaces 表结构必须与 [MemorySpaceEntity] @Entity 注解生成的 SQL 完全一致,
+         *    否则 Room schema 校验失败(包括列顺序、类型、默认值、索引名)。
+         *  - 索引名 idx_memory_spaces_sort 与 @Index(name = "idx_memory_spaces_sort") 对齐。
+         */
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // 1. facts 表新增 space_id 列
+                db.execSQL("ALTER TABLE facts ADD COLUMN space_id TEXT NOT NULL DEFAULT 'default'")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_facts_space_id ON facts(space_id)")
+
+                // 2. 创建 memory_spaces 表
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS memory_spaces (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        name TEXT NOT NULL,
+                        icon TEXT,
+                        description TEXT NOT NULL DEFAULT '',
+                        created_at TEXT NOT NULL,
+                        sort_index INTEGER NOT NULL DEFAULT 0
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_memory_spaces_sort ON memory_spaces(sort_index)")
+
+                // 3. 插入默认 Space(用 INSERT OR IGNORE 防止重复)
+                val defaultCreatedAt = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                db.execSQL(
+                    """
+                    INSERT OR IGNORE INTO memory_spaces (id, name, icon, description, created_at, sort_index)
+                    VALUES ('default', '默认', 'bookmark', '', '$defaultCreatedAt', 0)
+                    """.trimIndent()
+                )
+            }
+        }
+
+        /**
+         * v9→v10 迁移: P2-3 记忆知识图谱。
+         *
+         *  新建 memory_links 表存储事实间关系(causes/explains/part_of/related_to/contradicts)。
+         *  - source_fact_id / target_fact_id 指向 facts.id(不加 FOREIGN KEY,避免级联性能损耗)
+         *  - source_title / target_title 冗余标题(事实删除后仍可展示关系语义)
+         *  - space_id / scope 与 facts 表对齐,支持多 Space + 多 Agent 隔离
+         *  - weight 关系强度 0.0~1.0
+         *
+         * 注意:
+         *  - 表结构必须与 [MemoryLinkEntity] @Entity 注解生成的 SQL 完全一致
+         *    (列名/类型/默认值/索引名),否则 Room schema 校验失败。
+         *  - 索引名 idx_memory_links_* 与 @Index(name = ...) 对齐。
+         *  - 历史数据无 memory_links 记录,迁移仅建空表。
+         */
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS memory_links (
+                        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                        source_fact_id INTEGER NOT NULL,
+                        target_fact_id INTEGER NOT NULL,
+                        source_title TEXT NOT NULL,
+                        target_title TEXT NOT NULL,
+                        link_type TEXT NOT NULL DEFAULT 'related_to',
+                        weight REAL NOT NULL DEFAULT 0.5,
+                        space_id TEXT NOT NULL DEFAULT 'default',
+                        scope TEXT NOT NULL DEFAULT 'main',
+                        created_at TEXT NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_memory_links_source ON memory_links(source_fact_id)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_memory_links_target ON memory_links(target_fact_id)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_memory_links_space ON memory_links(space_id)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_memory_links_scope ON memory_links(scope)")
+            }
+        }
+
         /** 单例数据库实例。全局唯一,内存数据库失败时回退。 */
         fun create(context: Context, name: String = "facts.db"): FactDb {
             return Room.databaseBuilder(context, FactDb::class.java, name)
-                .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+                .addMigrations(
+                    MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
+                    MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
+                )
                 .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)
                         createFtsCleanupTrigger(db)
+                        // v9: 全新安装时插入默认 Space(与 MIGRATION_8_9 行为对齐)
+                        val defaultCreatedAt = LocalDateTime.now()
+                            .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                        db.execSQL(
+                            """
+                            INSERT OR IGNORE INTO memory_spaces
+                                (id, name, icon, description, created_at, sort_index)
+                            VALUES ('default', '默认', 'bookmark', '', '$defaultCreatedAt', 0)
+                            """.trimIndent()
+                        )
                     }
                 })
                 // v1.78 (M4): 移除 upgrade 的 destructive migration,避免升级时静默清空用户事实;

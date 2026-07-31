@@ -6,15 +6,20 @@ import io.zer0.ai.core.ChatStreamEvent
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.Model
 import io.zer0.ai.core.ProviderConfig
+import io.zer0.ai.core.ToolCall
+import io.zer0.ai.core.ToolDefinition
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.data.AgentTeam
 import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.data.subagent.SubagentThreadStore
 import io.zer0.muse.util.MusePatterns
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.groupchat.GroupChatEntity
@@ -27,6 +32,8 @@ import io.zer0.muse.rag.RagService
 import io.zer0.muse.tools.DelegationChainTracker
 import io.zer0.muse.tools.DelegationContract
 import io.zer0.muse.tools.SkillExecutor
+import io.zer0.muse.tools.channel.ChannelToolFactory
+import io.zer0.muse.tools.channel.toToolDefinition
 import io.zer0.muse.transformer.SystemPromptAssembler
 import io.zer0.muse.ui.groupchat.AgentActivityStatus
 import io.zer0.muse.ui.groupchat.GroupChatActivityHub
@@ -46,6 +53,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * 群聊调度器 — 用户发消息后串行触发群聊中的 Agent 轮转发言。
@@ -106,6 +114,29 @@ class GroupChatScheduler(
      * SystemPromptAssembler 注入时用 `<group_chat_memory>` 标签与主记忆区分。
      */
     private val groupChatMemoryRepository: GroupChatMemoryRepository? = null,
+    /**
+     * v1.0.53: SystemPromptAssembler 实例,用于在群聊 system prompt 中注入
+     * 长期记忆(`<long_term_memory>`)和群聊记忆(`<group_chat_memory>`)。
+     *
+     * 修复"群聊记忆和其他地方记忆不互通"问题:
+     *  - 之前:群聊 agent 回复后写入 GroupChatMemoryRepository,但下次构造 prompt 时没读取
+     *  - 之前:群聊 agent 完全不知道用户的长期记忆
+     *  - 现在:注入这两段记忆,让群聊 agent 既能看到用户画像,也能记住自己在群聊中的过往发言
+     *
+     * 为 null 时(测试环境)降级为不注入,与原行为一致。
+     */
+    private val systemPromptAssembler: io.zer0.muse.transformer.SystemPromptAssembler? = null,
+    /**
+     * v1.0.53 Phase 5: 子 agent 线程账本(持久化版)。
+     *
+     * 用于 Agent Phone(whisper 私聊)复用 Phase 1 统一 ThreadStore:
+     *  - launchWhisper 调用 [SubagentThreadStore.getOrCreate] 注册线程
+     *  - 私聊消息通过 [SubagentThreadStore.appendMessages] 写入
+     *    `filesDir/subagent_sessions/<threadId>.jsonl`,App 重启后可恢复
+     *
+     * 为 null 时(测试环境)降级为不持久化,与原内存版行为一致。
+     */
+    private val subagentThreadStore: SubagentThreadStore? = null,
 ) {
 
     /**
@@ -153,6 +184,24 @@ class GroupChatScheduler(
         private const val ACTIVITY_IDLE_DELAY_MS = 3000L
         /** v1.97: @mention 正则 — 匹配 @name 形式,name 为非空白非标点字符序列。 */
         private val MENTION_REGEX = Regex("@([^\\s@,，。.!！?？:：;；()（）\\[\\]【】]+)")
+        /**
+         * v1.0.53 Phase 5: channel_* 工具决策轮次上限。
+         *
+         * 第 1 轮 LLM 可调用 channel_reply / channel_pass / channel_read_context;
+         * 若调用了 read_context,把结果回填后进入第 2 轮(强制 reply/pass,不再给 read_context)。
+         * 第 2 轮仍不决策 → 视为 implicitPass(对齐 Hana implicitPass)。
+         */
+        private const val MAX_CHANNEL_DECISION_ROUNDS = 2
+        /**
+         * v1.0.53 Phase 5: 连续不决策的降级阈值。
+         *
+         * 同一 chatId 内,某成员连续 [DEMOTION_THRESHOLD] 轮(含决策修复重试)都 PASS
+         * → 加入 demotedMembers,本场群聊后续轮次"仅被 @ 才发言"。
+         */
+        private const val DEMOTION_THRESHOLD = 2
+
+        /** v1.0.53: 相邻 agent 发言间隔(毫秒) — 摊开 RPM 配额,防商汤 429。 */
+        private const val GROUP_CHAT_AGENT_INTERVAL_MS = 3000L
 
         /**
          * 群聊 mood 格式要求 — 让 Agent 在回复前先输出内部腹稿。
@@ -181,6 +230,49 @@ class GroupChatScheduler(
             - 不要在正文里重复 MOOD 的内容
             - 如需展示深度推理,可在正文前写 <think>...</think> 块,系统同样会剥离并支持折叠展示
         """.trimIndent()
+    }
+
+    /**
+     * v1.0.53 Phase 5: 群聊成员降级表(chatId → 已降级 assistantId 集合)。
+     *
+     * 连续 [DEMOTION_THRESHOLD] 轮不决策的成员加入此表,后续轮次默认跳过(仅被 @ 才发言)。
+     * 内存态:App 重启后清空(可接受 — 降级是短期行为,避免长期记忆导致 agent 永久沉默)。
+     */
+    private val demotedMembers: MutableMap<String, MutableSet<String>> = ConcurrentHashMap()
+
+    /** v1.0.53 Phase 5: 每个成员的连续 PASS 计数(chatId → assistantId → count)。 */
+    private val consecutivePassCount: MutableMap<String, MutableMap<String, Int>> = ConcurrentHashMap()
+
+    /**
+     * v1.0.53 Phase 5: 判断成员是否已降级(本场群聊连续不决策)。
+     * 已降级成员在未被 @ 提及时直接跳过,不调用 LLM。
+     */
+    private fun isDemoted(chatId: String, assistantId: String): Boolean =
+        demotedMembers[chatId]?.contains(assistantId) == true
+
+    /**
+     * v1.0.53 Phase 5: 记录成员本轮 PASS,达到阈值则降级。
+     *
+     * @param implicit v1.0.53: true 表示 API 故障/超时导致的被动跳过,不参与降级计数
+     *                 (避免商汤限流时 agent 被误降级成"仅@才发言")。
+     */
+    private fun recordPassAndMaybeDemote(chatId: String, assistantId: String, implicit: Boolean = false, assistantName: String = assistantId) {
+        if (implicit) {
+            Logger.i(TAG, "Agent「$assistantName」本轮被动跳过(implicit, API 故障/超时),不参与降级计数")
+            return
+        }
+        val perChat = consecutivePassCount.computeIfAbsent(chatId) { ConcurrentHashMap() }
+        val newCount = (perChat[assistantId] ?: 0) + 1
+        perChat[assistantId] = newCount
+        if (newCount >= DEMOTION_THRESHOLD) {
+            demotedMembers.computeIfAbsent(chatId) { ConcurrentHashMap.newKeySet() }.add(assistantId)
+            Logger.i(TAG, "Agent「$assistantName」($assistantId) 在群聊 $chatId 连续 $newCount 轮不决策,降级为仅@才发言")
+        }
+    }
+
+    /** v1.0.53 Phase 5: 成员本轮正常回复,清零连续 PASS 计数(但已降级状态保留 — 降级是单向的)。 */
+    private fun recordReply(chatId: String, assistantId: String) {
+        consecutivePassCount[chatId]?.remove(assistantId)
     }
 
     /**
@@ -511,7 +603,6 @@ class GroupChatScheduler(
                     currentSpeakerId = assistant.id,
                     currentSpeakerName = assistant.name,
                 )
-                // v1.0.29: 前台服务通知由 MuseApp ON_STOP 统一管理
 
                 // 1. 保存用户悄悄话(whisperTargetId 标记)
                 val userName = resultOf { settings.accountStateFlow.first().userName }
@@ -524,6 +615,31 @@ class GroupChatScheduler(
                     body = text,
                     whisperTargetId = targetAssistantId,
                 )
+
+                // v1.0.53 Phase 5: Agent Phone 复用 SubagentThreadStore —
+                // whisper 也生成 threadId,私聊消息写入 filesDir/subagent_sessions/<threadId>.jsonl,
+                // App 重启后可恢复私聊历史。parentSessionId 用 "agent_phone:<chatId>" 区分群聊上下文。
+                val threadStore = subagentThreadStore
+                val whisperThreadId = if (threadStore != null) {
+                    resultOf {
+                        threadStore.getOrCreate(
+                            threadId = null,  // 每次私聊都复用同一 chatId+assistantId 的线程
+                            parentSessionId = "agent_phone:$chatId",
+                            assistantId = targetAssistantId,
+                            label = "whisper:${chat.name}:${assistant.name}",
+                        ).first  // 取 threadId
+                    }.getOrNull()
+                } else null
+
+                // 把用户悄悄话持久化到 ThreadStore(便于续接)
+                if (threadStore != null && whisperThreadId != null) {
+                    resultOf {
+                        threadStore.appendMessages(whisperThreadId, listOf(UIMessage(
+                            role = MessageRole.USER,
+                            content = text,
+                        )))
+                    }.onError { msg, _ -> Logger.w(TAG, "whisper 用户消息持久化失败: $msg") }
+                }
 
                 // 2. 触发目标 AI 回复(也是悄悄话)
                 val recentMessages = groupChatRepository.getRecentMessages(chatId, DEFAULT_CONTEXT_SIZE)
@@ -561,7 +677,27 @@ class GroupChatScheduler(
                             reasoning = extractReasoning(rawReply),
                             whisperTargetId = "local_user",
                         )
+                        // v1.0.53 Phase 5: 把 agent 回复也持久化到 ThreadStore
+                        if (threadStore != null && whisperThreadId != null) {
+                            resultOf {
+                                threadStore.appendMessages(whisperThreadId, listOf(UIMessage(
+                                    role = MessageRole.ASSISTANT,
+                                    content = replyText,
+                                )))
+                            }.onError { msg, _ -> Logger.w(TAG, "whisper agent 回复持久化失败: $msg") }
+                        }
                     }
+                }
+                // v1.0.53 Phase 5: 记录本次 whisper run 到 ThreadStore(更新 runCount/lastSummary)
+                if (threadStore != null && whisperThreadId != null) {
+                    resultOf {
+                        threadStore.recordRun(
+                            threadId = whisperThreadId,
+                            status = "whisper",
+                            summary = rawReply?.take(200),
+                            sessionPath = threadStore.sessionPathOf(whisperThreadId),
+                        )
+                    }.onError { msg, _ -> Logger.w(TAG, "whisper recordRun 失败: $msg") }
                 }
                 scheduleIdleTransition(chatId, assistant)
             } catch (ce: CancellationException) {
@@ -822,20 +958,46 @@ class GroupChatScheduler(
         val replies = mutableListOf<GroupChatMessageEntity>()
 
         // 6. 串行触发每个 agent(被提及的有决策修复)
+        // v1.0.53: 相邻 agent 之间加间隔,摊开 RPM 配额(商汤 API 限流较严格,
+        // 连续调用多个 agent 会把每分钟请求数打爆导致 429 implicitPass)
+        var agentIndex = 0
         for (assistant in orderedAssistants) {
+            if (agentIndex > 0) {
+                delay(GROUP_CHAT_AGENT_INTERVAL_MS)
+            }
+            agentIndex++
             val isMentioned = assistant.id in mentionedAgentIds
+            // v1.0.53 Phase 5: 降级检查 — 已降级成员未被 @ 时直接跳过,不调用 LLM
+            if (!isMentioned && isDemoted(chatId, assistant.id)) {
+                Logger.i(TAG, "Agent「${assistant.name}」已降级(连续不决策),未被 @ 提及,本轮自动跳过")
+                activityHub.updateStatus(chatId, assistant.id, assistant.name, AgentActivityStatus.NO_REPLY)
+                scheduleIdleTransition(chatId, assistant)
+                continue
+            }
             // v1.104: 通知 UI 当前轮到谁发言
             onSpeakerChange?.invoke(assistant)
             when (val result = invokeAgent(chat, chatId, assistant, memberNames, isMentioned = isMentioned)) {
-                is AgentResult.Reply -> replies.add(result.message)
+                is AgentResult.Reply -> {
+                    replies.add(result.message)
+                    // v1.0.53 Phase 5: 正常回复,清零连续 PASS 计数
+                    recordReply(chatId, assistant.id)
+                }
                 is AgentResult.Pass -> {
+                    // v1.0.53 Phase 5: 记录 PASS(implicit=API故障被动跳过时不计数),达到阈值则降级
+                    recordPassAndMaybeDemote(chatId, assistant.id, implicit = result.implicit, assistantName = assistant.name)
                     // v1.97: 决策修复 — 被提及的 agent 如果 PASS,重试一次
                     if (isMentioned) {
                         Logger.i(TAG, "Agent「${assistant.name}」被@提及但 PASS,决策修复重试")
                         when (val retry = invokeAgent(chat, chatId, assistant, memberNames, isMentioned = true, isRepair = true)) {
-                            is AgentResult.Reply -> replies.add(retry.message)
+                            is AgentResult.Reply -> {
+                                replies.add(retry.message)
+                                recordReply(chatId, assistant.id)
+                            }
                             is AgentResult.Error -> Logger.w(TAG, "Agent「${assistant.name}」决策修复失败: ${retry.message}")
-                            is AgentResult.Pass -> Logger.i(TAG, "Agent「${assistant.name}」决策修复仍 PASS")
+                            is AgentResult.Pass -> {
+                                recordPassAndMaybeDemote(chatId, assistant.id, implicit = retry.implicit, assistantName = assistant.name)
+                                Logger.i(TAG, "Agent「${assistant.name}」决策修复仍 PASS")
+                            }
                         }
                     }
                 }
@@ -1278,7 +1440,7 @@ class GroupChatScheduler(
         if (replyText.isBlank() || replyText == PASS_MARKER) {
             activityHub.updateStatus(chatId, assistant.id, assistant.name, AgentActivityStatus.NO_REPLY)
             scheduleIdleTransition(chatId, assistant)
-            return AgentResult.Pass
+            return AgentResult.Pass()
         }
 
         val msgId = groupChatRepository.sendMessage(
@@ -1340,6 +1502,21 @@ class GroupChatScheduler(
             )
             appendLine()
             appendLine(GROUP_CHAT_MOOD_SECTION)
+
+            // v1.0.53: 注入长期记忆(用户画像)和群聊记忆(agent 过往发言)
+            // 修复"群聊记忆和其他地方记忆不互通"问题
+            systemPromptAssembler?.let { assembler ->
+                val longTermMemory = assembler.buildLongTermMemorySection()
+                if (longTermMemory.isNotBlank()) {
+                    appendLine()
+                    appendLine(longTermMemory)
+                }
+                val groupChatMemory = assembler.buildGroupChatMemorySection(assistant.id)
+                if (groupChatMemory.isNotBlank()) {
+                    appendLine()
+                    appendLine(groupChatMemory)
+                }
+            }
             appendLine()
             appendLine("【辩论模式】你正在参与一场结构化辩论。")
             appendLine("你在本轮链条中的角色定位:$role(第 ${speakerIndex + 1}/$totalSpeakers 位发言)")
@@ -1555,8 +1732,13 @@ class GroupChatScheduler(
      * 把流式异常误判为主动 PASS 触发决策修复重试。
      */
     private sealed class AgentResult {
-        /** 主动跳过本轮(返回 [PASS_MARKER] 或空文本)。 */
-        data object Pass : AgentResult()
+        /**
+         * 跳过本轮。
+         *
+         * @param implicit v1.0.53: true = API 故障/超时导致的被动跳过(不参与降级计数),
+         *                 false = 模型主动 channel_pass(显式跳过,参与降级计数)。
+         */
+        data class Pass(val implicit: Boolean = false) : AgentResult()
 
         /** 正常回复了一条消息。 */
         data class Reply(val message: GroupChatMessageEntity) : AgentResult()
@@ -1634,7 +1816,12 @@ class GroupChatScheduler(
      * 改造 2(Phone Session 模式):通过 [buildMessages] 构造 Phone Session 式 prompt,
      * 每个 agent 独立收到"手机推送"而非共享上下文;身份防混淆 guidance 由
      * [SystemPromptAssembler.buildGroupChatHintSection] 注入(per-agent)。
-     * channel_* 工具未接入时保持 [PASS] 文本标记机制(详见 [buildMessages] 的 TODO)。
+     *
+     * v1.0.53 Phase 5: channel_* 工具接入 — 把 [PASS] 文本协议切换为工具调用决策。
+     *  - LLM 必须调用 channel_reply(发言)/ channel_pass(跳过)/ channel_read_context(读更多历史) 之一
+     *  - 多轮决策:第 1 轮三件套都可用;若调 read_context,回填结果后第 2 轮强制 reply/pass
+     *  - 决策超时(60s 内未完成决策)→ implicitPass(对齐 Hana implicitPass)
+     *  - 兼容旧协议:LLM 未调工具但输出文本时,按 [PASS] 文本规则解析(平滑迁移)
      *
      * @param chat 群聊实体
      * @param chatId 群聊 id
@@ -1684,93 +1871,184 @@ class GroupChatScheduler(
         // b. 构造消息列表(改造 2 Phone Session:system 含身份 guidance,user 为推送式 phone prompt)
         val messages = buildMessages(chat, assistant, memberNames, recentMessages, model, isMentioned, isRepair)
 
-        // c. 调 LLM(流式,60s 超时)
-        // v1.134 P1-4: 改为 streamChat 累积 ContentDelta,消除 completeText 的整包阻塞。
-        // 流式优势:首 token 即建立连接,后续增量返回;长思考模型不再被 60s 整包超时误杀。
-        // UI 仅依赖 currentSpeakerId 显示"谁在思考",不订阅增量文本,因此这里只累积成完整字符串。
-        // v1.0.29: 补 providerConfig 参数,确保跨 Provider 路由到助手配置的 Provider。
         val temperature = assistant.temperature ?: DEFAULT_TEMPERATURE
         val maxTokens = assistant.maxTokens ?: DEFAULT_MAX_TOKENS
         // ActivityHub: 即将调 LLM 流式,标记为 REPLYING(正在回复)。
         activityHub.updateStatus(chatId, assistant.id, assistant.name, AgentActivityStatus.REPLYING)
-        val rawReplyText = resultOf {
-            withTimeoutOrNull(AGENT_TIMEOUT_MS) {
+
+        // v1.0.53 Phase 5: channel_* 工具集(Phone Session 模式)
+        // 三件套:channel_reply(发言) / channel_pass(跳过) / channel_read_context(读更多历史)
+        // 回调通过闭包捕获 var,执行后把结果写入 replyContent / passReason
+        var replyContent: String? = null
+        var passReason: String? = null
+        val workingMessages = messages.toMutableList()
+
+        val (allToolDefinitions, toolExecutors) = ChannelToolFactory.createChannelToolDefinitions(
+            groupChatId = chatId,
+            senderAssistantId = assistant.id,
+            onReply = { content -> replyContent = content },
+            onPass = { reason -> passReason = reason },
+            contextProvider = { limit ->
+                val more = groupChatRepository.getRecentMessages(chatId, limit)
+                formatMessageTranscript(more)
+            },
+        )
+
+        // v1.0.53 Phase 5: 多轮决策循环(整体 60s 超时包裹 → 超时视为 implicitPass)
+        //  - 第 1 轮:三件套都可用
+        //  - 第 2 轮(仅当第 1 轮调了 read_context):移除 read_context,强制 reply/pass
+        //  - 任意轮 reply/pass 即退出;未调 read_context 也退出(implicit pass)
+        //  - 流式错误(HTTP 500 / 网络异常)→ 立即返回 Error(不等超时)
+        //  - 整体超时 → implicitPass(对齐 Hana implicitPass)
+        var streamErrorMessage: String? = null  // 流式错误(非超时)
+        val timedOut = withTimeoutOrNull(AGENT_TIMEOUT_MS) {
+            for (round in 0 until MAX_CHANNEL_DECISION_ROUNDS) {
+                replyContent = null
+                passReason = null
+
+                val toolsForThisRound = if (round == 0) {
+                    allToolDefinitions
+                } else {
+                    // 第 2 轮:移除 read_context,强制 reply/pass
+                    allToolDefinitions.filter { it.name != "channel_read_context" }
+                }
+
+                // 流式调用,累积 ContentDelta + ToolCallDelta
                 val builder = StringBuilder()
+                val toolCallAccumulator = mutableMapOf<Int, MutableList<ChatStreamEvent.ToolCallDelta>>()
                 var streamError: String? = null
+
                 chatService.streamChat(
-                    messages = messages,
+                    messages = workingMessages,
                     model = model,
                     temperature = temperature,
                     maxTokens = maxTokens,
+                    tools = toolsForThisRound,
                     providerConfig = providerConfig,
                 ).collect { event ->
                     when (event) {
                         is ChatStreamEvent.ContentDelta -> builder.append(event.delta)
                         is ChatStreamEvent.ReasoningDelta -> { /* 思考增量不入正文,与单聊保持一致 */ }
                         is ChatStreamEvent.ImageDelta -> { /* 群聊暂不支持图片输出,忽略 */ }
-                        is ChatStreamEvent.ToolCallDelta -> { /* 群聊不传 tools,忽略 */ }
+                        is ChatStreamEvent.ToolCallDelta -> {
+                            toolCallAccumulator.getOrPut(event.index) { mutableListOf() }.add(event)
+                        }
                         is ChatStreamEvent.Done -> { /* 流结束 */ }
                         is ChatStreamEvent.Error -> streamError = event.message
                         is ChatStreamEvent.StreamInterrupted -> streamError = event.message
                     }
                 }
                 if (streamError != null) {
-                    throw IllegalStateException(streamError)
+                    // 流式错误:记录并跳出循环,在外部返回 Error
+                    streamErrorMessage = streamError
+                    break
                 }
-                builder.toString().trim()
-            }
-        }.onError { msg, t ->
-            Logger.e(TAG, "Agent「${assistant.name}」LLM 调用失败: $msg", t)
-            // ActivityHub: 流式调用失败 → ERROR,延迟后回退到 IDLE(不阻塞下一 agent)。
-            activityHub.updateStatus(chatId, assistant.id, assistant.name, AgentActivityStatus.ERROR)
-            scheduleIdleTransition(chatId, assistant)
-            // v1.202: 链路追踪 — LLM 调用失败,记录失败节点
-            delegationChainTracker?.onDelegationFinished(
-                requestId = delegationRequestId,
-                success = false,
-                resultText = "",
-                error = msg,
-            )
-            return AgentResult.Error(msg)
-        }.getOrNull()
 
-        if (rawReplyText == null) {
-            Logger.w(TAG, "Agent「${assistant.name}」调用超时(${AGENT_TIMEOUT_MS / 1000}s),跳过")
-            // ActivityHub: 超时也属错误 → ERROR,延迟后回退到 IDLE。
-            activityHub.updateStatus(chatId, assistant.id, assistant.name, AgentActivityStatus.ERROR)
-            scheduleIdleTransition(chatId, assistant)
-            // v1.202: 链路追踪 — 调用超时,记录失败节点
-            delegationChainTracker?.onDelegationFinished(
-                requestId = delegationRequestId,
-                success = false,
-                resultText = "",
-                error = "Agent 调用超时(${AGENT_TIMEOUT_MS / 1000}s)",
-            )
-            return AgentResult.Error("Agent「${assistant.name}」调用超时(${AGENT_TIMEOUT_MS / 1000}s)")
+                // 累积的 tool calls(按 index 排序,合并增量)
+                val toolCalls = toolCallAccumulator.toSortedMap().values.map { deltas ->
+                    ToolCall(
+                        id = deltas.firstNotNullOfOrNull { it.id } ?: "",
+                        name = deltas.firstNotNullOfOrNull { it.name } ?: "",
+                        arguments = deltas.mapNotNull { it.argumentsDelta }.joinToString(""),
+                    )
+                }
+
+                val rawText = builder.toString().trim()
+
+                // 处理 tool calls
+                var calledReadContext = false
+                for (tc in toolCalls) {
+                    when (tc.name) {
+                        "channel_reply" -> {
+                            val args = parseToolArgs(tc.arguments)
+                            toolExecutors["channel_reply"]?.invoke(args)
+                            // replyContent 已通过 onReply 回调赋值
+                        }
+                        "channel_pass" -> {
+                            val args = parseToolArgs(tc.arguments)
+                            toolExecutors["channel_pass"]?.invoke(args)
+                            // passReason 已通过 onPass 回调赋值
+                        }
+                        "channel_read_context" -> {
+                            val args = parseToolArgs(tc.arguments)
+                            val result = toolExecutors["channel_read_context"]?.invoke(args) ?: "(无上下文)"
+                            // 把 read_context 结果回填为 user 消息,让 LLM 下一轮据此决策
+                            workingMessages.add(UIMessage(
+                                role = MessageRole.USER,
+                                content = "【channel_read_context 结果】\n$result\n\n请基于以上完整上下文,调用 channel_reply 发言或 channel_pass 跳过。",
+                            ))
+                            calledReadContext = true
+                        }
+                    }
+                }
+
+                // 决策完成?
+                if (replyContent != null) break      // 已发言
+                if (passReason != null) break        // 已跳过
+                if (!calledReadContext) {
+                    // 未调 read_context 也未决策 — 检查是否有文本输出(兼容旧 [PASS] 文本协议)
+                    if (rawText.isBlank() || rawText == PASS_MARKER) {
+                        // 空文本或 [PASS] → implicit pass
+                        break
+                    }
+                    // 有文本但未调工具 → 当作 reply(兼容不支持工具调用的模型)
+                    replyContent = rawText
+                    break
+                }
+                // 否则继续下一轮(read_context 后强制 reply/pass)
+            }
         }
 
-        // e. 提取 mood / think 模块,再清理 channel_reply 包装
-        val extractedMood = extractMood(rawReplyText)
-        val extractedReasoning = extractReasoning(rawReplyText)
-        val replyText = sanitizeAgentReply(rawReplyText)
+        // 流式错误优先处理(非超时,返回 Error)
+        if (streamErrorMessage != null) {
+            Logger.e(TAG, "Agent「${assistant.name}」LLM 调用失败: $streamErrorMessage")
+            activityHub.updateStatus(chatId, assistant.id, assistant.name, AgentActivityStatus.ERROR)
+            scheduleIdleTransition(chatId, assistant)
+            delegationChainTracker?.onDelegationFinished(
+                requestId = delegationRequestId,
+                success = false,
+                resultText = "",
+                error = streamErrorMessage,
+            )
+            return AgentResult.Error(streamErrorMessage!!)
+        }
 
-        // f. 检查是否跳过([PASS] 或空文本)
-        if (replyText.isBlank() || replyText == PASS_MARKER) {
-            Logger.i(TAG, "Agent「${assistant.name}」选择跳过本轮(PASS)")
-            // ActivityHub: 主动跳过 → NO_REPLY,延迟后回退到 IDLE(让用户看到"未回复"状态)。
+        if (timedOut == null) {
+            // 决策超时 → implicitPass(对齐 Hana implicitPass:超时未决策自动跳过)
+            Logger.w(TAG, "Agent「${assistant.name}」决策超时(${AGENT_TIMEOUT_MS / 1000}s),implicit pass")
             activityHub.updateStatus(chatId, assistant.id, assistant.name, AgentActivityStatus.NO_REPLY)
             scheduleIdleTransition(chatId, assistant)
-            // v1.202: 链路追踪 — Agent 主动 PASS,记录为失败(无有效产出)
             delegationChainTracker?.onDelegationFinished(
                 requestId = delegationRequestId,
                 success = false,
                 resultText = "",
-                error = "Agent 返回 [PASS] 或空内容",
+                error = "Agent 决策超时(implicitPass)",
             )
-            return AgentResult.Pass
+            return AgentResult.Pass(implicit = true)
         }
 
-        // g. 保存 agent 回复到群聊
+        // 根据决策结果返回 AgentResult
+        val replyText = replyContent?.let { sanitizeAgentReply(it) }
+        if (replyText.isNullOrBlank() || replyText == PASS_MARKER) {
+            // channel_pass 或 implicit pass
+            Logger.i(TAG, "Agent「${assistant.name}」选择跳过本轮(PASS, reason=${passReason ?: "implicit"})")
+            activityHub.updateStatus(chatId, assistant.id, assistant.name, AgentActivityStatus.NO_REPLY)
+            scheduleIdleTransition(chatId, assistant)
+            delegationChainTracker?.onDelegationFinished(
+                requestId = delegationRequestId,
+                success = false,
+                resultText = "",
+                error = "Agent 跳过本轮(reason=${passReason ?: "implicit"})",
+            )
+            // v1.0.53: implicit=true 时是 API 故障/超时被动跳过,不计入降级
+            return AgentResult.Pass(implicit = passReason == null)
+        }
+
+        // 提取 mood / think 模块(channel_reply 的 content 可能含 mood/think 标签)
+        val extractedMood = extractMood(replyText)
+        val extractedReasoning = extractReasoning(replyText)
+
+        // 保存 agent 回复到群聊
         val msgId = groupChatRepository.sendMessage(
             chatId = chatId,
             senderType = "assistant",
@@ -1792,8 +2070,6 @@ class GroupChatScheduler(
         )
         // v2.x: 群聊记忆隔离 — 把本轮 agent 回复摘要写入独立 fact store,
         // 不写入助手主记忆系统,避免群聊消息污染主对话上下文。
-        // 摘要采用简单截取(回复前 200 字),不额外调 LLM 避免延迟;
-        // 后续若需更精细摘要,可改用 LLM 生成。
         if (groupChatMemoryRepository != null) {
             val summary = buildGroupChatMemorySummary(chat.name, assistant, replyText)
             resultOf { groupChatMemoryRepository.saveSummary(chatId, assistant.id, summary) }
@@ -1813,6 +2089,23 @@ class GroupChatScheduler(
             )
         )
     }
+
+    /**
+     * v1.0.53 Phase 5: 解析 LLM 返回的工具调用 arguments JSON 字符串为 Map<String, String>。
+     *
+     * 与 [SkillExecutor.parseArgs] 同源逻辑,独立实现避免依赖 SkillExecutor 的 private 方法。
+     * 解析失败时返回空 Map(让工具执行器自行处理缺参错误)。
+     */
+    private fun parseToolArgs(json: String): Map<String, String> = resultOf {
+        val obj = AppJson.decodeFromString(JsonObject.serializer(), json)
+        obj.entries.associate { (k, v) ->
+            val strValue = when (v) {
+                is JsonPrimitive -> v.content
+                else -> AppJson.encodeToString(kotlinx.serialization.json.JsonElement.serializer(), v)
+            }
+            k to strValue
+        }
+    }.getOrNull() ?: emptyMap()
 
     /**
      * ActivityHub: 延迟回退到 IDLE 状态(不阻塞下一 agent 调用)。
@@ -1932,6 +2225,21 @@ class GroupChatScheduler(
             appendLine()
             appendLine(GROUP_CHAT_MOOD_SECTION)
 
+            // v1.0.53: 注入长期记忆(用户画像)和群聊记忆(agent 过往发言)
+            // 修复"群聊记忆和其他地方记忆不互通"问题
+            systemPromptAssembler?.let { assembler ->
+                val longTermMemory = assembler.buildLongTermMemorySection()
+                if (longTermMemory.isNotBlank()) {
+                    appendLine()
+                    appendLine(longTermMemory)
+                }
+                val groupChatMemory = assembler.buildGroupChatMemorySection(assistant.id)
+                if (groupChatMemory.isNotBlank()) {
+                    appendLine()
+                    appendLine(groupChatMemory)
+                }
+            }
+
             // v2.x: 注入群共享文档(所有成员可见的共享背景知识)
             val sharedDocs = resultOf { groupChatRepository.parseSharedDocs(chat) }.getOrNull().orEmpty()
             if (sharedDocs.isNotEmpty()) {
@@ -1965,10 +2273,15 @@ class GroupChatScheduler(
                 appendLine(privateText)
             }
 
-            // M5: 明确告知 Agent 不要输出 channel_* 工具调用文本(Prompt 中声称有 channel_* 工具但未注册)
-            // TODO(channel_* 工具接入):工具注册后此提示需调整为"调用 channel_reply 发言 / channel_pass 跳过"
+            // v1.0.53 Phase 5: channel_* 工具已接入,告知 LLM 必须通过工具决策
+            // 旧版"不要输出 channel_* 工具调用文本"的提示已废弃(工具已真正注册并传给 streamChat)
             appendLine()
-            appendLine("如需发言直接回复内容;如无需发言只回复 [PASS]。不要输出 channel_pass/channel_reply 等工具调用文本。")
+            appendLine("【决策工具】你已获得 channel_reply / channel_pass / channel_read_context 三个工具。" +
+                "本轮必须调用其中之一表态:")
+            appendLine("- 想发言:调用 channel_reply(content=你的回复),content 中先写 <mood>...</mood> 再写正文")
+            appendLine("- 不发言:调用 channel_pass(reason=可选原因)")
+            appendLine("- 需要更多上下文:调用 channel_read_context(limit=条数,默认20,最多50)")
+            appendLine("不要直接输出回复文本,也不要输出 [PASS],必须通过工具调用表态。")
         }
         messages.add(UIMessage(role = MessageRole.SYSTEM, content = systemContent))
 
@@ -2058,7 +2371,10 @@ class GroupChatScheduler(
      * 每个 agent 独立收到一条"你的手机收到了群聊新消息"的推送,而非把所有成员塞进同一上下文。
      *  - 顶部声明"手机收到新群聊消息"
      *  - 中间是最近消息 transcript(发言者行首标注,与身份防混淆 guidance 配合)
-     *  - 底部根据是否被 @ 提示优先级,并要求"回复输出内容 / 不回复输出 [PASS]"
+     *  - 底部根据是否被 @ 提示优先级,并要求"调用 channel_reply 发言 / channel_pass 跳过"
+     *
+     * v1.0.53 Phase 5: 把 [PASS] 文本指令改为工具调用指令。
+     * LLM 不再输出 [PASS] 文本,而是调用 channel_pass 工具跳过;调用 channel_reply 发言。
      *
      * @param chatName 群聊名称
      * @param assistant 当前 agent 配置(用于在提示中点名称呼)
@@ -2081,30 +2397,25 @@ class GroupChatScheduler(
             appendLine(formatMessageTranscript(recentMessages))
             appendLine()
         }
-        // v1.0.28 修复: 被提及时强制要求回复,不再让 agent "选择性 pass"。
-        // 原 prompt 说"你是本轮优先被提醒的成员"语气太弱,LLM 经常仍然 [PASS]。
-        // 改为明确指令"必须回复",并解释原因。
+        // v1.0.53 Phase 5: 决策指令改为工具调用
         if (isMentioned) {
-            appendLine("⚠️ 这轮消息明确 @ 了你,你必须回复这条消息。")
+            appendLine("⚠️ 这轮消息明确 @ 了你,你必须调用 channel_reply 回复这条消息。")
             appendLine("- 用户 @ 你,是因为想听到你的回应。回复应当自然、贴合你的角色。")
-            appendLine("- 不得输出 [PASS]。即使消息内容简单(如问候),也要给出你的回应。")
+            appendLine("- 被 @ 时不得调用 channel_pass,必须调用 channel_reply 给出你的回应。")
         } else {
-            // v1.0.28: 未被 @ 时降低 pass 阈值 — 原 prompt"如果没有有价值的贡献可以选择 pass"
-            // 让 LLM 几乎对所有简短消息都 pass。改为鼓励发言。
             appendLine("你也是群聊成员,看到这段消息后可以主动参与。")
-            appendLine("- 简单问候/寒暄/闲聊:回复一句即可,不要 pass。")
-            appendLine("- 只有确实与自己无关、无话可说时,才输出 [PASS]。")
+            appendLine("- 简单问候/寒暄/闲聊:调用 channel_reply 回复一句即可,不要 pass。")
+            appendLine("- 只有确实与自己无关、无话可说时,才调用 channel_pass 跳过本轮。")
         }
         if (isRepair) {
             appendLine()
-            appendLine("⚠️ 上一轮你没有回复,但你被 @ 提及了。本轮必须回复,不得再次 [PASS]。")
+            appendLine("⚠️ 上一轮你没有回复,但你被 @ 提及了。本轮必须调用 channel_reply 回复,不得再次 channel_pass。")
         }
         appendLine()
-        appendLine("回复要求:")
-        appendLine("- 先输出 <mood>...</mood> 块(内部腹稿,系统会自动剥离)")
-        appendLine("- 然后直接输出正文(像群聊里的自然发言,口语化)")
-        appendLine("- 不回复时才输出 [PASS](被 @ 提及时不得 [PASS])")
-        appendLine("- 不要输出 [mood]...[/mood](方括号),必须用 <mood>...</mood>(尖括号)")
+        appendLine("发言格式(channel_reply 的 content 参数):")
+        appendLine("- 先写 <mood>...</mood> 块(内部腹稿,系统会自动剥离)")
+        appendLine("- 然后直接写正文(像群聊里的自然发言,口语化)")
+        appendLine("- 用 <mood>...</mood>(尖括号),不要用 [mood]...[/mood](方括号)")
     }
 
     /**

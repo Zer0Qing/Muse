@@ -507,7 +507,12 @@ class GeminiProvider(
                 if (text.isBlank() && toolCalls.isNullOrEmpty()) {
                     throw ErrorCode.INVALID_RESPONSE.toProviderException("empty_text")
                 }
-                ChatCompletion(text = text, finishReason = reason, toolCalls = toolCalls)
+                ChatCompletion(
+                    text = text,
+                    finishReason = reason,
+                    toolCalls = toolCalls,
+                    usageTokens = parsed.usageMetadata?.toUsageTokens(),
+                )
             }
         } catch (e: kotlinx.coroutines.CancellationException) {
             call.cancel()

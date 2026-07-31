@@ -19,6 +19,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -330,6 +331,9 @@ fun GroupChatDetailScreen(
     val chatName = state.currentChat?.name ?: stringResource(R.string.groupchat_default_name)
 
     Scaffold(
+        // v1.0.52: 让 Scaffold 统一处理 IME 内边距,避免 bottomBar 内部 GroupChatInputBar
+        // 再应用一次 imePadding 导致双重 padding(发送按钮被推到不可点击位置)
+        contentWindowInsets = WindowInsets(0),
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
@@ -371,7 +375,11 @@ fun GroupChatDetailScreen(
         },
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            Column {
+            // v1.0.52: imePadding 提到 Column 层,统一处理键盘内边距,
+            // 避免 GroupChatInputBar 内部 imePadding 导致双重 padding
+            Column(
+                modifier = Modifier.imePadding(),
+            ) {
                 // ActivityHub: 输入框上方的紧凑活动状态栏,展示当前轮转中各 agent 的状态 chip。
                 // IDLE 状态被 AgentActivityBar 内部过滤不显示;无活动时整个栏不占空间。
                 AgentActivityBar(activities = state.activities)
@@ -1557,7 +1565,7 @@ private fun GroupChatInputBar(
                     // v1.99: 大R角/曲面屏横向安全区避让
                     .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
                     .navigationBarsPadding()
-                    .imePadding()
+                    // v1.0.52: imePadding 已提到 bottomBar 的 Column 层,此处不再重复应用
                     // v1.137 B5: vertical padding 4dp → 2dp,降低群聊输入栏高度
                     .padding(horizontal = MusePaddings.screen, vertical = 2.dp),
                 verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
@@ -1948,25 +1956,31 @@ private fun PendingImagesRow(
                         .fillMaxSize()
                         .clip(MuseShapes.semiLarge),
                 )
-                // H-GC3 修复: 原先 IconButton size(20.dp) 触摸目标仅 20dp,不满足 48dp 红线。
-                // 改为外层 Box(48dp 触摸区,半透明背景)+ 内层 Icon(14dp 视觉),
-                // Box 用 align(TopEnd) 定位在右上角,触摸区可超出图片边界。
-                // v1.115: 移除冗余 shape=CircleShape(.clip 已裁剪)、移除 padding 偏移(用居中对齐)
+                // v1.0.52: 参考 InputBar 的 iOS 风格小圆点设计,避免 48dp 大圆覆盖整张照片。
+                // 视觉尺寸 20dp,实际触摸目标 32dp(可点击区域略大于视觉,保证易点)。
+                // offset 偏移到图片右上角外侧,不遮挡图片内容。
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .size(MuseIconSizes.touchTarget)
-                        .clip(CircleShape)
-                        .background(color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f))
+                        .offset(x = 6.dp, y = (-6).dp)
+                        .size(32.dp)
                         .clickable { onRemove(image) },
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = stringResource(R.string.groupchat_delete),
-                        modifier = Modifier.size(MuseIconSizes.iconTiny),
-                        tint = MaterialTheme.colorScheme.onSurface,
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(20.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = stringResource(R.string.groupchat_delete),
+                            modifier = Modifier.size(12.dp),
+                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        )
+                    }
                 }
             }
         }

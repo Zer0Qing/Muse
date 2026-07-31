@@ -68,6 +68,8 @@ class MuseApp : Application(), ImageLoaderFactory {
 
     private val memoryTicker: MemoryTicker by inject()
     private val memoryBackfillMigration: io.zer0.muse.data.MemoryBackfillMigration by inject()
+    // v1.0.52 P2-2: 记忆空间仓库,启动时确保默认 Space 存在
+    private val memorySpaceRepository: io.zer0.memory.space.MemorySpaceRepository by inject()
     private val assistantRepository: AssistantRepository by inject()
     private val skillRepository: SkillRepository by inject()
     private val knowledgeDocDao: KnowledgeDocDao by inject()
@@ -86,6 +88,10 @@ class MuseApp : Application(), ImageLoaderFactory {
     private val auditLogger: io.zer0.muse.data.audit.AuditLogger by inject()
     /** v1.92: ChatViewModel 为 single 单例,onCleared 永不调用,需在 ON_STOP 时手动释放资源。 */
     private val chatViewModel: ChatViewModel by inject()
+    /** P1-1: Hook 注册表 — 在应用生命周期事件中调用 AppLifecycleHook。 */
+    private val hookRegistry: io.zer0.muse.hook.HookRegistry by inject()
+    /** P1-2: Worldbook 仓库 — 启动时注册 WorldBookHook。 */
+    private val worldBookRepository: io.zer0.muse.worldbook.WorldBookRepository by inject()
     /** v1.0.12: RAG 服务 — 启动时异步加载持久化的 HNSW 索引(若已落盘)。 */
     private val ragService: io.zer0.muse.rag.RagService by inject()
     /**
@@ -171,6 +177,11 @@ class MuseApp : Application(), ImageLoaderFactory {
                 .onError { msg, t -> Logger.w("MuseApp", "memory backfill 迁移失败: $msg", t) }
                 .onSuccess { ran -> if (ran) Logger.i("MuseApp", "memory backfill 迁移已执行") }
         }
+        // v1.0.52 P2-2: 确保默认记忆 Space 存在(防止数据库迁移异常导致默认 Space 缺失)
+        appScope.launch {
+            resultOf { memorySpaceRepository.ensureDefaultSpaceExists() }
+                .onError { msg, t -> Logger.w("MuseApp", "ensureDefaultSpaceExists 失败: $msg", t) }
+        }
         // v1.92: ChatViewModel 为 single 单例,onCleared 永不调用。
         // 注册 ProcessLifecycleOwner 观察者,在 ON_STOP 时释放 TTS/ASR 资源并停止 memory ticker,
         // 在 ON_START 时重启 memory ticker。
@@ -187,6 +198,9 @@ class MuseApp : Application(), ImageLoaderFactory {
                     appScope.launch {
                         resultOf { memoryTicker.stop() }
                             .onError { msg, t -> Logger.w("MuseApp", "memoryTicker.stop 失败: $msg", t) }
+                        // P1-1: AppLifecycleHook.onAppBackground
+                        resultOf { hookRegistry.executeNoResult(io.zer0.muse.hook.AppLifecycleHook::class) { it.onAppBackground() } }
+                            .onError { msg, t -> Logger.w("MuseApp", "AppLifecycleHook.onAppBackground 失败: $msg", t) }
                     }
                 }
                 Lifecycle.Event.ON_START -> {
@@ -200,6 +214,9 @@ class MuseApp : Application(), ImageLoaderFactory {
                     appScope.launch {
                         resultOf { io.zer0.ai.core.ProviderHttpSupport.evictIdleConnections() }
                             .onError { msg, t -> Logger.w("MuseApp", "evictIdleConnections 失败: $msg", t) }
+                        // P1-1: AppLifecycleHook.onAppForeground
+                        resultOf { hookRegistry.executeNoResult(io.zer0.muse.hook.AppLifecycleHook::class) { it.onAppForeground() } }
+                            .onError { msg, t -> Logger.w("MuseApp", "AppLifecycleHook.onAppForeground 失败: $msg", t) }
                     }
                 }
                 else -> {}
@@ -209,6 +226,14 @@ class MuseApp : Application(), ImageLoaderFactory {
         appScope.launch {
             resultOf { assistantRepository.ensureDefaultExists() }
                 .onError { msg, t -> Logger.w("MuseApp", "ensureDefaultExists 失败", t) }
+            // P1-4: 注册楼层式上下文限制 Hook
+            resultOf {
+                hookRegistry.register(io.zer0.muse.hook.FloorContextLimiterHook(settings))
+            }.onError { msg, t -> Logger.w("MuseApp", "FloorContextLimiterHook 注册失败: $msg", t) }
+            // P1-2: 注册 Worldbook 动态提示注入 Hook(常驻 + 关键词触发 + 深度注入)
+            resultOf {
+                hookRegistry.register(io.zer0.muse.worldbook.WorldBookHook(worldBookRepository))
+            }.onError { msg, t -> Logger.w("MuseApp", "WorldBookHook 注册失败: $msg", t) }
         }
         // Phase 8.8: 初始化内置 Skills(幂等 upsert,REPLACE 策略)
         appScope.launch {
@@ -371,7 +396,11 @@ class MuseApp : Application(), ImageLoaderFactory {
         // (工具清单构建约 100-200ms) 的子缓存提前加载。用户首次进会话时 refreshContextInfo 调用
         // buildStaticSnapshot 会命中这些子缓存,把首次构建从 ~690ms 降到 ~200ms。
         // fire-and-forget:结果丢弃,仅利用副作用(子缓存填充);失败不影响启动。
+        // v1.0.52: 延后 3 秒执行 — 避免与 ChatViewModel 初始化 + memoryBackfillMigration
+        // 竞争 IO 线程池(日志显示预热 117s,疑似与 backfill LLM 调用竞争数据库/IO 资源)。
+        // 延后让 ChatViewModel 的 refreshContextInfo 先跑完(用户更快看到界面),预热仅填充子缓存。
         appScope.launch {
+            kotlinx.coroutines.delay(3000)
             resultOf {
                 val defaultAssistant = assistantRepository.getById("default")
                 systemPromptAssembler.buildStaticSnapshot(
@@ -383,6 +412,9 @@ class MuseApp : Application(), ImageLoaderFactory {
             }.onSuccess {
                 Logger.d("MuseApp", "system prompt 预热完成 (${it.length} chars)")
             }
+            // P1-1: AppLifecycleHook.onAppCreate(延迟执行,避免阻塞启动)
+            resultOf { hookRegistry.executeNoResult(io.zer0.muse.hook.AppLifecycleHook::class) { it.onAppCreate() } }
+                .onError { msg, t -> Logger.w("MuseApp", "AppLifecycleHook.onAppCreate 失败: $msg", t) }
         }
     }
 

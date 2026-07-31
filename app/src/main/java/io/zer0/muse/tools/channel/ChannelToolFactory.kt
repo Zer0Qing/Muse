@@ -1,6 +1,12 @@
 package io.zer0.muse.tools.channel
 
+import io.zer0.ai.core.ToolDefinition
+import io.zer0.common.AppJson
 import io.zer0.muse.tools.ToolRegistry
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 /**
  * 群聊工具执行函数类型。
@@ -9,6 +15,37 @@ import io.zer0.muse.tools.ToolRegistry
  * 但 ToolFn 在 ToolRegistry 中是 private,无法在外部引用,故在此公开同名类型别名。
  */
 typealias ChannelToolFn = suspend (Map<String, String>) -> String
+
+/**
+ * v1.0.53 Phase 5: 把 [ToolRegistry.ToolDef] 转换为 LLM 可消费的 [ToolDefinition]。
+ *
+ * 与 [ToolRegistry.listToolsAsToolDefinitions] 内部逻辑同源,但作为扩展函数公开,
+ * 让 [ChannelToolFactory] 构造的一次性工具集也能直接传给 [io.zer0.ai.ChatService.streamChat]。
+ */
+fun ToolRegistry.ToolDef.toToolDefinition(): ToolDefinition {
+    val schema = buildJsonObject {
+        put("type", "object")
+        put("properties", buildJsonObject {
+            parameters.forEach { (name, desc) ->
+                put(name, buildJsonObject {
+                    put("type", parameterTypes[name] ?: "string")
+                    put("description", desc)
+                })
+            }
+        })
+        if (required.isNotEmpty()) {
+            put("required", JsonArray(required.map { JsonPrimitive(it) }))
+        }
+    }
+    return ToolDefinition(
+        name = name,
+        description = description,
+        parametersJsonSchema = AppJson.encodeToString(
+            kotlinx.serialization.json.JsonObject.serializer(),
+            schema,
+        ),
+    )
+}
 
 /**
  * 群聊专用工具工厂 — Phone Session 模式下动态构造 channel_* 三件套。
@@ -71,5 +108,27 @@ object ChannelToolFactory {
             pass.toolDef() to { args: Map<String, String> -> pass.execute(args) },
             readContext.toolDef() to { args: Map<String, String> -> readContext.execute(args) },
         )
+    }
+
+    /**
+     * v1.0.53 Phase 5: 构造群聊 Phone Session 工具集,并直接返回 LLM 可消费的 [ToolDefinition] 列表
+     * 与 按名查找的执行器映射(name → suspend fn)。
+     *
+     * 调用方(GroupChatScheduler.invokeAgent)用 [ToolDefinition] 列表传给 streamChat,
+     * 收到 ToolCallDelta 后用执行器映射按名分派。
+     *
+     * @return Pair(ToolDefinitions 列表, 执行器映射)
+     */
+    fun createChannelToolDefinitions(
+        groupChatId: String,
+        senderAssistantId: String,
+        onReply: suspend (String) -> Unit,
+        onPass: suspend (String?) -> Unit,
+        contextProvider: suspend (Int) -> String,
+    ): Pair<List<ToolDefinition>, Map<String, ChannelToolFn>> {
+        val pairs = createChannelTools(groupChatId, senderAssistantId, onReply, onPass, contextProvider)
+        val definitions = pairs.map { it.first.toToolDefinition() }
+        val executors = pairs.associate { it.first.name to it.second }
+        return definitions to executors
     }
 }

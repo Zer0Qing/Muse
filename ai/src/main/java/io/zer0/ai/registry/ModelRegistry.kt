@@ -2,9 +2,11 @@ package io.zer0.ai.registry
 
 import io.zer0.ai.core.BuiltInTool
 import io.zer0.ai.core.KnownModels
+import io.zer0.ai.core.KnownModels.Modality
 import io.zer0.ai.core.Model
 import io.zer0.ai.core.ModelAbility
 import io.zer0.ai.core.ModelContextWindowRegistry
+import io.zer0.ai.core.ModelVerification
 
 /**
  * 模型能力注册表（移植自 RikkaHub ModelRegistry.kt）。
@@ -246,6 +248,11 @@ object ModelRegistry {
         tokens("kimi", "k", "2")
         toolReasoningAbility()
     }
+    // v1.0.53: Kimi K2.6 — 多模态版本(视觉+文本输入),精确规则分数高于 KIMI_K2,不会误伤 k2/k2.5
+    private val KIMI_K2_6 = defineModel {
+        tokens("kimi", "k", "2", "6")
+        visionInput(); toolReasoningAbility()
+    }
     // v1.0.1 (P3): Kimi Vision(Moonshot 视觉模型,如 moonshot-v1-8k-vision-preview)
     private val KIMI_VISION = defineModel {
         tokens("kimi", "vision")
@@ -308,7 +315,7 @@ object ModelRegistry {
         GLM_4, GLM_3, GLM_4V, GLM_V,
         DOUBAO_PRO, DOUBAO_VISION,
         MINIMAX, MINIMAX_M3, MINIMAX_M2_5, MINIMAX_M2_7, MINIMAX_M1,
-        GROK, KIMI, KIMI_K2, KIMI_VISION, YI,
+        GROK, KIMI, KIMI_K2, KIMI_K2_6, KIMI_VISION, YI,
         LLAMA_3, MISTRAL_LARGE, MISTRAL,
         // v1.0.1 (P3): 开源/中转站常见视觉模型
         INTERN_VL, COG_VLM, STEP_VL, LLAVA, PIXTRAL,
@@ -506,6 +513,32 @@ object ModelRegistry {
         // maxOutputTokens: 模型已有 > KnownModels
         val newMaxOutputTokens = model.maxOutputTokens ?: knownInfo?.maxOutputTokens
 
+        // v1.0.53: 计算数据可信度 — VERIFIED / SUSPICIOUS / UNVERIFIED
+        // - 命中本地规格文档(knownInfo 非空 或 defs 非空)即标 VERIFIED 起步
+        // - 检测上游声明的异常字段,有异常则降级为 SUSPICIOUS
+        // - 未命中本地文档则 UNVERIFIED(保持默认值)
+        val hitLocalRegistry = knownInfo != null || defs.isNotEmpty()
+        val verification = if (!hitLocalRegistry) {
+            ModelVerification.UNVERIFIED
+        } else {
+            // 异常检测:上游声明与本地规格文档冲突的字段
+            var suspicious = false
+            // 异常1: 上游 contextWindow 为 0 或负数(明显错误)
+            if (model.contextWindow != null && model.contextWindow <= 0) suspicious = true
+            // 异常2: 上游声明 supportsVision=true 但 KnownModels 标记为纯文本
+            if (model.supportsVision && knownInfo?.inputModalities?.isNotEmpty() == true &&
+                Modality.IMAGE !in knownInfo.inputModalities
+            ) suspicious = true
+            // 异常3: 上游声明 supportsVideo=true 但 KnownModels 未标记 video 输出
+            if (model.supportsVideo && knownInfo?.outputModalities?.isNotEmpty() == true &&
+                Modality.VIDEO !in knownInfo.outputModalities
+            ) suspicious = true
+            // 异常4: 上游声明 maxOutputTokens=0(明显错误)
+            if (model.maxOutputTokens != null && model.maxOutputTokens <= 0) suspicious = true
+
+            if (suspicious) ModelVerification.SUSPICIOUS else ModelVerification.VERIFIED
+        }
+
         return model.copy(
             abilities = newAbilities,
             inputModalities = newInput,
@@ -534,6 +567,8 @@ object ModelRegistry {
             visionCapabilities = model.visionCapabilities ?: resolvedVisionCaps,
             contextWindow = newContextWindow,
             maxOutputTokens = newMaxOutputTokens,
+            // v1.0.53: 填充数据可信度标注,供 UI 提示用户
+            verification = verification,
         )
     }
 }

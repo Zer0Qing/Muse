@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- P1-2: Worldbook dynamic world info strings (English). -->
+<resources>
+    <!-- Screen -->
+    <string name="worldbook_screen_title">Livro Mundial Dinâmico</string>
+    <string name="worldbook_intro">O Dynamic Worldbook injeta conhecimento relevante com base no contexto da conversa.</string>
+    <string name="worldbook_new_cd">Nova entrada no livro mundial</string>
+    <string name="worldbook_new_default_name">Nova entrada</string>
+    <string name="worldbook_new_title">Livro do Novo Mundo</string>
+    <string name="worldbook_edit_title">Editar Livro Mundial</string>
+    <string name="worldbook_save">Salvar</string>
+    <string name="worldbook_back_cd">Voltar</string>
+    <string name="worldbook_unsaved_title">Alterações não salvas</string>
+    <string name="worldbook_unsaved_content">Você tem alterações não salvas.</string>
+    <string name="worldbook_discard">Descartar</string>
+    <string name="worldbook_unnamed">Sem nome</string>
+    <string name="worldbook_disabled">Desabilitado</string>
+    <string name="worldbook_enabled_cd">Habilitado</string>
+    <string name="worldbook_disabled_cd">Desabilitado</string>
+    <string name="worldbook_edit_cd">Editar</string>
+    <string name="worldbook_delete_cd">Excluir</string>
+    <string name="worldbook_delete_title">Excluir Livro Mundial</string>
+    <string name="worldbook_empty_title">Nenhuma entrada no livro mundial</string>
+    <string name="worldbook_empty_subtitle">Toque no botão abaixo para criar sua primeira entrada</string>
+    <string name="worldbook_keywords_label">Palavras-chave: %1$s</string>
+    <string name="worldbook_badge_always_active">Constante</string>
+    <string name="worldbook_export">Exportar</string>
+
+    <!-- Sections -->
+    <string name="worldbook_section_basic">Básico</string>
+    <string name="worldbook_section_content">Contente</string>
+    <string name="worldbook_section_injection">Injeção</string>
+    <string name="worldbook_section_behavior">Correspondência</string>
+
+    <!-- Fields -->
+    <string name="worldbook_field_name">Nome</string>
+    <string name="worldbook_field_keywords">Palavras-chave</string>
+    <string name="worldbook_field_keywords_placeholder">Separe várias palavras-chave com vírgulas</string>
+    <string name="worldbook_field_content">Contente</string>
+    <string name="worldbook_field_priority">Prioridade (maior = injetada primeiro)</string>
+    <string name="worldbook_field_inject_target">Injetar alvo</string>
+    <string name="worldbook_field_inject_position">Posição de injeção</string>
+    <string name="worldbook_field_insertion_depth">Profundidade de inserção (enésimo USUÁRIO a partir do final)</string>
+    <string name="worldbook_field_scan_depth">Profundidade da verificação (últimas N mensagens do USUÁRIO)</string>
+    <string name="worldbook_field_case_sensitive">Maiúsculas e minúsculas</string>
+    <string name="worldbook_field_case_sensitive_desc">Combine palavras-chave com distinção entre maiúsculas e minúsculas</string>
+    <string name="worldbook_field_is_regex">Correspondência Regex</string>
+    <string name="worldbook_field_is_regex_desc">Trate palavras-chave como expressões regulares (avançado)</string>
+    <string name="worldbook_field_always_active">Sempre ativo</string>
+    <string name="worldbook_field_always_active_desc">Injetar sem gatilho de palavra-chave (constante)</string>
+    <string name="worldbook_field_enabled">Habilitado</string>
+    <string name="worldbook_field_enabled_desc">Entradas desativadas não são injetadas</string>
+
+    <!-- Settings entry -->
+    <string name="settings_assistant_worldbook">Livro Mundial Dinâmico</string>
+    <string name="settings_assistant_worldbook_subtitle">Injeção dinâmica avançada de prompt</string>
+</resources>

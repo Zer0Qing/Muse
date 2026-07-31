@@ -137,8 +137,12 @@ import io.zer0.common.Logger
         TranslateHistoryEntity::class,
         // v1.0.17: 快速记录(替代 JSON 文件存储 + 回收站)
         QuickNoteEntity::class,
+        // P1-2: Worldbook 动态世界书(常驻/关键词/正则/深度注入,独立于 Lorebook)
+        io.zer0.muse.worldbook.WorldBookEntryEntity::class,
+        // v1.0.53 Phase 1: 子 agent 线程账本(持久化版,替代旧内存版 SubagentThreadStore)
+        io.zer0.muse.data.subagent.SubagentThreadEntity::class,
     ],
-    version = 57,
+    version = 59,
     exportSchema = true,
 )
 @TypeConverters(QuickNoteConverters::class)
@@ -181,6 +185,10 @@ abstract class MuseDb : RoomDatabase() {
     abstract fun translateHistoryDao(): TranslateHistoryDao
     // v1.0.17: 快速记录 DAO(替代 JSON 文件存储 + 回收站)
     abstract fun quickNoteDao(): QuickNoteDao
+    // P1-2: Worldbook 动态世界书 DAO
+    abstract fun worldBookDao(): io.zer0.muse.worldbook.WorldBookDao
+    // v1.0.53 Phase 1: 子 agent 线程 DAO(持久化版)
+    abstract fun subagentThreadDao(): io.zer0.muse.data.subagent.SubagentThreadDao
 
     companion object {
         @Volatile
@@ -1661,6 +1669,89 @@ abstract class MuseDb : RoomDatabase() {
             }
         }
 
+        /**
+         * P1-2: MIGRATION_57_58 — 新建 worldbook_entries 表(动态世界书)。
+         *
+         * 与现有 lorebooks 表独立,支持 Lorebook 不具备的高级特性:
+         *  - alwaysActive 常驻激活 / scanDepth 多层扫描 / isRegex 正则关键词
+         *  - injectTarget(system/user/assistant) + injectPosition(prepend/append/at_depth) + insertionDepth
+         *  - assistantId 绑定特定助手(NULL = 全局)
+         *
+         * 所有列带 DEFAULT,与 [io.zer0.muse.worldbook.WorldBookEntryEntity] 的 @ColumnInfo(defaultValue=...) 对齐。
+         * assistantId 列用 DEFAULT NULL(sqlite 中 TEXT 列默认可为 NULL)。
+         */
+        val MIGRATION_57_58 = object : Migration(57, 58) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS worldbook_entries (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        name TEXT NOT NULL,
+                        keywordsJson TEXT NOT NULL DEFAULT '[]',
+                        content TEXT NOT NULL DEFAULT '',
+                        priority INTEGER NOT NULL DEFAULT 50,
+                        enabled INTEGER NOT NULL DEFAULT 1,
+                        caseSensitive INTEGER NOT NULL DEFAULT 0,
+                        isRegex INTEGER NOT NULL DEFAULT 0,
+                        alwaysActive INTEGER NOT NULL DEFAULT 0,
+                        scanDepth INTEGER NOT NULL DEFAULT 3,
+                        injectTarget TEXT NOT NULL DEFAULT 'system',
+                        injectPosition TEXT NOT NULL DEFAULT 'append',
+                        insertionDepth INTEGER NOT NULL DEFAULT 0,
+                        assistantId TEXT DEFAULT NULL,
+                        createdAt INTEGER NOT NULL DEFAULT 0,
+                        updatedAt INTEGER NOT NULL DEFAULT 0
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+
+        /**
+         * v1.0.53 Phase 1: MIGRATION_58_59 — 新建 subagent_threads 表(子 agent 线程账本持久化)。
+         *
+         * 对标 Hana SubagentThreadStore,替代旧 tools/SubagentThreadStore.kt(内存版)。
+         * 两条 subagent 路径共享:
+         *  - 路径 A: SubagentTool + SkillExecutor.delegateAgent nonBlocking(子助手委派)
+         *  - 路径 B: SubagentRunSkill + SubagentRunner(被动子 agent)
+         *
+         * 列说明见 [io.zer0.muse.data.subagent.SubagentThreadEntity];子会话历史(消息)
+         * 走 JSONL 文件 filesDir/subagent_sessions/<threadId>.jsonl(由 SubagentSessionStore 管理),
+         * 不入 Room(避免每轮工具结果都写表,且与主会话列表隔离)。
+         *
+         * 所有列带 DEFAULT,与 Entity 的 @ColumnInfo(defaultValue=...) / Kotlin 默认值对齐。
+         * childSessionId / label / lastRunStatus / lastSummary 允许 NULL。
+         */
+        val MIGRATION_58_59 = object : Migration(58, 59) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS subagent_threads (
+                        threadId TEXT NOT NULL PRIMARY KEY,
+                        parentSessionId TEXT NOT NULL,
+                        childSessionId TEXT DEFAULT NULL,
+                        childSessionPath TEXT NOT NULL,
+                        assistantId TEXT NOT NULL,
+                        label TEXT DEFAULT NULL,
+                        access TEXT NOT NULL DEFAULT 'read',
+                        status TEXT NOT NULL DEFAULT 'open',
+                        runCount INTEGER NOT NULL DEFAULT 0,
+                        lastRunStatus TEXT DEFAULT NULL,
+                        lastSummary TEXT DEFAULT NULL,
+                        createdAt INTEGER NOT NULL DEFAULT 0,
+                        updatedAt INTEGER NOT NULL DEFAULT 0
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_subagent_threads_parentSessionId ON subagent_threads(parentSessionId)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_subagent_threads_status ON subagent_threads(status)"
+                )
+            }
+        }
+
     fun get(context: Context): MuseDb {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -1703,6 +1794,8 @@ abstract class MuseDb : RoomDatabase() {
                         MIGRATION_54_55,
                         MIGRATION_55_56,
                         MIGRATION_56_57,
+                        MIGRATION_57_58,
+                        MIGRATION_58_59,
                     )
                     // 启用外键约束(artifacts 表的 ON DELETE CASCADE 依赖此设置)
                     // onOpen 不在 onCreate 事务内,可以执行此类命令;onCreate 内禁止 PRAGMA

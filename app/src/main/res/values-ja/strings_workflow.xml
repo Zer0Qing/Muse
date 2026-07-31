@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== Workflow Editor (WorkflowEditorScreen) ===== -->
+    <string name="workflow_editor_title">ワークフローエディター</string>
+    <string name="workflow_select_action">アクションの選択</string>
+
+    <!-- Clear canvas confirmation -->
+    <string name="workflow_clear_canvas_title">クリアキャンバス</string>
+    <string name="workflow_clear_canvas_confirm">これにより、すべてのノードと接続が削除され、元に戻すことはできません。</string>
+    <string name="workflow_action_clear">クリア</string>
+
+    <!-- Export JSON -->
+    <string name="workflow_export_json_title">JSONのエクスポート</string>
+    <string name="workflow_export_copied">クリップボードにコピーされました</string>
+
+    <!-- Aggregation strategy -->
+    <string name="workflow_label_aggregation">集計</string>
+    <string name="workflow_agg_merge">マージ</string>
+    <string name="workflow_agg_vote">投票する</string>
+    <string name="workflow_agg_expert_review">専門家のレビュー</string>
+    <string name="workflow_agg_first_success">最初の成功</string>
+    <string name="workflow_agg_llm_review">LLM レビュー</string>
+
+    <!-- contentDescription -->
+    <string name="workflow_cd_add_node">ノードの追加</string>
+    <string name="workflow_cd_save">保存</string>
+    <string name="workflow_cd_load">負荷</string>
+    <string name="workflow_cd_clear">クリア</string>
+    <string name="workflow_cd_export_json">JSONのエクスポート</string>
+    <string name="workflow_cd_remove_dependency">依存関係を削除する</string>
+
+    <!-- Node editor panel (WorkflowNodeEditor) -->
+    <string name="workflow_node_editor_title">ノードの編集</string>
+    <string name="workflow_node_unbound_assistant">(アシスタント拘束なし)</string>
+    <string name="workflow_node_name_label">ノード名</string>
+    <string name="workflow_node_name_placeholder">例えば</string>
+    <string name="workflow_node_bind_assistant">バインドアシスタント</string>
+    <string name="workflow_node_task_template_label">タスクテンプレート</string>
+    <string name="workflow_node_task_template_placeholder">例えば</string>
+    <string name="workflow_node_mode_label">実行モード</string>
+    <string name="workflow_node_dependencies_label">依存関係 (dependsOn)</string>
+    <string name="workflow_node_no_dependencies_hint">(依存関係はありません。このノードは開始点として実行できます)</string>
+    <string name="workflow_node_add_dependency_hint">依存関係を追加します (タップして追加します)</string>
+    <string name="workflow_node_default_name">新しいノード</string>
+
+    <!-- Execution modes -->
+    <string name="workflow_mode_sequential">一連</string>
+    <string name="workflow_mode_parallel">平行</string>
+
+    <!-- Canvas (WorkflowCanvas) -->
+    <string name="workflow_zoom_limit_reached">ズーム限界に達しました</string>
+    <string name="workflow_canvas_empty_title">キャンバスが空です</string>
+    <string name="workflow_canvas_empty_subtitle">空白領域をダブルタップしてノードを追加するか、下のツールバーの追加ボタンをタップします</string>
+</resources>

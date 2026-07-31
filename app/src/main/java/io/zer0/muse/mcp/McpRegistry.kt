@@ -78,6 +78,16 @@ class McpRegistry(
     /** M-REG3: 标记 startAll 是否已调用,避免与 init 块重复连接。 */
     private val startAllCalled = AtomicBoolean(false)
 
+    /**
+     * Phase 9.5 (P3-2): per-server 工具刷新重入保护。
+     *
+     * 当 tools/list_changed 通知高频到达时,避免并发 refreshTools 导致:
+     *  - 工具列表短暂为空(unregister 后 register 前的窗口)
+     *  - 重复拉取 tools/list 浪费网络
+     * compareAndSet 保证同一 server 同时只有一个刷新在跑。
+     */
+    private val refreshingTools = ConcurrentHashMap<String, Boolean>()
+
     init {
         // 启动时从 DataStore 加载已保存的 server 配置
         scope.launch {
@@ -294,6 +304,14 @@ class McpRegistry(
         clients[config.id] = client
         updateState(config.id, McpConnectionState.CONNECTING)
 
+        // Phase 9.5 (P3-2): 注入 tools/list_changed 回调,server 工具列表变更时自动重新拉取。
+        // 回调内 launch 独立协程,避免阻塞 McpClient 的 notification 处理协程。
+        client.onToolsListChanged = {
+            scope.launch {
+                refreshTools(config.id, client)
+            }
+        }
+
         client.start()
         // M-REG1: 用 first{} 替代 200ms 轮询,等待终态(CONNECTED/FAILED/NEEDS_AUTH)
         val finalState = withTimeoutOrNull(10_000L) {
@@ -321,10 +339,14 @@ class McpRegistry(
     /** 断开 server 连接,注销 tools。 */
     private fun disconnectServer(id: String) {
         clients.remove(id)?.let { client ->
+            // Phase 9.5 (P3-2): 清除回调引用,避免断开后通知仍触发 refreshTools
+            client.onToolsListChanged = null
             client.close()
             // 注销该 server 的所有工具(前缀匹配)
             unregisterTools(id)
         }
+        // 清理刷新标记,避免下次重连时 compareAndSet 误判
+        refreshingTools.remove(id)
         _serversState.update { it - id }
     }
 
@@ -385,6 +407,44 @@ class McpRegistry(
         toolRegistry.listTools()
             .filter { it.name.startsWith(prefix) }
             .forEach { toolRegistry.unregister(it.name) }
+    }
+
+    /**
+     * Phase 9.5 (P3-2): 刷新指定 server 的工具列表。
+     *
+     * 触发场景:server 发出 `notifications/tools/list_changed`(MCP 2025-03-26 §Tools),
+     * 表示工具集可能增删改,client 缓存的 tools/list 已过期。
+     *
+     * 流程:
+     *  1. 重入保护:compareAndSet 防并发刷新
+     *  2. 校验 client 仍连接(断开期间的通知忽略)
+     *  3. unregisterTools(清旧) → registerTools(拉新)
+     *
+     * 幂等性:registerTools 内 toolRegistry.register 是覆盖式,重复注册同名工具安全;
+     * 但先 unregister 再 register 保证删除的工具被正确移除(仅覆盖无法删除)。
+     *
+     * @param serverId server 标识
+     * @param client 对应的 McpClient(从 clients map 取出后可能已断开,需校验 state)
+     */
+    private suspend fun refreshTools(serverId: String, client: McpClient) {
+        // 重入保护:同一 server 同时只允许一次刷新。
+        // ConcurrentHashMap 无 compareAndSet,用 putIfAbsent 模拟:返回 null 表示成功获取锁。
+        if (refreshingTools.putIfAbsent(serverId, true) != null) {
+            Logger.d(TAG, "[$serverId] tools/list_changed 触发刷新,但已有刷新在跑,跳过")
+            return
+        }
+        try {
+            // 校验 client 仍连接(断开期间的通知可能还在事件队列里)
+            if (client.state.value != McpConnectionState.CONNECTED) {
+                Logger.d(TAG, "[$serverId] tools/list_changed 到达但 client 未连接,跳过刷新")
+                return
+            }
+            Logger.i(TAG, "[$serverId] 收到 tools/list_changed,重新拉取工具列表")
+            unregisterTools(serverId)
+            registerTools(serverId, client)
+        } finally {
+            refreshingTools.remove(serverId)
+        }
     }
 
     /** 从 inputSchema(JSON Schema)解析参数名 → 描述。 */

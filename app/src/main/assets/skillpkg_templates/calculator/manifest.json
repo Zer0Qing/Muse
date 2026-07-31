@@ -1,0 +1,24 @@
+{
+  "id": "example_calculator",
+  "name": "示例计算器",
+  "version": "1.0.0",
+  "author": "Muse",
+  "description": "示例 skillpkg — 提供数学计算工具，演示 .skillpkg 格式",
+  "entry": "main.js",
+  "tools": [
+    {
+      "name": "calculate",
+      "description": "执行数学表达式计算，支持 + - * / % 和 Math 函数",
+      "parametersJson": "{\"type\":\"object\",\"properties\":{\"expr\":{\"type\":\"string\",\"description\":\"数学表达式，如 1+2*3 或 Math.sqrt(16)\"}},\"required\":[\"expr\"]}",
+      "requiredJson": "[\"expr\"]",
+      "functionName": "calculate"
+    },
+    {
+      "name": "format_number",
+      "description": "格式化数字为指定小数位数",
+      "parametersJson": "{\"type\":\"object\",\"properties\":{\"value\":{\"type\":\"number\",\"description\":\"要格式化的数字\"},\"digits\":{\"type\":\"integer\",\"description\":\"小数位数，默认 2\"}},\"required\":[\"value\"]}",
+      "requiredJson": "[\"value\"]",
+      "functionName": "formatNumber"
+    }
+  ]
+}

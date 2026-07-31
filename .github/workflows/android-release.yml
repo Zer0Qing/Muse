@@ -135,40 +135,6 @@ jobs:
           retention-days: 14
           if-no-files-found: ignore
 
-  # 单独的发布任务:等待 3 个 ABI 全部构建成功后,创建 GitHub Release 并附加全部 APK
-  publish:
-    name: Publish GitHub Release
-    needs: release
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      # 下载全部 3 个 ABI 的 APK 到本地 staging 目录
-      - name: Download all APK artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: muse-release-*
-          merge-multiple: true
-          path: apks
-
-      # 列出下载的 APK(便于在 Actions 日志中确认产物)
-      - name: List APK files
-        run: ls -lh apks/
-
-      # 创建 GitHub Release 并附加全部 APK(softprops/action-gh-release)
-      # tag_name 自动取触发本工作流的 git tag
-      - name: Create GitHub Release with APKs
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref_name }}
-          name: Muse ${{ github.ref_name }}
-          generate_release_notes: true  # 自动从 commit 历史生成变更说明
-          fail_on_unmatched_files: true
-          files: |
-            apks/app-arm64-v8a-release.apk
-            apks/app-armeabi-v7a-release.apk
-            apks/app-universal-release.apk
+  # v1.0.53: 移除自动发布任务 — 构建产物不再自动创建 GitHub Release。
+  # 原因: 本地构建产物与 CI 产物可能存在签名/配置差异,以本地上传为准。
+  # 流程: 推送 tag 触发 CI 构建(artifact 供审查) → 手动在 Releases 页创建 Release 并上传本地 APK。

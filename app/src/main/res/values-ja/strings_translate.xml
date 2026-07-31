@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- v1.97 gap8: Standalone translate page (TranslateScreen) strings -->
+    <string name="translate_page_title">翻訳する</string>
+    <string name="translate_page_input_placeholder">翻訳するテキストを入力してください...</string>
+    <string name="translate_page_result_placeholder">翻訳結果がここに表示されます</string>
+    <string name="translate_page_translate">翻訳する</string>
+    <string name="translate_page_cancel">キャンセル</string>
+    <string name="translate_page_copy">コピー結果</string>
+    <string name="translate_page_paste">ペースト</string>
+    <string name="translate_page_clear">クリア</string>
+    <string name="translate_page_source_language">ソース言語</string>
+    <string name="translate_page_target_language">対象言語</string>
+    <string name="translate_page_auto_detect">自動検出</string>
+    <string name="translate_page_translating">翻訳中...</string>
+    <string name="translate_page_error_no_provider">まず設定で AI プロバイダーを構成してください</string>
+    <string name="translate_page_error_empty_input">翻訳するテキストを入力してください</string>
+    <string name="translate_page_error_failed">翻訳に失敗しました: %1$s</string>
+    <string name="translate_page_copied">クリップボードにコピーされました</string>
+    <string name="translate_page_pasted">貼り付けた</string>
+    <string name="translate_page_clipboard_empty">クリップボードが空です</string>
+    <string name="translate_page_swap">言語を交換する</string>
+    <string name="translate_page_copy_source">ソースをコピーする</string>
+    <string name="translate_page_speak_source">ソースを話す</string>
+    <string name="translate_page_speak_result">翻訳を話す</string>
+    <string name="translate_page_use_as_input">入力として使用する</string>
+    <string name="translate_page_send_to_chat">送信</string>
+    <string name="translate_page_send_to_chat_session">チャットに送信</string>
+    <string name="translate_page_more">もっと</string>
+    <string name="translate_page_style_label">翻訳スタイル</string>
+    <string name="translate_page_tts_not_ready">TTS の準備ができていません。後でもう一度試してください。</string>
+    <!-- v1.97: Translation history (in-memory, last 20 entries, not persisted) -->
+    <string name="translate_page_history_section">歴史</string>
+    <string name="translate_page_history_empty">翻訳履歴はまだありません</string>
+    <string name="translate_page_history_clear">履歴をクリアする</string>
+    <string name="translate_page_history_clear_confirm">翻訳履歴をクリアしますか?</string>
+    <string name="translate_page_history_clear_confirm_msg">これにより、このセッションに保存されているすべての翻訳履歴が削除されます。</string>
+    <string name="translate_page_history_loaded">入力にロードされました</string>
+    <string name="translate_page_history_cleared">履歴がクリアされました</string>
+    <string name="translate_page_history_source_label">ソース</string>
+    <string name="translate_page_history_translated_label">翻訳済み</string>
+    <string name="translate_page_history_source_short">S</string>
+    <string name="translate_page_history_translated_short">T</string>
+    <string name="translate_page_history_clear_short">クリア</string>
+
+    <!-- v1.0.30 gap4.3: Translation favorites -->
+    <string name="translate_page_favorite_add">お気に入り</string>
+    <string name="translate_page_favorite_remove">気に入らない</string>
+    <string name="translate_page_favorite_added">お気に入りに追加しました</string>
+    <string name="translate_page_favorite_removed">お気に入りではない</string>
+    <string name="translate_page_favorites_section">お気に入り</string>
+
+    <!-- v1.0.30 gap4.4: Batch translation -->
+    <string name="translate_page_batch_translate">バッチ翻訳</string>
+    <string name="translate_page_batch_title">バッチ翻訳</string>
+    <string name="translate_page_batch_input_hint">1 行に 1 つのテキストがバッチ翻訳されます</string>
+    <string name="translate_page_batch_run">バッチ翻訳を実行する</string>
+    <string name="translate_page_batch_cancel">キャンセル</string>
+    <string name="translate_page_batch_translating">バッチ翻訳中…</string>
+    <string name="translate_page_batch_empty">翻訳するテキストを入力してください</string>
+    <string name="translate_page_batch_results_title">バッチ結果 (%1$d アイテム)</string>
+
+    <!-- v1.0.30 gap4.5: Custom styles -->
+    <string name="translate_page_custom_style_add">スタイルを追加する</string>
+    <string name="translate_page_custom_style_name">スタイル名</string>
+    <string name="translate_page_custom_style_prompt">スタイルの指示 (例: 「古典中国語で翻訳」)</string>
+    <string name="translate_page_custom_style_save">保存</string>
+    <string name="translate_page_custom_style_remove">取り除く</string>
+    <string name="translate_page_custom_style_added">カスタムスタイルが追加されました</string>
+    <string name="translate_page_custom_style_removed">カスタム スタイルが削除されました</string>
+    <string name="translate_page_custom_style_empty_name">名前を空にすることはできません</string>
+
+    <!-- v1.0.30 gap4.6: Glossary -->
+    <string name="translate_page_glossary">用語集</string>
+    <string name="translate_page_glossary_title">翻訳用語集</string>
+    <string name="translate_page_glossary_original">ソース用語</string>
+    <string name="translate_page_glossary_translated">対象期間</string>
+    <string name="translate_page_glossary_add">追加</string>
+    <string name="translate_page_glossary_remove">取り除く</string>
+    <string name="translate_page_glossary_empty">用語集の項目はありません</string>
+    <string name="translate_page_glossary_count">用語集 (%1$d エントリ)</string>
+    <string name="translate_page_glossary_added">用語集の項目が追加されました</string>
+    <string name="translate_page_glossary_removed">用語集のエントリが削除されました</string>
+
+    <!-- v1.0.30 gap4.7: OCR translation -->
+    <string name="translate_page_ocr">写真翻訳</string>
+    <string name="translate_page_ocr_pick_image">ギャラリーから画像を選択</string>
+    <string name="translate_page_ocr_recognizing">認識中…</string>
+    <string name="translate_page_ocr_empty">テキストが認識されませんでした</string>
+    <string name="translate_page_ocr_failed">OCRが失敗しました</string>
+    <string name="translate_page_ocr_applied">認識されたテキストが入力に入力されました</string>
+</resources>

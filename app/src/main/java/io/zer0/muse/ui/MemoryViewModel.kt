@@ -9,6 +9,8 @@ import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.memory.compile.MemoryCompiler
 import io.zer0.memory.fact.FactStore
+import io.zer0.memory.space.MemorySpaceEntity
+import io.zer0.memory.space.MemorySpaceRepository
 import io.zer0.memory.summary.SessionSummaryManager
 import io.zer0.memory.ticker.MemoryTicker
 import io.zer0.muse.data.SettingsRepository
@@ -173,6 +175,8 @@ class MemoryViewModel(
     private val experienceRepository: ExperienceRepository,
     /** v8: 注入 AssistantRepository 用于加载 availableScopes(主助手 + 子助手列表)。 */
     private val assistantRepository: AssistantRepository,
+    /** v1.0.52 P2-2: 注入 MemorySpaceRepository 用于 Space 切换 + 列表。 */
+    private val spaceRepository: MemorySpaceRepository,
 ) : AndroidViewModel(application) {
 
     private val _state = MutableStateFlow(MemoryUiState())
@@ -196,6 +200,21 @@ class MemoryViewModel(
      */
     private val _availableScopes = MutableStateFlow<List<ScopeOption>>(emptyList())
     val availableScopes: StateFlow<List<ScopeOption>> = _availableScopes.asStateFlow()
+
+    /**
+     * v1.0.52 P2-2: 当前选中的记忆空间 id。
+     * 从 SettingsRepository.currentSpaceIdFlow 读取,用户切换 Space 后写入。
+     * factItems 按 (scope + spaceId) 双重过滤。
+     */
+    private val _selectedSpaceId = MutableStateFlow(MemorySpaceEntity.DEFAULT_SPACE_ID)
+    val selectedSpaceId: StateFlow<String> = _selectedSpaceId.asStateFlow()
+
+    /**
+     * v1.0.52 P2-2: 可用的 Space 列表(响应式)。
+     * 来自 [spaceRepository.observeSpaces],用户在 Space 管理页 CRUD 后自动更新。
+     */
+    private val _availableSpaces = MutableStateFlow<List<MemorySpaceEntity>>(emptyList())
+    val availableSpaces: StateFlow<List<MemorySpaceEntity>> = _availableSpaces.asStateFlow()
 
     /**
      * v1.0.51: 存量记忆迁移进度 — 升级后首次启动补跑历史 session 摘要时实时反映。
@@ -250,6 +269,21 @@ class MemoryViewModel(
                 _availableScopes.value = buildScopes(assistants)
             }
         }
+        // v1.0.52 P2-2: 订阅 currentSpaceIdFlow,用户在记忆页或设置页切换 Space 后实时同步。
+        // 切换 Space 后触发 loadAll 重新按 spaceId 过滤事实列表。
+        viewModelScope.launch {
+            settings.currentSpaceIdFlow.collect { spaceId ->
+                val changed = _selectedSpaceId.value != spaceId
+                _selectedSpaceId.value = spaceId
+                if (changed) loadAll(silent = true)
+            }
+        }
+        // v1.0.52 P2-2: 订阅 Space 列表,用户在 Space 管理页 CRUD 后自动同步切换器下拉。
+        viewModelScope.launch {
+            spaceRepository.observeSpaces().collect { spaces ->
+                _availableSpaces.value = spaces
+            }
+        }
         loadAll()
     }
 
@@ -288,6 +322,18 @@ class MemoryViewModel(
     }
 
     /**
+     * v1.0.52 P2-2: 切换当前选中的记忆空间。
+     * 持久化到 SettingsRepository,跨会话保留。
+     * currentSpaceIdFlow 订阅者会自动触发 loadAll 重新拉取数据。
+     */
+    fun selectSpace(spaceId: String) {
+        viewModelScope.launch {
+            resultOf { settings.saveCurrentSpaceId(spaceId) }
+                .onError { msg, t -> Logger.w("MemoryViewModel", "saveCurrentSpaceId 失败: $msg", t) }
+        }
+    }
+
+    /**
      * v1.78 (#7): 手动触发立即编译(对照 MemoryTicker.forceCompileNow)。
      * 用户在记忆页点"立即编译"按钮时调用,不等待 ticker 自动调度。
      */
@@ -311,6 +357,11 @@ class MemoryViewModel(
      *  - null:全部作用域(向后兼容旧版)
      *  - "main" / assistantId:仅拉取该作用域的事实
      * Summary / Compile 层不区分 scope(由 MemoryTicker 全局编译,不按助手隔离)。
+     *
+     * v1.0.52 P2-2: Fact 层进一步按 [_selectedSpaceId] 过滤:
+     *  - scope 为 null 时:按 spaceId 查询(getBySpace)
+     *  - scope 非 null 时:按 scope + spaceId 双重查询(getByScopeAndSpace)
+     *  - 这样切换 Space 时,factItems 仅展示当前 Space 的事实
      */
     fun loadAll(silent: Boolean = false) {
         // silent=true 时不触发 isLoading,避免编译完成后替换当前视图导致闪屏
@@ -320,7 +371,14 @@ class MemoryViewModel(
         viewModelScope.launch {
             try {
                 val scope = _selectedScope.value
-                val facts = withContext(Dispatchers.IO) { factStore.getAll(scope) }
+                val spaceId = _selectedSpaceId.value
+                val facts = withContext(Dispatchers.IO) {
+                    if (scope == null) {
+                        factStore.getBySpace(spaceId)
+                    } else {
+                        factStore.getByScopeAndSpace(scope, spaceId)
+                    }
+                }
                 val summaries = withContext(Dispatchers.IO) { summaryManager.getAllSummaries() }
                 val compileFacts = withContext(Dispatchers.IO) {
                     // v1.78 (H6): 包装 suspend 调用必须用 resultOf,避免吞 CancellationException
@@ -587,6 +645,9 @@ class MemoryViewModel(
      * v8: 新增事实的 scope 取当前 [_selectedScope],若为 null(全部)则默认 "main"。
      * 这与用户在 UI 上切换 scope 后再"新增"的直觉一致 — 用户切到某子助手作用域后,
      * 新增的事实归属该子助手;切到"全部"时归属主助手(默认)。
+     *
+     * v1.0.52 P2-2: 新增事实的 spaceId 取当前 [_selectedSpaceId],
+     * 新增的事实归属当前选中的 Space。
      */
     fun addFact(content: String) {
         if (content.isBlank()) return
@@ -594,10 +655,11 @@ class MemoryViewModel(
             // v1.78 (H6): loadAll 移出 runCatching,避免 add 成功但 loadAll 失败时
             // 错误信息显示"添加失败"(错误归因错位)
             val scope = _selectedScope.value ?: "main"
+            val spaceId = _selectedSpaceId.value
             val ok = withContext(Dispatchers.IO) {
                 // v1.78 (H6): 包装 suspend 调用必须用 resultOf,避免吞 CancellationException
                 resultOf {
-                    factStore.add(FactStore.Fact(fact = content.trim()), scope = scope)
+                    factStore.add(FactStore.Fact(fact = content.trim()), scope = scope, spaceId = spaceId)
                 }.onError { msg, t ->
                     _state.update { it.copy(errorTrace = (it.errorTrace ?: "") + "\n" + getApplication<Application>().getString(R.string.memory_add_failed, msg)) }
                 }.isSuccess

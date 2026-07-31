@@ -67,6 +67,13 @@ class FactStore(
          * [add] / [addBatch] 的 scope 参数会覆盖此字段。
          */
         val scope: String = "main",
+        /**
+         * v9: 记忆空间 id,默认 "default" 表示默认空间。
+         * 用于多 Space 隔离(类似 Notion 工作区,工作/生活/学习场景互不干扰)。
+         * 与 [scope] 正交:scope 按 Agent 隔离,spaceId 按场景隔离。
+         * [add] / [addBatch] 的 spaceId 参数会覆盖此字段。
+         */
+        val spaceId: String = "default",
         val matchCount: Int? = null,
     )
 
@@ -173,20 +180,26 @@ class FactStore(
      * v9: 查找数据库中与新事实语义相似的已有事实。
      * 先用原始前缀匹配,再用去主语后的前缀匹配,最后用子串搜索兜底,
      * 确保"对青霉素过敏"和"用户对青霉素过敏"能被识别为同一条。
+     *
+     * v9 改进: 新增 spaceId 过滤,仅在相同 scope + space_id 内查找相似事实,
+     * 避免跨空间误合并(如"工作"空间的"喜欢美式咖啡"不应与"生活"空间的"喜欢美式咖啡"合并)。
      */
-    private suspend fun findExistingSimilar(cleaned: String, scope: String): FactEntity? {
-        // 1) 原始前缀匹配(保持 v5 行为)
-        dao.findSimilar(cleaned.take(40), scope).firstOrNull { isSimilar(it.fact, cleaned) }?.let { return it }
+    private suspend fun findExistingSimilar(cleaned: String, scope: String, spaceId: String = "default"): FactEntity? {
+        // 1) 原始前缀匹配(保持 v5 行为)+ space_id 过滤
+        dao.findSimilarBySpace(cleaned.take(40), scope, spaceId)
+            .firstOrNull { isSimilar(it.fact, cleaned) }?.let { return it }
 
         // 2) 去主语后的前缀匹配
         val normalized = normalizeForSimilarity(cleaned)
         if (normalized != cleaned.lowercase() && normalized.isNotBlank()) {
-            dao.findSimilar(normalized.take(40), scope).firstOrNull { isSimilar(it.fact, cleaned) }?.let { return it }
+            dao.findSimilarBySpace(normalized.take(40), scope, spaceId)
+                .firstOrNull { isSimilar(it.fact, cleaned) }?.let { return it }
         }
 
         // 3) 兜底:子串搜索,限制数量避免全表扫描
-        // v1.0.27 修复: 传 scope 避免跨作用域合并(原代码漏传 scope,导致不同 scope 的相同事实被错误合并)
-        dao.likeSearch(cleaned.take(40), 20, scope).firstOrNull { isSimilar(it.fact, cleaned) }?.let { return it }
+        // v9: 同时按 scope + space_id 过滤,避免跨作用域/跨空间误合并
+        dao.likeSearchBySpace(cleaned.take(40), 20, scope, spaceId)
+            .firstOrNull { isSimilar(it.fact, cleaned) }?.let { return it }
 
         return null
     }
@@ -200,14 +213,20 @@ class FactStore(
      *  - assistantId:子助手/团队成员作用域
      * scope 参数会覆盖 entry.scope,调用方无需在 Fact 上单独设置。
      * 去重时仅在相同 scope 内查找相似事实,避免跨作用域误合并。
+     *
+     * v9: 新增 spaceId 参数(默认 "default"),用于指定记忆空间。
+     *  - "default":默认空间(兼容旧调用方)
+     *  - 自定义 id:用户创建的工作/生活/学习等空间
+     * spaceId 与 scope 正交:一个 fact 既属于某 Agent scope,也属于某 Space。
+     * 去重时仅在相同 scope + space_id 内查找,避免跨空间误合并。
      */
-    suspend fun add(entry: Fact, scope: String = "main"): Long = withContext(Dispatchers.IO) {
+    suspend fun add(entry: Fact, scope: String = "main", spaceId: String = "default"): Long = withContext(Dispatchers.IO) {
         val (cleaned, detected) = PiiGuard.scrub(entry.fact)
         if (detected.isNotEmpty()) {
             io.zer0.common.Logger.d("FactStore", "PII detected in fact: $detected")
         }
-        val newEntry = entry.copy(fact = cleaned, scope = scope)
-        val existingSimilar = findExistingSimilar(cleaned, scope)
+        val newEntry = entry.copy(fact = cleaned, scope = scope, spaceId = spaceId)
+        val existingSimilar = findExistingSimilar(cleaned, scope, spaceId)
         if (existingSimilar != null) {
             val merged = mergeSimilar(existingSimilar, newEntry)
             dao.updateEntity(
@@ -216,7 +235,7 @@ class FactStore(
                 merged.source, merged.expiresAt, merged.lastConfirmedAt, merged.lastHitAt,
             )
             upsertFts(merged.id, FactFtsManager.toNgram(merged.fact))
-            io.zer0.common.Logger.d("FactStore", "合并相似事实(scope=$scope): ${existingSimilar.fact.take(30)}… ↔ ${cleaned.take(30)}… → id=${existingSimilar.id}")
+            io.zer0.common.Logger.d("FactStore", "合并相似事实(scope=$scope, space=$spaceId): ${existingSimilar.fact.take(30)}… ↔ ${cleaned.take(30)}… → id=${existingSimilar.id}")
             return@withContext existingSimilar.id
         }
         val importance = if (newEntry.importance > 0) newEntry.importance else inferImportance(cleaned)
@@ -237,6 +256,8 @@ class FactStore(
             lastHitAt = newEntry.lastHitAt ?: now,
             // v8: 记忆作用域,由调用方指定(默认 "main")
             scope = scope,
+            // v9: 记忆空间,由调用方指定(默认 "default")
+            spaceId = spaceId,
         )
         val insertedId = dao.insert(entity)
         dao.insertFts(insertedId, FactFtsManager.toNgram(cleaned))
@@ -249,10 +270,13 @@ class FactStore(
      * v8: 新增 scope 参数(默认 "main"),批量写入时统一使用该作用域。
      * 去重时仅在相同 scope 内查找,避免跨作用域误合并。
      *
+     * v9: 新增 spaceId 参数(默认 "default"),批量写入时统一使用该空间。
+     * 去重时仅在相同 scope + space_id 内查找,避免跨空间误合并。
+     *
      * v1.0.27 P0-1.3: 用 [FactDb.withTransaction] 包裹整个循环,确保 facts 与 facts_fts
      * 两表的写入要么全部成功要么全部回滚,避免中途失败留下半完成状态。
      */
-    suspend fun addBatch(entries: List<Fact>, scope: String = "main"): Int = withContext(Dispatchers.IO) {
+    suspend fun addBatch(entries: List<Fact>, scope: String = "main", spaceId: String = "default"): Int = withContext(Dispatchers.IO) {
         if (entries.isEmpty()) return@withContext 0
         val now = Instant.now().toString()
         db.withTransaction {
@@ -262,8 +286,8 @@ class FactStore(
                 if (detected.isNotEmpty()) {
                     io.zer0.common.Logger.d("FactStore", "PII detected in batch fact: $detected")
                 }
-                val newEntry = entry.copy(fact = cleaned, scope = scope)
-                val existingSimilar = findExistingSimilar(cleaned, scope)
+                val newEntry = entry.copy(fact = cleaned, scope = scope, spaceId = spaceId)
+                val existingSimilar = findExistingSimilar(cleaned, scope, spaceId)
                 if (existingSimilar != null) {
                     val merged = mergeSimilar(existingSimilar, newEntry)
                     dao.updateEntity(
@@ -288,6 +312,7 @@ class FactStore(
                         lastConfirmedAt = newEntry.lastConfirmedAt,
                         lastHitAt = newEntry.lastHitAt ?: now,
                         scope = scope,
+                        spaceId = spaceId,
                     ))
                     dao.insertFts(insertedId, FactFtsManager.toNgram(cleaned))
                     // 新插入的 id 不会有重复 FTS,直接 insertFts 即可(upsertFts 多一次 DELETE 无必要)
@@ -432,6 +457,18 @@ class FactStore(
         dao.updateImportance(id, importance.coerceIn(0, 2)) > 0
     }
 
+    /**
+     * v10 P2-3: 更新指定 fact 的分类和标签(用于 AI 记忆管理)。
+     *
+     * @param category 分类(null 保留原值)
+     * @param tags 标签列表(null 保留原值,非 null 则替换)
+     * @return 是否更新成功
+     */
+    suspend fun updateCategoryAndTags(id: Long, category: String? = null, tags: List<String>? = null): Boolean = withContext(Dispatchers.IO) {
+        val tagsJson = tags?.let { json.encodeToString(ListSerializer(String.serializer()), it) }
+        dao.updateCategoryAndTags(id, category, tagsJson) > 0
+    }
+
     /** 清空所有。 */
     suspend fun clearAll(): Unit = withContext(Dispatchers.IO) {
         dao.clearFts()
@@ -552,6 +589,52 @@ class FactStore(
         dao.deleteByScopeExceptImportant(scope, cutoffIso, minImportance)
     }
 
+    // ── v9: 按 Space(space_id)查询/观察/衰减 ───────────────────────────
+
+    /**
+     * v9: 按 space_id 观察事实列表(Flow 形式),用于记忆页 UI 实时刷新。
+     */
+    fun observeBySpace(spaceId: String): Flow<List<Fact>> =
+        dao.observeBySpace(spaceId).map { entities -> entities.map { it.toFact() } }
+
+    /**
+     * v9: 按 space_id 同步查询事实列表。
+     * 用于记忆页 UI 展示、system prompt 注入等场景。
+     */
+    suspend fun getBySpace(spaceId: String): List<Fact> = withContext(Dispatchers.IO) {
+        dao.getBySpace(spaceId).map { it.toFact() }
+    }
+
+    /**
+     * v9: 按 scope + space_id 双重过滤查询事实列表。
+     * scope 按 Agent 隔离,space_id 按场景隔离,两者正交。
+     */
+    suspend fun getByScopeAndSpace(scope: String, spaceId: String): List<Fact> = withContext(Dispatchers.IO) {
+        dao.getByScopeAndSpace(scope, spaceId).map { it.toFact() }
+    }
+
+    /**
+     * v9: 按 scope + space_id 双重过滤观察事实列表(Flow 形式)。
+     */
+    fun observeByScopeAndSpace(scope: String, spaceId: String): Flow<List<Fact>> =
+        dao.observeByScopeAndSpace(scope, spaceId).map { entities -> entities.map { it.toFact() } }
+
+    /**
+     * v9: 按 space_id 衰减删除 — 仅删除指定 Space 下早于 [cutoffIso] 且 importance < [minImportance] 的事实。
+     *
+     * @return 实际删除的行数
+     */
+    suspend fun deleteBySpaceExceptImportant(spaceId: String, cutoffIso: String, minImportance: Int): Int = withContext(Dispatchers.IO) {
+        dao.deleteBySpaceExceptImportant(spaceId, cutoffIso, minImportance)
+    }
+
+    /**
+     * v9: 统计指定 Space 下的事实数量。
+     */
+    suspend fun countBySpace(spaceId: String): Int = withContext(Dispatchers.IO) {
+        dao.countBySpace(spaceId)
+    }
+
     // ════════════════════════════
     //  内部转换
     // ════════════════════════════
@@ -583,6 +666,8 @@ class FactStore(
         lastHitAt = lastHitAt,
         // v8: 透传 scope 字段
         scope = scope,
+        // v9: 透传 spaceId 字段
+        spaceId = spaceId,
     )
 
     private fun FactTagSearchRow.toFact(): Fact = Fact(

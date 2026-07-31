@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- v1.97 gap8: Standalone translate page (TranslateScreen) strings -->
+    <string name="translate_page_title">Переводить</string>
+    <string name="translate_page_input_placeholder">Введите текст для перевода...</string>
+    <string name="translate_page_result_placeholder">Результат перевода появится здесь</string>
+    <string name="translate_page_translate">Переводить</string>
+    <string name="translate_page_cancel">Отмена</string>
+    <string name="translate_page_copy">Копировать результат</string>
+    <string name="translate_page_paste">Вставить</string>
+    <string name="translate_page_clear">Прозрачный</string>
+    <string name="translate_page_source_language">Исходный язык</string>
+    <string name="translate_page_target_language">Целевой язык</string>
+    <string name="translate_page_auto_detect">Автообнаружение</string>
+    <string name="translate_page_translating">Перевод...</string>
+    <string name="translate_page_error_no_provider">Сначала настройте поставщика AI в настройках.</string>
+    <string name="translate_page_error_empty_input">Пожалуйста, введите текст для перевода</string>
+    <string name="translate_page_error_failed">Не удалось выполнить перевод: %1$s</string>
+    <string name="translate_page_copied">Скопировано в буфер обмена</string>
+    <string name="translate_page_pasted">Вставлено</string>
+    <string name="translate_page_clipboard_empty">Буфер обмена пуст</string>
+    <string name="translate_page_swap">Поменять языки</string>
+    <string name="translate_page_copy_source">Копировать источник</string>
+    <string name="translate_page_speak_source">Озвучить источник</string>
+    <string name="translate_page_speak_result">Говорить перевод</string>
+    <string name="translate_page_use_as_input">Использовать в качестве входных данных</string>
+    <string name="translate_page_send_to_chat">Отправлять</string>
+    <string name="translate_page_send_to_chat_session">Отправить в чат</string>
+    <string name="translate_page_more">Более</string>
+    <string name="translate_page_style_label">Стиль перевода</string>
+    <string name="translate_page_tts_not_ready">TTS не готов. Повторите попытку позже.</string>
+    <!-- v1.97: Translation history (in-memory, last 20 entries, not persisted) -->
+    <string name="translate_page_history_section">История</string>
+    <string name="translate_page_history_empty">Истории переводов пока нет</string>
+    <string name="translate_page_history_clear">Очистить историю</string>
+    <string name="translate_page_history_clear_confirm">Очистить историю переводов?</string>
+    <string name="translate_page_history_clear_confirm_msg">Это приведет к удалению всей истории переводов, хранящейся в этом сеансе.</string>
+    <string name="translate_page_history_loaded">Загружено на вход</string>
+    <string name="translate_page_history_cleared">История очищена</string>
+    <string name="translate_page_history_source_label">Источник</string>
+    <string name="translate_page_history_translated_label">Переведено</string>
+    <string name="translate_page_history_source_short">С</string>
+    <string name="translate_page_history_translated_short">Т</string>
+    <string name="translate_page_history_clear_short">Прозрачный</string>
+
+    <!-- v1.0.30 gap4.3: Translation favorites -->
+    <string name="translate_page_favorite_add">Любимый</string>
+    <string name="translate_page_favorite_remove">Удалить из избранного</string>
+    <string name="translate_page_favorite_added">Избранное</string>
+    <string name="translate_page_favorite_removed">Избранное</string>
+    <string name="translate_page_favorites_section">Избранное</string>
+
+    <!-- v1.0.30 gap4.4: Batch translation -->
+    <string name="translate_page_batch_translate">Пакетный перевод</string>
+    <string name="translate_page_batch_title">Пакетный перевод</string>
+    <string name="translate_page_batch_input_hint">Один текст в строке, будет переведен пакетно.</string>
+    <string name="translate_page_batch_run">Запустить пакетный перевод</string>
+    <string name="translate_page_batch_cancel">Отмена</string>
+    <string name="translate_page_batch_translating">Пакетный перевод…</string>
+    <string name="translate_page_batch_empty">Пожалуйста, введите тексты для перевода</string>
+    <string name="translate_page_batch_results_title">Пакетные результаты (%1$d элементов)</string>
+
+    <!-- v1.0.30 gap4.5: Custom styles -->
+    <string name="translate_page_custom_style_add">Добавить стиль</string>
+    <string name="translate_page_custom_style_name">Название стиля</string>
+    <string name="translate_page_custom_style_prompt">Инструкция по стилю (например, «Перевести на классический китайский»)</string>
+    <string name="translate_page_custom_style_save">Сохранять</string>
+    <string name="translate_page_custom_style_remove">Удалять</string>
+    <string name="translate_page_custom_style_added">Добавлен собственный стиль</string>
+    <string name="translate_page_custom_style_removed">Пользовательский стиль удален.</string>
+    <string name="translate_page_custom_style_empty_name">Имя не может быть пустым</string>
+
+    <!-- v1.0.30 gap4.6: Glossary -->
+    <string name="translate_page_glossary">Глоссарий</string>
+    <string name="translate_page_glossary_title">Переводческий глоссарий</string>
+    <string name="translate_page_glossary_original">Исходный термин</string>
+    <string name="translate_page_glossary_translated">Целевой срок</string>
+    <string name="translate_page_glossary_add">Добавлять</string>
+    <string name="translate_page_glossary_remove">Удалять</string>
+    <string name="translate_page_glossary_empty">Нет записей в глоссарии</string>
+    <string name="translate_page_glossary_count">Глоссарий (%1$d записей)</string>
+    <string name="translate_page_glossary_added">Добавлена ​​запись в словаре</string>
+    <string name="translate_page_glossary_removed">Запись в глоссарии удалена.</string>
+
+    <!-- v1.0.30 gap4.7: OCR translation -->
+    <string name="translate_page_ocr">Фото перевести</string>
+    <string name="translate_page_ocr_pick_image">Выберите изображение из галереи</string>
+    <string name="translate_page_ocr_recognizing">Признавая…</string>
+    <string name="translate_page_ocr_empty">Текст не распознан</string>
+    <string name="translate_page_ocr_failed">Ошибка распознавания текста</string>
+    <string name="translate_page_ocr_applied">Распознанный текст, введенный в поле ввода</string>
+</resources>

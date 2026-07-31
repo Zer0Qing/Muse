@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- P1-2: Worldbook dynamic world info strings (English). -->
+<resources>
+    <!-- Screen -->
+    <string name="worldbook_screen_title">ダイナミックなワールドブック</string>
+    <string name="worldbook_intro">Dynamic Worldbook は、会話のコンテキストに基づいて関連する伝承を挿入します。</string>
+    <string name="worldbook_new_cd">新しいワールドブックへのエントリー</string>
+    <string name="worldbook_new_default_name">新規エントリー</string>
+    <string name="worldbook_new_title">新しい世界書</string>
+    <string name="worldbook_edit_title">ワールドブックの編集</string>
+    <string name="worldbook_save">保存</string>
+    <string name="worldbook_back_cd">戻る</string>
+    <string name="worldbook_unsaved_title">未保存の変更</string>
+    <string name="worldbook_unsaved_content">未保存の変更があります。</string>
+    <string name="worldbook_discard">破棄</string>
+    <string name="worldbook_unnamed">無名</string>
+    <string name="worldbook_disabled">無効</string>
+    <string name="worldbook_enabled_cd">有効</string>
+    <string name="worldbook_disabled_cd">無効</string>
+    <string name="worldbook_edit_cd">編集</string>
+    <string name="worldbook_delete_cd">消去</string>
+    <string name="worldbook_delete_title">ワールドブックの削除</string>
+    <string name="worldbook_empty_title">ワールドブックのエントリはありません</string>
+    <string name="worldbook_empty_subtitle">最初のエントリを作成するには、下のボタンをタップしてください</string>
+    <string name="worldbook_keywords_label">キーワード: %1$s</string>
+    <string name="worldbook_badge_always_active">絶え間ない</string>
+    <string name="worldbook_export">輸出</string>
+
+    <!-- Sections -->
+    <string name="worldbook_section_basic">基本</string>
+    <string name="worldbook_section_content">コンテンツ</string>
+    <string name="worldbook_section_injection">注射</string>
+    <string name="worldbook_section_behavior">マッチング</string>
+
+    <!-- Fields -->
+    <string name="worldbook_field_name">名前</string>
+    <string name="worldbook_field_keywords">キーワード</string>
+    <string name="worldbook_field_keywords_placeholder">複数のキーワードはカンマで区切ります</string>
+    <string name="worldbook_field_content">コンテンツ</string>
+    <string name="worldbook_field_priority">優先度 (高い = 最初に注入される)</string>
+    <string name="worldbook_field_inject_target">ターゲットの注入</string>
+    <string name="worldbook_field_inject_position">注入位置</string>
+    <string name="worldbook_field_insertion_depth">挿入深さ (最後から N 番目のユーザー)</string>
+    <string name="worldbook_field_scan_depth">スキャン深度 (最後の N USER メッセージ)</string>
+    <string name="worldbook_field_case_sensitive">大文字と小文字を区別</string>
+    <string name="worldbook_field_case_sensitive_desc">大文字と小文字を区別してキーワードを一致させる</string>
+    <string name="worldbook_field_is_regex">正規表現の一致</string>
+    <string name="worldbook_field_is_regex_desc">キーワードを正規表現として扱う (上級)</string>
+    <string name="worldbook_field_always_active">常にアクティブ</string>
+    <string name="worldbook_field_always_active_desc">キーワードトリガーなしで挿入 (定数)</string>
+    <string name="worldbook_field_enabled">有効</string>
+    <string name="worldbook_field_enabled_desc">無効なエントリは挿入されません</string>
+
+    <!-- Settings entry -->
+    <string name="settings_assistant_worldbook">ダイナミックなワールドブック</string>
+    <string name="settings_assistant_worldbook_subtitle">高度な動的プロンプト インジェクション</string>
+</resources>

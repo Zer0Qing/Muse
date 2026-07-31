@@ -111,6 +111,7 @@ import io.zer0.muse.ui.theme.huge
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.ui.SmartImage
+import io.zer0.muse.ui.chat.TokenStatsBar
 import io.zer0.muse.ui.chat.VideoAttachment
 import io.zer0.common.Logger
 import kotlinx.coroutines.Dispatchers
@@ -240,9 +241,11 @@ internal fun InputBar(
     // v1.0.29: 是否进入页面时自动聚焦输入框并呼出输入法。
     // Agent Tab 首次切换时不应主动弹键盘,避免抢占屏幕。
     autoFocus: Boolean = true,
-    // v1.0.47 P5-3: Token 估算开关(默认关闭)。开启时输入栏显示 Token 计数按钮。
+    // v1.0.47 P5-3: Token 估算开关(默认关闭)。开启时输入栏底部显示 Token 统计条。
     tokenEstimateEnabled: Boolean = false,
-    onShowTokenCount: () -> Unit = {},
+    // v1.0.53: Token 统计条数据(历史消息 token 数 + 模型上下文窗口)
+    historyTokens: Int = 0,
+    contextWindow: Int = 0,
     // v1.0.47 P5-2: 长文本粘贴转文件(默认开启),粘贴超阈值文本时弹窗提示转为 txt 附件
     pasteAsFileEnabled: Boolean = true,
     pasteAsFileThreshold: Int = 2000,
@@ -724,38 +727,8 @@ internal fun InputBar(
             )
         }
 
-        // v1.0.47 P5-6: 深度思考激活时显示级别胶囊,点击循环 LOW → MEDIUM → HIGH → XHIGH
-        if (isDeepThinkingEnabled) {
-            val levelLabel = when (deepThinkingLevel) {
-                io.zer0.ai.core.ReasoningLevel.LOW -> "LOW"
-                io.zer0.ai.core.ReasoningLevel.MEDIUM -> "MED"
-                io.zer0.ai.core.ReasoningLevel.HIGH -> "HIGH"
-                io.zer0.ai.core.ReasoningLevel.XHIGH -> "XHIGH"
-                else -> "AUTO"
-            }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = MusePaddings.inputPadding, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                AssistChip(
-                    onClick = {
-                        MuseHaptics.light(hapticFeedback)
-                        onCycleDeepThinkingLevel()
-                    },
-                    label = { Text("思考 $levelLabel", style = MaterialTheme.typography.labelMedium) },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Psychology,
-                            contentDescription = null,
-                            modifier = Modifier.size(MuseIconSizes.iconSmall),
-                        )
-                    },
-                )
-            }
-        }
+        // v1.0.53: 思考强度胶囊已合并到加号菜单的"深度思考"开关 —
+        // 点击 toggle 开关,长按循环切换级别 (LOW → MED → HIGH → XHIGH)。
 
         // 主输入栏: 圆角容器
         // H-IB1: 预设主题未定义 surfaceContainerLow,改用 surfaceVariant 保持主题一致
@@ -986,14 +959,33 @@ internal fun InputBar(
                             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                             thickness = 0.5.dp,
                         )
+                        // v1.0.53: 深度思考合并了思考强度胶囊 —
+                        // 点击:toggle 开关;长按:循环切换级别 (LOW→MED→HIGH→XHIGH)
+                        val deepThinkingLabel = stringResource(R.string.chat_deep_thinking_cd)
+                        val deepThinkingTitle = if (isDeepThinkingEnabled) {
+                            val levelLabel = when (deepThinkingLevel) {
+                                io.zer0.ai.core.ReasoningLevel.LOW -> "LOW"
+                                io.zer0.ai.core.ReasoningLevel.MEDIUM -> "MED"
+                                io.zer0.ai.core.ReasoningLevel.HIGH -> "HIGH"
+                                io.zer0.ai.core.ReasoningLevel.XHIGH -> "XHIGH"
+                                else -> "AUTO"
+                            }
+                            "$deepThinkingLabel · $levelLabel"
+                        } else {
+                            deepThinkingLabel
+                        }
                         ToolListRow(
                             icon = Icons.Default.Psychology,
-                            title = stringResource(R.string.chat_deep_thinking_cd),
+                            title = deepThinkingTitle,
                             isActive = isDeepThinkingEnabled,
                             showArrow = false,
                             onClick = {
                                 MuseHaptics.light(hapticFeedback)
                                 onToggleDeepThinking()
+                            },
+                            onLongClick = {
+                                MuseHaptics.light(hapticFeedback)
+                                onCycleDeepThinkingLevel()
                             },
                         )
                         HorizontalDivider(
@@ -1119,11 +1111,9 @@ internal fun InputBar(
                     mentionTransform = mentionTransform,
                     pasteAsFileEnabled = pasteAsFileEnabled,
                     pasteAsFileThreshold = pasteAsFileThreshold,
-                    tokenEstimateEnabled = tokenEstimateEnabled,
                     onTextChanged = onTextChanged,
                     onSend = onSend,
                     onNavigateInputHistory = onNavigateInputHistory,
-                    onShowTokenCount = onShowTokenCount,
                     onAddPastedTextAsDocument = onAddPastedTextAsDocument,
                     onExpand = { expanded = true },
                     onClearDraft = { onTextChanged("") },
@@ -1352,6 +1342,16 @@ internal fun InputBar(
                     )
                 }
             }
+        }
+
+        // v1.0.53: 输入栏底部 Token 统计条(替代原先的输入栏旁 Token 按钮)
+        if (tokenEstimateEnabled) {
+            TokenStatsBar(
+                inputText = text,
+                historyTokens = historyTokens,
+                contextWindow = contextWindow,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
 }
@@ -1773,6 +1773,7 @@ private fun ToolMediaCard(
 /**
  * iOS/Manus 风格工具菜单中的列表行。
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ToolListRow(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
@@ -1781,11 +1782,23 @@ private fun ToolListRow(
     isActive: Boolean = false,
     showArrow: Boolean = true,
     onClick: () -> Unit,
+    // v1.0.53: 可选长按回调(深度思考用:长按切换级别)
+    onLongClick: (() -> Unit)? = null,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .then(
+                // v1.0.53: 有长按回调时用 combinedClickable,否则用普通 clickable 保持原行为
+                if (onLongClick != null) {
+                    Modifier.combinedClickable(
+                        onClick = onClick,
+                        onLongClick = onLongClick,
+                    )
+                } else {
+                    Modifier.clickable(onClick = onClick)
+                },
+            )
             .padding(vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -1939,11 +1952,9 @@ private fun RowScope.MessageInputField(
     mentionTransform: VisualTransformation,
     pasteAsFileEnabled: Boolean,
     pasteAsFileThreshold: Int,
-    tokenEstimateEnabled: Boolean,
     onTextChanged: (String) -> Unit,
     onSend: () -> Unit,
     onNavigateInputHistory: (Int) -> Unit,
-    onShowTokenCount: () -> Unit,
     onAddPastedTextAsDocument: (String) -> Unit,
     onExpand: () -> Unit,
     onClearDraft: () -> Unit,
@@ -2061,40 +2072,6 @@ private fun RowScope.MessageInputField(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(MuseIconSizes.iconMedium),
             )
-        }
-    }
-
-    // ── Token 计数按钮(仅 tokenEstimateEnabled 时显示) ─────────────
-    // 点击打开详情面板;按钮上实时显示当前输入 token 数(防抖 400ms,避免每次按键 BPE)。
-    if (tokenEstimateEnabled) {
-        var liveInputTokens by remember { mutableStateOf(0) }
-        LaunchedEffect(text) {
-            kotlinx.coroutines.delay(400)
-            liveInputTokens = io.zer0.muse.util.TokenEstimator.estimate(text)
-        }
-        BadgedBox(
-            badge = {
-                if (liveInputTokens > 0) {
-                    Badge {
-                        Text(
-                            text = if (liveInputTokens > 999) "999+" else liveInputTokens.toString(),
-                            style = MaterialTheme.typography.labelSmall,
-                        )
-                    }
-                }
-            },
-        ) {
-            IconButton(
-                onClick = onShowTokenCount,
-                modifier = Modifier.size(36.dp),
-            ) {
-                Icon(
-                    imageVector = compose.icons.TablerIcons.ChartBar,
-                    contentDescription = stringResource(R.string.chat_token_count_cd),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(MuseIconSizes.iconMedium),
-                )
-            }
         }
     }
 

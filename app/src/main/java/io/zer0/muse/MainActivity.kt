@@ -157,6 +157,8 @@ class MainActivity : ComponentActivity() {
             "ja" -> java.util.Locale.JAPAN
             "ko" -> java.util.Locale.KOREA
             "ru" -> java.util.Locale("ru", "RU")
+            "es" -> java.util.Locale("es", "ES")
+            "pt-rBR" -> java.util.Locale("pt", "BR")
             else -> return base // system 或未知,用系统默认
         }
         // v1.133: 复制当前 Configuration 并覆盖 locale,避免修改全局 Configuration。

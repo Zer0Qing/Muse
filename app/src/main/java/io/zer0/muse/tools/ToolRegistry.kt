@@ -119,8 +119,13 @@ class ToolRegistry(private val context: Context) {
      */
     private typealias ToolFn = suspend (Map<String, String>) -> String
 
+    /** v1.0.53: 结构化结果执行函数(返回 [ToolOutcome])。 */
+    private typealias ToolOutcomeFn = suspend (Map<String, String>) -> ToolOutcome
+
     // M-TR2: 改用 ConcurrentHashMap,保证 register/unregister/execute 并发安全
     private val tools = ConcurrentHashMap<String, ToolFn>()
+    // v1.0.53: 结构化结果工具通道(优先于 [tools] 查找)
+    private val outcomeTools = ConcurrentHashMap<String, ToolOutcomeFn>()
     private val toolDefs = ConcurrentHashMap<String, ToolDef>()
 
     // v1.136: 定时提醒、资源库
@@ -162,6 +167,14 @@ class ToolRegistry(private val context: Context) {
             emptyMap(),
             emptySet(),
             ::execClipboardRead,
+            riskLevel = ToolRiskLevel.NORMAL,
+        )
+        // v1.0.53: 结构化结果版(details: hasText/length)
+        registerBuiltInOutcome("clipboard_read",
+            "读取系统剪贴板文本内容。",
+            emptyMap(),
+            emptySet(),
+            ::execClipboardReadOutcome,
             riskLevel = ToolRiskLevel.NORMAL,
         )
         registerBuiltIn("clipboard_write",
@@ -268,6 +281,13 @@ class ToolRegistry(private val context: Context) {
             emptySet(),
             ::execGetDeviceInfo,
         )
+        // v1.0.53: 结构化结果版(details: brand/model/androidVersion/sdkInt)
+        registerBuiltInOutcome("get_device_info",
+            "获取设备信息:品牌/型号/Android 版本/屏幕分辨率/电量。",
+            emptyMap(),
+            emptySet(),
+            ::execGetDeviceInfoOutcome,
+        )
         registerBuiltIn("get_contacts_count",
             "获取通讯录联系人数量。需要 READ_CONTACTS 权限。",
             mapOf("filter" to "可选,按名称过滤后计数"),
@@ -337,7 +357,7 @@ class ToolRegistry(private val context: Context) {
             riskLevel = ToolRiskLevel.HIGH,
         )
         registerBuiltIn("send_email",
-            "发送邮件(通过 ACTION_SENDTO 打开邮件应用,预填收件人/主题/正文)。",
+            "发送邮件(通过 ACTION_SENDTO 打开邮件应用,预填收件人/主题/正文)。使用时机: 用户明确要求发邮件时调用。不要使用: 用户未要求发邮件时;发送前如正文含敏感信息,应提示用户确认。",
             mapOf(
                 "to" to "必填,收件人邮箱,多个用逗号分隔",
                 "subject" to "可选,邮件主题",
@@ -366,7 +386,7 @@ class ToolRegistry(private val context: Context) {
         )
         // 系统信息与应用工具
         registerBuiltIn("open_url",
-            "打开指定的 URL(网页或 Deep Link)。仅支持 http:// 或 https:// 开头的链接,会用系统浏览器打开。",
+            "打开指定的 URL(网页或 Deep Link)。仅支持 http:// 或 https:// 开头的链接,会用系统浏览器打开。使用时机: 用户要求打开网页/链接时。不要使用: 未知协议(file://、javascript: 等)或疑似钓鱼链接;优先使用 https。",
             mapOf("url" to "必填,要打开的 URL 链接,如 https://example.com"),
             setOf("url"),
             ::execOpenUrl,
@@ -900,12 +920,24 @@ class ToolRegistry(private val context: Context) {
      */
     fun register(def: ToolDef, fn: ToolFn) {
         tools[def.name] = fn
+        outcomeTools.remove(def.name)
+        toolDefs[def.name] = def
+    }
+
+    /**
+     * v1.0.53: 注册结构化结果工具(返回 [ToolOutcome])。
+     * 优先于旧 String 通道;同名的 String 注册会覆盖回旧通道。
+     */
+    fun registerOutcome(def: ToolDef, fn: ToolOutcomeFn) {
+        outcomeTools[def.name] = fn
+        tools.remove(def.name)
         toolDefs[def.name] = def
     }
 
     /** 注销工具。 */
     fun unregister(name: String) {
         tools.remove(name)
+        outcomeTools.remove(name)
         toolDefs.remove(name)
     }
 
@@ -919,6 +951,37 @@ class ToolRegistry(private val context: Context) {
         parameterTypes: Map<String, String> = emptyMap(),
     ) {
         register(ToolDef(name, description, parameters, required, "built-in", parameterTypes, riskLevel), fn)
+    }
+
+    /**
+     * v1.0.53: 注册结构化结果内置工具(返回 [ToolOutcome])。
+     * 覆盖同名 String 通道。
+     */
+    private fun registerBuiltInOutcome(
+        name: String,
+        description: String,
+        parameters: Map<String, String>,
+        required: Set<String>,
+        fn: ToolOutcomeFn,
+        riskLevel: ToolRiskLevel = ToolRiskLevel.SAFE,
+        parameterTypes: Map<String, String> = emptyMap(),
+    ) {
+        registerOutcome(ToolDef(name, description, parameters, required, "built-in", parameterTypes, riskLevel), fn)
+    }
+
+    // v1.0.53: 工具分类注册表启动断言 — 每个内置工具必须有分类
+    // 只检查 category="built-in"(MCP/插件工具豁免);debug 构建缺失时抛异常,release 仅记日志
+    init {
+        val builtInNames = toolDefs.values.filter { it.category == "built-in" }.map { it.name }.toSet()
+        val uncovered = ToolCategories.assertCoverage(builtInNames)
+        if (uncovered.isNotEmpty()) {
+            val msg = "内置工具分类注册表缺失: ${uncovered.joinToString(", ")} (见 ToolCategories.kt)"
+            if (io.zer0.muse.BuildConfig.DEBUG) {
+                throw IllegalStateException(msg)
+            } else {
+                Logger.w("ToolRegistry", msg)
+            }
+        }
     }
 
     /** 列出所有可用工具(对标 MCP tools/list)。 */
@@ -985,13 +1048,34 @@ class ToolRegistry(private val context: Context) {
      * @param args 参数 map
      * @return 执行结果字符串;工具不存在或参数错误返回错误信息
      */
-    suspend fun execute(name: String, args: Map<String, String>): String {
+    suspend fun execute(
+        name: String,
+        args: Map<String, String>,
+        cancellationToken: () -> Boolean = { false },
+    ): ToolOutcome {
+        // v1.0.53: 内容级安全规则(执行前硬边界,不受审批模式影响)
+        val content = args.values.joinToString("\n")
+        ContentSafetyRules.check(name, content)?.let { rule ->
+            Logger.w("ToolRegistry", "内容安全规则命中: ${rule.ruleId} (tool=$name)")
+            return ToolOutcome.error("${rule.reason}(${rule.ruleId})")
+        }
+        // v1.0.53: 取消令牌(停止生成时置 true,长工具尽快返回)
+        if (cancellationToken()) {
+            return ToolOutcome.error("工具调用已取消")
+        }
+        // v1.0.53: 优先结构化通道
+        outcomeTools[name]?.let { fn ->
+            return resultOf { fn(args) }
+                .onError { msg, _ -> Logger.w("ToolRegistry", "工具 $name 执行异常: $msg") }
+                .getOrNull() ?: ToolOutcome.error(context.getString(R.string.tool_exec_exception))
+        }
         val fn = tools[name]
-            ?: return context.getString(R.string.tool_not_found, name, tools.keys.joinToString(", "))
+            ?: return ToolOutcome.error(context.getString(R.string.tool_not_found, name, tools.keys.joinToString(", ")))
         // M-TR1: 改用 resultOf{}(正确重抛 CancellationException)
         return resultOf { fn(args) }
             .onError { msg, _ -> Logger.w("ToolRegistry", "工具 $name 执行异常: $msg") }
-            .getOrNull() ?: context.getString(R.string.tool_exec_exception)
+            .getOrNull()?.let { ToolOutcome.ok(it) }
+            ?: ToolOutcome.error(context.getString(R.string.tool_exec_exception))
     }
 
     /**
@@ -1008,7 +1092,8 @@ class ToolRegistry(private val context: Context) {
         }.onError { msg, _ ->
             Logger.w("ToolRegistry", "executeFromJson 参数解析失败: $msg(原始: $argumentsJson)")
         }.getOrNull() ?: return context.getString(R.string.tool_param_parse_failed, argumentsJson)
-        return execute(name, args)
+        // v1.0.53: execute 返回 ToolOutcome,取 content 保持 String 语义
+        return execute(name, args).content
     }
 
     // ── 内置工具实现 ──────────────────────────────────────────────────────────
@@ -1068,6 +1153,27 @@ class ToolRegistry(private val context: Context) {
         if (clip.itemCount == 0) return context.getString(R.string.tool_clipboard_empty)
         val text = clip.getItemAt(0).coerceToText(context).toString()
         return if (text.isBlank()) context.getString(R.string.tool_clipboard_empty) else context.getString(R.string.tool_clipboard_content, text)
+    }
+
+    /**
+     * v1.0.53: clipboard_read 结构化版 — 附加 hasText/length details。
+     * 剪贴板读取是轻量操作,直接读一次取 details。
+     */
+    private suspend fun execClipboardReadOutcome(_args: Map<String, String>): ToolOutcome {
+        val cm = context.getSystemService(Context.CLIPBOARD_SERVICE)
+            as android.content.ClipboardManager
+        val clip = cm.primaryClip
+        val text = clip?.takeIf { it.itemCount > 0 }
+            ?.getItemAt(0)?.coerceToText(context)?.toString().orEmpty()
+        val content = if (text.isBlank()) context.getString(R.string.tool_clipboard_empty)
+            else context.getString(R.string.tool_clipboard_content, text)
+        return ToolOutcome.ok(
+            content,
+            details = mapOf(
+                "hasText" to text.isNotBlank(),
+                "length" to text.length,
+            ),
+        )
     }
 
     /** Phase 8.8: 写入系统剪贴板。 */
@@ -1458,6 +1564,23 @@ class ToolRegistry(private val context: Context) {
             appendLine(context.getString(R.string.tool_device_screen, dm.widthPixels, dm.heightPixels))
             append(context.getString(R.string.tool_device_battery, batteryLevel))
         }
+    }
+
+    /**
+     * v1.0.53: get_device_info 结构化版 — 附加 brand/model/androidVersion/sdkInt details。
+     * 品牌/型号/版本均为 Build 常量,零额外 IO。
+     */
+    private suspend fun execGetDeviceInfoOutcome(_args: Map<String, String>): ToolOutcome {
+        val text = execGetDeviceInfo(_args)
+        return ToolOutcome.ok(
+            text,
+            details = mapOf(
+                "brand" to android.os.Build.BRAND,
+                "model" to android.os.Build.MODEL,
+                "androidVersion" to android.os.Build.VERSION.RELEASE,
+                "sdkInt" to android.os.Build.VERSION.SDK_INT,
+            ),
+        )
     }
 
     /** 获取通讯录联系人数量:需 READ_CONTACTS 运行时权限。支持按名称 filter 过滤后计数。 */

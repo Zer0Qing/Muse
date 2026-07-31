@@ -84,6 +84,8 @@ import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseStatusColors
+import io.zer0.muse.ui.theme.statusColors
 import io.zer0.muse.ui.theme.tiny
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -551,9 +553,12 @@ private fun LogEntryItem(
     val timeStr = remember(entry.timestamp) {
         SimpleDateFormat("HH:mm:ss.SSS", Locale.US).format(Date(entry.timestamp))
     }
-    val levelColor = remember(entry.level) { levelColor(entry.level) }
+    // v1.0.52: 语义状态色替代硬编码,深色模式自动切亮档
+    val statusColors = MaterialTheme.statusColors
+    val onSurfaceColor = MaterialTheme.colorScheme.onSurface
+    val levelColor = remember(entry.level, statusColors) { levelColor(entry.level, statusColors) }
     // v1.0.4 (P3-7): 把 message 构建为带高亮的 AnnotatedString
-    val messageAnnotated = remember(entry.message, highlight) {
+    val messageAnnotated = remember(entry.message, highlight, statusColors, onSurfaceColor) {
         buildAnnotatedString {
             if (highlight.isEmpty()) {
                 append(entry.message)
@@ -573,8 +578,8 @@ private fun LogEntryItem(
                 if (hit > idx) append(text.substring(idx, hit))
                 pushStyle(
                     androidx.compose.ui.text.SpanStyle(
-                        background = Color(0xFFFFEB3B),
-                        color = Color.Black,
+                        background = statusColors.highlight,
+                        color = onSurfaceColor,
                     )
                 )
                 append(text.substring(hit, hit + highlight.length))
@@ -677,16 +682,18 @@ private fun LevelChip(level: String, color: Color) {
 }
 
 /**
- * 把等级字符串映射为展示颜色。onSurface 兜底未知等级。
+ * 把等级字符串映射为展示颜色。
+ *
+ * v1.0.52: 颜色来源改为 [MuseStatusColors](由 Composable 调用方从主题读取后传入),
+ * 深色模式自动使用亮档色,避免深底上深红/深蓝不可读。
  */
-private fun levelColor(level: String): Color {
-    // 不能在非 Composable 函数访问 MaterialTheme.colorScheme,这里返回 ARGB 常量
+private fun levelColor(level: String, colors: MuseStatusColors): Color {
     return when (level) {
-        DebugLogStore.LEVEL_ERROR -> Color(0xFFD32F2F)
-        DebugLogStore.LEVEL_WARN -> Color(0xFFEF6C00)
-        DebugLogStore.LEVEL_INFO -> Color(0xFF1976D2)
-        DebugLogStore.LEVEL_DEBUG -> Color(0xFF616161)
-        else -> Color(0xFF616161)
+        DebugLogStore.LEVEL_ERROR -> colors.error
+        DebugLogStore.LEVEL_WARN -> colors.warning
+        DebugLogStore.LEVEL_INFO -> colors.info
+        DebugLogStore.LEVEL_DEBUG -> colors.neutral
+        else -> colors.neutral
     }
 }
 

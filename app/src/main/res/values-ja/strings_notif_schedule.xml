@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== notification ===== -->
+    <!-- Notification channel names -->
+    <string name="notif_channel_chat_completed_name">メッセージの生成が完了しました</string>
+    <string name="notif_channel_chat_completed_desc">バックグラウンドストリーミング生成完了時の通知</string>
+    <string name="notif_channel_chat_live_update_name">世代の進行状況</string>
+    <string name="notif_channel_chat_live_update_desc">ストリーミング生成中のリアルタイムの進行状況通知</string>
+    <string name="notif_channel_web_server_name">ウェブサーバー</string>
+    <string name="notif_channel_web_server_desc">Webサーバー稼働状況通知</string>
+    <string name="notif_channel_proactive_message_name">積極的なメッセージ</string>
+    <string name="notif_channel_proactive_message_desc">アシスタントが積極的にメッセージを送信したときの通知</string>
+    <!-- Notification title/content -->
+    <string name="notif_chat_completed_title">返信完了 · %1$s</string>
+    <string name="notif_proactive_message_title">%1$s がメッセージを送信しました</string>
+    <string name="notif_live_progress_title">生成中 · %1$s</string>
+    <string name="notif_live_progress_text">%1$d 文字</string>
+    <string name="notif_web_server_title">Muse Webサーバーが稼働中</string>
+    <string name="notif_web_server_text">ポート %1$d · LAN デバイスがアクセス可能</string>
+    <!-- v1.133: App update notification (reuses CHANNEL_CHAT_COMPLETED) -->
+    <string name="update_notif_title">新しいバージョンが利用可能になりました</string>
+    <string name="update_notif_text">%1$s がリリースされました。タップして詳細を表示します</string>
+    <!-- v1.133: In-app update banner -->
+    <string name="update_banner_published">%1$s リリースされました</string>
+    <string name="update_banner_view_detail">詳細を見る</string>
+    <string name="update_banner_download_apk">APKをダウンロード</string>
+    <string name="update_banner_close_cd">新しいバージョンのバナーを閉じる</string>
+    <string name="update_found_new">新しいバージョンが見つかりました。上部のバナーを参照してください</string>
+    <string name="update_already_latest">すでに最新です</string>
+
+    <!-- ===== schedule ===== -->
+    <!-- Scheduled task notification channel -->
+    <string name="schedule_channel_name">スケジュールされたタスク</string>
+    <string name="schedule_channel_desc">スケジュールされたタスクの期限に関する通知</string>
+    <!-- Scheduled task default session name -->
+    <string name="schedule_default_session_name">スケジュールされたタスク</string>
+    <!-- Chat generation foreground service default notification title -->
+    <string name="schedule_generating_default_title">生成中</string>
+    <!-- v1.137: Execution summary when automation condition is not met -->
+    <string name="schedule_condition_not_met">条件が満たされないためスキップされました</string>
+
+    <!-- ===== main activity ===== -->
+    <!-- Safe mode -->
+    <string name="main_activity_safe_mode_title">ミューズはセーフモードです</string>
+    <string name="main_activity_safe_mode_desc">前回はクラッシュが発生しました。</string>
+    <string name="main_activity_crash_log_copied">クラッシュログがクリップボードにコピーされました</string>
+    <string name="main_activity_copy_crash_log">クラッシュログをコピーする</string>
+    <string name="main_activity_clear_flag_and_exit">フラグをクリアして終了</string>
+    <string name="main_activity_send_crash_email">クラッシュログを電子メールで送信する</string>
+    <string name="main_activity_send_crash_email_failed">メール アプリが見つかりません。ログがクリップボードにコピーされました</string>
+    <!-- v2.0+: SafeModeScreen new copy (modeled after rikkahub SafeModeActivity) -->
+    <string name="safe_mode_warning_title">前回の起動はクラッシュしました</string>
+    <string name="safe_mode_continue_normal">通常の起動を継続する</string>
+    <string name="safe_mode_view_full_log">完全なクラッシュ ログを表示する</string>
+    <string name="safe_mode_clear_data_restart">すべてのデータをクリアして再起動する</string>
+    <string name="safe_mode_copy_crash_info">クラッシュ情報をコピーする</string>
+    <string name="safe_mode_crash_time_label">クラッシュタイム</string>
+    <string name="safe_mode_stack_trace_label">スタックトレース</string>
+    <string name="safe_mode_no_crash_log">クラッシュログは記録されません</string>
+    <string name="safe_mode_share_log_failed">クラッシュログの共有に失敗しました</string>
+    <!-- PIN lock screen -->
+    <string name="main_activity_locked_title">ミューズはロックされています</string>
+    <string name="main_activity_pin_prompt">続行するにはPINを入力してください</string>
+    <string name="main_activity_pin_locked">間違った PIN の試行が多すぎます。再試行する前に %1$d 秒待ってください。</string>
+    <string name="main_activity_pin_error">PIN が間違っています。再試行してください</string>
+    <string name="main_activity_exit_app">アプリを終了する</string>
+
+    <!-- ===== NotificationListenerScreen.kt ===== -->
+    <string name="notif_listener_screen_title">通知リスナー</string>
+    <string name="notif_listener_open_settings_failed">システム設定を開けません</string>
+    <string name="notif_listener_auth_settings">アクセスを許可する</string>
+    <string name="notif_listener_cleared_toast">通知記録がクリアされました</string>
+    <string name="notif_listener_clear_records">記録をクリアする</string>
+    <string name="notif_listener_feature_title">機能の説明</string>
+    <string name="notif_listener_feature_desc">承認されると、Muse は他のアプリからの通知を AI のイベント ソースとして感知し、チャットでクエリを実行できるようになります。</string>
+    <string name="notif_listener_privacy_title">プライバシーの境界</string>
+    <string name="notif_listener_privacy_desc">• 通知コンテンツはローカルにのみ保存されます（最大 50 エントリ、満杯になると最も古いものは削除されます）\n• システム UI と Muse 自身の通知はフィルターで除外されます\n• 通知データはどのサーバーにもアップロードされません\n• ここで「記録をクリア」するか、いつでもシステム設定でアクセスを取り消すことができます</string>
+    <string name="notif_listener_recent_header">最近の通知 (%1$d/50)</string>
+    <string name="notif_listener_empty_connected">まだ通知レコードがありません\n承認されると、新しい通知がここに自動的に表示されます</string>
+    <string name="notif_listener_empty_disconnected">まだ承認されていません\n最初に上の「アクセスを許可」をタップしてください</string>
+    <string name="notif_listener_authorized">認可された</string>
+    <string name="notif_listener_unauthorized">認可されていません</string>
+    <string name="notif_listener_recent_count_connected">最近の通知: %1$d</string>
+    <string name="notif_listener_recent_count_disconnected">最近の通知: %1$d · 最初にシステム設定でアクセスを許可してください</string>
+    <string name="notif_listener_refresh_cd">ステータスの更新</string>
+</resources>

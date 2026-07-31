@@ -142,9 +142,10 @@ internal fun RichInputBar(
     showExpandButton: Boolean = false,
     // v1.0.29: 是否进入页面时自动聚焦输入框并呼出输入法。
     autoFocus: Boolean = true,
-    // v1.0.47 P5-3: Token 估算开关,透传到 InputBar
+    // v1.0.47 P5-3: Token 估算开关 + 底部统计条数据,透传到 InputBar
     tokenEstimateEnabled: Boolean = false,
-    onShowTokenCount: () -> Unit = {},
+    historyTokens: Int = 0,
+    contextWindow: Int = 0,
     // v1.0.47 P5-2: 长文本粘贴转文件,透传到 InputBar
     pasteAsFileEnabled: Boolean = true,
     pasteAsFileThreshold: Int = 2000,
@@ -267,7 +268,8 @@ internal fun RichInputBar(
             onOpenVoiceConversation = onOpenVoiceConversation,
             autoFocus = autoFocus,
             tokenEstimateEnabled = tokenEstimateEnabled,
-            onShowTokenCount = onShowTokenCount,
+            historyTokens = historyTokens,
+            contextWindow = contextWindow,
             pasteAsFileEnabled = pasteAsFileEnabled,
             pasteAsFileThreshold = pasteAsFileThreshold,
             onAddPastedTextAsDocument = onAddPastedTextAsDocument,

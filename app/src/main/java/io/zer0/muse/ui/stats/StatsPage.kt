@@ -531,7 +531,8 @@ private fun HeatmapCard(
                 Canvas(
                     modifier = Modifier
                         .width(70.dp)
-                        .height(10.dp),
+                        .height(10.dp)
+                        .semantics { contentDescription = "活跃度图例" },
                 ) {
                     val cellSize = 10.dp.toPx()
                     val spacing = 2.dp.toPx()
@@ -670,6 +671,7 @@ private fun CanvasHeatmap(
                 modifier = Modifier
                     .width(gridWidthDp)
                     .height(gridHeightDp)
+                    .semantics { contentDescription = "活跃热力图,${numWeeks}周活跃数据" }
                     .pointerInput(messagesPerDay) {
                         detectTapGestures { offset ->
                             val weekIdx = (offset.x / stepPx).toInt()
@@ -810,7 +812,7 @@ private fun TrendCard(
                         .fillMaxWidth()
                         .height(100.dp),
                 ) {
-                    Canvas(modifier = Modifier.fillMaxSize()) {
+                    Canvas(modifier = Modifier.fillMaxSize().semantics { contentDescription = "消息趋势折线图" }) {
                         val w = size.width
                         val h = size.height
                         if (counts.isEmpty() || maxCount == 0) return@Canvas
@@ -938,7 +940,7 @@ private fun HourlyDistributionCard(
                         .fillMaxWidth()
                         .height(100.dp),
                 ) {
-                    Canvas(modifier = Modifier.fillMaxSize()) {
+                    Canvas(modifier = Modifier.fillMaxSize().semantics { contentDescription = "24小时消息分布柱状图" }) {
                         val w = size.width
                         val h = size.height
                         val barSpacing = 2.dp.toPx()
@@ -1048,7 +1050,7 @@ private fun AssistantDonutCard(
                         modifier = Modifier.size(120.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Canvas(modifier = Modifier.fillMaxSize()) {
+                        Canvas(modifier = Modifier.fillMaxSize().semantics { contentDescription = "模型使用分布环形图" }) {
                             val w = size.width
                             val h = size.height
                             val cx = w / 2

@@ -41,7 +41,7 @@ import io.zer0.ai.video.VideoGenerationService
 import io.zer0.memory.ticker.MemoryTicker
 import io.zer0.muse.network.NetworkMonitor
 import io.zer0.muse.tools.DeferredResultStore
-import io.zer0.muse.tools.SubagentThreadStore
+import io.zer0.muse.data.subagent.SubagentThreadStore
 import io.zer0.muse.session.ConversationSessionManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -147,7 +147,7 @@ class ChatViewModelSessionMismatchTest {
         every { visionBridge.progressFlow } returns MutableStateFlow(VisionProgress(idle = true, index = 0, total = 0))
         every { deferredResultStore.completedTasks } returns MutableStateFlow(emptyMap())
         every { deferredResultStore.tasks } returns MutableStateFlow(emptyMap())
-        every { subagentThreadStore.listActiveThreads() } returns emptyList()
+        coEvery { subagentThreadStore.listActiveThreads() } returns emptyList()
 
         // appendMessage 默认成功返回
         coEvery { sessionRepository.appendMessage(any(), any()) } returns "msg-id"

@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== QuickMessageScreen ===== -->
+    <!-- Top bar -->
+    <string name="quick_msg_screen_title">Быстрые сообщения</string>
+    <string name="quick_msg_back_cd">Назад</string>
+    <string name="quick_msg_new_cd">Новое быстрое сообщение</string>
+    <string name="quick_msg_intro">Предустановленные шаблоны сообщений.</string>
+    <string name="quick_msg_empty_title">Быстрых сообщений пока нет</string>
+    <string name="quick_msg_empty_subtitle">Нажмите + в правом нижнем углу, чтобы создать</string>
+    <string name="quick_msg_delete_title">Удалить быстрое сообщение</string>
+    <!-- Card -->
+    <string name="quick_msg_new_default_name">Новое быстрое сообщение</string>
+    <string name="quick_msg_unnamed">(Безымянный)</string>
+    <string name="quick_msg_disabled">Неполноценный</string>
+    <string name="quick_msg_scope_global">Глобальный</string>
+    <string name="quick_msg_scope_assistant">Ассистент: %1$s</string>
+    <string name="quick_msg_scope_label">Область: %1$s</string>
+    <string name="quick_msg_enabled_cd">Включено</string>
+    <string name="quick_msg_disabled_cd">Неполноценный</string>
+    <string name="quick_msg_edit_cd">Редактировать</string>
+    <string name="quick_msg_delete_cd">Удалить</string>
+    <!-- Edit page -->
+    <string name="quick_msg_unsaved_title">Несохраненные изменения</string>
+    <string name="quick_msg_unsaved_content">При выходе текущие изменения будут отменены.</string>
+    <string name="quick_msg_discard">Отказаться</string>
+    <string name="quick_msg_new_title">Новое быстрое сообщение</string>
+    <string name="quick_msg_edit_title">Редактировать быстрое сообщение</string>
+    <string name="quick_msg_save">Сохранять</string>
+    <string name="quick_msg_section_basic">Базовый</string>
+    <string name="quick_msg_field_name">Имя</string>
+    <string name="quick_msg_section_content">Содержимое шаблона</string>
+    <string name="quick_msg_field_content">Содержимое (поддерживает переменные {{input}}/{{clipboard}}/{{date}}</string>
+    <string name="quick_msg_section_scope">Объем</string>
+    <string name="quick_msg_field_scope">Объем</string>
+    <string name="quick_msg_scope_global_opt">Глобальный (общий для всех Ассистентов)</string>
+    <string name="quick_msg_scope_assistant_opt">С привязкой к Ассистенту (отображается только для указанного Ассистента)</string>
+    <string name="quick_msg_field_bind_assistant">Привязать помощника</string>
+    <string name="quick_msg_section_behavior">Поведение</string>
+    <string name="quick_msg_field_sort_index">Индекс сортировки (меньше = раньше)</string>
+    <string name="quick_msg_field_enabled">Включено</string>
+    <string name="quick_msg_field_enabled_desc">Если параметр отключен, эта запись не будет отображаться в строке чипа InputBar.</string>
+
+    <!-- ===== LorebookScreen ===== -->
+    <!-- Top bar -->
+    <string name="lorebook_screen_title">книга знаний</string>
+    <string name="lorebook_back_cd">Назад</string>
+    <string name="lorebook_new_cd">Новая книга знаний</string>
+    <string name="lorebook_intro">Внедрение контекста по ключевым словам.</string>
+    <string name="lorebook_empty_title">Лоребука пока нет</string>
+    <string name="lorebook_empty_subtitle">Нажмите + в правом нижнем углу, чтобы создать</string>
+    <string name="lorebook_delete_title">Удалить книгу истории</string>
+    <!-- Card -->
+    <string name="lorebook_new_default_name">Новая запись</string>
+    <string name="lorebook_unnamed">(Безымянный)</string>
+    <string name="lorebook_disabled">Неполноценный</string>
+    <string name="lorebook_keywords_label">Ключевые слова: %1$s</string>
+    <string name="lorebook_enabled_cd">Включено</string>
+    <string name="lorebook_disabled_cd">Неполноценный</string>
+    <string name="lorebook_edit_cd">Редактировать</string>
+    <string name="lorebook_delete_cd">Удалить</string>
+    <!-- Edit page -->
+    <string name="lorebook_unsaved_title">Несохраненные изменения</string>
+    <string name="lorebook_unsaved_content">При выходе текущие изменения будут отменены.</string>
+    <string name="lorebook_discard">Отказаться</string>
+    <string name="lorebook_new_title">Новая книга знаний</string>
+    <string name="lorebook_edit_title">Редактировать книгу истории</string>
+    <string name="lorebook_save">Сохранять</string>
+    <string name="lorebook_section_basic">Базовый</string>
+    <string name="lorebook_field_name">Имя</string>
+    <string name="lorebook_field_keywords">Ключевые слова-триггеры (через запятую)</string>
+    <string name="lorebook_field_keywords_placeholder">например</string>
+    <string name="lorebook_section_content">Содержание инъекции</string>
+    <string name="lorebook_field_content">Контент (вводится как контекст СИСТЕМЫ при совпадении ключевых слов)</string>
+    <string name="lorebook_section_behavior">Поведение</string>
+    <string name="lorebook_field_priority">Приоритет (большее число = вводится первым)</string>
+    <string name="lorebook_field_insertion_position">Положение вставки</string>
+    <string name="lorebook_field_case_sensitive">С учетом регистра</string>
+    <string name="lorebook_field_case_sensitive_desc">Если включено, сопоставление ключевых слов чувствительно к регистру.</string>
+    <string name="lorebook_field_enabled">Включено</string>
+    <string name="lorebook_field_enabled_desc">Если эта запись отключена, эта запись больше не будет запускать инъекцию.</string>
+
+    <!-- ===== PromptInjectionScreen ===== -->
+    <!-- Top bar -->
+    <string name="prompt_injection_screen_title">Быстрая инъекция</string>
+    <string name="prompt_injection_back_cd">Назад</string>
+    <string name="prompt_injection_new_cd">Новая PromptInjection</string>
+    <string name="prompt_injection_intro">Внедрение контекста, инициируемое режимом.</string>
+    <string name="prompt_injection_empty_title">PromptInjection пока нет</string>
+    <string name="prompt_injection_empty_subtitle">Нажмите + в правом нижнем углу, чтобы создать</string>
+    <string name="prompt_injection_delete_title">Удалить PromptInjection</string>
+    <!-- Card -->
+    <string name="prompt_injection_new_default_name">Новая инъекция</string>
+    <string name="prompt_injection_unnamed">(Безымянный)</string>
+    <string name="prompt_injection_disabled">Неполноценный</string>
+    <string name="prompt_injection_mode_label">Режим: %1$s</string>
+    <string name="prompt_injection_enabled_cd">Включено</string>
+    <string name="prompt_injection_disabled_cd">Неполноценный</string>
+    <string name="prompt_injection_edit_cd">Редактировать</string>
+    <string name="prompt_injection_delete_cd">Удалить</string>
+    <!-- Edit page -->
+    <string name="prompt_injection_unsaved_title">Несохраненные изменения</string>
+    <string name="prompt_injection_unsaved_content">При выходе текущие изменения будут отменены.</string>
+    <string name="prompt_injection_discard">Отказаться</string>
+    <string name="prompt_injection_new_title">Новая PromptInjection</string>
+    <string name="prompt_injection_edit_title">Редактировать PromptInjection</string>
+    <string name="prompt_injection_save">Сохранять</string>
+    <string name="prompt_injection_section_basic">Базовый</string>
+    <string name="prompt_injection_field_name">Имя</string>
+    <string name="prompt_injection_field_mode">Режим</string>
+    <string name="prompt_injection_field_display_name">Отображаемое имя (отображается в пользовательском интерфейсе; оставьте поле пустым, чтобы использовать режим по умолчанию)</string>
+    <string name="prompt_injection_section_content">Содержание инъекции</string>
+    <string name="prompt_injection_field_content">Содержимое (внедряется как контекст СИСТЕМЫ при переключении в этот режим)</string>
+    <string name="prompt_injection_section_behavior">Поведение</string>
+    <string name="prompt_injection_field_priority">Приоритет (заказ на несколько инъекций одного и того же режима; большее количество = инъекция первой)</string>
+    <string name="prompt_injection_field_insertion_position">Положение вставки</string>
+    <string name="prompt_injection_field_enabled">Включено</string>
+    <string name="prompt_injection_field_enabled_desc">Если эта запись отключена, эта запись больше не будет запускать инъекцию.</string>
+
+    <!-- ===== AssistantScreen ===== -->
+    <!-- Top bar -->
+    <string name="assistant_screen_title">Ассистенты</string>
+    <string name="assistant_back_cd">Назад</string>
+    <string name="assistant_import_card_cd">Импортировать карточку персонажа</string>
+    <string name="assistant_section_my_assistants">Мои помощники</string>
+    <string name="assistant_section_actions">Добавить или импортировать</string>
+    <string name="assistant_memory_entry_title">Долговременная память</string>
+    <string name="assistant_memory_entry_subtitle">Посмотреть 4-слойную систему памяти</string>
+    <string name="assistant_empty_create">Помощников пока нет.</string>
+    <string name="assistant_unnamed">(Безымянный)</string>
+    <string name="assistant_current">Текущий</string>
+    <string name="assistant_more_cd">Дополнительные действия</string>
+    <string name="assistant_new_action">Новый помощник</string>
+    <string name="assistant_new_default_name">Новый помощник</string>
+    <string name="assistant_clone_name">%1$s (Копировать)</string>
+    <!-- Action menu -->
+    <string name="assistant_move_up_cd">Вверх</string>
+    <string name="assistant_move_up">Двигаться вверх</string>
+    <string name="assistant_move_down_cd">Двигаться вниз</string>
+    <string name="assistant_move_down">Вниз</string>
+    <string name="assistant_clone_cd">Клонировать</string>
+    <string name="assistant_clone">Клонировать</string>
+    <string name="assistant_export_card_cd">Экспортировать карточку персонажа</string>
+    <string name="assistant_export_card">Экспортировать карту персонажа</string>
+    <string name="assistant_delete_cd">Удалить</string>
+    <string name="assistant_delete">Удалить</string>
+    <string name="assistant_close">Закрывать</string>
+    <string name="assistant_delete_title">Удалить помощника</string>
+    <!-- Toast -->
+    <string name="assistant_toast_exported">Экспортирована карточка персонажа: %1$s</string>
+    <string name="assistant_toast_export_failed">Не удалось экспортировать: %1$s</string>
+    <string name="assistant_toast_imported">Импортирована карточка персонажа: %1$s</string>
+    <string name="assistant_toast_import_invalid">Не удалось импортировать: неверный формат файла.</string>
+    <string name="assistant_toast_import_failed">Не удалось импортировать: %1$s</string>
+
+    <!-- ===== SillyTavern character card (PNG/JSON universal format) ===== -->
+    <!-- Assistant list: import entry (list item, below + New Assistant) -->
+    <string name="assistant_import_sillytavern_cd">Импортировать карточку персонажа SillyTavern</string>
+    <string name="assistant_import_sillytavern">Импортировать карту персонажа SillyTavern</string>
+    <!-- Assistant detail: character card sharing section -->
+    <string name="assistant_detail_share_section">Обмен картами персонажей</string>
+    <string name="assistant_detail_export_png">Экспортировать как карточку персонажа PNG</string>
+    <string name="assistant_detail_export_png_desc">Формат SillyTavern (с метаданными)</string>
+    <string name="assistant_detail_export_json">Экспортировать как карточку персонажа JSON</string>
+    <string name="assistant_detail_export_json_desc">SillyTavern V2 JSON</string>
+    <string name="assistant_detail_share_muse_card">Поделиться карточкой персонажа Muse</string>
+    <string name="assistant_detail_share_muse_card_desc">Создайте визуальную карту и поделитесь ею через систему</string>
+    <string name="assistant_detail_share_muse_json">Поделиться Muse в формате JSON</string>
+    <string name="assistant_detail_share_muse_json_desc">Поделитесь JSON Muse через систему</string>
+    <string name="assistant_detail_share_muse_failed">Не удалось поделиться: %1$s</string>
+    <!-- Toast -->
+    <string name="assistant_toast_sillytavern_imported">Импортирована карточка персонажа SillyTavern: %1$s</string>
+    <string name="assistant_toast_sillytavern_import_failed">Ошибка импорта SillyTavern: %1$s</string>
+    <string name="assistant_toast_sillytavern_exported">Карточка персонажа SillyTavern экспортирована.</string>
+    <string name="assistant_toast_sillytavern_export_failed">Ошибка экспорта SillyTavern: %1$s</string>
+</resources>

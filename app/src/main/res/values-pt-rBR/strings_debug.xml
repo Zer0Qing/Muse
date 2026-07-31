@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== DebugScreen.kt ===== -->
+    <!-- Clear confirmation dialog -->
+    <string name="debug_clear_logs_title">Limpar logs de depuração</string>
+    <string name="debug_clear_logs_confirm">Limpar todos os registros %1$d?</string>
+    <string name="debug_action_clear">Claro</string>
+    <string name="debug_cleared_toast">Desmarcado</string>
+
+    <!-- Copy logs -->
+    <string name="debug_no_logs_to_copy">Não há registros para copiar</string>
+    <string name="debug_logs_copied_toast">Logs %1$d copiados para a área de transferência</string>
+
+    <!-- Export logs -->
+    <string name="debug_export_failed_no_logs">Falha na exportação: nenhum log ou diretório não inicializado</string>
+    <string name="debug_export_failed_no_uri">Falha na exportação: não é possível obter o URI do arquivo</string>
+    <string name="debug_share_log_chooser">Compartilhe logs de depuração</string>
+
+    <!-- Top bar / titles -->
+    <string name="debug_screen_title">Registros de depuração</string>
+    <string name="debug_cd_resume_follow">Continuar seguindo</string>
+    <string name="debug_cd_pause_follow">Pausar seguindo</string>
+    <string name="debug_cd_crash_logs">Registros de falhas</string>
+    <string name="debug_cd_analytics">Análise local</string>
+    <string name="debug_cd_db_integrity">Integridade do banco de dados</string>
+    <string name="debug_cd_clear">Claro</string>
+    <string name="debug_cd_export">Exportar</string>
+    <string name="debug_cd_copy">Cópia</string>
+
+    <!-- Log count -->
+    <string name="debug_log_count">%1$d total de entradas</string>
+    <string name="debug_log_count_paused_suffix">· Seguindo pausado</string>
+
+    <!-- Filter row -->
+    <string name="debug_level_label">Nível</string>
+    <string name="debug_keyword_label">Palavra-chave</string>
+
+    <!-- Empty state -->
+    <string name="debug_empty_title">Sem registros</string>
+    <string name="debug_empty_subtitle">Os registros das chamadas do Logger aparecerão aqui em tempo real</string>
+
+    <!-- Crash log panel (CrashLogSheet) -->
+    <string name="debug_crash_log_title">Registros de falhas</string>
+    <string name="debug_export_zip_and_share">Exporte ZIP e compartilhe</string>
+    <string name="debug_loading_crash_logs">Carregando registros de falhas…</string>
+    <string name="debug_no_crash_logs">Nenhum registro de falhas\n\nO aplicativo não travou ou os registros foram limpos automaticamente (apenas os últimos 5 são mantidos).</string>
+    <string name="debug_crash_log_count">%1$d arquivos (os mais recentes primeiro, apenas os 5 mais recentes são mantidos)</string>
+    <string name="debug_cd_share_crash_log">Compartilhe este registro</string>
+    <string name="debug_loading">Carregando…</string>
+    <string name="debug_crash_preview_truncated">Apenas os primeiros caracteres %1$d são mostrados.</string>
+
+    <!-- Crash log sharing (non-Composable helpers, use context.getString) -->
+    <string name="debug_export_failed_no_crash_logs">Falha na exportação: não há registros de falhas</string>
+    <string name="debug_share_crash_zip_chooser">Compartilhar ZIP do registro de falhas</string>
+    <string name="debug_share_failed_no_uri">Falha no compartilhamento: não é possível obter o URI do arquivo</string>
+    <string name="debug_share_crash_log_chooser">Compartilhar registro de falhas</string>
+
+    <!-- Local analytics panel (AnalyticsSheet) -->
+    <string name="debug_analytics_title">Análise local</string>
+    <string name="debug_loading_analytics">Carregando análises…</string>
+    <string name="debug_analytics_load_failed">Não é possível ler dados analíticos</string>
+    <string name="debug_metric_dau_today">DAU hoje</string>
+    <string name="debug_metric_mau_month">MAU este mês</string>
+    <string name="debug_metric_total_sessions">Total de sessões</string>
+    <string name="debug_metric_total_messages">Total de mensagens</string>
+    <string name="debug_metric_launch_count">Lançamentos</string>
+    <string name="debug_metric_crash_count">Falhas</string>
+    <string name="debug_metric_crash_count_value">%1$d (%2$s)</string>
+    <string name="debug_status_first_chat">Primeiro bate-papo concluído</string>
+    <string name="debug_status_memory_adopted">Sistema de memória adotado</string>
+    <string name="debug_status_last_active">Última data ativa</string>
+    <string name="debug_value_yes">Sim</string>
+    <string name="debug_value_no">Não</string>
+
+    <!-- Retention card -->
+    <string name="debug_retention_title">Retenção (desde o primeiro lançamento)</string>
+    <string name="debug_retention_d1">Dia 1 (D1)</string>
+    <string name="debug_retention_d7">Dia 7 (D7)</string>
+    <string name="debug_retention_d30">Dia 30 (D30)</string>
+
+    <!-- Feature usage -->
+    <string name="debug_feature_usage_top">10 principais usos de recursos</string>
+    <string name="debug_no_feature_usage">Nenhum registro de uso de recursos</string>
+
+    <!-- Database integrity panel (DbIntegritySheet) -->
+    <string name="debug_db_integrity_title">Integridade do banco de dados</string>
+    <string name="debug_loading_db_integrity">Carregando último registro de verificação…</string>
+    <string name="debug_db_status_ok">Banco de dados OK</string>
+    <string name="debug_db_status_error">Erro no banco de dados</string>
+    <string name="debug_db_size_label">Tamanho do banco de dados: %1$s</string>
+    <string name="debug_db_check_time_label">Hora de verificação: %1$s</string>
+    <string name="debug_no_details">(Sem detalhes)</string>
+    <string name="debug_db_error_advice">Sugestão: restaure o backup automático mais recente em \"Configurações → Backup &amp; Recuperação\", ou exporte conversas críticas e reinstale o aplicativo.</string>
+    <string name="debug_integrity_check_passed">Verificação de integridade aprovada</string>
+    <string name="debug_integrity_check_failed">Falha na verificação de integridade. Veja os detalhes</string>
+    <string name="debug_checking">Verificando…</string>
+    <string name="debug_check_now">Verifique agora</string>
+    <string name="debug_no_check_record">Nenhum registro de verificação ainda\n\nToque no botão abaixo para executar uma verificação de integridade agora.</string>
+</resources>

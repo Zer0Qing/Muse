@@ -1,0 +1,345 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== ChatScreen ===== -->
+    <!-- Top bar -->
+    <string name="chat_session_cd">現在のチャット: %1$s、タップして切り替えます</string>
+    <string name="chat_model_not_configured">未設定</string>
+    <string name="chat_model_cd">現在のモデル: %1$s、タップして切り替えます</string>
+    <string name="chat_context_usage_cd">コンテキスト使用量 %1$s%%、%2$d トークンの合計</string>
+    <string name="chat_context_tokens_only_cd">コンテキスト トークン数 %1$d、モデルにはコンテキスト ウィンドウがありません</string>
+    <string name="chat_context_no_window_detail">%1$d トークン (モデルにはコンテキスト ウィンドウがありません)</string>
+    <string name="chat_assistant_model_badge">モデル: %1$s</string>
+    <string name="chat_update_compress_cd">&amp; 更新 圧縮</string>
+    <string name="chat_scroll_to_bottom_cd">一番下までスクロール</string>
+    <string name="chat_export_cd">チャットのエクスポート</string>
+    <string name="chat_companion_days_zero">今日会ったばかりです</string>
+    <string name="chat_companion_days">%1$d 日間一緒に</string>
+    <string name="chat_date_separator_today">今日%1$s</string>
+    <string name="chat_thinking">考え…</string>
+
+    <!-- Errors and permissions -->
+    <string name="chat_err_mic_permission">音声入力にはマイクの許可が必要です</string>
+    <string name="chat_err_open_file_picker">ファイルピッカーを開けません: %1$s</string>
+    <string name="chat_err_open_image_picker">画像ピッカーを開けません: %1$s</string>
+    <string name="chat_err_no_speech_service">音声認識サービスは利用できません。</string>
+    <string name="chat_err_start_speech">音声認識を開始できません: %1$s</string>
+    <string name="chat_error_cd">エラー: %1$s、再試行するか閉じてください</string>
+    <string name="chat_retry">リトライ</string>
+
+    <!-- Share -->
+    <string name="chat_share_subject">ミューズ会話</string>
+    <string name="chat_share_chooser_title">チャットを共有する</string>
+
+    <!-- Copy toast -->
+    <string name="chat_copied_toast">コピーされました</string>
+
+    <!-- Prompt templates -->
+    <string name="chat_prompt_templates_title">プロンプトテンプレート</string>
+
+    <!-- Knowledge base -->
+    <string name="chat_knowledge_dialog_title">参考知識ベース</string>
+    <string name="chat_knowledge_empty">ナレッジベースが空です。</string>
+    <string name="chat_knowledge_doc_meta">%1$s · %2$d 文字</string>
+
+    <!-- Session switch -->
+    <string name="chat_switch_session_title">チャットを切り替える</string>
+    <string name="chat_no_sessions">まだチャットはありません</string>
+    <string name="chat_new_session">新しいチャット</string>
+
+    <!-- v1.136 T1: Switch assistant within chat -->
+    <string name="chat_switch_assistant_title">スイッチアシスタント</string>
+    <string name="chat_switch_assistant_empty">アシスタントはいません</string>
+    <string name="chat_switch_assistant_current">現在</string>
+    <string name="chat_switch_assistant_applied">%1$s に切り替えました</string>
+    <string name="chat_switch_assistant_long_press_hint">タイトルを長押ししてアシスタントを切り替えます</string>
+
+    <!-- Delegate to assistant -->
+    <string name="chat_delegate_title">アシスタントへの委任</string>
+    <string name="chat_delegate_empty">アシスタントやチームは利用できません。</string>
+    <string name="chat_delegate_assistants">利用可能なアシスタント</string>
+    <string name="chat_delegate_unnamed_assistant">名前のないアシスタント</string>
+    <string name="chat_delegate_assistant_prompt_input">%1$s に委任してください: %2$s</string>
+    <string name="chat_delegate_assistant_prompt_message">上記の内容を %1$s に委任してください:</string>
+    <string name="chat_delegate_no_text">このメッセージには委任できるテキスト コンテンツがありません</string>
+    <string name="chat_delegate_teams">協力的なチーム</string>
+    <string name="chat_delegate_unnamed_team">無名のチーム</string>
+    <string name="chat_delegate_team_prompt_input">%1$s チームとして扱ってください: %2$s</string>
+    <string name="chat_delegate_team_prompt_message">上記のコンテンツは%1$s チームとして処理してください:</string>
+
+    <!-- Empty state guide -->
+    <string name="chat_avatar_assistant_cd">アシスタントのアバター</string>
+    <string name="chat_avatar_muse_cd">ミューズアイコン</string>
+    <string name="chat_empty_guide_title">今日は何について話したいですか?</string>
+    <string name="chat_suggested_prompt_report">週次レポートを書く</string>
+    <string name="chat_suggested_prompt_summary">今日の仕事を要約する</string>
+    <string name="chat_suggested_prompt_explain">この概念を説明する</string>
+    <string name="chat_suggested_prompt_ideas">創造的なアイデアを教えてください</string>
+
+    <!-- Image generation placeholder -->
+    <string name="chat_image_generating">画像を生成中…</string>
+
+    <!-- ===== MessageBubble ===== -->
+    <!-- MOOD / Reasoning / Reflection collapsible blocks -->
+    <string name="chat_mood_collapse_cd">ムードを崩壊させる</string>
+    <string name="chat_mood_expand_cd">気分を拡張する</string>
+    <string name="chat_reasoning_title">推論</string>
+    <string name="chat_reasoning_collapse_cd">推理の崩壊</string>
+    <string name="chat_reasoning_expand_cd">推論を拡張する</string>
+    <string name="chat_reflection_title">反射</string>
+    <string name="chat_reflection_collapse_cd">反射を折りたたむ</string>
+    <string name="chat_reflection_expand_cd">展開反射</string>
+
+    <!-- Images -->
+    <string name="chat_user_image_cd">ユーザーイメージ</string>
+    <string name="chat_generated_image_cd">生成された画像</string>
+    <string name="chat_save_image_cd">画像の保存</string>
+    <string name="chat_image_saved_toast">ギャラリーに保存されました: %1$s</string>
+    <string name="chat_image_save_failed_toast">保存に失敗しました: %1$s</string>
+    <string name="chat_image_page_cd">画像%1$d / %2$d</string>
+
+    <!-- Quick buttons and long-press menu -->
+    <string name="chat_regenerate_cd">再生する</string>
+    <string name="chat_regenerate_action">再生する</string>
+    <string name="chat_translate_action">翻訳する</string>
+    <string name="chat_translate_to_cd">%1$s に翻訳</string>
+    <string name="chat_delegate_action">アシスタントへの委任</string>
+    <string name="chat_tts_stop">読書をやめる</string>
+    <string name="chat_tts_play">声に出して読む</string>
+    <string name="chat_favorite_remove">お気に入りを削除</string>
+    <string name="chat_favorite_add">お気に入り</string>
+    <string name="chat_fork_action">フォークチャット</string>
+    <string name="chat_share_action">チャットを共有する</string>
+    <string name="chat_agent_weak_tool_title">ツール呼び出しの劣化</string>
+    <string name="chat_agent_hint_dismiss">わかった</string>
+    <string name="chat_agent_session_locked">エージェントモードでセッションがロックされました</string>
+    <string name="chat_delete_message">メッセージの削除</string>
+    <string name="chat_delete_message_confirm">この操作は元に戻すことができません。</string>
+    <string name="chat_translate_in_progress">翻訳中…</string>
+
+    <!-- Loading and tool calls -->
+    <string name="chat_loading_thinking">考え</string>
+    <string name="chat_tool_success_cd">成功</string>
+    <string name="chat_tool_failed_cd">失敗した</string>
+    <string name="chat_tool_params">パラメータ</string>
+    <string name="chat_tool_result">結果</string>
+
+    <!-- ===== InputBar ===== -->
+    <!-- Top toggles -->
+    <string name="chat_web_search_cd_on">Web検索(オン)</string>
+    <string name="chat_web_search_cd">ウェブ検索</string>
+    <string name="chat_deep_thinking_cd_on">深い思考（オン）</string>
+    <string name="chat_deep_thinking_cd">深い思考</string>
+    <!-- v1.94: Tool call dynamic capsule -->
+    <string name="chat_tool_calls_cd">ツール呼び出し履歴</string>
+    <string name="chat_tool_calls_title">ツール呼び出し履歴</string>
+    <string name="chat_tool_calls_empty">ツール呼び出しなし</string>
+
+    <!-- Resume interrupted tool calls banner -->
+    <string name="chat_pending_tools_banner_title">%1$d 前回のツール呼び出しは未完了です</string>
+    <string name="chat_pending_tools_banner_subtitle">ストリーミングが中断されました。</string>
+    <string name="chat_pending_tools_resume">再開する</string>
+    <string name="chat_pending_tools_discard">破棄</string>
+    <string name="chat_pending_tools_cd">保留中のツール呼び出しの回復バナー</string>
+
+    <!-- Quick messages and images -->
+    <string name="chat_unnamed">無名</string>
+    <string name="chat_pending_image_cd">保留中の画像 %1$d</string>
+    <string name="chat_remove_image_cd">画像の削除</string>
+    <!-- v1.136 T10: Pending document chip -->
+    <string name="chat_pending_document_cd">保留中の文書%1$s</string>
+    <string name="chat_remove_document_cd">ドキュメントの削除</string>
+
+    <!-- Quote reply -->
+    <string name="chat_edit_reply_cd">見積の編集</string>
+    <string name="chat_edit_reply_title">見積内容の編集</string>
+
+    <!-- Tool menu -->
+    <string name="chat_tools_cd">ツール</string>
+    <string name="chat_tools_pick_content">送信するコンテンツを選択してください</string>
+    <string name="chat_tool_camera">カメラ</string>
+    <string name="chat_tool_photo">写真</string>
+    <!-- Video input: tool menu card label -->
+    <string name="chat_tool_video">ビデオ</string>
+    <string name="chat_gallery_image_cd">ギャラリー画像</string>
+    <string name="chat_gallery_cd">ギャラリー</string>
+    <string name="chat_authorize_gallery">ギャラリーへのアクセスを許可する</string>
+    <string name="chat_tool_attachment">アタッチメント</string>
+    <string name="chat_tool_knowledge">参考知識ベース</string>
+    <string name="chat_tool_knowledge_subtitle">@メンションドキュメント</string>
+    <string name="chat_tool_prompt_template_subtitle">テンプレートからシーン プロンプトを選択します</string>
+    <string name="chat_tool_skills">スキル</string>
+    <string name="chat_tool_skills_subtitle">有効なスキルの管理と呼び出し</string>
+    <string name="chat_tool_draw_mode">描画モード</string>
+    <string name="chat_tool_draw_mode_subtitle_on">オン・生成する画像を記述する</string>
+    <string name="chat_tool_draw_mode_subtitle">生成する画像を記述する</string>
+    <string name="chat_tool_delegate_subtitle">このメッセージを処理するサブアシスタントを選択してください</string>
+    <string name="chat_tool_restart_context">再起動コンテキスト</string>
+    <string name="chat_tool_restart_context_subtitle">現在のチャットをクリアしてエージェントを最初からやり直す</string>
+
+    <!-- Input field and buttons -->
+    <string name="chat_placeholder_draw">生成する画像を記述してください…</string>
+    <string name="chat_placeholder_send">ミューズに返信…</string>
+    <string name="chat_expand_input_cd">全画面編集</string>
+    <string name="chat_expand_input_title">メッセージの編集</string>
+    <!-- v1.0.47 P5-3: Token count menu -->
+    <string name="chat_token_count_cd">トークン数</string>
+    <string name="chat_token_menu_title">トークンの見積もり</string>
+    <string name="chat_token_input">電流入力</string>
+    <string name="chat_token_history">履歴メッセージ</string>
+    <string name="chat_token_context_window">コンテキストウィンドウ</string>
+    <string name="chat_token_remaining">利用可能</string>
+    <string name="chat_token_usage">コンテキストの使用法</string>
+    <string name="chat_token_disclaimer">cl100k_base に基づくおおよその推定値であり、参照のみを目的としています。</string>
+    <!-- v1.0.47 P5-2: Paste long text as file -->
+    <string name="chat_paste_as_file_title">大きなテキストが検出されました</string>
+    <string name="chat_paste_as_file_msg">貼り付けられたコンテンツは %1$d 文字です。</string>
+    <string name="chat_paste_as_file_attach">ファイルとして添付</string>
+    <string name="chat_paste_as_file_paste">直接貼り付けます</string>
+    <!-- Long-press input bar action menu -->
+    <string name="chat_input_action_fullscreen">全画面入力モード</string>
+    <string name="chat_stop_generation_cd">生成を停止する</string>
+    <string name="chat_recording_start_failed">記録の開始に失敗しました。</string>
+    <string name="chat_recognizing_cd">認識する</string>
+    <string name="chat_recording_cd">録音</string>
+    <string name="chat_hold_to_record_cd">押し続けて録音する</string>
+    <string name="chat_cancelled">キャンセル</string>
+    <!-- v1.95: System speech recognition first-use tip -->
+    <string name="chat_asr_tip_title">音声認識のヒント</string>
+    <string name="chat_asr_tip_message">システム音声認識では、毎回システム ダイアログが表示されます。</string>
+    <string name="chat_asr_tip_confirm">続く</string>
+
+    <!-- Draw params panel -->
+    <string name="chat_image_too_large">画像が大きすぎるか読めません</string>
+    <string name="chat_ref_image_load_failed">参照画像のロードに失敗しました: %1$s</string>
+    <string name="chat_ref_image_compressed">圧縮された参照画像: %1$s</string>
+    <string name="chat_ref_image_too_large_after_compress">圧縮後も参照画像が大きすぎるため、小さい画像を選択してください</string>
+    <!-- Video input: a11y descriptions + error messages -->
+    <string name="chat_pending_video_cd">保留中のビデオ添付ファイル</string>
+    <string name="chat_remove_video_cd">ビデオを削除する</string>
+    <string name="chat_user_video_cd">ユーザーから送信されたビデオ</string>
+    <string name="chat_video_open_failed">ビデオを開けません: %1$s</string>
+    <string name="chat_video_too_large">ビデオが大きすぎます (50MB 以上)。</string>
+    <string name="chat_video_load_failed">ビデオの読み取りに失敗しました: %1$s</string>
+    <string name="chat_draw_params">描画パラメータ</string>
+    <string name="chat_ref_image_add">+ 参考画像</string>
+    <string name="chat_ref_image_not_supported">参考画像は現行モデルではサポートされていません</string>
+    <string name="chat_ref_image_cd">参考画像</string>
+    <string name="chat_ref_image_clear_cd">クリアな参照画像</string>
+    <string name="chat_quality_standard">標準</string>
+    <string name="chat_quality_hd">HD</string>
+    <string name="chat_quality_high">高い</string>
+    <string name="chat_quality_medium">中くらい</string>
+    <string name="chat_quality_low">低い</string>
+    <string name="chat_quality_auto">自動</string>
+    <string name="chat_style_vivid">鮮やかな</string>
+    <string name="chat_style_natural">自然</string>
+
+    <!-- ===== ChatListScreen ===== -->
+    <!-- Big entry cards -->
+    <string name="chat_list_scheduled_tasks">スケジュールされたタスク</string>
+    <string name="chat_list_scheduled_subtitle">自動実行</string>
+    <string name="chat_list_quick_notes">簡単なメモ</string>
+    <string name="chat_list_quick_notes_subtitle">ライトノート</string>
+    <string name="chat_list_quick_translate">クイック翻訳</string>
+    <string name="chat_list_knowledge_base">知識</string>
+
+    <!-- Filter cards -->
+    <string name="chat_list_filter_all">全て</string>
+    <string name="chat_list_filter_pinned">固定された</string>
+    <string name="chat_list_filter_archived">アーカイブ済み</string>
+
+    <!-- Empty states -->
+    <string name="chat_list_empty_all">まだタスクはありません</string>
+    <string name="chat_list_empty_pinned">固定されたタスクはまだありません</string>
+    <string name="chat_list_empty_archived">アーカイブされたタスクはまだありません</string>
+    <string name="chat_list_empty_all_sub">アイデアやリサーチの記録を開始します</string>
+    <string name="chat_list_empty_pinned_sub">チャットを長押しして固定します</string>
+    <string name="chat_list_empty_archived_sub">チャットを長押ししてアーカイブします</string>
+
+    <!-- Section titles -->
+    <string name="chat_list_section_ungrouped">グループ化されていない</string>
+    <string name="chat_list_section_recent">最近の</string>
+    <string name="chat_list_section_pinned">固定された</string>
+    <string name="chat_list_section_folders">フォルダー</string>
+    <string name="chat_list_section_knowledge">知識</string>
+    <string name="chat_list_new_folder">新しいフォルダー</string>
+
+    <!-- Task home -->
+    <string name="chat_list_input_hint">任意のアイデアを入力してください…</string>
+    <string name="chat_list_send">送信</string>
+    <string name="chat_list_no_recent_title">まだチャットはありません</string>
+    <string name="chat_list_no_recent_subtitle">新しいチャットを開始するには、下の + ボタンをタップしてください</string>
+    <string name="chat_list_knowledge_title">ナレッジベース</string>
+    <string name="chat_list_knowledge_count">%1$d ドキュメント</string>
+    <string name="chat_list_knowledge_empty">タップしてドキュメントを追加します</string>
+    <string name="chat_list_quick_send">新規&amp;送信</string>
+
+    <!-- Bottom button and dialogs -->
+    <string name="chat_list_new_task">新しいタスク</string>
+    <string name="chat_list_new_task_card_subtitle">アイデアをキャプチャしたり、タスクを作成したり、チャットを開始したりできます</string>
+    <string name="chat_list_folder_name_placeholder">フォルダ名</string>
+    <string name="chat_list_create">作成する</string>
+
+    <!-- Session long-press menu -->
+    <string name="chat_list_pin">ピン</string>
+    <string name="chat_list_unpin">固定を解除する</string>
+    <string name="chat_list_archive">アーカイブ</string>
+    <string name="chat_list_move_ungrouped">グループ化されていない状態に移動</string>
+    <string name="chat_list_move_to">移動先: %1$s</string>
+    <string name="chat_list_move_to_cd">%1$s に移動します</string>
+    <string name="chat_list_rename">名前の変更</string>
+    <string name="chat_list_unarchive">アーカイブを解除する</string>
+
+    <!-- Session rename/delete dialogs -->
+    <string name="chat_list_rename_session_title">チャット名の変更</string>
+    <string name="chat_list_confirm">わかりました</string>
+    <string name="chat_list_delete_session_title">チャットの削除</string>
+    <string name="chat_list_delete_session_confirm">この操作は元に戻すことができません。</string>
+    <string name="chat_list_deleted_toast">削除されました</string>
+
+    <!-- Folder rename/delete dialogs -->
+    <string name="chat_list_delete_folder_title">フォルダーの削除</string>
+    <string name="chat_list_rename_folder_title">フォルダー名の変更</string>
+    <string name="chat_list_delete_folder_confirm">フォルダー \"%1$s\" を削除すると、そのチャットはグループ化されていない状態に移動します。</string>
+
+    <!-- v5: chat fork -->
+    <string name="chat_list_forked_from">%1$s からフォークされました</string>
+    <string name="chat_list_child_count">+%1$d</string>
+
+    <!-- ===== v1.95: Sticker Library ===== -->
+    <!-- ChatSettingsPage sticker library section -->
+    <string name="settings_chat_sticker_section">ステッカーライブラリ</string>
+    <string name="settings_sticker_enabled">ステッカーを有効にする</string>
+    <string name="settings_sticker_enabled_subtitle">アシスタントが返信でステッカーを送信できるようにする</string>
+    <string name="settings_sticker_send_probability">送信確率</string>
+    <string name="settings_sticker_send_probability_subtitle">アシスタントが返信ごとにステッカーを送信する確率</string>
+    <string name="settings_sticker_upload_zip">ZIPをインポート</string>
+    <string name="settings_sticker_upload_zip_subtitle">ZIP ファイルを選択します。</string>
+    <string name="settings_sticker_imported">輸入された%1$dステッカー</string>
+    <string name="settings_sticker_import_failed">インポートに失敗しました: %1$s</string>
+    <string name="settings_sticker_empty_title">ステッカーはまだありません</string>
+    <string name="settings_sticker_empty_subtitle">上の「ZIP をインポート」をタップして ZIP ファイルを追加します</string>
+    <string name="settings_sticker_delete_confirm">このステッカーを削除しますか?</string>
+    <string name="settings_sticker_category_all">全て</string>
+
+    <!-- SkillExecutor sticker tool feedback -->
+    <string name="skill_sticker_not_configured">ステッカーライブラリが設定されていません</string>
+    <string name="skill_sticker_not_found">ID %1$s のステッカーが見つかりません</string>
+    <string name="skill_sticker_sent">送信されたステッカー: %1$s</string>
+    <string name="skill_sticker_list_empty">ステッカーライブラリが空です</string>
+
+    <!-- v1.97: Slash commands -->
+    <string name="slash_command_hint">/ と入力するとクイック コマンドが実行されます</string>
+    <string name="slash_command_new">/new 新しいセッション</string>
+    <string name="slash_command_compact">/compact セッション履歴を圧縮します</string>
+    <string name="slash_command_reset">/reset コンテキストをリセット</string>
+    <string name="slash_command_pin">/pin トグルピン</string>
+    <string name="slash_command_archive">/archive セッションのアーカイブ</string>
+    <string name="slash_command_unknown">不明なコマンド: %1$s</string>
+    <string name="slash_command_executed">実行されました: %1$s</string>
+    <string name="slash_command_new_done">新しいセッションが作成されました</string>
+    <string name="slash_command_compact_done">セッション履歴を圧縮しています...</string>
+    <string name="slash_command_reset_done">コンテキストのリセット</string>
+    <string name="slash_command_pin_done">ピンの切り替え</string>
+    <string name="slash_command_archive_done">セッションがアーカイブされました</string>
+</resources>

@@ -38,6 +38,7 @@
     <string name="skill_web_search_not_configured">web_search not configured: WebSearchService not injected</string>
     <string name="skill_search_no_result">No results for \"%1$s\" (search provider may not be configured or network failed)</string>
     <string name="skill_search_result_header">Results for \"%1$s\" (%2$d items):\n</string>
+    <string name="skill_search_result_guidance">\n\nTip: Synthesize information from the above webpages to answer. Do not say \"based on search results\" or similar phrases in your reply — give the answer directly, as if you knew it yourself.</string>
     <string name="skill_knowledge_not_configured">knowledge_search not configured: KnowledgeDocDao not injected</string>
     <string name="skill_query_blank">Query cannot be empty</string>
     <string name="skill_knowledge_vector_header">Knowledge base semantic search \"%1$s\" matched %2$d chunks (threshold %3$s, top %4$d):\n</string>
@@ -72,6 +73,14 @@
     <string name="skill_skipped">Skipped (chatId=%1$s, assistantId=%2$s)</string>
     <string name="skill_channel_read_not_configured">channel_read_context not configured: GroupChatRepository not injected</string>
     <string name="skill_chat_no_messages">Group chat %1$s has no messages</string>
+    <!-- v1.0.53 Phase 5: Agent Phone(agent_phone tool) -->
+    <string name="skill_missing_param_target_assistant_id">Missing parameter: targetAssistantId (target agent id)</string>
+    <string name="skill_missing_param_message">Missing parameter: message (message body)</string>
+    <string name="skill_message_blank">message cannot be empty</string>
+    <string name="skill_agent_phone_not_configured">agent_phone not configured: GroupChatScheduler not injected</string>
+    <string name="skill_agent_phone_target_not_found">Target agent does not exist</string>
+    <string name="skill_whisper_sent">Whisper started with %1$s</string>
+    <string name="skill_progress_whispering">Starting whisper...</string>
     <string name="skill_chat_messages_header">--- Recent group chat messages ---\n</string>
     <string name="skill_dir_not_exist">Directory does not exist: %1$s</string>
     <string name="skill_not_dir">Not a directory: %1$s</string>

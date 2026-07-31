@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="accessibility_service_description">Muse UI automation service. Allows Muse to read screen content and perform click/swipe/input actions for AI assistant device control. Only active when you invoke UI tools; does not monitor in the background.</string>
+</resources>

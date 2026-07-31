@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- v1.97 gap8: Standalone translate page (TranslateScreen) strings -->
+    <string name="translate_page_title">Traduzir</string>
+    <string name="translate_page_input_placeholder">Digite o texto para traduzir...</string>
+    <string name="translate_page_result_placeholder">O resultado da tradução aparecerá aqui</string>
+    <string name="translate_page_translate">Traduzir</string>
+    <string name="translate_page_cancel">Cancelar</string>
+    <string name="translate_page_copy">Copiar resultado</string>
+    <string name="translate_page_paste">Colar</string>
+    <string name="translate_page_clear">Claro</string>
+    <string name="translate_page_source_language">Idioma de origem</string>
+    <string name="translate_page_target_language">Idioma alvo</string>
+    <string name="translate_page_auto_detect">Detecção automática</string>
+    <string name="translate_page_translating">Traduzindo...</string>
+    <string name="translate_page_error_no_provider">Configure primeiro um provedor de IA em Configurações</string>
+    <string name="translate_page_error_empty_input">Por favor insira o texto para traduzir</string>
+    <string name="translate_page_error_failed">Falha na tradução: %1$s</string>
+    <string name="translate_page_copied">Copiado para a área de transferência</string>
+    <string name="translate_page_pasted">Colado</string>
+    <string name="translate_page_clipboard_empty">A área de transferência está vazia</string>
+    <string name="translate_page_swap">Trocar idiomas</string>
+    <string name="translate_page_copy_source">Fonte de cópia</string>
+    <string name="translate_page_speak_source">Falar fonte</string>
+    <string name="translate_page_speak_result">Fale tradução</string>
+    <string name="translate_page_use_as_input">Usar como entrada</string>
+    <string name="translate_page_send_to_chat">Enviar</string>
+    <string name="translate_page_send_to_chat_session">Enviar para bate-papo</string>
+    <string name="translate_page_more">Mais</string>
+    <string name="translate_page_style_label">Estilo de tradução</string>
+    <string name="translate_page_tts_not_ready">O TTS não está pronto, tente novamente mais tarde</string>
+    <!-- v1.97: Translation history (in-memory, last 20 entries, not persisted) -->
+    <string name="translate_page_history_section">História</string>
+    <string name="translate_page_history_empty">Ainda não há histórico de tradução</string>
+    <string name="translate_page_history_clear">Limpar histórico</string>
+    <string name="translate_page_history_clear_confirm">Limpar histórico de tradução?</string>
+    <string name="translate_page_history_clear_confirm_msg">Isto removerá todo o histórico de tradução mantido nesta sessão.</string>
+    <string name="translate_page_history_loaded">Carregado para entrada</string>
+    <string name="translate_page_history_cleared">Histórico apagado</string>
+    <string name="translate_page_history_source_label">Fonte</string>
+    <string name="translate_page_history_translated_label">Traduzido</string>
+    <string name="translate_page_history_source_short">S</string>
+    <string name="translate_page_history_translated_short">T</string>
+    <string name="translate_page_history_clear_short">Claro</string>
+
+    <!-- v1.0.30 gap4.3: Translation favorites -->
+    <string name="translate_page_favorite_add">Favorito</string>
+    <string name="translate_page_favorite_remove">Não favorito</string>
+    <string name="translate_page_favorite_added">Favorito</string>
+    <string name="translate_page_favorite_removed">Não favorito</string>
+    <string name="translate_page_favorites_section">Favoritos</string>
+
+    <!-- v1.0.30 gap4.4: Batch translation -->
+    <string name="translate_page_batch_translate">Tradução em lote</string>
+    <string name="translate_page_batch_title">Tradução em lote</string>
+    <string name="translate_page_batch_input_hint">Um texto por linha será traduzido em lote</string>
+    <string name="translate_page_batch_run">Executar tradução em lote</string>
+    <string name="translate_page_batch_cancel">Cancelar</string>
+    <string name="translate_page_batch_translating">Tradução em lote…</string>
+    <string name="translate_page_batch_empty">Por favor insira textos para traduzir</string>
+    <string name="translate_page_batch_results_title">Resultados em lote (%1$d itens)</string>
+
+    <!-- v1.0.30 gap4.5: Custom styles -->
+    <string name="translate_page_custom_style_add">Adicionar estilo</string>
+    <string name="translate_page_custom_style_name">Nome do estilo</string>
+    <string name="translate_page_custom_style_prompt">Instrução de estilo (por exemplo, \"Traduzir para chinês clássico\")</string>
+    <string name="translate_page_custom_style_save">Salvar</string>
+    <string name="translate_page_custom_style_remove">Remover</string>
+    <string name="translate_page_custom_style_added">Estilo personalizado adicionado</string>
+    <string name="translate_page_custom_style_removed">Estilo personalizado removido</string>
+    <string name="translate_page_custom_style_empty_name">O nome não pode ficar vazio</string>
+
+    <!-- v1.0.30 gap4.6: Glossary -->
+    <string name="translate_page_glossary">Glossário</string>
+    <string name="translate_page_glossary_title">Glossário de tradução</string>
+    <string name="translate_page_glossary_original">Termo de origem</string>
+    <string name="translate_page_glossary_translated">Prazo alvo</string>
+    <string name="translate_page_glossary_add">Adicionar</string>
+    <string name="translate_page_glossary_remove">Remover</string>
+    <string name="translate_page_glossary_empty">Nenhuma entrada no glossário</string>
+    <string name="translate_page_glossary_count">Glossário (entradas %1$d)</string>
+    <string name="translate_page_glossary_added">Entrada de glossário adicionada</string>
+    <string name="translate_page_glossary_removed">Entrada do glossário removida</string>
+
+    <!-- v1.0.30 gap4.7: OCR translation -->
+    <string name="translate_page_ocr">Tradução de fotos</string>
+    <string name="translate_page_ocr_pick_image">Escolha a imagem da galeria</string>
+    <string name="translate_page_ocr_recognizing">Reconhecendo…</string>
+    <string name="translate_page_ocr_empty">Nenhum texto reconhecido</string>
+    <string name="translate_page_ocr_failed">Falha no OCR</string>
+    <string name="translate_page_ocr_applied">Texto reconhecido preenchido na entrada</string>
+</resources>

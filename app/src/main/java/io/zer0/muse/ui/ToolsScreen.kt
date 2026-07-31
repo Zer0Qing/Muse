@@ -46,6 +46,7 @@ import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
+import io.zer0.muse.ui.theme.statusColors
 import io.zer0.muse.ui.theme.tiny
 import org.koin.compose.koinInject
 
@@ -232,10 +233,12 @@ private fun CardGroupScope.ToolRow(
  */
 @Composable
 private fun RiskBadge(level: ToolRiskLevel) {
+    // v1.0.52: 风险色接入语义状态色,深色模式自动切换亮档保证对比度
+    val statusColors = MaterialTheme.statusColors
     val (label, color) = when (level) {
-        ToolRiskLevel.SAFE -> stringResource(R.string.tools_risk_safe) to Color(0xFF2E7D32)
-        ToolRiskLevel.NORMAL -> stringResource(R.string.tools_risk_normal) to Color(0xFFEF6C00)
-        ToolRiskLevel.HIGH -> stringResource(R.string.tools_risk_high) to Color(0xFFD32F2F)
+        ToolRiskLevel.SAFE -> stringResource(R.string.tools_risk_safe) to statusColors.success
+        ToolRiskLevel.NORMAL -> stringResource(R.string.tools_risk_normal) to statusColors.warning
+        ToolRiskLevel.HIGH -> stringResource(R.string.tools_risk_high) to statusColors.error
     }
     Surface(
         shape = MuseShapes.pill,

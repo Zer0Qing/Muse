@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== DebugScreen.kt ===== -->
+    <!-- Clear confirmation dialog -->
+    <string name="debug_clear_logs_title">Очистить журналы отладки</string>
+    <string name="debug_clear_logs_confirm">Очистить все журналы %1$d?</string>
+    <string name="debug_action_clear">Прозрачный</string>
+    <string name="debug_cleared_toast">Очищено</string>
+
+    <!-- Copy logs -->
+    <string name="debug_no_logs_to_copy">Нет журналов для копирования</string>
+    <string name="debug_logs_copied_toast">Скопированы %1$d журналы в буфер обмена.</string>
+
+    <!-- Export logs -->
+    <string name="debug_export_failed_no_logs">Не удалось выполнить экспорт: журналы отсутствуют или каталог не инициализирован.</string>
+    <string name="debug_export_failed_no_uri">Ошибка экспорта: невозможно получить URI файла.</string>
+    <string name="debug_share_log_chooser">Делитесь журналами отладки</string>
+
+    <!-- Top bar / titles -->
+    <string name="debug_screen_title">Журналы отладки</string>
+    <string name="debug_cd_resume_follow">Возобновить подписку</string>
+    <string name="debug_cd_pause_follow">Приостановить подписку</string>
+    <string name="debug_cd_crash_logs">Журналы сбоев</string>
+    <string name="debug_cd_analytics">Локальная аналитика</string>
+    <string name="debug_cd_db_integrity">Целостность базы данных</string>
+    <string name="debug_cd_clear">Прозрачный</string>
+    <string name="debug_cd_export">Экспорт</string>
+    <string name="debug_cd_copy">Копировать</string>
+
+    <!-- Log count -->
+    <string name="debug_log_count">%1$d всего записей</string>
+    <string name="debug_log_count_paused_suffix">· Подписка приостановлена</string>
+
+    <!-- Filter row -->
+    <string name="debug_level_label">Уровень</string>
+    <string name="debug_keyword_label">Ключевое слово</string>
+
+    <!-- Empty state -->
+    <string name="debug_empty_title">Нет журналов</string>
+    <string name="debug_empty_subtitle">Журналы вызовов Logger будут отображаться здесь в режиме реального времени.</string>
+
+    <!-- Crash log panel (CrashLogSheet) -->
+    <string name="debug_crash_log_title">Журналы сбоев</string>
+    <string name="debug_export_zip_and_share">Экспортируйте ZIP и поделитесь</string>
+    <string name="debug_loading_crash_logs">Загрузка журналов сбоев…</string>
+    <string name="debug_no_crash_logs">Нет журналов сбоев\n\nПриложение не аварийно завершилось, или журналы были автоматически очищены (сохраняются только последние 5).</string>
+    <string name="debug_crash_log_count">%1$d файлы (сначала самые новые, сохраняются только 5 последних)</string>
+    <string name="debug_cd_share_crash_log">Поделиться этим журналом</string>
+    <string name="debug_loading">Загрузка…</string>
+    <string name="debug_crash_preview_truncated">Отображаются только первые символы %1$d.</string>
+
+    <!-- Crash log sharing (non-Composable helpers, use context.getString) -->
+    <string name="debug_export_failed_no_crash_logs">Не удалось выполнить экспорт: журналы сбоев отсутствуют.</string>
+    <string name="debug_share_crash_zip_chooser">Поделиться журналом сбоев в формате ZIP</string>
+    <string name="debug_share_failed_no_uri">Ошибка общего доступа: невозможно получить URI файла.</string>
+    <string name="debug_share_crash_log_chooser">Поделиться журналом сбоев</string>
+
+    <!-- Local analytics panel (AnalyticsSheet) -->
+    <string name="debug_analytics_title">Локальная аналитика</string>
+    <string name="debug_loading_analytics">Загрузка аналитики…</string>
+    <string name="debug_analytics_load_failed">Невозможно прочитать данные аналитики</string>
+    <string name="debug_metric_dau_today">ДАУ сегодня</string>
+    <string name="debug_metric_mau_month">МАУ в этом месяце</string>
+    <string name="debug_metric_total_sessions">Всего сеансов</string>
+    <string name="debug_metric_total_messages">Всего сообщений</string>
+    <string name="debug_metric_launch_count">Запускает</string>
+    <string name="debug_metric_crash_count">Сбои</string>
+    <string name="debug_metric_crash_count_value">%1$d (%2$s)</string>
+    <string name="debug_status_first_chat">Первый чат завершен</string>
+    <string name="debug_status_memory_adopted">принята система памяти</string>
+    <string name="debug_status_last_active">Последняя активная дата</string>
+    <string name="debug_value_yes">Да</string>
+    <string name="debug_value_no">Нет</string>
+
+    <!-- Retention card -->
+    <string name="debug_retention_title">Удержание (с момента первого запуска)</string>
+    <string name="debug_retention_d1">День 1 (D1)</string>
+    <string name="debug_retention_d7">День 7 (D7)</string>
+    <string name="debug_retention_d30">День 30 (D30)</string>
+
+    <!-- Feature usage -->
+    <string name="debug_feature_usage_top">Топ-10 используемых функций</string>
+    <string name="debug_no_feature_usage">Нет записей об использовании функций</string>
+
+    <!-- Database integrity panel (DbIntegritySheet) -->
+    <string name="debug_db_integrity_title">Целостность базы данных</string>
+    <string name="debug_loading_db_integrity">Загрузка последней контрольной записи…</string>
+    <string name="debug_db_status_ok">База данных в порядке</string>
+    <string name="debug_db_status_error">Ошибка базы данных</string>
+    <string name="debug_db_size_label">Размер БД: %1$s</string>
+    <string name="debug_db_check_time_label">Время проверки: %1$s</string>
+    <string name="debug_no_details">(Нет подробностей)</string>
+    <string name="debug_db_error_advice">Предложение: восстановите последнюю автоматическую резервную копию из «Настройки → Резервное копирование &amp; Восстановление» или экспортируйте важные разговоры и переустановите приложение.</string>
+    <string name="debug_integrity_check_passed">Проверка целостности пройдена</string>
+    <string name="debug_integrity_check_failed">Проверка целостности не удалась, просмотрите подробности</string>
+    <string name="debug_checking">Проверка…</string>
+    <string name="debug_check_now">Проверьте сейчас</string>
+    <string name="debug_no_check_record">Проверочной записи пока нет\n\nНажмите кнопку ниже, чтобы запустить проверку целостности прямо сейчас.</string>
+</resources>

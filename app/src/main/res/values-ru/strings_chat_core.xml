@@ -1,0 +1,345 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== ChatScreen ===== -->
+    <!-- Top bar -->
+    <string name="chat_session_cd">Текущий чат: %1$s, нажмите, чтобы переключиться.</string>
+    <string name="chat_model_not_configured">Не настроено</string>
+    <string name="chat_model_cd">Текущая модель: %1$s, нажмите, чтобы переключиться.</string>
+    <string name="chat_context_usage_cd">Использование контекста %1$s%%, всего токенов %2$d</string>
+    <string name="chat_context_tokens_only_cd">Количество токенов контекста %1$d, у модели нет окна контекста</string>
+    <string name="chat_context_no_window_detail">%1$d токены (модель не имеет контекстного окна)</string>
+    <string name="chat_assistant_model_badge">Модель: %1$s</string>
+    <string name="chat_update_compress_cd">Обновить &amp; Сжать</string>
+    <string name="chat_scroll_to_bottom_cd">Прокрутить вниз</string>
+    <string name="chat_export_cd">Экспортировать чат</string>
+    <string name="chat_companion_days_zero">Только сегодня встретились</string>
+    <string name="chat_companion_days">Вместе %1$d дней</string>
+    <string name="chat_date_separator_today">Сегодня %1$s</string>
+    <string name="chat_thinking">Думая…</string>
+
+    <!-- Errors and permissions -->
+    <string name="chat_err_mic_permission">Для голосового ввода требуется разрешение микрофона</string>
+    <string name="chat_err_open_file_picker">Невозможно открыть средство выбора файлов: %1$s</string>
+    <string name="chat_err_open_image_picker">Невозможно открыть средство выбора изображений: %1$s</string>
+    <string name="chat_err_no_speech_service">Служба распознавания речи недоступна.</string>
+    <string name="chat_err_start_speech">Невозможно запустить распознавание речи: %1$s</string>
+    <string name="chat_error_cd">Ошибка: %1$s, повторите попытку или закройте</string>
+    <string name="chat_retry">Повторить попытку</string>
+
+    <!-- Share -->
+    <string name="chat_share_subject">разговор музы</string>
+    <string name="chat_share_chooser_title">Поделиться чатом</string>
+
+    <!-- Copy toast -->
+    <string name="chat_copied_toast">Скопировано</string>
+
+    <!-- Prompt templates -->
+    <string name="chat_prompt_templates_title">Шаблоны подсказок</string>
+
+    <!-- Knowledge base -->
+    <string name="chat_knowledge_dialog_title">Справочная база знаний</string>
+    <string name="chat_knowledge_empty">База знаний пуста.</string>
+    <string name="chat_knowledge_doc_meta">%1$s · %2$d символы</string>
+
+    <!-- Session switch -->
+    <string name="chat_switch_session_title">Переключить чат</string>
+    <string name="chat_no_sessions">Чатов пока нет</string>
+    <string name="chat_new_session">Новый чат</string>
+
+    <!-- v1.136 T1: Switch assistant within chat -->
+    <string name="chat_switch_assistant_title">Помощник по переключению</string>
+    <string name="chat_switch_assistant_empty">Нет доступных помощников</string>
+    <string name="chat_switch_assistant_current">Текущий</string>
+    <string name="chat_switch_assistant_applied">Переключено на %1$s</string>
+    <string name="chat_switch_assistant_long_press_hint">Нажмите и удерживайте заголовок, чтобы переключить помощника.</string>
+
+    <!-- Delegate to assistant -->
+    <string name="chat_delegate_title">Делегировать помощнику</string>
+    <string name="chat_delegate_empty">Нет помощников или команд.</string>
+    <string name="chat_delegate_assistants">Доступные помощники</string>
+    <string name="chat_delegate_unnamed_assistant">Безымянный помощник</string>
+    <string name="chat_delegate_assistant_prompt_input">Пожалуйста, делегируйте полномочия %1$s: %2$s</string>
+    <string name="chat_delegate_assistant_prompt_message">Пожалуйста, делегируйте вышеуказанный контент %1$s:</string>
+    <string name="chat_delegate_no_text">В этом сообщении нет текстового содержимого, которое можно было бы делегировать.</string>
+    <string name="chat_delegate_teams">Совместные команды</string>
+    <string name="chat_delegate_unnamed_team">Безымянная команда</string>
+    <string name="chat_delegate_team_prompt_input">Пожалуйста, обращайтесь с командой %1$s: %2$s</string>
+    <string name="chat_delegate_team_prompt_message">Пожалуйста, обрабатывайте приведенный выше контент как команду %1$s:</string>
+
+    <!-- Empty state guide -->
+    <string name="chat_avatar_assistant_cd">Аватар помощника</string>
+    <string name="chat_avatar_muse_cd">Значок музы</string>
+    <string name="chat_empty_guide_title">О чем бы вы хотели поговорить сегодня?</string>
+    <string name="chat_suggested_prompt_report">Напишите еженедельный отчет</string>
+    <string name="chat_suggested_prompt_summary">Подвести итоги сегодняшней работы</string>
+    <string name="chat_suggested_prompt_explain">Объясните это понятие</string>
+    <string name="chat_suggested_prompt_ideas">Подкиньте мне несколько креативных идей</string>
+
+    <!-- Image generation placeholder -->
+    <string name="chat_image_generating">Создание изображения…</string>
+
+    <!-- ===== MessageBubble ===== -->
+    <!-- MOOD / Reasoning / Reflection collapsible blocks -->
+    <string name="chat_mood_collapse_cd">Свернуть НАСТРОЕНИЕ</string>
+    <string name="chat_mood_expand_cd">Развернуть НАСТРОЕНИЕ</string>
+    <string name="chat_reasoning_title">Рассуждение</string>
+    <string name="chat_reasoning_collapse_cd">Свернуть рассуждения</string>
+    <string name="chat_reasoning_expand_cd">Развернуть рассуждения</string>
+    <string name="chat_reflection_title">Отражение</string>
+    <string name="chat_reflection_collapse_cd">Свернуть отражение</string>
+    <string name="chat_reflection_expand_cd">Развернуть отражение</string>
+
+    <!-- Images -->
+    <string name="chat_user_image_cd">Изображение пользователя</string>
+    <string name="chat_generated_image_cd">Сгенерированное изображение</string>
+    <string name="chat_save_image_cd">Сохранить изображение</string>
+    <string name="chat_image_saved_toast">Сохранено в галерее: %1$s</string>
+    <string name="chat_image_save_failed_toast">Не удалось сохранить: %1$s</string>
+    <string name="chat_image_page_cd">Изображение %1$d / %2$d</string>
+
+    <!-- Quick buttons and long-press menu -->
+    <string name="chat_regenerate_cd">Регенерировать</string>
+    <string name="chat_regenerate_action">Регенерировать</string>
+    <string name="chat_translate_action">Переводить</string>
+    <string name="chat_translate_to_cd">Перевести на %1$s</string>
+    <string name="chat_delegate_action">Делегировать помощнику</string>
+    <string name="chat_tts_stop">Хватит читать</string>
+    <string name="chat_tts_play">Читать вслух</string>
+    <string name="chat_favorite_remove">Удалить избранное</string>
+    <string name="chat_favorite_add">Любимый</string>
+    <string name="chat_fork_action">Форк Чат</string>
+    <string name="chat_share_action">Поделиться чатом</string>
+    <string name="chat_agent_weak_tool_title">Вызов инструмента ухудшился</string>
+    <string name="chat_agent_hint_dismiss">Понятно</string>
+    <string name="chat_agent_session_locked">Сеанс заблокирован в режиме агента</string>
+    <string name="chat_delete_message">Удалить сообщение</string>
+    <string name="chat_delete_message_confirm">Это действие невозможно отменить.</string>
+    <string name="chat_translate_in_progress">Перевод…</string>
+
+    <!-- Loading and tool calls -->
+    <string name="chat_loading_thinking">мышление</string>
+    <string name="chat_tool_success_cd">Успех</string>
+    <string name="chat_tool_failed_cd">Неуспешный</string>
+    <string name="chat_tool_params">Параметры</string>
+    <string name="chat_tool_result">Результат</string>
+
+    <!-- ===== InputBar ===== -->
+    <!-- Top toggles -->
+    <string name="chat_web_search_cd_on">Веб-поиск (вкл.)</string>
+    <string name="chat_web_search_cd">Веб-поиск</string>
+    <string name="chat_deep_thinking_cd_on">Глубокое мышление (вкл.)</string>
+    <string name="chat_deep_thinking_cd">Глубокое мышление</string>
+    <!-- v1.94: Tool call dynamic capsule -->
+    <string name="chat_tool_calls_cd">История вызовов инструментов</string>
+    <string name="chat_tool_calls_title">История вызовов инструментов</string>
+    <string name="chat_tool_calls_empty">Никаких вызовов инструментов</string>
+
+    <!-- Resume interrupted tool calls banner -->
+    <string name="chat_pending_tools_banner_title">%1$d вызовы инструментов не были завершены в последний раз</string>
+    <string name="chat_pending_tools_banner_subtitle">Трансляция была прервана.</string>
+    <string name="chat_pending_tools_resume">Резюме</string>
+    <string name="chat_pending_tools_discard">Отказаться</string>
+    <string name="chat_pending_tools_cd">Ожидающий инструмент вызывает баннер восстановления</string>
+
+    <!-- Quick messages and images -->
+    <string name="chat_unnamed">Безымянный</string>
+    <string name="chat_pending_image_cd">Ожидающее изображение %1$d</string>
+    <string name="chat_remove_image_cd">Удалить изображение</string>
+    <!-- v1.136 T10: Pending document chip -->
+    <string name="chat_pending_document_cd">Ожидающий документ %1$s</string>
+    <string name="chat_remove_document_cd">Удалить документ</string>
+
+    <!-- Quote reply -->
+    <string name="chat_edit_reply_cd">Редактировать цитату</string>
+    <string name="chat_edit_reply_title">Редактировать содержание цитаты</string>
+
+    <!-- Tool menu -->
+    <string name="chat_tools_cd">Инструменты</string>
+    <string name="chat_tools_pick_content">Выберите контент для отправки</string>
+    <string name="chat_tool_camera">Камера</string>
+    <string name="chat_tool_photo">Фотографии</string>
+    <!-- Video input: tool menu card label -->
+    <string name="chat_tool_video">Видео</string>
+    <string name="chat_gallery_image_cd">Изображение галереи</string>
+    <string name="chat_gallery_cd">Галерея</string>
+    <string name="chat_authorize_gallery">Разрешить доступ к галерее</string>
+    <string name="chat_tool_attachment">Вложение</string>
+    <string name="chat_tool_knowledge">Справочная база знаний</string>
+    <string name="chat_tool_knowledge_subtitle">@упоминание документов</string>
+    <string name="chat_tool_prompt_template_subtitle">Выберите приглашение сцены из шаблонов</string>
+    <string name="chat_tool_skills">Навыки</string>
+    <string name="chat_tool_skills_subtitle">Управляйте и вызывайте активные навыки</string>
+    <string name="chat_tool_draw_mode">Режим рисования</string>
+    <string name="chat_tool_draw_mode_subtitle_on">Включено · Опишите изображение, которое нужно создать</string>
+    <string name="chat_tool_draw_mode_subtitle">Опишите изображение для создания</string>
+    <string name="chat_tool_delegate_subtitle">Выберите помощника, который обработает это сообщение.</string>
+    <string name="chat_tool_restart_context">Перезапустить контекст</string>
+    <string name="chat_tool_restart_context_subtitle">Очистить текущий чат и позволить агенту начать заново</string>
+
+    <!-- Input field and buttons -->
+    <string name="chat_placeholder_draw">Опишите изображение для создания…</string>
+    <string name="chat_placeholder_send">Ответ Музе…</string>
+    <string name="chat_expand_input_cd">Полноэкранное редактирование</string>
+    <string name="chat_expand_input_title">Редактировать сообщение</string>
+    <!-- v1.0.47 P5-3: Token count menu -->
+    <string name="chat_token_count_cd">Количество токенов</string>
+    <string name="chat_token_menu_title">Оценка токена</string>
+    <string name="chat_token_input">Текущий вход</string>
+    <string name="chat_token_history">История сообщений</string>
+    <string name="chat_token_context_window">Контекстное окно</string>
+    <string name="chat_token_remaining">Доступный</string>
+    <string name="chat_token_usage">Использование контекста</string>
+    <string name="chat_token_disclaimer">Приблизительная оценка на основе cl100k_base, только для справки.</string>
+    <!-- v1.0.47 P5-2: Paste long text as file -->
+    <string name="chat_paste_as_file_title">Обнаружен большой текст</string>
+    <string name="chat_paste_as_file_msg">Вставленное содержимое представляет собой символы %1$d.</string>
+    <string name="chat_paste_as_file_attach">Прикрепить как файл</string>
+    <string name="chat_paste_as_file_paste">Вставить напрямую</string>
+    <!-- Long-press input bar action menu -->
+    <string name="chat_input_action_fullscreen">Полноэкранный режим ввода</string>
+    <string name="chat_stop_generation_cd">Прекратить генерировать</string>
+    <string name="chat_recording_start_failed">Не удалось начать запись.</string>
+    <string name="chat_recognizing_cd">Признание</string>
+    <string name="chat_recording_cd">Запись</string>
+    <string name="chat_hold_to_record_cd">Удерживайте для записи</string>
+    <string name="chat_cancelled">Отменено</string>
+    <!-- v1.95: System speech recognition first-use tip -->
+    <string name="chat_asr_tip_title">Совет по распознаванию речи</string>
+    <string name="chat_asr_tip_message">Система распознавания речи каждый раз отображает системный диалог.</string>
+    <string name="chat_asr_tip_confirm">Продолжать</string>
+
+    <!-- Draw params panel -->
+    <string name="chat_image_too_large">Изображение слишком большое или нечитаемое</string>
+    <string name="chat_ref_image_load_failed">Не удалось загрузить эталонное изображение: %1$s</string>
+    <string name="chat_ref_image_compressed">Сжатое эталонное изображение: %1$s</string>
+    <string name="chat_ref_image_too_large_after_compress">Эталонное изображение все еще слишком велико после сжатия. Выберите изображение меньшего размера.</string>
+    <!-- Video input: a11y descriptions + error messages -->
+    <string name="chat_pending_video_cd">Ожидается прикрепление видео</string>
+    <string name="chat_remove_video_cd">Удалить видео</string>
+    <string name="chat_user_video_cd">Видео отправлено пользователем</string>
+    <string name="chat_video_open_failed">Невозможно открыть видео: %1$s</string>
+    <string name="chat_video_too_large">Видео слишком большое (более 50 МБ).</string>
+    <string name="chat_video_load_failed">Не удалось прочитать видео: %1$s</string>
+    <string name="chat_draw_params">Параметры рисования</string>
+    <string name="chat_ref_image_add">+ Справочное изображение</string>
+    <string name="chat_ref_image_not_supported">Эталонное изображение не поддерживается текущей моделью</string>
+    <string name="chat_ref_image_cd">Эталонное изображение</string>
+    <string name="chat_ref_image_clear_cd">Очистить эталонное изображение</string>
+    <string name="chat_quality_standard">Стандартный</string>
+    <string name="chat_quality_hd">HD</string>
+    <string name="chat_quality_high">Высокий</string>
+    <string name="chat_quality_medium">Середина</string>
+    <string name="chat_quality_low">Низкий</string>
+    <string name="chat_quality_auto">Авто</string>
+    <string name="chat_style_vivid">Яркий</string>
+    <string name="chat_style_natural">Естественный</string>
+
+    <!-- ===== ChatListScreen ===== -->
+    <!-- Big entry cards -->
+    <string name="chat_list_scheduled_tasks">Запланированные задачи</string>
+    <string name="chat_list_scheduled_subtitle">Автозапуск</string>
+    <string name="chat_list_quick_notes">Быстрые заметки</string>
+    <string name="chat_list_quick_notes_subtitle">Легкие нотки</string>
+    <string name="chat_list_quick_translate">Быстрый перевод</string>
+    <string name="chat_list_knowledge_base">Знание</string>
+
+    <!-- Filter cards -->
+    <string name="chat_list_filter_all">Все</string>
+    <string name="chat_list_filter_pinned">Закреплено</string>
+    <string name="chat_list_filter_archived">В архиве</string>
+
+    <!-- Empty states -->
+    <string name="chat_list_empty_all">Заданий пока нет</string>
+    <string name="chat_list_empty_pinned">Закрепленных задач пока нет.</string>
+    <string name="chat_list_empty_archived">Заархивированных задач пока нет</string>
+    <string name="chat_list_empty_all_sub">Начните записывать свои идеи и исследования</string>
+    <string name="chat_list_empty_pinned_sub">Нажмите и удерживайте чат, чтобы закрепить его</string>
+    <string name="chat_list_empty_archived_sub">Нажмите и удерживайте чат, чтобы заархивировать его.</string>
+
+    <!-- Section titles -->
+    <string name="chat_list_section_ungrouped">Разгруппировано</string>
+    <string name="chat_list_section_recent">Недавний</string>
+    <string name="chat_list_section_pinned">Закреплено</string>
+    <string name="chat_list_section_folders">Папки</string>
+    <string name="chat_list_section_knowledge">Знание</string>
+    <string name="chat_list_new_folder">Новая папка</string>
+
+    <!-- Task home -->
+    <string name="chat_list_input_hint">Введите любую идею…</string>
+    <string name="chat_list_send">Отправлять</string>
+    <string name="chat_list_no_recent_title">Чатов пока нет</string>
+    <string name="chat_list_no_recent_subtitle">Нажмите кнопку + ниже, чтобы начать новый чат.</string>
+    <string name="chat_list_knowledge_title">База знаний</string>
+    <string name="chat_list_knowledge_count">%1$d документы</string>
+    <string name="chat_list_knowledge_empty">Нажмите, чтобы добавить документы</string>
+    <string name="chat_list_quick_send">Новый &amp; Отправить</string>
+
+    <!-- Bottom button and dialogs -->
+    <string name="chat_list_new_task">Новая задача</string>
+    <string name="chat_list_new_task_card_subtitle">Фиксируйте идеи, создавайте задачи или начинайте чат</string>
+    <string name="chat_list_folder_name_placeholder">Имя папки</string>
+    <string name="chat_list_create">Создавать</string>
+
+    <!-- Session long-press menu -->
+    <string name="chat_list_pin">Приколоть</string>
+    <string name="chat_list_unpin">Открепить</string>
+    <string name="chat_list_archive">Архив</string>
+    <string name="chat_list_move_ungrouped">Перейти в раздел «Разгруппировать»</string>
+    <string name="chat_list_move_to">Перейти к: %1$s</string>
+    <string name="chat_list_move_to_cd">Перейти к %1$s</string>
+    <string name="chat_list_rename">Переименовать</string>
+    <string name="chat_list_unarchive">Разархивировать</string>
+
+    <!-- Session rename/delete dialogs -->
+    <string name="chat_list_rename_session_title">Переименовать чат</string>
+    <string name="chat_list_confirm">ХОРОШО</string>
+    <string name="chat_list_delete_session_title">Удалить чат</string>
+    <string name="chat_list_delete_session_confirm">Это действие невозможно отменить.</string>
+    <string name="chat_list_deleted_toast">Удалено</string>
+
+    <!-- Folder rename/delete dialogs -->
+    <string name="chat_list_delete_folder_title">Удалить папку</string>
+    <string name="chat_list_rename_folder_title">Переименовать папку</string>
+    <string name="chat_list_delete_folder_confirm">При удалении папки \"%1$s\" ее чаты будут переведены в раздел "Разгруппированы".</string>
+
+    <!-- v5: chat fork -->
+    <string name="chat_list_forked_from">Формируется из %1$s</string>
+    <string name="chat_list_child_count">+%1$d</string>
+
+    <!-- ===== v1.95: Sticker Library ===== -->
+    <!-- ChatSettingsPage sticker library section -->
+    <string name="settings_chat_sticker_section">Библиотека стикеров</string>
+    <string name="settings_sticker_enabled">Включить стикеры</string>
+    <string name="settings_sticker_enabled_subtitle">Разрешить помощнику отправлять стикеры в ответах</string>
+    <string name="settings_sticker_send_probability">Отправить вероятность</string>
+    <string name="settings_sticker_send_probability_subtitle">Вероятность того, что помощник отправит стикер за ответ</string>
+    <string name="settings_sticker_upload_zip">Импортировать ZIP-файл</string>
+    <string name="settings_sticker_upload_zip_subtitle">Выберите ZIP-файл;</string>
+    <string name="settings_sticker_imported">Импортированные стикеры %1$d</string>
+    <string name="settings_sticker_import_failed">Не удалось импортировать: %1$s</string>
+    <string name="settings_sticker_empty_title">Наклеек пока нет</string>
+    <string name="settings_sticker_empty_subtitle">Нажмите «Импортировать ZIP» выше, чтобы добавить ZIP-файл.</string>
+    <string name="settings_sticker_delete_confirm">Удалить эту наклейку?</string>
+    <string name="settings_sticker_category_all">Все</string>
+
+    <!-- SkillExecutor sticker tool feedback -->
+    <string name="skill_sticker_not_configured">Библиотека стикеров не настроена.</string>
+    <string name="skill_sticker_not_found">Наклейка с идентификатором %1$s не найдена</string>
+    <string name="skill_sticker_sent">Стикер отправлен: %1$s</string>
+    <string name="skill_sticker_list_empty">Библиотека стикеров пуста.</string>
+
+    <!-- v1.97: Slash commands -->
+    <string name="slash_command_hint">Введите / для быстрых команд.</string>
+    <string name="slash_command_new">/new Новая сессия</string>
+    <string name="slash_command_compact">/compact Сжать историю сеансов</string>
+    <string name="slash_command_reset">/reset Сбросить контекст</string>
+    <string name="slash_command_pin">/pin Переключить вывод</string>
+    <string name="slash_command_archive">/archive Архивация сеанса</string>
+    <string name="slash_command_unknown">Неизвестная команда: %1$s</string>
+    <string name="slash_command_executed">Выполнено: %1$s</string>
+    <string name="slash_command_new_done">Новый сеанс создан</string>
+    <string name="slash_command_compact_done">Сжатие истории сеансов...</string>
+    <string name="slash_command_reset_done">Сброс контекста</string>
+    <string name="slash_command_pin_done">Пин переключен</string>
+    <string name="slash_command_archive_done">Сессия заархивирована</string>
+</resources>

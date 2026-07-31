@@ -40,6 +40,7 @@ import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
+import io.zer0.muse.ui.theme.statusColors
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -156,7 +157,7 @@ fun ToolsSettingsPage(
                             toolName = tool.name,
                             toolDescription = tool.description,
                             riskLevel = tool.riskLevel,
-                            currentPolicy = policies[tool.name] ?: ToolApprovalPolicy.ASK_EVERY_TIME,
+                            currentPolicy = policies[tool.name] ?: ToolApprovalPolicy.ALWAYS_ALLOW,
                             onPolicyChange = { newPolicy ->
                                 scope.launch {
                                     toolConfigStore.setPolicy(tool.name, newPolicy)
@@ -200,24 +201,26 @@ fun ToolsSettingsPage(
             SectionLabel(stringResource(R.string.tools_settings_footer_section))
         }
         item(key = "footer") {
+            // v1.0.52: 语义状态色,深色模式自动切亮档
+            val statusColors = MaterialTheme.statusColors
             SettingsGroup {
                 PolicyExplanationRow(
                     icon = TablerIcons.Check,
-                    iconTint = Color(0xFF2E7D32),
+                    iconTint = statusColors.success,
                     title = stringResource(R.string.tools_settings_policy_always_allow),
                     description = stringResource(R.string.tools_settings_policy_always_allow_desc),
                 )
                 SettingsGroupDivider()
                 PolicyExplanationRow(
                     icon = TablerIcons.Help,
-                    iconTint = Color(0xFFEF6C00),
+                    iconTint = statusColors.warning,
                     title = stringResource(R.string.tools_settings_policy_ask),
                     description = stringResource(R.string.tools_settings_policy_ask_desc),
                 )
                 SettingsGroupDivider()
                 PolicyExplanationRow(
                     icon = TablerIcons.Ban,
-                    iconTint = Color(0xFFD32F2F),
+                    iconTint = statusColors.error,
                     title = stringResource(R.string.tools_settings_policy_always_deny),
                     description = stringResource(R.string.tools_settings_policy_always_deny_desc),
                 )
@@ -246,11 +249,12 @@ private fun ToolPolicyRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        // 风险等级图标
+        // 风险等级图标(v1.0.52: 语义状态色,深色模式自动切亮档)
+        val statusColors = MaterialTheme.statusColors
         val (icon, iconTint) = when (riskLevel) {
-            ToolRiskLevel.SAFE -> TablerIcons.ShieldCheck to Color(0xFF2E7D32)
-            ToolRiskLevel.NORMAL -> TablerIcons.Tools to Color(0xFFEF6C00)
-            ToolRiskLevel.HIGH -> TablerIcons.AlertTriangle to Color(0xFFD32F2F)
+            ToolRiskLevel.SAFE -> TablerIcons.ShieldCheck to statusColors.success
+            ToolRiskLevel.NORMAL -> TablerIcons.Tools to statusColors.warning
+            ToolRiskLevel.HIGH -> TablerIcons.AlertTriangle to statusColors.error
         }
         Icon(
             imageVector = icon,

@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== ErrorMessage i18n mapping (English) ===== -->
+    <!-- Mirrors io.zer0.common.ErrorMessage; key = error_<code>. -->
+    <!-- Keep in sync with values/strings_errors.xml and ErrorMessageMapper. -->
+
+    <!-- ── NetworkError ── -->
+    <string name="error_network_timeout">A conexão de rede expirou. Verifique sua rede e tente novamente</string>
+    <string name="error_network_no_connection">Nenhuma conexão de rede disponível, verifique suas configurações</string>
+    <string name="error_network_dns_failed">Falha na resolução de DNS, verifique sua rede ou proxy</string>
+
+    <!-- ── AuthError ── -->
+    <string name="error_auth_invalid_key">A chave de API é inválida. Verifique as configurações do serviço do modelo</string>
+    <string name="error_auth_expired">A autenticação expirou. Redefina a chave API</string>
+    <string name="error_auth_unauthorized">Não autorizado a acessar este recurso</string>
+
+    <!-- ── ApiError ── -->
+    <string name="error_api_rate_limit">Há muitas solicitações. Tente novamente em %1$d segundos</string>
+    <string name="error_api_rate_limit_nodelay">Muitas solicitações. Tente novamente mais tarde</string>
+    <string name="error_api_server_error">O serviço está temporariamente indisponível. Tente novamente mais tarde</string>
+    <string name="error_api_model_not_found">O modelo solicitado não está disponível, altere nas configurações</string>
+    <string name="error_api_context_length">A entrada excede o limite de comprimento do contexto do modelo. Reduza e tente novamente</string>
+
+    <!-- ── StorageError ── -->
+    <string name="error_storage_db_full">O banco de dados está cheio, limpe os dados e tente novamente</string>
+    <string name="error_storage_io_error">Falha na leitura/gravação do armazenamento local. Reinicie o aplicativo</string>
+    <string name="error_storage_migration_failed">Falha na atualização do banco de dados. Reinicie ou reinstale o aplicativo</string>
+
+    <!-- ── ValidationError ── -->
+    <string name="error_validation_empty_input">A entrada não pode estar vazia</string>
+    <string name="error_validation_invalid_format">O formato de entrada é inválido. Verifique e tente novamente</string>
+
+    <!-- ── GenericError ── -->
+    <string name="error_generic_unknown">Falha na operação, tente novamente mais tarde</string>
+
+    <!-- ===== ViewModel/Coordinator user-visible error i18n (v1.0.18) ===== -->
+
+    <!-- ── ImageGenCoordinator ── -->
+    <string name="err_image_gen_ocr_failed">Falha no OCR ou nenhum texto detectado na imagem</string>
+    <string name="err_image_gen_read_failed">Falha ao ler a imagem</string>
+    <string name="err_image_gen_max_images">Até 4 imagens são suportadas</string>
+    <string name="err_image_gen_process_failed">Falha no processamento de imagem: %1$s</string>
+    <string name="err_image_gen_video_no_frames">Falha no processamento de vídeo: não foi possível extrair quadros-chave</string>
+    <string name="err_image_gen_video_too_many">%1$d quadros-chave de vídeo mais %2$d imagens existentes excedem o limite de 4 imagens</string>
+    <string name="err_image_gen_video_failed">Falha no processamento de vídeo: %1$s</string>
+    <string name="err_image_gen_read_failed_msg">Falha ao ler a imagem: %1$s</string>
+    <string name="err_image_gen_no_provider">Nenhum provedor de geração de imagens configurado</string>
+    <string name="err_image_gen_no_model">Nenhum modelo de geração de imagem selecionado</string>
+    <string name="err_image_gen_model_no_output">O modelo selecionado não suporta saída de imagem</string>
+    <string name="err_image_gen_provider_unsupported">O Provedor atual (%1$s) não suporta geração de imagens.</string>
+    <string name="err_image_gen_failed">Falha na geração da imagem: %1$s</string>
+    <string name="err_image_gen_no_result">A geração de imagem não retornou nenhum resultado</string>
+    <string name="err_image_gen_save_failed">Falha ao salvar o resultado da geração de imagem: %1$s</string>
+    <string name="err_image_gen_no_image">Nenhuma imagem foi retornada;</string>
+
+    <!-- ── GroupChatViewModel ── -->
+    <string name="err_group_chat_delete_failed">Falha ao excluir bate-papo em grupo</string>
+    <string name="err_group_chat_delete_msg_failed">Falha ao excluir mensagem</string>
+    <string name="err_group_chat_operation_failed">Falha na operação</string>
+    <string name="err_group_chat_update_failed">Falha ao atualizar o bate-papo em grupo</string>
+
+    <!-- ── ChatMiscCoordinator ── -->
+    <string name="err_chat_misc_create_folder_failed">Falha ao criar pasta: %1$s</string>
+    <string name="err_chat_misc_rename_folder_failed">Falha ao renomear pasta: %1$s</string>
+    <string name="err_chat_misc_delete_folder_failed">Falha ao excluir pasta: %1$s</string>
+    <string name="err_chat_misc_move_session_failed">Falha ao mover sessão: %1$s</string>
+    <string name="err_chat_misc_toggle_pin_failed">Falha ao alternar o pino: %1$s</string>
+    <string name="err_chat_misc_favorite_failed">Falha ao adicionar como favorito: %1$s</string>
+    <string name="err_chat_misc_set_tag_failed">Falha ao definir grupo: %1$s</string>
+    <string name="err_chat_misc_delete_msg_failed">Falha ao excluir: %1$s</string>
+
+    <!-- ── ChatViewModel: error messages / state strings / Toast ── -->
+    <string name="err_chat_queue_full">A fila de envio está cheia. Tente novamente mais tarde</string>
+    <string name="err_chat_msg_save_failed">Falha ao salvar mensagem: %1$s</string>
+    <string name="err_chat_network_unresolvable">Não foi possível conectar-se ao servidor. Verifique sua rede ou endereço API</string>
+    <string name="err_chat_network_timeout">A conexão expirou. Tente novamente mais tarde</string>
+    <string name="err_chat_auth_invalid">A chave de API é inválida ou as permissões são insuficientes</string>
+    <string name="err_chat_rate_limited">Muitas solicitações. Tente novamente mais tarde</string>
+    <string name="err_chat_server_error">Erro no servidor, tente novamente mais tarde</string>
+    <string name="err_chat_stream_broken">Resposta da transmissão interrompida. Tente novamente</string>
+    <string name="err_chat_request_failed">Falha na solicitação: %1$s</string>
+    <string name="err_chat_compress_too_few">Poucas mensagens para compactar</string>
+    <string name="err_chat_compress_memory_failed">Falha na atualização da memória, apenas histórico compactado</string>
+    <string name="err_chat_compress_done">Comprimido: %1$d → %2$d mensagens</string>
+    <string name="err_chat_compress_no_need">Memória atualizada, sem necessidade de compactação de mensagens</string>
+    <string name="err_chat_compress_failed">Falha na compactação: %1$s</string>
+    <string name="err_chat_fetch_models_empty">O upstream não retornou nenhum modelo</string>
+    <string name="err_chat_fetch_models_failed">Falha na busca</string>
+    <string name="err_chat_fetch_models_no_server">Não é possível conectar ao servidor</string>
+    <string name="err_chat_fetch_models_timeout">A conexão expirou</string>
+    <string name="err_chat_fetch_models_not_supported">Este provedor não oferece suporte ao endpoint /models</string>
+    <string name="err_chat_fetch_models_failed_msg">Falha na busca: %1$s</string>
+    <string name="err_chat_model_switched_toast">Modelo trocado;</string>
+    <string name="err_chat_fork_failed">Falha ao bifurcar conversa: %1$s</string>
+    <string name="err_chat_context_restarted_toast">Contexto reiniciado</string>
+    <string name="err_chat_translate_empty">O resultado da tradução está vazio</string>
+    <string name="err_chat_translate_failed">Falha na tradução: %1$s</string>
+    <string name="err_chat_translate_prefix">Tradução (%1$s):\n\n</string>
+    <string name="err_chat_rag_failed">Falha na recuperação da base de conhecimento: %1$s</string>
+    <string name="err_chat_vision_fallback">A assistência de visão falhou, um prompt de fallback foi injetado (ver registros)</string>
+    <string name="err_chat_reply_save_failed">Falha ao salvar a resposta: %1$s</string>
+    <string name="err_chat_unknown">Erro desconhecido</string>
+    <string name="err_chat_ref_save_failed">Falha ao salvar a mensagem citada: %1$s</string>
+    <string name="err_chat_reply_generated">Resposta gerada</string>
+    <string name="err_chat_resume_busy">Geração em andamento, interrompa-a antes de retomar chamadas de ferramenta inacabadas</string>
+    <string name="err_chat_resume_read_failed">Falha ao ler chamadas de ferramenta inacabadas: %1$s</string>
+    <string name="err_chat_tool_result_save_failed">Falha ao salvar o resultado da ferramenta: %1$s</string>
+    <string name="err_chat_assistant_save_failed">Falha ao salvar assistente: %1$s</string>
+    <string name="err_chat_assistant_delete_failed">Falha ao excluir assistente: %1$s</string>
+    <string name="err_chat_voice_no_asr">O modo de conversação por voz requer primeiro a configuração de uma API ASR nas configurações</string>
+    <string name="err_chat_tool_timeout">[Timeout] A ferramenta %1$s não respondeu em %2$d segundos, encerrada</string>
+    <string name="err_chat_tool_result_truncated">…(Resultado truncado; use ferramentas paginadas ou com escopo limitado para o resultado completo)</string>
+
+    <!-- ── ChatViewModel: tool execution progress text (updateAssistant content, user-visible) ── -->
+    <string name="err_chat_img_generating">Gerando imagem…</string>
+    <string name="err_chat_img_gen_failed_no_result">Falha na geração da imagem: nenhum resultado retornado</string>
+    <string name="err_chat_img_generated">Imagem gerada</string>
+    <string name="err_chat_img_cancelled">Geração de imagem cancelada</string>
+    <string name="err_chat_img_gen_failed">Falha na geração da imagem: %1$s</string>
+    <string name="err_chat_video_generating">Gerando vídeo, isso pode levar dezenas de segundos…</string>
+    <string name="err_chat_video_progress">Geração de vídeo em andamento, esperou %1$d segundos…</string>
+    <string name="err_chat_video_generated">Vídeo gerado</string>
+    <string name="err_chat_video_cancelled">Geração de vídeo cancelada</string>
+    <string name="err_chat_video_gen_failed">Falha na geração de vídeo: %1$s</string>
+    <string name="err_chat_qr_generated">Código QR gerado</string>
+</resources>
