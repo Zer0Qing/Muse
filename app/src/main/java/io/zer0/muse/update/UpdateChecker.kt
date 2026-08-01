@@ -178,7 +178,8 @@ class UpdateChecker(
         /** User-Agent(GitHub API 强制要求,否则 403)。 */
         private const val USER_AGENT = "muse-android"
         /** 默认 GitHub 仓库(owner/name)。 */
-        const val DEFAULT_REPO = "zer0/muse"
+        /** v1.0.55: 修正为实际仓库 Zer0Qing/Muse(原误写 zer0/muse,404 后一直显示已是最新)。 */
+        const val DEFAULT_REPO = "Zer0Qing/Muse"
 
         /**
          * 语义版本比较(支持 "v1.132" / "1.132" / "1.13.2" 等格式)。
