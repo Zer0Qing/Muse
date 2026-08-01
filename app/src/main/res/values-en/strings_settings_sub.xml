@@ -493,4 +493,6 @@
     <string name="settings_theme_custom_color_h">Hue</string>
     <string name="settings_theme_custom_color_s">Saturation</string>
     <string name="settings_theme_custom_color_l">Lightness</string>
+
+    <string name="settings_agent_bound_assistant_hint">This page is bound to the current assistant and follows when you switch</string>
 </resources>

@@ -323,7 +323,8 @@ class MuseAccessibilityService : AccessibilityService() {
         return current
     }
 
-    /** 将 [ScreenshotResult] 的 bitmap 保存到文件。 */
+    /** 将 [ScreenshotResult] 的 bitmap 保存到文件。ScreenshotResult 的 hardwareBuffer 是 API 30+。 */
+    @androidx.annotation.RequiresApi(android.os.Build.VERSION_CODES.R)
     private fun saveScreenshot(screenshot: ScreenshotResult, path: String, format: String): Boolean {
         val hardwareBuffer = screenshot.hardwareBuffer ?: return false
         val bitmap = Bitmap.wrapHardwareBuffer(hardwareBuffer, null) ?: run {

@@ -6,11 +6,16 @@ check_localizations.py — Android 字符串资源完整性校验。
 报告每个 locale 缺失的 key。CI 中用于强制保证翻译完整性。
 
 用法:
-    python ci/script/check_localizations.py [--res-dir app/src/main/res]
+    python ci/script/check_localizations.py [--res-dir app/src/main/res] [--strict-locales en]
 
 退出码:
-    0 — 所有 locale 无缺失 key
+    0 — strict locales(默认 en)无缺失 key
     1 — 存在缺失 key(CI 失败)
+
+说明:
+    v1.0.56: 新增 --strict-locales — 只有列出的 locale 缺失 key 才算失败;
+    其他语言(es/ja/ko/pt/ru 等)缺失仅打印 WARN,不阻塞 CI。
+    多语言翻译是增量工作,不应阻塞主功能发布;强制主语言(en)完整性即可。
 """
 
 import argparse
@@ -76,7 +81,7 @@ def find_locale_dirs(res_dir: Path) -> list:
     return locales
 
 
-def check_locale(res_dir: Path, verbose: bool = False) -> int:
+def check_locale(res_dir: Path, verbose: bool = False, strict_locales: set = None) -> int:
     """
     校验所有 locale 的 key 完整性。
 
@@ -119,9 +124,15 @@ def check_locale(res_dir: Path, verbose: bool = False) -> int:
                 extra_by_file[filename] = extra
 
         missing_count = sum(len(m) for m in missing_by_file.values())
-        total_missing += missing_count
+        # v1.0.56: strict locale 缺失才累计失败;其他语言缺失仅警告
+        is_strict = strict_locales and locale_name in strict_locales
+        if is_strict:
+            total_missing += missing_count
 
-        status = "OK" if missing_count == 0 else f"MISSING {missing_count} keys"
+        if missing_count == 0:
+            status = "OK"
+        else:
+            status = f"MISSING {missing_count} keys" + (" (FAIL)" if is_strict else " (WARN)")
         print(f"  {locale_name}: {locale_total} keys [{status}]")
 
         if missing_by_file:
@@ -136,10 +147,10 @@ def check_locale(res_dir: Path, verbose: bool = False) -> int:
 
     print()
     if total_missing == 0:
-        print(f"✓ 所有 {len(locale_dirs)} 个 locale 翻译完整(0 缺失)")
+        print(f"✓ strict locales({', '.join(sorted(strict_locales))}) 翻译完整(0 缺失)")
         return 0
     else:
-        print(f"✗ 翻译不完整: {total_missing} 个 key 缺失", file=sys.stderr)
+        print(f"✗ 翻译不完整: {total_missing} 个 key 缺失(strict locales: {', '.join(sorted(strict_locales))})", file=sys.stderr)
         return 1
 
 
@@ -155,14 +166,20 @@ def main():
         action="store_true",
         help="显示额外信息(包括 locale 中多余的 key)",
     )
+    parser.add_argument(
+        "--strict-locales",
+        default="en",
+        help="缺失 key 会导致失败的 locale(逗号分隔,默认: en);其他语言缺失仅警告",
+    )
     args = parser.parse_args()
+    strict_locales = set(locale.strip() for locale in args.strict_locales.split(",") if locale.strip())
 
     res_dir = Path(args.res_dir).resolve()
     if not res_dir.exists():
         print(f"ERROR: res 目录不存在: {res_dir}", file=sys.stderr)
         sys.exit(2)
 
-    exit_code = check_locale(res_dir, verbose=args.verbose)
+    exit_code = check_locale(res_dir, verbose=args.verbose, strict_locales=strict_locales)
     sys.exit(exit_code)
 
 

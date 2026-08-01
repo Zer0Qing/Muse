@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- v1.0.53: Markdown 封面工作流(与 values/strings_cover.xml 对应) -->
+    <string name="cover_applied">Cover applied</string>
+    <string name="cover_delete">Delete cover</string>
+    <string name="cover_delete_confirm">Delete this cover?</string>
+    <string name="cover_generate">Generate cover</string>
+    <string name="cover_generate_failed">Cover generation failed: %1$s</string>
+    <string name="cover_generate_no_provider">No image provider configured. Configure one under Settings &gt; Models &amp; Services and retry.</string>
+    <string name="cover_generating">Generating cover...</string>
+    <string name="cover_import">Import cover</string>
+    <string name="cover_import_failed">Cover import failed: %1$s</string>
+    <string name="cover_imported">Cover imported</string>
+    <string name="cover_pick">Use this cover</string>
+</resources>
