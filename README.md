@@ -309,15 +309,15 @@ Muse 由独立开发者维护，免费开源。如果你喜欢这个项目，欢
 **请作者喝咖啡**（微信 / 支付宝扫码）：
 
 <p align="center">
-  <img src="docs/support/wechat-pay.png" width="220" alt="微信收款码">
-  <img src="docs/support/alipay.jpg" width="220" alt="支付宝收款码">
+  <img src="art/support/wechat-pay.png" width="220" alt="微信收款码">
+  <img src="art/support/alipay.jpg" width="220" alt="支付宝收款码">
 </p>
 
 **联系作者交流**（欢迎加入 Muse 交流群）：
 
 <p align="center">
-  <img src="docs/support/wechat-group.jpg" width="220" alt="微信群二维码">
-  <img src="docs/support/qq-group.jpg" width="220" alt="QQ 群二维码">
+  <img src="art/support/wechat-group.jpg" width="220" alt="微信群二维码">
+  <img src="art/support/qq-group.jpg" width="220" alt="QQ 群二维码">
 </p>
 
 ---
