@@ -28,6 +28,7 @@ import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import io.zer0.muse.ui.common.form.MuseSlider
 import androidx.compose.material3.Surface
@@ -552,9 +553,9 @@ fun ChatSettingsPage(
             }
         }
 
-        // ── v1.95: 表情包库 ──
-        item { SectionLabel(stringResource(R.string.settings_chat_sticker_section)) }
-        item { StickerLibrarySection(settings = settings, scope = scope) }
+        // ── v1.95: 表情包库 — v1.0.54: 功能弃用,UI 全部关闭(数据保留,代码保留可恢复)──
+        // item { SectionLabel(stringResource(R.string.settings_chat_sticker_section)) }
+        // item { StickerLibrarySection(settings = settings, scope = scope) }
     }
 }
 
@@ -686,12 +687,24 @@ private fun StickerLibrarySection(
     }
 
     // 导入 zip launcher(SAF OpenDocument,限定 zip MIME)
+    // v1.0.54: 改用 importUri(自动识别 zip/图片) + 进度回调,老设备导入大包需要可见反馈
+    var importingSticker by remember { mutableStateOf(false) }
+    var stickerImportProgress by remember { mutableStateOf<Float?>(null) }
+    var stickerImportText by remember { mutableStateOf("") }
     val importLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
     ) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
+        importingSticker = true
+        stickerImportProgress = null
+        stickerImportText = ""
         scope.launch {
-            stickerRepo.importZip(uri)
+            stickerRepo.importUri(uri) { phase, done, total ->
+                stickerImportProgress = if (total != null && total > 0) {
+                    (done.toFloat() / total).coerceIn(0f, 1f)
+                } else null
+                stickerImportText = if (total != null && total > 0) "$phase $done/$total" else "$phase… $done 个文件"
+            }
                 .onSuccess { count ->
                     MuseToast.show(context.getString(R.string.settings_sticker_imported, count))
                     refreshTrigger++
@@ -699,6 +712,8 @@ private fun StickerLibrarySection(
                 .onError { msg, _ ->
                     MuseToast.show(context.getString(R.string.settings_sticker_import_failed, msg), 3500)
                 }
+            importingSticker = false
+            stickerImportProgress = null
         }
     }
 
@@ -739,7 +754,14 @@ private fun StickerLibrarySection(
                     LaunchedEffect(probDraft) {
                         if (probDraft.toInt() != probability) {
                             delay(400)
-                            scope.launch { settings.saveStickerSendProbability(probDraft.toInt()) }
+                            scope.launch {
+                                settings.saveStickerSendProbability(probDraft.toInt())
+                                // v1.0.53: 调概率即视为想发表情包 — 自动开启总开关,
+                                //   否则概率拉满但总开关默认 false 时工具永不暴露,模型不会发。
+                                if (probDraft.toInt() > 0 && !stickerEnabled) {
+                                    settings.saveStickerEnabled(true)
+                                }
+                            }
                         }
                     }
                     Row(
@@ -784,6 +806,22 @@ private fun StickerLibrarySection(
                     importLauncher.launch(arrayOf("application/zip", "application/x-zip-compressed"))
                 },
             ) { ChevronRight() }
+            // v1.0.54: 导入进度文本(进度条不随真实进度,用户反馈只保留文本)
+            if (importingSticker) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                ) {
+                    if (stickerImportText.isNotBlank()) {
+                        Text(
+                            text = stickerImportText,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
+            }
             // v1.112 (F1-F2): 批量删除 / 清空入口
             if (stickers.isNotEmpty()) {
                 SettingsGroupDivider()

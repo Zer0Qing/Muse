@@ -1116,14 +1116,14 @@ fun ChatScreen(
                     contentPadding = PaddingValues(bottom = MusePaddings.screen),
                 ) {
                     // v1.0.47 P6: Agent Mode 提示卡片 — 会话锁定/弱工具降级/Agent Mode 提示。
-                    // 仅在 Agent Mode 相关状态激活时显示,随消息列表滚动,避免与顶部悬浮 Banner 堆叠。
-                    val showAgentHint = state.isSessionLocked ||
+                    // v1.0.54: 去掉"Agent 模式已锁定会话"提示(用户反馈不需要),仅保留降级/提示。
+                    val showAgentHint =
                         !state.weakToolHint.isNullOrEmpty() ||
-                        !state.agentModeHint.isNullOrEmpty()
+                            !state.agentModeHint.isNullOrEmpty()
                     if (showAgentHint) {
                         item(key = "agent_mode_hint") {
                             AgentModeHintCard(
-                                isSessionLocked = state.isSessionLocked,
+                                isSessionLocked = false,
                                 weakToolHint = state.weakToolHint,
                                 agentModeHint = state.agentModeHint,
                                 onDismissWeakToolHint = viewModel::dismissWeakToolHint,
@@ -1946,7 +1946,13 @@ fun ChatScreen(
                                     } else null,
                                     modifier = Modifier.clickable {
                                         if (!isCurrent) {
-                                            viewModel.setSessionAssistant(assistant.id)
+                                            // v1.0.54: 切换助手分派 — Agent Tab 切对话房间(该助手历史恢复/新建),
+                                            //   任务 Tab 只换人(消息/历史绝不动)
+                                            if (state.isAgentMode) {
+                                                viewModel.switchAgentAssistant(assistant.id)
+                                            } else {
+                                                viewModel.setSessionAssistant(assistant.id)
+                                            }
                                             val name = assistant.name.takeIf { it.isNotBlank() } ?: unnamedAssistant
                                             MuseToast.show(
                                                 context.getString(R.string.chat_switch_assistant_applied, name)

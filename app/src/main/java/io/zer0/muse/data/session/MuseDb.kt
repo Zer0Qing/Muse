@@ -142,7 +142,7 @@ import io.zer0.common.Logger
         // v1.0.53 Phase 1: 子 agent 线程账本(持久化版,替代旧内存版 SubagentThreadStore)
         io.zer0.muse.data.subagent.SubagentThreadEntity::class,
     ],
-    version = 59,
+    version = 60,
     exportSchema = true,
 )
 @TypeConverters(QuickNoteConverters::class)
@@ -193,6 +193,9 @@ abstract class MuseDb : RoomDatabase() {
     companion object {
         @Volatile
         private var INSTANCE: MuseDb? = null
+
+        /** v1.0.53: FTS 兜底创建全局锁 — 多连接 onOpen 并发时串行化建表。 */
+        private val FTS_CREATE_LOCK = Any()
 
         /**
          * Phase 8.2: v1 → v2 迁移。
@@ -1752,6 +1755,16 @@ abstract class MuseDb : RoomDatabase() {
             }
         }
 
+    /**
+     * v1.0.53: MIGRATION_59_60 — assistants 表加 toolModelId 列(per-assistant 工具模型)。
+     * 工具调用轮次优先用助手自己的工具模型,未设置时回退全局。
+     */
+    val MIGRATION_59_60 = object : Migration(59, 60) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE assistants ADD COLUMN toolModelId TEXT NOT NULL DEFAULT ''")
+        }
+    }
+
     fun get(context: Context): MuseDb {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -1796,12 +1809,34 @@ abstract class MuseDb : RoomDatabase() {
                         MIGRATION_56_57,
                         MIGRATION_57_58,
                         MIGRATION_58_59,
+                        MIGRATION_59_60,
                     )
                     // 启用外键约束(artifacts 表的 ON DELETE CASCADE 依赖此设置)
                     // onOpen 不在 onCreate 事务内,可以执行此类命令;onCreate 内禁止 PRAGMA
                     .addCallback(object : RoomDatabase.Callback() {
                         override fun onOpen(db: SupportSQLiteDatabase) {
                             db.setForeignKeyConstraintsEnabled(true)
+                            // v1.0.53: 兜底创建 FTS4 虚拟表 — MIGRATION_38_39 只在旧库升级时执行,
+                            //   全新安装 Room 直接从 0 建最新 schema,而 FTS 表不在 entity 列表,
+                            //   导致新装用户 knowledge_chunks_fts 缺失、文档索引报 no such table。
+                            //   用全局锁串行化:Room 连接池多连接并发 onOpen 时,一个连接创建成功后,
+                            //   另一个连接的 CREATE IF NOT EXISTS 会因影子表已存在而 vtable constructor failed。
+                            //   探测用 PRAGMA table_info(对存在的虚拟表返回列,不存在返回空)。
+                            try {
+                                synchronized(FTS_CREATE_LOCK) {
+                                    val exists = db.query("PRAGMA table_info(knowledge_chunks_fts)")
+                                        .use { it.moveToFirst() }
+                                    if (!exists) {
+                                        db.execSQL(
+                                            "CREATE VIRTUAL TABLE IF NOT EXISTS knowledge_chunks_fts " +
+                                                "USING fts4(chunkId, docId, text_content)",
+                                        )
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                // 表大概率已存在且工作正常(FTS index consistent),此处失败仅记 D 避免误导
+                                io.zer0.common.Logger.d("MuseDb", "兜底创建 knowledge_chunks_fts 跳过(可能已由其他连接创建): ${e.message}")
+                            }
                             // v1.107: WAL 模式由 setJournalMode(WRITE_AHEAD_LOGGING) 启用,这里不重复设置
                             // v1.107: 被动 checkpoint,合并 WAL 日志到主数据库
                             //   注意: PRAGMA wal_checkpoint 返回结果集,必须用 query 而非 execSQL

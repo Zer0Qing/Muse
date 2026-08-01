@@ -731,6 +731,9 @@ class ChatViewModel(
     // v1.0.52 P2-3: AI 记忆自动保存(对话中实时提取实体/关系/合并/分类)
     private val memoryAutoSaveScheduler: io.zer0.memory.ai.MemoryAutoSaveScheduler? = null,
 ) : ViewModel(), ChatStateAccessor {
+    // v1.0.54: autoSave 去重状态(30 秒内同会话只跑一次,防堆积)
+    private var lastAutoSaveSessionId: String? = null
+    private var lastAutoSaveAt: Long = 0L
 
     companion object {
         /** v0.47: 工具调用超时阈值(2 分钟),超时则终止,避免阻塞流式输出。 */
@@ -2699,9 +2702,15 @@ class ChatViewModel(
             // 再在协程中预加载消息,最后一次性更新状态(消息+模式+权限),消除空列表闪屏。
             _state.update { it.copy(isSwitchingSession = true) }
             viewModelScope.launch {
-                // 恢复最近的 Agent 会话,没有则创建新的
-                val agentSession = sessionRepository.getLatestAgentSession()
-                val sessionId = agentSession?.id ?: sessionRepository.createAgentSession(currentAssistantId())
+                // v1.0.54: 按"默认 Agent 助手"偏好(设置页切换/Agent Tab 内切换时同步)恢复
+                //   该助手的 Agent 会话,没有则新建。替代原 getLatestAgentSession(全局最新),
+                //   使设置页切换真正生效。
+                val preferredAgentId = settings.proactiveMessageConfigFlow.first()
+                    .agentId.ifBlank { "default" }
+                val agentSession = sessionRepository
+                    .getRecentAgentByAssistant(preferredAgentId, 1).firstOrNull()
+                val sessionId = agentSession?.id
+                    ?: sessionRepository.createAgentSession(preferredAgentId)
                 // v1.x: 释放旧的任务会话引用 + 获取新的 Agent 会话引用
                 prevSessionId?.let { sessionManager.release(it) }
                 sessionManager.acquire(sessionId)
@@ -4184,7 +4193,11 @@ class ChatViewModel(
                             // v1.0.30: 某些模型把所有输出塞进 reasoningContent
                             // content 字段为空 → params.builder 零长度 → UI 只显示思考无正文。
                             // 兜底：reasoningBuilder 有内容但 builder 为空时，把思考复制为正文。
-                            if (params.builder.isEmpty() && params.reasoningBuilder.isNotEmpty()) {
+                            // v1.0.54: 工具轮(content 空 + 有 toolCalls)不复制 — 那是正常的工具调用轮,
+                            //   复制后思考文本会作为正文显示(send_sticker 选贴纸的推理被展示,极其出戏)。
+                            if (params.builder.isEmpty() && params.reasoningBuilder.isNotEmpty() &&
+                                toolCallAccumulator.isEmpty()
+                            ) {
                                 params.builder.append(params.reasoningBuilder.toString())
                             }
                             if (experiments.debugMode) {
@@ -4344,10 +4357,13 @@ class ChatViewModel(
                     return StreamRoundResult.Error(type, displayMsg, params.builder.toString(), params.reasoningBuilder.toString())
                 }
 
+                // v1.0.54: 先判断本轮是否为工具轮,再推 UI —
+                //   工具轮(有 toolCalls)的思考过程不显示(出戏),最终回复轮正常显示。
+                val hasToolCalls = toolCallAccumulator.isNotEmpty()
                 updateAssistant(
                     params.currentAssistantId,
                     unmaskPii(params.builder.toString()),
-                    unmaskPii(params.reasoningBuilder.toString()),
+                    if (hasToolCalls) null else unmaskPii(params.reasoningBuilder.toString()),
                     imageAccumulator.toList(),
                     isStreaming = false,
                 )
@@ -4356,13 +4372,13 @@ class ChatViewModel(
                 }
 
                 val finalizedAssistant = _state.value.messages.firstOrNull { it.id == params.currentAssistantId }
-                val hasToolCalls = toolCallAccumulator.isNotEmpty()
                 val assistantMessage = if (hasToolCalls) {
                     UIMessage(
                         id = params.currentAssistantId,
                         role = MessageRole.ASSISTANT,
                         content = finalizedAssistant?.content ?: unmaskPii(params.builder.toString()),
-                        reasoning = finalizedAssistant?.reasoning ?: unmaskPii(params.reasoningBuilder.toString()).ifBlank { null },
+                        // v1.0.54: 工具轮消息不保留 reasoning(思考过程对用户无价值,显示/落盘均不需要)
+                        reasoning = null,
                         mood = finalizedAssistant?.mood,
                         reflection = finalizedAssistant?.reflection,
                         imageBase64List = finalizedAssistant?.imageBase64List ?: emptyList(),
@@ -4943,6 +4959,13 @@ class ChatViewModel(
     private fun triggerMemoryAutoSaveIfNeeded() {
         val scheduler = memoryAutoSaveScheduler ?: return
         val sessionId = _state.value.currentSessionId ?: return
+        // v1.0.54: 30 秒内同会话去重 — 切 Tab/切会话/重启上下文会反复触发
+        //   notifySessionEndForCurrent,每次排队一个 autoSave;网络慢时堆积十几次,
+        //   用户感知"回复后一直不停下"(后台持续调用 completeText)。
+        val now = System.currentTimeMillis()
+        if (sessionId == lastAutoSaveSessionId && now - lastAutoSaveAt < 30_000L) return
+        lastAutoSaveSessionId = sessionId
+        lastAutoSaveAt = now
         val history = _state.value.messages
         if (history.size < 2) return
         val assistantId = _state.value.currentAssistant?.id ?: "default"
@@ -5262,6 +5285,77 @@ class ChatViewModel(
         taskCardCoordinator.retryFailedStep(taskCardId, stepId)
 
     // ── Phase 8.2: Assistant 多人格管理 ─────────────────────────────────────
+
+    /**
+     * v1.0.54: Agent Tab 切换助手 = 切换该助手的 Agent 对话房间。
+     *
+     * 设计约束(吸取 8-01 污染教训):
+     * - 仅 Agent 模式(isAgentMode=true)有效;任务 Tab 请用 [setSessionAssistant]
+     * - 只操作 agentSessionId,绝不碰 currentSessionId(任务会话完全隔离)
+     * - 不走 switchSession(绕开其缓存 put/get 与 currentSessionId 更新),
+     *   直接 loadMessagesPaged 查 DB,天然避免缓存键污染/空缓存自命中
+     * - 切换前停止全部后台生成(旧会话的 Agent Loop 不得继续跑)
+     */
+    fun switchAgentAssistant(assistantId: String) {
+        if (!_state.value.isAgentMode) return
+        val targetId = assistantId.ifBlank { "default" }
+        // 停止所有后台生成 + 脱离 UI 流式 + 停 TTS/ASR,与 switchSession 一致
+        chatGenerationManager.stop()
+        runCatching { io.zer0.muse.schedule.ChatGenerationService.stop(appContext) }
+        if (_state.value.isStreaming) detachStreaming()
+        stopTts()
+        disposeAsr()
+        notifySessionEndForCurrent()
+        viewModelScope.launch {
+            // 取 2 条并排除当前会话:命中历史房间则恢复,否则新建
+            val recent = sessionRepository.getRecentAgentByAssistant(targetId, 2)
+            val current = _state.value.agentSessionId
+            val target = recent.firstOrNull { it.id != current }
+            val sessionId = target?.id ?: sessionRepository.createAgentSession(assistantId = targetId)
+            if (target != null) {
+                io.zer0.common.Logger.i("ChatVM", "switchAgentAssistant: 命中历史房间 ${target.id}(assistant=$targetId)")
+            } else {
+                io.zer0.common.Logger.i("ChatVM", "switchAgentAssistant: 新建房间 $sessionId(assistant=$targetId)")
+            }
+            // v1.0.54: 同步"默认 Agent 助手"偏好 — 退出再进入 Agent Tab 时保持该助手
+            //   (setAgentMode(true) 按此偏好恢复房间),设置页入口看到的值也一致
+            runCatching {
+                val cfg = settings.proactiveMessageConfigFlow.first()
+                if (cfg.agentId != targetId) {
+                    settings.saveProactiveMessageConfig(cfg.copy(agentId = targetId))
+                }
+            }
+            // 切换会话引用计数(与 setAgentMode 一致)
+            _state.value.agentSessionId?.let { sessionManager.release(it) }
+            sessionManager.acquire(sessionId)
+            // 预加载消息(直接查 DB,不读缓存),一次性更新状态
+            val (messages, hasMore) = loadMessagesPaged(sessionId)
+            val permissionMode = sessionPermissionStore.getMode(sessionId)
+            val assistant = assistantRepository.getById(targetId)
+                ?: assistantRepository.getById("default")
+            _state.update {
+                it.copy(
+                    agentSessionId = sessionId,
+                    messages = messages,
+                    currentAssistant = assistant,
+                    errors = emptyList(),
+                    hasMoreHistory = hasMore,
+                    isLoadingMore = false,
+                    lastHistoryLoadCount = 0,
+                    isStreaming = false,
+                    taskCards = emptyMap(),
+                    toolCallHistory = emptyList(),
+                    agentPlans = emptyMap(),
+                    visionAssistedMessageIds = emptySet(),
+                    visionProgress = null,
+                    sessionPermissionMode = permissionMode,
+                    listFirstVisibleItemIndex = messages.lastIndex.coerceAtLeast(0),
+                    listFirstVisibleItemScrollOffset = 0,
+                )
+            }
+            refreshContextInfo()
+        }
+    }
 
     /**
      * 切换当前会话绑定的 Assistant。

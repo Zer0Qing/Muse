@@ -474,15 +474,22 @@ class ToolOrchestrator(
                     savePendingToolCalls(params.sessionId, toolCallList, host)
 
                     // 构建任务卡并切换到 EXECUTING
-                    val taskCardId = currentAssistantId.toString()
-                    val taskCard = TaskCardData.fromToolCalls(
-                        currentAssistantId,
-                        toolCallList.map { it.name to it.arguments },
-                    )
-                    accessor.update {
-                        it.copy(taskCards = it.taskCards + (taskCardId to taskCard))
-                    }
-                    taskCardCoordinator.updateTaskCardPhase(taskCardId, TaskCardPhase.EXECUTING)
+                    // v1.0.53: send_sticker 不纳入任务卡(表情包是趣味交互,不展示执行计划),
+                    //   全部调用均为静默工具时不建卡(taskCardId=null,后续对卡的操作内部判空跳过)。
+                    // v1.0.54: list_stickers 同样静默(列表情包是内部工作,用户无需看到)。
+                    val silentToolNames = setOf("send_sticker", "list_stickers")
+                    val taskCardToolCalls = toolCallList
+                        .map { it.name to it.arguments }
+                        .filter { it.first !in silentToolNames }
+                    val taskCardId: String? = if (taskCardToolCalls.isNotEmpty()) {
+                        val id = currentAssistantId.toString()
+                        val taskCard = TaskCardData.fromToolCalls(currentAssistantId, taskCardToolCalls)
+                        accessor.update {
+                            it.copy(taskCards = it.taskCards + (id to taskCard))
+                        }
+                        taskCardCoordinator.updateTaskCardPhase(id, TaskCardPhase.EXECUTING)
+                        id
+                    } else null
 
                     // 并行/串行执行工具调用
                     // v1.0.47 P6-2: 弱工具模型降级为串行执行,避免并行 tool_calls 导致格式错乱
@@ -522,7 +529,15 @@ class ToolOrchestrator(
 
                         val toolDisplay = UIMessage(
                             role = MessageRole.ASSISTANT,
-                            content = "调用工具 `${tc.name}`:\n参数: ${tc.arguments}\n结果: $finalToolResult",
+                            // v1.0.54: 工具调用展示统一为折叠卡片(ToolCallCard,与思考过程/mood 同构),
+                            //   消息本体不再拼"调用工具/参数/结果"文本。
+                            //   send_sticker 特例: content 只保留贴纸路径(MessageBubble.extractStickerPaths
+                            //   据此渲染图片),工具卡片静默(isSilentTool)。
+                            content = if (tc.name == "send_sticker") {
+                                extractStickerPaths(finalToolResult).joinToString("\n")
+                            } else {
+                                ""
+                            },
                             toolCallInfo = ToolCallInfo(
                                 toolName = tc.name,
                                 arguments = tc.arguments,
@@ -545,11 +560,16 @@ class ToolOrchestrator(
                             snapshot.currentSessionId == params.sessionId
                         }
                         if (isCurrentDisplayedSession) {
-                            accessor.update {
-                                it.copy(
-                                    messages = it.messages + toolDisplay,
-                                    toolCallHistory = it.toolCallHistory + record,
-                                )
+                            // v1.0.54: 静默工具(list_stickers)完全不推 UI 消息 — 内部工作无痕;
+                            //   send_sticker 推送 content=贴纸路径的消息(渲染图片,卡片静默);
+                            //   其余工具推送空 content + toolCallInfo(折叠卡片展示)。
+                            if (tc.name !in silentToolNames || tc.name == "send_sticker") {
+                                accessor.update {
+                                    it.copy(
+                                        messages = it.messages + toolDisplay,
+                                        toolCallHistory = it.toolCallHistory + record,
+                                    )
+                                }
                             }
                         } else {
                             Logger.d(
@@ -639,7 +659,7 @@ class ToolOrchestrator(
 
     private suspend fun executeSingleToolCall(
         params: ToolLoopParams,
-        taskCardId: String,
+        taskCardId: String?,
         tc: ToolCall,
         idx: Int,
         host: ToolLoopHost,
@@ -998,8 +1018,7 @@ class ToolOrchestrator(
  * 遍历目录下所有 .txt 文件,按 lastModified 判定是否过期,删除过期文件。
  * 失败的删除操作仅记日志,不影响其他文件清理。
  */
-fun cleanupOldToolOutputs(context: Context, retentionMs: Long = TOOL_OUTPUT_RETENTION_MS) {
-    val dir = File(context.filesDir, TOOL_OUTPUTS_DIR)
+fun cleanupOldToolOutputs(context: Context, retentionMs: Long = TOOL_OUTPUT_RETENTION_MS) {    val dir = File(context.filesDir, TOOL_OUTPUTS_DIR)
     if (!dir.exists() || !dir.isDirectory) return
     val cutoff = System.currentTimeMillis() - retentionMs
     var deleted = 0
@@ -1016,3 +1035,15 @@ fun cleanupOldToolOutputs(context: Context, retentionMs: Long = TOOL_OUTPUT_RETE
         Logger.i("ToolOrchestrator", "清理过期工具输出文件: 删除 $deleted 个")
     }
 }
+
+/**
+ * v1.0.54: 从文本中提取表情包绝对路径(与 MessageBubble.extractStickerPaths 同款正则)。
+ * send_sticker 的 toolDisplay content 只保留路径,供 MessageBubble 渲染贴纸图片。
+ */
+private val STICKER_PATH_PATTERN = Regex(
+    """(/[^\s\]]*?/stickers/[^\s\]]+\.(?:png|jpg|jpeg|gif|webp|bmp))""",
+    RegexOption.IGNORE_CASE,
+)
+
+private fun extractStickerPaths(text: String): List<String> =
+    STICKER_PATH_PATTERN.findAll(text).map { it.groupValues[1] }.distinct().toList()

@@ -249,6 +249,11 @@ class SystemPromptAssembler(
         val styleSection = buildStyleSection(chatPrefs)
         if (styleSection.isNotBlank()) sections.add(styleSection)
 
+        // v1.0.54: 表情包发送提示 — 概率 100% 时强制模型发贴纸(工具描述单独注入不够,
+        //   模型可能忽略工具描述;系统提示权重更高,模型必须遵循)
+        val stickerHint = buildStickerHintSection()
+        if (stickerHint.isNotBlank()) sections.add(stickerHint)
+
         // v1.0.51: 思考指令跟随 locale(zh 用中文思考,en 用英文思考)
         // v1.0.52: 根据语言设置决定思考语言,不强制覆盖用户用其他语言的提问
         val thinkingLang = if (locale == "zh") "中文" else "the user's language"
@@ -437,6 +442,11 @@ class SystemPromptAssembler(
         if (parts.isEmpty()) return ""
         return "输出风格约束\n${parts.joinToString("\n")}"
     }
+
+    /**
+     * v1.0.54: 表情包功能已弃用 — 系统提示不注入发送提示(UI 已关闭)。
+     */
+    private fun buildStickerHintSection(): String = ""
 
     /** 2. 当前时间 — 实时生成。 */
     private fun buildTimeSection(): String {
@@ -820,7 +830,7 @@ class SystemPromptAssembler(
         private val PLATFORM_DECL_FALLBACK = "平台声明:你运行在 Muse 应用内 — 一个 Android 端的 AI 助手应用。你拥有文件读写、联网搜索、设置闹钟、发送短信、打开应用、知识库检索、多 Agent 协作等能力。当用户问及 Muse 应用自身功能时,可以调用 knowledge_search 并传 include_internal=true 查询。"
 
         /** v1.0.51: 记忆使用规则 fallback(模板加载失败时使用)。 */
-        private val MEMORY_RULES_FALLBACK = "记忆使用规则(内部约束,不向用户展示):\n- 永远不要让用户感觉到记忆系统的存在。不要说\"根据你的长期记忆\"\"我记得你之前说过\"这类话。\n- 记忆可能过时或不准确,当前对话永远优先。信息冲突时以对话为准,不要用旧记忆纠正用户。\n- 自然地运用记忆中的信息,就像是你自己想起来的,而不是从数据库里查到的。"
+        private val MEMORY_RULES_FALLBACK = "记忆使用规则(内部约束,不向用户展示):\n- 永远不要让用户感觉到记忆系统的存在。不要说\"根据你的长期记忆\"\"我记得你之前说过\"这类话。\n- 思考链(reasoning/thinking 内部推理)中同样禁止出现\"根据记忆\"\"根据长期记忆\"\"根据用户画像\"\"我记得\"等来源标注——记忆中的信息要当作自己已有的知识,直接自然地使用,不标注出处。\n- 记忆可能过时或不准确,当前对话永远优先。信息冲突时以对话为准,不要用旧记忆纠正用户。\n- 自然地运用记忆中的信息,就像是你自己想起来的,而不是从数据库里查到的。"
 
         /** L-ASM7: pinned_memories.json 文件大小上限(1MB),超过则跳过注入。 */
         private const val PINNED_MAX_FILE_BYTES = 1L * 1024 * 1024

@@ -1947,14 +1947,33 @@ class SkillExecutor(
         val repo = stickerLibraryRepository
             ?: return context.getString(R.string.skill_sticker_not_configured)
         val category = args["category"]?.takeIf { it.isNotBlank() }
+        // v1.0.54: 无 category 参数时只返回分类概览(分类名 + 数量),
+        //   不再全量列出每个表情包 — 表情包多时全量列表可达数万字符,
+        //   被 Agent Loop 截断后模型看不到后面的分类,不敢调用 send_sticker。
+        if (category == null) {
+            val cats = repo.listCategories()
+            if (cats.isEmpty()) return context.getString(R.string.skill_sticker_list_empty)
+            val sb = StringBuilder()
+            sb.appendLine("共 ${cats.size} 个分类:")
+            cats.forEach { c ->
+                val cnt = repo.listStickers(c).size
+                sb.appendLine("[$c]( $cnt 个)")
+            }
+            sb.append("请调用 list_stickers 并传入 category 参数查看某个分类的具体表情包,然后调用 send_sticker 发送。")
+            return sb.toString()
+        }
         val items = repo.listStickers(category)
         if (items.isEmpty()) return context.getString(R.string.skill_sticker_list_empty)
         val sb = StringBuilder()
-        sb.appendLine("共 ${items.size} 个表情包${if (category != null) "(分类: $category)" else ""}:")
-        items.forEach { item ->
+        // v1.0.54: 分类列表限制展示前 20 个 — 分类内贴纸可能上百个,全量输出会被截断,
+        //   模型看不到完整列表就反复查 list_stickers,死循环不调 send_sticker。
+        val shown = items.take(20)
+        sb.appendLine("共 ${items.size} 个表情包(分类: $category),以下为前 ${shown.size} 个:")
+        shown.forEach { item ->
             sb.appendLine("[${item.category}] ${item.fileName} (id=${item.id})")
         }
-        return sb.toString().trimEnd()
+        sb.append("请从以上列表中选择一个合适的 id,立即调用 send_sticker 发送,不要重复查询列表。")
+        return sb.toString()
     }
 
     /**

@@ -494,4 +494,5 @@
     <string name="settings_media_tts_cloud_speed">合成语速</string>
     <string name="settings_media_tts_response_format">音频格式</string>
     <string name="settings_media_tts_save_advanced">保存参数</string>
+    <string name="settings_agent_bound_assistant_hint">本页配置绑定当前助手,切换助手后自动跟随</string>
 </resources>

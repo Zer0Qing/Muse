@@ -76,6 +76,9 @@ data class AssistantEntity(
     @ColumnInfo(defaultValue = "[]") val modeInjectionIdsJson: String = "[]",
     @ColumnInfo(defaultValue = "[]") val skillIdsJson: String = "[]",
 
+    // v1.0.53: 工具模型(工具调用轮次使用的轻量模型,per-assistant;null 表示沿用全局 toolModelId)
+    @ColumnInfo(defaultValue = "") val toolModelId: String = "",
+
     // ── 请求 ──
     @ColumnInfo(defaultValue = "{}") val customHeadersJson: String = "{}",
     @ColumnInfo(defaultValue = "{}") val customBodiesJson: String = "{}",

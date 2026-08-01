@@ -33,6 +33,10 @@ interface SessionDao {
     @Query("SELECT * FROM sessions WHERE isAgentSession = 1 AND deletedAt IS NULL ORDER BY updatedAt DESC LIMIT 1")
     suspend fun getLatestAgentSession(): SessionEntity?
 
+    /** v1.0.54: 按助手查最近 Agent 会话(切换助手时恢复该助手的对话房间)。 */
+    @Query("SELECT * FROM sessions WHERE assistantId = :assistantId AND deletedAt IS NULL AND isAgentSession = 1 ORDER BY updatedAt DESC LIMIT :limit")
+    suspend fun getRecentAgentByAssistant(assistantId: String, limit: Int): List<SessionEntity>
+
     /** v0.45: 观察已归档会话。v1.67: 排序与主列表一致(pinned DESC, updatedAt DESC)。 */
     @Query("SELECT * FROM sessions WHERE archived = 1 AND deletedAt IS NULL ORDER BY pinned DESC, updatedAt DESC")
     fun observeArchived(): Flow<List<SessionEntity>>

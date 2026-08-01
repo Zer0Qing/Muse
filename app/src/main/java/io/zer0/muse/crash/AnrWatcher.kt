@@ -134,7 +134,14 @@ class AnrWatcher(
                     // 进入 ANR 状态(去重:同一阻塞期间只记录一次)
                     if (!anrInProgress) {
                         anrInProgress = true
-                        onAnrDetected(silenceMs)
+                        // v1.0.53: 后台不报 ANR — App 在后台时主线程被系统冻结/Doze,
+                        // 长时间不响应是正常行为,此前导致大量假 ANR(最高 741 秒)。
+                        // 只有应用在前台(RESUMED)时才写入 ANR 日志。
+                        if (isAppInForeground()) {
+                            onAnrDetected(silenceMs)
+                        } else {
+                            Logger.d(TAG, "主线程无响应 ${silenceMs}ms(应用在后台,不记 ANR)")
+                        }
                     }
                 } else {
                     // 主线程已恢复响应,重置标志位(下次阻塞可再次触发)
@@ -285,5 +292,21 @@ class AnrWatcher(
         private const val TIME_FMT = "yyyyMMdd-HHmmss"
         // 保留最近 ANR 日志份数(与 MuseCrashHandler.MAX_CRASH_LOGS 对齐)
         private const val MAX_ANR_LOGS = 5
+    }
+
+    /**
+     * v1.0.53: 判断应用是否在前台(RESUMED)。
+     *
+     * 后台冻结/Doze 时主线程长时间不响应是系统正常行为,
+     * 此前会误报大量 ANR(最高 741 秒),以此过滤。
+     * ProcessLifecycleOwner 的 state 是 @Volatile 线程安全读。
+     */
+    private fun isAppInForeground(): Boolean = try {
+        androidx.lifecycle.ProcessLifecycleOwner.get()
+            .lifecycle.currentState
+            .isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)
+    } catch (t: Throwable) {
+        // 拿不到状态时保守按前台处理(宁可记录,不漏真 ANR)
+        true
     }
 }

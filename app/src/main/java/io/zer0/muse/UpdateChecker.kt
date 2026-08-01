@@ -38,8 +38,8 @@ class UpdateChecker(
     private val client: OkHttpClient = defaultClient(),
 ) {
 
-    /** GitHub Releases API 端点(v1.119: 修正为真实仓库 5352124/Muse)。 */
-    private val apiUrl = "https://api.github.com/repos/5352124/Muse/releases/latest"
+    /** GitHub Releases API 端点(v1.0.53: 修正为实际仓库 Zer0Qing/Muse)。 */
+    private val apiUrl = "https://api.github.com/repos/Zer0Qing/Muse/releases/latest"
 
     /**
      * 检查更新结果。

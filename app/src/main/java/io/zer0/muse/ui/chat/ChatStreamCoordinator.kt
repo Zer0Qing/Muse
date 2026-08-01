@@ -260,6 +260,13 @@ class ChatStreamCoordinator(
         // v1.97: msg 参数用于切页后 _state.messages 已切换到新会话、原 assistantId 不在其中的场景。
         // 生成闭包用 builder 构造 UIMessage 传入,绕过 _state.messages 查找,确保中间落盘不中断。
         val current = msg ?: accessor.snapshot.messages.firstOrNull { it.id == assistantId } ?: return
+        // v1.0.54: 工具轮空占位(content/reasoning/图片全空)不落库 — 工具轮消息无用户可见内容,
+        //   落库后重启加载会残留空消息(用户看到"空的对话 UI")。
+        if (current.content.isBlank() && current.reasoning.isNullOrBlank() &&
+            current.imageBase64List.isEmpty() && current.imageUrls.isEmpty()
+        ) {
+            return
+        }
         // v1.80 (L-CVM4): 用 NonCancellable 包裹持久化,确保 ViewModel 销毁/协程取消时仍能落盘
         accessor.coroutineScope.launch {
             withContext(NonCancellable) {
@@ -739,16 +746,19 @@ class ChatStreamCoordinator(
             // 这样 LLM 只能在概率命中时看到工具,实现了用户设置的概率控制
             // v1.0.52: 情绪调制 — 检测最近对话情绪,情绪强烈时放大暴露概率(封顶 100%),
             // 中性对话保持用户设置的基线概率。
-            val stickerToolsEnabled = settings.stickerEnabledCache && run {
-                val base = settings.stickerSendProbabilityCache
-                val boost = stickerEmotionBoost()
-                val adjusted = (base * boost).toInt().coerceIn(0, 100)
-                kotlin.random.Random.nextInt(100) < adjusted
-            }
+            // v1.0.54: 表情包功能已弃用 — 工具永不暴露(UI 已关闭,数据保留)
+            val stickerToolsEnabled = false
             val skillToolDefs = enabledSkills.map { sk ->
+                // v1.0.53: send_sticker 动态注入概率引导 — 让模型真正按用户设置的概率发贴纸
+                //   (概率控制只决定"工具是否暴露",发不发由模型判断;显式告知概率后
+                //   模型会按此概率主动调用,100% 时每次合适回复都会尝试发)。
+                val stickerProbHint = if (sk.id == "send_sticker") {
+                    " 用户设置的表情包发送概率为 ${settings.stickerSendProbabilityCache}%(在设置中调整)。" +
+                        "概率 ≥ 50% 时请在合适的回复中主动调用本工具发送表情包;概率 = 100% 时每次回复都应尝试发送。"
+                } else ""
                 io.zer0.ai.core.ToolDefinition(
                     name = sk.id,
-                    description = sk.description,
+                    description = sk.description + stickerProbHint,
                     parametersJsonSchema = sk.parametersJson,
                 )
             }.filter { def ->
@@ -797,19 +807,36 @@ class ChatStreamCoordinator(
                 ?: allProviders.firstOrNull { it.models.isNotEmpty() }
 
             // v1.60-A: 工具模型路由 — 工具调用轮次优先使用用户配置的轻量 toolModel
-            val toolModelId = accessor.snapshot.toolModelId
+            // v1.0.53: per-assistant 优先 — 助手自己配了 toolModelId 时用它,否则回退全局 toolModelId
+            val assistantToolModelId = accessor.snapshot.currentAssistant?.toolModelId?.takeIf { it.isNotBlank() }
+            val toolModelId = assistantToolModelId ?: accessor.snapshot.toolModelId
+            // v1.0.53: 解析时主模型 provider 优先 — 同一模型 id 可能存在于多个 provider,
+            //   直接 flatMap.firstOrNull 会匹配到无关 provider(如 kimi-k2.6 匹配到 opencode 的),
+            //   导致 Agent 模式跨 provider 跳变。先找主模型所在 provider,找不到再全局兜底。
             val toolModel: Model? = toolModelId?.let { tid ->
-                allProviders.flatMap { it.models }.firstOrNull { it.id == tid }
+                val inMainProvider = resolvedModel?.let { rm ->
+                    allProviders.firstOrNull { it.id == rm.providerId }
+                        ?.models?.firstOrNull { it.id == tid }
+                }
+                inMainProvider ?: allProviders.flatMap { it.models }.firstOrNull { it.id == tid }
             }
             val toolProviderConfig = toolModel?.let { m ->
                 allProviders.firstOrNull { it.id == m.providerId }
             }
-            // 工具轮(tools 非空)且有 toolModel 时,用 toolModel 替代主模型
-            val rawEffectiveModel = if (tools.isNotEmpty() && toolModel != null) toolModel else resolvedModel
+            // v1.0.53: 工具模型可用性 — 助手显式配置的工具模型允许任意 provider;
+            //   回退全局的工具模型要求与主模型同 provider,避免 Agent 模式跨 provider 跳变
+            //   (主对话走 tokenrhythm、工具轮却跳 opencode 的割裂观感)。
+            val toolModelUsable = toolModel != null && (
+                assistantToolModelId != null ||
+                    resolvedModel == null ||
+                    toolModel.providerId == resolvedModel.providerId
+                )
+            // 工具轮(tools 非空)且有可用 toolModel 时,用 toolModel 替代主模型
+            val rawEffectiveModel = if (tools.isNotEmpty() && toolModelUsable) toolModel else resolvedModel
             // v1.135: 用 ModelRegistry 增强模型能力识别,解决 opencode-go/ 等前缀导致
             // supportsVision / supportsReasoning 误判的问题。ChatService 内部也会再增强一次。
             effectiveModel = rawEffectiveModel?.let { ModelRegistry.enhanceModel(it) }
-            effectiveProviderConfig = if (tools.isNotEmpty() && toolModel != null) toolProviderConfig else resolvedProviderConfig
+            effectiveProviderConfig = if (tools.isNotEmpty() && toolModelUsable) toolProviderConfig else resolvedProviderConfig
 
             // v1.136: 若当前模型不支持推理,将推理等级降级到 AUTO/OFF。
             // 避免向非推理模型发送 reasoning_effort 导致简单问题过度思考,或对不支持的模型返回 400。

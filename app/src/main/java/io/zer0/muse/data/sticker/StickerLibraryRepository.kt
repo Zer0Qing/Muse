@@ -87,22 +87,25 @@ class StickerLibraryRepository(private val appContext: Context) {
      *
      * @return 导入数量;失败时 resultOf 返回 Error
      */
-    suspend fun importUri(uri: Uri): Result<Int> = withContext(Dispatchers.IO) {
+    suspend fun importUri(
+        uri: Uri,
+        onProgress: ((phase: String, done: Int, total: Int?) -> Unit)? = null,
+    ): Result<Int> = withContext(Dispatchers.IO) {
         val displayName = queryDisplayName(uri)
         Logger.i("StickerLibraryRepository", "importUri: uri=$uri, displayName=$displayName")
         if (displayName.isNullOrBlank()) {
             Logger.w("StickerLibraryRepository", "importUri: 无法获取文件名,尝试按 ZIP 处理")
-            return@withContext importZip(uri)
+            return@withContext importZip(uri, onProgress)
         }
         val lowerName = displayName.lowercase()
         when {
             lowerName.endsWith(".zip") -> {
                 Logger.i("StickerLibraryRepository", "importUri: 识别为 ZIP 文件,调用 importZip")
-                importZip(uri)
+                importZip(uri, onProgress)
             }
             isImageFile(displayName) -> {
                 Logger.i("StickerLibraryRepository", "importUri: 识别为单张图片,调用 importImage")
-                importImage(uri, displayName)
+                importImage(uri, displayName, onProgress)
             }
             else -> {
                 Logger.w("StickerLibraryRepository", "importUri: 不支持的文件类型: $displayName")
@@ -118,7 +121,11 @@ class StickerLibraryRepository(private val appContext: Context) {
      * @param displayName 文件名(用于确定扩展名)
      * @return 导入数量(1 或 0);失败时 resultOf 返回 Error
      */
-    suspend fun importImage(uri: Uri, displayName: String): Result<Int> = withContext(Dispatchers.IO) {
+    suspend fun importImage(
+        uri: Uri,
+        displayName: String,
+        onProgress: ((phase: String, done: Int, total: Int?) -> Unit)? = null,
+    ): Result<Int> = withContext(Dispatchers.IO) {
         resultOf {
             Logger.i("StickerLibraryRepository", "importImage: 开始导入单张图片, uri=$uri, name=$displayName")
             val now = System.currentTimeMillis()
@@ -199,7 +206,10 @@ class StickerLibraryRepository(private val appContext: Context) {
      *
      * @return 导入数量;失败时 resultOf 返回 Error
      */
-    suspend fun importZip(uri: Uri): Result<Int> = withContext(Dispatchers.IO) {
+    suspend fun importZip(
+        uri: Uri,
+        onProgress: ((phase: String, done: Int, total: Int?) -> Unit)? = null,
+    ): Result<Int> = withContext(Dispatchers.IO) {
         resultOf {
             Logger.i("StickerLibraryRepository", "importZip: 开始导入, uri=$uri")
             val imported = mutableListOf<StickerItem>()
@@ -231,6 +241,10 @@ class StickerLibraryRepository(private val appContext: Context) {
                         var entryCount = 0
                         while (entry != null) {
                             entryCount++
+                            // v1.0.54: 解压阶段进度回调(总数未知,先计数)
+                            if (entryCount % 10 == 0) {
+                                onProgress?.invoke("正在解压", entryCount, null)
+                            }
                             if (!entry.isDirectory) {
                                 val rawName = entry.name
                                 // 跳过 macOS 系统目录与 .DS_Store 噪声
@@ -275,7 +289,11 @@ class StickerLibraryRepository(private val appContext: Context) {
                 // staging → 正式目录 + 写清单(锁内完成,失败抛异常走 finally 清理)
                 manifestMutex.withLock {
                     val current = readManifest().toMutableList()
-                    for (pe in pendingEntries) {
+                    for ((idx, pe) in pendingEntries.withIndex()) {
+                        // v1.0.54: 写入阶段进度(总数已知)
+                        if (idx % 10 == 0) {
+                            onProgress?.invoke("正在写入", idx, pendingEntries.size)
+                        }
                         // 文件名冲突时附加短 uuid 后缀,避免覆盖
                         val targetDir = File(rootDir, pe.category).apply { mkdirs() }
                         var finalName = pe.fileName

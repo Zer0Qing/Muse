@@ -30,7 +30,9 @@ class ChatTaskCardCoordinator(
 ) {
 
     /** 更新任务卡阶段(PLANNING / EXECUTING / DONE)。 */
-    fun updateTaskCardPhase(taskCardId: String, phase: TaskCardPhase) {
+    fun updateTaskCardPhase(taskCardId: String?, phase: TaskCardPhase) {
+        // v1.0.53: send_sticker-only 场景不建卡,可空 taskCardId 直接跳过
+        if (taskCardId == null) return
         accessor.update { state ->
             val card = state.taskCards[taskCardId] ?: return@update state
             state.copy(taskCards = state.taskCards + (taskCardId to card.copy(phase = phase)))
@@ -44,10 +46,12 @@ class ChatTaskCardCoordinator(
      * 高频 onProgress 回调下导致 Compose 重组风暴。新实现直接按 key 定位 + 按 index 更新。
      */
     fun updateTaskCardStep(
-        taskCardId: String,
+        taskCardId: String?,
         stepIndex: Int,
         transform: (TaskStep) -> TaskStep,
     ) {
+        // v1.0.53: send_sticker-only 场景不建卡,可空 taskCardId 直接跳过
+        if (taskCardId == null) return
         accessor.update { state ->
             val card = state.taskCards[taskCardId] ?: return@update state
             if (stepIndex !in card.steps.indices) return@update state

@@ -175,6 +175,10 @@ class SessionRepository(
     /** v1.28: 获取最近的 Agent 会话(用于自动恢复)。 */
     suspend fun getLatestAgentSession(): SessionEntity? = sessionDao.getLatestAgentSession()
 
+    /** v1.0.54: 按助手查最近 Agent 会话。 */
+    suspend fun getRecentAgentByAssistant(assistantId: String, limit: Int): List<SessionEntity> =
+        sessionDao.getRecentAgentByAssistant(assistantId, limit)
+
     /**
      * v1.58: 从源会话的某条消息处分叉,创建新会话并复制到该消息为止的全部历史。
      *

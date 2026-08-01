@@ -207,18 +207,12 @@ class OpenAIProvider(
          */
         fun emitDoneWithStreamGuard(finishReason: String?) {
             // v1.0.24: 诊断日志 — 确认 emitDoneWithStreamGuard 是否被调用及各变量值
-            // v1.0.47: 从 Logger.i 降为 Logger.d,减少正常路径的日志噪音
-            Logger.d(
-                "OpenAIProvider",
-                "stream-guard diagnose: emitDone called | finishReason=$finishReason | " +
-                    "contentChars=${contentCharsSent.get()} | reasoningChars=${reasoningCharsSent.get()} | anyDeltaSent=${anyDeltaSent.get()} | " +
-                    "aborted=${request.abortSignal.aborted} | useResponsesApi=$useResponsesApi | " +
-                    "firstDeltaTs=${firstDeltaTimestamp.get()}",
-            )
             // v1.0.21: 防止双重执行 — finishReason 和 [DONE] 各触发一次时,
             //   第二次直接发 Done 并 close,跳过已恢复的文本,避免重复内容。
             // v1.0.24: 若回退协程进行中,第二次调用直接 return,不 close,
             //   等回退协程完成后自行发 Done + close
+            // v1.0.53: 第二次调用(finishReason=null)是正常的双触发收尾,不打印 diagnose
+            //   (避免日志里出现误导性的 finishReason=null + aborted=true 组合)。
             if (!streamGuardDone.compareAndSet(false, true)) {
                 if (pendingFallback.get()) {
                     Logger.d("OpenAIProvider", "stream-guard: 回退进行中, 跳过 Done 事件")
@@ -230,6 +224,14 @@ class OpenAIProvider(
                 close()
                 return
             }
+            // v1.0.47: diagnose 移到首次执行分支(第二次调用不再打印,避免误导日志)
+            Logger.d(
+                "OpenAIProvider",
+                "stream-guard diagnose: emitDone called | finishReason=$finishReason | " +
+                    "contentChars=${contentCharsSent.get()} | reasoningChars=${reasoningCharsSent.get()} | anyDeltaSent=${anyDeltaSent.get()} | " +
+                    "aborted=${request.abortSignal.aborted} | useResponsesApi=$useResponsesApi | " +
+                    "firstDeltaTs=${firstDeltaTimestamp.get()}",
+            )
             // v1.0.52: 在恢复逻辑之前计算 fallback 条件 —
             //   如果 finishReason=tool_calls 且存在空 name tool_call,说明模型流式模式下
             //   没有正确输出工具名,需触发非流式回退(非流式模式下 tool_calls 通常完整返回)。
@@ -620,11 +622,17 @@ class OpenAIProvider(
                         return
                     }
                     if (request.abortSignal.aborted) {
-                        Logger.d(
-                            "OpenAIProvider",
-                            "streamChat aborted by user | contentChars=${contentCharsSent.get()} | " +
-                                "streamGuardDone=${streamGuardDone.get()} | anyDeltaSent=${anyDeltaSent.get()}",
-                        )
+                        // v1.0.53: 区分真实中止与收尾清理 — 流正常完成后 ChatViewModel 会 abort signal
+                        //   清理资源,此时若 onFailure 回调在飞,原日志会误导为"用户中止"。
+                        if (streamGuardDone.get()) {
+                            Logger.d("OpenAIProvider", "streamChat onFailure: 流已完成后的收尾回调(忽略,非用户中止)")
+                        } else {
+                            Logger.d(
+                                "OpenAIProvider",
+                                "streamChat aborted by user | contentChars=${contentCharsSent.get()} | " +
+                                    "streamGuardDone=${streamGuardDone.get()} | anyDeltaSent=${anyDeltaSent.get()}",
+                            )
+                        }
                         close()
                         return
                     }

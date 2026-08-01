@@ -354,7 +354,10 @@ internal fun MessageBubble(
         // v0.31: 受 chatPrefs.showReasoning 开关控制,默认展开状态由 chatPrefs.reasoningExpandedByDefault 决定
         // v1.45: 改为外部受控,切页/后台后保持折叠状态
         // v1.118: 折叠时标题显示思考内容摘要(而非静态"思考过程"四字),让用户快速了解思考了什么
-        if (chatPrefs.showReasoning) {
+        // v1.0.54: 工具轮消息(带 toolCalls/toolCallInfo)不显示思考块 — 工具调用的推理过程
+        //   对用户无价值且出戏(send_sticker 选贴纸的思考会被完整展示),兜底过滤。
+        val isToolRoundMessage = !msg.toolCalls.isNullOrEmpty() || msg.toolCallInfo != null
+        if (chatPrefs.showReasoning && !isToolRoundMessage) {
             msg.reasoning?.takeIf { it.isNotBlank() }?.let { reasoning ->
                 val reasoningExpanded = isReasoningExpanded ?: chatPrefs.reasoningExpandedByDefault
                 // v1.52: 仅"正在流式的那最后一条 AI 消息"强制展开,避免流式期间所有 AI 消息的 reasoning 块被锁死无法折叠
@@ -670,8 +673,18 @@ internal fun MessageBubble(
                 )
             }
         } else {
+            // v1.0.54: 空 assistant 消息(content 空 + 无图片/卡片/思考/反思/情绪)不渲染 —
+            //   工具轮占位消息 updateAssistant 不更新 toolCalls(恒为 null),无法按工具轮判断;
+            //   流式期间保留(ThinkingIndicator 是正常生成反馈),结束后/加载时空消息隐藏。
+            val isToolRoundPlaceholder = !isStreaming &&
+                body.isBlank() &&
+                msg.imageUrls.isEmpty() && msg.imageBase64List.isEmpty() &&
+                msg.toolCallInfo == null &&
+                msg.reasoning.isNullOrBlank() &&
+                msg.mood.isNullOrBlank() &&
+                msg.reflection.isNullOrBlank()
             // v0.48: AI 头像 — 消息分组时连续同角色消息压缩头像(showAvatar=false 时跳过)
-            if (showAvatar) {
+            if (showAvatar && !isToolRoundPlaceholder) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth(0.85f)
@@ -698,6 +711,7 @@ internal fun MessageBubble(
                 }
             }
             // AI 消息:白色卡片,左对齐,18dp 统一圆角,0.5dp 浅边框,无阴影
+            if (!isToolRoundPlaceholder) {
             Surface(
                 color = MaterialTheme.colorScheme.surface,
                 shape = MuseShapes.large,
@@ -756,6 +770,11 @@ internal fun MessageBubble(
             // v1.112 (C1): 任务清单与工具调用胶囊拆分布局
             // 展开态:TaskCard 占满宽度垂直堆叠(步骤列表需要空间),ToolCallCard 在下方
             val toolInfo = msg.toolCallInfo
+            // v1.0.53: 静默工具(send_sticker)— 表情包是趣味交互,不展示工具调用卡片,
+            //   避免"调用工具"的提示破坏贴纸体验。贴纸图片本身照常渲染。
+            // v1.0.54: list_stickers 同样静默(列表情包是内部工作)。
+            val isSilentTool = toolInfo?.toolName == "send_sticker" ||
+                toolInfo?.toolName == "list_stickers"
             if (taskCard != null && toolInfo != null) {
                 if (taskCard.isExpanded) {
                     // 展开态:TaskCard 占满宽度,ToolCallCard 在下方
@@ -765,13 +784,15 @@ internal fun MessageBubble(
                         onRetryStep = onRetryTaskCardStep,
                         delegationChain = delegationChain,
                     )
-                    ToolCallCard(
-                        toolName = toolInfo.toolName,
-                        arguments = toolInfo.arguments,
-                        result = toolInfo.result,
-                        isSuccess = toolInfo.isSuccess,
-                        modifier = Modifier.widthIn(max = 360.dp),
-                    )
+                    if (!isSilentTool) {
+                        ToolCallCard(
+                            toolName = toolInfo.toolName,
+                            arguments = toolInfo.arguments,
+                            result = toolInfo.result,
+                            isSuccess = toolInfo.isSuccess,
+                            modifier = Modifier.widthIn(max = 360.dp),
+                        )
+                    }
                 } else {
                     // 折叠态:TaskCard(左) + ToolCallCard(右) 横向排列
                     Row(
@@ -785,13 +806,15 @@ internal fun MessageBubble(
                             modifier = Modifier.weight(1f),
                             delegationChain = delegationChain,
                         )
-                        ToolCallCard(
-                            toolName = toolInfo.toolName,
-                            arguments = toolInfo.arguments,
-                            result = toolInfo.result,
-                            isSuccess = toolInfo.isSuccess,
-                            modifier = Modifier.widthIn(max = 360.dp),
-                        )
+                        if (!isSilentTool) {
+                            ToolCallCard(
+                                toolName = toolInfo.toolName,
+                                arguments = toolInfo.arguments,
+                                result = toolInfo.result,
+                                isSuccess = toolInfo.isSuccess,
+                                modifier = Modifier.widthIn(max = 360.dp),
+                            )
+                        }
                     }
                 }
             } else if (taskCard != null) {
@@ -802,7 +825,7 @@ internal fun MessageBubble(
                     onRetryStep = onRetryTaskCardStep,
                     delegationChain = delegationChain,
                 )
-            } else if (toolInfo != null) {
+            } else if (toolInfo != null && !isSilentTool) {
                 // 只有 ToolCallInfo,没有 TaskCard
                 ToolCallCard(
                     toolName = toolInfo.toolName,
@@ -834,9 +857,17 @@ internal fun MessageBubble(
                 }
             }
             // 文本内容(Markdown 渲染);图片消息可能 content 也含 markdown 图片语法,双渲染避免空泡
+            // v1.0.54: send_sticker 的 content 只有贴纸绝对路径(用于渲染图片),渲染文本时剔除,
+            //   避免"莫名其妙的路径"显示成文本。
+            val stickerPathTexts = if (msg.imageUrls.isEmpty() && msg.imageBase64List.isEmpty()) {
+                extractStickerPaths(msg.content)
+            } else emptyList()
+            val bodyWithoutStickerPaths = if (stickerPathTexts.isNotEmpty()) {
+                STICKER_PATH_PATTERN.replace(body, "").trim()
+            } else body
             val content = if (isCompressed) {
                 body.removePrefix("[COMPRESSED]").trim()
-            } else body.ifEmpty {
+            } else bodyWithoutStickerPaths.ifEmpty {
                 if (msg.imageUrls.isEmpty() && msg.imageBase64List.isEmpty()) " " else ""
             }
             // Markdown 标题提取:若内容以 # 标题开头,顶部显示粗体标题行,正文不再重复渲染标题
@@ -983,6 +1014,7 @@ internal fun MessageBubble(
                 PlanCard(plan = agentPlan)
             }
                 }   // closes AI bubble Surface Column
+            }
             }       // closes AI bubble Surface
         }
 

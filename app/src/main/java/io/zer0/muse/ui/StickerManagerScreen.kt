@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.EmojiEmotions
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -79,6 +80,9 @@ fun StickerManagerScreen(
     // 导入后自增,触发 LaunchedEffect 重新加载
     var refreshTrigger by remember { mutableStateOf(0) }
     var importing by remember { mutableStateOf(false) }
+    // v1.0.54: 导入进度(0f-1f,null 表示解压阶段总数未知,用不定态进度条)
+    var importProgress by remember { mutableStateOf<Float?>(null) }
+    var importProgressText by remember { mutableStateOf("") }
 
     // 导入 launcher — v1.0.53: 使用 */* MIME 类型,允许选择所有文件,
     // 由 StickerLibraryRepository.importUri 根据文件扩展名判断 ZIP 还是图片。
@@ -93,8 +97,22 @@ fun StickerManagerScreen(
         }
         Logger.i("StickerManager", "导入开始: uri=$uri")
         importing = true
+        // v1.0.54: 导入进度(老设备导入大包耗时明显,需要反馈)
+        importProgress = null
+        importProgressText = ""
         scope.launch {
-            repo.importUri(uri)
+            repo.importUri(uri) { phase, done, total ->
+                importProgress = if (total != null && total > 0) {
+                    (done.toFloat() / total).coerceIn(0f, 1f)
+                } else {
+                    null // 解压阶段总数未知,显示不定态进度
+                }
+                importProgressText = if (total != null && total > 0) {
+                    "$phase $done/$total"
+                } else {
+                    "$phase… $done 个文件"
+                }
+            }
                 .onSuccess { count ->
                     Logger.i("StickerManager", "导入成功: $count 张图片")
                     MuseToast.show(context.getString(R.string.settings_sticker_imported, count))
@@ -105,6 +123,7 @@ fun StickerManagerScreen(
                     MuseToast.show(context.getString(R.string.settings_sticker_import_failed, msg))
                 }
             importing = false
+            importProgress = null
         }
     }
 
@@ -152,6 +171,24 @@ fun StickerManagerScreen(
             )
         },
     ) { paddingValues ->
+        // v1.0.54: 导入进度文本(老设备导入大包耗时明显,需要可见反馈;进度条不随真实进度,
+        //   用户反馈只保留文本即可)
+        if (importing) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                if (importProgressText.isNotBlank()) {
+                    Text(
+                        text = importProgressText,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+        }
         if (stickers.isEmpty() && !importing) {
             // 空态
             Column(
