@@ -530,31 +530,4 @@
     <string name="quick_notes_share_title">导出快速记录</string>
     <string name="quick_notes_toggle_markdown">Markdown 模式</string>
 
-    <string name="chat_list_day_together">Day %d together</string>
-    <string name="chat_list_days_together">Together for %d days</string>
-    <string name="chat_list_just_met_today">Just met today</string>
-    <string name="onboarding_api_key_desc">Add your API key to unlock more models and capabilities</string>
-    <string name="onboarding_api_key_title">Want more power?</string>
-    <string name="onboarding_chat_style_0">Late-night talks</string>
-    <string name="onboarding_chat_style_1">Morning greetings</string>
-    <string name="onboarding_chat_style_2">Creative collisions</string>
-    <string name="onboarding_chat_style_3">Knowledge exploration</string>
-    <string name="onboarding_chat_with_muse">Chat with Muse</string>
-    <string name="onboarding_choose_partner">Partners we recommend for you</string>
-    <string name="onboarding_configure_now">Configure now</string>
-    <string name="onboarding_empty_chat_subtitle">Pick a partner and start your journey of inspiration</string>
-    <string name="onboarding_empty_chat_title">Ready for your first conversation?</string>
-    <string name="onboarding_hello">Hi, I'm Muse</string>
-    <string name="onboarding_maybe_later">Maybe later</string>
-    <string name="onboarding_meet_characters">Meet more characters</string>
-    <string name="onboarding_partner_style_0">Gentle listener</string>
-    <string name="onboarding_partner_style_1">Lively chatterbox</string>
-    <string name="onboarding_partner_style_2">Rational analyst</string>
-    <string name="onboarding_partner_style_3">Dreamer with a wild imagination</string>
-    <string name="onboarding_q_chat_style">Which chat style do you prefer?</string>
-    <string name="onboarding_q_partner_style">Which partner style do you prefer?</string>
-    <string name="onboarding_see_more">See more characters</string>
-    <string name="onboarding_selected">Selected</string>
-    <string name="onboarding_start_conversation">Start conversation</string>
-    <string name="onboarding_tagline">Your inspiration, gently unfolded</string>
 </resources>

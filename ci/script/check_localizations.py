@@ -28,7 +28,7 @@ from pathlib import Path
 STRING_NAME_RE = re.compile(r'<string\s+name="([^"]+)"', re.IGNORECASE)
 
 # 需要扫描的文件模式
-STRING_FILE_PATTERN = "strings_*.xml"
+STRING_FILE_PATTERN = "strings*.xml"
 # 默认 values 目录名(基准)
 DEFAULT_VALUES_DIR = "values"
 # 支持的 locale 目录前缀
@@ -111,19 +111,15 @@ def check_locale(res_dir: Path, verbose: bool = False, strict_locales: set = Non
         locale_keys = extract_all_keys(locale_dir)
 
         locale_total = sum(len(keys) for keys in locale_keys.values())
-        missing_by_file = {}
-        extra_by_file = {}
+        # v1.0.56: 改为跨文件 key 集合比对 — key 分布在不同 strings_*.xml 是合法的
+        #   (如 onboarding_* 中文在 strings_features.xml、英文在 strings.xml),
+        #   资源合并只看 key 唯一性;按文件比对会误报缺失并误导补翻译。
+        baseline_all = set().union(*baseline.values())
+        locale_all = set().union(*locale_keys.values())
+        missing_keys = baseline_all - locale_all
+        extra_keys = locale_all - baseline_all if verbose else set()
 
-        for filename, base_keys in baseline.items():
-            loc_keys = locale_keys.get(filename, set())
-            missing = base_keys - loc_keys
-            extra = loc_keys - base_keys
-            if missing:
-                missing_by_file[filename] = missing
-            if extra and verbose:
-                extra_by_file[filename] = extra
-
-        missing_count = sum(len(m) for m in missing_by_file.values())
+        missing_count = len(missing_keys)
         # v1.0.56: strict locale 缺失才累计失败;其他语言缺失仅警告
         is_strict = strict_locales and locale_name in strict_locales
         if is_strict:
@@ -135,15 +131,13 @@ def check_locale(res_dir: Path, verbose: bool = False, strict_locales: set = Non
             status = f"MISSING {missing_count} keys" + (" (FAIL)" if is_strict else " (WARN)")
         print(f"  {locale_name}: {locale_total} keys [{status}]")
 
-        if missing_by_file:
-            for filename, missing in sorted(missing_by_file.items()):
-                for key in sorted(missing):
-                    print(f"    MISSING: {filename} → {key}")
+        if missing_keys:
+            for key in sorted(missing_keys):
+                print(f"    MISSING: {key}")
 
-        if verbose and extra_by_file:
-            for filename, extra in sorted(extra_by_file.items()):
-                for key in sorted(extra):
-                    print(f"    EXTRA:   {filename} → {key}")
+        if verbose and extra_keys:
+            for key in sorted(extra_keys):
+                print(f"    EXTRA:   {key}")
 
     print()
     if total_missing == 0:
