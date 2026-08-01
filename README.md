@@ -24,8 +24,8 @@
   <img src="https://img.shields.io/badge/Android-8.0%2B%20(minSdk%2026)-brightgreen" alt="Min SDK">
   <img src="https://img.shields.io/badge/Kotlin-2.4-purple" alt="Kotlin">
   <img src="https://img.shields.io/badge/Compose-Material%203-ff69b4" alt="Compose">
-  <a href="https://github.com/5352124/Muse/actions/workflows/ci.yml"><img src="https://github.com/5352124/Muse/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://github.com/5352124/Muse/releases/latest"><img src="https://img.shields.io/github/v/release/5352124/Muse?include_prereleases" alt="Latest release"></a>
+  <a href="https://github.com/Zer0Qing/Muse/actions/workflows/ci.yml"><img src="https://github.com/Zer0Qing/Muse/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/Zer0Qing/Muse/releases/latest"><img src="https://img.shields.io/github/v/release/Zer0Qing/Muse?include_prereleases" alt="Latest release"></a>
   <a href="https://qm.qq.com/q/905451314"><img src="https://img.shields.io/badge/QQ群-905451314-blue" alt="QQ群"></a>
 </p>
 <p align="center">
@@ -264,7 +264,7 @@ Muse 每次回复前会生成一个 `mood` 块，这是 AI 的"内心独白"—�
 
 ## 快速开始
 
-> 想先试用？直接 [下载最新版 APK](https://github.com/5352124/Muse/releases/latest) 安装即可，无需自行构建。
+> 想先试用？直接 [下载最新版 APK](https://github.com/Zer0Qing/Muse/releases/latest) 安装即可，无需自行构建。
 
 ### 前置要求
 
@@ -274,7 +274,7 @@ Muse 每次回复前会生成一个 `mood` 块，这是 AI 的"内心独白"—�
 ### 构建安装（仅开发者）
 
 ```bash
-git clone https://github.com/5352124/Muse.git
+git clone https://github.com/Zer0Qing/Muse.git
 cd Muse
 
 # 调试构建
@@ -299,6 +299,26 @@ APK 输出路径：`app/build/outputs/apk/release/app-{abi}-release.apk`
 4. **配置供应商** —— 选择预置供应商并填入 API Key，支持测试连接
 5. **选择模型** —— 从拉取到的模型列表中选择默认模型
 6. **完成** —— 开始使用，从现在起 Muse 会记住一切
+
+---
+
+### 支持作者 · 联系交流
+
+Muse 由独立开发者维护，免费开源。如果你喜欢这个项目，欢迎请作者喝杯咖啡；有任何想法、建议或问题，欢迎加入交流群一起聊。
+
+**请作者喝咖啡**（微信 / 支付宝扫码）：
+
+<p align="center">
+  <img src="docs/support/wechat-pay.png" width="220" alt="微信收款码">
+  <img src="docs/support/alipay.jpg" width="220" alt="支付宝收款码">
+</p>
+
+**联系作者交流**（欢迎加入 Muse 交流群）：
+
+<p align="center">
+  <img src="docs/support/wechat-group.jpg" width="220" alt="微信群二维码">
+  <img src="docs/support/qq-group.jpg" width="220" alt="QQ 群二维码">
+</p>
 
 ---
 
