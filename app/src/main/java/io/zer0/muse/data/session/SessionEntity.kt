@@ -38,6 +38,7 @@ data class SessionEntity(
     /** v1.28: 是否为 Agent Tab 的会话(Agent Tab 日常聊天,不在任务列表显示)。 */
     @ColumnInfo(defaultValue = "0") val isAgentSession: Boolean = false,
     /** v1.107 冗余: 会话消息数(避免列表页 COUNT 全表扫描,Repository 双写维护)。 */
+    @ColumnInfo(defaultValue = "0") val isLocked: Boolean = false,
     @ColumnInfo(defaultValue = "0") val messageCount: Int = 0,
     /** v2.0: 软删除时间戳(null = 未删除)。 */
     @ColumnInfo(defaultValue = "NULL") val deletedAt: Long? = null,

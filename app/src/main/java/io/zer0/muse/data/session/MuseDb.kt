@@ -1997,6 +1997,7 @@ private fun ensureSessionColumns(db: androidx.sqlite.db.SupportSQLiteDatabase) {
         "folderId TEXT DEFAULT ''",
         "archived INTEGER NOT NULL DEFAULT 0",
         "isAgentSession INTEGER NOT NULL DEFAULT 0",
+        "isLocked INTEGER NOT NULL DEFAULT 0",
         "messageCount INTEGER NOT NULL DEFAULT 0",
         "deletedAt INTEGER DEFAULT NULL",
         "parentSessionId TEXT DEFAULT NULL",
