@@ -1778,11 +1778,7 @@ abstract class MuseDb : RoomDatabase() {
     /**
      * B5-03: MIGRATION_60_61 — messages 加 thinking_signature / thinking_encrypted_content。
      */
-    val MIGRATION_60_61 = object : Migration(60, 61) {
-        override fun migrate(db: SupportSQLiteDatabase) {
-            db.execSQL("ALTER TABLE messages ADD COLUMN thinkingSignature TEXT DEFAULT NULL")
-            db.execSQL("ALTER TABLE messages ADD COLUMN thinkingEncryptedContent TEXT DEFAULT NULL")
-        }
+    val MIGRATION_60_61 = object : Migration(60, 61) { override fun migrate(db: SupportSQLiteDatabase) { ensureMessageColumns(db) }
     }
     /**
      * B5-01: MIGRATION_61_62 — 新增 generation_checkpoints 表。
@@ -1807,35 +1803,22 @@ abstract class MuseDb : RoomDatabase() {
     /**
      * B6-03: MIGRATION_63_64 — messages 加 mood_skin 列(情绪皮肤标识)。
      */
-    val MIGRATION_63_64 = object : Migration(63, 64) {
-        override fun migrate(db: SupportSQLiteDatabase) {
-            db.execSQL("ALTER TABLE messages ADD COLUMN moodSkin TEXT DEFAULT NULL")
-        }
+    val MIGRATION_63_64 = object : Migration(63, 64) { override fun migrate(db: SupportSQLiteDatabase) { ensureMessageColumns(db) }
     }
     /**
      * B7-03/B7-05: MIGRATION_64_65 — sessions 加 lastReadMessageId / sortOrder。
      */
-    val MIGRATION_64_65 = object : Migration(64, 65) {
-        override fun migrate(db: SupportSQLiteDatabase) {
-            db.execSQL("ALTER TABLE sessions ADD COLUMN lastReadMessageId TEXT DEFAULT NULL")
-            db.execSQL("ALTER TABLE sessions ADD COLUMN sortOrder INTEGER NOT NULL DEFAULT 0")
-        }
+    val MIGRATION_64_65 = object : Migration(64, 65) { override fun migrate(db: SupportSQLiteDatabase) { ensureSessionColumns(db) }
     }
     /**
      * B7-03: MIGRATION_65_66 — sessions 加 lastReadCount,用于会话列表未读数徽标。
      */
-    val MIGRATION_65_66 = object : Migration(65, 66) {
-        override fun migrate(db: SupportSQLiteDatabase) {
-            db.execSQL("ALTER TABLE sessions ADD COLUMN lastReadCount INTEGER NOT NULL DEFAULT 0")
-        }
+    val MIGRATION_65_66 = object : Migration(65, 66) { override fun migrate(db: SupportSQLiteDatabase) { ensureSessionColumns(db) }
     }
     /**
      * B8-01: MIGRATION_66_67 — sessions 加 proactiveNextTriggerAt,支持会话级主动消息排期。
      */
-    val MIGRATION_66_67 = object : Migration(66, 67) {
-        override fun migrate(db: SupportSQLiteDatabase) {
-            db.execSQL("ALTER TABLE sessions ADD COLUMN proactiveNextTriggerAt INTEGER DEFAULT NULL")
-        }
+    val MIGRATION_66_67 = object : Migration(66, 67) { override fun migrate(db: SupportSQLiteDatabase) { ensureSessionColumns(db) }
     }
     /**
      * B8-06: MIGRATION_67_68 — 修复历史库 messages/sessions 缺列问题。
