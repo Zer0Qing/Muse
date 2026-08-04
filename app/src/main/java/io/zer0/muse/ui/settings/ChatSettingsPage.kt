@@ -31,6 +31,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import io.zer0.muse.ui.common.form.MuseSlider
+import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -60,6 +61,7 @@ import io.zer0.muse.data.sticker.StickerItem
 import io.zer0.muse.data.sticker.StickerLibraryRepository
 import io.zer0.muse.tools.SessionPermissionMode
 import io.zer0.muse.ui.common.media.FullScreenMediaViewer
+import io.zer0.muse.ui.ModelSwitchSheet
 import io.zer0.muse.ui.common.settings.ChevronRight
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
@@ -113,6 +115,13 @@ fun ChatSettingsPage(
     // v1.0.47 P5-3: Token 估算开关(默认关闭,实验性,避免 BPE 性能开销)
     val tokenEstimateEnabled by settings.tokenEstimateEnabledFlow
         .collectAsStateWithLifecycle(initialValue = false)
+    val richInputEnabled by settings.richInputEnabledFlow.collectAsStateWithLifecycle(initialValue = false)
+    val providers by settings.providersFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+    val activeProviderId by settings.activeProviderIdFlow.collectAsStateWithLifecycle(initialValue = null)
+    val customTitlePrompt by settings.customTitlePromptFlow.collectAsStateWithLifecycle(initialValue = null)
+    val pasteAsFileThreshold by settings.pasteAsFileThresholdFlow.collectAsStateWithLifecycle(initialValue = 2000)
+    var showTitlePromptDialog by remember { mutableStateOf(false) }
+    var titlePromptDraft by remember(customTitlePrompt) { mutableStateOf(customTitlePrompt.orEmpty()) }
     // v1.0.47 P5-2: 长文本粘贴转文件开关(默认开启)
     val pasteAsFileEnabled by settings.pasteAsFileEnabledFlow
         .collectAsStateWithLifecycle(initialValue = true)
@@ -489,6 +498,61 @@ fun ChatSettingsPage(
                     checked = tokenEstimateEnabled,
                     onCheckedChange = { v -> scope.launch { settings.saveTokenEstimateEnabled(v) } },
                 )
+                SettingsGroupDivider()
+                SettingsSwitchRow(
+                    icon = TablerIcons.Edit,
+                    title = stringResource(R.string.settings_rich_input),
+                    subtitle = stringResource(R.string.settings_rich_input_desc),
+                    checked = richInputEnabled,
+                    onCheckedChange = { v -> scope.launch { settings.saveRichInputEnabled(v) } },
+                )
+                SettingsGroupDivider()
+                // v1.0.62: 压缩模型跟随对话默认模型，不再独立配置（此前独立模型跨 Provider 按 id
+                // 匹配会命中无关渠道的小模型，压缩质量不稳定）
+                SettingsItemRow(
+                    icon = TablerIcons.Gauge,
+                    title = stringResource(R.string.settings_chat_compress_model),
+                    subtitle = stringResource(R.string.settings_chat_compress_model_default),
+                    onClick = null,
+                )
+                SettingsGroupDivider()
+                SettingsSwitchRow(
+                    icon = TablerIcons.Clipboard,
+                    title = stringResource(R.string.settings_chat_paste_as_file),
+                    subtitle = stringResource(R.string.settings_chat_paste_as_file_subtitle),
+                    checked = pasteAsFileEnabled,
+                    onCheckedChange = { v -> scope.launch { settings.savePasteAsFileEnabled(v) } },
+                )
+                if (pasteAsFileEnabled) {
+                    SettingsGroupDivider()
+                    val thresholdOptions = listOf("1000", "2000", "5000")
+                    val thresholdIndex = when (pasteAsFileThreshold) {
+                        1000 -> 0
+                        5000 -> 2
+                        else -> 1
+                    }
+                    SettingsSegmentedRow(
+                    icon = TablerIcons.Clipboard,
+                        title = stringResource(R.string.settings_chat_paste_as_file_threshold),
+                        subtitle = stringResource(R.string.settings_chat_paste_as_file_threshold_subtitle, pasteAsFileThreshold),
+                        options = thresholdOptions,
+                        selectedIndex = thresholdIndex,
+                        onSelectedChange = { idx ->
+                            val threshold = when (idx) { 0 -> 1000; 2 -> 5000; else -> 2000 }
+                            scope.launch { settings.savePasteAsFileThreshold(threshold) }
+                        },
+                    )
+                }
+                SettingsGroupDivider()
+                SettingsItemRow(
+                    icon = TablerIcons.Edit,
+                    title = stringResource(R.string.settings_chat_custom_title_prompt),
+                    subtitle = customTitlePrompt?.takeIf { it.isNotBlank() } ?: stringResource(R.string.settings_chat_custom_title_prompt_default),
+                    onClick = {
+                        titlePromptDraft = customTitlePrompt.orEmpty()
+                        showTitlePromptDialog = true
+                    },
+                ) { ChevronRight() }
             }
         }
 
@@ -556,6 +620,28 @@ fun ChatSettingsPage(
         // ── v1.95: 表情包库 — v1.0.54: 功能弃用,UI 全部关闭(数据保留,代码保留可恢复)──
         // item { SectionLabel(stringResource(R.string.settings_chat_sticker_section)) }
         // item { StickerLibrarySection(settings = settings, scope = scope) }
+    }
+
+    if (showTitlePromptDialog) {
+        MuseDialog(
+            onDismissRequest = { showTitlePromptDialog = false },
+            title = stringResource(R.string.settings_chat_custom_title_prompt),
+            content = {
+                MuseTextField(
+                    value = titlePromptDraft,
+                    onValueChange = { titlePromptDraft = it },
+                    label = { Text(stringResource(R.string.settings_chat_custom_title_prompt_hint)) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+            confirmText = stringResource(R.string.action_save),
+            onConfirm = {
+                scope.launch { settings.saveCustomTitlePrompt(titlePromptDraft.trim().takeIf { it.isNotBlank() }) }
+                showTitlePromptDialog = false
+            },
+            dismissText = stringResource(R.string.action_cancel),
+            onDismiss = { showTitlePromptDialog = false },
+        )
     }
 }
 
@@ -628,6 +714,7 @@ private fun temperatureHint(value: Float): Int = when {
     else -> R.string.settings_chat_temp_hint_creative
 }
 
+/** 解析压缩模型的显示名称(未绑定回退默认文本)。 */
 /**
  * v1.95: 表情包库管理区 — 启用开关 + 发送概率 + 导入 zip + 分类筛选 + 预览网格。
  *

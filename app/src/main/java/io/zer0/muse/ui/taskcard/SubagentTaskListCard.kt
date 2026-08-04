@@ -38,6 +38,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,12 +47,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
+import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.tools.DeferredResultStore
 import io.zer0.muse.data.subagent.SubagentThreadStore
+import io.zer0.muse.ui.common.media.AssistantAvatar
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.tiny
+import org.koin.compose.koinInject
 
 /**
  * v1.202: 后台子 Agent 任务列表卡片。
@@ -278,6 +282,9 @@ private fun SubagentThreadRow(
     threadId: String,
     assistantId: String,
 ) {
+    val assistantRepository: AssistantRepository = koinInject()
+    val assistants by assistantRepository.observeAll.collectAsStateWithLifecycle(initialValue = emptyList())
+    val assistant = assistants.firstOrNull { it.id == assistantId }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
@@ -285,18 +292,21 @@ private fun SubagentThreadRow(
             .fillMaxWidth()
             .padding(vertical = 2.dp),
     ) {
-        // 活跃线程默认显示转圈(仍在运行)
-        CircularProgressIndicator(
-            modifier = Modifier.size(14.dp),
-            strokeWidth = 2.dp,
-            color = MaterialTheme.colorScheme.primary,
-        )
+        if (assistant != null) {
+            AssistantAvatar(assistant = assistant, avatarSize = 24.dp)
+        } else {
+            CircularProgressIndicator(
+                modifier = Modifier.size(14.dp),
+                strokeWidth = 2.dp,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Text(
-                text = "assistant: ${assistantId.take(12)}",
+                text = assistant?.name?.takeIf { it.isNotBlank() } ?: "assistant: ${assistantId.take(12)}",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Medium,

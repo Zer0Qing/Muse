@@ -82,7 +82,7 @@ class StickerLibraryRepository(private val appContext: Context) {
      *  - png/jpg/jpeg/gif/webp/bmp → 调用 [importImage]
      *  - 其他 → 返回错误
      *
-     * 这是用户导入的统一入口,[StickerManagerScreen] 应调用此方法而非直接调用 importZip,
+     * 这是用户导入的统一入口,管理页应调用此方法而非直接调用 importZip,
      * 以支持单张图片导入和避免 MIME 类型过滤问题。
      *
      * @return 导入数量;失败时 resultOf 返回 Error

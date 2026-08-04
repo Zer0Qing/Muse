@@ -129,6 +129,8 @@ data class MemoryItem(
      * 用于 UI 显示 scope 徽章(主助手=默认色,子助手=tertiary 色)。
      */
     val scope: String? = null,
+    /** B4-05: 手动置顶时间 ISO 8601,null 表示未置顶。 */
+    val pinnedAt: String? = null,
 )
 
 /**
@@ -422,6 +424,8 @@ class MemoryViewModel(
                         createdAt = fact.createdAt,
                         // v8: 透传 scope,供 UI 显示徽章(主助手=默认色,子助手=tertiary 色)
                         scope = fact.scope,
+                    // B4-05: 透传置顶时间
+                    pinnedAt = fact.pinnedAt,
                         // v9: 透传 category,供新 UI 按分类筛选与展示
                         category = fact.category,
                     )
@@ -547,6 +551,8 @@ class MemoryViewModel(
                     createdAt = fact.createdAt,
                     // v8: 透传 scope,搜索结果与列表项徽章一致
                     scope = fact.scope,
+                    // B4-05: 透传置顶时间
+                    pinnedAt = fact.pinnedAt,
                     // v9: 透传 category,搜索结果也按分类展示
                     category = fact.category,
                 )
@@ -575,6 +581,17 @@ class MemoryViewModel(
     /**
      * P2: 删除单条 Summary(根据 sessionId)。
      */
+    /** B4-05: 切换单条 Fact 的手动置顶状态。 */
+    fun toggleFactPinned(factId: String) {
+        viewModelScope.launch {
+            val id = factId.toLongOrNull() ?: return@launch
+            val fact = withContext(Dispatchers.IO) { factStore.getById(id) } ?: return@launch
+            val pinned = fact.pinnedAt == null
+            resultOf { factStore.setPinned(id, pinned) }
+                .onError { msg, t -> Logger.w("MemoryViewModel", "toggleFactPinned 失败: $msg", t) }
+            loadAll()
+        }
+    }
     fun deleteSummary(sessionId: String) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) {

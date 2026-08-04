@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.withTransaction
 import io.zer0.ai.core.MessageRole
 import io.zer0.muse.tools.SessionPermissionStore
+import io.zer0.muse.data.audit.AuditLogger
 import io.zer0.ai.core.RagCitation
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.ErrorMessage
@@ -22,6 +23,7 @@ import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import kotlin.uuid.Uuid
 import io.zer0.muse.R
+import io.zer0.muse.transformer.MoodSkinParser
 
 /**
  * 会话仓库:封装 SessionDao + MessageDao,提供领域模型 API。
@@ -53,6 +55,8 @@ class SessionRepository(
     private val visionCache: io.zer0.muse.vision.VisionCache? = null,
     /** P3: 会话权限模式清理(会话删除时清理持久化设置)。 */
     private val sessionPermissionStore: SessionPermissionStore? = null,
+    /** P2-4: 审计日志记录器(会话删除等用户操作)。 */
+    private val auditLogger: AuditLogger? = null,
 ) {
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -87,12 +91,40 @@ class SessionRepository(
     suspend fun setArchived(sessionId: String, archived: Boolean) {
         sessionDao.setArchived(sessionId, archived)
     }
+    /** B7-03: 更新会话已读位置。 */
+    suspend fun updateLastReadMessage(sessionId: String, messageId: String, readCount: Int) {
+        sessionDao.updateLastReadMessage(sessionId, messageId, readCount)
+    }
+
+    /** B7-03: 获取最早一条未读消息 id(lastReadMessageId=null 时取会话首条消息)。 */
+    suspend fun findFirstUnreadMessageId(sessionId: String, lastReadMessageId: String?): String? {
+        return if (lastReadMessageId == null) {
+            sessionDao.findFirstMessageId(sessionId)
+        } else {
+            sessionDao.findFirstUnreadMessageId(sessionId, lastReadMessageId)
+        }
+    }
+
+    /** B7-05: 置顶会话拖拽排序持久化。 */
+    suspend fun reorderPinnedSessions(ids: List<String>) {
+        ids.forEachIndexed { index, id -> sessionDao.updateSortOrder(id, index) }
+    }
+
+    /** B8-01: 更新会话级主动消息排期(null=清除排期)。 */
+    suspend fun updateProactiveNextTriggerAt(id: String, nextTriggerAt: Long?) {
+        sessionDao.updateProactiveNextTriggerAt(id, nextTriggerAt)
+    }
 
     // ── v2.0: 软删除 ──
 
     /** v2.0: 软删除会话。 */
     suspend fun softDeleteSession(id: String) {
         sessionDao.softDelete(id, System.currentTimeMillis())
+        auditLogger?.log(
+            category = "user_action",
+            action = "soft_delete_session",
+            target = id,
+        )
     }
 
     /** v2.0: 恢复软删除的会话。 */
@@ -124,6 +156,10 @@ class SessionRepository(
                 messageDao.clearFts()
                 sessionDao.deleteAll()
             }
+            auditLogger?.log(
+                category = "user_action",
+                action = "delete_all_sessions",
+            )
         }
     }
 
@@ -255,6 +291,12 @@ class SessionRepository(
                         t,
                     )
                 }
+            // P2-4: 审计日志 — 删除会话
+            auditLogger?.log(
+                category = "user_action",
+                action = "delete_session",
+                target = id,
+            )
         }
     }
 
@@ -466,6 +508,108 @@ class SessionRepository(
         return messageDao.getById(sessionId, messageId) != null
     }
 
+    // ── B5-01: 流式生成检查点(生成 outbox)───────────────────────────────
+
+    /** 写入/更新流式生成检查点。 */
+    suspend fun upsertGenerationCheckpoint(
+        sessionId: String,
+        userMessageId: String,
+        assistantMessageId: String,
+        content: String,
+        createdAt: Long,
+    ) {
+        withContext(Dispatchers.IO) {
+            database.generationCheckpointDao().upsert(
+                GenerationCheckpointEntity(
+                    assistantMessageId = assistantMessageId,
+                    sessionId = sessionId,
+                    userMessageId = userMessageId,
+                    content = content,
+                    createdAt = createdAt,
+                    updatedAt = System.currentTimeMillis(),
+                )
+            )
+        }
+    }
+
+    /** 生成正常结束后删除检查点。 */
+    suspend fun deleteGenerationCheckpoint(assistantMessageId: String) {
+        withContext(Dispatchers.IO) {
+            database.generationCheckpointDao().deleteByAssistantMessageId(assistantMessageId)
+        }
+    }
+
+    /** 截断/重新生成时删除该时间点之后的检查点,避免恢复出已废弃的回复。 */
+    suspend fun deleteGenerationCheckpointsBefore(sessionId: String, fromCreatedAt: Long) {
+        withContext(Dispatchers.IO) {
+            database.generationCheckpointDao().deleteBySessionAndCreatedAtFrom(sessionId, fromCreatedAt)
+        }
+    }
+
+    /** 读取全部未完成生成检查点。 */
+    suspend fun getPendingGenerationCheckpoints(): List<GenerationCheckpointEntity> =
+        withContext(Dispatchers.IO) { database.generationCheckpointDao().getAllPending() }
+
+    /**
+     * B5-01: 应用启动时恢复被强杀的中断生成。
+     *
+     * 每条残留检查点:
+     * - 消息已存在:补齐最新内容分片并追加 [已中断] 标记
+     * - 消息不存在且无更新助手消息:重建 assistant 消息
+     * - 消息不存在但有更新助手消息(已被重新生成):视为过期检查点并删除
+     */
+    suspend fun recoverInterruptedGenerations() {
+        withContext(Dispatchers.IO) {
+            val pending = runCatching { database.generationCheckpointDao().getAllPending() }
+                .getOrElse { e ->
+                    Logger.w(TAG, "读取生成检查点失败", e)
+                    return@withContext
+                }
+            for (cp in pending) {
+                try {
+                    val existing = messageDao.getByMessageId(cp.assistantMessageId)
+                    val marker = "[已中断]"
+                    val base = when {
+                        existing != null && existing.content.length >= cp.content.length -> existing.content
+                        else -> cp.content
+                    }
+                    val content = when {
+                        base.contains(marker) -> base
+                        base.isBlank() -> marker
+                        else -> base + "\n\n" + marker
+                    }
+                    val ui: UIMessage? = when {
+                        existing != null -> existing.toUIMessage().copy(content = content)
+                        database.generationCheckpointDao().countNewerAssistantMessages(cp.sessionId, cp.updatedAt) > 0 -> {
+                            database.generationCheckpointDao().deleteByAssistantMessageId(cp.assistantMessageId)
+                            null
+                        }
+                        else -> {
+                            val id = runCatching { Uuid.parse(cp.assistantMessageId) }.getOrElse {
+                                Logger.w(TAG, "generation checkpoint assistantMessageId 非 UUID: " + cp.assistantMessageId)
+                                Uuid.random()
+                            }
+                            UIMessage(
+                                id = id,
+                                role = MessageRole.ASSISTANT,
+                                content = content,
+                                createdAt = cp.createdAt,
+                            )
+                        }
+                    }
+                    if (ui != null) {
+                        upsertMessage(cp.sessionId, ui)
+                    }
+                } catch (e: Exception) {
+                    Logger.w(TAG, "恢复中断生成失败: " + cp.assistantMessageId, e)
+                }
+            }
+            if (pending.isNotEmpty()) {
+                Logger.i(TAG, "中断生成恢复完成: " + pending.size + " 条检查点")
+            }
+        }
+    }
+
     /**
      * 流式更新 assistant 消息(多次 upsert 同一 id)。每次先删后插保证 FTS 索引幂等。
      *
@@ -531,6 +675,7 @@ class SessionRepository(
         // Phase 10.3: 先删 FTS(依赖 messages 子查询,必须在 messages 删除之前)
         messageDao.deleteFtsBySessionAndCreatedAt(sessionId, fromCreatedAt)
         messageDao.deleteFromCreatedAt(sessionId, fromCreatedAt)
+        database.generationCheckpointDao().deleteBySessionAndCreatedAtFrom(sessionId, fromCreatedAt)
     }
 
     /** 删除会话内最后一条 assistant 消息(重生成用)。同步删 FTS 索引。 */
@@ -616,20 +761,9 @@ class SessionRepository(
      * FTS 正常时本路径几乎不触发,暂保留现状。
      */
     private suspend fun searchLikeAndJoin(query: String): List<MessageSearchJoin> {
-        // M-SESS2: 转义 \ % _ 后包成 %...%,配合 DAO 的 ESCAPE '\' 子句
+        // B4-01: 直接用 JOIN sessions 的批查,消除原逐条查 session 的 N+1
         val pattern = buildLikePattern(query)
-        val messages = messageDao.searchLike(pattern)
-        return messages.map { msg ->
-            val sessionTitle = sessionDao.getById(msg.sessionId)?.title ?: ""
-            MessageSearchJoin(
-                messageId = msg.id,
-                sessionId = msg.sessionId,
-                content = msg.content,
-                role = msg.role,
-                createdAt = msg.createdAt,
-                sessionTitle = sessionTitle,
-            )
-        }
+        return messageDao.searchMessageContentLike(pattern, 50)
     }
 
     /**
@@ -674,7 +808,8 @@ class SessionRepository(
                 }
             }
         }
-        emit(results)
+        // B4-01: DAO 只返回原文,片段由 Repository 基于原文构建,避免 ngram 串片段
+        emit(results.map { it.copy(contentSnippet = buildSnippet(it.content, trimmed)) })
     }.flowOn(Dispatchers.IO)
 
     /**
@@ -789,39 +924,38 @@ class SessionRepository(
     // ── 转换工具 ──────────────────────────────────────────────────────────
 
     /** MessageEntity → UIMessage。 */
-    private fun MessageEntity.toUIMessage(): UIMessage = UIMessage(
-        // Phase 8.5 修复: 非 UUID 格式的 id 不崩溃(数据导入/旧版本兼容),回退到随机 UUID
-        id = runCatching { Uuid.parse(id) }.getOrElse {
-            Logger.w(TAG, "invalid message id (not UUID): $id")
-            Uuid.random()
-        },
-        role = runCatching { MessageRole.valueOf(role) }.getOrDefault(MessageRole.USER),
-        content = content,
-        reasoning = reasoning,
-        modelId = modelId,
-        createdAt = createdAt,
-        imageUrls = parseImageUrls(imageUrlsJson),
-        favorite = favorite,
-        // v1.104 U7: 收藏分组标签往返(默认 NULL,未分组)
-        favoriteTag = favoriteTag,
-        citationUrls = parseImageUrls(citationUrlsJson),
-        // v1.133: RAG 引用列表持久化往返
-        ragCitations = parseRagCitations(ragCitationsJson),
-        // Phase 8.6: 多模态图片 base64 列表
-        // v1.134 P1-2: MessageImageStore 把 "file://" 路径转回 base64,
-        // 旧数据(纯 base64)原样返回,向后兼容
-        imageBase64List = messageImageStore.toBase64List(parseImageUrls(imageBase64Json)),
-        // v1.43: Artifact id 列表
-        artifactIds = parseImageUrls(artifactIdsJson),
-        // v1.103: MOOD / reflection 持久化往返(之前任务会话/Agent 落盘时丢失)
-        mood = mood,
-        reflection = reflection,
-        // 功能1: 消息表情回应往返
-        reaction = reaction,
-        variantGroupId = variantGroupId,
-        variantIndex = variantIndex,
-        variantCount = variantCount,
-    )
+    private fun MessageEntity.toUIMessage(): UIMessage {
+        // B6-02: 历史消息清洗 — 兼容旧数据里尚未剥离的 <moodfx> 标签
+        val parsedMoodSkin = MoodSkinParser.extract(content, moodSkin)
+        return UIMessage(
+            // Phase 8.5 修复: 非 UUID 格式的 id 不崩溃(数据导入/旧版本兼容),回退到随机 UUID
+            id = runCatching { Uuid.parse(id) }.getOrElse {
+                Logger.w(TAG, "invalid message id (not UUID): $id")
+                Uuid.random()
+            },
+            role = runCatching { MessageRole.valueOf(role) }.getOrDefault(MessageRole.USER),
+            content = parsedMoodSkin.second,
+            reasoning = reasoning,
+            thinkingSignature = thinkingSignature,
+            thinkingEncryptedContent = thinkingEncryptedContent,
+            modelId = modelId,
+            createdAt = createdAt,
+            imageUrls = parseImageUrls(imageUrlsJson),
+            favorite = favorite,
+            favoriteTag = favoriteTag,
+            citationUrls = parseImageUrls(citationUrlsJson),
+            ragCitations = parseRagCitations(ragCitationsJson),
+            imageBase64List = messageImageStore.toBase64List(parseImageUrls(imageBase64Json)),
+            artifactIds = parseImageUrls(artifactIdsJson),
+            moodSkin = parsedMoodSkin.first ?: moodSkin,
+            mood = mood,
+            reflection = reflection,
+            reaction = reaction,
+            variantGroupId = variantGroupId,
+            variantIndex = variantIndex,
+            variantCount = variantCount,
+        )
+    }
 
     /** UIMessage → MessageEntity。 */
     private fun UIMessage.toEntity(sessionId: String): MessageEntity = MessageEntity(
@@ -830,6 +964,8 @@ class SessionRepository(
         role = role.name,
         content = content,
         reasoning = reasoning,
+        thinkingSignature = thinkingSignature,
+        thinkingEncryptedContent = thinkingEncryptedContent,
         modelId = modelId,
         createdAt = createdAt,
         imageUrlsJson = encodeImageUrls(imageUrls),
@@ -847,6 +983,7 @@ class SessionRepository(
         // v1.43: Artifact id 列表
         artifactIdsJson = encodeImageUrls(artifactIds),
         // v1.103: MOOD / reflection 持久化(之前 toEntity 丢弃导致切页后消失)
+        moodSkin = moodSkin,
         mood = mood,
         reflection = reflection,
         // 功能1: 消息表情回应往返

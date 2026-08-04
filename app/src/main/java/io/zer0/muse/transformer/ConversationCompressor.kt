@@ -201,19 +201,10 @@ class ConversationCompressor(
      * 找不到压缩模型时回退到激活 Provider 的首个模型(与 [ChatService.completeText] 默认行为一致)。
      */
     private suspend fun resolveCompressModel(): Pair<ProviderConfig?, Model?> {
-        val compressModelId = settingsRepository.compressModelIdFlow.first()
-        if (!compressModelId.isNullOrBlank()) {
-            // 跨 Provider 查找该 model id
-            val providers = settingsRepository.getAllProviders()
-            for (provider in providers) {
-                val model = provider.models.firstOrNull { it.id == compressModelId }
-                if (model != null) {
-                    return provider to model
-                }
-            }
-            Logger.w(TAG, "compressModelId=$compressModelId 未在已配置 Provider 中找到,回退当前模型")
-        }
-        // 回退:激活 Provider(null 让 ChatService 内部自行取激活 Provider + 首个模型)
+        // v1.0.62: 压缩模型跟随对话默认模型，不再使用独立 compressModelId。
+        // 此前独立配置存在跨 Provider 按 id 匹配的缺陷：同 id 模型在多个渠道存在时
+        // 会命中无关渠道的小模型，导致压缩质量忽高忽低。返回 null 让 ChatService
+        // 内部使用激活 Provider 的当前选中模型。
         return null to null
     }
 }

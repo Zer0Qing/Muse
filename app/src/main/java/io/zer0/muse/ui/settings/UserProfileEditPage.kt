@@ -17,10 +17,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -34,6 +34,12 @@ import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.theme.MusePaddings
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import org.koin.compose.koinInject
 
 /**
@@ -43,7 +49,7 @@ import org.koin.compose.koinInject
  *  - 5 个分组:称呼 / 基本信息 / 背景与专长 / 沟通偏好 / 边界与忌讳
  *  - 每个字段加说明文字,让用户明白填什么、对 AI 的影响
  *  - 顶部加 InfoCard 解释"填写的信息会注入到 AI 的 system prompt,让 AI 更了解你"
- *  - 即时保存模式(类似原实现):每次输入变更用 scope.launch 写回 DataStore
+ *  - B7-09 防抖保存:本地 state 同步更新,停顿 500ms 后写回 DataStore,离开页面时兜底保存
  *
  * 字段映射(SystemPromptAssembler.buildUserProfileSection):
  *  - 称呼组:userNickName / assistantName
@@ -52,11 +58,46 @@ import org.koin.compose.koinInject
  *  - 沟通偏好:communicationStyle / responseLength / preferredTone / preferredLanguage
  *  - 边界与忌讳:avoidTopics
  */
+
+/**
+ * B7-09: 用户资料页的防抖落盘器。
+ *
+ * UI 仍由页面内的本地 mutableStateOf 同步驱动,避免 IME composing 被打断;
+ * 这里只负责把最新 profile 在停顿 500ms 后写入 DataStore,并在页面销毁时兜底保存。
+ */
+private class UserProfileSaveSink(
+    private val settings: SettingsRepository,
+) {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private var saveJob: Job? = null
+    private var latest: UserProfile = UserProfile()
+
+    fun schedule(value: UserProfile) {
+        latest = value
+        saveJob?.cancel()
+        saveJob = scope.launch {
+            delay(500)
+            settings.saveUserProfile(value)
+        }
+    }
+
+    fun dispose() {
+        saveJob?.cancel()
+        val value = latest
+        if (value != UserProfile()) {
+            // 页面已离开,不能用页面级 scope;用独立 IO scope 做最后一次兜底写入
+            CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+                settings.saveUserProfile(value)
+            }
+        }
+        scope.cancel()
+    }
+}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserProfileEditPage(onBack: () -> Unit) {
     val settings: SettingsRepository = koinInject()
-    val scope = rememberCoroutineScope()
+    val saveSink = remember { UserProfileSaveSink(settings) }
 
     // v1.0.27 修复 IME bug: 用本地 mutableStateOf 同步持有 profile,避免 produceState + scope.launch
     // 的异步往返破坏 IME composing text (用户反馈"打逗号时光标跳到逗号前面")。
@@ -71,13 +112,15 @@ fun UserProfileEditPage(onBack: () -> Unit) {
         }
     }
 
-    // 同步更新本地 state + 异步写回 DataStore
+    DisposableEffect(Unit) {
+        onDispose { saveSink.dispose() }
+    }
+
+    // 同步更新本地 state + 防抖写回 DataStore
     fun update(transform: (UserProfile) -> UserProfile) {
         val next = transform(profile)
         profile = next // 同步更新,IME 立即看到新 value
-        scope.launch {
-            settings.saveUserProfile(next)
-        }
+        saveSink.schedule(next)
     }
 
     SettingsSubPageScaffold(title = stringResource(R.string.settings_user_profile_title), onBack = onBack) {

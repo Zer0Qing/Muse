@@ -231,9 +231,9 @@ class ImageGenCoordinator(
     ) {
         val userMsg = UIMessage(role = MessageRole.USER, content = "[绘图] $prompt")
         val assistantMsg = UIMessage(role = MessageRole.ASSISTANT, content = "")
+        accessor.updateMessages { it + userMsg + assistantMsg }
         accessor.update {
             it.copy(
-                messages = it.messages + userMsg + assistantMsg,
                 input = "",
                 isGeneratingImage = true,
                 errors = emptyList(),
@@ -362,17 +362,19 @@ class ImageGenCoordinator(
             return
         }
         val md = urls.joinToString("\n\n") { "![]($it)" }
+        accessor.updateMessages { messages ->
+            messages.map { msg ->
+                if (msg.id == assistantId) msg.copy(content = md, imageUrls = urls)
+                else msg
+            }
+        }
         accessor.update {
             it.copy(
-                messages = it.messages.map { msg ->
-                    if (msg.id == assistantId) msg.copy(content = md, imageUrls = urls)
-                    else msg
-                },
                 isGeneratingImage = false,
                 imageGenParams = it.imageGenParams.copy(referenceImageUri = null),
             )
         }
-        val finalAssistant = accessor.snapshot.messages.firstOrNull { it.id == assistantId }
+        val finalAssistant = accessor.messagesSnapshot.firstOrNull { it.id == assistantId }
         if (finalAssistant != null) {
             try {
                 sessionRepository.upsertMessage(sessionId, finalAssistant)
@@ -421,7 +423,7 @@ class ImageGenCoordinator(
                     imageMimeTypes.add(event.mimeType.ifBlank { "image/png" })
                     val mime = event.mimeType.ifBlank { "image/png" }
                     val dataUri = "data:$mime;base64,${event.imageBase64}"
-                    val currentMsg = accessor.snapshot.messages.firstOrNull { it.id == assistantId }
+                    val currentMsg = accessor.messagesSnapshot.firstOrNull { it.id == assistantId }
                     val currentUrls = currentMsg?.imageUrls ?: emptyList()
                     updateAssistant(
                         assistantId,
@@ -439,16 +441,18 @@ class ImageGenCoordinator(
             }
         }
         if (imageBase64List.isEmpty()) {
+            accessor.updateMessages { messages ->
+                messages.map { msg ->
+                    if (msg.id == assistantId) msg.copy(content = textBuilder.toString()) else msg
+                }
+            }
             accessor.update {
                 it.copy(
-                    messages = it.messages.map { msg ->
-                        if (msg.id == assistantId) msg.copy(content = textBuilder.toString()) else msg
-                    },
                     errors = listOf(ChatError(type = ChatErrorType.UNKNOWN, message = appContext.getString(R.string.err_image_gen_no_image))),
                     isGeneratingImage = false,
                 )
             }
-            val finalAssistant = accessor.snapshot.messages.firstOrNull { it.id == assistantId }
+            val finalAssistant = accessor.messagesSnapshot.firstOrNull { it.id == assistantId }
             if (finalAssistant != null) {
                 sessionRepository.upsertMessage(sessionId, finalAssistant)
             }
@@ -463,15 +467,17 @@ class ImageGenCoordinator(
             mdImages.isNotBlank() -> mdImages
             else -> textBuilder.toString()
         }
+        accessor.updateMessages { messages ->
+            messages.map { msg ->
+                if (msg.id == assistantId) msg.copy(content = finalContent) else msg
+            }
+        }
         accessor.update {
             it.copy(
-                messages = it.messages.map { msg ->
-                    if (msg.id == assistantId) msg.copy(content = finalContent) else msg
-                },
                 isGeneratingImage = false,
             )
         }
-        val finalAssistant = accessor.snapshot.messages.firstOrNull { it.id == assistantId }
+        val finalAssistant = accessor.messagesSnapshot.firstOrNull { it.id == assistantId }
         if (finalAssistant != null) {
             try {
                 sessionRepository.upsertMessage(sessionId, finalAssistant)

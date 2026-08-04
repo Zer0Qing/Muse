@@ -88,6 +88,48 @@
 
     <!-- Settings Sub-pages / About -->
     <string name="settings_sub_model_services">Modelos &amp; Servicios</string>
+    <string name="settings_task_routing_title">Enrutamiento de tareas</string>
+    <string name="settings_task_routing_enable">Cambiar modelos automáticamente</string>
+    <string name="settings_task_routing_enable_subtitle">Cambia automáticamente al modelo vinculado según el tipo de tarea</string>
+    <string name="settings_task_routing_general">General</string>
+    <string name="settings_task_routing_models">Modelos por tarea</string>
+    <string name="settings_task_routing_default_model">Modelo predeterminado</string>
+    <string name="settings_task_routing_chat">Conversación</string>
+    <string name="settings_task_routing_reasoning">Razonamiento</string>
+    <string name="settings_task_routing_code">Código</string>
+    <string name="settings_task_routing_creative">Creativo</string>
+    <string name="settings_task_routing_analysis">Análisis</string>
+    <string name="settings_crash_anr_title">Detección de ANR</string>
+    <string name="settings_crash_anr_subtitle">Detecta que la app no responde y lo registra en registros de fallos/auditoría</string>
+    <string name="settings_chat_compress_model">Modelo de compresión</string>
+    <string name="settings_chat_compress_model_default">Modelo predeterminado</string>
+    <string name="settings_chat_paste_as_file">Pegado largo a archivo</string>
+    <string name="settings_chat_paste_as_file_subtitle">Sugiere adjuntar texto pegado como archivo cuando supera el umbral</string>
+    <string name="settings_chat_paste_as_file_threshold">Umbral de pegado a archivo</string>
+    <string name="settings_chat_paste_as_file_threshold_subtitle">Sugerir convertir cuando supere %1$d caracteres</string>
+    <string name="settings_chat_custom_title_prompt">Indicación de título personalizada</string>
+    <string name="settings_chat_custom_title_prompt_default">Usar la indicación integrada predeterminada</string>
+    <string name="settings_chat_custom_title_prompt_hint">Instrucción personalizada para nombrar conversaciones (vacío para predeterminado)</string>
+    <string name="settings_memory_custom_compress_prompt">Indicación de compresión personalizada</string>
+    <string name="settings_memory_custom_compress_prompt_default">Usar la instrucción de compresión integrada</string>
+    <string name="settings_memory_custom_compress_prompt_hint">Instrucción personalizada de compresión de contexto (vacío para predeterminado)</string>
+    <string name="settings_about_auto_update">Comprobar actualizaciones automáticamente</string>
+    <string name="settings_about_auto_update_subtitle">Comprueba automáticamente nuevas versiones en GitHub tras el inicio</string>
+    <string name="prompt_template_manager_title">Plantillas de indicaciones</string>
+    <string name="prompt_template_manager_list">Lista de plantillas</string>
+    <string name="prompt_template_manager_empty">Aún no hay plantillas personalizadas</string>
+    <string name="prompt_template_manager_built_in">Integrada</string>
+    <string name="prompt_template_manager_move_up">Subir</string>
+    <string name="prompt_template_manager_move_down">Bajar</string>
+    <string name="prompt_template_manager_edit">Editar</string>
+    <string name="prompt_template_manager_copy">Duplicar</string>
+    <string name="prompt_template_manager_delete">Eliminar</string>
+    <string name="prompt_template_manager_delete_confirm">¿Eliminar la plantilla "%1$s"?</string>
+    <string name="prompt_template_manager_add">Nueva plantilla</string>
+    <string name="prompt_template_manager_name">Nombre</string>
+    <string name="prompt_template_manager_category">Categoría</string>
+    <string name="prompt_template_manager_content">Contenido</string>
+    <string name="prompt_template_manage_entry">Administrar plantillas</string>
     <string name="settings_sub_user_profile">Perfil de usuario</string>
     <string name="settings_sub_user_profile_subtitle">Edad/Ciudad/MBTI, etc. (para personalización de IA)</string>
     <string name="settings_sub_data_backup">Datos &amp; Copia de seguridad</string>
@@ -282,6 +324,10 @@
     <string name="settings_rag_mmr_lambda_subtitle">0=pura diversidad, 1=pura similitud, predeterminado 0,5</string>
     <string name="settings_rag_hybrid">Búsqueda híbrida</string>
     <string name="settings_rag_hybrid_subtitle">Palabra clave BM25 + fusión RRF de similitud vectorial</string>
+    <string name="settings_rag_hybrid_bm25_weight">Peso BM25</string>
+    <string name="settings_rag_hybrid_bm25_weight_subtitle">Peso de contribución BM25 en la fusión RRF</string>
+    <string name="settings_rag_hybrid_vector_weight">Peso vectorial</string>
+    <string name="settings_rag_hybrid_vector_weight_subtitle">Peso de contribución de similitud vectorial en RRF</string>
     <string name="settings_rag_rerank">Reclasificar</string>
     <string name="settings_rag_rerank_subtitle">Reclasificación del codificador cruzado en los mejores candidatos K×5</string>
     <string name="settings_rag_token_budget">Presupuesto simbólico</string>
@@ -300,6 +346,7 @@
     <string name="settings_rag_parser_mineru_subtitle">API de MinerU, sobresale en PDF/fórmulas/tablas académicas (requiere punto final)</string>
     <string name="settings_rag_cloud_parser_endpoint">Punto final del analizador de la nube</string>
     <string name="settings_rag_mineru_endpoint">Punto final de MinerU</string>
+    <string name="settings_rag_mineru_token">Token de MinerU (opcional)</string>
     <string name="settings_rag_notes_section">Notas</string>
     <string name="settings_rag_note1">• Después de cambiar los parámetros del fragmento, los documentos recién importados utilizarán los nuevos parámetros</string>
     <string name="settings_rag_note2">• Los documentos ya indexados no se vuelven a fragmentar automáticamente;</string>
@@ -493,4 +540,5 @@
     <string name="settings_theme_custom_color_h">Matiz</string>
     <string name="settings_theme_custom_color_s">Saturación</string>
     <string name="settings_theme_custom_color_l">Ligereza</string>
+    <string name="settings_agent_bound_assistant_hint">This page is bound to the current assistant and follows automatically when you switch assistants</string>
 </resources>

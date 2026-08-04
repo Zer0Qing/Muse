@@ -3,7 +3,6 @@ package io.zer0.muse.ui.navigation
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
-import io.zer0.muse.ui.BrowserAutomationScreen
 import io.zer0.muse.ui.ChatViewModel
 import io.zer0.muse.ui.DataManagementScreen
 import io.zer0.muse.ui.MuseRoutes
@@ -37,15 +36,6 @@ fun NavGraphBuilder.toolsNavGraph(
         )
     }
     // P2-6: 浏览器自动化演示页 — 全屏 WebView + 顶部地址栏 + 底部操作栏
-    composable(
-        route = MuseRoutes.BROWSER_AUTOMATION,
-        enterTransition = { MuseTransitions.horizontalPushEnter() },
-        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
-    ) {
-        BrowserAutomationScreen(
-            onBack = { navController.popBackStack() },
-        )
-    }
     // P2-8: 视频生成页 — 从设置 → 工具 → 视频生成 进入
     composable(
         route = MuseRoutes.VIDEO_GENERATION,

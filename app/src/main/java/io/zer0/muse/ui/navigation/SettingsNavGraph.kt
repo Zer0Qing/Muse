@@ -21,7 +21,7 @@ import io.zer0.muse.ui.settings.MediaSettingsPage
 import io.zer0.muse.ui.MemoryScreen
 import io.zer0.muse.ui.settings.MemorySettingsPage
 import io.zer0.muse.ui.settings.MultiAgentSettingsPage
-import io.zer0.muse.ui.settings.ProviderPluginPage
+import io.zer0.muse.ui.settings.PluginManagePage
 import io.zer0.muse.ui.settings.ProxySettingsPage
 import io.zer0.muse.ui.settings.RagSettingsPage
 import io.zer0.muse.ui.settings.SecuritySettingsPage
@@ -38,6 +38,7 @@ import io.zer0.muse.ui.settings.SettingsTutorialPage
 import io.zer0.muse.ui.settings.SettingsVideoGenPage
 import io.zer0.muse.ui.settings.SettingsWebSearchPage
 import io.zer0.muse.ui.settings.ToolsSettingsPage
+import io.zer0.muse.ui.settings.TaskRoutingSettingsPage
 import io.zer0.muse.ui.settings.UserProfileEditPage
 import io.zer0.muse.ui.settings.PermissionWizardScreen
 import io.zer0.muse.ui.settings.VisionSettingsPage
@@ -122,6 +123,16 @@ fun NavGraphBuilder.settingsNavGraph(
         )
     }
     // v1.133: 设置二级页 — 联网搜索(从 SettingsModelPage 拆出)
+    // B0-04: 设置二级页 — 任务模型路由
+    composable(
+        route = MuseRoutes.SETTINGS_TASK_ROUTING,
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        TaskRoutingSettingsPage(
+            onBack = { navController.popBackStack() },
+        )
+    }
     composable(
         route = MuseRoutes.SETTINGS_WEB_SEARCH,
         enterTransition = { MuseTransitions.horizontalPushEnter() },
@@ -462,13 +473,22 @@ fun NavGraphBuilder.settingsNavGraph(
             onBack = { navController.popBackStack() },
         )
     }
-    // P2-10: Provider 插件管理页 — 从设置 → 模型与服务 → 插件管理 进入
+    // 统一插件管理页（外部插件 + Provider 插件合并）— 两个旧入口路由都指向此页
     composable(
         route = MuseRoutes.PROVIDER_PLUGINS,
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
-        ProviderPluginPage(
+        PluginManagePage(
+            onBack = { navController.popBackStack() },
+        )
+    }
+    composable(
+        route = MuseRoutes.MUSE_PLUGINS,
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        PluginManagePage(
             onBack = { navController.popBackStack() },
         )
     }

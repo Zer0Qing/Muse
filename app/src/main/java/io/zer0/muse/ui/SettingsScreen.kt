@@ -171,9 +171,12 @@ fun SettingsScreen(
     val agentDesc = stringResource(R.string.settings_screen_agent_desc)
     val providerTitle = stringResource(R.string.settings_screen_provider)
     val providerDesc = stringResource(R.string.settings_screen_provider_desc)
+    val taskRoutingTitle = stringResource(R.string.settings_task_routing_title)
     val visionTitle = stringResource(R.string.settings_screen_vision)
     val visionDesc = stringResource(R.string.settings_screen_vision_desc)
     val providerPluginsTitle = stringResource(R.string.provider_plugins_title)
+    val musePluginsTitle = stringResource(R.string.muse_plugins_external)
+    val pluginManageTitle = stringResource(R.string.muse_plugins_manage)
     val videoGenTitle = stringResource(R.string.settings_screen_video_gen)
     val videoGenDesc = stringResource(R.string.settings_screen_video_gen_desc)
     val videoGenConfigTitle = stringResource(R.string.settings_screen_video_gen_config)
@@ -267,9 +270,16 @@ fun SettingsScreen(
                 // AI 模型与能力(从原「助手与 Agent」拆分)
                 SettingsEntry(providerTitle, listOf("供应商", "模型", "provider", "API", "密钥", "gongyingshang", "moxing", "miyao", "gys", "mx", "my", "绘图", "Agnes", "DALL-E", "绘图供应商"), MuseRoutes.SETTINGS_MODEL, groupAiModels, TablerIcons.Settings, onOpenModelSettings),
                 SettingsEntry("API Key", listOf("API Key", "密钥", "key", "token", "凭证", "apiKey", "miyao", "pingzheng"), MuseRoutes.SETTINGS_MODEL, groupAiModels, TablerIcons.Lock, onOpenModelSettings),
+                SettingsEntry(taskRoutingTitle, listOf("任务路由", "路由", "自动切换", "模型", "renwuluyou", "luyou", "zidongqiehuan", "moxing", "rwly", "ly", "zdqh", "mx"), MuseRoutes.SETTINGS_TASK_ROUTING, groupAiModels, TablerIcons.Adjustments) { onNavigate(MuseRoutes.SETTINGS_TASK_ROUTING) },
                 SettingsEntry(visionTitle, listOf("视觉辅助", "视觉", "vision", "看图", "图像理解", "shijuefuzhu", "shijue", "kantu", "tuxianglijie", "sjfz", "sj", "kt", "txlj"), MuseRoutes.SETTINGS_VISION, groupAiModels, TablerIcons.Eye, onOpenVisionSettings),
                 SettingsEntry("OCR 文字识别", listOf("OCR", "ocr", "文字识别", "图片文字", "识别", "wenzi", "shibie", "tupianwenzi", "wzsb", "tpwz", "sb"), MuseRoutes.SETTINGS_VISION, groupAiModels, TablerIcons.Eye, onOpenVisionSettings),
-                SettingsEntry(providerPluginsTitle, listOf("插件", "plugin", "Provider插件", "导入", "chajian", "daoru", "cj", "dr"), MuseRoutes.PROVIDER_PLUGINS, groupAiModels, TablerIcons.Puzzle, onOpenProviderPlugins),
+                SettingsEntry(
+                    pluginManageTitle,
+                    listOf("插件管理", "外部插件", "muse-plugin", "插件包", "导入插件", "chajian", "plugin", "daoruchajian", "cjb", "cjgl"),
+                    MuseRoutes.MUSE_PLUGINS,
+                    groupAiModels,
+                    TablerIcons.Puzzle,
+                ) { onNavigate(MuseRoutes.MUSE_PLUGINS) },
                 SettingsEntry(videoGenTitle, listOf("视频", "video", "生成视频", "shipin", "shengchengshipin", "sp", "scsp"), MuseRoutes.VIDEO_GENERATION, groupAiModels, TablerIcons.Video, onOpenVideoGeneration),
                 SettingsEntry(videoGenConfigTitle, listOf("视频配置", "视频生成配置", "video gen settings", "shipinpeizhi", "spsc", "spgenpeizhi", "sppeizhi"), MuseRoutes.SETTINGS_VIDEO_GEN, groupAiModels, TablerIcons.Settings, onOpenVideoGenSettings),
                 SettingsEntry(webSearchEntryTitle, listOf("联网搜索", "搜索", "web search", "网络搜索", "在线搜索", "lianwang", "sousuo", "wangluosousuo", "zaixiansousuo", "lwss", "ss", "wlss", "zxss"), MuseRoutes.SETTINGS_WEB_SEARCH, groupAiModels, TablerIcons.World, onOpenWebSearch),
@@ -303,6 +313,7 @@ fun SettingsScreen(
                 SettingsEntry(debugLogTitle, listOf("调试", "日志", "debug", "log", "Logger", "tiaoshi", "rizhi", "ts", "rz"), MuseRoutes.DEBUG, groupAbout, TablerIcons.Bug, onOpenDebugLog),
                 SettingsEntry(experimentsTitle, listOf("实验性", "实验", "experimental", "beta", "试验", "shiyanxing", "shiyan", "shiyan", "syx", "sy"), MuseRoutes.SETTINGS_EXPERIMENTS, groupAbout, TablerIcons.Flask, onOpenExperimentsSettings),
                 SettingsEntry(statsTitle, listOf("统计", "使用统计", "stats", "热力图", "数据", "tongji", "shiyongtongji", "relitu", "shuju", "tj", "sytj", "rlt", "sj"), MuseRoutes.STATS, groupAbout, TablerIcons.ChartBar, onOpenStats),
+                SettingsEntry("里程碑", listOf("里程碑", "成就", "纪念日", "milestone", "liangcheng", "chengjiu", "jinianri", "lc", "cj", "jnr"), MuseRoutes.MILESTONES, groupAbout, TablerIcons.Stars) { onNavigate(MuseRoutes.MILESTONES) },
 
                 // 二级设置项
                 SettingsEntry("字号", listOf("字号", "字体大小", "字体", "大小", "ziti", "zihao", "ztdx", "zt"), MuseRoutes.SETTINGS_APPEARANCE, appearanceTitle, TablerIcons.ColorSwatch, onOpenAppearanceSettings),

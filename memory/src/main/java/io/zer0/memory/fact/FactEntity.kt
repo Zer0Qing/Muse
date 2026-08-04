@@ -126,4 +126,11 @@ data class FactEntity(
      */
     @ColumnInfo(name = "space_id", defaultValue = "default")
     val spaceId: String = "default",
+
+    /**
+     * B4-05: 手动置顶时间 ISO 8601,null 表示未置顶。
+     * 列表按置顶优先排序,注入提示词时置顶记忆优先。
+     */
+    @ColumnInfo(name = "pinned_at", defaultValue = "NULL")
+    val pinnedAt: String? = null,
 )

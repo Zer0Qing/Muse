@@ -51,9 +51,32 @@ object ProviderPayloadNormalizer {
     fun normalizeMessages(messages: List<UIMessage>, model: Model): List<UIMessage> {
         if (messages.isEmpty()) return messages
         var result = messages
+        result = stripInvalidToolCalls(result)
         result = stripOrphanToolMessages(result)
         result = stripNativeMediaAttachmentMarkers(result)
         return result
+    }
+
+    /**
+     * v1.0.62: 删除 ASSISTANT 消息中的非法 tool call(name 或 arguments 为空)。
+     * 先于 [stripOrphanToolMessages] 执行，使被删除调用对应的 TOOL 消息一并被清理。
+     */
+    private fun stripInvalidToolCalls(messages: List<UIMessage>): List<UIMessage> {
+        var changed = false
+        val result = messages.map { msg ->
+            if (msg.role != MessageRole.ASSISTANT || msg.toolCalls.isNullOrEmpty()) {
+                msg
+            } else {
+                val sanitized = ToolCallSanitizer.sanitize(msg.toolCalls)
+                if (sanitized.size == msg.toolCalls.size) {
+                    msg
+                } else {
+                    changed = true
+                    msg.copy(toolCalls = sanitized.ifEmpty { null })
+                }
+            }
+        }
+        return if (changed) result else messages
     }
 
     // ── 1. 孤儿 TOOL 消息清理 ──

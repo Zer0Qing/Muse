@@ -380,6 +380,7 @@
     <!-- ===== web/WebServer ===== -->
     <string name="webserver_unknown_error">Unknown error</string>
     <string name="webserver_rate_limited">Too many requests, please try again later</string>
+    <string name="webserver_rate_limited_remaining">Too many requests, retry in %1$d seconds</string>
     <string name="webserver_bad_request">Bad request: %1$s</string>
     <string name="webserver_auth_failed">Incorrect password</string>
     <string name="webserver_pin_error">Incorrect PIN</string>

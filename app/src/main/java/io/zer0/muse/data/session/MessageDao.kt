@@ -153,11 +153,8 @@ interface MessageDao {
      *  - 直接返回 [SearchResult](含 contentSnippet),无需 Repository 层二次构建片段
      *  - 用 FTS4 snippet() 函数在 content_ngram 列上生成高亮片段(以 [ ] 包裹匹配 token)
      *
-     * TODO: 项目当前使用 FTS4(非 FTS5),且 content_ngram 是 ngram 化文本(2-gram 滑窗),
-     *       snippet() 作用于该列时返回的片段是 ngram 串(如 "你好 好世 世界"),不是原文片段,
-     *       展示效果不理想。后续应迁移到 FTS5 + 外部内容表(messages),让 snippet 直接作用于原文。
-     *       当前路径在 ngram 转换为空或 FTS 异常时,由 [searchMessageContentLike] 兜底
-     *       (LIKE + Repository 层 buildSnippet 构建原文片段)。
+     * B4-01: 匹配走 FTS4 2-gram(兼容无 FTS5 的 ROM),snippet 由 Repository 基于原文 content 构建,
+     *       返回可读原文片段而非 ngram 串;FTS 异常时由 [searchMessageContentLike] 兜底。
      *
      * @param matchQuery FTS4 MATCH 表达式(已用 [MessageFtsManager.toMatchQuery] 转换)
      * @param limit 最大返回条数(默认 50)
@@ -170,7 +167,7 @@ interface MessageDao {
             m.role as role,
             m.createdAt as createdAt,
             s.title as sessionTitle,
-            snippet(messages_fts, '[', ']', '…', 1, 10) as contentSnippet,
+            '' as contentSnippet,
             m.content as content
         FROM messages_fts
         JOIN messages m ON messages_fts.message_id = m.id
@@ -253,6 +250,7 @@ interface MessageDao {
     /** 清空 FTS 索引(rebuild 用)。 */
     @Query("DELETE FROM messages_fts")
     suspend fun clearFts()
+
 
     /** 清空全部消息(备份恢复时用,Android 16 禁止 execSQL DML)。 */
     @Query("DELETE FROM messages")

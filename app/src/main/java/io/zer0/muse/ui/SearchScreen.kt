@@ -21,6 +21,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -54,6 +56,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import io.zer0.muse.ui.common.form.MuseCapsuleTab
+import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.state.MuseLoadingState
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MusePaddings
@@ -84,6 +87,7 @@ import io.zer0.muse.ui.theme.statusColors
  * ChatScreen 监听 targetMessageId 滚动定位 + 短暂高亮。
  */
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun SearchScreen(
     onBack: () -> Unit,
     onOpenSession: (String) -> Unit,
@@ -220,26 +224,40 @@ fun SearchScreen(
                     },
                     modifier = Modifier.fillMaxSize(),
                 )
-            } else if (searchTab == 0) {
-                // Tab=会话:会话标题/预览匹配 + 消息内容匹配
-                SearchResults(
-                    query = query,
-                    sessions = state.sessions,
-                    messageResults = state.searchResults,
-                    isSearching = state.isSearching,
-                    onOpenSession = onOpenSession,
-                    onOpenMessage = onOpenMessage,
-                    modifier = Modifier.fillMaxSize(),
-                )
             } else {
-                // Tab=消息内容:展示 FTS4 snippet 结果,点击跳转传 messageId
-                MessageSearchResults(
-                    query = query,
-                    messageResults = state.messageResults,
-                    isSearching = state.isSearchingMessages,
-                    onOpenMessage = onOpenMessage,
+                PullToRefreshBox(
+                    isRefreshing = if (searchTab == 0) state.isSearching else state.isSearchingMessages,
+                    onRefresh = {
+                        if (searchTab == 1) viewModel.searchMessageContent() else viewModel.search()
+                    },
                     modifier = Modifier.fillMaxSize(),
-                )
+                ) {
+                    if (searchTab == 0) {
+                        // Tab=会话:会话标题/预览匹配 + 消息内容匹配
+                        SearchResults(
+                            query = query,
+                            sessions = state.sessions,
+                            messageResults = state.searchResults,
+                            isSearching = state.isSearching,
+                            searchError = state.searchError,
+                            onRetry = { viewModel.search() },
+                            onOpenSession = onOpenSession,
+                            onOpenMessage = onOpenMessage,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    } else {
+                        // Tab=消息内容:展示 FTS4 snippet 结果,点击跳转传 messageId
+                        MessageSearchResults(
+                            query = query,
+                            messageResults = state.messageResults,
+                            isSearching = state.isSearchingMessages,
+                            searchError = state.searchError,
+                            onRetry = { viewModel.searchMessageContent() },
+                            onOpenMessage = onOpenMessage,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                }
             }
         }
     }
@@ -317,10 +335,21 @@ private fun SearchResults(
     sessions: List<io.zer0.muse.data.session.SessionEntity>,
     messageResults: List<io.zer0.muse.data.session.SearchResult>,
     isSearching: Boolean,
+    searchError: String? = null,
+    onRetry: () -> Unit = {},
     onOpenSession: (String) -> Unit,
     onOpenMessage: (sessionId: String, messageId: String, query: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // v1.0.62: 统一错误态优先于 loading/空态展示,避免断网时误报“无结果”
+    if (searchError != null) {
+        MuseErrorStateBox(
+            message = searchError,
+            onRetry = onRetry,
+            modifier = modifier,
+        )
+        return
+    }
     // M-SS1: 用 remember 缓存过滤结果,避免每次 recomposition 重复计算(原实现每次都重新 filter)
     val matchedSessions = remember(sessions, query) {
         sessions.filter {
@@ -387,18 +416,21 @@ private fun SearchResults(
         if (matchedSessions.isNotEmpty()) {
             item(key = "section_sessions") { SectionTitle(stringResource(R.string.search_section_sessions)) }
             items(matchedSessions, key = { "session_${it.id}" }) { session ->
+                Box(modifier = Modifier.animateItem()) {
                 SessionResultRow(
                     title = session.title.ifBlank { stringResource(R.string.search_new_session) },
                     preview = session.lastMessagePreview,
                     updatedAt = session.updatedAt,
                     onClick = { onOpenSession(session.id) },
                 )
+                }
             }
         }
         // 消息内容 section(FTS 结果)
         if (messageResults.isNotEmpty()) {
             item(key = "section_messages") { SectionTitle(stringResource(R.string.search_section_messages)) }
             items(messageResults, key = { "msg_${it.messageId}" }) { result ->
+                Box(modifier = Modifier.animateItem()) {
                 MessageSearchResultRow(
                     sessionTitle = result.sessionTitle,
                     content = result.content,
@@ -407,6 +439,7 @@ private fun SearchResults(
                     timestamp = result.createdAt,
                     onClick = { onOpenMessage(result.sessionId, result.messageId, query) },
                 )
+                }
             }
         }
     }
@@ -496,9 +529,20 @@ private fun MessageSearchResults(
     query: String,
     messageResults: List<io.zer0.muse.data.session.SearchResult>,
     isSearching: Boolean,
+    searchError: String? = null,
+    onRetry: () -> Unit = {},
     onOpenMessage: (sessionId: String, messageId: String, query: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // v1.0.62: 统一错误态优先于 loading/空态展示
+    if (searchError != null) {
+        MuseErrorStateBox(
+            message = searchError,
+            onRetry = onRetry,
+            modifier = modifier,
+        )
+        return
+    }
     // 无结果 + 搜索中:居中大号 loading + 文案
     if (messageResults.isEmpty() && isSearching) {
         Box(

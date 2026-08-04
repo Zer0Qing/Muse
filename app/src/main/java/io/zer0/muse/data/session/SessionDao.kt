@@ -14,15 +14,15 @@ import kotlinx.coroutines.flow.Flow
 interface SessionDao {
 
     /** 观察全部会话(置顶优先,再按 updatedAt 降序)。含已归档和已软删除会话,仅供备份导出使用。主列表用 [observeActive]。 */
-    @Query("SELECT * FROM sessions ORDER BY pinned DESC, updatedAt DESC")
+    @Query("SELECT * FROM sessions ORDER BY pinned DESC, sortOrder ASC, updatedAt DESC")
     fun observeAll(): Flow<List<SessionEntity>>
 
     /** v0.45: 观察未归档会话(置顶优先,再按 updatedAt 降序)。主列表用。 */
-    @Query("SELECT * FROM sessions WHERE archived = 0 AND deletedAt IS NULL ORDER BY pinned DESC, updatedAt DESC")
+    @Query("SELECT * FROM sessions WHERE archived = 0 AND deletedAt IS NULL ORDER BY pinned DESC, sortOrder ASC, updatedAt DESC")
     fun observeActive(): Flow<List<SessionEntity>>
 
     /** v1.28: 观察未归档的任务会话(排除 Agent Tab 会话)。任务列表用。 */
-    @Query("SELECT * FROM sessions WHERE archived = 0 AND isAgentSession = 0 AND deletedAt IS NULL ORDER BY pinned DESC, updatedAt DESC")
+    @Query("SELECT * FROM sessions WHERE archived = 0 AND isAgentSession = 0 AND deletedAt IS NULL ORDER BY pinned DESC, sortOrder ASC, updatedAt DESC")
     fun observeTaskSessions(): Flow<List<SessionEntity>>
 
     /** v1.28: 观察 Agent Tab 会话(Agent 日常聊天)。 */
@@ -38,7 +38,7 @@ interface SessionDao {
     suspend fun getRecentAgentByAssistant(assistantId: String, limit: Int): List<SessionEntity>
 
     /** v0.45: 观察已归档会话。v1.67: 排序与主列表一致(pinned DESC, updatedAt DESC)。 */
-    @Query("SELECT * FROM sessions WHERE archived = 1 AND deletedAt IS NULL ORDER BY pinned DESC, updatedAt DESC")
+    @Query("SELECT * FROM sessions WHERE archived = 1 AND deletedAt IS NULL ORDER BY pinned DESC, sortOrder ASC, updatedAt DESC")
     fun observeArchived(): Flow<List<SessionEntity>>
 
     /** v0.45: 切换会话归档状态。 */
@@ -195,4 +195,33 @@ interface SessionDao {
      */
     @Query("SELECT * FROM sessions WHERE assistantId = :assistantId AND archived = 0 AND deletedAt IS NULL AND isAgentSession = 0 ORDER BY updatedAt DESC LIMIT :limit")
     suspend fun getRecentByAssistant(assistantId: String, limit: Int): List<SessionEntity>
+
+    @Query("UPDATE sessions SET lastReadMessageId = :messageId, lastReadCount = :readCount WHERE id = :sessionId")
+    suspend fun updateLastReadMessage(sessionId: String, messageId: String, readCount: Int)
+
+    @Query("UPDATE sessions SET sortOrder = :sortOrder WHERE id = :id")
+    suspend fun updateSortOrder(id: String, sortOrder: Int)
+
+    /** B8-01: 更新会话级主动消息排期(null=清除排期)。 */
+    @Query("UPDATE sessions SET proactiveNextTriggerAt = :nextTriggerAt WHERE id = :id")
+    suspend fun updateProactiveNextTriggerAt(id: String, nextTriggerAt: Long?)
+
+    /** B7-03: 找最后已读消息之后的第一条未读消息。 */
+    @Query(
+        """
+        SELECT id FROM messages WHERE sessionId = :sessionId AND deletedAt IS NULL
+        AND (
+            createdAt > (SELECT createdAt FROM messages WHERE id = :lastReadMessageId)
+            OR (createdAt = (SELECT createdAt FROM messages WHERE id = :lastReadMessageId) AND id > :lastReadMessageId)
+        )
+        ORDER BY createdAt ASC, id ASC LIMIT 1
+        """
+    )
+    suspend fun findFirstUnreadMessageId(sessionId: String, lastReadMessageId: String): String?
+
+    /** B7-03: 从未读过时取会话第一条消息。 */
+    @Query(
+        "SELECT id FROM messages WHERE sessionId = :sessionId AND deletedAt IS NULL ORDER BY createdAt ASC, id ASC LIMIT 1"
+    )
+    suspend fun findFirstMessageId(sessionId: String): String?
 }

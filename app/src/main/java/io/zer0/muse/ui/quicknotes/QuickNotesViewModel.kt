@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
+import io.zer0.muse.data.quicknote.NoteCipher
 import io.zer0.muse.data.quicknote.QuickNoteDao
 import io.zer0.muse.data.quicknote.QuickNoteEntity
 import io.zer0.muse.tools.reminder.ReminderAlarmReceiver
@@ -76,6 +77,7 @@ class QuickNotesViewModel(
 ) : ViewModel() {
 
     private val reminderStore = ReminderStore(context)
+    private val noteCipher = NoteCipher()
 
     private val _searchKeyword = MutableStateFlow("")
     private val _selectedTag = MutableStateFlow<String?>(null)
@@ -234,10 +236,21 @@ class QuickNotesViewModel(
     ) {
         viewModelScope.launch {
             val existing = dao.getById(id) ?: return@launch
+            val newContent = content
+            val finalEncryptedContent = if (existing.encrypted) {
+                if (newContent != null) {
+                    runCatching { noteCipher.encrypt(newContent) }.getOrElse {
+                        Logger.w(TAG, "快捷笔记更新加密失败: ${it.message}")
+                        existing.encryptedContent
+                    }
+                } else existing.encryptedContent
+            } else existing.encryptedContent
+            val finalContent = if (existing.encrypted) "" else (newContent ?: existing.content)
             dao.upsert(
                 existing.copy(
                     title = title ?: existing.title,
-                    content = content ?: existing.content,
+                    content = finalContent,
+                    encryptedContent = finalEncryptedContent,
                     tags = tags ?: existing.tags,
                     folder = folder ?: existing.folder,
                     contentType = contentType ?: existing.contentType,
@@ -321,11 +334,19 @@ class QuickNotesViewModel(
         viewModelScope.launch {
             val existing = dao.getById(id) ?: return@launch
             if (encrypted) {
-                // TODO: 后续完善 — 用 BiometricPrompt + AES 加密 content,密文存入 encryptedContent,content 置空
-                dao.setEncrypted(id, true, existing.content)
+                val cipher = runCatching { noteCipher.encrypt(existing.content) }.getOrElse {
+                    Logger.w(TAG, "快捷笔记加密失败: ${it.message}")
+                    existing.content
+                }
+                dao.setEncrypted(id, true, cipher)
             } else {
-                // TODO: 后续完善 — 用 BiometricPrompt + AES 解密 encryptedContent,还原 content
-                dao.setEncrypted(id, false, "")
+                val plain = if (existing.encryptedContent.isNotBlank()) {
+                    runCatching { noteCipher.decrypt(existing.encryptedContent) }.getOrElse {
+                        Logger.w(TAG, "快捷笔记解密失败,按旧假加密迁移: ${it.message}")
+                        existing.encryptedContent
+                    }
+                } else existing.content
+                dao.setEncrypted(id, false, plain)
             }
         }
     }
@@ -593,6 +614,8 @@ data class QuickNoteExportDto(
     @SerialName("reminder_at") val reminderAt: Long = 0,
     @SerialName("created_at") val createdAt: Long,
     @SerialName("updated_at") val updatedAt: Long,
+    @SerialName("encrypted") val encrypted: Boolean = false,
+    @SerialName("encrypted_content") val encryptedContent: String = "",
 )
 
 /** 把 [QuickNoteEntity] 转换为导出 DTO。 */
@@ -608,6 +631,8 @@ private fun QuickNoteEntity.toExportDto(): QuickNoteExportDto = QuickNoteExportD
     reminderAt = reminderAt,
     createdAt = createdAt,
     updatedAt = updatedAt,
+    encrypted = encrypted,
+    encryptedContent = encryptedContent,
 )
 
 /** 把导出 DTO 转换为 [QuickNoteEntity](导入用,deleted=false/encrypted=false)。 */
@@ -625,6 +650,6 @@ private fun QuickNoteExportDto.toEntity(): QuickNoteEntity = QuickNoteEntity(
     contentType = contentType,
     attachmentsJson = attachmentsJson,
     reminderAt = reminderAt,
-    encrypted = false,
-    encryptedContent = "",
+    encrypted = encrypted,
+    encryptedContent = encryptedContent,
 )

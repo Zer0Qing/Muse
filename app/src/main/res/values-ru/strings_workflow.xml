@@ -51,4 +51,6 @@
     <string name="workflow_zoom_limit_reached">Достигнут предел масштабирования</string>
     <string name="workflow_canvas_empty_title">Холст пуст</string>
     <string name="workflow_canvas_empty_subtitle">Дважды коснитесь пустой области, чтобы добавить узел, или нажмите кнопку «Добавить» на панели инструментов ниже.</string>
+    <string name="workflow_external_conflict">Файл рабочего процесса изменён извне</string>
+    <string name="workflow_force_save">Принудительно сохранить</string>
 </resources>

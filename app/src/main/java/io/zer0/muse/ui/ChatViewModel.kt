@@ -39,6 +39,7 @@ import io.zer0.muse.data.artifact.ArtifactRepository
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.audit.AuditLogger
+import io.zer0.muse.data.milestone.MilestoneChecker
 import io.zer0.muse.data.lorebook.LorebookEntity
 import io.zer0.muse.data.lorebook.LorebookRepository
 import io.zer0.muse.data.promptinjection.PromptInjectionEntity
@@ -129,7 +130,9 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -199,7 +202,7 @@ enum class ChatErrorType {
  * 后续完整拆分路线图(本次不做,标注 TODO):
  *  - TODO(state-split): 把高频字段抽到 `ChatUIState`(input/isStreaming/isWaitingFirstToken/visionProgress)
  *  - TODO(state-split): 把工具相关抽到 `ToolsState`(toolCallHistory/pendingToolApprovals/taskCards)
- *  - TODO(state-split): 把 Agent 相关抽到 `AgentState`(isAgentMode/agentSessionId/delegationChain)
+ *  - TODO(state-split): 把 Agent 相关抽到 `ChatAgentState`(isAgentMode/agentSessionId/delegationChain)
  *
  * @param messages 完整消息列表(含占位的 assistant 流式消息)
  * @param input 当前输入框文本
@@ -220,364 +223,661 @@ enum class ChatErrorType {
  * @param currentAssistant 当前会话绑定的 Assistant(Phase 8.2,影响 systemPrompt/模型/工具/记忆)
  * @param favoriteMessages 跨会话收藏的消息列表(Phase 8.3,收藏面板用)
  */
-data class ChatUiState(
-    val messages: List<UIMessage> = emptyList(),
-    val input: String = "",
+data class ChatStreamState(
     val isStreaming: Boolean = false,
     /**
-     * v1.0.3: 流式启动后是否仍在等待首个 token(含 ContentDelta / ReasoningDelta)。
-     *
-     * - true: 处于"思考中"阶段,UI 显示 ShimmerBubble 骨架屏 + "思考中"文字
-     * - false: 已收到首 token,进入"正在写"阶段,UI 显示 StreamingCursor 光标 + 流式文本
-     *
-     * 与 [isStreaming] 的关系:
-     *  - 发送时:isStreaming=true, isWaitingFirstToken=true
-     *  - 首 token 到达:isStreaming=true, isWaitingFirstToken=false
-     *  - 流式结束/出错/停止:isStreaming=false, isWaitingFirstToken=false
-     *
-     * 区分两阶段的好处:
-     *  1. 首 token 到达后立即让 ShimmerBubble 消失,避免"loading → 突然大量文字"的视觉断层
-     *  2. UI 可以分别给两阶段不同的视觉反馈(骨架屏 vs 流式光标)
-     *  3. reasoning-only 阶段(模型只输出思考链,content 仍空)不会被误判为"还在等待"
-     */
-    val isWaitingFirstToken: Boolean = false,
+         * v1.0.3: 流式启动后是否仍在等待首个 token(含 ContentDelta / ReasoningDelta)。
+         *
+         * - true: 处于"思考中"阶段,UI 显示 ShimmerBubble 骨架屏 + "思考中"文字
+         * - false: 已收到首 token,进入"正在写"阶段,UI 显示 StreamingCursor 光标 + 流式文本
+         *
+         * 与 [isStreaming] 的关系:
+         *  - 发送时:isStreaming=true, isWaitingFirstToken=true
+         *  - 首 token 到达:isStreaming=true, isWaitingFirstToken=false
+         *  - 流式结束/出错/停止:isStreaming=false, isWaitingFirstToken=false
+         *
+         * 区分两阶段的好处:
+         *  1. 首 token 到达后立即让 ShimmerBubble 消失,避免"loading → 突然大量文字"的视觉断层
+         *  2. UI 可以分别给两阶段不同的视觉反馈(骨架屏 vs 流式光标)
+         *  3. reasoning-only 阶段(模型只输出思考链,content 仍空)不会被误判为"还在等待"
+         */
+        val isWaitingFirstToken: Boolean = false,
     /**
-     * v1.0.4: 视觉辅助分析进度(null=未在分析)。
-     *
-     * 当纯文本模型需要通过视觉辅助分析图片时,UI 可据此显示"正在分析图片 2/4…"。
-     * 与 [isWaitingFirstToken] 配合:视觉分析期间 ShimmerBubble 显示视觉进度文字。
-     */
-    val visionProgress: io.zer0.muse.vision.VisionProgress? = null,
+         * v1.0.4: 视觉辅助分析进度(null=未在分析)。
+         *
+         * 当纯文本模型需要通过视觉辅助分析图片时,UI 可据此显示"正在分析图片 2/4…"。
+         * 与 [isWaitingFirstToken] 配合:视觉分析期间 ShimmerBubble 显示视觉进度文字。
+         */
+        val visionProgress: io.zer0.muse.vision.VisionProgress? = null,
     /**
-     * v1.138: 已视觉辅助处理过的用户消息 ID 集合。
-     *
-     * 当主模型不支持视觉、通过 VisionBridge 分析图片后,将用户消息 ID 加入此集合。
-     * UI 层据此在图片下方显示"辅助视觉 · 已分析"标签,让用户知道图片经过了视觉辅助处理。
-     */
-    val visionAssistedMessageIds: Set<String> = emptySet(),
+         * v1.138: 已视觉辅助处理过的用户消息 ID 集合。
+         *
+         * 当主模型不支持视觉、通过 VisionBridge 分析图片后,将用户消息 ID 加入此集合。
+         * UI 层据此在图片下方显示"辅助视觉 · 已分析"标签,让用户知道图片经过了视觉辅助处理。
+         */
+        val visionAssistedMessageIds: Set<String> = emptySet(),
     /**
-     * v1.0.4 (P0): OCR 识别进度标志。
-     *
-     * 用户从相册选图并以 OCR 模式识别文字时,识别期间(1-3s)设置 true,
-     * ShimmerBubble 显示"正在识别图片文字…"。
-     */
-    val isOcrProcessing: Boolean = false,
+         * v1.0.4 (P0): OCR 识别进度标志。
+         *
+         * 用户从相册选图并以 OCR 模式识别文字时,识别期间(1-3s)设置 true,
+         * ShimmerBubble 显示"正在识别图片文字…"。
+         */
+        val isOcrProcessing: Boolean = false,
     /**
-     * v1.0.4 (P0): 工具调用恢复时的进度文本(断点续传路径用)。
-     *
-     * 当用户进入有未完成工具调用的会话并点击恢复时,ShimmerBubble 显示此文本。
-     * 流式工具调用路径已通过 TaskCard 显示进度,无需此字段。
-     */
-    val toolProgressMessage: String? = null,
+         * v1.0.4 (P0): 工具调用恢复时的进度文本(断点续传路径用)。
+         *
+         * 当用户进入有未完成工具调用的会话并点击恢复时,ShimmerBubble 显示此文本。
+         * 流式工具调用路径已通过 TaskCard 显示进度,无需此字段。
+         */
+        val toolProgressMessage: String? = null,
+    /**
+         * 断点续传:当前会话未完成的工具调用数量。
+         *
+         * 大于 0 时 ChatScreen 顶部展示恢复 Banner(恢复执行 / 丢弃)。
+         * 由 [ChatViewModel.switchSession] / [ChatViewModel.resumePendingToolCalls] /
+         * [ChatViewModel.discardPendingToolCalls] 维护。
+         */
+        val pendingToolCallCount: Int = 0,
+)
+
+data class ChatInputState(
+    val input: String = "",
+    /** Phase 8.6: 待发送的本地图片 base64 列表(无 data: 前缀)。 */
+        val pendingImages: List<String> = emptyList(),
+    /** v1.136 T10: 待发送的文档列表(已解析为纯文本,发送时合并到消息内容)。 */
+        val pendingDocuments: List<io.zer0.muse.ui.chat.PendingDocument> = emptyList(),
+    /** v1.91: ASR 状态机(流式模式)。 */
+        val asrState: ASRState = ASRState(),
+    /** 引用回复:当前正在回复的目标消息(仅 UI 层,发送后清空)。 */
+        val replyingTo: UIMessage? = null,
+    /** v1.57: 引用回复的自定义引用文本(用户可在引用卡片编辑裁剪,null 时用 replyingTo.content)。 */
+        val replyQuoteOverride: String? = null,
+    /**
+         * v1.0.47 P5: 输入历史(本会话内已发送的消息文本,用于输入框上箭头回调)。
+         *
+         * 最近 N 条(默认 50),上箭头按时间倒序遍历,下箭头正向遍历。
+         * 仅存内存,不持久化(会话结束清空)。
+         */
+        val inputHistory: List<String> = emptyList(),
+    /** v1.0.47 P5: 输入历史导航索引(null=不在历史导航中,0=最近一条)。 */
+        val inputHistoryIndex: Int? = null,
+    /** 功能2: 当前输入是否为从 DataStore 恢复的草稿。 */
+        val hasDraft: Boolean = false,
+)
+
+data class ChatSessionState(
+    val currentSessionId: String? = null,
+    val sessions: List<SessionEntity> = emptyList(),
+    /** v1.72: 会话列表首次加载标志(避免闪空状态,DB 首次 emit 前显示 loading) */
+        val isSessionsLoading: Boolean = true,
+    /** v1.0.62: 会话列表加载失败信息(null=正常)。 */
+        val sessionsError: String? = null,
+    /** v0.45: 已归档会话列表(归档 FilterCard 用)。 */
+        val archivedSessions: List<SessionEntity> = emptyList(),
+    /** Phase 9.1 (M13): 全部文件夹(Drawer 按 folderId 分组渲染会话)。 */
+        val folders: List<io.zer0.muse.data.session.FolderEntity> = emptyList(),
+)
+
+data class ChatAgentState(
     /** v1.28: 是否为 Agent Tab 模式(决定 send 用 agentSessionId 还是 currentSessionId)。 */
-    val isAgentMode: Boolean = false,
+        val isAgentMode: Boolean = false,
+    /** v1.28: Agent Tab 专用会话 id(独立于任务的 currentSessionId)。 */
+        val agentSessionId: String? = null,
+    val assistants: List<AssistantEntity> = emptyList(),
+    /** v1.72: 助手列表首次加载标志(避免闪空状态) */
+        val isAssistantsLoading: Boolean = true,
+    val currentAssistant: AssistantEntity? = null,
+    /** v1.201: 委派链路根节点(空列表表示无委派)。 */
+        val delegationChain: List<io.zer0.muse.tools.DelegationChainTracker.ChainNode> = emptyList(),
+    /** v1.201: 当前活跃的委派暂停请求(null 表示无待确认)。 */
+        val activePauseRequest: io.zer0.muse.tools.DelegationPauseManager.PauseRequest? = null,
+    /** v1.202: 当前会话活跃的后台子 agent 线程(SubagentTaskListCard 渲染用,空列表表示无)。 */
+        val activeSubagentThreads: List<io.zer0.muse.data.subagent.SubagentThreadStore.ThreadEntry> = emptyList(),
+    /** v1.202: 当前会话待处理(PENDING)的后台子 agent 任务(SubagentTaskListCard 渲染用)。 */
+        val pendingSubagentTasks: List<io.zer0.muse.tools.DeferredResultStore.DeferredTask> = emptyList(),
+    // ── P6: Agent Mode 增强 ──────────────────────────────────────────
+        /** v1.0.47 P6-2: 当前模型是否为弱工具调用模型(Agent Mode 下显示降级提示)。 */
+        val isWeakToolModel: Boolean = false,
+    /** v1.0.47 P6-2: 弱工具模型降级提示文案(null = 非弱工具模型,不显示)。 */
+        val weakToolHint: String? = null,
+    /** v1.0.47 P6-3: 会话锁定(Agent Mode ON 时锁定,禁止切换助手/清空消息)。 */
+        val isSessionLocked: Boolean = false,
+    /** v1.0.47 P6-4: Agent Mode 提示卡片文案(null = 不显示卡片)。 */
+        val agentModeHint: String? = null,
+)
+
+class ChatUiState(
+    val streamState: ChatStreamState = ChatStreamState(),
+    val inputState: ChatInputState = ChatInputState(),
+    val sessionState: ChatSessionState = ChatSessionState(),
+    val agentState: ChatAgentState = ChatAgentState(),
+    /** B7-01: 消息多选模式。 */
+    val selectionMode: Boolean = false,
+    /** B7-01: 已选消息 id 集合。 */
+    val selectedMessageIds: Set<String> = emptySet(),
     /** v1.137 B2: 会话切换中标志 — true 时 UI 保持上一帧消息(不显示空列表),消除切换闪烁。 */
-    val isSwitchingSession: Boolean = false,
+        val isSwitchingSession: Boolean = false,
     val errors: List<ChatError> = emptyList(),
     val isConfigured: Boolean = false,
     /** 是否正在拉取上游模型列表(底部模型切换面板用)。 */
-    val isFetchingModels: Boolean = false,
+        val isFetchingModels: Boolean = false,
     /** 拉取上游模型错误信息。 */
-    val fetchModelsError: String? = null,
-    val currentSessionId: String? = null,
+        val fetchModelsError: String? = null,
     /**
-     * v1.93+: 本次 switchSession 是否命中内存 LRU 缓存(调试用)。
-     *
-     * - true: 命中 [SessionMemoryCache],跳过了 DB 查询,直接复用内存消息快照
-     * - false: 未命中(或后台正在生成需走 DB),从 DB 分页加载
-     *
-     * 仅用于性能追踪与调试,不影响业务逻辑。
-     */
-    val memoryCacheHit: Boolean = false,
-    /** v1.28: Agent Tab 专用会话 id(独立于任务的 currentSessionId)。 */
-    val agentSessionId: String? = null,
-    val sessions: List<SessionEntity> = emptyList(),
-    /** v1.72: 会话列表首次加载标志(避免闪空状态,DB 首次 emit 前显示 loading) */
-    val isSessionsLoading: Boolean = true,
-    /** v0.45: 已归档会话列表(归档 FilterCard 用)。 */
-    val archivedSessions: List<SessionEntity> = emptyList(),
+         * v1.93+: 本次 switchSession 是否命中内存 LRU 缓存(调试用)。
+         *
+         * - true: 命中 [SessionMemoryCache],跳过了 DB 查询,直接复用内存消息快照
+         * - false: 未命中(或后台正在生成需走 DB),从 DB 分页加载
+         *
+         * 仅用于性能追踪与调试,不影响业务逻辑。
+         */
+        val memoryCacheHit: Boolean = false,
     val isDrawerOpen: Boolean = false,
     val searchQuery: String = "",
     val searchResults: List<SearchResult> = emptyList(),
     val isSearching: Boolean = false,
     /**
-     * v2.x: 搜索页 Tab 当前选中索引(0=会话, 1=消息内容)。
-     *
-     * Tab=0 沿用原有"会话标题/预览匹配 + 设置项匹配"逻辑(展示 [searchResults] + matchedSessions);
-     * Tab=1 展示 [messageResults](消息内容搜索,FTS4 snippet + 点击跳转传 messageId)。
-     */
-    val searchTab: Int = 0,
+         * v2.x: 搜索页 Tab 当前选中索引(0=会话, 1=消息内容)。
+         *
+         * Tab=0 沿用原有"会话标题/预览匹配 + 设置项匹配"逻辑(展示 [searchResults] + matchedSessions);
+         * Tab=1 展示 [messageResults](消息内容搜索,FTS4 snippet + 点击跳转传 messageId)。
+         */
+        val searchTab: Int = 0,
     /** v2.x: 消息内容搜索结果(仅在 searchTab=1 时展示,由 FTS4 + snippet 生成)。 */
-    val messageResults: List<SearchResult> = emptyList(),
+        val messageResults: List<SearchResult> = emptyList(),
     /** v2.x: 是否正在执行消息内容搜索(独立于 [isSearching],避免两个 Tab 互相干扰)。 */
-    val isSearchingMessages: Boolean = false,
+        val isSearchingMessages: Boolean = false,
+    /** v1.0.62: 搜索失败信息(null=正常),会话/消息内容 Tab 共用。 */
+        val searchError: String? = null,
     /**
-     * v2.x: 从搜索结果点击消息跳转时,目标消息 id。
-     *
-     * ChatScreen 进入会话后会读取此字段滚动到该消息并触发高亮,完成后由
-     * [ChatViewModel.consumeTargetMessage] 清空(避免重复触发)。
-     */
-    val targetMessageId: String? = null,
+         * v2.x: 从搜索结果点击消息跳转时,目标消息 id。
+         *
+         * ChatScreen 进入会话后会读取此字段滚动到该消息并触发高亮,完成后由
+         * [ChatViewModel.consumeTargetMessage] 清空(避免重复触发)。
+         */
+        val targetMessageId: String? = null,
     /**
-     * v2.x: 搜索高亮关键词(从搜索结果跳转时携带,用于 MessageBubble 内文本高亮)。
-     *
-     * 仅当 [highlightedMessageId] 非空时有效;高亮结束后清空。
-     */
-    val searchHighlightQuery: String? = null,
+         * v2.x: 搜索高亮关键词(从搜索结果跳转时携带,用于 MessageBubble 内文本高亮)。
+         *
+         * 仅当 [highlightedMessageId] 非空时有效;高亮结束后清空。
+         */
+        val searchHighlightQuery: String? = null,
     /**
-     * v2.x: 当前正在短暂高亮的消息 id(从搜索结果跳转滚动定位后设置,几秒后清空)。
-     *
-     * ChatScreen 据此为对应 MessageBubble 传 highlightText,实现"进入会话高亮目标消息"。
-     */
-    val highlightedMessageId: String? = null,
+         * v2.x: 当前正在短暂高亮的消息 id(从搜索结果跳转滚动定位后设置,几秒后清空)。
+         *
+         * ChatScreen 据此为对应 MessageBubble 传 highlightText,实现"进入会话高亮目标消息"。
+         */
+        val highlightedMessageId: String? = null,
     val isDrawMode: Boolean = false,
     /** v0.34: 当前绘图参数(可临时覆盖设置中的默认值)。 */
-    val imageGenParams: io.zer0.ai.image.ImageGenParams = io.zer0.ai.image.ImageGenParams(),
+        val imageGenParams: io.zer0.ai.image.ImageGenParams = io.zer0.ai.image.ImageGenParams(),
     val isGeneratingImage: Boolean = false,
     /**
-     * v1.0.4 (P1): 视频生成中标志。
-     *
-     * LLM 调用 generate_video 工具时设为 true,完成/失败/取消时设为 false。
-     * ChatScreen 显示 VideoGenerationPlaceholder 占位卡片,与 ImageGenerationPlaceholder 对称。
-     * 注:execGenerateVideo 还会通过 updateAssistant(content="正在生成视频...") 在助手消息气泡
-     * 内同步进度,本字段是补充占位卡片反馈,不是替代。
-     */
-    val isGeneratingVideo: Boolean = false,
+         * v1.0.4 (P1): 视频生成中标志。
+         *
+         * LLM 调用 generate_video 工具时设为 true,完成/失败/取消时设为 false。
+         * ChatScreen 显示 VideoGenerationPlaceholder 占位卡片,与 ImageGenerationPlaceholder 对称。
+         * 注:execGenerateVideo 还会通过 updateAssistant(content="正在生成视频...") 在助手消息气泡
+         * 内同步进度,本字段是补充占位卡片反馈,不是替代。
+         */
+        val isGeneratingVideo: Boolean = false,
     val isTranslating: Boolean = false,
     val translatingMessageId: Uuid? = null,
-    val assistants: List<AssistantEntity> = emptyList(),
-    /** v1.72: 助手列表首次加载标志(避免闪空状态) */
-    val isAssistantsLoading: Boolean = true,
-    val currentAssistant: AssistantEntity? = null,
     val favoriteMessages: List<UIMessage> = emptyList(),
     /** v1.77: 收藏列表首次加载标志(避免闪空状态) */
-    val isFavoritesLoading: Boolean = true,
+        val isFavoritesLoading: Boolean = true,
     /**
-     * v1.104 U7: 已命名的收藏分组标签列表(去重升序,不含 NULL 未分组)。
-     *
-     * 由 DAO observeAllFavoriteTags 聚合,UI 据此渲染顶部 FilterChip 行。
-     */
-    val favoriteTags: List<String> = emptyList(),
+         * v1.104 U7: 已命名的收藏分组标签列表(去重升序,不含 NULL 未分组)。
+         *
+         * 由 DAO observeAllFavoriteTags 聚合,UI 据此渲染顶部 FilterChip 行。
+         */
+        val favoriteTags: List<String> = emptyList(),
     /**
-     * v1.104 U7: 当前选中的分组筛选条件。
-     *
-     *  - null = 显示全部收藏
-     *  - 非空字符串 = 仅显示该 tag 下的收藏
-     *  - 特殊值 [FAVORITE_TAG_UNGROUPED] = 仅显示未分组(favoriteTag=null)的收藏
-     *
-     * FavoritesScreen 在本地对 favoriteMessages 做过滤,不在 ViewModel 预过滤,
-     * 保证 favoriteMessages 始终是全量(便于"全部"chip 显示总数)。
-     */
-    val favoriteTagFilter: String? = null,
+         * v1.104 U7: 当前选中的分组筛选条件。
+         *
+         *  - null = 显示全部收藏
+         *  - 非空字符串 = 仅显示该 tag 下的收藏
+         *  - 特殊值 [FAVORITE_TAG_UNGROUPED] = 仅显示未分组(favoriteTag=null)的收藏
+         *
+         * FavoritesScreen 在本地对 favoriteMessages 做过滤,不在 ViewModel 预过滤,
+         * 保证 favoriteMessages 始终是全量(便于"全部"chip 显示总数)。
+         */
+        val favoriteTagFilter: String? = null,
     /**
-     * v2.0: 预设分类筛选(全部/灵感/代码/学习/自定义)。
-     * 与 favoriteTagFilter 互斥,优先级高于 favoriteTagFilter。
-     * null = 不按预设分类筛选,回退到 favoriteTagFilter。
-     */
-    val favoriteGroup: String? = null,
+         * v2.0: 预设分类筛选(全部/灵感/代码/学习/自定义)。
+         * 与 favoriteTagFilter 互斥,优先级高于 favoriteTagFilter。
+         * null = 不按预设分类筛选,回退到 favoriteTagFilter。
+         */
+        val favoriteGroup: String? = null,
     /** Phase 8.4: 是否启用联网搜索(InputBar 上的开关,运行时切换)。 */
-    val webSearchEnabled: Boolean = false,
+        val webSearchEnabled: Boolean = false,
     /**
-     * v0.45: 当前上下文 token 占用估算(含 system prompt + 全部消息文本)。
-     *
-     * 由 [ChatViewModel.updateContextTokenCount] 实时更新,UI 据此渲染占用圆环。
-     * 流式过程中每 50 字符更新一次(避免过于频繁),非流式时立即更新。
-     */
-    val contextTokenCount: Int = 0,
+         * v0.45: 当前上下文 token 占用估算(含 system prompt + 全部消息文本)。
+         *
+         * 由 [ChatViewModel.updateContextTokenCount] 实时更新,UI 据此渲染占用圆环。
+         * 流式过程中每 50 字符更新一次(避免过于频繁),非流式时立即更新。
+         */
+        val contextTokenCount: Int = 0,
     /**
-     * v0.45: 当前模型的上下文窗口大小(token 数)。
-     *
-     * 0 表示未知(模型未声明 contextWindow),UI 不显示占用圆环。
-     * 切换会话 / 选择模型时由 [ChatViewModel.refreshContextMaxTokens] 刷新。
-     */
-    val contextMaxTokens: Int = 0,
+         * v0.45: 当前模型的上下文窗口大小(token 数)。
+         *
+         * 0 表示未知(模型未声明 contextWindow),UI 不显示占用圆环。
+         * 切换会话 / 选择模型时由 [ChatViewModel.refreshContextMaxTokens] 刷新。
+         */
+        val contextMaxTokens: Int = 0,
     /**
-     * v1.0.47: Token 估算开关(默认关闭)。
-     *
-     * 用户在设置页显式开启后,输入框显示当前输入 token 估算,
-     * AI 消息底部显示 completionTokens,顶部栏显示上下文占用。
-     * 关闭时不做任何 token 计算,避免 BPE 编码性能开销。
-     */
-    val tokenEstimateEnabled: Boolean = false,
+         * v1.0.47: Token 估算开关(默认关闭)。
+         *
+         * 用户在设置页显式开启后,输入框显示当前输入 token 估算,
+         * AI 消息底部显示 completionTokens,顶部栏显示上下文占用。
+         * 关闭时不做任何 token 计算,避免 BPE 编码性能开销。
+         */
+        val tokenEstimateEnabled: Boolean = false,
     /** v1.0.47 P5-2: 长文本粘贴转文件开关(默认开启)。 */
-    val pasteAsFileEnabled: Boolean = true,
+        val pasteAsFileEnabled: Boolean = true,
     /** v1.0.47 P5-2: 长文本粘贴转文件阈值(字符数)。 */
-    val pasteAsFileThreshold: Int = 2000,
+        val pasteAsFileThreshold: Int = 2000,
     /** v1.0.47 P5-3: Token 计数菜单是否展开。仅 tokenEstimateEnabled=true 时可触发。 */
-    val tokenCountVisible: Boolean = false,
+        val tokenCountVisible: Boolean = false,
     /** v1.0.47 P5-3: Token 计数快照(打开菜单时计算一次,避免每次按键重算 BPE)。 */
-    val tokenSnapshot: TokenCountSnapshot? = null,
+        val tokenSnapshot: TokenCountSnapshot? = null,
     /**
-     * v0.45: 是否正在执行"更新记忆并压缩"。
-     *
-     * 手动压缩按钮点击后置 true,完成后置 false。UI 据此显示转圈 + 禁用按钮。
-     */
-    val isCompressing: Boolean = false,
+         * v0.45: 是否正在执行"更新记忆并压缩"。
+         *
+         * 手动压缩按钮点击后置 true,完成后置 false。UI 据此显示转圈 + 禁用按钮。
+         */
+        val isCompressing: Boolean = false,
     /** v0.39: 深度思考开关(聊天时临时启用 HIGH 推理,覆盖助手默认 reasoningLevel)。 */
-    val deepThinkingEnabled: Boolean = false,
+        val deepThinkingEnabled: Boolean = false,
     /**
-     * v1.0.47 P5-6: 深度思考级别(仅在 [deepThinkingEnabled]=true 时生效)。
-     *
-     * 默认 HIGH(向后兼容 v0.39 行为)。用户可点击输入栏级别胶囊在
-     * LOW → MEDIUM → HIGH → XHIGH 之间循环。
-     * 不支持推理的模型在 [ChatStreamCoordinator] 内自动降级为 AUTO,不会报错。
-     */
-    val deepThinkingLevel: ReasoningLevel = ReasoningLevel.HIGH,
+         * v1.0.47 P5-6: 深度思考级别(仅在 [deepThinkingEnabled]=true 时生效)。
+         *
+         * 默认 HIGH(向后兼容 v0.39 行为)。用户可点击输入栏级别胶囊在
+         * LOW → MEDIUM → HIGH → XHIGH 之间循环。
+         * 不支持推理的模型在 [ChatStreamCoordinator] 内自动降级为 AUTO,不会报错。
+         */
+        val deepThinkingLevel: ReasoningLevel = ReasoningLevel.HIGH,
     /** Phase 8.4: Web 搜索配置(用于 Settings 页编辑)。 */
-    val webSearchConfig: WebSearchConfig = WebSearchConfig(),
+        val webSearchConfig: WebSearchConfig = WebSearchConfig(),
     /** Phase 8.5: 当前会话绑定的快捷消息列表(InputBar 上方 chip 行用)。 */
-    val quickMessages: List<QuickMessageEntity> = emptyList(),
+        val quickMessages: List<QuickMessageEntity> = emptyList(),
     /** Phase 8.5: 当前激活的模式(用于 PromptInjection,default 表示无注入)。 */
-    val currentMode: String = "default",
+        val currentMode: String = "default",
     /** Phase 8.5: 全部 Lorebook 条目(管理页用)。 */
-    val lorebooks: List<LorebookEntity> = emptyList(),
+        val lorebooks: List<LorebookEntity> = emptyList(),
     /** Phase 8.5: 全部 PromptInjection 条目(管理页用)。 */
-    val promptInjections: List<PromptInjectionEntity> = emptyList(),
+        val promptInjections: List<PromptInjectionEntity> = emptyList(),
     /** Phase 8.5: 全部 QuickMessage 条目(管理页用,含 global + 各 Assistant 绑定的)。 */
-    val allQuickMessages: List<QuickMessageEntity> = emptyList(),
+        val allQuickMessages: List<QuickMessageEntity> = emptyList(),
     /** v1.58: Prompt 模板列表(预置场景提示词,从 plus 菜单进入模板库选择)。 */
-    val promptTemplates: List<io.zer0.muse.data.prompttemplate.PromptTemplate> = emptyList(),
-    /** Phase 8.6: 待发送的本地图片 base64 列表(无 data: 前缀)。 */
-    val pendingImages: List<String> = emptyList(),
-    /** v1.136 T10: 待发送的文档列表(已解析为纯文本,发送时合并到消息内容)。 */
-    val pendingDocuments: List<io.zer0.muse.ui.chat.PendingDocument> = emptyList(),
+        val promptTemplates: List<io.zer0.muse.data.prompttemplate.PromptTemplate> = emptyList(),
     /** Phase 8.7: TTS 是否正在朗读(用于 InputBar 禁用/MessageBubble 高亮)。 */
-    val isSpeaking: Boolean = false,
+        val isSpeaking: Boolean = false,
     /** Phase 8.7: 正在朗读的消息 id(null 表示无)。 */
-    val speakingMessageId: Uuid? = null,
+        val speakingMessageId: Uuid? = null,
     /** Phase 8.8: 任务卡映射(assistant 消息 id → TaskCardData),工具调用计划展示。 */
-    val taskCards: Map<String, io.zer0.muse.ui.taskcard.TaskCardData> = emptyMap(),
+        val taskCards: Map<String, io.zer0.muse.ui.taskcard.TaskCardData> = emptyMap(),
     /** v1.55: Agent 工作流计划映射(planId → AgentPlan),结构化任务规划展示。 */
-    val agentPlans: Map<String, io.zer0.muse.ui.taskcard.AgentPlan> = emptyMap(),
-    /** Phase 9.1 (M13): 全部文件夹(Drawer 按 folderId 分组渲染会话)。 */
-    val folders: List<io.zer0.muse.data.session.FolderEntity> = emptyList(),
+        val agentPlans: Map<String, io.zer0.muse.ui.taskcard.AgentPlan> = emptyMap(),
     /** Phase 9.3 (M2): ASR 配置(provider/apiKey/model)。 */
-    val asrConfig: io.zer0.muse.asr.AsrConfig = io.zer0.muse.asr.AsrConfig(),
-    /** v1.91: ASR 状态机(流式模式)。 */
-    val asrState: ASRState = ASRState(),
+        val asrConfig: io.zer0.muse.asr.AsrConfig = io.zer0.muse.asr.AsrConfig(),
     /** 阶段 5: 全部已配置 Provider(底部模型切换面板用)。 */
-    val providers: List<io.zer0.ai.core.ProviderConfig> = emptyList(),
+        val providers: List<io.zer0.ai.core.ProviderConfig> = emptyList(),
     /** 阶段 5: 当前激活 Provider id。 */
-    val activeProviderId: String? = null,
+        val activeProviderId: String? = null,
     /** 阶段 5: 当前选中模型 id(null 表示回退到激活 Provider 的首个模型)。 */
-    val selectedModelId: String? = null,
+        val selectedModelId: String? = null,
     /** v1.60-A: 工具模型 id(工具调用轮次使用,null 表示沿用主对话模型)。 */
-    val toolModelId: String? = null,
+        val toolModelId: String? = null,
     /** v0.31: 聊天行为偏好(从设置读取,UI 据此控制渲染与交互)。 */
-    val chatPreferences: io.zer0.muse.data.ChatPreferences = io.zer0.muse.data.ChatPreferences(),
+        val chatPreferences: io.zer0.muse.data.ChatPreferences = io.zer0.muse.data.ChatPreferences(),
     /** v0.32: 分享模板(从设置读取,exportSessionAsMarkdown 据此过滤内容)。 */
-    val shareTemplate: io.zer0.muse.data.ShareTemplateConfig = io.zer0.muse.data.ShareTemplateConfig(),
+        val shareTemplate: io.zer0.muse.data.ShareTemplateConfig = io.zer0.muse.data.ShareTemplateConfig(),
     /** v0.33: 媒体配置(从设置读取,录音/TTS 据此控制采样率/语速/音高/语言/输出方式)。 */
-    val mediaConfig: io.zer0.muse.data.MediaConfig = io.zer0.muse.data.MediaConfig(),
+        val mediaConfig: io.zer0.muse.data.MediaConfig = io.zer0.muse.data.MediaConfig(),
     /**
-     * v2.3: 流式结束后填充的本次回复性能摘要,UI 可以在 MessageBubble 底部显示。
-      *
-      * 格式:"模型:xxx | 耗时:xxms | TTFT:xxms | 速率:xx tok/s | 字符:xx | 工具调用:N | 轮次:N"。
-      * 仅 debugMode=true 时填充,否则为 null。每次 launchStream 启动时重置。
-      */
-    val debugInfo: String? = null,
+         * v2.3: 流式结束后填充的本次回复性能摘要,UI 可以在 MessageBubble 底部显示。
+          *
+          * 格式:"模型:xxx | 耗时:xxms | TTFT:xxms | 速率:xx tok/s | 字符:xx | 工具调用:N | 轮次:N"。
+          * 仅 debugMode=true 时填充,否则为 null。每次 launchStream 启动时重置。
+          */
+        val debugInfo: String? = null,
     /**
-     * v0.51: 一次性 Toast 提示(模型切换等场景)。
-     *
-     * 用 Toast 而非 Snackbar:Snackbar 通道已被 [errors] 占用,模型切换提示不应被错误
-     * 消息挤掉,所以走独立 Toast 通道。UI 用 LaunchedEffect 观察本字段,非空时弹 Toast
-     * 并立即调 [ChatViewModel.clearToast] 清空(避免重组时重复弹)。
-     */
-    val toast: String? = null,
-    /** 引用回复:当前正在回复的目标消息(仅 UI 层,发送后清空)。 */
-    val replyingTo: UIMessage? = null,
-    /** v1.57: 引用回复的自定义引用文本(用户可在引用卡片编辑裁剪,null 时用 replyingTo.content)。 */
-    val replyQuoteOverride: String? = null,
+         * v0.51: 一次性 Toast 提示(模型切换等场景)。
+         *
+         * 用 Toast 而非 Snackbar:Snackbar 通道已被 [errors] 占用,模型切换提示不应被错误
+         * 消息挤掉,所以走独立 Toast 通道。UI 用 LaunchedEffect 观察本字段,非空时弹 Toast
+         * 并立即调 [ChatViewModel.clearToast] 清空(避免重组时重复弹)。
+         */
+        val toast: String? = null,
     /** v1.25: 多 Agent 协作配置(团队列表与总开关)。 */
-    val multiAgentConfig: MultiAgentConfig = MultiAgentConfig(),
+        val multiAgentConfig: MultiAgentConfig = MultiAgentConfig(),
     /** v1.43: 当前选中的产物卡片(用于 ArtifactViewerDialog 弹窗)。 */
-    val selectedArtifact: io.zer0.muse.data.artifact.ArtifactEntity? = null,
+        val selectedArtifact: io.zer0.muse.data.artifact.ArtifactEntity? = null,
     /** v1.45: 列表滚动位置缓存(切页/后台后恢复,避免回到顶端)。 */
-    val listFirstVisibleItemIndex: Int = 0,
+        val listFirstVisibleItemIndex: Int = 0,
     val listFirstVisibleItemScrollOffset: Int = 0,
     /** v1.45: 消息级展开状态缓存(mood/reasoning 折叠状态不因切页丢失)。 */
-    val messageExpandedStates: Map<String, MessageExpandedState> = emptyMap(),
+        val messageExpandedStates: Map<String, MessageExpandedState> = emptyMap(),
     /** v1.53-A1: 是否还有更早的历史消息可加载(上滑加载更多用)。 */
-    val hasMoreHistory: Boolean = false,
+        val hasMoreHistory: Boolean = false,
     /** v1.53-A1: 是否正在加载更多历史消息(防止重复触发)。 */
-    val isLoadingMore: Boolean = false,
+        val isLoadingMore: Boolean = false,
     /**
-     * v1.53-A1: 最近一次"加载更多"插入的历史条数。
-     *
-     * UI 监听该字段变化(>0)后,通过 [listState.scrollToItem] 跳过新插入的条数,
-     * 保持用户视觉位置不跳动(原来在顶部的消息现在在该 index),然后调
-     * [ChatViewModel.clearHistoryLoadCount] 清空。
-     */
-    val lastHistoryLoadCount: Int = 0,
-    /**
-     * v1.0.47 P5: 输入历史(本会话内已发送的消息文本,用于输入框上箭头回调)。
-     *
-     * 最近 N 条(默认 50),上箭头按时间倒序遍历,下箭头正向遍历。
-     * 仅存内存,不持久化(会话结束清空)。
-     */
-    val inputHistory: List<String> = emptyList(),
-    /** v1.0.47 P5: 输入历史导航索引(null=不在历史导航中,0=最近一条)。 */
-    val inputHistoryIndex: Int? = null,
+         * v1.53-A1: 最近一次"加载更多"插入的历史条数。
+         *
+         * UI 监听该字段变化(>0)后,通过 [listState.scrollToItem] 跳过新插入的条数,
+         * 保持用户视觉位置不跳动(原来在顶部的消息现在在该 index),然后调
+         * [ChatViewModel.clearHistoryLoadCount] 清空。
+         */
+        val lastHistoryLoadCount: Int = 0,
     /** v1.94: 当前会话的工具调用记录(用于 InputBar 动态胶囊展示)。 */
-    val toolCallHistory: List<ToolCallRecord> = emptyList(),
-    /** 功能2: 当前输入是否为从 DataStore 恢复的草稿。 */
-    val hasDraft: Boolean = false,
+        val toolCallHistory: List<ToolCallRecord> = emptyList(),
     /** v2.3: 任务模型路由开关(开启后根据输入内容自动推荐模型)。 */
-    val taskRoutingEnabled: Boolean = false,
+        val taskRoutingEnabled: Boolean = false,
     /** 消息分支节点列表(BranchSelector 用),每个节点可含多版本 assistant 回复。 */
-    val messageNodes: List<MessageNode> = emptyList(),
+        val messageNodes: List<MessageNode> = emptyList(),
     /** 待审批的工具调用列表(ToolApprovalCard 用)。 */
-    val pendingToolApprovals: List<PendingToolApproval> = emptyList(),
+        val pendingToolApprovals: List<PendingToolApproval> = emptyList(),
     /**
-     * 断点续传:当前会话未完成的工具调用数量。
-     *
-     * 大于 0 时 ChatScreen 顶部展示恢复 Banner(恢复执行 / 丢弃)。
-     * 由 [ChatViewModel.switchSession] / [ChatViewModel.resumePendingToolCalls] /
-     * [ChatViewModel.discardPendingToolCalls] 维护。
-     */
-    val pendingToolCallCount: Int = 0,
-    /**
-     * v1.0.47 P1: 上下文压缩状态(流式 Compaction UI)。
-     *
-     * 压缩进行中时 ChatScreen 顶部显示"正在压缩上下文..."进度条,
-     * 压缩完成后显示"已压缩 N 条历史"短暂提示。
-     * null 表示无压缩活动。
-     */
-    val compactionState: CompactionState? = null,
+         * v1.0.47 P1: 上下文压缩状态(流式 Compaction UI)。
+         *
+         * 压缩进行中时 ChatScreen 顶部显示"正在压缩上下文..."进度条,
+         * 压缩完成后显示"已压缩 N 条历史"短暂提示。
+         * null 表示无压缩活动。
+         */
+        val compactionState: CompactionState? = null,
     /** P3: 当前会话的工具权限模式(TRUSTED/ASK/STRICT),默认 ASK。 */
-    val sessionPermissionMode: SessionPermissionMode = SessionPermissionMode.ASK,
+        val sessionPermissionMode: SessionPermissionMode = SessionPermissionMode.ASK,
     /**
-     * v1.0.16: 本次应用开启期间批准全部工具调用(内存态,不持久化)。
-     *
-     * 用户在 ToolApprovalCard 勾选"本次开启期间批准全部工具"后置 true,
-     * 之后所有工具调用直接 Auto 执行,不再弹审批卡片。
-     * 应用冷启动后 ChatUiState 重建,自动回到 false。
-     */
-    val appRunAllowAllTools: Boolean = false,
-    /** v1.201: 委派链路根节点(空列表表示无委派)。 */
-    val delegationChain: List<io.zer0.muse.tools.DelegationChainTracker.ChainNode> = emptyList(),
-    /** v1.201: 当前活跃的委派暂停请求(null 表示无待确认)。 */
-    val activePauseRequest: io.zer0.muse.tools.DelegationPauseManager.PauseRequest? = null,
-    /** v1.202: 当前会话活跃的后台子 agent 线程(SubagentTaskListCard 渲染用,空列表表示无)。 */
-    val activeSubagentThreads: List<io.zer0.muse.data.subagent.SubagentThreadStore.ThreadEntry> = emptyList(),
-    /** v1.202: 当前会话待处理(PENDING)的后台子 agent 任务(SubagentTaskListCard 渲染用)。 */
-    val pendingSubagentTasks: List<io.zer0.muse.tools.DeferredResultStore.DeferredTask> = emptyList(),
-    // ── P6: Agent Mode 增强 ──────────────────────────────────────────
-    /** v1.0.47 P6-2: 当前模型是否为弱工具调用模型(Agent Mode 下显示降级提示)。 */
-    val isWeakToolModel: Boolean = false,
-    /** v1.0.47 P6-2: 弱工具模型降级提示文案(null = 非弱工具模型,不显示)。 */
-    val weakToolHint: String? = null,
-    /** v1.0.47 P6-3: 会话锁定(Agent Mode ON 时锁定,禁止切换助手/清空消息)。 */
-    val isSessionLocked: Boolean = false,
-    /** v1.0.47 P6-4: Agent Mode 提示卡片文案(null = 不显示卡片)。 */
-    val agentModeHint: String? = null,
+         * v1.0.16: 本次应用开启期间批准全部工具调用(内存态,不持久化)。
+         *
+         * 用户在 ToolApprovalCard 勾选"本次开启期间批准全部工具"后置 true,
+         * 之后所有工具调用直接 Auto 执行,不再弹审批卡片。
+         * 应用冷启动后 ChatUiState 重建,自动回到 false。
+         */
+        val appRunAllowAllTools: Boolean = false,
 ) {
+    val isStreaming: Boolean get() = streamState.isStreaming
+    val isWaitingFirstToken: Boolean get() = streamState.isWaitingFirstToken
+    val visionProgress: io.zer0.muse.vision.VisionProgress? get() = streamState.visionProgress
+    val visionAssistedMessageIds: Set<String> get() = streamState.visionAssistedMessageIds
+    val isOcrProcessing: Boolean get() = streamState.isOcrProcessing
+    val toolProgressMessage: String? get() = streamState.toolProgressMessage
+    val pendingToolCallCount: Int get() = streamState.pendingToolCallCount
+    val input: String get() = inputState.input
+    val hasDraft: Boolean get() = inputState.hasDraft
+    val inputHistory: List<String> get() = inputState.inputHistory
+    val inputHistoryIndex: Int? get() = inputState.inputHistoryIndex
+    val pendingImages: List<String> get() = inputState.pendingImages
+    val pendingDocuments: List<io.zer0.muse.ui.chat.PendingDocument> get() = inputState.pendingDocuments
+    val replyingTo: UIMessage? get() = inputState.replyingTo
+    val replyQuoteOverride: String? get() = inputState.replyQuoteOverride
+    val asrState: ASRState get() = inputState.asrState
+    val sessions: List<SessionEntity> get() = sessionState.sessions
+    val currentSessionId: String? get() = sessionState.currentSessionId
+    val archivedSessions: List<SessionEntity> get() = sessionState.archivedSessions
+    val folders: List<io.zer0.muse.data.session.FolderEntity> get() = sessionState.folders
+    val isSessionsLoading: Boolean get() = sessionState.isSessionsLoading
+    val sessionsError: String? get() = sessionState.sessionsError
+    val isAgentMode: Boolean get() = agentState.isAgentMode
+    val agentSessionId: String? get() = agentState.agentSessionId
+    val assistants: List<AssistantEntity> get() = agentState.assistants
+    val isAssistantsLoading: Boolean get() = agentState.isAssistantsLoading
+    val currentAssistant: AssistantEntity? get() = agentState.currentAssistant
+    val delegationChain: List<io.zer0.muse.tools.DelegationChainTracker.ChainNode> get() = agentState.delegationChain
+    val activePauseRequest: io.zer0.muse.tools.DelegationPauseManager.PauseRequest? get() = agentState.activePauseRequest
+    val activeSubagentThreads: List<io.zer0.muse.data.subagent.SubagentThreadStore.ThreadEntry> get() = agentState.activeSubagentThreads
+    val pendingSubagentTasks: List<io.zer0.muse.tools.DeferredResultStore.DeferredTask> get() = agentState.pendingSubagentTasks
+    val isWeakToolModel: Boolean get() = agentState.isWeakToolModel
+    val weakToolHint: String? get() = agentState.weakToolHint
+    val isSessionLocked: Boolean get() = agentState.isSessionLocked
+    val agentModeHint: String? get() = agentState.agentModeHint
+
     /** v0.49: 向后兼容 — 现有读 state.error 的地方取第一条错误消息。 */
     val error: String? get() = errors.firstOrNull()?.message
+
+    fun copy(
+        streamState: ChatStreamState = this.streamState,
+        inputState: ChatInputState = this.inputState,
+        sessionState: ChatSessionState = this.sessionState,
+        agentState: ChatAgentState = this.agentState,
+        isSwitchingSession: Boolean = this.isSwitchingSession,
+        selectionMode: Boolean = this.selectionMode,
+        selectedMessageIds: Set<String> = this.selectedMessageIds,
+        errors: List<ChatError> = this.errors,
+        isConfigured: Boolean = this.isConfigured,
+        isFetchingModels: Boolean = this.isFetchingModels,
+        fetchModelsError: String? = this.fetchModelsError,
+        memoryCacheHit: Boolean = this.memoryCacheHit,
+        isDrawerOpen: Boolean = this.isDrawerOpen,
+        searchQuery: String = this.searchQuery,
+        searchResults: List<SearchResult> = this.searchResults,
+        isSearching: Boolean = this.isSearching,
+        searchTab: Int = this.searchTab,
+        messageResults: List<SearchResult> = this.messageResults,
+        isSearchingMessages: Boolean = this.isSearchingMessages,
+        searchError: String? = this.searchError,
+        targetMessageId: String? = this.targetMessageId,
+        searchHighlightQuery: String? = this.searchHighlightQuery,
+        highlightedMessageId: String? = this.highlightedMessageId,
+        isDrawMode: Boolean = this.isDrawMode,
+        imageGenParams: io.zer0.ai.image.ImageGenParams = this.imageGenParams,
+        isGeneratingImage: Boolean = this.isGeneratingImage,
+        isGeneratingVideo: Boolean = this.isGeneratingVideo,
+        isTranslating: Boolean = this.isTranslating,
+        translatingMessageId: Uuid? = this.translatingMessageId,
+        favoriteMessages: List<UIMessage> = this.favoriteMessages,
+        isFavoritesLoading: Boolean = this.isFavoritesLoading,
+        favoriteTags: List<String> = this.favoriteTags,
+        favoriteTagFilter: String? = this.favoriteTagFilter,
+        favoriteGroup: String? = this.favoriteGroup,
+        webSearchEnabled: Boolean = this.webSearchEnabled,
+        contextTokenCount: Int = this.contextTokenCount,
+        contextMaxTokens: Int = this.contextMaxTokens,
+        tokenEstimateEnabled: Boolean = this.tokenEstimateEnabled,
+        pasteAsFileEnabled: Boolean = this.pasteAsFileEnabled,
+        pasteAsFileThreshold: Int = this.pasteAsFileThreshold,
+        tokenCountVisible: Boolean = this.tokenCountVisible,
+        tokenSnapshot: TokenCountSnapshot? = this.tokenSnapshot,
+        isCompressing: Boolean = this.isCompressing,
+        deepThinkingEnabled: Boolean = this.deepThinkingEnabled,
+        deepThinkingLevel: ReasoningLevel = this.deepThinkingLevel,
+        webSearchConfig: WebSearchConfig = this.webSearchConfig,
+        quickMessages: List<QuickMessageEntity> = this.quickMessages,
+        currentMode: String = this.currentMode,
+        lorebooks: List<LorebookEntity> = this.lorebooks,
+        promptInjections: List<PromptInjectionEntity> = this.promptInjections,
+        allQuickMessages: List<QuickMessageEntity> = this.allQuickMessages,
+        promptTemplates: List<io.zer0.muse.data.prompttemplate.PromptTemplate> = this.promptTemplates,
+        isSpeaking: Boolean = this.isSpeaking,
+        speakingMessageId: Uuid? = this.speakingMessageId,
+        taskCards: Map<String, io.zer0.muse.ui.taskcard.TaskCardData> = this.taskCards,
+        agentPlans: Map<String, io.zer0.muse.ui.taskcard.AgentPlan> = this.agentPlans,
+        asrConfig: io.zer0.muse.asr.AsrConfig = this.asrConfig,
+        providers: List<io.zer0.ai.core.ProviderConfig> = this.providers,
+        activeProviderId: String? = this.activeProviderId,
+        selectedModelId: String? = this.selectedModelId,
+        toolModelId: String? = this.toolModelId,
+        chatPreferences: io.zer0.muse.data.ChatPreferences = this.chatPreferences,
+        shareTemplate: io.zer0.muse.data.ShareTemplateConfig = this.shareTemplate,
+        mediaConfig: io.zer0.muse.data.MediaConfig = this.mediaConfig,
+        debugInfo: String? = this.debugInfo,
+        toast: String? = this.toast,
+        multiAgentConfig: MultiAgentConfig = this.multiAgentConfig,
+        selectedArtifact: io.zer0.muse.data.artifact.ArtifactEntity? = this.selectedArtifact,
+        listFirstVisibleItemIndex: Int = this.listFirstVisibleItemIndex,
+        listFirstVisibleItemScrollOffset: Int = this.listFirstVisibleItemScrollOffset,
+        messageExpandedStates: Map<String, MessageExpandedState> = this.messageExpandedStates,
+        hasMoreHistory: Boolean = this.hasMoreHistory,
+        isLoadingMore: Boolean = this.isLoadingMore,
+        lastHistoryLoadCount: Int = this.lastHistoryLoadCount,
+        toolCallHistory: List<ToolCallRecord> = this.toolCallHistory,
+        taskRoutingEnabled: Boolean = this.taskRoutingEnabled,
+        messageNodes: List<MessageNode> = this.messageNodes,
+        pendingToolApprovals: List<PendingToolApproval> = this.pendingToolApprovals,
+        compactionState: CompactionState? = this.compactionState,
+        sessionPermissionMode: SessionPermissionMode = this.sessionPermissionMode,
+        appRunAllowAllTools: Boolean = this.appRunAllowAllTools,
+        isStreaming: Boolean = this.isStreaming,
+        isWaitingFirstToken: Boolean = this.isWaitingFirstToken,
+        visionProgress: io.zer0.muse.vision.VisionProgress? = this.visionProgress,
+        visionAssistedMessageIds: Set<String> = this.visionAssistedMessageIds,
+        isOcrProcessing: Boolean = this.isOcrProcessing,
+        toolProgressMessage: String? = this.toolProgressMessage,
+        pendingToolCallCount: Int = this.pendingToolCallCount,
+        input: String = this.input,
+        hasDraft: Boolean = this.hasDraft,
+        inputHistory: List<String> = this.inputHistory,
+        inputHistoryIndex: Int? = this.inputHistoryIndex,
+        pendingImages: List<String> = this.pendingImages,
+        pendingDocuments: List<io.zer0.muse.ui.chat.PendingDocument> = this.pendingDocuments,
+        replyingTo: UIMessage? = this.replyingTo,
+        replyQuoteOverride: String? = this.replyQuoteOverride,
+        asrState: ASRState = this.asrState,
+        sessions: List<SessionEntity> = this.sessions,
+        currentSessionId: String? = this.currentSessionId,
+        archivedSessions: List<SessionEntity> = this.archivedSessions,
+        folders: List<io.zer0.muse.data.session.FolderEntity> = this.folders,
+        isSessionsLoading: Boolean = this.isSessionsLoading,
+        sessionsError: String? = this.sessionsError,
+        isAgentMode: Boolean = this.isAgentMode,
+        agentSessionId: String? = this.agentSessionId,
+        assistants: List<AssistantEntity> = this.assistants,
+        isAssistantsLoading: Boolean = this.isAssistantsLoading,
+        currentAssistant: AssistantEntity? = this.currentAssistant,
+        delegationChain: List<io.zer0.muse.tools.DelegationChainTracker.ChainNode> = this.delegationChain,
+        activePauseRequest: io.zer0.muse.tools.DelegationPauseManager.PauseRequest? = this.activePauseRequest,
+        activeSubagentThreads: List<io.zer0.muse.data.subagent.SubagentThreadStore.ThreadEntry> = this.activeSubagentThreads,
+        pendingSubagentTasks: List<io.zer0.muse.tools.DeferredResultStore.DeferredTask> = this.pendingSubagentTasks,
+        isWeakToolModel: Boolean = this.isWeakToolModel,
+        weakToolHint: String? = this.weakToolHint,
+        isSessionLocked: Boolean = this.isSessionLocked,
+        agentModeHint: String? = this.agentModeHint,
+    ): ChatUiState = ChatUiState(
+        streamState = streamState.copy(
+            isStreaming = isStreaming,
+            isWaitingFirstToken = isWaitingFirstToken,
+            visionProgress = visionProgress,
+            visionAssistedMessageIds = visionAssistedMessageIds,
+            isOcrProcessing = isOcrProcessing,
+            toolProgressMessage = toolProgressMessage,
+            pendingToolCallCount = pendingToolCallCount,
+        ),
+        inputState = inputState.copy(
+            input = input,
+            hasDraft = hasDraft,
+            inputHistory = inputHistory,
+            inputHistoryIndex = inputHistoryIndex,
+            pendingImages = pendingImages,
+            pendingDocuments = pendingDocuments,
+            replyingTo = replyingTo,
+            replyQuoteOverride = replyQuoteOverride,
+            asrState = asrState,
+        ),
+        sessionState = sessionState.copy(
+            sessions = sessions,
+            currentSessionId = currentSessionId,
+            archivedSessions = archivedSessions,
+            folders = folders,
+            isSessionsLoading = isSessionsLoading,
+            sessionsError = sessionsError,
+        ),
+        agentState = agentState.copy(
+            isAgentMode = isAgentMode,
+            agentSessionId = agentSessionId,
+            assistants = assistants,
+            isAssistantsLoading = isAssistantsLoading,
+            currentAssistant = currentAssistant,
+            delegationChain = delegationChain,
+            activePauseRequest = activePauseRequest,
+            activeSubagentThreads = activeSubagentThreads,
+            pendingSubagentTasks = pendingSubagentTasks,
+            isWeakToolModel = isWeakToolModel,
+            weakToolHint = weakToolHint,
+            isSessionLocked = isSessionLocked,
+            agentModeHint = agentModeHint,
+        ),
+        isSwitchingSession = isSwitchingSession,
+        selectionMode = selectionMode,
+        selectedMessageIds = selectedMessageIds,
+        errors = errors,
+        isConfigured = isConfigured,
+        isFetchingModels = isFetchingModels,
+        fetchModelsError = fetchModelsError,
+        memoryCacheHit = memoryCacheHit,
+        isDrawerOpen = isDrawerOpen,
+        searchQuery = searchQuery,
+        searchResults = searchResults,
+        isSearching = isSearching,
+        searchTab = searchTab,
+        messageResults = messageResults,
+        isSearchingMessages = isSearchingMessages,
+        searchError = searchError,
+        targetMessageId = targetMessageId,
+        searchHighlightQuery = searchHighlightQuery,
+        highlightedMessageId = highlightedMessageId,
+        isDrawMode = isDrawMode,
+        imageGenParams = imageGenParams,
+        isGeneratingImage = isGeneratingImage,
+        isGeneratingVideo = isGeneratingVideo,
+        isTranslating = isTranslating,
+        translatingMessageId = translatingMessageId,
+        favoriteMessages = favoriteMessages,
+        isFavoritesLoading = isFavoritesLoading,
+        favoriteTags = favoriteTags,
+        favoriteTagFilter = favoriteTagFilter,
+        favoriteGroup = favoriteGroup,
+        webSearchEnabled = webSearchEnabled,
+        contextTokenCount = contextTokenCount,
+        contextMaxTokens = contextMaxTokens,
+        tokenEstimateEnabled = tokenEstimateEnabled,
+        pasteAsFileEnabled = pasteAsFileEnabled,
+        pasteAsFileThreshold = pasteAsFileThreshold,
+        tokenCountVisible = tokenCountVisible,
+        tokenSnapshot = tokenSnapshot,
+        isCompressing = isCompressing,
+        deepThinkingEnabled = deepThinkingEnabled,
+        deepThinkingLevel = deepThinkingLevel,
+        webSearchConfig = webSearchConfig,
+        quickMessages = quickMessages,
+        currentMode = currentMode,
+        lorebooks = lorebooks,
+        promptInjections = promptInjections,
+        allQuickMessages = allQuickMessages,
+        promptTemplates = promptTemplates,
+        isSpeaking = isSpeaking,
+        speakingMessageId = speakingMessageId,
+        taskCards = taskCards,
+        agentPlans = agentPlans,
+        asrConfig = asrConfig,
+        providers = providers,
+        activeProviderId = activeProviderId,
+        selectedModelId = selectedModelId,
+        toolModelId = toolModelId,
+        chatPreferences = chatPreferences,
+        shareTemplate = shareTemplate,
+        mediaConfig = mediaConfig,
+        debugInfo = debugInfo,
+        toast = toast,
+        multiAgentConfig = multiAgentConfig,
+        selectedArtifact = selectedArtifact,
+        listFirstVisibleItemIndex = listFirstVisibleItemIndex,
+        listFirstVisibleItemScrollOffset = listFirstVisibleItemScrollOffset,
+        messageExpandedStates = messageExpandedStates,
+        hasMoreHistory = hasMoreHistory,
+        isLoadingMore = isLoadingMore,
+        lastHistoryLoadCount = lastHistoryLoadCount,
+        toolCallHistory = toolCallHistory,
+        taskRoutingEnabled = taskRoutingEnabled,
+        messageNodes = messageNodes,
+        pendingToolApprovals = pendingToolApprovals,
+        compactionState = compactionState,
+        sessionPermissionMode = sessionPermissionMode,
+        appRunAllowAllTools = appRunAllowAllTools,
+    )
 }
 
-/** v1.94: 工具调用记录(用于 InputBar 动态胶囊)。 */
-@Serializable
 data class ToolCallRecord(
     val toolName: String,
     val arguments: String,
@@ -730,10 +1030,18 @@ class ChatViewModel(
     private val hookRegistry: io.zer0.muse.hook.HookRegistry? = null,
     // v1.0.52 P2-3: AI 记忆自动保存(对话中实时提取实体/关系/合并/分类)
     private val memoryAutoSaveScheduler: io.zer0.memory.ai.MemoryAutoSaveScheduler? = null,
-) : ViewModel(), ChatStateAccessor {
+    // B0-08: 里程碑检查器(生成结束后检查是否触发里程碑)
+    private val milestoneChecker: MilestoneChecker? = null,
+    // B2-04: 统一由 Koin 注入 ToolOrchestrator(主会话/子代理共享审批链路)
+    private val toolOrchestrator: io.zer0.muse.tools.ToolOrchestrator,
+    // B2-04: 子代理审批路由(注册本实例为 delegate,子代理需审批时弹主会话审批卡)
+    private val toolApprovalRouter: io.zer0.muse.tools.ToolApprovalRouter,
+) : ViewModel(), ChatStateAccessor, io.zer0.muse.tools.ToolApprovalBridge {
     // v1.0.54: autoSave 去重状态(30 秒内同会话只跑一次,防堆积)
     private var lastAutoSaveSessionId: String? = null
     private var lastAutoSaveAt: Long = 0L
+    // B7-08: 草稿防抖保存任务(每次输入更新时取消旧任务,停顿后只写最新文本)
+    private var draftSaveJob: Job? = null
 
     companion object {
         /** v0.47: 工具调用超时阈值(2 分钟),超时则终止,避免阻塞流式输出。 */
@@ -797,6 +1105,8 @@ class ChatViewModel(
         private const val STREAM_SLIDE_WINDOW = 10
         /** v1.0.47 P5: 输入历史保留条数(本会话内,内存态,不持久化)。 */
         private const val MAX_INPUT_HISTORY = 50
+        /** B7-08: 草稿防抖保存间隔(毫秒),输入停顿后才写盘,减少 DataStore 频繁写入。 */
+        private const val DRAFT_SAVE_DEBOUNCE_MS = 800L
         // v1.117: 删除 6 个孤儿常量(STREAM_NOTIF_*/STREAM_TOKEN_*/STREAM_PERSIST_*),
         // 实际节流逻辑在 launchStream 内用字面量实现,这些常量从未被引用。
 
@@ -833,6 +1143,10 @@ class ChatViewModel(
     // collectAsStateWithLifecycle 只会拿到最新值。实际瓶颈在重组范围(P1-P3 已
     // 通过 @Immutable + derivedStateOf 收窄),无需额外 sample。
     val state: StateFlow<ChatUiState> = _state.asStateFlow()
+
+    /** B2-01: 消息列表独立 StateFlow,不再放进 ChatUiState。 */
+    private val _messages = MutableStateFlow<List<UIMessage>>(emptyList())
+    val messages: StateFlow<List<UIMessage>> = _messages.asStateFlow()
 
     // v1.93+: 会话消息内存 LRU 缓存。
     // ChatViewModel 改为 Koin single 后会话消息列表永不释放,长时间使用内存累积明显。
@@ -907,6 +1221,17 @@ class ChatViewModel(
             if (UserActivityProfile.containsEndKeyword(text)) ConversationEndType.USER_EXPLICIT_END
             else ConversationEndType.NATURAL_FADE
         )
+        // P2-4: 审计日志 — 发送消息
+        auditLogger.log(
+            category = "user_action",
+            action = "send_message",
+            target = sessionId,
+            detail = mapOf(
+                "text_length" to text.length,
+                "image_count" to images.size,
+                "assistant_id" to currentAssistantId(),
+            ),
+        )
         // v2.3: 任务模型路由——根据输入内容自动推荐模型
         val routedModelId = settings.recommendModelForTask(text, _state.value.selectedModelId)
         if (routedModelId != null && routedModelId != _state.value.selectedModelId) {
@@ -948,9 +1273,9 @@ class ChatViewModel(
                 ))
             }.onError { _, t -> Logger.w("ChatVM", "outbox 写入失败,进程被杀可能丢失此消息", t) }
         }
+        _messages.value = _messages.value + userMsg + assistantMsg
         _state.update {
             it.copy(
-                messages = it.messages + userMsg + assistantMsg,
                 input = "",
                 hasDraft = false,
                 pendingImages = emptyList(),
@@ -980,11 +1305,11 @@ class ChatViewModel(
                 resultOf { sessionRepository.deleteOutbox(outboxId) }
             }
             _state.update {
-                val filtered = it.messages.filterNot { msg ->
+                val filtered = _messages.value.filterNot { msg ->
                     msg.id == userMsg.id || msg.id == assistantMsg.id
                 }
+                _messages.value = filtered
                 it.copy(
-                    messages = filtered,
                     isStreaming = false,
                     isWaitingFirstToken = false,
                 )
@@ -999,6 +1324,8 @@ class ChatViewModel(
     // v1.105 拆分: ChatStateAccessor 实现 — 供各 Coordinator 读写 state
     override val snapshot: ChatUiState get() = _state.value
     override fun update(transform: (ChatUiState) -> ChatUiState) = _state.update(transform)
+    override val messagesSnapshot: List<UIMessage> get() = _messages.value
+    override fun updateMessages(transform: (List<UIMessage>) -> List<UIMessage>) = _messages.update(transform)
     override val coroutineScope: kotlinx.coroutines.CoroutineScope get() = viewModelScope
 
     // v1.105 阶段 1 拆分: 各职责域 Coordinator(无 state,持有依赖,通过 accessor 读写)
@@ -1015,6 +1342,7 @@ class ChatViewModel(
         accessor = this,
         settings = settings,
         sessionRepository = sessionRepository,
+        auditLogger = auditLogger,
     )
     private val audioCoordinator = ChatAudioCoordinator(
         accessor = this,
@@ -1024,6 +1352,7 @@ class ChatViewModel(
     private val documentCoordinator = ChatDocumentCoordinator(
         accessor = this,
         documentParser = documentParser,
+        settings = settings,
     )
     // v1.105 阶段 2 拆分: 杂项 Coordinator(文件夹 / 搜索 / 收藏 / 管理页 CRUD)
     private val miscCoordinator = ChatMiscCoordinator(
@@ -1069,19 +1398,6 @@ class ChatViewModel(
         accessor = this,
         toolRegistry = toolRegistry,
     )
-    // Phase 2: 工具调用循环编排器,由 ChatViewModel 自身传入 this 作为 ChatStateAccessor,
-    // 避免 Koin 中 ChatViewModel 与 ToolOrchestrator 的循环依赖。
-    private val toolOrchestrator = io.zer0.muse.tools.ToolOrchestrator(
-        toolRegistry = toolRegistry,
-        skillRepository = skillRepository,
-        skillExecutor = skillExecutor,
-        assistantRepository = assistantRepository,
-        sessionRepository = sessionRepository,
-        accessor = this,
-        taskCardCoordinator = taskCardCoordinator,
-        context = appContext,
-        hookRegistry = hookRegistry,
-    )
 
     /**
      * Phase 8.1 H1 + Phase 8.2 + Phase 8.5: Transformer 管道。
@@ -1121,6 +1437,8 @@ class ChatViewModel(
     private var translateJob: Job? = null
 
     init {
+        // B2-04: 子代理遇到需审批工具时,复用主会话的审批卡
+        toolApprovalRouter.delegate = this
         // 监听配置变化,刷新 isConfigured 标志
         // v1.22: 本地不再硬编码模型列表,isConfigured 只要有激活 Provider 即为 true。
         // 若激活 Provider 没有模型,自动触发上游 /models 拉取。
@@ -1179,19 +1497,32 @@ class ChatViewModel(
         }
         // 观察会话列表(侧栏用)
         viewModelScope.launch {
-            sessionRepository.observeSessions().collect { sessions ->
-                _state.update { it.copy(sessions = sessions, isSessionsLoading = false) }
-                // 首次加载:无会话则新建,有则切换到最近一个
-                // Phase 8.5 修复: 用 initializing flag 防止 observeSessions 在 createNewSession
-                // 异步设置 currentSessionId 前再次发射时重复创建多个会话
-                if (_state.value.currentSessionId == null && !initializing) {
-                    initializing = true
-                    val target = sessions.firstOrNull()
-                    if (target != null) {
-                        switchSession(target.id)
-                    } else {
-                        createNewSession()
+            try {
+                sessionRepository.observeSessions().collect { sessions ->
+                    _state.update { it.copy(sessions = sessions, isSessionsLoading = false, sessionsError = null) }
+                    // 首次加载:无会话则新建,有则切换到最近一个
+                    // Phase 8.5 修复: 用 initializing flag 防止 observeSessions 在 createNewSession
+                    // 异步设置 currentSessionId 前再次发射时重复创建多个会话
+                    if (_state.value.currentSessionId == null && !initializing) {
+                        initializing = true
+                        val target = sessions.firstOrNull()
+                        if (target != null) {
+                            switchSession(target.id)
+                        } else {
+                            createNewSession()
+                        }
                     }
+                }
+            } catch (t: Throwable) {
+                Logger.e("ChatVM", "observeSessions failed", t)
+                _state.update {
+                    it.copy(
+                        isSessionsLoading = false,
+                        sessionsError = appContext.getString(
+                            R.string.err_chat_request_failed,
+                            t.message ?: appContext.getString(R.string.err_chat_unknown),
+                        ),
+                    )
                 }
             }
         }
@@ -1368,11 +1699,11 @@ class ChatViewModel(
                     // 会话已切换,该 req 被跳过 — 回滚 enqueueSend 的乐观更新,
                     // 移除属于该 req 的 user/assistant 消息并重置 isStreaming
                     _state.update {
-                        val filtered = it.messages.filterNot { msg ->
+                        val filtered = _messages.value.filterNot { msg ->
                             msg.id == req.userMessage.id || msg.id == req.assistantMessageId
                         }
+                        _messages.value = filtered
                         it.copy(
-                            messages = filtered,
                             isStreaming = false,
                             isWaitingFirstToken = false,
                         )
@@ -1408,7 +1739,7 @@ class ChatViewModel(
                     }
                     continue
                 }
-                launchStream(assistantId = _state.value.messages.lastOrNull { it.role == MessageRole.ASSISTANT }?.id
+                launchStream(assistantId = _messages.value.lastOrNull { it.role == MessageRole.ASSISTANT }?.id
                     ?: kotlin.uuid.Uuid.random(), sessionId = currentSid)
                 // v1.0.15: 生成已启动,outbox 完成使命,删除记录
                 resultOf { sessionRepository.deleteOutbox(req.outboxId) }
@@ -1451,9 +1782,7 @@ class ChatViewModel(
                     }
                     UIMessage(role = MessageRole.ASSISTANT, content = content)
                 }
-                _state.update { state ->
-                    state.copy(messages = state.messages + interludes)
-                }
+                _messages.value = _messages.value + interludes
                 // 同步持久化到 DB,确保切页/重启后仍可恢复
                 for (msg in interludes) {
                     try {
@@ -1607,13 +1936,29 @@ class ChatViewModel(
     fun updateInput(text: String) {
         // v1.0.47 P5: 用户手动编辑输入时退出历史导航,重置 inputHistoryIndex
         _state.update { it.copy(input = text, hasDraft = false, inputHistoryIndex = null) }
-        // v1.0.30: 清空输入时同步删除 DataStore 草稿
+        // B7-08: 非空输入停顿 800ms 后写盘;清空输入立即删除草稿并取消待写任务
+        val sid = _state.value.currentSessionId ?: return
         if (text.isBlank()) {
-            val sid = _state.value.currentSessionId ?: return
+            draftSaveJob?.cancel()
+            draftSaveJob = null
             viewModelScope.launch(Dispatchers.IO) { settings.saveChatDraft(sid, "") }
+        } else {
+            scheduleDraftSave(sid, text)
         }
     }
 
+    /** B7-08: 取消旧任务并延迟保存最新草稿,避免输入过程中高频写 DataStore。 */
+    private fun scheduleDraftSave(sessionId: String, text: String) {
+        draftSaveJob?.cancel()
+        if (text.isBlank()) {
+            draftSaveJob = null
+            return
+        }
+        draftSaveJob = viewModelScope.launch {
+            delay(DRAFT_SAVE_DEBOUNCE_MS)
+            settings.saveChatDraft(sessionId, text)
+        }
+    }
     /**
      * v1.0.47 P5: 输入框上/下箭头回调,遍历本会话输入历史。
      *
@@ -1672,7 +2017,7 @@ class ChatViewModel(
      */
     fun showTokenCountMenu() {
         val input = _state.value.input
-        val messages = _state.value.messages
+        val messages = _messages.value
         viewModelScope.launch(Dispatchers.Default) {
             val inputTokens = TokenEstimator.estimate(input)
             val historyTokens = TokenEstimator.estimate(messages)
@@ -1890,7 +2235,7 @@ class ChatViewModel(
         // 对长历史消息列表(200 条 × 几百字符)单次可达 50-200ms。
         // 原先在主线程同步执行,流式期间每秒叠加一次,直接造成卡顿。
         // 现移到 Dispatchers.Default 后台线程执行,结果回主线程写 state。
-        val msgsSnapshot = _state.value.messages
+        val msgsSnapshot = _messages.value
         val sysPromptSnapshot = cachedSystemPrompt
         val tokenCount = withContext(Dispatchers.Default) {
             TokenEstimator.estimate(msgsSnapshot, sysPromptSnapshot)
@@ -1957,7 +2302,7 @@ class ChatViewModel(
      */
     private suspend fun updateContextTokenCount() {
         // 先在当前线程 snapshot(避免 withContext 切换后 _state 被其他协程修改导致读到中间态)
-        val msgsSnapshot = _state.value.messages
+        val msgsSnapshot = _messages.value
         val sysPromptSnapshot = cachedSystemPrompt
         // v1.79 (M-CV6): try-catch 防止 TokenEstimator 异常中断流式
         val tokenCount = withContext(Dispatchers.Default) {
@@ -1987,7 +2332,7 @@ class ChatViewModel(
         val title = state.sessions.firstOrNull { it.id == sessionId }?.title ?: return
         val defaultTitle = appContext.getString(R.string.session_repo_default_title)
         if (title.isNotBlank() && title != defaultTitle) return
-        val messages = state.messages.filter { it.role == MessageRole.USER || it.role == MessageRole.ASSISTANT }
+        val messages = _messages.value.filter { it.role == MessageRole.USER || it.role == MessageRole.ASSISTANT }
         if (messages.size < 2) return
         val preview = messages.take(4).joinToString("\n") { it.content.take(100) }
         if (preview.isBlank()) return
@@ -2028,7 +2373,7 @@ class ChatViewModel(
         if (maxTokens <= 0 || currentTokens <= 0) return
         val ratio = currentTokens.toFloat() / maxTokens
         if (ratio <= AUTO_COMPRESS_TOKEN_RATIO) return
-        val currentMessages = _state.value.messages
+        val currentMessages = _messages.value
         if (currentMessages.size < 2) return
 
         viewModelScope.launch(AppDispatchers.io) {
@@ -2053,13 +2398,14 @@ class ChatViewModel(
                 // 不能用 compressed 直接覆盖整个 messages 列表(会丢失新增消息)。
                 // 仅替换被压缩的旧区间(currentMessages),保留之后新增的消息。
                 _state.update { state ->
-                    val newAppended = if (state.messages.size >= currentMessages.size) {
-                        state.messages.drop(currentMessages.size)
+                    val newAppended = if (_messages.value.size >= currentMessages.size) {
+                        _messages.value.drop(currentMessages.size)
                     } else {
                         // 消息被截断/删除,直接用压缩结果
                         emptyList()
                     }
-                    state.copy(messages = compressed + newAppended)
+                    _messages.value = compressed + newAppended
+                    state
                 }
                 updateContextTokenCount()
                 Logger.i("ChatVM", "Auto-compress triggered: ratio=${"%.2f".format(ratio)}, ${currentMessages.size} → ${compressed.size} 条")
@@ -2076,13 +2422,13 @@ class ChatViewModel(
      * UI 按钮文案统一为"更新并压缩",默认调用 manualCompress(updateMemoryFirst = true)。
      * 纯压缩模式暂不暴露 UI(内部用),未来可长按按钮弹选择菜单。
      *
-     * 压缩结果只替换内存中的 messages(_state.value.messages),不持久化到 DB
+     * 压缩结果只替换内存中的 messages(_messages.value),不持久化到 DB
      * (DB 保留完整历史用于搜索/导出,内存版本用于 LLM 上下文)。
      * 切换会话后从 DB 重新加载,下次发送时自动压缩器会再次处理。
      */
     fun manualCompress(updateMemoryFirst: Boolean = true) {
         val sessionId = _state.value.currentSessionId ?: return
-        val currentMessages = _state.value.messages
+        val currentMessages = _messages.value
         // 至少 2 条消息才压缩(否则 toCompress 为空,无意义)
         if (currentMessages.size < 2) {
             reportError(appContext.getString(R.string.err_chat_compress_too_few))
@@ -2126,16 +2472,17 @@ class ChatViewModel(
                 // 3. 替换内存中的 messages(不持久化,DB 保留完整历史)
                 if (compressed.size < currentMessages.size) {
                     // v1.117: 修复消息丢失竞态 — 压缩是 suspend LLM 调用,耗时数秒,
-                    // 期间用户可能继续发送新消息(已 append 到 _state.messages)。
+                    // 期间用户可能继续发送新消息(已 append 到 _messages.value)。
                     // 直接用旧快照的 compressed 覆盖会丢弃这些新消息。
                     // 对齐 triggerAutoCompress(line 940-948)的修复:保留压缩期间新增的消息。
                     _state.update { state ->
-                        val newAppended = if (state.messages.size > currentMessages.size) {
-                            state.messages.drop(currentMessages.size)
+                        val newAppended = if (_messages.value.size > currentMessages.size) {
+                            _messages.value.drop(currentMessages.size)
                         } else {
                             emptyList()
                         }
-                        state.copy(messages = compressed + newAppended)
+                        _messages.value = compressed + newAppended
+                        state
                     }
                     Logger.i("ChatVM", "manualCompress: ${currentMessages.size} → ${compressed.size} 条 (keepRecent=$keepRecent)")
                     // v1.78 (#33): 压缩成功反馈,让用户知道压缩生效
@@ -2179,7 +2526,7 @@ class ChatViewModel(
             }
             SlashCommand.RESET -> {
                 // 重置上下文 — 清空内存中的消息(不删 DB),下次发送时从 DB 重新加载
-                _state.update { it.copy(messages = emptyList()) }
+                _messages.value = emptyList()
                 MuseToast.show(appContext.getString(R.string.slash_command_reset_done))
             }
             SlashCommand.PIN -> {
@@ -2393,10 +2740,10 @@ class ChatViewModel(
             sessionManager.acquire(id)
             val assistant = assistantRepository.getById(currentAssistantId)
                 ?: assistantRepository.getById("default")
+            _messages.value = emptyList()
             _state.update {
                 it.copy(
                     currentSessionId = id,
-                    messages = emptyList(),
                     input = "",
                     hasDraft = false,
                     errors = emptyList(),
@@ -2451,10 +2798,10 @@ class ChatViewModel(
             sessionManager.acquire(id)
             val assistant = assistantRepository.getById(currentAssistantId)
                 ?: assistantRepository.getById("default")
+            _messages.value = emptyList()
             _state.update {
                 it.copy(
                     currentSessionId = id,
-                    messages = emptyList(),
                     input = text,
                     hasDraft = false,
                     errors = emptyList(),
@@ -2500,9 +2847,9 @@ class ChatViewModel(
                 ?: assistantRepository.getById("default")
             _state.update {
                 if (it.isAgentMode) {
+                    _messages.value = emptyList()
                     it.copy(
                         agentSessionId = id,
-                        messages = emptyList(),
                         input = "",
                         errors = emptyList(),
                         isDrawerOpen = false,
@@ -2517,9 +2864,9 @@ class ChatViewModel(
                         visionProgress = null,
                     )
                 } else {
+                    _messages.value = emptyList()
                     it.copy(
                         currentSessionId = id,
-                        messages = emptyList(),
                         input = "",
                         errors = emptyList(),
                         isDrawerOpen = false,
@@ -2578,7 +2925,7 @@ class ChatViewModel(
         // v1.93+: 切换前把当前会话消息快照存入 LRU 缓存,切回时可直接命中避免 DB 查询。
         // v1.0.44: 如果有变体分支则不缓存，强制从 DB 加载完整变体列表
         if (currentSession != null && _state.value.messageNodes.none { it.hasBranches }) {
-            sessionMemoryCache.put(currentSession, _state.value.messages)
+            sessionMemoryCache.put(currentSession, _messages.value)
         }
         viewModelScope.launch {
             if (currentSession != null && currentInput.isNotBlank()) {
@@ -2612,9 +2959,9 @@ class ChatViewModel(
             // 功能2: 恢复目标会话的输入草稿
             val draft = settings.loadChatDraft(sessionId)
             _state.update {
+                _messages.value = messages
                 it.copy(
                     currentSessionId = sessionId,
-                    messages = messages,
                     input = draft,
                     hasDraft = draft.isNotBlank(),
                     errors = emptyList(),
@@ -2651,8 +2998,8 @@ class ChatViewModel(
             // v1.0.30: 回话安全网 — 后台生成中的会话显式重刷分支状态 + 清内存缓存
             if (isBackgroundStreaming) {
                 branchManager.syncFromMessages(messages)
-                _state.update { it.copy(messageNodes = branchManager.nodes.value,
-                    messages = branchManager.displayMessages.value) }
+                _state.update { it.copy(messageNodes = branchManager.nodes.value) }
+                _messages.value = branchManager.displayMessages.value
                 sessionMemoryCache.remove(sessionId)
             }
             // v1.0.30: 标记回话时间戳，供 onAppForeground 判断是否需要强制刷新
@@ -2662,8 +3009,8 @@ class ChatViewModel(
             refreshContextInfo()
             // 同步消息分支状态
             branchManager.syncFromMessages(messages)
-            _state.update { it.copy(messageNodes = branchManager.nodes.value,
-                messages = branchManager.displayMessages.value) }
+            _state.update { it.copy(messageNodes = branchManager.nodes.value) }
+            _messages.value = branchManager.displayMessages.value
             // 切换会话取消所有待审批(防止幽灵审批卡片 + requestToolApproval 协程挂起)
             cancelAllPendingApprovals()
             // 断点续传:检查本会话是否有未完成的工具调用,有则更新 pendingToolCallCount
@@ -2689,7 +3036,7 @@ class ChatViewModel(
     fun setAgentMode(enabled: Boolean) {
         // v1.92: ChatViewModel 改为 single 后 onCleared 永不调用,
         // 切换 Tab 涉及会话切换,需在此停止 TTS/ASR/生成(与 switchSession 一致),
-        // 否则 _state.messages 被覆盖后,生成闭包 update 到错误的消息列表。
+        // 否则 _messages.value 被覆盖后,生成闭包 update 到错误的消息列表。
         if (_state.value.isStreaming) detachStreaming()
         stopTts()
         disposeAsr()
@@ -2721,12 +3068,12 @@ class ChatViewModel(
                 val assistantId = sessionRepository.getAssistantId(sessionId)
                 val assistant = assistantRepository.getById(assistantId)
                     ?: assistantRepository.getById("default")
+                _messages.value = messages
                 _state.update {
                     it.copy(
                         isAgentMode = true,
                         agentSessionId = sessionId,
                         isSwitchingSession = false,
-                        messages = messages,
                         currentAssistant = assistant,
                         errors = emptyList(),
                         hasMoreHistory = hasMore,
@@ -2793,9 +3140,9 @@ class ChatViewModel(
                     val assistantId = sessionRepository.getAssistantId(sid)
                     val assistant = assistantRepository.getById(assistantId)
                         ?: assistantRepository.getById("default")
+                    _messages.value = messages
                     _state.update {
                         it.copy(
-                            messages = messages,
                             currentAssistant = assistant,
                             hasMoreHistory = hasMore,
                             isLoadingMore = false,
@@ -2844,7 +3191,7 @@ class ChatViewModel(
         // v1.28: Agent 模式用 agentSessionId,任务模式用 currentSessionId
         val sessionId = if (state.isAgentMode) state.agentSessionId else state.currentSessionId
         val sessionIdSafe = sessionId ?: return
-        val firstMsg = state.messages.firstOrNull() ?: return
+        val firstMsg = _messages.value.firstOrNull() ?: return
         viewModelScope.launch {
             _state.update { it.copy(isLoadingMore = true) }
             val older = sessionRepository.getOlderMessages(sessionIdSafe, firstMsg.createdAt, MESSAGE_PAGE_SIZE)
@@ -2852,12 +3199,12 @@ class ChatViewModel(
                 _state.update { it.copy(hasMoreHistory = false, isLoadingMore = false) }
                 return@launch
             }
-            // v1.126: 重新读取最新 state.messages,防止加载期间流式追加的新消息被覆盖
-            val currentMessages = _state.value.messages
+            // v1.126: 重新读取最新 _messages.value,防止加载期间流式追加的新消息被覆盖
+            val currentMessages = _messages.value
             val merged = older + currentMessages
+            _messages.value = merged
             _state.update {
                 it.copy(
-                    messages = merged,
                     hasMoreHistory = older.size >= MESSAGE_PAGE_SIZE,
                     isLoadingMore = false,
                     lastHistoryLoadCount = older.size,
@@ -2865,8 +3212,8 @@ class ChatViewModel(
             }
             // 加载更多历史后同步消息分支状态
             branchManager.syncFromMessages(merged)
-            _state.update { it.copy(messageNodes = branchManager.nodes.value,
-                messages = branchManager.displayMessages.value) }
+            _state.update { it.copy(messageNodes = branchManager.nodes.value) }
+            _messages.value = branchManager.displayMessages.value
         }
     }
 
@@ -2901,9 +3248,9 @@ class ChatViewModel(
                 } else {
                     // 无剩余会话时不创建新会话,currentSessionId 置 null,清空消息列表
                     _state.update {
+                        _messages.value = emptyList()
                         it.copy(
                             currentSessionId = null,
-                            messages = emptyList(),
                         )
                     }
                 }
@@ -2929,12 +3276,43 @@ class ChatViewModel(
                     switchSession(target.id)
                 } else {
                     // 无剩余会话时不创建新会话,currentSessionId 置 null,清空消息列表
+                    _messages.value = emptyList()
                     _state.update {
                         it.copy(
                             currentSessionId = null,
-                            messages = emptyList(),
                         )
                     }
+                }
+            }
+        }
+    }
+
+    /** 重新加载会话列表(会话列表错误态重试)。 */
+    fun retryLoadSessions() {
+        viewModelScope.launch {
+            _state.update { it.copy(isSessionsLoading = true, sessionsError = null) }
+            try {
+                val sessions = sessionRepository.observeSessions().first()
+                _state.update { it.copy(sessions = sessions, isSessionsLoading = false, sessionsError = null) }
+                if (_state.value.currentSessionId == null && !initializing) {
+                    initializing = true
+                    val target = sessions.firstOrNull()
+                    if (target != null) {
+                        switchSession(target.id)
+                    } else {
+                        createNewSession()
+                    }
+                }
+            } catch (t: Throwable) {
+                Logger.e("ChatVM", "retryLoadSessions failed", t)
+                _state.update {
+                    it.copy(
+                        isSessionsLoading = false,
+                        sessionsError = appContext.getString(
+                            R.string.err_chat_request_failed,
+                            t.message ?: appContext.getString(R.string.err_chat_unknown),
+                        ),
+                    )
                 }
             }
         }
@@ -3001,9 +3379,9 @@ class ChatViewModel(
                         _state.update { it.copy(agentSessionId = id) }
                         // v1.53-A1: 分页加载 Agent 会话消息(新会话为空,同时重置 hasMoreHistory)
                         val (msgs, hasMore) = loadMessagesPaged(id)
+                        _messages.value = msgs
                         _state.update {
                             it.copy(
-                                messages = msgs,
                                 hasMoreHistory = hasMore,
                                 isLoadingMore = false,
                                 lastHistoryLoadCount = 0,
@@ -3061,7 +3439,7 @@ class ChatViewModel(
             targetType = targetType,
             targetId = route.targetId,
             contextMessages = DelegationContextBuilder.build(
-                sessionMessages = _state.value.messages,
+                sessionMessages = _messages.value,
                 maxMessages = DelegationContextBuilder.DEFAULT_MAX_MESSAGES,
                 includeImages = false,
             ),
@@ -3188,7 +3566,7 @@ class ChatViewModel(
      */
     fun translateMessage(messageId: Uuid, targetLanguage: String = "中文", style: String = "通用") {
         if (_state.value.isStreaming || _state.value.isTranslating) return
-        val target = _state.value.messages.firstOrNull { it.id == messageId }
+        val target = _messages.value.firstOrNull { it.id == messageId }
             ?: return
         if (target.content.isBlank()) return
 
@@ -3218,7 +3596,7 @@ class ChatViewModel(
                     role = MessageRole.ASSISTANT,
                     content = appContext.getString(R.string.err_chat_translate_prefix, targetLanguage),
                 )
-                _state.update { it.copy(messages = it.messages + placeholder) }
+                _messages.value = _messages.value + placeholder
 
                 val sb = StringBuilder()
                 val prefix = appContext.getString(R.string.err_chat_translate_prefix, targetLanguage)
@@ -3228,12 +3606,8 @@ class ChatViewModel(
                             sb.append(ev.delta)
                             // 增量更新最后一条消息(占位)的 content,前缀保持 "翻译(X):\n\n"
                             val updated = placeholder.copy(content = prefix + sb.toString())
-                            _state.update { state ->
-                                state.copy(
-                                    messages = state.messages.map { m ->
-                                        if (m.id == placeholder.id) updated else m
-                                    },
-                                )
+                            _messages.value = _messages.value.map { m ->
+                                if (m.id == placeholder.id) updated else m
                             }
                         }
                     }
@@ -3245,9 +3619,9 @@ class ChatViewModel(
                 val translated = io.zer0.muse.transformer.stripThinkTags(sb.toString()).trim()
                 if (translated.isEmpty()) {
                     // 移除占位消息,改为错误提示
+                    _messages.value = _messages.value.filter { m -> m.id != placeholder.id }
                     _state.update {
                         it.copy(
-                            messages = it.messages.filter { m -> m.id != placeholder.id },
                             errors = listOf(ChatError(type = ChatErrorType.UNKNOWN, message = appContext.getString(R.string.err_chat_translate_empty))),
                             isTranslating = false,
                             translatingMessageId = null,
@@ -3257,11 +3631,11 @@ class ChatViewModel(
                 }
                 // 最终化占位消息(确保 content 是清洗后的版本)
                 val finalMsg = placeholder.copy(content = "$prefix$translated")
-                _state.update { state ->
-                    state.copy(
-                        messages = state.messages.map { m ->
-                            if (m.id == placeholder.id) finalMsg else m
-                        },
+                _messages.value = _messages.value.map { m ->
+                    if (m.id == placeholder.id) finalMsg else m
+                }
+                _state.update {
+                    it.copy(
                         isTranslating = false,
                         translatingMessageId = null,
                     )
@@ -3309,13 +3683,13 @@ class ChatViewModel(
     fun editUserMessage(messageId: Uuid) {
         if (_state.value.isStreaming) return
         val sessionId = _state.value.currentSessionId ?: return
-        val messages = _state.value.messages
+        val messages = _messages.value
         val target = messages.firstOrNull { it.id == messageId && it.role == MessageRole.USER }
             ?: return
         val truncated = messages.takeWhile { it.id != messageId }
+        _messages.value = truncated
         _state.update {
             it.copy(
-                messages = truncated,
                 input = target.content,
                 errors = emptyList(),
             )
@@ -3332,17 +3706,49 @@ class ChatViewModel(
     fun editAssistantMessage(messageId: Uuid, newContent: String) {
         if (_state.value.isStreaming) return
         val sessionId = _state.value.currentSessionId ?: return
-        val messages = _state.value.messages
+        val messages = _messages.value
         val index = messages.indexOfFirst { it.id == messageId && it.role == MessageRole.ASSISTANT }
         if (index == -1) return
         val updated = messages[index].copy(content = newContent, reasoning = null)
         val newMessages = messages.toMutableList().apply { set(index, updated) }
-        _state.update { it.copy(messages = newMessages, errors = emptyList()) }
+        _messages.value = newMessages
+        _state.update { it.copy(errors = emptyList()) }
         viewModelScope.launch {
             sessionRepository.updateMessageContent(sessionId, messageId, newContent)
         }
     }
 
+    /**
+     * B7-04: 流式打断后继续生成。
+     *
+     * 复用最后一条带 [已中断] 标记的 assistant 消息,去掉标记后以
+     * resumeFromText 方式从断点续写,不新增消息。
+     */
+    fun continueGeneration() {
+        if (_state.value.isStreaming) return
+        val sessionId = if (_state.value.isAgentMode) {
+            _state.value.agentSessionId ?: return
+        } else {
+            _state.value.currentSessionId ?: return
+        }
+        val messages = _messages.value
+        val last = messages.lastOrNull() ?: return
+        if (last.role != MessageRole.ASSISTANT) return
+        if (!last.content.contains("[已中断]")) return
+        val content = last.content
+            .removeSuffix("\n\n[已中断]")
+            .removeSuffix("[已中断]")
+        val resumed = last.copy(content = content)
+        _messages.value = _messages.value.map { if (it.id == last.id) resumed else it }
+        _state.update {
+            it.copy(
+                isStreaming = true,
+                isWaitingFirstToken = true,
+                errors = emptyList(),
+            )
+        }
+        launchStream(assistantId = last.id, sessionId = sessionId, continueFrom = resumed)
+    }
     /**
      * 重生成最后一条 assistant 回复: 保留旧回复作为分支,创建新分支并重新请求。
      * 仅当最后一条是 assistant 且非流式时可用。
@@ -3354,7 +3760,7 @@ class ChatViewModel(
         } else {
             _state.value.currentSessionId ?: return
         }
-        val messages = _state.value.messages
+        val messages = _messages.value
         val last = messages.lastOrNull() ?: return
         if (last.role != MessageRole.ASSISTANT) return
 
@@ -3423,9 +3829,9 @@ class ChatViewModel(
                     messages
                 }
                 val newMessages = history + allExistingMessages + newWithVariant
+                _messages.value = newMessages
                 _state.update {
                     it.copy(
-                        messages = newMessages,
                         isStreaming = true,
                         isWaitingFirstToken = true,
                         errors = emptyList(),
@@ -3435,9 +3841,9 @@ class ChatViewModel(
                 branchManager.syncFromMessages(newMessages)
                 // 切换到新变体（最新一个）
                 branchManager.selectBranch(groupId, newIndex)
+                _messages.value = branchManager.displayMessages.value
                 _state.update {
                     it.copy(
-                        messages = branchManager.displayMessages.value,
                         messageNodes = branchManager.nodes.value,
                     )
                 }
@@ -3455,10 +3861,10 @@ class ChatViewModel(
      */
     fun selectBranch(nodeId: String, index: Int) {
         branchManager.selectBranch(nodeId, index)
-        // 同步 displayMessages 到 state.messages
+        // 同步 displayMessages 到 _messages.value
+        _messages.value = branchManager.displayMessages.value
         _state.update {
             it.copy(
-                messages = branchManager.displayMessages.value,
                 messageNodes = branchManager.nodes.value,
             )
         }
@@ -3628,7 +4034,7 @@ class ChatViewModel(
      *  - 工具自身风险等级([ToolRiskLevel])
      * 最终由 [ToolPermissionResolver] 统一解析。
      */
-    private suspend fun requestToolApproval(toolName: String, toolCallId: String, argsPreview: String, args: Map<String, Any?> = emptyMap()): ToolApprovalState {
+    override suspend fun requestToolApproval(toolName: String, toolCallId: String, argsPreview: String, args: Map<String, Any?>): ToolApprovalState {
         // v1.0.16: 本次开启期间已批准全部工具,直接 Auto 执行,不再弹审批卡片
         if (_state.value.appRunAllowAllTools) {
             return ToolApprovalState.Auto
@@ -3737,7 +4143,12 @@ class ChatViewModel(
      *  - 按 Assistant.memoryEnabled / enableTimeReminder 控制 Transformer 管道开关
      *  - 通过 TemplateTransformer 处理 Assistant.messageTemplate 的 {{var}} 变量
      */
-    private fun launchStream(assistantId: Uuid, sessionId: String, isNewBranch: Boolean = false) {
+    private fun launchStream(
+        assistantId: Uuid,
+        sessionId: String,
+        isNewBranch: Boolean = false,
+        continueFrom: UIMessage? = null,
+    ) {
         // v1.94: 每次启动流式生成前清空工具调用历史(InputBar 动态胶囊计数归零)
         _state.update { it.copy(toolCallHistory = emptyList()) }
         // v1.0.29: 不再在前台启动前台服务通知(用户反馈"正在生成"通知极度无用)。
@@ -3753,6 +4164,8 @@ class ChatViewModel(
             // PII Guard:piiMatches 与 unmaskPii 辅助函数提到 try 块外,让 catch 块也能在
             // 落盘部分回复时还原占位符,避免 [PHONE_001] 等占位符被持久化到数据库。
             val state = StreamRunState(sessionId = sessionId, assistantId = assistantId, isNewBranch = isNewBranch)
+            // B7-04: 继续生成时预置已产出内容
+            continueFrom?.let { state.builder.append(it.content) }
             try {
                 streamCoordinator.prepareHistory(state)
                 buildSystemPromptForStream(state)
@@ -3768,8 +4181,8 @@ class ChatViewModel(
                 // v1.80 (M-CVM2): 用户停止生成(或切会话)触发取消时,也要持久化已接收的部分回复,
                 // 加 [已中断] 标记后落盘。原实现直接 throw ce 跳过了下面的持久化逻辑,
                 // 导致停止生成时部分回复不落盘。提取到 persistInterruptedAssistant(用 NonCancellable 包裹)。
-                // v1.97: 切页后 _state.messages 可能已切换到新会话,用 builder 构造部分回复,
-                // 避免从 _state.messages 找到错误会话的消息。
+                // v1.97: 切页后 _messages.value 可能已切换到新会话,用 builder 构造部分回复,
+                // 避免从 _messages.value 找到错误会话的消息。
                 // PII Guard:部分回复也要还原占位符,避免 [PHONE_001] 等占位符落入数据库。
                 val partialFromBuilder = if (state.builder.isNotEmpty()) {
                     UIMessage(
@@ -3786,7 +4199,7 @@ class ChatViewModel(
                 // v1.80 (L-CVM3): catch Throwable 改为 catch Exception,避免捕获 OOM/StackOverflow 等 Error
                 Logger.e("ChatVM", "stream failed", t)
                 // v0.51: 流式被打断时保留已接收的部分回复(加 [已中断] 标记并落盘)
-                // v1.97: 同上,用 builder 构造部分回复,避免切页后从 _state.messages 找错。
+                // v1.97: 同上,用 builder 构造部分回复,避免切页后从 _messages.value 找错。
                 // PII Guard:部分回复也要还原占位符。
                 val partialFromBuilder = if (state.builder.isNotEmpty()) {
                     UIMessage(
@@ -3812,6 +4225,8 @@ class ChatViewModel(
                 // v1.0.21: 生成结束后清除内存缓存,避免切回时命中过期快照(缺少最终回复)
                 //   后台生成期间 DB 已写入最新消息,切回时应从 DB 加载而非用旧缓存
                 sessionMemoryCache.remove(sessionId)
+                // B0-08: 里程碑检查(消息数/相伴天数触发,DAO 内去重)
+                milestoneChecker?.checkAndTrigger(sessionId, currentAssistantId())
             }
         }
         // v1.x: 把生成任务交给 ConversationSessionManager 跟踪(参考 rikkahub ConversationSession),
@@ -3961,6 +4376,9 @@ class ChatViewModel(
         val sessionId = state.sessionId
         val sessionTitle = state.sessionTitle
         val streamStartedAt = state.streamStartedAt
+        // B5-01: 生成检查点 — 记录本轮用户消息与生成起始时间,供进程被杀后恢复
+        val checkpointUserMessageId = state.conversationHistory.lastOrNull { it.role == MessageRole.USER }?.id?.toString() ?: ""
+        val checkpointCreatedAt = streamStartedAt
         val pendingRagCitations = state.pendingRagCitations
         val assistant = state.assistant
         val effectiveModel = state.effectiveModel
@@ -4026,6 +4444,11 @@ class ChatViewModel(
         val toolLoopHost = object : ToolLoopHost {
             override suspend fun streamRound(params: StreamRoundParams): StreamRoundResult {
                 val round = params.round
+                // B5-03: 多轮 thinking 签名/加密内容累积,最终写入 assistant 消息
+                var thinkingSignature: String? = null
+                var thinkingEncryptedContent: String? = null
+                // B3-03: 断线续传去重 — 跳过与已显示内容重复的前缀 delta,避免用户看到重复文本
+                var duplicateRemaining: String? = if (params.preservePartialContent) params.builder.toString() else null
                 // v1.0.17: preservePartialContent=true 时跳过 clear,保留 StreamInterrupted 已收的部分内容
                 if (!params.preservePartialContent) {
                     params.builder.clear()
@@ -4033,6 +4456,17 @@ class ChatViewModel(
                 } else {
                     Logger.i("ChatVM", "streamRound retry with preservePartialContent, keep ${params.builder.length} chars")
                 }
+
+                // B5-01: 每轮开始写入生成检查点,确保流式产出有持久化兜底
+                runCatching {
+                    sessionRepository.upsertGenerationCheckpoint(
+                        sessionId = sessionId,
+                        userMessageId = checkpointUserMessageId,
+                        assistantMessageId = params.currentAssistantId.toString(),
+                        content = unmaskPii(params.builder.toString()),
+                        createdAt = checkpointCreatedAt,
+                    )
+                }.onFailure { Logger.w("ChatVM", "generation checkpoint 写入失败: ${it.message}") }
                 val flow = chatService.streamChat(
                     messages = params.history,
                     model = effectiveModel,
@@ -4041,6 +4475,8 @@ class ChatViewModel(
                     temperature = effectiveTemperature,
                     maxTokens = assistant?.maxTokens,
                     reasoningLevel = reasoningLevel,
+                    resumeFromText = params.builder.toString()
+                        .takeIf { params.preservePartialContent && it.isNotBlank() },
                 )
                 val imageAccumulator = mutableListOf<String>()
                 val toolCallAccumulator = mutableMapOf<Int, Triple<String?, String?, StringBuilder>>()
@@ -4055,6 +4491,15 @@ class ChatViewModel(
                 flow.collect { event ->
                     when (event) {
                         is ChatStreamEvent.ContentDelta -> {
+                            // B3-03: 续传去重 — 若当前 delta 是已显示内容的重复前缀,直接跳过
+                            val duplicate = duplicateRemaining
+                            if (duplicate != null) {
+                                if (duplicate.startsWith(event.delta)) {
+                                    duplicateRemaining = duplicate.removePrefix(event.delta).takeIf { it.isNotEmpty() }
+                                    return@collect
+                                }
+                                duplicateRemaining = null
+                            }
                             // v1.0.3: 首 token 立即刷新 UI,消除"loading → 大量文字"的视觉断层
                             val isFirstToken = firstTokenTime == 0L
                             if (isFirstToken) {
@@ -4076,7 +4521,7 @@ class ChatViewModel(
                                     // 首 token 立即输出全部 pending 内容,不等 50ms,消除 loading→大量文字 的断层
                                     params.builder.append(pendingBuilder)
                                     pendingBuilder.clear()
-                                    updateAssistant(params.currentAssistantId, unmaskPii(params.builder.toString()), isStreaming = true)
+                                    updateAssistantWithVisualTransform(state, params.currentAssistantId, unmaskPii(params.builder.toString()), isStreaming = true)
                                     lastUiUpdateChars = params.builder.length
                                     lastUiUpdateAt = now
                                 } else if (now - lastUiUpdateAt >= STREAM_THROTTLE_MS && pendingBuilder.isNotEmpty()) {
@@ -4085,7 +4530,7 @@ class ChatViewModel(
                                     val sliceLen = minOf(slice, pendingBuilder.length)
                                     params.builder.append(pendingBuilder.substring(0, sliceLen))
                                     pendingBuilder.delete(0, sliceLen)
-                                    updateAssistant(params.currentAssistantId, unmaskPii(params.builder.toString()), isStreaming = true)
+                                    updateAssistantWithVisualTransform(state, params.currentAssistantId, unmaskPii(params.builder.toString()), isStreaming = true)
                                     lastUiUpdateChars = params.builder.length
                                     lastUiUpdateAt = now
                                 }
@@ -4117,19 +4562,32 @@ class ChatViewModel(
                                 lastPersistChars = params.builder.length
                                 lastPersistAt = now
                                 chatGenerationManager.touch()
-                                val persistMsg = _state.value.messages
+                                val persistMsg = _messages.value
                                     .firstOrNull { it.id == params.currentAssistantId }
                                     ?.copy(
                                         content = unmaskPii(params.builder.toString()),
                                         reasoning = unmaskPii(params.reasoningBuilder.toString()).ifBlank { null },
+                                        thinkingSignature = thinkingSignature,
+                                        thinkingEncryptedContent = thinkingEncryptedContent,
                                     )
                                     ?: UIMessage(
                                         id = params.currentAssistantId,
                                         role = MessageRole.ASSISTANT,
                                         content = unmaskPii(params.builder.toString()),
                                         reasoning = unmaskPii(params.reasoningBuilder.toString()).ifBlank { null },
+                                        thinkingSignature = thinkingSignature,
+                                        thinkingEncryptedContent = thinkingEncryptedContent,
                                     )
                                 persistCurrentAssistant(sessionId, params.currentAssistantId, persistMsg)
+                                runCatching {
+                                    sessionRepository.upsertGenerationCheckpoint(
+                                        sessionId = sessionId,
+                                        userMessageId = checkpointUserMessageId,
+                                        assistantMessageId = params.currentAssistantId.toString(),
+                                        content = unmaskPii(params.builder.toString()),
+                                        createdAt = checkpointCreatedAt,
+                                    )
+                                }.onFailure { Logger.w("ChatVM", "generation checkpoint 更新失败: ${it.message}") }
                             }
                         }
                         is ChatStreamEvent.ReasoningDelta -> {
@@ -4140,6 +4598,8 @@ class ChatViewModel(
                                 _state.update { it.copy(isWaitingFirstToken = false) }
                             }
                             params.reasoningBuilder.append(event.delta)
+                            if (!event.signature.isNullOrBlank()) thinkingSignature = event.signature
+                            if (!event.encryptedContent.isNullOrBlank()) thinkingEncryptedContent = event.encryptedContent
                             val now = System.currentTimeMillis()
                             val charsSinceUi = params.builder.length - lastUiUpdateChars
                             val timeSinceUi = now - lastUiUpdateAt
@@ -4218,6 +4678,7 @@ class ChatViewModel(
                                 )
                             }
                         }
+                        is ChatStreamEvent.FallbackNotice -> { MuseToast.show(event.message) }
                         is ChatStreamEvent.StreamInterrupted -> {
                             // v1.0.15: 已收部分内容后连接中断,保留内容并等待网络恢复后重试(非固定 delay)
                             streamError = event.message
@@ -4282,9 +4743,8 @@ class ChatViewModel(
                             lastTokenUpdateAt = System.currentTimeMillis()
                             lastPersistChars = params.builder.length
                             lastPersistAt = System.currentTimeMillis()
-                            // TODO(stream-resume-dedup): 完整续传去重需 Provider 层追踪 anyDeltaSent
-                            //   (参考 rikkahub),当前重试会重新发完整 prompt,LLM 可能重复生成
-                            //   已有内容,导致 builder 出现重复文本。后续应在 Provider 层实现。
+                            // B3-03: UI 层续传去重已生效(duplicateRemaining 跳过重复前缀)。
+                            // Provider 层 resumeFromText 已接入:已显示内容作为末尾 assistant 消息注入,模型从中断处续写。
                             return streamRound(params.copy(
                                 retryCount = newRetryCount,
                                 preservePartialContent = true,
@@ -4344,7 +4804,7 @@ class ChatViewModel(
                         imageAccumulator.toList(),
                         isStreaming = false,
                     )
-                    val partialAssistant = _state.value.messages.firstOrNull { it.id == params.currentAssistantId }
+                    val partialAssistant = _messages.value.firstOrNull { it.id == params.currentAssistantId }
                     if (partialAssistant != null) {
                         try {
                             sessionRepository.upsertMessage(sessionId, partialAssistant)
@@ -4368,10 +4828,10 @@ class ChatViewModel(
                     isStreaming = false,
                 )
                 if (!streamToUi) {
-                    _state.update { it.copy(messages = it.messages) }
+                    _messages.value = _messages.value
                 }
 
-                val finalizedAssistant = _state.value.messages.firstOrNull { it.id == params.currentAssistantId }
+                val finalizedAssistant = _messages.value.firstOrNull { it.id == params.currentAssistantId }
                 val assistantMessage = if (hasToolCalls) {
                     UIMessage(
                         id = params.currentAssistantId,
@@ -4381,6 +4841,8 @@ class ChatViewModel(
                         reasoning = null,
                         mood = finalizedAssistant?.mood,
                         reflection = finalizedAssistant?.reflection,
+                        thinkingSignature = finalizedAssistant?.thinkingSignature ?: thinkingSignature,
+                        thinkingEncryptedContent = finalizedAssistant?.thinkingEncryptedContent ?: thinkingEncryptedContent,
                         imageBase64List = finalizedAssistant?.imageBase64List ?: emptyList(),
                         toolCalls = toolCallAccumulator.toSortedMap().map { (idx, triple) ->
                             ToolCall(
@@ -4396,6 +4858,8 @@ class ChatViewModel(
                         role = MessageRole.ASSISTANT,
                         content = unmaskPii(params.builder.toString()),
                         reasoning = unmaskPii(params.reasoningBuilder.toString()).ifBlank { null },
+                        thinkingSignature = thinkingSignature,
+                        thinkingEncryptedContent = thinkingEncryptedContent,
                         imageBase64List = imageAccumulator.toList(),
                     )
                     val withCitations = if (pendingRagCitations.isNotEmpty()) {
@@ -4456,9 +4920,13 @@ class ChatViewModel(
                 webSearchEnabled = _state.value.webSearchEnabled,
                 experiments = experiments,
                 assistant = assistant,
+                initialBuilderContent = state.builder.toString(),
+                initialReasoningContent = state.reasoningBuilder.toString(),
             ),
             conversationHistory = conversationHistory,
             host = toolLoopHost,
+            accessor = this,
+            taskCardCoordinator = taskCardCoordinator,
         )
 
         state.round = toolLoopResult.round
@@ -4478,15 +4946,11 @@ class ChatViewModel(
         // Phase 8.5 修复 S16: 工具调用达到 maxToolRounds 上限且未产生最终回复时,
         // 累积的 pendingRagCitations 需要附加到当前 assistant 消息。
         if (toolLoopResult.finalAssistantMessage == null && pendingRagCitations.isNotEmpty()) {
-            val lastAssistant = _state.value.messages.firstOrNull { it.id == state.currentAssistantId }
+            val lastAssistant = _messages.value.firstOrNull { it.id == state.currentAssistantId }
             if (lastAssistant != null && lastAssistant.ragCitations.isEmpty()) {
                 val withCitations = lastAssistant.copy(ragCitations = pendingRagCitations)
-                _state.update {
-                    it.copy(
-                        messages = it.messages.map { msg ->
-                            if (msg.id == withCitations.id) withCitations else msg
-                        }
-                    )
+                _messages.value = _messages.value.map { msg ->
+                    if (msg.id == withCitations.id) withCitations else msg
                 }
                 try {
                     sessionRepository.upsertMessage(sessionId, withCitations)
@@ -4522,12 +4986,8 @@ class ChatViewModel(
             } else {
                 withCitations
             }
-            _state.update {
-                it.copy(
-                    messages = it.messages.map { msg ->
-                        if (msg.id == withArtifacts.id) withArtifacts else msg
-                    }
-                )
+            _messages.value = _messages.value.map { msg ->
+                if (msg.id == withArtifacts.id) withArtifacts else msg
             }
             conversationHistory.add(withArtifacts)
             try {
@@ -4554,20 +5014,18 @@ class ChatViewModel(
         _state.update { it.copy(isStreaming = false, isWaitingFirstToken = false, toolProgressMessage = null) }
 
         // v1.x: 三钩子接入 — 生成完成后调用 applyOnGenerationFinish。
-        // 跑一遍 onGenerationFinish 钩子,如果最终 assistant 消息被改变则写回 _state.messages + DB。
+        // 跑一遍 onGenerationFinish 钩子,如果最终 assistant 消息被改变则写回 _messages.value + DB。
         // 仅处理最后一条 assistant 消息(本轮生成的),避免误改历史消息。
         // 容错:钩子内部失败由 TransformerPipeline 兜底跳过,不阻塞 finalizeResponse。
         resultOf {
             val ctx = state.transformContext ?: return@resultOf
             val currentAssistantId = state.currentAssistantId
-            val finalAssistant = _state.value.messages.firstOrNull { it.id == currentAssistantId } ?: return@resultOf
+            val finalAssistant = _messages.value.firstOrNull { it.id == currentAssistantId } ?: return@resultOf
             // 单条消息跑 onGenerationFinish(列表形式,与接口签名一致)
             val transformed = transformerPipeline.applyOnGenerationFinish(listOf(finalAssistant), ctx)
             val newAssistant = transformed.firstOrNull()
             if (newAssistant != null && newAssistant != finalAssistant) {
-                _state.update { s ->
-                    s.copy(messages = s.messages.map { if (it.id == currentAssistantId) newAssistant else it })
-                }
+                _messages.value = _messages.value.map { if (it.id == currentAssistantId) newAssistant else it }
                 resultOf { sessionRepository.upsertMessage(sessionId, newAssistant) }
                     .onError { msg, _ -> Logger.w("ChatVM", "onGenerationFinish upsertMessage failed: $msg") }
                 // v1.0.30: 变体信息写入 DB（regenerate 时 _pendingVariantInfo 非空）
@@ -4626,7 +5084,7 @@ class ChatViewModel(
         // v1.117: 改用 resultOf 避免吞 CancellationException(notificationPolicyFlow.first 是 suspend)
         resultOf {
             notificationManager.updateLiveProgress(sessionTitle, 0, false)
-            val finalText = _state.value.messages
+            val finalText = _messages.value
                 .firstOrNull { it.id == state.currentAssistantId }?.content.orEmpty()
             val preview = finalText.ifBlank { appContext.getString(R.string.err_chat_reply_generated) }
             // v0.32: 接入通知策略(never / when_unfocused / always)
@@ -4638,7 +5096,7 @@ class ChatViewModel(
 
         // 通知 memory ticker: 一轮对话结束(后台跑 rollingSummary + daily check)
         // v1.78 (#35): runCatching 包裹 — notifyTurn 失败不应影响已完成的流式回复
-        val conversationMessages = _state.value.messages
+        val conversationMessages = _messages.value
         val selectedModel = resultOf { settings.getSelectedModel() }.getOrNull()
         runCatching {
             memoryTicker.notifyTurn(
@@ -4648,6 +5106,9 @@ class ChatViewModel(
                 assistantId = _state.value.currentAssistant?.id ?: "",
             )
         }.onFailure { Logger.w("ChatVM", "notifyTurn failed: ${it.message}") }
+        // B5-01: 生成正常结束,清理检查点
+        resultOf { sessionRepository.deleteGenerationCheckpoint(state.currentAssistantId.toString()) }
+            .onError { msg, _ -> Logger.w("ChatVM", "generation checkpoint 清理失败: $msg") }
     }
 
     /**
@@ -4657,7 +5118,7 @@ class ChatViewModel(
      * - stop():用户主动停止,取消 SSE 连接 + 生成协程
      * - detachStreaming():切页触发,生成闭包继续在 appScope 运行
      *   - updateAssistant 因 index==-1 静默跳过(不更新错误会话的 messages)
-     *   - persistCurrentAssistant 用 builder 内容直接落盘(不依赖 _state.messages)
+     *   - persistCurrentAssistant 用 builder 内容直接落盘(不依赖 _messages.value)
      *   - 通知仍正常更新(notificationManager 不依赖 _state)
      *   - 切回原会话时从 DB 加载最新内容(含中间落盘)+ 恢复 isStreaming
      */
@@ -4713,7 +5174,7 @@ class ChatViewModel(
      *  2. 依次执行(skill 走 SkillExecutor,本地工具走 ToolRegistry)
      *     - 复用 [TOOL_TIMEOUT_MS] 超时 + [MAX_TOOL_RESULT_CHARS] 体积限制
      *  3. 每个工具结果构造为 TOOL 消息(保留原始 [PendingToolCallStore.PendingToolCall.toolCallId],
-     *     让 LLM 能对应上),持久化到 DB 并追加到 [_state.messages]
+     *     让 LLM 能对应上),持久化到 DB 并追加到 [_messages.value]
      *  4. 全部执行完成后,从 PendingToolCallStore 清理本会话的 pending 记录
      *  5. 追加一个空的 ASSISTANT 占位消息,调 [launchStream] 让 LLM 基于工具结果继续回复
      *
@@ -4813,8 +5274,8 @@ class ChatViewModel(
                     content = finalResult,
                     toolCallId = pending.toolCallId,
                 )
-                // 追加到 _state.messages(launchStream 会从 messages.dropLast(1) 取历史)
-                _state.update { it.copy(messages = it.messages + toolMsg) }
+                // 追加到 _messages.value(launchStream 会从 messages.dropLast(1) 取历史)
+                _messages.value = _messages.value + toolMsg
                 // 持久化到 DB(供下次启动时 LLM 仍能看到工具结果)
                 resultOf { sessionRepository.upsertMessage(chatId, toolMsg) }
                     .onError { msg, t ->
@@ -4850,9 +5311,9 @@ class ChatViewModel(
 
             // 追加空 ASSISTANT 占位消息,触发 launchStream 让 LLM 基于工具结果继续回复
             val assistantMsg = UIMessage(role = MessageRole.ASSISTANT, content = "")
+            _messages.value = _messages.value + assistantMsg
             _state.update {
                 it.copy(
-                    messages = it.messages + assistantMsg,
                     isStreaming = true,
                     // v1.0.3: 断点续传也进入"等待首 token"阶段
                     isWaitingFirstToken = true,
@@ -4966,7 +5427,7 @@ class ChatViewModel(
         if (sessionId == lastAutoSaveSessionId && now - lastAutoSaveAt < 30_000L) return
         lastAutoSaveSessionId = sessionId
         lastAutoSaveAt = now
-        val history = _state.value.messages
+        val history = _messages.value
         if (history.size < 2) return
         val assistantId = _state.value.currentAssistant?.id ?: "default"
         val spaceId = "default" // v1.0.52: 当前 Space 由 SettingsRepository 持有,此处简化用 default
@@ -5016,11 +5477,32 @@ class ChatViewModel(
         isStreaming: Boolean = false,
     ) = streamCoordinator.updateAssistant(id, content, reasoning, imageBase64List, imageUrls, videoFileUri, isStreaming)
 
+    /**
+     * B3-02: 流式 ThinkTag 剥离。
+     *
+     * 只有内容包含 <think> 时才跑视觉管道,避免破坏 50ms 自适应切片节流;
+     * 其余情况走原始 updateAssistant 快速路径。
+     */
+    private suspend fun updateAssistantWithVisualTransform(
+        state: StreamRunState,
+        assistantId: Uuid,
+        content: String,
+        reasoning: String? = null,
+        isStreaming: Boolean = false,
+    ) {
+        val ctx = state.transformContext
+        val raw = UIMessage(id = assistantId, role = MessageRole.ASSISTANT, content = content, reasoning = reasoning)
+        val visual = if (ctx != null && content.contains("<think>", ignoreCase = true)) {
+            transformerPipeline.applyVisualTransform(listOf(raw), ctx).firstOrNull() ?: raw
+        } else raw
+        updateAssistant(visual.id, visual.content, visual.reasoning, isStreaming = isStreaming)
+    }
+
     // ── v1.135: 媒体/富内容工具执行函数(注册到 ToolRegistry) ─────────────────
 
     /** 合并新内容到当前助手消息,避免覆盖 LLM 在工具调用前已输出的说明文本。 */
     private fun mergeAssistantContent(assistantId: Uuid, newContent: String): String {
-        val existing = _state.value.messages.firstOrNull { it.id == assistantId }?.content?.trim() ?: ""
+        val existing = _messages.value.firstOrNull { it.id == assistantId }?.content?.trim() ?: ""
         return if (existing.isNotBlank() && !existing.contains(newContent)) {
             "$existing\n\n$newContent"
         } else {
@@ -5333,10 +5815,10 @@ class ChatViewModel(
             val permissionMode = sessionPermissionStore.getMode(sessionId)
             val assistant = assistantRepository.getById(targetId)
                 ?: assistantRepository.getById("default")
+            _messages.value = messages
             _state.update {
                 it.copy(
                     agentSessionId = sessionId,
-                    messages = messages,
                     currentAssistant = assistant,
                     errors = emptyList(),
                     hasMoreHistory = hasMore,
@@ -5442,12 +5924,8 @@ class ChatViewModel(
         viewModelScope.launch {
             sessionRepository.setMessageReaction(messageIdStr, reaction?.takeIf { it.isNotEmpty() })
             // 乐观更新 UI
-            _state.update { state ->
-                state.copy(
-                    messages = state.messages.map { msg ->
-                        if (msg.id == messageId) msg.copy(reaction = reaction?.takeIf { it.isNotEmpty() }) else msg
-                    }
-                )
+            _messages.value = _messages.value.map { msg ->
+                if (msg.id == messageId) msg.copy(reaction = reaction?.takeIf { it.isNotEmpty() }) else msg
             }
         }
     }
@@ -5485,6 +5963,65 @@ class ChatViewModel(
      */
     fun deleteMessage(messageId: Uuid) = miscCoordinator.deleteMessage(messageId)
 
+    // ── B7-01: 消息多选批量操作 ──────────────────────────────────────────
+
+    fun setSelectionMode(enabled: Boolean) {
+        _state.update {
+            it.copy(
+                selectionMode = enabled,
+                selectedMessageIds = if (enabled) it.selectedMessageIds else emptySet(),
+            )
+        }
+    }
+
+    fun toggleMessageSelection(messageId: Uuid) {
+        _state.update {
+            val id = messageId.toString()
+            it.copy(
+                selectedMessageIds = if (id in it.selectedMessageIds) {
+                    it.selectedMessageIds - id
+                } else {
+                    it.selectedMessageIds + id
+                },
+            )
+        }
+    }
+
+    fun selectAllMessages(ids: Collection<String>) {
+        _state.update { it.copy(selectedMessageIds = ids.toSet()) }
+    }
+
+    /** B7-03: 滚动到底部时标记当前会话已读。 */
+    fun markSessionRead() {
+        val sessionId = _state.value.currentSessionId ?: _state.value.agentSessionId ?: return
+        // 新会话消息可能尚未加载（_messages 为空），此时也必须按 messageCount 标记已读，
+        // 否则 lastReadCount 一直为 0，messageCount - lastReadCount > 0，新会话永远显示“未读 1”。
+        viewModelScope.launch {
+            val session = _state.value.sessions.find { it.id == sessionId }
+            val last = _messages.value.lastOrNull()
+            val readCount = session?.messageCount?.coerceAtLeast(_messages.value.size) ?: _messages.value.size
+            sessionRepository.updateLastReadMessage(sessionId, last?.id?.toString() ?: "", readCount)
+        }
+    }
+
+    /** B7-03: 跳转到最早一条未读消息(没有未读时不动作)。 */
+    fun jumpToEarliestUnread() {
+        val sessionId = _state.value.currentSessionId ?: _state.value.agentSessionId ?: return
+        val session = _state.value.sessions.find { it.id == sessionId } ?: return
+        viewModelScope.launch {
+            val targetId = sessionRepository.findFirstUnreadMessageId(sessionId, session.lastReadMessageId)
+            if (targetId != null) setTargetMessage(targetId, null)
+        }
+    }
+    fun deleteSelectedMessages() {
+        val ids = _state.value.selectedMessageIds
+        if (ids.isEmpty()) return
+        ids.forEach { id ->
+            runCatching { Uuid.parse(id) }.getOrNull()?.let { deleteMessage(it) }
+        }
+        _state.update { it.copy(selectionMode = false, selectedMessageIds = emptySet()) }
+    }
+
     // ── Phase 9.1 (M13): 文件夹分组 CRUD ──────────────────────────────────
 
     /** 新建文件夹。 */
@@ -5504,6 +6041,9 @@ class ChatViewModel(
 
     /** P0-1 修复: 切换会话置顶状态。 */
     fun togglePinned(sessionId: String) = miscCoordinator.togglePinned(sessionId, ::reportError)
+
+    /** B7-05: 持久化置顶会话拖拽后的新顺序。 */
+    fun reorderPinnedSessions(ids: List<String>) = miscCoordinator.reorderPinnedSessions(ids, ::reportError)
 
     /**
      * Phase 8.4: 切换联网搜索开关(InputBar 上的图标按钮)。
@@ -5792,7 +6332,7 @@ class ChatViewModel(
                         wasStreaming = true
                     } else if (wasStreaming) {
                         wasStreaming = false
-                        val lastAssistant = state.messages.lastOrNull { it.role == MessageRole.ASSISTANT }
+                        val lastAssistant = _messages.value.lastOrNull { it.role == MessageRole.ASSISTANT }
                         val content = lastAssistant?.content?.takeIf { it.isNotBlank() }
                         if (content != null) {
                             _voiceConversationAiReply.value = content

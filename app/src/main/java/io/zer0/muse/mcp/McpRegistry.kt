@@ -311,6 +311,13 @@ class McpRegistry(
                 refreshTools(config.id, client)
             }
         }
+        // B3-09: prompts/resources 变更时触发刷新信号(列表为按需查询,下轮打开自动取最新)
+        client.onPromptsListChanged = {
+            Logger.i(TAG, "[${config.id}] prompts/list_changed 通知,下次查询自动刷新")
+        }
+        client.onResourcesListChanged = {
+            Logger.i(TAG, "[${config.id}] resources/list_changed 通知,下次查询自动刷新")
+        }
 
         client.start()
         // M-REG1: 用 first{} 替代 200ms 轮询,等待终态(CONNECTED/FAILED/NEEDS_AUTH)
@@ -341,6 +348,8 @@ class McpRegistry(
         clients.remove(id)?.let { client ->
             // Phase 9.5 (P3-2): 清除回调引用,避免断开后通知仍触发 refreshTools
             client.onToolsListChanged = null
+            client.onPromptsListChanged = null
+            client.onResourcesListChanged = null
             client.close()
             // 注销该 server 的所有工具(前缀匹配)
             unregisterTools(id)

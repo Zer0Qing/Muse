@@ -9,10 +9,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material3.AlertDialog
@@ -126,11 +129,25 @@ fun MemorySpaceManageScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            items(spaces, key = { it.id }) { space ->
+            itemsIndexed(spaces, key = { _, it -> it.id }) { index, space ->
                 SpaceRow(
                     space = space,
                     onRename = { renameTarget = space },
                     onDelete = { viewModel.deleteSpace(space.id) },
+                    onMoveUp = {
+                        if (index > 0) viewModel.reorderSpaces(
+                            spaces.toMutableList().apply {
+                                add(index - 1, removeAt(index))
+                            }.map { it.id },
+                        )
+                    },
+                    onMoveDown = {
+                        if (index < spaces.lastIndex) viewModel.reorderSpaces(
+                            spaces.toMutableList().apply {
+                                add(index + 1, removeAt(index))
+                            }.map { it.id },
+                        )
+                    },
                 )
             }
         }
@@ -176,6 +193,8 @@ private fun SpaceRow(
     space: MemorySpaceWithCount,
     onRename: () -> Unit,
     onDelete: () -> Unit,
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -201,6 +220,18 @@ private fun SpaceRow(
                 Icon(
                     imageVector = Icons.Filled.Edit,
                     contentDescription = stringResource(R.string.memory_space_rename),
+                )
+            }
+            IconButton(onClick = onMoveUp) {
+                Icon(
+                    imageVector = Icons.Filled.ArrowUpward,
+                    contentDescription = "上移",
+                )
+            }
+            IconButton(onClick = onMoveDown) {
+                Icon(
+                    imageVector = Icons.Filled.ArrowDownward,
+                    contentDescription = "下移",
                 )
             }
             if (space.id != MemorySpaceEntity.DEFAULT_SPACE_ID) {

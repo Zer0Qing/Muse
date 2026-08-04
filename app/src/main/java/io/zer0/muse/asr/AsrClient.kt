@@ -14,6 +14,8 @@ data class AsrResult(
     val text: String,
     val isFinal: Boolean = true,
     val durationMs: Long = 0,
+    /** B5-06: 失败原因(非 null 表示本次识别失败,text 为空)。 */
+    val errorMessage: String? = null,
 )
 
 /**

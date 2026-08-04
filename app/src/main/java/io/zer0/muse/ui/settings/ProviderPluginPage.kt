@@ -84,6 +84,7 @@ fun ProviderPluginPage(
     onBack: () -> Unit,
 ) {
     val registry: ProviderPluginRegistry = koinInject()
+    val pluginManager: io.zer0.muse.data.plugin.PluginManager = koinInject()
     val settings: SettingsRepository = koinInject()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -102,11 +103,39 @@ fun ProviderPluginPage(
      */
     suspend fun importFromUri(uri: Uri) {
         withContext(Dispatchers.IO) {
+            val bytes = runCatching {
+                context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            }.getOrNull() ?: error("无法读取所选文件")
+            // 识别插件包类型: ZIP 头(PK) → B6-01 外部插件包(.muse-plugin / zip);
+            // 否则按 JSON Provider 插件处理。避免用户在外卖 Provider 插件页导入插件包时
+            // 被当成 JSON 解析报 "Unexpected JSON token ... had 'P'" (PK = ZIP 魔数)。
+            val isZip = bytes.size >= 2 && bytes[0] == 'P'.code.toByte() && bytes[1] == 'K'.code.toByte()
+            if (isZip) {
+                val tempFile = File(context.cacheDir, "plugin_import_${System.currentTimeMillis()}.muse-plugin")
+                try {
+                    tempFile.writeBytes(bytes)
+                    pluginManager.installFromFile(tempFile)
+                        .onSuccess {
+                            withContext(Dispatchers.Main) {
+                                // 插件包装进 PluginManager（外部插件），不在本页 Provider 插件列表里，
+                                // 明确提示用户去「外部插件」页查看/启用。
+                                MuseToast.show(context.getString(R.string.muse_plugins_import_hint))
+                            }
+                        }
+                        .onFailure { e ->
+                            val msg = e.message ?: e::class.simpleName ?: "unknown"
+                            withContext(Dispatchers.Main) {
+                                MuseToast.show(context.getString(R.string.provider_plugins_import_failed, msg), 3500)
+                            }
+                        }
+                } finally {
+                    runCatching { if (tempFile.exists()) tempFile.delete() }
+                }
+                return@withContext
+            }
             val tempFile = File(context.cacheDir, "plugin_import_${System.currentTimeMillis()}.json")
             try {
-                context.contentResolver.openInputStream(uri)?.use { input ->
-                    tempFile.outputStream().use { output -> input.copyTo(output) }
-                } ?: error("无法打开所选文件")
+                tempFile.writeBytes(bytes)
                 val result = registry.loadFromFile(tempFile)
                 result.onSuccess {
                     withContext(Dispatchers.Main) {

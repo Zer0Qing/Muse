@@ -128,6 +128,7 @@ import io.zer0.muse.ui.common.media.DesktopContextMenu
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.media.rememberDesktopShortcutsEnabled
 import io.zer0.muse.ui.markdown.MarkdownText
+import io.zer0.muse.transformer.MoodSkinParser
 import io.zer0.muse.ui.taskcard.AgentPlan
 import io.zer0.muse.ui.taskcard.PlanCard
 import io.zer0.muse.ui.theme.MuseDateFormats
@@ -179,6 +180,13 @@ internal fun MessageBubble(
     onEdit: () -> Unit,
     onQuote: () -> Unit,
     onRegenerate: () -> Unit,
+    /** B7-04: 流式打断后继续生成入口。 */
+    onContinue: (() -> Unit)? = null,
+    /** B7-01: 多选模式。 */
+    selectionMode: Boolean = false,
+    selected: Boolean = false,
+    onToggleSelection: (() -> Unit)? = null,
+    onEnterMultiSelect: (() -> Unit)? = null,
     onTranslate: (String) -> Unit,
     onToggleFavorite: () -> Unit = {},
     // 阶段 J: 复制消息内容到剪贴板
@@ -276,10 +284,14 @@ internal fun MessageBubble(
         indication = null,
         // v1.48: 改为仅长按弹菜单 — 单击弹菜单过于激进,且与 MarkdownText 链接点击冲突
         // (点正文文字时 LinkableText 消费 tap 事件导致不弹菜单,行为不可预测)
-        onClick = {},
+        onClick = {
+            if (selectionMode) onToggleSelection?.invoke()
+        },
         onLongClick = {
             MuseHaptics.medium(hapticFeedback)
-            if (desktopShortcutsEnabled) {
+            if (selectionMode) {
+                onToggleSelection?.invoke()
+            } else if (desktopShortcutsEnabled) {
                 showDesktopContextMenu = true
             } else {
                 showActionMenu = true
@@ -299,6 +311,29 @@ internal fun MessageBubble(
         horizontalAlignment = horizontalAlignment,
     ) {
 
+        // B7-01: 多选模式指示
+        if (selectionMode) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 4.dp),
+                horizontalArrangement = if (isUser == isLtr) Arrangement.End else Arrangement.Start,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.size(22.dp),
+                ) {
+                    Icon(
+                        imageVector = if (selected) TablerIcons.Check else TablerIcons.Circle,
+                        contentDescription = stringResource(if (selected) R.string.skill_enabled else R.string.skill_disabled),
+                        tint = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(2.dp),
+                    )
+                }
+            }
+        }
         // v0.30-b: MOOD 块(6 步工作流第 2 步 — AI 内部腹稿,可折叠)
         // v0.31: 受 chatPrefs.showMoodBlock 开关控制,默认展开状态由 chatPrefs.moodExpandedByDefault 决定
         if (chatPrefs.showMoodBlock) {
@@ -338,7 +373,7 @@ internal fun MessageBubble(
                         )
                     }
                     if (showMoodExpanded) {
-                        Spacer(Modifier.height(4.dp))
+                        Spacer(Modifier.height(MusePaddings.tinyGap))
                         Text(
                             text = mood,
                             style = MaterialTheme.typography.bodySmall,
@@ -407,7 +442,7 @@ internal fun MessageBubble(
                             )
                         }
                         if (showExpanded) {
-                            Spacer(Modifier.height(4.dp))
+                            Spacer(Modifier.height(MusePaddings.tinyGap))
                             Text(
                                 text = reasoning,
                                 style = MaterialTheme.typography.bodySmall,
@@ -456,7 +491,7 @@ internal fun MessageBubble(
                             )
                         }
                         if (showReflectionExpanded) {
-                            Spacer(Modifier.height(4.dp))
+                            Spacer(Modifier.height(MusePaddings.tinyGap))
                             Text(
                                 text = reflection,
                                 style = MaterialTheme.typography.bodySmall,
@@ -477,7 +512,7 @@ internal fun MessageBubble(
                 shape = MuseShapes.large,
                 // v1.0.29: 移除阴影,避免浅色气泡在深色/浅色背景下出现奇怪阴影边缘。
                 modifier = bubbleClickModifier
-                    .padding(horizontal = 4.dp, vertical = 3.dp),
+                    .padding(horizontal = MusePaddings.tinyGap, vertical = 3.dp),
             ) {
                 Column(
                     modifier = Modifier
@@ -562,7 +597,7 @@ internal fun MessageBubble(
                             ) {
                                 Icon(
                                     imageVector = TablerIcons.PlayerPlay,
-                                    contentDescription = null,
+                                    contentDescription = stringResource(R.string.chat_video_play_cd),
                                     tint = MaterialTheme.colorScheme.onPrimary,
                                     modifier = Modifier.size(MuseIconSizes.iconLarge),
                                 )
@@ -628,11 +663,11 @@ internal fun MessageBubble(
                                 Row(
                                     modifier = Modifier.padding(MusePaddings.chipInnerLoose),
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap),
                                 ) {
                                     if (visionAssistProgress?.isActive == true) {
                                         CircularProgressIndicator(
-                                            modifier = Modifier.size(12.dp),
+                                            modifier = Modifier.size(MusePaddings.itemGap),
                                             strokeWidth = 1.5.dp,
                                             color = labelColor,
                                         )
@@ -641,7 +676,7 @@ internal fun MessageBubble(
                                             imageVector = labelIcon,
                                             contentDescription = null,
                                             tint = labelColor,
-                                            modifier = Modifier.size(12.dp),
+                                            modifier = Modifier.size(MusePaddings.itemGap),
                                         )
                                     }
                                     Text(
@@ -669,7 +704,7 @@ internal fun MessageBubble(
                     text = formatMessageTime(msg.createdAt, use24Hour = chatPrefs.use24Hour),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.padding(top = 2.dp, end = 4.dp),
+                    modifier = Modifier.padding(top = 2.dp, end = MusePaddings.tinyGap),
                 )
             }
         } else {
@@ -688,7 +723,7 @@ internal fun MessageBubble(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth(0.85f)
-                        .padding(bottom = 4.dp),
+                        .padding(bottom = MusePaddings.tinyGap),
                     horizontalArrangement = Arrangement.Start,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -700,7 +735,7 @@ internal fun MessageBubble(
                         avatarSize = 28.dp,
                     )
                     if (showTimestamp && chatPrefs.showTimestamp) {
-                        Spacer(Modifier.width(8.dp))
+                        Spacer(Modifier.width(MusePaddings.contentGap))
                         Text(
                             text = (assistant?.name ?: "Muse") +
                                 " · " + formatMessageTime(msg.createdAt, use24Hour = chatPrefs.use24Hour),
@@ -840,8 +875,8 @@ internal fun MessageBubble(
             if (isCompressed) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier.padding(bottom = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap),
+                    modifier = Modifier.padding(bottom = MusePaddings.tinyGap),
                 ) {
                     Icon(
                         imageVector = TablerIcons.GitMerge,
@@ -886,7 +921,7 @@ internal fun MessageBubble(
                         modifier = Modifier.fillMaxWidth(),
                     )
                     if (bodyContent.isNotBlank()) {
-                        Spacer(Modifier.height(4.dp))
+                        Spacer(Modifier.height(MusePaddings.tinyGap))
                     }
                 }
                 // 引用回复:AI 消息顶部显示引用块(兼容含引用标记的内容)
@@ -942,9 +977,16 @@ internal fun MessageBubble(
                             color = MaterialTheme.colorScheme.onBackground,
                             modifier = Modifier.fillMaxWidth(),
                         )
+                    } else if (MoodSkinParser.containsInlineEffect(bodyContent)) {
+                        Text(
+                            text = buildMoodSkinAnnotated(bodyContent),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
                     } else {
                         MarkdownText(
-                            text = bodyContent,
+                            text = MoodSkinParser.stripInlineEffects(bodyContent),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onBackground,
                             modifier = Modifier.fillMaxWidth(),
@@ -981,7 +1023,7 @@ internal fun MessageBubble(
             // 功能2: TTS 语音消息播放器(仅非流式 AI 消息,且当 isSpeaking 时显示)
             if (!isUser && !isStreaming && isSpeaking) {
                 TtsAudioPlayer(
-                    modifier = Modifier.padding(top = 8.dp),
+                    modifier = Modifier.padding(top = MusePaddings.contentGap),
                 )
             }
             // v2.3: debug 模式性能摘要(可选)
@@ -998,7 +1040,7 @@ internal fun MessageBubble(
                 ArtifactCardList(
                     artifacts = artifacts,
                     onArtifactClick = onArtifactClick,
-                    modifier = Modifier.padding(top = 8.dp),
+                    modifier = Modifier.padding(top = MusePaddings.contentGap),
                 )
             }
             // v1.133: RAG 引用 chip 列表(点击展开 snippet)
@@ -1021,7 +1063,7 @@ internal fun MessageBubble(
         // v1.0.53: 用户消息底部快捷按钮 — 复制 + 重试(仅最后一条)
         if (isUser && msg.content.isNotEmpty() && !isStreaming && !isTranslating) {
             Row(
-                modifier = Modifier.padding(top = 2.dp, end = 4.dp),
+                modifier = Modifier.padding(top = 2.dp, end = MusePaddings.tinyGap),
                 horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -1029,7 +1071,7 @@ internal fun MessageBubble(
                     icon = TablerIcons.Copy,
                     onClick = {
                         MuseHaptics.light(hapticFeedback)
-                        onCopyMessage(msg.content)
+                        onCopyMessage(MoodSkinParser.cleanForExport(msg.content))
                     },
                     contentDescription = stringResource(R.string.action_copy),
                     tint = MaterialTheme.colorScheme.outline,
@@ -1065,7 +1107,7 @@ internal fun MessageBubble(
                 MuseTactileButton(
                     icon = TablerIcons.Copy,
                     onClick = {
-                        onCopyMessage(msg.content)
+                        onCopyMessage(MoodSkinParser.cleanForExport(msg.content))
                         MuseHaptics.light(hapticFeedback)
                     },
                     contentDescription = stringResource(R.string.action_copy),
@@ -1118,9 +1160,37 @@ internal fun MessageBubble(
                         iconSize = MuseIconSizes.iconSmall,
                     )
                 }
+                // B7-04: 继续生成(仅中断的最后一条助手消息)
+                if (isLastAssistant && msg.content.contains("[已中断]") && onContinue != null) {
+                    MuseTactileButton(
+                        icon = TablerIcons.PlayerPlay,
+                        onClick = {
+                            MuseHaptics.light(hapticFeedback)
+                            onContinue()
+                        },
+                        contentDescription = stringResource(R.string.chat_asr_tip_confirm),
+                        tint = MaterialTheme.colorScheme.primary,
+                        size = MuseIconSizes.touchTarget,
+                        iconSize = MuseIconSizes.iconSmall,
+                    )
+                }
+                // B7-01: 进入多选模式
+                if (!selectionMode && onEnterMultiSelect != null) {
+                    MuseTactileButton(
+                        icon = TablerIcons.Square,
+                        onClick = {
+                            MuseHaptics.light(hapticFeedback)
+                            onEnterMultiSelect()
+                        },
+                        contentDescription = stringResource(R.string.chat_delete_message),
+                        tint = MaterialTheme.colorScheme.outline,
+                        size = MuseIconSizes.touchTarget,
+                        iconSize = MuseIconSizes.iconSmall,
+                    )
+                }
                 // 多分支变体切换器
                 if (branchCount > 1) {
-                    Spacer(Modifier.width(4.dp))
+                    Spacer(Modifier.width(MusePaddings.tinyGap))
                     BranchSelector(
                         currentIndex = branchIndex,
                         totalCount = branchCount,
@@ -1191,6 +1261,30 @@ internal fun MessageBubble(
                                     onFork()
                                 },
                             )
+                            if (msg.content.isNotBlank()) {
+                                ActionMenuItem(
+                                    icon = TablerIcons.Copy,
+                                    text = stringResource(R.string.action_copy),
+                                    contentDescription = stringResource(R.string.action_copy),
+                                    onClick = {
+                                        showActionMenu = false
+                                        MuseHaptics.light(hapticFeedback)
+                                        onCopyMessage(MoodSkinParser.cleanForExport(msg.content))
+                                    },
+                                )
+                            }
+                            if (msg.content.isNotBlank() || msg.reasoning?.isNotBlank() == true) {
+                                ActionMenuItem(
+                                    icon = if (msg.favorite) Icons.Outlined.StarBorder else Icons.Default.Star,
+                                    text = if (msg.favorite) stringResource(R.string.chat_favorite_remove) else stringResource(R.string.chat_favorite_add),
+                                    contentDescription = if (msg.favorite) stringResource(R.string.chat_favorite_remove) else stringResource(R.string.chat_favorite_add),
+                                    onClick = {
+                                        showActionMenu = false
+                                        MuseHaptics.light(hapticFeedback)
+                                        onToggleFavorite()
+                                    },
+                                )
+                            }
                             if (isUser) {
                                 // 用户消息保留完整菜单
                                 ActionMenuItem(
@@ -1231,7 +1325,7 @@ internal fun MessageBubble(
                                         onClick = {
                                             showActionMenu = false
                                             MuseHaptics.light(hapticFeedback)
-                                            onCopyMessage(msg.content)
+                                            onCopyMessage(MoodSkinParser.cleanForExport(msg.content))
                                         },
                                     )
                                 }
@@ -1272,10 +1366,10 @@ internal fun MessageBubble(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.padding(top = 4.dp),
+                modifier = Modifier.padding(top = MusePaddings.tinyGap),
             ) {
                 CircularProgressIndicator(
-                    modifier = Modifier.size(12.dp),
+                    modifier = Modifier.size(MusePaddings.itemGap),
                     strokeWidth = 2.dp,
                     color = MaterialTheme.colorScheme.secondary,
                 )
@@ -1331,7 +1425,7 @@ internal fun MessageBubble(
                             ContextMenuItem(
                                 label = copyLabel,
                                 icon = TablerIcons.Copy,
-                                onClick = { onCopyMessage(msg.content) },
+                                onClick = { onCopyMessage(MoodSkinParser.cleanForExport(msg.content)) },
                             )
                         )
                     }
@@ -1502,7 +1596,7 @@ internal fun LoadingDots(text: String = stringResource(R.string.chat_loading_thi
                 )
                 Box(
                     modifier = Modifier
-                        .size(8.dp)
+                        .size(MusePaddings.contentGap)
                         .scale(scale)
                         .alpha(alpha)
                         .clip(CircleShape)
@@ -1510,7 +1604,7 @@ internal fun LoadingDots(text: String = stringResource(R.string.chat_loading_thi
                 )
             }
         }
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(MusePaddings.contentGap))
         Text(
             text = text,
             style = MaterialTheme.typography.bodySmall,
@@ -1723,7 +1817,7 @@ private fun TtsAudioPlayer(
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
             ) {
                 // 播放/暂停按钮
                 IconButton(
@@ -1758,7 +1852,7 @@ private fun TtsAudioPlayer(
                         .padding(MusePaddings.chipInnerLoose),
                 )
             }
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(MusePaddings.tinyGap))
             // 进度条
             MuseSlider(
                 value = progress,
@@ -1789,7 +1883,7 @@ private fun WaveformBars(
             contentDescription = if (isActive) "语音播放中" else "语音就绪"
         },
     ) {
-        val heights = listOf(12.dp, 18.dp, 14.dp, 20.dp)
+        val heights = listOf(MusePaddings.itemGap, 18.dp, 14.dp, 20.dp)
         heights.forEachIndexed { index, maxHeight ->
             val scale by infiniteTransition.animateFloat(
                 initialValue = 0.4f,
@@ -2116,6 +2210,35 @@ private fun RagCitationChip(
  * 功能1: 构建带高亮的 AnnotatedString。
  * 在文本中查找 query 出现的位置,用 primaryContainer 色高亮匹配段。
  */
+/** B6-02: 把 [glow]/[big]/[shake] 等内联特效转成 AnnotatedString 样式。 */
+private fun buildMoodSkinAnnotated(text: String): AnnotatedString {
+    val regex = Regex("""\[(glow|big|huge|whisper|red|shake|blur|glitch)\]([\s\S]*?)\[/\1\]""", RegexOption.IGNORE_CASE)
+    val matches = regex.findAll(text).toList()
+    if (matches.isEmpty()) return AnnotatedString(text)
+    return buildAnnotatedString {
+        var last = 0
+        for (m in matches) {
+            append(text, last, m.range.first)
+            withStyle(moodSkinEffectStyle(m.groupValues[1].lowercase())) {
+                append(m.groupValues[2])
+            }
+            last = m.range.last + 1
+        }
+        append(text, last, text.length)
+    }
+}
+
+private fun moodSkinEffectStyle(effect: String): SpanStyle = when (effect) {
+    "glow" -> SpanStyle(color = Color(0xFFFFB74D), fontWeight = FontWeight.SemiBold)
+    "big" -> SpanStyle(fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+    "huge" -> SpanStyle(fontSize = 26.sp, fontWeight = FontWeight.Bold)
+    "whisper" -> SpanStyle(fontSize = 13.sp, color = Color(0xFF9E9E9E))
+    "red" -> SpanStyle(color = Color(0xFFE53935), fontWeight = FontWeight.Bold)
+    "shake" -> SpanStyle(color = Color(0xFF8E24AA), letterSpacing = 1.sp)
+    "blur" -> SpanStyle(color = Color(0xFFBDBDBD))
+    "glitch" -> SpanStyle(color = Color(0xFF00ACC1), letterSpacing = 2.sp)
+    else -> SpanStyle()
+}
 @Composable
 private fun buildHighlightedText(text: String, query: String): AnnotatedString {
     val highlightColor = MaterialTheme.colorScheme.primaryContainer
@@ -2167,14 +2290,14 @@ private fun TaskProgressBadge(
         color = badgeColor.copy(alpha = 0.12f),
     ) {
         Column(
-            modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp),
+            modifier = Modifier.padding(vertical = MusePaddings.contentGap, horizontal = MusePaddings.tinyGap),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap),
         ) {
             if (isExecuting) {
                 CircularProgressIndicator(
                     strokeWidth = 2.dp,
-                    modifier = Modifier.size(16.dp),
+                    modifier = Modifier.size(MusePaddings.screen),
                     color = badgeColor,
                 )
             } else {
@@ -2182,7 +2305,7 @@ private fun TaskProgressBadge(
                     imageVector = Icons.Default.Build,
                     contentDescription = null,
                     tint = badgeColor,
-                    modifier = Modifier.size(16.dp),
+                    modifier = Modifier.size(MusePaddings.screen),
                 )
             }
             Text(

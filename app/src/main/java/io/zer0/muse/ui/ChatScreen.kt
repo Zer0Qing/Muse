@@ -71,9 +71,13 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.TextButton
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
@@ -93,6 +97,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.sample
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
@@ -142,6 +147,7 @@ import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.knowledge.KnowledgeDocDao
 import io.zer0.muse.data.knowledge.KnowledgeDocEntity
 import io.zer0.muse.ui.chat.ToolApprovalCard
+import io.zer0.muse.ui.chat.TokenStatsBar
 import io.zer0.muse.ui.chat.buildQuotedContent
 import io.zer0.muse.ui.chat.SlashCommand
 import io.zer0.muse.ui.speech.SpeechInput
@@ -170,14 +176,6 @@ internal val TranslationLanguages = listOf(
     "中文", "English", "日本語", "한국어", "Français", "Deutsch", "Español", "Русский", "العربية", "Português",
 )
 
-/** v1.25: 委托给助手 Sheet 的两种触发模式。 */
-private sealed class DelegateSheetMode {
-    /** 把提示前置到当前输入框,然后自动发送。 */
-    data object Input : DelegateSheetMode()
-
-    /** 引用某条消息,新建一条委托消息并自动发送。 */
-    data class Message(val msg: UIMessage) : DelegateSheetMode()
-}
 
 /** Phase 8.10: 音量键滚动单次位移(px),M21。 */
 private const val VOLUME_SCROLL_DISTANCE_PX = 200f
@@ -234,8 +232,12 @@ fun ChatScreen(
     onHtmlPreview: (String) -> Unit = {},
     /** 加号菜单 → 技能入口。 */
     onOpenSkills: () -> Unit = {},
+    /** B0-07: 打开提示词模板管理页。 */
+    onOpenPromptTemplateManager: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // B2-01: 消息列表独立 collect,输入框等高频 state 变化不再带动整个消息列表重组。
+    val messages by viewModel.messages.collectAsStateWithLifecycle()
     // v1.0.20 (Task 3): 高频字段用 derivedStateOf 包裹,收窄重组范围。
     //  state 是 StateFlow<ChatUiState>,每次 copy(如 input 每次按键、visionProgress 每完成一张图)
     //  都会发射新对象,导致读取 state 的所有 Composable lambda 重组。
@@ -277,29 +279,7 @@ fun ChatScreen(
     // 是一次跨进程 IPC,Android 10+ 后台访问受限时可能 ANR)
     val ioScope = rememberCoroutineScope()
     // 阶段 5: 模型切换底部面板展开状态
-    var showModelSheet by remember { mutableStateOf(false) }
-    // v0.29 P1-6: 知识库 @mention 文档选择 sheet
-    var showKnowledgeSheet by remember { mutableStateOf(false) }
-    // v1.58: Prompt 模板库 sheet
-    var showPromptTemplateSheet by remember { mutableStateOf(false) }
-    // v0.29 P3-17: 会话快速切换 sheet(标题点击触发)
-    var showSessionSheet by remember { mutableStateOf(false) }
-    // v1.136 T1: 对话内更换助手 sheet(标题长按触发)
-    var showAssistantSwitchSheet by remember { mutableStateOf(false) }
-    // v1.25: 委托给助手/团队选择 sheet(Input=前置到当前输入,Message=引用原消息新建)
-    var showDelegateSheet by remember { mutableStateOf<DelegateSheetMode?>(null) }
-    // v1.94: 工具调用历史 sheet(InputBar 动态胶囊点击展开)
-    var showToolCallSheet by rememberSaveable { mutableStateOf(false) }
-    // 编辑助手消息:当前正在编辑的消息(null 表示未在编辑)
-    // L-CS3: UIMessage 含 Uuid 等复杂类型,无法直接 rememberSaveable;
-    //        编辑对话框在配置变更后自然关闭,无需持久化编辑中的消息
-    var editingMessage by remember { mutableStateOf<UIMessage?>(null) }
-    // 功能4: 导出格式选择对话框状态
-    var showExportSheet by remember { mutableStateOf(false) }
-    // v1.95: 系统语音识别首次提示对话框状态
-    var asrTipDialogShown by remember { mutableStateOf(false) }
-    // 语音对话模式:全屏覆盖式 ASR + AI + TTS 连续对话
-    var showVoiceConversation by remember { mutableStateOf(false) }
+    val sheetState = remember { ChatSheetState() }
     val knowledgeDao: KnowledgeDocDao = koinInject()
     val knowledgeDocs by knowledgeDao.observeAllUser().collectAsStateWithLifecycle(initialValue = emptyList())
     // v1.95: 注入 SettingsRepository 用于读取/保存 ASR 提示状态
@@ -307,12 +287,13 @@ fun ChatScreen(
     // P2-12: 富文本输入开关 — 开启后 ChatScreen 的 InputBar 替换为 RichInputBar(顶部带 Markdown 格式工具条)
     val richInputEnabled by settings.richInputEnabledFlow.collectAsStateWithLifecycle(initialValue = false)
 
-    // v1.0.4 (P3-4): 性能模式 — 通过 MessagePaginator 对 state.messages 做内存级分页,
+    // v1.0.4 (P3-4): 性能模式 — 通过 MessagePaginator 对 messages 做内存级分页,
     // LazyColumn 只渲染最近 N 条,上滑到顶时扩展下一页(纯本地内存分页);
     // 全部展开后再上滑才触发 DB loadMoreHistory。
-    // 关闭时 visibleMessages == state.messages,行为与原有逻辑完全一致。
+    // 关闭时 visibleMessages == messages,行为与原有逻辑完全一致。
     val performanceMode = state.chatPreferences.performanceMode
     var paginatorPageCount by rememberSaveable { mutableStateOf(1) }
+    // B7-03: 会话内未读状态
     // 切换会话 / 关闭性能模式时重置分页计数
     LaunchedEffect(state.currentSessionId) {
         paginatorPageCount = 1
@@ -322,8 +303,8 @@ fun ChatScreen(
     }
     var savedPaginatorScrollOffset by remember { mutableStateOf(0) }
     val visibleMessages by produceState(
-        initialValue = if (isAgentMode && !state.isAgentMode && !state.isSwitchingSession) emptyList() else state.messages,
-        state.messages, paginatorPageCount, performanceMode, isAgentMode, state.isAgentMode, state.isSwitchingSession,
+        initialValue = if (isAgentMode && !state.isAgentMode && !state.isSwitchingSession) emptyList() else messages,
+        messages, paginatorPageCount, performanceMode, isAgentMode, state.isAgentMode, state.isSwitchingSession,
     ) {
         // 门禁:Agent Tab 模式下但 ViewModel 还没切换到 Agent 模式时,显示空白。
         // 避免 HorizontalPager 动画期间目标页已 compose 但 setAgentMode 尚未执行时闪现旧对话内容。
@@ -333,10 +314,10 @@ fun ChatScreen(
             return@produceState
         }
         if (!performanceMode) {
-            value = state.messages
+            value = messages
             return@produceState
         }
-        val allIds = state.messages.map { it.id.toString() }
+        val allIds = messages.map { it.id.toString() }
         if (allIds.isEmpty()) {
             value = emptyList()
             return@produceState
@@ -344,14 +325,23 @@ fun ChatScreen(
         val pageSize = MessagePaginator.DEFAULT_PAGE_SIZE * paginatorPageCount
         // 取首页(最新 N 条 ID),再反查 UIMessage 保留顺序
         val visibleIds = MessagePaginator.createFlow(allIds, pageSize = pageSize).first()
-        val msgById = state.messages.associateBy { it.id.toString() }
+        val msgById = messages.associateBy { it.id.toString() }
         value = visibleIds.mapNotNull { msgById[it] }
+    }
+
+    // B7-03: 当前会话未读数(用于顶部跳转条)
+    val currentChatSession = remember(state.sessions, state.currentSessionId, state.agentSessionId) {
+        val sid = if (state.isAgentMode) state.agentSessionId else state.currentSessionId
+        state.sessions.find { it.id == sid }
+    }
+    val unreadCount = remember(currentChatSession) {
+        if (currentChatSession == null) 0 else (currentChatSession.messageCount - currentChatSession.lastReadCount).coerceAtLeast(0)
     }
 
     // v0.48: 派生状态 — isAtBottom 判断列表是否在底部(用户没往上滚)
     // v1.52: 收紧阈值 — 仅当最后一项的底部在视口内才算"在底部",
     //        避免"部分可见=在底部"导致流式增量把用户拉回底部。
-    // v1.0.4 (P3-4): 性能模式下用 visibleMessages(实际渲染列表)判断,而非 state.messages。
+    // v1.0.4 (P3-4): 性能模式下用 visibleMessages(实际渲染列表)判断,而非 messages。
     val isAtBottom by remember {
         derivedStateOf {
             if (visibleMessages.isEmpty()) return@derivedStateOf true
@@ -374,11 +364,11 @@ fun ChatScreen(
             state.hasMoreHistory &&
                 !state.isLoadingMore &&
                 !state.isStreaming &&
-                state.messages.isNotEmpty() &&
+                messages.isNotEmpty() &&
                 listState.firstVisibleItemIndex == 0 &&
-                // v1.0.4 (P3-4): 性能模式下仅当 visibleMessages 已覆盖全部 state.messages 时才触发 DB 加载,
+                // v1.0.4 (P3-4): 性能模式下仅当 visibleMessages 已覆盖全部 messages 时才触发 DB 加载,
                 // 否则由 paginatorLoadMoreTrigger 先扩展内存分页
-                (!performanceMode || visibleMessages.size >= state.messages.size)
+                (!performanceMode || visibleMessages.size >= messages.size)
         }
     }
     LaunchedEffect(loadMoreTrigger) {
@@ -388,12 +378,16 @@ fun ChatScreen(
             viewModel.loadMoreHistory()
         }
     }
-    // v1.0.4 (P3-4): 性能模式内存分页触发 — 到达顶部且 state.messages 还有未渲染的更早消息时,
+    // B7-03: 到底自动标记已读
+    LaunchedEffect(isAtBottom, messages.lastOrNull()?.id) {
+        if (isAtBottom) viewModel.markSessionRead()
+    }
+    // v1.0.4 (P3-4): 性能模式内存分页触发 — 到达顶部且 messages 还有未渲染的更早消息时,
     // 扩展 paginatorPageCount(纯本地内存分页,不查 DB)。扩展后通过 scrollToItem 保持视觉位置不跳。
     val paginatorLoadMoreTrigger by remember {
         derivedStateOf {
             performanceMode &&
-                state.messages.size > visibleMessages.size &&
+                messages.size > visibleMessages.size &&
                 !state.isStreaming &&
                 listState.firstVisibleItemIndex == 0
         }
@@ -426,8 +420,8 @@ fun ChatScreen(
         if (state.lastHistoryLoadCount > 0) {
             if (performanceMode) {
                 paginatorPageCount++
-                // 等待 visibleMessages 重新计算并覆盖全部 state.messages
-                val targetSize = state.messages.size
+                // 等待 visibleMessages 重新计算并覆盖全部 messages
+                val targetSize = messages.size
                 withTimeoutOrNull(1000L) {
                     snapshotFlow { visibleMessages.size }
                         .filter { it >= targetSize }
@@ -455,7 +449,7 @@ fun ChatScreen(
     // 流程:
     //  1. 等 visibleMessages 包含目标消息(超时 5s,覆盖 switchSession 异步加载)
     //     — switchSession 协程完成时 currentSessionId 变化,本 LaunchedEffect 重新触发(旧协程取消)
-    //  2. 性能模式下若 state.messages 含目标消息但 visibleMessages 未覆盖,临时扩展 paginatorPageCount
+    //  2. 性能模式下若 messages 含目标消息但 visibleMessages 未覆盖,临时扩展 paginatorPageCount
     //  3. scrollToItem 到对应索引(瞬时,无动画,避免长会话动画卡顿)
     //  4. 延迟 2.5s 后调 clearHighlightedMessage 停止高亮
     //  5. 调 consumeTargetMessage 清空 targetMessageId,避免重复触发
@@ -468,11 +462,11 @@ fun ChatScreen(
         val targetId = state.targetMessageId ?: return@LaunchedEffect
         if (targetId.isBlank()) return@LaunchedEffect
 
-        // 性能模式下:若 state.messages 已含目标消息,临时扩展 paginatorPageCount
-        // 让 visibleMessages 覆盖全部 state.messages(跳转场景需看到目标消息)
-        if (performanceMode && state.messages.any { it.id.toString() == targetId }) {
+        // 性能模式下:若 messages 已含目标消息,临时扩展 paginatorPageCount
+        // 让 visibleMessages 覆盖全部 messages(跳转场景需看到目标消息)
+        if (performanceMode && messages.any { it.id.toString() == targetId }) {
             val pageSize = MessagePaginator.DEFAULT_PAGE_SIZE
-            val requiredPages = (state.messages.size + pageSize - 1) / pageSize
+            val requiredPages = (messages.size + pageSize - 1) / pageSize
             if (paginatorPageCount < requiredPages) {
                 paginatorPageCount = requiredPages
             }
@@ -541,8 +535,8 @@ fun ChatScreen(
     LaunchedEffect(Unit) {
         snapshotFlow {
             Triple(
-                state.messages.size,
-                state.messages.lastOrNull()?.content,
+                messages.size,
+                messages.lastOrNull()?.content,
                 state.chatPreferences.autoScrollToBottom,
             )
         }
@@ -556,7 +550,7 @@ fun ChatScreen(
                 if (msgs.isEmpty()) return@collect
                 val targetIndex = msgs.size - 1
                 val isUserSendMessage = size > lastMessageCount &&
-                    state.messages.lastOrNull()?.role == MessageRole.USER
+                    messages.lastOrNull()?.role == MessageRole.USER
                 if (isUserSendMessage) {
                     // 用户刚发消息:瞬时滚到底部,并解锁跟随
                     userScrolledUp = false
@@ -673,9 +667,9 @@ fun ChatScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                            .padding(horizontal = MusePaddings.screen, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                     ) {
                         // 左侧返回按钮(从任务列表 push 进入时显示)
                         if (onBack != null) {
@@ -710,8 +704,8 @@ fun ChatScreen(
                                 .weight(1f)
                                 // v1.136 T1: 点击=切换会话,长按=更换助手
                                 .combinedClickable(
-                                    onClick = { showSessionSheet = true },
-                                    onLongClick = { showAssistantSwitchSheet = true },
+                                    onClick = { sheetState.showSessionSheet = true },
+                                    onLongClick = { sheetState.showAssistantSwitchSheet = true },
                                 )
                                 .semantics { contentDescription = sessionCd },
                             horizontalAlignment = Alignment.CenterHorizontally,
@@ -749,31 +743,49 @@ fun ChatScreen(
                         // v1.0.29: 模型选择改为圆形小胶囊,节省顶部空间让标题完整显示。
                         // 当前模型名仍展示在副标题"陪伴 X 天 · 模型名"中。
                         val modelCd = stringResource(R.string.chat_model_cd, currentModelName)
-                        Surface(
-                            onClick = { showModelSheet = true },
-                            enabled = !isStreaming,
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                            modifier = Modifier
-                                .size(32.dp)
-                                .semantics { contentDescription = modelCd },
-                        ) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center,
+                        if (state.taskRoutingEnabled) {
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
                             ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.AutoAwesome,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.size(18.dp),
+                                Text(
+                                    text = stringResource(R.string.chat_routing_badge),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    maxLines = 1,
+                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
                                 )
+                            }
+                        }
+                        Box(
+                            modifier = Modifier
+                                .size(MuseIconSizes.touchTarget)
+                                .clickable(enabled = !isStreaming) { sheetState.showModelSheet = true }
+                                .semantics { contentDescription = modelCd },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                                modifier = Modifier.size(32.dp),
+                            ) {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.AutoAwesome,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.size(18.dp),
+                                    )
+                                }
                             }
                         }
                         // 压缩上下文按钮(手动触发会话历史压缩 + 记忆更新)
                         IconButton(
                             onClick = { viewModel.manualCompress(updateMemoryFirst = true) },
-                            enabled = !isStreaming && !state.isCompressing && state.messages.size >= 2,
+                            enabled = !isStreaming && !state.isCompressing && messages.size >= 2,
                             modifier = Modifier.size(MuseIconSizes.touchTarget),
                         ) {
                             Icon(
@@ -788,6 +800,31 @@ fun ChatScreen(
             }
         },
         bottomBar = {
+            Column(Modifier.fillMaxWidth()) {
+            // 工具审批卡：固定显示在输入栏上方（紧跟用户操作位置，不随消息流滚动）
+            state.pendingToolApprovals.forEach { approval ->
+                ToolApprovalCard(
+                    toolName = approval.toolName,
+                    argumentsPreview = approval.argumentsPreview,
+                    onApprove = { viewModel.approveToolCall(approval.toolCallId, approval.alwaysAllow) },
+                    onDeny = { reason -> viewModel.denyToolCall(approval.toolCallId, reason) },
+                    alwaysAllow = approval.alwaysAllow,
+                    onAlwaysAllowChanged = { checked ->
+                        viewModel.setToolApprovalAlwaysAllow(approval.toolCallId, checked)
+                    },
+                    appRunAllowAll = approval.appRunAllowAll,
+                    onAppRunAllowAllChanged = { checked ->
+                        viewModel.setToolApprovalAppRunAllowAll(approval.toolCallId, checked)
+                    },
+                    onAllowThisSession = {
+                        viewModel.allowToolForSession(approval.toolCallId)
+                    },
+                    referenceImageOverride = approval.referenceImageOverride,
+                    onReferenceImageChange = { dataUri ->
+                        viewModel.setToolApprovalReferenceImage(approval.toolCallId, dataUri)
+                    },
+                )
+            }
             // v1.97: 计算工具/任务进度 — 优先用活跃 agentPlan,否则用 toolCallHistory
             val latestPlan = state.agentPlans.values.maxByOrNull { it.createdAt }
             val activePlan = latestPlan?.takeIf { it.steps.isNotEmpty() && !it.isAllSettled }
@@ -798,6 +835,7 @@ fun ChatScreen(
                 // v1.0.20 (Task 3): input/isStreaming 读派生值,避免其他字段变化触发 bottomBar 重组
                 text = currentInput,
                 isStreaming = isStreaming,
+                isWaitingFirstToken = isWaitingFirstToken,
                 isDrawMode = state.isDrawMode,
                 isWebSearchEnabled = state.webSearchEnabled,
                 isDeepThinkingEnabled = state.deepThinkingEnabled,
@@ -849,10 +887,10 @@ fun ChatScreen(
                 onRestartContext = viewModel::restartContext,
                 // v1.25: 委托给助手入口
                 assistants = state.assistants,
-                onDelegateToAssistant = { showDelegateSheet = DelegateSheetMode.Input },
+                onDelegateToAssistant = { sheetState.showDelegateSheet = DelegateSheetMode.Input },
                 // v0.29 P1-6: 知识库 @mention 文档选择 sheet
-                onPickKnowledge = { showKnowledgeSheet = true },
-                onOpenPromptTemplates = { showPromptTemplateSheet = true },
+                onPickKnowledge = { sheetState.showKnowledgeSheet = true },
+                onOpenPromptTemplates = { sheetState.showPromptTemplateSheet = true },
                 // 加号菜单 → 技能入口
                 onOpenSkills = onOpenSkills,
                 // v0.31: 回车键发送开关传给 InputBar
@@ -931,7 +969,7 @@ fun ChatScreen(
                         ioScope.launch {
                             val shown = settings.asrTipShownFlow.first()
                             if (!shown) {
-                                asrTipDialogShown = true
+                                sheetState.asrTipDialogShown = true
                                 settings.saveAsrTipShown(true)
                             } else {
                                 resultOf {
@@ -953,11 +991,11 @@ fun ChatScreen(
                 // v1.97: 工具/任务进度 pill(优先用 plan 进度,否则用 toolCallHistory)
                 toolCallCompleted = toolCallCompleted,
                 toolCallTotal = toolCallTotal,
-                onShowToolCalls = { showToolCallSheet = true },
+                onShowToolCalls = { sheetState.showToolCallSheet = true },
                 // 功能2: 草稿标记
                 hasDraft = state.hasDraft,
                 // 语音对话模式入口:点击进入全屏连续对话
-                onOpenVoiceConversation = { showVoiceConversation = true },
+                onOpenVoiceConversation = { sheetState.showVoiceConversation = true },
                 // v1.0.29: Agent Tab 不主动呼出输入法
                 autoFocus = !isAgentMode,
                 // v1.0.47 P5-3: Token 估算(默认关闭,设置页开启后输入栏底部显示 Token 统计条)
@@ -969,6 +1007,7 @@ fun ChatScreen(
                 pasteAsFileThreshold = state.pasteAsFileThreshold,
                 onAddPastedTextAsDocument = viewModel::addPastedTextAsDocument,
             )
+            }
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
@@ -978,7 +1017,7 @@ fun ChatScreen(
         // 此处不重复拦截,避免破坏既有用户设置("回车发送" / "Shift+回车发送")。
         val copyLastReplyClipboardScope = rememberCoroutineScope()
         val copyLastReply: () -> Unit = {
-            val lastAssistant = state.messages.lastOrNull {
+            val lastAssistant = messages.lastOrNull {
                 it.role == MessageRole.ASSISTANT && it.content.isNotBlank()
             }
             if (lastAssistant != null) {
@@ -1015,6 +1054,64 @@ fun ChatScreen(
                 },
             contentAlignment = Alignment.Center,
         ) {
+            // B7-03: 跳至最早未读条
+            if (unreadCount > 0 && !state.selectionMode &&
+                !(performanceMode && visibleMessages.size < messages.size)
+            ) {
+                Surface(
+                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                    shape = MuseShapes.extraLarge,
+                    tonalElevation = 2.dp,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = MusePaddings.contentGap)
+                        .clickable { viewModel.jumpToEarliestUnread() }
+                        .zIndex(9f),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap),
+                        modifier = Modifier.padding(horizontal = MusePaddings.itemGap, vertical = MusePaddings.tinyGap),
+                    ) {
+                        Icon(
+                            imageVector = TablerIcons.MessageCircle,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Text(
+                            text = stringResource(R.string.chat_jump_to_unread, unreadCount),
+                            style = MaterialTheme.typography.labelMedium,
+                        )
+                    }
+                }
+            }
+            // B7-01: 多选操作条
+            if (state.selectionMode) {
+                ChatSelectionBar(
+                    count = state.selectedMessageIds.size,
+                    onSelectAll = { viewModel.selectAllMessages(visibleMessages.map { it.id.toString() }) },
+                    onDelete = { viewModel.deleteSelectedMessages() },
+                    onExport = {
+                        val text = visibleMessages
+                            .filter { it.id.toString() in state.selectedMessageIds }
+                            .joinToString("\n\n") { "${it.role}: ${it.content}" }
+                        if (text.isNotBlank()) {
+                            val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(android.content.Intent.EXTRA_TEXT, text)
+                            }
+                            context.startActivity(android.content.Intent.createChooser(sendIntent, null))
+                        }
+                    },
+                    onExit = { viewModel.setSelectionMode(false) },
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .fillMaxWidth()
+                        .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.contentGap)
+                        .zIndex(10f),
+                )
+            }
             // Phase 3 3E: 定时消息横幅
             io.zer0.muse.ui.chat.ScheduledMessageBanner(
                 pendingMessages = pendingMessages,
@@ -1086,6 +1183,8 @@ fun ChatScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.TopCenter,
                 ) {
+                // B6-02: 全屏情绪皮肤(在消息列表背后)
+                MoodSkinOverlay(visibleMessages.lastOrNull { it.role == MessageRole.ASSISTANT }?.moodSkin)
                 LazyColumn(
                     state = listState,
                     modifier = Modifier
@@ -1139,7 +1238,7 @@ fun ChatScreen(
                     }
                     itemsIndexed(
                         // v1.0.4 (P3-4): 性能模式下渲染 visibleMessages(最近 N 条);
-                        // 非性能模式下 visibleMessages == state.messages,行为不变。
+                        // 非性能模式下 visibleMessages == messages,行为不变。
                         visibleMessages,
                         key = { _, it -> it.id },
                         // v1.100: contentType 让 LazyColumn 复用同类型 item 的 measure cache
@@ -1196,7 +1295,7 @@ fun ChatScreen(
                                 if (msg.role == MessageRole.USER) {
                                     viewModel.editUserMessage(msg.id)
                                 } else {
-                                    editingMessage = msg
+                                    sheetState.editingMessage = msg
                                 }
                             }
                         }
@@ -1207,7 +1306,7 @@ fun ChatScreen(
                         val onToggleTaskCardExpand = remember(msg.id) { { viewModel.toggleTaskCardExpand(msg.id.toString()) } }
                         val onRetryTaskCardStep = remember(msg.id) { { stepId: String -> viewModel.retryFailedStep(msg.id.toString(), stepId) } }
                         val onShareSession = remember(viewModel, ioScope) {
-                            { showExportSheet = true }
+                            { sheetState.showExportSheet = true }
                         }
                         // v1.58: 从此消息分叉对话
                         val onFork = remember(msg.id) { { viewModel.forkSessionFromMessage(msg.id) } }
@@ -1220,6 +1319,60 @@ fun ChatScreen(
                         if (showDateSeparator) {
                             DateSeparator(timestamp = msg.createdAt)
                         }
+                        // B7-06: 消息左右滑快捷操作(右滑编辑/左滑引用),多选与流式时不触发
+                        val messageSwipeState = rememberSwipeToDismissBoxState(
+                            confirmValueChange = { value ->
+                                when (value) {
+                                    SwipeToDismissBoxValue.StartToEnd -> {
+                                        onEdit()
+                                        false
+                                    }
+                                    SwipeToDismissBoxValue.EndToStart -> {
+                                        onQuote()
+                                        false
+                                    }
+                                    else -> false
+                                }
+                            },
+                        )
+                        SwipeToDismissBox(
+                            state = messageSwipeState,
+                            enableDismissFromStartToEnd = !state.selectionMode,
+                            enableDismissFromEndToStart = !state.selectionMode,
+                            backgroundContent = {
+                                val direction = messageSwipeState.dismissDirection
+                                val icon = when (direction) {
+                                    SwipeToDismissBoxValue.StartToEnd -> TablerIcons.Edit
+                                    SwipeToDismissBoxValue.EndToStart -> TablerIcons.MessageCircle
+                                    else -> null
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(
+                                            when (direction) {
+                                                SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.primaryContainer
+                                                SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.secondaryContainer
+                                                else -> Color.Transparent
+                                            }
+                                        ),
+                                    contentAlignment = when (direction) {
+                                        SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
+                                        SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
+                                        else -> Alignment.Center
+                                    },
+                                ) {
+                                    if (icon != null) {
+                                        Icon(
+                                            imageVector = icon,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(horizontal = MusePaddings.screen),
+                                        )
+                                    }
+                                }
+                            },
+                        ) {
                         MessageBubble(
                             msg = msg,
                             // v1.0.20 (Task 3): isStreaming 读派生值,避免每条消息因 input 按键重组
@@ -1234,6 +1387,11 @@ fun ChatScreen(
                             onEdit = onEdit,
                             onQuote = onQuote,
                             onRegenerate = viewModel::regenerateLastAssistant,
+                            onContinue = viewModel::continueGeneration,
+                            selectionMode = state.selectionMode,
+                            selected = msg.id.toString() in state.selectedMessageIds,
+                            onToggleSelection = { viewModel.toggleMessageSelection(msg.id) },
+                            onEnterMultiSelect = { viewModel.setSelectionMode(true) },
                             onTranslate = onTranslate,
                             onToggleFavorite = onToggleFavorite,
                             // 阶段 J: 复制消息内容到剪贴板(iOS 风格长按 → 复制)
@@ -1261,7 +1419,7 @@ fun ChatScreen(
                             onToggleTaskCardExpand = onToggleTaskCardExpand,
                             onRetryTaskCardStep = onRetryTaskCardStep,
                             // v1.25: 长按菜单「委托给助手」
-                            onDelegate = { showDelegateSheet = DelegateSheetMode.Message(msg) },
+                            onDelegate = { sheetState.showDelegateSheet = DelegateSheetMode.Message(msg) },
                             // v0.29 P0-3: 分享整段对话(导出 Markdown → 系统 share sheet)
                             onShareSession = onShareSession,
                             onFork = onFork,
@@ -1312,6 +1470,18 @@ fun ChatScreen(
                                 branchNode?.let { viewModel.selectBranch(it.id, it.selectIndex + 1) }
                             },
                         )
+                        // v1.0.53: 上下文占用条 — 从输入栏底部移到消息流，仅显示在最后一条 AI 消息的快捷按钮栏下方
+                        if (isLast && msg.role == MessageRole.ASSISTANT && state.tokenEstimateEnabled) {
+                            TokenStatsBar(
+                                inputText = currentInput,
+                                historyTokens = state.contextTokenCount,
+                                contextWindow = state.contextMaxTokens,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = MusePaddings.tightGap),
+                            )
+                        }
+                        }
                         }
                     }
                     // 任务 2B: 等待首 token 阶段用 shimmer 骨架屏占位(替代旧 LoadingDots "思考中"文字)
@@ -1346,32 +1516,6 @@ fun ChatScreen(
                         item(key = "video_placeholder") { VideoGenerationPlaceholder() }
                     }
                     // 工具审批卡片:待审批的工具调用显示审批/拒绝按钮
-                    items(state.pendingToolApprovals, key = { "approval_${it.toolCallId}" }) { approval ->
-                        ToolApprovalCard(
-                            toolName = approval.toolName,
-                            argumentsPreview = approval.argumentsPreview,
-                            onApprove = { viewModel.approveToolCall(approval.toolCallId, approval.alwaysAllow) },
-                            onDeny = { reason -> viewModel.denyToolCall(approval.toolCallId, reason) },
-                            alwaysAllow = approval.alwaysAllow,
-                            onAlwaysAllowChanged = { checked ->
-                                viewModel.setToolApprovalAlwaysAllow(approval.toolCallId, checked)
-                            },
-                            // v1.0.16: 本次开启期间批准全部工具
-                            appRunAllowAll = approval.appRunAllowAll,
-                            onAppRunAllowAllChanged = { checked ->
-                                viewModel.setToolApprovalAppRunAllowAll(approval.toolCallId, checked)
-                            },
-                            // v1.x: 本会话允许(会话级临时允许,切换会话后自动失效)
-                            onAllowThisSession = {
-                                viewModel.allowToolForSession(approval.toolCallId)
-                            },
-                            // v1.x: 参考图本地选择(generate_image 工具的图生图入口)
-                            referenceImageOverride = approval.referenceImageOverride,
-                            onReferenceImageChange = { dataUri ->
-                                viewModel.setToolApprovalReferenceImage(approval.toolCallId, dataUri)
-                            },
-                        )
-                    }
                     // v1.202: 后台子 Agent 任务列表卡片(非阻塞委派进度展示)
                     // 渲染当前会话活跃的子 agent 线程 + 待处理任务,提供取消入口。
                     // 数据由 ChatViewModel 订阅 SubagentThreadStore + DeferredResultStore 后写入 UiState。
@@ -1388,9 +1532,9 @@ fun ChatScreen(
             }
 
             // v1.0.4 (P3-4): 性能模式指示器 — 仅当开启性能模式且 visibleMessages 未覆盖全部
-            // state.messages 时显示"已显示 X / Y 条",让用户感知到分页加载的存在。
+            // messages 时显示"已显示 X / Y 条",让用户感知到分页加载的存在。
             // 滚到顶部会自动扩展 paginatorPageCount,X 增大;全部展开后 X == Y,指示器隐藏。
-            if (performanceMode && visibleMessages.size < state.messages.size) {
+            if (performanceMode && visibleMessages.size < messages.size) {
                 Surface(
                     color = MaterialTheme.colorScheme.secondaryContainer,
                     contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -1398,16 +1542,16 @@ fun ChatScreen(
                     tonalElevation = 2.dp,
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .padding(top = 8.dp),
+                        .padding(top = MusePaddings.contentGap),
                 ) {
                     Text(
                         text = stringResource(
                             R.string.chat_performance_indicator,
                             visibleMessages.size,
-                            state.messages.size,
+                            messages.size,
                         ),
                         style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(horizontal = MusePaddings.itemGap, vertical = MusePaddings.tinyGap),
                     )
                 }
             }
@@ -1420,16 +1564,12 @@ fun ChatScreen(
                 exit = fadeOut() + slideOutVertically { it / 2 },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 16.dp)
+                    .padding(bottom = MusePaddings.screen)
                     .navigationBarsPadding(),
             ) {
-                Surface(
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-                    shape = CircleShape,
-                    tonalElevation = 0.dp,
-                    shadowElevation = 0.dp,
+                Box(
                     modifier = Modifier
-                        .size(36.dp)
+                        .size(MuseIconSizes.touchTarget)
                         .clickable {
                             userScrolledUp = false
                             isProgrammaticScroll.value = true
@@ -1443,17 +1583,26 @@ fun ChatScreen(
                                 }
                             }
                         },
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
+                    Surface(
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+                        shape = CircleShape,
+                        tonalElevation = 0.dp,
+                        shadowElevation = 0.dp,
+                        modifier = Modifier.size(36.dp),
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowDownward,
-                            contentDescription = stringResource(R.string.chat_scroll_to_bottom_cd),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(MuseIconSizes.iconSmall),
-                        )
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowDownward,
+                                contentDescription = stringResource(R.string.chat_scroll_to_bottom_cd),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(MuseIconSizes.iconSmall),
+                            )
+                        }
                     }
                 }
             }
@@ -1483,7 +1632,7 @@ fun ChatScreen(
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(MusePaddings.itemGap),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
                     ) {
                         Icon(
                             imageVector = TablerIcons.AlertCircle,
@@ -1544,7 +1693,7 @@ fun ChatScreen(
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(MusePaddings.itemGap),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
                     ) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -1581,7 +1730,7 @@ fun ChatScreen(
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(MusePaddings.itemGap),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
                     ) {
                         Icon(
                             imageVector = TablerIcons.GitMerge,
@@ -1630,7 +1779,7 @@ fun ChatScreen(
                                     Row(
                                         modifier = Modifier.fillMaxWidth().padding(MusePaddings.itemGap),
                                         verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
                                     ) {
                                         Text(
                                             text = err.message,
@@ -1660,573 +1809,20 @@ fun ChatScreen(
             TtsControllerWidget(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(end = 16.dp, bottom = 16.dp)
+                    .padding(end = MusePaddings.screen, bottom = MusePaddings.screen)
                     .navigationBarsPadding(),
             )
         } // Box
 
-        // 阶段 5: 模型切换底部面板
-        if (showModelSheet) {
-            ModelSwitchSheet(
-                providers = state.providers,
-                activeProviderId = state.activeProviderId,
-                selectedModelId = state.selectedModelId,
-                onPickProvider = viewModel::setActiveProvider,
-                onPickModel = viewModel::setSelectedModel,
-                onRefreshModels = viewModel::refreshModels,
-                isFetchingModels = state.isFetchingModels,
-                fetchModelsError = state.fetchModelsError,
-                onDismiss = { showModelSheet = false },
-            )
-        }
-        // v1.58: Prompt 模板库选择
-        if (showPromptTemplateSheet) {
-            MuseBottomSheet(
-                onDismissRequest = { showPromptTemplateSheet = false },
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = MusePaddings.contentGap),
-                ) {
-                    Text(
-                        text = stringResource(R.string.chat_prompt_templates_title),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(MusePaddings.bubbleInner),
-                    )
-                    val templates = state.promptTemplates
-                    val categories = templates.map { it.category }.distinct()
-                    androidx.compose.foundation.lazy.LazyColumn(
-                        modifier = Modifier.fillMaxWidth().heightIn(max = 480.dp),
-                    ) {
-                        categories.forEach { category ->
-                            item(key = "cat_$category") {
-                                Text(
-                                    text = category,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.outline,
-                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-                                )
-                            }
-                            items(
-                                templates.filter { it.category == category },
-                                key = { it.id },
-                            ) { template ->
-                                Surface(
-                                    onClick = {
-                                        viewModel.insertPromptTemplate(template)
-                                        showPromptTemplateSheet = false
-                                    },
-                                    color = MaterialTheme.colorScheme.surface,
-                                    modifier = Modifier.fillMaxWidth(),
-                                ) {
-                                    Column(
-                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                                    ) {
-                                        Text(
-                                            text = template.name,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            fontWeight = FontWeight.Medium,
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                        )
-                                        Text(
-                                            text = template.content.take(60).replace("\n", " "),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
-                                            modifier = Modifier.padding(top = 2.dp),
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        // v1.94: 工具调用历史 sheet(InputBar 动态胶囊点击展开)
-        // v1.97: 合并展示任务待办 + 工具调用历史,可滑动查看
-        if (showToolCallSheet) {
-            val latestPlan = state.agentPlans.values.maxByOrNull { it.createdAt }
-            MuseBottomSheet(
-                onDismissRequest = { showToolCallSheet = false },
-            ) {
-                ToolCallHistorySheet(
-                    records = state.toolCallHistory,
-                    agentPlan = latestPlan,
-                )
-            }
-        }
-        // v1.95: 系统语音识别首次使用提示(用户确认后调起系统 Intent)
-        if (asrTipDialogShown) {
-            MuseDialog(
-                onDismissRequest = { asrTipDialogShown = false },
-                title = stringResource(R.string.chat_asr_tip_title),
-                content = {
-                    Text(
-                        text = stringResource(R.string.chat_asr_tip_message),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                },
-                confirmText = stringResource(R.string.chat_asr_tip_confirm),
-                onConfirm = {
-                    asrTipDialogShown = false
-                    resultOf {
-                        speechLauncher.launch(SpeechInput.createIntent(context.getString(R.string.speech_speak_prompt)))
-                    }.onError { msg, _ ->
-                        // v1.98: 移除弹窗提示,静默处理
-                        Logger.w("ChatScreen", "启动语音识别失败: $msg")
-                    }
-                },
-                onDismiss = { asrTipDialogShown = false },
-            )
-        }
-        // v0.29 P1-6: 知识库文档选择(MuseDialog 替代原 ModalBottomSheet,避免真机 scrim 卡死)
-        if (showKnowledgeSheet) {
-            MuseDialog(
-                onDismissRequest = { showKnowledgeSheet = false },
-                title = stringResource(R.string.chat_knowledge_dialog_title),
-                content = {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        // 仅展示用户可见文档(isInternal=true 的内部开发文档供 LLM 通过
-                        // knowledge_search 查询,不在「引用知识库」选择器中暴露给用户)
-                        val visibleDocs = knowledgeDocs.filterNot { it.isInternal }
-                        if (visibleDocs.isEmpty()) {
-                            Text(
-                                text = stringResource(R.string.chat_knowledge_empty),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(vertical = MusePaddings.largeGap),
-                            )
-                        } else {
-                            visibleDocs.forEach { doc ->
-                                MuseListItem(
-                                    headlineContent = { Text(doc.title, style = MaterialTheme.typography.bodyLarge) },
-                                    supportingContent = {
-                                        Text(
-                                            stringResource(R.string.chat_knowledge_doc_meta, doc.fileType, doc.content.length),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.outline,
-                                        )
-                                    },
-                                    modifier = Modifier.clickable {
-                                        // v0.29 P1-6: 选中后在输入框插入 @文档名 标记
-                                        val mention = "@${doc.title} "
-                                        val current = viewModel.state.value.input
-                                        viewModel.updateInput(if (current.isBlank()) mention else "$current\n$mention")
-                                        showKnowledgeSheet = false
-                                    },
-                                )
-                            }
-                        }
-                    }
-                },
-                onConfirm = null,
-                dismissText = stringResource(R.string.action_close),
-                onDismiss = { showKnowledgeSheet = false },
-            )
-        }
-        // v0.29 P3-17: 会话快速切换(MuseDialog 替代原 ModalBottomSheet,避免真机 scrim 卡死)
-        if (showSessionSheet) {
-            MuseDialog(
-                onDismissRequest = { showSessionSheet = false },
-                title = stringResource(R.string.chat_switch_session_title),
-                content = {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        if (state.sessions.isEmpty()) {
-                            Text(
-                                text = stringResource(R.string.chat_no_sessions),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(vertical = MusePaddings.largeGap),
-                            )
-                        } else {
-                            state.sessions.take(20).forEach { session ->
-                                val isCurrent = session.id == state.currentSessionId
-                                MuseListItem(
-                                    headlineContent = {
-                                        Text(
-                                            text = session.title.ifBlank { stringResource(R.string.chat_new_session) },
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            color = if (isCurrent) MaterialTheme.colorScheme.primary
-                                            else MaterialTheme.colorScheme.onSurface,
-                                            fontWeight = if (isCurrent) FontWeight.SemiBold else FontWeight.Normal,
-                                        )
-                                    },
-                                    supportingContent = session.lastMessagePreview.takeIf { it.isNotBlank() }?.let {
-                                        {
-                                            Text(
-                                                text = it,
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.outline,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis,
-                                            )
-                                        }
-                                    },
-                                    modifier = Modifier.clickable {
-                                        viewModel.switchSession(session.id)
-                                        showSessionSheet = false
-                                    },
-                                )
-                            }
-                        }
-                    }
-                },
-                onConfirm = null,
-                dismissText = stringResource(R.string.action_close),
-                onDismiss = { showSessionSheet = false },
-            )
-        }
-        // v1.136 T1: 对话内更换助手(标题长按触发)
-        if (showAssistantSwitchSheet) {
-            val currentAssistantId = state.currentAssistant?.id
-            MuseDialog(
-                onDismissRequest = { showAssistantSwitchSheet = false },
-                title = stringResource(R.string.chat_switch_assistant_title),
-                content = {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        if (state.assistants.isEmpty()) {
-                            Text(
-                                text = stringResource(R.string.chat_switch_assistant_empty),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(vertical = MusePaddings.largeGap),
-                            )
-                        } else {
-                            state.assistants.forEach { assistant ->
-                                val isCurrent = assistant.id == currentAssistantId
-                                val unnamedAssistant = stringResource(R.string.chat_delegate_unnamed_assistant)
-                                MuseListItem(
-                                    leadingContent = {
-                                        AssistantAvatar(
-                                            assistant = assistant,
-                                            avatarSize = 36.dp,
-                                        )
-                                    },
-                                    headlineContent = {
-                                        Text(
-                                            text = assistant.name.takeIf { it.isNotBlank() } ?: unnamedAssistant,
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            color = if (isCurrent) MaterialTheme.colorScheme.primary
-                                                    else MaterialTheme.colorScheme.onSurface,
-                                            fontWeight = if (isCurrent) FontWeight.SemiBold else FontWeight.Normal,
-                                        )
-                                    },
-                                    supportingContent = {
-                                        // v1.136 T5: 优先显示 summary(助手简介),无则回退到 systemPrompt 截断
-                                        val desc = assistant.summary.takeIf { it.isNotBlank() }
-                                            ?: assistant.systemPrompt.take(60)
-                                        if (desc.isNotBlank()) {
-                                            Text(
-                                                text = desc,
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.outline,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis,
-                                            )
-                                        }
-                                    },
-                                    trailingContent = if (isCurrent) {
-                                        {
-                                            Icon(
-                                                imageVector = Icons.Default.Check,
-                                                contentDescription = stringResource(R.string.chat_switch_assistant_current),
-                                                tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(18.dp),
-                                            )
-                                        }
-                                    } else null,
-                                    modifier = Modifier.clickable {
-                                        if (!isCurrent) {
-                                            // v1.0.54: 切换助手分派 — Agent Tab 切对话房间(该助手历史恢复/新建),
-                                            //   任务 Tab 只换人(消息/历史绝不动)
-                                            if (state.isAgentMode) {
-                                                viewModel.switchAgentAssistant(assistant.id)
-                                            } else {
-                                                viewModel.setSessionAssistant(assistant.id)
-                                            }
-                                            val name = assistant.name.takeIf { it.isNotBlank() } ?: unnamedAssistant
-                                            MuseToast.show(
-                                                context.getString(R.string.chat_switch_assistant_applied, name)
-                                            )
-                                        }
-                                        showAssistantSwitchSheet = false
-                                    },
-                                )
-                            }
-                        }
-                    }
-                },
-                onConfirm = null,
-                dismissText = stringResource(R.string.action_close),
-                onDismiss = { showAssistantSwitchSheet = false },
-            )
-        }
-        // v1.25: 委托给助手/团队选择(MuseDialog 替代原 ModalBottomSheet,避免真机 scrim 卡死)
-        val delegateMode = showDelegateSheet
-        if (delegateMode != null) {
-            val assistants = state.assistants
-            val teams = state.multiAgentConfig.teams
-            MuseDialog(
-                onDismissRequest = { showDelegateSheet = null },
-                title = stringResource(R.string.chat_delegate_title),
-                content = {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        if (assistants.isEmpty() && teams.isEmpty()) {
-                            Text(
-                                text = stringResource(R.string.chat_delegate_empty),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(vertical = MusePaddings.largeGap),
-                            )
-                        } else {
-                            if (assistants.isNotEmpty()) {
-                                Text(
-                                    text = stringResource(R.string.chat_delegate_assistants),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.outline,
-                                    modifier = Modifier.padding(bottom = 8.dp),
-                                )
-                                assistants.forEach { assistant ->
-                                    val unnamedAssistant = stringResource(R.string.chat_delegate_unnamed_assistant)
-                                    MuseListItem(
-                                        headlineContent = {
-                                            Text(
-                                                assistant.name.takeIf { it.isNotBlank() } ?: unnamedAssistant,
-                                                style = MaterialTheme.typography.bodyLarge,
-                                            )
-                                        },
-                                        supportingContent = {
-                                            val desc = assistant.systemPrompt.take(60)
-                                            if (desc.isNotBlank()) {
-                                                Text(
-                                                    text = desc,
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = MaterialTheme.colorScheme.outline,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis,
-                                                )
-                                            }
-                                        },
-                                        modifier = Modifier.clickable {
-                                            val name = assistant.name.takeIf { it.isNotBlank() } ?: unnamedAssistant
-                                            when (delegateMode) {
-                                                is DelegateSheetMode.Input -> {
-                                                    val current = viewModel.state.value.input
-                                                    val prompt = context.getString(R.string.chat_delegate_assistant_prompt_input, name, current)
-                                                    // H-S2: 先检查内容非空再 updateInput + send,避免读到旧空 input 的竞态
-                                                    if (prompt.isNotBlank()) {
-                                                        viewModel.updateInput(prompt)
-                                                        showDelegateSheet = null
-                                                        viewModel.send()
-                                                    }
-                                                }
-                                                is DelegateSheetMode.Message -> {
-                                                    // M-S9: 委托空内容校验
-                                                    if (delegateMode.msg.content.isBlank()) {
-                                                        MuseToast.show(context.getString(R.string.chat_delegate_no_text))
-                                                        return@clickable
-                                                    }
-                                                    val summary = delegateMode.msg.content.take(200)
-                                                    val prompt = context.getString(R.string.chat_delegate_assistant_prompt_message, name)
-                                                    val content = buildQuotedContent(summary, prompt)
-                                                    // H-S2: 先检查内容非空再 updateInput + send
-                                                    if (content.isNotBlank()) {
-                                                        viewModel.updateInput(content)
-                                                        showDelegateSheet = null
-                                                        viewModel.send()
-                                                    }
-                                                }
-                                            }
-                                        },
-                                    )
-                                }
-                            }
-                            if (teams.isNotEmpty()) {
-                                Text(
-                                    text = stringResource(R.string.chat_delegate_teams),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.outline,
-                                    modifier = Modifier.padding(top = 12.dp, bottom = 8.dp),
-                                )
-                                teams.forEach { team ->
-                                    val unnamedTeam = stringResource(R.string.chat_delegate_unnamed_team)
-                                    MuseListItem(
-                                        headlineContent = {
-                                            Text(
-                                                team.name.takeIf { it.isNotBlank() } ?: unnamedTeam,
-                                                style = MaterialTheme.typography.bodyLarge,
-                                            )
-                                        },
-                                        supportingContent = {
-                                            val desc = team.description.takeIf { it.isNotBlank() }
-                                            if (desc != null && desc.isNotBlank()) {
-                                                Text(
-                                                    text = desc,
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = MaterialTheme.colorScheme.outline,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis,
-                                                )
-                                            }
-                                        },
-                                        modifier = Modifier.clickable {
-                                            val name = team.name.takeIf { it.isNotBlank() } ?: unnamedTeam
-                                            when (delegateMode) {
-                                                is DelegateSheetMode.Input -> {
-                                                    val current = viewModel.state.value.input
-                                                    val prompt = context.getString(R.string.chat_delegate_team_prompt_input, name, current)
-                                                    // H-S2: 先检查内容非空再 updateInput + send,避免读到旧空 input 的竞态
-                                                    if (prompt.isNotBlank()) {
-                                                        viewModel.updateInput(prompt)
-                                                        showDelegateSheet = null
-                                                        viewModel.send()
-                                                    }
-                                                }
-                                                is DelegateSheetMode.Message -> {
-                                                    // M-S9: 委托空内容校验
-                                                    if (delegateMode.msg.content.isBlank()) {
-                                                        MuseToast.show(context.getString(R.string.chat_delegate_no_text))
-                                                        return@clickable
-                                                    }
-                                                    val summary = delegateMode.msg.content.take(200)
-                                                    val prompt = context.getString(R.string.chat_delegate_team_prompt_message, name)
-                                                    val content = buildQuotedContent(summary, prompt)
-                                                    // H-S2: 先检查内容非空再 updateInput + send
-                                                    if (content.isNotBlank()) {
-                                                        viewModel.updateInput(content)
-                                                        showDelegateSheet = null
-                                                        viewModel.send()
-                                                    }
-                                                }
-                                            }
-                                        },
-                                    )
-                                }
-                            }
-                        }
-                    }
-                },
-                onConfirm = null,
-                dismissText = stringResource(R.string.action_close),
-                onDismiss = { showDelegateSheet = null },
-            )
-        }
-        // 功能4: 导出格式选择(Markdown / HTML / PDF 三选一,iOS 风格分段选择器)
-        if (showExportSheet) {
-            io.zer0.muse.ui.chat.ExportFormatPickerDialog(
-                onDismiss = { showExportSheet = false },
-                onFormatSelected = { format ->
-                    showExportSheet = false
-                    ioScope.launch {
-                        when (format) {
-                            io.zer0.muse.data.export.ExportFormat.MARKDOWN -> {
-                                // Markdown:沿用原有逻辑,通过 ACTION_SEND 分享纯文本
-                                val (mime, content) = viewModel.exportSession(
-                                    io.zer0.muse.ui.chat.ExportFormat.MARKDOWN
-                                )
-                                shareText(context, mime, content)
-                            }
-                            io.zer0.muse.data.export.ExportFormat.HTML -> {
-                                // HTML:导出为单文件,写入 cacheDir 后通过 FileProvider 分享
-                                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                                    val html = viewModel.exportSessionAsHtml()
-                                    val file = writeExportFile(context, "muse-export", "html", html.toByteArray())
-                                    shareFile(context, file, "text/html")
-                                }
-                            }
-                            io.zer0.muse.data.export.ExportFormat.PDF -> {
-                                // PDF:用 PdfDocument 渲染分页文档,通过 FileProvider 分享
-                                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                                    val file = viewModel.exportSessionAsPdf(context)
-                                    shareFile(context, file, "application/pdf")
-                                }
-                            }
-                        }
-                    }
-                },
-            )
-        }
-        // 编辑助手消息(MuseDialog 替代原 ModalBottomSheet,避免真机 scrim 卡死)
-        editingMessage?.let { msg ->
-            var draft by remember(msg.id) { mutableStateOf(msg.content) }
-            MuseDialog(
-                onDismissRequest = { editingMessage = null },
-                title = stringResource(R.string.edit_message_title),
-                content = {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        MuseTextField(
-                            value = draft,
-                            onValueChange = { draft = it },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = 120.dp, max = 320.dp),
-                            label = { Text(stringResource(R.string.edit_message_content_label)) },
-                            maxLines = 10,
-                        )
-                    }
-                },
-                confirmText = stringResource(R.string.action_save),
-                onConfirm = {
-                    viewModel.editAssistantMessage(msg.id, draft.trim())
-                    editingMessage = null
-                },
-                dismissText = stringResource(R.string.action_cancel),
-                onDismiss = { editingMessage = null },
-            )
-        }
-    } // Scaffold
-
-    // v1.201: 委派暂停确认弹窗(绑定到 state.activePauseRequest)
-    io.zer0.muse.ui.taskcard.DelegationConfirmDialog(
-        pauseRequest = state.activePauseRequest,
-        onSubmit = { response ->
-            state.activePauseRequest?.let { req ->
-                viewModel.submitPauseDecision(req.requestId, response)
-            }
-        },
-    )
-
-    // v1.49: Vosk 模型下载弹窗已移除(离线识别能力随之移除)
-
-    // v1.43: 产物卡片查看弹窗
-    state.selectedArtifact?.let { artifact ->
-        io.zer0.muse.ui.artifact.ArtifactViewerDialog(
-            artifact = artifact,
-            onDismiss = { viewModel.dismissArtifactViewer() },
-            onCopy = { text ->
-                val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
-                    as android.content.ClipboardManager
-                clipboard.setPrimaryClip(
-                    android.content.ClipData.newPlainText("Muse Artifact", text)
-                )
-                MuseToast.show(context.getString(R.string.chat_copied_toast))
-            },
-        )
-    }
-
-    // 语音对话模式全屏覆盖层:点击 InputBar 中 RecordVoiceOver 图标触发,
-    // 关闭时由 VoiceConversationMode 内部关闭按钮回调,ViewModel 资源在 onClose 中释放
-    AnimatedVisibility(
-        visible = showVoiceConversation,
-        enter = fadeIn(),
-        exit = fadeOut(),
-    ) {
-        VoiceConversationMode(
-            onClose = { showVoiceConversation = false },
+        ChatSheetHost(
+            sheetState = sheetState,
             viewModel = viewModel,
+            knowledgeDocs = knowledgeDocs,
+            speechLauncher = speechLauncher,
+            ioScope = ioScope,
+            onOpenPromptTemplateManager = onOpenPromptTemplateManager,
         )
-    }
+        } // Scaffold
 } // ChatScreen
 
 /**
@@ -2248,7 +1844,7 @@ private fun EmptyChatGuide(
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(MusePaddings.screen),
     ) {
         // 头像:助手有自定义头像(图片或 Emoji)用助手头像,否则用项目图标
         val currentAssistant = assistant
@@ -2298,8 +1894,8 @@ private fun EmptyChatGuide(
             stringResource(R.string.chat_suggested_prompt_ideas),
         )
         androidx.compose.foundation.layout.FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+            verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
         ) {
             prompts.forEach { prompt ->
                 Surface(
@@ -2311,7 +1907,7 @@ private fun EmptyChatGuide(
                         text = prompt,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = MusePaddings.contentGap),
                     )
                 }
             }
@@ -2375,7 +1971,7 @@ private fun ShimmerBubble(progressText: String? = null) {
             // v1.0.3: 顶部 — 三个跳动圆点 + "思考中"文字
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
             ) {
                 // 三个圆点共享一个 transition,依次缩放/淡入淡出
                 repeat(3) { index ->
@@ -2411,7 +2007,7 @@ private fun ShimmerBubble(progressText: String? = null) {
                             .background(MaterialTheme.colorScheme.primary),
                     )
                 }
-                Spacer(Modifier.width(4.dp))
+                Spacer(Modifier.width(MusePaddings.tinyGap))
                 // v1.0.4: 视觉分析阶段优先显示进度文字(如"正在分析图片 2/4…"),否则回退"思考中"
                 val defaultThinking = stringResource(R.string.chat_loading_thinking)
                 Text(
@@ -2425,7 +2021,7 @@ private fun ShimmerBubble(progressText: String? = null) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(if (index == 2) 0.6f else 1f)
-                        .height(12.dp)
+                        .height(MusePaddings.itemGap)
                         .clip(MuseShapes.extraSmall)
                         .background(brush),
                 )
@@ -2512,7 +2108,7 @@ private fun ImageGenerationPlaceholder() {
                     )
                 }
             }
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(MusePaddings.contentGap))
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -2523,7 +2119,7 @@ private fun ImageGenerationPlaceholder() {
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                 ) {
                     Icon(
                         imageVector = TablerIcons.Photo,
@@ -2591,7 +2187,7 @@ private fun VideoGenerationPlaceholder() {
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                 ) {
                     Icon(
                         imageVector = Icons.Filled.PlayCircle,
@@ -2648,15 +2244,15 @@ private fun HistoryLoadMorePlaceholder() {
     ) {
         CircularProgressIndicator(
             strokeWidth = 2.dp,
-            modifier = Modifier.size(16.dp),
+            modifier = Modifier.size(MusePaddings.screen),
         )
-        Spacer(Modifier.width(8.dp))
+        Spacer(Modifier.width(MusePaddings.contentGap))
         Text(
             text = stringResource(R.string.chat_loading_more_history),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Spacer(Modifier.width(8.dp))
+        Spacer(Modifier.width(MusePaddings.contentGap))
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -2664,162 +2260,6 @@ private fun HistoryLoadMorePlaceholder() {
                 .clip(MuseShapes.extraSmall)
                 .background(brush),
         )
-    }
-}
-
-/**
- * v1.94: 工具调用历史面板(底部 sheet 内容)。
- *
- * 展示当前会话期间所有工具调用记录(工具名 / 参数 / 结果 / 成功与否),
- * 由 InputBar 动态胶囊点击触发。
- */
-@Composable
-private fun ToolCallHistorySheet(
-    records: List<ToolCallRecord>,
-    agentPlan: AgentPlan? = null,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(max = 480.dp)
-            .verticalScroll(rememberScrollState()),
-    ) {
-        // v1.97: 任务待办优先展示
-        val plan = agentPlan
-        if (plan != null && plan.steps.isNotEmpty()) {
-            Text(
-                text = "任务待办",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Spacer(Modifier.height(8.dp))
-            plan.steps.forEachIndexed { idx, step ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = MusePaddings.labelVerticalGap),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    val statusColor = when (step.status) {
-                        AgentPlanStepStatus.DONE -> MaterialTheme.colorScheme.primary
-                        AgentPlanStepStatus.FAILED -> MaterialTheme.colorScheme.error
-                        AgentPlanStepStatus.IN_PROGRESS -> MaterialTheme.colorScheme.primary
-                        AgentPlanStepStatus.SKIPPED -> MaterialTheme.colorScheme.outline
-                        AgentPlanStepStatus.PENDING -> MaterialTheme.colorScheme.outline
-                    }
-                    when (step.status) {
-                        AgentPlanStepStatus.DONE -> {
-                            Icon(Icons.Default.CheckCircle, null, tint = statusColor, modifier = Modifier.size(16.dp))
-                        }
-                        AgentPlanStepStatus.FAILED -> {
-                            Icon(TablerIcons.AlertCircle, null, tint = statusColor, modifier = Modifier.size(16.dp))
-                        }
-                        else -> {
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .clip(CircleShape)
-                                    .background(statusColor),
-                            )
-                        }
-                    }
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = step.title,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (step.status == AgentPlanStepStatus.PENDING || step.status == AgentPlanStepStatus.SKIPPED)
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        else MaterialTheme.colorScheme.onSurface,
-                    )
-                    Spacer(Modifier.weight(1f))
-                    Text(
-                        text = step.status.displayText,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = statusColor,
-                    )
-                }
-                if (idx < plan.steps.size - 1) {
-                    MuseDivider(
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                        thickness = 0.5.dp,
-                    )
-                }
-            }
-        }
-        // 工具调用历史
-        if (records.isNotEmpty()) {
-            if (plan != null && plan.steps.isNotEmpty()) {
-                Spacer(Modifier.height(16.dp))
-            }
-            Text(
-                text = stringResource(R.string.chat_tool_calls_title),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Spacer(Modifier.height(8.dp))
-            records.forEachIndexed { idx, record ->
-                ToolCallRecordItem(idx + 1, record)
-                if (idx < records.size - 1) {
-                    MuseDivider(
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                        thickness = 0.5.dp,
-                    )
-                }
-            }
-        }
-        // 空状态
-        if ((plan == null || plan.steps.isEmpty()) && records.isEmpty()) {
-            Text(
-                text = stringResource(R.string.chat_tool_calls_empty),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.outline,
-            )
-        }
-    }
-}
-
-/**
- * v1.94: 单条工具调用记录展示。
- */
-@Composable
-private fun ToolCallRecordItem(
-    index: Int,
-    record: ToolCallRecord,
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = MusePaddings.contentGap),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = "#$index ${record.toolName}",
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-            )
-            Spacer(Modifier.width(8.dp))
-            Icon(
-                imageVector = if (record.isSuccess) Icons.Default.CheckCircle else TablerIcons.AlertCircle,
-                contentDescription = null,
-                tint = if (record.isSuccess) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                modifier = Modifier.size(16.dp),
-            )
-        }
-        if (record.arguments.isNotBlank()) {
-            Text(
-                text = "参数: ${record.arguments.take(200)}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        if (record.result.isNotBlank()) {
-            Text(
-                text = "结果: ${record.result.take(300)}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
     }
 }
 
@@ -2846,7 +2286,7 @@ private fun DateSeparator(timestamp: Long) {
             .fillMaxWidth()
             .padding(vertical = MusePaddings.itemGap),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
     ) {
         MuseDivider(
             modifier = Modifier.weight(1f),
@@ -2874,81 +2314,47 @@ private fun isSameDay(ts1: Long, ts2: Long): Boolean {
         cal1.get(java.util.Calendar.DAY_OF_YEAR) == cal2.get(java.util.Calendar.DAY_OF_YEAR)
 }
 
-/**
- * 通过 ACTION_SEND 分享纯文本(Markdown / JSON / 纯文本导出复用)。
- *
- * @param context Android Context
- * @param mime MIME 类型(如 "text/markdown")
- * @param content 要分享的文本内容
- */
-private fun shareText(context: android.content.Context, mime: String, content: String) {
-    val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-        type = mime
-        putExtra(android.content.Intent.EXTRA_TEXT, content)
-        putExtra(android.content.Intent.EXTRA_SUBJECT, context.getString(R.string.chat_share_subject))
-    }
-    context.startActivity(
-        android.content.Intent.createChooser(shareIntent, context.getString(R.string.chat_share_chooser_title)).apply {
-            addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-        },
-    )
-}
-
-/**
- * 把导出内容写入 cacheDir/export/ 下的文件(用于 HTML 导出)。
- *
- * cacheDir 已在 file_paths.xml 中通过 cache-path 暴露给 FileProvider,可直接分享。
- *
- * @param context Android Context
- * @param prefix 文件名前缀(如 "muse-export")
- * @param extension 文件扩展名(如 "html")
- * @param bytes 文件内容字节数组
- * @return 已写入的文件
- */
-private fun writeExportFile(
-    context: android.content.Context,
-    prefix: String,
-    extension: String,
-    bytes: ByteArray,
-): java.io.File {
-    val exportDir = java.io.File(context.cacheDir, "export").apply { mkdirs() }
-    val timestamp = java.text.SimpleDateFormat(
-        io.zer0.muse.ui.theme.MuseDateFormats.FILE_TIMESTAMP,
-        java.util.Locale.US,
-    ).format(java.util.Date())
-    val file = java.io.File(exportDir, "$prefix-$timestamp.$extension")
-    file.outputStream().use { it.write(bytes) }
-    return file
-}
-
-/**
- * 通过 ACTION_SEND + FileProvider 分享文件(用于 HTML / PDF 导出)。
- *
- * 文件须位于 file_paths.xml 已声明的路径下(cacheDir / filesDir / external-files 等)。
- *
- * @param context Android Context
- * @param file 要分享的文件
- * @param mime MIME 类型(如 "application/pdf")
- */
-private fun shareFile(context: android.content.Context, file: java.io.File, mime: String) {
-    runCatching {
-        val uri = androidx.core.content.FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.fileprovider",
-            file,
-        )
-        val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-            type = mime
-            putExtra(android.content.Intent.EXTRA_STREAM, uri)
-            putExtra(android.content.Intent.EXTRA_SUBJECT, context.getString(R.string.chat_share_subject))
-            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+/** B7-01: 消息多选操作条。 */
+@Composable
+private fun ChatSelectionBar(
+    count: Int,
+    onSelectAll: () -> Unit,
+    onDelete: () -> Unit,
+    onExport: () -> Unit,
+    onExit: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        shape = MuseShapes.medium,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+        shadowElevation = 4.dp,
+        modifier = modifier,
+    ) {
+        Row(
+            modifier = Modifier.padding(
+                horizontal = MusePaddings.contentGap,
+                vertical = MusePaddings.tightGap,
+            ),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(R.string.groupchat_selected_members, count),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(onClick = onSelectAll) {
+                Text(stringResource(R.string.settings_provider_select_all))
+            }
+            TextButton(onClick = onDelete) {
+                Text(stringResource(R.string.chat_delete_message))
+            }
+            TextButton(onClick = onExport) {
+                Text(stringResource(R.string.action_share))
+            }
+            TextButton(onClick = onExit) {
+                Text(stringResource(R.string.action_close))
+            }
         }
-        context.startActivity(
-            android.content.Intent.createChooser(shareIntent, context.getString(R.string.chat_share_chooser_title)).apply {
-                addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-            },
-        )
-    }.onFailure {
-        MuseToast.show("分享失败:无法获取文件 URI")
     }
 }

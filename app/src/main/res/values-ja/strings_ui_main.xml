@@ -135,6 +135,8 @@
     <string name="memory_screen_collapse">崩壊</string>
     <string name="memory_screen_expand">拡大する</string>
     <string name="memory_screen_edit_cd">編集</string>
+    <string name="memory_pin_cd">ピン留め</string>
+    <string name="memory_unpin_cd">ピン留め解除</string>
     <string name="memory_screen_delete_cd">消去</string>
     <string name="memory_screen_load_failed">ロードに失敗しました - エラーの詳細</string>
     <string name="memory_screen_copied_trace">フルスタックトレースがクリップボードにコピーされました</string>
@@ -554,6 +556,11 @@
 
     <!-- ===== P2-10: Provider plugin management (ProviderPluginPage) ===== -->
     <string name="provider_plugins_title">プラグインマネージャー</string>
+    <string name="muse_plugins_external">外部プラグイン</string>
+    <string name="muse_plugins_manage">プラグイン管理</string>
+    <string name="muse_plugins_imported">プラグインパッケージをインストールしました</string>
+    <string name="muse_plugins_empty_hint">外部プラグインはありません。+ をタップして .muse-plugin または ZIP パッケージをインポートしてください。</string>
+    <string name="muse_plugins_import_hint">プラグインパッケージをインストールしました。「外部プラグイン」で管理してください。</string>
     <string name="provider_plugins_empty">プラグインがありません</string>
     <string name="provider_plugins_import">プラグインをインポート</string>
     <string name="provider_plugins_delete">プラグインの削除</string>
@@ -574,8 +581,6 @@
     <string name="workspace_read_only_too_large">ファイルが大きすぎてプレビューできません (1MB まで)</string>
     <string name="workspace_path_copied">パスをコピーしました</string>
 
-    <!-- ===== P2-6: Browser Automation (BrowserAutomationScreen) ===== -->
-    <string name="browser_automation_title">ブラウザの自動化</string>
     <string name="browser_address_bar">URLを入力するか検索してください</string>
     <string name="browser_run_js">JavaScriptを実行する</string>
     <string name="browser_back">戻る</string>
@@ -657,4 +662,6 @@
     <string name="tool_resume_starting">正在恢复未完了ツール调用…</string>
     <string name="tool_resume_step">正在行%1$s (%2$d/%3$d)…</string>
     <string name="tts_not_ready">TTS 正在初化,请稍後重试</string>
+    <string name="chat_jump_to_unread">最初の未読へ · %1$d</string>
+    <string name="chat_list_reorder">ドラッグして並べ替え</string>
 </resources>

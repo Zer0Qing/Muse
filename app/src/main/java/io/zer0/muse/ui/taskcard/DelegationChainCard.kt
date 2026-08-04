@@ -28,8 +28,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -39,6 +42,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,10 +53,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.tools.DelegationChainTracker
+import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.media.AssistantAvatar
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.tiny
+import org.koin.compose.koinInject
 
 /**
  * v1.201: 委派链路卡片。
@@ -69,6 +76,9 @@ fun DelegationChainCard(
     roots: List<DelegationChainTracker.ChainNode>,
     modifier: Modifier = Modifier,
 ) {
+    val assistantRepository: AssistantRepository = koinInject()
+    val assistants by assistantRepository.observeAll.collectAsStateWithLifecycle(initialValue = emptyList())
+    val assistantById = remember(assistants) { assistants.associateBy { it.id } }
     // 空链路:显示提示文案,不渲染卡片容器(避免空卡噪声)
     if (roots.isEmpty()) {
         Surface(
@@ -139,7 +149,7 @@ fun DelegationChainCard(
             // ── 链路根节点列表 ──
             roots.forEach { node ->
                 key(node.requestId) {
-                    ChainNodeView(node = node, depth = 0)
+                    ChainNodeView(node = node, depth = 0, assistantById = assistantById)
                 }
             }
         }
@@ -155,8 +165,10 @@ fun DelegationChainCard(
 private fun ChainNodeView(
     node: DelegationChainTracker.ChainNode,
     depth: Int,
+    assistantById: Map<String, io.zer0.muse.data.assistant.AssistantEntity>,
 ) {
     var showDetail by remember { mutableStateOf(false) }
+    var expanded by remember(node.requestId) { mutableStateOf(true) }
     val indent = (depth * 24).dp
 
     Column(
@@ -174,6 +186,19 @@ private fun ChainNodeView(
         ) {
             // 状态圆点(RUNNING 脉冲 / 其它状态实心圆)
             StatusDot(status = node.status)
+
+            // B8-04: 节点显示对应助手头像,团队/未知节点回退为树形图标
+            val assistant = node.targetId.let { assistantById[it] }
+            if (assistant != null) {
+                AssistantAvatar(assistant = assistant, avatarSize = 24.dp)
+            } else {
+                Icon(
+                    imageVector = Icons.Default.AccountTree,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.outline,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
 
             // 目标徽章(类型 + 名称)
             TargetBadge(targetType = node.targetType, targetName = node.targetName)
@@ -194,6 +219,21 @@ private fun ChainNodeView(
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+
+            // B8-04: 子节点折叠/展开
+            if (node.subNodes.isNotEmpty()) {
+                IconButton(
+                    onClick = { expanded = !expanded },
+                    modifier = Modifier.size(24.dp),
+                ) {
+                    Icon(
+                        imageVector = if (expanded) Icons.Default.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
         }
 
         // 失败节点:错误图标 + 错误预览(单行省略)
@@ -246,7 +286,7 @@ private fun ChainNodeView(
         }
 
         // 子节点:Box 缩进 + Canvas 画竖线 + 递归渲染
-        if (node.subNodes.isNotEmpty()) {
+        if (node.subNodes.isNotEmpty() && expanded) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -280,7 +320,7 @@ private fun ChainNodeView(
                 ) {
                     node.subNodes.forEach { sub ->
                         key(sub.requestId) {
-                            ChainNodeView(node = sub, depth = depth + 1)
+                            ChainNodeView(node = sub, depth = depth + 1, assistantById = assistantById)
                         }
                     }
                 }

@@ -132,7 +132,7 @@ val appModule = module {
             storageDir = java.io.File(androidContext().filesDir, "muse_images"),
         )
     }
-    single { SessionRepository(get(), get(), get(), androidContext(), get(), get(), get()) }  // +MuseDb: 跨表事务(H-SESS1)
+    single { SessionRepository(get(), get(), get(), androidContext(), get(), get(), get(), get()) }  // +MuseDb: 跨表事务(H-SESS1)
     single { io.zer0.muse.data.artifact.ArtifactRepository(get()) }  // v1.43: 会话产物仓库
     single { AssistantRepository(get(), androidContext(), get()) }  // Phase 8.2 + v1.0.51: 注入 SettingsRepository 用于 locale
     single { LorebookRepository(get()) }  // Phase 8.5
@@ -189,7 +189,7 @@ val appModule = module {
     single { io.zer0.muse.ui.groupchat.GroupChatActivityHub() }
     // v2.x: 末尾追加 GroupChatMemoryRepository,用于群聊记忆隔离(agent 回复摘要写入独立 fact store)
     // v1.0.53: 追加 SystemPromptAssembler,用于在群聊 system prompt 中注入长期记忆和群聊记忆
-    single { io.zer0.muse.schedule.GroupChatScheduler(get(), get(), get(), get(), get(), androidContext(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    single { io.zer0.muse.schedule.GroupChatScheduler(get(), get(), get(), get(), get(), androidContext(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
     // v1.43: 应用级聊天生成管理器(切页/后台保持生成不中断)
     single { io.zer0.muse.schedule.ChatGenerationManager(get()) }
@@ -211,11 +211,9 @@ val appModule = module {
     single { io.zer0.muse.data.schedule.PendingMessageManager(androidContext()) }
 
     // Phase 4 4A: 账户系统管理器
-    single { io.zer0.muse.data.account.AccountManager(androidContext()) }
     // v1.134 P1-3: 移除 CloudSyncManager(原 Phase 4 4B 孤儿组件,TODO 空实现,
     // 真正的云备份由 CloudBackupScheduler + BackupService.exportToCloud 承担)
     // Phase 4 4C: API 配额管理器
-    single { io.zer0.muse.data.quota.QuotaManager(androidContext()) }
 
     // v1.134 P1-1: 自动备份助手(原 v1.107 孤儿组件,本次接入 Koin + WorkManager 调度)
     // 依赖 AutoBackupLogDao + Context + MessageDao,由 AutoBackupWorker 每日拉起
@@ -267,6 +265,9 @@ val appModule = module {
         )
     }
     // v1.0.52 P2-1: Passive Subagent 运行器(同步阻塞式独立子 agent,完整工具循环)
+    // B2-04: 子代理审批路由(主会话注册 delegate,子代理复用同一审批链路)
+    single { io.zer0.muse.tools.ToolApprovalRouter() }
+
     // v1.0.53 Phase 1: 加 threadStore(持久化续接)+ concurrencyLimiter(全局并发限流)
     // v1.0.53 Phase 4: 加 toolConfigStore(deny_on_prompt 审批策略)
     single {
@@ -276,6 +277,7 @@ val appModule = module {
             threadStore = get(),
             concurrencyLimiter = get(),
             toolConfigStore = get(),
+            toolApprovalRouter = get(),
         )
     }
 
@@ -395,12 +397,16 @@ val appModule = module {
             // line 192 注册(已先于 SkillExecutor 注册),但 lambda 体内 get() 在工具实际执行时才解析,
             // 此时两者均已初始化完成,避免循环依赖。
             // 用 runCatching 兜底:测试环境或 Koin 未启动时返回 null,agent_phone 工具降级为"未配置"。
+            pluginManager = get(),
             groupChatSchedulerProvider = {
                 runCatching { get<io.zer0.muse.schedule.GroupChatScheduler>() }.getOrNull()
             },
         )
     }
 
+
+    // B6-01: 外部插件管理器(导入/卸载/启停/工具注册)
+    single { io.zer0.muse.data.plugin.PluginManager(androidContext(), get()) }
     // v1.201: 委派暂停管理器(全局单例,ChatViewModel 与 SkillExecutor 共享)
     single { io.zer0.muse.tools.DelegationPauseManager() }
     // v1.201: 委派链路追踪器(全局单例,ChatViewModel 与 SkillExecutor 共享)
@@ -440,7 +446,7 @@ val appModule = module {
     single { io.zer0.muse.tools.DeferredResultStore() }
 
     // Phase 5-E: 文档解析�?
-    single { DocumentParser() }
+    single { DocumentParser(get(named("chat"))) }
 
     // v1.54: RAG 体系:Embedding 服务 + 向量检索编排
     // v1.134: 注入 filesDir 供 EmbeddingService 解析 ONNX 模型相对路径
@@ -538,10 +544,14 @@ val appModule = module {
     // P2-9: 语音克隆 — ElevenLabs Voice Cloning Provider 复用 chat OkHttpClient
     //   (内部用 newBuilder() 覆盖为 30s 三项超时,满足"API 调用必须有超时(30 秒)"约束)
     single { io.zer0.muse.ui.speech.ElevenLabsVoiceCloningProvider(get(named("chat"))) }
+    single { io.zer0.muse.ui.speech.FishAudioVoiceCloningProvider(get(named("chat"))) }
     // P2-9: VoiceCloningService 多 Provider 分发(后续 OpenVoice / Fish Audio 等可继续加入 map)
     single {
         io.zer0.muse.ui.speech.VoiceCloningService(
-            mapOf("elevenlabs" to get<io.zer0.muse.ui.speech.ElevenLabsVoiceCloningProvider>())
+            mapOf(
+                "elevenlabs" to get<io.zer0.muse.ui.speech.ElevenLabsVoiceCloningProvider>(),
+                "fish" to get<io.zer0.muse.ui.speech.FishAudioVoiceCloningProvider>(),
+            )
         )
     }
 
@@ -710,6 +720,20 @@ val appModule = module {
     // �?viewModel{} 绑定�?NavBackStackEntry,�?CHAT_DETAIL 返回�?onCleared �?
     // 流式内容 update 到已销�?ViewModel �?_state,新实例看不到 �?感知"中断"�?
     // 改为 single{} + koinInject() 后所有页面共享同一实例,生成继续更新同一 _state�?
+    // B2-04: 统一 ToolOrchestrator 单例(accessor/taskCardCoordinator 由 runLoop 调用方传入)
+    single {
+        io.zer0.muse.tools.ToolOrchestrator(
+            toolRegistry = get(),
+            skillRepository = get(),
+            skillExecutor = get(),
+            assistantRepository = get(),
+            sessionRepository = get(),
+            context = androidContext(),
+            hookRegistry = get(),
+            auditLogger = get(),
+        )
+    }
+
     single {
         ChatViewModel(
             get(), get(), get(), get(), get(), get(), get(), get(), get(),
@@ -724,6 +748,12 @@ val appModule = module {
             // P1-1: HookRegistry(注入 ToolOrchestrator + 消息处理 Hook)
             get(),
             // v1.0.52 P2-3: MemoryAutoSaveScheduler(AI 记忆自动保存)
+            get(),
+            // B0-08: MilestoneChecker(里程碑触发)
+            get(),
+            // B2-04: ToolOrchestrator(Koin 单例)
+            get(),
+            // B2-04: ToolApprovalRouter(子代理审批桥接)
             get(),
         )
     }

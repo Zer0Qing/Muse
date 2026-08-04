@@ -19,9 +19,11 @@ import io.zer0.muse.data.promptinjection.PromptInjectionEntity
 import io.zer0.muse.data.promptinjection.PromptInjectionRepository
 import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.data.skill.SkillRepository
+import kotlinx.serialization.json.jsonObject
 import io.zer0.muse.privacy.PiiGuard
 import io.zer0.muse.tools.ToolRegistry
 import io.zer0.muse.transformer.TransformContext
+import io.zer0.muse.transformer.MoodSkinParser
 import io.zer0.muse.transformer.TransformerPipeline
 import io.zer0.muse.ui.ChatError
 import io.zer0.muse.ui.ChatErrorType
@@ -85,7 +87,7 @@ class ChatStreamCoordinator(
      * 配合 stickerSendProbability 基线,让 AI 在用户情绪强烈时更愿意发贴纸。
      */
     private fun stickerEmotionBoost(): Float {
-        val recentUserMessages = accessor.snapshot.messages
+        val recentUserMessages = accessor.messagesSnapshot
             .filter { it.role == io.zer0.ai.core.MessageRole.USER && it.content.isNotBlank() }
             .takeLast(6)
         val result = StickerEmotionDetector.detectEmotion(recentUserMessages)
@@ -136,7 +138,7 @@ class ChatStreamCoordinator(
         val state = accessor.snapshot
         val sessionId = (if (state.isAgentMode) state.agentSessionId else state.currentSessionId)
             ?: return
-        val messages = state.messages
+        val messages = accessor.messagesSnapshot
         if (messages.isNotEmpty()) {
             // onCleared 时 viewModelScope 即将取消;MemoryTicker 用自己的 application scope fire-and-forget
             // model 传 null,MemoryTicker 内部降级用默认模型
@@ -176,7 +178,7 @@ class ChatStreamCoordinator(
         videoFileUri: String? = null,
         isStreaming: Boolean = false,
     ) {
-        val messages = accessor.snapshot.messages
+        val messages = accessor.messagesSnapshot
         val index = messages.indexOfFirst { it.id == id }
         // v1.0.21: index==-1 时静默跳过,不 fallback 追加。
         // v1.125 的 fallback append 会导致切会话后后台生成把旧会话的流式内容
@@ -189,7 +191,8 @@ class ChatStreamCoordinator(
         // v1.42: 快速路径 — 流式过程中绝大多数 chunk 不含特殊标签,直接按索引更新,避免遍历全列表与正则。
         val hasSpecialTags = content.contains("<mood>", ignoreCase = true) ||
             content.contains("<reflection>", ignoreCase = true) ||
-            content.contains("<think>", ignoreCase = true)
+            content.contains("<think>", ignoreCase = true) ||
+            content.contains("<moodfx>", ignoreCase = true)
         if (isStreaming && !hasSpecialTags) {
             val updated = msg.copy(
                 content = content,
@@ -199,7 +202,7 @@ class ChatStreamCoordinator(
                 videoFileUri = videoFileUri ?: msg.videoFileUri,
             )
             val newMessages = messages.toMutableList().apply { set(index, updated) }
-            accessor.update { it.copy(messages = newMessages) }
+            accessor.updateMessages { newMessages }
             return
         }
 
@@ -209,10 +212,16 @@ class ChatStreamCoordinator(
         } else {
             content to null
         }
-        val (contentAfterReflection, reflectionContent) = if (contentAfterMood.contains("<reflection>", ignoreCase = true)) {
-            extractTagContent(contentAfterMood, "reflection")
+        // B6-02: moodfx 独立解析,不与应用自带 <mood> 串台
+        val (moodSkinContent, contentAfterMoodSkin) = if (contentAfterMood.contains("<moodfx>", ignoreCase = true)) {
+            MoodSkinParser.extract(contentAfterMood)
         } else {
-            contentAfterMood to null
+            null to contentAfterMood
+        }
+        val (contentAfterReflection, reflectionContent) = if (contentAfterMoodSkin.contains("<reflection>", ignoreCase = true)) {
+            extractTagContent(contentAfterMoodSkin, "reflection")
+        } else {
+            contentAfterMoodSkin to null
         }
         val (cleanContent, thinkContent) = extractThinkContent(contentAfterReflection)
         // v1.62 修复:reasoning 重复问题。
@@ -234,10 +243,11 @@ class ChatStreamCoordinator(
             imageUrls = imageUrls ?: msg.imageUrls,
             videoFileUri = videoFileUri ?: msg.videoFileUri,
             mood = moodContent ?: msg.mood,
+            moodSkin = moodSkinContent ?: msg.moodSkin,
             reflection = reflectionContent ?: msg.reflection,
         )
         val newMessages = messages.toMutableList().apply { set(index, updated) }
-        accessor.update { it.copy(messages = newMessages) }
+        accessor.updateMessages { newMessages }
     }
 
     // ── 持久化 ────────────────────────────────────────────────────────
@@ -259,7 +269,7 @@ class ChatStreamCoordinator(
     ) {
         // v1.97: msg 参数用于切页后 _state.messages 已切换到新会话、原 assistantId 不在其中的场景。
         // 生成闭包用 builder 构造 UIMessage 传入,绕过 _state.messages 查找,确保中间落盘不中断。
-        val current = msg ?: accessor.snapshot.messages.firstOrNull { it.id == assistantId } ?: return
+        val current = msg ?: accessor.messagesSnapshot.firstOrNull { it.id == assistantId } ?: return
         // v1.0.54: 工具轮空占位(content/reasoning/图片全空)不落库 — 工具轮消息无用户可见内容,
         //   落库后重启加载会残留空消息(用户看到"空的对话 UI")。
         if (current.content.isBlank() && current.reasoning.isNullOrBlank() &&
@@ -291,17 +301,15 @@ class ChatStreamCoordinator(
     suspend fun persistInterruptedAssistant(sessionId: String, partialMsg: UIMessage? = null) {
         // v1.97: partialMsg 参数用于切页后 _state.messages 已切换到新会话的场景。
         // 生成闭包用 builder 构造 UIMessage 传入,绕过 _state.messages 查找。
-        val partial = partialMsg ?: accessor.snapshot.messages.lastOrNull {
+        val partial = partialMsg ?: accessor.messagesSnapshot.lastOrNull {
             it.role == MessageRole.ASSISTANT && it.content.isNotBlank()
         } ?: return
         val interruptedMsg = partial.copy(content = partial.content + "\n\n[已中断]")
         // 只有 partialMsg==null(即从 _state.messages 找到的消息)时才更新 UI;
         // 切页场景(partialMsg!=null)下 _state.messages 已是别的会话,不应更新。
         if (partialMsg == null) {
-            accessor.update { state ->
-                state.copy(
-                    messages = state.messages.map { if (it.id == interruptedMsg.id) interruptedMsg else it }
-                )
+            accessor.updateMessages { messages ->
+                messages.map { if (it.id == interruptedMsg.id) interruptedMsg else it }
             }
         }
         // NonCancellable: 协程已取消时仍完成落盘
@@ -428,7 +436,7 @@ class ChatStreamCoordinator(
             }
 
             // 去掉占位 assistant,并按 Assistant.contextMessageSize 截断
-            val messagesExceptPlaceholder = accessor.snapshot.messages.dropLast(1)
+            val messagesExceptPlaceholder = accessor.messagesSnapshot.dropLast(1)
             // v1.0.2: 防御性清理孤儿 tool_call
             rawHistory = messagesExceptPlaceholder.filterIndexed { index, msg ->
                 if (msg.role == MessageRole.ASSISTANT && !msg.toolCalls.isNullOrEmpty()) {
@@ -737,7 +745,10 @@ class ChatStreamCoordinator(
             val enabledSkillIds = effectiveSkillIdsJson?.let { json ->
                 runCatching { idListJson.decodeFromString<List<String>>(json) }.getOrNull()
             }
-            val enabledSkills = skillRepository.listEnabledByIds(enabledSkillIds)
+            // B6-01: 外部插件工具默认并入工具定义,无需逐个助手开启 skill 白名单
+            val enabledSkillIdsSet = enabledSkillIds?.toSet().orEmpty()
+            val pluginSkills = skillRepository.listEnabled().filter { it.category == "plugin" && it.id !in enabledSkillIdsSet }
+            val enabledSkills = (skillRepository.listEnabledByIds(enabledSkillIds) + pluginSkills).distinctBy { it.id }
             // 缓存 skill id → SkillEntity 映射,工具执行时用
             skillMap = enabledSkills.associateBy { it.id }
             // v1.116: 表情包概率控制 — 读取设置缓存,决定本轮是否向 LLM 暴露 sticker 工具。
@@ -759,7 +770,7 @@ class ChatStreamCoordinator(
                 io.zer0.ai.core.ToolDefinition(
                     name = sk.id,
                     description = sk.description + stickerProbHint,
-                    parametersJsonSchema = sk.parametersJson,
+                    parametersJsonSchema = normalizeSkillSchema(sk.parametersJson),
                 )
             }.filter { def ->
                 // 概率未命中时过滤掉 sticker 相关工具
@@ -782,11 +793,21 @@ class ChatStreamCoordinator(
                 allProviders.firstOrNull { it.id == assistantProviderId }
                     ?.models?.firstOrNull { it.id == assistantModelId }
             } else {
+                // v1.0.53+: 激活 Provider 优先 — 助手只配了 modelId（未配 providerId）时，
+                // 优先在激活 Provider 的模型里找同 id，避免多个 provider 存在同 id 模型
+                // （如 deepseek-v4-flash 同时存在于 opencode-go 与官方渠道）时 flatMap 全局匹配
+                // 命中非激活 provider，导致“切了 Provider 聊天请求仍走旧渠道”。
+                // 激活 Provider 找不到（如助手绑定的是该 Provider 没有的模型）才全局兜底。
                 assistantModelId?.let { aid ->
-                    allProviders.flatMap { it.models }.firstOrNull { it.id == aid }
+                    val inActive = allProviders.firstOrNull { it.id == accessor.snapshot.activeProviderId }
+                        ?.models?.firstOrNull { it.id == aid }
+                    inActive ?: allProviders.flatMap { it.models }.firstOrNull { it.id == aid }
                 }
             } ?: accessor.snapshot.selectedModelId?.let { sid ->
-                allProviders.flatMap { it.models }.firstOrNull { it.id == sid }
+                // 与上面相同的激活 Provider 优先策略
+                val inActive = allProviders.firstOrNull { it.id == accessor.snapshot.activeProviderId }
+                    ?.models?.firstOrNull { it.id == sid }
+                inActive ?: allProviders.flatMap { it.models }.firstOrNull { it.id == sid }
             }
             // 兜底:selectedModelId 为 null 且 assistant 未配 modelId 时,
             // 优先用激活 Provider 的首个模型,避免跨 Provider 误选其他 provider 的模型。
@@ -847,6 +868,42 @@ class ChatStreamCoordinator(
 
             // 累积的对话历史(含工具调用结果,每轮可能追加 assistant+tool 消息)
             conversationHistory = transformedMessages.toMutableList()
+
+            // B3-10: 弱工具模型不暴露委派/子代理工具,避免无效轮次与连续失败等待
+            if (io.zer0.muse.tools.WeakToolUseDetector.isWeakToolModel(effectiveModel)) {
+                val delegationToolNames = setOf(
+                    "delegate_agent",
+                    "subagent_run",
+                    "subagent_task",
+                    "task_plan",
+                    "update_plan_step",
+                    "subagent_close",
+                )
+                tools = tools.filterNot { it.name in delegationToolNames }
+            }
         }
     }
+}
+
+/**
+ * 规范化 Skill 参数 schema。
+ *
+ * OpenAI 兼容 API 要求函数参数必须是 JSON Schema 的 `{"type":"object",...}` 结构。
+ * 外部插件包（如 pelle-d-umore）可能把参数写成空 `{}`（无 type 字段），
+ * 直接透传会被上游拒绝（HTTP 400: schema must be a JSON Schema of type object）。
+ * 空对象 / 空串 / 缺 type 时统一补成标准空对象 schema。
+ */
+private fun normalizeSkillSchema(raw: String): String {
+    if (raw.isBlank()) return """{"type":"object","properties":{}}"""
+    return runCatching {
+        val element = kotlinx.serialization.json.Json.parseToJsonElement(raw).jsonObject
+        if (element.containsKey("type")) {
+            raw
+        } else {
+            kotlinx.serialization.json.buildJsonObject {
+                put("type", kotlinx.serialization.json.JsonPrimitive("object"))
+                element.forEach { (k, v) -> put(k, v) }
+            }.toString()
+        }
+    }.getOrElse { """{"type":"object","properties":{}}""" }
 }

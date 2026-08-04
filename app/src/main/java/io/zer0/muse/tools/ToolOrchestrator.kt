@@ -7,6 +7,7 @@ import io.zer0.ai.core.ProviderConfig
 import io.zer0.ai.core.RagCitation
 import io.zer0.ai.core.ReasoningLevel
 import io.zer0.ai.core.ToolCall
+import io.zer0.ai.core.ToolCallSanitizer
 import io.zer0.ai.core.ToolCallInfo
 import io.zer0.ai.core.ToolDefinition
 import io.zer0.ai.core.UIMessage
@@ -18,6 +19,7 @@ import io.zer0.muse.data.ExperimentsConfig
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.session.SessionRepository
+import io.zer0.muse.data.audit.AuditLogger
 import io.zer0.muse.data.skill.SkillEntity
 import io.zer0.muse.data.skill.SkillRepository
 import io.zer0.muse.ui.ChatErrorType
@@ -105,8 +107,8 @@ data class StreamRoundParams(
      * 适用场景:已收部分内容后网络中断(StreamInterrupted),网络恢复后重试,
      * 重新发完整 prompt 但保留已显示的部分内容,UI 仅追加新内容(不闪回到首字)。
      *
-     * 注意:此标志仅控制是否清空累积器,不能解决"LLM 重新生成导致内容重复"的问题。
-     * 完整的续传去重需要 Provider 层追踪 anyDeltaSent(参考 rikkahub),当前为 TODO。
+     * 注意:此标志仅控制是否清空累积器;B3-03 已把已显示内容作为 resumeFromText
+     * 注入到 ChatService,重试时作为末尾 assistant 消息让模型从中断处继续,避免从头重生成。
      */
     val preservePartialContent: Boolean = false,
 )
@@ -233,6 +235,10 @@ data class ToolLoopParams(
     val webSearchEnabled: Boolean = false,
     val experiments: ExperimentsConfig = ExperimentsConfig(),
     val assistant: AssistantEntity? = null,
+    /** B7-04: 首轮预置已产出正文(继续生成时从断点续写)。 */
+    val initialBuilderContent: String = "",
+    /** B7-04: 首轮预置已产出 reasoning。 */
+    val initialReasoningContent: String = "",
 )
 
 /**
@@ -279,13 +285,13 @@ class ToolOrchestrator(
     private val skillExecutor: SkillExecutor,
     private val assistantRepository: AssistantRepository,
     private val sessionRepository: SessionRepository,
-    private val accessor: ChatStateAccessor,
-    private val taskCardCoordinator: ChatTaskCardCoordinator,
     // v1.x: 注入 Context 用于把超长工具输出落盘到 filesDir/tool_outputs/,
     // 让 LLM 通过 read_file 工具按需读取完整内容(参考 rikkahub GenerationHandler)。
     private val context: Context,
     // P1-1: Hook 注册表 — 在工具调用各阶段调用 ToolLifecycleHook
     private val hookRegistry: io.zer0.muse.hook.HookRegistry? = null,
+    // P2-4: 审计日志记录器(工具审批放行时记录)。
+    private val auditLogger: AuditLogger? = null,
 ) {
 
     private companion object {
@@ -310,6 +316,8 @@ class ToolOrchestrator(
         params: ToolLoopParams,
         conversationHistory: MutableList<UIMessage>,
         host: ToolLoopHost,
+        accessor: ChatStateAccessor,
+        taskCardCoordinator: ChatTaskCardCoordinator,
     ): ToolLoopResult {
         var round = 0
         var consecutiveToolFailures = 0
@@ -368,9 +376,14 @@ class ToolOrchestrator(
                 }
             }
 
-            // 每轮重置流式累积器
-            val builder = StringBuilder()
-            val reasoningBuilder = StringBuilder()
+            // 每轮重置流式累积器;第一轮继续生成时预置已产出内容
+            val isFirstRound = round == 1
+            val builder = StringBuilder().apply {
+                if (isFirstRound && params.initialBuilderContent.isNotEmpty()) append(params.initialBuilderContent)
+            }
+            val reasoningBuilder = StringBuilder().apply {
+                if (isFirstRound && params.initialReasoningContent.isNotEmpty()) append(params.initialReasoningContent)
+            }
 
             val outcome = host.streamRound(
                 StreamRoundParams(
@@ -379,6 +392,7 @@ class ToolOrchestrator(
                     currentAssistantId = currentAssistantId,
                     builder = builder,
                     reasoningBuilder = reasoningBuilder,
+                    preservePartialContent = isFirstRound && params.initialBuilderContent.isNotEmpty(),
                 )
             )
 
@@ -425,9 +439,7 @@ class ToolOrchestrator(
                     //   空 name 或空 arguments 的 toolCall,直接执行会引发 HTTP 400
                     //   (invalid tool_call function, function/name/arguments cannot be empty)
                     //   过滤后若无有效调用,按"无工具调用"处理本轮,避免卡死
-                    val toolCallList = rawToolCallList.filter { tc ->
-                        tc.name.isNotBlank() && tc.arguments.isNotBlank()
-                    }
+                    val toolCallList = ToolCallSanitizer.sanitize(rawToolCallList)
                     if (rawToolCallList.size != toolCallList.size) {
                         Logger.w(
                             TAG,
@@ -466,9 +478,17 @@ class ToolOrchestrator(
                     }
                     previousToolCallSignature = currentSignature
 
+                    // v1.0.62: 历史与持久化必须使用清洗后的 toolCalls,
+                    // 避免空 name/空 arguments 的非法调用在下一轮请求中触发 400。
+                    val cleanedAssistantToolMsg = if (toolCallList.size == rawToolCallList.size) {
+                        assistantToolMsg
+                    } else {
+                        assistantToolMsg.copy(toolCalls = toolCallList)
+                    }
+
                     // 把带 tool_calls 的 assistant 消息加入历史并持久化
-                    conversationHistory.add(assistantToolMsg)
-                    persistAssistantToolMsg(params.sessionId, assistantToolMsg, host)
+                    conversationHistory.add(cleanedAssistantToolMsg)
+                    persistAssistantToolMsg(params.sessionId, cleanedAssistantToolMsg, host)
 
                     // 断点续传:持久化未完成的工具调用
                     savePendingToolCalls(params.sessionId, toolCallList, host)
@@ -494,7 +514,7 @@ class ToolOrchestrator(
                     // 并行/串行执行工具调用
                     // v1.0.47 P6-2: 弱工具模型降级为串行执行,避免并行 tool_calls 导致格式错乱
                     val executeToolCall: suspend (Int, ToolCall) -> ToolExecResult = { idx, tc ->
-                        executeSingleToolCall(params, taskCardId, tc, idx, host)
+                        executeSingleToolCall(params, taskCardId, tc, idx, host, taskCardCoordinator)
                     }
 
                     val isWeakToolModel = WeakToolUseDetector.isWeakToolModel(params.model)
@@ -564,9 +584,9 @@ class ToolOrchestrator(
                             //   send_sticker 推送 content=贴纸路径的消息(渲染图片,卡片静默);
                             //   其余工具推送空 content + toolCallInfo(折叠卡片展示)。
                             if (tc.name !in silentToolNames || tc.name == "send_sticker") {
+                                accessor.updateMessages { it + toolDisplay }
                                 accessor.update {
                                     it.copy(
-                                        messages = it.messages + toolDisplay,
                                         toolCallHistory = it.toolCallHistory + record,
                                     )
                                 }
@@ -619,9 +639,7 @@ class ToolOrchestrator(
                             snapshot.currentSessionId == params.sessionId
                         }
                         if (isCurrentDisplayedSession2) {
-                            accessor.update {
-                                it.copy(messages = it.messages + nextAssistant)
-                            }
+                            accessor.updateMessages { it + nextAssistant }
                         }
                         currentAssistantId = nextAssistant.id
                     }
@@ -663,6 +681,7 @@ class ToolOrchestrator(
         tc: ToolCall,
         idx: Int,
         host: ToolLoopHost,
+        taskCardCoordinator: ChatTaskCardCoordinator,
     ): ToolExecResult {
         // v1.x: 通知宿主工具开始执行(含审批等待时间),参考 rikkahub GenerationHandler 细粒度进度
         val toolStartAt = System.currentTimeMillis()
@@ -717,6 +736,16 @@ class ToolOrchestrator(
             }
             host.onToolFinish(tc.id, tc.name, false, System.currentTimeMillis() - toolStartAt)
             return ToolExecResult(idx, tc, deniedResult, false)
+        }
+
+        // P2-4: 审计日志 — 用户审批放行工具
+        if (approvalState is ToolApprovalState.Approved) {
+            auditLogger?.log(
+                category = "user_action",
+                action = "approve_tool",
+                target = tc.id,
+                detail = mapOf("tool" to tc.name),
+            )
         }
 
         // v1.x: 审批阶段用户覆盖的参数(如 generate_image 的 reference_image 本地图)合并到 tc.arguments

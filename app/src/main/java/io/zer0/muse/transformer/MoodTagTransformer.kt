@@ -34,6 +34,19 @@ class MoodTagTransformer : Transformer {
     override val name: String = "MoodTag"
 
     /**
+     * B6-02: 流式生成完成后的兜底提取。
+     *
+     * finalizeResponse 走 [Transformer.onGenerationFinish] 钩子处理最终 assistant 消息。
+     * 若标签跨 chunk 到达（<moodfx> 与闭合标签不在同一 delta），updateAssistant 的
+     * 实时提取会因标签未闭合而漏掉；此处复用 transform 逻辑做最终兜底，确保
+     * mood / moodfx / reflection 都被提取并写回消息字段。幂等：已有字段会跳过。
+     */
+    override suspend fun onGenerationFinish(
+        messages: List<UIMessage>,
+        context: TransformContext,
+    ): List<UIMessage> = transform(messages, context)
+
+    /**
      * 正则匹配 `<mood>...</mood>` 块(非贪婪,跨行)。
      * v1.131: 已迁移到 io.zer0.muse.util.MusePatterns.MOOD_TAG_REGEX。
      * Muse 只用 <mood> 单标签,简化解析。
@@ -88,15 +101,24 @@ class MoodTagTransformer : Transformer {
 
         // ── reflection 剥离(v0.32 实验性 selfReflection) ──
         // 已有 reflection 字段则跳过(避免重复抽取)
-        val (extractedReflection, workingContent) = extractTag(contentAfterMood, reflectionRegex, msg.reflection)
+        // ── moodfx 剥离(B6-02,与 <mood> 腹稿完全隔离) ──
+        val (extractedMoodSkin, contentAfterMoodSkin) = MoodSkinParser.extract(contentAfterMood, msg.moodSkin)
+
+        // ── reflection 剥离(v0.32 实验性 selfReflection) ──
+        val (extractedReflection, workingContent) = extractTag(contentAfterMoodSkin, reflectionRegex, msg.reflection)
 
         // 任意一个有抽取,或 content 被裁剪 → 生成新 msg;否则原样返回
-        if (extractedMood == msg.mood && extractedReflection == msg.reflection && workingContent == msg.content) {
+        if (extractedMood == msg.mood && extractedMoodSkin == msg.moodSkin &&
+            extractedReflection == msg.reflection && workingContent == msg.content
+        ) {
             msg
         } else {
             msg.copy(
                 mood = extractedMood,
                 reflection = extractedReflection,
+                // B6-02: 之前漏了这一行 — moodfx 被剥离后皮肤名没有写回 msg.moodSkin，
+                // 导致 ChatScreen 读 lastAssistant.moodSkin 恒为 null，全屏皮肤永不显示。
+                moodSkin = extractedMoodSkin,
                 content = workingContent.trim(),
             )
         }

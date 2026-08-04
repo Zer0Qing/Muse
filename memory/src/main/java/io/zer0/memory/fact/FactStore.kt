@@ -74,6 +74,8 @@ class FactStore(
          * [add] / [addBatch] 的 spaceId 参数会覆盖此字段。
          */
         val spaceId: String = "default",
+        /** B4-05: 手动置顶时间 ISO 8601,null 表示未置顶。 */
+        val pinnedAt: String? = null,
         val matchCount: Int? = null,
     )
 
@@ -258,6 +260,7 @@ class FactStore(
             scope = scope,
             // v9: 记忆空间,由调用方指定(默认 "default")
             spaceId = spaceId,
+            pinnedAt = newEntry.pinnedAt,
         )
         val insertedId = dao.insert(entity)
         dao.insertFts(insertedId, FactFtsManager.toNgram(cleaned))
@@ -313,6 +316,7 @@ class FactStore(
                         lastHitAt = newEntry.lastHitAt ?: now,
                         scope = scope,
                         spaceId = spaceId,
+                        pinnedAt = newEntry.pinnedAt,
                     ))
                     dao.insertFts(insertedId, FactFtsManager.toNgram(cleaned))
                     // 新插入的 id 不会有重复 FTS,直接 insertFts 即可(upsertFts 多一次 DELETE 无必要)
@@ -457,6 +461,10 @@ class FactStore(
         dao.updateImportance(id, importance.coerceIn(0, 2)) > 0
     }
 
+    /** B4-05: 设置/取消手动置顶。 */
+    suspend fun setPinned(id: Long, pinned: Boolean): Boolean = withContext(Dispatchers.IO) {
+        dao.updatePinnedAt(id, if (pinned) Instant.now().toString() else null) > 0
+    }
     /**
      * v10 P2-3: 更新指定 fact 的分类和标签(用于 AI 记忆管理)。
      *
@@ -668,6 +676,8 @@ class FactStore(
         scope = scope,
         // v9: 透传 spaceId 字段
         spaceId = spaceId,
+        // B4-05: 透传置顶时间
+        pinnedAt = pinnedAt,
     )
 
     private fun FactTagSearchRow.toFact(): Fact = Fact(

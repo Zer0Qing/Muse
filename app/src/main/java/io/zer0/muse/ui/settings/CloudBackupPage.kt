@@ -51,6 +51,7 @@ import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
+import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.settings.SettingsItemRow
 import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.theme.MuseDateFormats
@@ -396,11 +397,18 @@ fun CloudBackupPage(
                         }
                     }
                     listLoadFailed -> {
-                        Text(
-                            text = stringResource(R.string.cloud_backup_list_load_failed),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(MusePaddings.cardInner),
+                        MuseErrorStateBox(
+                            message = stringResource(R.string.cloud_backup_list_load_failed),
+                            onRetry = {
+                                scope.launch {
+                                    listLoading = true
+                                    listLoadFailed = false
+                                    val result = resultOf { cloudBackupService.listBackups(cloudConfig) }
+                                    result.onSuccess { remoteBackups = it }
+                                        .onError { _, _ -> listLoadFailed = true }
+                                    listLoading = false
+                                }
+                            },
                         )
                     }
                     remoteBackups.isEmpty() -> {

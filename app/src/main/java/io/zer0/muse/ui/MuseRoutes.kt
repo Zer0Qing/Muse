@@ -62,6 +62,10 @@ object MuseRoutes {
 
     /** v0.26: 设置二级页 — 模型与服务。 */
     const val SETTINGS_MODEL = "settings_model"
+    /** B0-04: 设置二级页 — 任务模型路由。 */
+    const val SETTINGS_TASK_ROUTING = "settings_task_routing"
+    /** B0-07: 提示词模板管理页。 */
+    const val PROMPT_TEMPLATE_MANAGER = "prompt_template_manager"
     /** v0.26: 设置二级页 — 数据与备份。 */
     const val SETTINGS_DATA = "settings_data"
     /** v0.26: 设置二级页 — 外观。 */
@@ -134,8 +138,6 @@ object MuseRoutes {
     /** v1.127: 里程碑管理页。 */
     const val MILESTONES = "milestones"
 
-    /** v1.127: 表情包管理页。 */
-    const val STICKERS = "stickers"
 
     /** HTML 全屏预览页(从消息气泡内 HTML/SVG 代码块入口进入)。 */
     const val HTML_PREVIEW = "html_preview"
@@ -155,11 +157,10 @@ object MuseRoutes {
     /** P2-9: 语音克隆页(从设置 → 媒体 → 语音克隆 进入,ElevenLabs 等 Provider)。 */
     const val VOICE_CLONING = "voice_cloning"
 
-    /** P2-6: 浏览器自动化演示页(全屏 WebView + 顶部地址栏 + 底部操作栏)。 */
-    const val BROWSER_AUTOMATION = "browser_automation"
 
     /** P2-10: Provider 插件管理页(从设置 → 模型与服务 → 插件管理 进入)。 */
     const val PROVIDER_PLUGINS = "provider_plugins"
+    const val MUSE_PLUGINS = "muse_plugins"
 
     /** v1.133: 设置二级页 — 联网搜索(从 SettingsModelPage 拆出)。 */
     const val SETTINGS_WEB_SEARCH = "settings_web_search"

@@ -209,6 +209,11 @@ class ProactiveMessageRunner(
 
         // 事件触发路径不受间隔限制;poll / worker 路径仍受自适应间隔约束
         val isEventTriggered = triggerSource != TRIGGER_SOURCE_POLL && triggerSource != TRIGGER_SOURCE_WORKER
+        // B8-01: 持久化排期优先 — 进程重启后直接按 nextTriggerAt 恢复,避免重新计算导致提前/延后
+        if (!isEventTriggered && config.nextTriggerAt > now) {
+            Logger.d(TAG, "持久化排期未到期: 剩余 ${(config.nextTriggerAt - now) / 60000}min")
+            return@withLock
+        }
         if (!isEventTriggered) {
             // 快速下限保护:elapsed < baseInterval × 0.3 时直接跳过(三因子最小乘积 ≈ 0.336),
             // 避免每次轮询都触发自适应计算与日志
@@ -224,7 +229,7 @@ class ProactiveMessageRunner(
         // 时,不立即发送,仅更新 lastTriggeredAt 到当前时间,等下个 interval 再发。
         if (suppressIfColdStart && config.lastTriggeredAt > 0 && elapsed > baseIntervalMs * 2) {
             Logger.i(TAG, "冷启动检测:距上次触发 ${elapsed / 3600000}h,推迟到下个 interval 再发(避免打扰)")
-            settings.saveProactiveMessageConfig(config.copy(lastTriggeredAt = now))
+            saveProactiveSchedule(config, now, baseIntervalMs)
             return@withLock
         }
 
@@ -249,6 +254,20 @@ class ProactiveMessageRunner(
         } else {
             sessions.firstOrNull()
         } ?: return@withLock
+
+        // B8-01: 会话级排期优先 — 会话已删除时根本不会出现在列表,排期随行清理
+        val sessionNext = targetSession.proactiveNextTriggerAt
+        if (!isEventTriggered && sessionNext != null && sessionNext > now) {
+            Logger.d(TAG, "会话排期未到期: 剩余 ${(sessionNext - now) / 60000}min")
+            return@withLock
+        }
+
+        // B8-01: 模型不可用时跳过并重新排期,避免后台白耗 token
+        if (settings.getSelectedModel() == null) {
+            Logger.w(TAG, "主动消息跳过: 当前没有可用模型")
+            saveProactiveSchedule(config, now, baseIntervalMs, targetSession.id)
+            return@withLock
+        }
 
         // v0.44: 取最近 10 条消息,过滤出最近 5 条 user/assistant 消息作为上下文
         val allMessages = resultOf {
@@ -295,7 +314,7 @@ class ProactiveMessageRunner(
         )
         if (!scoreEngine.shouldSend(scoreCtx)) {
             Logger.i(TAG, "ScoreEngine 预筛选未通过,跳过 LLM 调用")
-            settings.saveProactiveMessageConfig(config.copy(lastTriggeredAt = now))
+            saveProactiveSchedule(config, now, baseIntervalMs, targetSession.id)
             return@withLock
         }
 
@@ -336,7 +355,7 @@ class ProactiveMessageRunner(
 
         if (!decision.shouldSend) {
             // shouldSend=false 也更新 lastTriggeredAt,避免频繁打扰 + 浪费 token
-            settings.saveProactiveMessageConfig(config.copy(lastTriggeredAt = now))
+            saveProactiveSchedule(config, now, baseIntervalMs, targetSession.id)
             Logger.i(TAG, "Proactive message skipped (shouldSend=false), reason=${decision.reason}")
             return@withLock
         }
@@ -362,7 +381,7 @@ class ProactiveMessageRunner(
 
         val proactiveContent = contentCompletion.text.trim()
         if (proactiveContent.isBlank()) {
-            settings.saveProactiveMessageConfig(config.copy(lastTriggeredAt = now))
+            saveProactiveSchedule(config, now, baseIntervalMs, targetSession.id)
             Logger.i(TAG, "Proactive message skipped (empty content), reason=${decision.reason}")
             return@withLock
         }
@@ -377,7 +396,7 @@ class ProactiveMessageRunner(
             ),
         )
         // 更新 lastTriggeredAt(先更新再通知,即使通知失败也不影响下次间隔)
-        settings.saveProactiveMessageConfig(config.copy(lastTriggeredAt = now))
+        saveProactiveSchedule(config, now, baseIntervalMs, targetSession.id)
         // 问题6.2: 成功发送后递增当日计数并持久化,MAX_DAILY_MESSAGES 校验下次生效
         incrementDailyCount()
         // 弹通知(像微信来消息一样,通知栏用助手头像)
@@ -900,6 +919,17 @@ class ProactiveMessageRunner(
      * 读取的对话结束类型与情绪来自 [activityProfile] 的持久化值(由 ChatViewModel /
      * 本 Runner 在上次巡检时更新),实时性足够用于"下次触发"调度。
      */
+    /** B8-01: 更新已触发时间并把下一触发点持久化到配置,进程重启后可直接恢复。 */
+    private suspend fun saveProactiveSchedule(
+        config: io.zer0.muse.data.ProactiveMessageConfig,
+        now: Long,
+        baseIntervalMs: Long,
+        sessionId: String? = null,
+    ) {
+        val next = computeNextTriggerTime(config.copy(lastTriggeredAt = now), baseIntervalMs)
+        settings.saveProactiveMessageConfig(config.copy(lastTriggeredAt = now, nextTriggerAt = next))
+        if (sessionId != null) sessionRepository.updateProactiveNextTriggerAt(sessionId, next)
+    }
     private fun computeNextTriggerTime(
         config: io.zer0.muse.data.ProactiveMessageConfig,
         baseIntervalMs: Long,
@@ -947,6 +977,10 @@ class ProactiveMessageRunner(
             Logger.d(TAG, "自适应延后: 目标小时=$targetHour 不活跃/非允许 → 下个活跃窗口 ${deferred}")
             targetTime = deferred
         }
+
+        // B8-01: 在允许窗口内随机取一个触发点,避免所有会话/整点扎堆
+        val randomWindowMs = minOf(60_000L, (adjustedIntervalMs / 4).coerceAtLeast(1L))
+        targetTime += kotlin.random.Random.nextLong(0, randomWindowMs + 1)
 
         // ±5% 微抖动(百分比,在自适应基础上避免完全确定性)
         val jitterRange = (adjustedIntervalMs * MICRO_JITTER_RATIO).toLong()

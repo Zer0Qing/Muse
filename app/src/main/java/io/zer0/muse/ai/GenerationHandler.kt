@@ -294,6 +294,7 @@ class GenerationHandler(
                 is ChatStreamEvent.Done -> { /* 流结束 */ }
                 is ChatStreamEvent.Error -> onError(event.message)
                 is ChatStreamEvent.StreamInterrupted -> onError(event.message)
+                is ChatStreamEvent.FallbackNotice -> { /* 已自动降级为非流式 */ }
             }
         }
     }

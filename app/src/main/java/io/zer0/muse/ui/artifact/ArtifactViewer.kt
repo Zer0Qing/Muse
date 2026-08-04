@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
@@ -105,6 +107,8 @@ fun ArtifactViewerDialog(
                             showPreviewButton = false,
                         )
                     } else {
+                        // 长文本产物：内容区自身滚动（Surface 限高 320dp），
+                        // 避免超长内容被 Surface 裁剪后外层滚动只能移动整个面板、裁掉部分永远不可见。
                         Text(
                             text = artifact.content,
                             style = if (isMonospace) {
@@ -116,8 +120,9 @@ fun ArtifactViewerDialog(
                             },
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier
-                                // v1.0.7 修复:去掉嵌套 verticalScroll(MuseDialog content 已自带滚动)
                                 .fillMaxWidth()
+                                .heightIn(max = 320.dp)
+                                .verticalScroll(rememberScrollState())
                                 .padding(12.dp),
                         )
                     }

@@ -170,6 +170,8 @@
     <string name="memory_screen_collapse">收起</string>
     <string name="memory_screen_expand">展开</string>
     <string name="memory_screen_edit_cd">编辑</string>
+    <string name="memory_pin_cd">置顶</string>
+    <string name="memory_unpin_cd">取消置顶</string>
     <string name="memory_screen_delete_cd">删除</string>
     <string name="memory_screen_load_failed">加载失败 — 完整错误信息</string>
     <string name="memory_screen_copied_trace">已复制完整堆栈到剪贴板</string>
@@ -371,6 +373,8 @@
     <string name="chat_loading_more_history">加载更多历史…</string>
     <!-- v1.0.4 P3-4: 性能模式顶部指示器(MessagePaginator 接入) -->
     <string name="chat_performance_indicator">已显示 %1$d / %2$d 条</string>
+    <string name="chat_list_reorder">拖动排序</string>
+    <string name="chat_jump_to_unread">跳至最早未读 · %1$d 条</string>
 
     <!-- v1.0.4: P2 反馈补全 — 压缩 Banner / 搜索 / 委派链路 / TTS -->
     <string name="chat_compressing_banner">正在压缩会话历史…</string>
@@ -582,7 +586,12 @@
 
     <!-- ===== P2-10: Provider 插件管理(ProviderPluginPage) ===== -->
     <string name="provider_plugins_title">插件管理</string>
+    <string name="muse_plugins_external">外部插件</string>
+    <string name="muse_plugins_manage">插件管理</string>
+    <string name="muse_plugins_import_hint">插件包已安装，请在「外部插件」中查看并启用</string>
+    <string name="muse_plugins_imported">插件包已安装</string>
     <string name="provider_plugins_empty">暂无插件</string>
+    <string name="muse_plugins_empty_hint">暂无外部插件，点击右下角导入 .muse-plugin 或 ZIP 包</string>
     <string name="provider_plugins_import">导入插件</string>
     <string name="provider_plugins_delete">删除插件</string>
     <string name="provider_plugins_convert">转为供应商</string>
@@ -602,8 +611,6 @@
     <string name="workspace_read_only_too_large">文件过大,无法预览(上限 1MB)</string>
     <string name="workspace_path_copied">路径已复制</string>
 
-    <!-- ===== P2-6: 浏览器自动化(BrowserAutomationScreen) ===== -->
-    <string name="browser_automation_title">浏览器自动化</string>
     <string name="browser_address_bar">输入网址或搜索</string>
     <string name="browser_run_js">执行 JavaScript</string>
     <string name="browser_back">后退</string>

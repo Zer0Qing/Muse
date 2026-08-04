@@ -51,4 +51,6 @@
     <string name="workflow_zoom_limit_reached">Límite de zoom alcanzado</string>
     <string name="workflow_canvas_empty_title">El lienzo está vacío.</string>
     <string name="workflow_canvas_empty_subtitle">Toque dos veces el área en blanco para agregar un nodo, o toque el botón Agregar en la barra de herramientas a continuación</string>
+    <string name="workflow_external_conflict">El archivo de flujo cambió externamente</string>
+    <string name="workflow_force_save">Guardar forzado</string>
 </resources>

@@ -74,6 +74,9 @@ fun RagSettingsPage(
     // v1.133: 高级检索临时状态
     var mmrLambdaTemp by remember(config.mmrLambda) { mutableStateOf(config.mmrLambda) }
     var tokenBudgetTemp by remember(config.tokenBudget) { mutableStateOf(config.tokenBudget) }
+    // B4-02: 混合检索权重临时状态
+    var hybridBm25WeightTemp by remember(config.hybridBm25Weight) { mutableStateOf(config.hybridBm25Weight) }
+    var hybridVectorWeightTemp by remember(config.hybridVectorWeight) { mutableStateOf(config.hybridVectorWeight) }
     // TextField 无 onValueChangeFinished,用 debounce 保存
     LaunchedEffect(cloudModelTemp) {
         delay(300)
@@ -349,6 +352,15 @@ fun RagSettingsPage(
                             scope.launch { settings.saveRagConfig(config.copy(mineruEndpoint = v)) }
                         },
                     )
+                    SettingsGroupDivider()
+                    EndpointInputRow(
+                        title = stringResource(R.string.settings_rag_mineru_token),
+                        value = config.mineruToken,
+                        placeholder = "sk-...",
+                        onValueChange = { v ->
+                            scope.launch { settings.saveRagConfig(config.copy(mineruToken = v)) }
+                        },
+                    )
                 }
             }
         }
@@ -450,6 +462,38 @@ fun RagSettingsPage(
                     checked = config.hybridEnabled,
                     onCheckedChange = { v ->
                         scope.launch { settings.saveRagConfig(config.copy(hybridEnabled = v)) }
+                    },
+                )
+                SettingsGroupDivider()
+                SliderRow(
+                    icon = TablerIcons.Adjustments,
+                    title = stringResource(R.string.settings_rag_hybrid_bm25_weight),
+                    subtitle = stringResource(R.string.settings_rag_hybrid_bm25_weight_subtitle),
+                    value = hybridBm25WeightTemp,
+                    valueRange = 0f..2f,
+                    steps = 19,
+                    valueText = "%.2f".format(hybridBm25WeightTemp),
+                    onValueChange = { v -> hybridBm25WeightTemp = v },
+                    onValueChangeFinished = {
+                        if (hybridBm25WeightTemp != config.hybridBm25Weight) {
+                            scope.launch { settings.saveRagConfig(config.copy(hybridBm25Weight = hybridBm25WeightTemp)) }
+                        }
+                    },
+                )
+                SettingsGroupDivider()
+                SliderRow(
+                    icon = TablerIcons.Adjustments,
+                    title = stringResource(R.string.settings_rag_hybrid_vector_weight),
+                    subtitle = stringResource(R.string.settings_rag_hybrid_vector_weight_subtitle),
+                    value = hybridVectorWeightTemp,
+                    valueRange = 0f..2f,
+                    steps = 19,
+                    valueText = "%.2f".format(hybridVectorWeightTemp),
+                    onValueChange = { v -> hybridVectorWeightTemp = v },
+                    onValueChangeFinished = {
+                        if (hybridVectorWeightTemp != config.hybridVectorWeight) {
+                            scope.launch { settings.saveRagConfig(config.copy(hybridVectorWeight = hybridVectorWeightTemp)) }
+                        }
                     },
                 )
                 SettingsGroupDivider()
@@ -624,6 +668,7 @@ private fun SliderRow(
 private fun EndpointInputRow(
     title: String,
     value: String,
+    placeholder: String = "https://example.com/api/parse",
     onValueChange: (String) -> Unit,
 ) {
     var temp by remember(value) { mutableStateOf(value) }
@@ -644,7 +689,7 @@ private fun EndpointInputRow(
         MuseTextField(
             value = temp,
             onValueChange = { temp = it },
-            placeholder = { Text("https://example.com/api/parse") },
+            placeholder = { Text(placeholder) },
             singleLine = true,
             modifier = Modifier
                 .fillMaxWidth()

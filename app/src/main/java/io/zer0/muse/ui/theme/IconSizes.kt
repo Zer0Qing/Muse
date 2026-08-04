@@ -42,4 +42,20 @@ object MuseIconSizes {
     val iconSmall = 18.dp
     /** 微图标(标签内图标)。 */
     val iconTiny = 14.dp
+    /** B7-07: 16dp 图标/进度圈。 */
+    val iconSmallTiny = 16.dp
+    /** B7-07: 28dp 视频缩略图标。 */
+    val iconVideo = 28.dp
+    /** B7-07: 32dp 紧凑触控区(移除小圆点/工具按钮)。 */
+    val controlTouch = 32.dp
+    /** B7-07: 36dp 停止/发送胶囊内部尺寸。 */
+    val stopButton = 36.dp
+    /** B7-07: 进度圈描边。 */
+    val progressStroke = 2.dp
+    /** B7-07: 输入框最小高度。 */
+    val inputMinHeight = 36.dp
+    /** B7-07: 录音波形条尺寸。 */
+    val waveformHeight = 24.dp
+    val waveformBarWidth = 3.dp
+    val waveformBarRadius = 1.5.dp
 }

@@ -171,6 +171,7 @@ fun FavoritesScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     items(visibleFavorites, key = { it.id }) { msg ->
+                        Box(modifier = Modifier.animateItem()) {
                         FavoriteCard(
                             message = msg,
                             dateFormat = dateFormat,
@@ -178,6 +179,7 @@ fun FavoritesScreen(
                             onLongClick = { tagEditTarget = msg },
                             onClick = { favoriteGroupTarget = msg },
                         )
+                        }
                     }
                 }
             }

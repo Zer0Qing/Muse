@@ -54,8 +54,6 @@ class ToolOrchestratorPureFunctionsTest {
             skillExecutor = mockSkillExecutor,
             assistantRepository = mockk(relaxed = true),
             sessionRepository = mockk(relaxed = true),
-            accessor = mockk(relaxed = true),
-            taskCardCoordinator = mockk(relaxed = true),
             context = mockk<Context>(relaxed = true),
         )
     }

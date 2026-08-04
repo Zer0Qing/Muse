@@ -41,11 +41,9 @@ import kotlin.coroutines.resume
  *  - 安全限制:禁用 file access / content access(防止 file:// 跨域读取),
  *    但允许网络加载(浏览器需要拉取远程页面)
  *  - WebView 用 applicationContext 创建,headless 运行(不附加到任何 View 树),
- *    可被 BrowserAutomationScreen 之外的 AI 工具调用
+ *    可被 AI 工具直接调用
  *
- * 与 [BrowserAutomationScreen] 的关系:
- *  - BrowserManager 持有自动化用 WebView(AI 调用),Screen 持有展示用 WebView(用户演示)
- *  - 两者独立,互不干扰;UI 仅用于演示自动化能力,不与 AI 共享 WebView
+ * 与浏览器自动化工具的关系:
  *
  * @param context 应用 Context(用 applicationContext 创建 WebView,避免 Activity 泄漏)
  */

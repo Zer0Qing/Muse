@@ -135,6 +135,8 @@
     <string name="memory_screen_collapse">Свернуть</string>
     <string name="memory_screen_expand">Развернуть</string>
     <string name="memory_screen_edit_cd">Изменить</string>
+    <string name="memory_pin_cd">Закрепить</string>
+    <string name="memory_unpin_cd">Открепить</string>
     <string name="memory_screen_delete_cd">Удалить</string>
     <string name="memory_screen_load_failed">Сбой загрузки — полные детали ошибки</string>
     <string name="memory_screen_copied_trace">Полный стек-трейс скопирован в буфер обмена</string>
@@ -554,6 +556,7 @@
 
     <!-- ===== P2-10: Provider plugin management (ProviderPluginPage) ===== -->
     <string name="provider_plugins_title">Менеджер плагинов</string>
+    <string name="muse_plugins_external">Внешние плагины</string>
     <string name="provider_plugins_empty">Нет плагинов</string>
     <string name="provider_plugins_import">Импортировать плагин</string>
     <string name="provider_plugins_delete">Удалить плагин</string>
@@ -574,8 +577,6 @@
     <string name="workspace_read_only_too_large">Файл слишком большой для предпросмотра (лимит 1 МБ)</string>
     <string name="workspace_path_copied">Путь скопирован</string>
 
-    <!-- ===== P2-6: Browser Automation (BrowserAutomationScreen) ===== -->
-    <string name="browser_automation_title">Автоматизация браузера</string>
     <string name="browser_address_bar">Введите URL или поисковый запрос</string>
     <string name="browser_run_js">Выполнить JavaScript</string>
     <string name="browser_back">Назад</string>
@@ -657,4 +658,6 @@
     <string name="tool_resume_starting">正在恢复未完成的工具调用…</string>
     <string name="tool_resume_step">正在执行 %1$s (%2$d/%3$d)…</string>
     <string name="tts_not_ready">TTS 正在初始化, 请稍后重试</string>
+    <string name="chat_jump_to_unread">К первому непрочитанному · %1$d</string>
+    <string name="chat_list_reorder">Перетащите для сортировки</string>
 </resources>

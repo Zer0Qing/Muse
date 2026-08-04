@@ -12,6 +12,7 @@ import compose.icons.tablericons.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import io.zer0.muse.ui.common.form.MuseSlider
+import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.theme.MuseShapes
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,6 +32,8 @@ import io.zer0.memory.ticker.MemoryConfig
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.settings.SectionLabel
+import io.zer0.muse.ui.common.settings.ChevronRight
+import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
 import io.zer0.muse.ui.common.settings.SettingsItemRow
@@ -61,6 +64,10 @@ fun MemorySettingsPage(
     val settings: SettingsRepository = koinInject()
     val memoryConfig by settings.memoryConfigFlow.collectAsStateWithLifecycle(initialValue = MemoryConfig())
     val keepAwake by settings.keepAwakeFlow.collectAsStateWithLifecycle(initialValue = false)
+    val autoLaunch by settings.autoLaunchFlow.collectAsStateWithLifecycle(initialValue = false)
+    val customCompressPrompt by settings.customCompressPromptFlow.collectAsStateWithLifecycle(initialValue = null)
+    var showCompressPromptDialog by remember { mutableStateOf(false) }
+    var compressPromptDraft by remember(customCompressPrompt) { mutableStateOf(customCompressPrompt.orEmpty()) }
     val scope = rememberCoroutineScope()
 
     // v1.78 (#19): 滑块防抖 — 拖动时只更新 localConfig,停止 400ms 后才持久化到 DataStore
@@ -178,6 +185,26 @@ fun MemorySettingsPage(
                     },
                 )
                 SettingsGroupDivider()
+                SettingsSwitchRow(
+                    icon = TablerIcons.Power,
+                    title = stringResource(R.string.settings_memory_auto_launch),
+                    subtitle = stringResource(R.string.settings_memory_auto_launch_subtitle),
+                    checked = autoLaunch,
+                    onCheckedChange = { v ->
+                        scope.launch { settings.saveAutoLaunch(v) }
+                    },
+                )
+                SettingsGroupDivider()
+                SettingsItemRow(
+                    icon = TablerIcons.Edit,
+                    title = stringResource(R.string.settings_memory_custom_compress_prompt),
+                    subtitle = customCompressPrompt?.takeIf { it.isNotBlank() } ?: stringResource(R.string.settings_memory_custom_compress_prompt_default),
+                    onClick = {
+                        compressPromptDraft = customCompressPrompt.orEmpty()
+                        showCompressPromptDialog = true
+                    },
+                ) { ChevronRight() }
+                SettingsGroupDivider()
                 // v1.78 (#21): 恢复默认按钮
                 SettingsActionRow(
                     title = stringResource(R.string.settings_memory_restore_default),
@@ -186,6 +213,28 @@ fun MemorySettingsPage(
                 )
             }
         }
+    }
+
+    if (showCompressPromptDialog) {
+        MuseDialog(
+            onDismissRequest = { showCompressPromptDialog = false },
+            title = stringResource(R.string.settings_memory_custom_compress_prompt),
+            content = {
+                MuseTextField(
+                    value = compressPromptDraft,
+                    onValueChange = { compressPromptDraft = it },
+                    label = { Text(stringResource(R.string.settings_memory_custom_compress_prompt_hint)) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+            confirmText = stringResource(R.string.action_save),
+            onConfirm = {
+                scope.launch { settings.saveCustomCompressPrompt(compressPromptDraft.trim().takeIf { it.isNotBlank() }) }
+                showCompressPromptDialog = false
+            },
+            dismissText = stringResource(R.string.action_cancel),
+            onDismiss = { showCompressPromptDialog = false },
+        )
     }
 }
 

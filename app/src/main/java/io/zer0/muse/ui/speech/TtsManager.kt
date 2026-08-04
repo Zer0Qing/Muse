@@ -9,6 +9,7 @@ import android.speech.tts.UtteranceProgressListener
 import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.data.MediaConfig
+import io.zer0.muse.transformer.MoodSkinParser
 import io.zer0.muse.ui.common.feedback.MuseToast
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -387,7 +388,7 @@ class TtsManager(
         }
         // v0.52: 完整朗读时清空流式缓冲,避免残留文本串入
         sentenceBuffer.clear()
-        val clean = stripMarkdown(text).trim()
+        val clean = MoodSkinParser.cleanForExport(stripMarkdown(text)).trim()
         if (clean.isEmpty()) return false
         // 新请求打断旧请求(flush 默认 true)
         if (flush) stopInternal(resetState = false)
@@ -673,7 +674,7 @@ class TtsManager(
                 val end = match.range.last + 1
                 val sentence = sentenceBuffer.substring(0, end)
                 sentenceBuffer.delete(0, end)
-                val clean = stripMarkdown(sentence).trim()
+                val clean = MoodSkinParser.cleanForExport(stripMarkdown(sentence)).trim()
                 if (clean.isNotEmpty() && !cloudSynthChannel.isClosedForSend) {
                     cloudSynthChannel.trySend(clean)
                 }
@@ -694,7 +695,7 @@ class TtsManager(
             val end = match.range.last + 1
             val sentence = sentenceBuffer.substring(0, end)
             sentenceBuffer.delete(0, end)
-            val clean = stripMarkdown(sentence).trim()
+            val clean = MoodSkinParser.cleanForExport(stripMarkdown(sentence)).trim()
             if (clean.isNotEmpty()) {
                 // 首句打断旧请求,后续用 QUEUE_ADD 顺序排队
                 val mode = if (currentUtteranceId == null) TextToSpeech.QUEUE_FLUSH
@@ -885,7 +886,7 @@ class TtsManager(
         // 云端 TTS:把残余文本送入管线后关闭合成 Channel,触发自然收尾
         if (mediaConfig.ttsEngine != "system") {
             if (sentenceBuffer.isNotEmpty()) {
-                val clean = stripMarkdown(sentenceBuffer.toString()).trim()
+                val clean = MoodSkinParser.cleanForExport(stripMarkdown(sentenceBuffer.toString())).trim()
                 sentenceBuffer.clear()
                 if (clean.isNotEmpty()) {
                     if (cloudSynthJob?.isActive != true || cloudSynthChannel.isClosedForSend) {
@@ -904,7 +905,7 @@ class TtsManager(
         }
         // 系统 TTS 路径
         if (sentenceBuffer.isEmpty()) return
-        val clean = stripMarkdown(sentenceBuffer.toString()).trim()
+        val clean = MoodSkinParser.cleanForExport(stripMarkdown(sentenceBuffer.toString())).trim()
         sentenceBuffer.clear()
         if (clean.isNotEmpty() && ready.get()) {
             val mode = if (currentUtteranceId == null) TextToSpeech.QUEUE_FLUSH

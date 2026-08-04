@@ -45,6 +45,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import java.io.BufferedWriter
 import java.io.OutputStream
+import java.io.InputStream
 import java.io.OutputStreamWriter
 
 /**
@@ -136,27 +137,32 @@ class BackupService(
      * 策略: 清空三个 DB 的全部表 → 插入备份数据(简化版,不做合并去重)。
      * @return 导入的会话数 + 消息数
      */
-    suspend fun import(context: Context, uri: Uri): Pair<Int, Int> {
-        val text = withContext(Dispatchers.IO) {
-            context.contentResolver.openInputStream(uri)?.use { input ->
-                input.bufferedReader(Charsets.UTF_8).readText()
-            } ?: error(context.getString(R.string.backup_cannot_read, uri))
-        }
-        val firstLine = text.lineSequence().firstOrNull { it.isNotBlank() }
-            ?: error(context.getString(R.string.backup_format_unrecognized))
-        val isNdJson = resultOf {
-            val obj = json.decodeFromString(JsonObject.serializer(), firstLine)
-            obj["type"]?.let { (it as? JsonPrimitive)?.content } == "meta"
-        }.getOrNull() ?: false
-        return if (isNdJson) {
-            applyNdJsonStreaming(text)
-        } else {
-            val backup = resultOf { json.decodeFromString(Backup.serializer(), text) }
-                .onError { msg, t -> Logger.w("BackupService", "单 JSON 备份解析失败", t) }
-                .getOrNull()
+    suspend fun import(context: Context, uri: Uri): Pair<Int, Int> = withContext(Dispatchers.IO) {
+        context.contentResolver.openInputStream(uri)?.use { input ->
+            val reader = input.bufferedReader(Charsets.UTF_8)
+            val firstLine = generateSequence { reader.readLine() }
+                .firstOrNull { !it.isNullOrBlank() }
                 ?: error(context.getString(R.string.backup_format_unrecognized))
-            applyBackup(backup)
-        }
+            val isNdJson = resultOf {
+                val obj = json.decodeFromString(JsonObject.serializer(), firstLine)
+                obj["type"]?.let { (it as? JsonPrimitive)?.content } == "meta"
+            }.getOrNull() ?: false
+            if (isNdJson) {
+                // B4-07: 首行已消费,继续从 reader 流式读取,不整读
+                val rest = generateSequence { reader.readLine() }.takeWhile { it != null }.map { it!! }
+                applyNdJsonStreaming(sequenceOf(firstLine) + rest)
+            } else {
+                val text = buildString {
+                    appendLine(firstLine)
+                    generateSequence { reader.readLine() }.forEach { appendLine(it) }
+                }
+                val backup = resultOf { json.decodeFromString(Backup.serializer(), text) }
+                    .onError { msg, t -> Logger.w("BackupService", "单 JSON 备份解析失败", t) }
+                    .getOrNull()
+                    ?: error(context.getString(R.string.backup_format_unrecognized))
+                applyBackup(backup)
+            }
+        } ?: error(context.getString(R.string.backup_cannot_read, uri))
     }
 
     /**
@@ -348,6 +354,15 @@ class BackupService(
         }
     }
 
+    /** B4-07: 字符串版流式导入(云端旧路径兼容)。 */
+    private suspend fun applyNdJsonStreaming(text: String): Pair<Int, Int> =
+        applyNdJsonStreaming(text.lineSequence())
+
+    /** B4-07: 输入流版流式导入,不再整读文本,避免大备份 OOM。 */
+    private suspend fun applyNdJsonStreaming(input: InputStream): Pair<Int, Int> =
+        input.bufferedReader(Charsets.UTF_8).use { reader ->
+            applyNdJsonStreaming(generateSequence { reader.readLine() }.takeWhile { it != null }.map { it!! })
+        }
     /**
      * v1.104: 流式解析 NDJSON 备份并分批插入 DB。
      *
@@ -359,7 +374,7 @@ class BackupService(
      *
      * @return 导入的会话数 + 消息数
      */
-    private suspend fun applyNdJsonStreaming(text: String): Pair<Int, Int> {
+    private suspend fun applyNdJsonStreaming(lines: Sequence<String>): Pair<Int, Int> {
         // 1. 先清空所有表
         db.withTransaction {
             db.messageDao().deleteAll()
@@ -416,7 +431,7 @@ class BackupService(
         var sessionCount = 0
         var messageCount = 0
 
-        text.lineSequence().forEachIndexed { idx, line ->
+        lines.forEachIndexed { idx, line ->
             if (line.isBlank()) return@forEachIndexed
             resultOf {
                 val obj = json.decodeFromString(JsonObject.serializer(), line)

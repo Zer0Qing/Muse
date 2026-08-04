@@ -20,6 +20,7 @@ import io.zer0.muse.ui.HtmlPreviewScreen
 import io.zer0.muse.ui.MuseRoutes
 import io.zer0.muse.ui.RecentlyDeletedScreen
 import io.zer0.muse.ui.SearchScreen
+import io.zer0.muse.ui.settings.PromptTemplateManagerPage
 import io.zer0.muse.ui.common.media.WindowWidthClass
 import io.zer0.muse.ui.common.media.rememberWindowWidthClass
 import io.zer0.muse.ui.quicknotes.QuickNotesScreen
@@ -68,6 +69,7 @@ fun NavGraphBuilder.chatNavGraph(
                 navController.navigate(MuseRoutes.htmlPreviewRoute(encoded))
             },
             onOpenSkills = { navController.navigate(MuseRoutes.SKILLS) },
+            onOpenPromptTemplateManager = { navController.navigate(MuseRoutes.PROMPT_TEMPLATE_MANAGER) },
         )
     }
     // v0.45: 独立全局搜索页(从首页右上角搜索按钮进入,右滑入场)
@@ -152,6 +154,7 @@ fun NavGraphBuilder.chatNavGraph(
                             navController.navigate(MuseRoutes.htmlPreviewRoute(encoded))
                         },
                         onOpenSkills = { navController.navigate(MuseRoutes.SKILLS) },
+                        onOpenPromptTemplateManager = { navController.navigate(MuseRoutes.PROMPT_TEMPLATE_MANAGER) },
                     )
                 }
             }
@@ -172,10 +175,21 @@ fun NavGraphBuilder.chatNavGraph(
                     navController.navigate(MuseRoutes.htmlPreviewRoute(encoded))
                 },
                 onOpenSkills = { navController.navigate(MuseRoutes.SKILLS) },
+                onOpenPromptTemplateManager = { navController.navigate(MuseRoutes.PROMPT_TEMPLATE_MANAGER) },
             )
         }
     }
     // v1.30: 群聊详情页 — 从群聊列表 push 进入,右滑入场 + 左滑返回
+    // B0-07: 提示词模板管理页(从聊天/群聊模板弹窗进入)
+    composable(
+        route = MuseRoutes.PROMPT_TEMPLATE_MANAGER,
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        PromptTemplateManagerPage(
+            onBack = { navController.popBackStack() },
+        )
+    }
     composable(
         route = MuseRoutes.GROUP_CHAT_DETAIL + "/{chatId}",
         arguments = listOf(navArgument("chatId") { type = NavType.StringType }),
@@ -187,10 +201,11 @@ fun NavGraphBuilder.chatNavGraph(
             chatId = chatId,
             onBack = { navController.popBackStack() },
             // HTML/SVG 代码块全屏预览:URL 编码后跳转 HtmlPreviewScreen
-            onHtmlPreview = { html ->
-                val encoded = java.net.URLEncoder.encode(html, "UTF-8")
-                navController.navigate(MuseRoutes.htmlPreviewRoute(encoded))
-            },
+                onHtmlPreview = { html ->
+                    val encoded = java.net.URLEncoder.encode(html, "UTF-8")
+                    navController.navigate(MuseRoutes.htmlPreviewRoute(encoded))
+                },
+                onOpenPromptTemplateManager = { navController.navigate(MuseRoutes.PROMPT_TEMPLATE_MANAGER) },
         )
     }
     // 定时任务(首页大方块入口)
@@ -241,15 +256,6 @@ fun NavGraphBuilder.chatNavGraph(
         )
     }
     // v1.127: 表情包管理页
-    composable(
-        route = MuseRoutes.STICKERS,
-        enterTransition = { MuseTransitions.horizontalPushEnter() },
-        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
-    ) {
-        io.zer0.muse.ui.StickerManagerScreen(
-            onBack = { navController.popBackStack() },
-        )
-    }
     // v1.97 gap8: 独立翻译页(设置 → 工具 → AI 翻译)
     composable(
         route = MuseRoutes.TRANSLATE,

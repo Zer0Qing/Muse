@@ -51,4 +51,6 @@
     <string name="workflow_zoom_limit_reached">Limite de zoom atingido</string>
     <string name="workflow_canvas_empty_title">A tela está vazia</string>
     <string name="workflow_canvas_empty_subtitle">Toque duas vezes na área em branco para adicionar um nó ou toque no botão adicionar na barra de ferramentas abaixo</string>
+    <string name="workflow_external_conflict">O arquivo de fluxo foi alterado externamente</string>
+    <string name="workflow_force_save">Salvar forçado</string>
 </resources>

@@ -135,6 +135,8 @@
     <string name="memory_screen_collapse">Collapse</string>
     <string name="memory_screen_expand">Expand</string>
     <string name="memory_screen_edit_cd">Edit</string>
+    <string name="memory_pin_cd">Pin</string>
+    <string name="memory_unpin_cd">Unpin</string>
     <string name="memory_screen_delete_cd">Delete</string>
     <string name="memory_screen_load_failed">Load failed — Full error details</string>
     <string name="memory_screen_copied_trace">Full stack trace copied to clipboard</string>
@@ -554,7 +556,12 @@
 
     <!-- ===== P2-10: Provider plugin management (ProviderPluginPage) ===== -->
     <string name="provider_plugins_title">Plugin Manager</string>
+    <string name="muse_plugins_external">External Plugins</string>
+    <string name="muse_plugins_manage">Plugins</string>
+    <string name="muse_plugins_import_hint">Plugin package installed. Manage it under External Plugins.</string>
+    <string name="muse_plugins_imported">Plugin package installed</string>
     <string name="provider_plugins_empty">No plugins</string>
+    <string name="muse_plugins_empty_hint">No external plugins. Tap + to import a .muse-plugin or ZIP package.</string>
     <string name="provider_plugins_import">Import Plugin</string>
     <string name="provider_plugins_delete">Delete Plugin</string>
     <string name="provider_plugins_convert">Convert to Provider</string>
@@ -574,8 +581,6 @@
     <string name="workspace_read_only_too_large">File too large to preview (limit 1MB)</string>
     <string name="workspace_path_copied">Path copied</string>
 
-    <!-- ===== P2-6: Browser Automation (BrowserAutomationScreen) ===== -->
-    <string name="browser_automation_title">Browser Automation</string>
     <string name="browser_address_bar">Enter URL or search</string>
     <string name="browser_run_js">Run JavaScript</string>
     <string name="browser_back">Back</string>
@@ -657,4 +662,6 @@
     <string name="tool_resume_starting">正在恢复未完成的工具调用…</string>
     <string name="tool_resume_step">正在执行 %1$s (%2$d/%3$d)…</string>
     <string name="tts_not_ready">TTS 正在初始化,请稍后重试</string>
+    <string name="chat_jump_to_unread">Jump to earliest unread · %1$d</string>
+    <string name="chat_list_reorder">Drag to reorder</string>
 </resources>

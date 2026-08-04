@@ -51,4 +51,6 @@
     <string name="workflow_zoom_limit_reached">Zoom limit reached</string>
     <string name="workflow_canvas_empty_title">Canvas is empty</string>
     <string name="workflow_canvas_empty_subtitle">Double-tap blank area to add a node, or tap the add button in the toolbar below</string>
+    <string name="workflow_external_conflict">Workflow file changed externally</string>
+    <string name="workflow_force_save">Force save</string>
 </resources>

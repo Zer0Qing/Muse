@@ -236,9 +236,9 @@ class MuseAccessibilityService : AccessibilityService() {
         sb.append('[').append(path).append("] ")
         sb.append("class=").append(node.className ?: "")
         val text = node.text?.toString()?.takeIf { it.isNotBlank() }
-        if (!text.isNullOrBlank()) sb.append(" text=").append(escape(text))
+        if (!text.isNullOrBlank()) sb.append(" text=").append(AccessibilityPathUtils.escapeText(text))
         val desc = node.contentDescription?.toString()?.takeIf { it.isNotBlank() }
-        if (!desc.isNullOrBlank()) sb.append(" desc=").append(escape(desc))
+        if (!desc.isNullOrBlank()) sb.append(" desc=").append(AccessibilityPathUtils.escapeText(desc))
         val r = node.rect
         sb.append(" bounds=[").append(r.left).append(',').append(r.top)
             .append("][").append(r.right).append(',').append(r.bottom).append(']')
@@ -255,8 +255,6 @@ class MuseAccessibilityService : AccessibilityService() {
     }
 
     /** 转义文本中的换行/制表符,保证单行输出。 */
-    private fun escape(text: String): String =
-        text.replace("\\", "\\\\").replace("\n", "\\n").replace("\t", "\\t").replace("]", "\\]")
 
     private val AccessibilityNodeInfo.rect: android.graphics.Rect
         get() = android.graphics.Rect().also { getBoundsInScreen(it) }
@@ -312,8 +310,8 @@ class MuseAccessibilityService : AccessibilityService() {
 
     /** 按路径标识(如 "0.1.2")从 [root] 遍历定位节点。 */
     private fun findNodeByPath(root: AccessibilityNodeInfo, path: String): AccessibilityNodeInfo? {
-        val indices = path.split('.').mapNotNull { it.toIntOrNull() }
-        if (indices.isEmpty() || indices.first() != 0) return null
+        val indices = AccessibilityPathUtils.parseNodePath(path)
+        if (indices.isEmpty()) return null
         var current: AccessibilityNodeInfo = root
         for (i in 1 until indices.size) {
             val idx = indices[i]

@@ -53,6 +53,7 @@ import io.zer0.muse.ui.theme.MuseShapes
 private data class CardGroupItem(
     val key: Any?,
     val onClick: (() -> Unit)?,
+    val onLongClick: (() -> Unit)?,
     val modifier: Modifier,
     val headlineContent: @Composable () -> Unit,
     val supportingContent: (@Composable () -> Unit)?,
@@ -69,6 +70,7 @@ interface CardGroupScope {
      * 卡片分组内的一项。
      *
      * @param onClick 点击回调(null 则不可点击)
+     * @param onLongClick 长按回调(可选,与 onClick 同时传入时长按弹菜单)
      * @param headlineContent 主标题(必填)
      * @param supportingContent 副标题(灰色小字,可选)
      * @param leadingContent 左侧内容(通常是图标,可选)
@@ -78,6 +80,7 @@ interface CardGroupScope {
     fun item(
         key: Any? = null,
         onClick: (() -> Unit)? = null,
+        onLongClick: (() -> Unit)? = null,
         modifier: Modifier = Modifier,
         supportingContent: (@Composable () -> Unit)? = null,
         leadingContent: (@Composable () -> Unit)? = null,
@@ -92,6 +95,7 @@ private class CardGroupScopeImpl : CardGroupScope {
     override fun item(
         key: Any?,
         onClick: (() -> Unit)?,
+        onLongClick: (() -> Unit)?,
         modifier: Modifier,
         supportingContent: (@Composable () -> Unit)?,
         leadingContent: (@Composable () -> Unit)?,
@@ -102,6 +106,7 @@ private class CardGroupScopeImpl : CardGroupScope {
             CardGroupItem(
                 key = key,
                 onClick = onClick,
+                onLongClick = onLongClick,
                 modifier = modifier,
                 headlineContent = headlineContent,
                 supportingContent = supportingContent,
@@ -170,6 +175,7 @@ fun CardGroup(
                     key(item.key ?: index) {
                         MuseListItem(
                             onClick = item.onClick,
+                            onLongClick = item.onLongClick,
                             modifier = item.modifier,
                             headlineContent = item.headlineContent,
                             supportingContent = item.supportingContent,

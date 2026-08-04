@@ -12,6 +12,7 @@ plugins {
 }
 
 android {
+
     namespace = "io.zer0.muse"
     compileSdk = 35
 
@@ -27,11 +28,11 @@ android {
             ?.takeIf { it.isNotBlank() }
             ?.toIntOrNull()
             ?: System.getenv("VERSION_CODE")?.takeIf { it.isNotBlank() }?.toIntOrNull()
-            ?: 151
+            ?: 162
         versionName = (project.findProperty("versionName") as? String)
             ?.takeIf { it.isNotBlank() }
             ?: System.getenv("VERSION_NAME")?.takeIf { it.isNotBlank() }
-            ?: "1.0.51"
+            ?: "1.0.62"
     }
 
     signingConfigs {

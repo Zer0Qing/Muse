@@ -318,6 +318,26 @@ class GroupChatRepository(
             AppJson.decodeFromString(ListSerializer(String.serializer()), chat.memberIdsJson)
         }.getOrNull() ?: emptyList()
     }
+    // ── B5-02: 群聊生成账本(进程被杀后按断点重放) ──
+
+    suspend fun upsertGenerationLedger(entity: GroupChatGenerationLedgerEntity) {
+        withContext(Dispatchers.IO) { db.groupChatGenerationLedgerDao().upsert(entity) }
+    }
+
+
+    suspend fun deleteGenerationLedger(id: String) {
+        withContext(Dispatchers.IO) { db.groupChatGenerationLedgerDao().deleteById(id) }
+    }
+
+    suspend fun deleteGenerationLedgersByChatId(chatId: String) {
+        withContext(Dispatchers.IO) { db.groupChatGenerationLedgerDao().deleteByChatId(chatId) }
+    }
+
+    suspend fun getGenerationLedger(id: String): GroupChatGenerationLedgerEntity? =
+        withContext(Dispatchers.IO) { db.groupChatGenerationLedgerDao().getById(id) }
+
+    suspend fun getPendingGenerationLedgers(): List<GroupChatGenerationLedgerEntity> =
+        withContext(Dispatchers.IO) { db.groupChatGenerationLedgerDao().getPending() }
 
     // ── v2.x 群聊上下文管理:群共享文档 ──
 

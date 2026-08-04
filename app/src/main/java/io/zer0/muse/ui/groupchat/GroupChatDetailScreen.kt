@@ -168,6 +168,8 @@ fun GroupChatDetailScreen(
     onBack: () -> Unit,
     /** HTML/SVG 代码块全屏预览回调(参数为完整 HTML 源码)。 */
     onHtmlPreview: (String) -> Unit = {},
+    /** B0-07: 打开提示词模板管理页。 */
+    onOpenPromptTemplateManager: () -> Unit = {},
     viewModel: GroupChatViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -631,6 +633,15 @@ fun GroupChatDetailScreen(
                 }
             }
         }
+            TextButton(
+                onClick = {
+                    showPromptTemplateSheet = false
+                    onOpenPromptTemplateManager()
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(R.string.prompt_template_manage_entry))
+            }
     }
 
     // v1.97: 编辑群聊对话框(改名 / 改成员)

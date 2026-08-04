@@ -80,6 +80,7 @@ fun CrashReportSettingsPage(
 
     // 订阅崩溃上报配置流
     val enabled by settings.crashReportEnabledFlow.collectAsStateWithLifecycle(initialValue = false)
+    val anrDetection by settings.anrDetectionFlow.collectAsStateWithLifecycle(initialValue = true)
     val method by settings.crashReportMethodFlow.collectAsStateWithLifecycle(initialValue = "email")
     val email by settings.crashReportEmailFlow.collectAsStateWithLifecycle(initialValue = "")
     val webhookUrl by settings.crashReportWebhookUrlFlow.collectAsStateWithLifecycle(initialValue = "")
@@ -168,6 +169,16 @@ fun CrashReportSettingsPage(
                     checked = enabled,
                     onCheckedChange = { v ->
                         scope.launch { settings.saveCrashReportEnabled(v) }
+                    },
+                )
+                SettingsGroupDivider()
+                SettingsSwitchRow(
+                    icon = TablerIcons.Bell,
+                    title = stringResource(R.string.settings_crash_anr_title),
+                    subtitle = stringResource(R.string.settings_crash_anr_subtitle),
+                    checked = anrDetection,
+                    onCheckedChange = { v ->
+                        scope.launch { settings.saveAnrDetection(v) }
                     },
                 )
             }

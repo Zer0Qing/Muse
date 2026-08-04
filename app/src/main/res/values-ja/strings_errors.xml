@@ -123,4 +123,5 @@
     <string name="err_chat_video_cancelled">ビデオ生成がキャンセルされました</string>
     <string name="err_chat_video_gen_failed">ビデオの生成に失敗しました: %1$s</string>
     <string name="err_chat_qr_generated">QRコードが生成されました</string>
+    <string name="err_chat_misc_reorder_pinned_failed">ピン留め順の保存に失敗しました: %1$s</string>
 </resources>

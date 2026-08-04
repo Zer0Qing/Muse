@@ -27,6 +27,17 @@ class QuickNoteStore(private val context: Context) {
 
     private val file by lazy { java.io.File(context.filesDir, "quicknotes/notes.json") }
 
+    /** B5-06: 最近一次文件损坏提示(可被 UI 消费后清空)。 */
+    @Volatile
+    private var lastError: String? = null
+
+    /** 消费最近一次损坏提示(UI 展示后调用)。 */
+    fun consumeError(): String? {
+        val e = lastError
+        lastError = null
+        return e
+    }
+
     /** 列出记录,可选按关键字/标签过滤,置顶记录排在前面。 */
     fun list(keyword: String? = null, tag: String? = null, limit: Int = 50): List<QuickNote> {
         var all = readAll().sortedWith(compareByDescending<QuickNote> { it.pinned }.thenByDescending { it.updatedAtMillis })
@@ -153,9 +164,22 @@ class QuickNoteStore(private val context: Context) {
             if (!file.exists()) return emptyList()
             AppJson.decodeFromString(ListSerializer(QuickNote.serializer()), file.readText())
         } catch (e: Exception) {
-            Logger.w(TAG, "读取快速记录失败: ${e.message}")
+            backupCorruptFile()
+            lastError = "快速记录文件损坏，已备份原文件并重建"
+            Logger.e(TAG, "读取快速记录失败，已备份坏文件: ${e.message}", e)
             emptyList()
         }
+    }
+
+    /** B5-06: 损坏文件备份为 .bak-<时间戳>,避免静默丢失现场。 */
+    private fun backupCorruptFile() {
+        runCatching {
+            if (file.exists()) {
+                val backup = java.io.File(file.parentFile, "${file.name}.bak-${System.currentTimeMillis()}")
+                file.copyTo(backup, overwrite = true)
+                Logger.w(TAG, "损坏文件已备份到 ${backup.absolutePath}")
+            }
+        }.onFailure { Logger.w(TAG, "备份损坏文件失败: ${it.message}") }
     }
 
     private fun save(list: List<QuickNote>) {

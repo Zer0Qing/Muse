@@ -1,5 +1,6 @@
 package io.zer0.muse.ui.chat
 
+import io.zer0.ai.core.UIMessage
 import io.zer0.muse.ui.ChatUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
@@ -22,6 +23,12 @@ interface ChatStateAccessor {
 
     /** 原子更新 state(传入 transform,返回新 state)。 */
     fun update(transform: (ChatUiState) -> ChatUiState)
+
+    /** B2-01: 当前消息列表快照(只读)。 */
+    val messagesSnapshot: List<UIMessage>
+
+    /** B2-01: 原子更新消息列表。 */
+    fun updateMessages(transform: (List<UIMessage>) -> List<UIMessage>)
 
     /** 协程作用域(launch 用),由实现方提供 viewModelScope。 */
     val coroutineScope: kotlinx.coroutines.CoroutineScope

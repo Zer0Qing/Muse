@@ -36,7 +36,7 @@ import java.time.format.DateTimeFormatter
  */
 @Database(
     entities = [FactEntity::class, FactFtsEntity::class, MemorySpaceEntity::class, MemoryLinkEntity::class],
-    version = 10,
+    version = 11,
     // v1.78 (H4): 开启 schema 导出,未来 v4+ 升级时编写 Migration 替代 destructive
     // 历史 v1→v2→v3 的 destructive migration 已无法补救,从 v3 开始留基线
     exportSchema = true,
@@ -221,12 +221,21 @@ abstract class FactDb : RoomDatabase() {
             }
         }
 
+        /**
+         * B4-05: v10→v11 迁移 — facts 表加 pinned_at 列(手动置顶记忆)。
+         */
+        val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE facts ADD COLUMN pinned_at TEXT DEFAULT NULL")
+            }
+        }
         /** 单例数据库实例。全局唯一,内存数据库失败时回退。 */
         fun create(context: Context, name: String = "facts.db"): FactDb {
             return Room.databaseBuilder(context, FactDb::class.java, name)
                 .addMigrations(
                     MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
                     MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
+                    MIGRATION_10_11,
                 )
                 .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {

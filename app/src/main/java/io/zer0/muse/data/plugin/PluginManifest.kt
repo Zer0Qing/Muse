@@ -1,11 +1,13 @@
 package io.zer0.muse.data.plugin
 
+import io.zer0.muse.tools.script.ToolDeclaration
 import kotlinx.serialization.Serializable
 
 /**
- * 插件清单 (openhanako plugins/ manifest 移植)。
+ * 插件清单 (openhanako plugins/ manifest 移植 + B6-01 外部插件包扩展)。
  *
- * 每个插件通过 manifest 声明元数据、能力、激活事件和配置。
+ * 每个插件通过 manifest 声明元数据、能力、激活事件、入口文件和工具列表。
+ * 外部 `.muse-plugin` / ZIP 包必须包含本清单；`PluginManifest.BUILT_IN` 仅作内置能力展示。
  */
 @Serializable
 data class PluginManifest(
@@ -13,16 +15,28 @@ data class PluginManifest(
     val name: String,
     val version: String = "0.1.0",
     val description: String = "",
-    /** 信任级别: full-access / sandboxed */
+    /** 作者/来源。 */
+    val author: String = "",
+    /** 最低兼容 App 版本(语义化版本,当前不做强制阻断,保留字段供未来校验)。 */
+    val minAppVersion: String = "1.0.0",
+    /** JS 入口文件名(相对包根目录,默认 main.js)。 */
+    val entry: String = "main.js",
+    /** 插件类型: tool / ui-skin / provider。 */
+    val kind: String = "tool",
+    /** 信任级别: full-access / sandboxed。 */
     val trust: String = "sandboxed",
-    /** 是否在 UI 隐藏 */
+    /** 是否在 UI 隐藏。 */
     val hidden: Boolean = false,
-    /** 声明的能力 (resource.read / resource.write / network / ui) */
+    /** 声明的能力 (resource.read / resource.write / network / ui / ui.mood)。 */
     val capabilities: List<String> = emptyList(),
-    /** 激活事件: onStartup / onCommand / onFileType */
+    /** 声明的权限(与 capabilities 对齐,额外用于恶意清单校验)。 */
+    val permissions: List<String> = emptyList(),
+    /** 激活事件: onStartup / onCommand / onFileType。 */
     val activationEvents: List<String> = listOf("onStartup"),
-    /** 是否已启用 */
+    /** 是否已启用。 */
     val enabled: Boolean = true,
+    /** 插件暴露的工具列表(LLM 可调用,注册时加 pluginId 前缀)。 */
+    val tools: List<ToolDeclaration> = emptyList(),
 ) {
     companion object {
         val BUILT_IN: List<PluginManifest> = listOf(

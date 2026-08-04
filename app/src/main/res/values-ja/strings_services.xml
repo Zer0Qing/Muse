@@ -372,6 +372,7 @@
     <!-- ===== web/WebServer ===== -->
     <string name="webserver_unknown_error">不明なエラー</string>
     <string name="webserver_rate_limited">リクエストが多すぎます。後でもう一度お試しください</string>
+    <string name="webserver_rate_limited_remaining">リクエストが多すぎます。%1$d 秒後にお試しください</string>
     <string name="webserver_bad_request">不正なリクエスト: %1$s</string>
     <string name="webserver_auth_failed">パスワードが間違っています</string>
     <string name="webserver_pin_error">間違ったPIN</string>

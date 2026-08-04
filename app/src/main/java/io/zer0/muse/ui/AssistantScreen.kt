@@ -30,7 +30,6 @@ import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Psychology
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -247,13 +246,13 @@ fun AssistantScreen(
             // 助手列表
             if (state.isAssistantsLoading) {
                 item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(MusePaddings.emptyStateGap),
-                        contentAlignment = Alignment.Center,
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
                     ) {
-                        CircularProgressIndicator()
+                        repeat(6) {
+                            io.zer0.muse.ui.common.surface.AvatarRowSkeleton()
+                        }
                     }
                 }
             } else {
@@ -286,6 +285,7 @@ fun AssistantScreen(
                                 item(
                                     key = assistant.id,
                                     onClick = { onOpenDetail(assistant.id) },
+                                    onLongClick = { actionSheetAssistant = assistant },
                                     leadingContent = {
                                         AssistantAvatar(assistant = assistant, avatarSize = 44.dp)
                                     },

@@ -50,5 +50,14 @@ data class SessionEntity(
      * "[]" = 继承 Assistant 的 skillIdsJson(默认行为不变);
      * 非空数组 = 覆盖 Assistant,仅启用指定 skill。
      */
+
+    /** B7-03: 已读位置(最后已读消息 id,null = 尚未记录)。 */
+    @ColumnInfo(defaultValue = "NULL") val lastReadMessageId: String? = null,
+    /** B7-03: 已读消息数(与 messageCount 配合计算未读数,避免列表页逐会话查消息表)。 */
+    @ColumnInfo(defaultValue = "0") val lastReadCount: Int = 0,
+    /** B7-05: 置顶会话排序号(仅置顶会话参与排序,普通会话仍按 updatedAt)。 */
+    @ColumnInfo(defaultValue = "0") val sortOrder: Int = 0,
+    /** B8-01: 会话级主动消息下次触发时间戳(null=未排期,删除会话后随行清理)。 */
+    @ColumnInfo(defaultValue = "NULL") val proactiveNextTriggerAt: Long? = null,
     @ColumnInfo(defaultValue = "[]") val skillIdsJson: String = "[]",
 )

@@ -19,7 +19,7 @@ import io.zer0.common.resultOf
 import io.zer0.muse.MainActivity
 import io.zer0.muse.R
 import io.zer0.muse.data.assistant.AssistantEntity
-import io.zer0.muse.ui.theme.WarmPaperTheme
+import io.zer0.muse.ui.theme.presets.WarmPaperTheme
 
 /**
  * Phase 8.10: 消息生成通知管理器。

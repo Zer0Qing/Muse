@@ -319,6 +319,13 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                     onComplete()
                 }
             },
+            onGuestMode = {
+                scope.launch {
+                    settings.enterGuestMode()
+                    settings.saveOnboardingShown()
+                    onComplete()
+                }
+            },
         )
     }
 }
@@ -1228,6 +1235,7 @@ private fun BottomButtons(
     onPrevious: () -> Unit,
     onNext: () -> Unit,
     onComplete: () -> Unit,
+    onGuestMode: () -> Unit,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -1253,6 +1261,12 @@ private fun BottomButtons(
                         .fillMaxWidth()
                         .padding(MusePaddings.screen),
                 )
+                TextButton(
+                    onClick = onGuestMode,
+                    modifier = Modifier.padding(bottom = 12.dp),
+                ) {
+                    Text(stringResource(R.string.account_guest_mode))
+                }
             }
             // 步骤 1-4：左边"上一步"，右边"下一步"
             else -> {

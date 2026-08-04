@@ -13,6 +13,9 @@ import io.zer0.ai.core.UIMessage
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.groupchat.GroupChatRepository
 import io.zer0.muse.data.skill.SkillEntity
+import io.zer0.muse.data.plugin.PluginManager
+import io.zer0.muse.tools.script.SkillEngineResult
+import io.zer0.muse.tools.script.WebViewSkillEngine
 import io.zer0.muse.R
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
@@ -25,6 +28,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.SerializationException
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
@@ -115,6 +119,8 @@ class SkillExecutor(
      * 为 null 时(测试环境)agent_phone 工具返回"未配置"提示。
      */
     private val groupChatSchedulerProvider: (() -> io.zer0.muse.schedule.GroupChatScheduler?)? = null,
+    /** B6-01: 外部插件管理器(可为 null,测试环境不注入)。 */
+    private val pluginManager: PluginManager? = null,
 ) {
     /**
      * 执行 skill。
@@ -178,7 +184,11 @@ class SkillExecutor(
                 // JS 沙盒:让 LLM 能在 Skill 体系里执行 JavaScript 代码
                 // (主入口为 ToolRegistry.execute_javascript,此处为 SkillExecutor 路由分支,供 skill 调用)
                 "execute_javascript" -> execExecuteJavascript(args)
-                else -> context.getString(R.string.skill_unknown_impl, skill.implementationKotlin)
+                else -> if (skill.implementationKotlin.startsWith("plugin:")) {
+                    execPluginTool(skill, argumentsJson)
+                } else {
+                    context.getString(R.string.skill_unknown_impl, skill.implementationKotlin)
+                }
             }
         }.onError { msg, t ->
             Logger.e("SkillExecutor", "skill ${skill.id} 执行失败: $msg", t)
@@ -2103,6 +2113,38 @@ class SkillExecutor(
         return output.toString()
     }
 
+
+    /**
+     * B6-01: 执行外部插件 JS 工具。
+     *
+     * implementationKotlin 格式: plugin:&lt;pluginId&gt;:&lt;functionName&gt;。
+     * 插件入口 JS 由 PluginManager 读取,参数以单个对象参数传给 JS 函数。
+     */
+    private suspend fun execPluginTool(skill: SkillEntity, argumentsJson: String): String {
+        val parts = skill.implementationKotlin.split(":")
+        if (parts.size < 3) return "插件工具路由格式错误: ${skill.implementationKotlin}"
+        val pluginId = parts[1]
+        val functionName = parts[2]
+        val plugin = pluginManager?.findPlugin(pluginId)
+        if (plugin == null) return "插件未安装: $pluginId"
+        if (!plugin.enabled) return "插件已禁用: ${plugin.name}"
+        val entryCode = pluginManager?.loadEntryCode(pluginId)
+        if (entryCode.isNullOrBlank()) return "插件入口文件缺失: $pluginId"
+
+        JsSandbox.init(context)
+        val argsJson = "[" + argumentsJson.ifBlank { "{}" } + "]"
+        return when (val result = WebViewSkillEngine().callFunction(entryCode, functionName, argsJson)) {
+            is SkillEngineResult.Success -> {
+                val value = result.valueJson
+                runCatching {
+                    AppJson.decodeFromString<String>(value)
+                }.getOrElse {
+                    value.ifBlank { "null" }
+                }
+            }
+            is SkillEngineResult.Error -> "插件工具执行失败: ${result.message}"
+        }
+    }
     companion object {
         /**
          * v1.104: delegate_agent 递归深度限制。

@@ -53,6 +53,10 @@ data class RagConfig(
     val mmrLambda: Float = 0.5f,
     /** 是否启用 BM25+向量 混合检索(RRF 融合)。 */
     val hybridEnabled: Boolean = false,
+    /** 混合检索 BM25 路权重(RRF 融合用,默认 1.0)。 */
+    val hybridBm25Weight: Float = 1.0f,
+    /** 混合检索向量路权重(RRF 融合用,默认 1.0)。 */
+    val hybridVectorWeight: Float = 1.0f,
     /** 是否启用 cross-encoder 重排序。 */
     val rerankEnabled: Boolean = false,
     /** 重排序 Provider 类型(cohere/jina/local,空串表示按 LocalRerankProvider)。 */
@@ -74,6 +78,8 @@ data class RagConfig(
     val cloudParserEndpoint: String = "",
     /** MinerU 解析器 endpoint(MINERU 类型用,空串表示未配置)。 */
     val mineruEndpoint: String = "",
+    /** MinerU 解析器 Token(MINERU 类型用,空串表示无需鉴权)。 */
+    val mineruToken: String = "",
 ) {
     init {
         require(chunkSize > 0) { "chunkSize must be > 0, current: $chunkSize" }
@@ -83,6 +89,8 @@ data class RagConfig(
         require(topK > 0) { "topK must be > 0, current: $topK" }
         require(mmrLambda in 0f..1f) { "mmrLambda must be in 0..1 range, current: $mmrLambda" }
         require(tokenBudget >= 0) { "tokenBudget cannot be negative, current: $tokenBudget" }
+        require(hybridBm25Weight >= 0f) { "hybridBm25Weight cannot be negative, current: $hybridBm25Weight" }
+        require(hybridVectorWeight >= 0f) { "hybridVectorWeight cannot be negative, current: $hybridVectorWeight" }
     }
 
     /** Embedding 来源枚举。 */

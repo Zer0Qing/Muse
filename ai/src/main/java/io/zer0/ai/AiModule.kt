@@ -8,11 +8,13 @@ import io.zer0.ai.core.ChatRequestMode
 import io.zer0.ai.core.ChatStreamEvent
 import io.zer0.ai.core.Model
 import io.zer0.ai.core.Provider
+import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.ProviderConfig
 import io.zer0.ai.core.ProviderType
 import io.zer0.ai.core.ReasoningLevel
 import io.zer0.ai.core.ToolDefinition
 import io.zer0.ai.core.UIMessage
+import io.zer0.ai.core.withFirstEventWatchdog
 import io.zer0.ai.anthropic.AnthropicProvider
 import io.zer0.ai.gemini.GeminiProvider
 import io.zer0.ai.openai.OpenAIProvider
@@ -87,9 +89,19 @@ class ChatService(
         reasoningLevel: ReasoningLevel = ReasoningLevel.DEFAULT,
         providerConfig: ProviderConfig? = null,
         mode: ChatRequestMode = ChatRequestMode.CHAT,
+        resumeFromText: String? = null,
     ): Flow<ChatStreamEvent> {
-        val (provider, request) = buildProviderRequest(messages, model, temperature, maxTokens, tools, reasoningLevel, providerConfig, mode)
-        return provider.streamChat(request)
+        // B3-03: 断点续传 — 把已产出文本作为末尾 assistant 消息注入,让模型从中断处继续而非从头重生成
+        val effectiveMessages = if (resumeFromText.isNullOrBlank()) {
+            messages
+        } else {
+            messages + UIMessage(role = MessageRole.ASSISTANT, content = resumeFromText)
+        }
+        val (provider, request) = buildProviderRequest(effectiveMessages, model, temperature, maxTokens, tools, reasoningLevel, providerConfig, mode)
+        // B3-01: SSE 建立后 15s 无首事件,自动降级为非流式重试一次
+        return provider.streamChat(request).withFirstEventWatchdog(
+            fallback = { provider.completeText(request) },
+        )
     }
 
     /**

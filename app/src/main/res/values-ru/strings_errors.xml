@@ -123,4 +123,5 @@
     <string name="err_chat_video_cancelled">Создание видео отменено.</string>
     <string name="err_chat_video_gen_failed">Не удалось создать видео: %1$s</string>
     <string name="err_chat_qr_generated">QR-код создан</string>
+    <string name="err_chat_misc_reorder_pinned_failed">Не удалось сохранить порядок закреплённых: %1$s</string>
 </resources>

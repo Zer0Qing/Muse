@@ -235,6 +235,14 @@ class McpClient(
     @Volatile
     var onToolsListChanged: (() -> Unit)? = null
 
+    /** B3-09: prompts/list_changed 通知回调(无缓存时仅作刷新信号)。 */
+    @Volatile
+    var onPromptsListChanged: (() -> Unit)? = null
+
+    /** B3-09: resources/list_changed 通知回调(无缓存时仅作刷新信号)。 */
+    @Volatile
+    var onResourcesListChanged: (() -> Unit)? = null
+
     /**
      * 启动 MCP client。建立连接 + initialize 握手。
      * 失败则触发重连流程(若 [McpServerConfig.autoReconnect] 为 true)。
@@ -514,9 +522,9 @@ class McpClient(
         }
 
         if (methodEl != null) {
-            // 有 id 且有 method: server→client request(暂不支持)
+            // 有 id 且有 method: server→client request(支持 ping,未知方法返回 MethodNotFound)
             val method = (methodEl as? JsonPrimitive)?.content
-            Logger.w(TAG, "[${config.name}] 收到 server request(id=$id, method=$method),暂不支持")
+            handleServerRequest(id, method)
             return
         }
 
@@ -549,11 +557,17 @@ class McpClient(
                 runCatching { onToolsListChanged?.invoke() }
                     .onFailure { e -> Logger.w(TAG, "[${config.name}] onToolsListChanged 回调异常: ${e.message}") }
             }
-            "notifications/prompts/list_changed",
-            "notifications/resources/list_changed",
+            "notifications/prompts/list_changed" -> {
+                runCatching { onPromptsListChanged?.invoke() }
+                    .onFailure { e -> Logger.w(TAG, "[${config.name}] onPromptsListChanged 回调异常: ${e.message}") }
+            }
+            "notifications/resources/list_changed" -> {
+                runCatching { onResourcesListChanged?.invoke() }
+                    .onFailure { e -> Logger.w(TAG, "[${config.name}] onResourcesListChanged 回调异常: ${e.message}") }
+            }
             "notifications/progress",
             -> {
-                // 已记录日志,后续按需接入 Registry 层回调
+                // 已记录日志,进度通知无本地缓存
             }
             "notifications/initialized" -> {
                 // client 主动发出的握手通知,server 不应回发;忽略
@@ -726,11 +740,11 @@ class McpClient(
                     val params = json["params"] as? JsonObject ?: buildJsonObject {}
                     handleNotification(method, params)
                 }
-                // server→client request(有 id 且有 method):暂不支持,记录日志
+                // server→client request(有 id 且有 method):支持 ping,未知方法返回 MethodNotFound
                 idEl != null && methodEl != null -> {
                     val method = (methodEl as? JsonPrimitive)?.content
                     val id = (idEl as? JsonPrimitive)?.content?.toLongOrNull()
-                    Logger.w(TAG, "[${config.name}] 收到 server request(id=$id, method=$method),暂不支持")
+                    if (id != null) handleServerRequest(id, method)
                 }
                 // response(有 id,无 method):记录并返回最后一个
                 else -> {
@@ -979,6 +993,41 @@ class McpClient(
         val code = (error["code"] as? JsonPrimitive)?.content
         val message = (error["message"] as? JsonPrimitive)?.content
         Logger.w(TAG, "[${config.name}] $context JSON-RPC error: code=$code, message=$message")
+    }
+
+    /**
+     * B3-09: 处理 server→client request。
+     * ping 返回空 result,未知方法返回 JSON-RPC MethodNotFound。
+     */
+    private fun handleServerRequest(id: Long, method: String?) {
+        scope.launch {
+            val response = if (method == "ping") {
+                buildJsonObject {
+                    put("jsonrpc", "2.0")
+                    put("id", id)
+                    put("result", buildJsonObject {})
+                }
+            } else {
+                buildJsonObject {
+                    put("jsonrpc", "2.0")
+                    put("id", id)
+                    put("error", buildJsonObject {
+                        put("code", -32601)
+                        put("message", "Method not found")
+                    })
+                }
+            }
+            sendResponse(response)
+        }
+    }
+
+    /** 发送 JSON-RPC 响应(用于 server→client request 的回包)。 */
+    private suspend fun sendResponse(response: JsonObject) {
+        val jsonStr = AppJson.encodeToString(response)
+        when (config.transportType) {
+            McpTransportType.STREAMABLE_HTTP -> postStreamableRequest(jsonStr)
+            McpTransportType.SSE -> postSseRequest(jsonStr)
+        }
     }
 
     /**

@@ -4,7 +4,10 @@ import android.content.Context
 import android.net.Uri
 import io.zer0.common.AppDispatchers
 import io.zer0.common.Logger
+import io.zer0.common.Result
+import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.doc.DocumentParser
+import io.zer0.muse.rag.RagConfig
 import kotlinx.coroutines.launch
 
 /**
@@ -26,6 +29,7 @@ import kotlinx.coroutines.launch
 class ChatDocumentCoordinator(
     private val accessor: ChatStateAccessor,
     private val documentParser: DocumentParser,
+    private val settings: SettingsRepository,
 ) {
 
     private val tag = "ChatVM"
@@ -49,8 +53,21 @@ class ChatDocumentCoordinator(
         if (accessor.snapshot.isStreaming) return
         accessor.coroutineScope.launch(AppDispatchers.io) {
             try {
-                val text = documentParser.parse(uri, context)
-                if (text.isBlank()) {
+                val ragConfig = runCatching { settings.getRagConfig() }.getOrNull() ?: RagConfig()
+                val result = documentParser.parseResult(
+                    uri,
+                    context,
+                    ragConfig.documentParserType,
+                    ragConfig.cloudParserEndpoint,
+                    ragConfig.mineruEndpoint,
+                    ragConfig.mineruToken,
+                )
+                if (result is Result.Error) {
+                    reportError(result.message)
+                    return@launch
+                }
+                val text = result.getOrNull()
+                if (text.isNullOrBlank()) {
                     reportError("文档内容为空或不支持的格式")
                     return@launch
                 }

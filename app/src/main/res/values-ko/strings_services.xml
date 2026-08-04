@@ -372,6 +372,7 @@
     <!-- ===== web/WebServer ===== -->
     <string name="webserver_unknown_error">알 수 없는 오류</string>
     <string name="webserver_rate_limited">요청이 너무 많습니다. 나중에 다시 시도해 주세요.</string>
+    <string name="webserver_rate_limited_remaining">요청이 너무 많습니다. %1$d초 후 다시 시도하세요</string>
     <string name="webserver_bad_request">잘못된 요청: %1$s</string>
     <string name="webserver_auth_failed">잘못된 비밀번호</string>
     <string name="webserver_pin_error">잘못된 PIN</string>

@@ -167,6 +167,31 @@ fun WorkflowEditorScreen(
             )
 
             // ---- 底部工具栏 ----
+            // B8-05: 外部文件冲突提示
+            if (state.externalConflict) {
+                Surface(
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                    shape = MaterialTheme.shapes.medium,
+                    tonalElevation = 2.dp,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(12.dp),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.workflow_external_conflict),
+                            style = MaterialTheme.typography.labelMedium,
+                        )
+                        TextButton(onClick = { viewModel.forceSave() }) {
+                            Text(stringResource(R.string.workflow_force_save))
+                        }
+                    }
+                }
+            }
             WorkflowToolbar(
                 aggregationStrategy = state.workflow.aggregationStrategy,
                 onAggregationChange = { viewModel.updateAggregationStrategy(it) },

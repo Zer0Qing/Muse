@@ -183,7 +183,13 @@ fun AccountScreen(
                 onClick = {
                     scope.launch {
                         saving = true
-                        settings.saveUserProfile(editName.trim(), editAvatarUri)
+                        val profile = settings.getUserProfile()
+                        settings.saveUserProfile(
+                            profile.copy(
+                                userNickName = editName.trim(),
+                                avatarUri = editAvatarUri,
+                            ),
+                        )
                         saving = false
                         onBack()
                     }

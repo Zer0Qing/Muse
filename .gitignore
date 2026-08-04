@@ -3,6 +3,7 @@
 .idea/
 .kotlin/
 build/
+build_alt/
 *.iml
 *.ipr
 *.iws

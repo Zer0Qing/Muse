@@ -109,6 +109,8 @@ fun HomeScreen(
     onHtmlPreview: (String) -> Unit = {},
     /** 加号菜单 → 技能入口。 */
     onOpenSkills: () -> Unit = {},
+    /** B0-07: 打开提示词模板管理页。 */
+    onOpenPromptTemplateManager: () -> Unit = {},
     // v1.131: ChatViewModel 在 AppKoinModule 中以 `single { }` 注册(见 v1.92 注释),
     // 全应用共享同一实例,故用 koinInject() 直接取单例即可。
     // koinViewModel() 对 single 注册也会返回同一实例,但语义上 koinInject 更准确。
@@ -339,6 +341,7 @@ fun HomeScreen(
                         viewModel.renameSession(session.id, newName)
                     },
                     onTogglePinned = viewModel::togglePinned,
+                    onReorderPinned = viewModel::reorderPinnedSessions,
                     onMoveSessionToFolder = viewModel::moveSessionToFolder,
                     onCreateFolder = viewModel::createFolder,
                     onRenameFolder = viewModel::renameFolder,
@@ -360,6 +363,8 @@ fun HomeScreen(
                         onOpenChat()
                     },
                     isSessionsLoading = state.isSessionsLoading,
+                    sessionsError = state.sessionsError,
+                    onRetryLoadSessions = viewModel::retryLoadSessions,
                     modifier = Modifier.fillMaxSize(),
                 )
                 // Tab 1 "Agent": 长效日常聊天搭子
@@ -370,6 +375,7 @@ fun HomeScreen(
                     isAgentMode = true,
                     onHtmlPreview = onHtmlPreview,
                     onOpenSkills = onOpenSkills,
+                    onOpenPromptTemplateManager = onOpenPromptTemplateManager,
                 )
                 // Tab 2 "群聊": 多 Agent 群聊列表
                 // 点击群聊卡片 → 跳转到群聊详情页(通过 NavHost 路由)
@@ -603,5 +609,3 @@ private fun HomeCapsuleDivider() {
             .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
     )
 }
-
-

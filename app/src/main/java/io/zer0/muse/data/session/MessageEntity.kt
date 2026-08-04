@@ -41,6 +41,10 @@ data class MessageEntity(
     val role: String,
     val content: String,
     val reasoning: String? = null,
+    /** B5-03: 多轮 thinking 签名(Anthropic signature / OpenAI reasoning item id)。 */
+    @ColumnInfo(defaultValue = "NULL") val thinkingSignature: String? = null,
+    /** B5-03: OpenAI Responses reasoning item 的 encrypted_content。 */
+    @ColumnInfo(defaultValue = "NULL") val thinkingEncryptedContent: String? = null,
     val modelId: String? = null,
     val createdAt: Long,
     @ColumnInfo(defaultValue = "[]") val imageUrlsJson: String = "[]",
@@ -67,6 +71,9 @@ data class MessageEntity(
      * mood 被静默丢弃,切页/重载后 MOOD 卡片消失。群聊表(group_chat_messages)
      * 已有 mood 列,本次补齐 messages 表。
      */
+
+    /** B6-03/B6-02: 情绪皮肤标识(与 <moodfx> 标签对应,默认 null)。 */
+    @ColumnInfo(defaultValue = "NULL") val moodSkin: String? = null,
     @ColumnInfo(defaultValue = "NULL") val mood: String? = null,
     /** v1.103: 自我反思块(`<reflection>...</reflection>`),与 mood 同期补齐。 */
     @ColumnInfo(defaultValue = "NULL") val reflection: String? = null,

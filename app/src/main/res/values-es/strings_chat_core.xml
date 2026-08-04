@@ -5,6 +5,8 @@
     <string name="chat_session_cd">Chat actual: %1$s, toque para cambiar</string>
     <string name="chat_model_not_configured">No configurado</string>
     <string name="chat_model_cd">Modelo actual: %1$s, toque para cambiar</string>
+    <string name="chat_routing_badge">Enrutado</string>
+    <string name="chat_video_play_cd">Reproducir video</string>
     <string name="chat_context_usage_cd">Uso de contexto %1$s%%, %2$d total de tokens</string>
     <string name="chat_context_tokens_only_cd">Recuento de tokens de contexto %1$d, el modelo no tiene ventana de contexto</string>
     <string name="chat_context_no_window_detail">%1$d tokens (el modelo no tiene ventana de contexto)</string>
@@ -342,4 +344,5 @@
     <string name="slash_command_reset_done">Restablecimiento de contexto</string>
     <string name="slash_command_pin_done">Pin alternado</string>
     <string name="slash_command_archive_done">Sesión archivada</string>
+    <string name="chat_agent_tab_title">Agent</string>
 </resources>

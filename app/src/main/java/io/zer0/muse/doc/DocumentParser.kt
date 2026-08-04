@@ -12,6 +12,7 @@ import com.tom_roush.pdfbox.text.PDFTextStripper
 import io.zer0.common.Logger
 import io.zer0.common.Result
 import io.zer0.common.resultOf
+import okhttp3.OkHttpClient
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserFactory
 import java.io.ByteArrayOutputStream
@@ -40,7 +41,9 @@ import io.zer0.muse.R
  *
  * 合规: 全部代码独立编写,未复制第三方实现(同类方案用 Apache POI,本项目用自实现 OOXML 解析)。
  */
-class DocumentParser {
+class DocumentParser(
+    private val httpClient: OkHttpClient = CloudDocumentParser.defaultHttpClient(),
+) {
 
     companion object {
         /** L-DP6: 文本截断上限(1MB),粗略估算 chars*2 ≈ bytes。 */
@@ -48,10 +51,16 @@ class DocumentParser {
 
         /** H-DP1: ZIP 单 entry 解压上限(4MB),防 ZIP 炸弹。 */
         private const val ZIP_MAX_BYTES = 4 * (1 shl 20)
+
+        /** 云端上传大小上限(50MB),防止超大文件 OOM。 */
+        private const val MAX_UPLOAD_BYTES = 50L * 1024 * 1024
     }
 
     /** PDFBox 需要一次性 init(加载字体资源)。 */
     private val pdfBoxInited = AtomicBoolean(false)
+
+    /** CLOUD / MinerU 云端解析客户端。 */
+    private val cloudParser = CloudDocumentParser(httpClient)
 
     /**
      * M-DP2: 解析文档,返回 [Result]。
@@ -110,14 +119,15 @@ class DocumentParser {
      * v1.0.47 P7-1: 根据 [RagConfig.documentParserType] 路由文档解析。
      *
      * - LOCAL: 调用本地 [parseResult](默认)
-     * - CLOUD/MINERU: 需要 endpoint 配置,当前实现 fallback 到 LOCAL 并 log warning
-     *   (完整云端调用需 HTTP 客户端 + 异步处理,留作后续扩展)
+     * - CLOUD/MINERU: 上传文件到 endpoint → 轮询 → 提取语义文本;
+     *   未配置 endpoint 时返回明确错误,不再静默降级 LOCAL
      *
      * @param uri 内容 URI
      * @param context Context
      * @param parserType 解析器类型(来自 RagConfig)
      * @param cloudEndpoint 云端解析 endpoint(CLOUD 类型用)
      * @param mineruEndpoint MinerU endpoint(MINERU 类型用)
+     * @param mineruToken MinerU Token(MINERU 类型用,作为 Bearer Token)
      */
     fun parseResult(
         uri: Uri,
@@ -125,31 +135,65 @@ class DocumentParser {
         parserType: io.zer0.muse.rag.RagConfig.ParserType,
         cloudEndpoint: String = "",
         mineruEndpoint: String = "",
+        mineruToken: String = "",
     ): Result<String> {
         return when (parserType) {
             io.zer0.muse.rag.RagConfig.ParserType.LOCAL ->
                 parseResult(uri, context)
             io.zer0.muse.rag.RagConfig.ParserType.CLOUD -> {
                 if (cloudEndpoint.isBlank()) {
-                    Logger.w("DocumentParser", "CLOUD 解析器未配置 endpoint,降级到 LOCAL")
-                    parseResult(uri, context)
+                    Result.Error("云端解析 endpoint 未配置，请在 RAG 设置中填写")
                 } else {
-                    // TODO: 实现 CLOUD API 调用(上传文件 → 获取解析结果)
-                    Logger.w("DocumentParser", "CLOUD 解析器暂未实现 HTTP 调用,降级到 LOCAL | endpoint=$cloudEndpoint")
-                    parseResult(uri, context)
+                    parseCloud(uri, context, cloudEndpoint, token = "", mineruMode = false)
                 }
             }
             io.zer0.muse.rag.RagConfig.ParserType.MINERU -> {
                 if (mineruEndpoint.isBlank()) {
-                    Logger.w("DocumentParser", "MINERU 解析器未配置 endpoint,降级到 LOCAL")
-                    parseResult(uri, context)
+                    Result.Error("MinerU endpoint 未配置，请在 RAG 设置中填写")
                 } else {
-                    // TODO: 实现 MinerU API 调用(擅长学术 PDF/公式/表格)
-                    Logger.w("DocumentParser", "MINERU 解析器暂未实现 HTTP 调用,降级到 LOCAL | endpoint=$mineruEndpoint")
-                    parseResult(uri, context)
+                    parseCloud(uri, context, mineruEndpoint, token = mineruToken, mineruMode = true)
                 }
             }
         }
+    }
+
+    /** 读取文件字节并交给 [CloudDocumentParser] 上传解析。 */
+    private fun parseCloud(
+        uri: Uri,
+        context: Context,
+        endpoint: String,
+        token: String,
+        mineruMode: Boolean,
+    ): Result<String> {
+        val bytes = readUploadBytes(uri, context)
+            ?: return Result.Error("无法读取待解析文件")
+        val fileName = uri.lastPathSegment
+            ?.substringAfterLast('/')
+            ?.substringAfterLast('%')
+            ?.ifBlank { null }
+            ?: "document"
+        return cloudParser.parse(bytes, fileName, endpoint, token, mineruMode)
+    }
+
+    /** 云端上传用字节读取(上限 50MB,防 OOM)。 */
+    private fun readUploadBytes(uri: Uri, context: Context): ByteArray? {
+        val resolver = context.contentResolver
+        resolver.openInputStream(uri)?.use { input ->
+            val baos = ByteArrayOutputStream()
+            val buf = ByteArray(64 * 1024)
+            var total = 0L
+            var n = input.read(buf)
+            while (n > 0) {
+                total += n
+                if (total > MAX_UPLOAD_BYTES) {
+                    throw IOException("文件超过 50MB，无法上传到云端解析")
+                }
+                baos.write(buf, 0, n)
+                n = input.read(buf)
+            }
+            return baos.toByteArray()
+        }
+        return null
     }
 
     /**

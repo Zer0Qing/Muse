@@ -130,11 +130,12 @@ class FactDbMigrationTest {
             dbFile.absolutePath,
         )
             // v1.0.56: 补全 7→10 迁移链(Room 需要完整路径;此前只注册 7_8,
-            //   测试建库后实际要求迁到当前版本 10)
+            //   测试建库后实际要求迁到当前版本 10;v1.0.62 延续到 11)
             .addMigrations(
                 FactDb.MIGRATION_7_8,
                 FactDb.MIGRATION_8_9,
                 FactDb.MIGRATION_9_10,
+                FactDb.MIGRATION_10_11,
             )
             .allowMainThreadQueries()
             .build()
@@ -205,6 +206,7 @@ class FactDbMigrationTest {
                 FactDb.MIGRATION_7_8,
                 FactDb.MIGRATION_8_9,
                 FactDb.MIGRATION_9_10,
+                FactDb.MIGRATION_10_11,
             )
             .allowMainThreadQueries()
             .build()

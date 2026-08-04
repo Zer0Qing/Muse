@@ -1,6 +1,8 @@
 package io.zer0.muse.ui.common.surface
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -53,6 +55,7 @@ import io.zer0.muse.ui.theme.MusePaddings
  * ```
  *
  * @param onClick 点击回调(null 表示不可点击)
+ * @param onLongClick 长按回调(可选,与 onClick 同时提供时走 combinedClickable)
  * @param modifier 修饰符
  * @param headlineContent 主标题(必填)
  * @param supportingContent 副标题(可选,灰色小字)
@@ -60,9 +63,11 @@ import io.zer0.muse.ui.theme.MusePaddings
  * @param trailingContent 右侧内容(箭头/Switch 等,可选)
  * @param minHeight 最小高度(默认 56dp)
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MuseListItem(
     onClick: (() -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     headlineContent: @Composable () -> Unit,
     supportingContent: (@Composable () -> Unit)? = null,
@@ -79,8 +84,21 @@ fun MuseListItem(
             .heightIn(min = minHeight)
             .padding(MusePaddings.cardInner)
             .then(
-                if (onClick != null) {
-                    Modifier.clickable(
+                when {
+                    onClick != null && onLongClick != null -> Modifier.combinedClickable(
+                        interactionSource = interactionSource,
+                        indication = null,
+                        role = Role.Button,
+                        onClick = {
+                            MuseHaptics.light(haptic)
+                            onClick()
+                        },
+                        onLongClick = {
+                            MuseHaptics.medium(haptic)
+                            onLongClick()
+                        },
+                    )
+                    onClick != null -> Modifier.clickable(
                         interactionSource = interactionSource,
                         indication = null,
                         role = Role.Button,
@@ -89,8 +107,7 @@ fun MuseListItem(
                             onClick()
                         },
                     )
-                } else {
-                    Modifier
+                    else -> Modifier
                 },
             ),
         verticalAlignment = Alignment.CenterVertically,

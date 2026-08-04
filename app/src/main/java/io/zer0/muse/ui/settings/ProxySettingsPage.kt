@@ -4,10 +4,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -58,6 +60,7 @@ fun ProxySettingsPage(
     var portText by remember(proxyConfig.port) { mutableStateOf(proxyConfig.port.toString()) }
     var username by remember(proxyConfig.username) { mutableStateOf(proxyConfig.username) }
     var password by remember(proxyConfig.password) { mutableStateOf(proxyConfig.password) }
+    var saving by remember { mutableStateOf(false) }
 
     val proxyTypes = listOf("HTTP" to stringResource(R.string.proxy_type_http), "SOCKS5" to stringResource(R.string.proxy_type_socks5))
     val savedText = stringResource(R.string.action_save)
@@ -153,22 +156,35 @@ fun ProxySettingsPage(
                 onClick = {
                     val port = portText.toIntOrNull()?.coerceIn(1, 65535) ?: 7890
                     scope.launch {
-                        settings.saveProxyConfig(
-                            ProxyConfig(
-                                enabled = enabled,
-                                type = type,
-                                host = host.trim(),
-                                port = port,
-                                username = username.trim(),
-                                password = password,
+                        saving = true
+                        try {
+                            settings.saveProxyConfig(
+                                ProxyConfig(
+                                    enabled = enabled,
+                                    type = type,
+                                    host = host.trim(),
+                                    port = port,
+                                    username = username.trim(),
+                                    password = password,
+                                )
                             )
-                        )
-                        MuseToast.show(savedText)
+                            MuseToast.show(savedText)
+                        } finally {
+                            saving = false
+                        }
                     }
                 },
+                enabled = !saving,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(stringResource(R.string.action_save))
+                if (saving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                    )
+                } else {
+                    Text(stringResource(R.string.action_save))
+                }
             }
         }
     }

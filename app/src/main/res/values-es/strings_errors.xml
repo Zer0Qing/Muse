@@ -123,4 +123,5 @@
     <string name="err_chat_video_cancelled">Generación de video cancelada</string>
     <string name="err_chat_video_gen_failed">Falló la generación de video: %1$s</string>
     <string name="err_chat_qr_generated">código QR generado</string>
+    <string name="err_chat_misc_reorder_pinned_failed">Error al guardar el orden fijado: %1$s</string>
 </resources>

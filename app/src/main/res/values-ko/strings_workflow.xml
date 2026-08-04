@@ -51,4 +51,6 @@
     <string name="workflow_zoom_limit_reached">확대/축소 한도에 도달했습니다.</string>
     <string name="workflow_canvas_empty_title">캔버스가 비어 있습니다.</string>
     <string name="workflow_canvas_empty_subtitle">빈 영역을 두 번 탭하여 노드를 추가하거나 아래 도구 모음에서 추가 버튼을 탭하세요.</string>
+    <string name="workflow_external_conflict">워크플로 파일이 외부에서 변경됨</string>
+    <string name="workflow_force_save">강제 저장</string>
 </resources>

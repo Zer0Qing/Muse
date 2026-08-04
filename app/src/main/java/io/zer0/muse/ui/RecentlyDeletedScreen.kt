@@ -1,6 +1,7 @@
 package io.zer0.muse.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -99,6 +100,7 @@ fun RecentlyDeletedScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(deletedSessions, key = { it.id }) { session ->
+                    Box(modifier = Modifier.animateItem()) {
                     DeletedSessionCard(
                         session = session,
                         dateFormat = dateFormat,
@@ -110,6 +112,7 @@ fun RecentlyDeletedScreen(
                         },
                         onPermanentDelete = { pendingPermanentDeleteId = session.id },
                     )
+                    }
                 }
             }
         }

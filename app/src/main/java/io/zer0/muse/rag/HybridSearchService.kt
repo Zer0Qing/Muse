@@ -45,6 +45,8 @@ class HybridSearchService(
      * @param topK 最终返回条数
      * @param threshold 向量检索的相似度阈值
      * @param mmrLambda MMR 权重(传给向量检索)
+     * @param bm25Weight BM25 路 RRF 权重(默认 1.0)
+     * @param vectorWeight 向量路 RRF 权重(默认 1.0)
      * @param scopeDocIds 限定检索范围(可选)
      * @param vectorCandidateK 向量候选数(默认 topK×3,扩大 RRF 候选池)
      * @param bm25CandidateK BM25 候选数(默认 topK×3)
@@ -55,13 +57,16 @@ class HybridSearchService(
         topK: Int,
         threshold: Float,
         mmrLambda: Float,
+        bm25Weight: Float = 1f,
+        vectorWeight: Float = 1f,
         scopeDocIds: List<String>? = null,
+        metadataFilter: VectorSearchService.MetadataFilter? = null,
         vectorCandidateK: Int = topK * 3,
         bm25CandidateK: Int = topK * 3,
     ): List<HybridResult> {
         // 1. 并行检索(协程并发)
         val vectorDeferred = resultOf {
-            vectorSearch.search(queryVector, vectorCandidateK, threshold, mmrLambda, scopeDocIds)
+            vectorSearch.search(queryVector, vectorCandidateK, threshold, mmrLambda, scopeDocIds, metadataFilter)
         }
         val bm25Deferred = resultOf {
             ftsDao.searchBm25(buildFtsQuery(query), bm25CandidateK)
@@ -89,14 +94,14 @@ class HybridSearchService(
 
         // 向量 RRF 贡献
         vectorRanked.forEachIndexed { rank, r ->
-            val contribution = 1.0f / (rank + 1 + RRF_K)
+            val contribution = vectorWeight * (1.0f / (rank + 1 + RRF_K))
             rrfScores[r.chunkId] = (rrfScores[r.chunkId] ?: 0f) + contribution
             metaMap[r.chunkId] = r
         }
 
         // BM25 RRF 贡献(只贡献分数,内容仍以向量结果为准;若仅在 BM25 命中则单独构造条目)
         bm25Ranked.forEachIndexed { rank, hit ->
-            val contribution = 1.0f / (rank + 1 + RRF_K)
+            val contribution = bm25Weight * (1.0f / (rank + 1 + RRF_K))
             rrfScores[hit.chunkId] = (rrfScores[hit.chunkId] ?: 0f) + contribution
             bm25ChunkIds.add(hit.chunkId)
         }

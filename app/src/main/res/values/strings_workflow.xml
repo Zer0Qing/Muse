@@ -2,6 +2,8 @@
 <resources>
     <!-- ===== Workflow 编辑器 WorkflowEditorScreen ===== -->
     <string name="workflow_editor_title">工作流编排</string>
+    <string name="workflow_external_conflict">工作流文件已被外部修改</string>
+    <string name="workflow_force_save">强制保存</string>
     <string name="workflow_select_action">选择操作</string>
 
     <!-- 清空画布确认 -->

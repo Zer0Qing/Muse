@@ -197,6 +197,8 @@ class ChatViewModelSessionMismatchTest {
         deferredResultStore = deferredResultStore,
         subagentThreadStore = subagentThreadStore,
         sessionManager = sessionManager,
+        toolOrchestrator = mockk(relaxed = true),
+        toolApprovalRouter = io.zer0.muse.tools.ToolApprovalRouter(),
     )
 
     /**
@@ -220,9 +222,9 @@ class ChatViewModelSessionMismatchTest {
 
         // 验证乐观更新:user + assistant 占位消息已加入列表
         val stateAfterSend = viewModel.state.value
-        assertEquals("乐观更新后应有 2 条消息", 2, stateAfterSend.messages.size)
-        assertEquals(MessageRole.USER, stateAfterSend.messages[0].role)
-        assertEquals(MessageRole.ASSISTANT, stateAfterSend.messages[1].role)
+        assertEquals("乐观更新后应有 2 条消息", 2, viewModel.messages.value.size)
+        assertEquals(MessageRole.USER, viewModel.messages.value[0].role)
+        assertEquals(MessageRole.ASSISTANT, viewModel.messages.value[1].role)
 
         // 模拟切换到会话 B(在消费者处理请求前)
         viewModel.update { it.copy(currentSessionId = "session-B") }
@@ -232,7 +234,7 @@ class ChatViewModelSessionMismatchTest {
 
         // 验证乐观消息已被移除
         val stateAfterRollback = viewModel.state.value
-        assertEquals("session mismatch 回滚后消息列表应为空", 0, stateAfterRollback.messages.size)
+        assertEquals("session mismatch 回滚后消息列表应为空", 0, viewModel.messages.value.size)
     }
 
     @Test
@@ -320,7 +322,7 @@ class ChatViewModelSessionMismatchTest {
         viewModel.send()
 
         // 空输入应直接 return,不添加消息
-        assertEquals(0, viewModel.state.value.messages.size)
+        assertEquals(0, viewModel.messages.value.size)
         assertFalse(viewModel.state.value.isStreaming)
     }
 
@@ -333,14 +335,14 @@ class ChatViewModelSessionMismatchTest {
 
         // 第一次发送后 isStreaming=true
         assertTrue(viewModel.state.value.isStreaming)
-        val firstMsgCount = viewModel.state.value.messages.size
+        val firstMsgCount = viewModel.messages.value.size
 
         // 再次设置输入并发送(应被 isStreaming 守卫拦截)
         viewModel.update { it.copy(input = "second message") }
         viewModel.send()
 
         // 消息数不应增加
-        assertEquals(firstMsgCount, viewModel.state.value.messages.size)
+        assertEquals(firstMsgCount, viewModel.messages.value.size)
     }
 
     @Test
@@ -354,14 +356,14 @@ class ChatViewModelSessionMismatchTest {
         viewModel.send()
 
         // 验证乐观更新
-        assertEquals(2, viewModel.state.value.messages.size)
+        assertEquals(2, viewModel.messages.value.size)
 
         // 切换 agentSessionId 模拟 Agent Tab 切换
         viewModel.update { it.copy(agentSessionId = "agent-session-B") }
         advanceUntilIdle()
 
         // 验证乐观消息被移除
-        assertEquals(0, viewModel.state.value.messages.size)
+        assertEquals(0, viewModel.messages.value.size)
         assertFalse(viewModel.state.value.isStreaming)
 
         // 验证不向错误会话调用 appendMessage

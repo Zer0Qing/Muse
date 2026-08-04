@@ -1,15 +1,8 @@
 package io.zer0.muse.ui
 
 import android.Manifest
-import android.content.ContentUris
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.graphics.Matrix
-import android.net.Uri
 import android.os.Build
-import android.provider.MediaStore
 import android.view.KeyEvent
-import java.io.ByteArrayOutputStream
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
@@ -25,26 +18,20 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.Photo
-import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.outlined.GroupWork
@@ -65,13 +52,11 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
@@ -87,20 +72,12 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
-import coil.compose.AsyncImage
 import io.zer0.ai.core.MessageRole
-import io.zer0.ai.core.UIMessage
-import io.zer0.ai.image.ImageGenParams
-import io.zer0.ai.image.ImageModelCatalog
 import io.zer0.muse.R
 import io.zer0.muse.asr.ASRStatus
-import io.zer0.muse.data.assistant.AssistantEntity
-import io.zer0.muse.data.quickmsg.QuickMessageEntity
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseTextField
-import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.feedback.MuseDialog
-import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MuseElevation
@@ -109,10 +86,7 @@ import io.zer0.muse.ui.theme.MuseShadow
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.huge
 import io.zer0.muse.ui.theme.pill
-import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.ui.SmartImage
-import io.zer0.muse.ui.chat.TokenStatsBar
-import io.zer0.muse.ui.chat.VideoAttachment
 import io.zer0.common.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -165,93 +139,69 @@ private val MENTION_HIGHLIGHT_REGEX = Regex("@[\\u4e00-\\u9fa5\\w]+")
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
 internal fun InputBar(
-    text: String,
-    isStreaming: Boolean,
-    isDrawMode: Boolean,
-    isWebSearchEnabled: Boolean,
-    isDeepThinkingEnabled: Boolean = false,
-    // v1.0.47 P5-6: 深度思考级别(仅 isDeepThinkingEnabled=true 时有意义),输入栏点击胶囊循环切换
-    deepThinkingLevel: io.zer0.ai.core.ReasoningLevel = io.zer0.ai.core.ReasoningLevel.HIGH,
-    onCycleDeepThinkingLevel: () -> Unit = {},
-    showExpandButton: Boolean = false,
-    // v0.34: 绘图参数(临时覆盖设置默认值)
-    imageGenParams: ImageGenParams = ImageGenParams(),
-    onImageGenParamsChange: (ImageGenParams) -> Unit = {},
-    onTextChanged: (String) -> Unit,
-    onSend: () -> Unit,
-    onStop: () -> Unit,
-    // v1.0.47 P5: 输入框上/下箭头回调,遍历本会话输入历史(direction<0=上/旧,direction>0=下/新)。
-    // 仅硬件键盘生效;软键盘无箭头键,不触发。
-    onNavigateInputHistory: (Int) -> Unit = {},
-    onPickDocument: () -> Unit,
-    onToggleDrawMode: () -> Unit,
-    onToggleWebSearch: () -> Unit,
-    onToggleDeepThinking: () -> Unit = {},
-    // v1.24: Agent 加号工具栏专用 — 重启上下文(普通会话不显示)
-    showRestartContext: Boolean = false,
-    onRestartContext: () -> Unit = {},
-    // v1.25: 委托给助手入口(点击弹出助手/团队选择 sheet)
-    assistants: List<AssistantEntity> = emptyList(),
-    onDelegateToAssistant: () -> Unit = {},
-    // v0.29 P1-6: 知识库 @mention 入口(点击弹出文档选择 sheet)
-    onPickKnowledge: () -> Unit = {},
-    // v1.58: Prompt 模板库入口(点击弹出模板选择 sheet)
-    onOpenPromptTemplates: () -> Unit = {},
-    // v2.2: 技能入口(点击跳转技能列表)
-    onOpenSkills: () -> Unit = {},
-    // v0.31: 回车键发送消息开关(关闭则回车换行)
-    enterToSend: Boolean = false,
-    quickMessages: List<QuickMessageEntity> = emptyList(),
-    onInsertQuickMessage: (QuickMessageEntity) -> Unit = {},
-    pendingImages: List<String> = emptyList(),
-    onPickImage: (asOcr: Boolean) -> Unit = {},
-    // v0.53: 工具菜单中最近相册图片点击回调
-    onPickGalleryImage: (Uri) -> Unit = {},
-    onRemovePendingImage: (Int) -> Unit = {},
-    // v1.136 T10: 待发送文档(已解析为纯文本,发送时合并到消息内容)
-    pendingDocuments: List<io.zer0.muse.ui.chat.PendingDocument> = emptyList(),
-    onRemovePendingDocument: (Int) -> Unit = {},
-    // 视频输入支持:待发送视频附件(null 表示无);与 pendingImages 互斥,避免一次发送超大 payload
-    pendingVideo: VideoAttachment? = null,
-    onPickVideo: () -> Unit = {},
-    onRemovePendingVideo: () -> Unit = {},
-    // 引用回复:当前正在回复的消息与取消回调
-    replyingTo: UIMessage? = null,
-    onClearReply: () -> Unit = {},
-    // v1.57: 引用卡片自定义文本(用户编辑裁剪后)+ 编辑回调
-    replyQuoteOverride: String? = null,
-    onEditReply: (String) -> Unit = {},
-    isRecording: Boolean = false,
-    asrStatus: ASRStatus = ASRStatus.Idle,
-    recordingAmplitudes: List<Float> = emptyList(),
-    onStartRecording: () -> Boolean = { false },
-    onStopRecording: () -> Unit = {},
-    onCancelRecording: () -> Unit = {},
-    // v1.97: 仅在用户配置了 ASR API 后才显示麦克风 UI
-    showMic: Boolean = true,
-    // v1.97: 工具/任务进度指示器 — pill 形状显示 x/y,有进度时显示在 Row 右侧
-    toolCallCompleted: Int = 0,
-    toolCallTotal: Int = 0,
-    onShowToolCalls: () -> Unit = {},
-    // 功能2: 是否显示"草稿"标记(从 DataStore 恢复的输入)
-    hasDraft: Boolean = false,
-    // 语音对话模式入口:点击进入全屏语音对话(连续 ASR + AI + TTS)
-    // 仅在已配置 ASR API(showMic=true)时显示,与普通长按录音区分
-    onOpenVoiceConversation: () -> Unit = {},
-    // v1.0.29: 是否进入页面时自动聚焦输入框并呼出输入法。
-    // Agent Tab 首次切换时不应主动弹键盘,避免抢占屏幕。
-    autoFocus: Boolean = true,
-    // v1.0.47 P5-3: Token 估算开关(默认关闭)。开启时输入栏底部显示 Token 统计条。
-    tokenEstimateEnabled: Boolean = false,
-    // v1.0.53: Token 统计条数据(历史消息 token 数 + 模型上下文窗口)
-    historyTokens: Int = 0,
-    contextWindow: Int = 0,
-    // v1.0.47 P5-2: 长文本粘贴转文件(默认开启),粘贴超阈值文本时弹窗提示转为 txt 附件
-    pasteAsFileEnabled: Boolean = true,
-    pasteAsFileThreshold: Int = 2000,
-    onAddPastedTextAsDocument: (String) -> Unit = {},
+    state: MuseInputState = MuseInputState(),
+    callbacks: InputBarCallbacks = InputBarCallbacks(),
 ) {
     val hapticFeedback = LocalHapticFeedback.current
+    // B7-07: 从聚合状态/回调中解包,保持函数体原有逻辑不变
+    val text = state.text
+    val isStreaming = state.isStreaming
+    val isWaitingFirstToken = state.isWaitingFirstToken
+    val isDrawMode = state.isDrawMode
+    val isWebSearchEnabled = state.isWebSearchEnabled
+    val isDeepThinkingEnabled = state.isDeepThinkingEnabled
+    val deepThinkingLevel = state.deepThinkingLevel
+    val showExpandButton = state.showExpandButton
+    val imageGenParams = state.imageGenParams
+    val showRestartContext = state.showRestartContext
+    val assistants = state.assistants
+    val enterToSend = state.enterToSend
+    val quickMessages = state.quickMessages
+    val pendingImages = state.pendingImages
+    val pendingDocuments = state.pendingDocuments
+    val pendingVideo = state.pendingVideo
+    val replyingTo = state.replyingTo
+    val replyQuoteOverride = state.replyQuoteOverride
+    val isRecording = state.isRecording
+    val asrStatus = state.asrStatus
+    val recordingAmplitudes = state.recordingAmplitudes
+    val showMic = state.showMic
+    val toolCallCompleted = state.toolCallCompleted
+    val toolCallTotal = state.toolCallTotal
+    val hasDraft = state.hasDraft
+    val autoFocus = state.autoFocus
+    val pasteAsFileEnabled = state.pasteAsFileEnabled
+    val pasteAsFileThreshold = state.pasteAsFileThreshold
+    val onCycleDeepThinkingLevel = callbacks.onCycleDeepThinkingLevel
+    val onImageGenParamsChange = callbacks.onImageGenParamsChange
+    val onTextChanged = callbacks.onTextChanged
+    val onSend = callbacks.onSend
+    val onStop = callbacks.onStop
+    val onNavigateInputHistory = callbacks.onNavigateInputHistory
+    val onPickDocument = callbacks.onPickDocument
+    val onToggleDrawMode = callbacks.onToggleDrawMode
+    val onToggleWebSearch = callbacks.onToggleWebSearch
+    val onToggleDeepThinking = callbacks.onToggleDeepThinking
+    val onRestartContext = callbacks.onRestartContext
+    val onDelegateToAssistant = callbacks.onDelegateToAssistant
+    val onPickKnowledge = callbacks.onPickKnowledge
+    val onOpenPromptTemplates = callbacks.onOpenPromptTemplates
+    val onOpenSkills = callbacks.onOpenSkills
+    val onInsertQuickMessage = callbacks.onInsertQuickMessage
+    val onPickImage = callbacks.onPickImage
+    val onPickGalleryImage = callbacks.onPickGalleryImage
+    val onRemovePendingImage = callbacks.onRemovePendingImage
+    val onRemovePendingDocument = callbacks.onRemovePendingDocument
+    val onPickVideo = callbacks.onPickVideo
+    val onRemovePendingVideo = callbacks.onRemovePendingVideo
+    val onClearReply = callbacks.onClearReply
+    val onEditReply = callbacks.onEditReply
+    val onStartRecording = callbacks.onStartRecording
+    val onStopRecording = callbacks.onStopRecording
+    val onCancelRecording = callbacks.onCancelRecording
+    val onShowToolCalls = callbacks.onShowToolCalls
+    val onOpenVoiceConversation = callbacks.onOpenVoiceConversation
+    val onAddPastedTextAsDocument = callbacks.onAddPastedTextAsDocument
     // v1.26: 上滑取消后的"已取消"瞬态提示(1.5s 后自动消失)
     var showCancelledHint by remember { mutableStateOf(false) }
     LaunchedEffect(showCancelledHint) {
@@ -264,43 +214,12 @@ internal fun InputBar(
     // 长按输入栏弹出的动作菜单(全屏输入模式入口)
     var showActionMenu by remember { mutableStateOf(false) }
     if (expanded) {
-        Box(
-            modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface.copy(alpha = 0.97f)).systemBarsPadding()
-                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = {}),
-        ) {
-            Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    IconButton(onClick = { expanded = false }) {
-                        Icon(compose.icons.TablerIcons.ArrowLeft, contentDescription = stringResource(R.string.action_cancel), tint = MaterialTheme.colorScheme.onSurface)
-                    }
-                    Text(text = stringResource(R.string.chat_expand_input_title), style = MaterialTheme.typography.titleMedium)
-                    Spacer(Modifier.size(48.dp))
-                }
-                Spacer(Modifier.height(12.dp))
-                MuseTextField(
-                    value = text,
-                    onValueChange = { if (it.length <= 50000) onTextChanged(it) },
-                    modifier = Modifier.fillMaxWidth().weight(1f),
-                    minLines = 10, maxLines = 100,
-                    placeholder = { Text(stringResource(R.string.chat_placeholder_send)) },
-                )
-                Spacer(Modifier.height(12.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    Surface(
-                        onClick = { if (text.isNotBlank()) { onSend(); expanded = false } },
-                        enabled = text.isNotBlank(),
-                        shape = io.zer0.muse.ui.theme.MuseShapes.pill,
-                        color = if (text.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                    ) {
-                        Row(modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(compose.icons.TablerIcons.Send, contentDescription = null, modifier = Modifier.size(MuseIconSizes.iconSmall), tint = if (text.isNotBlank()) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
-                            Spacer(Modifier.width(6.dp))
-                            Text(text = stringResource(R.string.action_send), style = MaterialTheme.typography.labelLarge, color = if (text.isNotBlank()) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
-                        }
-                    }
-                }
-            }
-        }
+        MuseExpandedInputEditor(
+            text = text,
+            onTextChanged = onTextChanged,
+            onSend = onSend,
+            onClose = { expanded = false },
+        )
     }
     // 进入聊天页时自动聚焦输入框(仅在文本为空且允许自动聚焦时,避免打断已有草稿)
     val focusRequester = remember { FocusRequester() }
@@ -318,15 +237,15 @@ internal fun InputBar(
             .imePadding()
             // v1.132: 输入栏横向宽度缩小(两侧 padding 12dp → 24dp,总宽度减少 24dp);
             // v1.137 B5: 纵向 padding 4dp → 2dp,进一步降低输入栏高度
-            .padding(horizontal = 24.dp, vertical = 2.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+            .padding(horizontal = MusePaddings.inputHorizontal, vertical = MusePaddings.inputVertical),
+        verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
     ) {
         // v1.0.29: 联网搜索 / 深度思考 已移入加号菜单,
         // 输入栏上方仅保留语音对话入口和工具进度 pill(有内容时才显示)。
         if (showMic || toolCallTotal > 0) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             // 语音对话模式入口(仅 ASR API 已配置时显示):点击进入全屏连续对话
@@ -373,7 +292,7 @@ internal fun InputBar(
                 )
                 Row(
                     modifier = Modifier
-                        .height(32.dp)
+                        .height(MuseIconSizes.controlTouch)
                         .clip(MuseShapes.pill)
                         .background(toolPillBgColor)
                         .clickable(
@@ -385,7 +304,7 @@ internal fun InputBar(
                             contentDescription = "工具调用进度 $toolCallCompleted/$toolCallTotal"
                         },
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
                 ) {
                     Icon(
                         imageVector = Icons.Default.Build,
@@ -409,7 +328,7 @@ internal fun InputBar(
                 modifier = Modifier
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(MusePaddings.inputStackGap),
             ) {
                 quickMessages.forEach { qm ->
                     MuseChip(
@@ -426,13 +345,13 @@ internal fun InputBar(
                 modifier = Modifier
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
             ) {
                 pendingImages.forEachIndexed { index, b64 ->
                     Box(
                         modifier = Modifier
-                            .size(72.dp)
-                            .padding(top = 4.dp),
+                            .size(MusePaddings.previewThumb)
+                            .padding(top = MusePaddings.tightGap),
                     ) {
                         SmartImage(
                             model = "data:image/jpeg;base64,$b64",
@@ -453,8 +372,8 @@ internal fun InputBar(
                         Box(
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
-                                .offset(x = 6.dp, y = (-6).dp)
-                                .size(32.dp)
+                                .offset(x = MusePaddings.labelVerticalGap, y = (-MusePaddings.labelVerticalGap))
+                                .size(MuseIconSizes.controlTouch)
                                 .clickable(
                                     interactionSource = removeInteractionSource,
                                     indication = null,
@@ -463,10 +382,10 @@ internal fun InputBar(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(20.dp)
+                                    .size(MuseIconSizes.iconMedium)
                                     .clip(CircleShape)
                                     .background(removeBgColor)
-                                    .padding(3.dp),
+                                    .padding(MusePaddings.removeDotPadding),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Icon(
@@ -488,8 +407,8 @@ internal fun InputBar(
                 modifier = Modifier
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState())
-                    .padding(top = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    .padding(top = MusePaddings.tightGap),
+                horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 pendingDocuments.forEachIndexed { index, doc ->
@@ -498,7 +417,7 @@ internal fun InputBar(
                         shape = MuseShapes.medium,
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
                         modifier = Modifier
-                            .padding(top = 4.dp)
+                            .padding(top = MusePaddings.tightGap)
                             .clickable(
                                 interactionSource = docInteractionSource,
                                 indication = null,
@@ -506,15 +425,15 @@ internal fun InputBar(
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                            modifier = Modifier.padding(horizontal = MusePaddings.contentGap, vertical = MusePaddings.labelVerticalGap),
                         ) {
                             Icon(
                                 imageVector = TablerIcons.FileText,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(16.dp),
+                                modifier = Modifier.size(MuseIconSizes.iconSmallTiny),
                             )
-                            Spacer(Modifier.width(4.dp))
+                            Spacer(Modifier.width(MusePaddings.tightGap))
                             Column {
                                 Text(
                                     text = doc.name,
@@ -522,7 +441,7 @@ internal fun InputBar(
                                     color = MaterialTheme.colorScheme.onSurface,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.widthIn(max = 120.dp),
+                                    modifier = Modifier.widthIn(max = MusePaddings.maxInlineWidth),
                                 )
                                 Text(
                                     text = "${doc.charCount} 字",
@@ -530,12 +449,12 @@ internal fun InputBar(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
-                            Spacer(Modifier.width(4.dp))
+                            Spacer(Modifier.width(MusePaddings.tightGap))
                             Icon(
                                 imageVector = TablerIcons.X,
                                 contentDescription = stringResource(R.string.chat_remove_document_cd),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                modifier = Modifier.size(14.dp),
+                                modifier = Modifier.size(MuseIconSizes.iconTiny),
                             )
                         }
                     }
@@ -548,13 +467,13 @@ internal fun InputBar(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    .padding(top = MusePaddings.tightGap),
+                horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(
                     modifier = Modifier
-                        .size(72.dp)
+                        .size(MusePaddings.previewThumb)
                         .clip(MuseShapes.medium),
                 ) {
                     // 缩略图缺失时降级为深色占位 + 视频图标,避免空白
@@ -584,7 +503,7 @@ internal fun InputBar(
                     Box(
                         modifier = Modifier
                             .align(Alignment.Center)
-                            .size(28.dp)
+                            .size(MuseIconSizes.iconVideo)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.45f)),
                         contentAlignment = Alignment.Center,
@@ -652,7 +571,7 @@ internal fun InputBar(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 8.dp)
+                    .padding(bottom = MusePaddings.contentGap)
                     .clip(MuseShapes.small)
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                     .padding(MusePaddings.bubbleInner),
@@ -748,7 +667,7 @@ internal fun InputBar(
                     .fillMaxWidth()
                     // v1.131: 内部 Row vertical padding 6dp → 3dp,缩小输入栏高度
                     // v1.137 B5: vertical padding 3dp → 1dp,进一步降低高度
-                    .padding(horizontal = 8.dp, vertical = 1.dp)
+                    .padding(horizontal = MusePaddings.contentGap, vertical = MusePaddings.compactChipVertical)
                     // 长按输入栏弹出动作菜单(全屏输入模式入口)
                     .combinedClickable(
                         interactionSource = remember { MutableInteractionSource() },
@@ -760,7 +679,7 @@ internal fun InputBar(
                         },
                     ),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
             ) {
                 // v0.44: Sheet 状态声明(右侧 Add 按钮触发,Sheet 块留在 Row 内不影响布局)
                 var showToolSheet by remember { mutableStateOf(false) }
@@ -802,303 +721,159 @@ internal fun InputBar(
                         modifier = Modifier.size(MuseIconSizes.iconMedium),
                     )
                 }
-                if (showToolSheet) {
-                    // v1.46: MANUS 风格底部展开面板(替代 MuseDialog 弹窗)
-                    // v1.0.29: maxHeightFraction=0.55f,让加号菜单高度对齐
-                    // 摄像头/照片磁贴底部,位置更自然。
-                    MuseBottomSheet(
-                        onDismissRequest = { showToolSheet = false },
-                        maxHeightFraction = 0.55f,
-                    ) {
-                        Text(
-                            text = stringResource(R.string.chat_tools_pick_content),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.outline,
-                        )
+                 if (showToolSheet) {
+                     val deepThinkingLabel = stringResource(R.string.chat_deep_thinking_cd)
+                     val deepThinkingTitle = if (isDeepThinkingEnabled) {
+                         val levelLabel = when (deepThinkingLevel) {
+                             io.zer0.ai.core.ReasoningLevel.LOW -> "LOW"
+                             io.zer0.ai.core.ReasoningLevel.MEDIUM -> "MED"
+                             io.zer0.ai.core.ReasoningLevel.HIGH -> "HIGH"
+                             io.zer0.ai.core.ReasoningLevel.XHIGH -> "XHIGH"
+                             else -> "AUTO"
+                         }
+                         "$deepThinkingLabel · $levelLabel"
+                     } else {
+                         deepThinkingLabel
+                     }
+                     val toolEntries = buildList {
+                         add(
+                             ToolEntry(
+                                 icon = Icons.Default.Language,
+                                 title = stringResource(R.string.chat_web_search_cd),
+                                 isActive = isWebSearchEnabled,
+                                 showArrow = false,
+                                 onClick = {
+                                     MuseHaptics.light(hapticFeedback)
+                                     onToggleWebSearch()
+                                 },
+                             ),
+                         )
+                         add(
+                             ToolEntry(
+                                 icon = Icons.Default.Psychology,
+                                 title = deepThinkingTitle,
+                                 isActive = isDeepThinkingEnabled,
+                                 showArrow = false,
+                                 onClick = {
+                                     MuseHaptics.light(hapticFeedback)
+                                     onToggleDeepThinking()
+                                 },
+                                 onLongClick = {
+                                     MuseHaptics.light(hapticFeedback)
+                                     onCycleDeepThinkingLevel()
+                                 },
+                             ),
+                         )
+                         add(
+                             ToolEntry(
+                                 icon = TablerIcons.Paperclip,
+                                 title = stringResource(R.string.chat_tool_attachment),
+                                 onClick = {
+                                     MuseHaptics.light(hapticFeedback)
+                                     showToolSheet = false
+                                     onPickDocument()
+                                 },
+                             ),
+                         )
+                         add(
+                             ToolEntry(
+                                 icon = TablerIcons.Book,
+                                 title = stringResource(R.string.chat_tool_knowledge),
+                                 subtitle = stringResource(R.string.chat_tool_knowledge_subtitle),
+                                 onClick = {
+                                     MuseHaptics.light(hapticFeedback)
+                                     showToolSheet = false
+                                     onPickKnowledge()
+                                 },
+                             ),
+                         )
+                         add(
+                             ToolEntry(
+                                 icon = TablerIcons.Book,
+                                 title = stringResource(R.string.chat_prompt_templates_title),
+                                 subtitle = stringResource(R.string.chat_tool_prompt_template_subtitle),
+                                 onClick = {
+                                     MuseHaptics.light(hapticFeedback)
+                                     showToolSheet = false
+                                     onOpenPromptTemplates()
+                                 },
+                             ),
+                         )
+                         add(
+                             ToolEntry(
+                                 icon = Icons.Default.Build,
+                                 title = stringResource(R.string.chat_tool_skills),
+                                 subtitle = stringResource(R.string.chat_tool_skills_subtitle),
+                                 onClick = {
+                                     MuseHaptics.light(hapticFeedback)
+                                     showToolSheet = false
+                                     onOpenSkills()
+                                 },
+                             ),
+                         )
+                         add(
+                             ToolEntry(
+                                 icon = Icons.Default.Brush,
+                                 title = stringResource(R.string.chat_tool_draw_mode),
+                                 subtitle = if (isDrawMode) stringResource(R.string.chat_tool_draw_mode_subtitle_on) else stringResource(R.string.chat_tool_draw_mode_subtitle),
+                                 isActive = isDrawMode,
+                                 showArrow = !isDrawMode,
+                                 onClick = {
+                                     MuseHaptics.light(hapticFeedback)
+                                     showToolSheet = false
+                                     onToggleDrawMode()
+                                 },
+                             ),
+                         )
+                         if (assistants.isNotEmpty()) {
+                             add(
+                                 ToolEntry(
+                                     icon = Icons.Outlined.GroupWork,
+                                     title = stringResource(R.string.chat_delegate_action),
+                                     subtitle = stringResource(R.string.chat_tool_delegate_subtitle),
+                                     onClick = {
+                                         MuseHaptics.light(hapticFeedback)
+                                         showToolSheet = false
+                                         onDelegateToAssistant()
+                                     },
+                                 ),
+                             )
+                         }
+                         if (showRestartContext) {
+                             add(
+                                 ToolEntry(
+                                     icon = TablerIcons.Refresh,
+                                     title = stringResource(R.string.chat_tool_restart_context),
+                                     subtitle = stringResource(R.string.chat_tool_restart_context_subtitle),
+                                     onClick = {
+                                         MuseHaptics.light(hapticFeedback)
+                                         showToolSheet = false
+                                         onRestartContext()
+                                     },
+                                 ),
+                             )
+                         }
+                     }
+                     MuseToolSheet(
+                         context = context,
+                         hapticFeedback = hapticFeedback,
+                         hasGalleryPermission = hasGalleryPermission,
+                         galleryPermission = galleryPermission,
+                         onRequestGalleryPermission = { galleryPermissionLauncher.launch(galleryPermission) },
+                         onPickImage = { asOcr ->
+                             showToolSheet = false
+                             onPickImage(asOcr)
+                         },
+                         onPickGalleryImage = { uri ->
+                             showToolSheet = false
+                             onPickGalleryImage(uri)
+                         },
+                         entries = toolEntries,
+                         onDismiss = { showToolSheet = false },
+                     )
+                 }
 
-                        Spacer(Modifier.height(16.dp))
-
-                        // v0.53: 最近相册图片(工具 Sheet 展开时刷新)
-                        var recentImages by remember { mutableStateOf<List<Uri>>(emptyList()) }
-                        // v1.79 (H-I5): MediaStore 查询移到 IO 线程,避免阻塞主线程
-                        LaunchedEffect(showToolSheet, hasGalleryPermission) {
-                            if (showToolSheet && hasGalleryPermission) {
-                                recentImages = withContext(Dispatchers.IO) {
-                                    queryRecentGalleryImages(context, 10)
-                                }
-                            }
-                        }
-
-                        // 媒体快捷入口:iOS 风格横向圆角卡片 + 右侧最近相册
-                        // v1.46: 整体可横向滑动,避免小屏手机占用最近相册空间
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .horizontalScroll(rememberScrollState())
-                                .padding(horizontal = MusePaddings.tightGap),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            // 摄像头 / 照片(用户要求互换位置:摄像头在前,照片在后)
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            ) {
-                                ToolMediaCard(
-                                    icon = Icons.Default.PhotoCamera,
-                                    label = stringResource(R.string.chat_tool_camera),
-                                    onClick = {
-                                        MuseHaptics.light(hapticFeedback)
-                                        showToolSheet = false
-                                        onPickImage(true)
-                                    },
-                                )
-                                ToolMediaCard(
-                                    icon = Icons.Default.Photo,
-                                    label = stringResource(R.string.chat_tool_photo),
-                                    onClick = {
-                                        MuseHaptics.light(hapticFeedback)
-                                        showToolSheet = false
-                                        onPickImage(false)
-                                    },
-                                )
-                            }
-
-                            // 分隔线
-                            if (recentImages.isNotEmpty() || !hasGalleryPermission) {
-                                Box(
-                                    modifier = Modifier
-                                        .padding(horizontal = MusePaddings.tightGap)
-                                        .width(1.dp)
-                                        .height(64.dp)
-                                        .background(
-                                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                                            // 0.5dp 圆角视觉不可见,改用 RectangleShape 更明确
-                                            RectangleShape,
-                                        ),
-                                )
-                            }
-
-                            // 右侧最近相册:点击快速加入待发送(父 Row 已支持横向滑动)
-                            if (hasGalleryPermission) {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    recentImages.forEach { uri ->
-                                        AsyncImage(
-                                            model = uri,
-                                            contentDescription = stringResource(R.string.chat_gallery_image_cd),
-                                            modifier = Modifier
-                                                .size(64.dp)
-                                                .clip(MuseShapes.medium)
-                                                .clickable {
-                                                    MuseHaptics.light(hapticFeedback)
-                                                    showToolSheet = false
-                                                    onPickGalleryImage(uri)
-                                                },
-                                            contentScale = ContentScale.Crop,
-                                        )
-                                    }
-                                }
-                            } else {
-                                Surface(
-                                    modifier = Modifier
-                                        .height(64.dp)
-                                        .clip(MuseShapes.medium)
-                                        .clickable {
-                                            MuseHaptics.light(hapticFeedback)
-                                            galleryPermissionLauncher.launch(galleryPermission)
-                                        },
-                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = MusePaddings.screen),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Photo,
-                                            contentDescription = stringResource(R.string.chat_gallery_cd),
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-                                        Text(
-                                            text = stringResource(R.string.chat_authorize_gallery),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        Spacer(Modifier.height(24.dp))
-
-                        // 功能列表:iOS 风格左图标 + 标题/副标题 + 右箭头
-                        // v1.63: 加 verticalScroll + heightIn(max),避免功能多了被截断
-                        // v1.125: 内层 Column(bottom padding) 避免滚动到底时最后一项被裁剪
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = 360.dp)
-                                .verticalScroll(rememberScrollState()),
-                        ) {
-                            Column(modifier = Modifier.padding(bottom = 32.dp)) {
-                        // v1.0.29: 联网搜索 / 深度思考 移入加号菜单,
-                        // 放在媒体入口下方、附件上方,与下方功能列表保持同一样式。
-                        ToolListRow(
-                            icon = Icons.Default.Language,
-                            title = stringResource(R.string.chat_web_search_cd),
-                            isActive = isWebSearchEnabled,
-                            showArrow = false,
-                            onClick = {
-                                MuseHaptics.light(hapticFeedback)
-                                onToggleWebSearch()
-                            },
-                        )
-                        HorizontalDivider(
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                            thickness = 0.5.dp,
-                        )
-                        // v1.0.53: 深度思考合并了思考强度胶囊 —
-                        // 点击:toggle 开关;长按:循环切换级别 (LOW→MED→HIGH→XHIGH)
-                        val deepThinkingLabel = stringResource(R.string.chat_deep_thinking_cd)
-                        val deepThinkingTitle = if (isDeepThinkingEnabled) {
-                            val levelLabel = when (deepThinkingLevel) {
-                                io.zer0.ai.core.ReasoningLevel.LOW -> "LOW"
-                                io.zer0.ai.core.ReasoningLevel.MEDIUM -> "MED"
-                                io.zer0.ai.core.ReasoningLevel.HIGH -> "HIGH"
-                                io.zer0.ai.core.ReasoningLevel.XHIGH -> "XHIGH"
-                                else -> "AUTO"
-                            }
-                            "$deepThinkingLabel · $levelLabel"
-                        } else {
-                            deepThinkingLabel
-                        }
-                        ToolListRow(
-                            icon = Icons.Default.Psychology,
-                            title = deepThinkingTitle,
-                            isActive = isDeepThinkingEnabled,
-                            showArrow = false,
-                            onClick = {
-                                MuseHaptics.light(hapticFeedback)
-                                onToggleDeepThinking()
-                            },
-                            onLongClick = {
-                                MuseHaptics.light(hapticFeedback)
-                                onCycleDeepThinkingLevel()
-                            },
-                        )
-                        HorizontalDivider(
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                            thickness = 0.5.dp,
-                        )
-                        ToolListRow(
-                            icon = TablerIcons.Paperclip,
-                            title = stringResource(R.string.chat_tool_attachment),
-                            onClick = {
-                                MuseHaptics.light(hapticFeedback)
-                                showToolSheet = false
-                                onPickDocument()
-                            },
-                        )
-                        HorizontalDivider(
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                            thickness = 0.5.dp,
-                        )
-                        ToolListRow(
-                            icon = TablerIcons.Book,
-                            title = stringResource(R.string.chat_tool_knowledge),
-                            subtitle = stringResource(R.string.chat_tool_knowledge_subtitle),
-                            onClick = {
-                                MuseHaptics.light(hapticFeedback)
-                                showToolSheet = false
-                                onPickKnowledge()
-                            },
-                        )
-                        HorizontalDivider(
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                            thickness = 0.5.dp,
-                        )
-                        // v1.58: Prompt 模板库
-                        ToolListRow(
-                            icon = TablerIcons.Book,
-                            title = stringResource(R.string.chat_prompt_templates_title),
-                            subtitle = stringResource(R.string.chat_tool_prompt_template_subtitle),
-                            onClick = {
-                                MuseHaptics.light(hapticFeedback)
-                                showToolSheet = false
-                                onOpenPromptTemplates()
-                            },
-                        )
-                        HorizontalDivider(
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                            thickness = 0.5.dp,
-                        )
-                        // v2.2: 技能入口
-                        ToolListRow(
-                            icon = Icons.Default.Build,
-                            title = stringResource(R.string.chat_tool_skills),
-                            subtitle = stringResource(R.string.chat_tool_skills_subtitle),
-                            onClick = {
-                                MuseHaptics.light(hapticFeedback)
-                                showToolSheet = false
-                                onOpenSkills()
-                            },
-                        )
-                        HorizontalDivider(
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                            thickness = 0.5.dp,
-                        )
-                        ToolListRow(
-                            icon = Icons.Default.Brush,
-                            title = stringResource(R.string.chat_tool_draw_mode),
-                            subtitle = if (isDrawMode) stringResource(R.string.chat_tool_draw_mode_subtitle_on) else stringResource(R.string.chat_tool_draw_mode_subtitle),
-                            isActive = isDrawMode,
-                            showArrow = !isDrawMode,
-                            onClick = {
-                                MuseHaptics.light(hapticFeedback)
-                                showToolSheet = false
-                                onToggleDrawMode()
-                            },
-                        )
-                        if (assistants.isNotEmpty()) {
-                            HorizontalDivider(
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                                thickness = 0.5.dp,
-                            )
-                            ToolListRow(
-                                icon = Icons.Outlined.GroupWork,
-                                title = stringResource(R.string.chat_delegate_action),
-                                subtitle = stringResource(R.string.chat_tool_delegate_subtitle),
-                                onClick = {
-                                    MuseHaptics.light(hapticFeedback)
-                                showToolSheet = false
-                                onDelegateToAssistant()
-                                },
-                            )
-                        }
-                        if (showRestartContext) {
-                            HorizontalDivider(
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                                thickness = 0.5.dp,
-                            )
-                            ToolListRow(
-                                icon = TablerIcons.Refresh,
-                                title = stringResource(R.string.chat_tool_restart_context),
-                                subtitle = stringResource(R.string.chat_tool_restart_context_subtitle),
-                                onClick = {
-                                    MuseHaptics.light(hapticFeedback)
-                                showToolSheet = false
-                                onRestartContext()
-                                },
-                            )
-                        }
-                            } // 内部 padding Column 结束
-                        } // verticalScroll Column 结束
-                    }
-                }
-
-                // v1.0.47 P5-4: 抽取 MessageInputField 子组件,隔离输入框高频重组,
+                 // v1.0.47 P5-4: 抽取 MessageInputField 子组件,隔离输入框高频重组,
                 // 避免 onValueChange 触发整个 InputBar(含工具 Sheet/图片预览等)重组。
                 MessageInputField(
                     text = text,
@@ -1149,10 +924,7 @@ internal fun InputBar(
                     )
                     Box(
                         modifier = Modifier
-                            .size(36.dp)
-                            .graphicsLayer { scaleX = stopScale; scaleY = stopScale }
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.error)
+                            .size(MuseIconSizes.touchTarget)
                             .clickable(
                                 interactionSource = stopInteractionSource,
                                 indication = null,
@@ -1163,12 +935,29 @@ internal fun InputBar(
                             ),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Icon(
-                            imageVector = TablerIcons.Square,
-                            contentDescription = stringResource(R.string.chat_stop_generation_cd),
-                            tint = MaterialTheme.colorScheme.onError,
-                            modifier = Modifier.size(MuseIconSizes.iconSmall),
-                        )
+                        Box(
+                            modifier = Modifier
+                                .size(MuseIconSizes.stopButton)
+                                .graphicsLayer { scaleX = stopScale; scaleY = stopScale }
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.error),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            if (isWaitingFirstToken) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(MuseIconSizes.iconSmallTiny),
+                                    strokeWidth = MuseIconSizes.progressStroke,
+                                    color = MaterialTheme.colorScheme.onError,
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = TablerIcons.Square,
+                                    contentDescription = stringResource(R.string.chat_stop_generation_cd),
+                                    tint = MaterialTheme.colorScheme.onError,
+                                    modifier = Modifier.size(MuseIconSizes.iconSmall),
+                                )
+                            }
+                        }
                     }
                 } else if (text.isBlank() && pendingImages.isEmpty() && pendingVideo == null && showMic) {
                     // v1.26: 麦克风统一为长按说话 + 上滑取消(不再区分 API/Vosk 路径,
@@ -1193,7 +982,7 @@ internal fun InputBar(
                             .pointerInput(Unit) {
                                 // v1.79 (M-I10): 上滑取消阈值由 100dp 降至 48dp
                                 // (PointerInputScope 是 Density,可直接 toPx)
-                                val slideThresholdPx = 48.dp.toPx()
+                                val slideThresholdPx = MuseIconSizes.touchTarget.toPx()
                                 awaitPointerEventScope {
                                     val down = awaitFirstDown()
                                     // 长按开始录音;若模型未就绪/权限未授予,
@@ -1241,16 +1030,16 @@ internal fun InputBar(
                             asrStatus == ASRStatus.Stopping -> CircularProgressIndicator(
                                 // v1.79 (L-I3): 无障碍 contentDescription
                                 modifier = Modifier
-                                    .size(20.dp)
+                                    .size(MuseIconSizes.iconMedium)
                                     .semantics { contentDescription = recognizingCd },
-                                strokeWidth = 2.dp,
+                                strokeWidth = MuseIconSizes.progressStroke,
                             )
                             // 任务 1: Reconnecting(断网重连中)显示 loading,提示用户网络恢复中
                             asrStatus == ASRStatus.Reconnecting -> CircularProgressIndicator(
                                 modifier = Modifier
-                                    .size(20.dp)
+                                    .size(MuseIconSizes.iconMedium)
                                     .semantics { contentDescription = recognizingCd },
-                                strokeWidth = 2.dp,
+                                strokeWidth = MuseIconSizes.progressStroke,
                             )
                             isRecording -> Icon(
                                 imageVector = TablerIcons.Microphone,
@@ -1279,13 +1068,7 @@ internal fun InputBar(
                     val canSend = text.isNotBlank() || pendingImages.isNotEmpty() || pendingVideo != null
                     Box(
                         modifier = Modifier
-                            .size(36.dp)
-                            .graphicsLayer { scaleX = sendScale; scaleY = sendScale }
-                            .clip(CircleShape)
-                            .background(
-                                if (canSend) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.primary.copy(alpha = 0.38f)
-                            )
+                            .size(MuseIconSizes.touchTarget)
                             .clickable(
                                 interactionSource = sendInteractionSource,
                                 indication = null,
@@ -1297,12 +1080,24 @@ internal fun InputBar(
                             ),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Icon(
-                            imageVector = TablerIcons.Send,
-                            contentDescription = stringResource(R.string.action_send),
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(MuseIconSizes.iconSmall),
-                        )
+                        Box(
+                            modifier = Modifier
+                                .size(MuseIconSizes.stopButton)
+                                .graphicsLayer { scaleX = sendScale; scaleY = sendScale }
+                                .clip(CircleShape)
+                                .background(
+                                    if (canSend) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.primary.copy(alpha = 0.38f)
+                                ),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = TablerIcons.Send,
+                                contentDescription = stringResource(R.string.action_send),
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(MuseIconSizes.iconSmall),
+                            )
+                        }
                     }
                 }
             }
@@ -1315,7 +1110,7 @@ internal fun InputBar(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 4.dp),
+                    .padding(top = MusePaddings.tightGap),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -1328,7 +1123,7 @@ internal fun InputBar(
                     asrStatus == ASRStatus.Connecting -> LoadingDots(text = stringResource(R.string.voice_connecting))
                     isRecording -> {
                         RecordingWaveform(amplitudes = recordingAmplitudes)
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(MusePaddings.contentGap))
                         Text(
                             text = stringResource(R.string.voice_release_to_recognize),
                             style = MaterialTheme.typography.bodySmall,
@@ -1343,16 +1138,6 @@ internal fun InputBar(
                 }
             }
         }
-
-        // v1.0.53: 输入栏底部 Token 统计条(替代原先的输入栏旁 Token 按钮)
-        if (tokenEstimateEnabled) {
-            TokenStatsBar(
-                inputText = text,
-                historyTokens = historyTokens,
-                contextWindow = contextWindow,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
     }
 }
 
@@ -1360,490 +1145,6 @@ internal fun InputBar(
  * 录音波形条:把最近振幅历史渲染成竖条。
  * v1.91: 振幅改为归一化 Float(0-1f),无需再除以 32768。
  */
-@Composable
-private fun RecordingWaveform(amplitudes: List<Float>) {
-    val primary = MaterialTheme.colorScheme.primary
-    Row(
-        modifier = Modifier.height(24.dp),
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        amplitudes.forEach { amp ->
-            // v1.91: amp 已是 0-1f 归一化值,直接 coerceIn 即可
-            val fraction = amp.coerceIn(0.05f, 1f)
-            val animatedHeight by animateFloatAsState(
-                targetValue = fraction,
-                animationSpec = tween(MuseAnimation.FAST_MS),
-                label = "wave",
-            )
-            Box(
-                modifier = Modifier
-                    .width(3.dp)
-                    .fillMaxHeight(animatedHeight)
-                    .clip(RoundedCornerShape(1.5.dp))
-                    .background(primary.copy(alpha = 0.7f)),
-            )
-        }
-    }
-}
-
-/**
- * v0.35: 绘图模式参数面板 — 尺寸/质量/风格 + 参考图临时覆盖。
- */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun ImageGenParamsPanel(
-    params: ImageGenParams,
-    onParamsChange: (ImageGenParams) -> Unit,
-) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val imagePicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent(),
-    ) { uri ->
-        uri?.let {
-            scope.launch {
-                // v1.79 (H-I4): 大图片读取 + Base64 编码移到 IO 线程,避免阻塞主线程
-                // v1.140: 选图后自动压缩到 1024px 内 + JPEG 85,限制 base64 后 <= 4MB,
-                //         避免原图 10MB+ 直传导致 OOM 和请求超时
-                withContext(Dispatchers.IO) {
-                    runCatching {
-                        compressReferenceImageToDataUri(uri = it, context = context)
-                    }
-                }.onSuccess { result ->
-                    onParamsChange(params.copy(referenceImageUri = result.dataUri))
-                    // UI 提示压缩后的尺寸(透明体验)
-                    MuseToast.show(
-                        context.getString(R.string.chat_ref_image_compressed, result.describe()),
-                        2500,
-                    )
-                }.onFailure { e ->
-                    // v1.79 (H-I4+M-I2): 加 onFailure 提示
-                    MuseToast.show(context.getString(R.string.chat_ref_image_load_failed, e.message ?: ""))
-                }
-            }
-        }
-    }
-
-    val model = remember(params.model) { ImageModelCatalog.resolveById(params.model) }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 8.dp)
-            .clip(MuseShapes.medium)
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-            .padding(MusePaddings.cardInnerAux),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = stringResource(R.string.chat_draw_params),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f),
-            )
-            model?.let {
-                Text(
-                    text = it.displayName,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-        }
-
-        // 尺寸
-        val sizes = model?.supportedSizes
-        if (!sizes.isNullOrEmpty()) {
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                sizes.map { it to it }.forEach { (value, label) ->
-                    MuseChip(
-                        selected = params.size == value,
-                        onClick = { onParamsChange(params.copy(size = value)) },
-                        label = label,
-                    )
-                }
-            }
-        }
-
-        // 质量
-        val qualities = model?.supportedQualities
-        if (!qualities.isNullOrEmpty()) {
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                qualities.forEach { value ->
-                    val label = when (value) {
-                        "standard" -> stringResource(R.string.chat_quality_standard)
-                        "hd" -> stringResource(R.string.chat_quality_hd)
-                        "high" -> stringResource(R.string.chat_quality_high)
-                        "medium" -> stringResource(R.string.chat_quality_medium)
-                        "low" -> stringResource(R.string.chat_quality_low)
-                        "auto" -> stringResource(R.string.chat_quality_auto)
-                        else -> value
-                    }
-                    MuseChip(
-                        selected = params.quality == value,
-                        onClick = { onParamsChange(params.copy(quality = value)) },
-                        label = label,
-                    )
-                }
-            }
-        }
-
-        // 风格
-        val styles = model?.supportedStyles
-        if (!styles.isNullOrEmpty()) {
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                styles.forEach { value ->
-                    val label = when (value) {
-                        "vivid" -> stringResource(R.string.chat_style_vivid)
-                        "natural" -> stringResource(R.string.chat_style_natural)
-                        else -> value
-                    }
-                    MuseChip(
-                        selected = params.style == value,
-                        onClick = { onParamsChange(params.copy(style = value)) },
-                        label = label,
-                    )
-                }
-            }
-        }
-
-        // 参考图
-        val supportsRef = model?.supportsReferenceImage == true
-        if (params.referenceImageUri.isNullOrBlank()) {
-            MuseChip(
-                selected = false,
-                onClick = {
-                    if (supportsRef) imagePicker.launch("image/*")
-                },
-                enabled = supportsRef,
-                label = if (supportsRef) stringResource(R.string.chat_ref_image_add) else stringResource(R.string.chat_ref_image_not_supported),
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Photo,
-                        // v1.79 (L-I3): 无障碍 contentDescription
-                        contentDescription = stringResource(R.string.chat_ref_image_cd),
-                        modifier = Modifier.size(MuseIconSizes.iconSmall),
-                    )
-                },
-            )
-        } else {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 120.dp)
-                    .clip(MuseShapes.small),
-            ) {
-                SmartImage(
-                    model = params.referenceImageUri,
-                    contentDescription = stringResource(R.string.chat_ref_image_cd),
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                IconButton(
-                    onClick = { onParamsChange(params.copy(referenceImageUri = null)) },
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .size(MuseIconSizes.touchTarget)
-                        .background(
-                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-                            shape = CircleShape,
-                        ),
-                ) {
-                    Icon(
-                        imageVector = TablerIcons.X,
-                        contentDescription = stringResource(R.string.chat_ref_image_clear_cd),
-                        modifier = Modifier.size(16.dp),
-                    )
-                }
-            }
-        }
-    }
-}
-
-/**
- * v1.140: 参考图压缩结果。
- *
- * @property dataUri 形如 `data:image/jpeg;base64,...` 的 Data URI,可直接交给 ImageProvider
- * @property width 压缩后宽度
- * @property height 压缩后高度
- * @property byteCount 压缩后 JPEG 字节数(未 base64)
- */
-private data class CompressedReferenceImage(
-    val dataUri: String,
-    val width: Int,
-    val height: Int,
-    val byteCount: Int,
-) {
-    /** 人类可读的尺寸/体积描述,用于 Toast 提示。 */
-    fun describe(): String {
-        val kb = byteCount / 1024
-        return "${width}x${height}, ${kb}KB"
-    }
-}
-
-/**
- * v1.140: 把用户选中的参考图 URI 压缩为符合体积/尺寸约束的 Data URI。
- *
- * 处理流程:
- *  1. 先解码边界获取原始尺寸(API 28+ 用 ImageDecoder,低版本用 BitmapFactory)
- *  2. 计算 inSampleSize,使长边缩到 [maxSide] 附近(2 的幂次降采样)
- *  3. 解码得到 Bitmap 后,如长边仍 > [maxSide],用 Matrix 精确缩放
- *  4. JPEG 压缩质量 [quality],base64 后如仍超过 [maxBase64Bytes],则
- *     逐级降质量 / 缩尺寸,直到满足体积约束或降到下限
- *
- * 抛出 [IllegalStateException] 表示压缩失败(原图无法解码或压缩后仍过大)。
- */
-private fun compressReferenceImageToDataUri(
-    uri: Uri,
-    context: android.content.Context,
-    maxSide: Int = 1024,
-    quality: Int = 85,
-    maxBase64Bytes: Int = 4 * 1024 * 1024,
-): CompressedReferenceImage {
-    val resolver = context.contentResolver
-
-    // 1. 解码原始尺寸
-    val (origW, origH) = decodeImageBounds(resolver, uri)
-    if (origW <= 0 || origH <= 0) {
-        error("decode bounds failed for $uri")
-    }
-
-    // 2. 计算 inSampleSize(2 的幂次,使降采样后长边尽量接近 maxSide 但不超过 2 倍)
-    var sample = 1
-    while (origW / sample / 2 >= maxSide || origH / sample / 2 >= maxSide) sample *= 2
-
-    // 3. 解码为 Bitmap(降采样后)
-    var bitmap = decodeSampledBitmap(resolver, uri, sample)
-        ?: error("decode bitmap failed for $uri")
-
-    // 4. 精确缩放到 maxSide 内(保持宽高比)
-    val scaled = scaleBitmapToMaxSide(bitmap, maxSide)
-    if (scaled !== bitmap) {
-        bitmap.recycle()
-        bitmap = scaled
-    }
-
-    // 5. 逐级压缩,直到 base64 体积满足约束或降到下限
-    var currentQuality = quality
-    var currentBmp = bitmap
-    var bytes = compressJpeg(currentBmp, currentQuality)
-    var base64Len = base64Length(bytes.size)
-
-    // 5.1 先尝试只降质量(75 → 65 → 55)
-    val qualitySteps = listOf(75, 65, 55)
-    var stepIndex = 0
-    while (base64Len > maxBase64Bytes && stepIndex < qualitySteps.size) {
-        currentQuality = qualitySteps[stepIndex++]
-        bytes = compressJpeg(currentBmp, currentQuality)
-        base64Len = base64Length(bytes.size)
-    }
-
-    // 5.2 仍超限则缩小尺寸(768 → 512 → 384)
-    val sideSteps = listOf(768, 512, 384)
-    var sideIndex = 0
-    while (base64Len > maxBase64Bytes && sideIndex < sideSteps.size) {
-        val newSide = sideSteps[sideIndex++]
-        val shrunk = scaleBitmapToMaxSide(currentBmp, newSide)
-        if (shrunk !== currentBmp) {
-            currentBmp.recycle()
-            currentBmp = shrunk
-        }
-        bytes = compressJpeg(currentBmp, currentQuality)
-        base64Len = base64Length(bytes.size)
-    }
-
-    val width = currentBmp.width
-    val height = currentBmp.height
-    currentBmp.recycle()
-
-    if (base64Len > maxBase64Bytes) {
-        // 仍超限:拒绝上传,避免 OOM/超时
-        error("image still too large after compression (${width}x${height}, ${bytes.size / 1024}KB)")
-    }
-
-    val base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
-    val dataUri = "data:image/jpeg;base64,$base64"
-    return CompressedReferenceImage(
-        dataUri = dataUri,
-        width = width,
-        height = height,
-        byteCount = bytes.size,
-    )
-}
-
-/** 解码原图边界(宽高),不将像素加载到内存。 */
-private fun decodeImageBounds(
-    resolver: android.content.ContentResolver,
-    uri: Uri,
-): Pair<Int, Int> {
-    // 用 BitmapFactory.inJustDecodeBounds 探尺寸,零像素分配;
-    // ImageDecoder 在 API 28+ 也支持,但探边界时二者效果一致,这里统一走 BitmapFactory。
-    val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-    resolver.openInputStream(uri)?.use { input ->
-        BitmapFactory.decodeStream(input, null, opts)
-    }
-    return opts.outWidth to opts.outHeight
-}
-
-/** 按 inSampleSize 解码 Bitmap。 */
-private fun decodeSampledBitmap(
-    resolver: android.content.ContentResolver,
-    uri: Uri,
-    sampleSize: Int,
-): Bitmap? {
-    val opts = BitmapFactory.Options().apply { inSampleSize = sampleSize }
-    return resolver.openInputStream(uri)?.use { input ->
-        BitmapFactory.decodeStream(input, null, opts)
-    }
-}
-
-/** 把 Bitmap 等比缩放到长边 <= maxSide;若已满足则原样返回。 */
-private fun scaleBitmapToMaxSide(src: Bitmap, maxSide: Int): Bitmap {
-    val w = src.width
-    val h = src.height
-    val longSide = maxOf(w, h)
-    if (longSide <= maxSide) return src
-    val scale = maxSide.toFloat() / longSide
-    val newW = (w * scale).toInt().coerceAtLeast(1)
-    val newH = (h * scale).toInt().coerceAtLeast(1)
-    val matrix = Matrix().apply { setScale(scale, scale) }
-    return Bitmap.createBitmap(src, 0, 0, w, h, matrix, true)
-}
-
-/** JPEG 压缩为字节数组。 */
-private fun compressJpeg(bmp: Bitmap, quality: Int): ByteArray {
-    val out = ByteArrayOutputStream()
-    bmp.compress(Bitmap.CompressFormat.JPEG, quality, out)
-    return out.toByteArray()
-}
-
-/** base64 编码后体积约为原字节 * 4/3,向上取整。 */
-private fun base64Length(byteCount: Int): Int {
-    // 每 3 字节 → 4 字符;不足 3 按 3 算。NO_WRAP 不加换行符。
-    return ((byteCount + 2) / 3) * 4
-}
-
-/**
- * v2.2: iOS/Manus 风格工具菜单中的媒体快捷卡片 — 加厚遮罩,更醒目。
- */
-@Composable
-private fun ToolMediaCard(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    onClick: () -> Unit,
-) {
-    Surface(
-        shape = MuseShapes.extraLarge,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.78f),
-        modifier = Modifier
-            .size(72.dp)
-            .clickable(onClick = onClick),
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = label,
-                modifier = Modifier.size(32.dp),
-                tint = MaterialTheme.colorScheme.onSurface,
-            )
-            Spacer(Modifier.height(10.dp))
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-        }
-    }
-}
-
-/**
- * iOS/Manus 风格工具菜单中的列表行。
- */
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun ToolListRow(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    title: String,
-    subtitle: String? = null,
-    isActive: Boolean = false,
-    showArrow: Boolean = true,
-    onClick: () -> Unit,
-    // v1.0.53: 可选长按回调(深度思考用:长按切换级别)
-    onLongClick: (() -> Unit)? = null,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(
-                // v1.0.53: 有长按回调时用 combinedClickable,否则用普通 clickable 保持原行为
-                if (onLongClick != null) {
-                    Modifier.combinedClickable(
-                        onClick = onClick,
-                        onLongClick = onLongClick,
-                    )
-                } else {
-                    Modifier.clickable(onClick = onClick)
-                },
-            )
-            .padding(vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(24.dp),
-            tint = MaterialTheme.colorScheme.onSurface,
-        )
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            if (!subtitle.isNullOrBlank()) {
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
-                )
-            }
-        }
-        // v1.0.29: 激活态显示黑白小勾(参考 iOS 设置页选中样式),
-        // 非激活态按 showArrow 决定是否显示右箭头。
-        if (isActive) {
-            Icon(
-                imageVector = Icons.Default.Check,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.onSurface,
-            )
-        } else if (showArrow) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.outline,
-            )
-        }
-    }
-}
-
 /**
  * v0.52: @mention 高亮转换。
  *
@@ -1872,39 +1173,6 @@ private class MentionHighlightTransformation(
         }
         return TransformedText(builder.toAnnotatedString(), OffsetMapping.Identity)
     }
-}
-
-/**
- * v0.53: 查询系统相册最近图片。
- *
- * 通过 MediaStore 读取 EXTERNAL_CONTENT_URI,按添加时间倒序返回最近 [maxCount] 张图片 URI。
- * 调用方需已持有 READ_MEDIA_IMAGES(Android 13+) 或 READ_EXTERNAL_STORAGE 权限。
- */
-private fun queryRecentGalleryImages(context: android.content.Context, maxCount: Int): List<Uri> {
-    return runCatching {
-        val uris = mutableListOf<Uri>()
-        val projection = arrayOf(MediaStore.Images.Media._ID)
-        val sortOrder = "${MediaStore.Images.Media.DATE_ADDED} DESC"
-        context.contentResolver.query(
-            MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-            projection,
-            null,
-            null,
-            sortOrder,
-        )?.use { cursor ->
-            val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
-            var count = 0
-            while (cursor.moveToNext() && count < maxCount) {
-                val id = cursor.getLong(idColumn)
-                uris.add(ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id))
-                count++
-            }
-        }
-        uris
-    }.onFailure { e ->
-        // v1.79 (M-3): 不再静默吞异常,记录日志便于排查
-        Logger.w("InputBar", "queryRecentGalleryImages 查询失败", e)
-    }.getOrDefault(emptyList())
 }
 
 /**
@@ -2013,7 +1281,7 @@ private fun RowScope.MessageInputField(
         onValueChange = { handleInputChange(it) },
         modifier = Modifier
             .weight(1f)
-            .heightIn(min = 36.dp, max = 160.dp)
+            .heightIn(min = MuseIconSizes.inputMinHeight, max = MusePaddings.maxMessageFieldHeight)
             .focusRequester(focusRequester)
             .onKeyEvent { event ->
                 if (enterToSend && event.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER &&
@@ -2064,7 +1332,7 @@ private fun RowScope.MessageInputField(
     if (showExpandButton && !isStreaming) {
         IconButton(
             onClick = onExpand,
-            modifier = Modifier.size(36.dp),
+            modifier = Modifier.size(MuseIconSizes.touchTarget),
         ) {
             Icon(
                 imageVector = compose.icons.TablerIcons.ArrowsMaximize,

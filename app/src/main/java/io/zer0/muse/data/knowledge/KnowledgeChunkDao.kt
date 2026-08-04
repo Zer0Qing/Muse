@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
+import androidx.room.SkipQueryVerification
 
 /**
  * v1.54: 知识库分块 Dao。
@@ -63,6 +64,31 @@ interface KnowledgeChunkDao {
         """,
     )
     suspend fun getPageWithEmbedding(limit: Int, offset: Int): List<KnowledgeChunkEntity>
+
+    /**
+     * B4-03: 带 metadata 过滤的分页查询(docIds/tag/时间范围下推到 SQLite)。
+     * docIdsJson 为空数组时不过滤;tag 为空时不过滤;start/endTime 为 0 时不过滤。
+     */
+    @SkipQueryVerification
+    @Query(
+        """
+        SELECT * FROM knowledge_chunks
+        WHERE (embedding_blob IS NOT NULL OR (embedding != '' AND embedding != '[]'))
+          AND (:docIdsJson = '' OR doc_id IN (SELECT value FROM json_each(:docIdsJson)))
+          AND (:tag = '' OR metadata_json LIKE '%' || :tag || '%')
+          AND (:startTime = 0 OR created_at >= :startTime)
+          AND (:endTime = 0 OR created_at <= :endTime)
+        ORDER BY created_at ASC LIMIT :limit OFFSET :offset
+        """,
+    )
+    suspend fun getFilteredPageWithEmbedding(
+        limit: Int,
+        offset: Int,
+        docIdsJson: String,
+        tag: String,
+        startTime: Long,
+        endTime: Long,
+    ): List<KnowledgeChunkEntity>
 
     /** v1.133 别名:语义同 [getPageWithEmbedding]。 */
     suspend fun getPageWithEmbeddingBlob(limit: Int, offset: Int): List<KnowledgeChunkEntity> =

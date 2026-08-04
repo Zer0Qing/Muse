@@ -88,6 +88,48 @@
 
     <!-- Settings Sub-pages / About -->
     <string name="settings_sub_model_services">モデルとサービス</string>
+    <string name="settings_task_routing_title">タスクルーティング</string>
+    <string name="settings_task_routing_enable">モデルを自動切り替え</string>
+    <string name="settings_task_routing_enable_subtitle">タスクの種類に応じてバインドされたモデルに自動的に切り替えます</string>
+    <string name="settings_task_routing_general">一般</string>
+    <string name="settings_task_routing_models">タスクモデル</string>
+    <string name="settings_task_routing_default_model">デフォルトモデル</string>
+    <string name="settings_task_routing_chat">会話</string>
+    <string name="settings_task_routing_reasoning">推論</string>
+    <string name="settings_task_routing_code">コーディング</string>
+    <string name="settings_task_routing_creative">創作</string>
+    <string name="settings_task_routing_analysis">分析</string>
+    <string name="settings_crash_anr_title">ANR 検出</string>
+    <string name="settings_crash_anr_subtitle">アプリの無応答を検出してクラッシュ/監査ログに記録します</string>
+    <string name="settings_chat_compress_model">圧縮モデル</string>
+    <string name="settings_chat_compress_model_default">デフォルトモデル</string>
+    <string name="settings_chat_paste_as_file">長文貼り付けをファイル化</string>
+    <string name="settings_chat_paste_as_file_subtitle">しきい値を超える貼り付けテキストをファイルとして添付するよう促します</string>
+    <string name="settings_chat_paste_as_file_threshold">ファイル化のしきい値</string>
+    <string name="settings_chat_paste_as_file_threshold_subtitle">%1$d 文字を超えるとファイル化を促します</string>
+    <string name="settings_chat_custom_title_prompt">カスタムタイトルプロンプト</string>
+    <string name="settings_chat_custom_title_prompt_default">組み込みのデフォルトプロンプトを使用</string>
+    <string name="settings_chat_custom_title_prompt_hint">会話名のカスタム指示(空欄でデフォルト)</string>
+    <string name="settings_memory_custom_compress_prompt">カスタム圧縮プロンプト</string>
+    <string name="settings_memory_custom_compress_prompt_default">組み込みのデフォルト圧縮指示を使用</string>
+    <string name="settings_memory_custom_compress_prompt_hint">コンテキスト圧縮のカスタム指示(空欄でデフォルト)</string>
+    <string name="settings_about_auto_update">自動更新チェック</string>
+    <string name="settings_about_auto_update_subtitle">起動後にGitHubの新バージョンを自動確認します</string>
+    <string name="prompt_template_manager_title">プロンプトテンプレート</string>
+    <string name="prompt_template_manager_list">テンプレート一覧</string>
+    <string name="prompt_template_manager_empty">カスタムテンプレートはまだありません</string>
+    <string name="prompt_template_manager_built_in">組み込み</string>
+    <string name="prompt_template_manager_move_up">上へ</string>
+    <string name="prompt_template_manager_move_down">下へ</string>
+    <string name="prompt_template_manager_edit">編集</string>
+    <string name="prompt_template_manager_copy">複製</string>
+    <string name="prompt_template_manager_delete">削除</string>
+    <string name="prompt_template_manager_delete_confirm">テンプレート「%1$s」を削除しますか?</string>
+    <string name="prompt_template_manager_add">新規テンプレート</string>
+    <string name="prompt_template_manager_name">名前</string>
+    <string name="prompt_template_manager_category">カテゴリ</string>
+    <string name="prompt_template_manager_content">内容</string>
+    <string name="prompt_template_manage_entry">テンプレート管理</string>
     <string name="settings_sub_user_profile">ユーザープロフィール</string>
     <string name="settings_sub_user_profile_subtitle">年齢 / 都市 / MBTI など (AI パーソナライズ用)</string>
     <string name="settings_sub_data_backup">データとバックアップ</string>
@@ -282,6 +324,10 @@
     <string name="settings_rag_mmr_lambda_subtitle">0=純粋な多様性、1=純粋な類似性、デフォルトは0.5</string>
     <string name="settings_rag_hybrid">ハイブリッド検索</string>
     <string name="settings_rag_hybrid_subtitle">BM25 キーワード + ベクトル類似性 RRF 融合</string>
+    <string name="settings_rag_hybrid_bm25_weight">BM25 重み</string>
+    <string name="settings_rag_hybrid_bm25_weight_subtitle">RRF 融合における BM25 の寄与重み</string>
+    <string name="settings_rag_hybrid_vector_weight">ベクトル重み</string>
+    <string name="settings_rag_hybrid_vector_weight_subtitle">RRF 融合におけるベクトル類似度の寄与重み</string>
     <string name="settings_rag_rerank">リランク</string>
     <string name="settings_rag_rerank_subtitle">上位 K×5 候補に対するクロスエンコーダーの再ランキング</string>
     <string name="settings_rag_token_budget">トークンの予算</string>
@@ -300,6 +346,7 @@
     <string name="settings_rag_parser_mineru_subtitle">MinerU API、学術的な PDF/数式/表に優れています (エンドポイントが必要)</string>
     <string name="settings_rag_cloud_parser_endpoint">クラウドパーサーエンドポイント</string>
     <string name="settings_rag_mineru_endpoint">MinerU エンドポイント</string>
+    <string name="settings_rag_mineru_token">MinerU トークン（任意）</string>
     <string name="settings_rag_notes_section">注意事項</string>
     <string name="settings_rag_note1">• チャンクパラメータを変更すると、新しくインポートされたドキュメントは新しいパラメータを使用します。</string>
     <string name="settings_rag_note2">• すでにインデックスが作成されているドキュメントは、自動的に再チャンク化されません。</string>
@@ -493,4 +540,5 @@
     <string name="settings_theme_custom_color_h">色相</string>
     <string name="settings_theme_custom_color_s">飽和</string>
     <string name="settings_theme_custom_color_l">軽さ</string>
+    <string name="settings_agent_bound_assistant_hint">このページは現在のアシスタントにバインドされており、アシスタントを切り替えると自動的に追従します</string>
 </resources>

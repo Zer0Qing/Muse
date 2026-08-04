@@ -46,6 +46,8 @@ class SubagentRunner(
     private val concurrencyLimiter: AgentConcurrencyLimiter,
     /** v1.0.53 Phase 4: 工具审批策略存储(用于 deny_on_prompt)。 */
     private val toolConfigStore: ToolConfigStore,
+    /** B2-04: 需审批工具路由到主会话审批卡。 */
+    private val toolApprovalRouter: ToolApprovalRouter,
 ) {
 
     companion object {
@@ -511,11 +513,24 @@ class SubagentRunner(
                 result = "Error: 工具 '${tc.name}' 已被用户禁用,子 agent 无权调用",
                 success = false,
             )
-            ToolApprovalPolicy.ASK_EVERY_TIME -> return ToolExecOutcome(
-                result = "Error: 工具 '${tc.name}' 需要用户审批,子 agent 无权请求审批。" +
-                    "请改用允许的工具,或向用户说明此操作需要手动处理。",
-                success = false,
-            )
+            ToolApprovalPolicy.ASK_EVERY_TIME -> {
+                val approval = toolApprovalRouter.request(
+                    toolName = tc.name,
+                    toolCallId = tc.id,
+                    argsPreview = tc.arguments.take(200),
+                )
+                when (approval) {
+                    is ToolApprovalState.Approved, is ToolApprovalState.Auto -> { /* 继续执行 */ }
+                    is ToolApprovalState.Denied -> return ToolExecOutcome(
+                        result = "Error: 工具 '${tc.name}' 已被用户拒绝,子 agent 无权调用",
+                        success = false,
+                    )
+                    is ToolApprovalState.Pending, is ToolApprovalState.Answered -> return ToolExecOutcome(
+                        result = "Error: 工具 '${tc.name}' 审批状态未确定,子 agent 已放弃调用",
+                        success = false,
+                    )
+                }
+            }
             ToolApprovalPolicy.ALWAYS_ALLOW -> { /* 继续执行 */ }
         }
         return try {

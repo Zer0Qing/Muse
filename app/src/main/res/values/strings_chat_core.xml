@@ -5,6 +5,8 @@
     <string name="chat_session_cd">当前会话:%1$s,点击切换会话</string>
     <string name="chat_model_not_configured">未配置</string>
     <string name="chat_model_cd">当前模型:%1$s,点击切换模型</string>
+    <string name="chat_routing_badge">路由</string>
+    <string name="chat_video_play_cd">播放视频</string>
     <string name="chat_context_usage_cd">上下文占用 %1$s%%,共 %2$d tokens</string>
     <string name="chat_context_tokens_only_cd">上下文 token 数 %1$d,模型未声明上下文窗口</string>
     <string name="chat_context_no_window_detail">%1$d tokens(模型未声明上下文窗口)</string>

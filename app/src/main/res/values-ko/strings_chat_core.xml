@@ -5,6 +5,8 @@
     <string name="chat_session_cd">현재 채팅: %1$s, 전환하려면 탭하세요.</string>
     <string name="chat_model_not_configured">구성되지 않음</string>
     <string name="chat_model_cd">현재 모델: %1$s, 전환하려면 탭하세요.</string>
+    <string name="chat_routing_badge">라우팅</string>
+    <string name="chat_video_play_cd">동영상 재생</string>
     <string name="chat_context_usage_cd">컨텍스트 사용량 %1$s%%, %2$d 총 토큰</string>
     <string name="chat_context_tokens_only_cd">컨텍스트 토큰 수 %1$d, 모델에 컨텍스트 창이 없습니다.</string>
     <string name="chat_context_no_window_detail">%1$d 토큰(모델에 컨텍스트 창이 없음)</string>
@@ -342,4 +344,5 @@
     <string name="slash_command_reset_done">컨텍스트 재설정</string>
     <string name="slash_command_pin_done">핀이 전환됨</string>
     <string name="slash_command_archive_done">세션이 보관되었습니다.</string>
+    <string name="chat_agent_tab_title">Agent</string>
 </resources>

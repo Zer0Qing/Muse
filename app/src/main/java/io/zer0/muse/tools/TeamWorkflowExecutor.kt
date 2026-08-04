@@ -442,6 +442,18 @@ $dependencySummary""".trimIndent()
         return messages
     }
 
+    /** B3-08: 专家结果 3-gram 相似度(0~1),用于共识聚类。 */
+    private fun expertTextSimilarity(a: String, b: String): Double {
+        fun grams(s: String): Set<String> {
+            val clean = s.lowercase().filter { it.isLetterOrDigit() }
+            return if (clean.length >= 3) clean.windowed(3, 1).toSet() else setOf(clean)
+        }
+        val ga = grams(a)
+        val gb = grams(b)
+        val union = ga.union(gb)
+        return if (union.isEmpty()) 0.0 else ga.intersect(gb).size.toDouble() / union.size
+    }
+
     private suspend fun aggregateResults(
         strategy: DelegationContract.TeamWorkflow.AggregationStrategy,
         results: List<DelegationContract.DelegationResult>,
@@ -468,9 +480,41 @@ $dependencySummary""".trimIndent()
                 "投票结果(共 ${successful.size} 票): 最高频结果出现 ${best?.value} 次\n\n${best?.key ?: ""}"
             }
             DelegationContract.TeamWorkflow.AggregationStrategy.EXPERT_REVIEW -> {
-                // 专家评审:取结果最长的作为"详尽版"返回(后续可接入 LLM 综合评审)
-                val expert = successful.maxByOrNull { it.resultText.length }
-                "专家评审选定结果:\n\n${expert?.resultText ?: ""}"
+                // B3-08: 共识优先 — 先做相似度聚类,多数派直接输出;无共识时调 LLM 综合评审
+                val clusters = mutableListOf<MutableList<DelegationContract.DelegationResult>>()
+                for (r in successful) {
+                    val target = clusters.firstOrNull { cluster ->
+                        cluster.any { expertTextSimilarity(it.resultText, r.resultText) >= 0.5 }
+                    }
+                    if (target != null) target.add(r) else clusters.add(mutableListOf(r))
+                }
+                val majority = clusters.maxByOrNull { it.size }
+                if (majority != null && majority.size >= 2) {
+                    val consensus = majority.maxByOrNull { it.resultText.length }
+                    "专家共识(${majority.size}/${successful.size}):\n\n${consensus?.resultText ?: ""}"
+                } else {
+                    val candidates = successful.map { r ->
+                        AgentResultAggregator.Candidate(
+                            source = r.metadata.assistantName
+                                ?: r.metadata.assistantId
+                                ?: r.requestId,
+                            content = r.resultText,
+                            confidence = null,
+                        )
+                    }
+                    if (llmAggregator != null) {
+                        val aggregation = AgentResultAggregator.aggregate(
+                            candidates = candidates,
+                            strategy = AgentResultAggregator.Strategy.LLM_REVIEW,
+                            question = teamTask,
+                            llmReviewer = llmAggregator?.let { agg -> { c, q -> agg.review(c, q) } },
+                        )
+                        aggregation.output
+                    } else {
+                        val expert = successful.maxByOrNull { it.resultText.length }
+                        "专家评审选定结果:\n\n${expert?.resultText ?: ""}"
+                    }
+                }
             }
             DelegationContract.TeamWorkflow.AggregationStrategy.FIRST_SUCCESS -> {
                 successful.first().resultText

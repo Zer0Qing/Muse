@@ -372,6 +372,7 @@
     <!-- ===== web/WebServer ===== -->
     <string name="webserver_unknown_error">Неизвестная ошибка</string>
     <string name="webserver_rate_limited">Слишком много запросов. Повторите попытку позже.</string>
+    <string name="webserver_rate_limited_remaining">Слишком много запросов. Повторите через %1$d сек.</string>
     <string name="webserver_bad_request">Неверный запрос: %1$s</string>
     <string name="webserver_auth_failed">Неправильный пароль</string>
     <string name="webserver_pin_error">Неправильный PIN-код</string>

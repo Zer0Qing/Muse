@@ -60,6 +60,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
+import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
@@ -68,6 +69,7 @@ import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.semiLarge
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 
@@ -89,6 +91,8 @@ fun VoiceCloningPage(
     onBack: () -> Unit,
     voiceCloningService: VoiceCloningService = koinInject(),
     elevenLabsProvider: ElevenLabsVoiceCloningProvider = koinInject(),
+    fishProvider: FishAudioVoiceCloningProvider = koinInject(),
+    settings: SettingsRepository = koinInject(),
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -137,6 +141,10 @@ fun VoiceCloningPage(
         // 透传 apiKey 到 ElevenLabs provider(后续 provider 可扩展类似 setter)
         if (selectedProvider == "elevenlabs") {
             elevenLabsProvider.apiKey = apiKey.trim()
+        }
+        if (selectedProvider == "fish") {
+            fishProvider.apiKey = apiKey.trim()
+            fishProvider.endpoint = settings.mediaConfigFlow.first().ttsEndpoint
         }
         isLoadingList = true
         voiceCloningService.listClonedVoices(selectedProvider)
@@ -336,6 +344,10 @@ fun VoiceCloningPage(
                                     if (selectedProvider == "elevenlabs") {
                                         elevenLabsProvider.apiKey = apiKey.trim()
                                     }
+                                    if (selectedProvider == "fish") {
+                                        fishProvider.apiKey = apiKey.trim()
+                                        fishProvider.endpoint = settings.mediaConfigFlow.first().ttsEndpoint
+                                    }
 
                                     voiceCloningService.cloneVoice(
                                         providerId = selectedProvider,
@@ -343,6 +355,16 @@ fun VoiceCloningPage(
                                         sampleAudioBase64 = base64,
                                     ).onSuccess { voiceId ->
                                         MuseToast.show(strSuccess, 2000)
+                                        // B6-04: 克隆成功自动设为当前 TTS 音色
+                                        runCatching {
+                                            val media = settings.mediaConfigFlow.first()
+                                            settings.saveMediaConfig(
+                                                media.copy(
+                                                    ttsEngine = "fish",
+                                                    ttsVoice = voiceId,
+                                                )
+                                            )
+                                        }
                                         // 重置表单
                                         voiceName = ""
                                         selectedAudioUri = null
@@ -474,6 +496,10 @@ fun VoiceCloningPage(
                     isDeleting = true
                     if (selectedProvider == "elevenlabs") {
                         elevenLabsProvider.apiKey = apiKey.trim()
+                    }
+                    if (selectedProvider == "fish") {
+                        fishProvider.apiKey = apiKey.trim()
+                        fishProvider.endpoint = settings.mediaConfigFlow.first().ttsEndpoint
                     }
                     voiceCloningService.deleteVoice(
                         providerId = selectedProvider,

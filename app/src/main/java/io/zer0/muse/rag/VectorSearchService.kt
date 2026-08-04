@@ -32,6 +32,11 @@ class VectorSearchService(
      * null 表示走全量 provider(向后兼容)。
      */
     private val chunkPageByDocIdsProvider: (suspend (docIds: List<String>, limit: Int, offset: Int) -> List<ChunkWithDoc>)? = null,
+    /**
+     * B4-03: 带 metadata 过滤的分页 provider(SQL 层过滤)。
+     * null 时若传了 [MetadataFilter],VectorSearchService 会在内存中过滤。
+     */
+    private val chunkPageByMetadataProvider: (suspend (filter: MetadataFilter, limit: Int, offset: Int) -> List<ChunkWithDoc>)? = null,
 ) {
     data class SearchResult(
         val docId: String,
@@ -63,7 +68,22 @@ class VectorSearchService(
         /** v1.133: 新 embedding BLOB(优先读取)。 */
         val embeddingBlob: ByteArray? = null,
         val chunkIndex: Int,
+        /** B4-03: 元数据 JSON(内存过滤兜底用)。 */
+        val metadataJson: String = "{}",
+        /** B4-03: 创建时间戳(内存过滤兜底用)。 */
+        val createdAt: Long = 0L,
     )
+
+
+    /** B4-03: 元数据过滤条件(docIds/tag/时间范围,全部可选)。 */
+    data class MetadataFilter(
+        val docIds: List<String> = emptyList(),
+        val tag: String = "",
+        val startTime: Long = 0L,
+        val endTime: Long = 0L,
+    ) {
+        fun isEmpty(): Boolean = docIds.isEmpty() && tag.isBlank() && startTime == 0L && endTime == 0L
+    }
 
     private data class CachedVector(
         val chunkId: String,
@@ -102,16 +122,33 @@ class VectorSearchService(
         threshold: Float,
         mmrLambda: Float = 1.0f,
         scopeDocIds: List<String>? = null,
+        metadataFilter: MetadataFilter? = null,
     ): List<SearchResult> {
         val queryNorm = norm(queryVector)
         if (queryNorm == 0f) return emptyList()
 
+        // B4-03: metadata 过滤路径 — 下推到 SQL provider(不走全量缓存)
+        if (metadataFilter != null && !metadataFilter.isEmpty() && chunkPageByMetadataProvider != null) {
+            val filteredChunks = resultOf {
+                chunkPageByMetadataProvider(metadataFilter, Int.MAX_VALUE, 0)
+            }.getOrNull() ?: emptyList()
+            val candidates = filteredChunks.mapNotNull { chunk ->
+                val vector = parseEmbedding(chunk) ?: return@mapNotNull null
+                val n = norm(vector)
+                if (n == 0f) return@mapNotNull null
+                val score = scoreOf(vector, n, queryVector, queryNorm)
+                if (score == Float.NEGATIVE_INFINITY || score < threshold) return@mapNotNull null
+                CachedVector(chunk.chunkId, chunk.docId, chunk.docTitle, chunk.content, vector, n, chunk.chunkIndex) to score
+            }
+            return applyMMR(candidates, topK, mmrLambda)
+        }
         // v1.133: scope 过滤路径 — 走 docIds provider(不走全量缓存)
         if (scopeDocIds != null && scopeDocIds.isNotEmpty() && chunkPageByDocIdsProvider != null) {
             val scopeChunks = resultOf {
                 chunkPageByDocIdsProvider(scopeDocIds, Int.MAX_VALUE, 0)
             }.getOrNull() ?: emptyList()
             val candidates = scopeChunks.mapNotNull { chunk ->
+                if (!chunkMatchesMetadata(chunk, metadataFilter)) return@mapNotNull null
                 val vector = parseEmbedding(chunk) ?: return@mapNotNull null
                 val n = norm(vector)
                 if (n == 0f) return@mapNotNull null
@@ -126,7 +163,7 @@ class VectorSearchService(
         if (total == 0) return emptyList()
 
         if (total <= CACHE_THRESHOLD) {
-            val vectors = getOrLoadCache(total, scopeDocIds)
+            val vectors = getOrLoadCache(total, scopeDocIds, metadataFilter)
             if (vectors.isEmpty()) return emptyList()
             val candidates = vectors.mapNotNull { v ->
                 val score = scoreOf(v.vector, v.norm, queryVector, queryNorm)
@@ -137,7 +174,7 @@ class VectorSearchService(
         }
 
         Logger.d("VectorSearchService", "大库检索(total=$total > $CACHE_THRESHOLD),走流式分批扫描")
-        return searchStreamed(queryVector, queryNorm, topK, threshold, mmrLambda)
+        return searchStreamed(queryVector, queryNorm, topK, threshold, mmrLambda, metadataFilter)
     }
 
     /** v1.133: 应用 MMR 多样性重排。candidates 已按 score 降序排好。 */
@@ -198,6 +235,7 @@ class VectorSearchService(
         topK: Int,
         threshold: Float,
         mmrLambda: Float,
+        metadataFilter: MetadataFilter?,
     ): List<SearchResult> {
         // 流式场景下 MMR 难以应用(需全量候选集算 sim),降级为纯相似度 + topK×5 候选再做 MMR
         val candidatePoolSize = if (mmrLambda < 1.0f) topK * 5 else topK
@@ -209,6 +247,7 @@ class VectorSearchService(
             val page = resultOf { chunkPageProvider(BATCH_SIZE, offset) }.getOrNull() ?: emptyList()
             if (page.isEmpty()) break
             for (chunk in page) {
+                if (!chunkMatchesMetadata(chunk, metadataFilter)) continue
                 val vector = parseEmbedding(chunk) ?: continue
                 val n = norm(vector)
                 if (n == 0f) continue
@@ -235,8 +274,15 @@ class VectorSearchService(
         dotProduct(vector, queryVector) / (vectorNorm * queryNorm)
     }
 
-    private suspend fun getOrLoadCache(total: Int, scopeDocIds: List<String>?): List<CachedVector> {
-        val key = scopeDocIds?.sorted()?.joinToString(",") ?: "ALL"
+    private suspend fun getOrLoadCache(
+        total: Int,
+        scopeDocIds: List<String>?,
+        metadataFilter: MetadataFilter?,
+    ): List<CachedVector> {
+        val filterKey = metadataFilter?.let {
+            "${it.docIds.sorted().joinToString(",")}#${it.tag}#${it.startTime}#${it.endTime}"
+        } ?: ""
+        val key = (scopeDocIds?.sorted()?.joinToString(",") ?: "ALL") + "|" + filterKey
         // scope 变化或首次加载
         cache?.let { if (key == cacheKey) return it }
         return mutex.withLock {
@@ -246,7 +292,8 @@ class VectorSearchService(
             val filtered = if (scopeDocIds != null && scopeDocIds.isNotEmpty()) {
                 chunks.filter { it.docId in scopeDocIds }
             } else chunks
-            val parsed = filtered.mapNotNull { chunk ->
+            val filteredByMetadata = filtered.filter { chunkMatchesMetadata(it, metadataFilter) }
+            val parsed = filteredByMetadata.mapNotNull { chunk ->
                 val vector = parseEmbedding(chunk) ?: return@mapNotNull null
                 val n = norm(vector)
                 if (n == 0f) return@mapNotNull null
@@ -262,6 +309,15 @@ class VectorSearchService(
     /**
      * v1.133: 解析 embedding — BLOB 优先,JSON 兜底。
      */
+    /** B4-03: metadata 内存过滤兜底(SQL provider 不可用时使用)。 */
+    private fun chunkMatchesMetadata(chunk: ChunkWithDoc, filter: MetadataFilter?): Boolean {
+        if (filter == null || filter.isEmpty()) return true
+        if (filter.docIds.isNotEmpty() && chunk.docId !in filter.docIds) return false
+        if (filter.tag.isNotBlank() && !chunk.metadataJson.contains("\"${filter.tag}\"")) return false
+        if (filter.startTime > 0L && chunk.createdAt < filter.startTime) return false
+        if (filter.endTime > 0L && chunk.createdAt > filter.endTime) return false
+        return true
+    }
     private fun parseEmbedding(chunk: ChunkWithDoc): FloatArray? {
         // BLOB 优先
         chunk.embeddingBlob?.let { blob ->

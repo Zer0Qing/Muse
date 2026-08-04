@@ -88,6 +88,48 @@
 
     <!-- Settings Sub-pages / About -->
     <string name="settings_sub_model_services">모델 및 서비스</string>
+    <string name="settings_task_routing_title">작업 라우팅</string>
+    <string name="settings_task_routing_enable">모델 자동 전환</string>
+    <string name="settings_task_routing_enable_subtitle">작업 유형에 따라 바인딩된 모델로 자동 전환합니다</string>
+    <string name="settings_task_routing_general">일반</string>
+    <string name="settings_task_routing_models">작업 모델</string>
+    <string name="settings_task_routing_default_model">기본 모델</string>
+    <string name="settings_task_routing_chat">대화</string>
+    <string name="settings_task_routing_reasoning">추론</string>
+    <string name="settings_task_routing_code">코딩</string>
+    <string name="settings_task_routing_creative">창작</string>
+    <string name="settings_task_routing_analysis">분석</string>
+    <string name="settings_crash_anr_title">ANR 감지</string>
+    <string name="settings_crash_anr_subtitle">앱 응답 없음을 감지하고 충돌/감사 로그에 기록합니다</string>
+    <string name="settings_chat_compress_model">압축 모델</string>
+    <string name="settings_chat_compress_model_default">기본 모델</string>
+    <string name="settings_chat_paste_as_file">긴 텍스트 파일로 붙여넣기</string>
+    <string name="settings_chat_paste_as_file_subtitle">임계값을 초과하는 붙여넣기 텍스트를 파일로 첨부하도록 안내합니다</string>
+    <string name="settings_chat_paste_as_file_threshold">파일 변환 임계값</string>
+    <string name="settings_chat_paste_as_file_threshold_subtitle">%1$d자 초과 시 파일 변환 안내</string>
+    <string name="settings_chat_custom_title_prompt">사용자 지정 제목 프롬프트</string>
+    <string name="settings_chat_custom_title_prompt_default">기본 제공 프롬프트 사용</string>
+    <string name="settings_chat_custom_title_prompt_hint">대화 이름 지정 사용자 지정 지침(비우면 기본값)</string>
+    <string name="settings_memory_custom_compress_prompt">사용자 지정 압축 프롬프트</string>
+    <string name="settings_memory_custom_compress_prompt_default">기본 제공 압축 지침 사용</string>
+    <string name="settings_memory_custom_compress_prompt_hint">컨텍스트 압축 사용자 지정 지침(비우면 기본값)</string>
+    <string name="settings_about_auto_update">업데이트 자동 확인</string>
+    <string name="settings_about_auto_update_subtitle">시작 후 GitHub 새 버전 자동 확인</string>
+    <string name="prompt_template_manager_title">프롬프트 템플릿</string>
+    <string name="prompt_template_manager_list">템플릿 목록</string>
+    <string name="prompt_template_manager_empty">아직 사용자 지정 템플릿이 없습니다</string>
+    <string name="prompt_template_manager_built_in">내장</string>
+    <string name="prompt_template_manager_move_up">위로</string>
+    <string name="prompt_template_manager_move_down">아래로</string>
+    <string name="prompt_template_manager_edit">편집</string>
+    <string name="prompt_template_manager_copy">복제</string>
+    <string name="prompt_template_manager_delete">삭제</string>
+    <string name="prompt_template_manager_delete_confirm">템플릿 "%1$s"을(를) 삭제할까요?</string>
+    <string name="prompt_template_manager_add">새 템플릿</string>
+    <string name="prompt_template_manager_name">이름</string>
+    <string name="prompt_template_manager_category">카테고리</string>
+    <string name="prompt_template_manager_content">내용</string>
+    <string name="prompt_template_manage_entry">템플릿 관리</string>
     <string name="settings_sub_user_profile">사용자 프로필</string>
     <string name="settings_sub_user_profile_subtitle">연령/도시/MBTI 등 (AI 개인화용)</string>
     <string name="settings_sub_data_backup">데이터 및 백업</string>
@@ -282,6 +324,10 @@
     <string name="settings_rag_mmr_lambda_subtitle">0=순수한 다양성, 1=순수한 유사성, 기본값 0.5</string>
     <string name="settings_rag_hybrid">하이브리드 검색</string>
     <string name="settings_rag_hybrid_subtitle">BM25 키워드 + 벡터 유사성 RRF 융합</string>
+    <string name="settings_rag_hybrid_bm25_weight">BM25 가중치</string>
+    <string name="settings_rag_hybrid_bm25_weight_subtitle">RRF 융합에서 BM25 기여 가중치</string>
+    <string name="settings_rag_hybrid_vector_weight">벡터 가중치</string>
+    <string name="settings_rag_hybrid_vector_weight_subtitle">RRF 융합에서 벡터 유사성 기여 가중치</string>
     <string name="settings_rag_rerank">순위 재지정</string>
     <string name="settings_rag_rerank_subtitle">상위 K×5 후보에 대한 크로스 인코더 재순위</string>
     <string name="settings_rag_token_budget">토큰예산</string>
@@ -300,6 +346,7 @@
     <string name="settings_rag_parser_mineru_subtitle">MinerU API는 학술 PDF/공식/표에 탁월합니다(엔드포인트 필요).</string>
     <string name="settings_rag_cloud_parser_endpoint">클라우드 파서 엔드포인트</string>
     <string name="settings_rag_mineru_endpoint">MinerU 엔드포인트</string>
+    <string name="settings_rag_mineru_token">MinerU 토큰(선택)</string>
     <string name="settings_rag_notes_section">메모</string>
     <string name="settings_rag_note1">• 청크 매개변수를 변경한 후 새로 가져온 문서는 새 매개변수를 사용합니다.</string>
     <string name="settings_rag_note2">• 이미 인덱싱된 문서는 자동으로 다시 청크되지 않습니다.</string>
@@ -493,4 +540,5 @@
     <string name="settings_theme_custom_color_h">색조</string>
     <string name="settings_theme_custom_color_s">포화</string>
     <string name="settings_theme_custom_color_l">가벼움</string>
+    <string name="settings_agent_bound_assistant_hint">이 페이지는 현재 어시스턴트에 연결되어 있으며 어시스턴트를 전환하면 자동으로 따라갑니다</string>
 </resources>

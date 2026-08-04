@@ -308,7 +308,8 @@ class WebServer(
                 // H5: 速率限制 — 每 IP 每 30 秒最多 5 次失败尝试
                 val clientIp = call.request.local.remoteHost
                 if (!checkRateLimit(clientIp)) {
-                    call.respond(HttpStatusCode.TooManyRequests, ErrorResponse("rate_limited", context.getString(R.string.webserver_rate_limited)))
+                    val remaining = getRateLimitRemainingSeconds(clientIp)
+                    call.respond(HttpStatusCode.TooManyRequests, ErrorResponse("rate_limited", context.getString(R.string.webserver_rate_limited_remaining, remaining)))
                     return@post
                 }
                 val req = resultOf { call.receive<LoginRequest>() }
@@ -331,7 +332,8 @@ class WebServer(
                 // H5: 速率限制 — 每 IP 每 30 秒最多 5 次失败尝试
                 val clientIp = call.request.local.remoteHost
                 if (!checkRateLimit(clientIp)) {
-                    call.respond(HttpStatusCode.TooManyRequests, ErrorResponse("rate_limited", context.getString(R.string.webserver_rate_limited)))
+                    val remaining = getRateLimitRemainingSeconds(clientIp)
+                    call.respond(HttpStatusCode.TooManyRequests, ErrorResponse("rate_limited", context.getString(R.string.webserver_rate_limited_remaining, remaining)))
                     return@post
                 }
                 val req = resultOf { call.receive<PinLoginRequest>() }
@@ -591,6 +593,16 @@ class WebServer(
         /** 清除指定 IP 的失败记录(登录成功时调用)。 */
         private fun clearAttempts(ip: String) {
             loginAttempts.remove(ip)
+        }
+
+        /** 返回当前 IP 剩余的锁定秒数(未锁定返回 0)。 */
+        private fun getRateLimitRemainingSeconds(ip: String): Long {
+            val now = System.currentTimeMillis()
+            val tracker = loginAttempts[ip] ?: return 0L
+            synchronized(tracker) {
+                if (now - tracker.firstAttemptAt > RATE_LIMIT_WINDOW_MS) return 0L
+                return ((tracker.firstAttemptAt + RATE_LIMIT_WINDOW_MS - now) / 1000).coerceAtLeast(1)
+            }
         }
     }
 }

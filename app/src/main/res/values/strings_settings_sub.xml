@@ -109,6 +109,48 @@
 
     <!-- 设置二级页 / 关于 -->
     <string name="settings_sub_model_services">模型与服务</string>
+    <string name="settings_task_routing_title">任务路由</string>
+    <string name="settings_task_routing_enable">自动切换模型</string>
+    <string name="settings_task_routing_enable_subtitle">根据任务类型自动切换到绑定的模型</string>
+    <string name="settings_task_routing_general">通用</string>
+    <string name="settings_task_routing_models">任务模型</string>
+    <string name="settings_task_routing_default_model">默认模型</string>
+    <string name="settings_task_routing_chat">对话</string>
+    <string name="settings_task_routing_reasoning">推理</string>
+    <string name="settings_task_routing_code">编程</string>
+    <string name="settings_task_routing_creative">创作</string>
+    <string name="settings_task_routing_analysis">分析</string>
+    <string name="settings_crash_anr_title">ANR 检测</string>
+    <string name="settings_crash_anr_subtitle">检测应用无响应并记录到崩溃/审计日志</string>
+    <string name="settings_chat_compress_model">压缩模型</string>
+    <string name="settings_chat_compress_model_default">默认模型</string>
+    <string name="settings_chat_paste_as_file">长文本粘贴转文件</string>
+    <string name="settings_chat_paste_as_file_subtitle">粘贴超过阈值的文本时提示转为附件</string>
+    <string name="settings_chat_paste_as_file_threshold">粘贴转文件阈值</string>
+    <string name="settings_chat_paste_as_file_threshold_subtitle">超过 %1$d 字时提示转文件</string>
+    <string name="settings_chat_custom_title_prompt">自定义标题提示词</string>
+    <string name="settings_chat_custom_title_prompt_default">使用内置默认提示词</string>
+    <string name="settings_chat_custom_title_prompt_hint">自定义对话命名指令(留空恢复默认)</string>
+    <string name="settings_memory_custom_compress_prompt">自定义压缩提示词</string>
+    <string name="settings_memory_custom_compress_prompt_default">使用内置默认压缩指令</string>
+    <string name="settings_memory_custom_compress_prompt_hint">自定义上下文压缩指令(留空恢复默认)</string>
+    <string name="settings_about_auto_update">自动检查更新</string>
+    <string name="settings_about_auto_update_subtitle">启动后自动检查 GitHub 新版本</string>
+    <string name="prompt_template_manager_title">提示词模板</string>
+    <string name="prompt_template_manager_list">模板列表</string>
+    <string name="prompt_template_manager_empty">暂无自定义模板</string>
+    <string name="prompt_template_manager_built_in">内置</string>
+    <string name="prompt_template_manager_move_up">上移</string>
+    <string name="prompt_template_manager_move_down">下移</string>
+    <string name="prompt_template_manager_edit">编辑</string>
+    <string name="prompt_template_manager_copy">复制</string>
+    <string name="prompt_template_manager_delete">删除</string>
+    <string name="prompt_template_manager_delete_confirm">确定删除模板“%1$s”?</string>
+    <string name="prompt_template_manager_add">新建模板</string>
+    <string name="prompt_template_manager_name">名称</string>
+    <string name="prompt_template_manager_category">分类</string>
+    <string name="prompt_template_manager_content">内容</string>
+    <string name="prompt_template_manage_entry">管理模板</string>
     <string name="settings_sub_user_profile">用户画像</string>
     <string name="settings_sub_user_profile_subtitle">年龄 / 城市 / MBTI 等(用于 AI 个性化)</string>
     <string name="settings_sub_data_backup">数据与备份</string>
@@ -303,6 +345,10 @@
     <string name="settings_rag_mmr_lambda_subtitle">0=纯多样性,1=纯相似度,默认 0.5</string>
     <string name="settings_rag_hybrid">混合检索</string>
     <string name="settings_rag_hybrid_subtitle">BM25 关键词 + 向量相似度 RRF 融合</string>
+    <string name="settings_rag_hybrid_bm25_weight">BM25 权重</string>
+    <string name="settings_rag_hybrid_bm25_weight_subtitle">RRF 融合中 BM25 路的权重</string>
+    <string name="settings_rag_hybrid_vector_weight">向量权重</string>
+    <string name="settings_rag_hybrid_vector_weight_subtitle">RRF 融合中向量相似度的权重</string>
     <string name="settings_rag_rerank">Rerank 重排序</string>
     <string name="settings_rag_rerank_subtitle">对 top-K×5 候选用 cross-encoder 精排</string>
     <string name="settings_rag_token_budget">Token 预算</string>
@@ -321,6 +367,7 @@
     <string name="settings_rag_parser_mineru_subtitle">MinerU API,擅长学术 PDF/公式/表格(需配置 endpoint)</string>
     <string name="settings_rag_cloud_parser_endpoint">云端解析 endpoint</string>
     <string name="settings_rag_mineru_endpoint">MinerU endpoint</string>
+    <string name="settings_rag_mineru_token">MinerU Token（可选）</string>
     <string name="settings_rag_notes_section">说明</string>
     <string name="settings_rag_note1">• 修改分块参数后,新导入的文档将使用新参数分块</string>
     <string name="settings_rag_note2">• 已索引的文档不会自动重新分块,需删除后重新导入</string>

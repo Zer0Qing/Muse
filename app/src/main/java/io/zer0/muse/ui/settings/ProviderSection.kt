@@ -96,6 +96,7 @@ import io.zer0.common.AppJson
 import io.zer0.muse.R
 import io.zer0.muse.auth.OAuthManager
 import io.zer0.muse.ui.common.state.MuseEmptyState
+import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
@@ -1535,6 +1536,7 @@ internal fun ProviderEditPage(
                         onCustomBodyTextChange = { customBodyText = it },
                         fetchError = fetchError,
                         onFetchErrorDismiss = { fetchError = null },
+                        onFetchRetry = { fetchModels(true) },
                         isTestingConnection = isTestingConnection,
                         testConnectionResult = testConnectionResult,
                         testConnectionError = testConnectionError,
@@ -1974,6 +1976,7 @@ private fun ConfigTab(
     onCustomBodyTextChange: (String) -> Unit,
     fetchError: String?,
     onFetchErrorDismiss: () -> Unit,
+    onFetchRetry: () -> Unit = {},
     // v2.4: 独立测试连接相关参数(只测不改,不写入 modelsState)
     isTestingConnection: Boolean,
     testConnectionResult: String?,
@@ -2278,37 +2281,11 @@ private fun ConfigTab(
         // 拉取错误提示
         if (fetchError != null) {
             item {
-                Surface(
-                    shape = MuseShapes.medium,
-                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
-                    ) {
-                        Icon(
-                            TablerIcons.InfoCircle,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(16.dp),
-                        )
-                        Text(
-                            text = fetchError,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            modifier = Modifier.weight(1f),
-                        )
-                        MuseTactileButton(
-                            icon = TablerIcons.X,
-                            onClick = { onFetchErrorDismiss() },
-                            contentDescription = stringResource(R.string.settings_common_close),
-                            tint = MaterialTheme.colorScheme.error,
-                            iconSize = 16.dp,
-                        )
-                    }
-                }
+                MuseErrorStateBox(
+                    message = fetchError,
+                    onRetry = onFetchRetry,
+                    onDismiss = onFetchErrorDismiss,
+                )
             }
         }
 

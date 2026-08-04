@@ -7,6 +7,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseIconSizes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -123,7 +124,7 @@ fun VoiceMessageBar(
             // 停止按钮
             IconButton(
                 onClick = onStop,
-                modifier = Modifier.size(36.dp),
+                modifier = Modifier.size(MuseIconSizes.touchTarget),
             ) {
                 Icon(
                     imageVector = Icons.Default.Stop,

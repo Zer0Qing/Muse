@@ -51,4 +51,6 @@
     <string name="workflow_zoom_limit_reached">ズーム限界に達しました</string>
     <string name="workflow_canvas_empty_title">キャンバスが空です</string>
     <string name="workflow_canvas_empty_subtitle">空白領域をダブルタップしてノードを追加するか、下のツールバーの追加ボタンをタップします</string>
+    <string name="workflow_external_conflict">ワークフローファイルが外部で変更されました</string>
+    <string name="workflow_force_save">強制保存</string>
 </resources>

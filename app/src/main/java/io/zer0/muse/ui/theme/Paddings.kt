@@ -65,6 +65,28 @@ object MusePaddings {
     val touchTarget: androidx.compose.ui.unit.Dp get() = MuseIconSizes.touchTarget
     /** 输入框内边距。 */
     val inputPadding = 12.dp
+    /** B7-07: 输入栏横向/纵向外边距。 */
+    val inputHorizontal = 24.dp
+    val inputVertical = 2.dp
+    /** B7-07: 输入栏内部紧凑行距(快捷入口/文档/视频预览)。 */
+    val inputStackGap = 6.dp
+    /** B7-07: 待发送预览缩略图尺寸。 */
+    val previewThumb = 72.dp
+    /** B7-07: 小圆点移除按钮内边距。 */
+    val removeDotPadding = 3.dp
+    /** B7-07: 内联预览最大宽度。 */
+    val maxInlineWidth = 120.dp
+    /** B7-07: 紧凑 chip 垂直内边距。 */
+    val compactChipVertical = 1.dp
+    /** B7-07: 消息输入框最大高度。 */
+    val maxMessageFieldHeight = 160.dp
+    /** B7-07: 工具面板分隔线宽度/厚度。 */
+    val dividerWidth = 1.dp
+    val dividerThickness = 0.5.dp
+    /** B7-07: 加号工具面板列表最大高度。 */
+    val maxToolSheetListHeight = 360.dp
+    /** B7-07: 工具列表行垂直内边距。 */
+    val listRowVertical = 14.dp
     /** 图标内边距(图标与相邻文字间距)。 */
     val iconPadding = 8.dp
     /** M-CS5: 消息间距(聊天列表 LazyColumn spacedBy,iOS 风格呼吸感)。 */

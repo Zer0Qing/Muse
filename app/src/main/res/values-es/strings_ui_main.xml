@@ -135,6 +135,8 @@
     <string name="memory_screen_collapse">Colapsar</string>
     <string name="memory_screen_expand">Expandir</string>
     <string name="memory_screen_edit_cd">Editar</string>
+    <string name="memory_pin_cd">Fijar</string>
+    <string name="memory_unpin_cd">Desfijar</string>
     <string name="memory_screen_delete_cd">Borrar</string>
     <string name="memory_screen_load_failed">Error de carga: detalles completos del error</string>
     <string name="memory_screen_copied_trace">Seguimiento de pila completo copiado al portapapeles</string>
@@ -554,6 +556,11 @@
 
     <!-- ===== P2-10: Provider plugin management (ProviderPluginPage) ===== -->
     <string name="provider_plugins_title">Administrador de complementos</string>
+    <string name="muse_plugins_external">Complementos externos</string>
+    <string name="muse_plugins_manage">Gestión de plugins</string>
+    <string name="muse_plugins_imported">Paquete de plugin instalado</string>
+    <string name="muse_plugins_empty_hint">Sin plugins externos. Toca + para importar un paquete .muse-plugin o ZIP.</string>
+    <string name="muse_plugins_import_hint">Paquete de plugin instalado. Géstionelo en Complementos externos.</string>
     <string name="provider_plugins_empty">Sin complementos</string>
     <string name="provider_plugins_import">Complemento de importación</string>
     <string name="provider_plugins_delete">Eliminar complemento</string>
@@ -574,8 +581,6 @@
     <string name="workspace_read_only_too_large">Archivo demasiado grande para obtener una vista previa (límite de 1 MB)</string>
     <string name="workspace_path_copied">Ruta copiada</string>
 
-    <!-- ===== P2-6: Browser Automation (BrowserAutomationScreen) ===== -->
-    <string name="browser_automation_title">Automatización del navegador</string>
     <string name="browser_address_bar">Ingrese la URL o busque</string>
     <string name="browser_run_js">Ejecutar JavaScript</string>
     <string name="browser_back">Atrás</string>
@@ -637,14 +642,14 @@
     <string name="ocr_processing_hint">正在识别图片文字…</string>
     <string name="search_searching">正在搜索…</string>
     <string name="settings_screen_quick_notes">快速记录</string>
-    <string name="settings_screen_quick_notes_cd">快速记录,随手记下灵感,点击进入</string>
+    <string name="settings_screen_quick_notes_cd">快速记录，随手记下灵感，点击进入</string>
     <string name="settings_screen_quick_notes_desc">随手记下灵感，支持分类/提醒/加密</string>
     <string name="settings_vision_manual_selected">手动选择</string>
     <string name="settings_vision_probe_button">测试所选视觉模型</string>
-    <string name="settings_vision_probe_desc">发送一张内置测试图片给所选视觉模型,验证其是否真的支持视觉输入并可用.</string>
-    <string name="settings_vision_probe_disabled">请先启用视觉辅助并选择视觉模型.</string>
+    <string name="settings_vision_probe_desc">发送一张内置测试图片给所选视觉模型，验证其是否真的支持视觉输入并可用。</string>
+    <string name="settings_vision_probe_disabled">请先启用视觉辅助并选择视觉模型。</string>
     <string name="settings_vision_probe_failed">测试失败：%1$s</string>
-    <string name="settings_vision_probe_no_model">请先选择视觉模型.</string>
+    <string name="settings_vision_probe_no_model">请先选择视觉模型。</string>
     <string name="settings_vision_probe_running">测试中…</string>
     <string name="settings_vision_probe_section">探针测试</string>
     <string name="settings_vision_probe_success">测试成功：视觉模型返回了 %1$d 字符的描述。</string>
@@ -657,4 +662,6 @@
     <string name="tool_resume_starting">正在恢复未完成的工具调用…</string>
     <string name="tool_resume_step">正在执行 %1$s (%2$d/%3$d)…</string>
     <string name="tts_not_ready">TTS 正在初始化,请稍后重试</string>
+    <string name="chat_jump_to_unread">Ir al primer no leído · %1$d</string>
+    <string name="chat_list_reorder">Arrastrar para reordenar</string>
 </resources>

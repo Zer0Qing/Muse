@@ -65,6 +65,8 @@ class WorkflowEditorViewModel(
         val toast: String? = null,
         /** 是否正在加载。 */
         val loading: Boolean = true,
+        /** B8-05: 本地工作流文件被外部修改,需用户确认强制覆盖。 */
+        val externalConflict: Boolean = false,
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -80,6 +82,8 @@ class WorkflowEditorViewModel(
     /** 工作流 JSON 文件。 */
     private val workflowFile: File =
         File(File(application.filesDir, WORKFLOW_DIR).apply { mkdirs() }, "$storageKey.json")
+    /** B8-05: 最近一次加载/保存时文件的 lastModified,用于检测外部修改。 */
+    private var loadedFileModifiedAt: Long = 0L
 
     init {
         // 启动时加载工作流 + 节点位置 + 助手列表
@@ -294,6 +298,8 @@ class WorkflowEditorViewModel(
             val workflow = loadWorkflowFromFile()
             val positions = loadPositionsFromPrefs()
             _state.update { it.copy(workflow = workflow, nodePositions = positions, loading = false) }
+            loadedFileModifiedAt = workflowFile.lastModified()
+            _state.update { it.copy(externalConflict = false) }
         }
     }
 
@@ -301,9 +307,21 @@ class WorkflowEditorViewModel(
      * 保存工作流到本地 JSON 文件,并回写到对应 AgentTeam(若存在)。
      * 节点位置同步写入 SharedPreferences。
      */
-    fun save() {
+    fun save() = saveInternal(force = false)
+
+    /** B8-05: 外部文件已变更时,用户确认后强制覆盖。 */
+    fun forceSave() = saveInternal(force = true)
+
+    private fun saveInternal(force: Boolean) {
         viewModelScope.launch {
             val current = _state.value
+            // B8-05: 外部修改检测 — 非强制保存时拒绝覆盖,提示用户刷新/确认
+            val externalModified = loadedFileModifiedAt != 0L &&
+                workflowFile.exists() && workflowFile.lastModified() != loadedFileModifiedAt
+            if (externalModified && !force) {
+                _state.update { it.copy(externalConflict = true) }
+                return@launch
+            }
             resultOf {
                 // 1. 写工作流 JSON 文件
                 workflowFile.parentFile?.mkdirs()
@@ -320,7 +338,8 @@ class WorkflowEditorViewModel(
                         )
                     }
                 }
-                _state.update { it.copy(toast = "已保存") }
+                loadedFileModifiedAt = workflowFile.lastModified()
+                _state.update { it.copy(externalConflict = false, toast = "已保存") }
             }.onError { _, t ->
                 Logger.w(TAG, "保存工作流失败", t)
                 _state.update { it.copy(toast = "保存失败: ${t?.message}") }

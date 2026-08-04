@@ -51,15 +51,15 @@ class ReindexAllWorker(
     override suspend fun doWork(): Result {
         val koin = resultOf { GlobalContext.get() }.getOrNull()
         if (koin == null) {
-            Logger.w(TAG, "Koin 未初始化(Safe Mode?),跳过重索引")
-            return Result.success()
+            Logger.w(TAG, "Koin 未初始化(Safe Mode?),稍后重试")
+            return Result.retry()
         }
         val ragService = resultOf { koin.get<RagService>() }.getOrNull()
-            ?: return Result.success().also { Logger.w(TAG, "RagService 解析失败") }
+            ?: return Result.retry().also { Logger.w(TAG, "RagService 解析失败,稍后重试") }
         val settings = resultOf { koin.get<SettingsRepository>() }.getOrNull()
-            ?: return Result.success().also { Logger.w(TAG, "SettingsRepository 解析失败") }
+            ?: return Result.retry().also { Logger.w(TAG, "SettingsRepository 解析失败,稍后重试") }
         val kbDao = resultOf { koin.get<KnowledgeBaseDao>() }.getOrNull()
-            ?: return Result.success().also { Logger.w(TAG, "KnowledgeBaseDao 解析失败") }
+            ?: return Result.retry().also { Logger.w(TAG, "KnowledgeBaseDao 解析失败,稍后重试") }
         val notifMgr = resultOf { koin.get<MuseNotificationManager>() }.getOrNull()
 
         // 1. 取要重索引的 KB 列表(未指定则全部)

@@ -17,6 +17,16 @@ class ResourceLibraryStore(private val context: Context) {
 
     private val file by lazy { java.io.File(context.filesDir, "resources/library.json") }
 
+    @Volatile
+    private var lastError: String? = null
+
+    /** 消费最近一次损坏提示(UI 展示后调用)。 */
+    fun consumeError(): String? {
+        val e = lastError
+        lastError = null
+        return e
+    }
+
     /** 列出资源,支持按关键字过滤。 */
     fun list(keyword: String? = null, limit: Int = 20): List<ResourceItem> {
         var all = readAll()
@@ -85,9 +95,21 @@ class ResourceLibraryStore(private val context: Context) {
             if (!file.exists()) return emptyList()
             AppJson.decodeFromString(ListSerializer(ResourceItem.serializer()), file.readText())
         } catch (e: Exception) {
-            Logger.w(TAG, "读取资源库失败: ${e.message}")
+            backupCorruptFile()
+            lastError = "资源库文件损坏，已备份原文件并重建"
+            Logger.e(TAG, "读取资源库失败，已备份坏文件: ${e.message}", e)
             emptyList()
         }
+    }
+
+    private fun backupCorruptFile() {
+        runCatching {
+            if (file.exists()) {
+                val backup = java.io.File(file.parentFile, "${file.name}.bak-${System.currentTimeMillis()}")
+                file.copyTo(backup, overwrite = true)
+                Logger.w(TAG, "损坏文件已备份到 ${backup.absolutePath}")
+            }
+        }.onFailure { Logger.w(TAG, "备份损坏文件失败: ${it.message}") }
     }
 
     private fun writeAll(list: List<ResourceItem>) {

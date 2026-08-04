@@ -62,6 +62,7 @@ import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
 import io.zer0.muse.ui.common.state.MuseEmptyState
+import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.form.MuseTactileButton
@@ -120,6 +121,13 @@ internal fun McpSection() {
                 serverList.forEachIndexed { index, server ->
                     if (index > 0) SettingsGroupDivider()
                     val state = serversState?.get(server.id) ?: McpConnectionState.DISCONNECTED
+                    val reconnect = {
+                        resultOf { mcpRegistry.reconnect(server.id) }
+                            .onError { _, t ->
+                                MuseToast.show(context.getString(R.string.settings_mcp_failed, t?.message))
+                            }
+                        Unit
+                    }
                     McpServerRow(
                         server = server,
                         state = state,
@@ -132,12 +140,7 @@ internal fun McpSection() {
                                     }
                             }
                         },
-                        onReconnect = {
-                            resultOf { mcpRegistry.reconnect(server.id) }
-                                .onError { _, t ->
-                                    MuseToast.show(context.getString(R.string.settings_mcp_failed, t?.message))
-                                }
-                        },
+                        onReconnect = reconnect,
                         onDelete = {
                             scope.launch {
                                 resultOf { mcpRegistry.removeServer(server.id) }
@@ -147,6 +150,13 @@ internal fun McpSection() {
                             }
                         },
                     )
+                    if (state == McpConnectionState.FAILED) {
+                        MuseErrorStateBox(
+                            message = stringResource(R.string.settings_mcp_failed, server.name),
+                            onRetry = reconnect,
+                            modifier = Modifier.padding(top = MusePaddings.tinyGap),
+                        )
+                    }
                 }
             }
         }

@@ -105,6 +105,10 @@ interface QuickNoteDao {
      * v1.0.18: 设置加密状态与密文。
      * encrypted=false 时 encryptedContent 应传空串。
      */
-    @Query("UPDATE quick_notes SET encrypted = :encrypted, encrypted_content = :encryptedContent, updated_at = :now WHERE id = :id")
+    @Query(
+        "UPDATE quick_notes SET encrypted = :encrypted, encrypted_content = :encryptedContent, " +
+            "content = CASE WHEN :encrypted THEN '' ELSE :encryptedContent END, " +
+            "updated_at = :now WHERE id = :id",
+    )
     suspend fun setEncrypted(id: String, encrypted: Boolean, encryptedContent: String, now: Long = System.currentTimeMillis())
 }

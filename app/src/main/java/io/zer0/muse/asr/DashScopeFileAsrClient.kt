@@ -100,7 +100,7 @@ class DashScopeFileAsrClient(
     override suspend fun recognize(audioData: ByteArray, sampleRate: Int): AsrResult? {
         val url = config.fileAudioUrl.ifBlank {
             Logger.w(TAG, "异步文件转录需要 fileAudioUrl 配置,当前为空")
-            return null
+            return AsrResult(text = "", errorMessage = "异步文件转录需要 fileAudioUrl 配置，当前为空")
         }
         return recognizeFile(url)
     }

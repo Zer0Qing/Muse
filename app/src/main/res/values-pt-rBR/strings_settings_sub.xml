@@ -88,6 +88,48 @@
 
     <!-- Settings Sub-pages / About -->
     <string name="settings_sub_model_services">Modelos &amp; Serviços</string>
+    <string name="settings_task_routing_title">Roteamento de tarefas</string>
+    <string name="settings_task_routing_enable">Alternar modelos automaticamente</string>
+    <string name="settings_task_routing_enable_subtitle">Alterna automaticamente para o modelo vinculado de acordo com o tipo de tarefa</string>
+    <string name="settings_task_routing_general">Geral</string>
+    <string name="settings_task_routing_models">Modelos por tarefa</string>
+    <string name="settings_task_routing_default_model">Modelo padrão</string>
+    <string name="settings_task_routing_chat">Conversa</string>
+    <string name="settings_task_routing_reasoning">Raciocínio</string>
+    <string name="settings_task_routing_code">Código</string>
+    <string name="settings_task_routing_creative">Criativo</string>
+    <string name="settings_task_routing_analysis">Análise</string>
+    <string name="settings_crash_anr_title">Detecção de ANR</string>
+    <string name="settings_crash_anr_subtitle">Detecta que o app não responde e registra nos logs de falha/auditoria</string>
+    <string name="settings_chat_compress_model">Modelo de compressão</string>
+    <string name="settings_chat_compress_model_default">Modelo padrão</string>
+    <string name="settings_chat_paste_as_file">Colar longo como arquivo</string>
+    <string name="settings_chat_paste_as_file_subtitle">Sugere anexar texto colado como arquivo quando exceder o limite</string>
+    <string name="settings_chat_paste_as_file_threshold">Limite para arquivo</string>
+    <string name="settings_chat_paste_as_file_threshold_subtitle">Sugerir converter quando exceder %1$d caracteres</string>
+    <string name="settings_chat_custom_title_prompt">Prompt de título personalizado</string>
+    <string name="settings_chat_custom_title_prompt_default">Usar o prompt padrão integrado</string>
+    <string name="settings_chat_custom_title_prompt_hint">Instrução personalizada para nomear conversas (vazio para padrão)</string>
+    <string name="settings_memory_custom_compress_prompt">Prompt de compressão personalizado</string>
+    <string name="settings_memory_custom_compress_prompt_default">Usar a instrução de compressão padrão integrada</string>
+    <string name="settings_memory_custom_compress_prompt_hint">Instrução personalizada de compressão de contexto (vazio para padrão)</string>
+    <string name="settings_about_auto_update">Verificar atualizações automaticamente</string>
+    <string name="settings_about_auto_update_subtitle">Verifica automaticamente novas versões no GitHub após a inicialização</string>
+    <string name="prompt_template_manager_title">Modelos de prompt</string>
+    <string name="prompt_template_manager_list">Lista de modelos</string>
+    <string name="prompt_template_manager_empty">Ainda não há modelos personalizados</string>
+    <string name="prompt_template_manager_built_in">Integrado</string>
+    <string name="prompt_template_manager_move_up">Mover para cima</string>
+    <string name="prompt_template_manager_move_down">Mover para baixo</string>
+    <string name="prompt_template_manager_edit">Editar</string>
+    <string name="prompt_template_manager_copy">Duplicar</string>
+    <string name="prompt_template_manager_delete">Excluir</string>
+    <string name="prompt_template_manager_delete_confirm">Excluir o modelo "%1$s"?</string>
+    <string name="prompt_template_manager_add">Novo modelo</string>
+    <string name="prompt_template_manager_name">Nome</string>
+    <string name="prompt_template_manager_category">Categoria</string>
+    <string name="prompt_template_manager_content">Conteúdo</string>
+    <string name="prompt_template_manage_entry">Gerenciar modelos</string>
     <string name="settings_sub_user_profile">Perfil de usuário</string>
     <string name="settings_sub_user_profile_subtitle">Idade/Cidade/MBTI, etc. (para personalização de IA)</string>
     <string name="settings_sub_data_backup">Dados &amp; Backup</string>
@@ -282,6 +324,10 @@
     <string name="settings_rag_mmr_lambda_subtitle">0=diversidade pura, 1=similaridade pura, padrão 0,5</string>
     <string name="settings_rag_hybrid">Pesquisa Híbrida</string>
     <string name="settings_rag_hybrid_subtitle">Palavra-chave BM25 + fusão RRF de similaridade vetorial</string>
+    <string name="settings_rag_hybrid_bm25_weight">Peso BM25</string>
+    <string name="settings_rag_hybrid_bm25_weight_subtitle">Peso da contribuição BM25 na fusão RRF</string>
+    <string name="settings_rag_hybrid_vector_weight">Peso vetorial</string>
+    <string name="settings_rag_hybrid_vector_weight_subtitle">Peso da contribuição de similaridade vetorial na fusão RRF</string>
     <string name="settings_rag_rerank">Reclassificar</string>
     <string name="settings_rag_rerank_subtitle">Reclassificação de codificadores cruzados nos principais candidatos K×5</string>
     <string name="settings_rag_token_budget">Orçamento de token</string>
@@ -300,6 +346,7 @@
     <string name="settings_rag_parser_mineru_subtitle">API MinerU, excelente em PDF/fórmulas/tabelas acadêmicas (requer endpoint)</string>
     <string name="settings_rag_cloud_parser_endpoint">Endpoint do analisador de nuvem</string>
     <string name="settings_rag_mineru_endpoint">Ponto de extremidade MinerU</string>
+    <string name="settings_rag_mineru_token">Token do MinerU (opcional)</string>
     <string name="settings_rag_notes_section">Notas</string>
     <string name="settings_rag_note1">• Depois de alterar os parâmetros do bloco, os documentos recém-importados usarão os novos parâmetros</string>
     <string name="settings_rag_note2">• Documentos já indexados não são reagrupados automaticamente;</string>
@@ -493,4 +540,5 @@
     <string name="settings_theme_custom_color_h">Matiz</string>
     <string name="settings_theme_custom_color_s">Saturação</string>
     <string name="settings_theme_custom_color_l">Leveza</string>
+    <string name="settings_agent_bound_assistant_hint">Esta página está vinculada ao assistente atual e acompanha automaticamente ao trocar de assistente</string>
 </resources>

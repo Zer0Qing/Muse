@@ -15,6 +15,7 @@ import io.zer0.muse.data.quickmsg.QuickMessageEntity
 import io.zer0.muse.data.quickmsg.QuickMessageRepository
 import io.zer0.muse.data.session.FolderRepository
 import io.zer0.muse.data.session.SessionRepository
+import io.zer0.muse.data.session.SearchResult
 import io.zer0.muse.ui.ChatError
 import io.zer0.muse.ui.ChatErrorType
 import kotlinx.coroutines.flow.first
@@ -103,13 +104,29 @@ class ChatMiscCoordinator(
         }
     }
 
+    /** B7-05: 置顶会话拖拽排序持久化。 */
+    fun reorderPinnedSessions(ids: List<String>, reportError: (String) -> Unit) {
+        accessor.coroutineScope.launch {
+            resultOf { sessionRepository.reorderPinnedSessions(ids) }
+                .onError { msg, t -> reportError(appContext.getString(R.string.err_chat_misc_reorder_pinned_failed, t?.message ?: "")) }
+        }
+    }
+
     // ── 搜索 ─────────────────────────────────────────────────────────────
 
     /** 更新搜索框文本。空文本时清空结果。 */
     fun updateSearchQuery(query: String) {
         accessor.update { it.copy(searchQuery = query) }
         if (query.isBlank()) {
-            accessor.update { it.copy(searchResults = emptyList(), isSearching = false) }
+            accessor.update {
+                it.copy(
+                    searchResults = emptyList(),
+                    isSearching = false,
+                    messageResults = emptyList(),
+                    isSearchingMessages = false,
+                    searchError = null,
+                )
+            }
         }
     }
 
@@ -117,20 +134,30 @@ class ChatMiscCoordinator(
     fun search() {
         val query = accessor.snapshot.searchQuery.trim()
         if (query.isEmpty()) return
-        accessor.update { it.copy(isSearching = true) }
+        accessor.update { it.copy(isSearching = true, searchError = null) }
         accessor.coroutineScope.launch {
+            var failed = false
+            var detail: String? = null
             val results = try {
                 kotlinx.coroutines.withTimeoutOrNull(5000L) {
                     sessionRepository.searchMessages(query)
-                } ?: emptyList()
+                } ?: emptyList<SearchResult>().also {
+                    failed = true
+                    detail = appContext.getString(R.string.err_chat_network_timeout)
+                }
             } catch (t: Throwable) {
                 Logger.w(tag, "Search failed: ${t.message}")
+                failed = true
+                detail = t.message ?: appContext.getString(R.string.err_chat_unknown)
                 emptyList()
             }
             accessor.update {
                 it.copy(
                     searchResults = results,
                     isSearching = false,
+                    searchError = if (failed) {
+                        appContext.getString(R.string.err_chat_request_failed, detail ?: appContext.getString(R.string.err_chat_unknown))
+                    } else null,
                 )
             }
         }
@@ -146,6 +173,7 @@ class ChatMiscCoordinator(
                 // v2.x: 同步清空消息内容搜索结果(切回会话 Tab 时也清空,避免残留)
                 messageResults = emptyList(),
                 isSearchingMessages = false,
+                searchError = null,
             )
         }
     }
@@ -154,7 +182,7 @@ class ChatMiscCoordinator(
 
     /** v2.x: 切换搜索页 Tab(0=会话, 1=消息内容)。 */
     fun switchSearchTab(tab: Int) {
-        accessor.update { it.copy(searchTab = tab) }
+        accessor.update { it.copy(searchTab = tab, searchError = null) }
     }
 
     /**
@@ -167,23 +195,33 @@ class ChatMiscCoordinator(
     fun searchMessageContent() {
         val query = accessor.snapshot.searchQuery.trim()
         if (query.isEmpty()) {
-            accessor.update { it.copy(messageResults = emptyList(), isSearchingMessages = false) }
+            accessor.update { it.copy(messageResults = emptyList(), isSearchingMessages = false, searchError = null) }
             return
         }
-        accessor.update { it.copy(isSearchingMessages = true) }
+        accessor.update { it.copy(isSearchingMessages = true, searchError = null) }
         accessor.coroutineScope.launch {
+            var failed = false
+            var detail: String? = null
             val results = try {
                 kotlinx.coroutines.withTimeoutOrNull(5000L) {
                     sessionRepository.searchMessageContentFlow(query).first()
-                } ?: emptyList()
+                } ?: emptyList<SearchResult>().also {
+                    failed = true
+                    detail = appContext.getString(R.string.err_chat_network_timeout)
+                }
             } catch (t: Throwable) {
                 Logger.w(tag, "Message content search failed: ${t.message}")
+                failed = true
+                detail = t.message ?: appContext.getString(R.string.err_chat_unknown)
                 emptyList()
             }
             accessor.update {
                 it.copy(
                     messageResults = results,
                     isSearchingMessages = false,
+                    searchError = if (failed) {
+                        appContext.getString(R.string.err_chat_request_failed, detail ?: appContext.getString(R.string.err_chat_unknown))
+                    } else null,
                 )
             }
         }
@@ -230,28 +268,30 @@ class ChatMiscCoordinator(
     /** 切换消息收藏状态(乐观更新 + 失败回滚)。 */
     fun toggleFavorite(messageId: Uuid) {
         // Phase 8.5 修复: 先查当前会话 messages,找不到再查 favoriteMessages(跨会话收藏列表)
-        val target = accessor.snapshot.messages.firstOrNull { it.id == messageId }
+        val target = accessor.messagesSnapshot.firstOrNull { it.id == messageId }
             ?: accessor.snapshot.favoriteMessages.firstOrNull { it.id == messageId }
             ?: return
         val idStr = messageId.toString()
         val newFav = !target.favorite
+        val newMessages = accessor.messagesSnapshot.map { if (it.id == messageId) it.copy(favorite = newFav) else it }
+        accessor.updateMessages { newMessages }
         accessor.update { st ->
-            val newMessages = st.messages.map { if (it.id == messageId) it.copy(favorite = newFav) else it }
             val newFavs = if (newFav) {
                 if (st.favoriteMessages.none { it.id == messageId }) st.favoriteMessages + target.copy(favorite = newFav)
                 else st.favoriteMessages
             } else {
                 st.favoriteMessages.filterNot { it.id == messageId }
             }
-            st.copy(messages = newMessages, favoriteMessages = newFavs)
+            st.copy(favoriteMessages = newFavs)
         }
         accessor.coroutineScope.launch {
             resultOf { sessionRepository.setMessageFavorite(idStr, newFav) }
                 .onError { msg, t ->
+                    val rolled = accessor.messagesSnapshot.map {
+                        if (it.id == messageId) it.copy(favorite = !newFav) else it
+                    }
+                    accessor.updateMessages { rolled }
                     accessor.update { st ->
-                        val rolled = st.messages.map {
-                            if (it.id == messageId) it.copy(favorite = !newFav) else it
-                        }
                         val rolledFavs = if (newFav) {
                             st.favoriteMessages.filterNot { it.id == messageId }
                         } else {
@@ -259,7 +299,7 @@ class ChatMiscCoordinator(
                             if (tgt != null) st.favoriteMessages + tgt.copy(favorite = !newFav)
                             else st.favoriteMessages
                         }
-                        st.copy(messages = rolled, favoriteMessages = rolledFavs, errors = listOf(ChatError(type = ChatErrorType.UNKNOWN, message = appContext.getString(R.string.err_chat_misc_favorite_failed, t?.message ?: ""))))
+                        st.copy(favoriteMessages = rolledFavs, errors = listOf(ChatError(type = ChatErrorType.UNKNOWN, message = appContext.getString(R.string.err_chat_misc_favorite_failed, t?.message ?: ""))))
                     }
                 }
         }
@@ -306,19 +346,18 @@ class ChatMiscCoordinator(
 
     /** v1.48: 删除单条消息(乐观更新 + 失败回滚)。 */
     fun deleteMessage(messageId: Uuid) {
-        val target = accessor.snapshot.messages.firstOrNull { it.id == messageId } ?: return
+        val target = accessor.messagesSnapshot.firstOrNull { it.id == messageId } ?: return
         val idStr = messageId.toString()
-        accessor.update { st ->
-            st.copy(messages = st.messages.filterNot { it.id == messageId })
-        }
+        accessor.updateMessages { messages -> messages.filterNot { it.id == messageId } }
         accessor.coroutineScope.launch {
             resultOf {
                 sessionRepository.deleteMessage(idStr)
             }.onError { msg, t ->
+                val idx = accessor.messagesSnapshot.indexOfFirst { it.createdAt >= target.createdAt }.coerceAtLeast(0)
+                val rolled = accessor.messagesSnapshot.toMutableList().apply { add(idx, target) }
+                accessor.updateMessages { rolled }
                 accessor.update { st ->
-                    val idx = st.messages.indexOfFirst { it.createdAt >= target.createdAt }.coerceAtLeast(0)
-                    val rolled = st.messages.toMutableList().apply { add(idx, target) }
-                    st.copy(messages = rolled, errors = listOf(ChatError(type = ChatErrorType.UNKNOWN, message = appContext.getString(R.string.err_chat_misc_delete_msg_failed, t?.message ?: ""))))
+                    st.copy(errors = listOf(ChatError(type = ChatErrorType.UNKNOWN, message = appContext.getString(R.string.err_chat_misc_delete_msg_failed, t?.message ?: ""))))
                 }
             }
         }

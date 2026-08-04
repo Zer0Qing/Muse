@@ -20,6 +20,8 @@ sealed class ChatStreamEvent {
     data class ReasoningDelta(
         val delta: String,
         val signature: String? = null,
+        /** B5-03: OpenAI Responses reasoning item 的 encrypted_content(回放关键)。 */
+        val encryptedContent: String? = null,
     ) : ChatStreamEvent()
 
     /** 正文增量。 */
@@ -74,6 +76,12 @@ sealed class ChatStreamEvent {
         val message: String,
         val throwable: Throwable? = null,
     ) : ChatStreamEvent()
+
+    /**
+     * B3-01: SSE 建立后长时间无首事件,已自动降级为非流式重试。
+     * UI 可据此显示一次性提示。
+     */
+    data class FallbackNotice(val message: String) : ChatStreamEvent()
 }
 
 /**
@@ -159,6 +167,10 @@ data class ChatCompletion(
     val reasoningContent: String? = null,
     /** v1.0.53 Phase 3: token 用量(prompt + completion + reasoning 合计)。null 表示上游未返回。 */
     val usageTokens: UsageTokens? = null,
+    /** B5-03: thinking 签名(Anthropic / OpenAI reasoning item id)。 */
+    val thinkingSignature: String? = null,
+    /** B5-03: OpenAI Responses reasoning encrypted_content。 */
+    val thinkingEncryptedContent: String? = null,
 )
 
 /**

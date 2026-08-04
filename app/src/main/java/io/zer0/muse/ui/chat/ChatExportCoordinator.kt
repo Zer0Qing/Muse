@@ -2,6 +2,7 @@ package io.zer0.muse.ui.chat
 
 import io.zer0.ai.core.MessageRole
 import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.data.audit.AuditLogger
 import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.ui.theme.MuseDateFormats
 import kotlinx.coroutines.flow.first
@@ -43,6 +44,8 @@ class ChatExportCoordinator(
     private val accessor: ChatStateAccessor,
     private val settings: SettingsRepository,
     private val sessionRepository: SessionRepository,
+    /** P2-4: 审计日志记录器(导出完成时记录)。 */
+    private val auditLogger: AuditLogger? = null,
 ) {
 
     private val json = Json { prettyPrint = true; ignoreUnknownKeys = true }
@@ -93,7 +96,7 @@ class ChatExportCoordinator(
             sb.append("> 估算 Token: ~").append(estTokens).append("  \n\n")
         }
 
-        return when (tpl.format) {
+        val output = when (tpl.format) {
             "plain_text" -> sb.toString()
                 .replace(Regex("""\*\*"""), "")
                 .replace(Regex("""^> """, RegexOption.MULTILINE), "")
@@ -103,6 +106,13 @@ class ChatExportCoordinator(
             "html" -> markdownToHtml(sb.toString())
             else -> sb.toString()
         }
+        auditLogger?.log(
+            category = "user_action",
+            action = "export_session",
+            target = state.currentSessionId ?: state.agentSessionId ?: "",
+            detail = mapOf("format" to "markdown"),
+        )
+        return output
     }
 
     /**
@@ -134,7 +144,14 @@ class ChatExportCoordinator(
             exportedAt = now,
             messages = exportMessages,
         )
-        return json.encodeToString(export)
+        val output = json.encodeToString(export)
+        auditLogger?.log(
+            category = "user_action",
+            action = "export_session",
+            target = state.currentSessionId ?: state.agentSessionId ?: "",
+            detail = mapOf("format" to "json"),
+        )
+        return output
     }
 
     /**
@@ -152,7 +169,14 @@ class ChatExportCoordinator(
             val role = if (msg.role == MessageRole.USER) "用户" else "助手"
             sb.append("[$role]\n").append(msg.content).append("\n\n")
         }
-        return sb.toString()
+        val output = sb.toString()
+        auditLogger?.log(
+            category = "user_action",
+            action = "export_session",
+            target = state.currentSessionId ?: state.agentSessionId ?: "",
+            detail = mapOf("format" to "plain_text"),
+        )
+        return output
     }
 
     /**
@@ -176,7 +200,14 @@ class ChatExportCoordinator(
         val state = accessor.snapshot
         val title = resolveTitle(state)
         val messages = loadAllMessages(state)
-        return io.zer0.muse.data.export.ConversationExporter.exportToHtml(messages, title)
+        val output = io.zer0.muse.data.export.ConversationExporter.exportToHtml(messages, title)
+        auditLogger?.log(
+            category = "user_action",
+            action = "export_session",
+            target = state.currentSessionId ?: state.agentSessionId ?: "",
+            detail = mapOf("format" to "html"),
+        )
+        return output
     }
 
     /**
@@ -189,7 +220,14 @@ class ChatExportCoordinator(
         val state = accessor.snapshot
         val title = resolveTitle(state)
         val messages = loadAllMessages(state)
-        return io.zer0.muse.data.export.ConversationExporter.exportToPdf(context, messages, title)
+        val output = io.zer0.muse.data.export.ConversationExporter.exportToPdf(context, messages, title)
+        auditLogger?.log(
+            category = "user_action",
+            action = "export_session",
+            target = state.currentSessionId ?: state.agentSessionId ?: "",
+            detail = mapOf("format" to "pdf"),
+        )
+        return output
     }
 
     /** 解析当前会话标题(空标题回退为 "muse 对话")。 */
@@ -202,7 +240,7 @@ class ChatExportCoordinator(
         return if (sessionId != null) {
             sessionRepository.observeMessages(sessionId).first()
         } else {
-            state.messages
+            accessor.messagesSnapshot
         }
     }
 

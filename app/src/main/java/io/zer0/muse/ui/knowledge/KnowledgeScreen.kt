@@ -44,6 +44,7 @@ import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -53,6 +54,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -85,6 +87,7 @@ import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.ui.theme.statusColors
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
@@ -112,13 +115,24 @@ fun KnowledgeScreen(
     var searchQuery by remember { mutableStateOf("") }
     // v1.66: 知识库排序切换(原仅按 updated_at DESC,现支持 4 种排序)
     var sortMode by remember { mutableStateOf(KnowledgeSortMode.UPDATED) }
+    // v1.0.62: 下拉刷新键,自增会重建 DAO flow 触发重新查询
+    var refreshKey by remember { mutableStateOf(0) }
+    var isRefreshing by remember { mutableStateOf(false) }
     var showSortMenu by remember { mutableStateOf(false) }
     // v1.48: h13 首次加载用 null 显示加载态;搜索场景保留 emptyList,避免每次输入闪加载态
     // M-KB1: 搜索时转义 LIKE 通配符(% _ \),配合 DAO 的 ESCAPE '\' 子句
     // 用 observeAllUser() 在 DB 层排除 is_internal=true 的内部开发文档,避免向用户暴露
-    val docs by remember(searchQuery) {
+    val docs by remember(searchQuery, refreshKey) {
         if (searchQuery.isBlank()) dao.observeAllUser() else dao.search(io.zer0.muse.data.knowledge.KnowledgeDocDao.escapeLikeQuery(searchQuery))
     }.collectAsStateWithLifecycle(initialValue = if (searchQuery.isBlank()) null else emptyList())
+    // v1.0.62: 下拉刷新时短暂显示指示器,让重新查询有可感知反馈
+    LaunchedEffect(refreshKey) {
+        if (refreshKey > 0) {
+            isRefreshing = true
+            delay(500)
+            isRefreshing = false
+        }
+    }
     var detailTarget by remember { mutableStateOf<KnowledgeDocEntity?>(null) }
     var importing by remember { mutableStateOf(false) }
     var importProgress by remember { mutableStateOf("") }
@@ -165,13 +179,40 @@ fun KnowledgeScreen(
                     return@launch
                 }
                 val lowerName = fileName.lowercase()
+                val parserConfig = try {
+                    settings.getRagConfig()
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: java.io.IOException) {
+                    Logger.w("KnowledgeScreen", "读取 RAG 配置失败: ${e.message}")
+                    io.zer0.muse.rag.RagConfig()
+                }
                 // 根据扩展名选择解析方式
                 val content = when {
                     lowerName.endsWith(".pdf") || lowerName.endsWith(".docx") ||
-                        lowerName.endsWith(".doc") || lowerName.endsWith(".epub") ||
+                    lowerName.endsWith(".doc") || lowerName.endsWith(".epub") ||
                         lowerName.endsWith(".pptx") -> {
                         importProgress = context.getString(R.string.knowledge_parsing_doc)
-                        withContext(Dispatchers.IO) { documentParser.parse(uri, context) }
+                        val parsed = withContext(Dispatchers.IO) {
+                            documentParser.parseResult(
+                                uri,
+                                context,
+                                parserConfig.documentParserType,
+                                parserConfig.cloudParserEndpoint,
+                                parserConfig.mineruEndpoint,
+                                parserConfig.mineruToken,
+                            )
+                        }
+                        if (parsed is io.zer0.common.Result.Error) {
+                            MuseToast.show(parsed.message)
+                            return@launch
+                        }
+                        val text = parsed.getOrNull()
+                        if (text.isNullOrBlank()) {
+                            MuseToast.show(context.getString(R.string.knowledge_import_empty))
+                            return@launch
+                        }
+                        text
                     }
                     lowerName.endsWith(".png") || lowerName.endsWith(".jpg") ||
                         lowerName.endsWith(".jpeg") || lowerName.endsWith(".bmp") ||
@@ -240,15 +281,7 @@ fun KnowledgeScreen(
                 )
                 // v1.54: 自动分块 + 生成 embedding 向量索引
                 importProgress = context.getString(R.string.knowledge_chunking)
-                // M-KUI1: 移除 runCatching,改为 try-catch 并重抛 CancellationException
-                val ragConfig = try {
-                    settings.getRagConfig()
-                } catch (e: kotlinx.coroutines.CancellationException) {
-                    throw e
-                } catch (e: java.io.IOException) {
-                    Logger.w("KnowledgeScreen", "读取 RAG 配置失败: ${e.message}")
-                    io.zer0.muse.rag.RagConfig()
-                }
+                val ragConfig = parserConfig
                 // v1.103: 不再静默吞异常。runCatching 失败时把原因拼进 toast,
                 // 让用户知道为什么没建索引(网络/模型名/Provider 不兼容等),而不是只看到"已导入但未索引"。
                 var indexError: Throwable? = null
@@ -476,49 +509,57 @@ fun KnowledgeScreen(
             }
             Spacer(Modifier.height(MusePaddings.itemGap))
 
-            val docsList = docs
-            if (docsList == null) {
-                // v1.48: h13 首次加载显示居中加载指示器,避免闪空状态
-                Column(
-                    modifier = Modifier.fillMaxWidth().weight(1f),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    CircularProgressIndicator()
-                }
-            } else {
-                // v0.43: 隐藏开发文档(isInternal=true 的内部文档只供 LLM 通过 knowledge_search 查询,不向用户展示)
-                // v1.133: 改用 isInternal 字段判断(替代原 fileType="devdoc" 硬编码,与 MIGRATION_38_39 标记一致)
-                // v1.66: 按 sortMode 排序(DAO 仅 updated_at DESC,其余维度在 UI 排序)
-                // M-Kn1: 用 remember 缓存 filter+sort 结果,避免每次重组都重算
-                val visibleDocs = remember(docsList, sortMode) {
-                    docsList
-                        .filterNot { it.isInternal }
-                        .sortedWith(sortMode.comparator)
-                }
-                if (visibleDocs.isEmpty()) {
-                    MuseEmptyState(
-                        icon = if (searchQuery.isNotBlank()) Icons.Outlined.Description else Icons.AutoMirrored.Outlined.MenuBook,
-                        title = if (searchQuery.isNotBlank()) stringResource(R.string.knowledge_no_match_title) else stringResource(R.string.knowledge_empty_title),
-                        subtitle = if (searchQuery.isNotBlank()) stringResource(R.string.knowledge_no_match_subtitle) else stringResource(R.string.knowledge_empty_subtitle),
-                    )
-                } else {
-                    LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 80.dp),
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = { refreshKey++ },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+            ) {
+                val docsList = docs
+                if (docsList == null) {
+                    // v1.48: h13 首次加载显示居中加载指示器,避免闪空状态
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        items(visibleDocs, key = { it.id }) { doc ->
-                            DocCard(
-                                doc = doc,
-                                highlight = searchQuery.takeIf { it.isNotBlank() },
-                                onClick = { detailTarget = doc },
-                                onDelete = {
-                                    scope.launch {
-                                        dao.deleteDocWithChunks(doc.id)
-                                    }
-                                    MuseToast.show(context.getString(R.string.knowledge_deleted))
-                                },
-                            )
+                        CircularProgressIndicator()
+                    }
+                } else {
+                    // v0.43: 隐藏开发文档(isInternal=true 的内部文档只供 LLM 通过 knowledge_search 查询,不向用户展示)
+                    // v1.133: 改用 isInternal 字段判断(替代原 fileType="devdoc" 硬编码,与 MIGRATION_38_39 标记一致)
+                    // v1.66: 按 sortMode 排序(DAO 仅 updated_at DESC,其余维度在 UI 排序)
+                    // M-Kn1: 用 remember 缓存 filter+sort 结果,避免每次重组都重算
+                    val visibleDocs = remember(docsList, sortMode) {
+                        docsList
+                            .filterNot { it.isInternal }
+                            .sortedWith(sortMode.comparator)
+                    }
+                    if (visibleDocs.isEmpty()) {
+                        MuseEmptyState(
+                            icon = if (searchQuery.isNotBlank()) Icons.Outlined.Description else Icons.AutoMirrored.Outlined.MenuBook,
+                            title = if (searchQuery.isNotBlank()) stringResource(R.string.knowledge_no_match_title) else stringResource(R.string.knowledge_empty_title),
+                            subtitle = if (searchQuery.isNotBlank()) stringResource(R.string.knowledge_no_match_subtitle) else stringResource(R.string.knowledge_empty_subtitle),
+                        )
+                    } else {
+                        LazyColumn(
+                            verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 80.dp),
+                        ) {
+                            items(visibleDocs, key = { it.id }) { doc ->
+                                DocCard(
+                                    doc = doc,
+                                    highlight = searchQuery.takeIf { it.isNotBlank() },
+                                    onClick = { detailTarget = doc },
+                                    onDelete = {
+                                        scope.launch {
+                                            dao.deleteDocWithChunks(doc.id)
+                                        }
+                                        MuseToast.show(context.getString(R.string.knowledge_deleted))
+                                    },
+                                )
+                            }
                         }
                     }
                 }

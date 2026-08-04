@@ -5,6 +5,8 @@
     <string name="chat_session_cd">Текущий чат: %1$s, нажмите, чтобы переключиться.</string>
     <string name="chat_model_not_configured">Не настроено</string>
     <string name="chat_model_cd">Текущая модель: %1$s, нажмите, чтобы переключиться.</string>
+    <string name="chat_routing_badge">Маршрут</string>
+    <string name="chat_video_play_cd">Воспроизвести видео</string>
     <string name="chat_context_usage_cd">Использование контекста %1$s%%, всего токенов %2$d</string>
     <string name="chat_context_tokens_only_cd">Количество токенов контекста %1$d, у модели нет окна контекста</string>
     <string name="chat_context_no_window_detail">%1$d токены (модель не имеет контекстного окна)</string>
@@ -342,4 +344,5 @@
     <string name="slash_command_reset_done">Сброс контекста</string>
     <string name="slash_command_pin_done">Пин переключен</string>
     <string name="slash_command_archive_done">Сессия заархивирована</string>
+    <string name="chat_agent_tab_title">Agent</string>
 </resources>

@@ -88,6 +88,48 @@
 
     <!-- Settings Sub-pages / About -->
     <string name="settings_sub_model_services">Models &amp; Services</string>
+    <string name="settings_task_routing_title">Task Routing</string>
+    <string name="settings_task_routing_enable">Auto-switch Models</string>
+    <string name="settings_task_routing_enable_subtitle">Automatically switch to the bound model based on task type</string>
+    <string name="settings_task_routing_general">General</string>
+    <string name="settings_task_routing_models">Task Models</string>
+    <string name="settings_task_routing_default_model">Default model</string>
+    <string name="settings_task_routing_chat">Chat</string>
+    <string name="settings_task_routing_reasoning">Reasoning</string>
+    <string name="settings_task_routing_code">Code</string>
+    <string name="settings_task_routing_creative">Creative</string>
+    <string name="settings_task_routing_analysis">Analysis</string>
+    <string name="settings_crash_anr_title">ANR Detection</string>
+    <string name="settings_crash_anr_subtitle">Detect app not responding and record it in crash/audit logs</string>
+    <string name="settings_chat_compress_model">Compression Model</string>
+    <string name="settings_chat_compress_model_default">Default model</string>
+    <string name="settings_chat_paste_as_file">Long Paste to File</string>
+    <string name="settings_chat_paste_as_file_subtitle">Prompt to attach pasted text as a file when it exceeds the threshold</string>
+    <string name="settings_chat_paste_as_file_threshold">Paste to File Threshold</string>
+    <string name="settings_chat_paste_as_file_threshold_subtitle">Prompt to convert when longer than %1$d characters</string>
+    <string name="settings_chat_custom_title_prompt">Custom Title Prompt</string>
+    <string name="settings_chat_custom_title_prompt_default">Use built-in default prompt</string>
+    <string name="settings_chat_custom_title_prompt_hint">Custom conversation naming instruction (leave blank for default)</string>
+    <string name="settings_memory_custom_compress_prompt">Custom Compression Prompt</string>
+    <string name="settings_memory_custom_compress_prompt_default">Use built-in default compression instruction</string>
+    <string name="settings_memory_custom_compress_prompt_hint">Custom context compression instruction (leave blank for default)</string>
+    <string name="settings_about_auto_update">Auto Check Updates</string>
+    <string name="settings_about_auto_update_subtitle">Automatically check GitHub releases after launch</string>
+    <string name="prompt_template_manager_title">Prompt Templates</string>
+    <string name="prompt_template_manager_list">Template List</string>
+    <string name="prompt_template_manager_empty">No custom templates yet</string>
+    <string name="prompt_template_manager_built_in">Built-in</string>
+    <string name="prompt_template_manager_move_up">Move up</string>
+    <string name="prompt_template_manager_move_down">Move down</string>
+    <string name="prompt_template_manager_edit">Edit</string>
+    <string name="prompt_template_manager_copy">Duplicate</string>
+    <string name="prompt_template_manager_delete">Delete</string>
+    <string name="prompt_template_manager_delete_confirm">Delete template "%1$s"?</string>
+    <string name="prompt_template_manager_add">New Template</string>
+    <string name="prompt_template_manager_name">Name</string>
+    <string name="prompt_template_manager_category">Category</string>
+    <string name="prompt_template_manager_content">Content</string>
+    <string name="prompt_template_manage_entry">Manage Templates</string>
     <string name="settings_sub_user_profile">User Profile</string>
     <string name="settings_sub_user_profile_subtitle">Age / City / MBTI, etc. (for AI personalization)</string>
     <string name="settings_sub_data_backup">Data &amp; Backup</string>
@@ -282,6 +324,10 @@
     <string name="settings_rag_mmr_lambda_subtitle">0=pure diversity, 1=pure similarity, default 0.5</string>
     <string name="settings_rag_hybrid">Hybrid Search</string>
     <string name="settings_rag_hybrid_subtitle">BM25 keyword + vector similarity RRF fusion</string>
+    <string name="settings_rag_hybrid_bm25_weight">BM25 Weight</string>
+    <string name="settings_rag_hybrid_bm25_weight_subtitle">BM25 contribution weight in RRF fusion</string>
+    <string name="settings_rag_hybrid_vector_weight">Vector Weight</string>
+    <string name="settings_rag_hybrid_vector_weight_subtitle">Vector similarity contribution weight in RRF fusion</string>
     <string name="settings_rag_rerank">Rerank</string>
     <string name="settings_rag_rerank_subtitle">Cross-encoder re-ranking on top-K×5 candidates</string>
     <string name="settings_rag_token_budget">Token Budget</string>
@@ -300,6 +346,7 @@
     <string name="settings_rag_parser_mineru_subtitle">MinerU API, excels at academic PDF/formulas/tables (requires endpoint)</string>
     <string name="settings_rag_cloud_parser_endpoint">Cloud parser endpoint</string>
     <string name="settings_rag_mineru_endpoint">MinerU endpoint</string>
+    <string name="settings_rag_mineru_token">MinerU Token (optional)</string>
     <string name="settings_rag_notes_section">Notes</string>
     <string name="settings_rag_note1">• After changing chunk parameters, newly imported documents will use the new parameters</string>
     <string name="settings_rag_note2">• Already indexed documents are not re-chunked automatically; delete and re-import them</string>
@@ -493,6 +540,5 @@
     <string name="settings_theme_custom_color_h">Hue</string>
     <string name="settings_theme_custom_color_s">Saturation</string>
     <string name="settings_theme_custom_color_l">Lightness</string>
-
-    <string name="settings_agent_bound_assistant_hint">This page is bound to the current assistant and follows when you switch</string>
+    <string name="settings_agent_bound_assistant_hint">This page is bound to the current assistant and follows automatically when you switch assistants</string>
 </resources>

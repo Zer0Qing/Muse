@@ -103,6 +103,12 @@ class MuseApp : Application(), ImageLoaderFactory {
     /** v1.0.17: 快速记录 Room 迁移 — 注入旧 JSON 存储 + Room DAO,启动时一次性迁移。 */
     private val quickNoteStore: QuickNoteStore by inject()
     private val quickNoteDao: QuickNoteDao by inject()
+
+    // B5-01: 启动时恢复被强杀的中断生成(生成检查点)
+    private val sessionRepository: io.zer0.muse.data.session.SessionRepository by inject()
+
+    // B5-02: 启动时恢复被强杀中断的群聊生成账本
+    private val groupChatScheduler: io.zer0.muse.schedule.GroupChatScheduler by inject()
     /** 应用级 scope:启动一次性任务用,独立于 Koin 注册的 IO scope。 */
     // v0.53: 加 GlobalCoroutineExceptionHandler,防止协程内未捕获异常导致应用崩溃(企业级容错)
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO + GlobalCoroutineExceptionHandler)
@@ -156,9 +162,6 @@ class MuseApp : Application(), ImageLoaderFactory {
         // AnrWatcher:独立守护线程检测主线程无响应(5s+),ANR 时采集线程堆栈/内存/Perf 记录写入 crash 目录。
         //   开关 settings.enableAnrDetection(默认 true);自身不阻塞主线程(独立线程 + 弱引用 Handler)。
         io.zer0.muse.crash.AnrWatcher(this, settings, auditLogger).start()
-        // PerformanceReporter:订阅 Perf.sink,慢操作(网络>10s/DB>2s/UI>500ms)写入 perf 目录(按天滚动,保留7天)。
-        //   开关 settings.enablePerfReport(默认 false,隐私优先);本地日志照常写入,远程上报待启用。
-        io.zer0.muse.perf.PerformanceReporter(this, settings).start()
         // 断点续传(工具中断恢复):初始化 pending tool calls 持久化文件路径。
         // 必须 Early-init,确保 ChatViewModel 启动时 fileRef 已就绪。
         io.zer0.muse.chat.PendingToolCallStore.init(this)
@@ -182,7 +185,17 @@ class MuseApp : Application(), ImageLoaderFactory {
             resultOf { memorySpaceRepository.ensureDefaultSpaceExists() }
                 .onError { msg, t -> Logger.w("MuseApp", "ensureDefaultSpaceExists 失败: $msg", t) }
         }
-        // v1.92: ChatViewModel 为 single 单例,onCleared 永不调用。
+        // B5-01: 启动时恢复被强杀的中断生成(已产出内容 + [已中断] 标记)
+        appScope.launch {
+            resultOf { sessionRepository.recoverInterruptedGenerations() }
+                .onError { msg, t -> Logger.w("MuseApp", "恢复中断生成失败: $msg", t) }
+        }
+
+        // B5-02: 启动时恢复被强杀中断的群聊生成账本(从断点续跑)
+        appScope.launch {
+            resultOf { groupChatScheduler.recoverInterruptedGenerations() }
+                .onError { msg, t -> Logger.w("MuseApp", "恢复群聊账本失败: $msg", t) }
+        }        // v1.92: ChatViewModel 为 single 单例,onCleared 永不调用。
         // 注册 ProcessLifecycleOwner 观察者,在 ON_STOP 时释放 TTS/ASR 资源并停止 memory ticker,
         // 在 ON_START 时重启 memory ticker。
         ProcessLifecycleOwner.get().lifecycle.addObserver(LifecycleEventObserver { _, event ->

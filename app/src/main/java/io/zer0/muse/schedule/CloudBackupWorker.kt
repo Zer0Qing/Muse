@@ -37,13 +37,13 @@ class CloudBackupWorker(
     override suspend fun doWork(): Result {
         val koin = resultOf { GlobalContext.get() }.getOrNull()
         if (koin == null) {
-            Logger.w(TAG, "Koin 未初始化(Safe Mode?),跳过本次 Worker 执行")
-            return Result.success()
+            Logger.w(TAG, "Koin 未初始化(Safe Mode?),稍后重试")
+            return Result.retry()
         }
         val scheduler = resultOf { koin.get<CloudBackupScheduler>() }.getOrNull()
         if (scheduler == null) {
-            Logger.w(TAG, "CloudBackupScheduler 解析失败,跳过本次 Worker 执行")
-            return Result.success()
+            Logger.w(TAG, "CloudBackupScheduler 解析失败,稍后重试")
+            return Result.retry()
         }
         resultOf { scheduler.checkAndSyncForWorker() }
             .onError { msg, t -> Logger.w(TAG, "checkAndSyncForWorker failed: ${t?.message ?: msg}") }

@@ -66,6 +66,7 @@
     <string name="err_chat_misc_delete_folder_failed">删除文件夹失败: %1$s</string>
     <string name="err_chat_misc_move_session_failed">移动会话失败: %1$s</string>
     <string name="err_chat_misc_toggle_pin_failed">切换置顶失败: %1$s</string>
+    <string name="err_chat_misc_reorder_pinned_failed">置顶排序保存失败: %1$s</string>
     <string name="err_chat_misc_favorite_failed">收藏失败: %1$s</string>
     <string name="err_chat_misc_set_tag_failed">设置分组失败: %1$s</string>
     <string name="err_chat_misc_delete_msg_failed">删除失败: %1$s</string>

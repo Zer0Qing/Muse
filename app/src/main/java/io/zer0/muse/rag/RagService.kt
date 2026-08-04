@@ -4,6 +4,7 @@ import io.zer0.ai.core.RagCitation
 import io.zer0.common.Logger
 import io.zer0.common.Perf
 import io.zer0.common.resultOf
+import io.zer0.common.AppJson
 import io.zer0.muse.data.knowledge.KnowledgeChunkDao
 import io.zer0.muse.data.knowledge.KnowledgeChunkEntity
 import io.zer0.muse.data.knowledge.KnowledgeChunkFtsDao
@@ -277,6 +278,8 @@ class RagService(
                     embedding = chunk.embedding,
                     embeddingBlob = chunk.embeddingBlob,
                     chunkIndex = chunk.chunkIndex,
+                    metadataJson = chunk.metadataJson,
+                    createdAt = chunk.createdAt,
                 )
             }
         },
@@ -294,6 +297,34 @@ class RagService(
                     embedding = chunk.embedding,
                     embeddingBlob = chunk.embeddingBlob,
                     chunkIndex = chunk.chunkIndex,
+                    metadataJson = chunk.metadataJson,
+                    createdAt = chunk.createdAt,
+                )
+            }
+        },
+        chunkPageByMetadataProvider = { filter, limit, offset ->
+            val titles = getCachedTitles()
+            chunkDao.getFilteredPageWithEmbedding(
+                limit = limit,
+                offset = offset,
+                docIdsJson = AppJson.encodeToString(
+                    kotlinx.serialization.builtins.ListSerializer(String.serializer()),
+                    filter.docIds,
+                ),
+                tag = filter.tag,
+                startTime = filter.startTime,
+                endTime = filter.endTime,
+            ).map { chunk ->
+                VectorSearchService.ChunkWithDoc(
+                    chunkId = chunk.id,
+                    docId = chunk.docId,
+                    docTitle = titles[chunk.docId] ?: "Unknown Document",
+                    content = chunk.content,
+                    embedding = chunk.embedding,
+                    embeddingBlob = chunk.embeddingBlob,
+                    chunkIndex = chunk.chunkIndex,
+                    metadataJson = chunk.metadataJson,
+                    createdAt = chunk.createdAt,
                 )
             }
         },
@@ -417,6 +448,7 @@ class RagService(
         threshold: Float,
         ragConfig: RagConfig,
         scopeDocIds: List<String>? = null,
+        metadataFilter: VectorSearchService.MetadataFilter? = null,
     ): List<VectorSearchService.SearchResult> {
         if (query.isBlank()) return emptyList()
         val start = System.currentTimeMillis()
@@ -448,7 +480,10 @@ class RagService(
                     topK = topK,
                     threshold = threshold,
                     mmrLambda = ragConfig.mmrLambda,
+                    bm25Weight = ragConfig.hybridBm25Weight,
+                    vectorWeight = ragConfig.hybridVectorWeight,
                     scopeDocIds = scopeDocIds,
+                    metadataFilter = metadataFilter,
                 )
             }.onError { msg, e -> Logger.w("RagService", "混合检索失败,降级向量: $msg", e) }
                 .getOrNull()
@@ -509,6 +544,7 @@ class RagService(
             threshold = threshold,
             mmrLambda = ragConfig.mmrLambda,
             scopeDocIds = scopeDocIds,
+            metadataFilter = metadataFilter,
         )
         Perf.log("rag-retrieve", System.currentTimeMillis() - start)
         // v1.133: 回填 isInternal 字段

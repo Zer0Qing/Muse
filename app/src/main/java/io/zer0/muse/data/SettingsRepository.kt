@@ -177,13 +177,6 @@ class SettingsRepository(
     var anrDetectionCache: Boolean = true
         private set
 
-    /**
-     * 性能数据上报开关的内存缓存,供 PerformanceReporter 零阻塞同步读取。
-     * 默认 false(隐私优先),用户主动开启后才会标记待上报。
-     */
-    @Volatile
-    var perfReportCache: Boolean = false
-        private set
 
     /**
      * v1.39: 当前 ProxyConfig 的内存缓存,供 AppKoinModule 创建 OkHttpClient 时零阻塞读取。
@@ -333,36 +326,6 @@ class SettingsRepository(
     }
 
     // ── v1.132: 云备份细粒度配置流(供 CloudBackupPage 表单双向绑定) ──
-    /** 云备份是否已启用(type != "none" 视为启用)。 */
-    val cloudBackupEnabledFlow: Flow<Boolean> = cloudBackupConfigFlow.map { it.type != "none" }
-    /** 云备份类型(none / s3 / webdav)。 */
-    val cloudBackupTypeFlow: Flow<String> = cloudBackupConfigFlow.map { it.type }
-    /** WebDAV 服务地址。 */
-    val webDavUrlFlow: Flow<String> = cloudBackupConfigFlow.map { it.webdavUrl }
-    /** WebDAV 用户名。 */
-    val webDavUsernameFlow: Flow<String> = cloudBackupConfigFlow.map { it.webdavUsername }
-    /** WebDAV 密码(已解密;仅 UI 显示用,不要写入日志)。 */
-    val webDavPasswordFlow: Flow<String> = cloudBackupConfigFlow.map { it.webdavPassword }
-    /** WebDAV 远程目录。 */
-    val webDavPathFlow: Flow<String> = cloudBackupConfigFlow.map { it.webdavPath }
-    /** S3 端点。 */
-    val s3EndpointFlow: Flow<String> = cloudBackupConfigFlow.map { it.s3Endpoint }
-    /** S3 区域。 */
-    val s3RegionFlow: Flow<String> = cloudBackupConfigFlow.map { it.s3Region }
-    /** S3 bucket 名。 */
-    val s3BucketFlow: Flow<String> = cloudBackupConfigFlow.map { it.s3Bucket }
-    /** S3 Access Key。 */
-    val s3AccessKeyFlow: Flow<String> = cloudBackupConfigFlow.map { it.s3AccessKey }
-    /** S3 Secret Key(已解密;仅 UI 显示用,不要写入日志)。 */
-    val s3SecretKeyFlow: Flow<String> = cloudBackupConfigFlow.map { it.s3SecretKey }
-    /** S3 对象 key 前缀。 */
-    val s3KeyPrefixFlow: Flow<String> = cloudBackupConfigFlow.map { it.s3KeyPrefix }
-    /** 云备份加密密码(已解密;留空表示明文备份)。 */
-    val backupPasswordFlow: Flow<String> = cloudBackupConfigFlow.map { it.backupPassword }
-    /** 自动云备份开关。 */
-    val cloudBackupAutoEnabledFlow: Flow<Boolean> = cloudBackupConfigFlow.map { it.autoSync }
-    /** 自动云备份间隔(小时)。 */
-    val cloudBackupIntervalHoursFlow: Flow<Int> = cloudBackupConfigFlow.map { it.autoSyncIntervalHours }
     // H8: WebServerConfig 含 password/pin 敏感凭据,读写均走 SecureKeyStore
     val webServerConfigFlow: Flow<WebServerConfig> = store.data.map { prefs ->
         decodePrefsOrNull(prefs[KEY_WEB_SERVER_CONFIG], WebServerConfig.serializer(), "WebServerConfig")
@@ -406,7 +369,12 @@ class SettingsRepository(
 
     // v0.30-a: 用户画像(6 步工作流第 1 步的用户画像 section 用)
     val userProfileFlow: Flow<UserProfile> = store.data.map { prefs ->
-        decodePrefsOrNull(prefs[KEY_USER_PROFILE], UserProfile.serializer(), "UserProfile") ?: UserProfile()
+        val profile = decodePrefsOrNull(prefs[KEY_USER_PROFILE], UserProfile.serializer(), "UserProfile") ?: UserProfile()
+        // B0-09: 合并旧账户键,保证首次升级后旧昵称/头像不丢
+        profile.copy(
+            userNickName = profile.userNickName ?: prefs[KEY_ACCOUNT_USER_NAME],
+            avatarUri = profile.avatarUri ?: prefs[KEY_ACCOUNT_AVATAR_URI],
+        )
     }
 
     // v0.31: 聊天行为偏好(打包存储,一次序列化)
@@ -439,10 +407,6 @@ class SettingsRepository(
         prefs[KEY_ANR_DETECTION] ?: true
     }
 
-    // 性能数据上报开关(默认 false,隐私优先),供 PerformanceReporter 同步读取。
-    val perfReportFlow: Flow<Boolean> = store.data.map { prefs ->
-        prefs[KEY_PERF_REPORT] ?: false
-    }
 
     // v0.32: 保持唤醒(默认关闭)
     val keepAwakeFlow: Flow<Boolean> = store.data.map { prefs ->
@@ -566,9 +530,6 @@ class SettingsRepository(
         )
     }
     /** 是否已登录(本地标记)。 */
-    val isLoggedInFlow: Flow<Boolean> = store.data.map { prefs -> prefs[KEY_ACCOUNT_LOGGED_IN] ?: false }
-    /** 是否处于游客(离线体验)模式。 */
-    val isGuestModeFlow: Flow<Boolean> = store.data.map { prefs -> prefs[KEY_ACCOUNT_GUEST_MODE] ?: false }
 
     // v2.3: 任务路由配置 Flow + 缓存(必须在 init 块之前声明,否则 init 中协程访问到 null)
     val taskRoutingConfigFlow: Flow<TaskRoutingConfig> = store.data.map { prefs ->
@@ -720,8 +681,6 @@ class SettingsRepository(
         cacheScope.launch { piiGuardEnabledFlow.collect { piiGuardEnabledCache = it } }
         // ANR 检测开关:订阅 Flow 落缓存,供 AnrWatcher 同步读取(支持运行时切换)。
         cacheScope.launch { anrDetectionFlow.collect { anrDetectionCache = it } }
-        // 性能上报开关:订阅 Flow 落缓存,供 PerformanceReporter 同步读取。
-        cacheScope.launch { perfReportFlow.collect { perfReportCache = it } }
         cacheScope.launch { migrateLegacyProviderIfNeeded() }
         // v1.0.18: 自动注入 SiliconFlow 免费供应商(免登录可用),确保用户进入 App 即能看到免费模型。
         // 幂等:通过 providers 列表中是否已存在 [SiliconFlowFreeModels.PROVIDER_ID] 判断,
@@ -765,25 +724,6 @@ class SettingsRepository(
         store.edit { prefs -> prefs[KEY_ACCOUNT_LOGGED_IN] = false; prefs[KEY_ACCOUNT_USER_NAME] = ""; prefs[KEY_ACCOUNT_LOGIN_AT] = 0L; prefs[KEY_ACCOUNT_LOGIN_METHOD] = ""; prefs[KEY_ACCOUNT_GUEST_MODE] = false }
     }
 
-    /**
-     * v2.x: 保存用户个人资料(头像 + 昵称)。
-     *
-     * 用于"编辑个人资料"页 — 用户可本地选择头像图片和自定义昵称,
-     * 无需登录/注册即可生效。空昵称回退默认名 [R.string.settings_repo_default_user_name]。
-     *
-     * @param userName 新昵称(blank 时回退默认名)
-     * @param avatarUri 头像 URI 字符串(null 表示清除头像,用首字母占位)
-     */
-    suspend fun saveUserProfile(userName: String, avatarUri: String?) {
-        store.edit { prefs ->
-            prefs[KEY_ACCOUNT_USER_NAME] = userName.ifBlank { appContext.getString(R.string.settings_repo_default_user_name) }
-            if (avatarUri == null) {
-                prefs.remove(KEY_ACCOUNT_AVATAR_URI)
-            } else {
-                prefs[KEY_ACCOUNT_AVATAR_URI] = avatarUri
-            }
-        }
-    }
 
     // ── Model profiles ──
     // 以 JSON 存储 Map<modelId, ModelProfile>,避免旧版 `;`/`,` 分隔格式在 avatarUrl 含分隔符时截断。
@@ -822,9 +762,6 @@ class SettingsRepository(
      *
      * @param themes 完整的自定义主题列表;空列表表示清空所有自定义主题
      */
-    suspend fun saveCustomThemes(themes: List<CustomTheme>) {
-        store.edit { it[KEY_CUSTOM_THEMES] = AppJson.encodeToString(ListSerializer(CustomTheme.serializer()), themes) }
-    }
     /**
      * v1.97 gap7: 新增或更新单个自定义主题(按 id 去重)。
      *
@@ -897,7 +834,19 @@ class SettingsRepository(
 
     // v0.30-a: 用户画像读写(SystemPromptAssembler 用)
     suspend fun getUserProfile(): UserProfile = userProfileFlow.first()
-    suspend fun saveUserProfile(profile: UserProfile) { store.edit { it[KEY_USER_PROFILE] = AppJson.encodeToString(UserProfile.serializer(), profile) } }
+    suspend fun saveUserProfile(profile: UserProfile) {
+        store.edit { prefs ->
+            prefs[KEY_USER_PROFILE] = AppJson.encodeToString(UserProfile.serializer(), profile)
+            // B0-09: 同步账户键,旧 AccountScreen / AccountState 读取方无需迁移
+            prefs[KEY_ACCOUNT_USER_NAME] = profile.userNickName?.takeIf { it.isNotBlank() }
+                ?: appContext.getString(R.string.settings_repo_default_user_name)
+            if (profile.avatarUri.isNullOrBlank()) {
+                prefs.remove(KEY_ACCOUNT_AVATAR_URI)
+            } else {
+                prefs[KEY_ACCOUNT_AVATAR_URI] = profile.avatarUri
+            }
+        }
+    }
 
     // v0.31: 聊天行为偏好读写
     suspend fun getChatPreferences(): ChatPreferences = chatPreferencesFlow.first()
@@ -920,7 +869,6 @@ class SettingsRepository(
     suspend fun saveAnrDetection(enabled: Boolean) { store.edit { it[KEY_ANR_DETECTION] = enabled } }
 
     // 性能数据上报开关
-    suspend fun savePerfReport(enabled: Boolean) { store.edit { it[KEY_PERF_REPORT] = enabled } }
 
     // v0.32: 保持唤醒
     suspend fun saveKeepAwake(enabled: Boolean) { store.edit { it[KEY_KEEP_AWAKE] = enabled } }
@@ -933,7 +881,15 @@ class SettingsRepository(
 
     // v0.32: 应用 PIN 锁
     // H-SR1: PIN 是敏感凭据,绝不明文落盘 — 写入前 encrypt(空 PIN 原样保留,不加密空值)
-    suspend fun saveAppPin(pin: String) { store.edit { it[KEY_APP_PIN] = SecureKeyStore.encrypt(pin) } }
+    suspend fun saveAppPin(pin: String) {
+        store.edit { it[KEY_APP_PIN] = SecureKeyStore.encrypt(pin) }
+        // P2-4: 审计日志 — 修改应用 PIN(不记录 PIN 本身)
+        auditLogger.log(
+            category = "user_action",
+            action = "save_app_pin",
+            detail = mapOf("changed" to true),
+        )
+    }
 
     // v0.32: 实验性功能
     suspend fun saveExperiments(config: ExperimentsConfig) { store.edit { it[KEY_EXPERIMENTS] = AppJson.encodeToString(ExperimentsConfig.serializer(), config) } }
@@ -1018,6 +974,12 @@ class SettingsRepository(
     suspend fun saveStickerSendProbability(prob: Int) { store.edit { it[KEY_STICKER_SEND_PROBABILITY] = prob.coerceIn(0, 100) } }
     suspend fun addProvider(config: ProviderConfig) {
         store.edit { prefs -> val list = decodePrefsOrNull(prefs[KEY_PROVIDERS], ListSerializer(ProviderConfig.serializer()), "Providers(add)") ?: emptyList(); prefs[KEY_PROVIDERS] = encodeProviders(list + config) }
+        auditLogger.log(
+            category = "user_action",
+            action = "add_provider",
+            target = config.id,
+            detail = mapOf("display_name" to config.displayName),
+        )
     }
     /**
      * v1.0.18: 原子「不存在才添加」— 同 id 已存在则跳过,避免自动注入与引导页保存竞态产生重复。
@@ -1042,6 +1004,13 @@ class SettingsRepository(
         store.edit { prefs -> val list = decodePrefsOrNull(prefs[KEY_PROVIDERS], ListSerializer(ProviderConfig.serializer()), "Providers(update)") ?: emptyList(); prefs[KEY_PROVIDERS] = encodeProviders(list.map { if (it.id == config.id) config else it }) }
         // v1.132: 失效模型列表缓存(baseUrl/apiKey 可能已变更)
         io.zer0.ai.core.ModelListCache.invalidate(config.id)
+        // P2-4: 审计日志 — 修改 Provider(含密钥/端点)
+        auditLogger.log(
+            category = "user_action",
+            action = "update_provider",
+            target = config.id,
+            detail = mapOf("display_name" to config.displayName),
+        )
     }
     suspend fun deleteProvider(id: String) {
         store.edit { prefs -> val list = decodePrefsOrNull(prefs[KEY_PROVIDERS], ListSerializer(ProviderConfig.serializer()), "Providers(delete)") ?: emptyList(); prefs[KEY_PROVIDERS] = encodeProviders(list.filter { it.id != id }) }
@@ -1392,7 +1361,6 @@ class SettingsRepository(
         /** ANR 检测开关(默认 true)。 */
         private val KEY_ANR_DETECTION = booleanPreferencesKey("anr_detection_enabled")
         /** 性能数据上报开关(默认 false,隐私优先)。 */
-        private val KEY_PERF_REPORT = booleanPreferencesKey("perf_report_enabled")
         private val KEY_APP_PIN = stringPreferencesKey("app_pin")
         private val KEY_BIOMETRIC_ENABLED = booleanPreferencesKey("biometric_enabled")
         // v1.104: PIN 锁暴力破解防护持久化(之前用 rememberSaveable,杀进程即重置)
@@ -1603,6 +1571,8 @@ data class VideoGenConfig(
 data class UserProfile(
     /** v1.76: 助手怎么称呼用户(如"小明"/"老板"),注入 system prompt 让 AI 个性化称呼。 */
     val userNickName: String? = null,
+    /** B0-09: 用户头像 URI(null 表示未设置,使用首字母占位)。 */
+    val avatarUri: String? = null,
     /** v1.76: 用户给助手起的名字(如"小缪"/"JARVIS"),注入 system prompt 让 AI 自称。 */
     val assistantName: String? = null,
     val age: String? = null,
@@ -1719,7 +1689,6 @@ data class ExperimentsConfig(
     /** 实验性:调试模式,显示更多内部状态(MOOD/工具调用/Token 统计)。 */
     val debugMode: Boolean = false,
     /** 实验性:启用多 agent 协作(一个任务派给多个助手)。 */
-    val multiAgentCollaboration: Boolean = false,
     /** 实验性:启用自我反思(回复后自动检查质量)。 */
     val selfReflection: Boolean = false,
     /** v1.55: 长记忆压缩默认启用(超长对话自动摘要,降低 compileThreshold 到 3.0 让 fact 更激进编译)。 */
@@ -1833,6 +1802,8 @@ data class ProactiveMessageConfig(
     val enabled: Boolean = false,
     val intervalMinutes: Int = 240,
     val lastTriggeredAt: Long = 0,
+    /** B8-01: 下次主动消息触发时间戳(进程重启后从持久化配置恢复,0=尚未排期)。 */
+    val nextTriggerAt: Long = 0,
     /** v1.30: 随机偏移量(分钟),实际间隔 = intervalMinutes ± randomOffsetMinutes。 */
     val randomOffsetMinutes: Int = 60,
     /** v1.27: 指定发送主动消息的 Agent 助手 id,空字符串表示用默认助手。 */

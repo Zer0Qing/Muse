@@ -1,3 +1,4 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package io.zer0.muse.ui
 
 import androidx.compose.animation.AnimatedVisibility
@@ -38,6 +39,7 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PriorityHigh
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
@@ -62,6 +64,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -79,6 +82,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -459,6 +464,11 @@ fun MemoryScreen(
                         filterMemoryItemsByCategory(state.factItems, state.categoryFilter)
                     }
 
+                    PullToRefreshBox(
+                        isRefreshing = state.isLoading,
+                        onRefresh = { viewModel.loadAll() },
+                    ) {
+
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(
@@ -526,7 +536,9 @@ fun MemoryScreen(
                             onDelete = viewModel::deleteFact,
                             onEdit = { item -> editItem = item },
                             onSetImportance = { item -> importanceItem = item },
+                            onTogglePin = { item -> viewModel.toggleFactPinned(item.id) },
                         )
+                    }
                     }
 
                     // v9: 删除确认弹窗(仅 Fact 层)
@@ -968,6 +980,7 @@ private fun LazyListScope.categoryGroupedMemoryListItems(
     onDelete: (String) -> Unit,
     onEdit: (MemoryItem) -> Unit,
     onSetImportance: (MemoryItem) -> Unit,
+    onTogglePin: (MemoryItem) -> Unit,
 ) {
     if (items.isEmpty()) {
         item {
@@ -987,6 +1000,7 @@ private fun LazyListScope.categoryGroupedMemoryListItems(
                 onDelete = onDelete,
                 onEdit = onEdit,
                 onSetImportance = onSetImportance,
+                onTogglePin = onTogglePin,
             )
         }
         return
@@ -1013,6 +1027,7 @@ private fun LazyListScope.categoryGroupedMemoryListItems(
                 onDelete = onDelete,
                 onEdit = onEdit,
                 onSetImportance = onSetImportance,
+                onTogglePin = onTogglePin,
             )
         }
     }
@@ -1069,6 +1084,7 @@ private fun MemoryCardGroup(
     onDelete: (String) -> Unit,
     onEdit: (MemoryItem) -> Unit,
     onSetImportance: (MemoryItem) -> Unit,
+    onTogglePin: (MemoryItem) -> Unit,
 ) {
     CardGroup {
         items.forEach { item ->
@@ -1081,6 +1097,7 @@ private fun MemoryCardGroup(
                         onDelete = { onDelete(item.id) },
                         onEdit = onEdit,
                         onSetImportance = onSetImportance,
+                        onTogglePin = onTogglePin,
                     )
                 },
             )
@@ -1166,6 +1183,7 @@ private fun MemoryCardTrailing(
     onDelete: (() -> Unit)?,
     onEdit: ((MemoryItem) -> Unit)?,
     onSetImportance: ((MemoryItem) -> Unit)?,
+    onTogglePin: ((MemoryItem) -> Unit)?,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         if (onSetImportance != null) {
@@ -1183,6 +1201,18 @@ private fun MemoryCardTrailing(
             }
         }
         if (onEdit != null) {
+        if (onTogglePin != null) {
+            IconButton(onClick = { onTogglePin(item) }) {
+                Icon(
+                    imageVector = Icons.Filled.PushPin,
+                    contentDescription = stringResource(
+                        if (item.pinnedAt == null) R.string.memory_pin_cd else R.string.memory_unpin_cd,
+                    ),
+                    tint = if (item.pinnedAt != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
             IconButton(onClick = { onEdit(item) }) {
                 Icon(
                     imageVector = Icons.Filled.Edit,
@@ -1772,6 +1802,7 @@ private fun MemoryDashboardCard(state: MemoryUiState) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { statsExpanded = !statsExpanded }
+                            .semantics { role = Role.Button }
                             .padding(vertical = MusePaddings.tightGap),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),

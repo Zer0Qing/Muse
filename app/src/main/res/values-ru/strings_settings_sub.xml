@@ -88,6 +88,48 @@
 
     <!-- Settings Sub-pages / About -->
     <string name="settings_sub_model_services">Модели и сервисы</string>
+    <string name="settings_task_routing_title">Маршрутизация задач</string>
+    <string name="settings_task_routing_enable">Автоматически переключать модели</string>
+    <string name="settings_task_routing_enable_subtitle">Автоматически переключается на привязанную модель в зависимости от типа задачи</string>
+    <string name="settings_task_routing_general">Общие</string>
+    <string name="settings_task_routing_models">Модели задач</string>
+    <string name="settings_task_routing_default_model">Модель по умолчанию</string>
+    <string name="settings_task_routing_chat">Диалог</string>
+    <string name="settings_task_routing_reasoning">Рассуждение</string>
+    <string name="settings_task_routing_code">Код</string>
+    <string name="settings_task_routing_creative">Творчество</string>
+    <string name="settings_task_routing_analysis">Анализ</string>
+    <string name="settings_crash_anr_title">Обнаружение ANR</string>
+    <string name="settings_crash_anr_subtitle">Определяет, что приложение не отвечает, и записывает это в журналы сбоев/аудита</string>
+    <string name="settings_chat_compress_model">Модель сжатия</string>
+    <string name="settings_chat_compress_model_default">Модель по умолчанию</string>
+    <string name="settings_chat_paste_as_file">Длинная вставка в файл</string>
+    <string name="settings_chat_paste_as_file_subtitle">Предлагать прикреплять вставленный текст как файл, если он превышает порог</string>
+    <string name="settings_chat_paste_as_file_threshold">Порог вставки в файл</string>
+    <string name="settings_chat_paste_as_file_threshold_subtitle">Предлагать преобразование при превышении %1$d символов</string>
+    <string name="settings_chat_custom_title_prompt">Пользовательский промпт заголовка</string>
+    <string name="settings_chat_custom_title_prompt_default">Использовать встроенный промпт по умолчанию</string>
+    <string name="settings_chat_custom_title_prompt_hint">Пользовательская инструкция именования диалогов (пусто — по умолчанию)</string>
+    <string name="settings_memory_custom_compress_prompt">Пользовательский промпт сжатия</string>
+    <string name="settings_memory_custom_compress_prompt_default">Использовать встроенную инструкцию сжатия по умолчанию</string>
+    <string name="settings_memory_custom_compress_prompt_hint">Пользовательская инструкция сжатия контекста (пусто — по умолчанию)</string>
+    <string name="settings_about_auto_update">Автопроверка обновлений</string>
+    <string name="settings_about_auto_update_subtitle">Автоматически проверять новые версии на GitHub после запуска</string>
+    <string name="prompt_template_manager_title">Шаблоны промптов</string>
+    <string name="prompt_template_manager_list">Список шаблонов</string>
+    <string name="prompt_template_manager_empty">Пользовательских шаблонов пока нет</string>
+    <string name="prompt_template_manager_built_in">Встроенный</string>
+    <string name="prompt_template_manager_move_up">Вверх</string>
+    <string name="prompt_template_manager_move_down">Вниз</string>
+    <string name="prompt_template_manager_edit">Изменить</string>
+    <string name="prompt_template_manager_copy">Дублировать</string>
+    <string name="prompt_template_manager_delete">Удалить</string>
+    <string name="prompt_template_manager_delete_confirm">Удалить шаблон "%1$s"?</string>
+    <string name="prompt_template_manager_add">Новый шаблон</string>
+    <string name="prompt_template_manager_name">Название</string>
+    <string name="prompt_template_manager_category">Категория</string>
+    <string name="prompt_template_manager_content">Содержимое</string>
+    <string name="prompt_template_manage_entry">Управление шаблонами</string>
     <string name="settings_sub_user_profile">Профиль пользователя</string>
     <string name="settings_sub_user_profile_subtitle">Возраст/Город/MBTI и т. д. (для персонализации AI)</string>
     <string name="settings_sub_data_backup">Данные и резервное копирование</string>
@@ -282,6 +324,10 @@
     <string name="settings_rag_mmr_lambda_subtitle">0 = чистое разнообразие, 1 = чистое сходство, по умолчанию 0,5.</string>
     <string name="settings_rag_hybrid">Гибридный поиск</string>
     <string name="settings_rag_hybrid_subtitle">Ключевое слово BM25 + объединение векторного сходства RRF</string>
+    <string name="settings_rag_hybrid_bm25_weight">Вес BM25</string>
+    <string name="settings_rag_hybrid_bm25_weight_subtitle">Вес вклада BM25 в объединение RRF</string>
+    <string name="settings_rag_hybrid_vector_weight">Векторный вес</string>
+    <string name="settings_rag_hybrid_vector_weight_subtitle">Вес вклада векторного сходства в RRF</string>
     <string name="settings_rag_rerank">Изменить рейтинг</string>
     <string name="settings_rag_rerank_subtitle">Изменение рейтинга перекрестных кодировщиков среди лучших кандидатов K×5</string>
     <string name="settings_rag_token_budget">Бюджет токена</string>
@@ -300,6 +346,7 @@
     <string name="settings_rag_parser_mineru_subtitle">MinerU API превосходно работает с академическими PDF/формулами/таблицами (требуется конечная точка)</string>
     <string name="settings_rag_cloud_parser_endpoint">Конечная точка облачного парсера</string>
     <string name="settings_rag_mineru_endpoint">Конечная точка MinerU</string>
+    <string name="settings_rag_mineru_token">Токен MinerU (необязательно)</string>
     <string name="settings_rag_notes_section">Примечания</string>
     <string name="settings_rag_note1">• После изменения параметров фрагмента вновь импортированные документы будут использовать новые параметры.</string>
     <string name="settings_rag_note2">• Уже проиндексированные документы не разбиваются автоматически;</string>
@@ -493,4 +540,5 @@
     <string name="settings_theme_custom_color_h">Хюэ</string>
     <string name="settings_theme_custom_color_s">Насыщенность</string>
     <string name="settings_theme_custom_color_l">Легкость</string>
+    <string name="settings_agent_bound_assistant_hint">Эта страница привязана к текущему ассистенту и автоматически следует за ним при смене ассистента</string>
 </resources>

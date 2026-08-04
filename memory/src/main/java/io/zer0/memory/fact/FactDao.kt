@@ -31,13 +31,13 @@ interface FactDao {
      *
      * v8: 新增可选 scope 过滤,null 表示全部作用域,非 null 仅返回指定作用域的事实。
      */
-    @Query("SELECT * FROM facts WHERE (:scope IS NULL OR scope = :scope) ORDER BY importance DESC, time DESC")
+    @Query("SELECT * FROM facts WHERE (:scope IS NULL OR scope = :scope) ORDER BY (pinned_at IS NOT NULL) DESC, importance DESC, time DESC")
     suspend fun getAll(scope: String? = null): List<FactEntity>
 
     @Query("SELECT * FROM facts WHERE id = :id")
     suspend fun getById(id: Long): FactEntity?
 
-    @Query("SELECT * FROM facts WHERE session_id = :sessionId ORDER BY importance DESC, time DESC")
+    @Query("SELECT * FROM facts WHERE session_id = :sessionId ORDER BY (pinned_at IS NOT NULL) DESC, importance DESC, time DESC")
     suspend fun getBySession(sessionId: String): List<FactEntity>
 
     @Query("SELECT COUNT(*) FROM facts")
@@ -62,6 +62,10 @@ interface FactDao {
      */
     @Query("UPDATE facts SET importance = :importance WHERE id = :id")
     suspend fun updateImportance(id: Long, importance: Int): Int
+
+    /** B4-05: 设置/取消手动置顶(pinnedAt 为 null 表示取消)。 */
+    @Query("UPDATE facts SET pinned_at = :pinnedAt WHERE id = :id")
+    suspend fun updatePinnedAt(id: Long, pinnedAt: String?): Int
 
     /**
      * v10 P2-3: 更新指定 fact 的分类和标签(用于 AI 记忆管理的 updatedEntities/autoCategorize)。
@@ -153,7 +157,7 @@ interface FactDao {
      * 全文搜索(LIKE,兼容所有 ROM)。
      * 在 fact 字段上做子串匹配,v4: 按 importance 降序 + time 降序。
      */
-    @Query("SELECT * FROM facts WHERE fact LIKE '%' || :query || '%' AND (scope = :scope OR :scope IS NULL) ORDER BY importance DESC, time DESC LIMIT :limit")
+    @Query("SELECT * FROM facts WHERE fact LIKE '%' || :query || '%' AND (scope = :scope OR :scope IS NULL) ORDER BY (pinned_at IS NOT NULL) DESC, importance DESC, time DESC LIMIT :limit")
     suspend fun likeSearch(query: String, limit: Int, scope: String? = null): List<FactEntity>
 
     /**
@@ -165,7 +169,7 @@ interface FactDao {
         WHERE fact LIKE '%' || :query || '%'
           AND scope = :scope
           AND space_id = :spaceId
-        ORDER BY importance DESC, time DESC
+        ORDER BY (pinned_at IS NOT NULL) DESC, importance DESC, time DESC
         LIMIT :limit
         """
     )
@@ -179,7 +183,7 @@ interface FactDao {
         SELECT f.* FROM facts_fts
         JOIN facts f ON facts_fts.fact_id = f.id
         WHERE content_ngram MATCH :matchQuery
-        ORDER BY f.importance DESC, f.time DESC
+        ORDER BY (f.pinned_at IS NOT NULL) DESC, f.importance DESC, f.time DESC
         LIMIT :limit
     """)
     suspend fun searchFts(matchQuery: String, limit: Int): List<FactEntity>
@@ -197,14 +201,14 @@ interface FactDao {
      * v8: 按 scope 观察事实列表(Flow 形式),用于 UI 实时刷新。
      * 排序与 [getAll] 一致:importance DESC + time DESC。
      */
-    @Query("SELECT * FROM facts WHERE scope = :scope ORDER BY importance DESC, time DESC")
+    @Query("SELECT * FROM facts WHERE scope = :scope ORDER BY (pinned_at IS NOT NULL) DESC, importance DESC, time DESC")
     fun observeByScope(scope: String): Flow<List<FactEntity>>
 
     /**
      * v8: 按 scope 同步查询事实列表。
      * 用于 system prompt 注入、子助手记忆检索等场景。
      */
-    @Query("SELECT * FROM facts WHERE scope = :scope ORDER BY importance DESC, time DESC")
+    @Query("SELECT * FROM facts WHERE scope = :scope ORDER BY (pinned_at IS NOT NULL) DESC, importance DESC, time DESC")
     suspend fun getByScope(scope: String): List<FactEntity>
 
     /**
@@ -249,27 +253,27 @@ interface FactDao {
      * v9: 按 space_id 观察事实列表(Flow 形式),用于 UI 实时刷新。
      * 排序与 [getAll] 一致:importance DESC + time DESC。
      */
-    @Query("SELECT * FROM facts WHERE space_id = :spaceId ORDER BY importance DESC, time DESC")
+    @Query("SELECT * FROM facts WHERE space_id = :spaceId ORDER BY (pinned_at IS NOT NULL) DESC, importance DESC, time DESC")
     fun observeBySpace(spaceId: String): Flow<List<FactEntity>>
 
     /**
      * v9: 按 space_id 同步查询事实列表。
      * 用于 system prompt 注入、记忆页 UI 展示等场景。
      */
-    @Query("SELECT * FROM facts WHERE space_id = :spaceId ORDER BY importance DESC, time DESC")
+    @Query("SELECT * FROM facts WHERE space_id = :spaceId ORDER BY (pinned_at IS NOT NULL) DESC, importance DESC, time DESC")
     suspend fun getBySpace(spaceId: String): List<FactEntity>
 
     /**
      * v9: 按 scope + space_id 双重过滤查询事实列表。
      * scope 按 Agent 隔离,space_id 按场景隔离,两者正交。
      */
-    @Query("SELECT * FROM facts WHERE scope = :scope AND space_id = :spaceId ORDER BY importance DESC, time DESC")
+    @Query("SELECT * FROM facts WHERE scope = :scope AND space_id = :spaceId ORDER BY (pinned_at IS NOT NULL) DESC, importance DESC, time DESC")
     suspend fun getByScopeAndSpace(scope: String, spaceId: String): List<FactEntity>
 
     /**
      * v9: 按 scope + space_id 双重过滤观察事实列表(Flow 形式)。
      */
-    @Query("SELECT * FROM facts WHERE scope = :scope AND space_id = :spaceId ORDER BY importance DESC, time DESC")
+    @Query("SELECT * FROM facts WHERE scope = :scope AND space_id = :spaceId ORDER BY (pinned_at IS NOT NULL) DESC, importance DESC, time DESC")
     fun observeByScopeAndSpace(scope: String, spaceId: String): Flow<List<FactEntity>>
 
     /**

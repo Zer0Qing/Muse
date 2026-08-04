@@ -15,6 +15,7 @@ import io.zer0.muse.data.experience.ExperienceDao
 import io.zer0.muse.data.experience.ExperienceEntity
 import io.zer0.muse.data.groupchat.GroupChatDao
 import io.zer0.muse.data.groupchat.GroupChatEntity
+import io.zer0.muse.data.groupchat.GroupChatGenerationLedgerEntity
 import io.zer0.muse.data.groupchat.GroupChatMemoryDao
 import io.zer0.muse.data.groupchat.GroupChatMemoryEntity
 import io.zer0.muse.data.groupchat.GroupChatMessageDao
@@ -141,8 +142,12 @@ import io.zer0.common.Logger
         io.zer0.muse.worldbook.WorldBookEntryEntity::class,
         // v1.0.53 Phase 1: 子 agent 线程账本(持久化版,替代旧内存版 SubagentThreadStore)
         io.zer0.muse.data.subagent.SubagentThreadEntity::class,
+        // B5-01: 流式生成检查点(进程被杀后恢复中断消息)
+        GenerationCheckpointEntity::class,
+        // B5-02: 群聊生成账本(进程被杀后按断点重放)
+        GroupChatGenerationLedgerEntity::class,
     ],
-    version = 60,
+    version = 68,
     exportSchema = true,
 )
 @TypeConverters(QuickNoteConverters::class)
@@ -189,6 +194,10 @@ abstract class MuseDb : RoomDatabase() {
     abstract fun worldBookDao(): io.zer0.muse.worldbook.WorldBookDao
     // v1.0.53 Phase 1: 子 agent 线程 DAO(持久化版)
     abstract fun subagentThreadDao(): io.zer0.muse.data.subagent.SubagentThreadDao
+    // B5-01: 流式生成检查点 DAO
+    abstract fun generationCheckpointDao(): GenerationCheckpointDao
+    // B5-02: 群聊生成账本 DAO
+    abstract fun groupChatGenerationLedgerDao(): io.zer0.muse.data.groupchat.GroupChatGenerationLedgerDao
 
     companion object {
         @Volatile
@@ -1765,6 +1774,82 @@ abstract class MuseDb : RoomDatabase() {
         }
     }
 
+
+    /**
+     * B5-03: MIGRATION_60_61 — messages 加 thinking_signature / thinking_encrypted_content。
+     */
+    val MIGRATION_60_61 = object : Migration(60, 61) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE messages ADD COLUMN thinkingSignature TEXT DEFAULT NULL")
+            db.execSQL("ALTER TABLE messages ADD COLUMN thinkingEncryptedContent TEXT DEFAULT NULL")
+        }
+    }
+    /**
+     * B5-01: MIGRATION_61_62 — 新增 generation_checkpoints 表。
+     */
+    val MIGRATION_61_62 = object : Migration(61, 62) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS `generation_checkpoints` (`assistantMessageId` TEXT NOT NULL, `sessionId` TEXT NOT NULL, `userMessageId` TEXT NOT NULL, `content` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`assistantMessageId`), FOREIGN KEY(`sessionId`) REFERENCES `sessions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_generation_checkpoints_sessionId` ON `generation_checkpoints` (`sessionId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_generation_checkpoints_createdAt` ON `generation_checkpoints` (`createdAt`)")
+        }
+    }
+    /**
+     * B5-02: MIGRATION_62_63 — 新增 group_chat_generation_ledger 表。
+     */
+    val MIGRATION_62_63 = object : Migration(62, 63) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS `group_chat_generation_ledger` (`id` TEXT NOT NULL, `chatId` TEXT NOT NULL, `mode` TEXT NOT NULL, `round` INTEGER NOT NULL, `memberIndex` INTEGER NOT NULL, `memberIdsJson` TEXT NOT NULL DEFAULT '[]', `status` TEXT NOT NULL DEFAULT 'running', `createdAt` INTEGER NOT NULL DEFAULT 0, `updatedAt` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`id`), FOREIGN KEY(`chatId`) REFERENCES `group_chats`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_group_chat_generation_ledger_chatId` ON `group_chat_generation_ledger` (`chatId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_group_chat_generation_ledger_status` ON `group_chat_generation_ledger` (`status`)")
+        }
+    }
+    /**
+     * B6-03: MIGRATION_63_64 — messages 加 mood_skin 列(情绪皮肤标识)。
+     */
+    val MIGRATION_63_64 = object : Migration(63, 64) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE messages ADD COLUMN moodSkin TEXT DEFAULT NULL")
+        }
+    }
+    /**
+     * B7-03/B7-05: MIGRATION_64_65 — sessions 加 lastReadMessageId / sortOrder。
+     */
+    val MIGRATION_64_65 = object : Migration(64, 65) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE sessions ADD COLUMN lastReadMessageId TEXT DEFAULT NULL")
+            db.execSQL("ALTER TABLE sessions ADD COLUMN sortOrder INTEGER NOT NULL DEFAULT 0")
+        }
+    }
+    /**
+     * B7-03: MIGRATION_65_66 — sessions 加 lastReadCount,用于会话列表未读数徽标。
+     */
+    val MIGRATION_65_66 = object : Migration(65, 66) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE sessions ADD COLUMN lastReadCount INTEGER NOT NULL DEFAULT 0")
+        }
+    }
+    /**
+     * B8-01: MIGRATION_66_67 — sessions 加 proactiveNextTriggerAt,支持会话级主动消息排期。
+     */
+    val MIGRATION_66_67 = object : Migration(66, 67) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE sessions ADD COLUMN proactiveNextTriggerAt INTEGER DEFAULT NULL")
+        }
+    }
+    /**
+     * B8-06: MIGRATION_67_68 — 修复历史库 messages/sessions 缺列问题。
+     *
+     * 旧版本若曾在迁移中途失败或使用不一致 schema,Room 会报
+     * "Migration didn't properly handle: messages"。本迁移按 PRAGMA 检查,
+     * 只补缺失列,已存在的列保持不动。
+     */
+    val MIGRATION_67_68 = object : Migration(67, 68) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            ensureMessageColumns(db)
+            ensureSessionColumns(db)
+        }
+    }
     fun get(context: Context): MuseDb {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -1810,6 +1895,14 @@ abstract class MuseDb : RoomDatabase() {
                         MIGRATION_57_58,
                         MIGRATION_58_59,
                         MIGRATION_59_60,
+                        MIGRATION_60_61,
+                        MIGRATION_61_62,
+                        MIGRATION_62_63,
+                        MIGRATION_63_64,
+                        MIGRATION_64_65,
+                        MIGRATION_65_66,
+                        MIGRATION_66_67,
+                        MIGRATION_67_68,
                     )
                     // 启用外键约束(artifacts 表的 ON DELETE CASCADE 依赖此设置)
                     // onOpen 不在 onCreate 事务内,可以执行此类命令;onCreate 内禁止 PRAGMA
@@ -1850,6 +1943,74 @@ abstract class MuseDb : RoomDatabase() {
                     .build()
                     .also { INSTANCE = it }
             }
+        }
+    }
+}
+
+/** B8-06: 按当前 schema 补齐 messages 缺失列(幂等,已存在的列跳过)。 */
+private fun ensureMessageColumns(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+    val existing = mutableSetOf<String>()
+    db.query("PRAGMA table_info(messages)").use { cursor ->
+        while (cursor.moveToNext()) {
+            existing.add(cursor.getString(1))
+        }
+    }
+    val columns = listOf(
+        "thinkingSignature TEXT DEFAULT NULL",
+        "thinkingEncryptedContent TEXT DEFAULT NULL",
+        "moodSkin TEXT DEFAULT NULL",
+        "mood TEXT DEFAULT NULL",
+        "reflection TEXT DEFAULT NULL",
+        "contentLength INTEGER NOT NULL DEFAULT 0",
+        "deletedAt INTEGER DEFAULT NULL",
+        "reaction TEXT DEFAULT NULL",
+        "variantGroupId TEXT DEFAULT NULL",
+        "variantIndex INTEGER NOT NULL DEFAULT 0",
+        "variantCount INTEGER NOT NULL DEFAULT 1",
+        "attachmentsJson TEXT NOT NULL DEFAULT '[]'",
+        "artifactIdsJson TEXT NOT NULL DEFAULT '[]'",
+        "imageBase64Json TEXT NOT NULL DEFAULT '[]'",
+        "ragCitationsJson TEXT NOT NULL DEFAULT '[]'",
+        "citationUrlsJson TEXT NOT NULL DEFAULT '[]'",
+        "imageUrlsJson TEXT NOT NULL DEFAULT '[]'",
+        "favoriteTag TEXT DEFAULT NULL",
+    )
+    columns.forEach { spec ->
+        val name = spec.substringBefore(' ')
+        if (name !in existing) {
+            db.execSQL("ALTER TABLE messages ADD COLUMN $spec")
+        }
+    }
+}
+
+/** B8-06: 按当前 schema 补齐 sessions 缺失列(幂等,已存在的列跳过)。 */
+private fun ensureSessionColumns(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+    val existing = mutableSetOf<String>()
+    db.query("PRAGMA table_info(sessions)").use { cursor ->
+        while (cursor.moveToNext()) {
+            existing.add(cursor.getString(1))
+        }
+    }
+    val columns = listOf(
+        "assistantId TEXT NOT NULL DEFAULT 'default'",
+        "pinned INTEGER NOT NULL DEFAULT 0",
+        "folderId TEXT DEFAULT ''",
+        "archived INTEGER NOT NULL DEFAULT 0",
+        "isAgentSession INTEGER NOT NULL DEFAULT 0",
+        "messageCount INTEGER NOT NULL DEFAULT 0",
+        "deletedAt INTEGER DEFAULT NULL",
+        "parentSessionId TEXT DEFAULT NULL",
+        "childCount INTEGER NOT NULL DEFAULT 0",
+        "lastReadMessageId TEXT DEFAULT NULL",
+        "lastReadCount INTEGER NOT NULL DEFAULT 0",
+        "sortOrder INTEGER NOT NULL DEFAULT 0",
+        "proactiveNextTriggerAt INTEGER DEFAULT NULL",
+        "skillIdsJson TEXT NOT NULL DEFAULT '[]'",
+    )
+    columns.forEach { spec ->
+        val name = spec.substringBefore(' ')
+        if (name !in existing) {
+            db.execSQL("ALTER TABLE sessions ADD COLUMN $spec")
         }
     }
 }

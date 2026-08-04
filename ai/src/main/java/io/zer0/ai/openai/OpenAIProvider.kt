@@ -22,9 +22,11 @@ import io.zer0.ai.core.ReasoningCarrier
 import io.zer0.ai.core.ReasoningReplayPolicy
 import io.zer0.ai.core.ThinkingFormat
 import io.zer0.ai.core.ToolCall
+import io.zer0.ai.core.ToolCallSanitizer
 import io.zer0.ai.core.ToolDefinition
 import io.zer0.ai.core.UIMessage
 import io.zer0.ai.core.toProviderException
+import io.zer0.ai.core.ProviderTemplateEngine
 import io.zer0.ai.ollama.OllamaVisionInferrer
 import io.zer0.ai.registry.ModelRegistry
 import io.zer0.common.AppJson
@@ -49,6 +51,8 @@ import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
 import okhttp3.Call
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
@@ -81,6 +85,11 @@ class OpenAIProvider(
     private val openAIConfig: ProviderSpecificConfig.OpenAI by lazy {
         config.resolvedSpecific() as? ProviderSpecificConfig.OpenAI
             ?: ProviderSpecificConfig.OpenAI()
+    }
+
+    /** B3-05: Custom 供应商专用配置(自定义请求模板 / 响应路径 / headers / body 字段)。 */
+    private val customConfig: ProviderSpecificConfig.Custom? by lazy {
+        config.specific as? ProviderSpecificConfig.Custom
     }
 
     /**
@@ -150,6 +159,7 @@ class OpenAIProvider(
             .header("Authorization", "Bearer ${resolveEffectiveApiKey(request.model.id)}")
             .header("Content-Type", "application/json")
             .header("Accept", "text/event-stream")
+            .apply { customConfig?.customHeaders?.forEach { (k, v) -> header(k, v) } }
             .post(body.toRequestBody(JSON_MEDIA_TYPE))
             .build()
 
@@ -352,7 +362,7 @@ class OpenAIProvider(
                         if (completion != null) {
                             val text = completion.text.orEmpty()
                             val reasoning = completion.reasoningContent.orEmpty()
-                            val toolCalls = completion.toolCalls.orEmpty()
+                            val toolCalls = ToolCallSanitizer.sanitize(completion.toolCalls.orEmpty())
                             if (toolCalls.isNotEmpty()) {
                                 // v1.0.53: 回退成功且模型决策调用工具 — 发送 ToolCallDelta,
                                 // 不能把 reasoning 当正文(那是思考过程);工具调用交给上层执行。
@@ -471,6 +481,29 @@ class OpenAIProvider(
                         // v1.0.20: stream-guard — Done 事件时检查累积 toolCallAccMap,
                         //   空 name 的 tool call 恢复为 ContentDelta(参考 openhanako)
                         emitDoneWithStreamGuard(null)
+                        return
+                    }
+                    // B3-05: Custom 供应商流式响应路径(如 $.choices[0].delta.content)
+                    val customStreamPath = customConfig?.streamResponsePath?.takeIf { it.isNotBlank() }
+                    if (customStreamPath != null) {
+                        val element = resultOf { AppJson.parseToJsonElement(data) }.getOrNull() ?: return
+                        val text = extractTextFromElement(
+                            ProviderTemplateEngine.extractByPath(element, customStreamPath),
+                        )
+                        if (!text.isNullOrEmpty()) {
+                            if (firstDeltaAt == 0L) {
+                                firstDeltaAt = System.currentTimeMillis()
+                                firstDeltaTimestamp.set(firstDeltaAt)
+                            }
+                            anyDeltaSent.set(true)
+                            contentCharsSent.addAndGet(text.length)
+                            trySend(ChatStreamEvent.ContentDelta(text))
+                        }
+                        val standardChunk = resultOf { AppJson.decodeFromString<OpenAIStreamChunk>(data) }.getOrNull()
+                        val finish = standardChunk?.choices?.firstOrNull()?.finishReason
+                        if (!finish.isNullOrBlank() && !pendingFallback.get()) {
+                            emitDoneWithStreamGuard(finish)
+                        }
                         return
                     }
                     // M-OAI3: 改用 resultOf(会重抛 CancellationException),替代 runCatching(会吞 CancellationException)
@@ -632,6 +665,9 @@ class OpenAIProvider(
                                 "streamChat aborted by user | contentChars=${contentCharsSent.get()} | " +
                                     "streamGuardDone=${streamGuardDone.get()} | anyDeltaSent=${anyDeltaSent.get()}",
                             )
+                            // 用户主动停止：发 StreamInterrupted 让下游（含 FirstEventWatchdog）明确感知中断，
+                            // 避免静默 close 导致 watchdog 误判为“无首事件”继续触发非流式回退。
+                            scope.trySend(ChatStreamEvent.StreamInterrupted("用户已停止生成"))
                         }
                         close()
                         return
@@ -736,6 +772,7 @@ class OpenAIProvider(
             .header("Authorization", "Bearer ${resolveEffectiveApiKey(request.model.id)}")
             .header("Content-Type", "application/json")
             .header("Accept", "application/json")
+            .apply { customConfig?.customHeaders?.forEach { (k, v) -> header(k, v) } }
             .post(body.toRequestBody(JSON_MEDIA_TYPE))
             .build()
 
@@ -768,6 +805,14 @@ class OpenAIProvider(
                 // M-OAI6: body 可能为 null(虽然 OkHttp 实际几乎不为 null,但类型上 Nullable),统一做空安全
                 val raw = resp.body?.string()
                     ?: throw ErrorCode.INVALID_RESPONSE.toProviderException("empty_body", resp.code)
+                val customResponsePath = customConfig?.responsePath?.takeIf { it.isNotBlank() }
+                if (customResponsePath != null) {
+                    val parsedJson = AppJson.parseToJsonElement(raw)
+                    val text = extractTextFromElement(
+                        ProviderTemplateEngine.extractByPath(parsedJson, customResponsePath),
+                    ) ?: throw ErrorCode.INVALID_RESPONSE.toProviderException("empty_custom_response")
+                    return@withContext ChatCompletion(text = text)
+                }
                 val parsed = AppJson.decodeFromString<OpenAICompletionResponse>(raw)
                 val choice = parsed.choices.firstOrNull()
                     ?: throw ErrorCode.INVALID_RESPONSE.toProviderException("empty_choices")
@@ -1062,6 +1107,70 @@ class OpenAIProvider(
         return lower.contains(":11434") || lower.contains("ollama")
     }
 
+    /**
+     * B3-05: 按 Custom 配置渲染请求体。
+     *  - requestTemplate 非空时替换 {{model}} / {{messages}} / {{stream}} / {{prompt}} 等占位符
+     *  - customBody 非空时合并到最终 JSON 顶层(模板与默认请求体均生效)
+     */
+    private fun renderCustomRequestBody(
+        defaultBody: String,
+        request: ChatRequest,
+        effectiveModel: String,
+        stream: Boolean,
+    ): String {
+        val template = customConfig?.requestTemplate?.takeIf { it.isNotBlank() }
+        val body = if (template != null) {
+            val defaultElement = runCatching { AppJson.parseToJsonElement(defaultBody) }.getOrNull() as? JsonObject
+            val variables = mutableMapOf<String, JsonElement>(
+                "model" to JsonPrimitive(effectiveModel),
+                "stream" to JsonPrimitive(stream),
+                "messages" to (defaultElement?.get("messages") ?: JsonArray(emptyList())),
+            )
+            request.messages.lastOrNull { it.role == MessageRole.USER }?.let {
+                variables["prompt"] = JsonPrimitive(it.content)
+            }
+            val systemText = request.messages.filter { it.role == MessageRole.SYSTEM }
+                .joinToString("\n\n") { it.content }
+            if (systemText.isNotBlank()) variables["system"] = JsonPrimitive(systemText)
+            defaultElement?.get("tools")?.let { variables["tools"] = it }
+            defaultElement?.get("temperature")?.let { variables["temperature"] = it }
+            defaultElement?.get("max_tokens")?.let { variables["max_tokens"] = it }
+            ProviderTemplateEngine.renderRequestTemplate(template, variables)
+        } else {
+            defaultBody
+        }
+        return mergeCustomBody(body)
+    }
+
+    /** B3-05: 把 customBody 的顶层字段合并进最终请求 JSON。 */
+    private fun mergeCustomBody(body: String): String {
+        val extras = customConfig?.customBody ?: emptyMap()
+        if (extras.isEmpty()) return body
+        val element = runCatching { AppJson.parseToJsonElement(body) }.getOrNull()
+        val obj = (element as? JsonObject)?.toMutableMap() ?: return body
+        obj.putAll(extras)
+        return AppJson.encodeToString(JsonObject.serializer(), JsonObject(obj))
+    }
+
+    /** B3-05: 把提取到的 JSON 元素转成可读文本(primitive / array / object 常见文本字段)。 */
+    private fun extractTextFromElement(element: JsonElement?): String? {
+        return when (element) {
+            null -> null
+            is JsonPrimitive -> element.content.takeIf { it.isNotBlank() }
+            is JsonArray -> element.mapNotNull { extractTextFromElement(it) }
+                .joinToString("\n")
+                .takeIf { it.isNotBlank() }
+            is JsonObject -> {
+                for (key in listOf("content", "text", "markdown", "value")) {
+                    val child = element[key] ?: continue
+                    val text = extractTextFromElement(child)
+                    if (!text.isNullOrBlank()) return text
+                }
+                null
+            }
+        }
+    }
+
     private fun buildRequestBody(request: ChatRequest, stream: Boolean = true): String {
         // v1.0.7: UTILITY 模式强制关思考(对齐 openhanako buildProviderCompatOptions)
         //  utility 路径(memory 摘要 / fact 抽取 / 视觉辅助等后台短文本任务)无需思考链,
@@ -1138,10 +1247,12 @@ class OpenAIProvider(
         // 实现:先序列化 OpenAIRequest 为 JsonObject,再按 thinkingFormat 追加/修改字段。
         // UTILITY 模式下 effectiveReasoningLevel=OFF,injectThinkingFormat 会写入 disabled
         val thinkingFormat = compat.thinkingFormat
-        if (thinkingFormat == null) {
-            return AppJson.encodeToString(payload)
+        val defaultBody = if (thinkingFormat == null) {
+            AppJson.encodeToString(payload)
+        } else {
+            injectThinkingFormat(payload, thinkingFormat, effectiveReasoningLevel)
         }
-        return injectThinkingFormat(payload, thinkingFormat, effectiveReasoningLevel)
+        return renderCustomRequestBody(defaultBody, request, effectiveModel, stream)
     }
 
     /**
@@ -1530,6 +1641,7 @@ class OpenAIProvider(
             .header("Authorization", "Bearer ${resolveEffectiveApiKey(request.model.id)}")
             .header("Content-Type", "application/json")
             .header("Accept", "text/event-stream")
+            .apply { customConfig?.customHeaders?.forEach { (k, v) -> header(k, v) } }
             .post(body.toRequestBody(JSON_MEDIA_TYPE))
             .build()
 
@@ -1753,6 +1865,15 @@ class OpenAIProvider(
                         "response.completed" -> {
                             // 流结束,带最终 response 对象
                             val status = event.response?.status
+                            // B5-03: 从最终 output 提取 reasoning 签名/encrypted_content 供落库回放
+                            val reasoningItem = event.response?.output?.firstOrNull { it.type == "reasoning" }
+                            if (reasoningItem != null &&
+                                (!reasoningItem.id.isNullOrBlank() || !reasoningItem.encryptedContent.isNullOrBlank())
+                            ) {
+                                trySend(ChatStreamEvent.ReasoningDelta(
+                                    "", signature = reasoningItem.id, encryptedContent = reasoningItem.encryptedContent,
+                                ))
+                            }
                             // v1.0.20: stream-guard — Done 事件时检查累积 toolCallAccMap,
                             //   空 name 的 tool call 恢复为 ContentDelta(参考 openhanako)
                             emitDoneWithStreamGuard(status)
@@ -1847,6 +1968,7 @@ class OpenAIProvider(
             .header("Authorization", "Bearer ${resolveEffectiveApiKey(request.model.id)}")
             .header("Content-Type", "application/json")
             .header("Accept", "application/json")
+            .apply { customConfig?.customHeaders?.forEach { (k, v) -> header(k, v) } }
             .post(body.toRequestBody(JSON_MEDIA_TYPE))
             .build()
 
@@ -1874,6 +1996,8 @@ class OpenAIProvider(
                 val text = extractResponsesVisibleText(parsed)
                 val reasoningContent = extractResponsesReasoning(parsed)
                 val toolCalls = extractResponsesToolCalls(parsed)
+                // B5-03: 提取 reasoning item 的签名与 encrypted_content 供多轮回放
+                val reasoningItem = parsed.output.firstOrNull { it.type == "reasoning" }
 
                 if (text.isBlank() && toolCalls.isNullOrEmpty() && reasoningContent.isBlank()) {
                     Logger.w("OpenAIProvider", "completeTextResponses 返回空(output 无 message/reasoning/function_call)")
@@ -1885,6 +2009,8 @@ class OpenAIProvider(
                     finishReason = parsed.status,
                     toolCalls = toolCalls,
                     reasoningContent = reasoningContent.takeIf { it.isNotBlank() },
+                    thinkingSignature = reasoningItem?.id,
+                    thinkingEncryptedContent = reasoningItem?.encryptedContent,
                     usageTokens = parsed.usage?.toUsageTokens(),
                 )
             }
@@ -1955,6 +2081,14 @@ class OpenAIProvider(
                 if (instructionsBuilder.isNotEmpty()) instructionsBuilder.append("\n\n")
                 instructionsBuilder.append(msg.content)
             } else {
+                // B5-03: OpenAI Responses 多轮 thinking 回放 — 在 assistant 消息前插入 reasoning item
+                if (msg.role == MessageRole.ASSISTANT && !msg.thinkingEncryptedContent.isNullOrBlank()) {
+                    inputItems.add(ResponsesInputItem(
+                        type = "reasoning",
+                        id = msg.thinkingSignature,
+                        encrypted_content = msg.thinkingEncryptedContent,
+                    ))
+                }
                 inputItems.add(msg.toResponsesInputItem(request.model))
                 // ASSISTANT 消息的 toolCalls 转为 function_call 顶层 sibling
                 if (msg.role == MessageRole.ASSISTANT && !msg.toolCalls.isNullOrEmpty()) {

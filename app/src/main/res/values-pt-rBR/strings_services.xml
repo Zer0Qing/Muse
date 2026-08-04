@@ -372,6 +372,7 @@
     <!-- ===== web/WebServer ===== -->
     <string name="webserver_unknown_error">Erro desconhecido</string>
     <string name="webserver_rate_limited">Muitas solicitações, tente novamente mais tarde</string>
+    <string name="webserver_rate_limited_remaining">Muitas solicitações, tente novamente em %1$d segundos</string>
     <string name="webserver_bad_request">Solicitação incorreta: %1$s</string>
     <string name="webserver_auth_failed">Senha incorreta</string>
     <string name="webserver_pin_error">PIN incorreto</string>

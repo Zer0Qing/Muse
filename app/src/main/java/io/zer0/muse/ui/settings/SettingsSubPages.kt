@@ -39,6 +39,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import androidx.core.content.pm.PackageInfoCompat
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.BuildConfig
 import io.zer0.muse.UpdateChecker
@@ -50,6 +52,7 @@ import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
 import io.zer0.muse.ui.common.settings.SettingsItemRow
+import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.common.media.WindowWidthClass
 import io.zer0.muse.ui.common.media.rememberWindowWidthClass
 import io.zer0.muse.ui.theme.MusePaddings
@@ -551,6 +554,7 @@ fun SettingsAboutPage(
     val context = LocalContext.current
     val settings: SettingsRepository = koinInject()
     val scope = rememberCoroutineScope()
+    val updateCheckEnabled by settings.updateCheckEnabledFlow.collectAsStateWithLifecycle(initialValue = true)
     // v1.4: 登录态 — 仅当已登录或游客时显示"退出登录"
     val accountState by settings.accountStateFlow.collectAsStateWithLifecycle(initialValue = io.zer0.muse.data.AccountState())
     var showLogoutDialog by remember { mutableStateOf(false) }
@@ -669,6 +673,14 @@ fun SettingsAboutPage(
                         ChevronRight()
                     }
                 }
+                SettingsGroupDivider()
+                SettingsSwitchRow(
+                    icon = TablerIcons.Refresh,
+                    title = stringResource(R.string.settings_about_auto_update),
+                    subtitle = stringResource(R.string.settings_about_auto_update_subtitle),
+                    checked = updateCheckEnabled,
+                    onCheckedChange = { v -> scope.launch { settings.saveUpdateCheckEnabled(v) } },
+                )
             }
         }
         item {

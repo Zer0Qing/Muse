@@ -123,4 +123,5 @@
     <string name="err_chat_video_cancelled">동영상 생성이 취소되었습니다.</string>
     <string name="err_chat_video_gen_failed">비디오 생성 실패: %1$s</string>
     <string name="err_chat_qr_generated">QR 코드가 생성되었습니다.</string>
+    <string name="err_chat_misc_reorder_pinned_failed">고정 순서 저장 실패: %1$s</string>
 </resources>

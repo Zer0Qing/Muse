@@ -1,10 +1,12 @@
 package io.zer0.muse.ui
 
 import io.zer0.muse.ui.common.state.MuseLoadingState
+import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -20,6 +22,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -52,12 +55,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.zIndex
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import io.zer0.muse.R
@@ -85,6 +92,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
+import kotlin.math.roundToInt
 
 /**
  * 任务中心页 —— 按设计稿重构为 iOS / MANUS 风格任务首页。
@@ -116,6 +124,8 @@ fun ChatListScreen(
     /** v1.48: 重命名(带新名字),修复旧实现传 session.title 导致重命名失效的 bug。 */
     onRenameTo: (SessionEntity, String) -> Unit = { s, _ -> onRename(s) },
     onTogglePinned: (String) -> Unit,
+    /** B7-05: 置顶会话拖拽排序后的新 id 顺序(松手即持久化)。 */
+    onReorderPinned: (List<String>) -> Unit = {},
     onMoveSessionToFolder: (String, String?) -> Unit,
     onCreateFolder: (String) -> Unit,
     onRenameFolder: (String, String) -> Unit,
@@ -141,6 +151,10 @@ fun ChatListScreen(
     onOpenAssistants: () -> Unit = {},
     /** v1.72: 会话列表首次加载标志(避免闪空状态) */
     isSessionsLoading: Boolean = false,
+    /** v1.0.62: 会话列表加载失败信息(null=正常)。 */
+    sessionsError: String? = null,
+    /** v1.0.62: 会话列表加载失败重试回调。 */
+    onRetryLoadSessions: () -> Unit = {},
     modifier: Modifier = Modifier,
     /** 元事实 DAO,用于首页显示记忆数量。 */
     factDao: FactDao = koinInject(),
@@ -174,6 +188,12 @@ fun ChatListScreen(
     }
     val pinned = remember(displayedSessions) { displayedSessions.filter { it.pinned } }
     val recent = remember(displayedSessions) { displayedSessions.filterNot { it.pinned } }
+    // B7-05: 拖拽期间的乐观顺序,收到 DB flow 更新后自动以 sessions 为准
+    var pinnedOrder by remember(sessions) { mutableStateOf(pinned.map { it.id }) }
+    val orderedPinned = remember(pinned, pinnedOrder) {
+        val byId = pinned.associateBy { it.id }
+        pinnedOrder.mapNotNull { byId[it] } + pinned.filterNot { it.id in pinnedOrder }
+    }
 
     Scaffold(
         modifier = modifier,
@@ -188,12 +208,22 @@ fun ChatListScreen(
         ) {
             // v1.72: 首次加载时显示 loading,避免 DB emit 前闪"还没有任务"空状态
             if (isSessionsLoading) {
-                Box(
+                Column(
                     modifier = Modifier.weight(1f),
-                    contentAlignment = Alignment.Center,
+                    verticalArrangement = Arrangement.spacedBy(MusePaddings.sectionGap),
                 ) {
-                    MuseLoadingState()
+                    repeat(5) {
+                        io.zer0.muse.ui.common.surface.SessionCardSkeleton()
+                    }
                 }
+            } else if (sessionsError != null) {
+                MuseErrorStateBox(
+                    message = sessionsError,
+                    onRetry = onRetryLoadSessions,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                )
             } else {
                 LazyColumn(
                     modifier = Modifier.weight(1f),
@@ -226,12 +256,13 @@ fun ChatListScreen(
                     if (pinned.isNotEmpty()) {
                         item(key = "section_pinned") {
                             PinnedTasksCard(
-                                pinned = pinned,
+                                pinned = orderedPinned,
                                 folders = folders,
                                 onSelect = onSelect,
                                 onDelete = onDelete,
                                 onRenameTo = onRenameTo,
                                 onTogglePinned = onTogglePinned,
+                                onReorderPinned = onReorderPinned,
                                 onMoveSessionToFolder = onMoveSessionToFolder,
                                 onArchive = onArchive,
                             )
@@ -450,6 +481,7 @@ private fun PinnedTasksCard(
     onDelete: (String) -> Unit,
     onRenameTo: (SessionEntity, String) -> Unit,
     onTogglePinned: (String) -> Unit,
+    onReorderPinned: (List<String>) -> Unit,
     onMoveSessionToFolder: (String, String?) -> Unit,
     onArchive: (String) -> Unit,
 ) {
@@ -458,16 +490,70 @@ private fun PinnedTasksCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         pinned.forEachIndexed { index, session ->
-            TaskItem(
-                session = session,
-                folders = folders,
-                onSelect = onSelect,
-                onDelete = onDelete,
-                onRenameTo = onRenameTo,
-                onTogglePinned = onTogglePinned,
-                onMoveSessionToFolder = onMoveSessionToFolder,
-                onArchive = onArchive,
-            )
+            var dragOffset by remember(session.id) { mutableStateOf(0f) }
+            var dragging by remember(session.id) { mutableStateOf(false) }
+            val rowHeightPx = with(LocalDensity.current) { 80.dp.toPx() }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .zIndex(if (dragging) 1f else 0f)
+                    .offset { IntOffset(0, if (dragging) dragOffset.roundToInt() else 0) },
+            ) {
+                TaskItem(
+                    session = session,
+                    folders = folders,
+                    onSelect = onSelect,
+                    onDelete = onDelete,
+                    onRenameTo = onRenameTo,
+                    onTogglePinned = onTogglePinned,
+                    onMoveSessionToFolder = onMoveSessionToFolder,
+                    onArchive = onArchive,
+                )
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(end = MusePaddings.itemGap)
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(if (dragging) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent)
+                        .pointerInput(session.id, index, pinned.size) {
+                            detectDragGesturesAfterLongPress(
+                                onDragStart = {
+                                    dragging = true
+                                    dragOffset = 0f
+                                },
+                                onDrag = { change, dragAmount ->
+                                    change.consume()
+                                    dragOffset += dragAmount.y
+                                },
+                                onDragEnd = {
+                                    val target = (index + (dragOffset / rowHeightPx).roundToInt())
+                                        .coerceIn(0, pinned.lastIndex)
+                                    dragging = false
+                                    dragOffset = 0f
+                                    if (target != index) {
+                                        val ids = pinned.map { it.id }.toMutableList()
+                                        val id = ids.removeAt(index)
+                                        ids.add(target, id)
+                                        onReorderPinned(ids)
+                                    }
+                                },
+                                onDragCancel = {
+                                    dragging = false
+                                    dragOffset = 0f
+                                },
+                            )
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = TablerIcons.GripVertical,
+                        contentDescription = stringResource(R.string.chat_list_reorder),
+                        tint = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
             if (index != pinned.lastIndex) {
                 MuseDivider()
             }
@@ -1175,22 +1261,27 @@ private fun inferTaskStatus(session: SessionEntity, now: Long): TaskStatus {
 
 @Composable
 private fun TaskStatusDot(session: SessionEntity) {
+    // 有未读 → 点亮（error 红）；无未读 → 按任务状态灰显（灭）
+    val hasUnread = (session.messageCount - session.lastReadCount).coerceAtLeast(0) > 0
     val status = remember(session, System.currentTimeMillis()) {
         inferTaskStatus(session, System.currentTimeMillis())
     }
-    TaskStatusDot(status = status)
+    TaskStatusDot(status = status, hasUnread = hasUnread)
 }
 
 @Composable
-private fun TaskStatusDot(status: TaskStatus) {
-    val color = when (status) {
-        TaskStatus.IN_PROGRESS -> MaterialTheme.colorScheme.primary
-        TaskStatus.PENDING -> MaterialTheme.colorScheme.tertiary
-        TaskStatus.COMPLETED -> MaterialTheme.colorScheme.outline
+private fun TaskStatusDot(status: TaskStatus, hasUnread: Boolean = false) {
+    val color = when {
+        hasUnread -> MaterialTheme.colorScheme.error
+        else -> when (status) {
+            TaskStatus.IN_PROGRESS -> MaterialTheme.colorScheme.primary
+            TaskStatus.PENDING -> MaterialTheme.colorScheme.tertiary
+            TaskStatus.COMPLETED -> MaterialTheme.colorScheme.outline
+        }
     }
     Box(
         modifier = Modifier
-            .size(10.dp)
+            .size(if (hasUnread) 12.dp else 10.dp)
             .clip(CircleShape)
             .background(color),
     )

@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.state.MuseEmptyState
 import kotlinx.serialization.Serializable
 
 /**
@@ -41,7 +42,11 @@ fun ActivityPanel(
         }
         if (activities.isEmpty()) {
             item {
-                Text(stringResource(R.string.activity_empty), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                MuseEmptyState(
+                    icon = Icons.Filled.Pending,
+                    title = stringResource(R.string.activity_empty),
+                    subtitle = null,
+                )
             }
         }
         // v1.131: items 加 key — 列表 reorder/insert/delete 时保留子组件状态(动画/滚动位置),
