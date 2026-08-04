@@ -147,7 +147,7 @@ import io.zer0.common.Logger
         // B5-02: 群聊生成账本(进程被杀后按断点重放)
         GroupChatGenerationLedgerEntity::class,
     ],
-    version = 68,
+    version = 74,
     exportSchema = true,
 )
 @TypeConverters(QuickNoteConverters::class)
@@ -1833,6 +1833,22 @@ abstract class MuseDb : RoomDatabase() {
             ensureSessionColumns(db)
         }
     }
+
+    /**
+     * v1.0.62 fix: 兼容从 v1.0.60（DB version 73）升级的场景：
+     * 确保 generation_checkpoints 和 group_chat_generation_ledger 表存在。
+     */
+    val MIGRATION_68_74 = object : Migration(68, 74) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            ensureGenerationTables(db)
+        }
+    }
+    val MIGRATION_73_74 = object : Migration(73, 74) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            ensureGenerationTables(db)
+        }
+    }
+
     fun get(context: Context): MuseDb {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -1886,6 +1902,8 @@ abstract class MuseDb : RoomDatabase() {
                         MIGRATION_65_66,
                         MIGRATION_66_67,
                         MIGRATION_67_68,
+                        MIGRATION_68_74,
+                        MIGRATION_73_74,
                     )
                     // 启用外键约束(artifacts 表的 ON DELETE CASCADE 依赖此设置)
                     // onOpen 不在 onCreate 事务内,可以执行此类命令;onCreate 内禁止 PRAGMA
@@ -1997,4 +2015,46 @@ private fun ensureSessionColumns(db: androidx.sqlite.db.SupportSQLiteDatabase) {
             db.execSQL("ALTER TABLE sessions ADD COLUMN $spec")
         }
     }
+}
+
+/**
+ * v1.0.62 fix: 确保 generation_checkpoints 和 group_chat_generation_ledger 表存在。
+ * 兼容从 v1.0.60（DB version 73）升级的场景，这些表在 v1.0.60 的 schema 中不存在。
+ */
+private fun ensureGenerationTables(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+    db.execSQL(
+        """
+        CREATE TABLE IF NOT EXISTS `generation_checkpoints` (
+            `assistantMessageId` TEXT NOT NULL,
+            `sessionId` TEXT NOT NULL,
+            `userMessageId` TEXT NOT NULL,
+            `content` TEXT NOT NULL,
+            `createdAt` INTEGER NOT NULL,
+            `updatedAt` INTEGER NOT NULL,
+            PRIMARY KEY(`assistantMessageId`),
+            FOREIGN KEY(`sessionId`) REFERENCES `sessions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+        )
+        """.trimIndent()
+    )
+    db.execSQL("CREATE INDEX IF NOT EXISTS `index_generation_checkpoints_sessionId` ON `generation_checkpoints` (`sessionId`)")
+    db.execSQL("CREATE INDEX IF NOT EXISTS `index_generation_checkpoints_createdAt` ON `generation_checkpoints` (`createdAt`)")
+    db.execSQL(
+        """
+        CREATE TABLE IF NOT EXISTS `group_chat_generation_ledger` (
+            `id` TEXT NOT NULL,
+            `chatId` TEXT NOT NULL,
+            `mode` TEXT NOT NULL,
+            `round` INTEGER NOT NULL,
+            `memberIndex` INTEGER NOT NULL,
+            `memberIdsJson` TEXT NOT NULL DEFAULT '[]',
+            `status` TEXT NOT NULL DEFAULT 'running',
+            `createdAt` INTEGER NOT NULL DEFAULT 0,
+            `updatedAt` INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY(`id`),
+            FOREIGN KEY(`chatId`) REFERENCES `group_chats`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+        )
+        """.trimIndent()
+    )
+    db.execSQL("CREATE INDEX IF NOT EXISTS `index_group_chat_generation_ledger_chatId` ON `group_chat_generation_ledger` (`chatId`)")
+    db.execSQL("CREATE INDEX IF NOT EXISTS `index_group_chat_generation_ledger_status` ON `group_chat_generation_ledger` (`status`)")
 }
