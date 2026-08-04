@@ -413,7 +413,13 @@ class OpenAIProvider(
                 return
             }
 
-            trySend(ChatStreamEvent.Done(finishReason))
+            // 收尾：用户停止时发 StreamInterrupted（让 FirstEventWatchdog 明确感知中断，
+            // 不再等待 15s 超时触发非流式回退）；正常完成才发 Done。
+            if (request.abortSignal.aborted) {
+                scope.trySend(ChatStreamEvent.StreamInterrupted("用户已停止生成"))
+            } else {
+                trySend(ChatStreamEvent.Done(finishReason))
+            }
             close()
         }
 

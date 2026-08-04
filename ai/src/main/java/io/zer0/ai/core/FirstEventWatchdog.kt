@@ -38,13 +38,9 @@ fun Flow<ChatStreamEvent>.withFirstEventWatchdog(
                     close()
                 }
             }
-            // 上游流正常结束但未收到终止事件（例如用户停止后 Provider 静默 close）。
-            // 必须置 finished，否则 watchdog 15s 后仍会触发非流式回退，
-            // 表现为“点了停止还在输入中 / 停止后自动重发请求”。
-            if (!finished) {
-                finished = true
-                close()
-            }
+            // 注意：上游流“无任何事件即结束”（如空流 / SSE 立即断开）不应视为正常完成。
+            // 此时保持 finished=false，让 watchdog 超时后触发非流式回退。
+            // 用户停止生成的路径由 Provider 发出 StreamInterrupted 事件覆盖（finished=true）。
         } catch (t: Throwable) {
             if (t is kotlinx.coroutines.CancellationException) {
                 // 取消 / abort：标记结束并向上传播，不把取消当成 stream failed，
