@@ -41,11 +41,13 @@ data class ConversationTree(
 
     val displayMessages: List<UIMessage>
         get() {
-            val user = selectedUserNode ?: return emptyList()
-            val variant = user.currentVariant ?: return emptyList()
+            // 多轮对话按顺序展示每一轮;同一提问组内的多版本只展示当前选中的版本。
             return buildList {
-                add(variant.message)
-                variant.assistantNodes.forEach { node -> node.currentVariant?.let { add(it) } }
+                userNodes.forEach { user ->
+                    val variant = user.currentVariant ?: return@forEach
+                    add(variant.message)
+                    variant.assistantNodes.forEach { node -> node.currentVariant?.let { add(it) } }
+                }
             }
         }
 
@@ -110,6 +112,7 @@ data class ConversationTree(
                     selectIndex = node.variants.indexOfFirst { it.message.id == target.message.id }.coerceAtLeast(0),
                 )
             },
+            selectedUserIndex = index,
         )
     }
 
@@ -414,7 +417,10 @@ data class ConversationTree(
                 }
             }
 
-            return restoreSelection(ConversationTree(userNodes = userNodes, selectedUserIndex = 0), previous)
+            return restoreSelection(
+                ConversationTree(userNodes = userNodes, selectedUserIndex = userNodes.lastIndex.coerceAtLeast(0)),
+                previous,
+            )
         }
 
         private fun replaceUserVariant(
@@ -463,9 +469,15 @@ private fun restoreSelection(tree: ConversationTree, previous: ConversationTree?
     val previousUserGroup = previous.selectedUserNode?.let {
         it.currentVariant?.message?.variantGroupId ?: it.groupId
     }
-    val selectedUserIndex = tree.userNodes.indexOfFirst { node ->
-        (node.currentVariant?.message?.variantGroupId ?: node.groupId) == previousUserGroup
-    }.coerceAtLeast(0)
+    // 新追加了一轮用户消息时,把选中层切到最新一轮,保证 retry/续聊都指向新消息;
+    // 同一提问组内切换版本时仍保留之前的选中索引。
+    val selectedUserIndex = if (tree.userNodes.size > previous.userNodes.size) {
+        tree.userNodes.lastIndex
+    } else {
+        tree.userNodes.indexOfFirst { node ->
+            (node.currentVariant?.message?.variantGroupId ?: node.groupId) == previousUserGroup
+        }.coerceAtLeast(0)
+    }
     val restoredNodes = tree.userNodes.map { user ->
         val prevUser = previous.userNodes.firstOrNull { prev ->
             (prev.currentVariant?.message?.variantGroupId ?: prev.groupId) ==

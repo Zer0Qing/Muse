@@ -3828,13 +3828,9 @@ class ChatViewModel(
         } else {
             ConversationTree()
         }
-        val flat = currentTree.allFlatMessages
-        val latestById = _messages.value.associateBy { it.id.toString() }
-        val messages = if (flat.isNotEmpty()) {
-            flat.map { latestById[it.id.toString()] ?: it }
-        } else {
-            _messages.value
-        }
+        // 流式期间 _messages 是扁平事实源;旧树 flat 可能落后于新追加的消息,
+        // 若只用 flat 映射会把新用户消息/助手占位丢掉,导致新一轮生成看不到历史。
+        val messages = _messages.value
         if (messages.isEmpty()) {
             _conversationTree.value = ConversationTree()
             _conversationTreeSessionId = sessionId

@@ -49,6 +49,41 @@ class ConversationTreeTest {
     }
 
     @Test
+    fun build_separateUserNodes_showsAllTurnsInOrder() {
+        val u1 = user("你好")
+        val a1 = assistant("回答1", group = "ag1", parentGroup = u1.id.toString(), at = u1.createdAt + 1)
+        val u2 = user("引用回复测试")
+        val a2 = assistant("回答2", group = "ag2", parentGroup = u2.id.toString(), at = u2.createdAt + 1)
+
+        val tree = ConversationTree.build(listOf(u1, a1, u2, a2))
+
+        assertEquals(2, tree.userNodes.size)
+        assertEquals(
+            listOf("你好", "回答1", "引用回复测试", "回答2"),
+            tree.displayMessages.map { it.content },
+        )
+        assertEquals("引用回复测试", tree.selectedUserVariant?.content)
+    }
+
+    @Test
+    fun rebuild_appendedNewTurn_selectsLatestUserNode() {
+        val u1 = user("你好")
+        val a1 = assistant("回答1", group = "ag1", parentGroup = u1.id.toString(), at = u1.createdAt + 1)
+        val initial = ConversationTree.build(listOf(u1, a1))
+
+        val u2 = user("第二问")
+        val placeholder = assistant("", group = "ag2", parentGroup = u2.id.toString(), at = u2.createdAt + 1)
+        val rebuilt = ConversationTree.build(listOf(u1, a1, u2, placeholder), initial)
+
+        assertEquals(2, rebuilt.userNodes.size)
+        assertEquals("第二问", rebuilt.selectedUserVariant?.content)
+        assertEquals(
+            listOf("你好", "回答1", "第二问", ""),
+            rebuilt.displayMessages.map { it.content },
+        )
+    }
+
+    @Test
     fun retry_appendsVariantToSameAssistantGroup() {
         val u = user("问题", group = "ug1")
         val a1 = assistant("回答1", group = "ag1", index = 0, count = 1, parentGroup = u.id.toString(), at = u.createdAt + 1)
@@ -132,13 +167,13 @@ class ConversationTreeTest {
         val tree = ConversationTree.build(listOf(g1, a1, g1v2, a1v2, g2, a2))
 
         assertEquals(2, tree.userNodes.size)
-        // 默认选中最新用户版本，只显示该版本的回复
-        assertEquals("提问A改", tree.selectedUserVariant?.content)
-        assertEquals(listOf("提问A改", "回答A-2"), tree.displayMessages.map { it.content })
-        // 切回旧版本，只显示旧版本的回复
+        // 默认选中最新一轮；同一提问组内只显示该组当前选中的版本
+        assertEquals("提问B", tree.selectedUserVariant?.content)
+        assertEquals(listOf("提问A改", "回答A-2", "提问B", "回答B"), tree.displayMessages.map { it.content })
+        // 切回旧版本时，A 组切到旧版回复，B 组保持不变
         val switched = tree.selectUserVariant(tree.userNodes.first().userId, 0)
         assertEquals("提问A", switched.selectedUserVariant?.content)
-        assertEquals(listOf("提问A", "回答A-1"), switched.displayMessages.map { it.content })
+        assertEquals(listOf("提问A", "回答A-1", "提问B", "回答B"), switched.displayMessages.map { it.content })
         // 提问B 与提问A 互不干扰
         assertEquals("回答B", tree.userNodes[1].variants.first().assistantNodes.first().currentVariant?.content)
     }
