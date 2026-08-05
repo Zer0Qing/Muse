@@ -3365,11 +3365,17 @@ class ChatViewModel(
         val images = _state.value.pendingImages
         val docs = _state.value.pendingDocuments
         // v1.136 T10: 合并待发送文档内容到消息文本(文档文本 + 用户输入)
-        val text = if (docs.isNotEmpty()) {
+        var text = if (docs.isNotEmpty()) {
             val docText = docs.joinToString("\n\n---\n\n") { it.content }
             if (rawText.isBlank()) docText else "$docText\n\n---\n\n$rawText"
         } else rawText
         if ((text.isEmpty() && images.isEmpty()) || _state.value.isStreaming) return
+        // v1.68: 引用回复必须把被引用内容拼进消息体,LLM 才能读到引用原文。
+        val quoteText = _state.value.replyQuoteOverride?.takeIf { it.isNotBlank() }
+            ?: _state.value.replyingTo?.content?.takeIf { it.isNotBlank() }
+        if (quoteText != null) {
+            text = buildQuotedContent(quoteText, text)
+        }
 
         // v1.28: Agent 模式用独立的 agentSessionId,无会话时自动创建
         // v1.79 (M-CV8): 用 isCreatingAgentSession 标志防止重入,避免快速双击创建两个会话

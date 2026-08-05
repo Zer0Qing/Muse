@@ -1308,8 +1308,8 @@ fun ChatScreen(
                                         .fillMaxSize()
                                         .background(
                                             when (direction) {
-                                                SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.primaryContainer
-                                                SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.secondaryContainer
+                                                SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                                SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f)
                                                 else -> Color.Transparent
                                             }
                                         ),

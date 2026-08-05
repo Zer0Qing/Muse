@@ -5,15 +5,18 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MotionScheme
+import androidx.compose.material3.ripple
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -144,12 +147,13 @@ fun MuseTheme(
         shapes = MuseShapes,
         motionScheme = motionScheme,
     ) {
-        // P3-4a: 恢复默认 ripple indication，保证 clickable/combinedClickable 有按压反馈。
-        // 个别组件如需无波纹，可局部提供自定义 Indication。
+        // v1.68: 全局禁用默认 ripple 遮罩，避免浅色/深色主题下出现黑色按压阴影。
+        // 需要按压反馈的组件使用 MuseCardPress / MuseTactileButton 等自带颜色渐变组件。
         // v1.0.52: 同步注入语义状态色与代码高亮色,业务代码不再硬编码裸色。
         val statusColors = if (darkTheme) DarkStatusColors else LightStatusColors
         val codeColors = if (darkTheme) DarkCodeColors else LightCodeColors
         CompositionLocalProvider(
+            LocalIndication provides ripple(color = Color.Transparent),
             LocalStatusColors provides statusColors,
             LocalCodeColors provides codeColors,
         ) {
