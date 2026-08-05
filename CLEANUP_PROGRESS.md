@@ -5,7 +5,7 @@
 ## 批次状态
 - [x] P0 rikkahub 重写（8/8 文件）
 - [x] P1 kelivo 机制（6/6）
-- [ ] P2 openhanako memory（11 重写 + 注释清理）
+- [x] P2 openhanako memory（11 重写 + 注释清理）
 - [ ] P3 ai/app 注释清理
 - [ ] P4 strings + 文档
 
@@ -27,6 +27,18 @@
 | app/.../data/preset/PresetProviders.kt | 注释清理 | ✅ 完成 | 供应商规格注释自述 |
 | app/.../ui/HtmlPreviewScreen.kt | 注释清理 | ✅ 完成 | WebView 预览实现自述 |
 | ai/.../core/ModelListCache.kt | 注释清理 | ✅ 完成 | 缓存设计自述 |
+| memory/.../pii/PiiGuard.kt | 重写 | ✅ 完成 | 规则改为枚举数据驱动，正则写法重组 |
+| memory/.../prompt/FactExtractionPrompt.kt | 重写 | ✅ 完成 | 提示词全文重写，示例更换 |
+| memory/.../prompt/CompilePrompts.kt | 重写 | ✅ 完成 | 四块提示词重写，语义约束保留 |
+| memory/.../prompt/RollingSummaryPrompt.kt | 重写 | ✅ 完成 | system prompt 重写 |
+| memory/.../format/RollingSummaryFormat.kt | 重写 | ✅ 完成 | 文案重写，标题契约不变 |
+| memory/.../fact/FactStore.kt | 局部重写 | ✅ 完成 | 标签/FTS 查询层重组，自研逻辑保留 |
+| memory/.../budget/LlmBudget.kt | 局部重写 | ✅ 完成 | 推理缓冲 API 改名并同步调用方/测试 |
+| memory/.../time/TimeContext.kt | 局部重写 | ✅ 完成 | 函数改名并同步调用方，04:00 切日保留 |
+| memory/.../pin/PinnedMemoryStore.kt | 局部重写 | ✅ 完成 | 双文件合并 + 更新时间优先级 |
+| memory/.../deep/DeepMemoryProcessor.kt | 局部重写 | ✅ 完成 | 解析辅助重组，dirty 管线语义保留 |
+| memory/.../compile/MemoryCompiler.kt | 局部重写 | ✅ 完成 | 编译管线内部函数改名，指纹语义不变 |
+| memory P2-C 注释文件 | 注释清理 | ✅ 完成 | 全部 memory 模块外部引用清除 |
 
 ## P0 小结（2026-08-05）
 - 处理文件数：8 重写 + 19 注释/目录清理
@@ -41,7 +53,14 @@
 - 单测状态：通过（`:ai:testDebugUnitTest`）
 - 跳过/阻塞项：无
 - 对外接口变更：无
-- 下一批预计：P2 openhanako memory
+
+## P2 小结（2026-08-05）
+- 处理文件数：11 重写 + 18 注释文件/目录
+- 编译状态：通过（`:memory:testDebugUnitTest :app:compileDebugKotlin`）
+- 单测状态：通过（`:memory:testDebugUnitTest :app:testDebugUnitTest`）
+- 跳过/阻塞项：无
+- 对外接口变更：有（LlmBudget 推理缓冲 API 改名、TimeContext 部分函数改名，已同步全部调用方与测试；无语义变化）
+- 下一批预计：P3 ai/app 注释清理
 
 ## 遇到的问题（阻塞项）
 - 暂无

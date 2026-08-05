@@ -12,7 +12,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 /**
- * Fact 数据库 (openhanako fact-store.ts schema 移植)。
+ * Fact 数据库。
  *
  * v3 schema: 仅 facts 主表(LIKE 搜索,无 FTS)。
  * v4 schema: 新增 importance 字段(0=普通,1=重要,2=关键),关键事实永不衰减。

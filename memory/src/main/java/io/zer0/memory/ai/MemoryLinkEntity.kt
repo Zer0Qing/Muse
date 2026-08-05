@@ -7,7 +7,7 @@ import androidx.room.PrimaryKey
 import kotlinx.serialization.Serializable
 
 /**
- * v1.0.52 P2-3: 记忆知识图谱边实体(借鉴 Operit MemoryLibrary links)。
+ * v1.0.52 P2-3: 记忆知识图谱边实体。
  *
  * 表示两条事实之间的关系(如因果/包含/矛盾),用于构建用户记忆的知识图谱。
  * 与 [io.zer0.memory.fact.FactEntity] 通过 source_fact_id / target_fact_id 关联。

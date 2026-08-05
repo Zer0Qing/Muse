@@ -3,7 +3,7 @@ package io.zer0.memory.llm
 import io.zer0.ai.core.Model
 
 /**
- * memory 模块的 LLM 客户端抽象 (对应 openhanako 的 callText)。
+ * memory 模块的 LLM 客户端抽象(callText 文本调用)。
  *
  * memory 模块不直接依赖 ai 模块的 [io.zer0.ai.core.Provider],
  * 而是通过这个接口由 app 模块注入实现(委托给 [io.zer0.ai.ChatService.completeText])。

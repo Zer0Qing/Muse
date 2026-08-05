@@ -14,7 +14,7 @@ import kotlinx.serialization.json.Json
 import java.time.Instant
 
 /**
- * 元事实存储 (openhanako fact-store.ts FactStore class 移植)。
+ * 元事实存储。
  *
  * v6: 全文搜索升级为 FTS4 + 应用层 CJK 2-gram,保留 LIKE 作为单字/异常回退。
  *  - 增删改查(单条/批量/按 session/按 id)
@@ -92,7 +92,7 @@ class FactStore(
      * v5: 智能判定重要度(0/1/2)。
      * 关键关键词优先匹配,其次重要关键词,默认普通。
      */
-    private fun inferImportance(text: String): Int {
+    private fun inferImportanceScore(text: String): Int {
         val lower = text.lowercase()
         if (criticalKeywords.any { lower.contains(it) }) return 2
         if (importantKeywords.any { lower.contains(it) }) return 1
@@ -106,8 +106,8 @@ class FactStore(
      * v9: 先去常见主语前缀,避免"对青霉素过敏"和"用户对青霉素过敏"被当成两条事实。
      */
     private fun isSimilar(a: String, b: String): Boolean {
-        val na = normalizeForSimilarity(a)
-        val nb = normalizeForSimilarity(b)
+        val na = normalizeDedupText(a)
+        val nb = normalizeDedupText(b)
         if (na == nb) return true
         if (na.isBlank() || nb.isBlank()) return false
         val short = if (na.length <= nb.length) na else nb
@@ -120,7 +120,7 @@ class FactStore(
      * 如"用户对青霉素过敏" → "对青霉素过敏";
      * "The user is allergic to penicillin" → "allergic to penicillin"。
      */
-    private fun normalizeForSimilarity(text: String): String {
+    private fun normalizeDedupText(text: String): String {
         return text.trim().lowercase()
             .replace(Regex("^(用户|我|他|她|这个用户|the user|i am|he is|she is)\\s*"), "")
             .trim()
@@ -132,9 +132,9 @@ class FactStore(
      *
      * v9: 合并时若两条事实仅差主语,保留更短、不带主语的原始表述。
      */
-    private fun mergeSimilar(existing: FactEntity, new: Fact): FactEntity {
-        val mergedImportance = maxOf(existing.importance, if (new.importance > 0) new.importance else inferImportance(new.fact))
-        val mergedTags = (parseTags(existing.tags) + new.tags).distinct()
+    private fun mergeFact(existing: FactEntity, new: Fact): FactEntity {
+        val mergedImportance = maxOf(existing.importance, if (new.importance > 0) new.importance else inferImportanceScore(new.fact))
+        val mergedTags = (decodeTags(existing.tags) + new.tags).distinct()
         val existingTime = existing.time
         val mergedTime = if (new.time != null && (existingTime == null || new.time > existingTime)) new.time else existingTime
         val mergedSessionId = new.sessionId ?: existing.sessionId
@@ -147,7 +147,7 @@ class FactStore(
         // v7: 合并视为一次命中,重置衰减时钟
         val mergedLastHitAt = Instant.now().toString()
         return existing.copy(
-            fact = chooseMergedFact(existing.fact, new.fact),
+            fact = pickMergedWording(existing.fact, new.fact),
             tags = json.encodeToString(ListSerializer(String.serializer()), mergedTags),
             time = mergedTime,
             sessionId = mergedSessionId,
@@ -167,9 +167,9 @@ class FactStore(
      * 若语义相同(去主语后相等),保留更短、更原始的表述;
      * 否则保留信息更完整(更长)的版本。
      */
-    private fun chooseMergedFact(existing: String, new: String): String {
-        val normExisting = normalizeForSimilarity(existing)
-        val normNew = normalizeForSimilarity(new)
+    private fun pickMergedWording(existing: String, new: String): String {
+        val normExisting = normalizeDedupText(existing)
+        val normNew = normalizeDedupText(new)
         return if (normExisting == normNew) {
             // 仅差主语时保留更短的原始表述
             if (new.length < existing.length) new else existing
@@ -186,13 +186,13 @@ class FactStore(
      * v9 改进: 新增 spaceId 过滤,仅在相同 scope + space_id 内查找相似事实,
      * 避免跨空间误合并(如"工作"空间的"喜欢美式咖啡"不应与"生活"空间的"喜欢美式咖啡"合并)。
      */
-    private suspend fun findExistingSimilar(cleaned: String, scope: String, spaceId: String = "default"): FactEntity? {
+    private suspend fun findSimilarFact(cleaned: String, scope: String, spaceId: String = "default"): FactEntity? {
         // 1) 原始前缀匹配(保持 v5 行为)+ space_id 过滤
         dao.findSimilarBySpace(cleaned.take(40), scope, spaceId)
             .firstOrNull { isSimilar(it.fact, cleaned) }?.let { return it }
 
         // 2) 去主语后的前缀匹配
-        val normalized = normalizeForSimilarity(cleaned)
+        val normalized = normalizeDedupText(cleaned)
         if (normalized != cleaned.lowercase() && normalized.isNotBlank()) {
             dao.findSimilarBySpace(normalized.take(40), scope, spaceId)
                 .firstOrNull { isSimilar(it.fact, cleaned) }?.let { return it }
@@ -228,19 +228,19 @@ class FactStore(
             io.zer0.common.Logger.d("FactStore", "PII detected in fact: $detected")
         }
         val newEntry = entry.copy(fact = cleaned, scope = scope, spaceId = spaceId)
-        val existingSimilar = findExistingSimilar(cleaned, scope, spaceId)
+        val existingSimilar = findSimilarFact(cleaned, scope, spaceId)
         if (existingSimilar != null) {
-            val merged = mergeSimilar(existingSimilar, newEntry)
+            val merged = mergeFact(existingSimilar, newEntry)
             dao.updateEntity(
                 merged.id, merged.fact, merged.tags, merged.time, merged.sessionId,
                 merged.createdAt, merged.importance, merged.category, merged.confidence,
                 merged.source, merged.expiresAt, merged.lastConfirmedAt, merged.lastHitAt,
             )
-            upsertFts(merged.id, FactFtsManager.toNgram(merged.fact))
+            syncFtsRow(merged.id, FactFtsManager.toNgram(merged.fact))
             io.zer0.common.Logger.d("FactStore", "合并相似事实(scope=$scope, space=$spaceId): ${existingSimilar.fact.take(30)}… ↔ ${cleaned.take(30)}… → id=${existingSimilar.id}")
             return@withContext existingSimilar.id
         }
-        val importance = if (newEntry.importance > 0) newEntry.importance else inferImportance(cleaned)
+        val importance = if (newEntry.importance > 0) newEntry.importance else inferImportanceScore(cleaned)
         val now = Instant.now().toString()
         val entity = FactEntity(
             fact = cleaned,
@@ -290,17 +290,17 @@ class FactStore(
                     io.zer0.common.Logger.d("FactStore", "PII detected in batch fact: $detected")
                 }
                 val newEntry = entry.copy(fact = cleaned, scope = scope, spaceId = spaceId)
-                val existingSimilar = findExistingSimilar(cleaned, scope, spaceId)
+                val existingSimilar = findSimilarFact(cleaned, scope, spaceId)
                 if (existingSimilar != null) {
-                    val merged = mergeSimilar(existingSimilar, newEntry)
+                    val merged = mergeFact(existingSimilar, newEntry)
                     dao.updateEntity(
                         merged.id, merged.fact, merged.tags, merged.time, merged.sessionId,
                         merged.createdAt, merged.importance, merged.category, merged.confidence,
                         merged.source, merged.expiresAt, merged.lastConfirmedAt, merged.lastHitAt,
                     )
-                    upsertFts(merged.id, FactFtsManager.toNgram(merged.fact))
+                    syncFtsRow(merged.id, FactFtsManager.toNgram(merged.fact))
                 } else {
-                    val importance = if (newEntry.importance > 0) newEntry.importance else inferImportance(cleaned)
+                    val importance = if (newEntry.importance > 0) newEntry.importance else inferImportanceScore(cleaned)
                     val insertedId = dao.insert(FactEntity(
                         fact = cleaned,
                         tags = json.encodeToString(ListSerializer(String.serializer()), newEntry.tags),
@@ -333,28 +333,25 @@ class FactStore(
     suspend fun searchFullText(query: String, limit: Int = 20): List<Fact> = withContext(Dispatchers.IO) {
         if (query.isBlank()) return@withContext emptyList()
         ensureFtsIndexConsistent()
-        val trimmed = query.trim()
+        runFtsOrLikeSearch(query.trim(), limit)
+    }
 
-        // 单字/纯符号查询:FTS4 2-gram 无法命中,直接走 LIKE
+    /** 先尝试 FTS4 MATCH，单字或异常时回退 LIKE。 */
+    private suspend fun runFtsOrLikeSearch(trimmed: String, limit: Int): List<Fact> {
         if (FactFtsManager.shouldFallbackToLike(trimmed)) {
-            return@withContext dao.likeSearch(trimmed, limit).map { it.toFact() }
+            return dao.likeSearch(trimmed, limit).map { it.toDomainFact() }
         }
-
         val matchQuery = FactFtsManager.toMatchQuery(trimmed)
         if (matchQuery.isBlank()) {
-            return@withContext dao.likeSearch(trimmed, limit).map { it.toFact() }
+            return dao.likeSearch(trimmed, limit).map { it.toDomainFact() }
         }
-
         val ftsResults = resultOf { dao.searchFts(matchQuery, limit) }
             .onError { msg, t -> io.zer0.common.Logger.w("FactStore", "FTS search failed, fallback to LIKE: $msg", t) }
             .getOrNull() ?: emptyList()
-
-        // FTS 异常返回空时回退 LIKE,保证结果可用性
         if (ftsResults.isEmpty()) {
-            return@withContext dao.likeSearch(trimmed, limit).map { it.toFact() }
+            return dao.likeSearch(trimmed, limit).map { it.toDomainFact() }
         }
-
-        ftsResults.map { it.toFact() }
+        return ftsResults.map { it.toDomainFact() }
     }
 
     /**
@@ -367,40 +364,9 @@ class FactStore(
         limit: Int = 20,
     ): List<Fact> = withContext(Dispatchers.IO) {
         if (queryTags.isEmpty()) return@withContext emptyList()
-
-        // v1.0.27 修复: 原 `je.value IN (?, ?)` 在 Room 2.8 + Robolectric 下抛 SQLiteException
-        // "near (: syntax error" — 实际是 Robolectric Android SQLite 不支持 json_each 函数。
-        // 改为内存过滤:先 LIKE OR 拉候选,再在 Kotlin 中解析 tags JSON 做精确匹配 + matchCount 统计。
-        val likeClauses = queryTags.joinToString(" OR ") { "tags LIKE ?" }
-        val dateWhere = buildString {
-            if (dateRange?.from != null) append(" AND time >= ?")
-            if (dateRange?.to != null) append(" AND time <= ?")
-        }
-        val sql = """
-            SELECT *, 0 as matchCount FROM facts
-            WHERE ($likeClauses)$dateWhere
-            ORDER BY importance DESC, time DESC
-            LIMIT ?
-        """.trimIndent()
-
-        val args = mutableListOf<Any>().apply {
-            queryTags.forEach { add("%\"$it\"%") }
-            dateRange?.from?.let { add(it) }
-            dateRange?.to?.let { add(it) }
-            add(limit * 2) // 多拉候选,内存过滤后可能丢弃部分
-        }
-        val rows = dao.tagSearch(SimpleSQLiteQuery(sql, args.toTypedArray()))
-        // 内存中精确匹配 + 计算 matchCount
-        val tagSet = queryTags.toSet()
-        val results = rows.mapNotNull { row ->
-            val tags = runCatching {
-                kotlinx.serialization.json.Json.decodeFromString<List<String>>(row.tags ?: "[]")
-            }.getOrDefault(emptyList())
-            val matchCount = tags.count { it in tagSet }
-            if (matchCount > 0) row.toFact().copy(matchCount = matchCount) else null
-        }.sortedWith(compareByDescending<Fact> { it.importance }.thenByDescending { it.matchCount }.thenByDescending { it.time })
-            .take(limit)
-        results
+        val plan = TagSearchPlan(queryTags, dateRange, limit)
+        val rows = dao.tagSearch(SimpleSQLiteQuery(plan.sql, plan.args))
+        plan.refine(rows)
     }
 
     /**
@@ -409,17 +375,17 @@ class FactStore(
      * v8: 新增可选 scope 参数,null 表示全部作用域,非 null 仅返回指定作用域的事实。
      */
     suspend fun getAll(scope: String? = null): List<Fact> = withContext(Dispatchers.IO) {
-        dao.getAll(scope).map { it.toFact() }
+        dao.getAll(scope).map { it.toDomainFact() }
     }
 
     /** 按 session_id 查询。 */
     suspend fun getBySession(sessionId: String): List<Fact> = withContext(Dispatchers.IO) {
-        dao.getBySession(sessionId).map { it.toFact() }
+        dao.getBySession(sessionId).map { it.toDomainFact() }
     }
 
     /** 按 id 查询。 */
     suspend fun getById(id: Long): Fact? = withContext(Dispatchers.IO) {
-        dao.getById(id)?.toFact()
+        dao.getById(id)?.toDomainFact()
     }
 
     /** 总数。 */
@@ -447,7 +413,7 @@ class FactStore(
         val updated = dao.updateContent(id, trimmed, scope) > 0
         if (updated) {
             // v1.0.51: 用 upsertFts 避免更新已有事实时产生重复 FTS 条目
-            upsertFts(id, FactFtsManager.toNgram(trimmed))
+            syncFtsRow(id, FactFtsManager.toNgram(trimmed))
         }
         updated
     }
@@ -574,14 +540,14 @@ class FactStore(
      * 排序与 [getAll] 一致:importance DESC + time DESC。
      */
     fun observeByScope(scope: String): Flow<List<Fact>> =
-        dao.observeByScope(scope).map { entities -> entities.map { it.toFact() } }
+        dao.observeByScope(scope).map { entities -> entities.map { it.toDomainFact() } }
 
     /**
      * v8: 按 scope 同步查询事实列表。
      * 用于 system prompt 注入、子助手记忆检索等场景。
      */
     suspend fun getByScope(scope: String): List<Fact> = withContext(Dispatchers.IO) {
-        dao.getByScope(scope).map { it.toFact() }
+        dao.getByScope(scope).map { it.toDomainFact() }
     }
 
     /**
@@ -603,14 +569,14 @@ class FactStore(
      * v9: 按 space_id 观察事实列表(Flow 形式),用于记忆页 UI 实时刷新。
      */
     fun observeBySpace(spaceId: String): Flow<List<Fact>> =
-        dao.observeBySpace(spaceId).map { entities -> entities.map { it.toFact() } }
+        dao.observeBySpace(spaceId).map { entities -> entities.map { it.toDomainFact() } }
 
     /**
      * v9: 按 space_id 同步查询事实列表。
      * 用于记忆页 UI 展示、system prompt 注入等场景。
      */
     suspend fun getBySpace(spaceId: String): List<Fact> = withContext(Dispatchers.IO) {
-        dao.getBySpace(spaceId).map { it.toFact() }
+        dao.getBySpace(spaceId).map { it.toDomainFact() }
     }
 
     /**
@@ -618,14 +584,14 @@ class FactStore(
      * scope 按 Agent 隔离,space_id 按场景隔离,两者正交。
      */
     suspend fun getByScopeAndSpace(scope: String, spaceId: String): List<Fact> = withContext(Dispatchers.IO) {
-        dao.getByScopeAndSpace(scope, spaceId).map { it.toFact() }
+        dao.getByScopeAndSpace(scope, spaceId).map { it.toDomainFact() }
     }
 
     /**
      * v9: 按 scope + space_id 双重过滤观察事实列表(Flow 形式)。
      */
     fun observeByScopeAndSpace(scope: String, spaceId: String): Flow<List<Fact>> =
-        dao.observeByScopeAndSpace(scope, spaceId).map { entities -> entities.map { it.toFact() } }
+        dao.observeByScopeAndSpace(scope, spaceId).map { entities -> entities.map { it.toDomainFact() } }
 
     /**
      * v9: 按 space_id 衰减删除 — 仅删除指定 Space 下早于 [cutoffIso] 且 importance < [minImportance] 的事实。
@@ -653,15 +619,15 @@ class FactStore(
      * FTS4 虚拟表无唯一约束,`INSERT OR REPLACE` 只按 rowid 去重不按 fact_id 去重,
      * 合并/更新事实时直接 insertFts 会产生重复索引行,导致搜索返回重复结果。
      */
-    private suspend fun upsertFts(factId: Long, contentNgram: String) {
+    private suspend fun syncFtsRow(factId: Long, contentNgram: String) {
         dao.deleteFts(factId)
         dao.insertFts(factId, contentNgram)
     }
 
-    private fun FactEntity.toFact(): Fact = Fact(
+    private fun FactEntity.toDomainFact(): Fact = Fact(
         id = id,
         fact = fact,
-        tags = parseTags(tags),
+        tags = decodeTags(tags),
         time = time,
         sessionId = sessionId,
         createdAt = createdAt,
@@ -680,10 +646,10 @@ class FactStore(
         pinnedAt = pinnedAt,
     )
 
-    private fun FactTagSearchRow.toFact(): Fact = Fact(
+    private fun FactTagSearchRow.toDomainFact(): Fact = Fact(
         id = id,
         fact = fact,
-        tags = parseTags(tags),
+        tags = decodeTags(tags),
         time = time,
         sessionId = sessionId,
         createdAt = createdAt,
@@ -697,7 +663,7 @@ class FactStore(
         matchCount = matchCount,
     )
 
-    private fun parseTags(raw: String): List<String> = runCatching {
+    private fun decodeTags(raw: String): List<String> = runCatching {
         json.decodeFromString(ListSerializer(String.serializer()), raw)
     }.getOrElse {
         io.zer0.common.Logger.w("FactStore", "parseTags failed: ${it.message}")
@@ -706,4 +672,60 @@ class FactStore(
 
     /** 日期范围。 */
     data class DateRange(val from: String? = null, val to: String? = null)
+}
+
+/**
+ * 标签搜索计划：构造 LIKE 候选 SQL，并在 Kotlin 层做 JSON 精确匹配与 matchCount 排序。
+ * 避免依赖 SQLite 的 json_each（部分测试环境/旧版 Android SQLite 不支持）。
+ */
+private class TagSearchPlan(
+    private val queryTags: List<String>,
+    private val dateRange: FactStore.DateRange?,
+    private val limit: Int,
+) {
+
+    val sql: String = buildString {
+        val likeClauses = queryTags.joinToString(" OR ") { "tags LIKE ?" }
+        append("SELECT *, 0 as matchCount FROM facts WHERE (").append(likeClauses).append(")")
+        if (dateRange?.from != null) append(" AND time >= ?")
+        if (dateRange?.to != null) append(" AND time <= ?")
+        append(" ORDER BY importance DESC, time DESC LIMIT ?")
+    }
+
+    val args: Array<Any> = buildList {
+        queryTags.forEach { add("%\"$it\"%") }
+        dateRange?.from?.let { add(it) }
+        dateRange?.to?.let { add(it) }
+        add(limit * 2) // 多拉候选,内存过滤后可能丢弃部分
+    }.toTypedArray()
+
+    fun refine(rows: List<FactTagSearchRow>): List<FactStore.Fact> {
+        val tagSet = queryTags.toSet()
+        return rows.mapNotNull { row ->
+            val tags = runCatching {
+                kotlinx.serialization.json.Json.decodeFromString<List<String>>(row.tags ?: "[]")
+            }.getOrDefault(emptyList())
+            val matchCount = tags.count { it in tagSet }
+            if (matchCount > 0) FactStore.Fact(
+                id = row.id,
+                fact = row.fact,
+                tags = tags,
+                time = row.time,
+                sessionId = row.sessionId,
+                createdAt = row.createdAt,
+                importance = row.importance,
+                category = row.category,
+                confidence = row.confidence,
+                source = row.source,
+                expiresAt = row.expiresAt,
+                lastConfirmedAt = row.lastConfirmedAt,
+                lastHitAt = row.lastHitAt,
+                matchCount = matchCount,
+            ) else null
+        }.sortedWith(
+            compareByDescending<FactStore.Fact> { it.importance }
+                .thenByDescending { it.matchCount }
+                .thenByDescending { it.time }
+        ).take(limit)
+    }
 }

@@ -21,7 +21,7 @@ import kotlinx.serialization.json.Json
 import java.time.Instant
 
 /**
- * v1.0.52 P2-3: AI 驱动记忆自动管理(借鉴 Operit MemoryLibrary.kt)。
+ * v1.0.52 P2-3: AI 驱动记忆自动管理。
  *
  * 职责:
  *  - 定时分析对话历史,提取结构化记忆(实体/关系/更新/合并/画像)

@@ -21,7 +21,7 @@ import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
 /**
- * 记忆编译器 (openhanako compile.ts 移植)。
+ * 记忆编译器。
  *
  * 四块独立编译 + assemble:
  *  - compileToday: 当天 sessions 摘要 → today.md(Room)
@@ -84,7 +84,7 @@ class MemoryCompiler(
         val today = CompiledMemoryState.normalizeSectionBody(readSection(Section.TODAY))
         val week = CompiledMemoryState.normalizeSectionBody(readSection(Section.WEEK))
         val longterm = CompiledMemoryState.normalizeSectionBody(readSection(Section.LONGTERM))
-        val md = buildCompiledMarkdown(facts, today, week, longterm, locale)
+        val md = assembleCompiledMarkdown(facts, today, week, longterm, locale)
         // v6: 同时输出到文件系统,便于调试和备份
         fileWriter?.writeMemoryMd(md, locale)
         md
@@ -100,7 +100,7 @@ class MemoryCompiler(
         timeZone: String = io.zer0.memory.time.TimeContext.DEFAULT_TIMEZONE,
     ): Result = withContext(Dispatchers.IO) {
         val zone = io.zer0.memory.time.TimeContext.resolveTimeZone(timeZone)
-        val logicalDay = io.zer0.memory.time.TimeContext.getLogicalDay(Instant.now(), zone)
+        val logicalDay = io.zer0.memory.time.TimeContext.logicalDayFor(Instant.now(), zone)
         val sessions = summaryManager.getSummariesInRange(
             start = logicalDay.rangeStart,
             end = Instant.now(),
@@ -117,7 +117,7 @@ class MemoryCompiler(
 
         // 指纹: sessions 的 (id, updated_at) 拼接 md5
         val fpKeys = sessions.joinToString("\n") { "${it.sessionId}:${it.updatedAt}" }
-        val fp = md5(fpKeys)
+        val fp = fingerprint(fpKeys)
         val existing = sectionDao.get(Section.TODAY.key)
         if (existing?.fingerprint == fp && existing.content.isNotEmpty()) {
             return@withContext Result.SKIPPED
@@ -203,7 +203,7 @@ class MemoryCompiler(
             return@withContext Result.COMPILED
         }
 
-        val fp = md5(input)
+        val fp = fingerprint(input)
         val existingFp = fileWriter.readDailyFingerprint(logicalDate)
         if (existingFp == fp && fileWriter.readDailyEntryBody(logicalDate).isNotBlank()) {
             return@withContext Result.SKIPPED
@@ -261,7 +261,7 @@ class MemoryCompiler(
             return@withContext Result.COMPILED
         }
 
-        val fp = md5(assembled)
+        val fp = fingerprint(assembled)
         val existing = sectionDao.get(Section.WEEK.key)
         if (existing?.fingerprint == fp && existing.content.isNotEmpty()) {
             return@withContext Result.SKIPPED
@@ -290,7 +290,7 @@ class MemoryCompiler(
         // 回退路径:无 daily 文件时按 7 天 session 摘要 LLM 编译(旧行为)
         val now = Instant.now()
         val zone = io.zer0.memory.time.TimeContext.resolveTimeZone(timeZone)
-        val logicalDay = io.zer0.memory.time.TimeContext.getLogicalDay(now, zone)
+        val logicalDay = io.zer0.memory.time.TimeContext.logicalDayFor(now, zone)
         val sevenDaysAgo = logicalDay.rangeStart.minus(7, ChronoUnit.DAYS)
         val sessions = summaryManager.getSummariesInRange(start = sevenDaysAgo, end = now)
 
@@ -303,7 +303,7 @@ class MemoryCompiler(
         }
 
         val fpKeys = sessions.joinToString("\n") { "${it.sessionId}:${it.updatedAt}" }
-        val fp = md5(fpKeys)
+        val fp = fingerprint(fpKeys)
         val existing = sectionDao.get(Section.WEEK.key)
         if (existing?.fingerprint == fp && existing.content.isNotEmpty()) {
             return@withContext Result.SKIPPED
@@ -348,7 +348,7 @@ class MemoryCompiler(
             return@withContext Result.COMPILED
         }
 
-        val result = foldIntoLongterm(roll.combinedContent, model, locale)
+        val result = foldIntoLongTerm(roll.combinedContent, model, locale)
         // v1.0.51: 仅 COMPILED 时删除源文件 — FAILED 时保留供下次重试,SKIPPED(指纹命中)时
         //   longterm 已包含相同内容,可安全删除
         if (result == Result.COMPILED || result == Result.SKIPPED) {
@@ -359,14 +359,14 @@ class MemoryCompiler(
 
     /**
      * 编译 longterm: week.md fold 进 longterm.md。
-     * fingerprint = md5(weekContent),week 没变就跳过。
+     * fingerprint = fingerprint(weekContent),week 没变就跳过。
      */
     suspend fun compileLongterm(
         model: Model?,
         locale: String = "zh-CN",
-    ): Result = foldIntoLongterm(readSection(Section.WEEK), model, locale)
+    ): Result = foldIntoLongTerm(readSection(Section.WEEK), model, locale)
 
-    private suspend fun foldIntoLongterm(
+    private suspend fun foldIntoLongTerm(
         newContent: String,
         model: Model?,
         locale: String = "zh-CN",
@@ -374,7 +374,7 @@ class MemoryCompiler(
         val trimmed = newContent.trim()
         if (trimmed.isBlank()) return@withContext Result.SKIPPED
 
-        val fp = md5(trimmed)
+        val fp = fingerprint(trimmed)
         val existing = sectionDao.get(Section.LONGTERM.key)
         if (existing?.fingerprint == fp && existing.content.isNotEmpty()) {
             return@withContext Result.SKIPPED
@@ -384,7 +384,7 @@ class MemoryCompiler(
         // v1.0.51: 截断旧 longterm 防累积膨胀 — 每次 fold 时旧内容最多保留 2000 字符,
         // 给新内容留足 LLM 输出空间(maxTokens=600 约 2400 字符),避免长年使用后 fold 输入超长
         val prevLongtermCapped = if (prevLongterm.length > 2000) {
-            Logger.d("MemoryCompiler", "foldIntoLongterm: 截断旧 longterm(${prevLongterm.length} → 2000 chars)")
+            Logger.d("MemoryCompiler", "foldIntoLongTerm: 截断旧 longterm(${prevLongterm.length} → 2000 chars)")
             prevLongterm.take(2000)
         } else {
             prevLongterm
@@ -408,13 +408,13 @@ class MemoryCompiler(
                 maxTokens = 600,
             )
         }.onError { msg, t ->
-            Logger.w("MemoryCompiler", "foldIntoLongterm LLM 调用失败: $msg", t)
+            Logger.w("MemoryCompiler", "foldIntoLongTerm LLM 调用失败: $msg", t)
         }.getOrNull() ?: return@withContext Result.FAILED
 
         // v1.0.51: 空响应防御 — 不覆盖已有 longterm,不写指纹(避免锁死),返回 FAILED
         val normalized = CompiledMemoryState.normalizeLlmResult(result, "compileLongterm")
         if (normalized.isBlank()) {
-            Logger.w("MemoryCompiler", "foldIntoLongterm: LLM 返回空响应,保留旧内容,返回 FAILED")
+            Logger.w("MemoryCompiler", "foldIntoLongTerm: LLM 返回空响应,保留旧内容,返回 FAILED")
             return@withContext Result.FAILED
         }
         sectionDao.updateContent(Section.LONGTERM.key, normalized, fp, Instant.now().toString())
@@ -455,7 +455,7 @@ class MemoryCompiler(
             if (!RollingSummaryFormat.hasFactSectionHeading(s.summary)) continue
             val text = RollingSummaryFormat.extractFactSection(s.summary)
             if (text.isNotBlank() && !RollingSummaryFormat.isEmptyFactSection(text)) {
-                val ageDays = sessionAgeDays(s.updatedAt, now)
+                val ageDays = ageInDays(s.updatedAt, now)
                 val score = MemoryConfig.factScore(ageDays, config)
                 if (!MemoryConfig.shouldCompile(score, config)) {
                     skippedByThreshold++
@@ -538,7 +538,7 @@ class MemoryCompiler(
     }
 
     /** 拼装 memory.md(4 个 ## 标题段,空段写占位符)。 */
-    private fun buildCompiledMarkdown(
+    private fun assembleCompiledMarkdown(
         facts: String,
         today: String,
         week: String,
@@ -562,7 +562,7 @@ class MemoryCompiler(
         ).joinToString("\n\n") + "\n"
     }
 
-    private fun md5(input: String): String {
+    private fun fingerprint(input: String): String {
         val md = MessageDigest.getInstance("MD5")
         return md.digest(input.toByteArray()).joinToString("") { "%02x".format(it) }
     }
@@ -571,7 +571,7 @@ class MemoryCompiler(
      * 把 session 的 updatedAt(ISO 字符串)换算成距 [now] 的天数。
      * 解析失败或时间反转时返回 0(等价于"刚发生",score 最高,不会被阈值过滤)。
      */
-    private fun sessionAgeDays(updatedAtIso: String, now: Instant): Float {
+    private fun ageInDays(updatedAtIso: String, now: Instant): Float {
         val updated = runCatching { Instant.parse(updatedAtIso) }.getOrNull() ?: return 0f
         val ms = now.toEpochMilli() - updated.toEpochMilli()
         if (ms < 0) return 0f

@@ -9,7 +9,7 @@ import androidx.sqlite.db.SupportSQLiteQuery
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Fact 数据访问对象 (openhanako fact-store.ts prepared statements 移植)。
+ * Fact 数据访问对象(预编译查询)。
  *
  * v6: 新增 facts_fts FTS4 全文索引。
  *  - 全文搜索优先走 FTS4 MATCH(ngram 预处理)

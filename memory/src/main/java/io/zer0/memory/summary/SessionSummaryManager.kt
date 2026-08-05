@@ -16,7 +16,7 @@ import kotlinx.serialization.json.Json
 import java.time.Instant
 
 /**
- * Session 摘要管理器 (openhanako session-summary.ts SessionSummaryManager class 移植)。
+ * Session 摘要管理器。
  *
  * 每个 session 一个摘要(存 Room),通过 [rollingSummary] 滚动更新(覆盖式,非追加)。
  * 输出固定为 [RollingSummaryFormat] 契约规定的两节格式(facts + timeline)。
@@ -151,7 +151,7 @@ class SessionSummaryManager(
 
         val zone = TimeContext.resolveTimeZone(timeZone)
         val timestamps = messages.map { Instant.ofEpochMilli(it.createdAt).toString() }
-        val sourceTimeRange = TimeContext.buildSourceTimeRange(timestamps, zone)
+        val sourceTimeRange = TimeContext.sourceTimeRangeOf(timestamps, zone)
         val convText = buildConversationText(newMessages, locale, zone)
         if (convText.isBlank()) {
             return@withContext Draft(prevSummary, changed = false, null)
@@ -288,7 +288,7 @@ class SessionSummaryManager(
             if (content.isEmpty()) continue
             val timePrefix = if (msg.createdAt > 0) {
                 val instant = Instant.ofEpochMilli(msg.createdAt)
-                val formatted = TimeContext.formatZonedDateTime(instant, zone)
+                val formatted = TimeContext.formatSummaryTimestamp(instant, zone)
                 "[$formatted] "
             } else ""
             val speaker = if (msg.role == io.zer0.ai.core.MessageRole.USER) userLabel else assistantLabel

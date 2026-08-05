@@ -6,7 +6,7 @@ import androidx.room.PrimaryKey
 import kotlinx.serialization.Serializable
 
 /**
- * Session 摘要实体 (openhanako session-summary.ts JSON 文件 → Room)。
+ * Session 摘要实体(JSON 文件 → Room)。
  *
  * 每个 session 一个摘要,通过 rollingSummary() 滚动更新(覆盖式,非追加)。
  * snapshot 字段记录上次 deep-memory 处理时的摘要副本,用于 diff 抽取新事实。

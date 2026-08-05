@@ -6,7 +6,7 @@ import androidx.room.PrimaryKey
 import kotlinx.serialization.Serializable
 
 /**
- * 每日编译进度 (openhanako memory-ticker.ts daily-state.json 移植)。
+ * 每日编译进度。
  *
  * 用于崩溃恢复: 每步成功后立即落盘,下次崩溃重启不会重跑。
  * context key = logicalDate + resetAt + factsMode,任一变化都重置进度。

@@ -11,11 +11,11 @@ import java.time.LocalDate
  * 把 [MemoryCompiler] 生成的各段内容同时写到应用私有目录,便于:
  *  - 开发者调试(直接打开文件查看 AI 记住了什么)
  *  - 备份/恢复(文件比 Room DB 更容易迁移)
- *  - 与 openhanako 的 agent-dir/memory.md 保持一致的观测体验
+ *  - 提供 agent-dir/memory.md 的观测体验
  *
  * 输出结构:
  *  - {baseDir}/memory/memory.md      拼装后的四段记忆
- *  - {baseDir}/memory/daily/{date}.md 按天摘要(openhanako 风格滚动传送带)
+ *  - {baseDir}/memory/daily/{date}.md 按天摘要(滚动窗口)
  *
  * v6.1: 新增按天滚动传送带辅助方法(list/read/assemble/roll),支持零 LLM 装配 week。
  */

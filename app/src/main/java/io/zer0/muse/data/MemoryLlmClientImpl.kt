@@ -35,7 +35,7 @@ import io.zer0.muse.R
  *  2. **think 标签清理**: 部分模型用 `<think>...</think>` 标签包裹输出,在 LLM 客户端
  *     层先清理一道(memory 模块的 [io.zer0.memory.state.CompiledMemoryState] 是第二道)。
  *  3. **reasoning buffer**: 推理模型 +1024 token buffer,防止思考过程挤占可见输出
- *     (对齐 参考开源项目 `withMemoryReasoningBuffer`)。
+ *     (使用 `withReasoningHeadroom`)。
  *  4. **空响应报错**: text 和 reasoning 都空时抛错,而非静默返回空串让上层误判成功。
  *
  * 超时语义(v1.80 L-MEM1): [withTimeout] 超时抛 [kotlinx.coroutines.TimeoutCancellationException]
@@ -146,7 +146,7 @@ class MemoryLlmClientImpl(
     }
 
     /**
-     * v1.0.50: reasoning buffer — 对齐 参考开源项目 `withMemoryReasoningBuffer`。
+     * v1.0.50: reasoning buffer — 使用 `withReasoningHeadroom`。
      *
      * 推理模型(ModelAbility.REASONING)的思考过程会消耗 token 预算,如果 maxTokens 设得太小,
      * 思考结束后可见输出可能被截断。所以在可见预算基础上加 buffer,让模型有空间完成思考
@@ -201,7 +201,7 @@ class MemoryLlmClientImpl(
     }
 
     private companion object {
-        /** v1.0.50: 推理模型 buffer token 数(对齐 参考开源项目 DEFAULT_REASONING_BUFFER_TOKENS)。 */
+        /** v1.0.50: 推理模型 buffer token 数(对齐 参考开源项目 DEFAULT_REASONING_HEADROOM_TOKENS)。 */
         private const val REASONING_BUFFER_TOKENS = 1024
     }
 }

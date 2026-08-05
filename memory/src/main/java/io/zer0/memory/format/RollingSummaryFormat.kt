@@ -3,12 +3,12 @@ package io.zer0.memory.format
 // NOTE-i18n: section 标题作为 markdown 解析契约参与 LLM 输出匹配,需契约与文案分离架构改动后才能提取。
 
 /**
- * Rolling summary 格式契约单一源头 (openhanako rolling-summary-format.ts 移植)。
+ * 滚动摘要格式契约单一源头。
  *
- * 摘要必须包含两个标题段: 重要事实(Key Facts) + 事情经过(Timeline)。
- * 这是 compileFacts 提取事实的契约基础 —— 任何破坏该结构的摘要都视为格式错误。
+ * 摘要必须包含两个标题段：重要事实(Key Facts) + 事情经过(Timeline)。
+ * 这是 compileFacts 提取事实的契约基础——任何破坏该结构的摘要都视为格式错误。
  *
- * 使用方:
+ * 使用方：
  *  - [io.zer0.memory.summary.SessionSummaryManager](产出摘要)
  *  - [io.zer0.memory.compile.MemoryCompiler](消费 facts 段)
  *  - [io.zer0.memory.prompt.RollingSummaryPrompt](prompt 模板)
@@ -39,23 +39,23 @@ object RollingSummaryFormat {
         if (!isZh(locale)) {
             return """
 ## Output Format
-The final answer must contain exactly two third-level headings, with fixed text and order:
+The final answer must contain exactly two third-level headings, in fixed order:
 1. The first line must be `### Key Facts`
 2. The second heading must be `### Timeline`
 
-The body under both headings must use unordered lists. Each list item must start with `- `.
-If a section has no content, output one list item: `- None`.
+Use unordered lists under both headings; each item must start with `- `.
+If a section has no content, write one item: `- None`.
 Do not output any preamble, conclusion, XML tags, or code fences outside those headings.
             """.trimIndent()
         }
         return """
 ## 输出格式
-最终答案必须只包含两个三级标题,标题文本和顺序固定:
+最终答案必须只包含两个三级标题，标题文本和顺序固定：
 1. 第一行必须是 `### 重要事实`
 2. 第二个标题必须是 `### 事情经过`
 
-两个标题下的正文都必须使用无序列表。列表项必须以 `- ` 开头。
-如果某一节没有内容,也要输出一个列表项:`- 无`。
+两个标题下的正文都必须使用无序列表，列表项必须以 `- ` 开头。
+如果某一节没有内容，也要输出一个列表项：`- 无`。
 标题之外不要输出前言、后记、XML 标签或代码块。
         """.trimIndent()
     }
@@ -65,19 +65,19 @@ Do not output any preamble, conclusion, XML tags, or code fences outside those h
         val requirements = buildFormatRequirements(locale)
         if (!isZh(locale)) {
             return """
-You are the format repairer for the memory system's rolling summaries. The previous summary draft violates the required fixed structure and cannot be parsed by the memory system. Rearrange the information in the given draft into the required structure: do not add, remove, or rewrite any factual content, do not explain, and output only the full repaired summary.
+You are the format repairer for rolling summaries. The previous draft violates the required fixed structure and cannot be parsed. Rearrange the information in the draft into the required structure: do not add, remove, or rewrite factual content, do not explain, and output only the full repaired summary.
 
 $requirements
             """.trimIndent()
         }
         return """
-你是记忆系统滚动摘要的格式修复器。上一步生成的摘要草稿不符合要求的固定结构,记忆系统无法解析。请把给定草稿中的信息原样重排进规定结构:不要新增、删除或改写事实内容,不要解释,直接输出修复后的摘要全文。
+你是滚动摘要的格式修复器。上一步生成的摘要草稿不符合要求的结构，无法解析。请把给定草稿中的信息原样重排进规定结构：不要新增、删除或改写事实内容，不要解释，直接输出修复后的摘要全文。
 
 $requirements
         """.trimIndent()
     }
 
-    /** 格式修复调用的动态输入: 失败原因 + 待修复草稿。 */
+    /** 格式修复调用的动态输入：失败原因 + 待修复草稿。 */
     fun buildRepairInput(
         locale: String = "zh-CN",
         issues: List<String> = emptyList(),
@@ -104,17 +104,17 @@ $requirements
         return Heading(match.groupValues[1].length, title)
     }
 
-    private fun norm(title: String): String = title.trim().lowercase()
+    private fun normalizeTitle(title: String): String = title.trim().lowercase()
 
     /** 提取 markdown 中第一个命中标题段的正文(到下一个同级或更高级标题为止)。 */
     fun extractMarkdownSection(markdown: String, titles: List<String>): String {
         if (markdown.isEmpty()) return ""
-        val wanted = titles.map(::norm).toHashSet()
+        val wanted = titles.map(::normalizeTitle).toHashSet()
         val lines = markdown.split(Regex("\\r?\\n"))
 
         for (i in lines.indices) {
             val heading = parseMarkdownHeading(lines[i]) ?: continue
-            if (norm(heading.title) !in wanted) continue
+            if (normalizeTitle(heading.title) !in wanted) continue
 
             val body = mutableListOf<String>()
             for (j in (i + 1) until lines.size) {
@@ -130,10 +130,10 @@ $requirements
     /** 摘要里是否存在 facts 段标题(不要求正文非空)。 */
     fun hasFactSectionHeading(markdown: String): Boolean {
         if (markdown.isEmpty()) return false
-        val wanted = FACT_SECTION_TITLES.map(::norm).toHashSet()
+        val wanted = FACT_SECTION_TITLES.map(::normalizeTitle).toHashSet()
         for (line in markdown.split(Regex("\\r?\\n"))) {
             val heading = parseMarkdownHeading(line) ?: continue
-            if (norm(heading.title) in wanted) return true
+            if (normalizeTitle(heading.title) in wanted) return true
         }
         return false
     }
@@ -154,11 +154,11 @@ $requirements
         }
     }
 
-    private fun findHeading(lines: List<String>, titles: List<String>): Pair<Int, Int>? {
-        val wanted = titles.map(::norm).toHashSet()
+    private fun locateHeading(lines: List<String>, titles: List<String>): Pair<Int, Int>? {
+        val wanted = titles.map(::normalizeTitle).toHashSet()
         for (i in lines.indices) {
             val heading = parseMarkdownHeading(lines[i]) ?: continue
-            if (norm(heading.title) in wanted) return i to heading.level
+            if (normalizeTitle(heading.title) in wanted) return i to heading.level
         }
         return null
     }
@@ -166,7 +166,7 @@ $requirements
     data class ValidationResult(val ok: Boolean, val issues: List<String>)
 
     /**
-     * 写入前结构校验。拦截四类破坏 compileFacts 提取假设的问题:
+     * 写入前结构校验，拦截四类破坏 compileFacts 提取假设的问题：
      *  1. 缺 facts 段标题
      *  2. 缺 timeline 段标题
      *  3. timeline 标题比 facts 标题层级更深且在其后(facts 段收不了尾)
@@ -176,8 +176,8 @@ $requirements
         val issues = mutableListOf<String>()
         val lines = text.split(Regex("\\r?\\n"))
 
-        val fact = findHeading(lines, FACT_SECTION_TITLES)
-        val timeline = findHeading(lines, TIMELINE_SECTION_TITLES)
+        val fact = locateHeading(lines, FACT_SECTION_TITLES)
+        val timeline = locateHeading(lines, TIMELINE_SECTION_TITLES)
 
         if (fact == null) issues += """missing fact section heading ("### 重要事实" / "### Key Facts")"""
         if (timeline == null) issues += """missing timeline section heading ("### 事情经过" / "### Timeline")"""

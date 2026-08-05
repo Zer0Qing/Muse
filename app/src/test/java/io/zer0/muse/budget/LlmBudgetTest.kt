@@ -172,26 +172,26 @@ class LlmBudgetTest {
         assertTrue("中文截断应包含标记: $result", result.contains("(memory truncated)"))
     }
 
-    // ── withMemoryReasoningBuffer 边界 ─────────────────────────────────
+    // ── withReasoningHeadroom 边界 ─────────────────────────────────
 
     @Test
-    fun `withMemoryReasoningBuffer null 模型返回原值`() {
-        assertEquals(4096, LlmBudget.withMemoryReasoningBuffer(4096, null))
+    fun `withReasoningHeadroom null 模型返回原值`() {
+        assertEquals(4096, LlmBudget.withReasoningHeadroom(4096, null))
     }
 
     @Test
-    fun `withMemoryReasoningBuffer 非 reasoning 模型返回原值`() {
+    fun `withReasoningHeadroom 非 reasoning 模型返回原值`() {
         val model = io.zer0.ai.core.Model(
             id = "gpt-4o",
             name = "GPT-4o",
             providerId = "openai",
             contextWindow = 128000,
         )
-        assertEquals(4096, LlmBudget.withMemoryReasoningBuffer(4096, model))
+        assertEquals(4096, LlmBudget.withReasoningHeadroom(4096, model))
     }
 
     @Test
-    fun `withMemoryReasoningBuffer reasoning 模型增加缓冲且不超过上限`() {
+    fun `withReasoningHeadroom reasoning 模型增加缓冲且不超过上限`() {
         val model = io.zer0.ai.core.Model(
             id = "o1-preview",
             name = "O1 Preview",
@@ -199,15 +199,15 @@ class LlmBudgetTest {
             contextWindow = 128000,
             maxOutputTokens = 32768,
         )
-        val result = LlmBudget.withMemoryReasoningBuffer(4096, model)
+        val result = LlmBudget.withReasoningHeadroom(4096, model)
         assertTrue("reasoning 模型应增加缓冲: $result", result > 4096)
         assertTrue("不应超过模型上限: $result", result <= 32768)
-        // 验证缓冲值 = 4096 + DEFAULT_REASONING_BUFFER_TOKENS(1024)
-        assertEquals(4096 + LlmBudget.DEFAULT_REASONING_BUFFER_TOKENS, result)
+        // 验证缓冲值 = 4096 + DEFAULT_REASONING_HEADROOM_TOKENS(1024)
+        assertEquals(4096 + LlmBudget.DEFAULT_REASONING_HEADROOM_TOKENS, result)
     }
 
     @Test
-    fun `withMemoryReasoningBuffer 缓冲超过模型上限时 clamp`() {
+    fun `withReasoningHeadroom 缓冲超过模型上限时 clamp`() {
         // visibleMaxTokens + buffer > maxOutputTokens 时应 clamp 到 maxOutputTokens
         val model = io.zer0.ai.core.Model(
             id = "o3-mini",
@@ -216,12 +216,12 @@ class LlmBudgetTest {
             contextWindow = 128000,
             maxOutputTokens = 5000, // 小于 visibleMaxTokens + 1024
         )
-        val result = LlmBudget.withMemoryReasoningBuffer(4096, model)
+        val result = LlmBudget.withReasoningHeadroom(4096, model)
         assertEquals("应 clamp 到 maxOutputTokens", 5000, result)
     }
 
     @Test
-    fun `withMemoryReasoningBuffer reasoning 模型无 maxOutputTokens 时不 clamp`() {
+    fun `withReasoningHeadroom reasoning 模型无 maxOutputTokens 时不 clamp`() {
         val model = io.zer0.ai.core.Model(
             id = "deepseek-r1",
             name = "DeepSeek R1",
@@ -229,12 +229,12 @@ class LlmBudgetTest {
             contextWindow = 64000,
             maxOutputTokens = null,
         )
-        val result = LlmBudget.withMemoryReasoningBuffer(4096, model)
-        assertEquals(4096 + LlmBudget.DEFAULT_REASONING_BUFFER_TOKENS, result)
+        val result = LlmBudget.withReasoningHeadroom(4096, model)
+        assertEquals(4096 + LlmBudget.DEFAULT_REASONING_HEADROOM_TOKENS, result)
     }
 
     @Test
-    fun `withMemoryReasoningBuffer 识别各种 reasoning 模型 id`() {
+    fun `withReasoningHeadroom 识别各种 reasoning 模型 id`() {
         val reasoningIds = listOf("o1-preview", "o3-mini", "o4-mini", "model-thinking", "reasoning-v1", "deepseek-r1")
         for (id in reasoningIds) {
             val model = io.zer0.ai.core.Model(
@@ -244,7 +244,7 @@ class LlmBudgetTest {
                 contextWindow = 128000,
                 maxOutputTokens = 32768,
             )
-            val result = LlmBudget.withMemoryReasoningBuffer(4096, model)
+            val result = LlmBudget.withReasoningHeadroom(4096, model)
             assertTrue("$id 应被识别为 reasoning 模型(buffer > 4096): $result", result > 4096)
         }
     }

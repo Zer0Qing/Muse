@@ -7,7 +7,7 @@ import androidx.room.PrimaryKey
 import kotlinx.serialization.Serializable
 
 /**
- * 元事实实体 (openhanako fact-store.ts SQLite schema 移植)。
+ * 元事实实体。
  *
  * v3 schema: 移除 search_text 字段(不再用 FTS5,无需 n-gram 索引列)。
  * v4 schema: 新增 importance 字段(0=普通,1=重要,2=关键),关键事实永不衰减。

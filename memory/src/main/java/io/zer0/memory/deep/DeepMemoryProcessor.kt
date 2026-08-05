@@ -26,7 +26,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * 深度记忆处理器 (openhanako deep-memory.ts 移植)。
+ * 深度记忆处理器。
  *
  * 每日遍历脏 session(summary !== snapshot),用 LLM 从 summary diff
  * 抽取元事实,写入 [FactStore]。
@@ -69,7 +69,7 @@ class DeepMemoryProcessor(
      * 遍历脏 session,diff 抽元事实写 FactStore。
      *
      * v0.32: 新增 [config] 参数,在每个 session 处理完后调用 [FactStore.applyDecay]
-     * 执行一次配置驱动的遗忘(对照 openhanako memory.decay_per_day / forget_speed)。
+     * 执行一次配置驱动的遗忘(decayPerDay / forgetSpeed 配置)。
      * 默认 [MemoryConfig] 等价于旧行为(默认 cutoff 约 40 天,几乎不删)。
      *
      * @param summaryManager 摘要管理器
@@ -176,7 +176,7 @@ class DeepMemoryProcessor(
         val systemPrompt = FactExtractionPrompt.buildSystemPrompt(locale, hasPrevious)
 
         val timeContextLabel = if (isZh) "## 时间上下文" else "## Time Context"
-        val timeContextText = buildTimeContextText(summary, isZh)
+        val timeContextText = renderTimeContext(summary, isZh)
 
         val userContent = if (hasPrevious) {
             val prevLabel = if (isZh) "## 上次快照" else "## Previous Snapshot"
@@ -249,7 +249,7 @@ class DeepMemoryProcessor(
     }
 
     /** 构建 time context 文本(供 LLM 参考)。 */
-    private fun buildTimeContextText(
+    private fun renderTimeContext(
         summary: SessionSummaryManager.SummaryData,
         isZh: Boolean,
     ): String {
@@ -286,7 +286,7 @@ class DeepMemoryProcessor(
         // 3. 提取 JSON 数组(若不以 [ 开头,扫描括号深度)
         if (!s.startsWith("[")) {
             // v1.0.51: 找不到 JSON 数组候选 → 解析失败,返回 null 触发重试
-            val candidate = findJsonArrayCandidate(s)
+            val candidate = extractJsonArray(s)
             if (candidate == null) {
                 Logger.w("DeepMemoryProcessor", "fact extraction 未找到 JSON 数组 (rawLen=${raw.length}, session=${summary.sessionId.take(8)}…)")
                 return null
@@ -305,11 +305,11 @@ class DeepMemoryProcessor(
 
         // 5. 时间规范化 + 转 Fact
         val localDates = summary.sourceTimeRange?.localDates ?: emptyList()
-        val summaryTimes = io.zer0.memory.time.TimeContext.extractSummaryTimeSignals(summary.summary).dateTimes
+        val summaryTimes = io.zer0.memory.time.TimeContext.scanSummaryTimeSignals(summary.summary).dateTimes
         val ctx = TimeContext.FactTimeContext(localDates, summaryTimes)
 
         return dtos.mapNotNull { dto ->
-            val normalizedTime = io.zer0.memory.time.TimeContext.normalizeFactTime(dto.time, ctx)
+            val normalizedTime = io.zer0.memory.time.TimeContext.normalizeFactTimestamp(dto.time, ctx)
             FactStore.Fact(
                 fact = dto.fact,
                 tags = dto.tags,
@@ -328,7 +328,7 @@ class DeepMemoryProcessor(
     /**
      * 扫描字符串找出第一个完整 JSON 数组(括号深度状态机)。
      */
-    private fun findJsonArrayCandidate(s: String): String? {
+    private fun extractJsonArray(s: String): String? {
         val start = s.indexOf('[')
         if (start < 0) return null
         var depth = 0

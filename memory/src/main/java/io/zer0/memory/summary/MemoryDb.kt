@@ -12,7 +12,7 @@ import androidx.room.RoomDatabase
  *  - [CompiledSectionEntity]: 四块编译产物(facts/today/week/longterm.md 的 Room 版本)
  *  - [FactEntity] 由独立的 [io.zer0.memory.fact.FactDb] 管理(因为 FTS5 需要 raw SQL)
  *
- * 注意: Phase 2 简化,把 openhanako 的"文件系统 + facts.db"两套存储
+ * 注意: Phase 2 简化,把"文件系统 + facts.db"两套存储
  * 全部迁到 Room,Android 习惯更一致。
  */
 @Database(

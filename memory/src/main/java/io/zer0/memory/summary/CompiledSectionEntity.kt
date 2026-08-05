@@ -6,7 +6,7 @@ import androidx.room.PrimaryKey
 import kotlinx.serialization.Serializable
 
 /**
- * 编译产物段落 (openhanako memory 目录下的 .md 文件 → Room)。
+ * 编译产物段落(memory 目录下的 .md 文件 → Room)。
  *
  * 4 个固定 section: facts / today / week / longterm。
  * assemble 时拼接为 memory.md 注入 system prompt。

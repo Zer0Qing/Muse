@@ -3,10 +3,9 @@ package io.zer0.memory.prompt
 import io.zer0.memory.format.RollingSummaryFormat
 
 /**
- * Rolling summary prompt builder (openhanako prompts/rolling-summary.ts 移植)。
+ * 滚动摘要提示词构建器。
  *
- * 注意: openhanako 的完整 rolling summary system prompt 在 session-summary.ts 内联,
- * 这里抽出的是不带对话内容的稳定 system 部分(供 SessionSummaryManager 使用)。
+ * 这里抽出不带对话内容的稳定 system 部分，供 [io.zer0.memory.summary.SessionSummaryManager] 使用。
  */
 object RollingSummaryPrompt {
 
@@ -14,7 +13,7 @@ object RollingSummaryPrompt {
     const val CACHE_GROUP = "memory.rolling_summary"
 
     /**
-     * 构建 rolling summary 的 system prompt。
+     * 构建滚动摘要的 system prompt。
      *
      * @param locale 语言
      * @param agentName Agent 名称(可空,有默认)
@@ -42,18 +41,18 @@ object RollingSummaryPrompt {
 
         if (!isZh) {
             return """
-You are $resolvedAgentName. You are reviewing a conversation you just experienced.
+You are $resolvedAgentName, reviewing a conversation you just experienced.
 
 Review the new conversation from your own perspective and decide what deserves long-term memory.
 
-## Your Identity And Personality
+## Identity And Personality
 ${identityAndPersonality.ifBlank { "(Not provided)" }}
 
-## Owner / User Settings
+## User Settings
 ${userProfile.ifBlank { "(Not provided)" }}
 
-## Your Existing Long-Term Memory
-This is the memory you already had before this conversation began. Do not rewrite it merely because it appears here; record only what this conversation updates, contradicts, or reinforces.
+## Existing Long-Term Memory
+This is what you knew before this conversation began. Do not rewrite it just because it appears here; record only what this conversation updates, contradicts, or reinforces.
 
 ${existingMemory.ifBlank { "(No existing long-term memory)" }}
 
@@ -61,36 +60,36 @@ ${existingMemory.ifBlank { "(No existing long-term memory)" }}
 ${roster.ifBlank { "(No other agents)" }}
 
 ## Core Principle
-Memory's core job is to maintain your understanding of $resolvedUserName: who they are, your relationship, their long-running projects, and shared context. Keep the summary user-centric: prioritize who the user is, what they like, what they care about, and broad themes they are focused on.
+Your long-term memory should center on $resolvedUserName: who they are, your relationship, their long-running projects, and shared context. Prioritize who the user is, what they like, what they care about, and broad themes they are focused on.
 
 $formatRequirements
 
 ## Content Requirements
 
 **$factTitle section**
-Only record user-profile information: identity, personality, aesthetics, interests, likes/dislikes, long-term relationships, life or creative orientation, and broad current themes. Write `- None` if none.
+Record user-profile information only: identity, personality, aesthetics, interests, likes/dislikes, long-term relationships, life or creative orientation, and broad current themes. Write `- None` if there is nothing.
 
-Preserve the user's original wording; do not add "the user" as a subject. If the user said "allergic to penicillin", write "allergic to penicillin", not "the user is allergic to penicillin".
+Preserve the user's original wording; do not add "the user" as a subject. Keep wording such as "learning to swim" rather than "the user is learning to swim".
 
-Do NOT extract: work-style preferences, collaboration-process preferences, tool preferences, engineering rules, or task details. When in doubt, skip. Better miss than mis-record.
+Do NOT extract work-style preferences, collaboration preferences, tool preferences, engineering rules, or task details. When in doubt, skip. Missing a fact is safer than recording it wrongly.
 
 **$timelineTitle section**
 Record what happened in this session chronologically with YYYY-MM-DD HH:MM timestamps, capturing key points. Work-related content may only be kept at the broad-theme level.
 
 ## Rules
-1. When existing summary is present: merge old and new, use newer info for the same topic, no duplicates
+1. When an existing summary is present: merge old and new, use newer information for the same topic, and avoid duplicates
 2. Extract time annotations from message timestamps (YYYY-MM-DD HH:MM format)
-3. Only record objective facts, not MOOD or assistant's inner thoughts
-4. User-provided files/attachments: only record filename and purpose, ignore file contents
-5. Assistant's long outputs: only record what was produced, don't excerpt content
-6. Prefer brevity: summary length should be proportional to actual information density
+3. Record only objective facts, not MOOD or the assistant's inner thoughts
+4. For user-provided files/attachments: record filename and purpose only, ignore file contents
+5. For long assistant outputs: record what was produced, do not excerpt content
+6. Prefer brevity: summary length should match the actual information density
             """.trimIndent()
         }
 
         return """
-你是 $resolvedAgentName。你正在整理自己刚刚经历的一段对话。
+你是 $resolvedAgentName，正在整理自己刚刚经历的一段对话。
 
-下面是你在本次对话开始前已经拥有的设定和记忆。它们是背景,不是新增事实。请从自己的视角审视本次对话,判断哪些新信息值得进入长期记忆。
+下面是你在本次对话开始前已经拥有的设定和记忆。它们是背景，不是新增事实。请从自己的视角审视本次对话，判断哪些新信息值得进入长期记忆。
 
 ## 你的身份与人格
 ${identityAndPersonality.ifBlank { "（未提供）" }}
@@ -99,40 +98,39 @@ ${identityAndPersonality.ifBlank { "（未提供）" }}
 ${userProfile.ifBlank { "（未提供）" }}
 
 ## 你已有的长期记忆
-这是你在本次对话开始前已经拥有的记忆。不要因为它出现在这里就重复写入;只有本次对话更新、反驳、强化它时才记录变化。
+这是你在本次对话开始前已经知道的。不要因为它出现在这里就重复写入；只有本次对话更新、反驳或强化它时才记录变化。
 
 ${existingMemory.ifBlank { "（暂无已有长期记忆）" }}
 
 ## 花名册
-花名册告诉你同处于这个系统里的别的 Agent。它只用于理解对话中的 Agent 名字和协作语境,不要把花名册本身当作新增记忆。
+花名册用于理解对话中出现的其他 Agent 名字和协作语境，不要把花名册本身当作新增记忆。
 
 ${roster.ifBlank { "（没有其他 Agent）" }}
 
 ## 核心原则
-记忆的核心职责是维护你对${resolvedUserName}的理解,让你以后更自然地理解这个人、你们的关系、长期项目和共同语境。摘要仍然以用户侧为中心:优先记录${resolvedUserName}是谁、喜欢什么、在意什么、最近关注什么大主题。
+你的长期记忆应以对${resolvedUserName}的理解为中心：他们是谁、你们的关系、长期项目与共同语境。优先记录${resolvedUserName}是谁、喜欢什么、在意什么、最近关注什么大主题。
 
 $formatRequirements
 
 ## 内容要求
 
 **$factTitle 一节**
-只记录用户画像类信息:身份属性、人格特质、审美和兴趣、喜欢或讨厌的事物、长期关系、生活或创作取向、近期正在关注/投入的大主题。没有则写 `- 无`。
+只记录用户画像类信息：身份属性、人格特质、审美和兴趣、喜欢或讨厌的事物、长期关系、生活或创作取向、近期正在关注/投入的大主题。没有则写 `- 无`。
 
-保留用户原话,不要给事实补"用户"主语。如果用户说"对青霉素过敏",就写"对青霉素过敏",不要改写成"用户对青霉素过敏"。
+保留用户原话，不要补“用户”主语。例如用户说“最近在学游泳”，就写“最近在学游泳”，不要改写成“用户最近在学游泳”。
 
-不要抽:工作方式偏好、协作流程偏好、工具和平台偏好、工程纪律和项目规则、一次任务里的格式标准。只抽:用户是什么样的人、喜欢或讨厌什么、长期在意的主题、最近关注哪个领域/项目/主题(只保留大主题)。
-拿不准一律不抽。宁可漏,不可错。
+不要抽取：工作方式偏好、协作流程偏好、工具和平台偏好、工程纪律和项目规则、一次任务里的格式标准。拿不准一律不抽；宁可漏，不可错。
 
 **$timelineTitle 一节**
-按时间顺序记录本 session 发生了什么,带 YYYY-MM-DD HH:MM 时间标注,抓重点脉络。工作相关内容只允许保留到大主题层级。
+按时间顺序记录本 session 发生了什么，带 YYYY-MM-DD HH:MM 时间标注，抓重点脉络。工作相关内容只允许保留到大主题层级。
 
 ## 规则
-1. 有已有摘要时:新旧内容合并,同一件事以新信息为准,不要重复
-2. 时间标注从消息时间戳提取(YYYY-MM-DD HH:MM 格式)
-3. 只记录客观事实,不记录 MOOD 或助手内心想法
-4. 用户提供的文件/附件:只记录文件名和用途,忽略文件的具体内容
-5. 助手的长篇输出:只记录产出了什么,不摘录内容
-6. 宁短勿长:摘要长度应与对话的实际信息密度成正比,闲聊几句只需一两行
+1. 有已有摘要时：新旧内容合并，同一件事以新信息为准，不要重复
+2. 时间标注从消息时间戳提取（YYYY-MM-DD HH:MM 格式）
+3. 只记录客观事实，不记录 MOOD 或助手内心想法
+4. 用户提供的文件/附件：只记录文件名和用途，忽略具体内容
+5. 助手的长篇输出：只记录产出了什么，不摘录内容
+6. 宁短勿长：摘要长度与对话的实际信息密度成正比，闲聊几句只需一两行
         """.trimIndent()
     }
 }

@@ -3,7 +3,7 @@ package io.zer0.memory.state
 import io.zer0.memory.format.RollingSummaryFormat
 
 /**
- * 编译产物状态管理 (openhanako compiled-memory-state.ts 移植)。
+ * 编译产物状态管理。
  *
  * 职责:
  *  - section body 规范化(去 <think> 块、去标题行、压多空行)

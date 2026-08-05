@@ -35,14 +35,14 @@ import java.time.Instant
 import java.time.LocalDate
 
 /**
- * 记忆调度器 (openhanako memory-ticker.ts 移植)。
+ * 记忆调度器。
  *
  * 触发策略:
  *  - 每 [TURNS_PER_SUMMARY] 轮: rollingSummary + compileToday + assemble
  *  - session 结束: final rollingSummary + compileToday + assemble
  *  - 日期切换: compileToday → compileWeek → compileLongterm → compileFacts → assemble → deepMemory
  *
- * 与 openhanako 的差异:
+ * 设计差异:
  *  - 无 session 文件路径概念(muse 用 sessionId 直查 Room)
  *  - 无 cache snapshot reflection(muse 不做 prompt cache 观测)
  *  - 无 editable facts 模式(muse 永远走 legacy)
@@ -66,7 +66,7 @@ class  MemoryTicker(
     /** 调度器自身协程 scope。一般由 DI 注入 application scope。 */
     private val scope: CoroutineScope,
     /**
-     * v0.32: 记忆系统高级配置(对照 openhanako memory.*)。
+     * v0.32: 记忆系统高级配置(memory.* 配置)。
      *
      * 用 `() -> MemoryConfig` 闭包而非直接 [MemoryConfig] 值,因为该配置由用户在设置页
      * 实时调整(写入 DataStore),调度器每次读取都应拿到最新值,而不是构造时缓存一份。
@@ -131,7 +131,7 @@ class  MemoryTicker(
     /**
      * v1.0.50: 全局并发上限 — 限制同时进行的 rollingSummary 数量。
      *
-     * 对齐 openhanako 的并发控制理念。原实现仅按 sessionId 去重,快速切 N 个会话
+     * 并发上限 3，与 DeepMemoryProcessor 对齐（内部对齐保留）。原实现仅按 sessionId 去重,快速切 N 个会话
      * 会触发 N 个 rollingSummary 并行跑,叠加 daily pipeline 的 deepMemory(已有 Semaphore(3)),
      * 13 秒内可能累积十几个 completeText 请求轰炸 API,触发限流甚至 ban。
      *
@@ -275,7 +275,7 @@ class  MemoryTicker(
 
     private fun currentContext(): DailyContext {
         val zone = TimeContext.resolveTimeZone(TimeContext.DEFAULT_TIMEZONE)
-        val logicalDate = TimeContext.getLogicalDay(Instant.now(), zone).logicalDate.toString()
+        val logicalDate = TimeContext.logicalDayFor(Instant.now(), zone).logicalDate.toString()
         return DailyContext(
             logicalDate = logicalDate,
             resetAt = getResetAt(),
@@ -847,7 +847,7 @@ class  MemoryTicker(
      * 由 [io.zer0.ai.ChatService] 在发送前调用,把长期记忆拼到 system 段。
      *
      * v0.32: 接入 [MemoryConfig.tokenBudget] —— 用 [LlmBudget.truncateToTokenBudget]
-     * 软裁剪到目标 token 数,避免记忆过长挤占对话预算(对照 openhanako memory.token_budget)。
+     * 软裁剪到目标 token 数,避免记忆过长挤占对话预算(按 memory.token_budget 配置)。
      * 默认值 2500 token 约等于 10KB 文本,日常记忆量足够;用户调小可压缩 prompt。
      */
     suspend fun readCompiledMemoryMarkdown(locale: String = "zh-CN"): String {

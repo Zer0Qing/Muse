@@ -19,7 +19,7 @@ import org.robolectric.annotation.Config
  *  - scope 索引存在
  *  - 已有列内容迁移后完整保留
  *
- * 推进到 v9+ 时,可参照本文件追加 migrate8To9() 用例。
+ * 推进到 v9+ 时,可按本文件追加 migrate8To9() 用例。
  *
  * 运行方式: `./gradlew :memory:testDebugUnitTest --tests "*FactDbMigrationTest*"`
  *

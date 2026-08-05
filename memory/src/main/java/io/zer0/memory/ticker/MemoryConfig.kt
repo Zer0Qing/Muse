@@ -7,9 +7,9 @@ import kotlin.math.exp
 import kotlin.math.ln
 
 /**
- * v0.32: 记忆系统高级配置(对照 openhanako 的 memory.* 配置)。
+ * v0.32: 记忆系统高级配置(memory.* 配置)。
  *
- * 灵感来自 openhanako config.example.yaml:
+ * 配置项设计:
  *   memory:
  *     enabled: true
  *     token_budget: 2500
@@ -61,7 +61,7 @@ data class MemoryConfig(
         /**
          * 计算一条 fact 在给定年龄下的衰减分数。
          *
-         * 衰减模型(简化版,与 openhanako 同向但不追求完全一致):
+         * 衰减模型(简化版,与自有配置语义同向):
          *  score = effectiveBase * exp(-λ * ageDays)
          *  其中 λ = decayPerDay * forgetSpeed
          *  effectiveBase = baseImportance + (hit ? hitBonus : 0)

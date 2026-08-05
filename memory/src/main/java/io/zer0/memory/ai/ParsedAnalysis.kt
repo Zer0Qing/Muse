@@ -3,7 +3,7 @@ package io.zer0.memory.ai
 import kotlinx.serialization.Serializable
 
 /**
- * v1.0.52 P2-3: AI 记忆分析结果(借鉴 Operit MemoryLibrary.kt)。
+ * v1.0.52 P2-3: AI 记忆分析结果。
  *
  * 由 [MemoryExtractPrompt] 驱动 LLM 输出,经 [MemoryAutoSaveScheduler.extractEntities]
  * 解析为该结构,再由 applyAnalysis 落库(创建/更新/合并事实 + 建立知识图谱边)。

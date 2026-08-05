@@ -54,14 +54,14 @@ class LlmBudgetTest {
     }
 
     @Test
-    fun `withMemoryReasoningBuffer 非 reasoning 模型返回原值`() {
+    fun `withReasoningHeadroom 非 reasoning 模型返回原值`() {
         val model = io.zer0.ai.core.Model(id = "gpt-4o", name = "GPT-4o", providerId = "openai", contextWindow = 128000)
-        val result = LlmBudget.withMemoryReasoningBuffer(4096, model)
+        val result = LlmBudget.withReasoningHeadroom(4096, model)
         assertEquals(4096, result)
     }
 
     @Test
-    fun `withMemoryReasoningBuffer reasoning 模型增加缓冲`() {
+    fun `withReasoningHeadroom reasoning 模型增加缓冲`() {
         val model = io.zer0.ai.core.Model(
             id = "o1-preview",
             name = "O1 Preview",
@@ -69,13 +69,13 @@ class LlmBudgetTest {
             contextWindow = 128000,
             maxOutputTokens = 32768,
         )
-        val result = LlmBudget.withMemoryReasoningBuffer(4096, model)
+        val result = LlmBudget.withReasoningHeadroom(4096, model)
         assertTrue("reasoning 模型应增加缓冲: $result", result > 4096)
         assertTrue("不应超过模型上限", result <= 32768)
     }
 
     @Test
-    fun `withMemoryReasoningBuffer null 模型返回原值`() {
-        assertEquals(4096, LlmBudget.withMemoryReasoningBuffer(4096, null))
+    fun `withReasoningHeadroom null 模型返回原值`() {
+        assertEquals(4096, LlmBudget.withReasoningHeadroom(4096, null))
     }
 }

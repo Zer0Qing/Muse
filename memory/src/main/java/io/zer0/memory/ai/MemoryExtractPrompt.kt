@@ -1,7 +1,7 @@
 package io.zer0.memory.ai
 
 /**
- * v1.0.52 P2-3: 记忆 AI 提取提示词构建器(借鉴 Operit MemoryLibrary prompt)。
+ * v1.0.52 P2-3: 记忆 AI 提取提示词构建器。
  *
  * 用于 [MemoryAutoSaveScheduler.extractEntities] —— 从对话历史中提取结构化记忆:
  *  - 实体(原子事实)+ 实体间关系(知识图谱边)

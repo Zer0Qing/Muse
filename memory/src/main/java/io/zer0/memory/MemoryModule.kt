@@ -65,6 +65,6 @@ val memoryModule: Module = module {
     // v1.0.52 P2-2: 记忆空间仓库(Space CRUD + 事实迁移)
     single { io.zer0.memory.space.MemorySpaceRepository(get()) }
 
-    // 置顶记忆存储(openhanako pinned-memory-store.ts)
+    // 置顶记忆存储
     single { io.zer0.memory.pin.PinnedMemoryStore(java.io.File(androidContext().filesDir, "pinned_memory")) }
 }
