@@ -34,12 +34,12 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * OpenAI Realtime 流式 ASR Controller(借鉴 rikkahub OpenAIRealtimeASRController 与
- * 本项目 [DashScopeAsrController] 架构)。
+ * OpenAI Realtime 流式 ASR Controller(基于 OpenAI 官方 Realtime 协议,与本项目
+ * [DashScopeAsrController] 架构一致)。
  *
  * 走 wss://api.openai.com/v1/realtime?intent=transcription,真流式 + 服务端 VAD。
  *
- * 协议(参照 OpenAI Realtime API transcription 模式):
+ * 协议(按 OpenAI Realtime API transcription 模式):
  *  1. 建立 WebSocket(wss://api.openai.com/v1/realtime?intent=transcription)
  *     - Header: Authorization: Bearer {apiKey}
  *     - Header: OpenAI-Beta: realtime=v1

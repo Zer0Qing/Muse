@@ -98,7 +98,7 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * 调试日志页 — 参考 rikkahub LogPage / kelivo log_viewer_page 设计。
+ * 调试日志页 — 支持查看、过滤、导出。
  *
  * 功能:
  *  - 顶部 MuseTopBar 标题"调试日志" + 返回按钮 + 操作区(暂停/继续、导出、清空)

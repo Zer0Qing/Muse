@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit
  * 当 [CloudBackupConfig.autoSync] = true 且 [CloudBackupConfig.isConfigured] = true 时,
  * 每隔 [CloudBackupConfig.autoSyncIntervalHours] 小时自动调用 [BackupService.exportToCloud]。
  *
- * 设计参照 [ScheduledTaskRunner]:在 appScope 中轮询,每 10 分钟检查一次是否到期,
+ * 设计与 [ScheduledTaskRunner] 一致:在 appScope 中轮询,每 10 分钟检查一次是否到期,
  * 到期则触发上传并更新 lastSyncAt。
  *
  * v1.132: 新增 WorkManager 兜底([registerWorkManagerFallback]) — App 被杀后由系统

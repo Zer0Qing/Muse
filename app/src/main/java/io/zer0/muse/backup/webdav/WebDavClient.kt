@@ -30,7 +30,7 @@ import java.util.TimeZone
  *  - DELETE(删除文件)
  *
  * v1.132 扩展:新增 [testConnection] / [upload] (File) / [download] (File) / [list] / [mkdir],
- * 供 CloudBackupPage 直接调用,补齐 rikkahub/kelivo 风格的云备份交互。
+ * 供 CloudBackupPage 直接调用,补齐云备份文件操作交互。
  *
  * 认证: HTTP Basic Auth(username:password 编码为 Base64)。
  *

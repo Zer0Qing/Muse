@@ -13,10 +13,10 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 /**
- * Tool configuration persistence (RikkaHub tool approval port).
+ * 工具审批策略持久化存储。
  *
- * Stores per-tool approval policies in DataStore.
- * Tools default to ALWAYS_ALLOW unless explicitly configured.
+ * 按工具名保存审批策略到 DataStore；未显式配置的工具默认 ALWAYS_ALLOW。
+ * 存储格式为 JSON 对象，DataStore key 固定为 `tool_policies`。
  */
 class ToolConfigStore(private val context: Context) {
 
@@ -36,7 +36,7 @@ class ToolConfigStore(private val context: Context) {
     /** Flow of all tool policies. */
     val policiesFlow: Flow<Map<String, ToolApprovalPolicy>> =
         context.toolDataStore.data.map { prefs ->
-            parsePolicies(prefs).policies
+            decodePolicies(prefs).policies
         }
 
     /** Get the approval policy for a specific tool. */
@@ -48,7 +48,7 @@ class ToolConfigStore(private val context: Context) {
     /** 设置指定工具的审批策略。 */
     suspend fun setPolicy(toolName: String, policy: ToolApprovalPolicy) {
         context.toolDataStore.edit { prefs ->
-            val current = parsePolicies(prefs)
+            val current = decodePolicies(prefs)
             val updated = current.copy(
                 policies = current.policies.toMutableMap().apply {
                     if (policy == ToolApprovalPolicy.ALWAYS_ALLOW) {
@@ -58,7 +58,7 @@ class ToolConfigStore(private val context: Context) {
                     }
                 }
             )
-            prefs[TOOL_POLICIES_KEY] = json.encodeToString(updated)
+            prefs[TOOL_POLICIES_KEY] = encodePolicies(updated)
         }
     }
 
@@ -72,7 +72,7 @@ class ToolConfigStore(private val context: Context) {
         }
     }
 
-    private fun parsePolicies(prefs: Preferences): ToolPolicies {
+    private fun decodePolicies(prefs: Preferences): ToolPolicies {
         val raw = prefs[TOOL_POLICIES_KEY] ?: return ToolPolicies()
         return try {
             json.decodeFromString<ToolPolicies>(raw)
@@ -80,5 +80,8 @@ class ToolConfigStore(private val context: Context) {
             ToolPolicies()
         }
     }
+
+    private fun encodePolicies(policies: ToolPolicies): String =
+        json.encodeToString(policies)
 
 }

@@ -20,7 +20,7 @@ import kotlinx.serialization.Serializable
  *   1. SELinux + seccomp 限制 exec 任意二进制(仅 /system/bin 极少数命令可启动)
  *   2. APK 内 .so 只能 System.loadLibrary 加载,不能作为独立进程启动
  *   3. Android 8+ 严格限制后台进程,长驻 stdio MCP server 子进程会被系统杀死
- *  参考 rikkahub 也仅实现 SSE + StreamableHTTP,印证 Android 平台限制。
+ *  Android 平台限制同样决定了传输枚举只保留 SSE + StreamableHTTP。
  *  若需本地工具,建议用 app 内嵌 ToolRegistry(P5-H / P8.8 LocalTools)替代。
  */
 @Serializable
@@ -101,7 +101,7 @@ data class McpTokenInfo(
 
     /**
      * M-05: 返回 accessToken/refreshToken 已加密(走 [SecureKeyStore.encrypt])的副本,供持久化前调用。
-     * 空值原样保留(不加密空值)。参照 WebServerConfig.encrypted 模式。
+     * 空值原样保留(不加密空值)。与 WebServerConfig.encrypted 行为一致。
      */
     suspend fun encrypted(): McpTokenInfo = copy(
         accessToken = SecureKeyStore.encrypt(accessToken),
@@ -110,7 +110,7 @@ data class McpTokenInfo(
 
     /**
      * M-05: 返回 accessToken/refreshToken 已解密(走 [SecureKeyStore.decrypt])的副本,供从持久化层读出后调用。
-     * 旧版明文由 decrypt 透传(兼容)。参照 WebServerConfig.decrypted 模式。
+     * 旧版明文由 decrypt 透传(兼容)。与 WebServerConfig.decrypted 行为一致。
      */
     suspend fun decrypted(): McpTokenInfo = copy(
         accessToken = SecureKeyStore.decrypt(accessToken),
@@ -172,7 +172,7 @@ data class McpServerConfig(
 
     /**
      * M-05: 返回 authToken 已加密(走 [SecureKeyStore.encrypt])的副本,供持久化前调用。
-     * 空值原样保留(不加密空值)。参照 WebServerConfig.encrypted 模式。
+     * 空值原样保留(不加密空值)。与 WebServerConfig.encrypted 行为一致。
      */
     suspend fun encrypted(): McpServerConfig = copy(
         authToken = SecureKeyStore.encrypt(authToken),
@@ -180,7 +180,7 @@ data class McpServerConfig(
 
     /**
      * M-05: 返回 authToken 已解密(走 [SecureKeyStore.decrypt])的副本,供从持久化层读出后调用。
-     * 旧版明文由 decrypt 透传(兼容)。参照 WebServerConfig.decrypted 模式。
+     * 旧版明文由 decrypt 透传(兼容)。与 WebServerConfig.decrypted 行为一致。
      */
     suspend fun decrypted(): McpServerConfig = copy(
         authToken = SecureKeyStore.decrypt(authToken),

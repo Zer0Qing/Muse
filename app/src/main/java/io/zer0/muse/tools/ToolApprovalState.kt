@@ -1,16 +1,16 @@
 package io.zer0.muse.tools
 
 /**
- * 工具审批状态机（移植自 RikkaHub GenerationHandler.kt）。
+ * 工具审批状态机。
  *
- * 控制工具调用在执行前是否需要用户审批。
+ * 决定工具调用在执行前是否需要用户审批，并承载审批结果。
  *
- * 流程：
- *  - AUTO：工具自动审批通过（始终允许）
- *  - PENDING：等待用户决定
- *  - APPROVED：用户批准了本次调用
- *  - DENIED：用户拒绝了本次调用（可附原因）
- *  - ANSWERED：用户提供了自定义回答而非执行工具
+ * 状态流转：
+ *  - AUTO：按策略自动放行（始终允许）
+ *  - PENDING：等待用户决定，生成循环在此中断
+ *  - APPROVED：用户批准本次调用，可携带参数覆盖
+ *  - DENIED：用户拒绝本次调用（可附原因）
+ *  - ANSWERED：用户提供自定义回答，不执行工具
  *
  * v1.x: [Approved] 携带 [Approved.argOverrides],允许用户在审批卡片中覆盖个别参数
  * (典型场景: generate_image 工具的 reference_image,LLM 无法直接提供本地图片,

@@ -37,7 +37,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
 /**
- * 阿里云 DashScope Paraformer 流式语音识别 Controller(借鉴 rikkahub 架构)。
+ * 阿里云 DashScope Paraformer 流式语音识别 Controller。
  *
  * 与旧版 [AsrClient] 一次性 recognize 不同,本 Controller 实现 [ASRController] 接口,
  * 边录边传边回调,支持中间结果实时显示。

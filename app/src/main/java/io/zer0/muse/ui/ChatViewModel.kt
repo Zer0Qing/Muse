@@ -1027,7 +1027,7 @@ class ChatViewModel(
     private val deferredResultStore: io.zer0.muse.tools.DeferredResultStore,
     // v1.202: 子 agent 线程管理器(暴露活跃子 agent 线程给 UI 展示)
     private val subagentThreadStore: io.zer0.muse.data.subagent.SubagentThreadStore,
-    // v1.x: 会话级资源管理器(引用计数 + idle 清理,参考 rikkahub ConversationSession)
+    // v1.x: 会话级资源管理器(引用计数 + idle 清理)
     private val sessionManager: io.zer0.muse.session.ConversationSessionManager,
     // P1-1: Hook 注册表(注入 ToolOrchestrator + 消息处理 Hook)
     private val hookRegistry: io.zer0.muse.hook.HookRegistry? = null,
@@ -1092,7 +1092,7 @@ class ChatViewModel(
          * 50ms ≈ 20fps,人眼感知为"连续流动"而非"一段一段"。
          */
         private const val STREAM_UI_TIME_THRESHOLD_MS = 50L
-        // v1.0.4: 流式 UI 自适应切片(参考 kelivo StreamController)。
+        // v1.0.4: 流式 UI 自适应切片(50ms 节流 + 自适应切片)。
         // 把"字符数 OR 时间"双条件改为"固定 50ms 节流 + 自适应切片大小":
         // - delta 先累积到 pendingBuilder,50ms 定时器触发时按切片大小取前 N 个字符输出
         // - 切片大小根据流式速率(最近 10 个 chunk 间隔滑动平均)动态调整:
@@ -1160,7 +1160,7 @@ class ChatViewModel(
     // 注:无外部依赖,直接实例化,不走 Koin(避免改动 single{} 注册的位置参数列表)。
     private val sessionMemoryCache = SessionMemoryCache()
 
-    // ── 语音对话模式(参考 rikkahub AsrButton + TTSAutoPlay 的循环模型)──────────
+    // ── 语音对话模式(录音 → 识别 → 思考 → 播报循环)──────────
     // 状态机:IDLE → LISTENING → THINKING → SPEAKING → LISTENING(循环)
     // IDLE:等待用户点击主按钮
     // LISTENING:ASR 录音中,实时回调写入 transcript
@@ -1183,7 +1183,7 @@ class ChatViewModel(
     /** 语音对话循环观察协程(监听 ASR/流式/TTS 状态切换,驱动状态机自动循环)。 */
     private var voiceConversationJob: Job? = null
 
-    // 消息分支管理器(RikkaHub message branching port)
+    // 消息分支管理器
     // P0 对话树: 两级结构(用户提问组 → 助手回复组)的事实源,
     // _messages 在流式期间保持扁平列表,稳定点(发送/重试/编辑/切会话/流结束)重建树并同步显示。
     private val _conversationTree = MutableStateFlow(ConversationTree())
@@ -1379,7 +1379,7 @@ class ChatViewModel(
     private val idListJson = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
 
     // v0.45: 提取为字段,manualCompress 直接调用 transform 做手动压缩
-    // v1.0.17: 注入 ConversationCompressor,启用分块并行 + 独立便宜模型(参考 rikkahub)
+    // v1.0.17: 注入 ConversationCompressor,启用分块并行 + 独立便宜模型
     private val conversationCompressor = io.zer0.muse.transformer.ConversationCompressor(chatService, settings)
     private val contextCompressTransformer = ContextCompressTransformer(chatService, conversationCompressor)
 
@@ -2186,7 +2186,7 @@ class ChatViewModel(
     private var cachedSystemPrompt: String = ""
 
     /**
-     * 借鉴 参考开源项目:静态 system prompt 快照。
+     * 静态 system prompt 快照。
      *
      * 静态部分(人格/风格/用户画像/记忆/工具清单/纪律/安全/MOOD/Artifact 等)
      * 在同一会话内连续发消息时复用,只追加动态"当前时间"section。
@@ -2216,7 +2216,7 @@ class ChatViewModel(
             ?: ModelContextWindowRegistry.lookup(model?.id ?: "")
             ?: 32768
         // 2. 重建 system prompt(6 步工作流第 1 步,含人格/记忆/工具等)
-        // 借鉴 参考开源项目:拆分为静态快照 + 动态时间,静态部分在同一会话内复用。
+        // 拆分为静态快照 + 动态时间,静态部分在同一会话内复用。
         val assistant = _state.value.currentAssistant
             ?: assistantRepository.getById("default")
         val memoryEnabled = assistant?.memoryEnabled ?: true
@@ -2928,7 +2928,7 @@ class ChatViewModel(
         // 功能2: 保存当前输入为旧会话草稿
         val currentSession = _state.value.currentSessionId
         val currentInput = _state.value.input
-        // v1.x: ConversationSessionManager 引用计数 — 释放旧会话 + 获取新会话(参考 rikkahub ConversationSession)
+        // v1.x: ConversationSessionManager 引用计数 — 释放旧会话 + 获取新会话
         if (currentSession != null && currentSession != sessionId) {
             sessionManager.release(currentSession)
         }
@@ -4258,7 +4258,7 @@ class ChatViewModel(
                 milestoneChecker?.checkAndTrigger(sessionId, currentAssistantId())
             }
         }
-        // v1.x: 把生成任务交给 ConversationSessionManager 跟踪(参考 rikkahub ConversationSession),
+        // v1.x: 把生成任务交给 ConversationSessionManager 跟踪,
         // 用于会话级引用计数 + idle 清理。job 完成时 manager 内部会自动清理引用并触发 idle 检查。
         sessionManager.setGenerationJob(sessionId, generationJob)
     }
@@ -4282,7 +4282,7 @@ class ChatViewModel(
             val memoryEnabled = assistant?.memoryEnabled ?: true
             val timeReminderEnabled = assistant?.enableTimeReminder ?: true
             val effectiveMemoryEnabled = memoryEnabled && settings.isMemoryEnabled()
-            // 借鉴 参考开源项目:复用静态 system prompt 快照,只追加动态"当前时间"。
+            // 复用静态 system prompt 快照,只追加动态"当前时间"。
             val currentKey = computeStaticSnapshotKey(assistant, effectiveMemoryEnabled)
             val staticSnapshot = if (currentKey == cachedStaticSnapshotKey && cachedStaticSystemPrompt.isNotBlank()) {
                 cachedStaticSystemPrompt
@@ -4915,7 +4915,7 @@ class ChatViewModel(
                 addError(type, message, recoverable)
             }
 
-            // v1.x: 单个工具开始/结束回调(参考 rikkahub GenerationHandler 细粒度进度)
+            // v1.x: 单个工具开始/结束回调(用于调试日志)
             //  默认空实现已存在于接口,这里覆盖做 debug 日志,便于追踪工具执行耗时与状态。
             override fun onToolStart(toolCallId: String, toolName: String) {
                 if (experiments.debugMode) {

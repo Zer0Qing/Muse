@@ -26,9 +26,7 @@ import java.util.zip.CRC32
  * V1 卡片为扁平结构 (无 spec/data 包裹),仅含 name/description/personality/
  * scenario/first_mes/mes_example 等字段。导入时由 [CharacterCardImporter] 自动识别 V1/V2。
  *
- * 参考实现:
- *   - rikkahub AssistantImporter.kt
- *   - 参考开源项目 character-cards/service.ts
+ * 遵循 SillyTavern 角色卡 v2 公开格式约定。
  */
 @Serializable
 data class SillyTavernCardV2(

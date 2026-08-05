@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentLinkedDeque
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * 调试日志内存存储 — 参考 rikkahub LogPage / kelivo log_viewer_page 实现。
+ * 调试日志内存存储 — 环形缓冲 + 可导出文件。
  *
  * 设计目标:
  *  - 在内存中保留最近 [MAX_ENTRIES] 条日志,超出淘汰最旧(环形缓冲语义)

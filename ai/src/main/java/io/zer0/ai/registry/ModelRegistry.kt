@@ -9,12 +9,12 @@ import io.zer0.ai.core.ModelContextWindowRegistry
 import io.zer0.ai.core.ModelVerification
 
 /**
- * 模型能力注册表（移植自 RikkaHub ModelRegistry.kt）。
+ * 模型能力注册表。
  *
- * 通过 DSL 定义已知模型能力。当模型 ID 匹配时，
+ * 通过声明式规则定义主流模型能力；模型 ID 命中时，
  * 注册表返回解析后的能力/模态/工具。
  *
- * ChatService 使用它来自动适配请求参数：
+ * 上层模块使用它来自动适配请求参数：
  *  - 是否发送工具（函数调用）
  *  - 是否包含图片（视觉输入）
  *  - 是否启用推理/思考
@@ -329,14 +329,14 @@ object ModelRegistry {
      * 解决 `opencode-go/deepseek-v3` 这类 ID 无法识别能力的问题。
      */
     fun resolveDefinitions(modelId: String): List<ModelDefinition> {
-        val result = resolveDefinitionsInternal(modelId)
+        val result = matchDefinitions(modelId)
         if (result.isNotEmpty()) return result
-        val bare = bareModelId(modelId)
-        if (bare != modelId) return resolveDefinitionsInternal(bare)
+        val bare = stripAggregatorPrefix(modelId)
+        if (bare != modelId) return matchDefinitions(bare)
         return emptyList()
     }
 
-    private fun resolveDefinitionsInternal(modelId: String): List<ModelDefinition> {
+    private fun matchDefinitions(modelId: String): List<ModelDefinition> {
         var bestScore: Int? = null
         val matches = mutableListOf<ModelDefinition>()
         for (model in ALL_MODELS) {
@@ -361,7 +361,7 @@ object ModelRegistry {
      *  兜底逻辑(substringAfterLast("/"))其实已能处理任意前缀,但显式列出可避免
      *  某些带版本号前缀(如 "accounts/fireworks/models/")被错误剥离。
      */
-    private fun bareModelId(modelId: String): String {
+    private fun stripAggregatorPrefix(modelId: String): String {
         val raw = modelId.trim().lowercase()
         val prefixes = listOf(
             // 海外聚合站

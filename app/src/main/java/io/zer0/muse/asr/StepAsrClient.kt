@@ -36,7 +36,7 @@ import java.util.concurrent.TimeUnit
  * 阶跃星辰 Step-Audio 流式 ASR Controller。
  *
  * Step 的 OpenAI Whisper 兼容端点(POST {baseUrl}/v1/audio/transcriptions)不支持
- * WebSocket 流式,因此采用分段批量上传策略(参照 rikkahub MiMoASRController):
+ * WebSocket 流式,因此采用分段批量上传策略:
  *  - 录音期间 PCM 累积到缓冲区
  *  - 按时间阈值(默认 30s)或字节阈值(6MB)触发 flush
  *  - 每次 flush:PCM -> WAV -> HTTP POST -> 解析响应 -> 回调 onTranscriptChange

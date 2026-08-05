@@ -5,10 +5,11 @@ import io.zer0.ai.core.ModelAbility
 import io.zer0.ai.core.VisionCapabilities
 
 /**
- * 模型能力注册表 DSL（移植自 RikkaHub ModelDsl.kt）。
+ * 模型能力注册表 DSL。
  *
- * 基于 token 的模型 ID 匹配并带评分。支持：
- *  - 子序列 token 匹配：tokens("gpt", "4", "o")
+ * 以声明式规则描述模型族：每个定义包含一组匹配条件与能力元信息。
+ * 支持：
+ *  - 有序 token 序列匹配：tokens("gpt", "4", "o")
  *  - 反向匹配：notTokens("mini")
  *  - 精确 ID 匹配：exact("gpt-4o-2024-05-13")
  *  - 正则 token：tokenRegex("^o$")
@@ -31,7 +32,7 @@ interface ModelSelector {
 }
 
 class ModelDefinition(
-    private val matcher: TokenMatcher,
+    private val rule: ModelRule,
     val inputModalities: Set<String>,
     val outputModalities: Set<String>,
     val abilities: Set<ModelAbility>,
@@ -41,16 +42,16 @@ class ModelDefinition(
 ) : ModelSelector {
     override fun match(modelId: String): Boolean {
         val tokens = tokenize(modelId)
-        return matcher.score(modelId, tokens) != null
+        return rule.evaluate(modelId, tokens) != null
     }
 
     fun matchScore(modelId: String): Int? {
         val tokens = tokenize(modelId)
-        return matcher.score(modelId, tokens)
+        return rule.evaluate(modelId, tokens)
     }
 
     internal fun matchScore(modelId: String, tokens: List<String>): Int? =
-        matcher.score(modelId, tokens)
+        rule.evaluate(modelId, tokens)
 }
 
 class ModelGroup internal constructor(
@@ -65,12 +66,12 @@ fun defineModel(block: ModelDefinitionBuilder.() -> Unit): ModelDefinition =
 fun defineGroup(block: ModelGroupBuilder.() -> Unit): ModelGroup =
     ModelGroupBuilder().apply(block).build()
 
-fun tokenRegex(pattern: String): TokenSpec = TokenRegexSpec(pattern.toRegex(RegexOption.IGNORE_CASE))
+fun tokenRegex(pattern: String): TokenSpec = RegexTokenSpec(pattern.toRegex(RegexOption.IGNORE_CASE))
 
 // --- 构建器 ---
 
 class ModelDefinitionBuilder {
-    private val matchers = mutableListOf<TokenMatcher>()
+    private val rules = mutableListOf<ModelRule>()
     private val inputModalities = mutableSetOf("text")
     private val outputModalities = mutableSetOf("text")
     private val abilities = mutableSetOf<ModelAbility>()
@@ -79,23 +80,23 @@ class ModelDefinitionBuilder {
     private var visionCapabilities: VisionCapabilities? = null
 
     fun tokens(vararg specs: String) {
-        matchers += SequenceMatcher(specs.map(::parseTokenSpec))
+        rules += OrderedTokenRule(specs.map(::parseTokenSpec))
     }
 
     fun tokens(vararg specs: TokenSpec) {
-        matchers += SequenceMatcher(specs.toList())
+        rules += OrderedTokenRule(specs.toList())
     }
 
     fun notTokens(vararg specs: String) {
-        matchers += NotSequenceMatcher(specs.map(::parseTokenSpec))
+        rules += AbsentTokenRule(specs.map(::parseTokenSpec))
     }
 
     fun notTokens(vararg specs: TokenSpec) {
-        matchers += NotSequenceMatcher(specs.toList())
+        rules += AbsentTokenRule(specs.toList())
     }
 
     fun exact(id: String) {
-        matchers += ExactIdMatcher(id)
+        rules += ExactIdRule(id)
     }
 
     fun visionInput() {
@@ -141,13 +142,13 @@ class ModelDefinitionBuilder {
     }
 
     fun build(): ModelDefinition {
-        val matcher = when {
-            matchers.isEmpty() -> MatchNone
-            matchers.size == 1 -> matchers.first()
-            else -> AndMatcher(matchers.toList())
+        val combined = when {
+            rules.isEmpty() -> NeverMatchRule
+            rules.size == 1 -> rules.first()
+            else -> ConjunctionRule(rules.toList())
         }
         return ModelDefinition(
-            matcher = matcher,
+            rule = combined,
             inputModalities = inputModalities.toSet(),
             outputModalities = outputModalities.toSet(),
             abilities = abilities.toSet(),
@@ -173,38 +174,38 @@ private data class TokenAlternatives(val options: Set<String>) : TokenSpec {
     override fun matches(token: String): Boolean = options.contains(token)
 }
 
-private data class TokenRegexSpec(val regex: Regex) : TokenSpec {
+private data class RegexTokenSpec(val regex: Regex) : TokenSpec {
     override fun matches(token: String): Boolean = regex.matches(token)
 }
 
-// --- Token 匹配器 ---
+// --- 匹配规则 ---
 
-interface TokenMatcher {
-    fun score(modelId: String, tokens: List<String>): Int?
+interface ModelRule {
+    fun evaluate(modelId: String, tokens: List<String>): Int?
 }
 
-private object MatchNone : TokenMatcher {
-    override fun score(modelId: String, tokens: List<String>): Int? = null
+private object NeverMatchRule : ModelRule {
+    override fun evaluate(modelId: String, tokens: List<String>): Int? = null
 }
 
-private class AndMatcher(private val matchers: List<TokenMatcher>) : TokenMatcher {
-    override fun score(modelId: String, tokens: List<String>): Int? {
+private class ConjunctionRule(private val rules: List<ModelRule>) : ModelRule {
+    override fun evaluate(modelId: String, tokens: List<String>): Int? {
         var total = 0
-        for (matcher in matchers) {
-            val s = matcher.score(modelId, tokens) ?: return null
-            total += s
+        for (rule in rules) {
+            val score = rule.evaluate(modelId, tokens) ?: return null
+            total += score
         }
         return total
     }
 }
 
-private class ExactIdMatcher(private val id: String) : TokenMatcher {
-    override fun score(modelId: String, tokens: List<String>): Int? =
+private class ExactIdRule(private val id: String) : ModelRule {
+    override fun evaluate(modelId: String, tokens: List<String>): Int? =
         if (modelId.equals(id, ignoreCase = true)) EXACT_ID_BONUS + tokens.size else null
 }
 
-private class SequenceMatcher(private val specs: List<TokenSpec>) : TokenMatcher {
-    override fun score(modelId: String, tokens: List<String>): Int? {
+private class OrderedTokenRule(private val specs: List<TokenSpec>) : ModelRule {
+    override fun evaluate(modelId: String, tokens: List<String>): Int? {
         if (specs.isEmpty()) return null
         var specIndex = 0
         for (token in tokens) {
@@ -217,10 +218,10 @@ private class SequenceMatcher(private val specs: List<TokenSpec>) : TokenMatcher
     }
 }
 
-private class NotSequenceMatcher(private val specs: List<TokenSpec>) : TokenMatcher {
-    private val inner = SequenceMatcher(specs)
-    override fun score(modelId: String, tokens: List<String>): Int? =
-        if (inner.score(modelId, tokens) == null) 0 else null
+private class AbsentTokenRule(private val specs: List<TokenSpec>) : ModelRule {
+    private val inner = OrderedTokenRule(specs)
+    override fun evaluate(modelId: String, tokens: List<String>): Int? =
+        if (inner.evaluate(modelId, tokens) == null) 0 else null
 }
 
 // --- 辅助函数 ---

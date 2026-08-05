@@ -7,7 +7,6 @@ import io.zer0.ai.core.Model
 import io.zer0.ai.core.ProviderConfig
 import io.zer0.ai.core.ReasoningLevel
 import io.zer0.ai.core.ToolCall
-import io.zer0.ai.core.ToolCallInfo
 import io.zer0.ai.core.ToolDefinition
 import io.zer0.ai.core.UIMessage
 import io.zer0.ai.registry.ModelRegistry
@@ -16,11 +15,7 @@ import io.zer0.muse.tools.ToolApprovalState
 import io.zer0.muse.tools.ToolConfigStore
 import io.zer0.muse.tools.ToolRegistry
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
@@ -29,17 +24,18 @@ private const val MAX_TOOL_OUTPUT_CHARS = 32 * 1024
 private const val TOOL_OUTPUT_PREVIEW_CHARS = 4 * 1024
 
 /**
- * 支持多步工具循环的生成处理器（移植自 RikkaHub GenerationHandler.kt）。
+ * 支持多步工具循环的生成处理器。
  *
- * 管理 Agent 循环：
+ * 负责 Agent 循环的完整状态机：
  * 1. 带当前消息与工具调用 LLM
- * 2. 从响应中解析工具调用
+ * 2. 从流式响应中累积文本与工具调用
  * 3. 检查审批状态（自动/待审批/已拒绝）
- * 4. 执行已批准的工具，上报被拒绝的
+ * 4. 执行已批准的工具，把拒绝结果回灌给模型
  * 5. 将结果合并回会话
  * 6. 持续循环直到没有更多工具调用或达到最大步数
  *
  * 超过 [MAX_TOOL_OUTPUT_CHARS] 的工具输出会被截断并附带摘要。
+ * 取消信号（[kotlinx.coroutines.CancellationException]）会向上传播，不吞协程取消。
  */
 class GenerationHandler(
     private val chatService: ChatService,
@@ -47,6 +43,7 @@ class GenerationHandler(
     private val toolConfigStore: ToolConfigStore,
     private val json: Json = Json { ignoreUnknownKeys = true },
 ) {
+
     /**
      * 单步生成的结果。
      */
@@ -92,138 +89,164 @@ class GenerationHandler(
         onStepResult: (StepResult) -> Unit = {},
         approvalCallback: (suspend (toolName: String, argsPreview: String) -> ToolApprovalState)? = null,
     ): List<UIMessage> {
-        val conversationHistory = messages.toMutableList()
         val enhancedModel = model?.let { ModelRegistry.enhanceModel(it) }
-
-        // 根据模型能力判断是否需要发送工具
         val effectiveTools = if (enhancedModel?.supportsToolCalling() == true) tools else null
 
+        return GenerationLoop(
+            chatService = chatService,
+            toolRegistry = toolRegistry,
+            toolConfigStore = toolConfigStore,
+            json = json,
+            messages = messages,
+            enhancedModel = enhancedModel,
+            effectiveTools = effectiveTools,
+            maxSteps = maxSteps,
+            providerConfig = providerConfig,
+            temperature = temperature,
+            maxTokens = maxTokens,
+            reasoningLevel = reasoningLevel,
+            onStepResult = onStepResult,
+            approvalCallback = approvalCallback,
+        ).run()
+    }
+}
+
+/**
+ * 生成循环状态机：持有会话历史与当前模型，逐轮推进直到终态。
+ */
+private class GenerationLoop(
+    private val chatService: ChatService,
+    private val toolRegistry: ToolRegistry,
+    private val toolConfigStore: ToolConfigStore,
+    private val json: Json,
+    private val messages: List<UIMessage>,
+    private val enhancedModel: Model?,
+    private val effectiveTools: List<ToolDefinition>?,
+    private val maxSteps: Int,
+    private val temperature: Float?,
+    private val providerConfig: ProviderConfig?,
+    private val maxTokens: Int?,
+    private val reasoningLevel: ReasoningLevel,
+    private val onStepResult: (GenerationHandler.StepResult) -> Unit,
+    private val approvalCallback: (suspend (toolName: String, argsPreview: String) -> ToolApprovalState)?,
+) {
+
+    private val conversationHistory = messages.toMutableList()
+
+    suspend fun run(): List<UIMessage> {
         for (step in 0 until maxSteps) {
             Logger.d(TAG, "Step #$step (model=${enhancedModel?.id})")
 
-            // 收集流式响应
-            val builder = StringBuilder()
-            val toolCallAccumulator = mutableMapOf<Int, Triple<String?, String?, StringBuilder>>()
-            var streamError: String? = null
+            val outcome = runStep(step)
+            conversationHistory += outcome.assistantMessage
 
-            try {
-                val flow = chatService.streamChat(
-                    messages = conversationHistory,
-                    model = enhancedModel,
-                    temperature = temperature,
-                    maxTokens = maxTokens,
-                    tools = effectiveTools,
-                    reasoningLevel = reasoningLevel,
-                    providerConfig = providerConfig,
-                )
-                collectStream(flow, builder, toolCallAccumulator) { error ->
-                    streamError = error
-                }
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                // v1.0.27 P0-1.4: 重抛取消信号,避免吞协程取消
-                throw e
-            } catch (e: Exception) {
-                Logger.e(TAG, "Stream error at step $step: ${e.message}")
-                streamError = e.message ?: "Unknown error"
-            }
-
-            if (streamError != null) {
-                val errorMsg = UIMessage(
-                    role = MessageRole.ASSISTANT,
-                    content = "Error: $streamError",
-                )
-                conversationHistory.add(errorMsg)
-                onStepResult(StepResult(assistantMessage = errorMsg, isFinal = true))
+            if (outcome.isFinal) {
+                onStepResult(outcome)
                 break
             }
 
-            val assistantContent = builder.toString()
-            val toolCalls = toolCallAccumulator.values.mapNotNull { (id, name, args) ->
-                if (id != null && name != null) {
-                    ToolCall(id = id, name = name, arguments = args.toString())
-                } else null
-            }
-
-            val assistantMessage = UIMessage(
-                role = MessageRole.ASSISTANT,
-                content = assistantContent,
-                toolCalls = if (toolCalls.isNotEmpty()) toolCalls else null,
-            )
-            conversationHistory.add(assistantMessage)
-
-            // 没有工具调用 → 完成
-            if (toolCalls.isEmpty()) {
-                onStepResult(StepResult(assistantMessage = assistantMessage, isFinal = true))
-                break
-            }
-
-            // 处理工具调用并审批
-            val toolResults = mutableListOf<ToolResult>()
-            for (tc in toolCalls) {
-                // 检查审批状态
-                val approvalState = resolveApproval(tc, approvalCallback)
-
-                when (approvalState) {
-                    is ToolApprovalState.Denied -> {
-                        // v1.0.27 P0-1.4: 用 buildJsonObject 安全构造 JSON,避免 reason 含双引号破坏结构
-                        toolResults.add(
-                            ToolResult(
-                                toolCallId = tc.id,
-                                toolName = tc.name,
-                                output = buildJsonObject {
-                                    put("error", "Tool denied by user")
-                                    put("reason", approvalState.reason)
-                                }.toString(),
-                                isSuccess = false,
-                                approvalState = approvalState,
-                            )
-                        )
-                    }
-                    is ToolApprovalState.Auto, is ToolApprovalState.Approved -> {
-                        val result = executeTool(tc)
-                        toolResults.add(result)
-                    }
-                    else -> {
-                        toolResults.add(
-                            ToolResult(
-                                toolCallId = tc.id,
-                                toolName = tc.name,
-                                output = """{"error": "Unexpected approval state"}""",
-                                isSuccess = false,
-                            )
-                        )
-                    }
-                }
-            }
-
-            // 构造工具结果消息
+            val toolResults = outcome.toolResults
             val toolResultContent = toolResults.joinToString("\n") { result ->
                 "[${result.toolName}]: ${truncateOutput(result.output)}"
             }
-            // 添加一条 TOOL 角色消息，包含合并后的结果
-            val toolMessage = UIMessage(
+            conversationHistory += UIMessage(
                 role = MessageRole.TOOL,
                 content = toolResultContent,
             )
-            conversationHistory.add(toolMessage)
 
-            onStepResult(
-                StepResult(
-                    assistantMessage = assistantMessage,
-                    toolCalls = toolCalls,
-                    toolResults = toolResults,
-                    isFinal = false,
-                )
-            )
+            onStepResult(outcome)
         }
-
         return conversationHistory
     }
 
-    private suspend fun resolveApproval(
-        tc: ToolCall,
-        approvalCallback: (suspend (String, String) -> ToolApprovalState)?,
-    ): ToolApprovalState {
+    private suspend fun runStep(step: Int): GenerationHandler.StepResult {
+        val builder = StringBuilder()
+        val toolCallAccumulator = mutableMapOf<Int, Triple<String?, String?, StringBuilder>>()
+        var streamError: String? = null
+
+        try {
+            val flow = chatService.streamChat(
+                messages = conversationHistory,
+                model = enhancedModel,
+                temperature = temperature,
+                maxTokens = maxTokens,
+                tools = effectiveTools,
+                reasoningLevel = reasoningLevel,
+                providerConfig = providerConfig,
+            )
+            collectStream(flow, builder, toolCallAccumulator) { error ->
+                streamError = error
+            }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            // v1.0.27 P0-1.4: 重抛取消信号,避免吞协程取消
+            throw e
+        } catch (e: Exception) {
+            Logger.e(TAG, "Stream error at step $step: ${e.message}")
+            streamError = e.message ?: "Unknown error"
+        }
+
+        if (streamError != null) {
+            val errorMsg = UIMessage(
+                role = MessageRole.ASSISTANT,
+                content = "Error: $streamError",
+            )
+            return GenerationHandler.StepResult(assistantMessage = errorMsg, isFinal = true)
+        }
+
+        val assistantContent = builder.toString()
+        val toolCalls = toolCallAccumulator.values.mapNotNull { (id, name, args) ->
+            if (id != null && name != null) {
+                ToolCall(id = id, name = name, arguments = args.toString())
+            } else null
+        }
+
+        val assistantMessage = UIMessage(
+            role = MessageRole.ASSISTANT,
+            content = assistantContent,
+            toolCalls = if (toolCalls.isNotEmpty()) toolCalls else null,
+        )
+
+        // 没有工具调用 → 终态
+        if (toolCalls.isEmpty()) {
+            return GenerationHandler.StepResult(assistantMessage = assistantMessage, isFinal = true)
+        }
+
+        val toolResults = toolCalls.map { tc -> resolveAndRunTool(tc) }
+        return GenerationHandler.StepResult(
+            assistantMessage = assistantMessage,
+            toolCalls = toolCalls,
+            toolResults = toolResults,
+            isFinal = false,
+        )
+    }
+
+    private suspend fun resolveAndRunTool(tc: ToolCall): GenerationHandler.ToolResult {
+        val approvalState = resolveApproval(tc)
+        return when (approvalState) {
+            is ToolApprovalState.Denied -> {
+                // v1.0.27 P0-1.4: 用 buildJsonObject 安全构造 JSON,避免 reason 含双引号破坏结构
+                GenerationHandler.ToolResult(
+                    toolCallId = tc.id,
+                    toolName = tc.name,
+                    output = buildJsonObject {
+                        put("error", "Tool denied by user")
+                        put("reason", approvalState.reason)
+                    }.toString(),
+                    isSuccess = false,
+                    approvalState = approvalState,
+                )
+            }
+            is ToolApprovalState.Auto, is ToolApprovalState.Approved -> executeTool(tc)
+            else -> GenerationHandler.ToolResult(
+                toolCallId = tc.id,
+                toolName = tc.name,
+                output = """{"error": "Unexpected approval state"}""",
+                isSuccess = false,
+            )
+        }
+    }
+
+    private suspend fun resolveApproval(tc: ToolCall): ToolApprovalState {
         // 先检查已存储的审批策略
         val storedState = toolConfigStore.resolveApprovalState(tc.name)
         return when (storedState) {
@@ -239,10 +262,10 @@ class GenerationHandler(
         }
     }
 
-    private suspend fun executeTool(tc: ToolCall): ToolResult {
+    private suspend fun executeTool(tc: ToolCall): GenerationHandler.ToolResult {
         return try {
             val result = toolRegistry.executeFromJson(tc.name, tc.arguments)
-            ToolResult(
+            GenerationHandler.ToolResult(
                 toolCallId = tc.id,
                 toolName = tc.name,
                 output = result,
@@ -254,7 +277,7 @@ class GenerationHandler(
         } catch (e: Exception) {
             Logger.e(TAG, "Tool execution failed: ${tc.name}: ${e.message}")
             // v1.0.27 P0-1.4: 用 buildJsonObject 安全构造 JSON,避免 e.message 含双引号/反斜杠破坏结构
-            ToolResult(
+            GenerationHandler.ToolResult(
                 toolCallId = tc.id,
                 toolName = tc.name,
                 output = buildJsonObject {

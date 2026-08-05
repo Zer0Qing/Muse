@@ -102,11 +102,11 @@ data class AssistantEntity(
     /** 最后使用时间戳(排序/统计"最近活跃"用)。 */
     @ColumnInfo(defaultValue = "0") val lastUsedAt: Long = 0,
 
-    // ── v1.0.19: Assistant 字段补齐(参考 rikkahub / kelivo) ──
+    // ── v1.0.19: Assistant 字段补齐 ──
     // 注: tags 分组已由上面的 tagsJson 字段承载(JSON 数组),此处不重复定义。
     /** 一句话简介(用于群聊花名册、助手卡片副标题展示)。 */
     @ColumnInfo(defaultValue = "") val summary: String = "",
-    /** 聊天界面用助手名替换模型名(kelivo 风格),false 时显示模型名。 */
+    /** 聊天界面用助手名替换模型名,false 时显示模型名。 */
     @ColumnInfo(defaultValue = "0") val useAssistantName: Boolean = false,
     /** 是否允许加入群聊(默认 true,关闭后该助手不出现在群聊成员选择列表)。 */
     @ColumnInfo(defaultValue = "1") val allowGroupChat: Boolean = true,

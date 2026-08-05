@@ -23,9 +23,7 @@ import java.io.ByteArrayOutputStream
  *
  * 不新增依赖,仅用 android.util.Base64 + ContentResolver。
  *
- * 参考实现:
- *  - rikkahub AssistantImporter.kt
- *  - 参考开源项目 character-cards/service.ts
+ * 遵循 SillyTavern 角色卡 v2 格式约定:PNG tEXt chunk 与 JSON 两种载体。
  */
 object CharacterCardImporter {
 

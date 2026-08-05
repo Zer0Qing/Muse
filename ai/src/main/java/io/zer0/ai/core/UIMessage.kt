@@ -210,7 +210,7 @@ data class UIMessage(
 /**
  * 工具依赖感知的上下文截断 — 截断时倒推 tool_call 依赖,避免"截断后 tool_call 无 result"。
  *
- * 参考 rikkahub Message.kt limitContext。
+ * 通过依赖图倒推截断点。
  *
  * 背景:简单的 `takeLast(N)` 可能从 assistant(tool_call) 与 tool(result) 之间切开,
  * 导致截断后的首条消息是孤儿 tool result 或孤儿 tool_call,触发 provider HTTP 400。

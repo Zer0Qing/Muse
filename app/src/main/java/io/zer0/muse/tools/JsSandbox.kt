@@ -27,7 +27,7 @@ import kotlin.coroutines.resume
 /**
  * JavaScript 执行沙盒(单例)。
  *
- * 参考自 rikkahub 的 QuickJS 实现思路;Android 无内置 JS 引擎且不能新增大型依赖,
+ * Android 无内置 JS 引擎且不能新增大型依赖,
  * 改用 WebView 的 V8 引擎执行 JS,让 AI Agent 能跑数学计算/数据处理/简单算法。
  *
  * 设计要点:

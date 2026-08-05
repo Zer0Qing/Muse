@@ -33,7 +33,7 @@ import java.io.ByteArrayOutputStream
 import java.util.concurrent.TimeUnit
 
 /**
- * 通用 OpenAI Whisper 兼容 ASR Controller(借鉴 rikkahub 与本项目 [StepAsrController] 架构)。
+ * 通用 OpenAI Whisper 兼容 ASR Controller(与本项目 [StepAsrController] 架构一致)。
  *
  * 适配任何提供 `POST {baseUrl}/audio/transcriptions` 端点的服务商:
  *  - OpenAI 官方(https://api.openai.com/v1)

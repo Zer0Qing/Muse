@@ -6,7 +6,7 @@ import kotlin.math.log10
 import kotlin.math.sqrt
 
 /**
- * 音量振幅计算工具(借鉴 rikkahub)。
+ * 音量振幅计算工具。
  * 将 16-bit PCM 的 RMS 值转换为归一化的 0-1f 振幅,符合人耳对数感知。
  */
 object AudioAmplitude {

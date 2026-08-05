@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 /**
  * v1.97: 助手级正则替换规则。
  *
- * 参考 rikkahub 的 AssistantRegex,允许用户为每个助手配置正则替换规则,
+ * 助手级正则替换规则,允许用户为每个助手配置正则替换规则,
  * 在消息发送/接收时自动替换文本内容。
  *
  * 应用场景:

@@ -95,7 +95,7 @@ import io.zer0.common.Logger
  *   encrypted/encrypted_content 6 列(快速记录 9 项增强:分类/富文本/附件/提醒/加密/分页等)。
  * v1.0.30 gap4.3: 版本 46 → 47,translate_history 加 favorite 列(翻译收藏夹)。
  * v1.0.19: 版本 48 → 49,assistants 加 summary/useAssistantName/allowGroupChat 3 列
- *   (Assistant 字段补齐,参考 rikkahub / kelivo;tags 分组已由 tagsJson 承载)。
+ *   (Assistant 字段补齐;tags 分组已由 tagsJson 承载)。
  * v2.x: 版本 49 → 50,新建 group_chat_memories 表(群聊记忆隔离)。
  */
 @Database(
@@ -1621,7 +1621,7 @@ abstract class MuseDb : RoomDatabase() {
         }
 
         /**
-         * v1.0.19: MIGRATION_48_49 — Assistant 字段补齐(参考 rikkahub / kelivo)。
+         * v1.0.19: MIGRATION_48_49 — Assistant 字段补齐。
          *
          * 为 assistants 表添加 3 列:
          *  - summary: 一句话简介(默认 '',用于群聊花名册/卡片副标题)
@@ -1722,7 +1722,7 @@ abstract class MuseDb : RoomDatabase() {
         /**
          * v1.0.53 Phase 1: MIGRATION_58_59 — 新建 subagent_threads 表(子 agent 线程账本持久化)。
          *
-         * 参考开源实现 SubagentThreadStore,替代旧 tools/SubagentThreadStore.kt(内存版)。
+         * 由子 agent 线程账本持久化实现,替代旧 tools/SubagentThreadStore.kt(内存版)。
          * 两条 subagent 路径共享:
          *  - 路径 A: SubagentTool + SkillExecutor.delegateAgent nonBlocking(子助手委派)
          *  - 路径 B: SubagentRunSkill + SubagentRunner(被动子 agent)

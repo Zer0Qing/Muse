@@ -109,7 +109,7 @@ data class AsrConfig(
 
     /**
      * M-03: 返回 apiKey 已加密(走 [SecureKeyStore.encrypt])的副本,供持久化前调用。
-     * 空值原样保留(不加密空值)。参照 WebServerConfig.encrypted 模式。
+     * 空值原样保留(不加密空值)。与 WebServerConfig.encrypted 行为一致。
      */
     suspend fun encrypted(): AsrConfig = copy(
         apiKey = SecureKeyStore.encrypt(apiKey),
@@ -117,7 +117,7 @@ data class AsrConfig(
 
     /**
      * M-03: 返回 apiKey 已解密(走 [SecureKeyStore.decrypt])的副本,供从持久化层读出后调用。
-     * 旧版明文由 decrypt 透传(兼容)。参照 WebServerConfig.decrypted 模式。
+     * 旧版明文由 decrypt 透传(兼容)。与 WebServerConfig.decrypted 行为一致。
      */
     suspend fun decrypted(): AsrConfig = copy(
         apiKey = SecureKeyStore.decrypt(apiKey),

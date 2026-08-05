@@ -23,9 +23,7 @@ import java.io.ByteArrayOutputStream
  *
  * PNG chunk 注入手动实现 (见 [PngChunkUtil]),不新增依赖。
  *
- * 参考实现:
- *  - rikkahub AssistantImporter.kt
- *  - 参考开源项目 character-cards/service.ts
+ * 遵循 SillyTavern 角色卡 v2 格式约定:PNG tEXt chunk 与 JSON 两种载体。
  */
 object CharacterCardExporter {
 

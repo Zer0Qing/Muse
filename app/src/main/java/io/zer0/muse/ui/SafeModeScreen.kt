@@ -59,7 +59,7 @@ import io.zer0.muse.ui.theme.MuseShapes
 /**
  * v2.0+: Safe Mode 极简 UI(上次崩溃后展示)。
  *
- * 参考 rikkahub 项目的 SafeModeActivity 设计,使用 muse 设计 token 体系:
+ * 极简恢复界面,使用 muse 设计 token 体系:
  *  - 顶部:警告图标(Icons.Outlined.Warning) + "上次启动崩溃" 标题
  *  - 中部:崩溃时间 + 崩溃堆栈摘要(垂直滚动,等宽字体)
  *  - 底部:垂直排列的操作按钮(MuseCardPress 触觉风格,无涟漪)

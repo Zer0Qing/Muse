@@ -3,7 +3,7 @@ package io.zer0.muse.asr
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * 流式 ASR Controller 接口(借鉴 rikkahub 架构)。
+ * 流式 ASR Controller 接口。
  *
  * 与旧版 [AsrClient] 的区别:
  * - 旧版: recognize(pcmBytes) 一次性识别,录完才出结果

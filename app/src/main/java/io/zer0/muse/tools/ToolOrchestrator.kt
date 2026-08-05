@@ -54,11 +54,11 @@ internal const val TOOL_TIMEOUT_MS = 120_000L
  * v1.x: 从 8K 提升到 32K,同时引入 [TOOL_RESULT_PREVIEW_CHARS] 预览机制:
  *  - ≤ 32K: 完整结果直接送入 LLM
  *  - > 32K: 写入 filesDir/tool_outputs/ 完整文件,LLM 上下文仅保留 4K 预览 + 文件引用,
- *    LLM 可后续通过 read_file 工具按需读取完整内容(参考 rikkahub GenerationHandler)。
+ *    LLM 可后续通过 read_file 工具按需读取完整内容(按需读取模式)。
  */
 internal const val MAX_TOOL_RESULT_CHARS = 32 * 1024
 
-/** 工具输出超长截断时,LLM 上下文中保留的预览字符数(参考 rikkahub GenerationHandler)。 */
+/** 工具输出超长截断时,LLM 上下文中保留的预览字符数。 */
 internal const val TOOL_RESULT_PREVIEW_CHARS = 4 * 1024
 
 /** 工具输出文件保留时长(毫秒),超过后由 [cleanupOldToolOutputs] 清理。 */
@@ -73,7 +73,7 @@ internal const val MAX_TOOL_CHAIN_MESSAGES = 30
 /** 连续工具失败早停阈值,避免跑满 maxToolRounds 白耗 API 额度。 */
 internal const val MAX_CONSECUTIVE_TOOL_FAILURES = 3
 
-/** v1.x: 简单任务(无 task_plan)的默认最大轮次,参考 rikkahub GenerationHandler 迭代式设计。 */
+/** v1.x: 简单任务(无 task_plan)的默认最大轮次。 */
 internal const val DEFAULT_MAX_TOOL_ROUNDS = 10
 
 /** v1.x: 工具调用循环绝对上限(防死循环兜底),即使 task_plan 步骤再多也不超过此值。 */
@@ -188,7 +188,7 @@ interface ToolLoopHost {
     /**
      * v1.x: 单个工具开始执行时回调(可用于 UI 进度提示/日志)。
      *
-     * 默认空实现,宿主可选覆盖。参考 rikkahub GenerationHandler 的细粒度进度通知。
+     * 默认空实现,宿主可选覆盖,用于细粒度进度通知。
      */
     fun onToolStart(toolCallId: String, toolName: String) {}
 
@@ -286,7 +286,7 @@ class ToolOrchestrator(
     private val assistantRepository: AssistantRepository,
     private val sessionRepository: SessionRepository,
     // v1.x: 注入 Context 用于把超长工具输出落盘到 filesDir/tool_outputs/,
-    // 让 LLM 通过 read_file 工具按需读取完整内容(参考 rikkahub GenerationHandler)。
+    // 让 LLM 通过 read_file 工具按需读取完整内容。
     private val context: Context,
     // P1-1: Hook 注册表 — 在工具调用各阶段调用 ToolLifecycleHook
     private val hookRegistry: io.zer0.muse.hook.HookRegistry? = null,
@@ -329,7 +329,7 @@ class ToolOrchestrator(
         var hasToolCalls = true
         var finalAssistantMessage: UIMessage? = null
 
-        // v1.x: 动态计算最大轮次(参考 rikkahub GenerationHandler 迭代式设计)
+        // v1.x: 动态计算最大轮次(按工具循环迭代式设计)
         //  - 有 task_plan: steps*2 + 5(每步平均 2 轮工具调用 + 5 轮缓冲)
         //  - 无 task_plan: DEFAULT_MAX_TOOL_ROUNDS(10)
         //  - 上限 MAX_TOOL_ROUNDS_HARD_CAP(25)兜底,且不超过 params.maxRounds(向后兼容)
@@ -683,7 +683,7 @@ class ToolOrchestrator(
         host: ToolLoopHost,
         taskCardCoordinator: ChatTaskCardCoordinator,
     ): ToolExecResult {
-        // v1.x: 通知宿主工具开始执行(含审批等待时间),参考 rikkahub GenerationHandler 细粒度进度
+        // v1.x: 通知宿主工具开始执行(含审批等待时间),用于细粒度进度
         val toolStartAt = System.currentTimeMillis()
         host.onToolStart(tc.id, tc.name)
 
@@ -812,7 +812,7 @@ class ToolOrchestrator(
         }
         // v1.x: 超长工具输出走"预览 + 写文件 + 引用"模式,完整内容落盘到
         // filesDir/tool_outputs/,LLM 上下文仅保留 4K 预览 + read_file 引用,
-        // 既避免撑爆上下文,又让 LLM 能按需读取完整结果(参考 rikkahub GenerationHandler)。
+        // 既避免撑爆上下文,又让 LLM 能按需读取完整结果。
         val finalToolResult = maybeTruncateToolOutput(tc.id, rawFinal)
 
         taskCardCoordinator.updateTaskCardStep(taskCardId, idx) { s ->
@@ -929,7 +929,7 @@ class ToolOrchestrator(
     }
 
     /**
-     * v1.x: 根据任务复杂度动态计算最大工具调用轮次(参考 rikkahub GenerationHandler 迭代式设计)。
+     * v1.x: 根据任务复杂度动态计算最大工具调用轮次。
      *
      * 策略:
      *  - 若已有 task_plan(AgentPlan 缓存或历史 tool_call),按步骤数 * 2 + 5 推算
@@ -997,7 +997,7 @@ class ToolOrchestrator(
      * v1.x: 工具输出超长时,完整内容落盘到 filesDir/tool_outputs/,
      * LLM 上下文仅保留 [TOOL_RESULT_PREVIEW_CHARS] 预览 + read_file 引用。
      *
-     * 参考实现:rikkahub GenerationHandler.kt:458-490
+     * 实现说明:完整内容落盘后由 read_file 工具按需读取。
      *
      * - 输出 ≤ [MAX_TOOL_RESULT_CHARS]: 原样返回,不写文件
      * - 输出 > [MAX_TOOL_RESULT_CHARS]:
