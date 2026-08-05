@@ -26,6 +26,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -692,11 +693,14 @@ fun ChatScreen(
                             ?.firstOrNull()?.name
                             ?: stringResource(R.string.chat_model_not_configured)
                         val currentModelName = rawModelName.substringAfterLast("/").takeIf { it.isNotBlank() } ?: rawModelName
+                        val sessionTitleInteractionSource = remember { MutableInteractionSource() }
                         Column(
                             modifier = Modifier
                                 .weight(1f)
                                 // v1.136 T1: 点击=切换会话,长按=更换助手
                                 .combinedClickable(
+                                    interactionSource = sessionTitleInteractionSource,
+                                    indication = null,
                                     onClick = { sheetState.showSessionSheet = true },
                                     onLongClick = { sheetState.showAssistantSwitchSheet = true },
                                 )
@@ -1308,8 +1312,8 @@ fun ChatScreen(
                                         .fillMaxSize()
                                         .background(
                                             when (direction) {
-                                                SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                                                SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f)
+                                                SwipeToDismissBoxValue.StartToEnd -> Color(0xFF34C759)
+                                                SwipeToDismissBoxValue.EndToStart -> Color(0xFF0A84FF)
                                                 else -> Color.Transparent
                                             }
                                         ),
@@ -1323,7 +1327,7 @@ fun ChatScreen(
                                         Icon(
                                             imageVector = icon,
                                             contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            tint = Color.White,
                                             modifier = Modifier.padding(horizontal = MusePaddings.screen),
                                         )
                                     }

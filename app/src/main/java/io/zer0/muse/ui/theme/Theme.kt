@@ -6,18 +6,22 @@ import android.content.ContextWrapper
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.IndicationNodeFactory
+import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MotionScheme
-import androidx.compose.material3.ripple
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.drawscope.ContentDrawScope
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.node.DelegatableNode
+import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
@@ -34,6 +38,17 @@ private fun Context.findActivity(): Activity? {
         context = context.baseContext
     }
     return null
+}
+
+/** 完全无绘制的 indication，避免 clickable/combinedClickable 出现黑色/深色遮罩。 */
+private class NoIndicationNode : Modifier.Node(), DrawModifierNode {
+    override fun ContentDrawScope.draw() {}
+}
+
+private object NoIndicationNodeFactory : IndicationNodeFactory {
+    override fun create(interactionSource: InteractionSource): DelegatableNode = NoIndicationNode()
+    override fun hashCode(): Int = System.identityHashCode(this)
+    override fun equals(other: Any?): Boolean = other === this
 }
 /**
  * Muse 主题入口 (v0.22 重写,既有实现 Theme.kt)。
@@ -153,7 +168,7 @@ fun MuseTheme(
         val statusColors = if (darkTheme) DarkStatusColors else LightStatusColors
         val codeColors = if (darkTheme) DarkCodeColors else LightCodeColors
         CompositionLocalProvider(
-            LocalIndication provides ripple(color = Color.Transparent),
+            LocalIndication provides NoIndicationNodeFactory,
             LocalStatusColors provides statusColors,
             LocalCodeColors provides codeColors,
         ) {

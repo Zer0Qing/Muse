@@ -104,7 +104,7 @@ fun MuseSurface(
     val isPressed by interactionSource.collectIsPressedAsState()
     val haptic = LocalHapticFeedback.current
 
-    // 按压颜色渐变: 浅色模式向白偏移 55%,深色模式向黑偏移 55%(对齐原 MuseCardPress)
+    // 按压颜色渐变: 浅色提亮 55%,深色模式轻微提亮 18%(避免出现黑色遮罩)
     val isLight = MaterialTheme.colorScheme.surface.luminance() > 0.5f
     val pressedColor = if (isLight) {
         color.copy(
@@ -114,9 +114,9 @@ fun MuseSurface(
         )
     } else {
         color.copy(
-            red = color.red * 0.45f,
-            green = color.green * 0.45f,
-            blue = color.blue * 0.45f,
+            red = (color.red + (1f - color.red) * 0.18f).coerceAtMost(1f),
+            green = (color.green + (1f - color.green) * 0.18f).coerceAtMost(1f),
+            blue = (color.blue + (1f - color.blue) * 0.18f).coerceAtMost(1f),
         )
     }
 

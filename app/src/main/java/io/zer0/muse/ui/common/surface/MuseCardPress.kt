@@ -35,7 +35,7 @@ import io.zer0.muse.ui.theme.MuseHaptics
  * iOS 风格卡片按压效果 — 既有实现 触觉交互核心组件。
  *
  * 按下时:
- *  - 背景颜色渐变 (200ms easeOutCubic): 白方向偏移 55% / 黑方向偏移 55%
+ *  - 背景颜色渐变 (200ms easeOutCubic): 浅色提亮 55%,深色模式轻微提亮 18%
  *  - 可选缩放 (0.98): 轻微缩小营造"陷入"感
  *    v1.0.23: 缩放曲线从 tween 改为 spring(MediumBouncy + StiffnessMediumLow),
  *    按下与回弹自带轻微过冲,呈现 MANUS 风格弹性反馈
@@ -77,7 +77,7 @@ fun MuseCardPress(
     val isPressed by interactionSource.collectIsPressedAsState()
     val haptic = LocalHapticFeedback.current
 
-    // 按压颜色渐变: 白方向 → 变浅 55%, 黑方向 → 变深 55%
+    // 按压颜色渐变: 浅色提亮 55%,深色模式轻微提亮 18%(避免出现黑色遮罩)
     val isLight = MaterialTheme.colorScheme.surface.luminance() > 0.5f
     val pressedColor = if (isLight) {
         containerColor.copy(
@@ -87,9 +87,9 @@ fun MuseCardPress(
         )
     } else {
         containerColor.copy(
-            red = containerColor.red * 0.45f,
-            green = containerColor.green * 0.45f,
-            blue = containerColor.blue * 0.45f,
+            red = (containerColor.red + (1f - containerColor.red) * 0.18f).coerceAtMost(1f),
+            green = (containerColor.green + (1f - containerColor.green) * 0.18f).coerceAtMost(1f),
+            blue = (containerColor.blue + (1f - containerColor.blue) * 0.18f).coerceAtMost(1f),
         )
     }
 
