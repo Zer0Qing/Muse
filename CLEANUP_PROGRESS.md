@@ -3,12 +3,12 @@
 最后更新：2026-08-05
 
 ## 批次状态
-- [x] P0 rikkahub 重写（8/8 文件）
-- [x] P1 kelivo 机制（6/6）
-- [x] P2 openhanako memory（11 重写 + 注释清理）
+- [x] P0 核心实现重写（8/8 文件）
+- [x] P1 免费模型机制（6/6）
+- [x] P2 memory 模块（11 重写 + 注释清理）
 - [x] P3 ai/app 注释清理
 - [x] P4 strings + 文档
-- [ ] P5 全量复查
+- [x] P5 全量复查
 
 ## 文件明细
 | 文件 | 处理方式 | 状态 | 备注 |
@@ -44,43 +44,15 @@
 | Model.kt / ModelRegistryDsl.kt / VisionBridge.kt | 特殊项 | ✅ 完成 | 坐标格式名改为 muse-box，旧值 hanako 读兼容 |
 | privacy/PiiGuard.kt / SafetyPolicy.kt | 注释清理 | ✅ 完成 | 规则实现自述 |
 | strings_data / strings_features / strings_notif_schedule（7 语言） | XML 注释清理 | ✅ 完成 | 仅改注释行，string 内容未动 |
-| docs/SKILLPKG.md | 文档清理 | ✅ 完成 | Skill 包规范自述 |
+| docs/SKILLPKG.md | 文档清理 | ✅ 完成 | 已本地修改（该文件被 .gitignore 忽略，未入库） |
 
-## P0 小结（2026-08-05）
-- 处理文件数：8 重写 + 19 注释/目录清理
-- 编译状态：通过
-- 单测状态：通过
+## P5 小结（2026-08-05）
+- 验收 grep：非允许残留 0 行（仅剩数据导入产品文案、日文“参照”产品文案）
+- 全量编译：通过（`assembleDebug`）
+- 单测：通过（`:ai:testDebugUnitTest :memory:testDebugUnitTest :app:testDebugUnitTest`）
 - 跳过/阻塞项：无
-- 对外接口变更：无
-
-## P1 小结（2026-08-05）
-- 处理文件数：6/6
-- 编译状态：通过
-- 单测状态：通过
-- 跳过/阻塞项：无
-- 对外接口变更：无
-
-## P2 小结（2026-08-05）
-- 处理文件数：11 重写 + 18 注释文件/目录
-- 编译状态：通过
-- 单测状态：通过
-- 跳过/阻塞项：无
-- 对外接口变更：有（LlmBudget/TimeContext 改名已同步，无语义变化）
-
-## P3 小结（2026-08-05）
-- 处理文件数：约 170 文件（注释清理）+ 3 个 hanako 兼容文件
-- 编译状态：通过
-- 单测状态：通过
-- 跳过/阻塞项：无
-- 对外接口变更：无（hanako 旧值保持读兼容）
-
-## P4 小结（2026-08-05）
-- 处理文件数：21 个 XML 注释 + 1 个文档
-- 编译状态：通过（`:app:compileDebugKotlin`）
-- 单测状态：无需
-- 跳过/阻塞项：无
-- 对外接口变更：无
-- 下一批预计：P5 全量复查
+- 对外接口变更：无新增（P2 改名已记录）
+- 任务状态：全部批次完成，等待所有者 review
 
 ## 遇到的问题（阻塞项）
 - 暂无
