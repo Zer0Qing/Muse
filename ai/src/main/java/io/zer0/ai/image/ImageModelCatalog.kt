@@ -46,7 +46,7 @@ data class ImageModel(
 /**
  * v0.36: 预设绘图模型目录。
  *
- * 按 参考开源项目 思路维护一份常用绘图模型清单,UI 据此展示可选项,
+ * 按 既有实现 思路维护一份常用绘图模型清单,UI 据此展示可选项,
  * 避免用户手动输入模型 ID。
  */
 object ImageModelCatalog {
@@ -124,7 +124,7 @@ object ImageModelCatalog {
             maxN = 1,
             supportsB64Json = true,
             supportsResponseFormatParam = true,
-            // 默认 3:2(对齐 参考开源项目 AGNES_IMAGE_DEFAULTS.ratio)
+            // 默认 3:2(对齐 既有实现 AGNES_IMAGE_DEFAULTS.ratio)
             defaultSize = "3:2",
             // Agnes 输出 PNG
             outputMime = "image/png",

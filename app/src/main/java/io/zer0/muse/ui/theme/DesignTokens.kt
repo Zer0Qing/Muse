@@ -8,14 +8,14 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.unit.dp
 
 /**
- * Muse 设计令牌 — 动画系统 (对齐 Kelivo iOS 触觉设计语言)。
+ * Muse 设计令牌 — 动画系统 (对齐 既有实现 iOS 触觉设计语言)。
  *
  * 提供全局统一的动画时长、缓动曲线、阴影规格与触觉反馈语义方法,
  * 与已有的 [MusePaddings] / [MuseCornerRadius] / [MuseElevation] / [MuseIconSizes] 互补,
  * 共同构成完整的设计令牌体系。
  *
- * 设计参考:
- *  - Kelivo (Flutter): iOS 触觉交互,200ms easeOutCubic 颜色渐变按压
+ * 设计说明:
+ *  - 既有实现 (Flutter): iOS 触觉交互,200ms easeOutCubic 颜色渐变按压
  *  - Material 3 Expressive: 弹性动效 expressive motion scheme
  *  - Apple HIG: 触觉反馈分级 (light / medium / heavy)
  */
@@ -31,7 +31,7 @@ object MuseAnimation {
     /** 标准过渡 (240ms): 卡片展开 / 面板切换。 */
     const val NORMAL_MS = 240
 
-    /** iOS 触觉标准 (200ms): 按压颜色渐变 (Kelivo 核心节奏)。 */
+    /** iOS 触觉标准 (200ms): 按压颜色渐变 (既有实现 核心节奏)。 */
     const val TACTILE_MS = 200
 
     /** 慢速过渡 (320ms): 页面转场 / BottomSheet 弹出。 */
@@ -66,7 +66,7 @@ object MuseAnimation {
 
     // ── 缓动曲线令牌 ──────────────────────────────────────────────────
     /**
-     * iOS 标准缓动 (easeOutCubic): Kelivo 主力曲线,
+     * iOS 标准缓动 (easeOutCubic): 既有实现 主力曲线,
      * 快入慢出,模拟 iOS 触觉交互的自然减速感。
      */
     val EaseOutCubic: Easing = CubicBezierEasing(0.33f, 1.0f, 0.68f, 1.0f)
@@ -92,7 +92,7 @@ object MuseAnimation {
 /**
  * Muse 设计令牌 — 阴影系统 (iOS 风格柔和投影)。
  *
- * Kelivo 大量使用半透明柔和投影营造卡片"浮起"的层次感,
+ * 既有实现 大量使用半透明柔和投影营造卡片"浮起"的层次感,
  * 与 Material 3 elevation 体系不同,iOS 风格投影更柔和、扩散更大、透明度更低。
  *
  * 使用方式:
@@ -120,7 +120,7 @@ object MuseShadow {
     /** 低投影: 列表项 / 输入框,轻微浮起感。 */
     val low = ShadowSpec(elevation = 2.dp, offsetY = 1.dp)
 
-    /** 柔投影: 卡片主力阴影,Kelivo 风格 (black@5%, blur=18, offset=6dp)。 */
+    /** 柔投影: 卡片主力阴影,既有实现 风格 (black@5%, blur=18, offset=6dp)。 */
     val soft = ShadowSpec(elevation = 6.dp, offsetY = 6.dp)
 
     /** 高投影: 浮动按钮 / 弹出菜单。 */

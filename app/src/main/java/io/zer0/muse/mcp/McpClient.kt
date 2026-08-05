@@ -38,7 +38,7 @@ import java.util.concurrent.TimeUnit
 /**
  * Phase 9.5 (M3): MCP 协议数据类。
  *
- * 参考 MCP 规范:
+ * 按 MCP 规范:
  * - 2024-11-05: https://spec.modelcontextprotocol.io/spec/2024-11-05/
  * - 2025-03-26: https://spec.modelcontextprotocol.io/spec/2025-03-26/
  *
@@ -175,7 +175,7 @@ internal data class McpServerInfo(
  *  - 状态变更通过 MutableStateFlow,线程安全
  *  - 请求-响应配对用 ConcurrentHashMap<id, Channel<JsonObject>>(支持并发请求)
  *
- * 独立编写(参考 MCP 官方规范),Apache 2.0。
+ * 独立编写(按 MCP 官方规范),Apache 2.0。
  */
 class McpClient(
     private val config: McpServerConfig,

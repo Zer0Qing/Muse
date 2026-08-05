@@ -529,7 +529,7 @@ class QuickNotesViewModel(
         scheduleAlarm(id, title, message, reminderAt)
     }
 
-    /** 通过 AlarmManager 注册闹钟(参考 ToolRegistry.scheduleAlarm 实现)。 */
+    /** 通过 AlarmManager 注册闹钟(按 ToolRegistry.scheduleAlarm 实现)。 */
     private fun scheduleAlarm(id: String, title: String, message: String, triggerAtMillis: Long): Boolean {
         return resultOf {
             val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager

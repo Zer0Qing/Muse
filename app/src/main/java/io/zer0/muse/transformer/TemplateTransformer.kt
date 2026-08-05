@@ -29,7 +29,7 @@ import java.util.TimeZone
  *  - {{ model_id }}: 当前模型 id
  *  - {{ assistant_name }}: 当前 Assistant 名称(若 extras 提供)
  *
- * v1.97 新增(参考 rikkahub 13 个内置变量):
+ * v1.97 新增(既有实现 13 个内置变量):
  *  - {{ locale }}: 系统语言/地区(如 zh-CN、en-US)
  *  - {{ timezone }}: 系统时区(如 Asia/Shanghai)
  *  - {{ device_info }}: 设备型号与厂商(如 "Pixel 7 (Google)")

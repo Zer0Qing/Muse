@@ -104,7 +104,7 @@ fun ModelDiffSheet(
     val addSelected = remember { mutableStateMapOf<String, Boolean>() }
     val removeSelected = remember { mutableStateMapOf<String, Boolean>() }
 
-    // 初始勾选:默认所有新增项与所有已删除项均预选(参考 iOS 风格"默认接受全部变更")
+    // 初始勾选:默认所有新增项与所有已删除项均预选(按 iOS 风格"默认接受全部变更")
     // 用 LaunchedEffect 一次性初始化,避免每次重组覆盖用户的取消操作
     LaunchedEffect(newModels, removedModels) {
         if (addSelected.isEmpty()) newModels.forEach { addSelected[it.id] = true }
@@ -264,7 +264,7 @@ fun ModelDiffSheet(
 /**
  * 差异 Sheet 顶部 / 底部的胶囊按钮(用 Surface + clickable,非 Material3 Button)。
  *
- * 设计参考 [ProviderEditBottomBar] 的胶囊风格:warm-paper inverseSurface 主操作色,
+ * 设计按 [ProviderEditBottomBar] 的胶囊风格:warm-paper inverseSurface 主操作色,
  * 48dp 触摸目标,半透明灰显不可用态。
  */
 @Composable

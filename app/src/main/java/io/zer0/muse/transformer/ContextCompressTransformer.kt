@@ -36,7 +36,7 @@ class ContextCompressTransformer(
     private val chatService: ChatService,
     /**
      * 可选的对话压缩器(分块并行 + 独立便宜模型)。
-     * - 非 null:transform 时委托 [compressor] 完成分块并行压缩(推荐,参考 rikkahub)
+     * - 非 null:transform 时委托 [compressor] 完成分块并行压缩(推荐,既有实现)
      * - null:回退到原同步单次 LLM 压缩(向后兼容 / 测试场景)
      */
     private val compressor: ConversationCompressor? = null,
@@ -100,7 +100,7 @@ class ContextCompressTransformer(
 
         val summary = try {
             if (compressor != null) {
-                // 优先走分块并行 + 独立便宜模型(参考 rikkahub ChatService.compressConversation)
+                // 优先走分块并行 + 独立便宜模型(既有实现 ChatService.compressConversation)
                 compressWithCompressor(adjustedToCompress)
             } else {
                 // 回退:原同步单次 LLM 压缩

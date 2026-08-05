@@ -26,7 +26,7 @@ data class WebServerConfig(
     /**
      * H8: 返回 password/pin 已加密(走 [SecureKeyStore.encrypt])的副本,
      * 供持久化前调用。空值原样保留(不加密空值)。
-     * 参照 [io.zer0.muse.data.ProxyConfig.encrypted] 模式。
+     * 按 [io.zer0.muse.data.ProxyConfig.encrypted] 模式。
      */
     suspend fun encrypted(): WebServerConfig = copy(
         password = SecureKeyStore.encrypt(password),
@@ -36,7 +36,7 @@ data class WebServerConfig(
     /**
      * H8: 返回 password/pin 已解密(走 [SecureKeyStore.decrypt])的副本,
      * 供从持久化层读出后调用。旧版明文由 decrypt 透传(兼容)。
-     * 参照 [io.zer0.muse.data.ProxyConfig.decrypted] 模式。
+     * 按 [io.zer0.muse.data.ProxyConfig.decrypted] 模式。
      */
     suspend fun decrypted(): WebServerConfig = copy(
         password = SecureKeyStore.decrypt(password),

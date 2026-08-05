@@ -333,7 +333,7 @@ private fun TtsVoiceSelector(
  *
  * 引擎选择(system + 11 家云端 Provider)→ API Key / Voice / Model / Endpoint 表单。
  * system 模式仅显示引擎选择,隐藏表单。
- * 表单交互参考 [AsrSection]:OutlinedTextField + 保存按钮 + Toast 反馈。
+ * 表单交互按 [AsrSection]:OutlinedTextField + 保存按钮 + Toast 反馈。
  *
  * v1.99(4.4): 在音色输入下方增加「拉取音色列表」按钮,调用 [TtsManager.listCloudVoices]
  * 动态拉取并展示可选音色,选中后写回 [MediaConfig.ttsVoice]。

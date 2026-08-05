@@ -1,7 +1,7 @@
 package io.zer0.muse.tools
 
 /**
- * v1.0.53: 工具输入内容安全规则(参考开源实现 safety-policy.ts)。
+ * v1.0.53: 工具输入内容安全规则(既有实现 safety-policy.ts)。
  *
  * 每条规则: toolName + 内容匹配 + 动作(拦截)+ reason + ruleId。
  * 在工具执行前统一检查;命中返回拒绝结果(带 ruleId,日志可追溯)。

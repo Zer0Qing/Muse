@@ -57,7 +57,7 @@ class HnswVectorIndexTest {
         }
     }
 
-    /** 暴力遍历 top-k(参考实现,用于验证 HNSW 结果)。 */
+    /** 暴力遍历 top-k(实现说明,用于验证 HNSW 结果)。 */
     private fun bruteForceSearch(
         query: FloatArray,
         vectors: List<Pair<String, FloatArray>>,

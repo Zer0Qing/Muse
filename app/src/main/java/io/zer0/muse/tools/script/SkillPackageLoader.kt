@@ -35,7 +35,7 @@ import java.util.zip.ZipInputStream
  * val result = SkillPackageLoader.loadFromJs(jsSource, "my_tool.js")
  * ```
  *
- * 参考: Operit SkillPackageLoader 设计，适配 Muse 的 ZIP 防炸弹工具。
+ * 说明: 既有实现 SkillPackageLoader 设计，适配 Muse 的 ZIP 防炸弹工具。
  */
 object SkillPackageLoader {
 

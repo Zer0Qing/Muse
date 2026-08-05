@@ -7,7 +7,7 @@ import io.zer0.muse.data.assistant.AssistantRegex
 /**
  * v1.97: 正则替换 Transformer — 在消息管道中对 user/assistant 文本应用助手级正则规则。
  *
- * 参考 rikkahub 的 AssistantRegex 设计。
+ * 既有实现 的 AssistantRegex 设计。
  *
  * 行为:
  *  - 从 context.extra("regex_rules") 取预解析好的规则列表

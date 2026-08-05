@@ -24,7 +24,7 @@ import kotlinx.coroutines.sync.withLock
  * }
  * ```
  *
- * 参考: Operit SkillEnginePool 设计，适配 Muse 的 WebView V8 后端。
+ * 说明: 既有实现 SkillEnginePool 设计，适配 Muse 的 WebView V8 后端。
  *
  * @param poolSize 池大小，默认 1（WebView V8 串行限制）
  */

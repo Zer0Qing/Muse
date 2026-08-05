@@ -11,7 +11,7 @@ import kotlinx.coroutines.withContext
  * 与既有 [CloudTtsService] 解耦:CloudTtsService 负责"文本→音频"合成,
  * 本接口负责"样本音频→可复用 voiceId"的克隆管理(增/列/删)。
  *
- * 设计参考 rikkahub 的 Provider 抽象,但简化为单文件多 provider 分发;
+ * 设计既有实现 的 Provider 抽象,但简化为单文件多 provider 分发;
  * 当前实现 [ElevenLabsVoiceCloningProvider],后续可扩展 OpenVoice / Fish Audio 等。
  *
  * 用法:

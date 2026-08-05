@@ -47,7 +47,7 @@ import io.zer0.muse.R
  *  - 内存里 [servers] 是当前配置列表,[clients] 是对应的 client 实例 map
  *  - [serversState] 是 server id → 连接状态的快照,UI 实时刷新
  *
- * 独立编写(参考 MCP 官方规范),Apache 2.0。
+ * 独立编写(按 MCP 官方规范),Apache 2.0。
  */
 class McpRegistry(
     private val toolRegistry: ToolRegistry,

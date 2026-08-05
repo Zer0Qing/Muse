@@ -6,7 +6,7 @@ import androidx.compose.ui.graphics.Color
 import io.zer0.muse.R
 import io.zer0.muse.ui.theme.*
 
-// 3. 海洋主题 (蓝色系 - 参考 rikkahub OceanTheme)
+// 3. 海洋主题 (蓝色系 - 既有实现 OceanTheme)
 // ─────────────────────────────────────────────────────────────────────────────
 private val OceanPrimary = Color(0xFF2E7BD6)
 private val OceanPrimaryLightContainer = Color(0xFFD4E8FA)

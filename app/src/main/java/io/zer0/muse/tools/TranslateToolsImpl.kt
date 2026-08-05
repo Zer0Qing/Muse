@@ -34,7 +34,7 @@ class TranslateToolsImpl {
             else -> "" // 通用,无额外指令
         }
 
-        // 构建 system prompt(参考 TranslateViewModel.buildTranslationPrompt)
+        // 构建 system prompt(按 TranslateViewModel.buildTranslationPrompt)
         val systemPrompt = buildString {
             if (sourceLanguage != null) {
                 append("你是一个专业翻译助手。请将下面的文本从$sourceLanguage 翻译为$targetLanguage。")

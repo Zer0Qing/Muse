@@ -5,7 +5,7 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
- * v1.0.53: 子 agent 线程持久化 Entity(参考开源实现 SubagentThreadStore)。
+ * v1.0.53: 子 agent 线程持久化 Entity(既有实现 SubagentThreadStore)。
  *
  * 替代旧 tools/SubagentThreadStore.kt(内存版)。两条 subagent 路径共享:
  *  - 路径 A: SubagentTool + SkillExecutor.delegateAgent nonBlocking
@@ -35,7 +35,7 @@ data class SubagentThreadEntity(
     val assistantId: String,
     /** 展示名,如 "research-1"。 */
     val label: String? = null,
-    /** read|write(对齐参考实现 权限继承)。 */
+    /** read|write(对齐实现说明 权限继承)。 */
     val access: String = "read",
     /** open|closed。 */
     val status: String = "open",

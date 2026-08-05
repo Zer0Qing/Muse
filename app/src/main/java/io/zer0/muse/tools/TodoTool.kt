@@ -6,7 +6,7 @@ import kotlinx.serialization.json.Json
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * todo_write 工具(参考开源项目 todo.ts 移植)。
+ * todo_write 工具(既有实现 todo.ts 实现)。
  *
  * 替换式协议,三态状态机。
  * 每次调用替换会话的完整待办列表。

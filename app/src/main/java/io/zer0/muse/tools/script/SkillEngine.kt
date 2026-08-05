@@ -14,7 +14,7 @@ import io.zer0.muse.tools.JsSandbox
  *  - 超时机制由实现层保证（[JsSandbox.execute] 默认 10s）
  *  - 安全限制由实现层保证（禁用 fetch/XHR/WebSocket 等，见 [JsSandbox.INIT_JS]）
  *
- * 参考: Operit SkillEngine 接口设计，适配 Muse 的 WebView V8 后端。
+ * 说明: 既有实现 SkillEngine 接口设计，适配 Muse 的 WebView V8 后端。
  */
 interface SkillEngine {
 

@@ -6,7 +6,7 @@ import androidx.compose.ui.graphics.Color
 import io.zer0.muse.R
 import io.zer0.muse.ui.theme.*
 
-// 8. Washi (和紙) theme — 开源主题参考 warm washi paper inspired
+// 8. Washi (和紙) theme — 开源主题按 warm washi paper inspired
 // ─────────────────────────────────────────────────────────────────────────────
 private val WashiPrimary = Color(0xFF8B6F47)
 private val WashiPrimaryLightContainer = Color(0xFFF0E4D0)

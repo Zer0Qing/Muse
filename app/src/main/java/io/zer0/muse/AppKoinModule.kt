@@ -106,7 +106,7 @@ val appModule = module {
     single { get<MuseDb>().groupChatMemoryDao() }  // v2.x: 群聊记忆隔离(独立 fact store)
     single { get<MuseDb>().experienceDao() }  // v1.98
     single { get<MuseDb>().milestoneDao() }  // Phase 2 2B: milestone
-    single { get<MuseDb>().agentMessageDao() }  // 参考工具系统 port: agent DM
+    single { get<MuseDb>().agentMessageDao() }  // 既有工具系统 port: agent DM
     single { get<MuseDb>().auditLogDao() }  // P2-4: 审计日志
     single { get<MuseDb>().quickNoteDao() }  // v1.0.17: 快速记录
     // v1.134 P1-1/P1-2: 孤儿组件接入所需的 DAO(AutoBackupHelper / StatsCacheManager 依赖)
@@ -124,7 +124,7 @@ val appModule = module {
     }
     single { io.zer0.muse.data.milestone.MilestoneChecker(get(), get(), get()) }  // Phase 2 2B: milestone checker
     single { io.zer0.muse.data.experience.ExperienceRepository(get()) }  // v1.98
-    single { io.zer0.muse.data.agentdm.AgentDmRepository(get()) }  // 参考工具系统 port: agent DM
+    single { io.zer0.muse.data.agentdm.AgentDmRepository(get()) }  // 既有工具系统 port: agent DM
     // v1.134 P1-2: 消息图片存储服务,负责 base64 ↔ 文件路径转换,
     // 让大图片落盘到 filesDir/muse_images/,DB 只存路径,避免 messages 表行体积膨胀
     single {
@@ -243,11 +243,11 @@ val appModule = module {
     // Phase 6 6E: 本地分析追踪器
     single { io.zer0.muse.data.analytics.LocalAnalyticsTracker(androidContext()) }
 
-    // 参考工具系统移植:会话文件管理器
+    // 既有工具系统实现:会话文件管理器
     single { io.zer0.muse.data.session.SessionFileManager(androidContext()) }
-    // 参考工具系统移植:基于文件的体验存储
+    // 既有工具系统实现:基于文件的体验存储
     single { io.zer0.muse.data.experience.ExperienceStore(androidContext()) }
-    // 参考工具系统移植:工具注册器(注册 pin/experience/search_memory/todo/card/notify/status 工具)
+    // 既有工具系统实现:工具注册器(注册 pin/experience/search_memory/todo/card/notify/status 工具)
     // v1.202: 注入 SkillExecutor / SubagentThreadStore / DeferredResultStore / appScope,
     //         供 SubagentTool(launch/reply/close 三件套)使用
     single {
@@ -492,9 +492,9 @@ val appModule = module {
             sessionStore = get(),
         )
     }
-    // v1.0.53: 子 agent 全局并发限流器(参考开源实现 workflow createLimiter;所有委派入口共享同一配额)
+    // v1.0.53: 子 agent 全局并发限流器(既有实现 workflow createLimiter;所有委派入口共享同一配额)
     single { io.zer0.muse.tools.AgentConcurrencyLimiter() }
-    // v1.0.53 Phase 2: 工作流断点恢复日志(参考开源实现 lib/workflow/journal.ts)
+    // v1.0.53 Phase 2: 工作流断点恢复日志(既有实现 lib/workflow/journal.ts)
     //  - 文件: filesDir/workflow_journals/<runId>.jsonl
     //  - TeamWorkflowExecutor resume 时命中缓存的节点秒回,首个未缓存节点起重跑
     single {
@@ -515,7 +515,7 @@ val appModule = module {
     // v0.32 实验�?透传 getExperiments 闭包,�?设置 �?实验�?页的开�?
     //         (forceMoodBlock / selfReflection)真正影响 system prompt
     //         闭包每次都读 settings.experimentsCache(@Volatile,零阻�?,
-    //         而不是在构造时缓存,保证用户改完设置页立即生�?参照 memoryConfigCache 写法)�?
+    //         而不是在构造时缓存,保证用户改完设置页立即生�?按 memoryConfigCache 写法)�?
     // v1.25: 同时透传 getMultiAgentConfig,�?Agent 协作提示读取 settings.multiAgentConfigCache�?
     // v1.97: 透传 assistantRepository,�?delegate_agent 提示注入可用助手 id 清单�?
 

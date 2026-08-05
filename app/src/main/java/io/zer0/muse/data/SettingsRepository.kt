@@ -85,7 +85,7 @@ class SettingsRepository(
     private val memoryBackfillMigrationDone = AtomicBoolean(false)
 
     /**
-     * v1.0.7: 内置供应商规格声明(对齐 openhanako BUILTIN_PLUGINS)。
+     * v1.0.7: 内置供应商规格声明(对齐 既有实现 BUILTIN_PLUGINS)。
      * lazy 初始化,供 [providersFlow] 合并 spec 默认模型 + 用户 overlay。
      */
     private val presetProviders by lazy { PresetProviders(appContext) }
@@ -206,7 +206,7 @@ class SettingsRepository(
         // v1.53-A2: 读取后解密 apiKey(旧明文数据透传,加密数据解密)
         val raw = prefs[KEY_PROVIDERS]?.let { json -> decodeProviders(json) } ?: emptyList()
         // v1.0.7: 三层合并 — specId 非空时,把 spec 默认模型列表与用户 overlay 合并
-        // 对齐 openhanako BUILTIN_PLUGINS + Provider Catalog overlay 合并机制
+        // 对齐 既有实现 BUILTIN_PLUGINS + Provider Catalog overlay 合并机制
         raw.map { enrichWithSpecDefaults(it) }
     }.catch {
         // M-SR3: 上游异常(DataStore IO / 解密失败)不应让 Flow 永久失效,回退空列表并记日志
@@ -1079,7 +1079,7 @@ class SettingsRepository(
     /**
      * v1.0.7: 三层合并 — 用 spec 默认模型列表丰富用户配置。
      *
-     * 对齐 openhanako _merge(plugin, userConfig):specId 非空时,从 [presetProviders]
+     * 对齐 既有实现 _merge(plugin, userConfig):specId 非空时,从 [presetProviders]
      * 查找 spec,把 spec 默认模型 + 用户 overlay 模型合并(同 id 用户优先)。
      * specId 为 null(纯自定义供应商)或 spec 未找到时原样返回。
      */

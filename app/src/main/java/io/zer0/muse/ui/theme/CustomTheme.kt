@@ -22,7 +22,7 @@ import kotlin.uuid.Uuid
  * 与 [PresetTheme] 的区别:PresetTheme 是手工调校的固定 ColorScheme;CustomTheme 由算法生成,
  * 用户只需选种子色,无需理解 ColorScheme 的 50+ 字段。
  *
- * 参考实现:rikkahub CustomTheme.kt(Apache 2.0)。
+ * 实现说明:既有实现 CustomTheme.kt(Apache 2.0)。
  *
  * @param id 唯一标识(自动生成 UUID)
  * @param name 用户可见名称(允许空串,UI 显示时回退"未命名")

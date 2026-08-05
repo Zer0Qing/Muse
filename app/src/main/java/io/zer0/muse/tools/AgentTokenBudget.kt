@@ -3,7 +3,7 @@ package io.zer0.muse.tools
 import io.zer0.ai.core.UsageTokens
 
 /**
- * v1.0.53 Phase 3: 子 agent token 预算账本(参考开源实现 workflow budgetTokens)。
+ * v1.0.53 Phase 3: 子 agent token 预算账本(既有实现 workflow budgetTokens)。
  *
  * 累加来源:[ChatService.completeText] 返回的 [io.zer0.ai.core.ChatCompletion.usageTokens]。
  *  - usageTokens 为 null 时(Provider 未返回 usage)跳过累加,不误判耗尽

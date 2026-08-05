@@ -28,7 +28,7 @@ import io.zer0.muse.R
  * v1.78: 加 withTimeout 防止 LLM 调用挂起导致 daily pipeline 永久卡死;
  *        加 Logger 便于排查记忆编译失败;model 为 null 时显式校验。
  *
- * v1.0.50 (记忆系统修复): 对齐 参考开源项目 的三层防御:
+ * v1.0.50 (记忆系统修复): 对齐 既有实现 的三层防御:
  *  1. **reasoning 兜底**: 推理模型(DeepSeek-R1 / GLM-Z1 等)服务端强制开思考,
  *     可能把全部输出放进 reasoning_content 而 content 为空。此时用 reasoningContent
  *     兜底,避免记忆链路从源头拿到空字符串导致 memory.md 永远 59 字符占位。
@@ -201,7 +201,7 @@ class MemoryLlmClientImpl(
     }
 
     private companion object {
-        /** v1.0.50: 推理模型 buffer token 数(对齐 参考开源项目 DEFAULT_REASONING_HEADROOM_TOKENS)。 */
+        /** v1.0.50: 推理模型 buffer token 数(对齐 既有实现 DEFAULT_REASONING_HEADROOM_TOKENS)。 */
         private const val REASONING_BUFFER_TOKENS = 1024
     }
 }

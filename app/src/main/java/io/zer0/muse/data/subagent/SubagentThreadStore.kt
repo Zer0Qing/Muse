@@ -7,7 +7,7 @@ import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * v1.0.53: 子 agent 线程账本(持久化版,参考开源实现 SubagentThreadStore)。
+ * v1.0.53: 子 agent 线程账本(持久化版,既有实现 SubagentThreadStore)。
  *
  * 替代旧 tools/SubagentThreadStore.kt(内存版)。两条 subagent 路径共享:
  *  - 路径 A: SubagentTool + SkillExecutor.delegateAgent nonBlocking

@@ -41,7 +41,7 @@ import io.zer0.muse.ui.theme.semiLarge
  *  - 圆角 16dp([MuseShapes.semiLarge]),与 iOS 设置页输入框一致
  *  - label 在聚焦时变为 onSurfaceVariant(灰色),不用品牌色
  *
- * 设计参考:GPT / MANUS / iOS 设置页的填充式输入框风格。
+ * 设计说明:GPT / MANUS / iOS 设置页的填充式输入框风格。
  * 与 [MuseDropdown]、[MuseChip] 等 Ios* 套件配套使用。
  *
  * 用法:

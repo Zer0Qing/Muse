@@ -6,7 +6,7 @@ import androidx.compose.ui.graphics.Color
 import io.zer0.muse.R
 import io.zer0.muse.ui.theme.*
 
-// 2. 樱花主题 (粉色系 - 参考 rikkahub SakuraTheme)
+// 2. 樱花主题 (粉色系 - 既有实现 SakuraTheme)
 // ─────────────────────────────────────────────────────────────────────────────
 private val SakuraPrimary = Color(0xFFD85F8C)
 private val SakuraPrimaryLightContainer = Color(0xFFFFD9E4)

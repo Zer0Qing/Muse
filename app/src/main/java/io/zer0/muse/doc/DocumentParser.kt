@@ -277,7 +277,7 @@ class DocumentParser(
      *  - stripper 参数:sortByPosition + 段落分隔(空行强化段落)
      *  - 页眉/页脚过滤:跨页重复(>=3 页)的首/尾行视为页眉页脚,后处理剔除
      *
-     * PDFBox-Android 是 Apache PDFBox 的 Android 移植版,支持:
+     * PDFBox-Android 是 Apache PDFBox 的 Android 实现版,支持:
      *  - 真正文本提取(PDFTextStripper,基于 PDF 文本对象)
      *  - 加密 PDF 解密(若已知密码)
      *  - 不依赖原生 PdfRenderer(无 Bitmap 中转)

@@ -31,14 +31,14 @@ import io.zer0.common.Logger
  * @param supportsLogprobs 是否支持 logprobs 参数(默认 false,多数 Provider 不常用)。
  * @param maxContextWindow Provider 级上下文窗口上限(token),null 表示无统一上限。
  * @param defaultMaxTokens 默认 max_tokens,null 表示用 Provider 默认。
- * @param thinkingFormat v1.0.7: 思考格式(对齐 参考开源项目 thinkingFormat 9 种)。
+ * @param thinkingFormat v1.0.7: 思考格式(对齐 既有实现 thinkingFormat 9 种)。
  *   null=走标准 reasoning_effort;非 null=走对应厂商扩展字段(thinking / enable_thinking 等)。
  *   仅驱动 OpenAIProvider 的请求体构造;AnthropicProvider / GeminiProvider 各自实现原生思考。
  * @param reasoningReplayContract v1.0.7: reasoning 回放契约(carrier + policy)。
  *   null=不回放历史 reasoning;非 null=按 carrier/policy 在请求体中写入对应 wire 字段。
  *   决定 UIMessage.reasoning / thinkingSignature 如何序列化回请求体(多轮对话必备)。
  *
- * 独立编写,参考 参考开源项目 项目的 core/provider-compat/ 目录实现思路。
+ * 独立编写,按 既有实现 项目的 core/provider-compat/ 目录实现思路。
  */
 data class ProviderCompat(
     val supportsDeveloperRole: Boolean = true,
@@ -53,7 +53,7 @@ data class ProviderCompat(
     val maxContextWindow: Int? = null,
     val defaultMaxTokens: Int? = null,
     /**
-     * v1.0.7: 思考格式(对齐 参考开源项目 thinkingFormat 9 种)。
+     * v1.0.7: 思考格式(对齐 既有实现 thinkingFormat 9 种)。
      *
      * - null:走标准 OpenAI `reasoning_effort` 字段(由 [supportsReasoningEffort] 决定是否发送)
      * - [ThinkingFormat.DEEPSEEK]:不发任何思考参数,仅消费流式 reasoning_content
@@ -68,7 +68,7 @@ data class ProviderCompat(
      */
     val thinkingFormat: ThinkingFormat? = null,
     /**
-     * v1.0.7: reasoning 回放契约(对齐 参考开源项目 5 种 carrier + 3 种 policy)。
+     * v1.0.7: reasoning 回放契约(对齐 既有实现 5 种 carrier + 3 种 policy)。
      *
      * - null:不回放历史 reasoning(默认,向后兼容)
      * - [ReasoningReplayContract]([ReasoningCarrier.REASONING_CONTENT], [ReasoningReplayPolicy.REQUIRE_TOOL_CALL]):
@@ -185,7 +185,7 @@ object ProviderCompatRules {
             supportsReasoningEffort = false,
         )
         // v1.0.7: OPENAI_RESPONSES 走 Responses API,基础规则同 OPENAI,
-        //   但 reasoning 回放走 REASONING_ITEMS carrier + PRESERVE policy(对齐 参考开源项目)。
+        //   但 reasoning 回放走 REASONING_ITEMS carrier + PRESERVE policy(对齐 既有实现)。
         //   thinkingFormat 留 null(Responses API 自身用 reasoning.effort 字段,由 OpenAIProvider useResponseApi 分支处理)
         ProviderType.OPENAI_RESPONSES -> ProviderCompat(
             reasoningReplayContract = ReasoningReplayContract(
@@ -285,7 +285,7 @@ object ProviderCompatRules {
             "api.lingyiwanwu.com" -> this  // v1.0.1 (P3): 零一万物,默认全 true
             "api.stepfun.com" -> this  // v1.0.1 (P3): 阶跃星辰,默认全 true
             "ark.cn-beijing.volces.com" -> this  // v1.0.1 (P3): 火山引擎 Doubao,默认全 true(thinking 由 modelId 细化)
-            // v1.0.6: 新增国产供应商(对齐 参考开源项目,均为 OpenAI 兼容,默认全 true)
+            // v1.0.6: 新增国产供应商(对齐 既有实现,均为 OpenAI 兼容,默认全 true)
             "api.hunyuan.cloud.tencent.com" -> this  // 腾讯混元
             "qianfan.baidubce.com" -> this  // 百度千帆
             "api-inference.modelscope.cn" -> this  // 魔搭

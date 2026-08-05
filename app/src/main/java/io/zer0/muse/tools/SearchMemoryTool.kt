@@ -4,7 +4,7 @@ import io.zer0.memory.fact.FactStore
 import kotlinx.coroutines.runBlocking
 
 /**
- * search_memory tool (参考开源项目 memory-search.ts port)。
+ * search_memory tool (既有实现 memory-search.ts port)。
  *
  * 让 LLM 主动检索长期记忆。支持:
  *  - 全文搜索(FTS4 + CJK 2-gram,单字回退 LIKE)

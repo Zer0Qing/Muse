@@ -97,13 +97,13 @@ class SystemPromptAssembler(
      * 注入该助手关联的群聊记忆摘要,用 `<group_chat_memory>` 标签与主记忆 `<long_term_memory>` 区分。
      *
      * 群聊消息含多个 Agent 发言,直接写入主记忆会污染主对话上下文。
-     * 参考 参考开源项目:群聊消息摘要写入独立 fact store(本仓库),不进入主记忆系统。
+     * 按 既有实现:群聊消息摘要写入独立 fact store(本仓库),不进入主记忆系统。
      * 为 null 时不注入(测试环境或未注入时降级)。
      */
     private val groupChatMemoryRepository: GroupChatMemoryRepository? = null,
     /**
      * v1.0.52: 会话仓库 — 用于读取当前助手最近的会话列表,注入到 system prompt
-     * 作为 Recent Chats Reference(参考 参考开源项目 的 recent_chats section)。
+     * 作为 Recent Chats Reference(按 既有实现 的 recent_chats section)。
      *
      * 让 LLM 感知用户与该助手最近聊过什么,提供连续性上下文,但不作为指令执行。
      * 仅在 assistant.enableRecentChatsReference=true 时注入。
@@ -268,7 +268,7 @@ class SystemPromptAssembler(
         if (profile.isNotBlank()) sections.add(profile)
         perfTimer.split("profile")
 
-        // ── 2.5 Recent Chats Reference(借鉴 参考开源项目)──
+        // ── 2.5 Recent Chats Reference(采用 既有实现)──
         // v1.0.52: 注入当前助手最近的会话标题+预览,让 LLM 感知用户近期上下文。
         // forSubagent=true 时跳过:子助手是隔离子会话,不应感知主会话历史。
         // 仅在 assistant.enableRecentChatsReference=true 时注入(用户可关闭)。
@@ -356,11 +356,11 @@ class SystemPromptAssembler(
         val decisionTree = promptLoader.render("decision_tree", locale = locale, fallback = DECISION_TREE_SECTION)
         if (decisionTree.isNotBlank()) sections.add(decisionTree)
 
-        // ── 8. 工具使用纪律(借鉴 参考开源项目)──
+        // ── 8. 工具使用纪律(采用 既有实现)──
         val toolDiscipline = promptLoader.render("tool_discipline", locale = locale, fallback = TOOL_DISCIPLINE_SECTION)
         if (toolDiscipline.isNotBlank()) sections.add(toolDiscipline)
 
-        // ── 9. 操作安全(借鉴 参考开源项目)──
+        // ── 9. 操作安全(采用 既有实现)──
         val safety = promptLoader.render("operation_safety", locale = locale, fallback = OPERATION_SAFETY_SECTION)
         if (safety.isNotBlank()) sections.add(safety)
         perfTimer.split("static_templates")
@@ -537,14 +537,14 @@ class SystemPromptAssembler(
     /**
      * v1.0.52: 2.5 Recent Chats Reference — 注入当前助手最近的会话标题+预览。
      *
-     * 借鉴 参考开源项目 的 recent_chats section 设计:让 LLM 感知用户与该助手最近聊过什么,
+     * 采用 既有实现 的 recent_chats section 设计:让 LLM 感知用户与该助手最近聊过什么,
      * 提供对话连续性上下文(例如用户说"继续刚才那个",LLM 能从最近对话列表里找到线索)。
      *
      * 与长期记忆的区别:
      *  - 长期记忆:系统编译的"用户是谁"(画像/事实),延迟数小时才更新
      *  - Recent Chats:原始会话标题+最后一条消息预览,实时反映用户当下在做什么
      *
-     * 安全考虑(参考 参考开源项目):
+     * 安全考虑(按 既有实现):
      *  - 用 <recent_chats> 边界标签包裹,声明标签内为数据而非指令,防止提示词注入
      *    (会话标题/预览由用户输入产生,可能含恶意指令)
      *  - 限制条数(RECENT_CHATS_MAX_ENTRIES=10),避免 prompt 膨胀
@@ -978,7 +978,7 @@ Will: <此刻的意志/欲求/想要,1 句>
         """.trimIndent()
 
         /**
-         * 工具使用纪律(借鉴 参考开源项目)。
+         * 工具使用纪律(采用 既有实现)。
          *
          * 明确告诉 LLM 如何正确、高效、安全地使用工具,减少无效调用和循环失败。
          */
@@ -995,7 +995,7 @@ Will: <此刻的意志/欲求/想要,1 句>
         """.trimIndent()
 
         /**
-         * 操作安全提示(借鉴 参考开源项目)。
+         * 操作安全提示(采用 既有实现)。
          *
          * 让 LLM 在操作文件、设备、外部系统前评估可逆性与风险。
          */
@@ -1092,7 +1092,7 @@ Will: <此刻的意志/欲求/想要,1 句>
             sb.appendLine("- 根据群聊上下文自然地参与对话,不要重复其他成员已说过的内容")
             sb.appendLine("- 如果当前话题不需要你发言,使用 channel_pass 跳过")
             sb.appendLine("- 发言时保持你的人格设定和专长领域")
-            // 改造 3: 注入身份防混淆 guidance(per-agent,参考 参考开源项目 _formatChannelIdentityGuidance)
+            // 改造 3: 注入身份防混淆 guidance(per-agent,按 既有实现 _formatChannelIdentityGuidance)
             // 显式约束 LLM 不要把其他角色的人设当成自己的,避免身份混淆。
             sb.appendLine()
             sb.appendLine(buildIdentityGuidance(chatName, currentAgentName, members))
@@ -1100,7 +1100,7 @@ Will: <此刻的意志/欲求/想要,1 句>
         }
 
         /**
-         * 改造 3: 身份防混淆 guidance(参考 参考开源项目 _formatChannelIdentityGuidance)。
+         * 改造 3: 身份防混淆 guidance(按 既有实现 _formatChannelIdentityGuidance)。
          *
          * LLM 在群聊中容易把其他成员的人设/经历/记忆当成自己的,需显式约束:
          *  - 明确"你是谁、群里有谁"

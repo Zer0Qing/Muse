@@ -30,7 +30,7 @@ import kotlin.coroutines.resumeWithException
 /**
  * v1.0.18: Agnes AI 图片生成 Provider。
  *
- * 实现要点(参考 参考开源项目 plugins/image-gen/adapters/agnes.ts):
+ * 实现要点(按 既有实现 plugins/image-gen/adapters/agnes.ts):
  *  - 端点: POST {baseUrl}/images/generations(baseUrl 默认 https://apihub.agnes-ai.com/v1)
  *  - 鉴权: Authorization: Bearer ${apiKey}
  *  - 请求体: { model, prompt, size, extra_body: { response_format: "b64_json", image: [...] } }
@@ -72,7 +72,7 @@ class AgnesImageProvider(
                 .map { resolveReferenceImage(it) }
                 .takeIf { it.isNotEmpty() }
 
-            // extra_body 放 response_format 与参考图(对齐 参考开源项目 agnes 适配器)
+            // extra_body 放 response_format 与参考图(对齐 既有实现 agnes 适配器)
             val body = buildJsonObject {
                 put("model", modelId)
                 put("prompt", request.prompt)
@@ -205,7 +205,7 @@ class AgnesImageProvider(
         /**
          * 比例 → 像素尺寸映射(8 种)。
          *
-         * 与 参考开源项目 AGNES_IMAGE_SIZES 略有差异:4:3 / 3:4 采用 1.5K 像素总量
+         * 与 既有实现 AGNES_IMAGE_SIZES 略有差异:4:3 / 3:4 采用 1.5K 像素总量
          * (1152x896 / 896x1152),与 3:2 / 2:3 保持视觉一致性。
          */
         val SIZE_RATIOS: Map<String, String> = mapOf(
@@ -226,7 +226,7 @@ class AgnesImageProvider(
          * 解析 size 参数:
          *  - 比例("1:1" 等)→ 映射为像素值;
          *  - 直接像素值("1024x1024")→ 在支持集合内则原样返回,否则报错;
-         *  - 空值 → 默认 3:2(对齐 参考开源项目 AGNES_IMAGE_DEFAULTS.ratio)。
+         *  - 空值 → 默认 3:2(对齐 既有实现 AGNES_IMAGE_DEFAULTS.ratio)。
          */
         fun resolveSize(size: String?): String {
             if (size.isNullOrBlank()) return SIZE_RATIOS.getValue("3:2")

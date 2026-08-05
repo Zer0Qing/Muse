@@ -6,7 +6,7 @@ import androidx.compose.ui.graphics.Color
 import io.zer0.muse.R
 import io.zer0.muse.ui.theme.*
 
-// 6. 黑白主题 (Mono - 纯黑白极简风格,参考 GPT/MANUS,默认主题)
+// 6. 黑白主题 (Mono - 纯黑白极简风格,按 GPT/MANUS,默认主题)
 // v1.0.25: 替换原 AMOLED 主题。primary 为纯黑(浅色)/纯白(深色),
 // 全灰阶无品牌色,OLED 省电 + 对比度最高 + 极简质感。
 // ─────────────────────────────────────────────────────────────────────────────

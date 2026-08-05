@@ -32,7 +32,7 @@ import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseHaptics
 
 /**
- * iOS 风格卡片按压效果 — Kelivo 触觉交互核心组件。
+ * iOS 风格卡片按压效果 — 既有实现 触觉交互核心组件。
  *
  * 按下时:
  *  - 背景颜色渐变 (200ms easeOutCubic): 白方向偏移 55% / 黑方向偏移 55%

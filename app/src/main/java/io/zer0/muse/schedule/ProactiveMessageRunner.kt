@@ -40,7 +40,7 @@ import kotlinx.serialization.json.Json
  * 到期则进入"工作台巡检"流程,综合长期记忆/里程碑/经验/设定集构造上下文,
  * 用两阶段 LLM 调用(决策 → 生成)产出一条主动消息,写入当前会话并弹通知。
  *
- * v2.0 重构(参考 QingTian Heartbeat 模式):
+ * v2.0 重构(既有 Heartbeat 模式):
  *  - 5.1: accountAgeDays 从 SharedPreferences `pref_proactive_first_launch` 计算真实账户年龄
  *  - 5.2: 接入 [MoodParser] 从最近 assistant 消息 `<mood>` 标签解析真实情绪
  *  - 5.3: 接入 [ExperienceRepository] / [MilestoneDao] 检测新经验/新里程碑
@@ -51,7 +51,7 @@ import kotlinx.serialization.json.Json
  *  - 5.8: prompt 强约束(系统巡检消息,非用户提问)
  *  - 5.10: 注入长期记忆/设定集/里程碑上下文
  *
- * 设计要点(参考 [ScheduledTaskRunner] 的轮询结构):
+ * 设计要点(按 [ScheduledTaskRunner] 的轮询结构):
  *  - 用协程轮询而非 AlarmManager,避免 Android 后台限制
  *  - 单 Job 控制生命周期,[stop] 取消即可
  *  - [lastTriggeredAt] 持久化在 DataStore,App 重启后不会立即重发
@@ -547,7 +547,7 @@ class ProactiveMessageRunner(
     /**
      * v2.0 5.5: 构造工作台巡检上下文。
      *
-     * 参考 QingTian Heartbeat 模式:工作台巡检 + 文件差量 + 巡检日志 + 隔离执行。
+     * 既有 Heartbeat 模式:工作台巡检 + 文件差量 + 巡检日志 + 隔离执行。
      * 这里"文件差量"映射为"会话差量"(自上次巡检后哪些会话有新消息/新记忆/新里程碑)。
      */
     private suspend fun buildPatrolContext(
@@ -661,7 +661,7 @@ class ProactiveMessageRunner(
     /**
      * v2.0 5.4 & 5.8: 阶段1 — 决策 prompt(只返回 shouldSend + reason + scenario)。
      *
-     * 强约束(参考 QingTian Heartbeat):
+     * 强约束(既有 Heartbeat):
      *  - 明确告知 LLM "这是系统自动触发的巡检消息,不是用户发来的"
      *  - 不要把巡检当作用户提问来回应
      *  - 独立判断是否需要主动发消息,不要向用户提问或等待回复

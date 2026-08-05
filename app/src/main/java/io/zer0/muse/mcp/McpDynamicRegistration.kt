@@ -46,7 +46,7 @@ import java.util.concurrent.TimeUnit
  *  - 动态注册要解决的就是这个"手动配 client_id"痛点
  *  - 注册成功后,把 `clientId` / endpoints 回填到 [McpOAuthConfig],持久化到 DataStore
  *
- * 独立编写(参考 RFC 7591/9728/8414 + MCP 规范),Apache 2.0。
+ * 独立编写(按 RFC 7591/9728/8414 + MCP 规范),Apache 2.0。
  */
 object McpDynamicRegistration {
 

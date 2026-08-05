@@ -3,7 +3,7 @@ package io.zer0.ai.core
 /**
  * v1.97: 模型能力注册表 — 基于模型名 token 匹配自动推导 modalities/abilities。
  *
- * 参考 rikkahub 的 ModelRegistry 设计,核心思路:
+ * 既有实现 的 ModelRegistry 设计,核心思路:
  *  - 将 modelId 切成 token 序列(连续字母 / 连续数字 / 单字符)
  *  - 用 `defineModel { tokens(...); notTokens(...); exact(...); input(...); output(...); ability(...) }`
  *    声明每个模型族的匹配规则与能力
@@ -267,7 +267,7 @@ object ModelRegistry {
     fun tokenRegex(pattern: String): TokenSpec = TokenRegex(pattern.toRegex(RegexOption.IGNORE_CASE))
 
     // ──────────────────────────────────────────────────────────────
-    // 五、模型族定义清单(参考 rikkahub,涵盖主流模型)
+    // 五、模型族定义清单(既有实现,涵盖主流模型)
     // ──────────────────────────────────────────────────────────────
 
     // ── OpenAI 系列 ──

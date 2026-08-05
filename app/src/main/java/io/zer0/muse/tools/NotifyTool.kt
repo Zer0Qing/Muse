@@ -4,7 +4,7 @@ import android.content.Context
 import io.zer0.muse.notification.MuseNotificationManager
 
 /**
- * notify 工具(参考开源项目 notify-tool.ts 移植版)。
+ * notify 工具(既有实现 notify-tool.ts 实现版)。
  *
  * Lets the AI proactively send notifications to the user.
  * Only used when the user explicitly asks for reminders/notifications,

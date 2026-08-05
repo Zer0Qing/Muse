@@ -8,7 +8,7 @@ import kotlinx.serialization.json.Json
 import java.io.File
 
 /**
- * Session file manager (参考开源项目 session-folders-tool.ts port).
+ * Session file manager (既有实现 session-folders-tool.ts port).
  *
  * Each session can have associated files/images stored in app_internal/session_files/{sessionId}/.
  */

@@ -384,7 +384,7 @@ fun SettingsTutorialPage(
  *  - 当前可见章节的所有小节点高亮(onSurface 色 + 7dp),其余为 surfaceVariant
  *  - 点击点:展开所在章节 + 滚动到该章节
  *
- * 设计参考:iOS 通讯录字母索引条 / Play Books 章节进度条。
+ * 设计说明:iOS 通讯录字母索引条 / Play Books 章节进度条。
  */
 @Composable
 private fun SectionQuickJumpRail(

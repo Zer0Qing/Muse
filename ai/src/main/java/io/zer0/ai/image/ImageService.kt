@@ -22,7 +22,7 @@ import java.util.concurrent.ConcurrentHashMap
  *  - 调用方仍用 [generate] 拿到 `List<String>`(URL 或 data URI),保持向后兼容;
  *  - 内部把 [ImageGenParams] 转为 [ImageGenRequest],委托 [ImageProvider] 完成 HTTP 调用;
  *  - 同步任务(provider.submit 直接返回 images)立即返回;
- *  - 异步任务(provider.submit 返回 taskId)启动轮询,参考 QingTian poller:
+ *  - 异步任务(provider.submit 返回 taskId)启动轮询,既有 poller:
  *      5s tick、按任务年龄自适应频率(<2min 每 tick / 2-10min 每 3 tick / 10min+ 每 6 tick)、
  *      连续 5 次错误才判定失败。
  *  - 默认模型不再硬编码 dall-e-3,改为从 [ProviderConfig.models] 筛选
@@ -136,7 +136,7 @@ class ImageService(
     }
 
     /**
-     * 异步任务轮询,参考 QingTian poller:
+     * 异步任务轮询,既有 poller:
      *  - 5s tick;
      *  - 按任务年龄自适应频率(<2min 每 tick / 2-10min 每 3 tick / 10min+ 每 6 tick);
      *  - 连续 5 次错误才判定失败;

@@ -6,7 +6,7 @@ import io.zer0.muse.tools.ToolRiskLevel
 /**
  * 群聊回复工具 — Phone Session 模式下 agent 用此工具发言。
  *
- * 设计参考 参考开源项目 channel-router.ts 的 channel_reply:
+ * 设计按 既有实现 channel-router.ts 的 channel_reply:
  *  - 只有此工具的 content 会写入群聊消息(其他工具不会)
  *  - chatId / senderAssistantId 在工具构造时绑定,LLM 无需也无法传入
  *  - 通过 [onReply] 回调把内容交回调用方(由 GroupChatScheduler 持久化到群聊)

@@ -363,7 +363,7 @@ private fun McpServerAddDialog(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    // 高级字段(参考 ProviderSection 的 showAdvanced 折叠模式)
+    // 高级字段(按 ProviderSection 的 showAdvanced 折叠模式)
     var showAdvanced by remember { mutableStateOf(false) }
     var headersText by remember { mutableStateOf("") }
     var autoReconnect by remember { mutableStateOf(true) }

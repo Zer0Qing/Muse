@@ -131,14 +131,14 @@ class ToolRegistry(private val context: Context) {
     init {
         // 注册内置 7 件套
         // JS 沙盒:让 AI 能执行 JavaScript 代码(数学计算/数据处理/简单算法)
-        // 底层用 WebView 的 V8 引擎,不新增大型依赖(参考 rikkahub QuickJS 思路)
+        // 底层用 WebView 的 V8 引擎,不新增大型依赖(既有实现 QuickJS 思路)
         register(CodeExecutionTool.toolDef()) { args ->
             CodeExecutionTool.executeFromArgs(args, context)
         }
 
         // P2-6: 浏览器自动化工具集(navigate/click/type/extract/scroll_bottom/get_html)
         // 内部创建独立的 BrowserManager 实例(headless WebView,与 Koin 注册的实例分离),
-        // 保证 AI 工具调用与 UI 展示互不干扰(参考 BrowserManager.kt 设计说明)
+        // 保证 AI 工具调用与 UI 展示互不干扰(按 BrowserManager.kt 设计说明)
         val browserManager = BrowserManager(context)
         BrowserAutomationTool.toolDefs().forEach { def ->
             register(def) { args ->

@@ -31,7 +31,7 @@ import io.zer0.muse.ui.theme.MusePaddings
 import kotlinx.coroutines.delay
 
 /**
- * 堆叠式顶部通知系统 — Kelivo 风格。
+ * 堆叠式顶部通知系统 — 既有实现 风格。
  *
  * 最多 3 个同时显示, 从顶部滑入 (300ms easeOutCubic),
  * 堆叠效果: 偏移 8dp / 缩放递减 3% / 透明度递减 20%。

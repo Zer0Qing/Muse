@@ -21,7 +21,7 @@ import kotlinx.coroutines.launch
  *  - 与 ChatStreamCoordinator / ChatMiscCoordinator 同源,均通过 [ChatStateAccessor] 读写 state,
  *    不反向依赖 ChatViewModel。
  *  - launchStream 主体仍保留在 ChatViewModel(因捕获大量闭包变量,完全抽离回归风险高,
- *    参考 project_memory Lessons Learned),其内部对 updateTaskCardPhase / updateTaskCardStep 的调用
+ *    按 project_memory Lessons Learned),其内部对 updateTaskCardPhase / updateTaskCardStep 的调用
  *    通过 ChatViewModel 转发到本 Coordinator。
  */
 class ChatTaskCardCoordinator(

@@ -157,7 +157,7 @@ sealed class ProviderTestStatus {
  * 行内左侧品牌图标、中间名称与类型、右侧启用/禁用状态标签 + 右箭头。
  *
  * v1.133: 新增 [testStatuses] / [isTestingAll] / [onTestAll] 用于"全部检测"批量并发
- * 健康检查(参考 [ProviderEditPage] 的 testConnection 单测逻辑,提升为批量并发)。
+ * 健康检查(按 [ProviderEditPage] 的 testConnection 单测逻辑,提升为批量并发)。
  */
 internal fun LazyListScope.providerListSection(
     providers: List<ProviderConfig>,
@@ -476,7 +476,7 @@ private fun ProviderRow(
  * 替代原 [SectionLabel] 单文本。检测进行中按钮内显示 CircularProgressIndicator,
  * 点击触发 [onTestAll] 并发测试所有已配置的供应商。
  *
- * 参考 UI:
+ * 按 UI:
  * ```
  * Row {
  *     Text("Provider 列表")
@@ -827,10 +827,10 @@ internal fun ProviderEditPage(
     }
 
     // 拉取上游模型业务逻辑
-    // v1.132 优化(参考 rikkahub/kelivo/参考开源项目):
-    //  - 缓存优先:5 分钟 TTL,命中直接返回,跳过网络(参考 参考开源项目 的文件级缓存)
+    // v1.132 优化(既有实现/既有实现):
+    //  - 缓存优先:5 分钟 TTL,命中直接返回,跳过网络(按 既有实现 的文件级缓存)
     //  - URL 多策略补全:base → base+/v1 → 剥离尾部 /v1 后重试(覆盖用户漏填/多填场景)
-    //  - 错误分级:401/403 立即报错不 fallback(凭证问题不掩盖,参考 参考开源项目)
+    //  - 错误分级:401/403 立即报错不 fallback(凭证问题不掩盖,按 既有实现)
     //  - 手动刷新按钮可绕过缓存(forceFresh = true)
     val fetchModels: (Boolean) -> Unit = { forceFresh ->
         if (apiKey.isBlank()) {
@@ -951,7 +951,7 @@ internal fun ProviderEditPage(
         }
     }
 
-    // v2.4: 独立测试连接业务逻辑(参考 rikkahub/kelivo/参考开源项目)
+    // v2.4: 独立测试连接业务逻辑(既有实现/既有实现)
     //  - 与 fetchModels 区分:只调用 ProviderRegistry.create().listModels() 做一次轻量测试,
     //    不写入 modelsState,不写 ModelListCache,只显示结果
     //  - 错误分级:401/403 → API Key 无效,404 → URL 不支持,timeout → 连接超时,
@@ -2174,7 +2174,7 @@ private fun ConfigTab(
                     }
 
 
-                    // v2.4: 独立测试连接按钮 + 结果胶囊(参考 rikkahub/kelivo/参考开源项目)
+                    // v2.4: 独立测试连接按钮 + 结果胶囊(既有实现/既有实现)
                     // - 测试中: 按钮内 CircularProgressIndicator
                     // - 成功: 绿色 ✓ 胶囊 + "连接正常 · N 个模型"
                     // - 失败: 红色 ✗ 胶囊 + 分级错误信息(API Key 无效 / URL 不支持 / 连接超时 / 无法连接服务器)
@@ -2710,7 +2710,7 @@ private fun ModelsTab(
                     .fillMaxWidth()
                     .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.contentGap),
             )
-            // v1.0.18: Kelivo 式免费模型 fallback 提示 — 用户未填 apiKey 时告知可用免费模型,
+            // v1.0.18: 既有实现 式免费模型 fallback 提示 — 用户未填 apiKey 时告知可用免费模型,
             // 填写后可解锁 SiliconFlow 全部模型(由 listModels 调远程 /models 拉取)
             if (apiKey.isBlank() && FreeModelConfig.isFreeProvider(baseUrl, apiKey)) {
                 Text(

@@ -75,7 +75,7 @@ import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
 
 /**
- * 语音对话模式状态机(参考 rikkahub AsrButton + TTSAutoPlay 的循环模型)。
+ * 语音对话模式状态机(既有实现 AsrButton + TTSAutoPlay 的循环模型)。
  *
  * 状态流转:
  *  - IDLE → LISTENING:用户点击主按钮,开始 ASR 录音

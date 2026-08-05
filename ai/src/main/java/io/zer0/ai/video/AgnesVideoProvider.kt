@@ -28,7 +28,7 @@ import kotlin.coroutines.resumeWithException
 /**
  * v1.137: Agnes AI 视频生成 Provider 实现。
  *
- * 对齐参考实现(参考开源项目 plugins/image-gen/adapters/agnes.ts):
+ * 对齐实现说明(既有实现 plugins/image-gen/adapters/agnes.ts):
  *
  * 端点:
  *  - 提交: POST {baseUrl}/videos        (baseUrl 默认 https://apihub.agnes-ai.com/v1)
@@ -258,7 +258,7 @@ class AgnesVideoProvider(
      *  - 若传入值已合法,直接使用
      *  - 否则向下取最近的 8n+1,小于下限则取下限(81),大于上限则取上限(441)
      *
-     * 参考实现:参考开源项目 plugins/image-gen/adapters/agnes.ts resolveVideoFrameCount
+     * 实现说明:既有实现 plugins/image-gen/adapters/agnes.ts resolveVideoFrameCount
      */
     private fun resolveNumFrames(numFrames: Int, frameRate: Int, duration: Int): Int {
         // 若 numFrames 已是合法的 8n+1 且在范围内,直接用

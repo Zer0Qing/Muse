@@ -56,7 +56,7 @@ data class SearchResult(
  * v1.55: HNSW(Hierarchical Navigable Small World)近似最近邻索引。
  *
  * 纯 Kotlin 实现,不引入第三方库(避免依赖膨胀)。
- * 算法参考:Malkov & Yashunin 2016 "Efficient and robust approximate nearest
+ * 算法说明:Malkov & Yashunin 2016 "Efficient and robust approximate nearest
  * neighbor search using Hierarchical Navigable Small World graphs"。
  *
  * 参数:

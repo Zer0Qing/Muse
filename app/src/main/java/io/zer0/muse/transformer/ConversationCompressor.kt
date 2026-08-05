@@ -19,7 +19,7 @@ import kotlinx.coroutines.sync.withPermit
 /**
  * 对话压缩器 — 分块并行 LLM 摘要,使用独立便宜模型。
  *
- * 参考 rikkahub ChatService.compressConversation 的设计思路:
+ * 既有实现 ChatService.compressConversation 的设计思路:
  *  - 把待压缩的历史消息按 [CHUNK_SIZE] 切分为多块
  *  - 每块独立调用 LLM 生成摘要,多块并行(coroutineScope + async)
  *  - 使用独立的"压缩模型"([compressModelIdFlow],用户可配置为便宜模型),

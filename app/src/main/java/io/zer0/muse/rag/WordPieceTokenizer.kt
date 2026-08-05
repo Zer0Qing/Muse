@@ -5,7 +5,7 @@ package io.zer0.muse.rag
  *
  * 用于 [OnnxEmbeddingProvider] / [OnnxRerankProvider] 将文本转换为 BERT 风格的 token 序列。
  *
- * 算法参考 BERT 官方 tokenizer:
+ * 算法按 BERT 官方 tokenizer:
  *  1. 基础分词:小写化、空白分割、标点分割、CJK 单字分割
  *  2. WordPiece:贪婪最长匹配子词,前缀 "##" 表示子词延续
  *  3. 未知 token 映射为 [UNK]

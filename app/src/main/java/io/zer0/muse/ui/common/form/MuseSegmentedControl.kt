@@ -26,7 +26,7 @@ import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseCornerRadius
 
 /**
- * iOS 风格分段选择器 — Kelivo 设计语言通用组件。
+ * iOS 风格分段选择器 — 既有实现 设计语言通用组件。
  *
  * 替代项目中散落的 private MuseSegmentedControl / SegmentedOptionRow 实现,
  * 提供统一的公共 API。动画滑动指示器 + 字号 13sp + emphasis 字重。

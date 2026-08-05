@@ -9,9 +9,9 @@ import android.content.Context
 import kotlinx.coroutines.CoroutineScope
 
 /**
- * Agent 工具注册器（移植自参考开源工具系统）。
+ * Agent 工具注册器（实现自既有工具系统）。
  *
- * 将所有从 参考工具系统移植的工具注册到现有 ToolRegistry：
+ * 将所有从 既有工具系统实现的工具注册到现有 ToolRegistry：
  *  - pin_memory / unpin_memory（Phase 1C）
  *  - recall_experience / record_experience（Phase 3B）
  *  - search_memory（Phase 1 v6）
@@ -99,7 +99,7 @@ class AgentToolsRegistrar(
             SubagentRunSkill.execute(args, subagentRunner)
         }
 
-        // v1.0.53 Phase 1: subagent_close — 主动关闭子 agent 线程(参考开源实现 subagent_close)
+        // v1.0.53 Phase 1: subagent_close — 主动关闭子 agent 线程(既有实现 subagent_close)
         // 主 agent 用此工具释放不再需要的线程;子 agent 内部禁止调用(SubagentRunner RECURSIVE_FORBIDDEN_TOOLS)
         toolRegistry.register(SubagentCloseTool.toolDef()) { args ->
             SubagentCloseTool.execute(args, subagentThreadStore)

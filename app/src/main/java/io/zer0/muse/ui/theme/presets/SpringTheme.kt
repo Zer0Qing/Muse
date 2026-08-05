@@ -6,7 +6,7 @@ import androidx.compose.ui.graphics.Color
 import io.zer0.muse.R
 import io.zer0.muse.ui.theme.*
 
-// 4. 春主题 (清新绿 - 参考 rikkahub SpringTheme)
+// 4. 春主题 (清新绿 - 既有实现 SpringTheme)
 // ─────────────────────────────────────────────────────────────────────────────
 private val SpringPrimary = Color(0xFF4CAF50)
 private val SpringPrimaryLightContainer = Color(0xFFD8F0D9)

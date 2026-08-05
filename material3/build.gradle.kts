@@ -8,7 +8,7 @@
 //
 // 设计决策:
 //  - 不通过 Maven 依赖引入,因为 com.google.android.material:material-color-utilities
-//    未发布到 Maven Central(2026-07 验证);rikkahub 也采用源码直挂方式
+//    未发布到 Maven Central(2026-07 验证);采用源码直挂方式
 //  - 上游源码保留在 material-color-utilities/kotlin/ 子目录,便于版本升级时整体替换
 //  - 模块本身是 Android Library(需要 Compose ColorScheme/Color 类型),不是纯 JVM
 

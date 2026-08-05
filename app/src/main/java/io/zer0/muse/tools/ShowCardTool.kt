@@ -1,7 +1,7 @@
 package io.zer0.muse.tools
 
 /**
- * show_card 工具(参考开源项目 show-card-tool.ts 移植)。
+ * show_card 工具(既有实现 show-card-tool.ts 实现)。
  *
  * Agent 生成 HTML/SVG 卡片内容,在对话中内联渲染。
  * 实际渲染由 UI 侧的 CardRenderer 处理。

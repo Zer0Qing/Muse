@@ -3,7 +3,7 @@ package io.zer0.ai.core
 import kotlinx.serialization.Serializable
 
 /**
- * v1.133: RAG 引用 — 用于在 ChatUI 中渲染"这段回答参考了哪些文档"。
+ * v1.133: RAG 引用 — 用于在 ChatUI 中渲染"这段回答引用了哪些文档"。
  *
  * 由 [io.zer0.muse.rag.RagService.buildInjectionContextWithCitations] 返回,
  * ChatViewModel 注入到 [UIMessage.ragCitations] 字段,

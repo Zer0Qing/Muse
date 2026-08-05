@@ -40,10 +40,10 @@ enum class ProviderCategory {
  * @param balanceResultPath 余额结果 JSON 路径(如 $.data.total_usage)
  * @param category 供应商分类(默认 OFFICIAL,向后兼容旧数据)
  * @param oauthConfig P1-6 OAuth 登录配置(可选);非空时支持 OAuth 自动获取 apiKey
- * @param allowMissingApiKey v1.0.6: 是否允许空 apiKey(对齐 参考开源项目 authType=none/optional)。
+ * @param allowMissingApiKey v1.0.6: 是否允许空 apiKey(对齐 既有实现 authType=none/optional)。
  *   true 时 Provider 不强制要求 apiKey(如 Ollama 本地部署、system-speech 等)。
  *   默认 false(向后兼容,绝大多数供应商需要 apiKey)。
- * @param specId v1.0.7: 内置供应商规格标识(对齐 参考开源项目 BUILTIN_PLUGINS 的 providerId)。
+ * @param specId v1.0.7: 内置供应商规格标识(对齐 既有实现 BUILTIN_PLUGINS 的 providerId)。
  *   非空时标识该配置源自某个内置供应商规格(如 "openai"/"deepseek"/"anthropic"),
  *   运行时 [io.zer0.ai.core.ProviderSpecMerger] 会把 spec 默认模型列表与用户 overlay 合并:
  *    - spec 默认模型 + 用户自定义模型(同 id 去重,用户字段优先)

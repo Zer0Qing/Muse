@@ -19,7 +19,7 @@ import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.ui.theme.MusePaddings
 
 /**
- * AI 回复后的建议气泡 — Kelivo 风格。
+ * AI 回复后的建议气泡 — 既有实现 风格。
  *
  * 在 AI 回复消息下方展示最多 3 个建议回复,用户点击即可快速发送。
  * 背景使用 `primaryContainer@42% alpha` (light) / `white@8% alpha` (dark),

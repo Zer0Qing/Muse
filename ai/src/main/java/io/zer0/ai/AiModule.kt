@@ -108,7 +108,7 @@ class ChatService(
      * 非流式聊天。一次性返回完整结果,适用于 memory 编译、fact 抽取等后台任务。
      * @see [buildProviderRequest] 负责公共前置逻辑。
      *
-     * v1.0.7: 默认 [mode]=[ChatRequestMode.UTILITY](对齐 参考开源项目 callText 硬编码 utility),
+     * v1.0.7: 默认 [mode]=[ChatRequestMode.UTILITY](对齐 既有实现 callText 硬编码 utility),
      *   后台任务无需显式传 mode 即可自动关思考。用户对话路径应调 [streamChat]。
      */
     suspend fun completeText(
@@ -149,7 +149,7 @@ class ChatService(
         // 若模型不支持工具调用则剥离工具
         val effectiveTools = if (enhancedModel.supportsToolCalling()) tools else null
         val provider = ProviderRegistry.create(config)
-        // v1.0.7: UTILITY 模式强制关思考(对齐 参考开源项目 buildProviderCompatOptions)
+        // v1.0.7: UTILITY 模式强制关思考(对齐 既有实现 buildProviderCompatOptions)
         //  在 ChatService 层统一覆盖 reasoningLevel=OFF,所有 Provider(OpenAI/Anthropic/Gemini)
         //  自动生效,无需各 Provider 内部重复判断 mode。
         val effectiveReasoningLevel = if (mode == ChatRequestMode.UTILITY) {

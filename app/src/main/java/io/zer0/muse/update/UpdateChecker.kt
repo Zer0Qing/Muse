@@ -25,7 +25,7 @@ import kotlin.coroutines.resumeWithException
 /**
  * 应用更新检查器 — 通过 GitHub Releases API 拉取最新发布版本。
  *
- * 参考实现:kelivo 项目的 update_provider.dart。
+ * 实现说明:既有实现 项目的 update_provider.dart。
  *
  * 端点:GET https://api.github.com/repos/{repo}/releases/latest
  *  - GitHub API 强制要求 User-Agent header,否则 403
@@ -139,7 +139,7 @@ class UpdateChecker(
     }
 
     /**
-     * 协程可取消的 HTTP 执行 — 参照 ai/ 模块 ProviderHttpSupport / ImageService 的实现。
+     * 协程可取消的 HTTP 执行 — 按 ai/ 模块 ProviderHttpSupport / ImageService 的实现。
      *
      * 用 suspendCancellableCoroutine + enqueue 替代同步 [Call.execute]:
      *  - 协程取消时调用 [Call.cancel],中断阻塞的网络调用

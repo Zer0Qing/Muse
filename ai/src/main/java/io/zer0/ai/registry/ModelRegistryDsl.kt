@@ -135,9 +135,9 @@ class ModelDefinitionBuilder {
     /**
      * v1.0.4: 声明模型支持视觉 grounding(坐标定位)。
      *
-     * @param outputFormat 坐标输出格式:"gemini"(yxyx)/"qwen"(bbox_2d)/"anchor"(visual_anchors)/"hanako"(xyxy 默认)
+     * @param outputFormat 坐标输出格式:"gemini"(yxyx)/"qwen"(bbox_2d)/"anchor"(visual_anchors)/"muse-box"(xyxy 默认)
      */
-    fun visionGrounding(outputFormat: String = "hanako") {
+    fun visionGrounding(outputFormat: String = "muse-box") {
         visionCapabilities = VisionCapabilities(grounding = true, outputFormat = outputFormat)
     }
 

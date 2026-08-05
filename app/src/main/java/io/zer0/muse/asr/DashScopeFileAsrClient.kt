@@ -46,7 +46,7 @@ import java.util.concurrent.TimeUnit
  *    调用方应使用 [recognizeFile] 传 URL,而非 [recognize]。
  *  - 若调用 [recognize],会尝试把 PCM 上传(当前未实现,返回 null)。
  *
- * 独立编写(参考 DashScope 官方文档),Apache 2.0。
+ * 独立编写(按 DashScope 官方文档),Apache 2.0。
  */
 class DashScopeFileAsrClient(
     private val config: AsrConfig,

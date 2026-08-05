@@ -25,7 +25,7 @@ import kotlinx.serialization.json.put
  *    由 GenerationHandler.executeTool(suspend)在 IO 协程中调用,阻塞 IO 线程等待主线程
  *    WebView 回调,主线程未被阻塞,无死锁风险
  *
- * 注册方式(参考 [ToolRegistry.init] 中的 CodeExecutionTool 注册):
+ * 注册方式(按 [ToolRegistry.init] 中的 CodeExecutionTool 注册):
  * ```kotlin
  * BrowserAutomationTool.toolDefs().forEach { def ->
  *     toolRegistry.register(def) { args ->

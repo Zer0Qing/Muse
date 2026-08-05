@@ -47,7 +47,7 @@ import java.util.Base64
  *  - L-VTX2: 改用 java.util.Base64 替代 android.util.Base64(便于 JVM 单元测试)
  *
  * 参考: https://developers.google.com/identity/protocols/oauth2/service-account#jwtset
- * 独立编写(参考 Google 官方文档协议),Apache 2.0。
+ * 独立编写(按 Google 官方文档协议),Apache 2.0。
  */
 class VertexAiAuthToken(
     private val serviceAccountEmail: String,

@@ -97,7 +97,7 @@ class UpdateChecker(
     }
 
     /**
-     * M8: 协程可取消的 HTTP 执行 — 参照 ai/ 模块 ProviderHttpSupport / ImageService 的实现。
+     * M8: 协程可取消的 HTTP 执行 — 按 ai/ 模块 ProviderHttpSupport / ImageService 的实现。
      *
      * 用 suspendCancellableCoroutine + enqueue 替代同步 [Call.execute]:
      *  - 协程取消时调用 [Call.cancel],中断阻塞的网络调用

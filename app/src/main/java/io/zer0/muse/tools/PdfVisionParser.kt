@@ -27,7 +27,7 @@ import java.util.Base64 as JavaBase64
  * 用 Android 系统 [PdfRenderer] 把 PDF 每页渲染成 Bitmap,再用支持视觉的 AI 模型做 OCR,
  * 提取文字与结构。支持扫描版 PDF(图片型,本地 PDFBox 文本提取返回空时降级到此路径)。
  *
- * 设计参考 Operit examples/pdf_vision_parser.ts,关键点:
+ * 设计按 既有实现 examples/pdf_vision_parser.ts,关键点:
  *  - 4 路并发(避免单线程串行 OCR 大 PDF 耗时过长)
  *  - 进度回调(每页 OCR 完成回调一次,UI 可显示 "page X/Y")
  *  - 大页面降采样(targetPageWidth 限制渲染宽度,避免 OOM 与超大 base64)
@@ -215,7 +215,7 @@ class PdfVisionParser(
     companion object {
         private const val TAG = "PdfVisionParser"
 
-        /** 默认 4 路并发(Operit 同款配置,平衡速度与内存)。 */
+        /** 默认 4 路并发(既有实现 同款配置,平衡速度与内存)。 */
         const val DEFAULT_PAGE_CONCURRENCY = 4
 
         /** 默认渲染宽度上限(像素)。A4 @ 96dpi ≈ 794px,1024 略放大保留细节。 */

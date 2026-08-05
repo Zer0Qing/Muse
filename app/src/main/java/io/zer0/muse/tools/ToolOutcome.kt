@@ -1,7 +1,7 @@
 package io.zer0.muse.tools
 
 /**
- * v1.0.53: 工具执行结果(结构化)。参考开源实现 toolOk/toolError。
+ * v1.0.53: 工具执行结果(结构化)。既有实现 toolOk/toolError。
  *
  * 设计:
  *  - [content] 始终为给 LLM 看的文本(保持现有 String 语义)

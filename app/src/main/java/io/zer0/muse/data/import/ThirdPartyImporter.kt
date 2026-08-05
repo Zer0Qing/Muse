@@ -50,7 +50,7 @@ data class ImportResult(
 
 /**
  * v1.61-A: 第三方数据导入器。
- * 支持 RikkaHub 和 Kelivo 两种备份格式。
+ * 支持 既有实现 和 既有实现 两种备份格式。
  */
 object ThirdPartyImporter {
 
@@ -67,7 +67,7 @@ object ThirdPartyImporter {
 
     /**
      * 自动检测备份格式并导入。
-     * @param backupUri SAF URI(backup_*.zip 或 kelivo_backup_*.zip)
+     * @param backupUri SAF URI(backup_*.zip 或 既有实现_backup_*.zip)
      */
     suspend fun importFromUri(
         context: Context,
@@ -132,7 +132,7 @@ object ThirdPartyImporter {
             tempZip.delete()
         }
 
-        // 判断格式:Kelivo 有 chats.json;RikkaHub 有 settings.json 且不含 chats.json
+        // 判断格式:既有实现 有 chats.json;既有实现 有 settings.json 且不含 chats.json
         val settingsJson = entries["settings.json"]?.let { decodeUtf8SkipBom(it) }
         val chatsJson = entries["chats.json"]?.let { decodeUtf8SkipBom(it) }
         val hasKelivoChats = entries.containsKey("chats.json")
@@ -173,8 +173,8 @@ object ThirdPartyImporter {
         return BufferedReader(InputStreamReader(src.inputStream(), StandardCharsets.UTF_8)).readText()
     }
 
-    // ── RikkaHub 导入 ──
-    // RikkaHub 的 settings.json 是 Settings data class 的完整 JSON,含 providers 和 assistants
+    // ── 既有实现 导入 ──
+    // 既有实现 的 settings.json 是 Settings data class 的完整 JSON,含 providers 和 assistants
 
     private suspend fun importRikkaHub(
         context: Context,
@@ -306,8 +306,8 @@ object ThirdPartyImporter {
         )
     }
 
-    // ── Kelivo 导入 ──
-    // Kelivo 的 settings.json 是 SharedPreferences 键值对 JSON
+    // ── 既有实现 导入 ──
+    // 既有实现 的 settings.json 是 SharedPreferences 键值对 JSON
     // chats.json 包含 conversations 和 messages
 
     private suspend fun importKelivo(
@@ -458,8 +458,8 @@ object ThirdPartyImporter {
 
                 // 创建会话并导入消息
                 if (conversationsArr != null) {
-                    // H-IMP3: 预取所有已存在的 assistantId,用于校验/重映射 Kelivo 的 assistantId,
-                    // 避免会话引用到不存在的 assistant(悬空引用)。原导入逻辑直接透传 Kelivo
+                    // H-IMP3: 预取所有已存在的 assistantId,用于校验/重映射 既有实现 的 assistantId,
+                    // 避免会话引用到不存在的 assistant(悬空引用)。原导入逻辑直接透传 既有实现
                     // 的 assistantId,但该 id 在本项目不存在,导致 UI 无法加载助手信息。
                     val existingAssistantIds: Set<String> = assistantRepo.getAll().map { it.id }.toSet()
                     val defaultAssistantId = existingAssistantIds.firstOrNull { it == "default" }
@@ -473,7 +473,7 @@ object ThirdPartyImporter {
                             val title = convObj["title"]?.jsonPrimitive?.contentOrNull ?: context.getString(R.string.import_default_session_title)
                             val rawAssistantId = convObj["assistantId"]?.jsonPrimitive?.contentOrNull
 
-                            // H-IMP3: 校验 assistantId,不存在则尝试映射到本批次导入的 Kelivo 助手,
+                            // H-IMP3: 校验 assistantId,不存在则尝试映射到本批次导入的 既有实现 助手,
                             // 仍不存在则回退到默认助手,杜绝悬空引用。
                             val mappedAssistantId = rawAssistantId?.let { id ->
                                 when {

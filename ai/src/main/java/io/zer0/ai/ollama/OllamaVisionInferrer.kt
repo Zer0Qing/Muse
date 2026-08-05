@@ -13,7 +13,7 @@ package io.zer0.ai.ollama
  *  - 关键字匹配大小写不敏感,覆盖常见视觉/工具模型家族;
  *  - 未命中关键字一律返回 false(保守兜底,避免误报)。
  *
- * 规则参考:
+ * 规则说明:
  *  - 视觉模型家族: llava / llama3.2-vision / qwen2-vl / qwen2.5-vl /
  *    gemma3 / pixtral / moondream / minicpm-v / internvl / phi3-vision 等
  *  - 工具调用模型家族: llama3.1 / llama3.3 / qwen2.5 / qwen3 / mistral /

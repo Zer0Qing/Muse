@@ -39,7 +39,7 @@ data class Model(
     /**
      * v1.0.4: 视觉能力声明(grounding 坐标定位 + 输出格式)。
      *
-     * 参考 参考开源项目 的 `visionCapabilities` 字段。当模型支持在图片上定位物体
+     * 按 既有实现 的 `visionCapabilities` 字段。当模型支持在图片上定位物体
      * (返回坐标框)时设为非 null,VisionBridge 会走 structured+primitives 路径,
      * 让视觉模型不仅描述图片,还返回归一化坐标,纯文本模型可基于坐标说"点击 [320,240]"。
      *
@@ -85,15 +85,15 @@ data class Model(
 /**
  * v1.0.4: 视觉能力声明。
  *
- * 参考 参考开源项目 的 `visionCapabilities` 字段设计。
+ * 按 既有实现 的 `visionCapabilities` 字段设计。
  *
  * @param grounding 是否支持在图片上定位物体(返回坐标框)
  * @param outputFormat 坐标输出格式,决定提示词要求和归一化逻辑:
  *  - "gemini": box_2d: [ymin, xmin, ymax, xmax](Gemini 原生 yxyx,归一化 0-1000)
  *  - "qwen": bbox_2d: [x1, y1, x2, y2] + point_2d: [x, y](Qwen-VL 原生)
  *  - "anchor": visual_anchors 带 role/center/box(Claude computer-use 风格)
- *  - "hanako": box: [x1, y1, x2, y2](Hana 自定义统一格式,xyxy + norm-1000)
- *  - null: 未指定,按 "hanako" 默认格式处理
+ *  - "muse-box": box: [x1, y1, x2, y2](统一坐标格式,xyxy + norm-1000)
+ *  - null: 未指定,按 "muse-box" 默认格式处理
  */
 @Serializable
 data class VisionCapabilities(

@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentHashMap
 /**
  * Phase 9.2 (M22): 轻量 Pebble 兼容模板引擎(独立实现,零依赖)。
  *
- * 参考 Pebble 公开文档的语法规范,自实现子集,不引入 Pebble 依赖
+ * 按 Pebble 公开文档的语法规范,自实现子集,不引入 Pebble 依赖
  * (Pebble 是 JVM 库,Android 上不兼容且会增加 APK 体积)。
  *
  * 支持语法(对标 Pebble 子集):
@@ -51,7 +51,7 @@ import java.util.concurrent.ConcurrentHashMap
  *  - 零依赖(纯 Kotlin,不引入 Pebble/Jinja 库)
  *  - 安全(模板沙箱,无反射无代码执行)
  *  - 简洁(单文件 ~700 行)
- *  - Pebble 语法兼容(便于用户参考 Pebble 文档)
+ *  - Pebble 语法兼容(便于用户按 Pebble 文档)
  *
  * 安全防护(M-TPL1/M-TPL2/M-PE1):
  *  - AST 缓存: 相同模板字符串只 lex+parse 一次(M-TPL1)

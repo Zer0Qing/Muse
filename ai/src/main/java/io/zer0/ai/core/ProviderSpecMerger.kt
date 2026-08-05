@@ -3,18 +3,18 @@ package io.zer0.ai.core
 /**
  * v1.0.7: 内置供应商规格(spec)与用户 overlay 合并器。
  *
- * 对齐 参考开源项目 的三层合并机制(L1 Builtin Plugin 声明 + L3 Provider Catalog overlay),
+ * 对齐 既有实现 的三层合并机制(L1 Builtin Plugin 声明 + L3 Provider Catalog overlay),
  * 在 Android 上的务实落地:
  *  - [ProviderConfig.specId] 非空时,标识该配置源自某个内置供应商规格
  *  - 运行时把 spec 默认模型列表与用户 overlay 模型列表合并(同 id 去重,用户字段优先)
  *  - 内置供应商更新默认模型列表后,已添加的用户自动看到新模型(无需手动重新添加)
  *
- * 与 参考开源项目 的差异:
- *  - 参考开源项目 的 overlay 是稀疏对象(只含用户改过的字段),字段级覆盖
+ * 与 既有实现 的差异:
+ *  - 既有实现 的 overlay 是稀疏对象(只含用户改过的字段),字段级覆盖
  *  - 1muse 的 ProviderConfig 是完整对象,这里只做模型列表合并(核心痛点),
  *    其余字段(baseUrl/displayName/specific 等)保持用户配置优先(用户可能已自定义)
  *
- * 合并策略(对齐 参考开源项目 mergeProviderModelEntries):
+ * 合并策略(对齐 既有实现 mergeProviderModelEntries):
  *  1. spec 默认模型先入(保持默认顺序),同 id 被 user 版本覆盖(用户可能改了 name/contextWindow)
  *  2. user 新增模型追加(不在 spec 中的)
  *  3. spec 或 user 任一为空时,直接返回非空方(不合并)

@@ -8,7 +8,7 @@ package io.zer0.muse.tools
  *  2. <subagent_progress/> — 每轮工具调用进度(轮次/工具名/参数/结果预览)
  *  3. <subagent_result>    — 最终结果(成功/失败 + 总轮次 + 总工具调用数 + 总结文本)
  *
- * 设计原则(参考 Operit examples/subagent):
+ * 设计原则(按 既有实现 examples/subagent):
  *  - XML 标签结构化,便于主 agent 解析和理解子 agent 进度
  *  - 结果预览限制长度,避免撑爆主 agent 上下文
  *  - 失败时仍返回可用信息(已完成的轮次 + 错误原因),让主 agent 决策重试或换路径

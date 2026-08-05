@@ -66,7 +66,7 @@ import io.zer0.muse.ui.theme.semiLarge
  *  - 选中态用 primary 月桂绿 Check 图标点缀(符合"深夜台灯"<5% 品牌色铁律)
  *  - 几乎不用 elevation,靠 surfaceVariant 色块和 divider 分组
  *
- * v1.x: 模型列表改造为分组折叠结构(参考 kelivo ModelGrouping 实现),
+ * v1.x: 模型列表改造为分组折叠结构(既有实现 ModelGrouping 实现),
  *  - 每组头部用 [MuseCardPress] 风格的卡片,点击切换展开/折叠
  *  - 折叠状态用 [rememberSaveable] + 自定义 Saver 持久化(默认折叠)
  *  - 顶部加搜索框过滤模型 id / name
@@ -449,7 +449,7 @@ internal fun ModelSwitchSheet(
  * 分组头部 — iOS 风格可点击卡片,显示组名 + 模型数量 + 展开/折叠箭头。
  *
  * 用 [MuseCardPress] 替代裸 clickable,获得 200ms easeOutCubic 颜色渐变按压效果
- * 和触觉反馈,与项目 Kelivo 风格一致。
+ * 和触觉反馈,与项目 既有实现 风格一致。
  *
  * @param groupName 组名(如 "GPT" / "Claude")
  * @param modelCount 该组模型数量

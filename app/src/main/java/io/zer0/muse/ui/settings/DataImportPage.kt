@@ -47,10 +47,10 @@ import org.koin.compose.koinInject
 /**
  * v1.61-A: 第三方数据导入页。
  *
- * 引导用户从 RikkaHub / Kelivo 备份 ZIP,或 CherryStudio / Chatbox JSON 导入 Provider 配置、助手、会话和消息。
+ * 引导用户从 既有实现 / 既有实现 备份 ZIP,或 CherryStudio / Chatbox JSON 导入 Provider 配置、助手、会话和消息。
  * 页面结构:
  *  1. 顶部说明卡片
- *  2. 选择来源(RikkaHub / Kelivo / CherryStudio / Chatbox),每个卡片含导出步骤折叠说明
+ *  2. 选择来源(既有实现 / 既有实现 / CherryStudio / Chatbox),每个卡片含导出步骤折叠说明
  *  3. 选择备份文件按钮
  *  4. 导入中进度
  *  5. 导入结果(数量统计 + 错误列表)

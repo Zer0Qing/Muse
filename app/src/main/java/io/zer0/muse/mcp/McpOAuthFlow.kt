@@ -34,7 +34,7 @@ import java.util.concurrent.TimeUnit
  *
  * 线程模型:所有网络 IO 在 Dispatchers.IO。
  *
- * 独立编写(参考 RFC 7636 + RFC 6749 + MCP 规范),Apache 2.0。
+ * 独立编写(按 RFC 7636 + RFC 6749 + MCP 规范),Apache 2.0。
  */
 object McpOAuthFlow {
 

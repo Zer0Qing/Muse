@@ -23,7 +23,7 @@ import java.io.File
  * 当 [MediaConfig.ttsEngine] != "system" 时,TtsManager 委托给本服务合成音频。
  * 返回 mp3 字节数组,写入临时文件后交由 MediaPlayer 播放(与系统 TTS 路径一致)。
  *
- * 设计参考 rikkahub 的 TTSProvider 抽象,但简化为单文件多 provider 分发。
+ * 设计既有实现 的 TTSProvider 抽象,但简化为单文件多 provider 分发。
  *
  * v1.99: 增强 —
  *  - 修复 Edge TTS 假域名(改为可配置 endpoint,默认空)
@@ -776,7 +776,7 @@ class CloudTtsService(
     /**
      * xAI TTS — POST {endpoint}/tts
      *
-     * v1.99: 补全占位实现。参考 QingTian XAITTSProvider 契约:
+     * v1.99: 补全占位实现。既有 XAITTSProvider 契约:
      * 请求体: {"text": "...", "voice_id": "...", "language": "..."}
      * 响应: 音频二进制流(mp3)。
      *

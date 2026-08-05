@@ -53,7 +53,7 @@ class SubagentRunner(
     companion object {
         private const val TAG = "SubagentRunner"
 
-        /** 默认最大工具调用次数(参考 Operit examples/subagent)。 */
+        /** 默认最大工具调用次数(按 既有实现 examples/subagent)。 */
         const val DEFAULT_MAX_TOOL_CALLS = 8
 
         /** 工具调用次数硬上限(防止 LLM 失控跑满配额)。 */

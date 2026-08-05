@@ -15,7 +15,7 @@ import io.zer0.ai.core.UIMessage
  *  - 可测试: 每个 Transformer 独立单元测试
  *  - 可配置: 由调用方决定启用哪些 Transformer(如 Assistant 配置)
  *
- * 三钩子设计(参考 rikkahub):
+ * 三钩子设计(既有实现):
  *  - [transform]: 发往 LLM 前的预处理(改消息,影响实际请求)
  *  - [visualTransform]: 流式过程中视觉转换(不改实际消息,仅用于 UI 显示)
  *  - [onGenerationFinish]: 生成完成后的最终处理(可改最终消息)

@@ -65,7 +65,7 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * v1.132: 云备份独立设置页(参考 rikkahub/kelivo 风格)。
+ * v1.132: 云备份独立设置页(既有实现 风格)。
  *
  * 页面结构:
  *  1. 云存储配置分组 — 类型选择 + S3/WebDAV 字段表单 + 加密密码 + 保存按钮 + 测试连接

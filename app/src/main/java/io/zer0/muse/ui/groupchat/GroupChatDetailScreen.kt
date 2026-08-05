@@ -1519,7 +1519,7 @@ private fun GroupChatInputBar(
 ) {
     // @mention 自动补全状态:用户点击外部关闭后置 false,再次输入 @ 触发时置 true
     var showMentionDropdown by remember { mutableStateOf(false) }
-    // 从文本末尾找最后一个 @,若 @ 后无空白则为有效 mention 查询(参考 参考开源项目 channel-mentions)
+    // 从文本末尾找最后一个 @,若 @ 后无空白则为有效 mention 查询(按 既有实现 channel-mentions)
     val mentionQuery: String? = remember(text) {
         val atIndex = text.lastIndexOf('@')
         if (atIndex < 0) return@remember null
@@ -1635,7 +1635,7 @@ private fun GroupChatInputBar(
  * 群聊活动状态栏 — 展示当前轮转中各 agent 的状态 chip。
  *
  * IDLE 状态被过滤不显示;无活动时整个栏不占空间。
- * 参考参考开源项目 ActivityHub UI:紧凑横向 chip 行,每个 chip 含图标 + 名字 + 状态文案;
+ * 既有实现 ActivityHub UI:紧凑横向 chip 行,每个 chip 含图标 + 名字 + 状态文案;
  * REPLYING 态加呼吸动画,ERROR 态用错误配色,NO_REPLY 态弱化展示。
  *
  * @param activities 当前群聊中各 agent 的活动列表
@@ -1967,7 +1967,7 @@ private fun PendingImagesRow(
                         .fillMaxSize()
                         .clip(MuseShapes.semiLarge),
                 )
-                // v1.0.52: 参考 InputBar 的 iOS 风格小圆点设计,避免 48dp 大圆覆盖整张照片。
+                // v1.0.52: 按 InputBar 的 iOS 风格小圆点设计,避免 48dp 大圆覆盖整张照片。
                 // 视觉尺寸 20dp,实际触摸目标 32dp(可点击区域略大于视觉,保证易点)。
                 // offset 偏移到图片右上角外侧,不遮挡图片内容。
                 Box(
@@ -2042,7 +2042,7 @@ private fun MembersDialog(
 /**
  * v1.97: 编辑群聊对话框 — 改名 + 改成员。
  *
- * 参考 [CreateGroupChatDialog] 的样式,预填当前群聊名与已选成员,
+ * 按 [CreateGroupChatDialog] 的样式,预填当前群聊名与已选成员,
  * 保存时调用 [GroupChatViewModel.updateChat]。
  *
  * @param initialName 当前群聊名(预填)

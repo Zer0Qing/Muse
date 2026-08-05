@@ -50,7 +50,7 @@ import java.util.concurrent.atomic.AtomicInteger
  *
  * P1-7: 执行任务后插入一条 execution 记录(success/failed),供 UI 展示执行历史。
  *
- * 真正执行改造(参考 [ProactiveMessageRunner]):
+ * 真正执行改造(按 [ProactiveMessageRunner]):
  *  - 按 task.assistantId 解析助手配置,用其 systemPrompt 作为系统消息
  *  - 调用 [ChatService.completeText](非流式)执行 task.prompt
  *  - 把用户 prompt 和 AI 回复写入一个专用会话(标题用 task.name)

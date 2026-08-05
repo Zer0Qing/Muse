@@ -6,7 +6,7 @@ import androidx.compose.ui.graphics.Color
 import io.zer0.muse.R
 import io.zer0.muse.ui.theme.*
 
-// 5. 秋主题 (橙黄 - 参考 rikkahub AutumnTheme)
+// 5. 秋主题 (橙黄 - 既有实现 AutumnTheme)
 // ─────────────────────────────────────────────────────────────────────────────
 private val AutumnPrimary = Color(0xFFE07A3F)
 private val AutumnPrimaryLightContainer = Color(0xFFFBE0CC)

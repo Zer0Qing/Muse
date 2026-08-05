@@ -26,7 +26,7 @@ object ToolPermissionResolver {
      * 无论会话权限模式如何(TRUSTED/ASK/STRICT),只要命令中出现这些可执行文件名,
      * [isUnsafeCommand] 立即返回 true,调用方必须拒绝执行。
      *
-     * 收录依据(参考 参考开源项目 行动纪律 + 安全最佳实践):
+     * 收录依据(按 既有实现 行动纪律 + 安全最佳实践):
      *  - 文件删除/破坏:rm, rmdir, shred, mkfs
      *  - 权限提升:sudo, su, doas
      *  - 版本控制破坏:git(可 push --force / reset --hard 破坏仓库)
@@ -89,7 +89,7 @@ object ToolPermissionResolver {
      * 作为 shell 类工具(如 [ShellSandboxTool])的第一道防线,在白名单校验之前执行。
      * 返回 true 时调用方必须立即拒绝执行,不进入后续权限/白名单流程。
      *
-     * 设计原则(参考 参考开源项目 行动纪律):
+     * 设计原则(按 既有实现 行动纪律):
      *  - 黑名单优先于白名单:先确认不是已知危险命令,再检查是否在白名单
      *  - 即使会话处于 TRUSTED 模式(全部放权),黑名单仍然生效——这是"硬边界"
      *  - 与 [ShellSandboxTool] 的白名单 + [FORBIDDEN_CHARS] 互补,形成多层防御

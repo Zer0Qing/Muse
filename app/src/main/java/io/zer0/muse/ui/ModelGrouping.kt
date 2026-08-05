@@ -5,7 +5,7 @@ import java.util.Locale
 /**
  * 模型分组工具 — 按 id 前缀正则将模型归入语义族(GPT / Claude / Gemini 等)。
  *
- * 参考 kelivo 的 lib/utils/model_grouping.dart 实现,将散乱的长模型列表
+ * 既有实现 的 lib/utils/model_grouping.dart 实现,将散乱的长模型列表
  * 收拢为有限的若干族,配合折叠 UI 让用户在 50+ 模型时仍能快速找到目标。
  *
  * 分组规则(按 id 前缀正则匹配,大小写不敏感;前缀后必须是分隔符 [-_.] 或结尾):

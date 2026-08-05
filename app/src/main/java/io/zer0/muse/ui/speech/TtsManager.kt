@@ -36,12 +36,12 @@ import java.util.concurrent.atomic.AtomicBoolean
  * 设计选择: 用 Android 框架自带的 TextToSpeech 引擎,0 APK 体积,
  * 与现有 [SpeechInput](系统 Intent ASR)对称 — 系统服务负责输入/输出。
  *
- * v1.4 改造(参考 rikkahub SystemTTSProvider + TtsController):
+ * v1.4 改造(既有实现 SystemTTSProvider + TtsController):
  *  - 不再用 TextToSpeech.speak() 实时播放(无暂停/进度),
  *    改用 synthesizeToFile 写临时 wav 文件 → MediaPlayer 播放
  *  - 用 [TextChunker] 按标点分片,串行合成 + 播放,支持暂停/恢复/快进/速度
  *  - 暴露 [playbackState] StateFlow 给 UI(双圆环进度:片进度 + 片内音频进度)
- *  - 保留单例 TextToSpeech(muse 已有设计,优于 rikkahub 每次新建)
+ *  - 保留单例 TextToSpeech(muse 已有设计,优于 既有实现 每次新建)
  *  - 保留 [speakStream] 流式朗读 + [stripMarkdown] + [applyConfig] 媒体配置
  *
  * 调用关系:

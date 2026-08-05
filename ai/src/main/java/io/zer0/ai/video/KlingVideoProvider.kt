@@ -286,7 +286,7 @@ class KlingVideoProvider(
     }
 
     /**
-     * 协程取消可传播的 OkHttp 请求执行(参考 ImageService.exec)。
+     * 协程取消可传播的 OkHttp 请求执行(按 ImageService.exec)。
      */
     private suspend fun exec(request: Request): Response =
         suspendCancellableCoroutine { cont ->

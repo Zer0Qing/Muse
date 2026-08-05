@@ -34,7 +34,7 @@ import kotlin.coroutines.resume
  *  - [scrollToBottom] 翻页加载更多内容(无限滚动场景)
  *  - [captureScreenshot] 把当前 WebView 渲染为 Base64 PNG
  *
- * 设计要点(参考 [JsSandbox] 的 WebView 沙盒模式):
+ * 设计要点(按 [JsSandbox] 的 WebView 沙盒模式):
  *  - WebView 必须在主线程创建和访问,所有 suspend 函数用 [Dispatchers.Main] 切换
  *  - [evaluateJs] 用 [suspendCancellableCoroutine] + `ValueCallback<String>` 桥接异步回调
  *  - 所有操作 10 秒超时([DEFAULT_TIMEOUT_MS]),用 [withTimeoutOrNull] 包裹避免无限挂起

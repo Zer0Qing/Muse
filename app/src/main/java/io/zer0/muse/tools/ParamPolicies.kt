@@ -3,7 +3,7 @@ package io.zer0.muse.tools
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * v1.0.53: 参数化权限策略注册表(参考开源实现 resolveInvocation)。
+ * v1.0.53: 参数化权限策略注册表(既有实现 resolveInvocation)。
  *
  * 静态风险等级无法表达"同一工具不同参数风险不同"的场景,如:
  *  - open_url: http/https 自动放行,file:// 拒绝,未知协议转审批

@@ -69,7 +69,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * Tool approval card (RikkaHub GenerationHandler.kt port).
+ * Tool approval card (既有实现 GenerationHandler.kt port).
  *
  * Shown when a tool call requires user approval before execution.
  * Displays tool name, argument preview, and approve/deny buttons.

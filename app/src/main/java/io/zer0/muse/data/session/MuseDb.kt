@@ -1104,7 +1104,7 @@ abstract class MuseDb : RoomDatabase() {
         }
 
         /**
-         * 参考工具系统 port: MIGRATION_36_37 — agent_messages table (DM system).
+         * 既有工具系统 port: MIGRATION_36_37 — agent_messages table (DM system).
          */
         val MIGRATION_36_37 = object : Migration(36, 37) {
             override fun migrate(db: SupportSQLiteDatabase) {
@@ -1189,7 +1189,7 @@ abstract class MuseDb : RoomDatabase() {
 
                 // 4. 新建 FTS4 虚拟表
                 // 列名用 text_content 而非 content,避开 FTS4 内部 content 列占位符冲突
-                // 不指定 tokenizer:中文检索由调用方做 ngram 预处理后再写入(参考 MessageFtsManager 模式)
+                // 不指定 tokenizer:中文检索由调用方做 ngram 预处理后再写入(按 MessageFtsManager 模式)
                 db.execSQL("""
                     CREATE VIRTUAL TABLE IF NOT EXISTS knowledge_chunks_fts
                     USING fts4(chunkId, docId, text_content)

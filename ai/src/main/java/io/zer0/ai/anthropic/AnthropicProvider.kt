@@ -90,7 +90,7 @@ class AnthropicProvider(
 
     override fun streamChat(request: ChatRequest): Flow<ChatStreamEvent> = callbackFlow {
         val producerScope = this
-        // v1.0.5: Provider 出口兜底 — 先对 UIMessage 列表做通用清理(对齐 参考开源项目 normalizeProviderPayload)
+        // v1.0.5: Provider 出口兜底 — 先对 UIMessage 列表做通用清理(对齐 既有实现 normalizeProviderPayload)
         val normalizedMessages = ProviderPayloadNormalizer.normalizeMessages(
             request.messages, request.model,
         )
@@ -414,7 +414,7 @@ class AnthropicProvider(
     override suspend fun completeText(request: ChatRequest): ChatCompletion = completeTextImpl(request, 0)
 
     private suspend fun completeTextImpl(request: ChatRequest, keySwitchDepth: Int = 0): ChatCompletion = withContext(Dispatchers.IO) {
-        // v1.0.5: Provider 出口兜底 — 先对 UIMessage 列表做通用清理(对齐 参考开源项目 normalizeProviderPayload)
+        // v1.0.5: Provider 出口兜底 — 先对 UIMessage 列表做通用清理(对齐 既有实现 normalizeProviderPayload)
         val normalizedMessages = ProviderPayloadNormalizer.normalizeMessages(
             request.messages, request.model,
         )
@@ -679,7 +679,7 @@ class AnthropicProvider(
      * v1.80 (L-ANT8): 支持分页,循环请求直到 has_more==false。
      * v1.80 (L-ANT11): 日志 URL 脱敏(移除 query 参数)。
      *
-     * v1.132 优化(参考 rikkahub/kelivo/参考开源项目):
+     * v1.132 优化(既有实现/既有实现):
      *  - 短超时 client(30s),避免分页请求卡顿占用 chat 长连接
      *  - 按 id 去重 + 字母序排序
      *  - 过滤空 id

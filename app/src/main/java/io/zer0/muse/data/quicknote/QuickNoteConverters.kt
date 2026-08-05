@@ -9,7 +9,7 @@ import androidx.room.TypeConverter
  * 反序列化时按逗号切分并 trim,空字符串返回 emptyList。
  *
  * 注意:标签值本身不应包含逗号(QuickNotesScreen UI 仅用 #标签 语法,无逗号),
- * 因此无需转义。若未来需要支持含逗号的标签,改用 JSON 序列化(参考 assistants.tagsJson)。
+ * 因此无需转义。若未来需要支持含逗号的标签,改用 JSON 序列化(按 assistants.tagsJson)。
  */
 class QuickNoteConverters {
     @TypeConverter

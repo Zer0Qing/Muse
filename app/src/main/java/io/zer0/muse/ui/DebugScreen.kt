@@ -716,7 +716,7 @@ private fun levelColor(level: String, colors: MuseStatusColors): Color {
  *    打包全部崩溃日志 + 设备信息,通过 ACTION_SEND 分享
  *  - 每条日志右侧"分享"按钮单独分享该 .txt 文件
  *
- * 设计参考:SafeModeScreen 已有的 shareCrashLog,这里把同一能力在正常模式下复用。
+ * 设计说明:SafeModeScreen 已有的 shareCrashLog,这里把同一能力在正常模式下复用。
  */
 @Composable
 private fun CrashLogSheet(

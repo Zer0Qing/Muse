@@ -1,9 +1,9 @@
 package io.zer0.ai.core
 
 /**
- * v1.0.7: Provider 专属 system prompt 补丁(对齐 参考开源项目 provider-prompt-patches)。
+ * v1.0.7: Provider 专属 system prompt 补丁(对齐 既有实现 provider-prompt-patches)。
  *
- * 设计原则(对齐 参考开源项目):
+ * 设计原则(对齐 既有实现):
  *  - 单一职责:本模块只负责**生成**补丁文本数组,不关心如何注入;
  *    注入由调用方(OpenAIProvider.buildRequestBody / buildResponsesRequestBody)统一处理,
  *    把补丁追加到 system 消息 content 末尾或 Responses API 的 instructions 字段。
@@ -14,7 +14,7 @@ package io.zer0.ai.core
  *  - [deepseekOutputContractPrompt]:DeepSeek 推理模型输出契约
  *    (防止模型只输出 reasoning_content / thinking 而不写 final assistant content)
  *
- * 独立编写,参考 参考开源项目 core/provider-prompt-patches.ts。
+ * 独立编写,按 既有实现 core/provider-prompt-patches.ts。
  */
 object ProviderPromptPatches {
 
@@ -35,7 +35,7 @@ object ProviderPromptPatches {
         reasoningLevel: ReasoningLevel,
         locale: String? = null,
     ): List<String> {
-        // 思考关闭时不注入任何补丁(对齐 参考开源项目 isThinkingOff 判定)
+        // 思考关闭时不注入任何补丁(对齐 既有实现 isThinkingOff 判定)
         if (reasoningLevel == ReasoningLevel.OFF) return emptyList()
 
         val patches = mutableListOf<String>()
@@ -49,7 +49,7 @@ object ProviderPromptPatches {
     }
 
     /**
-     * 判定是否为 DeepSeek 推理模型(对齐 参考开源项目 isDeepSeekReasoningModel)。
+     * 判定是否为 DeepSeek 推理模型(对齐 既有实现 isDeepSeekReasoningModel)。
      *
      * 判定路径(任一命中即视为 DeepSeek 家族,且满足推理模型条件):
      *  1. baseUrl 包含 api.deepseek.com(官方端点)
@@ -58,7 +58,7 @@ object ProviderPromptPatches {
      *  4. thinkingFormat == DEEPSEEK(ProviderCompat 派生结果)
      *
      * 注:不限制 provider — OpenRouter / SiliconFlow / ModelScope 等第三方托管的
-     *   DeepSeek 模型(如 deepseek-ai/DeepSeek-R1)也会命中(对齐 参考开源项目 测试用例)。
+     *   DeepSeek 模型(如 deepseek-ai/DeepSeek-R1)也会命中(对齐 既有实现 测试用例)。
      *
      * @param model 目标模型
      * @param baseUrl Provider 的 baseUrl
@@ -94,7 +94,7 @@ object ProviderPromptPatches {
     }
 
     /**
-     * DeepSeek 推理模型输出契约补丁(对齐 参考开源项目 deepseekOutputContractPrompt)。
+     * DeepSeek 推理模型输出契约补丁(对齐 既有实现 deepseekOutputContractPrompt)。
      *
      * 删除条件:DeepSeek 推理模型在官方与第三方 provider 上都能稳定把用户可见答案
      * 写入 final assistant content 后,可移除此补丁。

@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
 
 /**
- * Agent 间私信系统 (参考开源项目 dm-tool.ts 移植)。
+ * Agent 间私信系统 (既有实现 dm-tool.ts 实现)。
  *
  * Agent 间异步私信,Room 持久化。
  * 支持频道模式回复 (在群聊中以频道消息形式回复)。

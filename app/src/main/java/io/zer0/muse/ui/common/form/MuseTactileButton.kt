@@ -21,7 +21,7 @@ import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseIconSizes
 
 /**
- * iOS 触觉图标按钮 — Kelivo 风格,无涟漪效果。
+ * iOS 触觉图标按钮 — 既有实现 风格,无涟漪效果。
  *
  * 按下时图标颜色渐变 (200ms easeOutCubic),白色/黑色偏移 35%,
  * 替代 Material 标准 IconButton 的涟漪反馈,配合触觉 [MuseHaptics.light] 营造 iOS 质感。
@@ -58,7 +58,7 @@ fun MuseTactileButton(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
-    // Kelivo 核心: 按下时颜色渐变偏移 35% (白方向 → 变浅, 黑方向 → 变深)
+    // 既有实现 核心: 按下时颜色渐变偏移 35% (白方向 → 变浅, 黑方向 → 变深)
     val isLight = MaterialTheme.colorScheme.surface.luminance() > 0.5f
     val pressedColor = if (isLight) {
         tint.copy(

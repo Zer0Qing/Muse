@@ -56,7 +56,7 @@ data class OAuthConfig(
         )
 
         /**
-         * v1.0.6: xAI OAuth Responses 预设(对齐 参考开源项目 xai-oauth)。
+         * v1.0.6: xAI OAuth Responses 预设(对齐 既有实现 xai-oauth)。
          *
          * 与 [XAI_PRESET] 区别:此预设走 OpenAI Responses 协议(openai-responses),
          * baseUrl 指向 xAI OAuth 代理端点 https://cli-chat-proxy.grok.com,

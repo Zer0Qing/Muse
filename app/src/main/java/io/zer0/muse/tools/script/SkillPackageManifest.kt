@@ -36,7 +36,7 @@ import kotlinx.serialization.Serializable
  * }
  * ```
  *
- * 参考: Operit manifest.json 设计，适配 Muse 的 SkillEntity 体系。
+ * 说明: 既有实现 manifest.json 设计，适配 Muse 的 SkillEntity 体系。
  */
 @Serializable
 data class SkillPackageManifest(

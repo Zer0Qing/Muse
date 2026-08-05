@@ -3,7 +3,7 @@ package io.zer0.muse.ui.speech
 /**
  * 文本分片器 — 把长文本按标点切成适合 TTS 朗读的小片。
  *
- * 参考 rikkahub TextChunker 实现:
+ * 既有实现 TextChunker 实现:
  *  - 用 lookbehind 正则 `(?<=[。！？，、：;.!?:,\n])` 按标点切分(标点保留在前片)
  *  - 累积策略:当前片 + 下一段不超过 [maxChunkLength] 就继续累积,超过才切新片
  *  - 硬截断兜底:无标点长段用 chunked(maxChunkLength) 强切,避免单段过长撑爆 TTS 合成

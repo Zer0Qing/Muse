@@ -33,7 +33,7 @@ private const val MAX_LATEX_LENGTH = 5000
  *  - 背景透明,文字色用 MaterialTheme.onBackground
  *
  * 体积对比:
- *  - JLatexMath: ~2MB(但需要 Android 移植版,官方版用 java.awt 不可用)
+ *  - JLatexMath: ~2MB(但需要 Android 实现版,官方版用 java.awt 不可用)
  *  - KaTeX via WebView: ~305KB APK 体积(katex.min.js ~280KB + katex.min.css ~25KB,打包在 assets/vendor/)
  *
  * 局限:

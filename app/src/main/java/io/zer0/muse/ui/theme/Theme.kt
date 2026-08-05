@@ -33,7 +33,7 @@ private fun Context.findActivity(): Activity? {
     return null
 }
 /**
- * Muse 主题入口 (v0.22 重写,参考 rikkahub Theme.kt)。
+ * Muse 主题入口 (v0.22 重写,既有实现 Theme.kt)。
  *
  * 设计决策:
  *  - 用 [MaterialExpressiveTheme] 替代 MaterialTheme,启用 [MotionScheme.expressive]

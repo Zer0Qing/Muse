@@ -9,7 +9,7 @@ import io.zer0.common.Logger
 /**
  * P3-3: 无障碍服务安装器(引导启用)。
  *
- * Operit 方案为内置 APK 安装,但 Muse 采用 library 模块集成(服务已编译进主 APK),
+ * 既有实现 方案为内置 APK 安装,但 Muse 采用 library 模块集成(服务已编译进主 APK),
  * 因此「安装」实质是引导用户到系统设置启用无障碍服务。
  *
  * 职责:

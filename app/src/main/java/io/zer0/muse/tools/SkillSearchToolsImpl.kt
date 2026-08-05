@@ -190,7 +190,7 @@ class SkillSearchToolsImpl(
             sb.appendLine("    URL: ${r.url}")
             sb.appendLine("    摘要: ${r.snippet}")
         }
-        // v1.0.52: 追加搜索结果回答引导(借鉴 openhanako 网页工具纪律)
+        // v1.0.52: 追加搜索结果回答引导(采用 既有实现 网页工具纪律)
         // 让 LLM 综合多网页信息回答,且不说"根据搜索结果"——直接给出答案
         sb.append(context.getString(R.string.skill_search_result_guidance))
         return sb.toString().trimEnd()

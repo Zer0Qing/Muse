@@ -19,7 +19,7 @@ class ScheduledTaskToolsImpl(private val context: Context) {
     // ── v1.0.17: 定时任务工具 ──────────────────────────────────────────
 
     /**
-     * 计算下次执行时间(简化版,参考 ScheduledTaskRunner.computeNextRun)。
+     * 计算下次执行时间(简化版,按 ScheduledTaskRunner.computeNextRun)。
      * - once: 立即(返回 now,由下一轮轮询执行)
      * - hourly/daily/weekly: now + 固定间隔
      * - cron: CronExpression 解析;空串或解析失败返回 0

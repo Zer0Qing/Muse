@@ -5,7 +5,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 /**
- * v1.0.53: 子 agent 全局并发限流器(参考开源实现 workflow 的 createLimiter)。
+ * v1.0.53: 子 agent 全局并发限流器(既有实现 workflow 的 createLimiter)。
  *
  * - 信号量语义:maxConcurrent 同时执行,超出排队(轮询等待)
  * - backstop:累计派发总数超过 maxTotal 直接拒绝(防失控)
@@ -24,7 +24,7 @@ class AgentConcurrencyLimiter(
     private val maxTotal: Int = DEFAULT_MAX_TOTAL,
 ) {
     companion object {
-        /** 参考开源实现:256;手机端保守取 8(本地模型并发能力有限)。 */
+        /** 既有实现:256;手机端保守取 8(本地模型并发能力有限)。 */
         const val DEFAULT_MAX_CONCURRENT = 8
         /** 单次应用生命周期内累计派发上限,防失控。 */
         const val DEFAULT_MAX_TOTAL = 200

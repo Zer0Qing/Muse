@@ -201,7 +201,7 @@ internal fun ThemeSection(
             onSave = { theme ->
                 scope.launch {
                     settings.upsertCustomTheme(theme)
-                    // 保存后自动切换到该主题,与 rikkahub 行为一致
+                    // 保存后自动切换到该主题,与 既有实现 行为一致
                     settings.saveThemeId(theme.id)
                 }
                 showEditDialog = false
@@ -810,7 +810,7 @@ internal fun DefaultHomePageSection(
 
 // ──────────────────────────────────────────────────────────────────────────────
 // v1.97 gap7: 自定义主题 UI(基于种子色生成 ColorScheme)
-// 参考实现:rikkahub SettingThemePage.kt(Apache 2.0)
+// 实现说明:既有实现 SettingThemePage.kt(Apache 2.0)
 // ──────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -818,7 +818,7 @@ internal fun DefaultHomePageSection(
  *
  * 用户在此创建/编辑/删除/选择基于种子色的自定义主题,与上方预设主题区视觉对齐:
  *  - 用 [SectionLabel] + [SettingsGroup] 包裹,与主题模式 / 字号选择区一致
- *  - 顶部固定一行"添加主题"操作行,与 rikkahub 的 FilledTonalButton 等价
+ *  - 顶部固定一行"添加主题"操作行,与 既有实现 的 FilledTonalButton 等价
  *  - 空列表时显示提示文字,避免空白卡片
  *  - 每项 [CustomThemeItemRow] 含 4 色象限色板 + 名称 + 编辑/删除按钮
  */
@@ -893,7 +893,7 @@ private fun CustomThemeSection(
  *
  * 色板用 [Canvas] 绘制 2x2 网格:primaryContainer / secondaryContainer /
  * tertiaryContainer / 中心 primary 圆点(选中时圆点放大并叠加白色对勾)。
- * 与 rikkahub CustomThemeItem 视觉一致,但用 muse 自己的 [MuseShapes] 圆角令牌。
+ * 与 既有实现 CustomThemeItem 视觉一致,但用 muse 自己的 [MuseShapes] 圆角令牌。
  */
 @Composable
 private fun CustomThemeItemRow(
@@ -915,7 +915,7 @@ private fun CustomThemeItemRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        // 4 色象限色板(40dp,与 rikkahub 一致)
+        // 4 色象限色板(40dp,与 既有实现 一致)
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier.size(40.dp),
@@ -999,7 +999,7 @@ private fun CustomThemeItemRow(
  *  - 3 个 [ColorPickerRow](primary/secondary/tertiary)
  *  - [ThemeColorPreview] 实时配色预览
  *
- * 保存按钮在名称为空时禁用(与 rikkahub 行为一致)。
+ * 保存按钮在名称为空时禁用(与 既有实现 行为一致)。
  */
 @Composable
 private fun CustomThemeEditDialog(
@@ -1132,7 +1132,7 @@ private fun CustomThemeEditDialog(
 /**
  * gap7: HSL 颜色选择器 — 圆形色板 + H/S/L 三滑块 + HSL 文本输入。
  *
- * 参考 rikkahub ColorPickerRow,使用 [androidx.core.graphics.ColorUtils] 进行
+ * 既有实现 ColorPickerRow,使用 [androidx.core.graphics.ColorUtils] 进行
  * HSL ↔ Color 转换(与 Android 系统色彩选择器同一实现)。
  *
  * 文本输入支持 `hsl(267 36% 48%)` / `hsl(267, 36%, 48%)` / `267 36 48` 等格式,
@@ -1311,7 +1311,7 @@ private fun ColorSwatch(color: Color, label: String) {
     }
 }
 
-// ── HSL 解析辅助函数(参考 rikkahub SettingThemePage.kt 实现) ──
+// ── HSL 解析辅助函数(既有实现 SettingThemePage.kt 实现) ──
 
 /** HSL 文本输入中匹配数字的正则(支持整数与小数)。 */
 private val hslNumberRegex = Regex("""[-+]?\d*\.?\d+""")

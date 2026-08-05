@@ -24,7 +24,7 @@ import java.io.File
  * - generation_checkpoints / group_chat_generation_ledger 表存在
  * - 历史消息内容与关键列完整保留
  *
- * 实现参考 memory/FactDbMigrationTest：不用 MigrationTestHelper，
+ * 实现按 memory/FactDbMigrationTest：不用 MigrationTestHelper，
  * 改用 FrameworkSQLiteOpenHelperFactory 直接按 schema JSON 建旧库。
  */
 @RunWith(RobolectricTestRunner::class)

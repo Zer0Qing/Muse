@@ -6,7 +6,7 @@
 - [x] P0 rikkahub 重写（8/8 文件）
 - [x] P1 kelivo 机制（6/6）
 - [x] P2 openhanako memory（11 重写 + 注释清理）
-- [ ] P3 ai/app 注释清理
+- [x] P3 ai/app 注释清理
 - [ ] P4 strings + 文档
 
 ## 文件明细
@@ -39,28 +39,38 @@
 | memory/.../deep/DeepMemoryProcessor.kt | 局部重写 | ✅ 完成 | 解析辅助重组，dirty 管线语义保留 |
 | memory/.../compile/MemoryCompiler.kt | 局部重写 | ✅ 完成 | 编译管线内部函数改名，指纹语义不变 |
 | memory P2-C 注释文件 | 注释清理 | ✅ 完成 | 全部 memory 模块外部引用清除 |
+| ai/app P3 注释文件（约 170 文件） | 注释清理 | ✅ 完成 | 外部引用注释全部改写为功能自述 |
+| Model.kt / ModelRegistryDsl.kt / VisionBridge.kt | 特殊项 | ✅ 完成 | 坐标格式名改为 muse-box，旧值 hanako 读兼容 |
+| privacy/PiiGuard.kt / SafetyPolicy.kt | 注释清理 | ✅ 完成 | 规则实现自述 |
 
 ## P0 小结（2026-08-05）
 - 处理文件数：8 重写 + 19 注释/目录清理
-- 编译状态：通过（`:ai:compileDebugKotlin :material3:compileDebugKotlin :app:compileDebugKotlin`）
-- 单测状态：通过（`:ai:testDebugUnitTest :app:testDebugUnitTest`）
+- 编译状态：通过
+- 单测状态：通过
 - 跳过/阻塞项：无
 - 对外接口变更：无
 
 ## P1 小结（2026-08-05）
 - 处理文件数：6/6
-- 编译状态：通过（`:ai:testDebugUnitTest :app:compileDebugKotlin`）
-- 单测状态：通过（`:ai:testDebugUnitTest`）
+- 编译状态：通过
+- 单测状态：通过
 - 跳过/阻塞项：无
 - 对外接口变更：无
 
 ## P2 小结（2026-08-05）
 - 处理文件数：11 重写 + 18 注释文件/目录
-- 编译状态：通过（`:memory:testDebugUnitTest :app:compileDebugKotlin`）
-- 单测状态：通过（`:memory:testDebugUnitTest :app:testDebugUnitTest`）
+- 编译状态：通过
+- 单测状态：通过
 - 跳过/阻塞项：无
-- 对外接口变更：有（LlmBudget 推理缓冲 API 改名、TimeContext 部分函数改名，已同步全部调用方与测试；无语义变化）
-- 下一批预计：P3 ai/app 注释清理
+- 对外接口变更：有（LlmBudget/TimeContext 改名已同步，无语义变化）
+
+## P3 小结（2026-08-05）
+- 处理文件数：约 170 文件（注释清理）+ 3 个 hanako 兼容文件
+- 编译状态：通过（`:ai:compileDebugKotlin :app:compileDebugKotlin :material3:compileDebugKotlin`）
+- 单测状态：通过（`:ai:testDebugUnitTest :app:testDebugUnitTest`）
+- 跳过/阻塞项：无
+- 对外接口变更：无（hanako 旧值保持读兼容）
+- 下一批预计：P4 strings + 文档
 
 ## 遇到的问题（阻塞项）
 - 暂无

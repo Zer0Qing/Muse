@@ -429,7 +429,7 @@ class OpenAIProvider(
         var currentCall: Call? = null
 
         fun connect() {
-            // v1.114 修复: 先 newCall 并持有引用,供 awaitClose cancel(参考 AnthropicProvider)
+            // v1.114 修复: 先 newCall 并持有引用,供 awaitClose cancel(按 AnthropicProvider)
             val call = httpClient.newCall(httpRequest)
             currentCall = call
             currentEventSource = sseFactory.newEventSource(httpRequest, object : EventSourceListener() {

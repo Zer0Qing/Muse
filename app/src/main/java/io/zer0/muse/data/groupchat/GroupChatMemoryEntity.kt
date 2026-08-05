@@ -14,7 +14,7 @@ import kotlinx.serialization.Serializable
  * v2.x: 群聊记忆隔离 — Room 实体。
  *
  * 背景:群聊消息含多个 Agent 的发言,若直接写入助手主记忆会污染主对话上下文。
- * 参考 参考开源项目 的设计:群聊消息摘要写入独立的 fact store,不进入主记忆。
+ * 按 既有实现 的设计:群聊消息摘要写入独立的 fact store,不进入主记忆。
  * 本表即"群聊专属 fact store",与 [io.zer0.memory] 模块的主记忆系统完全隔离。
  *
  * 注入路径:[SystemPromptAssembler] 在主助手构建 system prompt 时,把当前助手关联的

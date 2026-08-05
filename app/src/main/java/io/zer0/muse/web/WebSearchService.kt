@@ -235,7 +235,7 @@ class TavilyProvider(
 /**
  * v1.135: Auto 搜索 Provider — 多引擎 fallback + 低质量结果检测。
  *
- * 参考 参考开源项目 的 web-search.ts 设计:
+ * 按 既有实现 的 web-search.ts 设计:
  *  - 按优先级依次尝试多个 provider,遇到空结果/低质量/异常则自动换下一个
  *  - 检测日期计算器、词典/百科释义等低质量结果并跳过
  *  - 最终结果去重、按查询相关性排序
@@ -510,7 +510,7 @@ class CompositeWebSearchService(
         "Metaso" -> MetasoSearchProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://metaso.cn/api/v1" })
         "Exa" -> ExaSearchProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://api.exa.ai" })
         "Firecrawl" -> FirecrawlProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://api.firecrawl.dev/v1" })
-        // Perplexity AI 搜索 API(sonar-pro 模型 + citations),参考 rikkahub PerplexityService
+        // Perplexity AI 搜索 API(sonar-pro 模型 + citations),既有实现 PerplexityService
         "Perplexity" -> PerplexitySearchProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://api.perplexity.ai" })
         // 默认用 Bing(免费,无需 API key)
         else -> BingProvider(client)
@@ -644,7 +644,7 @@ class BingProvider(
             // 清理 Bing 跟踪跳转链接,还原真实 URL
             rawUrl = cleanBingUrl(rawUrl)
             // v1.131: snippet 多级兜底,应对 Bing 多种结果块模板
-            // 参考 rikkahub/kelivo: .b_caption p / .b_algoSlug 为主,其余为兜底
+            // 既有实现: .b_caption p / .b_algoSlug 为主,其余为兜底
             val snippet = (
                 block.selectFirst(".b_caption p")?.text()
                     ?: block.selectFirst(".b_algoSlug")?.text()
@@ -1182,7 +1182,7 @@ class ExaSearchProvider(
 }
 
 /**
- * Firecrawl 搜索 provider(RikkaHub Firecrawl 移植版)。
+ * Firecrawl 搜索 provider(既有实现 Firecrawl 实现版)。
  *
  * 协议: POST {endpoint}/search,请求体为 JSON。
  * 需要 API key。支持网页抓取与搜索。
@@ -1243,7 +1243,7 @@ class FirecrawlProvider(
 }
 
 /**
- * Perplexity Search Provider — Perplexity AI 搜索 API(参考 rikkahub PerplexityService)。
+ * Perplexity Search Provider — Perplexity AI 搜索 API(既有实现 PerplexityService)。
  *
  * 协议: POST https://api.perplexity.ai/chat/completions
  *  - 请求头: Authorization: Bearer {apiKey},Content-Type: application/json
@@ -1377,7 +1377,7 @@ data class WebSearchConfig(
 ) {
     /**
      * M-04: 返回 apiKey / apiKeys 已加密(走 [SecureKeyStore.encrypt])的副本,供持久化前调用。
-     * 空值原样保留(不加密空值)。参照 WebServerConfig.encrypted 模式。
+     * 空值原样保留(不加密空值)。按 WebServerConfig.encrypted 模式。
      */
     suspend fun encrypted(): WebSearchConfig = copy(
         apiKey = SecureKeyStore.encrypt(apiKey),
@@ -1386,7 +1386,7 @@ data class WebSearchConfig(
 
     /**
      * M-04: 返回 apiKey / apiKeys 已解密(走 [SecureKeyStore.decrypt])的副本,供从持久化层读出后调用。
-     * 旧版明文由 decrypt 透传(兼容)。参照 WebServerConfig.decrypted 模式。
+     * 旧版明文由 decrypt 透传(兼容)。按 WebServerConfig.decrypted 模式。
      *
      * v1.135 兼容:旧版只保存了单 [apiKey],这里把它同步到 [apiKeys] 映射,
      * 使切换到 Auto 模式后仍能使用已配置的 key。

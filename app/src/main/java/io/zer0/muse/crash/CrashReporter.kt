@@ -93,7 +93,7 @@ object NoopCrashReporter : CrashReporter {
  * 符合"上报前必须用户授权"的隐私约束。
  *
  * 限制:无邮件应用时 Intent 会启动失败(安静失败,不影响主流程)。
- *      后续可考虑 fallback 到剪贴板复制(参考 SettingsSubPages.sendFeedback)。
+ *      后续可考虑 fallback 到剪贴板复制(按 SettingsSubPages.sendFeedback)。
  */
 class EmailCrashReporter(
     private val context: Context,

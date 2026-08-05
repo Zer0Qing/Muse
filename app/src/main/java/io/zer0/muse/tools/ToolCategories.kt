@@ -1,7 +1,7 @@
 package io.zer0.muse.tools
 
 /**
- * v1.0.53: 内置工具分类注册表(参考开源实现 shared/tool-categories.ts)。
+ * v1.0.53: 内置工具分类注册表(既有实现 shared/tool-categories.ts)。
  *
  * CORE      — 移除会破坏模型能力,用户不可关闭,不显示在工具列表
  * STANDARD  — 常开内置工具,不显示开关(行为稳定)

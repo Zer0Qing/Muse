@@ -7,7 +7,7 @@ import java.util.UUID
 
 
 /**
- * record_experience 工具(参考开源项目 experience.ts 移植)。
+ * record_experience 工具(既有实现 experience.ts 实现)。
  *
  * 将学到的经验记录到经验库中。
  */

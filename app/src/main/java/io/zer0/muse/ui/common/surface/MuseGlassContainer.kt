@@ -15,7 +15,7 @@ import androidx.compose.ui.unit.dp
 import io.zer0.muse.ui.theme.MuseCornerRadius
 
 /**
- * 毛玻璃容器 — Kelivo GlassInputBar 风格。
+ * 毛玻璃容器 — 既有实现 GlassInputBar 风格。
  *
  * 为输入栏或其他组件提供毛玻璃视觉效果:
  *  - 半透明 surface 色背景

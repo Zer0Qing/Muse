@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * 群聊成员活动状态(参考 参考开源项目 lib/activity-hub.ts 的五态模型)。
+ * 群聊成员活动状态(按 既有实现 lib/activity-hub.ts 的五态模型)。
  *
  * 用于 UI 实时展示每个 Agent 在群聊轮转中的当前阶段,让用户感知"谁在看消息/谁在回复/谁跳过了"。
  * 状态由 [GroupChatActivityHub] 统一管理,GroupChatScheduler 在轮转各阶段 upsert,
@@ -44,12 +44,12 @@ data class AgentActivity(
 )
 
 /**
- * 群聊活动状态管理器(参考 参考开源项目 lib/activity-hub.ts)。
+ * 群聊活动状态管理器(按 既有实现 lib/activity-hub.ts)。
  *
  * 内存广播层 — GroupChatScheduler 在轮转各阶段 upsert 状态,
  * UI 通过 [activities] StateFlow 响应式订阅展示。
  *
- * 与 参考开源项目 ActivityHub 的差异:
+ * 与 既有实现 ActivityHub 的差异:
  *  - 此处只管理群聊维度(groupChatId → List<AgentActivity>),无 sessionPath 概念
  *  - 不做持久化背书(进程重启即清空,历史由消息表保留)
  *  - 状态机更简单:仅五态枚举,无 kind/summary/parentTaskId 等工作流字段

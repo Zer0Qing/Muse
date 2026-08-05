@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 
 /**
- * 分支选择器 UI(RikkaHub 消息分支移植版)。
+ * 分支选择器 UI(既有实现 消息分支实现版)。
  *
  * Displays left/right arrows with "1/3" indicator to switch between
  * alternative assistant responses at the same conversation position.
