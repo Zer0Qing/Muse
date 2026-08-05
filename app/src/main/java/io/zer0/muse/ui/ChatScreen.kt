@@ -1309,14 +1309,7 @@ fun ChatScreen(
                                 }
                                 Box(
                                     modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(
-                                            when (direction) {
-                                                SwipeToDismissBoxValue.StartToEnd -> Color(0xFF34C759)
-                                                SwipeToDismissBoxValue.EndToStart -> Color(0xFF0A84FF)
-                                                else -> Color.Transparent
-                                            }
-                                        ),
+                                        .fillMaxSize(),
                                     contentAlignment = when (direction) {
                                         SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
                                         SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
@@ -1327,7 +1320,7 @@ fun ChatScreen(
                                         Icon(
                                             imageVector = icon,
                                             contentDescription = null,
-                                            tint = Color.White,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.padding(horizontal = MusePaddings.screen),
                                         )
                                     }
