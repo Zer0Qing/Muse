@@ -95,7 +95,7 @@ class OpenAIProvider(
     /**
      * v1.0.7: 是否走 Responses API(/v1/responses 端点)。
      *
-     * 对齐 参考开源项目 的 openai-responses / openai-codex-responses 协议。
+     * 按 OpenAI 官方 Responses API 协议实现。
      * 当 [ProviderSpecificConfig.OpenAI.useResponseApi]=true 时:
      *  - streamChat/completeText 改走 [responsesPath] 端点(默认 /responses)
      *  - 请求体改用 ResponsesRequest 结构(messages → input, system → instructions)
@@ -116,7 +116,7 @@ class OpenAIProvider(
      *
      * v1.0.2 修复 HTTP 400: 移除 v1.135 引入的自动 `substringAfterLast("/")` 剥离逻辑。
      *
-     * 调研三大参考项目(rikkahub / 参考开源项目 / kelivo)结论:全部原样透传 model id,
+     * 兼容实践结论:全部原样透传 model id,
      * 不做前缀剥离。OpenRouter / Console GO / new-api 等中转站明确要求保留 "provider/model"
      * 斜杠前缀(例如 `openai/gpt-4o`、`anthropic/claude-3`),自动剥离会让中转站找不到
      * 模型,返回 HTTP 400 invalid_request_error。
@@ -124,7 +124,7 @@ class OpenAIProvider(
      * v1.135 的自动剥离本是"修复"中转站 400,实际反而成了新的 400 根因。
      *
      * 现策略:
-     * - 默认原样透传(对齐三参考项目)
+     * - 默认原样透传
      * - 用户需要剥离时,显式配置 [ProviderSpecificConfig.OpenAI.stripModelPrefix]
      *   (例如 stripModelPrefix = "openai/",会剥离成 "gpt-4o")
      */
@@ -155,7 +155,7 @@ class OpenAIProvider(
         // v1.0.1: httpRequest 改为 var,429 切换 key 后重新构造
         fun buildHttpRequest(): Request = Request.Builder()
             .url(url)
-            // v1.0.18: 走 Kelivo 式 fallback(用户未填 key + SiliconFlow 白名单模型 → 用内置 key)
+            // v1.0.18: 走免费模型 fallback(用户未填 key + SiliconFlow 白名单模型 → 用内置 key)
             .header("Authorization", "Bearer ${resolveEffectiveApiKey(request.model.id)}")
             .header("Content-Type", "application/json")
             .header("Accept", "text/event-stream")
@@ -185,7 +185,7 @@ class OpenAIProvider(
         val toolCallIndexMap = mutableMapOf<Int, Int>()
         var nextToolCallIndex = 0
         // v1.0.20: stream-guard — 累积 tool_call 的 name / arguments / 已发送标志,
-        //   用于拦截空 name 的无效 tool call 并在 Done 时恢复为 ContentDelta(参考 参考开源项目)
+        //   用于拦截空 name 的无效 tool call 并在 Done 时恢复为 ContentDelta
         val toolCallAccMap = mutableMapOf<Int, ToolCallAccState>()
         // v1.0.21: 防止 emitDoneWithStreamGuard 被双重执行(finishReason + [DONE] 各触发一次),
         //   导致空 name tool call 恢复的文本被发送两遍,产生重复内容。
@@ -210,7 +210,7 @@ class OpenAIProvider(
          * v1.0.20: stream-guard — 在 Done 事件前检查累积的 toolCallAccMap,
          *   把空 name 但有 arguments 的无效 tool call 恢复为 ContentDelta(可见文本)。
          *
-         * 参考 参考开源项目 `recoverInvalidToolCallText`:
+         * 实现 `recoverInvalidToolCallText` 语义:
          *  - 空 name 的 tool call 不能执行(找不到对应工具),原本会被静默丢弃
          *  - 把累积的 arguments 作为正文恢复,让用户看到模型实际生成的内容
          *  - 拦截发生在 Done 事件而非每个 delta,因为流式中 name 可能稍后才到
@@ -485,7 +485,7 @@ class OpenAIProvider(
                         //   从源头减少冗余日志(原商汤会连发 8-10 个空事件触发 diagnose 日志刷屏)
                         if (pendingFallback.get()) return
                         // v1.0.20: stream-guard — Done 事件时检查累积 toolCallAccMap,
-                        //   空 name 的 tool call 恢复为 ContentDelta(参考 参考开源项目)
+                        //   空 name 的 tool call 恢复为 ContentDelta
                         emitDoneWithStreamGuard(null)
                         return
                     }
@@ -629,7 +629,7 @@ class OpenAIProvider(
                         // v1.0.47: 回退进行中时丢弃 finishReason 事件(同 [DONE] 早退逻辑)
                         if (pendingFallback.get()) return
                         // v1.0.20: stream-guard — Done 事件时检查累积 toolCallAccMap,
-                        //   空 name 的 tool call 恢复为 ContentDelta(参考 参考开源项目)
+                        //   空 name 的 tool call 恢复为 ContentDelta
                         emitDoneWithStreamGuard(choice.finishReason)
                     }
                 }
@@ -749,7 +749,7 @@ class OpenAIProvider(
             currentCall?.cancel()
         }
         // v1.0.19: 无界 buffer,防止 EventSource 回调突发投递时 trySend 因内部 channel 满
-        //   而丢片(对齐 rikkahub ChatCompletionsAPI.kt 的 .buffer(Channel.UNLIMITED))。
+        //   而丢片(使用无界 buffer)。
         //   callbackFlow 默认容量有限,UI 卡顿/收集慢时可能丢字。
     }.flowOn(Dispatchers.IO).buffer(Channel.UNLIMITED)
 
@@ -772,7 +772,7 @@ class OpenAIProvider(
         val url = baseUrl() + openAIConfig.chatCompletionsPath
         Logger.i("OpenAIProvider", "completeText: POST $url model=${request.model}")
         // v1.0.1: 用 effectiveApiKey() 支持多 key 轮换
-        // v1.0.18: 走 Kelivo 式 fallback(用户未填 key + SiliconFlow 白名单模型 → 用内置 key)
+        // v1.0.18: 走免费模型 fallback(用户未填 key + SiliconFlow 白名单模型 → 用内置 key)
         val httpRequest = Request.Builder()
             .url(url)
             .header("Authorization", "Bearer ${resolveEffectiveApiKey(request.model.id)}")
@@ -875,15 +875,15 @@ class OpenAIProvider(
      * v1.80 (H-OAI2): 显式 catch CancellationException 并 call.cancel(),
      *   否则 OkHttp Call 会继续阻塞 IO 线程最长 300s(readTimeout),导致协程取消后线程仍被占用。
      *
-     * v1.132 优化(参考 rikkahub/kelivo/参考开源项目 三个项目):
+     * v1.132 优化:
      *  - OpenRouter: 解析 context_length / max_completion_tokens / pricing,
-     *    动态注册到 [ModelContextWindowRegistry](参考 参考开源项目 的三层元信息叠加);
-     *    并附加 HTTP-Referer / X-Title 头(参考 kelivo 的推广/归因头)
-     *  - 过滤异常条目:id 等于 provider 自身 id 的伪模型(参考 参考开源项目 对 DeepSeek 的过滤)
-     *  - 按 id 去重,保留首个(参考 参考开源项目 的 Set 去重)
-     *  - 按 id 字母序排序,便于用户查找(参考 rikkahub 的 sortedBy)
+     *    动态注册到 [ModelContextWindowRegistry](三层元信息叠加);
+     *    并附加 HTTP-Referer / X-Title 归因头
+     *  - 过滤异常条目:id 等于 provider 自身 id 的伪模型(过滤 DeepSeek 伪模型)
+     *  - 按 id 去重,保留首个
+     *  - 按 id 字母序排序,便于用户查找
      *  - 使用独立短超时 client(30s connect + 30s read),避免 listModels 卡顿占用 chat 长连接资源
-     *  - 401/403 不 fallback,直接抛错(凭证问题不掩盖,参考 参考开源项目 的错误分级)
+     *  - 401/403 不 fallback,直接抛错(凭证问题不掩盖,按错误分级处理)
      *
      * v1.0.8 (7.3 / 7.5):
      *  - 服务端 capabilities 多字段名解析:支持 supports_tool_calls / function_calling /
@@ -896,7 +896,7 @@ class OpenAIProvider(
      */
     override suspend fun listModels(config: ProviderConfig): List<Model> = withContext(Dispatchers.IO) {
         val resolvedBaseUrl = config.resolvedBaseUrl()
-        // v1.0.18: Kelivo 式免费模型 provider(SiliconFlow + 用户未填 key)不调远程 /models,
+        // v1.0.18: 免费模型 provider(SiliconFlow + 用户未填 key)不调远程 /models,
         //   直接返回预设的免费模型清单(对齐 FreeModelConfig.FREE_MODEL_IDS)。
         //   避免因无 apiKey 调远程返回 401 / 403,让用户在 SiliconFlow 供应商页面看到
         //   预填的 GLM-4-9B / Qwen3-8B 即可用。用户填 key 后 isFreeProvider 返回 false,
@@ -924,7 +924,7 @@ class OpenAIProvider(
             .url(url)
             .header("Authorization", "Bearer ${config.apiKey}")
             .header("Accept", "application/json")
-        // v1.132: OpenRouter 归因头(参考 kelivo 的 provider_request_headers.dart)
+        // v1.132: OpenRouter 归因头(OpenRouter 官方推荐)
         // 上报应用名 + 来源,既符合 OpenRouter 排名榜规则,也避免被识别为匿名流量
         if (url.contains("openrouter.ai")) {
             builder.header("HTTP-Referer", "https://github.com/zer0/muse")
@@ -1178,7 +1178,7 @@ class OpenAIProvider(
     }
 
     private fun buildRequestBody(request: ChatRequest, stream: Boolean = true): String {
-        // v1.0.7: UTILITY 模式强制关思考(对齐 参考开源项目 buildProviderCompatOptions)
+        // v1.0.7: UTILITY 模式强制关思考
         //  utility 路径(memory 摘要 / fact 抽取 / 视觉辅助等后台短文本任务)无需思考链,
         //  强制 effectiveReasoningLevel = OFF 以省 token + 降延迟。
         val effectiveReasoningLevel = if (request.mode == ChatRequestMode.UTILITY) {
@@ -1205,12 +1205,12 @@ class OpenAIProvider(
         val compat: ProviderCompat = config.resolvedCompat(effectiveModel)
         // v1.0.5: Provider 出口兜底 — 先对 UIMessage 列表做 Provider 无关的通用清理
         //  (stripOrphanToolMessages 删孤儿 TOOL 消息 / stripNativeMediaAttachmentMarkers
-        //   清理冗余图片标记),再做协议翻译。对齐 参考开源项目 normalizeProviderPayload。
+        //   清理冗余图片标记),再做协议翻译。统一 payload 规范化。
         val normalizedMessages = ProviderPayloadNormalizer.normalizeMessages(
             request.messages, request.model,
         )
         // v1.0.7: Provider Prompt Patches — 注入厂商专属 system prompt 补丁
-        //  (对齐 参考开源项目 getProviderPromptPatches,当前仅 DeepSeek 推理模型输出契约)
+        //  (当前仅 DeepSeek 推理模型输出契约)
         //  UTILITY 模式下 effectiveReasoningLevel=OFF,ProviderPromptPatches 内部会跳过注入
         val promptPatches = ProviderPromptPatches.getProviderPromptPatches(
             model = request.model,
@@ -1223,7 +1223,7 @@ class OpenAIProvider(
             model = effectiveModel,
             messages = messagesWithPatches.map { it.toOpenAI(request.model, compat) },
             temperature = request.temperature,
-            // v1.0.2 修复 HTTP 400: max_tokens 范围校验,0/负值视为未设置(对齐 rikkahub/参考开源项目)。
+            // v1.0.2 修复 HTTP 400: max_tokens 范围校验,0/负值视为未设置。
             // 部分 OpenAI 兼容中转站严格校验 max_tokens >= 1,直接发 0 会返回 400 invalid_request_error。
             // null 会被 kotlinx.serialization 忽略,不写入请求体,让上游用默认值。
             max_tokens = request.maxTokens?.takeIf { it > 0 },
@@ -1233,7 +1233,7 @@ class OpenAIProvider(
             // 即使上游(ToolRegistry + SkillExecutor)漏过同名工具,这里也能拦截,
             // 防止 DeepSeek 等严格校验工具名唯一性的 API 返回 400。
             // v1.0.5: stripEmptyTools — 空 tools 列表改为 null,避免序列化出
-            //  `"tools": []` 被严格中转站拒绝(对齐 参考开源项目 stripEmptyTools)。
+            //  `"tools": []` 被严格中转站拒绝。
             tools = if (compat.supportsToolCalling)
                 request.tools?.mapNotNull { it.toOpenAISafely() }?.distinctBy { it.function.name }
                     ?.takeIf { it.isNotEmpty() }
@@ -1241,7 +1241,7 @@ class OpenAIProvider(
             // compat.supportsReasoningEffort=false 时强制不发 reasoning_effort
             //   (如 DeepSeek / Zhipu / Gemini OpenAI 兼容层,各自用 reasoning_content / thinking 字段)
             // v1.0.5: stripDisabledReasoningEffort — 值为 false/none/off 时视为未启用,
-            //   改为 null 不发送(对齐 参考开源项目 stripDisabledReasoningEffort)。
+            //   改为 null 不发送。
             // v1.0.7: thinkingFormat != null 时也不发 reasoning_effort
             //   (改走对应厂商扩展字段,如 thinking / enable_thinking / chat_template_kwargs)
             reasoning_effort = if (compat.supportsReasoningEffort && compat.thinkingFormat == null)
@@ -1249,7 +1249,7 @@ class OpenAIProvider(
             else null,
         )
         // v1.0.7: thinkingFormat 注入 — 按厂商扩展字段构造思考参数
-        // 对齐 参考开源项目 的 thinkingFormat 9 种格式,每种对应不同请求体字段。
+        // 按 thinkingFormat 9 种格式映射请求体字段。
         // 实现:先序列化 OpenAIRequest 为 JsonObject,再按 thinkingFormat 追加/修改字段。
         // UTILITY 模式下 effectiveReasoningLevel=OFF,injectThinkingFormat 会写入 disabled
         val thinkingFormat = compat.thinkingFormat
@@ -1264,7 +1264,7 @@ class OpenAIProvider(
     /**
      * v1.0.7: 按 [ThinkingFormat] 注入厂商扩展思考字段。
      *
-     * 对齐 参考开源项目 thinkingFormat 9 种格式,实现:
+     * 按 thinkingFormat 9 种格式实现:
      *  - [ThinkingFormat.DEEPSEEK]:不发任何思考参数(服务端默认开,仅消费流式 reasoning_content)
      *  - [ThinkingFormat.KIMI]:`thinking: {type: "enabled"|"disabled", keep: false}`
      *  - [ThinkingFormat.QWEN]:`enable_thinking: bool` + 可选 `thinking_budget: int`(HIGH/XHIGH 时发)
@@ -1369,7 +1369,7 @@ class OpenAIProvider(
     }
 
     /**
-     * v1.0.5: 判断 reasoning_effort 值是否为"已禁用"语义(对齐 参考开源项目 isDisabledReasoningEffort)。
+     * v1.0.5: 判断 reasoning_effort 值是否为"已禁用"语义。
      *
      * false / null / 空串 / "none" / "off" / "disabled" 均视为已禁用,不应发送给 API。
      */
@@ -1436,10 +1436,10 @@ class OpenAIProvider(
                 )
             }
             // v1.0.2 修复 HTTP 400: assistant + tool_calls 时 content 为空,改传空字符串而非 JsonNull。
-            // 调研 参考开源项目 (reasoning-content-replay.ts:270-292 ensureAssistantContentForToolCalls):
+            // 按兼容实践:assistant + tool_calls 时 content 规范化为空字符串。
             // 将 null/undefined content 规范化为 "" 空字符串,避免 OpenAI 兼容协议(尤其严格的中转站)
             // 拒绝 content: null 的 assistant 消息。原 L-OAI7 传 JsonNull 在部分中转站会触发 400。
-            // rikkahub (ChatCompletionsAPI.kt:535-614) 也用 content: "" 而非 null。
+            // OpenAI 兼容协议也要求 content 为空字符串而非 null。
             if (role == MessageRole.ASSISTANT && !toolCalls.isNullOrEmpty() && content.isBlank()) {
                 JsonPrimitive("")
             } else {
@@ -1480,7 +1480,7 @@ class OpenAIProvider(
     )
 
     /**
-     * v1.0.7: 计算历史推理回放的 reasoning_content 值(对齐 参考开源项目 reasoning-content-replay)。
+     * v1.0.7: 计算历史推理回放的 reasoning_content 值。
      *
      * 仅当 compat.reasoningReplayContract.carrier == REASONING_CONTENT 时考虑注入
      * (Kimi / DeepSeek / MiMo / Zhipu Chat Completions 协议)。
@@ -1503,14 +1503,14 @@ class OpenAIProvider(
             ReasoningReplayPolicy.NONE -> null
             ReasoningReplayPolicy.PRESERVE -> reasoningText
             ReasoningReplayPolicy.REQUIRE_TOOL_CALL -> {
-                // 仅 ASSISTANT + toolCalls 非空时注入(对齐 参考开源项目 fail-closed 原则)
+                // 仅 ASSISTANT + toolCalls 非空时注入(fail-closed 原则)
                 if (role == MessageRole.ASSISTANT && !toolCalls.isNullOrEmpty()) reasoningText else null
             }
         }
     }
 
     /**
-     * v1.0.7: 把 Provider Prompt Patches 注入到 messages 列表(对齐 参考开源项目 appendSystemPrompt)。
+     * v1.0.7: 把 Provider Prompt Patches 注入到 messages 列表。
      *
      * 注入策略:
      *  - patches 为空:原样返回(不复制,零开销)
@@ -1614,7 +1614,7 @@ class OpenAIProvider(
     // ════════════════════════════════════════════════════════════════════════════
     // v1.0.7: OpenAI Responses API 实现(/v1/responses 端点)
     //
-    // 对齐 参考开源项目 的 openai-responses / openai-codex-responses 协议。
+    // 按 OpenAI 官方 Responses API 协议实现。
     // 与 Chat Completions API 的关键差异:
     //  - 请求体:messages → input;system role → instructions 顶层字段;
     //    max_tokens → max_output_tokens;新增 reasoning: {effort, summary}
@@ -1627,7 +1627,7 @@ class OpenAIProvider(
     /**
      * v1.0.7: Responses API 流式实现。
      *
-     * SSE 事件类型(对齐 参考开源项目 readCodexResponsesStream):
+     * SSE 事件类型(按 Responses API 规范):
      *  - response.output_text.delta:正文增量 → ContentDelta
      *  - response.output_text.done:正文结束(text 兜底)
      *  - response.reasoning_summary_text.delta:推理摘要增量 → ReasoningDelta
@@ -1643,7 +1643,7 @@ class OpenAIProvider(
 
         fun buildHttpRequest(): Request = Request.Builder()
             .url(url)
-            // v1.0.18: 走 Kelivo 式 fallback(用户未填 key + SiliconFlow 白名单模型 → 用内置 key)
+            // v1.0.18: 走免费模型 fallback(用户未填 key + SiliconFlow 白名单模型 → 用内置 key)
             .header("Authorization", "Bearer ${resolveEffectiveApiKey(request.model.id)}")
             .header("Content-Type", "application/json")
             .header("Accept", "text/event-stream")
@@ -1665,7 +1665,7 @@ class OpenAIProvider(
         // output_item.added 事件携带的 function_call 起始信息(id+name)
         val pendingFunctionCalls = mutableMapOf<String, Pair<String, String>>() // item_id → (call_id, name)
         // v1.0.20: stream-guard — 累积 tool_call 的 name / arguments / 已发送标志,
-        //   用于拦截空 name 的无效 tool call 并在 Done 时恢复为 ContentDelta(参考 参考开源项目)
+        //   用于拦截空 name 的无效 tool call 并在 Done 时恢复为 ContentDelta
         val toolCallAccMap = mutableMapOf<Int, ToolCallAccState>()
         // v1.0.21: 防止 emitDoneWithStreamGuard 被双重执行
         val streamGuardDone = AtomicBoolean(false)
@@ -1747,7 +1747,7 @@ class OpenAIProvider(
                     // Responses API 同时用 [DONE] 和 response.completed 作结束标记
                     if (data == "[DONE]") {
                         // v1.0.20: stream-guard — Done 事件时检查累积 toolCallAccMap,
-                        //   空 name 的 tool call 恢复为 ContentDelta(参考 参考开源项目)
+                        //   空 name 的 tool call 恢复为 ContentDelta
                         emitDoneWithStreamGuard(null)
                         return
                     }
@@ -1881,7 +1881,7 @@ class OpenAIProvider(
                                 ))
                             }
                             // v1.0.20: stream-guard — Done 事件时检查累积 toolCallAccMap,
-                            //   空 name 的 tool call 恢复为 ContentDelta(参考 参考开源项目)
+                            //   空 name 的 tool call 恢复为 ContentDelta
                             emitDoneWithStreamGuard(status)
                         }
                     }
@@ -1952,7 +1952,7 @@ class OpenAIProvider(
             currentCall?.cancel()
         }
         // v1.0.19: 无界 buffer,防止 EventSource 回调突发投递时 trySend 因内部 channel 满
-        //   而丢片(对齐 rikkahub ChatCompletionsAPI.kt 的 .buffer(Channel.UNLIMITED))。
+        //   而丢片(使用无界 buffer)。
         //   callbackFlow 默认容量有限,UI 卡顿/收集慢时可能丢字。
     }.flowOn(Dispatchers.IO).buffer(Channel.UNLIMITED)
 
@@ -1970,7 +1970,7 @@ class OpenAIProvider(
         Logger.i("OpenAIProvider", "completeTextResponses: POST $url model=${request.model}")
         val httpRequest = Request.Builder()
             .url(url)
-            // v1.0.18: 走 Kelivo 式 fallback(用户未填 key + SiliconFlow 白名单模型 → 用内置 key)
+            // v1.0.18: 走免费模型 fallback(用户未填 key + SiliconFlow 白名单模型 → 用内置 key)
             .header("Authorization", "Bearer ${resolveEffectiveApiKey(request.model.id)}")
             .header("Content-Type", "application/json")
             .header("Accept", "application/json")
@@ -2071,7 +2071,7 @@ class OpenAIProvider(
         )
         // v1.0.7: compat 派生(Responses API 路径,用于 ProviderPromptPatches 判定)
         val compat: ProviderCompat = config.resolvedCompat(effectiveModel)
-        // v1.0.7: UTILITY 模式强制关思考(对齐 参考开源项目 buildProviderCompatOptions)
+        // v1.0.7: UTILITY 模式强制关思考
         val effectiveReasoningLevel = if (request.mode == ChatRequestMode.UTILITY) {
             io.zer0.ai.core.ReasoningLevel.OFF
         } else {
@@ -2230,7 +2230,7 @@ class OpenAIProvider(
      *  1. 顶层 output_text 字段(若非空直接用)
      *  2. output[] 中 type="message" 的 content[].text(type="output_text" 或 "text")
      *
-     * 不能从 type="reasoning" 的 item 提取文本(对齐 参考开源项目 extractResponsesText)
+     * 不能从 type="reasoning" 的 item 提取文本
      */
     private fun extractResponsesVisibleText(result: ResponsesResult): String {
         result.outputText?.takeIf { it.isNotBlank() }?.let { return it.trim() }
@@ -2317,7 +2317,7 @@ internal class OpenAIHttpException(val code: Int, message: String) : ProviderExc
 /**
  * v1.0.20: stream-guard 累积器 — 累积单个 tool_call 的 name / arguments / 是否已发送。
  *
- * 参考 参考开源项目 `lib/pi-sdk/stream-guard.ts` 的 `invalidToolCalls` 缓冲机制:
+ * 采用 `invalidToolCalls` 缓冲机制:
  *  - 流式中 name 可能为空(小模型生成空 name tool call),此时缓冲 arguments 不发送 ToolCallDelta
  *  - 若 name 在后续 delta 中到达,首次发送时一次性带上累积的 arguments(追赶)
  *  - 若直到 Done 事件 name 仍为空,把累积的 arguments 转为 ContentDelta 恢复为可见文本

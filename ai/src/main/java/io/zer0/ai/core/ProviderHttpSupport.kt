@@ -60,11 +60,9 @@ abstract class ProviderHttpSupport(
      * 单 key 场景(config.apiKey 不含逗号/换行)直接返回原 key,跳过 LRU 逻辑。
      */
     protected fun effectiveApiKey(): String {
-        // 单 key 快速路径(绝大多数用户只有一个 key,避免 ConcurrentHashMap 查询开销)
-        if (!config.apiKey.contains(',') && !config.apiKey.contains('\n')) {
+        if (!hasMultipleKeys()) {
             return config.apiKey.trim()
         }
-        // 多 key 场景:首次或被 pickNext 重置后重新选取
         if (currentApiKey.isBlank() || currentApiKey == config.apiKey) {
             currentApiKey = keyRoulette.pick(config.id, config.apiKey)
         }
@@ -72,9 +70,9 @@ abstract class ProviderHttpSupport(
     }
 
     /**
-     * v1.0.18: 取当前应使用的 API key,Kelivo 式 fallback 兜底。
+     * v1.0.18: 取当前应使用的 API key,带免费模型 fallback 兜底。
      *
-     * 在 [effectiveApiKey] 基础上追加一层免费模型 fallback:
+     * 在 [effectiveApiKey] 基础上追加一层 fallback:
      *  - 用户已填 apiKey(单/多 key)→ 返回用户 key,fallback 不生效
      *  - 用户未填 apiKey + baseUrl 命中 siliconflow + modelId 在白名单
      *    → 返回 [FreeModelConfig.FALLBACK_API_KEY](CI/CD 注入)
@@ -85,7 +83,7 @@ abstract class ProviderHttpSupport(
     protected fun resolveEffectiveApiKey(modelId: String = ""): String {
         val userKey = effectiveApiKey()
         if (userKey.isNotBlank()) return userKey
-        // v1.0.18: Kelivo 式免费模型 fallback(host + modelId 双重白名单校验)
+        // v1.0.18: 免费模型 fallback(host + modelId 双重白名单校验)
         return FreeModelConfig.resolveApiKey(config.resolvedBaseUrl(), modelId, userKey) ?: ""
     }
 
@@ -99,7 +97,7 @@ abstract class ProviderHttpSupport(
      *         false 表示只有一个 key 或切换后仍是同一 key(Provider 应走指数退避)
      */
     protected fun switchToNextKey(): Boolean {
-        if (!config.apiKey.contains(',') && !config.apiKey.contains('\n')) {
+        if (!hasMultipleKeys()) {
             return false
         }
         val previous = currentApiKey
@@ -119,7 +117,7 @@ abstract class ProviderHttpSupport(
      *         false 表示只有一个 key 或所有 key 都已失败
      */
     protected fun markKeyFailed(hardBlock: Boolean = true): Boolean {
-        if (!config.apiKey.contains(',') && !config.apiKey.contains('\n')) {
+        if (!hasMultipleKeys()) {
             return false
         }
         val failedKey = currentApiKey
@@ -128,6 +126,9 @@ abstract class ProviderHttpSupport(
         val newKey = effectiveApiKey()
         return newKey != failedKey
     }
+
+    private fun hasMultipleKeys(): Boolean =
+        config.apiKey.contains(',') || config.apiKey.contains('\n')
 
     companion object {
         /** 错误体最大截取长度(防止超大 HTML 错误页撑爆日志/UI)。 */

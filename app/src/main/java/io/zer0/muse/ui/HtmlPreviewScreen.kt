@@ -41,7 +41,7 @@ import io.zer0.muse.ui.common.feedback.MuseToast
 /**
  * HTML 全屏预览页 — 在 WebView 中渲染 LLM 输出的 HTML / SVG 代码。
  *
- * 参考 kelivo 项目的 html_preview_page.dart / webview_page.dart 实现:
+ * 基于 WebView 的全屏预览实现:
  *  - 顶部 MuseTopBar 标题"HTML 预览" + 返回按钮 + "在浏览器中打开" + "复制源码"
  *  - 中间 WebView 加载 html(loadDataWithBaseURL)
  *  - 启用 JavaScript 与 DOM storage,支持缩放
