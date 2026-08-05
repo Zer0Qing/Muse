@@ -10,6 +10,9 @@ import android.webkit.WebChromeClient
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import kotlinx.coroutines.Dispatchers
@@ -114,6 +117,32 @@ class BrowserManager(private val context: Context) {
                             // 恢复原有 client,避免后续 navigate 拦截器累积
                             view?.webViewClient = previousClient
                             if (cont.isActive) cont.resume(true)
+                        }
+                        override fun onReceivedError(
+                            view: WebView?,
+                            request: WebResourceRequest?,
+                            error: WebResourceError?,
+                        ) {
+                            super.onReceivedError(view, request, error)
+                            if (request?.isForMainFrame != false && cont.isActive) {
+                                val code = error?.errorCode ?: -1
+                                val desc = error?.description?.toString() ?: "页面加载失败"
+                                view?.webViewClient = previousClient
+                                cont.resumeWith(Result.failure(java.io.IOException("页面加载失败($code): $desc")))
+                            }
+                        }
+                        override fun onReceivedHttpError(
+                            view: WebView?,
+                            request: WebResourceRequest?,
+                            errorResponse: WebResourceResponse?,
+                        ) {
+                            super.onReceivedHttpError(view, request, errorResponse)
+                            if (request?.isForMainFrame == true && cont.isActive) {
+                                val code = errorResponse?.statusCode ?: -1
+                                val reason = errorResponse?.reasonPhrase ?: "HTTP 错误"
+                                view?.webViewClient = previousClient
+                                cont.resumeWith(Result.failure(java.io.IOException("HTTP $code: $reason")))
+                            }
                         }
                     }
                     webView.loadUrl(target)

@@ -1831,6 +1831,7 @@ abstract class MuseDb : RoomDatabase() {
         override fun migrate(db: SupportSQLiteDatabase) {
             ensureMessageColumns(db)
             ensureSessionColumns(db)
+            ensureGroupChatMessageColumns(db)
         }
     }
 
@@ -1843,6 +1844,7 @@ abstract class MuseDb : RoomDatabase() {
             ensureGenerationTables(db)
             ensureSessionColumns(db)
             ensureMessageColumns(db)
+            ensureGroupChatMessageColumns(db)
         }
     }
     /**
@@ -1852,11 +1854,13 @@ abstract class MuseDb : RoomDatabase() {
     val MIGRATION_74_75 = object : Migration(74, 75) {
         override fun migrate(db: SupportSQLiteDatabase) {
             ensureMessageColumns(db)
+            ensureGroupChatMessageColumns(db)
         }
     }
     val MIGRATION_73_74 = object : Migration(73, 74) {
         override fun migrate(db: SupportSQLiteDatabase) {
             ensureGenerationTables(db)
+            ensureGroupChatMessageColumns(db)
         }
     }
 
@@ -2030,6 +2034,99 @@ private fun ensureSessionColumns(db: androidx.sqlite.db.SupportSQLiteDatabase) {
             db.execSQL("ALTER TABLE sessions ADD COLUMN $spec")
         }
     }
+}
+
+/**
+ * 按当前 schema 补齐 group_chat_messages 缺失列。
+ *
+ * 旧版本升级链可能跳过群聊消息增强迁移(悄悄话/引用回复/消息类型/附件),
+ * 导致 Room 校验报 "Migration didn't properly handle: group_chat_messages"。
+ * 缺列或关键默认值不符时重建表并复制数据,已满足当前 schema 时直接跳过。
+ */
+private fun ensureGroupChatMessageColumns(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+    val tableExists = db.query(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='group_chat_messages'",
+    ).use { it.moveToFirst() }
+    val expectedColumns = listOf(
+        "id", "chatId", "senderType", "senderId", "senderName", "body",
+        "imageBase64Json", "timestamp", "mood", "reasoning",
+        "whisper_target_id", "reply_to_id", "messageType", "fileAttachmentsJson",
+    )
+    val existing = mutableMapOf<String, String?>()
+    if (tableExists) {
+        db.query("PRAGMA table_info(group_chat_messages)").use { cursor ->
+            while (cursor.moveToNext()) {
+                existing[cursor.getString(1)] = cursor.getString(4)
+            }
+        }
+    }
+
+    val expectedDefaults = mapOf(
+        "imageBase64Json" to "'[]'",
+        "timestamp" to "'0'",
+        "whisper_target_id" to "NULL",
+        "reply_to_id" to "NULL",
+        "messageType" to "'normal'",
+        "fileAttachmentsJson" to "'[]'",
+    )
+    fun defaultMatches(name: String): Boolean {
+        val expected = expectedDefaults[name] ?: return true
+        val actual = existing[name]
+        return if (expected == "NULL") {
+            actual == null || actual.equals("NULL", ignoreCase = true)
+        } else if (name == "timestamp") {
+            actual == "0" || actual == "'0'"
+        } else {
+            actual?.equals(expected, ignoreCase = true) == true
+        }
+    }
+    val complete = tableExists &&
+        expectedColumns.all { it in existing } &&
+        expectedDefaults.keys.all(::defaultMatches)
+    if (complete) return
+
+    val createSql = """
+        CREATE TABLE IF NOT EXISTS group_chat_messages_new (
+            id TEXT NOT NULL PRIMARY KEY,
+            chatId TEXT NOT NULL,
+            senderType TEXT NOT NULL,
+            senderId TEXT NOT NULL,
+            senderName TEXT NOT NULL,
+            body TEXT NOT NULL,
+            imageBase64Json TEXT NOT NULL DEFAULT '[]',
+            timestamp INTEGER NOT NULL DEFAULT 0,
+            mood TEXT,
+            reasoning TEXT,
+            whisper_target_id TEXT DEFAULT NULL,
+            reply_to_id TEXT DEFAULT NULL,
+            messageType TEXT NOT NULL DEFAULT 'normal',
+            fileAttachmentsJson TEXT NOT NULL DEFAULT '[]'
+        )
+    """.trimIndent()
+    db.execSQL("DROP TABLE IF EXISTS group_chat_messages_new")
+    db.execSQL(createSql)
+    if (tableExists) {
+        val fallback = mapOf(
+            "id" to "''", "chatId" to "''", "senderType" to "''", "senderId" to "''",
+            "senderName" to "''", "body" to "''", "imageBase64Json" to "'[]'", "timestamp" to "0",
+            "mood" to "NULL", "reasoning" to "NULL", "whisper_target_id" to "NULL",
+            "reply_to_id" to "NULL", "messageType" to "'normal'", "fileAttachmentsJson" to "'[]'",
+        )
+        val insertColumns = expectedColumns.joinToString(", ") { "`$it`" }
+        val selectExpr = expectedColumns.joinToString(", ") { name ->
+            if (name in existing) "`$name`" else fallback[name] ?: "''"
+        }
+        db.execSQL(
+            "INSERT INTO group_chat_messages_new ($insertColumns) SELECT $selectExpr FROM group_chat_messages"
+        )
+        db.execSQL("DROP TABLE group_chat_messages")
+        db.execSQL("ALTER TABLE group_chat_messages_new RENAME TO group_chat_messages")
+    } else {
+        db.execSQL("ALTER TABLE group_chat_messages_new RENAME TO group_chat_messages")
+    }
+    db.execSQL(
+        "CREATE INDEX IF NOT EXISTS index_group_chat_messages_chatId ON group_chat_messages(chatId)"
+    )
 }
 
 /**

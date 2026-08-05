@@ -638,6 +638,14 @@ fun SettingsAboutPage(
                 ) {
                     ChevronRight()
                 }
+                SettingsGroupDivider()
+                SettingsItemRow(
+                    title = stringResource(R.string.settings_about_join_qq_group),
+                    subtitle = stringResource(R.string.settings_about_join_qq_group_subtitle),
+                    onClick = { openQQGroup(context) },
+                ) {
+                    ChevronRight()
+                }
             }
         }
         // P3-15: 检查更新入口 — 异步请求 GitHub Releases
@@ -828,6 +836,22 @@ private fun openUrl(context: Context, url: String) {
     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
     runCatching { context.startActivity(intent) }.onFailure {
         MuseToast.show(context.getString(R.string.settings_about_open_url_failed))
+    }
+}
+
+/**
+ * 打开 QQ 群卡片;未安装 QQ 时把群号复制到剪贴板并提示。
+ */
+private fun openQQGroup(context: Context) {
+    val uri = Uri.parse(
+        "mqqapi://card/show_pslcard?src_type=internal&version=1&uin=905451314" +
+            "&card_type=group&source=external&jump_from=webui"
+    )
+    val intent = Intent(Intent.ACTION_VIEW, uri)
+    runCatching { context.startActivity(intent) }.onFailure {
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+        clipboard?.setPrimaryClip(ClipData.newPlainText("QQ群号", "905451314"))
+        MuseToast.show(context.getString(R.string.settings_about_qq_not_installed))
     }
 }
 

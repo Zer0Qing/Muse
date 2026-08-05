@@ -207,6 +207,120 @@ class MuseDbMigrationTest {
             context.deleteDatabase(dbFile.name)
         }
     }
+
+    @Test
+    fun migrateLegacyGroupChatMessages_addsMissingColumnsAndKeepsRows() {
+        val dbFile = context.getDatabasePath("muse_migration_groupchat.db").apply {
+            parentFile?.mkdirs()
+            if (exists()) delete()
+        }
+        try {
+            createSchemaAtVersion(68, dbFile.absolutePath)
+            val factory = FrameworkSQLiteOpenHelperFactory()
+            val helper = factory.create(
+                androidx.sqlite.db.SupportSQLiteOpenHelper.Configuration.builder(context)
+                    .name(dbFile.absolutePath)
+                    .callback(object : androidx.sqlite.db.SupportSQLiteOpenHelper.Callback(68) {
+                        override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {}
+                        override fun onUpgrade(
+                            db: androidx.sqlite.db.SupportSQLiteDatabase,
+                            oldVersion: Int,
+                            newVersion: Int,
+                        ) {}
+                    })
+                    .build(),
+            ).writableDatabase
+            helper.execSQL("ALTER TABLE group_chat_messages RENAME TO group_chat_messages_full")
+            helper.execSQL(
+                """
+                CREATE TABLE group_chat_messages (
+                    id TEXT NOT NULL PRIMARY KEY,
+                    chatId TEXT NOT NULL,
+                    senderId TEXT NOT NULL,
+                    body TEXT NOT NULL,
+                    imageBase64Json TEXT NOT NULL DEFAULT '[]',
+                    timestamp INTEGER NOT NULL DEFAULT 0
+                )
+                """.trimIndent()
+            )
+            helper.execSQL(
+                "INSERT INTO group_chat_messages (id, chatId, senderId, body, imageBase64Json, timestamp) " +
+                    "SELECT id, chatId, senderId, body, imageBase64Json, timestamp FROM group_chat_messages_full"
+            )
+            helper.execSQL("DROP TABLE group_chat_messages_full")
+            helper.execSQL("CREATE INDEX IF NOT EXISTS index_group_chat_messages_chatId ON group_chat_messages(chatId)")
+            helper.execSQL(
+                "INSERT INTO group_chat_messages (id, chatId, senderId, body, timestamp) " +
+                    "VALUES ('legacy-group-msg', 'legacy-group', 'u1', '迁移前的群聊消息', 1)"
+            )
+            helper.close()
+
+            val db = Room.databaseBuilder(
+                context,
+                MuseDb::class.java,
+                dbFile.absolutePath,
+            )
+                .addMigrations(MuseDb.MIGRATION_68_74, MuseDb.MIGRATION_74_75)
+                .allowMainThreadQueries()
+                .build()
+            db.openHelper.writableDatabase.query("PRAGMA table_info(group_chat_messages)").use { cursor ->
+                val columns = mutableSetOf<String>()
+                while (cursor.moveToNext()) columns.add(cursor.getString(1))
+                for (name in listOf(
+                    "senderType", "senderName", "mood", "reasoning", "whisper_target_id",
+                    "reply_to_id", "messageType", "fileAttachmentsJson",
+                )) {
+                    assertTrue("迁移后应有 $name 列", name in columns)
+                }
+            }
+            val defaults = mutableMapOf<String, String?>()
+            db.openHelper.writableDatabase.query("PRAGMA table_info(group_chat_messages)").use { cursor ->
+                while (cursor.moveToNext()) defaults[cursor.getString(1)] = cursor.getString(4)
+            }
+            assertEquals("'[]'", defaults["imageBase64Json"])
+            assertEquals("0", defaults["timestamp"])
+            assertEquals("NULL", defaults["whisper_target_id"])
+            assertEquals("NULL", defaults["reply_to_id"])
+            assertEquals("'normal'", defaults["messageType"])
+            assertEquals("'[]'", defaults["fileAttachmentsJson"])
+            db.openHelper.writableDatabase.query(
+                "SELECT senderType, senderName, body, mood, reasoning, whisper_target_id, reply_to_id, messageType, fileAttachmentsJson " +
+                    "FROM group_chat_messages WHERE id='legacy-group-msg'"
+            ).use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("", cursor.getString(0))
+                assertEquals("", cursor.getString(1))
+                assertEquals("迁移前的群聊消息", cursor.getString(2))
+                assertNull(cursor.getString(3))
+                assertNull(cursor.getString(4))
+                assertNull(cursor.getString(5))
+                assertNull(cursor.getString(6))
+                assertEquals("normal", cursor.getString(7))
+                assertEquals("[]", cursor.getString(8))
+            }
+            db.openHelper.writableDatabase.execSQL(
+                "INSERT INTO group_chat_messages (id, chatId, senderType, senderId, senderName, body) " +
+                    "VALUES ('new-group-msg', 'legacy-group', 'assistant', 'a1', '助手', '迁移后写入')"
+            )
+            db.openHelper.writableDatabase.query(
+                "SELECT body, messageType, fileAttachmentsJson, whisper_target_id, reply_to_id, reasoning, mood " +
+                    "FROM group_chat_messages WHERE id='new-group-msg'"
+            ).use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("迁移后写入", cursor.getString(0))
+                assertEquals("normal", cursor.getString(1))
+                assertEquals("[]", cursor.getString(2))
+                assertNull(cursor.getString(3))
+                assertNull(cursor.getString(4))
+                assertNull(cursor.getString(5))
+                assertNull(cursor.getString(6))
+            }
+            db.close()
+        } finally {
+            if (dbFile.exists()) dbFile.delete()
+            context.deleteDatabase(dbFile.name)
+        }
+    }
     private fun createSchemaAtVersion(version: Int, dbPath: String, stripIsLocked: Boolean = false) {
         val schema = loadSchema(version)
         val databaseJson = schema.getJSONObject("database")

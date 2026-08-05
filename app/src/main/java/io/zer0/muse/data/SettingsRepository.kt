@@ -677,7 +677,17 @@ class SettingsRepository(
     }
     /** 进入游客(离线体验)模式 — 跳过登录直接进入主界面。 */
     suspend fun enterGuestMode() {
-        store.edit { prefs -> prefs[KEY_ACCOUNT_GUEST_MODE] = true; prefs[KEY_ACCOUNT_LOGGED_IN] = false; prefs[KEY_ACCOUNT_USER_NAME] = appContext.getString(R.string.settings_repo_guest_name); prefs[KEY_ACCOUNT_LOGIN_AT] = 0L; prefs[KEY_ACCOUNT_LOGIN_METHOD] = "guest" }
+        // 保留引导页/个人资料里已填写的昵称,只有完全没填时才回退为“游客”
+        val profile = getUserProfile()
+        val displayName = profile.userNickName?.takeIf { it.isNotBlank() }
+            ?: appContext.getString(R.string.settings_repo_guest_name)
+        store.edit { prefs ->
+            prefs[KEY_ACCOUNT_GUEST_MODE] = true
+            prefs[KEY_ACCOUNT_LOGGED_IN] = false
+            prefs[KEY_ACCOUNT_USER_NAME] = displayName
+            prefs[KEY_ACCOUNT_LOGIN_AT] = 0L
+            prefs[KEY_ACCOUNT_LOGIN_METHOD] = "guest"
+        }
     }
     suspend fun logout() {
         store.edit { prefs -> prefs[KEY_ACCOUNT_LOGGED_IN] = false; prefs[KEY_ACCOUNT_USER_NAME] = ""; prefs[KEY_ACCOUNT_LOGIN_AT] = 0L; prefs[KEY_ACCOUNT_LOGIN_METHOD] = ""; prefs[KEY_ACCOUNT_GUEST_MODE] = false }

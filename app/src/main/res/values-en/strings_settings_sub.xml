@@ -142,6 +142,10 @@
     <string name="settings_about_account_section">Account</string>
     <string name="settings_about_feedback_cd">Feedback, tap to open</string>
     <string name="settings_about_feedback">Feedback</string>
+    <string name="settings_about_join_qq_group">Join QQ Group</string>
+    <string name="settings_about_join_qq_group_subtitle">QQ Group: 905451314</string>
+    <string name="settings_about_join_qq_group_cd">Join QQ group, tap to open</string>
+    <string name="settings_about_qq_not_installed">QQ not found, group number 905451314 copied to clipboard</string>
     <string name="settings_about_update_check_failed">Update check failed: %1$s</string>
     <string name="settings_about_check_update_prefix">Check for updates, </string>
     <string name="settings_about_checking">Checking</string>

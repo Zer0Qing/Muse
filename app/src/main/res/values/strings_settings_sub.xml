@@ -163,6 +163,10 @@
     <string name="settings_about_account_section">账户</string>
     <string name="settings_about_feedback_cd">反馈,点击进入</string>
     <string name="settings_about_feedback">反馈</string>
+    <string name="settings_about_join_qq_group">加入QQ群</string>
+    <string name="settings_about_join_qq_group_subtitle">QQ群号: 905451314</string>
+    <string name="settings_about_join_qq_group_cd">加入QQ群,点击跳转</string>
+    <string name="settings_about_qq_not_installed">未找到 QQ，群号 905451314 已复制到剪贴板</string>
     <string name="settings_about_update_check_failed">检查更新失败: %1$s</string>
     <string name="settings_about_check_update_prefix">检查更新,</string>
     <string name="settings_about_checking">检查中</string>

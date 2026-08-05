@@ -28,15 +28,16 @@ import io.zer0.muse.R
  * v1.78: 加 withTimeout 防止 LLM 调用挂起导致 daily pipeline 永久卡死;
  *        加 Logger 便于排查记忆编译失败;model 为 null 时显式校验。
  *
- * v1.0.50 (记忆系统修复): 对齐 既有实现 的三层防御:
- *  1. **reasoning 兜底**: 推理模型(DeepSeek-R1 / GLM-Z1 等)服务端强制开思考,
- *     可能把全部输出放进 reasoning_content 而 content 为空。此时用 reasoningContent
- *     兜底,避免记忆链路从源头拿到空字符串导致 memory.md 永远 59 字符占位。
+ * v1.0.50 (记忆系统修复): 记忆 LLM 调用防御:
+ *  1. **结构化 reasoning 兜底**: 推理模型服务端可能把 JSON 结果放进 reasoning_content
+ *     而 content 为空。此时仅当提示词要求 JSON 且 reasoning 中确实包含 JSON 载荷时
+ *     才使用 reasoning;纯思考文本不会作为正文写入,避免污染 memory.md。
  *  2. **think 标签清理**: 部分模型用 `<think>...</think>` 标签包裹输出,在 LLM 客户端
  *     层先清理一道(memory 模块的 [io.zer0.memory.state.CompiledMemoryState] 是第二道)。
  *  3. **reasoning buffer**: 推理模型 +1024 token buffer,防止思考过程挤占可见输出
  *     (使用 `withReasoningHeadroom`)。
- *  4. **空响应报错**: text 和 reasoning 都空时抛错,而非静默返回空串让上层误判成功。
+ *  4. **空响应报错**: text 和 reasoning 都空,或 reasoning 只有思考内容时抛错,
+ *     不让上层把空/伪结果误判为成功。
  *
  * 超时语义(v1.80 L-MEM1): [withTimeout] 超时抛 [kotlinx.coroutines.TimeoutCancellationException]
  * (继承 CancellationException)。下方 catch(CancellationException) 会将其原样向上抛出。
@@ -78,11 +79,18 @@ class MemoryLlmClientImpl(
                         temperature = temperature,
                         maxTokens = effectiveMaxTokens,
                     )
-                    // v1.0.50: reasoning 兜底 — text 为空时用 reasoningContent,
-                    //   避免推理模型把输出全放进 reasoning 导致记忆链路拿到空串
-                    val raw = completion.text.ifBlank { completion.reasoningContent.orEmpty() }
-                    if (raw.isBlank()) {
-                        // text 和 reasoning 都空 → 明确报错,而非静默返回空串让上层误判成功
+                    // 只接受真实正文;纯 reasoning 思考内容不允许进入记忆链路
+                    val raw = resolveMemoryLlmRawText(
+                        systemPrompt = systemPrompt,
+                        text = completion.text,
+                        reasoningContent = completion.reasoningContent,
+                    )
+                    if (raw == null) {
+                        val reasoningLen = completion.reasoningContent?.length ?: 0
+                        Logger.w(
+                            "MemoryLlmClient",
+                            "text 为空且 reasoning 非空但非结构化结果,拒绝写入 (model=${resolvedModel.id}, reasoning=$reasoningLen chars)",
+                        )
                         throw IllegalStateException(
                             context.getString(R.string.memory_llm_empty_response, resolvedModel.id),
                         )
@@ -114,9 +122,13 @@ class MemoryLlmClientImpl(
                                 else -> Unit
                             }
                         }
-                        // v1.0.50: 流式降级同样 reasoning 兜底
-                        val raw = contentSb.toString().ifBlank { reasoningSb.toString() }
-                        if (raw.isBlank()) {
+                        // 流式降级同样只接受真实正文/结构化 JSON,不接收纯思考内容
+                        val raw = resolveMemoryLlmRawText(
+                            systemPrompt = systemPrompt,
+                            text = contentSb.toString(),
+                            reasoningContent = reasoningSb.toString(),
+                        )
+                        if (raw == null) {
                             // v1.0.53: 流式降级后仍为空,优先抛出原始 HTTP 400 错误(如 thinking 字段不支持),
                             // 而非"空响应"错误 — 避免掩盖真正的失败原因(如 UNKNOWN_FIELD: thinking)
                             throw e
@@ -201,7 +213,37 @@ class MemoryLlmClientImpl(
     }
 
     private companion object {
-        /** v1.0.50: 推理模型 buffer token 数(对齐 既有实现 DEFAULT_REASONING_HEADROOM_TOKENS)。 */
+        /** v1.0.50: 推理模型 buffer token 数。 */
         private const val REASONING_BUFFER_TOKENS = 1024
     }
 }
+
+/**
+ * 选择记忆 LLM 的最终正文。
+ *
+ * 规则:
+ *  - 正文非空时永远优先正文;
+ *  - 正文为空时,只有提示词要求 JSON 且 reasoning 中包含 JSON 载荷才使用 reasoning;
+ *  - 其余情况返回 null,由调用方按失败处理,避免把模型思考内容写进记忆。
+ */
+internal fun resolveMemoryLlmRawText(
+    systemPrompt: String,
+    text: String,
+    reasoningContent: String?,
+): String? {
+    val visible = text.trim()
+    if (visible.isNotBlank()) return visible
+
+    val reasoning = reasoningContent?.trim().orEmpty()
+    if (reasoning.isBlank()) return null
+    if (!JSON_OUTPUT_PROMPT_RE.containsMatchIn(systemPrompt)) return null
+    if (!JSON_PAYLOAD_RE.containsMatchIn(reasoning)) return null
+    return reasoning
+}
+
+private val JSON_OUTPUT_PROMPT_RE = Regex(
+    """JSON\s*(?:数组|对象)|严格\s*JSON|strict\s*JSON|JSON\s*(?:array|object)|Output\s+Format""",
+    RegexOption.IGNORE_CASE,
+)
+
+private val JSON_PAYLOAD_RE = Regex("""[\[{][\s\S]*[\]}]""")
