@@ -48,7 +48,7 @@
     <string name="main_activity_clear_flag_and_exit">Borrar bandera y salir</string>
     <string name="main_activity_send_crash_email">Enviar registro de fallos por correo electrónico</string>
     <string name="main_activity_send_crash_email_failed">No se encontró ninguna aplicación de correo electrónico, el registro se copió en el portapapeles</string>
-    <!-- v2.0+: SafeModeScreen new copy (modeled after rikkahub SafeModeActivity) -->
+    <!-- v2.0+: SafeModeScreen new copy  -->
     <string name="safe_mode_warning_title">El último lanzamiento falló</string>
     <string name="safe_mode_continue_normal">Continuar con el inicio normal</string>
     <string name="safe_mode_view_full_log">Ver registro de fallos completo</string>

@@ -38,7 +38,7 @@
     <string name="preset_provider_deepbricks">Ladrillos profundos</string>
     <string name="preset_provider_oneapi">OneAPI (autohospedado)</string>
     <string name="preset_provider_newapi">Nueva API (autohospedada)</string>
-    <!-- v1.0.6: New providers (aligned with openhanako) -->
+    <!-- v1.0.6: New providers  -->
     <string name="preset_provider_hunyuan">Tencent Hunyuan</string>
     <string name="preset_provider_baidu_cloud">Nube de Baidu (ERNIE)</string>
     <string name="preset_provider_modelscope">ModeloScope</string>

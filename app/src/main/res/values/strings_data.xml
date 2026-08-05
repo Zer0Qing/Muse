@@ -38,7 +38,7 @@
     <string name="preset_provider_deepbricks">DeepBricks 中转</string>
     <string name="preset_provider_oneapi">OneAPI 自建中转</string>
     <string name="preset_provider_newapi">NewAPI 自建中转</string>
-    <!-- v1.0.6: 新增供应商(对齐 openhanako) -->
+    <!-- v1.0.6: 新增供应商 -->
     <string name="preset_provider_hunyuan">腾讯混元 Hunyuan</string>
     <string name="preset_provider_baidu_cloud">百度智能云 (文心)</string>
     <string name="preset_provider_modelscope">魔搭 ModelScope</string>

@@ -500,7 +500,7 @@
     <string name="groupchat_context_save">保存</string>
     <string name="groupchat_context_clear">クリア</string>
     <string name="groupchat_edit_member_required">少なくとも 1 人のメンバーを維持してください</string>
-    <!-- ActivityHub: agent activity status chip labels (ref: openhanako ActivityHub five states) -->
+    <!-- ActivityHub: agent activity status chip labels (idle/thinking/working/waiting/done) -->
     <string name="groupchat_activity_viewing">見る</string>
     <string name="groupchat_activity_replying">返信する</string>
     <string name="groupchat_activity_no_reply">スキップしました</string>

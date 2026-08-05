@@ -500,7 +500,7 @@
     <string name="groupchat_context_save">Save</string>
     <string name="groupchat_context_clear">Clear</string>
     <string name="groupchat_edit_member_required">Please keep at least one member</string>
-    <!-- ActivityHub: agent activity status chip labels (ref: openhanako ActivityHub five states) -->
+    <!-- ActivityHub: agent activity status chip labels (idle/thinking/working/waiting/done) -->
     <string name="groupchat_activity_viewing">viewing</string>
     <string name="groupchat_activity_replying">replying</string>
     <string name="groupchat_activity_no_reply">skipped</string>

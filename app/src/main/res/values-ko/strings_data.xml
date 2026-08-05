@@ -38,7 +38,7 @@
     <string name="preset_provider_deepbricks">딥브릭스</string>
     <string name="preset_provider_oneapi">OneAPI(자체 호스팅)</string>
     <string name="preset_provider_newapi">NewAPI(자체 호스팅)</string>
-    <!-- v1.0.6: New providers (aligned with openhanako) -->
+    <!-- v1.0.6: New providers  -->
     <string name="preset_provider_hunyuan">텐센트 훈위안</string>
     <string name="preset_provider_baidu_cloud">바이두 클라우드(ERNIE)</string>
     <string name="preset_provider_modelscope">모델범위</string>

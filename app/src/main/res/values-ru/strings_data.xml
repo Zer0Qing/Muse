@@ -38,7 +38,7 @@
     <string name="preset_provider_deepbricks">DeepBricks</string>
     <string name="preset_provider_oneapi">OneAPI (автономное размещение)</string>
     <string name="preset_provider_newapi">НовыйAPI (самостоятельный)</string>
-    <!-- v1.0.6: New providers (aligned with openhanako) -->
+    <!-- v1.0.6: New providers  -->
     <string name="preset_provider_hunyuan">Тенсент Хунюань</string>
     <string name="preset_provider_baidu_cloud">Облако Baidu (ЭРНИ)</string>
     <string name="preset_provider_modelscope">МодельОбъем</string>

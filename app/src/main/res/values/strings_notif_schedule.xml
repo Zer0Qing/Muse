@@ -48,7 +48,7 @@
     <string name="main_activity_clear_flag_and_exit">清除标记并退出</string>
     <string name="main_activity_send_crash_email">发送崩溃日志到邮箱</string>
     <string name="main_activity_send_crash_email_failed">未找到邮件应用,日志已复制到剪贴板</string>
-    <!-- v2.0+: SafeModeScreen 新增文案(参考 rikkahub SafeModeActivity 设计) -->
+    <!-- v2.0+: SafeModeScreen 新增文案 -->
     <string name="safe_mode_warning_title">上次启动崩溃</string>
     <string name="safe_mode_continue_normal">继续正常启动</string>
     <string name="safe_mode_view_full_log">查看完整崩溃日志</string>

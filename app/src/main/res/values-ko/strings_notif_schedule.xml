@@ -48,7 +48,7 @@
     <string name="main_activity_clear_flag_and_exit">플래그를 지우고 종료</string>
     <string name="main_activity_send_crash_email">이메일로 충돌 로그 보내기</string>
     <string name="main_activity_send_crash_email_failed">이메일 앱을 찾을 수 없습니다. 로그가 클립보드에 복사되었습니다.</string>
-    <!-- v2.0+: SafeModeScreen new copy (modeled after rikkahub SafeModeActivity) -->
+    <!-- v2.0+: SafeModeScreen new copy  -->
     <string name="safe_mode_warning_title">마지막 발사가 중단되었습니다</string>
     <string name="safe_mode_continue_normal">정상 시작 계속</string>
     <string name="safe_mode_view_full_log">전체 충돌 로그 보기</string>

@@ -106,7 +106,7 @@
     <string name="groupchat_context_private_context_empty">未设置</string>
     <string name="groupchat_context_save">保存</string>
     <string name="groupchat_context_clear">清除</string>
-    <!-- ActivityHub: agent 活动状态 chip 文案(参考 openhanako ActivityHub 五态) -->
+    <!-- ActivityHub: agent 活动状态 chip 文案（空闲/思考/工作/等待/完成） -->
     <string name="groupchat_activity_viewing">正在看消息</string>
     <string name="groupchat_activity_replying">正在回复</string>
     <string name="groupchat_activity_no_reply">选择不回复</string>
