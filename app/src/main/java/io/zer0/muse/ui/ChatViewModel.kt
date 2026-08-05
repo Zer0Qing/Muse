@@ -1308,6 +1308,9 @@ class ChatViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             settings.saveChatDraft(sessionId, "")
         }
+        // B7-08: 先取消防抖保存任务,避免发送前输入的旧草稿在清空后又被写回。
+        draftSaveJob?.cancel()
+        draftSaveJob = null
         val sendResult = sendChannel.trySend(SendRequest(text, images, sessionId, userMessage = userMsg, assistantMessageId = assistantMsg.id, outboxId = outboxId))
         if (sendResult.isFailure) {
             // 队列已满,回滚乐观更新 + 删除 outbox(消息未入队,outbox 无用)

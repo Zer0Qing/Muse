@@ -42,7 +42,7 @@ private fun Context.findActivity(): Activity? {
 
 /** 完全无绘制的 indication，避免 clickable/combinedClickable 出现黑色/深色遮罩。 */
 private class NoIndicationNode : Modifier.Node(), DrawModifierNode {
-    override fun ContentDrawScope.draw() {}
+    override fun ContentDrawScope.draw() { drawContent() }
 }
 
 private object NoIndicationNodeFactory : IndicationNodeFactory {
