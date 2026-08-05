@@ -309,4 +309,24 @@ class ConversationTreeTest {
         assertEquals(2, afterRetry.userNodes.first().currentVariant?.assistantNodes?.first()?.variants?.size)
         assertEquals("修改后的提问", afterRetry.selectedUserVariant?.content)
     }
+
+    @Test
+    fun mergeRebuildMessages_preservesRetryVariantsAndNewMessages() {
+        val u1 = user("提问1", group = "ug1", at = 100)
+        val a1 = assistant("回答1", group = "ag1", index = 0, count = 2, parentGroup = u1.id.toString(), at = 101)
+        val a2 = assistant("回答2", group = "ag1", index = 1, count = 2, parentGroup = u1.id.toString(), at = 102)
+        val tree = ConversationTree.build(listOf(u1, a1, a2))
+
+        // 当前显示只包含当前选中的重试版本,合并后必须保留旧版本。
+        val merged = mergeRebuildMessages(tree, tree.displayMessages)
+        assertEquals(listOf("提问1", "回答1", "回答2"), merged.map { it.content })
+        val rebuilt = ConversationTree.build(merged, tree)
+        assertEquals(2, rebuilt.userNodes.first().currentVariant?.assistantNodes?.first()?.variants?.size)
+
+        // 新追加的用户消息/助手占位不在旧树中,也必须进入合并结果。
+        val u2 = user("提问2")
+        val placeholder = assistant("", group = "ag2", parentGroup = u2.id.toString(), at = u2.createdAt + 1)
+        val mergedWithNew = mergeRebuildMessages(tree, tree.displayMessages + u2 + placeholder)
+        assertEquals(listOf("提问1", "回答1", "回答2", "提问2", ""), mergedWithNew.map { it.content })
+    }
 }

@@ -76,6 +76,7 @@ import io.zer0.muse.tools.ToolRiskLevel
 import io.zer0.muse.chat.PendingToolCallStore
 import io.zer0.muse.data.chat.ConversationTree
 import io.zer0.muse.data.chat.ConversationTreeSnapshotStore
+import io.zer0.muse.data.chat.mergeRebuildMessages
 import io.zer0.muse.transformer.ContextCompressTransformer
 import io.zer0.muse.transformer.LorebookTransformer
 import io.zer0.muse.transformer.MemoryInjectionTransformer
@@ -3830,7 +3831,8 @@ class ChatViewModel(
         }
         // 流式期间 _messages 是扁平事实源;旧树 flat 可能落后于新追加的消息,
         // 若只用 flat 映射会把新用户消息/助手占位丢掉,导致新一轮生成看不到历史。
-        val messages = _messages.value
+        // 旧树 flat 保留全部重试/编辑分支,current 保留最新内容与新追加消息,二者按 id 合并。
+        val messages = mergeRebuildMessages(currentTree, _messages.value)
         if (messages.isEmpty()) {
             _conversationTree.value = ConversationTree()
             _conversationTreeSessionId = sessionId

@@ -464,6 +464,16 @@ data class ConversationTree(
     }
 }
 
+/** 重建树时合并旧树全部分支与当前扁平显示，保证新消息不丢、旧重试/编辑分支保留。 */
+fun mergeRebuildMessages(tree: ConversationTree, current: List<UIMessage>): List<UIMessage> {
+    val flat = tree.allFlatMessages
+    if (flat.isEmpty()) return current
+    val merged = linkedMapOf<String, UIMessage>()
+    flat.forEach { merged[it.id.toString()] = it }
+    current.forEach { merged[it.id.toString()] = it }
+    return merged.values.toList()
+}
+
 private fun restoreSelection(tree: ConversationTree, previous: ConversationTree?): ConversationTree {
     if (previous == null || previous.userNodes.isEmpty()) return tree
     val previousUserGroup = previous.selectedUserNode?.let {
