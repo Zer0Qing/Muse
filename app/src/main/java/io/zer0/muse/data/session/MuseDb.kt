@@ -147,7 +147,7 @@ import io.zer0.common.Logger
         // B5-02: 群聊生成账本(进程被杀后按断点重放)
         GroupChatGenerationLedgerEntity::class,
     ],
-    version = 74,
+    version = 75,
     exportSchema = true,
 )
 @TypeConverters(QuickNoteConverters::class)
@@ -1104,7 +1104,7 @@ abstract class MuseDb : RoomDatabase() {
         }
 
         /**
-         * HanaAgent port: MIGRATION_36_37 — agent_messages table (DM system).
+         * 参考工具系统 port: MIGRATION_36_37 — agent_messages table (DM system).
          */
         val MIGRATION_36_37 = object : Migration(36, 37) {
             override fun migrate(db: SupportSQLiteDatabase) {
@@ -1722,7 +1722,7 @@ abstract class MuseDb : RoomDatabase() {
         /**
          * v1.0.53 Phase 1: MIGRATION_58_59 — 新建 subagent_threads 表(子 agent 线程账本持久化)。
          *
-         * 对标 Hana SubagentThreadStore,替代旧 tools/SubagentThreadStore.kt(内存版)。
+         * 参考开源实现 SubagentThreadStore,替代旧 tools/SubagentThreadStore.kt(内存版)。
          * 两条 subagent 路径共享:
          *  - 路径 A: SubagentTool + SkillExecutor.delegateAgent nonBlocking(子助手委派)
          *  - 路径 B: SubagentRunSkill + SubagentRunner(被动子 agent)
@@ -1841,6 +1841,17 @@ abstract class MuseDb : RoomDatabase() {
     val MIGRATION_68_74 = object : Migration(68, 74) {
         override fun migrate(db: SupportSQLiteDatabase) {
             ensureGenerationTables(db)
+            ensureSessionColumns(db)
+            ensureMessageColumns(db)
+        }
+    }
+    /**
+     * P0 对话树: messages 表加 parentGroupId(助手变体所属的用户提问变体组)。
+     * 旧库升级时通过 ensureMessageColumns 幂等补列,不影响存量数据。
+     */
+    val MIGRATION_74_75 = object : Migration(74, 75) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            ensureMessageColumns(db)
         }
     }
     val MIGRATION_73_74 = object : Migration(73, 74) {
@@ -1848,6 +1859,8 @@ abstract class MuseDb : RoomDatabase() {
             ensureGenerationTables(db)
         }
     }
+
+
 
     fun get(context: Context): MuseDb {
             return INSTANCE ?: synchronized(this) {
@@ -1903,6 +1916,7 @@ abstract class MuseDb : RoomDatabase() {
                         MIGRATION_66_67,
                         MIGRATION_67_68,
                         MIGRATION_68_74,
+                        MIGRATION_74_75,
                         MIGRATION_73_74,
                     )
                     // 启用外键约束(artifacts 表的 ON DELETE CASCADE 依赖此设置)
@@ -1968,6 +1982,7 @@ private fun ensureMessageColumns(db: androidx.sqlite.db.SupportSQLiteDatabase) {
         "variantGroupId TEXT DEFAULT NULL",
         "variantIndex INTEGER NOT NULL DEFAULT 0",
         "variantCount INTEGER NOT NULL DEFAULT 1",
+        "parentGroupId TEXT DEFAULT NULL",
         "attachmentsJson TEXT NOT NULL DEFAULT '[]'",
         "artifactIdsJson TEXT NOT NULL DEFAULT '[]'",
         "imageBase64Json TEXT NOT NULL DEFAULT '[]'",

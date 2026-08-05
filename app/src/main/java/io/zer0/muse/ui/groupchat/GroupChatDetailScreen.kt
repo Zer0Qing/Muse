@@ -1519,7 +1519,7 @@ private fun GroupChatInputBar(
 ) {
     // @mention 自动补全状态:用户点击外部关闭后置 false,再次输入 @ 触发时置 true
     var showMentionDropdown by remember { mutableStateOf(false) }
-    // 从文本末尾找最后一个 @,若 @ 后无空白则为有效 mention 查询(参考 openhanako channel-mentions)
+    // 从文本末尾找最后一个 @,若 @ 后无空白则为有效 mention 查询(参考 参考开源项目 channel-mentions)
     val mentionQuery: String? = remember(text) {
         val atIndex = text.lastIndexOf('@')
         if (atIndex < 0) return@remember null
@@ -1635,7 +1635,7 @@ private fun GroupChatInputBar(
  * 群聊活动状态栏 — 展示当前轮转中各 agent 的状态 chip。
  *
  * IDLE 状态被过滤不显示;无活动时整个栏不占空间。
- * 参考openhanako ActivityHub UI:紧凑横向 chip 行,每个 chip 含图标 + 名字 + 状态文案;
+ * 参考参考开源项目 ActivityHub UI:紧凑横向 chip 行,每个 chip 含图标 + 名字 + 状态文案;
  * REPLYING 态加呼吸动画,ERROR 态用错误配色,NO_REPLY 态弱化展示。
  *
  * @param activities 当前群聊中各 agent 的活动列表

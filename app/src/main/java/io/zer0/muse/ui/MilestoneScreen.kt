@@ -79,7 +79,7 @@ fun MilestoneScreen(
                 )
                 Spacer(Modifier.size(8.dp))
                 Text(
-                    text = "里程碑",
+                    text = stringResource(R.string.milestone_title),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -104,13 +104,13 @@ fun MilestoneScreen(
                 )
                 Spacer(Modifier.height(16.dp))
                 Text(
-                    text = "还没有里程碑",
+                    text = stringResource(R.string.milestone_empty_title),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = "与 AI 伙伴互动更多，里程碑会自动解锁",
+                    text = stringResource(R.string.milestone_empty_subtitle),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                 )
@@ -128,7 +128,7 @@ fun MilestoneScreen(
                 val dismissed = milestones.filter { it.dismissedAt != null }
 
                 if (active.isNotEmpty()) {
-                    item { SectionLabel("活跃里程碑 (${active.size})") }
+                    item { SectionLabel(stringResource(R.string.milestone_active_section, active.size)) }
                     items(active, key = { it.id }) { milestone ->
                         MilestoneCard(
                             milestone = milestone,
@@ -140,7 +140,7 @@ fun MilestoneScreen(
 
                 if (dismissed.isNotEmpty()) {
                     item { Spacer(Modifier.height(8.dp)) }
-                    item { SectionLabel("已关闭 (${dismissed.size})") }
+                    item { SectionLabel(stringResource(R.string.milestone_dismissed_section, dismissed.size)) }
                     items(dismissed, key = { it.id }) { milestone ->
                         MilestoneCard(
                             milestone = milestone,
@@ -215,7 +215,7 @@ private fun MilestoneCard(
                     IconButton(onClick = onDismiss) {
                         Icon(
                             imageVector = Icons.Filled.Check,
-                            contentDescription = "关闭",
+                            contentDescription = stringResource(R.string.common_close),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp),
                         )
@@ -224,7 +224,7 @@ private fun MilestoneCard(
                 IconButton(onClick = onDelete) {
                     Icon(
                         imageVector = Icons.Filled.Delete,
-                        contentDescription = "删除",
+                        contentDescription = stringResource(R.string.common_delete),
                         tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
                         modifier = Modifier.size(20.dp),
                     )

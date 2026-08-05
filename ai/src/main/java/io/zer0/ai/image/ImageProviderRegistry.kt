@@ -7,7 +7,7 @@ import io.zer0.common.Logger
 /**
  * v1.0.18: 图片生成 Provider 注册中心。
  *
- * 参考 QingTian(openhanako)的 AdapterRegistry 模式:
+ * 参考 QingTian(参考开源项目)的 AdapterRegistry 模式:
  *  - 各 [ImageProvider] 实现类在启动时注册到本中心;
  *  - 调用方通过 [selectFor] 按 [ProviderConfig] 自动选择合适的 provider;
  *  - 选择策略按 specId / baseUrl host / type 三层匹配,兜底 OpenAIImageProvider。

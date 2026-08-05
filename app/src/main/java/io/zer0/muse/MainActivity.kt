@@ -95,6 +95,12 @@ import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import org.koin.compose.koinInject
 import org.koin.core.context.GlobalContext
+import io.zer0.muse.ui.navigation.SettingsRoute
+import io.zer0.muse.ui.navigation.AssistantsRoute
+import io.zer0.muse.ui.navigation.HomeRoute
+import io.zer0.muse.ui.navigation.ScheduledTasksRoute
+import io.zer0.muse.ui.navigation.TranslateRoute
+import io.zer0.muse.ui.navigation.QuickNotesRoute
 
 /**
  * 应用唯一 Activity。
@@ -407,7 +413,7 @@ private fun MuseNavGraph(
                     when {
                         // Ctrl+,: 打开设置(对齐 VS Code / Slack 等桌面应用习惯)
                         event.key == DesktopShortcuts.OPEN_SETTINGS && event.isCtrlPressed -> {
-                            navController.navigate(MuseRoutes.SETTINGS)
+                            navController.navigate(SettingsRoute)
                             true
                         }
                         // Esc: 退出当前页(等价于系统返回键)
@@ -512,50 +518,50 @@ private fun MuseNavGraph(
                     when (pendingShareResult) {
                         is ShareIntentHandler.ShareResult.PrefillText -> {
                             sharedViewModel.updateInput(pendingShareResult.text)
-                            navController.navigate(MuseRoutes.HOME) {
-                                popUpTo(MuseRoutes.HOME) { inclusive = false }
+                            navController.navigate(HomeRoute) {
+                                popUpTo(HomeRoute) { inclusive = false }
                                 launchSingleTop = true
                             }
                         }
                         is ShareIntentHandler.ShareResult.OpenSession -> {
                             sharedViewModel.switchSession(pendingShareResult.sessionId)
-                            navController.navigate(MuseRoutes.HOME) {
-                                popUpTo(MuseRoutes.HOME) { inclusive = false }
+                            navController.navigate(HomeRoute) {
+                                popUpTo(HomeRoute) { inclusive = false }
                                 launchSingleTop = true
                             }
                         }
                         is ShareIntentHandler.ShareResult.NewSession -> {
                             sharedViewModel.createNewSession()
-                            navController.navigate(MuseRoutes.HOME) {
-                                popUpTo(MuseRoutes.HOME) { inclusive = false }
+                            navController.navigate(HomeRoute) {
+                                popUpTo(HomeRoute) { inclusive = false }
                                 launchSingleTop = true
                             }
                         }
                         is ShareIntentHandler.ShareResult.OpenAssistants -> {
-                            navController.navigate(MuseRoutes.ASSISTANTS)
+                            navController.navigate(AssistantsRoute)
                         }
                         is ShareIntentHandler.ShareResult.OpenSettings -> {
-                            navController.navigate(MuseRoutes.SETTINGS)
+                            navController.navigate(SettingsRoute)
                         }
                         is ShareIntentHandler.ShareResult.OpenChats -> {
-                            navController.navigate(MuseRoutes.HOME) {
-                                popUpTo(MuseRoutes.HOME) {
+                            navController.navigate(HomeRoute) {
+                                popUpTo(HomeRoute) {
                                     inclusive = true
                                 }
                                 launchSingleTop = true
                             }
                         }
                         is ShareIntentHandler.ShareResult.OpenScheduledTasks -> {
-                            navController.navigate(MuseRoutes.SCHEDULED_TASKS)
+                            navController.navigate(ScheduledTasksRoute)
                         }
                         // Launcher 快捷方式:打开翻译页
                         is ShareIntentHandler.ShareResult.OpenTranslate -> {
-                            navController.navigate(MuseRoutes.TRANSLATE)
+                            navController.navigate(TranslateRoute)
                         }
                         // Launcher 快捷方式:进入主页并触发语音输入
                         is ShareIntentHandler.ShareResult.StartVoiceInput -> {
-                            navController.navigate(MuseRoutes.HOME) {
-                                popUpTo(MuseRoutes.HOME) { inclusive = false }
+                            navController.navigate(HomeRoute) {
+                                popUpTo(HomeRoute) { inclusive = false }
                                 launchSingleTop = true
                             }
                             // 触发流式 ASR(麦克风录音识别)
@@ -565,14 +571,14 @@ private fun MuseNavGraph(
                         }
                         // v1.0.18: Launcher 快捷方式:打开快速记录页
                         is ShareIntentHandler.ShareResult.OpenQuickNotes -> {
-                            navController.navigate(MuseRoutes.QUICK_NOTES)
+                            navController.navigate(QuickNotesRoute)
                         }
                         ShareIntentHandler.ShareResult.None -> Unit
                     }
                 }
 
                 // v1.131: 首次启动引导已移除,直接进入主页
-                val startDestination = MuseRoutes.HOME
+                val startDestination = HomeRoute
 
                 NavHost(
                     navController = navController,

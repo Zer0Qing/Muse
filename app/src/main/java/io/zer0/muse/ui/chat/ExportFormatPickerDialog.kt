@@ -12,8 +12,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import io.zer0.muse.R
 import io.zer0.muse.data.export.ExportFormat
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.MuseSegmentedControl
@@ -54,7 +56,7 @@ fun ExportFormatPickerDialog(
 
     MuseDialog(
         onDismissRequest = onDismiss,
-        title = "选择导出格式",
+        title = stringResource(R.string.chat_export_format_title),
         content = {
             Column(
                 modifier = Modifier
@@ -78,18 +80,19 @@ fun ExportFormatPickerDialog(
                 )
             }
         },
-        confirmText = "导出",
+        confirmText = stringResource(R.string.chat_export_format_confirm),
         onConfirm = {
             onFormatSelected(formats[selectedIndex])
         },
-        dismissText = "取消",
+        dismissText = stringResource(R.string.common_cancel),
         onDismiss = onDismiss,
     )
 }
 
 /** 返回各导出格式的简短中文说明。 */
+@Composable
 private fun formatDescription(format: ExportFormat): String = when (format) {
-    ExportFormat.MARKDOWN -> "Markdown(.md):纯文本格式,便于粘贴到笔记软件或再次编辑"
-    ExportFormat.HTML -> "HTML(.html):单文件,内联样式与图片,可直接用浏览器打开分享"
-    ExportFormat.PDF -> "PDF(.pdf):A4 分页文档,适合打印或正式归档"
+    ExportFormat.MARKDOWN -> stringResource(R.string.chat_export_format_markdown)
+    ExportFormat.HTML -> stringResource(R.string.chat_export_format_html)
+    ExportFormat.PDF -> stringResource(R.string.chat_export_format_pdf)
 }

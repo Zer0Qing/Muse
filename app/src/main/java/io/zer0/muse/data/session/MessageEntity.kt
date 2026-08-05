@@ -89,6 +89,11 @@ data class MessageEntity(
     @ColumnInfo(defaultValue = "0") val variantIndex: Int = 0,
     /** v1.0.30: 变体总数（组内消息数，所有变体记录相同值）。 */
     @ColumnInfo(defaultValue = "1") val variantCount: Int = 1,
+    /**
+     * P0 对话树: 助手变体所属的用户提问变体组 ID(parentGroupId)。
+     * 旧数据为 NULL 时由 ConversationTreeBuilder 按时间顺序推断父节点。
+     */
+    @ColumnInfo(defaultValue = "NULL") val parentGroupId: String? = null,
     /** v1.0.47: 消息附件列表(JSON 序列化 [io.zer0.ai.core.AttachmentRef])。 */
     @ColumnInfo(defaultValue = "[]") val attachmentsJson: String = "[]",
 )

@@ -224,6 +224,8 @@
     <string name="settings_screen_model_service_group_cd">Models &amp; Services group</string>
     <string name="settings_screen_provider_cd">Providers, manage AI service providers, tap to enter</string>
     <string name="settings_screen_provider">Providers</string>
+    <string name="settings_screen_model_catalog_desc">Review and correct model context, capabilities, and max output</string>
+    <string name="settings_screen_task_routing_desc">Auto-switch models by task type</string>
     <string name="settings_screen_provider_desc">Manage model providers, API keys and web search</string>
     <string name="settings_screen_assistant_cd">Assistants, manage assistants/world books, tap to enter</string>
     <string name="settings_screen_assistant">Assistants</string>
@@ -325,6 +327,8 @@
     <string name="search_section_messages">Messages</string>
     <string name="search_section_settings">Settings</string>
     <string name="search_new_session">New Session</string>
+    <string name="search_time_today">Today %1$s</string>
+    <string name="search_time_yesterday">Yesterday %1$s</string>
     <string name="search_index_proactive_message">Proactive Messages</string>
     <string name="search_index_chat_behavior">Chat behavior settings</string>
     <string name="search_index_deep_thinking">Deep Thinking</string>

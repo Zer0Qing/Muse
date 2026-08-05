@@ -14,6 +14,24 @@
     <string name="chat_update_compress_cd">업데이트 &amp; 압축</string>
     <string name="chat_scroll_to_bottom_cd">맨 아래로 스크롤</string>
     <string name="chat_export_cd">채팅 내보내기</string>
+    <string name="chat_export_format_title">내보내기 형식 선택</string>
+    <string name="chat_export_format_confirm">내보내기</string>
+    <string name="chat_export_format_markdown">Markdown(.md): 일반 텍스트 형식, 메모 앱에 붙여넣거나 다시 편집하기 쉬움</string>
+    <string name="chat_export_format_html">HTML(.html): 단일 파일, 인라인 스타일과 이미지 포함, 브라우저에서 바로 열어 공유 가능</string>
+    <string name="chat_export_format_pdf">PDF(.pdf): A4 페이지 문서, 인쇄 또는 공식 보관에 적합</string>
+    <string name="chat_doc_empty_or_unsupported">문서가 비어 있거나 지원되지 않는 형식입니다</string>
+    <string name="chat_doc_truncated">\n\n…(문서가 너무 길어 %1$d자를 잘랐습니다)</string>
+    <string name="chat_doc_default_name">문서</string>
+    <string name="chat_doc_parse_failed">문서 분석 실패: %1$s</string>
+    <string name="chat_thinking_preview">생각 · %1$s</string>
+    <string name="chat_voice_playing_cd">음성 재생 중</string>
+    <string name="chat_voice_ready_cd">음성 준비됨</string>
+    <string name="chat_knowledge_chunk_title">《%1$s》 · 청크 #%2$d</string>
+    <string name="chat_knowledge_chunk_score">점수 %1$s · %2$s</string>
+    <string name="chat_task_todo_title">작업 할 일</string>
+    <string name="chat_tool_call_arguments">인수: %1$s</string>
+    <string name="chat_tool_call_result">결과: %1$s</string>
+    <string name="chat_share_failed_no_uri">공유 실패: 파일 URI를 가져올 수 없음</string>
     <string name="chat_companion_days_zero">오늘 막 만났어요</string>
     <string name="chat_companion_days">%1$d일 동안 함께</string>
     <string name="chat_date_separator_today">오늘 %1$s</string>
@@ -115,6 +133,7 @@
     <string name="chat_agent_hint_dismiss">알았어요</string>
     <string name="chat_agent_session_locked">에이전트 모드에서 세션이 잠겼습니다.</string>
     <string name="chat_delete_message">메시지 삭제</string>
+    <string name="chat_select_messages">선택</string>
     <string name="chat_delete_message_confirm">이 작업은 취소할 수 없습니다.</string>
     <string name="chat_translate_in_progress">번역 중…</string>
 
@@ -187,6 +206,7 @@
     <string name="chat_token_count_cd">토큰 수</string>
     <string name="chat_token_menu_title">토큰 추정</string>
     <string name="chat_token_input">현재 입력</string>
+    <string name="chat_token_message">이 메시지</string>
     <string name="chat_token_history">기록 메시지</string>
     <string name="chat_token_context_window">컨텍스트 창</string>
     <string name="chat_token_remaining">사용 가능</string>

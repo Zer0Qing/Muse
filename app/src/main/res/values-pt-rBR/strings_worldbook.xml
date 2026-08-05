@@ -25,6 +25,10 @@
     <string name="worldbook_keywords_label">Palavras-chave: %1$s</string>
     <string name="worldbook_badge_always_active">Constante</string>
     <string name="worldbook_export">Exportar</string>
+    <string name="worldbook_import_failed">Falha na importação: %1$s</string>
+    <string name="worldbook_import_success">%1$d entradas importadas</string>
+    <string name="worldbook_import_empty">Nenhuma entrada importável encontrada</string>
+    <string name="worldbook_export_failed">Falha na exportação: %1$s</string>
 
     <!-- Sections -->
     <string name="worldbook_section_basic">Básico</string>

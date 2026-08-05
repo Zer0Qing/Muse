@@ -16,7 +16,7 @@ import org.junit.Test
  *  - 非小写 http/https 协议不匹配(预期行为,大写 URL 由 markdown [text](url) 处理)
  *  - ftp/mailto 等非 http 协议不匹配
  *
- * 参考: openhanako trimAutoLinkifiedSuffixes — 排除尾部中文标点(。、,;:!?」』)。
+ * 参考: 参考开源项目 trimAutoLinkifiedSuffixes — 排除尾部中文标点(。、,;:!?」』)。
  */
 class UrlAutolinkRegexTest {
 
@@ -104,7 +104,7 @@ class UrlAutolinkRegexTest {
 
     @Test
     fun `url followed by chinese period excludes period`() {
-        // 中文句号应被排除(openhanako trimAutoLinkifiedSuffixes)
+        // 中文句号应被排除(参考开源项目 trimAutoLinkifiedSuffixes)
         assertEquals(
             listOf("https://example.com"),
             urls("查看 https://example.com。这是下一句。"),
@@ -147,7 +147,7 @@ class UrlAutolinkRegexTest {
     @Test
     fun `url followed by ascii period includes period`() {
         // ASCII 句点 `.` 在 URL 内合法(example.com),正则不排除,句末 `.` 会被纳入匹配。
-        // 句末标点的二次清理由 openhanako trimAutoLinkifiedSuffixes 在调用处负责,
+        // 句末标点的二次清理由 参考开源项目 trimAutoLinkifiedSuffixes 在调用处负责,
         // 此处仅做纯文本识别,保持字符类简单。
         assertEquals(
             listOf("https://example.com."),

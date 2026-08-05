@@ -127,6 +127,10 @@
 <string name="voice_recognizing">Признавая…</string>
 <!-- Task 1: ASR reconnecting status (WebSocket dropped, exponential backoff reconnect, audio buffered meanwhile) -->
 <string name="voice_reconnecting">Ошибка сети, повторное подключение…</string>
+    <string name="voice_conversation_cd_idle">Нажмите, чтобы начать разговор</string>
+    <string name="voice_conversation_cd_listening">Идет запись, нажмите, чтобы прервать</string>
+    <string name="voice_conversation_cd_thinking">ИИ думает, нажмите, чтобы прервать</string>
+    <string name="voice_conversation_cd_speaking">Озвучивание, нажмите, чтобы прервать</string>
 
     <!-- ASR config hint -->
     <string name="asr_missing_api_key_error">Ключ API не настроен.</string>
@@ -209,6 +213,11 @@
     <string name="chat_list_status_in_progress">В ходе выполнения</string>
     <string name="chat_list_status_pending">В ожидании</string>
     <string name="chat_list_status_completed">Завершенный</string>
+    <string name="chat_list_time_just_now">Прямо сейчас</string>
+    <string name="chat_list_time_minutes_ago">%1$d мин. назад</string>
+    <string name="chat_list_time_hours_ago">%1$d ч. назад</string>
+    <string name="chat_list_time_yesterday">Вчера</string>
+    <string name="chat_list_time_days_ago">%1$d дней назад</string>
     <string name="chat_reaction_add">Добавить реакцию</string>
     <string name="chat_reaction_change">Изменить реакцию</string>
     <string name="chat_reaction_picker_title">Реагировать на сообщение</string>

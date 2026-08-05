@@ -206,22 +206,4 @@ interface SessionDao {
     @Query("UPDATE sessions SET proactiveNextTriggerAt = :nextTriggerAt WHERE id = :id")
     suspend fun updateProactiveNextTriggerAt(id: String, nextTriggerAt: Long?)
 
-    /** B7-03: 找最后已读消息之后的第一条未读消息。 */
-    @Query(
-        """
-        SELECT id FROM messages WHERE sessionId = :sessionId AND deletedAt IS NULL
-        AND (
-            createdAt > (SELECT createdAt FROM messages WHERE id = :lastReadMessageId)
-            OR (createdAt = (SELECT createdAt FROM messages WHERE id = :lastReadMessageId) AND id > :lastReadMessageId)
-        )
-        ORDER BY createdAt ASC, id ASC LIMIT 1
-        """
-    )
-    suspend fun findFirstUnreadMessageId(sessionId: String, lastReadMessageId: String): String?
-
-    /** B7-03: 从未读过时取会话第一条消息。 */
-    @Query(
-        "SELECT id FROM messages WHERE sessionId = :sessionId AND deletedAt IS NULL ORDER BY createdAt ASC, id ASC LIMIT 1"
-    )
-    suspend fun findFirstMessageId(sessionId: String): String?
 }

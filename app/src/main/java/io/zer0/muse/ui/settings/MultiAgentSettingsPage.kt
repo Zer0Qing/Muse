@@ -90,7 +90,6 @@ import java.util.UUID
 @Composable
 fun MultiAgentSettingsPage(
     onBack: () -> Unit,
-    onOpenWorkflowEditor: (teamId: String) -> Unit = {},
 ) {
     val settings: SettingsRepository = koinInject()
     val assistantRepository: AssistantRepository = koinInject()
@@ -175,7 +174,6 @@ fun MultiAgentSettingsPage(
                     assistants = assistants ?: emptyList(),
                     onClick = { editingTeam = team },
                     onDelete = { teamToDelete = team },
-                    onOpenWorkflowEditor = { onOpenWorkflowEditor(team.id) },
                 )
             }
         }
@@ -365,7 +363,7 @@ private fun TeamCard(
     assistants: List<AssistantEntity>,
     onClick: () -> Unit,
     onDelete: () -> Unit,
-    onOpenWorkflowEditor: () -> Unit,
+
 ) {
     val haptic = LocalHapticFeedback.current
     val unnamedTeam = stringResource(R.string.settings_multi_agent_unnamed_team)
@@ -424,14 +422,7 @@ private fun TeamCard(
                     )
                 }
             }
-            // 工作流编排入口:点击进入可视化编排画布
-            IconButton(onClick = onOpenWorkflowEditor) {
-                Icon(
-                    imageVector = TablerIcons.Users,
-                    contentDescription = "工作流编排",
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
-            }
+
             IconButton(onClick = onDelete) {
                 Icon(
                     imageVector = TablerIcons.Trash,
@@ -776,7 +767,7 @@ private fun WorkflowNodeRow(
                 color = MaterialTheme.colorScheme.outline,
             )
         }
-        IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
+        IconButton(onClick = onEdit, modifier = Modifier.size(48.dp)) {
             Icon(
                 imageVector = TablerIcons.Edit,
                 contentDescription = stringResource(R.string.settings_multi_agent_edit_node),
@@ -784,7 +775,7 @@ private fun WorkflowNodeRow(
                 modifier = Modifier.size(18.dp),
             )
         }
-        IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
+        IconButton(onClick = onDelete, modifier = Modifier.size(48.dp)) {
             Icon(
                 imageVector = TablerIcons.Trash,
                 contentDescription = stringResource(R.string.settings_multi_agent_delete),

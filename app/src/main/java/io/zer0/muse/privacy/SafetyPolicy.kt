@@ -8,7 +8,7 @@ package io.zer0.muse.privacy
  *  - 关键词列表保守,避免误伤正常对话(如"杀毒""武器化思想"等正常用语)。
  *  - 命中后给出友好的拒绝理由与建议,不直接屏蔽输入(由调用方决定如何处理)。
  *
- * 参考实现:openhanako 项目的 safety-policy.ts。
+ * 参考实现:参考开源项目 项目的 safety-policy.ts。
  */
 object SafetyPolicy {
 

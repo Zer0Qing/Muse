@@ -224,6 +224,8 @@
     <string name="settings_screen_model_service_group_cd">モデルとサービス グループ</string>
     <string name="settings_screen_provider_cd">プロバイダー、AI サービスプロバイダーの管理、タップして入力します</string>
     <string name="settings_screen_provider">プロバイダー</string>
+    <string name="settings_screen_model_catalog_desc">モデルのコンテキスト、能力、最大出力を確認・修正</string>
+    <string name="settings_screen_task_routing_desc">タスク種別に応じてモデルを自動切替</string>
     <string name="settings_screen_provider_desc">モデルプロバイダー、API キー、Web 検索を管理する</string>
     <string name="settings_screen_assistant_cd">アシスタント、アシスタント/ワールドブックの管理、タップして入力します</string>
     <string name="settings_screen_assistant">アシスタント</string>
@@ -325,6 +327,8 @@
     <string name="search_section_messages">メッセージ</string>
     <string name="search_section_settings">設定</string>
     <string name="search_new_session">新しいセッション</string>
+    <string name="search_time_today">今日 %1$s</string>
+    <string name="search_time_yesterday">昨日 %1$s</string>
     <string name="search_index_proactive_message">プロアクティブなメッセージ</string>
     <string name="search_index_chat_behavior">チャットの動作設定</string>
     <string name="search_index_deep_thinking">深い思考</string>

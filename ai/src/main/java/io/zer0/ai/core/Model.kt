@@ -39,7 +39,7 @@ data class Model(
     /**
      * v1.0.4: 视觉能力声明(grounding 坐标定位 + 输出格式)。
      *
-     * 参考 openhanako 的 `visionCapabilities` 字段。当模型支持在图片上定位物体
+     * 参考 参考开源项目 的 `visionCapabilities` 字段。当模型支持在图片上定位物体
      * (返回坐标框)时设为非 null,VisionBridge 会走 structured+primitives 路径,
      * 让视觉模型不仅描述图片,还返回归一化坐标,纯文本模型可基于坐标说"点击 [320,240]"。
      *
@@ -85,7 +85,7 @@ data class Model(
 /**
  * v1.0.4: 视觉能力声明。
  *
- * 参考 openhanako 的 `visionCapabilities` 字段设计。
+ * 参考 参考开源项目 的 `visionCapabilities` 字段设计。
  *
  * @param grounding 是否支持在图片上定位物体(返回坐标框)
  * @param outputFormat 坐标输出格式,决定提示词要求和归一化逻辑:

@@ -13,6 +13,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import io.zer0.muse.ui.ChatListScreen
+import io.zer0.muse.ui.ArchivedChatsScreen
 import io.zer0.muse.ui.ChatScreen
 import io.zer0.muse.ui.ChatViewModel
 import io.zer0.muse.ui.HomeScreen
@@ -26,6 +27,7 @@ import io.zer0.muse.ui.common.media.rememberWindowWidthClass
 import io.zer0.muse.ui.quicknotes.QuickNotesScreen
 import io.zer0.muse.ui.quicknotes.QuickNotesViewModel
 import org.koin.androidx.compose.koinViewModel
+import androidx.navigation.toRoute
 
 /**
  * 聊天域 NavGraph — 包含首页、搜索、聊天详情、群聊详情、最近删除、快速记录、
@@ -40,41 +42,39 @@ fun NavGraphBuilder.chatNavGraph(
     context: Context,
 ) {
     // v0.22: 首页 — 顶部 Tab 导航(垂直过渡,HOME 专属)
-    composable(
-        route = MuseRoutes.HOME,
+    composable<HomeRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         exitTransition = { MuseTransitions.horizontalPushExit() },
         popEnterTransition = { MuseTransitions.horizontalPopEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         HomeScreen(
-            onOpenSettings = { navController.navigate(MuseRoutes.SETTINGS) },
-            onOpenAssistants = { navController.navigate(MuseRoutes.ASSISTANTS) },
-            onOpenScheduledTasks = { navController.navigate(MuseRoutes.SCHEDULED_TASKS) },
-            onOpenQuickNotes = { navController.navigate(MuseRoutes.QUICK_NOTES) },
-            onOpenQuickTranslate = { navController.navigate(MuseRoutes.TRANSLATE) },
-            onOpenKnowledgeBase = { navController.navigate(MuseRoutes.KNOWLEDGE) },
+            onOpenSettings = { navController.navigate(SettingsRoute) },
+            onOpenAssistants = { navController.navigate(AssistantsRoute) },
+            onOpenScheduledTasks = { navController.navigate(ScheduledTasksRoute) },
+            onOpenQuickNotes = { navController.navigate(QuickNotesRoute) },
+            onOpenQuickTranslate = { navController.navigate(TranslateRoute) },
+            onOpenKnowledgeBase = { navController.navigate(KnowledgeRoute) },
             // v0.27: 点击任务项 / 新建任务 → push 到独立聊天详情页(右滑入场,对标 iOS push)
-            onOpenChat = { navController.navigate(MuseRoutes.CHAT_DETAIL) },
+            onOpenChat = { navController.navigate(ChatDetailRoute) },
             // v0.45: 右上角搜索 → 独立全局搜索页
-            onOpenSearch = { navController.navigate(MuseRoutes.SEARCH) },
+            onOpenSearch = { navController.navigate(SearchRoute) },
             // v1.30: 群聊卡片点击 → 群聊详情页(右滑入场)
             onOpenGroupChat = { chatId ->
-                navController.navigate(MuseRoutes.groupChatDetailRoute(chatId))
+                navController.navigate(GroupChatDetailRoute(chatId))
             },
-            onOpenRecentlyDeleted = { navController.navigate(MuseRoutes.RECENTLY_DELETED) },
+            onOpenRecentlyDeleted = { navController.navigate(RecentlyDeletedRoute) },
+            onOpenArchivedChats = { navController.navigate(ArchivedChatsRoute) },
             // HTML/SVG 代码块全屏预览:URL 编码后跳转 HtmlPreviewScreen
             onHtmlPreview = { html ->
-                val encoded = java.net.URLEncoder.encode(html, "UTF-8")
-                navController.navigate(MuseRoutes.htmlPreviewRoute(encoded))
+                navController.navigate(HtmlPreviewRoute(html))
             },
-            onOpenSkills = { navController.navigate(MuseRoutes.SKILLS) },
-            onOpenPromptTemplateManager = { navController.navigate(MuseRoutes.PROMPT_TEMPLATE_MANAGER) },
+            onOpenSkills = { navController.navigate(SkillsRoute) },
+            onOpenPromptTemplateManager = { navController.navigate(PromptTemplateManagerRoute) },
         )
     }
     // v0.45: 独立全局搜索页(从首页右上角搜索按钮进入,右滑入场)
-    composable(
-        route = MuseRoutes.SEARCH,
+    composable<SearchRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -83,22 +83,38 @@ fun NavGraphBuilder.chatNavGraph(
             onOpenSession = { sessionId ->
                 // 切换会话后回到首页(任务列表会高亮该会话)
                 sharedViewModel.switchSession(sessionId)
-                navController.popBackStack(MuseRoutes.HOME, inclusive = false)
+                navController.popBackStack(HomeRoute, inclusive = false)
             },
             // v2.x: Tab=消息内容 点击消息项跳转 — 切换会话 + 设置目标消息,
             // 回到 HOME 后 ChatScreen 监听 targetMessageId 滚动定位 + 短暂高亮
             onOpenMessage = { sessionId, messageId, query ->
                 sharedViewModel.switchSession(sessionId)
                 sharedViewModel.setTargetMessage(messageId, query)
-                navController.popBackStack(MuseRoutes.HOME, inclusive = false)
+                navController.popBackStack(HomeRoute, inclusive = false)
             },
         )
     }
+    // 归档聊天列表 — 从首页归档入口进入
+    composable<ArchivedChatsRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        val state by sharedViewModel.state.collectAsStateWithLifecycle()
+        ArchivedChatsScreen(
+            sessions = state.archivedSessions,
+            onBack = { navController.popBackStack() },
+            onUnarchive = { id -> sharedViewModel.setSessionArchived(id, false) },
+            onOpenSession = { id ->
+                sharedViewModel.switchSession(id)
+                navController.popBackStack(HomeRoute, inclusive = false)
+            },
+        )
+    }
+
     // v0.27: 聊天详情页 — 从首页 push 进入,右滑入场 + 左滑返回(对标 iOS push)
     // P1-4 平板适配:Expanded 模式下双列布局(左 ChatListScreen 40% + 右 ChatScreen 60%),
     //               Compact/Medium 保持单列 push/pop
-    composable(
-        route = MuseRoutes.CHAT_DETAIL,
+    composable<ChatDetailRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -133,12 +149,12 @@ fun NavGraphBuilder.chatNavGraph(
                         archivedSessions = state.archivedSessions,
                         onArchive = { id -> sharedViewModel.setSessionArchived(id, true) },
                         onUnarchive = { id -> sharedViewModel.setSessionArchived(id, false) },
-                        onOpenScheduledTasks = { navController.navigate(MuseRoutes.SCHEDULED_TASKS) },
-                        onOpenQuickNotes = { navController.navigate(MuseRoutes.QUICK_NOTES) },
-                        onOpenQuickTranslate = { navController.navigate(MuseRoutes.TRANSLATE) },
-                        onOpenKnowledgeBase = { navController.navigate(MuseRoutes.KNOWLEDGE) },
-                        onOpenRecentlyDeleted = { navController.navigate(MuseRoutes.RECENTLY_DELETED) },
-                        onOpenAssistants = { navController.navigate(MuseRoutes.ASSISTANTS) },
+                        onOpenScheduledTasks = { navController.navigate(ScheduledTasksRoute) },
+                        onOpenQuickNotes = { navController.navigate(QuickNotesRoute) },
+                        onOpenQuickTranslate = { navController.navigate(TranslateRoute) },
+                        onOpenKnowledgeBase = { navController.navigate(KnowledgeRoute) },
+                        onOpenRecentlyDeleted = { navController.navigate(RecentlyDeletedRoute) },
+                        onOpenAssistants = { navController.navigate(AssistantsRoute) },
                         isSessionsLoading = state.isSessionsLoading,
                         modifier = Modifier.fillMaxSize(),
                     )
@@ -146,21 +162,20 @@ fun NavGraphBuilder.chatNavGraph(
                 // 右列:聊天页(onBack=null,列表常驻无需返回按钮)
                 Box(modifier = Modifier.weight(0.6f).fillMaxSize()) {
                     ChatScreen(
-                        onOpenAssistants = { navController.navigate(MuseRoutes.ASSISTANTS) },
+                        onOpenAssistants = { navController.navigate(AssistantsRoute) },
                         onBack = null,
                         viewModel = sharedViewModel,
                         onHtmlPreview = { html ->
-                            val encoded = java.net.URLEncoder.encode(html, "UTF-8")
-                            navController.navigate(MuseRoutes.htmlPreviewRoute(encoded))
+                            navController.navigate(HtmlPreviewRoute(html))
                         },
-                        onOpenSkills = { navController.navigate(MuseRoutes.SKILLS) },
-                        onOpenPromptTemplateManager = { navController.navigate(MuseRoutes.PROMPT_TEMPLATE_MANAGER) },
+                        onOpenSkills = { navController.navigate(SkillsRoute) },
+                        onOpenPromptTemplateManager = { navController.navigate(PromptTemplateManagerRoute) },
                     )
                 }
             }
         } else {
             ChatScreen(
-                onOpenAssistants = { navController.navigate(MuseRoutes.ASSISTANTS) },
+                onOpenAssistants = { navController.navigate(AssistantsRoute) },
                 onBack = {
                     // 退出对话时触发 AI 摘要命名(仅当标题仍为默认值且有至少一轮完整对话)
                     val currentSessionId = sharedViewModel.state.value.currentSessionId
@@ -171,18 +186,16 @@ fun NavGraphBuilder.chatNavGraph(
                 },
                 // HTML/SVG 代码块全屏预览:URL 编码后跳转 HtmlPreviewScreen
                 onHtmlPreview = { html ->
-                    val encoded = java.net.URLEncoder.encode(html, "UTF-8")
-                    navController.navigate(MuseRoutes.htmlPreviewRoute(encoded))
+                    navController.navigate(HtmlPreviewRoute(html))
                 },
-                onOpenSkills = { navController.navigate(MuseRoutes.SKILLS) },
-                onOpenPromptTemplateManager = { navController.navigate(MuseRoutes.PROMPT_TEMPLATE_MANAGER) },
+                onOpenSkills = { navController.navigate(SkillsRoute) },
+                onOpenPromptTemplateManager = { navController.navigate(PromptTemplateManagerRoute) },
             )
         }
     }
     // v1.30: 群聊详情页 — 从群聊列表 push 进入,右滑入场 + 左滑返回
     // B0-07: 提示词模板管理页(从聊天/群聊模板弹窗进入)
-    composable(
-        route = MuseRoutes.PROMPT_TEMPLATE_MANAGER,
+    composable<PromptTemplateManagerRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -190,9 +203,7 @@ fun NavGraphBuilder.chatNavGraph(
             onBack = { navController.popBackStack() },
         )
     }
-    composable(
-        route = MuseRoutes.GROUP_CHAT_DETAIL + "/{chatId}",
-        arguments = listOf(navArgument("chatId") { type = NavType.StringType }),
+    composable<GroupChatDetailRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) { backStackEntry ->
@@ -202,15 +213,13 @@ fun NavGraphBuilder.chatNavGraph(
             onBack = { navController.popBackStack() },
             // HTML/SVG 代码块全屏预览:URL 编码后跳转 HtmlPreviewScreen
                 onHtmlPreview = { html ->
-                    val encoded = java.net.URLEncoder.encode(html, "UTF-8")
-                    navController.navigate(MuseRoutes.htmlPreviewRoute(encoded))
+                    navController.navigate(HtmlPreviewRoute(html))
                 },
-                onOpenPromptTemplateManager = { navController.navigate(MuseRoutes.PROMPT_TEMPLATE_MANAGER) },
+                onOpenPromptTemplateManager = { navController.navigate(PromptTemplateManagerRoute) },
         )
     }
     // 定时任务(首页大方块入口)
-    composable(
-        route = MuseRoutes.SCHEDULED_TASKS,
+    composable<ScheduledTasksRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -220,8 +229,7 @@ fun NavGraphBuilder.chatNavGraph(
     }
     // v1.136: 快速记录(首页大方块入口替代原知识库)
     // v1.0.17: 改用 QuickNotesViewModel(Room 持久化 + 回收站),替代 QuickNoteStore
-    composable(
-        route = MuseRoutes.QUICK_NOTES,
+    composable<QuickNotesRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -231,13 +239,12 @@ fun NavGraphBuilder.chatNavGraph(
             viewModel = quickNotesViewModel,
             onSendToNewChat = { text ->
                 sharedViewModel.sendToNewChat(text)
-                navController.navigate(MuseRoutes.CHAT_DETAIL)
+                navController.navigate(ChatDetailRoute)
             },
         )
     }
     // v1.126: Agent 私信收件箱(从 Agent 设置页进入)
-    composable(
-        route = MuseRoutes.AGENT_DM,
+    composable<AgentDmRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -246,8 +253,7 @@ fun NavGraphBuilder.chatNavGraph(
         )
     }
     // v1.127: 里程碑管理页
-    composable(
-        route = MuseRoutes.MILESTONES,
+    composable<MilestonesRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -257,8 +263,7 @@ fun NavGraphBuilder.chatNavGraph(
     }
     // v1.127: 表情包管理页
     // v1.97 gap8: 独立翻译页(设置 → 工具 → AI 翻译)
-    composable(
-        route = MuseRoutes.TRANSLATE,
+    composable<TranslateRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -267,15 +272,14 @@ fun NavGraphBuilder.chatNavGraph(
             onSendToNewChat = { text ->
                 // 创建新会话并发送文本,然后跳转到聊天详情页
                 sharedViewModel.sendToNewChat(text)
-                navController.navigate(MuseRoutes.CHAT_DETAIL) {
-                    popUpTo(MuseRoutes.TRANSLATE) { inclusive = true }
+                navController.navigate(ChatDetailRoute) {
+                    popUpTo(TranslateRoute) { inclusive = true }
                 }
             },
         )
     }
     // v2.0: 最近删除页(从 ChatListScreen 进入)
-    composable(
-        route = MuseRoutes.RECENTLY_DELETED,
+    composable<RecentlyDeletedRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -284,19 +288,12 @@ fun NavGraphBuilder.chatNavGraph(
         )
     }
     // HTML 全屏预览页 — 从消息气泡内 HTML/SVG 代码块入口进入
-    // html 参数由调用方 URLEncoder.encode 编码,此处 NavType.StringType 接收原字符串
-    composable(
-        route = "${MuseRoutes.HTML_PREVIEW}/{html}",
-        arguments = listOf(navArgument("html") { type = NavType.StringType }),
+    // 类型安全路由直接传递原始 HTML，无需 URL 编码
+    composable<HtmlPreviewRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) { backStackEntry ->
-        val encodedHtml = backStackEntry.arguments?.getString("html").orEmpty()
-        // URL 解码还原 HTML 源码(调用方用 URLEncoder.encode 编码后注入路由,
-        // NavHost 以 NavType.StringType 原样接收,这里解码还原)
-        val html = runCatching {
-            java.net.URLDecoder.decode(encodedHtml, "UTF-8")
-        }.getOrDefault(encodedHtml)
+        val html = backStackEntry.toRoute<HtmlPreviewRoute>().html
         HtmlPreviewScreen(
             html = html,
             onBack = { navController.popBackStack() },

@@ -16,12 +16,12 @@ import java.security.MessageDigest
 /**
  * v1.0.5 视觉辅助重写:全局 LRU 缓存 + 跨 session 共享。
  *
- * 参考 openhanako 的 `_analysisByPrompt`(进程内 LRU)+ sidecar 文件持久化双层缓存。
+ * 参考 参考开源项目 的 `_analysisByPrompt`(进程内 LRU)+ sidecar 文件持久化双层缓存。
  *
  * # 与旧版 VisionCache 的差异(v1.0.5 重写)
  *
  *  1. **跨 session 共享**:不再按 sessionId 分文件,改为全局缓存 + sidecar 文件记录所有 session 的条目。
- *     同一张图同一问题跨 session 命中缓存(对齐 openhanako 的 `_analysisByPrompt`)。
+ *     同一张图同一问题跨 session 命中缓存(对齐 参考开源项目 的 `_analysisByPrompt`)。
  *  2. **缓存 key 明确分离**:不再复用 visionModelId 字段塞 suffix,改为 [CacheKey] 数据类,
  *     包含 imageHash / modelId / userRequestHash / promptVersion 四个独立字段。
  *  3. **LRU 淘汰**:内存缓存有上限([MAX_MEMORY_ENTRIES] = 256),超过按 lastUsedAt 淘汰最久未用的。
@@ -289,7 +289,7 @@ class VisionCache(context: Context) {
 
     companion object {
         private const val TAG = "VisionCache"
-        /** 内存缓存上限(LRU 淘汰),对齐 openhanako 的 _maxCacheEntries。 */
+        /** 内存缓存上限(LRU 淘汰),对齐 参考开源项目 的 _maxCacheEntries。 */
         private const val MAX_MEMORY_ENTRIES = 256
         /** 每多少次 put 触发一次刷盘。 */
         private const val FLUSH_INTERVAL = 5

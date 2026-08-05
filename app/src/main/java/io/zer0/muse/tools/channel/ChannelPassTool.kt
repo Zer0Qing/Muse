@@ -6,7 +6,7 @@ import io.zer0.muse.tools.ToolRiskLevel
 /**
  * 群聊跳过工具 — Phone Session 模式下 agent 选择本轮不发言。
  *
- * 设计参考 openhanako channel-router.ts 的 channel_pass:
+ * 设计参考 参考开源项目 channel-router.ts 的 channel_pass:
  *  - agent 必须在 channel_reply / channel_pass / channel_read_context 三者中
  *    至少调用一个表态,否则触发 repair attempt(重试 1 次)
  *  - 调用此工具即明确表态"本轮不发言",由调用方记录 activity

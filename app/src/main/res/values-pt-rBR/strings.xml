@@ -127,6 +127,10 @@
 <string name="voice_recognizing">Reconhecendo…</string>
 <!-- Task 1: ASR reconnecting status (WebSocket dropped, exponential backoff reconnect, audio buffered meanwhile) -->
 <string name="voice_reconnecting">Erro de rede, reconectando…</string>
+    <string name="voice_conversation_cd_idle">Toque para iniciar a conversa</string>
+    <string name="voice_conversation_cd_listening">Gravando, toque para interromper</string>
+    <string name="voice_conversation_cd_thinking">IA pensando, toque para interromper</string>
+    <string name="voice_conversation_cd_speaking">Falando, toque para interromper</string>
 
     <!-- ASR config hint -->
     <string name="asr_missing_api_key_error">Nenhuma chave de API configurada.</string>
@@ -209,6 +213,11 @@
     <string name="chat_list_status_in_progress">Em andamento</string>
     <string name="chat_list_status_pending">Pendente</string>
     <string name="chat_list_status_completed">Concluído</string>
+    <string name="chat_list_time_just_now">Agora mesmo</string>
+    <string name="chat_list_time_minutes_ago">Há %1$d min</string>
+    <string name="chat_list_time_hours_ago">Há %1$d h</string>
+    <string name="chat_list_time_yesterday">Ontem</string>
+    <string name="chat_list_time_days_ago">Há %1$d dias</string>
     <string name="chat_reaction_add">Adicionar reação</string>
     <string name="chat_reaction_change">Mudança de reação</string>
     <string name="chat_reaction_picker_title">Reaja à mensagem</string>

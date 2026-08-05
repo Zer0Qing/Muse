@@ -1,0 +1,5 @@
+# hardcoded_font_size baseline — UI 硬编码 fontSize 存量清单
+# 格式: <file>: <违规数>;新增或上升都会失败,只允许下降
+# 清理存量后运行: py -3 ci/script/check_hardcoded_font_size.py --update-baseline
+#
+# 当前共 0 处,分布 0 个文件

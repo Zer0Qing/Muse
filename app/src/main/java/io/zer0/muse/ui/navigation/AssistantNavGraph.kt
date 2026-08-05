@@ -48,8 +48,7 @@ fun NavGraphBuilder.assistantNavGraph(
     navController: NavHostController,
     sharedViewModel: ChatViewModel,
 ) {
-    composable(
-        route = MuseRoutes.ASSISTANTS,
+    composable<AssistantsRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -74,11 +73,11 @@ fun NavGraphBuilder.assistantNavGraph(
                         AssistantDetailPage(
                             assistantId = currentId,
                             onBack = null,
-                            onOpenBasic = { navController.navigate("${MuseRoutes.ASSISTANT_BASIC}/$currentId") },
-                            onOpenPrompt = { navController.navigate("${MuseRoutes.ASSISTANT_PROMPT}/$currentId") },
-                            onOpenExtensions = { navController.navigate("${MuseRoutes.ASSISTANT_EXTENSIONS}/$currentId") },
-                            onOpenMemory = { navController.navigate("${MuseRoutes.ASSISTANT_MEMORY}/$currentId") },
-                            onOpenAdvanced = { navController.navigate("${MuseRoutes.ASSISTANT_ADVANCED}/$currentId") },
+                            onOpenBasic = { navController.navigate(AssistantBasicRoute(currentId)) },
+                            onOpenPrompt = { navController.navigate(AssistantPromptRoute(currentId)) },
+                            onOpenExtensions = { navController.navigate(AssistantExtensionsRoute(currentId)) },
+                            onOpenMemory = { navController.navigate(AssistantMemoryRoute(currentId)) },
+                            onOpenAdvanced = { navController.navigate(AssistantAdvancedRoute(currentId)) },
                         )
                     } else {
                         // P1-4: 未选中助手时的占位空状态(右侧详情区空提示)
@@ -94,14 +93,12 @@ fun NavGraphBuilder.assistantNavGraph(
             AssistantScreen(
                 viewModel = sharedViewModel,
                 onBack = { navController.popBackStack() },
-                onOpenDetail = { id -> navController.navigate("${MuseRoutes.ASSISTANT_DETAIL}/$id") },
+                onOpenDetail = { id -> navController.navigate(AssistantDetailRoute(id)) },
             )
         }
     }
     // v0.37: 助手详情聚合页(头部 + 5 个子页入口)
-    composable(
-        route = "${MuseRoutes.ASSISTANT_DETAIL}/{assistantId}",
-        arguments = listOf(navArgument("assistantId") { type = NavType.StringType }),
+    composable<AssistantDetailRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) { backStackEntry ->
@@ -109,17 +106,15 @@ fun NavGraphBuilder.assistantNavGraph(
         AssistantDetailPage(
             assistantId = assistantId,
             onBack = { navController.popBackStack() },
-            onOpenBasic = { navController.navigate("${MuseRoutes.ASSISTANT_BASIC}/$assistantId") },
-            onOpenPrompt = { navController.navigate("${MuseRoutes.ASSISTANT_PROMPT}/$assistantId") },
-            onOpenExtensions = { navController.navigate("${MuseRoutes.ASSISTANT_EXTENSIONS}/$assistantId") },
-            onOpenMemory = { navController.navigate("${MuseRoutes.ASSISTANT_MEMORY}/$assistantId") },
-            onOpenAdvanced = { navController.navigate("${MuseRoutes.ASSISTANT_ADVANCED}/$assistantId") },
+            onOpenBasic = { navController.navigate(AssistantBasicRoute(assistantId)) },
+            onOpenPrompt = { navController.navigate(AssistantPromptRoute(assistantId)) },
+            onOpenExtensions = { navController.navigate(AssistantExtensionsRoute(assistantId)) },
+            onOpenMemory = { navController.navigate(AssistantMemoryRoute(assistantId)) },
+            onOpenAdvanced = { navController.navigate(AssistantAdvancedRoute(assistantId)) },
         )
     }
     // v0.37: 助手基础子页
-    composable(
-        route = "${MuseRoutes.ASSISTANT_BASIC}/{assistantId}",
-        arguments = listOf(navArgument("assistantId") { type = NavType.StringType }),
+    composable<AssistantBasicRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) { backStackEntry ->
@@ -130,9 +125,7 @@ fun NavGraphBuilder.assistantNavGraph(
         )
     }
     // v0.37: 助手提示词子页
-    composable(
-        route = "${MuseRoutes.ASSISTANT_PROMPT}/{assistantId}",
-        arguments = listOf(navArgument("assistantId") { type = NavType.StringType }),
+    composable<AssistantPromptRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) { backStackEntry ->
@@ -143,9 +136,7 @@ fun NavGraphBuilder.assistantNavGraph(
         )
     }
     // v0.37: 助手扩展子页
-    composable(
-        route = "${MuseRoutes.ASSISTANT_EXTENSIONS}/{assistantId}",
-        arguments = listOf(navArgument("assistantId") { type = NavType.StringType }),
+    composable<AssistantExtensionsRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) { backStackEntry ->
@@ -156,9 +147,7 @@ fun NavGraphBuilder.assistantNavGraph(
         )
     }
     // v0.37: 助手记忆子页
-    composable(
-        route = "${MuseRoutes.ASSISTANT_MEMORY}/{assistantId}",
-        arguments = listOf(navArgument("assistantId") { type = NavType.StringType }),
+    composable<AssistantMemoryRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) { backStackEntry ->
@@ -169,9 +158,7 @@ fun NavGraphBuilder.assistantNavGraph(
         )
     }
     // v0.37: 助手高级子页
-    composable(
-        route = "${MuseRoutes.ASSISTANT_ADVANCED}/{assistantId}",
-        arguments = listOf(navArgument("assistantId") { type = NavType.StringType }),
+    composable<AssistantAdvancedRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) { backStackEntry ->
@@ -181,18 +168,16 @@ fun NavGraphBuilder.assistantNavGraph(
             onBack = { navController.popBackStack() },
         )
     }
-    composable(
-        route = MuseRoutes.MEMORY,
+    composable<MemoryRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         MemoryScreen(
             onBack = { navController.popBackStack() },
-            onOpenSettings = { navController.navigate(MuseRoutes.SETTINGS_MEMORY_CONFIG) },
+            onOpenSettings = { navController.navigate(SettingsMemoryConfigRoute) },
         )
     }
-    composable(
-        route = MuseRoutes.FAVORITES,
+    composable<FavoritesRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -201,8 +186,7 @@ fun NavGraphBuilder.assistantNavGraph(
             onBack = { navController.popBackStack() },
         )
     }
-    composable(
-        route = MuseRoutes.LOREBOOKS,
+    composable<LorebooksRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -212,8 +196,7 @@ fun NavGraphBuilder.assistantNavGraph(
         )
     }
     // P1-2: Worldbook 动态世界书(独立 ViewModel,不依赖 ChatViewModel)
-    composable(
-        route = MuseRoutes.WORLDBOOK,
+    composable<WorldbookRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -221,8 +204,7 @@ fun NavGraphBuilder.assistantNavGraph(
             onBack = { navController.popBackStack() },
         )
     }
-    composable(
-        route = MuseRoutes.QUICK_MESSAGES,
+    composable<QuickMessagesRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -231,8 +213,7 @@ fun NavGraphBuilder.assistantNavGraph(
             onBack = { navController.popBackStack() },
         )
     }
-    composable(
-        route = MuseRoutes.PROMPT_INJECTIONS,
+    composable<PromptInjectionsRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -241,8 +222,7 @@ fun NavGraphBuilder.assistantNavGraph(
             onBack = { navController.popBackStack() },
         )
     }
-    composable(
-        route = MuseRoutes.SKILLS,
+    composable<SkillsRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {

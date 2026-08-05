@@ -18,6 +18,16 @@
     <string name="settings_web_search_save_api_key">保存 API Key</string>
     <string name="settings_web_search_endpoint_label">搜索 API endpoint</string>
     <string name="settings_web_search_save_endpoint">保存 endpoint</string>
+    <string name="settings_web_search_auto_hint">Auto 模式会自动尝试多个搜索引擎:优先使用已配置 API Key 的商用引擎,随后依次 fallback 到 Bing、Jina、SearXNG,并自动过滤低质量结果。</string>
+    <string name="settings_web_search_test_query_label">测试搜索词</string>
+    <string name="settings_web_search_test_query_placeholder">输入关键词进行搜索测试…</string>
+    <string name="settings_web_search_test_success">搜索成功，返回 %1$d 条结果：\n%2$s</string>
+    <string name="settings_web_search_test_empty">搜索完成，但未返回结果</string>
+    <string name="settings_web_search_test_failed">测试失败: %1$s</string>
+    <string name="settings_web_search_test_failed_unknown">未知错误</string>
+    <string name="settings_web_search_testing">搜索中…</string>
+    <string name="settings_web_search_test">测试搜索</string>
+    <string name="settings_web_search_test_failed_prefix">测试失败</string>
     <!-- v1.98: 新增搜索 Provider 名称(中英双语,供 UI 显示 / 日志 / 错误提示引用) -->
     <string name="settings_web_search_provider_brave">Brave 搜索</string>
     <string name="settings_web_search_provider_perplexity">Perplexity 搜索</string>

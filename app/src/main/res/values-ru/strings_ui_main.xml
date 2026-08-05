@@ -224,6 +224,8 @@
     <string name="settings_screen_model_service_group_cd">Группа «Модели и сервисы»</string>
     <string name="settings_screen_provider_cd">Провайдеры, управление AI-провайдерами, нажмите для входа</string>
     <string name="settings_screen_provider">Провайдеры</string>
+    <string name="settings_screen_model_catalog_desc">Просмотр и исправление контекста, возможностей и максимального вывода моделей</string>
+    <string name="settings_screen_task_routing_desc">Автоматическое переключение модели по типу задачи</string>
     <string name="settings_screen_provider_desc">Управление AI-провайдерами</string>
     <string name="settings_screen_assistant_cd">Ассистенты, управление ассистентами/мировыми книгами, нажмите для входа</string>
     <string name="settings_screen_assistant">Ассистенты</string>
@@ -325,6 +327,8 @@
     <string name="search_section_messages">Сообщения</string>
     <string name="search_section_settings">Настройки</string>
     <string name="search_new_session">Новая сессия</string>
+    <string name="search_time_today">Сегодня %1$s</string>
+    <string name="search_time_yesterday">Вчера %1$s</string>
     <string name="search_index_proactive_message">Проактивные сообщения</string>
     <string name="search_index_chat_behavior">Настройки поведения чата</string>
     <string name="search_index_deep_thinking">Глубокое мышление</string>

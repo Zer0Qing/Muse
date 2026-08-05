@@ -31,6 +31,9 @@
     <string name="memory_sync_never">아직 컴파일되지 않은 메모리, 장기 기억에 없는 대화</string>
     <string name="memory_sync_recent">마지막으로 컴파일된 %1$d분 전, 메모리가 동기화되었습니다.</string>
     <string name="memory_sync_stale">마지막으로 컴파일된 %1$d 분 전, 최근 대화가 아직 메모리에 없을 수 있습니다.</string>
+    <string name="memory_screen_experience_category_general">일반</string>
+    <string name="memory_chart_type_distribution_cd">메모리 유형 분포 도넛 차트</string>
+    <string name="memory_chart_daily_trend_cd">일일 메모리 추세 차트</string>
     <string name="memory_sync_set_importance_cd">중요도 설정</string>
 
     <!-- v6: MemoryViewModel CRUD error messages -->

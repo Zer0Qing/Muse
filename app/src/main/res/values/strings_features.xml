@@ -346,6 +346,9 @@
     <string name="quick_notes_trash_subtitle">已删除的记录会在此保留,可恢复或永久删除</string>
     <string name="quick_notes_restore">恢复</string>
     <string name="quick_notes_delete_permanent">永久删除</string>
+    <string name="quick_notes_export_tags">标签: %1$s</string>
+    <string name="quick_notes_export_folder">文件夹: %1$s</string>
+    <string name="quick_notes_export_updated_at">更新时间: %1$s</string>
     <string name="quick_notes_delete_permanent_title">永久删除</string>
     <string name="quick_notes_delete_permanent_confirm">此操作不可恢复,确定永久删除「%1$s」?</string>
     <string name="quick_notes_clear_trash">清空回收站</string>
@@ -494,6 +497,28 @@
     <string name="stats_tooltip_hint">点击单元格查看详情</string>
     <string name="stats_avg_label">平均 %.1f</string>
     <string name="stats_active_days_unit">天</string>
+    <string name="stats_total_tokens_label">累计 Token(~)</string>
+    <string name="stats_range_selected">已选</string>
+    <string name="stats_heatmap_legend_cd">活跃度图例</string>
+    <string name="stats_heatmap_cd">活跃热力图,%1$d周活跃数据</string>
+    <string name="stats_trend_chart_cd">消息趋势折线图</string>
+    <string name="stats_hourly_chart_cd">24小时消息分布柱状图</string>
+    <string name="stats_other">其他</string>
+    <string name="stats_model_donut_cd">模型使用分布环形图</string>
+    <string name="stats_summary_header">===== Muse 统计摘要 =====</string>
+    <string name="stats_summary_total_sessions">总对话数: %1$d</string>
+    <string name="stats_summary_total_messages">总消息数: %1$d</string>
+    <string name="stats_summary_ai_replies">AI 回复数: %1$d</string>
+    <string name="stats_summary_user_messages">用户消息数: %1$d</string>
+    <string name="stats_summary_streak_days">连续活跃: %1$d 天</string>
+    <string name="stats_summary_week_messages">本周消息: %1$d</string>
+    <string name="stats_summary_month_messages">本月消息: %1$d</string>
+    <string name="stats_summary_avg_daily">平均每日: %1$s</string>
+    <string name="stats_summary_most_active_day">最活跃一天: %1$s (%2$d 条)</string>
+    <string name="stats_summary_models_header">最常使用的模型:</string>
+    <string name="stats_summary_model_line">  %1$d. %2$s - %3$d 条 (%4$s%%)</string>
+    <string name="stats_summary_assistants_header">助手使用占比:</string>
+    <string name="stats_summary_assistant_line">  - %1$s: %2$d 条</string>
 
     <!-- ===== ui/taskcard ===== -->
     <string name="taskcard_phase_planning">计划中</string>
@@ -507,6 +532,16 @@
     <string name="taskcard_retry">重试</string>
     <string name="taskcard_steps_completed">%1$d/%2$d 步完成</string>
     <string name="taskcard_failed_suffix"> · %1$d 失败</string>
+    <string name="milestone_title">里程碑</string>
+    <string name="milestone_empty_title">还没有里程碑</string>
+    <string name="milestone_empty_subtitle">与 AI 伙伴互动更多，里程碑会自动解锁</string>
+    <string name="milestone_active_section">活跃里程碑 (%1$d)</string>
+    <string name="milestone_dismissed_section">已关闭 (%1$d)</string>
+    <string name="task_plan_status_pending">待执行</string>
+    <string name="task_plan_status_in_progress">执行中</string>
+    <string name="task_plan_status_done">已完成</string>
+    <string name="task_plan_status_failed">失败</string>
+    <string name="task_plan_status_skipped">已跳过</string>
 
     <!-- ===== ui/taskcard: delegation chain (v1.201) ===== -->
     <string name="delegation_chain_title">委派链路</string>
@@ -526,6 +561,13 @@
 
     <!-- ===== ui/taskcard: subagent task list (v1.202) ===== -->
     <string name="subagent_task_list_title">后台子 Agent 任务</string>
+    <string name="skill_impl_not_configured">文件工具未配置</string>
+    <string name="plugin_missing_js">插件缺少 js_code</string>
+    <string name="subagent_task_detail_assistant">Assistant</string>
+    <string name="subagent_task_detail_user">User</string>
+    <string name="subagent_task_detail_count">Messages: %1$d</string>
+    <string name="subagent_task_detail_loading">Loading conversation...</string>
+    <string name="subagent_task_detail_empty">No conversation history yet</string>
     <string name="subagent_task_list_empty">暂无后台任务</string>
     <string name="subagent_task_list_count">%1$d 个任务</string>
     <string name="subagent_task_running">运行中</string>

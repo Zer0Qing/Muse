@@ -127,6 +127,21 @@
     <string name="settings_provider_ability_vision">Мультимодальный (Видение)</string>
     <string name="settings_provider_ability_video">Видеовыход</string>
     <string name="settings_provider_context_window">Контекстное окно (токены, необязательно)</string>
+    <string name="settings_model_catalog_title">Katalog modelej</string>
+    <string name="settings_model_catalog_empty">Empty catalog</string>
+    <string name="settings_model_catalog_empty_sub">No built-in models found. Add models manually.</string>
+    <string name="settings_model_catalog_ctx">Context %1$d</string>
+    <string name="settings_model_catalog_max_out">Max output %1$d</string>
+    <string name="settings_model_catalog_vision">Vision</string>
+    <string name="settings_model_catalog_tools">Tools</string>
+    <string name="settings_model_catalog_reasoning">Reasoning</string>
+    <string name="settings_model_catalog_edited">User edited</string>
+    <string name="settings_model_catalog_saved">Catalog saved</string>
+    <string name="settings_model_catalog_ctx_label">Context window tokens (empty = unknown)</string>
+    <string name="settings_model_catalog_max_out_label">Max output tokens (empty = default)</string>
+    <string name="settings_model_catalog_edit_cd">Edit model catalog</string>
+    <string name="settings_model_catalog_reset_cd">Reset to default</string>
+
     <string name="settings_provider_max_output_tokens">Максимальное количество токенов вывода (необязательно)</string>
     <string name="settings_provider_remove_model">Удалить эту модель из списка</string>
     <string name="settings_provider_no_models">Моделей пока нет</string>

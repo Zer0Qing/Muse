@@ -96,14 +96,6 @@ class SessionRepository(
         sessionDao.updateLastReadMessage(sessionId, messageId, readCount)
     }
 
-    /** B7-03: 获取最早一条未读消息 id(lastReadMessageId=null 时取会话首条消息)。 */
-    suspend fun findFirstUnreadMessageId(sessionId: String, lastReadMessageId: String?): String? {
-        return if (lastReadMessageId == null) {
-            sessionDao.findFirstMessageId(sessionId)
-        } else {
-            sessionDao.findFirstUnreadMessageId(sessionId, lastReadMessageId)
-        }
-    }
 
     /** B7-05: 置顶会话拖拽排序持久化。 */
     suspend fun reorderPinnedSessions(ids: List<String>) {
@@ -954,6 +946,7 @@ class SessionRepository(
             variantGroupId = variantGroupId,
             variantIndex = variantIndex,
             variantCount = variantCount,
+            parentGroupId = parentGroupId,
         )
     }
 
@@ -992,6 +985,7 @@ class SessionRepository(
         variantGroupId = variantGroupId,
         variantIndex = variantIndex,
         variantCount = variantCount,
+        parentGroupId = parentGroupId,
     )
 
     /** v1.0.30: 按 id 获取消息（变体查询用）。 */

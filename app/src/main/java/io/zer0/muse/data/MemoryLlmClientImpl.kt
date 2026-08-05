@@ -28,14 +28,14 @@ import io.zer0.muse.R
  * v1.78: 加 withTimeout 防止 LLM 调用挂起导致 daily pipeline 永久卡死;
  *        加 Logger 便于排查记忆编译失败;model 为 null 时显式校验。
  *
- * v1.0.50 (记忆系统修复): 对齐 openhanako 的三层防御:
+ * v1.0.50 (记忆系统修复): 对齐 参考开源项目 的三层防御:
  *  1. **reasoning 兜底**: 推理模型(DeepSeek-R1 / GLM-Z1 等)服务端强制开思考,
  *     可能把全部输出放进 reasoning_content 而 content 为空。此时用 reasoningContent
  *     兜底,避免记忆链路从源头拿到空字符串导致 memory.md 永远 59 字符占位。
  *  2. **think 标签清理**: 部分模型用 `<think>...</think>` 标签包裹输出,在 LLM 客户端
  *     层先清理一道(memory 模块的 [io.zer0.memory.state.CompiledMemoryState] 是第二道)。
  *  3. **reasoning buffer**: 推理模型 +1024 token buffer,防止思考过程挤占可见输出
- *     (对齐 openhanako `withMemoryReasoningBuffer`)。
+ *     (对齐 参考开源项目 `withMemoryReasoningBuffer`)。
  *  4. **空响应报错**: text 和 reasoning 都空时抛错,而非静默返回空串让上层误判成功。
  *
  * 超时语义(v1.80 L-MEM1): [withTimeout] 超时抛 [kotlinx.coroutines.TimeoutCancellationException]
@@ -146,7 +146,7 @@ class MemoryLlmClientImpl(
     }
 
     /**
-     * v1.0.50: reasoning buffer — 对齐 openhanako `withMemoryReasoningBuffer`。
+     * v1.0.50: reasoning buffer — 对齐 参考开源项目 `withMemoryReasoningBuffer`。
      *
      * 推理模型(ModelAbility.REASONING)的思考过程会消耗 token 预算,如果 maxTokens 设得太小,
      * 思考结束后可见输出可能被截断。所以在可见预算基础上加 buffer,让模型有空间完成思考
@@ -201,7 +201,7 @@ class MemoryLlmClientImpl(
     }
 
     private companion object {
-        /** v1.0.50: 推理模型 buffer token 数(对齐 openhanako DEFAULT_REASONING_BUFFER_TOKENS)。 */
+        /** v1.0.50: 推理模型 buffer token 数(对齐 参考开源项目 DEFAULT_REASONING_BUFFER_TOKENS)。 */
         private const val REASONING_BUFFER_TOKENS = 1024
     }
 }

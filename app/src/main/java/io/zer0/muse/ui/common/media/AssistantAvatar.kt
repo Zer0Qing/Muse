@@ -62,12 +62,29 @@ fun AssistantAvatar(
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentScale = ContentScale.Crop,
-                error = {
-                    Text(
-                        text = assistant.name.firstOrNull()?.toString()?.ifBlank { "A" } ?: "A",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                loading = {
+                    Box(
+                        modifier = Modifier
+                            .size(avatarSize)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
                     )
+                },
+                error = {
+                    // 用户显式设置过图片但文件失效时,优先回退 Emoji/首字母,
+                    // 而不是只显示主题色块,避免“头像消失”的观感。
+                    if (assistant.avatarEmoji.isNotBlank()) {
+                        Text(
+                            text = assistant.avatarEmoji,
+                            style = MaterialTheme.typography.headlineSmall,
+                        )
+                    } else {
+                        Text(
+                            text = assistant.name.firstOrNull()?.toString()?.ifBlank { "A" } ?: "A",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 },
             )
         }

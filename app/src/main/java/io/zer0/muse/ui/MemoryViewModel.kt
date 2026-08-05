@@ -1,4 +1,5 @@
 package io.zer0.muse.ui
+import io.zer0.muse.data.experience.DEFAULT_EXPERIENCE_CATEGORY
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
@@ -75,6 +76,8 @@ data class MemoryUiState(
     val lastCompileTime: String? = null,
     /** v4: 同步状态文案(如"最近编译 5 分钟前,最近的对话可能还未进入记忆")。 */
     val syncStatus: String = "",
+    /** v4: 同步状态是否处于"可能未进入记忆"的过期状态。 */
+    val syncStale: Boolean = false,
     /** v5: 记忆统计字段。 */
     val totalFactCount: Int = 0,
     val weekNewCount: Int = 0,
@@ -241,6 +244,7 @@ class MemoryViewModel(
                         healthMap = health,
                         lastCompileTime = lastCompileTime,
                         syncStatus = computeSyncStatus(lastCompileTime),
+                        syncStale = computeSyncStale(lastCompileTime),
                     )
                 }
             }
@@ -489,6 +493,7 @@ class MemoryViewModel(
                         lastUpdatedAt = facts.maxByOrNull { it.createdAt }?.createdAt,
                         compiledMarkdown = compiledMarkdown,
                         syncStatus = computeSyncStatus(it.lastCompileTime),
+                        syncStale = computeSyncStale(it.lastCompileTime),
                         totalFactCount = total,
                         weekNewCount = weekNew,
                         monthNewCount = monthNew,
@@ -748,6 +753,17 @@ class MemoryViewModel(
             ""
         }
     }
+    private fun computeSyncStale(lastCompileTime: String?): Boolean {
+        if (lastCompileTime == null) return false
+        return try {
+            Duration.between(
+                Instant.parse(lastCompileTime),
+                Instant.now(),
+            ).toMinutes() >= 10
+        } catch (e: Exception) {
+            false
+        }
+    }
 
     // ── v2.0: 记忆分类筛选 CRUD ──────────────────────────────────────────
 
@@ -803,7 +819,7 @@ class MemoryViewModel(
      * @param category 分类(默认"通用")
      * @param tags 标签列表(默认空)
      */
-    fun addExperience(title: String, content: String, category: String = "通用", tags: List<String> = emptyList()) {
+    fun addExperience(title: String, content: String, category: String = DEFAULT_EXPERIENCE_CATEGORY, tags: List<String> = emptyList()) {
         if (title.isBlank() || content.isBlank()) return
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
@@ -812,7 +828,7 @@ class MemoryViewModel(
                     id = "exp_${now}_${(0..9999).random()}",
                     title = title.trim(),
                     content = content.trim(),
-                    category = category.trim().ifBlank { "通用" },
+                    category = category.trim().ifBlank { DEFAULT_EXPERIENCE_CATEGORY },
                     tagsJson = if (tags.isEmpty()) "[]" else AppJson.encodeToString(tags),
                     source = "manual",
                     createdAt = now,
@@ -833,7 +849,7 @@ class MemoryViewModel(
         id: String,
         title: String,
         content: String,
-        category: String = "通用",
+        category: String = DEFAULT_EXPERIENCE_CATEGORY,
         tags: List<String> = emptyList(),
     ) {
         if (title.isBlank() || content.isBlank()) return
@@ -845,7 +861,7 @@ class MemoryViewModel(
                     val updated = existing.copy(
                         title = title.trim(),
                         content = content.trim(),
-                        category = category.trim().ifBlank { "通用" },
+                        category = category.trim().ifBlank { DEFAULT_EXPERIENCE_CATEGORY },
                         tagsJson = if (tags.isEmpty()) "[]" else AppJson.encodeToString(tags),
                         updatedAt = System.currentTimeMillis(),
                     )

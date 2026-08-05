@@ -123,6 +123,9 @@
     <string name="assistant_back_cd">返回</string>
     <string name="assistant_import_card_cd">导入角色卡</string>
     <string name="assistant_section_my_assistants">我的助手</string>
+    <string name="assistant_default_title">默认助手</string>
+    <string name="assistant_default_picker_title">选择默认助手</string>
+    <string name="assistant_default_hint">新任务默认使用的助手</string>
     <string name="assistant_section_actions">添加或导入</string>
     <string name="assistant_memory_entry_title">长期记忆</string>
     <string name="assistant_memory_entry_subtitle">查看 4 层记忆系统</string>

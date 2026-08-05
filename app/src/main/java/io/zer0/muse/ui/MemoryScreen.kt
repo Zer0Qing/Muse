@@ -93,6 +93,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
+import io.zer0.muse.data.experience.DEFAULT_EXPERIENCE_CATEGORY
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.markdown.MarkdownText
@@ -583,7 +584,7 @@ fun MemoryScreen(
                             title = stringResource(R.string.memory_screen_experience_add_dialog_title),
                             initialTitle = "",
                             initialContent = "",
-                            initialCategory = "通用",
+                            initialCategory = DEFAULT_EXPERIENCE_CATEGORY,
                             initialTags = "",
                             onDismiss = { showAddExperienceDialog = false },
                             onConfirm = { t, c, cat, tags ->
@@ -600,7 +601,7 @@ fun MemoryScreen(
                             title = stringResource(R.string.memory_screen_experience_edit_dialog_title),
                             initialTitle = item.title,
                             initialContent = item.content,
-                            initialCategory = item.category ?: "通用",
+                            initialCategory = item.category ?: DEFAULT_EXPERIENCE_CATEGORY,
                             initialTags = tagText,
                             onDismiss = { editExperienceItem = null },
                             onConfirm = { t, c, cat, tags ->
@@ -1777,7 +1778,7 @@ private fun MemoryDashboardCard(state: MemoryUiState) {
                     DashboardMetricRow(label = stringResource(R.string.memory_screen_health), value = healthText, valueColor = healthColor)
 
                     if (state.syncStatus.isNotBlank()) {
-                        val isStale = state.syncStatus.contains("可能还未进入记忆")
+                        val isStale = state.syncStale
                         Spacer(Modifier.size(4.dp))
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -1961,7 +1962,8 @@ private fun ImportancePieChart(distribution: Map<Int, Int>) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-            Canvas(modifier = Modifier.size(80.dp).semantics { contentDescription = "记忆类型分布环形图" }) {
+            val typeChartCd = stringResource(R.string.memory_chart_type_distribution_cd)
+            Canvas(modifier = Modifier.size(80.dp).semantics { contentDescription = typeChartCd }) {
             var startAngle = -90f
             segments.forEach { (key, color, ratio) ->
                 if (ratio > 0f) {
@@ -2006,7 +2008,8 @@ private fun TrendLineChart(dailyData: List<Pair<String, Int>>) {
     val lineColor = MaterialTheme.colorScheme.outlineVariant
     val baselineColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
     Box(modifier = Modifier.fillMaxWidth().height(100.dp)) {
-        Canvas(modifier = Modifier.fillMaxSize().semantics { contentDescription = "每日记忆趋势图" }) {
+        val trendChartCd = stringResource(R.string.memory_chart_daily_trend_cd)
+        Canvas(modifier = Modifier.fillMaxSize().semantics { contentDescription = trendChartCd }) {
             val stepX = size.width / (dailyData.size - 1).coerceAtLeast(1)
             val points = dailyData.mapIndexed { index, (_, count) ->
                 Offset(

@@ -14,6 +14,24 @@
     <string name="chat_update_compress_cd">Обновить &amp; Сжать</string>
     <string name="chat_scroll_to_bottom_cd">Прокрутить вниз</string>
     <string name="chat_export_cd">Экспортировать чат</string>
+    <string name="chat_export_format_title">Выберите формат экспорта</string>
+    <string name="chat_export_format_confirm">Экспорт</string>
+    <string name="chat_export_format_markdown">Markdown (.md): обычный текст, легко вставить в заметки или редактировать</string>
+    <string name="chat_export_format_html">HTML (.html): один файл со встроенными стилями и изображениями, готов к отправке</string>
+    <string name="chat_export_format_pdf">PDF (.pdf): документ A4 с разбивкой на страницы для печати или архива</string>
+    <string name="chat_doc_empty_or_unsupported">Документ пуст или формат не поддерживается</string>
+    <string name="chat_doc_truncated">\n\n…(документ слишком длинный, обрезано %1$d символов)</string>
+    <string name="chat_doc_default_name">Документ</string>
+    <string name="chat_doc_parse_failed">Не удалось проанализировать документ: %1$s</string>
+    <string name="chat_thinking_preview">Размышление · %1$s</string>
+    <string name="chat_voice_playing_cd">Воспроизведение голоса</string>
+    <string name="chat_voice_ready_cd">Голос готов</string>
+    <string name="chat_knowledge_chunk_title">«%1$s» · Фрагмент №%2$d</string>
+    <string name="chat_knowledge_chunk_score">Оценка %1$s · %2$s</string>
+    <string name="chat_task_todo_title">Задачи</string>
+    <string name="chat_tool_call_arguments">Аргументы: %1$s</string>
+    <string name="chat_tool_call_result">Результат: %1$s</string>
+    <string name="chat_share_failed_no_uri">Не удалось поделиться: не удалось получить URI файла</string>
     <string name="chat_companion_days_zero">Только сегодня встретились</string>
     <string name="chat_companion_days">Вместе %1$d дней</string>
     <string name="chat_date_separator_today">Сегодня %1$s</string>
@@ -115,6 +133,7 @@
     <string name="chat_agent_hint_dismiss">Понятно</string>
     <string name="chat_agent_session_locked">Сеанс заблокирован в режиме агента</string>
     <string name="chat_delete_message">Удалить сообщение</string>
+    <string name="chat_select_messages">Выбрать</string>
     <string name="chat_delete_message_confirm">Это действие невозможно отменить.</string>
     <string name="chat_translate_in_progress">Перевод…</string>
 
@@ -187,6 +206,7 @@
     <string name="chat_token_count_cd">Количество токенов</string>
     <string name="chat_token_menu_title">Оценка токена</string>
     <string name="chat_token_input">Текущий вход</string>
+    <string name="chat_token_message">Это сообщение</string>
     <string name="chat_token_history">История сообщений</string>
     <string name="chat_token_context_window">Контекстное окно</string>
     <string name="chat_token_remaining">Доступный</string>

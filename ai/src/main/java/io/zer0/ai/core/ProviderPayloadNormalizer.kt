@@ -5,11 +5,11 @@ import io.zer0.common.Logger
 /**
  * v1.0.5: Provider 出口统一兜底层。
  *
- * 参考 openhanako 的 core/provider-compat.ts 的 normalizeProviderPayload,
+ * 参考 参考开源项目 的 core/provider-compat.ts 的 normalizeProviderPayload,
  * 在 Provider 把 [UIMessage] 列表翻译成具体协议请求体之前,做一轮与 Provider 无关的
  * 通用清理,消除"历史消息中残留的孤儿 TOOL / 冗余图片标记"等会导致中转站返回 400 的问题。
  *
- * 职责(对齐 openhanako):
+ * 职责(对齐 参考开源项目):
  *  1. [stripOrphanToolMessages] — 删除没有前驱 ASSISTANT tool_calls 匹配的孤儿 TOOL 消息
  *  2. [stripNativeMediaAttachmentMarkers] — 当消息携带真实图片/视频时,从 content 中清理
  *     `[attached_image:...]` / `[attached_video:...]` / `[attached_audio:...]` 标记
@@ -23,7 +23,7 @@ import io.zer0.common.Logger
  *    [ThinkingFormat] 主动注入对应厂商扩展字段(thinking / enable_thinking /
  *    chat_template_kwargs / reasoning),不会产生不兼容字段;ANTHROPIC 格式为 no-op
  *    (AnthropicProvider 走原生 Messages API,不经过 OpenAIProvider 路径)。
- *    故 1muse 当前无需 openhanako 那样的通用 stripIncompatibleThinking 兜底。
+ *    故 1muse 当前无需 参考开源项目 那样的通用 stripIncompatibleThinking 兜底。
  *    未来若实现 ProviderSpecificConfig.Custom.requestTemplate 路径(用户自定义请求模板
  *    可能注入 thinking 字段),需在 injectThinkingFormat 之后加 stripIncompatibleThinking
  *    兜底,剥离与 thinkingFormat 不匹配的 thinking 字段。
@@ -34,7 +34,7 @@ import io.zer0.common.Logger
 object ProviderPayloadNormalizer {
     private const val TAG = "ProviderPayloadNormalizer"
 
-    // ── 媒体附件标记正则(对齐 openhanako 的 ATTACHED_MEDIA_MARKER_RE)──
+    // ── 媒体附件标记正则(对齐 参考开源项目 的 ATTACHED_MEDIA_MARKER_RE)──
     // 匹配 [attached_image: 任意字符] + 可选换行,global 替换
     private val ATTACHED_IMAGE_MARKER_RE = Regex("""\[attached_image:\s*[^\]]+\]\n?""")
     private val ATTACHED_VIDEO_MARKER_RE = Regex("""\[attached_video:\s*[^\]]+\]\n?""")
@@ -93,7 +93,7 @@ object ProviderPayloadNormalizer {
      * `tool_calls` 的 assistant 消息,否则返回 400 invalid_request_error:
      * `An assistant message with 'tool_calls' must be turned before ...`
      *
-     * 对齐 openhanako core/provider-compat/tool-pairing.ts 的 stripOrphanToolResults。
+     * 对齐 参考开源项目 core/provider-compat/tool-pairing.ts 的 stripOrphanToolResults。
      *
      * 实现说明:收集所有 ASSISTANT 消息携带的 tool_calls id,然后保留 toolCallId
      * 在集合中的 TOOL 消息。这等价于"存在匹配"——在正常对话流中,ASSISTANT 的
@@ -154,7 +154,7 @@ object ProviderPayloadNormalizer {
      *
      * 当消息没有真实图片/视频时,保留标记(让模型至少知道有图片引用,即使看不到原图)。
      *
-     * 对齐 openhanako core/provider-compat.ts 的 stripNativeMediaAttachmentMarkers。
+     * 对齐 参考开源项目 core/provider-compat.ts 的 stripNativeMediaAttachmentMarkers。
      */
     private fun stripNativeMediaAttachmentMarkers(messages: List<UIMessage>): List<UIMessage> {
         var changed = false
@@ -186,7 +186,7 @@ object ProviderPayloadNormalizer {
             // 视频场景通常也伴随音频轨道,一并清理
             result = result.replace(ATTACHED_AUDIO_MARKER_RE, "")
         }
-        // 规整 3+ 连续换行为 2 个,并 trim 首尾空白(对齐 openhanako)
+        // 规整 3+ 连续换行为 2 个,并 trim 首尾空白(对齐 参考开源项目)
         result = result.replace(MULTIPLE_BLANK_LINES_RE, "\n\n").trim()
         return result
     }

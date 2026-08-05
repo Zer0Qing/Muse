@@ -14,6 +14,24 @@
     <string name="chat_update_compress_cd">更新并压缩</string>
     <string name="chat_scroll_to_bottom_cd">滚到底</string>
     <string name="chat_export_cd">导出对话</string>
+    <string name="chat_export_format_title">选择导出格式</string>
+    <string name="chat_export_format_confirm">导出</string>
+    <string name="chat_export_format_markdown">Markdown(.md):纯文本格式,便于粘贴到笔记软件或再次编辑</string>
+    <string name="chat_export_format_html">HTML(.html):单文件,内联样式与图片,可直接用浏览器打开分享</string>
+    <string name="chat_export_format_pdf">PDF(.pdf):A4 分页文档,适合打印或正式归档</string>
+    <string name="chat_doc_empty_or_unsupported">文档内容为空或不支持的格式</string>
+    <string name="chat_doc_truncated">\n\n…(文档过长，已截断 %1$d 字)</string>
+    <string name="chat_doc_default_name">文档</string>
+    <string name="chat_doc_parse_failed">文档解析失败: %1$s</string>
+    <string name="chat_thinking_preview">思考 · %1$s</string>
+    <string name="chat_voice_playing_cd">语音播放中</string>
+    <string name="chat_voice_ready_cd">语音就绪</string>
+    <string name="chat_knowledge_chunk_title">《%1$s》 · 片段 #%2$d</string>
+    <string name="chat_knowledge_chunk_score">分数 %1$s · %2$s</string>
+    <string name="chat_task_todo_title">任务待办</string>
+    <string name="chat_tool_call_arguments">参数: %1$s</string>
+    <string name="chat_tool_call_result">结果: %1$s</string>
+    <string name="chat_share_failed_no_uri">分享失败:无法获取文件 URI</string>
     <string name="chat_companion_days_zero">今天刚认识</string>
     <string name="chat_companion_days">陪伴 %1$d 天</string>
     <string name="chat_date_separator_today">今天 %1$s</string>
@@ -116,6 +134,7 @@
     <string name="chat_agent_hint_dismiss">知道了</string>
     <string name="chat_agent_session_locked">Agent 模式已锁定会话</string>
     <string name="chat_delete_message">删除消息</string>
+    <string name="chat_select_messages">选择</string>
     <string name="chat_delete_message_confirm">此操作不可撤销,确认删除这条消息?</string>
     <string name="chat_translate_in_progress">翻译中…</string>
 
@@ -188,6 +207,7 @@
     <string name="chat_token_count_cd">Token 计数</string>
     <string name="chat_token_menu_title">Token 估算</string>
     <string name="chat_token_input">当前输入</string>
+    <string name="chat_token_message">当前消息</string>
     <string name="chat_token_history">历史消息</string>
     <string name="chat_token_context_window">上下文窗口</string>
     <string name="chat_token_remaining">可用剩余</string>

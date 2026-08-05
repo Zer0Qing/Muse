@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 68,
-    "identityHash": "fe3b09aab49dc1ba31060ec98476f22a",
+    "identityHash": "eec51cb80328daff928b48943ca3d5b9",
     "entities": [
       {
         "tableName": "sessions",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `title` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `lastMessagePreview` TEXT NOT NULL, `assistantId` TEXT NOT NULL DEFAULT 'default', `pinned` INTEGER NOT NULL DEFAULT 0, `folderId` TEXT DEFAULT '', `archived` INTEGER NOT NULL DEFAULT 0, `isAgentSession` INTEGER NOT NULL DEFAULT 0, `messageCount` INTEGER NOT NULL DEFAULT 0, `deletedAt` INTEGER DEFAULT NULL, `parentSessionId` TEXT DEFAULT NULL, `childCount` INTEGER NOT NULL DEFAULT 0, `lastReadMessageId` TEXT DEFAULT NULL, `lastReadCount` INTEGER NOT NULL DEFAULT 0, `sortOrder` INTEGER NOT NULL DEFAULT 0, `proactiveNextTriggerAt` INTEGER DEFAULT NULL, `skillIdsJson` TEXT NOT NULL DEFAULT '[]', PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `title` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `lastMessagePreview` TEXT NOT NULL, `assistantId` TEXT NOT NULL DEFAULT 'default', `pinned` INTEGER NOT NULL DEFAULT 0, `folderId` TEXT DEFAULT '', `archived` INTEGER NOT NULL DEFAULT 0, `isAgentSession` INTEGER NOT NULL DEFAULT 0, `isLocked` INTEGER NOT NULL DEFAULT 0, `messageCount` INTEGER NOT NULL DEFAULT 0, `deletedAt` INTEGER DEFAULT NULL, `parentSessionId` TEXT DEFAULT NULL, `childCount` INTEGER NOT NULL DEFAULT 0, `lastReadMessageId` TEXT DEFAULT NULL, `lastReadCount` INTEGER NOT NULL DEFAULT 0, `sortOrder` INTEGER NOT NULL DEFAULT 0, `proactiveNextTriggerAt` INTEGER DEFAULT NULL, `skillIdsJson` TEXT NOT NULL DEFAULT '[]', PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -68,6 +68,13 @@
           {
             "fieldPath": "isAgentSession",
             "columnName": "isAgentSession",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "isLocked",
+            "columnName": "isLocked",
             "affinity": "INTEGER",
             "notNull": true,
             "defaultValue": "0"
@@ -3170,7 +3177,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'fe3b09aab49dc1ba31060ec98476f22a')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'eec51cb80328daff928b48943ca3d5b9')"
     ]
   }
 }

@@ -313,6 +313,7 @@ private fun VoiceConversationMainButton(
         else -> primary
     }
 
+    val stateCd = stateAccessibilityLabel(state)
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -328,7 +329,7 @@ private fun VoiceConversationMainButton(
                     indication = null,
                     onClick = onClick,
                 )
-                .semantics { contentDescription = stateAccessibilityLabel(state) },
+                .semantics { contentDescription = stateCd },
             contentAlignment = Alignment.Center,
         ) {
             when (state) {
@@ -611,11 +612,12 @@ private fun VoicePickerContent(
 }
 
 /** 主按钮无障碍标签。 */
+@Composable
 private fun stateAccessibilityLabel(state: VoiceConversationState): String = when (state) {
-    VoiceConversationState.IDLE -> "点击开始对话"
-    VoiceConversationState.LISTENING -> "正在录音,点击中断"
-    VoiceConversationState.THINKING -> "AI 思考中,点击中断"
-    VoiceConversationState.SPEAKING -> "正在朗读,点击中断"
+    VoiceConversationState.IDLE -> stringResource(R.string.voice_conversation_cd_idle)
+    VoiceConversationState.LISTENING -> stringResource(R.string.voice_conversation_cd_listening)
+    VoiceConversationState.THINKING -> stringResource(R.string.voice_conversation_cd_thinking)
+    VoiceConversationState.SPEAKING -> stringResource(R.string.voice_conversation_cd_speaking)
 }
 
 /** 主按钮下方状态文本。 */

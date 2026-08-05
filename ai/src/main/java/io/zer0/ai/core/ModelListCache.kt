@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentHashMap
 /**
  * v1.132: 上游模型列表缓存 — 避免反复进入 Provider 编辑页都打一次网络。
  *
- * 设计要点(参考 openhanako 的文件级缓存 + kelivo/rikkahub 的"无缓存"反例):
+ * 设计要点(参考 参考开源项目 的文件级缓存 + kelivo/rikkahub 的"无缓存"反例):
  *  - 内存缓存(进程级单例),按 [CacheKey] 索引
  *  - 5 分钟 TTL,过期后下次拉取强制刷新
  *  - 命中且未过期时直接返回,跳过网络请求

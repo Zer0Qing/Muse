@@ -250,6 +250,9 @@
     <string name="quick_notes_trash_subtitle">削除されたメモはここに保存されます。</string>
     <string name="quick_notes_restore">復元する</string>
     <string name="quick_notes_delete_permanent">完全に削除</string>
+    <string name="quick_notes_export_tags">タグ: %1$s</string>
+    <string name="quick_notes_export_folder">フォルダー: %1$s</string>
+    <string name="quick_notes_export_updated_at">更新日時: %1$s</string>
     <string name="quick_notes_delete_permanent_title">完全に削除</string>
     <string name="quick_notes_delete_permanent_confirm">これを元に戻すことはできません。</string>
     <string name="quick_notes_clear_trash">ゴミを取り除く</string>
@@ -353,6 +356,28 @@
     <string name="stats_tooltip_hint">セルをタップすると詳細が表示されます</string>
     <string name="stats_avg_label">平均 %.1f</string>
     <string name="stats_active_days_unit">日</string>
+    <string name="stats_total_tokens_label">累計トークン(~)</string>
+    <string name="stats_range_selected">選択済み</string>
+    <string name="stats_heatmap_legend_cd">アクティビティの凡例</string>
+    <string name="stats_heatmap_cd">アクティビティヒートマップ,%1$d週間のデータ</string>
+    <string name="stats_trend_chart_cd">メッセージ傾向折れ線グラフ</string>
+    <string name="stats_hourly_chart_cd">24時間メッセージ分布棒グラフ</string>
+    <string name="stats_other">その他</string>
+    <string name="stats_model_donut_cd">モデル使用分布ドーナツチャート</string>
+    <string name="stats_summary_header">===== Muse 統計概要 =====</string>
+    <string name="stats_summary_total_sessions">合計セッション数: %1$d</string>
+    <string name="stats_summary_total_messages">総メッセージ数: %1$d</string>
+    <string name="stats_summary_ai_replies">AI 返信数: %1$d</string>
+    <string name="stats_summary_user_messages">ユーザーメッセージ数: %1$d</string>
+    <string name="stats_summary_streak_days">連続アクティブ日数: %1$d 日</string>
+    <string name="stats_summary_week_messages">今週のメッセージ: %1$d</string>
+    <string name="stats_summary_month_messages">今月のメッセージ: %1$d</string>
+    <string name="stats_summary_avg_daily">1日あたりの平均: %1$s</string>
+    <string name="stats_summary_most_active_day">最も活動的な日: %1$s (%2$d メッセージ)</string>
+    <string name="stats_summary_models_header">最も使用されたモデル:</string>
+    <string name="stats_summary_model_line">  %1$d. %2$s - %3$d メッセージ (%4$s%%)</string>
+    <string name="stats_summary_assistants_header">アシスタント使用率:</string>
+    <string name="stats_summary_assistant_line">  - %1$s: %2$d メッセージ</string>
 
     <!-- ===== ui/taskcard ===== -->
     <string name="taskcard_phase_planning">企画</string>
@@ -366,6 +391,16 @@
     <string name="taskcard_retry">リトライ</string>
     <string name="taskcard_steps_completed">%1$d/%2$d 手順が完了しました</string>
     <string name="taskcard_failed_suffix">· %1$d 失敗しました</string>
+    <string name="milestone_title">マイルストーン</string>
+    <string name="milestone_empty_title">まだマイルストーンはありません</string>
+    <string name="milestone_empty_subtitle">AIパートナーともっと交流すると、マイルストーンが自動的に解放されます</string>
+    <string name="milestone_active_section">アクティブなマイルストーン (%1$d)</string>
+    <string name="milestone_dismissed_section">クローズ済み (%1$d)</string>
+    <string name="task_plan_status_pending">待機中</string>
+    <string name="task_plan_status_in_progress">実行中</string>
+    <string name="task_plan_status_done">完了</string>
+    <string name="task_plan_status_failed">失敗</string>
+    <string name="task_plan_status_skipped">スキップ</string>
 
     <!-- ===== ui/taskcard: delegation chain (v1.201) ===== -->
     <string name="delegation_chain_title">委任チェーン</string>
@@ -385,6 +420,13 @@
 
     <!-- ===== ui/taskcard: subagent task list (v1.202) ===== -->
     <string name="subagent_task_list_title">バックグラウンドサブエージェントタスク</string>
+    <string name="skill_impl_not_configured">ファイルツール未設定</string>
+    <string name="plugin_missing_js">js_code がありません</string>
+    <string name="subagent_task_detail_assistant">Assistant</string>
+    <string name="subagent_task_detail_user">User</string>
+    <string name="subagent_task_detail_count">Messages: %1$d</string>
+    <string name="subagent_task_detail_loading">Loading conversation...</string>
+    <string name="subagent_task_detail_empty">No conversation history yet</string>
     <string name="subagent_task_list_empty">バックグラウンドタスクなし</string>
     <string name="subagent_task_list_count">%1$d タスク</string>
     <string name="subagent_task_running">ランニング</string>

@@ -184,6 +184,7 @@ internal class ChatSheetState {
     var showDelegateSheet by androidx.compose.runtime.mutableStateOf<DelegateSheetMode?>(null)
     var showToolCallSheet by androidx.compose.runtime.mutableStateOf(false)
     var editingMessage by androidx.compose.runtime.mutableStateOf<io.zer0.ai.core.UIMessage?>(null)
+    var editingUserMessage by androidx.compose.runtime.mutableStateOf<io.zer0.ai.core.UIMessage?>(null)
     var showExportSheet by androidx.compose.runtime.mutableStateOf(false)
     var asrTipDialogShown by androidx.compose.runtime.mutableStateOf(false)
     var showVoiceConversation by androidx.compose.runtime.mutableStateOf(false)
@@ -707,6 +708,34 @@ internal fun ChatSheetHost(
                 },
             )
         }
+        // 编辑用户消息：独立弹窗编辑，不占用主输入栏
+        sheetState.editingUserMessage?.let { msg ->
+            var draft by remember(msg.id) { mutableStateOf(msg.content) }
+            MuseDialog(
+                onDismissRequest = { sheetState.editingUserMessage = null },
+                title = stringResource(R.string.edit_message_title),
+                content = {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        MuseTextField(
+                            value = draft,
+                            onValueChange = { draft = it },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 120.dp, max = 320.dp),
+                            label = { Text(stringResource(R.string.edit_message_content_label)) },
+                            maxLines = 10,
+                        )
+                    }
+                },
+                confirmText = stringResource(R.string.action_save),
+                onConfirm = {
+                    viewModel.applyUserEdit(msg.id.toString(), draft.trim())
+                    sheetState.editingUserMessage = null
+                },
+                dismissText = stringResource(R.string.action_cancel),
+                onDismiss = { sheetState.editingUserMessage = null },
+            )
+        }
         // 编辑助手消息(MuseDialog 替代原 ModalBottomSheet,避免真机 scrim 卡死)
         sheetState.editingMessage?.let { msg ->
             var draft by remember(msg.id) { mutableStateOf(msg.content) }
@@ -800,7 +829,7 @@ private fun ToolCallHistorySheet(
         val plan = agentPlan
         if (plan != null && plan.steps.isNotEmpty()) {
             Text(
-                text = "任务待办",
+                text = stringResource(R.string.chat_task_todo_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -845,7 +874,7 @@ private fun ToolCallHistorySheet(
                     )
                     Spacer(Modifier.weight(1f))
                     Text(
-                        text = step.status.displayText,
+                        text = stringResource(step.status.labelRes),
                         style = MaterialTheme.typography.labelSmall,
                         color = statusColor,
                     )
@@ -919,14 +948,14 @@ private fun ToolCallRecordItem(
         }
         if (record.arguments.isNotBlank()) {
             Text(
-                text = "参数: ${record.arguments.take(200)}",
+                text = stringResource(R.string.chat_tool_call_arguments, record.arguments.take(200)),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         if (record.result.isNotBlank()) {
             Text(
-                text = "结果: ${record.result.take(300)}",
+                text = stringResource(R.string.chat_tool_call_result, record.result.take(300)),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -1009,6 +1038,6 @@ private fun shareFile(context: android.content.Context, file: java.io.File, mime
             },
         )
     }.onFailure {
-        MuseToast.show("分享失败:无法获取文件 URI")
+        MuseToast.show(context.getString(R.string.chat_share_failed_no_uri))
     }
 }

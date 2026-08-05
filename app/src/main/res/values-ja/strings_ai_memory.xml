@@ -31,6 +31,9 @@
     <string name="memory_sync_never">記憶はまだ編集されておらず、会話は長期記憶に残っていない</string>
     <string name="memory_sync_recent">最後にコンパイルされたのは %1$d 分前、メモリは同期されました</string>
     <string name="memory_sync_stale">最後にコンパイルされたのは %1$d 分前ですが、最近の会話はまだメモリにない可能性があります。</string>
+    <string name="memory_screen_experience_category_general">一般</string>
+    <string name="memory_chart_type_distribution_cd">メモリタイプ分布ドーナツチャート</string>
+    <string name="memory_chart_daily_trend_cd">毎日のメモリ傾向グラフ</string>
     <string name="memory_sync_set_importance_cd">重要度を設定する</string>
 
     <!-- v6: MemoryViewModel CRUD error messages -->

@@ -16,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 
@@ -103,6 +104,14 @@ class ChatGenerationService : Service() {
                     // (launchGeneration 内部 appScope.launch 异步设值,observeJob 可能先收到 null)。
                     // 立即停止会导致前台服务自杀、进程失去前台优先级,长任务被系统回收中断。
                     // 服务由 ACTION_STOP(ChatViewModel finally)或观察到 !isStreaming 时停止。
+                    // P1 审计:启动竞态窗口内(activeGeneration 尚未设值)不停止,
+                    // 由独立协程在心跳超时后检查兜底,避免阻塞 collect。
+                    launch { 
+                        delay(HEARTBEAT_TIMEOUT_MS)
+                        if (chatGenerationManager.activeGeneration.value == null) {
+                            stopService()
+                        }
+                    }
                     return@collect
                 }
                 if (!gen.isStreaming) {
@@ -110,7 +119,13 @@ class ChatGenerationService : Service() {
                     stopService()
                     return@collect
                 }
-                // 流式中:更新通知
+                // 流式中:更新通知;若心跳长时间未更新(网络卡死/协程静默挂起),超时兜底停止,
+                // 避免前台服务永久常驻耗尽电池(生成结果由 checkpoint 在下次进入时恢复)。
+                if (System.currentTimeMillis() - gen.lastUpdatedAt > HEARTBEAT_TIMEOUT_MS) {
+                    Logger.w("ChatGenService", "生成心跳超时,停止前台服务(会话: ${gen.sessionTitle})")
+                    stopService()
+                    return@collect
+                }
                 notificationManager.updateLiveProgress(gen.sessionTitle, 0, true)
             }
         }
@@ -160,6 +175,8 @@ class ChatGenerationService : Service() {
 
     companion object {
         private const val NOTIFICATION_ID = 2001
+        /** P1 审计: 生成心跳超时阈值(15 分钟无任何进度则停止保活,避免永久常驻)。 */
+        private const val HEARTBEAT_TIMEOUT_MS = 15 * 60 * 1000L
         const val ACTION_START = "io.zer0.muse.action.START_GENERATION"
         const val ACTION_STOP = "io.zer0.muse.action.STOP_GENERATION"
 

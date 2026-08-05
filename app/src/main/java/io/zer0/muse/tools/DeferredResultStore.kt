@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.asStateFlow
 /**
  * 异步委派任务结果回灌 — 非阻塞委派的核心基础设施。
  *
- * 参考 openhanako DeferredResultStore:
+ * 参考 参考开源项目 DeferredResultStore:
  *  - 主 agent 调 subagent 立即返回 taskId,不阻塞主对话
  *  - 子任务完成后通过 [resolve] 回灌结果
  *  - ChatViewModel 订阅 [completedTasks] 获取已完成任务,作为 interlude 注入主对话

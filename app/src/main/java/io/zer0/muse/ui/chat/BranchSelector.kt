@@ -49,7 +49,7 @@ fun BranchSelector(
         IconButton(
             onClick = onPrevious,
             enabled = currentIndex > 0,
-            modifier = Modifier.size(28.dp),
+            modifier = Modifier.size(48.dp),
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
@@ -73,7 +73,7 @@ fun BranchSelector(
         IconButton(
             onClick = onNext,
             enabled = currentIndex < totalCount - 1,
-            modifier = Modifier.size(28.dp),
+            modifier = Modifier.size(48.dp),
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,

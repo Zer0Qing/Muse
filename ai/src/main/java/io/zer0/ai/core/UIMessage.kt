@@ -185,6 +185,12 @@ data class UIMessage(
     val variantIndex: Int = 0,
     /** v1.0.30: 变体总数（组内消息数）。 */
     val variantCount: Int = 1,
+    /**
+     * P0 对话树: 助手变体所属的用户提问变体组 ID(parentGroupId)。
+     * 用于把 assistant 回复精确挂载到对应 user 变体下,避免跨提问重试/切换污染。
+     * 旧数据为 null 时由 ConversationTreeBuilder 按时间顺序推断父节点。
+     */
+    val parentGroupId: String? = null,
     /** v1.0.47: 消息附件列表(结构化持久化原始文件元数据,Provider 发送请求时忽略,用 content)。 */
     val attachments: List<AttachmentRef> = emptyList(),
 ) {

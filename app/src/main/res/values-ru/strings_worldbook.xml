@@ -25,6 +25,10 @@
     <string name="worldbook_keywords_label">Ключевые слова: %1$s</string>
     <string name="worldbook_badge_always_active">Постоянный</string>
     <string name="worldbook_export">Экспорт</string>
+    <string name="worldbook_import_failed">Ошибка импорта: %1$s</string>
+    <string name="worldbook_import_success">Импортировано записей: %1$d</string>
+    <string name="worldbook_import_empty">Импортируемые записи не найдены</string>
+    <string name="worldbook_export_failed">Ошибка экспорта: %1$s</string>
 
     <!-- Sections -->
     <string name="worldbook_section_basic">Базовый</string>

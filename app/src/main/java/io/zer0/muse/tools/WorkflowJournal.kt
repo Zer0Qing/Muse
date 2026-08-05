@@ -10,7 +10,7 @@ import java.io.File
 import java.security.MessageDigest
 
 /**
- * v1.0.53 Phase 2: 工作流断点恢复日志(对标 Hana lib/workflow/journal.ts)。
+ * v1.0.53 Phase 2: 工作流断点恢复日志(参考开源实现 lib/workflow/journal.ts)。
  *
  * 文件格式: `<journalDir>/<runId>.jsonl`,每行一个 JSON [Entry]。
  * 失败/中断后传入 resume 标识重跑,已完成的节点直接命中缓存秒回,

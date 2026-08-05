@@ -129,6 +129,21 @@
     <string name="settings_provider_ability_vision">多模态(视觉输入)</string>
     <string name="settings_provider_ability_video">视频输出</string>
     <string name="settings_provider_context_window">上下文窗口(token, 可选)</string>
+    <string name="settings_model_catalog_title">模型目录</string>
+    <string name="settings_model_catalog_empty">目录为空</string>
+    <string name="settings_model_catalog_empty_sub">内置目录未收录，可手动新增模型</string>
+    <string name="settings_model_catalog_ctx">上下文 %1$d</string>
+    <string name="settings_model_catalog_max_out">最大输出 %1$d</string>
+    <string name="settings_model_catalog_vision">视觉</string>
+    <string name="settings_model_catalog_tools">工具</string>
+    <string name="settings_model_catalog_reasoning">推理</string>
+    <string name="settings_model_catalog_edited">用户已改</string>
+    <string name="settings_model_catalog_saved">目录已保存</string>
+    <string name="settings_model_catalog_ctx_label">上下文窗口 token（留空表示未知）</string>
+    <string name="settings_model_catalog_max_out_label">最大输出 token（留空表示默认）</string>
+    <string name="settings_model_catalog_edit_cd">编辑模型目录</string>
+    <string name="settings_model_catalog_reset_cd">恢复默认</string>
+
     <string name="settings_provider_max_output_tokens">最大输出 token(可选)</string>
     <string name="settings_provider_remove_model">从列表移除该模型</string>
     <string name="settings_provider_no_models">暂无模型</string>

@@ -1,4 +1,5 @@
 package io.zer0.muse.ui.chat
+import io.zer0.muse.R
 
 import android.content.Context
 import android.net.Uri
@@ -68,15 +69,15 @@ class ChatDocumentCoordinator(
                 }
                 val text = result.getOrNull()
                 if (text.isNullOrBlank()) {
-                    reportError("文档内容为空或不支持的格式")
+                    reportError(context.getString(R.string.chat_doc_empty_or_unsupported))
                     return@launch
                 }
                 val truncated = if (text.length > DOC_MAX_CHARS) {
                     val remain = text.length - DOC_MAX_CHARS
-                    text.take(DOC_MAX_CHARS) + "\n\n…(文档过长，已截断 $remain 字)"
+                    text.take(DOC_MAX_CHARS) + context.getString(R.string.chat_doc_truncated, remain)
                 } else text
                 // v1.136 T10: 从 URI 提取文件名(回退到 "文档")
-                val fileName = queryDisplayName(context, uri) ?: "文档"
+                val fileName = queryDisplayName(context, uri) ?: context.getString(R.string.chat_doc_default_name)
                 val doc = PendingDocument(
                     name = fileName,
                     content = truncated,
@@ -85,7 +86,7 @@ class ChatDocumentCoordinator(
                 accessor.update { it.copy(pendingDocuments = it.pendingDocuments + doc) }
             } catch (t: Exception) {
                 Logger.e(tag, "doc parse failed", t)
-                reportError("文档解析失败: ${t.message}")
+                reportError(context.getString(R.string.chat_doc_parse_failed, t.message ?: ""))
             }
         }
     }

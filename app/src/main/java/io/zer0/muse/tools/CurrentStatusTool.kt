@@ -8,7 +8,7 @@ import java.util.Locale
 import java.util.TimeZone
 
 /**
- * current_status 工具(openhanako current-status-tool.ts 移植)。
+ * current_status 工具(参考开源项目 current-status-tool.ts 移植)。
  *
  * 轻量级环境感知:时间、设备信息、电池、显示。
  * action=list 返回可用键;action=get 返回某个键的值。

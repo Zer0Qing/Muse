@@ -127,6 +127,10 @@
 <string name="voice_recognizing">인식 중…</string>
 <!-- Task 1: ASR reconnecting status (WebSocket dropped, exponential backoff reconnect, audio buffered meanwhile) -->
 <string name="voice_reconnecting">네트워크 오류가 발생했습니다. 다시 연결하는 중…</string>
+    <string name="voice_conversation_cd_idle">탭하여 대화 시작</string>
+    <string name="voice_conversation_cd_listening">녹음 중, 탭하여 중단</string>
+    <string name="voice_conversation_cd_thinking">AI 생각 중, 탭하여 중단</string>
+    <string name="voice_conversation_cd_speaking">읽는 중, 탭하여 중단</string>
 
     <!-- ASR config hint -->
     <string name="asr_missing_api_key_error">API 키가 구성되지 않았습니다.</string>
@@ -209,6 +213,11 @@
     <string name="chat_list_status_in_progress">진행 중</string>
     <string name="chat_list_status_pending">보류 중</string>
     <string name="chat_list_status_completed">완전한</string>
+    <string name="chat_list_time_just_now">방금</string>
+    <string name="chat_list_time_minutes_ago">%1$d분 전</string>
+    <string name="chat_list_time_hours_ago">%1$d시간 전</string>
+    <string name="chat_list_time_yesterday">어제</string>
+    <string name="chat_list_time_days_ago">%1$d일 전</string>
     <string name="chat_reaction_add">반응 추가</string>
     <string name="chat_reaction_change">변화 반응</string>
     <string name="chat_reaction_picker_title">메시지에 반응</string>

@@ -118,6 +118,7 @@
 
     <!-- ===== ui/HomeScreen 首页 ===== -->
     <string name="home_tab_tasks">任务</string>
+<string name="home_tab_agent">Agent</string>
     <string name="home_tab_group_chat">群聊</string>
     <string name="home_settings_cd">设置</string>
     <string name="home_search_cd">搜索</string>

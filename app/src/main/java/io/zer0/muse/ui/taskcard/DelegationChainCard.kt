@@ -224,11 +224,11 @@ private fun ChainNodeView(
             if (node.subNodes.isNotEmpty()) {
                 IconButton(
                     onClick = { expanded = !expanded },
-                    modifier = Modifier.size(24.dp),
+                    modifier = Modifier.size(48.dp),
                 ) {
                     Icon(
                         imageVector = if (expanded) Icons.Default.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = null,
+                        contentDescription = if (expanded) stringResource(R.string.action_collapse) else stringResource(R.string.action_expand),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp),
                     )

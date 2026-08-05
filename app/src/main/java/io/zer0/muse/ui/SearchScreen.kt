@@ -1,4 +1,6 @@
 package io.zer0.muse.ui
+import android.content.Context
+import androidx.compose.ui.platform.LocalContext
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -463,7 +465,8 @@ private fun SessionResultRow(
     updatedAt: Long,
     onClick: () -> Unit,
 ) {
-    val timeText = remember(updatedAt) { formatSearchRelativeTime(updatedAt) }
+    val context = LocalContext.current
+    val timeText = remember(updatedAt, context) { formatSearchRelativeTime(updatedAt, context) }
     val subtitle = if (preview.isNotBlank()) {
         "$preview · $timeText"
     } else {
@@ -693,8 +696,9 @@ private fun MessageSearchResultRow(
                     modifier = Modifier.weight(1f),
                 )
                 Spacer(Modifier.size(8.dp))
+                val context = LocalContext.current
                 Text(
-                    text = remember(timestamp) { formatSearchTimestamp(timestamp) },
+                    text = remember(timestamp, context) { formatSearchTimestamp(timestamp, context) },
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -811,11 +815,11 @@ private fun buildHighlightedSnippet(snippet: String, highlightColor: Color): Ann
 }
 
 /** v2.x: 格式化时间戳为相对时间(刚刚 / N分钟前 / 今天 HH:mm / 昨天 / MM-dd)。 */
-private fun formatSearchTimestamp(timestamp: Long): String =
-    formatSearchRelativeTime(timestamp)
+private fun formatSearchTimestamp(timestamp: Long, context: Context): String =
+    formatSearchRelativeTime(timestamp, context)
 
 /** 搜索列表相对时间格式化(今天 HH:mm / 昨天 / MM-dd)。 */
-private fun formatSearchRelativeTime(timestamp: Long): String {
+private fun formatSearchRelativeTime(timestamp: Long, context: Context): String {
     if (timestamp <= 0) return ""
     val now = System.currentTimeMillis()
     val diff = now - timestamp
@@ -829,11 +833,11 @@ private fun formatSearchRelativeTime(timestamp: Long): String {
     val isYesterday = calNow.get(java.util.Calendar.YEAR) == calTarget.get(java.util.Calendar.YEAR) &&
         calNow.get(java.util.Calendar.DAY_OF_YEAR) - calTarget.get(java.util.Calendar.DAY_OF_YEAR) == 1
     return when {
-        diff < TimeUnit.MINUTES.toMillis(1) -> "刚刚"
-        diff < TimeUnit.HOURS.toMillis(1) -> "${diff / TimeUnit.MINUTES.toMillis(1)} 分钟前"
-        isSameDay -> "今天 ${timeSdf.format(Date(timestamp))}"
-        isYesterday -> "昨天 ${timeSdf.format(Date(timestamp))}"
-        diff < dayMillis * 7 -> "${diff / dayMillis} 天前"
+        diff < TimeUnit.MINUTES.toMillis(1) -> context.getString(R.string.chat_list_time_just_now)
+        diff < TimeUnit.HOURS.toMillis(1) -> context.getString(R.string.chat_list_time_minutes_ago, diff / TimeUnit.MINUTES.toMillis(1))
+        isSameDay -> context.getString(R.string.search_time_today, timeSdf.format(Date(timestamp)))
+        isYesterday -> context.getString(R.string.search_time_yesterday, timeSdf.format(Date(timestamp)))
+        diff < dayMillis * 7 -> context.getString(R.string.chat_list_time_days_ago, diff / dayMillis)
         else -> dateSdf.format(Date(timestamp))
     }
 }

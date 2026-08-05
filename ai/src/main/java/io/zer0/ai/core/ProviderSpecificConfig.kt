@@ -74,13 +74,13 @@ sealed class ProviderSpecificConfig {
          */
         val stripModelPrefix: String = "",
         /**
-         * v1.0.6: 是否为 Coding Plan 供应商(对齐 openhanako 的 *-coding 系列预设)。
+         * v1.0.6: 是否为 Coding Plan 供应商(对齐 参考开源项目 的 *-coding 系列预设)。
          *
          * Coding Plan 供应商特点:
          *  - baseUrl 走专属 coding 端点(如 https://api.kimi.com/coding/v1)
          *  - apiKey 通常带专属前缀(如 sk-sp- / sk-coding-)
          *  - 模型列表聚焦编程(如 qwen3-coder-plus / kimi-for-coding)
-         *  - 部分需要运行时补全 headers/reasoning(openhanako 的 RUNTIME_ENRICHED_PROVIDERS)
+         *  - 部分需要运行时补全 headers/reasoning(参考开源项目 的 RUNTIME_ENRICHED_PROVIDERS)
          *
          * 当前仅作为标记字段,具体行为差异由 ProviderCompat / ProviderPayloadNormalizer 消费。
          */

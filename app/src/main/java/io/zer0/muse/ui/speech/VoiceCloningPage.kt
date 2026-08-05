@@ -607,7 +607,7 @@ private fun ClonedVoiceRow(
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Delete,
-                        contentDescription = null,
+                        contentDescription = stringResource(R.string.action_delete),
                         tint = MaterialTheme.colorScheme.error,
                         modifier = Modifier.size(MusePaddings.iconPadding * 2),
                     )

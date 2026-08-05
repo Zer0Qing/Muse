@@ -11,13 +11,13 @@ import io.zer0.ai.core.ProviderType
 import io.zer0.muse.R
 
 /**
- * v1.0.6: 预置供应商清单 — 全量对齐 openhanako 的 37 个内置供应商,
+ * v1.0.6: 预置供应商清单 — 全量对齐 参考开源项目 的 37 个内置供应商,
  * 另保留 1muse 特有的 8 个(deepinfra / lingyi / github-copilot / 6 个中转站模板),
  * 合计 45 个预置供应商。
  *
- * 对齐内容(参考 openhanako/lib/providers/):
+ * 对齐内容(参考 参考开源项目/lib/providers/):
  *  - 供应商 id / displayName / baseUrl / defaultApi 协议 / authType
- *  - 每个供应商内嵌默认 chat 模型列表(来自 openhanako/lib/default-models.json)
+ *  - 每个供应商内嵌默认 chat 模型列表(来自 参考开源项目/lib/default-models.json)
  *  - 4 个 Coding Plan 供应商(dashscope-coding / kimi-coding / volcengine-coding / zhipu-coding)
  *    标记 specific.codingPlan = true
  *  - minimax / minimax-token-plan 走 Anthropic Messages 协议(baseUrl = /anthropic)
@@ -26,8 +26,8 @@ import io.zer0.muse.R
  *
  * 1muse 特有保留:
  *  - SiliconFlow 免费模型预填 8 个模型 + UI「一键填入免费模型」按钮
- *  - GitHub Copilot OAuth 预设(openhanako 无)
- *  - deepinfra / lingyi 两个海外/国产供应商(openhanako 无)
+ *  - GitHub Copilot OAuth 预设(参考开源项目 无)
+ *  - deepinfra / lingyi 两个海外/国产供应商(参考开源项目 无)
  *  - 6 个中转站模板(opencode / api2d / aihubmix / deepbricks / oneapi / newapi)
  *
  * 分类:
@@ -44,6 +44,7 @@ import io.zer0.muse.R
  */
 class PresetProviders(
     private val context: Context,
+    private val modelCatalog: ModelCatalogStore? = null,
 ) {
 
     // ── 端点常量(集中管理,便于统一修改)─────────────────────────────
@@ -115,7 +116,7 @@ class PresetProviders(
         stepfun(),
         // P2-5: SiliconFlow 免费模型兜底(国产开源模型聚合平台)
         siliconFlowFree(),
-        // v1.0.6: 新增国产供应商(对齐 openhanako)
+        // v1.0.6: 新增国产供应商(对齐 参考开源项目)
         hunyuan(),
         baiduCloud(),
         modelscope(),
@@ -123,12 +124,12 @@ class PresetProviders(
         mimo(),
         agnes(),
         minimax(),
-        // v1.0.6: Coding Plan 系列(对齐 openhanako *-coding)
+        // v1.0.6: Coding Plan 系列(对齐 参考开源项目 *-coding)
         dashscopeCoding(),
         kimiCoding(),
         volcengineCoding(),
         zhipuCoding(),
-        // v1.0.6: Token Plan 系列(对齐 openhanako *-token-plan)
+        // v1.0.6: Token Plan 系列(对齐 参考开源项目 *-token-plan)
         minimaxTokenPlan(),
         mimoTokenPlan(),
     )
@@ -183,8 +184,35 @@ class PresetProviders(
      * v1.0.7: 每个 preset 自动填入 specId(从 id 去除 "preset_" 前缀),
      * 供 [io.zer0.ai.core.ProviderSpecMerger] 在运行时合并 spec 默认模型 + 用户 overlay。
      */
+    /**
+     * P1 模型目录 overlay：用 ModelCatalogStore 合并后的字段覆盖内置模型的
+     * contextWindow / maxOutputTokens / vision / tools / reasoning。
+     * 目录中用户手动改过的字段永远优先。
+     */
+    private fun overlayCatalog(models: List<Model>): List<Model> {
+        val catalog = modelCatalog ?: return models
+        return models.map { model ->
+            val specKey = model.providerId.removePrefix("preset_").ifBlank { model.providerId }
+            val entry = catalog.find(specKey, model.id) ?: return@map model
+            model.copy(
+                contextWindow = entry.contextWindow ?: model.contextWindow,
+                maxOutputTokens = entry.maxOutputTokens ?: model.maxOutputTokens,
+                supportsVision = entry.supportsVision ?: model.supportsVision,
+                abilities = (model.abilities.toMutableSet().apply {
+                    if (entry.supportsTools == true) add(ModelAbility.TOOL)
+                    if (entry.supportsTools == false) remove(ModelAbility.TOOL)
+                    if (entry.supportsReasoning == true) add(ModelAbility.REASONING)
+                    if (entry.supportsReasoning == false) remove(ModelAbility.REASONING)
+                }).toSet(),
+            )
+        }
+    }
+
     val all: List<ProviderConfig> = (overseas + domestic + relay + customOpenAI()).map { preset ->
-        preset.copy(specId = preset.id.removePrefix("preset_").ifBlank { null })
+        preset.copy(
+            specId = preset.id.removePrefix("preset_").ifBlank { null },
+            models = overlayCatalog(preset.models),
+        )
     }
 
     /** 按 id 查找预置供应商。 */
@@ -310,7 +338,7 @@ class PresetProviders(
     /**
      * v1.0.6: xAI OAuth 预设供应商(走 OpenAI Responses 协议)。
      *
-     * 对齐 openhanako 的 xai-oauth:走 OAuth + openai-responses 协议,
+     * 对齐 参考开源项目 的 xai-oauth:走 OAuth + openai-responses 协议,
      * baseUrl 指向 xAI OAuth 代理端点(https://cli-chat-proxy.grok.com)。
      *
      * 与 [xai] 区别:
@@ -363,7 +391,7 @@ class PresetProviders(
     /**
      * v1.134 P2-1: GitHub Copilot 预设供应商(走 GitHub OAuth Device Flow)。
      *
-     * 1muse 特有(openhanako 无)。用户用 GitHub 账号扫码授权后,
+     * 1muse 特有(参考开源项目 无)。用户用 GitHub 账号扫码授权后,
      * access_token 当作 apiKey,Copilot 网关代理到 GPT-4o / Claude 等模型。
      */
     private fun githubCopilot() = ProviderConfig(
@@ -437,7 +465,7 @@ class PresetProviders(
         models = emptyList(), // 聚合平台,模型列表由用户从 /models 拉取
     )
 
-    /** 1muse 特有(openhanako 无)。 */
+    /** 1muse 特有(参考开源项目 无)。 */
     private fun deepInfra() = ProviderConfig(
         id = "preset_deepinfra",
         displayName = "DeepInfra",
@@ -463,7 +491,7 @@ class PresetProviders(
         ),
     )
 
-    /** v1.0.6: Perplexity 预设(对齐 openhanako)。 */
+    /** v1.0.6: Perplexity 预设(对齐 参考开源项目)。 */
     private fun perplexity() = ProviderConfig(
         id = "preset_perplexity",
         displayName = "Perplexity",
@@ -480,7 +508,7 @@ class PresetProviders(
     )
 
     /**
-     * v1.0.6: Ollama 本地预设(对齐 openhanako)。
+     * v1.0.6: Ollama 本地预设(对齐 参考开源项目)。
      *
      * - authType=none → allowMissingApiKey=true(无需 apiKey)
      * - baseUrl=http://localhost:11434/v1(本地端点)
@@ -592,7 +620,7 @@ class PresetProviders(
         ),
     )
 
-    /** 1muse 特有(openhanako 无,零一万物已逐步停服,保留供存量用户)。 */
+    /** 1muse 特有(参考开源项目 无,零一万物已逐步停服,保留供存量用户)。 */
     private fun lingyi() = ProviderConfig(
         id = "preset_lingyi",
         displayName = context.getString(R.string.preset_provider_lingyi),
@@ -664,9 +692,9 @@ class PresetProviders(
         ),
     )
 
-    // ── 国产官方(新增,对齐 openhanako)──────────────────────────────
+    // ── 国产官方(新增,对齐 参考开源项目)──────────────────────────────
 
-    /** v1.0.6: 腾讯混元(对齐 openhanako)。 */
+    /** v1.0.6: 腾讯混元(对齐 参考开源项目)。 */
     private fun hunyuan() = ProviderConfig(
         id = "preset_hunyuan",
         displayName = context.getString(R.string.preset_provider_hunyuan),
@@ -681,7 +709,7 @@ class PresetProviders(
         ),
     )
 
-    /** v1.0.6: 百度智能云/文心(对齐 openhanako)。 */
+    /** v1.0.6: 百度智能云/文心(对齐 参考开源项目)。 */
     private fun baiduCloud() = ProviderConfig(
         id = "preset_baidu_cloud",
         displayName = context.getString(R.string.preset_provider_baidu_cloud),
@@ -696,7 +724,7 @@ class PresetProviders(
         ),
     )
 
-    /** v1.0.6: 魔搭 ModelScope(对齐 openhanako)。 */
+    /** v1.0.6: 魔搭 ModelScope(对齐 参考开源项目)。 */
     private fun modelscope() = ProviderConfig(
         id = "preset_modelscope",
         displayName = context.getString(R.string.preset_provider_modelscope),
@@ -710,7 +738,7 @@ class PresetProviders(
         ),
     )
 
-    /** v1.0.6: 无问芯穹 Infini(对齐 openhanako)。 */
+    /** v1.0.6: 无问芯穹 Infini(对齐 参考开源项目)。 */
     private fun infini() = ProviderConfig(
         id = "preset_infini",
         displayName = context.getString(R.string.preset_provider_infini),
@@ -725,7 +753,7 @@ class PresetProviders(
         ),
     )
 
-    /** v1.0.6: 小米 MiMo(对齐 openhanako)。 */
+    /** v1.0.6: 小米 MiMo(对齐 参考开源项目)。 */
     private fun mimo() = ProviderConfig(
         id = "preset_mimo",
         displayName = context.getString(R.string.preset_provider_mimo),
@@ -744,7 +772,7 @@ class PresetProviders(
     )
 
     /**
-     * v1.0.6: 思必驰 Agnes AI(对齐 openhanako)。
+     * v1.0.6: 思必驰 Agnes AI(对齐 参考开源项目)。
      *
      * v1.0.8: 补全模型清单 — 2 个 chat 模型 + 1 个生图模型 + 1 个视频模型,
      * 覆盖 Agnes 各模态能力。Agnes 走 OpenAI 兼容协议,
@@ -802,9 +830,9 @@ class PresetProviders(
     )
 
     /**
-     * v1.0.6: MiniMax 预设(对齐 openhanako)。
+     * v1.0.6: MiniMax 预设(对齐 参考开源项目)。
      *
-     * 对齐 openhanako:走 Anthropic Messages 协议(defaultApi=anthropic-messages),
+     * 对齐 参考开源项目:走 Anthropic Messages 协议(defaultApi=anthropic-messages),
      * baseUrl 指向 https://api.minimaxi.com/anthropic(MiniMax 官方 Anthropic 兼容端点)。
      */
     private fun minimax() = ProviderConfig(
@@ -824,10 +852,10 @@ class PresetProviders(
         ),
     )
 
-    // ── Coding Plan 系列(对齐 openhanako *-coding)─────────────────
+    // ── Coding Plan 系列(对齐 参考开源项目 *-coding)─────────────────
 
     /**
-     * v1.0.6: 阿里云百炼 Coding Plan(对齐 openhanako)。
+     * v1.0.6: 阿里云百炼 Coding Plan(对齐 参考开源项目)。
      *
      * 与 [qwen] 区别:走专属 coding 端点(coding.dashscope.aliyuncs.com),
      * 模型列表聚焦编程(qwen3-coder 系列),apiKey 通常带专属前缀。
@@ -849,7 +877,7 @@ class PresetProviders(
     )
 
     /**
-     * v1.0.6: Kimi Coding Plan(对齐 openhanako)。
+     * v1.0.6: Kimi Coding Plan(对齐 参考开源项目)。
      *
      * 走专属 coding 端点(api.kimi.com/coding/v1),模型为 kimi-for-coding,
      * 支持 thinking(kimi 格式),默认推理等级 high。
@@ -869,7 +897,7 @@ class PresetProviders(
     )
 
     /**
-     * v1.0.6: 火山引擎豆包 Coding Plan(对齐 openhanako)。
+     * v1.0.6: 火山引擎豆包 Coding Plan(对齐 参考开源项目)。
      *
      * 走专属 coding 端点(ark.cn-beijing.volces.com/api/coding/v3),模型为 doubao-seed-code。
      */
@@ -888,7 +916,7 @@ class PresetProviders(
     )
 
     /**
-     * v1.0.6: 智谱 GLM Coding Plan(对齐 openhanako)。
+     * v1.0.6: 智谱 GLM Coding Plan(对齐 参考开源项目)。
      *
      * 走专属 coding 端点(api.z.ai/api/coding/paas/v4),模型聚焦编程。
      */
@@ -909,10 +937,10 @@ class PresetProviders(
         ),
     )
 
-    // ── Token Plan 系列(对齐 openhanako *-token-plan)──────────────
+    // ── Token Plan 系列(对齐 参考开源项目 *-token-plan)──────────────
 
     /**
-     * v1.0.6: MiniMax Token Plan(对齐 openhanako)。
+     * v1.0.6: MiniMax Token Plan(对齐 参考开源项目)。
      *
      * 与 [minimax] 共用端点和协议(Anthropic Messages),但保持独立 provider id,
      * 用于 MiniMax 的 Token Plan 计费方式(预购 token 包)。
@@ -935,7 +963,7 @@ class PresetProviders(
     )
 
     /**
-     * v1.0.6: 小米 MiMo Token Plan(对齐 openhanako)。
+     * v1.0.6: 小米 MiMo Token Plan(对齐 参考开源项目)。
      *
      * 走专属 token-plan 端点(token-plan-cn.xiaomimimo.com),与 [mimo] 模型列表相同,
      * 但计费方式为预购 token 包。

@@ -495,7 +495,7 @@ fun KnowledgeScreen(
                     if (searchQuery.isNotEmpty()) {
                         IconButton(
                             onClick = { searchQuery = "" },
-                            modifier = Modifier.size(22.dp),
+                            modifier = Modifier.size(48.dp),
                         ) {
                             Icon(
                                 Icons.Default.Close,
@@ -797,7 +797,7 @@ private fun DocCard(
             }
             IconButton(
                 onClick = { showDeleteConfirm = true },
-                modifier = Modifier.size(32.dp),
+                modifier = Modifier.size(48.dp),
             ) {
                 Icon(
                     Icons.Outlined.Delete,

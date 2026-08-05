@@ -250,6 +250,9 @@
     <string name="quick_notes_trash_subtitle">Deleted notes are kept here; restore or permanently delete them</string>
     <string name="quick_notes_restore">Restore</string>
     <string name="quick_notes_delete_permanent">Delete permanently</string>
+    <string name="quick_notes_export_tags">Tags: %1$s</string>
+    <string name="quick_notes_export_folder">Folder: %1$s</string>
+    <string name="quick_notes_export_updated_at">Updated: %1$s</string>
     <string name="quick_notes_delete_permanent_title">Delete permanently</string>
     <string name="quick_notes_delete_permanent_confirm">This cannot be undone. Permanently delete \"%1$s\"?</string>
     <string name="quick_notes_clear_trash">Clear trash</string>
@@ -353,6 +356,28 @@
     <string name="stats_tooltip_hint">Tap a cell to see details</string>
     <string name="stats_avg_label">Avg %.1f</string>
     <string name="stats_active_days_unit">days</string>
+    <string name="stats_total_tokens_label">Total tokens (~)</string>
+    <string name="stats_range_selected">Selected</string>
+    <string name="stats_heatmap_legend_cd">Activity legend</string>
+    <string name="stats_heatmap_cd">Activity heatmap, %1$d weeks of data</string>
+    <string name="stats_trend_chart_cd">Message trend line chart</string>
+    <string name="stats_hourly_chart_cd">24-hour message distribution bar chart</string>
+    <string name="stats_other">Other</string>
+    <string name="stats_model_donut_cd">Model usage donut chart</string>
+    <string name="stats_summary_header">===== Muse stats summary =====</string>
+    <string name="stats_summary_total_sessions">Total sessions: %1$d</string>
+    <string name="stats_summary_total_messages">Total messages: %1$d</string>
+    <string name="stats_summary_ai_replies">AI replies: %1$d</string>
+    <string name="stats_summary_user_messages">User messages: %1$d</string>
+    <string name="stats_summary_streak_days">Active streak: %1$d days</string>
+    <string name="stats_summary_week_messages">Messages this week: %1$d</string>
+    <string name="stats_summary_month_messages">Messages this month: %1$d</string>
+    <string name="stats_summary_avg_daily">Daily average: %1$s</string>
+    <string name="stats_summary_most_active_day">Most active day: %1$s (%2$d messages)</string>
+    <string name="stats_summary_models_header">Most used models:</string>
+    <string name="stats_summary_model_line">  %1$d. %2$s - %3$d messages (%4$s%%)</string>
+    <string name="stats_summary_assistants_header">Assistant usage share:</string>
+    <string name="stats_summary_assistant_line">  - %1$s: %2$d messages</string>
 
     <!-- ===== ui/taskcard ===== -->
     <string name="taskcard_phase_planning">Planning</string>
@@ -366,6 +391,16 @@
     <string name="taskcard_retry">Retry</string>
     <string name="taskcard_steps_completed">%1$d/%2$d steps done</string>
     <string name="taskcard_failed_suffix"> · %1$d failed</string>
+    <string name="milestone_title">Milestones</string>
+    <string name="milestone_empty_title">No milestones yet</string>
+    <string name="milestone_empty_subtitle">Interact more with your AI companion and milestones will unlock automatically</string>
+    <string name="milestone_active_section">Active milestones (%1$d)</string>
+    <string name="milestone_dismissed_section">Dismissed (%1$d)</string>
+    <string name="task_plan_status_pending">Pending</string>
+    <string name="task_plan_status_in_progress">In progress</string>
+    <string name="task_plan_status_done">Completed</string>
+    <string name="task_plan_status_failed">Failed</string>
+    <string name="task_plan_status_skipped">Skipped</string>
 
     <!-- ===== ui/taskcard: delegation chain (v1.201) ===== -->
     <string name="delegation_chain_title">Delegation Chain</string>
@@ -385,6 +420,13 @@
 
     <!-- ===== ui/taskcard: subagent task list (v1.202) ===== -->
     <string name="subagent_task_list_title">Background Sub-Agent Tasks</string>
+    <string name="skill_impl_not_configured">File tools not configured</string>
+    <string name="plugin_missing_js">Plugin missing js_code</string>
+    <string name="subagent_task_detail_assistant">Assistant</string>
+    <string name="subagent_task_detail_user">User</string>
+    <string name="subagent_task_detail_count">Messages: %1$d</string>
+    <string name="subagent_task_detail_loading">Loading conversation...</string>
+    <string name="subagent_task_detail_empty">No conversation history yet</string>
     <string name="subagent_task_list_empty">No background tasks</string>
     <string name="subagent_task_list_count">%1$d task(s)</string>
     <string name="subagent_task_running">Running</string>

@@ -113,6 +113,7 @@
 
     <!-- ===== ui/HomeScreen home ===== -->
     <string name="home_tab_tasks">Tasks</string>
+<string name="home_tab_agent">Agent</string>
     <string name="home_tab_group_chat">Group</string>
     <string name="home_settings_cd">Settings</string>
     <string name="home_search_cd">Search</string>

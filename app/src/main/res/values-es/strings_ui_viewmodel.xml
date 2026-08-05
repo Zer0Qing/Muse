@@ -123,6 +123,9 @@
     <string name="assistant_back_cd">Atrás</string>
     <string name="assistant_import_card_cd">Importar tarjeta de personaje</string>
     <string name="assistant_section_my_assistants">Mis asistentes</string>
+    <string name="assistant_default_title">Asistente predeterminado</string>
+    <string name="assistant_default_picker_title">Elegir asistente predeterminado</string>
+    <string name="assistant_default_hint">Asistente utilizado por defecto para nuevas tareas</string>
     <string name="assistant_section_actions">Agregar o importar</string>
     <string name="assistant_memory_entry_title">Memoria a largo plazo</string>
     <string name="assistant_memory_entry_subtitle">Ver el sistema de memoria de 4 capas.</string>

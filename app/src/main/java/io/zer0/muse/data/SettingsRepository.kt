@@ -8,7 +8,6 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
 import io.zer0.ai.core.Model
 import io.zer0.ai.core.ProviderConfig
 import io.zer0.ai.core.ProviderSpecMerger
@@ -45,7 +44,6 @@ import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import java.util.concurrent.atomic.AtomicBoolean
 
-private val Context.settingsDataStore: DataStore<Preferences> by preferencesDataStore(name = "muse_settings")
 
 /**
  * 应用全局配置仓库 — 基于 Jetpack DataStore (Preferences)。
@@ -69,8 +67,16 @@ class SettingsRepository(
     /** P2-4: 审计日志记录器,用于记录关键用户操作(如删除 Provider)。 */
     private val auditLogger: AuditLogger,
 ) : ProviderConfigStore {
+    /** P2-2: 外观/主题子仓库(共用 muse_settings DataStore)。 */
+    val appearance = AppearanceSettingsStore(appContext)
+    /** P2-2: 应用级设置子仓库(语言等)。 */
+    val appSettings = AppSettingsStore(appContext)
+    /** P2-2: 安全/锁屏子仓库。 */
+    val security = SecuritySettingsStore(appContext, auditLogger)
+    /** P2-2: 聊天行为设置子仓库。 */
+    val chatSettings = ChatSettingsStore(appContext)
 
-    private val store get() = appContext.settingsDataStore
+    private val store get() = appContext.museSettingsDataStore
     private val cacheScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val memoryEnabledCache = AtomicBoolean(true)
     // M-SR5: 防止 migrateLegacyProviderIfNeeded 在并发首调时重复执行(读旧 JSON + addProvider + remove 之间存在竞态)
@@ -84,26 +90,7 @@ class SettingsRepository(
      */
     private val presetProviders by lazy { PresetProviders(appContext) }
 
-    /** v1.131: 语言快速同步缓存(与 DataStore 双写,供 [getLanguageSync] 同步读取)。 */
-    private val languageSyncCache = appContext.getSharedPreferences("muse_language_cache", Context.MODE_PRIVATE)
 
-    init {
-        // v1.131: 把 DataStore 中的语言设置一次性同步到 SP 快速缓存。
-        // 历史用户升级到 v1.131+ 时 SP 为空,需从 DataStore 拷贝过来;
-        // 异步执行,不阻塞 Application.onCreate / Activity.attachBaseContext。
-        // v1.138: 修复 NPE — init 块执行时 languageFlow 属性尚未初始化(声明在 line 227),
-        // 直接内联 store.data.map 避免引用未初始化的 languageFlow。
-        cacheScope.launch {
-            try {
-                val dsLang = store.data.map { prefs -> prefs[KEY_LANGUAGE] ?: "system" }.first()
-                if (languageSyncCache.getString(KEY_LANGUAGE_SP, null) == null) {
-                    languageSyncCache.edit().putString(KEY_LANGUAGE_SP, dsLang).apply()
-                }
-            } catch (e: Exception) {
-                Logger.w("SettingsRepository", "language SP cache migration failed: ${e.message}", e)
-            }
-        }
-    }
 
     /**
      * v0.32: 当前 MemoryConfig 的内存缓存(供 MemoryTicker 的 getConfig 闭包同步读取)。
@@ -255,15 +242,15 @@ class SettingsRepository(
      */
     val customTitlePromptFlow: Flow<String?> = store.data.map { prefs -> prefs[KEY_CUSTOM_TITLE_PROMPT] }
     /** v1.0.47: Token 估算开关(默认关闭,用户显式开启以避免性能开销)。 */
-    val tokenEstimateEnabledFlow: Flow<Boolean> = store.data.map { prefs -> prefs[KEY_TOKEN_ESTIMATE_ENABLED] ?: false }
+    val tokenEstimateEnabledFlow: Flow<Boolean> get() = chatSettings.tokenEstimateEnabledFlow
     /** v1.0.47 P5-2: 长文本粘贴转文件开关(默认开启,粘贴超阈值文本时提示转为 txt 附件)。 */
-    val pasteAsFileEnabledFlow: Flow<Boolean> = store.data.map { prefs -> prefs[KEY_PASTE_AS_FILE_ENABLED] ?: true }
+    val pasteAsFileEnabledFlow: Flow<Boolean> get() = chatSettings.pasteAsFileEnabledFlow
     /** v1.0.47 P5-2: 长文本粘贴转文件阈值(字符数,超过则提示转文件)。 */
-    val pasteAsFileThresholdFlow: Flow<Int> = store.data.map { prefs -> prefs[KEY_PASTE_AS_FILE_THRESHOLD] ?: 2000 }
+    val pasteAsFileThresholdFlow: Flow<Int> get() = chatSettings.pasteAsFileThresholdFlow
     /** P1-4: 楼层式上下文限制开关(以 USER 消息为楼层,保留最近 N 层完整对话)。 */
-    val floorLimiterEnabledFlow: Flow<Boolean> = store.data.map { prefs -> prefs[KEY_FLOOR_LIMITER_ENABLED] ?: false }
+    val floorLimiterEnabledFlow: Flow<Boolean> get() = chatSettings.floorLimiterEnabledFlow
     /** P1-4: 楼层式上下文限制楼层数(8/16/32,默认 16)。 */
-    val floorLimitFlow: Flow<Int> = store.data.map { prefs -> prefs[KEY_FLOOR_LIMIT] ?: 16 }
+    val floorLimitFlow: Flow<Int> get() = chatSettings.floorLimitFlow
     val memoryEnabledFlow: Flow<Boolean> = store.data.map { prefs -> prefs[KEY_MEMORY_ENABLED] ?: true }
     /** v1.0.51: 存量记忆迁移是否已完成(升级后首次启动补跑历史 session 摘要)。 */
     val memoryBackfillMigrationDoneFlow: Flow<Boolean> = store.data.map { prefs -> prefs[KEY_MEMORY_MIGRATION_V1_0_51_DONE] ?: false }
@@ -272,36 +259,31 @@ class SettingsRepository(
      * 用户在记忆页切换 Space 时写入,MemoryViewModel 读取后按 spaceId 过滤事实列表。
      */
     val currentSpaceIdFlow: Flow<String> = store.data.map { prefs -> prefs[KEY_CURRENT_SPACE_ID] ?: "default" }
-    val themeModeFlow: Flow<String> = store.data.map { prefs -> prefs[KEY_THEME_MODE] ?: "system" }
+    val themeModeFlow: Flow<String> get() = appearance.themeModeFlow
     /** v1.60-C: 应用界面语言(system=跟随系统 / zh=中文 / en=英文 / ja=日语 / ko=韩语 / ru=俄语)。 */
-    val languageFlow: Flow<String> = store.data.map { prefs -> prefs[KEY_LANGUAGE] ?: "system" }
-    val themeIdFlow: Flow<String> = store.data.map { prefs -> prefs[KEY_THEME_ID] ?: "mono" }
+    val languageFlow: Flow<String> get() = appSettings.languageFlow
+    val themeIdFlow: Flow<String> get() = appearance.themeIdFlow
     /** 深色模式独立主题 id(空字符串表示跟随亮色主题的暗色版)。 */
-    val darkThemeIdFlow: Flow<String> = store.data.map { prefs -> prefs[KEY_DARK_THEME_ID] ?: "" }
+    val darkThemeIdFlow: Flow<String> get() = appearance.darkThemeIdFlow
     /** 主题定时切换配置。 */
-    val themeScheduleFlow: Flow<ThemeScheduleConfig> = store.data.map { prefs ->
-        decodePrefsOrNull(prefs[KEY_THEME_SCHEDULE], ThemeScheduleConfig.serializer(), "ThemeSchedule") ?: ThemeScheduleConfig()
-    }
+    val themeScheduleFlow: Flow<ThemeScheduleConfig> get() = appearance.themeScheduleFlow
+
     /** v1.65: Material You 动态取色开关(Android 12+)。 */
-    val dynamicColorFlow: Flow<Boolean> = store.data.map { prefs -> prefs[KEY_DYNAMIC_COLOR] ?: false }
+    val dynamicColorFlow: Flow<Boolean> get() = appearance.dynamicColorFlow
     /**
      * v1.97 gap7: 用户自定义主题列表 — 基于种子色生成 ColorScheme。
      *
      * 持久化为 JSON 数组,首次安装时返回空列表(未创建任何自定义主题)。
      * 解析失败时回退空列表,避免单个主题损坏导致 Flow 永久失效。
      */
-    val customThemesFlow: Flow<List<CustomTheme>> = store.data.map { prefs ->
-        decodePrefsOrNull(prefs[KEY_CUSTOM_THEMES], ListSerializer(CustomTheme.serializer()), "CustomThemes") ?: emptyList()
-    }.catch {
-        Logger.w("SettingsRepository", "customThemesFlow 异常,回退空列表", it)
-        emit(emptyList())
-    }
-    val fontSizeScaleFlow: Flow<String> = store.data.map { prefs -> prefs[KEY_FONT_SIZE_SCALE] ?: "medium" }
+    val customThemesFlow: Flow<List<CustomTheme>> get() = appearance.customThemesFlow
+
+    val fontSizeScaleFlow: Flow<String> get() = appearance.fontSizeScaleFlow
     /** v1.95: 启动默认页(0=任务, 1=Agent, 2=群聊)。 */
-    val defaultHomePageFlow: Flow<Int> = store.data.map { prefs -> prefs[KEY_DEFAULT_HOME_PAGE] ?: 0 }
-    val onboardingShownFlow: Flow<Boolean> = store.data.map { prefs -> prefs[KEY_ONBOARDING_SHOWN] == true }
+    val defaultHomePageFlow: Flow<Int> get() = appearance.defaultHomePageFlow
+    val onboardingShownFlow: Flow<Boolean> get() = appearance.onboardingShownFlow
     // v1.95: 系统语音识别首次提示是否已展示(仅首次使用时弹提示,后续直接调起 Intent)
-    val asrTipShownFlow: Flow<Boolean> = store.data.map { prefs -> prefs[KEY_ASR_TIP_SHOWN] ?: false }
+    val asrTipShownFlow: Flow<Boolean> get() = appearance.asrTipShownFlow
     // v1.95: 表情包库开关(默认关闭);开启后模型可在回复时发送表情包
     val stickerEnabledFlow: Flow<Boolean> = store.data.map { prefs -> prefs[KEY_STICKER_ENABLED] ?: false }
     // v1.95: 表情包发送概率(0-100,默认 30);模型每次回复时有此概率调用 send_sticker
@@ -378,9 +360,8 @@ class SettingsRepository(
     }
 
     // v0.31: 聊天行为偏好(打包存储,一次序列化)
-    val chatPreferencesFlow: Flow<ChatPreferences> = store.data.map { prefs ->
-        decodePrefsOrNull(prefs[KEY_CHAT_PREFERENCES], ChatPreferences.serializer(), "ChatPreferences") ?: ChatPreferences()
-    }
+    // v0.31: 聊天行为偏好(打包存储,一次序列化)
+    val chatPreferencesFlow: Flow<ChatPreferences> get() = chatSettings.chatPreferencesFlow
 
     // v0.32: 记忆系统高级配置
     val memoryConfigFlow: Flow<io.zer0.memory.ticker.MemoryConfig> = store.data.map { prefs ->
@@ -388,9 +369,7 @@ class SettingsRepository(
     }
 
     // v0.32: 通知策略(never / when_unfocused / always)
-    val notificationPolicyFlow: Flow<String> = store.data.map { prefs ->
-        prefs[KEY_NOTIFICATION_POLICY] ?: "when_unfocused"
-    }
+    val notificationPolicyFlow: Flow<String> get() = security.notificationPolicyFlow
 
     // v0.32: 经验库开关(默认关闭)
     val experienceEnabledFlow: Flow<Boolean> = store.data.map { prefs ->
@@ -398,57 +377,37 @@ class SettingsRepository(
     }
 
     // PII Guard:发送消息给 LLM 前自动遮蔽敏感信息(身份证/手机/邮箱等),默认开启。
+
+    // v1.0.63: 新任务默认助手(每次开启新任务时绑定)
+    val defaultAssistantIdFlow: Flow<String> = store.data.map { prefs ->
+        prefs[KEY_DEFAULT_ASSISTANT_ID] ?: "default"
+    }
+
     val piiGuardEnabledFlow: Flow<Boolean> = store.data.map { prefs ->
         prefs[KEY_PII_GUARD_ENABLED] ?: true
     }
 
     // ANR 检测开关(默认 true),供 AnrWatcher 运行时同步读取。
-    val anrDetectionFlow: Flow<Boolean> = store.data.map { prefs ->
-        prefs[KEY_ANR_DETECTION] ?: true
-    }
+    val anrDetectionFlow: Flow<Boolean> get() = security.anrDetectionFlow
 
 
     // v0.32: 保持唤醒(默认关闭)
-    val keepAwakeFlow: Flow<Boolean> = store.data.map { prefs ->
-        prefs[KEY_KEEP_AWAKE] ?: false
-    }
+    val keepAwakeFlow: Flow<Boolean> get() = security.keepAwakeFlow
 
     // v0.32: 开机自启动(默认关闭)
-    val autoLaunchFlow: Flow<Boolean> = store.data.map { prefs ->
-        prefs[KEY_AUTO_LAUNCH] ?: false
-    }
+    val autoLaunchFlow: Flow<Boolean> get() = security.autoLaunchFlow
 
     // 功能1: 生物识别解锁开关
-    val biometricEnabledFlow: Flow<Boolean> = store.data.map { prefs ->
-        prefs[KEY_BIOMETRIC_ENABLED] ?: false
-    }
+    val biometricEnabledFlow: Flow<Boolean> get() = security.biometricEnabledFlow
 
     // v0.32: 应用 PIN 锁(空字符串=未启用)
-    // H-SR1: PIN 是敏感凭据,绝不明文落盘 — 保存时 encrypt,读取时 decrypt(旧明文数据由 decrypt 透传兼容)
-    // v1.125: 将 .catch 改为 .map 内 try-catch,确保 Flow 永不终结,
-    // PIN 变更后无需重启 app 即可生效。
-    val appPinFlow: Flow<String> = store.data.map { prefs ->
-        try {
-            prefs[KEY_APP_PIN]?.let { SecureKeyStore.decrypt(it) } ?: ""
-        } catch (e: Exception) {
-            // 解密失败时重置 PIN 为空串(视为未启用),Flow 继续运行不终结
-            Logger.w("SettingsRepository", "appPinFlow 解密失败,PIN 已重置", e)
-            ""
-        }
-    }
+    val appPinFlow: Flow<String> get() = security.appPinFlow
 
     // v1.104: PIN 锁暴力破解防护 — 失败计数与锁定截止时间持久化到 DataStore。
-    // 之前用 rememberSaveable 仅 survive 配置变更,杀进程/冷启动后计数归零,
-    // 攻击者杀进程重启即可绕过锁定。改为持久化后跨冷启动保留。
-    val pinFailCountFlow: Flow<Int> = store.data.map { it[KEY_PIN_FAIL_COUNT] ?: 0 }
-    val pinLockUntilFlow: Flow<Long> = store.data.map { it[KEY_PIN_LOCK_UNTIL] ?: 0L }
+    val pinFailCountFlow: Flow<Int> get() = security.pinFailCountFlow
+    val pinLockUntilFlow: Flow<Long> get() = security.pinLockUntilFlow
 
-    suspend fun savePinFailState(failCount: Int, lockUntil: Long) {
-        store.edit {
-            it[KEY_PIN_FAIL_COUNT] = failCount
-            it[KEY_PIN_LOCK_UNTIL] = lockUntil
-        }
-    }
+    suspend fun savePinFailState(failCount: Int, lockUntil: Long) = security.savePinFailState(failCount, lockUntil)
 
     // v0.32: 实验性功能开关(打包存储)
     val experimentsFlow: Flow<ExperimentsConfig> = store.data.map { prefs ->
@@ -512,7 +471,7 @@ class SettingsRepository(
 
     // P2-12: 富文本输入开关(默认关闭) — 开启后 ChatScreen 的 InputBar 替换为 RichInputBar,
     // 在输入框上方显示 Markdown 格式工具条(粗体/斜体/代码/列表等)。
-    val richInputEnabledFlow: Flow<Boolean> = store.data.map { prefs -> prefs[KEY_RICH_INPUT_ENABLED] ?: false }
+    val richInputEnabledFlow: Flow<Boolean> get() = chatSettings.richInputEnabledFlow
     // v1.25: 视觉辅助使用的模型 ID
     val visionModelIdFlow: Flow<String?> = store.data.map { prefs -> prefs[KEY_VISION_MODEL_ID] }
     // v1.25: 视觉辅助使用的供应商 ID
@@ -747,16 +706,14 @@ class SettingsRepository(
     suspend fun saveMemoryBackfillMigrationDone(done: Boolean) { store.edit { it[KEY_MEMORY_MIGRATION_V1_0_51_DONE] = done } }
     /** v1.0.52 P2-2: 保存当前选中的记忆空间 id。 */
     suspend fun saveCurrentSpaceId(spaceId: String) { store.edit { it[KEY_CURRENT_SPACE_ID] = spaceId } }
-    suspend fun saveThemeMode(mode: String) { store.edit { it[KEY_THEME_MODE] = mode } }
-    suspend fun saveThemeId(id: String) { store.edit { it[KEY_THEME_ID] = id } }
+    suspend fun saveThemeMode(mode: String) = appearance.saveThemeMode(mode)
+    suspend fun saveThemeId(id: String) = appearance.saveThemeId(id)
     /** 保存深色模式独立主题 id(空字符串表示跟随亮色主题的暗色版)。 */
-    suspend fun saveDarkThemeId(id: String) { store.edit { it[KEY_DARK_THEME_ID] = id } }
+    suspend fun saveDarkThemeId(id: String) = appearance.saveDarkThemeId(id)
     /** 保存主题定时切换配置。 */
-    suspend fun saveThemeSchedule(config: ThemeScheduleConfig) {
-        store.edit { it[KEY_THEME_SCHEDULE] = AppJson.encodeToString(ThemeScheduleConfig.serializer(), config) }
-    }
+    suspend fun saveThemeSchedule(config: ThemeScheduleConfig) = appearance.saveThemeSchedule(config)
     /** v1.65: 保存动态取色开关。 */
-    suspend fun saveDynamicColor(enabled: Boolean) { store.edit { it[KEY_DYNAMIC_COLOR] = enabled } }
+    suspend fun saveDynamicColor(enabled: Boolean) = appearance.saveDynamicColor(enabled)
     /**
      * v1.97 gap7: 保存自定义主题列表(整体替换)。
      *
@@ -771,17 +728,7 @@ class SettingsRepository(
      * 避免并发调用时基于 [customThemesFlow.first()] 的快照互相覆盖而丢失更新
      * (与 [saveModelProfile] / [addProvider] / [updateMultiAgentConfig] 同模式)。
      */
-    suspend fun upsertCustomTheme(theme: CustomTheme) {
-        store.edit { prefs ->
-            val current = decodePrefsOrNull(prefs[KEY_CUSTOM_THEMES], ListSerializer(CustomTheme.serializer()), "CustomThemes(upsert)") ?: emptyList()
-            val updated = if (current.any { it.id == theme.id }) {
-                current.map { if (it.id == theme.id) theme else it }
-            } else {
-                current + theme
-            }
-            prefs[KEY_CUSTOM_THEMES] = AppJson.encodeToString(ListSerializer(CustomTheme.serializer()), updated)
-        }
-    }
+    suspend fun upsertCustomTheme(theme: CustomTheme) = appearance.upsertCustomTheme(theme)
     /**
      * v1.97 gap7: 按 id 删除自定义主题。
      *
@@ -791,15 +738,10 @@ class SettingsRepository(
      * 避免并发调用时基于 [customThemesFlow.first()] 的快照互相覆盖而丢失更新
      * (与 [deleteProvider] / [saveModelProfile] 同模式)。
      */
-    suspend fun deleteCustomTheme(id: String) {
-        store.edit { prefs ->
-            val current = decodePrefsOrNull(prefs[KEY_CUSTOM_THEMES], ListSerializer(CustomTheme.serializer()), "CustomThemes(delete)") ?: emptyList()
-            prefs[KEY_CUSTOM_THEMES] = AppJson.encodeToString(ListSerializer(CustomTheme.serializer()), current.filterNot { it.id == id })
-        }
-    }
-    suspend fun saveFontSizeScale(scale: String) { store.edit { it[KEY_FONT_SIZE_SCALE] = scale } }
+    suspend fun deleteCustomTheme(id: String) = appearance.deleteCustomTheme(id)
+    suspend fun saveFontSizeScale(scale: String) = appearance.saveFontSizeScale(scale)
     /** v1.95: 保存启动默认页(0=任务, 1=Agent, 2=群聊)。 */
-    suspend fun saveDefaultHomePage(page: Int) { store.edit { it[KEY_DEFAULT_HOME_PAGE] = page.coerceIn(0, 2) } }
+    suspend fun saveDefaultHomePage(page: Int) = appearance.saveDefaultHomePage(page)
     // v1.135: 调用 WebSearchConfig.encrypted() 统一加密 apiKey + apiKeys
     suspend fun saveWebSearchConfig(config: WebSearchConfig) {
         store.edit {
@@ -849,47 +791,44 @@ class SettingsRepository(
     }
 
     // v0.31: 聊天行为偏好读写
-    suspend fun getChatPreferences(): ChatPreferences = chatPreferencesFlow.first()
-    suspend fun saveChatPreferences(prefs: ChatPreferences) { store.edit { it[KEY_CHAT_PREFERENCES] = AppJson.encodeToString(ChatPreferences.serializer(), prefs) } }
+    // v0.31: 聊天行为偏好读写
+    suspend fun getChatPreferences(): ChatPreferences = chatSettings.getChatPreferences()
+    suspend fun saveChatPreferences(prefs: ChatPreferences) = chatSettings.saveChatPreferences(prefs)
 
     // v0.32: 记忆系统高级配置
     suspend fun getMemoryConfig(): io.zer0.memory.ticker.MemoryConfig = memoryConfigFlow.first()
     suspend fun saveMemoryConfig(config: io.zer0.memory.ticker.MemoryConfig) { store.edit { it[KEY_MEMORY_CONFIG] = AppJson.encodeToString(io.zer0.memory.ticker.MemoryConfig.serializer(), config) } }
 
     // v0.32: 通知策略
-    suspend fun saveNotificationPolicy(policy: String) { store.edit { it[KEY_NOTIFICATION_POLICY] = policy } }
+    suspend fun saveNotificationPolicy(policy: String) = security.saveNotificationPolicy(policy)
 
     // v0.32: 经验库开关
     suspend fun saveExperienceEnabled(enabled: Boolean) { store.edit { it[KEY_EXPERIENCE_ENABLED] = enabled } }
+
+    // v1.0.63: 新任务默认助手
+    suspend fun saveDefaultAssistantId(assistantId: String) { store.edit { it[KEY_DEFAULT_ASSISTANT_ID] = assistantId } }
+
 
     // PII Guard 开关(默认开启)
     suspend fun savePiiGuardEnabled(enabled: Boolean) { store.edit { it[KEY_PII_GUARD_ENABLED] = enabled } }
 
     // ANR 检测开关
-    suspend fun saveAnrDetection(enabled: Boolean) { store.edit { it[KEY_ANR_DETECTION] = enabled } }
+    suspend fun saveAnrDetection(enabled: Boolean) = security.saveAnrDetection(enabled)
 
     // 性能数据上报开关
 
     // v0.32: 保持唤醒
-    suspend fun saveKeepAwake(enabled: Boolean) { store.edit { it[KEY_KEEP_AWAKE] = enabled } }
+    suspend fun saveKeepAwake(enabled: Boolean) = security.saveKeepAwake(enabled)
 
     // v0.32: 开机自启动
-    suspend fun saveAutoLaunch(enabled: Boolean) { store.edit { it[KEY_AUTO_LAUNCH] = enabled } }
+    suspend fun saveAutoLaunch(enabled: Boolean) = security.saveAutoLaunch(enabled)
 
     // 功能1: 生物识别解锁开关
-    suspend fun saveBiometricEnabled(enabled: Boolean) { store.edit { it[KEY_BIOMETRIC_ENABLED] = enabled } }
+    suspend fun saveBiometricEnabled(enabled: Boolean) = security.saveBiometricEnabled(enabled)
 
     // v0.32: 应用 PIN 锁
     // H-SR1: PIN 是敏感凭据,绝不明文落盘 — 写入前 encrypt(空 PIN 原样保留,不加密空值)
-    suspend fun saveAppPin(pin: String) {
-        store.edit { it[KEY_APP_PIN] = SecureKeyStore.encrypt(pin) }
-        // P2-4: 审计日志 — 修改应用 PIN(不记录 PIN 本身)
-        auditLogger.log(
-            category = "user_action",
-            action = "save_app_pin",
-            detail = mapOf("changed" to true),
-        )
-    }
+    suspend fun saveAppPin(pin: String) = security.saveAppPin(pin)
 
     // v0.32: 实验性功能
     suspend fun saveExperiments(config: ExperimentsConfig) { store.edit { it[KEY_EXPERIMENTS] = AppJson.encodeToString(ExperimentsConfig.serializer(), config) } }
@@ -923,7 +862,7 @@ class SettingsRepository(
     suspend fun saveVisionEnabled(enabled: Boolean) { store.edit { it[KEY_VISION_ENABLED] = enabled } }
 
     // P2-12: 富文本输入开关
-    suspend fun saveRichInputEnabled(enabled: Boolean) { store.edit { it[KEY_RICH_INPUT_ENABLED] = enabled } }
+    suspend fun saveRichInputEnabled(enabled: Boolean) = chatSettings.saveRichInputEnabled(enabled)
     // v1.25: 视觉辅助模型 ID
     suspend fun saveVisionModelId(modelId: String?) { store.edit { if (modelId != null) it[KEY_VISION_MODEL_ID] = modelId else it.remove(KEY_VISION_MODEL_ID) } }
     // v1.25: 视觉辅助供应商 ID
@@ -967,7 +906,7 @@ class SettingsRepository(
     suspend fun clearMcpToken(serverId: String) { store.edit { it.remove(stringPreferencesKey("mcp_token_$serverId")) } }
     suspend fun saveOnboardingShown() { store.edit { it[KEY_ONBOARDING_SHOWN] = true } }
     // v1.95: 保存系统语音识别首次提示是否已展示
-    suspend fun saveAsrTipShown(shown: Boolean) { store.edit { it[KEY_ASR_TIP_SHOWN] = shown } }
+    suspend fun saveAsrTipShown(shown: Boolean) = appearance.saveAsrTipShown(shown)
     // v1.95: 保存表情包库开关
     suspend fun saveStickerEnabled(enabled: Boolean) { store.edit { it[KEY_STICKER_ENABLED] = enabled } }
     // v1.95: 保存表情包发送概率(0-100,超出范围会自动收束)
@@ -1037,25 +976,22 @@ class SettingsRepository(
     /** v1.0.52: 保存自定义对话命名 prompt(null 或空串表示恢复默认)。 */
     suspend fun saveCustomTitlePrompt(prompt: String?) { store.edit { if (!prompt.isNullOrBlank()) it[KEY_CUSTOM_TITLE_PROMPT] = prompt else it.remove(KEY_CUSTOM_TITLE_PROMPT) } }
     /** v1.0.47: 保存 Token 估算开关。 */
-    suspend fun saveTokenEstimateEnabled(enabled: Boolean) { store.edit { it[KEY_TOKEN_ESTIMATE_ENABLED] = enabled } }
+    suspend fun saveTokenEstimateEnabled(enabled: Boolean) = chatSettings.saveTokenEstimateEnabled(enabled)
     /** v1.0.47 P5-2: 保存长文本粘贴转文件开关。 */
-    suspend fun savePasteAsFileEnabled(enabled: Boolean) { store.edit { it[KEY_PASTE_AS_FILE_ENABLED] = enabled } }
+    suspend fun savePasteAsFileEnabled(enabled: Boolean) = chatSettings.savePasteAsFileEnabled(enabled)
     /** v1.0.47 P5-2: 保存长文本粘贴转文件阈值(字符数)。 */
-    suspend fun savePasteAsFileThreshold(threshold: Int) { store.edit { it[KEY_PASTE_AS_FILE_THRESHOLD] = threshold } }
+    suspend fun savePasteAsFileThreshold(threshold: Int) = chatSettings.savePasteAsFileThreshold(threshold)
     /** P1-4: 保存楼层式上下文限制开关。 */
-    suspend fun saveFloorLimiterEnabled(enabled: Boolean) { store.edit { it[KEY_FLOOR_LIMITER_ENABLED] = enabled } }
+    suspend fun saveFloorLimiterEnabled(enabled: Boolean) = chatSettings.saveFloorLimiterEnabled(enabled)
     /** P1-4: 保存楼层式上下文限制楼层数。 */
-    suspend fun saveFloorLimit(limit: Int) { store.edit { it[KEY_FLOOR_LIMIT] = limit } }
+    suspend fun saveFloorLimit(limit: Int) = chatSettings.saveFloorLimit(limit)
     /**
      * v1.60-C: 保存应用界面语言(system / zh / en)。
      *
      * v1.131: 同步写入 [languageSyncCache],确保 [getLanguageSync] 立即返回最新值,
      * 避免下次冷启动 attachBaseContext 时主线程 runBlocking 读 DataStore 的 ANR 风险。
      */
-    suspend fun saveLanguage(lang: String) {
-        store.edit { it[KEY_LANGUAGE] = lang }
-        languageSyncCache.edit().putString(KEY_LANGUAGE_SP, lang).apply()
-    }
+    suspend fun saveLanguage(lang: String) = appSettings.saveLanguage(lang)
 
     /**
      * v1.131: 同步读取语言设置(从 SharedPreferences 快速缓存)。
@@ -1069,7 +1005,7 @@ class SettingsRepository(
      *  - 读取:本方法直接读 SP,无 IO 阻塞
      *  - 迁移:首次构造时若 SP 为空,异步从 DataStore 同步一次到 SP(见 init 块)
      */
-    fun getLanguageSync(): String = languageSyncCache.getString(KEY_LANGUAGE_SP, "system") ?: "system"
+    fun getLanguageSync(): String = appSettings.getLanguageSync()
 
     /** 功能2: 保存指定会话的输入草稿(空文本时删除 key)。 */
     suspend fun saveChatDraft(sessionId: String, draft: String) {
@@ -1113,7 +1049,7 @@ class SettingsRepository(
     suspend fun getProviderById(id: String): ProviderConfig? =
         providersFlow.first().firstOrNull { it.id == id }
 
-    suspend fun markOnboardingShown() { store.edit { it[KEY_ONBOARDING_SHOWN] = true } }
+    suspend fun markOnboardingShown() = appearance.markOnboardingShown()
 
     override suspend fun get(): ProviderConfig? = providersFlow.first()?.firstOrNull { it.id == activeProviderIdFlow.first() } ?: providersFlow.first()?.firstOrNull()
 
@@ -1301,21 +1237,13 @@ class SettingsRepository(
         /** v1.0.52: 自定义对话命名 prompt(用户可覆盖默认命名指令,null 表示用默认)。 */
         private val KEY_CUSTOM_TITLE_PROMPT = stringPreferencesKey("custom_title_prompt")
         /** v1.0.47: Token 估算开关。 */
-        private val KEY_TOKEN_ESTIMATE_ENABLED = booleanPreferencesKey("token_estimate_enabled")
-        private val KEY_PASTE_AS_FILE_ENABLED = booleanPreferencesKey("paste_as_file_enabled")
-        private val KEY_PASTE_AS_FILE_THRESHOLD = intPreferencesKey("paste_as_file_threshold")
         /** P1-4: 楼层式上下文限制 */
-        private val KEY_FLOOR_LIMITER_ENABLED = booleanPreferencesKey("floor_limiter_enabled")
-        private val KEY_FLOOR_LIMIT = intPreferencesKey("floor_limit")
         private val KEY_MEMORY_ENABLED = booleanPreferencesKey("memory_enabled")
         /** v1.0.51: 一次性存量记忆迁移标志位 — 升级后首次启动补跑历史 session 的 rollingSummary。 */
         private val KEY_MEMORY_MIGRATION_V1_0_51_DONE = booleanPreferencesKey("memory_migration_v1_0_51_done")
         /** v1.0.52 P2-2: 当前选中的记忆空间 id(默认 "default")。 */
         private val KEY_CURRENT_SPACE_ID = stringPreferencesKey("current_space_id")
         private val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
-        private val KEY_LANGUAGE = stringPreferencesKey("language")
-        /** v1.131: [KEY_LANGUAGE] 的字符串形式,供 SharedPreferences 同步缓存使用(见 [getLanguageSync])。 */
-        private const val KEY_LANGUAGE_SP = "language"
         private val KEY_THEME_ID = stringPreferencesKey("theme_id")
         private val KEY_DARK_THEME_ID = stringPreferencesKey("dark_theme_id")
         private val KEY_THEME_SCHEDULE = stringPreferencesKey("theme_schedule_json")
@@ -1349,23 +1277,15 @@ class SettingsRepository(
         // v0.30-a: 用户画像
         private val KEY_USER_PROFILE = stringPreferencesKey("user_profile_json")
         // v0.31: 聊天行为偏好
-        private val KEY_CHAT_PREFERENCES = stringPreferencesKey("chat_preferences_json")
         // v0.32: 记忆系统高级配置
         private val KEY_MEMORY_CONFIG = stringPreferencesKey("memory_config_json")
-        private val KEY_NOTIFICATION_POLICY = stringPreferencesKey("notification_policy")
         private val KEY_EXPERIENCE_ENABLED = booleanPreferencesKey("experience_enabled")
+        private val KEY_DEFAULT_ASSISTANT_ID = stringPreferencesKey("default_assistant_id")
         // PII Guard 开关(默认开启)
         private val KEY_PII_GUARD_ENABLED = booleanPreferencesKey("pii_guard_enabled")
-        private val KEY_KEEP_AWAKE = booleanPreferencesKey("keep_awake")
-        private val KEY_AUTO_LAUNCH = booleanPreferencesKey("auto_launch")
         /** ANR 检测开关(默认 true)。 */
-        private val KEY_ANR_DETECTION = booleanPreferencesKey("anr_detection_enabled")
         /** 性能数据上报开关(默认 false,隐私优先)。 */
-        private val KEY_APP_PIN = stringPreferencesKey("app_pin")
-        private val KEY_BIOMETRIC_ENABLED = booleanPreferencesKey("biometric_enabled")
         // v1.104: PIN 锁暴力破解防护持久化(之前用 rememberSaveable,杀进程即重置)
-        private val KEY_PIN_FAIL_COUNT = intPreferencesKey("pin_fail_count")
-        private val KEY_PIN_LOCK_UNTIL = longPreferencesKey("pin_lock_until")
         private val KEY_EXPERIMENTS = stringPreferencesKey("experiments_json")
         private val KEY_SHARE_TEMPLATE = stringPreferencesKey("share_template_json")
         private val KEY_MEDIA_CONFIG = stringPreferencesKey("media_config_json")
@@ -1385,7 +1305,6 @@ class SettingsRepository(
         private val KEY_VISION_ENABLED = booleanPreferencesKey("vision_enabled")
 
         /** P2-12: 富文本输入开关(开启后 InputBar 替换为 RichInputBar)。 */
-        private val KEY_RICH_INPUT_ENABLED = booleanPreferencesKey("rich_input_enabled")
         /** v1.25: 视觉辅助使用的模型 ID。 */
         private val KEY_VISION_MODEL_ID = stringPreferencesKey("vision_model_id")
         /** v1.25: 视觉辅助使用的供应商 ID。 */
@@ -1763,24 +1682,6 @@ data class MediaConfig(
     val ttsResponseFormat: String = "mp3",
 )
 
-/**
- * 主题定时切换配置。
- *
- * 在指定时间自动切换亮色/深色模式。
- */
-@kotlinx.serialization.Serializable
-data class ThemeScheduleConfig(
-    /** 总开关。 */
-    val enabled: Boolean = false,
-    /** 起床时间(小时,0-23)。到此后切换为浅色模式(或跟随系统)。 */
-    val wakeUpHour: Int = 7,
-    /** 起床时间(分钟,0-59)。 */
-    val wakeUpMinute: Int = 0,
-    /** 睡觉时间(小时,0-23)。到此后切换为深色模式。 */
-    val sleepHour: Int = 22,
-    /** 睡觉时间(分钟,0-59)。 */
-    val sleepMinute: Int = 0,
-)
 
 /**
  * 主动消息配置(虚拟陪伴助手像真人一样主动给用户发消息)。

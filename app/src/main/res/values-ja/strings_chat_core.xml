@@ -12,6 +12,24 @@
     <string name="chat_update_compress_cd">&amp; 更新 圧縮</string>
     <string name="chat_scroll_to_bottom_cd">一番下までスクロール</string>
     <string name="chat_export_cd">チャットのエクスポート</string>
+    <string name="chat_export_format_title">エクスポート形式を選択</string>
+    <string name="chat_export_format_confirm">エクスポート</string>
+    <string name="chat_export_format_markdown">Markdown(.md):プレーンテキスト形式。ノートアプリへの貼り付けや再編集に便利</string>
+    <string name="chat_export_format_html">HTML(.html):単一ファイルでスタイルと画像をインライン化。ブラウザでそのまま開いて共有可能</string>
+    <string name="chat_export_format_pdf">PDF(.pdf):A4ページ分割文書。印刷や正式なアーカイブに最適</string>
+    <string name="chat_doc_empty_or_unsupported">ドキュメントが空か、サポートされていない形式です</string>
+    <string name="chat_doc_truncated">\n\n…(ドキュメントが長すぎるため、%1$d 文字を切り捨てました)</string>
+    <string name="chat_doc_default_name">ドキュメント</string>
+    <string name="chat_doc_parse_failed">ドキュメント解析に失敗しました: %1$s</string>
+    <string name="chat_thinking_preview">思考 · %1$s</string>
+    <string name="chat_voice_playing_cd">音声再生中</string>
+    <string name="chat_voice_ready_cd">音声準備完了</string>
+    <string name="chat_knowledge_chunk_title">《%1$s》 · チャンク #%2$d</string>
+    <string name="chat_knowledge_chunk_score">スコア %1$s · %2$s</string>
+    <string name="chat_task_todo_title">タスク TODO</string>
+    <string name="chat_tool_call_arguments">引数: %1$s</string>
+    <string name="chat_tool_call_result">結果: %1$s</string>
+    <string name="chat_share_failed_no_uri">共有に失敗しました:ファイルURIを取得できません</string>
     <string name="chat_companion_days_zero">今日会ったばかりです</string>
     <string name="chat_companion_days">%1$d 日間一緒に</string>
     <string name="chat_date_separator_today">今日%1$s</string>
@@ -113,6 +131,7 @@
     <string name="chat_agent_hint_dismiss">わかった</string>
     <string name="chat_agent_session_locked">エージェントモードでセッションがロックされました</string>
     <string name="chat_delete_message">メッセージの削除</string>
+    <string name="chat_select_messages">選択</string>
     <string name="chat_delete_message_confirm">この操作は元に戻すことができません。</string>
     <string name="chat_translate_in_progress">翻訳中…</string>
 
@@ -185,6 +204,7 @@
     <string name="chat_token_count_cd">トークン数</string>
     <string name="chat_token_menu_title">トークンの見積もり</string>
     <string name="chat_token_input">電流入力</string>
+    <string name="chat_token_message">このメッセージ</string>
     <string name="chat_token_history">履歴メッセージ</string>
     <string name="chat_token_context_window">コンテキストウィンドウ</string>
     <string name="chat_token_remaining">利用可能</string>

@@ -36,7 +36,7 @@ import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.statusColors
 
 /**
- * v1.0.53: 数据卡片渲染(对标 Hana show_card)。
+ * v1.0.53: 数据卡片渲染(参考开源实现 show_card)。
  *
  * 三种图表:bar(柱状)/ line(折线)/ donut(环形)。
  * 卡片右上角带下载 PNG 按钮(经 [onDownload] 回调,由调用方实现 Canvas→Bitmap→相册)。
@@ -67,7 +67,7 @@ fun DataCardRenderer(
                     modifier = Modifier.weight(1f),
                 )
                 if (onDownload != null) {
-                    IconButton(onClick = { onDownload(card) }, modifier = Modifier.size(28.dp)) {
+                    IconButton(onClick = { onDownload(card) }, modifier = Modifier.size(48.dp)) {
                         Icon(
                             imageVector = Icons.Filled.Download,
                             contentDescription = "下载图表",

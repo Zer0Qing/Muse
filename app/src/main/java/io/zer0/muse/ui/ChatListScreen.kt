@@ -1287,12 +1287,14 @@ private fun TaskStatusDot(status: TaskStatus, hasUnread: Boolean = false) {
     )
 }
 
+
+@Composable
 private fun formatTaskStatus(session: SessionEntity): String {
     val status = inferTaskStatus(session, System.currentTimeMillis())
     return when (status) {
-        TaskStatus.IN_PROGRESS -> "进行中"
-        TaskStatus.PENDING -> "待确认"
-        TaskStatus.COMPLETED -> "已完成"
+        TaskStatus.IN_PROGRESS -> stringResource(R.string.chat_list_status_in_progress)
+        TaskStatus.PENDING -> stringResource(R.string.chat_list_status_pending)
+        TaskStatus.COMPLETED -> stringResource(R.string.chat_list_status_completed)
     }
 }
 
@@ -1301,17 +1303,19 @@ private val chatListSdf by lazy {
     SimpleDateFormat(MuseDateFormats.DATE_TIME_SHORT, Locale.getDefault())
 }
 
+
+@Composable
 private fun formatTime(timestamp: Long): String {
     if (timestamp <= 0) return ""
     val now = System.currentTimeMillis()
     val diff = now - timestamp
     val dayMillis = TimeUnit.DAYS.toMillis(1)
     return when {
-        diff < TimeUnit.MINUTES.toMillis(1) -> "刚刚"
-        diff < TimeUnit.HOURS.toMillis(1) -> "${diff / TimeUnit.MINUTES.toMillis(1)} 分钟前"
-        diff < dayMillis -> "${diff / TimeUnit.HOURS.toMillis(1)} 小时前"
-        diff < dayMillis * 2 -> "昨天"
-        diff < dayMillis * 7 -> "${diff / dayMillis} 天前"
+        diff < TimeUnit.MINUTES.toMillis(1) -> stringResource(R.string.chat_list_time_just_now)
+        diff < TimeUnit.HOURS.toMillis(1) -> stringResource(R.string.chat_list_time_minutes_ago, diff / TimeUnit.MINUTES.toMillis(1))
+        diff < dayMillis -> stringResource(R.string.chat_list_time_hours_ago, diff / TimeUnit.HOURS.toMillis(1))
+        diff < dayMillis * 2 -> stringResource(R.string.chat_list_time_yesterday)
+        diff < dayMillis * 7 -> stringResource(R.string.chat_list_time_days_ago, diff / dayMillis)
         else -> chatListSdf.format(Date(timestamp))
     }
 }

@@ -105,6 +105,43 @@ class PluginManagerTest {
         assertTrue(manager.list().isEmpty())
     }
 
+    @Test
+    fun install_pluginWithJsEntry_keepsEntryCode() = runBlocking {
+        val skillRepo = mockk<SkillRepository>(relaxed = true)
+        val manager = PluginManager(context, skillRepo)
+        val zip = zip(
+            manifest = """
+                {
+                  "id": "todo-summary",
+                  "name": "Todo Summary",
+                  "version": "0.1.0",
+                  "entry": "main.js",
+                  "kind": "tool",
+                  "capabilities": ["resource.read"],
+                  "tools": [
+                    {
+                      "name": "summarize_todos",
+                      "description": "summarize todos",
+                      "parametersJson": "{}",
+                      "requiredJson": "[]",
+                      "functionName": "summarizeTodos"
+                    }
+                  ]
+                }
+            """.trimIndent(),
+            entry = """
+                function summarizeTodos(args) {
+                  return "count=" + (args.text || "").split("\n").length;
+                }
+            """.trimIndent(),
+        )
+
+        val result = manager.installFromFile(zip)
+        assertTrue(result.isSuccess)
+        val code = manager.loadEntryCode("todo-summary")
+        assertTrue(code?.contains("function summarizeTodos") == true)
+    }
+
     private fun zip(
         manifest: String = """
             {

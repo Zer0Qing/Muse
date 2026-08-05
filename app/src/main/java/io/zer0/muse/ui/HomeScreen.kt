@@ -8,6 +8,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -67,8 +68,8 @@ import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
 // M-CS7: tabs 列表提为文件级 val,避免每次 recomposition 重新创建(原在 Composable 内 listOf)
-// 存资源 id(Int),0 表示 "Agent"(纯英文,无需本地化);UI 层用 stringResource 解析。
-private val HomeTabs = listOf(R.string.home_tab_tasks to 0, 0 to 1, R.string.home_tab_group_chat to 2)
+// 存资源 id(Int) 与页面序号,UI 层统一用 stringResource 解析。
+private val HomeTabs = listOf(R.string.home_tab_tasks to 0, R.string.home_tab_agent to 1, R.string.home_tab_group_chat to 2)
 
 /**
  * v0.22 首页 — 顶部双分页导航。
@@ -105,6 +106,8 @@ fun HomeScreen(
     onOpenGroupChat: (String) -> Unit = {},
     /** v2.0: 打开最近删除页。 */
     onOpenRecentlyDeleted: () -> Unit = {},
+    /** v0.45: 打开归档聊天列表页。 */
+    onOpenArchivedChats: () -> Unit = {},
     /** HTML/SVG 代码块全屏预览回调(由 Tab 1 ChatScreen 触发)。 */
     onHtmlPreview: (String) -> Unit = {},
     /** 加号菜单 → 技能入口。 */
@@ -216,7 +219,7 @@ fun HomeScreen(
 
                 // 中间:胶囊 Tab 切换器(iOS 风格 MuseCapsuleTab 组件)
                 val tabLabels = HomeTabs.map { (labelResId, _) ->
-                    if (labelResId != 0) stringResource(labelResId) else "Agent"
+                    stringResource(labelResId)
                 }
                 io.zer0.muse.ui.common.form.MuseCapsuleTab(
                     tabs = tabLabels,
@@ -238,6 +241,14 @@ fun HomeScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.End,
                 ) {
+                    // 归档聊天入口
+                    IconButton(onClick = onOpenArchivedChats) {
+                        Icon(
+                            imageVector = TablerIcons.Archive,
+                            contentDescription = stringResource(R.string.chat_list_filter_archived),
+                            modifier = Modifier.size(24.dp),
+                        )
+                    }
                     // 全局搜索入口(对话/翻译/快速记录)— 三 Tab 右侧常驻
                     IconButton(onClick = onOpenSearch) {
                         Icon(
@@ -582,10 +593,10 @@ private fun HomeCapsuleButton(
         modifier = modifier
             .size(56.dp)
             .background(containerColor)
-            // v1.0.16: 禁用 Material ripple,避免黑色遮罩
+            // v1.0.16: 恢复全局 ripple 按压反馈
             .combinedClickable(
                 interactionSource = interactionSource,
-                indication = null,
+                indication = LocalIndication.current,
                 onClick = onClick,
                 onLongClick = onLongClick,
             ),

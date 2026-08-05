@@ -250,6 +250,9 @@
     <string name="quick_notes_trash_subtitle">삭제된 메모는 여기에 보관됩니다.</string>
     <string name="quick_notes_restore">복원하다</string>
     <string name="quick_notes_delete_permanent">영구 삭제</string>
+    <string name="quick_notes_export_tags">태그: %1$s</string>
+    <string name="quick_notes_export_folder">폴더: %1$s</string>
+    <string name="quick_notes_export_updated_at">업데이트 시간: %1$s</string>
     <string name="quick_notes_delete_permanent_title">영구 삭제</string>
     <string name="quick_notes_delete_permanent_confirm">이 작업은 취소할 수 없습니다.</string>
     <string name="quick_notes_clear_trash">쓰레기 지우기</string>
@@ -353,6 +356,28 @@
     <string name="stats_tooltip_hint">세부정보를 보려면 셀을 탭하세요.</string>
     <string name="stats_avg_label">평균 %.1f</string>
     <string name="stats_active_days_unit">날</string>
+    <string name="stats_total_tokens_label">누적 토큰(~)</string>
+    <string name="stats_range_selected">선택됨</string>
+    <string name="stats_heatmap_legend_cd">활동 범례</string>
+    <string name="stats_heatmap_cd">활동 히트맵, %1$d주 활동 데이터</string>
+    <string name="stats_trend_chart_cd">메시지 추세 꺾은선 그래프</string>
+    <string name="stats_hourly_chart_cd">24시간 메시지 분포 막대 그래프</string>
+    <string name="stats_other">기타</string>
+    <string name="stats_model_donut_cd">모델 사용 분포 도넛 차트</string>
+    <string name="stats_summary_header">===== Muse 통계 요약 =====</string>
+    <string name="stats_summary_total_sessions">총 세션수: %1$d</string>
+    <string name="stats_summary_total_messages">총 메시지: %1$d</string>
+    <string name="stats_summary_ai_replies">AI 응답 수: %1$d</string>
+    <string name="stats_summary_user_messages">사용자 메시지 수: %1$d</string>
+    <string name="stats_summary_streak_days">연속 활동: %1$d일</string>
+    <string name="stats_summary_week_messages">이번 주 메시지: %1$d</string>
+    <string name="stats_summary_month_messages">이번 달 메시지: %1$d</string>
+    <string name="stats_summary_avg_daily">일평균: %1$s</string>
+    <string name="stats_summary_most_active_day">가장 활동적인 날: %1$s (%2$d개 메시지)</string>
+    <string name="stats_summary_models_header">가장 많이 사용한 모델:</string>
+    <string name="stats_summary_model_line">  %1$d. %2$s - %3$d개 메시지 (%4$s%%)</string>
+    <string name="stats_summary_assistants_header">어시스턴트 사용 비율:</string>
+    <string name="stats_summary_assistant_line">  - %1$s: %2$d개 메시지</string>
 
     <!-- ===== ui/taskcard ===== -->
     <string name="taskcard_phase_planning">계획</string>
@@ -366,6 +391,16 @@
     <string name="taskcard_retry">다시 해 보다</string>
     <string name="taskcard_steps_completed">%1$d/%2$d 단계 완료</string>
     <string name="taskcard_failed_suffix">· %1$d 실패</string>
+    <string name="milestone_title">마일스톤</string>
+    <string name="milestone_empty_title">아직 마일스톤이 없습니다</string>
+    <string name="milestone_empty_subtitle">AI 동반자와 더 많이 상호작용하면 마일스톤이 자동으로 잠금 해제됩니다</string>
+    <string name="milestone_active_section">활성 마일스톤 (%1$d)</string>
+    <string name="milestone_dismissed_section">닫힘 (%1$d)</string>
+    <string name="task_plan_status_pending">대기 중</string>
+    <string name="task_plan_status_in_progress">실행 중</string>
+    <string name="task_plan_status_done">완료</string>
+    <string name="task_plan_status_failed">실패</string>
+    <string name="task_plan_status_skipped">건너뜀</string>
 
     <!-- ===== ui/taskcard: delegation chain (v1.201) ===== -->
     <string name="delegation_chain_title">위임 체인</string>
@@ -385,6 +420,13 @@
 
     <!-- ===== ui/taskcard: subagent task list (v1.202) ===== -->
     <string name="subagent_task_list_title">백그라운드 하위 에이전트 작업</string>
+    <string name="skill_impl_not_configured">파일 도구 미설정</string>
+    <string name="plugin_missing_js">js_code가 없습니다</string>
+    <string name="subagent_task_detail_assistant">Assistant</string>
+    <string name="subagent_task_detail_user">User</string>
+    <string name="subagent_task_detail_count">Messages: %1$d</string>
+    <string name="subagent_task_detail_loading">Loading conversation...</string>
+    <string name="subagent_task_detail_empty">No conversation history yet</string>
     <string name="subagent_task_list_empty">백그라운드 작업 없음</string>
     <string name="subagent_task_list_count">%1$d 작업</string>
     <string name="subagent_task_running">달리기</string>

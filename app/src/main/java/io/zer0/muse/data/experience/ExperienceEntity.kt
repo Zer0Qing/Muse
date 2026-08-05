@@ -10,6 +10,9 @@ import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
 
+/** 经验分类稳定存储值(不随界面语言变化)。 */
+const val DEFAULT_EXPERIENCE_CATEGORY = "通用"
+
 /**
  * v1.98: 经验库条目 — 存储"以后遇到类似任务应该怎么做"的经验性知识。
  *
@@ -34,8 +37,8 @@ data class ExperienceEntity(
     /** 详细内容(经验正文,可含步骤/注意事项/代码片段) */
     val content: String,
     /** 分类(如"编程"/"工具使用"/"工作流"/"通用"),便于过滤 */
-    @ColumnInfo(defaultValue = "通用")
-    val category: String = "通用",
+    @ColumnInfo(defaultValue = DEFAULT_EXPERIENCE_CATEGORY)
+    val category: String = DEFAULT_EXPERIENCE_CATEGORY,
     /** 标签(JSON 数组字符串,如 ["kotlin","coroutine"]),用于检索 */
     @ColumnInfo(defaultValue = "[]")
     val tagsJson: String = "[]",

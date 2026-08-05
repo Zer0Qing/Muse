@@ -16,7 +16,7 @@ import java.util.concurrent.ConcurrentHashMap
  * 设计:
  *  - 通过 [VideoProviderRegistry] 按 specId / host / type 选择 [VideoProvider]
  *    (修复 v1.136 的 providerId 硬匹配 bug:preset_kling ≠ kling 导致路由失败)
- *  - 统一异步轮询机制(对齐参考实现 openhanako plugins/image-gen/lib/poller.ts):
+ *  - 统一异步轮询机制(对齐参考实现 参考开源项目 plugins/image-gen/lib/poller.ts):
  *    - 5 秒一个 tick
  *    - 按任务年龄自适应频率:
  *      <2min 每 5s, 2-10min 每 15s, >10min 每 30s
@@ -280,7 +280,7 @@ class VideoGenerationService(
          * - 2-10min:        每 3 个 tick 查一次(15s 间隔)
          * - >10min:         每 6 个 tick 查一次(30s 间隔)
          *
-         * 对齐参考实现 openhanako plugins/image-gen/lib/poller.ts shouldCheckThisTick。
+         * 对齐参考实现 参考开源项目 plugins/image-gen/lib/poller.ts shouldCheckThisTick。
          */
         internal fun shouldCheckThisTick(ageMs: Long, tickCount: Int): Boolean {
             return when {

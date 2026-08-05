@@ -236,6 +236,7 @@ fun ChatScreen(
     onOpenPromptTemplateManager: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val conversationTree by viewModel.conversationTree.collectAsStateWithLifecycle()
     // B2-01: 消息列表独立 collect,输入框等高频 state 变化不再带动整个消息列表重组。
     val messages by viewModel.messages.collectAsStateWithLifecycle()
     // v1.0.20 (Task 3): 高频字段用 derivedStateOf 包裹,收窄重组范围。
@@ -329,14 +330,6 @@ fun ChatScreen(
         value = visibleIds.mapNotNull { msgById[it] }
     }
 
-    // B7-03: 当前会话未读数(用于顶部跳转条)
-    val currentChatSession = remember(state.sessions, state.currentSessionId, state.agentSessionId) {
-        val sid = if (state.isAgentMode) state.agentSessionId else state.currentSessionId
-        state.sessions.find { it.id == sid }
-    }
-    val unreadCount = remember(currentChatSession) {
-        if (currentChatSession == null) 0 else (currentChatSession.messageCount - currentChatSession.lastReadCount).coerceAtLeast(0)
-    }
 
     // v0.48: 派生状态 — isAtBottom 判断列表是否在底部(用户没往上滚)
     // v1.52: 收紧阈值 — 仅当最后一项的底部在视口内才算"在底部",
@@ -1054,38 +1047,6 @@ fun ChatScreen(
                 },
             contentAlignment = Alignment.Center,
         ) {
-            // B7-03: 跳至最早未读条
-            if (unreadCount > 0 && !state.selectionMode &&
-                !(performanceMode && visibleMessages.size < messages.size)
-            ) {
-                Surface(
-                    color = MaterialTheme.colorScheme.tertiaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                    shape = MuseShapes.extraLarge,
-                    tonalElevation = 2.dp,
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = MusePaddings.contentGap)
-                        .clickable { viewModel.jumpToEarliestUnread() }
-                        .zIndex(9f),
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap),
-                        modifier = Modifier.padding(horizontal = MusePaddings.itemGap, vertical = MusePaddings.tinyGap),
-                    ) {
-                        Icon(
-                            imageVector = TablerIcons.MessageCircle,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                        )
-                        Text(
-                            text = stringResource(R.string.chat_jump_to_unread, unreadCount),
-                            style = MaterialTheme.typography.labelMedium,
-                        )
-                    }
-                }
-            }
             // B7-01: 多选操作条
             if (state.selectionMode) {
                 ChatSelectionBar(
@@ -1253,13 +1214,9 @@ fun ChatScreen(
                         // 都重新计算所有可见 item 的 isLast。只有最后一条消息变化时才重组。
                         // v1.0.4 (P3-4): isLast 基于 visibleMessages,性能模式下指"已渲染列表的最后一条"
                         val isLast by remember { derivedStateOf { msg.id == visibleMessages.lastOrNull()?.id } }
-                        // v1.0.53: 当前消息对应的分支节点(用于快捷菜单里的变体切换器)
-                        val branchNode by remember(msg.id) {
-                            derivedStateOf {
-                                state.messageNodes.firstOrNull {
-                                    it.id == msg.id.toString() || it.id == msg.variantGroupId
-                                }
-                            }
+                        // v1.0.53: 当前消息对应的分支组信息(直接来自 ConversationTree)
+                        val branchInfo by remember(msg.id) {
+                            derivedStateOf { conversationTree.branchInfoFor(msg.id) }
                         }
                         // v1.100: expandedState 用 derivedStateOf 包裹,只有该 msg 对应的
                         // 展开状态变化时才重组,避免其他消息的折叠操作波及本 item。
@@ -1293,7 +1250,7 @@ fun ChatScreen(
                         val onEdit = remember(msg.id, msg.role) {
                             {
                                 if (msg.role == MessageRole.USER) {
-                                    viewModel.editUserMessage(msg.id)
+                                    sheetState.editingUserMessage = msg
                                 } else {
                                     sheetState.editingMessage = msg
                                 }
@@ -1461,26 +1418,41 @@ fun ChatScreen(
                             visionAssisted = if (msg.role == MessageRole.USER) msg.id.toString() in state.visionAssistedMessageIds else false,
                             // v1.0.53: 最后一条标记 + 分支切换数据
                             isLast = isLast,
-                            branchIndex = branchNode?.selectIndex ?: 0,
-                            branchCount = branchNode?.branchCount ?: 1,
+                            branchIndex = branchInfo?.selectIndex ?: 0,
+                            branchCount = branchInfo?.branchCount ?: 1,
                             onBranchPrevious = {
-                                branchNode?.let { viewModel.selectBranch(it.id, it.selectIndex - 1) }
+                                branchInfo?.let { info ->
+                                    if (msg.role == MessageRole.USER) {
+                                        viewModel.selectUserVariant(info.groupId, info.selectIndex - 1)
+                                    } else {
+                                        viewModel.selectAssistantVariant(info.parentGroupId ?: info.groupId, info.groupId, info.selectIndex - 1)
+                                    }
+                                }
                             },
                             onBranchNext = {
-                                branchNode?.let { viewModel.selectBranch(it.id, it.selectIndex + 1) }
+                                branchInfo?.let { info ->
+                                    if (msg.role == MessageRole.USER) {
+                                        viewModel.selectUserVariant(info.groupId, info.selectIndex + 1)
+                                    } else {
+                                        viewModel.selectAssistantVariant(info.parentGroupId ?: info.groupId, info.groupId, info.selectIndex + 1)
+                                    }
+                                }
+                            },
+                            tokenStats = if (isLast && msg.role == MessageRole.ASSISTANT && state.tokenEstimateEnabled) {
+                                {
+                                    TokenStatsBar(
+                                        messageText = msg.content,
+                                        historyTokens = state.contextTokenCount,
+                                        contextWindow = state.contextMaxTokens,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = MusePaddings.tightGap),
+                                    )
+                                }
+                            } else {
+                                null
                             },
                         )
-                        // v1.0.53: 上下文占用条 — 从输入栏底部移到消息流，仅显示在最后一条 AI 消息的快捷按钮栏下方
-                        if (isLast && msg.role == MessageRole.ASSISTANT && state.tokenEstimateEnabled) {
-                            TokenStatsBar(
-                                inputText = currentInput,
-                                historyTokens = state.contextTokenCount,
-                                contextWindow = state.contextMaxTokens,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = MusePaddings.tightGap),
-                            )
-                        }
                         }
                         }
                     }

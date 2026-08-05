@@ -31,6 +31,9 @@
     <string name="memory_sync_never">Память еще не сформирована, разговоров нет в долговременной памяти.</string>
     <string name="memory_sync_recent">Последняя компиляция %1$d мин назад, память синхронизирована</string>
     <string name="memory_sync_stale">Последняя компиляция %1$d мин назад, возможно, недавних разговоров еще нет в памяти.</string>
+    <string name="memory_screen_experience_category_general">Общая</string>
+    <string name="memory_chart_type_distribution_cd">Кольцевая диаграмма распределения типов памяти</string>
+    <string name="memory_chart_daily_trend_cd">График ежедневной динамики памяти</string>
     <string name="memory_sync_set_importance_cd">Установить важность</string>
 
     <!-- v6: MemoryViewModel CRUD error messages -->

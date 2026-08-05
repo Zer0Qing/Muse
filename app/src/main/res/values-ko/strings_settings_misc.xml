@@ -18,6 +18,16 @@
     <string name="settings_web_search_save_api_key">API 키 저장</string>
     <string name="settings_web_search_endpoint_label">검색 API 엔드포인트</string>
     <string name="settings_web_search_save_endpoint">엔드포인트 저장</string>
+    <string name="settings_web_search_auto_hint">Auto 모드는 여러 검색 엔진을 시도합니다: API 키가 설정된 상용 엔진을 우선 사용하고, Bing, Jina, SearXNG로 폴백하며 저품질 결과를 자동으로 걸러냅니다.</string>
+    <string name="settings_web_search_test_query_label">테스트 검색어</string>
+    <string name="settings_web_search_test_query_placeholder">검색 테스트할 키워드 입력…</string>
+    <string name="settings_web_search_test_success">검색 성공, %1$d개 결과 반환:\n%2$s</string>
+    <string name="settings_web_search_test_empty">검색이 완료되었지만 결과가 없습니다</string>
+    <string name="settings_web_search_test_failed">테스트 실패: %1$s</string>
+    <string name="settings_web_search_test_failed_unknown">알 수 없는 오류</string>
+    <string name="settings_web_search_testing">검색 중…</string>
+    <string name="settings_web_search_test">테스트 검색</string>
+    <string name="settings_web_search_test_failed_prefix">테스트 실패</string>
     <!-- v1.98: New search provider names (bilingual, for UI display / logs / error hints) -->
     <string name="settings_web_search_provider_brave">용감한 검색</string>
     <string name="settings_web_search_provider_perplexity">혼란 검색</string>

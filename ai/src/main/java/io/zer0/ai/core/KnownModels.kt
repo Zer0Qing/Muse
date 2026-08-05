@@ -3,7 +3,7 @@ package io.zer0.ai.core
 /**
  * 已知模型元信息词典(离线兜底)。
  *
- * 参考 openhanako 项目的 known-models.ts 设计思路:本地维护一份主流模型的元信息表,
+ * 参考 参考开源项目 项目的 known-models.ts 设计思路:本地维护一份主流模型的元信息表,
  * 让离线场景或上游 /models 接口不返回元信息时也能补全模型能力。
  *
  * 与 [ModelContextWindowRegistry] / [ModelRegistry] 的关系:
@@ -247,7 +247,7 @@ object KnownModels {
             pricingCompletionPer1M = 1.50,
             description = "OpenAI GPT-5 mini",
         ))
-        // v1.0.6: 新增 GPT-5.1 / Codex(对齐 openhanako known-models)
+        // v1.0.6: 新增 GPT-5.1 / Codex(对齐 参考开源项目 known-models)
         put("gpt-5.1", KnownModelInfo(
             contextWindow = 400000,
             maxOutputTokens = 128000,
@@ -348,7 +348,7 @@ object KnownModels {
             pricingCompletionPer1M = 75.00,
             description = "Anthropic Claude Opus 4",
         ))
-        // v1.0.6: 新增 Claude 4.5 / 4.1 系列(对齐 openhanako known-models)
+        // v1.0.6: 新增 Claude 4.5 / 4.1 系列(对齐 参考开源项目 known-models)
         put("claude-sonnet-4-5", KnownModelInfo(
             contextWindow = 200000,
             maxOutputTokens = 64000,
@@ -714,7 +714,7 @@ object KnownModels {
             abilities = setOf(TOOL, REASONING),
             description = "xAI Grok 4",
         ))
-        // v1.0.6: 新增 Grok 4.5 / 4.3 系列(对齐 openhanako known-models,主要走 xAI OAuth Responses)
+        // v1.0.6: 新增 Grok 4.5 / 4.3 系列(对齐 参考开源项目 known-models,主要走 xAI OAuth Responses)
         put("grok-4.5", KnownModelInfo(
             contextWindow = 500000,
             maxOutputTokens = 128000,

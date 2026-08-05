@@ -156,11 +156,11 @@ private fun ModelProfileRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Box(
-                modifier = Modifier.size(44.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant).clickable(onClick = onPickImage),
+                modifier = Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant).clickable(onClick = onPickImage),
                 contentAlignment = Alignment.Center,
             ) {
                 if (profile.avatarUrl.isNotBlank()) {
-                    AsyncImage(model = profile.avatarUrl, contentDescription = null, modifier = Modifier.size(44.dp).clip(CircleShape))
+                    AsyncImage(model = profile.avatarUrl, contentDescription = null, modifier = Modifier.size(48.dp).clip(CircleShape))
                 } else {
                     Icon(Icons.Outlined.PhotoCamera, null, tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(20.dp))
                 }

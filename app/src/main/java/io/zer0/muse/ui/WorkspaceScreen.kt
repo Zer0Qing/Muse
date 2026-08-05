@@ -669,7 +669,7 @@ private fun WorkspaceEntryRow(
                 IconButton(onClick = onClick) {
                     Icon(
                         imageVector = Icons.Outlined.Edit,
-                        contentDescription = null,
+                        contentDescription = stringResource(R.string.action_edit),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }

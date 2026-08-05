@@ -91,13 +91,13 @@ private val INLINE_REGEX = Regex(
 )
 // L2 修复: [N] 引用编号正则 — 仅当 N 为正整数且非 [text](url) 形式
 private val CITATION_REGEX = Regex("""\[(\d+)]""")
-// v1.97: 纯文本 URL 自动识别(类似 openhanako linkify)
+// v1.97: 纯文本 URL 自动识别(类似 参考开源项目 linkify)
 // 匹配 http/https 开头的 URL,到空白/引号/括号/中文标点结束
-// 参考openhanako trimAutoLinkifiedSuffixes:排除尾部中文标点(。、,;!?」』)
+// 参考参考开源项目 trimAutoLinkifiedSuffixes:排除尾部中文标点(。、,;!?」』)
 // v1.97 阶段二: internal 供单元测试覆盖边界用例(URL_AUTOLINK_REGEX 边界测试)
 // v1.97 阶段二修正: 字符类移除 `:` 和 `?` — 这两个字符在 URL 主体中合法(端口 :8080 / query ?q=1),
 // 排除会导致 URL 被截断。ASCII 句点 `.` 同理不排除(URL 内合法,如 example.com),句末标点
-// 由 openhanako trimAutoLinkifiedSuffixes 在调用处二次清理(此处保持简单字符类)。
+// 由 参考开源项目 trimAutoLinkifiedSuffixes 在调用处二次清理(此处保持简单字符类)。
 // 注: `!` 保留排除(中文全角感叹号 ! 后接中文文本时不应纳入 URL)。
 internal val URL_AUTOLINK_REGEX = Regex("""https?://[^\s<>"'`)\]】」』。、,;!]+""")
 
@@ -140,6 +140,10 @@ fun MarkdownText(
      *     流式结束后(isStreaming=false)恢复完整渲染。
      */
     isStreaming: Boolean = false,
+    /**
+     * v1.0.63: 消息多选模式时禁用链接点击检测,让点击整条消息都能进入选择。
+     */
+    disableLinks: Boolean = false,
     /**
      * HTML/SVG 代码块全屏预览回调。
      * 当用户点击 HTML/SVG 代码块右上角的"预览"图标时触发,
@@ -257,8 +261,9 @@ fun MarkdownText(
                     val annotated = remember(block.text, color, linkColor, codeBgColor, citationUrls, citationColor) {
                         parseInline(block.text, color, linkColor, codeBgColor, citationUrls, citationColor)
                     }
-                    if (isStreaming) {
+                    if (isStreaming || disableLinks) {
                         // v1.42: 流式中直接用 Text 渲染,避免 LinkableText 的 pointerInput 随内容变化反复重建。
+                        // v1.0.63: 多选模式下同样用 Text,保证点击消息本体可选中。
                         Text(
                             text = annotated,
                             style = style,
@@ -284,11 +289,19 @@ fun MarkdownText(
                     val annotated = remember(block.text, color, linkColor, codeBgColor, citationUrls, citationColor) {
                         parseInline(block.text, color, linkColor, codeBgColor, citationUrls, citationColor)
                     }
-                    LinkableText(
-                        annotatedText = annotated,
-                        style = headingStyle,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
+                    if (disableLinks) {
+                        Text(
+                            text = annotated,
+                            style = headingStyle,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    } else {
+                        LinkableText(
+                            annotatedText = annotated,
+                            style = headingStyle,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                     if (idx < blocks.lastIndex) Spacer(Modifier.height(4.dp))
                 }
 
@@ -863,7 +876,7 @@ fun parseInline(
  * Phase 8.4: 把一段普通文本中的 [N] 引用编号渲染为可点击 URL 注解。
  * 仅当 N 在 citationUrls 范围内时才注解,其他 [N] 当普通文本输出。
  *
- * v1.97: 增加纯文本 URL 自动识别(类似 openhanako linkify)。
+ * v1.97: 增加纯文本 URL 自动识别(类似 参考开源项目 linkify)。
  * 普通文本中的 http/https URL 会被自动渲染为 primary 色可点击链接。
  * URL 优先于 [N] 引用扫描,避免 URL 内的 [数字] 被误匹配。
  *

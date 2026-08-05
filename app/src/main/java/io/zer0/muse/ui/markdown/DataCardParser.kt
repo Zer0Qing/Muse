@@ -9,7 +9,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
 /**
- * v1.0.53: 对话数据卡片解析(对标 Hana show_card)。
+ * v1.0.53: 对话数据卡片解析(参考开源实现 show_card)。
  *
  * 消息内容中的 ```card 代码块:
  * ```

@@ -36,10 +36,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
@@ -49,8 +52,9 @@ import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.tools.DeferredResultStore
-import io.zer0.muse.data.subagent.SubagentThreadStore
 import io.zer0.muse.ui.common.media.AssistantAvatar
+import io.zer0.muse.data.subagent.SubagentSessionStore
+import io.zer0.muse.data.subagent.SubagentThreadStore
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -91,6 +95,8 @@ fun SubagentTaskListCard(
     if (activeThreads.isEmpty() && pendingTasks.isEmpty()) return
 
     var expanded by remember { mutableStateOf(false) }
+    var selectedThread by remember { mutableStateOf<Pair<String, String>?>(null) }
+    val sessionStore: SubagentSessionStore = koinInject()
     // 任务总数:线程数与待处理任务数的较大值(两者通常一致,取较大值兜底解耦场景)
     val totalCount = maxOf(activeThreads.size, pendingTasks.size)
 
@@ -114,12 +120,24 @@ fun SubagentTaskListCard(
                     .fillMaxWidth()
                     .clickable { expanded = !expanded },
             ) {
-                Icon(
-                    imageVector = Icons.Default.SmartToy,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp),
-                )
+                val assistantRepository: AssistantRepository = koinInject()
+                val allAssistants by assistantRepository.observeAll.collectAsStateWithLifecycle(initialValue = emptyList())
+                val assistantById = remember(allAssistants) { allAssistants.associateBy { it.id } }
+                val firstAssistantId = activeThreads.firstOrNull()?.assistantId
+                    ?: pendingTasks.firstNotNullOfOrNull { task ->
+                        activeThreads.firstOrNull { it.threadId == task.threadId }?.assistantId
+                    }
+                val headerAssistant = firstAssistantId?.let { assistantById[it] }
+                if (headerAssistant != null) {
+                    AssistantAvatar(assistant = headerAssistant, avatarSize = 24.dp)
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.SmartToy,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
                 Text(
                     text = stringResource(R.string.subagent_task_list_title),
                     style = MaterialTheme.typography.titleMedium,
@@ -163,7 +181,9 @@ fun SubagentTaskListCard(
                             threadId = task.threadId,
                             status = task.status,
                             taskId = task.taskId,
+                            assistantId = activeThreads.firstOrNull { it.threadId == task.threadId }?.assistantId,
                             onCancel = onCancel,
+                            onClick = { task.threadId?.let { tid -> selectedThread = tid to (activeThreads.firstOrNull { it.threadId == tid }?.assistantId ?: "") } },
                         )
                     }
 
@@ -176,6 +196,7 @@ fun SubagentTaskListCard(
                             SubagentThreadRow(
                                 threadId = thread.threadId,
                                 assistantId = thread.assistantId,
+                                onClick = { selectedThread = thread.threadId to thread.assistantId },
                             )
                         }
 
@@ -186,6 +207,118 @@ fun SubagentTaskListCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(vertical = 4.dp),
                         )
+                    }
+                }
+            }
+        }
+    }
+
+    selectedThread?.let { (threadId, assistantId) ->
+        SubagentTaskDetailSheet(
+            threadId = threadId,
+            assistantId = assistantId,
+            onDismiss = { selectedThread = null },
+        )
+    }
+}
+
+@Composable
+private fun SubagentTaskDetailSheet(
+    threadId: String,
+    assistantId: String,
+    onDismiss: () -> Unit,
+) {
+    val sessionStore: SubagentSessionStore = koinInject()
+    val assistantRepository: AssistantRepository = koinInject()
+    val assistants by assistantRepository.observeAll.collectAsStateWithLifecycle(initialValue = emptyList())
+    val assistant = assistants.firstOrNull { it.id == assistantId }
+    var messages by remember(threadId) { mutableStateOf<List<io.zer0.ai.core.UIMessage>>(emptyList()) }
+    var loading by remember(threadId) { mutableStateOf(true) }
+
+    LaunchedEffect(threadId) {
+        loading = true
+        messages = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            runCatching { sessionStore.load(threadId, maxContextTokens = 200_000) }.getOrDefault(emptyList())
+        }
+        loading = false
+    }
+
+    io.zer0.muse.ui.common.form.MuseBottomSheet(
+        onDismissRequest = onDismiss,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(MusePaddings.cardInner)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(MusePaddings.iconPadding)) {
+                if (assistant != null) {
+                    AssistantAvatar(assistant = assistant, avatarSize = 40.dp)
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.SmartToy,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(36.dp),
+                    )
+                }
+                Column {
+                    Text(
+                        text = assistant?.name?.takeIf { it.isNotBlank() } ?: stringResource(R.string.subagent_task_list_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = "thread: ${threadId.take(16)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = stringResource(R.string.subagent_task_detail_count, messages.size),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            when {
+                loading -> {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(MusePaddings.iconPadding)) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        Text(stringResource(R.string.subagent_task_detail_loading), style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+                messages.isEmpty() -> {
+                    Text(stringResource(R.string.subagent_task_detail_empty), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                else -> {
+                    messages.forEach { msg ->
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = MuseShapes.medium,
+                            color = if (msg.role == io.zer0.ai.core.MessageRole.USER) {
+                                MaterialTheme.colorScheme.surfaceVariant
+                            } else {
+                                MaterialTheme.colorScheme.surface
+                            },
+                            tonalElevation = 1.dp,
+                        ) {
+                            Column(modifier = Modifier.padding(MusePaddings.cardInner)) {
+                                Text(
+                                    text = if (msg.role == io.zer0.ai.core.MessageRole.USER) stringResource(R.string.subagent_task_detail_user) else stringResource(R.string.subagent_task_detail_assistant),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Medium,
+                                )
+                                Text(
+                                    text = msg.content.ifBlank { "(…)" },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -208,17 +341,31 @@ private fun SubagentTaskRow(
     threadId: String?,
     status: DeferredResultStore.TaskStatus,
     taskId: String,
+    assistantId: String? = null,
     onCancel: (taskId: String) -> Unit,
+    onClick: (() -> Unit)? = null,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
         modifier = Modifier
             .fillMaxWidth()
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(vertical = 2.dp),
     ) {
-        // 状态图标
-        StatusIcon(status = status)
+        // 助手头像（可用时）；否则显示状态图标
+        if (assistantId != null) {
+            val assistantRepository: AssistantRepository = koinInject()
+            val assistants by assistantRepository.observeAll.collectAsStateWithLifecycle(initialValue = emptyList())
+            val assistant = assistants.firstOrNull { it.id == assistantId }
+            if (assistant != null) {
+                AssistantAvatar(assistant = assistant, avatarSize = 24.dp)
+            } else {
+                StatusIcon(status = status)
+            }
+        } else {
+            StatusIcon(status = status)
+        }
 
         // label + summary
         Column(
@@ -260,7 +407,7 @@ private fun SubagentTaskRow(
         if (status == DeferredResultStore.TaskStatus.PENDING) {
             IconButton(
                 onClick = { onCancel(taskId) },
-                modifier = Modifier.size(32.dp),
+                modifier = Modifier.size(48.dp),
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
@@ -281,6 +428,7 @@ private fun SubagentTaskRow(
 private fun SubagentThreadRow(
     threadId: String,
     assistantId: String,
+    onClick: (() -> Unit)? = null,
 ) {
     val assistantRepository: AssistantRepository = koinInject()
     val assistants by assistantRepository.observeAll.collectAsStateWithLifecycle(initialValue = emptyList())
@@ -290,6 +438,7 @@ private fun SubagentThreadRow(
         horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
         modifier = Modifier
             .fillMaxWidth()
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(vertical = 2.dp),
     ) {
         if (assistant != null) {

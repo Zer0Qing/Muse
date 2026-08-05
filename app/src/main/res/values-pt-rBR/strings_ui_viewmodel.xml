@@ -123,6 +123,9 @@
     <string name="assistant_back_cd">Voltar</string>
     <string name="assistant_import_card_cd">Importar cartão de personagem</string>
     <string name="assistant_section_my_assistants">Meus assistentes</string>
+    <string name="assistant_default_title">Assistente padrão</string>
+    <string name="assistant_default_picker_title">Escolher assistente padrão</string>
+    <string name="assistant_default_hint">Assistente usado por padrão em novas tarefas</string>
     <string name="assistant_section_actions">Adicionar ou importar</string>
     <string name="assistant_memory_entry_title">Memória de longo prazo</string>
     <string name="assistant_memory_entry_subtitle">Veja o sistema de memória de 4 camadas</string>

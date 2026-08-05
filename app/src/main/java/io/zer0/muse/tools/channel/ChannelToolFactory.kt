@@ -50,12 +50,12 @@ fun ToolRegistry.ToolDef.toToolDefinition(): ToolDefinition {
 /**
  * 群聊专用工具工厂 — Phone Session 模式下动态构造 channel_* 三件套。
  *
- * 设计参考 openhanako channel-router.ts:Phone Session 注入 3 个强制决策工具,
+ * 设计参考 参考开源项目 channel-router.ts:Phone Session 注入 3 个强制决策工具,
  * agent 必须调用 channel_reply / channel_pass / channel_read_context 之一表态,
  * 否则触发 repair attempt(重试 1 次)。
  *
  * 与主会话工具注册的区别:
- *  - 主会话工具由 [io.zer0.muse.tools.HanaAgentToolsRegistrar.registerAll] 注册到
+ *  - 主会话工具由 [io.zer0.muse.tools.AgentToolsRegistrar.registerAll] 注册到
  *    全局 [ToolRegistry],所有 Assistant 都可见
  *  - channel_* 工具是**群聊专用**的,不在主会话注册(否则主会话 LLM 会看到这些工具,
  *    可能误用 / 污染工具列表)
@@ -98,7 +98,7 @@ object ChannelToolFactory {
         onPass: suspend (String?) -> Unit,
         contextProvider: suspend (Int) -> String,
     ): List<Pair<ToolRegistry.ToolDef, ChannelToolFn>> {
-        // 三件套顺序与 openhanako channel-router.ts 注入顺序一致:
+        // 三件套顺序与 参考开源项目 channel-router.ts 注入顺序一致:
         // reply → pass → read_context
         val reply = ChannelReplyTool(groupChatId, senderAssistantId, onReply)
         val pass = ChannelPassTool(onPass)

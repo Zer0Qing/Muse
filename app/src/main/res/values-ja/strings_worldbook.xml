@@ -25,6 +25,10 @@
     <string name="worldbook_keywords_label">キーワード: %1$s</string>
     <string name="worldbook_badge_always_active">絶え間ない</string>
     <string name="worldbook_export">輸出</string>
+    <string name="worldbook_import_failed">インポート失敗: %1$s</string>
+    <string name="worldbook_import_success">%1$d 件をインポートしました</string>
+    <string name="worldbook_import_empty">インポート可能なエントリが見つかりません</string>
+    <string name="worldbook_export_failed">エクスポート失敗: %1$s</string>
 
     <!-- Sections -->
     <string name="worldbook_section_basic">基本</string>

@@ -25,7 +25,7 @@ import java.io.ByteArrayOutputStream
  *
  * 参考实现:
  *  - rikkahub AssistantImporter.kt
- *  - openhanako character-cards/service.ts
+ *  - 参考开源项目 character-cards/service.ts
  */
 object CharacterCardImporter {
 

@@ -123,6 +123,9 @@
     <string name="assistant_back_cd">戻る</string>
     <string name="assistant_import_card_cd">キャラクターカードをインポート</string>
     <string name="assistant_section_my_assistants">私のアシスタント</string>
+    <string name="assistant_default_title">デフォルトアシスタント</string>
+    <string name="assistant_default_picker_title">デフォルトアシスタントを選択</string>
+    <string name="assistant_default_hint">新しいタスクでデフォルトで使用されるアシスタント</string>
     <string name="assistant_section_actions">追加またはインポート</string>
     <string name="assistant_memory_entry_title">長期記憶</string>
     <string name="assistant_memory_entry_subtitle">4層メモリシステムを見る</string>

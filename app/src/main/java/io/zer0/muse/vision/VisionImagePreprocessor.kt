@@ -15,7 +15,7 @@ import java.security.MessageDigest
 /**
  * v1.0.5 视觉辅助重写:图片预处理器。
  *
- * 参考 openhanako 的 `core/model-image-preprocess.ts` 的 `MODEL_IMAGE_INPUT_POLICY`。
+ * 参考 参考开源项目 的 `core/model-image-preprocess.ts` 的 `MODEL_IMAGE_INPUT_POLICY`。
  *
  * 职责:
  *  - 对 base64 图片做尺寸压缩(最长边 ≤ [POLICY.maxDimension])和 JPEG 质量压缩
@@ -23,23 +23,23 @@ import java.security.MessageDigest
  *  - 按图片数量分摊单图预算,超出 [POLICY.totalBase64BudgetBytes] 总预算抛错
  *  - 对非 JPEG/PNG/WebP/GIF 的图片统一转 JPEG
  *
- * 与 openhanako 的差异:
- *  - openhanako 用 piSdk.resizeModelImageInput(浏览器端 Canvas),Android 端用 [Bitmap.compress]
- *  - openhanako 单图 4.5MB + 总 24MB,这里保留同样数值,但 Android 端 JPEG 压缩通常比浏览器更紧凑
- *  - openhanako 解码 base64 校验长度对齐 + canonical,Android 端用 [Base64.decode] 直接校验
+ * 与 参考开源项目 的差异:
+ *  - 参考开源项目 用 piSdk.resizeModelImageInput(浏览器端 Canvas),Android 端用 [Bitmap.compress]
+ *  - 参考开源项目 单图 4.5MB + 总 24MB,这里保留同样数值,但 Android 端 JPEG 压缩通常比浏览器更紧凑
+ *  - 参考开源项目 解码 base64 校验长度对齐 + canonical,Android 端用 [Base64.decode] 直接校验
  */
 object VisionImagePreprocessor {
 
     private const val TAG = "VisionImagePreprocessor"
 
     /**
-     * 图片输入策略,对齐 openhanako 的 MODEL_IMAGE_INPUT_POLICY。
+     * 图片输入策略,对齐 参考开源项目 的 MODEL_IMAGE_INPUT_POLICY。
      *
      * 数值含义:
-     *  - [maxDimension] 2000:与 openhanako 一致,最长边 2000px。足够清晰,又控制 base64 体积。
+     *  - [maxDimension] 2000:与 参考开源项目 一致,最长边 2000px。足够清晰,又控制 base64 体积。
      *  - [maxImageBase64Bytes] 4.5MB:单张 base64 上限。超过则继续压缩到该体积内。
      *  - [totalBase64BudgetBytes] 24MB:整个请求 base64 总预算(provider 端 32MB cap 的安全余量)。
-     *  - [jpegQuality] 80:与 openhanako 一致,质量与体积的平衡点。
+     *  - [jpegQuality] 80:与 参考开源项目 一致,质量与体积的平衡点。
      */
     object POLICY {
         const val maxDimension = 2000
@@ -196,7 +196,7 @@ object VisionImagePreprocessor {
     /**
      * 通过 base64 头部字符嗅探 MIME 类型。
      *
-     * 参考 openhanako 的 `sniffImageMimeType`(magic bytes 匹配)。
+     * 参考 参考开源项目 的 `sniffImageMimeType`(magic bytes 匹配)。
      * 支持的格式:JPEG / PNG / GIF / WebP,其他回退 image/jpeg。
      */
     fun sniffMimeType(base64: String): String {

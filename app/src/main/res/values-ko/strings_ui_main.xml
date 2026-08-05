@@ -224,6 +224,8 @@
     <string name="settings_screen_model_service_group_cd">모델 및 서비스 그룹</string>
     <string name="settings_screen_provider_cd">프로바이더, AI 서비스 프로바이더 관리, 탭하여 진입</string>
     <string name="settings_screen_provider">프로바이더</string>
+    <string name="settings_screen_model_catalog_desc">모델 컨텍스트, 기능, 최대 출력 확인 및 수정</string>
+    <string name="settings_screen_task_routing_desc">작업 유형에 따라 모델 자동 전환</string>
     <string name="settings_screen_provider_desc">AI 서비스 프로바이더 관리</string>
     <string name="settings_screen_assistant_cd">어시스턴트, 어시스턴트/월드 북 관리, 탭하여 진입</string>
     <string name="settings_screen_assistant">어시스턴트</string>
@@ -325,6 +327,8 @@
     <string name="search_section_messages">메시지</string>
     <string name="search_section_settings">설정</string>
     <string name="search_new_session">새 세션</string>
+    <string name="search_time_today">오늘 %1$s</string>
+    <string name="search_time_yesterday">어제 %1$s</string>
     <string name="search_index_proactive_message">능동 메시지</string>
     <string name="search_index_chat_behavior">채팅 동작 설정</string>
     <string name="search_index_deep_thinking">심층 사고</string>

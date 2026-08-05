@@ -250,6 +250,9 @@
     <string name="quick_notes_trash_subtitle">Las notas eliminadas se guardan aquí;</string>
     <string name="quick_notes_restore">Restaurar</string>
     <string name="quick_notes_delete_permanent">Eliminar permanentemente</string>
+    <string name="quick_notes_export_tags">Etiquetas: %1$s</string>
+    <string name="quick_notes_export_folder">Carpeta: %1$s</string>
+    <string name="quick_notes_export_updated_at">Actualizado: %1$s</string>
     <string name="quick_notes_delete_permanent_title">Eliminar permanentemente</string>
     <string name="quick_notes_delete_permanent_confirm">Esto no se puede deshacer.</string>
     <string name="quick_notes_clear_trash">Limpiar la basura</string>
@@ -353,6 +356,28 @@
     <string name="stats_tooltip_hint">Toca una celda para ver detalles</string>
     <string name="stats_avg_label">Promedio %.1f</string>
     <string name="stats_active_days_unit">días</string>
+    <string name="stats_total_tokens_label">Total de tokens (~)</string>
+    <string name="stats_range_selected">Seleccionado</string>
+    <string name="stats_heatmap_legend_cd">Leyenda de actividad</string>
+    <string name="stats_heatmap_cd">Mapa de calor de actividad, %1$d semanas de datos</string>
+    <string name="stats_trend_chart_cd">Gráfico de líneas de tendencia de mensajes</string>
+    <string name="stats_hourly_chart_cd">Gráfico de barras de distribución de mensajes 24 horas</string>
+    <string name="stats_other">Otro</string>
+    <string name="stats_model_donut_cd">Gráfico circular de uso de modelos</string>
+    <string name="stats_summary_header">===== Resumen de estadísticas de Muse =====</string>
+    <string name="stats_summary_total_sessions">Sesiones totales: %1$d</string>
+    <string name="stats_summary_total_messages">Mensajes totales: %1$d</string>
+    <string name="stats_summary_ai_replies">Respuestas de IA: %1$d</string>
+    <string name="stats_summary_user_messages">Mensajes de usuario: %1$d</string>
+    <string name="stats_summary_streak_days">Racha activa: %1$d días</string>
+    <string name="stats_summary_week_messages">Mensajes esta semana: %1$d</string>
+    <string name="stats_summary_month_messages">Mensajes este mes: %1$d</string>
+    <string name="stats_summary_avg_daily">Promedio diario: %1$s</string>
+    <string name="stats_summary_most_active_day">Día más activo: %1$s (%2$d mensajes)</string>
+    <string name="stats_summary_models_header">Modelos más usados:</string>
+    <string name="stats_summary_model_line">  %1$d. %2$s - %3$d mensajes (%4$s%%)</string>
+    <string name="stats_summary_assistants_header">Porcentaje de uso de asistentes:</string>
+    <string name="stats_summary_assistant_line">  - %1$s: %2$d mensajes</string>
 
     <!-- ===== ui/taskcard ===== -->
     <string name="taskcard_phase_planning">Planificación</string>
@@ -366,6 +391,16 @@
     <string name="taskcard_retry">Rever</string>
     <string name="taskcard_steps_completed">%1$d/%2$d pasos realizados</string>
     <string name="taskcard_failed_suffix">· %1$d falló</string>
+    <string name="milestone_title">Hitos</string>
+    <string name="milestone_empty_title">Aún no hay hitos</string>
+    <string name="milestone_empty_subtitle">Interactúa más con tu compañero de IA y los hitos se desbloquearán automáticamente</string>
+    <string name="milestone_active_section">Hitos activos (%1$d)</string>
+    <string name="milestone_dismissed_section">Cerrados (%1$d)</string>
+    <string name="task_plan_status_pending">Pendiente</string>
+    <string name="task_plan_status_in_progress">En curso</string>
+    <string name="task_plan_status_done">Completado</string>
+    <string name="task_plan_status_failed">Fallido</string>
+    <string name="task_plan_status_skipped">Omitido</string>
 
     <!-- ===== ui/taskcard: delegation chain (v1.201) ===== -->
     <string name="delegation_chain_title">Cadena de delegación</string>
@@ -385,6 +420,13 @@
 
     <!-- ===== ui/taskcard: subagent task list (v1.202) ===== -->
     <string name="subagent_task_list_title">Tareas de subagente en segundo plano</string>
+    <string name="skill_impl_not_configured">Herramientas de archivo no configuradas</string>
+    <string name="plugin_missing_js">Falta js_code</string>
+    <string name="subagent_task_detail_assistant">Assistant</string>
+    <string name="subagent_task_detail_user">User</string>
+    <string name="subagent_task_detail_count">Messages: %1$d</string>
+    <string name="subagent_task_detail_loading">Loading conversation...</string>
+    <string name="subagent_task_detail_empty">No conversation history yet</string>
     <string name="subagent_task_list_empty">Sin tareas en segundo plano</string>
     <string name="subagent_task_list_count">%1$d tarea(s)</string>
     <string name="subagent_task_running">Correr</string>

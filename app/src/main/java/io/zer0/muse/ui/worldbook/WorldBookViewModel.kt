@@ -1,4 +1,6 @@
 package io.zer0.muse.ui.worldbook
+import android.content.Context
+import io.zer0.muse.R
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -28,6 +30,7 @@ data class WorldBookUiState(
  */
 class WorldBookViewModel(
     private val repository: WorldBookRepository,
+    private val context: Context,
 ) : ViewModel() {
 
     private val _importMessage = MutableStateFlow<String?>(null)
@@ -60,10 +63,10 @@ class WorldBookViewModel(
             val count = runCatching { repository.importSillyTavernJson(jsonText) }
                 .getOrElse { e ->
                     Logger.w(TAG, "importSillyTavern 失败: ${e.message}", e)
-                    _importMessage.value = "导入失败: ${e.message}"
+                    _importMessage.value = context.getString(R.string.worldbook_import_failed, e.message ?: "")
                     return@launch
                 }
-            _importMessage.value = if (count > 0) "成功导入 $count 条" else "未找到可导入条目"
+            _importMessage.value = if (count > 0) context.getString(R.string.worldbook_import_success, count) else context.getString(R.string.worldbook_import_empty)
         }
     }
 
@@ -72,7 +75,7 @@ class WorldBookViewModel(
             val json = runCatching { repository.exportSillyTavernJson() }
                 .getOrElse { e ->
                     Logger.w(TAG, "exportSillyTavern 失败: ${e.message}", e)
-                    _importMessage.value = "导出失败: ${e.message}"
+                    _importMessage.value = context.getString(R.string.worldbook_export_failed, e.message ?: "")
                     return@launch
                 }
             onResult(json)

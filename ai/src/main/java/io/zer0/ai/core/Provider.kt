@@ -85,16 +85,16 @@ sealed class ChatStreamEvent {
 }
 
 /**
- * v1.0.7: 聊天请求模式(对齐 openhanako mode: "chat" | "utility")。
+ * v1.0.7: 聊天请求模式(对齐 参考开源项目 mode: "chat" | "utility")。
  *
  * - [CHAT]:用户对话路径,reasoningLevel 由用户偏好/session 决定,可开可关
  * - [UTILITY]:后台短文本生成路径(memory 摘要 / fact 抽取 / 视觉辅助 / skill 执行 /
  *   上下文压缩 / 主动消息 / 定时任务等),强制 reasoningLevel = OFF
  *   (短输出不需要思考链 + 省 token + 降延迟),且不注入 ProviderPromptPatches
  *
- * 设计原则(对齐 openhanako buildProviderCompatOptions):
+ * 设计原则(对齐 参考开源项目 buildProviderCompatOptions):
  *  - UTILITY 模式下,Provider 内部把 effectiveReasoningLevel 强制为 OFF,
- *    调用方传入的 reasoningLevel 被覆盖(对齐 openhanako utility 模式注入 reasoningLevel: "off")
+ *    调用方传入的 reasoningLevel 被覆盖(对齐 参考开源项目 utility 模式注入 reasoningLevel: "off")
  *  - 各 Provider 在 buildRequestBody 时按 mode 决定是否跳过 thinkingFormat 注入
  */
 enum class ChatRequestMode {

@@ -235,7 +235,7 @@ class TavilyProvider(
 /**
  * v1.135: Auto 搜索 Provider — 多引擎 fallback + 低质量结果检测。
  *
- * 参考 openhanako 的 web-search.ts 设计:
+ * 参考 参考开源项目 的 web-search.ts 设计:
  *  - 按优先级依次尝试多个 provider,遇到空结果/低质量/异常则自动换下一个
  *  - 检测日期计算器、词典/百科释义等低质量结果并跳过
  *  - 最终结果去重、按查询相关性排序

@@ -15,7 +15,7 @@ import kotlinx.serialization.json.JsonElement
 // ════════════════════════════════════════════════════════════════════════════
 // v1.0.7: OpenAI Responses API DTO(/v1/responses 端点)
 //
-// 对齐 openhanako 的 openai-responses / openai-codex-responses 协议。
+// 对齐 参考开源项目 的 openai-responses / openai-codex-responses 协议。
 // 与 Chat Completions API 的关键差异:
 //  - 请求体:messages → input;system role → instructions 顶层字段;
 //    max_tokens → max_output_tokens;新增 reasoning: {effort, summary}
@@ -144,7 +144,7 @@ internal data class ResponsesUsage(
 /**
  * v1.0.7: Responses API 流式 SSE 事件。
  *
- * 关键事件类型(对齐 openhanako readCodexResponsesStream):
+ * 关键事件类型(对齐 参考开源项目 readCodexResponsesStream):
  *  - response.output_text.delta:正文增量(delta 字段)
  *  - response.output_text.done:正文结束(text 字段,兜底完整文本)
  *  - response.reasoning_summary_text.delta:推理摘要增量(delta 字段)
@@ -209,7 +209,7 @@ internal data class OpenAIMessage(
     @SerialName("tool_call_id")
     val toolCallId: String? = null,
     /**
-     * v1.0.7: 历史推理内容回放(对齐 openhanako reasoning-content-replay)。
+     * v1.0.7: 历史推理内容回放(对齐 参考开源项目 reasoning-content-replay)。
      *
      * 仅用于把上一轮 assistant 消息的推理过程原样回传给 API,使多轮对话中
      * 模型能"看见"自己之前的思考链。carrier=REASONING_CONTENT 的厂商

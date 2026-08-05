@@ -14,6 +14,24 @@
     <string name="chat_update_compress_cd">Update &amp; Compress</string>
     <string name="chat_scroll_to_bottom_cd">Scroll to bottom</string>
     <string name="chat_export_cd">Export Chat</string>
+    <string name="chat_export_format_title">Choose export format</string>
+    <string name="chat_export_format_confirm">Export</string>
+    <string name="chat_export_format_markdown">Markdown (.md): plain text, easy to paste into notes or edit again</string>
+    <string name="chat_export_format_html">HTML (.html): single file with inline styles and images, shareable in any browser</string>
+    <string name="chat_export_format_pdf">PDF (.pdf): A4 paginated document for printing or archival</string>
+    <string name="chat_doc_empty_or_unsupported">Document is empty or format is not supported</string>
+    <string name="chat_doc_truncated">\n\n…(document too long, truncated by %1$d characters)</string>
+    <string name="chat_doc_default_name">Document</string>
+    <string name="chat_doc_parse_failed">Document parsing failed: %1$s</string>
+    <string name="chat_thinking_preview">Thinking · %1$s</string>
+    <string name="chat_voice_playing_cd">Voice playing</string>
+    <string name="chat_voice_ready_cd">Voice ready</string>
+    <string name="chat_knowledge_chunk_title">"%1$s" · Chunk #%2$d</string>
+    <string name="chat_knowledge_chunk_score">Score %1$s · %2$s</string>
+    <string name="chat_task_todo_title">Task todo</string>
+    <string name="chat_tool_call_arguments">Arguments: %1$s</string>
+    <string name="chat_tool_call_result">Result: %1$s</string>
+    <string name="chat_share_failed_no_uri">Share failed: could not get file URI</string>
     <string name="chat_companion_days_zero">Just met today</string>
     <string name="chat_companion_days">Together for %1$d days</string>
     <string name="chat_date_separator_today">Today %1$s</string>
@@ -115,6 +133,7 @@
     <string name="chat_agent_hint_dismiss">Got it</string>
     <string name="chat_agent_session_locked">Session locked in Agent Mode</string>
     <string name="chat_delete_message">Delete Message</string>
+    <string name="chat_select_messages">Select</string>
     <string name="chat_delete_message_confirm">This action cannot be undone. Delete this message?</string>
     <string name="chat_translate_in_progress">Translating…</string>
 
@@ -187,6 +206,7 @@
     <string name="chat_token_count_cd">Token count</string>
     <string name="chat_token_menu_title">Token Estimate</string>
     <string name="chat_token_input">Current input</string>
+    <string name="chat_token_message">This message</string>
     <string name="chat_token_history">History messages</string>
     <string name="chat_token_context_window">Context window</string>
     <string name="chat_token_remaining">Available</string>

@@ -14,6 +14,24 @@
     <string name="chat_update_compress_cd">Actualizar &amp; Comprimir</string>
     <string name="chat_scroll_to_bottom_cd">Desplazarse hacia abajo</string>
     <string name="chat_export_cd">Exportar chat</string>
+    <string name="chat_export_format_title">Elige el formato de exportación</string>
+    <string name="chat_export_format_confirm">Exportar</string>
+    <string name="chat_export_format_markdown">Markdown (.md): texto sin formato, fácil de pegar en notas o volver a editar</string>
+    <string name="chat_export_format_html">HTML (.html): archivo único con estilos e imágenes incrustados, listo para compartir</string>
+    <string name="chat_export_format_pdf">PDF (.pdf): documento A4 paginado, ideal para imprimir o archivar</string>
+    <string name="chat_doc_empty_or_unsupported">El documento está vacío o el formato no es compatible</string>
+    <string name="chat_doc_truncated">\n\n…(documento demasiado largo, truncado en %1$d caracteres)</string>
+    <string name="chat_doc_default_name">Documento</string>
+    <string name="chat_doc_parse_failed">Error al analizar el documento: %1$s</string>
+    <string name="chat_thinking_preview">Pensando · %1$s</string>
+    <string name="chat_voice_playing_cd">Reproduciendo voz</string>
+    <string name="chat_voice_ready_cd">Voz lista</string>
+    <string name="chat_knowledge_chunk_title">«%1$s» · Fragmento n.º %2$d</string>
+    <string name="chat_knowledge_chunk_score">Puntuación %1$s · %2$s</string>
+    <string name="chat_task_todo_title">Tareas pendientes</string>
+    <string name="chat_tool_call_arguments">Argumentos: %1$s</string>
+    <string name="chat_tool_call_result">Resultado: %1$s</string>
+    <string name="chat_share_failed_no_uri">Error al compartir: no se pudo obtener la URI del archivo</string>
     <string name="chat_companion_days_zero">Recién nos conocimos hoy</string>
     <string name="chat_companion_days">Juntos durante %1$d días</string>
     <string name="chat_date_separator_today">Hoy %1$s</string>
@@ -115,6 +133,7 @@
     <string name="chat_agent_hint_dismiss">Entiendo</string>
     <string name="chat_agent_session_locked">Sesión bloqueada en modo agente</string>
     <string name="chat_delete_message">Eliminar mensaje</string>
+    <string name="chat_select_messages">Seleccionar</string>
     <string name="chat_delete_message_confirm">Esta acción no se puede deshacer.</string>
     <string name="chat_translate_in_progress">Traductorio…</string>
 
@@ -187,6 +206,7 @@
     <string name="chat_token_count_cd">Recuento de tokens</string>
     <string name="chat_token_menu_title">Estimación de tokens</string>
     <string name="chat_token_input">Entrada actual</string>
+    <string name="chat_token_message">Este mensaje</string>
     <string name="chat_token_history">Mensajes históricos</string>
     <string name="chat_token_context_window">ventana contextual</string>
     <string name="chat_token_remaining">Disponible</string>

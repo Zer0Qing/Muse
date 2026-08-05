@@ -1,13 +1,13 @@
 package io.zer0.ai.core
 
 /**
- * v1.0.7: 思考格式枚举(对齐 openhanako thinkingFormat 9 种)。
+ * v1.0.7: 思考格式枚举(对齐 参考开源项目 thinkingFormat 9 种)。
  *
  * 不同 OpenAI 兼容服务用不同字段表达"思考"参数,本枚举集中描述这些差异。
  * Provider 在构造请求体时按此枚举决定发什么字段;ProviderCompatRules 按
  * baseUrl host + modelId 派生具体值。
  *
- * ## 9 种格式(对齐 openhanako)
+ * ## 9 种格式(对齐 参考开源项目)
  *
  * - [ANTHROPIC]:Anthropic 原生 thinking 块(本枚举仅用于 OpenAI 兼容协议适配,
  *   AnthropicProvider 自身走原生 Messages API,不读此字段)
@@ -41,7 +41,7 @@ enum class ThinkingFormat {
 }
 
 /**
- * v1.0.7: reasoning 回放载体(对齐 openhanako 5 种 carrier)。
+ * v1.0.7: reasoning 回放载体(对齐 参考开源项目 5 种 carrier)。
  *
  * 当历史消息含上一轮推理内容时,不同协议用不同 wire 字段回放。
  * 本枚举决定 UIMessage.reasoning / UIMessage.thinkingSignature 如何序列化回请求体。
@@ -65,7 +65,7 @@ enum class ReasoningCarrier {
 }
 
 /**
- * v1.0.7: reasoning 回放策略(对齐 openhanako 3 种 policy)。
+ * v1.0.7: reasoning 回放策略(对齐 参考开源项目 3 种 policy)。
  *
  * - [NONE]:不回放(默认),历史 reasoning 字段不写入请求体
  * - [PRESERVE]:始终保留,只要历史消息带 reasoning 字段就原样回放

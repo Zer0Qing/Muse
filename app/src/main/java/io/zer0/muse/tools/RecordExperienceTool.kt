@@ -7,7 +7,7 @@ import java.util.UUID
 
 
 /**
- * record_experience 工具(openhanako experience.ts 移植)。
+ * record_experience 工具(参考开源项目 experience.ts 移植)。
  *
  * 将学到的经验记录到经验库中。
  */

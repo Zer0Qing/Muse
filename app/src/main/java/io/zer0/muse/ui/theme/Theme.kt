@@ -18,8 +18,6 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
-import androidx.compose.foundation.LocalIndication
-import androidx.compose.foundation.Indication
 import androidx.compose.runtime.RememberObserver
 
 /**
@@ -34,14 +32,6 @@ private fun Context.findActivity(): Activity? {
     }
     return null
 }
-
-/**
- * v1.0.29: 全局 no-op Indication,替代默认 ripple。
- * 用于 [LocalIndication] 以根除所有 clickable/combinedClickable 产生的黑色遮罩。
- * Material3 Button/IconButton 等组件自带 indication,不受影响。
- */
-private val NoOpIndication: Indication = object : Indication {}
-
 /**
  * Muse 主题入口 (v0.22 重写,参考 rikkahub Theme.kt)。
  *
@@ -154,14 +144,12 @@ fun MuseTheme(
         shapes = MuseShapes,
         motionScheme = motionScheme,
     ) {
-        // v1.0.29: 全局禁用默认 ripple indication,根除所有 clickable/combinedClickable
-        // 产生的黑色遮罩。Material3 Button/IconButton 等组件自带 indication,不受影响。
-        // 需要按压反馈的组件应自行实现(如 SharedComponents 的 pressColor 动画)。
+        // P3-4a: 恢复默认 ripple indication，保证 clickable/combinedClickable 有按压反馈。
+        // 个别组件如需无波纹，可局部提供自定义 Indication。
         // v1.0.52: 同步注入语义状态色与代码高亮色,业务代码不再硬编码裸色。
         val statusColors = if (darkTheme) DarkStatusColors else LightStatusColors
         val codeColors = if (darkTheme) DarkCodeColors else LightCodeColors
         CompositionLocalProvider(
-            LocalIndication provides NoOpIndication,
             LocalStatusColors provides statusColors,
             LocalCodeColors provides codeColors,
         ) {

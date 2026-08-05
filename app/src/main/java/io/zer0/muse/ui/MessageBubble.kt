@@ -121,6 +121,8 @@ import io.zer0.muse.data.artifact.ArtifactEntity
 import io.zer0.muse.ui.artifact.ArtifactCardList
 import io.zer0.muse.ui.chat.BranchSelector
 import io.zer0.muse.ui.chat.parseQuotedContent
+import io.zer0.muse.ui.chat.buildHighlightedText
+import io.zer0.muse.ui.chat.buildMoodSkinAnnotated
 import io.zer0.muse.ui.common.media.AssistantAvatar
 import io.zer0.muse.ui.common.media.AttachmentChip
 import io.zer0.muse.ui.common.media.ContextMenuItem
@@ -133,6 +135,7 @@ import io.zer0.muse.ui.taskcard.AgentPlan
 import io.zer0.muse.ui.taskcard.PlanCard
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseElevation
+import io.zer0.muse.ui.theme.MoodSkinColors
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
@@ -224,6 +227,8 @@ internal fun MessageBubble(
     highlightText: String? = null,
     // v2.3: debug 模式性能摘要(仅最后一条 assistant 消息底部显示)
     debugInfo: String? = null,
+        /** P1 UI: Token 统计条(由 ChatScreen 传入,显示在助手消息快捷按钮组下方)。 */
+    tokenStats: (@Composable () -> Unit)? = null,
     // v1.55: Agent 工作流计划卡(显示最新的活跃计划,随消息一起滚动)
     agentPlan: AgentPlan? = null,
     // v1.201: 委派链路根节点(仅 AI 消息,有委派时显示)
@@ -420,9 +425,9 @@ internal fun MessageBubble(
                             } else {
                                 val cleaned = reasoning.replace("\n", " ").trim()
                                 if (cleaned.length > 40) {
-                                    "思考 · ${cleaned.take(40)}…"
+                                    stringResource(R.string.chat_thinking_preview, cleaned.take(40) + "…")
                                 } else {
-                                    "思考 · $cleaned"
+                                    stringResource(R.string.chat_thinking_preview, cleaned)
                                 }
                             }
                             Text(
@@ -992,13 +997,14 @@ internal fun MessageBubble(
                             modifier = Modifier.fillMaxWidth(),
                             citationUrls = safeCitationUrls,
                             isStreaming = isLastAssistant && isStreaming,
+                            disableLinks = selectionMode,
                             onHtmlPreview = onHtmlPreview,
                         )
                     }
                 }
                 if (dataCard != null) {
                     io.zer0.muse.ui.markdown.DataCardRenderer(card = dataCard)
-                } else if (isLastAssistant && isStreaming) {
+                } else if ((isLastAssistant && isStreaming) || selectionMode) {
                     markdownContent()
                 } else {
                     SelectionContainer { markdownContent() }
@@ -1174,23 +1180,18 @@ internal fun MessageBubble(
                         iconSize = MuseIconSizes.iconSmall,
                     )
                 }
-                // B7-01: 进入多选模式
-                if (!selectionMode && onEnterMultiSelect != null) {
-                    MuseTactileButton(
-                        icon = TablerIcons.Square,
-                        onClick = {
-                            MuseHaptics.light(hapticFeedback)
-                            onEnterMultiSelect()
-                        },
-                        contentDescription = stringResource(R.string.chat_delete_message),
-                        tint = MaterialTheme.colorScheme.outline,
-                        size = MuseIconSizes.touchTarget,
-                        iconSize = MuseIconSizes.iconSmall,
-                    )
-                }
-                // 多分支变体切换器
-                if (branchCount > 1) {
-                    Spacer(Modifier.width(MusePaddings.tinyGap))
+            }
+            // P1 UI: Token 统计独立一行(快捷按钮下方,不再挤占按钮行)
+            if (!isUser && tokenStats != null) {
+                tokenStats()
+            }
+            // 分支切换器独立一行,避免窄屏被顶出屏幕
+            if (branchCount > 1) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     BranchSelector(
                         currentIndex = branchIndex,
                         totalCount = branchCount,
@@ -1198,6 +1199,22 @@ internal fun MessageBubble(
                         onNext = onBranchNext,
                     )
                 }
+            }
+        }
+
+        // 用户消息版本切换器：编辑/重试产生的用户提问版本
+        if (isUser && branchCount > 1) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+                horizontalArrangement = if (isUser == isLtr) Arrangement.End else Arrangement.Start,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                BranchSelector(
+                    currentIndex = branchIndex,
+                    totalCount = branchCount,
+                    onPrevious = onBranchPrevious,
+                    onNext = onBranchNext,
+                )
             }
         }
 
@@ -1261,6 +1278,15 @@ internal fun MessageBubble(
                                     onFork()
                                 },
                             )
+                            ActionMenuItem(
+                                icon = TablerIcons.Square,
+                                text = stringResource(R.string.chat_select_messages),
+                                contentDescription = stringResource(R.string.chat_select_messages),
+                                onClick = {
+                                    showActionMenu = false
+                                    onEnterMultiSelect?.invoke()
+                                },
+                            )
                             if (msg.content.isNotBlank()) {
                                 ActionMenuItem(
                                     icon = TablerIcons.Copy,
@@ -1287,6 +1313,15 @@ internal fun MessageBubble(
                             }
                             if (isUser) {
                                 // 用户消息保留完整菜单
+                            ActionMenuItem(
+                                icon = TablerIcons.Square,
+                                text = stringResource(R.string.chat_select_messages),
+                                contentDescription = stringResource(R.string.chat_select_messages),
+                                onClick = {
+                                    showActionMenu = false
+                                    onEnterMultiSelect?.invoke()
+                                },
+                            )
                                 ActionMenuItem(
                                     icon = TablerIcons.Edit,
                                     text = stringResource(R.string.action_edit),
@@ -1875,12 +1910,14 @@ private fun WaveformBars(
     isActive: Boolean,
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "waveform")
+    val voicePlayingCd = stringResource(R.string.chat_voice_playing_cd)
+    val voiceReadyCd = stringResource(R.string.chat_voice_ready_cd)
     Row(
         horizontalArrangement = Arrangement.spacedBy(2.dp),
         verticalAlignment = Alignment.CenterVertically,
         // v1.0.52: 无障碍 — TalkBack 可播报波形状态
         modifier = Modifier.semantics {
-            contentDescription = if (isActive) "语音播放中" else "语音就绪"
+            contentDescription = if (isActive) voicePlayingCd else voiceReadyCd
         },
     ) {
         val heights = listOf(MusePaddings.itemGap, 18.dp, 14.dp, 20.dp)
@@ -2145,7 +2182,7 @@ private fun RagCitationChips(
             ) {
                 Column(modifier = Modifier.padding(MusePaddings.contentGap)) {
                     Text(
-                        text = "《${expanded.docTitle}》 · 片段 #${expanded.chunkIndex}",
+                        text = stringResource(R.string.chat_knowledge_chunk_title, expanded.docTitle, expanded.chunkIndex),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -2156,7 +2193,7 @@ private fun RagCitationChips(
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
-                        text = "分数 ${"%.2f".format(expanded.score)} · ${expanded.matchType}",
+                        text = stringResource(R.string.chat_knowledge_chunk_score, "%.2f".format(expanded.score), expanded.matchType),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.padding(top = MusePaddings.tightGap),
@@ -2206,37 +2243,16 @@ private fun RagCitationChip(
     }
 }
 
-/**
- * 功能1: 构建带高亮的 AnnotatedString。
- * 在文本中查找 query 出现的位置,用 primaryContainer 色高亮匹配段。
- */
-/** B6-02: 把 [glow]/[big]/[shake] 等内联特效转成 AnnotatedString 样式。 */
-private fun buildMoodSkinAnnotated(text: String): AnnotatedString {
-    val regex = Regex("""\[(glow|big|huge|whisper|red|shake|blur|glitch)\]([\s\S]*?)\[/\1\]""", RegexOption.IGNORE_CASE)
-    val matches = regex.findAll(text).toList()
-    if (matches.isEmpty()) return AnnotatedString(text)
-    return buildAnnotatedString {
-        var last = 0
-        for (m in matches) {
-            append(text, last, m.range.first)
-            withStyle(moodSkinEffectStyle(m.groupValues[1].lowercase())) {
-                append(m.groupValues[2])
-            }
-            last = m.range.last + 1
-        }
-        append(text, last, text.length)
-    }
-}
-
+// 情绪特效使用固定字号，属装饰性内联样式，不进入正文排版层级
 private fun moodSkinEffectStyle(effect: String): SpanStyle = when (effect) {
-    "glow" -> SpanStyle(color = Color(0xFFFFB74D), fontWeight = FontWeight.SemiBold)
-    "big" -> SpanStyle(fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
-    "huge" -> SpanStyle(fontSize = 26.sp, fontWeight = FontWeight.Bold)
-    "whisper" -> SpanStyle(fontSize = 13.sp, color = Color(0xFF9E9E9E))
-    "red" -> SpanStyle(color = Color(0xFFE53935), fontWeight = FontWeight.Bold)
-    "shake" -> SpanStyle(color = Color(0xFF8E24AA), letterSpacing = 1.sp)
-    "blur" -> SpanStyle(color = Color(0xFFBDBDBD))
-    "glitch" -> SpanStyle(color = Color(0xFF00ACC1), letterSpacing = 2.sp)
+    "glow" -> SpanStyle(color = MoodSkinColors.glow, fontWeight = FontWeight.SemiBold)
+    "big" -> SpanStyle(fontSize = 20.sp, fontWeight = FontWeight.SemiBold) // mood effect
+    "huge" -> SpanStyle(fontSize = 26.sp, fontWeight = FontWeight.Bold) // mood effect
+    "whisper" -> SpanStyle(fontSize = 13.sp, color = MoodSkinColors.whisper) // mood effect
+    "red" -> SpanStyle(color = MoodSkinColors.red, fontWeight = FontWeight.Bold)
+    "shake" -> SpanStyle(color = MoodSkinColors.shake, letterSpacing = 1.sp)
+    "blur" -> SpanStyle(color = MoodSkinColors.blur)
+    "glitch" -> SpanStyle(color = MoodSkinColors.glitch, letterSpacing = 2.sp)
     else -> SpanStyle()
 }
 @Composable
@@ -2313,7 +2329,6 @@ private fun TaskProgressBadge(
                 style = MaterialTheme.typography.labelSmall,
                 color = badgeColor,
                 fontWeight = FontWeight.Medium,
-                fontSize = 10.sp,
             )
         }
     }

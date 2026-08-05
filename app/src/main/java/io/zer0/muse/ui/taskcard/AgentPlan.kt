@@ -1,5 +1,7 @@
 package io.zer0.muse.ui.taskcard
 
+import io.zer0.muse.R
+
 import kotlinx.serialization.Serializable
 
 /**
@@ -56,10 +58,10 @@ data class AgentPlanStep(
 )
 
 @Serializable
-enum class AgentPlanStepStatus(val displayText: String) {
-    PENDING("待执行"),
-    IN_PROGRESS("执行中"),
-    DONE("已完成"),
-    FAILED("失败"),
-    SKIPPED("已跳过"),
+enum class AgentPlanStepStatus(val labelRes: Int) {
+    PENDING(R.string.task_plan_status_pending),
+    IN_PROGRESS(R.string.task_plan_status_in_progress),
+    DONE(R.string.task_plan_status_done),
+    FAILED(R.string.task_plan_status_failed),
+    SKIPPED(R.string.task_plan_status_skipped),
 }

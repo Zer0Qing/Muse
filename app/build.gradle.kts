@@ -1,6 +1,8 @@
 import java.util.Properties
 import java.io.FileInputStream
 
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -44,7 +46,6 @@ android {
             //   keyAlias=别名
             //   keyPassword=密码
             // 未提供时回退到 debug keystore(仅供开发调试)
-            val keystorePropertiesFile = rootProject.file("keystore.properties")
             if (keystorePropertiesFile.exists()) {
                 val props = Properties()
                 props.load(FileInputStream(keystorePropertiesFile))
@@ -260,6 +261,11 @@ dependencies {
     testImplementation("androidx.room:room-testing:2.8.4")
     testImplementation("org.robolectric:robolectric:4.14.1")
     testImplementation("androidx.test:core-ktx:1.6.1")
+    // Compose UI 测试（Robolectric 本地 JVM）
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation("androidx.compose.ui:ui-test-junit4")
+    testImplementation("androidx.compose.ui:ui-test-manifest")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
     androidTestImplementation("androidx.test:runner:1.6.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test:core-ktx:1.6.1")
@@ -273,4 +279,20 @@ dependencies {
     // v1.97: 二维码生成与扫描(zxing 生成 + ML Kit barcode 扫描图片)
     implementation("com.google.zxing:core:3.5.3")
     implementation("com.google.mlkit:barcode-scanning:17.3.0")
+}
+
+// 发布安全：正式构建必须使用独立 keystore.properties，禁止静默回退 debug 签名。
+gradle.taskGraph.whenReady {
+    val hasReleaseTask = allTasks.any { it.name.contains("Release") }
+    if (hasReleaseTask && !keystorePropertiesFile.exists()) {
+        throw GradleException("正式构建缺少 keystore.properties：请先配置 release 签名，禁止回退 debug 签名。")
+    }
+    // 版本号硬约束：正式构建必须显式注入 versionName/versionCode，避免误用默认 162/1.0.62。
+    // 本地临时验证可传 -PreleaseSkipVersionCheck=true 跳过。
+    val skipVersionCheck = project.findProperty("releaseSkipVersionCheck") == "true"
+    val hasVersionName = project.hasProperty("versionName") || !System.getenv("VERSION_NAME").isNullOrBlank()
+    val hasVersionCode = project.hasProperty("versionCode") || !System.getenv("VERSION_CODE").isNullOrBlank()
+    if (hasReleaseTask && !skipVersionCheck && (!hasVersionName || !hasVersionCode)) {
+        throw GradleException("正式构建必须注入版本号：请传 -PversionName/-PversionCode 或设置 VERSION_NAME/VERSION_CODE。")
+    }
 }

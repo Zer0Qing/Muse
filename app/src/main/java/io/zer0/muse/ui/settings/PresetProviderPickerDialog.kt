@@ -61,7 +61,7 @@ import compose.icons.tablericons.*
  *
  * 设计:
  *  - v1.0.6: 43 个预置供应商(海外官方 15 + 国产官方 22 + 中转站 6),
- *    全量对齐 openhanako 37 个内置供应商 + 1muse 特有 8 个(deepinfra / lingyi /
+ *    全量对齐 参考开源项目 37 个内置供应商 + 1muse 特有 8 个(deepinfra / lingyi /
  *    github-copilot / 6 个中转站模板)。覆盖主流模型厂商。
  *  - 顶部三段式导航(左返回 + 中标题 + 右空),与 [SettingsSubPageScaffold] 保持一致
  *  - 搜索栏实时过滤 displayName / baseUrl / id

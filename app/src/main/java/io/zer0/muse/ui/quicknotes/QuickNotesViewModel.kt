@@ -1,4 +1,5 @@
 package io.zer0.muse.ui.quicknotes
+import io.zer0.muse.R
 
 import android.app.AlarmManager
 import android.app.PendingIntent
@@ -326,9 +327,9 @@ class QuickNotesViewModel(
     /**
      * v1.0.18: 切换加密状态。
      *
-     * TODO: 后续完善 — 当前仅切换 encrypted 标记 + 占位密文,
-     * 实际加密需用 BiometricPrompt + AES 加密 content,解密时反向操作。
-     * 此处保留 UI 入口与字段持久化,加密逻辑待接入。
+     * 加密已实现: NoteCipher 使用 Android Keystore 的 AES-GCM 真实加解密,
+     * 密文格式 base64(iv):base64(ciphertext),导出/导入保留 encryptedContent。
+     * 解密失败时按旧占位密文迁移处理(避免旧版本数据丢失)。
      */
     fun setEncrypted(id: String, encrypted: Boolean) {
         viewModelScope.launch {
@@ -402,9 +403,9 @@ class QuickNotesViewModel(
                     appendLine()
                 }
                 val meta = buildList {
-                    if (note.tags.isNotEmpty()) add("标签: ${note.tags.joinToString(" ") { "#$it" }}")
-                    if (note.folder.isNotBlank()) add("文件夹: ${note.folder}")
-                    add("更新时间: ${fmt.format(java.util.Date(note.updatedAt))}")
+                    if (note.tags.isNotEmpty()) add(context.getString(R.string.quick_notes_export_tags, note.tags.joinToString(" ") { "#$it" }))
+                    if (note.folder.isNotBlank()) add(context.getString(R.string.quick_notes_export_folder, note.folder))
+                    add(context.getString(R.string.quick_notes_export_updated_at, fmt.format(java.util.Date(note.updatedAt))))
                 }.joinToString(" | ")
                 appendLine("> $meta")
                 appendLine("---")

@@ -127,6 +127,10 @@
 <string name="voice_recognizing">認識中…</string>
 <!-- Task 1: ASR reconnecting status (WebSocket dropped, exponential backoff reconnect, audio buffered meanwhile) -->
 <string name="voice_reconnecting">ネットワークエラー、再接続中…</string>
+    <string name="voice_conversation_cd_idle">タップして会話を開始</string>
+    <string name="voice_conversation_cd_listening">録音中、タップで中断</string>
+    <string name="voice_conversation_cd_thinking">AI思考中、タップで中断</string>
+    <string name="voice_conversation_cd_speaking">読み上げ中、タップで中断</string>
 
     <!-- ASR config hint -->
     <string name="asr_missing_api_key_error">API キーが設定されていません。</string>
@@ -209,6 +213,11 @@
     <string name="chat_list_status_in_progress">進行中</string>
     <string name="chat_list_status_pending">保留中</string>
     <string name="chat_list_status_completed">完了</string>
+    <string name="chat_list_time_just_now">たった今</string>
+    <string name="chat_list_time_minutes_ago">%1$d 分前</string>
+    <string name="chat_list_time_hours_ago">%1$d 時間前</string>
+    <string name="chat_list_time_yesterday">昨日</string>
+    <string name="chat_list_time_days_ago">%1$d 日前</string>
     <string name="chat_reaction_add">リアクションを追加</string>
     <string name="chat_reaction_change">変化反応</string>
     <string name="chat_reaction_picker_title">メッセージに反応する</string>

@@ -18,6 +18,16 @@
     <string name="settings_web_search_save_api_key">Сохранить ключ API</string>
     <string name="settings_web_search_endpoint_label">Конечная точка API поиска</string>
     <string name="settings_web_search_save_endpoint">Сохранить конечную точку</string>
+    <string name="settings_web_search_auto_hint">Авто-режим пробует несколько поисковых систем: сначала коммерческие с настроенным ключом API, затем Bing, Jina и SearXNG, автоматически отфильтровывая некачественные результаты.</string>
+    <string name="settings_web_search_test_query_label">Тестовый запрос</string>
+    <string name="settings_web_search_test_query_placeholder">Введите ключевое слово для теста поиска…</string>
+    <string name="settings_web_search_test_success">Поиск успешен, %1$d результатов:\n%2$s</string>
+    <string name="settings_web_search_test_empty">Поиск завершен, результатов нет</string>
+    <string name="settings_web_search_test_failed">Тест не удался: %1$s</string>
+    <string name="settings_web_search_test_failed_unknown">Неизвестная ошибка</string>
+    <string name="settings_web_search_testing">Поиск…</string>
+    <string name="settings_web_search_test">Тестовый поиск</string>
+    <string name="settings_web_search_test_failed_prefix">Тест не удался</string>
     <!-- v1.98: New search provider names (bilingual, for UI display / logs / error hints) -->
     <string name="settings_web_search_provider_brave">Смелый поиск</string>
     <string name="settings_web_search_provider_perplexity">Поиск недоумения</string>

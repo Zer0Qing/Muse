@@ -27,7 +27,7 @@ import io.zer0.muse.ui.common.state.MuseEmptyState
 import kotlinx.serialization.Serializable
 
 /**
- * 活动面板(openhanako ActivityPanel.tsx 移植)。
+ * 活动面板(参考开源项目 ActivityPanel.tsx 移植)。
  *
  * 展示定时任务/心跳/编译的执行历史及状态。
  */

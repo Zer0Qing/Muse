@@ -28,7 +28,7 @@ import java.util.zip.CRC32
  *
  * 参考实现:
  *   - rikkahub AssistantImporter.kt
- *   - openhanako character-cards/service.ts
+ *   - 参考开源项目 character-cards/service.ts
  */
 @Serializable
 data class SillyTavernCardV2(

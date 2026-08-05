@@ -42,7 +42,7 @@ import io.zer0.muse.ui.settings.TaskRoutingSettingsPage
 import io.zer0.muse.ui.settings.UserProfileEditPage
 import io.zer0.muse.ui.settings.PermissionWizardScreen
 import io.zer0.muse.ui.settings.VisionSettingsPage
-import io.zer0.muse.ui.workflow.WorkflowEditorScreen
+import androidx.navigation.toRoute
 
 /**
  * 设置域 NavGraph — 包含设置主页 + 31 个二级/三级设置页(账户/模型/外观/代理/多 Agent/
@@ -55,66 +55,63 @@ fun NavGraphBuilder.settingsNavGraph(
     navController: NavHostController,
 ) {
     // 设置页(slide-in)
-    composable(
-        route = MuseRoutes.SETTINGS,
+    composable<SettingsRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         SettingsScreen(
             onBack = { navController.popBackStack() },
-            onOpenAssistants = { navController.navigate(MuseRoutes.ASSISTANTS) },
-            onOpenAccount = { navController.navigate(MuseRoutes.ACCOUNT) },
-            onOpenModelSettings = { navController.navigate(MuseRoutes.SETTINGS_MODEL) },
-            onOpenDataSettings = { navController.navigate(MuseRoutes.SETTINGS_DATA) },
-            onOpenAppearanceSettings = { navController.navigate(MuseRoutes.SETTINGS_APPEARANCE) },
-            onOpenChatSettings = { navController.navigate(MuseRoutes.SETTINGS_CHAT) },
-            onOpenMemorySettings = { navController.navigate(MuseRoutes.SETTINGS_MEMORY) },
-            onOpenMediaSettings = { navController.navigate(MuseRoutes.SETTINGS_MEDIA) },
-            onOpenExperimentsSettings = { navController.navigate(MuseRoutes.SETTINGS_EXPERIMENTS) },
-            onOpenSecuritySettings = { navController.navigate(MuseRoutes.SETTINGS_SECURITY) },
-            onOpenProxySettings = { navController.navigate(MuseRoutes.SETTINGS_PROXY) },
-            onOpenMultiAgentSettings = { navController.navigate(MuseRoutes.SETTINGS_MULTI_AGENT) },
-            onOpenAgentSettings = { navController.navigate(MuseRoutes.SETTINGS_AGENT) },
-            onOpenAboutSettings = { navController.navigate(MuseRoutes.SETTINGS_ABOUT) },
-            onOpenStats = { navController.navigate(MuseRoutes.STATS) },
-            onOpenNotificationListener = { navController.navigate(MuseRoutes.NOTIFICATION_LISTENER) },
-            onOpenTools = { navController.navigate(MuseRoutes.TOOLS) },
-            onOpenRagSettings = { navController.navigate(MuseRoutes.SETTINGS_RAG) },
-            onOpenVisionSettings = { navController.navigate(MuseRoutes.SETTINGS_VISION) },
-            onOpenDataImport = { navController.navigate(MuseRoutes.SETTINGS_DATA_IMPORT) },
-            onOpenTutorial = { navController.navigate(MuseRoutes.SETTINGS_TUTORIAL) },
-            onOpenUserProfile = { navController.navigate(MuseRoutes.USER_PROFILE_EDIT) },
-            onOpenTranslate = { navController.navigate(MuseRoutes.TRANSLATE) },
-            onOpenDataManagement = { navController.navigate(MuseRoutes.DATA_MANAGEMENT) },
-            onOpenDebugLog = { navController.navigate(MuseRoutes.DEBUG) },
-            onOpenAuditLog = { navController.navigate(MuseRoutes.AUDIT_LOG) },
-            onOpenWorkspace = { navController.navigate(MuseRoutes.WORKSPACE) },
-            onOpenVideoGeneration = { navController.navigate(MuseRoutes.VIDEO_GENERATION) },
-            onOpenProviderPlugins = { navController.navigate(MuseRoutes.PROVIDER_PLUGINS) },
+            onOpenAssistants = { navController.navigate(AssistantsRoute) },
+            onOpenAccount = { navController.navigate(AccountRoute) },
+            onOpenModelSettings = { navController.navigate(SettingsModelRoute) },
+            onOpenDataSettings = { navController.navigate(SettingsDataRoute) },
+            onOpenAppearanceSettings = { navController.navigate(SettingsAppearanceRoute) },
+            onOpenChatSettings = { navController.navigate(SettingsChatRoute) },
+            onOpenMemorySettings = { navController.navigate(SettingsMemoryRoute) },
+            onOpenMediaSettings = { navController.navigate(SettingsMediaRoute) },
+            onOpenExperimentsSettings = { navController.navigate(SettingsExperimentsRoute) },
+            onOpenSecuritySettings = { navController.navigate(SettingsSecurityRoute) },
+            onOpenProxySettings = { navController.navigate(SettingsProxyRoute) },
+            onOpenMultiAgentSettings = { navController.navigate(SettingsMultiAgentRoute) },
+            onOpenAgentSettings = { navController.navigate(SettingsAgentRoute) },
+            onOpenAboutSettings = { navController.navigate(SettingsAboutRoute) },
+            onOpenStats = { navController.navigate(StatsRoute) },
+            onOpenNotificationListener = { navController.navigate(NotificationListenerRoute) },
+            onOpenTools = { navController.navigate(ToolsScreenRoute) },
+            onOpenRagSettings = { navController.navigate(SettingsRagRoute) },
+            onOpenVisionSettings = { navController.navigate(SettingsVisionRoute) },
+            onOpenDataImport = { navController.navigate(SettingsDataImportRoute) },
+            onOpenTutorial = { navController.navigate(SettingsTutorialRoute) },
+            onOpenUserProfile = { navController.navigate(UserProfileEditRoute) },
+            onOpenTranslate = { navController.navigate(TranslateRoute) },
+            onOpenDataManagement = { navController.navigate(DataManagementRoute) },
+            onOpenDebugLog = { navController.navigate(DebugRoute) },
+            onOpenAuditLog = { navController.navigate(AuditLogRoute) },
+            onOpenWorkspace = { navController.navigate(WorkspaceRoute) },
+            onOpenVideoGeneration = { navController.navigate(VideoGenerationRoute) },
+            onOpenProviderPlugins = { navController.navigate(PluginManageRoute) },
             // v1.133: 从 SettingsModelPage 拆出的 5 个独立二级页
-            onOpenWebSearch = { navController.navigate(MuseRoutes.SETTINGS_WEB_SEARCH) },
-            onOpenAsr = { navController.navigate(MuseRoutes.SETTINGS_ASR) },
-            onOpenImageGen = { navController.navigate(MuseRoutes.SETTINGS_IMAGE_GEN) },
-            onOpenVideoGenSettings = { navController.navigate(MuseRoutes.SETTINGS_VIDEO_GEN) },
-            onOpenMcp = { navController.navigate(MuseRoutes.SETTINGS_MCP) },
-            onOpenAssistantResources = { navController.navigate(MuseRoutes.SETTINGS_ASSISTANT_RESOURCES) },
+            onOpenWebSearch = { navController.navigate(SettingsWebSearchRoute) },
+            onOpenAsr = { navController.navigate(SettingsAsrRoute) },
+            onOpenImageGen = { navController.navigate(SettingsImageGenRoute) },
+            onOpenVideoGenSettings = { navController.navigate(SettingsVideoGenRoute) },
+            onOpenMcp = { navController.navigate(SettingsMcpRoute) },
+            onOpenAssistantResources = { navController.navigate(SettingsAssistantResourcesRoute) },
             onNavigate = { route -> navController.navigate(route) },
         )
     }
     // v0.25: 账户中心(占位登录页)
-    composable(
-        route = MuseRoutes.ACCOUNT,
+    composable<AccountRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         AccountScreen(
             onBack = { navController.popBackStack() },
-            onOpenUserProfile = { navController.navigate(MuseRoutes.USER_PROFILE_EDIT) },
+            onOpenUserProfile = { navController.navigate(UserProfileEditRoute) },
         )
     }
     // v0.26: 设置二级页 — 模型与服务(v1.133: 仅供应商列表,其他拆为独立二级页)
-    composable(
-        route = MuseRoutes.SETTINGS_MODEL,
+    composable<SettingsModelRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -124,8 +121,7 @@ fun NavGraphBuilder.settingsNavGraph(
     }
     // v1.133: 设置二级页 — 联网搜索(从 SettingsModelPage 拆出)
     // B0-04: 设置二级页 — 任务模型路由
-    composable(
-        route = MuseRoutes.SETTINGS_TASK_ROUTING,
+    composable<SettingsTaskRoutingRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -133,8 +129,7 @@ fun NavGraphBuilder.settingsNavGraph(
             onBack = { navController.popBackStack() },
         )
     }
-    composable(
-        route = MuseRoutes.SETTINGS_WEB_SEARCH,
+    composable<SettingsWebSearchRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -143,8 +138,7 @@ fun NavGraphBuilder.settingsNavGraph(
         )
     }
     // v1.133: 设置二级页 — 语音识别 ASR(从 SettingsModelPage 拆出)
-    composable(
-        route = MuseRoutes.SETTINGS_ASR,
+    composable<SettingsAsrRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -153,8 +147,7 @@ fun NavGraphBuilder.settingsNavGraph(
         )
     }
     // v1.133: 设置二级页 — 图像生成(从 SettingsModelPage 拆出)
-    composable(
-        route = MuseRoutes.SETTINGS_IMAGE_GEN,
+    composable<SettingsImageGenRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -163,8 +156,7 @@ fun NavGraphBuilder.settingsNavGraph(
         )
     }
     // 设置二级页 — 视频生成(默认供应商/模型/时长/分辨率配置)
-    composable(
-        route = MuseRoutes.SETTINGS_VIDEO_GEN,
+    composable<SettingsVideoGenRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -173,8 +165,7 @@ fun NavGraphBuilder.settingsNavGraph(
         )
     }
     // v1.133: 设置二级页 — MCP 服务器(从 SettingsModelPage 拆出)
-    composable(
-        route = MuseRoutes.SETTINGS_MCP,
+    composable<SettingsMcpRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -183,25 +174,23 @@ fun NavGraphBuilder.settingsNavGraph(
         )
     }
     // v1.133: 设置二级页 — 助手资源(从 SettingsModelPage 拆出:收藏夹/世界书/快捷消息/模式注入/Skills/记忆开关)
-    composable(
-        route = MuseRoutes.SETTINGS_ASSISTANT_RESOURCES,
+    composable<SettingsAssistantResourcesRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         SettingsAssistantResourcesPage(
             onBack = { navController.popBackStack() },
-            onOpenAssistants = { navController.navigate(MuseRoutes.ASSISTANTS) },
-            onOpenFavorites = { navController.navigate(MuseRoutes.FAVORITES) },
-            onOpenLorebooks = { navController.navigate(MuseRoutes.LOREBOOKS) },
-            onOpenWorldbook = { navController.navigate(MuseRoutes.WORLDBOOK) },
-            onOpenQuickMessages = { navController.navigate(MuseRoutes.QUICK_MESSAGES) },
-            onOpenPromptInjections = { navController.navigate(MuseRoutes.PROMPT_INJECTIONS) },
-            onOpenSkills = { navController.navigate(MuseRoutes.SKILLS) },
+            onOpenAssistants = { navController.navigate(AssistantsRoute) },
+            onOpenFavorites = { navController.navigate(FavoritesRoute) },
+            onOpenLorebooks = { navController.navigate(LorebooksRoute) },
+            onOpenWorldbook = { navController.navigate(WorldbookRoute) },
+            onOpenQuickMessages = { navController.navigate(QuickMessagesRoute) },
+            onOpenPromptInjections = { navController.navigate(PromptInjectionsRoute) },
+            onOpenSkills = { navController.navigate(SkillsRoute) },
         )
     }
     // P3-3: 权限配置向导(无障碍 / Shizuku / Root 三通道)
-    composable(
-        route = MuseRoutes.SETTINGS_PERMISSION_WIZARD,
+    composable<SettingsPermissionWizardRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -210,8 +199,7 @@ fun NavGraphBuilder.settingsNavGraph(
         )
     }
     // 用户画像编辑页(年龄/城市/MBTI 等)
-    composable(
-        route = MuseRoutes.USER_PROFILE_EDIT,
+    composable<UserProfileEditRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -220,8 +208,7 @@ fun NavGraphBuilder.settingsNavGraph(
         )
     }
     // v0.26: 设置二级页 — 数据与备份
-    composable(
-        route = MuseRoutes.SETTINGS_DATA,
+    composable<SettingsDataRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -230,8 +217,7 @@ fun NavGraphBuilder.settingsNavGraph(
         )
     }
     // v1.132: 设置二级页 — 云备份独立配置页(WebDAV/S3 表单 + 远端备份列表)
-    composable(
-        route = MuseRoutes.SETTINGS_CLOUD_BACKUP,
+    composable<SettingsCloudBackupRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -240,8 +226,7 @@ fun NavGraphBuilder.settingsNavGraph(
         )
     }
     // v0.26: 设置二级页 — 外观
-    composable(
-        route = MuseRoutes.SETTINGS_APPEARANCE,
+    composable<SettingsAppearanceRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -250,52 +235,47 @@ fun NavGraphBuilder.settingsNavGraph(
         )
     }
     // v0.26: 设置二级页 — 关于
-    composable(
-        route = MuseRoutes.SETTINGS_ABOUT,
+    composable<SettingsAboutRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         SettingsAboutPage(
             onBack = { navController.popBackStack() },
-            onOpenLicenses = { navController.navigate(MuseRoutes.LICENSES) },
+            onOpenLicenses = { navController.navigate(LicensesRoute) },
         )
     }
     // v0.31: 设置二级页 — 聊天行为
-    composable(
-        route = MuseRoutes.SETTINGS_CHAT,
+    composable<SettingsChatRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         ChatSettingsPage(
             onBack = { navController.popBackStack() },
-            onOpenToolsSettings = { navController.navigate(MuseRoutes.TOOLS_SETTINGS) },
+            onOpenToolsSettings = { navController.navigate(ToolsSettingsRoute) },
         )
     }
     // v1.0.51: 记忆中心 — 4 Tab 查看+编辑(当下/短期/长期/事实)
-    composable(
-        route = MuseRoutes.SETTINGS_MEMORY,
+    composable<SettingsMemoryRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         MemoryScreen(
             onBack = { navController.popBackStack() },
-            onOpenSettings = { navController.navigate(MuseRoutes.SETTINGS_MEMORY_CONFIG) },
+            onOpenSettings = { navController.navigate(SettingsMemoryConfigRoute) },
         )
     }
     // v1.0.51: 记忆参数配置页(原"记忆与通知",从记忆中心齿轮入口进入)
-    composable(
-        route = MuseRoutes.SETTINGS_MEMORY_CONFIG,
+    composable<SettingsMemoryConfigRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         MemorySettingsPage(
             onBack = { navController.popBackStack() },
-            onOpenMemorySpace = { navController.navigate(MuseRoutes.SETTINGS_MEMORY_SPACE) },
+            onOpenMemorySpace = { navController.navigate(SettingsMemorySpaceRoute) },
         )
     }
     // v1.0.52 P2-2: 记忆空间管理页(Space CRUD)
-    composable(
-        route = MuseRoutes.SETTINGS_MEMORY_SPACE,
+    composable<SettingsMemorySpaceRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -304,19 +284,17 @@ fun NavGraphBuilder.settingsNavGraph(
         )
     }
     // v0.32: 设置二级页 — 媒体
-    composable(
-        route = MuseRoutes.SETTINGS_MEDIA,
+    composable<SettingsMediaRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         MediaSettingsPage(
             onBack = { navController.popBackStack() },
-            onOpenVoiceCloning = { navController.navigate(MuseRoutes.VOICE_CLONING) },
+            onOpenVoiceCloning = { navController.navigate(VoiceCloningRoute) },
         )
     }
     // v0.32: 设置二级页 — 实验性
-    composable(
-        route = MuseRoutes.SETTINGS_EXPERIMENTS,
+    composable<SettingsExperimentsRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -325,19 +303,17 @@ fun NavGraphBuilder.settingsNavGraph(
         )
     }
     // v1.56: 设置二级页 — RAG 知识库检索配置
-    composable(
-        route = MuseRoutes.SETTINGS_RAG,
+    composable<SettingsRagRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         RagSettingsPage(
             onBack = { navController.popBackStack() },
-            onManageKbs = { navController.navigate(MuseRoutes.KB_MANAGE) },
+            onManageKbs = { navController.navigate(KnowledgeBaseManageRoute) },
         )
     }
     // v1.133: 三级页 — 多知识库管理
-    composable(
-        route = MuseRoutes.KB_MANAGE,
+    composable<KnowledgeBaseManageRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -346,8 +322,7 @@ fun NavGraphBuilder.settingsNavGraph(
         )
     }
     // v1.25: 设置二级页 — 视觉辅助
-    composable(
-        route = MuseRoutes.SETTINGS_VISION,
+    composable<SettingsVisionRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -356,8 +331,7 @@ fun NavGraphBuilder.settingsNavGraph(
         )
     }
     // v1.61: 设置二级页 — 数据导入
-    composable(
-        route = MuseRoutes.SETTINGS_DATA_IMPORT,
+    composable<SettingsDataImportRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -366,8 +340,7 @@ fun NavGraphBuilder.settingsNavGraph(
         )
     }
     // v1.61: 设置二级页 — 使用教程(新手引导)
-    composable(
-        route = MuseRoutes.SETTINGS_TUTORIAL,
+    composable<SettingsTutorialRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -376,8 +349,7 @@ fun NavGraphBuilder.settingsNavGraph(
         )
     }
     // v0.32: 设置二级页 — 安全与分享
-    composable(
-        route = MuseRoutes.SETTINGS_SECURITY,
+    composable<SettingsSecurityRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -386,8 +358,7 @@ fun NavGraphBuilder.settingsNavGraph(
         )
     }
     // 设置二级页 — 网络代理
-    composable(
-        route = MuseRoutes.SETTINGS_PROXY,
+    composable<SettingsProxyRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -396,46 +367,29 @@ fun NavGraphBuilder.settingsNavGraph(
         )
     }
     // v1.25: 设置二级页 — 多 Agent 协作
-    composable(
-        route = MuseRoutes.SETTINGS_MULTI_AGENT,
+    composable<SettingsMultiAgentRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         MultiAgentSettingsPage(
             onBack = { navController.popBackStack() },
-            onOpenWorkflowEditor = { teamId ->
-                navController.navigate(MuseRoutes.workflowEditorRoute(teamId))
-            },
+
         )
     }
-    // Multi-Agent 工作流可视化编排页(带 teamId 参数)
-    composable(
-        route = MuseRoutes.WORKFLOW_EDITOR + "/{teamId}",
-        arguments = listOf(navArgument("teamId") { type = NavType.StringType }),
-        enterTransition = { MuseTransitions.horizontalPushEnter() },
-        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
-    ) { backStackEntry ->
-        val teamId = backStackEntry.arguments?.getString("teamId").orEmpty()
-        WorkflowEditorScreen(
-            teamId = teamId,
-            onBack = { navController.popBackStack() },
-        )
-    }
+
     // v1.27: 设置二级页 — Agent 配置(助手选择/协作/主动消息)
-    composable(
-        route = MuseRoutes.SETTINGS_AGENT,
+    composable<SettingsAgentRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         AgentSettingsPage(
             onBack = { navController.popBackStack() },
-            onOpenMultiAgentSettings = { navController.navigate(MuseRoutes.SETTINGS_MULTI_AGENT) },
-            onOpenAgentDm = { navController.navigate(MuseRoutes.AGENT_DM) },
+            onOpenMultiAgentSettings = { navController.navigate(SettingsMultiAgentRoute) },
+            onOpenAgentDm = { navController.navigate(AgentDmRoute) },
         )
     }
     // v1.25: 开源许可页 — 修复 LICENSES 路由断链
-    composable(
-        route = MuseRoutes.LICENSES,
+    composable<LicensesRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -444,8 +398,7 @@ fun NavGraphBuilder.settingsNavGraph(
         )
     }
     // 调试日志页 — 从设置 → 关于 → 调试日志 进入,展示最近 Logger 调用
-    composable(
-        route = MuseRoutes.DEBUG,
+    composable<DebugRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -454,8 +407,7 @@ fun NavGraphBuilder.settingsNavGraph(
         )
     }
     // P2-4: 审计日志页 — 从设置 → 数据与隐私 → 审计日志 进入
-    composable(
-        route = MuseRoutes.AUDIT_LOG,
+    composable<AuditLogRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -464,8 +416,7 @@ fun NavGraphBuilder.settingsNavGraph(
         )
     }
     // P2-7: 工作区页 — 从设置 → 数据与隐私 → 工作区 进入
-    composable(
-        route = MuseRoutes.WORKSPACE,
+    composable<WorkspaceRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -473,18 +424,8 @@ fun NavGraphBuilder.settingsNavGraph(
             onBack = { navController.popBackStack() },
         )
     }
-    // 统一插件管理页（外部插件 + Provider 插件合并）— 两个旧入口路由都指向此页
-    composable(
-        route = MuseRoutes.PROVIDER_PLUGINS,
-        enterTransition = { MuseTransitions.horizontalPushEnter() },
-        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
-    ) {
-        PluginManagePage(
-            onBack = { navController.popBackStack() },
-        )
-    }
-    composable(
-        route = MuseRoutes.MUSE_PLUGINS,
+    // 统一插件管理页（外部插件 + Provider 插件合并），旧入口已收敛到 PluginManageRoute
+    composable<PluginManageRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -494,8 +435,7 @@ fun NavGraphBuilder.settingsNavGraph(
     }
     // v1.0.20: 工具批准管理页 — 从设置 → 聊天 → 工具调用批准 进入
     // 按风险等级分组展示所有工具,每个工具可设置三档策略(ALWAYS_ALLOW / ASK_EVERY_TIME / ALWAYS_DENY)
-    composable(
-        route = MuseRoutes.TOOLS_SETTINGS,
+    composable<ToolsSettingsRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {

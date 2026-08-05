@@ -123,6 +123,9 @@
     <string name="assistant_back_cd">뒤쪽에</string>
     <string name="assistant_import_card_cd">캐릭터 카드 가져오기</string>
     <string name="assistant_section_my_assistants">내 어시스턴트</string>
+    <string name="assistant_default_title">기본 어시스턴트</string>
+    <string name="assistant_default_picker_title">기본 어시스턴트 선택</string>
+    <string name="assistant_default_hint">새 작업에서 기본으로 사용되는 어시스턴트</string>
     <string name="assistant_section_actions">추가 또는 가져오기</string>
     <string name="assistant_memory_entry_title">장기 기억</string>
     <string name="assistant_memory_entry_subtitle">4레이어 메모리 시스템 보기</string>

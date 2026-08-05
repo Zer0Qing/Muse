@@ -6,7 +6,7 @@ import androidx.compose.ui.graphics.Color
 import io.zer0.muse.R
 import io.zer0.muse.ui.theme.*
 
-// 7. Sumi (墨) theme — HanaAgent KAMI ink-dyeing inspired
+// 7. Sumi (墨) theme — 开源主题参考 ink-dyeing inspired
 // ─────────────────────────────────────────────────────────────────────────────
 private val SumiPrimary = Color(0xFF4A4A4A)
 private val SumiPrimaryLightContainer = Color(0xFFE0DED8)

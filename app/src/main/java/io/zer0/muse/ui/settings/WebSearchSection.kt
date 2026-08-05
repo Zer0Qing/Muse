@@ -137,7 +137,7 @@ internal fun WebSearchSection(
         if (webSearchConfig.providerName == "Auto") {
             SettingsGroupDivider()
             Text(
-                text = "Auto 模式会自动尝试多个搜索引擎:优先使用已配置 API Key 的商用引擎,随后依次 fallback 到 Bing、Jina、SearXNG,并自动过滤低质量结果。",
+                text = stringResource(R.string.settings_web_search_auto_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(MusePaddings.cardInner),
@@ -192,10 +192,10 @@ internal fun WebSearchSection(
                 var testing by remember { mutableStateOf(false) }
                 var testResult by remember { mutableStateOf<String?>(null) }
                 SettingField(
-                    label = "测试搜索词",
+                    label = stringResource(R.string.settings_web_search_test_query_label),
                     value = testQuery,
                     onValueChange = { testQuery = it },
-                    placeholder = "输入关键词进行搜索测试…",
+                    placeholder = stringResource(R.string.settings_web_search_test_query_placeholder),
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
@@ -221,12 +221,12 @@ internal fun WebSearchSection(
                                     val count = results.size
                                     if (count > 0) {
                                         val titles = results.take(3).joinToString("\n") { "  • ${it.title}" }
-                                        testResult = "搜索成功，返回 $count 条结果：\n$titles"
+                                        testResult = context.getString(R.string.settings_web_search_test_success, count, titles)
                                     } else {
-                                        testResult = "搜索完成，但未返回结果"
+                                        testResult = context.getString(R.string.settings_web_search_test_empty)
                                     }
                                 } catch (e: Exception) {
-                                    testResult = "测试失败: ${e.message ?: "未知错误"}"
+                                    testResult = context.getString(R.string.settings_web_search_test_failed, e.message ?: context.getString(R.string.settings_web_search_test_failed_unknown))
                                 } finally {
                                     testing = false
                                 }
@@ -244,13 +244,13 @@ internal fun WebSearchSection(
                             Spacer(Modifier.width(6.dp))
                         }
                         Text(
-                            text = if (testing) "搜索中…" else "测试搜索",
+                            text = if (testing) stringResource(R.string.settings_web_search_testing) else stringResource(R.string.settings_web_search_test),
                             style = MaterialTheme.typography.labelLarge,
                         )
                     }
                 }
                 testResult?.let { result ->
-                    val isError = result.startsWith("测试失败")
+                    val isError = result.startsWith(context.getString(R.string.settings_web_search_test_failed_prefix))
                     Text(
                         text = result,
                         style = MaterialTheme.typography.bodySmall,

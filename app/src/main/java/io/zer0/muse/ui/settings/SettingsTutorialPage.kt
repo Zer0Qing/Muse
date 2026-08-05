@@ -298,7 +298,7 @@ fun SettingsTutorialPage(
                                 IconButton(onClick = { searchQuery = "" }) {
                                     Icon(
                                         imageVector = TablerIcons.X,
-                                        contentDescription = null,
+                                        contentDescription = stringResource(R.string.quick_notes_clear_search),
                                         modifier = Modifier.size(MuseIconSizes.iconSmall),
                                     )
                                 }

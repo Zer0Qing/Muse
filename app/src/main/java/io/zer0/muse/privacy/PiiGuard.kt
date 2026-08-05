@@ -19,7 +19,7 @@ import io.zer0.muse.util.MusePatterns
  *  - 所有正则加边界保护(数字前后不能再有数字),防止长串中段误匹配。
  *  - mask 与 unmask 严格可逆:同一 [PiiMatch.masked] 占位符还原为同一 [PiiMatch.original]。
  *
- * 参考实现:openhanako 项目的 pii-guard.ts。
+ * 参考实现:参考开源项目 项目的 pii-guard.ts。
  */
 object PiiGuard {
 

@@ -79,6 +79,12 @@ import io.zer0.muse.update.UpdateNotifier
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import io.zer0.muse.ui.navigation.SettingsPermissionWizardRoute
+import io.zer0.muse.ui.navigation.SettingsTaskRoutingRoute
+import io.zer0.muse.ui.navigation.PluginManageRoute
+import io.zer0.muse.ui.navigation.QuickNotesRoute
+import io.zer0.muse.ui.navigation.ScheduledTasksRoute
+import io.zer0.muse.ui.navigation.MilestonesRoute
 
 /**
  * v2.4 设置页 — iOS / MANUS 风格全量重写。
@@ -128,7 +134,7 @@ fun SettingsScreen(
     onOpenAssistantResources: () -> Unit = {},
     onOpenNotificationListener: () -> Unit = {},
     onOpenTools: () -> Unit = {},
-    onNavigate: (String) -> Unit = {},
+    onNavigate: (Any) -> Unit = {},
 ) {
     val settings: SettingsRepository = koinInject()
     val updateNotifier: UpdateNotifier = koinInject()
@@ -172,6 +178,7 @@ fun SettingsScreen(
     val providerTitle = stringResource(R.string.settings_screen_provider)
     val providerDesc = stringResource(R.string.settings_screen_provider_desc)
     val taskRoutingTitle = stringResource(R.string.settings_task_routing_title)
+    val taskRoutingDesc = stringResource(R.string.settings_screen_task_routing_desc)
     val visionTitle = stringResource(R.string.settings_screen_vision)
     val visionDesc = stringResource(R.string.settings_screen_vision_desc)
     val providerPluginsTitle = stringResource(R.string.provider_plugins_title)
@@ -234,6 +241,23 @@ fun SettingsScreen(
     val groupDataManagement = stringResource(R.string.settings_screen_data_management_group)
     val groupAbout = stringResource(R.string.settings_screen_about)
 
+    val checkUpdateAction: () -> Unit = {
+        if (!checkingUpdate) {
+            checkingUpdate = true
+            scope.launch {
+            val beforeJson = runCatching { settings.latestReleaseInfoFlow.first() }.getOrNull()
+            updateNotifier.checkAndNotify(context, forceCheck = true)
+            checkingUpdate = false
+            val latest = runCatching { settings.latestReleaseInfoFlow.first() }.getOrNull()
+            if (latest != null && latest != beforeJson) {
+                MuseToast.show(context.getString(R.string.update_found_new))
+            } else if (latest == null) {
+                MuseToast.show(context.getString(R.string.update_already_latest))
+            }
+            }
+        }
+    }
+
     data class SettingsEntry(
         val title: String,
         val keywords: List<String>,
@@ -253,24 +277,23 @@ fun SettingsScreen(
                 SettingsEntry(mediaTitle, listOf("媒体", "录音", "语音", "播报", "meiti", "luyin", "yuyin", "bobao", "mt", "ly", "yy", "bb"), MuseRoutes.SETTINGS_MEDIA, groupGeneral, TablerIcons.Microphone, onOpenMediaSettings),
                 SettingsEntry("TTS 语音播报", listOf("TTS", "tts", "语音播报", "朗读", "文字转语音", "TextToSpeech", "yuyinbobao", "langdu", "wenzi", "yybb", "ld"), MuseRoutes.SETTINGS_MEDIA, groupGeneral, TablerIcons.Microphone, onOpenMediaSettings),
                 SettingsEntry(translateTitle, listOf("翻译", "translate", "语言", "互译", "源语言", "目标语言", "fanyi", "yuyan", "huyi", "yuanyuyan", "mubiaoyuyan", "fy", "yy"), MuseRoutes.TRANSLATE, groupGeneral, TablerIcons.Language, onOpenTranslate),
-                SettingsEntry("快速记录", listOf("快速记录", "速记", "笔记", "quick note", "note", "记录", "kuaisujilu", "suji", "biji", "jilu", "ksjl", "sj", "bj", "jl"), MuseRoutes.QUICK_NOTES, groupGeneral, TablerIcons.Bulb) { onNavigate(MuseRoutes.QUICK_NOTES) },
-                SettingsEntry("群聊", listOf("群聊", "群组", "group", "多人", "启动页", "qunliao", "qunzu", "duoren", "qidongye", "ql", "qz"), MuseRoutes.SETTINGS_APPEARANCE, groupGeneral, TablerIcons.MessageCircle, onOpenAppearanceSettings),
+                SettingsEntry("快速记录", listOf("快速记录", "速记", "笔记", "quick note", "note", "记录", "kuaisujilu", "suji", "biji", "jilu", "ksjl", "sj", "bj", "jl"), MuseRoutes.QUICK_NOTES, groupGeneral, TablerIcons.Bulb) { onNavigate(QuickNotesRoute) },
 
                 // 助手与 Agent
                 SettingsEntry(assistantTitle, listOf("助手", "assistant", "角色", "人设", "zhushou", "juese", "renshe", "zs", "js", "rs"), MuseRoutes.ASSISTANTS, groupAssistantAgent, TablerIcons.Atom, onOpenAssistants),
                 SettingsEntry(agentTitle, listOf("Agent", "代理", "智能体", "自主", "daili", "zhinengti", "zizhu", "dl", "znt"), MuseRoutes.SETTINGS_AGENT, groupAssistantAgent, TablerIcons.Users, onOpenAgentSettings),
                 SettingsEntry("主动消息", listOf("主动消息", "主动", "推送", "定时发送", "proactive", "zhudongxiaoxi", "zhudong", "tuisong", "dingshifasong", "zdxx", "zd", "ts"), MuseRoutes.SETTINGS_AGENT, groupAssistantAgent, TablerIcons.Bell, onOpenAgentSettings),
-                SettingsEntry("定时任务", listOf("定时任务", "定时", "计划任务", "scheduled", "task", "cron", "dingshirenwu", "dingshi", "jihuarenwu", "dsrw", "ds", "jhrw"), MuseRoutes.SCHEDULED_TASKS, groupAssistantAgent, Icons.Outlined.Schedule) { onNavigate(MuseRoutes.SCHEDULED_TASKS) },
+                SettingsEntry("定时任务", listOf("定时任务", "定时", "计划任务", "scheduled", "task", "cron", "dingshirenwu", "dingshi", "jihuarenwu", "dsrw", "ds", "jhrw"), MuseRoutes.SCHEDULED_TASKS, groupAssistantAgent, Icons.Outlined.Schedule) { onNavigate(ScheduledTasksRoute) },
                 SettingsEntry(assistantResourcesTitle, listOf("助手资源", "收藏夹", "世界书", "快捷消息", "模式注入", "Skills", "技能", "zhushouziyuan", "shoucangjia", "shijieshu", "kuaijiexiaoxi", "moshizhur", "jineng", "zszy", "scj", "sjs", "kjxx", "mszr", "jn"), MuseRoutes.SETTINGS_ASSISTANT_RESOURCES, groupAssistantAgent, TablerIcons.Stars, onOpenAssistantResources),
                 SettingsEntry(notificationListenerTitle, listOf("通知监听", "通知", "NotificationListener", "通知权限", "tongzhijianting", "tongzhi", "tongzhiquanxian", "tzjl", "tz", "tzqx"), MuseRoutes.NOTIFICATION_LISTENER, groupAssistantAgent, TablerIcons.Bell, onOpenNotificationListener),
                 SettingsEntry(toolsTitle, listOf("工具", "AI工具", "ToolRegistry", "tool", "插件", "gongju", "AIgongju", "chajian", "gj", "AIgj", "cj"), MuseRoutes.TOOLS, groupAssistantAgent, TablerIcons.Tools, onOpenTools),
                 // P3-3: 权限配置向导(无障碍 / Shizuku / Root 三通道)
-                SettingsEntry("权限配置向导", listOf("权限", "无障碍", "Shizuku", "Root", "UI自动化", "permission", "accessibility", "quanxian", "wuzhangai", "UIzidonghua", "qx", "wza"), MuseRoutes.SETTINGS_PERMISSION_WIZARD, groupAssistantAgent, TablerIcons.Lock) { onNavigate(MuseRoutes.SETTINGS_PERMISSION_WIZARD) },
+                SettingsEntry("权限配置向导", listOf("权限", "无障碍", "Shizuku", "Root", "UI自动化", "permission", "accessibility", "quanxian", "wuzhangai", "UIzidonghua", "qx", "wza"), MuseRoutes.SETTINGS_PERMISSION_WIZARD, groupAssistantAgent, TablerIcons.Lock) { onNavigate(SettingsPermissionWizardRoute) },
 
                 // AI 模型与能力(从原「助手与 Agent」拆分)
                 SettingsEntry(providerTitle, listOf("供应商", "模型", "provider", "API", "密钥", "gongyingshang", "moxing", "miyao", "gys", "mx", "my", "绘图", "Agnes", "DALL-E", "绘图供应商"), MuseRoutes.SETTINGS_MODEL, groupAiModels, TablerIcons.Settings, onOpenModelSettings),
                 SettingsEntry("API Key", listOf("API Key", "密钥", "key", "token", "凭证", "apiKey", "miyao", "pingzheng"), MuseRoutes.SETTINGS_MODEL, groupAiModels, TablerIcons.Lock, onOpenModelSettings),
-                SettingsEntry(taskRoutingTitle, listOf("任务路由", "路由", "自动切换", "模型", "renwuluyou", "luyou", "zidongqiehuan", "moxing", "rwly", "ly", "zdqh", "mx"), MuseRoutes.SETTINGS_TASK_ROUTING, groupAiModels, TablerIcons.Adjustments) { onNavigate(MuseRoutes.SETTINGS_TASK_ROUTING) },
+    SettingsEntry(taskRoutingTitle, listOf("任务路由", "路由", "自动切换", "模型", "renwuluyou", "luyou", "zidongqiehuan", "moxing", "rwly", "ly", "zdqh", "mx"), MuseRoutes.SETTINGS_TASK_ROUTING, groupAiModels, TablerIcons.Adjustments) { onNavigate(SettingsTaskRoutingRoute) },
                 SettingsEntry(visionTitle, listOf("视觉辅助", "视觉", "vision", "看图", "图像理解", "shijuefuzhu", "shijue", "kantu", "tuxianglijie", "sjfz", "sj", "kt", "txlj"), MuseRoutes.SETTINGS_VISION, groupAiModels, TablerIcons.Eye, onOpenVisionSettings),
                 SettingsEntry("OCR 文字识别", listOf("OCR", "ocr", "文字识别", "图片文字", "识别", "wenzi", "shibie", "tupianwenzi", "wzsb", "tpwz", "sb"), MuseRoutes.SETTINGS_VISION, groupAiModels, TablerIcons.Eye, onOpenVisionSettings),
                 SettingsEntry(
@@ -279,7 +302,7 @@ fun SettingsScreen(
                     MuseRoutes.MUSE_PLUGINS,
                     groupAiModels,
                     TablerIcons.Puzzle,
-                ) { onNavigate(MuseRoutes.MUSE_PLUGINS) },
+                ) { onNavigate(PluginManageRoute) },
                 SettingsEntry(videoGenTitle, listOf("视频", "video", "生成视频", "shipin", "shengchengshipin", "sp", "scsp"), MuseRoutes.VIDEO_GENERATION, groupAiModels, TablerIcons.Video, onOpenVideoGeneration),
                 SettingsEntry(videoGenConfigTitle, listOf("视频配置", "视频生成配置", "video gen settings", "shipinpeizhi", "spsc", "spgenpeizhi", "sppeizhi"), MuseRoutes.SETTINGS_VIDEO_GEN, groupAiModels, TablerIcons.Settings, onOpenVideoGenSettings),
                 SettingsEntry(webSearchEntryTitle, listOf("联网搜索", "搜索", "web search", "网络搜索", "在线搜索", "lianwang", "sousuo", "wangluosousuo", "zaixiansousuo", "lwss", "ss", "wlss", "zxss"), MuseRoutes.SETTINGS_WEB_SEARCH, groupAiModels, TablerIcons.World, onOpenWebSearch),
@@ -300,7 +323,6 @@ fun SettingsScreen(
                 SettingsEntry(workspaceTitle, listOf("工作区", "文件管理", "workspace", "文件", "目录", "gongzuoqu", "wenjianguanli", "wenjian", "mulu", "gzq", "wjgl", "wj", "ml"), MuseRoutes.WORKSPACE, groupDataManagement, TablerIcons.Folder, onOpenWorkspace),
 
                 // 隐私与安全
-                SettingsEntry("PII Guard", listOf("PII", "隐私", "脱敏", "pii guard", "信息保护", "yinsi", "tuomin", "xinxi", "xinxi baohu", "ys", "tm", "xx", "xxbh"), "", groupDataManagement, TablerIcons.ShieldCheck) {},
                 SettingsEntry(securityTitle, listOf("安全", "锁屏", "PIN", "密码", "应用锁", "share", "anquan", "suoping", "mima", "yingyongsuo", "aq", "sp", "mm", "yys"), MuseRoutes.SETTINGS_SECURITY, groupDataManagement, TablerIcons.Lock, onOpenSecuritySettings),
                 SettingsEntry("生物识别", listOf("生物识别", "指纹", "biometric", "指纹解锁", "面容", "shengwushibie", "zhiwen", "zhiwenjiesuo", "mianrong", "swsb", "zw", "zwjs", "mr"), MuseRoutes.SETTINGS_SECURITY, groupDataManagement, TablerIcons.Lock, onOpenSecuritySettings),
                 SettingsEntry("网络代理", listOf("代理", "proxy", "网络", "VPN", "HTTP代理", "daili", "wangluo", "dl", "wl"), MuseRoutes.SETTINGS_PROXY, groupDataManagement, TablerIcons.Adjustments, onOpenProxySettings),
@@ -309,11 +331,11 @@ fun SettingsScreen(
                 // 关于
                 SettingsEntry(tutorialTitle, listOf("教程", "新手", "引导", "tutorial", "帮助", "jiaocheng", "xinshou", "yindao", "bangzhu", "jc", "xs", "yd", "bz"), MuseRoutes.SETTINGS_TUTORIAL, groupAbout, TablerIcons.School, onOpenTutorial),
                 SettingsEntry(aboutTitle, listOf("关于", "版本", "about", "信息", "guanyu", "banben", "xinxi", "gy", "bb", "xx"), MuseRoutes.SETTINGS_ABOUT, groupAbout, TablerIcons.InfoCircle, onOpenAboutSettings),
-                SettingsEntry(checkUpdateTitle, listOf("检查更新", "更新", "update", "版本", "升级", "jianchagengxin", "gengxin", "shengji", "jcgc", "gx", "sj"), "", groupAbout, TablerIcons.Refresh) {},
+                SettingsEntry(checkUpdateTitle, listOf("检查更新", "更新", "update", "版本", "升级", "jianchagengxin", "gengxin", "shengji", "jcgc", "gx", "sj"), "", groupAbout, TablerIcons.Refresh) { checkUpdateAction() },
                 SettingsEntry(debugLogTitle, listOf("调试", "日志", "debug", "log", "Logger", "tiaoshi", "rizhi", "ts", "rz"), MuseRoutes.DEBUG, groupAbout, TablerIcons.Bug, onOpenDebugLog),
                 SettingsEntry(experimentsTitle, listOf("实验性", "实验", "experimental", "beta", "试验", "shiyanxing", "shiyan", "shiyan", "syx", "sy"), MuseRoutes.SETTINGS_EXPERIMENTS, groupAbout, TablerIcons.Flask, onOpenExperimentsSettings),
                 SettingsEntry(statsTitle, listOf("统计", "使用统计", "stats", "热力图", "数据", "tongji", "shiyongtongji", "relitu", "shuju", "tj", "sytj", "rlt", "sj"), MuseRoutes.STATS, groupAbout, TablerIcons.ChartBar, onOpenStats),
-                SettingsEntry("里程碑", listOf("里程碑", "成就", "纪念日", "milestone", "liangcheng", "chengjiu", "jinianri", "lc", "cj", "jnr"), MuseRoutes.MILESTONES, groupAbout, TablerIcons.Stars) { onNavigate(MuseRoutes.MILESTONES) },
+                SettingsEntry("里程碑", listOf("里程碑", "成就", "纪念日", "milestone", "liangcheng", "chengjiu", "jinianri", "lc", "cj", "jnr"), MuseRoutes.MILESTONES, groupAbout, TablerIcons.Stars) { onNavigate(MilestonesRoute) },
 
                 // 二级设置项
                 SettingsEntry("字号", listOf("字号", "字体大小", "字体", "大小", "ziti", "zihao", "ztdx", "zt"), MuseRoutes.SETTINGS_APPEARANCE, appearanceTitle, TablerIcons.ColorSwatch, onOpenAppearanceSettings),
@@ -498,7 +520,7 @@ fun SettingsScreen(
                             link(appearanceTitle, R.string.settings_screen_appearance_desc, TablerIcons.ColorSwatch, onOpenAppearanceSettings)
                             link(mediaTitle, R.string.settings_screen_media_desc, TablerIcons.Microphone, onOpenMediaSettings)
                             link(translateTitle, R.string.settings_screen_translate_desc, TablerIcons.Language, onOpenTranslate)
-                            link(quickNotesTitle, R.string.settings_screen_quick_notes_desc, TablerIcons.Bulb) { onNavigate(MuseRoutes.QUICK_NOTES) }
+                            link(quickNotesTitle, R.string.settings_screen_quick_notes_desc, TablerIcons.Bulb) { onNavigate(QuickNotesRoute) }
                         }
                     }
 
@@ -515,6 +537,7 @@ fun SettingsScreen(
                     item(key = "ai_models") {
                         SettingsCardGroup(title = groupAiModels) {
                             link(providerTitle, R.string.settings_screen_provider_desc, TablerIcons.Settings, onOpenModelSettings)
+                            link(taskRoutingTitle, taskRoutingDesc, TablerIcons.Adjustments) { onNavigate(SettingsTaskRoutingRoute) }
                             link(visionTitle, R.string.settings_screen_vision_desc, TablerIcons.Eye, onOpenVisionSettings)
                             link(providerPluginsTitle, TablerIcons.Puzzle, onOpenProviderPlugins)
                             link(videoGenTitle, R.string.settings_screen_video_gen_desc, TablerIcons.Video, onOpenVideoGeneration)
@@ -556,21 +579,7 @@ fun SettingsScreen(
                         SettingsCardGroup(title = groupAbout) {
                             link(tutorialTitle, R.string.settings_screen_tutorial_desc, TablerIcons.School, onOpenTutorial)
                             link(aboutTitle, R.string.settings_screen_about_desc, TablerIcons.InfoCircle, onOpenAboutSettings)
-                            checkUpdate(checkingUpdate, onCheck = {
-                                if (checkingUpdate) return@checkUpdate
-                                checkingUpdate = true
-                                scope.launch {
-                                    val beforeJson = runCatching { settings.latestReleaseInfoFlow.first() }.getOrNull()
-                                    updateNotifier.checkAndNotify(context, forceCheck = true)
-                                    checkingUpdate = false
-                                    val latest = runCatching { settings.latestReleaseInfoFlow.first() }.getOrNull()
-                                    if (latest != null && latest != beforeJson) {
-                                        MuseToast.show(context.getString(R.string.update_found_new))
-                                    } else if (latest == null) {
-                                        MuseToast.show(context.getString(R.string.update_already_latest))
-                                    }
-                                }
-                            })
+                            checkUpdate(checkingUpdate, onCheck = checkUpdateAction)
                             link(debugLogTitle, R.string.settings_screen_debug_log_desc, TablerIcons.Bug, onOpenDebugLog)
                             link(experimentsTitle, R.string.settings_screen_experiments_desc, TablerIcons.Flask, onOpenExperimentsSettings)
                             link(statsTitle, R.string.settings_screen_stats_desc, TablerIcons.ChartBar, onOpenStats)
@@ -639,7 +648,7 @@ private fun SearchTopBar(
                         IconButton(onClick = onClear) {
                             Icon(
                                 imageVector = TablerIcons.Refresh,
-                                contentDescription = null,
+                                contentDescription = stringResource(R.string.quick_notes_clear_search),
                                 modifier = Modifier.size(MuseIconSizes.iconMedium),
                             )
                         }

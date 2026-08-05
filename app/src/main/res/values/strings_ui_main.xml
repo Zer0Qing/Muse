@@ -259,6 +259,8 @@
     <string name="settings_screen_model_service_group_cd">模型与服务分组</string>
     <string name="settings_screen_provider_cd">供应商，管理AI服务提供商，点击进入</string>
     <string name="settings_screen_provider">供应商</string>
+    <string name="settings_screen_model_catalog_desc">查看并修正模型上下文、能力与最大输出</string>
+    <string name="settings_screen_task_routing_desc">按任务类型自动切换模型</string>
     <string name="settings_screen_provider_desc">管理模型供应商、API Key 与联网搜索等</string>
     <string name="settings_screen_assistant_cd">助手，助手管理世界书，点击进入</string>
     <string name="settings_screen_assistant">助手</string>
@@ -403,6 +405,8 @@
     <string name="search_section_messages">消息</string>
     <string name="search_section_settings">设置</string>
     <string name="search_new_session">新会话</string>
+    <string name="search_time_today">今天 %1$s</string>
+    <string name="search_time_yesterday">昨天 %1$s</string>
     <string name="search_index_proactive_message">主动消息</string>
     <string name="search_index_chat_behavior">聊天行为设置</string>
     <string name="search_index_deep_thinking">深度思考</string>

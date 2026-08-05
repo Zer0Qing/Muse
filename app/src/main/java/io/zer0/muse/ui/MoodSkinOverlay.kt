@@ -13,6 +13,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import io.zer0.muse.ui.theme.MoodSkinColors
 
 /**
  * B6-02: pelle-d-umore 全屏情绪皮肤 overlay。
@@ -24,14 +25,7 @@ import androidx.compose.ui.graphics.Color
 fun MoodSkinOverlay(skin: String?) {
     if (skin == null || skin == "off") return
 
-    val colors = when (skin) {
-        "rage" -> listOf(Color(0x66111111), Color(0x55B71C1C), Color(0x22111111))
-        "rage2" -> listOf(Color(0x66FF3D00), Color(0x33B71C1C), Color(0x22111111))
-        "desire" -> listOf(Color(0x66B71C1C), Color(0x33FF6F91), Color(0x22111111))
-        "vuoto" -> listOf(Color(0x66616A6B), Color(0x334A4A4A), Color(0x22111111))
-        "moonlight" -> listOf(Color(0x660B1D4D), Color(0x33E1E9FF), Color(0x22111111))
-        else -> listOf(Color(0x33333333), Color(0x22111111), Color(0x11000000))
-    }
+    val colors = MoodSkinColors.overlays[skin] ?: MoodSkinColors.defaultOverlay
 
     val transition = rememberInfiniteTransition(label = "moodSkin")
     val alpha by transition.animateFloat(

@@ -17,9 +17,11 @@ import java.io.File
 /**
  * B6-03: MuseDb 迁移链测试。
  *
- * 从 v56 到 v63 的每个 schema JSON 手工建库，插入一条历史消息，
- * 再通过 Room 全部迁移到 v64，验证：
+ * 从 v56 到 v68 的每个 schema JSON 手工建库，插入一条历史消息，
+ * 再通过 Room 全部迁移到 v74，验证：
  * - messages.mood_skin 列存在且默认 NULL
+ * - sessions.is_locked 列存在
+ * - generation_checkpoints / group_chat_generation_ledger 表存在
  * - 历史消息内容与关键列完整保留
  *
  * 实现参考 memory/FactDbMigrationTest：不用 MigrationTestHelper，
@@ -32,8 +34,9 @@ class MuseDbMigrationTest {
     private val context: Context get() = ApplicationProvider.getApplicationContext()
 
     @Test
-    fun migrateEveryVersionTo68_keepsDataAndAddsReadColumns() {
-        for (fromVersion in 56..67) {
+    fun migrateEveryVersionTo75_keepsDataAndAddsGenerationTables() {
+        val versions = (56..68) + 74
+        for (fromVersion in versions) {
             val dbFile = context.getDatabasePath("muse_migration_$fromVersion.db").apply {
                 parentFile?.mkdirs()
                 if (exists()) delete()
@@ -42,12 +45,11 @@ class MuseDbMigrationTest {
                 createSchemaAtVersion(fromVersion, dbFile.absolutePath)
                 insertLegacyRow(dbFile.absolutePath, fromVersion)
 
-                val db = Room.databaseBuilder(
-                    context,
-                    MuseDb::class.java,
-                    dbFile.absolutePath,
-                )
-                    .addMigrations(
+                val migrations = mutableListOf<androidx.room.migration.Migration>()
+                if (fromVersion == 74) {
+                    migrations += MuseDb.MIGRATION_74_75
+                } else if (fromVersion <= 67) {
+                    migrations += listOf(
                         MuseDb.MIGRATION_56_57,
                         MuseDb.MIGRATION_57_58,
                         MuseDb.MIGRATION_58_59,
@@ -61,9 +63,28 @@ class MuseDbMigrationTest {
                         MuseDb.MIGRATION_66_67,
                         MuseDb.MIGRATION_67_68,
                     )
+                }
+                migrations += MuseDb.MIGRATION_68_74
+                migrations += MuseDb.MIGRATION_74_75
+
+                val db = Room.databaseBuilder(
+                    context,
+                    MuseDb::class.java,
+                    dbFile.absolutePath,
+                )
+                    .addMigrations(
+                        *migrations.toTypedArray(),
+                    )
                     .allowMainThreadQueries()
                     .build()
 
+                db.openHelper.writableDatabase.query("PRAGMA table_info(messages)").use { cursor ->
+                    var hasParentGroup = false
+                    while (cursor.moveToNext()) {
+                        if (cursor.getString(1) == "parentGroupId") hasParentGroup = true
+                    }
+                    assertTrue("v$fromVersion 迁移后应有 parentGroupId 列", hasParentGroup)
+                }
                 db.openHelper.writableDatabase.query("PRAGMA table_info(messages)").use { cursor ->
                     var moodSkinDefault: String? = null
                     while (cursor.moveToNext()) {
@@ -117,6 +138,24 @@ class MuseDbMigrationTest {
                     assertNull("历史消息 mood_skin 应为 NULL", cursor.getString(1))
                 }
 
+                db.openHelper.writableDatabase.query("PRAGMA table_info(sessions)").use { cursor ->
+                    var hasIsLocked = false
+                    while (cursor.moveToNext()) {
+                        if (cursor.getString(1) == "isLocked") hasIsLocked = true
+                    }
+                    assertTrue("v$fromVersion 迁移后应有 isLocked 列", hasIsLocked)
+                }
+                db.openHelper.writableDatabase.query(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='generation_checkpoints'"
+                ).use { cursor ->
+                    assertTrue("v$fromVersion 迁移后应有 generation_checkpoints 表", cursor.moveToFirst())
+                }
+                db.openHelper.writableDatabase.query(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='group_chat_generation_ledger'"
+                ).use { cursor ->
+                    assertTrue("v$fromVersion 迁移后应有 group_chat_generation_ledger 表", cursor.moveToFirst())
+                }
+
                 db.close()
             } finally {
                 if (dbFile.exists()) dbFile.delete()
@@ -125,7 +164,50 @@ class MuseDbMigrationTest {
         }
     }
 
-    private fun createSchemaAtVersion(version: Int, dbPath: String) {
+    @Test
+    fun migrateRealV68WithoutIsLocked_addsMissingColumnsAndKeepsData() {
+        val dbFile = context.getDatabasePath("muse_migration_68_real.db").apply {
+            parentFile?.mkdirs()
+            if (exists()) delete()
+        }
+        try {
+            createSchemaAtVersion(68, dbFile.absolutePath, stripIsLocked = true)
+            insertLegacyRow(dbFile.absolutePath, 68)
+            val db = Room.databaseBuilder(
+                context,
+                MuseDb::class.java,
+                dbFile.absolutePath,
+            )
+                .addMigrations(MuseDb.MIGRATION_68_74, MuseDb.MIGRATION_74_75)
+                .allowMainThreadQueries()
+                .build()
+            db.openHelper.writableDatabase.query("PRAGMA table_info(sessions)").use { cursor ->
+                var hasIsLocked = false
+                while (cursor.moveToNext()) {
+                    if (cursor.getString(1) == "isLocked") hasIsLocked = true
+                }
+                assertTrue("真实 v68 迁移后应有 isLocked 列", hasIsLocked)
+            }
+            db.openHelper.writableDatabase.query("PRAGMA table_info(messages)").use { cursor ->
+                var hasParentGroup = false
+                while (cursor.moveToNext()) {
+                    if (cursor.getString(1) == "parentGroupId") hasParentGroup = true
+                }
+                assertTrue("真实 v68 迁移后应有 parentGroupId 列", hasParentGroup)
+            }
+            db.openHelper.writableDatabase.query(
+                "SELECT content FROM messages WHERE id='legacy-msg'"
+            ).use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("迁移前的历史消息", cursor.getString(0))
+            }
+            db.close()
+        } finally {
+            if (dbFile.exists()) dbFile.delete()
+            context.deleteDatabase(dbFile.name)
+        }
+    }
+    private fun createSchemaAtVersion(version: Int, dbPath: String, stripIsLocked: Boolean = false) {
         val schema = loadSchema(version)
         val databaseJson = schema.getJSONObject("database")
         val entities = databaseJson.getJSONArray("entities")
@@ -138,8 +220,11 @@ class MuseDbMigrationTest {
                         for (i in 0 until entities.length()) {
                             val entity = entities.getJSONObject(i)
                             val tableName = entity.getString("tableName")
-                            val createSql = entity.getString("createSql")
+                            var createSql = entity.getString("createSql")
                                 .replace("\${TABLE_NAME}", tableName)
+                            if (stripIsLocked && tableName == "sessions") {
+                                createSql = createSql.replace("`isLocked` INTEGER NOT NULL DEFAULT 0, ", "")
+                            }
                             db.execSQL(createSql)
                             if (entity.has("indices")) {
                                 val indices = entity.getJSONArray("indices")

@@ -123,6 +123,9 @@
     <string name="assistant_back_cd">Back</string>
     <string name="assistant_import_card_cd">Import character card</string>
     <string name="assistant_section_my_assistants">My Assistants</string>
+    <string name="assistant_default_title">Default Assistant</string>
+    <string name="assistant_default_picker_title">Choose default assistant</string>
+    <string name="assistant_default_hint">Assistant used for new tasks by default</string>
     <string name="assistant_section_actions">Add or Import</string>
     <string name="assistant_memory_entry_title">Long-term Memory</string>
     <string name="assistant_memory_entry_subtitle">View the 4-layer memory system</string>

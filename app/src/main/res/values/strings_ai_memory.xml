@@ -28,6 +28,9 @@
     <string name="memory_sync_never">尚未编译记忆,对话内容暂未进入长期记忆</string>
     <string name="memory_sync_recent">最近编译 %1$d 分钟前,记忆已同步</string>
     <string name="memory_sync_stale">最近编译 %1$d 分钟前,最近的对话可能还未进入记忆,点击「立即编译」可手动同步</string>
+    <string name="memory_screen_experience_category_general">通用</string>
+    <string name="memory_chart_type_distribution_cd">记忆类型分布环形图</string>
+    <string name="memory_chart_daily_trend_cd">每日记忆趋势图</string>
     <string name="memory_sync_set_importance_cd">设置重要程度</string>
 
     <!-- v6: MemoryViewModel CRUD error messages -->

@@ -13,11 +13,11 @@ import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * subagent_task 工具(openhanako subagent-tool.ts 移植)。
+ * subagent_task 工具(参考开源项目 subagent-tool.ts 移植)。
  *
  * 非阻塞后台子 agent 任务执行,支持线程续接与关闭。
  *
- * 三件套操作(参考 openhanako):
+ * 三件套操作(参考 参考开源项目):
  *  - launch:启动新子 agent 任务,返回 taskId + threadId
  *  - reply :续接同一子 agent(按 threadId),传入新 task
  *  - close :关闭子 agent 线程,释放资源

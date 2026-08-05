@@ -25,6 +25,10 @@
     <string name="worldbook_keywords_label">키워드: %1$s</string>
     <string name="worldbook_badge_always_active">끊임없는</string>
     <string name="worldbook_export">내보내다</string>
+    <string name="worldbook_import_failed">가져오기 실패: %1$s</string>
+    <string name="worldbook_import_success">%1$d개 항목 가져오기 성공</string>
+    <string name="worldbook_import_empty">가져올 항목을 찾지 못했습니다</string>
+    <string name="worldbook_export_failed">내보내기 실패: %1$s</string>
 
     <!-- Sections -->
     <string name="worldbook_section_basic">기초적인</string>

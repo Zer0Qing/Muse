@@ -87,6 +87,10 @@
     <string name="voice_connecting">正在连接识别服务…</string>
     <!-- 任务 1: ASR 断网重连中状态文案(WebSocket 断线后指数退避重连,期间继续录音并缓冲音频帧) -->
     <string name="voice_reconnecting">网络异常,正在重连…</string>
+    <string name="voice_conversation_cd_idle">点击开始对话</string>
+    <string name="voice_conversation_cd_listening">正在录音,点击中断</string>
+    <string name="voice_conversation_cd_thinking">AI 思考中,点击中断</string>
+    <string name="voice_conversation_cd_speaking">正在朗读,点击中断</string>
 
     <!-- ASR 配置提示 -->
     <string name="asr_missing_api_key_error">当前未配置 API Key,语音输入将无法使用</string>
@@ -236,6 +240,11 @@
     <string name="chat_list_status_in_progress">进行中</string>
     <string name="chat_list_status_pending">待确认</string>
     <string name="chat_list_status_completed">已完成</string>
+    <string name="chat_list_time_just_now">刚刚</string>
+    <string name="chat_list_time_minutes_ago">%1$d 分钟前</string>
+    <string name="chat_list_time_hours_ago">%1$d 小时前</string>
+    <string name="chat_list_time_yesterday">昨天</string>
+    <string name="chat_list_time_days_ago">%1$d 天前</string>
 
     <!-- 工具审批卡片 -->
     <string name="tool_approval_title">工具调用</string>

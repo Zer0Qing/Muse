@@ -18,6 +18,16 @@
     <string name="settings_web_search_save_api_key">APIキーの保存</string>
     <string name="settings_web_search_endpoint_label">検索 API エンドポイント</string>
     <string name="settings_web_search_save_endpoint">エンドポイントの保存</string>
+    <string name="settings_web_search_auto_hint">Autoモードは複数の検索エンジンを試します:APIキー設定済みの商用エンジンを優先し、次にBing、Jina、SearXNGへフォールバックし、低品質な結果を自動で除外します。</string>
+    <string name="settings_web_search_test_query_label">テスト検索語</string>
+    <string name="settings_web_search_test_query_placeholder">検索テストのキーワードを入力…</string>
+    <string name="settings_web_search_test_success">検索成功:%1$d件の結果:\n%2$s</string>
+    <string name="settings_web_search_test_empty">検索は完了しましたが、結果がありません</string>
+    <string name="settings_web_search_test_failed">テスト失敗: %1$s</string>
+    <string name="settings_web_search_test_failed_unknown">不明なエラー</string>
+    <string name="settings_web_search_testing">検索中…</string>
+    <string name="settings_web_search_test">テスト検索</string>
+    <string name="settings_web_search_test_failed_prefix">テスト失敗</string>
     <!-- v1.98: New search provider names (bilingual, for UI display / logs / error hints) -->
     <string name="settings_web_search_provider_brave">ブレイブサーチ</string>
     <string name="settings_web_search_provider_perplexity">パープレキシティ検索</string>

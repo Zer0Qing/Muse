@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.dp
 import io.zer0.muse.ui.common.media.LifecycleAwareWebViewContainer
 
 /**
- * 卡片渲染器(openhanako show-card-tool.ts + card-guide-tool.ts 移植)。
+ * 卡片渲染器(参考开源项目 show-card-tool.ts + card-guide-tool.ts 移植)。
  *
  * 渲染 AI show_card 工具生成的 HTML/SVG 卡片内容,
  * 在 Material Card 内的沙箱 WebView 中展示。

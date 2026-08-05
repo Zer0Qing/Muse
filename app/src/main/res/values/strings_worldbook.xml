@@ -28,6 +28,10 @@
     <string name="worldbook_keywords_label">关键词: %1$s</string>
     <string name="worldbook_badge_always_active">常驻</string>
     <string name="worldbook_export">导出</string>
+    <string name="worldbook_import_failed">导入失败: %1$s</string>
+    <string name="worldbook_import_success">成功导入 %1$d 条</string>
+    <string name="worldbook_import_empty">未找到可导入条目</string>
+    <string name="worldbook_export_failed">导出失败: %1$s</string>
 
     <!-- Sections -->
     <string name="worldbook_section_basic">基础信息</string>

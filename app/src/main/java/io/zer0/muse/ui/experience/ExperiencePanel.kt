@@ -37,7 +37,7 @@ import io.zer0.muse.R
 import io.zer0.muse.data.experience.ExperienceEntity
 
 /**
- * 经验面板(openhanako experience UI 移植版)。
+ * 经验面板(参考开源项目 experience UI 移植版)。
  *
  * 浏览、搜索、新增和删除经验。
  * 通过经验开关与设置页集成。

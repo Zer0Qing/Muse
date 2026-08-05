@@ -542,7 +542,7 @@ class GeminiProvider(
      *
      * v1.80 (M-GEM5): 支持分页,循环请求直到 nextPageToken 为 null,加安全页数上限防止异常响应无限循环。
      *
-     * v1.132 优化(参考 rikkahub/kelivo/openhanako):
+     * v1.132 优化(参考 rikkahub/kelivo/参考开源项目):
      *  - 短超时 client(30s),避免分页请求卡顿占用 chat 长连接
      *  - 按 id 去重 + 字母序排序
      *  - 过滤空 id

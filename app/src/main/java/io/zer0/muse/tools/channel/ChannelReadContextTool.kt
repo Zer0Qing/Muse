@@ -6,9 +6,9 @@ import io.zer0.muse.tools.ToolRiskLevel
 /**
  * 群聊上下文读取工具 — Phone Session 模式下 agent 读取更多群聊历史。
  *
- * 设计参考 openhanako channel-router.ts 的 channel_read_context:
+ * 设计参考 参考开源项目 channel-router.ts 的 channel_read_context:
  *  - 默认 agent 只能看到最近几条消息,需要更多上下文时调用此工具
- *  - 最多读取 50 条(openhanako 限制)
+ *  - 最多读取 50 条(参考开源项目 限制)
  *  - 通过 [contextProvider] 回调由调用方提供历史消息文本(已格式化)
  *
  * 与 SkillExecutor 中已有的 channel_read_context 区别:
@@ -25,7 +25,7 @@ class ChannelReadContextTool(
      *
      * limit 为可选参数,parameterTypes 标注为 integer,使 LLM 生成 JSON Schema 时
      * 类型为 integer(避免 LLM 误传 "20" 字符串导致解析歧义)。
-     * 默认值 20,范围 1..50(openhanako 限制)。
+     * 默认值 20,范围 1..50(参考开源项目 限制)。
      */
     fun toolDef() = ToolRegistry.ToolDef(
         name = "channel_read_context",

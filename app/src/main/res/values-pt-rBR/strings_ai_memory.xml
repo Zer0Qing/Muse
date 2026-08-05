@@ -31,6 +31,9 @@
     <string name="memory_sync_never">Memória ainda não compilada, conversas que não estão na memória de longo prazo</string>
     <string name="memory_sync_recent">Última compilação %1$d min atrás, memória sincronizada</string>
     <string name="memory_sync_stale">Compilada pela última vez há %1$d min, as conversas recentes podem ainda não estar na memória.</string>
+    <string name="memory_screen_experience_category_general">Geral</string>
+    <string name="memory_chart_type_distribution_cd">Gráfico de rosca de distribuição de tipos de memória</string>
+    <string name="memory_chart_daily_trend_cd">Gráfico de tendência diária de memória</string>
     <string name="memory_sync_set_importance_cd">Definir importância</string>
 
     <!-- v6: MemoryViewModel CRUD error messages -->

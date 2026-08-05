@@ -5,7 +5,7 @@ import kotlinx.coroutines.withContext
 import java.util.UUID
 
 /**
- * Agent DM 仓库 (openhanako dm-tool.ts 移植)。
+ * Agent DM 仓库 (参考开源项目 dm-tool.ts 移植)。
  */
 class AgentDmRepository(private val dao: AgentMessageDao) {
 

@@ -3,7 +3,7 @@ package io.zer0.muse.tools
 import io.zer0.muse.data.subagent.SubagentThreadStore
 
 /**
- * v1.0.53 Phase 1: subagent_close 工具 — 主动关闭子 agent 线程(对标 Hana subagent_close)。
+ * v1.0.53 Phase 1: subagent_close 工具 — 主动关闭子 agent 线程(参考开源实现 subagent_close)。
  *
  * 让主 agent 能关闭不再需要的线程,释放账本。关闭后该 threadId 不可再续接:
  *  - subagent_task 的 reply 会返回 "thread is closed"

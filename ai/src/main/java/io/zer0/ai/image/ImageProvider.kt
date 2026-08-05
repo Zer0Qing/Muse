@@ -3,11 +3,11 @@ package io.zer0.ai.image
 /**
  * v1.0.18: 图片生成供应商抽象接口。
  *
- * 参考 QingTian(openhanako)的 AdapterRegistry 模式,让 OpenAI / Agnes / Gemini 等各自实现,
+ * 参考 QingTian(参考开源项目)的 AdapterRegistry 模式,让 OpenAI / Agnes / Gemini 等各自实现,
  * 避免把绘图硬绑到 OpenAI 协议。ImageService 通过 [ImageProviderRegistry] 选择合适的 provider,
  * 再委托其完成实际的 HTTP 调用与响应解析。
  *
- * 设计要点(对齐 openhanako plugins/image-gen):
+ * 设计要点(对齐 参考开源项目 plugins/image-gen):
  *  - 同步任务: [submit] 直接在 [ImageSubmitResult.images] 中返回结果,[taskId] 为 null。
  *  - 异步任务: [submit] 返回 [ImageSubmitResult.taskId],由调用方轮询 [poll] 直至终态。
  *  - 参考图(图生图): 通过 [ImageGenRequest.referenceImages] 传入(base64 或 URL),

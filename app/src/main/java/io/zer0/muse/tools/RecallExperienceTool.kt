@@ -4,7 +4,7 @@ import io.zer0.muse.data.experience.ExperienceRepository
 import kotlinx.coroutines.runBlocking
 
 /**
- * recall_experience 工具(openhanako experience.ts 移植)。
+ * recall_experience 工具(参考开源项目 experience.ts 移植)。
  *
  * 渐进式披露:不带参数时返回分类索引,
  * 带分类名时返回该分类下的具体经验。

@@ -4,7 +4,7 @@ import io.zer0.muse.tools.script.ToolDeclaration
 import kotlinx.serialization.Serializable
 
 /**
- * 插件清单 (openhanako plugins/ manifest 移植 + B6-01 外部插件包扩展)。
+ * 插件清单 (参考开源项目 plugins/ manifest 移植 + B6-01 外部插件包扩展)。
  *
  * 每个插件通过 manifest 声明元数据、能力、激活事件、入口文件和工具列表。
  * 外部 `.muse-plugin` / ZIP 包必须包含本清单；`PluginManifest.BUILT_IN` 仅作内置能力展示。

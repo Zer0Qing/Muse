@@ -6,7 +6,7 @@ import androidx.compose.ui.graphics.Color
 import io.zer0.muse.R
 import io.zer0.muse.ui.theme.*
 
-// 9. Aizome (藍染) theme — HanaAgent KAMI indigo dye inspired
+// 9. Aizome (藍染) theme — 开源主题参考 indigo dye inspired
 // ─────────────────────────────────────────────────────────────────────────────
 private val AizomePrimary = Color(0xFF3D5A80)
 private val AizomePrimaryLightContainer = Color(0xFFD4E4F4)

@@ -224,6 +224,8 @@
     <string name="settings_screen_model_service_group_cd">Modelos &amp; Grupo de servicios</string>
     <string name="settings_screen_provider_cd">Proveedores, administre proveedores de servicios de IA, toque para ingresar</string>
     <string name="settings_screen_provider">Proveedores</string>
+    <string name="settings_screen_model_catalog_desc">Revisa y corrige contexto, capacidades y salida maxima de los modelos</string>
+    <string name="settings_screen_task_routing_desc">Cambia automaticamente el modelo segun el tipo de tarea</string>
     <string name="settings_screen_provider_desc">Administrar proveedores de modelos, claves API y búsqueda web</string>
     <string name="settings_screen_assistant_cd">Asistentes, administrar asistentes/libros mundiales, toque para ingresar</string>
     <string name="settings_screen_assistant">Asistentes</string>
@@ -325,6 +327,8 @@
     <string name="search_section_messages">Mensajes</string>
     <string name="search_section_settings">Ajustes</string>
     <string name="search_new_session">Nueva sesión</string>
+    <string name="search_time_today">Hoy %1$s</string>
+    <string name="search_time_yesterday">Ayer %1$s</string>
     <string name="search_index_proactive_message">Mensajes proactivos</string>
     <string name="search_index_chat_behavior">Configuración de comportamiento de chat</string>
     <string name="search_index_deep_thinking">Pensamiento profundo</string>

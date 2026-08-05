@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentHashMap
 /**
  * 搜索限速退避器（单例，进程级内存状态，不持久化）。
  *
- * 参考 openhanako 项目的 search-rate-limiter.ts 实现：
+ * 参考 参考开源项目 项目的 search-rate-limiter.ts 实现：
  *  - 内存维护 provider → nextAvailableAt 时间戳
  *  - HTTP 429（Too Many Requests）/ 402（Payment Required，部分搜索 API 用作配额耗尽）时
  *    标记该 provider 被限速，后续请求在退避期内直接被拒绝，避免反复撞墙被封禁

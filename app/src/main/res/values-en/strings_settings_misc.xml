@@ -18,6 +18,16 @@
     <string name="settings_web_search_save_api_key">Save API Key</string>
     <string name="settings_web_search_endpoint_label">Search API Endpoint</string>
     <string name="settings_web_search_save_endpoint">Save Endpoint</string>
+    <string name="settings_web_search_auto_hint">Auto mode tries multiple search engines: it prefers commercial engines with a configured API key, then falls back to Bing, Jina, and SearXNG, and filters low-quality results automatically.</string>
+    <string name="settings_web_search_test_query_label">Test query</string>
+    <string name="settings_web_search_test_query_placeholder">Enter a keyword to test search…</string>
+    <string name="settings_web_search_test_success">Search succeeded, returned %1$d results:\n%2$s</string>
+    <string name="settings_web_search_test_empty">Search completed with no results</string>
+    <string name="settings_web_search_test_failed">Test failed: %1$s</string>
+    <string name="settings_web_search_test_failed_unknown">Unknown error</string>
+    <string name="settings_web_search_testing">Searching…</string>
+    <string name="settings_web_search_test">Test search</string>
+    <string name="settings_web_search_test_failed_prefix">Test failed</string>
     <!-- v1.98: New search provider names (bilingual, for UI display / logs / error hints) -->
     <string name="settings_web_search_provider_brave">Brave Search</string>
     <string name="settings_web_search_provider_perplexity">Perplexity Search</string>

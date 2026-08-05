@@ -106,7 +106,7 @@ val appModule = module {
     single { get<MuseDb>().groupChatMemoryDao() }  // v2.x: 群聊记忆隔离(独立 fact store)
     single { get<MuseDb>().experienceDao() }  // v1.98
     single { get<MuseDb>().milestoneDao() }  // Phase 2 2B: milestone
-    single { get<MuseDb>().agentMessageDao() }  // HanaAgent port: agent DM
+    single { get<MuseDb>().agentMessageDao() }  // 参考工具系统 port: agent DM
     single { get<MuseDb>().auditLogDao() }  // P2-4: 审计日志
     single { get<MuseDb>().quickNoteDao() }  // v1.0.17: 快速记录
     // v1.134 P1-1/P1-2: 孤儿组件接入所需的 DAO(AutoBackupHelper / StatsCacheManager 依赖)
@@ -124,7 +124,7 @@ val appModule = module {
     }
     single { io.zer0.muse.data.milestone.MilestoneChecker(get(), get(), get()) }  // Phase 2 2B: milestone checker
     single { io.zer0.muse.data.experience.ExperienceRepository(get()) }  // v1.98
-    single { io.zer0.muse.data.agentdm.AgentDmRepository(get()) }  // HanaAgent port: agent DM
+    single { io.zer0.muse.data.agentdm.AgentDmRepository(get()) }  // 参考工具系统 port: agent DM
     // v1.134 P1-2: 消息图片存储服务,负责 base64 ↔ 文件路径转换,
     // 让大图片落盘到 filesDir/muse_images/,DB 只存路径,避免 messages 表行体积膨胀
     single {
@@ -151,7 +151,8 @@ val appModule = module {
     single { io.zer0.muse.license.LicenseRepository(androidContext()) }
 
     // PresetProviders 预设供应商
-    single { PresetProviders(androidContext()) }
+    single { io.zer0.muse.data.preset.ModelCatalogStore(androidContext()) }
+    single { PresetProviders(androidContext(), get()) }
 
     // P2-11: OAuth 凭证隔离 — 独立加密 SP(Keystore AES-256-GCM),
     // 与普通 API Key(SettingsRepository.providers Flow)物理隔离,
@@ -242,15 +243,15 @@ val appModule = module {
     // Phase 6 6E: 本地分析追踪器
     single { io.zer0.muse.data.analytics.LocalAnalyticsTracker(androidContext()) }
 
-    // HanaAgent 移植:会话文件管理器
+    // 参考工具系统移植:会话文件管理器
     single { io.zer0.muse.data.session.SessionFileManager(androidContext()) }
-    // HanaAgent 移植:基于文件的体验存储
+    // 参考工具系统移植:基于文件的体验存储
     single { io.zer0.muse.data.experience.ExperienceStore(androidContext()) }
-    // HanaAgent 移植:工具注册器(注册 pin/experience/search_memory/todo/card/notify/status 工具)
+    // 参考工具系统移植:工具注册器(注册 pin/experience/search_memory/todo/card/notify/status 工具)
     // v1.202: 注入 SkillExecutor / SubagentThreadStore / DeferredResultStore / appScope,
     //         供 SubagentTool(launch/reply/close 三件套)使用
     single {
-        io.zer0.muse.tools.HanaAgentToolsRegistrar(
+        io.zer0.muse.tools.AgentToolsRegistrar(
             toolRegistry = get(),
             pinnedMemoryStore = get(),
             experienceRepository = get(),
@@ -357,6 +358,58 @@ val appModule = module {
     // v0.24: 注入 WebSearchService / KnowledgeDocDao / SkillRepository 用于搜索�?+ install_skill
     // v0.46: 注入 ChatService / AssistantRepository 用于 delegate_agent(�?Agent 协作)
     // v1.30: 注入 GroupChatRepository 用于群聊工具(channel_reply / channel_pass / channel_read_context)
+    // P1-3b 拆域: Skill 文件工具实现(被 SkillExecutor 委托调用)
+    single { io.zer0.muse.tools.SkillFileToolsImpl(androidContext(), get(named("chat"))) }
+    // P1-3b 拆域: Skill 媒体/JS/插件工具实现(被 SkillExecutor 委托调用)
+    single { io.zer0.muse.tools.SkillMediaToolsImpl(
+        androidContext(),
+        get(),
+        get(),
+        { get<io.zer0.muse.data.SettingsRepository>().imageGenConfigFlow.first().let { cfg -> (if (cfg.providerId.isBlank()) null else runCatching { kotlinx.coroutines.runBlocking { get<io.zer0.muse.data.SettingsRepository>().getProviderById(cfg.providerId) } }.getOrNull()) to cfg.modelId } },
+        get(),
+    ) }
+    // P1-3b 拆域: Skill 管理工具实现(被 SkillExecutor 委托调用)
+    single { io.zer0.muse.tools.SkillManagementToolsImpl(androidContext(), get()) }
+    // P1-3b 拆域: Skill 搜索/HTTP 工具实现(被 SkillExecutor 委托调用)
+    single { io.zer0.muse.tools.SkillSearchToolsImpl(
+        androidContext(),
+        get(named("chat")),
+        get<WebSearchService>(),
+        get(),
+        get(),
+        { get<io.zer0.muse.data.SettingsRepository>().getRagConfig() },
+    ) }
+    // P1-3e 拆域: Skill Agent 工作流/群聊工具实现(被 SkillExecutor 委托调用)
+    single {
+        io.zer0.muse.tools.SkillAgentToolsImpl(
+            androidContext(),
+            get(),
+            get(),
+            { runCatching { get<io.zer0.muse.schedule.GroupChatScheduler>() }.getOrNull() },
+        )
+    }
+
+    // P1-3e 拆域: 翻译工具实现(被 SkillExecutor 委托调用)
+    single { io.zer0.muse.tools.TranslateToolsImpl() }
+
+    // P1-3e 拆域: delegateAgent 实现(被 SkillExecutor 委托调用)
+    single {
+        io.zer0.muse.tools.SkillDelegateAgentImpl(
+            androidContext(),
+            get(),
+            get(),
+            { get<io.zer0.muse.data.SettingsRepository>().multiAgentConfigCache },
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+        )
+    }
+
     single {
         io.zer0.muse.tools.SkillExecutor(
             androidContext(),
@@ -398,6 +451,13 @@ val appModule = module {
             // 此时两者均已初始化完成,避免循环依赖。
             // 用 runCatching 兜底:测试环境或 Koin 未启动时返回 null,agent_phone 工具降级为"未配置"。
             pluginManager = get(),
+            fileTools = get(),
+            searchTools = get(),
+            managementTools = get(),
+            mediaTools = get(),
+            translateTools = get(),
+            agentTools = get(),
+            delegateTools = get(),
             groupChatSchedulerProvider = {
                 runCatching { get<io.zer0.muse.schedule.GroupChatScheduler>() }.getOrNull()
             },
@@ -432,9 +492,9 @@ val appModule = module {
             sessionStore = get(),
         )
     }
-    // v1.0.53: 子 agent 全局并发限流器(对标 Hana workflow createLimiter;所有委派入口共享同一配额)
+    // v1.0.53: 子 agent 全局并发限流器(参考开源实现 workflow createLimiter;所有委派入口共享同一配额)
     single { io.zer0.muse.tools.AgentConcurrencyLimiter() }
-    // v1.0.53 Phase 2: 工作流断点恢复日志(对标 Hana lib/workflow/journal.ts)
+    // v1.0.53 Phase 2: 工作流断点恢复日志(参考开源实现 lib/workflow/journal.ts)
     //  - 文件: filesDir/workflow_journals/<runId>.jsonl
     //  - TeamWorkflowExecutor resume 时命中缓存的节点秒回,首个未缓存节点起重跑
     single {
@@ -448,133 +508,8 @@ val appModule = module {
     // Phase 5-E: 文档解析�?
     single { DocumentParser(get(named("chat"))) }
 
-    // v1.54: RAG 体系:Embedding 服务 + 向量检索编排
-    // v1.134: 注入 filesDir 供 EmbeddingService 解析 ONNX 模型相对路径
-    single {
-        io.zer0.muse.rag.EmbeddingService(
-            configStore = get(),
-            client = get(named("chat")),
-            filesDir = androidContext().filesDir,
-        )
-    }
-    // v1.133: 本地 Rerank Provider(无依赖,降级方案)
-    single<io.zer0.muse.rag.RerankProvider> { io.zer0.muse.rag.LocalRerankProvider() }
-    // v1.134: 本地 ONNX Cross-Encoder Rerank Provider(可选,模型缺失时自动降级到 LocalRerankProvider)
-    // 模型文件约定:filesDir/muse_onnx/rerank.onnx + 同目录 vocab.txt
-    single {
-        io.zer0.muse.rag.OnnxRerankProvider(
-            modelPath = java.io.File(androidContext().filesDir, "muse_onnx/rerank.onnx").absolutePath,
-        )
-    }
-    // v1.133: 混合检索服务(FTS4 + 向量 RRF)
-    single {
-        io.zer0.muse.rag.HybridSearchService(
-            ftsDao = get<io.zer0.muse.data.session.MuseDb>().knowledgeChunkFtsDao(),
-            vectorSearch = io.zer0.muse.rag.VectorSearchService(
-                chunkPageProvider = { limit, offset ->
-                    val titles = get<io.zer0.muse.data.knowledge.KnowledgeDocDao>().observeAll().first()
-                        .associate { it.id to it.title }
-                    get<io.zer0.muse.data.knowledge.KnowledgeChunkDao>().getPageWithEmbedding(limit, offset).map { chunk ->
-                        io.zer0.muse.rag.VectorSearchService.ChunkWithDoc(
-                            chunkId = chunk.id, docId = chunk.docId,
-                            docTitle = titles[chunk.docId] ?: "Unknown",
-                            content = chunk.content, embedding = chunk.embedding,
-                            embeddingBlob = chunk.embeddingBlob, chunkIndex = chunk.chunkIndex,
-                        )
-                    }
-                },
-                chunkCountProvider = { get<io.zer0.muse.data.knowledge.KnowledgeChunkDao>().countIndexed() },
-            ),
-        )
-    }
-    single {
-        io.zer0.muse.rag.RagService(
-            chunkDao = get(),
-            docDao = get(),
-            ftsDao = get<io.zer0.muse.data.session.MuseDb>().knowledgeChunkFtsDao(),
-            docTitleProvider = {
-                get<io.zer0.muse.data.knowledge.KnowledgeDocDao>().observeAll()
-                    .first().associate { it.id to it.title }
-            },
-            embeddingService = get(),
-            hybridSearchService = get(),
-            rerankProvider = get(),
-            onnxRerankProvider = get(),
-            // v1.103: 向量检索无结果时的关键词兜底;v1.133: snippet 改取首个 chunk(替代 content.take(500))
-            keywordSearchFallback = { query, topK ->
-                val docDao = get<io.zer0.muse.data.knowledge.KnowledgeDocDao>()
-                val chunkDao = get<io.zer0.muse.data.knowledge.KnowledgeChunkDao>()
-                docDao.search(query).first().take(topK).map { doc ->
-                    val firstChunkContent = resultOf {
-                        chunkDao.getByDoc(doc.id).firstOrNull()?.content ?: ""
-                    }.getOrNull() ?: ""
-                    doc.title to (firstChunkContent.ifBlank { doc.content.take(500) })
-                }
-            },
-            // v1.0.12: HNSW 索引持久化文件路径 — 启用 RAG 向量索引落盘
-            // 文件位置:filesDir/rag/hnsw_index.bin;App 重启后 MuseApp.onCreate 异步加载,
-            // 避免每次启动都从 DB 全量重建索引。indexFile 默认 null(不持久化,仅内存),
-            // 此处显式注入启用持久化,向后兼容旧调用方(默认 null 路径不受影响)。
-            // rag/ 目录在注入时创建(mkdirs 幂等,已存在无副作用)。
-            indexFile = java.io.File(androidContext().filesDir, "rag/hnsw_index.bin").apply {
-                parentFile?.mkdirs()
-            },
-        )
-    }
-    // v1.133: KnowledgeBaseDao 单独注册(多知识库管理页用)
-    single { get<io.zer0.muse.data.session.MuseDb>().knowledgeBaseDao() }
-    // v1.0.47 P7-2: 会话级附件索引服务
-    single { io.zer0.muse.rag.SessionAttachmentService(get(), get()) }
 
-    // Phase 8.6: 本地 OCR 管理�?ML Kit 中英文离线识�?
-    single { io.zer0.muse.doc.OcrManager() }
 
-    // v1.0.30 gap4.6: 翻译术语表存储(JSON 文件持久化原文→译文映射)
-    single { io.zer0.muse.ui.translate.GlossaryStore(androidContext()) }
-
-    // Phase 8.7: TTS 管理�?Android 系统 TextToSpeech,0 APK 体积)
-    // v1.97: 注入 CloudTtsService 支持云端 TTS(OpenAI/MiniMax/Edge)
-    // v1.97 修复: CloudTtsService 构造需�?OkHttpClient,必须�?named("chat") qualifier
-    //   Koin 只注册了�?qualifier �?OkHttpClient(chat/webSearch),�?get() 找不到定�?
-    //   release 混淆下触�?NoDefinitionFoundException,链式导致 ChatViewModel 创建失败 �?应用崩溃�?
-    //   chat client 已配�?30s/120s/30s 超时 + 代理,适合 TTS 网络请求,无需单独再建一个�?
-    single { io.zer0.muse.ui.speech.CloudTtsService(get(named("chat"))) }
-    single { io.zer0.muse.ui.speech.TtsManager(androidContext(), get()) }
-
-    // P2-9: 语音克隆 — ElevenLabs Voice Cloning Provider 复用 chat OkHttpClient
-    //   (内部用 newBuilder() 覆盖为 30s 三项超时,满足"API 调用必须有超时(30 秒)"约束)
-    single { io.zer0.muse.ui.speech.ElevenLabsVoiceCloningProvider(get(named("chat"))) }
-    single { io.zer0.muse.ui.speech.FishAudioVoiceCloningProvider(get(named("chat"))) }
-    // P2-9: VoiceCloningService 多 Provider 分发(后续 OpenVoice / Fish Audio 等可继续加入 map)
-    single {
-        io.zer0.muse.ui.speech.VoiceCloningService(
-            mapOf(
-                "elevenlabs" to get<io.zer0.muse.ui.speech.ElevenLabsVoiceCloningProvider>(),
-                "fish" to get<io.zer0.muse.ui.speech.FishAudioVoiceCloningProvider>(),
-            )
-        )
-    }
-
-    // Phase 5-H: 工具注册表(简化版 MCP 框架)
-    // Phase 8.8: 传入 context 用于 Clipboard/UsageStats/Calendar 系统服务
-    single { ToolRegistry(androidContext()) }
-
-    // v1.137: 快速记录存储,供自动化任务和 UI 共享同一实例
-    single { io.zer0.muse.tools.quicknote.QuickNoteStore(androidContext()) }
-
-    // P3: 会话级工具权限模式持久化
-    single { SessionPermissionStore(androidContext()) }
-
-    // v1.0.20: 单工具审批策略持久化(DataStore)
-    // 供 ToolsSettingsPage(koinInject)与 ToolPermissionResolver 共享同一实例
-    // 修复 NoDefinitionFoundException:此前 ToolsSettingsPage 用 koinInject() 取 ToolConfigStore,
-    // 但 Koin 中未注册,导致点击"为每个工具设置是否批准"按钮进入页面时 Compose 重组崩溃
-    single { ToolConfigStore(androidContext()) }
-
-    // P2-6: BrowserManager 浏览器自动化(Headless WebView,供 AI 工具调用)
-    // 注:ToolRegistry 内部还会创建自己的 BrowserManager 实例供 AI 工具使用,
-    // 此处注册的 BrowserManager 可供 UI 或其他消费者共享访问(如展示当前页 URL/Title/HTML 状态)
-    single { io.zer0.muse.tools.BrowserManager(androidContext()) }
 
     // v0.30-a: 系统提示组装�?6 步工作流�?1 �?9 �?section 集中拼装)
     // v0.32 实验�?透传 getExperiments 闭包,�?设置 �?实验�?页的开�?
@@ -584,261 +519,9 @@ val appModule = module {
     // v1.25: 同时透传 getMultiAgentConfig,�?Agent 协作提示读取 settings.multiAgentConfigCache�?
     // v1.97: 透传 assistantRepository,�?delegate_agent 提示注入可用助手 id 清单�?
 
-    // Phase 12: PromptTemplateLoader �?�?assets/prompt_templates/ 加载提示词模�?
-    single { io.zer0.muse.transformer.PromptTemplateLoader(androidContext()) }
 
-    // v1.0.53: 封面库 + AI 封面生成(Beautify 封面工作流)
-    single { io.zer0.muse.data.cover.CoverLibraryRepository(androidContext()) }
-    single {
-        io.zer0.muse.tools.CoverGenerator(
-            context = androidContext(),
-            templateLoader = get(),
-            chatService = get(),
-            imageService = getOrNull(),
-            coverLibraryRepository = get(),
-            okHttpClient = get(named("chat")),
-        )
-    }
 
-    // P1-1: Hook 注册表(全局单例,所有 Hook 通过此注册)
-    single { io.zer0.muse.hook.HookRegistry() }
 
-    single {
-        val settings = get<SettingsRepository>()
-        io.zer0.muse.transformer.SystemPromptAssembler(
-            promptLoader = get(),
-            context = androidContext(),
-            settings = settings,
-            memoryTicker = get(),
-            toolRegistry = get(),
-            skillRepository = get(),
-            getExperiments = { settings.experimentsCache },
-            getMultiAgentConfig = { settings.multiAgentConfigCache },
-            assistantRepository = get(),
-            // v1.98: 透传 experienceRepository,经验库开关开启时注入经验条目到 system prompt
-            experienceRepository = get(),
-            // v1.202: 透传 agentDmRepository,主助手构建 system prompt 时注入收件箱摘要
-            agentDmRepository = get(),
-            // v2.x: 透传 groupChatMemoryRepository,主助手构建 system prompt 时注入群聊记忆摘要
-            // (用 <group_chat_memory> 标签与主记忆 <long_term_memory> 区分,不污染主记忆)
-            groupChatMemoryRepository = get(),
-            // v1.0.52: 透传 sessionRepository,主助手构建 system prompt 时注入 Recent Chats Reference
-            // (用 <recent_chats> 标签包裹最近会话标题+预览,提供对话连续性上下文)
-            sessionRepository = get(),
-            // P1-1: 透传 hookRegistry,SystemPromptComposeHook 在 build 末尾调用
-            hookRegistry = get(),
-        )
-    }
-
-    // Phase 9.5 (M3): MCP server 注册�?管理多个 McpClient,桥接 ToolRegistry)
-    single { io.zer0.muse.mcp.McpRegistry(get(), get(), androidContext()) }
-
-    // Phase 5-I / Phase 7: 备份导出/导入服务(�?memory.db + facts.db)
-    // Phase 8.9: 增加云备�?余额查询依赖
-
-    // v1.135-A: 视觉辅助结果缓存(session 级 + sidecar 持久化)
-    single { io.zer0.muse.vision.VisionCache(androidContext()) }
-
-    // v1.25: 视觉辅助桥接器(让纯文本模型通过视觉模型"看到"图片)
-    single { io.zer0.muse.vision.VisionBridge(get(), get(), get()) }
-
-    single { BackupService(get(), get(), get(), get(), get()) }
-
-    // Phase 8.9: 云备份服务(S3/WebDAV 派发)
-    // v1.0.4 (P3-8): 移除 BalanceService Koin 注册 — 该类从未被业务代码调用,
-    // ProviderSection.kt 内联实现了带本地化错误反馈的余额查询,BalanceService 为死代码,已删除。
-    single { io.zer0.muse.backup.CloudBackupService(get(named("chat"))) }
-    // Phase 8.9: CherryStudio/Chatbox 配置导入
-    single { io.zer0.muse.importer.ConfigImporter(get()) }
-
-    // Phase 8.10: 通知管理�?3 渠道:chat_completed/live_update/web_server)
-    single { io.zer0.muse.notification.MuseNotificationManager(androidContext()) }
-
-    // v1.133: GitHub Release 更新检查 — 复用 named("chat") OkHttpClient(已应用用户代理配置)
-    single { io.zer0.muse.update.UpdateChecker(get(named("chat"))) }
-    // v1.133: 更新通知器(协调 UpdateChecker + SettingsRepository + MuseNotificationManager)
-    single { io.zer0.muse.update.UpdateNotifier(get(), get()) }
-
-    // Phase 8.11: mDNS 服务发现(NSD 局域网服务注册)
-    single { io.zer0.muse.web.MdnsService(androidContext()) }
-    // Phase 8.11: 嵌入�?Web 服务�?Ktor CIO + JWT + mDNS)
-    single { io.zer0.muse.web.WebServer(get(), get(), get(), get(), androidContext()) }
-
-    // Phase 8.4: Web 搜索服务(独立 OkHttpClient,避免�?SSE 长连接互相影�?
-    // Phase 8.5 修复:�?qualifier 区分;config 改为懒加�?避免主线�?runBlocking
-    // v1.39: �?@Volatile 缓存而非 runBlocking,消除主线�?ANR
-    single(named("webSearch")) {
-        val settings = get<SettingsRepository>()
-        val proxyConfig = settings.proxyConfigCache
-        createWebSearchClient(proxyConfig)
-    }
-    single<WebSearchService> {
-        // config 不在 Koin 初始化时同步读取(避免主线�?ANR),�?CompositeWebSearchService 懒加�?
-        CompositeWebSearchService(get(named("webSearch")), WebSearchConfig())
-    }
-
-    // MemoryTicker: �?app 模块注册(�?SettingsRepository �?memory 开�?
-    // v0.32: 透传 getConfig 闭包,让用户的 MemoryConfig(tokenBudget/decay/threshold �?
-    //         真正影响记忆行为;闭包每次都读 settings.memoryConfigCache(@Volatile,零阻�?,
-    //         而不是在构造时缓存,保证用户改完设置页立即生效�?
-    single {
-        val settings = get<SettingsRepository>()
-        MemoryTicker(
-            summaryManager = get(),
-            compiler = get(),
-            deepProcessor = get(),
-            dailyStateDao = get(),
-            getResetAt = { null },                         // Phase 3: 暂无记忆重置水印
-            isMemoryEnabled = { settings.isMemoryEnabled() },
-            scope = get(),
-            getConfig = { settings.memoryConfigCache },
-        )
-    }
-    // v1.0.51: 存量记忆迁移 — 升级后首次启动补跑历史 session 的 rollingSummary
-    single {
-        io.zer0.muse.data.MemoryBackfillMigration(
-            sessionRepository = get(),
-            memoryTicker = get(),
-            settings = get(),
-        )
-    }
-
-    // v1.0.52 P2-3: AI 驱动记忆自动管理(对话中实时提取实体/关系/合并/分类)
-    single {
-        io.zer0.memory.ai.MemoryAutoSaveScheduler(
-            factDbProvider = get(),
-            llmClient = get(),
-            scope = get(),
-        )
-    }
-
-    // Phase 8.2 / 8.4 / 8.5 / 8.6 / 8.7 / 8.8 / 9.1: ChatViewModel 注入 20 个依�?
-    // v0.30-a: 新增 systemPromptAssembler
-    // v1.43: 新增 chatGenerationManager / artifactRepository / appContext
-    // (chat/settings/ticker/session/image/doc/tool/assistant/webSearch/lorebook/quickMsg/promptInj/ocr/tts/skillRepo/skillExec/folder/notification/assembler/generation/artifacts/context/audit/sessionPermission)
-    // v1.92: 改为 single �?应用级单�?切页/切路由不销�?生成不中断�?
-    // �?viewModel{} 绑定�?NavBackStackEntry,�?CHAT_DETAIL 返回�?onCleared �?
-    // 流式内容 update 到已销�?ViewModel �?_state,新实例看不到 �?感知"中断"�?
-    // 改为 single{} + koinInject() 后所有页面共享同一实例,生成继续更新同一 _state�?
-    // B2-04: 统一 ToolOrchestrator 单例(accessor/taskCardCoordinator 由 runLoop 调用方传入)
-    single {
-        io.zer0.muse.tools.ToolOrchestrator(
-            toolRegistry = get(),
-            skillRepository = get(),
-            skillExecutor = get(),
-            assistantRepository = get(),
-            sessionRepository = get(),
-            context = androidContext(),
-            hookRegistry = get(),
-            auditLogger = get(),
-        )
-    }
-
-    single {
-        ChatViewModel(
-            get(), get(), get(), get(), get(), get(), get(), get(), get(),
-            get(), get(), get(), get(), get(), get(), get(), get(),
-            get(), get(), get(),
-            get(), get(), get(), get(), get(), get(), get(), get(), get(), get(),
-            get(), get(),
-            // v1.202: deferredResultStore + subagentThreadStore
-            get(), get(),
-            // v1.x: ConversationSessionManager(会话级引用计数 + idle 清理)
-            get(),
-            // P1-1: HookRegistry(注入 ToolOrchestrator + 消息处理 Hook)
-            get(),
-            // v1.0.52 P2-3: MemoryAutoSaveScheduler(AI 记忆自动保存)
-            get(),
-            // B0-08: MilestoneChecker(里程碑触发)
-            get(),
-            // B2-04: ToolOrchestrator(Koin 单例)
-            get(),
-            // B2-04: ToolApprovalRouter(子代理审批桥接)
-            get(),
-        )
-    }
-
-    // 阶段 6: MemoryViewModel 注入 memory 模块�?3 个核心服�?
-    // v0.51: �?memoryTicker 用于读取 healthFlow 与裁剪后�?compiledMarkdown
-    // v1.98: �?settings + experienceRepository 用于经验�?CRUD 与开关订�?
-    viewModel {
-        MemoryViewModel(
-            application = androidContext() as Application,
-            factStore = get(),
-            summaryManager = get(),
-            memoryCompiler = get(),
-            memoryTicker = get(),
-            settings = get(),
-            experienceRepository = get(),
-            assistantRepository = get(),
-            spaceRepository = get(),
-        )
-    }
-
-    // v1.0.52 P2-2: 记忆空间管理 ViewModel
-    viewModel {
-        io.zer0.muse.ui.memory.MemorySpaceViewModel(
-            application = androidContext() as Application,
-            spaceRepository = get(),
-        )
-    }
-
-    // v0.46: 统计�?ViewModel(注入 MessageDao + SessionDao)
-    // SessionDao.count() 用于总会话数(修复旧版 totalSessions 恒为 0 �?bug)
-    // v0.47: 注入 SettingsRepository + AssistantRepository 用于反查模型/助手显示�?
-    viewModel {
-        StatsViewModel(
-            application = androidContext() as Application,
-            messageDao = get(),
-            sessionDao = get(),
-            settingsRepository = get(),
-            assistantRepository = get(),
-        )
-    }
-
-    // v1.97 gap8: 独立翻译 ViewModel(注入 ChatService + TtsManager,复用通用文本补全与朗读能力)
-    // v1.0.17: 注入 TranslateHistoryDao,翻译历史持久化到 Room
-    // v1.0.30 gap4.6: 注入 GlossaryStore,翻译时附加术语表指令
-    viewModel {
-        io.zer0.muse.ui.translate.TranslateViewModel(
-            chatService = get(),
-            ttsManager = get(),
-            appContext = androidContext(),
-            translateHistoryDao = get(),
-            glossaryStore = get(),
-        )
-    }
-
-    // Multi-Agent 工作流可视化编排 ViewModel
-    // teamId 由调用方通过 parametersOf 传入,其余依赖从容器解析
-    viewModel { parameters ->
-        io.zer0.muse.ui.workflow.WorkflowEditorViewModel(
-            application = androidContext() as android.app.Application,
-            teamId = parameters.get(),
-            settingsRepository = get(),
-            assistantRepository = get(),
-        )
-    }
-
-    // v1.30: 群聊 ViewModel(注入 GroupChatRepository + Scheduler + AssistantRepo + Settings)
-    // H-GC2 修复: 移除 appScope 参数,init 中 Flow 收集器改用 viewModelScope 自动取消
-    // ActivityHub: 注入 GroupChatActivityHub,订阅其 activities 派生当前群聊活动列表到 UI
-    viewModel {
-        GroupChatViewModel(
-            get(),
-            get(),
-            get(),
-            get(),
-            get(),
-            androidContext(),
-        )
-    }
-
-    // v1.0.17: 快速记录 ViewModel(注入 QuickNoteDao,Room 持久化 + 回收站)
-    // v1.0.18: 增加 androidContext()(ReminderStore + AlarmManager 调度提醒)
-    viewModel { io.zer0.muse.ui.quicknotes.QuickNotesViewModel(get(), androidContext()) }
-    // P1-2: Worldbook 管理 ViewModel
-    viewModel { io.zer0.muse.ui.worldbook.WorldBookViewModel(get()) }
 }
 
 /**
@@ -871,6 +554,13 @@ private fun OkHttpClient.Builder.applyProxy(config: ProxyConfig): OkHttpClient.B
  */
 val allKoinModules = listOf(
     appModule,
+    appChatModule,
+    appInfraModule,
+    appPromptModule,
+    appToolModule,
+    appMediaModule,
+    appRagModule,
+    appViewModelModule,
     aiModule,
     memoryModule,
 )

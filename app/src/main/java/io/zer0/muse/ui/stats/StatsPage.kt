@@ -203,9 +203,9 @@ fun StatsScreen(
                 }
             }
         }
+
     }
 }
-
 // ── 1. 仪表盘头部 ──────────────────────────────────────────────────────
 
 /**
@@ -251,7 +251,7 @@ private fun DashboardHeader(
             text = formatCount(state.totalMessages),
             style = MaterialTheme.typography.displaySmall.copy(
                 fontWeight = FontWeight.Bold,
-                fontSize = 36.sp,
+                fontSize = 36.sp, // 统计大数字，固定展示层级
             ),
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp),
@@ -386,7 +386,7 @@ private fun KeyMetricsGrid(
                 MetricCell(
                     icon = TablerIcons.MessageCircle,
                     value = formatTokenCount(state.totalCharsReceived),
-                    label = "累计 Token(~)",
+                    label = stringResource(R.string.stats_total_tokens_label),
                     modifier = Modifier.weight(1f),
                 )
                 Spacer(Modifier.weight(1f))
@@ -452,6 +452,7 @@ private fun TimeRangeFilterRow(
         StatsTimeRange.TODAY to R.string.stats_range_today,
     )
     val allCd = stringResource(R.string.stats_range_cd)
+    val selectedCd = stringResource(R.string.stats_range_selected)
     LazyRow(
         modifier = modifier,
         contentPadding = PaddingValues(vertical = 4.dp),
@@ -464,7 +465,7 @@ private fun TimeRangeFilterRow(
                 onClick = { onRangeChange(range) },
                 label = stringResource(labelRes),
                 modifier = Modifier.semantics {
-                    contentDescription = "$allCd: ${if (currentRange == range) "已选 " else ""}${ranges[index].first.name}"
+                    contentDescription = "$allCd: ${if (currentRange == range) "${selectedCd} " else ""}${ranges[index].first.name}"
                 },
             )
         }
@@ -528,11 +529,12 @@ private fun HeatmapCard(
                 Spacer(Modifier.width(2.dp))
                 val onSurface = MaterialTheme.colorScheme.onSurface
                 val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+                val heatmapLegendCd = stringResource(R.string.stats_heatmap_legend_cd)
                 Canvas(
                     modifier = Modifier
                         .width(70.dp)
                         .height(10.dp)
-                        .semantics { contentDescription = "活跃度图例" },
+                        .semantics { contentDescription = heatmapLegendCd },
                 ) {
                     val cellSize = 10.dp.toPx()
                     val spacing = 2.dp.toPx()
@@ -666,12 +668,13 @@ private fun CanvasHeatmap(
                 }
             }
 
+    val heatmapCd = stringResource(R.string.stats_heatmap_cd, numWeeks)
             // Canvas 热力图主体:53 列(周)× 7 行(天),单节点
             Canvas(
                 modifier = Modifier
                     .width(gridWidthDp)
                     .height(gridHeightDp)
-                    .semantics { contentDescription = "活跃热力图,${numWeeks}周活跃数据" }
+                    .semantics { contentDescription = heatmapCd }
                     .pointerInput(messagesPerDay) {
                         detectTapGestures { offset ->
                             val weekIdx = (offset.x / stepPx).toInt()
@@ -807,12 +810,13 @@ private fun TrendCard(
                 EmptyStatsHint()
             } else {
                 // 折线图
+                val trendChartCd = stringResource(R.string.stats_trend_chart_cd)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(100.dp),
                 ) {
-                    Canvas(modifier = Modifier.fillMaxSize().semantics { contentDescription = "消息趋势折线图" }) {
+                    Canvas(modifier = Modifier.fillMaxSize().semantics { contentDescription = trendChartCd }) {
                         val w = size.width
                         val h = size.height
                         if (counts.isEmpty() || maxCount == 0) return@Canvas
@@ -935,12 +939,13 @@ private fun HourlyDistributionCard(
             if (!hasData) {
                 EmptyStatsHint()
             } else {
+                val hourlyChartCd = stringResource(R.string.stats_hourly_chart_cd)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(100.dp),
                 ) {
-                    Canvas(modifier = Modifier.fillMaxSize().semantics { contentDescription = "24小时消息分布柱状图" }) {
+                    Canvas(modifier = Modifier.fillMaxSize().semantics { contentDescription = hourlyChartCd }) {
                         val w = size.width
                         val h = size.height
                         val barSpacing = 2.dp.toPx()
@@ -1018,8 +1023,9 @@ private fun AssistantDonutCard(
     val segments = displayed.mapIndexed { idx, usage ->
         Triple(usage.assistantName, usage.count, grayScale.getOrElse(idx) { grayScale.last() })
     }.toMutableList()
+    val otherLabel = stringResource(R.string.stats_other)
     if (otherCount > 0) {
-        segments.add(Triple("其他", otherCount, grayScale.last().copy(alpha = 0.1f)))
+        segments.add(Triple(otherLabel, otherCount, grayScale.last().copy(alpha = 0.1f)))
     }
 
     Card(
@@ -1050,7 +1056,8 @@ private fun AssistantDonutCard(
                         modifier = Modifier.size(120.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Canvas(modifier = Modifier.fillMaxSize().semantics { contentDescription = "模型使用分布环形图" }) {
+                        val modelDonutCd = stringResource(R.string.stats_model_donut_cd)
+                        Canvas(modifier = Modifier.fillMaxSize().semantics { contentDescription = modelDonutCd }) {
                             val w = size.width
                             val h = size.height
                             val cx = w / 2
@@ -1316,32 +1323,32 @@ private fun formatWithSuffix(value: Double, suffix: String): String {
 /**
  * 构建统计摘要文本(用于导出分享)。
  */
-private fun buildStatsSummaryText(state: StatsViewModel.StatsUiState): String = buildString {
-    appendLine("===== Muse 统计摘要 =====")
+private fun buildStatsSummaryText(context: Context, state: StatsViewModel.StatsUiState): String = buildString {
+    appendLine(context.getString(R.string.stats_summary_header))
     appendLine()
-    appendLine("总对话数: ${state.totalSessions}")
-    appendLine("总消息数: ${state.totalMessages}")
-    appendLine("AI 回复数: ${state.totalAiMessages}")
-    appendLine("用户消息数: ${state.totalUserMessages}")
-    appendLine("连续活跃: ${state.streakDays} 天")
-    appendLine("本周消息: ${state.messagesThisWeek}")
-    appendLine("本月消息: ${state.messagesThisMonth}")
-    appendLine("平均每日: ${String.format(Locale.US, "%.1f", state.avgMessagesPerDay)}")
+    appendLine(context.getString(R.string.stats_summary_total_sessions, state.totalSessions))
+    appendLine(context.getString(R.string.stats_summary_total_messages, state.totalMessages))
+    appendLine(context.getString(R.string.stats_summary_ai_replies, state.totalAiMessages))
+    appendLine(context.getString(R.string.stats_summary_user_messages, state.totalUserMessages))
+    appendLine(context.getString(R.string.stats_summary_streak_days, state.streakDays))
+    appendLine(context.getString(R.string.stats_summary_week_messages, state.messagesThisWeek))
+    appendLine(context.getString(R.string.stats_summary_month_messages, state.messagesThisMonth))
+    appendLine(context.getString(R.string.stats_summary_avg_daily, String.format(Locale.US, "%.1f", state.avgMessagesPerDay)))
     state.mostActiveDay?.let { (date, count) ->
-        appendLine("最活跃一天: $date ($count 条)")
+        appendLine(context.getString(R.string.stats_summary_most_active_day, date, count))
     }
     appendLine()
     if (state.modelCounts.isNotEmpty()) {
-        appendLine("最常使用的模型:")
+        appendLine(context.getString(R.string.stats_summary_models_header))
         state.modelCounts.take(10).forEachIndexed { i, m ->
-            appendLine("  ${i + 1}. ${m.modelName} - ${m.count} 条 (${(m.percentage * 100).toInt()}%)")
+            appendLine(context.getString(R.string.stats_summary_model_line, i + 1, m.modelName, m.count, (m.percentage * 100).toInt().toString()))
         }
     }
     appendLine()
     if (state.assistantCounts.isNotEmpty()) {
-        appendLine("助手使用占比:")
+        appendLine(context.getString(R.string.stats_summary_assistants_header))
         state.assistantCounts.forEach { a ->
-            appendLine("  - ${a.assistantName}: ${a.count} 条")
+            appendLine(context.getString(R.string.stats_summary_assistant_line, a.assistantName, a.count))
         }
     }
 }
@@ -1350,7 +1357,7 @@ private fun buildStatsSummaryText(state: StatsViewModel.StatsUiState): String = 
  * 调起系统分享,导出统计摘要文本。
  */
 private fun shareStatsSummary(context: Context, state: StatsViewModel.StatsUiState) {
-    val summary = buildStatsSummaryText(state)
+    val summary = buildStatsSummaryText(context, state)
     val sendIntent = Intent(Intent.ACTION_SEND).apply {
         type = "text/plain"
         putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.stats_export_subject))

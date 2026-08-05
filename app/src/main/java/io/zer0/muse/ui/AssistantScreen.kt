@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -57,6 +58,7 @@ import io.zer0.muse.R
 import io.zer0.muse.data.assistant.AssistantCardExporter
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.assistant.AssistantRepository
+import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.CharacterCardImporter
 import io.zer0.muse.ui.common.media.AssistantAvatar
 import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
@@ -92,6 +94,9 @@ fun AssistantScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val repo: AssistantRepository = koinInject()
+    val settings: SettingsRepository = koinInject()
+    val defaultAssistantId by settings.defaultAssistantIdFlow.collectAsStateWithLifecycle(initialValue = "default")
+    var showDefaultAssistantPicker by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     var actionSheetAssistant by remember { mutableStateOf<AssistantEntity?>(null) }
     var deleteTarget by remember { mutableStateOf<AssistantEntity?>(null) }
@@ -124,6 +129,9 @@ fun AssistantScreen(
     val toastSillyTavernImportFailed = stringResource(R.string.assistant_toast_sillytavern_import_failed)
     val sectionAssistants = stringResource(R.string.assistant_section_my_assistants)
     val sectionActions = stringResource(R.string.assistant_section_actions)
+    val defaultAssistantTitle = stringResource(R.string.assistant_default_title)
+    val defaultAssistantPickerTitle = stringResource(R.string.assistant_default_picker_title)
+    val defaultAssistantHint = stringResource(R.string.assistant_default_hint)
 
     // 导出角色卡 launcher(SAF CreateDocument,.muse-assistant 文件)
     val exportLauncher = rememberLauncherForActivityResult(
@@ -256,6 +264,34 @@ fun AssistantScreen(
                     }
                 }
             } else {
+                item {
+                    CardGroup(
+                        title = {
+                            Text(defaultAssistantTitle)
+                        },
+                    ) {
+                        item(
+                            onClick = { showDefaultAssistantPicker = true },
+                            leadingContent = {
+                                Icon(
+                                    imageVector = Icons.Outlined.Psychology,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(MuseIconSizes.icon),
+                                    tint = MaterialTheme.colorScheme.primary,
+                                )
+                            },
+                            headlineContent = {
+                                Text(defaultAssistantTitle)
+                            },
+                            supportingContent = {
+                                val currentDefault = state.assistants.firstOrNull { it.id == defaultAssistantId }
+                                Text(currentDefault?.name?.ifBlank { null } ?: defaultAssistantTitle)
+                            },
+                            trailingContent = { ChevronRight() },
+                        )
+                    }
+                }
+
                 item {
                     CardGroup(
                         title = {
@@ -392,6 +428,57 @@ fun AssistantScreen(
             }
         }
     }
+
+    if (showDefaultAssistantPicker) {
+        MuseDialog(
+            onDismissRequest = { showDefaultAssistantPicker = false },
+            title = defaultAssistantPickerTitle,
+            content = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    if (state.assistants.isEmpty()) {
+                        Text(
+                            text = defaultAssistantHint,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = 4.dp),
+                        )
+                    } else {
+                        state.assistants.forEach { assistant ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        showDefaultAssistantPicker = false
+                                        scope.launch { settings.saveDefaultAssistantId(assistant.id) }
+                                    }
+                                    .padding(vertical = MusePaddings.itemGap),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                AssistantAvatar(assistant = assistant, avatarSize = 36.dp)
+                                Spacer(Modifier.width(MusePaddings.contentGap))
+                                Text(
+                                    text = assistant.name.ifBlank { unnamedText },
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                if (assistant.id == defaultAssistantId) {
+                                    Text(
+                                        text = currentText,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmText = closeText,
+            onConfirm = { showDefaultAssistantPicker = false },
+            onDismiss = { showDefaultAssistantPicker = false },
+        )
+    }
+
 
     // 操作菜单(MuseDialog)
     actionSheetAssistant?.let { assistant ->

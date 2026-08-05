@@ -18,6 +18,16 @@
     <string name="settings_web_search_save_api_key">Salvar chave de API</string>
     <string name="settings_web_search_endpoint_label">Ponto final da API de pesquisa</string>
     <string name="settings_web_search_save_endpoint">Salvar ponto final</string>
+    <string name="settings_web_search_auto_hint">O modo Auto tenta vários mecanismos de busca: prioriza mecanismos comerciais com chave de API configurada e depois recorre a Bing, Jina e SearXNG, filtrando resultados de baixa qualidade.</string>
+    <string name="settings_web_search_test_query_label">Consulta de teste</string>
+    <string name="settings_web_search_test_query_placeholder">Digite uma palavra-chave para testar a busca…</string>
+    <string name="settings_web_search_test_success">Busca bem-sucedida, %1$d resultados:\n%2$s</string>
+    <string name="settings_web_search_test_empty">Busca concluída sem resultados</string>
+    <string name="settings_web_search_test_failed">Falha no teste: %1$s</string>
+    <string name="settings_web_search_test_failed_unknown">Erro desconhecido</string>
+    <string name="settings_web_search_testing">Buscando…</string>
+    <string name="settings_web_search_test">Testar busca</string>
+    <string name="settings_web_search_test_failed_prefix">Falha no teste</string>
     <!-- v1.98: New search provider names (bilingual, for UI display / logs / error hints) -->
     <string name="settings_web_search_provider_brave">Busca corajosa</string>
     <string name="settings_web_search_provider_perplexity">Pesquisa de perplexidade</string>

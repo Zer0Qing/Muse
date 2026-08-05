@@ -74,8 +74,8 @@ import io.zer0.muse.tools.ToolLoopResult
 import io.zer0.muse.tools.ToolRegistry
 import io.zer0.muse.tools.ToolRiskLevel
 import io.zer0.muse.chat.PendingToolCallStore
-import io.zer0.muse.data.chat.MessageNode
-import io.zer0.muse.ui.chat.MessageBranchManager
+import io.zer0.muse.data.chat.ConversationTree
+import io.zer0.muse.data.chat.ConversationTreeSnapshotStore
 import io.zer0.muse.transformer.ContextCompressTransformer
 import io.zer0.muse.transformer.LorebookTransformer
 import io.zer0.muse.transformer.MemoryInjectionTransformer
@@ -280,6 +280,14 @@ data class ChatStreamState(
         val pendingToolCallCount: Int = 0,
 )
 
+data class ChatToolsState(
+    val isCompressing: Boolean = false,
+    val taskCards: Map<String, io.zer0.muse.ui.taskcard.TaskCardData> = emptyMap(),
+    val toolCallHistory: List<ToolCallRecord> = emptyList(),
+    val pendingToolApprovals: List<PendingToolApproval> = emptyList(),
+)
+
+
 data class ChatInputState(
     val input: String = "",
     /** Phase 8.6: 待发送的本地图片 base64 列表(无 data: 前缀)。 */
@@ -351,6 +359,7 @@ class ChatUiState(
     val inputState: ChatInputState = ChatInputState(),
     val sessionState: ChatSessionState = ChatSessionState(),
     val agentState: ChatAgentState = ChatAgentState(),
+    val toolsState: ChatToolsState = ChatToolsState(),
     /** B7-01: 消息多选模式。 */
     val selectionMode: Boolean = false,
     /** B7-01: 已选消息 id 集合。 */
@@ -486,7 +495,6 @@ class ChatUiState(
          *
          * 手动压缩按钮点击后置 true,完成后置 false。UI 据此显示转圈 + 禁用按钮。
          */
-        val isCompressing: Boolean = false,
     /** v0.39: 深度思考开关(聊天时临时启用 HIGH 推理,覆盖助手默认 reasoningLevel)。 */
         val deepThinkingEnabled: Boolean = false,
     /**
@@ -516,7 +524,6 @@ class ChatUiState(
     /** Phase 8.7: 正在朗读的消息 id(null 表示无)。 */
         val speakingMessageId: Uuid? = null,
     /** Phase 8.8: 任务卡映射(assistant 消息 id → TaskCardData),工具调用计划展示。 */
-        val taskCards: Map<String, io.zer0.muse.ui.taskcard.TaskCardData> = emptyMap(),
     /** v1.55: Agent 工作流计划映射(planId → AgentPlan),结构化任务规划展示。 */
         val agentPlans: Map<String, io.zer0.muse.ui.taskcard.AgentPlan> = emptyMap(),
     /** Phase 9.3 (M2): ASR 配置(provider/apiKey/model)。 */
@@ -572,13 +579,9 @@ class ChatUiState(
          */
         val lastHistoryLoadCount: Int = 0,
     /** v1.94: 当前会话的工具调用记录(用于 InputBar 动态胶囊展示)。 */
-        val toolCallHistory: List<ToolCallRecord> = emptyList(),
     /** v2.3: 任务模型路由开关(开启后根据输入内容自动推荐模型)。 */
         val taskRoutingEnabled: Boolean = false,
-    /** 消息分支节点列表(BranchSelector 用),每个节点可含多版本 assistant 回复。 */
-        val messageNodes: List<MessageNode> = emptyList(),
     /** 待审批的工具调用列表(ToolApprovalCard 用)。 */
-        val pendingToolApprovals: List<PendingToolApproval> = emptyList(),
     /**
          * v1.0.47 P1: 上下文压缩状态(流式 Compaction UI)。
          *
@@ -605,6 +608,10 @@ class ChatUiState(
     val isOcrProcessing: Boolean get() = streamState.isOcrProcessing
     val toolProgressMessage: String? get() = streamState.toolProgressMessage
     val pendingToolCallCount: Int get() = streamState.pendingToolCallCount
+    val isCompressing: Boolean get() = toolsState.isCompressing
+    val taskCards: Map<String, io.zer0.muse.ui.taskcard.TaskCardData> get() = toolsState.taskCards
+    val toolCallHistory: List<ToolCallRecord> get() = toolsState.toolCallHistory
+    val pendingToolApprovals: List<PendingToolApproval> get() = toolsState.pendingToolApprovals
     val input: String get() = inputState.input
     val hasDraft: Boolean get() = inputState.hasDraft
     val inputHistory: List<String> get() = inputState.inputHistory
@@ -642,6 +649,7 @@ class ChatUiState(
         inputState: ChatInputState = this.inputState,
         sessionState: ChatSessionState = this.sessionState,
         agentState: ChatAgentState = this.agentState,
+        toolsState: ChatToolsState = this.toolsState,
         isSwitchingSession: Boolean = this.isSwitchingSession,
         selectionMode: Boolean = this.selectionMode,
         selectedMessageIds: Set<String> = this.selectedMessageIds,
@@ -680,7 +688,6 @@ class ChatUiState(
         pasteAsFileThreshold: Int = this.pasteAsFileThreshold,
         tokenCountVisible: Boolean = this.tokenCountVisible,
         tokenSnapshot: TokenCountSnapshot? = this.tokenSnapshot,
-        isCompressing: Boolean = this.isCompressing,
         deepThinkingEnabled: Boolean = this.deepThinkingEnabled,
         deepThinkingLevel: ReasoningLevel = this.deepThinkingLevel,
         webSearchConfig: WebSearchConfig = this.webSearchConfig,
@@ -714,7 +721,6 @@ class ChatUiState(
         lastHistoryLoadCount: Int = this.lastHistoryLoadCount,
         toolCallHistory: List<ToolCallRecord> = this.toolCallHistory,
         taskRoutingEnabled: Boolean = this.taskRoutingEnabled,
-        messageNodes: List<MessageNode> = this.messageNodes,
         pendingToolApprovals: List<PendingToolApproval> = this.pendingToolApprovals,
         compactionState: CompactionState? = this.compactionState,
         sessionPermissionMode: SessionPermissionMode = this.sessionPermissionMode,
@@ -836,7 +842,8 @@ class ChatUiState(
         pasteAsFileThreshold = pasteAsFileThreshold,
         tokenCountVisible = tokenCountVisible,
         tokenSnapshot = tokenSnapshot,
-        isCompressing = isCompressing,
+        toolsState = toolsState.copy(
+                    ),
         deepThinkingEnabled = deepThinkingEnabled,
         deepThinkingLevel = deepThinkingLevel,
         webSearchConfig = webSearchConfig,
@@ -848,7 +855,6 @@ class ChatUiState(
         promptTemplates = promptTemplates,
         isSpeaking = isSpeaking,
         speakingMessageId = speakingMessageId,
-        taskCards = taskCards,
         agentPlans = agentPlans,
         asrConfig = asrConfig,
         providers = providers,
@@ -868,10 +874,7 @@ class ChatUiState(
         hasMoreHistory = hasMoreHistory,
         isLoadingMore = isLoadingMore,
         lastHistoryLoadCount = lastHistoryLoadCount,
-        toolCallHistory = toolCallHistory,
         taskRoutingEnabled = taskRoutingEnabled,
-        messageNodes = messageNodes,
-        pendingToolApprovals = pendingToolApprovals,
         compactionState = compactionState,
         sessionPermissionMode = sessionPermissionMode,
         appRunAllowAllTools = appRunAllowAllTools,
@@ -1036,6 +1039,8 @@ class ChatViewModel(
     private val toolOrchestrator: io.zer0.muse.tools.ToolOrchestrator,
     // B2-04: 子代理审批路由(注册本实例为 delegate,子代理需审批时弹主会话审批卡)
     private val toolApprovalRouter: io.zer0.muse.tools.ToolApprovalRouter,
+    /** P0 对话树选择快照存储(可为 null,测试环境不注入)。 */
+    private val treeSnapshotStore: ConversationTreeSnapshotStore? = null,
 ) : ViewModel(), ChatStateAccessor, io.zer0.muse.tools.ToolApprovalBridge {
     // v1.0.54: autoSave 去重状态(30 秒内同会话只跑一次,防堆积)
     private var lastAutoSaveSessionId: String? = null
@@ -1179,10 +1184,16 @@ class ChatViewModel(
     private var voiceConversationJob: Job? = null
 
     // 消息分支管理器(RikkaHub message branching port)
-    private val branchManager = MessageBranchManager()
+    // P0 对话树: 两级结构(用户提问组 → 助手回复组)的事实源,
+    // _messages 在流式期间保持扁平列表,稳定点(发送/重试/编辑/切会话/流结束)重建树并同步显示。
+    private val _conversationTree = MutableStateFlow(ConversationTree())
+    val conversationTree: StateFlow<ConversationTree> = _conversationTree.asStateFlow()
+    // P0 对话树: 记录当前树所属会话,防止切会话/切 Agent 时把上一个会话的分支带过来。
+    @Volatile private var _conversationTreeSessionId: String? = null
     // v1.0.30: 待写入的变体信息（regenerate 流完成后应用）
     private data class VariantInfo(val groupId: String, val index: Int, val count: Int)
     @Volatile private var _pendingVariantInfo: VariantInfo? = null
+    // P0 对话树: 待编辑的用户消息 id(用户点击编辑后回填输入框,发送时应用为新的用户变体)
     // v1.0.30: 回话跟踪 — onAppForeground 用
     @Volatile private var _lastSessionSwitchTimestamp: Long = 0L
     @Volatile private var _lastSessionSwitchId: String? = null
@@ -1317,8 +1328,7 @@ class ChatViewModel(
             addError(ChatErrorType.UNKNOWN, appContext.getString(R.string.err_chat_queue_full))
             return
         }
-        // 同步消息分支状态
-        branchManager.onMessageSent(userMsg)
+        rebuildConversationTree()
     }
 
     // v1.105 拆分: ChatStateAccessor 实现 — 供各 Coordinator 读写 state
@@ -2176,7 +2186,7 @@ class ChatViewModel(
     private var cachedSystemPrompt: String = ""
 
     /**
-     * 借鉴 openhanako:静态 system prompt 快照。
+     * 借鉴 参考开源项目:静态 system prompt 快照。
      *
      * 静态部分(人格/风格/用户画像/记忆/工具清单/纪律/安全/MOOD/Artifact 等)
      * 在同一会话内连续发消息时复用,只追加动态"当前时间"section。
@@ -2206,7 +2216,7 @@ class ChatViewModel(
             ?: ModelContextWindowRegistry.lookup(model?.id ?: "")
             ?: 32768
         // 2. 重建 system prompt(6 步工作流第 1 步,含人格/记忆/工具等)
-        // 借鉴 openhanako:拆分为静态快照 + 动态时间,静态部分在同一会话内复用。
+        // 借鉴 参考开源项目:拆分为静态快照 + 动态时间,静态部分在同一会话内复用。
         val assistant = _state.value.currentAssistant
             ?: assistantRepository.getById("default")
         val memoryEnabled = assistant?.memoryEnabled ?: true
@@ -2436,7 +2446,7 @@ class ChatViewModel(
         }
         if (_state.value.isStreaming || _state.value.isCompressing) return
 
-        _state.update { it.copy(isCompressing = true) }
+        _state.update { it.copy(toolsState = it.toolsState.copy(isCompressing = true)) }
         viewModelScope.launch(AppDispatchers.io) {
             try {
                 // 1. 可选:先更新记忆(强制提炼 fact + deep memory + 刷新 today)
@@ -2497,7 +2507,7 @@ class ChatViewModel(
                 Logger.w("ChatVM", "manualCompress failed: ${e.message}")
                 reportError(appContext.getString(R.string.err_chat_compress_failed, e.message ?: ""))
             } finally {
-                _state.update { it.copy(isCompressing = false) }
+                _state.update { it.copy(toolsState = it.toolsState.copy(isCompressing = false)) }
             }
         }
     }
@@ -2733,8 +2743,8 @@ class ChatViewModel(
             }
         }
         viewModelScope.launch {
-            // Phase 8.2: 新会话继承当前 Assistant(切到默认助手时新建的会话绑定默认助手)
-            val currentAssistantId = _state.value.currentAssistant?.id ?: "default"
+            // v1.0.63: 新任务使用设置里的默认助手
+            val currentAssistantId = settings.defaultAssistantIdFlow.first().ifBlank { "default" }
             val id = sessionRepository.createSession(assistantId = currentAssistantId)
             // v1.x: 获取新会话引用(与 switchSession 的 acquire 配对)
             sessionManager.acquire(id)
@@ -2792,7 +2802,8 @@ class ChatViewModel(
             if (currentSession != null && currentInput.isNotBlank()) {
                 settings.saveChatDraft(currentSession, currentInput)
             }
-            val currentAssistantId = _state.value.currentAssistant?.id ?: "default"
+            // v1.0.63: 新任务使用设置里的默认助手
+            val currentAssistantId = settings.defaultAssistantIdFlow.first().ifBlank { "default" }
             val id = sessionRepository.createSession(assistantId = currentAssistantId)
             // v1.x: 获取新会话引用
             sessionManager.acquire(id)
@@ -2924,7 +2935,7 @@ class ChatViewModel(
         sessionManager.acquire(sessionId)
         // v1.93+: 切换前把当前会话消息快照存入 LRU 缓存,切回时可直接命中避免 DB 查询。
         // v1.0.44: 如果有变体分支则不缓存，强制从 DB 加载完整变体列表
-        if (currentSession != null && _state.value.messageNodes.none { it.hasBranches }) {
+        if (currentSession != null && _conversationTree.value.userNodes.none { it.variants.size > 1 || it.currentVariant?.assistantNodes?.any { a -> a.variants.size > 1 } == true }) {
             sessionMemoryCache.put(currentSession, _messages.value)
         }
         viewModelScope.launch {
@@ -2995,11 +3006,7 @@ class ChatViewModel(
                     listFirstVisibleItemScrollOffset = 0,
                 )
             }
-            // v1.0.30: 回话安全网 — 后台生成中的会话显式重刷分支状态 + 清内存缓存
             if (isBackgroundStreaming) {
-                branchManager.syncFromMessages(messages)
-                _state.update { it.copy(messageNodes = branchManager.nodes.value) }
-                _messages.value = branchManager.displayMessages.value
                 sessionMemoryCache.remove(sessionId)
             }
             // v1.0.30: 标记回话时间戳，供 onAppForeground 判断是否需要强制刷新
@@ -3007,10 +3014,9 @@ class ChatViewModel(
             _lastSessionSwitchId = sessionId
             // v0.45: 刷新上下文 token 占用(加载 contextWindow + 重建 system prompt)
             refreshContextInfo()
-            // 同步消息分支状态
-            branchManager.syncFromMessages(messages)
-            _state.update { it.copy(messageNodes = branchManager.nodes.value) }
-            _messages.value = branchManager.displayMessages.value
+            // P0 对话树: 读取上次分支选择快照,重建时恢复用户/助手变体
+            val treeSnapshot = treeSnapshotStore?.load(sessionId)
+        rebuildConversationTree(previousOverride = treeSnapshot)
             // 切换会话取消所有待审批(防止幽灵审批卡片 + requestToolApproval 协程挂起)
             cancelAllPendingApprovals()
             // 断点续传:检查本会话是否有未完成的工具调用,有则更新 pendingToolCallCount
@@ -3210,10 +3216,7 @@ class ChatViewModel(
                     lastHistoryLoadCount = older.size,
                 )
             }
-            // 加载更多历史后同步消息分支状态
-            branchManager.syncFromMessages(merged)
-            _state.update { it.copy(messageNodes = branchManager.nodes.value) }
-            _messages.value = branchManager.displayMessages.value
+        rebuildConversationTree()
         }
     }
 
@@ -3677,32 +3680,49 @@ class ChatViewModel(
     }
 
     /**
-     * 编辑用户消息: 截断到该消息(不含),把内容放回输入框。
-     * 后续消息(含对应 assistant 回复)会被丢弃,用户可修改后重新发送。
+     * 应用用户编辑（P0 对话树）：把修改后的文本保存为新用户变体，
+     * 保留旧提问/旧助手回复，新建用户版本并启动新回复流。
      */
-    fun editUserMessage(messageId: Uuid) {
+    fun applyUserEdit(messageId: String, newContent: String) {
         if (_state.value.isStreaming) return
-        val sessionId = _state.value.currentSessionId ?: return
-        val messages = _messages.value
-        val target = messages.firstOrNull { it.id == messageId && it.role == MessageRole.USER }
+        val sessionId = _state.value.currentSessionId ?: _state.value.agentSessionId ?: return
+        val tree = _conversationTree.value
+        val target = tree.userNodes.asSequence()
+            .flatMap { it.variants.asSequence() }
+            .map { it.message }
+            .firstOrNull { it.id.toString() == messageId && it.role == MessageRole.USER }
             ?: return
-        val truncated = messages.takeWhile { it.id != messageId }
-        _messages.value = truncated
+        val edit = tree.editUserMessage(target.id, newContent) ?: return
+        _conversationTree.value = edit.tree
+        _messages.value = edit.tree.displayMessages
         _state.update {
             it.copy(
-                input = target.content,
+                input = "",
+                hasDraft = false,
                 errors = emptyList(),
+                isStreaming = true,
+                isWaitingFirstToken = true,
             )
         }
-        // 同步 db:删除该消息及之后的全部消息
-        viewModelScope.launch {
-            sessionRepository.truncateFrom(sessionId, target.createdAt)
+        sessionMemoryCache.remove(sessionId)
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                edit.newUserMessage?.let { sessionRepository.upsertMessage(sessionId, it) }
+                edit.newAssistantPlaceholder?.let { sessionRepository.upsertMessage(sessionId, it) }
+                edit.newUserMessage?.variantGroupId?.let { groupId ->
+                    edit.newUserMessage?.variantCount?.let { count ->
+                        runCatching { sessionRepository.updateVariantCount(groupId, count) }
+                    }
+                }
+            }.onFailure { e -> Logger.e("ChatVM", "applyUserEdit persist failed", e) }
+        }
+        edit.newAssistantPlaceholder?.let { placeholder ->
+            viewModelScope.launch {
+                launchStream(placeholder.id, sessionId, isNewBranch = true)
+            }
         }
     }
 
-    /**
-     * 编辑助手消息:直接更新指定 assistant 消息的内容,并同步数据库。
-     */
     fun editAssistantMessage(messageId: Uuid, newContent: String) {
         if (_state.value.isStreaming) return
         val sessionId = _state.value.currentSessionId ?: return
@@ -3740,6 +3760,7 @@ class ChatViewModel(
             .removeSuffix("[已中断]")
         val resumed = last.copy(content = content)
         _messages.value = _messages.value.map { if (it.id == last.id) resumed else it }
+        rebuildConversationTree()
         _state.update {
             it.copy(
                 isStreaming = true,
@@ -3753,6 +3774,10 @@ class ChatViewModel(
      * 重生成最后一条 assistant 回复: 保留旧回复作为分支,创建新分支并重新请求。
      * 仅当最后一条是 assistant 且非流式时可用。
      */
+    /**
+     * 重生成当前用户变体下的最后一条 assistant 回复（P0 对话树）。
+     * 保留旧回复为助手变体,在当前用户变体下新建助手变体并重新请求。
+     */
     fun regenerateLastAssistant() {
         if (_state.value.isStreaming) return
         val sessionId = if (_state.value.isAgentMode) {
@@ -3760,115 +3785,119 @@ class ChatViewModel(
         } else {
             _state.value.currentSessionId ?: return
         }
-        val messages = _messages.value
-        val last = messages.lastOrNull() ?: return
-        if (last.role != MessageRole.ASSISTANT) return
-
-        // v1.0.30: 变体持久化 — 不删除旧回复，保留在消息列表 + DB 中
-        _pendingVariantInfo = null
-        val assistantMsg = UIMessage(role = MessageRole.ASSISTANT, content = "")
-        
-        viewModelScope.launch(Dispatchers.IO) {
-            // 查找已有变体组
-            val existing = sessionRepository.getMessageById(last.id.toString())
-            val groupId = existing?.variantGroupId
-                ?: "variant_${last.id}_${System.currentTimeMillis()}"
-            val existingVariants = if (existing?.variantGroupId != null) {
-                sessionRepository.getVariants(existing.variantGroupId!!)
-            } else emptyList()
-            
-            val newIndex: Int
-            val totalCount: Int
-            if (existingVariants.isNotEmpty()) {
-                // 已有变体组：追加新变体
-                newIndex = existingVariants.size
-                totalCount = newIndex + 1
-                sessionRepository.updateVariantCount(groupId, totalCount)
-            } else {
-                // 首次 regenerate：标记旧消息为 variant 0
-                newIndex = 1
-                totalCount = 2
-                if (existing != null) {
-                    sessionRepository.upsertMessageEntity(
-                        existing.copy(variantGroupId = groupId, variantIndex = 0, variantCount = totalCount)
-                    )
-                }
-            }
-            _pendingVariantInfo = VariantInfo(groupId, newIndex, totalCount)
-            
-            // v1.0.30: 从 DB 加载全部已有变体，避免只拿到当前显示的那个
-            val allExistingMessages = if (existingVariants.isNotEmpty()) {
-                existingVariants.map { entity ->
-                    UIMessage(
-                        id = kotlin.uuid.Uuid.parse(entity.id),
-                        role = MessageRole.valueOf(entity.role),
-                        content = entity.content,
-                        reasoning = entity.reasoning,
-                        modelId = entity.modelId,
-                        createdAt = entity.createdAt,
-                        variantGroupId = entity.variantGroupId,
-                        variantIndex = entity.variantIndex,
-                        variantCount = entity.variantCount,
-                    )
-                }
-            } else {
-                listOf(last.copy(
-                    variantGroupId = groupId, variantIndex = 0, variantCount = totalCount
-                ))
-            }
-            val newWithVariant = assistantMsg.copy(
-                variantGroupId = groupId, variantIndex = newIndex, variantCount = totalCount
+        val tree = _conversationTree.value
+        if (tree.selectedUserNode == null || tree.selectedUserVariant == null) return
+        val update = tree.retryLastAssistant()
+        val newMsg = update.newMessage ?: return
+        _conversationTree.value = update.tree
+        _messages.value = update.tree.displayMessages
+        _state.update {
+            it.copy(
+                isStreaming = true,
+                isWaitingFirstToken = true,
+                errors = emptyList(),
             )
-            
-            withContext(Dispatchers.Main) {
-                // 历史中移除最后一个 assistant（它已被包含在 allExistingMessages 中）
-                val lastAssistantIdx = messages.indexOfLast { it.role == MessageRole.ASSISTANT }
-                val history = if (lastAssistantIdx >= 0) {
-                    messages.take(lastAssistantIdx)
-                } else {
-                    messages
-                }
-                val newMessages = history + allExistingMessages + newWithVariant
-                _messages.value = newMessages
-                _state.update {
-                    it.copy(
-                        isStreaming = true,
-                        isWaitingFirstToken = true,
-                        errors = emptyList(),
-                    )
-                }
-                // 同步分支管理器（此时内存消息已有变体字段）
-                branchManager.syncFromMessages(newMessages)
-                // 切换到新变体（最新一个）
-                branchManager.selectBranch(groupId, newIndex)
-                _messages.value = branchManager.displayMessages.value
-                _state.update {
-                    it.copy(
-                        messageNodes = branchManager.nodes.value,
-                    )
-                }
-                sessionMemoryCache.remove(sessionId)
-                // 启动流
-                viewModelScope.launch {
-                    launchStream(assistantMsg.id, sessionId, isNewBranch = true)
-                }
+        }
+        sessionMemoryCache.remove(sessionId)
+        _pendingVariantInfo = null
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching { sessionRepository.upsertMessage(sessionId, newMsg) }
+                .onFailure { e -> Logger.e("ChatVM", "regenerate upsertMessage failed", e) }
+            update.changedGroupId?.let { groupId ->
+                runCatching { sessionRepository.updateVariantCount(groupId, newMsg.variantCount) }
             }
         }
+        viewModelScope.launch {
+            launchStream(newMsg.id, sessionId, isNewBranch = true)
+        }
     }
+
 
     /**
      * 切换消息分支:用户通过 BranchSelector 左右箭头切换同一位置的多版本 assistant 回复。
      */
-    fun selectBranch(nodeId: String, index: Int) {
-        branchManager.selectBranch(nodeId, index)
-        // 同步 displayMessages 到 _messages.value
-        _messages.value = branchManager.displayMessages.value
-        _state.update {
-            it.copy(
-                messageNodes = branchManager.nodes.value,
-            )
+    /**
+     * P0 对话树: 从当前 _messages 重建树,并同步显示列表。
+     * 流式期间 _messages 是扁平事实源;发送/重试/编辑/切会话/流结束等稳定点调用。
+     */
+    private fun rebuildConversationTree(previousOverride: ConversationTree? = null) {
+        // 只复用属于当前会话的树；切会话/Agent 时从消息列表重新建树，避免串会话。
+        val sessionId = _state.value.currentSessionId ?: _state.value.agentSessionId
+        val currentTree = if (sessionId != null && _conversationTreeSessionId == sessionId) {
+            _conversationTree.value
+        } else {
+            ConversationTree()
+        }
+        val flat = currentTree.allFlatMessages
+        val latestById = _messages.value.associateBy { it.id.toString() }
+        val messages = if (flat.isNotEmpty()) {
+            flat.map { latestById[it.id.toString()] ?: it }
+        } else {
+            _messages.value
+        }
+        if (messages.isEmpty()) {
+            _conversationTree.value = ConversationTree()
+            _conversationTreeSessionId = sessionId
+            return
+        }
+        val previous = previousOverride ?: currentTree
+        val tree = ConversationTree.build(messages, previous)
+        _conversationTree.value = tree
+        _conversationTreeSessionId = sessionId
+        _messages.value = tree.displayMessages
+        if (sessionId != null) {
+            viewModelScope.launch(Dispatchers.IO) {
+                treeSnapshotStore?.save(sessionId, tree)
+                healBranchCounts(sessionId, messages, tree)
+            }
         }
     }
+
+    /** v1.0.63: 把归一化后的分支索引/计数回写数据库,修复历史坏数据。 */
+    private suspend fun healBranchCounts(
+        sessionId: String,
+        original: List<UIMessage>,
+        tree: ConversationTree,
+    ) {
+        val originalById = original.associateBy { it.id.toString() }
+        val normalizedAll = buildList {
+            tree.userNodes.forEach { user ->
+                user.variants.forEach { add(it.message) }
+                user.variants.forEach { variant ->
+                    variant.assistantNodes.forEach { assistant -> assistant.variants.forEach { add(it) } }
+                }
+            }
+        }
+        val changed = normalizedAll.filter { msg ->
+            val old = originalById[msg.id.toString()]
+            old != null && (old.variantIndex != msg.variantIndex || old.variantCount != msg.variantCount)
+        }
+        if (changed.isEmpty()) return
+        changed.forEach { sessionRepository.upsertMessage(sessionId, it) }
+    }
+
+    /**
+     * 切换用户提问变体（P0 对话树）。
+     */
+    fun selectUserVariant(userGroupId: String, variantIndex: Int) {
+        val tree = _conversationTree.value
+        val node = tree.userNodes.firstOrNull { user ->
+            (user.currentVariant?.message?.variantGroupId ?: user.groupId) == userGroupId
+        } ?: return
+        val updated = tree.selectUserVariant(node.userId, variantIndex)
+        _conversationTree.value = updated
+        _messages.value = updated.displayMessages
+    }
+
+    /**
+     * 切换助手回复变体（P0 对话树）：作用域仅限当前用户变体下的指定助手组。
+     */
+    fun selectAssistantVariant(userGroupId: String, assistantGroupId: String, index: Int) {
+        val updated = _conversationTree.value.selectAssistantVariant(userGroupId, assistantGroupId, index)
+        _conversationTree.value = updated
+        _messages.value = updated.displayMessages
+    }
+
 
     /**
      * 审批工具调用:用户批准待审批的工具调用。
@@ -4253,7 +4282,7 @@ class ChatViewModel(
             val memoryEnabled = assistant?.memoryEnabled ?: true
             val timeReminderEnabled = assistant?.enableTimeReminder ?: true
             val effectiveMemoryEnabled = memoryEnabled && settings.isMemoryEnabled()
-            // 借鉴 openhanako:复用静态 system prompt 快照,只追加动态"当前时间"。
+            // 借鉴 参考开源项目:复用静态 system prompt 快照,只追加动态"当前时间"。
             val currentKey = computeStaticSnapshotKey(assistant, effectiveMemoryEnabled)
             val staticSnapshot = if (currentKey == cachedStaticSnapshotKey && cachedStaticSystemPrompt.isNotBlank()) {
                 cachedStaticSystemPrompt
@@ -4996,8 +5025,7 @@ class ChatViewModel(
                 Logger.e("ChatVM", "upsertMessage failed", e)
                 addError(ChatErrorType.UNKNOWN, appContext.getString(R.string.err_chat_reply_save_failed, e.message ?: appContext.getString(R.string.err_chat_unknown)))
             }
-            branchManager.onAssistantResponse(withArtifacts, isNewBranch = state.isNewBranch)
-            _state.update { it.copy(messageNodes = branchManager.nodes.value) }
+        rebuildConversationTree()
         }
 
         return true
@@ -6004,15 +6032,6 @@ class ChatViewModel(
         }
     }
 
-    /** B7-03: 跳转到最早一条未读消息(没有未读时不动作)。 */
-    fun jumpToEarliestUnread() {
-        val sessionId = _state.value.currentSessionId ?: _state.value.agentSessionId ?: return
-        val session = _state.value.sessions.find { it.id == sessionId } ?: return
-        viewModelScope.launch {
-            val targetId = sessionRepository.findFirstUnreadMessageId(sessionId, session.lastReadMessageId)
-            if (targetId != null) setTargetMessage(targetId, null)
-        }
-    }
     fun deleteSelectedMessages() {
         val ids = _state.value.selectedMessageIds
         if (ids.isEmpty()) return

@@ -74,7 +74,7 @@ fun ScheduledMessageBanner(
                     )
                     IconButton(
                         onClick = { onCancel(msg.id) },
-                        modifier = Modifier.size(24.dp),
+                        modifier = Modifier.size(48.dp),
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,

@@ -6,7 +6,7 @@ import io.zer0.common.Logger
 /**
  * v1.137: Video Provider 注册中心(与 [io.zer0.ai.image.ImageProviderRegistry] 风格一致)。
  *
- * 参考 QingTian(openhanako)的 AdapterRegistry 模式 + 现有 ImageProviderRegistry:
+ * 参考 QingTian(参考开源项目)的 AdapterRegistry 模式 + 现有 ImageProviderRegistry:
  *  - 各 [VideoProvider] 实现类在启动时通过 [register] 注册到本中心;
  *  - 调用方通过 [selectFor] 按 [ProviderConfig] 自动选择合适的 provider;
  *  - 选择策略按 specId / baseUrl host 三层匹配,兜底 [GenericOpenAiVideoProvider]。

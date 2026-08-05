@@ -113,6 +113,7 @@
 
     <!-- ===== ui/HomeScreen home ===== -->
     <string name="home_tab_tasks">タスク</string>
+<string name="home_tab_agent">エージェント</string>
     <string name="home_tab_group_chat">グループ</string>
     <string name="home_settings_cd">設定</string>
     <string name="home_search_cd">検索</string>

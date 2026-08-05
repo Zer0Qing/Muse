@@ -31,6 +31,9 @@
     <string name="memory_sync_never">Memory not yet compiled, conversations not in long-term memory</string>
     <string name="memory_sync_recent">Last compiled %1$d min ago, memory synced</string>
     <string name="memory_sync_stale">Last compiled %1$d min ago, recent conversations may not be in memory yet. Tap \"Compile Now\" to sync manually</string>
+    <string name="memory_screen_experience_category_general">General</string>
+    <string name="memory_chart_type_distribution_cd">Memory type distribution donut chart</string>
+    <string name="memory_chart_daily_trend_cd">Daily memory trend chart</string>
     <string name="memory_sync_set_importance_cd">Set importance</string>
 
     <!-- v6: MemoryViewModel CRUD error messages -->

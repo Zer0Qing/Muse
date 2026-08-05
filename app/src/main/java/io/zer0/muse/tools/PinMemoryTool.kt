@@ -4,10 +4,10 @@ import io.zer0.memory.pin.PinnedMemoryStore
 import kotlinx.coroutines.runBlocking
 
 /**
- * pin_memory 工具(openhanako pinned-memory-store.ts 移植)。
+ * pin_memory 工具(参考开源项目 pinned-memory-store.ts 移植)。
  *
  * 允许 AI 置顶重要信息,使其保留在系统提示词中。
- * 通过 HanaAgentToolsRegistrar 动态注册到 ToolRegistry。
+ * 通过 AgentToolsRegistrar 动态注册到 ToolRegistry。
  */
 object PinMemoryTool {
 

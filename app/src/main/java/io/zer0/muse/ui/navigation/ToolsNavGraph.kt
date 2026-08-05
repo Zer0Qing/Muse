@@ -26,8 +26,7 @@ fun NavGraphBuilder.toolsNavGraph(
     sharedViewModel: ChatViewModel,
 ) {
     // v1.0.4: AI 工具管理页(展示 ToolRegistry 全部工具 + 详情 + 风险等级)
-    composable(
-        route = MuseRoutes.TOOLS,
+    composable<ToolsScreenRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -37,8 +36,7 @@ fun NavGraphBuilder.toolsNavGraph(
     }
     // P2-6: 浏览器自动化演示页 — 全屏 WebView + 顶部地址栏 + 底部操作栏
     // P2-8: 视频生成页 — 从设置 → 工具 → 视频生成 进入
-    composable(
-        route = MuseRoutes.VIDEO_GENERATION,
+    composable<VideoGenerationRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -47,8 +45,7 @@ fun NavGraphBuilder.toolsNavGraph(
         )
     }
     // P2-9: 语音克隆页 — 从设置 → 媒体 → 语音克隆 进入
-    composable(
-        route = MuseRoutes.VOICE_CLONING,
+    composable<VoiceCloningRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -57,8 +54,7 @@ fun NavGraphBuilder.toolsNavGraph(
         )
     }
     // v0.46: 统计页(热力图 + 使用概览,右滑入场)
-    composable(
-        route = MuseRoutes.STATS,
+    composable<StatsRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -67,13 +63,12 @@ fun NavGraphBuilder.toolsNavGraph(
             onOpenSession = { sessionId ->
                 // v1.66: 统计页点击会话跳转 — 切换会话后回到首页
                 sharedViewModel.switchSession(sessionId)
-                navController.popBackStack(MuseRoutes.HOME, inclusive = false)
+                navController.popBackStack(HomeRoute, inclusive = false)
             },
         )
     }
     // v1.0.4: 通知监听页(授权引导 + 最近通知列表)
-    composable(
-        route = MuseRoutes.NOTIFICATION_LISTENER,
+    composable<NotificationListenerRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -82,8 +77,7 @@ fun NavGraphBuilder.toolsNavGraph(
         )
     }
     // v2.0: 数据管理页(从设置进入)
-    composable(
-        route = MuseRoutes.DATA_MANAGEMENT,
+    composable<DataManagementRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
@@ -92,20 +86,18 @@ fun NavGraphBuilder.toolsNavGraph(
         )
     }
     // 知识库(首页大方块入口)
-    composable(
-        route = MuseRoutes.KNOWLEDGE,
+    composable<KnowledgeRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         KnowledgeScreen(
             onBack = { navController.popBackStack() },
-            onOpenCoverManager = { navController.navigate(MuseRoutes.COVER_MANAGER) },
+            onOpenCoverManager = { navController.navigate(CoverManagerRoute) },
         )
     }
 
     // v1.0.53: 封面库管理页(知识库文档详情 → 封面库 / 生成封面)
-    composable(
-        route = MuseRoutes.COVER_MANAGER,
+    composable<CoverManagerRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
