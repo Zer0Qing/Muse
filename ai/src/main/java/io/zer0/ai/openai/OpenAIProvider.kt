@@ -194,6 +194,7 @@ class OpenAIProvider(
         //   first delta 后立即 finish(只输出 1-4 个字符),但非流式能正常返回完整内容。
         //   记录 ContentDelta 总字符数,在 Done 时检查,若过少且耗时极短则回退到 completeText。
         val contentCharsSent = AtomicInteger(0)
+        val emptyNameToolCallCount = AtomicInteger(0)
         val firstDeltaTimestamp = AtomicLong(0L)
         // v1.0.48: reasoning 字符计数 — 当流式只发 reasoning 不发 content 就结束时
         //   (商汤 deepseek-v4-flash 的已知行为),不应触发非流式回退,否则会导致:
@@ -246,7 +247,7 @@ class OpenAIProvider(
             //   如果 finishReason=tool_calls 且存在空 name tool_call,说明模型流式模式下
             //   没有正确输出工具名,需触发非流式回退(非流式模式下 tool_calls 通常完整返回)。
             //   此时不能把 args 恢复为 ContentDelta(那是工具参数,不是正文),否则用户看到 JSON 幻觉。
-            val hasEmptyNameToolCall = toolCallAccMap.values.any { it.name.isNullOrBlank() && it.args.isNotEmpty() }
+            val hasEmptyNameToolCall = toolCallAccMap.values.any { !it.recoveredAsContent && it.name.isNullOrBlank() && it.args.isNotEmpty() }
 
             // v1.0.23: 商汤 deepseek-v4-flash 等流式过早结束 bug 检测
             //   商汤 API 流式实现有 bug:first delta 后立即 finish(只输出 0-4 个字符,
@@ -595,6 +596,22 @@ class OpenAIProvider(
                                 toolCallDeltaSent.set(true)
                                 anyDeltaSent.set(true)
                                 // v1.0.52: 只缓冲,不发送 ContentDelta
+                                val stormCount = emptyNameToolCallCount.incrementAndGet()
+                                if (stormCount > MAX_EMPTY_NAME_TOOL_CALLS) {
+                                    // 风暴:小模型把正文拆成大量独立空 name tool call,继续缓冲会拖慢整轮。
+                                    // 超过阈值后按正文增量恢复,让上层尽快拿到文本。真实工具调用不会连续出现这么多空 name。
+                                    acc.recoveredAsContent = true
+                                    val argsDelta = tc.function?.arguments.orEmpty()
+                                    if (argsDelta.isNotEmpty()) {
+                                        contentCharsSent.addAndGet(argsDelta.length)
+                                        trySend(ChatStreamEvent.ContentDelta(argsDelta))
+                                    }
+                                    Logger.w(
+                                        "OpenAIProvider",
+                                        "stream-guard: 空 name tool call 超过 $MAX_EMPTY_NAME_TOOL_CALLS 条,按正文增量恢复 (localIndex=$localIndex)",
+                                    )
+                                    return@forEach
+                                }
                                 Logger.d(
                                     "OpenAIProvider",
                                     "stream-guard: 空 name tool call 缓冲中 (localIndex=$localIndex, 累积 args=${acc.args.length} chars)",
@@ -2292,6 +2309,8 @@ class OpenAIProvider(
         const val RETRY_BASE_DELAY_MS = 1000L
         // completeText 429 切换 key 最大次数,防止无限递归
         const val MAX_KEY_SWITCHES = 3
+        /** 空 name tool call 风暴阈值:超过后按正文增量恢复,避免无限缓冲拖慢流式。 */
+        const val MAX_EMPTY_NAME_TOOL_CALLS = 10
         // M-OAI8: Vision 图片限制
         const val MAX_VISION_IMAGES = 4
         const val MAX_IMAGE_BASE64_LEN = 2 * 1024 * 1024  // 2MB

@@ -298,7 +298,7 @@ val appModule = module {
     }
     // v1.0.52 P2-4: PDF 视觉解析(PdfRenderer + 4 路并发 + 视觉模型 OCR)
     // 依赖 ChatService + ProviderConfigStore(检查视觉模型可用性)+ Context
-    single {
+    single<io.zer0.muse.tools.VisionOcrClient> {
         io.zer0.muse.tools.DefaultVisionOcrClient(
             chatService = get(),
             configStore = get(),
@@ -351,6 +351,33 @@ val appModule = module {
             toolRegistry = get(),
             accessibilityClient = get(),
             context = androidContext(),
+        )
+    }
+
+    // 工具注册器启动引导:强制实例化全部 lazy single,让 100+ 工具真正进入 ToolRegistry
+    single {
+        io.zer0.muse.tools.ToolRegistrarBootstrapper(
+            toolRegistry = get(),
+            encodingToolsRegistrar = get(),
+            coreToolsRegistrar = get(),
+            weatherToolsRegistrar = get(),
+            clipboardToolsRegistrar = get(),
+            networkTextToolsRegistrar = get(),
+            reminderToolsRegistrar = get(),
+            calendarToolsRegistrar = get(),
+            phoneToolsRegistrar = get(),
+            systemToolsRegistrar = get(),
+            resourceToolsRegistrar = get(),
+            quickNoteToolsRegistrar = get(),
+            scheduledTaskToolsRegistrar = get(),
+            translateToolsRegistrar = get(),
+            ttsToolsRegistrar = get(),
+            agentToolsRegistrar = get(),
+            workspaceToolsRegistrar = get(),
+            fileToolsRegistrar = get(),
+            pdfVisionToolsRegistrar = get(),
+            shellSandboxToolRegistrar = get(),
+            uiToolsRegistrar = get(),
         )
     }
 

@@ -109,6 +109,8 @@ class MuseApp : Application(), ImageLoaderFactory {
 
     // B5-02: 启动时恢复被强杀中断的群聊生成账本
     private val groupChatScheduler: io.zer0.muse.schedule.GroupChatScheduler by inject()
+    // 工具注册器启动引导:强制实例化全部 lazy single,让 100+ 工具可用
+    private val toolRegistrarBootstrapper: io.zer0.muse.tools.ToolRegistrarBootstrapper by inject()
     /** 应用级 scope:启动一次性任务用,独立于 Koin 注册的 IO scope。 */
     // v0.53: 加 GlobalCoroutineExceptionHandler,防止协程内未捕获异常导致应用崩溃(企业级容错)
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO + GlobalCoroutineExceptionHandler)
@@ -158,6 +160,8 @@ class MuseApp : Application(), ImageLoaderFactory {
             MuseCrashHandler.markSafeMode(this)
             return
         }
+        // 强制实例化全部工具注册器，让 100+ 工具在启动后即可用
+        toolRegistrarBootstrapper
         // ANR 检测 + 性能监控(在 startKoin 之后、服务初始化之前启动)
         // AnrWatcher:独立守护线程检测主线程无响应(5s+),ANR 时采集线程堆栈/内存/Perf 记录写入 crash 目录。
         //   开关 settings.enableAnrDetection(默认 true);自身不阻塞主线程(独立线程 + 弱引用 Handler)。

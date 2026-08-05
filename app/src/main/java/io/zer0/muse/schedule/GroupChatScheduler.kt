@@ -212,6 +212,10 @@ class GroupChatScheduler(
         private const val TAG = "GroupChatScheduler"
         /** 单个 agent 的 LLM 调用超时(毫秒)。 */
         private const val AGENT_TIMEOUT_MS = 60_000L
+        /** 单轮 LLM 决策超时(防止一个慢流式把 60s 总预算吃光)。 */
+        private const val AGENT_ROUND_TIMEOUT_MS = 20_000L
+        /** 群聊默认不注入常规工具，只保留 channel_* 三件套，避免小模型空 tool call 风暴。 */
+        private const val ENABLE_GROUP_CHAT_REGULAR_TOOLS = false
         /** 默认上下文消息条数。 */
         private const val DEFAULT_CONTEXT_SIZE = 20
         /** LLM 返回此标记表示跳过本轮发言。 */
@@ -2216,9 +2220,13 @@ class GroupChatScheduler(
         val enabledToolIds = runCatching {
             AppJson.decodeFromString(ListSerializer(String.serializer()), assistant.toolIdsJson)
         }.getOrNull()?.takeIf { it.isNotEmpty() }
-        val regularTools = GroupChatToolPolicy.filterRegularTools(
-            toolRegistry?.listToolsAsToolDefinitions(enabledToolIds) ?: emptyList(),
-        )
+        val regularTools = if (ENABLE_GROUP_CHAT_REGULAR_TOOLS) {
+            GroupChatToolPolicy.filterRegularTools(
+                toolRegistry?.listToolsAsToolDefinitions(enabledToolIds) ?: emptyList(),
+            )
+        } else {
+            emptyList<io.zer0.ai.core.ToolDefinition>()
+        }
         val allToolDefinitions = (channelTools.first + regularTools).distinctBy { it.name }
         val toolExecutors = channelTools.second.toMutableMap()
         regularTools.forEach { def ->
@@ -2232,30 +2240,31 @@ class GroupChatScheduler(
             }
         }
 
-        // v1.0.53 Phase 5: 多轮决策循环(整体 60s 超时包裹 → 超时视为 implicitPass)
+        // v1.0.53 Phase 5: 多轮决策循环(每轮独立短超时 → 超时视为 implicitPass)
         //  - 第 1 轮:三件套都可用
         //  - 第 2 轮(仅当第 1 轮调了 read_context):移除 read_context,强制 reply/pass
         //  - 任意轮 reply/pass 即退出;未调 read_context 也退出(implicit pass)
         //  - 流式错误(HTTP 500 / 网络异常)→ 立即返回 Error(不等超时)
-        //  - 整体超时 → implicitPass(对齐实现说明 implicitPass)
+        //  - 单轮超时 → implicitPass,不再让一个慢流式吃掉整个 60s 总预算
         var streamErrorMessage: String? = null  // 流式错误(非超时)
-        val timedOut = withTimeoutOrNull(AGENT_TIMEOUT_MS) {
-            for (round in 0 until MAX_CHANNEL_DECISION_ROUNDS) {
-                replyContent = null
-                passReason = null
+        var roundTimedOut = false
+        for (round in 0 until MAX_CHANNEL_DECISION_ROUNDS) {
+            replyContent = null
+            passReason = null
 
-                val toolsForThisRound = if (round == 0) {
-                    allToolDefinitions
-                } else {
-                    // 第 2 轮:移除 read_context,强制 reply/pass
-                    allToolDefinitions.filter { it.name != "channel_read_context" }
-                }
+            val toolsForThisRound = if (round == 0) {
+                allToolDefinitions
+            } else {
+                // 第 2 轮:移除 read_context,强制 reply/pass
+                allToolDefinitions.filter { it.name != "channel_read_context" }
+            }
 
-                // 流式调用,累积 ContentDelta + ToolCallDelta
-                val builder = StringBuilder()
-                val toolCallAccumulator = mutableMapOf<Int, MutableList<ChatStreamEvent.ToolCallDelta>>()
-                var streamError: String? = null
+            // 流式调用,累积 ContentDelta + ToolCallDelta
+            val builder = StringBuilder()
+            val toolCallAccumulator = mutableMapOf<Int, MutableList<ChatStreamEvent.ToolCallDelta>>()
+            var streamError: String? = null
 
+            val roundCompleted = withTimeoutOrNull(AGENT_ROUND_TIMEOUT_MS) {
                 chatService.streamChat(
                     messages = workingMessages,
                     model = model,
@@ -2277,77 +2286,82 @@ class GroupChatScheduler(
                         is ChatStreamEvent.FallbackNotice -> { /* 已自动降级为非流式 */ }
                     }
                 }
-                if (streamError != null) {
-                    // 流式错误:记录并跳出循环,在外部返回 Error
-                    streamErrorMessage = streamError
-                    break
-                }
-
-                // 累积的 tool calls(按 index 排序,合并增量)
-                val toolCalls = toolCallAccumulator.toSortedMap().values.map { deltas ->
-                    ToolCall(
-                        id = deltas.firstNotNullOfOrNull { it.id } ?: "",
-                        name = deltas.firstNotNullOfOrNull { it.name } ?: "",
-                        arguments = deltas.mapNotNull { it.argumentsDelta }.joinToString(""),
-                    )
-                }
-
-                val rawText = builder.toString().trim()
-
-                // 处理 tool calls
-                var calledReadContext = false
-                for (tc in toolCalls) {
-                    when (tc.name) {
-                        "channel_reply" -> {
-                            val args = parseToolArgs(tc.arguments)
-                            toolExecutors["channel_reply"]?.invoke(args)
-                            // replyContent 已通过 onReply 回调赋值
-                        }
-                        "channel_pass" -> {
-                            val args = parseToolArgs(tc.arguments)
-                            toolExecutors["channel_pass"]?.invoke(args)
-                            // passReason 已通过 onPass 回调赋值
-                        }
-                        "channel_read_context" -> {
-                            val args = parseToolArgs(tc.arguments)
-                            val result = toolExecutors["channel_read_context"]?.invoke(args) ?: "(无上下文)"
-                            // 把 read_context 结果回填为 user 消息,让 LLM 下一轮据此决策
-                            workingMessages.add(UIMessage(
-                                role = MessageRole.USER,
-                                content = "【channel_read_context 结果】\n$result\n\n请基于以上完整上下文,调用 channel_reply 发言或 channel_pass 跳过。",
-                            ))
-                            calledReadContext = true
-                        }
-                        // B8-02: 常规工具调用 — 结果只回填当前成员上下文,不进入群聊消息表
-                        else -> {
-                            val args = parseToolArgs(tc.arguments)
-                            val result = toolExecutors[tc.name]?.invoke(args) ?: "(工具不可用)"
-                            workingMessages.add(
-                                UIMessage(
-                                    role = MessageRole.TOOL,
-                                    content = result,
-                                    toolCallId = tc.id,
-                                ),
-                            )
-                        }
-                    }
-                }
-
-                // 决策完成?
-                if (replyContent != null) break      // 已发言
-                if (passReason != null) break        // 已跳过
-                if (!calledReadContext) {
-                    // 未调 read_context 也未决策 — 检查是否有文本输出(兼容旧 [PASS] 文本协议)
-                    if (rawText.isBlank() || rawText == PASS_MARKER) {
-                        // 空文本或 [PASS] → implicit pass
-                        break
-                    }
-                    // 有文本但未调工具 → 当作 reply(兼容不支持工具调用的模型)
-                    replyContent = rawText
-                    break
-                }
-                // 否则继续下一轮(read_context 后强制 reply/pass)
+                true
+            } ?: false
+            if (!roundCompleted) {
+                roundTimedOut = true
+                break
             }
+            if (streamError != null) {
+                // 流式错误:记录并跳出循环,在外部返回 Error
+                streamErrorMessage = streamError
+                break
+            }
+
+            // 累积的 tool calls(按 index 排序,合并增量)
+            val toolCalls = toolCallAccumulator.toSortedMap().values.map { deltas ->
+                ToolCall(
+                    id = deltas.firstNotNullOfOrNull { it.id } ?: "",
+                    name = deltas.firstNotNullOfOrNull { it.name } ?: "",
+                    arguments = deltas.mapNotNull { it.argumentsDelta }.joinToString(""),
+                )
+            }
+
+            val rawText = builder.toString().trim()
+
+            // 处理 tool calls
+            var calledReadContext = false
+            for (tc in toolCalls) {
+                when (tc.name) {
+                    "channel_reply" -> {
+                        val args = parseToolArgs(tc.arguments)
+                        toolExecutors["channel_reply"]?.invoke(args)
+                        // replyContent 已通过 onReply 回调赋值
+                    }
+                    "channel_pass" -> {
+                        val args = parseToolArgs(tc.arguments)
+                        toolExecutors["channel_pass"]?.invoke(args)
+                        // passReason 已通过 onPass 回调赋值
+                    }
+                    "channel_read_context" -> {
+                        val args = parseToolArgs(tc.arguments)
+                        val result = toolExecutors["channel_read_context"]?.invoke(args) ?: "(无上下文)"
+                        // 把 read_context 结果回填为 user 消息,让 LLM 下一轮据此决策
+                        workingMessages.add(UIMessage(
+                            role = MessageRole.USER,
+                            content = "【channel_read_context 结果】\n$result\n\n请基于以上完整上下文,调用 channel_reply 发言或 channel_pass 跳过。",
+                        ))
+                        calledReadContext = true
+                    }
+                    // 常规工具调用 — 结果只回填当前成员上下文,不进入群聊消息表
+                    else -> {
+                        val args = parseToolArgs(tc.arguments)
+                        val result = toolExecutors[tc.name]?.invoke(args) ?: "(工具不可用)"
+                        workingMessages.add(
+                            UIMessage(
+                                role = MessageRole.TOOL,
+                                content = result,
+                                toolCallId = tc.id,
+                            ),
+                        )
+                    }
+                }
+            }
+
+            // 决策完成?
+            if (replyContent != null) break      // 已发言
+            if (passReason != null) break        // 已跳过
+            if (!calledReadContext) {
+                // 未调 read_context 也未决策 — 检查是否有文本输出(兼容旧 [PASS] 文本协议)
+                if (rawText.isBlank() || rawText == PASS_MARKER) {
+                    // 空文本或 [PASS] → implicit pass
+                    break
+                }
+                // 有文本但未调工具 → 当作 reply(兼容不支持工具调用的模型)
+                replyContent = rawText
+                break
+            }
+            // 否则继续下一轮(read_context 后强制 reply/pass)
         }
 
         // 流式错误优先处理(非超时,返回 Error)
@@ -2364,9 +2378,9 @@ class GroupChatScheduler(
             return AgentResult.Error(streamErrorMessage!!)
         }
 
-        if (timedOut == null) {
+        if (roundTimedOut) {
             // 决策超时 → implicitPass(对齐实现说明 implicitPass:超时未决策自动跳过)
-            Logger.w(TAG, "Agent「${assistant.name}」决策超时(${AGENT_TIMEOUT_MS / 1000}s),implicit pass")
+            Logger.w(TAG, "Agent「${assistant.name}」单轮决策超时(${AGENT_ROUND_TIMEOUT_MS / 1000}s),implicit pass")
             activityHub.updateStatus(chatId, assistant.id, assistant.name, AgentActivityStatus.NO_REPLY)
             scheduleIdleTransition(chatId, assistant)
             delegationChainTracker?.onDelegationFinished(
