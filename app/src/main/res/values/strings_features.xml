@@ -416,6 +416,11 @@
     <string name="knowledge_delete">删除</string>
     <string name="knowledge_close">关闭</string>
     <string name="knowledge_reindex">重新索引</string>
+    <string name="knowledge_repair_index">修复/重建索引</string>
+    <string name="knowledge_repairing">正在修复 FTS 索引并重索引…</string>
+    <string name="knowledge_fts_repaired">知识库索引已修复</string>
+    <string name="knowledge_fts_repaired_partial">索引已修复,但 %1$d 篇文档重索引失败</string>
+    <string name="knowledge_fts_repair_failed">索引修复失败: %1$s</string>
     <string name="knowledge_importing">正在导入</string>
     <string name="knowledge_reindexing">正在重新索引</string>
     <string name="knowledge_cancel">取消</string>

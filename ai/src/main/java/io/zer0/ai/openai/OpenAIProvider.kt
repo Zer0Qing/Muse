@@ -61,6 +61,7 @@ import okhttp3.Response
 import okhttp3.sse.EventSource
 import okhttp3.sse.EventSourceListener
 import okhttp3.sse.EventSources
+import java.security.MessageDigest
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
@@ -465,7 +466,7 @@ class OpenAIProvider(
                         Logger.w("OpenAIProvider", "streamChat onOpen HTTP $code: $msg")
                         // v1.0.28: HTTP 400 时记录请求体和完整响应体,帮助诊断中转站参数错误
                         if (code == 400) {
-                            Logger.w("OpenAIProvider", "streamChat 400 请求体(前500字符): ${body.take(500)}")
+                            Logger.w("OpenAIProvider", "streamChat 400 请求摘要: ${describeRequestBody(body)}")
                             Logger.w("OpenAIProvider", "streamChat 400 完整响应体: $errText")
                         }
                         // v1.0.1: 401/403 鉴权失败时标记当前 key 失败(多 key 场景)
@@ -823,7 +824,7 @@ class OpenAIProvider(
                     Logger.w("OpenAIProvider", "completeText HTTP $code: $msg")
                     // v1.0.28: HTTP 400 时记录请求体和完整响应体,帮助诊断中转站参数错误
                     if (code == 400) {
-                        Logger.w("OpenAIProvider", "completeText 400 请求体(前500字符): ${body.take(500)}")
+                        Logger.w("OpenAIProvider", "completeText 400 请求摘要: ${describeRequestBody(body)}")
                         Logger.w("OpenAIProvider", "completeText 400 完整响应体: $errText")
                     }
                     // L-OAI11: 用自定义异常替代字符串前缀判断
@@ -1605,6 +1606,17 @@ class OpenAIProvider(
      * L-OAI10: 追加 detail.code 字段。
      * L-OAI11: 移除一次重复截断(原 safeBody=take(200) + msg.take(200) 两次截断)。
      */
+    /** R-SEC-06: 400 排障只输出请求结构摘要,不落用户对话内容。 */
+    private fun describeRequestBody(body: String): String {
+        val parsed = runCatching { AppJson.decodeFromString(OpenAIRequest.serializer(), body) }.getOrNull()
+        val bytes = body.toByteArray(Charsets.UTF_8)
+        val digest = MessageDigest.getInstance("SHA-256").digest(bytes)
+        val hashPrefix = digest.take(4).joinToString("") { "%02x".format(it) }
+        return "model=${parsed?.model ?: "unknown"} " +
+            "messages=${parsed?.messages?.size ?: -1} " +
+            "tools=${parsed?.tools?.size ?: 0} " +
+            "bodyBytes=${bytes.size} sha256=$hashPrefix"
+    }
     private fun parseErrorMessage(code: Int, body: String): String {
         // M-OAI1: HTTP 状态码分类
         val category = ProviderHttpSupport.classifyHttpCode(code)

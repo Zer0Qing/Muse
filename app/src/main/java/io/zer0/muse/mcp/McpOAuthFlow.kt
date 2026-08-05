@@ -168,7 +168,7 @@ object McpOAuthFlow {
             httpClient.newCall(request).execute().use { resp ->
                 val body = resp.body.string()
                 if (!resp.isSuccessful) {
-                    Logger.w(TAG, "Token exchange failed: HTTP ${resp.code}, body=${body.take(200)}")
+                    Logger.w(TAG, "Token exchange failed: HTTP ${resp.code}")
                     return@resultOf null
                 }
                 parseTokenResponse(body)
@@ -217,7 +217,7 @@ object McpOAuthFlow {
             httpClient.newCall(request).execute().use { resp ->
                 val body = resp.body.string()
                 if (!resp.isSuccessful) {
-                    Logger.w(TAG, "Token refresh failed: HTTP ${resp.code}, body=${body.take(200)}")
+                    Logger.w(TAG, "Token refresh failed: HTTP ${resp.code}")
                     return@resultOf null
                 }
                 // refresh 响应可能不含新 refresh_token,沿用旧的;server 轮换 refresh_token 时用新的
@@ -306,7 +306,7 @@ object McpOAuthFlow {
         }
         if (resp == null) {
             // v1.114 安全:解析失败的 body 可能含凭据,截断前 200 字符;Logger.w 会自动 sanitizePii
-            Logger.w(TAG, "Failed to parse token response: ${body.take(200)}")
+            Logger.w(TAG, "Failed to parse token response (body omitted for security)")
             return null
         }
         if (!resp.error.isNullOrEmpty()) {

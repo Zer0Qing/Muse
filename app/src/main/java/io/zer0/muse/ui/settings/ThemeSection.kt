@@ -51,6 +51,7 @@ import androidx.core.graphics.ColorUtils
 import io.zer0.muse.R
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.data.AppearanceSettingsStore
 import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.settings.SectionLabel
@@ -87,7 +88,7 @@ internal fun ThemeSection(
     settings: SettingsRepository,
 ) {
     val scope = rememberCoroutineScope()
-    val themeId by settings.themeIdFlow.collectAsStateWithLifecycle(initialValue = "warm_paper")
+    val themeId by settings.themeIdFlow.collectAsStateWithLifecycle(initialValue = AppearanceSettingsStore.DEFAULT_THEME_ID)
     // 深色模式独立主题
     val darkThemeId by settings.darkThemeIdFlow.collectAsStateWithLifecycle(initialValue = "")
     // v1.65: 动态取色开关(代码早已就绪,此前 UI 无开关导致永远不可用)
@@ -228,7 +229,7 @@ internal fun ThemeSection(
                     settings.deleteCustomTheme(theme.id)
                     // 删除后若当前 themeId 指向被删主题,回退到默认预设
                     if (themeId == theme.id) {
-                        settings.saveThemeId("warm_paper")
+                        settings.saveThemeId(AppearanceSettingsStore.DEFAULT_THEME_ID)
                     }
                 }
                 deletingTheme = null

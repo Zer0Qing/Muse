@@ -275,6 +275,11 @@
     <string name="knowledge_delete">Borrar</string>
     <string name="knowledge_close">Cerca</string>
     <string name="knowledge_reindex">Reindexar</string>
+    <string name="knowledge_repair_index">Reparar/reconstruir índice</string>
+    <string name="knowledge_repairing">Reparando índice FTS y reindexando...</string>
+    <string name="knowledge_fts_repaired">Índice de conocimiento reparado</string>
+    <string name="knowledge_fts_repaired_partial">Índice reparado, pero %1$d documentos no se reindexaron</string>
+    <string name="knowledge_fts_repair_failed">Error al reparar índice: %1$s</string>
     <string name="knowledge_importing">Importador</string>
     <string name="knowledge_reindexing">Reindexación</string>
     <string name="knowledge_cancel">Cancelar</string>

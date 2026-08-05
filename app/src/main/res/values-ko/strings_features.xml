@@ -275,6 +275,11 @@
     <string name="knowledge_delete">삭제</string>
     <string name="knowledge_close">닫다</string>
     <string name="knowledge_reindex">재색인</string>
+    <string name="knowledge_repair_index">색인 복구/재구축</string>
+    <string name="knowledge_repairing">FTS 색인 복구 및 재색인 중...</string>
+    <string name="knowledge_fts_repaired">지식 색인을 복구했습니다</string>
+    <string name="knowledge_fts_repaired_partial">색인은 복구됐지만 %1$d개 문서 재색인 실패</string>
+    <string name="knowledge_fts_repair_failed">색인 복구 실패: %1$s</string>
     <string name="knowledge_importing">가져오기</string>
     <string name="knowledge_reindexing">재색인화 중</string>
     <string name="knowledge_cancel">취소</string>

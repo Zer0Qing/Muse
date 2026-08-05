@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SortByAlpha
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.outlined.Delete
@@ -377,6 +378,41 @@ fun KnowledgeScreen(
         }
     }
 
+    // R-UI-01: 修复/重建 FTS 索引(清影子表重建 + 全量重索引当前文档)
+    fun repairKnowledgeFts() {
+        reindexTarget = null
+        reindexing = true
+        reindexProgress = context.getString(R.string.knowledge_repairing)
+        scope.launch {
+            try {
+                val ragConfig = try {
+                    settings.getRagConfig()
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: java.io.IOException) {
+                    Logger.w("KnowledgeScreen", "读取 RAG 配置失败: ${e.message}")
+                    io.zer0.muse.rag.RagConfig()
+                }
+                val failures = ragService.repairKnowledgeFtsIndex(ragConfig) { current, total ->
+                    reindexProgress = context.getString(R.string.knowledge_generating_vector, current, total)
+                }
+                if (failures.isEmpty()) {
+                    MuseToast.show(context.getString(R.string.knowledge_fts_repaired))
+                } else {
+                    MuseToast.show(context.getString(R.string.knowledge_fts_repaired_partial, failures.size))
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                MuseToast.show(context.getString(R.string.knowledge_fts_repair_failed, e.message?.take(80) ?: ""))
+            } finally {
+                reindexing = false
+                reindexProgress = ""
+                reindexTarget = null
+            }
+        }
+    }
+
     /**
      * v1.0.53: AI 生成封面并写回文档 frontmatter。
      *
@@ -433,6 +469,20 @@ fun KnowledgeScreen(
                     // v1.66: 排序切换入口(iOS 风格动作弹窗)
                     IconButton(onClick = { showSortMenu = true }) {
                         Icon(Icons.AutoMirrored.Outlined.Sort, contentDescription = stringResource(R.string.knowledge_sort))
+                    }
+                    IconButton(
+                        onClick = { repairKnowledgeFts() },
+                        enabled = !reindexing,
+                    ) {
+                        Icon(
+                            Icons.Default.Refresh,
+                            contentDescription = stringResource(R.string.knowledge_repair_index),
+                            tint = if (reindexing) {
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                        )
                     }
                 },
             )

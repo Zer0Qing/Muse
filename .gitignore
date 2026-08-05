@@ -1,4 +1,4 @@
-﻿# Git ignore for Muse project submodule
+# Git ignore for Muse project submodule
 .gradle/
 .idea/
 .kotlin/
@@ -37,5 +37,10 @@ build-log*.txt
 build_output*.txt
 .tmp/
 
+# 测试数据库产物
+*.db
+*.db-wal
+*.db-shm
+
 # 软著申请材料
-软件著作权申请资料/
+软件著作权申请材料/

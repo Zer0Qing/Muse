@@ -21,14 +21,14 @@ import androidx.room.SkipQueryVerification
  *  - 删除 chunk → [deleteByDoc] / [deleteByChunkIds] 同步删除
  *  - 重建索引 → 先 [deleteAll] 再批量 [insert]
  *  - "upsert" 语义:FTS rowid 自动生成,REPLACE 无意义,调用方需先 delete 再 insert
+ *
+ * R-DB-02: 单条写操作捕获 no such table 后调用 [KnowledgeChunkFtsSelfHealer.repair] 自愈重试。
+ * 批量 [insertAll] 仍在 Room 事务内,由 [io.zer0.muse.rag.RagService] 在事务外做自愈重试,
+ * 避免 DDL 与事务连接互相等待。
  */
 @Dao
 interface KnowledgeChunkFtsDao {
-    /**
-     * 单行插入。@Insert 需要 entity 类型绑定,这里改用 @Query raw SQL。
-     * OnConflictStrategy.REPLACE 在 FTS 表上基于 rowid(自动生成),
-     * 实际是 INSERT,不会按 chunkId 替换。调用方需先 [deleteByChunkIds] 再 [insert] 实现 upsert 语义。
-     */
+
     @SkipQueryVerification
     @Query(
         """
@@ -36,27 +36,44 @@ interface KnowledgeChunkFtsDao {
         VALUES (:chunkId, :docId, :content)
         """,
     )
-    suspend fun insert(chunkId: String, docId: String, content: String)
+    suspend fun insertRaw(chunkId: String, docId: String, content: String)
+
+    @SkipQueryVerification
+    @Query("DELETE FROM knowledge_chunks_fts WHERE docId = :docId")
+    suspend fun deleteByDocRaw(docId: String)
+
+    @SkipQueryVerification
+    @Query("DELETE FROM knowledge_chunks_fts WHERE chunkId IN (:chunkIds)")
+    suspend fun deleteByChunkIdsRaw(chunkIds: List<String>)
+
+    @SkipQueryVerification
+    @Query("DELETE FROM knowledge_chunks_fts")
+    suspend fun deleteAllRaw()
 
     /** 批量插入 — 用事务保证原子性。 */
     @androidx.room.Transaction
     suspend fun insertAll(rows: List<KnowledgeChunkFtsRow>) {
         for (r in rows) {
-            insert(r.chunkId, r.docId, r.content)
+            insertRaw(r.chunkId, r.docId, r.content)
         }
     }
 
-    @SkipQueryVerification
-    @Query("DELETE FROM knowledge_chunks_fts WHERE docId = :docId")
-    suspend fun deleteByDoc(docId: String)
+    /**
+     * 单行插入。@Insert 需要 entity 类型绑定,这里改用 @Query raw SQL。
+     * OnConflictStrategy.REPLACE 在 FTS 表上基于 rowid(自动生成),
+     * 实际是 INSERT,不会按 chunkId 替换。调用方需先 [deleteByChunkIds] 再 [insert] 实现 upsert 语义。
+     */
+    suspend fun insert(chunkId: String, docId: String, content: String) =
+        withFtsSelfHeal { insertRaw(chunkId, docId, content) }
 
-    @SkipQueryVerification
-    @Query("DELETE FROM knowledge_chunks_fts WHERE chunkId IN (:chunkIds)")
-    suspend fun deleteByChunkIds(chunkIds: List<String>)
+    suspend fun deleteByDoc(docId: String) =
+        withFtsSelfHeal { deleteByDocRaw(docId) }
 
-    @SkipQueryVerification
-    @Query("DELETE FROM knowledge_chunks_fts")
-    suspend fun deleteAll()
+    suspend fun deleteByChunkIds(chunkIds: List<String>) =
+        withFtsSelfHeal { deleteByChunkIdsRaw(chunkIds) }
+
+    suspend fun deleteAll() =
+        withFtsSelfHeal { deleteAllRaw() }
 
     /**
      * v1.133: BM25 全文检索 — 返回匹配的 chunkId 及 BM25 分数(越小越好,SQLite bm25() 返回负值)。
@@ -78,6 +95,16 @@ interface KnowledgeChunkFtsDao {
         """,
     )
     suspend fun searchBm25(query: String, limit: Int): List<KnowledgeChunkFtsHit>
+
+    private suspend fun <T> withFtsSelfHeal(block: suspend () -> T): T {
+        try {
+            return block()
+        } catch (e: RuntimeException) {
+            if (e.message?.contains("no such table: knowledge_chunks_fts") != true) throw e
+            KnowledgeChunkFtsSelfHealer.repair()
+            return block()
+        }
+    }
 }
 
 /** FTS BM25 检索结果行。 */

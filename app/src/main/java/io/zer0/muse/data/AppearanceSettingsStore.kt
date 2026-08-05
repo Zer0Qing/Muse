@@ -78,7 +78,10 @@ class AppearanceSettingsStore(private val context: Context) {
             .getOrNull()
     }
 
-    private companion object {
+    companion object {
+        /** 默认主题 id — 与 MainActivity/ThemeSection 保持一致(R-UI-03)。 */
+        const val DEFAULT_THEME_ID = "mono"
+
         private val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
         private val KEY_THEME_ID = stringPreferencesKey("theme_id")
         private val KEY_DARK_THEME_ID = stringPreferencesKey("dark_theme_id")

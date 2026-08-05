@@ -275,6 +275,11 @@
     <string name="knowledge_delete">消去</string>
     <string name="knowledge_close">近い</string>
     <string name="knowledge_reindex">インデックスの再作成</string>
+    <string name="knowledge_repair_index">インデックスを修復/再構築</string>
+    <string name="knowledge_repairing">FTS インデックスを修復中...</string>
+    <string name="knowledge_fts_repaired">知識ベースのインデックスを修復しました</string>
+    <string name="knowledge_fts_repaired_partial">インデックスは修復されましたが、%1$d 件の再インデックスに失敗しました</string>
+    <string name="knowledge_fts_repair_failed">インデックス修復に失敗: %1$s</string>
     <string name="knowledge_importing">インポート中</string>
     <string name="knowledge_reindexing">インデックスの再作成</string>
     <string name="knowledge_cancel">キャンセル</string>

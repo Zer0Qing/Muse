@@ -25,6 +25,7 @@ import io.zer0.muse.data.knowledge.KnowledgeBaseEntity
 import io.zer0.muse.data.knowledge.KnowledgeChunkDao
 import io.zer0.muse.data.knowledge.KnowledgeChunkEntity
 import io.zer0.muse.data.knowledge.KnowledgeChunkFtsDao
+import io.zer0.muse.data.knowledge.KnowledgeChunkFtsSelfHealer
 import io.zer0.muse.data.knowledge.KnowledgeDocDao
 import io.zer0.muse.data.knowledge.KnowledgeDocEntity
 import io.zer0.muse.data.lorebook.LorebookDao
@@ -205,6 +206,40 @@ abstract class MuseDb : RoomDatabase() {
 
         /** v1.0.53: FTS 兜底创建全局锁 — 多连接 onOpen 并发时串行化建表。 */
         private val FTS_CREATE_LOCK = Any()
+
+        /** R-DB-02: 进程内 FTS 故障标志,建表失败后置位,供自愈/UI 排查。 */
+        @Volatile
+        private var knowledgeFtsBroken = false
+
+        /** R-DB-02: 清掉残留影子表/主表后重建 knowledge_chunks_fts。 */
+        fun repairKnowledgeChunkFtsTable() {
+            synchronized(FTS_CREATE_LOCK) {
+                val db = INSTANCE?.openHelper?.writableDatabase
+                    ?: error("MuseDb not initialized")
+                dropKnowledgeFtsTables(db)
+                createKnowledgeChunkFtsTable(db)
+                knowledgeFtsBroken = false
+                io.zer0.common.Logger.i("MuseDb", "knowledge_chunks_fts 已重建")
+            }
+        }
+
+        private fun dropKnowledgeFtsTables(db: SupportSQLiteDatabase) {
+            val names = mutableListOf<String>()
+            db.query("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'knowledge_chunks_fts%'")
+                .use { cursor ->
+                    while (cursor.moveToNext()) names.add(cursor.getString(0))
+                }
+            names.forEach { name ->
+                db.execSQL("DROP TABLE IF EXISTS `$name`")
+            }
+        }
+
+        private fun createKnowledgeChunkFtsTable(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE VIRTUAL TABLE IF NOT EXISTS knowledge_chunks_fts " +
+                    "USING fts4(chunkId, docId, text_content)",
+            )
+        }
 
         /**
          * Phase 8.2: v1 → v2 迁移。
@@ -1926,28 +1961,41 @@ abstract class MuseDb : RoomDatabase() {
                     // 启用外键约束(artifacts 表的 ON DELETE CASCADE 依赖此设置)
                     // onOpen 不在 onCreate 事务内,可以执行此类命令;onCreate 内禁止 PRAGMA
                     .addCallback(object : RoomDatabase.Callback() {
+                        override fun onCreate(db: SupportSQLiteDatabase) {
+                            // R-DB-02: 全新安装显式建 FTS 表(双保险第一层)。
+                            synchronized(FTS_CREATE_LOCK) {
+                                try {
+                                    createKnowledgeChunkFtsTable(db)
+                                } catch (e: Exception) {
+                                    knowledgeFtsBroken = true
+                                    io.zer0.common.Logger.e("MuseDb", "创建 knowledge_chunks_fts 失败: ${e.message}", e)
+                                }
+                            }
+                        }
+
                         override fun onOpen(db: SupportSQLiteDatabase) {
                             db.setForeignKeyConstraintsEnabled(true)
-                            // v1.0.53: 兜底创建 FTS4 虚拟表 — MIGRATION_38_39 只在旧库升级时执行,
-                            //   全新安装 Room 直接从 0 建最新 schema,而 FTS 表不在 entity 列表,
-                            //   导致新装用户 knowledge_chunks_fts 缺失、文档索引报 no such table。
-                            //   用全局锁串行化:Room 连接池多连接并发 onOpen 时,一个连接创建成功后,
-                            //   另一个连接的 CREATE IF NOT EXISTS 会因影子表已存在而 vtable constructor failed。
-                            //   探测用 PRAGMA table_info(对存在的虚拟表返回列,不存在返回空)。
+                            // R-DB-02: onOpen 仅做校验;缺失时清影子表并重建,失败置进程内标志。
                             try {
                                 synchronized(FTS_CREATE_LOCK) {
-                                    val exists = db.query("PRAGMA table_info(knowledge_chunks_fts)")
-                                        .use { it.moveToFirst() }
+                                    val exists = db.query(
+                                        "SELECT name FROM sqlite_master WHERE type='table' AND name='knowledge_chunks_fts'",
+                                    ).use { it.moveToFirst() }
                                     if (!exists) {
-                                        db.execSQL(
-                                            "CREATE VIRTUAL TABLE IF NOT EXISTS knowledge_chunks_fts " +
-                                                "USING fts4(chunkId, docId, text_content)",
-                                        )
+                                        dropKnowledgeFtsTables(db)
+                                        try {
+                                            createKnowledgeChunkFtsTable(db)
+                                            knowledgeFtsBroken = false
+                                            io.zer0.common.Logger.i("MuseDb", "knowledge_chunks_fts 自愈重建成功")
+                                        } catch (e2: Exception) {
+                                            knowledgeFtsBroken = true
+                                            io.zer0.common.Logger.e("MuseDb", "knowledge_chunks_fts 重建失败: ${e2.message}", e2)
+                                        }
                                     }
                                 }
                             } catch (e: Exception) {
-                                // 表大概率已存在且工作正常(FTS index consistent),此处失败仅记 D 避免误导
-                                io.zer0.common.Logger.d("MuseDb", "兜底创建 knowledge_chunks_fts 跳过(可能已由其他连接创建): ${e.message}")
+                                knowledgeFtsBroken = true
+                                io.zer0.common.Logger.e("MuseDb", "knowledge_chunks_fts 校验失败: ${e.message}", e)
                             }
                             // v1.107: WAL 模式由 setJournalMode(WRITE_AHEAD_LOGGING) 启用,这里不重复设置
                             // v1.107: 被动 checkpoint,合并 WAL 日志到主数据库
@@ -1961,6 +2009,11 @@ abstract class MuseDb : RoomDatabase() {
                     .fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true)
                     .build()
                     .also { INSTANCE = it }
+                    .also {
+                        KnowledgeChunkFtsSelfHealer.install {
+                            MuseDb.repairKnowledgeChunkFtsTable()
+                        }
+                    }
             }
         }
     }

@@ -275,6 +275,11 @@
     <string name="knowledge_delete">Удалить</string>
     <string name="knowledge_close">Закрывать</string>
     <string name="knowledge_reindex">Переиндексация</string>
+    <string name="knowledge_repair_index">Восстановить/пересоздать индекс</string>
+    <string name="knowledge_repairing">Восстановление FTS-индекса...</string>
+    <string name="knowledge_fts_repaired">Индекс базы знаний восстановлен</string>
+    <string name="knowledge_fts_repaired_partial">Индекс восстановлен, но %1$d документов не переиндексированы</string>
+    <string name="knowledge_fts_repair_failed">Не удалось восстановить индекс: %1$s</string>
     <string name="knowledge_importing">Импорт</string>
     <string name="knowledge_reindexing">Переиндексация</string>
     <string name="knowledge_cancel">Отмена</string>
