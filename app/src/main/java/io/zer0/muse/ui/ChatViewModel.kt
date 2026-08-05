@@ -4424,6 +4424,7 @@ class ChatViewModel(
         var lastLoggedCharCount = 0
         var lastUiUpdateChars = 0
         var lastUiUpdateAt = streamStartedAt
+        var lastReasoningUiUpdateChars = 0
         var lastNotifChars = 0
         var lastNotifAt = streamStartedAt
         var lastTokenUpdateChars = 0
@@ -4630,10 +4631,12 @@ class ChatViewModel(
                             if (!event.signature.isNullOrBlank()) thinkingSignature = event.signature
                             if (!event.encryptedContent.isNullOrBlank()) thinkingEncryptedContent = event.encryptedContent
                             val now = System.currentTimeMillis()
-                            val charsSinceUi = params.builder.length - lastUiUpdateChars
                             val timeSinceUi = now - lastUiUpdateAt
                             // v1.0.3: 首 token 立即刷新;后续按 12 字符或 50ms 节流
-                            if (streamToUi && (isFirstToken || charsSinceUi >= STREAM_UI_CHAR_THRESHOLD || (timeSinceUi >= STREAM_UI_TIME_THRESHOLD_MS && charsSinceUi > 0))) {
+                            // reasoning-only 流(content 为 0)必须按 reasoning 长度节流,
+                            // 否则首 token 后 UI 永远不更新,用户只看到第一个字符。
+                            val reasoningCharsSinceUi = params.reasoningBuilder.length - lastReasoningUiUpdateChars
+                            if (streamToUi && (isFirstToken || reasoningCharsSinceUi >= STREAM_UI_CHAR_THRESHOLD || (timeSinceUi >= STREAM_UI_TIME_THRESHOLD_MS && reasoningCharsSinceUi > 0))) {
                                 updateAssistant(
                                     params.currentAssistantId,
                                     unmaskPii(params.builder.toString()),
@@ -4642,6 +4645,7 @@ class ChatViewModel(
                                 )
                                 lastUiUpdateChars = params.builder.length
                                 lastUiUpdateAt = now
+                                lastReasoningUiUpdateChars = params.reasoningBuilder.length
                             }
                         }
                         is ChatStreamEvent.ImageDelta -> {
@@ -4852,7 +4856,7 @@ class ChatViewModel(
                 updateAssistant(
                     params.currentAssistantId,
                     unmaskPii(params.builder.toString()),
-                    if (hasToolCalls) null else unmaskPii(params.reasoningBuilder.toString()),
+                    unmaskPii(params.reasoningBuilder.toString()).ifBlank { null },
                     imageAccumulator.toList(),
                     isStreaming = false,
                 )
@@ -4866,8 +4870,8 @@ class ChatViewModel(
                         id = params.currentAssistantId,
                         role = MessageRole.ASSISTANT,
                         content = finalizedAssistant?.content ?: unmaskPii(params.builder.toString()),
-                        // v1.0.54: 工具轮消息不保留 reasoning(思考过程对用户无价值,显示/落盘均不需要)
-                        reasoning = null,
+                        // 保留 reasoning:用户需要看到思考过程,不能只显示首字
+                        reasoning = finalizedAssistant?.reasoning ?: unmaskPii(params.reasoningBuilder.toString()).ifBlank { null },
                         mood = finalizedAssistant?.mood,
                         reflection = finalizedAssistant?.reflection,
                         thinkingSignature = finalizedAssistant?.thinkingSignature ?: thinkingSignature,

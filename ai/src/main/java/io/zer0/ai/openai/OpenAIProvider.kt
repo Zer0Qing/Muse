@@ -369,6 +369,10 @@ class OpenAIProvider(
                                 // 不能把 reasoning 当正文(那是思考过程);工具调用交给上层执行。
                                 // 此前 toolCalls 被静默丢弃,导致群聊 channel_pass/reply 丢失、
                                 // 单聊工具调用(web_search 等)丢失,用户只看到思考文本。
+                                // v1.x: reasoning 仍要发给 UI,否则用户只看到首字、没有思考过程。
+                                if (reasoning.isNotEmpty()) {
+                                    trySend(ChatStreamEvent.ReasoningDelta(reasoning))
+                                }
                                 toolCalls.forEachIndexed { idx, tc ->
                                     trySend(
                                         ChatStreamEvent.ToolCallDelta(
