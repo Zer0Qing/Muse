@@ -74,6 +74,17 @@ object JsSandbox {
     @Volatile private var webViewRef: WebView? = null
     @Volatile private var appContext: Context? = null
 
+    /** R-SVC-04: 连续超时熔断阈值。 */
+    private const val MAX_CONSECUTIVE_TIMEOUTS = 2
+    /** R-SVC-04: 熔断后自动恢复冷却时间。 */
+    private const val CIRCUIT_COOLDOWN_MS = 60_000L
+    /** R-SVC-04: 累计超时配额(进程内),超过后同样熔断。 */
+    private const val MAX_TOTAL_TIMED_OUT_MS = 60_000L
+
+    @Volatile private var consecutiveTimeouts = 0
+    @Volatile private var totalTimedOutMs = 0L
+    @Volatile private var circuitBrokenUntil = 0L
+
     /** 日志缓冲区:每次 execute 前清空。synchronized 保护多线程访问。 */
     private val logsLock = Any()
     private val currentLogs = mutableListOf<String>()
@@ -111,6 +122,11 @@ object JsSandbox {
     suspend fun execute(code: String, timeoutMs: Long = 10000L): Result<JsResult> =
         withContext(Dispatchers.Main) {
             try {
+                if (System.currentTimeMillis() < circuitBrokenUntil) {
+                    return@withContext Result.failure(
+                        IllegalStateException("JS 沙盒已熔断，请稍后重试"),
+                    )
+                }
                 val webView = ensureWebView()
                 // 清空当前日志
                 synchronized(logsLock) { currentLogs.clear() }
@@ -156,6 +172,14 @@ object JsSandbox {
                 if (raw == null) {
                     // 超时:JS 仍在 V8 中跑(无法中断),但 Kotlin 侧返回超时错误
                     val logs = synchronized(logsLock) { currentLogs.toList() }
+                    // R-SVC-04: 超时后销毁 WebView 真正终止 JS,并累计熔断状态。
+                    consecutiveTimeouts++
+                    totalTimedOutMs += timeoutMs
+                    if (consecutiveTimeouts >= MAX_CONSECUTIVE_TIMEOUTS || totalTimedOutMs >= MAX_TOTAL_TIMED_OUT_MS) {
+                        circuitBrokenUntil = System.currentTimeMillis() + CIRCUIT_COOLDOWN_MS
+                        Logger.e(TAG, "JS 沙盒超时熔断: consecutive=$consecutiveTimeouts total=$totalTimedOutMs")
+                    }
+                    destroy()
                     return@withContext Result.success(
                         JsResult(
                             value = null,
@@ -167,12 +191,24 @@ object JsSandbox {
 
                 val logs = synchronized(logsLock) { currentLogs.toList() }
                 val (value, error) = parseRawResult(raw)
+                consecutiveTimeouts = 0
                 Result.success(JsResult(value = value, consoleLogs = logs, error = error))
             } catch (e: Exception) {
                 Logger.e(TAG, "JsSandbox execute 异常: ${e.message}", e)
                 Result.failure(e)
             }
         }
+
+    /** R-SVC-04: 当前是否处于熔断期。 */
+    val isCircuitBroken: Boolean get() = System.currentTimeMillis() < circuitBrokenUntil
+
+    /** R-SVC-04: 手动复位熔断(用户重试/插件禁用后可调用)。 */
+    fun resetCircuitBreaker() {
+        circuitBrokenUntil = 0L
+        consecutiveTimeouts = 0
+        totalTimedOutMs = 0L
+        Logger.i(TAG, "JsSandbox 熔断已复位")
+    }
 
     /**
      * 销毁 WebView(可在 Application.onTerminate / 测试 tearDown 调用,释放资源)。

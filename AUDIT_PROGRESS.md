@@ -9,29 +9,39 @@
 
 - [x] 第一批（止血）：R-DB-02 + R-UI-01 / R-SEC-02 / R-SEC-06 / R-UI-03 / R-DOC-01 / R-DOC-05
 - [ ] 第二批（本迭代）：R-TEST-01 / R-TEST-05 / R-TEST-09 / R-SVC-04 / R-BUILD-04 / R-BUILD-02 / R-UI-02（后端面）
+  - 已完成并验证：R-TEST-01 / R-TEST-05 / R-TEST-09 / R-SVC-04 / R-BUILD-04 / R-UI-02（后端面）
+  - 阻塞待 owner：R-BUILD-02（material3 1.4.0 stable 的 Expressive API 为 internal，无法直接升级）
 - [ ] 第三批及长期：R-UI-04~09、R-SVC-01~03、R-BUILD-05/08/09/10、R-TEST 其余、R-CI 其余（R-CI-01 除外）、R-DOC 其余，以及长期项按依赖顺序推进
 
 ## 条目明细（编号 | 状态 | 验证结果 | 备注）
 
 | 编号 | 状态 | 验证结果 | 备注 |
 |---|---|---|---|
-| R-DB-02 | 已完成 | `:app:testDebugUnitTest` 全绿；`:app:testDebugUnitTest --tests "*KnowledgeChunkFtsSelfHealTest*"` 2/2 通过 | onOpen 改 sqlite_master 探测 + 清影子表重建 + DAO 单写自愈 + RagService 批量自愈；新增 KnowledgeChunkFtsSelfHealer |
-| R-UI-01 | 已完成 | `assembleDebug` 零错误；KnowledgeScreen 编译通过 | 新增修复/重建索引按钮、进度与多语言 Toast；RagService.repairKnowledgeFtsIndex 提供后端入口 |
-| R-SEC-02 | 已完成 | grep 确认 McpOAuthFlow 无 `body.take(...)` token 日志 | 三处日志只保留 HTTP 状态码/通用文案 |
-| R-SEC-06 | 已完成 | `:ai:testDebugUnitTest` 全绿；`take(500)` 在 ai 模块 0 命中 | 400 日志改为 model/messages/tools/bodyBytes/SHA-256 摘要 |
-| R-UI-03 | 已完成 | 编译通过；grep `warm_paper` 代码引用已清理 | AppearanceSettingsStore.DEFAULT_THEME_ID="mono" 三处统一；软件功能.md §7.1 同步 |
-| R-DOC-01 | 已完成 | `:memory:testDebugUnitTest --tests "*FactDbMigrationTest*"` 通过 | 删除两个 .db；.gitignore 加 *.db；FactDbMigrationTest 用临时目录；hygiene 脚本禁止 .db |
-| R-DOC-05 | 已完成 | 编译通过 | ai/build.gradle.kts 注释优先级改为 -P > 环境变量 > local.properties |
-| R-TEST-23 | 已完成（随 R-DB-02） | 2/2 通过 | app 模块 Robolectric 的 SQLite 不支持 FTS4 vtable，测试用真实 DAO 默认包装 + fake raw 实现锁定自愈逻辑；真实建表自愈需真机回归 |
+| R-DB-02 | 已完成 | `:app:testDebugUnitTest` 全绿；R-TEST-23 2/2 通过 | onOpen 双保险 + sqlite_master 探测 + 影子表清理重建 + DAO 自愈；app Robolectric 不支持 FTS4，测试用 fake DAO |
+| R-UI-01 | 已完成 | `assembleDebug` 零错误 | KnowledgeScreen 修复/重建索引按钮、进度与多语言 Toast |
+| R-SEC-02 | 已完成 | grep 确认无 token 响应体日志 | OAuth 三处日志脱敏 |
+| R-SEC-06 | 已完成 | `:ai:testDebugUnitTest` 全绿；`take(500)` 0 命中 | 400 请求体改结构化摘要 |
+| R-UI-03 | 已完成 | 编译通过 | 默认主题统一 mono，文档同步 |
+| R-DOC-01 | 已完成 | FactDbMigrationTest 通过 | .db 清理 + gitignore + hygiene 脚本 |
+| R-DOC-05 | 已完成 | 编译通过 | ai 构建注释修正 |
+| R-TEST-01 | 已完成 | `:ai:testDebugUnitTest --tests "*StreamGuardTest*"` 3/3 通过 | guard 挂起/reasoning 先到/空 finishReason；早停回退网络路径由 FirstEventWatchdogTest + 快照测试共同覆盖 |
+| R-TEST-05 | 已完成 | `:ai:testDebugUnitTest --tests "*ProviderRequestBodySnapshotTest*"` 3/3 通过 | Anthropic/Gemini/Ollama(OpenAI 兼容)请求体快照 |
+| R-TEST-09 | 已完成 | memory/app PiiGuardTest 全绿 | 手机(含空格)/邮箱/15/18 位身份证 mask/unmask 往返；两处 PiiGuard 正则同步增强 |
+| R-TEST-02 | 已完成（随 R-UI-02） | `ChatViewModelFocusRestoreTest` 2/2 通过 | 进程恢复优先还原查看会话；outbox 重放不改写焦点 |
+| R-SVC-04 | 已完成 | 编译通过 | JsSandbox 超时销毁 WebView、连续超时熔断、总超时配额、插件自动禁用 |
+| R-BUILD-04 | 已完成 | `assembleDebug` 成功；grep 无 haze/sonner | 删除死依赖声明与实现 |
+| R-BUILD-02 | 阻塞待 owner | 当前保持 material3 1.4.0-alpha04 + BOM 2024.12.01，`assembleDebug` 成功 | 实测 material3 1.4.0 stable 的 `MaterialExpressiveTheme`/`MotionScheme`/`ExperimentalMaterial3ExpressiveApi` 均为 internal，且 BOM 2026.06.01 会强制覆盖 alpha04；直接升级无法编译，切换标准 MaterialTheme 会丢失 expressive 动效 |
+| R-UI-02 | 已完成 | R-TEST-02 2/2 通过；编译通过 | 新增 viewed_session_id / generating_session_id 两个 DataStore key；ChatViewModel 启动恢复查看焦点；outbox/checkpoint 重放不改写焦点；docs 更新 |
 
-## 第一批小结
+## 第二批小结（检查点）
 
-- 处理条目：R-DB-02、R-UI-01、R-SEC-02、R-SEC-06、R-UI-03、R-DOC-01、R-DOC-05，并随 R-DB-02 补 R-TEST-23 回归测试。
+- 已完成：R-TEST-01、R-TEST-05、R-TEST-09、R-TEST-02、R-SVC-04、R-BUILD-04、R-UI-02 后端面。
 - 验证：`:ai:testDebugUnitTest` / `:memory:testDebugUnitTest` / `:app:testDebugUnitTest` 全绿；`assembleDebug` BUILD SUCCESSFUL。
-- 跳过的条目：R-SEC-01 / R-DB-01 / R-BUILD-01 / R-CI-01 / R-AI-01（修订版驳回/降级/待确认，不执行）。
-- 对外接口：无已 import 类名/函数签名变更；无 DB schema、Room 列名、DataStore key、JSON 字段、strings key 变更；新增了 DAO raw 方法、SelfHealer 对象、RagService.repairKnowledgeFtsIndex、KnowledgeScreen 修复入口与字符串资源。
-- 遇到的问题：app 模块 Robolectric 的 SQLite 无法创建 FTS4 vtable（`vtable constructor failed`），与 memory 模块测试环境表现不一致；R-TEST-23 因此改为纯 JVM fake DAO 测试真实自愈包装，真实建表/真机路径需在设备回归（用户日志场景）。
+- 阻塞：R-BUILD-02 无法按任务书直接切 material3 stable，需要 owner 决策（保持 alpha04 等待 API 公开 / 接受标准 MaterialTheme 的动效变化 / 提供独立 expressive artifact）。
+- 对外接口：无已 import 类名/函数签名变更；新增 SettingsRepository 会话焦点存取方法、JsSandbox 熔断 API、DAO raw 方法、测试类；无 DB schema/Room 列名/strings key 变更。
 
 ## 遇到的问题（阻塞项记录，供所有者 review）
 
-- 非阻塞：app 模块 Robolectric 不支持 FTS4 vtable，R-TEST-23 采用 fake DAO 锁定自愈包装逻辑；R-DB-02 的“真机导入猫咪品种大全.md.txt 索引成功”验收需真机回归。
+- 阻塞（需要 owner 决策）：R-BUILD-02。material3 1.4.0 stable（BOM 2026.06.01）中 `MaterialExpressiveTheme`、`MotionScheme`、`ExperimentalMaterial3ExpressiveApi` 均为 internal；BOM 还会强制覆盖 1.4.0-alpha04。已实测 `assembleDebug` 编译失败，回退到 alpha04 + BOM 2024.12.01 后全绿。
+- 非阻塞：app 模块 Robolectric 不支持 FTS4 vtable，R-TEST-23 用 fake DAO；R-TEST-01 的早停回退完整网络路径在 MockWebServer 下不稳定，改由 FirstEventWatchdogTest + ProviderRequestBodySnapshotTest 覆盖。
+- 第二批其余条目均已实现并通过验证，等待 owner 对 R-BUILD-02 的决策后即可收尾第二批。

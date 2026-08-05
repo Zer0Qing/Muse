@@ -11,6 +11,8 @@ coreKtx = "1.15.0"
 lifecycle = "2.8.7"
 activityCompose = "1.9.3"
 composeBom = "2024.12.01"
+# material3 1.4.0 stable 的 MaterialExpressiveTheme/MotionScheme 为 internal,暂保留 alpha04 避免主题回归
+material3 = "1.4.0-alpha04"
 navigationCompose = "2.8.5"
 koinBom = "4.0.0"
 room = "2.8.4"
@@ -21,12 +23,6 @@ okhttp = "5.3.2"
 jsoup = "1.18.3"
 serialization = "1.7.3"
 coroutines = "1.9.0"
-# 重写 v0.22:Material3 alpha(MaterialExpressiveTheme + MotionScheme + LargeFlexibleTopAppBar)
-material3 = "1.4.0-alpha04"
-# 重写 v0.22:Haze 真毛玻璃(替代自实现 RenderEffect,彻底解决遮罩 bug)
-haze = "1.2.2"
-# 重写 v0.22:Sonner Toast(顶部居中 + richColors)
-sonner = "0.3.9"
 junit = "4.13.2"
 # Phase 8.6: 文档解析 + OCR
 pdfboxAndroid = "2.0.27.0"
@@ -64,12 +60,7 @@ androidx-navigation-compose = { group = "androidx.navigation", name = "navigatio
 # Phase 6-A2: Google Fonts downloadable fonts(Inter + Noto Serif SC + JetBrains Mono)
 androidx-compose-ui-text-google-fonts = { group = "androidx.compose.ui", name = "ui-text-google-fonts" }
 
-# 重写 v0.22:Haze 真毛玻璃(替代自实现 RenderEffect)
-haze = { group = "dev.chrisbanes.haze", name = "haze", version.ref = "haze" }
-haze-materials = { group = "dev.chrisbanes.haze", name = "haze-materials", version.ref = "haze" }
 
-# 重写 v0.22:Sonner Toast(顶部居中 + richColors)
-sonner = { group = "io.github.dokar3", name = "sonner", version.ref = "sonner" }
 
 # Koin(BOM 统一版本)
 koin-bom = { group = "io.insert-koin", name = "koin-bom", version.ref = "koinBom" }

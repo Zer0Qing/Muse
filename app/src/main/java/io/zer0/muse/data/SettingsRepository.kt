@@ -1042,6 +1042,26 @@ class SettingsRepository(
         }
     }
 
+    /** R-UI-02: 读取上次用户正在查看的任务会话 id(可能为 null)。 */
+    suspend fun getViewedSessionId(): String? = store.data.first()[KEY_VIEWED_SESSION_ID]
+
+    /** R-UI-02: 持久化当前查看的会话 id;null/空串时清除。 */
+    suspend fun saveViewedSessionId(id: String?) {
+        store.edit { prefs ->
+            if (id.isNullOrBlank()) prefs.remove(KEY_VIEWED_SESSION_ID) else prefs[KEY_VIEWED_SESSION_ID] = id
+        }
+    }
+
+    /** R-UI-02: 读取正在生成的会话 id(用于恢复时不改写查看焦点)。 */
+    suspend fun getGeneratingSessionId(): String? = store.data.first()[KEY_GENERATING_SESSION_ID]
+
+    /** R-UI-02: 持久化正在生成的会话 id;null/空串时清除。 */
+    suspend fun saveGeneratingSessionId(id: String?) {
+        store.edit { prefs ->
+            if (id.isNullOrBlank()) prefs.remove(KEY_GENERATING_SESSION_ID) else prefs[KEY_GENERATING_SESSION_ID] = id
+        }
+    }
+
     /**
      * 获取当前选中的 [Model](从激活 Provider 的 models 中按 selectedModelId 查找)。
      * selectedModelId 为空时回退到激活 Provider 的首个模型。
@@ -1337,6 +1357,9 @@ class SettingsRepository(
         private val KEY_CRASH_REPORT_METHOD = stringPreferencesKey("crash_report_method")
         private val KEY_CRASH_REPORT_EMAIL = stringPreferencesKey("crash_report_email")
         private val KEY_CRASH_REPORT_WEBHOOK_URL = stringPreferencesKey("crash_report_webhook_url")
+        // R-UI-02: 会话焦点恢复 — 用户当前查看的会话与正在生成的会话分离持久化
+        private val KEY_VIEWED_SESSION_ID = stringPreferencesKey("viewed_session_id")
+        private val KEY_GENERATING_SESSION_ID = stringPreferencesKey("generating_session_id")
     }
 
     // ── v2.3: Provider 连接测试缓存 ───────────────────────────────────

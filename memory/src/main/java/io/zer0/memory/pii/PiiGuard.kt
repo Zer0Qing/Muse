@@ -11,9 +11,9 @@ package io.zer0.memory.pii
  *  - inline_secret (api_key=XXX / password=XXX 等)
  *  - private_key (PEM 块)
  *  - credit_card (4-4-4-4)
- *  - id_card (18 位中国身份证)
+ *  - id_card (15/18 位中国身份证, R-TEST-09)
  *  - ssn (美国社会安全号)
- *  - email、phone(中国手机号)、ipv4
+ *  - email、phone(中国手机号,支持空格/连字符分隔, R-TEST-09)、ipv4
  *  - address(行政区划地址)、name(常见中文姓名)、english_name
  *
  * 姓名规则使用白名单过滤常见非姓名词，降低误伤。
@@ -51,7 +51,7 @@ object PiiGuard {
         ),
         ID_CARD(
             "id_card",
-            Regex("""(?<!\d)[1-9]\d{5}(?:19|20)\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])\d{3}[0-9Xx](?!\d)"""),
+            Regex("""(?<!\d)(?:[1-9]\d{5}(?:19|20)\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])\d{3}[0-9Xx]|[1-9]\d{5}\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])\d{3})(?!\d)"""),
         ),
         SSN(
             "ssn",
@@ -63,7 +63,7 @@ object PiiGuard {
         ),
         PHONE(
             "phone",
-            Regex("""(?<!\d)1[3-9]\d{9}(?!\d)"""),
+            Regex("""(?<!\d)1[3-9](?:[ -]?\d){9}(?!\d)"""),
         ),
         IPV4(
             "ipv4",

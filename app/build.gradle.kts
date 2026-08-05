@@ -173,8 +173,10 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
-    // Material3 — 显式指定 1.4.0-alpha04,override BOM(2024.12.01 默认拉 1.3.x stable,
-    // 缺少 MaterialExpressiveTheme / MotionScheme.expressive,运行时 NoClassDefFoundError 崩溃)
+    // Material3 — BOM 2026.06.01 已升级;MaterialExpressiveTheme 在 1.4.0 stable 仍为 internal,
+    // 故显式保留 1.4.0-alpha04 直到 stable 公开该 API(见 AUDIT_PROGRESS R-BUILD-02 阻塞记录)
+    // R-BUILD-02 阻塞:material3 1.4.0 stable 的 MaterialExpressiveTheme/MotionScheme 为 internal,
+    // 暂维持 1.4.0-alpha04 与 Compose BOM 2024.12.01,避免主题回归(见 AUDIT_PROGRESS)。
     implementation("androidx.compose.material3:material3:1.4.0-alpha04")
     implementation(libs.androidx.compose.material.icons.extended)
     // Tabler Icons Compose(线条图标库,补充 Material Icons)
@@ -215,11 +217,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
 
-    // Haze / Markdown 留待 Phase 4 引入
 
-    // 重写 v0.22: Haze 真毛玻璃(替代自实现 RenderEffect,彻底解决遮罩 bug)
-    implementation(libs.haze)
-    implementation(libs.haze.materials)
 
     // Phase 8.6: PDF 文本提取(pdfbox-android,Apache 2.0)
     implementation(libs.tom.roush.pdfbox.android)

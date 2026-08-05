@@ -1519,7 +1519,9 @@ class ChatViewModel(
                     // 异步设置 currentSessionId 前再次发射时重复创建多个会话
                     if (_state.value.currentSessionId == null && !initializing) {
                         initializing = true
-                        val target = sessions.firstOrNull()
+                        // R-UI-02: 进程恢复优先还原用户离开时查看的会话,而非最近活跃会话。
+                        val viewedId = resultOf { settings.getViewedSessionId() }.getOrNull()
+                        val target = sessions.firstOrNull { it.id == viewedId } ?: sessions.firstOrNull()
                         if (target != null) {
                             switchSession(target.id)
                         } else {
@@ -2782,6 +2784,9 @@ class ChatViewModel(
             }
             // v0.45: 刷新上下文 token 占用(新会话 messages 为空,只加载 contextWindow)
             refreshContextInfo()
+            // R-UI-02: 新建会话后同步持久化查看焦点。
+            resultOf { settings.saveViewedSessionId(id) }
+                .onError { msg, _ -> Logger.w("ChatVM", "saveViewedSessionId 失败: $msg") }
         }
     }
 
@@ -2833,6 +2838,9 @@ class ChatViewModel(
             }
             refreshContextInfo()
             send()
+            // R-UI-02: 新建会话并发送时同步持久化查看焦点。
+            resultOf { settings.saveViewedSessionId(id) }
+                .onError { msg, _ -> Logger.w("ChatVM", "saveViewedSessionId 失败: $msg") }
         }
     }
 
@@ -2899,6 +2907,11 @@ class ChatViewModel(
             }
             refreshContextInfo()
             _state.update { it.copy(toast = appContext.getString(R.string.err_chat_context_restarted_toast)) }
+            // R-UI-02: 任务模式下重启上下文后同步持久化查看焦点。
+            if (!_state.value.isAgentMode) {
+                resultOf { settings.saveViewedSessionId(id) }
+                    .onError { msg, _ -> Logger.w("ChatVM", "saveViewedSessionId 失败: $msg") }
+            }
         }
     }
 
@@ -3013,6 +3026,9 @@ class ChatViewModel(
             if (isBackgroundStreaming) {
                 sessionMemoryCache.remove(sessionId)
             }
+            // R-UI-02: 用户实际查看的会话单独持久化,与生成会话互不覆盖。
+            resultOf { settings.saveViewedSessionId(sessionId) }
+                .onError { msg, _ -> Logger.w("ChatVM", "saveViewedSessionId 失败: $msg") }
             // v1.0.30: 标记回话时间戳，供 onAppForeground 判断是否需要强制刷新
             _lastSessionSwitchTimestamp = System.currentTimeMillis()
             _lastSessionSwitchId = sessionId
@@ -3165,6 +3181,9 @@ class ChatViewModel(
                         )
                     }
                     refreshContextInfo()
+                    // R-UI-02: 退出 Agent 模式后恢复并持久化任务会话焦点。
+                    resultOf { settings.saveViewedSessionId(sid) }
+                        .onError { msg, _ -> Logger.w("ChatVM", "saveViewedSessionId 失败: $msg") }
                 }
             }
         }
@@ -4187,6 +4206,11 @@ class ChatViewModel(
     ) {
         // v1.94: 每次启动流式生成前清空工具调用历史(InputBar 动态胶囊计数归零)
         _state.update { it.copy(toolCallHistory = emptyList()) }
+        // R-UI-02: 生成会话单独持久化,避免与用户查看焦点互相覆盖。
+        viewModelScope.launch {
+            resultOf { settings.saveGeneratingSessionId(sessionId) }
+                .onError { msg, _ -> Logger.w("ChatVM", "saveGeneratingSessionId 失败: $msg") }
+        }
         // v1.0.29: 不再在前台启动前台服务通知(用户反馈"正在生成"通知极度无用)。
         // 改为仅在应用切到后台时启动(由 MuseApp ON_STOP → onAppBackground 触发),
         // 切回前台时自动停止(由 MuseApp ON_START → onAppForeground 触发)。
@@ -5148,6 +5172,11 @@ class ChatViewModel(
         // B5-01: 生成正常结束,清理检查点
         resultOf { sessionRepository.deleteGenerationCheckpoint(state.currentAssistantId.toString()) }
             .onError { msg, _ -> Logger.w("ChatVM", "generation checkpoint 清理失败: $msg") }
+        // R-UI-02: 本轮生成结束后清除生成焦点(仅当仍指向本会话)。
+        if (resultOf { settings.getGeneratingSessionId() }.getOrNull() == sessionId) {
+            resultOf { settings.saveGeneratingSessionId(null) }
+                .onError { msg, _ -> Logger.w("ChatVM", "saveGeneratingSessionId 清理失败: $msg") }
+        }
     }
 
     /**
@@ -5169,6 +5198,13 @@ class ChatViewModel(
         // v1.113: 只停止单聊的生成,不影响群聊
         val sid = _state.value.currentSessionId ?: _state.value.agentSessionId
         chatGenerationManager.stop(sid)
+        // R-UI-02: 用户停止后清除该会话的生成焦点。
+        viewModelScope.launch {
+            if (resultOf { settings.getGeneratingSessionId() }.getOrNull() == sid) {
+                resultOf { settings.saveGeneratingSessionId(null) }
+                    .onError { msg, _ -> Logger.w("ChatVM", "saveGeneratingSessionId 清理失败: $msg") }
+            }
+        }
         runCatching { ChatGenerationService.stop(appContext) }
         imageJob?.cancel()
         imageJob = null
