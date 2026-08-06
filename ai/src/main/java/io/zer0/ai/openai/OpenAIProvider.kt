@@ -1517,8 +1517,12 @@ class OpenAIProvider(
             ReasoningReplayPolicy.NONE -> null
             ReasoningReplayPolicy.PRESERVE -> reasoningText
             ReasoningReplayPolicy.REQUIRE_TOOL_CALL -> {
-                // 仅 ASSISTANT + toolCalls 非空时注入(fail-closed 原则)
-                if (role == MessageRole.ASSISTANT && !toolCalls.isNullOrEmpty()) reasoningText else null
+                // v1.x: 放宽为"ASSISTANT 且带 reasoning 即回传"。
+                // 原实现仅对带 tool_calls 的 assistant 注入,但 DeepSeek/Kimi 类中转站要求
+                // thinking 模式下**所有** assistant 消息(含普通回复)回传 reasoning_content,
+                // 否则多轮工具循环的下一轮请求返回 400
+                // ("The reasoning_content in the thinking mode must be passed back to the API")。
+                if (role == MessageRole.ASSISTANT) reasoningText else null
             }
         }
     }

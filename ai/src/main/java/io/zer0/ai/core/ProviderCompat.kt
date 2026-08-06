@@ -124,7 +124,7 @@ object ProviderCompatRules {
         "api.githubcopilot.com", "models.inference.ai.azure.com",
         "localhost",
         // 中转/聚合站
-        "api.siliconflow.cn", "openrouter.ai",
+        "api.siliconflow.cn", "openrouter.ai", "opencode.ai",
     )
 
     /**
@@ -330,6 +330,17 @@ object ProviderCompatRules {
                 reasoningReplayContract = ReasoningReplayContract(
                     ReasoningCarrier.REASONING_DETAILS,
                     ReasoningReplayPolicy.PRESERVE,
+                ),
+            )
+            // v1.x: Console Go(opencode.ai)中转 DeepSeek 系推理模型,
+            //   透传 DeepSeek 协议:thinking 模式下历史 assistant 消息必须回传
+            //   reasoning_content,否则返回 400 "The reasoning_content in the
+            //   thinking mode must be passed back to the API"。
+            "opencode.ai" -> copy(
+                thinkingFormat = ThinkingFormat.DEEPSEEK,
+                reasoningReplayContract = ReasoningReplayContract(
+                    ReasoningCarrier.REASONING_CONTENT,
+                    ReasoningReplayPolicy.REQUIRE_TOOL_CALL,
                 ),
             )
             else -> this

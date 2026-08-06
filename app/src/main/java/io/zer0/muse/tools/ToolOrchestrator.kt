@@ -297,12 +297,24 @@ class ToolOrchestrator(
     private val hookRegistry: io.zer0.muse.hook.HookRegistry? = null,
     // P2-4: 审计日志记录器(工具审批放行时记录)。
     private val auditLogger: AuditLogger? = null,
+    // v1.x: 会话级浏览器实例注册表(每个会话独立 WebView)。
+    private val browserManagerRegistry: BrowserManagerRegistry = BrowserManagerRegistry(context),
     // R-TEST-10: 工具超时可注入,生产默认 2 分钟
     private val toolTimeoutMs: Long = TOOL_TIMEOUT_MS,
 ) {
 
     private companion object {
         const val TAG = "ToolOrchestrator"
+
+        /** v1.x: 浏览器工具名(按会话路由到独立 BrowserManager)。 */
+        private val BROWSER_TOOL_NAMES = setOf(
+            BrowserAutomationTool.TOOL_NAVIGATE,
+            BrowserAutomationTool.TOOL_CLICK,
+            BrowserAutomationTool.TOOL_TYPE,
+            BrowserAutomationTool.TOOL_EXTRACT,
+            BrowserAutomationTool.TOOL_SCROLL_BOTTOM,
+            BrowserAutomationTool.TOOL_GET_HTML,
+        )
     }
 
     private data class ToolExecResult(
@@ -310,6 +322,8 @@ class ToolOrchestrator(
         val tc: ToolCall,
         val finalToolResult: String,
         val isSuccess: Boolean,
+        /** v1.x: 展示给用户的结果(失败时不含 LLM 引导语),null 时回退 [finalToolResult]。 */
+        val displayResult: String? = null,
     )
 
     /**
@@ -540,7 +554,7 @@ class ToolOrchestrator(
 
                     // 按顺序回填结果到历史和 UI
                     for (result in execResults) {
-                        val (idx, tc, finalToolResult, isSuccess) = result
+                        val (idx, tc, finalToolResult, isSuccess, displayResult) = result
                         if (isSuccess) {
                             consecutiveToolFailures = 0
                         } else {
@@ -568,14 +582,14 @@ class ToolOrchestrator(
                             toolCallInfo = ToolCallInfo(
                                 toolName = tc.name,
                                 arguments = tc.arguments,
-                                result = finalToolResult,
+                                result = displayResult ?: finalToolResult,
                                 isSuccess = isSuccess,
                             ),
                         )
                         val record = ToolCallRecord(
                             toolName = tc.name,
                             arguments = tc.arguments,
-                            result = finalToolResult,
+                            result = displayResult ?: finalToolResult,
                             isSuccess = isSuccess,
                             timestamp = System.currentTimeMillis(),
                         )
@@ -800,17 +814,28 @@ class ToolOrchestrator(
                 )
             } else {
                 withContext(Dispatchers.IO) {
-                    toolRegistry.executeFromJson(tc.name, effectiveArguments)
+                    // v1.x: 浏览器工具按会话路由 — 每个会话独立 BrowserManager(WebView),
+                    // 避免跨会话串扰(会话 A 关闭浏览器不影响会话 B)。
+                    if (tc.name in BROWSER_TOOL_NAMES) {
+                        val sessionBm = browserManagerRegistry.getForSession(params.sessionId)
+                        val argsMap = runCatching {
+                            AppJson.decodeFromString(JsonObject.serializer(), effectiveArguments)
+                                .entries.associate { (k, v) -> k to v.toString().trim('"') }
+                        }.getOrDefault(emptyMap())
+                        BrowserAutomationTool.executeFromArgs(tc.name, argsMap, sessionBm)
+                    } else {
+                        toolRegistry.executeFromJson(tc.name, effectiveArguments)
+                    }
                 }
             }
         } ?: "[超时] 工具 ${tc.name} ${toolTimeoutMs / 1000} 秒未响应,已终止"
 
         val isSuccess = taskCardCoordinator.isToolResultSuccess(toolResult)
-        val rawFinal = if (isSuccess) {
+        // v1.0.47 P2-1: 结构化失败引导 — 仅拼进给 LLM 的历史消息,避免无效重试循环
+        // v1.x: 展示给用户的 toolDisplay/taskCard 用纯报错文本,不暴露给模型的引导语。
+        val llmResult = if (isSuccess) {
             toolResult
         } else {
-            // v1.0.47 P2-1: 结构化失败引导 — 给 LLM 明确的决策路径,避免无效重试循环
-            // runToolLoop 已有 consecutiveToolFailures 计数和 MAX 终止逻辑,此处只负责引导措辞
             "$toolResult\n\n[工具调用失败引导] 请按以下优先级判断:\n" +
                 "1. 参数/路径错误 → 修正后重试本工具(最多 1 次)\n" +
                 "2. 权限/资源不可用 → 换用其他工具或告知用户限制\n" +
@@ -820,12 +845,14 @@ class ToolOrchestrator(
         // v1.x: 超长工具输出走"预览 + 写文件 + 引用"模式,完整内容落盘到
         // filesDir/tool_outputs/,LLM 上下文仅保留 4K 预览 + read_file 引用,
         // 既避免撑爆上下文,又让 LLM 能按需读取完整结果。
-        val finalToolResult = maybeTruncateToolOutput(tc.id, rawFinal)
+        val finalToolResult = maybeTruncateToolOutput(tc.id, llmResult)
+        // 展示用:纯工具输出(失败时不含 LLM 引导语)
+        val displayResult = maybeTruncateToolOutput(tc.id, toolResult)
 
         taskCardCoordinator.updateTaskCardStep(taskCardId, idx) { s ->
             s.copy(
                 status = if (isSuccess) TaskStepStatus.SUCCESS else TaskStepStatus.FAILED,
-                result = finalToolResult,
+                result = displayResult,
                 finishedAt = System.currentTimeMillis(),
             )
         }
@@ -852,7 +879,7 @@ class ToolOrchestrator(
         }
 
         host.onToolFinish(tc.id, tc.name, isSuccess, System.currentTimeMillis() - toolStartAt)
-        return ToolExecResult(idx, tc, finalToolResult, isSuccess)
+        return ToolExecResult(idx, tc, finalToolResult, isSuccess, displayResult = displayResult)
     }
 
     /** P1-1: 解析工具调用 JSON 参数为 Map(供 ToolLifecycleHook 使用)。 */

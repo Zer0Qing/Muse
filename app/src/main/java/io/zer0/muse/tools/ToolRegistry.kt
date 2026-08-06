@@ -84,7 +84,10 @@ import java.util.concurrent.ConcurrentHashMap
  *
  * @param context 应用 Context(用于需要系统服务的工具:Clipboard/UsageStats/Calendar)
  */
-class ToolRegistry(private val context: Context) {
+class ToolRegistry(
+    private val context: Context,
+    private val browserManager: BrowserManager = BrowserManager(context),
+) {
 
     /** 工具定义(UI 展示用,parameters 是参数名 → 描述)。
      *
@@ -137,9 +140,8 @@ class ToolRegistry(private val context: Context) {
         }
 
         // P2-6: 浏览器自动化工具集(navigate/click/type/extract/scroll_bottom/get_html)
-        // 内部创建独立的 BrowserManager 实例(headless WebView,与 Koin 注册的实例分离),
-        // 保证 AI 工具调用与 UI 展示互不干扰(按 BrowserManager.kt 设计说明)
-        val browserManager = BrowserManager(context)
+        // 与 Koin 注册的 BrowserManager 单例共享同一实例(由 AppToolModule 注入),
+        // 保证 AI 工具操作与 UI 状态胶囊实时同步。
         BrowserAutomationTool.toolDefs().forEach { def ->
             register(def) { args ->
                 BrowserAutomationTool.executeFromArgs(def.name, args, browserManager)
@@ -334,13 +336,63 @@ class ToolRegistry(private val context: Context) {
     suspend fun executeFromJson(name: String, argumentsJson: String): String {
         // M-TR1: 改用 resultOf{}(正确重抛 CancellationException)
         val args = resultOf {
-            val obj = AppJson.decodeFromString(JsonObject.serializer(), argumentsJson)
+            val obj = parseArgumentsLenient(argumentsJson)
             obj.entries.associate { (k, v) -> k to v.toString().trim('"') }
         }.onError { msg, _ ->
             Logger.w("ToolRegistry", "executeFromJson 参数解析失败: $msg(原始: $argumentsJson)")
         }.getOrNull() ?: return context.getString(R.string.tool_param_parse_failed, argumentsJson)
         // v1.0.53: execute 返回 ToolOutcome,取 content 保持 String 语义
         return execute(name, args).content
+    }
+
+    /**
+     * v1.x: 容错解析工具参数 JSON。
+     *
+     * 模型(尤其深度思考模式下经中转站的推理模型)可能输出畸形参数:
+     *  - 拼接多个 JSON 对象,如 `{}{\"selector\": \"h1\"}` 或 `{\"selector\": \"h1\"}{}`
+     *  - 前后多余空白
+     *
+     * 策略:先标准解析;失败后按最外层花括号配对拆分所有片段,逐个解析并合并
+     * (后者覆盖同名键),任一片段解析成功即返回。
+     */
+    internal fun parseArgumentsLenient(json: String): JsonObject {
+        // 1. 标准解析
+        runCatching { AppJson.decodeFromString(JsonObject.serializer(), json) }
+            .getOrNull()?.let { return it }
+        // 2. 容错:按最外层 {} 配对拆分
+        val fragments = mutableListOf<String>()
+        var depth = 0
+        var start = -1
+        for (i in json.indices) {
+            when (json[i]) {
+                '{' -> {
+                    if (depth == 0) start = i
+                    depth++
+                }
+                '}' -> {
+                    if (depth > 0) {
+                        depth--
+                        if (depth == 0 && start >= 0) {
+                            fragments += json.substring(start, i + 1)
+                            start = -1
+                        }
+                    }
+                }
+            }
+        }
+        if (fragments.size > 1) {
+            val merged = buildJsonObject {
+                fragments.forEach { frag ->
+                    runCatching { AppJson.decodeFromString(JsonObject.serializer(), frag) }
+                        .getOrNull()?.forEach { (k, v) -> put(k, v) }
+                }
+            }
+            if (merged.isNotEmpty()) return merged
+        }
+        // 3. 兜底:把原始内容当作字符串参数(key = 首个声明参数或 "value")
+        return buildJsonObject {
+            put("value", JsonPrimitive(json.trim()))
+        }
     }
 
     // ── 内置工具实现 ──────────────────────────────────────────────────────────
