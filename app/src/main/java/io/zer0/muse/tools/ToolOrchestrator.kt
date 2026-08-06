@@ -73,6 +73,10 @@ internal const val MAX_TOOL_CHAIN_MESSAGES = 30
 /** 连续工具失败早停阈值,避免跑满 maxToolRounds 白耗 API 额度。 */
 internal const val MAX_CONSECUTIVE_TOOL_FAILURES = 3
 
+/** R-TEST-10: 连续失败早停纯逻辑。 */
+internal fun shouldAbortToolLoop(consecutiveFailures: Int): Boolean =
+    consecutiveFailures >= MAX_CONSECUTIVE_TOOL_FAILURES
+
 /** v1.x: 简单任务(无 task_plan)的默认最大轮次。 */
 internal const val DEFAULT_MAX_TOOL_ROUNDS = 10
 
@@ -606,7 +610,7 @@ class ToolOrchestrator(
                         }
 
                         // C1-3: 连续失败早停
-                        if (consecutiveToolFailures >= MAX_CONSECUTIVE_TOOL_FAILURES) {
+                        if (shouldAbortToolLoop(consecutiveToolFailures)) {
                             Logger.w(
                                 "ToolOrchestrator",
                                 "连续 $consecutiveToolFailures 次工具失败,提前终止工具调用循环 " +
