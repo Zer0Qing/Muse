@@ -19,6 +19,7 @@
 |---|---|---|---|
 | R-DB-02 | 已完成 | `:app:testDebugUnitTest` 全绿；R-TEST-23 2/2 通过 | onOpen 双保险 + sqlite_master 探测 + 影子表清理重建 + DAO 自愈；app Robolectric 不支持 FTS4，测试用 fake DAO |
 | R-DB-03 | 已完成 | FactDbLegacyResetTest 3/3 通过；assembleDebug + 三模块单测全绿 | FactDb v1/v2/损坏库归档为 .bak 并重建空库；MemoryScreen 单次提示；README 已知限制 |
+| R-DB-04 | 部分完成 | MessageImageStoreTest 4/4 通过；assembleDebug + 三模块单测全绿 | MessageImageStore 增加文件→base64 LRU 缓存（64 条），降低列表映射 N+1 磁盘读；存量 DB base64 外置迁移仍待后续 |
 | R-UI-01 | 已完成 | `assembleDebug` 零错误 | KnowledgeScreen 修复/重建索引按钮、进度与多语言 Toast |
 | R-SEC-02 | 已完成 | grep 确认无 token 响应体日志 | OAuth 三处日志脱敏 |
 | R-SEC-06 | 已完成 | `:ai:testDebugUnitTest` 全绿；`take(500)` 0 命中 | 400 请求体改结构化摘要 |
@@ -388,3 +389,10 @@
 - 本轮新增提交：R-SEC-10 密钥轮换文档同步。
 - 验证：README/进度文件文本检查通过；工作区干净，分支未合并。
 - 仍待 owner/后续：R-TEST-06 完整状态机（依赖 R-UI-08）、R-UI-14 结构级拆分（ChatScreen/ChatViewModel/MuseDb/GroupChatScheduler）、R-DB-04/05、R-BUILD-07、真机验证项。
+
+## 第三批检查点 35（2026-08-06 续）
+
+- 新增完成：R-DB-04 懒加载/缓存面（部分）。MessageImageStore 增加 access-order LRU 缓存（64 条），toBase64List 重复读取同一图片不再重复磁盘 IO；新增 MessageImageStoreTest 4/4（长 base64 落盘往返、短 base64 内联、缓存命中、缺失文件空串）。
+- 备注：messages 表存量 base64 外置迁移仍需 MuseDb migration + schema 导出，留后续迭代；owner 已列 R-DB-04 为迭代项。
+- 验证：assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿；:app detekt/ktlintCheck 通过。
+- 仍待 owner/后续：R-DB-04 存量迁移、R-DB-05、R-TEST-06 完整状态机（依赖 R-UI-08）、R-UI-14 其余大文件（ChatScreen 仍约 1783 行、ChatViewModel/MuseDb/GroupChatScheduler 等）、R-BUILD-07、真机验证项。

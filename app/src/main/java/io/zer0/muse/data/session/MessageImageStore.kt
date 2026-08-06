@@ -3,6 +3,7 @@ package io.zer0.muse.data.session
 import io.zer0.common.Logger
 import java.io.File
 import java.util.Base64
+import java.util.LinkedHashMap
 
 /**
  * v1.134 P1-2: 消息图片存储服务 — base64 ↔ 文件路径双向转换。
@@ -33,6 +34,14 @@ class MessageImageStore(
 ) {
     /** base64 长度阈值,超过此值才落盘(短数据仍存 base64)。 */
     private val minLengthToPersist: Int = MIN_LENGTH_TO_PERSIST
+
+    /**
+     * R-DB-04: 文件→base64 LRU 缓存(access-order,最多 64 条),
+     * 避免消息列表映射时对同一张图片重复磁盘读(N+1)。
+     */
+    private val imageCache = object : LinkedHashMap<String, String>(64, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String>?): Boolean = size > 64
+    }
 
     /**
      * 把 base64 列表转为可持久化形式(路径或原始 base64)。
@@ -79,8 +88,11 @@ class MessageImageStore(
         if (persistableList.isEmpty()) return emptyList()
         return persistableList.map { value ->
             if (!value.startsWith(FILE_PREFIX)) return@map value
-            runCatching {
-                val path = value.removePrefix(FILE_PREFIX)
+            val path = value.removePrefix(FILE_PREFIX)
+            synchronized(imageCache) {
+                imageCache[path]?.let { return@map it }
+            }
+            val encoded = runCatching {
                 val bytes = File(path).readBytes()
                 // 文件存的是原始 base64 解码后的二进制,重新编码为 base64
                 // 不加 data: 前缀(UI 层 Picasso/Coil 等会自动识别纯 base64)
@@ -89,6 +101,10 @@ class MessageImageStore(
                 Logger.w(TAG, "图片读取失败: ${e.message}")
                 ""
             }
+            if (encoded.isNotEmpty()) {
+                synchronized(imageCache) { imageCache[path] = encoded }
+            }
+            encoded
         }
     }
 
