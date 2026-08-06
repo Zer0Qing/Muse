@@ -163,13 +163,13 @@ dependencies {
     implementation(libs.androidx.lifecycle.process)
     implementation(libs.androidx.activity.compose)
     // v1.7: 系统 SplashScreen API(androidx.core:core-splashscreen)
-    implementation("androidx.core:core-splashscreen:1.0.1")
+    implementation(libs.androidx.core.splashscreen)
     // v1.60-C: AppCompat(per-app 语言切换,支持 Android 13 以下系统)
-    implementation("androidx.appcompat:appcompat:1.7.0")
+    implementation(libs.androidx.appcompat)
     // 功能1: 生物识别解锁
-    implementation("androidx.biometric:biometric:1.1.0")
+    implementation(libs.androidx.biometric)
     // v1.104 P3: WorkManager — ScheduledTaskRunner 后台兜底,App 被杀也能由系统拉起
-    implementation("androidx.work:work-runtime-ktx:2.9.0")
+    implementation(libs.androidx.work.runtime.ktx)
 
     // Compose
     implementation(platform(libs.androidx.compose.bom))
@@ -180,7 +180,7 @@ dependencies {
     // 故显式保留 1.4.0-alpha04 直到 stable 公开该 API(见 AUDIT_PROGRESS R-BUILD-02 阻塞记录)
     // R-BUILD-02 阻塞:material3 1.4.0 stable 的 MaterialExpressiveTheme/MotionScheme 为 internal,
     // 暂维持 1.4.0-alpha04 与 Compose BOM 2024.12.01,避免主题回归(见 AUDIT_PROGRESS)。
-    implementation("androidx.compose.material3:material3:1.4.0-alpha04")
+    implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
     // Tabler Icons Compose(线条图标库,补充 Material Icons)
     implementation(libs.composeIcons.tablerIcons)
@@ -188,8 +188,8 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     // Glance Compose 桌面小部件(Phase 12)
-    implementation("androidx.glance:glance-appwidget:1.1.1")
-    implementation("androidx.glance:glance-material3:1.1.1")
+    implementation(libs.androidx.glance.appwidget)
+    implementation(libs.androidx.glance.material3)
 
     // Koin
     implementation(platform(libs.koin.bom))
@@ -230,7 +230,7 @@ dependencies {
     // 配合 OnnxEmbeddingProvider / OnnxRerankProvider 使用,
     // 模型文件不内置 APK(避免体积膨胀),由用户从设置页导入到 filesDir/muse_onnx/。
     // 不可用时自动降级到 LocalKeywordEmbeddingProvider / LocalRerankProvider。
-    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.23.0")
+    implementation(libs.onnxruntime.android)
 
     // v1.49: 移除 Vosk 离线语音识别(com.alphacephei:vosk-android:0.3.47)
     // 原因:vosk-android native lib 每 ABI 约 8-9MB,4 个 ABI 共 34MB,占 APK 体积过大。
@@ -255,28 +255,28 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     // v1.89: 测试基础设施补强 — 供后续 Mock/Flow 测试和仪器化测试使用
-    testImplementation("io.mockk:mockk:1.13.13")
-    testImplementation("app.cash.turbine:turbine:1.2.0")
-    testImplementation("androidx.room:room-testing:2.8.4")
-    testImplementation("org.robolectric:robolectric:4.14.1")
-    testImplementation("androidx.test:core-ktx:1.6.1")
+    testImplementation(libs.mockk)
+    testImplementation(libs.turbine)
+    testImplementation(libs.androidx.room.testing)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core.ktx)
     // Compose UI 测试（Robolectric 本地 JVM）
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation("androidx.compose.ui:ui-test-junit4")
     testImplementation("androidx.compose.ui:ui-test-manifest")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
-    androidTestImplementation("androidx.test:runner:1.6.2")
-    androidTestImplementation("androidx.test.ext:junit:1.2.1")
-    androidTestImplementation("androidx.test:core-ktx:1.6.1")
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.test.core.ktx)
 
     // LeakCanary 内存泄漏检测(仅 debug)
-    debugImplementation("com.squareup.leakcanary:leakcanary-android:2.14")
+    debugImplementation(libs.leakcanary.android)
     // v1.55: 真实 tokenizer(BPE 编码,cl100k_base — GPT-4/3.5 通用,其他模型近似)
     implementation(libs.jtokkit)
 
     // v1.97: 二维码生成与扫描(zxing 生成 + ML Kit barcode 扫描图片)
-    implementation("com.google.zxing:core:3.5.3")
-    implementation("com.google.mlkit:barcode-scanning:17.3.0")
+    implementation(libs.zxing.core)
+    implementation(libs.mlkit.barcode.scanning)
 }
 
 // 发布安全：正式构建必须使用独立 keystore.properties，禁止静默回退 debug 签名。

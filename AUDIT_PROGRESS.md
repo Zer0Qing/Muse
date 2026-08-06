@@ -81,6 +81,7 @@
 | R-TEST-02 | 已完成（随 R-UI-02） | `ChatViewModelFocusRestoreTest` 2/2 通过 | 进程恢复优先还原查看会话；outbox 重放不改写焦点 |
 | R-SVC-04 | 已完成 | 编译通过 | JsSandbox 超时销毁 WebView、连续超时熔断、总超时配额、插件自动禁用 |
 | R-BUILD-04 | 已完成 | `assembleDebug` 成功；grep 无 haze/sonner | 删除死依赖声明与实现 |
+| R-BUILD-06 | 已完成 | `assembleDebug` + 三模块单测全绿；app/memory 无硬编码依赖版本 | 17 个依赖收编进 version catalog；room-testing/robolectric/core-ktx 重复声明消除；material3 改走 catalog |
 | R-BUILD-02 | 已关闭（owner 决策） | 保持 material3 1.4.0-alpha04 + BOM 2024.12.01，`assembleDebug` 成功 | 等待 1.5.0 stable 公开 Expressive API，不再尝试升级 |
 | R-UI-02 | 已完成 | R-TEST-02 2/2 通过；编译通过 | 新增 viewed_session_id / generating_session_id 两个 DataStore key；ChatViewModel 启动恢复查看焦点；outbox/checkpoint 重放不改写焦点；docs 更新 |
 
@@ -323,3 +324,9 @@
 - 本轮新增提交：R-TEST-20 Agnes 图片/ImageService、Agnes/Kling 视频解析，以及检查点小结。
 - 验证：每个提交均 assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿（一次 TokenStatsBarTest OOM 偶发，app 重跑通过）；detekt/ktlintCheck 通过；工作区干净，分支未合并。
 - 仍待 owner/后续：R-TEST-06 完整状态机（依赖 R-UI-08）、R-UI-14 结构级拆分（ChatScreen/ChatViewModel/MuseDb/GroupChatScheduler）、R-DB-04/05、R-BUILD-07、真机验证项（Keystore / v1-54 迁移链）。R-TEST-20 已覆盖 image/video/MCP/importer/widget/plugin/slash/translate 主要面。
+
+## 第三批检查点 30（2026-08-06 续）
+
+- 新增完成：R-BUILD-06 硬编码版本迁入 version catalog。app 的 core-splashscreen/appcompat/biometric/work/glance×2/onnxruntime/mockk/turbine/robolectric/room-testing/androidx.test×3/leakcanary/zxing/mlkit barcode 全部收编；memory 的 room-testing/robolectric/core-ktx/ext-junit 改走 catalog 消除重复声明；material3 硬编码字符串改 catalog 引用。
+- 验证：assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿；app/memory build.gradle 扫描无 `"group:artifact:version"` 依赖字符串。
+- 仍待 owner/后续：R-TEST-06 完整状态机（依赖 R-UI-08）、R-UI-14 其余大文件（ChatScreen 仍约 1783 行、ChatViewModel/MuseDb/GroupChatScheduler 等）、R-DB-04/05、R-BUILD-07、真机验证项。

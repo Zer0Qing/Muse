@@ -69,11 +69,11 @@ dependencies {
     // 测试
     testImplementation(libs.junit)
     // Phase 2.2: Room Migration 测试基础设施 — 与 app 模块版本对齐(room=2.8.4)
-    testImplementation("androidx.room:room-testing:2.8.4")
+    testImplementation(libs.androidx.room.testing)
     // Robolectric: JVM 上跑 Android Context(SQLite/Cursor),无需真机
-    testImplementation("org.robolectric:robolectric:4.14.1")
-    testImplementation("androidx.test:core-ktx:1.6.1")
-    testImplementation("androidx.test.ext:junit:1.2.1")
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core.ktx)
+    testImplementation(libs.androidx.test.ext.junit)
     testImplementation(libs.kotlinx.coroutines.test)
 }
 kover {
