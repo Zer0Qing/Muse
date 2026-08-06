@@ -43,7 +43,7 @@
 | R-UI-11 | 已完成 | grep `collectAsState()` 仅剩 MuseToastHost（带注释） | ProviderSection 改 collectAsStateWithLifecycle |
 | R-UI-12 | 已完成（复核） | 5 个文件逐点复核 | 现有交互按钮/行均带语义标签或相邻文本，剩余 null 均为装饰性图标，符合任务书“装饰性保持 null”说明 |
 | R-UI-13 | 已完成 | 编译通过 | SettingsTutorialPage 搜索结果 items 补稳定 key |
-| R-UI-14 | 部分完成 | assembleDebug + 三模块测试全绿 | 已拆 DebugScreen、TranslateScreen、AssistantAdvancedPage、QuickNotesScreen、MessageBubble、GroupChatDetailScreen、ChatScreen、MemoryScreen、ProviderSection、WebSearchService；剩余 ChatViewModel/GroupChatScheduler/MuseDb/SettingsRepository 继续 |
+| R-UI-14 | 部分完成 | assembleDebug + 三模块测试全绿 | 已拆 DebugScreen、TranslateScreen、AssistantAdvancedPage、QuickNotesScreen、MessageBubble、GroupChatDetailScreen、ChatScreen、MemoryScreen、ProviderSection、WebSearchService、SettingsRepository；剩余 ChatViewModel/GroupChatScheduler/MuseDb 继续 |
 | R-UI-08 | 待下一迭代 | 未执行 | 状态拆分不在本分支执行（owner 决策，先文件后状态） |
 | R-UI-15 | 已完成 | 编译通过 | StickerLibraryRepository 逐条目 D 日志改为每 100 条汇总，保留最终汇总 |
 | R-TEST-03 | 已完成（JVM 面） | PinLockPolicyTest 4/4 + SecureKeyStoreTest 3/3 通过 | SecureKeyCipher 接口 + delegate 注入可 mock；Keystore 硬件往返留真机验证 |
@@ -450,3 +450,9 @@
 - executeAsync 由 private 改 internal（跨文件访问，行为不变）；app detekt baseline 重新生成以匹配新文件路径。
 - 验证：assembleDebug + :app 全量单测全绿；app detekt/ktlintCheck 通过。
 - 仍待：ChatViewModel（6604）、GroupChatScheduler（2879）、MuseDb（2266）、SettingsRepository（1810）拆分；MuMu 迁移链/Keystore、R-BUILD-07 收尾。
+## 第三批检查点 42（2026-08-07 续）
+
+- R-UI-14 新增完成：SettingsRepository.kt 纯文件拆分（1810 → 1445 行）。ImageGenConfig / VideoGenConfig / UserProfile / ChatPreferences / ExperimentsConfig / ShareTemplateConfig / MediaConfig / ProactiveMessageConfig / AgentTeam / MultiAgentConfig 搬入 SettingsModels.kt（367 行）。
+- app detekt baseline 重新生成以匹配新文件路径。
+- 验证：assembleDebug + :app 全量单测全绿；app detekt/ktlintCheck 通过。
+- 仍待：ChatViewModel（6604）、GroupChatScheduler（2879）、MuseDb（2266）拆分；MuMu 迁移链/Keystore、R-BUILD-07 收尾。

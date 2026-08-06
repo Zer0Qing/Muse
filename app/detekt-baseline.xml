@@ -1913,7 +1913,7 @@
     <ID>MaxLineLength:SessionRepository.kt$SessionRepository$if (citations.isEmpty()) "[]" else runCatching { json.encodeToString(ragCitationListSerializer, citations) }.getOrDefault("[]")</ID>
     <ID>MaxLineLength:SessionRepository.kt$SessionRepository$suspend</ID>
     <ID>MaxLineLength:SessionRepository.kt$SessionRepository$title = context.getString(R.string.session_repo_fork_title, sourceSession.title.ifBlank { context.getString(R.string.session_repo_default_title) })</ID>
-    <ID>MaxLineLength:SettingsRepository.kt$MultiAgentConfig$val</ID>
+    <ID>MaxLineLength:SettingsModels.kt$MultiAgentConfig$val</ID>
     <ID>MaxLineLength:SettingsRepository.kt$SettingsRepository$decodePrefsOrNull(prefs[KEY_EXPERIMENTS], ExperimentsConfig.serializer(), "ExperimentsConfig") ?: ExperimentsConfig()</ID>
     <ID>MaxLineLength:SettingsRepository.kt$SettingsRepository$decodePrefsOrNull(prefs[KEY_IMAGE_GEN_CONFIG], ImageGenConfig.serializer(), "ImageGenConfig") ?: ImageGenConfig()</ID>
     <ID>MaxLineLength:SettingsRepository.kt$SettingsRepository$decodePrefsOrNull(prefs[KEY_MCP_SERVERS], ListSerializer(io.zer0.muse.mcp.McpServerConfig.serializer()), "McpServers")</ID>
