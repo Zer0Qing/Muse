@@ -23,6 +23,7 @@
 | R-SEC-02 | 已完成 | grep 确认无 token 响应体日志 | OAuth 三处日志脱敏 |
 | R-SEC-06 | 已完成 | `:ai:testDebugUnitTest` 全绿；`take(500)` 0 命中 | 400 请求体改结构化摘要 |
 | R-SEC-07 | 已完成 | FreeModelConfigTest 5/5 通过；编译通过 | fallback key 占位/空时设置页与模型切换面板显示「免费额度服务不可用」；新增 isFallbackKeyAvailable |
+| R-SEC-10 | 已完成（仓库侧） | README 已同步；grep 无旧免费模型机制描述 | KeyRoulette 401 硬黑名单确认；README 记录 FREE_MODEL_KEY 构建注入与服务端拉黑旧 key 要求 |
 | R-UI-03 | 已完成 | 编译通过 | 默认主题统一 mono，文档同步 |
 | R-DOC-01 | 已完成 | FactDbMigrationTest 通过 | .db 清理 + gitignore + hygiene 脚本 |
 | R-DOC-05 | 已完成 | 编译通过 | ai 构建注释修正 |
@@ -374,3 +375,10 @@
 - 本轮新增提交：R-TEST-20 ImageService 模型选择测试。
 - 验证：assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿；detekt/ktlintCheck 通过；工作区干净，分支未合并。
 - 仍待 owner/后续：R-TEST-06 完整状态机（依赖 R-UI-08）、R-UI-14 结构级拆分（ChatScreen/ChatViewModel/MuseDb/GroupChatScheduler）、R-DB-04/05、R-BUILD-07、真机验证项。
+
+## 第三批检查点 34（2026-08-06 续）
+
+- 新增完成：R-SEC-10 密钥轮换文档同步（仓库侧）。README 已知限制补充 FREE_MODEL_KEY 构建注入、未注入 UI 提示、KeyRoulette 401 硬黑名单、服务端拉黑旧 key 要求；确认无旧免费模型机制描述残留。
+- 备注：服务端实际拉黑旧 key 属运维动作，不在仓库代码内；仓库侧已完成文档与黑名单逻辑确认。
+- 验证：README 文本检查通过；无需代码测试。
+- 仍待 owner/后续：R-TEST-06 完整状态机（依赖 R-UI-08）、R-UI-14 其余大文件（ChatScreen 仍约 1783 行、ChatViewModel/MuseDb/GroupChatScheduler 等）、R-DB-04/05、R-BUILD-07、真机验证项。
