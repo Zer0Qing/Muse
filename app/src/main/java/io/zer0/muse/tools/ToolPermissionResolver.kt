@@ -138,7 +138,8 @@ object ToolPermissionResolver {
         ParamPolicies.evaluate(toolName, args)?.let { return it }
 
         // 2. 严格模式:安全工具之外全部审批;安全工具中若涉及外部应用/网络也审批
-        if (mode == SessionPermissionMode.STRICT) {
+        //    注:显式 ALWAYS_ALLOW 在下方优先于 STRICT 判定(用户显式放行的工具不再询问)
+        if (mode == SessionPermissionMode.STRICT && perToolPolicy != ToolApprovalPolicy.ALWAYS_ALLOW) {
             return if (effectiveRisk == ToolRiskLevel.SAFE && toolName in STRICT_SAFE_ALLOWLIST) {
                 ToolApprovalState.Auto
             } else {
@@ -146,13 +147,12 @@ object ToolPermissionResolver {
             }
         }
 
-        // 3. 用户显式允许某工具时,信任模式下自动执行;询问模式下仍需审批(除非为安全工具)
+        // 3. 用户显式允许某工具时,任何模式下都直接放行。
+        //    v1.x 修复:原实现 ASK/STRICT 模式无视 ALWAYS_ALLOW,导致"始终允许工具"
+        //    勾选/按钮后下次调用仍弹审批卡(用户反馈不生效)。
+        //    显式策略是最强信号,优先级高于会话模式。
         if (perToolPolicy == ToolApprovalPolicy.ALWAYS_ALLOW) {
-            return when (mode) {
-                SessionPermissionMode.TRUSTED -> ToolApprovalState.Auto
-                SessionPermissionMode.ASK -> if (effectiveRisk == ToolRiskLevel.SAFE) ToolApprovalState.Auto else ToolApprovalState.Pending
-                SessionPermissionMode.STRICT -> ToolApprovalState.Pending // 上面已处理,不会到达
-            }
+            return ToolApprovalState.Auto
         }
 
         // 4. 默认策略(按会话模式 + risk)
