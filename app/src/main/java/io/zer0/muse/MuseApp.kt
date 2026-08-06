@@ -590,7 +590,7 @@ class MuseApp : Application(), ImageLoaderFactory {
      * 防止设备休眠打断。仅持 CPU 锁,不影响屏幕亮度。
      */
     private fun updateWakeLock(keepAwake: Boolean) {
-        if (keepAwake) {
+        if (keepAwake && !isLowBattery()) {
             if (wakeLock?.isHeld == true) return
             val pm = getSystemService(Context.POWER_SERVICE) as? PowerManager ?: return
             wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Muse:KeepAwake").also {
@@ -604,6 +604,13 @@ class MuseApp : Application(), ImageLoaderFactory {
             wakeLock = null
             Logger.i("MuseApp", "keepAwake: WAKE_LOCK released")
         }
+    }
+
+    /** R-SVC-05: 低电量且未充电时不主动保活。 */
+    private fun isLowBattery(): Boolean {
+        val battery = getSystemService(Context.BATTERY_SERVICE) as? android.os.BatteryManager ?: return false
+        val level = battery.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY)
+        return level in 1..15 && !battery.isCharging
     }
 
     /**
