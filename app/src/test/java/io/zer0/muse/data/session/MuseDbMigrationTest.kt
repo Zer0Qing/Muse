@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.core.app.ApplicationProvider
+import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -13,6 +14,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.File
+import java.util.Base64
 
 /**
  * B6-03: MuseDb 迁移链测试。
@@ -158,7 +160,11 @@ class MuseDbMigrationTest {
                 MuseDb::class.java,
                 dbFile.absolutePath,
             )
-                .addMigrations(MuseDb.MIGRATION_68_74, MuseDb.MIGRATION_74_75)
+                .addMigrations(
+                    MuseDb.MIGRATION_68_74,
+                    MuseDb.MIGRATION_74_75,
+                    MuseDb.migrate75To76(imageStorageDir),
+                )
                 .allowMainThreadQueries()
                 .build()
             db.openHelper.writableDatabase.query("PRAGMA table_info(sessions)").use { cursor ->
@@ -240,7 +246,11 @@ class MuseDbMigrationTest {
                 MuseDb::class.java,
                 dbFile.absolutePath,
             )
-                .addMigrations(MuseDb.MIGRATION_68_74, MuseDb.MIGRATION_74_75)
+                .addMigrations(
+                    MuseDb.MIGRATION_68_74,
+                    MuseDb.MIGRATION_74_75,
+                    MuseDb.migrate75To76(imageStorageDir),
+                )
                 .allowMainThreadQueries()
                 .build()
             db.openHelper.writableDatabase.query("PRAGMA table_info(group_chat_messages)").use { cursor ->
@@ -303,12 +313,86 @@ class MuseDbMigrationTest {
     }
 
 
+    @Test
+    fun migrateV75To76_externalizesLongBase64AndKeepsShortInline() {
+        val dbFile = context.getDatabasePath("muse_migration_75_images.db").apply {
+            parentFile?.mkdirs()
+            if (exists()) delete()
+        }
+        val imageDir = File(context.cacheDir, "muse_images_migration_v75")
+        imageDir.deleteRecursively()
+        imageDir.mkdirs()
+        try {
+            createSchemaAtVersion(75, dbFile.absolutePath)
+            insertLegacyRow(dbFile.absolutePath, 75)
+
+            val longBytes = ByteArray(900) { (it % 251).toByte() }
+            val longBase64 = Base64.getEncoder().encodeToString(longBytes)
+            val shortBase64 = "AQIDBA=="
+            val initialJson = JSONArray().put(longBase64).put(shortBase64).toString()
+
+            val factory = FrameworkSQLiteOpenHelperFactory()
+            val helper = factory.create(
+                androidx.sqlite.db.SupportSQLiteOpenHelper.Configuration.builder(context)
+                    .name(dbFile.absolutePath)
+                    .callback(object : androidx.sqlite.db.SupportSQLiteOpenHelper.Callback(75) {
+                        override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {}
+                        override fun onUpgrade(
+                            db: androidx.sqlite.db.SupportSQLiteDatabase,
+                            oldVersion: Int,
+                            newVersion: Int,
+                        ) {}
+                    })
+                    .build(),
+            ).writableDatabase
+            helper.execSQL(
+                "UPDATE messages SET imageBase64Json = ? WHERE id = 'legacy-msg'",
+                arrayOf(initialJson),
+            )
+            helper.close()
+
+            val db = Room.databaseBuilder(
+                context,
+                MuseDb::class.java,
+                dbFile.absolutePath,
+            )
+                .addMigrations(MuseDb.migrate75To76(imageDir))
+                .allowMainThreadQueries()
+                .build()
+
+            db.openHelper.writableDatabase.query(
+                "SELECT imageBase64Json FROM messages WHERE id = 'legacy-msg'"
+            ).use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                val stored = JSONArray(cursor.getString(0))
+                assertEquals(2, stored.length())
+                val longRef = stored.getString(0)
+                assertTrue("长 base64 应外置为 file:// 路径", longRef.startsWith("file://"))
+                assertEquals(shortBase64, stored.getString(1))
+                val storedFile = File(longRef.removePrefix("file://"))
+                assertTrue("外置图片文件应存在", storedFile.exists())
+                val roundTrip = MessageImageStore(imageDir).toBase64List(
+                    listOf(longRef, shortBase64),
+                )
+                assertEquals(longBase64, roundTrip[0])
+                assertEquals(shortBase64, roundTrip[1])
+            }
+            db.close()
+        } finally {
+            if (dbFile.exists()) dbFile.delete()
+            context.deleteDatabase(dbFile.name)
+            imageDir.deleteRecursively()
+        }
+    }
+
     /** 1–54 的 schema 快照存在迁移漂移(缺索引/默认值)且 38→39 建 FTS4,Robolectric 无法覆盖,留真机。 */
     private fun availableSchemaVersions(): List<Int> = emptyList()
 
+    private val imageStorageDir: File get() = File(context.cacheDir, "muse_images_migration_test")
+
     /** 用反射收集 MuseDb 已注册迁移,按 fromVersion 排序得到完整升级链。 */
     private fun migrationsFrom(fromVersion: Int): List<androidx.room.migration.Migration> {
-        return MuseDb::class.java.declaredFields
+        val chain = MuseDb::class.java.declaredFields
             .filter { it.name.startsWith("MIGRATION_") }
             .mapNotNull { field ->
                 val parts = field.name.removePrefix("MIGRATION_").split("_")
@@ -320,6 +404,11 @@ class MuseDbMigrationTest {
             }
             .sortedBy { it.first.first }
             .map { it.second }
+        return if (fromVersion <= 75) {
+            chain + MuseDb.migrate75To76(imageStorageDir)
+        } else {
+            chain
+        }
     }
 
     private fun createSchemaAtVersion(version: Int, dbPath: String, stripIsLocked: Boolean = false) {

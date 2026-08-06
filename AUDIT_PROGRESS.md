@@ -19,7 +19,7 @@
 |---|---|---|---|
 | R-DB-02 | 已完成 | `:app:testDebugUnitTest` 全绿；R-TEST-23 2/2 通过 | onOpen 双保险 + sqlite_master 探测 + 影子表清理重建 + DAO 自愈；app Robolectric 不支持 FTS4，测试用 fake DAO |
 | R-DB-03 | 已完成 | FactDbLegacyResetTest 3/3 通过；assembleDebug + 三模块单测全绿 | FactDb v1/v2/损坏库归档为 .bak 并重建空库；MemoryScreen 单次提示；README 已知限制 |
-| R-DB-04 | 部分完成 | MessageImageStoreTest 4/4 通过；assembleDebug + 三模块单测全绿 | MessageImageStore 增加文件→base64 LRU 缓存（64 条），降低列表映射 N+1 磁盘读；存量 DB base64 外置迁移仍待后续 |
+| R-DB-04 | 已完成 | MessageImageStoreTest 4/4 + MuseDbMigrationTest 4/4 通过；assembleDebug + 三模块单测全绿 | MessageImageStore LRU 缓存 + DB v76 存量 base64 外置迁移（长 base64 落盘 filesDir/muse_images/，短值内联；失败回退、幂等可重入） |
 | R-UI-01 | 已完成 | `assembleDebug` 零错误 | KnowledgeScreen 修复/重建索引按钮、进度与多语言 Toast |
 | R-SEC-02 | 已完成 | grep 确认无 token 响应体日志 | OAuth 三处日志脱敏 |
 | R-SEC-06 | 已完成 | `:ai:testDebugUnitTest` 全绿；`take(500)` 0 命中 | 400 请求体改结构化摘要 |
@@ -80,7 +80,7 @@
 | R-SVC-05 | 已完成 | 编译通过 | 方案 B：仅聊天/群聊生成任务活跃且 keepAwake 开启时持锁；低电量未充电不持锁；设置页文案同步 |
 | R-TEST-19 | 已完成 | VisionBridgePureFunctionsTest 4/4 通过 | 视觉上下文/失败提示/MIME 嗅探/hash 纯逻辑 |
 | R-TEST-20 | 部分完成 | OpenAIImageProviderRequestTest 3/3 + VideoProviderRequestTest 5/5 + McpConfigTest 8/8 + ConfigImporterTest 5/5 + WidgetPrefsTest 4/4 + SlashCommandRegistryTest 8/8 + ProviderPluginRegistryTest 2/2 + GlossaryStoreTest 6/6 + AgnesImageProviderTest 5/5 + ImageServicePureTest 8/8 + VideoProviderParsingTest 6/6 通过 | OpenAI 文生图/视频 Provider 请求体 + MCP DTO + ConfigImporter + WidgetPrefs + 斜杠命令 + Provider 插件 + 翻译术语表 + Agnes 图片解析/尺寸 + 图片服务轮询/输出转换/模型选择 + Agnes/Kling 视频状态与响应解析 |
-| R-TEST-14 | 已完成（JVM 面） | MuseDbMigrationTest 通过 | 反射迁移链 + schema-aware 插行；JVM 覆盖 v55→75；v1-54 因 FTS4 与 schema 漂移留真机 |
+| R-TEST-14 | 已完成（JVM 面） | MuseDbMigrationTest 4/4 通过 | 反射迁移链 + schema-aware 插行；JVM 覆盖 v55→76；v1-54 因 FTS4 与 schema 漂移留真机 |
 | R-TEST-10 | 已完成 | ToolOrchestratorPureFunctionsTest + ToolOrchestratorRunLoopTest 5/5 通过 | calculator/web_search/超时/失败3次熔断/并行真实路径 + 纯逻辑；ToolOrchestrator 增加可注入 toolTimeoutMs |
 | R-TEST-06 | 部分完成 | ChatViewModelSendGuardTest 4/4 通过 | 发送守卫纯逻辑（空消息/流式/Agent 重入）；完整状态机待 R-UI-08 后补 |
 | R-TEST-01 | 已完成 | `:ai:testDebugUnitTest --tests "*StreamGuardTest*"` 3/3 通过 | guard 挂起/reasoning 先到/空 finishReason；早停回退网络路径由 FirstEventWatchdogTest + 快照测试共同覆盖 |
@@ -412,3 +412,10 @@
 - 新增完成（进度收敛）：R-AI-07 并入 R-SEC-06；R-SEC-04/R-SEC-05 分别由 R-TEST-03/R-TEST-04 JVM 面覆盖；R-SEC-09 正向确认无需动作（keystore.properties/local.properties 未入库）。
 - 验证：上述项无新增代码；引用项测试已在对应检查点验证。
 - 仍待 owner/后续：R-DB-04 存量迁移、R-DB-05、R-TEST-06 完整状态机（依赖 R-UI-08）、R-UI-14 结构级拆分（ChatScreen/ChatViewModel/MuseDb/GroupChatScheduler）、R-BUILD-07、真机验证项。
+
+## 第三批检查点 37（2026-08-06 续）
+
+- 新增完成：R-DB-04 存量 base64 图片外置迁移。MuseDb version 75→76，新增 migrate75To76(storageDir)：遍历 messages.imageBase64Json 非空且非 [] 数组行，复用 MessageImageStore.toPersistable，长 base64 落盘到 filesDir/muse_images/ 并改存 file:// 引用，短 base64 保持内联，失败回退原值、幂等可重入；Room builder 注册 75→76，app/schemas 76.json 由 KSP 自动导出。
+- 测试：MuseDbMigrationTest 扩至 4/4，覆盖 v55→76 全链、v68 真实缺列、群聊缺列、75→76 长/短 base64 外置与回读往返。
+- 验证：assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿；:app compileDebugKotlin/detekt/ktlintCheck（强制重跑）通过。
+- 本轮停止：按所有者指示，R-DB-04 完成后暂停，等待 owner review；R-DB-05、R-TEST-06 完整状态机、R-UI-14 结构级拆分、R-BUILD-07、真机验证项待后续。

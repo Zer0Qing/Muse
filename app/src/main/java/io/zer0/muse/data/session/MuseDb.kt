@@ -57,7 +57,11 @@ import io.zer0.muse.data.stats.StatsCacheDao
 import io.zer0.muse.data.stats.StatsCacheEntity
 import io.zer0.muse.ui.translate.TranslateHistoryDao
 import io.zer0.muse.ui.translate.TranslateHistoryEntity
+import io.zer0.common.AppJson
 import io.zer0.common.Logger
+import java.io.File
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
 
 /**
  * muse app 层 Room 数据库。
@@ -148,7 +152,7 @@ import io.zer0.common.Logger
         // B5-02: 群聊生成账本(进程被杀后按断点重放)
         GroupChatGenerationLedgerEntity::class,
     ],
-    version = 75,
+    version = 76,
     exportSchema = true,
 )
 @TypeConverters(QuickNoteConverters::class)
@@ -1899,6 +1903,41 @@ abstract class MuseDb : RoomDatabase() {
         }
     }
 
+    /**
+     * R-DB-04: 75→76 — messages 表存量 base64 图片外置到 filesDir/muse_images/。
+     * 复用 MessageImageStore.toPersistable:长 base64 落盘并改为 file:// 引用,
+     * 短 base64 保持内联(与 v1.134 新写入行为一致);失败时回退原值,幂等可重入。
+     */
+    fun migrate75To76(storageDir: File): Migration = object : Migration(75, 76) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            val store = MessageImageStore(storageDir)
+            val jsonSerializer = ListSerializer(String.serializer())
+            db.query(
+                "SELECT id, imageBase64Json FROM messages " +
+                    "WHERE imageBase64Json IS NOT NULL AND imageBase64Json != '' AND imageBase64Json != '[]'",
+            ).use { cursor ->
+                val idIdx = cursor.getColumnIndex("id")
+                val jsonIdx = cursor.getColumnIndex("imageBase64Json")
+                while (cursor.moveToNext()) {
+                    val id = cursor.getString(idIdx)
+                    val json = cursor.getString(jsonIdx)
+                    val base64List = runCatching {
+                        AppJson.decodeFromString(jsonSerializer, json)
+                    }.getOrNull()
+                    if (base64List.isNullOrEmpty()) continue
+                    val persistable = store.toPersistable(id, base64List)
+                    if (persistable != base64List) {
+                        val updated = AppJson.encodeToString(jsonSerializer, persistable)
+                        db.execSQL(
+                            "UPDATE messages SET imageBase64Json = ? WHERE id = ?",
+                            arrayOf(updated, id),
+                        )
+                    }
+                }
+            }
+        }
+    }
+
 
 
     fun get(context: Context): MuseDb {
@@ -1957,6 +1996,7 @@ abstract class MuseDb : RoomDatabase() {
                         MIGRATION_68_74,
                         MIGRATION_74_75,
                         MIGRATION_73_74,
+                        migrate75To76(File(context.applicationContext.filesDir, "muse_images")),
                     )
                     // 启用外键约束(artifacts 表的 ON DELETE CASCADE 依赖此设置)
                     // onOpen 不在 onCreate 事务内,可以执行此类命令;onCreate 内禁止 PRAGMA
