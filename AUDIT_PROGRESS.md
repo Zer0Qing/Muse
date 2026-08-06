@@ -77,7 +77,7 @@
 | R-SVC-06 | 已完成 | PluginManagerTest 新增能力白名单用例通过 | 白名单删除 network/resource.write；插件作者指南同步 |
 | R-SVC-07 | 已完成 | PluginManagerTest 通过 | uninstall 删除失败 Toast+日志；registry 原子写 temp+rename + Mutex |
 | R-TEST-12 | 已完成 | WebServerAuthPolicyTest 3/3 通过 | 限流窗口/JWT HMAC 签发校验 |
-| R-DOC-07 | 已完成 | 验收文档已更新 | BE-012/013 指向快照测试；BE-039~047 标 CI 状态；新增 2026-08-06 附录（769 tests） |
+| R-DOC-07 | 已完成 | 验收文档已更新 | BE-012/013 指向快照测试；BE-039~047 标 CI 状态；附录刷新为 906 tests / 128 类 / 0 failures + MuMu androidTest 6 例 |
 | R-SEC-03 | 已完成 | WebServerAuthPolicyTest 6/6 通过 | 方案 B：默认 127.0.0.1 + CORS 仅本机；设置页局域网开关开启后绑定 0.0.0.0 + anyHost；JWT 独立密钥 |
 | R-SVC-05 | 已完成 | 编译通过 | 方案 B：仅聊天/群聊生成任务活跃且 keepAwake 开启时持锁；低电量未充电不持锁；设置页文案同步 |
 | R-TEST-19 | 已完成 | VisionBridgePureFunctionsTest 4/4 通过 | 视觉上下文/失败提示/MIME 嗅探/hash 纯逻辑 |
@@ -478,3 +478,7 @@
 - R-TEST-03/04 MuMu 设备面补齐：新增 SecureKeyStoreInstrumentedTest 4/4，覆盖 Android Keystore 加解密往返、旧明文透传、BackupCrypto AES-GCM 往返、SettingsSnapshotPolicy 敏感键剔除。
 - 验证：:app connectedDebugAndroidTest 6/6 全绿（含既有 BrowserManager 2 例）；app detekt/ktlintCheck 通过。
 - 仍待真机：StrongBox 硬件 Keystore、国产 ROM FTS5、Shizuku、v1-53 迁移链。
+## 第三批检查点 47（2026-08-07 续）
+
+- R-DOC-07 附录刷新：三模块单测 906 tests / 128 测试类 / 0 failures；另含 MuMu connectedDebugAndroidTest 6 例。
+- 测试用例-全量验收.md 更新日期、模块计数、关键新增测试类。
