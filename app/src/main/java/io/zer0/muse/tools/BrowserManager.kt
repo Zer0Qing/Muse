@@ -84,6 +84,14 @@ class BrowserManager(private val context: Context) {
     /** 页面截图(Base64 PNG,可选)。 */
     val currentScreenshot: StateFlow<String?> = _currentScreenshot.asStateFlow()
 
+    private val _isActive = MutableStateFlow(false)
+    /** 浏览器是否正在使用中(navigate 后 true,close 后 false)。UI 据此显示状态胶囊。 */
+    val isActive: StateFlow<Boolean> = _isActive.asStateFlow()
+
+    private val _isLoading = MutableStateFlow(false)
+    /** 当前页面是否正在加载(供胶囊加载指示动画)。 */
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
     /** WebView 单例引用(必须在主线程访问)。@Volatile 保证可见性。 */
     @Volatile
     private var webViewRef: WebView? = null
@@ -100,14 +108,21 @@ class BrowserManager(private val context: Context) {
         try {
             val target = normalizeUrl(url)
             val webView = ensureWebView()
+            _isActive.value = true
+            _isLoading.value = true
 
             // 临时替换 WebViewClient 拦截 onPageFinished;用 suspendCancellableCoroutine 等待完成
             val success = withTimeoutOrNull(DEFAULT_TIMEOUT_MS) {
                 suspendCancellableCoroutine { cont ->
                     val previousClient = webView.webViewClient
                     webView.webViewClient = object : WebViewClient() {
+                        override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
+                            super.onPageStarted(view, url, favicon)
+                            _isLoading.value = true
+                        }
                         override fun onPageFinished(view: WebView?, url: String?) {
                             super.onPageFinished(view, url)
+                            _isLoading.value = false
                             _currentUrl.value = view?.url ?: url ?: target
                             _currentTitle.value = view?.title ?: ""
                             // 异步拉取 HTML,即便失败也认为导航完成
@@ -124,6 +139,7 @@ class BrowserManager(private val context: Context) {
                             error: WebResourceError?,
                         ) {
                             super.onReceivedError(view, request, error)
+                            _isLoading.value = false
                             if (request?.isForMainFrame != false && cont.isActive) {
                                 val code = error?.errorCode ?: -1
                                 val desc = error?.description?.toString() ?: "页面加载失败"
@@ -137,6 +153,7 @@ class BrowserManager(private val context: Context) {
                             errorResponse: WebResourceResponse?,
                         ) {
                             super.onReceivedHttpError(view, request, errorResponse)
+                            _isLoading.value = false
                             if (request?.isForMainFrame == true && cont.isActive) {
                                 val code = errorResponse?.statusCode ?: -1
                                 val reason = errorResponse?.reasonPhrase ?: "HTTP 错误"
@@ -150,12 +167,15 @@ class BrowserManager(private val context: Context) {
             }
 
             if (success == null) {
+                _isLoading.value = false
                 Logger.w(TAG, "navigate 超时: $target")
                 Result.failure(java.util.concurrent.TimeoutException("navigate 超时(${DEFAULT_TIMEOUT_MS}ms): $target"))
             } else {
+                Logger.i(TAG, "navigate 成功: $target → ${_currentUrl.value} | title=${_currentTitle.value.take(60)}")
                 Result.success(Unit)
             }
         } catch (e: Exception) {
+            _isLoading.value = false
             Logger.e(TAG, "navigate 异常: ${e.message}", e)
             Result.failure(e)
         }
@@ -177,9 +197,12 @@ class BrowserManager(private val context: Context) {
                         if (cont.isActive) cont.resume(value ?: "null")
                     }
                 }
-            } ?: return@withContext Result.failure(
-                java.util.concurrent.TimeoutException("evaluateJs 超时(${DEFAULT_TIMEOUT_MS}ms)")
-            )
+            } ?: run {
+                Logger.w(TAG, "evaluateJs 超时(${DEFAULT_TIMEOUT_MS}ms): ${script.take(120)}")
+                return@withContext Result.failure(
+                    java.util.concurrent.TimeoutException("evaluateJs 超时(${DEFAULT_TIMEOUT_MS}ms)")
+                )
+            }
             Result.success(raw)
         } catch (e: Exception) {
             Logger.e(TAG, "evaluateJs 异常: ${e.message}", e)
@@ -281,10 +304,57 @@ class BrowserManager(private val context: Context) {
     }
 
     /**
+     * 把内部 WebView 附加到指定容器(UI 展示用)。若 WebView 已挂在其他容器,先移除再挂入。
+     * 已在同一容器时直接返回(幂等,避免重绘)。必须在主线程调用。
+     *
+     * @param parent 目标 ViewGroup(如 Compose AndroidView 的容器)
+     * @return 内部 WebView 实例
+     */
+    @SuppressLint("SetJavaScriptEnabled")
+    fun attachToDisplay(parent: android.view.ViewGroup): WebView {
+        val wv = ensureWebView()
+        if (wv.parent === parent) return wv
+        (wv.parent as? android.view.ViewGroup)?.removeView(wv)
+        parent.addView(
+            wv,
+            android.view.ViewGroup.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            ),
+        )
+        wv.onResume()
+        return wv
+    }
+
+    /** 刷新当前页面(UI 工具条按钮)。 */
+    fun reload() {
+        val wv = webViewRef ?: return
+        _isLoading.value = true
+        wv.reload()
+    }
+
+    /**
+     * 从展示容器移除 WebView(回到 headless 状态,继续供 AI 工具使用)。
+     * 必须在主线程调用。
+     *
+     * 注:不调用 onPause —— headless 状态下 AI 工具仍依赖页面 JS 执行
+     * (evaluateJavascript/click/type 等),onPause 会冻结 JS 导致后续工具调用全部失败。
+     */
+    fun detachFromDisplay() {
+        val wv = webViewRef ?: return
+        (wv.parent as? android.view.ViewGroup)?.removeView(wv)
+    }
+
+    /** 是否有已加载的页面(供 UI 判断是否展示胶囊)。 */
+    fun hasPage(): Boolean = webViewRef != null && _currentUrl.value.isNotBlank()
+
+    /**
      * 关闭浏览器:停止加载 + 销毁 WebView + 清空 StateFlow。
      * 必须在主线程操作 WebView;非主线程调用会 post 到主线程。
      */
     fun close() {
+        _isActive.value = false
+        _isLoading.value = false
         val webView = webViewRef ?: return
         val destroyAction = {
             try {
@@ -347,13 +417,30 @@ class BrowserManager(private val context: Context) {
 
             // ── WebViewClient:监听页面加载完成,更新 StateFlow ──
             webViewClient = object : WebViewClient() {
+                override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
+                    super.onPageStarted(view, url, favicon)
+                    _isLoading.value = true
+                    _currentUrl.value = url ?: ""
+                }
                 override fun onPageFinished(view: WebView?, url: String?) {
                     super.onPageFinished(view, url)
+                    _isLoading.value = false
                     _currentUrl.value = view?.url ?: url ?: ""
                     _currentTitle.value = view?.title ?: ""
                     view?.evaluateJavascript(GET_OUTER_HTML_JS) { raw ->
                         _currentHtml.value = parseJsValue(raw).take(MAX_HTML_LENGTH)
                     }
+                }
+                /** ROM 兼容:渲染进程崩溃(部分 ROM 的 WebView 不稳定)时销毁重建,下次调用自动恢复。 */
+                override fun onRenderProcessGone(view: WebView?, detail: android.webkit.RenderProcessGoneDetail?): Boolean {
+                    Logger.e(TAG, "WebView 渲染进程崩溃: ${detail?.didCrash()}, 销毁重建")
+                    _isLoading.value = false
+                    view?.let { v ->
+                        (v.parent as? android.view.ViewGroup)?.removeView(v)
+                        runCatching { v.destroy() }
+                    }
+                    webViewRef = null
+                    return true
                 }
             }
 

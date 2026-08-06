@@ -165,7 +165,10 @@ object BrowserAutomationTool {
                         ?: return@runBlocking buildResult(success = false, error = "参数 selector 缺失或为空")
                     browserManager.extractText(selector).fold(
                         onSuccess = { text -> buildResult(success = true, data = text) },
-                        onFailure = { e -> buildResult(success = false, error = e.message ?: "提取失败") },
+                        onFailure = { e ->
+                            Logger.w(TAG, "extractText 失败: selector=$selector | url=${browserManager.currentUrl.value} | err=${e.message}")
+                            buildResult(success = false, error = e.message ?: "提取失败")
+                        },
                     )
                 }
                 TOOL_SCROLL_BOTTOM -> {
