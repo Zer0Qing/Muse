@@ -188,4 +188,9 @@
     <!-- v1.0.18: 快速记录快捷方式 -->
     <string name="shortcut_quick_notes_short">速记</string>
     <string name="shortcut_quick_notes_long">快速记录</string>
+    <!-- v1.0.69: 浏览器可视化查看器 -->
+    <string name="browser_viewer_collapse">收起</string>
+    <string name="browser_viewer_title">浏览器</string>
+    <string name="browser_viewer_refresh">刷新</string>
+    <string name="browser_viewer_close">关闭浏览器</string>
 </resources>

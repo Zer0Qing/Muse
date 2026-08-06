@@ -151,7 +151,7 @@ fun BrowserViewerDialog(manager: BrowserManager, onDismiss: () -> Unit) {
                         IconButton(onClick = onDismiss, modifier = Modifier.size(38.dp)) {
                             Icon(
                                 imageVector = TablerIcons.ArrowLeft,
-                                contentDescription = "收起",
+                                contentDescription = stringResource(R.string.browser_viewer_collapse),
                                 modifier = Modifier.size(20.dp),
                             )
                         }
@@ -161,7 +161,7 @@ fun BrowserViewerDialog(manager: BrowserManager, onDismiss: () -> Unit) {
                                 .padding(horizontal = 4.dp),
                         ) {
                             Text(
-                                text = title.ifBlank { url.ifBlank { "浏览器" } },
+                                text = title.ifBlank { url.ifBlank { stringResource(R.string.browser_viewer_title) } },
                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
@@ -190,7 +190,7 @@ fun BrowserViewerDialog(manager: BrowserManager, onDismiss: () -> Unit) {
                         ) {
                             Icon(
                                 imageVector = TablerIcons.Refresh,
-                                contentDescription = "刷新",
+                                contentDescription = stringResource(R.string.browser_viewer_refresh),
                                 modifier = Modifier.size(19.dp),
                             )
                         }
@@ -201,7 +201,7 @@ fun BrowserViewerDialog(manager: BrowserManager, onDismiss: () -> Unit) {
                         }, modifier = Modifier.size(38.dp)) {
                             Icon(
                                 imageVector = TablerIcons.X,
-                                contentDescription = "关闭浏览器",
+                                contentDescription = stringResource(R.string.browser_viewer_close),
                                 modifier = Modifier.size(20.dp),
                             )
                         }
