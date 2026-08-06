@@ -68,8 +68,14 @@ object FreeModelConfig {
         val allowed = FREE_MODEL_IDS.any { it.equals(modelId, ignoreCase = true) }
         if (!allowed) return null
         // 占位符视为未注入,返回 null(让调用方走原 apiKey 逻辑)
-        return FALLBACK_API_KEY.takeIf { it.isNotBlank() && it != "PLACEHOLDER" }
+        return FALLBACK_API_KEY.takeIf { isFallbackKeyAvailable() }
     }
+
+    /**
+     * R-SEC-07: fallback key 是否可用(非空且非占位符)。
+     */
+    fun isFallbackKeyAvailable(): Boolean =
+        FALLBACK_API_KEY.isNotBlank() && FALLBACK_API_KEY != "PLACEHOLDER"
 
     /**
      * 判断指定 provider 是否是免费模型 provider(SiliconFlow 且用户未填 key)。

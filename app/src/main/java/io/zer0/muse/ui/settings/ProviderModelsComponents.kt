@@ -113,13 +113,22 @@ internal fun ModelsTab(
                     .fillMaxWidth()
                     .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.contentGap),
             )
-            // v1.0.18: 既有实现 式免费模型 fallback 提示 — 用户未填 apiKey 时告知可用免费模型,
-            // 填写后可解锁 SiliconFlow 全部模型(由 listModels 调远程 /models 拉取)
+            // v1.0.18 / R-SEC-07: 免费模型 fallback 提示 — fallback key 可用时告知免费额度,
+            // 占位符/空 key 时给出可见的不可用提示,避免静默失败。
             if (apiKey.isBlank() && FreeModelConfig.isFreeProvider(baseUrl, apiKey)) {
+                val freeHint = if (FreeModelConfig.isFallbackKeyAvailable()) {
+                    FreeModelConfig.FREE_PROVIDER_HINT
+                } else {
+                    stringResource(R.string.free_model_service_unavailable)
+                }
                 Text(
-                    text = FreeModelConfig.FREE_PROVIDER_HINT,
+                    text = freeHint,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (FreeModelConfig.isFallbackKeyAvailable()) {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    } else {
+                        MaterialTheme.colorScheme.error
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.tightGap),

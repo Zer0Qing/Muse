@@ -587,6 +587,7 @@
     <string name="preset_siliconflow_free_desc">SiliconFlow 提供的免费开源模型集合</string>
     <string name="siliconflow_fill_free_models">填入免费模型</string>
     <string name="siliconflow_fill_free_models_confirm">将用 SiliconFlow 免费模型列表替换当前模型，确认？</string>
+    <string name="free_model_service_unavailable">免费额度服务不可用，请填写 API Key 或等待服务恢复</string>
 
     <!-- ===== P2-10: Provider 插件管理(ProviderPluginPage) ===== -->
     <string name="provider_plugins_title">插件管理</string>

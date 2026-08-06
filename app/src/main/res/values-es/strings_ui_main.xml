@@ -557,6 +557,7 @@
     <string name="preset_siliconflow_free_desc">Modelos gratuitos de código abierto de SiliconFlow</string>
     <string name="siliconflow_fill_free_models">Llenar modelos gratuitos</string>
     <string name="siliconflow_fill_free_models_confirm">Reemplazar los modelos actuales con modelos gratuitos de SiliconFlow, ¿confirmar?</string>
+    <string name="free_model_service_unavailable">El servicio de cuota gratuita no está disponible. Añade una API Key o inténtalo más tarde.</string>
 
     <!-- ===== P2-10: Provider plugin management (ProviderPluginPage) ===== -->
     <string name="provider_plugins_title">Administrador de complementos</string>

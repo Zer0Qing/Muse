@@ -21,6 +21,7 @@
 | R-UI-01 | 已完成 | `assembleDebug` 零错误 | KnowledgeScreen 修复/重建索引按钮、进度与多语言 Toast |
 | R-SEC-02 | 已完成 | grep 确认无 token 响应体日志 | OAuth 三处日志脱敏 |
 | R-SEC-06 | 已完成 | `:ai:testDebugUnitTest` 全绿；`take(500)` 0 命中 | 400 请求体改结构化摘要 |
+| R-SEC-07 | 已完成 | FreeModelConfigTest 5/5 通过；编译通过 | fallback key 占位/空时设置页与模型切换面板显示「免费额度服务不可用」；新增 isFallbackKeyAvailable |
 | R-UI-03 | 已完成 | 编译通过 | 默认主题统一 mono，文档同步 |
 | R-DOC-01 | 已完成 | FactDbMigrationTest 通过 | .db 清理 + gitignore + hygiene 脚本 |
 | R-DOC-05 | 已完成 | 编译通过 | ai 构建注释修正 |
@@ -335,3 +336,9 @@
 ## 第三批检查点 30 补充（2026-08-06 续）
 
 - R-BUILD-03 随 R-BUILD-06 一并完成：app 中 `androidx.compose.material3:material3:1.4.0-alpha04` 硬编码字符串已删除，统一走 `libs.androidx.compose.material3`；grep 仅 catalog 一处版本声明。
+
+## 第三批检查点 31（2026-08-06 续）
+
+- 新增完成：R-SEC-07 FreeModelConfig fallback key 占位符可见提示。FreeModelConfig 新增 isFallbackKeyAvailable；ProviderModelsComponents 与 ModelSwitchSheet 在 SiliconFlow 免费入口检测到占位/空 key 时显示「免费额度服务不可用」（7 语言 strings）；新增 FreeModelConfigTest 5/5。
+- 验证：assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿；:app/:ai detekt/ktlintCheck 通过。
+- 仍待 owner/后续：R-TEST-06 完整状态机（依赖 R-UI-08）、R-UI-14 其余大文件（ChatScreen 仍约 1783 行、ChatViewModel/MuseDb/GroupChatScheduler 等）、R-DB-04/05、R-BUILD-07、真机验证项。
