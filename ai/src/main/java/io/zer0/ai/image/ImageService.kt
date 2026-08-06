@@ -111,7 +111,8 @@ class ImageService(
     /**
      * 解析最终模型 ID(不再硬编码 dall-e-3)。
      */
-    private fun resolveModelId(
+    @Suppress("ReturnCount")
+    internal fun resolveModelId(
         params: ImageGenParams,
         config: ProviderConfig,
         provider: ImageProvider,
