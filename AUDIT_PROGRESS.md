@@ -33,7 +33,7 @@
 | R-UI-11 | 已完成 | grep `collectAsState()` 仅剩 MuseToastHost（带注释） | ProviderSection 改 collectAsStateWithLifecycle |
 | R-UI-12 | 已完成（复核） | 5 个文件逐点复核 | 现有交互按钮/行均带语义标签或相邻文本，剩余 null 均为装饰性图标，符合任务书“装饰性保持 null”说明 |
 | R-UI-13 | 已完成 | 编译通过 | SettingsTutorialPage 搜索结果 items 补稳定 key |
-| R-UI-14 | 部分完成 | assembleDebug + 三模块测试全绿 | 已拆 DebugScreen、TranslateScreen、AssistantAdvancedPage、QuickNotesScreen、MessageBubble、GroupChatDetailScreen、ChatScreen、MemoryScreen；其余大文件继续 |
+| R-UI-14 | 部分完成 | assembleDebug + 三模块测试全绿 | 已拆 DebugScreen、TranslateScreen、AssistantAdvancedPage、QuickNotesScreen、MessageBubble、GroupChatDetailScreen、ChatScreen、MemoryScreen、ProviderSection；其余大文件继续 |
 | R-UI-08 | 待下一迭代 | 未执行 | 状态拆分不在本分支执行（owner 决策，先文件后状态） |
 | R-UI-15 | 已完成 | 编译通过 | StickerLibraryRepository 逐条目 D 日志改为每 100 条汇总，保留最终汇总 |
 | R-TEST-03 | 已完成（JVM 面） | PinLockPolicyTest 4/4 + SecureKeyStoreTest 3/3 通过 | SecureKeyCipher 接口 + delegate 注入可 mock；Keystore 硬件往返留真机验证 |
@@ -226,3 +226,10 @@
 - 备注：记忆导出 shareText 与 ChatSheets 顶层同名冲突，包成 internal object MemoryExportHelpers，调用点同步更新。
 - 验证：assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿；detekt/ktlintCheck 通过。
 - 仍待 owner/后续：R-UI-14 其余大文件（ProviderSection/ChatViewModel/MuseDb/GroupChatScheduler 等）、R-TEST-06 完整状态机/10 真实路径/20 其余、R-DB-04/05、R-BUILD-07。
+
+## 第三批检查点 19（2026-08-06 续）
+
+- 新增完成：R-UI-14 ProviderSection 纯文件拆分。ProviderEditPage 搬入 ProviderEditPage.kt，编辑底部栏/配置页搬入 ProviderEditComponents.kt，模型列表/能力编辑/拉取模型 Sheet 搬入 ProviderModelsComponents.kt；ProviderSection 从约 3438 行降到 532 行；仅 private→internal + 文件级 Suppress，无行为变化。
+- 备注：tablericons 通配符按文件替换为显式 import；ProviderEditComponents 补 UnusedPrivateProperty 文件级 Suppress 保留存量局部变量。
+- 验证：assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿；detekt/ktlintCheck 通过。
+- 仍待 owner/后续：R-UI-14 其余大文件（ChatViewModel/MuseDb/GroupChatScheduler 等）、R-TEST-06 完整状态机/10 真实路径/20 其余、R-DB-04/05、R-BUILD-07。
