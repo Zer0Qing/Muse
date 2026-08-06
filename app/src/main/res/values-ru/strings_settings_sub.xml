@@ -200,7 +200,7 @@
     <string name="settings_memory_experience_lib">Библиотека опыта</string>
     <string name="settings_memory_experience_lib_subtitle">Ассистент обобщает опыт работы и ссылается на него в последующих задачах (может испортить контекст).</string>
     <string name="settings_memory_keep_awake">Держать экран включённым</string>
-    <string name="settings_memory_keep_awake_subtitle">Держите экран включенным во время зарядки</string>
+    <string name="settings_memory_keep_awake_subtitle">Удерживать только при активной генерации; пропускать при низком заряде и без зарядки</string>
     <string name="settings_memory_auto_launch">Автозапуск</string>
     <string name="settings_memory_auto_launch_subtitle">Автоматически запускать Muse при загрузке устройства</string>
     <string name="settings_memory_notification_section">Уведомления</string>

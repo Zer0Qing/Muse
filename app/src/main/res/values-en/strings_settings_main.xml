@@ -288,6 +288,8 @@
     <string name="settings_web_pin_hint">The PIN is only for first-time web access verification; the browser saves the token after login</string>
     <string name="settings_web_enable">Enable Web Server</string>
     <string name="settings_web_enable_subtitle">Takes effect on next app launch</string>
+    <string name="settings_web_allow_lan">Allow LAN access</string>
+    <string name="settings_web_allow_lan_subtitle">Localhost only by default; enable to allow devices on the same Wi-Fi to connect via IP</string>
     <string name="settings_web_port">Port</string>
     <string name="settings_web_port_subtitle">%1$d (restart app to apply)</string>
     <string name="settings_web_password">Login Password</string>

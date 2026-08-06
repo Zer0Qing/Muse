@@ -337,6 +337,8 @@
     <string name="settings_web_pin_hint">PIN 仅用于 Web 端首次访问验证,登录后浏览器自动保存令牌</string>
     <string name="settings_web_enable">启用 Web 服务器</string>
     <string name="settings_web_enable_subtitle">下次启动 App 时生效</string>
+    <string name="settings_web_allow_lan">启用局域网访问</string>
+    <string name="settings_web_allow_lan_subtitle">默认仅本机访问；开启后同一 Wi-Fi 设备可通过 IP 访问</string>
     <string name="settings_web_port">端口</string>
     <string name="settings_web_port_subtitle">%1$d(修改需重启 App)</string>
     <string name="settings_web_password">登录密码</string>

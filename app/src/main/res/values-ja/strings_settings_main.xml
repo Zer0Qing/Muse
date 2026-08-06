@@ -288,6 +288,8 @@
     <string name="settings_web_pin_hint">PIN は初回の Web アクセス検証のみに使用されます。</string>
     <string name="settings_web_enable">Webサーバーを有効にする</string>
     <string name="settings_web_enable_subtitle">次回のアプリ起動時に有効になります</string>
+    <string name="settings_web_allow_lan">LANアクセスを許可</string>
+    <string name="settings_web_allow_lan_subtitle">默認ではローカルのみ。同じ Wi-Fi の端末から IP で接続するには有効化</string>
     <string name="settings_web_port">ポート</string>
     <string name="settings_web_port_subtitle">%1$d (適用するにはアプリを再起動してください)</string>
     <string name="settings_web_password">ログインパスワード</string>

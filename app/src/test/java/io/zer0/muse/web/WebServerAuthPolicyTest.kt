@@ -50,4 +50,15 @@ class WebServerAuthPolicyTest {
         assertTrue(secret.length >= 43)
         assertFalse(secret == WebServerConfig.generateRandomJwtSecret())
     }
+
+    @Test
+    fun `bind host defaults to localhost and only binds all interfaces when lan enabled`() {
+        assertEquals("127.0.0.1", WebServer.bindHost(false))
+        assertEquals("0.0.0.0", WebServer.bindHost(true))
+    }
+
+    @Test
+    fun `new config defaults to localhost only`() {
+        assertFalse(WebServerConfig().allowLan)
+    }
 }

@@ -24,6 +24,8 @@ data class WebServerConfig(
     val pin: String = "",
     /** R-SEC-03: 独立 JWT 签名密钥(32 字节随机值,与用户密码分离)。 */
     val jwtSecret: String = "",
+    /** R-SEC-03: 是否允许局域网访问;false 时仅绑定 127.0.0.1 且 CORS 仅本机来源。 */
+    val allowLan: Boolean = false,
 ) {
     /**
      * H8: 返回 password/pin 已加密(走 [SecureKeyStore.encrypt])的副本,

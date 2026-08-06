@@ -8,9 +8,9 @@
 ## 批次状态
 
 - [x] 第一批（止血）：R-DB-02 + R-UI-01 / R-SEC-02 / R-SEC-06 / R-UI-03 / R-DOC-01 / R-DOC-05
-- [ ] 第二批（本迭代）：R-TEST-01 / R-TEST-05 / R-TEST-09 / R-SVC-04 / R-BUILD-04 / R-BUILD-02 / R-UI-02（后端面）
+- [x] 第二批（本迭代）：R-TEST-01 / R-TEST-05 / R-TEST-09 / R-SVC-04 / R-BUILD-04 / R-BUILD-02 / R-UI-02（后端面）
   - 已完成并验证：R-TEST-01 / R-TEST-05 / R-TEST-09 / R-SVC-04 / R-BUILD-04 / R-UI-02（后端面）
-  - 阻塞待 owner：R-BUILD-02（material3 1.4.0 stable 的 Expressive API 为 internal，无法直接升级）
+  - R-BUILD-02：已按 owner 决策关闭（保持 material3 1.4.0-alpha04 + 现 BOM，等待 1.5.0 stable）
 - [ ] 第三批及长期：R-UI-04~09、R-SVC-01~03、R-BUILD-05/08/09/10、R-TEST 其余、R-CI 其余（R-CI-01 除外）、R-DOC 其余，以及长期项按依赖顺序推进
 
 ## 条目明细（编号 | 状态 | 验证结果 | 备注）
@@ -51,8 +51,8 @@
 | R-CI-04 | 已完成（workflow） | 本地未跑 release（无 secret） | tag 触发 assembleRelease + 缺 keystore secret 明确失败 + APK artifact |
 | R-CI-05 | 已完成（阻断） | Lane 8 个脚本 + ci/test 3 个脚本全绿；assembleDebug/app 单测/detekt/ktlint 通过 | 9 处 empty_catch、1 处 CJK、1 处 fontSize 清零；移除 continue-on-error，Lane 转阻断 |
 | R-CI-06 | 已完成 | ci/test 3 个脚本测试全绿 | CI 执行脚本测试入口 |
-| R-CI-07 | 部分完成 | koverXmlReport 已接入 | 报告 artifact 已上传；阈值门禁未配置 |
-| R-CI-08 | 已完成 | 本地 asset 页面 + runner 显式声明 | workflow 增加 android-emulator-runner API 30 job 执行 connectedDebugAndroidTest |
+| R-CI-07 | 已完成 | `koverCachedVerifyDebug` 三模块通过（ai 40 / memory 30 / app 12） | debug-only 阈值；CI 静态检查步骤已接入，不触碰 release/keystore |
+| R-CI-08 | 已完成 | workflow 生效 | emulator job 仅 workflow_dispatch 手动触发，不随 push/PR/schedule 常驻 |
 | R-CI-09 | 已完成 | `:app:lintDebug` BUILD SUCCESSFUL（baseline 130 errors/1290 warnings 过滤） | abortOnError=true + app/lint-baseline.xml 入库 |
 | R-CI-10 | 已完成 | workflow 生效 | setup-gradle 缓存 + debug/reports artifact + release workflow |
 | R-CI-11 | 已完成 | workflow 生效 | schedule/tag/workflow_dispatch 触发 |
@@ -66,8 +66,8 @@
 | R-SVC-07 | 已完成 | PluginManagerTest 通过 | uninstall 删除失败 Toast+日志；registry 原子写 temp+rename + Mutex |
 | R-TEST-12 | 已完成 | WebServerAuthPolicyTest 3/3 通过 | 限流窗口/JWT HMAC 签发校验 |
 | R-DOC-07 | 已完成 | 验收文档已更新 | BE-012/013 指向快照测试；BE-039~047 标 CI 状态；新增 2026-08-06 附录（769 tests） |
-| R-SEC-03 | 部分完成 | WebServerAuthPolicyTest 4/4 通过 | JWT 独立 32 字节密钥已实现并持久化；CORS anyHost/0.0.0.0 绑定保持（局域网信任模型），白名单待 owner 决策 |
-| R-SVC-05 | 部分完成 | 编译通过 | keepAwake 低电量未充电时不持锁；仅生成任务期间持锁与设置页耗电说明待后续 |
+| R-SEC-03 | 已完成 | WebServerAuthPolicyTest 6/6 通过 | 方案 B：默认 127.0.0.1 + CORS 仅本机；设置页局域网开关开启后绑定 0.0.0.0 + anyHost；JWT 独立密钥 |
+| R-SVC-05 | 已完成 | 编译通过 | 方案 B：仅聊天/群聊生成任务活跃且 keepAwake 开启时持锁；低电量未充电不持锁；设置页文案同步 |
 | R-TEST-19 | 已完成 | VisionBridgePureFunctionsTest 4/4 通过 | 视觉上下文/失败提示/MIME 嗅探/hash 纯逻辑 |
 | R-TEST-20 | 部分完成 | OpenAIImageProviderRequestTest 3/3 通过 | OpenAI 文生图请求体字段黄金测试；其余 image/video/MCP/importer/widget 待补 |
 | R-TEST-14 | 部分完成 | MuseDbMigrationTest 通过 | 迁移链扩展到 v55→75；v1-54 受 Robolectric FTS4 限制，需 owner 确认是否真机/拆独立 job |
@@ -79,7 +79,7 @@
 | R-TEST-02 | 已完成（随 R-UI-02） | `ChatViewModelFocusRestoreTest` 2/2 通过 | 进程恢复优先还原查看会话；outbox 重放不改写焦点 |
 | R-SVC-04 | 已完成 | 编译通过 | JsSandbox 超时销毁 WebView、连续超时熔断、总超时配额、插件自动禁用 |
 | R-BUILD-04 | 已完成 | `assembleDebug` 成功；grep 无 haze/sonner | 删除死依赖声明与实现 |
-| R-BUILD-02 | 阻塞待 owner | 当前保持 material3 1.4.0-alpha04 + BOM 2024.12.01，`assembleDebug` 成功 | 实测 material3 1.4.0 stable 的 `MaterialExpressiveTheme`/`MotionScheme`/`ExperimentalMaterial3ExpressiveApi` 均为 internal，且 BOM 2026.06.01 会强制覆盖 alpha04；直接升级无法编译，切换标准 MaterialTheme 会丢失 expressive 动效 |
+| R-BUILD-02 | 已关闭（owner 决策） | 保持 material3 1.4.0-alpha04 + BOM 2024.12.01，`assembleDebug` 成功 | 等待 1.5.0 stable 公开 Expressive API，不再尝试升级 |
 | R-UI-02 | 已完成 | R-TEST-02 2/2 通过；编译通过 | 新增 viewed_session_id / generating_session_id 两个 DataStore key；ChatViewModel 启动恢复查看焦点；outbox/checkpoint 重放不改写焦点；docs 更新 |
 
 ## 第二批小结（检查点）
@@ -150,6 +150,12 @@
 - 新增完成：R-TEST-19、R-TEST-14 v55→75、R-TEST-10 纯逻辑面、R-TEST-06 发送守卫面、R-TEST-20 OpenAI 图片请求体面（部分）。
 - 验证：assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿（785 tests / 106 类 / 0 failures）；detekt/ktlintCheck 通过。
 - 仍待 owner/后续：R-UI-08/R-UI-14、R-TEST-03/04 剩余、R-TEST-06 完整状态机/10 真实路径/14 v1-54/20 其余、R-CI-07 阈值、R-SEC-03 CORS/绑定面、R-SVC-05 任务期持锁面、R-DB-04/05、R-BUILD-07、R-BUILD-02（已有阻塞决策）。
+
+## 第三批检查点 8（2026-08-06 续）
+
+- 新增完成：R-CI-07 debug-only Kover 阈值（ai 40 / memory 30 / app 12，`koverCachedVerifyDebug` 全绿）；R-CI-08 emulator job 改为 workflow_dispatch 手动触发；R-SEC-03 方案 B（默认 127.0.0.1 + CORS 仅本机，设置页局域网开关，WebServerAuthPolicyTest 6/6）；R-SVC-05 方案 B（仅生成任务期间持锁，设置页文案同步）；R-BUILD-02 按 owner 决策关闭。
+- 验证：`:app:compileDebugKotlin` / `:app:testDebugUnitTest --tests WebServerAuthPolicyTest` / 三模块 `koverCachedVerifyDebug` / detekt / ktlintCheck 全绿；8 个 Lane 脚本 EXIT=0。
+- 仍待 owner/后续：R-UI-08/R-UI-14 文件拆分、R-TEST-03/04 剩余、R-TEST-06 完整状态机/10 真实路径/14 v1-54/20 其余、R-DB-04/05、R-BUILD-07。
 
 ## 第三批检查点 7（2026-08-06 续）
 

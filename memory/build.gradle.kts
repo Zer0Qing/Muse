@@ -76,3 +76,12 @@ dependencies {
     testImplementation("androidx.test.ext:junit:1.2.1")
     testImplementation(libs.kotlinx.coroutines.test)
 }
+kover {
+    reports {
+        verify {
+            rule {
+                minBound(30)
+            }
+        }
+    }
+}

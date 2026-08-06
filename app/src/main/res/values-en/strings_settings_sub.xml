@@ -204,7 +204,7 @@
     <string name="settings_memory_experience_lib">Experience Library</string>
     <string name="settings_memory_experience_lib_subtitle">The assistant summarizes work experience and references it in later tasks (may pollute context)</string>
     <string name="settings_memory_keep_awake">Keep Awake</string>
-    <string name="settings_memory_keep_awake_subtitle">Keep screen on while charging</string>
+    <string name="settings_memory_keep_awake_subtitle">Hold only during active generation; skip when low battery and not charging</string>
     <string name="settings_memory_auto_launch">Auto Launch on Boot</string>
     <string name="settings_memory_auto_launch_subtitle">Automatically start Muse when the device boots</string>
     <string name="settings_memory_notification_section">Notifications</string>

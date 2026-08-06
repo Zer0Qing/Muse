@@ -288,6 +288,8 @@
     <string name="settings_web_pin_hint">PIN은 최초 웹 액세스 확인에만 사용됩니다.</string>
     <string name="settings_web_enable">웹 서버 활성화</string>
     <string name="settings_web_enable_subtitle">다음 앱 실행 시 적용됩니다.</string>
+    <string name="settings_web_allow_lan">LAN 액세스 허용</string>
+    <string name="settings_web_allow_lan_subtitle">기본은 로컬 전용이며, 같은 Wi-Fi의 기기에서 IP로 접속하려면 사용</string>
     <string name="settings_web_port">포트</string>
     <string name="settings_web_port_subtitle">%1$d (적용하려면 앱을 다시 시작하세요)</string>
     <string name="settings_web_password">로그인 비밀번호</string>

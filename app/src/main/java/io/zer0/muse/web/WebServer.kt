@@ -75,7 +75,7 @@ import io.zer0.muse.R
  *  - 相比 Netty(~4MB)体积极小,功能足够(不支持 WebSocket,但本场景不需要)
  *
  * 安全:
- *  - 服务器绑定 `0.0.0.0`(所有网卡),仅局域网可访问
+ *  - 默认绑定 `127.0.0.1`;开启局域网访问后才绑定 `0.0.0.0`(所有网卡)
  *  - R-SEC-03: JWT 使用独立随机签名密钥,与用户密码分离
  *  - 所有受保护路由需 `Authorization: Bearer <token>` 头
  *  - 密码为空时自动生成 8 位随机密码并持久化(首次启用时)
@@ -138,10 +138,10 @@ class WebServer(
         startedAt = System.currentTimeMillis()
         // M4: runCatching 改为 resultOf;M14: withContext(Dispatchers.IO) 保证配置读取不在主线程
         resultOf {
-            server = embeddedServer(CIO, port = port, host = BIND_HOST) {
+            server = embeddedServer(CIO, port = port, host = WebServer.bindHost(config.allowLan)) {
                 configureSecurity(jwtSecret)
                 configureSerialization()
-                configureCors()
+                configureCors(config.allowLan)
                 configureStatusPages()
                 museRoutes(password, jwtSecret, pin, sessionRepo, settings)
             }.also { it.start(wait = false) }
@@ -152,7 +152,7 @@ class WebServer(
             mdnsService.register(port)
             notificationManager.updateWebServerStatus(port, true)
             // H4: 不再明文输出密码/PIN,避免日志泄露敏感凭据
-            Logger.i(TAG, "WebServer 已启动: $BIND_HOST:$port")
+            Logger.i(TAG, "WebServer 已启动: ${WebServer.bindHost(config.allowLan)}:$port")
             true
         }.onError { msg, t ->
             Logger.e(TAG, "WebServer 启动失败: $msg", t)
@@ -251,13 +251,19 @@ class WebServer(
     }
 
     /**
-     * CORS 配置(允许局域网内任意来源访问,Web 客户端友好)。
-     * M8: 保留 anyHost() — 局域网内使用,若需公网暴露需配置 CORS 白名单。
+     * CORS 配置。
+     * R-SEC-03: 默认仅允许本机来源;开启局域网访问后才允许任意 Origin。
      */
-    private fun Application.configureCors() {
+    private fun Application.configureCors(allowLan: Boolean) {
         install(CORS) {
             // 安全边界：anyHost() 仅适用于局域网信任模型，公网暴露时需配置 Origin 白名单
-            anyHost()
+            if (allowLan) {
+                // 安全边界：anyHost() 仅适用于局域网信任模型
+                anyHost()
+            } else {
+                allowHost("localhost", schemes = listOf("http", "https"))
+                allowHost("127.0.0.1", schemes = listOf("http", "https"))
+            }
             allowMethod(io.ktor.http.HttpMethod.Get)
             allowMethod(io.ktor.http.HttpMethod.Post)
             allowMethod(io.ktor.http.HttpMethod.Options)
@@ -537,7 +543,11 @@ class WebServer(
 
     companion object {
         private const val TAG = "WebServer"
-        private const val BIND_HOST = "0.0.0.0"
+        private const val LAN_BIND_HOST = "0.0.0.0"
+        private const val LOCAL_BIND_HOST = "127.0.0.1"
+
+        /** R-SEC-03: 默认仅本机,显式开启局域网访问后才绑定所有网卡。 */
+        fun bindHost(allowLan: Boolean): String = if (allowLan) LAN_BIND_HOST else LOCAL_BIND_HOST
         private const val MIN_PORT = 1024
         private const val MAX_PORT = 65535
         private const val GRACE_PERIOD_MS = 1000L

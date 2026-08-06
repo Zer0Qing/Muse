@@ -294,3 +294,12 @@ gradle.taskGraph.whenReady {
         throw GradleException("正式构建必须注入版本号：请传 -PversionName/-PversionCode 或设置 VERSION_NAME/VERSION_CODE。")
     }
 }
+kover {
+    reports {
+        verify {
+            rule {
+                minBound(12)
+            }
+        }
+    }
+}

@@ -71,3 +71,12 @@ dependencies {
     testImplementation(libs.kotlinx.serialization.json)
     testImplementation("com.squareup.okhttp3:mockwebserver:5.3.2")
 }
+kover {
+    reports {
+        verify {
+            rule {
+                minBound(40)
+            }
+        }
+    }
+}
