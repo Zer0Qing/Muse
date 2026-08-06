@@ -342,3 +342,9 @@
 - 新增完成：R-SEC-07 FreeModelConfig fallback key 占位符可见提示。FreeModelConfig 新增 isFallbackKeyAvailable；ProviderModelsComponents 与 ModelSwitchSheet 在 SiliconFlow 免费入口检测到占位/空 key 时显示「免费额度服务不可用」（7 语言 strings）；新增 FreeModelConfigTest 5/5。
 - 验证：assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿；:app/:ai detekt/ktlintCheck 通过。
 - 仍待 owner/后续：R-TEST-06 完整状态机（依赖 R-UI-08）、R-UI-14 其余大文件（ChatScreen 仍约 1783 行、ChatViewModel/MuseDb/GroupChatScheduler 等）、R-DB-04/05、R-BUILD-07、真机验证项。
+
+## 第三批检查点小结（2026-08-06 续 5，等待 owner review）
+
+- 本轮新增提交：R-BUILD-06 version catalog 收编、R-BUILD-03 material3 双处声明统一、R-SEC-07 免费额度不可用提示。
+- 验证：每个提交均 assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿；detekt/ktlintCheck 通过；工作区干净，分支未合并。
+- 仍待 owner/后续：R-DB-03（FactDb v1/v2 降级重建 + UI 提示）、R-TEST-06 完整状态机（依赖 R-UI-08）、R-UI-14 结构级拆分（ChatScreen/ChatViewModel/MuseDb/GroupChatScheduler）、R-DB-04/05、R-BUILD-07、真机验证项。
