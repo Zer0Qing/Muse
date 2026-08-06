@@ -35,7 +35,7 @@ class MuseDbMigrationTest {
 
     @Test
     fun migrateEveryVersionTo75_keepsDataAndAddsGenerationTables() {
-        val versions = (56..68) + 74
+        val versions = (55..68) + 74
         for (fromVersion in versions) {
             val dbFile = context.getDatabasePath("muse_migration_$fromVersion.db").apply {
                 parentFile?.mkdirs()
@@ -49,6 +49,7 @@ class MuseDbMigrationTest {
                 if (fromVersion == 74) {
                     migrations += MuseDb.MIGRATION_74_75
                 } else if (fromVersion <= 67) {
+                    if (fromVersion == 55) migrations += MuseDb.MIGRATION_55_56
                     migrations += listOf(
                         MuseDb.MIGRATION_56_57,
                         MuseDb.MIGRATION_57_58,
