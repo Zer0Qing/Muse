@@ -5,10 +5,14 @@ import android.net.Uri
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
+import io.zer0.muse.R
+import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.data.skill.SkillEntity
 import io.zer0.muse.data.skill.SkillRepository
 import io.zer0.muse.tools.script.ToolDeclaration
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import java.io.File
@@ -50,6 +54,9 @@ class PluginManager(
 
     @Volatile
     private var cached: List<InstalledPlugin> = loadRegistry()
+
+    /** R-SVC-07: registry 读改写互斥,避免并发安装/卸载写坏 JSON。 */
+    private val registryMutex = Mutex()
 
     suspend fun installFromUri(uri: Uri): Result<InstalledPlugin> = withContext(Dispatchers.IO) {
         val temp = File(context.cacheDir, "plugin_import_${System.currentTimeMillis()}.muse-plugin")
@@ -110,8 +117,10 @@ class PluginManager(
                     enabled = manifest.enabled,
                     installedAt = System.currentTimeMillis(),
                 )
-                cached = cached.filterNot { it.id == installed.id } + installed
-                persistRegistry()
+                registryMutex.withLock {
+                    cached = cached.filterNot { it.id == installed.id } + installed
+                    persistRegistry()
+                }
                 registerSkills(installed)
                 Logger.i(TAG, "插件已安装: ${installed.id} v${installed.version}")
                 Result.success(installed)
@@ -122,9 +131,16 @@ class PluginManager(
     suspend fun uninstall(id: String) {
         withContext(Dispatchers.IO) {
             val plugin = findPlugin(id) ?: return@withContext
-            runCatching { File(pluginsDir, id).deleteRecursively() }
-            cached = cached.filterNot { it.id == id }
-            persistRegistry()
+            val deleteResult = resultOf { File(pluginsDir, id).deleteRecursively() }
+                .onError { msg, t -> Logger.e(TAG, "插件目录删除失败: $id ($msg)", t) }
+            if (deleteResult.isError || deleteResult.getOrNull() == false) {
+                MuseToast.show(context.getString(R.string.error_operation_failed), 2500)
+                return@withContext
+            }
+            registryMutex.withLock {
+                cached = cached.filterNot { it.id == id }
+                persistRegistry()
+            }
             plugin.tools.forEach { tool ->
                 runCatching { skillRepository.delete(skillId(id, tool.name)) }
             }
@@ -135,8 +151,10 @@ class PluginManager(
     suspend fun setEnabled(id: String, enabled: Boolean) {
         withContext(Dispatchers.IO) {
             val plugin = findPlugin(id) ?: return@withContext
-            cached = cached.map { if (it.id == id) it.copy(enabled = enabled) else it }
-            persistRegistry()
+            registryMutex.withLock {
+                cached = cached.map { if (it.id == id) it.copy(enabled = enabled) else it }
+                persistRegistry()
+            }
             plugin.tools.forEach { tool ->
                 runCatching { skillRepository.setEnabled(skillId(id, tool.name), enabled) }
             }
@@ -172,7 +190,12 @@ class PluginManager(
     private fun persistRegistry() {
         runCatching {
             registryFile.parentFile?.mkdirs()
-            registryFile.writeText(AppJson.encodeToString(PluginRegistry.serializer(), PluginRegistry(cached)))
+            val json = AppJson.encodeToString(PluginRegistry.serializer(), PluginRegistry(cached))
+            val tmp = File(registryFile.parentFile, "plugin_registry.json.tmp")
+            tmp.writeText(json)
+            if (!tmp.renameTo(registryFile)) {
+                registryFile.writeText(json)
+            }
         }.onFailure { e -> Logger.w(TAG, "插件注册表写入失败", e) }
     }
 
@@ -193,8 +216,6 @@ class PluginManager(
 
         private val ALLOWED_CAPABILITIES = setOf(
             "resource.read",
-            "resource.write",
-            "network",
             "ui",
             "ui.mood",
         )

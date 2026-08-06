@@ -19,5 +19,6 @@ object ProviderHttpDefaults {
     const val WRITE_TIMEOUT_SEC = 60L
 
     /** OkHttp 总调用超时(秒)— 0 表示不设总超时,流式靠取消信号。 */
-    const val CALL_TIMEOUT_SEC = 0L
+    /** OkHttp 总调用超时(秒)— R-AI-03: 10 分钟兜底,极端挂起不再无限等待。 */
+    const val CALL_TIMEOUT_SEC = 600L
 }

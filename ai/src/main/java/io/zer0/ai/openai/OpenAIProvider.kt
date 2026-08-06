@@ -53,7 +53,6 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
-import okhttp3.Call
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -430,14 +429,8 @@ class OpenAIProvider(
         }
 
         var currentEventSource: EventSource? = null
-        // v1.114 修复: 持有底层 Call 引用,awaitClose 时一并 cancel(与 AnthropicProvider/GeminiProvider 一致),
-        //   避免 eventSource 尚未创建或 cancel 不及时导致底层连接泄漏。
-        var currentCall: Call? = null
 
         fun connect() {
-            // v1.114 修复: 先 newCall 并持有引用,供 awaitClose cancel(按 AnthropicProvider)
-            val call = httpClient.newCall(httpRequest)
-            currentCall = call
             currentEventSource = sseFactory.newEventSource(httpRequest, object : EventSourceListener() {
                 override fun onOpen(eventSource: EventSource, response: Response) {
                     firstByteAt = System.currentTimeMillis()
@@ -452,7 +445,6 @@ class OpenAIProvider(
                             httpRequest = buildHttpRequest()
                             retryCount.incrementAndGet()
                             eventSource.cancel()
-                            currentCall?.cancel()
                             scope.launch {
                                 if (!request.abortSignal.aborted && !scope.isClosedForSend) {
                                     connect()
@@ -729,6 +721,8 @@ class OpenAIProvider(
                         }
                         // v1.0.1: key 切换后重新构造 httpRequest(更新 Authorization header)
                         httpRequest = buildHttpRequest()
+                        // R-AI-03: 重试前清掉连接池中的半开/空闲连接,避免复用已 reset 连接
+                        ProviderHttpSupport.evictIdleConnections()
                         Logger.w("OpenAIProvider", "streamChat onFailure, retry $attempt/$MAX_RETRIES after ${backoffMs}ms: ${t?.message ?: code}")
                         scope.launch {
                             delay(backoffMs)
@@ -767,8 +761,6 @@ class OpenAIProvider(
         awaitClose {
             request.abortSignal.abort()
             currentEventSource?.cancel()
-            // v1.114 修复: 同时 cancel 底层 Call(与 AnthropicProvider/GeminiProvider 一致)
-            currentCall?.cancel()
         }
         // v1.0.19: 无界 buffer,防止 EventSource 回调突发投递时 trySend 因内部 channel 满
         //   而丢片(使用无界 buffer)。
@@ -1733,11 +1725,8 @@ class OpenAIProvider(
         }
 
         var currentEventSource: EventSource? = null
-        var currentCall: Call? = null
 
         fun connect() {
-            val call = httpClient.newCall(httpRequest)
-            currentCall = call
             currentEventSource = sseFactory.newEventSource(httpRequest, object : EventSourceListener() {
                 override fun onOpen(eventSource: EventSource, response: Response) {
                     firstByteAt = System.currentTimeMillis()
@@ -1751,7 +1740,6 @@ class OpenAIProvider(
                             httpRequest = buildHttpRequest()
                             retryCount.incrementAndGet()
                             eventSource.cancel()
-                            currentCall?.cancel()
                             scope.launch {
                                 if (!request.abortSignal.aborted && !scope.isClosedForSend) {
                                     connect()
@@ -1937,7 +1925,7 @@ class OpenAIProvider(
                 ) {
                     if (request.abortSignal.aborted) {
                         Logger.d("OpenAIProvider", "streamChatResponses aborted by user")
-                        trySend(ChatStreamEvent.Error("aborted", t))
+                        trySend(ChatStreamEvent.StreamInterrupted("用户已停止生成", t))
                         close()
                         return
                     }
@@ -1947,6 +1935,8 @@ class OpenAIProvider(
                         val attempt = retryCount.incrementAndGet()
                         val backoffMs = (RETRY_BASE_DELAY_MS * (1 shl (attempt - 1))) +
                             Random.nextLong(0, 200)
+                        // R-AI-03: 重试前清掉连接池中的半开/空闲连接
+                        ProviderHttpSupport.evictIdleConnections()
                         Logger.w("OpenAIProvider", "streamChatResponses onFailure, retry $attempt/$MAX_RETRIES after ${backoffMs}ms: ${t?.message ?: code}")
                         scope.launch {
                             delay(backoffMs)
@@ -1982,7 +1972,6 @@ class OpenAIProvider(
         awaitClose {
             request.abortSignal.abort()
             currentEventSource?.cancel()
-            currentCall?.cancel()
         }
         // v1.0.19: 无界 buffer,防止 EventSource 回调突发投递时 trySend 因内部 channel 满
         //   而丢片(使用无界 buffer)。

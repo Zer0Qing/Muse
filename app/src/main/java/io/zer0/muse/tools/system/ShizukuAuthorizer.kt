@@ -6,6 +6,7 @@ import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.os.IBinder
 import io.zer0.common.Logger
+import io.zer0.muse.BuildConfig
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
@@ -221,7 +222,7 @@ class ShizukuAuthorizer(private val context: Context) {
                 ComponentName(context.packageName, ShellService::class.java.name)
             ).processNameSuffix("shell")
                 .version(1)
-                .debuggable(android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R)
+                .debuggable(BuildConfig.DEBUG)
             boundArgs = args
             Shizuku.bindUserService(args, serviceConnection)
             // R-SVC-03: 用协程超时轮询替代 Thread.sleep,避免阻塞调用线程

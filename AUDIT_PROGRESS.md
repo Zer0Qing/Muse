@@ -56,6 +56,16 @@
 | R-CI-09 | 部分完成 | lintDebug 入 CI | abortOnError 仍为 false（存量 2475 lint errors），待 baseline 后收紧 |
 | R-CI-10 | 已完成 | workflow 生效 | setup-gradle 缓存 + debug/reports artifact + release workflow |
 | R-CI-11 | 已完成 | workflow 生效 | schedule/tag/workflow_dispatch 触发 |
+| R-AI-02 | 已完成 | grep currentCall 0 命中（OpenAIProvider） | 删除无效 newCall/currentCall，取消统一走 EventSource.cancel |
+| R-AI-03 | 已完成 | :ai 编译通过 | 重试前 evictIdleConnections；ProviderHttpDefaults CALL_TIMEOUT_SEC 0→600 |
+| R-AI-04 | 已完成 | FirstEventWatchdogTest 5/5 通过 | 推理/超长上下文模型 60s 首事件超时，普通模型 15s；补部分事件边界用例 |
+| R-AI-05 | 已完成 | grep `Error("aborted"` 0 命中 | streamChatResponses abort 统一为 StreamInterrupted |
+| R-AI-06 | 已完成 | 编译通过 | FallbackNotice 文案改为“网络较慢，已切换请求方式”，ChatViewModel 已有 Toast 呈现 |
+| R-SEC-08 | 已完成 | 编译通过 | Shizuku UserService debuggable 改 BuildConfig.DEBUG |
+| R-SVC-06 | 已完成 | PluginManagerTest 新增能力白名单用例通过 | 白名单删除 network/resource.write；插件作者指南同步 |
+| R-SVC-07 | 已完成 | PluginManagerTest 通过 | uninstall 删除失败 Toast+日志；registry 原子写 temp+rename + Mutex |
+| R-TEST-12 | 已完成 | WebServerAuthPolicyTest 3/3 通过 | 限流窗口/JWT HMAC 签发校验 |
+| R-DOC-07 | 已完成 | 验收文档已更新 | BE-012/013 指向快照测试；BE-039~047 标 CI 状态；新增 2026-08-06 附录（769 tests） |
 | R-TEST-01 | 已完成 | `:ai:testDebugUnitTest --tests "*StreamGuardTest*"` 3/3 通过 | guard 挂起/reasoning 先到/空 finishReason；早停回退网络路径由 FirstEventWatchdogTest + 快照测试共同覆盖 |
 | R-TEST-05 | 已完成 | `:ai:testDebugUnitTest --tests "*ProviderRequestBodySnapshotTest*"` 3/3 通过 | Anthropic/Gemini/Ollama(OpenAI 兼容)请求体快照 |
 | R-TEST-09 | 已完成 | memory/app PiiGuardTest 全绿 | 手机(含空格)/邮箱/15/18 位身份证 mask/unmask 往返；两处 PiiGuard 正则同步增强 |
@@ -79,6 +89,8 @@
 - 非阻塞（第三批检查点 2）：check_engineering_discipline.py 仍有 9 个存量 error、check_hardcoded_font_size.py 有 1 处存量 fontSize 超 baseline，Lane 步骤按 R-CI-05 要求先 continue-on-error 跑一个迭代，待清零后转阻断。
 - 非阻塞（R-CI-04）：release job 已落地，但本地无 GitHub Secrets，无法实跑；配置为缺 secret 明确失败。
 - 非阻塞（R-TEST-03/04）：SecureKeyStore 与备份全链路需要 Android Keystore/真机或完整 mock 链，本轮只补了可 JVM 化的退避与加密往返。
+- 非阻塞（Windows 本机）：全量 :app 测试一次出现 AppSettingsStoreTest 的 DataStore 文件锁 FileNotFoundException（另一个程序正在使用），单类与重跑全量均通过，判定为本机偶发文件锁，非代码回归。
+- 非阻塞（R-DOC-07 附录）：当前三模块单测合计 769 tests / 102 测试类 / 0 failures（2026-08-06），已写入验收文档。
 
 ### 待所有者决策（第三批检查点 2 后）
 - R-UI-08/R-UI-14：巨型状态/文件拆分风险高，需 Layout Inspector 真机验证与 detekt LargeClass 基准，暂不盲目执行，等所有者确认拆分层级。
@@ -99,4 +111,6 @@
 - 尚未开始：R-UI-08（state-split）、R-TEST 其余、R-CI 其余、R-DOC-07、长期项。
 - 本检查点新增完成：R-TEST-07/08/11/13(已有)/15/16/17/18/21/22、R-TEST-03/04 部分、R-CI-02~06/10/11、R-CI-07/08/09 部分。
 - 尚未开始：R-UI-08（state-split）、R-TEST-06/10/12/14/19/20、R-TEST-03/04 剩余面、R-CI-07/08/09 剩余面、R-DOC-07、长期项。
+- 本检查点新增完成：R-AI-02/03/04/05/06、R-SEC-08、R-SVC-06/07、R-TEST-12、R-DOC-07。
+- 尚未开始：R-UI-08（state-split）、R-TEST-06/10/14/19/20、R-TEST-03/04 剩余面、R-CI-07/08/09 剩余面、R-SVC-05、R-SEC-03、R-DB-04/05、R-BUILD-07、R-UI-14 等长期项。
 - 验证：assembleDebug + 三模块单测全绿。

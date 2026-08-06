@@ -15,6 +15,7 @@ import io.zer0.ai.core.ReasoningLevel
 import io.zer0.ai.core.ToolDefinition
 import io.zer0.ai.core.UIMessage
 import io.zer0.ai.core.withFirstEventWatchdog
+import io.zer0.ai.core.firstEventTimeoutMs
 import io.zer0.ai.anthropic.AnthropicProvider
 import io.zer0.ai.gemini.GeminiProvider
 import io.zer0.ai.openai.OpenAIProvider
@@ -100,6 +101,7 @@ class ChatService(
         val (provider, request) = buildProviderRequest(effectiveMessages, model, temperature, maxTokens, tools, reasoningLevel, providerConfig, mode)
         // B3-01: SSE 建立后 15s 无首事件,自动降级为非流式重试一次
         return provider.streamChat(request).withFirstEventWatchdog(
+            timeoutMs = model?.firstEventTimeoutMs() ?: 15_000L,
             fallback = { provider.completeText(request) },
         )
     }

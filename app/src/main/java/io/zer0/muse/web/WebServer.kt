@@ -567,12 +567,14 @@ class WebServer(
             }
             val tracker = loginAttempts[ip] ?: return true
             synchronized(tracker) {
-                if (now - tracker.firstAttemptAt > RATE_LIMIT_WINDOW_MS) {
+                if (WebServerAuthPolicy.isWindowExpired(now, tracker.firstAttemptAt, RATE_LIMIT_WINDOW_MS)) {
                     tracker.count = 0
                     tracker.firstAttemptAt = now
                     return true
                 }
-                return tracker.count < RATE_LIMIT_MAX_FAILURES
+                return !WebServerAuthPolicy.isRateLimited(
+                    now, tracker.firstAttemptAt, tracker.count, RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX_FAILURES,
+                )
             }
         }
 
@@ -581,7 +583,7 @@ class WebServer(
             val now = System.currentTimeMillis()
             val tracker = loginAttempts.getOrPut(ip) { AttemptTracker(0, now) }
             synchronized(tracker) {
-                if (now - tracker.firstAttemptAt > RATE_LIMIT_WINDOW_MS) {
+                if (WebServerAuthPolicy.isWindowExpired(now, tracker.firstAttemptAt, RATE_LIMIT_WINDOW_MS)) {
                     tracker.count = 1
                     tracker.firstAttemptAt = now
                 } else {
@@ -600,8 +602,7 @@ class WebServer(
             val now = System.currentTimeMillis()
             val tracker = loginAttempts[ip] ?: return 0L
             synchronized(tracker) {
-                if (now - tracker.firstAttemptAt > RATE_LIMIT_WINDOW_MS) return 0L
-                return ((tracker.firstAttemptAt + RATE_LIMIT_WINDOW_MS - now) / 1000).coerceAtLeast(1)
+                return WebServerAuthPolicy.remainingSeconds(now, tracker.firstAttemptAt, RATE_LIMIT_WINDOW_MS)
             }
         }
     }
