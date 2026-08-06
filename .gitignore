@@ -20,9 +20,12 @@ Thumbs.db
 /docs/*
 !/docs/README.md
 !/docs/README_EN.md
+!/docs/ENGINEERING_DISCIPLINE.md
+!/docs/后台保活与进程恢复.md
 
 # 贡献/安全/计划文档（项目代码不包含这些）
 CONTRIBUTING.md
+!/CONTRIBUTING.md
 SECURITY.md
 Muse_Product_Enhancement_Plan.md
 _skill_existing.txt

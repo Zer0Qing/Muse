@@ -24,6 +24,10 @@
 | R-UI-03 | 已完成 | 编译通过 | 默认主题统一 mono，文档同步 |
 | R-DOC-01 | 已完成 | FactDbMigrationTest 通过 | .db 清理 + gitignore + hygiene 脚本 |
 | R-DOC-05 | 已完成 | 编译通过 | ai 构建注释修正 |
+| R-DOC-02 | 已完成 | 引用路径核查通过 | CONTRIBUTING.md 修订 JDK 21、移除失效引用；决策为随 R-DOC-03 解除 ignore 入库 |
+| R-DOC-03 | 已完成 | `git ls-files docs/` 与决策一致 | ENGINEERING_DISCIPLINE.md、后台保活与进程恢复.md、CONTRIBUTING.md 入库；ACCESSIBILITY/SHIZUKU/SKILLPKG 保持不入库 |
+| R-DOC-04 | 已完成 | 编译通过 | KDoc 删除悬空 WorkflowEditorScreen 引用；ui/workflow 空目录已删 |
+| R-DOC-06 | 已完成 | 构建正常 | 删除 app/build_alt（约 2.3GB）与 .kotlin/sessions |
 | R-TEST-01 | 已完成 | `:ai:testDebugUnitTest --tests "*StreamGuardTest*"` 3/3 通过 | guard 挂起/reasoning 先到/空 finishReason；早停回退网络路径由 FirstEventWatchdogTest + 快照测试共同覆盖 |
 | R-TEST-05 | 已完成 | `:ai:testDebugUnitTest --tests "*ProviderRequestBodySnapshotTest*"` 3/3 通过 | Anthropic/Gemini/Ollama(OpenAI 兼容)请求体快照 |
 | R-TEST-09 | 已完成 | memory/app PiiGuardTest 全绿 | 手机(含空格)/邮箱/15/18 位身份证 mask/unmask 往返；两处 PiiGuard 正则同步增强 |
@@ -50,4 +54,6 @@
 
 - 已完成：R-UI-04（主题页多语言）、R-UI-05（TimePicker 分钟设置）、R-UI-06（封面 prompt + 空输出降级）、R-UI-07（TTS 失败 Toast）、R-UI-09（TaskCard 取消 + 确认 ANR 后台过滤/429 文案已存在）、R-SVC-01（NodeInfo recycle + 非主线程断言）、R-SVC-02（截图反射失败提示）、R-SVC-03（Shizuku suspend/超时/release）、R-BUILD-05（biometric 1.1.0 stable）、R-BUILD-08（KSP 2.3.11）、R-BUILD-09（accessibility 纳入 Kover）、R-BUILD-10（ProGuard 部分收窄）。
 - 尚未开始：R-UI-08（state-split）、R-TEST 其余、R-CI 其余、R-DOC 其余、长期项。
+- 本检查点新增完成：R-DOC-02/03/04/06（CONTRIBUTING 修订并入库、docs 决策执行、KDoc 清理、本地垃圾清理）。
+- 尚未开始：R-UI-08（state-split）、R-TEST 其余、R-CI 其余、R-DOC-07/08、长期项。
 - 验证：assembleDebug + 三模块单测全绿。
