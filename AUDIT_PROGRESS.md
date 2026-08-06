@@ -18,6 +18,7 @@
 | 编号 | 状态 | 验证结果 | 备注 |
 |---|---|---|---|
 | R-DB-02 | 已完成 | `:app:testDebugUnitTest` 全绿；R-TEST-23 2/2 通过 | onOpen 双保险 + sqlite_master 探测 + 影子表清理重建 + DAO 自愈；app Robolectric 不支持 FTS4，测试用 fake DAO |
+| R-DB-03 | 已完成 | FactDbLegacyResetTest 3/3 通过；assembleDebug + 三模块单测全绿 | FactDb v1/v2/损坏库归档为 .bak 并重建空库；MemoryScreen 单次提示；README 已知限制 |
 | R-UI-01 | 已完成 | `assembleDebug` 零错误 | KnowledgeScreen 修复/重建索引按钮、进度与多语言 Toast |
 | R-SEC-02 | 已完成 | grep 确认无 token 响应体日志 | OAuth 三处日志脱敏 |
 | R-SEC-06 | 已完成 | `:ai:testDebugUnitTest` 全绿；`take(500)` 0 命中 | 400 请求体改结构化摘要 |
@@ -348,3 +349,10 @@
 - 本轮新增提交：R-BUILD-06 version catalog 收编、R-BUILD-03 material3 双处声明统一、R-SEC-07 免费额度不可用提示。
 - 验证：每个提交均 assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿；detekt/ktlintCheck 通过；工作区干净，分支未合并。
 - 仍待 owner/后续：R-DB-03（FactDb v1/v2 降级重建 + UI 提示）、R-TEST-06 完整状态机（依赖 R-UI-08）、R-UI-14 结构级拆分（ChatScreen/ChatViewModel/MuseDb/GroupChatScheduler）、R-DB-04/05、R-BUILD-07、真机验证项。
+
+## 第三批检查点 32（2026-08-06 续）
+
+- 新增完成：R-DB-03 FactDb v1/v2 降级重建。FactDb.create 在建库前探测 user_version<3 或损坏文件，归档为 `<name>.bak` 并重建空库；MemoryLegacyReset 记录待提示标记，MemoryScreen 首次进入时显示「早期记忆数据不兼容，已重置并保留备份文件」（7 语言）；README 增加已知限制；新增 FactDbLegacyResetTest 3/3。
+- 备注：archive 失败时删除旧库避免崩溃；Room 增加 fallbackToDestructiveMigration(dropAllTables=true) 兜底未知版本。
+- 验证：assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿；detekt/ktlintCheck 通过。
+- 仍待 owner/后续：R-TEST-06 完整状态机（依赖 R-UI-08）、R-UI-14 其余大文件（ChatScreen 仍约 1783 行、ChatViewModel/MuseDb/GroupChatScheduler 等）、R-DB-04/05、R-BUILD-07、真机验证项。

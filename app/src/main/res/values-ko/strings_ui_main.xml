@@ -557,6 +557,7 @@
     <string name="preset_siliconflow_free_desc">SiliconFlow에서 제공하는 무료 오픈소스 모델 모음</string>
     <string name="siliconflow_fill_free_models">무료 모델 채우기</string>
     <string name="siliconflow_fill_free_models_confirm">현재 모델을 SiliconFlow 무료 모델 목록으로 교체하시겠습니까?</string>
+    <string name="memory_legacy_reset_hint">이전 메모리 데이터가 호환되지 않아 초기화되었습니다. 백업 파일은 유지됩니다</string>
     <string name="free_model_service_unavailable">무료 할당량 서비스를 사용할 수 없습니다. API Key를 추가하거나 나중에 다시 시도하세요.</string>
 
     <!-- ===== P2-10: Provider plugin management (ProviderPluginPage) ===== -->

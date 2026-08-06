@@ -59,7 +59,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.data.experience.DEFAULT_EXPERIENCE_CATEGORY
+import io.zer0.memory.fact.MemoryLegacyReset
 import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.common.surface.CardGroup
@@ -87,6 +89,13 @@ fun MemoryScreen(
     viewModel: MemoryViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // R-DB-03: 早期 facts 库被归档重建时给用户可见提示(仅一次)
+    val context = LocalContext.current
+    LaunchedEffect(Unit) {
+        if (MemoryLegacyReset.consume(context)) {
+            MuseToast.show(context.getString(R.string.memory_legacy_reset_hint))
+        }
+    }
     // v1.0.51: 存量记忆迁移进度(升级后首次启动补跑历史 session 摘要时显示)
     val backfillProgress by viewModel.backfillProgress.collectAsStateWithLifecycle()
     // v8: 作用域筛选状态(从 ViewModel 直接 collect,与 state 同级更新)
