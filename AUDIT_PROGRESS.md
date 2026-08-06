@@ -356,3 +356,9 @@
 - 备注：archive 失败时删除旧库避免崩溃；Room 增加 fallbackToDestructiveMigration(dropAllTables=true) 兜底未知版本。
 - 验证：assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿；detekt/ktlintCheck 通过。
 - 仍待 owner/后续：R-TEST-06 完整状态机（依赖 R-UI-08）、R-UI-14 其余大文件（ChatScreen 仍约 1783 行、ChatViewModel/MuseDb/GroupChatScheduler 等）、R-DB-04/05、R-BUILD-07、真机验证项。
+
+## 第三批检查点小结（2026-08-06 续 6，等待 owner review）
+
+- 本轮新增提交：R-DB-03 FactDb 早期库降级重建。
+- 验证：assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿；detekt/ktlintCheck 通过；工作区干净，分支未合并。
+- 仍待 owner/后续：R-TEST-06 完整状态机（依赖 R-UI-08）、R-UI-14 结构级拆分（ChatScreen/ChatViewModel/MuseDb/GroupChatScheduler）、R-DB-04/05、R-BUILD-07、真机验证项。
