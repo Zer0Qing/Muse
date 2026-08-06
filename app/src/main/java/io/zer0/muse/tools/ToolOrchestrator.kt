@@ -283,6 +283,7 @@ data class ToolLoopResult(
  *
  * 真正的流式请求、UI 更新、工具审批通过 [ToolLoopHost] 回调交给 ChatViewModel。
  */
+@Suppress("LongParameterList")
 class ToolOrchestrator(
     private val toolRegistry: ToolRegistry,
     private val skillRepository: SkillRepository,
@@ -296,6 +297,8 @@ class ToolOrchestrator(
     private val hookRegistry: io.zer0.muse.hook.HookRegistry? = null,
     // P2-4: 审计日志记录器(工具审批放行时记录)。
     private val auditLogger: AuditLogger? = null,
+    // R-TEST-10: 工具超时可注入,生产默认 2 分钟
+    private val toolTimeoutMs: Long = TOOL_TIMEOUT_MS,
 ) {
 
     private companion object {
@@ -783,7 +786,7 @@ class ToolOrchestrator(
         }
 
         // 执行工具:skill 走 SkillExecutor,本地工具走 ToolRegistry
-        val toolResult = withTimeoutOrNull(TOOL_TIMEOUT_MS) {
+        val toolResult = withTimeoutOrNull(toolTimeoutMs) {
             val skill = params.skillMap[tc.name]
             if (skill != null) {
                 skillExecutor.execute(
@@ -800,7 +803,7 @@ class ToolOrchestrator(
                     toolRegistry.executeFromJson(tc.name, effectiveArguments)
                 }
             }
-        } ?: "[超时] 工具 ${tc.name} ${TOOL_TIMEOUT_MS / 1000} 秒未响应,已终止"
+        } ?: "[超时] 工具 ${tc.name} ${toolTimeoutMs / 1000} 秒未响应,已终止"
 
         val isSuccess = taskCardCoordinator.isToolResultSuccess(toolResult)
         val rawFinal = if (isSuccess) {

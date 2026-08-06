@@ -73,7 +73,7 @@
 | R-TEST-19 | 已完成 | VisionBridgePureFunctionsTest 4/4 通过 | 视觉上下文/失败提示/MIME 嗅探/hash 纯逻辑 |
 | R-TEST-20 | 部分完成 | OpenAIImageProviderRequestTest 3/3 + VideoProviderRequestTest 5/5 通过 | OpenAI 文生图/视频 Provider 请求体字段黄金测试；其余 image/video/MCP/importer/widget 待补 |
 | R-TEST-14 | 已完成（JVM 面） | MuseDbMigrationTest 通过 | 反射迁移链 + schema-aware 插行；JVM 覆盖 v55→75；v1-54 因 FTS4 与 schema 漂移留真机 |
-| R-TEST-10 | 部分完成 | ToolOrchestratorPureFunctionsTest 新增 2 例通过 | 超时常量与连续失败早停纯逻辑；并行/超时真实路径待补 |
+| R-TEST-10 | 已完成 | ToolOrchestratorPureFunctionsTest + ToolOrchestratorRunLoopTest 5/5 通过 | calculator/web_search/超时/失败3次熔断/并行真实路径 + 纯逻辑；ToolOrchestrator 增加可注入 toolTimeoutMs |
 | R-TEST-06 | 部分完成 | ChatViewModelSendGuardTest 4/4 通过 | 发送守卫纯逻辑（空消息/流式/Agent 重入）；完整状态机待 R-UI-08 后补 |
 | R-TEST-01 | 已完成 | `:ai:testDebugUnitTest --tests "*StreamGuardTest*"` 3/3 通过 | guard 挂起/reasoning 先到/空 finishReason；早停回退网络路径由 FirstEventWatchdogTest + 快照测试共同覆盖 |
 | R-TEST-05 | 已完成 | `:ai:testDebugUnitTest --tests "*ProviderRequestBodySnapshotTest*"` 3/3 通过 | Anthropic/Gemini/Ollama(OpenAI 兼容)请求体快照 |
@@ -253,3 +253,10 @@
 - 验证：每组提交均跑 assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿；detekt/ktlintCheck 通过；当前工作区干净，分支未合并。
 - 停止原因：剩余 R-UI-14 文件（ChatScreen 仍约 1783 行、ChatViewModel 6559 行、MuseDb 2082 行、GroupChatScheduler 2652 行）不再是纯 top-level 函数搬运：ChatScreen 需从单函数内联块抽取新 Composable，ChatViewModel/MuseDb/GroupChatScheduler 需类级职责拆分，均与 R-UI-08 状态拆分/下一迭代协同，按 owner 决策不在本分支扩大改动面。
 - 其余待 owner/后续：R-TEST-06 完整状态机（依赖 R-UI-08）、R-TEST-10 真实路径、R-TEST-20 的 MCP/importer/widget 面、R-DB-04/05、R-BUILD-07、真机验证项（Keystore / v1-54 迁移链）。
+
+## 第三批检查点 22（2026-08-06 续）
+
+- 新增完成：R-TEST-10 工具执行真实路径测试。ToolOrchestrator 增加可选 toolTimeoutMs 注入（默认仍 120s）；新增 ToolOrchestratorRunLoopTest 5/5，覆盖 calculator 回填、web_search citation URL、超时终止、连续失败 3 次熔断、并行执行（最大并发 >= 2）。
+- 备注：runTest 虚拟时钟与 withContext(Dispatchers.IO) 组合会提前触发 withTimeout，真实路径用例改用 runBlocking 跑真实 IO；无生产行为变化。
+- 验证：assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿；:app detekt/ktlintCheck 通过。
+- 仍待 owner/后续：R-TEST-20 的 MCP/importer/widget 其余面、R-TEST-06 完整状态机（依赖 R-UI-08）、R-UI-14 其余大文件（ChatScreen 仍约 1783 行、ChatViewModel/MuseDb/GroupChatScheduler 等）、R-DB-04/05、R-BUILD-07。
