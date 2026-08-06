@@ -3,14 +3,6 @@ package io.zer0.muse.ui
 import android.content.Intent
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.keyframes
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
@@ -21,7 +13,6 @@ import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -57,12 +48,10 @@ import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
@@ -70,7 +59,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -78,17 +66,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -102,7 +85,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import coil.compose.AsyncImage
 import io.zer0.muse.R
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
@@ -121,26 +103,17 @@ import io.zer0.muse.ui.markdown.MarkdownText
 import io.zer0.muse.transformer.MoodSkinParser
 import io.zer0.muse.ui.taskcard.AgentPlan
 import io.zer0.muse.ui.taskcard.PlanCard
-import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
-import io.zer0.muse.ui.theme.pill
-import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.ui.theme.tiny
-import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.outlined.VideoLibrary
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.ui.common.media.FullScreenMediaViewer
-import io.zer0.muse.ui.common.form.MuseSlider
 import io.zer0.muse.ui.chat.VideoAttachment
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /**
  * 消息单元 — iOS 风格。
@@ -604,7 +577,7 @@ internal fun MessageBubble(
                                     .padding(MusePaddings.labelVerticalGap),
                             ) {
                                 Text(
-                                    text = formatVideoDuration(va.durationMs),
+                                    text = MessageBubbleFormatters.formatVideoDuration(va.durationMs),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onPrimary,
                                     modifier = Modifier.padding(MusePaddings.chipInner),
@@ -1492,481 +1465,3 @@ internal fun MessageBubble(
         }
     }
 }
-
-/**
- * 生成的图片卡片 — 圆角 + 点击预览 + 保存按钮。
- */
-@Composable
-private fun GeneratedImageCard(
-    imageUri: String,
-    onPreview: () -> Unit,
-    onSave: () -> Unit,
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = MusePaddings.tightGap)
-            .clip(MuseShapes.medium)
-            .clickable(onClick = onPreview),
-    ) {
-        SmartImage(
-            model = imageUri,
-            contentDescription = stringResource(R.string.chat_generated_image_cd),
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(max = 320.dp)
-                .clip(MuseShapes.medium),
-        )
-        IconButton(
-            onClick = {
-                onSave()
-            },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(MusePaddings.contentGap)
-                .size(MuseIconSizes.touchTarget)
-                .background(
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-                    shape = CircleShape,
-                ),
-        ) {
-            Icon(
-                imageVector = TablerIcons.Download,
-                contentDescription = stringResource(R.string.chat_save_image_cd),
-                tint = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(MuseIconSizes.iconMedium),
-            )
-        }
-    }
-}
-
-/**
- * iOS 风格 ActionSheet 行项 — 全宽 Row(图标 + 文字),点击触发回调。
- */
-@Composable
-private fun ActionMenuItem(
-    icon: ImageVector,
-    text: String,
-    contentDescription: String,
-    onClick: () -> Unit,
-    // v1.48: 可选 tint,用于"删除消息"等危险操作标红
-    tint: androidx.compose.ui.graphics.Color = androidx.compose.ui.graphics.Color.Unspecified,
-) {
-    val iconTint = if (tint == androidx.compose.ui.graphics.Color.Unspecified) MaterialTheme.colorScheme.onSurface else tint
-    val textTint = if (tint == androidx.compose.ui.graphics.Color.Unspecified) MaterialTheme.colorScheme.onSurface else tint
-    Surface(
-        onClick = onClick,
-        shape = MuseShapes.semiLarge,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = MusePaddings.iconPadding, vertical = MusePaddings.inputPadding),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(MusePaddings.iconPadding),
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = contentDescription,
-                tint = iconTint,
-                // M-MB3: 图标尺寸用 MuseIconSizes.iconMedium 令牌替代硬编码 22dp
-                modifier = Modifier.size(MuseIconSizes.iconMedium),
-            )
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyMedium,
-                color = textTint,
-                modifier = Modifier.weight(1f),
-            )
-        }
-    }
-}
-
-/**
- * 任务 2A: iOS 风格 shimmer 骨架屏 + 脉冲点加载动画。
- * 三个圆点依次缩放/淡入淡出,下方显示状态文字。
- */
-@Composable
-internal fun LoadingDots(text: String = stringResource(R.string.chat_loading_thinking)) {
-    Column(
-        modifier = Modifier.padding(MusePaddings.cardInner),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            // v1.79 (L-B15): 三个圆点共享一个 InfiniteTransition,减少动画开销
-            val infiniteTransition = rememberInfiniteTransition(label = "dots")
-            repeat(3) { index ->
-                val scale by infiniteTransition.animateFloat(
-                    initialValue = 0.6f,
-                    targetValue = 1f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(600, delayMillis = index * 120, easing = FastOutSlowInEasing),
-                        repeatMode = RepeatMode.Reverse,
-                    ),
-                    label = "dot$index",
-                )
-                val alpha by infiniteTransition.animateFloat(
-                    initialValue = 0.4f,
-                    targetValue = 1f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(600, delayMillis = index * 120, easing = FastOutSlowInEasing),
-                        repeatMode = RepeatMode.Reverse,
-                    ),
-                    label = "dotAlpha$index",
-                )
-                Box(
-                    modifier = Modifier
-                        .size(MusePaddings.contentGap)
-                        .scale(scale)
-                        .alpha(alpha)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary),
-                )
-            }
-        }
-        Spacer(Modifier.height(MusePaddings.contentGap))
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-        )
-    }
-}
-
-/**
- * v0.48: shimmer 骨架屏占位 — 空流式 assistant 消息气泡渲染占位条,
- * 替代旧 LoadingDots 的"思考中"文字,营造"AI 正在写"的呼吸感。
- *
- * 实现:一个 fillMaxWidth(0.6f) / height 14dp 圆角矩形,
- * 用 [Brush.linearGradient] 配合 [animateFloat] + [infiniteRepeatable]
- * 做从左到右的扫光动画(1200ms 一个周期,LinearEasing)。
- * 颜色:surfaceVariant(0.4) → primary(0.2) → surfaceVariant(0.4)。
- */
-@Composable
-internal fun ShimmerPlaceholder(modifier: Modifier = Modifier) {
-    val transition = rememberInfiniteTransition(label = "shimmer")
-    val translateAnim by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1200, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "shimmerTranslate",
-    )
-    val brush = Brush.linearGradient(
-        colors = listOf(
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-        ),
-        start = Offset(translateAnim * -300f, 0f),
-        end = Offset(translateAnim * 300f, 0f),
-    )
-    Box(
-        modifier = modifier
-            .fillMaxWidth(0.6f)
-            .height(14.dp)
-            .clip(MuseShapes.tiny)
-            .background(brush),
-    )
-}
-
-/**
- * v1.33: 智能图片渲染器
- * 绕过 Coil 的 data URI 解析(部分设备上 DataUriFetcher 静默失败)
- * data URI → 直接用 BitmapFactory 解码;普通 URL/Uri → 仍走 Coil AsyncImage
- */
-@Composable
-fun SmartImage(
-    model: Any?,
-    modifier: Modifier = Modifier,
-    contentDescription: String? = null,
-    contentScale: ContentScale = ContentScale.Fit,
-) {
-    val dataUriPrefix = "data:image/"
-    if (model is String && model.startsWith(dataUriPrefix)) {
-        // data URI:提取 base64 部分,IO 线程解码
-        val base64Part = remember(model) {
-            val commaIndex = model.indexOf(',')
-            if (commaIndex > 0) model.substring(commaIndex + 1) else null
-        }
-        if (base64Part != null) {
-            val bitmapState by produceState<android.graphics.Bitmap?>(initialValue = null, base64Part) {
-                value = withContext(Dispatchers.IO) {
-                    runCatching {
-                        val bytes = android.util.Base64.decode(base64Part, android.util.Base64.NO_WRAP)
-                        // v1.79 (H-B1): 先探测尺寸再降采样,避免大图解码 OOM
-                        val options = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
-                        android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
-                        val targetSize = 1024
-                        var sampleSize = 1
-                        while (options.outWidth / sampleSize > targetSize || options.outHeight / sampleSize > targetSize) {
-                            sampleSize *= 2
-                        }
-                        val decodeOptions = android.graphics.BitmapFactory.Options().apply { inSampleSize = sampleSize }
-                        android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, decodeOptions)
-                    }.onFailure { Logger.w("MessageBubble", "base64 image decode failed: ${it.message}", it) }.getOrNull()
-                }
-                // v1.79 (M-B11): produceState 退出时显式回收 Bitmap,避免内存泄漏
-                awaitDispose {
-                    value?.recycle()
-                }
-            }
-            val current = bitmapState
-            if (current != null) {
-                Image(
-                    bitmap = current.asImageBitmap(),
-                    contentDescription = contentDescription,
-                    modifier = modifier,
-                    contentScale = contentScale,
-                )
-            } else {
-                // 解码中/失败:灰色占位
-                Box(modifier = modifier.background(MaterialTheme.colorScheme.surfaceVariant))
-            }
-        } else {
-            Box(modifier = modifier.background(MaterialTheme.colorScheme.surfaceVariant))
-        }
-    } else {
-        // 普通 URL/Uri:走 Coil AsyncImage
-        AsyncImage(
-            model = model,
-            contentDescription = contentDescription,
-            modifier = modifier,
-            contentScale = contentScale,
-        )
-    }
-}
-
-/**
- * 阶段 4: 流式光标 — 末尾 AI 流式消息文本后追加的闪烁竖线。
- *
- * 设计: 2.5dp 宽 / 18dp 高竖条,通过 [rememberInfiniteTransition] + [animateFloat]
- *       在 1.0 ↔ 0.2 间用 FastOutSlowInEasing 往返(530ms 周期),呈现"打字机呼吸感"。
- * 颜色: 取自 MaterialTheme.colorScheme.primary(月桂绿 #2D8C5F),
- *       与品牌色保持一致,符合"深夜台灯"配色铁律(<5% 品牌色点缀)。
- *
- * v1.0.3 改进:
- *  - 周期从 1s 缩短到 530ms,看起来更"活跃",与更快的内容流入节奏匹配
- *  - alpha 范围从 0~1 改为 0.2~1,避免完全消失,视觉更连贯
- *  - 缓动从 LinearEasing 改为 FastOutSlowInEasing,呼吸感更自然
- *  - 宽度从 2dp 加到 2.5dp,高度从 16dp 加到 18dp,略微更醒目
- */
-@Composable
-private fun StreamingCursor(
-    color: Color,
-    modifier: Modifier = Modifier,
-) {
-    val transition = rememberInfiniteTransition(label = "streaming_cursor")
-    val alpha by transition.animateFloat(
-        initialValue = 1f,
-        targetValue = 0.2f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 530, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "cursor_alpha",
-    )
-    Box(
-        modifier = modifier
-            .size(width = 2.5.dp, height = 18.dp)
-            .background(color = color.copy(alpha = alpha)),
-    )
-}
-
-/**
- * AI 流式/思考状态指示器 — 绿色脉动圆点 + "正在思考…"文案。
- * 使用 MuseShapes.pill 绿色小点 + alpha 呼吸动画,符合 iOS/MANUS 风格。
- */
-@Composable
-private fun ThinkingIndicator() {
-    val transition = rememberInfiniteTransition(label = "thinking_dot")
-    val alpha by transition.animateFloat(
-        initialValue = 1f,
-        targetValue = 0.35f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 900, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "thinking_alpha",
-    )
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .size(7.dp)
-                .clip(MuseShapes.pill)
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = alpha)),
-        )
-        Text(
-            text = stringResource(R.string.chat_thinking),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-        )
-    }
-}
-
-/**
- * 功能2: TTS 语音消息播放器。显示在 AI 消息气泡下方,当前消息正在 TTS 朗读时出现。
- *
- * 包含波形条动画 + 播放/暂停按钮 + 进度条 + 倍速选择。
- */
-@Composable
-private fun TtsAudioPlayer(
-    modifier: Modifier = Modifier,
-) {
-    val ttsManager: io.zer0.muse.ui.speech.TtsManager = org.koin.compose.koinInject()
-    val state by ttsManager.playbackState.collectAsStateWithLifecycle()
-    val isPlaying = state.status == io.zer0.muse.ui.speech.PlaybackStatus.Playing
-    val isPaused = state.status == io.zer0.muse.ui.speech.PlaybackStatus.Paused
-    val progress = if (state.durationMs > 0) (state.positionMs.toFloat() / state.durationMs).coerceIn(0f, 1f) else 0f
-
-    var speedIndex by rememberSaveable { mutableIntStateOf(1) }
-    val speeds = remember { listOf(0.8f, 1.0f, 1.2f, 1.5f) }
-
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-        shape = MuseShapes.medium,
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        Column(
-            modifier = Modifier.padding(MusePaddings.bubbleInner),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
-            ) {
-                // 播放/暂停按钮
-                IconButton(
-                    onClick = {
-                        if (isPlaying) ttsManager.pause()
-                        else ttsManager.resume()
-                    },
-                    modifier = Modifier.size(32.dp),
-                ) {
-                    Icon(
-                        imageVector = if (isPlaying) Icons.Default.Pause else TablerIcons.PlayerPlay,
-                        contentDescription = if (isPlaying) stringResource(R.string.speech_pause_cd) else stringResource(R.string.speech_resume_cd),
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
-                // 波形条动画(4 条竖条,随播放状态弹跳)
-                WaveformBars(isActive = isPlaying)
-                Spacer(Modifier.weight(1f))
-                // 倍速选择
-                Text(
-                    text = "${speeds[speedIndex]}x",
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .clickable {
-                            speedIndex = (speedIndex + 1) % speeds.size
-                            ttsManager.setSpeed(speeds[speedIndex])
-                        }
-                        .clip(MuseShapes.tiny)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                        .padding(MusePaddings.chipInnerLoose),
-                )
-            }
-            Spacer(Modifier.height(MusePaddings.tinyGap))
-            // 进度条
-            MuseSlider(
-                value = progress,
-                onValueChange = { v ->
-                    val targetMs = (v * state.durationMs).toLong()
-                    val delta = (targetMs - state.positionMs).toInt()
-                    ttsManager.seekBy(delta)
-                },
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-    }
-}
-
-/**
- * 波形条动画 — 4 条竖条,播放时逐条错开弹跳,暂停时静止。
- */
-@Composable
-private fun WaveformBars(
-    isActive: Boolean,
-) {
-    val infiniteTransition = rememberInfiniteTransition(label = "waveform")
-    val voicePlayingCd = stringResource(R.string.chat_voice_playing_cd)
-    val voiceReadyCd = stringResource(R.string.chat_voice_ready_cd)
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        // v1.0.52: 无障碍 — TalkBack 可播报波形状态
-        modifier = Modifier.semantics {
-            contentDescription = if (isActive) voicePlayingCd else voiceReadyCd
-        },
-    ) {
-        val heights = listOf(MusePaddings.itemGap, 18.dp, 14.dp, 20.dp)
-        heights.forEachIndexed { index, maxHeight ->
-            val scale by infiniteTransition.animateFloat(
-                initialValue = 0.4f,
-                targetValue = 1f,
-                animationSpec = infiniteRepeatable(
-                    animation = keyframes {
-                        durationMillis = 600
-                        0.4f at 0
-                        1f at (150 + index * 50)
-                        0.4f at 600
-                    },
-                    repeatMode = RepeatMode.Restart,
-                ),
-                label = "bar$index",
-            )
-            val currentHeight = if (isActive) maxHeight * scale else maxHeight * 0.4f
-            Box(
-                modifier = Modifier
-                    .width(3.dp)
-                    .height(currentHeight)
-                    .clip(MuseShapes.tiny)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = if (isActive) 0.8f else 0.3f)),
-            )
-        }
-    }
-}
-
-/**
- * v0.48: 消息时间戳格式化 — 受 chatPrefs.use24Hour 控制时制,
- * 默认 24 小时制显示 "HH:mm",12 小时制显示 "h:mm a"。
- */
-// v1.79 (L-B12): SimpleDateFormat 提为文件级缓存,避免每条消息独立创建
-private val sdf24Hour by lazy {
-    java.text.SimpleDateFormat(MuseDateFormats.TIME_SHORT, java.util.Locale.getDefault())
-}
-private val sdf12Hour by lazy {
-    java.text.SimpleDateFormat(MuseDateFormats.TIME_12H, java.util.Locale.getDefault())
-}
-
-// L-MB3: 移除多余的 @Composable 注解(函数不使用任何 Composable API)
-private fun formatMessageTime(timestamp: Long, use24Hour: Boolean = true): String {
-    val sdf = if (use24Hour) sdf24Hour else sdf12Hour
-    return sdf.format(java.util.Date(timestamp))
-}
-
-/**
- * 视频时长格式化:毫秒 → "M:SS"(超过 1 小时则 "H:MM:SS")。
- * 仅用于消息气泡右下角时长标签,与 InputBar 中同名函数语义一致。
- */
-private fun formatVideoDuration(durationMs: Long): String {
-    if (durationMs <= 0L) return "0:00"
-    val totalSec = durationMs / 1000
-    val h = totalSec / 3600
-    val m = (totalSec % 3600) / 60
-    val s = totalSec % 60
-    return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
-}
-
