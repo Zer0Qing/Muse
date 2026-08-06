@@ -73,12 +73,21 @@
     <string name="theme_twilight_purple">Сумерки Пурпурные</string>
     <string name="theme_amber_gold">Янтарное золото</string>
     <string name="theme_dusk_rose">Сумеречная роза</string>
+    <string name="settings_theme_dark_section">Тема тёмного режима</string>
+    <string name="settings_theme_follow_light">Следовать светлой теме</string>
+    <string name="settings_theme_dark_title">Тёмная тема</string>
+    <string name="settings_theme_schedule">Автопереключение по времени</string>
+    <string name="settings_theme_schedule_auto">Автопереключение</string>
+    <string name="settings_theme_schedule_auto_subtitle">Автоматически переключать светлую/тёмную тему в время подъёма и сна</string>
+    <string name="settings_theme_wake_time_title">Время подъёма (светлая)</string>
+    <string name="settings_theme_sleep_time_title">Время сна (тёмная)</string>
 
     <!-- ===== ui/speech voice input and TTS ===== -->
     <string name="speech_speak_prompt">Пожалуйста, говорите…</string>
     <string name="speech_tts_init_failed">Не удалось инициализировать речевой механизм, чтение вслух недоступно</string>
     <string name="speech_tts_play_error">Ошибка воспроизведения речи</string>
     <string name="speech_tts_fallback_to_system">Проблема с сетью, переключился на систему TTS</string>
+    <string name="speech_tts_no_engine">Движок TTS не найден. Установите службу речи</string>
     <string name="speech_stop_reading_cd">Хватит читать</string>
     <string name="speech_playback_speed_cd">Скорость воспроизведения %1$sx</string>
     <string name="speech_seek_forward_5s_cd">Вперед на 5 секунд</string>

@@ -310,7 +310,8 @@ fun KnowledgeScreen(
                     val msg = if (reason.isNullOrBlank()) {
                         context.getString(R.string.knowledge_imported_no_index, fileName)
                     } else {
-                        "${context.getString(R.string.knowledge_imported_no_index, fileName)}\n原因:$reason"
+                        "${context.getString(R.string.knowledge_imported_no_index, fileName)}\n" +
+                            context.getString(R.string.knowledge_index_error_reason, reason)
                     }
                     MuseToast.show(msg)
                     Logger.w("KnowledgeScreen", "indexDocument failed for $fileName", indexError)

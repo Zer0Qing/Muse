@@ -22,8 +22,11 @@ import androidx.compose.foundation.verticalScroll
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberTimePickerState
 import io.zer0.muse.ui.common.form.MuseSlider
 import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Surface
@@ -81,6 +84,7 @@ import kotlin.math.roundToInt
  *  - 主题变体(mono/warm_paper/ocean_blue)已收敛,只保留浅色 + 深色
  *  - 几乎不用 elevation,靠 surfaceVariant 色块分组
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ThemeSection(
     themeMode: String,
@@ -101,6 +105,9 @@ internal fun ThemeSection(
     var editingTheme by remember { mutableStateOf<CustomTheme?>(null) }
     var showEditDialog by remember { mutableStateOf(false) }
     var deletingTheme by remember { mutableStateOf<CustomTheme?>(null) }
+    // R-UI-05: 定时切换时间选择弹窗
+    var wakeTimeDialog by remember { mutableStateOf(false) }
+    var sleepTimeDialog by remember { mutableStateOf(false) }
     // 自定义主题预览需要按当前主题模式生成 ColorScheme(system 模式跟随系统深浅)
     val isDark = when (themeMode) {
         "light" -> false
@@ -241,20 +248,20 @@ internal fun ThemeSection(
     }
 
     // ── 深色模式独立主题(空字符串表示跟随亮色主题的暗色版) ──
-    SectionLabel("深色模式主题")
+    SectionLabel(stringResource(R.string.settings_theme_dark_section))
     val darkThemeLabel = if (darkThemeId.isNotBlank()) {
         PresetThemes.firstOrNull { it.id == darkThemeId }?.let {
             stringResource(it.nameResId)
         } ?: darkThemeId
     } else {
-        "跟随亮色主题"
+        stringResource(R.string.settings_theme_follow_light)
     }
     SettingsGroup(
         modifier = Modifier.padding(top = 8.dp),
     ) {
         // 跟随亮色主题选项
         ThemeOptionRow(
-            name = "跟随亮色主题",
+            name = stringResource(R.string.settings_theme_follow_light),
             isSelected = darkThemeId.isEmpty(),
             onClick = { scope.launch { settings.saveDarkThemeId("") } },
         )
@@ -271,21 +278,21 @@ internal fun ThemeSection(
         val darkIcon = if (darkThemeId.isNotBlank()) TablerIcons.Moon else TablerIcons.Sun
         SettingsItemRow(
             icon = darkIcon,
-            title = "深色主题",
+            title = stringResource(R.string.settings_theme_dark_title),
             subtitle = darkThemeLabel,
         )
     }
 
     // ── 主题定时切换(Feature 4) ──
     val schedule by settings.themeScheduleFlow.collectAsStateWithLifecycle(initialValue = io.zer0.muse.data.ThemeScheduleConfig())
-    SectionLabel("定时切换")
+    SectionLabel(stringResource(R.string.settings_theme_schedule))
     SettingsGroup(
         modifier = Modifier.padding(top = 8.dp),
     ) {
         SettingsSwitchRow(
             icon = TablerIcons.Brightness,
-            title = "自动切换",
-            subtitle = "在起床/睡觉时间自动切换亮暗模式",
+            title = stringResource(R.string.settings_theme_schedule_auto),
+            subtitle = stringResource(R.string.settings_theme_schedule_auto_subtitle),
             checked = schedule.enabled,
             onCheckedChange = { v ->
                 scope.launch { settings.saveThemeSchedule(schedule.copy(enabled = v)) }
@@ -295,28 +302,66 @@ internal fun ThemeSection(
             SettingsGroupDivider()
             SettingsItemRow(
                 icon = TablerIcons.Sun,
-                title = "起床时间(浅色)",
+                title = stringResource(R.string.settings_theme_wake_time_title),
                 subtitle = "%02d:%02d".format(schedule.wakeUpHour, schedule.wakeUpMinute),
                 onClick = {
-                    scope.launch {
-                        val newHour = (schedule.wakeUpHour + 1) % 24
-                        settings.saveThemeSchedule(schedule.copy(wakeUpHour = newHour))
-                    }
+                    wakeTimeDialog = true
                 },
             )
             SettingsGroupDivider()
             SettingsItemRow(
                 icon = TablerIcons.Moon,
-                title = "睡觉时间(深色)",
+                title = stringResource(R.string.settings_theme_sleep_time_title),
                 subtitle = "%02d:%02d".format(schedule.sleepHour, schedule.sleepMinute),
                 onClick = {
-                    scope.launch {
-                        val newHour = (schedule.sleepHour + 1) % 24
-                        settings.saveThemeSchedule(schedule.copy(sleepHour = newHour))
-                    }
+                    sleepTimeDialog = true
                 },
             )
         }
+    }
+
+    if (wakeTimeDialog) {
+        val timeState = rememberTimePickerState(
+            initialHour = schedule.wakeUpHour,
+            initialMinute = schedule.wakeUpMinute,
+            is24Hour = true,
+        )
+        MuseDialog(
+            onDismissRequest = { wakeTimeDialog = false },
+            title = stringResource(R.string.settings_theme_wake_time_title),
+            content = { TimePicker(state = timeState) },
+            onConfirm = {
+                scope.launch {
+                    settings.saveThemeSchedule(
+                        schedule.copy(wakeUpHour = timeState.hour, wakeUpMinute = timeState.minute),
+                    )
+                }
+                wakeTimeDialog = false
+            },
+            onDismiss = { wakeTimeDialog = false },
+        )
+    }
+
+    if (sleepTimeDialog) {
+        val timeState = rememberTimePickerState(
+            initialHour = schedule.sleepHour,
+            initialMinute = schedule.sleepMinute,
+            is24Hour = true,
+        )
+        MuseDialog(
+            onDismissRequest = { sleepTimeDialog = false },
+            title = stringResource(R.string.settings_theme_sleep_time_title),
+            content = { TimePicker(state = timeState) },
+            onConfirm = {
+                scope.launch {
+                    settings.saveThemeSchedule(
+                        schedule.copy(sleepHour = timeState.hour, sleepMinute = timeState.minute),
+                    )
+                }
+                sleepTimeDialog = false
+            },
+            onDismiss = { sleepTimeDialog = false },
+        )
     }
 
     // ── 字号选择 ──

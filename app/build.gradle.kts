@@ -164,7 +164,7 @@ dependencies {
     // v1.60-C: AppCompat(per-app 语言切换,支持 Android 13 以下系统)
     implementation("androidx.appcompat:appcompat:1.7.0")
     // 功能1: 生物识别解锁
-    implementation("androidx.biometric:biometric-ktx:1.2.0-alpha05")
+    implementation("androidx.biometric:biometric:1.1.0")
     // v1.104 P3: WorkManager — ScheduledTaskRunner 后台兜底,App 被杀也能由系统拉起
     implementation("androidx.work:work-runtime-ktx:2.9.0")
 

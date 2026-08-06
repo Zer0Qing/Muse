@@ -73,12 +73,21 @@
     <string name="theme_twilight_purple">暮紫韵</string>
     <string name="theme_amber_gold">琥珀金</string>
     <string name="theme_dusk_rose">暮霭玫</string>
+    <string name="settings_theme_dark_section">深色模式主题</string>
+    <string name="settings_theme_follow_light">跟随亮色主题</string>
+    <string name="settings_theme_dark_title">深色主题</string>
+    <string name="settings_theme_schedule">定时切换</string>
+    <string name="settings_theme_schedule_auto">自动切换</string>
+    <string name="settings_theme_schedule_auto_subtitle">在起床/睡觉时间自动切换亮暗模式</string>
+    <string name="settings_theme_wake_time_title">起床时间(浅色)</string>
+    <string name="settings_theme_sleep_time_title">睡觉时间(深色)</string>
 
     <!-- ===== ui/speech 语音输入与 TTS ===== -->
     <string name="speech_speak_prompt">请说话…</string>
     <string name="speech_tts_init_failed">语音引擎初始化失败,朗读功能不可用</string>
     <string name="speech_tts_play_error">语音播放出错</string>
     <string name="speech_tts_fallback_to_system">网络异常,已切换系统语音</string>
+    <string name="speech_tts_no_engine">设备无 TTS 引擎，请安装语音服务</string>
     <string name="speech_stop_reading_cd">停止朗读</string>
     <string name="speech_playback_speed_cd">播放速度 %1$sx</string>
     <string name="speech_seek_forward_5s_cd">快进 5 秒</string>

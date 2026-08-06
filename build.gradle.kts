@@ -19,6 +19,7 @@ dependencies {
     kover(project(":memory"))
     kover(project(":common"))
     kover(project(":material3"))
+    kover(project(":accessibility"))
 }
 
 // Phase 2.1: 配置聚合报告格式 — HTML + XML(使用默认输出路径)

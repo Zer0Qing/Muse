@@ -56,6 +56,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.R
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.statusColors
 import io.zer0.muse.tools.DelegationChainTracker
@@ -219,6 +220,7 @@ fun TaskCard(
     data: TaskCardData,
     onToggleExpand: () -> Unit = {},
     onRetryStep: (String) -> Unit = {},
+    onCancel: (() -> Unit)? = null,
     // M-TC2 修复: 增加 modifier 参数,允许调用方自定义布局修饰
     modifier: Modifier = Modifier,
     // v1.201: 委派链路(可选,非空时在步骤列表下方渲染)
@@ -338,6 +340,26 @@ fun TaskCard(
                         color = MaterialTheme.colorScheme.outlineVariant,
                     )
                     // 步骤列表
+                    // R-UI-09: 执行中提供取消按钮,由调用方接入停止生成。
+                    if (data.phase == TaskCardPhase.EXECUTING && onCancel != null) {
+                        TextButton(
+                            onClick = onCancel,
+                            modifier = Modifier.padding(top = 2.dp),
+                        ) {
+                            Icon(
+                                Icons.Default.Cancel,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                            Spacer(Modifier.size(4.dp))
+                            Text(
+                                stringResource(R.string.common_cancel),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    }
                     // L-TC6 修复: forEach 加 key,步骤状态变化时 Compose 能精准重组对应行
                     data.steps.forEach { step ->
                         key(step.id) {

@@ -45,3 +45,9 @@
 - 阻塞（需要 owner 决策）：R-BUILD-02。material3 1.4.0 stable（BOM 2026.06.01）中 `MaterialExpressiveTheme`、`MotionScheme`、`ExperimentalMaterial3ExpressiveApi` 均为 internal；BOM 还会强制覆盖 1.4.0-alpha04。已实测 `assembleDebug` 编译失败，回退到 alpha04 + BOM 2024.12.01 后全绿。
 - 非阻塞：app 模块 Robolectric 不支持 FTS4 vtable，R-TEST-23 用 fake DAO；R-TEST-01 的早停回退完整网络路径在 MockWebServer 下不稳定，改由 FirstEventWatchdogTest + ProviderRequestBodySnapshotTest 覆盖。
 - 第二批其余条目均已实现并通过验证，等待 owner 对 R-BUILD-02 的决策后即可收尾第二批。
+
+## 第三批检查点（进行中）
+
+- 已完成：R-UI-04（主题页多语言）、R-UI-05（TimePicker 分钟设置）、R-UI-06（封面 prompt + 空输出降级）、R-UI-07（TTS 失败 Toast）、R-UI-09（TaskCard 取消 + 确认 ANR 后台过滤/429 文案已存在）、R-SVC-01（NodeInfo recycle + 非主线程断言）、R-SVC-02（截图反射失败提示）、R-SVC-03（Shizuku suspend/超时/release）、R-BUILD-05（biometric 1.1.0 stable）、R-BUILD-08（KSP 2.3.11）、R-BUILD-09（accessibility 纳入 Kover）、R-BUILD-10（ProGuard 部分收窄）。
+- 尚未开始：R-UI-08（state-split）、R-TEST 其余、R-CI 其余、R-DOC 其余、长期项。
+- 验证：assembleDebug + 三模块单测全绿。

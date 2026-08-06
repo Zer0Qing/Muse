@@ -295,6 +295,7 @@
     <string name="knowledge_file_too_large_confirm">알았어요</string>
     <string name="knowledge_imported_indexed">가져옴: %1$s (%2$d 청크가 인덱싱됨)</string>
     <string name="knowledge_imported_no_index">가져옴: %1$s (벡터 인덱싱 실패, 텍스트 검색 가능)</string>
+    <string name="knowledge_index_error_reason">이유: %1$s</string>
     <string name="knowledge_import_cancelled">가져오기가 취소되었습니다.</string>
     <string name="knowledge_import_failed_read">가져오기 실패: 파일을 읽을 수 없습니다.</string>
     <string name="knowledge_import_failed">가져오기 실패: %1$s</string>

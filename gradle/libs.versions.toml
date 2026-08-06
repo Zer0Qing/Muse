@@ -3,7 +3,7 @@ ktlint = "12.1.1"
 # 工具链(本机已缓存:Gradle 9.4.1 + AGP 9.2.1 + Kotlin 2.4.0)
 agp = "9.2.1"
 kotlin = "2.4.0"
-ksp = "2.3.9"
+ksp = "2.3.11"
 # Phase 2.1: Kover 覆盖率插件(用于 PR check 时生成 HTML/XML 报告,5 模块聚合到 root)
 kover = "0.9.9"
 # AndroidX — 选兼容 compileSdk 35 的稳定版(本机 SDK 仅到 android-36.1,装不了 37)

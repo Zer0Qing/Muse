@@ -210,7 +210,13 @@ object UIToolsSkill {
             File(context.cacheDir, "ui_screenshot_${System.currentTimeMillis()}$ext").absolutePath
         }
         val ok = client.screenshot(targetPath, format)
-        return if (ok) "[成功] 截图已保存: $targetPath" else "[失败] 截图失败(需 Android 14+ 或服务异常)"
+        if (ok) return "[成功] 截图已保存: $targetPath"
+        val hint = if (client.screenshotCapabilityFailed()) {
+            "截图能力不可用，请使用系统截图"
+        } else {
+            "需 Android 14+ 或服务异常"
+        }
+        return "[失败] 截图失败($hint)"
     }
 
     suspend fun back(client: AccessibilityClient): String {

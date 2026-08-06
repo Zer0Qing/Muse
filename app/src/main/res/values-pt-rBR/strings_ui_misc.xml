@@ -73,12 +73,21 @@
     <string name="theme_twilight_purple">Crepúsculo Roxo</string>
     <string name="theme_amber_gold">Âmbar Dourado</string>
     <string name="theme_dusk_rose">Rosa do Crepúsculo</string>
+    <string name="settings_theme_dark_section">Tema do modo escuro</string>
+    <string name="settings_theme_follow_light">Seguir tema claro</string>
+    <string name="settings_theme_dark_title">Tema escuro</string>
+    <string name="settings_theme_schedule">Troca programada</string>
+    <string name="settings_theme_schedule_auto">Troca automática</string>
+    <string name="settings_theme_schedule_auto_subtitle">Alternar claro/escuro automaticamente no horário de acordar e dormir</string>
+    <string name="settings_theme_wake_time_title">Horário de acordar (claro)</string>
+    <string name="settings_theme_sleep_time_title">Horário de dormir (escuro)</string>
 
     <!-- ===== ui/speech voice input and TTS ===== -->
     <string name="speech_speak_prompt">Por favor fale…</string>
     <string name="speech_tts_init_failed">Falha na inicialização do mecanismo de fala, leitura em voz alta indisponível</string>
     <string name="speech_tts_play_error">Erro de reprodução de fala</string>
     <string name="speech_tts_fallback_to_system">Problema de rede, mudou para o sistema TTS</string>
+    <string name="speech_tts_no_engine">Nenhum mecanismo TTS encontrado. Instale um serviço de voz</string>
     <string name="speech_stop_reading_cd">Pare de ler</string>
     <string name="speech_playback_speed_cd">Velocidade de reprodução %1$sx</string>
     <string name="speech_seek_forward_5s_cd">Avançar 5 segundos</string>

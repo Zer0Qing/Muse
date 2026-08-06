@@ -295,6 +295,7 @@
     <string name="knowledge_file_too_large_confirm">Got it</string>
     <string name="knowledge_imported_indexed">Imported: %1$s (%2$d chunks indexed)</string>
     <string name="knowledge_imported_no_index">Imported: %1$s (vector indexing failed, text search available)</string>
+    <string name="knowledge_index_error_reason">Reason: %1$s</string>
     <string name="knowledge_import_cancelled">Import cancelled</string>
     <string name="knowledge_import_failed_read">Import failed: cannot read file</string>
     <string name="knowledge_import_failed">Import failed: %1$s</string>

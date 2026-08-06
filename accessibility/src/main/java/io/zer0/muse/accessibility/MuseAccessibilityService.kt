@@ -7,6 +7,7 @@ import android.graphics.Bitmap
 import android.graphics.Path
 import android.os.Build
 import android.os.Bundle
+import android.os.Looper
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import io.zer0.common.Logger
@@ -72,6 +73,9 @@ class MuseAccessibilityService : AccessibilityService() {
     /** 服务是否已连接(onServiceConnected 后置 true)。 */
     @Volatile private var connected = false
 
+    /** R-SVC-02: mCanTakeScreenshots 反射失败标记。 */
+    @Volatile private var screenshotCapabilityFailed = false
+
     // ── AccessibilityService 生命周期 ──────────────────────────────────────────
 
     override fun onServiceConnected() {
@@ -100,8 +104,10 @@ class MuseAccessibilityService : AccessibilityService() {
             Logger.d(TAG, "已启用截图能力(mCanTakeScreenshots=true)")
         } catch (e: NoSuchFieldException) {
             Logger.w(TAG, "mCanTakeScreenshots 字段不存在: ${e.message}")
+            screenshotCapabilityFailed = true
         } catch (e: Exception) {
             Logger.w(TAG, "启用截图能力失败: ${e.message}")
+            screenshotCapabilityFailed = true
         }
     }
 
@@ -133,6 +139,9 @@ class MuseAccessibilityService : AccessibilityService() {
 
     fun isAccessibilityServiceEnabled(): Boolean = connected
 
+    /** R-SVC-02: mCanTakeScreenshots 反射是否失败。 */
+    fun isScreenshotCapabilityFailed(): Boolean = screenshotCapabilityFailed
+
     fun getCurrentActivityName(): String {
         if (lastPackage.isBlank()) return ""
         return if (lastClassName.isNotBlank()) "$lastPackage/$lastClassName" else lastPackage
@@ -141,14 +150,18 @@ class MuseAccessibilityService : AccessibilityService() {
     fun getUiHierarchy(): String {
         val root = rootInActiveWindow ?: return "[error] 无活动窗口(无障碍服务未授权或无前台窗口)"
         val sb = StringBuilder()
-        sb.append("[activity] ").append(getCurrentActivityName().ifBlank { "unknown" }).append('\n')
-        val counter = intArrayOf(0)
-        dumpNode(root, "0", sb, counter)
-        return if (counter[0] >= MAX_NODES) {
-            sb.append("\n[truncated] 已达到最大节点数 $MAX_NODES")
-            sb.toString()
-        } else {
-            sb.toString()
+        try {
+            sb.append("[activity] ").append(getCurrentActivityName().ifBlank { "unknown" }).append('\n')
+            val counter = intArrayOf(0)
+            dumpNode(root, "0", sb, counter)
+            return if (counter[0] >= MAX_NODES) {
+                sb.append("\n[truncated] 已达到最大节点数 $MAX_NODES")
+                sb.toString()
+            } else {
+                sb.toString()
+            }
+        } finally {
+            root.recycle()
         }
     }
 
@@ -180,23 +193,40 @@ class MuseAccessibilityService : AccessibilityService() {
 
     fun findFocusedNodeId(): String {
         val root = rootInActiveWindow ?: return ""
-        val focus = root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT) ?: return ""
-        return findNodePath(root, focus) ?: ""
+        try {
+            val focus = root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT) ?: return ""
+            try {
+                return findNodePath(root, focus) ?: ""
+            } finally {
+                focus.recycle()
+            }
+        } finally {
+            root.recycle()
+        }
     }
 
     fun setTextOnNode(nodeId: String, text: String): Boolean {
         if (nodeId.isBlank()) return false
         val root = rootInActiveWindow ?: return false
-        val target = findNodeByPath(root, nodeId) ?: return false
-        val args = Bundle().apply {
-            putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, text)
+        try {
+            val target = findNodeByPath(root, nodeId) ?: return false
+            try {
+                val args = Bundle().apply {
+                    putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, text)
+                }
+                val ok = target.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
+                Logger.d(TAG, "setTextOnNode($nodeId) -> $ok")
+                return ok
+            } finally {
+                target.recycle()
+            }
+        } finally {
+            root.recycle()
         }
-        val ok = target.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
-        Logger.d(TAG, "setTextOnNode($nodeId) -> $ok")
-        return ok
     }
 
     fun takeScreenshot(path: String, format: String): Boolean {
+        check(Looper.myLooper() != Looper.getMainLooper()) { "takeScreenshot must not run on main thread" }
         // AccessibilityService.takeScreenshot() 需 API 34+,低版本不支持
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             Logger.w(TAG, "takeScreenshot 需 Android 14+(API 34),当前 API ${Build.VERSION.SDK_INT}")
@@ -251,6 +281,7 @@ class MuseAccessibilityService : AccessibilityService() {
             if (counter[0] >= MAX_NODES) return
             val child = node.getChild(i) ?: continue
             dumpNode(child, "$path.$i", sb, counter)
+            child.recycle()
         }
     }
 
@@ -272,6 +303,7 @@ class MuseAccessibilityService : AccessibilityService() {
 
     /** 同步等待手势分发结果(CountDownLatch + 超时)。 */
     private fun awaitGesture(gesture: GestureDescription): Boolean {
+        check(Looper.myLooper() != Looper.getMainLooper()) { "awaitGesture must not run on main thread" }
         val latch = CountDownLatch(1)
         var result = false
         val dispatched = dispatchGesture(gesture, object : GestureResultCallback() {
@@ -302,7 +334,11 @@ class MuseAccessibilityService : AccessibilityService() {
         val childCount = node.childCount
         for (i in 0 until childCount) {
             val child = node.getChild(i) ?: continue
-            val found = findNodePathRec(child, "$path.$i", targetHash)
+            val found = try {
+                findNodePathRec(child, "$path.$i", targetHash)
+            } finally {
+                child.recycle()
+            }
             if (found != null) return found
         }
         return null
@@ -316,6 +352,7 @@ class MuseAccessibilityService : AccessibilityService() {
         for (i in 1 until indices.size) {
             val idx = indices[i]
             val child = current.getChild(idx) ?: return null
+            if (i > 1) current.recycle()
             current = child
         }
         return current

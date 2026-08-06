@@ -1265,6 +1265,7 @@ fun ChatScreen(
                         val onToggleFavorite = remember(msg.id) { { viewModel.toggleFavorite(msg.id) } }
                         val onToggleTts = remember(msg.id) { { viewModel.toggleTts(msg.id, msg.content) } }
                         val onToggleTaskCardExpand = remember(msg.id) { { viewModel.toggleTaskCardExpand(msg.id.toString()) } }
+                        val onCancelTask = remember(msg.id) { { viewModel.stop() } }
                         val onRetryTaskCardStep = remember(msg.id) { { stepId: String -> viewModel.retryFailedStep(msg.id.toString(), stepId) } }
                         val onShareSession = remember(viewModel, ioScope) {
                             { sheetState.showExportSheet = true }
@@ -1372,6 +1373,8 @@ fun ChatScreen(
                             // Phase 10.1: 任务卡交互回调
                             onToggleTaskCardExpand = onToggleTaskCardExpand,
                             onRetryTaskCardStep = onRetryTaskCardStep,
+                            // R-UI-09: 任务卡取消按钮 -> 停止当前生成
+                            onCancelTask = onCancelTask,
                             // v1.25: 长按菜单「委托给助手」
                             onDelegate = { sheetState.showDelegateSheet = DelegateSheetMode.Message(msg) },
                             // v0.29 P0-3: 分享整段对话(导出 Markdown → 系统 share sheet)

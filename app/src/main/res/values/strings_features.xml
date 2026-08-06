@@ -436,6 +436,7 @@
     <string name="knowledge_file_too_large_confirm">知道了</string>
     <string name="knowledge_imported_indexed">已导入: %1$s (%2$d 块已索引)</string>
     <string name="knowledge_imported_no_index">已导入: %1$s (向量索引失败,可用文本搜索)</string>
+    <string name="knowledge_index_error_reason">原因:%1$s</string>
     <string name="knowledge_import_cancelled">已取消导入</string>
     <string name="knowledge_import_failed_read">导入失败: 无法读取文件</string>
     <string name="knowledge_import_failed">导入失败: %1$s</string>

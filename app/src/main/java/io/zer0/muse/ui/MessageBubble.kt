@@ -202,6 +202,7 @@ internal fun MessageBubble(
     // Phase 10.1: 任务卡交互回调
     onToggleTaskCardExpand: () -> Unit = {},
     onRetryTaskCardStep: (String) -> Unit = {},
+    onCancelTask: () -> Unit = {},
     // v1.25: 长按菜单触发「委托给助手」
     onDelegate: () -> Unit = {},
     // v0.29 P0-3: 分享整段对话(导出为 Markdown 通过系统 share sheet)
@@ -822,6 +823,7 @@ internal fun MessageBubble(
                         data = taskCard,
                         onToggleExpand = onToggleTaskCardExpand,
                         onRetryStep = onRetryTaskCardStep,
+                        onCancel = onCancelTask,
                         delegationChain = delegationChain,
                     )
                     if (!isSilentTool) {
@@ -843,6 +845,7 @@ internal fun MessageBubble(
                             data = taskCard,
                             onToggleExpand = onToggleTaskCardExpand,
                             onRetryStep = onRetryTaskCardStep,
+                            onCancel = onCancelTask,
                             modifier = Modifier.weight(1f),
                             delegationChain = delegationChain,
                         )
@@ -863,6 +866,7 @@ internal fun MessageBubble(
                     data = taskCard,
                     onToggleExpand = onToggleTaskCardExpand,
                     onRetryStep = onRetryTaskCardStep,
+                    onCancel = onCancelTask,
                     delegationChain = delegationChain,
                 )
             } else if (toolInfo != null && !isSilentTool) {

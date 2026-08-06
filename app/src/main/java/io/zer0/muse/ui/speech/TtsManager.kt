@@ -157,6 +157,12 @@ class TtsManager(
     @Volatile
     private var playbackSpeed: Float = 1.0f
 
+    /** R-UI-07: 系统 TTS 初始化失败状态与一次性提示。 */
+    @Volatile
+    private var initFailed = false
+    @Volatile
+    private var initHintShown = false
+
     private val tts: TextToSpeech = TextToSpeech(appContext) { status ->
         if (status == TextToSpeech.SUCCESS) {
             // 默认中文(系统 TTS 不支持时回退默认语言)
@@ -168,6 +174,7 @@ class TtsManager(
             // v1.0.47: TTS init 失败多为设备无 TTS 引擎,属常见情况,从 Logger.e 降为 Logger.d 减少启动日志噪音
             Logger.d("TtsManager", "TTS init failed: status=$status")
             // v1.98: 移除 Toast 提示,静默处理(朗读功能不可用时用户自然知晓)
+            initFailed = true
         }
     }
 
@@ -384,6 +391,10 @@ class TtsManager(
         // v1.97: 云端 TTS 不需要等待系统 TTS 就绪
         if (mediaConfig.ttsEngine == "system" && !ready.get()) {
             Logger.w("TtsManager", "TTS not ready yet")
+            if (initFailed && !initHintShown) {
+                initHintShown = true
+                MuseToast.show(appContext.getString(R.string.speech_tts_no_engine), 2500)
+            }
             return false
         }
         // v0.52: 完整朗读时清空流式缓冲,避免残留文本串入

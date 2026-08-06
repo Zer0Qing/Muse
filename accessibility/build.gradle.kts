@@ -1,5 +1,7 @@
 plugins {
     alias(libs.plugins.android.library)
+    // R-BUILD-09: Kover 插桩,纳入 root 覆盖率聚合
+    alias(libs.plugins.kover)
 }
 
 android {

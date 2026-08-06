@@ -295,6 +295,7 @@
     <string name="knowledge_file_too_large_confirm">Понятно</string>
     <string name="knowledge_imported_indexed">Импортировано: %1$s (%2$d фрагменты проиндексированы)</string>
     <string name="knowledge_imported_no_index">Импортировано: %1$s (не удалось индексировать вектор, доступен текстовый поиск)</string>
+    <string name="knowledge_index_error_reason">Причина: %1$s</string>
     <string name="knowledge_import_cancelled">Импорт отменен</string>
     <string name="knowledge_import_failed_read">Ошибка импорта: невозможно прочитать файл</string>
     <string name="knowledge_import_failed">Не удалось импортировать: %1$s</string>

@@ -7,6 +7,11 @@ import android.content.pm.PackageManager
 import android.os.IBinder
 import io.zer0.common.Logger
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import rikka.shizuku.Shizuku
 import kotlin.coroutines.resume
 
@@ -49,11 +54,18 @@ class ShizukuAuthorizer(private val context: Context) {
 
         /** UserService 绑定轮询间隔(毫秒)。 */
         private const val SERVICE_BIND_POLL_MS = 50L
+
+        /** R-SVC-03: 授权弹窗等待超时(毫秒)。 */
+        private const val PERMISSION_TIMEOUT_MS = 60_000L
     }
 
     /** 已绑定的 shell 服务代理(可能为 null,表示未绑定)。 */
     @Volatile
     private var shellService: IShellService? = null
+
+    /** R-SVC-03: 当前绑定的 UserServiceArgs(unbind 时需要)。 */
+    @Volatile
+    private var boundArgs: Shizuku.UserServiceArgs? = null
 
     /** UserService 绑定状态。 */
     @Volatile
@@ -102,7 +114,9 @@ class ShizukuAuthorizer(private val context: Context) {
     suspend fun requestPermission(): Boolean {
         if (!isAvailable()) return false
         if (checkPermission()) return true
-        return suspendCancellableCoroutine { cont ->
+        return try {
+            withTimeout(PERMISSION_TIMEOUT_MS) {
+                suspendCancellableCoroutine { cont ->
             val listener = object : Shizuku.OnRequestPermissionResultListener {
                 override fun onRequestPermissionResult(requestCode: Int, grantResult: Int) {
                     if (requestCode == PERMISSION_REQUEST_CODE) {
@@ -125,6 +139,11 @@ class ShizukuAuthorizer(private val context: Context) {
                 if (cont.isActive) cont.resume(false)
             }
         }
+        }
+    } catch (e: TimeoutCancellationException) {
+        Logger.w(TAG, "Shizuku 授权等待超时")
+        false
+    }
     }
 
     /**
@@ -151,33 +170,50 @@ class ShizukuAuthorizer(private val context: Context) {
      *
      * @return [ShizukuExecResult] 包含退出码与输出
      */
-    fun execute(command: String): ShizukuExecResult {
-        if (!checkPermission()) return ShizukuExecResult(-1, "", "Shizuku 未授权")
-        if (!ensureServiceBound()) return ShizukuExecResult(-1, "", "Shizuku shell service 绑定失败")
-        val service = shellService ?: return ShizukuExecResult(-1, "", "Shizuku shell service 不可用")
-        return try {
-            val raw = service.execute(command)
-            parseExecResult(raw)
-        } catch (e: android.os.RemoteException) {
-            Logger.e(TAG, "Shizuku 远程调用失败: ${e.message}", e)
-            // 远程调用失败可能是因为服务进程崩溃,清除引用以便下次重连
-            shellService = null
-            serviceBound = false
-            ShizukuExecResult(-1, "", e.message ?: "远程调用异常")
-        } catch (e: Throwable) {
-            Logger.e(TAG, "Shizuku 执行异常: ${e.message}", e)
-            ShizukuExecResult(-1, "", e.message ?: "执行异常")
+    suspend fun execute(command: String): ShizukuExecResult {
+        return withContext(Dispatchers.IO) {
+            if (!checkPermission()) return@withContext ShizukuExecResult(-1, "", "Shizuku 未授权")
+            if (!ensureServiceBound()) return@withContext ShizukuExecResult(-1, "", "Shizuku shell service 绑定失败")
+            val service = shellService ?: return@withContext ShizukuExecResult(-1, "", "Shizuku shell service 不可用")
+            try {
+                val raw = service.execute(command)
+                parseExecResult(raw)
+            } catch (e: android.os.RemoteException) {
+                Logger.e(TAG, "Shizuku 远程调用失败: ${e.message}", e)
+                // 远程调用失败可能是因为服务进程崩溃,清除引用以便下次重连
+                release()
+                ShizukuExecResult(-1, "", e.message ?: "远程调用异常")
+            } catch (e: Throwable) {
+                Logger.e(TAG, "Shizuku 执行异常: ${e.message}", e)
+                ShizukuExecResult(-1, "", e.message ?: "执行异常")
+            }
         }
     }
 
     // ── 内部工具 ──────────────────────────────────────────────────────────────
+
+    /** R-SVC-03: 解绑 UserService 并清理引用(App 退出/通道关闭时调用)。 */
+    fun release() {
+        if (serviceBound) {
+            try {
+                boundArgs?.let { args ->
+                    Shizuku.unbindUserService(args, serviceConnection, true)
+                }
+            } catch (e: Throwable) {
+                Logger.w(TAG, "unbindUserService 失败: ${e.message}")
+            }
+        }
+        shellService = null
+        serviceBound = false
+        boundArgs = null
+    }
 
     /**
      * 确保 UserService 已绑定。
      * - 已绑定:直接返回 true
      * - 未绑定:调用 [Shizuku.bindUserService],轮询等待连接(最多 3 秒)
      */
-    private fun ensureServiceBound(): Boolean {
+    private suspend fun ensureServiceBound(): Boolean {
         if (shellService != null && serviceBound) return true
         if (!checkPermission()) return false
         return try {
@@ -186,11 +222,13 @@ class ShizukuAuthorizer(private val context: Context) {
             ).processNameSuffix("shell")
                 .version(1)
                 .debuggable(android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R)
+            boundArgs = args
             Shizuku.bindUserService(args, serviceConnection)
-            // 轮询等待绑定完成(bindUserService 是异步的)
-            val deadline = System.currentTimeMillis() + SERVICE_BIND_TIMEOUT_MS
-            while (shellService == null && System.currentTimeMillis() < deadline) {
-                Thread.sleep(SERVICE_BIND_POLL_MS)
+            // R-SVC-03: 用协程超时轮询替代 Thread.sleep,避免阻塞调用线程
+            withTimeout(SERVICE_BIND_TIMEOUT_MS) {
+                while (shellService == null) {
+                    delay(SERVICE_BIND_POLL_MS)
+                }
             }
             shellService != null
         } catch (e: Throwable) {

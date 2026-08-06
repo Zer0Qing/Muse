@@ -295,6 +295,7 @@
     <string name="knowledge_file_too_large_confirm">Entendi</string>
     <string name="knowledge_imported_indexed">Importado: %1$s (%2$d pedaços indexados)</string>
     <string name="knowledge_imported_no_index">Importado: %1$s (falha na indexação do vetor, pesquisa de texto disponível)</string>
+    <string name="knowledge_index_error_reason">Motivo: %1$s</string>
     <string name="knowledge_import_cancelled">Importação cancelada</string>
     <string name="knowledge_import_failed_read">Falha na importação: não é possível ler o arquivo</string>
     <string name="knowledge_import_failed">Falha na importação: %1$s</string>

@@ -85,8 +85,11 @@ class CoverGenerator(
                 reasoningLevel = ReasoningLevel.OFF,
                 mode = ChatRequestMode.UTILITY,
             )
-            val coverPrompt = promptCompletion.text.trim()
-            if (coverPrompt.isBlank()) error("封面 prompt 生成失败(空输出)")
+            val rawCoverPrompt = promptCompletion.text.trim()
+            // R-UI-06: 空 LLM 输出降级为固定绘图指令,不再抛 IllegalStateException。
+            val coverPrompt = rawCoverPrompt.ifBlank {
+                "Minimal modern banner cover for: $title, no text, 16:9 aspect ratio"
+            }
 
             // 2. 生图
             val service = imageService

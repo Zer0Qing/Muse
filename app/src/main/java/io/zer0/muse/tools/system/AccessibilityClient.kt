@@ -91,6 +91,10 @@ class AccessibilityClient(private val context: Context) {
     suspend fun screenshot(path: String, format: String = "PNG"): Boolean =
         withProvider(defaultOnError = false) { it.takeScreenshot(path, format) }
 
+    /** R-SVC-02: 截图能力反射是否失败(失败时提示用户使用系统截图)。 */
+    suspend fun screenshotCapabilityFailed(): Boolean =
+        MuseAccessibilityService.instance?.isScreenshotCapabilityFailed() ?: false
+
     suspend fun currentActivityName(): String =
         withProvider(defaultOnError = "") { it.getCurrentActivityName() }
 

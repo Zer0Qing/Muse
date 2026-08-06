@@ -123,8 +123,6 @@
 # ============================================================================
 # 反射调用的 Java API(JJWT / S3 签名 / WebDAV 等)
 # ============================================================================
--keep class java.lang.reflect.** { *; }
--keep class java.security.** { *; }
 
 # ============================================================================
 # 崩溃栈保留:Throwable 子类(便于 CrashHandler 上报)
@@ -171,7 +169,7 @@
 # 原仅保留 io.zer0.ai.core.**,这里扩展到整个 ai 模块,
 # 覆盖 ai 子包内所有 @Serializable 数据类(ChatRequest / ChatCompletion 等)。
 # ============================================================================
--keep class io.zer0.ai.** { *; }
+-keep @kotlinx.serialization.Serializable class *
 
 # ============================================================================
 # 补充:KSP 生成的类(Room DAO 实现 / kotlinx.serialization $serializer)
