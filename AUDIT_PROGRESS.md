@@ -147,5 +147,5 @@
 ## 第三批检查点 5（2026-08-06 续）
 
 - 新增完成：R-TEST-19、R-TEST-14 v55→75、R-TEST-10 纯逻辑面、R-TEST-06 发送守卫面、R-TEST-20 OpenAI 图片请求体面（部分）。
-- 验证：assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿（783 tests / 105 类 / 0 failures）；detekt/ktlintCheck 通过。
+- 验证：assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿（785 tests / 106 类 / 0 failures）；detekt/ktlintCheck 通过。
 - 仍待 owner/后续：R-UI-08/R-UI-14、R-TEST-03/04 剩余、R-TEST-06 完整状态机/10 真实路径/14 v1-54/20 其余、R-CI-07 阈值、R-SEC-03 CORS/绑定面、R-SVC-05 任务期持锁面、R-DB-04/05、R-BUILD-07、R-BUILD-02（已有阻塞决策）。
