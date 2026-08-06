@@ -72,6 +72,7 @@
 | R-TEST-20 | 部分完成 | OpenAIImageProviderRequestTest 3/3 通过 | OpenAI 文生图请求体字段黄金测试；其余 image/video/MCP/importer/widget 待补 |
 | R-TEST-14 | 部分完成 | MuseDbMigrationTest 通过 | 迁移链扩展到 v55→75；v1-54 受 Robolectric FTS4 限制，需 owner 确认是否真机/拆独立 job |
 | R-TEST-10 | 部分完成 | ToolOrchestratorPureFunctionsTest 新增 2 例通过 | 超时常量与连续失败早停纯逻辑；并行/超时真实路径待补 |
+| R-TEST-06 | 部分完成 | ChatViewModelSendGuardTest 4/4 通过 | 发送守卫纯逻辑（空消息/流式/Agent 重入）；完整状态机待 R-UI-08 后补 |
 | R-TEST-01 | 已完成 | `:ai:testDebugUnitTest --tests "*StreamGuardTest*"` 3/3 通过 | guard 挂起/reasoning 先到/空 finishReason；早停回退网络路径由 FirstEventWatchdogTest + 快照测试共同覆盖 |
 | R-TEST-05 | 已完成 | `:ai:testDebugUnitTest --tests "*ProviderRequestBodySnapshotTest*"` 3/3 通过 | Anthropic/Gemini/Ollama(OpenAI 兼容)请求体快照 |
 | R-TEST-09 | 已完成 | memory/app PiiGuardTest 全绿 | 手机(含空格)/邮箱/15/18 位身份证 mask/unmask 往返；两处 PiiGuard 正则同步增强 |
@@ -131,6 +132,8 @@
 - 尚未开始：R-UI-08（state-split）、R-TEST-06/10/14 v1-54/20 其余、R-TEST-03/04 剩余面、R-CI-07 阈值、R-SVC-05 任务期持锁面、R-SEC-03 CORS/绑定面、R-DB-04/05、R-BUILD-07、R-UI-14 等长期项。
 - 本检查点新增完成：R-TEST-10 纯逻辑面（部分）。
 - 尚未开始：R-UI-08（state-split）、R-TEST-06/10 真实路径/14 v1-54/20 其余、R-TEST-03/04 剩余面、R-CI-07 阈值、R-SVC-05 任务期持锁面、R-SEC-03 CORS/绑定面、R-DB-04/05、R-BUILD-07、R-UI-14 等长期项。
+- 本检查点新增完成：R-TEST-06 发送守卫纯逻辑面（部分）。
+- 尚未开始：R-UI-08（state-split）、R-TEST-06 完整状态机/10 真实路径/14 v1-54/20 其余、R-TEST-03/04 剩余面、R-CI-07 阈值、R-SVC-05 任务期持锁面、R-SEC-03 CORS/绑定面、R-DB-04/05、R-BUILD-07、R-UI-14 等长期项。
 - 验证：assembleDebug + 三模块单测全绿。
 
 ## 第三批检查点 4（2026-08-06 续）

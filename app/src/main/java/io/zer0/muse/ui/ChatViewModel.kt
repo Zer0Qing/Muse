@@ -980,6 +980,14 @@ data class MessageExpandedState(
  */
 private val KNOWLEDGE_MENTION_REGEX = Regex("@[^\\s@]+")
 
+/** R-TEST-06: 发送守卫纯逻辑（防空消息/流式中/Agent 会话创建重入）。 */
+internal fun canStartGeneration(
+    text: String,
+    images: List<String>,
+    isStreaming: Boolean,
+    isCreatingAgentSession: Boolean,
+): Boolean = (text.isNotBlank() || images.isNotEmpty()) && !isStreaming && !isCreatingAgentSession
+
 class ChatViewModel(
     private val chatService: ChatService,
     private val settings: SettingsRepository,
@@ -3391,7 +3399,7 @@ class ChatViewModel(
             val docText = docs.joinToString("\n\n---\n\n") { it.content }
             if (rawText.isBlank()) docText else "$docText\n\n---\n\n$rawText"
         } else rawText
-        if ((text.isEmpty() && images.isEmpty()) || _state.value.isStreaming) return
+        if (!canStartGeneration(text, images, _state.value.isStreaming, _isCreatingAgentSession)) return
         // v1.68: 引用回复必须把被引用内容拼进消息体,LLM 才能读到引用原文。
         val quoteText = _state.value.replyQuoteOverride?.takeIf { it.isNotBlank() }
             ?: _state.value.replyingTo?.content?.takeIf { it.isNotBlank() }
