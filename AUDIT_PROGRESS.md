@@ -396,3 +396,9 @@
 - 备注：messages 表存量 base64 外置迁移仍需 MuseDb migration + schema 导出，留后续迭代；owner 已列 R-DB-04 为迭代项。
 - 验证：assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿；:app detekt/ktlintCheck 通过。
 - 仍待 owner/后续：R-DB-04 存量迁移、R-DB-05、R-TEST-06 完整状态机（依赖 R-UI-08）、R-UI-14 其余大文件（ChatScreen 仍约 1783 行、ChatViewModel/MuseDb/GroupChatScheduler 等）、R-BUILD-07、真机验证项。
+
+## 第三批检查点小结（2026-08-06 续 9，等待 owner review）
+
+- 本轮新增提交：R-DB-04 图片读取 LRU 缓存（部分）。
+- 验证：assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿；detekt/ktlintCheck 通过；工作区干净，分支未合并。
+- 仍待 owner/后续：R-DB-04 存量 base64 外置迁移、R-DB-05、R-TEST-06 完整状态机（依赖 R-UI-08）、R-UI-14 结构级拆分（ChatScreen/ChatViewModel/MuseDb/GroupChatScheduler）、R-BUILD-07、真机验证项。
