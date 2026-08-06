@@ -1179,37 +1179,10 @@ class SettingsRepository(
         val prefs = store.data.first()
         val result = mutableMapOf<String, String>()
         // 安全的 string 类型 key
-        val safeStringKeys = listOf(
-            "active_provider_id", "selected_model_id", "tool_model_id",
-            "compress_model_id",
-            "theme_mode", "language", "theme_id", "dark_theme_id",
-            "theme_schedule_json", "custom_themes_json", "font_size_scale",
-            "prompt_templates_json", "user_profile_json", "chat_preferences_json",
-            "memory_config_json", "notification_policy", "experiments_json",
-            "share_template_json", "media_config_json", "default_search_engine",
-            "proactive_message_json", "image_gen_config_json", "video_gen_config_json",
-            "multi_agent_config_json", "rag_config_json", "chat_drafts_json",
-            "task_routing_config_json", "model_profiles_json",
-            "account_user_name", "account_login_method",
-            "multi_agent_review_model",
-        )
-        // 安全的 boolean 类型 key
-        val safeBooleanKeys = listOf(
-            "memory_enabled", "dynamic_color", "onboarding_shown",
-            "asr_tip_shown", "sticker_enabled", "experience_enabled",
-            "keep_awake", "auto_launch", "biometric_enabled",
-            "account_logged_in", "account_guest_mode",
-            "pii_guard_enabled",
-            "multi_agent_llm_review_enabled",
-        )
-        // 安全的 int 类型 key
-        val safeIntKeys = listOf(
-            "default_home_page", "sticker_send_probability",
-        )
-        // 安全的 long 类型 key
-        val safeLongKeys = listOf(
-            "account_login_at",
-        )
+        val safeStringKeys = SettingsSnapshotPolicy.safeStringKeys
+        val safeBooleanKeys = SettingsSnapshotPolicy.safeBooleanKeys
+        val safeIntKeys = SettingsSnapshotPolicy.safeIntKeys
+        val safeLongKeys = SettingsSnapshotPolicy.safeLongKeys
         for (name in safeStringKeys) {
             prefs[stringPreferencesKey(name)]?.let { result[name] = it }
         }

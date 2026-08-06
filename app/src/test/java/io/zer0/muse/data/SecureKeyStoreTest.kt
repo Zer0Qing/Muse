@@ -1,6 +1,6 @@
 package io.zer0.muse.data
 
-import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -15,13 +15,31 @@ import org.robolectric.annotation.Config
 class SecureKeyStoreTest {
 
     @Test
-    fun `plain text passes through decrypt`() = runTest {
+    fun `plain text passes through decrypt`() = runBlocking {
         assertEquals("legacy-plain", SecureKeyStore.decrypt("legacy-plain"))
     }
 
     @Test
-    fun `empty value is not encrypted`() = runTest {
+    fun `empty value is not encrypted`() = runBlocking {
         assertEquals("", SecureKeyStore.encrypt(""))
         assertEquals("", SecureKeyStore.decrypt(""))
+    }
+
+    private class FakeCipher : SecureKeyCipher {
+        override suspend fun encrypt(plain: String): String =
+            if (plain.isEmpty()) plain else "fake:${plain.reversed()}"
+        override suspend fun decrypt(stored: String): String =
+            if (stored.startsWith("fake:")) stored.removePrefix("fake:").reversed() else stored
+    }
+
+    @Test
+    fun `delegate can be swapped for jvm tests`() = runBlocking {
+        val original = SecureKeyStore.delegate
+        try {
+            SecureKeyStore.delegate = FakeCipher()
+            assertEquals("hello", SecureKeyStore.decrypt(SecureKeyStore.encrypt("hello")))
+        } finally {
+            SecureKeyStore.delegate = original
+        }
     }
 }

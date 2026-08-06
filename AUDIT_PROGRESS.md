@@ -34,8 +34,8 @@
 | R-UI-12 | 已完成（复核） | 5 个文件逐点复核 | 现有交互按钮/行均带语义标签或相邻文本，剩余 null 均为装饰性图标，符合任务书“装饰性保持 null”说明 |
 | R-UI-13 | 已完成 | 编译通过 | SettingsTutorialPage 搜索结果 items 补稳定 key |
 | R-UI-15 | 已完成 | 编译通过 | StickerLibraryRepository 逐条目 D 日志改为每 100 条汇总，保留最终汇总 |
-| R-TEST-03 | 部分完成 | PinLockPolicyTest 4/4 + SecureKeyStoreTest 2/2 通过 | PIN 退避/锁定、Keystore 透传兼容已补；AndroidKeyStore 加解密往返需真机（Robolectric 无实现） |
-| R-TEST-04 | 部分完成 | BackupCryptoTest 3/3 通过 | 加密往返/错误密码/空密码已补；备份全链路与 API Key 剔除断言待补 |
+| R-TEST-03 | 已完成（JVM 面） | PinLockPolicyTest 4/4 + SecureKeyStoreTest 3/3 通过 | SecureKeyCipher 接口 + delegate 注入可 mock；Keystore 硬件往返留真机验证 |
+| R-TEST-04 | 已完成（JVM 面） | BackupCryptoTest 3/3 + SettingsSnapshotPolicyTest 3/3 + BackupKeyExclusionTest 1/1 通过 | SettingsSnapshotPolicy 白名单 + 敏感片段；备份 JSON 扫描无 apiKey 明文 |
 | R-TEST-07 | 已完成 | DocumentParserMarkdownDocxTest 3/3 通过 | markdown/.md.txt/minimal docx；顺带修复 docx/pptx 带 w:/a: 前缀时解析不到文本的 bug |
 | R-TEST-08 | 已完成 | StickerLibraryRepositoryImportZipTest 2/2 通过 | 中文目录/大写 .GIF/嵌套目录/空 zip |
 | R-TEST-11 | 已完成 | ScheduledTaskRunnerScheduleTest 6/6 通过 | 下次触发时间 + 跨夜免打扰窗口 |
@@ -156,6 +156,12 @@
 - 新增完成：R-CI-07 debug-only Kover 阈值（ai 40 / memory 30 / app 12，`koverCachedVerifyDebug` 全绿）；R-CI-08 emulator job 改为 workflow_dispatch 手动触发；R-SEC-03 方案 B（默认 127.0.0.1 + CORS 仅本机，设置页局域网开关，WebServerAuthPolicyTest 6/6）；R-SVC-05 方案 B（仅生成任务期间持锁，设置页文案同步）；R-BUILD-02 按 owner 决策关闭。
 - 验证：`:app:compileDebugKotlin` / `:app:testDebugUnitTest --tests WebServerAuthPolicyTest` / 三模块 `koverCachedVerifyDebug` / detekt / ktlintCheck 全绿；8 个 Lane 脚本 EXIT=0。
 - 仍待 owner/后续：R-UI-08/R-UI-14 文件拆分、R-TEST-03/04 剩余、R-TEST-06 完整状态机/10 真实路径/14 v1-54/20 其余、R-DB-04/05、R-BUILD-07。
+
+## 第三批检查点 9（2026-08-06 续）
+
+- 新增完成：R-TEST-03/04 JVM 面。SecureKeyStore 拆出 SecureKeyCipher 接口 + AndroidKeyStoreCipher 默认实现 + delegate 注入（可 mock）；新增 SettingsSnapshotPolicy 备份安全键白名单/敏感片段策略；新增 SettingsSnapshotPolicyTest、BackupKeyExclusionTest（备份 JSON 扫描无 apiKey 明文）；SecureKeyStoreTest 3/3（含 delegate 替换）。
+- 验证：`:app:testDebugUnitTest` 全绿；assembleDebug BUILD SUCCESSFUL；detekt/ktlintCheck 通过。真机 Keystore 硬件往返仍留待设备验证。
+- 仍待 owner/后续：R-UI-08/R-UI-14 文件拆分、R-TEST-06 完整状态机/10 真实路径/14 v1-54/20 其余、R-DB-04/05、R-BUILD-07。
 
 ## 第三批检查点 7（2026-08-06 续）
 

@@ -31,7 +31,28 @@ import javax.crypto.spec.GCMParameterSpec
  * - 用户无感知,无需显式迁移步骤
  * - Keystore 密钥卸载/清数据后丢失,加密数据无法解密(返回空串),用户需重新输入 apiKey
  */
-object SecureKeyStore {
+/** R-TEST-03: 可注入的加解密抽象,便于 JVM 单测用内存实现替代 Android Keystore。 */
+interface SecureKeyCipher {
+    suspend fun encrypt(plain: String): String
+    suspend fun decrypt(stored: String): String
+}
+
+/**
+ * v1.53-A2: 敏感字符串(apiKey / OAuth token)加密存储工具。
+ *
+ * 默认使用 [AndroidKeyStoreCipher];JVM 测试可注入内存实现验证调用链。
+ */
+object SecureKeyStore : SecureKeyCipher {
+    /** 当前生效的加解密实现,默认 Android Keystore。 */
+    @Volatile
+    var delegate: SecureKeyCipher = AndroidKeyStoreCipher
+
+    override suspend fun encrypt(plain: String): String = delegate.encrypt(plain)
+
+    override suspend fun decrypt(stored: String): String = delegate.decrypt(stored)
+}
+
+private object AndroidKeyStoreCipher : SecureKeyCipher {
     private const val TAG = "SecureKeyStore"
     private const val ALIAS = "muse_api_key_master"
     private const val PREFIX = "enc_v1:"
@@ -79,7 +100,8 @@ object SecureKeyStore {
      *
      * M-SK2: Keystore 为 binder/磁盘操作,声明为 suspend 并用 withContext(Dispatchers.IO) 强制离主线程。
      */
-    suspend fun encrypt(plain: String): String = withContext(Dispatchers.IO) {
+    @Suppress("TooGenericExceptionCaught") // H-SK1: 所有失败统一包装,禁止回退明文
+    override suspend fun encrypt(plain: String): String = withContext(Dispatchers.IO) {
         if (plain.isEmpty() || plain.startsWith(PREFIX)) return@withContext plain
         try {
             val key = getOrCreateKey()
@@ -92,7 +114,7 @@ object SecureKeyStore {
         } catch (e: CancellationException) {
             // L4: suspend 上下文中必须重抛 CancellationException,否则破坏协程取消语义
             throw e
-        } catch (t: Throwable) {
+        } catch (t: Exception) {
             // H-SK1: 加密失败绝不静默回退明文(否则敏感凭据会以明文落盘),抛异常由调用方处理
             Logger.w(TAG, "encrypt failed: ${truncateForLog(t.message)}")
             throw KeyStoreException("SecureKeyStore encrypt failed: ${truncateForLog(t.message)}", t)
@@ -108,7 +130,7 @@ object SecureKeyStore {
      *
      * M-SK2: Keystore 为 binder/磁盘操作,声明为 suspend 并用 withContext(Dispatchers.IO) 强制离主线程。
      */
-    suspend fun decrypt(stored: String): String = withContext(Dispatchers.IO) {
+    override suspend fun decrypt(stored: String): String = withContext(Dispatchers.IO) {
         if (stored.isEmpty() || !stored.startsWith(PREFIX)) return@withContext stored
         // L5: 改用 resultOf 替代 runCatching(自定义 Result API,正确重抛 CancellationException)
         resultOf {
