@@ -208,16 +208,15 @@ class OpenAIImageProvider(
         params: ValidatedParams,
         model: ImageModel?,
     ): Request {
-        val body = buildJsonObject {
-            put("prompt", params.prompt)
-            put("n", params.n)
-            put("size", params.size)
-            put("model", params.model)
-            if (params.quality.isNotBlank()) put("quality", params.quality)
-            if (params.style.isNotBlank()) put("style", params.style)
-            // gpt-image-1 不支持 response_format,清空时不 put
-            if (params.responseFormat.isNotBlank()) put("response_format", params.responseFormat)
-        }.toString()
+        val body = buildGenerationsBody(
+            prompt = params.prompt,
+            n = params.n,
+            size = params.size,
+            model = params.model,
+            quality = params.quality,
+            style = params.style,
+            responseFormat = params.responseFormat,
+        )
 
         return Request.Builder()
             .url(url)
@@ -376,6 +375,25 @@ class OpenAIImageProvider(
     companion object {
         private const val TAG = "OpenAIImageProvider"
 
+        /** R-TEST-20: 文生图请求体构造纯函数。 */
+        @Suppress("LongParameterList")
+        internal fun buildGenerationsBody(
+            prompt: String,
+            n: Int,
+            size: String,
+            model: String,
+            quality: String,
+            style: String,
+            responseFormat: String,
+        ): String = buildJsonObject {
+            put("prompt", prompt)
+            put("n", n)
+            put("size", size)
+            put("model", model)
+            if (quality.isNotBlank()) put("quality", quality)
+            if (style.isNotBlank()) put("style", style)
+            if (responseFormat.isNotBlank()) put("response_format", responseFormat)
+        }.toString()
         /** Provider 唯一标识。 */
         const val PROVIDER_ID = "openai"
 

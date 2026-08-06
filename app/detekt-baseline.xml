@@ -3103,6 +3103,7 @@
     <ID>TooManyFunctions:MessageDao.kt$MessageDao</ID>
     <ID>TooManyFunctions:ModelCatalogStore.kt$ModelCatalogStore</ID>
     <ID>TooManyFunctions:MultiAgentSettingsPage.kt$io.zer0.muse.ui.settings.MultiAgentSettingsPage.kt</ID>
+    <ID>TooManyFunctions:MuseApp.kt$MuseApp : ApplicationImageLoaderFactory</ID>
     <ID>TooManyFunctions:MuseCrashHandler.kt$MuseCrashHandler$Companion</ID>
     <ID>TooManyFunctions:MuseDb.kt$MuseDb : RoomDatabase</ID>
     <ID>TooManyFunctions:MuseNotificationManager.kt$MuseNotificationManager</ID>
