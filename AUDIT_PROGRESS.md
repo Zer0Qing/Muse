@@ -122,3 +122,9 @@
 - 本检查点新增完成：R-SVC-05 低电量面（部分）。
 - 尚未开始：R-UI-08（state-split）、R-TEST-06/10/14/19/20、R-TEST-03/04 剩余面、R-CI-07 阈值、R-SVC-05 任务期持锁面、R-SEC-03 CORS/绑定面、R-DB-04/05、R-BUILD-07、R-UI-14 等长期项。
 - 验证：assembleDebug + 三模块单测全绿。
+
+## 第三批检查点 4（2026-08-06 续）
+
+- 新增完成：R-AI-02/03/04/05/06、R-SEC-08、R-SVC-06/07、R-TEST-12、R-DOC-07、R-CI-08/09；R-SEC-03 JWT 密钥面、R-SVC-05 低电量面（部分）。
+- 验证：assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿（769 tests / 102 类 / 0 failures）；detekt、ktlintCheck、lintDebug（baseline）通过。
+- 仍待 owner/后续批次：R-UI-08/R-UI-14、R-TEST-06/10/14/19/20、R-TEST-03/04 剩余面、R-CI-07 阈值、R-SEC-03 CORS/绑定面、R-SVC-05 任务期持锁面、R-DB-04/05、R-BUILD-07、R-BUILD-02（已有阻塞决策）。
