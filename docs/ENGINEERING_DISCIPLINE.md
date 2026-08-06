@@ -209,6 +209,8 @@ quick-checks (始终运行)
   ├── script-check (CI 脚本测试)
   ├── check (Kotlin 编译 + 单测)
   └── assemble (完整 APK 构建)
+
+> 2026-08-06 实际接线（`.github/workflows/ci.yml`）：quick-checks + localization + script-check + detekt + ktlint + lintDebug + assembleDebug；按所有者决策，`check (Kotlin 编译 + 单测)` 中的单测部分不在 CI 执行。
 ```
 
 ### 5.2 工程纪律检查规则

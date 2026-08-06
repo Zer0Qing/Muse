@@ -2,6 +2,8 @@
 
 > 本文档定义 Muse 项目的工程纪律规范，所有贡献者（包括 AI Agent）必须遵守。
 > CI 会自动检查违反规范的代码模式，违反将阻止合并。
+> CI 当前执行 assembleDebug、detekt、ktlint、lintDebug 与 Lane 脚本；
+> 按所有者决策（2026-08-04 精简 CI）不执行 `./gradlew test`。
 
 ## 1. 严禁回退代码和兜底逻辑
 
@@ -139,6 +141,8 @@ fun getData(): Data = when (type) {
 ## 7. CI 检查规则
 
 `ci/script/check_engineering_discipline.py` 会自动扫描：
+
+CI workflow 已在 `.github/workflows/ci.yml` 接线以下检查：`check_*` Lane 脚本、detekt、ktlint、lintDebug、assembleDebug；单测按所有者决策不在 CI 执行。
 
 | 检查项 | 规则名 | 正则模式 | 严重度 |
 |--------|--------|----------|--------|

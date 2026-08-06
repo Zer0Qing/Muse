@@ -33,6 +33,8 @@ report_*.txt
 
 # 临时文件
 compile_log2.txt
+__pycache__/
+*.pyc
 tmp_head.kt
 tmp_*.kt
 build_log*.txt

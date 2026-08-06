@@ -3,6 +3,7 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.ktlint)
     // Phase 2.1: Kover — 插桩本模块字节码,数据上提到 root 聚合报告
     alias(libs.plugins.kover)
 }
@@ -20,17 +21,20 @@ android {
 
         // v1.0.18: 注入 SiliconFlow 免费模型 fallback key
         // 优先级: -P > 环境变量 > local.properties > PLACEHOLDER
-        val freeModelKey = (project.findProperty("FREE_MODEL_KEY") as String?)
-            ?: System.getenv("FREE_MODEL_KEY")
-            ?: run {
-                val lp = rootProject.file("local.properties")
-                if (lp.exists()) {
-                    val props = Properties()
-                    lp.inputStream().use { props.load(it) }
-                    props.getProperty("FREE_MODEL_KEY")
-                } else null
-            }
-            ?: "PLACEHOLDER"
+        val freeModelKey =
+            (project.findProperty("FREE_MODEL_KEY") as String?)
+                ?: System.getenv("FREE_MODEL_KEY")
+                ?: run {
+                    val lp = rootProject.file("local.properties")
+                    if (lp.exists()) {
+                        val props = Properties()
+                        lp.inputStream().use { props.load(it) }
+                        props.getProperty("FREE_MODEL_KEY")
+                    } else {
+                        null
+                    }
+                }
+                ?: "PLACEHOLDER"
         buildConfigField("String", "FREE_MODEL_KEY", "\"$freeModelKey\"")
     }
 

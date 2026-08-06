@@ -83,6 +83,23 @@ class ScheduledTaskRunner(
         const val CHANNEL_ID = "scheduled_tasks"
         const val NOTIFICATION_ID_BASE = 2000
         private const val TAG = "ScheduledTask"
+
+        /** R-TEST-11: 纯调度逻辑,供单元测试直接调用。 */
+        internal fun computeNextRun(interval: String, cronExpr: String, now: Long): Long = when (interval) {
+            "hourly" -> now + 3_600_000L
+            "daily" -> now + 86_400_000L
+            "weekly" -> now + 604_800_000L
+            "cron" -> {
+                if (cronExpr.isBlank()) {
+                    0L
+                } else {
+                    resultOf { CronExpression.parse(cronExpr).nextRunAfter(now) }
+                        .onError { msg, t -> Logger.w(TAG, "Invalid cron expr: ${t?.message ?: msg}") }
+                        .getOrNull() ?: 0L
+                }
+            }
+            else -> 0L
+        }
         private const val POLL_INTERVAL_MS = 60_000L // 每分钟检查一次
         private const val REPLY_SUMMARY_MAX_LEN = 200 // AI 回复摘要最大长度
         /** 单次任务 AI 调用超时(毫秒)。 */
@@ -453,22 +470,7 @@ class ScheduledTaskRunner(
      * 返回 <=0 表示无下次执行,[recordExecutionAndScheduleNext] 会据此禁用任务。
      */
     private fun computeNextRun(task: ScheduledTaskEntity, now: Long): Long {
-        return when (task.interval) {
-            "hourly" -> now + 3_600_000L
-            "daily" -> now + 86_400_000L
-            "weekly" -> now + 604_800_000L
-            "cron" -> {
-                val expr = task.cronExpr
-                if (expr.isBlank()) {
-                    0L // cron 表达式为空,降级为 once(不重复)
-                } else {
-                    resultOf { CronExpression.parse(expr).nextRunAfter(now) }
-                        .onError { msg, t -> Logger.w(TAG, "Invalid cron expr for task ${task.id}: ${t?.message ?: msg}") }
-                        .getOrNull() ?: 0L // 解析失败也降级为不重复,避免每分钟反复失败
-                }
-            }
-            else -> 0L // once → 不重复
-        }
+        return computeNextRun(task.interval, task.cronExpr, now)
     }
 
     fun stop() {

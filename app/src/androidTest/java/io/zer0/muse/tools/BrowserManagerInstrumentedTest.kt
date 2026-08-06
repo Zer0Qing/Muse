@@ -27,16 +27,16 @@ class BrowserManagerInstrumentedTest {
                 assertTrue("evaluateJs 失败: ${js.exceptionOrNull()}", js.isSuccess)
                 assertEquals("2", js.getOrNull())
 
-                val web = manager.navigate("https://example.com")
-                assertTrue("example.com 导航失败: ${web.exceptionOrNull()}", web.isSuccess)
+                val web = manager.navigate("file:///android_asset/test_browser_page.html")
+                assertTrue("本地测试页导航失败: ${web.exceptionOrNull()}", web.isSuccess)
 
                 var html = ""
                 repeat(25) {
                     html = manager.currentHtml.value
-                    if (html.isNotBlank()) return@repeat
+                    if (html.contains("Muse Local Test")) return@repeat
                     delay(200)
                 }
-                assertTrue("example.com HTML 为空", html.contains("Example Domain") || html.isNotBlank())
+                assertTrue("本地测试页 HTML 缺失: $html", html.contains("Muse Local Test"))
             }
         } finally {
             manager.close()
@@ -57,16 +57,16 @@ class BrowserManagerInstrumentedTest {
 
         val nav = registry.executeFromJson(
             "browser_navigate",
-            """{"url": "https://example.com"}""",
+            """{"url": "file:///android_asset/test_browser_page.html"}""",
         )
         assertTrue("browser_navigate 结果异常: $nav", nav.contains("\"success\":true"))
 
         var htmlResult = ""
         repeat(25) {
             htmlResult = registry.executeFromJson("browser_get_html", "{}")
-            if (htmlResult.contains("Example Domain")) return@repeat
+            if (htmlResult.contains("Muse Local Test")) return@repeat
             delay(200)
         }
-        assertTrue("browser_get_html 结果异常: $htmlResult", htmlResult.contains("Example Domain"))
+        assertTrue("browser_get_html 结果异常: $htmlResult", htmlResult.contains("Muse Local Test"))
     }
 }

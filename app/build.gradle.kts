@@ -1,5 +1,5 @@
-import java.util.Properties
 import java.io.FileInputStream
+import java.util.Properties
 
 val keystorePropertiesFile = rootProject.file("keystore.properties")
 
@@ -20,6 +20,7 @@ android {
 
     defaultConfig {
         applicationId = "io.zer0.muse"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         minSdk = 26
         targetSdk = 35
         // v1.0.27 P0-1.1: 版本号支持从 Gradle property 注入,CI 从 git tag 自动提取
@@ -70,7 +71,7 @@ android {
             signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
         }
     }
@@ -122,14 +123,15 @@ android {
 
     packaging {
         resources {
-            excludes += listOf(
-                "META-INF/AL2.0",
-                "META-INF/LGPL2.1",
-                "META-INF/DEPENDENCIES",
-                "META-INF/LICENSE*",
-                "META-INF/NOTICE*",
-                "META-INF/*.kotlin_module",
-            )
+            excludes +=
+                listOf(
+                    "META-INF/AL2.0",
+                    "META-INF/LGPL2.1",
+                    "META-INF/DEPENDENCIES",
+                    "META-INF/LICENSE*",
+                    "META-INF/NOTICE*",
+                    "META-INF/*.kotlin_module",
+                )
         }
     }
 }
@@ -217,8 +219,6 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
 
-
-
     // Phase 8.6: PDF 文本提取(pdfbox-android,Apache 2.0)
     implementation(libs.tom.roush.pdfbox.android)
     // Phase 8.6: ML Kit 文字识别(中英文离线 OCR)
@@ -267,7 +267,6 @@ dependencies {
     androidTestImplementation("androidx.test:runner:1.6.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test:core-ktx:1.6.1")
-
 
     // LeakCanary 内存泄漏检测(仅 debug)
     debugImplementation("com.squareup.leakcanary:leakcanary-android:2.14")

@@ -896,6 +896,13 @@ class ProactiveMessageRunner(
         ): Long {
             return config.intervalMinutes.coerceAtLeast(15) * 60_000L
         }
+
+        /** R-TEST-11: 免打扰时段判断,支持跨夜窗口。 */
+        internal fun isInAllowedWindow(hour: Int, start: Int, end: Int): Boolean = if (start <= end) {
+            hour in start until end
+        } else {
+            hour >= start || hour < end
+        }
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -1042,11 +1049,7 @@ class ProactiveMessageRunner(
 
     /** 判断某小时是否在允许发送时段(支持跨夜,如 22-8)。 */
     private fun isInAllowedWindow(hour: Int, start: Int, end: Int): Boolean {
-        return if (start <= end) {
-            hour in start until end
-        } else {
-            hour >= start || hour < end
-        }
+        return isInAllowedWindow(hour, start, end)
     }
 }
 

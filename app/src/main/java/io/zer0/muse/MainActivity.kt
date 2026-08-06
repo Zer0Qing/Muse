@@ -767,8 +767,7 @@ private fun PinLockScreen(
                             pinDraft = ""
                             pinFailCount++
                             if (pinFailCount >= 5) {
-                                val shift = (pinFailCount - 5).coerceAtMost(20)
-                                val delayMs = 30000L * (1L shl shift)
+                                val delayMs = io.zer0.muse.auth.PinLockPolicy.lockDelayMs(pinFailCount)
                                 pinLockUntil = System.currentTimeMillis() + delayMs
                             }
                             // v1.104: 持久化失败计数 + 锁定时间,杀进程重启后保留

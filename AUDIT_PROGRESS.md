@@ -34,6 +34,28 @@
 | R-UI-12 | 已完成（复核） | 5 个文件逐点复核 | 现有交互按钮/行均带语义标签或相邻文本，剩余 null 均为装饰性图标，符合任务书“装饰性保持 null”说明 |
 | R-UI-13 | 已完成 | 编译通过 | SettingsTutorialPage 搜索结果 items 补稳定 key |
 | R-UI-15 | 已完成 | 编译通过 | StickerLibraryRepository 逐条目 D 日志改为每 100 条汇总，保留最终汇总 |
+| R-TEST-03 | 部分完成 | PinLockPolicyTest 4/4 通过 | PIN 退避/锁定纯逻辑已补；SecureKeyStore 加解密往返需真机/Android Keystore 环境 |
+| R-TEST-04 | 部分完成 | BackupCryptoTest 3/3 通过 | 加密往返/错误密码/空密码已补；备份全链路与 API Key 剔除断言待补 |
+| R-TEST-07 | 已完成 | DocumentParserMarkdownDocxTest 3/3 通过 | markdown/.md.txt/minimal docx；顺带修复 docx/pptx 带 w:/a: 前缀时解析不到文本的 bug |
+| R-TEST-08 | 已完成 | StickerLibraryRepositoryImportZipTest 2/2 通过 | 中文目录/大写 .GIF/嵌套目录/空 zip |
+| R-TEST-11 | 已完成 | ScheduledTaskRunnerScheduleTest 6/6 通过 | 下次触发时间 + 跨夜免打扰窗口 |
+| R-TEST-13 | 已完成（已有） | MemoryTickerTest 相关用例通过 | start 幂等/stop 后重启已有覆盖 |
+| R-TEST-15 | 已完成 | GroupChatSchedulerPureLogicTest 4/4 + ChannelPassToolTest 2/2 | 轮转账本/辩论角色/channel_pass 回调 |
+| R-TEST-16 | 已完成 | AssistantEntitySerializationTest 4/4 + AssistantCardExporterRoundTripTest 2/2 | 全字段往返/坏 JSON/导入导出 |
+| R-TEST-17 | 已完成 | PromptTemplateLoaderTest 4/4 通过 | locale null/未知 locale/缺失模板回落 |
+| R-TEST-18 | 已完成 | CoverGeneratorFallbackTest 2/2 通过 | 空 LLM 输出降级纯函数 |
+| R-TEST-21 | 已完成 | MuseTypographyScaleTest 2/2 通过 | 字号缩放枚举已知/未知值 |
+| R-TEST-22 | 已完成 | 编译通过 | 本地 asset 页面 + 收紧断言 + testInstrumentationRunner 显式声明 |
+| R-CI-02 | 已完成 | `detekt` BUILD SUCCESSFUL | detekt 1.23.8 全模块 + maxIssues=0 + baseline；README/AGENTS/ENGINEERING_DISCIPLINE 同步 |
+| R-CI-03 | 已完成 | `ktlintCheck` 全模块通过 | ktlint 应用到 6 模块 + CI step + ktlintFormat 存量 |
+| R-CI-04 | 已完成（workflow） | 本地未跑 release（无 secret） | tag 触发 assembleRelease + 缺 keystore secret 明确失败 + APK artifact |
+| R-CI-05 | 已完成（非阻断首迭代） | ci/test 3 个脚本测试全绿 | Lane 脚本已接线且 continue-on-error；存量 error 待清零后转阻断 |
+| R-CI-06 | 已完成 | ci/test 3 个脚本测试全绿 | CI 执行脚本测试入口 |
+| R-CI-07 | 部分完成 | koverXmlReport 已接入 | 报告 artifact 已上传；阈值门禁未配置 |
+| R-CI-08 | 部分完成 | androidTest 本地化完成 | emulator job 未接；无外网依赖已保证 |
+| R-CI-09 | 部分完成 | lintDebug 入 CI | abortOnError 仍为 false（存量 2475 lint errors），待 baseline 后收紧 |
+| R-CI-10 | 已完成 | workflow 生效 | setup-gradle 缓存 + debug/reports artifact + release workflow |
+| R-CI-11 | 已完成 | workflow 生效 | schedule/tag/workflow_dispatch 触发 |
 | R-TEST-01 | 已完成 | `:ai:testDebugUnitTest --tests "*StreamGuardTest*"` 3/3 通过 | guard 挂起/reasoning 先到/空 finishReason；早停回退网络路径由 FirstEventWatchdogTest + 快照测试共同覆盖 |
 | R-TEST-05 | 已完成 | `:ai:testDebugUnitTest --tests "*ProviderRequestBodySnapshotTest*"` 3/3 通过 | Anthropic/Gemini/Ollama(OpenAI 兼容)请求体快照 |
 | R-TEST-09 | 已完成 | memory/app PiiGuardTest 全绿 | 手机(含空格)/邮箱/15/18 位身份证 mask/unmask 往返；两处 PiiGuard 正则同步增强 |
@@ -54,6 +76,9 @@
 
 - 阻塞（需要 owner 决策）：R-BUILD-02。material3 1.4.0 stable（BOM 2026.06.01）中 `MaterialExpressiveTheme`、`MotionScheme`、`ExperimentalMaterial3ExpressiveApi` 均为 internal；BOM 还会强制覆盖 1.4.0-alpha04。已实测 `assembleDebug` 编译失败，回退到 alpha04 + BOM 2024.12.01 后全绿。
 - 非阻塞：app 模块 Robolectric 不支持 FTS4 vtable，R-TEST-23 用 fake DAO；R-TEST-01 的早停回退完整网络路径在 MockWebServer 下不稳定，改由 FirstEventWatchdogTest + ProviderRequestBodySnapshotTest 覆盖。
+- 非阻塞（第三批检查点 2）：check_engineering_discipline.py 仍有 9 个存量 error、check_hardcoded_font_size.py 有 1 处存量 fontSize 超 baseline，Lane 步骤按 R-CI-05 要求先 continue-on-error 跑一个迭代，待清零后转阻断。
+- 非阻塞（R-CI-04）：release job 已落地，但本地无 GitHub Secrets，无法实跑；配置为缺 secret 明确失败。
+- 非阻塞（R-TEST-03/04）：SecureKeyStore 与备份全链路需要 Android Keystore/真机或完整 mock 链，本轮只补了可 JVM 化的退避与加密往返。
 - 第二批其余条目均已实现并通过验证，等待 owner 对 R-BUILD-02 的决策后即可收尾第二批。
 
 ## 第三批检查点（进行中）
@@ -64,4 +89,6 @@
 - 尚未开始：R-UI-08（state-split）、R-TEST 其余、R-CI 其余、R-DOC-07/08、长期项。
 - 本检查点新增完成：R-DOC-08、R-UI-10/11/12(复核)/13/15。
 - 尚未开始：R-UI-08（state-split）、R-TEST 其余、R-CI 其余、R-DOC-07、长期项。
+- 本检查点新增完成：R-TEST-07/08/11/13(已有)/15/16/17/18/21/22、R-TEST-03/04 部分、R-CI-02~06/10/11、R-CI-07/08/09 部分。
+- 尚未开始：R-UI-08（state-split）、R-TEST-06/10/12/14/19/20、R-TEST-03/04 剩余面、R-CI-07/08/09 剩余面、R-DOC-07、长期项。
 - 验证：assembleDebug + 三模块单测全绿。

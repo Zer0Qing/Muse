@@ -1,19 +1,78 @@
 name: CI
 
-# 极简 CI：只验证编译通过（assembleDebug）。
-# 有意去掉了 lint / 单测 / 覆盖率 / localization 等重型检查——
-# 本项目是个人独立开发、手动发布流程，CI 只保证 main 分支能编译即可。
+# R-CI-10/11: 保留 push/PR main,增加 schedule 夜间回归与 tag 发布触发。
 on:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  schedule:
+    - cron: '0 20 * * *'
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+    - name: Grant execute permission for gradlew
+      run: chmod +x ./gradlew
+    - name: Gradle cache
+      uses: gradle/actions/setup-gradle@v4
+    - name: CI script tests
+      run: |
+        python3 ci/test/test_pr_check.py
+        python3 ci/test/test_engineering_discipline.py
+        python3 ci/test/test_hardcoded_cjk.py
+    - name: Lane checks
+      continue-on-error: true
+      run: |
+        python3 ci/script/pr_check.py --base origin/main --output json
+        python3 ci/script/check_repo_hygiene.py
+        python3 ci/script/check_engineering_discipline.py
+        python3 ci/script/check_hardcoded_cjk.py
+        python3 ci/script/check_localizations.py
+        python3 ci/script/check_design_tokens.py
+        python3 ci/script/check_hardcoded_font_size.py
+        python3 ci/script/check_icon_content_description.py
+        python3 ci/script/check_touch_target.py
+    - name: Static checks
+      run: ./gradlew detekt ktlintCheck lintDebug koverXmlReport
+    - name: Build debug APK
+      run: ./gradlew assembleDebug
+    - uses: actions/upload-artifact@v4
+      with:
+        name: debug-apk
+        path: app/build/outputs/apk/debug/*.apk
+        if-no-files-found: error
+    - uses: actions/upload-artifact@v4
+      with:
+        name: reports
+        path: |
+          app/build/reports
+          build/reports/kover
+        if-no-files-found: ignore
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
     - name: Set up JDK 21
       uses: actions/setup-java@v4
       with:
@@ -23,5 +82,27 @@ jobs:
       uses: android-actions/setup-android@v3
     - name: Grant execute permission for gradlew
       run: chmod +x ./gradlew
-    - name: Build debug APK
-      run: ./gradlew assembleDebug
+    - name: Gradle cache
+      uses: gradle/actions/setup-gradle@v4
+    - name: Check keystore secrets
+      run: |
+        if [[ -z "${{ secrets.KEYSTORE_BASE64 }}" || -z "${{ secrets.KEYSTORE_PASSWORD }}" || -z "${{ secrets.KEY_ALIAS }}" || -z "${{ secrets.KEY_PASSWORD }}" ]]; then
+          echo "missing release keystore secrets" >&2
+          exit 1
+        fi
+    - name: Restore signing config
+      run: |
+        echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
+        cat > keystore.properties <<EOF
+        storeFile=keystore.jks
+        storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+        keyAlias=${{ secrets.KEY_ALIAS }}
+        keyPassword=${{ secrets.KEY_PASSWORD }}
+        EOF
+    - name: Build release APKs
+      run: ./gradlew assembleRelease
+    - uses: actions/upload-artifact@v4
+      with:
+        name: release-apks
+        path: app/build/outputs/apk/release/*.apk
+        if-no-files-found: error

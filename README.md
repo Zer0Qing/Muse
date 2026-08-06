@@ -259,7 +259,7 @@ Muse 每次回复前会生成一个 `mood` 块，这是 AI 的"内心独白"—�
 | AI 推理 | ONNX Runtime (本地 embedding + rerank) |
 | 文档解析 | PDFBox + ML Kit OCR |
 | Web 服务器 | Ktor (JWT + mDNS) |
-| 代码分析 | detekt + ktlint |
+| 代码分析 | CI 执行 detekt + ktlint + lintDebug + Lane 脚本；单测按所有者决策不在 CI 执行 |
 
 ---
 

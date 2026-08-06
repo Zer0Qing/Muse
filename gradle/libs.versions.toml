@@ -1,5 +1,6 @@
 [versions]
 ktlint = "12.1.1"
+detekt = "1.23.8"
 # 工具链(本机已缓存:Gradle 9.4.1 + AGP 9.2.1 + Kotlin 2.4.0)
 agp = "9.2.1"
 kotlin = "2.4.0"
@@ -124,6 +125,7 @@ shizuku-provider = { group = "dev.rikka.shizuku", name = "provider", version.ref
 
 [plugins]
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
