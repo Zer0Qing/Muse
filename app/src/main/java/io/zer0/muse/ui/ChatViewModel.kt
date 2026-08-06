@@ -991,6 +991,33 @@ internal fun canStartGeneration(
     isCreatingAgentSession: Boolean,
 ): Boolean = (text.isNotBlank() || images.isNotEmpty()) && !isStreaming && !isCreatingAgentSession
 
+/** R-TEST-06: 发送前合并待发送文档内容与用户输入(文档文本 + 用户输入)。 */
+internal fun buildSendText(rawText: String, documentContents: List<String>): String {
+    val docText = documentContents.joinToString("\n\n---\n\n")
+    return when {
+        documentContents.isEmpty() -> rawText
+        rawText.isBlank() -> docText
+        else -> "$docText\n\n---\n\n$rawText"
+    }
+}
+
+/** R-TEST-06: 仅当非流式、最后一条为带 [已中断] 标记的助手消息时才允许续写。 */
+internal fun canContinueGeneration(isStreaming: Boolean, lastMessage: UIMessage?): Boolean =
+    !isStreaming && lastMessage != null &&
+        lastMessage.role == MessageRole.ASSISTANT &&
+        lastMessage.content.contains("[已中断]")
+
+/** R-TEST-06: 去掉 [已中断] 尾部标记,保留断点前内容。 */
+internal fun resumeFromInterrupted(content: String): String =
+    content.removeSuffix("\n\n[已中断]").removeSuffix("[已中断]")
+
+/** R-TEST-06: 重生成仅当非流式、有会话且当前用户变体可选时可用。 */
+internal fun canRegenerate(
+    isStreaming: Boolean,
+    hasSession: Boolean,
+    hasSelectedUserVariant: Boolean,
+): Boolean = !isStreaming && hasSession && hasSelectedUserVariant
+
 class ChatViewModel(
     private val chatService: ChatService,
     private val settings: SettingsRepository,
@@ -3424,10 +3451,7 @@ class ChatViewModel(
         val images = _state.value.pendingImages
         val docs = _state.value.pendingDocuments
         // v1.136 T10: 合并待发送文档内容到消息文本(文档文本 + 用户输入)
-        var text = if (docs.isNotEmpty()) {
-            val docText = docs.joinToString("\n\n---\n\n") { it.content }
-            if (rawText.isBlank()) docText else "$docText\n\n---\n\n$rawText"
-        } else rawText
+        var text = buildSendText(rawText, docs.map { it.content })
         if (!canStartGeneration(text, images, _state.value.isStreaming, _isCreatingAgentSession)) return
         // v1.68: 引用回复必须把被引用内容拼进消息体,LLM 才能读到引用原文。
         val quoteText = _state.value.replyQuoteOverride?.takeIf { it.isNotBlank() }
@@ -3819,11 +3843,8 @@ class ChatViewModel(
         }
         val messages = _messages.value
         val last = messages.lastOrNull() ?: return
-        if (last.role != MessageRole.ASSISTANT) return
-        if (!last.content.contains("[已中断]")) return
-        val content = last.content
-            .removeSuffix("\n\n[已中断]")
-            .removeSuffix("[已中断]")
+        if (!canContinueGeneration(_state.value.isStreaming, last)) return
+        val content = resumeFromInterrupted(last.content)
         val resumed = last.copy(content = content)
         _messages.value = _messages.value.map { if (it.id == last.id) resumed else it }
         rebuildConversationTree()
@@ -3845,14 +3866,18 @@ class ChatViewModel(
      * 保留旧回复为助手变体,在当前用户变体下新建助手变体并重新请求。
      */
     fun regenerateLastAssistant() {
-        if (_state.value.isStreaming) return
         val sessionId = if (_state.value.isAgentMode) {
             _state.value.agentSessionId ?: return
         } else {
             _state.value.currentSessionId ?: return
         }
         val tree = _conversationTree.value
-        if (tree.selectedUserNode == null || tree.selectedUserVariant == null) return
+        if (!canRegenerate(
+                isStreaming = _state.value.isStreaming,
+                hasSession = true,
+                hasSelectedUserVariant = tree.selectedUserNode != null && tree.selectedUserVariant != null,
+            )
+        ) return
         val update = tree.retryLastAssistant()
         val newMsg = update.newMessage ?: return
         _conversationTree.value = update.tree

@@ -83,7 +83,7 @@
 | R-TEST-20 | 已完成（主要面） | OpenAIImageProviderRequestTest 3/3 + VideoProviderRequestTest 5/5 + McpConfigTest 8/8 + ConfigImporterTest 5/5 + WidgetPrefsTest 4/4 + SlashCommandRegistryTest 8/8 + ProviderPluginRegistryTest 2/2 + GlossaryStoreTest 6/6 + AgnesImageProviderTest 5/5 + ImageServicePureTest 8/8 + VideoProviderParsingTest 6/6 + ImageProviderRegistryTest 6/6 + VideoProviderRegistryTest 6/6 + ImageModelCatalogTest 6/6 + VideoGenerationServiceTest 6/6 通过 | OpenAI 文生图/视频 Provider 请求体 + MCP DTO + ConfigImporter + WidgetPrefs + 斜杠命令 + Provider 插件 + 翻译术语表 + Agnes 图片解析/尺寸 + 图片服务轮询/输出转换/模型选择 + Agnes/Kling 视频状态与响应解析 |
 | R-TEST-14 | 已完成（JVM 面） | MuseDbMigrationTest 4/4 通过 | 反射迁移链 + schema-aware 插行；JVM 覆盖 v55→76；v1-54 因 FTS4 与 schema 漂移留真机 |
 | R-TEST-10 | 已完成 | ToolOrchestratorPureFunctionsTest + ToolOrchestratorRunLoopTest 5/5 通过 | calculator/web_search/超时/失败3次熔断/并行真实路径 + 纯逻辑；ToolOrchestrator 增加可注入 toolTimeoutMs |
-| R-TEST-06 | 部分完成 | ChatViewModelSendGuardTest 4/4 通过 | 发送守卫纯逻辑（空消息/流式/Agent 重入）；完整状态机待 R-UI-08 后补 |
+| R-TEST-06 | 已完成 | ChatViewModelSendGuardTest 4/4 + ChatViewModelStateMachineTest 7/7 + ConversationTreeTest 通过；:app testDebugUnitTest 全绿 | 发送守卫/文档合并/继续生成/重生成纯函数；多版本切换由 ConversationTreeTest 覆盖 |
 | R-TEST-01 | 已完成 | `:ai:testDebugUnitTest --tests "*StreamGuardTest*"` 3/3 通过 | guard 挂起/reasoning 先到/空 finishReason；早停回退网络路径由 FirstEventWatchdogTest + 快照测试共同覆盖 |
 | R-TEST-05 | 已完成 | `:ai:testDebugUnitTest --tests "*ProviderRequestBodySnapshotTest*"` 3/3 通过 | Anthropic/Gemini/Ollama(OpenAI 兼容)请求体快照 |
 | R-TEST-09 | 已完成 | memory/app PiiGuardTest 全绿 | 手机(含空格)/邮箱/15/18 位身份证 mask/unmask 往返；两处 PiiGuard 正则同步增强 |
@@ -427,3 +427,11 @@
 - 门禁维护：ai/detekt-baseline.xml 补登记 ProviderCompat.overrideByHost 的既有 LongMethod（来自先前功能提交，非本步新增）。
 - 验证：:ai testDebugUnitTest 全绿；:ai detekt/ktlintCheck 通过。
 - 仍待：R-TEST-20 的 Agnes 视频请求体面、R-TEST-06 状态机、R-DB-05、R-UI-14、MuMu 验证、R-BUILD-07 收尾。
+## 第三批检查点 39（2026-08-07 续）
+
+- 新增完成：R-TEST-06 状态机纯函数面。ChatViewModel 抽出 buildSendText / canContinueGeneration / resumeFromInterrupted / canRegenerate，行为零变化；新增 ChatViewModelStateMachineTest 7/7。
+- 多版本切换由既有 ConversationTreeTest 覆盖（selectUserVariant / selectAssistantVariant / retryLastAssistant）。
+- 顺带修复 main 现存编译错误：BrowserCapsule.kt 补 stringResource / R import。
+- 门禁维护：app/detekt-baseline.xml 用 detektBaseline 重新生成，登记合并后功能提交引入的存量问题。
+- 验证：assembleDebug + :app testDebugUnitTest 全绿；:app detekt / ktlintCheck 通过。
+- 仍待：R-DB-05、R-UI-14、MuMu 验证、R-BUILD-07 收尾。
