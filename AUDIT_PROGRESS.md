@@ -98,6 +98,7 @@
 - 非阻塞（R-TEST-03/04）：SecureKeyStore 与备份全链路需要 Android Keystore/真机或完整 mock 链，本轮只补了可 JVM 化的退避与加密往返。
 - 非阻塞（Windows 本机）：全量 :app 测试一次出现 AppSettingsStoreTest 的 DataStore 文件锁 FileNotFoundException（另一个程序正在使用），单类与重跑全量均通过，判定为本机偶发文件锁，非代码回归。
 - 非阻塞（R-DOC-07 附录）：当前三模块单测合计 769 tests / 102 测试类 / 0 failures（2026-08-06），已写入验收文档。
+- 非阻塞（检查点 6 复核）：R-TEST-04 备份密钥剔除测试尝试被 Robolectric 无 AndroidKeyStore 阻塞（SettingsRepository.addProvider 会先加密 apiKey），需真机或可注入 SecureKeyStore 的测试边界；R-CI-07 koverVerify 会触发 release 编译并触碰 keystore 硬约束，阈值门禁需 owner 确认 debug-only 方案。
 
 ### 待所有者决策（第三批检查点 2 后）
 - R-UI-08/R-UI-14：巨型状态/文件拆分风险高，需 Layout Inspector 真机验证与 detekt LargeClass 基准，暂不盲目执行，等所有者确认拆分层级。
