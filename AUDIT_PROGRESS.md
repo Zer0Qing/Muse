@@ -81,7 +81,7 @@
 | R-SEC-03 | 已完成 | WebServerAuthPolicyTest 6/6 通过 | 方案 B：默认 127.0.0.1 + CORS 仅本机；设置页局域网开关开启后绑定 0.0.0.0 + anyHost；JWT 独立密钥 |
 | R-SVC-05 | 已完成 | 编译通过 | 方案 B：仅聊天/群聊生成任务活跃且 keepAwake 开启时持锁；低电量未充电不持锁；设置页文案同步 |
 | R-TEST-19 | 已完成 | VisionBridgePureFunctionsTest 4/4 通过 | 视觉上下文/失败提示/MIME 嗅探/hash 纯逻辑 |
-| R-TEST-20 | 已完成（主要面） | OpenAIImageProviderRequestTest 3/3 + VideoProviderRequestTest 5/5 + McpConfigTest 8/8 + ConfigImporterTest 5/5 + WidgetPrefsTest 4/4 + SlashCommandRegistryTest 8/8 + ProviderPluginRegistryTest 2/2 + GlossaryStoreTest 6/6 + AgnesImageProviderTest 5/5 + ImageServicePureTest 8/8 + VideoProviderParsingTest 6/6 + ImageProviderRegistryTest 6/6 + VideoProviderRegistryTest 6/6 + ImageModelCatalogTest 6/6 + VideoGenerationServiceTest 6/6 通过 | OpenAI 文生图/视频 Provider 请求体 + MCP DTO + ConfigImporter + WidgetPrefs + 斜杠命令 + Provider 插件 + 翻译术语表 + Agnes 图片解析/尺寸 + 图片服务轮询/输出转换/模型选择 + Agnes/Kling 视频状态与响应解析 |
+| R-TEST-20 | 已完成 | OpenAIImageProviderRequestTest 3/3 + VideoProviderRequestTest 8/8 + McpConfigTest 8/8 + ConfigImporterTest 5/5 + WidgetPrefsTest 4/4 + SlashCommandRegistryTest 8/8 + ProviderPluginRegistryTest 2/2 + GlossaryStoreTest 6/6 + AgnesImageProviderTest 5/5 + ImageServicePureTest 8/8 + VideoProviderParsingTest 6/6 + ImageProviderRegistryTest 6/6 + VideoProviderRegistryTest 6/6 + ImageModelCatalogTest 6/6 + VideoGenerationServiceTest 6/6 通过 | OpenAI 文生图/视频 Provider 请求体 + MCP DTO + ConfigImporter + WidgetPrefs + 斜杠命令 + Provider 插件 + 翻译术语表 + Agnes 图片解析/尺寸 + 图片服务轮询/输出转换/模型选择 + Agnes/Kling 视频状态与响应解析 |
 | R-TEST-14 | 已完成（JVM + MuMu 面） | MuseDbMigrationTest 5/5 通过；MuMu v54→77 实测保留会话/消息 | JVM 覆盖 v55→77；MuMu 覆盖 v54→77；v1-53 仍留真机 |
 | R-TEST-10 | 已完成 | ToolOrchestratorPureFunctionsTest + ToolOrchestratorRunLoopTest 5/5 通过 | calculator/web_search/超时/失败3次熔断/并行真实路径 + 纯逻辑；ToolOrchestrator 增加可注入 toolTimeoutMs |
 | R-TEST-06 | 已完成 | ChatViewModelSendGuardTest 4/4 + ChatViewModelStateMachineTest 7/7 + ConversationTreeTest 通过；:app testDebugUnitTest 全绿 | 发送守卫/文档合并/继续生成/重生成纯函数；多版本切换由 ConversationTreeTest 覆盖 |
@@ -256,7 +256,7 @@
 
 ## 第三批检查点 21（2026-08-06 续）
 
-- 新增完成：R-TEST-20 视频 Provider 请求体面。GenericOpenAiVideoProvider / KlingVideoProvider 的 buildRequestBody 由 private 改 internal 供测试；新增 VideoProviderRequestTest 5/5（必需/可选字段、多图数组、空可选省略、Kling 默认值/时长钳制/图生视频）。
+- 新增完成：R-TEST-20 视频 Provider 请求体面。GenericOpenAiVideoProvider / KlingVideoProvider 的 buildRequestBody 由 private 改 internal 供测试；新增 VideoProviderRequestTest 8/8（必需/可选字段、多图数组、空可选省略、Kling 默认值/时长钳制/图生视频）。
 - 验证：assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿；:ai detekt/ktlintCheck 通过。
 - 仍待 owner/后续：R-TEST-20 的 MCP/importer/widget 其余面、R-TEST-06 完整状态机/10 真实路径、R-UI-14 其余大文件（ChatScreen 仍约 1783 行、ChatViewModel/MuseDb/GroupChatScheduler 等）、R-DB-04/05、R-BUILD-07。
 
@@ -468,3 +468,8 @@
 - R-BUILD-07 收尾：libs.versions.toml 目标版本均已到位（lifecycle 2.8.7 / navigation 2.8.5 / ktor 3.0.3 / koin 4.0.0 / jwt 4.4.0 / work 2.9.0 等），全量回归通过。
 - 验证：:ai/:memory/:app testDebugUnitTest + assembleDebug + 全模块 detekt/ktlintCheck 全绿。
 - 仍待真机：v1-53 迁移链、StrongBox 硬件 Keystore、国产 ROM FTS5 矩阵、Shizuku 系统服务。
+## 第三批检查点 45（2026-08-07 续）
+
+- R-TEST-20 收尾：AgnesVideoProvider.buildRequestBody 由内联抽出为 internal，新增文生视频/单图/多图 three 用例；VideoProviderRequestTest 扩至 8/8。
+- 验证：:ai 全量单测 + detekt/ktlintCheck 全绿。
+- 至此 R-TEST-20 全部主要 Provider DTO 面已覆盖。

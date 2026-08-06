@@ -88,6 +88,27 @@ class AgnesVideoProvider(
      *  - 1 张 → image2video(image 字段)
      *  - 2+ 张 → multiframe2video(extra_body.image 数组)
      */
+    /** R-TEST-20: Agnes 视频请求体构造(纯 DTO,便于测试)。 */
+    internal fun buildRequestBody(request: VideoGenRequest, numFrames: Int): JsonObject {
+        val images = request.referenceImages.filter { it.isNotBlank() }
+        return buildJsonObject {
+            put("model", request.model.ifBlank { DEFAULT_MODEL })
+            put("prompt", request.prompt)
+            put("width", request.width)
+            put("height", request.height)
+            put("frame_rate", request.frameRate)
+            put("num_frames", numFrames)
+            when {
+                images.size == 1 -> put("image", images[0])
+                images.size > 1 -> {
+                    put("extra_body", buildJsonObject {
+                        put("image", JsonArray(images.map { JsonPrimitive(it) }))
+                    })
+                }
+            }
+        }
+    }
+
     override suspend fun submit(request: VideoGenRequest): VideoSubmitResult =
         withContext(Dispatchers.IO) {
             resultOf {
@@ -104,26 +125,8 @@ class AgnesVideoProvider(
 
                 // 校正帧数到 8n+1 合法值
                 val numFrames = resolveNumFrames(request.numFrames, request.frameRate, request.duration)
-                val images = request.referenceImages.filter { it.isNotBlank() }
 
-                val body = buildJsonObject {
-                    put("model", model)
-                    put("prompt", request.prompt)
-                    put("width", request.width)
-                    put("height", request.height)
-                    put("frame_rate", request.frameRate)
-                    put("num_frames", numFrames)
-                    when {
-                        images.size == 1 -> put("image", images[0])
-                        images.size > 1 -> {
-                            // 多图放 extra_body.image 数组
-                            put("extra_body", buildJsonObject {
-                                put("image", JsonArray(images.map { JsonPrimitive(it) }))
-                            })
-                        }
-                        // 无图:纯文生视频,不加 image 字段
-                    }
-                }
+                val body = buildRequestBody(request, numFrames)
 
                 val httpRequest = Request.Builder()
                     .url(url)
@@ -135,7 +138,8 @@ class AgnesVideoProvider(
                 Logger.i(
                     TAG,
                     "submit: model=$model size=${request.width}x${request.height} " +
-                        "frameRate=${request.frameRate} numFrames=$numFrames images=${images.size}",
+                        "frameRate=${request.frameRate} numFrames=$numFrames images=" +
+                            "${request.referenceImages.count { it.isNotBlank() }}",
                 )
 
                 exec(httpRequest).use { resp ->
