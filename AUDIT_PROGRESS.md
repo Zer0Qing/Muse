@@ -71,7 +71,7 @@
 | R-SEC-03 | 已完成 | WebServerAuthPolicyTest 6/6 通过 | 方案 B：默认 127.0.0.1 + CORS 仅本机；设置页局域网开关开启后绑定 0.0.0.0 + anyHost；JWT 独立密钥 |
 | R-SVC-05 | 已完成 | 编译通过 | 方案 B：仅聊天/群聊生成任务活跃且 keepAwake 开启时持锁；低电量未充电不持锁；设置页文案同步 |
 | R-TEST-19 | 已完成 | VisionBridgePureFunctionsTest 4/4 通过 | 视觉上下文/失败提示/MIME 嗅探/hash 纯逻辑 |
-| R-TEST-20 | 部分完成 | OpenAIImageProviderRequestTest 3/3 通过 | OpenAI 文生图请求体字段黄金测试；其余 image/video/MCP/importer/widget 待补 |
+| R-TEST-20 | 部分完成 | OpenAIImageProviderRequestTest 3/3 + VideoProviderRequestTest 5/5 通过 | OpenAI 文生图/视频 Provider 请求体字段黄金测试；其余 image/video/MCP/importer/widget 待补 |
 | R-TEST-14 | 已完成（JVM 面） | MuseDbMigrationTest 通过 | 反射迁移链 + schema-aware 插行；JVM 覆盖 v55→75；v1-54 因 FTS4 与 schema 漂移留真机 |
 | R-TEST-10 | 部分完成 | ToolOrchestratorPureFunctionsTest 新增 2 例通过 | 超时常量与连续失败早停纯逻辑；并行/超时真实路径待补 |
 | R-TEST-06 | 部分完成 | ChatViewModelSendGuardTest 4/4 通过 | 发送守卫纯逻辑（空消息/流式/Agent 重入）；完整状态机待 R-UI-08 后补 |
@@ -240,3 +240,9 @@
 - 备注：formatVideoDuration 与 InputBar 顶层同名冲突，包成 MessageBubbleFormatters object，调用点同步更新；tablericons 通配符改显式 import。
 - 验证：assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿；detekt/ktlintCheck 通过。
 - 仍待 owner/后续：R-UI-14 其余大文件（ChatScreen 仍约 1783 行、ChatViewModel/MuseDb/GroupChatScheduler 等）、R-TEST-06 完整状态机/10 真实路径/20 其余、R-DB-04/05、R-BUILD-07。
+
+## 第三批检查点 21（2026-08-06 续）
+
+- 新增完成：R-TEST-20 视频 Provider 请求体面。GenericOpenAiVideoProvider / KlingVideoProvider 的 buildRequestBody 由 private 改 internal 供测试；新增 VideoProviderRequestTest 5/5（必需/可选字段、多图数组、空可选省略、Kling 默认值/时长钳制/图生视频）。
+- 验证：assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿；:ai detekt/ktlintCheck 通过。
+- 仍待 owner/后续：R-TEST-20 的 MCP/importer/widget 其余面、R-TEST-06 完整状态机/10 真实路径、R-UI-14 其余大文件（ChatScreen 仍约 1783 行、ChatViewModel/MuseDb/GroupChatScheduler 等）、R-DB-04/05、R-BUILD-07。

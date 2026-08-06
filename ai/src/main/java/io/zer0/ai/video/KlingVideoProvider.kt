@@ -226,7 +226,7 @@ class KlingVideoProvider(
      *
      * @param imageUrl 单张参考图(图生视频时非空)
      */
-    private fun buildRequestBody(request: VideoGenRequest, imageUrl: String?): JsonObject {
+    internal fun buildRequestBody(request: VideoGenRequest, imageUrl: String?): JsonObject {
         return buildJsonObject {
             put("model", request.model.ifBlank { DEFAULT_MODEL })
             put("prompt", request.prompt)
