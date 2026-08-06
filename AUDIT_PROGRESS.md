@@ -34,7 +34,7 @@
 | R-UI-12 | 已完成（复核） | 5 个文件逐点复核 | 现有交互按钮/行均带语义标签或相邻文本，剩余 null 均为装饰性图标，符合任务书“装饰性保持 null”说明 |
 | R-UI-13 | 已完成 | 编译通过 | SettingsTutorialPage 搜索结果 items 补稳定 key |
 | R-UI-15 | 已完成 | 编译通过 | StickerLibraryRepository 逐条目 D 日志改为每 100 条汇总，保留最终汇总 |
-| R-TEST-03 | 部分完成 | PinLockPolicyTest 4/4 通过 | PIN 退避/锁定纯逻辑已补；SecureKeyStore 加解密往返需真机/Android Keystore 环境 |
+| R-TEST-03 | 部分完成 | PinLockPolicyTest 4/4 + SecureKeyStoreTest 2/2 通过 | PIN 退避/锁定、Keystore 透传兼容已补；AndroidKeyStore 加解密往返需真机（Robolectric 无实现） |
 | R-TEST-04 | 部分完成 | BackupCryptoTest 3/3 通过 | 加密往返/错误密码/空密码已补；备份全链路与 API Key 剔除断言待补 |
 | R-TEST-07 | 已完成 | DocumentParserMarkdownDocxTest 3/3 通过 | markdown/.md.txt/minimal docx；顺带修复 docx/pptx 带 w:/a: 前缀时解析不到文本的 bug |
 | R-TEST-08 | 已完成 | StickerLibraryRepositoryImportZipTest 2/2 通过 | 中文目录/大写 .GIF/嵌套目录/空 zip |
@@ -134,6 +134,8 @@
 - 尚未开始：R-UI-08（state-split）、R-TEST-06/10 真实路径/14 v1-54/20 其余、R-TEST-03/04 剩余面、R-CI-07 阈值、R-SVC-05 任务期持锁面、R-SEC-03 CORS/绑定面、R-DB-04/05、R-BUILD-07、R-UI-14 等长期项。
 - 本检查点新增完成：R-TEST-06 发送守卫纯逻辑面（部分）。
 - 尚未开始：R-UI-08（state-split）、R-TEST-06 完整状态机/10 真实路径/14 v1-54/20 其余、R-TEST-03/04 剩余面、R-CI-07 阈值、R-SVC-05 任务期持锁面、R-SEC-03 CORS/绑定面、R-DB-04/05、R-BUILD-07、R-UI-14 等长期项。
+- 本检查点新增完成：R-TEST-03 SecureKeyStore 透传面（部分）。
+- 尚未开始：R-UI-08（state-split）、R-TEST-06 完整状态机/10 真实路径/14 v1-54/20 其余、R-TEST-03 Keystore 真机面/04 剩余面、R-CI-07 阈值、R-SVC-05 任务期持锁面、R-SEC-03 CORS/绑定面、R-DB-04/05、R-BUILD-07、R-UI-14 等长期项。
 - 验证：assembleDebug + 三模块单测全绿。
 
 ## 第三批检查点 4（2026-08-06 续）
