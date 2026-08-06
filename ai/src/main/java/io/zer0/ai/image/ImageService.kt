@@ -199,7 +199,7 @@ class ImageService(
     /**
      * 决定当前 tick 是否触发真实查询(对齐 QingTian shouldCheckThisTick)。
      */
-    private fun shouldCheckThisTick(ageMs: Long, tickCount: Int): Boolean {
+    internal fun shouldCheckThisTick(ageMs: Long, tickCount: Int): Boolean {
         return when {
             ageMs < TWO_MINUTES_MS -> true                 // < 2 min: 每 tick
             ageMs < TEN_MINUTES_MS -> tickCount % 3 == 0   // 2-10 min: 每 3 tick
@@ -214,7 +214,7 @@ class ImageService(
      *  - 否则返回 url;
      *  - 两者均空则跳过。
      */
-    private fun convertToOutputStrings(images: List<GeneratedImage>): List<String> {
+    internal fun convertToOutputStrings(images: List<GeneratedImage>): List<String> {
         return images.mapNotNull { img ->
             when {
                 !img.base64.isNullOrBlank() -> {
