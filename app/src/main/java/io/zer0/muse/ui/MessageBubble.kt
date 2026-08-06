@@ -126,6 +126,11 @@ import kotlinx.coroutines.launch
  * - 长按菜单(阶段 4):整条消息长按弹出操作菜单(编辑/重新生成/翻译/朗读/收藏)
  * - 末尾 AI 快捷按钮(阶段 4):流式结束后显示"重新生成"图标按钮(iOS 风格)
  */
+
+// v1.x: 产物占位符标记(模型可能直接输出 [artifact:uuid] 引用,但无成对标签内容);
+// 渲染层统一剥离,避免把 UUID 明文展示给用户(真实产物由 artifactIds 卡片列表展示)。
+private val ARTIFACT_MARKER_RE = Regex("""\[artifact:[0-9a-fA-F-]{36}\]""")
+
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 internal fun MessageBubble(
@@ -879,7 +884,8 @@ internal fun MessageBubble(
             val firstLine = content.substring(0, firstLineEnd)
             val hasHeading = !isStreaming && firstLine.isNotBlank() && firstLine.startsWith("#")
             val titleText = if (hasHeading) firstLine else null
-            val bodyContent = if (hasHeading) content.substring(firstLineEnd + 1).trimStart() else content
+            val bodyContent = (if (hasHeading) content.substring(firstLineEnd + 1).trimStart() else content)
+                .replace(ARTIFACT_MARKER_RE, "")
             if (content.isNotBlank()) {
                 // Markdown 标题行
                 titleText?.let {

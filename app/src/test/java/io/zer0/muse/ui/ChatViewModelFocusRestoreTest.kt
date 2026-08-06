@@ -141,6 +141,7 @@ class ChatViewModelFocusRestoreTest {
         coEvery { assistantRepository.getById(any()) } returns null
         coEvery { settings.loadChatDraft(any()) } returns ""
         coEvery { settings.getViewedSessionId() } returns "session-old"
+        every { settings.defaultSessionPermissionModeFlow } returns flowOf(io.zer0.muse.tools.SessionPermissionMode.ASK)
 
         viewModel = createViewModel()
     }
