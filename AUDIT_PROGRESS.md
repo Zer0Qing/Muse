@@ -246,3 +246,10 @@
 - 新增完成：R-TEST-20 视频 Provider 请求体面。GenericOpenAiVideoProvider / KlingVideoProvider 的 buildRequestBody 由 private 改 internal 供测试；新增 VideoProviderRequestTest 5/5（必需/可选字段、多图数组、空可选省略、Kling 默认值/时长钳制/图生视频）。
 - 验证：assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿；:ai detekt/ktlintCheck 通过。
 - 仍待 owner/后续：R-TEST-20 的 MCP/importer/widget 其余面、R-TEST-06 完整状态机/10 真实路径、R-UI-14 其余大文件（ChatScreen 仍约 1783 行、ChatViewModel/MuseDb/GroupChatScheduler 等）、R-DB-04/05、R-BUILD-07。
+
+## 第三批检查点小结（2026-08-06 续，等待 owner review）
+
+- 本轮新增提交：R-UI-14 GroupChatDetailScreen / ChatScreen / MemoryScreen / ProviderSection / MessageBubble 二次拆分，R-TEST-20 视频 Provider 请求体测试。
+- 验证：每组提交均跑 assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿；detekt/ktlintCheck 通过；当前工作区干净，分支未合并。
+- 停止原因：剩余 R-UI-14 文件（ChatScreen 仍约 1783 行、ChatViewModel 6559 行、MuseDb 2082 行、GroupChatScheduler 2652 行）不再是纯 top-level 函数搬运：ChatScreen 需从单函数内联块抽取新 Composable，ChatViewModel/MuseDb/GroupChatScheduler 需类级职责拆分，均与 R-UI-08 状态拆分/下一迭代协同，按 owner 决策不在本分支扩大改动面。
+- 其余待 owner/后续：R-TEST-06 完整状态机（依赖 R-UI-08）、R-TEST-10 真实路径、R-TEST-20 的 MCP/importer/widget 面、R-DB-04/05、R-BUILD-07、真机验证项（Keystore / v1-54 迁移链）。
