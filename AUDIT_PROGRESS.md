@@ -46,8 +46,8 @@
 | R-UI-14 | 已完成（含豁免清单） | assembleDebug + 三模块测试全绿 | 已拆 11 个文件；ChatScreen/MuseDb/GroupChatScheduler/ChatViewModel 列入豁免清单（需类级/状态级拆分，随 R-UI-08 下一迭代） |
 | R-UI-08 | 待下一迭代 | 未执行 | 状态拆分不在本分支执行（owner 决策，先文件后状态） |
 | R-UI-15 | 已完成 | 编译通过 | StickerLibraryRepository 逐条目 D 日志改为每 100 条汇总，保留最终汇总 |
-| R-TEST-03 | 已完成（JVM 面） | PinLockPolicyTest 4/4 + SecureKeyStoreTest 3/3 通过 | SecureKeyCipher 接口 + delegate 注入可 mock；Keystore 硬件往返留真机验证 |
-| R-TEST-04 | 已完成（JVM 面） | BackupCryptoTest 3/3 + SettingsSnapshotPolicyTest 3/3 + BackupKeyExclusionTest 1/1 通过 | SettingsSnapshotPolicy 白名单 + 敏感片段；备份 JSON 扫描无 apiKey 明文 |
+| R-TEST-03 | 已完成（JVM + MuMu 面） | PinLockPolicyTest 4/4 + SecureKeyStoreTest 3/3 + SecureKeyStoreInstrumentedTest 通过 | SecureKeyCipher 接口 + delegate 注入；MuMu Android Keystore 加解密往返；StrongBox 硬件仍留真机 |
+| R-TEST-04 | 已完成（JVM + MuMu 面） | BackupCryptoTest 3/3 + SettingsSnapshotPolicyTest 3/3 + BackupKeyExclusionTest 1/1 + MuMu BackupCrypto/快照剔除测试 通过 | SettingsSnapshotPolicy 白名单 + 敏感片段；MuMu AES-GCM 备份往返 + 敏感键剔除；全链路真机面留待 |
 | R-TEST-07 | 已完成 | DocumentParserMarkdownDocxTest 3/3 通过 | markdown/.md.txt/minimal docx；顺带修复 docx/pptx 带 w:/a: 前缀时解析不到文本的 bug |
 | R-TEST-08 | 已完成 | StickerLibraryRepositoryImportZipTest 2/2 通过 | 中文目录/大写 .GIF/嵌套目录/空 zip |
 | R-TEST-11 | 已完成 | ScheduledTaskRunnerScheduleTest 6/6 通过 | 下次触发时间 + 跨夜免打扰窗口 |
@@ -473,3 +473,8 @@
 - R-TEST-20 收尾：AgnesVideoProvider.buildRequestBody 由内联抽出为 internal，新增文生视频/单图/多图 three 用例；VideoProviderRequestTest 扩至 8/8。
 - 验证：:ai 全量单测 + detekt/ktlintCheck 全绿。
 - 至此 R-TEST-20 全部主要 Provider DTO 面已覆盖。
+## 第三批检查点 46（2026-08-07 续）
+
+- R-TEST-03/04 MuMu 设备面补齐：新增 SecureKeyStoreInstrumentedTest 4/4，覆盖 Android Keystore 加解密往返、旧明文透传、BackupCrypto AES-GCM 往返、SettingsSnapshotPolicy 敏感键剔除。
+- 验证：:app connectedDebugAndroidTest 6/6 全绿（含既有 BrowserManager 2 例）；app detekt/ktlintCheck 通过。
+- 仍待真机：StrongBox 硬件 Keystore、国产 ROM FTS5、Shizuku、v1-53 迁移链。
