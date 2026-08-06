@@ -382,3 +382,9 @@
 - 备注：服务端实际拉黑旧 key 属运维动作，不在仓库代码内；仓库侧已完成文档与黑名单逻辑确认。
 - 验证：README 文本检查通过；无需代码测试。
 - 仍待 owner/后续：R-TEST-06 完整状态机（依赖 R-UI-08）、R-UI-14 其余大文件（ChatScreen 仍约 1783 行、ChatViewModel/MuseDb/GroupChatScheduler 等）、R-DB-04/05、R-BUILD-07、真机验证项。
+
+## 第三批检查点小结（2026-08-06 续 8，等待 owner review）
+
+- 本轮新增提交：R-SEC-10 密钥轮换文档同步。
+- 验证：README/进度文件文本检查通过；工作区干净，分支未合并。
+- 仍待 owner/后续：R-TEST-06 完整状态机（依赖 R-UI-08）、R-UI-14 结构级拆分（ChatScreen/ChatViewModel/MuseDb/GroupChatScheduler）、R-DB-04/05、R-BUILD-07、真机验证项。
