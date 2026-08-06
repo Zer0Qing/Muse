@@ -21,6 +21,7 @@
 | R-DB-02 | 已完成 | `:app:testDebugUnitTest` 全绿；R-TEST-23 2/2 通过 | onOpen 双保险 + sqlite_master 探测 + 影子表清理重建 + DAO 自愈；app Robolectric 不支持 FTS4，测试用 fake DAO |
 | R-DB-03 | 已完成 | FactDbLegacyResetTest 3/3 通过；assembleDebug + 三模块单测全绿 | FactDb v1/v2/损坏库归档为 .bak 并重建空库；MemoryScreen 单次提示；README 已知限制 |
 | R-DB-04 | 已完成 | MessageImageStoreTest 4/4 + MuseDbMigrationTest 4/4 通过；assembleDebug + 三模块单测全绿 | MessageImageStore LRU 缓存 + DB v76 存量 base64 外置迁移（长 base64 落盘 filesDir/muse_images/，短值内联；失败回退、幂等可重入） |
+| R-DB-05 | 已完成（代码面 + MuMu 回退验证） | MuseDbMigrationTest 5/5 + MessageFtsDdlTest 4/4；:app 全量单测 + assembleDebug 全绿 | FTS5 external content + snippet；能力探测；FTS4/ngram 回退；76→77 迁移重建；MuMu 验证回退路径无崩溃；FTS5 真机路径待验证 |
 | R-UI-01 | 已完成 | `assembleDebug` 零错误 | KnowledgeScreen 修复/重建索引按钮、进度与多语言 Toast |
 | R-SEC-02 | 已完成 | grep 确认无 token 响应体日志 | OAuth 三处日志脱敏 |
 | R-SEC-06 | 已完成 | `:ai:testDebugUnitTest` 全绿；`take(500)` 0 命中 | 400 请求体改结构化摘要 |
@@ -435,3 +436,11 @@
 - 门禁维护：app/detekt-baseline.xml 用 detektBaseline 重新生成，登记合并后功能提交引入的存量问题。
 - 验证：assembleDebug + :app testDebugUnitTest 全绿；:app detekt / ktlintCheck 通过。
 - 仍待：R-DB-05、R-UI-14、MuMu 验证、R-BUILD-07 收尾。
+## 第三批检查点 40（2026-08-07 续）
+
+- 新增完成：R-DB-05 消息 FTS5 迁移与 snippet 语义统一（代码面）。MuseDb v76→77，移除 messages_fts Room entity，改为独立 MessageFtsDao（raw SQL + @SkipQueryVerification，与 KnowledgeChunkFtsDao 同模式）。
+- FTS5 可用时创建 external content 表 + unicode61 + 触发器自动同步，搜索走 SQL snippet()；不可用时回退 FTS4 + ngram + LIKE 兜底。
+- 新增 MessageFtsRuntime 进程内模式标记、MessageFtsDdl 纯 DDL、MessageFtsManager.toFts5MatchQuery。
+- 验证：MuseDbMigrationTest 5/5（含 76→77 重建）、MessageFtsDdlTest 4/4、:app 全量单测、assembleDebug、app detekt/ktlint 全绿。
+- MuMu 验证：user_version=77；SQLite 不支持 FTS5 时正确回退 FTS4，messages_fts 正常重建，无 FATAL。
+- 仍待：FTS5 真机路径（external content + snippet + 触发器）需国产真机验证；R-UI-14、MuMu 迁移链/Keystore、R-BUILD-07 收尾。

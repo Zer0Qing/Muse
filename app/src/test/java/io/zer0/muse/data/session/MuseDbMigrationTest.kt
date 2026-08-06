@@ -164,6 +164,7 @@ class MuseDbMigrationTest {
                     MuseDb.MIGRATION_68_74,
                     MuseDb.MIGRATION_74_75,
                     MuseDb.migrate75To76(imageStorageDir),
+                    MuseDb.migrate76To77(),
                 )
                 .allowMainThreadQueries()
                 .build()
@@ -250,6 +251,7 @@ class MuseDbMigrationTest {
                     MuseDb.MIGRATION_68_74,
                     MuseDb.MIGRATION_74_75,
                     MuseDb.migrate75To76(imageStorageDir),
+                    MuseDb.migrate76To77(),
                 )
                 .allowMainThreadQueries()
                 .build()
@@ -356,7 +358,10 @@ class MuseDbMigrationTest {
                 MuseDb::class.java,
                 dbFile.absolutePath,
             )
-                .addMigrations(MuseDb.migrate75To76(imageDir))
+                .addMigrations(
+                    MuseDb.migrate75To76(imageDir),
+                    MuseDb.migrate76To77(),
+                )
                 .allowMainThreadQueries()
                 .build()
 
@@ -385,6 +390,39 @@ class MuseDbMigrationTest {
         }
     }
 
+
+    @Test
+    fun migrateV76To77_rebuildsMessageFtsTable() {
+        val dbFile = context.getDatabasePath("muse_migration_76_fts.db").apply {
+            parentFile?.mkdirs()
+            if (exists()) delete()
+        }
+        try {
+            createSchemaAtVersion(76, dbFile.absolutePath)
+            insertLegacyRow(dbFile.absolutePath, 76)
+            val db = Room.databaseBuilder(
+                context,
+                MuseDb::class.java,
+                dbFile.absolutePath,
+            )
+                .addMigrations(MuseDb.migrate76To77())
+                .allowMainThreadQueries()
+                .build()
+            db.openHelper.writableDatabase.query(
+                "SELECT sql FROM sqlite_master WHERE type='table' AND name='messages_fts'"
+            ).use { cursor ->
+                assertTrue("76→77 迁移后 messages_fts 应存在", cursor.moveToFirst())
+                val sql = cursor.getString(0)
+                assertTrue("messages_fts 应为 FTS4/FTS5 虚拟表: $sql", sql.contains("FTS4") || sql.contains("fts5"))
+            }
+            db.close()
+        } finally {
+            if (dbFile.exists()) dbFile.delete()
+            context.deleteDatabase(dbFile.name)
+        }
+    }
+
+
     /** 1–54 的 schema 快照存在迁移漂移(缺索引/默认值)且 38→39 建 FTS4,Robolectric 无法覆盖,留真机。 */
     private fun availableSchemaVersions(): List<Int> = emptyList()
 
@@ -404,10 +442,15 @@ class MuseDbMigrationTest {
             }
             .sortedBy { it.first.first }
             .map { it.second }
-        return if (fromVersion <= 75) {
+        val with75 = if (fromVersion <= 75) {
             chain + MuseDb.migrate75To76(imageStorageDir)
         } else {
             chain
+        }
+        return if (fromVersion <= 76) {
+            with75 + MuseDb.migrate76To77()
+        } else {
+            with75
         }
     }
 

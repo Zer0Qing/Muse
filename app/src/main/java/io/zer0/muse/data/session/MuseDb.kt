@@ -114,7 +114,6 @@ import kotlinx.serialization.builtins.serializer
         PromptInjectionEntity::class,
         SkillEntity::class,
         FolderEntity::class,
-        MessageFtsEntity::class,
         ScheduledTaskEntity::class,
         KnowledgeDocEntity::class,
         KnowledgeChunkEntity::class,
@@ -152,13 +151,14 @@ import kotlinx.serialization.builtins.serializer
         // B5-02: 群聊生成账本(进程被杀后按断点重放)
         GroupChatGenerationLedgerEntity::class,
     ],
-    version = 76,
+    version = 77,
     exportSchema = true,
 )
 @TypeConverters(QuickNoteConverters::class)
 abstract class MuseDb : RoomDatabase() {
     abstract fun sessionDao(): SessionDao
     abstract fun messageDao(): MessageDao
+    abstract fun messageFtsDao(): MessageFtsDao
     abstract fun artifactDao(): ArtifactDao
     abstract fun assistantDao(): AssistantDao
     abstract fun lorebookDao(): LorebookDao
@@ -243,6 +243,52 @@ abstract class MuseDb : RoomDatabase() {
                 "CREATE VIRTUAL TABLE IF NOT EXISTS knowledge_chunks_fts " +
                     "USING fts4(chunkId, doc_id, text_content)",
             )
+        }
+
+        /** R-DB-05: 探测当前 SQLite 是否支持 FTS5(temp 表探针)。 */
+        private fun fts5Available(db: SupportSQLiteDatabase): Boolean {
+            val ok = runCatching {
+                db.execSQL("DROP TABLE IF EXISTS temp.muse_fts5_probe")
+                db.execSQL("CREATE VIRTUAL TABLE temp.muse_fts5_probe USING fts5(x)")
+                true
+            }.getOrDefault(false)
+            runCatching { db.execSQL("DROP TABLE IF EXISTS temp.muse_fts5_probe") }
+            return ok
+        }
+
+        private fun dropMessageFtsTables(db: SupportSQLiteDatabase) {
+            val names = mutableListOf<String>()
+            db.query("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'messages_fts%'")
+                .use { cursor -> while (cursor.moveToNext()) names.add(cursor.getString(0)) }
+            names.forEach { name -> db.execSQL("DROP TABLE IF EXISTS `$name`") }
+            val triggers = mutableListOf<String>()
+            db.query("SELECT name FROM sqlite_master WHERE type='trigger' AND name LIKE 'messages_fts_%'")
+                .use { cursor -> while (cursor.moveToNext()) triggers.add(cursor.getString(0)) }
+            triggers.forEach { name -> db.execSQL("DROP TRIGGER IF EXISTS `$name`") }
+        }
+
+        private fun createMessageFtsTable(db: SupportSQLiteDatabase, useFts5: Boolean) {
+            db.execSQL(MessageFtsDdl.createSql(useFts5))
+            if (useFts5) {
+                MessageFtsDdl.fts5TriggerSqls.forEach { db.execSQL(it) }
+            }
+            MessageFtsRuntime.useFts5 = useFts5
+        }
+
+        private fun detectMessageFtsMode(db: SupportSQLiteDatabase): Boolean {
+            val sql = db.query("SELECT sql FROM sqlite_master WHERE type='table' AND name='messages_fts'").use { cursor ->
+                if (cursor.moveToFirst()) cursor.getString(0) else null
+            } ?: return false
+            return sql.contains("fts5", ignoreCase = true)
+        }
+
+        /** R-DB-05: 76→77 迁移 — 重建 messages_fts,优先 FTS5,失败回退 FTS4。 */
+        fun migrate76To77(): Migration = object : Migration(76, 77) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                val useFts5 = fts5Available(db)
+                dropMessageFtsTables(db)
+                createMessageFtsTable(db, useFts5)
+            }
         }
 
         /**
@@ -1998,6 +2044,7 @@ abstract class MuseDb : RoomDatabase() {
                         MIGRATION_74_75,
                         MIGRATION_73_74,
                         migrate75To76(File(context.applicationContext.filesDir, "muse_images")),
+                        migrate76To77(),
                     )
                     // 启用外键约束(artifacts 表的 ON DELETE CASCADE 依赖此设置)
                     // onOpen 不在 onCreate 事务内,可以执行此类命令;onCreate 内禁止 PRAGMA
@@ -2007,6 +2054,12 @@ abstract class MuseDb : RoomDatabase() {
                             synchronized(FTS_CREATE_LOCK) {
                                 try {
                                     createKnowledgeChunkFtsTable(db)
+                                    // R-DB-05: 全新安装建 messages_fts(FTS5 优先,FTS4 回退)。
+                                    try {
+                                        createMessageFtsTable(db, fts5Available(db))
+                                    } catch (e: Exception) {
+                                        io.zer0.common.Logger.e("MuseDb", "创建 messages_fts 失败: ${e.message}", e)
+                                    }
                                 } catch (e: Exception) {
                                     knowledgeFtsBroken = true
                                     io.zer0.common.Logger.e("MuseDb", "创建 knowledge_chunks_fts 失败: ${e.message}", e)
@@ -2037,6 +2090,22 @@ abstract class MuseDb : RoomDatabase() {
                             } catch (e: Exception) {
                                 knowledgeFtsBroken = true
                                 io.zer0.common.Logger.e("MuseDb", "knowledge_chunks_fts 校验失败: ${e.message}", e)
+                            }
+                            // R-DB-05: 校验 messages_fts;缺失时按能力重建,FTS5 优先。
+                            try {
+                                synchronized(FTS_CREATE_LOCK) {
+                                    val messageFtsExists = db.query(
+                                        "SELECT name FROM sqlite_master WHERE type='table' AND name='messages_fts'",
+                                    ).use { it.moveToFirst() }
+                                    if (!messageFtsExists) {
+                                        dropMessageFtsTables(db)
+                                        createMessageFtsTable(db, fts5Available(db))
+                                    } else {
+                                        MessageFtsRuntime.useFts5 = detectMessageFtsMode(db)
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                io.zer0.common.Logger.e("MuseDb", "messages_fts 校验失败: ${e.message}", e)
                             }
                             // v1.107: WAL 模式由 setJournalMode(WRITE_AHEAD_LOGGING) 启用,这里不重复设置
                             // v1.107: 被动 checkpoint,合并 WAL 日志到主数据库

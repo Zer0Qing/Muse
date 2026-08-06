@@ -104,4 +104,18 @@ object MessageFtsManager {
             .filter { it.isNotBlank() }
             .joinToString(" ") { "\"${it.replace("\"", "")}\"" }
     }
+
+    /**
+     * 把查询词转成 FTS5 MATCH 表达式(unicode61 原文索引)。
+     *
+     * - 每个空白分隔段作为短语(双引号包裹),段之间为 AND 语义
+     * - 双引号按 FTS5 规则转义为两个双引号
+     * - 纯空白/标点返回空串,调用方走 LIKE 兜底
+     */
+    fun toFts5MatchQuery(query: String): String {
+        return query.trim()
+            .split(Regex("\\s+"))
+            .filter { it.isNotBlank() }
+            .joinToString(" ") { "\"${it.replace("\"", "\"\"")}\"" }
+    }
 }
