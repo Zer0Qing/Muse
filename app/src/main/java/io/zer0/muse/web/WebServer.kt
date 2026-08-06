@@ -418,21 +418,12 @@ class WebServer(
                 //   强行实现易引入新 bug。如需 Web 发消息,建议后续单独设计 WebSocket 通道。
             }
 
-            // 根路径: 简单欢迎页(浏览器直接访问时有用)
-            // P2-13: 提示需要 PIN 登录,并给出可访问的 IP + PIN 提示
+            // 根路径: 完整 Web UI(PIN 登录 → 会话列表 → 消息只读浏览)
+            // P2-13: 单页内嵌 HTML/CSS/JS,无外部依赖;鉴权走 Cookie(httpOnly)
             get("/") {
                 // L1: 添加 Referrer-Policy 头,防止 JWT query param 通过 Referer 头泄露到第三方
                 call.response.headers.append("Referrer-Policy", "no-referrer")
-                val html = buildString {
-                    append("<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>muse Web Server</title></head><body>")
-                    append("<h1>muse Web Server</h1>")
-                    append("<p>请通过 <code>POST /api/auth/pin-login</code> 提交 6 位 PIN 获取访问令牌。</p>")
-                    append("<p>当前会话所需 PIN 由手机端 muse App 设置页生成,请向 App 持有者索取。</p>")
-                    append("<p>公开接口:<code>GET /api/health</code></p>")
-                    append("<p>鉴权后接口:<code>/api/sessions</code>、<code>/api/sessions/{id}/messages</code>、<code>/api/settings</code></p>")
-                    append("</body></html>")
-                }
-                call.respondText(html, io.ktor.http.ContentType.Text.Html)
+                call.respondText(WebServerUi.INDEX_HTML, io.ktor.http.ContentType.Text.Html)
             }
         }
     }
