@@ -71,7 +71,7 @@
 | R-SEC-03 | 已完成 | WebServerAuthPolicyTest 6/6 通过 | 方案 B：默认 127.0.0.1 + CORS 仅本机；设置页局域网开关开启后绑定 0.0.0.0 + anyHost；JWT 独立密钥 |
 | R-SVC-05 | 已完成 | 编译通过 | 方案 B：仅聊天/群聊生成任务活跃且 keepAwake 开启时持锁；低电量未充电不持锁；设置页文案同步 |
 | R-TEST-19 | 已完成 | VisionBridgePureFunctionsTest 4/4 通过 | 视觉上下文/失败提示/MIME 嗅探/hash 纯逻辑 |
-| R-TEST-20 | 部分完成 | OpenAIImageProviderRequestTest 3/3 + VideoProviderRequestTest 5/5 + McpConfigTest 8/8 通过 | OpenAI 文生图/视频 Provider 请求体 + MCP 配置 DTO 黄金测试；其余 importer/widget 待补 |
+| R-TEST-20 | 部分完成 | OpenAIImageProviderRequestTest 3/3 + VideoProviderRequestTest 5/5 + McpConfigTest 8/8 + ConfigImporterTest 5/5 通过 | OpenAI 文生图/视频 Provider 请求体 + MCP 配置 DTO + ConfigImporter 真实路径；其余 widget 待补 |
 | R-TEST-14 | 已完成（JVM 面） | MuseDbMigrationTest 通过 | 反射迁移链 + schema-aware 插行；JVM 覆盖 v55→75；v1-54 因 FTS4 与 schema 漂移留真机 |
 | R-TEST-10 | 已完成 | ToolOrchestratorPureFunctionsTest + ToolOrchestratorRunLoopTest 5/5 通过 | calculator/web_search/超时/失败3次熔断/并行真实路径 + 纯逻辑；ToolOrchestrator 增加可注入 toolTimeoutMs |
 | R-TEST-06 | 部分完成 | ChatViewModelSendGuardTest 4/4 通过 | 发送守卫纯逻辑（空消息/流式/Agent 重入）；完整状态机待 R-UI-08 后补 |
@@ -266,3 +266,9 @@
 - 新增完成：R-TEST-20 MCP 配置 DTO 面。新增 McpConfigTest 8/8，覆盖 McpTokenInfo 过期/有效/可刷新边界、McpServerConfig.resolvedHeaders 合并与 Authorization 优先级、配置 JSON 序列化往返。
 - 验证：assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿；:app detekt/ktlintCheck 通过。
 - 仍待 owner/后续：R-TEST-20 的 importer/widget 其余面、R-TEST-06 完整状态机（依赖 R-UI-08）、R-UI-14 其余大文件（ChatScreen 仍约 1783 行、ChatViewModel/MuseDb/GroupChatScheduler 等）、R-DB-04/05、R-BUILD-07。
+
+## 第三批检查点 24（2026-08-06 续）
+
+- 新增完成：R-TEST-20 ConfigImporter 导入真实路径面。新增 ConfigImporterTest 5/5，覆盖 CherryStudio providers 数组、Chatbox settings map、重复 id 跳过、非法 JSON 空结果、baseUrl 推断 ANTHROPIC。
+- 验证：assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿；:app detekt/ktlintCheck 通过。
+- 仍待 owner/后续：R-TEST-20 的 widget 面、R-TEST-06 完整状态机（依赖 R-UI-08）、R-UI-14 其余大文件（ChatScreen 仍约 1783 行、ChatViewModel/MuseDb/GroupChatScheduler 等）、R-DB-04/05、R-BUILD-07。
