@@ -33,7 +33,7 @@
 | R-UI-11 | 已完成 | grep `collectAsState()` 仅剩 MuseToastHost（带注释） | ProviderSection 改 collectAsStateWithLifecycle |
 | R-UI-12 | 已完成（复核） | 5 个文件逐点复核 | 现有交互按钮/行均带语义标签或相邻文本，剩余 null 均为装饰性图标，符合任务书“装饰性保持 null”说明 |
 | R-UI-13 | 已完成 | 编译通过 | SettingsTutorialPage 搜索结果 items 补稳定 key |
-| R-UI-14 | 部分完成 | assembleDebug + 三模块测试全绿 | 已拆 DebugScreen、TranslateScreen、AssistantAdvancedPage、QuickNotesScreen、MessageBubble、GroupChatDetailScreen；其余大文件继续 |
+| R-UI-14 | 部分完成 | assembleDebug + 三模块测试全绿 | 已拆 DebugScreen、TranslateScreen、AssistantAdvancedPage、QuickNotesScreen、MessageBubble、GroupChatDetailScreen、ChatScreen；其余大文件继续 |
 | R-UI-08 | 待下一迭代 | 未执行 | 状态拆分不在本分支执行（owner 决策，先文件后状态） |
 | R-UI-15 | 已完成 | 编译通过 | StickerLibraryRepository 逐条目 D 日志改为每 100 条汇总，保留最终汇总 |
 | R-TEST-03 | 已完成（JVM 面） | PinLockPolicyTest 4/4 + SecureKeyStoreTest 3/3 通过 | SecureKeyCipher 接口 + delegate 注入可 mock；Keystore 硬件往返留真机验证 |
@@ -213,3 +213,9 @@
 - 新增完成：R-UI-14 GroupChatDetailScreen 纯文件拆分。群聊消息气泡、图片附件、进度条、可折叠块等尾部块搬入 GroupChatDetailComponents.kt；GroupChatDetailScreen 从约 2328 行降到 1043 行；仅 private→internal + 文件级 Suppress，无行为变化。
 - 验证：assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿；detekt/ktlintCheck 通过。
 - 仍待 owner/后续：R-UI-14 其余大文件（ChatScreen/MemoryScreen/ProviderSection/ChatViewModel/MuseDb/GroupChatScheduler 等）、R-TEST-06 完整状态机/10 真实路径/20 其余、R-DB-04/05、R-BUILD-07。
+
+## 第三批检查点 17（2026-08-06 续）
+
+- 新增完成：R-UI-14 ChatScreen 纯文件拆分。空态引导/shimmer 占位/图片与视频生成占位/历史加载占位/日期分隔线/多选操作条搬入 ChatScreenComponents.kt；ChatScreen 从约 2332 行降到 1783 行；仅 private→internal + 文件级 Suppress，无行为变化。
+- 验证：assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿；detekt/ktlintCheck 通过。
+- 仍待 owner/后续：R-UI-14 其余大文件（MemoryScreen/ProviderSection/ChatViewModel/MuseDb/GroupChatScheduler 等）、R-TEST-06 完整状态机/10 真实路径/20 其余、R-DB-04/05、R-BUILD-07。
