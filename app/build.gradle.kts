@@ -109,7 +109,8 @@ android {
     }
 
     lint {
-        abortOnError = false
+        abortOnError = true
+        baseline = file("lint-baseline.xml")
         // Suppress NewApi warning for displayCutoutMode (minSdk 26, feature is API 27+)
         // but the theme is only applied on API 27+ devices via values-v27
         warning.add("NewApi")

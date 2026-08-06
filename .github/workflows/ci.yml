@@ -66,6 +66,27 @@ jobs:
           build/reports/kover
         if-no-files-found: ignore
 
+  android-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+    - name: Grant execute permission for gradlew
+      run: chmod +x ./gradlew
+    - name: Instrumented tests
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: 30
+        arch: x86_64
+        disable-animations: true
+        script: ./gradlew :app:connectedDebugAndroidTest
+
   release:
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest

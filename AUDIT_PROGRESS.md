@@ -52,8 +52,8 @@
 | R-CI-05 | 已完成（非阻断首迭代） | ci/test 3 个脚本测试全绿 | Lane 脚本已接线且 continue-on-error；存量 error 待清零后转阻断 |
 | R-CI-06 | 已完成 | ci/test 3 个脚本测试全绿 | CI 执行脚本测试入口 |
 | R-CI-07 | 部分完成 | koverXmlReport 已接入 | 报告 artifact 已上传；阈值门禁未配置 |
-| R-CI-08 | 部分完成 | androidTest 本地化完成 | emulator job 未接；无外网依赖已保证 |
-| R-CI-09 | 部分完成 | lintDebug 入 CI | abortOnError 仍为 false（存量 2475 lint errors），待 baseline 后收紧 |
+| R-CI-08 | 已完成 | 本地 asset 页面 + runner 显式声明 | workflow 增加 android-emulator-runner API 30 job 执行 connectedDebugAndroidTest |
+| R-CI-09 | 已完成 | `:app:lintDebug` BUILD SUCCESSFUL（baseline 130 errors/1290 warnings 过滤） | abortOnError=true + app/lint-baseline.xml 入库 |
 | R-CI-10 | 已完成 | workflow 生效 | setup-gradle 缓存 + debug/reports artifact + release workflow |
 | R-CI-11 | 已完成 | workflow 生效 | schedule/tag/workflow_dispatch 触发 |
 | R-AI-02 | 已完成 | grep currentCall 0 命中（OpenAIProvider） | 删除无效 newCall/currentCall，取消统一走 EventSource.cancel |
@@ -113,4 +113,6 @@
 - 尚未开始：R-UI-08（state-split）、R-TEST-06/10/12/14/19/20、R-TEST-03/04 剩余面、R-CI-07/08/09 剩余面、R-DOC-07、长期项。
 - 本检查点新增完成：R-AI-02/03/04/05/06、R-SEC-08、R-SVC-06/07、R-TEST-12、R-DOC-07。
 - 尚未开始：R-UI-08（state-split）、R-TEST-06/10/14/19/20、R-TEST-03/04 剩余面、R-CI-07/08/09 剩余面、R-SVC-05、R-SEC-03、R-DB-04/05、R-BUILD-07、R-UI-14 等长期项。
+- 本检查点新增完成：R-CI-08（emulator job）、R-CI-09（abortOnError=true + lint baseline）。
+- 尚未开始：R-UI-08（state-split）、R-TEST-06/10/14/19/20、R-TEST-03/04 剩余面、R-CI-07 阈值、R-SVC-05、R-SEC-03、R-DB-04/05、R-BUILD-07、R-UI-14 等长期项。
 - 验证：assembleDebug + 三模块单测全绿。
