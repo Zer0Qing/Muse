@@ -844,7 +844,10 @@ class ChatUiState(
         tokenCountVisible = tokenCountVisible,
         tokenSnapshot = tokenSnapshot,
         toolsState = toolsState.copy(
-                    ),
+            taskCards = taskCards,
+            toolCallHistory = toolCallHistory,
+            pendingToolApprovals = pendingToolApprovals,
+        ),
         deepThinkingEnabled = deepThinkingEnabled,
         deepThinkingLevel = deepThinkingLevel,
         webSearchConfig = webSearchConfig,
@@ -1050,6 +1053,8 @@ class ChatViewModel(
     private val toolApprovalRouter: io.zer0.muse.tools.ToolApprovalRouter,
     /** P0 对话树选择快照存储(可为 null,测试环境不注入)。 */
     private val treeSnapshotStore: ConversationTreeSnapshotStore? = null,
+    // v1.x: 会话级浏览器实例注册表(每个会话独立 WebView,删除会话时释放)
+    private val browserManagerRegistry: io.zer0.muse.tools.BrowserManagerRegistry? = null,
 ) : ViewModel(), ChatStateAccessor, io.zer0.muse.tools.ToolApprovalBridge {
     // v1.0.54: autoSave 去重状态(30 秒内同会话只跑一次,防堆积)
     private var lastAutoSaveSessionId: String? = null
@@ -2760,6 +2765,11 @@ class ChatViewModel(
             // v1.0.63: 新任务使用设置里的默认助手
             val currentAssistantId = settings.defaultAssistantIdFlow.first().ifBlank { "default" }
             val id = sessionRepository.createSession(assistantId = currentAssistantId)
+            // v1.x: 新会话权限模式跟随全局默认(修复:新建会话硬编码 ASK,完全放权设置被绕过)
+            val permissionMode = sessionPermissionStore.getMode(
+                id,
+                settings.defaultSessionPermissionModeFlow.first(),
+            )
             // v1.x: 获取新会话引用(与 switchSession 的 acquire 配对)
             sessionManager.acquire(id)
             val assistant = assistantRepository.getById(currentAssistantId)
@@ -2786,8 +2796,8 @@ class ChatViewModel(
                     // 清空视觉辅助状态,避免跨会话残留
                     visionAssistedMessageIds = emptySet(),
                     visionProgress = null,
-                    // P3: 新会话默认使用 ASK 权限模式
-                    sessionPermissionMode = SessionPermissionMode.ASK,
+                    // P3: 新会话权限模式跟随全局默认(会话 store 无记录时用设置值)
+                    sessionPermissionMode = permissionMode,
                 )
             }
             // v0.45: 刷新上下文 token 占用(新会话 messages 为空,只加载 contextWindow)
@@ -2822,6 +2832,11 @@ class ChatViewModel(
             // v1.0.63: 新任务使用设置里的默认助手
             val currentAssistantId = settings.defaultAssistantIdFlow.first().ifBlank { "default" }
             val id = sessionRepository.createSession(assistantId = currentAssistantId)
+            // v1.x: 新会话权限模式跟随全局默认
+            val permissionMode = sessionPermissionStore.getMode(
+                id,
+                settings.defaultSessionPermissionModeFlow.first(),
+            )
             // v1.x: 获取新会话引用
             sessionManager.acquire(id)
             val assistant = assistantRepository.getById(currentAssistantId)
@@ -2841,7 +2856,7 @@ class ChatViewModel(
                     agentPlans = emptyMap(),
                     visionAssistedMessageIds = emptySet(),
                     visionProgress = null,
-                    sessionPermissionMode = SessionPermissionMode.ASK,
+                    sessionPermissionMode = permissionMode,
                 )
             }
             refreshContextInfo()
@@ -2986,8 +3001,11 @@ class ChatViewModel(
                 // v1.53-A1: 未命中缓存,分页加载,只取最近 MESSAGE_PAGE_SIZE 条,避免一次性加载全部
                 loadMessagesPaged(sessionId)
             }
-            // P3: 加载本会话的权限模式
-            val permissionMode = sessionPermissionStore.getMode(sessionId)
+            // P3: 加载本会话的权限模式(未单独设置时跟随全局默认,修复"完全放权"设置不生效)
+            val permissionMode = sessionPermissionStore.getMode(
+                sessionId,
+                settings.defaultSessionPermissionModeFlow.first(),
+            )
             // Phase 8.2: 加载会话绑定的 Assistant
             val assistantId = sessionRepository.getAssistantId(sessionId)
             val assistant = assistantRepository.getById(assistantId)
@@ -3095,8 +3113,11 @@ class ChatViewModel(
                 // v1.x: 释放旧的任务会话引用 + 获取新的 Agent 会话引用
                 prevSessionId?.let { sessionManager.release(it) }
                 sessionManager.acquire(sessionId)
-                // P3: 加载 Agent 会话的权限模式
-                val permissionMode = sessionPermissionStore.getMode(sessionId)
+                // P3: 加载 Agent 会话的权限模式(未单独设置时跟随全局默认)
+                val permissionMode = sessionPermissionStore.getMode(
+                    sessionId,
+                    settings.defaultSessionPermissionModeFlow.first(),
+                )
                 // v1.137 B2: 先预加载消息(不更新 UI),再一次性切换 — 消除闪烁
                 val (messages, hasMore) = loadMessagesPaged(sessionId)
                 val assistantId = sessionRepository.getAssistantId(sessionId)
@@ -3169,8 +3190,11 @@ class ChatViewModel(
                 viewModelScope.launch {
                     // v1.53-A1: 分页加载任务会话消息
                     val (messages, hasMore) = loadMessagesPaged(sid)
-                    // P3: 恢复任务会话权限模式
-                    val permissionMode = sessionPermissionStore.getMode(sid)
+                    // P3: 恢复任务会话权限模式(未单独设置时跟随全局默认)
+                    val permissionMode = sessionPermissionStore.getMode(
+                        sid,
+                        settings.defaultSessionPermissionModeFlow.first(),
+                    )
                     val assistantId = sessionRepository.getAssistantId(sid)
                     val assistant = assistantRepository.getById(assistantId)
                         ?: assistantRepository.getById("default")
@@ -3272,6 +3296,11 @@ class ChatViewModel(
     fun deleteSession(sessionId: String) {
         viewModelScope.launch {
             sessionRepository.softDeleteSession(sessionId)
+            // v1.x: 会话删除时释放该会话的浏览器实例
+            browserManagerRegistry?.let { registry ->
+                resultOf { registry.closeSession(sessionId) }
+                    .onError { msg, _ -> Logger.w("ChatVM", "closeSession browser 失败: $msg") }
+            }
             // v1.93+: 从内存 LRU 缓存移除,避免持有已删除会话的消息副本(防止内存泄漏与脏读)
             sessionMemoryCache.remove(sessionId)
             if (_state.value.currentSessionId == sessionId) {
@@ -3936,18 +3965,8 @@ class ChatViewModel(
     /**
      * 审批工具调用:用户批准待审批的工具调用。
      */
-    fun approveToolCall(toolCallId: String, alwaysAllow: Boolean) {
+    fun approveToolCall(toolCallId: String) {
         val pending = _state.value.pendingToolApprovals.firstOrNull { it.toolCallId == toolCallId } ?: return
-        // 如果勾选了"始终允许",持久化策略
-        if (alwaysAllow) {
-            viewModelScope.launch {
-                toolConfigStore.setPolicy(pending.toolName, ToolApprovalPolicy.ALWAYS_ALLOW)
-            }
-        }
-        // v1.0.16: 如果勾选了"本次开启期间批准全部工具",设置内存标志
-        if (pending.appRunAllowAll) {
-            _state.update { it.copy(appRunAllowAllTools = true) }
-        }
         // 移除待审批项
         _state.update {
             it.copy(pendingToolApprovals = it.pendingToolApprovals.filter { it.toolCallId != toolCallId })
@@ -4056,6 +4075,19 @@ class ChatViewModel(
     }
 
     /**
+     * v1.x: 持久化单工具策略(由审批卡片"始终允许"按钮触发)。
+     *
+     * 与本次批准解耦:按钮点击时先持久化策略,再走 onApprove 处理本次调用。
+     */
+    fun persistToolPolicy(toolCallId: String, policy: ToolApprovalPolicy) {
+        val pending = _state.value.pendingToolApprovals.firstOrNull { it.toolCallId == toolCallId } ?: return
+        viewModelScope.launch {
+            runCatching { toolConfigStore.setPolicy(pending.toolName, policy) }
+                .onFailure { Logger.w("ChatVM", "persistToolPolicy(${pending.toolName}) 失败: ${it.message}") }
+        }
+    }
+
+    /**
      * v1.x: 把工具加入当前会话的临时允许集合(本会话不再问)。
      *
      * 由 ToolApprovalCard 中的"本会话允许"按钮触发:
@@ -4111,8 +4143,18 @@ class ChatViewModel(
         val perToolPolicy = toolConfigStore.getPolicy(toolName)
         val mode = _state.value.sessionPermissionMode
         val risk = toolRegistry.getToolRiskLevel(toolName)
+        // v1.x: 审批决策调试日志 — 排查"完全放权不生效/始终允许无效"类问题
+        Logger.d(
+            "ToolApproval",
+            "resolve | tool=$toolName | mode=$mode | risk=$risk | policy=$perToolPolicy" +
+                " | allowAllRun=${_state.value.appRunAllowAllTools}",
+        )
         // v1.0.53: 传完整 args,参数化策略(open_url/execute_javascript)生效
         val resolved = ToolPermissionResolver.resolve(toolName, risk, mode, perToolPolicy, args)
+        Logger.d(
+            "ToolApproval",
+            "resolved | tool=$toolName | state=$resolved",
+        )
         // 状态机闭环:显式列出所有终态分支,确保 ToolApprovalState.Answered 有处理路径
         when (resolved) {
             is ToolApprovalState.Pending -> { /* 待审批,继续走下方用户审批流程 */ }
@@ -5895,7 +5937,10 @@ class ChatViewModel(
             sessionManager.acquire(sessionId)
             // 预加载消息(直接查 DB,不读缓存),一次性更新状态
             val (messages, hasMore) = loadMessagesPaged(sessionId)
-            val permissionMode = sessionPermissionStore.getMode(sessionId)
+            val permissionMode = sessionPermissionStore.getMode(
+                sessionId,
+                settings.defaultSessionPermissionModeFlow.first(),
+            )
             val assistant = assistantRepository.getById(targetId)
                 ?: assistantRepository.getById("default")
             _messages.value = messages

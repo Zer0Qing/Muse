@@ -78,6 +78,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -156,7 +157,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
-
+import io.zer0.muse.tools.BrowserManager
+import io.zer0.muse.ui.chat.BrowserStatusCapsule
 /** P6-B3: 翻译支持的目标语言列表(常用语言,中文名便于 LLM 理解)。 */
 internal val TranslationLanguages = listOf(
     "中文", "English", "日本語", "한국어", "Français", "Deutsch", "Español", "Русский", "العربية", "Português",
@@ -271,6 +273,13 @@ fun ChatScreen(
     val knowledgeDocs by knowledgeDao.observeAllUser().collectAsStateWithLifecycle(initialValue = emptyList())
     // v1.95: 注入 SettingsRepository 用于读取/保存 ASR 提示状态
     val settings: SettingsRepository = koinInject()
+// v1.x: 会话级浏览器注册表 — 胶囊观察当前会话的浏览器实例(每个会话独立 WebView)
+val browserRegistry: io.zer0.muse.tools.BrowserManagerRegistry = koinInject()
+val activeBrowserSessions by browserRegistry.activeSessionIds.collectAsState()
+val currentBrowserManager = remember(activeBrowserSessions, state.currentSessionId) {
+    val sid = state.currentSessionId
+    if (sid != null && sid in activeBrowserSessions) browserRegistry.getIfActive(sid) else null
+}
     // P2-12: 富文本输入开关 — 开启后 ChatScreen 的 InputBar 替换为 RichInputBar(顶部带 Markdown 格式工具条)
     val richInputEnabled by settings.richInputEnabledFlow.collectAsStateWithLifecycle(initialValue = false)
 
@@ -719,6 +728,11 @@ fun ChatScreen(
                                     overflow = TextOverflow.Ellipsis,
                                 )
                             }
+                            // AI 调用浏览器时显示状态胶囊:点击可全屏查看实时页面
+                            BrowserStatusCapsule(
+                                manager = currentBrowserManager,
+                                modifier = Modifier.padding(top = 6.dp),
+                            )
                         }
 
                         // 右侧操作区:模型胶囊 + 压缩上下文按钮
@@ -788,15 +802,10 @@ fun ChatScreen(
                 ToolApprovalCard(
                     toolName = approval.toolName,
                     argumentsPreview = approval.argumentsPreview,
-                    onApprove = { viewModel.approveToolCall(approval.toolCallId, approval.alwaysAllow) },
+                    onApprove = { viewModel.approveToolCall(approval.toolCallId) },
                     onDeny = { reason -> viewModel.denyToolCall(approval.toolCallId, reason) },
-                    alwaysAllow = approval.alwaysAllow,
-                    onAlwaysAllowChanged = { checked ->
-                        viewModel.setToolApprovalAlwaysAllow(approval.toolCallId, checked)
-                    },
-                    appRunAllowAll = approval.appRunAllowAll,
-                    onAppRunAllowAllChanged = { checked ->
-                        viewModel.setToolApprovalAppRunAllowAll(approval.toolCallId, checked)
+                    onPersistPolicy = { policy ->
+                        viewModel.persistToolPolicy(approval.toolCallId, policy)
                     },
                     onAllowThisSession = {
                         viewModel.allowToolForSession(approval.toolCallId)

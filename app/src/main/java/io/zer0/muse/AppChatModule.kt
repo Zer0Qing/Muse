@@ -28,6 +28,8 @@ val appChatModule = module {
             context = androidContext(),
             hookRegistry = get(),
             auditLogger = get(),
+            // v1.x: 会话级浏览器注册表(与 UI 胶囊共享同一实例)
+            browserManagerRegistry = get(),
         )
     }
 
@@ -57,6 +59,8 @@ val appChatModule = module {
             get(),
             // P0 对话树选择快照存储
             treeSnapshotStore = get(),
+            // v1.x: 会话级浏览器实例注册表
+            browserManagerRegistry = get(),
         )
     }
 }
