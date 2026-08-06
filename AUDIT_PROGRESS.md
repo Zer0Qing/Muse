@@ -49,7 +49,7 @@
 | R-CI-02 | 已完成 | `detekt` BUILD SUCCESSFUL | detekt 1.23.8 全模块 + maxIssues=0 + baseline；README/AGENTS/ENGINEERING_DISCIPLINE 同步 |
 | R-CI-03 | 已完成 | `ktlintCheck` 全模块通过 | ktlint 应用到 6 模块 + CI step + ktlintFormat 存量 |
 | R-CI-04 | 已完成（workflow） | 本地未跑 release（无 secret） | tag 触发 assembleRelease + 缺 keystore secret 明确失败 + APK artifact |
-| R-CI-05 | 已完成（非阻断首迭代） | ci/test 3 个脚本测试全绿 | Lane 脚本已接线且 continue-on-error；存量 error 待清零后转阻断 |
+| R-CI-05 | 已完成（阻断） | Lane 8 个脚本 + ci/test 3 个脚本全绿；assembleDebug/app 单测/detekt/ktlint 通过 | 9 处 empty_catch、1 处 CJK、1 处 fontSize 清零；移除 continue-on-error，Lane 转阻断 |
 | R-CI-06 | 已完成 | ci/test 3 个脚本测试全绿 | CI 执行脚本测试入口 |
 | R-CI-07 | 部分完成 | koverXmlReport 已接入 | 报告 artifact 已上传；阈值门禁未配置 |
 | R-CI-08 | 已完成 | 本地 asset 页面 + runner 显式声明 | workflow 增加 android-emulator-runner API 30 job 执行 connectedDebugAndroidTest |
@@ -93,7 +93,7 @@
 
 - 阻塞（需要 owner 决策）：R-BUILD-02。material3 1.4.0 stable（BOM 2026.06.01）中 `MaterialExpressiveTheme`、`MotionScheme`、`ExperimentalMaterial3ExpressiveApi` 均为 internal；BOM 还会强制覆盖 1.4.0-alpha04。已实测 `assembleDebug` 编译失败，回退到 alpha04 + BOM 2024.12.01 后全绿。
 - 非阻塞：app 模块 Robolectric 不支持 FTS4 vtable，R-TEST-23 用 fake DAO；R-TEST-01 的早停回退完整网络路径在 MockWebServer 下不稳定，改由 FirstEventWatchdogTest + ProviderRequestBodySnapshotTest 覆盖。
-- 非阻塞（第三批检查点 2）：check_engineering_discipline.py 仍有 9 个存量 error、check_hardcoded_font_size.py 有 1 处存量 fontSize 超 baseline，Lane 步骤按 R-CI-05 要求先 continue-on-error 跑一个迭代，待清零后转阻断。
+- 已解决（R-CI-05）：check_engineering_discipline.py 9 个 empty_catch（JsSandbox 8 + GreetingHelper 1）、check_hardcoded_cjk.py 1 处（SettingsSubPages 剪贴板标签）、check_hardcoded_font_size.py 1 处（ChatScreen 有意豁免注释）均已清零；CJK baseline 已收紧；Lane 步骤已移除 continue-on-error 转阻断。
 - 非阻塞（R-CI-04）：release job 已落地，但本地无 GitHub Secrets，无法实跑；配置为缺 secret 明确失败。
 - 非阻塞（R-TEST-03/04）：SecureKeyStore 与备份全链路需要 Android Keystore/真机或完整 mock 链，本轮只补了可 JVM 化的退避与加密往返。
 - 非阻塞（Windows 本机）：全量 :app 测试一次出现 AppSettingsStoreTest 的 DataStore 文件锁 FileNotFoundException（另一个程序正在使用），单类与重跑全量均通过，判定为本机偶发文件锁，非代码回归。
@@ -149,4 +149,10 @@
 
 - 新增完成：R-TEST-19、R-TEST-14 v55→75、R-TEST-10 纯逻辑面、R-TEST-06 发送守卫面、R-TEST-20 OpenAI 图片请求体面（部分）。
 - 验证：assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿（785 tests / 106 类 / 0 failures）；detekt/ktlintCheck 通过。
+- 仍待 owner/后续：R-UI-08/R-UI-14、R-TEST-03/04 剩余、R-TEST-06 完整状态机/10 真实路径/14 v1-54/20 其余、R-CI-07 阈值、R-SEC-03 CORS/绑定面、R-SVC-05 任务期持锁面、R-DB-04/05、R-BUILD-07、R-BUILD-02（已有阻塞决策）。
+
+## 第三批检查点 7（2026-08-06 续）
+
+- 新增完成：R-CI-05 转阻断。清掉 check_engineering_discipline.py 9 个 empty_catch（JsSandbox 注入 JS 8 处改为 console.debug 记录，GreetingHelper 1 处改 runCatching + Logger.w）；SettingsSubPages 剪贴板标签改 stringResource（1 处新增 CJK）；ChatScreen 固定 22sp 加有意豁免注释（1 处 fontSize）；CJK baseline 收紧到 463 处；ci.yml Lane checks 移除 continue-on-error: true。
+- 验证：8 个 Lane 脚本 EXIT=0；ci/test 3 个脚本 15+20+1 全绿；assembleDebug + :app:testDebugUnitTest BUILD SUCCESSFUL；detekt + ktlintCheck BUILD SUCCESSFUL。
 - 仍待 owner/后续：R-UI-08/R-UI-14、R-TEST-03/04 剩余、R-TEST-06 完整状态机/10 真实路径/14 v1-54/20 其余、R-CI-07 阈值、R-SEC-03 CORS/绑定面、R-SVC-05 任务期持锁面、R-DB-04/05、R-BUILD-07、R-BUILD-02（已有阻塞决策）。

@@ -850,7 +850,12 @@ private fun openQQGroup(context: Context) {
     val intent = Intent(Intent.ACTION_VIEW, uri)
     runCatching { context.startActivity(intent) }.onFailure {
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-        clipboard?.setPrimaryClip(ClipData.newPlainText("QQ群号", "905451314"))
+        clipboard?.setPrimaryClip(
+            ClipData.newPlainText(
+                context.getString(R.string.settings_about_join_qq_group),
+                "905451314",
+            ),
+        )
         MuseToast.show(context.getString(R.string.settings_about_qq_not_installed))
     }
 }

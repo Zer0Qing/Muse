@@ -2,7 +2,7 @@
 # 格式: <file>: <违规数>;新增或上升都会失败,只允许下降
 # 清理存量后运行: py -3 ci/script/check_hardcoded_cjk.py --update-baseline
 #
-# 当前共 474 处,分布 54 个文件
+# 当前共 463 处,分布 54 个文件
 app/src/main/java/io/zer0/muse/ui/AssistantDetailPages.kt: 1
 app/src/main/java/io/zer0/muse/ui/ChatScreen.kt: 2
 app/src/main/java/io/zer0/muse/ui/ChatViewModel.kt: 63
@@ -12,7 +12,7 @@ app/src/main/java/io/zer0/muse/ui/HtmlPreviewScreen.kt: 2
 app/src/main/java/io/zer0/muse/ui/InputBar.kt: 2
 app/src/main/java/io/zer0/muse/ui/MemorySectionViews.kt: 17
 app/src/main/java/io/zer0/muse/ui/SafeModeScreen.kt: 3
-app/src/main/java/io/zer0/muse/ui/SettingsScreen.kt: 77
+app/src/main/java/io/zer0/muse/ui/SettingsScreen.kt: 76
 app/src/main/java/io/zer0/muse/ui/SkillScreen.kt: 2
 app/src/main/java/io/zer0/muse/ui/VideoGenerationPage.kt: 1
 app/src/main/java/io/zer0/muse/ui/artifact/ArtifactCard.kt: 1
@@ -26,7 +26,7 @@ app/src/main/java/io/zer0/muse/ui/chat/StickerEmotionDetector.kt: 14
 app/src/main/java/io/zer0/muse/ui/chat/VideoAttachmentHandler.kt: 1
 app/src/main/java/io/zer0/muse/ui/groupchat/GroupChatDetailScreen.kt: 6
 app/src/main/java/io/zer0/muse/ui/groupchat/GroupChatViewModel.kt: 3
-app/src/main/java/io/zer0/muse/ui/knowledge/KnowledgeScreen.kt: 9
+app/src/main/java/io/zer0/muse/ui/knowledge/KnowledgeScreen.kt: 8
 app/src/main/java/io/zer0/muse/ui/markdown/DataCardRenderer.kt: 2
 app/src/main/java/io/zer0/muse/ui/markdown/FormulaView.kt: 1
 app/src/main/java/io/zer0/muse/ui/markdown/MarkdownText.kt: 1
@@ -47,7 +47,7 @@ app/src/main/java/io/zer0/muse/ui/settings/PluginManagePage.kt: 1
 app/src/main/java/io/zer0/muse/ui/settings/ProviderBrandAssets.kt: 1
 app/src/main/java/io/zer0/muse/ui/settings/ProviderSection.kt: 5
 app/src/main/java/io/zer0/muse/ui/settings/SettingsTutorialPage.kt: 2
-app/src/main/java/io/zer0/muse/ui/settings/ThemeSection.kt: 17
+app/src/main/java/io/zer0/muse/ui/settings/ThemeSection.kt: 8
 app/src/main/java/io/zer0/muse/ui/settings/VisionSettingsPage.kt: 3
 app/src/main/java/io/zer0/muse/ui/speech/CloudTtsService.kt: 11
 app/src/main/java/io/zer0/muse/ui/taskcard/PlanCard.kt: 2

@@ -56,18 +56,20 @@ object JsSandbox {
     private const val INIT_JS = """
         (function() {
             'use strict';
+            // 防御性捕获:属性已存在/不可配置时记录一次,避免初始化中断
+            function logSandboxInitSkip() { if (window.console && console.debug) console.debug('sandbox init skip'); }
             // 禁用 fetch / XMLHttpRequest:沙盒内不允许任何网络请求
-            try { Object.defineProperty(window, 'fetch', { value: function() { throw new Error('fetch is disabled in sandbox'); }, writable: false, configurable: false }); } catch (e) {}
-            try { Object.defineProperty(window, 'XMLHttpRequest', { value: function() { throw new Error('XMLHttpRequest is disabled in sandbox'); }, writable: false, configurable: false }); } catch (e) {}
-            try { Object.defineProperty(window, 'WebSocket', { value: function() { throw new Error('WebSocket is disabled in sandbox'); }, writable: false, configurable: false }); } catch (e) {}
+            try { Object.defineProperty(window, 'fetch', { value: function() { throw new Error('fetch is disabled in sandbox'); }, writable: false, configurable: false }); } catch (e) { logSandboxInitSkip(); }
+            try { Object.defineProperty(window, 'XMLHttpRequest', { value: function() { throw new Error('XMLHttpRequest is disabled in sandbox'); }, writable: false, configurable: false }); } catch (e) { logSandboxInitSkip(); }
+            try { Object.defineProperty(window, 'WebSocket', { value: function() { throw new Error('WebSocket is disabled in sandbox'); }, writable: false, configurable: false }); } catch (e) { logSandboxInitSkip(); }
             // 禁用 window.open / window.close:防止导航跳转
-            try { window.open = function() { throw new Error('window.open is disabled in sandbox'); }; } catch (e) {}
-            try { window.close = function() {}; } catch (e) {}
+            try { window.open = function() { throw new Error('window.open is disabled in sandbox'); }; } catch (e) { logSandboxInitSkip(); }
+            try { window.close = function() {}; } catch (e) { logSandboxInitSkip(); }
             // 屏蔽 navigator.sendBeacon
-            try { if (navigator && navigator.sendBeacon) navigator.sendBeacon = function() { throw new Error('sendBeacon is disabled in sandbox'); }; } catch (e) {}
+            try { if (navigator && navigator.sendBeacon) navigator.sendBeacon = function() { throw new Error('sendBeacon is disabled in sandbox'); }; } catch (e) { logSandboxInitSkip(); }
             // 屏蔽 document.write / writeln:防止注入 DOM
-            try { document.write = function() {}; } catch (e) {}
-            try { document.writeln = function() {}; } catch (e) {}
+            try { document.write = function() {}; } catch (e) { logSandboxInitSkip(); }
+            try { document.writeln = function() {}; } catch (e) { logSandboxInitSkip(); }
         })();
     """
 

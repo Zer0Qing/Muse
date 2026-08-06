@@ -712,7 +712,7 @@ fun ChatScreen(
                                 text = sessionTitle,
                                 style = MaterialTheme.typography.titleLarge.copy(
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 22.sp,
+                                    fontSize = 22.sp, // 有意豁免:会话标题固定 22sp,保持原头部视觉基线
                                 ),
                                 color = MaterialTheme.colorScheme.onBackground,
                                 maxLines = 1,

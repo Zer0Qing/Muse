@@ -1,5 +1,6 @@
 package io.zer0.muse.ui
 
+import io.zer0.common.Logger
 import io.zer0.memory.fact.FactEntity
 import java.time.LocalDate
 import java.time.LocalTime
@@ -86,14 +87,15 @@ object GreetingHelper {
             // 检查近期事项（time字段在明天/后天）
             val time = fact.time
             if (time != null && (text.contains("要") || text.contains("需要") || text.contains("计划") || text.contains("会议") || text.contains("报告") || text.contains("截止"))) {
-                try {
-                    val eventDate = LocalDate.parse(time.substringBefore("T"))
-                    val diff = java.time.temporal.ChronoUnit.DAYS.between(today, eventDate)
+                val eventDate = runCatching { LocalDate.parse(time.substringBefore("T")) }
+                    .onFailure { Logger.w("GreetingHelper", "忽略无法解析的记忆时间字段", it) }
+                    .getOrNull()
+                if (eventDate == null) continue
+                val diff = java.time.temporal.ChronoUnit.DAYS.between(today, eventDate)
                     when {
                         diff == 1L -> hints.add("明天有事：${text.take(20)}")
                         diff == 2L -> hints.add("后天有事：${text.take(20)}")
                     }
-                } catch (_: Exception) {}
             }
         }
         return hints.firstOrNull()

@@ -38,7 +38,6 @@ jobs:
         python3 ci/test/test_engineering_discipline.py
         python3 ci/test/test_hardcoded_cjk.py
     - name: Lane checks
-      continue-on-error: true
       run: |
         python3 ci/script/pr_check.py --base origin/main --output json
         python3 ci/script/check_repo_hygiene.py
