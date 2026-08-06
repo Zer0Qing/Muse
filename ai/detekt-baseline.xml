@@ -69,6 +69,7 @@
     <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$private suspend fun completeTextImpl(request: ChatRequest, keySwitchDepth: Int = 0): ChatCompletion</ID>
     <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$private suspend fun completeTextResponses(request: ChatRequest, keySwitchDepth: Int = 0): ChatCompletion</ID>
     <ID>CyclomaticComplexMethod:ProviderCompat.kt$ProviderCompatRules$private fun ProviderCompat.overrideByHost(host: String): ProviderCompat</ID>
+    <ID>LongMethod:ProviderCompat.kt$ProviderCompatRules$private fun ProviderCompat.overrideByHost(host: String): ProviderCompat</ID>
     <ID>CyclomaticComplexMethod:ProviderCompat.kt$ProviderCompatRules$private fun ProviderCompat.overrideByModelId(modelId: String, hostKnown: Boolean): ProviderCompat</ID>
     <ID>CyclomaticComplexMethod:ProviderError.kt$@Deprecated("Provider 应直接抛 ProviderException,用 (throwable as? ProviderException)?.providerError 替代字符串推断", ReplaceWith("(throwable as? ProviderException)?.providerError")) fun inferFromMessage(message: String, throwable: Throwable?): ProviderError?</ID>
     <ID>CyclomaticComplexMethod:VideoGenerationService.kt$VideoGenerationService$private suspend fun pollUntilCompletion( provider: VideoProvider, taskId: String, onProgress: ((elapsedSec: Long) -&gt; Unit)?, timeoutMs: Long, ): String</ID>

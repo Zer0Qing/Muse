@@ -81,16 +81,18 @@ class VideoGenerationService(
             // 1. 提交任务
             val submitResult = provider.submit(requestWithCreds)
             val taskId = submitResult.taskId
-            if (taskId.isNullOrBlank()) {
-                error("视频任务提交失败:无 taskId")
-            }
 
-            // 同步返回:直接取 videoUrl
+            // 同步返回:直接取 videoUrl(不需要 taskId)
             if (!submitResult.isAsync) {
                 val url = submitResult.videoUrl
                     ?: error("视频任务同步返回但未提供 videoUrl")
                 onProgress?.invoke(0)
                 return@resultOf url
+            }
+
+            // 异步任务必须携带 taskId
+            if (taskId.isNullOrBlank()) {
+                error("视频任务提交失败:无 taskId")
             }
 
             // 2. 异步轮询
@@ -188,9 +190,27 @@ class VideoGenerationService(
 
                 // 自适应频率判断
                 if (shouldCheckThisTick(ageMs, tickCount)) {
-                    try {
-                        val pollResult = provider.poll(taskId)
+                    // poll 异常视为瞬时错误;FAILED 是终态,不进入瞬时重试计数
+                    val pollResult = try {
+                        provider.poll(taskId)
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        consecutiveErrors++
+                        if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+                            error(
+                                "${provider.providerId} 任务连续 $consecutiveErrors 次查询异常: ${e.message}",
+                            )
+                        }
+                        Logger.w(
+                            TAG,
+                            "查询异常 (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS})" +
+                                ",将重试: ${e.message}",
+                        )
+                        null
+                    }
 
+                    if (pollResult != null) {
                         // 取消围栏:poll 返回后检查是否已被取消
                         if (cancelledTasks.remove(taskId) != null) {
                             throw CancellationException("任务已被用户取消: taskId=$taskId")
@@ -228,20 +248,6 @@ class VideoGenerationService(
                                 }
                             }
                         }
-                    } catch (e: CancellationException) {
-                        throw e
-                    } catch (e: Exception) {
-                        consecutiveErrors++
-                        if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
-                            error(
-                                "${provider.providerId} 任务连续 $consecutiveErrors 次查询异常: ${e.message}",
-                            )
-                        }
-                        Logger.w(
-                            TAG,
-                            "查询异常 (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS})" +
-                                ",将重试: ${e.message}",
-                        )
                     }
                 }
 

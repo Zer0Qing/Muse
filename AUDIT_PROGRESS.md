@@ -4,6 +4,7 @@
 > 仓库：`E:\1Project\Muse\1muse`，分支：`refactor-audit-fixes`（基于 main f967fda）
 > 批次定义以任务书「修订说明 → 执行顺序」为准。R-SEC-01 / R-DB-01 / R-BUILD-01 / R-CI-01 / R-AI-01 已驳回或降级，不执行。
 > 本文件在仓库根目录维护；上下文交接卡同步维护于 `E:\1Project\Muse\上下文交接卡.md`。
+> 执行计划（2026-08-07 重写）：`E:\1Project\Muse\审计剩余执行计划.md`。
 
 ## 批次状态
 
@@ -79,7 +80,7 @@
 | R-SEC-03 | 已完成 | WebServerAuthPolicyTest 6/6 通过 | 方案 B：默认 127.0.0.1 + CORS 仅本机；设置页局域网开关开启后绑定 0.0.0.0 + anyHost；JWT 独立密钥 |
 | R-SVC-05 | 已完成 | 编译通过 | 方案 B：仅聊天/群聊生成任务活跃且 keepAwake 开启时持锁；低电量未充电不持锁；设置页文案同步 |
 | R-TEST-19 | 已完成 | VisionBridgePureFunctionsTest 4/4 通过 | 视觉上下文/失败提示/MIME 嗅探/hash 纯逻辑 |
-| R-TEST-20 | 部分完成 | OpenAIImageProviderRequestTest 3/3 + VideoProviderRequestTest 5/5 + McpConfigTest 8/8 + ConfigImporterTest 5/5 + WidgetPrefsTest 4/4 + SlashCommandRegistryTest 8/8 + ProviderPluginRegistryTest 2/2 + GlossaryStoreTest 6/6 + AgnesImageProviderTest 5/5 + ImageServicePureTest 8/8 + VideoProviderParsingTest 6/6 通过 | OpenAI 文生图/视频 Provider 请求体 + MCP DTO + ConfigImporter + WidgetPrefs + 斜杠命令 + Provider 插件 + 翻译术语表 + Agnes 图片解析/尺寸 + 图片服务轮询/输出转换/模型选择 + Agnes/Kling 视频状态与响应解析 |
+| R-TEST-20 | 已完成（主要面） | OpenAIImageProviderRequestTest 3/3 + VideoProviderRequestTest 5/5 + McpConfigTest 8/8 + ConfigImporterTest 5/5 + WidgetPrefsTest 4/4 + SlashCommandRegistryTest 8/8 + ProviderPluginRegistryTest 2/2 + GlossaryStoreTest 6/6 + AgnesImageProviderTest 5/5 + ImageServicePureTest 8/8 + VideoProviderParsingTest 6/6 + ImageProviderRegistryTest 6/6 + VideoProviderRegistryTest 6/6 + ImageModelCatalogTest 6/6 + VideoGenerationServiceTest 6/6 通过 | OpenAI 文生图/视频 Provider 请求体 + MCP DTO + ConfigImporter + WidgetPrefs + 斜杠命令 + Provider 插件 + 翻译术语表 + Agnes 图片解析/尺寸 + 图片服务轮询/输出转换/模型选择 + Agnes/Kling 视频状态与响应解析 |
 | R-TEST-14 | 已完成（JVM 面） | MuseDbMigrationTest 4/4 通过 | 反射迁移链 + schema-aware 插行；JVM 覆盖 v55→76；v1-54 因 FTS4 与 schema 漂移留真机 |
 | R-TEST-10 | 已完成 | ToolOrchestratorPureFunctionsTest + ToolOrchestratorRunLoopTest 5/5 通过 | calculator/web_search/超时/失败3次熔断/并行真实路径 + 纯逻辑；ToolOrchestrator 增加可注入 toolTimeoutMs |
 | R-TEST-06 | 部分完成 | ChatViewModelSendGuardTest 4/4 通过 | 发送守卫纯逻辑（空消息/流式/Agent 重入）；完整状态机待 R-UI-08 后补 |
@@ -419,3 +420,10 @@
 - 测试：MuseDbMigrationTest 扩至 4/4，覆盖 v55→76 全链、v68 真实缺列、群聊缺列、75→76 长/短 base64 外置与回读往返。
 - 验证：assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿；:app compileDebugKotlin/detekt/ktlintCheck（强制重跑）通过。
 - 本轮停止：按所有者指示，R-DB-04 完成后暂停，等待 owner review；R-DB-05、R-TEST-06 完整状态机、R-UI-14 结构级拆分、R-BUILD-07、真机验证项待后续。
+## 第三批检查点 38（2026-08-07 续）
+
+- 新增完成：R-TEST-20 注册表与视频服务面。ImageProviderRegistryTest 6/6、VideoProviderRegistryTest 6/6、ImageModelCatalogTest 6/6、VideoGenerationServiceTest 6/6。
+- 顺带修复 VideoGenerationService 两个 bug：同步返回被错误要求 taskId；FAILED 状态被当作瞬时错误导致无限重试。
+- 门禁维护：ai/detekt-baseline.xml 补登记 ProviderCompat.overrideByHost 的既有 LongMethod（来自先前功能提交，非本步新增）。
+- 验证：:ai testDebugUnitTest 全绿；:ai detekt/ktlintCheck 通过。
+- 仍待：R-TEST-20 的 Agnes 视频请求体面、R-TEST-06 状态机、R-DB-05、R-UI-14、MuMu 验证、R-BUILD-07 收尾。
