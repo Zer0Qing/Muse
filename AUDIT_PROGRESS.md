@@ -317,3 +317,9 @@
 - 备注：AgnesVideoProvider / KlingVideoProvider 相关 private 方法改 internal 供测试，无行为变化；AgnesVideoProvider 文件级 Suppress 保留存量 NestedBlockDepth/ReturnCount。
 - 验证：assembleDebug + 三模块单测全绿（一次全量联跑 TokenStatsBarTest OOM 偶发，app 单独重跑全绿，判定为 Robolectric/mockk 内存偶发，非代码回归）；detekt/ktlintCheck 通过。
 - 仍待 owner/后续：R-TEST-20 其余 Provider 面、R-TEST-06 完整状态机（依赖 R-UI-08）、R-UI-14 其余大文件（ChatScreen 仍约 1783 行、ChatViewModel/MuseDb/GroupChatScheduler 等）、R-DB-04/05、R-BUILD-07。
+
+## 第三批检查点小结（2026-08-06 续 4，等待 owner review）
+
+- 本轮新增提交：R-TEST-20 Agnes 图片/ImageService、Agnes/Kling 视频解析，以及检查点小结。
+- 验证：每个提交均 assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿（一次 TokenStatsBarTest OOM 偶发，app 重跑通过）；detekt/ktlintCheck 通过；工作区干净，分支未合并。
+- 仍待 owner/后续：R-TEST-06 完整状态机（依赖 R-UI-08）、R-UI-14 结构级拆分（ChatScreen/ChatViewModel/MuseDb/GroupChatScheduler）、R-DB-04/05、R-BUILD-07、真机验证项（Keystore / v1-54 迁移链）。R-TEST-20 已覆盖 image/video/MCP/importer/widget/plugin/slash/translate 主要面。
