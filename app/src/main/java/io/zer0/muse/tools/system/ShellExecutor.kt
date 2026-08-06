@@ -90,7 +90,7 @@ class ShellExecutor(
      * @param command 要执行的命令字符串
      * @return [ExecResult] 包含通道、退出码与输出
      */
-    fun execute(command: String): ExecResult {
+    suspend fun execute(command: String): ExecResult {
         // 1. 优先 Shizuku(shell 权限,无需 root)
         if (shizukuAuthorizer.checkPermission()) {
             val r = shizukuAuthorizer.execute(command)

@@ -1,6 +1,7 @@
 package io.zer0.memory.fact
 
 import android.content.Context
+import android.database.sqlite.SQLiteDatabase
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -8,6 +9,7 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import io.zer0.memory.ai.MemoryLinkEntity
 import io.zer0.memory.space.MemorySpaceEntity
+import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -229,8 +231,40 @@ abstract class FactDb : RoomDatabase() {
                 db.execSQL("ALTER TABLE facts ADD COLUMN pinned_at TEXT DEFAULT NULL")
             }
         }
+        /**
+         * R-DB-03: 归档早期 v1/v2 或损坏的 facts 数据库。
+         * 归档为 <name>.bak 后由 Room 重建空库,避免打开时崩溃。
+         */
+        private fun archiveLegacyOrCorruptDatabase(context: Context, name: String) {
+            val file = context.getDatabasePath(name)
+            if (!file.exists()) return
+
+            val legacyOrCorrupt = try {
+                val db = SQLiteDatabase.openDatabase(file.absolutePath, null, SQLiteDatabase.OPEN_READONLY)
+                val version = db.version
+                db.close()
+                version < 3
+            } catch (_: Exception) {
+                true
+            }
+            if (!legacyOrCorrupt) return
+
+            val bak = File(file.parentFile, "$name.bak")
+            runCatching { if (bak.exists()) bak.delete() }
+            val renamed = runCatching { file.renameTo(bak) }.getOrDefault(false)
+            if (!renamed) {
+                // 归档失败时仍删除旧库,避免 Room 打开即崩溃;早期数据已不可用。
+                runCatching { file.delete() }
+            }
+            listOf(file, File(file.parentFile, "$name-wal"), File(file.parentFile, "$name-shm")).forEach {
+                runCatching { if (it.exists()) it.delete() }
+            }
+            MemoryLegacyReset.mark(context, name)
+        }
+
         /** 单例数据库实例。全局唯一,内存数据库失败时回退。 */
         fun create(context: Context, name: String = "facts.db"): FactDb {
+            archiveLegacyOrCorruptDatabase(context, name)
             return Room.databaseBuilder(context, FactDb::class.java, name)
                 .addMigrations(
                     MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
@@ -254,8 +288,10 @@ abstract class FactDb : RoomDatabase() {
                     }
                 })
                 // v1.78 (M4): 移除 upgrade 的 destructive migration,避免升级时静默清空用户事实;
-                // 仅保留降级保护(从历史更高版本降到当前 v6 时不崩溃)
+                // 仅保留降级保护(从历史更高版本降到当前 v11 时不崩溃)
                 .fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true)
+                // R-DB-03: 早期 v1/v2 或损坏库已在上方归档;未知版本兜底重建,避免崩溃。
+                .fallbackToDestructiveMigration(dropAllTables = true)
                 .build()
         }
     }

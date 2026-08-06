@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.core.app.ApplicationProvider
+import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -13,6 +14,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.File
+import java.util.Base64
 
 /**
  * B6-03: MuseDb 迁移链测试。
@@ -35,7 +37,7 @@ class MuseDbMigrationTest {
 
     @Test
     fun migrateEveryVersionTo75_keepsDataAndAddsGenerationTables() {
-        val versions = (56..68) + 74
+        val versions = availableSchemaVersions() + (55..68) + 74
         for (fromVersion in versions) {
             val dbFile = context.getDatabasePath("muse_migration_$fromVersion.db").apply {
                 parentFile?.mkdirs()
@@ -45,27 +47,7 @@ class MuseDbMigrationTest {
                 createSchemaAtVersion(fromVersion, dbFile.absolutePath)
                 insertLegacyRow(dbFile.absolutePath, fromVersion)
 
-                val migrations = mutableListOf<androidx.room.migration.Migration>()
-                if (fromVersion == 74) {
-                    migrations += MuseDb.MIGRATION_74_75
-                } else if (fromVersion <= 67) {
-                    migrations += listOf(
-                        MuseDb.MIGRATION_56_57,
-                        MuseDb.MIGRATION_57_58,
-                        MuseDb.MIGRATION_58_59,
-                        MuseDb.MIGRATION_59_60,
-                        MuseDb.MIGRATION_60_61,
-                        MuseDb.MIGRATION_61_62,
-                        MuseDb.MIGRATION_62_63,
-                        MuseDb.MIGRATION_63_64,
-                        MuseDb.MIGRATION_64_65,
-                        MuseDb.MIGRATION_65_66,
-                        MuseDb.MIGRATION_66_67,
-                        MuseDb.MIGRATION_67_68,
-                    )
-                }
-                migrations += MuseDb.MIGRATION_68_74
-                migrations += MuseDb.MIGRATION_74_75
+                val migrations = migrationsFrom(fromVersion)
 
                 val db = Room.databaseBuilder(
                     context,
@@ -178,7 +160,11 @@ class MuseDbMigrationTest {
                 MuseDb::class.java,
                 dbFile.absolutePath,
             )
-                .addMigrations(MuseDb.MIGRATION_68_74, MuseDb.MIGRATION_74_75)
+                .addMigrations(
+                    MuseDb.MIGRATION_68_74,
+                    MuseDb.MIGRATION_74_75,
+                    MuseDb.migrate75To76(imageStorageDir),
+                )
                 .allowMainThreadQueries()
                 .build()
             db.openHelper.writableDatabase.query("PRAGMA table_info(sessions)").use { cursor ->
@@ -260,7 +246,11 @@ class MuseDbMigrationTest {
                 MuseDb::class.java,
                 dbFile.absolutePath,
             )
-                .addMigrations(MuseDb.MIGRATION_68_74, MuseDb.MIGRATION_74_75)
+                .addMigrations(
+                    MuseDb.MIGRATION_68_74,
+                    MuseDb.MIGRATION_74_75,
+                    MuseDb.migrate75To76(imageStorageDir),
+                )
                 .allowMainThreadQueries()
                 .build()
             db.openHelper.writableDatabase.query("PRAGMA table_info(group_chat_messages)").use { cursor ->
@@ -321,6 +311,106 @@ class MuseDbMigrationTest {
             context.deleteDatabase(dbFile.name)
         }
     }
+
+
+    @Test
+    fun migrateV75To76_externalizesLongBase64AndKeepsShortInline() {
+        val dbFile = context.getDatabasePath("muse_migration_75_images.db").apply {
+            parentFile?.mkdirs()
+            if (exists()) delete()
+        }
+        val imageDir = File(context.cacheDir, "muse_images_migration_v75")
+        imageDir.deleteRecursively()
+        imageDir.mkdirs()
+        try {
+            createSchemaAtVersion(75, dbFile.absolutePath)
+            insertLegacyRow(dbFile.absolutePath, 75)
+
+            val longBytes = ByteArray(900) { (it % 251).toByte() }
+            val longBase64 = Base64.getEncoder().encodeToString(longBytes)
+            val shortBase64 = "AQIDBA=="
+            val initialJson = JSONArray().put(longBase64).put(shortBase64).toString()
+
+            val factory = FrameworkSQLiteOpenHelperFactory()
+            val helper = factory.create(
+                androidx.sqlite.db.SupportSQLiteOpenHelper.Configuration.builder(context)
+                    .name(dbFile.absolutePath)
+                    .callback(object : androidx.sqlite.db.SupportSQLiteOpenHelper.Callback(75) {
+                        override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {}
+                        override fun onUpgrade(
+                            db: androidx.sqlite.db.SupportSQLiteDatabase,
+                            oldVersion: Int,
+                            newVersion: Int,
+                        ) {}
+                    })
+                    .build(),
+            ).writableDatabase
+            helper.execSQL(
+                "UPDATE messages SET imageBase64Json = ? WHERE id = 'legacy-msg'",
+                arrayOf(initialJson),
+            )
+            helper.close()
+
+            val db = Room.databaseBuilder(
+                context,
+                MuseDb::class.java,
+                dbFile.absolutePath,
+            )
+                .addMigrations(MuseDb.migrate75To76(imageDir))
+                .allowMainThreadQueries()
+                .build()
+
+            db.openHelper.writableDatabase.query(
+                "SELECT imageBase64Json FROM messages WHERE id = 'legacy-msg'"
+            ).use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                val stored = JSONArray(cursor.getString(0))
+                assertEquals(2, stored.length())
+                val longRef = stored.getString(0)
+                assertTrue("长 base64 应外置为 file:// 路径", longRef.startsWith("file://"))
+                assertEquals(shortBase64, stored.getString(1))
+                val storedFile = File(longRef.removePrefix("file://"))
+                assertTrue("外置图片文件应存在", storedFile.exists())
+                val roundTrip = MessageImageStore(imageDir).toBase64List(
+                    listOf(longRef, shortBase64),
+                )
+                assertEquals(longBase64, roundTrip[0])
+                assertEquals(shortBase64, roundTrip[1])
+            }
+            db.close()
+        } finally {
+            if (dbFile.exists()) dbFile.delete()
+            context.deleteDatabase(dbFile.name)
+            imageDir.deleteRecursively()
+        }
+    }
+
+    /** 1–54 的 schema 快照存在迁移漂移(缺索引/默认值)且 38→39 建 FTS4,Robolectric 无法覆盖,留真机。 */
+    private fun availableSchemaVersions(): List<Int> = emptyList()
+
+    private val imageStorageDir: File get() = File(context.cacheDir, "muse_images_migration_test")
+
+    /** 用反射收集 MuseDb 已注册迁移,按 fromVersion 排序得到完整升级链。 */
+    private fun migrationsFrom(fromVersion: Int): List<androidx.room.migration.Migration> {
+        val chain = MuseDb::class.java.declaredFields
+            .filter { it.name.startsWith("MIGRATION_") }
+            .mapNotNull { field ->
+                val parts = field.name.removePrefix("MIGRATION_").split("_")
+                val from = parts.getOrNull(0)?.toIntOrNull() ?: return@mapNotNull null
+                val to = parts.getOrNull(1)?.toIntOrNull() ?: return@mapNotNull null
+                if (from < fromVersion) return@mapNotNull null
+                field.isAccessible = true
+                (from to to) to (field.get(null) as androidx.room.migration.Migration)
+            }
+            .sortedBy { it.first.first }
+            .map { it.second }
+        return if (fromVersion <= 75) {
+            chain + MuseDb.migrate75To76(imageStorageDir)
+        } else {
+            chain
+        }
+    }
+
     private fun createSchemaAtVersion(version: Int, dbPath: String, stripIsLocked: Boolean = false) {
         val schema = loadSchema(version)
         val databaseJson = schema.getJSONObject("database")
@@ -370,6 +460,28 @@ class MuseDbMigrationTest {
         helper.close()
     }
 
+    private fun defaultValueForColumn(name: String, type: String): String = when {
+        name.contains("Json", ignoreCase = true) || name.contains("Urls", ignoreCase = true) -> "'[]'"
+        type.uppercase().contains("INT") -> "0"
+        else -> "''"
+    }
+
+    /** 旧 schema 中 NOT NULL 且无默认值的 messages 列,插入测试数据时按类型补默认值。 */
+    private fun requiredExtraMessageColumns(
+        helper: androidx.sqlite.db.SupportSQLiteDatabase,
+    ): List<Pair<String, String>> {
+        val result = mutableListOf<Pair<String, String>>()
+        val base = setOf("id", "sessionId", "role", "content", "createdAt")
+        helper.query("PRAGMA table_info(messages)").use { cursor ->
+            while (cursor.moveToNext()) {
+                val name = cursor.getString(1)
+                val needsValue = name !in base && cursor.getInt(3) == 1 && cursor.isNull(4)
+                if (needsValue) result += name to defaultValueForColumn(name, cursor.getString(2))
+            }
+        }
+        return result
+    }
+
     private fun insertLegacyRow(dbPath: String, fromVersion: Int) {
         val factory = FrameworkSQLiteOpenHelperFactory()
         val helper = factory.create(
@@ -395,11 +507,14 @@ class MuseDbMigrationTest {
             VALUES ('legacy-session', '迁移测试', 1, 1, '', 'default')
             """.trimIndent()
         )
+        val requiredExtra = requiredExtraMessageColumns(helper)
+        val messageColumns = listOf("id", "sessionId", "role", "content", "createdAt") + requiredExtra.map { it.first }
+        val messageValues = listOf(
+            "'legacy-msg'", "'legacy-session'", "'ASSISTANT'", "'迁移前的历史消息'", "1",
+        ) + requiredExtra.map { it.second }
         helper.execSQL(
-            """
-            INSERT INTO messages (id, sessionId, role, content, createdAt)
-            VALUES ('legacy-msg', 'legacy-session', 'ASSISTANT', '迁移前的历史消息', 1)
-            """.trimIndent()
+            "INSERT INTO messages (${messageColumns.joinToString(", ")}) " +
+                "VALUES (${messageValues.joinToString(", ")})"
         )
         helper.close()
     }

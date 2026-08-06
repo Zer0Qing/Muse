@@ -73,12 +73,21 @@
     <string name="theme_twilight_purple">트와일라잇 퍼플</string>
     <string name="theme_amber_gold">앰버 골드</string>
     <string name="theme_dusk_rose">황혼의 장미</string>
+    <string name="settings_theme_dark_section">다크 모드 테마</string>
+    <string name="settings_theme_follow_light">라이트 테마 따르기</string>
+    <string name="settings_theme_dark_title">다크 테마</string>
+    <string name="settings_theme_schedule">정기 전환</string>
+    <string name="settings_theme_schedule_auto">자동 전환</string>
+    <string name="settings_theme_schedule_auto_subtitle">기상/취침 시간에 라이트/다크 자동 전환</string>
+    <string name="settings_theme_wake_time_title">기상 시간(라이트)</string>
+    <string name="settings_theme_sleep_time_title">취침 시간(다크)</string>
 
     <!-- ===== ui/speech voice input and TTS ===== -->
     <string name="speech_speak_prompt">말해주세요…</string>
     <string name="speech_tts_init_failed">음성 엔진 초기화에 실패했습니다. 소리내어 읽을 수 없습니다.</string>
     <string name="speech_tts_play_error">음성 재생 오류</string>
     <string name="speech_tts_fallback_to_system">네트워크 문제, 시스템 TTS로 전환됨</string>
+    <string name="speech_tts_no_engine">TTS 엔진이 없습니다. 음성 서비스를 설치해 주세요</string>
     <string name="speech_stop_reading_cd">읽기 중지</string>
     <string name="speech_playback_speed_cd">재생 속도 %1$sx</string>
     <string name="speech_seek_forward_5s_cd">5초 앞으로</string>

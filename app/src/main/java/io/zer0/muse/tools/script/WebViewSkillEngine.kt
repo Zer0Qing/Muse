@@ -21,8 +21,11 @@ class WebViewSkillEngine : SkillEngine {
 
     private val executionMutex = Mutex()
 
-    override suspend fun eval(script: String, timeoutMs: Long): SkillEngineResult =
-        executionMutex.withLock {
+    override suspend fun eval(script: String, timeoutMs: Long): SkillEngineResult {
+        if (JsSandbox.isCircuitBroken) {
+            return SkillEngineResult.Error(message = "JS 沙盒已熔断，请稍后重试")
+        }
+        return executionMutex.withLock {
             val result = JsSandbox.execute(script, timeoutMs)
             result.fold(
                 onSuccess = { jsResult ->
@@ -46,6 +49,7 @@ class WebViewSkillEngine : SkillEngine {
                 },
             )
         }
+    }
 
     override fun interrupt() {
         // WebView V8 无法真正中断 JS 执行

@@ -47,6 +47,10 @@ class CoverGenerator(
         private const val MAX_PROMPT_TOKENS = 300
         private const val DOWNLOAD_TIMEOUT_MS = 30_000L
         private const val MAX_DOWNLOAD_BYTES = 20L * 1024 * 1024
+
+        /** R-UI-06/R-TEST-18: 空 LLM 输出降级为固定绘图指令,便于单元测试。 */
+        internal fun resolveCoverPrompt(raw: String, title: String): String =
+            raw.trim().ifBlank { "Minimal modern banner cover for: $title, no text, 16:9 aspect ratio" }
     }
 
     /**
@@ -85,8 +89,9 @@ class CoverGenerator(
                 reasoningLevel = ReasoningLevel.OFF,
                 mode = ChatRequestMode.UTILITY,
             )
-            val coverPrompt = promptCompletion.text.trim()
-            if (coverPrompt.isBlank()) error("封面 prompt 生成失败(空输出)")
+            val rawCoverPrompt = promptCompletion.text.trim()
+            // R-UI-06: 空 LLM 输出降级为固定绘图指令,不再抛 IllegalStateException。
+            val coverPrompt = resolveCoverPrompt(rawCoverPrompt, title)
 
             // 2. 生图
             val service = imageService

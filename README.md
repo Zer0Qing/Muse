@@ -259,7 +259,7 @@ Muse 每次回复前会生成一个 `mood` 块，这是 AI 的"内心独白"—�
 | AI 推理 | ONNX Runtime (本地 embedding + rerank) |
 | 文档解析 | PDFBox + ML Kit OCR |
 | Web 服务器 | Ktor (JWT + mDNS) |
-| 代码分析 | detekt + ktlint |
+| 代码分析 | CI 执行 detekt + ktlint + lintDebug + Lane 脚本；单测按所有者决策不在 CI 执行 |
 
 ---
 
@@ -340,6 +340,13 @@ Muse 由独立开发者维护，免费开源。如果你喜欢这个项目，欢
 
 - [贡献指南](CONTRIBUTING.md) —— Bug 报告、功能建议、Pull Request 流程
 - [安全政策](SECURITY.md) —— 漏洞报告方式与内置安全机制
+
+---
+
+## 已知限制
+
+- 极早期版本（facts.db v1/v2）的记忆数据库没有迁移路径。升级到支持 v3+ 的版本时，会将该文件归档为 `.bak` 并重建空库，记忆页会提示“早期记忆数据不兼容，已重置并保留备份文件”。
+- 免费模型 fallback key 由构建时通过 `FREE_MODEL_KEY` 注入（`-P` / `local.properties` / 环境变量），未注入时界面会提示“免费额度服务不可用”；`KeyRoulette` 对 401 旧 key 使用硬黑名单，旧 key 在服务端轮换后应同步拉黑。
 
 ---
 

@@ -75,6 +75,7 @@ import androidx.navigation.compose.rememberNavController
 import io.zer0.common.Logger
 import io.zer0.muse.crash.MuseCrashHandler
 import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.data.AppearanceSettingsStore
 import io.zer0.muse.R
 import io.zer0.muse.intent.ShareIntentHandler
 import io.zer0.muse.ui.ChatViewModel
@@ -257,7 +258,7 @@ class MainActivity : ComponentActivity() {
             }
             // 修复:initialValue 改为 "mono" 与 SettingsRepository.themeIdFlow 默认值一致,
             // 避免冷启动时首帧渲染 warm_paper 主题、随后切换到 mono 造成主题闪烁。
-            val themeId by settings.themeIdFlow.collectAsStateWithLifecycle(initialValue = "mono")
+            val themeId by settings.themeIdFlow.collectAsStateWithLifecycle(initialValue = AppearanceSettingsStore.DEFAULT_THEME_ID)
             // 深色模式独立主题
             val darkThemeId by settings.darkThemeIdFlow.collectAsStateWithLifecycle(initialValue = "")
             // v1.65: 动态取色开关(Android 12+,代码早已就绪,此前未传参导致永远不可用)
@@ -766,8 +767,7 @@ private fun PinLockScreen(
                             pinDraft = ""
                             pinFailCount++
                             if (pinFailCount >= 5) {
-                                val shift = (pinFailCount - 5).coerceAtMost(20)
-                                val delayMs = 30000L * (1L shl shift)
+                                val delayMs = io.zer0.muse.auth.PinLockPolicy.lockDelayMs(pinFailCount)
                                 pinLockUntil = System.currentTimeMillis() + delayMs
                             }
                             // v1.104: 持久化失败计数 + 锁定时间,杀进程重启后保留

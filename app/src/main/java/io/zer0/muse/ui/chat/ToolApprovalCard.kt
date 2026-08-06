@@ -100,22 +100,13 @@ fun ToolApprovalCard(
     argumentsPreview: String,
     onApprove: () -> Unit,
     onDeny: (reason: String) -> Unit,
-    alwaysAllow: Boolean,
-    onAlwaysAllowChanged: (Boolean) -> Unit,
-    /** v1.0.16: 本次开启期间批准全部工具 */
-    appRunAllowAll: Boolean = false,
-    /** v1.0.16: 本次开启期间批准全部 复选状态变更回调 */
-    onAppRunAllowAllChanged: (Boolean) -> Unit = {},
     /**
      * v1.0.20: 持久化单工具策略回调。
      *
      * "始终允许"按钮点击时传入 [ToolApprovalPolicy.ALWAYS_ALLOW],
-     * "始终拒绝"按钮点击时传入 [ToolApprovalPolicy.ALWAYS_DENY]。
      * 调用方应在此回调内:
      *  1. 调用 [io.zer0.muse.tools.ToolConfigStore.setPolicy] 持久化策略
      *  2. 同步触发 onApprove / onDeny 处理本次调用
-     *
-     * 默认空实现(向后兼容,不接通持久化时按钮仅触发本次批准/拒绝)。
      */
     onPersistPolicy: (ToolApprovalPolicy) -> Unit = {},
     /**
@@ -124,8 +115,6 @@ fun ToolApprovalCard(
      * 调用方应在此回调内调用 [io.zer0.muse.tools.SessionPermissionStore.allowToolForSession]
      * 把工具名加入当前会话的内存缓存;同时由按钮内部触发 [onApprove] 处理本次调用。
      * 本会话内该工具不再弹审批卡片,切换会话/冷启动后自动失效。
-     *
-     * 默认空实现(向后兼容)。
      */
     onAllowThisSession: () -> Unit = {},
     /**
@@ -143,7 +132,7 @@ fun ToolApprovalCard(
     var denyReason by remember { mutableStateOf("") }
     // 参考图读取中标志(避免大图阻塞主线程时按钮无响应)
     var isLoadingRefImage by remember { mutableStateOf(false) }
-    // v1.0.48: 次级操作折叠状态(本会话允许 / 始终允许 / 始终拒绝 / 复选框)
+    // v1.x: 次级操作折叠状态(本会话允许 / 始终允许)
     var showMoreOptions by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
@@ -321,7 +310,7 @@ fun ToolApprovalCard(
                 )
             }
 
-            // 次级操作(折叠区):本会话允许 / 始终允许 / 始终拒绝 + 持久化复选框
+            // 次级操作(折叠区):本会话允许 / 始终允许
             AnimatedVisibility(
                 visible = showMoreOptions,
                 enter = expandVertically() + fadeIn(),
@@ -330,7 +319,6 @@ fun ToolApprovalCard(
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
-                    // 第二行 — 本会话允许 / 始终允许
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -360,52 +348,6 @@ fun ToolApprovalCard(
                             Spacer(Modifier.width(4.dp))
                             Text(stringResource(R.string.tool_approval_always_approve), style = MaterialTheme.typography.labelMedium)
                         }
-                    }
-
-                    // 第三行 — 始终拒绝(持久化)
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        TextButton(
-                            onClick = {
-                                // 持久化 ALWAYS_DENY 策略,并触发本次拒绝
-                                onPersistPolicy(ToolApprovalPolicy.ALWAYS_DENY)
-                                onDeny("")
-                            },
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                        ) {
-                            Icon(Icons.Default.Block, contentDescription = null, modifier = Modifier.size(MuseIconSizes.iconSmall))
-                            Spacer(Modifier.width(4.dp))
-                            Text(stringResource(R.string.tool_approval_always_deny), style = MaterialTheme.typography.labelMedium)
-                        }
-                    }
-
-                    // "始终允许"复选框(本次批准时附带勾选,与"始终允许"按钮的区别:
-                    // 复选框是 onApprove 时附带 alwaysAllow=true,按钮是直接持久化策略)
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(
-                            checked = alwaysAllow,
-                            onCheckedChange = onAlwaysAllowChanged,
-                        )
-                        Text(
-                            text = stringResource(R.string.tool_approval_always_allow, toolName),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-
-                    // v1.0.16: "本次开启期间批准全部工具"复选框(内存态,不持久化,冷启动后失效)
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(
-                            checked = appRunAllowAll,
-                            onCheckedChange = onAppRunAllowAllChanged,
-                        )
-                        Text(
-                            text = stringResource(R.string.tool_approval_allow_all_this_run),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
                     }
                 }
             }

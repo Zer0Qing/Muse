@@ -17,6 +17,7 @@ import io.zer0.muse.ui.taskcard.AgentPlanStep
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -635,5 +636,18 @@ class ToolOrchestratorPureFunctionsTest {
             25,
             maxRounds,
         )
+    }
+
+    @Test
+    fun `tool timeout constant is 120 seconds`() {
+        assertEquals(120_000L, TOOL_TIMEOUT_MS)
+    }
+
+    @Test
+    fun `three consecutive failures abort tool loop`() {
+        assertFalse(shouldAbortToolLoop(0))
+        assertFalse(shouldAbortToolLoop(2))
+        assertTrue(shouldAbortToolLoop(3))
+        assertTrue(shouldAbortToolLoop(4))
     }
 }

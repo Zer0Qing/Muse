@@ -200,7 +200,7 @@
     <string name="settings_memory_experience_lib">Biblioteca de Experiências</string>
     <string name="settings_memory_experience_lib_subtitle">O assistente resume a experiência de trabalho e faz referência a ela em tarefas posteriores (pode poluir o contexto)</string>
     <string name="settings_memory_keep_awake">Mantenha-se acordado</string>
-    <string name="settings_memory_keep_awake_subtitle">Mantenha a tela ligada durante o carregamento</string>
+    <string name="settings_memory_keep_awake_subtitle">Manter apenas durante geração ativa; pular com bateria baixa e sem carregar</string>
     <string name="settings_memory_auto_launch">Inicialização automática na inicialização</string>
     <string name="settings_memory_auto_launch_subtitle">Inicie o Muse automaticamente quando o dispositivo inicializar</string>
     <string name="settings_memory_notification_section">Notificações</string>

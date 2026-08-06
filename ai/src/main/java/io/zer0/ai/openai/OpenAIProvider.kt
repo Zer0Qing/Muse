@@ -53,7 +53,6 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
-import okhttp3.Call
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -61,6 +60,7 @@ import okhttp3.Response
 import okhttp3.sse.EventSource
 import okhttp3.sse.EventSourceListener
 import okhttp3.sse.EventSources
+import java.security.MessageDigest
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
@@ -429,14 +429,8 @@ class OpenAIProvider(
         }
 
         var currentEventSource: EventSource? = null
-        // v1.114 修复: 持有底层 Call 引用,awaitClose 时一并 cancel(与 AnthropicProvider/GeminiProvider 一致),
-        //   避免 eventSource 尚未创建或 cancel 不及时导致底层连接泄漏。
-        var currentCall: Call? = null
 
         fun connect() {
-            // v1.114 修复: 先 newCall 并持有引用,供 awaitClose cancel(按 AnthropicProvider)
-            val call = httpClient.newCall(httpRequest)
-            currentCall = call
             currentEventSource = sseFactory.newEventSource(httpRequest, object : EventSourceListener() {
                 override fun onOpen(eventSource: EventSource, response: Response) {
                     firstByteAt = System.currentTimeMillis()
@@ -451,7 +445,6 @@ class OpenAIProvider(
                             httpRequest = buildHttpRequest()
                             retryCount.incrementAndGet()
                             eventSource.cancel()
-                            currentCall?.cancel()
                             scope.launch {
                                 if (!request.abortSignal.aborted && !scope.isClosedForSend) {
                                     connect()
@@ -465,7 +458,7 @@ class OpenAIProvider(
                         Logger.w("OpenAIProvider", "streamChat onOpen HTTP $code: $msg")
                         // v1.0.28: HTTP 400 时记录请求体和完整响应体,帮助诊断中转站参数错误
                         if (code == 400) {
-                            Logger.w("OpenAIProvider", "streamChat 400 请求体(前500字符): ${body.take(500)}")
+                            Logger.w("OpenAIProvider", "streamChat 400 请求摘要: ${describeRequestBody(body)}")
                             Logger.w("OpenAIProvider", "streamChat 400 完整响应体: $errText")
                         }
                         // v1.0.1: 401/403 鉴权失败时标记当前 key 失败(多 key 场景)
@@ -728,6 +721,8 @@ class OpenAIProvider(
                         }
                         // v1.0.1: key 切换后重新构造 httpRequest(更新 Authorization header)
                         httpRequest = buildHttpRequest()
+                        // R-AI-03: 重试前清掉连接池中的半开/空闲连接,避免复用已 reset 连接
+                        ProviderHttpSupport.evictIdleConnections()
                         Logger.w("OpenAIProvider", "streamChat onFailure, retry $attempt/$MAX_RETRIES after ${backoffMs}ms: ${t?.message ?: code}")
                         scope.launch {
                             delay(backoffMs)
@@ -766,8 +761,6 @@ class OpenAIProvider(
         awaitClose {
             request.abortSignal.abort()
             currentEventSource?.cancel()
-            // v1.114 修复: 同时 cancel 底层 Call(与 AnthropicProvider/GeminiProvider 一致)
-            currentCall?.cancel()
         }
         // v1.0.19: 无界 buffer,防止 EventSource 回调突发投递时 trySend 因内部 channel 满
         //   而丢片(使用无界 buffer)。
@@ -823,7 +816,7 @@ class OpenAIProvider(
                     Logger.w("OpenAIProvider", "completeText HTTP $code: $msg")
                     // v1.0.28: HTTP 400 时记录请求体和完整响应体,帮助诊断中转站参数错误
                     if (code == 400) {
-                        Logger.w("OpenAIProvider", "completeText 400 请求体(前500字符): ${body.take(500)}")
+                        Logger.w("OpenAIProvider", "completeText 400 请求摘要: ${describeRequestBody(body)}")
                         Logger.w("OpenAIProvider", "completeText 400 完整响应体: $errText")
                     }
                     // L-OAI11: 用自定义异常替代字符串前缀判断
@@ -1524,8 +1517,12 @@ class OpenAIProvider(
             ReasoningReplayPolicy.NONE -> null
             ReasoningReplayPolicy.PRESERVE -> reasoningText
             ReasoningReplayPolicy.REQUIRE_TOOL_CALL -> {
-                // 仅 ASSISTANT + toolCalls 非空时注入(fail-closed 原则)
-                if (role == MessageRole.ASSISTANT && !toolCalls.isNullOrEmpty()) reasoningText else null
+                // v1.x: 放宽为"ASSISTANT 且带 reasoning 即回传"。
+                // 原实现仅对带 tool_calls 的 assistant 注入,但 DeepSeek/Kimi 类中转站要求
+                // thinking 模式下**所有** assistant 消息(含普通回复)回传 reasoning_content,
+                // 否则多轮工具循环的下一轮请求返回 400
+                // ("The reasoning_content in the thinking mode must be passed back to the API")。
+                if (role == MessageRole.ASSISTANT) reasoningText else null
             }
         }
     }
@@ -1605,6 +1602,17 @@ class OpenAIProvider(
      * L-OAI10: 追加 detail.code 字段。
      * L-OAI11: 移除一次重复截断(原 safeBody=take(200) + msg.take(200) 两次截断)。
      */
+    /** R-SEC-06: 400 排障只输出请求结构摘要,不落用户对话内容。 */
+    private fun describeRequestBody(body: String): String {
+        val parsed = runCatching { AppJson.decodeFromString(OpenAIRequest.serializer(), body) }.getOrNull()
+        val bytes = body.toByteArray(Charsets.UTF_8)
+        val digest = MessageDigest.getInstance("SHA-256").digest(bytes)
+        val hashPrefix = digest.take(4).joinToString("") { "%02x".format(it) }
+        return "model=${parsed?.model ?: "unknown"} " +
+            "messages=${parsed?.messages?.size ?: -1} " +
+            "tools=${parsed?.tools?.size ?: 0} " +
+            "bodyBytes=${bytes.size} sha256=$hashPrefix"
+    }
     private fun parseErrorMessage(code: Int, body: String): String {
         // M-OAI1: HTTP 状态码分类
         val category = ProviderHttpSupport.classifyHttpCode(code)
@@ -1721,11 +1729,8 @@ class OpenAIProvider(
         }
 
         var currentEventSource: EventSource? = null
-        var currentCall: Call? = null
 
         fun connect() {
-            val call = httpClient.newCall(httpRequest)
-            currentCall = call
             currentEventSource = sseFactory.newEventSource(httpRequest, object : EventSourceListener() {
                 override fun onOpen(eventSource: EventSource, response: Response) {
                     firstByteAt = System.currentTimeMillis()
@@ -1739,7 +1744,6 @@ class OpenAIProvider(
                             httpRequest = buildHttpRequest()
                             retryCount.incrementAndGet()
                             eventSource.cancel()
-                            currentCall?.cancel()
                             scope.launch {
                                 if (!request.abortSignal.aborted && !scope.isClosedForSend) {
                                     connect()
@@ -1925,7 +1929,7 @@ class OpenAIProvider(
                 ) {
                     if (request.abortSignal.aborted) {
                         Logger.d("OpenAIProvider", "streamChatResponses aborted by user")
-                        trySend(ChatStreamEvent.Error("aborted", t))
+                        trySend(ChatStreamEvent.StreamInterrupted("用户已停止生成", t))
                         close()
                         return
                     }
@@ -1935,6 +1939,8 @@ class OpenAIProvider(
                         val attempt = retryCount.incrementAndGet()
                         val backoffMs = (RETRY_BASE_DELAY_MS * (1 shl (attempt - 1))) +
                             Random.nextLong(0, 200)
+                        // R-AI-03: 重试前清掉连接池中的半开/空闲连接
+                        ProviderHttpSupport.evictIdleConnections()
                         Logger.w("OpenAIProvider", "streamChatResponses onFailure, retry $attempt/$MAX_RETRIES after ${backoffMs}ms: ${t?.message ?: code}")
                         scope.launch {
                             delay(backoffMs)
@@ -1970,7 +1976,6 @@ class OpenAIProvider(
         awaitClose {
             request.abortSignal.abort()
             currentEventSource?.cancel()
-            currentCall?.cancel()
         }
         // v1.0.19: 无界 buffer,防止 EventSource 回调突发投递时 trySend 因内部 channel 满
         //   而丢片(使用无界 buffer)。

@@ -6,6 +6,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
 
+/** R-AI-04: 深度推理/超长上下文模型放宽首事件超时,普通模型保持默认。 */
+internal fun Model.firstEventTimeoutMs(defaultMs: Long = 15_000L): Long =
+    if (supportsReasoning() || (contextWindow ?: 0) > 200_000) 60_000L else defaultMs
+
 /**
  * B3-01: 首事件看门狗。
  *
@@ -61,7 +65,7 @@ fun Flow<ChatStreamEvent>.withFirstEventWatchdog(
         if (!firstEventReceived && !finished) {
             finished = true
             upstreamJob.cancel()
-            trySend(ChatStreamEvent.FallbackNotice("已切换非流式"))
+            trySend(ChatStreamEvent.FallbackNotice("网络较慢，已切换请求方式"))
             try {
                 val completion = fallback()
                 completion.reasoningContent?.takeIf { it.isNotBlank() }?.let {

@@ -70,13 +70,13 @@ object PiiGuard {
      *              + 后续 5-30 个非空白字符。
      */
     private val patterns: Map<PiiType, Regex> = linkedMapOf(
-        PiiType.PHONE to Regex("(?<!\\d)1[3-9]\\d{9}(?!\\d)"),
+        PiiType.PHONE to Regex("(?<!\\d)1[3-9](?:[ -]?\\d){9}(?!\\d)"),
         // 邮箱:复用 MusePatterns.EMAIL_REGEX 的核心模式(去掉 ^ $ 锚定)。
         PiiType.EMAIL to Regex(
             MusePatterns.EMAIL_REGEX.pattern.removePrefix("^").removeSuffix("$"),
         ),
         PiiType.ID_CARD to Regex(
-            "(?<!\\d)[1-9]\\d{5}(?:18|19|20)\\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\\d|3[01])\\d{3}[\\dXx](?!\\d)",
+            "(?<!\\d)(?:[1-9]\\d{5}(?:18|19|20)\\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\\d|3[01])\\d{3}[\\dXx]|[1-9]\\d{5}\\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\\d|3[01])\\d{3})(?!\\d)",
         ),
         PiiType.BANK_CARD to Regex("(?<!\\d)\\d{16,19}(?!\\d)"),
         PiiType.IP_ADDRESS to Regex("(?<!\\d)\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}(?!\\d)"),

@@ -520,7 +520,7 @@ class DocumentParser(
         while (event != XmlPullParser.END_DOCUMENT) {
             when (event) {
                 XmlPullParser.START_TAG -> {
-                    val name = parser.name
+                    val name = parser.name?.substringAfterLast(':') ?: ""
                     when (name) {
                         "p" -> {  // 注意:OOXML 默认命名空间,本地名即 p/t/tab/br/cr
                             inParagraph = true
@@ -535,7 +535,7 @@ class DocumentParser(
                     }
                 }
                 XmlPullParser.END_TAG -> {
-                    if (parser.name == "p" && inParagraph) {
+                    if (parser.name?.substringAfterLast(':') == "p" && inParagraph) {
                         inParagraph = false
                         if (paragraphText.isNotEmpty()) {
                             sb.appendLine(paragraphText.toString())
@@ -586,7 +586,7 @@ class DocumentParser(
             while (event != XmlPullParser.END_DOCUMENT) {
                 when (event) {
                     XmlPullParser.START_TAG -> {
-                        when (parser.name) {
+                        when (parser.name?.substringAfterLast(':')) {
                             "p" -> {
                                 inParagraph = true
                                 paragraphText.setLength(0)
@@ -599,7 +599,7 @@ class DocumentParser(
                         }
                     }
                     XmlPullParser.END_TAG -> {
-                        if (parser.name == "p" && inParagraph) {
+                        if (parser.name?.substringAfterLast(':') == "p" && inParagraph) {
                             inParagraph = false
                             if (paragraphText.isNotEmpty()) {
                                 sb.appendLine(paragraphText.toString())

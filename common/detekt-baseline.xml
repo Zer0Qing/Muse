@@ -1,0 +1,15 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:ErrorMessage.kt$fun Throwable.toErrorMessage(): ErrorMessage</ID>
+    <ID>CyclomaticComplexMethod:Logger.kt$Logger$private fun maybeWriteFile(level: Level, tag: String, msg: String, t: Throwable?)</ID>
+    <ID>InstanceOfCheckForException:Result.kt$t is kotlin.coroutines.cancellation.CancellationException</ID>
+    <ID>MatchingDeclarationName:Coroutines.kt$AppDispatchers</ID>
+    <ID>MaxLineLength:Logger.kt$Logger$private val KV_CRED_REGEX = Regex("""(?i)(token|password|secret|apikey|api_key|access_token|refresh_token|client_secret|client_id)\s*[=:]\s*\S+""")</ID>
+    <ID>ReturnCount:Logger.kt$Logger$private fun maybeWriteFile(level: Level, tag: String, msg: String, t: Throwable?)</ID>
+    <ID>TooGenericExceptionCaught:Perf.kt$Perf$t: Throwable</ID>
+    <ID>TooGenericExceptionCaught:Result.kt$t: Throwable</ID>
+    <ID>TooGenericExceptionThrown:ResultTest.kt$ResultTest$throw RuntimeException("err")</ID>
+  </CurrentIssues>
+</SmellBaseline>

@@ -200,7 +200,7 @@
     <string name="settings_memory_experience_lib">체험도서관</string>
     <string name="settings_memory_experience_lib_subtitle">보조자는 업무 경험을 요약하고 이후 작업에서 이를 참조합니다(맥락을 오염시킬 수 있음).</string>
     <string name="settings_memory_keep_awake">화면 켜짐 유지</string>
-    <string name="settings_memory_keep_awake_subtitle">충전하는 동안 화면을 켜두세요</string>
+    <string name="settings_memory_keep_awake_subtitle">생성 중에만 유지하고, 배터리 부족 및 미충전 시 유지하지 않음</string>
     <string name="settings_memory_auto_launch">자동 실행</string>
     <string name="settings_memory_auto_launch_subtitle">장치가 부팅되면 Muse를 자동으로 시작합니다.</string>
     <string name="settings_memory_notification_section">알림</string>

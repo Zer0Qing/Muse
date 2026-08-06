@@ -78,7 +78,7 @@ internal fun WebServerSection(
     var portInput by remember { mutableStateOf(config.port.toString()) }
     // 动态获取局域网 IP
     val localIp = remember { NetworkUtils.getLocalIpAddress() }
-    val accessUrl = if (localIp != null) "http://$localIp:${config.port}" else null
+    val accessUrl = buildAccessUrl(config.allowLan, localIp, config.port)
 
     SectionLabel(stringResource(R.string.settings_web_title))
     Text(
@@ -89,7 +89,7 @@ internal fun WebServerSection(
     )
 
     // P2-13: 明显提示 — 同一 Wi-Fi 下他人可通过 IP + PIN 访问
-    if (accessUrl != null && config.pin.isNotBlank()) {
+    if (accessUrl != null && config.pin.isNotBlank() && config.allowLan) {
         Surface(
             modifier = Modifier
                 .padding(top = 8.dp)
@@ -150,6 +150,7 @@ internal fun WebServerSection(
             },
         )
         SettingsGroupDivider()
+        lanAccessSwitch(config = config, settings = settings)
         // 端口
         SettingsItemRow(
             icon = TablerIcons.Globe,
@@ -295,4 +296,32 @@ internal fun WebServerSection(
             onDismiss = { showPortDialog = false },
         )
     }
+}
+
+/** R-SEC-03: 默认仅本机;开启局域网访问后才展示局域网 IP 地址。 */
+private fun buildAccessUrl(allowLan: Boolean, localIp: String?, port: Int): String? =
+    if (allowLan) localIp?.let { "http://$it:$port" } else "http://127.0.0.1:$port"
+
+/** R-SEC-03: 局域网访问开关;默认仅本机,开启后才允许同 Wi-Fi 设备通过 IP 访问。 */
+@Composable
+private fun lanAccessSwitch(
+    config: WebServerConfig,
+    settings: SettingsRepository,
+) {
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    SettingsSwitchRow(
+        icon = TablerIcons.Wifi,
+        title = stringResource(R.string.settings_web_allow_lan),
+        subtitle = stringResource(R.string.settings_web_allow_lan_subtitle),
+        checked = config.allowLan,
+        onCheckedChange = { allowLan ->
+            scope.launch {
+                resultOf { settings.saveWebServerConfig(config.copy(allowLan = allowLan)) }
+                    .onError { _, t ->
+                        MuseToast.show(context.getString(R.string.settings_web_failed, t?.message))
+                    }
+            }
+        },
+    )
 }

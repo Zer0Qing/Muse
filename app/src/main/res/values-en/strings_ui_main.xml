@@ -557,6 +557,8 @@
     <string name="preset_siliconflow_free_desc">Free open-source models from SiliconFlow</string>
     <string name="siliconflow_fill_free_models">Fill Free Models</string>
     <string name="siliconflow_fill_free_models_confirm">Replace current models with SiliconFlow free models, confirm?</string>
+    <string name="memory_legacy_reset_hint">Legacy memory data was incompatible and has been reset; a backup file was kept</string>
+    <string name="free_model_service_unavailable">Free quota service is unavailable. Add an API Key or try again later.</string>
 
     <!-- ===== P2-10: Provider plugin management (ProviderPluginPage) ===== -->
     <string name="provider_plugins_title">Plugin Manager</string>

@@ -557,6 +557,8 @@
     <string name="preset_siliconflow_free_desc">SiliconFlow の無料のオープンソース モデル</string>
     <string name="siliconflow_fill_free_models">フィルフリーモデル</string>
     <string name="siliconflow_fill_free_models_confirm">現在のモデルを SiliconFlow 無料モデルに置き換えます。確認しますか?</string>
+    <string name="memory_legacy_reset_hint">古い記憶データは互換性がないためリセットされました。バックアップファイルは保持されています</string>
+    <string name="free_model_service_unavailable">無料枠サービスは利用できません。API Key を追加するか、後でもう一度お試しください。</string>
 
     <!-- ===== P2-10: Provider plugin management (ProviderPluginPage) ===== -->
     <string name="provider_plugins_title">プラグインマネージャー</string>

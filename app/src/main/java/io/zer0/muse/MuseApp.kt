@@ -46,6 +46,7 @@ import androidx.work.WorkManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlin.coroutines.coroutineContext
@@ -109,6 +110,7 @@ class MuseApp : Application(), ImageLoaderFactory {
 
     // B5-02: 启动时恢复被强杀中断的群聊生成账本
     private val groupChatScheduler: io.zer0.muse.schedule.GroupChatScheduler by inject()
+    private val chatGenerationManager: io.zer0.muse.schedule.ChatGenerationManager by inject()
     // 工具注册器启动引导:强制实例化全部 lazy single,让 100+ 工具可用
     private val toolRegistrarBootstrapper: io.zer0.muse.tools.ToolRegistrarBootstrapper by inject()
     /** 应用级 scope:启动一次性任务用,独立于 Koin 注册的 IO scope。 */
@@ -361,9 +363,15 @@ class MuseApp : Application(), ImageLoaderFactory {
                 request,
             )
         }.onError { msg, t -> Logger.w("MuseApp", "StatsCacheWorker 注册失败", t) }
-        // v0.32: keepAwake — 订阅保持唤醒开关,开启时申请 PARTIAL_WAKE_LOCK
+        // R-SVC-05: 仅生成任务期间且 keepAwake 开启时持锁;低电量未充电时不主动保活
         appScope.launch {
-            settings.keepAwakeFlow.collect { keepAwake -> updateWakeLock(keepAwake) }
+            combine(
+                settings.keepAwakeFlow,
+                chatGenerationManager.activeGeneration,
+                groupChatScheduler.activeGroupGeneration,
+            ) { keepAwake, chat, group ->
+                keepAwake && (chat?.isStreaming == true || group?.isResponding == true)
+            }.collect { active -> updateWakeLock(active) }
         }
         // 主题定时切换(每 30 秒检查一次)
         appScope.launch {
@@ -584,13 +592,13 @@ class MuseApp : Application(), ImageLoaderFactory {
     }
 
     /**
-     * v0.32: 根据 keepAwake 开关申请/释放 PARTIAL_WAKE_LOCK。
+     * R-SVC-05: 仅生成任务活跃期间申请/释放 PARTIAL_WAKE_LOCK。
      *
-     * 用于在长时间运行的后台任务(记忆编译、定时任务)中保持 CPU 唤醒,
-     * 防止设备休眠打断。仅持 CPU 锁,不影响屏幕亮度。
+     * 用于在长时间运行的生成任务中保持 CPU 唤醒,防止设备休眠打断。
+     * 仅持 CPU 锁,不影响屏幕亮度;低电量且未充电时不主动保活。
      */
-    private fun updateWakeLock(keepAwake: Boolean) {
-        if (keepAwake) {
+    private fun updateWakeLock(activeGeneration: Boolean) {
+        if (activeGeneration && !isLowBattery()) {
             if (wakeLock?.isHeld == true) return
             val pm = getSystemService(Context.POWER_SERVICE) as? PowerManager ?: return
             wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Muse:KeepAwake").also {
@@ -604,6 +612,13 @@ class MuseApp : Application(), ImageLoaderFactory {
             wakeLock = null
             Logger.i("MuseApp", "keepAwake: WAKE_LOCK released")
         }
+    }
+
+    /** R-SVC-05: 低电量且未充电时不主动保活。 */
+    private fun isLowBattery(): Boolean {
+        val battery = getSystemService(Context.BATTERY_SERVICE) as? android.os.BatteryManager ?: return false
+        val level = battery.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY)
+        return level in 1..15 && !battery.isCharging
     }
 
     /**

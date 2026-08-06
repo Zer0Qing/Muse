@@ -75,8 +75,8 @@ import io.zer0.muse.R
  *  - 相比 Netty(~4MB)体积极小,功能足够(不支持 WebSocket,但本场景不需要)
  *
  * 安全:
- *  - 服务器绑定 `0.0.0.0`(所有网卡),仅局域网可访问
- *  - 密码同时作为 JWT 签名密钥(一物两用,减少配置项)
+ *  - 默认绑定 `127.0.0.1`;开启局域网访问后才绑定 `0.0.0.0`(所有网卡)
+ *  - R-SEC-03: JWT 使用独立随机签名密钥,与用户密码分离
  *  - 所有受保护路由需 `Authorization: Bearer <token>` 头
  *  - 密码为空时自动生成 8 位随机密码并持久化(首次启用时)
  *  - PIN 为空时自动生成 6 位随机 PIN 并持久化(首次启用时)
@@ -125,20 +125,25 @@ class WebServer(
         if (pin.isBlank()) {
             pin = WebServerConfig.generateRandomPin()
         }
-        if (password != config.password || pin != config.pin) {
-            settings.saveWebServerConfig(config.copy(password = password, pin = pin))
+        // R-SEC-03: 独立 JWT 签名密钥,首次启动生成并持久化
+        var jwtSecret = config.jwtSecret
+        if (jwtSecret.isBlank()) {
+            jwtSecret = WebServerConfig.generateRandomJwtSecret()
+        }
+        if (password != config.password || pin != config.pin || jwtSecret != config.jwtSecret) {
+            settings.saveWebServerConfig(config.copy(password = password, pin = pin, jwtSecret = jwtSecret))
         }
 
         // M11: startedAt 在 it.start() 之前赋值,避免 museRoutes 捕获到 0 导致 uptime 计算错误
         startedAt = System.currentTimeMillis()
         // M4: runCatching 改为 resultOf;M14: withContext(Dispatchers.IO) 保证配置读取不在主线程
         resultOf {
-            server = embeddedServer(CIO, port = port, host = BIND_HOST) {
-                configureSecurity(password)
+            server = embeddedServer(CIO, port = port, host = WebServer.bindHost(config.allowLan)) {
+                configureSecurity(jwtSecret)
                 configureSerialization()
-                configureCors()
+                configureCors(config.allowLan)
                 configureStatusPages()
-                museRoutes(password, pin, sessionRepo, settings)
+                museRoutes(password, jwtSecret, pin, sessionRepo, settings)
             }.also { it.start(wait = false) }
             currentPort = port
             currentPassword = password
@@ -147,7 +152,7 @@ class WebServer(
             mdnsService.register(port)
             notificationManager.updateWebServerStatus(port, true)
             // H4: 不再明文输出密码/PIN,避免日志泄露敏感凭据
-            Logger.i(TAG, "WebServer 已启动: $BIND_HOST:$port")
+            Logger.i(TAG, "WebServer 已启动: ${WebServer.bindHost(config.allowLan)}:$port")
             true
         }.onError { msg, t ->
             Logger.e(TAG, "WebServer 启动失败: $msg", t)
@@ -204,8 +209,8 @@ class WebServer(
      *  2. `token` Cookie(PIN 登录后由浏览器自动携带)
      *  3. `token` query param(适合无 Cookie 场景,如内嵌 iframe / 命令行)
      */
-    private fun Application.configureSecurity(password: String) {
-        val algorithm = Algorithm.HMAC256(password)
+    private fun Application.configureSecurity(jwtSecret: String) {
+        val algorithm = Algorithm.HMAC256(jwtSecret)
         install(Authentication) {
             jwt(AUTH_JWT_NAME) {
                 realm = REALM
@@ -246,13 +251,19 @@ class WebServer(
     }
 
     /**
-     * CORS 配置(允许局域网内任意来源访问,Web 客户端友好)。
-     * M8: 保留 anyHost() — 局域网内使用,若需公网暴露需配置 CORS 白名单。
+     * CORS 配置。
+     * R-SEC-03: 默认仅允许本机来源;开启局域网访问后才允许任意 Origin。
      */
-    private fun Application.configureCors() {
+    private fun Application.configureCors(allowLan: Boolean) {
         install(CORS) {
             // 安全边界：anyHost() 仅适用于局域网信任模型，公网暴露时需配置 Origin 白名单
-            anyHost()
+            if (allowLan) {
+                // 安全边界：anyHost() 仅适用于局域网信任模型
+                anyHost()
+            } else {
+                allowHost("localhost", schemes = listOf("http", "https"))
+                allowHost("127.0.0.1", schemes = listOf("http", "https"))
+            }
             allowMethod(io.ktor.http.HttpMethod.Get)
             allowMethod(io.ktor.http.HttpMethod.Post)
             allowMethod(io.ktor.http.HttpMethod.Options)
@@ -284,11 +295,12 @@ class WebServer(
      */
     private fun Application.museRoutes(
         password: String,
+        jwtSecret: String,
         pin: String,
         sessionRepo: SessionRepository,
         settings: SettingsRepository,
     ) {
-        val algorithm = Algorithm.HMAC256(password)
+        val algorithm = Algorithm.HMAC256(jwtSecret)
 
         routing {
             // 健康检查(无需鉴权,用于 mDNS 客户端探测)
@@ -406,21 +418,12 @@ class WebServer(
                 //   强行实现易引入新 bug。如需 Web 发消息,建议后续单独设计 WebSocket 通道。
             }
 
-            // 根路径: 简单欢迎页(浏览器直接访问时有用)
-            // P2-13: 提示需要 PIN 登录,并给出可访问的 IP + PIN 提示
+            // 根路径: 完整 Web UI(PIN 登录 → 会话列表 → 消息只读浏览)
+            // P2-13: 单页内嵌 HTML/CSS/JS,无外部依赖;鉴权走 Cookie(httpOnly)
             get("/") {
                 // L1: 添加 Referrer-Policy 头,防止 JWT query param 通过 Referer 头泄露到第三方
                 call.response.headers.append("Referrer-Policy", "no-referrer")
-                val html = buildString {
-                    append("<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>muse Web Server</title></head><body>")
-                    append("<h1>muse Web Server</h1>")
-                    append("<p>请通过 <code>POST /api/auth/pin-login</code> 提交 6 位 PIN 获取访问令牌。</p>")
-                    append("<p>当前会话所需 PIN 由手机端 muse App 设置页生成,请向 App 持有者索取。</p>")
-                    append("<p>公开接口:<code>GET /api/health</code></p>")
-                    append("<p>鉴权后接口:<code>/api/sessions</code>、<code>/api/sessions/{id}/messages</code>、<code>/api/settings</code></p>")
-                    append("</body></html>")
-                }
-                call.respondText(html, io.ktor.http.ContentType.Text.Html)
+                call.respondText(WebServerUi.INDEX_HTML, io.ktor.http.ContentType.Text.Html)
             }
         }
     }
@@ -531,7 +534,11 @@ class WebServer(
 
     companion object {
         private const val TAG = "WebServer"
-        private const val BIND_HOST = "0.0.0.0"
+        private const val LAN_BIND_HOST = "0.0.0.0"
+        private const val LOCAL_BIND_HOST = "127.0.0.1"
+
+        /** R-SEC-03: 默认仅本机,显式开启局域网访问后才绑定所有网卡。 */
+        fun bindHost(allowLan: Boolean): String = if (allowLan) LAN_BIND_HOST else LOCAL_BIND_HOST
         private const val MIN_PORT = 1024
         private const val MAX_PORT = 65535
         private const val GRACE_PERIOD_MS = 1000L
@@ -567,12 +574,14 @@ class WebServer(
             }
             val tracker = loginAttempts[ip] ?: return true
             synchronized(tracker) {
-                if (now - tracker.firstAttemptAt > RATE_LIMIT_WINDOW_MS) {
+                if (WebServerAuthPolicy.isWindowExpired(now, tracker.firstAttemptAt, RATE_LIMIT_WINDOW_MS)) {
                     tracker.count = 0
                     tracker.firstAttemptAt = now
                     return true
                 }
-                return tracker.count < RATE_LIMIT_MAX_FAILURES
+                return !WebServerAuthPolicy.isRateLimited(
+                    now, tracker.firstAttemptAt, tracker.count, RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX_FAILURES,
+                )
             }
         }
 
@@ -581,7 +590,7 @@ class WebServer(
             val now = System.currentTimeMillis()
             val tracker = loginAttempts.getOrPut(ip) { AttemptTracker(0, now) }
             synchronized(tracker) {
-                if (now - tracker.firstAttemptAt > RATE_LIMIT_WINDOW_MS) {
+                if (WebServerAuthPolicy.isWindowExpired(now, tracker.firstAttemptAt, RATE_LIMIT_WINDOW_MS)) {
                     tracker.count = 1
                     tracker.firstAttemptAt = now
                 } else {
@@ -600,8 +609,7 @@ class WebServer(
             val now = System.currentTimeMillis()
             val tracker = loginAttempts[ip] ?: return 0L
             synchronized(tracker) {
-                if (now - tracker.firstAttemptAt > RATE_LIMIT_WINDOW_MS) return 0L
-                return ((tracker.firstAttemptAt + RATE_LIMIT_WINDOW_MS - now) / 1000).coerceAtLeast(1)
+                return WebServerAuthPolicy.remainingSeconds(now, tracker.firstAttemptAt, RATE_LIMIT_WINDOW_MS)
             }
         }
     }

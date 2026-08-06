@@ -224,7 +224,7 @@ class GenericOpenAiVideoProvider(
      * v1.137: 移除虚假的 gpt-4o-video 默认模型 — model 必须由调用方传入
      * (从 ProviderConfig 的模型列表中筛选 supportsVideoOutput() 的模型)。
      */
-    private fun buildRequestBody(request: VideoGenRequest): String {
+    internal fun buildRequestBody(request: VideoGenRequest): String {
         return buildJsonObject {
             if (request.model.isNotBlank()) {
                 put("model", request.model)

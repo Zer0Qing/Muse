@@ -15,6 +15,7 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ktlint)
     // Phase 2.1: Kover — 插桩本模块字节码,数据上提到 root 聚合报告
     alias(libs.plugins.kover)
 }

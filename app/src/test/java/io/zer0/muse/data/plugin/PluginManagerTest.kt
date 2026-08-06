@@ -107,6 +107,29 @@ class PluginManagerTest {
 
     @Test
     fun install_pluginWithJsEntry_keepsEntryCode() = runBlocking {
+    @Test
+    fun install_rejectsNetworkAndResourceWriteCapabilities() = runBlocking {
+        val skillRepo = mockk<SkillRepository>(relaxed = true)
+        val manager = PluginManager(context, skillRepo)
+        for (capability in listOf("network", "resource.write")) {
+            val zip = zip(
+                manifest = """
+                    {
+                      "id": "cap-${capability.replace('.', '-')}",
+                      "name": "Capability Test",
+                      "version": "1.0.0",
+                      "entry": "main.js",
+                      "capabilities": ["$capability"],
+                      "tools": [{"name": "t", "description": "x", "parametersJson": "{}", "requiredJson": "[]", "functionName": "t"}]
+                    }
+                """.trimIndent(),
+            )
+            val result = manager.installFromFile(zip)
+            assertTrue(result.isFailure)
+            assertTrue(result.exceptionOrNull()?.message?.contains("不允许的能力") == true)
+            assertTrue(manager.list().isEmpty())
+        }
+    }
         val skillRepo = mockk<SkillRepository>(relaxed = true)
         val manager = PluginManager(context, skillRepo)
         val zip = zip(

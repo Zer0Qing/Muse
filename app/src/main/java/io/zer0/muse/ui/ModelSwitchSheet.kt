@@ -190,17 +190,27 @@ internal fun ModelSwitchSheet(
                     }
                 }
 
-                // v1.0.18: 当前激活供应商为 SiliconFlow 免费供应商时,展示免登录提示
+                // v1.0.18 / R-SEC-07: 当前激活供应商为 SiliconFlow 免费供应商时,展示免登录提示;
+                // fallback key 为占位符/空时改为可见的不可用提示。
                 if (activeProvider != null &&
                     FreeModelConfig.isFreeProvider(
                         activeProvider.baseUrl,
                         activeProvider.apiKey,
                     )
                 ) {
+                    val freeHint = if (FreeModelConfig.isFallbackKeyAvailable()) {
+                        stringResource(R.string.model_switch_free_provider_hint)
+                    } else {
+                        stringResource(R.string.free_model_service_unavailable)
+                    }
                     Text(
-                        text = stringResource(R.string.model_switch_free_provider_hint),
+                        text = freeHint,
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = if (FreeModelConfig.isFallbackKeyAvailable()) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.error
+                        },
                         modifier = Modifier.padding(vertical = MusePaddings.tightGap),
                     )
                 }

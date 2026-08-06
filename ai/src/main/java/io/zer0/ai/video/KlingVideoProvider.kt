@@ -226,7 +226,7 @@ class KlingVideoProvider(
      *
      * @param imageUrl 单张参考图(图生视频时非空)
      */
-    private fun buildRequestBody(request: VideoGenRequest, imageUrl: String?): JsonObject {
+    internal fun buildRequestBody(request: VideoGenRequest, imageUrl: String?): JsonObject {
         return buildJsonObject {
             put("model", request.model.ifBlank { DEFAULT_MODEL })
             put("prompt", request.prompt)
@@ -250,7 +250,7 @@ class KlingVideoProvider(
      *
      * 未知状态映射为 FAILED 并告警,避免未知状态被静默当作 PENDING 导致任务卡死。
      */
-    private fun mapStatus(statusStr: String): PollStatus {
+    internal fun mapStatus(statusStr: String): PollStatus {
         return when (statusStr.lowercase()) {
             "submit", "submitted", "pending" -> PollStatus.PENDING
             "processing", "running" -> PollStatus.PENDING
@@ -266,7 +266,7 @@ class KlingVideoProvider(
     /**
      * 尝试解析可灵 API 错误响应 {"code": non-zero, "message": "..."}。
      */
-    private fun parseApiErrorMessage(body: String): String? {
+    internal fun parseApiErrorMessage(body: String): String? {
         if (body.isBlank()) return null
         return runCatching {
             val root = json.parseToJsonElement(body).jsonObject

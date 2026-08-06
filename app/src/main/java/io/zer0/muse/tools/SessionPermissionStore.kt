@@ -52,9 +52,12 @@ class SessionPermissionStore(private val context: Context) {
             parseModes(prefs).modes
         }
 
-    /** 读取指定会话的权限模式,未设置时返回默认 [SessionPermissionMode.ASK]。 */
-    suspend fun getMode(sessionId: String): SessionPermissionMode {
-        return modesFlow.first()[sessionId] ?: SessionPermissionMode.ASK
+    /** 读取指定会话的权限模式,未设置时返回 [defaultMode](默认 ASK)。 */
+    suspend fun getMode(
+        sessionId: String,
+        defaultMode: SessionPermissionMode = SessionPermissionMode.ASK,
+    ): SessionPermissionMode {
+        return modesFlow.first()[sessionId] ?: defaultMode
     }
 
     /** 设置指定会话的权限模式。 */

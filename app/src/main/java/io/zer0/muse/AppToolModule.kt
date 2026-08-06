@@ -13,7 +13,10 @@ val appToolModule = module {
 
     // Phase 5-H: 工具注册表(简化版 MCP 框架)
     // Phase 8.8: 传入 context 用于 Clipboard/UsageStats/Calendar 系统服务
-    single { ToolRegistry(androidContext()) }
+    single { ToolRegistry(androidContext(), get()) }
+
+    // P2-6: BrowserManager 浏览器自动化(Headless WebView,供 AI 工具调用)
+    // 注:ToolRegistry 与 UI(浏览器状态胶囊)共享同一实例,AI 操作实时可看
     // P1-3b 拆域: 文本/编码工具注册器(URL/Base64/哈希/UUID/随机数,从 ToolRegistry 抽出)
     single { io.zer0.muse.tools.EncodingToolsRegistrar(androidContext(), get()) }
     // P1-3b 拆域: 核心基础工具注册器(get_current_time/calculator/echo)
@@ -54,7 +57,9 @@ val appToolModule = module {
     single { ToolConfigStore(androidContext()) }
 
     // P2-6: BrowserManager 浏览器自动化(Headless WebView,供 AI 工具调用)
-    // 注:ToolRegistry 内部还会创建自己的 BrowserManager 实例供 AI 工具使用,
-    // 此处注册的 BrowserManager 可供 UI 或其他消费者共享访问(如展示当前页 URL/Title/HTML 状态)
+    // 注:ToolRegistry 与 UI(浏览器状态胶囊)共享同一实例,AI 操作实时可看
     single { io.zer0.muse.tools.BrowserManager(androidContext()) }
+
+    // v1.x: 会话级浏览器实例注册表 — 每个会话独立 WebView,互不串扰
+    single { io.zer0.muse.tools.BrowserManagerRegistry(androidContext()) }
 }

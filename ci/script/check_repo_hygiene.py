@@ -36,6 +36,9 @@ CHECK_EXTENSIONS = {
 # 忽略的目录
 IGNORE_DIRS = {"build", ".gradle", ".idea", ".git", "node_modules", "__pycache__"}
 
+# 禁止入库的文件类型(仓库卫生 R-DOC-01)
+FORBIDDEN_EXTENSIONS = {".db", ".db-wal", ".db-shm"}
+
 # 大文件阈值 (500KB)
 MAX_FILE_SIZE = 500 * 1024
 
@@ -112,6 +115,9 @@ def main():
         if any(part in IGNORE_DIRS for part in file_path.parts):
             continue
         if file_path.suffix not in CHECK_EXTENSIONS:
+            continue
+        if file_path.suffix in FORBIDDEN_EXTENSIONS:
+            all_issues.append(f"禁止入库扩展名: {file_path.name}")
             continue
 
         file_count += 1

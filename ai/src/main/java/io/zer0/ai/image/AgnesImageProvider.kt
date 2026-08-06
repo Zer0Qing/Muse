@@ -143,7 +143,7 @@ class AgnesImageProvider(
     /**
      * 解析响应中的图片列表,同时兼容 b64_json 与 url 两种返回格式。
      */
-    private fun parseResponseImages(body: String): List<GeneratedImage> {
+    internal fun parseResponseImages(body: String): List<GeneratedImage> {
         val root = json.parseToJsonElement(body).jsonObject
         val data = root["data"]?.jsonArray
             ?: return emptyList()
@@ -158,7 +158,7 @@ class AgnesImageProvider(
     /**
      * 尝试解析 Agnes 风格错误响应 {"error":{"message":"..."}} 或顶层 {"message":"..."}。
      */
-    private fun parseApiErrorMessage(body: String): String? {
+    internal fun parseApiErrorMessage(body: String): String? {
         if (body.isBlank()) return null
         return resultOf {
             val root = json.parseToJsonElement(body).jsonObject

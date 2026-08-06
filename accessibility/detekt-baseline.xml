@@ -1,0 +1,15 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ReturnCount:AccessibilityPathUtils.kt$AccessibilityPathUtils$fun parseNodePath(path: String): List&lt;Int&gt;</ID>
+    <ID>ReturnCount:MuseAccessibilityService.kt$MuseAccessibilityService$@androidx.annotation.RequiresApi(android.os.Build.VERSION_CODES.R) private fun saveScreenshot(screenshot: ScreenshotResult, path: String, format: String): Boolean</ID>
+    <ID>ReturnCount:MuseAccessibilityService.kt$MuseAccessibilityService$fun findFocusedNodeId(): String</ID>
+    <ID>ReturnCount:MuseAccessibilityService.kt$MuseAccessibilityService$fun setTextOnNode(nodeId: String, text: String): Boolean</ID>
+    <ID>ReturnCount:MuseAccessibilityService.kt$MuseAccessibilityService$fun takeScreenshot(path: String, format: String): Boolean</ID>
+    <ID>ReturnCount:MuseAccessibilityService.kt$MuseAccessibilityService$private fun findNodeByPath(root: AccessibilityNodeInfo, path: String): AccessibilityNodeInfo?</ID>
+    <ID>ReturnCount:MuseAccessibilityService.kt$MuseAccessibilityService$private fun findNodePathRec(node: AccessibilityNodeInfo, path: String, targetHash: Int): String?</ID>
+    <ID>TooGenericExceptionCaught:MuseAccessibilityService.kt$MuseAccessibilityService$e: Exception</ID>
+    <ID>TooManyFunctions:MuseAccessibilityService.kt$MuseAccessibilityService : AccessibilityService</ID>
+  </CurrentIssues>
+</SmellBaseline>

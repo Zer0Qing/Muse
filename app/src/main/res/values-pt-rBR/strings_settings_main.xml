@@ -288,6 +288,8 @@
     <string name="settings_web_pin_hint">O PIN serve apenas para verificação de acesso à web pela primeira vez;</string>
     <string name="settings_web_enable">Habilitar servidor web</string>
     <string name="settings_web_enable_subtitle">Entra em vigor no próximo lançamento do aplicativo</string>
+    <string name="settings_web_allow_lan">Permitir acesso LAN</string>
+    <string name="settings_web_allow_lan_subtitle">Somente local por padrão; ative para permitir dispositivos na mesma Wi-Fi</string>
     <string name="settings_web_port">Porta</string>
     <string name="settings_web_port_subtitle">%1$d (reinicie o aplicativo para aplicar)</string>
     <string name="settings_web_password">Senha de login</string>

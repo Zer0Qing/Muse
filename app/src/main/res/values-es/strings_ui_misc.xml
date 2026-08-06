@@ -73,12 +73,21 @@
     <string name="theme_twilight_purple">Púrpura crepuscular</string>
     <string name="theme_amber_gold">Ámbar Oro</string>
     <string name="theme_dusk_rose">Rosa del anochecer</string>
+    <string name="settings_theme_dark_section">Tema del modo oscuro</string>
+    <string name="settings_theme_follow_light">Seguir tema claro</string>
+    <string name="settings_theme_dark_title">Tema oscuro</string>
+    <string name="settings_theme_schedule">Cambio programado</string>
+    <string name="settings_theme_schedule_auto">Cambio automático</string>
+    <string name="settings_theme_schedule_auto_subtitle">Cambiar automáticamente entre claro y oscuro a la hora de despertarse y dormir</string>
+    <string name="settings_theme_wake_time_title">Hora de despertar (claro)</string>
+    <string name="settings_theme_sleep_time_title">Hora de dormir (oscuro)</string>
 
     <!-- ===== ui/speech voice input and TTS ===== -->
     <string name="speech_speak_prompt">Por favor habla...</string>
     <string name="speech_tts_init_failed">Error al inicializar el motor de voz, la lectura en voz alta no está disponible</string>
     <string name="speech_tts_play_error">Error de reproducción de voz</string>
     <string name="speech_tts_fallback_to_system">Problema de red, cambiado al sistema TTS</string>
+    <string name="speech_tts_no_engine">No se encontró motor TTS. Instala un servicio de voz</string>
     <string name="speech_stop_reading_cd">dejar de leer</string>
     <string name="speech_playback_speed_cd">Velocidad de reproducción %1$sx</string>
     <string name="speech_seek_forward_5s_cd">Adelante 5 segundos</string>

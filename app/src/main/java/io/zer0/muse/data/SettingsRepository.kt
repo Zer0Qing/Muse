@@ -1042,6 +1042,26 @@ class SettingsRepository(
         }
     }
 
+    /** R-UI-02: 读取上次用户正在查看的任务会话 id(可能为 null)。 */
+    suspend fun getViewedSessionId(): String? = store.data.first()[KEY_VIEWED_SESSION_ID]
+
+    /** R-UI-02: 持久化当前查看的会话 id;null/空串时清除。 */
+    suspend fun saveViewedSessionId(id: String?) {
+        store.edit { prefs ->
+            if (id.isNullOrBlank()) prefs.remove(KEY_VIEWED_SESSION_ID) else prefs[KEY_VIEWED_SESSION_ID] = id
+        }
+    }
+
+    /** R-UI-02: 读取正在生成的会话 id(用于恢复时不改写查看焦点)。 */
+    suspend fun getGeneratingSessionId(): String? = store.data.first()[KEY_GENERATING_SESSION_ID]
+
+    /** R-UI-02: 持久化正在生成的会话 id;null/空串时清除。 */
+    suspend fun saveGeneratingSessionId(id: String?) {
+        store.edit { prefs ->
+            if (id.isNullOrBlank()) prefs.remove(KEY_GENERATING_SESSION_ID) else prefs[KEY_GENERATING_SESSION_ID] = id
+        }
+    }
+
     /**
      * 获取当前选中的 [Model](从激活 Provider 的 models 中按 selectedModelId 查找)。
      * selectedModelId 为空时回退到激活 Provider 的首个模型。
@@ -1159,37 +1179,10 @@ class SettingsRepository(
         val prefs = store.data.first()
         val result = mutableMapOf<String, String>()
         // 安全的 string 类型 key
-        val safeStringKeys = listOf(
-            "active_provider_id", "selected_model_id", "tool_model_id",
-            "compress_model_id",
-            "theme_mode", "language", "theme_id", "dark_theme_id",
-            "theme_schedule_json", "custom_themes_json", "font_size_scale",
-            "prompt_templates_json", "user_profile_json", "chat_preferences_json",
-            "memory_config_json", "notification_policy", "experiments_json",
-            "share_template_json", "media_config_json", "default_search_engine",
-            "proactive_message_json", "image_gen_config_json", "video_gen_config_json",
-            "multi_agent_config_json", "rag_config_json", "chat_drafts_json",
-            "task_routing_config_json", "model_profiles_json",
-            "account_user_name", "account_login_method",
-            "multi_agent_review_model",
-        )
-        // 安全的 boolean 类型 key
-        val safeBooleanKeys = listOf(
-            "memory_enabled", "dynamic_color", "onboarding_shown",
-            "asr_tip_shown", "sticker_enabled", "experience_enabled",
-            "keep_awake", "auto_launch", "biometric_enabled",
-            "account_logged_in", "account_guest_mode",
-            "pii_guard_enabled",
-            "multi_agent_llm_review_enabled",
-        )
-        // 安全的 int 类型 key
-        val safeIntKeys = listOf(
-            "default_home_page", "sticker_send_probability",
-        )
-        // 安全的 long 类型 key
-        val safeLongKeys = listOf(
-            "account_login_at",
-        )
+        val safeStringKeys = SettingsSnapshotPolicy.safeStringKeys
+        val safeBooleanKeys = SettingsSnapshotPolicy.safeBooleanKeys
+        val safeIntKeys = SettingsSnapshotPolicy.safeIntKeys
+        val safeLongKeys = SettingsSnapshotPolicy.safeLongKeys
         for (name in safeStringKeys) {
             prefs[stringPreferencesKey(name)]?.let { result[name] = it }
         }
@@ -1337,6 +1330,9 @@ class SettingsRepository(
         private val KEY_CRASH_REPORT_METHOD = stringPreferencesKey("crash_report_method")
         private val KEY_CRASH_REPORT_EMAIL = stringPreferencesKey("crash_report_email")
         private val KEY_CRASH_REPORT_WEBHOOK_URL = stringPreferencesKey("crash_report_webhook_url")
+        // R-UI-02: 会话焦点恢复 — 用户当前查看的会话与正在生成的会话分离持久化
+        private val KEY_VIEWED_SESSION_ID = stringPreferencesKey("viewed_session_id")
+        private val KEY_GENERATING_SESSION_ID = stringPreferencesKey("generating_session_id")
     }
 
     // ── v2.3: Provider 连接测试缓存 ───────────────────────────────────

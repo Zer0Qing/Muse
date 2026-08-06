@@ -1,4 +1,4 @@
-﻿# Git ignore for Muse project submodule
+# Git ignore for Muse project submodule
 .gradle/
 .idea/
 .kotlin/
@@ -20,9 +20,12 @@ Thumbs.db
 /docs/*
 !/docs/README.md
 !/docs/README_EN.md
+!/docs/ENGINEERING_DISCIPLINE.md
+!/docs/后台保活与进程恢复.md
 
 # 贡献/安全/计划文档（项目代码不包含这些）
 CONTRIBUTING.md
+!/CONTRIBUTING.md
 SECURITY.md
 Muse_Product_Enhancement_Plan.md
 _skill_existing.txt
@@ -30,6 +33,8 @@ report_*.txt
 
 # 临时文件
 compile_log2.txt
+__pycache__/
+*.pyc
 tmp_head.kt
 tmp_*.kt
 build_log*.txt
@@ -37,5 +42,10 @@ build-log*.txt
 build_output*.txt
 .tmp/
 
+# 测试数据库产物
+*.db
+*.db-wal
+*.db-shm
+
 # 软著申请材料
-软件著作权申请资料/
+软件著作权申请材料/

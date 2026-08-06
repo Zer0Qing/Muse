@@ -54,8 +54,28 @@ object ProviderPayloadNormalizer {
         result = stripInvalidToolCalls(result)
         result = stripOrphanToolMessages(result)
         result = stripNativeMediaAttachmentMarkers(result)
+        result = stripArtifactMarkers(result)
         return result
     }
+
+    /**
+     * v1.x: 剥离 assistant 消息中的产物占位符标记 `[artifact:uuid]`。
+     *
+     * 模型可能从历史中学会直接输出该占位符(而非成对 `<artifact>` 标签),
+     * 但占位符对应的实体并不存在。剥离后:用户不看到 UUID 明文,
+     * 模型历史也干净,避免继续模仿该格式。真实产物由成对标签路径生成。
+     */
+    private fun stripArtifactMarkers(messages: List<UIMessage>): List<UIMessage> {
+        return messages.map { msg ->
+            if (msg.role == MessageRole.ASSISTANT && msg.content.contains("[artifact:")) {
+                msg.copy(content = msg.content.replace(ARTIFACT_MARKER_RE, ""))
+            } else {
+                msg
+            }
+        }
+    }
+
+    private val ARTIFACT_MARKER_RE = Regex("""\[artifact:[0-9a-fA-F-]{36}\]""")
 
     /**
      * v1.0.62: 删除 ASSISTANT 消息中的非法 tool call(name 或 arguments 为空)。

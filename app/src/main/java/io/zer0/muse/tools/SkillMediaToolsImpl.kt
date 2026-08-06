@@ -154,7 +154,15 @@ class SkillMediaToolsImpl(
                     value.ifBlank { "null" }
                 }
             }
-            is SkillEngineResult.Error -> "插件工具执行失败: ${result.message}"
+            is SkillEngineResult.Error -> {
+                if (JsSandbox.isCircuitBroken) {
+                    resultOf { pluginManager?.setEnabled(pluginId, false) }
+                        .onError { msg, _ -> Logger.w("SkillMediaToolsImpl", "自动禁用插件失败: $msg") }
+                    "插件已自动禁用: JS 沙盒连续超时，请稍后重试"
+                } else {
+                    "插件工具执行失败: ${result.message}"
+                }
+            }
         }
     }
 }

@@ -1,9 +1,10 @@
 [versions]
 ktlint = "12.1.1"
+detekt = "1.23.8"
 # 工具链(本机已缓存:Gradle 9.4.1 + AGP 9.2.1 + Kotlin 2.4.0)
 agp = "9.2.1"
 kotlin = "2.4.0"
-ksp = "2.3.9"
+ksp = "2.3.11"
 # Phase 2.1: Kover 覆盖率插件(用于 PR check 时生成 HTML/XML 报告,5 模块聚合到 root)
 kover = "0.9.9"
 # AndroidX — 选兼容 compileSdk 35 的稳定版(本机 SDK 仅到 android-36.1,装不了 37)
@@ -11,6 +12,8 @@ coreKtx = "1.15.0"
 lifecycle = "2.8.7"
 activityCompose = "1.9.3"
 composeBom = "2024.12.01"
+# material3 1.4.0 stable 的 MaterialExpressiveTheme/MotionScheme 为 internal,暂保留 alpha04 避免主题回归
+material3 = "1.4.0-alpha04"
 navigationCompose = "2.8.5"
 koinBom = "4.0.0"
 room = "2.8.4"
@@ -21,12 +24,6 @@ okhttp = "5.3.2"
 jsoup = "1.18.3"
 serialization = "1.7.3"
 coroutines = "1.9.0"
-# 重写 v0.22:Material3 alpha(MaterialExpressiveTheme + MotionScheme + LargeFlexibleTopAppBar)
-material3 = "1.4.0-alpha04"
-# 重写 v0.22:Haze 真毛玻璃(替代自实现 RenderEffect,彻底解决遮罩 bug)
-haze = "1.2.2"
-# 重写 v0.22:Sonner Toast(顶部居中 + richColors)
-sonner = "0.3.9"
 junit = "4.13.2"
 # Phase 8.6: 文档解析 + OCR
 pdfboxAndroid = "2.0.27.0"
@@ -42,6 +39,23 @@ jtokkit = "1.1.0"
 composeIcons = "1.1.1"
 # P3-3: Shizuku SDK(以 Shell 权限运行命令,无需 root;rikk.shizuku:api + provider)
 shizuku = "13.1.5"
+
+# R-BUILD-06: app/memory 收编的硬编码版本
+coreSplashscreen = "1.0.1"
+appcompat = "1.7.0"
+biometric = "1.1.0"
+work = "2.9.0"
+glance = "1.1.1"
+onnxruntime = "1.23.0"
+mockk = "1.13.13"
+turbine = "1.2.0"
+robolectric = "4.14.1"
+androidxTest = "1.6.1"
+androidxTestRunner = "1.6.2"
+androidxTestJunit = "1.2.1"
+leakcanary = "2.14"
+zxing = "3.5.3"
+mlkitBarcode = "17.3.0"
 
 [libraries]
 # AndroidX Core
@@ -64,12 +78,7 @@ androidx-navigation-compose = { group = "androidx.navigation", name = "navigatio
 # Phase 6-A2: Google Fonts downloadable fonts(Inter + Noto Serif SC + JetBrains Mono)
 androidx-compose-ui-text-google-fonts = { group = "androidx.compose.ui", name = "ui-text-google-fonts" }
 
-# 重写 v0.22:Haze 真毛玻璃(替代自实现 RenderEffect)
-haze = { group = "dev.chrisbanes.haze", name = "haze", version.ref = "haze" }
-haze-materials = { group = "dev.chrisbanes.haze", name = "haze-materials", version.ref = "haze" }
 
-# 重写 v0.22:Sonner Toast(顶部居中 + richColors)
-sonner = { group = "io.github.dokar3", name = "sonner", version.ref = "sonner" }
 
 # Koin(BOM 统一版本)
 koin-bom = { group = "io.insert-koin", name = "koin-bom", version.ref = "koinBom" }
@@ -131,8 +140,28 @@ composeIcons-tablerIcons = { module = "br.com.devsrsouza.compose.icons:tabler-ic
 shizuku-api = { group = "dev.rikka.shizuku", name = "api", version.ref = "shizuku" }
 shizuku-provider = { group = "dev.rikka.shizuku", name = "provider", version.ref = "shizuku" }
 
+# R-BUILD-06: app/memory 附加依赖
+androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "coreSplashscreen" }
+androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+androidx-biometric = { group = "androidx.biometric", name = "biometric", version.ref = "biometric" }
+androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work" }
+androidx-glance-appwidget = { group = "androidx.glance", name = "glance-appwidget", version.ref = "glance" }
+androidx-glance-material3 = { group = "androidx.glance", name = "glance-material3", version.ref = "glance" }
+onnxruntime-android = { group = "com.microsoft.onnxruntime", name = "onnxruntime-android", version.ref = "onnxruntime" }
+mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
+turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
+androidx-room-testing = { group = "androidx.room", name = "room-testing", version.ref = "room" }
+robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+androidx-test-core-ktx = { group = "androidx.test", name = "core-ktx", version.ref = "androidxTest" }
+androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "androidxTestRunner" }
+androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxTestJunit" }
+leakcanary-android = { group = "com.squareup.leakcanary", name = "leakcanary-android", version.ref = "leakcanary" }
+zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
+mlkit-barcode-scanning = { group = "com.google.mlkit", name = "barcode-scanning", version.ref = "mlkitBarcode" }
+
 [plugins]
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }

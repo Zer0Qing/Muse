@@ -73,12 +73,21 @@
     <string name="theme_twilight_purple">Twilight Purple</string>
     <string name="theme_amber_gold">Amber Gold</string>
     <string name="theme_dusk_rose">Dusk Rose</string>
+    <string name="settings_theme_dark_section">Dark mode theme</string>
+    <string name="settings_theme_follow_light">Follow light theme</string>
+    <string name="settings_theme_dark_title">Dark theme</string>
+    <string name="settings_theme_schedule">Scheduled switching</string>
+    <string name="settings_theme_schedule_auto">Auto switch</string>
+    <string name="settings_theme_schedule_auto_subtitle">Automatically switch light/dark at wake-up and sleep time</string>
+    <string name="settings_theme_wake_time_title">Wake-up time (light)</string>
+    <string name="settings_theme_sleep_time_title">Sleep time (dark)</string>
 
     <!-- ===== ui/speech voice input and TTS ===== -->
     <string name="speech_speak_prompt">Please speak…</string>
     <string name="speech_tts_init_failed">Speech engine initialization failed, read-aloud is unavailable</string>
     <string name="speech_tts_play_error">Speech playback error</string>
     <string name="speech_tts_fallback_to_system">Network issue, switched to system TTS</string>
+    <string name="speech_tts_no_engine">No TTS engine found. Please install a speech service</string>
     <string name="speech_stop_reading_cd">Stop reading</string>
     <string name="speech_playback_speed_cd">Playback speed %1$sx</string>
     <string name="speech_seek_forward_5s_cd">Forward 5 seconds</string>

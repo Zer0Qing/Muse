@@ -48,6 +48,7 @@ import io.zer0.muse.ui.theme.huge
 @Composable
 fun MuseToastHost() {
     val toastData by MuseToast.message.collectAsState()
+    // 应用级 Toast 宿主常驻,无需随页面 Lifecycle 启停,保持普通 collectAsState。
 
     // M-MTH1: 缓存上一次非空的 toast 文本。
     // 退出动画期间 toastData 已被 clear 为 null,若直接用 toastData?.text 会渲染空文本,

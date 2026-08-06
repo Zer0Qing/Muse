@@ -487,8 +487,6 @@ private fun MemberAvatarRow(
  *
  * v1.0.19: 此弹窗内嵌的工作流节点编辑(聚合策略 / 节点列表 / 节点增删改 / 依赖管理)
  *  为工作流编排的首选入口,用户体验连贯(无需跳转全屏页)。
- *  旧的全屏 [io.zer0.muse.ui.workflow.WorkflowEditorScreen] 已标记 @Deprecated,
- *  保留仅因其提供画布拖拽 / JSON 导出等独有能力,后续迁移后将被移除。
  */
 @Composable
 private fun TeamEditDialog(

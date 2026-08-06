@@ -1,17 +1,8 @@
 package io.zer0.muse.ui
 
 import android.content.Intent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.keyframes
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
@@ -22,12 +13,9 @@ import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -47,7 +35,6 @@ import compose.icons.tablericons.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Reply
 import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Star
@@ -61,12 +48,10 @@ import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
@@ -74,7 +59,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -82,18 +66,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.draw.scale
-
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -101,21 +79,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import coil.compose.AsyncImage
 import io.zer0.muse.R
 import io.zer0.ai.core.MessageRole
-import io.zer0.ai.core.RagCitation
 import io.zer0.ai.core.UIMessage
 import io.zer0.muse.data.artifact.ArtifactEntity
 import io.zer0.muse.ui.artifact.ArtifactCardList
@@ -124,7 +95,6 @@ import io.zer0.muse.ui.chat.parseQuotedContent
 import io.zer0.muse.ui.chat.buildHighlightedText
 import io.zer0.muse.ui.chat.buildMoodSkinAnnotated
 import io.zer0.muse.ui.common.media.AssistantAvatar
-import io.zer0.muse.ui.common.media.AttachmentChip
 import io.zer0.muse.ui.common.media.ContextMenuItem
 import io.zer0.muse.ui.common.media.DesktopContextMenu
 import io.zer0.muse.ui.common.form.MuseTactileButton
@@ -133,27 +103,17 @@ import io.zer0.muse.ui.markdown.MarkdownText
 import io.zer0.muse.transformer.MoodSkinParser
 import io.zer0.muse.ui.taskcard.AgentPlan
 import io.zer0.muse.ui.taskcard.PlanCard
-import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseElevation
-import io.zer0.muse.ui.theme.MoodSkinColors
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
-import io.zer0.muse.ui.theme.pill
-import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.ui.theme.tiny
-import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.outlined.VideoLibrary
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.ui.common.media.FullScreenMediaViewer
-import io.zer0.muse.ui.common.form.MuseSlider
 import io.zer0.muse.ui.chat.VideoAttachment
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /**
  * 消息单元 — iOS 风格。
@@ -166,6 +126,11 @@ import kotlinx.coroutines.withContext
  * - 长按菜单(阶段 4):整条消息长按弹出操作菜单(编辑/重新生成/翻译/朗读/收藏)
  * - 末尾 AI 快捷按钮(阶段 4):流式结束后显示"重新生成"图标按钮(iOS 风格)
  */
+
+// v1.x: 产物占位符标记(模型可能直接输出 [artifact:uuid] 引用,但无成对标签内容);
+// 渲染层统一剥离,避免把 UUID 明文展示给用户(真实产物由 artifactIds 卡片列表展示)。
+private val ARTIFACT_MARKER_RE = Regex("""\[artifact:[0-9a-fA-F-]{36}\]""")
+
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 internal fun MessageBubble(
@@ -202,6 +167,7 @@ internal fun MessageBubble(
     // Phase 10.1: 任务卡交互回调
     onToggleTaskCardExpand: () -> Unit = {},
     onRetryTaskCardStep: (String) -> Unit = {},
+    onCancelTask: () -> Unit = {},
     // v1.25: 长按菜单触发「委托给助手」
     onDelegate: () -> Unit = {},
     // v0.29 P0-3: 分享整段对话(导出为 Markdown 通过系统 share sheet)
@@ -616,7 +582,7 @@ internal fun MessageBubble(
                                     .padding(MusePaddings.labelVerticalGap),
                             ) {
                                 Text(
-                                    text = formatVideoDuration(va.durationMs),
+                                    text = MessageBubbleFormatters.formatVideoDuration(va.durationMs),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onPrimary,
                                     modifier = Modifier.padding(MusePaddings.chipInner),
@@ -822,6 +788,7 @@ internal fun MessageBubble(
                         data = taskCard,
                         onToggleExpand = onToggleTaskCardExpand,
                         onRetryStep = onRetryTaskCardStep,
+                        onCancel = onCancelTask,
                         delegationChain = delegationChain,
                     )
                     if (!isSilentTool) {
@@ -843,6 +810,7 @@ internal fun MessageBubble(
                             data = taskCard,
                             onToggleExpand = onToggleTaskCardExpand,
                             onRetryStep = onRetryTaskCardStep,
+                            onCancel = onCancelTask,
                             modifier = Modifier.weight(1f),
                             delegationChain = delegationChain,
                         )
@@ -863,6 +831,7 @@ internal fun MessageBubble(
                     data = taskCard,
                     onToggleExpand = onToggleTaskCardExpand,
                     onRetryStep = onRetryTaskCardStep,
+                    onCancel = onCancelTask,
                     delegationChain = delegationChain,
                 )
             } else if (toolInfo != null && !isSilentTool) {
@@ -915,7 +884,8 @@ internal fun MessageBubble(
             val firstLine = content.substring(0, firstLineEnd)
             val hasHeading = !isStreaming && firstLine.isNotBlank() && firstLine.startsWith("#")
             val titleText = if (hasHeading) firstLine else null
-            val bodyContent = if (hasHeading) content.substring(firstLineEnd + 1).trimStart() else content
+            val bodyContent = (if (hasHeading) content.substring(firstLineEnd + 1).trimStart() else content)
+                .replace(ARTIFACT_MARKER_RE, "")
             if (content.isNotBlank()) {
                 // Markdown 标题行
                 titleText?.let {
@@ -1501,836 +1471,3 @@ internal fun MessageBubble(
         }
     }
 }
-
-/**
- * 生成的图片卡片 — 圆角 + 点击预览 + 保存按钮。
- */
-@Composable
-private fun GeneratedImageCard(
-    imageUri: String,
-    onPreview: () -> Unit,
-    onSave: () -> Unit,
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = MusePaddings.tightGap)
-            .clip(MuseShapes.medium)
-            .clickable(onClick = onPreview),
-    ) {
-        SmartImage(
-            model = imageUri,
-            contentDescription = stringResource(R.string.chat_generated_image_cd),
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(max = 320.dp)
-                .clip(MuseShapes.medium),
-        )
-        IconButton(
-            onClick = {
-                onSave()
-            },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(MusePaddings.contentGap)
-                .size(MuseIconSizes.touchTarget)
-                .background(
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-                    shape = CircleShape,
-                ),
-        ) {
-            Icon(
-                imageVector = TablerIcons.Download,
-                contentDescription = stringResource(R.string.chat_save_image_cd),
-                tint = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(MuseIconSizes.iconMedium),
-            )
-        }
-    }
-}
-
-/**
- * iOS 风格 ActionSheet 行项 — 全宽 Row(图标 + 文字),点击触发回调。
- */
-@Composable
-private fun ActionMenuItem(
-    icon: ImageVector,
-    text: String,
-    contentDescription: String,
-    onClick: () -> Unit,
-    // v1.48: 可选 tint,用于"删除消息"等危险操作标红
-    tint: androidx.compose.ui.graphics.Color = androidx.compose.ui.graphics.Color.Unspecified,
-) {
-    val iconTint = if (tint == androidx.compose.ui.graphics.Color.Unspecified) MaterialTheme.colorScheme.onSurface else tint
-    val textTint = if (tint == androidx.compose.ui.graphics.Color.Unspecified) MaterialTheme.colorScheme.onSurface else tint
-    Surface(
-        onClick = onClick,
-        shape = MuseShapes.semiLarge,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = MusePaddings.iconPadding, vertical = MusePaddings.inputPadding),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(MusePaddings.iconPadding),
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = contentDescription,
-                tint = iconTint,
-                // M-MB3: 图标尺寸用 MuseIconSizes.iconMedium 令牌替代硬编码 22dp
-                modifier = Modifier.size(MuseIconSizes.iconMedium),
-            )
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyMedium,
-                color = textTint,
-                modifier = Modifier.weight(1f),
-            )
-        }
-    }
-}
-
-/**
- * 任务 2A: iOS 风格 shimmer 骨架屏 + 脉冲点加载动画。
- * 三个圆点依次缩放/淡入淡出,下方显示状态文字。
- */
-@Composable
-internal fun LoadingDots(text: String = stringResource(R.string.chat_loading_thinking)) {
-    Column(
-        modifier = Modifier.padding(MusePaddings.cardInner),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            // v1.79 (L-B15): 三个圆点共享一个 InfiniteTransition,减少动画开销
-            val infiniteTransition = rememberInfiniteTransition(label = "dots")
-            repeat(3) { index ->
-                val scale by infiniteTransition.animateFloat(
-                    initialValue = 0.6f,
-                    targetValue = 1f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(600, delayMillis = index * 120, easing = FastOutSlowInEasing),
-                        repeatMode = RepeatMode.Reverse,
-                    ),
-                    label = "dot$index",
-                )
-                val alpha by infiniteTransition.animateFloat(
-                    initialValue = 0.4f,
-                    targetValue = 1f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(600, delayMillis = index * 120, easing = FastOutSlowInEasing),
-                        repeatMode = RepeatMode.Reverse,
-                    ),
-                    label = "dotAlpha$index",
-                )
-                Box(
-                    modifier = Modifier
-                        .size(MusePaddings.contentGap)
-                        .scale(scale)
-                        .alpha(alpha)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary),
-                )
-            }
-        }
-        Spacer(Modifier.height(MusePaddings.contentGap))
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-        )
-    }
-}
-
-/**
- * v0.48: shimmer 骨架屏占位 — 空流式 assistant 消息气泡渲染占位条,
- * 替代旧 LoadingDots 的"思考中"文字,营造"AI 正在写"的呼吸感。
- *
- * 实现:一个 fillMaxWidth(0.6f) / height 14dp 圆角矩形,
- * 用 [Brush.linearGradient] 配合 [animateFloat] + [infiniteRepeatable]
- * 做从左到右的扫光动画(1200ms 一个周期,LinearEasing)。
- * 颜色:surfaceVariant(0.4) → primary(0.2) → surfaceVariant(0.4)。
- */
-@Composable
-internal fun ShimmerPlaceholder(modifier: Modifier = Modifier) {
-    val transition = rememberInfiniteTransition(label = "shimmer")
-    val translateAnim by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1200, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "shimmerTranslate",
-    )
-    val brush = Brush.linearGradient(
-        colors = listOf(
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-        ),
-        start = Offset(translateAnim * -300f, 0f),
-        end = Offset(translateAnim * 300f, 0f),
-    )
-    Box(
-        modifier = modifier
-            .fillMaxWidth(0.6f)
-            .height(14.dp)
-            .clip(MuseShapes.tiny)
-            .background(brush),
-    )
-}
-
-/**
- * v1.33: 智能图片渲染器
- * 绕过 Coil 的 data URI 解析(部分设备上 DataUriFetcher 静默失败)
- * data URI → 直接用 BitmapFactory 解码;普通 URL/Uri → 仍走 Coil AsyncImage
- */
-@Composable
-fun SmartImage(
-    model: Any?,
-    modifier: Modifier = Modifier,
-    contentDescription: String? = null,
-    contentScale: ContentScale = ContentScale.Fit,
-) {
-    val dataUriPrefix = "data:image/"
-    if (model is String && model.startsWith(dataUriPrefix)) {
-        // data URI:提取 base64 部分,IO 线程解码
-        val base64Part = remember(model) {
-            val commaIndex = model.indexOf(',')
-            if (commaIndex > 0) model.substring(commaIndex + 1) else null
-        }
-        if (base64Part != null) {
-            val bitmapState by produceState<android.graphics.Bitmap?>(initialValue = null, base64Part) {
-                value = withContext(Dispatchers.IO) {
-                    runCatching {
-                        val bytes = android.util.Base64.decode(base64Part, android.util.Base64.NO_WRAP)
-                        // v1.79 (H-B1): 先探测尺寸再降采样,避免大图解码 OOM
-                        val options = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
-                        android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
-                        val targetSize = 1024
-                        var sampleSize = 1
-                        while (options.outWidth / sampleSize > targetSize || options.outHeight / sampleSize > targetSize) {
-                            sampleSize *= 2
-                        }
-                        val decodeOptions = android.graphics.BitmapFactory.Options().apply { inSampleSize = sampleSize }
-                        android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, decodeOptions)
-                    }.onFailure { Logger.w("MessageBubble", "base64 image decode failed: ${it.message}", it) }.getOrNull()
-                }
-                // v1.79 (M-B11): produceState 退出时显式回收 Bitmap,避免内存泄漏
-                awaitDispose {
-                    value?.recycle()
-                }
-            }
-            val current = bitmapState
-            if (current != null) {
-                Image(
-                    bitmap = current.asImageBitmap(),
-                    contentDescription = contentDescription,
-                    modifier = modifier,
-                    contentScale = contentScale,
-                )
-            } else {
-                // 解码中/失败:灰色占位
-                Box(modifier = modifier.background(MaterialTheme.colorScheme.surfaceVariant))
-            }
-        } else {
-            Box(modifier = modifier.background(MaterialTheme.colorScheme.surfaceVariant))
-        }
-    } else {
-        // 普通 URL/Uri:走 Coil AsyncImage
-        AsyncImage(
-            model = model,
-            contentDescription = contentDescription,
-            modifier = modifier,
-            contentScale = contentScale,
-        )
-    }
-}
-
-/**
- * 阶段 4: 流式光标 — 末尾 AI 流式消息文本后追加的闪烁竖线。
- *
- * 设计: 2.5dp 宽 / 18dp 高竖条,通过 [rememberInfiniteTransition] + [animateFloat]
- *       在 1.0 ↔ 0.2 间用 FastOutSlowInEasing 往返(530ms 周期),呈现"打字机呼吸感"。
- * 颜色: 取自 MaterialTheme.colorScheme.primary(月桂绿 #2D8C5F),
- *       与品牌色保持一致,符合"深夜台灯"配色铁律(<5% 品牌色点缀)。
- *
- * v1.0.3 改进:
- *  - 周期从 1s 缩短到 530ms,看起来更"活跃",与更快的内容流入节奏匹配
- *  - alpha 范围从 0~1 改为 0.2~1,避免完全消失,视觉更连贯
- *  - 缓动从 LinearEasing 改为 FastOutSlowInEasing,呼吸感更自然
- *  - 宽度从 2dp 加到 2.5dp,高度从 16dp 加到 18dp,略微更醒目
- */
-@Composable
-private fun StreamingCursor(
-    color: Color,
-    modifier: Modifier = Modifier,
-) {
-    val transition = rememberInfiniteTransition(label = "streaming_cursor")
-    val alpha by transition.animateFloat(
-        initialValue = 1f,
-        targetValue = 0.2f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 530, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "cursor_alpha",
-    )
-    Box(
-        modifier = modifier
-            .size(width = 2.5.dp, height = 18.dp)
-            .background(color = color.copy(alpha = alpha)),
-    )
-}
-
-/**
- * AI 流式/思考状态指示器 — 绿色脉动圆点 + "正在思考…"文案。
- * 使用 MuseShapes.pill 绿色小点 + alpha 呼吸动画,符合 iOS/MANUS 风格。
- */
-@Composable
-private fun ThinkingIndicator() {
-    val transition = rememberInfiniteTransition(label = "thinking_dot")
-    val alpha by transition.animateFloat(
-        initialValue = 1f,
-        targetValue = 0.35f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 900, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "thinking_alpha",
-    )
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .size(7.dp)
-                .clip(MuseShapes.pill)
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = alpha)),
-        )
-        Text(
-            text = stringResource(R.string.chat_thinking),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-        )
-    }
-}
-
-/**
- * 功能2: TTS 语音消息播放器。显示在 AI 消息气泡下方,当前消息正在 TTS 朗读时出现。
- *
- * 包含波形条动画 + 播放/暂停按钮 + 进度条 + 倍速选择。
- */
-@Composable
-private fun TtsAudioPlayer(
-    modifier: Modifier = Modifier,
-) {
-    val ttsManager: io.zer0.muse.ui.speech.TtsManager = org.koin.compose.koinInject()
-    val state by ttsManager.playbackState.collectAsStateWithLifecycle()
-    val isPlaying = state.status == io.zer0.muse.ui.speech.PlaybackStatus.Playing
-    val isPaused = state.status == io.zer0.muse.ui.speech.PlaybackStatus.Paused
-    val progress = if (state.durationMs > 0) (state.positionMs.toFloat() / state.durationMs).coerceIn(0f, 1f) else 0f
-
-    var speedIndex by rememberSaveable { mutableIntStateOf(1) }
-    val speeds = remember { listOf(0.8f, 1.0f, 1.2f, 1.5f) }
-
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-        shape = MuseShapes.medium,
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        Column(
-            modifier = Modifier.padding(MusePaddings.bubbleInner),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
-            ) {
-                // 播放/暂停按钮
-                IconButton(
-                    onClick = {
-                        if (isPlaying) ttsManager.pause()
-                        else ttsManager.resume()
-                    },
-                    modifier = Modifier.size(32.dp),
-                ) {
-                    Icon(
-                        imageVector = if (isPlaying) Icons.Default.Pause else TablerIcons.PlayerPlay,
-                        contentDescription = if (isPlaying) stringResource(R.string.speech_pause_cd) else stringResource(R.string.speech_resume_cd),
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
-                // 波形条动画(4 条竖条,随播放状态弹跳)
-                WaveformBars(isActive = isPlaying)
-                Spacer(Modifier.weight(1f))
-                // 倍速选择
-                Text(
-                    text = "${speeds[speedIndex]}x",
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .clickable {
-                            speedIndex = (speedIndex + 1) % speeds.size
-                            ttsManager.setSpeed(speeds[speedIndex])
-                        }
-                        .clip(MuseShapes.tiny)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                        .padding(MusePaddings.chipInnerLoose),
-                )
-            }
-            Spacer(Modifier.height(MusePaddings.tinyGap))
-            // 进度条
-            MuseSlider(
-                value = progress,
-                onValueChange = { v ->
-                    val targetMs = (v * state.durationMs).toLong()
-                    val delta = (targetMs - state.positionMs).toInt()
-                    ttsManager.seekBy(delta)
-                },
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-    }
-}
-
-/**
- * 波形条动画 — 4 条竖条,播放时逐条错开弹跳,暂停时静止。
- */
-@Composable
-private fun WaveformBars(
-    isActive: Boolean,
-) {
-    val infiniteTransition = rememberInfiniteTransition(label = "waveform")
-    val voicePlayingCd = stringResource(R.string.chat_voice_playing_cd)
-    val voiceReadyCd = stringResource(R.string.chat_voice_ready_cd)
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        // v1.0.52: 无障碍 — TalkBack 可播报波形状态
-        modifier = Modifier.semantics {
-            contentDescription = if (isActive) voicePlayingCd else voiceReadyCd
-        },
-    ) {
-        val heights = listOf(MusePaddings.itemGap, 18.dp, 14.dp, 20.dp)
-        heights.forEachIndexed { index, maxHeight ->
-            val scale by infiniteTransition.animateFloat(
-                initialValue = 0.4f,
-                targetValue = 1f,
-                animationSpec = infiniteRepeatable(
-                    animation = keyframes {
-                        durationMillis = 600
-                        0.4f at 0
-                        1f at (150 + index * 50)
-                        0.4f at 600
-                    },
-                    repeatMode = RepeatMode.Restart,
-                ),
-                label = "bar$index",
-            )
-            val currentHeight = if (isActive) maxHeight * scale else maxHeight * 0.4f
-            Box(
-                modifier = Modifier
-                    .width(3.dp)
-                    .height(currentHeight)
-                    .clip(MuseShapes.tiny)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = if (isActive) 0.8f else 0.3f)),
-            )
-        }
-    }
-}
-
-/**
- * v0.48: 消息时间戳格式化 — 受 chatPrefs.use24Hour 控制时制,
- * 默认 24 小时制显示 "HH:mm",12 小时制显示 "h:mm a"。
- */
-// v1.79 (L-B12): SimpleDateFormat 提为文件级缓存,避免每条消息独立创建
-private val sdf24Hour by lazy {
-    java.text.SimpleDateFormat(MuseDateFormats.TIME_SHORT, java.util.Locale.getDefault())
-}
-private val sdf12Hour by lazy {
-    java.text.SimpleDateFormat(MuseDateFormats.TIME_12H, java.util.Locale.getDefault())
-}
-
-// L-MB3: 移除多余的 @Composable 注解(函数不使用任何 Composable API)
-private fun formatMessageTime(timestamp: Long, use24Hour: Boolean = true): String {
-    val sdf = if (use24Hour) sdf24Hour else sdf12Hour
-    return sdf.format(java.util.Date(timestamp))
-}
-
-/**
- * 视频时长格式化:毫秒 → "M:SS"(超过 1 小时则 "H:MM:SS")。
- * 仅用于消息气泡右下角时长标签,与 InputBar 中同名函数语义一致。
- */
-private fun formatVideoDuration(durationMs: Long): String {
-    if (durationMs <= 0L) return "0:00"
-    val totalSec = durationMs / 1000
-    val h = totalSec / 3600
-    val m = (totalSec % 3600) / 60
-    val s = totalSec % 60
-    return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
-}
-
-/**
- * v0.47: 工具调用卡片 — 折叠式展示 tool_call 的入参/出参。
- *
- * 显示工具名 + 状态图标(成功/失败),点击展开看入参 JSON 和出参文本。
- * 用于替代原来"调用工具 xxx: 参数: ... 结果: ..."的纯文本 ASSISTANT 消息。
- *
- * 结果文本中若包含沙盒内文件路径,会渲染为可点击的附件芯片(见 [AttachmentChip])。
- */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-internal fun ToolCallCard(
-    toolName: String,
-    arguments: String,
-    result: String,
-    isSuccess: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    // v1.79 (L-B25): expanded 改用 rememberSaveable,旋屏/后台后保持展开状态
-    var expanded by rememberSaveable { mutableStateOf(false) }
-    // v1.79 (M-B4): extractFilePaths 含 file.exists() 磁盘 IO,移到 LaunchedEffect + IO 线程
-    var attachments by remember(result) { mutableStateOf(emptyList<Pair<String, Long?>>()) }
-    LaunchedEffect(result) {
-        attachments = withContext(Dispatchers.IO) { extractFilePaths(result) }
-    }
-    // v1.28: 有附件时默认展开,让用户直接看到可下载的文件芯片
-    LaunchedEffect(attachments.isNotEmpty()) {
-        if (attachments.isNotEmpty()) expanded = true
-    }
-    // v1.x: 重构为紧凑可折叠卡片,对齐 mood/reasoning 块的视觉与交互模式
-    // (primary.copy(0.08f) 底色 + bubbleInner 内边距 + 整行可点击头部 + 14dp 图标)
-    Surface(
-        color = if (isSuccess) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
-                else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
-        shape = MuseShapes.medium,
-        tonalElevation = MuseElevation.none,
-        modifier = modifier.widthIn(max = 360.dp),
-    ) {
-        Column(modifier = Modifier.padding(MusePaddings.bubbleInner)) {
-            // 头部:状态图标 + 工具名(+ 折叠摘要) + 展开箭头,整行可点击
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { expanded = !expanded }
-                    .padding(vertical = MusePaddings.tinyGap),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    imageVector = if (isSuccess) TablerIcons.Check else TablerIcons.X,
-                    contentDescription = if (isSuccess) stringResource(R.string.chat_tool_success_cd) else stringResource(R.string.chat_tool_failed_cd),
-                    tint = if (isSuccess) MaterialTheme.colorScheme.primary
-                           else MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(MuseIconSizes.iconTiny),
-                )
-                Spacer(Modifier.width(MusePaddings.tightGap))
-                // 折叠时标题显示工具名 + 结果摘要(前 40 字符),展开时只显示工具名
-                val titleText = if (expanded) {
-                    toolName
-                } else {
-                    val cleaned = result.replace("\n", " ").trim()
-                    when {
-                        cleaned.length > 40 -> "$toolName · ${cleaned.take(40)}…"
-                        cleaned.isNotEmpty() -> "$toolName · $cleaned"
-                        else -> toolName
-                    }
-                }
-                Text(
-                    text = titleText,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                Icon(
-                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = if (expanded) stringResource(R.string.action_collapse) else stringResource(R.string.action_expand),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(MuseIconSizes.iconTiny),
-                )
-            }
-            // 展开内容:入参 + 出参 合并为单段 bodySmall 文本(不再使用两个嵌套 Surface)
-            AnimatedVisibility(visible = expanded) {
-                val paramsLabel = stringResource(R.string.chat_tool_params)
-                val resultLabel = stringResource(R.string.chat_tool_result)
-                val isTruncated = result.length > 500
-                val displayResult = if (isTruncated) result.take(500) + "…" else result
-                val content = "$paramsLabel: ${arguments.ifBlank { "{}" }}\n$resultLabel: $displayResult"
-                Column(modifier = Modifier.padding(top = MusePaddings.contentGap)) {
-                    Text(
-                        text = content,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    // 结果文本下方:若检测到沙盒内文件路径,渲染可点击附件芯片
-                    if (attachments.isNotEmpty()) {
-                        FlowRow(
-                            modifier = Modifier.padding(top = MusePaddings.contentGap),
-                            horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
-                            verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
-                        ) {
-                            attachments.forEach { (path, size) ->
-                                AttachmentChip(
-                                    filePath = path,
-                                    fileSize = size,
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-/**
- * 从工具结果文本中提取沙盒内文件路径。
- *
- * 匹配 /data/.../files/ 或 /data/.../cache/ 等绝对路径下、带扩展名的文件,
- * 只返回磁盘中真实存在的文件,按路径去重。
- *
- * @return 文件路径与对应字节数(读取失败则为 null)的列表
- */
-// v1.79 (L-B10): Regex 提为文件级常量,避免每次调用重建
-private val PATH_PATTERN = Regex("""(/data/[^\s,)]+\.[a-zA-Z0-9]+)""")
-
-private fun extractFilePaths(text: String): List<Pair<String, Long?>> {
-    val results = mutableListOf<Pair<String, Long?>>()
-    PATH_PATTERN.findAll(text).forEach { match ->
-        val path = match.groupValues[1]
-        val file = java.io.File(path)
-        if (file.exists()) {
-            results.add(path to file.length())
-        }
-    }
-    return results.distinctBy { it.first }
-}
-
-/**
- * v1.95: 从文本中提取表情包绝对路径。
- *
- * send_sticker 工具返回格式为 `已发送表情包。路径:/data/.../files/stickers/猫猫/001.png`,
- * 本函数用正则匹配包含 `/stickers/` 的绝对路径(从路径起始的 `/` 到图片扩展名为止),
- * 供 MessageBubble 把这些路径转为 file:// URI 用 Coil AsyncImage 渲染。
- *
- * @return 去重后的绝对路径列表
- */
-// v1.95: 表情包路径正则 — 匹配包含 /stickers/ 且以图片扩展名结尾的绝对路径,不区分大小写
-// 从路径起始的 / 开始匹配(如 /data/.../files/stickers/猫猫/001.png),保证 file:// URI 可解析
-private val STICKER_PATH_PATTERN =
-    Regex("""(/[^\s\]]*?/stickers/[^\s\]]+\.(?:png|jpg|jpeg|gif|webp|bmp))""", RegexOption.IGNORE_CASE)
-
-private fun extractStickerPaths(text: String): List<String> {
-    return STICKER_PATH_PATTERN.findAll(text)
-        .map { it.groupValues[1] }
-        .distinct()
-        .toList()
-}
-
-/**
- * v1.133: RAG 引用 chip 列表 — 渲染知识库检索引用,点击展开 snippet 预览。
- *
- * 设计:
- *  - 用 FlowRow 横向排列 chip(自动换行,适配窄屏)
- *  - 当前展开项独占一行显示完整 snippet + 元数据(分数/匹配类型)
- *  - chip 形状用 [MuseShapes.pill](iOS 胶囊形),颜色用 surfaceVariant/primaryContainer
- *
- * @param citations 引用列表(与 system prompt 中的 [N] 一一对应)
- */
-@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
-@Composable
-private fun RagCitationChips(
-    citations: List<RagCitation>,
-    modifier: Modifier = Modifier,
-) {
-    // 当前展开的 citation index,-1 表示全部收起
-    var expandedIndex by rememberSaveable { mutableStateOf(-1) }
-    Column(modifier = modifier.fillMaxWidth()) {
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
-            verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
-        ) {
-            citations.forEach { citation ->
-                RagCitationChip(
-                    citation = citation,
-                    isExpanded = expandedIndex == citation.index,
-                    onClick = {
-                        expandedIndex = if (expandedIndex == citation.index) -1 else citation.index
-                    },
-                )
-            }
-        }
-        // 展开的 snippet 预览(独占一行)
-        val expanded = citations.firstOrNull { it.index == expandedIndex }
-        if (expanded != null) {
-            Surface(
-                shape = MuseShapes.small,
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = MusePaddings.tightGap),
-            ) {
-                Column(modifier = Modifier.padding(MusePaddings.contentGap)) {
-                    Text(
-                        text = stringResource(R.string.chat_knowledge_chunk_title, expanded.docTitle, expanded.chunkIndex),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(modifier = Modifier.height(MusePaddings.tightGap))
-                    Text(
-                        text = expanded.snippet,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Text(
-                        text = stringResource(R.string.chat_knowledge_chunk_score, "%.2f".format(expanded.score), expanded.matchType),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline,
-                        modifier = Modifier.padding(top = MusePaddings.tightGap),
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun RagCitationChip(
-    citation: RagCitation,
-    isExpanded: Boolean,
-    onClick: () -> Unit,
-) {
-    Surface(
-        shape = MuseShapes.pill,
-        color = if (isExpanded) MaterialTheme.colorScheme.primaryContainer
-                else MaterialTheme.colorScheme.surfaceVariant,
-        contentColor = if (isExpanded) MaterialTheme.colorScheme.onPrimaryContainer
-                       else MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.clickable(onClick = onClick),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = MusePaddings.contentGap, vertical = MusePaddings.tightGap),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
-        ) {
-            Text(
-                text = "[${citation.index}]",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            Text(
-                text = citation.docTitle.take(20),
-                style = MaterialTheme.typography.labelSmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Icon(
-                imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                contentDescription = null,
-                modifier = Modifier.size(MuseIconSizes.iconTiny),
-            )
-        }
-    }
-}
-
-// 情绪特效使用固定字号，属装饰性内联样式，不进入正文排版层级
-private fun moodSkinEffectStyle(effect: String): SpanStyle = when (effect) {
-    "glow" -> SpanStyle(color = MoodSkinColors.glow, fontWeight = FontWeight.SemiBold)
-    "big" -> SpanStyle(fontSize = 20.sp, fontWeight = FontWeight.SemiBold) // mood effect
-    "huge" -> SpanStyle(fontSize = 26.sp, fontWeight = FontWeight.Bold) // mood effect
-    "whisper" -> SpanStyle(fontSize = 13.sp, color = MoodSkinColors.whisper) // mood effect
-    "red" -> SpanStyle(color = MoodSkinColors.red, fontWeight = FontWeight.Bold)
-    "shake" -> SpanStyle(color = MoodSkinColors.shake, letterSpacing = 1.sp)
-    "blur" -> SpanStyle(color = MoodSkinColors.blur)
-    "glitch" -> SpanStyle(color = MoodSkinColors.glitch, letterSpacing = 2.sp)
-    else -> SpanStyle()
-}
-@Composable
-private fun buildHighlightedText(text: String, query: String): AnnotatedString {
-    val highlightColor = MaterialTheme.colorScheme.primaryContainer
-    val onHighlight = MaterialTheme.colorScheme.onPrimaryContainer
-    return buildAnnotatedString {
-        var start = 0
-        val lowerText = text.lowercase()
-        val lowerQuery = query.lowercase()
-        while (true) {
-            val index = lowerText.indexOf(lowerQuery, start)
-            if (index < 0) {
-                append(text.substring(start))
-                break
-            }
-            append(text.substring(start, index))
-            withStyle(SpanStyle(background = highlightColor, color = onHighlight)) {
-                append(text.substring(index, index + query.length))
-            }
-            start = index + query.length
-        }
-    }
-}
-
-/**
- * v1.98 (T5): 任务待办胶囊 — 长任务(≥2 步工具调用)时,显示在工具调用卡片左边。
- *
- * 显示内容:
- * - 执行中:旋转加载图标 + "当前/总数"(primary 色)
- * - 已完成:Build 图标 + "成功/总数"(primary 色)
- * - 有失败:Build 图标 + "成功/总数"(error 色)
- *
- * 点击展开/折叠完整 TaskCard。竖向胶囊,贴合工具调用卡片左侧。
- */
-@Composable
-private fun TaskProgressBadge(
-    phase: io.zer0.muse.ui.taskcard.TaskCardPhase,
-    successCount: Int,
-    total: Int,
-    isExecuting: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    val hasFailed = phase == io.zer0.muse.ui.taskcard.TaskCardPhase.DONE && successCount < total
-    val badgeColor = if (hasFailed) MaterialTheme.colorScheme.error
-                     else MaterialTheme.colorScheme.primary
-    Surface(
-        modifier = modifier
-            .width(36.dp),
-        shape = MuseShapes.pill,
-        color = badgeColor.copy(alpha = 0.12f),
-    ) {
-        Column(
-            modifier = Modifier.padding(vertical = MusePaddings.contentGap, horizontal = MusePaddings.tinyGap),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap),
-        ) {
-            if (isExecuting) {
-                CircularProgressIndicator(
-                    strokeWidth = 2.dp,
-                    modifier = Modifier.size(MusePaddings.screen),
-                    color = badgeColor,
-                )
-            } else {
-                Icon(
-                    imageVector = Icons.Default.Build,
-                    contentDescription = null,
-                    tint = badgeColor,
-                    modifier = Modifier.size(MusePaddings.screen),
-                )
-            }
-            Text(
-                text = "$successCount/$total",
-                style = MaterialTheme.typography.labelSmall,
-                color = badgeColor,
-                fontWeight = FontWeight.Medium,
-            )
-        }
-    }
-}
-

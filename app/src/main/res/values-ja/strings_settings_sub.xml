@@ -200,7 +200,7 @@
     <string name="settings_memory_experience_lib">体験ライブラリ</string>
     <string name="settings_memory_experience_lib_subtitle">アシスタントは職務経験を要約し、後のタスクで参照します (文脈を汚す可能性があります)</string>
     <string name="settings_memory_keep_awake">起きていてください</string>
-    <string name="settings_memory_keep_awake_subtitle">充電中は画面をオンにしておく</string>
+    <string name="settings_memory_keep_awake_subtitle">生成中のみ保持し、低バッテリーで未充電の場合は保持しない</string>
     <string name="settings_memory_auto_launch">起動時に自動起動</string>
     <string name="settings_memory_auto_launch_subtitle">デバイスの起動時に Muse を自動的に開始する</string>
     <string name="settings_memory_notification_section">通知</string>

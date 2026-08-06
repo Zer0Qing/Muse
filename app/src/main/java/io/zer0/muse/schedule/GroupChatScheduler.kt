@@ -194,12 +194,7 @@ class GroupChatScheduler(
     }
 
     private fun parseLedgerMemberIds(ledger: GroupChatGenerationLedgerEntity?): List<String>? {
-        if (ledger == null) return null
-        val json = ledger.memberIdsJson
-        if (json.isBlank() || json == "[]") return null
-        return runCatching {
-            AppJson.decodeFromString(ListSerializer(String.serializer()), json)
-        }.getOrNull()
+        return parseLedgerMemberIds(ledger?.memberIdsJson)
     }
 
     private suspend fun memberAlreadyRepliedSince(chatId: String, memberId: String, since: Long): Boolean {
@@ -210,6 +205,24 @@ class GroupChatScheduler(
 
     companion object {
         private const val TAG = "GroupChatScheduler"
+
+        /** R-TEST-15: 从账本 JSON 解析轮转成员顺序,供单元测试直接调用。 */
+        internal fun parseLedgerMemberIds(memberIdsJson: String?): List<String>? {
+            if (memberIdsJson.isNullOrBlank() || memberIdsJson == "[]") return null
+            return runCatching {
+                AppJson.decodeFromString(ListSerializer(String.serializer()), memberIdsJson)
+            }.getOrNull()
+        }
+
+        /** R-TEST-15: 辩论角色分配纯逻辑。 */
+        internal fun generateDebateRoles(count: Int): List<String> {
+            val baseRoles = when {
+                count <= 2 -> listOf("提出方案", "质疑挑战")
+                count == 3 -> listOf("提出方案", "质疑挑战", "改进优化")
+                else -> listOf("提出方案", "质疑挑战", "改进优化", "补充扩展")
+            }
+            return (0 until count).map { baseRoles[it % baseRoles.size] }
+        }
         /** 单个 agent 的 LLM 调用超时(毫秒)。 */
         private const val AGENT_TIMEOUT_MS = 60_000L
         /** 单轮 LLM 决策超时(防止一个慢流式把 60s 总预算吃光)。 */
@@ -1641,12 +1654,7 @@ class GroupChatScheduler(
      * - 4+ 人:提方案 / 质疑 / 改进 / 补充(循环)
      */
     private fun generateDebateRoles(count: Int): List<String> {
-        val baseRoles = when {
-            count <= 2 -> listOf("提出方案", "质疑挑战")
-            count == 3 -> listOf("提出方案", "质疑挑战", "改进优化")
-            else -> listOf("提出方案", "质疑挑战", "改进优化", "补充扩展")
-        }
-        return (0 until count).map { baseRoles[it % baseRoles.size] }
+        return generateDebateRoles(count)
     }
 
     /**

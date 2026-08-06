@@ -5,11 +5,14 @@ import androidx.room.Room
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
+import java.io.File
+import java.nio.file.Files
 
 /**
  * Phase 2.2: FactDb 迁移测试范例。
@@ -33,12 +36,28 @@ import org.robolectric.annotation.Config
  *  - id INTEGER PRIMARY KEY AUTOINCREMENT
  *  - tags / importance / category / confidence / source / last_hit_at 均带 DEFAULT
  *  - 索引名: idx_facts_time / idx_facts_session / idx_facts_importance / idx_facts_category
+ *
+ * R-DOC-01: 测试数据库改用 Files.createTempDirectory,避免在仓库根目录 cwd 泄漏 facts_test.db。
  */
 @RunWith(AndroidJUnit4::class)
 @Config(sdk = [33]) // Robolectric: 用 API 33 的 SQLite 实现,兼容 minSdk 26
 class FactDbMigrationTest {
 
     private val context: Context get() = ApplicationProvider.getApplicationContext()
+
+    private val tempDirs = mutableListOf<File>()
+
+    @After
+    fun tearDown() {
+        tempDirs.forEach { it.deleteRecursively() }
+        tempDirs.clear()
+    }
+
+    private fun newDbFile(): File {
+        val dir = Files.createTempDirectory("facts-migration").toFile()
+        tempDirs += dir
+        return File(dir, DB_NAME)
+    }
 
     /**
      * v7 schema 的 CREATE TABLE — 严格对齐 7.json 中的 createSql。
@@ -85,8 +104,7 @@ class FactDbMigrationTest {
 
     @Test
     fun migrate7To8_addsScopeColumnWithDefaultMain() {
-        val dbFile = context.getDatabasePath(DB_NAME).apply { parentFile?.mkdirs() }
-        if (dbFile.exists()) dbFile.delete()
+        val dbFile = newDbFile()
         val factory = FrameworkSQLiteOpenHelperFactory()
         val helper = factory.create(
             configuration = androidx.sqlite.db.SupportSQLiteOpenHelper.Configuration.builder(context)
@@ -157,8 +175,7 @@ class FactDbMigrationTest {
 
     @Test
     fun migrate7To8_preservesExistingColumns() {
-        val dbFile = context.getDatabasePath(DB_NAME).apply { parentFile?.mkdirs() }
-        if (dbFile.exists()) dbFile.delete()
+        val dbFile = newDbFile()
         val factory = FrameworkSQLiteOpenHelperFactory()
         val helper = factory.create(
             configuration = androidx.sqlite.db.SupportSQLiteOpenHelper.Configuration.builder(context)

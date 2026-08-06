@@ -225,7 +225,7 @@
     <string name="settings_memory_experience_lib">经验库</string>
     <string name="settings_memory_experience_lib_subtitle">助手会总结工作经验并在后续任务中参考(可能污染上下文)</string>
     <string name="settings_memory_keep_awake">保持唤醒</string>
-    <string name="settings_memory_keep_awake_subtitle">充电时屏幕常亮</string>
+    <string name="settings_memory_keep_awake_subtitle">仅生成任务期间持锁，低电量且未充电时不保活</string>
     <string name="settings_memory_auto_launch">开机自启动</string>
     <string name="settings_memory_auto_launch_subtitle">设备开机时自动启动 Muse</string>
     <string name="settings_memory_notification_section">通知</string>

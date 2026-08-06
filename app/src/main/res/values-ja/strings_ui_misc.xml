@@ -73,12 +73,21 @@
     <string name="theme_twilight_purple">トワイライトパープル</string>
     <string name="theme_amber_gold">アンバーゴールド</string>
     <string name="theme_dusk_rose">ダスクローズ</string>
+    <string name="settings_theme_dark_section">ダークモードテーマ</string>
+    <string name="settings_theme_follow_light">ライトテーマに従う</string>
+    <string name="settings_theme_dark_title">ダークテーマ</string>
+    <string name="settings_theme_schedule">定時切り替え</string>
+    <string name="settings_theme_schedule_auto">自動切り替え</string>
+    <string name="settings_theme_schedule_auto_subtitle">起床・就寝時間にライト/ダークを自動切り替え</string>
+    <string name="settings_theme_wake_time_title">起床時間(ライト)</string>
+    <string name="settings_theme_sleep_time_title">就寝時間(ダーク)</string>
 
     <!-- ===== ui/speech voice input and TTS ===== -->
     <string name="speech_speak_prompt">話してください…</string>
     <string name="speech_tts_init_failed">音声エンジンの初期化に失敗しました。読み上げは利用できません</string>
     <string name="speech_tts_play_error">音声再生エラー</string>
     <string name="speech_tts_fallback_to_system">ネットワークの問題、システム TTS に切り替え</string>
+    <string name="speech_tts_no_engine">TTS エンジンが見つかりません。音声サービスをインストールしてください</string>
     <string name="speech_stop_reading_cd">読むのをやめる</string>
     <string name="speech_playback_speed_cd">再生速度%1$sx</string>
     <string name="speech_seek_forward_5s_cd">5秒進む</string>

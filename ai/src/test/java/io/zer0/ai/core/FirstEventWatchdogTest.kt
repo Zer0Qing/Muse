@@ -1,10 +1,14 @@
 package io.zer0.ai.core
 
+import kotlinx.coroutines.delay
+
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -34,5 +38,31 @@ class FirstEventWatchdogTest {
 
         assertFalse(events.any { it is ChatStreamEvent.FallbackNotice })
         assertFalse(events.any { it is ChatStreamEvent.ContentDelta && it.delta == "should not appear" })
+    }
+
+    @Test
+    fun `partial event before timeout cancels watchdog`() = runTest {
+        val events = flow {
+            delay(50)
+            emit(ChatStreamEvent.ContentDelta("partial"))
+            delay(200)
+            emit(ChatStreamEvent.Done("stop"))
+        }.withFirstEventWatchdog(timeoutMs = 100) {
+            ChatCompletion(text = "should not appear")
+        }.toList()
+
+        assertTrue(events.any { it is ChatStreamEvent.ContentDelta && it.delta == "partial" })
+        assertFalse(events.any { it is ChatStreamEvent.FallbackNotice })
+    }
+
+    @Test
+    fun `reasoning and large context models use longer timeout`() {
+        val reasoning = Model(id = "r1", name = "r1", providerId = "p", abilities = setOf(ModelAbility.REASONING))
+        val largeContext = Model(id = "l1", name = "l1", providerId = "p", contextWindow = 300_000)
+        val normal = Model(id = "n1", name = "n1", providerId = "p")
+
+        assertEquals(60_000L, reasoning.firstEventTimeoutMs())
+        assertEquals(60_000L, largeContext.firstEventTimeoutMs())
+        assertEquals(15_000L, normal.firstEventTimeoutMs())
     }
 }

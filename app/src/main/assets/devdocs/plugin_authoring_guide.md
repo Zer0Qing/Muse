@@ -47,7 +47,7 @@ my-plugin.muse-plugin
 - `id`：唯一标识，只允许小写字母、数字、下划线、连字符，必须声明至少一个 `tools`。
 - `kind`：当前支持 `tool`。
 - `trust`：`sandboxed`（推荐）或 `full-access`（谨慎）。
-- `capabilities` 只允许：`resource.read`、`resource.write`、`network`、`ui`、`ui.mood`。
+- `capabilities` 只允许：`resource.read`、`ui`、`ui.mood`。`network` 与 `resource.write` 不在白名单：当前沙箱会拦截网络请求并关闭文件写访问，声明这两项会被拒绝安装。
 - `tools[].parametersJson` 是 OpenAI 兼容 JSON Schema；`tools[].functionName` 必须与 `main.js` 中的函数名一致。
 
 ## 3. main.js 写法

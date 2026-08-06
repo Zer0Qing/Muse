@@ -275,6 +275,11 @@
     <string name="knowledge_delete">Удалить</string>
     <string name="knowledge_close">Закрывать</string>
     <string name="knowledge_reindex">Переиндексация</string>
+    <string name="knowledge_repair_index">Восстановить/пересоздать индекс</string>
+    <string name="knowledge_repairing">Восстановление FTS-индекса...</string>
+    <string name="knowledge_fts_repaired">Индекс базы знаний восстановлен</string>
+    <string name="knowledge_fts_repaired_partial">Индекс восстановлен, но %1$d документов не переиндексированы</string>
+    <string name="knowledge_fts_repair_failed">Не удалось восстановить индекс: %1$s</string>
     <string name="knowledge_importing">Импорт</string>
     <string name="knowledge_reindexing">Переиндексация</string>
     <string name="knowledge_cancel">Отмена</string>
@@ -290,6 +295,7 @@
     <string name="knowledge_file_too_large_confirm">Понятно</string>
     <string name="knowledge_imported_indexed">Импортировано: %1$s (%2$d фрагменты проиндексированы)</string>
     <string name="knowledge_imported_no_index">Импортировано: %1$s (не удалось индексировать вектор, доступен текстовый поиск)</string>
+    <string name="knowledge_index_error_reason">Причина: %1$s</string>
     <string name="knowledge_import_cancelled">Импорт отменен</string>
     <string name="knowledge_import_failed_read">Ошибка импорта: невозможно прочитать файл</string>
     <string name="knowledge_import_failed">Не удалось импортировать: %1$s</string>

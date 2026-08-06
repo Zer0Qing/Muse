@@ -1,3 +1,5 @@
+@file:Suppress("NestedBlockDepth", "ReturnCount")
+
 package io.zer0.ai.video
 
 import io.zer0.common.Logger
@@ -286,7 +288,7 @@ class AgnesVideoProvider(
 
     // ── 状态映射 ─────────────────────────────────────────────────────────────
 
-    private fun mapStatus(statusStr: String): PollStatus = when (statusStr) {
+    internal fun mapStatus(statusStr: String): PollStatus = when (statusStr) {
         "failed", "error", "cancelled", "canceled" -> PollStatus.FAILED
         "completed", "success", "succeeded", "done" -> PollStatus.SUCCESS
         else -> PollStatus.PENDING
@@ -300,7 +302,7 @@ class AgnesVideoProvider(
      * 依次尝试: remixed_from_video_id / video_url / url / output_url
      * 兼容嵌套 data 数组(递归查找)。
      */
-    private fun extractVideoUrl(root: JsonObject): String? {
+    internal fun extractVideoUrl(root: JsonObject): String? {
         for (key in VIDEO_URL_KEYS) {
             val v = root[key]
             if (v is JsonPrimitive && v.isString) {
@@ -323,7 +325,7 @@ class AgnesVideoProvider(
     /**
      * 尝试解析 Agnes 错误响应 {"error":{"message":"..."}} 或 {"message":"..."}。
      */
-    private fun parseApiErrorMessage(body: String): String? {
+    internal fun parseApiErrorMessage(body: String): String? {
         if (body.isBlank()) return null
         return runCatching {
             val root = json.parseToJsonElement(body).jsonObject
@@ -340,7 +342,7 @@ class AgnesVideoProvider(
      *  - 已带 /v1 → 原样使用
      *  - 不带 /v1 → 追加 /v1
      */
-    private fun agnesV1Base(baseUrl: String?): String {
+    internal fun agnesV1Base(baseUrl: String?): String {
         val base = baseUrl?.trim()?.trimEnd('/')?.ifBlank { DEFAULT_BASE_URL } ?: DEFAULT_BASE_URL
         return if (base.endsWith("/v1", ignoreCase = true)) base else "$base/v1"
     }
@@ -349,7 +351,7 @@ class AgnesVideoProvider(
      * 把 baseUrl 规范化为剥离 /v1 后缀的根。
      * 用于查询端点 /agnesapi(根路径,非 /v1)。
      */
-    private fun agnesRootBase(baseUrl: String?): String {
+    internal fun agnesRootBase(baseUrl: String?): String {
         return agnesV1Base(baseUrl).replace(Regex("/v1$", RegexOption.IGNORE_CASE), "")
     }
 

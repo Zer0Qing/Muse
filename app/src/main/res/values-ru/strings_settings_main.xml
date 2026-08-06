@@ -288,6 +288,8 @@
     <string name="settings_web_pin_hint">PIN-код предназначен только для проверки первого доступа к Интернету;</string>
     <string name="settings_web_enable">Включить веб-сервер</string>
     <string name="settings_web_enable_subtitle">Вступает в силу при следующем запуске приложения</string>
+    <string name="settings_web_allow_lan">Разрешить доступ по LAN</string>
+    <string name="settings_web_allow_lan_subtitle">По умолчанию только локально; включите, чтобы разрешить устройствам в одной Wi-Fi сети</string>
     <string name="settings_web_port">Порт</string>
     <string name="settings_web_port_subtitle">%1$d (перезапустите приложение, чтобы применить)</string>
     <string name="settings_web_password">Логин Пароль</string>

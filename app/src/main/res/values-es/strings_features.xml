@@ -275,6 +275,11 @@
     <string name="knowledge_delete">Borrar</string>
     <string name="knowledge_close">Cerca</string>
     <string name="knowledge_reindex">Reindexar</string>
+    <string name="knowledge_repair_index">Reparar/reconstruir índice</string>
+    <string name="knowledge_repairing">Reparando índice FTS y reindexando...</string>
+    <string name="knowledge_fts_repaired">Índice de conocimiento reparado</string>
+    <string name="knowledge_fts_repaired_partial">Índice reparado, pero %1$d documentos no se reindexaron</string>
+    <string name="knowledge_fts_repair_failed">Error al reparar índice: %1$s</string>
     <string name="knowledge_importing">Importador</string>
     <string name="knowledge_reindexing">Reindexación</string>
     <string name="knowledge_cancel">Cancelar</string>
@@ -290,6 +295,7 @@
     <string name="knowledge_file_too_large_confirm">Entiendo</string>
     <string name="knowledge_imported_indexed">Importado: %1$s (%2$d fragmentos indexados)</string>
     <string name="knowledge_imported_no_index">Importado: %1$s (falló la indexación de vectores, búsqueda de texto disponible)</string>
+    <string name="knowledge_index_error_reason">Motivo: %1$s</string>
     <string name="knowledge_import_cancelled">Importación cancelada</string>
     <string name="knowledge_import_failed_read">Falló la importación: no se puede leer el archivo</string>
     <string name="knowledge_import_failed">Error de importación: %1$s</string>

@@ -9,6 +9,7 @@ import io.zer0.muse.data.knowledge.KnowledgeChunkDao
 import io.zer0.muse.data.knowledge.KnowledgeChunkEntity
 import io.zer0.muse.data.knowledge.KnowledgeChunkFtsDao
 import io.zer0.muse.data.knowledge.KnowledgeChunkFtsRow
+import io.zer0.muse.data.knowledge.KnowledgeChunkFtsSelfHealer
 import io.zer0.muse.data.knowledge.KnowledgeDocDao
 import io.zer0.muse.util.TokenEstimator
 import kotlinx.coroutines.sync.withLock
@@ -64,6 +65,17 @@ class RagService(
 ) {
     private val json = Json { ignoreUnknownKeys = true }
     private val embedBatchSize = 50
+
+    /** R-DB-02: FTS 表缺失时先自愈重建再重试(批量插入在 Room 事务外调用,避免 DDL 死锁)。 */
+    private suspend fun <T> withFtsSelfHeal(block: suspend () -> T): T {
+        try {
+            return block()
+        } catch (e: RuntimeException) {
+            if (e.message?.contains("no such table: knowledge_chunks_fts") != true) throw e
+            KnowledgeChunkFtsSelfHealer.repair()
+            return block()
+        }
+    }
 
     // ── v1.55: HNSW 近似最近邻索引(大规模库 >=5000 chunk 时启用) ──
     /**
@@ -394,7 +406,7 @@ class RagService(
         // v1.55: 同时从 HNSW 索引中移除该 doc 的旧 chunk(基于 chunkMetaCache 按 docId 过滤)
         removeDocChunksFromVectorIndex(docId)
         chunkDao.deleteByDoc(docId)
-        ftsDao.deleteByDoc(docId)
+        withFtsSelfHeal { ftsDao.deleteByDoc(docId) }
 
         // 4. 存储 chunk + embedding(BLOB)
         val now = System.currentTimeMillis()
@@ -420,7 +432,7 @@ class RagService(
         val ftsRows = entities.map {
             KnowledgeChunkFtsRow(chunkId = it.id, docId = it.docId, content = it.content)
         }
-        resultOf { ftsDao.insertAll(ftsRows) }
+        resultOf { withFtsSelfHeal { ftsDao.insertAll(ftsRows) } }
             .onError { msg, e -> Logger.w("RagService", "FTS 同步失败(不影响向量检索): $msg", e) }
 
         perfTimer.split("store")
@@ -731,7 +743,7 @@ class RagService(
         // v1.55: 先从 HNSW 索引移除该 doc 的全部 chunk(基于 chunkMetaCache 过滤)
         removeDocChunksFromVectorIndex(docId)
         chunkDao.deleteByDoc(docId)
-        resultOf { ftsDao.deleteByDoc(docId) }
+        resultOf { withFtsSelfHeal { ftsDao.deleteByDoc(docId) } }
             .onError { msg, e -> Logger.w("RagService", "FTS 清理失败: $msg", e) }
         vectorSearch.invalidateCache()
         invalidateTitlesCache()
@@ -776,6 +788,24 @@ class RagService(
         }
         Logger.i("RagService", "KB 重索引完成:成功 ${total - failures.size}/$total,失败 ${failures.size}")
         return failures
+    }
+
+    /**
+     * R-DB-02/R-UI-01: 修复 knowledge_chunks_fts 并重索引全部用户文档。
+     * 先清影子表重建 FTS,再按文档所属 KB 全量重索引;失败文档返回 map。
+     */
+    suspend fun repairKnowledgeFtsIndex(
+        ragConfig: RagConfig,
+        onProgress: (current: Int, total: Int) -> Unit = { _, _ -> },
+    ): Map<String, String> {
+        KnowledgeChunkFtsSelfHealer.repair()
+        val kbIds = resultOf { docDao.getAll() }
+            .onError { msg, e -> Logger.e("RagService", "修复 FTS:加载文档失败: $msg", e) }
+            .getOrNull()
+            ?.map { it.kbId }
+            ?.distinct()
+            .orEmpty()
+        return reindexAllInKbs(kbIds, ragConfig, onProgress)
     }
 
     fun invalidateVectorCache() = vectorSearch.invalidateCache()
