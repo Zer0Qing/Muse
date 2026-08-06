@@ -43,4 +43,11 @@ class WebServerAuthPolicyTest {
         val decoded = JWT.require(algorithm).build().verify(token)
         assertEquals("muse-web", decoded.subject)
     }
+
+    @Test
+    fun `generated jwt secret is random and long enough`() {
+        val secret = WebServerConfig.generateRandomJwtSecret()
+        assertTrue(secret.length >= 43)
+        assertFalse(secret == WebServerConfig.generateRandomJwtSecret())
+    }
 }

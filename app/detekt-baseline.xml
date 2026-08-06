@@ -1163,7 +1163,7 @@
     <ID>LongMethod:VoiceConversationMode.kt$@Composable private fun VoiceConversationStatusPanel( state: VoiceConversationState, transcript: String, aiReply: String, amplitudes: List&lt;Float&gt;, playbackPositionMs: Long, playbackDurationMs: Long, playbackChunkIndex: Int, playbackTotalChunks: Int, modifier: Modifier = Modifier, )</ID>
     <ID>LongMethod:VoiceConversationMode.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun VoiceConversationMode( onClose: () -&gt; Unit, viewModel: ChatViewModel, )</ID>
     <ID>LongMethod:WebSearchSection.kt$@Composable internal fun WebSearchSection( webSearchConfig: WebSearchConfig, settings: SettingsRepository, )</ID>
-    <ID>LongMethod:WebServer.kt$WebServer$private fun Application.museRoutes( password: String, pin: String, sessionRepo: SessionRepository, settings: SettingsRepository, )</ID>
+    <ID>LongMethod:WebServer.kt$WebServer$private fun Application.museRoutes( password: String, jwtSecret: String, pin: String, sessionRepo: SessionRepository, settings: SettingsRepository, )</ID>
     <ID>LongMethod:WebServerSection.kt$@Composable internal fun WebServerSection( settings: SettingsRepository, )</ID>
     <ID>LongMethod:WorkspaceScreen.kt$@Composable fun WorkspaceScreen( onBack: () -&gt; Unit, )</ID>
     <ID>LongMethod:WorldBookScreen.kt$@Composable fun WorldBookScreen( onBack: () -&gt; Unit, viewModel: WorldBookViewModel = koinViewModel(), )</ID>
@@ -2894,7 +2894,6 @@
     <ID>ReturnCount:WebSearchService.kt$ZhipuSearchProvider$private fun parseResults(body: String, max: Int): List&lt;WebSearchResult&gt;</ID>
     <ID>ReturnCount:WebServer.kt$WebServer$private fun maskSecret(secret: String): String</ID>
     <ID>ReturnCount:WebServer.kt$WebServer.Companion$private fun checkRateLimit(ip: String): Boolean</ID>
-    <ID>ReturnCount:WebServer.kt$WebServer.Companion$private fun getRateLimitRemainingSeconds(ip: String): Long</ID>
     <ID>ReturnCount:WordPieceTokenizer.kt$WordPieceTokenizer$private fun wordPiece(token: String, vocab: Map&lt;String, Int&gt;, maxChars: Int): List&lt;String&gt;</ID>
     <ID>ReturnCount:WorkspaceManager.kt$WorkspaceManager$private fun resolveSafe( path: String, allowRoot: Boolean, mustExist: Boolean, mustBeDirectory: Boolean, ): File?</ID>
     <ID>ReturnCount:WorkspaceScreen.kt$private fun formatSize(bytes: Long): String</ID>
@@ -3561,7 +3560,6 @@
     <ID>UnusedImports:PermissionWizardScreen.kt$import androidx.compose.ui.graphics.Color</ID>
     <ID>UnusedImports:PlanCard.kt$import androidx.compose.runtime.remember</ID>
     <ID>UnusedImports:PlanCard.kt$import androidx.compose.ui.graphics.Color</ID>
-    <ID>UnusedImports:PluginManager.kt$import io.zer0.common.resultOf</ID>
     <ID>UnusedImports:PresetProviderPickerDialog.kt$import androidx.compose.foundation.clickable</ID>
     <ID>UnusedImports:PresetProviderPickerDialog.kt$import io.zer0.muse.ui.theme.huge</ID>
     <ID>UnusedImports:ProactiveScoreEngine.kt$import kotlinx.serialization.Serializable</ID>

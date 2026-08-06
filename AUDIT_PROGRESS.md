@@ -66,6 +66,7 @@
 | R-SVC-07 | 已完成 | PluginManagerTest 通过 | uninstall 删除失败 Toast+日志；registry 原子写 temp+rename + Mutex |
 | R-TEST-12 | 已完成 | WebServerAuthPolicyTest 3/3 通过 | 限流窗口/JWT HMAC 签发校验 |
 | R-DOC-07 | 已完成 | 验收文档已更新 | BE-012/013 指向快照测试；BE-039~047 标 CI 状态；新增 2026-08-06 附录（769 tests） |
+| R-SEC-03 | 部分完成 | WebServerAuthPolicyTest 4/4 通过 | JWT 独立 32 字节密钥已实现并持久化；CORS anyHost/0.0.0.0 绑定保持（局域网信任模型），白名单待 owner 决策 |
 | R-TEST-01 | 已完成 | `:ai:testDebugUnitTest --tests "*StreamGuardTest*"` 3/3 通过 | guard 挂起/reasoning 先到/空 finishReason；早停回退网络路径由 FirstEventWatchdogTest + 快照测试共同覆盖 |
 | R-TEST-05 | 已完成 | `:ai:testDebugUnitTest --tests "*ProviderRequestBodySnapshotTest*"` 3/3 通过 | Anthropic/Gemini/Ollama(OpenAI 兼容)请求体快照 |
 | R-TEST-09 | 已完成 | memory/app PiiGuardTest 全绿 | 手机(含空格)/邮箱/15/18 位身份证 mask/unmask 往返；两处 PiiGuard 正则同步增强 |
@@ -115,4 +116,6 @@
 - 尚未开始：R-UI-08（state-split）、R-TEST-06/10/14/19/20、R-TEST-03/04 剩余面、R-CI-07/08/09 剩余面、R-SVC-05、R-SEC-03、R-DB-04/05、R-BUILD-07、R-UI-14 等长期项。
 - 本检查点新增完成：R-CI-08（emulator job）、R-CI-09（abortOnError=true + lint baseline）。
 - 尚未开始：R-UI-08（state-split）、R-TEST-06/10/14/19/20、R-TEST-03/04 剩余面、R-CI-07 阈值、R-SVC-05、R-SEC-03、R-DB-04/05、R-BUILD-07、R-UI-14 等长期项。
+- 本检查点新增完成：R-SEC-03 的 JWT 独立密钥面（CORS/绑定面仍待 owner）。
+- 尚未开始：R-UI-08（state-split）、R-TEST-06/10/14/19/20、R-TEST-03/04 剩余面、R-CI-07 阈值、R-SVC-05、R-SEC-03 CORS/绑定面、R-DB-04/05、R-BUILD-07、R-UI-14 等长期项。
 - 验证：assembleDebug + 三模块单测全绿。

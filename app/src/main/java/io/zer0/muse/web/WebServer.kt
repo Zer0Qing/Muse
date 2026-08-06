@@ -76,7 +76,7 @@ import io.zer0.muse.R
  *
  * 安全:
  *  - 服务器绑定 `0.0.0.0`(所有网卡),仅局域网可访问
- *  - 密码同时作为 JWT 签名密钥(一物两用,减少配置项)
+ *  - R-SEC-03: JWT 使用独立随机签名密钥,与用户密码分离
  *  - 所有受保护路由需 `Authorization: Bearer <token>` 头
  *  - 密码为空时自动生成 8 位随机密码并持久化(首次启用时)
  *  - PIN 为空时自动生成 6 位随机 PIN 并持久化(首次启用时)
@@ -125,8 +125,13 @@ class WebServer(
         if (pin.isBlank()) {
             pin = WebServerConfig.generateRandomPin()
         }
-        if (password != config.password || pin != config.pin) {
-            settings.saveWebServerConfig(config.copy(password = password, pin = pin))
+        // R-SEC-03: 独立 JWT 签名密钥,首次启动生成并持久化
+        var jwtSecret = config.jwtSecret
+        if (jwtSecret.isBlank()) {
+            jwtSecret = WebServerConfig.generateRandomJwtSecret()
+        }
+        if (password != config.password || pin != config.pin || jwtSecret != config.jwtSecret) {
+            settings.saveWebServerConfig(config.copy(password = password, pin = pin, jwtSecret = jwtSecret))
         }
 
         // M11: startedAt 在 it.start() 之前赋值,避免 museRoutes 捕获到 0 导致 uptime 计算错误
@@ -134,11 +139,11 @@ class WebServer(
         // M4: runCatching 改为 resultOf;M14: withContext(Dispatchers.IO) 保证配置读取不在主线程
         resultOf {
             server = embeddedServer(CIO, port = port, host = BIND_HOST) {
-                configureSecurity(password)
+                configureSecurity(jwtSecret)
                 configureSerialization()
                 configureCors()
                 configureStatusPages()
-                museRoutes(password, pin, sessionRepo, settings)
+                museRoutes(password, jwtSecret, pin, sessionRepo, settings)
             }.also { it.start(wait = false) }
             currentPort = port
             currentPassword = password
@@ -204,8 +209,8 @@ class WebServer(
      *  2. `token` Cookie(PIN 登录后由浏览器自动携带)
      *  3. `token` query param(适合无 Cookie 场景,如内嵌 iframe / 命令行)
      */
-    private fun Application.configureSecurity(password: String) {
-        val algorithm = Algorithm.HMAC256(password)
+    private fun Application.configureSecurity(jwtSecret: String) {
+        val algorithm = Algorithm.HMAC256(jwtSecret)
         install(Authentication) {
             jwt(AUTH_JWT_NAME) {
                 realm = REALM
@@ -284,11 +289,12 @@ class WebServer(
      */
     private fun Application.museRoutes(
         password: String,
+        jwtSecret: String,
         pin: String,
         sessionRepo: SessionRepository,
         settings: SettingsRepository,
     ) {
-        val algorithm = Algorithm.HMAC256(password)
+        val algorithm = Algorithm.HMAC256(jwtSecret)
 
         routing {
             // 健康检查(无需鉴权,用于 mDNS 客户端探测)

@@ -13,7 +13,7 @@ import java.security.SecureRandom
  * - [pin]: 6 位数字 PIN,Web 端首次访问需输入(空字符串表示首次启动时生成)
  *
  * 持久化: SettingsRepository DataStore,JSON 整存整取。
- * 安全: 密码同时作为 JWT HMAC-SHA256 签名密钥(一物两用,减少配置项)。
+ * 安全: R-SEC-03 起 JWT 使用独立随机签名密钥 [jwtSecret],不再复用用户密码。
  * PIN 校验通过后签发 JWT,与密码登录复用同一鉴权体系。
  */
 @Serializable
@@ -22,6 +22,8 @@ data class WebServerConfig(
     val port: Int = DEFAULT_PORT,
     val password: String = "",
     val pin: String = "",
+    /** R-SEC-03: 独立 JWT 签名密钥(32 字节随机值,与用户密码分离)。 */
+    val jwtSecret: String = "",
 ) {
     /**
      * H8: 返回 password/pin 已加密(走 [SecureKeyStore.encrypt])的副本,
@@ -31,6 +33,7 @@ data class WebServerConfig(
     suspend fun encrypted(): WebServerConfig = copy(
         password = SecureKeyStore.encrypt(password),
         pin = SecureKeyStore.encrypt(pin),
+        jwtSecret = SecureKeyStore.encrypt(jwtSecret),
     )
 
     /**
@@ -41,6 +44,7 @@ data class WebServerConfig(
     suspend fun decrypted(): WebServerConfig = copy(
         password = SecureKeyStore.decrypt(password),
         pin = SecureKeyStore.decrypt(pin),
+        jwtSecret = SecureKeyStore.decrypt(jwtSecret),
     )
 
     companion object {
@@ -51,6 +55,13 @@ data class WebServerConfig(
         private val PASSWORD_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789".toCharArray()
 
         /** 生成 8 位随机密码(首次启用时用)。H6: 使用 SecureRandom 替代 Math.random()。 */
+
+        /** R-SEC-03: 生成 32 字节随机 JWT 签名密钥(Base64 URL 安全无填充)。 */
+        fun generateRandomJwtSecret(): String {
+            val bytes = ByteArray(32)
+            SecureRandom().nextBytes(bytes)
+            return java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(bytes)
+        }
         fun generateRandomPassword(length: Int = 8): String {
             val sb = StringBuilder(length)
             val random = SecureRandom()
