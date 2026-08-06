@@ -33,6 +33,8 @@
 | R-UI-11 | 已完成 | grep `collectAsState()` 仅剩 MuseToastHost（带注释） | ProviderSection 改 collectAsStateWithLifecycle |
 | R-UI-12 | 已完成（复核） | 5 个文件逐点复核 | 现有交互按钮/行均带语义标签或相邻文本，剩余 null 均为装饰性图标，符合任务书“装饰性保持 null”说明 |
 | R-UI-13 | 已完成 | 编译通过 | SettingsTutorialPage 搜索结果 items 补稳定 key |
+| R-UI-14 | 部分完成 | assembleDebug + 三模块测试全绿 | DebugScreen 拆出 DebugCrashLogSheet/DebugAnalyticsSheet/DebugFormatters，1572→约940行；其余大文件继续 |
+| R-UI-08 | 待下一迭代 | 未执行 | 状态拆分不在本分支执行（owner 决策，先文件后状态） |
 | R-UI-15 | 已完成 | 编译通过 | StickerLibraryRepository 逐条目 D 日志改为每 100 条汇总，保留最终汇总 |
 | R-TEST-03 | 已完成（JVM 面） | PinLockPolicyTest 4/4 + SecureKeyStoreTest 3/3 通过 | SecureKeyCipher 接口 + delegate 注入可 mock；Keystore 硬件往返留真机验证 |
 | R-TEST-04 | 已完成（JVM 面） | BackupCryptoTest 3/3 + SettingsSnapshotPolicyTest 3/3 + BackupKeyExclusionTest 1/1 通过 | SettingsSnapshotPolicy 白名单 + 敏感片段；备份 JSON 扫描无 apiKey 明文 |
@@ -169,6 +171,12 @@
 - 阻塞边界：v1-54 无法在 Robolectric 覆盖：38→39 建 FTS4 vtable 报 vtable constructor failed；39-54 schema 快照存在迁移漂移（messages 缺索引/默认值），留真机验证。
 - 验证：`:app:testDebugUnitTest --tests MuseDbMigrationTest` 全绿；detekt/ktlintCheck 通过。
 - 仍待 owner/后续：R-UI-08/R-UI-14 文件拆分、R-TEST-06 完整状态机/10 真实路径/20 其余、R-DB-04/05、R-BUILD-07。
+
+## 第三批检查点 11（2026-08-06 续）
+
+- 新增完成：R-UI-14 首个文件拆分（DebugScreen）。纯搬运拆出 DebugCrashLogSheet.kt、DebugAnalyticsSheet.kt、DebugFormatters.kt；DebugScreen 从 1572 行降到约 940 行；仅调整 private→internal/文件级 Suppress，无行为变化。
+- 验证：assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿；detekt/ktlintCheck 通过。
+- 仍待 owner/后续：R-UI-14 其余大文件（ChatScreen/MessageBubble/MemoryScreen/GroupChatDetailScreen/ProviderSection/ChatViewModel/MuseDb/GroupChatScheduler 等）、R-TEST-06 完整状态机/10 真实路径/20 其余、R-DB-04/05、R-BUILD-07。
 
 ## 第三批检查点 7（2026-08-06 续）
 
