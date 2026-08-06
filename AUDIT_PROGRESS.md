@@ -23,6 +23,10 @@
 | R-UI-01 | 已完成 | `assembleDebug` 零错误 | KnowledgeScreen 修复/重建索引按钮、进度与多语言 Toast |
 | R-SEC-02 | 已完成 | grep 确认无 token 响应体日志 | OAuth 三处日志脱敏 |
 | R-SEC-06 | 已完成 | `:ai:testDebugUnitTest` 全绿；`take(500)` 0 命中 | 400 请求体改结构化摘要 |
+| R-AI-07 | 已完成（并入 R-SEC-06） | 无独立动作 | HTTP 400 请求体泄露已由 R-SEC-06 执行并验证 |
+| R-SEC-04 | 已完成（随 R-TEST-03） | PinLockPolicyTest 4/4 + SecureKeyStoreTest 3/3 | PIN 锁/退避/SecureKeyStore JVM 面覆盖；Keystore 真机往返留待 |
+| R-SEC-05 | 已完成（随 R-TEST-04） | BackupCryptoTest 3/3 + BackupKeyExclusionTest 1/1 | 备份 JSON 扫描无 apiKey 明文；全链路真机面留待 |
+| R-SEC-09 | 已完成（无需动作） | .gitignore + git ls-files 确认 | keystore.properties/local.properties 未入库，维持现状 |
 | R-SEC-07 | 已完成 | FreeModelConfigTest 5/5 通过；编译通过 | fallback key 占位/空时设置页与模型切换面板显示「免费额度服务不可用」；新增 isFallbackKeyAvailable |
 | R-SEC-10 | 已完成（仓库侧） | README 已同步；grep 无旧免费模型机制描述 | KeyRoulette 401 硬黑名单确认；README 记录 FREE_MODEL_KEY 构建注入与服务端拉黑旧 key 要求 |
 | R-UI-03 | 已完成 | 编译通过 | 默认主题统一 mono，文档同步 |
@@ -402,3 +406,9 @@
 - 本轮新增提交：R-DB-04 图片读取 LRU 缓存（部分）。
 - 验证：assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿；detekt/ktlintCheck 通过；工作区干净，分支未合并。
 - 仍待 owner/后续：R-DB-04 存量 base64 外置迁移、R-DB-05、R-TEST-06 完整状态机（依赖 R-UI-08）、R-UI-14 结构级拆分（ChatScreen/ChatViewModel/MuseDb/GroupChatScheduler）、R-BUILD-07、真机验证项。
+
+## 第三批检查点 36（2026-08-06 续）
+
+- 新增完成（进度收敛）：R-AI-07 并入 R-SEC-06；R-SEC-04/R-SEC-05 分别由 R-TEST-03/R-TEST-04 JVM 面覆盖；R-SEC-09 正向确认无需动作（keystore.properties/local.properties 未入库）。
+- 验证：上述项无新增代码；引用项测试已在对应检查点验证。
+- 仍待 owner/后续：R-DB-04 存量迁移、R-DB-05、R-TEST-06 完整状态机（依赖 R-UI-08）、R-UI-14 结构级拆分（ChatScreen/ChatViewModel/MuseDb/GroupChatScheduler）、R-BUILD-07、真机验证项。
