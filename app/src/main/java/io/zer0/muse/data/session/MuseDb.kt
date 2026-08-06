@@ -241,7 +241,7 @@ abstract class MuseDb : RoomDatabase() {
         private fun createKnowledgeChunkFtsTable(db: SupportSQLiteDatabase) {
             db.execSQL(
                 "CREATE VIRTUAL TABLE IF NOT EXISTS knowledge_chunks_fts " +
-                    "USING fts4(chunkId, docId, text_content)",
+                    "USING fts4(chunkId, doc_id, text_content)",
             )
         }
 
@@ -1228,10 +1228,11 @@ abstract class MuseDb : RoomDatabase() {
 
                 // 4. 新建 FTS4 虚拟表
                 // 列名用 text_content 而非 content,避开 FTS4 内部 content 列占位符冲突
+                // 列名用 doc_id 而非 docId:FTS4 保留列 docid(rowid 别名,大小写不敏感),docId 会导致 vtable constructor failed
                 // 不指定 tokenizer:中文检索由调用方做 ngram 预处理后再写入(按 MessageFtsManager 模式)
                 db.execSQL("""
                     CREATE VIRTUAL TABLE IF NOT EXISTS knowledge_chunks_fts
-                    USING fts4(chunkId, docId, text_content)
+                    USING fts4(chunkId, doc_id, text_content)
                 """.trimIndent())
 
                 // 5. assistants 加 2 列
@@ -1252,7 +1253,7 @@ abstract class MuseDb : RoomDatabase() {
                 // 这里用 SupportSQLiteDatabase.execSQL(原始 SQL) — Room 的 SupportSQLiteDatabase.execSQL 对 INSERT 仍兼容。
                 try {
                     db.execSQL("""
-                        INSERT INTO knowledge_chunks_fts(chunkId, docId, text_content)
+                        INSERT INTO knowledge_chunks_fts(chunkId, doc_id, text_content)
                         SELECT id, doc_id, content FROM knowledge_chunks
                         WHERE content != ''
                     """.trimIndent())

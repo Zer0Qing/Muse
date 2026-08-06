@@ -32,14 +32,14 @@ interface KnowledgeChunkFtsDao {
     @SkipQueryVerification
     @Query(
         """
-        INSERT INTO knowledge_chunks_fts(chunkId, docId, text_content)
+        INSERT INTO knowledge_chunks_fts(chunkId, doc_id, text_content)
         VALUES (:chunkId, :docId, :content)
         """,
     )
     suspend fun insertRaw(chunkId: String, docId: String, content: String)
 
     @SkipQueryVerification
-    @Query("DELETE FROM knowledge_chunks_fts WHERE docId = :docId")
+    @Query("DELETE FROM knowledge_chunks_fts WHERE doc_id = :docId")
     suspend fun deleteByDocRaw(docId: String)
 
     @SkipQueryVerification
