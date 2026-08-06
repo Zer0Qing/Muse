@@ -482,3 +482,8 @@
 
 - R-DOC-07 附录刷新：三模块单测 906 tests / 128 测试类 / 0 failures；另含 MuMu connectedDebugAndroidTest 6 例。
 - 测试用例-全量验收.md 更新日期、模块计数、关键新增测试类。
+## 遇到的问题（阻塞记录，2026-08-07）
+
+- 当前分支已完成 MuMu 可覆盖的全部本地工作：迁移链 v54→77、FTS 回退、Keystore/备份设备面、三模块单测、assembleDebug、detekt/ktlint。
+- 剩余项需外部条件：v1-53 迁移链（真机）、StrongBox 硬件 Keystore（真机）、国产 ROM FTS5 矩阵（真机）、Shizuku 系统服务（真机）、R-UI-14 豁免大文件拆分（随 R-UI-08 下一迭代）、R-CI-01（owner 决策）。
+- 已连续三轮无法独立闭环，按目标规则标记 blocked，等待 owner 提供真机/决策/下一迭代授权。
