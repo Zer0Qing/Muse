@@ -41,8 +41,6 @@
     <ID>ConstructorParameterNaming:McpOAuthFlow.kt$McpOAuthFlow.TokenResponse$val expires_in: Long = 0L</ID>
     <ID>ConstructorParameterNaming:McpOAuthFlow.kt$McpOAuthFlow.TokenResponse$val refresh_token: String? = null</ID>
     <ID>ConstructorParameterNaming:McpOAuthFlow.kt$McpOAuthFlow.TokenResponse$val token_type: String = "Bearer"</ID>
-    <ID>ConstructorParameterNaming:MessageFtsEntity.kt$MessageFtsEntity$/** 关联的 messages.id(UUID 字符串)。删除/更新时按此字段定位。 */ val message_id: String</ID>
-    <ID>ConstructorParameterNaming:MessageFtsEntity.kt$MessageFtsEntity$/** 已 ngram 化的内容(2-gram 滑窗 + ASCII 小写词保留)。 */ val content_ngram: String</ID>
     <ID>ConstructorParameterNaming:OAuthManager.kt$OAuthManager.DeviceCodeResponse$val device_code: String = ""</ID>
     <ID>ConstructorParameterNaming:OAuthManager.kt$OAuthManager.DeviceCodeResponse$val error_description: String? = null</ID>
     <ID>ConstructorParameterNaming:OAuthManager.kt$OAuthManager.DeviceCodeResponse$val expires_in: Long = 1800L</ID>
@@ -245,10 +243,10 @@
     <ID>CyclomaticComplexMethod:VisionImagePreprocessor.kt$VisionImagePreprocessor$suspend fun prepareSingle( imageBase64: String, imageCount: Int = 1, ): PreparedImage?</ID>
     <ID>CyclomaticComplexMethod:VisionSettingsPage.kt$@Composable fun VisionSettingsPage( onBack: () -&gt; Unit, )</ID>
     <ID>CyclomaticComplexMethod:VoiceCloningPage.kt$@Composable fun VoiceCloningPage( onBack: () -&gt; Unit, voiceCloningService: VoiceCloningService = koinInject(), elevenLabsProvider: ElevenLabsVoiceCloningProvider = koinInject(), fishProvider: FishAudioVoiceCloningProvider = koinInject(), settings: SettingsRepository = koinInject(), )</ID>
+    <ID>CyclomaticComplexMethod:WebSearchProviders.kt$BingProvider$private fun parseBingHtml(html: String, max: Int): List&lt;WebSearchResult&gt;</ID>
+    <ID>CyclomaticComplexMethod:WebSearchProviders.kt$CompositeWebSearchService.Companion$fun buildDelegate(client: OkHttpClient, cfg: WebSearchConfig): WebSearchService</ID>
+    <ID>CyclomaticComplexMethod:WebSearchProviders.kt$FirecrawlProvider$override suspend fun search(query: String, maxResults: Int): List&lt;WebSearchResult&gt;</ID>
     <ID>CyclomaticComplexMethod:WebSearchSection.kt$@Composable internal fun WebSearchSection( webSearchConfig: WebSearchConfig, settings: SettingsRepository, )</ID>
-    <ID>CyclomaticComplexMethod:WebSearchService.kt$BingProvider$private fun parseBingHtml(html: String, max: Int): List&lt;WebSearchResult&gt;</ID>
-    <ID>CyclomaticComplexMethod:WebSearchService.kt$CompositeWebSearchService.Companion$fun buildDelegate(client: OkHttpClient, cfg: WebSearchConfig): WebSearchService</ID>
-    <ID>CyclomaticComplexMethod:WebSearchService.kt$FirecrawlProvider$override suspend fun search(query: String, maxResults: Int): List&lt;WebSearchResult&gt;</ID>
     <ID>CyclomaticComplexMethod:WorkspaceScreen.kt$@Composable fun WorkspaceScreen( onBack: () -&gt; Unit, )</ID>
     <ID>CyclomaticComplexMethod:WorkspaceTool.kt$WorkspaceTool$fun execute(name: String, args: Map&lt;String, String&gt;, manager: WorkspaceManager): String</ID>
     <ID>CyclomaticComplexMethod:WorldBookHook.kt$WorldBookHook$private fun injectBlock( target: MutableList&lt;UIMessage&gt;, injectTarget: WorldBookInjectTarget, injectPosition: WorldBookInjectPosition, insertionDepth: Int, block: String, )</ID>
@@ -1227,7 +1225,7 @@
     <ID>LoopWithTooManyJumpStatements:VectorSearchService.kt$VectorSearchService$for</ID>
     <ID>LoopWithTooManyJumpStatements:VectorSearchService.kt$VectorSearchService$while</ID>
     <ID>LoopWithTooManyJumpStatements:WebDavClient.kt$WebDavClient$for</ID>
-    <ID>LoopWithTooManyJumpStatements:WebSearchService.kt$AutoWebSearchService$for</ID>
+    <ID>LoopWithTooManyJumpStatements:WebSearchProviders.kt$AutoWebSearchService$for</ID>
     <ID>LoopWithTooManyJumpStatements:WorkflowJournal.kt$WorkflowJournal$for</ID>
     <ID>MatchingDeclarationName:DashScopeAsrClient.kt$DashScopeAsrController : ASRController</ID>
     <ID>MatchingDeclarationName:DesktopContextMenu.kt$ContextMenuItem</ID>
@@ -2238,14 +2236,14 @@
     <ID>MaxLineLength:VisionBridge.kt$VisionBridge$_progressFlow.value = VisionProgress(idle = true, index = preparedImages.size, total = preparedImages.size, messageId = null)</ID>
     <ID>MaxLineLength:VisionBridge.kt$VisionBridge$builder.append("- v${idx + 1} | type: ${normalized.type} | ${if (normalized.type == "point") "point" else "box"}: ${normalized.point ?: normalized.box} | ref: ${normalized.ref} | confidence: ${normalized.confidence}\n")</ID>
     <ID>MaxLineLength:VisionBridge.kt$VisionBridge$private</ID>
+    <ID>MaxLineLength:WebSearchProviders.kt$BingProvider$.</ID>
+    <ID>MaxLineLength:WebSearchProviders.kt$CompositeWebSearchService.Companion$"Brave" -&gt; BraveSearchProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://api.search.brave.com/res/v1" })</ID>
+    <ID>MaxLineLength:WebSearchProviders.kt$CompositeWebSearchService.Companion$"Perplexity" -&gt; PerplexitySearchProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://api.perplexity.ai" })</ID>
+    <ID>MaxLineLength:WebSearchProviders.kt$CompositeWebSearchService.Companion$"Zhipu" -&gt; ZhipuSearchProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://open.bigmodel.cn/api/paas/v4" })</ID>
     <ID>MaxLineLength:WebSearchSection.kt$.</ID>
     <ID>MaxLineLength:WebSearchSection.kt$testResult = context.getString(R.string.settings_web_search_test_failed, e.message ?: context.getString(R.string.settings_web_search_test_failed_unknown))</ID>
     <ID>MaxLineLength:WebSearchSection.kt$testResult = context.getString(R.string.settings_web_search_test_success, count, titles)</ID>
     <ID>MaxLineLength:WebSearchSection.kt$text = if (testing) stringResource(R.string.settings_web_search_testing) else stringResource(R.string.settings_web_search_test)</ID>
-    <ID>MaxLineLength:WebSearchService.kt$BingProvider$.</ID>
-    <ID>MaxLineLength:WebSearchService.kt$CompositeWebSearchService.Companion$"Brave" -&gt; BraveSearchProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://api.search.brave.com/res/v1" })</ID>
-    <ID>MaxLineLength:WebSearchService.kt$CompositeWebSearchService.Companion$"Perplexity" -&gt; PerplexitySearchProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://api.perplexity.ai" })</ID>
-    <ID>MaxLineLength:WebSearchService.kt$CompositeWebSearchService.Companion$"Zhipu" -&gt; ZhipuSearchProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://open.bigmodel.cn/api/paas/v4" })</ID>
     <ID>MaxLineLength:WebServer.kt$WebServer$ErrorResponse("internal_error", cause.message ?: context.getString(R.string.webserver_unknown_error))</ID>
     <ID>MaxLineLength:WebServer.kt$WebServer$call.respond(HttpStatusCode.BadRequest, ErrorResponse("bad_request", context.getString(R.string.webserver_bad_request, msg)))</ID>
     <ID>MaxLineLength:WebServer.kt$WebServer$call.respond(HttpStatusCode.BadRequest, ErrorResponse("bad_request", context.getString(R.string.webserver_missing_session_id)))</ID>
@@ -2312,7 +2310,7 @@
     <ID>NestedBlockDepth:ToolRegistry.kt$ToolRegistry$internal fun parseArgumentsLenient(json: String): JsonObject</ID>
     <ID>NestedBlockDepth:TtsManager.kt$TtsManager$fun flushStream()</ID>
     <ID>NestedBlockDepth:VectorSearchService.kt$VectorSearchService$private fun applyMMR( candidates: List&lt;Pair&lt;CachedVector, Float&gt;&gt;, topK: Int, mmrLambda: Float, ): List&lt;SearchResult&gt;</ID>
-    <ID>NestedBlockDepth:WebSearchService.kt$AutoWebSearchService$override suspend fun search(query: String, maxResults: Int): List&lt;WebSearchResult&gt;</ID>
+    <ID>NestedBlockDepth:WebSearchProviders.kt$AutoWebSearchService$override suspend fun search(query: String, maxResults: Int): List&lt;WebSearchResult&gt;</ID>
     <ID>NestedBlockDepth:WorldBookHook.kt$WorldBookHook$private fun injectBlock( target: MutableList&lt;UIMessage&gt;, injectTarget: WorldBookInjectTarget, injectPosition: WorldBookInjectPosition, insertionDepth: Int, block: String, )</ID>
     <ID>NewLineAtEndOfFile:AccountState.kt$io.zer0.muse.data.AccountState.kt</ID>
     <ID>NewLineAtEndOfFile:AppChatModule.kt$io.zer0.muse.AppChatModule.kt</ID>
@@ -2635,18 +2633,18 @@
     <ID>ReturnCount:VisionBridge.kt$VisionBridge$private fun normalizePrimitive(prim: kotlinx.serialization.json.JsonElement, caps: VisionCapabilities?): NormalizedPrimitive?</ID>
     <ID>ReturnCount:VisionBridge.kt$VisionBridge$private fun parseGroundingResponse(rawResponse: String, caps: VisionCapabilities?): String</ID>
     <ID>ReturnCount:WeakToolUseDetector.kt$WeakToolUseDetector$fun isWeakToolModel(model: Model?): Boolean</ID>
-    <ID>ReturnCount:WebSearchService.kt$AutoWebSearchService$override suspend fun search(query: String, maxResults: Int): List&lt;WebSearchResult&gt;</ID>
-    <ID>ReturnCount:WebSearchService.kt$AutoWebSearchService.Companion$private fun isLowQualityResult(query: String, result: WebSearchResult): Boolean</ID>
-    <ID>ReturnCount:WebSearchService.kt$BochaSearchProvider$private fun parseResults(body: String, max: Int): List&lt;WebSearchResult&gt;</ID>
-    <ID>ReturnCount:WebSearchService.kt$BraveSearchProvider$private fun parseResults(body: String, max: Int): List&lt;WebSearchResult&gt;</ID>
-    <ID>ReturnCount:WebSearchService.kt$ExaSearchProvider$private fun parseResults(body: String, max: Int): List&lt;WebSearchResult&gt;</ID>
-    <ID>ReturnCount:WebSearchService.kt$JinaProvider$private fun parseResults(body: String, max: Int): List&lt;WebSearchResult&gt;</ID>
-    <ID>ReturnCount:WebSearchService.kt$MetasoSearchProvider$private fun parseResults(body: String, max: Int): List&lt;WebSearchResult&gt;</ID>
-    <ID>ReturnCount:WebSearchService.kt$PerplexitySearchProvider$private fun parseResults(body: String, max: Int): List&lt;WebSearchResult&gt;</ID>
-    <ID>ReturnCount:WebSearchService.kt$SearXNGProvider$private fun parseResults(body: String, max: Int): List&lt;WebSearchResult&gt;</ID>
-    <ID>ReturnCount:WebSearchService.kt$SerperSearchProvider$private fun parseResults(body: String, max: Int): List&lt;WebSearchResult&gt;</ID>
-    <ID>ReturnCount:WebSearchService.kt$TavilyProvider$private fun parseResults(body: String, max: Int): List&lt;WebSearchResult&gt;</ID>
-    <ID>ReturnCount:WebSearchService.kt$ZhipuSearchProvider$private fun parseResults(body: String, max: Int): List&lt;WebSearchResult&gt;</ID>
+    <ID>ReturnCount:WebSearchProviders.kt$AutoWebSearchService$override suspend fun search(query: String, maxResults: Int): List&lt;WebSearchResult&gt;</ID>
+    <ID>ReturnCount:WebSearchProviders.kt$AutoWebSearchService.Companion$private fun isLowQualityResult(query: String, result: WebSearchResult): Boolean</ID>
+    <ID>ReturnCount:WebSearchProviders.kt$BochaSearchProvider$private fun parseResults(body: String, max: Int): List&lt;WebSearchResult&gt;</ID>
+    <ID>ReturnCount:WebSearchProviders.kt$BraveSearchProvider$private fun parseResults(body: String, max: Int): List&lt;WebSearchResult&gt;</ID>
+    <ID>ReturnCount:WebSearchProviders.kt$ExaSearchProvider$private fun parseResults(body: String, max: Int): List&lt;WebSearchResult&gt;</ID>
+    <ID>ReturnCount:WebSearchProviders.kt$JinaProvider$private fun parseResults(body: String, max: Int): List&lt;WebSearchResult&gt;</ID>
+    <ID>ReturnCount:WebSearchProviders.kt$MetasoSearchProvider$private fun parseResults(body: String, max: Int): List&lt;WebSearchResult&gt;</ID>
+    <ID>ReturnCount:WebSearchProviders.kt$PerplexitySearchProvider$private fun parseResults(body: String, max: Int): List&lt;WebSearchResult&gt;</ID>
+    <ID>ReturnCount:WebSearchProviders.kt$SearXNGProvider$private fun parseResults(body: String, max: Int): List&lt;WebSearchResult&gt;</ID>
+    <ID>ReturnCount:WebSearchProviders.kt$SerperSearchProvider$private fun parseResults(body: String, max: Int): List&lt;WebSearchResult&gt;</ID>
+    <ID>ReturnCount:WebSearchProviders.kt$TavilyProvider$private fun parseResults(body: String, max: Int): List&lt;WebSearchResult&gt;</ID>
+    <ID>ReturnCount:WebSearchProviders.kt$ZhipuSearchProvider$private fun parseResults(body: String, max: Int): List&lt;WebSearchResult&gt;</ID>
     <ID>ReturnCount:WebServer.kt$WebServer$private fun maskSecret(secret: String): String</ID>
     <ID>ReturnCount:WebServer.kt$WebServer.Companion$private fun checkRateLimit(ip: String): Boolean</ID>
     <ID>ReturnCount:WordPieceTokenizer.kt$WordPieceTokenizer$private fun wordPiece(token: String, vocab: Map&lt;String, Int&gt;, maxChars: Int): List&lt;String&gt;</ID>
@@ -2684,7 +2682,7 @@
     <ID>SwallowedException:TodoTool.kt$TodoTool$e: Exception</ID>
     <ID>SwallowedException:TranslateToolsImpl.kt$TranslateToolsImpl$e: UnsupportedOperationException</ID>
     <ID>SwallowedException:TranslateViewModel.kt$TranslateViewModel$e: UnsupportedOperationException</ID>
-    <ID>SwallowedException:WebSearchService.kt$AutoWebSearchService$e: SearchRateLimitException</ID>
+    <ID>SwallowedException:WebSearchProviders.kt$AutoWebSearchService$e: SearchRateLimitException</ID>
     <ID>ThrowsCount:CoreToolsRegistrar.kt$Calculator$private fun parseFactor(chars: CharArray, pos: IntArray): Double</ID>
     <ID>ThrowsCount:CronExpression.kt$CronExpression.Companion$private fun parseDayOfWeekField(field: String): Pair&lt;Set&lt;Int&gt;, DayOfWeekModifier&gt;</ID>
     <ID>ThrowsCount:CronExpression.kt$CronExpression.Companion$private fun parseSegment(segment: String, min: Int, max: Int): Set&lt;Int&gt;</ID>
@@ -2802,8 +2800,8 @@
     <ID>TooGenericExceptionCaught:UpdateNotifier.kt$t: Throwable</ID>
     <ID>TooGenericExceptionCaught:VideoAttachmentHandler.kt$VideoAttachmentHandler$e: Exception</ID>
     <ID>TooGenericExceptionCaught:VisionBridge.kt$VisionBridge$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:WebSearchProviders.kt$AutoWebSearchService$e: Exception</ID>
     <ID>TooGenericExceptionCaught:WebSearchSection.kt$e: Exception</ID>
-    <ID>TooGenericExceptionCaught:WebSearchService.kt$AutoWebSearchService$e: Exception</ID>
     <ID>TooGenericExceptionCaught:WorkflowOrchestrator.kt$WorkflowOrchestrator$e: Exception</ID>
     <ID>TooGenericExceptionCaught:WorkspaceManager.kt$WorkspaceManager$e: Exception</ID>
     <ID>TooGenericExceptionThrown:KnowledgeChunkFtsSelfHealTest.kt$KnowledgeChunkFtsSelfHealTest.FakeFtsDao$throw RuntimeException("no such table: knowledge_chunks_fts")</ID>
@@ -3465,9 +3463,37 @@
     <ID>UnusedImports:VoiceCloningPage.kt$import androidx.compose.foundation.lazy.items</ID>
     <ID>UnusedImports:VoiceCloningPage.kt$import io.zer0.muse.ui.theme.semiLarge</ID>
     <ID>UnusedImports:VoiceMessageBar.kt$import androidx.compose.material.icons.filled.Mic</ID>
+    <ID>UnusedImports:WebSearchProviders.kt$import io.zer0.muse.data.ProxyConfig</ID>
+    <ID>UnusedImports:WebSearchProviders.kt$import io.zer0.muse.data.SecureKeyStore</ID>
+    <ID>UnusedImports:WebSearchProviders.kt$import java.net.InetSocketAddress</ID>
+    <ID>UnusedImports:WebSearchProviders.kt$import java.net.Proxy</ID>
+    <ID>UnusedImports:WebSearchProviders.kt$import java.util.concurrent.TimeUnit</ID>
+    <ID>UnusedImports:WebSearchProviders.kt$import kotlin.coroutines.resume</ID>
+    <ID>UnusedImports:WebSearchProviders.kt$import kotlin.coroutines.resumeWithException</ID>
+    <ID>UnusedImports:WebSearchProviders.kt$import kotlinx.coroutines.suspendCancellableCoroutine</ID>
+    <ID>UnusedImports:WebSearchProviders.kt$import kotlinx.serialization.Serializable</ID>
+    <ID>UnusedImports:WebSearchProviders.kt$import kotlinx.serialization.json.jsonArray</ID>
+    <ID>UnusedImports:WebSearchProviders.kt$import kotlinx.serialization.json.jsonObject</ID>
+    <ID>UnusedImports:WebSearchProviders.kt$import okhttp3.Call</ID>
+    <ID>UnusedImports:WebSearchProviders.kt$import okhttp3.Callback</ID>
     <ID>UnusedImports:WebSearchSection.kt$import androidx.compose.material3.Icon</ID>
+    <ID>UnusedImports:WebSearchService.kt$import io.zer0.common.AppDispatchers</ID>
+    <ID>UnusedImports:WebSearchService.kt$import io.zer0.common.Logger</ID>
+    <ID>UnusedImports:WebSearchService.kt$import io.zer0.common.resultOf</ID>
+    <ID>UnusedImports:WebSearchService.kt$import io.zer0.muse.util.stripHtmlSimple</ID>
+    <ID>UnusedImports:WebSearchService.kt$import kotlinx.coroutines.withContext</ID>
+    <ID>UnusedImports:WebSearchService.kt$import kotlinx.serialization.json.Json</ID>
+    <ID>UnusedImports:WebSearchService.kt$import kotlinx.serialization.json.JsonArray</ID>
+    <ID>UnusedImports:WebSearchService.kt$import kotlinx.serialization.json.JsonObject</ID>
+    <ID>UnusedImports:WebSearchService.kt$import kotlinx.serialization.json.JsonPrimitive</ID>
+    <ID>UnusedImports:WebSearchService.kt$import kotlinx.serialization.json.buildJsonObject</ID>
+    <ID>UnusedImports:WebSearchService.kt$import kotlinx.serialization.json.contentOrNull</ID>
     <ID>UnusedImports:WebSearchService.kt$import kotlinx.serialization.json.jsonArray</ID>
     <ID>UnusedImports:WebSearchService.kt$import kotlinx.serialization.json.jsonObject</ID>
+    <ID>UnusedImports:WebSearchService.kt$import kotlinx.serialization.json.jsonPrimitive</ID>
+    <ID>UnusedImports:WebSearchService.kt$import okhttp3.MediaType.Companion.toMediaType</ID>
+    <ID>UnusedImports:WebSearchService.kt$import okhttp3.RequestBody.Companion.toRequestBody</ID>
+    <ID>UnusedImports:WebSearchService.kt$import org.jsoup.Jsoup</ID>
     <ID>UnusedImports:WorkspaceScreen.kt$import io.zer0.muse.ui.theme.mega</ID>
     <ID>UnusedImports:WorkspaceScreen.kt$import io.zer0.muse.ui.theme.semiLarge</ID>
     <ID>UnusedImports:WorldBookRepository.kt$import kotlinx.serialization.json.jsonPrimitive</ID>
