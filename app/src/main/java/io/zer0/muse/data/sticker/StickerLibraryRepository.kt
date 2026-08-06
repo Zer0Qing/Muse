@@ -249,7 +249,7 @@ class StickerLibraryRepository(private val appContext: Context) {
                                 val rawName = entry.name
                                 // 跳过 macOS 系统目录与 .DS_Store 噪声
                                 if (rawName.contains("__MACOSX") || rawName.endsWith(".DS_Store")) {
-                                    Logger.d("StickerLibraryRepository", "importZip: 跳过噪声文件: $rawName")
+                                    if (entryCount % 100 == 0) Logger.d("StickerLibraryRepository", "importZip: 已跳过 $entryCount 个噪声条目(示例: $rawName)")
                                     zis.closeEntry()
                                     entry = zis.nextEntry
                                     continue
@@ -257,7 +257,7 @@ class StickerLibraryRepository(private val appContext: Context) {
                                 // 解析分类与文件名
                                 val (category, fileName) = parseCategoryAndName(rawName)
                                 if (fileName != null && isImageFile(fileName)) {
-                                    Logger.d("StickerLibraryRepository", "importZip: 发现图片条目: $rawName → 分类=$category, 文件名=$fileName")
+                                    if (entryCount % 100 == 0) Logger.d("StickerLibraryRepository", "importZip: 已发现 $entryCount 个条目,当前图片: $rawName")
                                     // v1.117: 数量限制
                                     if (pendingEntries.size >= MAX_ENTRY_COUNT) {
                                         error("压缩包内图片数量超过限制 $MAX_ENTRY_COUNT,已中止导入")
@@ -273,7 +273,7 @@ class StickerLibraryRepository(private val appContext: Context) {
                                     stagingFile.outputStream().use { it.write(bytes) }
                                     pendingEntries.add(PendingEntry(category, fileName, stagingFile))
                                 } else {
-                                    Logger.d("StickerLibraryRepository", "importZip: 跳过非图片条目: $rawName")
+                                    if (entryCount % 100 == 0) Logger.d("StickerLibraryRepository", "importZip: 已跳过 $entryCount 个条目(当前非图片: $rawName)")
                                 }
                             }
                             zis.closeEntry()

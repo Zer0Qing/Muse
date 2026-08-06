@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import io.zer0.common.Logger
+import io.zer0.common.resultOf
 import io.zer0.muse.R
 import io.zer0.muse.data.MediaConfig
 import io.zer0.muse.transformer.MoodSkinParser
@@ -963,7 +964,7 @@ class TtsManager(
         // 播放结束后恢复原速率/音高
         if (rateOverride != null || parsed.pitch != null) {
             playbackScope.launch {
-                runCatching { playbackJob?.join() }
+                resultOf { playbackJob?.join() }
                 playbackSpeed = prevSpeed
                 if (mediaConfig.ttsEngine == "system" && ready.get()) {
                     runCatching {
@@ -1084,7 +1085,7 @@ class TtsManager(
         val ok = speak(text, utteranceId, flush = true)
         if (needOverride) {
             playbackScope.launch {
-                runCatching { playbackJob?.join() }
+                resultOf { playbackJob?.join() }
                 applyConfig(original)
             }
         }

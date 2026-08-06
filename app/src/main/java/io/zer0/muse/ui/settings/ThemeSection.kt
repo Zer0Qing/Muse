@@ -551,66 +551,6 @@ private fun ThemeOptionRow(
     }
 }
 
-/**
- * v0.29 P2-12: 主题实时预览卡片 — 展示当前主题的对话气泡样式。
- *
- * 用户切换主题/模式后,此卡片立即反映新配色(因为读的是 MaterialTheme.colorScheme)。
- */
-@Composable
-private fun ThemePreviewCard() {
-    Surface(
-        shape = MuseShapes.large,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-    ) {
-        Column(
-            modifier = Modifier.padding(MusePaddings.screen),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Text(
-                text = stringResource(R.string.settings_theme_preview),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.outline,
-            )
-            // 用户气泡(右对齐,品牌色)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-            ) {
-                Surface(
-                    shape = MuseShapes.large,
-                    color = MaterialTheme.colorScheme.primary,
-                ) {
-                    Text(
-                        text = stringResource(R.string.settings_theme_preview_hello),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                    )
-                }
-            }
-            // AI 气泡(左对齐,surfaceVariant)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Start,
-            ) {
-                Surface(
-                    shape = MuseShapes.large,
-                    color = MaterialTheme.colorScheme.surface,
-                ) {
-                    Text(
-                        text = stringResource(R.string.settings_theme_preview_reply),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                    )
-                }
-            }
-        }
-    }
-}
 
 /**
  * 主题网格选择器 — 3 列卡片展示预设主题,每张卡片显示主色+表面色+名称。

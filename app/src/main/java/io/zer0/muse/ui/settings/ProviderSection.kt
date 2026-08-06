@@ -58,7 +58,7 @@ import io.zer0.muse.ui.common.navigation.MuseTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -1240,7 +1240,7 @@ internal fun ProviderEditPage(
     // P2-11: OAuthManager 已在 MuseApp.onCreate 中注入 SecureCredentialStore,
     // 这里直接通过 OAuthManager 间接访问(读取 / 刷新 / 撤销)。
     // 观察 OAuthManager 状态流,驱动弹窗 / 自动填入 apiKey / 错误提示
-    val oauthState by OAuthManager.stateFlow.collectAsState()
+    val oauthState by OAuthManager.stateFlow.collectAsStateWithLifecycle()
     // Device Flow 的 user_code 弹窗状态(userCode, verificationUri)
     var showDeviceCodeDialog by remember { mutableStateOf(false) }
     var deviceCodeInfo by remember { mutableStateOf<Pair<String, String>?>(null) }

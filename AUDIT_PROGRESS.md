@@ -28,6 +28,12 @@
 | R-DOC-03 | 已完成 | `git ls-files docs/` 与决策一致 | ENGINEERING_DISCIPLINE.md、后台保活与进程恢复.md、CONTRIBUTING.md 入库；ACCESSIBILITY/SHIZUKU/SKILLPKG 保持不入库 |
 | R-DOC-04 | 已完成 | 编译通过 | KDoc 删除悬空 WorkflowEditorScreen 引用；ui/workflow 空目录已删 |
 | R-DOC-06 | 已完成 | 构建正常 | 删除 app/build_alt（约 2.3GB）与 .kotlin/sessions |
+| R-DOC-08 | 已完成 | grep `runCatching { playbackJob` 0 命中；`:app:compileDebugKotlin` 通过 | TtsManager 两处 join 改 resultOf；phase3 清单同步 workflow 包已删 |
+| R-UI-10 | 已完成 | grep ThemePreviewCard 0 命中；编译通过 | ThemeSection 死代码 ThemePreviewCard 删除 |
+| R-UI-11 | 已完成 | grep `collectAsState()` 仅剩 MuseToastHost（带注释） | ProviderSection 改 collectAsStateWithLifecycle |
+| R-UI-12 | 已完成（复核） | 5 个文件逐点复核 | 现有交互按钮/行均带语义标签或相邻文本，剩余 null 均为装饰性图标，符合任务书“装饰性保持 null”说明 |
+| R-UI-13 | 已完成 | 编译通过 | SettingsTutorialPage 搜索结果 items 补稳定 key |
+| R-UI-15 | 已完成 | 编译通过 | StickerLibraryRepository 逐条目 D 日志改为每 100 条汇总，保留最终汇总 |
 | R-TEST-01 | 已完成 | `:ai:testDebugUnitTest --tests "*StreamGuardTest*"` 3/3 通过 | guard 挂起/reasoning 先到/空 finishReason；早停回退网络路径由 FirstEventWatchdogTest + 快照测试共同覆盖 |
 | R-TEST-05 | 已完成 | `:ai:testDebugUnitTest --tests "*ProviderRequestBodySnapshotTest*"` 3/3 通过 | Anthropic/Gemini/Ollama(OpenAI 兼容)请求体快照 |
 | R-TEST-09 | 已完成 | memory/app PiiGuardTest 全绿 | 手机(含空格)/邮箱/15/18 位身份证 mask/unmask 往返；两处 PiiGuard 正则同步增强 |
@@ -56,4 +62,6 @@
 - 尚未开始：R-UI-08（state-split）、R-TEST 其余、R-CI 其余、R-DOC 其余、长期项。
 - 本检查点新增完成：R-DOC-02/03/04/06（CONTRIBUTING 修订并入库、docs 决策执行、KDoc 清理、本地垃圾清理）。
 - 尚未开始：R-UI-08（state-split）、R-TEST 其余、R-CI 其余、R-DOC-07/08、长期项。
+- 本检查点新增完成：R-DOC-08、R-UI-10/11/12(复核)/13/15。
+- 尚未开始：R-UI-08（state-split）、R-TEST 其余、R-CI 其余、R-DOC-07、长期项。
 - 验证：assembleDebug + 三模块单测全绿。

@@ -326,7 +326,7 @@ fun SettingsTutorialPage(
                             }
                         }
                     } else {
-                        items(filteredSections) { section ->
+                        items(filteredSections, key = { "${it.chapterIndex}:${it.sectionTitle}" }) { section ->
                             SearchResultCard(section = section)
                         }
                     }
