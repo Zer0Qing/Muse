@@ -278,3 +278,9 @@
 - 新增完成：R-TEST-20 widget 偏好面。新增 WidgetPrefsTest 4/4，覆盖 chat/quick widget assistant 读写往返与默认值。
 - 验证：assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿；:app detekt/ktlintCheck 通过。
 - 仍待 owner/后续：R-TEST-20 其余 Provider/plugin/slash/translate 面、R-TEST-06 完整状态机（依赖 R-UI-08）、R-UI-14 其余大文件（ChatScreen 仍约 1783 行、ChatViewModel/MuseDb/GroupChatScheduler 等）、R-DB-04/05、R-BUILD-07。
+
+## 第三批检查点小结（2026-08-06 续，等待 owner review）
+
+- 本轮新增提交：R-TEST-10 工具执行真实路径测试、R-TEST-20 视频 Provider 请求体测试已在上轮完成；本轮继续完成 R-TEST-20 MCP 配置 DTO、ConfigImporter、WidgetPrefs 测试。
+- 验证：每个提交均 assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿；detekt/ktlintCheck 通过；工作区干净，分支未合并。
+- 仍待 owner/后续：R-TEST-20 其余 Provider/plugin/slash/translate 面、R-TEST-06 完整状态机（依赖 R-UI-08）、R-UI-14 其余大文件（ChatScreen 仍约 1783 行、ChatViewModel/MuseDb/GroupChatScheduler 等）、R-DB-04/05、R-BUILD-07、真机验证项（Keystore / v1-54 迁移链）。
