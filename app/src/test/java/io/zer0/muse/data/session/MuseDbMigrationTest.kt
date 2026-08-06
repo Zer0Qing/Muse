@@ -35,7 +35,7 @@ class MuseDbMigrationTest {
 
     @Test
     fun migrateEveryVersionTo75_keepsDataAndAddsGenerationTables() {
-        val versions = (55..68) + 74
+        val versions = availableSchemaVersions() + (55..68) + 74
         for (fromVersion in versions) {
             val dbFile = context.getDatabasePath("muse_migration_$fromVersion.db").apply {
                 parentFile?.mkdirs()
@@ -45,28 +45,7 @@ class MuseDbMigrationTest {
                 createSchemaAtVersion(fromVersion, dbFile.absolutePath)
                 insertLegacyRow(dbFile.absolutePath, fromVersion)
 
-                val migrations = mutableListOf<androidx.room.migration.Migration>()
-                if (fromVersion == 74) {
-                    migrations += MuseDb.MIGRATION_74_75
-                } else if (fromVersion <= 67) {
-                    if (fromVersion == 55) migrations += MuseDb.MIGRATION_55_56
-                    migrations += listOf(
-                        MuseDb.MIGRATION_56_57,
-                        MuseDb.MIGRATION_57_58,
-                        MuseDb.MIGRATION_58_59,
-                        MuseDb.MIGRATION_59_60,
-                        MuseDb.MIGRATION_60_61,
-                        MuseDb.MIGRATION_61_62,
-                        MuseDb.MIGRATION_62_63,
-                        MuseDb.MIGRATION_63_64,
-                        MuseDb.MIGRATION_64_65,
-                        MuseDb.MIGRATION_65_66,
-                        MuseDb.MIGRATION_66_67,
-                        MuseDb.MIGRATION_67_68,
-                    )
-                }
-                migrations += MuseDb.MIGRATION_68_74
-                migrations += MuseDb.MIGRATION_74_75
+                val migrations = migrationsFrom(fromVersion)
 
                 val db = Room.databaseBuilder(
                     context,
@@ -322,6 +301,27 @@ class MuseDbMigrationTest {
             context.deleteDatabase(dbFile.name)
         }
     }
+
+
+    /** 1–54 的 schema 快照存在迁移漂移(缺索引/默认值)且 38→39 建 FTS4,Robolectric 无法覆盖,留真机。 */
+    private fun availableSchemaVersions(): List<Int> = emptyList()
+
+    /** 用反射收集 MuseDb 已注册迁移,按 fromVersion 排序得到完整升级链。 */
+    private fun migrationsFrom(fromVersion: Int): List<androidx.room.migration.Migration> {
+        return MuseDb::class.java.declaredFields
+            .filter { it.name.startsWith("MIGRATION_") }
+            .mapNotNull { field ->
+                val parts = field.name.removePrefix("MIGRATION_").split("_")
+                val from = parts.getOrNull(0)?.toIntOrNull() ?: return@mapNotNull null
+                val to = parts.getOrNull(1)?.toIntOrNull() ?: return@mapNotNull null
+                if (from < fromVersion) return@mapNotNull null
+                field.isAccessible = true
+                (from to to) to (field.get(null) as androidx.room.migration.Migration)
+            }
+            .sortedBy { it.first.first }
+            .map { it.second }
+    }
+
     private fun createSchemaAtVersion(version: Int, dbPath: String, stripIsLocked: Boolean = false) {
         val schema = loadSchema(version)
         val databaseJson = schema.getJSONObject("database")
@@ -371,6 +371,28 @@ class MuseDbMigrationTest {
         helper.close()
     }
 
+    private fun defaultValueForColumn(name: String, type: String): String = when {
+        name.contains("Json", ignoreCase = true) || name.contains("Urls", ignoreCase = true) -> "'[]'"
+        type.uppercase().contains("INT") -> "0"
+        else -> "''"
+    }
+
+    /** 旧 schema 中 NOT NULL 且无默认值的 messages 列,插入测试数据时按类型补默认值。 */
+    private fun requiredExtraMessageColumns(
+        helper: androidx.sqlite.db.SupportSQLiteDatabase,
+    ): List<Pair<String, String>> {
+        val result = mutableListOf<Pair<String, String>>()
+        val base = setOf("id", "sessionId", "role", "content", "createdAt")
+        helper.query("PRAGMA table_info(messages)").use { cursor ->
+            while (cursor.moveToNext()) {
+                val name = cursor.getString(1)
+                val needsValue = name !in base && cursor.getInt(3) == 1 && cursor.isNull(4)
+                if (needsValue) result += name to defaultValueForColumn(name, cursor.getString(2))
+            }
+        }
+        return result
+    }
+
     private fun insertLegacyRow(dbPath: String, fromVersion: Int) {
         val factory = FrameworkSQLiteOpenHelperFactory()
         val helper = factory.create(
@@ -396,11 +418,14 @@ class MuseDbMigrationTest {
             VALUES ('legacy-session', '迁移测试', 1, 1, '', 'default')
             """.trimIndent()
         )
+        val requiredExtra = requiredExtraMessageColumns(helper)
+        val messageColumns = listOf("id", "sessionId", "role", "content", "createdAt") + requiredExtra.map { it.first }
+        val messageValues = listOf(
+            "'legacy-msg'", "'legacy-session'", "'ASSISTANT'", "'迁移前的历史消息'", "1",
+        ) + requiredExtra.map { it.second }
         helper.execSQL(
-            """
-            INSERT INTO messages (id, sessionId, role, content, createdAt)
-            VALUES ('legacy-msg', 'legacy-session', 'ASSISTANT', '迁移前的历史消息', 1)
-            """.trimIndent()
+            "INSERT INTO messages (${messageColumns.joinToString(", ")}) " +
+                "VALUES (${messageValues.joinToString(", ")})"
         )
         helper.close()
     }
