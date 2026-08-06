@@ -79,6 +79,14 @@
 - 非阻塞（第三批检查点 2）：check_engineering_discipline.py 仍有 9 个存量 error、check_hardcoded_font_size.py 有 1 处存量 fontSize 超 baseline，Lane 步骤按 R-CI-05 要求先 continue-on-error 跑一个迭代，待清零后转阻断。
 - 非阻塞（R-CI-04）：release job 已落地，但本地无 GitHub Secrets，无法实跑；配置为缺 secret 明确失败。
 - 非阻塞（R-TEST-03/04）：SecureKeyStore 与备份全链路需要 Android Keystore/真机或完整 mock 链，本轮只补了可 JVM 化的退避与加密往返。
+
+### 待所有者决策（第三批检查点 2 后）
+- R-UI-08/R-UI-14：巨型状态/文件拆分风险高，需 Layout Inspector 真机验证与 detekt LargeClass 基准，暂不盲目执行，等所有者确认拆分层级。
+- R-TEST-14：依赖 R-DB-01（已驳回）与 R-CI-01（待确认），v1-55 全链是否本地回放需所有者确认。
+- R-CI-08：emulator job 涉及 GitHub Actions 模拟器资源与长期成本，本轮只完成 androidTest 本地化，是否上 emulator 需确认。
+- R-CI-09：lint 存量 2475 errors，收紧 abortOnError 需先生成 lint baseline 或分批清零，需确认基线策略。
+- R-CI-07：覆盖率阈值需先确定各模块基线百分比再配置 Kover verify。
+- 长期项（R-DB-04/05、R-BUILD-07、R-SEC-03/08、R-SVC-05~07、R-AI-02~06）未在本检查点执行，按依赖顺序待后续批次。
 - 第二批其余条目均已实现并通过验证，等待 owner 对 R-BUILD-02 的决策后即可收尾第二批。
 
 ## 第三批检查点（进行中）
