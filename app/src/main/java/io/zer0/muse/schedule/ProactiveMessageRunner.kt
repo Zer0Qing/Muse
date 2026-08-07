@@ -330,6 +330,7 @@ class ProactiveMessageRunner(
             hasNewTopics = hasNewTopics,
             accountAgeDays = accountAgeDays,
             elapsedHours = elapsed / 3_600_000f,
+            assistantId = assistant.id,
         )
 
         // ── 阶段1:决策(只返回 shouldSend + reason + scenario,maxTokens 小,省 token)──
@@ -495,8 +496,7 @@ class ProactiveMessageRunner(
     // ══════════════════════════════════════════════════════════════════════
 
     /**
-     * v2.0 5.3: 检查自上次主动消息后是否有新的 fact(长期记忆)。
-     *
+     * v2.0 5.3: 检查自上次主动消息后是否有新的 fact(长期记忆)。     *
      * FactStore.getAll 返回的 Fact.createdAt 是 ISO 8601 字符串,解析为时间戳比对。
      * 任何异常(解析失败/DB 错误)都视为"无新记忆",避免阻塞主动消息流程。
      */
@@ -512,6 +512,14 @@ class ProactiveMessageRunner(
             Logger.w(TAG, "checkHasNewMemories 失败: ${e.message}")
             false
         }
+    }
+
+    /** v1.x: 该记忆是否指向未来 1-3 天内的近期事项(考试/出行/会议等)。 */
+    private fun io.zer0.memory.fact.FactStore.Fact.isUpcomingEvent(): Boolean {
+        val t = time ?: return false
+        val date = runCatching { java.time.LocalDate.parse(t.substringBefore("T")) }.getOrNull() ?: return false
+        val diff = java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.now(), date)
+        return diff in 1..3
     }
 
     /**
@@ -561,6 +569,8 @@ class ProactiveMessageRunner(
         hasNewTopics: Boolean,
         accountAgeDays: Int,
         elapsedHours: Float,
+        /** v1.x: 发送助手 id(决定记忆作用域,default 用主记忆)。 */
+        assistantId: String,
     ): PatrolContext {
         // 差量统计:自上次巡检后新消息数
         val newMessagesSincePatrol = if (lastTriggeredAt > 0) {
@@ -582,10 +592,21 @@ class ProactiveMessageRunner(
                     content.contains("吗") || content.contains("呢")
             }
 
-        // v2.0 5.10: 注入长期记忆(取最重要的 5 条)
+        // v2.0 5.10: 注入长期记忆 — 近期事项(未来 1-3 天,考试/出行等)优先,
+        // 其余按重要度;共取 5 条。子助手(非 default)时合并其专属记忆。
         val recentMemories = try {
-            factStore.getByScope("main")
-                .sortedByDescending { it.importance }
+            val mainMemories = factStore.getByScope("main")
+            val assistantMemories = if (assistantId != "default" && assistantId.isNotBlank()) {
+                runCatching { factStore.getByScope(assistantId) }.getOrDefault(emptyList())
+            } else {
+                emptyList()
+            }
+            (mainMemories + assistantMemories)
+                .distinctBy { it.id }
+                .sortedWith(
+                    compareByDescending<io.zer0.memory.fact.FactStore.Fact> { it.isUpcomingEvent() }
+                        .thenByDescending { it.importance },
+                )
                 .take(5)
                 .map { it.fact }
         } catch (e: Exception) {

@@ -184,7 +184,7 @@ fun ChatListScreen(
     // 首页数据:记忆数量与知识库文档数量
     var memoryCount by remember { mutableStateOf(0) }
     var docCount by remember { mutableStateOf(0) }
-    // 问候语匹配用的近期记忆(取最近 100 条用于生日/近期事项提示)
+    // 问候语匹配用的近期记忆(主作用域,取最近 100 条;避免子助手角色扮演记忆混入提醒)
     var greetingFacts by remember { mutableStateOf<List<FactEntity>>(emptyList()) }
     // v1.x: LLM 生成的个性化问候后缀(当天缓存,无则回退规则版)
     var greetingHint by remember { mutableStateOf<String?>(null) }
@@ -193,7 +193,7 @@ fun ChatListScreen(
         scope.launch {
             runCatching { memoryCount = factDao.count() }
             runCatching { docCount = knowledgeDocDao.countUserVisible() }
-            runCatching { greetingFacts = factDao.getAll().take(100) }
+            runCatching { greetingFacts = factDao.getAll("main").take(100) }
             // v1.x: 个性化问候 — 缓存优先(当天),未命中则 LLM 生成,失败回退规则版。
             runCatching {
                 val today = java.time.LocalDate.now().toString()
