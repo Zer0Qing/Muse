@@ -2271,6 +2271,8 @@ class GroupChatScheduler(
         //  - 单轮超时 → implicitPass,不再让一个慢流式吃掉整个 60s 总预算
         var streamErrorMessage: String? = null  // 流式错误(非超时)
         var roundTimedOut = false
+        // v1.x: 跨轮累积流式思考过程(最终回复的深度思考块)
+        val accumulatedReasoning = StringBuilder()
         for (round in 0 until MAX_CHANNEL_DECISION_ROUNDS) {
             replyContent = null
             passReason = null
@@ -2284,6 +2286,8 @@ class GroupChatScheduler(
 
             // 流式调用,累积 ContentDelta + ToolCallDelta
             val builder = StringBuilder()
+            // v1.x: 累积流式思考过程(工具模式 channel_reply 的消息也能展示思考块)
+            val reasoningBuilder = accumulatedReasoning
             val toolCallAccumulator = mutableMapOf<Int, MutableList<ChatStreamEvent.ToolCallDelta>>()
             var streamError: String? = null
 
@@ -2298,7 +2302,7 @@ class GroupChatScheduler(
                 ).collect { event ->
                     when (event) {
                         is ChatStreamEvent.ContentDelta -> builder.append(event.delta)
-                        is ChatStreamEvent.ReasoningDelta -> { /* 思考增量不入正文,与单聊保持一致 */ }
+                        is ChatStreamEvent.ReasoningDelta -> reasoningBuilder.append(event.delta)
                         is ChatStreamEvent.ImageDelta -> { /* 群聊暂不支持图片输出,忽略 */ }
                         is ChatStreamEvent.ToolCallDelta -> {
                             toolCallAccumulator.getOrPut(event.index) { mutableListOf() }.add(event)
@@ -2434,7 +2438,10 @@ class GroupChatScheduler(
 
         // 提取 mood / think 模块(channel_reply 的 content 可能含 mood/think 标签)
         val extractedMood = extractMood(replyText)
-        val extractedReasoning = extractReasoning(replyText)
+        // v1.x: 优先用流式累积的思考过程(模型 reasoning_content 不走最终文本)
+        val extractedReasoning = accumulatedReasoning.toString().trim()
+            .ifBlank { extractReasoning(replyText) ?: "" }
+            .ifBlank { null }
 
         // 保存 agent 回复到群聊
         val msgId = groupChatRepository.sendMessage(
