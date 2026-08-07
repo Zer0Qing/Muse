@@ -797,6 +797,8 @@ class GroupChatScheduler(
                 val rawReply = resultOf {
                     withTimeoutOrNull(AGENT_TIMEOUT_MS) {
                         val builder = StringBuilder()
+                        // v1.x: 悄悄话同样累积流式思考过程,群聊消息可展示深度思考块
+                        val reasoningBuilder = StringBuilder()
                         chatService.streamChat(
                             messages = messages,
                             model = model,
@@ -804,23 +806,29 @@ class GroupChatScheduler(
                             maxTokens = maxTokens,
                             providerConfig = providerConfig,
                         ).collect { event ->
-                            if (event is ChatStreamEvent.ContentDelta) builder.append(event.delta)
+                            when (event) {
+                                is ChatStreamEvent.ContentDelta -> builder.append(event.delta)
+                                is ChatStreamEvent.ReasoningDelta -> reasoningBuilder.append(event.delta)
+                                else -> {}
+                            }
                         }
-                        builder.toString().trim()
+                        builder.toString().trim() to reasoningBuilder.toString().trim()
                     }
                 }.getOrNull()
 
-                if (!rawReply.isNullOrBlank()) {
-                    val replyText = sanitizeAgentReply(rawReply)
+                if (rawReply != null && rawReply.first.isNotBlank()) {
+                    val replyText = sanitizeAgentReply(rawReply.first)
                     if (replyText.isNotBlank() && replyText != PASS_MARKER) {
+                        val reply = rawReply
+                        val reasoning = reply.second.ifBlank { extractReasoning(reply.first) ?: "" }.ifBlank { null }
                         groupChatRepository.sendMessage(
                             chatId = chatId,
                             senderType = "assistant",
                             senderId = assistant.id,
                             senderName = assistant.name,
                             body = replyText,
-                            mood = extractMood(rawReply),
-                            reasoning = extractReasoning(rawReply),
+                            mood = extractMood(rawReply.first),
+                            reasoning = reasoning,
                             whisperTargetId = "local_user",
                         )
                         // v1.0.53 Phase 5: 把 agent 回复也持久化到 ThreadStore
@@ -840,7 +848,7 @@ class GroupChatScheduler(
                         threadStore.recordRun(
                             threadId = whisperThreadId,
                             status = "whisper",
-                            summary = rawReply?.take(200),
+                            summary = rawReply?.first?.take(200),
                             sessionPath = threadStore.sessionPathOf(whisperThreadId),
                         )
                     }.onError { msg, _ -> Logger.w(TAG, "whisper recordRun 失败: $msg") }
@@ -1695,6 +1703,8 @@ class GroupChatScheduler(
         val rawReplyText = resultOf {
             withTimeoutOrNull(AGENT_TIMEOUT_MS) {
                 val builder = StringBuilder()
+                // v1.x: 累积流式思考过程(reasoning_content),让群聊消息也能展示深度思考块
+                val reasoningBuilder = StringBuilder()
                 var streamError: String? = null
                 chatService.streamChat(
                     messages = messages,
@@ -1705,7 +1715,7 @@ class GroupChatScheduler(
                 ).collect { event ->
                     when (event) {
                         is ChatStreamEvent.ContentDelta -> builder.append(event.delta)
-                        is ChatStreamEvent.ReasoningDelta -> {}
+                        is ChatStreamEvent.ReasoningDelta -> reasoningBuilder.append(event.delta)
                         is ChatStreamEvent.ImageDelta -> {}
                         is ChatStreamEvent.ToolCallDelta -> {}
                         is ChatStreamEvent.Done -> {}
@@ -1715,7 +1725,7 @@ class GroupChatScheduler(
                     }
                 }
                 if (streamError != null) throw IllegalStateException(streamError)
-                builder.toString().trim()
+                builder.toString().trim() to reasoningBuilder.toString().trim()
             }
         }.onError { msg, _ ->
             activityHub.updateStatus(chatId, assistant.id, assistant.name, AgentActivityStatus.ERROR)
@@ -1729,9 +1739,14 @@ class GroupChatScheduler(
             return AgentResult.Error("Agent「${assistant.name}」辩论调用超时")
         }
 
-        val extractedMood = extractMood(rawReplyText)
-        val extractedReasoning = extractReasoning(rawReplyText)
-        val replyText = sanitizeAgentReply(rawReplyText)
+        val extractedMood = extractMood(rawReplyText.first)
+        // v1.x: 优先用流式累积的思考过程(模型 reasoning_content 不走最终文本,
+        // extractReasoning 只能提取文本内的 <think> 标签);两者都空才为 null
+        val replyPair = rawReplyText
+        val extractedReasoning = replyPair.second.ifBlank {
+            extractReasoning(replyPair.first) ?: ""
+        }.ifBlank { null }
+        val replyText = sanitizeAgentReply(rawReplyText.first)
 
         if (replyText.isBlank() || replyText == PASS_MARKER) {
             activityHub.updateStatus(chatId, assistant.id, assistant.name, AgentActivityStatus.NO_REPLY)
