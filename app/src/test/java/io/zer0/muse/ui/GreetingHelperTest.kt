@@ -28,6 +28,8 @@ class GreetingHelperTest {
         assertTrue("应包含考试提醒: $greeting", greeting.contains("考试"))
         assertTrue("不应再显示节气: $greeting", !greeting.contains("立秋"))
         assertTrue("长度应受控: $greeting", greeting.length <= 40)
+        // 第二人称:展示给用户的内容不应出现"用户"
+        assertTrue("应使用第二人称: $greeting", !greeting.contains("用户"))
     }
 
     @Test

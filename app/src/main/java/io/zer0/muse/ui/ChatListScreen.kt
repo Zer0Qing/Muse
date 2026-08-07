@@ -197,9 +197,19 @@ fun ChatListScreen(
                     val today = java.time.LocalDate.now().toString()
                     val lastNotify = settings.getLastGreetingNotifyDate()
                     if (lastNotify != today) {
+                        val titles = context.resources.getStringArray(R.array.greeting_notify_titles)
+                        val tails = when {
+                            hint.contains("考试") || hint.contains("面试") || hint.contains("答辩") ||
+                                hint.contains("期末") || hint.contains("考研") || hint.contains("高考") ->
+                                context.resources.getStringArray(R.array.greeting_notify_tails_exam)
+                            hint.contains("航班") || hint.contains("火车") || hint.contains("高铁") ||
+                                hint.contains("飞机") || hint.contains("出发") ->
+                                context.resources.getStringArray(R.array.greeting_notify_tails_travel)
+                            else -> context.resources.getStringArray(R.array.greeting_notify_tails_general)
+                        }
                         notificationManager.notifyReminder(
-                            title = context.getString(R.string.greeting_notify_title),
-                            message = context.getString(R.string.greeting_notify_body, hint),
+                            title = titles.random(),
+                            message = "$hint，${tails.random()}",
                             notificationId = GREETING_NOTIFY_ID,
                         )
                         settings.saveLastGreetingNotifyDate(today)

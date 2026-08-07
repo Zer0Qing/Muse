@@ -124,7 +124,7 @@ object GreetingHelper {
         return best?.second?.take(24)?.let {
             // 纯事件句保留；含记忆原文的截断到 24 字
             it
-        }
+        }?.replace("用户", "你")
     }
 
     /** 保留更紧急（diff 更小）的提示。 */

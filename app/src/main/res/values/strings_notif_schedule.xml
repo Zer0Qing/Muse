@@ -84,6 +84,26 @@
     <string name="notif_listener_recent_count_disconnected">最近通知: %1$d 条 · 请先到系统设置授权</string>
     <string name="notif_listener_refresh_cd">刷新状态</string>
     <!-- v1.x: 问候语个性化提醒(记忆里有近期事项时,每天最多一次) -->
-    <string name="greeting_notify_title">我在关注着你</string>
-    <string name="greeting_notify_body">%1$s，记得安排好哦</string>
+    <string-array name="greeting_notify_titles">
+        <item>注意哦</item>
+        <item>别忘了</item>
+        <item>提醒你一下</item>
+        <item>有个事跟你说</item>
+        <item>悄悄告诉你</item>
+    </string-array>
+    <string-array name="greeting_notify_tails_exam">
+        <item>记得提前准备好哦</item>
+        <item>复习好了吗，加油</item>
+        <item>别有压力，正常发挥就行</item>
+    </string-array>
+    <string-array name="greeting_notify_tails_travel">
+        <item>记得提前出门，别赶时间</item>
+        <item>身份证和行李都带齐哦</item>
+        <item>路上注意安全</item>
+    </string-array>
+    <string-array name="greeting_notify_tails_general">
+        <item>记得安排好哦</item>
+        <item>提前准备一下，别手忙脚乱</item>
+        <item>需要的话可以随时找我帮忙</item>
+    </string-array>
 </resources>
