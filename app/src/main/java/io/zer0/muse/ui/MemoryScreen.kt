@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import compose.icons.tablericons.GitMerge
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.Settings
@@ -96,6 +97,16 @@ fun MemoryScreen(
             MuseToast.show(context.getString(R.string.memory_legacy_reset_hint))
         }
     }
+    // v1.x: 手动去重结果提示(合并 N 条重复记忆)
+    LaunchedEffect(viewModel.dedupResult) {
+        val result = viewModel.dedupResult.value ?: return@LaunchedEffect
+        if (result.startsWith("merged:")) {
+            MuseToast.show(context.getString(R.string.memory_dedup_result, result.removePrefix("merged:")))
+        } else {
+            MuseToast.show(context.getString(R.string.memory_dedup_failed))
+        }
+        viewModel.consumeDedupResult()
+    }
     // v1.0.51: 存量记忆迁移进度(升级后首次启动补跑历史 session 摘要时显示)
     val backfillProgress by viewModel.backfillProgress.collectAsStateWithLifecycle()
     // v8: 作用域筛选状态(从 ViewModel 直接 collect,与 state 同级更新)
@@ -138,6 +149,12 @@ fun MemoryScreen(
                             contentDescription = stringResource(R.string.memory_stats_export_title),
                         )
                     }
+                    // v1.x: 手动合并重复记忆
+                    IconButton(onClick = { viewModel.dedupNow() }) {
+                        Icon(
+                            imageVector = compose.icons.TablerIcons.GitMerge,
+                            contentDescription = stringResource(R.string.memory_dedup_button),
+                        )                    }
                 },
             )
         },

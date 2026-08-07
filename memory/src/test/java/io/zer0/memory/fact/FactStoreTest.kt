@@ -487,4 +487,36 @@ class FactStoreTest {
 
         assertTrue(store.searchFullText("rebuild").isNotEmpty())
     }
+
+    // ──────────────────────────────────────────────
+    //  v1.x: 增强去重(bigram 相似 / 否定保护 / 全量去重)
+    // ──────────────────────────────────────────────
+
+    @Test
+    fun `add does not merge negated opposite facts`() = runTest {
+        store.add(FactStore.Fact(fact = "用户不吃香菜"))
+        store.add(FactStore.Fact(fact = "用户吃香菜"))
+
+        assertEquals("否定语义相反,不应合并", 2, store.size())
+    }
+
+    @Test
+    fun `dedupPass merges existing duplicates and skips pinned`() = runTest {
+        // 全遍历去重: 措辞插入/删词差异(候选 LIKE 查不到,仅前缀匹配也漏)也能合并
+        store.add(FactStore.Fact(fact = "明天上午要考英语四级", time = "2026-08-08T09:00"))
+        store.add(FactStore.Fact(fact = "明天上午考英语四级", time = "2026-08-08T09:00"))
+        // 置顶记忆不参与合并
+        val pinned = store.add(FactStore.Fact(fact = "用户喜欢喝美式咖啡"))
+        dao.updatePinnedAt(pinned, Instant.now().toString())
+        store.add(FactStore.Fact(fact = "用户爱喝美式咖啡"))
+
+        val merged = store.dedupPass(scope = "main")
+
+        assertTrue("应合并至少 1 条", merged >= 1)
+        // 考试类应只剩 1 条
+        val all = store.getAll("main")
+        assertEquals("考试类应只剩 1 条", 1, all.count { it.fact.contains("四级") })
+        // 置顶记忆本身仍保留(即使它与另一条相似)
+        assertNotNull(store.getById(pinned))
+    }
 }

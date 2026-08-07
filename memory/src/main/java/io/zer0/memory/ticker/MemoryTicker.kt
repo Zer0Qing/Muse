@@ -65,6 +65,8 @@ class  MemoryTicker(
     private val isMemoryEnabled: () -> Boolean = { true },
     /** 调度器自身协程 scope。一般由 DI 注入 application scope。 */
     private val scope: CoroutineScope,
+    /** v1.x: 每日去重用(合并近似重复事实);null 时跳过去重步骤(测试/兼容)。 */
+    private val factStore: io.zer0.memory.fact.FactStore? = null,
     /**
      * v0.32: 记忆系统高级配置(memory.* 配置)。
      *
@@ -539,6 +541,14 @@ class  MemoryTicker(
                     markFailure("deepMemory", e)
                     logStepError("deepMemory", e)
                 }
+            }
+
+            // v1.x: 每日去重 — deepMemory 写入新事实后,全量扫描合并近似重复
+            // (此前仅前缀匹配漏掉的存量重复),失败不影响主流程
+            factStore?.let { fs ->
+                resultOf { fs.dedupPass(scope = "main") }
+                    .onError { msg, t -> Logger.w(TAG, "每日记忆去重失败: ${t?.message ?: msg}") }
+                    .onSuccess { n -> if (n > 0) Logger.i(TAG, "每日记忆去重: 合并 $n 条重复事实") }
             }
 
             if (hasFailed) {

@@ -197,6 +197,8 @@ class MemoryViewModel(
      */
     private val _selectedScope = MutableStateFlow<String?>(null)
     val selectedScope: StateFlow<String?> = _selectedScope.asStateFlow()
+    /** v1.x: 全量去重防重入。 */
+    private var _dedupRunning = false
 
     /**
      * v8: 可选的作用域列表(响应式)。
@@ -353,6 +355,33 @@ class MemoryViewModel(
             // 编译完成后静默刷新:不触发 isLoading,避免替换当前视图(时间轴/列表)导致闪屏
             loadAll(silent = true)
         }
+    }
+
+    /**
+     * v1.x: 手动触发全量去重 — 合并当前作用域内近似重复的事实,并刷新列表。
+     * 结果通过 [dedupResult] 返回,UI 用 LaunchedEffect 消费并提示。
+     */
+    private val _dedupResult = MutableStateFlow<String?>(null)
+    val dedupResult: StateFlow<String?> = _dedupResult.asStateFlow()
+
+    fun dedupNow() {
+        if (_dedupRunning) return
+        _dedupRunning = true
+        viewModelScope.launch {
+            val merged = withContext(Dispatchers.IO) {
+                resultOf { factStore.dedupPass(scope = _selectedScope.value ?: "main") }
+                    .onError { msg, t -> Logger.w("MemoryViewModel", "记忆去重失败: ${t?.message ?: msg}") }
+                    .getOrNull()
+            }
+            _dedupRunning = false
+            _dedupResult.value = if (merged != null) "merged:$merged" else "failed"
+            loadAll(silent = true)
+        }
+    }
+
+    /** UI 消费去重结果后调用,清除提示。 */
+    fun consumeDedupResult() {
+        _dedupResult.value = null
     }
 
     /**

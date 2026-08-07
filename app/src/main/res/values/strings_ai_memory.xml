@@ -87,4 +87,8 @@
     <string name="memory_stats_top_sessions">最活跃会话</string>
     <string name="memory_stats_session_count">%1$d 条</string>
     <string name="memory_stats_trend_30_days">近 30 天趋势</string>
+    <!-- v1.x: 记忆去重 -->
+    <string name="memory_dedup_button">合并重复记忆</string>
+    <string name="memory_dedup_result">已合并 %1$s 条重复记忆</string>
+    <string name="memory_dedup_failed">记忆去重失败</string>
 </resources>
