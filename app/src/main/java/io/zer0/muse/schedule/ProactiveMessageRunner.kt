@@ -1068,9 +1068,12 @@ class ProactiveMessageRunner(
         return cal.get(java.util.Calendar.HOUR_OF_DAY)
     }
 
-    /** 判断某小时是否在允许发送时段(支持跨夜,如 22-8)。 */
+    /** 判断某小时是否在允许发送时段(支持跨夜,如 22-8)。
+     * v1.x 修复: 此前此处递归调用自身导致 StackOverflowError(App 启动崩溃);
+     * 实际实现位于 companion 对象([companion.isInAllowedWindow]),此处委托调用。
+     */
     private fun isInAllowedWindow(hour: Int, start: Int, end: Int): Boolean {
-        return isInAllowedWindow(hour, start, end)
+        return Companion.isInAllowedWindow(hour, start, end)
     }
 }
 
