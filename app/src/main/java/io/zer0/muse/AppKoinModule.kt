@@ -182,6 +182,9 @@ val appModule = module {
     single { io.zer0.muse.schedule.UserActivityProfile(androidContext()) }
     single { io.zer0.muse.schedule.ProactiveMessageRunner(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), androidContext(), get()) }
 
+    // v1.x: 问候语个性化提醒生成器(LLM 生成,失败回退规则版)
+    single { io.zer0.muse.schedule.GreetingHintGenerator(get()) }
+
     // v1.30: 群聊调度(用户发消息后串行触发各 Agent 轮转发言)
     // v1.111: 接 appScope/appContext/chatGenerationManager,群聊轮转运行于 appScope,切页/后台不中断
     // 改造 1: 接 SkillExecutor,群聊关联团队且有 workflow 时委托 TeamWorkflowExecutor

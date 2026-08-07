@@ -76,6 +76,32 @@ object GreetingHelper {
     )
 
     /**
+     * 筛选近期事项候选(未来 1-3 天内、关键词命中),返回原始事项文本列表。
+     * 供 LLM 生成个性化提醒时作为输入;无候选返回空列表。
+     */
+    fun recentEvents(facts: List<FactEntity>, today: LocalDate = LocalDate.now()): List<String> {
+        if (facts.isEmpty()) return emptyList()
+        val events = mutableListOf<String>()
+        for (fact in facts) {
+            val text = fact.fact ?: continue
+            val time = fact.time ?: continue
+            if (!EVENT_KEYWORDS.any { text.contains(it) }) continue
+            val eventDate = runCatching { LocalDate.parse(time.substringBefore("T")) }
+                .onFailure { Logger.w("GreetingHelper", "忽略无法解析的记忆时间字段", it) }
+                .getOrNull() ?: continue
+            val diff = java.time.temporal.ChronoUnit.DAYS.between(today, eventDate)
+            if (diff !in 1..3) continue
+            val whenText = when (diff) {
+                1L -> "明天"
+                2L -> "后天"
+                else -> "${diff}天后"
+            }
+            events += "$whenText$text"
+        }
+        return events
+    }
+
+    /**
      * 从记忆中提取个性化提示（生日、近期事项）。
      *
      * 优先级：明天 > 后天 > 3 天内。同一优先级取第一条。

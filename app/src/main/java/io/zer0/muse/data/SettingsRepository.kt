@@ -1070,6 +1070,14 @@ class SettingsRepository(
         store.edit { prefs -> prefs[KEY_LAST_GREETING_NOTIFY_DATE] = date }
     }
 
+    /** v1.x: 读取问候语 LLM 生成结果缓存(格式 "date|hint",无则 null)。 */
+    suspend fun getGreetingHintCache(): String? = store.data.first()[KEY_GREETING_HINT_CACHE]
+
+    /** v1.x: 保存问候语 LLM 生成结果缓存。 */
+    suspend fun saveGreetingHintCache(value: String) {
+        store.edit { prefs -> prefs[KEY_GREETING_HINT_CACHE] = value }
+    }
+
     /**
      * 获取当前选中的 [Model](从激活 Provider 的 models 中按 selectedModelId 查找)。
      * selectedModelId 为空时回退到激活 Provider 的首个模型。
@@ -1343,6 +1351,8 @@ class SettingsRepository(
         private val KEY_GENERATING_SESSION_ID = stringPreferencesKey("generating_session_id")
         // v1.x: 问候语个性化提醒通知 — 上次通知日期(YYYY-MM-DD),每天最多一次
         private val KEY_LAST_GREETING_NOTIFY_DATE = stringPreferencesKey("last_greeting_notify_date")
+        // v1.x: 问候语 LLM 生成结果缓存(格式 "date|hint",当天命中不重复调 LLM)
+        private val KEY_GREETING_HINT_CACHE = stringPreferencesKey("greeting_hint_cache")
     }
 
     // ── v2.3: Provider 连接测试缓存 ───────────────────────────────────
