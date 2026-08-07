@@ -83,8 +83,12 @@ object FactExtractionPrompt {
 只输出 JSON 数组，不要 markdown 代码块：
 [
   {"fact": "用户最近在筹备搬家", "tags": ["搬家", "近况"], "time": null, "importance": 0, "category": "event", "confidence": 0.9, "source": "inferred"},
-  {"fact": "下周三要提交论文初稿", "tags": ["学业", "计划"], "time": null, "importance": 1, "category": "goal", "confidence": 1.0, "source": "user_explicit"}
+  {"fact": "下周三要提交论文初稿", "tags": ["学业", "计划"], "time": "2026-08-12T09:00", "importance": 1, "category": "goal", "confidence": 1.0, "source": "user_explicit"}
 ]
+
+注意：第 2 条示例里用户明确说了"下周三"，time 就填了对应的未来日期。
+凡是明确提到未来日期/时间的事件（考试、航班、会议、截止等），time 必须填具体值，不要留 null；
+只有确实没有时间信息时才填 null。time 格式 YYYY-MM-DDTHH:MM。
             """.trimIndent()
         }
 

@@ -128,6 +128,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
@@ -991,6 +992,33 @@ internal fun canStartGeneration(
     isCreatingAgentSession: Boolean,
 ): Boolean = (text.isNotBlank() || images.isNotEmpty()) && !isStreaming && !isCreatingAgentSession
 
+/** R-TEST-06: 发送前合并待发送文档内容与用户输入(文档文本 + 用户输入)。 */
+internal fun buildSendText(rawText: String, documentContents: List<String>): String {
+    val docText = documentContents.joinToString("\n\n---\n\n")
+    return when {
+        documentContents.isEmpty() -> rawText
+        rawText.isBlank() -> docText
+        else -> "$docText\n\n---\n\n$rawText"
+    }
+}
+
+/** R-TEST-06: 仅当非流式、最后一条为带 [已中断] 标记的助手消息时才允许续写。 */
+internal fun canContinueGeneration(isStreaming: Boolean, lastMessage: UIMessage?): Boolean =
+    !isStreaming && lastMessage != null &&
+        lastMessage.role == MessageRole.ASSISTANT &&
+        lastMessage.content.contains("[已中断]")
+
+/** R-TEST-06: 去掉 [已中断] 尾部标记,保留断点前内容。 */
+internal fun resumeFromInterrupted(content: String): String =
+    content.removeSuffix("\n\n[已中断]").removeSuffix("[已中断]")
+
+/** R-TEST-06: 重生成仅当非流式、有会话且当前用户变体可选时可用。 */
+internal fun canRegenerate(
+    isStreaming: Boolean,
+    hasSession: Boolean,
+    hasSelectedUserVariant: Boolean,
+): Boolean = !isStreaming && hasSession && hasSelectedUserVariant
+
 class ChatViewModel(
     private val chatService: ChatService,
     private val settings: SettingsRepository,
@@ -1055,6 +1083,9 @@ class ChatViewModel(
     private val treeSnapshotStore: ConversationTreeSnapshotStore? = null,
     // v1.x: 会话级浏览器实例注册表(每个会话独立 WebView,删除会话时释放)
     private val browserManagerRegistry: io.zer0.muse.tools.BrowserManagerRegistry? = null,
+    // v1.x: 工具配置存储(审批策略持久化) — Koin 注入单例,
+    // 消除直接 new 导致的 DataStore 同文件多实例崩溃
+    private val toolConfigStore: io.zer0.muse.tools.ToolConfigStore? = null,
 ) : ViewModel(), ChatStateAccessor, io.zer0.muse.tools.ToolApprovalBridge {
     // v1.0.54: autoSave 去重状态(30 秒内同会话只跑一次,防堆积)
     private var lastAutoSaveSessionId: String? = null
@@ -1211,8 +1242,7 @@ class ChatViewModel(
     // v1.0.30: 回话跟踪 — onAppForeground 用
     @Volatile private var _lastSessionSwitchTimestamp: Long = 0L
     @Volatile private var _lastSessionSwitchId: String? = null
-    // 工具配置存储(审批策略持久化)
-    private val toolConfigStore = ToolConfigStore(appContext)
+    // 工具配置存储(审批策略持久化) — 见构造参数 toolConfigStore
 
     // v1.135: 当前工具调用轮次对应的助手消息 id,
     // 供 generate_image / generate_video / generate_qr_code 等工具更新消息媒体字段。
@@ -1543,6 +1573,9 @@ class ChatViewModel(
                     }
                 }
             } catch (t: Throwable) {
+                // v1.x: 协程取消必须重抛,不能当成"加载失败"展示(否则显示
+                // "请求失败: Job was cancelled"且协程死亡后错误永远挂着)
+                if (t is kotlinx.coroutines.CancellationException) throw t
                 Logger.e("ChatVM", "observeSessions failed", t)
                 _state.update {
                     it.copy(
@@ -3031,6 +3064,8 @@ class ChatViewModel(
                     pendingToolApprovals = emptyList(),
                     toolCallHistory = emptyList(),
                     agentPlans = emptyMap(),
+                    // v1.x: 切换会话时清除挂死的会话列表加载错误(协程取消遗留)
+                    sessionsError = null,
                     // v1.0.16: visionAssistedMessageIds 按 messageId(全局唯一)存储,
                     // 切换会话不再清空 — 切回原会话时"已分析"标签仍应显示。
                     // 仅清空 visionProgress(进度是瞬态的,不跨会话保留)。
@@ -3368,6 +3403,8 @@ class ChatViewModel(
                 }
             } catch (t: Throwable) {
                 Logger.e("ChatVM", "retryLoadSessions failed", t)
+                // v1.x: 协程取消必须重抛,不能显示为"请求失败: Job was cancelled"
+                if (t is kotlinx.coroutines.CancellationException) throw t
                 _state.update {
                     it.copy(
                         isSessionsLoading = false,
@@ -3407,6 +3444,29 @@ class ChatViewModel(
     fun setTargetMessage(messageId: String?, query: String?) =
         miscCoordinator.setTargetMessage(messageId, query)
 
+    /**
+     * v2.x: 从搜索结果打开消息 — 先切换会话,等切换落地后再设置定位目标。
+     *
+     * 修复竞态: 此前 switchSession(异步) + setTargetMessage(立即) 并行,
+     * ChatScreen 在旧会话里等目标消息 5 秒超时后清空 targetMessageId,
+     * 等会话真正切过去时定位目标已丢,表现为"点击结果只回首页不定位"。
+     */
+    fun openMessageFromSearch(sessionId: String, messageId: String, query: String) {
+        switchSession(sessionId)
+        viewModelScope.launch {
+            // 等待 switchSession 落地(currentSessionId 变为目标会话),超时 5s 放弃定位
+            val switched = withTimeoutOrNull(5000L) {
+                _state.filter { it.currentSessionId == sessionId }.first()
+                true
+            } ?: false
+            if (switched) {
+                setTargetMessage(messageId, query)
+            } else {
+                Logger.w("ChatVM", "openMessageFromSearch 等待会话切换超时: $sessionId")
+            }
+        }
+    }
+
     /** v2.x: 消费目标消息 id(滚动定位完成后调用,避免重复触发)。 */
     fun consumeTargetMessage() = miscCoordinator.consumeTargetMessage()
 
@@ -3424,10 +3484,7 @@ class ChatViewModel(
         val images = _state.value.pendingImages
         val docs = _state.value.pendingDocuments
         // v1.136 T10: 合并待发送文档内容到消息文本(文档文本 + 用户输入)
-        var text = if (docs.isNotEmpty()) {
-            val docText = docs.joinToString("\n\n---\n\n") { it.content }
-            if (rawText.isBlank()) docText else "$docText\n\n---\n\n$rawText"
-        } else rawText
+        var text = buildSendText(rawText, docs.map { it.content })
         if (!canStartGeneration(text, images, _state.value.isStreaming, _isCreatingAgentSession)) return
         // v1.68: 引用回复必须把被引用内容拼进消息体,LLM 才能读到引用原文。
         val quoteText = _state.value.replyQuoteOverride?.takeIf { it.isNotBlank() }
@@ -3819,11 +3876,8 @@ class ChatViewModel(
         }
         val messages = _messages.value
         val last = messages.lastOrNull() ?: return
-        if (last.role != MessageRole.ASSISTANT) return
-        if (!last.content.contains("[已中断]")) return
-        val content = last.content
-            .removeSuffix("\n\n[已中断]")
-            .removeSuffix("[已中断]")
+        if (!canContinueGeneration(_state.value.isStreaming, last)) return
+        val content = resumeFromInterrupted(last.content)
         val resumed = last.copy(content = content)
         _messages.value = _messages.value.map { if (it.id == last.id) resumed else it }
         rebuildConversationTree()
@@ -3845,14 +3899,18 @@ class ChatViewModel(
      * 保留旧回复为助手变体,在当前用户变体下新建助手变体并重新请求。
      */
     fun regenerateLastAssistant() {
-        if (_state.value.isStreaming) return
         val sessionId = if (_state.value.isAgentMode) {
             _state.value.agentSessionId ?: return
         } else {
             _state.value.currentSessionId ?: return
         }
         val tree = _conversationTree.value
-        if (tree.selectedUserNode == null || tree.selectedUserVariant == null) return
+        if (!canRegenerate(
+                isStreaming = _state.value.isStreaming,
+                hasSession = true,
+                hasSelectedUserVariant = tree.selectedUserNode != null && tree.selectedUserVariant != null,
+            )
+        ) return
         val update = tree.retryLastAssistant()
         val newMsg = update.newMessage ?: return
         _conversationTree.value = update.tree
@@ -4082,7 +4140,7 @@ class ChatViewModel(
     fun persistToolPolicy(toolCallId: String, policy: ToolApprovalPolicy) {
         val pending = _state.value.pendingToolApprovals.firstOrNull { it.toolCallId == toolCallId } ?: return
         viewModelScope.launch {
-            runCatching { toolConfigStore.setPolicy(pending.toolName, policy) }
+            runCatching { toolConfigStore!!.setPolicy(pending.toolName, policy) }
                 .onFailure { Logger.w("ChatVM", "persistToolPolicy(${pending.toolName}) 失败: ${it.message}") }
         }
     }
@@ -4140,7 +4198,7 @@ class ChatViewModel(
                 return ToolApprovalState.Auto
             }
         }
-        val perToolPolicy = toolConfigStore.getPolicy(toolName)
+        val perToolPolicy = toolConfigStore!!.getPolicy(toolName)
         val mode = _state.value.sessionPermissionMode
         val risk = toolRegistry.getToolRiskLevel(toolName)
         // v1.x: 审批决策调试日志 — 排查"完全放权不生效/始终允许无效"类问题

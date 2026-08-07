@@ -122,10 +122,14 @@ fun RagSettingsPage(
                     icon = TablerIcons.CloudOff,
                     title = stringResource(R.string.settings_rag_local_keyword),
                     subtitle = stringResource(R.string.settings_rag_local_keyword_subtitle),
-                    selected = config.embeddingSource == RagConfig.EmbeddingSource.LOCAL,
+                    // v1.x: LOCAL 与 LOCAL_KEYWORD(默认离线关键词)均视为"本地"选中态,
+                    // 未选择时(默认 LOCAL_KEYWORD)也应显示为已选,不再出现"两个都不选中"
+                    selected = config.embeddingSource != RagConfig.EmbeddingSource.CLOUD,
                     onClick = {
                         scope.launch {
-                            settings.saveRagConfig(config.copy(embeddingSource = RagConfig.EmbeddingSource.LOCAL))
+                            settings.saveRagConfig(
+                                config.copy(embeddingSource = RagConfig.EmbeddingSource.LOCAL_KEYWORD),
+                            )
                         }
                     },
                 )

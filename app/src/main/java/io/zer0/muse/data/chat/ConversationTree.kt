@@ -374,7 +374,16 @@ data class ConversationTree(
                         val targetVariant = parentRef?.let { ref ->
                             userVariantById[ref] ?: userNodeByGroup[ref]?.let { idx -> userNodes[idx].variants.lastOrNull() }
                         } ?: lastUserGroupId?.let { gidRef ->
-                            userNodeByGroup[gidRef]?.let { idx -> userNodes[idx].variants.lastOrNull() }
+                            userNodeByGroup[gidRef]?.let { idx ->
+                                val node = userNodes[idx]
+                                // v1.x 修复: 无 parentGroupId 的旧数据助手消息按创建时间归属 ——
+                                // 挂在"最后一个早于该助手消息创建的用户版本"上。
+                                // 此前直接取最后一个版本,用户编辑消息(新建版本 V1)后,
+                                // 旧助手消息被挂到 V1,与占位/新回复并列,表现为"助手消息分裂成多条"。
+                                val groupCreatedAt = groupMsgs.first().createdAt
+                                node.variants.lastOrNull { it.message.createdAt <= groupCreatedAt }
+                                    ?: node.variants.lastOrNull()
+                            }
                         }
                         if (targetVariant == null) return@forEach
                         val messageId = targetVariant.message.id.toString()

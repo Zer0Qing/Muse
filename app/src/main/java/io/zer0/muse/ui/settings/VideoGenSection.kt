@@ -108,30 +108,6 @@ fun VideoGenSection(
                         onClick = { showModelSelector = true },
                     )
                 }
-
-                // 时长
-                LabeledChipGroup(
-                    label = stringResource(R.string.settings_video_gen_duration),
-                    options = listOf(
-                        "5" to stringResource(R.string.settings_video_gen_duration_5),
-                        "10" to stringResource(R.string.settings_video_gen_duration_10),
-                    ),
-                    selected = localConfig.duration.toString(),
-                    onSelect = { value ->
-                        update { it.copy(duration = value.toIntOrNull() ?: 5) }
-                    },
-                )
-
-                // 分辨率
-                LabeledChipGroup(
-                    label = stringResource(R.string.settings_video_gen_resolution),
-                    options = listOf(
-                        "720p" to "720p",
-                        "1080p" to "1080p",
-                    ),
-                    selected = localConfig.resolution,
-                    onSelect = { value -> update { it.copy(resolution = value) } },
-                )
             }
         }
     }

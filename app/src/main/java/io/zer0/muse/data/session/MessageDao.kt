@@ -124,61 +124,6 @@ interface MessageDao {
     suspend fun searchLike(pattern: String): List<MessageEntity>
 
     /**
-     * Phase 10.3: FTS4 全文搜索(JOIN messages + sessions,一次查出,修复 N+1)。
-     *
-     * @param matchQuery FTS4 MATCH 表达式(已用 ngram 转换 + 引号转义)
-     * @return 匹配的消息 + 会话标题,按 createdAt 降序,限 50 条
-     */
-    @Query("""
-        SELECT
-            m.id as messageId,
-            m.sessionId as sessionId,
-            m.content as content,
-            m.role as role,
-            m.createdAt as createdAt,
-            s.title as sessionTitle
-        FROM messages_fts
-        JOIN messages m ON messages_fts.message_id = m.id
-        JOIN sessions s ON m.sessionId = s.id
-        WHERE content_ngram MATCH :matchQuery
-        ORDER BY m.createdAt DESC
-        LIMIT 50
-    """)
-    suspend fun searchFts(matchQuery: String): List<MessageSearchJoin>
-
-    /**
-     * v2.x: 全文搜索消息内容(FTS4 MATCH + snippet() 生成高亮片段)。
-     *
-     * 与 [searchFts] 区别:
-     *  - 直接返回 [SearchResult](含 contentSnippet),无需 Repository 层二次构建片段
-     *  - 用 FTS4 snippet() 函数在 content_ngram 列上生成高亮片段(以 [ ] 包裹匹配 token)
-     *
-     * B4-01: 匹配走 FTS4 2-gram(兼容无 FTS5 的 ROM),snippet 由 Repository 基于原文 content 构建,
-     *       返回可读原文片段而非 ngram 串;FTS 异常时由 [searchMessageContentLike] 兜底。
-     *
-     * @param matchQuery FTS4 MATCH 表达式(已用 [MessageFtsManager.toMatchQuery] 转换)
-     * @param limit 最大返回条数(默认 50)
-     * @return 匹配的 [SearchResult] 列表,按 createdAt 降序
-     */
-    @Query("""
-        SELECT
-            m.id as messageId,
-            m.sessionId as sessionId,
-            m.role as role,
-            m.createdAt as createdAt,
-            s.title as sessionTitle,
-            '' as contentSnippet,
-            m.content as content
-        FROM messages_fts
-        JOIN messages m ON messages_fts.message_id = m.id
-        JOIN sessions s ON m.sessionId = s.id
-        WHERE content_ngram MATCH :matchQuery
-        ORDER BY m.createdAt DESC
-        LIMIT :limit
-    """)
-    suspend fun searchMessageContent(matchQuery: String, limit: Int = 50): List<SearchResult>
-
-    /**
      * v2.x: LIKE 兜底搜索(FTS4 不可用 / ngram 转换为空时使用)。
      *
      * 返回 [MessageSearchJoin](含 content 原文),由 Repository 层用 buildSnippet
@@ -219,39 +164,6 @@ interface MessageDao {
     @Query("UPDATE messages SET variantCount = :count WHERE variantGroupId = :groupId")
     suspend fun updateVariantCount(groupId: String, count: Int)
 
-    // ── Phase 10.3: FTS4 索引同步 ──
-
-    /** 插入 FTS 索引(message_id 不索引,content_ngram 全文索引)。 */
-    @Query("INSERT INTO messages_fts(message_id, content_ngram) VALUES(:messageId, :contentNgram)")
-    suspend fun insertFts(messageId: String, contentNgram: String)
-
-    /** 删除指定消息的 FTS 索引。 */
-    @Query("DELETE FROM messages_fts WHERE message_id = :messageId")
-    suspend fun deleteFts(messageId: String)
-
-    /** 删除指定会话全部消息的 FTS 索引。 */
-    @Query("DELETE FROM messages_fts WHERE message_id IN (SELECT id FROM messages WHERE sessionId = :sessionId)")
-    suspend fun deleteFtsBySession(sessionId: String)
-
-    /**
-     * Phase 10.3: 删除指定会话内 createdAt >= fromCreatedAt 的消息 FTS 索引。
-     * 用于 [SessionRepository.truncateFrom](编辑/重生成截断时精确同步 FTS)。
-     */
-    @Query(
-        """
-        DELETE FROM messages_fts 
-        WHERE message_id IN (
-            SELECT id FROM messages WHERE sessionId = :sessionId AND createdAt >= :fromCreatedAt
-        )
-        """
-    )
-    suspend fun deleteFtsBySessionAndCreatedAt(sessionId: String, fromCreatedAt: Long)
-
-    /** 清空 FTS 索引(rebuild 用)。 */
-    @Query("DELETE FROM messages_fts")
-    suspend fun clearFts()
-
-
     /** 清空全部消息(备份恢复时用,Android 16 禁止 execSQL DML)。 */
     @Query("DELETE FROM messages")
     suspend fun deleteAll()
@@ -263,10 +175,6 @@ interface MessageDao {
     /** Phase 10.3: messages 表行数(ensureFtsIndexConsistent 比较用)。 */
     @Query("SELECT COUNT(*) FROM messages")
     suspend fun countMessages(): Int
-
-    /** Phase 10.3: messages_fts 表行数(ensureFtsIndexConsistent 比较用)。 */
-    @Query("SELECT COUNT(*) FROM messages_fts")
-    suspend fun countFts(): Int
 
     /** 各角色消息数(统计面板用)。 */
     @Query("SELECT role, COUNT(*) as cnt FROM messages GROUP BY role")

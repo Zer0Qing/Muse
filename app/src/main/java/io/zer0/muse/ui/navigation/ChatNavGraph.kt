@@ -88,9 +88,10 @@ fun NavGraphBuilder.chatNavGraph(
             // v2.x: Tab=消息内容 点击消息项跳转 — 切换会话 + 设置目标消息,
             // 回到 HOME 后 ChatScreen 监听 targetMessageId 滚动定位 + 短暂高亮
             onOpenMessage = { sessionId, messageId, query ->
-                sharedViewModel.switchSession(sessionId)
-                sharedViewModel.setTargetMessage(messageId, query)
+                // v2.x: 先切会话再定位(避免竞态丢定位),然后进入对话页
+                sharedViewModel.openMessageFromSearch(sessionId, messageId, query)
                 navController.popBackStack(HomeRoute, inclusive = false)
+                navController.navigate(ChatDetailRoute)
             },
         )
     }

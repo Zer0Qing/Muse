@@ -86,6 +86,7 @@ import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.assistantBubble
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
 import kotlinx.coroutines.Dispatchers
@@ -139,6 +140,8 @@ fun GroupChatDetailScreen(
     // v1.77: 消息长按菜单 + 删除确认
     var messageMenuTarget by remember { mutableStateOf<GroupChatMessageEntity?>(null) }
     var deleteMessageTarget by remember { mutableStateOf<GroupChatMessageEntity?>(null) }
+    // v1.x: 多选批量删除确认
+    var deleteSelectedTarget by remember { mutableStateOf(false) }
     // v2.x: 引用回复 / 悄悄话 / 表决 / 总结 对话框状态
     var replyToMessage by remember { mutableStateOf<GroupChatMessageEntity?>(null) }
     var whisperTarget by remember { mutableStateOf<GroupChatMessageEntity?>(null) }
@@ -329,6 +332,44 @@ fun GroupChatDetailScreen(
             Column(
                 modifier = Modifier.imePadding(),
             ) {
+                // v1.x: 多选模式批量操作栏
+                if (state.selectedMessageIds.isNotEmpty()) {
+                    androidx.compose.material3.Surface(
+                        color = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 3.dp,
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = MusePaddings.screen, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text(
+                                text = stringResource(R.string.groupchat_selected_count, state.selectedMessageIds.size),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                androidx.compose.material3.TextButton(onClick = { viewModel.selectAllVisible() }) {
+                                    Text(stringResource(R.string.groupchat_select_all))
+                                }
+                                androidx.compose.material3.TextButton(
+                                    onClick = { deleteSelectedTarget = true },
+                                    enabled = state.selectedMessageIds.isNotEmpty(),
+                                ) {
+                                    Text(
+                                        stringResource(R.string.groupchat_delete_selected),
+                                        color = MaterialTheme.colorScheme.error,
+                                    )
+                                }
+                                androidx.compose.material3.TextButton(onClick = { viewModel.clearSelection() }) {
+                                    Text(stringResource(R.string.groupchat_cancel))
+                                }
+                            }
+                        }
+                    }
+                }
                 // ActivityHub: 输入框上方的紧凑活动状态栏,展示当前轮转中各 agent 的状态 chip。
                 // IDLE 状态被 AgentActivityBar 内部过滤不显示;无活动时整个栏不占空间。
                 AgentActivityBar(activities = state.activities)
@@ -469,8 +510,16 @@ fun GroupChatDetailScreen(
                         // v1.77: 长按弹出操作菜单
                         onLongClick = {
                             MuseHaptics.medium(haptic)
-                            messageMenuTarget = message
+                            if (state.selectedMessageIds.isNotEmpty()) {
+                                viewModel.toggleMessageSelection(message.id)
+                            } else {
+                                messageMenuTarget = message
+                            }
                         },
+                        // v1.x: 多选模式
+                        selectionMode = state.selectedMessageIds.isNotEmpty(),
+                        selected = message.id in state.selectedMessageIds,
+                        onSelectToggle = { viewModel.toggleMessageSelection(message.id) },
                         onHtmlPreview = onHtmlPreview,
                     )
                 }
@@ -478,6 +527,35 @@ fun GroupChatDetailScreen(
                 if (state.isAgentResponding) {
                     item(key = "thinking_indicator") {
                         ThinkingIndicator(currentSpeaker = state.currentSpeaker)
+                    }
+                }
+                // v1.x: 群聊流式输出 — 生成中的内容实时展示(落库后由正式消息替换)
+                state.streamingContent?.takeIf { it.isNotBlank() }?.let { streaming ->
+                    item(key = "streaming_content") {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = MusePaddings.screen, vertical = 4.dp),
+                        ) {
+                            Text(
+                                text = state.currentSpeaker?.name
+                                    ?: stringResource(R.string.groupchat_streaming_title),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(start = 4.dp, bottom = 2.dp),
+                            )
+                            Surface(
+                                shape = MuseShapes.assistantBubble,
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                            ) {
+                                Text(
+                                    text = streaming,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.padding(MusePaddings.cardInner),
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -650,6 +728,13 @@ fun GroupChatDetailScreen(
                     }) {
                         Text(stringResource(R.string.groupchat_reply))
                     }
+                    // v1.x: 多选
+                    TextButton(onClick = {
+                        messageMenuTarget = null
+                        viewModel.startSelection(msg.id)
+                    }) {
+                        Text(stringResource(R.string.groupchat_select))
+                    }
                     // v2.x: AI 消息 → 悄悄话
                     if (msg.senderType == "assistant") {
                         TextButton(onClick = {
@@ -692,6 +777,28 @@ fun GroupChatDetailScreen(
             },
             dismissText = stringResource(R.string.groupchat_cancel),
             onDismiss = { deleteMessageTarget = null },
+        )
+    }
+
+    // v1.x: 多选批量删除确认
+    if (deleteSelectedTarget) {
+        MuseDialog(
+            onDismissRequest = { deleteSelectedTarget = false },
+            title = stringResource(R.string.groupchat_delete_selected_title, state.selectedMessageIds.size),
+            content = {
+                Text(
+                    text = stringResource(R.string.groupchat_delete_selected_confirm),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+            confirmText = stringResource(R.string.groupchat_delete),
+            onConfirm = {
+                deleteSelectedTarget = false
+                viewModel.deleteSelectedMessages()
+            },
+            dismissText = stringResource(R.string.groupchat_cancel),
+            onDismiss = { deleteSelectedTarget = false },
         )
     }
 

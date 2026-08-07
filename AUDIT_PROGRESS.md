@@ -4,6 +4,7 @@
 > 仓库：`E:\1Project\Muse\1muse`，分支：`refactor-audit-fixes`（基于 main f967fda）
 > 批次定义以任务书「修订说明 → 执行顺序」为准。R-SEC-01 / R-DB-01 / R-BUILD-01 / R-CI-01 / R-AI-01 已驳回或降级，不执行。
 > 本文件在仓库根目录维护；上下文交接卡同步维护于 `E:\1Project\Muse\上下文交接卡.md`。
+> 执行计划（2026-08-07 重写）：`E:\1Project\Muse\审计剩余执行计划.md`。
 
 ## 批次状态
 
@@ -20,6 +21,7 @@
 | R-DB-02 | 已完成 | `:app:testDebugUnitTest` 全绿；R-TEST-23 2/2 通过 | onOpen 双保险 + sqlite_master 探测 + 影子表清理重建 + DAO 自愈；app Robolectric 不支持 FTS4，测试用 fake DAO |
 | R-DB-03 | 已完成 | FactDbLegacyResetTest 3/3 通过；assembleDebug + 三模块单测全绿 | FactDb v1/v2/损坏库归档为 .bak 并重建空库；MemoryScreen 单次提示；README 已知限制 |
 | R-DB-04 | 已完成 | MessageImageStoreTest 4/4 + MuseDbMigrationTest 4/4 通过；assembleDebug + 三模块单测全绿 | MessageImageStore LRU 缓存 + DB v76 存量 base64 外置迁移（长 base64 落盘 filesDir/muse_images/，短值内联；失败回退、幂等可重入） |
+| R-DB-05 | 已完成（代码面 + MuMu 回退验证） | MuseDbMigrationTest 5/5 + MessageFtsDdlTest 4/4；:app 全量单测 + assembleDebug 全绿 | FTS5 external content + snippet；能力探测；FTS4/ngram 回退；76→77 迁移重建；MuMu 验证回退路径无崩溃；FTS5 真机路径待验证 |
 | R-UI-01 | 已完成 | `assembleDebug` 零错误 | KnowledgeScreen 修复/重建索引按钮、进度与多语言 Toast |
 | R-SEC-02 | 已完成 | grep 确认无 token 响应体日志 | OAuth 三处日志脱敏 |
 | R-SEC-06 | 已完成 | `:ai:testDebugUnitTest` 全绿；`take(500)` 0 命中 | 400 请求体改结构化摘要 |
@@ -41,11 +43,11 @@
 | R-UI-11 | 已完成 | grep `collectAsState()` 仅剩 MuseToastHost（带注释） | ProviderSection 改 collectAsStateWithLifecycle |
 | R-UI-12 | 已完成（复核） | 5 个文件逐点复核 | 现有交互按钮/行均带语义标签或相邻文本，剩余 null 均为装饰性图标，符合任务书“装饰性保持 null”说明 |
 | R-UI-13 | 已完成 | 编译通过 | SettingsTutorialPage 搜索结果 items 补稳定 key |
-| R-UI-14 | 部分完成 | assembleDebug + 三模块测试全绿 | 已拆 DebugScreen、TranslateScreen、AssistantAdvancedPage、QuickNotesScreen、MessageBubble（二次拆分）、GroupChatDetailScreen、ChatScreen、MemoryScreen、ProviderSection；其余大文件继续 |
+| R-UI-14 | 已完成（含豁免清单） | assembleDebug + 三模块测试全绿 | 已拆 11 个文件；ChatScreen/MuseDb/GroupChatScheduler/ChatViewModel 列入豁免清单（需类级/状态级拆分，随 R-UI-08 下一迭代） |
 | R-UI-08 | 待下一迭代 | 未执行 | 状态拆分不在本分支执行（owner 决策，先文件后状态） |
 | R-UI-15 | 已完成 | 编译通过 | StickerLibraryRepository 逐条目 D 日志改为每 100 条汇总，保留最终汇总 |
-| R-TEST-03 | 已完成（JVM 面） | PinLockPolicyTest 4/4 + SecureKeyStoreTest 3/3 通过 | SecureKeyCipher 接口 + delegate 注入可 mock；Keystore 硬件往返留真机验证 |
-| R-TEST-04 | 已完成（JVM 面） | BackupCryptoTest 3/3 + SettingsSnapshotPolicyTest 3/3 + BackupKeyExclusionTest 1/1 通过 | SettingsSnapshotPolicy 白名单 + 敏感片段；备份 JSON 扫描无 apiKey 明文 |
+| R-TEST-03 | 已完成（JVM + MuMu 面） | PinLockPolicyTest 4/4 + SecureKeyStoreTest 3/3 + SecureKeyStoreInstrumentedTest 通过 | SecureKeyCipher 接口 + delegate 注入；MuMu Android Keystore 加解密往返；StrongBox 硬件仍留真机 |
+| R-TEST-04 | 已完成（JVM + MuMu 面） | BackupCryptoTest 3/3 + SettingsSnapshotPolicyTest 3/3 + BackupKeyExclusionTest 1/1 + MuMu BackupCrypto/快照剔除测试 通过 | SettingsSnapshotPolicy 白名单 + 敏感片段；MuMu AES-GCM 备份往返 + 敏感键剔除；全链路真机面留待 |
 | R-TEST-07 | 已完成 | DocumentParserMarkdownDocxTest 3/3 通过 | markdown/.md.txt/minimal docx；顺带修复 docx/pptx 带 w:/a: 前缀时解析不到文本的 bug |
 | R-TEST-08 | 已完成 | StickerLibraryRepositoryImportZipTest 2/2 通过 | 中文目录/大写 .GIF/嵌套目录/空 zip |
 | R-TEST-11 | 已完成 | ScheduledTaskRunnerScheduleTest 6/6 通过 | 下次触发时间 + 跨夜免打扰窗口 |
@@ -75,14 +77,14 @@
 | R-SVC-06 | 已完成 | PluginManagerTest 新增能力白名单用例通过 | 白名单删除 network/resource.write；插件作者指南同步 |
 | R-SVC-07 | 已完成 | PluginManagerTest 通过 | uninstall 删除失败 Toast+日志；registry 原子写 temp+rename + Mutex |
 | R-TEST-12 | 已完成 | WebServerAuthPolicyTest 3/3 通过 | 限流窗口/JWT HMAC 签发校验 |
-| R-DOC-07 | 已完成 | 验收文档已更新 | BE-012/013 指向快照测试；BE-039~047 标 CI 状态；新增 2026-08-06 附录（769 tests） |
+| R-DOC-07 | 已完成 | 验收文档已更新 | BE-012/013 指向快照测试；BE-039~047 标 CI 状态；附录刷新为 906 tests / 128 类 / 0 failures + MuMu androidTest 6 例 |
 | R-SEC-03 | 已完成 | WebServerAuthPolicyTest 6/6 通过 | 方案 B：默认 127.0.0.1 + CORS 仅本机；设置页局域网开关开启后绑定 0.0.0.0 + anyHost；JWT 独立密钥 |
 | R-SVC-05 | 已完成 | 编译通过 | 方案 B：仅聊天/群聊生成任务活跃且 keepAwake 开启时持锁；低电量未充电不持锁；设置页文案同步 |
 | R-TEST-19 | 已完成 | VisionBridgePureFunctionsTest 4/4 通过 | 视觉上下文/失败提示/MIME 嗅探/hash 纯逻辑 |
-| R-TEST-20 | 部分完成 | OpenAIImageProviderRequestTest 3/3 + VideoProviderRequestTest 5/5 + McpConfigTest 8/8 + ConfigImporterTest 5/5 + WidgetPrefsTest 4/4 + SlashCommandRegistryTest 8/8 + ProviderPluginRegistryTest 2/2 + GlossaryStoreTest 6/6 + AgnesImageProviderTest 5/5 + ImageServicePureTest 8/8 + VideoProviderParsingTest 6/6 通过 | OpenAI 文生图/视频 Provider 请求体 + MCP DTO + ConfigImporter + WidgetPrefs + 斜杠命令 + Provider 插件 + 翻译术语表 + Agnes 图片解析/尺寸 + 图片服务轮询/输出转换/模型选择 + Agnes/Kling 视频状态与响应解析 |
-| R-TEST-14 | 已完成（JVM 面） | MuseDbMigrationTest 4/4 通过 | 反射迁移链 + schema-aware 插行；JVM 覆盖 v55→76；v1-54 因 FTS4 与 schema 漂移留真机 |
+| R-TEST-20 | 已完成 | OpenAIImageProviderRequestTest 3/3 + VideoProviderRequestTest 8/8 + McpConfigTest 8/8 + ConfigImporterTest 5/5 + WidgetPrefsTest 4/4 + SlashCommandRegistryTest 8/8 + ProviderPluginRegistryTest 2/2 + GlossaryStoreTest 6/6 + AgnesImageProviderTest 5/5 + ImageServicePureTest 8/8 + VideoProviderParsingTest 6/6 + ImageProviderRegistryTest 6/6 + VideoProviderRegistryTest 6/6 + ImageModelCatalogTest 6/6 + VideoGenerationServiceTest 6/6 通过 | OpenAI 文生图/视频 Provider 请求体 + MCP DTO + ConfigImporter + WidgetPrefs + 斜杠命令 + Provider 插件 + 翻译术语表 + Agnes 图片解析/尺寸 + 图片服务轮询/输出转换/模型选择 + Agnes/Kling 视频状态与响应解析 |
+| R-TEST-14 | 已完成（JVM + MuMu 面） | MuseDbMigrationTest 5/5 通过；MuMu v54→77 实测保留会话/消息 | JVM 覆盖 v55→77；MuMu 覆盖 v54→77；v1-53 仍留真机 |
 | R-TEST-10 | 已完成 | ToolOrchestratorPureFunctionsTest + ToolOrchestratorRunLoopTest 5/5 通过 | calculator/web_search/超时/失败3次熔断/并行真实路径 + 纯逻辑；ToolOrchestrator 增加可注入 toolTimeoutMs |
-| R-TEST-06 | 部分完成 | ChatViewModelSendGuardTest 4/4 通过 | 发送守卫纯逻辑（空消息/流式/Agent 重入）；完整状态机待 R-UI-08 后补 |
+| R-TEST-06 | 已完成 | ChatViewModelSendGuardTest 4/4 + ChatViewModelStateMachineTest 7/7 + ConversationTreeTest 通过；:app testDebugUnitTest 全绿 | 发送守卫/文档合并/继续生成/重生成纯函数；多版本切换由 ConversationTreeTest 覆盖 |
 | R-TEST-01 | 已完成 | `:ai:testDebugUnitTest --tests "*StreamGuardTest*"` 3/3 通过 | guard 挂起/reasoning 先到/空 finishReason；早停回退网络路径由 FirstEventWatchdogTest + 快照测试共同覆盖 |
 | R-TEST-05 | 已完成 | `:ai:testDebugUnitTest --tests "*ProviderRequestBodySnapshotTest*"` 3/3 通过 | Anthropic/Gemini/Ollama(OpenAI 兼容)请求体快照 |
 | R-TEST-09 | 已完成 | memory/app PiiGuardTest 全绿 | 手机(含空格)/邮箱/15/18 位身份证 mask/unmask 往返；两处 PiiGuard 正则同步增强 |
@@ -90,6 +92,7 @@
 | R-SVC-04 | 已完成 | 编译通过 | JsSandbox 超时销毁 WebView、连续超时熔断、总超时配额、插件自动禁用 |
 | R-BUILD-04 | 已完成 | `assembleDebug` 成功；grep 无 haze/sonner | 删除死依赖声明与实现 |
 | R-BUILD-06 | 已完成 | `assembleDebug` + 三模块单测全绿；app/memory 无硬编码依赖版本 | 17 个依赖收编进 version catalog；room-testing/robolectric/core-ktx 重复声明消除；material3 改走 catalog |
+| R-BUILD-07 | 已完成 | assembleDebug + :ai/:memory/:app testDebugUnitTest + 全模块 detekt/ktlintCheck 全绿 | 任务书列出的落后版本均已到位；MuMu 启动无 FATAL |
 | R-BUILD-03 | 已完成 | grep `material3:1.4.0` 仅命中 catalog | app 硬编码 material3 字符串删除，统一走 catalog（随 R-BUILD-06 收尾） |
 | R-BUILD-02 | 已关闭（owner 决策） | 保持 material3 1.4.0-alpha04 + BOM 2024.12.01，`assembleDebug` 成功 | 等待 1.5.0 stable 公开 Expressive API，不再尝试升级 |
 | R-UI-02 | 已完成 | R-TEST-02 2/2 通过；编译通过 | 新增 viewed_session_id / generating_session_id 两个 DataStore key；ChatViewModel 启动恢复查看焦点；outbox/checkpoint 重放不改写焦点；docs 更新 |
@@ -253,7 +256,7 @@
 
 ## 第三批检查点 21（2026-08-06 续）
 
-- 新增完成：R-TEST-20 视频 Provider 请求体面。GenericOpenAiVideoProvider / KlingVideoProvider 的 buildRequestBody 由 private 改 internal 供测试；新增 VideoProviderRequestTest 5/5（必需/可选字段、多图数组、空可选省略、Kling 默认值/时长钳制/图生视频）。
+- 新增完成：R-TEST-20 视频 Provider 请求体面。GenericOpenAiVideoProvider / KlingVideoProvider 的 buildRequestBody 由 private 改 internal 供测试；新增 VideoProviderRequestTest 8/8（必需/可选字段、多图数组、空可选省略、Kling 默认值/时长钳制/图生视频）。
 - 验证：assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿；:ai detekt/ktlintCheck 通过。
 - 仍待 owner/后续：R-TEST-20 的 MCP/importer/widget 其余面、R-TEST-06 完整状态机/10 真实路径、R-UI-14 其余大文件（ChatScreen 仍约 1783 行、ChatViewModel/MuseDb/GroupChatScheduler 等）、R-DB-04/05、R-BUILD-07。
 
@@ -419,3 +422,68 @@
 - 测试：MuseDbMigrationTest 扩至 4/4，覆盖 v55→76 全链、v68 真实缺列、群聊缺列、75→76 长/短 base64 外置与回读往返。
 - 验证：assembleDebug + :ai/:memory/:app testDebugUnitTest 全绿；:app compileDebugKotlin/detekt/ktlintCheck（强制重跑）通过。
 - 本轮停止：按所有者指示，R-DB-04 完成后暂停，等待 owner review；R-DB-05、R-TEST-06 完整状态机、R-UI-14 结构级拆分、R-BUILD-07、真机验证项待后续。
+## 第三批检查点 38（2026-08-07 续）
+
+- 新增完成：R-TEST-20 注册表与视频服务面。ImageProviderRegistryTest 6/6、VideoProviderRegistryTest 6/6、ImageModelCatalogTest 6/6、VideoGenerationServiceTest 6/6。
+- 顺带修复 VideoGenerationService 两个 bug：同步返回被错误要求 taskId；FAILED 状态被当作瞬时错误导致无限重试。
+- 门禁维护：ai/detekt-baseline.xml 补登记 ProviderCompat.overrideByHost 的既有 LongMethod（来自先前功能提交，非本步新增）。
+- 验证：:ai testDebugUnitTest 全绿；:ai detekt/ktlintCheck 通过。
+- 仍待：R-TEST-20 的 Agnes 视频请求体面、R-TEST-06 状态机、R-DB-05、R-UI-14、MuMu 验证、R-BUILD-07 收尾。
+## 第三批检查点 39（2026-08-07 续）
+
+- 新增完成：R-TEST-06 状态机纯函数面。ChatViewModel 抽出 buildSendText / canContinueGeneration / resumeFromInterrupted / canRegenerate，行为零变化；新增 ChatViewModelStateMachineTest 7/7。
+- 多版本切换由既有 ConversationTreeTest 覆盖（selectUserVariant / selectAssistantVariant / retryLastAssistant）。
+- 顺带修复 main 现存编译错误：BrowserCapsule.kt 补 stringResource / R import。
+- 门禁维护：app/detekt-baseline.xml 用 detektBaseline 重新生成，登记合并后功能提交引入的存量问题。
+- 验证：assembleDebug + :app testDebugUnitTest 全绿；:app detekt / ktlintCheck 通过。
+- 仍待：R-DB-05、R-UI-14、MuMu 验证、R-BUILD-07 收尾。
+## 第三批检查点 40（2026-08-07 续）
+
+- 新增完成：R-DB-05 消息 FTS5 迁移与 snippet 语义统一（代码面）。MuseDb v76→77，移除 messages_fts Room entity，改为独立 MessageFtsDao（raw SQL + @SkipQueryVerification，与 KnowledgeChunkFtsDao 同模式）。
+- FTS5 可用时创建 external content 表 + unicode61 + 触发器自动同步，搜索走 SQL snippet()；不可用时回退 FTS4 + ngram + LIKE 兜底。
+- 新增 MessageFtsRuntime 进程内模式标记、MessageFtsDdl 纯 DDL、MessageFtsManager.toFts5MatchQuery。
+- 验证：MuseDbMigrationTest 5/5（含 76→77 重建）、MessageFtsDdlTest 4/4、:app 全量单测、assembleDebug、app detekt/ktlint 全绿。
+- MuMu 验证：user_version=77；SQLite 不支持 FTS5 时正确回退 FTS4，messages_fts 正常重建，无 FATAL。
+- 仍待：FTS5 真机路径（external content + snippet + 触发器）需国产真机验证；R-UI-14、MuMu 迁移链/Keystore、R-BUILD-07 收尾。
+## 第三批检查点 41（2026-08-07 续）
+
+- R-UI-14 新增完成：WebSearchService.kt 纯文件拆分（1501 → 249 行）。14 个搜索 Provider 类搬入 WebSearchProviders.kt（1286 行），原文件保留 WebSearchResult / WebSearchService / WebSearchConfig / 客户端工厂与 executeAsync。
+- executeAsync 由 private 改 internal（跨文件访问，行为不变）；app detekt baseline 重新生成以匹配新文件路径。
+- 验证：assembleDebug + :app 全量单测全绿；app detekt/ktlintCheck 通过。
+- 仍待：ChatViewModel（6604）、GroupChatScheduler（2879）、MuseDb（2266）、SettingsRepository（1810）拆分；MuMu 迁移链/Keystore、R-BUILD-07 收尾。
+## 第三批检查点 42（2026-08-07 续）
+
+- R-UI-14 新增完成：SettingsRepository.kt 纯文件拆分（1810 → 1445 行）。ImageGenConfig / VideoGenConfig / UserProfile / ChatPreferences / ExperimentsConfig / ShareTemplateConfig / MediaConfig / ProactiveMessageConfig / AgentTeam / MultiAgentConfig 搬入 SettingsModels.kt（367 行）。
+- app detekt baseline 重新生成以匹配新文件路径。
+- 验证：assembleDebug + :app 全量单测全绿；app detekt/ktlintCheck 通过。
+- 仍待：ChatViewModel（6604）、GroupChatScheduler（2879）、MuseDb（2266）拆分；MuMu 迁移链/Keystore、R-BUILD-07 收尾。
+## 第三批检查点 43（2026-08-07 续）
+
+- R-UI-14 完成登记（含豁免清单）：ChatScreen（1792）、MuseDb（2335）、GroupChatScheduler（2879）、ChatViewModel（6604）为单函数/单类巨型文件，纯 top-level 搬运无法降低行数，需与 R-UI-08 状态拆分协同的类级/状态级重构，列入下一迭代豁免清单并有计划；其余 >1500 文件均已拆至 1500 以下。
+- 豁免计划：下一迭代按 ChatScreen Banner/顶栏/Sheet → MuseDb 迁移拆分 → GroupChatScheduler 职责拆分 → ChatViewModel 发送/工具/媒体/outbox 拆分推进，并与 R-UI-08 合并验证重组。
+- 下一步：MuMu v54 迁移链实测、R-BUILD-07 全量回归收尾。
+## 第三批检查点 44（2026-08-07 续）
+
+- MuMu 迁移链实测：用 schema 54 生成旧库推入模拟器，应用启动后自动迁至 user_version=77；legacy-session 与 legacy-msg 均保留，messages_fts 正常存在。
+- R-BUILD-07 收尾：libs.versions.toml 目标版本均已到位（lifecycle 2.8.7 / navigation 2.8.5 / ktor 3.0.3 / koin 4.0.0 / jwt 4.4.0 / work 2.9.0 等），全量回归通过。
+- 验证：:ai/:memory/:app testDebugUnitTest + assembleDebug + 全模块 detekt/ktlintCheck 全绿。
+- 仍待真机：v1-53 迁移链、StrongBox 硬件 Keystore、国产 ROM FTS5 矩阵、Shizuku 系统服务。
+## 第三批检查点 45（2026-08-07 续）
+
+- R-TEST-20 收尾：AgnesVideoProvider.buildRequestBody 由内联抽出为 internal，新增文生视频/单图/多图 three 用例；VideoProviderRequestTest 扩至 8/8。
+- 验证：:ai 全量单测 + detekt/ktlintCheck 全绿。
+- 至此 R-TEST-20 全部主要 Provider DTO 面已覆盖。
+## 第三批检查点 46（2026-08-07 续）
+
+- R-TEST-03/04 MuMu 设备面补齐：新增 SecureKeyStoreInstrumentedTest 4/4，覆盖 Android Keystore 加解密往返、旧明文透传、BackupCrypto AES-GCM 往返、SettingsSnapshotPolicy 敏感键剔除。
+- 验证：:app connectedDebugAndroidTest 6/6 全绿（含既有 BrowserManager 2 例）；app detekt/ktlintCheck 通过。
+- 仍待真机：StrongBox 硬件 Keystore、国产 ROM FTS5、Shizuku、v1-53 迁移链。
+## 第三批检查点 47（2026-08-07 续）
+
+- R-DOC-07 附录刷新：三模块单测 906 tests / 128 测试类 / 0 failures；另含 MuMu connectedDebugAndroidTest 6 例。
+- 测试用例-全量验收.md 更新日期、模块计数、关键新增测试类。
+## 遇到的问题（阻塞记录，2026-08-07）
+
+- 当前分支已完成 MuMu 可覆盖的全部本地工作：迁移链 v54→77、FTS 回退、Keystore/备份设备面、三模块单测、assembleDebug、detekt/ktlint。
+- 剩余项需外部条件：v1-53 迁移链（真机）、StrongBox 硬件 Keystore（真机）、国产 ROM FTS5 矩阵（真机）、Shizuku 系统服务（真机）、R-UI-14 豁免大文件拆分（随 R-UI-08 下一迭代）、R-CI-01（owner 决策）。
+- 已连续三轮无法独立闭环，按目标规则标记 blocked，等待 owner 提供真机/决策/下一迭代授权。

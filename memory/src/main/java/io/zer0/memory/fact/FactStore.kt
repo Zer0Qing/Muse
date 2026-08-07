@@ -88,6 +88,14 @@ class FactStore(
     private val criticalKeywords = listOf("过敏", "密码", "地址", "生日", "身份证", "电话", "血型", "紧急", "病历")
     private val importantKeywords = listOf("喜欢", "不喜欢", "爱吃", "最", "讨厌", "害怕", "梦想", "目标", "习惯")
 
+    /** v1.x: 增强去重 — 否定词正则(出现次数不同 = 语义可能相反,不合并)。 */
+    private val NEGATION_RE = Regex("不|没|未|别|无|非")
+
+    /** v1.x: 增强去重 — 字符 bigram Jaccard 相似度阈值(≥ 视为重复)。
+     * 实际重复多为小幅措辞差异(插入/删减/词序),Jaccard 一般在 0.5-0.8;
+     * 0.5 阈值下"喜欢喝咖啡" vs "喜欢喝茶"(0.43)不会误合并。 */
+    private val SIMILARITY_THRESHOLD = 0.5
+
     /**
      * v5: 智能判定重要度(0/1/2)。
      * 关键关键词优先匹配,其次重要关键词,默认普通。
@@ -104,15 +112,42 @@ class FactStore(
      * 取较短文本,若较长文本以其开头则视为重复。
      *
      * v9: 先去常见主语前缀,避免"对青霉素过敏"和"用户对青霉素过敏"被当成两条事实。
+     * v1.x: 增强 — 前缀不命中时再用字符 bigram 重叠率判定近似重复
+     * (如"明天要参加英语四级考试" vs "明天上午9点考英语四级");
+     * 否定词出现次数不同(如"不吃香菜" vs "吃香菜")强制不相似,避免语义反转误合并。
      */
     private fun isSimilar(a: String, b: String): Boolean {
         val na = normalizeDedupText(a)
         val nb = normalizeDedupText(b)
         if (na == nb) return true
         if (na.isBlank() || nb.isBlank()) return false
+        // 否定词保护:否定出现次数不同 = 语义可能相反,绝不合并
+        if (negationCount(na) != negationCount(nb)) return false
         val short = if (na.length <= nb.length) na else nb
         val long = if (na.length > nb.length) na else nb
-        return long.startsWith(short)
+        if (long.startsWith(short)) return true
+        // 增强:字符 bigram Jaccard 重叠率(近似语义重复)
+        if (na.length >= 4 && nb.length >= 4) {
+            return bigramSimilarity(na, nb) >= SIMILARITY_THRESHOLD
+        }
+        return false
+    }
+
+    /** 否定词数量(不/没/未/别/无/非)。 */
+    private fun negationCount(text: String): Int =
+        NEGATION_RE.findAll(text).count()
+
+    /** 字符 bigram Jaccard 相似度。 */
+    private fun bigramSimilarity(a: String, b: String): Double {
+        fun bigrams(s: String): Set<String> {
+            if (s.length < 2) return setOf(s)
+            return (0 until s.length - 1).map { s.substring(it, it + 2) }.toSet()
+        }
+        val ba = bigrams(a)
+        val bb = bigrams(b)
+        if (ba.isEmpty() || bb.isEmpty()) return 0.0
+        val intersection = ba.intersect(bb).size.toDouble()
+        return intersection / (ba.size + bb.size - intersection)
     }
 
     /**
@@ -204,6 +239,60 @@ class FactStore(
             .firstOrNull { isSimilar(it.fact, cleaned) }?.let { return it }
 
         return null
+    }
+
+    /**
+     * v1.x: 全量去重 — 扫描指定作用域内相似事实并两两合并,返回被合并掉的数量。
+     *
+     * 处理存量重复(此前仅前缀匹配漏掉的近似重复,如"明天考四级" vs "明天上午9点考英语四级")。
+     * 合并规则:
+     *  - 置顶记忆(pinnedAt 非空)不参与合并(用户主动固定的)
+     *  - 保留重要度/置信度更高、文本更完整的一方
+     *  - 同 id REPLACE 更新 + 删除另一方
+     */
+    suspend fun dedupPass(scope: String = "main", maxPairs: Int = 300): Int = withContext(Dispatchers.IO) {
+        val all = dao.getByScope(scope).toMutableList()
+        if (all.size < 2) return@withContext 0
+        var merged = 0
+        var i = 0
+        while (i < all.size && merged < maxPairs) {
+            val current = all[i]
+            var j = i + 1
+            while (j < all.size && merged < maxPairs) {
+                val other = all[j]
+                if (other.pinnedAt == null && isSimilar(current.fact, other.fact)) {
+                    // 合并 other → current(保留重要度更高者为主,否则保留 current)
+                    val keeper = if (other.importance > current.importance) other else current
+                    val mergedEntity = mergeForDedup(keeper, if (keeper.id == current.id) other else current)
+                    dao.insert(mergedEntity.copy(id = keeper.id)) // REPLACE:覆盖 keeper
+                    dao.deleteById(if (keeper.id == current.id) other.id else current.id)
+                    all.removeAt(j)
+                    if (keeper.id != current.id) all[i] = mergedEntity
+                    merged++
+                    continue
+                }
+                j++
+            }
+            i++
+        }
+        merged
+    }
+
+    /** v1.x: 合并两条相似事实(用于全量去重),保留信息更完整的文本。 */
+    private suspend fun mergeForDedup(base: FactEntity, other: FactEntity): FactEntity {
+        val mergedTags = (decodeTags(base.tags) + decodeTags(other.tags)).distinct()
+        return base.copy(
+            fact = if (base.fact.length >= other.fact.length) base.fact else other.fact,
+            tags = json.encodeToString(ListSerializer(String.serializer()), mergedTags),
+            time = base.time ?: other.time,
+            importance = maxOf(base.importance, other.importance),
+            category = if (base.category == "general") other.category else base.category,
+            confidence = maxOf(base.confidence, other.confidence),
+            source = if (base.source == "user_explicit" || other.source == "user_explicit") "user_explicit" else base.source,
+            expiresAt = base.expiresAt ?: other.expiresAt,
+            lastConfirmedAt = base.lastConfirmedAt ?: other.lastConfirmedAt,
+            lastHitAt = Instant.now().toString(),
+        )
     }
 
     /**

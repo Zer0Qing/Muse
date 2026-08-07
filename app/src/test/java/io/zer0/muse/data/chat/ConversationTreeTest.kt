@@ -66,6 +66,31 @@ class ConversationTreeTest {
     }
 
     @Test
+    fun build_legacyAssistantWithoutParentGroup_attachesByCreationTime() {
+        // 编辑场景: 用户消息 u0 -> 助手 a1(旧数据,无 parentGroupId)
+        // 编辑后: 新用户版本 u1 出现, 新回复 a2(parentGroupId = u1.id)
+        // 旧助手 a1 必须挂在旧版本 u0 下, 不能因为"取最后一个版本"挂到 u1 导致消息分裂
+        val u0 = user("写首诗", at = 1000L)
+        val a1 = assistant("旧回复", group = "ag1", at = 1001L) // 旧数据: 无 parentGroupId
+        val u1 = user("改成写词", group = u0.id.toString(), index = 1, count = 2, at = 2000L)
+        val a2 = assistant("新回复", group = "ag2", parentGroup = u1.id.toString(), at = 2001L)
+
+        val tree = ConversationTree.build(listOf(u0, a1, u1, a2))
+
+        assertEquals(1, tree.userNodes.size)
+        val node = tree.userNodes.first()
+        assertEquals(2, node.variants.size)
+        // 选中最新版本 u1
+        assertEquals(u1.id, node.currentVariant?.message?.id)
+        // u1 下只有新回复, 不应包含旧回复
+        val u1Assistants = node.currentVariant?.assistantNodes?.map { it.currentVariant?.content }
+        assertEquals(listOf("新回复"), u1Assistants)
+        // u0 下挂旧回复
+        val u0Assistants = node.variants.first().assistantNodes.map { it.currentVariant?.content }
+        assertEquals(listOf("旧回复"), u0Assistants)
+    }
+
+    @Test
     fun rebuild_appendedNewTurn_selectsLatestUserNode() {
         val u1 = user("你好")
         val a1 = assistant("回答1", group = "ag1", parentGroup = u1.id.toString(), at = u1.createdAt + 1)

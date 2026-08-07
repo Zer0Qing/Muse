@@ -210,6 +210,8 @@ class ChatMiscCoordinator(
                     detail = appContext.getString(R.string.err_chat_network_timeout)
                 }
             } catch (t: Throwable) {
+                // v1.x: 协程取消(跳转/退出搜索页)必须重抛,不显示为搜索失败
+                if (t is kotlinx.coroutines.CancellationException) throw t
                 Logger.w(tag, "Message content search failed: ${t.message}")
                 failed = true
                 detail = t.message ?: appContext.getString(R.string.err_chat_unknown)

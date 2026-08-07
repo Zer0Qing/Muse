@@ -93,6 +93,14 @@ import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
+import androidx.compose.ui.platform.LocalContext
+import io.zer0.common.Logger
+import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.notification.MuseNotificationManager
+import io.zer0.muse.schedule.GreetingHintGenerator
+
+/** v1.x: 问候语个性化提醒通知 ID(与其它通知 ID 错开)。 */
+private const val GREETING_NOTIFY_ID = 1010
 
 /**
  * 任务中心页 —— 按设计稿重构为 iOS / MANUS 风格任务首页。
@@ -160,6 +168,12 @@ fun ChatListScreen(
     factDao: FactDao = koinInject(),
     /** 知识库文档 DAO,用于首页显示文档数量。 */
     knowledgeDocDao: KnowledgeDocDao = koinInject(),
+    /** v1.x: 问候语个性化提醒通知(每天一次) */
+    settings: SettingsRepository = koinInject(),
+    /** v1.x: 通知管理器 */
+    notificationManager: MuseNotificationManager = koinInject(),
+    /** v1.x: 问候语个性化提醒生成器(LLM,失败回退规则版) */
+    greetingHintGenerator: GreetingHintGenerator = koinInject(),
 ) {
     val scope = rememberCoroutineScope()
 
@@ -170,13 +184,46 @@ fun ChatListScreen(
     // 首页数据:记忆数量与知识库文档数量
     var memoryCount by remember { mutableStateOf(0) }
     var docCount by remember { mutableStateOf(0) }
-    // 问候语匹配用的近期记忆(取最近 100 条用于生日/近期事项提示)
+    // 问候语匹配用的近期记忆(主作用域,取最近 100 条;避免子助手角色扮演记忆混入提醒)
     var greetingFacts by remember { mutableStateOf<List<FactEntity>>(emptyList()) }
+    // v1.x: LLM 生成的个性化问候后缀(当天缓存,无则回退规则版)
+    var greetingHint by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
     LaunchedEffect(Unit) {
         scope.launch {
             runCatching { memoryCount = factDao.count() }
             runCatching { docCount = knowledgeDocDao.countUserVisible() }
-            runCatching { greetingFacts = factDao.getAll().take(100) }
+            runCatching { greetingFacts = factDao.getAll("main").take(100) }
+            // v1.x: 个性化问候 — 缓存优先(当天),未命中则 LLM 生成,失败回退规则版。
+            runCatching {
+                val today = java.time.LocalDate.now().toString()
+                val cached = settings.getGreetingHintCache()
+                if (cached?.startsWith("$today|") == true) {
+                    greetingHint = cached.substringAfter("|").takeIf { it.isNotBlank() }
+                } else {
+                    greetingHintGenerator.generate(greetingFacts)?.let { hint ->
+                        greetingHint = hint
+                        settings.saveGreetingHintCache("$today|$hint")
+                    }
+                }
+            }.onFailure { e -> Logger.w("ChatListScreen", "问候语生成失败: ${e.message}") }
+            // v1.x: 问候语个性化提醒通知 — 有近期事项且今天未通知过时,发一条通知让用户知道助手在关注他(每天最多一次)。
+            runCatching {
+                val hint = greetingHint ?: GreetingHelper.getMemoryHint(greetingFacts)
+                if (hint != null) {
+                    val today = java.time.LocalDate.now().toString()
+                    val lastNotify = settings.getLastGreetingNotifyDate()
+                    if (lastNotify != today) {
+                        val titles = context.resources.getStringArray(R.array.greeting_notify_titles)
+                        notificationManager.notifyReminder(
+                            title = titles.random(),
+                            message = hint,
+                            notificationId = GREETING_NOTIFY_ID,
+                        )
+                        settings.saveLastGreetingNotifyDate(today)
+                    }
+                }
+            }.onFailure { e -> Logger.w("ChatListScreen", "问候语提醒通知失败: ${e.message}") }
         }
     }
 
@@ -236,6 +283,7 @@ fun ChatListScreen(
                         GreetingHeader(
                             memoryCount = memoryCount,
                             facts = greetingFacts,
+                            personalizedHint = greetingHint,
                             assistantName = currentAssistant?.name
                         )
                     }
@@ -339,6 +387,8 @@ fun ChatListScreen(
 private fun GreetingHeader(
     memoryCount: Int,
     facts: List<FactEntity>,
+    /** v1.x: LLM 生成的个性化后缀(非空时优先展示,未生成则回退规则版)。 */
+    personalizedHint: String? = null,
     assistantName: String? = null,
     modifier: Modifier = Modifier,
 ) {
@@ -349,7 +399,11 @@ private fun GreetingHeader(
             .padding(top = 8.dp, bottom = 4.dp),
     ) {
         Text(
-            text = GreetingHelper.buildGreeting(facts),
+            text = if (personalizedHint != null) {
+                "${GreetingHelper.getTimeGreeting()}，$personalizedHint"
+            } else {
+                GreetingHelper.buildGreeting(facts)
+            },
             style = MaterialTheme.typography.headlineMedium.copy(
                 fontWeight = FontWeight.Bold,
             ),

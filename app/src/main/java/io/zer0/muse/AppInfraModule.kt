@@ -78,6 +78,7 @@ val appInfraModule = module {
             isMemoryEnabled = { settings.isMemoryEnabled() },
             scope = get(),
             getConfig = { settings.memoryConfigCache },
+            factStore = get(),
         )
     }
     // v1.0.51: 存量记忆迁移 — 升级后首次启动补跑历史 session 的 rollingSummary

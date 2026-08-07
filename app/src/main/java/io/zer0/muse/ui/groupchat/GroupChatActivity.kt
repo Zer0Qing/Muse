@@ -3,6 +3,7 @@ package io.zer0.muse.ui.groupchat
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 
 /**
  * 群聊成员活动状态(按 既有实现 lib/activity-hub.ts 的五态模型)。
@@ -84,6 +85,24 @@ class GroupChatActivityHub {
         if (idx >= 0) list[idx] = activity else list.add(activity)
         current[groupChatId] = list
         _activities.value = current
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // v1.x: 群聊流式输出内容广播(生成中实时推给 UI,落库后清空)
+    // ══════════════════════════════════════════════════════════════════
+
+    private val _streamingContent = MutableStateFlow<Map<String, String>>(emptyMap())
+    /** chatId → 正在流式生成的助手回复内容(空 map 表示无流式输出)。 */
+    val streamingContent: StateFlow<Map<String, String>> = _streamingContent.asStateFlow()
+
+    /** 更新某个群聊的流式输出内容。 */
+    fun updateStreamingContent(chatId: String, content: String) {
+        _streamingContent.update { it + (chatId to content) }
+    }
+
+    /** 群聊流式输出结束(落库后调用,清除 UI 临时内容)。 */
+    fun clearStreamingContent(chatId: String) {
+        _streamingContent.update { it - chatId }
     }
 
     /**

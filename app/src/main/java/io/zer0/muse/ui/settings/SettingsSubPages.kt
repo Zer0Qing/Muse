@@ -139,6 +139,8 @@ fun SettingsSubPageScaffold(
 @Composable
 fun SettingsModelPage(
     onBack: () -> Unit,
+    /** v1.x: 语音识别引擎设置入口(供应商页 → ASR 页)。 */
+    onOpenAsr: () -> Unit = {},
 ) {
     val settings: SettingsRepository = koinInject()
     // v1.48: h13 initialValue 用 null,首次进入显示加载态而非闪空状态
@@ -354,6 +356,20 @@ fun SettingsModelPage(
                 testStatuses = providerTestStatuses,
                 isTestingAll = isTestingAllProviders,
                 onTestAll = onTestAllProviders,
+            )
+        }
+
+        // v1.x: 媒体生成模型配置 — 从设置二级页移入供应商页
+        item { SectionLabel(stringResource(R.string.settings_provider_media_gen_section)) }
+        item { ImageGenSection(settings = settings, scope = scope) }
+        item { VideoGenSection(settings = settings, scope = scope) }
+        // v1.x: 语音识别引擎(供应商模型体系外的独立引擎,入口收拢到供应商页)
+        item {
+            SettingsItemRow(
+                icon = TablerIcons.Microphone,
+                title = stringResource(R.string.settings_asr_entry_title),
+                subtitle = stringResource(R.string.settings_asr_entry_subtitle),
+                onClick = onOpenAsr,
             )
         }
     }

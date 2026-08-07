@@ -109,54 +109,6 @@ fun ImageGenSection(
                         onClick = { showModelSelector = true },
                     )
                 }
-
-                // 尺寸
-                LabeledChipGroup(
-                    label = stringResource(R.string.settings_image_gen_size),
-                    options = listOf(
-                        "1024x1024" to "1024x1024",
-                        "1792x1024" to "1792x1024",
-                        "1024x1792" to "1024x1792",
-                    ),
-                    selected = localConfig.size,
-                    onSelect = { value -> update { it.copy(size = value) } },
-                )
-
-                // 质量
-                val qualityStandardLabel = stringResource(R.string.settings_image_gen_quality_standard)
-                val qualityHdLabel = stringResource(R.string.settings_image_gen_quality_hd)
-                LabeledChipGroup(
-                    label = stringResource(R.string.settings_image_gen_quality),
-                    options = listOf(
-                        "standard" to qualityStandardLabel,
-                        "hd" to qualityHdLabel,
-                    ),
-                    selected = localConfig.quality,
-                    onSelect = { value -> update { it.copy(quality = value) } },
-                )
-
-                // 风格
-                val styleVividLabel = stringResource(R.string.settings_image_gen_style_vivid)
-                val styleNaturalLabel = stringResource(R.string.settings_image_gen_style_natural)
-                LabeledChipGroup(
-                    label = stringResource(R.string.settings_image_gen_style),
-                    options = listOf(
-                        "vivid" to styleVividLabel,
-                        "natural" to styleNaturalLabel,
-                    ),
-                    selected = localConfig.style,
-                    onSelect = { value -> update { it.copy(style = value) } },
-                )
-
-                // 数量
-                LabeledChipGroup(
-                    label = stringResource(R.string.settings_image_gen_count),
-                    options = (1..4).map { it.toString() to stringResource(R.string.settings_image_gen_count_n, it) },
-                    selected = localConfig.n.coerceIn(1, 4).toString(),
-                    onSelect = { value ->
-                        update { it.copy(n = value.toIntOrNull()?.coerceIn(1, 4) ?: 1) }
-                    },
-                )
             }
         }
     }

@@ -12,6 +12,13 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
+// v1.x 修复: DataStore delegate 必须定义在文件顶层(单例)。
+// 定义在类内部时,每个实例都会注册独立 delegate;
+// 多实例(Koin 注入 + 直接 new)会触发
+// "multiple DataStores active for the same file" 崩溃。
+private val Context.toolDataStore: androidx.datastore.core.DataStore<Preferences> by
+    preferencesDataStore(name = "muse_tool_config")
+
 /**
  * 工具审批策略持久化存储。
  *
@@ -19,8 +26,6 @@ import kotlinx.serialization.json.Json
  * 存储格式为 JSON 对象，DataStore key 固定为 `tool_policies`。
  */
 class ToolConfigStore(private val context: Context) {
-
-    private val Context.toolDataStore by preferencesDataStore(name = "muse_tool_config")
 
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 

@@ -83,4 +83,12 @@
     <string name="notif_listener_recent_count_connected">最近通知: %1$d 条</string>
     <string name="notif_listener_recent_count_disconnected">最近通知: %1$d 条 · 请先到系统设置授权</string>
     <string name="notif_listener_refresh_cd">刷新状态</string>
+    <!-- v1.x: 问候语个性化提醒(记忆里有近期事项时,每天最多一次) -->
+    <string-array name="greeting_notify_titles">
+        <item>注意哦</item>
+        <item>别忘了</item>
+        <item>提醒你一下</item>
+        <item>有个事跟你说</item>
+        <item>悄悄告诉你</item>
+    </string-array>
 </resources>

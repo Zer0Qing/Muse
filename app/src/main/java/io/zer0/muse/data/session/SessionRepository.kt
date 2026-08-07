@@ -60,6 +60,7 @@ class SessionRepository(
 ) {
 
     private val json = Json { ignoreUnknownKeys = true }
+    private val messageFtsDao: MessageFtsDao get() = database.messageFtsDao()
     private val urlListSerializer = ListSerializer(String.serializer())
     /** v1.133: RAG 引用列表序列化器(持久化到 messages.ragCitationsJson)。 */
     private val ragCitationListSerializer = ListSerializer(RagCitation.serializer())
@@ -135,7 +136,7 @@ class SessionRepository(
         withContext(Dispatchers.IO) {
             database.withTransaction {
                 val cutoff = System.currentTimeMillis() - 7L * 24 * 60 * 60 * 1000
-                messageDao.clearFts()
+                syncFtsClear()
                 sessionDao.permanentlyDeleteOldSessions(cutoff)
             }
         }
@@ -145,7 +146,7 @@ class SessionRepository(
     suspend fun hardDeleteAllSessions() {
         withContext(Dispatchers.IO) {
             database.withTransaction {
-                messageDao.clearFts()
+                syncFtsClear()
                 sessionDao.deleteAll()
             }
             auditLogger?.log(
@@ -257,7 +258,7 @@ class SessionRepository(
         // H-SESS1: 跨表(FTS + sessions)用事务包裹,保证一致性
         withContext(Dispatchers.IO) {
             database.withTransaction {
-                messageDao.deleteFtsBySession(id)
+                syncFtsDeleteBySession(id)
                 sessionDao.deleteById(id)
             }
             // v1.135-A: 清理该会话的视觉辅助缓存 sidecar,避免孤儿文件
@@ -345,7 +346,7 @@ class SessionRepository(
             database.withTransaction {
                 // v1.107 冗余: 先查出 sessionId,用于维护冗余计数
                 val entity = messageDao.getByMessageId(messageId)
-                messageDao.deleteFts(messageId)
+                syncFtsDelete(messageId)
                 messageDao.deleteById(messageId)
                 // v1.107 冗余: 递减 sessions.messageCount
                 if (entity != null) {
@@ -459,8 +460,8 @@ class SessionRepository(
         // 注:此处不上抛 ErrorMessage(FTS 是派生数据,失败可被 ensureFtsIndexConsistent 自愈),
         // 仅用 ErrorMessage 标准化日志 code,便于跨模块统计 FTS 故障率。
         resultOf {
-            messageDao.deleteFts(entity.id)
-            messageDao.insertFts(entity.id, MessageFtsManager.toNgram(entity.content))
+            syncFtsDelete(entity.id)
+            syncFtsInsert(entity.id, entity.content)
         }.onError { _, t ->
             Logger.w(
                 TAG,
@@ -620,8 +621,8 @@ class SessionRepository(
                 // v1.97 (P1-2): skipFts=true 时跳过,避免流式周期性落盘反复重建 FTS
                 if (!skipFts) {
                     resultOf {
-                        messageDao.deleteFts(entity.id)
-                        messageDao.insertFts(entity.id, MessageFtsManager.toNgram(entity.content))
+                        syncFtsDelete(entity.id)
+                        syncFtsInsert(entity.id, entity.content)
                     }.onError { _, t -> Logger.w(TAG, "FTS upsert sync failed: ${t?.message ?: ""}") }
                 }
                 if (message.role == MessageRole.ASSISTANT && message.content.isNotEmpty()) {
@@ -643,8 +644,8 @@ class SessionRepository(
                 messageDao.upsert(updated)
                 // Phase 10.3: 同步 FTS 索引(删后插,避免重复索引项)
                 resultOf {
-                    messageDao.deleteFts(message.id)
-                    messageDao.insertFts(message.id, MessageFtsManager.toNgram(content))
+                    syncFtsDelete(message.id)
+                    syncFtsInsert(message.id, content)
                 }.onError { _, t -> Logger.w(TAG, "FTS update failed: ${t?.message ?: ""}") }
                 // 更新会话预览为最新的消息内容
                 updateSessionPreview(sessionId, updated.toUIMessage())
@@ -665,7 +666,7 @@ class SessionRepository(
     /** truncateFrom 的非事务版本,供已在事务内的调用方(如 [deleteLastMessage])复用。 */
     private suspend fun truncateFromInternal(sessionId: String, fromCreatedAt: Long) {
         // Phase 10.3: 先删 FTS(依赖 messages 子查询,必须在 messages 删除之前)
-        messageDao.deleteFtsBySessionAndCreatedAt(sessionId, fromCreatedAt)
+        syncFtsDeleteBySessionAndCreatedAt(sessionId, fromCreatedAt)
         messageDao.deleteFromCreatedAt(sessionId, fromCreatedAt)
         database.generationCheckpointDao().deleteBySessionAndCreatedAtFrom(sessionId, fromCreatedAt)
     }
@@ -696,6 +697,36 @@ class SessionRepository(
         return messageDao.getLastBySession(sessionId)?.toUIMessage()
     }
 
+    private suspend fun syncFtsDelete(messageId: String) {
+        if (!MessageFtsRuntime.useFts5) messageFtsDao.deleteFts(messageId)
+    }
+
+    private suspend fun syncFtsDeleteBySession(sessionId: String) {
+        if (!MessageFtsRuntime.useFts5) messageFtsDao.deleteFtsBySession(sessionId)
+    }
+
+    private suspend fun syncFtsDeleteBySessionAndCreatedAt(sessionId: String, fromCreatedAt: Long) {
+        if (!MessageFtsRuntime.useFts5) messageFtsDao.deleteFtsBySessionAndCreatedAt(sessionId, fromCreatedAt)
+    }
+
+    private suspend fun syncFtsClear() {
+        if (!MessageFtsRuntime.useFts5) messageFtsDao.clearFts()
+    }
+
+    private suspend fun syncFtsInsert(messageId: String, content: String) {
+        if (!MessageFtsRuntime.useFts5) messageFtsDao.insertFts(messageId, MessageFtsManager.toNgram(content))
+    }
+
+    private suspend fun searchFtsByMode(matchQuery: String): List<MessageSearchJoin> =
+        if (MessageFtsRuntime.useFts5) messageFtsDao.searchFts5(matchQuery) else messageFtsDao.searchFts(matchQuery)
+
+    private suspend fun searchMessageContentByMode(matchQuery: String, limit: Int = 50): List<SearchResult> =
+        if (MessageFtsRuntime.useFts5) {
+            messageFtsDao.searchMessageContentFts5(matchQuery, limit)
+        } else {
+            messageFtsDao.searchMessageContent(matchQuery, limit)
+        }
+
     /**
      * 全文搜索消息(跨会话)。返回搜索结果列表(含会话标题 + 内容片段)。
      *
@@ -711,7 +742,11 @@ class SessionRepository(
         val trimmed = query.trim()
         if (trimmed.isBlank()) return@withContext emptyList()
 
-        val matchQuery = MessageFtsManager.toMatchQuery(trimmed)
+        val matchQuery = if (MessageFtsRuntime.useFts5) {
+            MessageFtsManager.toFts5MatchQuery(trimmed)
+        } else {
+            MessageFtsManager.toMatchQuery(trimmed)
+        }
         val joins: List<MessageSearchJoin> = if (matchQuery.isBlank()) {
             // ngram 转换后为空(纯符号/纯空白),直接走 LIKE
             searchLikeAndJoin(trimmed)
@@ -720,7 +755,7 @@ class SessionRepository(
             // i18n 示范改造点 5:原硬编码英文 "FTS search failed, fallback to LIKE: ..."
             // 改为 ErrorMessage.StorageError.IO_ERROR + raw message 作为补充 debug 信息。
             // FTS 失败已有 LIKE 兜底,不上抛 ErrorMessage,仅标准化日志 code 便于监控告警聚合。
-            when (val r = resultOf { messageDao.searchFts(matchQuery) }) {
+            when (val r = resultOf { searchFtsByMode(matchQuery) }) {
                 is io.zer0.common.Result.Success -> r.data
                 is io.zer0.common.Result.Error -> {
                     Logger.w(
@@ -781,7 +816,11 @@ class SessionRepository(
             emit(emptyList())
             return@flow
         }
-        val matchQuery = MessageFtsManager.toMatchQuery(trimmed)
+        val matchQuery = if (MessageFtsRuntime.useFts5) {
+            MessageFtsManager.toFts5MatchQuery(trimmed)
+        } else {
+            MessageFtsManager.toMatchQuery(trimmed)
+        }
         val results: List<SearchResult> = if (matchQuery.isBlank()) {
             // ngram 转换后为空(纯符号/纯空白),直接走 LIKE 兜底
             searchMessageContentLikeInternal(trimmed)
@@ -789,7 +828,7 @@ class SessionRepository(
             // H-SESS1: FTS 查询异常时回退 LIKE;用 resultOf 正确重抛 CancellationException
             // i18n 示范改造点 5(同类延伸):与 searchMessages 一致,FTS 失败兜底日志
             // 改为 ErrorMessage.StorageError.IO_ERROR,保持 code 一致便于监控聚合。
-            when (val r = resultOf { messageDao.searchMessageContent(matchQuery, 50) }) {
+            when (val r = resultOf { searchMessageContentByMode(matchQuery, 50) }) {
                 is io.zer0.common.Result.Success -> r.data
                 is io.zer0.common.Result.Error -> {
                     Logger.w(
@@ -801,7 +840,13 @@ class SessionRepository(
             }
         }
         // B4-01: DAO 只返回原文,片段由 Repository 基于原文构建,避免 ngram 串片段
-        emit(results.map { it.copy(contentSnippet = buildSnippet(it.content, trimmed)) })
+        emit(
+            if (MessageFtsRuntime.useFts5) {
+                results
+            } else {
+                results.map { it.copy(contentSnippet = buildSnippet(it.content, trimmed)) }
+            },
+        )
     }.flowOn(Dispatchers.IO)
 
     /**
@@ -846,7 +891,7 @@ class SessionRepository(
      */
     suspend fun ensureFtsIndexConsistent() = withContext(Dispatchers.IO) {
         val msgCount = resultOf { messageDao.countMessages() }.getOrNull() ?: -1
-        val ftsCount = resultOf { messageDao.countFts() }.getOrNull() ?: -1
+        val ftsCount = resultOf { messageFtsDao.countFts() }.getOrNull() ?: -1
         if (msgCount < 0 || ftsCount < 0) {
             Logger.w(TAG, "FTS count check failed: msg=$msgCount fts=$ftsCount")
             return@withContext
@@ -870,18 +915,23 @@ class SessionRepository(
     suspend fun rebuildFtsIndex() = withContext(Dispatchers.IO) {
         // v1.114: 事务包裹,保证 clearFts + insert 原子可见性,避免重建期间查询不一致
         database.withTransaction {
-            messageDao.clearFts()
-            val rows = messageDao.getAllForFtsRebuild()
-            var ok = 0
-            rows.forEach { row ->
-                resultOf {
-                    messageDao.insertFts(row.id, MessageFtsManager.toNgram(row.content))
-                    ok++
-                }.onError { _, t ->
-                    Logger.w(TAG, "FTS rebuild insert failed for ${row.id}: ${t?.message ?: ""}")
+            if (MessageFtsRuntime.useFts5) {
+                messageFtsDao.rebuildFts5()
+                Logger.i(TAG, "FTS5 rebuild done")
+            } else {
+                messageFtsDao.clearFts()
+                val rows = messageDao.getAllForFtsRebuild()
+                var ok = 0
+                rows.forEach { row ->
+                    resultOf {
+                        messageFtsDao.insertFts(row.id, MessageFtsManager.toNgram(row.content))
+                        ok++
+                    }.onError { _, t ->
+                        Logger.w(TAG, "FTS rebuild insert failed for ${row.id}: ${t?.message ?: ""}")
+                    }
                 }
+                Logger.i(TAG, "FTS rebuild done: $ok/${rows.size} messages indexed")
             }
-            Logger.i(TAG, "FTS rebuild done: $ok/${rows.size} messages indexed")
         }
     }
 
