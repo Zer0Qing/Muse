@@ -809,7 +809,11 @@ class GroupChatScheduler(
                             providerConfig = providerConfig,
                         ).collect { event ->
                             when (event) {
-                                is ChatStreamEvent.ContentDelta -> builder.append(event.delta)
+                                is ChatStreamEvent.ContentDelta -> {
+                                    builder.append(event.delta)
+                                    // v1.x: 悄悄话流式输出 — 实时推给 UI
+                                    activityHub.updateStreamingContent(chatId, builder.toString())
+                                }
                                 is ChatStreamEvent.ReasoningDelta -> reasoningBuilder.append(event.delta)
                                 else -> {}
                             }
@@ -829,10 +833,11 @@ class GroupChatScheduler(
                             senderId = assistant.id,
                             senderName = assistant.name,
                             body = replyText,
-                            mood = extractMood(rawReply.first),
+                            mood = extractMood(reply.first),
                             reasoning = reasoning,
                             whisperTargetId = "local_user",
                         )
+                        activityHub.clearStreamingContent(chatId)
                         // v1.0.53 Phase 5: 把 agent 回复也持久化到 ThreadStore
                         if (threadStore != null && whisperThreadId != null) {
                             resultOf {
@@ -1716,7 +1721,11 @@ class GroupChatScheduler(
                     providerConfig = providerConfig,
                 ).collect { event ->
                     when (event) {
-                        is ChatStreamEvent.ContentDelta -> builder.append(event.delta)
+                        is ChatStreamEvent.ContentDelta -> {
+                            builder.append(event.delta)
+                            // v1.x: 群聊流式输出 — 实时推给 UI
+                            activityHub.updateStreamingContent(chatId, builder.toString())
+                        }
                         is ChatStreamEvent.ReasoningDelta -> reasoningBuilder.append(event.delta)
                         is ChatStreamEvent.ImageDelta -> {}
                         is ChatStreamEvent.ToolCallDelta -> {}
@@ -1765,6 +1774,8 @@ class GroupChatScheduler(
             mood = extractedMood,
             reasoning = extractedReasoning,
         )
+        // v1.x: 流式内容已落库,清除 UI 临时输出
+        activityHub.clearStreamingContent(chatId)
         scheduleIdleTransition(chatId, assistant)
 
         if (groupChatMemoryRepository != null) {
@@ -2303,7 +2314,11 @@ class GroupChatScheduler(
                     providerConfig = providerConfig,
                 ).collect { event ->
                     when (event) {
-                        is ChatStreamEvent.ContentDelta -> builder.append(event.delta)
+                        is ChatStreamEvent.ContentDelta -> {
+                            builder.append(event.delta)
+                            // v1.x: 群聊流式输出 — 实时推给 UI
+                            activityHub.updateStreamingContent(chatId, builder.toString())
+                        }
                         is ChatStreamEvent.ReasoningDelta -> reasoningBuilder.append(event.delta)
                         is ChatStreamEvent.ImageDelta -> { /* 群聊暂不支持图片输出,忽略 */ }
                         is ChatStreamEvent.ToolCallDelta -> {
@@ -2439,10 +2454,12 @@ class GroupChatScheduler(
         }
 
         // 提取 mood / think 模块(channel_reply 的 content 可能含 mood/think 标签)
-        val extractedMood = extractMood(replyText)
+        // 注意:必须用原始 content(sanitize 前的 replyContent),
+        // sanitize 后 mood 标签已被剥离,提取必然为空
+        val extractedMood = extractMood(replyContent ?: replyText)
         // v1.x: 优先用流式累积的思考过程(模型 reasoning_content 不走最终文本)
         val extractedReasoning = accumulatedReasoning.toString().trim()
-            .ifBlank { extractReasoning(replyText) ?: "" }
+            .ifBlank { extractReasoning(replyContent ?: replyText) ?: "" }
             .ifBlank { null }
 
         // 保存 agent 回复到群聊
@@ -2455,6 +2472,8 @@ class GroupChatScheduler(
             mood = extractedMood,
             reasoning = extractedReasoning,
         )
+        // v1.x: 流式内容已落库,清除 UI 临时输出
+        activityHub.clearStreamingContent(chatId)
 
         Logger.i(TAG, "Agent「${assistant.name}」在群聊「${chat.name}」中发言")
         // ActivityHub: 正常回复完成 → 延迟后回退到 IDLE(消息已入列表,chip 自然隐藏)。

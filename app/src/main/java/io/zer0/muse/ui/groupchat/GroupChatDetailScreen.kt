@@ -86,6 +86,7 @@ import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.assistantBubble
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
 import kotlinx.coroutines.Dispatchers
@@ -526,6 +527,35 @@ fun GroupChatDetailScreen(
                 if (state.isAgentResponding) {
                     item(key = "thinking_indicator") {
                         ThinkingIndicator(currentSpeaker = state.currentSpeaker)
+                    }
+                }
+                // v1.x: 群聊流式输出 — 生成中的内容实时展示(落库后由正式消息替换)
+                state.streamingContent?.takeIf { it.isNotBlank() }?.let { streaming ->
+                    item(key = "streaming_content") {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = MusePaddings.screen, vertical = 4.dp),
+                        ) {
+                            Text(
+                                text = state.currentSpeaker?.name
+                                    ?: stringResource(R.string.groupchat_streaming_title),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(start = 4.dp, bottom = 2.dp),
+                            )
+                            Surface(
+                                shape = MuseShapes.assistantBubble,
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                            ) {
+                                Text(
+                                    text = streaming,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.padding(MusePaddings.cardInner),
+                                )
+                            }
+                        }
                     }
                 }
             }

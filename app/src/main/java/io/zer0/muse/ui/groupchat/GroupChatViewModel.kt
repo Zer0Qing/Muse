@@ -75,6 +75,8 @@ data class GroupChatUiState(
     val isLoadingMore: Boolean = false,
     /** v1.x: 多选模式选中的消息 id 集合(非空 = 多选模式)。 */
     val selectedMessageIds: Set<String> = emptySet(),
+    /** v1.x: 当前群聊正在流式生成的助手回复内容(null=无流式输出)。 */
+    val streamingContent: String? = null,
     /**
      * v1.53-GC: 最近一次"加载更多"插入的历史条数。
      *
@@ -160,6 +162,15 @@ class GroupChatViewModel(
                     assistants.firstOrNull { it.id == id }
                 }
                 _state.update { it.copy(assistants = assistants, currentSpeaker = speaker) }
+            }
+        }
+        // v1.x: 群聊流式输出 — 订阅 ActivityHub 的流式内容广播,映射到当前群聊
+        viewModelScope.launch {
+            activityHub.streamingContent.collect { streaming ->
+                val chatId = currentChatId.value
+                _state.update {
+                    it.copy(streamingContent = if (chatId != null) streaming[chatId] else null)
+                }
             }
         }
         // v1.53-GC: 观察当前群聊最近一页消息(Flow),增量追加新消息到 currentMessages。
