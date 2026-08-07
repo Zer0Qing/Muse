@@ -1062,6 +1062,14 @@ class SettingsRepository(
         }
     }
 
+    /** v1.x: 读取上次问候语个性化提醒通知的日期(YYYY-MM-DD,无则 null)。 */
+    suspend fun getLastGreetingNotifyDate(): String? = store.data.first()[KEY_LAST_GREETING_NOTIFY_DATE]
+
+    /** v1.x: 记录问候语个性化提醒通知日期。 */
+    suspend fun saveLastGreetingNotifyDate(date: String) {
+        store.edit { prefs -> prefs[KEY_LAST_GREETING_NOTIFY_DATE] = date }
+    }
+
     /**
      * 获取当前选中的 [Model](从激活 Provider 的 models 中按 selectedModelId 查找)。
      * selectedModelId 为空时回退到激活 Provider 的首个模型。
@@ -1333,6 +1341,8 @@ class SettingsRepository(
         // R-UI-02: 会话焦点恢复 — 用户当前查看的会话与正在生成的会话分离持久化
         private val KEY_VIEWED_SESSION_ID = stringPreferencesKey("viewed_session_id")
         private val KEY_GENERATING_SESSION_ID = stringPreferencesKey("generating_session_id")
+        // v1.x: 问候语个性化提醒通知 — 上次通知日期(YYYY-MM-DD),每天最多一次
+        private val KEY_LAST_GREETING_NOTIFY_DATE = stringPreferencesKey("last_greeting_notify_date")
     }
 
     // ── v2.3: Provider 连接测试缓存 ───────────────────────────────────

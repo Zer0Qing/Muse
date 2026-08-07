@@ -93,6 +93,13 @@ import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
+import androidx.compose.ui.platform.LocalContext
+import io.zer0.common.Logger
+import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.notification.MuseNotificationManager
+
+/** v1.x: 问候语个性化提醒通知 ID(与其它通知 ID 错开)。 */
+private const val GREETING_NOTIFY_ID = 1010
 
 /**
  * 任务中心页 —— 按设计稿重构为 iOS / MANUS 风格任务首页。
@@ -160,6 +167,10 @@ fun ChatListScreen(
     factDao: FactDao = koinInject(),
     /** 知识库文档 DAO,用于首页显示文档数量。 */
     knowledgeDocDao: KnowledgeDocDao = koinInject(),
+    /** v1.x: 问候语个性化提醒通知(每天一次) */
+    settings: SettingsRepository = koinInject(),
+    /** v1.x: 通知管理器 */
+    notificationManager: MuseNotificationManager = koinInject(),
 ) {
     val scope = rememberCoroutineScope()
 
@@ -172,11 +183,29 @@ fun ChatListScreen(
     var docCount by remember { mutableStateOf(0) }
     // 问候语匹配用的近期记忆(取最近 100 条用于生日/近期事项提示)
     var greetingFacts by remember { mutableStateOf<List<FactEntity>>(emptyList()) }
+    val context = LocalContext.current
     LaunchedEffect(Unit) {
         scope.launch {
             runCatching { memoryCount = factDao.count() }
             runCatching { docCount = knowledgeDocDao.countUserVisible() }
             runCatching { greetingFacts = factDao.getAll().take(100) }
+            // v1.x: 问候语个性化提醒 — 记忆里有近期事项(考试/航班等)且今天未通知过时,
+            // 发一条通知让用户知道助手在关注他(每天最多一次)。
+            runCatching {
+                val hint = GreetingHelper.getMemoryHint(greetingFacts)
+                if (hint != null) {
+                    val today = java.time.LocalDate.now().toString()
+                    val lastNotify = settings.getLastGreetingNotifyDate()
+                    if (lastNotify != today) {
+                        notificationManager.notifyReminder(
+                            title = context.getString(R.string.greeting_notify_title),
+                            message = context.getString(R.string.greeting_notify_body, hint),
+                            notificationId = GREETING_NOTIFY_ID,
+                        )
+                        settings.saveLastGreetingNotifyDate(today)
+                    }
+                }
+            }.onFailure { e -> Logger.w("ChatListScreen", "问候语提醒通知失败: ${e.message}") }
         }
     }
 
