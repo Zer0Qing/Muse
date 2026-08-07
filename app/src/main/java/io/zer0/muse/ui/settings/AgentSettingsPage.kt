@@ -89,6 +89,8 @@ fun AgentSettingsPage(
     var showAllowedEndPicker by remember { mutableStateOf(false) }
     // v2.0 5.9: 每日上限与温度选择弹窗
     var showMaxDailyPicker by remember { mutableStateOf(false) }
+    // v1.x: 保持后台运行引导弹窗(被动入口)
+    var showKeepAliveGuide by remember { mutableStateOf(false) }
     var showTemperaturePicker by remember { mutableStateOf(false) }
     // v1.52: 模型选择弹窗
     var showModelPicker by remember { mutableStateOf(false) }
@@ -285,6 +287,16 @@ fun AgentSettingsPage(
                         title = "生成温度",
                         subtitle = "%.1f".format(proactiveConfig.temperature),
                         onClick = { showTemperaturePicker = true },
+                    ) {
+                        ChevronRight()
+                    }
+                    // v1.x: 保持后台运行引导(被动入口,不主动打扰)
+                    SettingsGroupDivider()
+                    SettingsItemRow(
+                        icon = TablerIcons.Lifebuoy,
+                        title = stringResource(R.string.settings_agent_keep_alive_title),
+                        subtitle = stringResource(R.string.settings_agent_keep_alive_subtitle),
+                        onClick = { showKeepAliveGuide = true },
                     ) {
                         ChevronRight()
                     }
@@ -656,6 +668,11 @@ fun AgentSettingsPage(
             dismissText = stringResource(R.string.action_cancel),
             onDismiss = { showTemperaturePicker = false },
         )
+    }
+
+    // ── v1.x: 保持后台运行引导(被动入口,点击才弹出)──
+    if (showKeepAliveGuide) {
+        KeepAliveGuideDialog(onDismiss = { showKeepAliveGuide = false })
     }
 
     // ── v1.52: 模型选择弹窗 ──

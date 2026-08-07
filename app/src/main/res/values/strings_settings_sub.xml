@@ -16,6 +16,13 @@
     <string name="settings_agent_multi_agent_enabled">已启用 · %1$d 个团队</string>
     <string name="settings_agent_manage_collab_team">管理协作团队</string>
     <string name="settings_agent_proactive_section">主动消息</string>
+    <!-- v1.x: 保持后台运行引导 -->
+    <string name="settings_agent_keep_alive_title">保持后台运行</string>
+    <string name="settings_agent_keep_alive_subtitle">防止被系统清理后收不到主动消息</string>
+    <string name="keep_alive_dialog_title">%1$s · 保持后台运行</string>
+    <string name="keep_alive_dialog_desc">主动消息依赖后台进程。国产系统默认会清理后台应用，按下面步骤放行后，即使划掉最近任务也能继续收到消息：</string>
+    <string name="keep_alive_dialog_dismiss">知道了</string>
+    <string name="keep_alive_dialog_open">去设置</string>
     <string name="settings_agent_proactive_title">主动消息</string>
     <string name="settings_agent_proactive_subtitle">Agent 像真人一样主动给你发消息</string>
     <!-- v1.0.4 (P3-5): 开机自启开关 — 启用后系统开机完成时自动拉起 Muse,
