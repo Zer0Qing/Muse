@@ -61,6 +61,8 @@ val appChatModule = module {
             treeSnapshotStore = get(),
             // v1.x: 会话级浏览器实例注册表
             browserManagerRegistry = get(),
+            // v1.x: 工具审批策略存储(与 AppToolModule 单例一致,避免 DataStore 双实例)
+            toolConfigStore = get(),
         )
     }
 }

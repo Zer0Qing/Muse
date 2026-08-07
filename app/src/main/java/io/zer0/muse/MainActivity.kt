@@ -462,8 +462,9 @@ private fun MuseNavGraph(
                 lifecycle.removeObserver(observer)
             }
         }
-        val needPin = appPin.isNotEmpty() && !pinUnlocked
-        val needBiometric = biometricEnabled && appPin.isNotEmpty() && !pinUnlocked && !biometricSkipped
+        // v1.x: 应用锁功能已移除(产品决策),PIN 检查短路,老用户残留 PIN 不再触发锁屏
+        val needPin = false
+        val needBiometric = false
 
         // 功能1: 生物识别弹窗
         if (needBiometric) {

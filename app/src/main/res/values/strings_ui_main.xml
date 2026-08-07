@@ -271,6 +271,9 @@
     <string name="settings_screen_advanced">高级</string>
     <string name="settings_screen_security_cd">安全与分享，PIN锁/分享模板/搜索引擎，点击进入</string>
     <string name="settings_screen_security">安全与分享</string>
+    <!-- v1.x: 分享设置页(原"安全与分享",应用锁/搜索引擎已移除) -->
+    <string name="settings_screen_share">分享</string>
+    <string name="settings_share_page_title">分享</string>
     <string name="settings_screen_security_desc">PIN 锁 / 分享模板 / 搜索引擎</string>
     <string name="settings_screen_proxy_cd">%1$s，%2$s，点击进入</string>
     <string name="settings_screen_experiments_cd">实验性，未稳定功能开关，点击进入</string>

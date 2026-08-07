@@ -91,4 +91,13 @@
     <string name="memory_dedup_button">合并重复记忆</string>
     <string name="memory_dedup_result">已合并 %1$s 条重复记忆</string>
     <string name="memory_dedup_failed">记忆去重失败</string>
+    <string name="memory_compile_done">记忆编译完成</string>
+    <string name="memory_compile_failed">记忆编译失败，请检查模型配置后重试</string>
+    <!-- v1.x: 记忆卡片 ⋮ 菜单 -->
+    <string name="memory_menu_cd">更多操作</string>
+    <string name="memory_menu_pin">置顶</string>
+    <string name="memory_menu_unpin">取消置顶</string>
+    <string name="memory_menu_importance">设置重要程度</string>
+    <string name="memory_menu_edit">编辑</string>
+    <string name="memory_menu_delete">删除</string>
 </resources>

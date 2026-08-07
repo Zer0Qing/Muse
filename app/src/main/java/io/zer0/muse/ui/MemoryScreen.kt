@@ -107,6 +107,16 @@ fun MemoryScreen(
         }
         viewModel.consumeDedupResult()
     }
+    // v1.x: 立即编译结果提示
+    LaunchedEffect(viewModel.compileResult) {
+        val result = viewModel.compileResult.value ?: return@LaunchedEffect
+        MuseToast.show(
+            context.getString(
+                if (result == "done") R.string.memory_compile_done else R.string.memory_compile_failed,
+            ),
+        )
+        viewModel.consumeCompileResult()
+    }
     // v1.0.51: 存量记忆迁移进度(升级后首次启动补跑历史 session 摘要时显示)
     val backfillProgress by viewModel.backfillProgress.collectAsStateWithLifecycle()
     // v8: 作用域筛选状态(从 ViewModel 直接 collect,与 state 同级更新)

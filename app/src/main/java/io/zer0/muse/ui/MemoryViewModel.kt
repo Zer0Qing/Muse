@@ -199,6 +199,8 @@ class MemoryViewModel(
     val selectedScope: StateFlow<String?> = _selectedScope.asStateFlow()
     /** v1.x: 全量去重防重入。 */
     private var _dedupRunning = false
+    /** v1.x: 立即编译防重入(编译耗 LLM 调用,避免连点重复执行)。 */
+    private var _compiling = false
 
     /**
      * v8: 可选的作用域列表(响应式)。
@@ -346,19 +348,33 @@ class MemoryViewModel(
      * 用户在记忆页点"立即编译"按钮时调用,不等待 ticker 自动调度。
      */
     fun compileNow() {
+        if (_compiling) return
+        _compiling = true
         viewModelScope.launch {
-            withContext(Dispatchers.IO) {
+            val success = withContext(Dispatchers.IO) {
                 // v1.78 (H6): 包装 suspend 调用必须用 resultOf,避免吞 CancellationException
                 resultOf { memoryTicker.forceCompileNow() }
                     .onError { msg, t -> Logger.w("MemoryViewModel", "forceCompileNow 失败: $msg", t) }
+                    .isSuccess
             }
+            _compiling = false
+            // v1.x: 编译结果反馈(成功/失败),避免"点了没反应"
+            _compileResult.value = if (success) "done" else "failed"
             // 编译完成后静默刷新:不触发 isLoading,避免替换当前视图(时间轴/列表)导致闪屏
             loadAll(silent = true)
         }
     }
 
-    /**
-     * v1.x: 手动触发全量去重 — 合并当前作用域内近似重复的事实,并刷新列表。
+    /** v1.x: 编译结果提示(UI LaunchedEffect 消费后清除)。 */
+    private val _compileResult = MutableStateFlow<String?>(null)
+    val compileResult: StateFlow<String?> = _compileResult.asStateFlow()
+
+    /** UI 消费编译结果后调用。 */
+    fun consumeCompileResult() {
+        _compileResult.value = null
+    }
+
+    /** v1.x: 手动触发全量去重 — 合并当前作用域内近似重复的事实,并刷新列表。
      * 结果通过 [dedupResult] 返回,UI 用 LaunchedEffect 消费并提示。
      */
     private val _dedupResult = MutableStateFlow<String?>(null)

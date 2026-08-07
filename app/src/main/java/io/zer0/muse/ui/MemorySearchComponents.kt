@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PriorityHigh
 import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
@@ -60,9 +61,18 @@ import io.zer0.muse.ui.markdown.MarkdownText
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.ui.common.surface.CardGroup
+import io.zer0.muse.ui.common.surface.MuseSurface
+import io.zer0.muse.ui.common.surface.MuseDivider
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import java.time.DayOfWeek
 import java.time.Duration
 import java.time.Instant
@@ -474,7 +484,8 @@ internal fun CategorySectionHeader(
 }
 
 /**
- * 单条记忆卡片组 — 参考图样式:白色圆角卡片,内容 + 日期/作用域 + 重要性标签。
+ * 单条记忆卡片组 — v1.x 重写: 正文全宽展示,四个工具图标收进 ⋮ 菜单。
+ * 原实现右侧 trailing 挤占正文空间(正文只剩一两字),改为操作菜单后正文完整可读。
  */
 @Composable
 internal fun MemoryCardGroup(
@@ -484,21 +495,116 @@ internal fun MemoryCardGroup(
     onSetImportance: (MemoryItem) -> Unit,
     onTogglePin: (MemoryItem) -> Unit,
 ) {
-    CardGroup {
-        items.forEach { item ->
-            item(
-                key = item.id,
-                headlineContent = { MemoryCardContent(item) },
-                trailingContent = {
-                    MemoryCardTrailing(
-                        item = item,
-                        onDelete = { onDelete(item.id) },
-                        onEdit = onEdit,
-                        onSetImportance = onSetImportance,
-                        onTogglePin = onTogglePin,
-                    )
-                },
+    MuseSurface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MuseShapes.extraLarge,
+        color = MaterialTheme.colorScheme.surface,
+        elevation = MuseElevation.card,
+        tonalElevation = MuseElevation.none,
+        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
+        Column {
+            items.forEachIndexed { index, item ->
+                MemoryFactRow(
+                    item = item,
+                    onDelete = { onDelete(item.id) },
+                    onEdit = onEdit,
+                    onSetImportance = onSetImportance,
+                    onTogglePin = onTogglePin,
+                )
+                if (index != items.lastIndex) {
+                    MuseDivider()
+                }
+            }
+        }
+    }
+}
+
+/**
+ * v1.x: 单条记忆行 — 正文全宽(可换行完整显示) + meta 行 + ⋮ 操作菜单。
+ * 操作(置顶/重要度/编辑/删除)收进菜单,不再挤占正文。
+ */
+@Composable
+private fun MemoryFactRow(
+    item: MemoryItem,
+    onDelete: () -> Unit,
+    onEdit: (MemoryItem) -> Unit,
+    onSetImportance: (MemoryItem) -> Unit,
+    onTogglePin: (MemoryItem) -> Unit,
+) {
+    var menuOpen by remember { mutableStateOf(false) }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = MusePaddings.screen, end = 4.dp, top = 12.dp, bottom = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = item.content,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
             )
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = buildMetaText(item),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.outline,
+                )
+                if (item.importance > 0) {
+                    ImportanceTag(importance = item.importance)
+                }
+            }
+        }
+        Box {
+            IconButton(onClick = { menuOpen = true }) {
+                Icon(
+                    imageVector = Icons.Filled.MoreVert,
+                    contentDescription = stringResource(R.string.memory_menu_cd),
+                    tint = MaterialTheme.colorScheme.outline,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(if (item.pinnedAt == null) R.string.memory_menu_pin else R.string.memory_menu_unpin)) },
+                    onClick = {
+                        menuOpen = false
+                        onTogglePin(item)
+                    },
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.memory_menu_importance)) },
+                    onClick = {
+                        menuOpen = false
+                        onSetImportance(item)
+                    },
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.memory_menu_edit)) },
+                    onClick = {
+                        menuOpen = false
+                        onEdit(item)
+                    },
+                )
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            stringResource(R.string.memory_menu_delete),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    },
+                    onClick = {
+                        menuOpen = false
+                        onDelete()
+                    },
+                )
+            }
         }
     }
 }

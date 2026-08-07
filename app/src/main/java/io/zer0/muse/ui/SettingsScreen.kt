@@ -201,7 +201,7 @@ fun SettingsScreen(
     val workspaceTitle = stringResource(R.string.workspace_title)
     val piiGuardTitle = stringResource(R.string.settings_screen_pii_guard)
     val piiGuardDesc = stringResource(R.string.settings_screen_pii_guard_desc)
-    val securityTitle = stringResource(R.string.settings_screen_security)
+    val securityTitle = stringResource(R.string.settings_screen_share)
     val securityDesc = stringResource(R.string.settings_screen_security_desc)
     val auditLogTitle = stringResource(R.string.settings_audit_log)
     val experimentsTitle = stringResource(R.string.settings_screen_experiments)
@@ -366,9 +366,9 @@ fun SettingsScreen(
                 SettingsEntry("分段策略", listOf("分段", "分块", "策略", "fenduan", "fenkuai", "celve", "fd", "fk", "cl"), MuseRoutes.SETTINGS_RAG, ragTitle, TablerIcons.Book, onOpenRagSettings),
 
                 SettingsEntry("搜索引擎", listOf("搜索引擎", "Bing", "Jina", "SearXNG", "sousuoyinqing", "ssyq"), MuseRoutes.SETTINGS_WEB_SEARCH, webSearchEntryTitle, TablerIcons.World, onOpenWebSearch),
-                SettingsEntry("ASR 引擎", listOf("ASR", "语音识别引擎", "模型", "asryinqing", "yuyinshibieyinqing", "asryq", "yysbyq"), MuseRoutes.SETTINGS_ASR, asrEntryTitle, TablerIcons.Microphone, onOpenAsr),
+
                 SettingsEntry("视觉模型", listOf("视觉模型", "看图模型", "shijuemoxing", "kantumoxing", "sjmx", "ktmx"), MuseRoutes.SETTINGS_VISION, visionTitle, TablerIcons.Eye, onOpenVisionSettings),
-                SettingsEntry("图像分辨率", listOf("分辨率", "图像尺寸", "fenbianlv", "tuxiangchicun", "fbl", "txcc"), MuseRoutes.SETTINGS_IMAGE_GEN, imageGenEntryTitle, TablerIcons.Photo, onOpenImageGen),
+
                 SettingsEntry("MCP 服务器", listOf("MCP", "服务器", "ModelContextProtocol", "fuwuqi", "fwq"), MuseRoutes.SETTINGS_MCP, mcpEntryTitle, TablerIcons.Affiliate, onOpenMcp),
                 SettingsEntry("工具批准模式", listOf("工具批准", "批准模式", "自动批准", "gongjupizhun", "pizhunmoshi", "zidongpizhun", "gjpz", "pzms", "zdpz"), MuseRoutes.TOOLS, toolsTitle, TablerIcons.Tools, onOpenTools),
                 SettingsEntry("主动消息", listOf("主动消息", "推送", "定时", "zhudongxiaoxi", "tuisong", "dingshi", "zdxx", "ts", "ds"), MuseRoutes.SETTINGS_AGENT, agentTitle, TablerIcons.Bell, onOpenAgentSettings),

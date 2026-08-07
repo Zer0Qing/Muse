@@ -128,6 +128,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
@@ -1082,6 +1083,9 @@ class ChatViewModel(
     private val treeSnapshotStore: ConversationTreeSnapshotStore? = null,
     // v1.x: 会话级浏览器实例注册表(每个会话独立 WebView,删除会话时释放)
     private val browserManagerRegistry: io.zer0.muse.tools.BrowserManagerRegistry? = null,
+    // v1.x: 工具配置存储(审批策略持久化) — Koin 注入单例,
+    // 消除直接 new 导致的 DataStore 同文件多实例崩溃
+    private val toolConfigStore: io.zer0.muse.tools.ToolConfigStore? = null,
 ) : ViewModel(), ChatStateAccessor, io.zer0.muse.tools.ToolApprovalBridge {
     // v1.0.54: autoSave 去重状态(30 秒内同会话只跑一次,防堆积)
     private var lastAutoSaveSessionId: String? = null
@@ -1238,8 +1242,7 @@ class ChatViewModel(
     // v1.0.30: 回话跟踪 — onAppForeground 用
     @Volatile private var _lastSessionSwitchTimestamp: Long = 0L
     @Volatile private var _lastSessionSwitchId: String? = null
-    // 工具配置存储(审批策略持久化)
-    private val toolConfigStore = ToolConfigStore(appContext)
+    // 工具配置存储(审批策略持久化) — 见构造参数 toolConfigStore
 
     // v1.135: 当前工具调用轮次对应的助手消息 id,
     // 供 generate_image / generate_video / generate_qr_code 等工具更新消息媒体字段。
@@ -1570,6 +1573,9 @@ class ChatViewModel(
                     }
                 }
             } catch (t: Throwable) {
+                // v1.x: 协程取消必须重抛,不能当成"加载失败"展示(否则显示
+                // "请求失败: Job was cancelled"且协程死亡后错误永远挂着)
+                if (t is kotlinx.coroutines.CancellationException) throw t
                 Logger.e("ChatVM", "observeSessions failed", t)
                 _state.update {
                     it.copy(
@@ -3058,6 +3064,8 @@ class ChatViewModel(
                     pendingToolApprovals = emptyList(),
                     toolCallHistory = emptyList(),
                     agentPlans = emptyMap(),
+                    // v1.x: 切换会话时清除挂死的会话列表加载错误(协程取消遗留)
+                    sessionsError = null,
                     // v1.0.16: visionAssistedMessageIds 按 messageId(全局唯一)存储,
                     // 切换会话不再清空 — 切回原会话时"已分析"标签仍应显示。
                     // 仅清空 visionProgress(进度是瞬态的,不跨会话保留)。
@@ -3395,6 +3403,8 @@ class ChatViewModel(
                 }
             } catch (t: Throwable) {
                 Logger.e("ChatVM", "retryLoadSessions failed", t)
+                // v1.x: 协程取消必须重抛,不能显示为"请求失败: Job was cancelled"
+                if (t is kotlinx.coroutines.CancellationException) throw t
                 _state.update {
                     it.copy(
                         isSessionsLoading = false,
@@ -3433,6 +3443,29 @@ class ChatViewModel(
      */
     fun setTargetMessage(messageId: String?, query: String?) =
         miscCoordinator.setTargetMessage(messageId, query)
+
+    /**
+     * v2.x: 从搜索结果打开消息 — 先切换会话,等切换落地后再设置定位目标。
+     *
+     * 修复竞态: 此前 switchSession(异步) + setTargetMessage(立即) 并行,
+     * ChatScreen 在旧会话里等目标消息 5 秒超时后清空 targetMessageId,
+     * 等会话真正切过去时定位目标已丢,表现为"点击结果只回首页不定位"。
+     */
+    fun openMessageFromSearch(sessionId: String, messageId: String, query: String) {
+        switchSession(sessionId)
+        viewModelScope.launch {
+            // 等待 switchSession 落地(currentSessionId 变为目标会话),超时 5s 放弃定位
+            val switched = withTimeoutOrNull(5000L) {
+                _state.filter { it.currentSessionId == sessionId }.first()
+                true
+            } ?: false
+            if (switched) {
+                setTargetMessage(messageId, query)
+            } else {
+                Logger.w("ChatVM", "openMessageFromSearch 等待会话切换超时: $sessionId")
+            }
+        }
+    }
 
     /** v2.x: 消费目标消息 id(滚动定位完成后调用,避免重复触发)。 */
     fun consumeTargetMessage() = miscCoordinator.consumeTargetMessage()
@@ -4107,7 +4140,7 @@ class ChatViewModel(
     fun persistToolPolicy(toolCallId: String, policy: ToolApprovalPolicy) {
         val pending = _state.value.pendingToolApprovals.firstOrNull { it.toolCallId == toolCallId } ?: return
         viewModelScope.launch {
-            runCatching { toolConfigStore.setPolicy(pending.toolName, policy) }
+            runCatching { toolConfigStore!!.setPolicy(pending.toolName, policy) }
                 .onFailure { Logger.w("ChatVM", "persistToolPolicy(${pending.toolName}) 失败: ${it.message}") }
         }
     }
@@ -4165,7 +4198,7 @@ class ChatViewModel(
                 return ToolApprovalState.Auto
             }
         }
-        val perToolPolicy = toolConfigStore.getPolicy(toolName)
+        val perToolPolicy = toolConfigStore!!.getPolicy(toolName)
         val mode = _state.value.sessionPermissionMode
         val risk = toolRegistry.getToolRiskLevel(toolName)
         // v1.x: 审批决策调试日志 — 排查"完全放权不生效/始终允许无效"类问题

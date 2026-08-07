@@ -117,6 +117,7 @@ fun NavGraphBuilder.settingsNavGraph(
     ) {
         SettingsModelPage(
             onBack = { navController.popBackStack() },
+            onOpenAsr = { navController.navigate(MuseRoutes.SETTINGS_ASR) },
         )
     }
     // v1.133: 设置二级页 — 联网搜索(从 SettingsModelPage 拆出)

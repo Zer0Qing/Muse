@@ -157,7 +157,6 @@ object GreetingHelper {
     private fun betterHint(best: Pair<Int, String>?, diff: Long, hint: String): Pair<Int, String> {
         return if (best == null || diff < best.first) diff.toInt() to hint else best
     }
-
     // 记忆提示语（人性化）
     fun getMemoryCountText(count: Int, assistantName: String = "Muse"): String {
         return when (count) {

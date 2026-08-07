@@ -630,6 +630,12 @@ class BackupService(
         val config = settings.cloudBackupConfigFlow.first()
         if (!config.isConfigured) return false
         val backup = buildBackup()
+        // v1.x 诊断: 记录导出规模,便于排查"备份不完整/恢复后数据丢失"类问题
+        Logger.i(
+            "BackupService",
+            "导出云端备份: ${backup.sessions.size} 会话 / ${backup.messages.size} 消息" +
+                " / ${backup.facts.size} 记忆 / ${backup.groupChatMessages.size} 群聊消息",
+        )
         val plaintext = json.encodeToString(Backup.serializer(), backup).toByteArray(Charsets.UTF_8)
         val data = if (config.backupPassword.isNotEmpty()) {
             BackupCrypto.encrypt(plaintext, config.backupPassword)
@@ -698,6 +704,12 @@ class BackupService(
                 .onError { msg, t -> Logger.w("BackupService", "云端备份 JSON 解析失败", t); return null }
                 .getOrNull()
                 ?: return null
+            // v1.x 数据安全: 云端备份为空(0 会话 0 消息)时拒绝恢复,
+            // 避免"空备份覆盖本地数据"导致对话全部丢失(用户反馈 WebDAV 恢复后对话全没了)。
+            if (backup.sessions.isEmpty() && backup.messages.isEmpty()) {
+                Logger.w("BackupService", "云端备份为空(0 会话 0 消息),拒绝恢复以免覆盖本地数据")
+                return null
+            }
             applyBackup(backup)
         }
     }
