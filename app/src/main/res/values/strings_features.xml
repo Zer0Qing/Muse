@@ -85,6 +85,13 @@
     <string name="groupchat_vote_system_ended">表决结束</string>
     <string name="groupchat_message_whisper">[悄悄话] 仅你可见</string>
     <string name="groupchat_reply_quote">引用 %1$s:%2$s</string>
+    <!-- v1.x: 多选模式 -->
+    <string name="groupchat_select">选择</string>
+    <string name="groupchat_select_all">全选</string>
+    <string name="groupchat_delete_selected">删除</string>
+    <string name="groupchat_delete_selected_title">删除 %1 条消息？</string>
+    <string name="groupchat_delete_selected_confirm">将删除选中的消息,该操作不可撤销。</string>
+    <string name="groupchat_selected_count">已选 %1 条</string>
     <string name="groupchat_reply_hint">输入回复内容…</string>
     <string name="groupchat_summary_desc">选择一个 AI 来总结当前讨论的共识与分歧</string>
     <string name="groupchat_summary_auto">自动选择(第一个成员)</string>

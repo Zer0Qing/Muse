@@ -70,7 +70,14 @@ class MoodTagTransformer : Transformer {
     private fun extractTag(content: String, regex: Regex, existing: String?): Pair<String?, String> {
         if (existing != null) return existing to content
         val matches = regex.findAll(content).toList()
-        if (matches.isEmpty()) return null to content
+        if (matches.isEmpty()) {
+            // v1.x: 兜底 — 未闭合标签(模型偶尔输出 <mood> 或 [mood] 却忘记闭合),
+            // 正则无法匹配;把标签头标记字符剥掉,避免 mood 块原文展示给用户
+            val stripped = content
+                .replace(Regex("(?i)<(?:mood|think)>\\s*"), "")
+                .replace(Regex("(?i)\\[(?:mood|think)\\]\\s*"), "")
+            return null to stripped
+        }
         // 多块内容用换行连接,空块过滤掉
         val extracted = matches
             .map { it.groupValues[1] }

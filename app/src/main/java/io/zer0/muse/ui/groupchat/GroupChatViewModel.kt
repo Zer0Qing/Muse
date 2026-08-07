@@ -73,6 +73,8 @@ data class GroupChatUiState(
     val hasMoreHistory: Boolean = false,
     /** v1.53-GC: 是否正在加载更多历史消息(防止重复触发 + UI 顶部加载指示器)。 */
     val isLoadingMore: Boolean = false,
+    /** v1.x: 多选模式选中的消息 id 集合(非空 = 多选模式)。 */
+    val selectedMessageIds: Set<String> = emptySet(),
     /**
      * v1.53-GC: 最近一次"加载更多"插入的历史条数。
      *
@@ -697,6 +699,62 @@ class GroupChatViewModel(
             } catch (e: Exception) {
                 Logger.e(TAG, "删除消息失败", e)
                 _state.update { it.copy(errorMessage = appContext.getString(R.string.err_group_chat_delete_msg_failed)) }
+            }
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // v1.x: 多选模式(长按菜单"选择"进入,支持批量删除)
+    // ══════════════════════════════════════════════════════════════════
+
+    /** 进入多选模式并选中当前消息。 */
+    fun startSelection(messageId: String) {
+        _state.update { it.copy(selectedMessageIds = setOf(messageId)) }
+    }
+
+    /** 切换单条消息选中状态。 */
+    fun toggleMessageSelection(messageId: String) {
+        _state.update { state ->
+            val current = state.selectedMessageIds
+            if (current.isEmpty()) {
+                // 未在多选模式时点击视为进入并选中
+                state.copy(selectedMessageIds = setOf(messageId))
+            } else {
+                val next = if (messageId in current) current - messageId else current + messageId
+                state.copy(selectedMessageIds = next)
+            }
+        }
+    }
+
+    /** 全选当前可见消息。 */
+    fun selectAllVisible() {
+        _state.update { state ->
+            state.copy(selectedMessageIds = state.currentMessages.map { it.id }.toSet())
+        }
+    }
+
+    /** 退出多选模式。 */
+    fun clearSelection() {
+        _state.update { it.copy(selectedMessageIds = emptySet()) }
+    }
+
+    /** 批量删除选中消息。 */
+    fun deleteSelectedMessages() {
+        val ids = _state.value.selectedMessageIds.toList()
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            ids.forEach { id ->
+                try {
+                    groupChatRepository.deleteMessage(id)
+                } catch (e: Exception) {
+                    Logger.e(TAG, "批量删除消息失败: $id", e)
+                }
+            }
+            _state.update { state ->
+                state.copy(
+                    currentMessages = state.currentMessages.filterNot { it.id in ids },
+                    selectedMessageIds = emptySet(),
+                )
             }
         }
     }

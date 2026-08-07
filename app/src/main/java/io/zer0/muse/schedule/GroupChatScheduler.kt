@@ -292,6 +292,8 @@ class GroupChatScheduler(
             - 写完 MOOD 再写正文,正文遵守输出风格约束
             - 不要在正文里重复 MOOD 的内容
             - 如需展示深度推理,可在正文前写 <think>...</think> 块,系统同样会剥离并支持折叠展示
+            - 思考过程(reasoning)中不要复述或提及任何格式指令(如"按格式先写 mood""用标签"之类),
+              直接思考内容本身;mood 块只输出在正文开头,必须完整闭合
         """.trimIndent()
     }
 
@@ -2677,6 +2679,9 @@ class GroupChatScheduler(
             appendLine("- 不发言:调用 channel_pass(reason=可选原因)")
             appendLine("- 需要更多上下文:调用 channel_read_context(limit=条数,默认20,最多50)")
             appendLine("不要直接输出回复文本,也不要输出 [PASS],必须通过工具调用表态。")
+            appendLine("【发言积极性】默认应该回复:当有人发言(包括简单问候/晚安/寒暄)时,你应当回应," +
+                "哪怕只是一句简短回应;channel_pass 只用于你真的无话可说或话题与你完全无关时," +
+                "不要因为觉得没必要而沉默——群聊的意义就是互动,回应是义务。")
         }
         messages.add(UIMessage(role = MessageRole.SYSTEM, content = systemContent))
 
@@ -2865,12 +2870,33 @@ class GroupChatScheduler(
         val afterThinkReplace = withoutMood.replace(MusePatterns.THINK_TAG_REGEX, "")
         // L9: 处理未闭合的 <think> 标签 — 若仍有 <think> 残留(无对应 </think>),则从 <think> 截断到末尾
         val thinkIdx = afterThinkReplace.indexOf("<think>", ignoreCase = true)
-        val withoutThink = if (thinkIdx >= 0) afterThinkReplace.substring(0, thinkIdx) else afterThinkReplace
+        var withoutThink = if (thinkIdx >= 0) afterThinkReplace.substring(0, thinkIdx) else afterThinkReplace
+        // v1.x: 处理未闭合的 <mood> / [mood] 标签 — 从标签头截断到末尾(与 think 一致),
+        // 避免 mood 块原文展示给用户(未闭合时正文大概率已混在 mood 文本里,截断更干净)
+        val moodIdx = withoutThink.indexOfFirstUnclosedMood()
+        if (moodIdx >= 0) {
+            withoutThink = withoutThink.substring(0, moodIdx)
+        }
         val withoutChannelReply = withoutThink.replace(
             // L6: 加 RegexOption.IGNORE_CASE 忽略大小写
             Regex("\\[channel_reply\\](.*?)\\[/channel_reply\\]", setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE)),
         ) { it.groupValues[1].trim() }
         return withoutChannelReply.trim()
+    }
+
+    /**
+     * v1.x: 查找第一个"未闭合 mood 标签头"的位置(已闭合的会被上面的正则先剥离)。
+     * 兼容 <mood> 与 [mood] 两种风格。
+     */
+    private fun String.indexOfFirstUnclosedMood(): Int {
+        val angle = indexOf("<mood>", ignoreCase = true)
+        val bracket = indexOf("[mood]", ignoreCase = true)
+        return when {
+            angle < 0 && bracket < 0 -> -1
+            angle < 0 -> bracket
+            bracket < 0 -> angle
+            else -> minOf(angle, bracket)
+        }
     }
 
     /**

@@ -141,12 +141,18 @@ internal fun GroupChatMessageBubble(
     onToggleReasoningExpanded: () -> Unit = {},
     // v1.77: 长按弹出操作菜单(复制 / 删除)
     onLongClick: () -> Unit = {},
+    // v1.x: 多选模式
+    selectionMode: Boolean = false,
+    selected: Boolean = false,
+    onSelectToggle: () -> Unit = {},
     /** HTML/SVG 代码块全屏预览回调。 */
     onHtmlPreview: (String) -> Unit = {},
 ) {
     val isUser = message.senderType == "user"
     val haptic = LocalHapticFeedback.current
     val interactionSource = remember { MutableInteractionSource() }
+    // v1.x: 多选模式下点击消息切换选中,长按退出菜单
+    val bubbleClick: () -> Unit = { if (selectionMode) onSelectToggle() }
     if (isUser) {
         // 用户消息:右侧气泡
         Row(
@@ -162,10 +168,13 @@ internal fun GroupChatMessageBubble(
                 Surface(
                     shape = MuseShapes.userBubble,
                     color = MaterialTheme.colorScheme.surfaceVariant,
+                    border = if (selected) androidx.compose.foundation.BorderStroke(
+                        1.5.dp, MaterialTheme.colorScheme.primary,
+                    ) else null,
                     modifier = Modifier.combinedClickable(
                         interactionSource = interactionSource,
                         indication = null,
-                        onClick = {},
+                        onClick = bubbleClick,
                         onLongClick = {
                             MuseHaptics.medium(haptic)
                             onLongClick()
@@ -301,10 +310,13 @@ internal fun GroupChatMessageBubble(
                 Surface(
                     shape = MuseShapes.assistantBubble,
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                    border = if (selected) androidx.compose.foundation.BorderStroke(
+                        1.5.dp, MaterialTheme.colorScheme.primary,
+                    ) else null,
                     modifier = Modifier.combinedClickable(
                         interactionSource = interactionSource,
                         indication = null,
-                        onClick = {},
+                        onClick = bubbleClick,
                         onLongClick = {
                             MuseHaptics.medium(haptic)
                             onLongClick()
