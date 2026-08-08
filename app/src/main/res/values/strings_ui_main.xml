@@ -247,6 +247,7 @@
     <string name="settings_screen_data_import_cd">数据导入，从其他应用迁移数据，点击进入</string>
     <string name="settings_screen_data_import">数据导入</string>
     <string name="settings_screen_data_import_desc">从 RikkaHub / Kelivo 迁移</string>
+    <string name="settings_screen_archived_desc">查看与恢复已归档的会话</string>
     <string name="settings_screen_rag_cd">知识库检索，RAG配置/Embedding/分块参数，点击进入</string>
     <string name="settings_screen_rag">知识库检索</string>
     <string name="settings_screen_rag_desc">RAG 配置 / Embedding / 分块参数</string>

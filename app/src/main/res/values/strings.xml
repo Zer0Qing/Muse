@@ -64,6 +64,8 @@
     <string name="action_send">发送</string>
     <string name="action_stop">停止</string>
     <string name="action_copy">复制</string>
+    <string name="action_select_text">选择文本</string>
+    <string name="chat_select_text_hint">长按文字即可划选复制</string>
     <string name="action_translate">翻译</string>
     <string name="action_share">分享</string>
     <string name="action_retry">重试</string>

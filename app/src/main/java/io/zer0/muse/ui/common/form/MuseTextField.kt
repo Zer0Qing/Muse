@@ -75,6 +75,11 @@ fun MuseTextField(
     minLines: Int = 1,
     maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
+    /**
+     * v1.0.72: 自定义容器背景色(默认 null = 使用主题默认填充色)。
+     * 输入栏场景传 Color.Transparent,避免输入框实色块叠在岛背景上形成"白块"。
+     */
+    containerColor: androidx.compose.ui.graphics.Color? = null,
 ) {
     val isFocused by interactionSource.collectIsFocusedAsState()
     val scheme = MaterialTheme.colorScheme
@@ -115,10 +120,11 @@ fun MuseTextField(
             shape = MuseShapes.semiLarge,
             colors = OutlinedTextFieldDefaults.colors(
                 // 填充背景:聚焦时用 surfaceContainerHigh(略深),未聚焦用 surfaceVariant
-                focusedContainerColor = scheme.surfaceContainerHigh,
-                unfocusedContainerColor = scheme.surfaceVariant,
-                disabledContainerColor = scheme.surfaceVariant,
-                errorContainerColor = scheme.surfaceVariant,
+                // v1.0.72: containerColor 传非 null 时全部用自定义色(输入栏场景透明)
+                focusedContainerColor = containerColor ?: scheme.surfaceContainerHigh,
+                unfocusedContainerColor = containerColor ?: scheme.surfaceVariant,
+                disabledContainerColor = containerColor ?: scheme.surfaceVariant,
+                errorContainerColor = containerColor ?: scheme.surfaceVariant,
                 // 透明边框:不用 Material 默认的 outlined 框线
                 focusedBorderColor = Color.Transparent,
                 unfocusedBorderColor = Color.Transparent,

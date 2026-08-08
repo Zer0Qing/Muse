@@ -145,6 +145,14 @@ fun MarkdownText(
      */
     disableLinks: Boolean = false,
     /**
+     * v1.0.72: 长按非链接区域时的回调(气泡长按菜单)。
+     *
+     * MarkdownText 的 pointerInput 会消费所有长按事件(即使非链接区域),
+     * 导致外层气泡的 combinedClickable onLongClick 收不到手势 → 长按消息弹不出菜单。
+     * 传入此回调后,长按非链接区域会调用它而不是被静默吞掉。
+     */
+    onLongPressOutside: (() -> Unit)? = null,
+    /**
      * HTML/SVG 代码块全屏预览回调。
      * 当用户点击 HTML/SVG 代码块右上角的"预览"图标时触发,
      * 参数为完整 HTML 源码(SVG 已包装为完整 HTML)。
@@ -275,6 +283,7 @@ fun MarkdownText(
                             annotatedText = annotated,
                             style = style,
                             modifier = Modifier.fillMaxWidth(),
+                            onLongPressOutside = onLongPressOutside,
                         )
                     }
                 }
@@ -300,6 +309,7 @@ fun MarkdownText(
                             annotatedText = annotated,
                             style = headingStyle,
                             modifier = Modifier.fillMaxWidth(),
+                            onLongPressOutside = onLongPressOutside,
                         )
                     }
                     if (idx < blocks.lastIndex) Spacer(Modifier.height(4.dp))
@@ -430,6 +440,8 @@ private fun LinkableText(
     style: TextStyle,
     modifier: Modifier = Modifier,
     color: Color = Color.Unspecified,
+    /** v1.0.72: 长按非链接区域回调(气泡长按菜单用)。 */
+    onLongPressOutside: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     var layoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
@@ -461,7 +473,12 @@ private fun LinkableText(
                     val layout = layoutResult ?: return@detectTapGestures
                     val pos = layout.getOffsetForPosition(offset)
                     val url = annotatedText.getStringAnnotations("URL", pos, pos)
-                        .firstOrNull()?.item ?: return@detectTapGestures
+                        .firstOrNull()?.item
+                    if (url == null) {
+                        // v1.0.72: 长按非链接区域 → 透传给气泡长按菜单
+                        onLongPressOutside?.invoke()
+                        return@detectTapGestures
+                    }
                     if (!url.startsWith("http://") && !url.startsWith("https://")) {
                         MuseToast.show(context.getString(R.string.markdown_only_http))
                         return@detectTapGestures

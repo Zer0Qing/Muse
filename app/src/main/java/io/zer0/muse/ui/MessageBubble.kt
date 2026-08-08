@@ -3,6 +3,8 @@ package io.zer0.muse.ui
 import android.content.Intent
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
@@ -11,6 +13,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.layout.Arrangement
@@ -22,14 +25,19 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.isSystemInDarkTheme
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import androidx.compose.material.icons.Icons
@@ -38,6 +46,12 @@ import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.MoreHoriz
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.Popup
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.outlined.GroupWork
 import androidx.compose.material.icons.outlined.Language
@@ -47,6 +61,7 @@ import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -103,6 +118,7 @@ import io.zer0.muse.ui.markdown.MarkdownText
 import io.zer0.muse.transformer.MoodSkinParser
 import io.zer0.muse.ui.taskcard.AgentPlan
 import io.zer0.muse.ui.taskcard.PlanCard
+import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MuseIconSizes
@@ -220,6 +236,12 @@ internal fun MessageBubble(
     // v1.79 (M-B9): 菜单/子菜单/删除确认状态改用 rememberSaveable,旋转/后台后不丢失
     var showActionMenu by rememberSaveable { mutableStateOf(false) }
     var showLanguageSubmenu by rememberSaveable { mutableStateOf(false) }
+    // v1.0.72: Manus 风格长按菜单 — false=精简面板(引用/分享/复制/选择文本/更多),
+    // true=展开完整菜单(委托/分支/翻译/收藏/编辑/删除等)
+    var showExtendedMenu by rememberSaveable { mutableStateOf(false) }
+    // v1.0.72: 文本选择模式 — 长按菜单点"选择文本"后进入,支持划选复制;
+    // 点击气泡或再次长按退出
+    var textSelectMode by rememberSaveable { mutableStateOf(false) }
     // P2-13: 桌面端右键上下文菜单(仅 Expanded 窗口 + 物理键盘场景显示)
     var showDesktopContextMenu by rememberSaveable { mutableStateOf(false) }
     // v1.60-B: 全屏媒体查看器状态 — 图片列表 + 初始索引
@@ -253,13 +275,19 @@ internal fun MessageBubble(
     val bubbleClickModifier = Modifier.combinedClickable(
         interactionSource = bubbleInteractionSource,
         indication = null,
-        // v1.48: 改为仅长按弹菜单 — 单击弹菜单过于激进,且与 MarkdownText 链接点击冲突
-        // (点正文文字时 LinkableText 消费 tap 事件导致不弹菜单,行为不可预测)
+        // v1.0.72: 长按消息任意位置(含文字区域,已去掉 SelectionContainer 拦截)都弹操作菜单;
+        // 点击:多选模式切换选中 / 文本选择模式退出
         onClick = {
             if (selectionMode) onToggleSelection?.invoke()
+            else if (textSelectMode) textSelectMode = false
         },
         onLongClick = {
             MuseHaptics.medium(hapticFeedback)
+            if (textSelectMode) {
+                // v1.0.72: 文本选择模式下长按交给 SelectionContainer 激活系统选择手柄,
+                // 不弹操作菜单(否则长按被抢走,永远选不了文字)
+                return@combinedClickable
+            }
             if (selectionMode) {
                 onToggleSelection?.invoke()
             } else if (desktopShortcutsEnabled) {
@@ -275,12 +303,17 @@ internal fun MessageBubble(
     val isLtr = layoutDirection == LayoutDirection.Ltr
     val horizontalAlignment = if (isUser == isLtr) Alignment.End else Alignment.Start
 
-    Column(
+    // v1.0.72: 最外层改 Box,容纳多选遮罩(matchParentSize 需要 BoxScope)
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .then(if (isAnimating) Modifier.animateContentSize() else Modifier),
+    ) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = horizontalAlignment,
     ) {
+
 
         // B7-01: 多选模式指示
         if (selectionMode) {
@@ -967,17 +1000,27 @@ internal fun MessageBubble(
                             modifier = Modifier.fillMaxWidth(),
                             citationUrls = safeCitationUrls,
                             isStreaming = isLastAssistant && isStreaming,
-                            disableLinks = selectionMode,
+                            // v1.0.72: 选择模式或文本选择模式都禁用链接检测:
+                            // 文本选择模式必须禁用,否则 LinkableText 的 pointerInput 拦截长按,
+                            // 系统文本选择手柄永远无法激活(用户反馈"选择文本完全失效")
+                            disableLinks = selectionMode || textSelectMode,
                             onHtmlPreview = onHtmlPreview,
+                            // v1.0.72: 长按非链接区域 → 弹气泡长按菜单(修复长按消息无反应)
+                            onLongPressOutside = {
+                                textSelectMode = false
+                                showActionMenu = true
+                            },
                         )
                     }
                 }
                 if (dataCard != null) {
                     io.zer0.muse.ui.markdown.DataCardRenderer(card = dataCard)
-                } else if ((isLastAssistant && isStreaming) || selectionMode) {
-                    markdownContent()
-                } else {
+                } else if (textSelectMode) {
+                    // v1.0.72: 仅"选择文本"模式下用 SelectionContainer 支持划选复制;
+                    // 其余情况不用(否则 SelectionContainer 会拦截长按,弹不出操作菜单)
                     SelectionContainer { markdownContent() }
+                } else {
+                    markdownContent()
                 }
             }
             // 功能3: 链接预览卡片(仅非流式时,避免流式增量导致重抓)
@@ -1188,13 +1231,62 @@ internal fun MessageBubble(
             }
         }
 
-        // 阶段 4: 长按菜单(iOS 风格 ActionSheet,MuseDialog 替代原 ModalBottomSheet,避免真机 scrim 卡死)
-        // 长按消息 → 弹出 编辑/重新生成/翻译/朗读/收藏/复制/分享 操作列表
+        // 阶段 4: 长按菜单
+        // v1.0.72: Telegram 风格 — Popup 定位在消息附近(哪里按哪里弹出,非底部滑入),
+        // 卡片含 引用/复制/选择文本/分享/编辑(仅用户消息)/更多;
+        // "更多"展开完整菜单(委托/分支/翻译/收藏/删除等,原逻辑保留)。
         if (showActionMenu) {
+            if (!showExtendedMenu) {
+                // ── Telegram 风格 Popup 卡片(锚定消息气泡) ──
+                Popup(
+                    onDismissRequest = {
+                        showActionMenu = false
+                        showLanguageSubmenu = false
+                    },
+                    alignment = Alignment.TopEnd,
+                    offset = IntOffset(0, 8),
+                ) {
+                    TelegramActionCard(
+                        isUser = isUser,
+                        onQuote = {
+                            showActionMenu = false
+                            showLanguageSubmenu = false
+                            onQuote()
+                        },
+                        onCopy = {
+                            showActionMenu = false
+                            showLanguageSubmenu = false
+                            MuseHaptics.light(hapticFeedback)
+                            onCopyMessage(MoodSkinParser.cleanForExport(msg.content))
+                        },
+                        onSelectText = {
+                            // v1.0.72: "选择文本"= 进入文本选择模式(长按文字激活系统选择手柄)
+                            showActionMenu = false
+                            showLanguageSubmenu = false
+                            textSelectMode = true
+                            MuseToast.show(context.getString(R.string.chat_select_text_hint))
+                        },
+                        onShare = {
+                            showActionMenu = false
+                            showLanguageSubmenu = false
+                            onShareSession()
+                        },
+                        onEdit = {
+                            showActionMenu = false
+                            showLanguageSubmenu = false
+                            onEdit()
+                        },
+                        onMore = {
+                            showExtendedMenu = true
+                        },
+                    )
+                }
+            } else {
             MuseDialog(
                 onDismissRequest = {
                     showActionMenu = false
                     showLanguageSubmenu = false
+                    showExtendedMenu = false
                 },
                 content = {
                     Column(modifier = Modifier.fillMaxWidth()) {
@@ -1362,8 +1454,10 @@ internal fun MessageBubble(
                 onDismiss = {
                     showActionMenu = false
                     showLanguageSubmenu = false
+                    showExtendedMenu = false
                 },
             )
+            }
         }
 
         // P5-F: 翻译中指示
@@ -1469,5 +1563,153 @@ internal fun MessageBubble(
                 onDismiss = { showDesktopContextMenu = false },
             )
         }
+        } // 闭合 Column
+
+        // v1.0.72: 多选模式全尺寸遮罩 — 选择模式下点击消息任意位置(含文字/图片/代码块/引用块,
+        // 这些子组件会消费点击事件)都切换选中。修复"进入选择模式后根本选不了消息"。
+        if (selectionMode) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                    ) { onToggleSelection?.invoke() },
+            )
+        }
+    } // 闭合 Box
+}
+
+/**
+ * v1.0.72: 长按操作卡片(Popup 定位,哪里按哪里弹出)。
+ *
+ * v1.0.72 迭代:
+ *  - 固定配色(不随应用主题色):深色模式用深灰底白字,浅色用白底黑字,
+ *    避免主题色导致分割线/背景不可见。
+ *  - 整体紧凑:缩小图标底块 / 行高 / 圆角 / 间距。
+ *  - scale+fade 进场动画。
+ * 内容:引用 / 复制 / 选择文本 / 分享 / 编辑(仅用户消息) / 更多。
+ */
+@Composable
+private fun TelegramActionCard(
+    isUser: Boolean,
+    onQuote: () -> Unit,
+    onCopy: () -> Unit,
+    onSelectText: () -> Unit,
+    onShare: () -> Unit,
+    onEdit: () -> Unit,
+    onMore: () -> Unit,
+) {
+    val dark = isSystemInDarkTheme()
+    // 固定配色(不随主题色)
+    val bg = if (dark) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
+    val textColor = if (dark) Color(0xFFFFFFFF) else Color(0xFF000000)
+    val iconBlock = if (dark) Color(0xFF2C2C2E) else Color(0xFFF2F2F7)
+    val divider = if (dark) Color(0xFF3A3A3C) else Color(0xFFE5E5EA)
+
+    // 进场动画:scale 0.92 → 1 + fade
+    val scale by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = 1f,
+        animationSpec = tween(160, easing = FastOutSlowInEasing),
+        label = "menuScale",
+    )
+    val alpha by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = 1f,
+        animationSpec = tween(140),
+        label = "menuAlpha",
+    )
+    Surface(
+        color = bg,
+        shape = RoundedCornerShape(18.dp),
+        shadowElevation = 10.dp,
+        tonalElevation = 0.dp,
+    ) {
+        Column(
+            modifier = Modifier
+                .widthIn(min = 170.dp, max = 210.dp)
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                    this.alpha = alpha
+                }
+                .padding(vertical = 5.dp),
+        ) {
+            FixedColorActionRow(Icons.AutoMirrored.Outlined.Reply, stringResource(R.string.message_action_quote), textColor, iconBlock, onQuote)
+            FixedColorActionRow(TablerIcons.Copy, stringResource(R.string.action_copy), textColor, iconBlock, onCopy)
+            FixedColorActionRow(TablerIcons.Square, stringResource(R.string.action_select_text), textColor, iconBlock, onSelectText)
+            FixedColorActionRow(Icons.Outlined.Share, stringResource(R.string.chat_share_action), textColor, iconBlock, onShare)
+            if (isUser) {
+                FixedColorActionRow(TablerIcons.Edit, stringResource(R.string.action_edit), textColor, iconBlock, onEdit)
+            }
+            // 固定色细分割线
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                    .height(0.5.dp)
+                    .background(divider),
+            )
+            FixedColorActionRow(Icons.Outlined.MoreHoriz, stringResource(R.string.action_more), textColor, iconBlock, onMore)
+        }
+    }
+}
+
+/** v1.0.72: 固定配色菜单行(紧凑:小图标底块 + 小行高 + 按压 scale)。 */
+@Composable
+private fun FixedColorActionRow(
+    icon: ImageVector,
+    text: String,
+    textColor: Color,
+    iconBlockColor: Color,
+    onClick: () -> Unit,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else 1f,
+        animationSpec = tween(100),
+        label = "rowScale",
+    )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick,
+            )
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        // 小图标底块
+        Surface(
+            shape = RoundedCornerShape(9.dp),
+            color = iconBlockColor,
+            modifier = Modifier.size(30.dp),
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = text,
+                    modifier = Modifier.size(16.dp),
+                    tint = textColor,
+                )
+            }
+        }
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = textColor,
+        )
     }
 }

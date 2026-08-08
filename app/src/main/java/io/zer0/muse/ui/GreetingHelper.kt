@@ -17,30 +17,56 @@ object GreetingHelper {
         }
     }
 
-    // 获取节气（简化版：用预计算的日期表）
+    // 获取节气（v1.0.72: 用寿星公式按年份计算,替代固定日期表）
+    //
+    // 背景:旧实现是固定日期表(Triple(8,8,"立秋")),但节气是天文事件,
+    // 每年日期不同(2026 立秋在 8/7,旧表报 8/8 → 用户反馈"立秋是昨天的事")。
+    //
+    // 寿星公式: D = floor(Y*0.2422 + C) - floor(Y/4)
+    //   Y = 年份后两位,[] = 向下取整,C = 各节气世纪常数(21 世纪适用,误差 < 1 天;
+    //   20 世纪需 C-1)
     fun getSolarTerm(date: LocalDate = LocalDate.now()): String? {
-        // 24节气每月日期（近似值，精度足够）
-        val solarTerms = listOf(
-            // 月, 日, 节气名
-            Triple(1, 6, "小寒"), Triple(1, 20, "大寒"),
-            Triple(2, 4, "立春"), Triple(2, 19, "雨水"),
-            Triple(3, 6, "惊蛰"), Triple(3, 21, "春分"),
-            Triple(4, 5, "清明"), Triple(4, 20, "谷雨"),
-            Triple(5, 6, "立夏"), Triple(5, 21, "小满"),
-            Triple(6, 6, "芒种"), Triple(6, 21, "夏至"),
-            Triple(7, 7, "小暑"), Triple(7, 23, "大暑"),
-            Triple(8, 8, "立秋"), Triple(8, 23, "处暑"),
-            Triple(9, 8, "白露"), Triple(9, 23, "秋分"),
-            Triple(10, 8, "寒露"), Triple(10, 24, "霜降"),
-            Triple(11, 7, "立冬"), Triple(11, 22, "小雪"),
-            Triple(12, 7, "大雪"), Triple(12, 22, "冬至"),
+        // 24 节气世纪常数(顺序: 1月小寒/大寒 ... 12月大雪/冬至)
+        val cValues = doubleArrayOf(
+            5.4055, 20.12,   // 1月
+            3.87, 18.73,     // 2月
+            5.63, 20.646,    // 3月
+            4.81, 20.1,      // 4月
+            5.52, 21.04,     // 5月
+            5.678, 21.37,    // 6月
+            7.108, 22.83,    // 7月
+            7.5, 23.13,      // 8月
+            7.646, 23.042,   // 9月
+            8.318, 23.438,   // 10月
+            7.438, 22.36,    // 11月
+            7.18, 21.94,     // 12月
         )
+        val termNames = listOf(
+            "小寒", "大寒", "立春", "雨水", "惊蛰", "春分",
+            "清明", "谷雨", "立夏", "小满", "芒种", "夏至",
+            "小暑", "大暑", "立秋", "处暑", "白露", "秋分",
+            "寒露", "霜降", "立冬", "小雪", "大雪", "冬至",
+        )
+
+        /** 寿星公式: 某年某节气(索引 0-23)落在几号。 */
+        fun solarTermDay(year: Int, termIndex: Int): Int {
+            val y = (year % 100).toDouble()
+            val centuryAdj = if (year in 1900..1999) 1.0 else 0.0 // 20 世纪 C-1
+            return (Math.floor(y * 0.2422 + cValues[termIndex] - centuryAdj) - Math.floor(y / 4.0)).toInt()
+        }
+
+        /** 某天命中的节气名(无则 null)。 */
+        fun termFor(d: LocalDate): String? {
+            for (idx in termNames.indices) {
+                if (idx / 2 + 1 != d.monthValue) continue
+                if (solarTermDay(d.year, idx) == d.dayOfMonth) return termNames[idx]
+            }
+            return null
+        }
+
         // 检查今天或明天是否是节气（提前告知）
-        val today = solarTerms.firstOrNull { it.first == date.monthValue && it.second == date.dayOfMonth }
-        if (today != null) return "今天是${today.third}"
-        val tomorrow = date.plusDays(1)
-        val tmr = solarTerms.firstOrNull { it.first == tomorrow.monthValue && it.second == tomorrow.dayOfMonth }
-        if (tmr != null) return "明天是${tmr.third}"
+        termFor(date)?.let { return "今天是$it" }
+        termFor(date.plusDays(1))?.let { return "明天是$it" }
         return null
     }
 

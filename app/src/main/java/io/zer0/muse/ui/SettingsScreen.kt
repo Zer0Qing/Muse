@@ -124,6 +124,7 @@ fun SettingsScreen(
     onOpenDebugLog: () -> Unit = {},
     onOpenAuditLog: () -> Unit = {},
     onOpenWorkspace: () -> Unit = {},
+    onOpenArchivedChats: () -> Unit = {},
     onOpenVideoGeneration: () -> Unit = {},
     onOpenProviderPlugins: () -> Unit = {},
     onOpenWebSearch: () -> Unit = {},
@@ -321,6 +322,8 @@ fun SettingsScreen(
                 SettingsEntry(dataBackupTitle, listOf("备份", "云备份", "cloud", "backup", "S3", "WebDAV", "同步", "beifen", "yunbeifen", "tongbu", "bf", "ybf", "tb"), MuseRoutes.SETTINGS_DATA, groupDataManagement, TablerIcons.Cloud, onOpenDataSettings),
                 SettingsEntry(dataImportTitle, listOf("数据导入", "导入", "import", "恢复数据", "shujudaoru", "daoru", "huifushuju", "sjdr", "dr", "hfsj"), MuseRoutes.SETTINGS_DATA_IMPORT, groupDataManagement, TablerIcons.CloudUpload, onOpenDataImport),
                 SettingsEntry(workspaceTitle, listOf("工作区", "文件管理", "workspace", "文件", "目录", "gongzuoqu", "wenjianguanli", "wenjian", "mulu", "gzq", "wjgl", "wj", "ml"), MuseRoutes.WORKSPACE, groupDataManagement, TablerIcons.Folder, onOpenWorkspace),
+                // v1.0.72: 归档聊天 — 从设置-数据与隐私进入(原主页顶栏入口已移除)
+                SettingsEntry("归档聊天", listOf("归档", "archive", "已归档", "guidang", "gd"), MuseRoutes.WORKSPACE, groupDataManagement, TablerIcons.Archive, onOpenArchivedChats),
 
                 // 隐私与安全
                 SettingsEntry(securityTitle, listOf("安全", "锁屏", "PIN", "密码", "应用锁", "share", "anquan", "suoping", "mima", "yingyongsuo", "aq", "sp", "mm", "yys"), MuseRoutes.SETTINGS_SECURITY, groupDataManagement, TablerIcons.Lock, onOpenSecuritySettings),
@@ -562,6 +565,8 @@ fun SettingsScreen(
                             link(dataBackupTitle, R.string.settings_screen_data_backup_desc, TablerIcons.Cloud, onOpenDataSettings)
                             link(dataImportTitle, R.string.settings_screen_data_import_desc, TablerIcons.CloudUpload, onOpenDataImport)
                             link(workspaceTitle, R.string.workspace_desc, TablerIcons.Folder, onOpenWorkspace)
+                            // v1.0.72: 归档聊天 — 从设置-数据与隐私进入(原主页顶栏入口已移除)
+                            link("归档聊天", R.string.settings_screen_archived_desc, TablerIcons.Archive, onOpenArchivedChats)
                             switch(
                                 piiGuardTitle,
                                 R.string.settings_screen_pii_guard_desc,

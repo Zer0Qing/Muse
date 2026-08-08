@@ -151,7 +151,7 @@ import kotlinx.serialization.builtins.serializer
         // B5-02: 群聊生成账本(进程被杀后按断点重放)
         GroupChatGenerationLedgerEntity::class,
     ],
-    version = 77,
+    version = 78,
     exportSchema = true,
 )
 @TypeConverters(QuickNoteConverters::class)
@@ -288,6 +288,13 @@ abstract class MuseDb : RoomDatabase() {
                 val useFts5 = fts5Available(db)
                 dropMessageFtsTables(db)
                 createMessageFtsTable(db, useFts5)
+            }
+        }
+
+        /** v1.0.72: messages 加 tool_call_info_json 列(工具调用卡片持久化)。 */
+        val MIGRATION_77_78 = object : Migration(77, 78) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE messages ADD COLUMN toolCallInfoJson TEXT DEFAULT NULL")
             }
         }
 
@@ -2045,6 +2052,7 @@ abstract class MuseDb : RoomDatabase() {
                         MIGRATION_73_74,
                         migrate75To76(File(context.applicationContext.filesDir, "muse_images")),
                         migrate76To77(),
+                        MIGRATION_77_78,
                     )
                     // 启用外键约束(artifacts 表的 ON DELETE CASCADE 依赖此设置)
                     // onOpen 不在 onCreate 事务内,可以执行此类命令;onCreate 内禁止 PRAGMA

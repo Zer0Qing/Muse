@@ -133,6 +133,43 @@ class FactStore(
         return false
     }
 
+    /**
+     * v1.0.72: 找出近似重复的事实簇(供 LLM 合并去重)。
+     *
+     * 贪心分组:取全部事实,用 [isSimilar] 判定互相相似的分组到同一簇。
+     * 单条事实不成簇。返回的每簇 ≥ 2 条,由调用方决定是否交给 LLM 合并。
+     *
+     * @param scope 记忆作用域(默认 main)
+     * @param maxGroups 最多返回簇数(限制 LLM 调用次数,默认 10)
+     * @return 相似簇列表(每簇按 id 升序)
+     */
+    suspend fun findSimilarGroups(scope: String = "main", maxGroups: Int = 10): List<List<Fact>> =
+        withContext(Dispatchers.IO) {
+            val all = dao.getByScope(scope).map { it.toDomainFact() }
+            if (all.size < 2) return@withContext emptyList()
+            val used = mutableSetOf<Long>()
+            val groups = mutableListOf<List<Fact>>()
+            for (i in all.indices) {
+                if (all[i].id in used) continue
+                val cluster = mutableListOf(all[i])
+                for (j in i + 1 until all.size) {
+                    if (all[j].id in used) continue
+                    // 与簇内任意一条相似即并入(传递闭包)
+                    if (cluster.any { isSimilar(it.fact, all[j].fact) }) {
+                        cluster.add(all[j])
+                    }
+                }
+                if (cluster.size >= 2) {
+                    used.addAll(cluster.map { it.id })
+                    groups.add(cluster.sortedBy { it.id })
+                    if (groups.size >= maxGroups) break
+                } else {
+                    used.add(all[i].id)
+                }
+            }
+            groups
+        }
+
     /** 否定词数量(不/没/未/别/无/非)。 */
     private fun negationCount(text: String): Int =
         NEGATION_RE.findAll(text).count()

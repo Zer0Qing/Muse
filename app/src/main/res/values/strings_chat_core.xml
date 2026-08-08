@@ -12,6 +12,10 @@
     <string name="chat_context_no_window_detail">%1$d tokens(模型未声明上下文窗口)</string>
     <string name="chat_assistant_model_badge">助手模型: %1$s</string>
     <string name="chat_update_compress_cd">更新并压缩</string>
+    <!-- v1.0.72: Telegram 风格顶栏三点菜单 -->
+    <string name="chat_top_menu_cd">更多操作</string>
+    <string name="chat_select_provider">选择供应商</string>
+    <string name="chat_update_compress">压缩上下文</string>
     <string name="chat_scroll_to_bottom_cd">滚到底</string>
     <string name="chat_export_cd">导出对话</string>
     <string name="chat_export_format_title">选择导出格式</string>

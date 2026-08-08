@@ -56,6 +56,7 @@ androidxTestJunit = "1.2.1"
 leakcanary = "2.14"
 zxing = "3.5.3"
 mlkitBarcode = "17.3.0"
+camera = "1.3.4"
 
 [libraries]
 # AndroidX Core
@@ -158,6 +159,12 @@ androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version
 leakcanary-android = { group = "com.squareup.leakcanary", name = "leakcanary-android", version.ref = "leakcanary" }
 zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
 mlkit-barcode-scanning = { group = "com.google.mlkit", name = "barcode-scanning", version.ref = "mlkitBarcode" }
+
+# v1.0.72: CameraX — 加号菜单"拍照预览"(Telegram 风格实时取景)
+camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "camera" }
+camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camera" }
+camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camera" }
+camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camera" }
 
 [plugins]
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }

@@ -127,25 +127,6 @@ class UpdateNotifier(
         return android.app.PendingIntent.getActivity(context, 0, intent, flags)
     }
 
-    /**
-     * 从 PackageManager 读取当前应用的 versionName(如 "1.132")。
-     * 读取失败返回 "0",保证后续比较可执行。
-     */
-    private fun getCurrentVersionName(context: Context): String {
-        return resultOf {
-            val packageInfo = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                context.packageManager.getPackageInfo(
-                    context.packageName,
-                    android.content.pm.PackageManager.PackageInfoFlags.of(0),
-                )
-            } else {
-                @Suppress("DEPRECATION")
-                context.packageManager.getPackageInfo(context.packageName, 0)
-            }
-            packageInfo.versionName ?: "0"
-        }.getOrNull() ?: "0"
-    }
-
     companion object {
         private const val TAG = "UpdateNotifier"
         /** 通知 ID(避免与 MuseNotificationManager 现有 ID 冲突,选 9000 段)。 */
@@ -158,6 +139,25 @@ class UpdateNotifier(
          */
         fun compareVersions(current: String, latest: String): Int =
             UpdateChecker.compareVersions(current, latest)
+
+        /**
+         * v1.0.72: 读取当前应用 versionName(从 private 提升为 companion,供 UI 静态调用)。
+         * 读取失败返回 "0",保证后续比较可执行。
+         */
+        fun getCurrentVersionName(context: Context): String {
+            return resultOf {
+                val packageInfo = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                    context.packageManager.getPackageInfo(
+                        context.packageName,
+                        android.content.pm.PackageManager.PackageInfoFlags.of(0),
+                    )
+                } else {
+                    @Suppress("DEPRECATION")
+                    context.packageManager.getPackageInfo(context.packageName, 0)
+                }
+                packageInfo.versionName ?: "0"
+            }.getOrNull() ?: "0"
+        }
 
         /**
          * 构造用于打开 release 页面 URL 的 [Intent](ACTION_VIEW)。

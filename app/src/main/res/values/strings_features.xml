@@ -51,6 +51,13 @@
     <string name="groupchat_selected_members">已选 %1$d 个成员</string>
     <string name="groupchat_create_btn">创建</string>
     <string name="groupchat_edit_cd">编辑群聊</string>
+    <!-- v1.0.72: 三点菜单 -->
+    <string name="groupchat_search">搜索</string>
+    <string name="groupchat_edit_provider">编辑助手供应商</string>
+    <string name="groupchat_search_hint">搜索群聊消息</string>
+    <string name="groupchat_search_empty">没有找到相关消息</string>
+    <string name="groupchat_edit_provider_title">选择成员供应商</string>
+    <string name="groupchat_edit_provider_loading">正在配置...该成员使用默认模型</string>
     <string name="groupchat_edit">编辑</string>
     <string name="groupchat_edit_title">编辑群聊</string>
     <string name="groupchat_edit_btn">保存</string>

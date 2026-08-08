@@ -9,7 +9,13 @@ import kotlin.math.min
 /**
  * Phase 4 4D: 主动消息评分引擎 — 决定何时主动给用户发消息。
  *
- * 评分公式: score = timeWeight × silenceWeight × emotionWeight × noveltyWeight
+ * v1.0.72 评分公式修正:
+ * 旧公式 score = timeW × silenceW × emotionW × noveltyW(乘法)
+ *  → 因子连乘后数值过小(典型场景 0.01~0.05),阈值 0.6 几乎永远无法触发,
+ *    导致用户手机上主动消息"一直不发"(测试用 forceSend 直发所以看不出来)。
+ * 新公式 score = (timeW + silenceW + emotionW + noveltyW) / 4(加权平均)
+ *  → 各因子均衡参与,正常用户"隔几小时没聊"即可触发。
+ * 阈值从 0.6 降到 0.2(用户决策)。
  *
  * - timeWeight: 时间衰减(距离上次消息的时间)
  * - silenceWeight: 沉默期权重(新用户每3天,老用户每7天)
@@ -29,12 +35,17 @@ class ProactiveScoreEngine {
         private const val OLD_USER_INTERVAL_DAYS = 7
         private const val OLD_USER_THRESHOLD_DAYS = 30 // 使用30天以上算老用户
 
-        // 评分阈值 — 高于此值才发送
-        private const val SEND_THRESHOLD = 0.6f
+        // 评分阈值 — 高于此值才发送(v1.0.72: 0.6 → 0.2,配合加权平均公式)
+        private const val SEND_THRESHOLD = 0.2f
     }
 
     /**
      * 计算主动消息评分。
+     *
+     * v1.0.72: 乘法 → 加权平均,不设时间门槛。
+     *  - 加权平均: 各因子均衡参与,正常用户"隔几小时没聊"即可触发。
+     *  - 无硬性时间门槛: 发不发由评分 + 概率 + 发送间隔设置共同决定
+     *    (用户决策: 某些用户喜欢频繁主动消息,不写死"几小时内不发")。
      *
      * @param context 评分上下文(包含各种状态)
      * @return 0.0 ~ 1.0 之间的评分
@@ -45,7 +56,8 @@ class ProactiveScoreEngine {
         val emotionW = computeEmotionWeight(context)
         val noveltyW = computeNoveltyWeight(context)
 
-        val score = (timeW * silenceW * emotionW * noveltyW).coerceIn(0f, 1f)
+        // v1.0.72: 加权平均替代连乘 — 避免因子连乘后数值过小无法触发
+        val score = ((timeW + silenceW + emotionW + noveltyW) / 4f).coerceIn(0f, 1f)
         Logger.d(TAG, "Score: %.3f (time=%.2f silence=%.2f emotion=%.2f novelty=%.2f)".format(score, timeW, silenceW, emotionW, noveltyW))
         return score
     }
@@ -55,10 +67,13 @@ class ProactiveScoreEngine {
      *
      * v2.0 5.9: 每日上限改用 [ScoreContext.maxDailyMessages](可配置),
      * 替代硬编码的 [MAX_DAILY_MESSAGES]。ScoreContext 默认值仍为 3,向后兼容。
+     *
+     * v1.0.72: [currentHour] 可注入(默认真实时钟),供单元测试避开安静时段,
+     * 避免测试在 22:00-08:00 运行因时段拦截而失败。
      */
-    fun shouldSend(context: ScoreContext): Boolean {
+    fun shouldSend(context: ScoreContext, currentHour: Int = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)): Boolean {
         // 安静时段检查
-        if (isQuietHour()) {
+        if (isQuietHour(currentHour)) {
             Logger.d(TAG, "Quiet hours, skipping")
             return false
         }

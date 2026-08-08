@@ -165,6 +165,7 @@ class MuseDbMigrationTest {
                     MuseDb.MIGRATION_74_75,
                     MuseDb.migrate75To76(imageStorageDir),
                     MuseDb.migrate76To77(),
+                    MuseDb.MIGRATION_77_78,
                 )
                 .allowMainThreadQueries()
                 .build()
@@ -252,6 +253,7 @@ class MuseDbMigrationTest {
                     MuseDb.MIGRATION_74_75,
                     MuseDb.migrate75To76(imageStorageDir),
                     MuseDb.migrate76To77(),
+                    MuseDb.MIGRATION_77_78,
                 )
                 .allowMainThreadQueries()
                 .build()
@@ -361,6 +363,7 @@ class MuseDbMigrationTest {
                 .addMigrations(
                     MuseDb.migrate75To76(imageDir),
                     MuseDb.migrate76To77(),
+                    MuseDb.MIGRATION_77_78,
                 )
                 .allowMainThreadQueries()
                 .build()
@@ -405,7 +408,7 @@ class MuseDbMigrationTest {
                 MuseDb::class.java,
                 dbFile.absolutePath,
             )
-                .addMigrations(MuseDb.migrate76To77())
+                .addMigrations(MuseDb.migrate76To77(), MuseDb.MIGRATION_77_78)
                 .allowMainThreadQueries()
                 .build()
             db.openHelper.writableDatabase.query(

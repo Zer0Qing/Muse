@@ -15,6 +15,7 @@ import io.zer0.muse.data.AgentTeam
 import io.zer0.muse.schedule.GroupChatScheduler
 import io.zer0.common.Logger
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -77,6 +78,9 @@ data class GroupChatUiState(
     val selectedMessageIds: Set<String> = emptySet(),
     /** v1.x: 当前群聊正在流式生成的助手回复内容(null=无流式输出)。 */
     val streamingContent: String? = null,
+    /** v1.0.72: 群聊搜索状态。 */
+    val searchResults: List<GroupChatMessageEntity> = emptyList(),
+    val isSearching: Boolean = false,
     /**
      * v1.53-GC: 最近一次"加载更多"插入的历史条数。
      *
@@ -122,6 +126,7 @@ class GroupChatViewModel(
     private val settings: SettingsRepository,
     private val activityHub: GroupChatActivityHub,
     private val appContext: Context,
+    private val groupChatMemoryRepository: io.zer0.muse.data.groupchat.GroupChatMemoryRepository? = null,
 ) : ViewModel() {
 
     companion object {
@@ -694,6 +699,68 @@ class GroupChatViewModel(
     }
 
     /**
+     * v1.0.72: 清空指定群聊的群聊记忆(风格残留清理)。
+     *
+     * 群聊记忆独立于主记忆系统(用户删主记忆删不到这里),
+     * 历史测试期的欠揍风格可能残留在摘要里并被注入 system prompt,
+     * 提供显式清空入口让用户一键清除。
+     *
+     * @param chatId 群聊 id
+     */
+    fun clearChatMemory(chatId: String) {
+        viewModelScope.launch {
+            try {
+                groupChatMemoryRepository?.deleteByGroupChat(chatId)
+                Logger.i(TAG, "已清空群聊记忆: $chatId")
+            } catch (e: Exception) {
+                Logger.e(TAG, "清空群聊记忆失败", e)
+                _state.update { it.copy(errorMessage = "清空群聊记忆失败") }
+            }
+        }
+    }
+
+    /**
+     * v1.0.72: 群聊内搜索消息(关键词匹配正文,按时间倒序)。
+     *
+     * @param query 搜索关键词,空白时清空结果
+     */
+    fun searchMessages(query: String) {
+        val chatId = currentChatId.value ?: return
+        if (query.isBlank()) {
+            _state.update { it.copy(searchResults = emptyList(), isSearching = false) }
+            return
+        }
+        _state.update { it.copy(isSearching = true) }
+        viewModelScope.launch {
+            try {
+                val results = groupChatRepository.searchMessages(chatId, query)
+                _state.update { it.copy(searchResults = results, isSearching = false) }
+            } catch (e: Exception) {
+                if (e is kotlin.coroutines.cancellation.CancellationException) throw e
+                Logger.e(TAG, "群聊搜索失败", e)
+                _state.update { it.copy(searchResults = emptyList(), isSearching = false) }
+            }
+        }
+    }
+
+    /**
+     * v1.0.72: 更新指定助手的供应商/模型(per-assistant,群聊"编辑助手供应商"用)。
+     */
+    fun updateAssistantModel(assistantId: String, providerId: String?, modelId: String?) {
+        viewModelScope.launch {
+            try {
+                val current = assistantRepository.getById(assistantId) ?: return@launch
+                assistantRepository.upsert(
+                    current.copy(providerId = providerId, modelId = modelId),
+                )
+            } catch (e: Exception) {
+                if (e is kotlin.coroutines.cancellation.CancellationException) throw e
+                Logger.e(TAG, "更新助手模型失败", e)
+            }
+        }
+    }
+
+    /**
      * v1.77: 删除群聊中的单条消息。
      *
      * @param messageId 消息 id
@@ -734,6 +801,22 @@ class GroupChatViewModel(
                 val next = if (messageId in current) current - messageId else current + messageId
                 state.copy(selectedMessageIds = next)
             }
+        }
+    }
+
+    /**
+     * v1.0.72: 搜索点击跳转 — 滚动到目标消息位置并高亮。
+     * 简单实现:在 currentMessages 中定位消息 index,UI 侧监听 jumpTargetId 滚动。
+     */
+    private val _jumpTargetId = MutableStateFlow<String?>(null)
+    val jumpTargetId: StateFlow<String?> = _jumpTargetId.asStateFlow()
+
+    fun jumpToMessage(messageId: String) {
+        _jumpTargetId.value = messageId
+        // 短暂高亮后清除
+        viewModelScope.launch {
+            delay(3000)
+            if (_jumpTargetId.value == messageId) _jumpTargetId.value = null
         }
     }
 

@@ -217,6 +217,8 @@ fun NavGraphBuilder.chatNavGraph(
                     navController.navigate(HtmlPreviewRoute(html))
                 },
                 onOpenPromptTemplateManager = { navController.navigate(PromptTemplateManagerRoute) },
+                // v1.0.72: 编辑助手供应商 → 模型与服务设置页
+                onEditAssistantProvider = { navController.navigate(io.zer0.muse.ui.navigation.SettingsModelRoute) },
         )
     }
     // 定时任务(首页大方块入口)

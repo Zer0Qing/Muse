@@ -96,4 +96,11 @@ data class MessageEntity(
     @ColumnInfo(defaultValue = "NULL") val parentGroupId: String? = null,
     /** v1.0.47: 消息附件列表(JSON 序列化 [io.zer0.ai.core.AttachmentRef])。 */
     @ColumnInfo(defaultValue = "[]") val attachmentsJson: String = "[]",
+    /**
+     * v1.0.72: 工具调用卡片信息(JSON 序列化 [io.zer0.ai.core.ToolCallInfo])。
+     *
+     * 修复:此前 toolCallInfo 不持久化,重启后工具调用历史丢失,
+     * 表现为"已中断"而非"调用"。现在随消息落库,重启后 ToolCallCard 正常显示。
+     */
+    @ColumnInfo(defaultValue = "NULL") val toolCallInfoJson: String? = null,
 )

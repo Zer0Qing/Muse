@@ -28,8 +28,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -46,6 +48,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import compose.icons.TablerIcons
 import compose.icons.tablericons.AlertCircle
@@ -62,7 +65,10 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -117,6 +123,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.window.Popup
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.ai.core.MessageRole
@@ -641,42 +650,48 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
     }
 
     Scaffold(
+        // v1.0.72 fix: 显式清零内容区 insets — 嵌套在 HomeScreen 时,
+        //   默认 systemBars insets 会让 Agent 模式(topBar 为空)内容区顶部多出
+        //   状态栏高度留白。状态栏/导航栏 padding 由各层自行处理(topBar/InputBar)。
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             // v1.24: Agent Tab 模式下隐藏自带顶部栏,减少双层导航栏的间距感
             if (!isAgentMode) {
-                // iOS/MANUS 风格顶部栏:居中大标题 + 关系副标题,右侧模型胶囊 + 导出按钮
-                Surface(
-                    shadowElevation = 0.dp,
-                    color = MaterialTheme.colorScheme.background,
+                // v1.0.72: Telegram 风格顶栏 — 三个独立"岛"(返回/标题/三点菜单)
+                // v1.0.72 fix: 去掉全宽背景遮罩 — 三岛直接悬浮在消息列表上,
+                //   消息可以滚动到岛后面(与 Telegram 一致),背景透明无遮罩块。
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .statusBarsPadding(),
+                        .statusBarsPadding()
+                        .padding(horizontal = MusePaddings.screen, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = MusePaddings.screen, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
-                    ) {
-                        // 左侧返回按钮(从任务列表 push 进入时显示)
+                        // ── 左岛:返回按钮(独立圆角胶囊) ──
                         if (onBack != null) {
-                            IconButton(
-                                onClick = onBack,
-                                modifier = Modifier.size(MuseIconSizes.touchTarget),
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                modifier = Modifier.size(42.dp),
                             ) {
-                                Icon(
-                                    imageVector = TablerIcons.ArrowLeft,
-                                    contentDescription = stringResource(R.string.action_back),
-                                    tint = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.size(MuseIconSizes.iconMedium),
-                                )
+                                Box(
+                                    modifier = Modifier.fillMaxSize().clickable(onClick = onBack),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        imageVector = TablerIcons.ArrowLeft,
+                                        contentDescription = stringResource(R.string.action_back),
+                                        tint = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.size(MuseIconSizes.iconMedium),
+                                    )
+                                }
                             }
                         } else {
-                            Spacer(Modifier.width(MuseIconSizes.touchTarget))
+                            Spacer(Modifier.width(42.dp))
                         }
 
-                        // 居中标题区
+                        // ── 中岛:标题(独立圆角胶囊,weight 1f 居中) ──
                         val currentSession = remember(state.sessions, state.currentSessionId) {
                             state.sessions.find { it.id == state.currentSessionId }
                         }
@@ -688,111 +703,133 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                             ?: stringResource(R.string.chat_model_not_configured)
                         val currentModelName = rawModelName.substringAfterLast("/").takeIf { it.isNotBlank() } ?: rawModelName
                         val sessionTitleInteractionSource = remember { MutableInteractionSource() }
-                        Column(
-                            modifier = Modifier
-                                .weight(1f)
-                                // v1.136 T1: 点击=切换会话,长按=更换助手
-                                .combinedClickable(
-                                    interactionSource = sessionTitleInteractionSource,
-                                    indication = null,
-                                    onClick = { sheetState.showSessionSheet = true },
-                                    onLongClick = { sheetState.showAssistantSwitchSheet = true },
-                                )
-                                .semantics { contentDescription = sessionCd },
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center,
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            modifier = Modifier.weight(1f).height(42.dp),
                         ) {
-                            Text(
-                                text = sessionTitle,
-                                style = MaterialTheme.typography.titleLarge.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 22.sp, // 有意豁免:会话标题固定 22sp,保持原头部视觉基线
-                                ),
-                                color = MaterialTheme.colorScheme.onBackground,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            // 关系时长副标题:陪伴 X 天 · 模型名
-                            currentSession?.let { s ->
-                                val days = (System.currentTimeMillis() - s.createdAt) / (24 * 60 * 60 * 1000)
-                                val daysText = if (days <= 0L) {
-                                    stringResource(R.string.chat_companion_days_zero)
-                                } else {
-                                    stringResource(R.string.chat_companion_days, days.toInt())
-                                }
-                                Text(
-                                    text = "$daysText · $currentModelName",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
-                            // AI 调用浏览器时显示状态胶囊:点击可全屏查看实时页面
-                            BrowserStatusCapsule(
-                                manager = currentBrowserManager,
-                                modifier = Modifier.padding(top = 6.dp),
-                            )
-                        }
-
-                        // 右侧操作区:模型胶囊 + 压缩上下文按钮
-                        // v1.0.29: 模型选择改为圆形小胶囊,节省顶部空间让标题完整显示。
-                        // 当前模型名仍展示在副标题"陪伴 X 天 · 模型名"中。
-                        val modelCd = stringResource(R.string.chat_model_cd, currentModelName)
-                        if (state.taskRoutingEnabled) {
-                            Surface(
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    // v1.136 T1: 点击=切换会话,长按=更换助手
+                                    .combinedClickable(
+                                        interactionSource = sessionTitleInteractionSource,
+                                        indication = null,
+                                        onClick = { sheetState.showSessionSheet = true },
+                                        onLongClick = { sheetState.showAssistantSwitchSheet = true },
+                                    )
+                                    .semantics { contentDescription = sessionCd },
+                                contentAlignment = Alignment.Center,
                             ) {
-                                Text(
-                                    text = stringResource(R.string.chat_routing_badge),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    maxLines = 1,
-                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
-                                )
-                            }
-                        }
-                        Box(
-                            modifier = Modifier
-                                .size(MuseIconSizes.touchTarget)
-                                .clickable(enabled = !isStreaming) { sheetState.showModelSheet = true }
-                                .semantics { contentDescription = modelCd },
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Surface(
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                                modifier = Modifier.size(32.dp),
-                            ) {
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center,
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center,
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.AutoAwesome,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurface,
-                                        modifier = Modifier.size(18.dp),
+                                    Text(
+                                        text = sessionTitle,
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            fontWeight = FontWeight.Bold,
+                                        ),
+                                        color = MaterialTheme.colorScheme.onBackground,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                    // 关系时长副标题:陪伴 X 天 · 模型名
+                                    currentSession?.let { s ->
+                                        val days = (System.currentTimeMillis() - s.createdAt) / (24 * 60 * 60 * 1000)
+                                        val daysText = if (days <= 0L) {
+                                            stringResource(R.string.chat_companion_days_zero)
+                                        } else {
+                                            stringResource(R.string.chat_companion_days, days.toInt())
+                                        }
+                                        Text(
+                                            text = "$daysText · $currentModelName",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                        )
+                                    }
+                                    // AI 调用浏览器时显示状态胶囊:点击可全屏查看实时页面
+                                    BrowserStatusCapsule(
+                                        manager = currentBrowserManager,
+                                        modifier = Modifier.padding(top = 2.dp),
                                     )
                                 }
                             }
                         }
-                        // 压缩上下文按钮(手动触发会话历史压缩 + 记忆更新)
-                        IconButton(
-                            onClick = { viewModel.manualCompress(updateMemoryFirst = true) },
-                            enabled = !isStreaming && !state.isCompressing && messages.size >= 2,
-                            modifier = Modifier.size(MuseIconSizes.touchTarget),
+
+                        // ── 右岛:三点菜单(独立圆角胶囊,收纳"选择供应商"/"压缩上下文") ──
+                        // v1.0.72: 菜单项改为圆形胶囊样式(自定义 Popup,替代原生 DropdownMenu)
+                        val modelCd = stringResource(R.string.chat_model_cd, currentModelName)
+                        var showTopMenu by remember { mutableStateOf(false) }
+                        Box(
+                            modifier = Modifier.size(42.dp),
+                            contentAlignment = Alignment.Center,
                         ) {
-                            Icon(
-                                imageVector = TablerIcons.GitMerge,
-                                contentDescription = stringResource(R.string.chat_update_compress_cd),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(MuseIconSizes.iconMedium),
-                            )
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                modifier = Modifier.fillMaxSize(),
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clickable(enabled = !isStreaming) { showTopMenu = true }
+                                        .semantics { contentDescription = modelCd },
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.MoreVert,
+                                        contentDescription = stringResource(R.string.chat_top_menu_cd),
+                                        tint = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.size(MuseIconSizes.iconMedium),
+                                    )
+                                }
+                            }
+                            // 自定义胶囊菜单(Popup 定位,两项竖排圆形胶囊)
+                            if (showTopMenu) {
+                                Popup(
+                                    onDismissRequest = { showTopMenu = false },
+                                    alignment = Alignment.TopEnd,
+                                    offset = IntOffset(0, 4),
+                                ) {
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.surface,
+                                        shape = RoundedCornerShape(20.dp),
+                                        shadowElevation = 8.dp,
+                                        tonalElevation = 4.dp,
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.padding(6.dp),
+                                            horizontalAlignment = Alignment.End,
+                                        ) {
+                                            // 选择供应商(胶囊)
+                                            TopMenuCapsule(
+                                                icon = Icons.Outlined.AutoAwesome,
+                                                text = stringResource(R.string.chat_select_provider),
+                                                enabled = !isStreaming,
+                                                onClick = {
+                                                    showTopMenu = false
+                                                    sheetState.showModelSheet = true
+                                                },
+                                            )
+                                            // 压缩上下文(胶囊)
+                                            TopMenuCapsule(
+                                                icon = TablerIcons.GitMerge,
+                                                text = stringResource(R.string.chat_update_compress),
+                                                enabled = !isStreaming && !state.isCompressing && messages.size >= 2,
+                                                onClick = {
+                                                    showTopMenu = false
+                                                    viewModel.manualCompress(updateMemoryFirst = true)
+                                                },
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
-                }
             }
         },
         bottomBar = {
@@ -852,7 +889,11 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                     }
                 },
                 onStop = viewModel::stop,
-                replyingTo = state.replyingTo,
+                replyingTo = state.replyingTo?.let { r ->
+                    // v1.0.72 fix: 引用块用最新消息对象 — 流式消息内容实时更新,
+                    // 引用时捕获的旧对象可能 content 为空(第一条消息引用 UI 为空的根因)
+                    messages.find { it.id == r.id } ?: r
+                },
                 onClearReply = { viewModel.setReplyingTo(null) },
                 replyQuoteOverride = state.replyQuoteOverride,
                 onEditReply = { viewModel.setReplyQuoteOverride(it) },
@@ -1025,10 +1066,14 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
             }
             // 无 AI 回复时静默不操作(避免引入未本地化的 toast 字符串)
         }
+        // v1.0.72: 顶部悬浮岛高度 — 提示/横幅 overlay 让位,避免被三岛遮挡
+        val topInset = innerPadding.calculateTopPadding()
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                // v1.0.72 fix: 去掉 top padding — 内容区延伸到顶部三岛后面,
+                //   消息列表可以滚动到悬浮岛后面(Telegram 效果),底部 padding 保留
+                .padding(bottom = innerPadding.calculateBottomPadding())
                 // P2-13: 桌面端快捷键 — Ctrl+Shift+C 复制最后一条 AI 回复
                 // 仅在物理键盘 + Expanded 窗口下生效,避免与软键盘 IME Action 冲突
                 .onKeyEvent { event ->
@@ -1066,6 +1111,8 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                     onExit = { viewModel.setSelectionMode(false) },
                     modifier = Modifier
                         .align(Alignment.TopCenter)
+                        // v1.0.72: 让位悬浮三岛(不遮挡)
+                        .padding(top = topInset)
                         .fillMaxWidth()
                         .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.contentGap)
                         .zIndex(10f),
@@ -1171,7 +1218,9 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                         ),
                     // M-CS5: 消息间距用 MusePaddings.messageGap 令牌(iOS 风格呼吸感)
                     verticalArrangement = Arrangement.spacedBy(MusePaddings.messageGap),
-                    contentPadding = PaddingValues(bottom = MusePaddings.screen),
+                    // v1.0.72: 顶部让位给悬浮三岛(滚动到底时消息在岛下方,
+                    //   滚到顶时消息可进入岛后面),底部保留常规间距
+                    contentPadding = PaddingValues(top = innerPadding.calculateTopPadding(), bottom = MusePaddings.screen),
                 ) {
                     // v1.0.47 P6: Agent Mode 提示卡片 — 会话锁定/弱工具降级/Agent Mode 提示。
                     // v1.0.54: 去掉"Agent 模式已锁定会话"提示(用户反馈不需要),仅保留降级/提示。
@@ -1275,14 +1324,11 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                         if (showDateSeparator) {
                             DateSeparator(timestamp = msg.createdAt)
                         }
-                        // B7-06: 消息左右滑快捷操作(右滑编辑/左滑引用),多选与流式时不触发
+                        // B7-06: 消息左右滑快捷操作。
+                        // v1.0.72: 取消"右滑编辑"(用户决策,没什么用),仅保留"左滑引用"。
                         val messageSwipeState = rememberSwipeToDismissBoxState(
                             confirmValueChange = { value ->
                                 when (value) {
-                                    SwipeToDismissBoxValue.StartToEnd -> {
-                                        onEdit()
-                                        false
-                                    }
                                     SwipeToDismissBoxValue.EndToStart -> {
                                         onQuote()
                                         false
@@ -1293,12 +1339,12 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                         )
                         SwipeToDismissBox(
                             state = messageSwipeState,
-                            enableDismissFromStartToEnd = !state.selectionMode,
+                            // v1.0.72: 右滑编辑已取消,仅保留左滑引用
+                            enableDismissFromStartToEnd = false,
                             enableDismissFromEndToStart = !state.selectionMode,
                             backgroundContent = {
                                 val direction = messageSwipeState.dismissDirection
                                 val icon = when (direction) {
-                                    SwipeToDismissBoxValue.StartToEnd -> TablerIcons.Edit
                                     SwipeToDismissBoxValue.EndToStart -> TablerIcons.MessageCircle
                                     else -> null
                                 }
@@ -1306,7 +1352,6 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                                     modifier = Modifier
                                         .fillMaxSize(),
                                     contentAlignment = when (direction) {
-                                        SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
                                         SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
                                         else -> Alignment.Center
                                     },
@@ -1584,7 +1629,7 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                 visible = state.pendingToolCallCount > 0 && !isStreaming,
                 enter = fadeIn() + expandVertically(),
                 exit = fadeOut() + shrinkVertically(),
-                modifier = Modifier.align(Alignment.TopCenter),
+                modifier = Modifier.align(Alignment.TopCenter).padding(top = topInset),
             ) {
                 val pendingCd = stringResource(R.string.chat_pending_tools_cd)
                 Surface(
@@ -1648,7 +1693,7 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                 visible = state.isCompressing,
                 enter = fadeIn() + expandVertically(),
                 exit = fadeOut() + shrinkVertically(),
-                modifier = Modifier.align(Alignment.TopCenter),
+                modifier = Modifier.align(Alignment.TopCenter).padding(top = topInset),
             ) {
                 Surface(
                     color = MaterialTheme.colorScheme.tertiaryContainer,
@@ -1685,7 +1730,7 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                 visible = runningDelegateCount > 0 && !state.isCompressing,
                 enter = fadeIn() + expandVertically(),
                 exit = fadeOut() + shrinkVertically(),
-                modifier = Modifier.align(Alignment.TopCenter),
+                modifier = Modifier.align(Alignment.TopCenter).padding(top = topInset),
             ) {
                 Surface(
                     color = MaterialTheme.colorScheme.tertiaryContainer,
@@ -1720,7 +1765,7 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                 visible = state.errors.isNotEmpty(),
                 enter = fadeIn() + expandVertically(),
                 exit = fadeOut() + shrinkVertically(),
-                modifier = Modifier.align(Alignment.TopCenter),
+                modifier = Modifier.align(Alignment.TopCenter).padding(top = topInset),
             ) {
                 Box(
                     modifier = Modifier.fillMaxWidth(),
@@ -1790,3 +1835,52 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
         )
         } // Scaffold
 } // ChatScreen
+
+/**
+ * v1.0.72: 顶栏三点菜单的胶囊选项(圆形胶囊:图标 + 文字)。
+ */
+@Composable
+private fun TopMenuCapsule(
+    icon: ImageVector,
+    text: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    Surface(
+        shape = CircleShape,
+        color = if (enabled) {
+            MaterialTheme.colorScheme.surfaceVariant
+        } else {
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+        },
+        modifier = Modifier
+            .padding(vertical = 3.dp)
+            .clickable(enabled = enabled, onClick = onClick),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (enabled) {
+                    MaterialTheme.colorScheme.onSurface
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                },
+                modifier = Modifier.size(18.dp),
+            )
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (enabled) {
+                    MaterialTheme.colorScheme.onSurface
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                },
+            )
+        }
+    }
+}

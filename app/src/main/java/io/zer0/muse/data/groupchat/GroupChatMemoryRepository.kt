@@ -90,4 +90,23 @@ class GroupChatMemoryRepository(
         resultOf { dao.deleteByGroupChat(groupChatId) }
             .onError { msg, t -> Logger.w(TAG, "删除群聊记忆失败: $msg", t) }
     }
+
+    /** v1.0.72: 查询全部群聊记忆(记忆中心展示)。 */
+    suspend fun getAll(): List<GroupChatMemoryEntity> = withContext(Dispatchers.IO) {
+        resultOf { dao.getAll() }
+            .onError { msg, t -> Logger.w(TAG, "读取全部群聊记忆失败: $msg", t) }
+            .getOrNull() ?: emptyList()
+    }
+
+    /** v1.0.72: 删除单条群聊记忆(记忆中心单条删除)。 */
+    suspend fun deleteById(id: String) = withContext(Dispatchers.IO) {
+        resultOf { dao.deleteById(id) }
+            .onError { msg, t -> Logger.w(TAG, "删除单条群聊记忆失败: $msg", t) }
+    }
+
+    /** v1.0.72: 清空全部群聊记忆(记忆中心一键清空)。 */
+    suspend fun deleteAll() = withContext(Dispatchers.IO) {
+        resultOf { dao.deleteAll() }
+            .onError { msg, t -> Logger.w(TAG, "清空全部群聊记忆失败: $msg", t) }
+    }
 }

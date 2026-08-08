@@ -7,7 +7,22 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import android.os.Build
+import androidx.core.content.ContextCompat
+import io.zer0.muse.ui.ModelSwitchSheet
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextAlign
+import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.theme.MuseIconSizes
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Arrangement
@@ -29,7 +44,21 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.window.Popup
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -118,6 +147,8 @@ fun GroupChatDetailScreen(
     onHtmlPreview: (String) -> Unit = {},
     /** B0-07: 打开提示词模板管理页。 */
     onOpenPromptTemplateManager: () -> Unit = {},
+    /** v1.0.72: 编辑助手供应商(跳模型与服务设置页)。 */
+    onEditAssistantProvider: (String) -> Unit = {},
     viewModel: GroupChatViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -137,6 +168,10 @@ fun GroupChatDetailScreen(
     var showToolSheet by rememberSaveable { mutableStateOf(false) }
     // v1.97: 群聊编辑对话框
     var showEditDialog by rememberSaveable { mutableStateOf(false) }
+    // v1.0.72: 三点菜单功能
+    var showSearchDialog by rememberSaveable { mutableStateOf(false) }
+    var showProviderDialog by rememberSaveable { mutableStateOf(false) }
+    var providerTargetAssistantId by remember { mutableStateOf<String?>(null) }
     // v1.77: 消息长按菜单 + 删除确认
     var messageMenuTarget by remember { mutableStateOf<GroupChatMessageEntity?>(null) }
     var deleteMessageTarget by remember { mutableStateOf<GroupChatMessageEntity?>(null) }
@@ -215,6 +250,74 @@ fun GroupChatDetailScreen(
     val settings: io.zer0.muse.data.SettingsRepository = org.koin.compose.koinInject()
     val promptTemplates by settings.promptTemplatesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
 
+    // v1.0.72: 加号菜单媒体区 — 相册/相机权限 + 拍照 + 相册缩略图点击
+    val galleryPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        android.Manifest.permission.READ_MEDIA_IMAGES
+    } else {
+        android.Manifest.permission.READ_EXTERNAL_STORAGE
+    }
+    var hasGalleryPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, galleryPermission) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED,
+        )
+    }
+    val galleryPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted -> hasGalleryPermission = granted }
+
+    // 拍照:系统相机(TakePicture 不需要 CAMERA 权限,FileProvider 保存)
+    var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
+
+    // 相册缩略图/拍照结果 → 压缩 base64 → 加入待发送
+    fun loadUriToPending(uri: Uri) {
+        scope.launch {
+            try {
+                val dataUri = withContext(Dispatchers.IO) {
+                    val bytes = readImageBytes(context, uri)
+                    val boundsOptions = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                    BitmapFactory.decodeByteArray(bytes, 0, bytes.size, boundsOptions)
+                    if (boundsOptions.outWidth <= 0 || boundsOptions.outHeight <= 0) {
+                        throw IllegalStateException("无法解析图片尺寸")
+                    }
+                    val maxDim = maxOf(boundsOptions.outWidth, boundsOptions.outHeight)
+                    var sampleSize = 1
+                    while (maxDim / sampleSize > 1024) sampleSize *= 2
+                    val decodeOptions = BitmapFactory.Options().apply { inSampleSize = sampleSize }
+                    val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, decodeOptions)
+                        ?: throw IllegalStateException("无法解码图片")
+                    try { encodeBitmapToBase64(bitmap) } finally { bitmap.recycle() }
+                }
+                viewModel.addPendingImage("data:image/jpeg;base64,$dataUri")
+            } catch (t: Throwable) {
+                if (t is kotlinx.coroutines.CancellationException) throw t
+                Logger.w("GroupChatDetail", "图片读取失败: ${t.message}", t)
+            }
+        }
+    }
+
+    val takePictureLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.TakePicture(),
+    ) { success ->
+        val uri = pendingCameraUri
+        if (success && uri != null) {
+            loadUriToPending(uri)
+        }
+        pendingCameraUri = null
+    }
+
+    // 拍照入口:创建 FileProvider uri 并调系统相机
+    fun startCameraCapture() {
+        val file = java.io.File.createTempFile("muse_group_capture_", ".jpg", context.cacheDir)
+        val uri = androidx.core.content.FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            file,
+        )
+        pendingCameraUri = uri
+        takePictureLauncher.launch(uri)
+    }
+
     // 进入页面时选中该群聊(加载消息流)
     LaunchedEffect(chatId) {
         viewModel.selectChat(chatId)
@@ -287,43 +390,108 @@ fun GroupChatDetailScreen(
         // 再应用一次 imePadding 导致双重 padding(发送按钮被推到不可点击位置)
         contentWindowInsets = WindowInsets(0),
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = chatName,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.groupchat_back),
-                        )
+            // v1.0.72: 三岛顶栏(返回 / 群聊名 / 三点菜单),与单聊 Telegram 风格统一
+            // v1.0.72 fix: 去掉全宽背景遮罩 — 三岛悬浮在消息列表上(与 Telegram 一致)
+            // 三点菜单: 搜索 / 编辑群聊 / 编辑助手供应商
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .padding(horizontal = MusePaddings.screen, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+            ) {
+                    // 左岛:返回
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier.size(42.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier.fillMaxSize().clickable(onClick = onBack),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = TablerIcons.ArrowLeft,
+                                contentDescription = stringResource(R.string.groupchat_back),
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(MuseIconSizes.iconMedium),
+                            )
+                        }
                     }
-                },
-                actions = {
-                    IconButton(onClick = { showMembersDialog = true }) {
-                        Icon(
-                            imageVector = Icons.Filled.Group,
-                            contentDescription = stringResource(R.string.groupchat_members_cd),
-                        )
+                    // 中岛:群聊名
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier.weight(1f).height(42.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = chatName,
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
                     }
-                    IconButton(onClick = { showEditDialog = true }) {
-                        Icon(
-                            imageVector = Icons.Filled.Edit,
-                            contentDescription = stringResource(R.string.groupchat_edit_cd),
-                        )
+                    // 右岛:三点菜单
+                    var showTopMenu by rememberSaveable { mutableStateOf(false) }
+                    Box(
+                        modifier = Modifier.size(42.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            modifier = Modifier.fillMaxSize(),
+                        ) {
+                            Box(
+                                modifier = Modifier.fillMaxSize().clickable { showTopMenu = true },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.MoreVert,
+                                    contentDescription = stringResource(R.string.chat_top_menu_cd),
+                                    tint = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                                )
+                            }
+                        }
+                        if (showTopMenu) {
+                            Popup(
+                                onDismissRequest = { showTopMenu = false },
+                                alignment = Alignment.TopEnd,
+                                offset = IntOffset(0, 4),
+                            ) {
+                                Surface(
+                                    color = MaterialTheme.colorScheme.surface,
+                                    shape = RoundedCornerShape(20.dp),
+                                    shadowElevation = 8.dp,
+                                    tonalElevation = 4.dp,
+                                ) {
+                                    Column(modifier = Modifier.padding(6.dp)) {
+                                        GroupTopMenuCapsule(Icons.Outlined.Search, stringResource(R.string.groupchat_search)) {
+                                            showTopMenu = false
+                                            showSearchDialog = true
+                                        }
+                                        GroupTopMenuCapsule(TablerIcons.Edit, stringResource(R.string.groupchat_edit_cd)) {
+                                            showTopMenu = false
+                                            showEditDialog = true
+                                        }
+                                        GroupTopMenuCapsule(Icons.Outlined.AutoAwesome, stringResource(R.string.groupchat_edit_provider)) {
+                                            showTopMenu = false
+                                            showProviderDialog = true
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    scrolledContainerColor = MaterialTheme.colorScheme.background,
-                ),
-            )
+            }
         },
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
@@ -462,10 +630,14 @@ fun GroupChatDetailScreen(
                 state = listState,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding),
+                    // v1.0.72: 不 pad top — 消息列表延伸到顶部悬浮岛后面(Telegram 效果)
+                    .padding(bottom = innerPadding.calculateBottomPadding()),
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                    horizontal = MusePaddings.screen,
-                    vertical = MusePaddings.itemGap,
+                    start = MusePaddings.screen,
+                    end = MusePaddings.screen,
+                    // v1.0.72: 顶部让位给悬浮三岛
+                    top = innerPadding.calculateTopPadding(),
+                    bottom = MusePaddings.itemGap,
                 ),
                 verticalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
             ) {
@@ -606,6 +778,12 @@ fun GroupChatDetailScreen(
                 viewModel.updateInput("$current$prefix@")
             },
             onEditGroup = { showEditDialog = true },
+            // v1.0.72: 媒体区参数
+            hasGalleryPermission = hasGalleryPermission,
+            galleryPermission = galleryPermission,
+            onRequestGalleryPermission = { galleryPermissionLauncher.launch(galleryPermission) },
+            onPickGalleryImage = { uri -> loadUriToPending(uri) },
+            onCaptureImage = { startCameraCapture() },
             onDismiss = { showToolSheet = false },
         )
     }
@@ -697,65 +875,251 @@ fun GroupChatDetailScreen(
         )
     }
 
-    // v2.x: 消息长按操作菜单(复制 / 重新生成 / 引用回复 / 悄悄话 / 删除)
-    messageMenuTarget?.let { msg ->
+    // v1.0.72: 群聊搜索对话框(三点菜单 → 搜索)
+    if (showSearchDialog) {
+        var query by rememberSaveable { mutableStateOf("") }
+        // 防抖搜索:停止输入 300ms 后触发
+        LaunchedEffect(query) {
+            delay(300)
+            viewModel.searchMessages(query)
+        }
         MuseDialog(
-            onDismissRequest = { messageMenuTarget = null },
-            title = if (msg.senderType == "user") stringResource(R.string.groupchat_my_message) else msg.senderName,
+            onDismissRequest = {
+                showSearchDialog = false
+                viewModel.searchMessages("")
+            },
+            title = stringResource(R.string.groupchat_search),
             content = {
-                Column {
-                    TextButton(onClick = {
-                        messageMenuTarget = null
-                        val clipboard = context.getSystemService(android.content.ClipboardManager::class.java)
-                        clipboard?.setPrimaryClip(android.content.ClipData.newPlainText("message", msg.body))
-                        io.zer0.muse.ui.common.feedback.MuseToast.show(context.getString(R.string.groupchat_copied))
-                    }) {
-                        Text(stringResource(R.string.groupchat_copy))
-                    }
-                    // v2.x: AI 消息 → 重新生成
-                    if (msg.senderType == "assistant") {
-                        TextButton(onClick = {
-                            messageMenuTarget = null
-                            viewModel.regenerateAgentMessage(msg.senderId)
-                        }) {
-                            Text(stringResource(R.string.groupchat_regenerate))
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    MuseTextField(
+                        value = query,
+                        onValueChange = { query = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text(stringResource(R.string.groupchat_search_hint)) },
+                        singleLine = true,
+                    )
+                    Spacer(Modifier.height(MusePaddings.contentGap))
+                    if (state.isSearching) {
+                        Box(modifier = Modifier.fillMaxWidth().padding(12.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                         }
-                    }
-                    // v2.x: 引用回复
-                    TextButton(onClick = {
-                        messageMenuTarget = null
-                        replyToMessage = msg
-                    }) {
-                        Text(stringResource(R.string.groupchat_reply))
-                    }
-                    // v1.x: 多选
-                    TextButton(onClick = {
-                        messageMenuTarget = null
-                        viewModel.startSelection(msg.id)
-                    }) {
-                        Text(stringResource(R.string.groupchat_select))
-                    }
-                    // v2.x: AI 消息 → 悄悄话
-                    if (msg.senderType == "assistant") {
-                        TextButton(onClick = {
-                            messageMenuTarget = null
-                            whisperTarget = msg
-                        }) {
-                            Text(stringResource(R.string.groupchat_whisper))
+                    } else if (query.isNotBlank() && state.searchResults.isEmpty()) {
+                        Text(
+                            text = stringResource(R.string.groupchat_search_empty),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                            textAlign = TextAlign.Center,
+                        )
+                    } else {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 320.dp)
+                                .verticalScroll(rememberScrollState()),
+                        ) {
+                            state.searchResults.forEach { result ->
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            showSearchDialog = false
+                                            viewModel.searchMessages("")
+                                            // 跳转到该消息(滚动到对应位置)
+                                            viewModel.jumpToMessage(result.id)
+                                        }
+                                        .padding(vertical = 8.dp),
+                                ) {
+                                    Text(
+                                        text = result.senderName.ifBlank { "用户" },
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                    )
+                                    Text(
+                                        text = result.body,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                            }
                         }
-                    }
-                    TextButton(onClick = {
-                        messageMenuTarget = null
-                        deleteMessageTarget = msg
-                    }) {
-                        Text(stringResource(R.string.groupchat_delete), color = MaterialTheme.colorScheme.error)
                     }
                 }
             },
-            onConfirm = null,
+            confirmText = stringResource(R.string.action_close),
+            onConfirm = {
+                showSearchDialog = false
+                viewModel.searchMessages("")
+            },
             dismissText = stringResource(R.string.groupchat_cancel),
-            onDismiss = { messageMenuTarget = null },
+            onDismiss = {
+                showSearchDialog = false
+                viewModel.searchMessages("")
+            },
         )
+    }
+
+    // v1.0.72: 编辑助手供应商 — 两步:选成员 → ModelSwitchSheet(保存到该助手)
+    if (showProviderDialog) {
+        MuseDialog(
+            onDismissRequest = { showProviderDialog = false },
+            title = stringResource(R.string.groupchat_edit_provider_title),
+            content = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    state.assistants.forEach { assistant ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    showProviderDialog = false
+                                    providerTargetAssistantId = assistant.id
+                                }
+                                .padding(vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                imageVector = TablerIcons.User,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Spacer(Modifier.width(MusePaddings.contentGap))
+                            Text(
+                                text = assistant.name,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Icon(
+                                imageVector = Icons.Outlined.AutoAwesome,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
+                    }
+                }
+            },
+            confirmText = stringResource(R.string.action_close),
+            onConfirm = { showProviderDialog = false },
+            dismissText = stringResource(R.string.groupchat_cancel),
+            onDismiss = { showProviderDialog = false },
+        )
+    }
+
+    // 选中成员后:打开 ModelSwitchSheet 配置该成员的供应商/模型
+    providerTargetAssistantId?.let { assistantId ->
+        val target = state.assistants.firstOrNull { it.id == assistantId }
+        if (target != null) {
+            // 读取当前供应商/模型(优先用该助手的 per-assistant 配置,否则回退全局)
+            val providers by settings.providersFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+            val activeProviderId by settings.activeProviderIdFlow.collectAsStateWithLifecycle(initialValue = null)
+            val selectedModelId by settings.selectedModelIdFlow.collectAsStateWithLifecycle(initialValue = null)
+            ModelSwitchSheet(
+                providers = providers,
+                activeProviderId = target.providerId ?: activeProviderId,
+                selectedModelId = target.modelId ?: selectedModelId,
+                onPickProvider = { providerId ->
+                    // 切换供应商:立即保存 providerId(模型延后)
+                    viewModel.updateAssistantModel(assistantId, providerId, target.modelId)
+                },
+                onPickModel = { modelId ->
+                    viewModel.updateAssistantModel(
+                        assistantId,
+                        target.providerId ?: activeProviderId,
+                        modelId,
+                    )
+                },
+                onRefreshModels = { providerId ->
+                    // 刷新模型列表(群聊场景暂不实现独立刷新)
+                },
+                isFetchingModels = false,
+                fetchModelsError = null,
+                onDismiss = { providerTargetAssistantId = null },
+            )
+        }
+    }
+
+    // v2.x: 消息长按操作菜单
+    // v1.0.72: 改为固定配色胶囊卡片(与单聊长按菜单统一视觉,不随主题色)
+    messageMenuTarget?.let { msg ->
+        Dialog(
+            onDismissRequest = { messageMenuTarget = null },
+            properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnClickOutside = true),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.25f))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = { messageMenuTarget = null },
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                val dark = isSystemInDarkTheme()
+                val bg = if (dark) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
+                val textColor = if (dark) Color(0xFFFFFFFF) else Color(0xFF000000)
+                val iconBlock = if (dark) Color(0xFF2C2C2E) else Color(0xFFF2F2F7)
+                val divider = if (dark) Color(0xFF3A3A3C) else Color(0xFFE5E5EA)
+                Surface(
+                    color = bg,
+                    shape = RoundedCornerShape(22.dp),
+                    shadowElevation = 12.dp,
+                    tonalElevation = 0.dp,
+                    modifier = Modifier.widthIn(min = 200.dp, max = 260.dp),
+                ) {
+                    Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                        Text(
+                            text = if (msg.senderType == "user") stringResource(R.string.groupchat_my_message) else msg.senderName,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = textColor.copy(alpha = 0.6f),
+                            modifier = Modifier.padding(horizontal = 18.dp, vertical = 4.dp),
+                        )
+                        GroupChatActionRow(TablerIcons.Copy, stringResource(R.string.groupchat_copy), textColor, iconBlock) {
+                            messageMenuTarget = null
+                            val clipboard = context.getSystemService(android.content.ClipboardManager::class.java)
+                            clipboard?.setPrimaryClip(android.content.ClipData.newPlainText("message", msg.body))
+                            io.zer0.muse.ui.common.feedback.MuseToast.show(context.getString(R.string.groupchat_copied))
+                        }
+                        GroupChatActionRow(TablerIcons.MessageCircle, stringResource(R.string.groupchat_reply), textColor, iconBlock) {
+                            messageMenuTarget = null
+                            replyToMessage = msg
+                        }
+                        GroupChatActionRow(TablerIcons.Square, stringResource(R.string.groupchat_select), textColor, iconBlock) {
+                            messageMenuTarget = null
+                            viewModel.startSelection(msg.id)
+                        }
+                        // AI 消息 → 重新生成 / 悄悄话
+                        if (msg.senderType == "assistant") {
+                            GroupChatActionRow(TablerIcons.Refresh, stringResource(R.string.groupchat_regenerate), textColor, iconBlock) {
+                                messageMenuTarget = null
+                                viewModel.regenerateAgentMessage(msg.senderId)
+                            }
+                            GroupChatActionRow(TablerIcons.Eye, stringResource(R.string.groupchat_whisper), textColor, iconBlock) {
+                                messageMenuTarget = null
+                                whisperTarget = msg
+                            }
+                        }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 4.dp)
+                                .height(0.5.dp)
+                                .background(divider),
+                        )
+                        GroupChatActionRow(TablerIcons.Trash, stringResource(R.string.groupchat_delete), Color(0xFFFF3B30), iconBlock) {
+                            messageMenuTarget = null
+                            deleteMessageTarget = msg
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // v1.77: 删除消息确认
@@ -1146,5 +1510,80 @@ fun GroupChatDetailScreen(
                 }
             }
         }
+    }
+}
+
+/** v1.0.72: 群聊顶栏三点菜单的胶囊选项。 */
+@Composable
+private fun GroupTopMenuCapsule(
+    icon: ImageVector,
+    text: String,
+    onClick: () -> Unit,
+) {
+    Surface(
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        modifier = Modifier
+            .padding(vertical = 3.dp)
+            .clickable(onClick = onClick),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(18.dp),
+            )
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+    }
+}
+
+/** v1.0.72: 群聊长按菜单行(固定配色:图标底块 + 文字)。 */
+@Composable
+private fun GroupChatActionRow(
+    icon: ImageVector,
+    text: String,
+    textColor: Color,
+    iconBlockColor: Color,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 9.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Surface(
+            shape = RoundedCornerShape(9.dp),
+            color = iconBlockColor,
+            modifier = Modifier.size(30.dp),
+        ) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = text,
+                    modifier = Modifier.size(16.dp),
+                    tint = textColor,
+                )
+            }
+        }
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = textColor,
+        )
     }
 }

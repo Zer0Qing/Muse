@@ -241,14 +241,7 @@ fun HomeScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.End,
                 ) {
-                    // 归档聊天入口
-                    IconButton(onClick = onOpenArchivedChats) {
-                        Icon(
-                            imageVector = TablerIcons.Archive,
-                            contentDescription = stringResource(R.string.chat_list_filter_archived),
-                            modifier = Modifier.size(24.dp),
-                        )
-                    }
+                    // v1.0.72: 归档聊天入口已移除 — 移到 设置 → 数据与隐私 → 归档聊天(主页顶栏更简洁)
                     // 全局搜索入口(对话/翻译/快速记录)— 三 Tab 右侧常驻
                     IconButton(onClick = onOpenSearch) {
                         Icon(
@@ -299,14 +292,25 @@ fun HomeScreen(
             // 从原来的 ChatListScreen 顶部上提到这里,方便所有 Tab 可见。
             // 仅在"任务"Tab 显示(Agent 页自己就能输入,群聊页有群聊列表入口)。
             // v1.133: 顶部"新版本可用"Banner — 有缓存 ReleaseInfo 且未被关闭时显示
-            val release = remember(releaseJson, bannerDismissed) {
+            // v1.0.72: 用户点过忽略的版本不再展示(持久化,下次冷启动也不弹)
+            // v1.0.72: 升级到同版本/更高版本后即使缓存未清也不显示(24h 检查间隔内缓存会残留)
+            val ignoredUpdateVersion by settings.ignoredUpdateVersionFlow.collectAsStateWithLifecycle(initialValue = null)
+            val currentVersionName = remember { UpdateNotifier.getCurrentVersionName(context) }
+            val release = remember(releaseJson, bannerDismissed, ignoredUpdateVersion, currentVersionName) {
                 if (bannerDismissed || releaseJson.isNullOrBlank()) null
-                else parseReleaseInfo(releaseJson)
+                else parseReleaseInfo(releaseJson)?.takeIf { info ->
+                    info.tagName != ignoredUpdateVersion &&
+                        UpdateNotifier.compareVersions(currentVersionName, info.tagName) < 0
+                }
             }
             if (release != null) {
                 UpdateAvailableBanner(
                     release = release,
-                    onClose = { bannerDismissed = true },
+                    onClose = {
+                        bannerDismissed = true
+                        // v1.0.72: 忽略后持久化,该版本不再提示(用户可在设置-更新里手动检查)
+                        scope.launch { settings.saveIgnoredUpdateVersion(release.tagName) }
+                    },
                     onViewRelease = { url ->
                         val intent = UpdateNotifier.buildViewReleaseIntent(url)
                         runCatching {

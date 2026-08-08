@@ -185,6 +185,7 @@ fun GroupChatListScreen(
                         onClick = { onOpenChat(chat.id) },
                         onTogglePin = { viewModel.togglePin(chat.id) },
                         onDelete = { viewModel.deleteChat(chat.id) },
+                        onClearMemory = { viewModel.clearChatMemory(chat.id) },
                     )
                 }
                 // v2.2: 底部"新建群聊"按钮(参考图:左侧绿色加号圆圈 + 居中绿色文字)
@@ -258,6 +259,7 @@ private fun GroupChatCard(
     onClick: () -> Unit,
     onTogglePin: () -> Unit,
     onDelete: () -> Unit,
+    onClearMemory: () -> Unit,
 ) {
     // 异步加载最新消息预览
     val latestMessage by produceState<GroupChatMessageEntity?>(
@@ -269,6 +271,7 @@ private fun GroupChatCard(
 
     var showMenu by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showClearMemoryConfirm by remember { mutableStateOf(false) }
     val hapticFeedback = LocalHapticFeedback.current
 
     MuseCardPress(
@@ -343,11 +346,40 @@ private fun GroupChatCard(
                     }) {
                         Text(stringResource(R.string.groupchat_delete_chat), color = MaterialTheme.colorScheme.error)
                     }
+                    // v1.0.72: 清空群聊记忆(风格残留清理,独立于主记忆系统)
+                    TextButton(onClick = {
+                        showMenu = false
+                        showClearMemoryConfirm = true
+                    }) {
+                        Text("清空群聊记忆", color = MaterialTheme.colorScheme.error)
+                    }
                 }
             },
             onConfirm = null,
             dismissText = stringResource(R.string.groupchat_cancel),
             onDismiss = { showMenu = false },
+        )
+    }
+
+    // v1.0.72: 清空群聊记忆确认
+    if (showClearMemoryConfirm) {
+        MuseDialog(
+            onDismissRequest = { showClearMemoryConfirm = false },
+            title = "清空群聊记忆",
+            content = {
+                Text(
+                    text = "确定清空本群的群聊记忆?助手将不再引用本群过往发言摘要(包含语气风格)。",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+            confirmText = "清空",
+            onConfirm = {
+                showClearMemoryConfirm = false
+                onClearMemory()
+            },
+            dismissText = stringResource(R.string.groupchat_cancel),
+            onDismiss = { showClearMemoryConfirm = false },
         )
     }
 

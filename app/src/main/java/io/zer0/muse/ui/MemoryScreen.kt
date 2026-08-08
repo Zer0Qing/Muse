@@ -21,7 +21,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import compose.icons.tablericons.GitMerge
+import compose.icons.TablerIcons
+import compose.icons.tablericons.*
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.Settings
@@ -41,6 +42,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.state.MuseLoadingState
 import androidx.compose.runtime.Composable
@@ -56,6 +58,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
@@ -129,13 +133,14 @@ fun MemoryScreen(
     var showExportDialog by rememberSaveable { mutableStateOf(false) }
     // P2-1: 大屏(Expanded)下内容区居中限宽 720dp
     val widthClass = rememberWindowWidthClass()
-    // v1.0.51: 记忆 Tab 切换 — 0=当下 1=短期 2=长期 3=事实
+    // v1.0.51: 记忆 Tab 切换 — 0=当下 1=短期 2=长期 3=事实 4=群聊(v1.0.72)
     var selectedMemoryTab by rememberSaveable { mutableStateOf(3) }
     val memoryTabTitles = listOf(
         stringResource(R.string.memory_tab_today),
         stringResource(R.string.memory_tab_week),
         stringResource(R.string.memory_tab_longterm),
         stringResource(R.string.memory_tab_facts),
+        stringResource(R.string.memory_tab_group_chat),
     )
 
     Scaffold(
@@ -321,6 +326,96 @@ fun MemoryScreen(
                                 )
                             }
                         }
+                    }
+                    return@Column
+                }
+
+                // ════════ v1.0.72: "群聊"Tab(群聊记忆管理) ════════
+                if (selectedMemoryTab == 4) {
+                    LaunchedEffect(Unit) { viewModel.loadGroupChatMemories() }
+                    var showClearAllConfirm by remember { mutableStateOf(false) }
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.contentGap),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = if (state.groupChatMemories.isEmpty()) {
+                                    "暂无群聊记忆"
+                                } else {
+                                    "共 ${state.groupChatMemories.size} 条"
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            if (state.groupChatMemories.isNotEmpty()) {
+                                TextButton(onClick = { showClearAllConfirm = true }) {
+                                    Text("清空全部", color = MaterialTheme.colorScheme.error)
+                                }
+                            }
+                        }
+                        if (state.groupChatMemoriesLoading && state.groupChatMemories.isEmpty()) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                MuseLoadingState()
+                            }
+                        } else if (state.groupChatMemories.isEmpty()) {
+                            Box(
+                                modifier = Modifier.fillMaxSize().padding(MusePaddings.emptyStateGap),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    text = "群聊中助手每次回复后都会在这里生成一条摘要记忆。\n如果群聊助手说话风格变得奇怪,可以在这里删除或清空。",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center,
+                                )
+                            }
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(
+                                    horizontal = MusePaddings.screen,
+                                    vertical = MusePaddings.contentGap,
+                                ),
+                                verticalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
+                            ) {
+                                items(
+                                    items = state.groupChatMemories,
+                                    key = { it.id },
+                                ) { item ->
+                                    GroupChatMemoryCard(
+                                        item = item,
+                                        onDelete = { viewModel.deleteGroupChatMemory(item.id) },
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    if (showClearAllConfirm) {
+                        MuseDialog(
+                            onDismissRequest = { showClearAllConfirm = false },
+                            title = "清空全部群聊记忆",
+                            content = {
+                                Text(
+                                    text = "确定清空全部群聊记忆?助手将不再引用任何群聊过往发言摘要。",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            },
+                            confirmText = "清空",
+                            onConfirm = {
+                                showClearAllConfirm = false
+                                viewModel.clearAllGroupChatMemories()
+                            },
+                            dismissText = stringResource(R.string.action_cancel),
+                            onDismiss = { showClearAllConfirm = false },
+                        )
                     }
                     return@Column
                 }
@@ -659,6 +754,61 @@ fun MemoryScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+/**
+ * v1.0.72: 群聊记忆卡片(记忆中心"群聊"Tab 列表项)。
+ *
+ * 展示:群聊名 + 发言助手 + 摘要 + 时间 + 删除按钮。
+ * 摘要里可能残留历史测试期的欠揍语气,删除后该条不再注入 system prompt。
+ */
+@Composable
+private fun GroupChatMemoryCard(
+    item: GroupChatMemoryUiItem,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = MuseShapes.extraLarge,
+        color = MaterialTheme.colorScheme.surface,
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = item.groupChatName,
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = "${item.assistantName} · ${item.timeText}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 2.dp),
+                    )
+                }
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        imageVector = TablerIcons.Trash,
+                        contentDescription = "删除",
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
+            Text(
+                text = item.summary,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 6.dp),
+            )
         }
     }
 }

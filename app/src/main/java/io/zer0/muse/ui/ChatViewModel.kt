@@ -1090,8 +1090,6 @@ class ChatViewModel(
     // v1.0.54: autoSave 去重状态(30 秒内同会话只跑一次,防堆积)
     private var lastAutoSaveSessionId: String? = null
     private var lastAutoSaveAt: Long = 0L
-    // B7-08: 草稿防抖保存任务(每次输入更新时取消旧任务,停顿后只写最新文本)
-    private var draftSaveJob: Job? = null
 
     companion object {
         /** v0.47: 工具调用超时阈值(2 分钟),超时则终止,避免阻塞流式输出。 */
@@ -1155,8 +1153,6 @@ class ChatViewModel(
         private const val STREAM_SLIDE_WINDOW = 10
         /** v1.0.47 P5: 输入历史保留条数(本会话内,内存态,不持久化)。 */
         private const val MAX_INPUT_HISTORY = 50
-        /** B7-08: 草稿防抖保存间隔(毫秒),输入停顿后才写盘,减少 DataStore 频繁写入。 */
-        private const val DRAFT_SAVE_DEBOUNCE_MS = 800L
         // v1.117: 删除 6 个孤儿常量(STREAM_NOTIF_*/STREAM_TOKEN_*/STREAM_PERSIST_*),
         // 实际节流逻辑在 launchStream 内用字面量实现,这些常量从未被引用。
 
@@ -1346,14 +1342,7 @@ class ChatViewModel(
                 inputHistoryIndex = null,
             )
         }
-        // v1.0.29: 发送消息后清除 DataStore 中的草稿,
-        // 避免下次 switchSession 时恢复已发送过的旧文本。
-        viewModelScope.launch(Dispatchers.IO) {
-            settings.saveChatDraft(sessionId, "")
-        }
-        // B7-08: 先取消防抖保存任务,避免发送前输入的旧草稿在清空后又被写回。
-        draftSaveJob?.cancel()
-        draftSaveJob = null
+        // v1.0.72: 草稿功能已砍掉,无防抖保存任务
         val sendResult = sendChannel.trySend(SendRequest(text, images, sessionId, userMessage = userMsg, assistantMessageId = assistantMsg.id, outboxId = outboxId))
         if (sendResult.isFailure) {
             // 队列已满,回滚乐观更新 + 删除 outbox(消息未入队,outbox 无用)
@@ -1997,29 +1986,8 @@ class ChatViewModel(
 
     fun updateInput(text: String) {
         // v1.0.47 P5: 用户手动编辑输入时退出历史导航,重置 inputHistoryIndex
+        // v1.0.72: 草稿功能已砍掉(不再防抖写 DataStore)
         _state.update { it.copy(input = text, hasDraft = false, inputHistoryIndex = null) }
-        // B7-08: 非空输入停顿 800ms 后写盘;清空输入立即删除草稿并取消待写任务
-        val sid = _state.value.currentSessionId ?: return
-        if (text.isBlank()) {
-            draftSaveJob?.cancel()
-            draftSaveJob = null
-            viewModelScope.launch(Dispatchers.IO) { settings.saveChatDraft(sid, "") }
-        } else {
-            scheduleDraftSave(sid, text)
-        }
-    }
-
-    /** B7-08: 取消旧任务并延迟保存最新草稿,避免输入过程中高频写 DataStore。 */
-    private fun scheduleDraftSave(sessionId: String, text: String) {
-        draftSaveJob?.cancel()
-        if (text.isBlank()) {
-            draftSaveJob = null
-            return
-        }
-        draftSaveJob = viewModelScope.launch {
-            delay(DRAFT_SAVE_DEBOUNCE_MS)
-            settings.saveChatDraft(sessionId, text)
-        }
     }
     /**
      * v1.0.47 P5: 输入框上/下箭头回调,遍历本会话输入历史。
@@ -2745,6 +2713,8 @@ class ChatViewModel(
 
     /** 设置/取消引用回复目标。 */
     fun setReplyingTo(message: UIMessage?) {
+        // v1.0.72: 加日志排查"叉不掉引用"问题(点击 X 后引用块是否收到清除事件)
+        Logger.i("ChatVM", "setReplyingTo: ${if (message == null) "null(清除引用)" else message.id}")
         _state.update { it.copy(replyingTo = message, replyQuoteOverride = null) }
     }
 
@@ -2784,16 +2754,10 @@ class ChatViewModel(
         notifySessionEndForCurrent()
         // v1.x: 清理旧会话的"本会话允许"临时缓存(会话结束自动失效)
         currentSessionIdForApproval()?.let { sessionPermissionStore.clearSession(it) }
-        // 功能2: 保存当前输入为旧会话草稿
+        // v1.0.72: 草稿功能已砍掉,不再保存旧会话输入
         val currentSession = _state.value.currentSessionId
-        val currentInput = _state.value.input
         // v1.x: ConversationSessionManager 引用计数 — 释放旧会话(新会话 id 在异步块内创建后再 acquire)
         currentSession?.let { sessionManager.release(it) }
-        viewModelScope.launch {
-            if (currentSession != null && currentInput.isNotBlank()) {
-                settings.saveChatDraft(currentSession, currentInput)
-            }
-        }
         viewModelScope.launch {
             // v1.0.63: 新任务使用设置里的默认助手
             val currentAssistantId = settings.defaultAssistantIdFlow.first().ifBlank { "default" }
@@ -3044,13 +3008,13 @@ class ChatViewModel(
             val assistant = assistantRepository.getById(assistantId)
                 ?: assistantRepository.getById("default")
             // 功能2: 恢复目标会话的输入草稿
-            val draft = settings.loadChatDraft(sessionId)
+            // v1.0.72: 草稿功能已砍掉(定位复杂且会恢复已完成消息,弊大于利)
             _state.update {
                 _messages.value = messages
                 it.copy(
                     currentSessionId = sessionId,
-                    input = draft,
-                    hasDraft = draft.isNotBlank(),
+                    input = "",
+                    hasDraft = false,
                     errors = emptyList(),
                     isDrawerOpen = false,
                     currentAssistant = assistant,
@@ -3074,6 +3038,10 @@ class ChatViewModel(
                     pendingImages = emptyList(),
                     // v1.136 T10: 同步清空待发送文档
                     pendingDocuments = emptyList(),
+                    // v1.0.72 fix: 切换会话清空引用(避免引用残留到其他会话,
+                    //   导致"模型回复从别的会话带过来的消息")
+                    replyingTo = null,
+                    replyQuoteOverride = null,
                     // v1.0.47 P5: 切换会话清空输入历史(本会话内内存态,不跨会话保留)
                     inputHistory = emptyList(),
                     inputHistoryIndex = null,
@@ -3139,10 +3107,15 @@ class ChatViewModel(
                 // v1.0.54: 按"默认 Agent 助手"偏好(设置页切换/Agent Tab 内切换时同步)恢复
                 //   该助手的 Agent 会话,没有则新建。替代原 getLatestAgentSession(全局最新),
                 //   使设置页切换真正生效。
+                // v1.0.72 修复: 偏好查不到时回退到全局最近 Agent 会话 —
+                //   若用户实际用的助手与偏好不一致(如从未设置过偏好但用过其他助手),
+                //   按偏好查会 miss 导致每次进入都新建空会话,
+                //   表现为"Agent 对话不持久,只显示当前聊天的对话"。
                 val preferredAgentId = settings.proactiveMessageConfigFlow.first()
                     .agentId.ifBlank { "default" }
                 val agentSession = sessionRepository
                     .getRecentAgentByAssistant(preferredAgentId, 1).firstOrNull()
+                    ?: sessionRepository.getLatestAgentSession()
                 val sessionId = agentSession?.id
                     ?: sessionRepository.createAgentSession(preferredAgentId)
                 // v1.x: 释放旧的任务会话引用 + 获取新的 Agent 会话引用
@@ -3169,6 +3142,9 @@ class ChatViewModel(
                         hasMoreHistory = hasMore,
                         isLoadingMore = false,
                         lastHistoryLoadCount = 0,
+                        // v1.0.72 fix: 进入 Agent 模式清空引用(防跨会话污染)
+                        replyingTo = null,
+                        replyQuoteOverride = null,
                         // v1.99: 进入 Agent 模式清空 taskCards
                         taskCards = emptyMap(),
                         // v1.136: 进入 Agent 模式清空工具调用历史与 Agent 计划
@@ -3487,8 +3463,13 @@ class ChatViewModel(
         var text = buildSendText(rawText, docs.map { it.content })
         if (!canStartGeneration(text, images, _state.value.isStreaming, _isCreatingAgentSession)) return
         // v1.68: 引用回复必须把被引用内容拼进消息体,LLM 才能读到引用原文。
+        // v1.0.72 fix: 用最新消息对象取引用内容 — 引用时捕获的旧对象可能 content 为空
+        //   (流式消息内容实时更新,旧引用对象是流式中的空版本 → 引用 UI 为空 + 模型看不到)
+        val replyingToLatest = _state.value.replyingTo?.let { r ->
+            _messages.value.find { it.id == r.id } ?: r
+        }
         val quoteText = _state.value.replyQuoteOverride?.takeIf { it.isNotBlank() }
-            ?: _state.value.replyingTo?.content?.takeIf { it.isNotBlank() }
+            ?: replyingToLatest?.content?.takeIf { it.isNotBlank() }
         if (quoteText != null) {
             text = buildQuotedContent(quoteText, text)
         }
@@ -6011,6 +5992,9 @@ class ChatViewModel(
                     isLoadingMore = false,
                     lastHistoryLoadCount = 0,
                     isStreaming = false,
+                    // v1.0.72 fix: 切换助手清空引用(防跨会话污染)
+                    replyingTo = null,
+                    replyQuoteOverride = null,
                     taskCards = emptyMap(),
                     toolCallHistory = emptyList(),
                     agentPlans = emptyMap(),

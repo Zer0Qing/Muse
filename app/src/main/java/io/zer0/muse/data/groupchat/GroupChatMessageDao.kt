@@ -75,6 +75,10 @@ interface GroupChatMessageDao {
     @Query("SELECT * FROM group_chat_messages WHERE chatId = :chatId ORDER BY timestamp DESC, id DESC LIMIT :limit")
     suspend fun getRecentMessages(chatId: String, limit: Int): List<GroupChatMessageEntity>
 
+    /** v1.0.72: 群聊内搜索消息(关键词 LIKE 匹配正文,按时间倒序)。 */
+    @Query("SELECT * FROM group_chat_messages WHERE chatId = :chatId AND body LIKE '%' || :query || '%' ORDER BY timestamp DESC, id DESC LIMIT :limit")
+    suspend fun searchMessages(chatId: String, query: String, limit: Int = 100): List<GroupChatMessageEntity>
+
     /** 按 chatId 分组统计消息数,取 Top N 活跃群聊(降序)。 */
     @Query("SELECT chatId, COUNT(*) as cnt FROM group_chat_messages GROUP BY chatId ORDER BY cnt DESC LIMIT :limit")
     fun observeTopActiveChats(limit: Int): Flow<List<GroupChatMessageCount>>

@@ -404,6 +404,14 @@ class SessionRepository(
     }
 
     /**
+     * v1.0.72: 取指定时间之后(含)的用户消息(升序,限量)。
+     * 今日总结 Worker 用:汇总当天用户说了什么,作为 LLM 生成素材。
+     */
+    suspend fun getUserMessagesSince(fromCreatedAt: Long, limit: Int): List<UIMessage> {
+        return messageDao.getUserMessagesSince(fromCreatedAt, limit).map { it.toUIMessage() }
+    }
+
+    /**
      * v1.0.51: 一次性获取指定会话的【全量】消息(按 createdAt 升序),供存量记忆迁移 backfill 用。
      *
      * 与 [observeMessages] / [getRecentMessages] 的差异:不走分页 limit,加载完整历史。
@@ -997,6 +1005,12 @@ class SessionRepository(
             variantIndex = variantIndex,
             variantCount = variantCount,
             parentGroupId = parentGroupId,
+            // v1.0.72: 工具调用卡片信息恢复(重启后 ToolCallCard 正常显示)
+            toolCallInfo = toolCallInfoJson?.let { json ->
+                runCatching {
+                    io.zer0.common.AppJson.decodeFromString(io.zer0.ai.core.ToolCallInfo.serializer(), json)
+                }.getOrNull()
+            },
         )
     }
 
@@ -1036,6 +1050,10 @@ class SessionRepository(
         variantIndex = variantIndex,
         variantCount = variantCount,
         parentGroupId = parentGroupId,
+        // v1.0.72: 工具调用卡片信息持久化(重启后 ToolCallCard 正常显示)
+        toolCallInfoJson = toolCallInfo?.let {
+            runCatching { io.zer0.common.AppJson.encodeToString(io.zer0.ai.core.ToolCallInfo.serializer(), it) }.getOrNull()
+        },
     )
 
     /** v1.0.30: 按 id 获取消息（变体查询用）。 */

@@ -26,9 +26,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.encodeToString
 import java.time.DayOfWeek
 import java.time.Duration
@@ -98,6 +100,14 @@ data class MemoryUiState(
     val experienceEnabled: Boolean = false,
     val experienceItems: List<MemoryItem> = emptyList(),
     val experienceCount: Int = 0,
+    /**
+     * v1.0.72: 群聊记忆(独立于主记忆系统)。
+     *
+     * 展示在记忆中心"群聊"Tab,供用户查看/单条删除/一键清空。
+     * 数据来自 [io.zer0.muse.data.groupchat.GroupChatMemoryRepository]。
+     */
+    val groupChatMemories: List<GroupChatMemoryUiItem> = emptyList(),
+    val groupChatMemoriesLoading: Boolean = false,
 )
 
 /**
@@ -153,6 +163,27 @@ data class ScopeOption(
 )
 
 /**
+ * v1.0.72: 群聊记忆 UI 条目(记忆中心"群聊"Tab)。
+ *
+ * @param id 群聊记忆 id
+ * @param groupChatId 群聊 id
+ * @param groupChatName 群聊名称(从 GroupChatRepository 解析,失败回退 "群聊")
+ * @param assistantName 发言助手名(从 AssistantRepository 解析,失败回退原始 id)
+ * @param summary 摘要文本
+ * @param createdAt 创建时间戳
+ * @param timeText 格式化时间文案
+ */
+data class GroupChatMemoryUiItem(
+    val id: String,
+    val groupChatId: String,
+    val groupChatName: String,
+    val assistantName: String,
+    val summary: String,
+    val createdAt: Long,
+    val timeText: String,
+)
+
+/**
  * 阶段 6: 记忆页 ViewModel。
  *
  * 数据来源(全部已通过 Koin 注册):
@@ -182,6 +213,12 @@ class MemoryViewModel(
     private val assistantRepository: AssistantRepository,
     /** v1.0.52 P2-2: 注入 MemorySpaceRepository 用于 Space 切换 + 列表。 */
     private val spaceRepository: MemorySpaceRepository,
+    /** v1.0.72: 注入 GroupChatMemoryRepository 用于群聊记忆展示/删除。 */
+    private val groupChatMemoryRepository: io.zer0.muse.data.groupchat.GroupChatMemoryRepository,
+    /** v1.0.72: 注入 GroupChatRepository 用于解析群聊名。 */
+    private val groupChatRepository: io.zer0.muse.data.groupchat.GroupChatRepository,
+    /** v1.0.72: 注入 ChatService 用于 LLM 合并重复记忆。 */
+    private val chatService: io.zer0.ai.ChatService,
 ) : AndroidViewModel(application) {
 
     private val _state = MutableStateFlow(MemoryUiState())
@@ -357,12 +394,79 @@ class MemoryViewModel(
                     .onError { msg, t -> Logger.w("MemoryViewModel", "forceCompileNow 失败: $msg", t) }
                     .isSuccess
             }
+            // v1.0.72: 编译完成后立即执行 LLM 合并去重(重复记忆合并成一条,
+            //   不同事实不动;失败不影响编译结果)
+            if (success) {
+                llmMergeDuplicates()
+            }
             _compiling = false
             // v1.x: 编译结果反馈(成功/失败),避免"点了没反应"
             _compileResult.value = if (success) "done" else "failed"
             // 编译完成后静默刷新:不触发 isLoading,避免替换当前视图(时间轴/列表)导致闪屏
             loadAll(silent = true)
         }
+    }
+
+    /**
+     * v1.0.72: LLM 合并重复记忆 — 把相似簇(≥2 条)交给大模型合并成一条,
+     * 保留所有关键信息;不同的事实不受影响。失败时静默跳过(规则去重仍由每日任务兜底)。
+     */
+    private suspend fun llmMergeDuplicates() {
+        val scope = _selectedScope.value ?: "main"
+        val groups = resultOf { factStore.findSimilarGroups(scope) }
+            .onError { msg, t -> Logger.w("MemoryViewModel", "查找重复记忆失败: $msg", t) }
+            .getOrNull() ?: return
+        if (groups.isEmpty()) return
+
+        var mergedCount = 0
+        for (group in groups) {
+            if (group.size < 2) continue
+            val merged = mergeGroupWithLlm(group)
+            if (merged == null) continue
+            // 保留簇内重要度最高的一条作为 keeper,更新内容 + 删除其余
+            val keeper = group.maxByOrNull { it.importance } ?: group.first()
+            val deleted = factStore.update(keeper.id, merged, scope)
+            if (deleted) {
+                group.filter { it.id != keeper.id }.forEach { other ->
+                    resultOf { factStore.delete(other.id) }
+                        .onError { msg, t -> Logger.w("MemoryViewModel", "删除重复记忆失败: $msg", t) }
+                }
+                mergedCount++
+            }
+        }
+        if (mergedCount > 0) {
+            Logger.i("MemoryViewModel", "LLM 合并去重: 合并 $mergedCount 组重复记忆")
+        }
+    }
+
+    /** 调 LLM 把一组相似记忆合并成一条(失败返回 null)。 */
+    private suspend fun mergeGroupWithLlm(group: List<io.zer0.memory.fact.FactStore.Fact>): String? {
+        val sb = StringBuilder()
+        sb.appendLine("你是记忆整理助手。以下是多条内容重复或高度相似的记忆,请把它们合并成一条:保留所有关键信息(人名、时间、地点、数字、事件),去重,语言自然简洁,不要遗漏任何事实细节。如果发现某些记忆其实内容不同、不应该合并,请原样返回所有条目。")
+        sb.appendLine()
+        group.forEachIndexed { idx, fact ->
+            sb.appendLine("${idx + 1}. ${fact.fact}")
+        }
+        sb.appendLine()
+        sb.appendLine("请直接输出合并后的一条记忆,不要任何前缀、编号或引号:")
+
+        return resultOf {
+            withTimeoutOrNull(30_000L) {
+                chatService.completeText(
+                    messages = listOf(
+                        io.zer0.ai.core.UIMessage(
+                            role = io.zer0.ai.core.MessageRole.USER,
+                            content = sb.toString(),
+                            createdAt = System.currentTimeMillis(),
+                        ),
+                    ),
+                    temperature = 0.3f,
+                    maxTokens = 300,
+                ).text.trim()
+            }
+        }.onError { msg, t ->
+            Logger.w("MemoryViewModel", "LLM 合并记忆失败: ${t?.message ?: msg}")
+        }.getOrNull()?.takeIf { it.isNotBlank() && it.length > 2 }
     }
 
     /** v1.x: 编译结果提示(UI LaunchedEffect 消费后清除)。 */
@@ -952,5 +1056,76 @@ class MemoryViewModel(
             source = "Experience",
             category = category,
         )
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // v1.0.72: 群聊记忆(记忆中心"群聊"Tab)
+    // ══════════════════════════════════════════════════════════════════════
+
+    /**
+     * v1.0.72: 加载全部群聊记忆(按时间降序)。
+     * 展示在记忆中心"群聊"Tab,供用户查看/删除。
+     */
+    fun loadGroupChatMemories() {
+        viewModelScope.launch {
+            _state.update { it.copy(groupChatMemoriesLoading = true) }
+            val memories = withContext(Dispatchers.IO) {
+                resultOf { groupChatMemoryRepository.getAll() }.getOrNull() ?: emptyList()
+            }
+            val assistants = resultOf { assistantRepository.observeAll.first() }.getOrNull() ?: emptyList()
+            val groupChats = resultOf { groupChatRepository.observeChats().first() }.getOrNull() ?: emptyList()
+            val groupChatNameById = groupChats.associateBy({ it.id }, { it.name })
+            val assistantNameById = assistants.associateBy({ it.id }, { it.name })
+            val items = memories.map { m ->
+                GroupChatMemoryUiItem(
+                    id = m.id,
+                    groupChatId = m.groupChatId,
+                    groupChatName = groupChatNameById[m.groupChatId] ?: "群聊",
+                    assistantName = assistantNameById[m.assistantId] ?: m.assistantId.take(8),
+                    summary = m.summary,
+                    createdAt = m.createdAt,
+                    timeText = runCatching {
+                        java.text.SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL_SEC, java.util.Locale.CHINA)
+                            .format(java.util.Date(m.createdAt))
+                    }.getOrNull() ?: "",
+                )
+            }
+            _state.update { it.copy(groupChatMemories = items, groupChatMemoriesLoading = false) }
+        }
+    }
+
+    /**
+     * v1.0.72: 删除单条群聊记忆。
+     *
+     * @param id 群聊记忆 id
+     */
+    fun deleteGroupChatMemory(id: String) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                resultOf { groupChatMemoryRepository.deleteById(id) }
+                    .onError { msg, t ->
+                        Logger.w("MemoryViewModel", "删除群聊记忆失败: $msg", t)
+                        MuseToast.show(getApplication<Application>().getString(R.string.memory_delete_group_chat_failed, msg))
+                    }
+            }
+            // 删除后刷新列表
+            _state.update { it.copy(groupChatMemories = it.groupChatMemories.filterNot { m -> m.id == id }) }
+        }
+    }
+
+    /**
+     * v1.0.72: 清空全部群聊记忆(一键)。
+     */
+    fun clearAllGroupChatMemories() {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                resultOf { groupChatMemoryRepository.deleteAll() }
+                    .onError { msg, t ->
+                        Logger.w("MemoryViewModel", "清空群聊记忆失败: $msg", t)
+                        MuseToast.show(getApplication<Application>().getString(R.string.memory_clear_group_chat_failed, msg))
+                    }
+            }
+            _state.update { it.copy(groupChatMemories = emptyList()) }
+        }
     }
 }

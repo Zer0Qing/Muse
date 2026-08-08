@@ -291,6 +291,16 @@ data class ProactiveMessageConfig(
      * 决策阶段实际使用 temperature × 0.5(决策需要确定性);生成阶段使用本字段。
      */
     val temperature: Float = 0.8f,
+    /**
+     * v1.0.72: 主动消息发送概率(0-100,默认 100)。
+     *
+     * 决策阶段 shouldSend=true 后,再按此概率决定是否实际发送:
+     *  - 100 = 每次都发(决策通过即发)
+     *  - 50 = 一半概率发
+     *  - 0 = 永不发送(等同于关闭,但保留决策日志)
+     * 测试发送不受此限制(forceSend 直发)。
+     */
+    val sendProbability: Int = 100,
 )
 
 /**

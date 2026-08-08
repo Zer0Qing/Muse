@@ -85,6 +85,18 @@ interface GroupChatMemoryDao {
     @Query("DELETE FROM group_chat_memories WHERE groupChatId = :groupChatId")
     suspend fun deleteByGroupChat(groupChatId: String)
 
+    /** v1.0.72: 删除单条群聊记忆(记忆中心单条删除用)。 */
+    @Query("DELETE FROM group_chat_memories WHERE id = :id")
+    suspend fun deleteById(id: String)
+
+    /** v1.0.72: 查询全部群聊记忆(记忆中心展示,按时间降序)。 */
+    @Query("SELECT * FROM group_chat_memories ORDER BY createdAt DESC")
+    suspend fun getAll(): List<GroupChatMemoryEntity>
+
+    /** v1.0.72: 清空全部群聊记忆(记忆中心一键清空)。 */
+    @Query("DELETE FROM group_chat_memories")
+    suspend fun deleteAll()
+
     /** 删除指定助手在指定群聊的记忆(助手机器人退出群聊时调用)。 */
     @Query("DELETE FROM group_chat_memories WHERE groupChatId = :groupChatId AND assistantId = :assistantId")
     suspend fun deleteByGroupChatAndAssistant(groupChatId: String, assistantId: String)

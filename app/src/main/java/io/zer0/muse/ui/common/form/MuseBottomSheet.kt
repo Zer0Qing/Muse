@@ -70,6 +70,9 @@ import androidx.compose.ui.window.DialogProperties
 fun MuseBottomSheet(
     onDismissRequest: () -> Unit,
     maxHeightFraction: Float = 0.85f,
+    // v1.0.72: 内容区左右留白可配置 — 加号菜单传 0.dp(不留白),
+    // 其他 Sheet 保持默认
+    horizontalPadding: androidx.compose.ui.unit.Dp = MusePaddings.itemGap,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     // M-BS2: 用 rememberSaveable 持久化进入/退出动画状态,配置变更(旋转/暗色切换)
@@ -178,7 +181,8 @@ fun MuseBottomSheet(
                                 .fillMaxWidth()
                                 // L-BS4: 20.dp → MusePaddings.screen 令牌(16dp)。
                                 // v1.0.29: 左右留空减小为 12dp,使底部面板内容更舒展
-                            .padding(horizontal = MusePaddings.itemGap, vertical = MusePaddings.screen),
+                                // v1.0.72: 留白可配置(加号菜单传 0 不留白)
+                            .padding(horizontal = horizontalPadding, vertical = MusePaddings.screen),
                             content = content,
                         )
                         // v1.0.29: 底部增加额外冗余,让底部菜单整体上抬,

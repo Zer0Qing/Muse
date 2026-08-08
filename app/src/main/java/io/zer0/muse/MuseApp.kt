@@ -332,6 +332,10 @@ class MuseApp : Application(), ImageLoaderFactory {
                 request,
             )
         }.onError { msg, t -> Logger.w("MuseApp", "ProactiveMessageWorker 注册失败", t) }
+        // v1.0.72: 每日总结推送 — 每天 19:30 推送今日小结(OneTime 自续期,定点触发)
+        // 关闭开关后 Worker 内部直接跳过(自续期保留,重新打开自动恢复)
+        resultOf { io.zer0.muse.schedule.DailySummaryWorker.scheduleNext(this) }
+            .onError { msg, t -> Logger.w("MuseApp", "DailySummaryWorker 调度失败", t) }
         // v1.98: 云备份自动定时上传(每 10 分钟检查是否到期)
         resultOf { cloudBackupScheduler.start() }
             .onError { msg, t -> Logger.w("MuseApp", "CloudBackupScheduler 启动失败", t) }

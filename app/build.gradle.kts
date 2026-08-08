@@ -200,6 +200,9 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
+    // v1.0.72: test 源码集的 @Database 类(如 GroupChatMemoryRepositoryTest 的 TestMuseDb)
+    // 需要 KSP 生成 _Impl,否则 Robolectric 单元测试报 ClassNotFoundException
+    kspTest(libs.androidx.room.compiler)
 
     // DataStore
     implementation(libs.androidx.datastore.preferences)
@@ -208,6 +211,10 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.svg)
     implementation(libs.coil.gif) // Phase 11.1.6: GIF 动图解码
+    // v1.0.72: CameraX — 加号菜单"拍照预览"(Telegram 风格实时取景)
+    implementation(libs.camera.camera2)
+    implementation(libs.camera.lifecycle)
+    implementation(libs.camera.view)
 
     // OkHttp
     implementation(libs.okhttp)

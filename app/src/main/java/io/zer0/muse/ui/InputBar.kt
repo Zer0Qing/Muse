@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import compose.icons.TablerIcons
@@ -235,9 +236,10 @@ internal fun InputBar(
             .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
             .navigationBarsPadding()
             .imePadding()
-            // v1.132: 输入栏横向宽度缩小(两侧 padding 12dp → 24dp,总宽度减少 24dp);
-            // v1.137 B5: 纵向 padding 4dp → 2dp,进一步降低输入栏高度
-            .padding(horizontal = MusePaddings.inputHorizontal, vertical = MusePaddings.inputVertical),
+            // v1.0.72: 输入栏岛两侧留白(缩小: 24dp → 8dp,保留悬浮感但不遮内容)
+            .padding(horizontal = 8.dp)
+            // v1.0.72: 顶部收窄、底部悬浮间距(缩小到 6dp,高度别太高)
+            .padding(top = MusePaddings.inputVertical, bottom = 6.dp),
         verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
     ) {
         // v1.0.29: 联网搜索 / 深度思考 已移入加号菜单,
@@ -562,21 +564,28 @@ internal fun InputBar(
         }
 
         // 引用回复:输入框上方显示被引用消息摘要
+        // v1.0.72: 移除引用编辑功能(编辑后引用块会固定在输入栏的 bug,编辑本身没什么用)
+        // v1.0.72 fix: 整个引用块可点击清除(用户反馈"叉点不下去" — X 太小且可能被点击拦截,
+        //   点引用块任意位置都清除引用,降低操作难度)
         replyingTo?.let { msg ->
-            // v1.57: 引用卡片编辑对话框状态
-            var showEditReplyDialog by remember { mutableStateOf(false) }
-            var editReplyText by remember(replyQuoteOverride, msg.id) {
-                mutableStateOf(replyQuoteOverride ?: msg.content)
-            }
-            Row(
+            // v1.0.72: 引用块做回岛样式(实色背景 + 圆角),输入框透明已解决白块
+            io.zer0.muse.ui.common.surface.MuseIsland(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = MusePaddings.contentGap)
-                    .clip(MuseShapes.small)
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                    .padding(MusePaddings.bubbleInner),
-                verticalAlignment = Alignment.CenterVertically,
+                    .padding(horizontal = 8.dp, vertical = 2.dp)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onClearReply,
+                    ),
+                backgroundAlpha = 1f,
             ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(MusePaddings.bubbleInner),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = stringResource(
@@ -587,54 +596,33 @@ internal fun InputBar(
                         color = MaterialTheme.colorScheme.primary,
                     )
                     Text(
-                        // v1.57: 优先显示用户编辑裁剪后的引用文本
-                        text = replyQuoteOverride ?: msg.content,
+                        text = msg.content,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                // v1.57: 编辑引用文本按钮(精准引用部分内容)
-                IconButton(onClick = { showEditReplyDialog = true }) {
-                    Icon(
-                        imageVector = TablerIcons.Edit,
-                        contentDescription = stringResource(R.string.chat_edit_reply_cd),
-                        tint = MaterialTheme.colorScheme.outline,
-                    )
-                }
-                IconButton(onClick = onClearReply) {
+                // v1.0.72: 清除引用按钮 — 加大点击区(48dp) + 图标更大更清晰
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onClearReply,
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
                     Icon(
                         imageVector = TablerIcons.X,
                         contentDescription = stringResource(R.string.quote_clear),
-                        tint = MaterialTheme.colorScheme.outline,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(22.dp),
                     )
                 }
-            }
-            // v1.57: 引用编辑对话框(iOS 风格 MuseDialog)
-            if (showEditReplyDialog) {
-                MuseDialog(
-                    onDismissRequest = { showEditReplyDialog = false },
-                    title = stringResource(R.string.chat_edit_reply_title),
-                    content = {
-                        MuseTextField(
-                            value = editReplyText,
-                            onValueChange = { editReplyText = it },
-                            modifier = Modifier.fillMaxWidth(),
-                            minLines = 3,
-                            maxLines = 8,
-                        )
-                    },
-                    confirmText = stringResource(R.string.action_save),
-                    onConfirm = {
-                        if (editReplyText.isNotBlank()) {
-                            onEditReply(editReplyText)
-                            showEditReplyDialog = false
-                        }
-                    },
-                    dismissText = stringResource(R.string.action_cancel),
-                    onDismiss = { showEditReplyDialog = false },
-                )
+                }
             }
         }
 
@@ -650,8 +638,8 @@ internal fun InputBar(
         // 点击 toggle 开关,长按循环切换级别 (LOW → MED → HIGH → XHIGH)。
 
         // 主输入栏: 圆角容器
-        // H-IB1: 预设主题未定义 surfaceContainerLow,改用 surfaceVariant 保持主题一致
-        // v1.0.22: 加 MuseShadow.low 微阴影,增强 MANUS 风格浮起感
+        // v1.0.72: 做回岛样式 — 实色背景 + 圆角 + 阴影(用户反馈完全透明太裸);
+        //   输入框本身保持透明,避免实色容器叠成"白块"
         Surface(
             color = MaterialTheme.colorScheme.surfaceVariant,
             shape = MuseShapes.huge,
@@ -725,11 +713,12 @@ internal fun InputBar(
                      val deepThinkingLabel = stringResource(R.string.chat_deep_thinking_cd)
                      val deepThinkingTitle = if (isDeepThinkingEnabled) {
                          val levelLabel = when (deepThinkingLevel) {
-                             io.zer0.ai.core.ReasoningLevel.LOW -> "LOW"
-                             io.zer0.ai.core.ReasoningLevel.MEDIUM -> "MED"
-                             io.zer0.ai.core.ReasoningLevel.HIGH -> "HIGH"
-                             io.zer0.ai.core.ReasoningLevel.XHIGH -> "XHIGH"
-                             else -> "AUTO"
+                             // v1.0.72: 思考等级改中文(低/中/高/极高)
+                             io.zer0.ai.core.ReasoningLevel.LOW -> "低"
+                             io.zer0.ai.core.ReasoningLevel.MEDIUM -> "中"
+                             io.zer0.ai.core.ReasoningLevel.HIGH -> "高"
+                             io.zer0.ai.core.ReasoningLevel.XHIGH -> "极高"
+                             else -> "自动"
                          }
                          "$deepThinkingLabel · $levelLabel"
                      } else {
@@ -1279,6 +1268,8 @@ private fun RowScope.MessageInputField(
     MuseTextField(
         value = text,
         onValueChange = { handleInputChange(it) },
+        // v1.0.72: 输入框背景透明 — 岛背景就是容器,避免输入框实色块叠成"白块"
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
         modifier = Modifier
             .weight(1f)
             .heightIn(min = MuseIconSizes.inputMinHeight, max = MusePaddings.maxMessageFieldHeight)
@@ -1378,3 +1369,6 @@ private fun RowScope.MessageInputField(
         )
     }
 }
+
+/** v1.0.72: Telegram 风格输入岛底部悬浮间距(dp)。 */
+private val InputIslandBottomGap = 10.dp

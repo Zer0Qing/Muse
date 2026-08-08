@@ -33,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.zer0.common.Logger
 import io.zer0.muse.data.ProactiveMessageConfig
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantEntity
@@ -48,6 +49,9 @@ import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.theme.MusePaddings
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+
+/** v1.0.72: 每日上限"无限"档哨兵值(永不触发上限)。 */
+private const val UNLIMITED_DAILY_SENTINEL = 9999
 
 /**
  * v1.27: Agent 配置二级页。
@@ -70,6 +74,8 @@ fun AgentSettingsPage(
     val proactiveConfig by settings.proactiveMessageConfigFlow.collectAsStateWithLifecycle(
         initialValue = ProactiveMessageConfig()
     )
+    // v1.0.72: 每日总结推送开关
+    val dailySummaryEnabled by settings.dailySummaryEnabledFlow.collectAsStateWithLifecycle(initialValue = true)
     val multiAgentConfig by settings.multiAgentConfigFlow.collectAsStateWithLifecycle(
         initialValue = io.zer0.muse.data.MultiAgentConfig()
     )
@@ -80,6 +86,13 @@ fun AgentSettingsPage(
     // v1.60-A: 工具模型(工具调用轮次使用,null 表示沿用主对话模型)
     val toolModelId by settings.toolModelIdFlow.collectAsStateWithLifecycle(initialValue = null)
     val scope = rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    // v1.0.72: 主动消息测试发送(避免重复触发)
+    var testSending by remember { mutableStateOf(false) }
+    // v1.0.72: 发送概率选择弹窗
+    var showProbabilityPicker by remember { mutableStateOf(false) }
+    // v1.0.72: 主动消息 Runner(测试发送用)
+    val proactiveRunner: io.zer0.muse.schedule.ProactiveMessageRunner = koinInject()
 
     var showAssistantPicker by remember { mutableStateOf(false) }
     var showIntervalPicker by remember { mutableStateOf(false) }
@@ -275,7 +288,11 @@ fun AgentSettingsPage(
                     SettingsItemRow(
                         icon = TablerIcons.Bell,
                         title = "每日上限",
-                        subtitle = "${proactiveConfig.maxDailyMessages} 条/天",
+                        subtitle = if (proactiveConfig.maxDailyMessages >= UNLIMITED_DAILY_SENTINEL) {
+                            "无限"
+                        } else {
+                            "${proactiveConfig.maxDailyMessages} 条/天"
+                        },
                         onClick = { showMaxDailyPicker = true },
                     ) {
                         ChevronRight()
@@ -290,6 +307,52 @@ fun AgentSettingsPage(
                     ) {
                         ChevronRight()
                     }
+                    // v1.0.72: 发送概率(决策通过后再掷骰子,0-100%)
+                    SettingsGroupDivider()
+                    SettingsItemRow(
+                        icon = TablerIcons.Dice,
+                        title = "发送概率",
+                        subtitle = probabilityLabel(proactiveConfig.sendProbability),
+                        onClick = { showProbabilityPicker = true },
+                    ) {
+                        ChevronRight()
+                    }
+                    // v1.0.72: 测试主动消息(模拟真实发送:LLM 总结 + 通知)
+                    SettingsGroupDivider()
+                    SettingsItemRow(
+                        icon = TablerIcons.Bell,
+                        title = "测试主动消息",
+                        subtitle = if (testSending) "正在生成..." else "像真实主动消息一样发一条(通知展示)",
+                        onClick = {
+                            if (testSending) return@SettingsItemRow
+                            testSending = true
+                            scope.launch {
+                                try {
+                                    proactiveRunner.triggerTestSend()
+                                    android.widget.Toast.makeText(context, "测试消息已发送,查看通知栏", android.widget.Toast.LENGTH_SHORT).show()
+                                } catch (e: Exception) {
+                                    if (e is kotlin.coroutines.cancellation.CancellationException) throw e
+                                    Logger.w("AgentSettingsPage", "测试主动消息失败: ${e.message}")
+                                    android.widget.Toast.makeText(context, "测试失败:${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+                                } finally {
+                                    testSending = false
+                                }
+                            }
+                        },
+                    ) {
+                        ChevronRight()
+                    }
+                    // v1.0.72: 每日总结推送(每天 19:30 固定推送今日小结)
+                    SettingsGroupDivider()
+                    SettingsSwitchRow(
+                        icon = TablerIcons.CalendarStats,
+                        title = "每日总结推送",
+                        subtitle = "每天 19:30 推送今日对话小结(开关关闭后自动跳过,重新打开即恢复)",
+                        checked = dailySummaryEnabled,
+                        onCheckedChange = { v ->
+                            scope.launch { settings.saveDailySummaryEnabled(v) }
+                        },
+                    )
                     // v1.x: 保持后台运行引导(被动入口,不主动打扰)
                     SettingsGroupDivider()
                     SettingsItemRow(
@@ -571,9 +634,13 @@ fun AgentSettingsPage(
         )
     }
 
-    // ── v2.0 5.9: 每日上限选择弹窗(1 ~ 10 条/天)──
+    // ── v2.0 5.9: 每日上限选择弹窗(1 ~ 10 条/天 + 无限)──
+    // v1.0.72: 新增"无限"档(哨兵值 9999,永不触发上限)
     if (showMaxDailyPicker) {
-        var sliderValue by rememberSaveable { mutableStateOf(proactiveConfig.maxDailyMessages.toFloat()) }
+        var sliderValue by rememberSaveable { mutableStateOf(proactiveConfig.maxDailyMessages.coerceIn(1, 10).toFloat()) }
+        var unlimited by rememberSaveable {
+            mutableStateOf(proactiveConfig.maxDailyMessages >= UNLIMITED_DAILY_SENTINEL)
+        }
         val alignedValue = sliderValue.toInt().coerceIn(1, 10)
         MuseDialog(
             onDismissRequest = { showMaxDailyPicker = false },
@@ -581,29 +648,48 @@ fun AgentSettingsPage(
             content = {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = "$alignedValue 条/天",
+                        text = if (unlimited) "无限" else "$alignedValue 条/天",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(bottom = 8.dp),
                     )
                     Text(
-                        text = "每天最多发送的主动消息条数,超出后跳过直到次日",
+                        text = if (unlimited) {
+                            "不限制条数,只要评分和概率通过就发(适合高频陪伴)"
+                        } else {
+                            "每天最多发送的主动消息条数,超出后跳过直到次日"
+                        },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.padding(bottom = 16.dp),
                     )
                     MuseSlider(
                         value = alignedValue.toFloat(),
-                        onValueChange = { sliderValue = it },
+                        onValueChange = {
+                            unlimited = false
+                            sliderValue = it
+                        },
                         valueRange = 1f..10f,
                         valueFormatter = { "${it.toInt()} 条" },
                     )
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text("1 条", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                        // v1.0.72: 无限档按钮
+                        TextButton(onClick = { unlimited = true }) {
+                            Text(
+                                text = if (unlimited) "✓ 无限" else "设为无限",
+                                color = if (unlimited) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
+                            )
+                        }
                         Text("10 条", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
                     }
                 }
@@ -611,7 +697,11 @@ fun AgentSettingsPage(
             confirmText = stringResource(R.string.action_save),
             onConfirm = {
                 scope.launch {
-                    settings.saveProactiveMessageConfig(proactiveConfig.copy(maxDailyMessages = alignedValue))
+                    settings.saveProactiveMessageConfig(
+                        proactiveConfig.copy(
+                            maxDailyMessages = if (unlimited) UNLIMITED_DAILY_SENTINEL else alignedValue,
+                        )
+                    )
                 }
                 showMaxDailyPicker = false
             },
@@ -667,6 +757,55 @@ fun AgentSettingsPage(
             },
             dismissText = stringResource(R.string.action_cancel),
             onDismiss = { showTemperaturePicker = false },
+        )
+    }
+
+    // ── v1.0.72: 发送概率选择弹窗(0-100%,步长 5)──
+    if (showProbabilityPicker) {
+        var sliderValue by rememberSaveable { mutableStateOf(proactiveConfig.sendProbability) }
+        val alignedValue = (sliderValue / 5 * 5).coerceIn(0, 100)
+        MuseDialog(
+            onDismissRequest = { showProbabilityPicker = false },
+            title = "发送概率",
+            content = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = probabilityLabel(alignedValue),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(bottom = 8.dp),
+                    )
+                    Text(
+                        text = "主动消息决策通过后,再按此概率决定是否实际发送。100%=每次都发,50%=一半概率发,0%=只留决策日志不发送",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.padding(bottom = 16.dp),
+                    )
+                    MuseSlider(
+                        value = alignedValue.toFloat(),
+                        onValueChange = { sliderValue = it.toInt() },
+                        valueRange = 0f..100f,
+                        valueFormatter = { "${it.toInt()}%" },
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text("0% 不发", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                        Text("100% 必发", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                    }
+                }
+            },
+            confirmText = stringResource(R.string.action_save),
+            onConfirm = {
+                scope.launch {
+                    settings.saveProactiveMessageConfig(proactiveConfig.copy(sendProbability = alignedValue))
+                }
+                showProbabilityPicker = false
+            },
+            dismissText = stringResource(R.string.action_cancel),
+            onDismiss = { showProbabilityPicker = false },
         )
     }
 
@@ -893,4 +1032,12 @@ private fun offsetLabel(minutes: Int): String {
         minutes % 60 == 0 -> stringResource(R.string.settings_agent_offset_hours, minutes / 60)
         else -> stringResource(R.string.settings_agent_offset_hours_minutes, minutes / 60, minutes % 60)
     }
+}
+
+/** v1.0.72: 发送概率文案。 */
+@Composable
+private fun probabilityLabel(probability: Int): String = when {
+    probability >= 100 -> "每次都发(100%)"
+    probability <= 0 -> "基本不发(0%)"
+    else -> "$probability%"
 }

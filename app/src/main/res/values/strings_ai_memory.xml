@@ -41,6 +41,10 @@
     <string name="memory_add_experience_failed">添加经验失败: %1$s</string>
     <string name="memory_edit_experience_failed">编辑经验失败: %1$s</string>
     <string name="memory_delete_experience_failed">删除经验失败: %1$s</string>
+    <!-- v1.0.72: 群聊记忆(记忆中心"群聊"Tab) -->
+    <string name="memory_tab_group_chat">群聊</string>
+    <string name="memory_delete_group_chat_failed">删除群聊记忆失败: %1$s</string>
+    <string name="memory_clear_group_chat_failed">清空群聊记忆失败: %1$s</string>
 
     <!-- v6: Compile section display titles -->
     <string name="memory_compile_section_facts">事实摘要</string>

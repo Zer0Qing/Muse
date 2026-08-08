@@ -2,8 +2,8 @@ package io.zer0.muse.tools
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -13,15 +13,26 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * v1.x: 全工具烟雾测试 — 遍历 ToolRegistry 已注册的全部内置工具,
- * 用空参数(或最小参数)逐个执行,断言:
- *  - 执行不抛异常(注册/参数解析/内部链路无崩溃)
- *  - 返回非空字符串(工具结果以 JSON 或错误文本返回,不能是空串)
+ * v1.x: 全工具烟雾测试 — 遍历 ToolRegistry 已注册的全部内置工具。
  *
- * 说明:
- *  - 不校验执行"成功"(多数工具依赖真实系统能力,Robolectric 环境会返回错误),
- *    只校验"链路无崩溃 + 返回合法" —— 这是每个工具的最低健康线。
- *  - 覆盖注册完整性: 工具定义存在 + 执行入口可达。
+ * 设计(区分两类工具,解决 Robolectric 环境挂起):
+ *
+ * 1. 安全工具([SAFE_EXECUTE_TOOLS]):纯 Kotlin/计算/无 Android 系统服务依赖,
+ *    在测试线程直接执行,断言"不崩溃 + 返回非空"。这是工具链路的真实健康线。
+ *    - echo / calculator / 编解码 / 哈希 / 随机数 / 时间等
+ *
+ * 2. 系统依赖工具(其余全部):依赖真实 Android 服务(WebView 内核 / TTS 引擎 /
+ *    闹钟调度 / 电话短信 / ContentProvider / 网络),Robolectric 无真机能力,
+ *    若执行会同步阻塞(历史卡死根因:withTimeoutOrNull 无法中断阻塞线程)。
+ *    这类只验证「注册存在 + 入口可达」,运行时健康由真机冒烟覆盖。
+ *
+ * v1.0.72 修复史:
+ *  - 第一版:全部工具 executeFromJson → 系统工具阻塞,测试卡死 17 分钟。
+ *  - 第二版:withTimeoutOrNull 包协程 → 对同步阻塞无效,仍卡死。
+ *  - 第三版:独立线程 + Future.get(超时) → Robolectric 主线程被 get 阻塞,
+ *    工具内 Dispatchers.Main 永久排队,大量误超时。
+ *  - 第四版(本版):安全/系统工具分组,安全工具主线程直跑(快且稳),
+ *    系统工具仅注册校验。烟雾测试永不卡死,回归能即时暴露。
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])
@@ -35,50 +46,62 @@ class ToolRegistrySmokeTest {
         registry = ToolRegistry(context)
     }
 
+    /**
+     * 安全工具逐个执行:不崩溃 + 返回非空。
+     * 每工具 5s 协程超时兜底(防御未来新增工具意外阻塞)。
+     */
     @Test
-    fun `all built-in tools execute without crash and return non-empty result`() = runBlocking {
-        val toolNames = io.zer0.muse.tools.ToolRegistry.BUILT_IN_TOOL_IDS
-        assertTrue("应注册至少 20 个内置工具,实际 ${toolNames.size}", toolNames.size >= 20)
-
+    fun `safe tools execute without crash and return non-empty result`() = runBlocking {
         val failures = mutableListOf<String>()
-        val executed = mutableListOf<String>()
-
-        for (name in toolNames.sorted()) {
+        for (name in SAFE_EXECUTE_TOOLS) {
             val result = try {
-                registry.executeFromJson(name, "{}")
+                withTimeoutOrNull(SAFE_TOOL_TIMEOUT_MS) {
+                    registry.executeFromJson(name, "{}")
+                }
             } catch (e: Throwable) {
                 failures += "$name 抛异常: ${e.message}"
                 continue
             }
-            executed += name
-            if (result.isBlank()) {
+            if (result == null) {
+                failures += "$name 执行超时(阻塞)"
+            } else if (result.isBlank()) {
                 failures += "$name 返回空串"
             }
         }
-
-        // 全部工具都应执行(可能返回错误,但不能崩溃/空返回)
         assertTrue(
-            "部分工具未通过烟雾测试:\n${failures.joinToString("\n")}\n已执行 ${executed.size}/${toolNames.size}",
+            "安全工具未通过烟雾测试:\n${failures.joinToString("\n")}",
             failures.isEmpty(),
         )
-        assertTrue("应覆盖全部注册工具", executed.size == toolNames.size)
     }
 
+    /**
+     * 全部内置工具必须注册(含系统依赖工具),入口可达。
+     * 不执行系统工具,只验证注册完整性。
+     */
     @Test
-    fun `browser tools execute without crash`() = runBlocking {
-        // 浏览器工具走会话级 BrowserManager,需要主线程;烟雾测试只验证注册入口可达
-        val names = listOf("browser_navigate", "browser_extract", "browser_get_html")
-        for (name in names) {
-            val result = registry.executeFromJson(name, "{}")
-            assertNotNull("$name 返回不应为 null", result)
-            assertTrue("$name 返回不应为空", result.isNotBlank())
-        }
+    fun `all built-in tools are registered and reachable`() = runBlocking {
+        val registered = io.zer0.muse.tools.ToolRegistry.BUILT_IN_TOOL_IDS.toSet()
+        assertTrue("应注册至少 20 个内置工具,实际 ${registered.size}", registered.size >= 20)
+
+        // 全覆盖:安全工具 + 系统工具 = 全部注册工具
+        val all = SAFE_EXECUTE_TOOLS + SYSTEM_ONLY_TOOLS
+        val unregistered = all.filterNot { it in registered }
+        assertTrue("以下工具未注册:\n$unregistered", unregistered.isEmpty())
+
+        // 防止分组遗漏:BUILT_IN_TOOL_IDS 中既不在安全也不在系统组的 → 分组表过期,必须报错
+        val missingFromGroups = registered.filterNot { it in all }
+        assertTrue(
+            "以下工具不在分组表中(请更新 SAFE_EXECUTE_TOOLS / SYSTEM_ONLY_TOOLS):\n$missingFromGroups",
+            missingFromGroups.isEmpty(),
+        )
     }
 
+    /**
+     * 核心工具必须注册(回归保护: 注册表被误删时立刻暴露)。
+     */
     @Test
     fun `registry contains all documented built-in tool ids`() {
         val names = io.zer0.muse.tools.ToolRegistry.BUILT_IN_TOOL_IDS.toSet()
-        // 核心工具必须注册(回归保护: 注册表被误删时立刻暴露)
         val required = listOf(
             "get_current_time", "calculator", "echo", "get_weather",
             "browser_navigate", "browser_extract",
@@ -86,5 +109,76 @@ class ToolRegistrySmokeTest {
         )
         val missing = required.filterNot { it in names }
         assertTrue("缺少核心工具: $missing", missing.isEmpty())
+    }
+
+    companion object {
+        /** 安全工具单工具超时(毫秒)。 */
+        private const val SAFE_TOOL_TIMEOUT_MS = 5_000L
+
+        /**
+         * 安全工具:纯计算/无系统服务,Robolectric 可真实执行。
+         * 新增纯逻辑工具时加入此表(并在 SYSTEM_ONLY_TOOLS 中移除)。
+         */
+        val SAFE_EXECUTE_TOOLS: List<String> = listOf(
+            // 纯计算
+            "echo", "calculator",
+            // 编解码/哈希
+            "url_encode", "url_decode", "base64_encode", "base64_decode",
+            "hash_text", "generate_uuid", "random_number", "generate_password",
+            "json_pretty",
+            // 时间(纯 LocalDateTime)
+            "get_current_time",
+        )
+
+        /**
+         * 系统依赖工具:Robolectric 下不执行(执行会阻塞/无真实能力)。
+         * 真机回归由 instrumentation 冒烟覆盖。
+         * 新增系统工具时加入此表(保持与 SAFE_EXECUTE_TOOLS 并集 = BUILT_IN_TOOL_IDS)。
+         */
+        val SYSTEM_ONLY_TOOLS: List<String> = listOf(
+            // 网络
+            "get_weather", "get_network_info", "get_public_ip", "ping_host", "dns_lookup",
+            // 剪贴板/日历/闹钟
+            "clipboard_read", "clipboard_write", "screen_time", "calendar_today",
+            "add_calendar_event", "set_alarm", "set_timer", "schedule_reminder",
+            "cancel_reminder", "list_reminders",
+            // 系统/设备
+            "open_app", "share_text", "get_location", "get_device_info",
+            "get_contacts_count", "get_contacts_list", "send_sms", "add_contact",
+            "open_system_setting", "toggle_wifi", "toggle_bluetooth", "send_email",
+            "get_battery_info", "get_recent_notifications", "open_url",
+            "list_installed_apps",
+            // v1.136 系统/设备/编码
+            "get_storage_info", "get_memory_info", "get_display_info", "get_cpu_info",
+            "get_sensors_list", "get_brightness", "set_brightness", "get_volume",
+            "set_volume", "toggle_flashlight", "vibrate", "get_foreground_app",
+            "get_wifi_info", "get_bluetooth_devices", "make_phone_call", "open_maps",
+            // 资源库/快速记录(依赖 Room DB,Robolectric 需额外配置,归系统组)
+            "resource_add", "resource_list", "resource_search", "resource_get",
+            "resource_delete", "quick_note_add", "quick_note_list", "quick_note_search",
+            "quick_note_get", "quick_note_update", "quick_note_delete", "quick_note_pin",
+            // TTS
+            "speak_text",
+            // 媒体生成(依赖网络 + 供应商)
+            "generate_image", "generate_video", "generate_qr_code",
+            // 表情包(依赖 SkillExecutor)
+            "list_stickers", "send_sticker",
+            // 记忆/经验(依赖 DB + LLM)
+            "pin_memory", "unpin_memory", "recall_experience", "record_experience",
+            "todo_write", "show_card", "notify", "current_status", "subagent_task",
+            // JS 沙盒(WebView)
+            "execute_javascript",
+            // 浏览器(headless WebView)
+            "browser_navigate", "browser_click", "browser_type", "browser_extract",
+            "browser_scroll_bottom", "browser_get_html",
+            // 工作区文件(依赖文件系统)
+            "workspace_list", "workspace_read", "workspace_write", "workspace_delete",
+            "workspace_mkdir", "workspace_move",
+            // 定时任务(依赖 DB)
+            "scheduled_task_create", "scheduled_task_list", "scheduled_task_update",
+            "scheduled_task_delete", "scheduled_task_execute", "scheduled_task_get_history",
+            // 翻译(依赖网络 + LLM)
+            "translate",
+        )
     }
 }

@@ -28,6 +28,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlin.random.Random
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -165,6 +166,23 @@ class ProactiveMessageRunner(
     }
 
     /**
+     * v1.0.72: 主动消息测试发送 — 像真实的主动消息一样走完整链路。
+     *
+     * 与普通触发的区别(forceSend=true):
+     *  - 跳过时间窗口/每日上限/ScoreEngine 预筛选/决策 shouldSend 判断
+     *  - 仍然执行:上下文收集 → LLM 决策(拿 scenario/reason) → LLM 生成正文 →
+     *    写入会话 → 弹通知,便于用户验证效果
+     *  - 不受 sendProbability 概率限制
+     *
+     * 调用方:设置页"测试主动消息"按钮。
+     */
+    suspend fun triggerTestSend() {
+        triggerMutex.withLock {
+            executeProactiveCycle(triggerSource = TRIGGER_SOURCE_TEST, forceSend = true)
+        }
+    }
+
+    /**
      * v2.0 5.4/5.5: 统一的主动消息执行主流程(两阶段决策)。
      *
      * 阶段1(决策):用 ScoreEngine 预筛选 → 通过后用 LLM(maxTokens=[DECISION_MAX_TOKENS])
@@ -175,30 +193,39 @@ class ProactiveMessageRunner(
      *  - "poll" / "worker":受 [computeNextTriggerTime] 自适应间隔限制
      *  - "app_resume" / "long_silence" / "task_complete":不受间隔限制(事件触发)
      *  - "worker" 路径额外检查冷启动防打扰
+     *  - "test"(v1.0.72):[forceSend]=true 时跳过全部发送门槛,直达生成+发送
+     *
+     * @param forceSend v1.0.72: 测试模式,跳过时间窗口/每日上限/ScoreEngine/决策门槛
      */
     private suspend fun executeProactiveCycle(
         triggerSource: String,
         suppressIfColdStart: Boolean = false,
+        forceSend: Boolean = false,
     ) = triggerMutex.withLock {
         // 问题6.2: 进入临界区先刷新当日计数(跨日重置 + 从 SP 读取持久化值)
         refreshDailyCount()
 
         val config = settings.proactiveMessageConfigFlow.first()
-        if (!config.enabled) return@withLock
+        // v1.0.72: 测试模式不受总开关限制(用户主动测试即使开关关闭也能触发)
+        if (!config.enabled && !forceSend) return@withLock
 
-        // v1.95: 时间窗口检查 — 不在允许时段跳过发送(避免夜间打扰)
-        val calendar = java.util.Calendar.getInstance()
-        val currentHour = calendar.get(java.util.Calendar.HOUR_OF_DAY)
-        val inWindow = if (config.allowedHourStart <= config.allowedHourEnd) {
-            // 普通时段:如 8-22
-            currentHour in config.allowedHourStart until config.allowedHourEnd
+        // v1.0.72: 测试模式跳过时间窗口检查(用户主动测试不应被时段挡住)
+        if (!forceSend) {
+            val calendar = java.util.Calendar.getInstance()
+            val currentHour = calendar.get(java.util.Calendar.HOUR_OF_DAY)
+            val inWindow = if (config.allowedHourStart <= config.allowedHourEnd) {
+                // 普通时段:如 8-22
+                currentHour in config.allowedHourStart until config.allowedHourEnd
+            } else {
+                // 跨夜时段:如 22-8(22点到次日8点)
+                currentHour >= config.allowedHourStart || currentHour < config.allowedHourEnd
+            }
+            if (!inWindow) {
+                Logger.i(TAG, "当前 $currentHour:00 不在允许时段 ${config.allowedHourStart}:00-${config.allowedHourEnd}:00,跳过")
+                return@withLock
+            }
         } else {
-            // 跨夜时段:如 22-8(22点到次日8点)
-            currentHour >= config.allowedHourStart || currentHour < config.allowedHourEnd
-        }
-        if (!inWindow) {
-            Logger.i(TAG, "当前 $currentHour:00 不在允许时段 ${config.allowedHourStart}:00-${config.allowedHourEnd}:00,跳过")
-            return@withLock
+            Logger.i(TAG, "测试发送模式:跳过时间窗口/间隔/上限/评分门槛")
         }
 
         val now = System.currentTimeMillis()
@@ -207,14 +234,26 @@ class ProactiveMessageRunner(
         val baseIntervalMs = computeBaseIntervalMs(config)
         val elapsed = now - config.lastTriggeredAt
 
+        // v1.0.72 保底机制: 距上次触发超过 24h 且未达每日上限时,
+        // 跳过排期/间隔/评分/决策门槛直接发送一条(仍受时间窗口 + 每日上限约束),
+        // 防止"评分永不过线导致永远不发"的死局。必须放在排期检查之前,
+        // 否则 nextTriggerAt 排期未到会先挡住轮询路径,保底永远走不到。
+        val guaranteedSend = !forceSend &&
+            config.lastTriggeredAt > 0 &&
+            (now - config.lastTriggeredAt) > GUARANTEED_INTERVAL_MS &&
+            todaySentCount < config.maxDailyMessages
+        if (guaranteedSend) {
+            Logger.i(TAG, "保底触发: 距上次主动消息 ${(now - config.lastTriggeredAt) / 3_600_000}h,超过 24h,跳过排期/评分/决策直接发送")
+        }
+
         // 事件触发路径不受间隔限制;poll / worker 路径仍受自适应间隔约束
         val isEventTriggered = triggerSource != TRIGGER_SOURCE_POLL && triggerSource != TRIGGER_SOURCE_WORKER
         // B8-01: 持久化排期优先 — 进程重启后直接按 nextTriggerAt 恢复,避免重新计算导致提前/延后
-        if (!isEventTriggered && config.nextTriggerAt > now) {
+        if (!isEventTriggered && !guaranteedSend && config.nextTriggerAt > now) {
             Logger.d(TAG, "持久化排期未到期: 剩余 ${(config.nextTriggerAt - now) / 60000}min")
             return@withLock
         }
-        if (!isEventTriggered) {
+        if (!isEventTriggered && !guaranteedSend) {
             // 快速下限保护:elapsed < baseInterval × 0.3 时直接跳过(三因子最小乘积 ≈ 0.336),
             // 避免每次轮询都触发自适应计算与日志
             if (elapsed < baseIntervalMs * FAST_GUARD_RATIO) return@withLock
@@ -295,27 +334,30 @@ class ProactiveMessageRunner(
 
         // v2.0 5.9: 用 config.maxDailyMessages 而非硬编码(预筛选前显式校验,
         // 避免 ScoreEngine 内部硬编码 MAX_DAILY_MESSAGES 与配置脱节)
-        if (todaySentCount >= config.maxDailyMessages) {
+        if (!forceSend && todaySentCount >= config.maxDailyMessages) {
             Logger.i(TAG, "已达每日上限 ${config.maxDailyMessages},跳过")
             return@withLock
         }
 
-        // v1.0.4: ProactiveScoreEngine 预筛选 — 评分低于阈值直接跳过 LLM 调用(节省 token)
-        val scoreCtx = ScoreContext(
-            hoursSinceLastMessage = (elapsed / 3_600_000f).coerceAtLeast(0f),
-            accountAgeDays = accountAgeDays,
-            recentMood = recentMood,
-            todaySentCount = this.todaySentCount,
-            hasNewMilestones = hasNewMilestones,
-            hasNewMemories = hasNewMemories,
-            hasNewTopics = hasNewTopics,
-            // v2.0 5.9: 传入可配置的每日上限,替代 ScoreEngine 硬编码
-            maxDailyMessages = config.maxDailyMessages,
-        )
-        if (!scoreEngine.shouldSend(scoreCtx)) {
-            Logger.i(TAG, "ScoreEngine 预筛选未通过,跳过 LLM 调用")
-            saveProactiveSchedule(config, now, baseIntervalMs, targetSession.id)
-            return@withLock
+        // v1.0.72: 测试模式/保底模式跳过 ScoreEngine 预筛选(直接走 LLM 决策+生成)
+        if (!forceSend && !guaranteedSend) {
+            // v1.0.4: ProactiveScoreEngine 预筛选 — 评分低于阈值直接跳过 LLM 调用(节省 token)
+            val scoreCtx = ScoreContext(
+                hoursSinceLastMessage = (elapsed / 3_600_000f).coerceAtLeast(0f),
+                accountAgeDays = accountAgeDays,
+                recentMood = recentMood,
+                todaySentCount = this.todaySentCount,
+                hasNewMilestones = hasNewMilestones,
+                hasNewMemories = hasNewMemories,
+                hasNewTopics = hasNewTopics,
+                // v2.0 5.9: 传入可配置的每日上限,替代 ScoreEngine 硬编码
+                maxDailyMessages = config.maxDailyMessages,
+            )
+            if (!scoreEngine.shouldSend(scoreCtx)) {
+                Logger.i(TAG, "ScoreEngine 预筛选未通过,跳过 LLM 调用")
+                saveProactiveSchedule(config, now, baseIntervalMs, targetSession.id)
+                return@withLock
+            }
         }
 
         // v2.0 5.5: 构造工作台巡检上下文(Heartbeat 模式)
@@ -354,11 +396,24 @@ class ProactiveMessageRunner(
 
         val decision = parseDecision(decisionCompletion.text)
 
-        if (!decision.shouldSend) {
+        if (!decision.shouldSend && !forceSend && !guaranteedSend) {
             // shouldSend=false 也更新 lastTriggeredAt,避免频繁打扰 + 浪费 token
             saveProactiveSchedule(config, now, baseIntervalMs, targetSession.id)
             Logger.i(TAG, "Proactive message skipped (shouldSend=false), reason=${decision.reason}")
             return@withLock
+        }
+        if (!decision.shouldSend && guaranteedSend) {
+            Logger.i(TAG, "保底发送: 决策 shouldSend=false 被忽略, reason=${decision.reason}")
+        }
+
+        // v1.0.72: 发送概率门槛(测试发送不受限)
+        if (!forceSend && !guaranteedSend && config.sendProbability < 100) {
+            val roll = Random.nextInt(100)
+            if (roll >= config.sendProbability) {
+                saveProactiveSchedule(config, now, baseIntervalMs, targetSession.id)
+                Logger.i(TAG, "发送概率未命中: roll=$roll, probability=${config.sendProbability},跳过")
+                return@withLock
+            }
         }
 
         // ── 阶段2:生成(用大 maxTokens 生成正文,场景驱动长度)──
@@ -384,6 +439,13 @@ class ProactiveMessageRunner(
         if (proactiveContent.isBlank()) {
             saveProactiveSchedule(config, now, baseIntervalMs, targetSession.id)
             Logger.i(TAG, "Proactive message skipped (empty content), reason=${decision.reason}")
+            return@withLock
+        }
+
+        // v1.0.72: 测试模式只生成不落库,通过通知展示内容,避免污染用户会话
+        if (forceSend) {
+            notificationManager.notifyProactiveMessage(assistant, proactiveContent)
+            Logger.i(TAG, "[测试] Proactive message sent via notification, scenario=${decision.scenario}, reason=${decision.reason}")
             return@withLock
         }
 
@@ -898,12 +960,18 @@ class ProactiveMessageRunner(
         /** 自适应微抖动比例(±5%,在自适应结果上避免完全确定性)。 */
         private const val MICRO_JITTER_RATIO = 0.05f
 
+        // v1.0.72: 保底发送间隔 — 距上次主动消息超过 24h 时强制发一条
+        // (跳过评分/决策门槛,仍受时间窗口 + 每日上限约束,防止"永远不发"死局)
+        private const val GUARANTEED_INTERVAL_MS = 24L * 60 * 60 * 1000
+
         // v2.0 5.6: 触发源标识
         const val TRIGGER_SOURCE_POLL = "poll"
         const val TRIGGER_SOURCE_WORKER = "worker"
         const val TRIGGER_SOURCE_RESUME = "app_resume"
         const val TRIGGER_SOURCE_LONG_SILENCE = "long_silence"
         const val TRIGGER_SOURCE_TASK_COMPLETE = "task_complete"
+        /** v1.0.72: 设置页测试发送。 */
+        const val TRIGGER_SOURCE_TEST = "test"
 
         /**
          * v2.1: 基准触发间隔(毫秒),仅用于冷启动/长沉默等阈值校验。
@@ -916,6 +984,29 @@ class ProactiveMessageRunner(
             config: io.zer0.muse.data.ProactiveMessageConfig,
         ): Long {
             return config.intervalMinutes.coerceAtLeast(15) * 60_000L
+        }
+
+        /**
+         * v1.0.72: 指数分布随机偏移(毫秒)— 重新激活 randomOffsetMinutes。
+         *
+         * 泊松过程风格:平均偏移 = [offsetMinutes] 分钟,分布偏短但允许长尾。
+         * 实际偏移范围 [-offsetMs, +offsetMs](均值 0,叠加后平均间隔保持不变),
+         * 但形态是指数(短偏移更常见,偶尔出现长偏移),比均匀分布更"自然随机"。
+         *
+         * @param offsetMinutes 随机偏移分钟数(<=0 时返回 0,即完全固定间隔)
+         * @param random 随机源(测试注入)
+         * @return 偏移毫秒数(负 = 提前,正 = 延后)
+         */
+        internal fun exponentialOffsetMillis(
+            offsetMinutes: Int,
+            random: kotlin.random.Random = kotlin.random.Random,
+        ): Long {
+            if (offsetMinutes <= 0) return 0L
+            val offsetMs = offsetMinutes * 60_000L
+            val u = random.nextDouble().coerceIn(0.000001, 0.999999)
+            val expSample = -Math.log(1.0 - u) // 均值 1 的指数分布
+            val expDelay = (expSample * offsetMs).toLong().coerceAtMost(2 * offsetMs)
+            return expDelay - offsetMs
         }
 
         /** R-TEST-11: 免打扰时段判断,支持跨夜窗口。 */
@@ -1010,7 +1101,14 @@ class ProactiveMessageRunner(
         val randomWindowMs = minOf(60_000L, (adjustedIntervalMs / 4).coerceAtLeast(1L))
         targetTime += kotlin.random.Random.nextLong(0, randomWindowMs + 1)
 
-        // ±5% 微抖动(百分比,在自适应基础上避免完全确定性)
+        // v1.0.72: 真正的随机间隔 — 重新激活 randomOffsetMinutes(此前 v2.1 起已失效),
+        // 用指数分布(泊松过程)代替均匀抖动:平均偏移 = randomOffsetMinutes,
+        // 但分布偏短(偶尔几分钟就发)又允许长尾(偶尔很久才发),符合"自然随机"感受。
+        //  - offset=0 → 完全固定间隔(用户可关)
+        //  - offset=60 → 实际间隔在 [base-60, base+60] 区间内按指数分布,均值=base
+        targetTime += exponentialOffsetMillis(config.randomOffsetMinutes)
+
+        // ±5% 微抖动(百分比,在自适应基础上避免完全确定性;与上面的指数随机叠加不影响平均间隔)
         val jitterRange = (adjustedIntervalMs * MICRO_JITTER_RATIO).toLong()
         if (jitterRange > 0) {
             val jitter = kotlin.random.Random.nextLong(-jitterRange, jitterRange + 1)

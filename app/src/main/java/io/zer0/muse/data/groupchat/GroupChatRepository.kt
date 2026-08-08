@@ -293,6 +293,12 @@ class GroupChatRepository(
         groupChatMessageDao.getRecentMessages(chatId, limit).reversed()
     }
 
+    /** v1.0.72: 群聊内搜索消息(关键词匹配正文,按时间倒序)。 */
+    suspend fun searchMessages(chatId: String, query: String, limit: Int = 100): List<GroupChatMessageEntity> = withContext(Dispatchers.IO) {
+        if (query.isBlank()) return@withContext emptyList()
+        groupChatMessageDao.searchMessages(chatId, query.trim(), limit)
+    }
+
     /** 取指定群聊的最新一条消息(用于列表页预览)。 */
     suspend fun getLatestMessage(chatId: String): GroupChatMessageEntity? = withContext(Dispatchers.IO) {
         groupChatDao.getLatestMessage(chatId)

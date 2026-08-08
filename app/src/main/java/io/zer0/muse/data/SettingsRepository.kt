@@ -516,6 +516,34 @@ class SettingsRepository(
         prefs[KEY_UPDATE_CHECK_ENABLED] ?: true
     }
 
+    /**
+     * v1.0.72: 用户主动忽略的更新版本号(tagName,如 "v1.0.71")。
+     * Banner 对该版本不再展示,直到更新到该版本后由 UpdateNotifier 清空缓存。
+     */
+    val ignoredUpdateVersionFlow: Flow<String?> = store.data.map { prefs ->
+        prefs[KEY_IGNORED_UPDATE_VERSION]
+    }
+
+    /** v1.0.72: 保存用户忽略的更新版本号。 */
+    suspend fun saveIgnoredUpdateVersion(version: String?) {
+        store.edit {
+            if (version == null) it.remove(KEY_IGNORED_UPDATE_VERSION) else it[KEY_IGNORED_UPDATE_VERSION] = version
+        }
+    }
+
+    /**
+     * v1.0.72: 每日总结推送开关(默认 true)。
+     * 每天固定时间(默认 19:30)推送当天对话要点小结。
+     */
+    val dailySummaryEnabledFlow: Flow<Boolean> = store.data.map { prefs ->
+        prefs[KEY_DAILY_SUMMARY_ENABLED] ?: true
+    }
+
+    /** v1.0.72: 保存每日总结推送开关。 */
+    suspend fun saveDailySummaryEnabled(enabled: Boolean) {
+        store.edit { it[KEY_DAILY_SUMMARY_ENABLED] = enabled }
+    }
+
     // ── v2.0+: 崩溃上报配置(默认全部关闭,隐私优先) ───────────────────────
     /** 是否启用崩溃上报(默认 false — 必须用户主动开启,绝不默认上报)。 */
     val crashReportEnabledFlow: Flow<Boolean> = store.data.map { prefs ->
@@ -1339,6 +1367,10 @@ class SettingsRepository(
         private val KEY_LAST_UPDATE_CHECK_TIME = longPreferencesKey("last_update_check_time")
         private val KEY_LATEST_RELEASE_INFO = stringPreferencesKey("latest_release_info_json")
         private val KEY_UPDATE_CHECK_ENABLED = booleanPreferencesKey("update_check_enabled")
+        // v1.0.72: 用户主动忽略的更新版本号(tagName),该版本不再弹 Banner
+        private val KEY_IGNORED_UPDATE_VERSION = stringPreferencesKey("ignored_update_version")
+        // v1.0.72: 每日总结推送开关(默认 true)
+        private val KEY_DAILY_SUMMARY_ENABLED = booleanPreferencesKey("daily_summary_enabled")
         // v1.0.20: 全局默认会话权限模式(TRUSTED / ASK / STRICT,默认 ASK)
         private val KEY_DEFAULT_SESSION_PERMISSION_MODE = stringPreferencesKey("default_session_permission_mode")
         // v2.0+: 崩溃上报配置键(默认全部关闭,隐私优先)
