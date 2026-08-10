@@ -185,7 +185,11 @@ class ChatStreamCoordinator(
         // 追加到新会话的消息列表中,造成跨会话消息污染(用户消息变助手消息的根因)。
         // 后台生成的持久化走 persistCurrentAssistant(msg=...) 直接落盘,不依赖 _state.messages。
         // 切回原会话时从 DB 加载最新内容(含中间落盘),不会丢失数据。
-        if (index == -1) return
+        // v1.0.72: 加日志 — 排查"生成图片/视频后前台不显示"(消息 id 不匹配时静默丢失更新)
+        if (index == -1) {
+            Logger.w(tag, "updateAssistant 未找到消息 id=$id (内容 ${content.take(30)}),图片/视频更新可能丢失")
+            return
+        }
         val msg = messages[index]
 
         // v1.42: 快速路径 — 流式过程中绝大多数 chunk 不含特殊标签,直接按索引更新,避免遍历全列表与正则。

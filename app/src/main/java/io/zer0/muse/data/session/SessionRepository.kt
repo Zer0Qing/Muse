@@ -208,6 +208,14 @@ class SessionRepository(
     suspend fun getRecentAgentByAssistant(assistantId: String, limit: Int): List<SessionEntity> =
         sessionDao.getRecentAgentByAssistant(assistantId, limit)
 
+    /** v1.0.72: 设置会话"不参考记忆"标志。 */
+    suspend fun setSessionIgnoreMemory(sessionId: String, ignore: Boolean) {
+        withContext(Dispatchers.IO) {
+            resultOf { sessionDao.setIgnoreMemory(sessionId, ignore) }
+                .onError { msg, t -> Logger.w(TAG, "setSessionIgnoreMemory 失败: $msg", t) }
+        }
+    }
+
     /**
      * v1.58: 从源会话的某条消息处分叉,创建新会话并复制到该消息为止的全部历史。
      *

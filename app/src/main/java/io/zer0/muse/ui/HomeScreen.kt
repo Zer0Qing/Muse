@@ -108,6 +108,8 @@ fun HomeScreen(
     onOpenRecentlyDeleted: () -> Unit = {},
     /** v0.45: 打开归档聊天列表页。 */
     onOpenArchivedChats: () -> Unit = {},
+    /** v1.0.72: 打开小手机 + AI 朋友圈沉浸页。 */
+    onOpenMiniPhone: () -> Unit = {},
     /** HTML/SVG 代码块全屏预览回调(由 Tab 1 ChatScreen 触发)。 */
     onHtmlPreview: (String) -> Unit = {},
     /** 加号菜单 → 技能入口。 */
@@ -247,6 +249,14 @@ fun HomeScreen(
                         Icon(
                             imageVector = TablerIcons.Search,
                             contentDescription = stringResource(R.string.home_search_cd),
+                            modifier = Modifier.size(24.dp),
+                        )
+                    }
+                    // v1.0.72: 小手机 + AI 朋友圈入口
+                    IconButton(onClick = onOpenMiniPhone) {
+                        Icon(
+                            imageVector = TablerIcons.DeviceMobile,
+                            contentDescription = stringResource(R.string.home_miniphone_cd),
                             modifier = Modifier.size(24.dp),
                         )
                     }

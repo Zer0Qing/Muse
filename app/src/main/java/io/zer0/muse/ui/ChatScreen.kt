@@ -1143,6 +1143,11 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                 label = "chatState",
                 modifier = Modifier.fillMaxSize(),
             ) { screenState ->
+                // v1.0.72: 当前会话"不参考记忆"标志(空白引导页开关用)
+                val currentSessionIgnoreMemory = remember(state.sessions, state.currentSessionId, state.agentSessionId) {
+                    val sid = if (state.isAgentMode) state.agentSessionId else state.currentSessionId
+                    state.sessions.firstOrNull { it.id == sid }?.ignoreMemory ?: false
+                }
                 if (screenState == 2) {
                     // Agent Tab 加载中 — 显示 loading,不闪空状态引导
                     Box(
@@ -1162,6 +1167,11 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                                 viewModel.updateInput(prompt)
                             },
                             assistant = state.currentAssistant,
+                            // v1.0.72: 此条对话不参考记忆
+                            ignoreMemory = currentSessionIgnoreMemory,
+                            onToggleIgnoreMemory = { ignore ->
+                                viewModel.setSessionIgnoreMemory(ignore)
+                            },
                             modifier = Modifier.padding(horizontal = MusePaddings.largeGap),
                         )
                     }

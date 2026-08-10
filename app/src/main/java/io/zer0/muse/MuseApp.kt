@@ -319,6 +319,11 @@ class MuseApp : Application(), ImageLoaderFactory {
         // 主动消息轮询(陪伴助手定时主动给用户发消息 + 弹通知,每 60s 检查一次是否到期)
         resultOf { proactiveMessageRunner.start() }
             .onError { msg, t -> Logger.w("MuseApp", "ProactiveMessageRunner 启动失败", t) }
+        // v1.0.72: AI 朋友圈调度器(按用户频率设置定时生成动态)
+        resultOf {
+            val scheduler: io.zer0.muse.schedule.MomentScheduler = org.koin.core.context.GlobalContext.get().get()
+            scheduler.start()
+        }.onError { msg, t -> Logger.w("MuseApp", "MomentScheduler 启动失败: ${t?.message ?: msg}", t) }
         // v1.134 P0-1: 主动消息 WorkManager 兜底 — App 被杀后由系统每 15 分钟拉起一次检查
         // KEEP 策略:已存在则保留旧 schedule(避免重复注册);与 ScheduledTaskWorker 兜底对齐
         // P2-2: Worker 路径带冷启动防打扰(长时间未触发时仅更新 lastTriggeredAt,不立即发送)

@@ -161,6 +161,9 @@ data object HomeRoute
 data object SearchRoute
 
 @Serializable
+data object MiniPhoneRoute
+
+@Serializable
 data object ChatDetailRoute
 
 @Serializable

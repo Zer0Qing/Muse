@@ -141,8 +141,10 @@ class SystemPromptAssembler(
         memoryEnabled: Boolean,
         timeReminderEnabled: Boolean,
         forSubagent: Boolean = false,
+        // v1.0.72: 本会话不参考记忆(空白对话页"此条对话不参考记忆"选项)
+        ignoreMemory: Boolean = false,
     ): List<UIMessage> {
-        val static = buildStaticSnapshot(assistant, memoryEnabled, forSubagent = forSubagent)
+        val static = buildStaticSnapshot(assistant, memoryEnabled, forSubagent = forSubagent, ignoreMemory = ignoreMemory)
         val dynamic = if (timeReminderEnabled) buildDynamicSection() else ""
         var combined = buildString {
             if (static.isNotBlank()) append(static)
@@ -213,6 +215,8 @@ class SystemPromptAssembler(
         assistant: AssistantEntity?,
         memoryEnabled: Boolean,
         forSubagent: Boolean = false,
+        // v1.0.72: 本会话不参考记忆(跳过用户画像/置顶/长期/群聊记忆/经验库)
+        ignoreMemory: Boolean = false,
     ): String = io.zer0.common.Perf.trackSuspend("sys-prompt-static") {
         // v1.0.52: 分段计时 — 精确定位首次启动慢的根因(日志显示 117s 但无法定位子项)
         val perfTimer = io.zer0.common.Perf.start("sys-prompt-static-detail")
@@ -264,7 +268,13 @@ class SystemPromptAssembler(
         })
 
         // ── 2. 用户画像 ──
-        val profile = buildUserProfileSection()
+        // v1.0.72: ignoreMemory=true 时跳过全部记忆类注入(用户画像/近期会话/置顶/长期/群聊/经验),
+        //   并追加一句说明,让模型明确"本对话不参考历史记忆"。
+        val skipMemorySections = ignoreMemory && !forSubagent
+        if (skipMemorySections) {
+            sections.add("本对话不参考记忆\n- 本会话已开启「不参考记忆」:不要使用任何用户历史记忆、用户画像、近期会话、经验库中的信息\n- 以当前对话内容为准,把用户当成第一次认识\n- 除非用户在本对话中明确告知,否则不要假设任何背景信息")
+        }
+        val profile = if (!skipMemorySections) buildUserProfileSection() else ""
         if (profile.isNotBlank()) sections.add(profile)
         perfTimer.split("profile")
 
@@ -272,20 +282,21 @@ class SystemPromptAssembler(
         // v1.0.52: 注入当前助手最近的会话标题+预览,让 LLM 感知用户近期上下文。
         // forSubagent=true 时跳过:子助手是隔离子会话,不应感知主会话历史。
         // 仅在 assistant.enableRecentChatsReference=true 时注入(用户可关闭)。
-        if (!forSubagent && assistant?.enableRecentChatsReference == true && !assistant.id.isNullOrBlank()) {
+        if (!forSubagent && !skipMemorySections && assistant?.enableRecentChatsReference == true && !assistant.id.isNullOrBlank()) {
             val recentChats = buildRecentChatsSection(assistant.id)
             if (recentChats.isNotBlank()) sections.add(recentChats)
         }
         perfTimer.split("recent_chats")
 
         // ── 3. Pinned Memories ──
-        val pinned = buildPinnedMemoriesSection()
+        val pinned = if (!skipMemorySections) buildPinnedMemoriesSection() else ""
         if (pinned.isNotBlank()) sections.add(pinned)
         perfTimer.split("pinned")
 
         // ── 4. 长期记忆摘要 ──
         // forSubagent=true 时跳过:subagent 是隔离子会话,不注入长期记忆,避免递归爆炸
-        if (memoryEnabled && !forSubagent) {
+        // v1.0.72: ignoreMemory=true 时同样跳过
+        if (memoryEnabled && !forSubagent && !skipMemorySections) {
             val memory = buildLongTermMemorySection()
             if (memory.isNotBlank()) sections.add(memory)
             // v1.0.51: 记忆使用规则(不让用户感觉记忆存在 + 当前对话优先)
@@ -298,7 +309,7 @@ class SystemPromptAssembler(
         // v2.x: 群聊消息摘要独立存储,不写入主记忆系统,避免污染主对话上下文。
         // forSubagent=true 时跳过,避免递归爆炸。
         // 仅在 assistantId 非空且仓库注入时生效;无群聊记忆时返回空串跳过。
-        if (memoryEnabled && !forSubagent && assistant?.id != null) {
+        if (memoryEnabled && !forSubagent && !skipMemorySections && assistant?.id != null) {
             val groupMemory = buildGroupChatMemorySection(assistant.id)
             if (groupMemory.isNotBlank()) sections.add(groupMemory)
         }
@@ -306,7 +317,8 @@ class SystemPromptAssembler(
 
         // ── 4.5 经验库 ──
         // v1.98: experienceEnabled=true 时注入经验条目,让 AI 参考过往经验处理类似任务
-        if (memoryEnabled && settings.experienceEnabledCache) {
+        // v1.0.72: ignoreMemory=true 时跳过经验库
+        if (memoryEnabled && settings.experienceEnabledCache && !skipMemorySections) {
             val experience = buildExperienceSection()
             if (experience.isNotBlank()) sections.add(experience)
         }

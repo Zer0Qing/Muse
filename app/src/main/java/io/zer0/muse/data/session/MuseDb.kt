@@ -122,6 +122,9 @@ import kotlinx.serialization.builtins.serializer
         GroupChatMessageEntity::class,
         // v2.x: 群聊记忆隔离(独立 fact store,不污染主记忆)
         GroupChatMemoryEntity::class,
+        // v1.0.72: AI 朋友圈动态 + 评论
+        io.zer0.muse.data.moment.MomentEntity::class,
+        io.zer0.muse.data.moment.MomentCommentEntity::class,
         ExperienceEntity::class,
         // v1.107 冗余设计: 统计缓存 / 完整性日志 / 自动备份日志
         StatsCacheEntity::class,
@@ -151,7 +154,7 @@ import kotlinx.serialization.builtins.serializer
         // B5-02: 群聊生成账本(进程被杀后按断点重放)
         GroupChatGenerationLedgerEntity::class,
     ],
-    version = 78,
+    version = 81,
     exportSchema = true,
 )
 @TypeConverters(QuickNoteConverters::class)
@@ -177,6 +180,9 @@ abstract class MuseDb : RoomDatabase() {
     abstract fun groupChatMessageDao(): GroupChatMessageDao
     // v2.x: 群聊记忆隔离(独立 fact store,不污染主记忆)
     abstract fun groupChatMemoryDao(): GroupChatMemoryDao
+
+    /** v1.0.72: AI 朋友圈 DAO。 */
+    abstract fun momentDao(): io.zer0.muse.data.moment.MomentDao
     // v1.98: 经验库
     abstract fun experienceDao(): ExperienceDao
     // Phase 2 2B: 里程碑
@@ -295,6 +301,51 @@ abstract class MuseDb : RoomDatabase() {
         val MIGRATION_77_78 = object : Migration(77, 78) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE messages ADD COLUMN toolCallInfoJson TEXT DEFAULT NULL")
+            }
+        }
+
+        /** v1.0.72: sessions 加 ignore_memory 列(本会话不参考记忆)。 */
+        val MIGRATION_78_79 = object : Migration(78, 79) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE sessions ADD COLUMN ignoreMemory INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        /** v1.0.72: AI 朋友圈表(动态 + 评论)。
+         * 注意: 建表 SQL 必须与 Room 生成的表完全一致(mood 无默认值,不建额外索引),
+         * 否则真机上迁移校验失败崩溃。 */
+        val MIGRATION_79_80 = object : Migration(79, 80) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS ai_moments (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        content TEXT NOT NULL,
+                        type TEXT NOT NULL DEFAULT 'life',
+                        mood TEXT,
+                        likes INTEGER NOT NULL DEFAULT 0,
+                        likedByUser INTEGER NOT NULL DEFAULT 0,
+                        source TEXT NOT NULL DEFAULT 'scheduled',
+                        createdAt INTEGER NOT NULL DEFAULT 0
+                    )""",
+                )
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS ai_moment_comments (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        momentId TEXT NOT NULL,
+                        sender TEXT NOT NULL,
+                        content TEXT NOT NULL,
+                        createdAt INTEGER NOT NULL DEFAULT 0
+                    )""",
+                )
+            }
+        }
+
+        /** v1.0.72: 清理旧版迁移残留的 ai_moments 索引(已崩溃设备 user_version 已到 80,
+         * 需此迁移兜底,保证最终 schema 与 Entity 完全一致,避免后续版本迁移校验失败)。 */
+        val MIGRATION_80_81 = object : Migration(80, 81) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("DROP INDEX IF EXISTS idx_moments_created")
+                db.execSQL("DROP INDEX IF EXISTS idx_moment_comments_moment")
             }
         }
 
@@ -2053,6 +2104,9 @@ abstract class MuseDb : RoomDatabase() {
                         migrate75To76(File(context.applicationContext.filesDir, "muse_images")),
                         migrate76To77(),
                         MIGRATION_77_78,
+                        MIGRATION_78_79,
+                        MIGRATION_79_80,
+                        MIGRATION_80_81,
                     )
                     // 启用外键约束(artifacts 表的 ON DELETE CASCADE 依赖此设置)
                     // onOpen 不在 onCreate 事务内,可以执行此类命令;onCreate 内禁止 PRAGMA

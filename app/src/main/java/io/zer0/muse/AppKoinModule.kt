@@ -144,6 +144,10 @@ val appModule = module {
     single { io.zer0.muse.data.groupchat.GroupChatRepository(get(), get(), get(), get()) }  // v1.30: 群聊仓库(�?MuseDb 用于跨表事务)
     // v2.x: 群聊记忆隔离仓库(独立 fact store,不污染主记忆)
     single { io.zer0.muse.data.groupchat.GroupChatMemoryRepository(get()) }
+    // v1.0.72: AI 朋友圈
+    single { io.zer0.muse.data.moment.MomentRepository(get()) }
+    single { io.zer0.muse.data.moment.MomentGenerator(get(), get()) }
+    single { io.zer0.muse.schedule.MomentScheduler(get(), get(), get(), get()) }
     // v1.95: 表情包库仓库(文件存储,不碰 MuseDb)
     single { io.zer0.muse.data.sticker.StickerLibraryRepository(androidContext()) }
 

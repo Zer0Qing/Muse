@@ -61,4 +61,10 @@ data class SessionEntity(
     /** B8-01: 会话级主动消息下次触发时间戳(null=未排期,删除会话后随行清理)。 */
     @ColumnInfo(defaultValue = "NULL") val proactiveNextTriggerAt: Long? = null,
     @ColumnInfo(defaultValue = "[]") val skillIdsJson: String = "[]",
+    /**
+     * v1.0.72: 本会话不参考记忆(空白对话页选项)。
+     * true 时 system prompt 跳过用户画像/置顶记忆/长期记忆/群聊记忆/经验库,
+     * 对话从零开始,不参考任何历史记忆。
+     */
+    @ColumnInfo(defaultValue = "0") val ignoreMemory: Boolean = false,
 )

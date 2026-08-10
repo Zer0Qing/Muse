@@ -94,6 +94,7 @@
     <string name="chat_avatar_assistant_cd">助手头像</string>
     <string name="chat_avatar_muse_cd">Muse 图标</string>
     <string name="chat_empty_guide_title">今天想聊点什么?</string>
+    <string name="chat_ignore_memory_option">此条对话不参考记忆</string>
     <string name="chat_suggested_prompt_report">帮我写一篇周报</string>
     <string name="chat_suggested_prompt_summary">总结今天的工作</string>
     <string name="chat_suggested_prompt_explain">解释一下这个概念</string>

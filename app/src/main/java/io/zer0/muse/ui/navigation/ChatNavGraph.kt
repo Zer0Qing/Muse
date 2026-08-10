@@ -1,11 +1,17 @@
 package io.zer0.muse.ui.navigation
 
 import android.content.Context
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
@@ -65,6 +71,8 @@ fun NavGraphBuilder.chatNavGraph(
             },
             onOpenRecentlyDeleted = { navController.navigate(RecentlyDeletedRoute) },
             onOpenArchivedChats = { navController.navigate(ArchivedChatsRoute) },
+            // v1.0.72: 小手机 + AI 朋友圈入口
+            onOpenMiniPhone = { navController.navigate(MiniPhoneRoute) },
             // HTML/SVG 代码块全屏预览:URL 编码后跳转 HtmlPreviewScreen
             onHtmlPreview = { html ->
                 navController.navigate(HtmlPreviewRoute(html))
@@ -94,6 +102,39 @@ fun NavGraphBuilder.chatNavGraph(
                 navController.navigate(ChatDetailRoute)
             },
         )
+    }
+    // v1.0.72: 小手机 + AI 朋友圈沉浸页
+    composable<MiniPhoneRoute>(
+        enterTransition = { fadeIn() },
+        popExitTransition = { fadeOut() },
+    ) {
+        val momentViewModel: io.zer0.muse.ui.moment.MomentViewModel = org.koin.androidx.compose.koinViewModel()
+        val momentState by momentViewModel.state.collectAsStateWithLifecycle()
+        var showMoments by remember { mutableStateOf(false) }
+        val context = LocalContext.current
+        // 未读角标:今天有新动态(简单实现:加载后第一次进入朋友圈视为已读)
+        var hasUnread by remember { mutableStateOf(true) }
+
+        if (!showMoments) {
+            io.zer0.muse.ui.moment.MiniPhoneScreen(
+                momentsCount = momentState.moments.size,
+                unreadMoments = hasUnread && momentState.moments.isNotEmpty(),
+                onOpenMoments = {
+                    hasUnread = false
+                    showMoments = true
+                },
+                onBack = { navController.popBackStack() },
+            )
+        } else {
+            io.zer0.muse.ui.moment.MomentsScreen(
+                moments = momentState.moments,
+                commentsByMoment = momentState.comments,
+                onToggleLike = momentViewModel::toggleLike,
+                onAddComment = momentViewModel::addComment,
+                onDelete = momentViewModel::deleteMoment,
+                onBack = { showMoments = false },
+            )
+        }
     }
     // 归档聊天列表 — 从首页归档入口进入
     composable<ArchivedChatsRoute>(

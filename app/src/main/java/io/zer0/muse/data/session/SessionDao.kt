@@ -71,6 +71,10 @@ interface SessionDao {
     @Query("UPDATE sessions SET assistantId = :assistantId WHERE id = :id")
     suspend fun setAssistantId(id: String, assistantId: String)
 
+    /** v1.0.72: 设置会话"不参考记忆"标志。 */
+    @Query("UPDATE sessions SET ignoreMemory = :ignore WHERE id = :id")
+    suspend fun setIgnoreMemory(id: String, ignore: Boolean)
+
     /** Phase 9.1 (M13): 切换会话所属文件夹(null = 移出文件夹到未分组)。 */
     @Query("UPDATE sessions SET folderId = :folderId WHERE id = :id")
     suspend fun setFolderId(id: String, folderId: String?)

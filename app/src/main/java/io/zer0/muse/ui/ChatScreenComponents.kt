@@ -70,6 +70,9 @@ internal fun EmptyChatGuide(
     onPickPrompt: (String) -> Unit,
     modifier: Modifier = Modifier,
     assistant: io.zer0.muse.data.assistant.AssistantEntity? = null,
+    // v1.0.72: 本会话不参考记忆开关
+    ignoreMemory: Boolean = false,
+    onToggleIgnoreMemory: (Boolean) -> Unit = {},
 ) {
     Column(
         modifier = modifier,
@@ -140,6 +143,44 @@ internal fun EmptyChatGuide(
                         modifier = Modifier.padding(horizontal = 14.dp, vertical = MusePaddings.contentGap),
                     )
                 }
+            }
+        }
+
+        // v1.0.72: 此条对话不参考记忆 — 开关式胶囊选项
+        // 开启后本会话不注入任何记忆(用户画像/置顶/长期记忆/群聊记忆/经验库),从零开始
+        Surface(
+            onClick = { onToggleIgnoreMemory(!ignoreMemory) },
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(percent = 50),
+            color = if (ignoreMemory) {
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+            },
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = MusePaddings.contentGap),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                // 开关状态圆点(开启 = 实心主色,关闭 = 空心)
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .background(
+                            color = if (ignoreMemory) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
+                            shape = CircleShape,
+                        ),
+                )
+                Text(
+                    text = stringResource(R.string.chat_ignore_memory_option),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (ignoreMemory) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                )
             }
         }
     }

@@ -166,6 +166,9 @@ class MuseDbMigrationTest {
                     MuseDb.migrate75To76(imageStorageDir),
                     MuseDb.migrate76To77(),
                     MuseDb.MIGRATION_77_78,
+                    MuseDb.MIGRATION_78_79,
+                    MuseDb.MIGRATION_79_80,
+                    MuseDb.MIGRATION_80_81,
                 )
                 .allowMainThreadQueries()
                 .build()
@@ -254,6 +257,9 @@ class MuseDbMigrationTest {
                     MuseDb.migrate75To76(imageStorageDir),
                     MuseDb.migrate76To77(),
                     MuseDb.MIGRATION_77_78,
+                    MuseDb.MIGRATION_78_79,
+                    MuseDb.MIGRATION_79_80,
+                    MuseDb.MIGRATION_80_81,
                 )
                 .allowMainThreadQueries()
                 .build()
@@ -364,6 +370,9 @@ class MuseDbMigrationTest {
                     MuseDb.migrate75To76(imageDir),
                     MuseDb.migrate76To77(),
                     MuseDb.MIGRATION_77_78,
+                    MuseDb.MIGRATION_78_79,
+                    MuseDb.MIGRATION_79_80,
+                    MuseDb.MIGRATION_80_81,
                 )
                 .allowMainThreadQueries()
                 .build()
@@ -408,7 +417,7 @@ class MuseDbMigrationTest {
                 MuseDb::class.java,
                 dbFile.absolutePath,
             )
-                .addMigrations(MuseDb.migrate76To77(), MuseDb.MIGRATION_77_78)
+                .addMigrations(MuseDb.migrate76To77(), MuseDb.MIGRATION_77_78, MuseDb.MIGRATION_78_79, MuseDb.MIGRATION_79_80, MuseDb.MIGRATION_80_81)
                 .allowMainThreadQueries()
                 .build()
             db.openHelper.writableDatabase.query(
@@ -417,6 +426,58 @@ class MuseDbMigrationTest {
                 assertTrue("76→77 迁移后 messages_fts 应存在", cursor.moveToFirst())
                 val sql = cursor.getString(0)
                 assertTrue("messages_fts 应为 FTS4/FTS5 虚拟表: $sql", sql.contains("FTS4") || sql.contains("fts5"))
+            }
+            db.close()
+        } finally {
+            if (dbFile.exists()) dbFile.delete()
+            context.deleteDatabase(dbFile.name)
+        }
+    }
+
+
+    /** 模拟"已崩溃设备":v79 用旧版迁移 SQL 建出带索引的坏 schema → user_version 已到 80 →
+     * 新版用 MIGRATION_80_81 清理索引后校验必须通过。 */
+    @Test
+    fun migrate80To81_cleansLegacyIndexesFromCrashedDevice() {
+        val dbFile = context.getDatabasePath("muse_migration_80_crash.db").apply {
+            parentFile?.mkdirs()
+            if (exists()) delete()
+        }
+        try {
+            // 先按 v79 快照建全表,再手动叠加"旧版 79→80 迁移"的坏表(带索引,无 mood 默认),最后写 user_version=80
+            createSchemaAtVersion(79, dbFile.absolutePath)
+            val raw = android.database.sqlite.SQLiteDatabase.openOrCreateDatabase(dbFile, null)
+            raw.execSQL(
+                "CREATE TABLE ai_moments (id TEXT NOT NULL PRIMARY KEY, " +
+                    "content TEXT NOT NULL, type TEXT NOT NULL DEFAULT 'life', mood TEXT, " +
+                    "likes INTEGER NOT NULL DEFAULT 0, likedByUser INTEGER NOT NULL DEFAULT 0, " +
+                    "source TEXT NOT NULL DEFAULT 'scheduled', createdAt INTEGER NOT NULL DEFAULT 0)"
+            )
+            raw.execSQL(
+                "CREATE TABLE ai_moment_comments (id TEXT NOT NULL PRIMARY KEY, " +
+                    "momentId TEXT NOT NULL, sender TEXT NOT NULL, content TEXT NOT NULL, " +
+                    "createdAt INTEGER NOT NULL DEFAULT 0)"
+            )
+            raw.execSQL("CREATE INDEX idx_moments_created ON ai_moments(createdAt DESC)")
+            raw.execSQL("CREATE INDEX idx_moment_comments_moment ON ai_moment_comments(momentId)")
+            raw.execSQL("INSERT INTO ai_moments (id, content, createdAt) VALUES ('m1', '坏设备遗留动态', 100)")
+            raw.version = 80
+            raw.close()
+            // 用新版 MuseDb 打开:应自动跑 80→81 清理索引,校验通过
+            val db = Room.databaseBuilder(context, MuseDb::class.java, dbFile.absolutePath)
+                .addMigrations(MuseDb.MIGRATION_79_80, MuseDb.MIGRATION_80_81)
+                .allowMainThreadQueries()
+                .build()
+            db.openHelper.writableDatabase
+            // 数据仍在
+            db.query(androidx.sqlite.db.SimpleSQLiteQuery("SELECT count(*) FROM ai_moments")).use { c ->
+                assertTrue("坏设备遗留动态应保留", c.moveToFirst() && c.getInt(0) == 1)
+            }
+            // 索引已清理
+            db.query(androidx.sqlite.db.SimpleSQLiteQuery(
+                "SELECT count(*) FROM sqlite_master WHERE type='index' AND name LIKE 'idx_moments%'"
+            )).use { c ->
+                assertTrue("残留索引应被清理", c.moveToFirst() && c.getInt(0) == 0)
             }
             db.close()
         } finally {

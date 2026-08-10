@@ -544,6 +544,19 @@ class SettingsRepository(
         store.edit { it[KEY_DAILY_SUMMARY_ENABLED] = enabled }
     }
 
+    /**
+     * v1.0.72: AI 朋友圈每日动态条数(0-10,默认 2;0 = 关闭)。
+     * 用户自由选择频率,调度器按条数把一天切段投放。
+     */
+    val dailyMomentCountFlow: Flow<Int> = store.data.map { prefs ->
+        prefs[KEY_DAILY_MOMENT_COUNT] ?: 2
+    }
+
+    /** v1.0.72: 保存朋友圈每日条数。 */
+    suspend fun saveDailyMomentCount(count: Int) {
+        store.edit { it[KEY_DAILY_MOMENT_COUNT] = count.coerceIn(0, 10) }
+    }
+
     // ── v2.0+: 崩溃上报配置(默认全部关闭,隐私优先) ───────────────────────
     /** 是否启用崩溃上报(默认 false — 必须用户主动开启,绝不默认上报)。 */
     val crashReportEnabledFlow: Flow<Boolean> = store.data.map { prefs ->
@@ -1371,6 +1384,8 @@ class SettingsRepository(
         private val KEY_IGNORED_UPDATE_VERSION = stringPreferencesKey("ignored_update_version")
         // v1.0.72: 每日总结推送开关(默认 true)
         private val KEY_DAILY_SUMMARY_ENABLED = booleanPreferencesKey("daily_summary_enabled")
+        // v1.0.72: AI 朋友圈每日动态条数(0-10,默认 2)
+        private val KEY_DAILY_MOMENT_COUNT = intPreferencesKey("daily_moment_count")
         // v1.0.20: 全局默认会话权限模式(TRUSTED / ASK / STRICT,默认 ASK)
         private val KEY_DEFAULT_SESSION_PERMISSION_MODE = stringPreferencesKey("default_session_permission_mode")
         // v2.0+: 崩溃上报配置键(默认全部关闭,隐私优先)

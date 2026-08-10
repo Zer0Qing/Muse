@@ -2242,11 +2242,17 @@ class ChatViewModel(
         val memoryEnabled = assistant?.memoryEnabled ?: true
         val timeReminderEnabled = assistant?.enableTimeReminder ?: true
         val effectiveMemoryEnabled = memoryEnabled && settings.isMemoryEnabled()
+        // v1.0.72: 本会话不参考记忆标志
+        val state = _state.value
+        val effSessionId = if (state.isAgentMode) state.agentSessionId else state.currentSessionId
+        val sessionIgnoreMemory = state.sessions
+            .firstOrNull { it.id == effSessionId }?.ignoreMemory ?: false
         // 2.1 重建并缓存静态快照
         val staticSnapshot = resultOf {
             systemPromptAssembler.buildStaticSnapshot(
                 assistant = assistant,
                 memoryEnabled = effectiveMemoryEnabled,
+                ignoreMemory = sessionIgnoreMemory,
             )
         }.getOrNull() ?: ""
         cachedStaticSystemPrompt = staticSnapshot
@@ -2291,6 +2297,9 @@ class ChatViewModel(
         val effectiveSessionId = if (state.isAgentMode) state.agentSessionId else state.currentSessionId
         val sessionSkillHash = state.sessions
             .firstOrNull { it.id == effectiveSessionId }?.skillIdsJson?.hashCode() ?: 0
+        // v1.0.72: 本会话不参考记忆标志加入缓存键
+        val sessionIgnoreMemory = state.sessions
+            .firstOrNull { it.id == effectiveSessionId }?.ignoreMemory ?: false
         return buildString {
             append(assistant?.id ?: "null")
             append("|")
@@ -2317,6 +2326,8 @@ class ChatViewModel(
             append(prefs.responseStyle)
             append("|")
             append(prefs.responseTone)
+            append("|")
+            append(sessionIgnoreMemory)
         }
     }
 
@@ -2709,6 +2720,31 @@ class ChatViewModel(
      */
     fun clearToast() {
         _state.update { it.copy(toast = null) }
+    }
+
+    /**
+     * v1.0.72: 设置当前会话"不参考记忆"标志(空白对话页选项)。
+     * 持久化到会话,切换会话/重启保持;开启后 system prompt 跳过记忆注入。
+     */
+    fun setSessionIgnoreMemory(ignore: Boolean) {
+        val sessionId = if (_state.value.isAgentMode) {
+            _state.value.agentSessionId
+        } else {
+            _state.value.currentSessionId
+        } ?: return
+        viewModelScope.launch {
+            sessionRepository.setSessionIgnoreMemory(sessionId, ignore)
+            // 更新本地会话状态(驱动 EmptyChatGuide 开关 + system prompt 缓存键)
+            _state.update { st ->
+                st.copy(
+                    sessions = st.sessions.map {
+                        if (it.id == sessionId) it.copy(ignoreMemory = ignore) else it
+                    },
+                )
+            }
+            // 记忆开关影响静态快照,刷新上下文
+            refreshContextInfo()
+        }
     }
 
     /** 设置/取消引用回复目标。 */
@@ -4402,6 +4438,10 @@ class ChatViewModel(
             val memoryEnabled = assistant?.memoryEnabled ?: true
             val timeReminderEnabled = assistant?.enableTimeReminder ?: true
             val effectiveMemoryEnabled = memoryEnabled && settings.isMemoryEnabled()
+            // v1.0.72: 本会话不参考记忆标志
+            val effSid = if (_state.value.isAgentMode) _state.value.agentSessionId else _state.value.currentSessionId
+            val sessionIgnoreMem = _state.value.sessions
+                .firstOrNull { it.id == effSid }?.ignoreMemory ?: false
             // 复用静态 system prompt 快照,只追加动态"当前时间"。
             val currentKey = computeStaticSnapshotKey(assistant, effectiveMemoryEnabled)
             val staticSnapshot = if (currentKey == cachedStaticSnapshotKey && cachedStaticSystemPrompt.isNotBlank()) {
@@ -4411,6 +4451,7 @@ class ChatViewModel(
                     systemPromptAssembler.buildStaticSnapshot(
                         assistant = assistant,
                         memoryEnabled = effectiveMemoryEnabled,
+                        ignoreMemory = sessionIgnoreMem,
                     )
                 }.getOrNull() ?: ""
                 cachedStaticSystemPrompt = rebuilt

@@ -131,6 +131,7 @@
     <string name="home_tab_group_chat">群聊</string>
     <string name="home_settings_cd">设置</string>
     <string name="home_search_cd">搜索</string>
+    <string name="home_miniphone_cd">小手机</string>
     <string name="home_tab_selected_suffix">，已选中</string>
 
     <!-- ===== ui/FavoritesScreen 收藏夹 ===== -->
