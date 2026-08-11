@@ -1228,7 +1228,14 @@ private fun RowScope.MessageInputField(
      * 「作为文件附加」或「直接粘贴」,而非直接塞入输入框。
      */
     fun handleInputChange(newText: String) {
-        if (newText.length > INPUT_TEXT_MAX_LENGTH) return
+        // v1.0.74 fix: 超过上限静默丢弃,用户以为打字没反应;改为截断继续写入
+        if (newText.length > INPUT_TEXT_MAX_LENGTH) {
+            val truncated = newText.take(INPUT_TEXT_MAX_LENGTH)
+            if (truncated == prevInputText) return
+            prevInputText = truncated
+            onTextChanged(truncated)
+            return
+        }
         val delta = newText.length - prevInputText.length
         if (pasteAsFileEnabled && delta >= pasteAsFileThreshold && pendingPaste == null) {
             val inserted = extractInsertedSegment(prevInputText, newText)

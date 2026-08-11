@@ -54,6 +54,9 @@
     <string name="import_error_unzip_size_exceeded">解压内容超过大小限制</string>
     <string name="import_error_unzip_failed">无法解压文件: %1$s</string>
     <string name="import_error_unknown_format">无法识别的备份格式。请确保选择的是 RikkaHub 或 Kelivo 的备份 ZIP 文件。</string>
+    <string name="import_error_parse_failed">JSON 解析失败,文件可能已损坏</string>
+    <string name="import_error_chatgpt_parse_failed">ChatGPT 导出解析失败: %1$s</string>
+    <string name="import_error_file_too_large">文件过大(%1$d MB)。请先解压 ZIP 后单独导入较小的 conversations.json,或清理导出数据后再试</string>
     <string name="import_error_entry_count_exceeded">解压条目数超过限制(%1$d)</string>
     <string name="import_error_total_size_exceeded">解压内容总大小超过限制(%1$d MB)</string>
     <string name="import_error_single_file_exceeded">单文件大小超过限制(%1$d MB)</string>

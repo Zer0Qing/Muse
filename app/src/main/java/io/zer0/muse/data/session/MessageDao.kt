@@ -108,6 +108,14 @@ interface MessageDao {
     @Query("SELECT * FROM messages WHERE id = :messageId LIMIT 1")
     suspend fun getByMessageId(messageId: String): MessageEntity?
 
+    /** v1.0.74: AI 生成图聚合 — 取 assistant 且带图的最近消息(相册用)。 */
+    @Query(
+        "SELECT * FROM messages WHERE role = 'ASSISTANT' AND deletedAt IS NULL " +
+            "AND (imageUrlsJson != '[]' OR imageBase64Json != '[]') " +
+            "ORDER BY createdAt DESC LIMIT :limit",
+    )
+    suspend fun getAllAssistantWithImages(limit: Int): List<MessageEntity>
+
     /** P3-16: 取全局最近一条 assistant 消息(桌面对话小部件用,跨会话)。 */
     @Query("SELECT * FROM messages WHERE role = 'ASSISTANT' ORDER BY createdAt DESC LIMIT 1")
     suspend fun getLastAssistantMessage(): MessageEntity?

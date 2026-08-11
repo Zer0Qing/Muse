@@ -317,6 +317,7 @@
     <string name="settings_search_hint">搜索设置项…</string>
     <string name="settings_search_prompt">输入关键词搜索全部设置项</string>
     <string name="settings_search_no_results">个匹配项</string>
+    <string name="settings_search_result_count">找到 %1 项结果</string>
     <string name="settings_screen_cancel">取消</string>
     <string name="settings_screen_assistant_agent">助手与 Agent</string>
     <string name="settings_screen_ai_models">AI 模型与能力</string>
@@ -333,6 +334,7 @@
     <string name="settings_screen_quick_notes_cd">快速记录，随手记下灵感，点击进入</string>
     <string name="settings_screen_quick_notes">快速记录</string>
     <string name="settings_screen_quick_notes_desc">随手记下灵感，支持分类/提醒/加密</string>
+    <string name="settings_screen_miniphone_desc">实验功能早期版本</string>
 
     <!-- v1.25: 视觉辅助(让纯文本模型通过视觉模型"看到"图片) -->
     <string name="settings_screen_vision">视觉辅助</string>

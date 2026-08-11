@@ -1,10 +1,12 @@
 package io.zer0.muse.ui.settings
 
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,6 +22,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -79,6 +82,8 @@ import io.zer0.muse.ui.theme.semiLarge
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 import org.koin.compose.koinInject
 
 /**
@@ -206,6 +211,109 @@ fun ChatSettingsPage(
         }
 
         // ── 1. 消息显示 ──
+        // ── v1.0.74: 聊天背景(聊天/Agent/群聊共用) ──
+        item { SectionLabel(stringResource(R.string.settings_chat_background_section)) }
+        item {
+            val chatBackground by settings.chatBackgroundFlow.collectAsStateWithLifecycle(initialValue = null)
+            val bgScope = rememberCoroutineScope()
+            val bgContext = LocalContext.current
+            val bgLauncher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.PickVisualMedia(),
+            ) { uri ->
+                uri?.let { picked ->
+                    bgScope.launch {
+                        val dataUri = withContext(Dispatchers.IO) {
+                            runCatching {
+                                val bytes = bgContext.contentResolver.openInputStream(picked)?.use { it.readBytes() }
+                                    ?: return@runCatching null
+                                val bmp = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                                    ?: return@runCatching null
+                                val maxSide = 1920
+                                val scale = minOf(1f, maxSide.toFloat() / maxOf(bmp.width, bmp.height))
+                                val scaled = if (scale < 1f) {
+                                    android.graphics.Bitmap.createScaledBitmap(
+                                        bmp,
+                                        (bmp.width * scale).toInt(),
+                                        (bmp.height * scale).toInt(),
+                                        true,
+                                    )
+                                } else {
+                                    bmp
+                                }
+                                val out = java.io.ByteArrayOutputStream()
+                                scaled.compress(android.graphics.Bitmap.CompressFormat.JPEG, 82, out)
+                                val b64 = android.util.Base64.encodeToString(out.toByteArray(), android.util.Base64.NO_WRAP)
+                                if (scaled !== bmp) scaled.recycle()
+                                bmp.recycle()
+                                out.close()
+                                "data:image/jpeg;base64,$b64"
+                            }.getOrNull()
+                        }
+                        if (dataUri != null) {
+                            settings.saveChatBackground(dataUri)
+                            // v1.0.74 fix: 此前成功/失败均无反馈,用户以为坏了
+                            MuseToast.show(bgContext.getString(R.string.settings_chat_background_saved))
+                        } else {
+                            MuseToast.show(bgContext.getString(R.string.settings_chat_background_failed))
+                        }
+                    }
+                }
+            }
+            SettingsGroup {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            bgLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                        }
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = TablerIcons.Photo,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.settings_chat_background_title),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Text(
+                            text = stringResource(R.string.settings_chat_background_subtitle),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.outline,
+                        )
+                    }
+                    if (chatBackground != null) {
+                        Text(
+                            text = stringResource(R.string.action_clear),
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Medium,
+                            ),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(14.dp))
+                                .clickable {
+                                    bgScope.launch { settings.saveChatBackground(null) }
+                                }
+                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                        )
+                    } else {
+                        Text(
+                            text = stringResource(R.string.settings_chat_background_choose),
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Medium,
+                            ),
+                        )
+                    }
+                }
+            }
+        }
         item { SectionLabel(stringResource(R.string.settings_chat_message_display)) }
         item {
             SettingsGroup {

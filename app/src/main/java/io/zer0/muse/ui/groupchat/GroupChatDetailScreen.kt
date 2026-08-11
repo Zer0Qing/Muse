@@ -79,6 +79,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -385,6 +386,20 @@ fun GroupChatDetailScreen(
 
     val chatName = state.currentChat?.name ?: stringResource(R.string.groupchat_default_name)
 
+    // v1.0.74: 群聊自定义背景(与聊天背景共用设置)
+    val chatBackground by org.koin.compose.koinInject<io.zer0.muse.data.SettingsRepository>()
+        .chatBackgroundFlow
+        .collectAsState(initial = null)
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (!chatBackground.isNullOrBlank()) {
+            io.zer0.muse.ui.SmartImage(
+                model = chatBackground,
+                contentDescription = "聊天背景",
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
     Scaffold(
         // v1.0.52: 让 Scaffold 统一处理 IME 内边距,避免 bottomBar 内部 GroupChatInputBar
         // 再应用一次 imePadding 导致双重 padding(发送按钮被推到不可点击位置)
@@ -493,7 +508,11 @@ fun GroupChatDetailScreen(
                     }
             }
         },
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = if (chatBackground.isNullOrBlank()) {
+            MaterialTheme.colorScheme.background
+        } else {
+            androidx.compose.ui.graphics.Color.Transparent
+        },
         bottomBar = {
             // v1.0.52: imePadding 提到 Column 层,统一处理键盘内边距,
             // 避免 GroupChatInputBar 内部 imePadding 导致双重 padding
@@ -1511,7 +1530,8 @@ fun GroupChatDetailScreen(
             }
         }
     }
-}
+} // Scaffold
+} // 背景 Box(v1.0.74 自定义聊天背景)
 
 /** v1.0.72: 群聊顶栏三点菜单的胶囊选项。 */
 @Composable

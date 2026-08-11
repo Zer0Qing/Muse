@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -253,12 +254,18 @@ fun HomeScreen(
                         )
                     }
                     // v1.0.72: 小手机 + AI 朋友圈入口
-                    IconButton(onClick = onOpenMiniPhone) {
-                        Icon(
-                            imageVector = TablerIcons.DeviceMobile,
-                            contentDescription = stringResource(R.string.home_miniphone_cd),
-                            modifier = Modifier.size(24.dp),
-                        )
+                    // v1.0.74: 受设置开关控制(关闭则不显示,首页恢复原样)
+                    val miniPhoneEnabled by org.koin.compose.koinInject<io.zer0.muse.data.SettingsRepository>()
+                        .miniPhoneEnabledFlow
+                        .collectAsState(initial = true)
+                    if (miniPhoneEnabled) {
+                        IconButton(onClick = onOpenMiniPhone) {
+                            Icon(
+                                imageVector = TablerIcons.DeviceMobile,
+                                contentDescription = stringResource(R.string.home_miniphone_cd),
+                                modifier = Modifier.size(24.dp),
+                            )
+                        }
                     }
                 }
             }

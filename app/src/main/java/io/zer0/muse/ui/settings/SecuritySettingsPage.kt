@@ -2,6 +2,9 @@ package io.zer0.muse.ui.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.material3.Surface
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -73,6 +76,30 @@ fun SecuritySettingsPage(
     var pinDraft by rememberSaveable { mutableStateOf("") }
 
     SettingsSubPageScaffold(title = stringResource(R.string.settings_security_page_title), onBack = onBack) {
+
+        // ── 1. 应用锁(v1.0.74 fix: 功能已下线,补说明卡片,避免用户搜到却找不到设置)──
+        item { SectionLabel(stringResource(R.string.settings_security_lock_section)) }
+        item {
+            Surface(
+                shape = MuseShapes.large,
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = stringResource(R.string.settings_security_lock_removed_title),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = stringResource(R.string.settings_security_lock_removed_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
 
         // ── 2. 分享模板 ──
         item { SectionLabel(stringResource(R.string.settings_security_share_template_section)) }

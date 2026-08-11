@@ -169,6 +169,10 @@ class MuseDbMigrationTest {
                     MuseDb.MIGRATION_78_79,
                     MuseDb.MIGRATION_79_80,
                     MuseDb.MIGRATION_80_81,
+                MuseDb.MIGRATION_81_82,
+                MuseDb.MIGRATION_82_83,
+                MuseDb.MIGRATION_83_84,
+                MuseDb.MIGRATION_84_85,
                 )
                 .allowMainThreadQueries()
                 .build()
@@ -260,6 +264,10 @@ class MuseDbMigrationTest {
                     MuseDb.MIGRATION_78_79,
                     MuseDb.MIGRATION_79_80,
                     MuseDb.MIGRATION_80_81,
+                MuseDb.MIGRATION_81_82,
+                MuseDb.MIGRATION_82_83,
+                MuseDb.MIGRATION_83_84,
+                MuseDb.MIGRATION_84_85,
                 )
                 .allowMainThreadQueries()
                 .build()
@@ -373,6 +381,10 @@ class MuseDbMigrationTest {
                     MuseDb.MIGRATION_78_79,
                     MuseDb.MIGRATION_79_80,
                     MuseDb.MIGRATION_80_81,
+                MuseDb.MIGRATION_81_82,
+                MuseDb.MIGRATION_82_83,
+                MuseDb.MIGRATION_83_84,
+                MuseDb.MIGRATION_84_85,
                 )
                 .allowMainThreadQueries()
                 .build()
@@ -417,7 +429,7 @@ class MuseDbMigrationTest {
                 MuseDb::class.java,
                 dbFile.absolutePath,
             )
-                .addMigrations(MuseDb.migrate76To77(), MuseDb.MIGRATION_77_78, MuseDb.MIGRATION_78_79, MuseDb.MIGRATION_79_80, MuseDb.MIGRATION_80_81)
+                .addMigrations(MuseDb.migrate76To77(), MuseDb.MIGRATION_77_78, MuseDb.MIGRATION_78_79, MuseDb.MIGRATION_79_80, MuseDb.MIGRATION_80_81, MuseDb.MIGRATION_81_82, MuseDb.MIGRATION_82_83, MuseDb.MIGRATION_83_84, MuseDb.MIGRATION_84_85)
                 .allowMainThreadQueries()
                 .build()
             db.openHelper.writableDatabase.query(
@@ -465,7 +477,7 @@ class MuseDbMigrationTest {
             raw.close()
             // 用新版 MuseDb 打开:应自动跑 80→81 清理索引,校验通过
             val db = Room.databaseBuilder(context, MuseDb::class.java, dbFile.absolutePath)
-                .addMigrations(MuseDb.MIGRATION_79_80, MuseDb.MIGRATION_80_81)
+                .addMigrations(MuseDb.MIGRATION_79_80, MuseDb.MIGRATION_80_81, MuseDb.MIGRATION_81_82, MuseDb.MIGRATION_82_83, MuseDb.MIGRATION_83_84, MuseDb.MIGRATION_84_85)
                 .allowMainThreadQueries()
                 .build()
             db.openHelper.writableDatabase
@@ -478,6 +490,53 @@ class MuseDbMigrationTest {
                 "SELECT count(*) FROM sqlite_master WHERE type='index' AND name LIKE 'idx_moments%'"
             )).use { c ->
                 assertTrue("残留索引应被清理", c.moveToFirst() && c.getInt(0) == 0)
+            }
+            db.close()
+        } finally {
+            if (dbFile.exists()) dbFile.delete()
+            context.deleteDatabase(dbFile.name)
+        }
+    }
+
+    /** 模拟真机中间版坏表: mood 列带 DEFAULT NULL(真机 dflt_value 读为 'NULL'),索引残留,
+     * user_version=80。MIGRATION_80_81 重建表后必须校验通过,数据含 mood 值保留。 */
+    @Test
+    fun migrate80To81_rebuildsTableWithMoodNullDefault() {
+        val dbFile = context.getDatabasePath("muse_migration_80_moodnull.db").apply {
+            parentFile?.mkdirs()
+            if (exists()) delete()
+        }
+        try {
+            createSchemaAtVersion(79, dbFile.absolutePath)
+            val raw = android.database.sqlite.SQLiteDatabase.openOrCreateDatabase(dbFile, null)
+            raw.execSQL(
+                "CREATE TABLE ai_moments (id TEXT NOT NULL PRIMARY KEY, " +
+                    "content TEXT NOT NULL, type TEXT NOT NULL DEFAULT 'life', mood TEXT DEFAULT NULL, " +
+                    "likes INTEGER NOT NULL DEFAULT 0, likedByUser INTEGER NOT NULL DEFAULT 0, " +
+                    "source TEXT NOT NULL DEFAULT 'scheduled', createdAt INTEGER NOT NULL DEFAULT 0)"
+            )
+            raw.execSQL(
+                "CREATE TABLE ai_moment_comments (id TEXT NOT NULL PRIMARY KEY, " +
+                    "momentId TEXT NOT NULL, sender TEXT NOT NULL, content TEXT NOT NULL, " +
+                    "createdAt INTEGER NOT NULL DEFAULT 0)"
+            )
+            raw.execSQL("CREATE INDEX idx_moments_created ON ai_moments(createdAt DESC)")
+            raw.execSQL("INSERT INTO ai_moments (id, content, mood, createdAt) VALUES ('m1', '中间版动态', '开心', 100)")
+            raw.version = 80
+            raw.close()
+
+            val db = Room.databaseBuilder(context, MuseDb::class.java, dbFile.absolutePath)
+                .addMigrations(MuseDb.MIGRATION_79_80, MuseDb.MIGRATION_80_81, MuseDb.MIGRATION_81_82, MuseDb.MIGRATION_82_83, MuseDb.MIGRATION_83_84, MuseDb.MIGRATION_84_85)
+                .allowMainThreadQueries()
+                .build()
+            db.openHelper.writableDatabase
+            // 数据(含 mood 值)保留
+            db.query(androidx.sqlite.db.SimpleSQLiteQuery(
+                "SELECT content, mood FROM ai_moments WHERE id='m1'"
+            )).use { c ->
+                assertTrue("中间版动态应保留", c.moveToFirst())
+                assertEquals("中间版动态", c.getString(0))
+                assertEquals("开心", c.getString(1))
             }
             db.close()
         } finally {

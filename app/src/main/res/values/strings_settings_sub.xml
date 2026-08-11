@@ -10,6 +10,7 @@
     <string name="settings_agent_use_first_assistant">使用第一个助手</string>
     <string name="settings_agent_section_model">模型</string>
     <string name="settings_agent_current_model">当前模型</string>
+    <string name="settings_agent_current_model_hint">全局默认(主对话/Agent 共用)</string>
     <string name="settings_agent_tool_model_title">工具模型</string>
     <string name="settings_agent_multi_agent_section">多 Agent 协作</string>
     <string name="settings_agent_collab_team">协作团队</string>
@@ -251,6 +252,11 @@
     <string name="settings_import_rikkahub_step3">3. 点击「创建备份」,会生成一个 ZIP 文件</string>
     <string name="settings_import_step_remember">4. 记住这个文件的保存位置</string>
     <string name="settings_import_kelivo_desc">跨平台 AI 聊天客户端(Flutter)</string>
+    <string name="settings_import_chatgpt_desc">ChatGPT 官方导出(邮箱里的 zip 或解压后的 conversations.json)</string>
+    <string name="settings_import_chatgpt_step1">1. 打开 ChatGPT → 设置 → 个人资料 → 数据控制</string>
+    <string name="settings_import_chatgpt_step2">2. 点击"导出数据",OpenAI 会把 zip 发到你的邮箱</string>
+    <string name="settings_import_chatgpt_step3">3. 下载 zip 到手机,或解压后单独选 conversations.json</string>
+    <string name="settings_import_chatgpt_step4">4. 在 Muse 中选择该文件,对话会自动导入</string>
     <string name="settings_import_kelivo_step1">1. 在 Kelivo 应用中打开设置</string>
     <string name="settings_import_kelivo_step2">2. 找到「备份与恢复」选项</string>
     <string name="settings_import_kelivo_step3">3. 点击「导出备份」,会生成一个 ZIP 文件</string>
@@ -432,7 +438,10 @@
     <!-- MainActivity: 生物识别弹窗 -->
     <string name="biometric_prompt_title">Muse 解锁</string>
     <string name="biometric_prompt_subtitle">使用指纹或面部识别验证</string>
-    <string name="settings_security_share_template_section">分享模板</string>
+
+    <string name="settings_security_lock_section">应用锁</string>
+    <string name="settings_security_lock_removed_title">应用锁已下线</string>
+    <string name="settings_security_lock_removed_desc">出于稳定性考虑,应用 PIN 锁和生物识别解锁已移除。如有需求可以在反馈中告诉我们,我们会评估重新加入。</string>    <string name="settings_security_share_template_section">分享模板</string>
     <string name="settings_security_include_timestamp">包含时间戳</string>
     <string name="settings_security_include_timestamp_subtitle">分享对话时附带消息时间</string>
     <string name="settings_security_include_model">包含模型名</string>
@@ -556,4 +565,9 @@
     <string name="settings_provider_media_gen_section">媒体生成模型</string>
     <string name="settings_asr_entry_title">语音识别引擎</string>
     <string name="settings_asr_entry_subtitle">选择语音转文字引擎(如 Paraformer / Whisper)</string>
+    <string name="settings_miniphone_title">小手机</string>
+    <string name="settings_miniphone_enable_title">启用小手机</string>
+    <string name="settings_miniphone_enable_subtitle">开启后首页右上角显示小手机入口</string>
+    <string name="settings_miniphone_desc_title">小手机是什么</string>
+    <string name="settings_miniphone_desc_body">一个沉浸式的迷你桌面:朋友圈、AI 相册、备忘录、天气、模型日记本。关闭后首页恢复为原来的样式。</string>
 </resources>

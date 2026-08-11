@@ -114,6 +114,11 @@ val appModule = module {
     single { get<MuseDb>().statsCacheDao() }  // 统计缓存
     single { get<MuseDb>().integrityLogDao() }  // P3-3: 数据库完整性日志
     single { get<MuseDb>().translateHistoryDao() }  // v1.0.17: 翻译历史
+    single { get<MuseDb>().momentDao() }
+    // v1.0.74: AI 日记本
+    single { get<MuseDb>().diaryDao() }
+    single { io.zer0.muse.data.diary.DiaryRepository(get()) }
+    single { io.zer0.muse.data.diary.DiaryGenerator(get(), get(), get()) }  // v1.0.72: AI 朋友圈
     single { AuditLogger(get()) }  // P2-4: 审计日志记录器
     // P3-3: 数据库完整性校验器(供 DebugScreen 触发检查 + 展示最近一次结果)
     single {
@@ -146,8 +151,8 @@ val appModule = module {
     single { io.zer0.muse.data.groupchat.GroupChatMemoryRepository(get()) }
     // v1.0.72: AI 朋友圈
     single { io.zer0.muse.data.moment.MomentRepository(get()) }
-    single { io.zer0.muse.data.moment.MomentGenerator(get(), get()) }
-    single { io.zer0.muse.schedule.MomentScheduler(get(), get(), get(), get()) }
+    single { io.zer0.muse.data.moment.MomentGenerator(get(), get(), get()) }
+    single { io.zer0.muse.schedule.MomentScheduler(get(), get(), get(), get(), get()) }
     // v1.95: 表情包库仓库(文件存储,不碰 MuseDb)
     single { io.zer0.muse.data.sticker.StickerLibraryRepository(androidContext()) }
 

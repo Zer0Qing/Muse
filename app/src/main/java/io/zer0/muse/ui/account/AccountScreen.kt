@@ -39,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -53,6 +54,7 @@ import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.huge
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 
 /**
@@ -77,6 +79,7 @@ fun AccountScreen(
 ) {
     val settings: SettingsRepository = koinInject()
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val accountState by settings.accountStateFlow.collectAsStateWithLifecycle(
         initialValue = io.zer0.muse.data.AccountState()
     )
@@ -184,10 +187,13 @@ fun AccountScreen(
                     scope.launch {
                         saving = true
                         val profile = settings.getUserProfile()
+                        // v1.0.74 fix: 头像 content URI 权限重启后失效(变灰色占位),
+                        // 保存时拷贝到私有目录存本地路径
+                        val persistentUri = persistAvatarUri(context, editAvatarUri)
                         settings.saveUserProfile(
                             profile.copy(
                                 userNickName = editName.trim(),
-                                avatarUri = editAvatarUri,
+                                avatarUri = persistentUri,
                             ),
                         )
                         saving = false
@@ -451,5 +457,28 @@ fun AccountCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+    }
+}
+
+/** v1.0.74 fix: 把头像 URI 持久化到私有目录(content URI 权限重启后失效,头像变灰)。 */
+private suspend fun persistAvatarUri(context: android.content.Context, uri: String?): String? {
+    if (uri.isNullOrBlank()) return uri
+    // 已是本地文件/资源/data URI 直接返回
+    if (uri.startsWith("file://") || uri.startsWith("android.resource://") ||
+        uri.startsWith("data:image/") || uri.startsWith("/")
+    ) {
+        return uri
+    }
+    return withContext(kotlinx.coroutines.Dispatchers.IO) {
+        runCatching {
+            val parsed = android.net.Uri.parse(uri)
+            val resolver = context.contentResolver
+            val bytes = resolver.openInputStream(parsed)?.use { it.readBytes() } ?: return@runCatching null
+            val dir = java.io.File(context.filesDir, "avatar")
+            dir.mkdirs()
+            val target = java.io.File(dir, "avatar.jpg")
+            target.outputStream().use { it.write(bytes) }
+            "file://" + target.absolutePath
+        }.getOrNull()
     }
 }

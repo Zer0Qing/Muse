@@ -196,7 +196,13 @@ class ChatStreamCoordinator(
         val hasSpecialTags = content.contains("<mood>", ignoreCase = true) ||
             content.contains("<reflection>", ignoreCase = true) ||
             content.contains("<think>", ignoreCase = true) ||
-            content.contains("<moodfx>", ignoreCase = true)
+            content.contains("<moodfx>", ignoreCase = true) ||
+            // v1.0.74 fix: reasoning 通道里也可能带 <mood>(模型把腹稿写进思考),
+            // 只查 content 会漏掉,导致标签残留到落库。
+            (!reasoning.isNullOrBlank() && (reasoning.contains("<mood>", ignoreCase = true) ||
+                reasoning.contains("<moodfx>", ignoreCase = true) ||
+                reasoning.contains("<reflection>", ignoreCase = true) ||
+                reasoning.contains("<think>", ignoreCase = true)))
         if (isStreaming && !hasSpecialTags) {
             val updated = msg.copy(
                 content = content,
@@ -228,6 +234,16 @@ class ChatStreamCoordinator(
             contentAfterMoodSkin to null
         }
         val (cleanContent, thinkContent) = extractThinkContent(contentAfterReflection)
+        // v1.0.73: mood 兜底 — 模型(尤其深度思考)可能把 <mood> 腹稿写进思考通道
+        // (reasoning_content),而正文 content 里没有。此时从 reasoning 里提取 mood,
+        // 让 mood 块照常显示;提取后从 reasoning 中剥掉该块(思考里不再重复展示)。
+        var effectiveMood = moodContent
+        var effectiveReasoningInput = reasoning
+        if (effectiveMood == null && !reasoning.isNullOrBlank() && reasoning.contains("<mood>", ignoreCase = true)) {
+            val (reasoningClean, reasoningMood) = extractTagContent(reasoning, "mood")
+            effectiveMood = reasoningMood
+            effectiveReasoningInput = reasoningClean
+        }
         // v1.62 修复:reasoning 重复问题。
         // 旧逻辑把 existingReasoning + newReasoning + thinkContent 三者拼接,
         // 导致 finalize 时翻倍(existingReasoning==newReasoning)、
@@ -236,7 +252,7 @@ class ChatStreamCoordinator(
         // reasoning 参数为 null 时,用 thinkContent(content 中 <think> 提取)作为 fallback;
         // 两者都无时保留 msg.reasoning。
         val combinedReasoning = when {
-            !reasoning.isNullOrBlank() -> reasoning
+            !effectiveReasoningInput.isNullOrBlank() -> effectiveReasoningInput
             !thinkContent.isNullOrBlank() -> thinkContent
             else -> msg.reasoning
         }
@@ -246,7 +262,7 @@ class ChatStreamCoordinator(
             imageBase64List = imageBase64List ?: msg.imageBase64List,
             imageUrls = imageUrls ?: msg.imageUrls,
             videoFileUri = videoFileUri ?: msg.videoFileUri,
-            mood = moodContent ?: msg.mood,
+            mood = effectiveMood ?: msg.mood,
             moodSkin = moodSkinContent ?: msg.moodSkin,
             reflection = reflectionContent ?: msg.reflection,
         )
@@ -309,9 +325,10 @@ class ChatStreamCoordinator(
             it.role == MessageRole.ASSISTANT && it.content.isNotBlank()
         } ?: return
         val interruptedMsg = partial.copy(content = partial.content + "\n\n[已中断]")
-        // 只有 partialMsg==null(即从 _state.messages 找到的消息)时才更新 UI;
-        // 切页场景(partialMsg!=null)下 _state.messages 已是别的会话,不应更新。
-        if (partialMsg == null) {
+        // v1.0.74 fix: 此前 partialMsg != null(切页/生成闭包场景)一律不更新 UI,
+        // 导致用户停止生成后当次会话内看不到 [已中断] 标记、"继续生成"按钮不出现。
+        // 改为:消息仍在当前会话列表就更新 UI(正常停止场景),不在则跳过(切页防污染)。
+        if (partialMsg == null || accessor.messagesSnapshot.any { it.id == partial.id }) {
             accessor.updateMessages { messages ->
                 messages.map { if (it.id == interruptedMsg.id) interruptedMsg else it }
             }
@@ -383,6 +400,13 @@ class ChatStreamCoordinator(
             sb.append(match.groupValues[1])
             remaining = remaining.removeRange(match.range)
             match = regex.find(remaining)
+        }
+        // v1.0.74 fix: 未闭合标签(模型输出被截断时常见)提取不到,标签头会残留为裸文本。
+        // 与 MoodTagTransformer 一致,剥掉残留的标签头字符。
+        if (remaining.contains("<$tagName>", ignoreCase = true) &&
+            !remaining.contains("</$tagName>", ignoreCase = true)
+        ) {
+            remaining = remaining.replace(Regex("(?i)<$tagName>\\s*"), "").trim()
         }
         return remaining.trim() to sb.toString().trim().ifBlank { null }
     }

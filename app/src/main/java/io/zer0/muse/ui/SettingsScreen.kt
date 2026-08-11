@@ -83,6 +83,7 @@ import io.zer0.muse.ui.navigation.SettingsPermissionWizardRoute
 import io.zer0.muse.ui.navigation.SettingsTaskRoutingRoute
 import io.zer0.muse.ui.navigation.PluginManageRoute
 import io.zer0.muse.ui.navigation.QuickNotesRoute
+import io.zer0.muse.ui.navigation.SettingsMiniPhoneRoute
 import io.zer0.muse.ui.navigation.ScheduledTasksRoute
 import io.zer0.muse.ui.navigation.MilestonesRoute
 
@@ -232,6 +233,7 @@ fun SettingsScreen(
     val toolsTitle = stringResource(R.string.settings_screen_tools)
     val toolsDesc = stringResource(R.string.settings_screen_tools_desc)
     val quickNotesTitle = stringResource(R.string.settings_screen_quick_notes)
+    val miniPhoneTitle = stringResource(R.string.settings_miniphone_title)
     val searchHint = stringResource(R.string.settings_search_hint)
     val noResults = stringResource(R.string.settings_search_no_results)
 
@@ -464,8 +466,11 @@ fun SettingsScreen(
                         Text(
                             text = if (searchQuery.isBlank()) {
                                 stringResource(R.string.settings_search_prompt)
+                            } else if (filteredEntries.isEmpty()) {
+                                // v1.0.74 fix: 此前 "0 没有找到相关内容" 病句
+                                stringResource(R.string.settings_search_no_results)
                             } else {
-                                "${filteredEntries.size} $noResults"
+                                stringResource(R.string.settings_search_result_count, filteredEntries.size)
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -524,6 +529,8 @@ fun SettingsScreen(
                             link(mediaTitle, R.string.settings_screen_media_desc, TablerIcons.Microphone, onOpenMediaSettings)
                             link(translateTitle, R.string.settings_screen_translate_desc, TablerIcons.Language, onOpenTranslate)
                             link(quickNotesTitle, R.string.settings_screen_quick_notes_desc, TablerIcons.Bulb) { onNavigate(QuickNotesRoute) }
+                            // v1.0.74: 小手机设置(总开关)
+                            link(miniPhoneTitle, R.string.settings_screen_miniphone_desc, TablerIcons.DeviceMobile) { onNavigate(SettingsMiniPhoneRoute) }
                         }
                     }
 

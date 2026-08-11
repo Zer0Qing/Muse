@@ -649,6 +649,21 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
         }
     }
 
+    // v1.0.74: 聊天背景(聊天/Agent 共用) — 设置页可自定义,背景图铺在消息层下面
+    val chatBackground by org.koin.compose.koinInject<io.zer0.muse.data.SettingsRepository>()
+        .chatBackgroundFlow
+        .collectAsState(initial = null)
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        // 背景图(自定义聊天背景)
+        if (!chatBackground.isNullOrBlank()) {
+            io.zer0.muse.ui.SmartImage(
+                model = chatBackground,
+                contentDescription = "聊天背景",
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
     Scaffold(
         // v1.0.72 fix: 显式清零内容区 insets — 嵌套在 HomeScreen 时,
         //   默认 systemBars insets 会让 Agent 模式(topBar 为空)内容区顶部多出
@@ -735,8 +750,9 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                                         overflow = TextOverflow.Ellipsis,
                                     )
                                     // 关系时长副标题:陪伴 X 天 · 模型名
-                                    currentSession?.let { s ->
-                                        val days = (System.currentTimeMillis() - s.createdAt) / (24 * 60 * 60 * 1000)
+                                    // v1.0.74 fix: 浏览器胶囊激活时隐藏副标题,避免三行撑高中岛(布局乱)
+                                    if (currentSession != null && currentBrowserManager == null) {
+                                        val days = (System.currentTimeMillis() - currentSession!!.createdAt) / (24 * 60 * 60 * 1000)
                                         val daysText = if (days <= 0L) {
                                             stringResource(R.string.chat_companion_days_zero)
                                         } else {
@@ -1041,7 +1057,11 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
             )
             }
         },
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = if (chatBackground.isNullOrBlank()) {
+            MaterialTheme.colorScheme.background
+        } else {
+            androidx.compose.ui.graphics.Color.Transparent
+        },
     ) { innerPadding ->
         val scrollToBottomScope = rememberCoroutineScope()
         // P2-13: 桌面端快捷键拦截 — Ctrl+Shift+C 复制最后一条 AI 回复
@@ -1844,6 +1864,7 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
             onOpenPromptTemplateManager = onOpenPromptTemplateManager,
         )
         } // Scaffold
+    } // 背景 Box(v1.0.74 自定义聊天背景)
 } // ChatScreen
 
 /**

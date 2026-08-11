@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -111,30 +112,95 @@ fun NavGraphBuilder.chatNavGraph(
         val momentViewModel: io.zer0.muse.ui.moment.MomentViewModel = org.koin.androidx.compose.koinViewModel()
         val momentState by momentViewModel.state.collectAsStateWithLifecycle()
         var showMoments by remember { mutableStateOf(false) }
+        // v1.0.74 fix: 消息图标直达消息页(此前红点清了却进 feed)
+        var initialPage by remember { mutableStateOf("feed") }
         val context = LocalContext.current
-        // 未读角标:今天有新动态(简单实现:加载后第一次进入朋友圈视为已读)
-        var hasUnread by remember { mutableStateOf(true) }
 
         if (!showMoments) {
             io.zer0.muse.ui.moment.MiniPhoneScreen(
                 momentsCount = momentState.moments.size,
-                unreadMoments = hasUnread && momentState.moments.isNotEmpty(),
+                unreadMoments = momentState.unreadMomentsCount,
+                unreadMessages = momentState.unreadMessagesCount,
+                wallpaper = momentState.wallpaper,
+                // v1.0.74: 小手机主人 = 用户
+                userName = momentState.userName,
+                userAvatarUri = momentState.userAvatarUri,
                 onOpenMoments = {
-                    hasUnread = false
+                    momentViewModel.markMomentsRead()
+                    initialPage = "feed"
                     showMoments = true
                 },
+                onOpenMessages = {
+                    momentViewModel.markMessagesRead()
+                    initialPage = "messages"
+                    showMoments = true
+                },
+                // v1.0.74: 备忘录复用快速记录,相册/天气/日记本独立页
+                onOpenQuickNotes = { navController.navigate(QuickNotesRoute) },
+                onOpenAlbum = { navController.navigate(MiniAlbumRoute) },
+                onOpenWeather = { navController.navigate(MiniWeatherRoute) },
+                onOpenDiary = { navController.navigate(MiniDiaryRoute) },
+                onSetWallpaper = momentViewModel::setWallpaper,
+                onPrepareImage = { uri -> momentViewModel.prepareImageDataUri(uri, context) },
                 onBack = { navController.popBackStack() },
             )
         } else {
             io.zer0.muse.ui.moment.MomentsScreen(
                 moments = momentState.moments,
                 commentsByMoment = momentState.comments,
+                messages = momentState.messages,
+                unreadMessagesCount = momentState.unreadMessagesCount,
+                isLoading = momentState.isLoading,
+                userAvatarUri = momentState.userAvatarUri,
+                userName = momentState.userName,
+                coverImage = momentState.coverImage,
+                assistants = momentState.assistants,
+                banner = momentState.banner,
                 onToggleLike = momentViewModel::toggleLike,
                 onAddComment = momentViewModel::addComment,
-                onDelete = momentViewModel::deleteMoment,
+                onDeleteMoment = momentViewModel::deleteMoment,
+                onPublish = momentViewModel::publish,
+                onSetCover = momentViewModel::setCoverImage,
+                onPrepareImage = { uri -> momentViewModel.prepareImageDataUri(uri, context) },
+                onMarkMessagesRead = momentViewModel::markMessagesRead,
+                onConsumeBanner = momentViewModel::consumeBanner,
+                onRefresh = momentViewModel::load,
                 onBack = { showMoments = false },
+                initialPage = initialPage,
             )
         }
+    }
+    // v1.0.74: 小手机子页 — AI 相册(聚合 messages 里的 AI 生成图)
+    composable<MiniAlbumRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        var albumImages by remember { mutableStateOf<List<String>>(emptyList()) }
+        LaunchedEffect(Unit) {
+            albumImages = io.zer0.muse.data.`import`.MiniDataLoader.loadAiGeneratedImages(context)
+        }
+        io.zer0.muse.ui.moment.MiniAlbumScreen(
+            images = albumImages,
+            onBack = { navController.popBackStack() },
+        )
+    }
+    // v1.0.74: 小手机子页 — 天气(Open-Meteo)
+    composable<MiniWeatherRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        io.zer0.muse.ui.moment.MiniWeatherScreen(
+            onBack = { navController.popBackStack() },
+        )
+    }
+    // v1.0.74: 小手机子页 — 模型日记本(月视图 + LLM 生成)
+    composable<MiniDiaryRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        io.zer0.muse.ui.moment.MiniDiaryScreen(
+            onBack = { navController.popBackStack() },
+        )
     }
     // 归档聊天列表 — 从首页归档入口进入
     composable<ArchivedChatsRoute>(

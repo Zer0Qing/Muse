@@ -316,11 +316,18 @@ fun SmartImage(
         }
     } else {
         // 普通 URL/Uri:走 Coil AsyncImage
+        // v1.0.74 fix: 加载失败无占位会整块空白,补 placeholder/error 灰块
         AsyncImage(
             model = model,
             contentDescription = contentDescription,
             modifier = modifier,
             contentScale = contentScale,
+            placeholder = androidx.compose.ui.graphics.painter.ColorPainter(
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+            ),
+            error = androidx.compose.ui.graphics.painter.ColorPainter(
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+            ),
         )
     }
 }

@@ -296,8 +296,19 @@ class SubagentRunner(
         try {
             // 整体超时包裹
             val timedOut = withTimeoutOrNull(params.timeoutMs) {
+                // v1.0.74 fix: 卡死检测 — 连续 2 轮返回相同 tool_call 签名(同名同参),
+                // 避免 LLM 空转耗尽配额;与主 Agent 循环的卡死检测对齐
+                var prevSignature: String? = null
+                var noProgressRounds = 0
                 while (totalToolCalls < maxToolCalls) {
                     rounds++
+                    // v1.0.74 fix: 预算前置 — 上一轮已耗尽时直接总结退出,
+                    // 此前检查在 completeText 之后,每个超支点多白耗一轮完整请求
+                    if (tokenBudget?.isExhausted == true) {
+                        tokenBudgetExhausted = true
+                        summarize()
+                        break
+                    }
                     val completion = chatService.completeText(
                         messages = history.toList(),
                         temperature = params.temperature,
@@ -306,6 +317,24 @@ class SubagentRunner(
                         reasoningLevel = ReasoningLevel.OFF,
                         mode = ChatRequestMode.UTILITY,
                     )
+                    tokenBudget?.accumulate(completion.usageTokens)
+
+                    // v1.0.74: 卡死检测 — 连续相同 tool_call 提前总结退出
+                    val signature = completion.toolCalls
+                        ?.map { it.name + "|" + it.arguments }
+                        ?.joinToString(";")
+                        ?.takeIf { it.isNotBlank() }
+                    if (signature != null && signature == prevSignature) {
+                        noProgressRounds++
+                        Logger.w(TAG, "子 agent 连续 $noProgressRounds 轮相同 tool_call,判定卡死,提前总结退出")
+                        if (noProgressRounds >= 2) {
+                            summarize()
+                            break
+                        }
+                    } else {
+                        noProgressRounds = 0
+                    }
+                    prevSignature = signature
 
                     // v1.0.53 Phase 3: 累加本轮 token 消耗(null=Provider 未返回,跳过)
                     tokenBudget?.accumulate(completion.usageTokens)
@@ -535,8 +564,14 @@ class SubagentRunner(
         }
         return try {
             val result = toolRegistry.executeFromJson(tc.name, tc.arguments)
-            // 判断成功:结果不以 "Error:" / "失败" 开头视为成功
-            val success = !result.startsWith("Error:") && !result.contains("执行异常")
+            // v1.0.74 fix: 中文错误文案("工具 xxx 不存在"等)会被误判成功;
+            // 统一识别:英文 Error: 前缀 + 常见中文错误词
+            val success = !result.startsWith("Error:") &&
+                !result.contains("执行异常") &&
+                !result.contains("失败") &&
+                !result.contains("不存在") &&
+                !result.contains("未配置") &&
+                !result.contains("不可用")
             ToolExecOutcome(result = result, success = success)
         } catch (e: Exception) {
             ToolExecOutcome(

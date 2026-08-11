@@ -75,7 +75,7 @@ fun AgentSettingsPage(
         initialValue = ProactiveMessageConfig()
     )
     // v1.0.72: 每日总结推送开关
-    val dailySummaryEnabled by settings.dailySummaryEnabledFlow.collectAsStateWithLifecycle(initialValue = true)
+    val dailySummaryEnabled by settings.dailySummaryEnabledFlow.collectAsStateWithLifecycle(initialValue = false)
     val multiAgentConfig by settings.multiAgentConfigFlow.collectAsStateWithLifecycle(
         initialValue = io.zer0.muse.data.MultiAgentConfig()
     )
@@ -160,7 +160,8 @@ fun AgentSettingsPage(
                 SettingsItemRow(
                     icon = TablerIcons.User,
                     title = stringResource(R.string.settings_agent_current_model),
-                    subtitle = currentModelName,
+                    // v1.0.74 fix: 提示用户这是全局默认模型,不是 Agent 专属(此前语义误导)
+                    subtitle = currentModelName + " · " + stringResource(R.string.settings_agent_current_model_hint),
                     onClick = { showModelPicker = true },
                 ) {
                     ChevronRight()

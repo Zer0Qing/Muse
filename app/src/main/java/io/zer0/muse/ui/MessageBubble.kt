@@ -1,6 +1,9 @@
 package io.zer0.muse.ui
 
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import android.content.Intent
+import kotlin.math.roundToInt
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -91,6 +94,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
@@ -236,6 +240,8 @@ internal fun MessageBubble(
     // v1.79 (M-B9): 菜单/子菜单/删除确认状态改用 rememberSaveable,旋转/后台后不丢失
     var showActionMenu by rememberSaveable { mutableStateOf(false) }
     var showLanguageSubmenu by rememberSaveable { mutableStateOf(false) }
+    // v1.0.74 fix: 记录气泡在窗口中的位置,长按菜单以此锚定(此前无锚点,永远弹在窗口右上角)
+    var actionMenuBounds by remember { mutableStateOf(androidx.compose.ui.geometry.Rect.Zero) }
     // v1.0.72: Manus 风格长按菜单 — false=精简面板(引用/分享/复制/选择文本/更多),
     // true=展开完整菜单(委托/分支/翻译/收藏/编辑/删除等)
     var showExtendedMenu by rememberSaveable { mutableStateOf(false) }
@@ -307,6 +313,8 @@ internal fun MessageBubble(
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            // v1.0.74 fix: 记录气泡窗口位置供长按菜单锚定
+            .onGloballyPositioned { actionMenuBounds = it.boundsInWindow() }
             .then(if (isAnimating) Modifier.animateContentSize() else Modifier),
     ) {
     Column(
@@ -1238,13 +1246,26 @@ internal fun MessageBubble(
         if (showActionMenu) {
             if (!showExtendedMenu) {
                 // ── Telegram 风格 Popup 卡片(锚定消息气泡) ──
+                // v1.0.74 fix: 此前无 parent 锚点,菜单永远弹在窗口右上角(离手指很远)。
+                // 改为按气泡窗口位置定位:菜单右缘贴气泡右缘,上缘在气泡上方 8dp。
+                // Popup 的 offset 是像素单位,直接用 boundsInWindow 的像素坐标。
+                val density = LocalDensity.current
+                val menuWidthPx = (220 * density.density).roundToInt()
+                val padPx = (8 * density.density).roundToInt()
                 Popup(
                     onDismissRequest = {
                         showActionMenu = false
                         showLanguageSubmenu = false
                     },
-                    alignment = Alignment.TopEnd,
-                    offset = IntOffset(0, 8),
+                    alignment = Alignment.TopStart,
+                    offset = if (actionMenuBounds != androidx.compose.ui.geometry.Rect.Zero) {
+                        IntOffset(
+                            x = (actionMenuBounds.right.toInt() - menuWidthPx).coerceAtLeast(padPx),
+                            y = (actionMenuBounds.top.toInt() - padPx).coerceAtLeast(padPx),
+                        )
+                    } else {
+                        IntOffset(0, 8)
+                    },
                 ) {
                     TelegramActionCard(
                         isUser = isUser,
@@ -1363,7 +1384,7 @@ internal fun MessageBubble(
                             }
                             if (msg.content.isNotBlank() || msg.reasoning?.isNotBlank() == true) {
                                 ActionMenuItem(
-                                    icon = if (msg.favorite) Icons.Outlined.StarBorder else Icons.Default.Star,
+                                    icon = if (msg.favorite) Icons.Default.Star else Icons.Outlined.StarBorder,
                                     text = if (msg.favorite) stringResource(R.string.chat_favorite_remove) else stringResource(R.string.chat_favorite_add),
                                     contentDescription = if (msg.favorite) stringResource(R.string.chat_favorite_remove) else stringResource(R.string.chat_favorite_add),
                                     onClick = {
@@ -1403,8 +1424,8 @@ internal fun MessageBubble(
                                 }
                                 if (msg.content.isNotBlank() || msg.reasoning?.isNotBlank() == true) {
                                     ActionMenuItem(
-                                        icon = if (msg.favorite) Icons.Outlined.StarBorder
-                                               else Icons.Default.Star,
+                                        icon = if (msg.favorite) Icons.Default.Star
+                                               else Icons.Outlined.StarBorder,
                                         text = if (msg.favorite) stringResource(R.string.chat_favorite_remove) else stringResource(R.string.chat_favorite_add),
                                         contentDescription = if (msg.favorite) stringResource(R.string.chat_favorite_remove) else stringResource(R.string.chat_favorite_add),
                                         onClick = {

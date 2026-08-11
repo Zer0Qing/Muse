@@ -28,7 +28,7 @@ val appInfraModule = module {
     // v1.25: 视觉辅助桥接器(让纯文本模型通过视觉模型"看到"图片)
     single { io.zer0.muse.vision.VisionBridge(get(), get(), get()) }
 
-    single { BackupService(get(), get(), get(), get(), get()) }
+    single { BackupService(get(), get(), get(), get(), get(), get()) }
 
     // Phase 8.9: 云备份服务(S3/WebDAV 派发)
     // v1.0.4 (P3-8): 移除 BalanceService Koin 注册 — 该类从未被业务代码调用,

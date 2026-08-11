@@ -50,6 +50,8 @@ val appViewModelModule = module {
             repository = get(),
             chatService = get(),
             factStore = get(),
+            generator = get(),
+            assistantRepository = get(),
         )
     }
 

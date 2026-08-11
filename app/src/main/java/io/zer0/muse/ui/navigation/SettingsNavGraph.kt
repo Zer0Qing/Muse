@@ -119,7 +119,8 @@ fun NavGraphBuilder.settingsNavGraph(
     ) {
         SettingsModelPage(
             onBack = { navController.popBackStack() },
-            onOpenAsr = { navController.navigate(MuseRoutes.SETTINGS_ASR) },
+            // v1.0.74 fix: 字符串路由已废弃且未注册,必崩;改用类型安全路由
+            onOpenAsr = { navController.navigate(SettingsAsrRoute) },
         )
     }
     // v1.133: 设置二级页 — 联网搜索(从 SettingsModelPage 拆出)
@@ -225,6 +226,15 @@ fun NavGraphBuilder.settingsNavGraph(
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         CloudBackupPage(
+            onBack = { navController.popBackStack() },
+        )
+    }
+    // v1.0.74: 设置二级页 — 小手机(总开关)
+    composable<SettingsMiniPhoneRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        io.zer0.muse.ui.moment.MiniPhoneSettingsPage(
             onBack = { navController.popBackStack() },
         )
     }

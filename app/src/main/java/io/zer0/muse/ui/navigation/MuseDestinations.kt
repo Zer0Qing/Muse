@@ -163,6 +163,20 @@ data object SearchRoute
 @Serializable
 data object MiniPhoneRoute
 
+/** v1.0.74: 小手机内子页 — AI 相册 / 天气 / 日记本。 */
+@Serializable
+data object MiniAlbumRoute
+
+@Serializable
+data object MiniWeatherRoute
+
+@Serializable
+data object MiniDiaryRoute
+
+/** v1.0.74: 小手机设置页(总开关)。 */
+@Serializable
+data object SettingsMiniPhoneRoute
+
 @Serializable
 data object ChatDetailRoute
 

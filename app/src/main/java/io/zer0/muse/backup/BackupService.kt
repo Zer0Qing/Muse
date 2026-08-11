@@ -29,6 +29,9 @@ import io.zer0.muse.data.knowledge.KnowledgeDocEntity
 import io.zer0.muse.data.knowledge.KnowledgeChunkEntity
 import io.zer0.muse.data.experience.ExperienceEntity
 import io.zer0.muse.data.milestone.MilestoneEntity
+import io.zer0.muse.data.moment.MomentEntity
+import io.zer0.muse.data.moment.MomentCommentEntity
+import io.zer0.muse.data.moment.MomentLikeEntity
 import io.zer0.muse.data.agentdm.AgentMessageEntity
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
@@ -41,6 +44,9 @@ import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import java.io.BufferedWriter
@@ -73,6 +79,8 @@ class BackupService(
     private val factDb: FactDb,
     private val cloudBackupService: CloudBackupService,
     private val settings: SettingsRepository,
+    /** v1.0.74: 导入后重建 FTS 索引(直插消息绕过 FTS 同步)。 */
+    private val sessionRepository: io.zer0.muse.data.session.SessionRepository,
 ) {
     private val json = Json { prettyPrint = true; ignoreUnknownKeys = true }
 
@@ -111,6 +119,10 @@ class BackupService(
         val experiences: List<ExperienceEntity> = emptyList(),
         val milestones: List<MilestoneEntity> = emptyList(),
         val agentMessages: List<AgentMessageEntity> = emptyList(),
+        // ── v1.0.74: 朋友圈三表(此前缺失,换机恢复丢数据)──
+        val moments: List<MomentEntity> = emptyList(),
+        val momentComments: List<MomentCommentEntity> = emptyList(),
+        val momentLikes: List<MomentLikeEntity> = emptyList(),
         // ── v3 新增: DataStore 设置快照 ──
         val settingsSnapshot: Map<String, String> = emptyMap(),
     )
@@ -201,6 +213,10 @@ class BackupService(
                 val experiences = db.experienceDao().getAll()
                 val milestones = db.milestoneDao().getAll()
                 val agentMessages = db.agentMessageDao().getAll()
+                // v1.0.74: 朋友圈三表(此前完全不在备份里,换机恢复丢数据)
+                val moments = db.momentDao().getAll()
+                val momentComments = db.momentDao().getAllComments()
+                val momentLikes = db.momentDao().getAllLikes()
                 val settingsSnapshot = settings.exportSettingsSnapshot()
 
                 // Step 2: 写 meta 行
@@ -229,6 +245,9 @@ class BackupService(
                     put("experiences", experiences.size)
                     put("milestones", milestones.size)
                     put("agentMessages", agentMessages.size)
+                    put("moments", moments.size)
+                    put("momentComments", momentComments.size)
+                    put("momentLikes", momentLikes.size)
                 }
                 writer.write(meta.toString())
                 writer.newLine()
@@ -311,6 +330,10 @@ class BackupService(
                 writeTypedLines(writer, "experience", experiences, ExperienceEntity.serializer())
                 writeTypedLines(writer, "milestone", milestones, MilestoneEntity.serializer())
                 writeTypedLines(writer, "agentMessage", agentMessages, AgentMessageEntity.serializer())
+                // v1.0.74: 朋友圈三表
+                writeTypedLines(writer, "moment", moments, MomentEntity.serializer())
+                writeTypedLines(writer, "momentComment", momentComments, MomentCommentEntity.serializer())
+                writeTypedLines(writer, "momentLike", momentLikes, MomentLikeEntity.serializer())
 
                 // Step 8: 写设置快照
                 if (settingsSnapshot.isNotEmpty()) {
@@ -375,6 +398,32 @@ class BackupService(
      * @return 导入的会话数 + 消息数
      */
     private suspend fun applyNdJsonStreaming(lines: Sequence<String>): Pair<Int, Int> {
+        // v1.0.74 fix: 空备份保护 — 云端路径有"0 会话 0 消息拒绝恢复",本地路径没有,
+        // 误选空/损坏文件会先清空全部表。先读 meta 行校验再决定是否继续。
+        val lineIter = lines.iterator()
+        val firstLine = if (lineIter.hasNext()) lineIter.next() else null
+        if (!firstLine.isNullOrBlank()) {
+            resultOf {
+                val obj = json.decodeFromString(JsonObject.serializer(), firstLine)
+                val type = obj["type"]?.let { (it as? JsonPrimitive)?.content }
+                if (type == "meta") {
+                    val total = listOf(
+                        "sessions", "messages", "facts", "assistants", "groupChats", "groupChatMessages", "moments",
+                    ).mapNotNull { obj[it]?.let { v -> (v as? JsonPrimitive)?.contentOrNull?.toIntOrNull() } }
+                        .sum()
+                    if (total == 0) {
+                        throw IllegalArgumentException("空备份文件(meta 无任何数据),已拒绝导入")
+                    }
+                }
+            }.onError { msg, t ->
+                // meta 解析失败或空备份:抛给调用方,不清空任何表
+                throw IllegalArgumentException(t?.message ?: msg)
+            }
+        } else {
+            throw IllegalArgumentException("备份文件为空,已拒绝导入")
+        }
+        val remaining = sequenceOf(firstLine).plus(lineIter.asSequence())
+
         // 1. 先清空所有表
         db.withTransaction {
             db.messageDao().deleteAll()
@@ -395,6 +444,10 @@ class BackupService(
             db.experienceDao().deleteAll()
             db.milestoneDao().deleteAll()
             db.agentMessageDao().deleteAll()
+            // v1.0.74: 朋友圈三表
+            db.momentDao().deleteAllMoments()
+            db.momentDao().deleteAllComments()
+            db.momentDao().deleteAllLikes()
         }
         memoryDb.withTransaction {
             memoryDb.sessionSummaryDao().deleteAll()
@@ -427,11 +480,15 @@ class BackupService(
         val experienceBuf = mutableListOf<ExperienceEntity>()
         val milestoneBuf = mutableListOf<MilestoneEntity>()
         val agentMsgBuf = mutableListOf<AgentMessageEntity>()
+        // v1.0.74: 朋友圈三表
+        val momentBuf = mutableListOf<MomentEntity>()
+        val momentCommentBuf = mutableListOf<MomentCommentEntity>()
+        val momentLikeBuf = mutableListOf<MomentLikeEntity>()
         var settingsSnapshot: Map<String, String> = emptyMap()
         var sessionCount = 0
         var messageCount = 0
 
-        lines.forEachIndexed { idx, line ->
+        remaining.forEachIndexed { idx, line ->
             if (line.isBlank()) return@forEachIndexed
             resultOf {
                 val obj = json.decodeFromString(JsonObject.serializer(), line)
@@ -541,6 +598,19 @@ class BackupService(
                         agentMsgBuf.add(json.decodeFromJsonElement(AgentMessageEntity.serializer(), it))
                         if (agentMsgBuf.size >= IMPORT_BATCH) flushBatch(agentMsgBuf) { batch -> db.withTransaction { batch.forEach { db.agentMessageDao().upsert(it) } } }
                     }
+                    // v1.0.74: 朋友圈三表
+                    "moment" -> obj["data"]?.let {
+                        momentBuf.add(json.decodeFromJsonElement(MomentEntity.serializer(), it))
+                        if (momentBuf.size >= IMPORT_BATCH) flushBatch(momentBuf) { batch -> db.withTransaction { batch.forEach { db.momentDao().insertMoment(it) } } }
+                    }
+                    "momentComment" -> obj["data"]?.let {
+                        momentCommentBuf.add(json.decodeFromJsonElement(MomentCommentEntity.serializer(), it))
+                        if (momentCommentBuf.size >= IMPORT_BATCH) flushBatch(momentCommentBuf) { batch -> db.withTransaction { batch.forEach { db.momentDao().insertComment(it) } } }
+                    }
+                    "momentLike" -> obj["data"]?.let {
+                        momentLikeBuf.add(json.decodeFromJsonElement(MomentLikeEntity.serializer(), it))
+                        if (momentLikeBuf.size >= IMPORT_BATCH) flushBatch(momentLikeBuf) { batch -> db.withTransaction { batch.forEach { db.momentDao().addLike(it) } } }
+                    }
                     "settings" -> obj["data"]?.let {
                         settingsSnapshot = json.decodeFromJsonElement(
                             MapSerializer(
@@ -586,10 +656,18 @@ class BackupService(
         flushBatch(experienceBuf) { batch -> db.withTransaction { batch.forEach { db.experienceDao().upsert(it) } } }
         flushBatch(milestoneBuf) { batch -> db.withTransaction { batch.forEach { db.milestoneDao().upsert(it) } } }
         flushBatch(agentMsgBuf) { batch -> db.withTransaction { batch.forEach { db.agentMessageDao().upsert(it) } } }
+        // v1.0.74: 朋友圈三表
+        flushBatch(momentBuf) { batch -> db.withTransaction { batch.forEach { db.momentDao().insertMoment(it) } } }
+        flushBatch(momentCommentBuf) { batch -> db.withTransaction { batch.forEach { db.momentDao().insertComment(it) } } }
+        flushBatch(momentLikeBuf) { batch -> db.withTransaction { batch.forEach { db.momentDao().addLike(it) } } }
         // 恢复设置快照
         if (settingsSnapshot.isNotEmpty()) {
             settings.restoreSettingsSnapshot(settingsSnapshot)
         }
+        // v1.0.74 fix: 直插 messages 绕过 FTS 同步,启动时 ensureFtsIndexConsistent 的计数启发式
+        // (消息数恰好相同)会跳过 rebuild,搜索索引停留在导入前。导入完成显式重建。
+        resultOf { sessionRepository.rebuildFtsIndex() }
+            .onError { msg, t -> Logger.w("BackupService", "导入后 FTS 重建失败: ${t?.message ?: msg}") }
 
         Logger.i("BackupService", "流式导入完成: $sessionCount 会话, $messageCount 消息")
         return sessionCount to messageCount
@@ -754,6 +832,10 @@ class BackupService(
         val experiences = db.experienceDao().getAll()
         val milestones = db.milestoneDao().getAll()
         val agentMessages = db.agentMessageDao().getAll()
+        // v1.0.74: 朋友圈三表
+        val moments = db.momentDao().getAll()
+        val momentComments = db.momentDao().getAllComments()
+        val momentLikes = db.momentDao().getAllLikes()
         // 设置快照
         val settingsSnapshot = settings.exportSettingsSnapshot()
 
@@ -782,6 +864,9 @@ class BackupService(
             experiences = experiences,
             milestones = milestones,
             agentMessages = agentMessages,
+            moments = moments,
+            momentComments = momentComments,
+            momentLikes = momentLikes,
             settingsSnapshot = settingsSnapshot,
         )
     }
@@ -870,6 +955,10 @@ class BackupService(
             db.experienceDao().deleteAll()
             db.milestoneDao().deleteAll()
             db.agentMessageDao().deleteAll()
+            // v1.0.74: 朋友圈三表
+            db.momentDao().deleteAllMoments()
+            db.momentDao().deleteAllComments()
+            db.momentDao().deleteAllLikes()
 
             backup.assistants.forEach { db.assistantDao().upsert(it) }
             backup.lorebooks.forEach { db.lorebookDao().upsert(it) }
@@ -887,6 +976,10 @@ class BackupService(
             backup.experiences.forEach { db.experienceDao().upsert(it) }
             backup.milestones.forEach { db.milestoneDao().upsert(it) }
             backup.agentMessages.forEach { db.agentMessageDao().upsert(it) }
+            // v1.0.74: 朋友圈三表(先删后插,防新旧混合)
+            backup.moments.forEach { db.momentDao().insertMoment(it) }
+            backup.momentComments.forEach { db.momentDao().insertComment(it) }
+            backup.momentLikes.forEach { db.momentDao().addLike(it) }
         }
 
         // 2. 导入 memory 数据(MemoryDb — 3 张表)

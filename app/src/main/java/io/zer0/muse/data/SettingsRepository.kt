@@ -536,7 +536,8 @@ class SettingsRepository(
      * 每天固定时间(默认 19:30)推送当天对话要点小结。
      */
     val dailySummaryEnabledFlow: Flow<Boolean> = store.data.map { prefs ->
-        prefs[KEY_DAILY_SUMMARY_ENABLED] ?: true
+        // v1.0.74: 默认改为关闭 — 新用户不应被 19:30 通知打扰
+        prefs[KEY_DAILY_SUMMARY_ENABLED] ?: false
     }
 
     /** v1.0.72: 保存每日总结推送开关。 */
@@ -555,6 +556,77 @@ class SettingsRepository(
     /** v1.0.72: 保存朋友圈每日条数。 */
     suspend fun saveDailyMomentCount(count: Int) {
         store.edit { it[KEY_DAILY_MOMENT_COUNT] = count.coerceIn(0, 10) }
+    }
+
+    // ── v1.0.74: 小手机总开关(控制首页小手机图标显隐) ─────────────────
+    /** 小手机功能开关(默认开启)。 */
+    val miniPhoneEnabledFlow: Flow<Boolean> = store.data.map { prefs ->
+        prefs[KEY_MINIPHONE_ENABLED] ?: true
+    }
+
+    /** v1.0.74: 保存小手机开关。 */
+    suspend fun saveMiniPhoneEnabled(enabled: Boolean) {
+        store.edit { it[KEY_MINIPHONE_ENABLED] = enabled }
+    }
+
+    // ── v1.0.74: 聊天背景(聊天/Agent/群聊共用) ──────────────────────
+    /** 聊天背景图(data URI 或 URL;null = 默认背景色)。 */
+    val chatBackgroundFlow: Flow<String?> = store.data.map { prefs ->
+        prefs[KEY_CHAT_BACKGROUND]
+    }
+
+    /** v1.0.74: 保存聊天背景图。 */
+    suspend fun saveChatBackground(uri: String?) {
+        store.edit { prefs ->
+            if (uri.isNullOrBlank()) prefs.remove(KEY_CHAT_BACKGROUND) else prefs[KEY_CHAT_BACKGROUND] = uri
+        }
+    }
+
+    // ── v1.0.73: 朋友圈封面背景 ──────────────────────────────────────
+    /** 朋友圈封面背景图(data URI 或 URL;null = 默认渐变)。 */
+    val momentsCoverImageFlow: Flow<String?> = store.data.map { prefs ->
+        prefs[KEY_MOMENTS_COVER_IMAGE]
+    }
+
+    /** v1.0.73: 保存朋友圈封面背景图。 */
+    suspend fun saveMomentsCoverImage(uri: String?) {
+        store.edit { prefs ->
+            if (uri.isNullOrBlank()) prefs.remove(KEY_MOMENTS_COVER_IMAGE) else prefs[KEY_MOMENTS_COVER_IMAGE] = uri
+        }
+    }
+
+    // ── v1.0.73: 小手机桌面壁纸 ─────────────────────────────────────
+    /** 小手机桌面壁纸(data URI 或 URL;null = 默认渐变)。 */
+    val miniPhoneWallpaperFlow: Flow<String?> = store.data.map { prefs ->
+        prefs[KEY_MINIPHONE_WALLPAPER]
+    }
+
+    /** v1.0.73: 保存小手机桌面壁纸。 */
+    suspend fun saveMiniPhoneWallpaper(uri: String?) {
+        store.edit { prefs ->
+            if (uri.isNullOrBlank()) prefs.remove(KEY_MINIPHONE_WALLPAPER) else prefs[KEY_MINIPHONE_WALLPAPER] = uri
+        }
+    }
+
+    // ── v1.0.73: 朋友圈未读状态 ─────────────────────────────────────
+    /** 朋友圈列表最后浏览时间(未读红点 = 新动态计数)。 */
+    val momentsLastReadAtFlow: Flow<Long> = store.data.map { prefs ->
+        prefs[KEY_MOMENTS_LAST_READ_AT] ?: 0L
+    }
+
+    /** v1.0.73: 记录朋友圈浏览时间。 */
+    suspend fun markMomentsRead() {
+        store.edit { it[KEY_MOMENTS_LAST_READ_AT] = System.currentTimeMillis() }
+    }
+
+    /** 消息中心最后浏览时间(未读消息 = 新赞/评计数)。 */
+    val momentMessagesLastReadAtFlow: Flow<Long> = store.data.map { prefs ->
+        prefs[KEY_MOMENT_MESSAGES_LAST_READ_AT] ?: 0L
+    }
+
+    /** v1.0.73: 记录消息中心浏览时间。 */
+    suspend fun markMomentMessagesRead() {
+        store.edit { it[KEY_MOMENT_MESSAGES_LAST_READ_AT] = System.currentTimeMillis() }
     }
 
     // ── v2.0+: 崩溃上报配置(默认全部关闭,隐私优先) ───────────────────────
@@ -1386,6 +1458,12 @@ class SettingsRepository(
         private val KEY_DAILY_SUMMARY_ENABLED = booleanPreferencesKey("daily_summary_enabled")
         // v1.0.72: AI 朋友圈每日动态条数(0-10,默认 2)
         private val KEY_DAILY_MOMENT_COUNT = intPreferencesKey("daily_moment_count")
+    private val KEY_MOMENTS_COVER_IMAGE = stringPreferencesKey("moments_cover_image")
+    private val KEY_MINIPHONE_WALLPAPER = stringPreferencesKey("miniphone_wallpaper")
+    private val KEY_MOMENTS_LAST_READ_AT = longPreferencesKey("moments_last_read_at")
+    private val KEY_MOMENT_MESSAGES_LAST_READ_AT = longPreferencesKey("moment_messages_last_read_at")
+    private val KEY_CHAT_BACKGROUND = stringPreferencesKey("chat_background")
+    private val KEY_MINIPHONE_ENABLED = booleanPreferencesKey("miniphone_enabled")
         // v1.0.20: 全局默认会话权限模式(TRUSTED / ASK / STRICT,默认 ASK)
         private val KEY_DEFAULT_SESSION_PERMISSION_MODE = stringPreferencesKey("default_session_permission_mode")
         // v2.0+: 崩溃上报配置键(默认全部关闭,隐私优先)

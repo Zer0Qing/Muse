@@ -4849,10 +4849,13 @@ class ChatViewModel(
                             // 兜底：reasoningBuilder 有内容但 builder 为空时，把思考复制为正文。
                             // v1.0.54: 工具轮(content 空 + 有 toolCalls)不复制 — 那是正常的工具调用轮,
                             //   复制后思考文本会作为正文显示(send_sticker 选贴纸的推理被展示,极其出戏)。
+                            // v1.0.73: 复制后清空 reasoningBuilder — 思考已作为正文兜底显示,
+                            //   不清空会导致思考块与正文重复(用户反馈"思考贴进正文"的双显示)。
                             if (params.builder.isEmpty() && params.reasoningBuilder.isNotEmpty() &&
                                 toolCallAccumulator.isEmpty()
                             ) {
                                 params.builder.append(params.reasoningBuilder.toString())
+                                params.reasoningBuilder.setLength(0)
                             }
                             if (experiments.debugMode) {
                                 val elapsedMs = System.currentTimeMillis() - streamStartedAt

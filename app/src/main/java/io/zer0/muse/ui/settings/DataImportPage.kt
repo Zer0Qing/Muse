@@ -172,6 +172,22 @@ fun SettingsDataImportPage(
                 },
             )
         }
+        // v1.0.74: ChatGPT 对话导入(官方导出 zip 或解压后的 conversations.json)
+        item {
+            ImportSourceCard(
+                title = "ChatGPT",
+                description = stringResource(R.string.settings_import_chatgpt_desc),
+                steps = listOf(
+                    stringResource(R.string.settings_import_chatgpt_step1),
+                    stringResource(R.string.settings_import_chatgpt_step2),
+                    stringResource(R.string.settings_import_chatgpt_step3),
+                    stringResource(R.string.settings_import_chatgpt_step4),
+                ),
+                onSelect = {
+                    filePicker.launch(arrayOf("application/zip", "application/octet-stream", "application/json", "text/plain", "*/*"))
+                },
+            )
+        }
         // P3-1: CherryStudio / Chatbox JSON 导入入口(复用 ConfigImporter,只导入 Provider 配置)
         item {
             ImportSourceCard(

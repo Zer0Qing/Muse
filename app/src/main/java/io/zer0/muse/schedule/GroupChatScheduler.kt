@@ -198,8 +198,14 @@ class GroupChatScheduler(
     }
 
     private suspend fun memberAlreadyRepliedSince(chatId: String, memberId: String, since: Long): Boolean {
+        // v1.0.74 fix: 调用方传入的 ledger.updatedAt 已被 saveLedger 刷新为当前时刻,
+        // 断点重放时基准失效(成员上次发言 T0 < 重放时刻 → 永远查不到 → 重复发言)。
+        // 改为从 DB 读持久化的原始账本 updatedAt(上次进程最后保存的时刻)作基准。
+        val persisted = groupChatRepository.getPendingGenerationLedgers()
+            .firstOrNull { it.chatId == chatId }
+        val base = persisted?.updatedAt ?: since
         return groupChatRepository.getRecentMessages(chatId, DEFAULT_CONTEXT_SIZE).any {
-            it.senderType == "assistant" && it.senderId == memberId && it.timestamp >= since
+            it.senderType == "assistant" && it.senderId == memberId && it.timestamp >= base
         }
     }
 
@@ -767,11 +773,13 @@ class GroupChatScheduler(
                 // v1.0.53 Phase 5: Agent Phone 复用 SubagentThreadStore —
                 // whisper 也生成 threadId,私聊消息写入 filesDir/subagent_sessions/<threadId>.jsonl,
                 // App 重启后可恢复私聊历史。parentSessionId 用 "agent_phone:<chatId>" 区分群聊上下文。
+                // v1.0.74 fix: 此前 threadId=null 每次无条件新建线程(注释却写"复用"),
+                // 导致 open 线程无限膨胀、同一对私聊历史被拆散。改用稳定 key 真复用。
                 val threadStore = subagentThreadStore
                 val whisperThreadId = if (threadStore != null) {
                     resultOf {
                         threadStore.getOrCreate(
-                            threadId = null,  // 每次私聊都复用同一 chatId+assistantId 的线程
+                            threadId = "whisper:$chatId:$targetAssistantId",
                             parentSessionId = "agent_phone:$chatId",
                             assistantId = targetAssistantId,
                             label = "whisper:${chat.name}:${assistant.name}",
@@ -1667,9 +1675,13 @@ class GroupChatScheduler(
      * - 2 人:正方 / 反方
      * - 3 人:提方案 / 找漏洞 / 提改进
      * - 4+ 人:提方案 / 质疑 / 改进 / 补充(循环)
+     *
+     * v1.0.74 fix: 此前私有版直接 return generateDebateRoles(count) 无限递归
+     * (类成员遮蔽 companion,同 ProactiveMessageRunner.isInAllowedWindow 旧坑),
+     * 辩论模式一触发即 StackOverflowError。改为显式委托 companion 实现。
      */
     private fun generateDebateRoles(count: Int): List<String> {
-        return generateDebateRoles(count)
+        return Companion.generateDebateRoles(count)
     }
 
     /**

@@ -679,6 +679,17 @@ class ToolOrchestrator(
             }
         }
 
+        // v1.0.74 fix: 轮次耗尽/卡死退出时 finalAssistantMessage 为 null,会话里没有任何
+        // 收尾提示,任务卡悬空、用户以为助手坏了。注入一条明确的收尾消息。
+        if (finalAssistantMessage == null && hasToolCalls) {
+            finalAssistantMessage = UIMessage(
+                id = currentAssistantId,
+                role = MessageRole.ASSISTANT,
+                content = "[已达到工具调用轮次上限($maxRounds 轮),自动停止。如需继续,可以让我接着处理。]",
+            )
+            accessor.updateMessages { it + finalAssistantMessage }
+        }
+
         Logger.i(
             TAG,
             "Agent Loop 结束 | sessionId=${params.sessionId} | rounds=$round/$maxRounds" +

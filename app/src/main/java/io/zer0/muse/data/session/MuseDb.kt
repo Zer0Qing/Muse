@@ -122,9 +122,12 @@ import kotlinx.serialization.builtins.serializer
         GroupChatMessageEntity::class,
         // v2.x: 群聊记忆隔离(独立 fact store,不污染主记忆)
         GroupChatMemoryEntity::class,
-        // v1.0.72: AI 朋友圈动态 + 评论
+        // v1.0.72: AI 朋友圈动态 + 评论(v1.0.73: + 点赞记录)
         io.zer0.muse.data.moment.MomentEntity::class,
         io.zer0.muse.data.moment.MomentCommentEntity::class,
+        io.zer0.muse.data.moment.MomentLikeEntity::class,
+        // v1.0.74: AI 日记本
+        io.zer0.muse.data.diary.DiaryEntity::class,
         ExperienceEntity::class,
         // v1.107 冗余设计: 统计缓存 / 完整性日志 / 自动备份日志
         StatsCacheEntity::class,
@@ -154,7 +157,7 @@ import kotlinx.serialization.builtins.serializer
         // B5-02: 群聊生成账本(进程被杀后按断点重放)
         GroupChatGenerationLedgerEntity::class,
     ],
-    version = 81,
+    version = 85,
     exportSchema = true,
 )
 @TypeConverters(QuickNoteConverters::class)
@@ -183,6 +186,7 @@ abstract class MuseDb : RoomDatabase() {
 
     /** v1.0.72: AI 朋友圈 DAO。 */
     abstract fun momentDao(): io.zer0.muse.data.moment.MomentDao
+    abstract fun diaryDao(): io.zer0.muse.data.diary.DiaryDao
     // v1.98: 经验库
     abstract fun experienceDao(): ExperienceDao
     // Phase 2 2B: 里程碑
@@ -340,12 +344,83 @@ abstract class MuseDb : RoomDatabase() {
             }
         }
 
-        /** v1.0.72: 清理旧版迁移残留的 ai_moments 索引(已崩溃设备 user_version 已到 80,
-         * 需此迁移兜底,保证最终 schema 与 Entity 完全一致,避免后续版本迁移校验失败)。 */
+        /** v1.0.73: 兜底修复历史坏表。已发布版本(72/中间版)建出的 ai_moments 存在两类差异:
+         * 1) 残留索引 idx_moments_created / idx_moment_comments_moment
+         * 2) mood 列默认值不统一(有的无默认 'undefined',有的 DEFAULT NULL 读为 'NULL')
+         * 方案: 重建 ai_moments 表,统一为与 Entity 完全一致的 schema(无 mood 默认、无索引),数据全部保留。 */
         val MIGRATION_80_81 = object : Migration(80, 81) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("DROP INDEX IF EXISTS idx_moments_created")
                 db.execSQL("DROP INDEX IF EXISTS idx_moment_comments_moment")
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS ai_moments_new (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        content TEXT NOT NULL,
+                        type TEXT NOT NULL DEFAULT 'life',
+                        mood TEXT,
+                        likes INTEGER NOT NULL DEFAULT 0,
+                        likedByUser INTEGER NOT NULL DEFAULT 0,
+                        source TEXT NOT NULL DEFAULT 'scheduled',
+                        createdAt INTEGER NOT NULL DEFAULT 0
+                    )""",
+                )
+                db.execSQL(
+                    """INSERT INTO ai_moments_new (id, content, type, mood, likes, likedByUser, source, createdAt)
+                        SELECT id, content, type, mood, likes, likedByUser, source, createdAt FROM ai_moments""",
+                )
+                db.execSQL("DROP TABLE IF EXISTS ai_moments")
+                db.execSQL("ALTER TABLE ai_moments_new RENAME TO ai_moments")
+            }
+        }
+
+        /** v1.0.73: 朋友圈支持用户发布 + AI 配图 — ai_moments 加 sender/imageUrl 列。
+         * 注意: 放在 80→81 重建之后,统一 ADD COLUMN,保证任何迁移路径最终 schema 一致。 */
+        val MIGRATION_81_82 = object : Migration(81, 82) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE ai_moments ADD COLUMN senderType TEXT NOT NULL DEFAULT 'assistant'")
+                db.execSQL("ALTER TABLE ai_moments ADD COLUMN senderName TEXT NOT NULL DEFAULT 'Muse'")
+                db.execSQL("ALTER TABLE ai_moments ADD COLUMN senderAvatar TEXT")
+                db.execSQL("ALTER TABLE ai_moments ADD COLUMN imageUrl TEXT")
+            }
+        }
+
+        /** v1.0.73: 多助手朋友圈 — ai_moments 加 senderId;评论加发送者身份;
+         * 新建 ai_moment_likes 表(用户 + 助手互赞)。 */
+        val MIGRATION_82_83 = object : Migration(82, 83) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE ai_moments ADD COLUMN senderId TEXT")
+                db.execSQL("ALTER TABLE ai_moment_comments ADD COLUMN senderId TEXT")
+                db.execSQL("ALTER TABLE ai_moment_comments ADD COLUMN senderName TEXT")
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS ai_moment_likes (
+                        momentId TEXT NOT NULL,
+                        likerType TEXT NOT NULL,
+                        likerId TEXT NOT NULL,
+                        likerName TEXT NOT NULL,
+                        createdAt INTEGER NOT NULL DEFAULT 0,
+                        PRIMARY KEY(momentId, likerType, likerId)
+                    )""",
+                )
+            }
+        }
+
+        /** v1.0.73: 9 宫格多图 — ai_moments 加 imagesJson(JSON 数组)。 */
+        val MIGRATION_83_84 = object : Migration(83, 84) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE ai_moments ADD COLUMN imagesJson TEXT NOT NULL DEFAULT '[]'")
+            }
+        }
+
+        /** v1.0.74: AI 日记本 — 新建 ai_diaries 表(日期主键)。 */
+        val MIGRATION_84_85 = object : Migration(84, 85) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS ai_diaries (
+                        date TEXT NOT NULL PRIMARY KEY,
+                        content TEXT NOT NULL,
+                        createdAt INTEGER NOT NULL DEFAULT 0
+                    )""",
+                )
             }
         }
 
@@ -1991,6 +2066,41 @@ abstract class MuseDb : RoomDatabase() {
             ensureGroupChatMessageColumns(db)
         }
     }
+
+    /** v1.0.74: 68→69 补链(68_74 直跳仍保留,供老设备)。 */
+    val MIGRATION_68_69 = object : Migration(68, 69) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            ensureSessionColumns(db)
+            ensureMessageColumns(db)
+        }
+    }
+
+    /** v1.0.74: 补齐 69-72 版本缺口 — 若这些版本曾发布(灰度/测试),升级时 Room 找不到迁移会启动崩溃。
+     *  空迁移 + ensure 幂等补列,与 68_74 共用防御逻辑。 */
+    val MIGRATION_69_70 = object : Migration(69, 70) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            ensureSessionColumns(db)
+            ensureMessageColumns(db)
+        }
+    }
+    val MIGRATION_70_71 = object : Migration(70, 71) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            ensureSessionColumns(db)
+            ensureMessageColumns(db)
+        }
+    }
+    val MIGRATION_71_72 = object : Migration(71, 72) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            ensureSessionColumns(db)
+            ensureMessageColumns(db)
+        }
+    }
+    val MIGRATION_72_73 = object : Migration(72, 73) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            ensureSessionColumns(db)
+            ensureMessageColumns(db)
+        }
+    }
     /**
      * P0 对话树: messages 表加 parentGroupId(助手变体所属的用户提问变体组)。
      * 旧库升级时通过 ensureMessageColumns 幂等补列,不影响存量数据。
@@ -2098,7 +2208,12 @@ abstract class MuseDb : RoomDatabase() {
                         MIGRATION_65_66,
                         MIGRATION_66_67,
                         MIGRATION_67_68,
+                        MIGRATION_68_69,
                         MIGRATION_68_74,
+                        MIGRATION_69_70,
+                        MIGRATION_70_71,
+                        MIGRATION_71_72,
+                        MIGRATION_72_73,
                         MIGRATION_74_75,
                         MIGRATION_73_74,
                         migrate75To76(File(context.applicationContext.filesDir, "muse_images")),
@@ -2107,6 +2222,10 @@ abstract class MuseDb : RoomDatabase() {
                         MIGRATION_78_79,
                         MIGRATION_79_80,
                         MIGRATION_80_81,
+                        MIGRATION_81_82,
+                        MIGRATION_82_83,
+                        MIGRATION_83_84,
+                        MIGRATION_84_85,
                     )
                     // 启用外键约束(artifacts 表的 ON DELETE CASCADE 依赖此设置)
                     // onOpen 不在 onCreate 事务内,可以执行此类命令;onCreate 内禁止 PRAGMA

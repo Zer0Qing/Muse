@@ -30,6 +30,8 @@ class SubagentThreadStore(
 ) {
     companion object {
         private const val TAG = "SubagentThreadStore"
+        /** v1.0.74: 孤儿线程判定 — open 且超过 24h 未更新视为遗留。 */
+        private const val ORPHAN_STALE_MS = 24 * 60 * 60 * 1000L
     }
 
     private val runLocks = ConcurrentHashMap<String, Mutex>()
@@ -135,12 +137,33 @@ class SubagentThreadStore(
         val entity = dao.getById(threadId) ?: return false
         if (entity.status == "closed") return false
         dao.close(threadId)
+        // v1.0.74: 顺带回收锁(v1.0.74 fix: runLocks 强引用永不回收,配合线程清理避免内存累积)
+        runLocks.remove(threadId)
         return true
     }
 
     /** 列出某主会话的开放线程(供 UI / subagent_close 使用)。 */
     suspend fun listOpen(parentSessionId: String): List<SubagentThreadEntity> {
         return dao.listOpenBySession(parentSessionId)
+    }
+
+    /**
+     * v1.0.74: 启动清理孤儿线程 — App 重启后,上次进程遗留的 open 线程
+     * (进程被杀/崩溃导致没有走到 subagent_close)会被标记为 closed,
+     * 避免"后台子 agent 任务"永远显示(用户反馈:N 个版本前的任务一直挂着)。
+     *
+     * 规则:open 且超过 [staleMs] 未更新的线程视为孤儿(真正在跑的线程
+     * 会持续更新 updatedAt;启动瞬间刚创建的线程不受影响)。
+     * @return 清理的线程数
+     */
+    suspend fun cleanupOrphanThreads(staleMs: Long = ORPHAN_STALE_MS): Int {
+        val now = System.currentTimeMillis()
+        val orphans = dao.listAllOpen().filter { now - it.updatedAt > staleMs }
+        orphans.forEach { dao.close(it.threadId, now) }
+        if (orphans.isNotEmpty()) {
+            Logger.i(TAG, "启动清理 ${orphans.size} 个孤儿子 agent 线程: ${orphans.joinToString { it.threadId.take(12) }}")
+        }
+        return orphans.size
     }
 
     /** 会话文件路径(供 SubagentRunner Result.sessionPath 使用)。 */

@@ -71,6 +71,10 @@ class MuseApp : Application(), ImageLoaderFactory {
     private val memoryBackfillMigration: io.zer0.muse.data.MemoryBackfillMigration by inject()
     // v1.0.52 P2-2: 记忆空间仓库,启动时确保默认 Space 存在
     private val memorySpaceRepository: io.zer0.memory.space.MemorySpaceRepository by inject()
+    private val subagentThreadStore: io.zer0.muse.data.subagent.SubagentThreadStore by inject()
+    // v1.0.74: AI 日记本 — 启动时后台预生成今天的日记(打开日记页秒开,不再转圈)
+    private val diaryRepository: io.zer0.muse.data.diary.DiaryRepository by inject()
+    private val diaryGenerator: io.zer0.muse.data.diary.DiaryGenerator by inject()
     private val assistantRepository: AssistantRepository by inject()
     private val skillRepository: SkillRepository by inject()
     private val knowledgeDocDao: KnowledgeDocDao by inject()
@@ -195,6 +199,32 @@ class MuseApp : Application(), ImageLoaderFactory {
         appScope.launch {
             resultOf { sessionRepository.recoverInterruptedGenerations() }
                 .onError { msg, t -> Logger.w("MuseApp", "恢复中断生成失败: $msg", t) }
+        }
+
+        // v1.0.74: 启动清理孤儿子 agent 线程(进程被杀遗留的 open 线程 → closed,
+        // 避免"后台子 agent 任务"跨版本残留显示)
+        appScope.launch {
+            resultOf { subagentThreadStore.cleanupOrphanThreads() }
+                .onError { msg, t -> Logger.w("MuseApp", "清理孤儿子 agent 线程失败: ${t?.message ?: msg}") }
+        }
+
+        // v1.0.74: 后台预生成今天的日记(仅当天没有时;打开日记页秒开,不转圈)
+        appScope.launch {
+            val today = java.time.LocalDate.now().toString()
+            resultOf {
+                if (diaryRepository.getByDate(today) == null) {
+                    val content = diaryGenerator.generateFor(today)
+                    if (content != null) {
+                        diaryRepository.save(today, content)
+                        true
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                }
+            }.onError { msg, t -> Logger.w("MuseApp", "预生成今日日记失败: ${t?.message ?: msg}") }
+                .onSuccess { if (it) Logger.i("MuseApp", "今日日记已后台生成") }
         }
 
         // B5-02: 启动时恢复被强杀中断的群聊生成账本(从断点续跑)

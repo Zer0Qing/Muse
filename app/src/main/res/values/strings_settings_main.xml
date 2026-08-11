@@ -366,6 +366,10 @@
 
     <!-- ==================== Chat 设置 ==================== -->
     <string name="settings_chat_title">聊天</string>
+    <string name="settings_chat_background_section">外观</string>
+    <string name="settings_chat_background_title">聊天背景</string>
+    <string name="settings_chat_background_subtitle">自定义聊天 / Agent / 群聊背景</string>
+    <string name="settings_chat_background_choose">选择</string>`n    <string name="settings_chat_background_saved">聊天背景已更新</string>`n    <string name="settings_chat_background_failed">图片处理失败,请换一张试试</string>
     <string name="settings_chat_message_display">消息显示</string>
     <string name="settings_chat_show_mood">显示 MOOD 块</string>
     <string name="settings_chat_show_mood_subtitle">AI 内部腹稿(Vibe/Sparks/Reflections/Will)</string>
