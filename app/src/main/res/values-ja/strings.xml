@@ -269,4 +269,8 @@
     <string name="settings_multi_agent_node_assistant">エージェント</string>
     <string name="settings_multi_agent_node_mode">モード</string>
     <string name="settings_multi_agent_node_dependencies">依存関係</string>
+    <string name="chat_delete_selected_title">選択したメッセージを削除</string>
+    <string name="chat_delete_selected_message">選択した %1$d 件のメッセージを削除しますか？この操作は元に戻せません。</string>
+    <string name="settings_agent_night_patrol_title">深夜の自律行動</string>
+    <string name="settings_agent_night_patrol_subtitle">許可時間外: 静かに日記/夜記を書く、通知なし</string>
 </resources>

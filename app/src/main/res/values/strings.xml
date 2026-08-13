@@ -320,5 +320,9 @@
     <string name="reports_emotion_positive">积极</string>
     <string name="reports_emotion_neutral">中性</string>
     <string name="reports_emotion_negative">消极</string>
+    <string name="chat_delete_selected_title">删除所选消息</string>
+    <string name="chat_delete_selected_message">确定删除选中的 %1$d 条消息吗？此操作不可恢复。</string>
+    <string name="settings_agent_night_patrol_title">深夜自主行动</string>
+    <string name="settings_agent_night_patrol_subtitle">允许时段外：安静写日记/夜记，不推送通知</string>
 
 </resources>

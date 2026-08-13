@@ -84,7 +84,12 @@ object ConversationExporter {
 
         messages.forEach { msg ->
             val role = roleLabel(msg.role)
-            sb.append("**").append(role).append("**: ").append(msg.content).append("\n\n")
+            // 审计修复 (日志分析): 空回复消息(工具失败终止等)导出时标注,不再输出空行。
+            // 用户分享对话时看到的"对话是空的"就是这些 content="" 的助手消息堆出来的。
+            val content = msg.content.ifBlank {
+                if (!msg.reasoning.isNullOrBlank()) "(无正文,含思考过程)" else "(空回复)"
+            }
+            sb.append("**").append(role).append("**: ").append(content).append("\n\n")
             // 思考过程(若有)
             if (!msg.reasoning.isNullOrBlank()) {
                 sb.append("### 思考过程\n\n").append(msg.reasoning).append("\n\n")

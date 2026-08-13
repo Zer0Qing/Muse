@@ -269,4 +269,8 @@
     <string name="settings_multi_agent_node_assistant">Агент</string>
     <string name="settings_multi_agent_node_mode">Режим</string>
     <string name="settings_multi_agent_node_dependencies">Зависимости</string>
+    <string name="chat_delete_selected_title">Удалить выбранные сообщения</string>
+    <string name="chat_delete_selected_message">Вы уверены, что хотите удалить %1$d выбранных сообщений? Это действие нельзя отменить.</string>
+    <string name="settings_agent_night_patrol_title">Ночная автономность</string>
+    <string name="settings_agent_night_patrol_subtitle">Вне разрешённого времени: тихо писать дневник/ночные заметки, без уведомлений</string>
 </resources>

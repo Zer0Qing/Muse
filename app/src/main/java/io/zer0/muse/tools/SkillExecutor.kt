@@ -215,18 +215,77 @@ class SkillExecutor(
 
     // H-SE1: 改用 resultOf{}(正确重抛 CancellationException)
     // L-SE13: 对非 JsonPrimitive 的值(对象/数组)用 AppJson 序列化为字符串,而非简单 toString()
-    private fun parseArgs(json: String): Map<String, String> = resultOf {
-        val obj = AppJson.decodeFromString(JsonObject.serializer(), json)
-        obj.entries.associate { (k, v) ->
-            val strValue = when (v) {
-                is JsonPrimitive -> v.content
-                else -> AppJson.encodeToString(JsonElement.serializer(), v)
+    private fun parseArgs(json: String): Map<String, String> {
+        // 审计修复 (日志分析): 容错处理 tool_calls arguments 双 JSON 拼接。
+        // DeepSeek V4 流式返回同一调用的多段 arguments 增量时,可能被拼接成
+        // {"limit":20}{"query":"..."} 这样的多个独立 JSON(用户实测: 连续 3 次
+        // knowledge_search 全部 parseArgs 失败,工具调用链提前终止,用户看到空回复)。
+        // 处理策略: 先尝试整体解析;失败时按 '}'-'{' 边界拆分成段,取每段分别解析,
+        // 合并所有成功段的字段。
+        val direct = parseJsonObject(json)
+        if (direct != null) return direct
+        // 拼接场景: 按 } 后跟 { 切分
+        val segments = splitConcatenatedJson(json)
+        if (segments.size > 1) {
+            val merged = linkedMapOf<String, String>()
+            for (seg in segments) {
+                parseJsonObject(seg)?.let { merged.putAll(it) }
             }
-            k to strValue
+            if (merged.isNotEmpty()) {
+                Logger.w("SkillExecutor", "parseArgs: 检测到拼接 JSON,已按段拆分合并 ${segments.size} 段")
+                return merged
+            }
         }
-    }.onError { msg, _ ->
-        Logger.w("SkillExecutor", "parseArgs 失败: $msg")
-    }.getOrNull() ?: emptyMap()
+        return emptyMap()
+    }
+
+    /** 解析单个 JSON 对象,失败返回 null。 */
+    private fun parseJsonObject(json: String): Map<String, String>? {
+        val trimmed = json.trim()
+        if (!trimmed.startsWith("{")) return null
+        return resultOf {
+            val obj = AppJson.decodeFromString(JsonObject.serializer(), trimmed)
+            obj.entries.associate { (k, v) ->
+                val strValue = when (v) {
+                    is JsonPrimitive -> v.content
+                    else -> AppJson.encodeToString(JsonElement.serializer(), v)
+                }
+                k to strValue
+            }
+        }.onError { msg, _ ->
+            Logger.w("SkillExecutor", "parseArgs 单段解析失败: $msg")
+        }.getOrNull()
+    }
+
+    /** 把 {"a":1}{"b":2} 这类拼接 JSON 按闭合边界拆分为多段。 */
+    private fun splitConcatenatedJson(json: String): List<String> {
+        val segments = mutableListOf<String>()
+        var depth = 0
+        var start = -1
+        var inString = false
+        var escape = false
+        for (i in json.indices) {
+            val c = json[i]
+            if (inString) {
+                if (escape) escape = false
+                else if (c == '\\') escape = true
+                else if (c == '"') inString = false
+                continue
+            }
+            when (c) {
+                '{' -> { if (depth == 0) start = i; depth++ }
+                '}' -> {
+                    depth--
+                    if (depth == 0 && start >= 0) {
+                        segments.add(json.substring(start, i + 1))
+                        start = -1
+                    }
+                }
+                '"' -> inString = true
+            }
+        }
+        return segments
+    }
 
     // ── 内置 skill 实现 ──────────────────────────────────────────────────────
 

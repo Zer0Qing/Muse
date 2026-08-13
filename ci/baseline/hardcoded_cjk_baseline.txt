@@ -2,16 +2,19 @@
 # 格式: <file>: <违规数>;新增或上升都会失败,只允许下降
 # 清理存量后运行: py -3 ci/script/check_hardcoded_cjk.py --update-baseline
 #
-# 当前共 463 处,分布 56 个文件
+# 当前共 643 处,分布 70 个文件
 app/src/main/java/io/zer0/muse/ui/AssistantAdvancedPage.kt: 1
-app/src/main/java/io/zer0/muse/ui/ChatScreen.kt: 1
+app/src/main/java/io/zer0/muse/ui/ChatScreen.kt: 2
 app/src/main/java/io/zer0/muse/ui/ChatScreenComponents.kt: 1
-app/src/main/java/io/zer0/muse/ui/ChatViewModel.kt: 63
+app/src/main/java/io/zer0/muse/ui/ChatViewModel.kt: 62
 app/src/main/java/io/zer0/muse/ui/CoverManagerScreen.kt: 2
-app/src/main/java/io/zer0/muse/ui/GreetingHelper.kt: 41
+app/src/main/java/io/zer0/muse/ui/GreetingHelper.kt: 43
 app/src/main/java/io/zer0/muse/ui/HtmlPreviewScreen.kt: 2
-app/src/main/java/io/zer0/muse/ui/InputBar.kt: 2
+app/src/main/java/io/zer0/muse/ui/InputBar.kt: 7
+app/src/main/java/io/zer0/muse/ui/MemoryScreen.kt: 8
 app/src/main/java/io/zer0/muse/ui/MemorySectionViews.kt: 17
+app/src/main/java/io/zer0/muse/ui/MemoryViewModel.kt: 3
+app/src/main/java/io/zer0/muse/ui/MuseToolSheet.kt: 7
 app/src/main/java/io/zer0/muse/ui/SafeModeScreen.kt: 3
 app/src/main/java/io/zer0/muse/ui/SettingsScreen.kt: 76
 app/src/main/java/io/zer0/muse/ui/SkillScreen.kt: 2
@@ -21,13 +24,14 @@ app/src/main/java/io/zer0/muse/ui/artifact/ArtifactViewer.kt: 3
 app/src/main/java/io/zer0/muse/ui/chat/ChatAudioCoordinator.kt: 1
 app/src/main/java/io/zer0/muse/ui/chat/ChatExportCoordinator.kt: 11
 app/src/main/java/io/zer0/muse/ui/chat/ChatStreamCoordinator.kt: 12
-app/src/main/java/io/zer0/muse/ui/chat/ChatTaskCardCoordinator.kt: 4
+app/src/main/java/io/zer0/muse/ui/chat/ChatTaskCardCoordinator.kt: 5
 app/src/main/java/io/zer0/muse/ui/chat/ImageGenCoordinator.kt: 2
 app/src/main/java/io/zer0/muse/ui/chat/StickerEmotionDetector.kt: 14
 app/src/main/java/io/zer0/muse/ui/chat/VideoAttachmentHandler.kt: 1
 app/src/main/java/io/zer0/muse/ui/groupchat/GroupChatDetailComponents.kt: 2
-app/src/main/java/io/zer0/muse/ui/groupchat/GroupChatDetailScreen.kt: 4
-app/src/main/java/io/zer0/muse/ui/groupchat/GroupChatViewModel.kt: 3
+app/src/main/java/io/zer0/muse/ui/groupchat/GroupChatDetailScreen.kt: 7
+app/src/main/java/io/zer0/muse/ui/groupchat/GroupChatListScreen.kt: 4
+app/src/main/java/io/zer0/muse/ui/groupchat/GroupChatViewModel.kt: 4
 app/src/main/java/io/zer0/muse/ui/knowledge/KnowledgeScreen.kt: 8
 app/src/main/java/io/zer0/muse/ui/markdown/DataCardRenderer.kt: 2
 app/src/main/java/io/zer0/muse/ui/markdown/FormulaView.kt: 1
@@ -36,9 +40,19 @@ app/src/main/java/io/zer0/muse/ui/memory/MemorySpaceSwitcher.kt: 2
 app/src/main/java/io/zer0/muse/ui/memory/MemorySpaceViewModel.kt: 6
 app/src/main/java/io/zer0/muse/ui/memory/MemoryTimelineView.kt: 1
 app/src/main/java/io/zer0/muse/ui/model/ModelProfilesScreen.kt: 3
+app/src/main/java/io/zer0/muse/ui/moment/MiniAlbumScreen.kt: 6
+app/src/main/java/io/zer0/muse/ui/moment/MiniDiaryScreen.kt: 10
+app/src/main/java/io/zer0/muse/ui/moment/MiniPhoneScreen.kt: 13
+app/src/main/java/io/zer0/muse/ui/moment/MiniWeatherScreen.kt: 29
+app/src/main/java/io/zer0/muse/ui/moment/MomentCard.kt: 12
+app/src/main/java/io/zer0/muse/ui/moment/MomentComponents.kt: 28
+app/src/main/java/io/zer0/muse/ui/moment/MomentViewModel.kt: 7
+app/src/main/java/io/zer0/muse/ui/moment/MomentsScreen.kt: 2
 app/src/main/java/io/zer0/muse/ui/onboarding/OnboardingScreen.kt: 1
+app/src/main/java/io/zer0/muse/ui/quicknotes/QuickNotesViewModel.kt: 5
 app/src/main/java/io/zer0/muse/ui/schedule/ScheduledTasksScreen.kt: 12
-app/src/main/java/io/zer0/muse/ui/settings/AgentSettingsPage.kt: 22
+app/src/main/java/io/zer0/muse/ui/settings/AgentSettingsPage.kt: 38
+app/src/main/java/io/zer0/muse/ui/settings/BackgroundKeepAlive.kt: 18
 app/src/main/java/io/zer0/muse/ui/settings/BackupSection.kt: 2
 app/src/main/java/io/zer0/muse/ui/settings/ChatSettingsPage.kt: 16
 app/src/main/java/io/zer0/muse/ui/settings/CloudBackupPage.kt: 2

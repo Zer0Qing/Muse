@@ -327,4 +327,8 @@
     <string name="voice_conversation_state_speaking">Speaking</string>
     <string name="voice_conversation_state_thinking">Thinking</string>
     <string name="voice_conversation_thinking">Thinking...</string>
+    <string name="chat_delete_selected_title">Delete selected messages</string>
+    <string name="chat_delete_selected_message">Are you sure you want to delete %1$d selected messages? This cannot be undone.</string>
+    <string name="settings_agent_night_patrol_title">Late night autonomy</string>
+    <string name="settings_agent_night_patrol_subtitle">Outside allowed hours: quietly write diary/night notes, no notifications</string>
 </resources>

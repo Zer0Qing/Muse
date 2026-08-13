@@ -359,8 +359,8 @@ fun AgentSettingsPage(
                     SettingsGroupDivider()
                     SettingsSwitchRow(
                         icon = TablerIcons.Moon,
-                        title = "深夜自主行动",
-                        subtitle = "允许时段外:安静写日记/夜记,不推送通知",
+                        title = stringResource(R.string.settings_agent_night_patrol_title),
+                        subtitle = stringResource(R.string.settings_agent_night_patrol_subtitle),
                         checked = nightPatrolEnabled,
                         onCheckedChange = { v ->
                             scope.launch { settings.saveNightPatrolEnabled(v) }

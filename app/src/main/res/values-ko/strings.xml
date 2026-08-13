@@ -269,4 +269,8 @@
     <string name="settings_multi_agent_node_assistant">대리인</string>
     <string name="settings_multi_agent_node_mode">방법</string>
     <string name="settings_multi_agent_node_dependencies">종속성</string>
+    <string name="chat_delete_selected_title">선택한 메시지 삭제</string>
+    <string name="chat_delete_selected_message">선택한 메시지 %1$d개를 삭제하시겠습니까? 복구할 수 없습니다.</string>
+    <string name="settings_agent_night_patrol_title">심야 자율 행동</string>
+    <string name="settings_agent_night_patrol_subtitle">허용 시간 외: 조용히 일기/야간 메모 작성, 알림 없음</string>
 </resources>

@@ -1154,11 +1154,11 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                 if (showDeleteConfirm) {
                     MuseDialog(
                         onDismissRequest = { showDeleteConfirm = false },
-                        title = "删除所选消息",
+                        title = stringResource(R.string.chat_delete_selected_title),
                         content = {
-                            Text("确定删除选中的 ${state.selectedMessageIds.size} 条消息吗?此操作不可恢复。")
+                            Text(stringResource(R.string.chat_delete_selected_message, state.selectedMessageIds.size))
                         },
-                        confirmText = "删除",
+                        confirmText = stringResource(R.string.action_delete),
                         destructive = true,
                         onConfirm = {
                             showDeleteConfirm = false

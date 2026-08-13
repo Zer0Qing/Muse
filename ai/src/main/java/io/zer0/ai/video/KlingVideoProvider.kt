@@ -135,7 +135,7 @@ class KlingVideoProvider(
                     val taskId = data["task_id"]?.jsonPrimitive?.content
                         ?: error("Kling submit 响应缺少 task_id: $respBody")
                     apiKeyForQuery[taskId] = request.apiKey
-                baseUrlForQuery[taskId] = request.baseUrl?.trim()?.trimEnd('/')?.ifBlank { baseUrl } ?: baseUrl
+                    baseUrlForQuery[taskId] = request.baseUrl?.trim()?.trimEnd('/')?.ifBlank { baseUrl } ?: baseUrl
                     Logger.i(TAG, "submit 成功: taskId=$taskId")
                     VideoSubmitResult(taskId = taskId, isAsync = true, modelName = request.model)
                 }

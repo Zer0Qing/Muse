@@ -48,13 +48,14 @@
     <ID>CyclomaticComplexMethod:AgnesVideoProvider.kt$AgnesVideoProvider$override suspend fun poll(taskId: String): VideoPollResult</ID>
     <ID>CyclomaticComplexMethod:AnthropicProvider.kt$AnthropicProvider$private fun splitSystem(messages: List&lt;UIMessage&gt;, model: Model): Pair&lt;List&lt;AnthropicSystemBlock&gt;?, List&lt;AnthropicMessage&gt;&gt;</ID>
     <ID>CyclomaticComplexMethod:AnthropicProvider.kt$AnthropicProvider$private suspend fun completeTextImpl(request: ChatRequest, keySwitchDepth: Int = 0): ChatCompletion</ID>
-    <ID>CyclomaticComplexMethod:FirstEventWatchdog.kt$fun Flow&lt;ChatStreamEvent&gt;.withFirstEventWatchdog( timeoutMs: Long = 15_000L, fallback: suspend () -&gt; ChatCompletion, ): Flow&lt;ChatStreamEvent&gt;</ID>
+    <ID>CyclomaticComplexMethod:FirstEventWatchdog.kt$fun Flow&lt;ChatStreamEvent&gt;.withFirstEventWatchdog( timeoutMs: Long = 15_000L, fallback: suspend () -&gt; ChatCompletion, // 审计修复 (7.8): 可选取消检查 — 调用方传入"用户是否已停止"的判断, // fallback 触发前检查,避免用户停止后仍发一次计费请求。 abortCheck: () -&gt; Boolean = { false }, ): Flow&lt;ChatStreamEvent&gt;</ID>
     <ID>CyclomaticComplexMethod:GeminiProvider.kt$GeminiProvider$private fun splitSystem(messages: List&lt;UIMessage&gt;): Pair&lt;String?, List&lt;GeminiContent&gt;&gt;</ID>
     <ID>CyclomaticComplexMethod:GeminiProvider.kt$GeminiProvider$private suspend fun completeTextImpl(request: ChatRequest, keySwitchDepth: Int = 0): ChatCompletion</ID>
     <ID>CyclomaticComplexMethod:GeminiProvider.kt$GeminiProvider$suspend fun uploadFile( bytes: ByteArray, mimeType: String, displayName: String? = null, ): String</ID>
     <ID>CyclomaticComplexMethod:GenericOpenAiVideoProvider.kt$GenericOpenAiVideoProvider$override suspend fun poll(taskId: String): VideoPollResult</ID>
     <ID>CyclomaticComplexMethod:ImageService.kt$ImageService$suspend fun generate( prompt: String, params: ImageGenParams = ImageGenParams(), providerConfig: ProviderConfig? = null, ): List&lt;String&gt;</ID>
     <ID>CyclomaticComplexMethod:KlingVideoProvider.kt$KlingVideoProvider$override suspend fun poll(taskId: String): VideoPollResult</ID>
+    <ID>CyclomaticComplexMethod:KlingVideoProvider.kt$KlingVideoProvider$override suspend fun submit(request: VideoGenRequest): VideoSubmitResult</ID>
     <ID>CyclomaticComplexMethod:ModelContextWindowRegistry.kt$ModelContextWindowRegistry$fun lookup(modelId: String): Int?</ID>
     <ID>CyclomaticComplexMethod:ModelRegistry.kt$ModelRegistry$fun enhanceModel(model: Model): Model</ID>
     <ID>CyclomaticComplexMethod:ModelRegistry.kt$ModelRegistry$fun enrich(model: Model): Model</ID>
@@ -69,7 +70,6 @@
     <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$private suspend fun completeTextImpl(request: ChatRequest, keySwitchDepth: Int = 0): ChatCompletion</ID>
     <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$private suspend fun completeTextResponses(request: ChatRequest, keySwitchDepth: Int = 0): ChatCompletion</ID>
     <ID>CyclomaticComplexMethod:ProviderCompat.kt$ProviderCompatRules$private fun ProviderCompat.overrideByHost(host: String): ProviderCompat</ID>
-    <ID>LongMethod:ProviderCompat.kt$ProviderCompatRules$private fun ProviderCompat.overrideByHost(host: String): ProviderCompat</ID>
     <ID>CyclomaticComplexMethod:ProviderCompat.kt$ProviderCompatRules$private fun ProviderCompat.overrideByModelId(modelId: String, hostKnown: Boolean): ProviderCompat</ID>
     <ID>CyclomaticComplexMethod:ProviderError.kt$@Deprecated("Provider 应直接抛 ProviderException,用 (throwable as? ProviderException)?.providerError 替代字符串推断", ReplaceWith("(throwable as? ProviderException)?.providerError")) fun inferFromMessage(message: String, throwable: Throwable?): ProviderError?</ID>
     <ID>CyclomaticComplexMethod:VideoGenerationService.kt$VideoGenerationService$private suspend fun pollUntilCompletion( provider: VideoProvider, taskId: String, onProgress: ((elapsedSec: Long) -&gt; Unit)?, timeoutMs: Long, ): String</ID>
@@ -96,6 +96,7 @@
     <ID>LongMethod:OpenAIProvider.kt$OpenAIProvider$override suspend fun listModels(config: ProviderConfig): List&lt;Model&gt;</ID>
     <ID>LongMethod:OpenAIProvider.kt$OpenAIProvider$private suspend fun completeTextImpl(request: ChatRequest, keySwitchDepth: Int = 0): ChatCompletion</ID>
     <ID>LongMethod:OpenAIProvider.kt$OpenAIProvider.&lt;no name provided&gt;$override fun onEvent( eventSource: EventSource, id: String?, type: String?, data: String, )</ID>
+    <ID>LongMethod:ProviderCompat.kt$ProviderCompatRules$private fun ProviderCompat.overrideByHost(host: String): ProviderCompat</ID>
     <ID>LongParameterList:AiModule.kt$ChatService$( messages: List&lt;UIMessage&gt;, model: Model? = null, temperature: Float? = null, maxTokens: Int? = null, tools: List&lt;ToolDefinition&gt;? = null, reasoningLevel: ReasoningLevel = ReasoningLevel.DEFAULT, providerConfig: ProviderConfig? = null, mode: ChatRequestMode = ChatRequestMode.CHAT, resumeFromText: String? = null, )</ID>
     <ID>LongParameterList:AiModule.kt$ChatService$( messages: List&lt;UIMessage&gt;, model: Model? = null, temperature: Float? = null, maxTokens: Int? = null, tools: List&lt;ToolDefinition&gt;? = null, reasoningLevel: ReasoningLevel = ReasoningLevel.DEFAULT, providerConfig: ProviderConfig? = null, mode: ChatRequestMode = ChatRequestMode.UTILITY, )</ID>
     <ID>LongParameterList:AiModule.kt$ChatService$( messages: List&lt;UIMessage&gt;, model: Model?, temperature: Float?, maxTokens: Int?, tools: List&lt;ToolDefinition&gt;?, reasoningLevel: ReasoningLevel, providerConfig: ProviderConfig? = null, mode: ChatRequestMode = ChatRequestMode.CHAT, )</ID>
@@ -150,14 +151,12 @@
     <ID>MaxLineLength:VertexAiAuthToken.kt$VertexAiAuthToken$0x06</ID>
     <ID>MaxLineLength:VideoGenerationService.kt$VideoGenerationService$"specId=${providerConfig.specId} host=${VideoProviderRegistry.extractHost(providerConfig.resolvedBaseUrl())}"</ID>
     <ID>MaxLineLength:VideoGenerationService.kt$VideoGenerationService$?:</ID>
-    <ID>NestedBlockDepth:AgnesVideoProvider.kt$AgnesVideoProvider$private fun extractVideoUrl(root: JsonObject): String?</ID>
+    <ID>NestedBlockDepth:AgnesImageProvider.kt$AgnesImageProvider.Companion$suspend fun resolveReferenceImage(ref: String): String</ID>
     <ID>NestedBlockDepth:GenericOpenAiVideoProvider.kt$GenericOpenAiVideoProvider$private fun extractVideoUrl(root: JsonObject): String?</ID>
     <ID>NestedBlockDepth:OpenAIProvider.kt$OpenAIProvider$private fun buildResponsesRequestBody(request: ChatRequest, stream: Boolean = true): String</ID>
     <ID>NestedBlockDepth:ProviderPayloadNormalizer.kt$ProviderPayloadNormalizer$private fun stripOrphanToolMessages(messages: List&lt;UIMessage&gt;): List&lt;UIMessage&gt;</ID>
     <ID>NestedBlockDepth:VideoProviderRegistry.kt$VideoProviderRegistry$fun selectFor(config: ProviderConfig): VideoProvider</ID>
     <ID>ReturnCount:AgnesImageProvider.kt$AgnesImageProvider.Companion$fun resolveSize(size: String?): String</ID>
-    <ID>ReturnCount:AgnesVideoProvider.kt$AgnesVideoProvider$private fun clampToValidFrames(target: Int): Int</ID>
-    <ID>ReturnCount:AgnesVideoProvider.kt$AgnesVideoProvider$private fun extractVideoUrl(root: JsonObject): String?</ID>
     <ID>ReturnCount:AnthropicProvider.kt$AnthropicProvider.&lt;no name provided&gt;$override fun onEvent( eventSource: EventSource, id: String?, type: String?, data: String, )</ID>
     <ID>ReturnCount:AnthropicProvider.kt$AnthropicProvider.&lt;no name provided&gt;$override fun onFailure( eventSource: EventSource, t: Throwable?, response: Response?, )</ID>
     <ID>ReturnCount:FreeModelConfig.kt$FreeModelConfig$fun isFreeProvider(baseUrl: String, userApiKey: String): Boolean</ID>
@@ -168,7 +167,6 @@
     <ID>ReturnCount:GeminiProvider.kt$GeminiProvider.&lt;no name provided&gt;$override fun onOpen(eventSource: EventSource, response: Response)</ID>
     <ID>ReturnCount:GenericOpenAiVideoProvider.kt$GenericOpenAiVideoProvider$private fun extractVideoUrl(root: JsonObject): String?</ID>
     <ID>ReturnCount:ImageProviderRegistry.kt$ImageProviderRegistry$fun selectFor(config: ProviderConfig): ImageProvider?</ID>
-    <ID>ReturnCount:ImageService.kt$ImageService$private fun resolveModelId( params: ImageGenParams, config: ProviderConfig, provider: ImageProvider, ): String</ID>
     <ID>ReturnCount:KeyRoulette.kt$KeyRoulette$fun pick(providerId: String, keysString: String): String</ID>
     <ID>ReturnCount:KnownModels.kt$KnownModels$fun lookup(modelId: String): KnownModelInfo?</ID>
     <ID>ReturnCount:KnownModels.kt$KnownModels$fun lookupProvider(provider: String, modelId: String): KnownModelInfo?</ID>

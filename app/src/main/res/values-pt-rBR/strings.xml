@@ -269,4 +269,8 @@
     <string name="settings_multi_agent_node_assistant">Agente</string>
     <string name="settings_multi_agent_node_mode">Modo</string>
     <string name="settings_multi_agent_node_dependencies">Dependências</string>
+    <string name="chat_delete_selected_title">Excluir mensagens selecionadas</string>
+    <string name="chat_delete_selected_message">Tem certeza de que deseja excluir %1$d mensagens selecionadas? Isto não pode ser desfeito.</string>
+    <string name="settings_agent_night_patrol_title">Autonomia noturna</string>
+    <string name="settings_agent_night_patrol_subtitle">Fora do horário permitido: escrever diário/notas noturnas em silêncio, sem notificações</string>
 </resources>
