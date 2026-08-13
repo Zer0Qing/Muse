@@ -49,3 +49,6 @@ build_output*.txt
 
 # 软著申请材料
 软件著作权申请材料/
+
+# 发布 APK 不入库(仅挂 GitHub Release 附件)
+releases/**/*.apk
