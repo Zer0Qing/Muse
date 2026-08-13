@@ -49,11 +49,11 @@ jobs:
         python3 ci/script/check_icon_content_description.py
         python3 ci/script/check_touch_target.py
     - name: Static checks
-      # 传 releaseSkipVersionCheck: 静态检查/detekt 等会触发 hasReleaseTask 的版本号硬约束,
-      # 本地复现失败("正式构建必须注入版本号");CI 只做 debug 构建,跳过版本号校验。
-      run: ./gradlew detekt ktlintCheck lintDebug koverXmlReport :ai:koverCachedVerifyDebug :memory:koverCachedVerifyDebug :app:koverCachedVerifyDebug -PreleaseSkipVersionCheck=true
+      # 传 releaseSkipVersionCheck/releaseSkipKeystoreCheck: 静态检查/detekt 等会触发
+      # hasReleaseTask 的版本号+keystore 硬约束(本地复现失败);CI 只做 debug 构建,跳过校验。
+      run: ./gradlew detekt ktlintCheck lintDebug koverXmlReport :ai:koverCachedVerifyDebug :memory:koverCachedVerifyDebug :app:koverCachedVerifyDebug -PreleaseSkipVersionCheck=true -PreleaseSkipKeystoreCheck=true
     - name: Build debug APK
-      run: ./gradlew assembleDebug -PreleaseSkipVersionCheck=true
+      run: ./gradlew assembleDebug -PreleaseSkipVersionCheck=true -PreleaseSkipKeystoreCheck=true
     - uses: actions/upload-artifact@v4
       with:
         name: debug-apk

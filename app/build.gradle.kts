@@ -287,9 +287,11 @@ dependencies {
 }
 
 // 发布安全：正式构建必须使用独立 keystore.properties，禁止静默回退 debug 签名。
+// CI 只做 debug 构建+静态检查(会触发部分 Release 任务),用 -PreleaseSkipKeystoreCheck=true 跳过。
 gradle.taskGraph.whenReady {
     val hasReleaseTask = allTasks.any { it.name.contains("Release") }
-    if (hasReleaseTask && !keystorePropertiesFile.exists()) {
+    val skipKeystoreCheck = project.findProperty("releaseSkipKeystoreCheck") == "true"
+    if (hasReleaseTask && !skipKeystoreCheck && !keystorePropertiesFile.exists()) {
         throw GradleException("正式构建缺少 keystore.properties：请先配置 release 签名，禁止回退 debug 签名。")
     }
     // 版本号硬约束：正式构建必须显式注入 versionName/versionCode，避免误用默认 162/1.0.62。
