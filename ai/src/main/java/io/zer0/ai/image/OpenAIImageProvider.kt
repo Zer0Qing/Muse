@@ -293,7 +293,14 @@ class OpenAIImageProvider(
                 }
             }
             else -> {
-                java.io.File(uri.removePrefix("file:")).takeIf { it.exists() }?.readBytes()
+                // 审计修复 (6.4): file 分支补大小限制(其他分支都有 MAX_REF_IMAGE_BYTES 检查,
+                // 唯独此处直接 readBytes,超大本地文件 OOM)。
+                val file = java.io.File(uri.removePrefix("file:"))
+                if (!file.exists()) return null
+                if (file.length() > MAX_REF_IMAGE_BYTES) {
+                    error(ErrorCode.IMAGE_REFERENCE_TOO_LARGE.toMessage(file.length() / 1024 / 1024))
+                }
+                file.readBytes()
             }
         }
     }

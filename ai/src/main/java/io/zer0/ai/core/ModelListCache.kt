@@ -82,13 +82,17 @@ object ModelListCache {
      */
     fun put(config: ProviderConfig, models: List<Model>) {
         val key = keyOf(config)
-        cache[key] = CachedModels(models = models, fetchedAt = System.currentTimeMillis())
-        // 容量淘汰:超过上限时删除最旧条目
-        if (cache.size > MAX_ENTRIES) {
-            cache.entries
-                .sortedBy { it.value.fetchedAt }
-                .take(cache.size - MAX_ENTRIES)
-                .forEach { cache.remove(it.key) }
+        // 审计修复 (7.9): 容量淘汰的读-改-写加锁 — 原实现 ConcurrentHashMap 上
+        // size 检查 + sortedBy + remove 非原子,并发 put 可能误删刚写入条目或重复淘汰。
+        synchronized(cache) {
+            cache[key] = CachedModels(models = models, fetchedAt = System.currentTimeMillis())
+            // 容量淘汰:超过上限时删除最旧条目
+            if (cache.size > MAX_ENTRIES) {
+                cache.entries
+                    .sortedBy { it.value.fetchedAt }
+                    .take(cache.size - MAX_ENTRIES)
+                    .forEach { cache.remove(it.key) }
+            }
         }
     }
 

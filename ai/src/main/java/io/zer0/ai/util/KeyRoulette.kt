@@ -197,17 +197,23 @@ class KeyRoulette {
     }
 
     private fun lruPick(candidates: List<String>, records: MutableList<UsageRecord>, now: Long): String {
-        val usedKeys = records
-            .filter { now - it.lastUsedAt < USAGE_EXPIRY_MS }
-            .map { it.key }
-            .toSet()
+        // 审计修复 (3.1): 读操作与 recordUsage 的 synchronized(records) 互斥,
+        // 避免并发请求时遍历期间被 removeAll/add 结构性修改而抛 ConcurrentModificationException
+        val usedKeys = synchronized(records) {
+            records
+                .filter { now - it.lastUsedAt < USAGE_EXPIRY_MS }
+                .map { it.key }
+                .toSet()
+        }
 
         val unusedKeys = candidates.filter { it !in usedKeys }
         return if (unusedKeys.isNotEmpty()) {
             unusedKeys.random()
         } else {
             // 所有 key 最近都使用过，在候选中选最久未用的
-            val oldest = records.filter { it.key in candidates }.minByOrNull { it.lastUsedAt }
+            val oldest = synchronized(records) {
+                records.filter { it.key in candidates }.minByOrNull { it.lastUsedAt }
+            }
             oldest?.key?.takeIf { it in candidates } ?: candidates.random()
         }
     }

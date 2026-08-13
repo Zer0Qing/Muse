@@ -142,6 +142,8 @@ fun HomeScreen(
     // v1.137 B3: 区分用户拖拽和点击动画 — 点击时设 clickAnimating=true,
     // isScrollInProgress 结束后清除,使 MuseCapsuleTab 在拖拽时用连续跟踪、点击时用 tween。
     var clickAnimating by remember { mutableStateOf(false) }
+    // 审计修复: 本进程内 app_resume 巡检只触发一次
+    var resumePatrolTriggered by remember { mutableStateOf(false) }
     LaunchedEffect(pagerState.isScrollInProgress) {
         if (!pagerState.isScrollInProgress) clickAnimating = false
     }
@@ -153,13 +155,20 @@ fun HomeScreen(
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_RESUME -> {
-                    // 用户打开 App 时触发主动消息巡检(受 2 分钟冷却 + 时间窗口 + 每日上限约束)
-                    scope.launch {
-                        try {
-                            proactiveRunner.triggerByEvent(ProactiveMessageRunner.TRIGGER_SOURCE_RESUME)
-                        } catch (e: Exception) {
-                            if (e is kotlin.coroutines.cancellation.CancellationException) throw e
-                            Logger.w("HomeScreen", "onResume 触发主动消息失败: ${e.message}")
+                    // 审计修复 (日志分析): 用户打开 App 时触发主动消息巡检。
+                    // 但只在本进程内触发一次(remember 标志),避免用户频繁前后台
+                    // 切换时每次 ON_RESUME 都跑决策 LLM — 日志显示用户频繁切 App 时
+                    // app_resume 巡检被反复触发,叠加其他后台 LLM 任务造成请求风暴。
+                    // 后续巡检交给 60s 轮询 + 24h 保底即可。
+                    if (!resumePatrolTriggered) {
+                        resumePatrolTriggered = true
+                        scope.launch {
+                            try {
+                                proactiveRunner.triggerByEvent(ProactiveMessageRunner.TRIGGER_SOURCE_RESUME)
+                            } catch (e: Exception) {
+                                if (e is kotlin.coroutines.cancellation.CancellationException) throw e
+                                Logger.w("HomeScreen", "onResume 触发主动消息失败: ${e.message}")
+                            }
                         }
                     }
                 }

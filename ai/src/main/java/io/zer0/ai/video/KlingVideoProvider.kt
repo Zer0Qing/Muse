@@ -71,6 +71,8 @@ class KlingVideoProvider(
      * 若上层因超时/取消不再调用 poll,条目会残留(有界,不致内存泄漏)。
      */
     private val apiKeyForQuery = ConcurrentHashMap<String, String>()
+    // 审计修复 (7.7): 同步记录每个任务的 baseUrl,poll 用同一端点
+    private val baseUrlForQuery = ConcurrentHashMap<String, String>()
 
     /**
      * 提交视频生成任务。
@@ -93,7 +95,10 @@ class KlingVideoProvider(
 
                 val images = request.referenceImages.filter { it.isNotBlank() }
                 val path = if (images.isNotEmpty()) "image2video" else "text2video"
-                val url = "${baseUrl.trimEnd('/')}/videos/generations/$path"
+                // 审计修复 (7.7): 优先用 request.baseUrl(用户配置自建代理/中转),
+                // 原实现忽略 request.baseUrl 固定用构造默认值,自定义端点永远不生效。
+                val effectiveBase = request.baseUrl?.trim()?.trimEnd('/')?.ifBlank { baseUrl } ?: baseUrl
+                val url = "$effectiveBase/videos/generations/$path"
 
                 val body = buildRequestBody(request, images.firstOrNull())
                 val httpRequest = Request.Builder()
@@ -130,6 +135,7 @@ class KlingVideoProvider(
                     val taskId = data["task_id"]?.jsonPrimitive?.content
                         ?: error("Kling submit 响应缺少 task_id: $respBody")
                     apiKeyForQuery[taskId] = request.apiKey
+                baseUrlForQuery[taskId] = request.baseUrl?.trim()?.trimEnd('/')?.ifBlank { baseUrl } ?: baseUrl
                     Logger.i(TAG, "submit 成功: taskId=$taskId")
                     VideoSubmitResult(taskId = taskId, isAsync = true, modelName = request.model)
                 }
@@ -145,7 +151,8 @@ class KlingVideoProvider(
     override suspend fun poll(taskId: String): VideoPollResult =
         withContext(Dispatchers.IO) {
             val r = resultOf {
-                val url = "${baseUrl.trimEnd('/')}/videos/generations/$taskId"
+                val effectiveBase = baseUrlForQuery[taskId] ?: baseUrl
+                val url = "$effectiveBase/videos/generations/$taskId"
                 val apiKey = apiKeyForQuery[taskId] ?: ""
                 val httpRequest = Request.Builder()
                     .url(url)
@@ -167,6 +174,7 @@ class KlingVideoProvider(
                         val msg = root["message"]?.jsonPrimitive?.content ?: "unknown error"
                         // 业务错误直接判失败(非瞬时网络问题)
                         apiKeyForQuery.remove(taskId)
+                    baseUrlForQuery.remove(taskId)
                         return@use VideoPollResult(
                             status = PollStatus.FAILED,
                             errorMessage = "Kling query API error: code=$code message=$msg",
@@ -175,6 +183,7 @@ class KlingVideoProvider(
                     val data = root["data"]?.jsonObject
                         ?: run {
                             apiKeyForQuery.remove(taskId)
+                    baseUrlForQuery.remove(taskId)
                             return@use VideoPollResult(
                                 status = PollStatus.FAILED,
                                 errorMessage = "Kling query 响应缺少 data: $respBody",
@@ -192,6 +201,7 @@ class KlingVideoProvider(
                                 ?.jsonObject
                                 ?.get("url")?.jsonPrimitive?.content
                             apiKeyForQuery.remove(taskId)
+                    baseUrlForQuery.remove(taskId)
                             if (videoUrl == null) {
                                 VideoPollResult(
                                     status = PollStatus.FAILED,
@@ -206,6 +216,7 @@ class KlingVideoProvider(
                             val errMsg = failInfo?.get("message")?.jsonPrimitive?.content
                                 ?: "Kling 任务失败(status=$statusStr)"
                             apiKeyForQuery.remove(taskId)
+                    baseUrlForQuery.remove(taskId)
                             VideoPollResult(status = status, errorMessage = errMsg)
                         }
                         PollStatus.PENDING -> VideoPollResult(status = status)

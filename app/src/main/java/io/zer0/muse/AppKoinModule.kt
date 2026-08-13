@@ -117,6 +117,7 @@ val appModule = module {
     single { get<MuseDb>().momentDao() }
     // v1.0.74: AI 日记本
     single { get<MuseDb>().diaryDao() }
+    single { get<MuseDb>().patrolLogDao() }
     single { io.zer0.muse.data.diary.DiaryRepository(get()) }
     single { io.zer0.muse.data.diary.DiaryGenerator(get(), get(), get()) }  // v1.0.72: AI 朋友圈
     single { AuditLogger(get()) }  // P2-4: 审计日志记录器
@@ -150,7 +151,7 @@ val appModule = module {
     // v2.x: 群聊记忆隔离仓库(独立 fact store,不污染主记忆)
     single { io.zer0.muse.data.groupchat.GroupChatMemoryRepository(get()) }
     // v1.0.72: AI 朋友圈
-    single { io.zer0.muse.data.moment.MomentRepository(get()) }
+    single { io.zer0.muse.data.moment.MomentRepository(get(), get()) }
     single { io.zer0.muse.data.moment.MomentGenerator(get(), get(), get()) }
     single { io.zer0.muse.schedule.MomentScheduler(get(), get(), get(), get(), get()) }
     // v1.95: 表情包库仓库(文件存储,不碰 MuseDb)
@@ -189,7 +190,7 @@ val appModule = module {
     //           用于巡检上下文构造(5.3/5.10)与新记忆/里程碑/经验差量检测
     // v2.1: 接入 UserActivityProfile,用活跃度/对话连续性/情绪三因子自适应调度替换随机偏移
     single { io.zer0.muse.schedule.UserActivityProfile(androidContext()) }
-    single { io.zer0.muse.schedule.ProactiveMessageRunner(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), androidContext(), get()) }
+    single { io.zer0.muse.schedule.ProactiveMessageRunner(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), androidContext(), get(), get(), get(), get()) }
 
     // v1.x: 问候语个性化提醒生成器(LLM 生成,失败回退规则版)
     single { io.zer0.muse.schedule.GreetingHintGenerator(get()) }

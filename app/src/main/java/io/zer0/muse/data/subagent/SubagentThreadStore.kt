@@ -87,6 +87,11 @@ class SubagentThreadStore(
 
     // ============ 新 API(供 SubagentRunner / UI / subagent_close 使用)============
 
+    /** 审计修复 (1.1): threadId 安全校验 — 仅接受安全字符集,杜绝路径穿越。
+     * 原实现 LLM 输出的 threadId 直接拼 File(sessionsDir, "$threadId.jsonl"),
+     * 恶意值(如 "../../databases/")可写应用私有目录任意位置。 */
+    private val SAFE_THREAD_ID = Regex("^[a-zA-Z0-9_-]{1,64}$")
+
     /** 获取或创建线程。返回 (threadId, 是否新建)。 */
     suspend fun getOrCreate(
         threadId: String?,
@@ -96,10 +101,20 @@ class SubagentThreadStore(
         access: String = "read",
     ): Pair<String, Boolean> {
         if (threadId != null) {
-            val existing = dao.getById(threadId)
-            if (existing != null) return threadId to false
+            // 非法 threadId(含路径分隔符/..等):不落库、不写文件,改用随机 id
+            val safe = SAFE_THREAD_ID.matches(threadId)
+            if (!safe) {
+                Logger.w(TAG, "getOrCreate: 非法 threadId 拒绝: ${threadId.take(40)}")
+            } else {
+                val existing = dao.getById(threadId)
+                if (existing != null) return threadId to false
+            }
         }
-        val newId = threadId ?: "thread-" + java.util.UUID.randomUUID().toString().take(12)
+        val newId = if (threadId != null && SAFE_THREAD_ID.matches(threadId)) {
+            threadId
+        } else {
+            "thread-" + java.util.UUID.randomUUID().toString().take(12)
+        }
         val now = System.currentTimeMillis()
         dao.upsert(SubagentThreadEntity(
             threadId = newId,

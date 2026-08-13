@@ -100,9 +100,11 @@ class ChatService(
         }
         val (provider, request) = buildProviderRequest(effectiveMessages, model, temperature, maxTokens, tools, reasoningLevel, providerConfig, mode)
         // B3-01: SSE 建立后 15s 无首事件,自动降级为非流式重试一次
+        // 审计修复 (7.8): 用户已停止时不再 fallback(省一次计费请求)
         return provider.streamChat(request).withFirstEventWatchdog(
             timeoutMs = model?.firstEventTimeoutMs() ?: 15_000L,
             fallback = { provider.completeText(request) },
+            abortCheck = { request.abortSignal.aborted },
         )
     }
 

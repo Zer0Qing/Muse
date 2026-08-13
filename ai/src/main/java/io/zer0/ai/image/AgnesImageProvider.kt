@@ -252,12 +252,38 @@ class AgnesImageProvider(
                     trimmed.substringAfter("base64,", "").ifBlank { trimmed }
                 }
                 trimmed.startsWith("http://", true) || trimmed.startsWith("https://", true) -> {
-                    // ai 模块纯 JVM,直接用 java.net.URL 下载(参考图通常体积小)
-                    val bytes = java.net.URL(trimmed).openStream().use { it.readBytes() }
-                    if (bytes.size > MAX_REF_IMAGE_BYTES) {
-                        error(ErrorCode.IMAGE_REFERENCE_TOO_LARGE.toMessage(bytes.size / 1024 / 1024))
+                    // 审计修复 (6.3): 带超时的流式下载 + 边读边限制大小。
+                    // 原实现 openStream().readBytes() 无超时(服务端挂起时 IO 线程永久占用),
+                    // 且先全量读进内存才查 10MB 上限(超大远程文件直接 OOM)。
+                    val url = java.net.URL(trimmed)
+                    val conn = url.openConnection() as java.net.HttpURLConnection
+                    conn.connectTimeout = 10_000
+                    conn.readTimeout = 30_000
+                    conn.instanceFollowRedirects = true
+                    conn.setRequestProperty("User-Agent", "Muse/1.0")
+                    try {
+                        conn.connect()
+                        if (conn.responseCode !in 200..299) {
+                            error(ErrorCode.IMAGE_INVALID_URI.toMessage("http_${conn.responseCode}"))
+                        }
+                        conn.inputStream.use { input ->
+                            val out = java.io.ByteArrayOutputStream()
+                            val buf = ByteArray(16 * 1024)
+                            var total = 0L
+                            while (true) {
+                                val n = input.read(buf)
+                                if (n < 0) break
+                                total += n
+                                if (total > MAX_REF_IMAGE_BYTES) {
+                                    error(ErrorCode.IMAGE_REFERENCE_TOO_LARGE.toMessage(total / 1024 / 1024))
+                                }
+                                out.write(buf, 0, n)
+                            }
+                            java.util.Base64.getEncoder().encodeToString(out.toByteArray())
+                        }
+                    } finally {
+                        conn.disconnect()
                     }
-                    java.util.Base64.getEncoder().encodeToString(bytes)
                 }
                 else -> {
                     val file = java.io.File(trimmed.removePrefix("file:"))

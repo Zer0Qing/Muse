@@ -133,6 +133,8 @@ data class TaskCardData(
                     status = TaskStepStatus.PENDING,
                     toolCallIndex = idx,
                     source = delegateArgs.assistantId,
+                    // 审计修复 (2.6): 存完整参数供重试,detail 可能被截断
+                    rawArgs = args,
                 )
             }
             return TaskCardData(
@@ -182,6 +184,8 @@ data class TaskStep(
     val source: String = "",
     /** v1.200: 子步骤列表,用于团队/工作流结果下钻。 */
     val subSteps: List<TaskStep> = emptyList(),
+    /** 审计修复 (2.6): 完整原始 tool 参数(JSON),用于重试。detail 是截断展示用。 */
+    val rawArgs: String = "",
 ) {
     /** 单步耗时(毫秒),null 表示未完成。 */
     val durationMs: Long? get() = if (startedAt != null && finishedAt != null) finishedAt - startedAt else null

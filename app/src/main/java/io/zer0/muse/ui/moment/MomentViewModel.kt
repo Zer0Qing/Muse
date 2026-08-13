@@ -84,11 +84,8 @@ class MomentViewModel(
             val moments = withContext(Dispatchers.IO) {
                 repository.getAll(100)
             }
-            // 加载所有动态的评论
-            val commentsMap = mutableMapOf<String, List<MomentCommentEntity>>()
-            moments.forEach { m ->
-                commentsMap[m.id] = repository.getComments(m.id)
-            }
+            // 审计修复 (6.6): 批量加载评论(一次查询替代 N+1)
+            val commentsMap = repository.getCommentsBatch(moments.map { it.id })
             // 用户资料 + 助手列表 + 封面 + 壁纸 + 消息
             val profile = resultOf { settings.getUserProfile() }.getOrNull()
             val assistants = resultOf { assistantRepository.getAll() }.getOrNull()

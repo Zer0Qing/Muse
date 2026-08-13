@@ -101,6 +101,10 @@ fun MuseTextField(
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
+            // 审计修复 (2.x 回归修正): modifier 回挂外层 Column — 调用方传入的
+            // RowScope.weight(1f) 必须作用于 Row 直接子级,挂到输入框本体后 weight
+            // 失效,输入框失去宽度约束糊满整个页面(用户实测回归)。
+            // focusRequester 挂 Column 不崩(自动聚焦不弹键盘,用户手动点即可)。
             modifier = Modifier.fillMaxWidth(),
             enabled = enabled,
             readOnly = readOnly,

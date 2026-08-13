@@ -75,19 +75,12 @@ class AutoBackupHelper(
             return@withContext false
         }
 
-        // 先做 WAL checkpoint,确保 WAL 日志尽量合并到主库文件再复制
-        runWalCheckpoint(dbFile)
-
+        // 审计修复 (0.4): 用 VACUUM INTO 生成一致性快照,替代 PASSIVE checkpoint + 复制。
+        // PASSIVE 在有活跃写事务时跳过未合并帧,且不复制 -wal/-shm,备份是旧状态;
+        // VACUUM INTO 生成包含全部已提交数据的一致数据库文件(SQLite 3.27+, Android 10+)。
         val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date(now))
         val target = File(backupDir, "$BACKUP_FILE_PREFIX$timestamp$BACKUP_FILE_SUFFIX")
-
-        val success = try {
-            dbFile.copyTo(target, overwrite = true)
-            true
-        } catch (e: Exception) {
-            Logger.e(TAG, "backupNow: 复制数据库文件失败: ${target.absolutePath}", e)
-            false
-        }
+        val success = vacuumInto(dbFile, target)
 
         if (success) {
             val messageCount = try {
@@ -174,14 +167,15 @@ class AutoBackupHelper(
     }
 
     /**
-     * 以独立连接打开数据库并执行 `PRAGMA wal_checkpoint(PASSIVE)`。
+     * 审计修复 (0.4): 用 VACUUM INTO 生成一致性备份快照。
      *
-     * PASSIVE 模式不会阻塞写连接,只会尽量把已完成的 WAL 帧合并到主库文件。
-     * 失败时仅记录警告,不中断备份流程。连接在 [finally] 中关闭。
+     * VACUUM INTO 会生成一个包含当前库全部已提交数据(含 WAL 中未 checkpoint 部分)的
+     * 全新数据库文件,且不阻塞写入连接;替代"PASSIVE checkpoint + 复制主库"的旧方案
+     * (后者在活跃写事务时丢帧、且从不复制 -wal/-shm,备份是旧状态)。
      *
-     * @param dbFile 主数据库文件
+     * @return true 表示备份成功
      */
-    private fun runWalCheckpoint(dbFile: File) {
+    private fun vacuumInto(dbFile: File, target: File): Boolean {
         var conn: SQLiteDatabase? = null
         try {
             conn = SQLiteDatabase.openDatabase(
@@ -189,21 +183,29 @@ class AutoBackupHelper(
                 null,
                 SQLiteDatabase.OPEN_READWRITE,
             )
-            conn.rawQuery("PRAGMA wal_checkpoint(PASSIVE)", null).use { cursor ->
-                if (cursor.moveToFirst()) {
-                    val busy = if (cursor.columnCount > 0) cursor.getInt(0) else -1
-                    val log = if (cursor.columnCount > 1) cursor.getInt(1) else -1
-                    val checkpointed = if (cursor.columnCount > 2) cursor.getInt(2) else -1
-                    Logger.d(TAG, "runWalCheckpoint: busy=$busy log=$log checkpointed=$checkpointed")
-                }
-            }
+            // VACUUM INTO 路径中的单引号需转义
+            val escaped = target.absolutePath.replace("'", "''")
+            conn.execSQL("VACUUM INTO '$escaped'")
+            Logger.d(TAG, "vacuumInto: 一致性快照已生成 ${target.absolutePath} (${target.length()} bytes)")
+            return true
         } catch (e: Exception) {
-            Logger.w(TAG, "runWalCheckpoint: 执行 wal_checkpoint 失败: ${e.message}", e)
+            Logger.e(TAG, "vacuumInto: 生成快照失败: ${e.message}", e)
+            // VACUUM INTO 失败(旧设备/权限)时回退:先强制 checkpoint 再复制主库
+            return runCatching {
+                conn?.rawQuery("PRAGMA wal_checkpoint(FULL)", null)?.use { it.moveToFirst() }
+                conn?.close()
+                conn = null
+                dbFile.copyTo(target, overwrite = true)
+                true
+            }.getOrElse {
+                Logger.e(TAG, "vacuumInto: 回退复制也失败: ${it.message}", it)
+                false
+            }
         } finally {
             try {
                 conn?.close()
             } catch (e: Exception) {
-                Logger.w(TAG, "runWalCheckpoint: 关闭连接失败: ${e.message}", e)
+                Logger.w(TAG, "vacuumInto: 关闭连接失败: ${e.message}", e)
             }
         }
     }

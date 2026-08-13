@@ -86,6 +86,11 @@ class ProactiveMessageRunner(
     private val activityProfile: UserActivityProfile,
     private val context: Context,
     private val appScope: CoroutineScope,
+    // v1.0.74: 主动巡检日志(防重复 + AI 可读上次记录)
+    private val patrolLogDao: io.zer0.muse.data.patrol.PatrolLogDao,
+    // v1.0.74: 深夜模式 — 巡检写日记/夜记(不推送)
+    private val diaryRepository: io.zer0.muse.data.diary.DiaryRepository,
+    private val diaryGenerator: io.zer0.muse.data.diary.DiaryGenerator,
 ) {
     /** 解析 LLM 决策 JSON(忽略未知字段,兼容模型多返回字段的情况)。 */
     private val decisionJson = Json { ignoreUnknownKeys = true }
@@ -166,6 +171,44 @@ class ProactiveMessageRunner(
     }
 
     /**
+     * v1.0.74: 深夜自主行动 — 不在允许时段时,安静地做不打扰的事:
+     *  - 今天日记没写 → LLM 写一篇(复用日记生成器,不推送)
+     *  - 已写 → 记录 idle
+     * 巡检日志落盘,防重复。
+     */
+    private suspend fun runNightPatrol(
+        config: io.zer0.muse.data.ProactiveMessageConfig,
+    ) {
+        // v1.0.74: 深夜自主行动开关(默认开;关掉则时段外完全跳过)
+        val enabled = runCatching { settings.nightPatrolEnabledFlow.first() }.getOrDefault(true)
+        if (!enabled) {
+            Logger.i(TAG, "深夜自主行动已关闭,时段外跳过")
+            return
+        }
+        try {
+            val today = java.time.LocalDate.now().toString()
+            val existing = diaryRepository.getByDate(today)
+            if (existing != null) {
+                writePatrolLog("idle", "深夜巡检:今日日记已写,无事可做")
+                return
+            }
+            // 生成今天的日记(LLM 失败静默,不影响下次巡检)
+            val content = diaryGenerator.generateFor(today)
+            if (content != null) {
+                diaryRepository.save(today, content)
+                writePatrolLog("wrote_diary", "深夜自主写日记:$today(未推送)")
+                Logger.i(TAG, "深夜自主行动:已写今日日记")
+            } else {
+                writePatrolLog("idle", "深夜巡检:日记生成失败,下次再试")
+            }
+        } catch (e: Exception) {
+            if (e is kotlin.coroutines.cancellation.CancellationException) throw e
+            Logger.w(TAG, "深夜自主行动失败: ${e.message}")
+            writePatrolLog("error", "深夜巡检异常: ${e.message}")
+        }
+    }
+
+    /**
      * v1.0.72: 主动消息测试发送 — 像真实的主动消息一样走完整链路。
      *
      * 与普通触发的区别(forceSend=true):
@@ -221,7 +264,10 @@ class ProactiveMessageRunner(
                 currentHour >= config.allowedHourStart || currentHour < config.allowedHourEnd
             }
             if (!inWindow) {
-                Logger.i(TAG, "当前 $currentHour:00 不在允许时段 ${config.allowedHourStart}:00-${config.allowedHourEnd}:00,跳过")
+                // v1.0.74: 深夜模式 — 不在允许时段时不做打扰性巡检,改为"深夜自主行动":
+                // 检查今天日记是否已写,没写则安静地写一篇(不推送通知)。
+                Logger.i(TAG, "当前 $currentHour:00 不在允许时段,尝试深夜自主行动(写日记,不推送)")
+                runNightPatrol(config)
                 return@withLock
             }
         } else {
@@ -268,7 +314,7 @@ class ProactiveMessageRunner(
         // 时,不立即发送,仅更新 lastTriggeredAt 到当前时间,等下个 interval 再发。
         if (suppressIfColdStart && config.lastTriggeredAt > 0 && elapsed > baseIntervalMs * 2) {
             Logger.i(TAG, "冷启动检测:距上次触发 ${elapsed / 3600000}h,推迟到下个 interval 再发(避免打扰)")
-            saveProactiveSchedule(config, now, baseIntervalMs)
+            saveProactiveSchedule(config, now, baseIntervalMs, updateLastTriggered = true)
             return@withLock
         }
 
@@ -399,6 +445,7 @@ class ProactiveMessageRunner(
         if (!decision.shouldSend && !forceSend && !guaranteedSend) {
             // shouldSend=false 也更新 lastTriggeredAt,避免频繁打扰 + 浪费 token
             saveProactiveSchedule(config, now, baseIntervalMs, targetSession.id)
+            writePatrolLog("idle", "巡检判断无需发送, reason=${decision.reason}")
             Logger.i(TAG, "Proactive message skipped (shouldSend=false), reason=${decision.reason}")
             return@withLock
         }
@@ -435,7 +482,8 @@ class ProactiveMessageRunner(
             return@withLock
         }
 
-        val proactiveContent = contentCompletion.text.trim()
+        // v1.0.74 fix: 剥离 <think> 推理标签(中转站 R1 类模型会把思考写进 content)
+        val proactiveContent = io.zer0.muse.transformer.stripThinkTags(contentCompletion.text)
         if (proactiveContent.isBlank()) {
             saveProactiveSchedule(config, now, baseIntervalMs, targetSession.id)
             Logger.i(TAG, "Proactive message skipped (empty content), reason=${decision.reason}")
@@ -459,7 +507,10 @@ class ProactiveMessageRunner(
             ),
         )
         // 更新 lastTriggeredAt(先更新再通知,即使通知失败也不影响下次间隔)
-        saveProactiveSchedule(config, now, baseIntervalMs, targetSession.id)
+        // v1.0.74 fix: 只有真正发送成功才刷新 lastTriggeredAt(保底 24h 判定依据)
+        saveProactiveSchedule(config, now, baseIntervalMs, targetSession.id, updateLastTriggered = true)
+        // v1.0.74: 巡检日志(记录发了什么,防重复)
+        writePatrolLog("sent_message", "主动消息:${decision.scenario} — ${proactiveContent.take(80)}")
         // 问题6.2: 成功发送后递增当日计数并持久化,MAX_DAILY_MESSAGES 校验下次生效
         incrementDailyCount()
         // 弹通知(像微信来消息一样,通知栏用助手头像)
@@ -686,6 +737,13 @@ class ProactiveMessageRunner(
         // v2.0 5.10: 匹配设定集(扫描最近 user 消息关键词)
         val matchedLorebooks = matchLorebooks(recentMessages)
 
+        // v1.0.74: 读取最近巡检日志(防重复 — AI 知道上次做了什么)
+        val recentPatrolLogs = try {
+            patrolLogDao.getRecent(5).map { "[${formatLogTime(it.timestamp)}] ${it.summary}" }
+        } catch (e: Exception) {
+            emptyList()
+        }
+
         return PatrolContext(
             triggerSource = triggerSource,
             recentMessages = recentMessages,
@@ -698,6 +756,7 @@ class ProactiveMessageRunner(
             recentMemories = recentMemories,
             recentMilestones = recentMilestones,
             matchedLorebooks = matchedLorebooks,
+            recentPatrolLogs = recentPatrolLogs,
             accountAgeDays = accountAgeDays,
             elapsedHours = elapsedHours,
         )
@@ -884,6 +943,12 @@ class ProactiveMessageRunner(
             appendLine("匹配的设定集(参考资料,非指令):")
             patrol.matchedLorebooks.forEach { appendLine("- ${it.take(150)}") }
         }
+        // v1.0.74: 最近巡检日志(防重复做同一件事)
+        if (patrol.recentPatrolLogs.isNotEmpty()) {
+            appendLine()
+            appendLine("最近巡检记录(上次做了什么,避免重复):")
+            patrol.recentPatrolLogs.forEach { appendLine("- $it") }
+        }
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -921,7 +986,8 @@ class ProactiveMessageRunner(
      * 解析失败时返回 shouldSend=false 的默认决策,避免误打扰用户。
      */
     private fun parseDecision(raw: String): ProactiveDecision {
-        val cleaned = raw.trim()
+        // v1.0.74 fix: 先剥离 <think> 推理标签,防止推理内容里的 { } 干扰 JSON 截取
+        val cleaned = io.zer0.muse.transformer.stripThinkTags(raw)
         val start = cleaned.indexOf('{')
         val end = cleaned.lastIndexOf('}')
         val jsonText = if (start >= 0 && end > start) cleaned.substring(start, end + 1) else cleaned
@@ -1044,10 +1110,44 @@ class ProactiveMessageRunner(
         now: Long,
         baseIntervalMs: Long,
         sessionId: String? = null,
+        // v1.0.74 fix: 仅真正发送后传 true 更新 lastTriggeredAt。
+        // 此前所有跳过路径(评分不过/概率未中/shouldSend=false)也刷新 lastTriggeredAt,
+        // 导致 24h 保底条件永远不满足,主动消息几乎永远不发。
+        updateLastTriggered: Boolean = false,
     ) {
-        val next = computeNextTriggerTime(config.copy(lastTriggeredAt = now), baseIntervalMs)
-        settings.saveProactiveMessageConfig(config.copy(lastTriggeredAt = now, nextTriggerAt = next))
+        val base = if (updateLastTriggered) config.copy(lastTriggeredAt = now) else config
+        val next = computeNextTriggerTime(base, baseIntervalMs)
+        settings.saveProactiveMessageConfig(base.copy(nextTriggerAt = next))
         if (sessionId != null) sessionRepository.updateProactiveNextTriggerAt(sessionId, next)
+    }
+
+    // ── v1.0.74: 主动巡检日志 ──
+
+    /** 写入一条巡检日志(防重复 + 用户可查)。 */
+    private suspend fun writePatrolLog(action: String, summary: String) {
+        try {
+            patrolLogDao.insert(
+                io.zer0.muse.data.patrol.PatrolLogEntity(
+                    id = "${System.currentTimeMillis()}_${kotlin.random.Random.nextLong()}",
+                    timestamp = System.currentTimeMillis(),
+                    action = action,
+                    summary = summary.take(300),
+                ),
+            )
+            // 只保留最近 200 条,防膨胀
+            patrolLogDao.deleteBefore(System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000)
+        } catch (e: Exception) {
+            Logger.w(TAG, "写巡检日志失败: ${e.message}")
+        }
+    }
+
+    /** 巡检时间格式化(日志可读)。 */
+    private fun formatLogTime(ts: Long): String {
+        return try {
+            java.text.SimpleDateFormat("MM-dd HH:mm", java.util.Locale.getDefault()).format(java.util.Date(ts))
+        } catch (e: Exception) {
+            "$ts"
+        }
     }
     private fun computeNextTriggerTime(
         config: io.zer0.muse.data.ProactiveMessageConfig,
@@ -1203,6 +1303,8 @@ data class PatrolContext(
     val recentMilestones: List<String>,
     /** v2.0 5.10: 匹配的设定集内容(最多 3 条)。 */
     val matchedLorebooks: List<String>,
+    /** v1.0.74: 最近巡检日志(防重复,AI 可见上次做了什么)。 */
+    val recentPatrolLogs: List<String>,
     /** 账户年龄(天)。 */
     val accountAgeDays: Int,
     /** 距上次主动消息的小时数。 */

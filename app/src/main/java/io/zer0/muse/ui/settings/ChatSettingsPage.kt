@@ -222,7 +222,10 @@ fun ChatSettingsPage(
             ) { uri ->
                 uri?.let { picked ->
                     bgScope.launch {
-                        val dataUri = withContext(Dispatchers.IO) {
+                        // 审计修复 (6.5): 背景图改为存文件路径,DataStore 只存路径字符串。
+                        // 原实现把 ~500KB base64 写进 DataStore Preferences,每次 edit 全量重写,
+                        // 设置文件膨胀、冷启动变慢、ANR 风险。文件存 filesDir,体积可控。
+                        val savedPath = withContext(Dispatchers.IO) {
                             runCatching {
                                 val bytes = bgContext.contentResolver.openInputStream(picked)?.use { it.readBytes() }
                                     ?: return@runCatching null
@@ -242,15 +245,19 @@ fun ChatSettingsPage(
                                 }
                                 val out = java.io.ByteArrayOutputStream()
                                 scaled.compress(android.graphics.Bitmap.CompressFormat.JPEG, 82, out)
-                                val b64 = android.util.Base64.encodeToString(out.toByteArray(), android.util.Base64.NO_WRAP)
                                 if (scaled !== bmp) scaled.recycle()
                                 bmp.recycle()
+                                val target = java.io.File(bgContext.filesDir, "chat_background.jpg")
+                                java.io.FileOutputStream(target).use { fos ->
+                                    fos.write(out.toByteArray())
+                                }
                                 out.close()
-                                "data:image/jpeg;base64,$b64"
+                                // 兼容旧值:已存 base64 的继续用,新值存路径(以 file:// 开头区分)
+                                "file://" + target.absolutePath
                             }.getOrNull()
                         }
-                        if (dataUri != null) {
-                            settings.saveChatBackground(dataUri)
+                        if (savedPath != null) {
+                            settings.saveChatBackground(savedPath)
                             // v1.0.74 fix: 此前成功/失败均无反馈,用户以为坏了
                             MuseToast.show(bgContext.getString(R.string.settings_chat_background_saved))
                         } else {

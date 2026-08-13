@@ -17,10 +17,9 @@ class FirstEventWatchdogTest {
     @Test
     fun `no first event triggers non-streaming fallback`() = runTest {
         val events = emptyFlow<ChatStreamEvent>()
-            .withFirstEventWatchdog(timeoutMs = 100) {
+            .withFirstEventWatchdog(timeoutMs = 100, fallback = {
                 ChatCompletion(text = "fallback reply", finishReason = "stop")
-            }
-            .toList()
+            }).toList()
 
         assertTrue(events.any { it is ChatStreamEvent.FallbackNotice })
         assertTrue(events.any { it is ChatStreamEvent.ContentDelta && it.delta == "fallback reply" })
@@ -32,9 +31,9 @@ class FirstEventWatchdogTest {
         val events = flowOf(
             ChatStreamEvent.ContentDelta("ok"),
             ChatStreamEvent.Done("stop"),
-        ).withFirstEventWatchdog(timeoutMs = 1_000) {
+        ).withFirstEventWatchdog(timeoutMs = 1_000, fallback = {
             ChatCompletion(text = "should not appear")
-        }.toList()
+        }).toList()
 
         assertFalse(events.any { it is ChatStreamEvent.FallbackNotice })
         assertFalse(events.any { it is ChatStreamEvent.ContentDelta && it.delta == "should not appear" })
@@ -47,9 +46,9 @@ class FirstEventWatchdogTest {
             emit(ChatStreamEvent.ContentDelta("partial"))
             delay(200)
             emit(ChatStreamEvent.Done("stop"))
-        }.withFirstEventWatchdog(timeoutMs = 100) {
+        }.withFirstEventWatchdog(timeoutMs = 100, fallback = {
             ChatCompletion(text = "should not appear")
-        }.toList()
+        }).toList()
 
         assertTrue(events.any { it is ChatStreamEvent.ContentDelta && it.delta == "partial" })
         assertFalse(events.any { it is ChatStreamEvent.FallbackNotice })

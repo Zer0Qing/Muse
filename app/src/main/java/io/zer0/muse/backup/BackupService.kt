@@ -424,70 +424,71 @@ class BackupService(
         }
         val remaining = sequenceOf(firstLine).plus(lineIter.asSequence())
 
-        // 1. 先清空所有表
-        db.withTransaction {
-            db.messageDao().deleteAll()
-            db.sessionDao().deleteAll()
-            db.assistantDao().deleteAll()
-            db.lorebookDao().deleteAll()
-            db.skillDao().deleteAll()
-            db.artifactDao().deleteAll()
-            db.quickMessageDao().deleteAll()
-            db.promptInjectionDao().deleteAll()
-            db.folderDao().deleteAll()
-            db.groupChatMessageDao().deleteAll()
-            db.groupChatDao().deleteAll()
-            db.scheduledTaskExecutionDao().deleteAll()
-            db.scheduledTaskDao().deleteAll()
-            db.knowledgeChunkDao().deleteAll()
-            db.knowledgeDocDao().deleteAll()
-            db.experienceDao().deleteAll()
-            db.milestoneDao().deleteAll()
-            db.agentMessageDao().deleteAll()
-            // v1.0.74: 朋友圈三表
-            db.momentDao().deleteAllMoments()
-            db.momentDao().deleteAllComments()
-            db.momentDao().deleteAllLikes()
-        }
-        memoryDb.withTransaction {
-            memoryDb.sessionSummaryDao().deleteAll()
-            memoryDb.dailyStateDao().deleteAll()
-            memoryDb.compiledSectionDao().deleteAll()
-        }
-        factDb.withTransaction { factDb.factDao().deleteAll() }
-
-        // 2. 逐行解析 + 分批插入
-        val sessionBuf = mutableListOf<SessionEntity>()
-        val messageBuf = mutableListOf<MessageEntity>()
-        val summaryBuf = mutableListOf<SessionSummaryEntity>()
-        val dailyBuf = mutableListOf<DailyStateEntity>()
-        val compiledBuf = mutableListOf<CompiledSectionEntity>()
-        val factBuf = mutableListOf<FactEntity>()
-        // v3: 扩展表 buffer
-        val assistantBuf = mutableListOf<AssistantEntity>()
-        val lorebookBuf = mutableListOf<LorebookEntity>()
-        val skillBuf = mutableListOf<SkillEntity>()
-        val artifactBuf = mutableListOf<ArtifactEntity>()
-        val quickMsgBuf = mutableListOf<QuickMessageEntity>()
-        val promptInjBuf = mutableListOf<PromptInjectionEntity>()
-        val folderBuf = mutableListOf<FolderEntity>()
-        val groupChatBuf = mutableListOf<GroupChatEntity>()
-        val groupChatMsgBuf = mutableListOf<GroupChatMessageEntity>()
-        val schedTaskBuf = mutableListOf<ScheduledTaskEntity>()
-        val schedExecBuf = mutableListOf<ScheduledTaskExecutionEntity>()
-        val knowDocBuf = mutableListOf<KnowledgeDocEntity>()
-        val knowChunkBuf = mutableListOf<KnowledgeChunkEntity>()
-        val experienceBuf = mutableListOf<ExperienceEntity>()
-        val milestoneBuf = mutableListOf<MilestoneEntity>()
-        val agentMsgBuf = mutableListOf<AgentMessageEntity>()
-        // v1.0.74: 朋友圈三表
-        val momentBuf = mutableListOf<MomentEntity>()
-        val momentCommentBuf = mutableListOf<MomentCommentEntity>()
-        val momentLikeBuf = mutableListOf<MomentLikeEntity>()
-        var settingsSnapshot: Map<String, String> = emptyMap()
+        // 审计修复 (0.5): 清空 + 全部 MuseDb 插入包进同一个事务。
+        // 原实现清空是独立事务、插入是分批独立事务,解析中途异常/取消会留下半空库
+        // (对话与记忆全丢)。Room 嵌套 withTransaction 会 join 外层事务,
+        // 任一分批失败 → 整个事务(含清空)回滚,数据保持导入前状态。
+        // memoryDb / factDb 为独立数据库,各自用事务包裹(仍无法跨库原子,
+        // 但主要数据 MuseDb 受保护; memory/fact 清空失败也会各自回滚)。
         var sessionCount = 0
         var messageCount = 0
+        try {
+            // buffer 声明在事务外(尾部 memory/fact 事务块也要访问)
+            val sessionBuf = mutableListOf<SessionEntity>()
+            val messageBuf = mutableListOf<MessageEntity>()
+            val summaryBuf = mutableListOf<SessionSummaryEntity>()
+            val dailyBuf = mutableListOf<DailyStateEntity>()
+            val compiledBuf = mutableListOf<CompiledSectionEntity>()
+            val factBuf = mutableListOf<FactEntity>()
+            // v3: 扩展表 buffer
+            val assistantBuf = mutableListOf<AssistantEntity>()
+            val lorebookBuf = mutableListOf<LorebookEntity>()
+            val skillBuf = mutableListOf<SkillEntity>()
+            val artifactBuf = mutableListOf<ArtifactEntity>()
+            val quickMsgBuf = mutableListOf<QuickMessageEntity>()
+            val promptInjBuf = mutableListOf<PromptInjectionEntity>()
+            val folderBuf = mutableListOf<FolderEntity>()
+            val groupChatBuf = mutableListOf<GroupChatEntity>()
+            val groupChatMsgBuf = mutableListOf<GroupChatMessageEntity>()
+            val schedTaskBuf = mutableListOf<ScheduledTaskEntity>()
+            val schedExecBuf = mutableListOf<ScheduledTaskExecutionEntity>()
+            val knowDocBuf = mutableListOf<KnowledgeDocEntity>()
+            val knowChunkBuf = mutableListOf<KnowledgeChunkEntity>()
+            val experienceBuf = mutableListOf<ExperienceEntity>()
+            val milestoneBuf = mutableListOf<MilestoneEntity>()
+            val agentMsgBuf = mutableListOf<AgentMessageEntity>()
+            // v1.0.74: 朋友圈三表
+            val momentBuf = mutableListOf<MomentEntity>()
+            val momentCommentBuf = mutableListOf<MomentCommentEntity>()
+            val momentLikeBuf = mutableListOf<MomentLikeEntity>()
+            var settingsSnapshot: Map<String, String> = emptyMap()
 
+            db.withTransaction {
+                // 1. 先清空所有表
+                db.messageDao().deleteAll()
+                db.sessionDao().deleteAll()
+                db.assistantDao().deleteAll()
+                db.lorebookDao().deleteAll()
+                db.skillDao().deleteAll()
+                db.artifactDao().deleteAll()
+                db.quickMessageDao().deleteAll()
+                db.promptInjectionDao().deleteAll()
+                db.folderDao().deleteAll()
+                db.groupChatMessageDao().deleteAll()
+                db.groupChatDao().deleteAll()
+                db.scheduledTaskExecutionDao().deleteAll()
+                db.scheduledTaskDao().deleteAll()
+                db.knowledgeChunkDao().deleteAll()
+                db.knowledgeDocDao().deleteAll()
+                db.experienceDao().deleteAll()
+                db.milestoneDao().deleteAll()
+                db.agentMessageDao().deleteAll()
+                // v1.0.74: 朋友圈三表
+                db.momentDao().deleteAllMoments()
+                db.momentDao().deleteAllComments()
+                db.momentDao().deleteAllLikes()
+
+            // 2. 逐行解析 + 分批插入(仍在 db.withTransaction 事务内,任一失败整体回滚)
         remaining.forEachIndexed { idx, line ->
             if (line.isBlank()) return@forEachIndexed
             resultOf {
@@ -660,9 +661,31 @@ class BackupService(
         flushBatch(momentBuf) { batch -> db.withTransaction { batch.forEach { db.momentDao().insertMoment(it) } } }
         flushBatch(momentCommentBuf) { batch -> db.withTransaction { batch.forEach { db.momentDao().insertComment(it) } } }
         flushBatch(momentLikeBuf) { batch -> db.withTransaction { batch.forEach { db.momentDao().addLike(it) } } }
-        // 恢复设置快照
-        if (settingsSnapshot.isNotEmpty()) {
-            settings.restoreSettingsSnapshot(settingsSnapshot)
+            } // 审计 0.5: MuseDb 大事务闭合(失败整体回滚,含清空)
+
+            // memory/fact 独立库各自事务(仍跨库不原子,但各自失败各自回滚)
+            memoryDb.withTransaction {
+                memoryDb.sessionSummaryDao().deleteAll()
+                memoryDb.dailyStateDao().deleteAll()
+                memoryDb.compiledSectionDao().deleteAll()
+                flushBatch(summaryBuf) { batch -> memoryDb.withTransaction { batch.forEach { memoryDb.sessionSummaryDao().upsert(it) } } }
+                flushBatch(dailyBuf) { batch -> memoryDb.withTransaction { batch.forEach { memoryDb.dailyStateDao().upsert(it) } } }
+                flushBatch(compiledBuf) { batch -> memoryDb.withTransaction { batch.forEach { memoryDb.compiledSectionDao().upsert(it) } } }
+            }
+            factDb.withTransaction {
+                factDb.factDao().deleteAll()
+                flushBatch(factBuf) { batch -> factDb.withTransaction { factDb.factDao().insertAll(batch.map { it.copy(id = 0) }) } }
+            }
+
+            // 恢复设置快照
+            if (settingsSnapshot.isNotEmpty()) {
+                settings.restoreSettingsSnapshot(settingsSnapshot)
+            }
+        } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Logger.e("BackupService", "流式导入失败,已回滚: ${e.message}", e)
+            throw e
         }
         // v1.0.74 fix: 直插 messages 绕过 FTS 同步,启动时 ensureFtsIndexConsistent 的计数启发式
         // (消息数恰好相同)会跳过 rebuild,搜索索引停留在导入前。导入完成显式重建。

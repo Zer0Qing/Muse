@@ -19,6 +19,9 @@ internal fun Model.firstEventTimeoutMs(defaultMs: Long = 15_000L): Long =
 fun Flow<ChatStreamEvent>.withFirstEventWatchdog(
     timeoutMs: Long = 15_000L,
     fallback: suspend () -> ChatCompletion,
+    // 审计修复 (7.8): 可选取消检查 — 调用方传入"用户是否已停止"的判断,
+    // fallback 触发前检查,避免用户停止后仍发一次计费请求。
+    abortCheck: () -> Boolean = { false },
 ): Flow<ChatStreamEvent> = callbackFlow {
     var firstEventReceived = false
     var finished = false
@@ -63,6 +66,8 @@ fun Flow<ChatStreamEvent>.withFirstEventWatchdog(
     val watchdogJob = launch {
         delay(timeoutMs)
         if (!firstEventReceived && !finished) {
+            // 审计修复 (7.8): 用户已停止时不再发 fallback,省一次计费请求。
+            if (abortCheck()) return@launch
             finished = true
             upstreamJob.cancel()
             trySend(ChatStreamEvent.FallbackNotice("网络较慢，已切换请求方式"))

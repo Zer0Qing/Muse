@@ -13,6 +13,7 @@ import io.zer0.common.resultOf
 import io.zer0.muse.data.quicknote.NoteCipher
 import io.zer0.muse.data.quicknote.QuickNoteDao
 import io.zer0.muse.data.quicknote.QuickNoteEntity
+import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.tools.reminder.ReminderAlarmReceiver
 import io.zer0.muse.tools.reminder.ReminderStore
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -238,8 +239,11 @@ class QuickNotesViewModel(
         viewModelScope.launch {
             val existing = dao.getById(id) ?: return@launch
             val newContent = content
+            // 审计修复 (0.6): 空串也视为"未改内容",不得用空串加密覆盖原密文。
+            // 对话框打开加密笔记时 content 为空,若用户只改标题,content 传空串,
+            // 原实现 newContent != null 会把 encrypt("") 写入,原内容永久丢失。
             val finalEncryptedContent = if (existing.encrypted) {
-                if (newContent != null) {
+                if (newContent != null && newContent.isNotBlank()) {
                     runCatching { noteCipher.encrypt(newContent) }.getOrElse {
                         Logger.w(TAG, "快捷笔记更新加密失败: ${it.message}")
                         existing.encryptedContent
@@ -335,19 +339,35 @@ class QuickNotesViewModel(
         viewModelScope.launch {
             val existing = dao.getById(id) ?: return@launch
             if (encrypted) {
-                val cipher = runCatching { noteCipher.encrypt(existing.content) }.getOrElse {
-                    Logger.w(TAG, "快捷笔记加密失败: ${it.message}")
-                    existing.content
+                // 审计修复 (0.7): 加密失败不得降级明文。
+                // 原实现 getOrElse 返回明文写入 encryptedContent,UI 显示"已加密"实为明文,
+                // 用户误以为受保护。失败时保持原样并提示。
+                if (existing.content.isBlank()) {
+                    MuseToast.show("没有可加密的内容")
+                    return@launch
+                }
+                val cipher = runCatching { noteCipher.encrypt(existing.content) }.getOrNull()
+                if (cipher == null) {
+                    MuseToast.show("加密失败,笔记保持原样")
+                    Logger.w(TAG, "快捷笔记加密失败,保持明文未标记加密")
+                    return@launch
                 }
                 dao.setEncrypted(id, true, cipher)
+                MuseToast.show("已加密")
             } else {
-                val plain = if (existing.encryptedContent.isNotBlank()) {
-                    runCatching { noteCipher.decrypt(existing.encryptedContent) }.getOrElse {
-                        Logger.w(TAG, "快捷笔记解密失败,按旧假加密迁移: ${it.message}")
-                        existing.encryptedContent
+                // 审计修复 (0.7): 解密失败保留密文与加密标记,不得把密文当明文写入 content。
+                if (existing.encryptedContent.isNotBlank()) {
+                    val plain = runCatching { noteCipher.decrypt(existing.encryptedContent) }.getOrNull()
+                    if (plain == null) {
+                        MuseToast.show("解密失败,笔记保持加密")
+                        Logger.w(TAG, "快捷笔记解密失败,保留密文")
+                        return@launch
                     }
-                } else existing.content
-                dao.setEncrypted(id, false, plain)
+                    dao.setEncrypted(id, false, plain)
+                } else {
+                    dao.setEncrypted(id, false, existing.content)
+                }
+                MuseToast.show("已解密")
             }
         }
     }

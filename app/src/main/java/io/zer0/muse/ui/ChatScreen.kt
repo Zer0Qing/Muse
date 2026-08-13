@@ -494,6 +494,11 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
     // v1.28: 上次消息数量,用于区分"用户发消息"和"流式增量"
     // v1.45: 用 rememberSaveable 保存,避免切页/后台后重置导致误滚到底部
     var lastMessageCount by rememberSaveable { mutableStateOf(0) }
+    // 审计修复 (8.5): 多选删除确认对话框
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+    // 审计修复 (2.3): 首次组合标记 — 初始 lastMessageCount=0 会把首次进入非空会话
+    // 误判为"新消息"触发自动滚底,覆盖 v1.45 恢复位置 / 搜索定位。
+    var firstCompositionDone by rememberSaveable { mutableStateOf(false) }
 
     // v1.52: 滑动跟手优化 — 用户主动上滑后锁定 userScrolledUp=true,
     // 流式增量不再自动拉回底部,直到用户点击"滚到底"按钮或手动滑回底部才解锁。
@@ -542,6 +547,13 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
             .collect { (size, _, autoScroll) ->
                 if (size == 0) return@collect
                 if (!autoScroll) return@collect
+                // 审计修复 (2.3): 首次进入非空会话不自动滚底,
+                // 让 v1.45 恢复位置 / 搜索定位生效;只记录基线。
+                if (!firstCompositionDone) {
+                    firstCompositionDone = true
+                    lastMessageCount = size
+                    return@collect
+                }
                 // 快照 visibleMessages,避免 produceState 异步更新导致 guard 与调用之间变空
                 val msgs = visibleMessages
                 if (msgs.isEmpty()) return@collect
@@ -1115,7 +1127,8 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                 ChatSelectionBar(
                     count = state.selectedMessageIds.size,
                     onSelectAll = { viewModel.selectAllMessages(visibleMessages.map { it.id.toString() }) },
-                    onDelete = { viewModel.deleteSelectedMessages() },
+                    // 审计修复 (8.5): 删除前弹确认 — 原实现直删,误触即丢整段对话不可恢复
+                    onDelete = { showDeleteConfirm = true },
                     onExport = {
                         val text = visibleMessages
                             .filter { it.id.toString() in state.selectedMessageIds }
@@ -1137,6 +1150,22 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                         .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.contentGap)
                         .zIndex(10f),
                 )
+                // 审计修复 (8.5): 多选删除确认对话框
+                if (showDeleteConfirm) {
+                    MuseDialog(
+                        onDismissRequest = { showDeleteConfirm = false },
+                        title = "删除所选消息",
+                        content = {
+                            Text("确定删除选中的 ${state.selectedMessageIds.size} 条消息吗?此操作不可恢复。")
+                        },
+                        confirmText = "删除",
+                        destructive = true,
+                        onConfirm = {
+                            showDeleteConfirm = false
+                            viewModel.deleteSelectedMessages()
+                        },
+                    )
+                }
             }
             // Phase 3 3E: 定时消息横幅
             io.zer0.muse.ui.chat.ScheduledMessageBanner(

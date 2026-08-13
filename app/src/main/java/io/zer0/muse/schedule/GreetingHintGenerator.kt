@@ -53,7 +53,7 @@ class GreetingHintGenerator(
             }
         }.onError { msg, t ->
             Logger.w(tag, "问候语提醒 LLM 生成失败: ${t?.message ?: msg},回退规则版")
-        }.getOrNull()?.text?.trim()
+        }.getOrNull()?.text?.let { io.zer0.muse.transformer.stripThinkTags(it) }
 
         if (llmHint.isNullOrBlank() || llmHint.length > MAX_HINT_LENGTH) {
             Logger.d(tag, "LLM 结果无效(${llmHint?.length}字),使用规则版")

@@ -63,6 +63,9 @@ class TranslateToolsImpl {
             } catch (e: UnsupportedOperationException) {
                 // Provider 未实现 completeText,降级流式
                 collectTranslateStream(chatService, messages)
+            } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                // 审计修复 (3.6): 协程已取消时不再降级到流式,取消信号向上传播
+                throw e
             } catch (e: Exception) {
                 // 其他错误也降级流式(网络抖动等)
                 Logger.w("ToolRegistry", "translate completeText 失败,降级 streamChat", e)

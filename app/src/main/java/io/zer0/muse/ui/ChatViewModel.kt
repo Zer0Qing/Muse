@@ -1738,68 +1738,38 @@ class ChatViewModel(
         // v5: 消息发送队列消费者 — 串行处理,支持自动重试
         // v1.136 修复:Agent 模式与任务模式会话完全隔离,消费者按 isAgentMode 取当前会话 id,
         // 避免 Agent 页面的消息因 currentSessionId 指向任务会话而被跳过(导致只显示输入中动画)。
+        // 审计修复 (用户反馈): 消费者协程必须永不死亡。原实现 for 循环无外层 try/catch,
+        // 任一轮处理抛未捕获异常(非 Exception 类型,或 launchStream/_state.update 抛出)
+        // 都会杀死消费者 → sendChannel 再无消费者 → capacity=8 很快满 →
+        // 所有发送报"队列已满"、消息发不出去(用户以为连不上)、切会话逻辑也卡死。
+        // 修复: 外层 while 包 try/catch,异常时记录并重启消费(协程不退出);
+        // 每轮处理再包 try/catch,单条消息失败不杀循环。
         viewModelScope.launch {
-            for (req in sendChannel) {
-                val state = _state.value
-                val currentSid = if (state.isAgentMode) {
-                    state.agentSessionId ?: req.sessionId
-                } else {
-                    state.currentSessionId ?: req.sessionId
-                }
-                if (currentSid != req.sessionId) {
-                    // 会话已切换,该 req 被跳过 — 回滚 enqueueSend 的乐观更新,
-                    // 移除属于该 req 的 user/assistant 消息并重置 isStreaming
-                    _state.update {
-                        val filtered = _messages.value.filterNot { msg ->
-                            msg.id == req.userMessage.id || msg.id == req.assistantMessageId
-                        }
-                        _messages.value = filtered
-                        it.copy(
-                            isStreaming = false,
-                            isWaitingFirstToken = false,
-                        )
-                    }
-                    // v1.0.15: 消息未投递,删除 outbox
-                    resultOf { sessionRepository.deleteOutbox(req.outboxId) }
-                    continue
-                }
+            while (isActive) {
                 try {
-                    // P0 修复: 直接复用 enqueueSend 创建的 userMessage(含原始 id + createdAt),
-                    //   保证 user 消息的 createdAt 严格 < assistant 消息(assistantMsg.createdAt = userMsg.createdAt + 1),
-                    //   切页重载按 createdAt ASC 排序时顺序正确(user 在前,assistant 在后)。
-                    //   原实现 new UIMessage 会让 createdAt 取到消费时刻(晚于 assistantMsg.createdAt),
-                    //   且 id 与乐观更新 id 不一致(导致 outbox 恢复时 messageExists 误判)。
-                    sessionRepository.appendMessage(currentSid, req.userMessage)
-                } catch (e: Exception) {
-                    Logger.e("ChatVM", "appendMessage failed", e)
-                    if (req.retryCount < 1) {
-                        Logger.i("ChatVM", "重试发送 (attempt ${req.retryCount + 1})")
-                        val retryResult = sendChannel.trySend(req.copy(retryCount = req.retryCount + 1))
-                        if (retryResult.isFailure) {
-                            Logger.w("ChatVM", "重试入队失败(队列已满)")
-                            addError(ChatErrorType.UNKNOWN, appContext.getString(R.string.err_chat_msg_save_failed, e.message ?: appContext.getString(R.string.err_chat_unknown)))
-                            _state.update { it.copy(isStreaming = false) }
-                            // v1.0.15: 重试也失败,删除 outbox(消息无法投递)
-                            resultOf { sessionRepository.deleteOutbox(req.outboxId) }
+                    for (req in sendChannel) {
+                        try {
+                            consumeSendRequest(req)
+                        } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                            throw e
+                        } catch (e: Exception) {
+                            // 单条消息处理失败:回滚乐观更新 + 删除 outbox,继续下一轮
+                            Logger.e("ChatVM", "消费发送请求失败(msg=${req.userMessage.content.take(30)}): ${e.message}", e)
+                            runCatching { sessionRepository.deleteOutbox(req.outboxId) }
+                            _state.update { it.copy(isStreaming = false, isWaitingFirstToken = false) }
                         }
-                    } else {
-                        addError(ChatErrorType.UNKNOWN, appContext.getString(R.string.err_chat_msg_save_failed, e.message ?: appContext.getString(R.string.err_chat_unknown)))
-                        _state.update { it.copy(isStreaming = false) }
-                        // v1.0.15: 重试耗尽,删除 outbox
-                        resultOf { sessionRepository.deleteOutbox(req.outboxId) }
                     }
-                    continue
+                } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                    throw e
+                } catch (e: Throwable) {
+                    // 消费者被非预期异常打断:记录后继续消费(循环重启)
+                    Logger.e("ChatVM", "发送队列消费者异常,重启消费: ${e.message}", e)
                 }
-                launchStream(assistantId = _messages.value.lastOrNull { it.role == MessageRole.ASSISTANT }?.id
-                    ?: kotlin.uuid.Uuid.random(), sessionId = currentSid)
-                // v1.0.15: 生成已启动,outbox 完成使命,删除记录
-                resultOf { sessionRepository.deleteOutbox(req.outboxId) }
             }
         }
 
         // v1.135: 把媒体生成类工具注册到 ToolRegistry,让 LLM 在对话中直接调用。
         registerMediaTools()
-
         // v1.201: 订阅委派链路 + 暂停请求,同步到 UiState
         viewModelScope.launch {
             delegationChainTracker.chains.collect { all ->
@@ -1929,6 +1899,71 @@ class ChatViewModel(
         viewModelScope.launch {
             deferredResultStore.abort(taskId)
         }
+    }
+
+    /**
+     * 审计修复 (用户反馈): 发送队列单条消息消费逻辑。
+     * 从原消费者循环体内抽出,由外层永不死亡的 while 循环逐条调用。
+     * 逻辑与原实现完全一致:会话切换跳过 + appendMessage 自动重试 + launchStream。
+     */
+    private suspend fun consumeSendRequest(req: SendRequest) {
+        val state = _state.value
+        val currentSid = if (state.isAgentMode) {
+            state.agentSessionId ?: req.sessionId
+        } else {
+            state.currentSessionId ?: req.sessionId
+        }
+        if (currentSid != req.sessionId) {
+            // 会话已切换,该 req 被跳过 — 回滚 enqueueSend 的乐观更新,
+            // 移除属于该 req 的 user/assistant 消息并重置 isStreaming
+            _state.update {
+                val filtered = _messages.value.filterNot { msg ->
+                    msg.id == req.userMessage.id || msg.id == req.assistantMessageId
+                }
+                _messages.value = filtered
+                it.copy(
+                    isStreaming = false,
+                    isWaitingFirstToken = false,
+                )
+            }
+            // v1.0.15: 消息未投递,删除 outbox
+            resultOf { sessionRepository.deleteOutbox(req.outboxId) }
+            return
+        }
+        try {
+            // P0 修复: 直接复用 enqueueSend 创建的 userMessage(含原始 id + createdAt),
+            //   保证 user 消息的 createdAt 严格 < assistant 消息(assistantMsg.createdAt = userMsg.createdAt + 1),
+            //   切页重载按 createdAt ASC 排序时顺序正确(user 在前,assistant 在后)。
+            //   原实现 new UIMessage 会让 createdAt 取到消费时刻(晚于 assistantMsg.createdAt),
+            //   且 id 与乐观更新 id 不一致(导致 outbox 恢复时 messageExists 误判)。
+            sessionRepository.appendMessage(currentSid, req.userMessage)
+        } catch (e: Exception) {
+            Logger.e("ChatVM", "appendMessage failed", e)
+            if (req.retryCount < 1) {
+                Logger.i("ChatVM", "重试发送 (attempt ${req.retryCount + 1})")
+                val retryResult = sendChannel.trySend(req.copy(retryCount = req.retryCount + 1))
+                if (retryResult.isFailure) {
+                    Logger.w("ChatVM", "重试入队失败(队列已满)")
+                    addError(ChatErrorType.UNKNOWN, appContext.getString(R.string.err_chat_msg_save_failed, e.message ?: appContext.getString(R.string.err_chat_unknown)))
+                    _state.update { it.copy(isStreaming = false) }
+                    // v1.0.15: 重试也失败,删除 outbox(消息无法投递)
+                    resultOf { sessionRepository.deleteOutbox(req.outboxId) }
+                }
+            } else {
+                addError(ChatErrorType.UNKNOWN, appContext.getString(R.string.err_chat_msg_save_failed, e.message ?: appContext.getString(R.string.err_chat_unknown)))
+                _state.update { it.copy(isStreaming = false) }
+                // v1.0.15: 重试耗尽,删除 outbox
+                resultOf { sessionRepository.deleteOutbox(req.outboxId) }
+            }
+            return
+        }
+        // 审计修复 (2.4): 显式传 SendRequest 携带的 assistantMessageId。
+        // 原实现用 lastOrNull{role==ASSISTANT}?.id — appendMessage 挂起期间
+        // deferredResultStore 的 interlude 回灌可能追加新 ASSISTANT 消息,
+        // 恢复后 lastOrNull 取到错误 id,流式内容写错消息、真占位永留列表。
+        launchStream(assistantId = req.assistantMessageId, sessionId = currentSid)
+        // v1.0.15: 生成已启动,outbox 完成使命,删除记录
+        resultOf { sessionRepository.deleteOutbox(req.outboxId) }
     }
 
     /** v1.135: 注册 generate_image / generate_video / generate_qr_code 等媒体工具。 */
@@ -2393,7 +2428,11 @@ class ChatViewModel(
                         messages = listOf(UIMessage(role = MessageRole.USER, content = prompt)),
                     )
                 }
-                completion.text.trim().removeSurrounding("\"").removeSurrounding("'").take(20)
+                // v1.0.74 fix: 先剥离 <think> 推理标签再清洗。
+                // 此前直接 trim+去引号+take(20),模型带思考输出(如中转站 R1)
+                // 时标题会截进 `<think>...` 内容,用户看到的标题以 think 开头。
+                val cleaned = io.zer0.muse.transformer.stripThinkTags(completion.text)
+                cleaned.removeSurrounding("\"").removeSurrounding("'").take(20)
             }.onSuccess { newTitle ->
                 if (newTitle.isNotBlank()) {
                     sessionRepository.renameSession(sessionId, newTitle)
@@ -2567,6 +2606,12 @@ class ChatViewModel(
             }
             SlashCommand.RESET -> {
                 // 重置上下文 — 清空内存中的消息(不删 DB),下次发送时从 DB 重新加载
+                // 审计修复 (2.5): 流式中禁止 reset — 清空后 updateAssistant 全跳过,
+                // 流式内容不落盘,已持久化用户消息与丢失回复造成对话断裂。
+                if (_state.value.isStreaming) {
+                    MuseToast.show(appContext.getString(R.string.slash_command_reset_done))
+                    return true
+                }
                 _messages.value = emptyList()
                 MuseToast.show(appContext.getString(R.string.slash_command_reset_done))
             }

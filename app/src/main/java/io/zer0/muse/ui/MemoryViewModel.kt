@@ -23,6 +23,7 @@ import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.theme.MuseDateFormats
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -223,6 +224,12 @@ class MemoryViewModel(
 
     private val _state = MutableStateFlow(MemoryUiState())
     val state: StateFlow<MemoryUiState> = _state.asStateFlow()
+
+    // 审计修复 (3.2): 记录 loadAll 的协程 Job,新加载前取消旧协程,避免旧结果覆盖新状态
+    private var loadJob: Job? = null
+
+    // 审计修复 (3.3): 记录 search 的协程 Job,新搜索前取消旧协程,避免旧结果覆盖新状态
+    private var searchJob: Job? = null
 
     /**
      * v8: 当前选中的记忆作用域。
@@ -519,11 +526,13 @@ class MemoryViewModel(
      *  - 这样切换 Space 时,factItems 仅展示当前 Space 的事实
      */
     fun loadAll(silent: Boolean = false) {
+        // 审计修复 (3.2): 取消上一次加载协程,快速切换 scope 时旧协程不再覆盖新状态
+        loadJob?.cancel()
         // silent=true 时不触发 isLoading,避免编译完成后替换当前视图导致闪屏
         if (!silent) {
             _state.update { it.copy(isLoading = true, errorTrace = null) }
         }
-        viewModelScope.launch {
+        loadJob = viewModelScope.launch {
             try {
                 val scope = _selectedScope.value
                 val spaceId = _selectedSpaceId.value
@@ -685,7 +694,9 @@ class MemoryViewModel(
             return
         }
         _state.update { it.copy(isSearching = true) }
-        viewModelScope.launch {
+        // 审计修复 (3.3): 取消上一次搜索协程,避免旧搜索结果覆盖新结果
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch {
             val results = withContext(Dispatchers.IO) {
                 // v1.78 (H6): 包装 suspend 调用必须用 resultOf,避免吞 CancellationException
                 resultOf { factStore.searchFullText(query) }

@@ -67,6 +67,20 @@ interface GroupChatMessageDao {
     @Query("DELETE FROM group_chat_messages WHERE id = :id")
     suspend fun deleteById(id: String)
 
+    // ── 审计修复 (5.3): 删除后重算冗余字段用的查询 ──
+
+    /** 按 id 取单条消息。 */
+    @Query("SELECT * FROM group_chat_messages WHERE id = :id")
+    suspend fun getById(id: String): GroupChatMessageEntity?
+
+    /** 取某群聊最新一条消息。 */
+    @Query("SELECT * FROM group_chat_messages WHERE chatId = :chatId ORDER BY timestamp DESC, id DESC LIMIT 1")
+    suspend fun getLatest(chatId: String): GroupChatMessageEntity?
+
+    /** 某群聊的消息总数。 */
+    @Query("SELECT COUNT(*) FROM group_chat_messages WHERE chatId = :chatId")
+    suspend fun countByChat(chatId: String): Int
+
     /** 删除指定群聊的全部消息(群聊删除时级联调用)。 */
     @Query("DELETE FROM group_chat_messages WHERE chatId = :chatId")
     suspend fun deleteByChat(chatId: String)

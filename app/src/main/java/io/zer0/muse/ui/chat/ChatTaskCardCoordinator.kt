@@ -116,15 +116,13 @@ class ChatTaskCardCoordinator(
                 )
             }
 
-            // 逐个重新执行(用 detail 中保存的 arguments 摘要不可靠,需要原始 toolCall)
-            // 这里用 toolCallIndex 从历史消息中找回原始 toolCall
-            // 但 ChatViewModel 没有保存 assistantToolMsg,这里用 detail 字段回退
-            // detail 是 arguments.take(200),可能截断;完整重试需要保存原始 arguments
-            // 简化:用 step.detail 作为 arguments(大部分场景够用)
+            // 逐个重新执行 — 审计修复 (2.6): 优先用完整 rawArgs(原实现只有截断 200 字符的
+            // detail,复杂工具参数被截断后重试必失败);rawArgs 为空时才回退 detail。
             stepsToUpdate.forEach { step ->
                 val startedAt = System.currentTimeMillis()
+                val retryArgs = step.rawArgs.ifBlank { step.detail }
                 val toolResult = when (val r = resultOf {
-                    toolRegistry.executeFromJson(step.title, step.detail)
+                    toolRegistry.executeFromJson(step.title, retryArgs)
                 }) {
                     is io.zer0.common.Result.Success -> r.data
                     is io.zer0.common.Result.Error -> "重试执行异常: ${r.message}"

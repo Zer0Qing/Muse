@@ -78,13 +78,15 @@ class GroupChatActivityHub {
         assistantName: String,
         status: AgentActivityStatus,
     ) {
-        val current = _activities.value.toMutableMap()
-        val list = current[groupChatId]?.toMutableList() ?: mutableListOf()
-        val idx = list.indexOfFirst { it.assistantId == assistantId }
-        val activity = AgentActivity(assistantId, assistantName, status)
-        if (idx >= 0) list[idx] = activity else list.add(activity)
-        current[groupChatId] = list
-        _activities.value = current
+        // 审计修复 (3.5): 用 MutableStateFlow.update 原子完成读-改-写,
+        // 避免并发调用时各自基于旧快照 toMutableMap() 操作后互相覆盖。
+        _activities.update { current ->
+            val list = current[groupChatId]?.toMutableList() ?: mutableListOf()
+            val idx = list.indexOfFirst { it.assistantId == assistantId }
+            val activity = AgentActivity(assistantId, assistantName, status)
+            if (idx >= 0) list[idx] = activity else list.add(activity)
+            current + (groupChatId to list)
+        }
     }
 
     // ══════════════════════════════════════════════════════════════════
@@ -118,8 +120,7 @@ class GroupChatActivityHub {
      * 清空指定群聊的全部活动状态(群聊删除/退出时调用)。
      */
     fun clear(groupChatId: String) {
-        val current = _activities.value.toMutableMap()
-        current.remove(groupChatId)
-        _activities.value = current
+        // 审计修复 (3.5): update 原子移除,避免与 updateStatus 并发时丢失更新。
+        _activities.update { it - groupChatId }
     }
 }

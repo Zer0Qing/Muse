@@ -78,6 +78,7 @@ import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.update.UpdateNotifier
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.withFrameNanos
 import org.koin.compose.koinInject
 import io.zer0.muse.ui.navigation.SettingsPermissionWizardRoute
 import io.zer0.muse.ui.navigation.SettingsTaskRoutingRoute
@@ -156,13 +157,6 @@ fun SettingsScreen(
     var searchQuery by rememberSaveable { mutableStateOf("") }
     val keyboard = LocalSoftwareKeyboardController.current
     val focusRequester = remember { FocusRequester() }
-
-    LaunchedEffect(isSearching) {
-        if (isSearching) {
-            focusRequester.requestFocus()
-            keyboard?.show()
-        }
-    }
 
     // region 搜索索引(与 v1.132 保持一致)
     val appearanceTitle = stringResource(R.string.settings_screen_appearance_label)
@@ -404,6 +398,17 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             if (isSearching) {
+                // v1.0.74 fix: LaunchedEffect 移入 if 块,与 SearchTopBar 同生命周期。
+                // 原来在顶层 LaunchedEffect(isSearching) 里 requestFocus,存在竞态:
+                // isSearching=true 时 effect 与 SearchTopBar 不同帧启动,
+                // 部分设备(华为 Android 10)上 focusRequester 尚未 attach →
+                // IllegalStateException: FocusRequester is not initialized
+                // 再等一帧 + 静默兜底,彻底消除时序问题。
+                LaunchedEffect(Unit) {
+                    withFrameNanos { }
+                    runCatching { focusRequester.requestFocus() }
+                    keyboard?.show()
+                }
                 SearchTopBar(
                     query = searchQuery,
                     onQueryChange = { searchQuery = it },

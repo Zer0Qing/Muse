@@ -139,7 +139,10 @@ class ExperienceStore(private val context: Context) {
             content.trimEnd()
         }
         return ExperienceDoc(
-            file = "${title.lowercase().replace(Regex("[^\\p{L}\\p{N}]+"), "-")}.md",
+            // 审计修复 (5.4): file 用 buildFileName 生成(slug-hash.md),
+            // 与 recordEntry 写入的文件名一致。原实现用纯 slug,索引里的路径
+            // 与磁盘文件名不匹配,rebuildIndex 后所有条目指向不存在的文件。
+            file = buildFileName(title),
             title = title,
             body = body,
         )

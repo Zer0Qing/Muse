@@ -195,7 +195,7 @@ class GroupChatRepository(
      * @param imageBase64Json 图片附件 base64 列表(JSON 字符串,默认 "[]")
      * @param mood Agent 情绪(可选)
      * @param reasoning Agent 思考过程(可选)
-     * @return 新消息 id
+     * @return 新消息 id;群聊不存在时返回 null(未落库,调用方需处理)
      */
     suspend fun sendMessage(
         chatId: String,
@@ -210,12 +210,14 @@ class GroupChatRepository(
         whisperTargetId: String? = null,
         replyToId: String? = null,
         messageType: String = "normal",
-    ): String = withContext(Dispatchers.IO) {
+    ): String? = withContext(Dispatchers.IO) {
         val msgId = UUID.randomUUID().toString()
         // H-GC2: 插入消息 + 更新会话时间戳必须原子,避免崩溃后消息已写但时间戳未更新
-        db.withTransaction {
+        // 审计修复 (5.2): 群聊不存在时返回 null,不再返回悬空 msgId(调用方以为发成功
+        // 实际没落库,后续引用该 id 全部失效)。
+        val saved = db.withTransaction {
             // M6: 校验群聊存在,防止孤儿消息(在事务内检查防止竞态)
-            if (groupChatDao.getById(chatId) == null) return@withTransaction
+            if (groupChatDao.getById(chatId) == null) return@withTransaction false
             groupChatMessageDao.upsert(
                 GroupChatMessageEntity(
                     id = msgId,
@@ -241,8 +243,9 @@ class GroupChatRepository(
             resultOf {
                 groupChatDao.updateLastMessageAndCount(chatId, preview, 1, System.currentTimeMillis())
             }.onError { msg, _ -> Logger.w(TAG, "updateLastMessageAndCount failed: $msg") }
+            true
         }
-        msgId
+        if (saved) msgId else null
     }
 
     /**
@@ -265,7 +268,26 @@ class GroupChatRepository(
      * @param messageId 消息 id
      */
     suspend fun deleteMessage(messageId: String) = withContext(Dispatchers.IO) {
-        groupChatMessageDao.deleteById(messageId)
+        // 审计修复 (5.3): 删除后重算冗余字段(最后消息预览/计数/最后活动时间)。
+        // 原实现只删消息,删除最新消息后列表页预览仍显示已删内容、计数虚高。
+        db.withTransaction {
+            val msg = groupChatMessageDao.getById(messageId)
+            if (msg == null) return@withTransaction
+            val chatId = msg.chatId
+            groupChatMessageDao.deleteById(messageId)
+            val last = groupChatMessageDao.getLatest(chatId)
+            val count = groupChatMessageDao.countByChat(chatId)
+            if (last != null) {
+                groupChatDao.updateLastMessageAndCount(
+                    chatId,
+                    last.body.take(50).ifBlank { "…" },
+                    count,
+                    last.timestamp,
+                )
+            } else {
+                groupChatDao.updateLastMessageAndCount(chatId, "", 0, 0)
+            }
+        }
     }
 
     /**

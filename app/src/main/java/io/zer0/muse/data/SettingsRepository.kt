@@ -558,6 +558,17 @@ class SettingsRepository(
         store.edit { it[KEY_DAILY_MOMENT_COUNT] = count.coerceIn(0, 10) }
     }
 
+    // ── v1.0.74: 深夜自主行动(时段外写日记不推送) ─────────────────
+    /** 深夜自主行动开关(默认开启:时段外巡检自动写日记,不推送)。 */
+    val nightPatrolEnabledFlow: Flow<Boolean> = store.data.map { prefs ->
+        prefs[KEY_NIGHT_PATROL_ENABLED] ?: true
+    }
+
+    /** v1.0.74: 保存深夜自主行动开关。 */
+    suspend fun saveNightPatrolEnabled(enabled: Boolean) {
+        store.edit { it[KEY_NIGHT_PATROL_ENABLED] = enabled }
+    }
+
     // ── v1.0.74: 小手机总开关(控制首页小手机图标显隐) ─────────────────
     /** 小手机功能开关(默认开启)。 */
     val miniPhoneEnabledFlow: Flow<Boolean> = store.data.map { prefs ->
@@ -1464,6 +1475,7 @@ class SettingsRepository(
     private val KEY_MOMENT_MESSAGES_LAST_READ_AT = longPreferencesKey("moment_messages_last_read_at")
     private val KEY_CHAT_BACKGROUND = stringPreferencesKey("chat_background")
     private val KEY_MINIPHONE_ENABLED = booleanPreferencesKey("miniphone_enabled")
+    private val KEY_NIGHT_PATROL_ENABLED = booleanPreferencesKey("night_patrol_enabled")
         // v1.0.20: 全局默认会话权限模式(TRUSTED / ASK / STRICT,默认 ASK)
         private val KEY_DEFAULT_SESSION_PERMISSION_MODE = stringPreferencesKey("default_session_permission_mode")
         // v2.0+: 崩溃上报配置键(默认全部关闭,隐私优先)

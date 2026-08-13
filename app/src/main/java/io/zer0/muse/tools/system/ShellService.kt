@@ -28,6 +28,8 @@ class ShellService : Service() {
         private const val TAG = "ShellService"
         /** AIDL 返回值的字段分隔符(null char,shell 输出中不会出现)。 */
         private const val FIELD_SEPARATOR = '\u0000'
+        /** 命令执行超时 ms。 */
+        private const val TIMEOUT_MS = 10_000L
     }
 
     private val binder = object : IShellService.Stub() {
@@ -35,9 +37,18 @@ class ShellService : Service() {
             return try {
                 Logger.d(TAG, "执行命令: $command")
                 val proc = Runtime.getRuntime().exec(arrayOf("sh", "-c", command))
+                // 审计修复 (4.3): 先 waitFor 带超时、再读输出 — 原实现先 proc.inputStream.readText()
+                // 再 waitFor(),且先读 stdout 后读 stderr,输出量大时 stderr 管道写满会阻塞进程,
+                // 形成互等死锁;readText 也会让 10s 超时形同虚设。进程退出后再顺序读两个流,
+                // 管道已关闭不会阻塞,超时则销毁进程返回超时错误。
+                val finished = proc.waitFor(TIMEOUT_MS, java.util.concurrent.TimeUnit.MILLISECONDS)
+                if (!finished) {
+                    proc.destroyForcibly()
+                    return "-1${FIELD_SEPARATOR}${FIELD_SEPARATOR}执行超时(${TIMEOUT_MS / 1000}s)"
+                }
                 val out = proc.inputStream.bufferedReader().readText()
                 val err = proc.errorStream.bufferedReader().readText()
-                val code = proc.waitFor()
+                val code = proc.exitValue()
                 buildString {
                     append(code)
                     append(FIELD_SEPARATOR)

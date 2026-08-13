@@ -31,6 +31,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,11 +67,16 @@ fun MiniWeatherScreen(
     var current: WeatherNow? by remember { mutableStateOf(null) }
     var daily: List<WeatherDay> by remember { mutableStateOf(emptyList()) }
     val context = LocalContext.current
+    // 审计修复 (3.3): 统一使用 rememberCoroutineScope 的 scope 启动网络协程,
+    // 随组合销毁自动取消。不再每次调用新建 CoroutineScope(Dispatchers.Main),
+    // 避免退出页面后协程继续运行并写已销毁组件。
+    val scope = rememberCoroutineScope()
 
     fun loadWeather(lat: Double, lon: Double) {
         loading = true
         error = null
-        kotlinx.coroutines.CoroutineScope(Dispatchers.Main).launch {
+        // 审计修复 (3.3): 复用组合作用域
+        scope.launch {
             val w = withContext(Dispatchers.IO) { fetchWeather(lat, lon) }
             if (w != null) {
                 current = w.first
@@ -87,7 +93,8 @@ fun MiniWeatherScreen(
         if (name.isBlank()) return
         loading = true
         error = null
-        kotlinx.coroutines.CoroutineScope(Dispatchers.Main).launch {
+        // 审计修复 (3.3): 复用组合作用域
+        scope.launch {
             val result = withContext(Dispatchers.IO) { geocode(name) }
             if (result != null) {
                 city = result.first
@@ -102,7 +109,8 @@ fun MiniWeatherScreen(
     fun loadWeatherByLocation() {
         loading = true
         error = null
-        kotlinx.coroutines.CoroutineScope(Dispatchers.Main).launch {
+        // 审计修复 (3.3): 复用组合作用域
+        scope.launch {
             val located = withContext(Dispatchers.IO) { tryLocate(context) }
             if (located != null) {
                 city = located.first

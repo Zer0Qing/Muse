@@ -249,6 +249,13 @@ class SkillFileToolsImpl(private val context: Context, private val client: OkHtt
 
         return try {
             val uri = Uri.parse(uriStr)
+            // 审计修复 (1.3): 只允许 content:// scheme。原实现接受 file://,
+            // LLM 可读应用私有目录任意文件(数据库、shared_prefs 等)。
+            // read_public_file 语义是 SAF 分享文件,content:// 是标准通道。
+            val scheme = uri.scheme?.lowercase()
+            if (scheme != "content") {
+                return "error: unsupported uri scheme '$scheme', only content:// is allowed"
+            }
             val input = context.contentResolver.openInputStream(uri)
                 ?: return "error: cannot open uri"
 

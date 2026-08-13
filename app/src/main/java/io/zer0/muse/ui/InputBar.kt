@@ -224,11 +224,8 @@ internal fun InputBar(
     }
     // 进入聊天页时自动聚焦输入框(仅在文本为空且允许自动聚焦时,避免打断已有草稿)
     val focusRequester = remember { FocusRequester() }
-    LaunchedEffect(Unit) {
-        if (autoFocus && text.isEmpty()) {
-            focusRequester.requestFocus()
-        }
-    }
+    // v1.0.74 fix: 等一帧再请求焦点,避免焦点系统未就绪崩溃(华为 Android 10 实测)
+    io.zer0.muse.ui.common.focus.SafeAutoFocusEffect({ autoFocus && text.isEmpty() }, focusRequester)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1291,13 +1288,17 @@ private fun RowScope.MessageInputField(
                     }
                     true
                 } else if (event.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
-                    event.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_UP
+                    event.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_UP &&
+                    // 审计修复 (8.6): 多行文本时放行给光标移动,不劫持为历史导航
+                    !text.contains('\n')
                 ) {
-                    // 上箭头 → 输入历史向更旧移动(硬件方向键映射为 DPAD)
+                    // 上箭头 → 输入历史向更旧移动(仅单行输入场景)
                     onNavigateInputHistory(-1)
                     true
                 } else if (event.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
-                    event.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_DOWN
+                    event.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_DOWN &&
+                    // 审计修复 (8.6): 同上,多行时不劫持
+                    !text.contains('\n')
                 ) {
                     // 下箭头 → 输入历史向更新移动
                     onNavigateInputHistory(1)

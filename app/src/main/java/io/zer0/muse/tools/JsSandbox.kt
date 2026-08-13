@@ -14,6 +14,8 @@ import android.webkit.WebViewClient
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -91,6 +93,9 @@ object JsSandbox {
     private val logsLock = Any()
     private val currentLogs = mutableListOf<String>()
 
+    /** 审计修复 (4.4): execute 互斥锁 — 串行化 WebView JS 执行。 */
+    private val executionMutex = Mutex()
+
     /** JS 沙盒执行结果。 */
     data class JsResult(
         /** 执行返回值(JSON 字符串形式,可由调用方再解析)。 */
@@ -123,6 +128,10 @@ object JsSandbox {
      */
     suspend fun execute(code: String, timeoutMs: Long = 10000L): Result<JsResult> =
         withContext(Dispatchers.Main) {
+            // 审计修复 (4.4): execute 加互斥 — 原实现无并发控制,多个工具同时 execute
+            // 会并发进入 WebView JS 执行,console 日志缓冲区互相污染、超时销毁与回调交错;
+            // 用 Mutex 串行化,同一时刻只允许一个 JS 执行。锁内等待是挂起而非阻塞主线程。
+            executionMutex.withLock {
             try {
                 if (System.currentTimeMillis() < circuitBrokenUntil) {
                     return@withContext Result.failure(
@@ -198,6 +207,7 @@ object JsSandbox {
             } catch (e: Exception) {
                 Logger.e(TAG, "JsSandbox execute 异常: ${e.message}", e)
                 Result.failure(e)
+            }
             }
         }
 

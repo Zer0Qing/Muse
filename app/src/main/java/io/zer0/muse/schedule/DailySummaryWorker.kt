@@ -168,7 +168,8 @@ class DailySummaryWorker(
                     ),
                     temperature = 0.8f,
                     maxTokens = 200,
-                ).text.trim()
+                // v1.0.74 fix: 剥离 <think> 推理标签,防止思考内容混入每日总结推送
+                ).text.let { io.zer0.muse.transformer.stripThinkTags(it) }
             }
         }.onError { msg, t ->
             Logger.w(TAG, "每日总结 LLM 调用失败: ${t?.message ?: msg}")

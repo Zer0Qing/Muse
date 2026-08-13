@@ -181,7 +181,9 @@ class ConversationCompressor(
                 }
                 io.zer0.ai.core.ChatCompletion(text = sb.toString())
             }
-            completion.text.trim().ifBlank { "历史对话已压缩(摘要为空)" }
+            // v1.0.74 fix: 剥离 <think> 推理标签,防止思考内容混入压缩摘要
+            completion.text.let { io.zer0.muse.transformer.stripThinkTags(it) }
+                .ifBlank { "历史对话已压缩(摘要为空)" }
         } catch (e: kotlinx.coroutines.CancellationException) {
             // 不吞协程取消,直接传播
             throw e

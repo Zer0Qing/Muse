@@ -22,11 +22,30 @@ class MuseNotificationListenerService : NotificationListenerService() {
     companion object {
         // L1-1: 过滤的系统包名,避免每次调用分配新 List
         private val IGNORED_PACKAGES: Set<String> = setOf("android", "com.android.systemui", "io.zer0.muse")
+        // 审计修复 (1.5): 高敏通知包名 — 银行/支付/验证码类,正文直接不采集
+        // (仅保留来源包名与时间,text 置占位),防止验证码/余额/流水经 LLM 外泄。
+        private val SENSITIVE_PACKAGES: Set<String> = setOf(
+            // 支付/银行(常见国内)
+            "com.eg.android.AlipayGphone", "com.tencent.mm", "com.unionpay",
+            "com.android.bankabc", "com.chinamworld.bocmbci", "com.icbc", "com.ccb.life",
+            "com.cmbchina.ccd.pluto.cmbActivity", "com.android.citic", "com.spdbccc.app",
+            // 短信/验证码聚合类
+            "com.google.android.apps.messaging", "com.android.mms", "com.miui.securitycenter",
+            "com.huawei.hwid", "com.oneplus.security",
+        )
         // L1-2: 最近通知最大保留条数
         private const val MAX_RECENT_NOTIFICATIONS = 50
         // 最近通知列表(最多保留 MAX_RECENT_NOTIFICATIONS 条)
         private val _recentNotifications = MutableStateFlow<List<NotificationRecord>>(emptyList())
         val recentNotifications = _recentNotifications.asStateFlow()
+
+        /** 审计修复 (1.5): 对通知文本做 PII 遮蔽,防止验证码/卡号/密码等敏感内容
+         * 进入 LLM 上下文并随请求外发。命中敏感规则的内容替换为 [REDACTED]。 */
+        private fun scrubText(text: String): String {
+            if (text.isBlank()) return text
+            return runCatching { io.zer0.memory.pii.PiiGuard.scrub(text).cleaned }
+                .getOrDefault(text)
+        }
 
         // 是否已连接(用户已授权)
         @Volatile
@@ -68,10 +87,17 @@ class MuseNotificationListenerService : NotificationListenerService() {
         // 过滤掉系统 UI 和自身通知,避免噪音
         if (pkg in IGNORED_PACKAGES) return
 
+        // 审计修复 (1.5): 高敏包名只记来源不记正文;其余通知正文过 PII 遮蔽
+        val (safeTitle, safeText) = if (pkg in SENSITIVE_PACKAGES) {
+            "[敏感通知]" to "(已隐藏正文,来源: $pkg)"
+        } else {
+            scrubText(title) to scrubText(text)
+        }
+
         val record = NotificationRecord(
             packageName = pkg,
-            title = title,
-            text = text,
+            title = safeTitle,
+            text = safeText,
             timestamp = sbn.postTime,
         )
 

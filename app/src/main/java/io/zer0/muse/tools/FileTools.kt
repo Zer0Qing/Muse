@@ -8,6 +8,7 @@ import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
 import java.io.File
 import java.net.HttpURLConnection
+import java.net.InetAddress
 import java.net.URL
 
 /**
@@ -113,13 +114,22 @@ object FileTools {
         // 安全:禁止 .. 越权
         if (path.contains("..")) return "[错误] 路径禁止包含 '..'"
 
+        // 审计修复 (1.2): 拒绝绝对路径 — File(workspaceRoot, absolutePath) 会直接返回
+        // 绝对路径本身(Java 忽略 parent),绕开下方候选目录白名单,可读应用私有任意文件。
+        val trimmedPath = path.trim()
+        val isAbsolute = trimmedPath.startsWith("/") || trimmedPath.startsWith("\\") ||
+            Regex("^[A-Za-z]:[/\\\\]").containsMatchIn(trimmedPath)
+        if (isAbsolute) {
+            return "[错误] 不支持绝对路径,请使用工作区/私有目录相对路径: $path"
+        }
+
         // 解析候选路径:工作区相对路径 → tool_outputs → filesDir → cacheDir → 外部 Download
         val candidates = listOf(
-            File(workspaceRoot, path),
-            File(context.filesDir, "tool_outputs/$path"),
-            File(context.filesDir, path),
-            File(context.cacheDir, path),
-            File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS), path),
+            File(workspaceRoot, trimmedPath),
+            File(context.filesDir, "tool_outputs/$trimmedPath"),
+            File(context.filesDir, trimmedPath),
+            File(context.cacheDir, trimmedPath),
+            File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS), trimmedPath),
         )
 
         val target = candidates.firstOrNull { it.exists() && it.isFile }
@@ -190,6 +200,14 @@ object FileTools {
             return "[错误] URL 必须以 http:// 或 https:// 开头"
         }
 
+        // 审计修复 (4.6): SSRF 防护 — 解析 URL 后拒绝回环(localhost/127.x/::1)、
+        // 私网(10.x/172.16-31.x/192.168.x)、链路本地(169.254.x/fe80::)及保留地址,
+        // 防止 parse_link 抓取本机/内网服务。域名经 InetAddress 解析后逐一检查。
+        val parsedUrl = URL(urlStr)
+        if (isBlockedSsrHost(parsedUrl.host)) {
+            return "[错误] 目标地址属于回环/内网/保留地址,已拒绝抓取"
+        }
+
         return runCatching {
             val url = URL(urlStr)
             val conn = (url.openConnection() as HttpURLConnection).apply {
@@ -242,6 +260,26 @@ object FileTools {
 
     private fun ByteArray.copyOfLength(length: Int): ByteArray =
         if (size <= length) this else copyOf(length)
+
+    /**
+     * 审计修复 (4.6): SSRF 主机校验 — 返回 true 表示该主机属于回环/私网/链路本地/保留地址,应拒绝抓取。
+     *
+     * 判断方式:字面量 IP 与主机名统一交给 [InetAddress.getAllByName] 解析(字面量不触发 DNS),
+     * 再用地址分类标志判断;IPv4 的 127/8、10/8、172.16/12、192.168/16、169.254/16 分别被
+     * isLoopbackAddress / isSiteLocalAddress / isLinkLocalAddress 覆盖,IPv6 的 ::1、fe80:: 同理。
+     * 解析失败时保守放行(后续连接本身会失败并返回错误,不影响主流程)。
+     */
+    private fun isBlockedSsrHost(host: String?): Boolean {
+        val h = host?.trim()?.trimEnd('.')?.lowercase() ?: return false
+        if (h.isEmpty()) return false
+        if (h == "localhost" || h.endsWith(".localhost")) return true
+        return runCatching {
+            InetAddress.getAllByName(h).any { addr ->
+                addr.isAnyLocalAddress || addr.isLoopbackAddress || addr.isLinkLocalAddress ||
+                    addr.isSiteLocalAddress || addr.isMulticastAddress
+            }
+        }.getOrDefault(false)
+    }
 }
 
 /**

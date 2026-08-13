@@ -919,7 +919,8 @@ class GroupChatScheduler(
             if (recentMessages.isNotEmpty()) {
                 appendLine()
                 appendLine("【讨论参考】")
-                appendLine(formatMessageTranscript(recentMessages.takeLast(10)))
+                // 审计修复 (1.6): 过滤悄悄话,只展示对当前 agent 可见的消息
+                appendLine(formatMessageTranscript(visibleMessagesFor(recentMessages, assistant.id).takeLast(10)))
             }
         }
 
@@ -980,7 +981,8 @@ class GroupChatScheduler(
             appendLine("请总结以下群聊讨论:")
             appendLine()
             if (recentMessages.isNotEmpty()) {
-                appendLine(formatMessageTranscript(recentMessages))
+                // 审计修复 (1.6): 过滤悄悄话,总结不泄露私信内容
+                appendLine(formatMessageTranscript(visibleMessagesFor(recentMessages, summarizer.id)))
             }
         }
 
@@ -1274,6 +1276,9 @@ class GroupChatScheduler(
             senderName = senderName,
             body = result.resultText,
         )
+        // 审计修复 (5.2) 适配: sendMessage 在群聊已被删除时返回 null(消息未落库),
+        // 此时不再构造返回消息,避免把悬空 id 当已发送。
+        if (msgId == null) return emptyList()
         Logger.i(
             TAG,
             "群聊「${chat.name}」团队「${team.name}」工作流完成,resultText 长度=${result.resultText.length}",
@@ -1786,6 +1791,8 @@ class GroupChatScheduler(
             mood = extractedMood,
             reasoning = extractedReasoning,
         )
+        // 审计修复 (5.2) 适配: sendMessage 在群聊已被删除时返回 null(消息未落库),本轮跳过。
+        if (msgId == null) return AgentResult.Pass()
         // v1.x: 流式内容已落库,清除 UI 临时输出
         activityHub.clearStreamingContent(chatId)
         scheduleIdleTransition(chatId, assistant)
@@ -1874,7 +1881,8 @@ class GroupChatScheduler(
             appendLine()
             if (recentMessages.isNotEmpty()) {
                 appendLine("【讨论记录】")
-                appendLine(formatMessageTranscript(recentMessages))
+                // 审计修复 (1.6): 辩论同样过滤悄悄话,不泄露私信
+                appendLine(formatMessageTranscript(visibleMessagesFor(recentMessages, assistant.id)))
                 appendLine()
             }
             if (previousReply != null) {
@@ -2484,6 +2492,8 @@ class GroupChatScheduler(
             mood = extractedMood,
             reasoning = extractedReasoning,
         )
+        // 审计修复 (5.2) 适配: sendMessage 在群聊已被删除时返回 null(消息未落库),本轮跳过。
+        if (msgId == null) return AgentResult.Pass()
         // v1.x: 流式内容已落库,清除 UI 临时输出
         activityHub.clearStreamingContent(chatId)
 
@@ -2611,6 +2621,20 @@ class GroupChatScheduler(
      * @param isRepair 是否为决策修复重试
      * @return UIMessage 列表
      */
+    /**
+     * 审计修复 (1.6): 悄悄话可见性过滤 — 投票/总结/辩论等所有把消息拼进 agent prompt
+     * 的路径共用。非目标 agent 看不到私信内容(违反"仅目标 AI 可见"的产品承诺)。
+     * 可见性规则见 [buildMessages] 内注释。
+     */
+    private fun visibleMessagesFor(
+        recentMessages: List<GroupChatMessageEntity>,
+        assistantId: String,
+    ): List<GroupChatMessageEntity> = recentMessages.filter { msg ->
+        msg.whisperTargetId == null ||
+            msg.whisperTargetId == assistantId ||
+            (msg.senderId == assistantId && msg.whisperTargetId == "local_user")
+    }
+
     private suspend fun buildMessages(
         chat: GroupChatEntity,
         assistant: AssistantEntity,
@@ -2630,11 +2654,8 @@ class GroupChatScheduler(
         //  - whisperTargetId == assistant.id:用户→本 agent 的私信,本 agent 可见
         //  - senderId == assistant.id 且 whisperTargetId == "local_user":本 agent→用户的私信,本 agent 可见(自己说过的话)
         //  - 其他:对当前 agent 不可见(过滤掉)
-        val visibleMessages = recentMessages.filter { msg ->
-            msg.whisperTargetId == null ||
-                msg.whisperTargetId == assistant.id ||
-                (msg.senderId == assistant.id && msg.whisperTargetId == "local_user")
-        }
+        // 审计修复 (1.6): 抽出为顶层函数 [visibleMessagesFor],供投票/总结/辩论共用。
+        val visibleMessages = visibleMessagesFor(recentMessages, assistant.id)
 
         // System message: assistant.systemPrompt + 群聊提示(含改造 3 身份防混淆 guidance)
         // 改造 2 Phone Session:身份 guidance 由 buildGroupChatHintSection 内部注入,per-agent。

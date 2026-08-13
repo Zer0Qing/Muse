@@ -92,6 +92,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.koin.compose.koinInject
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -121,11 +123,16 @@ fun rememberAssistant(assistantId: String): AssistantEntity? {
 fun rememberAssistantUpdater(assistantId: String): ((AssistantEntity) -> AssistantEntity) -> Unit {
     val repo: AssistantRepository = koinInject()
     val scope = rememberCoroutineScope()
+    // 审计修复 (3.4): Mutex 串行化读-改-写。快速连续更新(如温度 slider 拖动)时
+    // 各协程按顺序执行 getById → upsert,避免多协程乱序完成、旧结果覆盖新结果。
+    val mutex = remember { Mutex() }
     return remember(assistantId) {
         { transform ->
             scope.launch {
-                val current = repo.getById(assistantId) ?: return@launch
-                repo.upsert(transform(current))
+                mutex.withLock {
+                    val current = repo.getById(assistantId) ?: return@withLock
+                    repo.upsert(transform(current))
+                }
             }
         }
     }

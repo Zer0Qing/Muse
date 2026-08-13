@@ -134,9 +134,13 @@ interface MomentDao {
     @Query("SELECT * FROM ai_moments WHERE id = :id LIMIT 1")
     suspend fun getById(id: String): MomentEntity?
 
-    /** 某条动态的评论(按时间升序)。 */
-    @Query("SELECT * FROM ai_moment_comments WHERE momentId = :momentId ORDER BY createdAt ASC")
+    /** 某条动态的评论(按时间升序,最多 100 条防止无限增长)。 */
+    @Query("SELECT * FROM ai_moment_comments WHERE momentId = :momentId ORDER BY createdAt ASC LIMIT 100")
     suspend fun getComments(momentId: String): List<MomentCommentEntity>
+
+    /** 审计修复 (6.6): 批量取多条动态的全部评论(一次查询替代 N+1)。 */
+    @Query("SELECT * FROM ai_moment_comments WHERE momentId IN (:momentIds) ORDER BY createdAt ASC LIMIT 2000")
+    suspend fun getCommentsFor(momentIds: List<String>): List<MomentCommentEntity>
 
     /** 插入动态(同 id 替换)。 */
     @Insert(onConflict = OnConflictStrategy.REPLACE)

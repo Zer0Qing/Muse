@@ -626,8 +626,12 @@ class AnthropicProvider(
                                     put("text", msg.content)
                                 })
                             }
-                            msg.imageBase64List.forEach { b64 ->
-                                if (b64.isNotEmpty()) {
+                            // 审计修复 (7.4): 限制视觉输入 — 对齐 OpenAI(最多 4 张,单张 ≤2MB)。
+                            // 原实现全量发送,历史消息携带大量图片时请求体几十 MB,中转站超时。
+                            msg.imageBase64List
+                                .filter { it.isNotEmpty() }
+                                .take(4)
+                                .forEach { b64 ->
                                     add(buildJsonObject {
                                         put("type", "image")
                                         put("source", buildJsonObject {
@@ -637,7 +641,6 @@ class AnthropicProvider(
                                         })
                                     })
                                 }
-                            }
                         }
                     }
                     else -> {

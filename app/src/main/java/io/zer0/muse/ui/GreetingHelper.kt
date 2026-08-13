@@ -144,7 +144,10 @@ object GreetingHelper {
                 if (dateMatch != null) {
                     val month = dateMatch.groupValues[1].toIntOrNull() ?: continue
                     val day = dateMatch.groupValues[2].toIntOrNull() ?: continue
-                    val birthdayThisYear = LocalDate.of(today.year, month, day)
+                    // 审计修复 (2.2): 非法日期(如"13月45日")抛 DateTimeException 崩溃;
+                    // 空会话引导页必执行本函数,记忆含此类文本即崩。
+                    if (month !in 1..12 || day !in 1..31) continue
+                    val birthdayThisYear = runCatching { LocalDate.of(today.year, month, day) }.getOrNull() ?: continue
                     val diff = java.time.temporal.ChronoUnit.DAYS.between(today, birthdayThisYear)
                     val hint = when {
                         diff == 0L -> "今天是生日"

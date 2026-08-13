@@ -360,7 +360,7 @@
     <string name="stats_trend_window_90d">90일</string>
     <string name="stats_tooltip_messages">%1$s · %2$d 메시지</string>
     <string name="stats_tooltip_hint">세부정보를 보려면 셀을 탭하세요.</string>
-    <string name="stats_avg_label">평균 %.1f</string>
+    <string name="stats_avg_label">평균 %1$.1f</string>
     <string name="stats_active_days_unit">날</string>
     <string name="stats_total_tokens_label">누적 토큰(~)</string>
     <string name="stats_range_selected">선택됨</string>

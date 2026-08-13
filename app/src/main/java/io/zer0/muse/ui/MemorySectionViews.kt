@@ -134,10 +134,10 @@ fun MemorySectionView(
 
             if (isEditing) {
                 // 编辑模式:多行 OutlinedTextField,自动获取焦点
+                // v1.0.74 fix: 等一帧再请求 — LazyColumn item 在 measure 阶段才组合,
+                // 立即 requestFocus 会因 modifier 未 attach 崩溃(华为 Android 10 实测)
                 val focusRequester = remember { FocusRequester() }
-                LaunchedEffect(Unit) {
-                    focusRequester.requestFocus()
-                }
+                io.zer0.muse.ui.common.focus.SafeAutoFocusEffect(focusRequester)
                 OutlinedTextField(
                     value = draft,
                     onValueChange = { draft = it },
@@ -332,10 +332,9 @@ private fun WeekDayCard(
             Spacer(Modifier.size(MusePaddings.contentGap))
 
             if (isEditing) {
+                // v1.0.74 fix: 等一帧再请求焦点(同上,防 LazyColumn 时序崩溃)
                 val focusRequester = remember { FocusRequester() }
-                LaunchedEffect(Unit) {
-                    focusRequester.requestFocus()
-                }
+                io.zer0.muse.ui.common.focus.SafeAutoFocusEffect(focusRequester)
                 OutlinedTextField(
                     value = draft,
                     onValueChange = { draft = it },

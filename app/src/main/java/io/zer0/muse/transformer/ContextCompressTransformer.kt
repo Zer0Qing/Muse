@@ -169,7 +169,9 @@ class ContextCompressTransformer(
             }
             ChatCompletion(text = sb.toString())
         }
-        return completion.text.trim().ifBlank { "历史对话已压缩(摘要为空)" }
+        // v1.0.74 fix: 剥离 <think> 推理标签,防止思考内容混入压缩摘要
+        return io.zer0.muse.transformer.stripThinkTags(completion.text)
+            .ifBlank { "历史对话已压缩(摘要为空)" }
     }
 
     /**

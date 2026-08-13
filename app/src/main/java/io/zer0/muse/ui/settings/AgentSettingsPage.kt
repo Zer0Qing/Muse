@@ -76,6 +76,7 @@ fun AgentSettingsPage(
     )
     // v1.0.72: 每日总结推送开关
     val dailySummaryEnabled by settings.dailySummaryEnabledFlow.collectAsStateWithLifecycle(initialValue = false)
+    val nightPatrolEnabled by settings.nightPatrolEnabledFlow.collectAsStateWithLifecycle(initialValue = true)
     val multiAgentConfig by settings.multiAgentConfigFlow.collectAsStateWithLifecycle(
         initialValue = io.zer0.muse.data.MultiAgentConfig()
     )
@@ -352,6 +353,17 @@ fun AgentSettingsPage(
                         checked = dailySummaryEnabled,
                         onCheckedChange = { v ->
                             scope.launch { settings.saveDailySummaryEnabled(v) }
+                        },
+                    )
+                    // v1.0.74: 深夜自主行动(时段外写日记不推送)
+                    SettingsGroupDivider()
+                    SettingsSwitchRow(
+                        icon = TablerIcons.Moon,
+                        title = "深夜自主行动",
+                        subtitle = "允许时段外:安静写日记/夜记,不推送通知",
+                        checked = nightPatrolEnabled,
+                        onCheckedChange = { v ->
+                            scope.launch { settings.saveNightPatrolEnabled(v) }
                         },
                     )
                     // v1.x: 保持后台运行引导(被动入口,不主动打扰)

@@ -78,7 +78,7 @@ class AgnesVideoProvider(
      */
     private val taskContext = ConcurrentHashMap<String, TaskContext>()
 
-    private data class TaskContext(val apiKey: String, val modelName: String)
+    private data class TaskContext(val apiKey: String, val modelName: String, val baseUrl: String)
 
     /**
      * 提交视频生成任务。
@@ -173,6 +173,9 @@ class AgnesVideoProvider(
                     taskContext[taskId] = TaskContext(
                         apiKey = request.apiKey,
                         modelName = model,
+                        // 审计修复 (7.6): 存 baseUrl,poll 用同一端点(原 poll 硬编码默认域名,
+                        // 用户配置自建代理/中转时提交成功但轮询打到默认域名,任务永远查不到)
+                        baseUrl = agnesRootBase(request.baseUrl),
                     )
                     Logger.i(TAG, "submit 成功: taskId=$taskId")
                     VideoSubmitResult(taskId = taskId, isAsync = true, modelName = model)
@@ -199,7 +202,7 @@ class AgnesVideoProvider(
                     )
                 }
 
-                val rootBase = agnesRootBase(null)
+                val rootBase = ctx?.baseUrl ?: agnesRootBase(null)
                 val queryBuilder = StringBuilder("?video_id=").append(urlEncode(taskId))
                 if (modelName.isNotBlank()) {
                     queryBuilder.append("&model_name=").append(urlEncode(modelName))

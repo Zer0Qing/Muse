@@ -366,6 +366,9 @@ object SubagentTool {
                 }
                 deferredResultStore.fail(taskId, err)
             }
+        } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+            // 审计修复 (3.5): 协程取消信号必须向上传播,不能被 catch(Exception) 吞掉
+            throw e
         } catch (e: Exception) {
             Logger.w("SubagentTool", "子 agent 任务执行失败: taskId=$taskId, threadId=$threadId", e)
             val err = e.message ?: e.javaClass.simpleName

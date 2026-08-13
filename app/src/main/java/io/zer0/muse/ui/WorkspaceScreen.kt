@@ -149,8 +149,24 @@ fun WorkspaceScreen(
         }
     }
 
-    // 进入页面 / 切换目录时重新加载
-    LaunchedEffect(currentPath) { reload() }
+    // 审计修复 (3.1): 进入页面 / 切换目录时重新加载。
+    // 加载逻辑直接内联进 LaunchedEffect,currentPath 变化时旧协程会被自动取消,
+    // 避免先发的 listDir 晚返回后覆盖新目录的加载结果。
+    LaunchedEffect(currentPath) {
+        isLoading = true
+        errorMsg = null
+        when (val r = workspaceManager.listDir(currentPath)) {
+            is WorkspaceManager.ListResult.Success -> {
+                entries = r.entries
+                errorMsg = null
+            }
+            is WorkspaceManager.ListResult.Error -> {
+                entries = emptyList()
+                errorMsg = r.message
+            }
+        }
+        isLoading = false
+    }
 
     // 计算当前目录显示名(根目录 = "工作区",子目录 = 最末段名)
     val currentName = if (currentPath.isEmpty()) {
@@ -401,7 +417,8 @@ fun WorkspaceScreen(
                 scope.launch {
                     when (val r = workspaceManager.delete(target.relativePath)) {
                         is WorkspaceManager.OpResult.Success -> {
-                            MuseToast.show(context.getString(R.string.common_confirm))
+                            // 审计修复 (8.10): 原用 common_confirm("确定")文案错误
+                            MuseToast.show(context.getString(R.string.chat_list_deleted_toast))
                             reload()
                         }
                         is WorkspaceManager.OpResult.Error -> {

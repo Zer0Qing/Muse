@@ -67,6 +67,25 @@ import java.util.concurrent.atomic.AtomicLong
 import kotlin.random.Random
 
 /**
+ * 审计修复 (用户反馈): DeepSeek 官方 API 模型名归一化。
+ * listModels 返回带日期/大小写变体的 id(如 "DeepSeek-V4-Flash-0731"),
+ * 但 /chat/completions 只接受小写规范名(deepseek-v4-pro / deepseek-v4-flash),
+ * 直接发原 id 会 400 "The supported API model names are..."(真实用户实测)。
+ * 归一化规则: 小写后去分隔符,若以 deepseek-v4-flash 开头 → deepseek-v4-flash;
+ * 以 deepseek-v4-pro 开头 → deepseek-v4-pro; 仅对官方 DeepSeek baseUrl 生效。
+ * 非 DeepSeek 官方 API 原样返回(中转站可能有自定义命名)。
+ */
+internal fun normalizeDeepSeekModelId(modelId: String, currentBaseUrl: String): String {
+    if (!currentBaseUrl.lowercase().contains("api.deepseek.com")) return modelId
+    val normalized = modelId.lowercase().replace("_", "-")
+    return when {
+        normalized.startsWith("deepseek-v4-flash") -> "deepseek-v4-flash"
+        normalized.startsWith("deepseek-v4-pro") || normalized.startsWith("deepseek-v4") -> "deepseek-v4-pro"
+        else -> modelId
+    }
+}
+
+/**
  * OpenAI 兼容 Provider。同时兼容所有走 OpenAI Chat Completions 协议的中转/自托管服务,
  * 仅 [ProviderConfig.baseUrl] 不同。
  *
@@ -130,11 +149,13 @@ class OpenAIProvider(
      */
     private fun effectiveModelId(modelId: String): String {
         val configuredPrefix = openAIConfig.stripModelPrefix.takeIf { it.isNotBlank() }
-        return if (configuredPrefix != null && modelId.startsWith(configuredPrefix)) {
+        val base = if (configuredPrefix != null && modelId.startsWith(configuredPrefix)) {
             modelId.removePrefix(configuredPrefix)
         } else {
             modelId
         }
+        // 审计修复 (用户反馈): 请求层 DeepSeek 模型名归一化(见 normalizeDeepSeekModelId)
+        return normalizeDeepSeekModelId(base, baseUrl())
     }
 
     override fun streamChat(request: ChatRequest): Flow<ChatStreamEvent> {
@@ -457,9 +478,11 @@ class OpenAIProvider(
                         val msg = parseErrorMessage(code, errText)
                         Logger.w("OpenAIProvider", "streamChat onOpen HTTP $code: $msg")
                         // v1.0.28: HTTP 400 时记录请求体和完整响应体,帮助诊断中转站参数错误
+                        // 审计修复 (7.2): 响应体截断 500 字符 — 部分中转站错误响应会回显
+                        // 请求内容(含对话/参数),全量打日志可能把用户对话写入日志文件。
                         if (code == 400) {
                             Logger.w("OpenAIProvider", "streamChat 400 请求摘要: ${describeRequestBody(body)}")
-                            Logger.w("OpenAIProvider", "streamChat 400 完整响应体: $errText")
+                            Logger.w("OpenAIProvider", "streamChat 400 响应体(截断): ${errText.take(500)}")
                         }
                         // v1.0.1: 401/403 鉴权失败时标记当前 key 失败(多 key 场景)
                         if (code == 401 || code == 403) {
@@ -1080,12 +1103,16 @@ class OpenAIProvider(
                             if (supportsVideoOut) add("video")
                         }
 
+                        // 审计修复 (用户反馈): DeepSeek 官方 API 模型名归一化 — listModels
+                        // 返回带日期/大小写变体(如 DeepSeek-V4-Flash-0731),UI 保存该 id 后
+                        // 请求时 400。此处归一化到官方 API 接受的规范名,让 UI 与请求都一致。
+                        val effectiveId = normalizeDeepSeekModelId(m.id, resolvedBaseUrl)
                         val rawModel = Model(
-                            id = m.id,
-                            name = m.id,
+                            id = effectiveId,
+                            name = effectiveId,
                             providerId = config.id,
                             // 优先用上游 context_length,其次查注册表(刚 register 的会被命中)
-                            contextWindow = contextLength ?: ModelContextWindowRegistry.lookup(m.id),
+                            contextWindow = contextLength ?: ModelContextWindowRegistry.lookup(effectiveId),
                             // v1.132: 透传 max_completion_tokens 作为 maxOutputTokens
                             maxOutputTokens = m.max_completion_tokens ?: m.top_provider?.max_completion_tokens,
                             // v1.0.8: 视觉/视频/工具/推理能力(服务端优先,推断兜底)
@@ -1706,7 +1733,9 @@ class OpenAIProvider(
          */
         fun emitDoneWithStreamGuard(finishReason: String?) {
             if (!streamGuardDone.compareAndSet(false, true)) {
-                trySend(ChatStreamEvent.Done(finishReason))
+                // 审计修复 (7.1): 二次调用只 close(),不再重复发 Done。
+                // 原实现 trySend(Done) + close(),与 Chat Completions 分支行为不一致,
+                // 消费者收到两个 Done 可能提前结束/重复处理。
                 close()
                 return
             }

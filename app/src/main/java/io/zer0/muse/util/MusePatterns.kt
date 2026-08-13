@@ -25,7 +25,7 @@ object MusePatterns {
      *
      * 用于:流式响应剥离 think 块、Transformer 管线、群聊调度器。
      */
-    val THINK_TAG_REGEX = Regex("""<think>([\s\S]*?)</think>""", RegexOption.IGNORE_CASE)
+    val THINK_TAG_REGEX = Regex("""<think(?:ing)?>([\s\S]*?)</think(?:ing)?>""", RegexOption.IGNORE_CASE)
 
     /**
      * 匹配 `<mood>...</mood>` 或 `[mood]...[/mood]` 块(非贪婪,跨行 `[\s\S]`,忽略大小写)。

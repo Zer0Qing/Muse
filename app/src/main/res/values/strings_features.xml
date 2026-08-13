@@ -516,7 +516,7 @@
     <string name="stats_trend_window_90d">90天</string>
     <string name="stats_tooltip_messages">%1$s · %2$d 条消息</string>
     <string name="stats_tooltip_hint">点击单元格查看详情</string>
-    <string name="stats_avg_label">平均 %.1f</string>
+    <string name="stats_avg_label">平均 %1$.1f</string>
     <string name="stats_active_days_unit">天</string>
     <string name="stats_total_tokens_label">累计 Token(~)</string>
     <string name="stats_range_selected">已选</string>

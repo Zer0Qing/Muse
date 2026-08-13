@@ -361,6 +361,9 @@ private fun moodSkinEffectStyle(effect: String): SpanStyle = when (effect) {
 }
 @Composable
 private fun buildHighlightedText(text: String, query: String): AnnotatedString {
+    // 审计修复 (2.1): 空 query 时 indexOf("") 恒返回 start,死循环卡死主线程。
+    // 触发路径: 搜索清空关键词后跳转到消息页,searchHighlightQuery 传空串。
+    if (query.isEmpty() || text.isEmpty()) return buildAnnotatedString { append(text) }
     val highlightColor = MaterialTheme.colorScheme.primaryContainer
     val onHighlight = MaterialTheme.colorScheme.onPrimaryContainer
     return buildAnnotatedString {

@@ -87,7 +87,11 @@ class ChatGenerationManager(
                         }
                     }
                     synchronized(lock) {
-                        streamJobs.remove(sessionId)
+                        // 审计修复 (3.2): 按 Job 身份判断,仅当 map 中登记的仍是当前 job 时才移除。
+                        // 防止重入场景下旧 job 被取消后,其 finally 无条件 remove 误删新 job 的登记。
+                        if (streamJobs[sessionId] === coroutineContext[Job]) {
+                            streamJobs.remove(sessionId)
+                        }
                     }
                     Logger.i("ChatGenMgr", "generation finished: $sessionId")
                 }

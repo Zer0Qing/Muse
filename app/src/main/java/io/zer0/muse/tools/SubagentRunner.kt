@@ -336,9 +336,8 @@ class SubagentRunner(
                     }
                     prevSignature = signature
 
-                    // v1.0.53 Phase 3: 累加本轮 token 消耗(null=Provider 未返回,跳过)
-                    tokenBudget?.accumulate(completion.usageTokens)
-
+                    // 审计修复 (4.1): 移除重复的 token 预算累加 — 上方(320 行处)已 accumulate 一次,
+                    // 此处第二次累加导致 token_budget 按 2 倍速耗尽(null=Provider 未返回时本就跳过)
                     val toolCalls = completion.toolCalls
                     // 无工具调用 → LLM 给出最终总结,结束循环
                     if (toolCalls.isNullOrEmpty()) {
@@ -465,6 +464,9 @@ class SubagentRunner(
                 progressEntries = progressEntries,
                 tokenBudgetExhausted = tokenBudgetExhausted,
             )
+        } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+            // 审计修复 (3.4): 协程取消信号必须向上传播,不能被 catch(Exception) 吞掉
+            throw e
         } catch (e: Exception) {
             Logger.w(TAG, "子 agent 执行异常: task=${params.task.take(80)}", e)
             recordRunAndMaybeClose(params, threadId, status = "failed", summary = lastText)

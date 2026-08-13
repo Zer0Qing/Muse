@@ -95,14 +95,18 @@ object ShellSandboxTool {
                 .redirectErrorStream(true)
 
             val process = builder.start()
-            val output = process.inputStream.buffered().use { stream ->
-                stream.readBytes().copyOf(MAX_OUTPUT_BYTES).toString(Charsets.UTF_8).trim()
-            }
-
+            // 审计修复 (4.2): 先 waitFor 带超时、后读输出 — 原实现先 stream.readBytes()
+            // 全量读输出再 waitFor,命令不退出时 readBytes 阻塞到 EOF,10s 超时形同虚设;
+            // 且 waitFor() 无超时参数可能无限挂起。现在先等超时,超时则销毁进程返回超时错误,
+            // 进程已退出后再读流不会阻塞(redirectErrorStream 已合并 stderr)。
             val finished = process.waitFor(TIMEOUT_MS, java.util.concurrent.TimeUnit.MILLISECONDS)
             if (!finished) {
                 process.destroyForcibly()
-                return@withContext "[超时] 命令 ${TIMEOUT_MS / 1000}s 未完成,已终止\n部分输出:\n$output"
+                return@withContext "[超时] 命令 ${TIMEOUT_MS / 1000}s 未完成,已终止"
+            }
+
+            val output = process.inputStream.buffered().use { stream ->
+                stream.readBytes().copyOf(MAX_OUTPUT_BYTES).toString(Charsets.UTF_8).trim()
             }
 
             val exitCode = process.exitValue()

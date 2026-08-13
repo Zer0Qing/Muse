@@ -92,7 +92,8 @@ class DiaryGenerator(
                     ),
                     temperature = 0.85f,
                     maxTokens = 400,
-                ).text.trim()
+                // v1.0.74 fix: 剥离 <think> 推理标签,防止思考内容混入日记正文
+                ).text.let { io.zer0.muse.transformer.stripThinkTags(it) }
             }
         }.onError { msg, t ->
             Logger.w(TAG, "LLM 日记调用失败: ${t?.message ?: msg}")

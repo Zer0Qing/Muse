@@ -450,12 +450,17 @@ private fun MuseNavGraph(
         var biometricSkipped by rememberSaveable { mutableStateOf(false) }
         // v1.125: App 退后台时重置 pinUnlocked,返回后需重新输入 PIN
         val lifecycle = LocalLifecycleOwner.current.lifecycle
+        val resumeScope = rememberCoroutineScope()
         DisposableEffect(lifecycle) {
             val observer = LifecycleEventObserver { _, event ->
                 if (event == Lifecycle.Event.ON_STOP) {
                     pinUnlocked = false
                     biometricSkipped = false
                 }
+                // 审计修复 (日志分析): 移除 MainActivity 的 ON_RESUME 巡检触发。
+                // HomeScreen 已有同款触发,双触发会造成 app_resume 巡检重复执行,
+                // 用户频繁前后台切换时决策 LLM 被频繁调用(后台风暴隐患)。
+                // 巡检交给 HomeScreen 的单一触发 + 轮询即可。
             }
             lifecycle.addObserver(observer)
             onDispose {

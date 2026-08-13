@@ -140,7 +140,7 @@ function fmtTime(ms){
     return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())+" "+p(d.getHours())+":"+p(d.getMinutes());
   }catch(e){return ""}
 }
-function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;")}
 function inlineMd(s){
   var t=esc(s);
   t=t.replace(/```([\s\S]*?)```/g,"<pre>$1</pre>");

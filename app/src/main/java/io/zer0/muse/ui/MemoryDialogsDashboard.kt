@@ -4,6 +4,9 @@
 
 package io.zer0.muse.ui
 
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -929,25 +932,30 @@ internal fun buildMemoryJson(
     facts: List<MemoryItem>,
     summaries: List<MemoryItem>,
 ): String {
-    val sb = StringBuilder()
-    sb.appendLine("{")
-    sb.appendLine("  \"exportedAt\": \"${java.time.Instant.now()}\",")
-    sb.appendLine("  \"facts\": [")
-    facts.forEachIndexed { i, f ->
-        val comma = if (i < facts.size - 1) "," else ""
-        val escaped = f.content.replace("\"", "\\\"").replace("\n", "\\n")
-        sb.appendLine("    {\"id\": \"${f.id}\", \"content\": \"$escaped\", \"importance\": ${f.importance}, \"tags\": [${f.tags.joinToString(",") { "\"$it\"" }}], \"createdAt\": \"${f.createdAt ?: ""}\"}$comma")
+    // 审计修复 (8.9): 完整 JSON 转义 — 原实现只处理 " 和 \n,
+    // 反斜杠/\r/\t/控制字符不转义,内容含 C:\Users 之类即产出非法 JSON,
+    // tags 也不转义直接拼接。改用 kotlinx.serialization 编码保证合法。
+    val factsJson = facts.map { f ->
+        buildJsonObject {
+            put("id", JsonPrimitive(f.id))
+            put("content", JsonPrimitive(f.content))
+            put("importance", JsonPrimitive(f.importance))
+            put("tags", JsonArray(f.tags.map { JsonPrimitive(it) }))
+            put("createdAt", JsonPrimitive(f.createdAt ?: ""))
+        }
     }
-    sb.appendLine("  ],")
-    sb.appendLine("  \"summaries\": [")
-    summaries.forEachIndexed { i, s ->
-        val comma = if (i < summaries.size - 1) "," else ""
-        val escaped = s.content.replace("\"", "\\\"").replace("\n", "\\n")
-        sb.appendLine("    {\"id\": \"${s.id}\", \"title\": \"${s.title}\", \"content\": \"$escaped\"}$comma")
+    val summariesJson = summaries.map { s ->
+        buildJsonObject {
+            put("id", JsonPrimitive(s.id))
+            put("title", JsonPrimitive(s.title))
+            put("content", JsonPrimitive(s.content))
+        }
     }
-    sb.appendLine("  ]")
-    sb.appendLine("}")
-    return sb.toString()
+    return buildJsonObject {
+        put("exportedAt", JsonPrimitive(java.time.Instant.now().toString()))
+        put("facts", JsonArray(factsJson))
+        put("summaries", JsonArray(summariesJson))
+    }.toString() + "\n"
 }
 
 internal object MemoryExportHelpers {

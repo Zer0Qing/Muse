@@ -315,7 +315,8 @@ class ScheduledTaskRunner(
                 maxTokens = assistant.maxTokens,
             )
         } ?: error(context.getString(R.string.schedule_err_ai_timeout, LLM_TIMEOUT_MS / 1000))
-        val reply = completion.text
+        // v1.0.74 fix: 剥离 <think> 推理标签,防止思考内容混入任务回复
+        val reply = io.zer0.muse.transformer.stripThinkTags(completion.text)
         val now = System.currentTimeMillis()
         val sessionId = if (task.dedicatedSessionId.isNotBlank()) {
             task.dedicatedSessionId

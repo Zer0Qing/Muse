@@ -360,7 +360,7 @@
     <string name="stats_trend_window_90d">90д</string>
     <string name="stats_tooltip_messages">%1$s · %2$d сообщения</string>
     <string name="stats_tooltip_hint">Коснитесь ячейки, чтобы просмотреть подробности</string>
-    <string name="stats_avg_label">Средний %.1f</string>
+    <string name="stats_avg_label">Средний %1$.1f</string>
     <string name="stats_active_days_unit">дни</string>
     <string name="stats_total_tokens_label">Всего токенов (~)</string>
     <string name="stats_range_selected">Выбрано</string>

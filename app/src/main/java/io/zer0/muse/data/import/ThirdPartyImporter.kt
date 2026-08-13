@@ -23,6 +23,7 @@ import kotlinx.serialization.json.floatOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
+
 import kotlinx.serialization.json.jsonPrimitive
 import kotlin.uuid.Uuid
 import java.io.BufferedReader
@@ -120,41 +121,49 @@ object ThirdPartyImporter {
             )
         }
 
-        // 读取 ZIP 内所有条目(保留极高的兜底限制防止 ZIP 炸弹,正常用户不会触达)
-        val entries = mutableMapOf<String, ByteArray>()
+        // 审计修复 (6.7): zip 内文件解压到磁盘临时文件,不再全量驻留内存 map。
+        // 原实现 entries 全量驻留(ChatGPT 导出 conversations.json 几十 MB + 多张图),
+        // 兜底上限 4GB 远超 Android 进程堆,老机型导入必 OOM。
+        // 只保留需要的文件: settings.json / chats.json / conversations.json(任一)。
+        val extracted = mutableMapOf<String, java.io.File>()
         var totalSize = 0L
         try {
             ZipInputStream(tempFile.inputStream()).use { zis ->
                 var entry = zis.nextEntry
                 while (entry != null) {
                     if (!entry.isDirectory) {
-                        // M-IMP2: 校验条目名,防止路径穿越(虽然这里只在内存中按 key 取,但防御性校验)
+                        // M-IMP2: 校验条目名,防止路径穿越
                         if (entry.name.contains("..") || entry.name.startsWith("/")) {
                             Logger.w(TAG, "跳过可疑路径条目: ${entry.name}")
                             entry = zis.nextEntry
                             continue
                         }
-                        // 文件数量兜底限制
-                        if (entries.size >= MAX_FILE_COUNT) {
-                            throw IllegalStateException("解压条目数超过限制($MAX_FILE_COUNT)")
-                        }
+                        val name = entry.name.substringAfterLast('/')
+                        val keep = name == "settings.json" || name == "chats.json" ||
+                            name.endsWith("conversations.json") || name == "conversations.json"
                         // 单文件兜底限制
-                        val buf = readZipEntryWithLimit(zis, MAX_SINGLE_FILE)
-                        totalSize += buf.size.toLong()
-                        if (totalSize > MAX_TOTAL_SIZE) {
-                            throw IllegalStateException("解压内容总大小超过限制(${MAX_TOTAL_SIZE / 1024 / 1024 / 1024}GB)")
+                        val buf = if (keep) readZipEntryWithLimit(zis, MAX_SINGLE_FILE) else null
+                        if (keep && buf != null) {
+                            totalSize += buf.size.toLong()
+                            if (totalSize > MAX_TOTAL_SIZE) {
+                                throw IllegalStateException("解压内容总大小超过限制(${MAX_TOTAL_SIZE / 1024 / 1024 / 1024}GB)")
+                            }
+                            val tmp = java.io.File.createTempFile("zip_${name}_", ".tmp", context.cacheDir)
+                            tmp.writeBytes(buf)
+                            extracted[name] = tmp
                         }
-                        entries[entry.name] = buf
                     }
                     entry = zis.nextEntry
                 }
             }
         } catch (e: IllegalStateException) {
             Logger.w(TAG, "解压终止: ${e.message}")
+            extracted.values.forEach { it.delete() }
             tempFile.delete()
             return@withContext ImportResult(errors = listOf(e.message ?: context.getString(R.string.import_error_unzip_size_exceeded)))
         } catch (e: Exception) {
             Logger.w(TAG, "无法解压文件", e)
+            extracted.values.forEach { it.delete() }
             tempFile.delete()
             return@withContext ImportResult(errors = listOf(context.getString(R.string.import_error_unzip_failed, e.message)))
         } finally {
@@ -165,17 +174,22 @@ object ThirdPartyImporter {
         //  - ChatGPT 导出: conversations.json(顶层数组或 {conversations: [...]})
         //  - 既有实现: chats.json + settings.json
         //  - 既有实现: settings.json(且无 chats.json)
-        val settingsJson = entries["settings.json"]?.let { decodeUtf8SkipBom(it) }
-        val chatsJson = entries["chats.json"]?.let { decodeUtf8SkipBom(it) }
-        val hasChats = entries.containsKey("chats.json")
-        val conversationsEntry = entries.keys.firstOrNull { it.endsWith("conversations.json") || it == "conversations.json" }
-        val conversationsJson = conversationsEntry?.let { decodeUtf8SkipBom(entries.getValue(it)) }
+        val settingsFile = extracted["settings.json"]
+        val chatsFile = extracted["chats.json"]
+        val hasChats = chatsFile != null
+        val conversationsFile = extracted.keys.firstOrNull { it.endsWith("conversations.json") || it == "conversations.json" }
+            ?.let { extracted[it] }
 
-        when {
-            hasChats -> importKelivo(
-                ctx,
-                settingsJson,
-                chatsJson,
+        try {
+            val settingsJson = settingsFile?.let { it.readText() }
+            val chatsJson = chatsFile?.let { it.readText() }
+            val conversationsJson = conversationsFile?.let { it.readText() }
+
+            when {
+                hasChats -> importKelivo(
+                    ctx,
+                    settingsJson,
+                    chatsJson,
                 settings,
                 assistantRepo,
                 sessionRepo,
@@ -197,6 +211,10 @@ object ThirdPartyImporter {
             else -> ImportResult(
                 errors = listOf(context.getString(R.string.import_error_unknown_format)),
             )
+            }
+        } finally {
+            // 清理解压的临时文件
+            extracted.values.forEach { it.delete() }
         }
     }
 
@@ -448,34 +466,58 @@ object ThirdPartyImporter {
                     for ((nodeId, nodeElem) in mapping) {
                         try {
                             val node = nodeElem.jsonObject
-                            val parent = node["parent"]?.jsonPrimitive?.contentOrNull
-                            val msg = node["message"]?.jsonObject ?: run {
-                                parsed[nodeId] = ParsedNode(parent, null)
-                                continue
-                            }
-                            val author = msg["author"]?.jsonObject ?: continue
-                            val role = author["role"]?.jsonPrimitive?.contentOrNull ?: continue
-                            // 只保留 user / assistant(跳过 system / tool 内部消息)
+                            // v1.0.74 fix: ChatGPT 导出大量字段是 JSON null(JsonNull 实例),
+                            // JsonNull.jsonObject 会抛异常导致误判"解析失败";统一用类型检查。
+                            val parent = (node["parent"] as? kotlinx.serialization.json.JsonPrimitive)
+                                ?.contentOrNull
+                            val msg = (node["message"] as? kotlinx.serialization.json.JsonObject)
+                                ?: run {
+                                    parsed[nodeId] = ParsedNode(parent, null)
+                                    continue
+                                }
+                            val author = (msg["author"] as? kotlinx.serialization.json.JsonObject)
+                                ?: run {
+                                    parsed[nodeId] = ParsedNode(parent, null)
+                                    continue
+                                }
+                            val role = (author["role"] as? kotlinx.serialization.json.JsonPrimitive)
+                                ?.contentOrNull
+                                ?: run {
+                                    parsed[nodeId] = ParsedNode(parent, null)
+                                    continue
+                                }
+                            // 只保留 user / assistant(跳过 system / tool 内部消息,但保留 parent 链)
                             if (role != "user" && role != "assistant") {
                                 parsed[nodeId] = ParsedNode(parent, null)
                                 continue
                             }
-                            val contentObj = msg["content"]?.jsonObject ?: continue
-                            val contentType = contentObj["content_type"]?.jsonPrimitive?.contentOrNull ?: "text"
+                            val contentObj = (msg["content"] as? kotlinx.serialization.json.JsonObject)
+                                ?: run {
+                                    parsed[nodeId] = ParsedNode(parent, null)
+                                    continue
+                                }
+                            val contentType = (contentObj["content_type"] as? kotlinx.serialization.json.JsonPrimitive)
+                                ?.contentOrNull ?: "text"
                             // 文本内容: parts 数组;其他类型(代码/多模态)取 text 字段或跳过
-                            val parts = contentObj["parts"]?.jsonArray
+                            val parts = contentObj["parts"] as? kotlinx.serialization.json.JsonArray
                             val text = if (parts != null) {
                                 parts.mapNotNull { p ->
                                     when {
                                         p is kotlinx.serialization.json.JsonPrimitive -> p.contentOrNull
-                                        p is kotlinx.serialization.json.JsonObject -> p["text"]?.jsonPrimitive?.contentOrNull
+                                        p is kotlinx.serialization.json.JsonObject ->
+                                            (p["text"] as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull
                                         else -> null
                                     }
                                 }.joinToString("\n")
                             } else {
-                                contentObj["text"]?.jsonPrimitive?.contentOrNull ?: ""
+                                (contentObj["text"] as? kotlinx.serialization.json.JsonPrimitive)
+                                    ?.contentOrNull ?: ""
                             }
-                            if (text.isBlank()) continue
+                            // v1.0.74 fix: 空白正文节点(thoughts/reasoning_recap 等)也存 parent,保持链完整
+                            if (text.isBlank()) {
+                                parsed[nodeId] = ParsedNode(parent, null)
+                                continue
+                            }
                             val rawTime = msg["create_time"]?.jsonPrimitive?.floatOrNull ?: 0f
                             // ChatGPT create_time 是秒级浮点,统一转毫秒;0 值保持原序
                             val ts = if (rawTime > 0f) (rawTime * 1000).toLong() else -1L

@@ -612,7 +612,8 @@ class VisionBridge(
                 providerConfig = visionProvider,
                 tools = null,
             )
-            completion.text
+            // v1.0.74 fix: 剥离 <think> 推理标签,防止思考内容混入 OCR/看图结果
+            io.zer0.muse.transformer.stripThinkTags(completion.text)
         } catch (e: UnsupportedOperationException) {
             Logger.w(TAG, "completeText 不支持,降级 streamChat: ${e.message}")
             collectStreamText(userMessage, visionModel, visionProvider)

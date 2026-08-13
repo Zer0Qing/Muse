@@ -128,6 +128,8 @@ import kotlinx.serialization.builtins.serializer
         io.zer0.muse.data.moment.MomentLikeEntity::class,
         // v1.0.74: AI 日记本
         io.zer0.muse.data.diary.DiaryEntity::class,
+        // v1.0.74: 主动巡检日志
+        io.zer0.muse.data.patrol.PatrolLogEntity::class,
         ExperienceEntity::class,
         // v1.107 冗余设计: 统计缓存 / 完整性日志 / 自动备份日志
         StatsCacheEntity::class,
@@ -157,7 +159,7 @@ import kotlinx.serialization.builtins.serializer
         // B5-02: 群聊生成账本(进程被杀后按断点重放)
         GroupChatGenerationLedgerEntity::class,
     ],
-    version = 85,
+    version = 87,
     exportSchema = true,
 )
 @TypeConverters(QuickNoteConverters::class)
@@ -187,6 +189,7 @@ abstract class MuseDb : RoomDatabase() {
     /** v1.0.72: AI 朋友圈 DAO。 */
     abstract fun momentDao(): io.zer0.muse.data.moment.MomentDao
     abstract fun diaryDao(): io.zer0.muse.data.diary.DiaryDao
+    abstract fun patrolLogDao(): io.zer0.muse.data.patrol.PatrolLogDao
     // v1.98: 经验库
     abstract fun experienceDao(): ExperienceDao
     // Phase 2 2B: 里程碑
@@ -424,6 +427,45 @@ abstract class MuseDb : RoomDatabase() {
             }
         }
 
+        /** v1.0.74: 主动巡检日志 — 新建 patrol_logs 表。 */
+        val MIGRATION_85_86 = object : Migration(85, 86) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS patrol_logs (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        timestamp INTEGER NOT NULL,
+                        action TEXT NOT NULL,
+                        summary TEXT NOT NULL
+                    )""",
+                )
+            }
+        }
+
+        /**
+         * v1.0.74 fix (审计 CRITICAL-0.1): assistants 表缺 capabilitiesJson 列迁移。
+         * AssistantEntity 新增 capabilitiesJson(v1.200) 已进 Room schema,
+         * 但迁移链没有对应 ALTER,老用户升级时 Room schema 校验必崩
+         * "Migration didn't properly handle: assistants"。
+         */
+        val MIGRATION_86_87 = object : Migration(86, 87) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // schema 86.json 的 assistants 表已含 capabilitiesJson(从 Entity 导出),
+                // 但经真实迁移链升级上来的老库没有;先查列是否存在,避免重复列崩溃。
+                var hasCapabilities = false
+                db.query("PRAGMA table_info(assistants)").use { cursor ->
+                    while (cursor.moveToNext()) {
+                        if (cursor.getString(1) == "capabilitiesJson") {
+                            hasCapabilities = true
+                            break
+                        }
+                    }
+                }
+                if (!hasCapabilities) {
+                    db.execSQL("ALTER TABLE assistants ADD COLUMN capabilitiesJson TEXT NOT NULL DEFAULT '[]'")
+                }
+            }
+        }
+
         /**
          * Phase 8.2: v1 → v2 迁移。
          * - 新建 assistants 表
@@ -467,7 +509,8 @@ abstract class MuseDb : RoomDatabase() {
                         modeInjectionIdsJson TEXT NOT NULL DEFAULT '[]',
                         skillIdsJson TEXT NOT NULL DEFAULT '[]',
                         customHeadersJson TEXT NOT NULL DEFAULT '{}',
-                        customBodiesJson TEXT NOT NULL DEFAULT '{}'
+                        customBodiesJson TEXT NOT NULL DEFAULT '{}',
+                        capabilitiesJson TEXT NOT NULL DEFAULT '[]'
                     )
                 """.trimIndent())
                 // 插入默认 Assistant
@@ -2226,6 +2269,8 @@ abstract class MuseDb : RoomDatabase() {
                         MIGRATION_82_83,
                         MIGRATION_83_84,
                         MIGRATION_84_85,
+                        MIGRATION_85_86,
+                        MIGRATION_86_87,
                     )
                     // 启用外键约束(artifacts 表的 ON DELETE CASCADE 依赖此设置)
                     // onOpen 不在 onCreate 事务内,可以执行此类命令;onCreate 内禁止 PRAGMA
@@ -2296,6 +2341,32 @@ abstract class MuseDb : RoomDatabase() {
                     })
                     // v1.107: 显式设置 WAL 日志模式(冗余容灾:读写并发 + 崩溃恢复)
                     .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
+                    // 审计修复 (0.3): 降级破坏性迁移前归档旧库(.bak),避免测试版回滚/渠道回退时
+                    // 整库静默销毁、对话与记忆不可恢复。onDestructiveMigration 在破坏前于旧库上回调。
+                    .addCallback(object : RoomDatabase.Callback() {
+                        override fun onDestructiveMigration(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                            super.onDestructiveMigration(db)
+                            try {
+                                val ctx = context.applicationContext
+                                val dbFile = ctx.getDatabasePath("muse.db")
+                                if (dbFile.exists()) {
+                                    val bak = java.io.File(dbFile.parentFile, "muse.db.pre-destructive.bak")
+                                    runCatching { if (bak.exists()) bak.delete() }
+                                    runCatching {
+                                        val wal = java.io.File(dbFile.parentFile, "muse.db-wal")
+                                        val shm = java.io.File(dbFile.parentFile, "muse.db-shm")
+                                        // 先 checkpoint 合并 WAL,再复制主库
+                                        runCatching { db.query("PRAGMA wal_checkpoint(PASSIVE)").use { it.moveToFirst() } }
+                                        dbFile.copyTo(bak, overwrite = true)
+                                        runCatching { if (wal.exists()) wal.delete() }
+                                        runCatching { if (shm.exists()) shm.delete() }
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                io.zer0.common.Logger.w("MuseDb", "降级归档失败(不影响重建): ${e.message}")
+                            }
+                        }
+                    })
                     // 降级:防止从更高版本降到当前版本时崩溃(升级时不销毁,避免数据丢失)
                     .fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true)
                     .build()

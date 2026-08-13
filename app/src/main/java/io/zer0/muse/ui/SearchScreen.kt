@@ -109,9 +109,8 @@ fun SearchScreen(
     val focusRequester = remember { FocusRequester() }
 
     // 自动聚焦搜索框
-    LaunchedEffect(Unit) {
-        focusRequester.requestFocus()
-    }
+    // v1.0.74 fix: 等一帧再请求,避免焦点系统未就绪时崩溃(华为 Android 10 实测)
+    io.zer0.muse.ui.common.focus.SafeAutoFocusEffect(focusRequester)
 
     // 输入变化时(去抖 300ms)更新查询并触发搜索
     // v2.x: 根据 searchTab 切换走 searchSessions() 或 searchMessageContent()

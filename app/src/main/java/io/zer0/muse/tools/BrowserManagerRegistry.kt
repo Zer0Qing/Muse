@@ -32,11 +32,12 @@ class BrowserManagerRegistry(private val context: Context) {
      * 任何线程都可调用;实际 WebView 初始化由首次 navigate 在主线程完成。
      */
     fun getForSession(sessionId: String): BrowserManager {
+        // 审计修复 (4.5): 双重检查锁定 — 原实现先在锁外构造 BrowserManager 再回锁内 put,
+        // 两个并行工具同时首次调用同一会话时会各自构造一个实例并覆盖 put,泄漏 WebView;
+        // 改为锁内检查+构造+put,保证同一会话永远只有一个实例(BrowserManager 构造轻量,WebView 懒创建)。
         synchronized(lock) {
             instances[sessionId]?.let { return it }
-        }
-        val manager = BrowserManager(context)
-        synchronized(lock) {
+            val manager = BrowserManager(context)
             instances[sessionId] = manager
             // 超上限淘汰:优先关掉最久未活跃的(LinkedHashMap 保序,头部最旧)
             while (instances.size > MAX_INSTANCES) {
@@ -46,8 +47,8 @@ class BrowserManagerRegistry(private val context: Context) {
                 victim?.close()
             }
             _activeSessionIds.value = instances.keys.toSet()
+            return manager
         }
-        return manager
     }
 
     /** 若会话已创建浏览器实例则返回(不创建),否则 null。供 UI 判断胶囊显隐。 */

@@ -190,19 +190,20 @@ fun ChatListScreen(
     var greetingHint by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
     LaunchedEffect(Unit) {
-        scope.launch {
-            runCatching { memoryCount = factDao.count() }
-            runCatching { docCount = knowledgeDocDao.countUserVisible() }
-            runCatching { greetingFacts = factDao.getAll("main").take(100) }
-            // v1.x: 个性化问候 — 缓存优先(当天),未命中则 LLM 生成,失败回退规则版。
-            runCatching {
-                val today = java.time.LocalDate.now().toString()
-                val cached = settings.getGreetingHintCache()
-                if (cached?.startsWith("$today|") == true) {
-                    greetingHint = cached.substringAfter("|").takeIf { it.isNotBlank() }
-                } else {
-                    greetingHintGenerator.generate(greetingFacts)?.let { hint ->
-                        greetingHint = hint
+        // 审计修复 (8.8): 去掉内层 scope.launch — 原实现内层协程属于 rememberCoroutineScope,
+        // 不随 LaunchedEffect 取消(离开组合/翻页后仍在跑),且双重启动无意义。
+        runCatching { memoryCount = factDao.count() }
+        runCatching { docCount = knowledgeDocDao.countUserVisible() }
+        runCatching { greetingFacts = factDao.getAll("main").take(100) }
+        // v1.x: 个性化问候 — 缓存优先(当天),未命中则 LLM 生成,失败回退规则版。
+        runCatching {
+            val today = java.time.LocalDate.now().toString()
+            val cached = settings.getGreetingHintCache()
+            if (cached?.startsWith("$today|") == true) {
+                greetingHint = cached.substringAfter("|").takeIf { it.isNotBlank() }
+            } else {
+                greetingHintGenerator.generate(greetingFacts)?.let { hint ->
+                    greetingHint = hint
                         settings.saveGreetingHintCache("$today|$hint")
                     }
                 }
@@ -224,7 +225,6 @@ fun ChatListScreen(
                     }
                 }
             }.onFailure { e -> Logger.w("ChatListScreen", "问候语提醒通知失败: ${e.message}") }
-        }
     }
 
     // v0.36 性能优化:缓存排序结果,避免每次重组都重新计算。

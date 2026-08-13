@@ -262,9 +262,38 @@ abstract class FactDb : RoomDatabase() {
             MemoryLegacyReset.mark(context, name)
         }
 
+        /**
+         * 审计修复 (0.2): 未知/更高版本数据库在 destructive fallback 前归档。
+         * 原实现 fallbackToDestructiveMigration 会静默清空用户事实记忆且无备份;
+         * 这里在 Room 打开前检查版本: 高于迁移链覆盖(高版本降级)或版本异常时,
+         * 先重命名 .bak 保留数据,Room 再重建空库,数据可恢复。
+         */
+        private fun archiveUnknownVersionDatabase(context: Context, name: String) {
+            val file = context.getDatabasePath(name)
+            if (!file.exists()) return
+            val version = try {
+                SQLiteDatabase.openDatabase(file.absolutePath, null, SQLiteDatabase.OPEN_READONLY).use { it.version }
+            } catch (_: Exception) {
+                return // 损坏库交给 archiveLegacyOrCorruptDatabase 处理
+            }
+            if (version <= 11) return // 迁移链覆盖范围内(3..11)
+            val bak = File(file.parentFile, "$name.pre-destructive.bak")
+            runCatching { if (bak.exists()) bak.delete() }
+            val renamed = runCatching { file.renameTo(bak) }.getOrDefault(false)
+            if (renamed) {
+                listOf(
+                    file,
+                    File(file.parentFile, "$name-wal"),
+                    File(file.parentFile, "$name-shm"),
+                ).forEach { runCatching { if (it.exists()) it.delete() } }
+                MemoryLegacyReset.mark(context, name)
+            }
+        }
+
         /** 单例数据库实例。全局唯一,内存数据库失败时回退。 */
         fun create(context: Context, name: String = "facts.db"): FactDb {
             archiveLegacyOrCorruptDatabase(context, name)
+            archiveUnknownVersionDatabase(context, name)
             return Room.databaseBuilder(context, FactDb::class.java, name)
                 .addMigrations(
                     MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,

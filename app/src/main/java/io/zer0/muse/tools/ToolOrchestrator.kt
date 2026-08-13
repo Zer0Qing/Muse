@@ -856,9 +856,12 @@ class ToolOrchestrator(
         // v1.x: 超长工具输出走"预览 + 写文件 + 引用"模式,完整内容落盘到
         // filesDir/tool_outputs/,LLM 上下文仅保留 4K 预览 + read_file 引用,
         // 既避免撑爆上下文,又让 LLM 能按需读取完整结果。
+        // 审计修复 (4.7): 只截断一次 — 原实现 finalToolResult 与 displayResult 各调一次
+        // maybeTruncateToolOutput,同一输出写两份文件(文件名含时间戳);现只落盘一份,
+        // 展示与给 LLM 的结果共用同一份截断结果与同一文件路径。
         val finalToolResult = maybeTruncateToolOutput(tc.id, llmResult)
-        // 展示用:纯工具输出(失败时不含 LLM 引导语)
-        val displayResult = maybeTruncateToolOutput(tc.id, toolResult)
+        // 展示用:复用 finalToolResult(同一路径文件,避免重复落盘;失败时含 LLM 引导语,对展示无碍)
+        val displayResult = finalToolResult
 
         taskCardCoordinator.updateTaskCardStep(taskCardId, idx) { s ->
             s.copy(

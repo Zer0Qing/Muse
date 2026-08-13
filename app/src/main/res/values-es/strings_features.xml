@@ -360,7 +360,7 @@
     <string name="stats_trend_window_90d">90d</string>
     <string name="stats_tooltip_messages">%1$s · %2$d mensajes</string>
     <string name="stats_tooltip_hint">Toca una celda para ver detalles</string>
-    <string name="stats_avg_label">Promedio %.1f</string>
+    <string name="stats_avg_label">Promedio %1$.1f</string>
     <string name="stats_active_days_unit">días</string>
     <string name="stats_total_tokens_label">Total de tokens (~)</string>
     <string name="stats_range_selected">Seleccionado</string>

@@ -22,9 +22,16 @@ import io.zer0.muse.util.MusePatterns
  * - 无 think 标签 → 原文
  */
 fun stripThinkTags(text: String): String {
-    if (!text.contains("<think>", ignoreCase = true)) return text
+    if (text.isBlank()) return ""
+    if (!text.contains("<think", ignoreCase = true)) return text
     val matches = MusePatterns.THINK_TAG_REGEX.findAll(text).toList()
-    if (matches.isEmpty()) return text
+    if (matches.isEmpty()) {
+        // v1.0.74: 没有闭合块但存在 <think> 开头 — 未闭合/截断场景
+        // (部分模型只输出 <think> 推理内容就被截断)。此时从标签处截断到末尾,
+        // 避免推理内容残留为正文(标题/日记/动态等用户可见内容被污染)。
+        val idx = text.indexOf("<think", ignoreCase = true)
+        return if (idx >= 0) text.substring(0, idx).trim() else text
+    }
     val sb = StringBuilder(text.length)
     var lastEnd = 0
     for (m in matches) {
@@ -32,7 +39,13 @@ fun stripThinkTags(text: String): String {
         lastEnd = m.range.last + 1
     }
     sb.append(text, lastEnd, text.length)
-    return sb.toString().trim()
+    var result = sb.toString()
+    // v1.0.74: 剥完闭合块后仍可能有未闭合残留(如 <think>A</think>正文<think>B)
+    val leftover = result.indexOf("<think", ignoreCase = true)
+    if (leftover >= 0) {
+        result = result.substring(0, leftover)
+    }
+    return result.trim()
 }
 
 /**
