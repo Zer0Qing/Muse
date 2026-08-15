@@ -2,6 +2,7 @@
 
 package io.zer0.muse.ui.schedule
 
+import android.content.res.Resources
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -104,16 +105,21 @@ import org.koin.compose.koinInject
  * 不覆盖的复杂表达式返回 null(UI 不显示描述,回退到原始表达式)。
  * 字段顺序:minute hour day-of-month month day-of-week
  */
-private fun describeCron(expr: String): String? {
+private fun describeCron(expr: String, res: Resources): String? {
     val parts = expr.trim().split(Regex("\\s+"))
     if (parts.size != 5) return null
     val (minute, hour, dom, month, dow) = parts
 
-    val weekDays = mapOf(
-        "0" to "周日", "7" to "周日",
-        "1" to "周一", "2" to "周二", "3" to "周三", "4" to "周四",
-        "5" to "周五", "6" to "周六",
-    )
+    fun weekdayName(day: String): String? = when (day) {
+        "0", "7" -> res.getString(R.string.schedule_cron_sun)
+        "1" -> res.getString(R.string.schedule_cron_mon)
+        "2" -> res.getString(R.string.schedule_cron_tue)
+        "3" -> res.getString(R.string.schedule_cron_wed)
+        "4" -> res.getString(R.string.schedule_cron_thu)
+        "5" -> res.getString(R.string.schedule_cron_fri)
+        "6" -> res.getString(R.string.schedule_cron_sat)
+        else -> null
+    }
     fun fmtTime(h: String, m: String): String {
         val hh = h.padStart(2, '0')
         val mm = m.padStart(2, '0')
@@ -122,34 +128,34 @@ private fun describeCron(expr: String): String? {
 
     // 每天 H:M
     if (dom == "*" && month == "*" && dow == "*" && minute != "*" && hour != "*" && !minute.contains("-") && !hour.contains("-")) {
-        return "每天 ${fmtTime(hour, minute)}"
+        return res.getString(R.string.schedule_cron_daily, fmtTime(hour, minute))
     }
     // 每小时 M 分
     if (hour == "*" && dom == "*" && month == "*" && dow == "*" && minute != "*" && !minute.contains("-")) {
-        return "每小时 $minute 分"
+        return res.getString(R.string.schedule_cron_hourly, minute)
     }
     // 每分钟
     if (minute == "*" && hour == "*" && dom == "*" && month == "*" && dow == "*") {
-        return "每分钟"
+        return res.getString(R.string.schedule_cron_every_minute)
     }
     // 工作日 H:M(dow = 1-5)
     if (dom == "*" && month == "*" && dow == "1-5" && minute != "*" && hour != "*" && !minute.contains("-") && !hour.contains("-")) {
-        return "工作日(周一至周五)${fmtTime(hour, minute)}"
+        return res.getString(R.string.schedule_cron_workday, fmtTime(hour, minute))
     }
     // 周末 H:M(dow = 0,6 或 6,0)
     if (dom == "*" && month == "*" && (dow == "0,6" || dow == "6,0") && minute != "*" && hour != "*" && !minute.contains("-") && !hour.contains("-")) {
-        return "周末 ${fmtTime(hour, minute)}"
+        return res.getString(R.string.schedule_cron_weekend, fmtTime(hour, minute))
     }
     // 指定星期 H:M(dow 是单个数字或逗号列表)
     if (dom == "*" && month == "*" && dow != "*" && minute != "*" && hour != "*" && !minute.contains("-") && !hour.contains("-")) {
-        val dayNames = dow.split(",").mapNotNull { weekDays[it.trim()] }
+        val dayNames = dow.split(",").mapNotNull { weekdayName(it.trim()) }
         if (dayNames.isNotEmpty()) {
-            return "${dayNames.joinToString("、")} ${fmtTime(hour, minute)}"
+            return res.getString(R.string.schedule_cron_weekdays, dayNames.joinToString("、"), fmtTime(hour, minute))
         }
     }
     // 每月指定日 H:M
     if (dom != "*" && month == "*" && dow == "*" && minute != "*" && hour != "*" && !minute.contains("-") && !hour.contains("-") && !dom.contains("-")) {
-        return "每月 $dom 日 ${fmtTime(hour, minute)}"
+        return res.getString(R.string.schedule_cron_monthly, dom, fmtTime(hour, minute))
     }
     return null
 }
@@ -584,7 +590,7 @@ private fun TaskDialog(
                         }
                     }
                     if (cronExpr.isNotBlank()) {
-                        val desc = remember(cronExpr) { describeCron(cronExpr.trim()) }
+                        val desc = remember(cronExpr) { describeCron(cronExpr.trim(), context.resources) } // 前端修复 (i18n-5)
                         if (desc != null) Text(text = desc, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
@@ -635,7 +641,7 @@ private fun TaskDialog(
                             if (addedId != null && currentTaskId.isNotBlank() &&
                                 hasChainCycle(addedId, currentTaskId, allTasksMap)
                             ) {
-                                MuseToast.show("不能选择会形成循环链的任务")
+                                MuseToast.show(context.getString(R.string.schedule_chain_cycle_error)) // 前端修复 (i18n-5)
                             } else {
                                 nextTaskIds = newIds
                             }
@@ -789,9 +795,9 @@ private fun AssistantSelector(
                                 val toolCount = runCatching {
                                     AppJson.decodeFromString<List<String>>(a.toolIdsJson).size
                                 }.getOrNull() ?: 0
-                                val modelLabel = a.modelId ?: "默认模型"
+                                val modelLabel = a.modelId ?: stringResource(R.string.schedule_default_model) // 前端修复 (i18n-5)
                                 Text(
-                                    "$modelLabel · $toolCount 个工具",
+                                    stringResource(R.string.schedule_assistant_tools, modelLabel, toolCount), // 前端修复 (i18n-5)
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.outline,
                                 )

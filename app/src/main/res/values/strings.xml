@@ -90,6 +90,8 @@
     <string name="voice_connecting">正在连接识别服务…</string>
     <!-- 任务 1: ASR 断网重连中状态文案(WebSocket 断线后指数退避重连,期间继续录音并缓冲音频帧) -->
     <string name="voice_reconnecting">网络异常,正在重连…</string>
+    <!-- 前端修复 (i18n-6): 语音消息条停止按钮无障碍描述 -->
+    <string name="voice_stop_recording">停止录音</string>
     <string name="voice_conversation_cd_idle">点击开始对话</string>
     <string name="voice_conversation_cd_listening">正在录音,点击中断</string>
     <string name="voice_conversation_cd_thinking">AI 思考中,点击中断</string>

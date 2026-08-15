@@ -71,7 +71,8 @@ fun MuseSwitch(
         label = "iosSwitchThumb",
     )
 
-    // 开启时轨道颜色动画
+    // v1.0.74 fix (前端审计 7): 修正注释 — 轨道颜色是瞬时切换(仅 thumbX 有动画),
+    // 原注释声称"开启时轨道颜色动画"与实现不符。
     val trackColor = if (checked) {
         MaterialTheme.colorScheme.primary
     } else {

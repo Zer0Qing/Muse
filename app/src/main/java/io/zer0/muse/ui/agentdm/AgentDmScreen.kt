@@ -30,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -73,8 +74,11 @@ fun AgentDmScreen(
     val scope = rememberCoroutineScope()
     val assistants by assistantRepository.observeAll.collectAsStateWithLifecycle(initialValue = emptyList<io.zer0.muse.data.assistant.AssistantEntity>())
 
+    // 前端修复 (持久化-12): 消息列表为自定义实体列表,无法直接 saveable,保持 remember;
+    // 更优做法:消息状态迁入 ViewModel 由状态层持有,UI 只订阅
     var messages by remember { mutableStateOf<List<AgentMessageEntity>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
+    // 前端修复 (持久化-12): Boolean 加载态改 rememberSaveable
+    var isLoading by rememberSaveable { mutableStateOf(true) }
 
     // 加载所有消息(按 agent 聚合)
     fun refreshMessages() {

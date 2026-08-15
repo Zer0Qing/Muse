@@ -90,4 +90,15 @@
     <string name="memory_stats_top_sessions">Sesiones más activas</string>
     <string name="memory_stats_session_count">%1$d entradas</string>
     <string name="memory_stats_trend_30_days">Tendencia de los últimos 30 días</string>
+    <!-- 前端修复 (i18n-3.x): 群聊记忆 Tab + 时间轴筛选 i18n(临时复制中文,后续补译) -->
+    <string name="memory_group_chat_empty">暂无群聊记忆</string>
+    <string name="memory_group_chat_count">共 %1$d 条</string>
+    <string name="memory_group_chat_empty_hint">群聊中助手每次回复后都会在这里生成一条摘要记忆。\n如果群聊助手说话风格变得奇怪,可以在这里删除或清空。</string>
+    <string name="memory_group_chat_clear_title">清空全部群聊记忆</string>
+    <string name="memory_group_chat_clear_content">确定清空全部群聊记忆?助手将不再引用任何群聊过往发言摘要。</string>
+    <string name="memory_group_chat_delete_cd">删除</string>
+    <string name="memory_timeline_filter_all">全部</string>
+    <string name="memory_timeline_filter_fact">事实</string>
+    <string name="memory_timeline_filter_summary">摘要</string>
+    <string name="memory_timeline_filter_milestone">里程碑</string>
 </resources>

@@ -15,7 +15,7 @@
       the "LLM prompts not extracted" rule.
     This file currently has no string entries; it serves as a placeholder and review record.
 -->
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- v4: memory importance related -->
     <string name="memory_importance_normal">Normal</string>
     <string name="memory_importance_important">Important</string>
@@ -90,4 +90,16 @@
     <string name="memory_stats_top_sessions">Most Active Sessions</string>
     <string name="memory_stats_session_count">%1$d entries</string>
     <string name="memory_stats_trend_30_days">Last 30 Days Trend</string>
+
+    <!-- 前端修复 (i18n-3.x): Group chat memory tab + timeline filters -->
+    <string name="memory_group_chat_empty">No group chat memories yet</string>
+    <string name="memory_group_chat_count" tools:ignore="PluralsCandidate">%1$d total</string>
+    <string name="memory_group_chat_empty_hint">A summary memory is generated here after each assistant reply in group chats.\nIf the group chat assistant\'s tone seems off, you can delete or clear memories here.</string>
+    <string name="memory_group_chat_clear_title">Clear all group chat memories</string>
+    <string name="memory_group_chat_clear_content">Clear all group chat memories? The assistant will no longer reference any past group chat summaries.</string>
+    <string name="memory_group_chat_delete_cd">Delete</string>
+    <string name="memory_timeline_filter_all">All</string>
+    <string name="memory_timeline_filter_fact">Facts</string>
+    <string name="memory_timeline_filter_summary">Summaries</string>
+    <string name="memory_timeline_filter_milestone">Milestones</string>
 </resources>

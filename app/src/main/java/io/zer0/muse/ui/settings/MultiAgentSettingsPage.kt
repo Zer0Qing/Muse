@@ -37,6 +37,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -495,8 +496,11 @@ private fun TeamEditDialog(
     onDismiss: () -> Unit,
     onSave: (AgentTeam) -> Unit,
 ) {
-    var name by remember(team.id) { mutableStateOf(team.name) }
-    var description by remember(team.id) { mutableStateOf(team.description) }
+    // 前端修复 (持久化-9): 表单草稿改 rememberSaveable,key 用 team.id(稳定标识)而非 team 实例;
+    // String 字段(name/description)直接 saveable
+    var name by rememberSaveable(team.id) { mutableStateOf(team.name) }
+    var description by rememberSaveable(team.id) { mutableStateOf(team.description) }
+    // selectedIds(Set)/workflow 为复杂类型,无法直接 saveable,保持 remember(临时弹窗草稿,重建后回退原值可接受)
     var selectedIds by remember(team.id) { mutableStateOf(team.memberIds.toSet()) }
     var workflow by remember(team.id) { mutableStateOf(team.workflow ?: DelegationContract.TeamWorkflow()) }
     var editingNode by remember { mutableStateOf<DelegationContract.TeamWorkflowNode?>(null) }

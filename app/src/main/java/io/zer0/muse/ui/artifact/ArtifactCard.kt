@@ -25,7 +25,9 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.zer0.muse.R
 import io.zer0.muse.data.artifact.ArtifactEntity
 import io.zer0.muse.ui.theme.MuseShapes
 
@@ -74,7 +76,7 @@ fun ArtifactCard(
                     modifier = Modifier.size(18.dp),
                 )
                 Text(
-                    text = artifact.title.ifBlank { "未命名" },
+                    text = artifact.title.ifBlank { stringResource(R.string.artifact_untitled) }, // 前端修复 (i18n-3)
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,

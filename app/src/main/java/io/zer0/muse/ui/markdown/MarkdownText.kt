@@ -114,7 +114,8 @@ internal val URL_AUTOLINK_REGEX = Regex("""https?://[^\s<>"'`)\]】」』。、,
  *  - 引用 >(左侧色条)
  *  - 水平线 ---
  *
- * 不支持: 表格/脚注/图片(Phase 5+ 评估)。
+ * 不支持: 脚注/图片(表格已支持 — 见 TableView)。
+ * v1.0.74 fix (前端审计 7): 原注释称"不支持表格"但文件内已有 TableView 渲染,注释修正。
  *
  * Phase 8.3 增强:
  *  - 代码块行号(左侧 gutter,等宽对齐)
@@ -235,7 +236,8 @@ fun MarkdownText(
                 ) {
                     if (!coverFrontmatter?.title.isNullOrBlank()) {
                         Text(
-                            text = coverFrontmatter!!.title!!,
+                            // v1.0.74 fix (前端审计 7): 上层已判空,消除双重非空断言
+                            text = coverFrontmatter?.title.orEmpty(),
                             style = MaterialTheme.typography.titleLarge,
                             color = Color.White,
                             maxLines = 1,

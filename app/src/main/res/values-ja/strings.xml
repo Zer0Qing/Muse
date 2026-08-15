@@ -127,6 +127,9 @@
 <string name="voice_recognizing">認識中…</string>
 <!-- Task 1: ASR reconnecting status (WebSocket dropped, exponential backoff reconnect, audio buffered meanwhile) -->
 <string name="voice_reconnecting">ネットワークエラー、再接続中…</string>
+
+<!-- 前端修复 (i18n-6): stop button a11y label on voice message bar -->
+<string name="voice_stop_recording">Stop recording</string>
     <string name="voice_conversation_cd_idle">タップして会話を開始</string>
     <string name="voice_conversation_cd_listening">録音中、タップで中断</string>
     <string name="voice_conversation_cd_thinking">AI思考中、タップで中断</string>

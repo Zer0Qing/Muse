@@ -120,6 +120,9 @@ fun MuseCardPress(
         Modifier.combinedClickable(
             interactionSource = interactionSource,
             indication = null, // 无涟漪
+            // v1.0.74 fix (前端审计 3.4): 补 role=Button,与 clickable 分支对齐
+            // (原 combinedClickable 分支漏传 role,TalkBack 读不出按钮语义)
+            role = Role.Button,
             onClick = {
                 if (enableHaptic) {
                     MuseHaptics.light(haptic)

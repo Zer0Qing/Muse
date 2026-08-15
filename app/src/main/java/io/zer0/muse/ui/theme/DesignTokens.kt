@@ -181,8 +181,17 @@ object MuseHaptics {
         if (enabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
     }
 
-    /** 强击: 删除 / 危险操作确认(与 medium 同档,语义预留以便后续接入更强反馈)。 */
+    /** 强击: 删除 / 危险操作确认。
+     * v1.0.74 fix (前端审计 3.3): 原与 medium 同为 LongPress,危险操作与普通点击
+     * 触觉无差别。改用 Confirm(Android 13+ 有明确确认感,低版本系统自动降级)。
+     */
     fun heavy(haptic: HapticFeedback) {
-        if (enabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        // v1.0.74 fix (前端审计 3.3): 当前 Compose 版本可用触觉档位有限
+        // (仅 TextHandleMove/LongPress),heavy 用双次 LongPress 模拟更强确认感,
+        // 与 medium 单次 LongPress 形成差异。
+        if (enabled) {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        }
     }
 }

@@ -541,4 +541,40 @@
     <string name="settings_theme_custom_color_s">Saturación</string>
     <string name="settings_theme_custom_color_l">Ligereza</string>
     <string name="settings_agent_bound_assistant_hint">This page is bound to the current assistant and follows automatically when you switch assistants</string>
+    <!-- 前端修复 (i18n-3.x): 主动消息配置区 i18n(临时复制中文,后续补译) -->
+    <string name="settings_agent_dm_subtitle">查看 Agent 间私信往来</string>
+    <string name="settings_agent_allowed_start">允许时段开始</string>
+    <string name="settings_agent_allowed_start_hint">主动消息仅在允许时段内发送,避免夜间打扰(24小时制)</string>
+    <string name="settings_agent_allowed_end">允许时段结束</string>
+    <string name="settings_agent_allowed_end_hint">结束小时可小于开始小时(如开始22结束8表示22点到次日8点的跨夜时段)</string>
+    <string name="settings_agent_agent_only">仅Agent会话</string>
+    <string name="settings_agent_agent_only_subtitle">开启后只有Agent助手会发送主动消息,任务会话不会</string>
+    <string name="settings_agent_daily_limit">每日上限</string>
+    <string name="settings_agent_daily_unlimited">无限</string>
+    <string name="settings_agent_daily_per_day">%1$d 条/天</string>
+    <string name="settings_agent_daily_unlimited_hint">不限制条数,只要评分和概率通过就发(适合高频陪伴)</string>
+    <string name="settings_agent_daily_limited_hint">每天最多发送的主动消息条数,超出后跳过直到次日</string>
+    <string name="settings_agent_daily_count">%1$d 条</string>
+    <string name="settings_agent_daily_min">1 条</string>
+    <string name="settings_agent_daily_max">10 条</string>
+    <string name="settings_agent_daily_set_unlimited">设为无限</string>
+    <string name="settings_agent_daily_unlimited_checked">✓ 无限</string>
+    <string name="settings_agent_temperature">生成温度</string>
+    <string name="settings_agent_temperature_hint">决策阶段用 temperature×0.5(更确定),生成阶段用本值。值越大越有创造力,越小越稳定</string>
+    <string name="settings_agent_temperature_stable">0.0 稳定</string>
+    <string name="settings_agent_temperature_creative">2.0 创造</string>
+    <string name="settings_agent_send_probability">发送概率</string>
+    <string name="settings_agent_send_probability_hint" formatted="false">主动消息决策通过后,再按此概率决定是否实际发送。100%=每次都发,50%=一半概率发,0%=只留决策日志不发送</string>
+    <string name="settings_agent_probability_never">0% 不发</string>
+    <string name="settings_agent_probability_always">100% 必发</string>
+    <string name="settings_agent_probability_never_label">基本不发(0%%)</string>
+    <string name="settings_agent_probability_always_label">每次都发(100%%)</string>
+    <string name="settings_agent_probability_value">%1$d%%</string>
+    <string name="settings_agent_test_message">测试主动消息</string>
+    <string name="settings_agent_test_message_subtitle">像真实主动消息一样发一条(通知展示)</string>
+    <string name="settings_agent_test_generating">正在生成…</string>
+    <string name="settings_agent_test_sent">测试消息已发送,查看通知栏</string>
+    <string name="settings_agent_test_failed">测试失败:%1$s</string>
+    <string name="settings_agent_daily_summary">每日总结推送</string>
+    <string name="settings_agent_daily_summary_subtitle">每天 19:30 推送今日对话小结(开关关闭后自动跳过,重新打开即恢复)</string>
 </resources>

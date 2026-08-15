@@ -1,5 +1,7 @@
 package io.zer0.muse.ui.common.feedback
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -22,6 +24,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.ui.theme.MuseAnimation
@@ -105,20 +108,30 @@ fun MuseSnackbarHost(modifier: Modifier = Modifier) {
             val scaleFactor = 1f - (stackOffset * 0.03f)
             val alphaFactor = 1f - (stackOffset * 0.2f)
 
-            AnimatedVisibility(
-                visible = true,
-                enter = slideInVertically(
-                    animationSpec = tween(MuseAnimation.SLOW_MS - 20, easing = MuseAnimation.EaseOutCubic),
-                    initialOffsetY = { -it },
-                ) + fadeIn(animationSpec = tween(MuseAnimation.NORMAL_MS)),
-                exit = slideOutVertically(
-                    animationSpec = tween(MuseAnimation.NORMAL_MS, easing = MuseAnimation.EaseInCubic),
-                    targetOffsetY = { -it },
-                ) + fadeOut(animationSpec = tween(MuseAnimation.NORMAL_MS)),
-            ) {
+            // v1.0.74 fix (前端审计 3.1): AnimatedVisibility(visible=true) 在消息移除时
+            // 节点直接出组合,exit 动画永不播(瞬移消失)。改用 AnimatedContent:
+            // 以消息 id 为 key,内容变化时旧内容自动播退出动画。
+            AnimatedContent(
+                targetState = data.id,
+                transitionSpec = {
+                    // 进入:从上方滑入;离开:向上滑出(与文档宣称的 300ms 滑出一致)
+                    (slideInVertically(
+                        animationSpec = tween(MuseAnimation.SLOW_MS - 20, easing = MuseAnimation.EaseOutCubic),
+                        initialOffsetY = { -it },
+                    ) + fadeIn(animationSpec = tween(MuseAnimation.NORMAL_MS)))
+                        .togetherWith(
+                            slideOutVertically(
+                                animationSpec = tween(MuseAnimation.NORMAL_MS, easing = MuseAnimation.EaseInCubic),
+                                targetOffsetY = { -it },
+                            ) + fadeOut(animationSpec = tween(MuseAnimation.NORMAL_MS)),
+                        )
+                },
+                label = "snackbar_item",
+            ) { _ ->
                 Surface(
                     modifier = Modifier
-                        .offset { IntOffset(0, yOffset * 4) } // dp 转 px 的近似值
+                        // v1.0.74 fix (前端审计 3.1): 密度感知偏移 — 原硬编码 ×4 只在 4x 设备正确
+                        .offset { IntOffset(0, with(density) { yOffset.dp.roundToPx() }) }
                         .scale(scaleFactor),
                     shape = RoundedCornerShape(MuseCornerRadius.BUTTON.dp),
                     color = MaterialTheme.colorScheme.inverseSurface.copy(alpha = 0.92f * alphaFactor),

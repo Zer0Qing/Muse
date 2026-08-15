@@ -165,6 +165,22 @@ fun GroupChatDetailScreen(
                 viewModel.onListScrollPositionChanged(index, offset)
             }
     }
+    // v1.0.74 fix (前端审计 1.4): 消费 jumpTargetId — 搜索结果点击后滚动到目标消息并短暂高亮。
+    // 此前 jumpTargetId 仅在 ViewModel 定义,UI 无任何监听,搜索跳转功能静默失效。
+    var highlightedJumpMessage by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(viewModel.jumpTargetId) {
+        val targetId = viewModel.jumpTargetId.value ?: return@LaunchedEffect
+        // 消息区起始偏移: 顶部 load_more_indicator 存在时占 index 0
+        val msgStart = if (state.isLoadingMore) 1 else 0
+        val idx = state.currentMessages.indexOfFirst { it.id == targetId }
+        if (idx >= 0) {
+            listState.animateScrollToItem(msgStart + idx)
+            highlightedJumpMessage = targetId
+            // 高亮 2.5s 后清除
+            delay(2500)
+            if (highlightedJumpMessage == targetId) highlightedJumpMessage = null
+        }
+    }
     var showMembersDialog by rememberSaveable { mutableStateOf(false) }
     var showToolSheet by rememberSaveable { mutableStateOf(false) }
     // v1.97: 群聊编辑对话框
@@ -343,12 +359,14 @@ fun GroupChatDetailScreen(
     // 用户主动上滑查看历史时不打断。
     // v1.53-GC: 列表头部多了一个"加载更多"指示器 item,自动滚到底部仍以消息 lastIndex 为准
     // (思考指示器在消息之后,不影响"已到底部"判断)。
-    LaunchedEffect(state.currentMessages.size, state.isAgentResponding) {
+    LaunchedEffect(state.currentMessages.size, state.isAgentResponding, state.streamingContent?.length) {
         if (state.currentMessages.isEmpty()) return@LaunchedEffect
         val lastIndex = state.currentMessages.lastIndex
         val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
         val isNearBottom = lastVisible >= lastIndex - 2 || lastVisible < 0
         if (isNearBottom) {
+            // v1.0.74 fix (前端审计 1.6): streamingContent 长度加入 key 后,
+            // 流式输出逐 token 增长时也会触发滚动,用户能看到生成中的内容。
             listState.animateScrollToItem(lastIndex)
         }
     }
@@ -395,7 +413,7 @@ fun GroupChatDetailScreen(
         if (!chatBackground.isNullOrBlank()) {
             io.zer0.muse.ui.SmartImage(
                 model = chatBackground,
-                contentDescription = "聊天背景",
+                contentDescription = stringResource(R.string.groupchat_bg_cd), // 前端修复 (i18n-1)
                 contentScale = androidx.compose.ui.layout.ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
             )
@@ -420,7 +438,8 @@ fun GroupChatDetailScreen(
                     Surface(
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.surfaceVariant,
-                        modifier = Modifier.size(42.dp),
+                        // v1.0.74 fix (前端审计 7): 42dp → 48dp 触摸目标
+                        modifier = Modifier.size(48.dp),
                     ) {
                         Box(
                             modifier = Modifier.fillMaxSize().clickable(onClick = onBack),
@@ -456,7 +475,8 @@ fun GroupChatDetailScreen(
                     // 右岛:三点菜单
                     var showTopMenu by rememberSaveable { mutableStateOf(false) }
                     Box(
-                        modifier = Modifier.size(42.dp),
+                        // v1.0.74 fix (前端审计 7): 42dp → 48dp 触摸目标
+                        modifier = Modifier.size(48.dp),
                         contentAlignment = Alignment.Center,
                     ) {
                         Surface(
@@ -694,6 +714,8 @@ fun GroupChatDetailScreen(
                         message = message,
                         assistants = state.assistants,
                         chatPrefs = state.chatPreferences,
+                        // v1.0.74 fix (前端审计 1.4): 搜索跳转高亮
+                        highlighted = message.id == highlightedJumpMessage,
                         isMoodExpanded = expandedState?.isMoodExpanded,
                         isReasoningExpanded = expandedState?.isReasoningExpanded,
                         onToggleMoodExpanded = { viewModel.toggleMessageMoodExpanded(message.id) },
@@ -873,6 +895,7 @@ fun GroupChatDetailScreen(
             chat?.let { viewModel.parseMemberIds(it) } ?: emptyList()
         }
         EditGroupChatDialog(
+            dialogKey = chatId,
             initialName = chat?.name ?: "",
             assistants = state.assistants,
             initialMemberIds = initialMemberIds,
@@ -950,7 +973,7 @@ fun GroupChatDetailScreen(
                                         .padding(vertical = 8.dp),
                                 ) {
                                     Text(
-                                        text = result.senderName.ifBlank { "用户" },
+                                        text = result.senderName.ifBlank { stringResource(R.string.groupchat_sender_user) }, // 前端修复 (i18n-1)
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.primary,
                                     )
@@ -1080,11 +1103,13 @@ fun GroupChatDetailScreen(
                     ),
                 contentAlignment = Alignment.Center,
             ) {
-                val dark = isSystemInDarkTheme()
-                val bg = if (dark) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
-                val textColor = if (dark) Color(0xFFFFFFFF) else Color(0xFF000000)
-                val iconBlock = if (dark) Color(0xFF2C2C2E) else Color(0xFFF2F2F7)
-                val divider = if (dark) Color(0xFF3A3A3C) else Color(0xFFE5E5EA)
+                // v1.0.74 fix (前端审计 6.2): 改用 colorScheme 跟随 Muse 主题,
+                // 原 isSystemInDarkTheme + 硬编码 iOS 色在应用内主题与系统主题不一致时配色错配。
+                val scheme = MaterialTheme.colorScheme
+                val bg = scheme.surface
+                val textColor = scheme.onSurface
+                val iconBlock = scheme.surfaceVariant
+                val divider = scheme.outlineVariant
                 Surface(
                     color = bg,
                     shape = RoundedCornerShape(22.dp),
@@ -1187,7 +1212,8 @@ fun GroupChatDetailScreen(
 
     // v2.x: 引用回复对话框
     replyToMessage?.let { msg ->
-        var replyText by remember { mutableStateOf("") }
+        // 前端修复 (持久化-10): 引用回复草稿改 rememberSaveable,旋转不丢已输入内容
+        var replyText by rememberSaveable { mutableStateOf("") }
         MuseDialog(
             onDismissRequest = { replyToMessage = null },
             title = stringResource(R.string.groupchat_reply),

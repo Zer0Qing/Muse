@@ -51,8 +51,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -79,6 +81,7 @@ import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -108,15 +111,26 @@ fun QuickNotesScreen(
     val scope = rememberCoroutineScope()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
+    // 前端修复 (性能-3): 页面级共享时间 ticker — 单协程每 60s 广播一次
+    // 当前时间戳,所有卡片共用;替代原先每张卡片一个 produceState 无限循环。
+    val timeTicker by produceState(initialValue = System.currentTimeMillis()) {
+        while (true) {
+            delay(60_000)
+            value = System.currentTimeMillis()
+        }
+    }
     var editingNote by remember { mutableStateOf<QuickNoteEntity?>(null) }
     var noteToDelete by remember { mutableStateOf<QuickNoteEntity?>(null) }
     var noteForMenu by remember { mutableStateOf<QuickNoteEntity?>(null) }
-    var inputText by remember { mutableStateOf("") }
+    // 前端修复 (持久化-6): 输入草稿改 rememberSaveable,旋转/进程重建不丢已输入内容
+    var inputText by rememberSaveable { mutableStateOf("") }
     // 回收站相关弹窗状态
+    // 前端修复 (持久化-6): 弹窗目标为 QuickNoteEntity 复杂对象,无法直接 saveable,保持 remember
     var noteToPermanentDelete by remember { mutableStateOf<QuickNoteEntity?>(null) }
-    var showClearTrashConfirm by remember { mutableStateOf(false) }
+    var showClearTrashConfirm by rememberSaveable { mutableStateOf(false) }
     // 导出/导入菜单 + 文件夹设置 + 提醒设置 弹窗状态
-    var showExportMenu by remember { mutableStateOf(false) }
+    // 前端修复 (持久化-6): Boolean 弹窗态改 rememberSaveable;实体引用保持 remember
+    var showExportMenu by rememberSaveable { mutableStateOf(false) }
     var noteForFolder by remember { mutableStateOf<QuickNoteEntity?>(null) }
     var noteForReminder by remember { mutableStateOf<QuickNoteEntity?>(null) }
     val importLauncher = rememberLauncherForActivityResult(
@@ -327,6 +341,7 @@ fun QuickNotesScreen(
                     items(state.notes, key = { it.id }) { note ->
                         QuickNoteCard(
                             note = note,
+                            now = timeTicker,
                             onCopy = { copyNote(note) },
                             onSendToChat = { sendNoteToChat(note) },
                             onEdit = { editingNote = note },
@@ -669,6 +684,8 @@ private fun QuickNoteTagFilterRow(
 @Composable
 private fun QuickNoteCard(
     note: QuickNoteEntity,
+    /** 前端修复 (性能-3): 页面级共享 ticker 时间戳,用于相对时间刷新。 */
+    now: Long,
     onCopy: () -> Unit,
     onSendToChat: () -> Unit,
     onEdit: () -> Unit,
@@ -843,7 +860,7 @@ private fun QuickNoteCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = formatNoteTime(note.updatedAt),
+                    text = formatNoteTime(note.updatedAt, now),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.outline,
                 )

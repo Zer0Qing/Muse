@@ -36,7 +36,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -62,7 +61,6 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
-import kotlinx.coroutines.delay
 
 /** 卡片元信息小胶囊(文件夹 / 提醒时间标记)。 */
 @Composable
@@ -100,17 +98,17 @@ internal fun NoteMetaChip(
     }
 }
 
-/** 按设计图显示相对时间:今天 HH:mm / 昨天 / N 天前 / MM-dd。 */
+/**
+ * 按设计图显示相对时间:今天 HH:mm / 昨天 / N 天前 / MM-dd。
+ *
+ * 前端修复 (性能-3): 不再每张卡片各自起 60s 无限循环 produceState 协程,
+ * now 由页面级共享 ticker 传入(QuickNotesScreen 单个协程广播),
+ * 卡片只在 ticker 刷新时重算时间文本。
+ */
 @Composable
-internal fun formatNoteTime(timestamp: Long): String {
+internal fun formatNoteTime(timestamp: Long, now: Long): String {
     val fmtTime = remember { SimpleDateFormat(MuseDateFormats.TIME_SHORT, Locale.getDefault()) }
     val fmtDate = remember { SimpleDateFormat(MuseDateFormats.DATE_SHORT, Locale.getDefault()) }
-    val now by produceState(initialValue = System.currentTimeMillis()) {
-        while (true) {
-            delay(60_000)
-            value = System.currentTimeMillis()
-        }
-    }
     if (timestamp <= 0) return ""
 
     val nowCal = Calendar.getInstance().apply { timeInMillis = now }

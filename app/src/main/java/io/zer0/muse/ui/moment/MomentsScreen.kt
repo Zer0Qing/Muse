@@ -40,6 +40,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -92,12 +93,14 @@ fun MomentsScreen(
     modifier: Modifier = Modifier,
 ) {
     // 页内导航(feed / messages / profile / publish / publish_text)
-    var page by remember { mutableStateOf(initialPage) }
-    var profileSenderId by remember { mutableStateOf<String?>(null) }
-    var profileSenderType by remember { mutableStateOf("assistant") }
-    var profileSenderName by remember { mutableStateOf("") }
+    // 前端修复 (持久化-4): 页导航/主页参数均为 String/Boolean 标量,改 rememberSaveable
+    var page by rememberSaveable { mutableStateOf(initialPage) }
+    var profileSenderId by rememberSaveable { mutableStateOf<String?>(null) }
+    var profileSenderType by rememberSaveable { mutableStateOf("assistant") }
+    var profileSenderName by rememberSaveable { mutableStateOf("") }
     // v1.0.74 fix: 发布选图状态 — 此前用顶层普通 var 不触发重组,选图后图片丢失。
     // 改为 remember 的 State,选图回调更新后 PublishDialog 能拿到最新图。
+    // 前端修复 (持久化-4): List<String> 泛型列表无法直接 saveable,保持 remember(临时发布草稿,重建后丢失可接受)
     var pendingPublishImages by remember { mutableStateOf<List<String>>(emptyList()) }
 
     val snackbarHostState = remember { SnackbarHostState() }

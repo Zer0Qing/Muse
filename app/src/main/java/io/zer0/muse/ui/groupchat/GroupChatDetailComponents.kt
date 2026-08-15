@@ -167,6 +167,8 @@ internal fun GroupChatMessageBubble(
     onToggleReasoningExpanded: () -> Unit = {},
     // v1.77: 长按弹出操作菜单(复制 / 删除)
     onLongClick: () -> Unit = {},
+    // v1.0.74 fix (前端审计 1.4): 搜索跳转高亮 — 目标消息短暂高亮提示用户定位
+    highlighted: Boolean = false,
     // v1.x: 多选模式
     selectionMode: Boolean = false,
     selected: Boolean = false,
@@ -177,16 +179,29 @@ internal fun GroupChatMessageBubble(
     val isUser = message.senderType == "user"
     val haptic = LocalHapticFeedback.current
     val interactionSource = remember { MutableInteractionSource() }
+    // v1.0.74 fix (前端审计 6.1): 气泡最大宽按屏宽 70%,大屏/横屏/大字体下不再过窄
+    val maxBubbleWidth = with(androidx.compose.ui.platform.LocalConfiguration.current) {
+        (screenWidthDp * 0.7f).dp
+    }
     // v1.x: 多选模式下点击消息切换选中,长按退出菜单
     val bubbleClick: () -> Unit = { if (selectionMode) onSelectToggle() }
     if (isUser) {
         // 用户消息:右侧气泡
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                // v1.0.74 fix: 搜索跳转高亮
+                .then(
+                    if (highlighted) Modifier
+                        .clip(MuseShapes.semiLarge)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                    else Modifier
+                ),
             horizontalArrangement = Arrangement.End,
         ) {
             Column(
-                modifier = Modifier.widthIn(max = 280.dp),
+                // v1.0.74 fix (前端审计 6.1): 屏宽 70% 替代固定 280dp
+                modifier = Modifier.widthIn(max = maxBubbleWidth),
                 horizontalAlignment = Alignment.End,
             ) {
                 // v1.0.29: combinedClickable 移到 Surface 上,避免 MarkdownText/Text 消费触摸事件
@@ -245,7 +260,15 @@ internal fun GroupChatMessageBubble(
     } else {
         // Agent 消息:左侧 + 头像 + senderName
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                // v1.0.74 fix: 搜索跳转高亮
+                .then(
+                    if (highlighted) Modifier
+                        .clip(MuseShapes.semiLarge)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                    else Modifier
+                ),
             horizontalArrangement = Arrangement.Start,
             verticalAlignment = Alignment.Top,
         ) {
@@ -300,7 +323,8 @@ internal fun GroupChatMessageBubble(
             }
             Spacer(Modifier.width(8.dp))
             // 气泡
-            Column(modifier = Modifier.widthIn(max = 280.dp)) {
+            // v1.0.74 fix (前端审计 6.1): 屏宽 70% 替代固定 280dp
+            Column(modifier = Modifier.widthIn(max = maxBubbleWidth)) {
                 Text(
                     text = message.senderName,
                     style = MaterialTheme.typography.labelMedium,
@@ -773,16 +797,22 @@ internal fun AgentActivityChip(activity: AgentActivity) {
         AgentActivityStatus.IDLE -> ""
     }
     // REPLYING 态呼吸动画:alpha 在 1f↔0.5f 间循环,让 chip 有"正在输出"的视觉反馈
-    val infiniteTransition = rememberInfiniteTransition(label = "activity_pulse")
-    val pulseAlpha = infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 0.5f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(800),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "pulse_alpha",
-    ).value
+    // v1.0.74 fix (前端审计 6.4): 仅 REPLYING 时创建无限动画,
+    // 非 REPLYING 状态不跑动画帧(原实现无条件创建,静止时也每帧驱动)。
+    val pulseAlpha = if (activity.status == AgentActivityStatus.REPLYING) {
+        val infiniteTransition = rememberInfiniteTransition(label = "activity_pulse")
+        infiniteTransition.animateFloat(
+            initialValue = 1f,
+            targetValue = 0.5f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(800),
+                repeatMode = RepeatMode.Reverse,
+            ),
+            label = "pulse_alpha",
+        ).value
+    } else {
+        1f
+    }
     val chipAlpha = if (activity.status == AgentActivityStatus.REPLYING) pulseAlpha else 1f
     Surface(
         shape = MuseShapes.semiLarge,
@@ -1169,6 +1199,9 @@ internal fun MembersDialog(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun EditGroupChatDialog(
+    // v1.0.74 fix (前端审计 6.3): 稳定 key — 用 chatId 而非 initialMemberIds,
+    // 否则群聊元数据 Flow 刷新时 key 变化重置用户编辑中的成员/模式选择。
+    dialogKey: String,
     initialName: String,
     assistants: List<AssistantEntity>,
     initialMemberIds: List<String>,
@@ -1185,15 +1218,16 @@ internal fun EditGroupChatDialog(
     ) -> Unit,
 ) {
     // v1.97: 用 rememberSaveable 持久化编辑中的状态,旋转屏不丢
-    var name by rememberSaveable(initialName) { mutableStateOf(initialName) }
-    var selectedMemberIds by rememberSaveable(initialMemberIds.joinToString(",")) {
+    // v1.0.74 fix (前端审计 6.3): key 统一用 dialogKey(chatId),避免元数据刷新重置编辑
+    var name by rememberSaveable(dialogKey) { mutableStateOf(initialName) }
+    var selectedMemberIds by rememberSaveable(dialogKey) {
         mutableStateOf(initialMemberIds.toSet())
     }
-    var showErrors by rememberSaveable { mutableStateOf(false) }
+    var showErrors by rememberSaveable(dialogKey) { mutableStateOf(false) }
     // v2.x: 讨论模式状态
-    var discussionMode by rememberSaveable(initialDiscussionMode) { mutableStateOf(initialDiscussionMode) }
-    var autoMaxRounds by rememberSaveable(initialAutoMaxRounds) { mutableStateOf(initialAutoMaxRounds) }
-    var hostId by rememberSaveable(initialHostId ?: "") { mutableStateOf(initialHostId ?: "") }
+    var discussionMode by rememberSaveable(dialogKey) { mutableStateOf(initialDiscussionMode) }
+    var autoMaxRounds by rememberSaveable(dialogKey) { mutableStateOf(initialAutoMaxRounds) }
+    var hostId by rememberSaveable(dialogKey) { mutableStateOf(initialHostId ?: "") }
 
     val maxNameLength = 30
     val nameError = showErrors && name.isBlank()

@@ -184,6 +184,25 @@
     <!-- v1.137: Advanced automation config -->
     <string name="schedule_show_advanced">고급 자동화 표시</string>
     <string name="schedule_hide_advanced">고급 자동화 숨기기</string>
+
+    <!-- 前端修复 (i18n-5): describeCron human-readable schedule descriptions -->
+    <string name="schedule_cron_daily">Every day at %1$s</string>
+    <string name="schedule_cron_hourly">Every hour at minute %1$s</string>
+    <string name="schedule_cron_every_minute">Every minute</string>
+    <string name="schedule_cron_workday">Weekdays (Mon-Fri) at %1$s</string>
+    <string name="schedule_cron_weekend">Weekends at %1$s</string>
+    <string name="schedule_cron_weekdays">%1$s at %2$s</string>
+    <string name="schedule_cron_monthly">On day %1$s of every month at %2$s</string>
+    <string name="schedule_cron_sun">Sun</string>
+    <string name="schedule_cron_mon">Mon</string>
+    <string name="schedule_cron_tue">Tue</string>
+    <string name="schedule_cron_wed">Wed</string>
+    <string name="schedule_cron_thu">Thu</string>
+    <string name="schedule_cron_fri">Fri</string>
+    <string name="schedule_cron_sat">Sat</string>
+    <string name="schedule_chain_cycle_error">Cannot select a task that would create a cycle</string>
+    <string name="schedule_default_model">Default model</string>
+    <string name="schedule_assistant_tools">%1$s · %2$d tools</string>
     <string name="schedule_condition_title">트리거 조건</string>
     <string name="schedule_condition_type_always">언제나</string>
     <string name="schedule_condition_type_network_available">네트워크 사용 가능</string>
@@ -308,6 +327,10 @@
     <string name="knowledge_doc_chars">%1$s · %2$d 문자</string>
     <string name="knowledge_doc_chunks">· %1$d 청크</string>
     <string name="knowledge_doc_not_indexed">· 색인이 생성되지 않음</string>
+
+    <!-- 前端修复 (i18n-7): PDF metadata card -->
+    <string name="knowledge_doc_info">Document info</string>
+    <string name="knowledge_doc_outline">Outline (%1$d items)</string>
     <string name="knowledge_sort_updated">업데이트된 시간별</string>
     <string name="knowledge_sort_created">생성시간별</string>
     <string name="knowledge_sort_title">제목별</string>
@@ -517,6 +540,12 @@
     <string name="groupchat_tool_summary">요약</string>
     <string name="groupchat_tool_context">그룹 컨텍스트</string>
     <string name="groupchat_tool_mention">@언급하다</string>
+
+    <!-- 前端修复 (i18n-1/2): group chat detail background desc, clear memory -->
+    <string name="groupchat_bg_cd">Chat background</string>
+    <string name="groupchat_clear_memory">Clear group memory</string>
+    <string name="groupchat_clear_memory_confirm">Clear this group\'s memory? Assistants will no longer reference past discussion summaries (including tone and style).</string>
+    <string name="groupchat_clear_memory_btn">Clear</string>
 
     <!-- ===== v1.201: human-in-the-loop / delegation pause ===== -->
     <string name="delegation_pause_section_title">인간 참여형</string>

@@ -89,6 +89,14 @@ fun GroupChatListScreen(
     val scope = rememberCoroutineScope()
     // P2-1: 大屏(Expanded)下内容区居中限宽 720dp
     val widthClass = rememberWindowWidthClass()
+    // 前端修复 (性能-4): 页面级共享时间 ticker — 单协程每 60s 广播一次
+    // 当前时间戳,所有群聊卡片共用;替代原先每张卡片一个 produceState 无限循环。
+    val timeTicker by produceState(initialValue = System.currentTimeMillis()) {
+        while (true) {
+            delay(60_000)
+            value = System.currentTimeMillis()
+        }
+    }
 
     // P2-1: Box 包裹,Expanded 模式下居中限宽
     Box(
@@ -181,6 +189,7 @@ fun GroupChatListScreen(
                         chat = chat,
                         members = members,
                         memberCount = memberIds.size,
+                        now = timeTicker,
                         viewModel = viewModel,
                         onClick = { onOpenChat(chat.id) },
                         onTogglePin = { viewModel.togglePin(chat.id) },
@@ -255,13 +264,17 @@ private fun GroupChatCard(
     chat: GroupChatEntity,
     members: List<AssistantEntity>,
     memberCount: Int,
+    /** 前端修复 (性能-4): 页面级共享 ticker 时间戳,用于相对时间刷新。 */
+    now: Long,
     viewModel: GroupChatViewModel,
     onClick: () -> Unit,
     onTogglePin: () -> Unit,
     onDelete: () -> Unit,
     onClearMemory: () -> Unit,
 ) {
-    // 异步加载最新消息预览
+    // 异步加载最新消息预览。
+    // 前端修复 (性能-4): produceState 以 chat.id 为 key,协程只在首次组合 /
+    // chat.id 变化时启动;页面级 ticker 触发的重组不会重启该协程,不会重复查 DB。
     val latestMessage by produceState<GroupChatMessageEntity?>(
         initialValue = null,
         chat.id,
@@ -318,7 +331,7 @@ private fun GroupChatCard(
             Spacer(Modifier.width(8.dp))
             // 右侧:时间 + chevron
             Text(
-                text = formatRelativeTime(chat.updatedAt),
+                text = formatRelativeTime(chat.updatedAt, now),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -351,7 +364,7 @@ private fun GroupChatCard(
                         showMenu = false
                         showClearMemoryConfirm = true
                     }) {
-                        Text("清空群聊记忆", color = MaterialTheme.colorScheme.error)
+                        Text(stringResource(R.string.groupchat_clear_memory), color = MaterialTheme.colorScheme.error) // 前端修复 (i18n-2)
                     }
                 }
             },
@@ -365,15 +378,15 @@ private fun GroupChatCard(
     if (showClearMemoryConfirm) {
         MuseDialog(
             onDismissRequest = { showClearMemoryConfirm = false },
-            title = "清空群聊记忆",
+            title = stringResource(R.string.groupchat_clear_memory), // 前端修复 (i18n-2)
             content = {
                 Text(
-                    text = "确定清空本群的群聊记忆?助手将不再引用本群过往发言摘要(包含语气风格)。",
+                    text = stringResource(R.string.groupchat_clear_memory_confirm), // 前端修复 (i18n-2)
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
-            confirmText = "清空",
+            confirmText = stringResource(R.string.groupchat_clear_memory_btn), // 前端修复 (i18n-2)
             onConfirm = {
                 showClearMemoryConfirm = false
                 onClearMemory()
@@ -468,21 +481,15 @@ private fun LatestMessagePreview(message: GroupChatMessageEntity?): String {
 
 /**
  * 格式化相对时间(刚刚 / N分钟前 / HH:mm / MM-dd)。
+ *
+ * 前端修复 (性能-4): now 由页面级共享 ticker 传入,卡片不再各自起
+ * 60s 无限循环 produceState 协程;ticker 刷新时统一重算时间文本。
  */
 @Composable
-private fun formatRelativeTime(timestamp: Long): String {
+private fun formatRelativeTime(timestamp: Long, now: Long): String {
     // v1.71: 用 remember 缓存 SimpleDateFormat(必须在条件分支之前调用)
     val timeFmt = remember { SimpleDateFormat(MuseDateFormats.TIME_SHORT, Locale.getDefault()) }
     val dateFmt = remember { SimpleDateFormat(MuseDateFormats.DATE_SHORT, Locale.getDefault()) }
-    // M-GC4 修复: 原先仅读一次 System.currentTimeMillis(),列表停留在屏幕上时"刚刚/N分钟前"不会
-    // 随时间推移刷新。现用 produceState 每 60 秒触发一次重组,使相对时间自动更新。
-    // produceState 协程在组合离开时自动取消,不会泄漏。
-    val now by produceState(initialValue = System.currentTimeMillis()) {
-        while (true) {
-            delay(60_000)
-            value = System.currentTimeMillis()
-        }
-    }
     if (timestamp <= 0) return ""
     val diff = now - timestamp
     val justNow = stringResource(R.string.groupchat_just_now)

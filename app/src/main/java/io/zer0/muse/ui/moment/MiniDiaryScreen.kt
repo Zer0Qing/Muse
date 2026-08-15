@@ -35,6 +35,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,9 +57,10 @@ fun MiniDiaryScreen(
 ) {
     // 当前浏览的年月
     val today = java.time.LocalDate.now()
-    var viewYear by remember { mutableStateOf(today.year) }
-    var viewMonth by remember { mutableStateOf(today.monthValue) }
-    var selectedDate by remember { mutableStateOf(today.toString()) }
+    // 前端修复 (持久化-5): viewYear/viewMonth/selectedDate 均为 Int/String,改 rememberSaveable,旋转不丢浏览位置
+    var viewYear by rememberSaveable { mutableStateOf(today.year) }
+    var viewMonth by rememberSaveable { mutableStateOf(today.monthValue) }
+    var selectedDate by rememberSaveable { mutableStateOf(today.toString()) }
     var monthDiaries by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var diaryContent by remember { mutableStateOf<String?>(null) }
     var loadingDiary by remember { mutableStateOf(false) }
@@ -151,12 +153,17 @@ fun MiniDiaryScreen(
                     val d = java.time.LocalDate.of(viewYear, viewMonth, 1).minusMonths(1)
                     viewYear = d.year
                     viewMonth = d.monthValue
+                    // v1.0.74 fix (前端审计 1.2): 翻月重置选中日期为当月 1 日,
+                    // 否则 selectedDate 停留在旧月份,详情区"新月份标题 + 旧月份内容"错位。
+                    selectedDate = d.toString()
                     loadMonth()
                 },
                 onNextMonth = {
                     val d = java.time.LocalDate.of(viewYear, viewMonth, 1).plusMonths(1)
                     viewYear = d.year
                     viewMonth = d.monthValue
+                    // v1.0.74 fix (前端审计 1.2): 同上,重置选中日期
+                    selectedDate = d.toString()
                     loadMonth()
                 },
             )

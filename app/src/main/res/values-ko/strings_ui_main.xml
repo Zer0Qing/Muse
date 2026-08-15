@@ -670,4 +670,22 @@
     <string name="tts_not_ready">TTS 正재初始化,请稍后중화</string>
     <string name="chat_jump_to_unread">가장 오래된 읽지 않음으로 · %1$d</string>
     <string name="chat_list_reorder">드래그하여 정렬</string>
+    <!-- 前端修复 (i18n-3.x): 设置页搜索索引 SettingsEntry title i18n(临时复制中文,后续补译) -->
+    <string name="settings_screen_entry_tts_playback">TTS 语音播报</string>
+    <string name="settings_screen_entry_api_key">API Key</string>
+    <string name="settings_screen_entry_ocr">OCR 文字识别</string>
+    <string name="settings_screen_entry_archived">归档聊天</string>
+    <string name="settings_screen_entry_font_size">字号</string>
+    <string name="settings_screen_entry_theme_mode">主题模式</string>
+    <string name="settings_screen_entry_scheduled_theme">定时切换主题</string>
+    <string name="settings_screen_entry_enter_send">回车发送</string>
+    <string name="settings_screen_entry_auto_scroll">自动滚动</string>
+    <string name="settings_screen_entry_timestamps">消息时间戳</string>
+    <string name="settings_screen_entry_tts_speed">TTS 语速</string>
+    <string name="settings_screen_entry_memory_toggle">记忆开关</string>
+    <string name="settings_screen_entry_proxy_switch">代理开关</string>
+    <string name="settings_screen_entry_rag_model">检索模型</string>
+    <string name="settings_screen_entry_chunking">分段策略</string>
+    <string name="settings_screen_entry_tool_approval">工具批准模式</string>
+    <string name="settings_screen_entry_collab">协作助手</string>
 </resources>

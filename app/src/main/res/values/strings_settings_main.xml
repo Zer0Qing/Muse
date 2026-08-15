@@ -446,4 +446,15 @@
     <string name="settings_chat_tool_approval_strict_desc">严格模式:除只读查询类工具外,所有工具调用都需要你确认</string>
     <string name="settings_chat_tool_approval_per_tool">单工具策略</string>
     <string name="settings_chat_tool_approval_per_tool_subtitle">为每个工具单独设置允许 / 拒绝 / 询问</string>
+
+    <!-- 前端修复 (i18n-3.x): 楼层式上下文限制 i18n -->
+    <string name="settings_chat_floor_limiter">楼层式上下文限制</string>
+    <string name="settings_chat_floor_limiter_subtitle">以用户消息为楼层,保留最近 N 层完整对话,避免截断到对话中间</string>
+    <string name="settings_chat_floor_count">%1$d 层</string>
+    <string name="settings_chat_floor_keep">保留楼层数</string>
+    <string name="settings_chat_floor_keep_subtitle">超过此层数的旧消息会被截断</string>
+
+    <!-- 前端修复 (i18n-3.x): 公共清空文案(表情包/群聊记忆共用) -->
+    <string name="settings_common_clear_all">清空全部</string>
+    <string name="settings_common_clear">清空</string>
 </resources>

@@ -74,7 +74,8 @@ fun MuseEmptyState(
             animationSpec = tween(MuseAnimation.NORMAL_MS, easing = MuseAnimation.EaseOutCubic),
         ) + slideInVertically(
             animationSpec = tween(MuseAnimation.NORMAL_MS, easing = MuseAnimation.EaseOutCubic),
-            initialOffsetY = { 20 },
+            // v1.0.74 fix (前端审计 7): 裸 20px 改高度一半(密度无关)
+            initialOffsetY = { it / 2 },
         ),
     ) {
         Column(

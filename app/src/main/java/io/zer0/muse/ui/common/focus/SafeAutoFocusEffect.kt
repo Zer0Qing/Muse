@@ -2,6 +2,9 @@ package io.zer0.muse.ui.common.focus
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.distinctUntilChanged
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.focus.FocusRequester
 
@@ -25,13 +28,20 @@ fun SafeAutoFocusEffect(focusRequester: FocusRequester) {
     }
 }
 
-/** 同上,但可由调用方控制触发条件(需要读其他状态时用)。 */
+/** 同上,但可由调用方控制触发条件(需要读其他状态时用)。
+ * v1.0.74 fix (前端审计 3.8): 原 LaunchedEffect(Unit) 只求值一次 condition,
+ * 若首帧条件为 false(如搜索态稍后才置真)之后永远不会聚焦。
+ * 改用 snapshotFlow 观察,条件变 true 时聚焦。
+ */
 @Composable
 fun SafeAutoFocusEffect(condition: () -> Boolean, focusRequester: FocusRequester) {
-    LaunchedEffect(Unit) {
-        if (condition()) {
-            withFrameNanos { }
-            runCatching { focusRequester.requestFocus() }
-        }
+    LaunchedEffect(focusRequester) {
+        snapshotFlow { condition() }
+            .distinctUntilChanged()
+            .filter { it }
+            .collect {
+                withFrameNanos { }
+                runCatching { focusRequester.requestFocus() }
+            }
     }
 }

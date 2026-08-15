@@ -42,6 +42,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -96,12 +97,20 @@ fun AssistantScreen(
     val repo: AssistantRepository = koinInject()
     val settings: SettingsRepository = koinInject()
     val defaultAssistantId by settings.defaultAssistantIdFlow.collectAsStateWithLifecycle(initialValue = "default")
-    var showDefaultAssistantPicker by remember { mutableStateOf(false) }
+    // 前端修复 (持久化-2): Boolean 弹窗态改 rememberSaveable
+    var showDefaultAssistantPicker by rememberSaveable { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    var actionSheetAssistant by remember { mutableStateOf<AssistantEntity?>(null) }
-    var deleteTarget by remember { mutableStateOf<AssistantEntity?>(null) }
+    // 前端修复 (持久化-2): AssistantEntity 无法直接 saveable,改为存 id(String) 再查找
+    var actionSheetAssistantId by rememberSaveable { mutableStateOf<String?>(null) }
+    var deleteTargetId by rememberSaveable { mutableStateOf<String?>(null) }
     val context = LocalContext.current
-    var exportTarget by remember { mutableStateOf<AssistantEntity?>(null) }
+    var exportTargetId by rememberSaveable { mutableStateOf<String?>(null) }
+
+    // 前端修复 (持久化-2): 由保存的 id 反查实体(列表来自 ViewModel state,进程重建后仍可恢复;
+    // id 找不到时反查为 null,弹窗自然不显示,安全降级)
+    val actionSheetAssistant = actionSheetAssistantId?.let { id -> state.assistants.find { it.id == id } }
+    val deleteTarget = deleteTargetId?.let { id -> state.assistants.find { it.id == id } }
+    val exportTarget = exportTargetId?.let { id -> state.assistants.find { it.id == id } }
 
     // i18n: 预提取字符串资源
     val screenTitle = stringResource(R.string.assistant_screen_title)
@@ -138,7 +147,7 @@ fun AssistantScreen(
         contract = ActivityResultContracts.CreateDocument("application/octet-stream"),
     ) { uri ->
         val target = exportTarget
-        exportTarget = null
+        exportTargetId = null
         if (uri != null && target != null) {
             scope.launch {
                 runCatching { AssistantCardExporter.export(context, target, uri) }
@@ -321,7 +330,7 @@ fun AssistantScreen(
                                 item(
                                     key = assistant.id,
                                     onClick = { onOpenDetail(assistant.id) },
-                                    onLongClick = { actionSheetAssistant = assistant },
+                                    onLongClick = { actionSheetAssistantId = assistant.id },
                                     leadingContent = {
                                         AssistantAvatar(assistant = assistant, avatarSize = 44.dp)
                                     },
@@ -354,7 +363,7 @@ fun AssistantScreen(
                                     },
                                     trailingContent = {
                                         IconButton(
-                                            onClick = { actionSheetAssistant = assistant },
+                                            onClick = { actionSheetAssistantId = assistant.id },
                                             modifier = Modifier.size(MuseIconSizes.touchTarget),
                                         ) {
                                             Icon(
@@ -487,7 +496,7 @@ fun AssistantScreen(
         val canMoveDown = currentIndex >= 0 && currentIndex < state.assistants.size - 1
 
         MuseDialog(
-            onDismissRequest = { actionSheetAssistant = null },
+            onDismissRequest = { actionSheetAssistantId = null },
             title = assistant.name.ifBlank { unnamedText },
             content = {
                 Column(modifier = Modifier.fillMaxWidth()) {
@@ -525,7 +534,7 @@ fun AssistantScreen(
                                         ),
                                     )
                                 }
-                                actionSheetAssistant = null
+                                actionSheetAssistantId = null
                             },
                         )
                     }
@@ -552,7 +561,7 @@ fun AssistantScreen(
                                         ),
                                     )
                                 }
-                                actionSheetAssistant = null
+                                actionSheetAssistantId = null
                             },
                         )
                     }
@@ -564,7 +573,7 @@ fun AssistantScreen(
                         text = cloneText,
                         onClick = {
                             cloneAssistant(assistant)
-                            actionSheetAssistant = null
+                            actionSheetAssistantId = null
                         },
                     )
 
@@ -574,8 +583,8 @@ fun AssistantScreen(
                         contentDescription = exportCardCd,
                         text = exportCardText,
                         onClick = {
-                            exportTarget = assistant
-                            actionSheetAssistant = null
+                            exportTargetId = assistant.id
+                            actionSheetAssistantId = null
                             val safeName = assistant.name
                                 .ifBlank { "assistant" }
                                 .replace(Regex("[\\\\/:*?\"<>|]"), "_")
@@ -591,8 +600,8 @@ fun AssistantScreen(
                             text = deleteText,
                             tint = MaterialTheme.colorScheme.error,
                             onClick = {
-                                deleteTarget = assistant
-                                actionSheetAssistant = null
+                                deleteTargetId = assistant.id
+                                actionSheetAssistantId = null
                             },
                         )
                     }
@@ -600,7 +609,7 @@ fun AssistantScreen(
             },
             onConfirm = null,
             dismissText = closeText,
-            onDismiss = { actionSheetAssistant = null },
+            onDismiss = { actionSheetAssistantId = null },
         )
     }
 
@@ -611,9 +620,9 @@ fun AssistantScreen(
             itemName = target.name,
             onConfirm = {
                 scope.launch { repo.delete(target.id) }
-                deleteTarget = null
+                deleteTargetId = null
             },
-            onDismiss = { deleteTarget = null },
+            onDismiss = { deleteTargetId = null },
         )
     }
 }

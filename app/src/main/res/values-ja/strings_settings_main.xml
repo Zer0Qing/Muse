@@ -439,4 +439,14 @@
     <string name="settings_chat_expand_button">显示全屏编辑按钮</string>
     <string name="settings_chat_expand_button_subtitle">在输入栏右側显示全屏编辑按钮</string>
     <string name="settings_provider_deselect_all">取消全選択</string>
+    <!-- 前端修复 (i18n-3.x): 楼层式上下文限制 i18n(临时复制中文,后续补译) -->
+    <string name="settings_chat_floor_limiter">楼层式上下文限制</string>
+    <string name="settings_chat_floor_limiter_subtitle">以用户消息为楼层,保留最近 N 层完整对话,避免截断到对话中间</string>
+    <string name="settings_chat_floor_count">%1$d 层</string>
+    <string name="settings_chat_floor_keep">保留楼层数</string>
+    <string name="settings_chat_floor_keep_subtitle">超过此层数的旧消息会被截断</string>
+
+    <!-- 前端修复 (i18n-3.x): 公共清空文案(表情包/群聊记忆共用) -->
+    <string name="settings_common_clear_all">清空全部</string>
+    <string name="settings_common_clear">清空</string>
 </resources>

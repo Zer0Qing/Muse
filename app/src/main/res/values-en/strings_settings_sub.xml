@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Agent Settings -->
     <string name="settings_agent_model_not_configured">Not configured</string>
     <string name="settings_agent_tool_model_not_set">Not set</string>
@@ -545,4 +545,41 @@
     <string name="settings_theme_custom_color_s">Saturation</string>
     <string name="settings_theme_custom_color_l">Lightness</string>
     <string name="settings_agent_bound_assistant_hint">This page is bound to the current assistant and follows automatically when you switch assistants</string>
+
+    <!-- 前端修复 (i18n-3.x): Proactive message section i18n -->
+    <string name="settings_agent_dm_subtitle">View private messages between Agents</string>
+    <string name="settings_agent_allowed_start">Allowed start hour</string>
+    <string name="settings_agent_allowed_start_hint">Proactive messages are only sent within the allowed window, to avoid disturbing you at night (24-hour clock)</string>
+    <string name="settings_agent_allowed_end">Allowed end hour</string>
+    <string name="settings_agent_allowed_end_hint">The end hour can be earlier than the start hour (e.g. start 22, end 8 means a window from 10 PM to 8 AM the next day)</string>
+    <string name="settings_agent_agent_only">Agent sessions only</string>
+    <string name="settings_agent_agent_only_subtitle">When enabled, only Agent assistants send proactive messages; task sessions do not</string>
+    <string name="settings_agent_daily_limit">Daily limit</string>
+    <string name="settings_agent_daily_unlimited">Unlimited</string>
+    <string name="settings_agent_daily_per_day" tools:ignore="PluralsCandidate">%1$d per day</string>
+    <string name="settings_agent_daily_unlimited_hint">No cap on count; send whenever scoring and probability pass (great for high-frequency companionship)</string>
+    <string name="settings_agent_daily_limited_hint">Maximum number of proactive messages sent per day; excess is skipped until the next day</string>
+    <string name="settings_agent_daily_count" tools:ignore="PluralsCandidate">%1$d per day</string>
+    <string name="settings_agent_daily_min">1 per day</string>
+    <string name="settings_agent_daily_max">10 per day</string>
+    <string name="settings_agent_daily_set_unlimited">Set unlimited</string>
+    <string name="settings_agent_daily_unlimited_checked">✓ Unlimited</string>
+    <string name="settings_agent_temperature">Generation temperature</string>
+    <string name="settings_agent_temperature_hint">Decision stage uses temperature×0.5 (more deterministic); generation stage uses this value. Higher values are more creative, lower values are more stable</string>
+    <string name="settings_agent_temperature_stable">0.0 Stable</string>
+    <string name="settings_agent_temperature_creative">2.0 Creative</string>
+    <string name="settings_agent_send_probability">Send probability</string>
+    <string name="settings_agent_send_probability_hint" formatted="false">After a proactive message passes decision, this probability decides whether it is actually sent. 100% = always send, 50% = half the time, 0% = only keep the decision log</string>
+    <string name="settings_agent_probability_never">0%% Never</string>
+    <string name="settings_agent_probability_always">100%% Always</string>
+    <string name="settings_agent_probability_never_label">Rarely sent (0%%)</string>
+    <string name="settings_agent_probability_always_label">Always sent (100%%)</string>
+    <string name="settings_agent_probability_value">%1$d%%</string>
+    <string name="settings_agent_test_message">Test proactive message</string>
+    <string name="settings_agent_test_message_subtitle">Send one like a real proactive message (shown as a notification)</string>
+    <string name="settings_agent_test_generating">Generating…</string>
+    <string name="settings_agent_test_sent">Test message sent, check the notification bar</string>
+    <string name="settings_agent_test_failed">Test failed:%1$s</string>
+    <string name="settings_agent_daily_summary">Daily summary push</string>
+    <string name="settings_agent_daily_summary_subtitle">Pushes a summary of today\'s conversations at 7:30 PM (skipped when off, resumes when re-enabled)</string>
 </resources>

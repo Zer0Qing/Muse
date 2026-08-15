@@ -49,6 +49,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -70,6 +71,7 @@ import io.zer0.muse.ui.theme.semiLarge
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 
@@ -132,30 +134,36 @@ fun VoiceCloningPage(
     val strEmpty = stringResource(R.string.voice_cloning_list_empty)
     val strDeleteConfirm = stringResource(R.string.voice_cloning_delete_confirm)
 
-    // 切换 Provider 时自动加载列表(若 apiKey 已填)
-    LaunchedEffect(selectedProvider, apiKey) {
-        if (apiKey.isBlank()) {
-            voices.clear()
-            return@LaunchedEffect
-        }
-        // 透传 apiKey 到 ElevenLabs provider(后续 provider 可扩展类似 setter)
-        if (selectedProvider == "elevenlabs") {
-            elevenLabsProvider.apiKey = apiKey.trim()
-        }
-        if (selectedProvider == "fish") {
-            fishProvider.apiKey = apiKey.trim()
-            fishProvider.endpoint = settings.mediaConfigFlow.first().ttsEndpoint
-        }
-        isLoadingList = true
-        voiceCloningService.listClonedVoices(selectedProvider)
-            .onSuccess { list ->
-                voices.clear()
-                voices.addAll(list)
+    // v1.0.74 fix (前端审计 1.5): apiKey 每字符触发网络请求 → 500ms debounce。
+    // 原实现 LaunchedEffect(selectedProvider, apiKey) 里 apiKey 是实时输入态,
+    // 用户每敲一个字符都 listClonedVoices,输入卡顿且烧 API 配额。
+    LaunchedEffect(selectedProvider) {
+        snapshotFlow { apiKey.trim() }
+            .debounce(500)
+            .collect { key ->
+                if (key.isBlank()) {
+                    voices.clear()
+                    return@collect
+                }
+                // 透传 apiKey 到 ElevenLabs provider(后续 provider 可扩展类似 setter)
+                if (selectedProvider == "elevenlabs") {
+                    elevenLabsProvider.apiKey = key
+                }
+                if (selectedProvider == "fish") {
+                    fishProvider.apiKey = key
+                    fishProvider.endpoint = settings.mediaConfigFlow.first().ttsEndpoint
+                }
+                isLoadingList = true
+                voiceCloningService.listClonedVoices(selectedProvider)
+                    .onSuccess { list ->
+                        voices.clear()
+                        voices.addAll(list)
+                    }
+                    .onError { msg, _ ->
+                        MuseToast.show(msg, 3000)
+                    }
+                isLoadingList = false
             }
-            .onError { msg, _ ->
-                MuseToast.show(msg, 3000)
-            }
-        isLoadingList = false
     }
 
     Scaffold(

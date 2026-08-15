@@ -670,4 +670,23 @@
     <string name="tts_not_ready">TTS 正在初始化,请稍后重试</string>
     <string name="chat_jump_to_unread">Jump to earliest unread · %1$d</string>
     <string name="chat_list_reorder">Drag to reorder</string>
+
+    <!-- 前端修复 (i18n-3.x): Settings screen search index entry titles -->
+    <string name="settings_screen_entry_tts_playback">TTS voice playback</string>
+    <string name="settings_screen_entry_api_key">API Key</string>
+    <string name="settings_screen_entry_ocr">OCR text recognition</string>
+    <string name="settings_screen_entry_archived">Archived chats</string>
+    <string name="settings_screen_entry_font_size">Font size</string>
+    <string name="settings_screen_entry_theme_mode">Theme mode</string>
+    <string name="settings_screen_entry_scheduled_theme">Scheduled theme switch</string>
+    <string name="settings_screen_entry_enter_send">Enter to send</string>
+    <string name="settings_screen_entry_auto_scroll">Auto scroll</string>
+    <string name="settings_screen_entry_timestamps">Message timestamps</string>
+    <string name="settings_screen_entry_tts_speed">TTS speed</string>
+    <string name="settings_screen_entry_memory_toggle">Memory toggle</string>
+    <string name="settings_screen_entry_proxy_switch">Proxy switch</string>
+    <string name="settings_screen_entry_rag_model">Retrieval model</string>
+    <string name="settings_screen_entry_chunking">Chunking strategy</string>
+    <string name="settings_screen_entry_tool_approval">Tool approval mode</string>
+    <string name="settings_screen_entry_collab">Collaborative assistants</string>
 </resources>

@@ -17,9 +17,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
@@ -64,9 +66,7 @@ import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
-import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.common.surface.MuseSurface
-import io.zer0.muse.ui.common.surface.MuseDivider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.getValue
@@ -354,21 +354,34 @@ internal fun SearchResultsList(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        item {
-            CardGroup {
-                results.forEach { item ->
-                    item(
-                        key = item.id,
-                        headlineContent = { MemoryRowHeadline(item) },
-                        supportingContent = { MemoryRowSupporting(item) },
-                        trailingContent = {
-                            MemoryRowTrailing(
-                            item = item,
-                            onDelete = { item -> onDelete(item.id) },
-                            onEdit = null,
-                            onSetImportance = null,
-                        )
-                        },
+        // 前端修复 (性能-2): 搜索结果由 CardGroup 全量 Column 渲染改为
+        // LazyColumn 顶层 items(key=id) 平铺,懒加载渲染;每行独立圆角卡片
+        // (布局对齐原 CardGroup 项的 headline/supporting/trailing 结构)。
+        itemsIndexed(results, key = { _, item -> item.id }) { _, item ->
+            MuseSurface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MuseShapes.extraLarge,
+                color = MaterialTheme.colorScheme.surface,
+                elevation = MuseElevation.card,
+                tonalElevation = MuseElevation.none,
+                border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(MusePaddings.cardInner),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        MemoryRowHeadline(item)
+                        MemoryRowSupporting(item)
+                    }
+                    Spacer(Modifier.width(MusePaddings.contentGap))
+                    MemoryRowTrailing(
+                        item = item,
+                        onDelete = { onDelete(item.id) },
+                        onEdit = null,
+                        onSetImportance = null,
                     )
                 }
             }
@@ -402,15 +415,14 @@ internal fun LazyListScope.categoryGroupedMemoryListItems(
 
     // 命中 selectedCategory 时,直接平铺列表
     if (selectedCategory != null) {
-        item {
-            MemoryCardGroup(
-                items = items,
-                onDelete = onDelete,
-                onEdit = onEdit,
-                onSetImportance = onSetImportance,
-                onTogglePin = onTogglePin,
-            )
-        }
+        // 前端修复 (性能-2): 由 item { MemoryCardGroup } 全量渲染改为顶层平铺
+        memoryCardGroupItems(
+            items = items,
+            onDelete = onDelete,
+            onEdit = onEdit,
+            onSetImportance = onSetImportance,
+            onTogglePin = onTogglePin,
+        )
         return
     }
 
@@ -429,15 +441,14 @@ internal fun LazyListScope.categoryGroupedMemoryListItems(
                 count = groupItems.size,
             )
         }
-        item {
-            MemoryCardGroup(
-                items = groupItems,
-                onDelete = onDelete,
-                onEdit = onEdit,
-                onSetImportance = onSetImportance,
-                onTogglePin = onTogglePin,
-            )
-        }
+        // 前端修复 (性能-2): 组内由 item { MemoryCardGroup } 全量渲染改为顶层平铺
+        memoryCardGroupItems(
+            items = groupItems,
+            onDelete = onDelete,
+            onEdit = onEdit,
+            onSetImportance = onSetImportance,
+            onTogglePin = onTogglePin,
+        )
     }
 }
 
@@ -484,38 +495,33 @@ internal fun CategorySectionHeader(
 }
 
 /**
- * 单条记忆卡片组 — v1.x 重写: 正文全宽展示,四个工具图标收进 ⋮ 菜单。
- * 原实现右侧 trailing 挤占正文空间(正文只剩一两字),改为操作菜单后正文完整可读。
+ * 前端修复 (性能-2): 记忆行分组 — 由 @Composable Column 全量渲染改为
+ * LazyListScope items(key=id) 顶层平铺,懒加载渲染。
+ * 每行独立圆角卡片(替代原整组圆角卡 + 内部 divider)。
  */
-@Composable
-internal fun MemoryCardGroup(
+internal fun LazyListScope.memoryCardGroupItems(
     items: List<MemoryItem>,
     onDelete: (String) -> Unit,
     onEdit: (MemoryItem) -> Unit,
     onSetImportance: (MemoryItem) -> Unit,
     onTogglePin: (MemoryItem) -> Unit,
 ) {
-    MuseSurface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MuseShapes.extraLarge,
-        color = MaterialTheme.colorScheme.surface,
-        elevation = MuseElevation.card,
-        tonalElevation = MuseElevation.none,
-        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
-    ) {
-        Column {
-            items.forEachIndexed { index, item ->
-                MemoryFactRow(
-                    item = item,
-                    onDelete = { onDelete(item.id) },
-                    onEdit = onEdit,
-                    onSetImportance = onSetImportance,
-                    onTogglePin = onTogglePin,
-                )
-                if (index != items.lastIndex) {
-                    MuseDivider()
-                }
-            }
+    itemsIndexed(items, key = { _, item -> item.id }) { _, item ->
+        MuseSurface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = MuseShapes.extraLarge,
+            color = MaterialTheme.colorScheme.surface,
+            elevation = MuseElevation.card,
+            tonalElevation = MuseElevation.none,
+            border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
+        ) {
+            MemoryFactRow(
+                item = item,
+                onDelete = { onDelete(item.id) },
+                onEdit = onEdit,
+                onSetImportance = onSetImportance,
+                onTogglePin = onTogglePin,
+            )
         }
     }
 }

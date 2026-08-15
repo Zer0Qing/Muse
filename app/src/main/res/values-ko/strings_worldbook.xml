@@ -55,6 +55,9 @@
     <string name="worldbook_field_enabled">활성화됨</string>
     <string name="worldbook_field_enabled_desc">비활성화된 항목은 삽입되지 않습니다.</string>
 
+    <!-- 前端修复 (i18n-8): export toast -->
+    <string name="worldbook_exported_to">Exported to %1$s</string>
+
     <!-- Settings entry -->
     <string name="settings_assistant_worldbook">다이내믹 월드북</string>
     <string name="settings_assistant_worldbook_subtitle">고급 동적 프롬프트 주입</string>

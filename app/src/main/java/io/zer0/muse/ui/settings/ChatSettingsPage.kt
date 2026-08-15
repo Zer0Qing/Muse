@@ -678,14 +678,18 @@ fun ChatSettingsPage(
             SettingsGroup {
                 SettingsSwitchRow(
                     icon = TablerIcons.ArrowsVertical,
-                    title = "楼层式上下文限制",
-                    subtitle = "以用户消息为楼层,保留最近 N 层完整对话,避免截断到对话中间",
+                    title = stringResource(R.string.settings_chat_floor_limiter),
+                    subtitle = stringResource(R.string.settings_chat_floor_limiter_subtitle),
                     checked = floorLimiterEnabled,
                     onCheckedChange = { v -> scope.launch { settings.saveFloorLimiterEnabled(v) } },
                 )
                 if (floorLimiterEnabled) {
                     SettingsGroupDivider()
-                    val floorOptions = listOf("8 层", "16 层", "32 层")
+                    val floorOptions = listOf(
+                        stringResource(R.string.settings_chat_floor_count, 8),
+                        stringResource(R.string.settings_chat_floor_count, 16),
+                        stringResource(R.string.settings_chat_floor_count, 32),
+                    )
                     val floorIndex = when (floorLimit) {
                         8 -> 0
                         32 -> 2
@@ -693,8 +697,8 @@ fun ChatSettingsPage(
                     }
                     SettingsSegmentedRow(
                         icon = TablerIcons.ArrowsVertical,
-                        title = "保留楼层数",
-                        subtitle = "超过此层数的旧消息会被截断",
+                        title = stringResource(R.string.settings_chat_floor_keep),
+                        subtitle = stringResource(R.string.settings_chat_floor_keep_subtitle),
                         options = floorOptions,
                         selectedIndex = floorIndex,
                         onSelectedChange = { idx ->
@@ -905,7 +909,7 @@ private fun StickerLibrarySection(
                 stickerImportProgress = if (total != null && total > 0) {
                     (done.toFloat() / total).coerceIn(0f, 1f)
                 } else null
-                stickerImportText = if (total != null && total > 0) "$phase $done/$total" else "$phase… $done 个文件"
+                stickerImportText = if (total != null && total > 0) "$phase $done/$total" else context.getString(R.string.settings_sticker_import_progress, phase, done)
             }
                 .onSuccess { count ->
                     MuseToast.show(context.getString(R.string.settings_sticker_imported, count))
@@ -1041,7 +1045,11 @@ private fun StickerLibrarySection(
                         modifier = Modifier.weight(1f),
                     ) {
                         Text(
-                            text = if (batchDeleteMode) "完成" else "批量删除",
+                            text = if (batchDeleteMode) {
+                                stringResource(R.string.settings_sticker_batch_done)
+                            } else {
+                                stringResource(R.string.settings_sticker_batch_delete)
+                            },
                             style = MaterialTheme.typography.labelLarge,
                         )
                     }
@@ -1050,7 +1058,7 @@ private fun StickerLibrarySection(
                         modifier = Modifier.weight(1f),
                     ) {
                         Text(
-                            text = "清空全部",
+                            text = stringResource(R.string.settings_common_clear_all),
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.error,
                         )
@@ -1195,7 +1203,7 @@ private fun StickerLibrarySection(
                         .padding(top = 8.dp),
                 ) {
                     Text(
-                        text = "删除选中的 ${selectedIds.count { it.value }} 项",
+                        text = stringResource(R.string.settings_sticker_delete_selected, selectedIds.count { it.value }),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onError,
                         textAlign = TextAlign.Center,
@@ -1243,14 +1251,14 @@ private fun StickerLibrarySection(
         val count = selectedIds.count { it.value }
         MuseDialog(
             onDismissRequest = { showBatchDeleteConfirm = false },
-            title = "批量删除确认",
-            content = { Text("确定删除选中的 $count 个表情包?此操作不可撤销。") },
+            title = stringResource(R.string.settings_sticker_batch_confirm_title),
+            content = { Text(stringResource(R.string.settings_sticker_batch_confirm_content, count)) },
             confirmText = stringResource(R.string.common_delete),
             onConfirm = {
                 scope.launch {
                     val ids = selectedIds.filter { it.value }.keys
                     val deleted = stickerRepo.deleteStickers(ids)
-                    MuseToast.show("已删除 $deleted 个表情包")
+                    MuseToast.show(context.getString(R.string.settings_sticker_deleted_toast, deleted))
                     selectedIds.clear()
                     batchDeleteMode = false
                     showBatchDeleteConfirm = false
@@ -1267,13 +1275,13 @@ private fun StickerLibrarySection(
     if (showClearAllConfirm) {
         MuseDialog(
             onDismissRequest = { showClearAllConfirm = false },
-            title = "清空全部表情包",
-            content = { Text("确定删除所有表情包?此操作不可撤销。") },
-            confirmText = "清空",
+            title = stringResource(R.string.settings_sticker_clear_all_title),
+            content = { Text(stringResource(R.string.settings_sticker_clear_all_confirm_content)) },
+            confirmText = stringResource(R.string.settings_common_clear),
             onConfirm = {
                 scope.launch {
                     val deleted = stickerRepo.clearAll()
-                    MuseToast.show("已清空 $deleted 个表情包")
+                    MuseToast.show(context.getString(R.string.settings_sticker_cleared_toast, deleted))
                     selectedIds.clear()
                     batchDeleteMode = false
                     showClearAllConfirm = false

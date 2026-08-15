@@ -61,6 +61,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -89,6 +90,7 @@ import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.ui.theme.statusColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
@@ -114,6 +116,14 @@ fun KnowledgeScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var searchQuery by remember { mutableStateOf("") }
+    // v1.0.74 fix (前端审计 6.5): 搜索 300ms 防抖 — 原 remember(searchQuery) 每敲一个字符
+    // 都重启 Room Flow 查询,输入卡顿。用 snapshotFlow+debounce 驱动实际查询词。
+    var debouncedQuery by remember { mutableStateOf("") }
+    LaunchedEffect(searchQuery) {
+        snapshotFlow { searchQuery }
+            .debounce(300)
+            .collect { debouncedQuery = it }
+    }
     // v1.66: 知识库排序切换(原仅按 updated_at DESC,现支持 4 种排序)
     var sortMode by remember { mutableStateOf(KnowledgeSortMode.UPDATED) }
     // v1.0.62: 下拉刷新键,自增会重建 DAO flow 触发重新查询
@@ -123,9 +133,10 @@ fun KnowledgeScreen(
     // v1.48: h13 首次加载用 null 显示加载态;搜索场景保留 emptyList,避免每次输入闪加载态
     // M-KB1: 搜索时转义 LIKE 通配符(% _ \),配合 DAO 的 ESCAPE '\' 子句
     // 用 observeAllUser() 在 DB 层排除 is_internal=true 的内部开发文档,避免向用户暴露
-    val docs by remember(searchQuery, refreshKey) {
-        if (searchQuery.isBlank()) dao.observeAllUser() else dao.search(io.zer0.muse.data.knowledge.KnowledgeDocDao.escapeLikeQuery(searchQuery))
-    }.collectAsStateWithLifecycle(initialValue = if (searchQuery.isBlank()) null else emptyList())
+    // v1.0.74 fix (前端审计 6.5): 用防抖后的 debouncedQuery 驱动查询
+    val docs by remember(debouncedQuery, refreshKey) {
+        if (debouncedQuery.isBlank()) dao.observeAllUser() else dao.search(io.zer0.muse.data.knowledge.KnowledgeDocDao.escapeLikeQuery(debouncedQuery))
+    }.collectAsStateWithLifecycle(initialValue = if (debouncedQuery.isBlank()) null else emptyList())
     // v1.0.62: 下拉刷新时短暂显示指示器,让重新查询有可感知反馈
     LaunchedEffect(refreshKey) {
         if (refreshKey > 0) {
@@ -1085,7 +1096,7 @@ private fun PdfMetadataCard(metadata: Map<String, String>) {
                 )
                 Spacer(Modifier.size(6.dp))
                 Text(
-                    text = "文档信息",
+                    text = stringResource(R.string.knowledge_doc_info), // 前端修复 (i18n-7)
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -1128,14 +1139,14 @@ private fun PdfOutlineCard(outline: List<String>) {
                 )
                 Spacer(Modifier.size(6.dp))
                 Text(
-                    text = "目录(${outline.size} 条)",
+                    text = stringResource(R.string.knowledge_doc_outline, outline.size), // 前端修复 (i18n-7)
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f),
                 )
                 Text(
-                    text = if (expanded) "收起" else "展开",
+                    text = if (expanded) stringResource(R.string.action_collapse) else stringResource(R.string.action_expand), // 前端修复 (i18n-7)
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
                 )

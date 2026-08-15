@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- ==================== Common ==================== -->
     <string name="settings_common_cancel">Cancel</string>
     <string name="settings_common_save">Save</string>
@@ -439,4 +439,15 @@
     <string name="settings_chat_expand_button">显示全屏编辑按钮</string>
     <string name="settings_chat_expand_button_subtitle">在输入栏右侧显示全屏编辑按钮</string>
     <string name="settings_provider_deselect_all">取消全选</string>
+
+    <!-- 前端修复 (i18n-3.x): Floor-based context limit i18n -->
+    <string name="settings_chat_floor_limiter">Floor-based context limit</string>
+    <string name="settings_chat_floor_limiter_subtitle">Treats user messages as floors and keeps the most recent N complete floors, avoiding truncation mid-conversation</string>
+    <string name="settings_chat_floor_count" tools:ignore="PluralsCandidate">%1$d floors</string>
+    <string name="settings_chat_floor_keep">Floors to keep</string>
+    <string name="settings_chat_floor_keep_subtitle">Older messages beyond this floor count are truncated</string>
+
+    <!-- 前端修复 (i18n-3.x): Shared clear-all texts (stickers / group chat memory) -->
+    <string name="settings_common_clear_all">Clear all</string>
+    <string name="settings_common_clear">Clear</string>
 </resources>

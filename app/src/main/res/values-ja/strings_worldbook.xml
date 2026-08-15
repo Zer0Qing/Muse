@@ -55,6 +55,9 @@
     <string name="worldbook_field_enabled">有効</string>
     <string name="worldbook_field_enabled_desc">無効なエントリは挿入されません</string>
 
+    <!-- 前端修复 (i18n-8): export toast -->
+    <string name="worldbook_exported_to">Exported to %1$s</string>
+
     <!-- Settings entry -->
     <string name="settings_assistant_worldbook">ダイナミックなワールドブック</string>
     <string name="settings_assistant_worldbook_subtitle">高度な動的プロンプト インジェクション</string>

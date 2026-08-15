@@ -19,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,13 +55,15 @@ fun ProxySettingsPage(
     val scope = rememberCoroutineScope()
 
     // 本地草稿,点击保存后才写入 DataStore
-    var enabled by remember(proxyConfig.enabled) { mutableStateOf(proxyConfig.enabled) }
-    var type by remember(proxyConfig.type) { mutableStateOf(proxyConfig.type) }
-    var host by remember(proxyConfig.host) { mutableStateOf(proxyConfig.host) }
-    var portText by remember(proxyConfig.port) { mutableStateOf(proxyConfig.port.toString()) }
-    var username by remember(proxyConfig.username) { mutableStateOf(proxyConfig.username) }
-    var password by remember(proxyConfig.password) { mutableStateOf(proxyConfig.password) }
-    var saving by remember { mutableStateOf(false) }
+    // 前端修复 (持久化-9): 表单草稿改 rememberSaveable,旋转/进程重建不丢已填内容;
+    // key 沿用各字段原值(均为可 saveable 标量,且 ProxyConfig 无 id 字段,故不用 config 实例作 key)
+    var enabled by rememberSaveable(proxyConfig.enabled) { mutableStateOf(proxyConfig.enabled) }
+    var type by rememberSaveable(proxyConfig.type) { mutableStateOf(proxyConfig.type) }
+    var host by rememberSaveable(proxyConfig.host) { mutableStateOf(proxyConfig.host) }
+    var portText by rememberSaveable(proxyConfig.port) { mutableStateOf(proxyConfig.port.toString()) }
+    var username by rememberSaveable(proxyConfig.username) { mutableStateOf(proxyConfig.username) }
+    var password by rememberSaveable(proxyConfig.password) { mutableStateOf(proxyConfig.password) }
+    var saving by rememberSaveable { mutableStateOf(false) }
 
     val proxyTypes = listOf("HTTP" to stringResource(R.string.proxy_type_http), "SOCKS5" to stringResource(R.string.proxy_type_socks5))
     val savedText = stringResource(R.string.action_save)

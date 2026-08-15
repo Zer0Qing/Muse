@@ -30,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -62,11 +63,13 @@ fun MomentCard(
     onDelete: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
-    var commentInput by remember { mutableStateOf("") }
-    var expanded by remember { mutableStateOf(false) }
-    var commentsExpanded by remember { mutableStateOf(false) }
-    var showDeleteConfirm by remember { mutableStateOf(false) }
-    var viewerIndex by remember { mutableStateOf(-1) }
+    // 前端修复 (持久化-7): 卡片内状态改 rememberSaveable;
+    // 注意 LazyColumn item 内 saveable 依赖 item 稳定 key(调用处 items(key = { it.id }) 已满足)
+    var commentInput by rememberSaveable { mutableStateOf("") }
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    var commentsExpanded by rememberSaveable { mutableStateOf(false) }
+    var showDeleteConfirm by rememberSaveable { mutableStateOf(false) }
+    var viewerIndex by rememberSaveable { mutableStateOf(-1) }
     val images = moment.images()
 
     io.zer0.muse.ui.common.surface.MuseIsland(

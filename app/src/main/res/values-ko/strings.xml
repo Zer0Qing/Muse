@@ -127,6 +127,9 @@
 <string name="voice_recognizing">인식 중…</string>
 <!-- Task 1: ASR reconnecting status (WebSocket dropped, exponential backoff reconnect, audio buffered meanwhile) -->
 <string name="voice_reconnecting">네트워크 오류가 발생했습니다. 다시 연결하는 중…</string>
+
+<!-- 前端修复 (i18n-6): stop button a11y label on voice message bar -->
+<string name="voice_stop_recording">Stop recording</string>
     <string name="voice_conversation_cd_idle">탭하여 대화 시작</string>
     <string name="voice_conversation_cd_listening">녹음 중, 탭하여 중단</string>
     <string name="voice_conversation_cd_thinking">AI 생각 중, 탭하여 중단</string>

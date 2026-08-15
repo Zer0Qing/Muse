@@ -133,6 +133,12 @@
     <string name="groupchat_tool_context">群聊上下文</string>
     <string name="groupchat_tool_mention">@提及成员</string>
 
+    <!-- 前端修复 (i18n-1/2): 群聊详情背景描述、清空群聊记忆 -->
+    <string name="groupchat_bg_cd">聊天背景</string>
+    <string name="groupchat_clear_memory">清空群聊记忆</string>
+    <string name="groupchat_clear_memory_confirm">确定清空本群的群聊记忆?助手将不再引用本群过往发言摘要(包含语气风格)。</string>
+    <string name="groupchat_clear_memory_btn">清空</string>
+
     <!-- ===== ui/account ===== -->
     <string name="account_title">账户</string>
     <string name="account_back">返回</string>
@@ -295,6 +301,25 @@
     <!-- v1.137: 高级自动化配置 -->
     <string name="schedule_show_advanced">展开高级自动化</string>
     <string name="schedule_hide_advanced">收起高级自动化</string>
+
+    <!-- 前端修复 (i18n-5): describeCron 人类可读描述 -->
+    <string name="schedule_cron_daily">每天 %1$s</string>
+    <string name="schedule_cron_hourly">每小时 %1$s 分</string>
+    <string name="schedule_cron_every_minute">每分钟</string>
+    <string name="schedule_cron_workday">工作日(周一至周五)%1$s</string>
+    <string name="schedule_cron_weekend">周末 %1$s</string>
+    <string name="schedule_cron_weekdays">%1$s %2$s</string>
+    <string name="schedule_cron_monthly">每月 %1$s 日 %2$s</string>
+    <string name="schedule_cron_sun">周日</string>
+    <string name="schedule_cron_mon">周一</string>
+    <string name="schedule_cron_tue">周二</string>
+    <string name="schedule_cron_wed">周三</string>
+    <string name="schedule_cron_thu">周四</string>
+    <string name="schedule_cron_fri">周五</string>
+    <string name="schedule_cron_sat">周六</string>
+    <string name="schedule_chain_cycle_error">不能选择会形成循环链的任务</string>
+    <string name="schedule_default_model">默认模型</string>
+    <string name="schedule_assistant_tools">%1$s · %2$d 个工具</string>
     <string name="schedule_condition_title">触发条件</string>
     <string name="schedule_condition_type_always">总是</string>
     <string name="schedule_condition_type_network_available">有网络</string>
@@ -464,6 +489,10 @@
     <string name="knowledge_doc_chars">%1$s · %2$d 字</string>
     <string name="knowledge_doc_chunks"> · %1$d 块</string>
     <string name="knowledge_doc_not_indexed"> · 未索引</string>
+
+    <!-- 前端修复 (i18n-7): PDF 元信息卡 -->
+    <string name="knowledge_doc_info">文档信息</string>
+    <string name="knowledge_doc_outline">目录(%1$d 条)</string>
     <string name="knowledge_sort_updated">按更新时间</string>
     <string name="knowledge_sort_created">按创建时间</string>
     <string name="knowledge_sort_title">按标题</string>

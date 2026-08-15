@@ -40,10 +40,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import io.zer0.muse.data.ModelProfile
+import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.theme.MuseShapes
@@ -84,7 +86,7 @@ fun ModelProfilesScreen(
     Scaffold(
         topBar = {
             MuseTopBar(
-                title = "模型头像",
+                title = stringResource(R.string.model_profile_title), // 前端修复 (i18n-4)
                 onBack = onBack,
             )
         },
@@ -108,8 +110,8 @@ fun ModelProfilesScreen(
                     Box(Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
                         MuseEmptyState(
                             icon = Icons.Outlined.Memory,
-                            title = "暂无模型",
-                            subtitle = "请先在设置中添加 AI 提供商",
+                            title = stringResource(R.string.model_profile_empty_title), // 前端修复 (i18n-4)
+                            subtitle = stringResource(R.string.model_profile_empty_subtitle),
                         )
                     }
                 } else {

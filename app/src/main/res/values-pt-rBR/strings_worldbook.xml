@@ -55,6 +55,9 @@
     <string name="worldbook_field_enabled">Habilitado</string>
     <string name="worldbook_field_enabled_desc">Entradas desativadas não são injetadas</string>
 
+    <!-- 前端修复 (i18n-8): export toast -->
+    <string name="worldbook_exported_to">Exported to %1$s</string>
+
     <!-- Settings entry -->
     <string name="settings_assistant_worldbook">Livro Mundial Dinâmico</string>
     <string name="settings_assistant_worldbook_subtitle">Injeção dinâmica avançada de prompt</string>

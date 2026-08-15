@@ -107,10 +107,12 @@ data class CustomTheme(
 
     companion object {
         /**
-         * 默认主种子色 — 月桂绿(与 muse 品牌色 LaurelGreen #2D8C5F 一致)。
+         * 默认主种子色 — 月桂绿(与 muse 品牌色一致)。
+         * v1.0.74 fix (前端审计 3.10): 原值 0xFF2D8C5F 是旧版 LaurelGreen,
+         * Color.kt v1.0.21 已改为 #2A7A55,此处同步对齐避免自定义主题默认色漂移。
          *
          * 用 ARGB Long 表示(高 8 位 alpha=0xFF),避免 Int 负数表示带来的混淆。
          */
-        const val DEFAULT_PRIMARY_ARGB: Long = 0xFF2D8C5FL
+        const val DEFAULT_PRIMARY_ARGB: Long = 0xFF2A7A55L
     }
 }

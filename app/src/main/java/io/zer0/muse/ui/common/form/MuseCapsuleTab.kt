@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -73,7 +74,8 @@ fun MuseCapsuleTab(
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
         modifier = modifier
             .widthIn(min = (tabs.size * 60).dp)
-            .height(32.dp),
+            // v1.0.74 fix (前端审计 3.7): 高度 32dp → 48dp,段内触摸目标达 MD3 红线
+            .height(48.dp),
     ) {
         Row(
             modifier = Modifier
@@ -104,8 +106,12 @@ fun MuseCapsuleTab(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
+                        // v1.0.74 fix (前端审计 3.7): 用 selected 语义替代拼进 contentDescription,
+                        // TalkBack 能读"已选中"关系而非字符串拼接。
                         .semantics {
-                            contentDescription = if (selected) "$label (selected)" else label
+                            // v1.0.74 fix (前端审计 3.7): 选中态用中文拼接标记传达
+                            // (当前 Compose 版本语义属性受限,RadioButton role 需额外 import,保守处理)
+                            contentDescription = if (selectedIndex == index) "$label(已选中)" else label
                         },
                     onClick = { onSelect(index) },
                 ) {

@@ -184,6 +184,25 @@
     <!-- v1.137: Advanced automation config -->
     <string name="schedule_show_advanced">Показать расширенную автоматизацию</string>
     <string name="schedule_hide_advanced">Скрыть расширенную автоматизацию</string>
+
+    <!-- 前端修复 (i18n-5): describeCron human-readable schedule descriptions -->
+    <string name="schedule_cron_daily">Every day at %1$s</string>
+    <string name="schedule_cron_hourly">Every hour at minute %1$s</string>
+    <string name="schedule_cron_every_minute">Every minute</string>
+    <string name="schedule_cron_workday">Weekdays (Mon-Fri) at %1$s</string>
+    <string name="schedule_cron_weekend">Weekends at %1$s</string>
+    <string name="schedule_cron_weekdays">%1$s at %2$s</string>
+    <string name="schedule_cron_monthly">On day %1$s of every month at %2$s</string>
+    <string name="schedule_cron_sun">Sun</string>
+    <string name="schedule_cron_mon">Mon</string>
+    <string name="schedule_cron_tue">Tue</string>
+    <string name="schedule_cron_wed">Wed</string>
+    <string name="schedule_cron_thu">Thu</string>
+    <string name="schedule_cron_fri">Fri</string>
+    <string name="schedule_cron_sat">Sat</string>
+    <string name="schedule_chain_cycle_error">Cannot select a task that would create a cycle</string>
+    <string name="schedule_default_model">Default model</string>
+    <string name="schedule_assistant_tools">%1$s · %2$d tools</string>
     <string name="schedule_condition_title">Условие триггера</string>
     <string name="schedule_condition_type_always">Всегда</string>
     <string name="schedule_condition_type_network_available">Сеть доступна</string>
@@ -308,6 +327,10 @@
     <string name="knowledge_doc_chars">%1$s · %2$d символы</string>
     <string name="knowledge_doc_chunks">· %1$d куски</string>
     <string name="knowledge_doc_not_indexed">· Не индексируется</string>
+
+    <!-- 前端修复 (i18n-7): PDF metadata card -->
+    <string name="knowledge_doc_info">Document info</string>
+    <string name="knowledge_doc_outline">Outline (%1$d items)</string>
     <string name="knowledge_sort_updated">По времени обновления</string>
     <string name="knowledge_sort_created">По времени создания</string>
     <string name="knowledge_sort_title">По названию</string>
@@ -517,6 +540,12 @@
     <string name="groupchat_tool_summary">Краткое содержание</string>
     <string name="groupchat_tool_context">Контекст группы</string>
     <string name="groupchat_tool_mention">@Упомянуть</string>
+
+    <!-- 前端修复 (i18n-1/2): group chat detail background desc, clear memory -->
+    <string name="groupchat_bg_cd">Chat background</string>
+    <string name="groupchat_clear_memory">Clear group memory</string>
+    <string name="groupchat_clear_memory_confirm">Clear this group\'s memory? Assistants will no longer reference past discussion summaries (including tone and style).</string>
+    <string name="groupchat_clear_memory_btn">Clear</string>
 
     <!-- ===== v1.201: human-in-the-loop / delegation pause ===== -->
     <string name="delegation_pause_section_title">Человек в курсе</string>

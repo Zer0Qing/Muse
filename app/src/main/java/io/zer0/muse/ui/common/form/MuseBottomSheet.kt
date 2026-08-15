@@ -228,9 +228,10 @@ fun SheetHandle() {
  *
  * 与 [MuseBottomSheet] 的区别:
  *  - 支持拖拽手势 + 速度追踪
- *  - 两阶段高度: 60% (初始) 和 90% (展开)
+ *  - 两阶段高度: [initialHeightFraction] (初始) 和 [expandedHeightFraction] (展开)
  *  - 关闭阈值: 70% 进度 或 速度 > 700dp/s
- *  - 上拉展开到 90%, 下拉关闭
+ *  - v1.0.74 fix (前端审计 3.2): 手势仅支持下滑关闭;高度由两个 fraction 参数初始决定,
+ *    不支持下拉后上拉扩高(与文档宣称的"上拉展开 90%"对齐实际行为)。
  *
  * 用法:
  * ```
@@ -253,7 +254,8 @@ fun MuseDraggableBottomSheet(
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     val density = LocalDensity.current
 
-    // 当前拖拽偏移量 (0 = 初始高度, 正数 = 下拉, 负数 = 上拉)
+    // 当前拖拽偏移量 (0 = 初始高度, 正数 = 下拉; 上拉被 coerceAtLeast(0f) 限制)
+    // v1.0.74 fix (前端审计 3.2): 仅支持下拉,上拉不改变高度(与 KDoc 对齐)
     var dragOffset by remember { mutableFloatStateOf(0f) }
     val initialHeight = screenHeight * initialHeightFraction
     val expandedHeight = screenHeight * expandedHeightFraction
@@ -306,7 +308,6 @@ fun MuseDraggableBottomSheet(
             ) {
                 val currentHeight = (initialHeight - with(density) { dragOffset.toDp() })
                     .coerceIn(screenHeight * 0.2f, expandedHeight)
-                val closeProgress = dragOffset / with(density) { initialHeight.toPx() * 0.3f }
 
                 Surface(
                     shape = MuseShapes.huge,

@@ -311,10 +311,19 @@ class MomentViewModel(
         try {
             val resolver = context.contentResolver
             val bytes = resolver.openInputStream(uri)?.use { it.readBytes() } ?: return@withContext null
-            val bitmap = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                ?: return@withContext null
-            // 压缩
+            // v1.0.74 fix (前端审计 1.3): 先探测尺寸再降采样解码,避免 48MP 照片全尺寸
+            // 解码瞬间 ~192MB 内存峰值 OOM(照搬 SmartImage 的 inSampleSize 范式)。
             val maxSide = 1280
+            val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+            var sampleSize = 1
+            while (bounds.outWidth / sampleSize > maxSide || bounds.outHeight / sampleSize > maxSide) {
+                sampleSize *= 2
+            }
+            val decodeOptions = android.graphics.BitmapFactory.Options().apply { inSampleSize = sampleSize }
+            val bitmap = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, decodeOptions)
+                ?: return@withContext null
+            // 压缩(采样后通常已接近目标尺寸,再做一次精确缩放)
             val scale = minOf(1f, maxSide.toFloat() / maxOf(bitmap.width, bitmap.height))
             val scaled = if (scale < 1f) {
                 android.graphics.Bitmap.createScaledBitmap(

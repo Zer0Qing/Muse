@@ -710,7 +710,8 @@ internal fun ChatSheetHost(
         }
         // 编辑用户消息：独立弹窗编辑，不占用主输入栏
         sheetState.editingUserMessage?.let { msg ->
-            var draft by remember(msg.id) { mutableStateOf(msg.content) }
+            // 前端修复 (持久化-8): 编辑草稿改 rememberSaveable,key 保持 msg.id
+            var draft by rememberSaveable(msg.id) { mutableStateOf(msg.content) }
             MuseDialog(
                 onDismissRequest = { sheetState.editingUserMessage = null },
                 title = stringResource(R.string.edit_message_title),
@@ -738,7 +739,8 @@ internal fun ChatSheetHost(
         }
         // 编辑助手消息(MuseDialog 替代原 ModalBottomSheet,避免真机 scrim 卡死)
         sheetState.editingMessage?.let { msg ->
-            var draft by remember(msg.id) { mutableStateOf(msg.content) }
+            // 前端修复 (持久化-8): 编辑草稿改 rememberSaveable,key 保持 msg.id
+            var draft by rememberSaveable(msg.id) { mutableStateOf(msg.content) }
             MuseDialog(
                 onDismissRequest = { sheetState.editingMessage = null },
                 title = stringResource(R.string.edit_message_title),

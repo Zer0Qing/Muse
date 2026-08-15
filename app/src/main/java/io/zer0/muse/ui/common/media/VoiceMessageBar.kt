@@ -31,7 +31,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.zer0.muse.R
 import io.zer0.muse.ui.theme.CoralWhisper
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -128,7 +130,7 @@ fun VoiceMessageBar(
             ) {
                 Icon(
                     imageVector = Icons.Default.Stop,
-                    contentDescription = "Stop recording",
+                    contentDescription = stringResource(R.string.voice_stop_recording), // 前端修复 (i18n-6)
                     tint = CoralWhisper,
                 )
             }

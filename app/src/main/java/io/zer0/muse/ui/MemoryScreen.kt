@@ -344,16 +344,16 @@ fun MemoryScreen(
                         ) {
                             Text(
                                 text = if (state.groupChatMemories.isEmpty()) {
-                                    "暂无群聊记忆"
+                                    stringResource(R.string.memory_group_chat_empty)
                                 } else {
-                                    "共 ${state.groupChatMemories.size} 条"
+                                    stringResource(R.string.memory_group_chat_count, state.groupChatMemories.size)
                                 },
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             if (state.groupChatMemories.isNotEmpty()) {
                                 TextButton(onClick = { showClearAllConfirm = true }) {
-                                    Text("清空全部", color = MaterialTheme.colorScheme.error)
+                                    Text(stringResource(R.string.settings_common_clear_all), color = MaterialTheme.colorScheme.error)
                                 }
                             }
                         }
@@ -370,7 +370,7 @@ fun MemoryScreen(
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Text(
-                                    text = "群聊中助手每次回复后都会在这里生成一条摘要记忆。\n如果群聊助手说话风格变得奇怪,可以在这里删除或清空。",
+                                    text = stringResource(R.string.memory_group_chat_empty_hint),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     textAlign = TextAlign.Center,
@@ -400,15 +400,15 @@ fun MemoryScreen(
                     if (showClearAllConfirm) {
                         MuseDialog(
                             onDismissRequest = { showClearAllConfirm = false },
-                            title = "清空全部群聊记忆",
+                            title = stringResource(R.string.memory_group_chat_clear_title),
                             content = {
                                 Text(
-                                    text = "确定清空全部群聊记忆?助手将不再引用任何群聊过往发言摘要。",
+                                    text = stringResource(R.string.memory_group_chat_clear_content),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             },
-                            confirmText = "清空",
+                            confirmText = stringResource(R.string.settings_common_clear),
                             onConfirm = {
                                 showClearAllConfirm = false
                                 viewModel.clearAllGroupChatMemories()
@@ -798,7 +798,7 @@ private fun GroupChatMemoryCard(
                 IconButton(onClick = onDelete) {
                     Icon(
                         imageVector = TablerIcons.Trash,
-                        contentDescription = "删除",
+                        contentDescription = stringResource(R.string.memory_group_chat_delete_cd),
                         tint = MaterialTheme.colorScheme.error,
                     )
                 }

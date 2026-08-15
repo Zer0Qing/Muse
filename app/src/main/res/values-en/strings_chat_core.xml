@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- ===== ChatScreen ===== -->
     <!-- Top bar -->
     <string name="chat_session_cd">Current chat: %1$s, tap to switch</string>
@@ -343,6 +343,17 @@
     <string name="settings_sticker_empty_subtitle">Tap \"Import ZIP\" above to add a ZIP file</string>
     <string name="settings_sticker_delete_confirm">Delete this sticker?</string>
     <string name="settings_sticker_category_all">All</string>
+    <!-- 前端修复 (i18n-3.x): Sticker batch delete / clear i18n -->
+    <string name="settings_sticker_batch_done">Done</string>
+    <string name="settings_sticker_batch_delete">Batch delete</string>
+    <string name="settings_sticker_delete_selected" tools:ignore="PluralsCandidate">Delete %1$d selected</string>
+    <string name="settings_sticker_batch_confirm_title">Confirm batch delete</string>
+    <string name="settings_sticker_batch_confirm_content" tools:ignore="PluralsCandidate">Delete %1$d selected stickers? This cannot be undone.</string>
+    <string name="settings_sticker_deleted_toast" tools:ignore="PluralsCandidate">Deleted %1$d stickers</string>
+    <string name="settings_sticker_clear_all_title">Clear all stickers</string>
+    <string name="settings_sticker_clear_all_confirm_content">Delete all stickers? This cannot be undone.</string>
+    <string name="settings_sticker_cleared_toast" tools:ignore="PluralsCandidate">Cleared %1$d stickers</string>
+    <string name="settings_sticker_import_progress" tools:ignore="PluralsCandidate">%1$s… %2$d files</string>
 
     <!-- SkillExecutor sticker tool feedback -->
     <string name="skill_sticker_not_configured">Sticker library is not configured</string>

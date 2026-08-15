@@ -46,6 +46,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -105,17 +106,21 @@ fun WorkspaceScreen(
     val widthClass = rememberWindowWidthClass()
 
     // 当前所在目录的相对路径(空串 = 根目录)
-    var currentPath by remember { mutableStateOf("") }
+    // 前端修复 (持久化-1): currentPath 改 rememberSaveable,旋转/进程重建不丢当前目录
+    var currentPath by rememberSaveable { mutableStateOf("") }
     // 当前目录下的条目列表
+    // 前端修复 (持久化-1): WorkspaceEntry 为自定义复杂类型,列表无法直接 saveable,保持 remember(重建后由 reload() 重新加载)
     var entries by remember { mutableStateOf<List<WorkspaceManager.WorkspaceEntry>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(false) }
+    var isLoading by rememberSaveable { mutableStateOf(false) }
     var errorMsg by remember { mutableStateOf<String?>(null) }
 
     // 弹窗状态
+    // 前端修复 (持久化-1): 弹窗目标均为复杂对象类型(WorkspaceEntry?/CreateType?),无法直接 saveable,保持 remember;
+    // 弹窗属临时交互态,进程重建后自动关闭可接受
     // 查看文件内容弹窗
     var viewingEntry by remember { mutableStateOf<WorkspaceManager.WorkspaceEntry?>(null) }
     var viewingContent by remember { mutableStateOf<String?>(null) }
-    var viewingLoading by remember { mutableStateOf(false) }
+    var viewingLoading by rememberSaveable { mutableStateOf(false) }
     // 长按操作菜单弹窗
     var menuEntry by remember { mutableStateOf<WorkspaceManager.WorkspaceEntry?>(null) }
     // 删除确认弹窗

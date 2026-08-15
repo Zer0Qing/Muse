@@ -203,7 +203,7 @@ fun AgentSettingsPage(
                 SettingsItemRow(
                     icon = TablerIcons.Mail,
                     title = stringResource(R.string.agent_dm_title),
-                    subtitle = "查看 Agent 间私信往来",
+                    subtitle = stringResource(R.string.settings_agent_dm_subtitle),
                     onClick = onOpenAgentDm,
                 ) {
                     ChevronRight()
@@ -259,7 +259,7 @@ fun AgentSettingsPage(
                     SettingsGroupDivider()
                     SettingsItemRow(
                         icon = TablerIcons.CalendarTime,
-                        title = "允许时段开始",
+                        title = stringResource(R.string.settings_agent_allowed_start),
                         subtitle = "${proactiveConfig.allowedHourStart}:00",
                         onClick = { showAllowedStartPicker = true },
                     ) {
@@ -268,7 +268,7 @@ fun AgentSettingsPage(
                     SettingsGroupDivider()
                     SettingsItemRow(
                         icon = TablerIcons.CalendarTime,
-                        title = "允许时段结束",
+                        title = stringResource(R.string.settings_agent_allowed_end),
                         subtitle = "${proactiveConfig.allowedHourEnd}:00",
                         onClick = { showAllowedEndPicker = true },
                     ) {
@@ -278,8 +278,8 @@ fun AgentSettingsPage(
                     SettingsGroupDivider()
                     SettingsSwitchRow(
                         icon = TablerIcons.User,
-                        title = "仅Agent会话",
-                        subtitle = "开启后只有Agent助手会发送主动消息,任务会话不会",
+                        title = stringResource(R.string.settings_agent_agent_only),
+                        subtitle = stringResource(R.string.settings_agent_agent_only_subtitle),
                         checked = proactiveConfig.agentOnly,
                         onCheckedChange = { v ->
                             scope.launch { settings.saveProactiveMessageConfig(proactiveConfig.copy(agentOnly = v)) }
@@ -289,11 +289,11 @@ fun AgentSettingsPage(
                     SettingsGroupDivider()
                     SettingsItemRow(
                         icon = TablerIcons.Bell,
-                        title = "每日上限",
+                        title = stringResource(R.string.settings_agent_daily_limit),
                         subtitle = if (proactiveConfig.maxDailyMessages >= UNLIMITED_DAILY_SENTINEL) {
-                            "无限"
+                            stringResource(R.string.settings_agent_daily_unlimited)
                         } else {
-                            "${proactiveConfig.maxDailyMessages} 条/天"
+                            stringResource(R.string.settings_agent_daily_per_day, proactiveConfig.maxDailyMessages)
                         },
                         onClick = { showMaxDailyPicker = true },
                     ) {
@@ -303,7 +303,7 @@ fun AgentSettingsPage(
                     SettingsGroupDivider()
                     SettingsItemRow(
                         icon = TablerIcons.Switch,
-                        title = "生成温度",
+                        title = stringResource(R.string.settings_agent_temperature),
                         subtitle = "%.1f".format(proactiveConfig.temperature),
                         onClick = { showTemperaturePicker = true },
                     ) {
@@ -313,7 +313,7 @@ fun AgentSettingsPage(
                     SettingsGroupDivider()
                     SettingsItemRow(
                         icon = TablerIcons.Dice,
-                        title = "发送概率",
+                        title = stringResource(R.string.settings_agent_send_probability),
                         subtitle = probabilityLabel(proactiveConfig.sendProbability),
                         onClick = { showProbabilityPicker = true },
                     ) {
@@ -323,19 +323,23 @@ fun AgentSettingsPage(
                     SettingsGroupDivider()
                     SettingsItemRow(
                         icon = TablerIcons.Bell,
-                        title = "测试主动消息",
-                        subtitle = if (testSending) "正在生成..." else "像真实主动消息一样发一条(通知展示)",
+                        title = stringResource(R.string.settings_agent_test_message),
+                        subtitle = if (testSending) {
+                            stringResource(R.string.settings_agent_test_generating)
+                        } else {
+                            stringResource(R.string.settings_agent_test_message_subtitle)
+                        },
                         onClick = {
                             if (testSending) return@SettingsItemRow
                             testSending = true
                             scope.launch {
                                 try {
                                     proactiveRunner.triggerTestSend()
-                                    android.widget.Toast.makeText(context, "测试消息已发送,查看通知栏", android.widget.Toast.LENGTH_SHORT).show()
+                                    android.widget.Toast.makeText(context, context.getString(R.string.settings_agent_test_sent), android.widget.Toast.LENGTH_SHORT).show()
                                 } catch (e: Exception) {
                                     if (e is kotlin.coroutines.cancellation.CancellationException) throw e
                                     Logger.w("AgentSettingsPage", "测试主动消息失败: ${e.message}")
-                                    android.widget.Toast.makeText(context, "测试失败:${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+                                    android.widget.Toast.makeText(context, context.getString(R.string.settings_agent_test_failed, e.message), android.widget.Toast.LENGTH_SHORT).show()
                                 } finally {
                                     testSending = false
                                 }
@@ -348,8 +352,8 @@ fun AgentSettingsPage(
                     SettingsGroupDivider()
                     SettingsSwitchRow(
                         icon = TablerIcons.CalendarStats,
-                        title = "每日总结推送",
-                        subtitle = "每天 19:30 推送今日对话小结(开关关闭后自动跳过,重新打开即恢复)",
+                        title = stringResource(R.string.settings_agent_daily_summary),
+                        subtitle = stringResource(R.string.settings_agent_daily_summary_subtitle),
                         checked = dailySummaryEnabled,
                         onCheckedChange = { v ->
                             scope.launch { settings.saveDailySummaryEnabled(v) }
@@ -553,7 +557,7 @@ fun AgentSettingsPage(
         val alignedHour = sliderHour.coerceIn(0, 23)
         MuseDialog(
             onDismissRequest = { showAllowedStartPicker = false },
-            title = "允许时段开始",
+            title = stringResource(R.string.settings_agent_allowed_start),
             content = {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
@@ -564,7 +568,7 @@ fun AgentSettingsPage(
                         modifier = Modifier.padding(bottom = 8.dp),
                     )
                     Text(
-                        text = "主动消息仅在允许时段内发送,避免夜间打扰(24小时制)",
+                        text = stringResource(R.string.settings_agent_allowed_start_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.padding(bottom = 16.dp),
@@ -603,7 +607,7 @@ fun AgentSettingsPage(
         val alignedHour = sliderHour.coerceIn(0, 23)
         MuseDialog(
             onDismissRequest = { showAllowedEndPicker = false },
-            title = "允许时段结束",
+            title = stringResource(R.string.settings_agent_allowed_end),
             content = {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
@@ -614,7 +618,7 @@ fun AgentSettingsPage(
                         modifier = Modifier.padding(bottom = 8.dp),
                     )
                     Text(
-                        text = "结束小时可小于开始小时(如开始22结束8表示22点到次日8点的跨夜时段)",
+                        text = stringResource(R.string.settings_agent_allowed_end_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.padding(bottom = 16.dp),
@@ -655,13 +659,18 @@ fun AgentSettingsPage(
             mutableStateOf(proactiveConfig.maxDailyMessages >= UNLIMITED_DAILY_SENTINEL)
         }
         val alignedValue = sliderValue.toInt().coerceIn(1, 10)
+        val dailyCountFmt = stringResource(R.string.settings_agent_daily_count)
         MuseDialog(
             onDismissRequest = { showMaxDailyPicker = false },
-            title = "每日上限",
+            title = stringResource(R.string.settings_agent_daily_limit),
             content = {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = if (unlimited) "无限" else "$alignedValue 条/天",
+                        text = if (unlimited) {
+                            stringResource(R.string.settings_agent_daily_unlimited)
+                        } else {
+                            stringResource(R.string.settings_agent_daily_per_day, alignedValue)
+                        },
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.primary,
@@ -669,9 +678,9 @@ fun AgentSettingsPage(
                     )
                     Text(
                         text = if (unlimited) {
-                            "不限制条数,只要评分和概率通过就发(适合高频陪伴)"
+                            stringResource(R.string.settings_agent_daily_unlimited_hint)
                         } else {
-                            "每天最多发送的主动消息条数,超出后跳过直到次日"
+                            stringResource(R.string.settings_agent_daily_limited_hint)
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline,
@@ -684,18 +693,22 @@ fun AgentSettingsPage(
                             sliderValue = it
                         },
                         valueRange = 1f..10f,
-                        valueFormatter = { "${it.toInt()} 条" },
+                        valueFormatter = { dailyCountFmt.format(it.toInt()) },
                     )
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text("1 条", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                        Text(stringResource(R.string.settings_agent_daily_min), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
                         // v1.0.72: 无限档按钮
                         TextButton(onClick = { unlimited = true }) {
                             Text(
-                                text = if (unlimited) "✓ 无限" else "设为无限",
+                                text = if (unlimited) {
+                                    stringResource(R.string.settings_agent_daily_unlimited_checked)
+                                } else {
+                                    stringResource(R.string.settings_agent_daily_set_unlimited)
+                                },
                                 color = if (unlimited) {
                                     MaterialTheme.colorScheme.primary
                                 } else {
@@ -703,7 +716,7 @@ fun AgentSettingsPage(
                                 },
                             )
                         }
-                        Text("10 条", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                        Text(stringResource(R.string.settings_agent_daily_max), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
                     }
                 }
             },
@@ -730,7 +743,7 @@ fun AgentSettingsPage(
         val alignedValue = (kotlin.math.round(sliderValue * 10f) / 10f).coerceIn(0f, 2f)
         MuseDialog(
             onDismissRequest = { showTemperaturePicker = false },
-            title = "生成温度",
+            title = stringResource(R.string.settings_agent_temperature),
             content = {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
@@ -741,7 +754,7 @@ fun AgentSettingsPage(
                         modifier = Modifier.padding(bottom = 8.dp),
                     )
                     Text(
-                        text = "决策阶段用 temperature×0.5(更确定),生成阶段用本值。值越大越有创造力,越小越稳定",
+                        text = stringResource(R.string.settings_agent_temperature_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.padding(bottom = 16.dp),
@@ -756,8 +769,8 @@ fun AgentSettingsPage(
                         modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
-                        Text("0.0 稳定", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                        Text("2.0 创造", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                        Text(stringResource(R.string.settings_agent_temperature_stable), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                        Text(stringResource(R.string.settings_agent_temperature_creative), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
                     }
                 }
             },
@@ -779,7 +792,7 @@ fun AgentSettingsPage(
         val alignedValue = (sliderValue / 5 * 5).coerceIn(0, 100)
         MuseDialog(
             onDismissRequest = { showProbabilityPicker = false },
-            title = "发送概率",
+            title = stringResource(R.string.settings_agent_send_probability),
             content = {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
@@ -790,7 +803,7 @@ fun AgentSettingsPage(
                         modifier = Modifier.padding(bottom = 8.dp),
                     )
                     Text(
-                        text = "主动消息决策通过后,再按此概率决定是否实际发送。100%=每次都发,50%=一半概率发,0%=只留决策日志不发送",
+                        text = stringResource(R.string.settings_agent_send_probability_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.padding(bottom = 16.dp),
@@ -805,8 +818,8 @@ fun AgentSettingsPage(
                         modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
-                        Text("0% 不发", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                        Text("100% 必发", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                        Text(stringResource(R.string.settings_agent_probability_never), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                        Text(stringResource(R.string.settings_agent_probability_always), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
                     }
                 }
             },
@@ -1050,7 +1063,7 @@ private fun offsetLabel(minutes: Int): String {
 /** v1.0.72: 发送概率文案。 */
 @Composable
 private fun probabilityLabel(probability: Int): String = when {
-    probability >= 100 -> "每次都发(100%)"
-    probability <= 0 -> "基本不发(0%)"
-    else -> "$probability%"
+    probability >= 100 -> stringResource(R.string.settings_agent_probability_always_label)
+    probability <= 0 -> stringResource(R.string.settings_agent_probability_never_label)
+    else -> stringResource(R.string.settings_agent_probability_value, probability)
 }

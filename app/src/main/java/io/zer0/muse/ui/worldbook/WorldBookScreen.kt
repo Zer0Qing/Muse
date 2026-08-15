@@ -129,7 +129,7 @@ fun WorldBookScreen(
                             scope.launch {
                                 val file = java.io.File(context.cacheDir, "worldbook_export.json")
                                 file.writeText(json)
-                                Toast.makeText(context, "已导出到 ${file.absolutePath}", Toast.LENGTH_LONG).show()
+                                Toast.makeText(context, context.getString(R.string.worldbook_exported_to, file.absolutePath), Toast.LENGTH_LONG).show() // 前端修复 (i18n-8)
                             }
                         }
                     }) { Text(stringResource(R.string.worldbook_export)) }

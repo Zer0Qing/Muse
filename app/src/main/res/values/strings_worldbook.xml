@@ -58,6 +58,9 @@
     <string name="worldbook_field_enabled">启用</string>
     <string name="worldbook_field_enabled_desc">禁用后该条目不会被注入</string>
 
+    <!-- 前端修复 (i18n-8): 导出提示 -->
+    <string name="worldbook_exported_to">已导出到 %1$s</string>
+
     <!-- Settings entry -->
     <string name="settings_assistant_worldbook">动态世界书</string>
     <string name="settings_assistant_worldbook_subtitle">高级动态提示注入(常驻/关键词/正则/深度)</string>

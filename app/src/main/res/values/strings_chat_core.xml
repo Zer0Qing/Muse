@@ -349,6 +349,17 @@
     <string name="settings_sticker_empty_subtitle">点击上方"导入压缩包"添加 zip 文件</string>
     <string name="settings_sticker_delete_confirm">删除该表情包?</string>
     <string name="settings_sticker_category_all">全部</string>
+    <!-- 前端修复 (i18n-3.x): 表情包批量删除/清空 i18n -->
+    <string name="settings_sticker_batch_done">完成</string>
+    <string name="settings_sticker_batch_delete">批量删除</string>
+    <string name="settings_sticker_delete_selected">删除选中的 %1$d 项</string>
+    <string name="settings_sticker_batch_confirm_title">批量删除确认</string>
+    <string name="settings_sticker_batch_confirm_content">确定删除选中的 %1$d 个表情包?此操作不可撤销。</string>
+    <string name="settings_sticker_deleted_toast">已删除 %1$d 个表情包</string>
+    <string name="settings_sticker_clear_all_title">清空全部表情包</string>
+    <string name="settings_sticker_clear_all_confirm_content">确定删除所有表情包?此操作不可撤销。</string>
+    <string name="settings_sticker_cleared_toast">已清空 %1$d 个表情包</string>
+    <string name="settings_sticker_import_progress">%1$s… %2$d 个文件</string>
 
     <!-- SkillExecutor 表情包工具反馈 -->
     <string name="skill_sticker_not_configured">表情包库未配置</string>

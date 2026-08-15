@@ -2,9 +2,9 @@ package io.zer0.muse.ui
 
 import io.zer0.muse.ui.common.state.MuseLoadingState
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.combinedClickable
@@ -26,6 +26,8 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -50,6 +52,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -77,9 +80,8 @@ import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.common.surface.MuseDivider
-import io.zer0.muse.ui.common.surface.MuseSurface
+import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.ui.theme.MuseDateFormats
-import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -274,8 +276,10 @@ fun ChatListScreen(
             } else {
                 LazyColumn(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(MusePaddings.sectionGap),
-                    // 底部留出悬浮胶囊空间(胶囊高度~48dp + 底部间距 16dp + 余量)
+                    // 前端修复 (性能-1): 移除全局 spacedBy,section 间距改为各区域
+                    // 首个 item 手动 padding(见 TaskSectionTitle / knowledge 入口),
+                    // 这样消息行可在 LazyColumn 顶层平铺且行间保持 0 间距,
+                    // 维持原"整组一张卡片"的外观(首末项圆角由 SectionGroupRow 提供)。
                     contentPadding = PaddingValues(bottom = 88.dp),
                 ) {
                     // 问候标题
@@ -296,59 +300,54 @@ fun ChatListScreen(
                                     onCreateWithText(text.trim())
                                 }
                             },
-                            modifier = Modifier.padding(top = 4.dp),
+                            modifier = Modifier.padding(top = MusePaddings.sectionGap + 4.dp),
                         )
                     }
 
-                    // 已置顶
+                    // 已置顶(标题 + 每条会话独立 item,平铺懒加载)
                     if (pinned.isNotEmpty()) {
-                        item(key = "section_pinned") {
-                            PinnedTasksCard(
-                                pinned = orderedPinned,
-                                folders = folders,
-                                onSelect = onSelect,
-                                onDelete = onDelete,
-                                onRenameTo = onRenameTo,
-                                onTogglePinned = onTogglePinned,
-                                onReorderPinned = onReorderPinned,
-                                onMoveSessionToFolder = onMoveSessionToFolder,
-                                onArchive = onArchive,
-                            )
-                        }
-                    }
-
-                    // 文件夹
-                    if (folders.isNotEmpty()) {
-                        item(key = "section_folders") {
-                            FoldersCard(
-                                folders = folders,
-                                onSelectFolder = { /* 当前无文件夹详情页,可后续扩展 */ },
-                                onRenameFolder = onRenameFolder,
-                                onDeleteFolder = onDeleteFolder,
-                            )
-                        }
-                    }
-
-                    // 最近
-                    item(key = "section_recent") {
-                        RecentTasksCard(
-                            recent = recent,
+                        pinnedSectionItems(
+                            pinned = orderedPinned,
                             folders = folders,
                             onSelect = onSelect,
                             onDelete = onDelete,
                             onRenameTo = onRenameTo,
                             onTogglePinned = onTogglePinned,
+                            onReorderPinned = onReorderPinned,
                             onMoveSessionToFolder = onMoveSessionToFolder,
                             onArchive = onArchive,
-                            onCreate = onCreate,
                         )
                     }
+
+                    // 文件夹(标题 + 每个文件夹独立 item,平铺懒加载)
+                    if (folders.isNotEmpty()) {
+                        foldersSectionItems(
+                            folders = folders,
+                            onSelectFolder = { /* 当前无文件夹详情页,可后续扩展 */ },
+                            onRenameFolder = onRenameFolder,
+                            onDeleteFolder = onDeleteFolder,
+                        )
+                    }
+
+                    // 最近(标题 + 每条会话独立 item,平铺懒加载)
+                    recentSectionItems(
+                        recent = recent,
+                        folders = folders,
+                        onSelect = onSelect,
+                        onDelete = onDelete,
+                        onRenameTo = onRenameTo,
+                        onTogglePinned = onTogglePinned,
+                        onMoveSessionToFolder = onMoveSessionToFolder,
+                        onArchive = onArchive,
+                        onCreate = onCreate,
+                    )
 
                     // 知识库
                     item(key = "section_knowledge") {
                         KnowledgeEntryCard(
                             docCount = docCount,
                             onClick = onOpenKnowledgeBase,
+                            modifier = Modifier.padding(top = MusePaddings.sectionGap),
                         )
                     }
                 }
@@ -424,7 +423,8 @@ private fun TaskInputBar(
     onSend: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var text by remember { mutableStateOf("") }
+    // 前端修复 (持久化-3): 输入内容改 rememberSaveable,旋转/进程重建不丢草稿
+    var text by rememberSaveable { mutableStateOf("") }
     Surface(
         modifier = modifier
             .fillMaxWidth()
@@ -489,46 +489,69 @@ private fun TaskInputBar(
     }
 }
 
-/** 任务分组卡片容器:标题 + 圆角白色 Surface。 */
+/**
+ * 前端修复 (性能-1): section 标题 — 原 TaskSectionCard 的标题部分拆为独立
+ * LazyColumn item。顶部自带 sectionGap 间距(原由 LazyColumn spacedBy 提供),
+ * 使各区域首个 item 间距与改造前保持一致。
+ */
 @Composable
-private fun TaskSectionCard(
+private fun TaskSectionTitle(
     title: @Composable () -> Unit,
-    modifier: Modifier = Modifier,
-    content: @Composable ColumnScope.() -> Unit,
 ) {
-    Column(modifier = modifier) {
-        CompositionLocalProvider(
-            LocalContentColor provides MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
-        ) {
-            ProvideTextStyle(MaterialTheme.typography.labelLarge) {
-                Box(
-                    modifier = Modifier
-                        .padding(start = 56.dp, top = 6.dp, bottom = 6.dp)
-                        .fillMaxWidth(),
-                ) {
-                    title()
-                }
-            }
-        }
-        MuseSurface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = MuseShapes.extraLarge,
-            color = MaterialTheme.colorScheme.surface,
-            elevation = MuseElevation.card,
-            tonalElevation = 0.dp,
-            enablePressedFeedback = false,
-            border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
-        ) {
-            Column {
-                content()
+    CompositionLocalProvider(
+        LocalContentColor provides MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
+    ) {
+        ProvideTextStyle(MaterialTheme.typography.labelLarge) {
+            Box(
+                modifier = Modifier
+                    .padding(start = 56.dp, top = MusePaddings.sectionGap, bottom = 6.dp)
+                    .fillMaxWidth(),
+            ) {
+                title()
             }
         }
     }
 }
 
-/** 已置顶任务卡片。 */
+/**
+ * 前端修复 (性能-1): 分组卡片行容器 — 首项上圆角、末项下圆角、中间直角,
+ * 背景 + 细边框模拟原"整组一张圆角卡片"外观。行间 0 间距由调用方保证。
+ */
 @Composable
-private fun PinnedTasksCard(
+private fun SectionGroupRow(
+    index: Int,
+    total: Int,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val shape = when {
+        total == 1 -> MuseShapes.extraLarge
+        index == 0 -> RoundedCornerShape(
+            topStart = MuseCornerRadius.CARD.dp,
+            topEnd = MuseCornerRadius.CARD.dp,
+        )
+        index == total - 1 -> RoundedCornerShape(
+            bottomStart = MuseCornerRadius.CARD.dp,
+            bottomEnd = MuseCornerRadius.CARD.dp,
+        )
+        else -> RoundedCornerShape(0.dp)
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surface)
+            .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant, shape),
+    ) {
+        content()
+    }
+}
+
+/**
+ * 前端修复 (性能-1): 置顶会话区 — LazyColumn 顶层平铺。
+ * 标题单独 item;每条会话独立 items(key=id) item,懒加载渲染。
+ * 拖拽排序行为保持:行内局部偏移 + 松手后回调 onReorderPinned。
+ */
+private fun LazyListScope.pinnedSectionItems(
     pinned: List<SessionEntity>,
     folders: List<FolderEntity>,
     onSelect: (String) -> Unit,
@@ -539,75 +562,24 @@ private fun PinnedTasksCard(
     onMoveSessionToFolder: (String, String?) -> Unit,
     onArchive: (String) -> Unit,
 ) {
-    TaskSectionCard(
-        title = { Text(stringResource(R.string.chat_list_section_pinned)) },
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        pinned.forEachIndexed { index, session ->
-            var dragOffset by remember(session.id) { mutableStateOf(0f) }
-            var dragging by remember(session.id) { mutableStateOf(false) }
-            val rowHeightPx = with(LocalDensity.current) { 80.dp.toPx() }
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .zIndex(if (dragging) 1f else 0f)
-                    .offset { IntOffset(0, if (dragging) dragOffset.roundToInt() else 0) },
-            ) {
-                TaskItem(
-                    session = session,
-                    folders = folders,
-                    onSelect = onSelect,
-                    onDelete = onDelete,
-                    onRenameTo = onRenameTo,
-                    onTogglePinned = onTogglePinned,
-                    onMoveSessionToFolder = onMoveSessionToFolder,
-                    onArchive = onArchive,
-                )
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .padding(end = MusePaddings.itemGap)
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(if (dragging) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent)
-                        .pointerInput(session.id, index, pinned.size) {
-                            detectDragGesturesAfterLongPress(
-                                onDragStart = {
-                                    dragging = true
-                                    dragOffset = 0f
-                                },
-                                onDrag = { change, dragAmount ->
-                                    change.consume()
-                                    dragOffset += dragAmount.y
-                                },
-                                onDragEnd = {
-                                    val target = (index + (dragOffset / rowHeightPx).roundToInt())
-                                        .coerceIn(0, pinned.lastIndex)
-                                    dragging = false
-                                    dragOffset = 0f
-                                    if (target != index) {
-                                        val ids = pinned.map { it.id }.toMutableList()
-                                        val id = ids.removeAt(index)
-                                        ids.add(target, id)
-                                        onReorderPinned(ids)
-                                    }
-                                },
-                                onDragCancel = {
-                                    dragging = false
-                                    dragOffset = 0f
-                                },
-                            )
-                        },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = TablerIcons.GripVertical,
-                        contentDescription = stringResource(R.string.chat_list_reorder),
-                        tint = MaterialTheme.colorScheme.outline,
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
-            }
+    item(key = "section_pinned_title") {
+        TaskSectionTitle { Text(stringResource(R.string.chat_list_section_pinned)) }
+    }
+    itemsIndexed(pinned, key = { _, session -> "pinned_${session.id}" }) { index, session ->
+        SectionGroupRow(index = index, total = pinned.size) {
+            PinnedTaskRow(
+                session = session,
+                index = index,
+                pinnedIds = pinned.map { it.id },
+                folders = folders,
+                onSelect = onSelect,
+                onDelete = onDelete,
+                onRenameTo = onRenameTo,
+                onTogglePinned = onTogglePinned,
+                onReorderPinned = onReorderPinned,
+                onMoveSessionToFolder = onMoveSessionToFolder,
+                onArchive = onArchive,
+            )
             if (index != pinned.lastIndex) {
                 MuseDivider()
             }
@@ -615,9 +587,95 @@ private fun PinnedTasksCard(
     }
 }
 
-/** 最近任务卡片。 */
+/**
+ * 前端修复 (性能-1): 置顶单行(含拖拽把手) — 原 PinnedTasksCard forEachIndexed
+ * 主体提取为独立行组件,index 语义与原来一致(组内位置),拖拽逻辑原样保留。
+ */
 @Composable
-private fun RecentTasksCard(
+private fun PinnedTaskRow(
+    session: SessionEntity,
+    index: Int,
+    pinnedIds: List<String>,
+    folders: List<FolderEntity>,
+    onSelect: (String) -> Unit,
+    onDelete: (String) -> Unit,
+    onRenameTo: (SessionEntity, String) -> Unit,
+    onTogglePinned: (String) -> Unit,
+    onReorderPinned: (List<String>) -> Unit,
+    onMoveSessionToFolder: (String, String?) -> Unit,
+    onArchive: (String) -> Unit,
+) {
+    var dragOffset by remember(session.id) { mutableStateOf(0f) }
+    var dragging by remember(session.id) { mutableStateOf(false) }
+    val rowHeightPx = with(LocalDensity.current) { 80.dp.toPx() }
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .zIndex(if (dragging) 1f else 0f)
+            .offset { IntOffset(0, if (dragging) dragOffset.roundToInt() else 0) },
+    ) {
+        TaskItem(
+            session = session,
+            folders = folders,
+            onSelect = onSelect,
+            onDelete = onDelete,
+            onRenameTo = onRenameTo,
+            onTogglePinned = onTogglePinned,
+            onMoveSessionToFolder = onMoveSessionToFolder,
+            onArchive = onArchive,
+        )
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .padding(end = MusePaddings.itemGap)
+                .size(44.dp)
+                .clip(CircleShape)
+                .background(if (dragging) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent)
+                .pointerInput(session.id, index, pinnedIds.size) {
+                    detectDragGesturesAfterLongPress(
+                        onDragStart = {
+                            dragging = true
+                            dragOffset = 0f
+                        },
+                        onDrag = { change, dragAmount ->
+                            change.consume()
+                            dragOffset += dragAmount.y
+                        },
+                        onDragEnd = {
+                            val target = (index + (dragOffset / rowHeightPx).roundToInt())
+                                .coerceIn(0, pinnedIds.lastIndex)
+                            dragging = false
+                            dragOffset = 0f
+                            if (target != index) {
+                                val ids = pinnedIds.toMutableList()
+                                val id = ids.removeAt(index)
+                                ids.add(target, id)
+                                onReorderPinned(ids)
+                            }
+                        },
+                        onDragCancel = {
+                            dragging = false
+                            dragOffset = 0f
+                        },
+                    )
+                },
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = TablerIcons.GripVertical,
+                contentDescription = stringResource(R.string.chat_list_reorder),
+                tint = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+    }
+}
+
+/**
+ * 前端修复 (性能-1): 最近会话区 — LazyColumn 顶层平铺。
+ * 标题单独 item;每条会话独立 items(key=id) item,懒加载渲染。
+ */
+private fun LazyListScope.recentSectionItems(
     recent: List<SessionEntity>,
     folders: List<FolderEntity>,
     onSelect: (String) -> Unit,
@@ -628,14 +686,18 @@ private fun RecentTasksCard(
     onArchive: (String) -> Unit,
     onCreate: () -> Unit,
 ) {
-    TaskSectionCard(
-        title = { Text(stringResource(R.string.chat_list_section_recent)) },
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        if (recent.isEmpty()) {
-            EmptyPromptItem(onClick = onCreate)
-        } else {
-            recent.forEachIndexed { index, session ->
+    item(key = "section_recent_title") {
+        TaskSectionTitle { Text(stringResource(R.string.chat_list_section_recent)) }
+    }
+    if (recent.isEmpty()) {
+        item(key = "section_recent_empty") {
+            SectionGroupRow(index = 0, total = 1) {
+                EmptyPromptItem(onClick = onCreate)
+            }
+        }
+    } else {
+        itemsIndexed(recent, key = { _, session -> "recent_${session.id}" }) { index, session ->
+            SectionGroupRow(index = index, total = recent.size) {
                 TaskItem(
                     session = session,
                     folders = folders,
@@ -1042,19 +1104,21 @@ private fun ActionSheetRow(
     }
 }
 
-/** 文件夹卡片。 */
-@Composable
-private fun FoldersCard(
+/**
+ * 前端修复 (性能-1): 文件夹区 — LazyColumn 顶层平铺。
+ * 标题单独 item;每个文件夹独立 items(key=id) item,懒加载渲染。
+ */
+private fun LazyListScope.foldersSectionItems(
     folders: List<FolderEntity>,
     onSelectFolder: (FolderEntity) -> Unit,
     onRenameFolder: (String, String) -> Unit,
     onDeleteFolder: (String) -> Unit,
 ) {
-    TaskSectionCard(
-        title = { Text(stringResource(R.string.chat_list_section_folders)) },
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        folders.forEachIndexed { index, folder ->
+    item(key = "section_folders_title") {
+        TaskSectionTitle { Text(stringResource(R.string.chat_list_section_folders)) }
+    }
+    itemsIndexed(folders, key = { _, folder -> "folder_${folder.id}" }) { index, folder ->
+        SectionGroupRow(index = index, total = folders.size) {
             FolderItem(
                 folder = folder,
                 onSelectFolder = onSelectFolder,
@@ -1243,10 +1307,11 @@ private fun FolderActionSheet(
 private fun KnowledgeEntryCard(
     docCount: Int,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     CardGroup(
         title = { Text(stringResource(R.string.chat_list_section_knowledge)) },
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
     ) {
         item(
             onClick = onClick,

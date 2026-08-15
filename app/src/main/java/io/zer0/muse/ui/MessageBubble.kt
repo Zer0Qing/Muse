@@ -309,12 +309,15 @@ internal fun MessageBubble(
     val isLtr = layoutDirection == LayoutDirection.Ltr
     val horizontalAlignment = if (isUser == isLtr) Alignment.End else Alignment.Start
 
-    // v1.0.72: 最外层改 Box,容纳多选遮罩(matchParentSize 需要 BoxScope)
+    // v1.0.74 fix (前端审计 2.5): 仅长按菜单显示时记录位置。
+    // 原实现滚动期间每帧 onGloballyPositioned 写 MutableState,气泡(含 MarkdownText)滚动中反复重组。
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            // v1.0.74 fix: 记录气泡窗口位置供长按菜单锚定
-            .onGloballyPositioned { actionMenuBounds = it.boundsInWindow() }
+            // v1.0.74 fix: 记录气泡窗口位置供长按菜单锚定(仅菜单显示时更新)
+            .onGloballyPositioned {
+                if (actionMenuBounds != null) actionMenuBounds = it.boundsInWindow()
+            }
             .then(if (isAnimating) Modifier.animateContentSize() else Modifier),
     ) {
     Column(

@@ -19,8 +19,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.zer0.muse.R
 import io.zer0.muse.data.artifact.ArtifactEntity
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.theme.MuseIconSizes
@@ -64,7 +66,7 @@ fun ArtifactViewerDialog(
                         modifier = Modifier.size(22.dp),
                     )
                     Text(
-                        text = artifact.title.ifBlank { "未命名" },
+                        text = artifact.title.ifBlank { stringResource(R.string.artifact_untitled) }, // 前端修复 (i18n-3)
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
@@ -77,7 +79,7 @@ fun ArtifactViewerDialog(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = "关闭",
+                            contentDescription = stringResource(R.string.artifact_close), // 前端修复 (i18n-3)
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(20.dp),
                         )
@@ -129,7 +131,7 @@ fun ArtifactViewerDialog(
                 }
             }
         },
-        confirmText = "复制",
+        confirmText = stringResource(R.string.artifact_copy), // 前端修复 (i18n-3)
         // L6 已知限制: 复制未标注敏感(artifact 内容可能含敏感信息),暂不区分;后续可结合内容检测判断。
         onConfirm = { onCopy(artifact.content) },
         dismissText = null,

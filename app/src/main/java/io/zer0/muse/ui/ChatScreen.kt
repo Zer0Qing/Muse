@@ -335,6 +335,18 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
     }
 
 
+    // v1.0.74 fix (前端审计 1.1): 消息区在 LazyColumn 的起始全局索引。
+    // 消息前后有条件插入的额外 item(agent_mode_hint/load_more/shimmer/subagent_task_list 等),
+    // 所有"消息局部索引 ↔ 全局索引"换算必须加这个偏移,否则 isAtBottom/滚动定位全错位。
+    val messageStartIndex by remember { derivedStateOf {
+        var idx = 0
+        val showAgentHint =
+            !state.weakToolHint.isNullOrEmpty() || !state.agentModeHint.isNullOrEmpty()
+        if (showAgentHint) idx++
+        if (state.isLoadingMore) idx++
+        idx
+    } }
+
     // v0.48: 派生状态 — isAtBottom 判断列表是否在底部(用户没往上滚)
     // v1.52: 收紧阈值 — 仅当最后一项的底部在视口内才算"在底部",
     //        避免"部分可见=在底部"导致流式增量把用户拉回底部。
@@ -344,9 +356,11 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
             if (visibleMessages.isEmpty()) return@derivedStateOf true
             val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull() ?: return@derivedStateOf false
             val viewportEnd = listState.layoutInfo.viewportEndOffset
-            // 最后一项必须是列表的最后一项,且其底部在视口底部附近
-            // v1.79 (M-S4): 容差从 200px 收紧到 150px
-            lastVisible.index == visibleMessages.lastIndex &&
+            // 最后一项必须是消息区最后一条(全局索引 = messageStartIndex + 局部 lastIndex),
+            // 且其底部在视口底部附近。
+            // v1.0.74 fix (前端审计 1.1): 原实现 lastVisible.index == visibleMessages.lastIndex
+            // 用全局索引比局部索引,agent_hint/load_more 等额外 item 存在时恒 false。
+            lastVisible.index == messageStartIndex + visibleMessages.lastIndex &&
                 (lastVisible.offset + lastVisible.size) <= viewportEnd + 150
         }
     }
@@ -404,7 +418,8 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
             // 加载完成后跳到新位置(原来在顶部的消息现在在 addedCount 位置)
             val addedCount = visibleMessages.size - previousSize
             if (addedCount > 0) {
-                listState.scrollToItem(addedCount, savedPaginatorScrollOffset)
+                // v1.0.74 fix (前端审计 1.1): 加消息区起始偏移,agent_hint/load_more 存在时定位不错位
+                listState.scrollToItem(messageStartIndex + addedCount, savedPaginatorScrollOffset)
             }
             savedPaginatorScrollOffset = 0
         }
@@ -425,7 +440,8 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                         .first()
                 }
             }
-            listState.scrollToItem(state.lastHistoryLoadCount, savedScrollOffset)
+            // v1.0.74 fix (前端审计 1.1): 加消息区起始偏移,agent_hint/load_more 存在时定位不错位
+            listState.scrollToItem(messageStartIndex + state.lastHistoryLoadCount, savedScrollOffset)
             viewModel.clearHistoryLoadCount()
             savedScrollOffset = 0
         }
@@ -484,7 +500,8 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
             return@LaunchedEffect
         }
         // 瞬时滚动到目标消息(长会话用动画会卡顿,且跳转场景需即时定位)
-        listState.scrollToItem(targetIndex)
+        // v1.0.74 fix (前端审计 1.1): 加消息区起始偏移
+        listState.scrollToItem(messageStartIndex + targetIndex)
         // 高亮窗口期 2.5s 后清空 highlightedMessageId + searchHighlightQuery
         delay(2500L)
         viewModel.clearHighlightedMessage()
@@ -563,13 +580,15 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                 if (isUserSendMessage) {
                     // 用户刚发消息:瞬时滚到底部,并解锁跟随
                     userScrolledUp = false
-                    listState.scrollToItem(targetIndex)
+                    // v1.0.74 fix (前端审计 1.1): 加消息区起始偏移
+                    listState.scrollToItem(messageStartIndex + targetIndex)
                 } else if (!userScrolledUp) {
                     // v1.0.30: 流式跟随 — 加偏移让消息底部（新文字出现处）保持在可见区
                     isProgrammaticScroll.value = true
                     try {
+                        // v1.0.74 fix (前端审计 1.1): 加消息区起始偏移
                         listState.animateScrollToItem(
-                            targetIndex,
+                            messageStartIndex + targetIndex,
                             scrollOffset = streamFollowOffsetPx,
                         )
                     } finally {
@@ -649,7 +668,8 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
 
     // v1.135: 媒体选择 launcher — 同时支持图片和视频。
     // 照片按钮点击后走统一视觉媒体选择器;视频会被提取关键帧降级为图片发送。
-    var imagePickAsOcr by remember { mutableStateOf(false) }
+    // 前端修复 (持久化-11): OCR 标记改 rememberSaveable,进程重建后选图回调仍按原意图处理
+    var imagePickAsOcr by rememberSaveable { mutableStateOf(false) }
     val visualMediaLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
     ) { uri ->
@@ -700,7 +720,8 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                             Surface(
                                 shape = CircleShape,
                                 color = MaterialTheme.colorScheme.surfaceVariant,
-                                modifier = Modifier.size(42.dp),
+                                // v1.0.74 fix (前端审计 7): 42dp → 48dp 触摸目标
+                                modifier = Modifier.size(48.dp),
                             ) {
                                 Box(
                                     modifier = Modifier.fillMaxSize().clickable(onClick = onBack),
@@ -792,7 +813,8 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                         val modelCd = stringResource(R.string.chat_model_cd, currentModelName)
                         var showTopMenu by remember { mutableStateOf(false) }
                         Box(
-                            modifier = Modifier.size(42.dp),
+                            // v1.0.74 fix (前端审计 7): 42dp → 48dp 触摸目标
+                            modifier = Modifier.size(48.dp),
                             contentAlignment = Alignment.Center,
                         ) {
                             Surface(
@@ -1647,7 +1669,8 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                                 val msgs = visibleMessages
                                 if (msgs.isEmpty()) return@launch
                                 try {
-                                    listState.animateScrollToItem(msgs.size - 1)
+                                    // v1.0.74 fix (前端审计 1.1): 加消息区起始偏移
+                                    listState.animateScrollToItem(messageStartIndex + msgs.size - 1)
                                 } finally {
                                     isProgrammaticScroll.value = false
                                 }

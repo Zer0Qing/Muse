@@ -228,6 +228,43 @@ fun SettingsScreen(
     val toolsDesc = stringResource(R.string.settings_screen_tools_desc)
     val quickNotesTitle = stringResource(R.string.settings_screen_quick_notes)
     val miniPhoneTitle = stringResource(R.string.settings_miniphone_title)
+    // 前端修复 (i18n-3.x): 搜索索引 SettingsEntry 硬编码 title 统一走资源
+    val entryThemeTitle = stringResource(R.string.section_theme)
+    val entryTtsPlaybackTitle = stringResource(R.string.settings_screen_entry_tts_playback)
+    val entryProactiveTitle = stringResource(R.string.settings_agent_proactive_title)
+    val entryScheduledTasksTitle = stringResource(R.string.schedule_title)
+    val entryPermissionWizardTitle = stringResource(R.string.permission_wizard_entry)
+    val entryApiKeyTitle = stringResource(R.string.settings_screen_entry_api_key)
+    val entryOcrTitle = stringResource(R.string.settings_screen_entry_ocr)
+    val entryKeepAwakeTitle = stringResource(R.string.settings_memory_keep_awake)
+    val entryBootStartTitle = stringResource(R.string.settings_agent_boot_section)
+    val entryArchivedTitle = stringResource(R.string.settings_screen_entry_archived)
+    val entryBiometricTitle = stringResource(R.string.settings_security_biometric_section)
+    val entryMilestoneTitle = stringResource(R.string.milestone_title)
+    val entryFontSizeTitle = stringResource(R.string.settings_screen_entry_font_size)
+    val entryThemeModeTitle = stringResource(R.string.settings_screen_entry_theme_mode)
+    val entryDynamicColorTitle = stringResource(R.string.settings_theme_dynamic_color)
+    val entryScheduledThemeTitle = stringResource(R.string.settings_screen_entry_scheduled_theme)
+    val entryStreamingTitle = stringResource(R.string.settings_chat_streaming)
+    val entryEnterSendTitle = stringResource(R.string.settings_screen_entry_enter_send)
+    val entryAutoScrollTitle = stringResource(R.string.settings_screen_entry_auto_scroll)
+    val entryDeepThinkingTitle = stringResource(R.string.chat_deep_thinking_cd)
+    val entryTimestampsTitle = stringResource(R.string.settings_screen_entry_timestamps)
+    val entryTtsSpeedTitle = stringResource(R.string.settings_screen_entry_tts_speed)
+    val entryTtsVoiceTitle = stringResource(R.string.settings_media_tts_voice_selector)
+    val entryAudioOutputTitle = stringResource(R.string.settings_media_output_section)
+    val entryMemoryToggleTitle = stringResource(R.string.settings_screen_entry_memory_toggle)
+    val entryPinLockTitle = stringResource(R.string.search_index_pin_lock)
+    val entryProxySwitchTitle = stringResource(R.string.settings_screen_entry_proxy_switch)
+    val entryRagModelTitle = stringResource(R.string.settings_screen_entry_rag_model)
+    val entryChunkingTitle = stringResource(R.string.settings_screen_entry_chunking)
+    val entrySearchEngineTitle = stringResource(R.string.settings_web_search_engine)
+    val entryVisionModelTitle = stringResource(R.string.settings_vision_model_section)
+    val entryMcpServerTitle = stringResource(R.string.settings_mcp_title)
+    val entryToolApprovalTitle = stringResource(R.string.settings_screen_entry_tool_approval)
+    val entryCollabTitle = stringResource(R.string.settings_screen_entry_collab)
+    val entryCloudBackupTitle = stringResource(R.string.settings_backup_cloud_title)
+    val entryWebServerTitle = stringResource(R.string.settings_web_title)
     val searchHint = stringResource(R.string.settings_search_hint)
     val noResults = stringResource(R.string.settings_search_no_results)
 
@@ -270,29 +307,29 @@ fun SettingsScreen(
                 // 通用
                 SettingsEntry(chatTitle, listOf("聊天", "对话", "消息", "输入", "发送", "liaotian", "duihua", "xiaoxi", "shuru", "fasong", "lt", "dh", "xx", "全屏编辑", "展开", "气泡", "阴影", "模型", "MOOD", "思维链", "快捷键", "引用回复"), MuseRoutes.SETTINGS_CHAT, groupGeneral, TablerIcons.MessageCircle, onOpenChatSettings),
                 SettingsEntry(appearanceTitle, listOf("外观", "显示", "界面", "字号", "字体", "waiguan", "xianshi", "jiemian", "zihao", "ziti", "wg", "xs", "jm", "zt", "主题", "圆角", "启动页", "引导", "壁纸"), MuseRoutes.SETTINGS_APPEARANCE, groupGeneral, TablerIcons.ColorSwatch, onOpenAppearanceSettings),
-                SettingsEntry("主题", listOf("主题", "配色", "深色", "浅色", "暗黑", "AMOLED", "颜色", "zhuti", "peise", "shense", "qianse", "anhe", "yase", "zt", "ps", "ss", "qs"), MuseRoutes.SETTINGS_APPEARANCE, groupGeneral, TablerIcons.ColorSwatch, onOpenAppearanceSettings),
+                SettingsEntry(entryThemeTitle, listOf("主题", "配色", "深色", "浅色", "暗黑", "AMOLED", "颜色", "zhuti", "peise", "shense", "qianse", "anhe", "yase", "zt", "ps", "ss", "qs"), MuseRoutes.SETTINGS_APPEARANCE, groupGeneral, TablerIcons.ColorSwatch, onOpenAppearanceSettings),
                 SettingsEntry(mediaTitle, listOf("媒体", "录音", "语音", "播报", "meiti", "luyin", "yuyin", "bobao", "mt", "ly", "yy", "bb"), MuseRoutes.SETTINGS_MEDIA, groupGeneral, TablerIcons.Microphone, onOpenMediaSettings),
-                SettingsEntry("TTS 语音播报", listOf("TTS", "tts", "语音播报", "朗读", "文字转语音", "TextToSpeech", "yuyinbobao", "langdu", "wenzi", "yybb", "ld"), MuseRoutes.SETTINGS_MEDIA, groupGeneral, TablerIcons.Microphone, onOpenMediaSettings),
+                SettingsEntry(entryTtsPlaybackTitle, listOf("TTS", "tts", "语音播报", "朗读", "文字转语音", "TextToSpeech", "yuyinbobao", "langdu", "wenzi", "yybb", "ld"), MuseRoutes.SETTINGS_MEDIA, groupGeneral, TablerIcons.Microphone, onOpenMediaSettings),
                 SettingsEntry(translateTitle, listOf("翻译", "translate", "语言", "互译", "源语言", "目标语言", "fanyi", "yuyan", "huyi", "yuanyuyan", "mubiaoyuyan", "fy", "yy"), MuseRoutes.TRANSLATE, groupGeneral, TablerIcons.Language, onOpenTranslate),
-                SettingsEntry("快速记录", listOf("快速记录", "速记", "笔记", "quick note", "note", "记录", "kuaisujilu", "suji", "biji", "jilu", "ksjl", "sj", "bj", "jl"), MuseRoutes.QUICK_NOTES, groupGeneral, TablerIcons.Bulb) { onNavigate(QuickNotesRoute) },
+                SettingsEntry(quickNotesTitle, listOf("快速记录", "速记", "笔记", "quick note", "note", "记录", "kuaisujilu", "suji", "biji", "jilu", "ksjl", "sj", "bj", "jl"), MuseRoutes.QUICK_NOTES, groupGeneral, TablerIcons.Bulb) { onNavigate(QuickNotesRoute) },
 
                 // 助手与 Agent
                 SettingsEntry(assistantTitle, listOf("助手", "assistant", "角色", "人设", "zhushou", "juese", "renshe", "zs", "js", "rs"), MuseRoutes.ASSISTANTS, groupAssistantAgent, TablerIcons.Atom, onOpenAssistants),
                 SettingsEntry(agentTitle, listOf("Agent", "代理", "智能体", "自主", "daili", "zhinengti", "zizhu", "dl", "znt"), MuseRoutes.SETTINGS_AGENT, groupAssistantAgent, TablerIcons.Users, onOpenAgentSettings),
-                SettingsEntry("主动消息", listOf("主动消息", "主动", "推送", "定时发送", "proactive", "zhudongxiaoxi", "zhudong", "tuisong", "dingshifasong", "zdxx", "zd", "ts"), MuseRoutes.SETTINGS_AGENT, groupAssistantAgent, TablerIcons.Bell, onOpenAgentSettings),
-                SettingsEntry("定时任务", listOf("定时任务", "定时", "计划任务", "scheduled", "task", "cron", "dingshirenwu", "dingshi", "jihuarenwu", "dsrw", "ds", "jhrw"), MuseRoutes.SCHEDULED_TASKS, groupAssistantAgent, Icons.Outlined.Schedule) { onNavigate(ScheduledTasksRoute) },
+                SettingsEntry(entryProactiveTitle, listOf("主动消息", "主动", "推送", "定时发送", "proactive", "zhudongxiaoxi", "zhudong", "tuisong", "dingshifasong", "zdxx", "zd", "ts"), MuseRoutes.SETTINGS_AGENT, groupAssistantAgent, TablerIcons.Bell, onOpenAgentSettings),
+                SettingsEntry(entryScheduledTasksTitle, listOf("定时任务", "定时", "计划任务", "scheduled", "task", "cron", "dingshirenwu", "dingshi", "jihuarenwu", "dsrw", "ds", "jhrw"), MuseRoutes.SCHEDULED_TASKS, groupAssistantAgent, Icons.Outlined.Schedule) { onNavigate(ScheduledTasksRoute) },
                 SettingsEntry(assistantResourcesTitle, listOf("助手资源", "收藏夹", "世界书", "快捷消息", "模式注入", "Skills", "技能", "zhushouziyuan", "shoucangjia", "shijieshu", "kuaijiexiaoxi", "moshizhur", "jineng", "zszy", "scj", "sjs", "kjxx", "mszr", "jn"), MuseRoutes.SETTINGS_ASSISTANT_RESOURCES, groupAssistantAgent, TablerIcons.Stars, onOpenAssistantResources),
                 SettingsEntry(notificationListenerTitle, listOf("通知监听", "通知", "NotificationListener", "通知权限", "tongzhijianting", "tongzhi", "tongzhiquanxian", "tzjl", "tz", "tzqx"), MuseRoutes.NOTIFICATION_LISTENER, groupAssistantAgent, TablerIcons.Bell, onOpenNotificationListener),
                 SettingsEntry(toolsTitle, listOf("工具", "AI工具", "ToolRegistry", "tool", "插件", "gongju", "AIgongju", "chajian", "gj", "AIgj", "cj"), MuseRoutes.TOOLS, groupAssistantAgent, TablerIcons.Tools, onOpenTools),
                 // P3-3: 权限配置向导(无障碍 / Shizuku / Root 三通道)
-                SettingsEntry("权限配置向导", listOf("权限", "无障碍", "Shizuku", "Root", "UI自动化", "permission", "accessibility", "quanxian", "wuzhangai", "UIzidonghua", "qx", "wza"), MuseRoutes.SETTINGS_PERMISSION_WIZARD, groupAssistantAgent, TablerIcons.Lock) { onNavigate(SettingsPermissionWizardRoute) },
+                SettingsEntry(entryPermissionWizardTitle, listOf("权限", "无障碍", "Shizuku", "Root", "UI自动化", "permission", "accessibility", "quanxian", "wuzhangai", "UIzidonghua", "qx", "wza"), MuseRoutes.SETTINGS_PERMISSION_WIZARD, groupAssistantAgent, TablerIcons.Lock) { onNavigate(SettingsPermissionWizardRoute) },
 
                 // AI 模型与能力(从原「助手与 Agent」拆分)
                 SettingsEntry(providerTitle, listOf("供应商", "模型", "provider", "API", "密钥", "gongyingshang", "moxing", "miyao", "gys", "mx", "my", "绘图", "Agnes", "DALL-E", "绘图供应商"), MuseRoutes.SETTINGS_MODEL, groupAiModels, TablerIcons.Settings, onOpenModelSettings),
-                SettingsEntry("API Key", listOf("API Key", "密钥", "key", "token", "凭证", "apiKey", "miyao", "pingzheng"), MuseRoutes.SETTINGS_MODEL, groupAiModels, TablerIcons.Lock, onOpenModelSettings),
+                SettingsEntry(entryApiKeyTitle, listOf("API Key", "密钥", "key", "token", "凭证", "apiKey", "miyao", "pingzheng"), MuseRoutes.SETTINGS_MODEL, groupAiModels, TablerIcons.Lock, onOpenModelSettings),
     SettingsEntry(taskRoutingTitle, listOf("任务路由", "路由", "自动切换", "模型", "renwuluyou", "luyou", "zidongqiehuan", "moxing", "rwly", "ly", "zdqh", "mx"), MuseRoutes.SETTINGS_TASK_ROUTING, groupAiModels, TablerIcons.Adjustments) { onNavigate(SettingsTaskRoutingRoute) },
                 SettingsEntry(visionTitle, listOf("视觉辅助", "视觉", "vision", "看图", "图像理解", "shijuefuzhu", "shijue", "kantu", "tuxianglijie", "sjfz", "sj", "kt", "txlj"), MuseRoutes.SETTINGS_VISION, groupAiModels, TablerIcons.Eye, onOpenVisionSettings),
-                SettingsEntry("OCR 文字识别", listOf("OCR", "ocr", "文字识别", "图片文字", "识别", "wenzi", "shibie", "tupianwenzi", "wzsb", "tpwz", "sb"), MuseRoutes.SETTINGS_VISION, groupAiModels, TablerIcons.Eye, onOpenVisionSettings),
+                SettingsEntry(entryOcrTitle, listOf("OCR", "ocr", "文字识别", "图片文字", "识别", "wenzi", "shibie", "tupianwenzi", "wzsb", "tpwz", "sb"), MuseRoutes.SETTINGS_VISION, groupAiModels, TablerIcons.Eye, onOpenVisionSettings),
                 SettingsEntry(
                     pluginManageTitle,
                     listOf("插件管理", "外部插件", "muse-plugin", "插件包", "导入插件", "chajian", "plugin", "daoruchajian", "cjb", "cjgl"),
@@ -309,8 +346,8 @@ fun SettingsScreen(
 
                 // 记忆与知识库
                 SettingsEntry(memoryTitle, listOf("记忆", "通知", "memory", "遗忘", "回忆", "jiyi", "tongzhi", "yiwang", "huiyi", "jy", "tz", "yw", "hy"), MuseRoutes.SETTINGS_MEMORY, groupMemoryKnowledge, TablerIcons.Atom, onOpenMemorySettings),
-                SettingsEntry("保持唤醒", listOf("保持唤醒", "唤醒", "wakelock", "不休眠", "常亮", "keep awake", "baochihuanxing", "huanxing", "buxiumian", "changliang", "bchx", "hx", "bxm", "cl"), MuseRoutes.SETTINGS_MEMORY, groupMemoryKnowledge, Icons.Outlined.Bolt, onOpenMemorySettings),
-                SettingsEntry("开机自启", listOf("开机自启", "自启", "自启动", "开机", "boot", "auto launch", "BootReceiver", "kaijiziqi", "ziqi", "zidong", "kaiji", "kjzq", "zq", "zdd", "kj"), MuseRoutes.SETTINGS_MEMORY, groupMemoryKnowledge, Icons.Outlined.Bolt, onOpenMemorySettings),
+                SettingsEntry(entryKeepAwakeTitle, listOf("保持唤醒", "唤醒", "wakelock", "不休眠", "常亮", "keep awake", "baochihuanxing", "huanxing", "buxiumian", "changliang", "bchx", "hx", "bxm", "cl"), MuseRoutes.SETTINGS_MEMORY, groupMemoryKnowledge, Icons.Outlined.Bolt, onOpenMemorySettings),
+                SettingsEntry(entryBootStartTitle, listOf("开机自启", "自启", "自启动", "开机", "boot", "auto launch", "BootReceiver", "kaijiziqi", "ziqi", "zidong", "kaiji", "kjzq", "zq", "zdd", "kj"), MuseRoutes.SETTINGS_MEMORY, groupMemoryKnowledge, Icons.Outlined.Bolt, onOpenMemorySettings),
                 SettingsEntry(ragTitle, listOf("RAG", "知识库", "rag", "检索", "向量", "文档", "zhishiku", "jiansuo", "xiangliang", "wendang", "zsk", "js", "xl", "wd"), MuseRoutes.SETTINGS_RAG, groupMemoryKnowledge, TablerIcons.Book, onOpenRagSettings),
 
                 // 数据管理
@@ -319,12 +356,12 @@ fun SettingsScreen(
                 SettingsEntry(dataImportTitle, listOf("数据导入", "导入", "import", "恢复数据", "shujudaoru", "daoru", "huifushuju", "sjdr", "dr", "hfsj"), MuseRoutes.SETTINGS_DATA_IMPORT, groupDataManagement, TablerIcons.CloudUpload, onOpenDataImport),
                 SettingsEntry(workspaceTitle, listOf("工作区", "文件管理", "workspace", "文件", "目录", "gongzuoqu", "wenjianguanli", "wenjian", "mulu", "gzq", "wjgl", "wj", "ml"), MuseRoutes.WORKSPACE, groupDataManagement, TablerIcons.Folder, onOpenWorkspace),
                 // v1.0.72: 归档聊天 — 从设置-数据与隐私进入(原主页顶栏入口已移除)
-                SettingsEntry("归档聊天", listOf("归档", "archive", "已归档", "guidang", "gd"), MuseRoutes.WORKSPACE, groupDataManagement, TablerIcons.Archive, onOpenArchivedChats),
+                SettingsEntry(entryArchivedTitle, listOf("归档", "archive", "已归档", "guidang", "gd"), MuseRoutes.WORKSPACE, groupDataManagement, TablerIcons.Archive, onOpenArchivedChats),
 
                 // 隐私与安全
                 SettingsEntry(securityTitle, listOf("安全", "锁屏", "PIN", "密码", "应用锁", "share", "anquan", "suoping", "mima", "yingyongsuo", "aq", "sp", "mm", "yys"), MuseRoutes.SETTINGS_SECURITY, groupDataManagement, TablerIcons.Lock, onOpenSecuritySettings),
-                SettingsEntry("生物识别", listOf("生物识别", "指纹", "biometric", "指纹解锁", "面容", "shengwushibie", "zhiwen", "zhiwenjiesuo", "mianrong", "swsb", "zw", "zwjs", "mr"), MuseRoutes.SETTINGS_SECURITY, groupDataManagement, TablerIcons.Lock, onOpenSecuritySettings),
-                SettingsEntry("网络代理", listOf("代理", "proxy", "网络", "VPN", "HTTP代理", "daili", "wangluo", "dl", "wl"), MuseRoutes.SETTINGS_PROXY, groupDataManagement, TablerIcons.Adjustments, onOpenProxySettings),
+                SettingsEntry(entryBiometricTitle, listOf("生物识别", "指纹", "biometric", "指纹解锁", "面容", "shengwushibie", "zhiwen", "zhiwenjiesuo", "mianrong", "swsb", "zw", "zwjs", "mr"), MuseRoutes.SETTINGS_SECURITY, groupDataManagement, TablerIcons.Lock, onOpenSecuritySettings),
+                SettingsEntry(proxyTitle, listOf("代理", "proxy", "网络", "VPN", "HTTP代理", "daili", "wangluo", "dl", "wl"), MuseRoutes.SETTINGS_PROXY, groupDataManagement, TablerIcons.Adjustments, onOpenProxySettings),
                 SettingsEntry(auditLogTitle, listOf("审计", "日志", "audit", "操作记录", "审计日志", "shenji", "rizhi", "caozuojilu", "shenjirizhi", "sj", "rz", "czjl", "sjrz"), MuseRoutes.AUDIT_LOG, groupDataManagement, TablerIcons.History, onOpenAuditLog),
 
                 // 关于
@@ -334,46 +371,46 @@ fun SettingsScreen(
                 SettingsEntry(debugLogTitle, listOf("调试", "日志", "debug", "log", "Logger", "tiaoshi", "rizhi", "ts", "rz"), MuseRoutes.DEBUG, groupAbout, TablerIcons.Bug, onOpenDebugLog),
                 SettingsEntry(experimentsTitle, listOf("实验性", "实验", "experimental", "beta", "试验", "shiyanxing", "shiyan", "shiyan", "syx", "sy"), MuseRoutes.SETTINGS_EXPERIMENTS, groupAbout, TablerIcons.Flask, onOpenExperimentsSettings),
                 SettingsEntry(statsTitle, listOf("统计", "使用统计", "stats", "热力图", "数据", "tongji", "shiyongtongji", "relitu", "shuju", "tj", "sytj", "rlt", "sj"), MuseRoutes.STATS, groupAbout, TablerIcons.ChartBar, onOpenStats),
-                SettingsEntry("里程碑", listOf("里程碑", "成就", "纪念日", "milestone", "liangcheng", "chengjiu", "jinianri", "lc", "cj", "jnr"), MuseRoutes.MILESTONES, groupAbout, TablerIcons.Stars) { onNavigate(MilestonesRoute) },
+                SettingsEntry(entryMilestoneTitle, listOf("里程碑", "成就", "纪念日", "milestone", "liangcheng", "chengjiu", "jinianri", "lc", "cj", "jnr"), MuseRoutes.MILESTONES, groupAbout, TablerIcons.Stars) { onNavigate(MilestonesRoute) },
 
                 // 二级设置项
-                SettingsEntry("字号", listOf("字号", "字体大小", "字体", "大小", "ziti", "zihao", "ztdx", "zt"), MuseRoutes.SETTINGS_APPEARANCE, appearanceTitle, TablerIcons.ColorSwatch, onOpenAppearanceSettings),
-                SettingsEntry("主题模式", listOf("主题模式", "浅色", "深色", "跟随系统", "zhutimoshi", "qianse", "shense", "genshixitong", "ztms", "qs", "ss", "gsxt"), MuseRoutes.SETTINGS_APPEARANCE, appearanceTitle, TablerIcons.ColorSwatch, onOpenAppearanceSettings),
-                SettingsEntry("动态取色", listOf("动态取色", "取色", "壁纸", "dongtaiquse", "quse", "dtqs", "qs", "bz"), MuseRoutes.SETTINGS_APPEARANCE, appearanceTitle, TablerIcons.ColorSwatch, onOpenAppearanceSettings),
-                SettingsEntry("定时切换主题", listOf("定时切换", "自动切换", "深色模式", "dingshiqiehuan", "zidongqiehuan", "shensemoshi", "dsqh", "zdqh", "ssms"), MuseRoutes.SETTINGS_APPEARANCE, appearanceTitle, TablerIcons.ColorSwatch, onOpenAppearanceSettings),
+                SettingsEntry(entryFontSizeTitle, listOf("字号", "字体大小", "字体", "大小", "ziti", "zihao", "ztdx", "zt"), MuseRoutes.SETTINGS_APPEARANCE, appearanceTitle, TablerIcons.ColorSwatch, onOpenAppearanceSettings),
+                SettingsEntry(entryThemeModeTitle, listOf("主题模式", "浅色", "深色", "跟随系统", "zhutimoshi", "qianse", "shense", "genshixitong", "ztms", "qs", "ss", "gsxt"), MuseRoutes.SETTINGS_APPEARANCE, appearanceTitle, TablerIcons.ColorSwatch, onOpenAppearanceSettings),
+                SettingsEntry(entryDynamicColorTitle, listOf("动态取色", "取色", "壁纸", "dongtaiquse", "quse", "dtqs", "qs", "bz"), MuseRoutes.SETTINGS_APPEARANCE, appearanceTitle, TablerIcons.ColorSwatch, onOpenAppearanceSettings),
+                SettingsEntry(entryScheduledThemeTitle, listOf("定时切换", "自动切换", "深色模式", "dingshiqiehuan", "zidongqiehuan", "shensemoshi", "dsqh", "zdqh", "ssms"), MuseRoutes.SETTINGS_APPEARANCE, appearanceTitle, TablerIcons.ColorSwatch, onOpenAppearanceSettings),
 
-                SettingsEntry("流式响应", listOf("流式", "流式响应", "实时输出", "liushi", "liushixiangying", "shishishuchu", "ls", "lsxy", "sssc"), MuseRoutes.SETTINGS_CHAT, chatTitle, TablerIcons.MessageCircle, onOpenChatSettings),
-                SettingsEntry("回车发送", listOf("回车发送", "回车", "发送", "huichefasong", "huiche", "fasong", "hcfs", "hc", "fs"), MuseRoutes.SETTINGS_CHAT, chatTitle, TablerIcons.MessageCircle, onOpenChatSettings),
-                SettingsEntry("自动滚动", listOf("自动滚动", "滚动", "zidonggundong", "gundong", "zdgd", "gd"), MuseRoutes.SETTINGS_CHAT, chatTitle, TablerIcons.MessageCircle, onOpenChatSettings),
-                SettingsEntry("深度思考", listOf("深度思考", "默认深度思考", "shendusikao", "morethorough", "sds", "sdsz"), MuseRoutes.SETTINGS_CHAT, chatTitle, TablerIcons.MessageCircle, onOpenChatSettings),
-                SettingsEntry("消息时间戳", listOf("时间戳", "24小时", "timestamp", "shijianchuo", "24xiaoshi", "sjc"), MuseRoutes.SETTINGS_CHAT, chatTitle, TablerIcons.MessageCircle, onOpenChatSettings),
+                SettingsEntry(entryStreamingTitle, listOf("流式", "流式响应", "实时输出", "liushi", "liushixiangying", "shishishuchu", "ls", "lsxy", "sssc"), MuseRoutes.SETTINGS_CHAT, chatTitle, TablerIcons.MessageCircle, onOpenChatSettings),
+                SettingsEntry(entryEnterSendTitle, listOf("回车发送", "回车", "发送", "huichefasong", "huiche", "fasong", "hcfs", "hc", "fs"), MuseRoutes.SETTINGS_CHAT, chatTitle, TablerIcons.MessageCircle, onOpenChatSettings),
+                SettingsEntry(entryAutoScrollTitle, listOf("自动滚动", "滚动", "zidonggundong", "gundong", "zdgd", "gd"), MuseRoutes.SETTINGS_CHAT, chatTitle, TablerIcons.MessageCircle, onOpenChatSettings),
+                SettingsEntry(entryDeepThinkingTitle, listOf("深度思考", "默认深度思考", "shendusikao", "morethorough", "sds", "sdsz"), MuseRoutes.SETTINGS_CHAT, chatTitle, TablerIcons.MessageCircle, onOpenChatSettings),
+                SettingsEntry(entryTimestampsTitle, listOf("时间戳", "24小时", "timestamp", "shijianchuo", "24xiaoshi", "sjc"), MuseRoutes.SETTINGS_CHAT, chatTitle, TablerIcons.MessageCircle, onOpenChatSettings),
 
-                SettingsEntry("TTS 语速", listOf("TTS", "语速", "音高", "yusu", "yingao", "ys", "yg"), MuseRoutes.SETTINGS_MEDIA, mediaTitle, TablerIcons.Microphone, onOpenMediaSettings),
-                SettingsEntry("TTS 声音", listOf("声音", "语音", "voice", "shengyin", "yuyin", "sy", "yy"), MuseRoutes.SETTINGS_MEDIA, mediaTitle, TablerIcons.Microphone, onOpenMediaSettings),
-                SettingsEntry("音频输出", listOf("音频输出", "扬声器", "听筒", "蓝牙", "yinpingshuchu", "yangshengqi", "tingtong", "lanya", "ypsc", "ysq", "tt", "ly"), MuseRoutes.SETTINGS_MEDIA, mediaTitle, TablerIcons.Microphone, onOpenMediaSettings),
+                SettingsEntry(entryTtsSpeedTitle, listOf("TTS", "语速", "音高", "yusu", "yingao", "ys", "yg"), MuseRoutes.SETTINGS_MEDIA, mediaTitle, TablerIcons.Microphone, onOpenMediaSettings),
+                SettingsEntry(entryTtsVoiceTitle, listOf("声音", "语音", "voice", "shengyin", "yuyin", "sy", "yy"), MuseRoutes.SETTINGS_MEDIA, mediaTitle, TablerIcons.Microphone, onOpenMediaSettings),
+                SettingsEntry(entryAudioOutputTitle, listOf("音频输出", "扬声器", "听筒", "蓝牙", "yinpingshuchu", "yangshengqi", "tingtong", "lanya", "ypsc", "ysq", "tt", "ly"), MuseRoutes.SETTINGS_MEDIA, mediaTitle, TablerIcons.Microphone, onOpenMediaSettings),
 
-                SettingsEntry("记忆开关", listOf("记忆", "开关", "jiyi", "kaiguan", "jy", "kg"), MuseRoutes.SETTINGS_MEMORY, memoryTitle, TablerIcons.Atom, onOpenMemorySettings),
-                SettingsEntry("保持唤醒", listOf("保持唤醒", "唤醒", "wakelock", "baochihuanxing", "huanxing", "bchx", "hx"), MuseRoutes.SETTINGS_MEMORY, memoryTitle, Icons.Outlined.Bolt, onOpenMemorySettings),
-                SettingsEntry("开机自启", listOf("开机自启", "自启", "自启动", "kaijiziqi", "ziqi", "zidong", "kaiji", "kjzq", "zq", "zd", "kj"), MuseRoutes.SETTINGS_MEMORY, memoryTitle, Icons.Outlined.Bolt, onOpenMemorySettings),
+                SettingsEntry(entryMemoryToggleTitle, listOf("记忆", "开关", "jiyi", "kaiguan", "jy", "kg"), MuseRoutes.SETTINGS_MEMORY, memoryTitle, TablerIcons.Atom, onOpenMemorySettings),
+                SettingsEntry(entryKeepAwakeTitle, listOf("保持唤醒", "唤醒", "wakelock", "baochihuanxing", "huanxing", "bchx", "hx"), MuseRoutes.SETTINGS_MEMORY, memoryTitle, Icons.Outlined.Bolt, onOpenMemorySettings),
+                SettingsEntry(entryBootStartTitle, listOf("开机自启", "自启", "自启动", "kaijiziqi", "ziqi", "zidong", "kaiji", "kjzq", "zq", "zd", "kj"), MuseRoutes.SETTINGS_MEMORY, memoryTitle, Icons.Outlined.Bolt, onOpenMemorySettings),
 
-                SettingsEntry("PIN 锁", listOf("PIN", "锁屏", "密码锁", "suoping", "mimasuo", "sp", "mms"), MuseRoutes.SETTINGS_SECURITY, securityTitle, TablerIcons.Lock, onOpenSecuritySettings),
-                SettingsEntry("生物识别", listOf("生物识别", "指纹", "面容", "shengwushibie", "zhiwen", "mianrong", "swsb", "zw", "mr"), MuseRoutes.SETTINGS_SECURITY, securityTitle, TablerIcons.Lock, onOpenSecuritySettings),
+                SettingsEntry(entryPinLockTitle, listOf("PIN", "锁屏", "密码锁", "suoping", "mimasuo", "sp", "mms"), MuseRoutes.SETTINGS_SECURITY, securityTitle, TablerIcons.Lock, onOpenSecuritySettings),
+                SettingsEntry(entryBiometricTitle, listOf("生物识别", "指纹", "面容", "shengwushibie", "zhiwen", "mianrong", "swsb", "zw", "mr"), MuseRoutes.SETTINGS_SECURITY, securityTitle, TablerIcons.Lock, onOpenSecuritySettings),
 
-                SettingsEntry("代理开关", listOf("代理", "开关", "Proxy", "daili", "kaiguan", "dl", "kg"), MuseRoutes.SETTINGS_PROXY, "网络代理", TablerIcons.Adjustments, onOpenProxySettings),
+                SettingsEntry(entryProxySwitchTitle, listOf("代理", "开关", "Proxy", "daili", "kaiguan", "dl", "kg"), MuseRoutes.SETTINGS_PROXY, proxyTitle, TablerIcons.Adjustments, onOpenProxySettings),
 
-                SettingsEntry("检索模型", listOf("检索模型", "RAG模型", "相似度", "jiansuomoxing", "ragmoxing", "xiangsidu", "jsmx", "ragmx", "xsd"), MuseRoutes.SETTINGS_RAG, ragTitle, TablerIcons.Book, onOpenRagSettings),
-                SettingsEntry("分段策略", listOf("分段", "分块", "策略", "fenduan", "fenkuai", "celve", "fd", "fk", "cl"), MuseRoutes.SETTINGS_RAG, ragTitle, TablerIcons.Book, onOpenRagSettings),
+                SettingsEntry(entryRagModelTitle, listOf("检索模型", "RAG模型", "相似度", "jiansuomoxing", "ragmoxing", "xiangsidu", "jsmx", "ragmx", "xsd"), MuseRoutes.SETTINGS_RAG, ragTitle, TablerIcons.Book, onOpenRagSettings),
+                SettingsEntry(entryChunkingTitle, listOf("分段", "分块", "策略", "fenduan", "fenkuai", "celve", "fd", "fk", "cl"), MuseRoutes.SETTINGS_RAG, ragTitle, TablerIcons.Book, onOpenRagSettings),
 
-                SettingsEntry("搜索引擎", listOf("搜索引擎", "Bing", "Jina", "SearXNG", "sousuoyinqing", "ssyq"), MuseRoutes.SETTINGS_WEB_SEARCH, webSearchEntryTitle, TablerIcons.World, onOpenWebSearch),
+                SettingsEntry(entrySearchEngineTitle, listOf("搜索引擎", "Bing", "Jina", "SearXNG", "sousuoyinqing", "ssyq"), MuseRoutes.SETTINGS_WEB_SEARCH, webSearchEntryTitle, TablerIcons.World, onOpenWebSearch),
 
-                SettingsEntry("视觉模型", listOf("视觉模型", "看图模型", "shijuemoxing", "kantumoxing", "sjmx", "ktmx"), MuseRoutes.SETTINGS_VISION, visionTitle, TablerIcons.Eye, onOpenVisionSettings),
+                SettingsEntry(entryVisionModelTitle, listOf("视觉模型", "看图模型", "shijuemoxing", "kantumoxing", "sjmx", "ktmx"), MuseRoutes.SETTINGS_VISION, visionTitle, TablerIcons.Eye, onOpenVisionSettings),
 
-                SettingsEntry("MCP 服务器", listOf("MCP", "服务器", "ModelContextProtocol", "fuwuqi", "fwq"), MuseRoutes.SETTINGS_MCP, mcpEntryTitle, TablerIcons.Affiliate, onOpenMcp),
-                SettingsEntry("工具批准模式", listOf("工具批准", "批准模式", "自动批准", "gongjupizhun", "pizhunmoshi", "zidongpizhun", "gjpz", "pzms", "zdpz"), MuseRoutes.TOOLS, toolsTitle, TablerIcons.Tools, onOpenTools),
-                SettingsEntry("主动消息", listOf("主动消息", "推送", "定时", "zhudongxiaoxi", "tuisong", "dingshi", "zdxx", "ts", "ds"), MuseRoutes.SETTINGS_AGENT, agentTitle, TablerIcons.Bell, onOpenAgentSettings),
-                SettingsEntry("协作助手", listOf("协作", "多助手", "团队", "xiezhuo", "duozhushou", "tuandui", "xz", "dzs", "td"), MuseRoutes.SETTINGS_AGENT, agentTitle, TablerIcons.Users, onOpenAgentSettings),
-                SettingsEntry("云备份", listOf("云备份", "备份", "S3", "WebDAV", "yunbeifen", "beifen", "ybf", "bf"), MuseRoutes.SETTINGS_DATA, dataBackupTitle, TablerIcons.Cloud, onOpenDataSettings),
-                SettingsEntry("Web 服务器", listOf("Web服务器", "端口", "PIN", "远程访问", "webfuwuqi", "duankou", "yuanchengfangwen", "webfwq", "dk"), MuseRoutes.SETTINGS_DATA, dataBackupTitle, TablerIcons.World, onOpenDataSettings),
+                SettingsEntry(entryMcpServerTitle, listOf("MCP", "服务器", "ModelContextProtocol", "fuwuqi", "fwq"), MuseRoutes.SETTINGS_MCP, mcpEntryTitle, TablerIcons.Affiliate, onOpenMcp),
+                SettingsEntry(entryToolApprovalTitle, listOf("工具批准", "批准模式", "自动批准", "gongjupizhun", "pizhunmoshi", "zidongpizhun", "gjpz", "pzms", "zdpz"), MuseRoutes.TOOLS, toolsTitle, TablerIcons.Tools, onOpenTools),
+                SettingsEntry(entryProactiveTitle, listOf("主动消息", "推送", "定时", "zhudongxiaoxi", "tuisong", "dingshi", "zdxx", "ts", "ds"), MuseRoutes.SETTINGS_AGENT, agentTitle, TablerIcons.Bell, onOpenAgentSettings),
+                SettingsEntry(entryCollabTitle, listOf("协作", "多助手", "团队", "xiezhuo", "duozhushou", "tuandui", "xz", "dzs", "td"), MuseRoutes.SETTINGS_AGENT, agentTitle, TablerIcons.Users, onOpenAgentSettings),
+                SettingsEntry(entryCloudBackupTitle, listOf("云备份", "备份", "S3", "WebDAV", "yunbeifen", "beifen", "ybf", "bf"), MuseRoutes.SETTINGS_DATA, dataBackupTitle, TablerIcons.Cloud, onOpenDataSettings),
+                SettingsEntry(entryWebServerTitle, listOf("Web服务器", "端口", "PIN", "远程访问", "webfuwuqi", "duankou", "yuanchengfangwen", "webfwq", "dk"), MuseRoutes.SETTINGS_DATA, dataBackupTitle, TablerIcons.World, onOpenDataSettings),
             ),
         )
     }
@@ -578,7 +615,7 @@ fun SettingsScreen(
                             link(dataImportTitle, R.string.settings_screen_data_import_desc, TablerIcons.CloudUpload, onOpenDataImport)
                             link(workspaceTitle, R.string.workspace_desc, TablerIcons.Folder, onOpenWorkspace)
                             // v1.0.72: 归档聊天 — 从设置-数据与隐私进入(原主页顶栏入口已移除)
-                            link("归档聊天", R.string.settings_screen_archived_desc, TablerIcons.Archive, onOpenArchivedChats)
+                            link(entryArchivedTitle, R.string.settings_screen_archived_desc, TablerIcons.Archive, onOpenArchivedChats)
                             switch(
                                 piiGuardTitle,
                                 R.string.settings_screen_pii_guard_desc,

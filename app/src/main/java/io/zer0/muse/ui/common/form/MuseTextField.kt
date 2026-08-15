@@ -74,14 +74,17 @@ fun MuseTextField(
     singleLine: Boolean = false,
     minLines: Int = 1,
     maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
-    interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
+    interactionSource: MutableInteractionSource? = null,
     /**
      * v1.0.72: 自定义容器背景色(默认 null = 使用主题默认填充色)。
      * 输入栏场景传 Color.Transparent,避免输入框实色块叠在岛背景上形成"白块"。
      */
     containerColor: androidx.compose.ui.graphics.Color? = null,
 ) {
-    val isFocused by interactionSource.collectIsFocusedAsState()
+    // v1.0.74 fix (前端审计 3.5): interactionSource 改为可空 + 内部 remember 兜底。
+    // 原实现默认参数里 remember{...} 在调用方组合上下文求值,循环内多次调用共享同一实例。
+    val resolvedInteractionSource = interactionSource ?: remember { MutableInteractionSource() }
+    val isFocused by resolvedInteractionSource.collectIsFocusedAsState()
     val scheme = MaterialTheme.colorScheme
 
     Column(modifier = modifier) {
@@ -120,7 +123,7 @@ fun MuseTextField(
             singleLine = singleLine,
             minLines = minLines,
             maxLines = maxLines,
-            interactionSource = interactionSource,
+            interactionSource = resolvedInteractionSource,
             shape = MuseShapes.semiLarge,
             colors = OutlinedTextFieldDefaults.colors(
                 // 填充背景:聚焦时用 surfaceContainerHigh(略深),未聚焦用 surfaceVariant

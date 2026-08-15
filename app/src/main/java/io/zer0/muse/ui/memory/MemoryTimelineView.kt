@@ -32,6 +32,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import io.zer0.muse.R
 import io.zer0.muse.ui.theme.AmberWarmth
 import io.zer0.muse.ui.theme.CoralWhisper
 import io.zer0.muse.ui.theme.LavenderDream
@@ -68,7 +70,13 @@ fun MemoryTimelineView(
     }
 
     var selectedFilter by remember { mutableStateOf("all") }
-    val filters = listOf("all" to "全部", "fact" to "事实", "summary" to "摘要", "milestone" to "里程碑")
+    // 前端修复 (i18n-3.x): 时间轴筛选文案走资源
+    val filters = listOf(
+        "all" to stringResource(R.string.memory_timeline_filter_all),
+        "fact" to stringResource(R.string.memory_timeline_filter_fact),
+        "summary" to stringResource(R.string.memory_timeline_filter_summary),
+        "milestone" to stringResource(R.string.memory_timeline_filter_milestone),
+    )
 
     // v1.0.3 修复崩溃: 去掉外层 Column,直接用 LazyColumn(modifier)。
     // 原结构 Column(fillMaxSize) { LazyColumn(fillMaxWidth) } 会让 LazyColumn 拿到

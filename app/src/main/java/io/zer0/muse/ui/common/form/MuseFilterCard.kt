@@ -67,7 +67,7 @@ fun MuseFilterCard(
     )
 
     Surface(
-        shape = MuseShapes.medium, // 14dp — 介于 medium(12) 和 semiLarge(16) 之间,取 medium
+        shape = MuseShapes.medium, // v1.0.74 fix: 实际用 medium(12dp),原注释"14dp"误导
         color = bgColor,
         onClick = onClick,
         modifier = modifier,
