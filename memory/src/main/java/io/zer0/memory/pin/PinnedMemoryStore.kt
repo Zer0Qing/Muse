@@ -35,6 +35,16 @@ class PinnedMemoryStore(
     private val jsonFile = File(storageDir, JSON_FILE)
     private val mdFile = File(storageDir, MD_FILE)
 
+    // 审查修复 (2.0 C-04): mtime 缓存 — 文件未变化时复用内存结果。
+    // SystemPromptAssembler 每次组装 system prompt 都调用 renderForPrompt,
+    // 无缓存时每次读双文件(JSON + Markdown 合并),高频对话下无谓磁盘 I/O。
+    @Volatile
+    private var cacheJsonMtime: Long = -1L
+    @Volatile
+    private var cacheMdMtime: Long = -1L
+    @Volatile
+    private var cachedEntries: List<PinnedEntry>? = null
+
     @Serializable
     data class PinnedEntry(
         val id: String,
@@ -120,9 +130,18 @@ class PinnedMemoryStore(
     // ─── 内部 I/O ───
 
     private fun loadEntries(): List<PinnedEntry> {
-        val jsonEntries = readJson()
-        val mdEntries = readMarkdown()
-        return mergeByNewest(jsonEntries, mdEntries)
+        // C-04: mtime 未变 → 直接返回缓存
+        val jsonMtime = if (jsonFile.exists()) jsonFile.lastModified() else -1L
+        val mdMtime = if (mdFile.exists()) mdFile.lastModified() else -1L
+        val cached = cachedEntries
+        if (cached != null && jsonMtime == cacheJsonMtime && mdMtime == cacheMdMtime) {
+            return cached
+        }
+        val entries = mergeByNewest(readJson(), readMarkdown())
+        cachedEntries = entries
+        cacheJsonMtime = jsonMtime
+        cacheMdMtime = mdMtime
+        return entries
     }
 
     private fun mergeByNewest(primary: List<PinnedEntry>, secondary: List<PinnedEntry>): List<PinnedEntry> {
@@ -202,6 +221,8 @@ class PinnedMemoryStore(
     }
 
     private fun writeBoth(entries: List<PinnedEntry>) {
+        // C-04: 写入后显式失效缓存(同毫秒写入可能 mtime 不变,不能只靠 mtime)
+        cachedEntries = null
         storageDir.mkdirs()
         // JSON
         jsonFile.writeText(json.encodeToString(ListSerializer(PinnedEntry.serializer()), entries))

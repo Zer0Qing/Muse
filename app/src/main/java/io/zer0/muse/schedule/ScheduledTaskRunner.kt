@@ -225,7 +225,8 @@ class ScheduledTaskRunner(
         }
         // B-12(ABA 防御):若当前 next_run_at 已是领取哨兵,说明另一执行者正在执行本任务
         // (已领取且尚未重置),此时绝不能再按哨兵值 CAS(会命中而重复执行),直接跳过。
-        // 哨兵值不会由正常调度产生(computeNextRun 上限为周级/退避),唯一来源就是领取动作。
+        // 哨兵值不会由正常调度产生(computeNextRun 上限为周级/退避;cron 无匹配走
+        // CronExpression.NO_MATCH = MAX-1,与领取哨兵 MAX 区分,见 C-06),唯一来源就是领取动作。
         if (current.nextRunAt == CLAIM_NEXT_RUN_SENTINEL) {
             Logger.w(TAG, "Task ${task.id} is currently being executed by another executer, skip")
             return

@@ -1291,6 +1291,12 @@ class ChatViewModel(
     @Volatile
     private var toolGenerationToken: Long = 0L
 
+    // 审查修复 (2.0 C-17): 本代生成中已附加媒体的工具轮消息 id(并发安全)。
+    // exec* 成功附加媒体后登记;runToolLoop 收尾对全部登记消息做一次兜底落盘,
+    // 缩小"内存已写媒体 → 立即落盘"之间进程被杀/落盘失败的丢失窗口。
+    private val toolMediaMessages: MutableSet<Uuid> =
+        java.util.Collections.newSetFromMap(java.util.concurrent.ConcurrentHashMap())
+
     // B-24: 流式生成序号 — 每次 launchStream 自增并写入 StreamRunState.generationSerial。
     // 收尾/错误路径清零 isStreaming 前校验"自己仍是最新生成",防止快速连发时
     // gen-1 收尾把 gen-2 的流式状态清掉(UI 表现为"还在生成却显示已停止")。
@@ -1298,11 +1304,21 @@ class ChatViewModel(
     private var streamGenerationSerial: Long = 0L
 
     /**
-     * A-13: 校验本轮工具生成仍是"当前活跃生成"。
+     * A-13: 校验本轮工具生成仍是"当前活跃生成"(代际令牌未变)。
+     *
+     * 审查修复 (2.0 A-04): 原实现把"令牌未变"与"目标会话仍是显示会话"耦合在一起,
+     * 用户切会话(非新生成)时令牌未变但显示焦点已离开,exec* 直接早退导致已完成的
+     * 媒体既不显示也不落库。现拆分为两个方法:
+     * - [isCurrentToolGeneration]: 仅校验代际(新一轮生成才使旧结果失效);
+     * - [isToolSessionDisplayed]: 仅校验显示焦点(决定媒体走 UI 合并还是直接落库)。
+     *
      * @param capturedToken exec* 入口捕获的 [toolGenerationToken]
      */
-    private fun isCurrentToolGeneration(capturedToken: Long): Boolean {
-        if (capturedToken != toolGenerationToken) return false
+    private fun isCurrentToolGeneration(capturedToken: Long): Boolean =
+        capturedToken == toolGenerationToken
+
+    /** 审查修复 (2.0 A-04): 当前显示会话是否仍是工具生成的目标会话。 */
+    private fun isToolSessionDisplayed(): Boolean {
         val active = activeToolSessionId ?: return false
         val displayed = if (_state.value.isAgentMode) _state.value.agentSessionId else _state.value.currentSessionId
         return active == displayed
@@ -4530,10 +4546,27 @@ class ChatViewModel(
                         content = state.unmaskPii(state.builder.toString()),
                         reasoning = state.unmaskPii(state.reasoningBuilder.toString()).ifBlank { null },
                     )
-                } else null
+                } else {
+                    // B-02: builder 无内容(切会话后停止、中断发生在同步点之间)时,
+                    // 回退读取 DB 中本轮消息(流式中周期性落盘已写入部分内容),避免部分回复丢失
+                    withContext(NonCancellable) {
+                        runCatching {
+                            sessionRepository.getMessageAsUiMessage(state.currentAssistantId.toString())
+                        }.getOrNull()
+                    }
+                }
                 // A-12/A-14: 传入 expectedAssistantId — persistInterruptedAssistant 只允许标记
                 // 本轮生成消息,绝不回退到旧/已完成消息(此前会误标 [已中断] 到历史回复)。
                 persistInterruptedAssistant(sessionId, partialFromBuilder, expectedAssistantId = state.currentAssistantId)
+                // 审查修复 (2.0 B-01): 中断路径同样清理本轮检查点 — 此前只在 finalizeResponse
+                // 正常结束删除,每次中断都在 DB 残留检查点,重启后 recoverInterruptedGenerations
+                // 反复扫描/补标 [已中断]。按 (sessionId, streamStartedAt) 精确清理本代全部轮次,
+                // NonCancellable 保证取消中也能完成 DB 写入。
+                withContext(NonCancellable) {
+                    runCatching {
+                        sessionRepository.deleteGenerationCheckpoints(sessionId, state.streamStartedAt)
+                    }.onFailure { Logger.w("ChatVM", "中断清理 generation checkpoints 失败: ${it.message}") }
+                }
                 // A-13: 取消即失效 — 在途工具执行的媒体写入不得落进新生成/新会话
                 toolGenerationToken++
                 toolAssistantId = null
@@ -4553,9 +4586,22 @@ class ChatViewModel(
                         content = state.unmaskPii(state.builder.toString()),
                         reasoning = state.unmaskPii(state.reasoningBuilder.toString()).ifBlank { null },
                     )
-                } else null
+                } else {
+                    // B-02: 同上,回退读取 DB 中本轮消息(部分回复不随异常丢失)
+                    withContext(NonCancellable) {
+                        runCatching {
+                            sessionRepository.getMessageAsUiMessage(state.currentAssistantId.toString())
+                        }.getOrNull()
+                    }
+                }
                 // A-12/A-14: 同上,限定本轮生成消息,不误标旧回复
                 persistInterruptedAssistant(sessionId, partialFromBuilder, expectedAssistantId = state.currentAssistantId)
+                // 审查修复 (2.0 B-01): 异常路径同样清理本轮检查点(同取消路径,见上)
+                withContext(NonCancellable) {
+                    runCatching {
+                        sessionRepository.deleteGenerationCheckpoints(sessionId, state.streamStartedAt)
+                    }.onFailure { Logger.w("ChatVM", "异常清理 generation checkpoints 失败: ${it.message}") }
+                }
                 // A-13: 异常中断同样失效在途工具写入
                 toolGenerationToken++
                 toolAssistantId = null
@@ -4790,6 +4836,8 @@ class ChatViewModel(
         toolAssistantId = state.currentAssistantId
         activeToolSessionId = state.sessionId
         toolGenerationToken++
+        // C-17: 本代媒体登记表清零(上一代遗留 id 不参与本代收尾兜底)
+        toolMediaMessages.clear()
         val baseHistorySize = conversationHistory.size
         // v1.x: 三钩子接入 — 流式视觉转换(applyVisualTransform)接入说明:
         // 当前流式 UI 更新走 updateAssistant(id, content, ...) 路径,
@@ -4812,6 +4860,11 @@ class ChatViewModel(
                 // state.currentAssistantId 定位"本轮生成消息",此前只在 runToolLoop 收尾更新,
                 // 多轮工具循环中段被取消时指向旧轮次,导致 [已中断] 落错消息。
                 state.currentAssistantId = params.currentAssistantId
+                // 审查修复 (2.0 A-02): 同步工具媒体写入目标 — toolAssistantId 原本只在
+                // runToolLoop 起点赋值一次,第 2 轮起的 exec* 媒体全部落回首轮占位 A0,
+                // 而正文/工具卡片在 A1/A2;这里每轮入口同步,使本轮工具执行(awaitAll
+                // 于下一轮 streamRound 之前完成)的媒体写入本轮占位消息。
+                toolAssistantId = params.currentAssistantId
                 // B5-03: 多轮 thinking 签名/加密内容累积,最终写入 assistant 消息
                 var thinkingSignature: String? = null
                 var thinkingEncryptedContent: String? = null
@@ -4840,7 +4893,9 @@ class ChatViewModel(
                 // 避免工具启用并配置 toolModel 后所有轮次被降级成纯文本路由。
                 // 未配置 toolModel(state.toolModel==null)时此分支恒走主模型,默认行为完全不变;
                 // 工具轮若历史含图而 toolModel 无视觉,也回退主模型避免给不支持视觉的模型带图 400。
-                val isToolRound = params.round > 1
+                // 审查修复 (2.0 A-01): forceMainModel 置位(主模型补轮递归)时短路 isToolRound,
+                // 防止二次补轮递归;工具轮最终答复检测在本轮流结束处进行。
+                val isToolRound = !params.forceMainModel && params.round > 1
                 val usesToolModel = isToolRound && toolModel != null &&
                     params.history.let { canUseToolModelForRound(it, toolModel) }
                 val roundModel = if (usesToolModel) toolModel else effectiveModel
@@ -5213,12 +5268,73 @@ class ChatViewModel(
                     }
                     // B-24: 仅自己仍是最新生成时才清零(旧生成错误不得清掉新生成的流式状态)
                     clearStreamingStateIfLatest(state)
+                    // B-02: 出口同步最后已知流式内容 — 中断 catch 块只读 state.builder,
+                    // 逐轮 params.builder 是局部对象,不同步则停止时部分回复无法构造
+                    state.builder.setLength(0)
+                    state.builder.append(params.builder)
+                    state.reasoningBuilder.setLength(0)
+                    state.reasoningBuilder.append(params.reasoningBuilder)
                     return StreamRoundResult.Error(type, displayMsg, params.builder.toString(), params.reasoningBuilder.toString())
+                }
+
+                // 审查修复 (2.0 A-01): 工具轮若直接产出最终答复(无 toolCalls),说明本轮
+                // 实为"最终回复轮" — 用主模型补一轮,保证最终答复由主模型输出(与上方
+                // 4840 注释意图一致)。仅在 toolModel != 主模型时重跑;补轮失败(网络/限流)
+                // 时保留 toolModel 已产出的答复作为兜底,不让用户面对空回复。
+                val hasToolCalls = toolCallAccumulator.isNotEmpty()
+                if (usesToolModel && !hasToolCalls && roundModel != effectiveModel) {
+                    Logger.i("ChatVM", "工具轮产出最终答复(round=$round), 用主模型补一轮 | model=${effectiveModel?.id}")
+                    val toolModelContent = params.builder.toString()
+                    val toolModelReasoning = params.reasoningBuilder.toString()
+                    // 清空本轮累积,补轮从零开始;自适应切片/节流/去重/首 token 状态一并复位
+                    params.builder.setLength(0)
+                    params.reasoningBuilder.setLength(0)
+                    imageAccumulator.clear()
+                    toolCallAccumulator.clear()
+                    pendingBuilder.clear()
+                    chunkIntervals.clear()
+                    lastChunkAt = 0L
+                    duplicateRemaining = null
+                    thinkingSignature = null
+                    thinkingEncryptedContent = null
+                    firstTokenTime = 0L
+                    lastUiUpdateChars = 0
+                    lastUiUpdateAt = streamStartedAt
+                    lastNotifChars = 0
+                    lastNotifAt = streamStartedAt
+                    lastTokenUpdateChars = 0
+                    lastTokenUpdateAt = streamStartedAt
+                    lastPersistChars = 0
+                    lastPersistAt = streamStartedAt
+                    // 立即置空 UI 内容 + 恢复"等待首 token",补轮流式到达后替换
+                    updateAssistant(params.currentAssistantId, content = "", isStreaming = true)
+                    _state.update { it.copy(isWaitingFirstToken = true) }
+                    val replayed = streamRound(params.copy(forceMainModel = true))
+                    // 补轮失败:整体回填 toolModel 答复(整段替换,避免与补轮的部分内容拼接)
+                    if (replayed is StreamRoundResult.Error) {
+                        Logger.w("ChatVM", "主模型补轮失败, 保留 toolModel 答复: ${replayed.message}")
+                        params.builder.setLength(0)
+                        params.builder.append(toolModelContent)
+                        params.reasoningBuilder.setLength(0)
+                        params.reasoningBuilder.append(toolModelReasoning)
+                        // B-02: 回填后同步 state.builder,保持中断 catch 可读到已恢复的内容
+                        state.builder.setLength(0)
+                        state.builder.append(params.builder)
+                        state.reasoningBuilder.setLength(0)
+                        state.reasoningBuilder.append(params.reasoningBuilder)
+                        updateAssistant(
+                            params.currentAssistantId,
+                            unmaskPii(toolModelContent),
+                            unmaskPii(toolModelReasoning).ifBlank { null },
+                            isStreaming = false,
+                        )
+                        _state.update { it.copy(isWaitingFirstToken = false) }
+                    }
+                    return replayed
                 }
 
                 // v1.0.54: 先判断本轮是否为工具轮,再推 UI —
                 //   工具轮(有 toolCalls)的思考过程不显示(出戏),最终回复轮正常显示。
-                val hasToolCalls = toolCallAccumulator.isNotEmpty()
                 updateAssistant(
                     params.currentAssistantId,
                     unmaskPii(params.builder.toString()),
@@ -5269,6 +5385,11 @@ class ChatViewModel(
                     withCitations
                 }
 
+                // B-02: 出口同步最后已知流式内容(同上,供中断 catch 构造部分回复)
+                state.builder.setLength(0)
+                state.builder.append(params.builder)
+                state.reasoningBuilder.setLength(0)
+                state.reasoningBuilder.append(params.reasoningBuilder)
                 return StreamRoundResult.Success(
                     assistantMessage = assistantMessage,
                     hasToolCalls = hasToolCalls,
@@ -5333,6 +5454,16 @@ class ChatViewModel(
         state.totalToolCallCount = toolLoopResult.totalToolCallCount
         state.firstTokenTime = toolLoopResult.firstTokenTime
         state.currentAssistantId = toolLoopResult.finalAssistantId
+        // 审查修复 (2.0 C-17): 收尾兜底落盘 — exec* 内已立即落盘,这里对登记过的
+        // 工具媒体消息再扫一次,覆盖落盘失败/进程竞争等窗口;NonCancellable 保证
+        // 取消路径也能完成(登记者在取消分支走 attachMediaToMessage,此处幂等无害)。
+        if (toolMediaMessages.isNotEmpty()) {
+            val sweepSession = activeToolSessionId ?: _state.value.currentSessionId
+            toolMediaMessages.forEach { mediaId ->
+                persistToolMessageMedia(sweepSession, mediaId)
+            }
+            toolMediaMessages.clear()
+        }
         // A-13: 收尾递增令牌,使任何仍在途的工具执行(图片生成可达数十秒)媒体写入失效
         toolAssistantId = null
         activeToolSessionId = null
@@ -5519,15 +5650,11 @@ class ChatViewModel(
         // B5-01: 生成正常结束,清理检查点
         // B-23: 多轮工具循环每轮各写一条检查点,按本轮用户消息批量清理全部轮次,
         // 避免中间轮次残留(重启后被 recoverInterruptedGenerations 误标 [已中断])。
-        val checkpointUserMsgId = state.conversationHistory
-            .lastOrNull { it.role == MessageRole.USER }?.id?.toString()
-        if (!checkpointUserMsgId.isNullOrBlank()) {
-            resultOf { sessionRepository.deleteGenerationCheckpointsByUserMessageId(checkpointUserMsgId) }
-                .onError { msg, _ -> Logger.w("ChatVM", "generation checkpoints 清理失败: $msg") }
-        } else {
-            resultOf { sessionRepository.deleteGenerationCheckpoint(state.currentAssistantId.toString()) }
-                .onError { msg, _ -> Logger.w("ChatVM", "generation checkpoint 清理失败: $msg") }
-        }
+        // 审查修复 (2.0 C-14/C-20): 改为按 (sessionId, streamStartedAt) 精确清理本代 —
+        // 同一代所有轮次共享同一 createdAt;并发 regenerate 的检查点 createdAt 不同,
+        // 不会被批量删除误伤(C-20);无 USER 消息时也能清全轮次,不再退化为仅删单条(C-14)。
+        resultOf { sessionRepository.deleteGenerationCheckpoints(sessionId, streamStartedAt) }
+            .onError { msg, _ -> Logger.w("ChatVM", "generation checkpoints 清理失败: $msg") }
         // R-UI-02: 本轮生成结束后清除生成焦点(仅当仍指向本会话)。
         if (resultOf { settings.getGeneratingSessionId() }.getOrNull() == sessionId) {
             resultOf { settings.saveGeneratingSessionId(null) }
@@ -5941,18 +6068,6 @@ class ChatViewModel(
 
     // ── v1.135: 媒体/富内容工具执行函数(注册到 ToolRegistry) ─────────────────
 
-    /** 合并新内容到当前助手消息,避免覆盖 LLM 在工具调用前已输出的说明文本。
-     *  A-01: existing 已含 newContent 时保持原样(幂等),不再整体替换 — 并行媒体工具
-     *  先后写入同一消息时,后完成的调用不得抹掉先完成调用的占位文本。 */
-    private fun mergeAssistantContent(assistantId: Uuid, newContent: String): String {
-        val existing = _messages.value.firstOrNull { it.id == assistantId }?.content?.trim() ?: ""
-        return when {
-            existing.isBlank() -> newContent
-            existing.contains(newContent) -> existing
-            else -> "$existing\n\n$newContent"
-        }
-    }
-
     /**
      * 审计修复 (S-01): 工具执行成功后把含媒体的消息立即落盘。
      *
@@ -6035,24 +6150,34 @@ class ChatViewModel(
                 updateAssistant(assistantId, content = appContext.getString(R.string.err_chat_img_gen_failed_no_result))
                 return "图片生成失败: 未返回结果"
             }
-            // A-13: 图片生成可达数十秒,期间可能已发新消息/切会话 —
-            // 校验本轮生成仍活跃,避免跨会话媒体污染(旧结果写进新消息)
+            // A-13: 图片生成可达数十秒,期间可能已发新消息 —
+            // 代际令牌失效(新一轮生成已覆盖 toolAssistantId)时媒体不得写入任何消息
             if (!isCurrentToolGeneration(genToken)) {
-                Logger.w("ChatVM", "A-13: 图片生成完成但生成已失效(新生成/切会话),跳过媒体写入 | assistantId=$assistantId")
-                return "图片已生成,但当前会话已切换,结果未展示(如需可重新请求)"
+                Logger.w("ChatVM", "A-13: 图片生成完成但生成已失效(新一轮生成),跳过媒体写入 | assistantId=$assistantId")
+                return "图片已生成,但当前生成已失效,结果未展示(如需可重新请求)"
             }
-            // 审计修复 (A-01): 追加合并而非整体替换 — 同一轮并行多个媒体工具
-            // (如"生成两张图")写同一个 toolAssistantId 消息时,后完成的调用不得
-            // 覆盖先完成的图片。_messages.update 是 StateFlow 原子 CAS,并发安全。
-            val existingUrls = _messages.value.firstOrNull { it.id == assistantId }?.imageUrls ?: emptyList()
-            updateAssistant(
-                assistantId,
-                content = mergeAssistantContent(assistantId, appContext.getString(R.string.err_chat_img_generated)),
-                imageUrls = (existingUrls + urls).distinct(),
-                isStreaming = false,
-            )
-            // 审计修复 (S-01): 含媒体的消息立即落盘,否则重启/切页后图片消失
-            persistToolMessageMedia(activeToolSessionId ?: _state.value.currentSessionId, assistantId)
+            // 审查修复 (2.0 A-03): 原子合并 — 读改合写在 CAS 变换内完成,同轮并行生图
+            // (async awaitAll)各自基于最新快照追加,先完成者的 URL 不再被后完成者覆盖。
+            // 审查修复 (2.0 B-04): 长 base64 data URI 经 MessageImageStore 落盘为 file://
+            // 路径(文件名带内容哈希,并行写入互不覆盖),DB 不再存 MB 级 base64。
+            val persistableUrls = sessionRepository.toPersistableImageUrls(assistantId.toString(), urls)
+            val generatedContent = appContext.getString(R.string.err_chat_img_generated)
+            if (isToolSessionDisplayed()) {
+                streamCoordinator.appendMediaToAssistant(assistantId, generatedContent, imageUrls = persistableUrls)
+                // 审计修复 (S-01): 含媒体的消息立即落盘,否则重启/切页后图片消失
+                persistToolMessageMedia(activeToolSessionId ?: _state.value.currentSessionId, assistantId)
+                // C-17: 登记本代媒体消息,收尾兜底落盘
+                toolMediaMessages.add(assistantId)
+            } else {
+                // 审查修复 (2.0 A-04): 切会话不取消 — 媒体按原会话直接落库,
+                // 切回原会话时从 DB 恢复展示(UI 合并路径对非显示会话无消息可写)
+                sessionRepository.attachMediaToMessage(
+                    sessionId = activeToolSessionId ?: _state.value.currentSessionId,
+                    messageId = assistantId,
+                    content = generatedContent,
+                    imageUrls = persistableUrls,
+                )
+            }
             // v1.0.75 fix (用户反馈): 返回给模型的字符串不再包含 URL —
             //   图片已通过 imageUrls 渲染进对话,模型复述 URL 只会造成"聊天页里塞链接"的体验。
             //   模型只需知道"图片已生成并展示",无需也无法处理具体 URL。
@@ -6089,13 +6214,36 @@ class ChatViewModel(
         val requestedModelId = args["model"]?.takeIf { it.isNotBlank() }
         val requestedProviderId = args["provider_id"]?.takeIf { it.isNotBlank() }
         // v1.137: 参考图列表(可选,用于图生视频/多图生视频)
-        // B-05: data URI 内含逗号(data:image/png;base64,AAA),按逗号拆分必被拆坏 —
-        // 以 data: 开头按单图处理;仅 http(s) URL 列表才按逗号分隔。
+        // B-05: data URI 内含逗号(data:image/png;base64,AAA),按逗号拆分必被拆坏。
+        // 审查修复 (2.0 B-05): 支持 URL 与 data URI 混排 — 逐段遍历,以 "data:" 开头的
+        // 段与其后一段(base64 载荷)用逗号重新拼接(data URI 内仅分隔符一个逗号,
+        // base64 字母表不含逗号),普通 URL 段原样保留。
         val referenceImages: List<String> = args["reference_images"]?.let { raw ->
             val trimmed = raw.trim()
-            if (trimmed.isEmpty()) emptyList()
-            else if (trimmed.startsWith("data:")) listOf(trimmed)
-            else trimmed.split(",").map { it.trim() }.filter { it.isNotBlank() }
+            if (trimmed.isEmpty()) {
+                emptyList()
+            } else {
+                val tokens = trimmed.split(",").map { it.trim() }.filter { it.isNotBlank() }
+                val rebuilt = mutableListOf<String>()
+                var i = 0
+                while (i < tokens.size) {
+                    if (tokens[i].startsWith("data:")) {
+                        // data URI:本段 + 下一段(base64 载荷,本身不含逗号)
+                        val payload = tokens.getOrNull(i + 1)
+                        if (payload != null) {
+                            rebuilt.add(tokens[i] + "," + payload)
+                            i += 2
+                        } else {
+                            rebuilt.add(tokens[i])
+                            i += 1
+                        }
+                    } else {
+                        rebuilt.add(tokens[i])
+                        i += 1
+                    }
+                }
+                rebuilt
+            }
         } ?: emptyList()
         val assistantId = toolAssistantId
             ?: return "错误: 无法确定当前助手消息,请重新发送请求"
@@ -6171,17 +6319,26 @@ class ChatViewModel(
             val videoUrl = result.getOrThrow()
             // A-13: 视频生成耗时可观,校验本轮生成仍活跃,避免跨会话污染
             if (!isCurrentToolGeneration(genToken)) {
-                Logger.w("ChatVM", "A-13: 视频生成完成但生成已失效(新生成/切会话),跳过媒体写入 | assistantId=$assistantId")
-                return "视频已生成,但当前会话已切换,结果未展示(如需可重新请求)"
+                Logger.w("ChatVM", "A-13: 视频生成完成但生成已失效(新一轮生成),跳过媒体写入 | assistantId=$assistantId")
+                return "视频已生成,但当前生成已失效,结果未展示(如需可重新请求)"
             }
-            updateAssistant(
-                assistantId,
-                content = mergeAssistantContent(assistantId, appContext.getString(R.string.err_chat_video_generated)),
-                videoFileUri = videoUrl,
-                isStreaming = false,
-            )
-            // 审计修复 (S-01): 含媒体的消息立即落盘,否则重启/切页后视频消失
-            persistToolMessageMedia(activeToolSessionId ?: _state.value.currentSessionId, assistantId)
+            // 审查修复 (2.0 A-03): 原子合并视频 URL(单值,并发写同消息时后写者胜属预期)
+            val generatedContent = appContext.getString(R.string.err_chat_video_generated)
+            if (isToolSessionDisplayed()) {
+                streamCoordinator.appendMediaToAssistant(assistantId, generatedContent, videoFileUri = videoUrl)
+                // 审计修复 (S-01): 含媒体的消息立即落盘,否则重启/切页后视频消失
+                persistToolMessageMedia(activeToolSessionId ?: _state.value.currentSessionId, assistantId)
+                // C-17: 登记本代媒体消息,收尾兜底落盘
+                toolMediaMessages.add(assistantId)
+            } else {
+                // 审查修复 (2.0 A-04): 切会话不取消 — 视频按原会话直接落库
+                sessionRepository.attachMediaToMessage(
+                    sessionId = activeToolSessionId ?: _state.value.currentSessionId,
+                    messageId = assistantId,
+                    content = generatedContent,
+                    videoFileUri = videoUrl,
+                )
+            }
             // v1.0.75 fix (用户反馈): 与 generate_image 同理,不给模型 URL,避免复述链接
             "视频已生成并展示在对话中"
         } catch (e: kotlinx.coroutines.CancellationException) {
@@ -6223,18 +6380,27 @@ class ChatViewModel(
             val dataUri = "data:image/png;base64,$base64"
             // A-13: 校验本轮生成仍活跃,避免跨会话污染
             if (!isCurrentToolGeneration(genToken)) {
-                Logger.w("ChatVM", "A-13: 二维码生成完成但生成已失效(新生成/切会话),跳过媒体写入 | assistantId=$assistantId")
-                return "二维码已生成,但当前会话已切换,结果未展示(如需可重新请求)"
+                Logger.w("ChatVM", "A-13: 二维码生成完成但生成已失效(新一轮生成),跳过媒体写入 | assistantId=$assistantId")
+                return "二维码已生成,但当前生成已失效,结果未展示(如需可重新请求)"
             }
-            // 审计修复 (A-01): 追加合并,避免并行工具调用覆盖已生成的媒体
-            val existingUrls = _messages.value.firstOrNull { it.id == assistantId }?.imageUrls ?: emptyList()
-            updateAssistant(
-                assistantId,
-                content = mergeAssistantContent(assistantId, appContext.getString(R.string.err_chat_qr_generated)),
-                imageUrls = (existingUrls + dataUri).distinct(),
-            )
-            // 审计修复 (S-01): 含媒体的消息立即落盘,否则重启/切页后二维码消失
-            persistToolMessageMedia(activeToolSessionId ?: _state.value.currentSessionId, assistantId)
+            // 审查修复 (2.0 A-03 + B-04): 原子合并 + 长 base64 落盘(不再直塞 imageUrlsJson)
+            val persistableUri = sessionRepository.toPersistableImageUrls(assistantId.toString(), listOf(dataUri))
+            val generatedContent = appContext.getString(R.string.err_chat_qr_generated)
+            if (isToolSessionDisplayed()) {
+                streamCoordinator.appendMediaToAssistant(assistantId, generatedContent, imageUrls = persistableUri)
+                // 审计修复 (S-01): 含媒体的消息立即落盘,否则重启/切页后二维码消失
+                persistToolMessageMedia(activeToolSessionId ?: _state.value.currentSessionId, assistantId)
+                // C-17: 登记本代媒体消息,收尾兜底落盘
+                toolMediaMessages.add(assistantId)
+            } else {
+                // 审查修复 (2.0 A-04): 切会话不取消 — 二维码按原会话直接落库
+                sessionRepository.attachMediaToMessage(
+                    sessionId = activeToolSessionId ?: _state.value.currentSessionId,
+                    messageId = assistantId,
+                    content = generatedContent,
+                    imageUrls = persistableUri,
+                )
+            }
             "二维码生成成功"
         } catch (e: Exception) {
             "二维码生成失败: ${e.message ?: "未知错误"}"

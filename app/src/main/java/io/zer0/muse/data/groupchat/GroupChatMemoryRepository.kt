@@ -28,27 +28,46 @@ class GroupChatMemoryRepository(
 
     private val TAG = "GroupChatMemRepo"
 
+    /** B-18: 同 (群聊, agent) 摘要去重窗口(30 分钟)。 */
+    private companion object {
+        const val DEDUP_WINDOW_MS = 30L * 60 * 1000
+    }
+
     /**
      * 写入一条群聊记忆摘要。
+     *
+     * 审查修复 (2.0 B-18): 写入前按时间窗口去重 — 群聊轮转中每个 agent 每轮发言都触发
+     * 一次 saveSummary,短时间窗口内累积近 10 条高度相似摘要,注入侧线性膨胀;
+     * 同一 (群聊, agent) 在 [dedupWindowMs] 内已有摘要则跳过(返回既有摘要)。
      *
      * @param groupChatId 群聊 id
      * @param assistantId 助手 id
      * @param summary 摘要文本(LLM 生成或简单截取)
      * @param expiresAt 可选过期时间戳,null 表示永不过期
-     * @return 新写入的记忆实体
+     * @param dedupWindowMs 去重窗口(毫秒),默认 30 分钟
+     * @return 新写入的记忆实体(去重命中时返回既有实体)
      */
     suspend fun saveSummary(
         groupChatId: String,
         assistantId: String,
         summary: String,
         expiresAt: Long? = null,
+        dedupWindowMs: Long = DEDUP_WINDOW_MS,
     ): GroupChatMemoryEntity = withContext(Dispatchers.IO) {
+        val now = System.currentTimeMillis()
+        val latest = resultOf { dao.getByAssistantAndChat(assistantId, groupChatId, 1) }
+            .onError { msg, t -> Logger.w(TAG, "群聊记忆去重查询失败: $msg", t) }
+            .getOrNull()?.firstOrNull()
+        if (latest != null && now - latest.createdAt < dedupWindowMs) {
+            // B-18: 窗口内已有摘要,跳过重复写入(轮转各成员发言产生的摘要高度相似)
+            return@withContext latest
+        }
         val memory = GroupChatMemoryEntity(
             id = UUID.randomUUID().toString(),
             groupChatId = groupChatId,
             assistantId = assistantId,
             summary = summary,
-            createdAt = System.currentTimeMillis(),
+            createdAt = now,
             expiresAt = expiresAt,
         )
         resultOf { dao.insert(memory) }

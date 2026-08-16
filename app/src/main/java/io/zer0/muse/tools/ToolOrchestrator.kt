@@ -41,6 +41,9 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import java.io.File
 import kotlin.uuid.Uuid
@@ -115,6 +118,13 @@ data class StreamRoundParams(
      * 注入到 ChatService,重试时作为末尾 assistant 消息让模型从中断处继续,避免从头重生成。
      */
     val preservePartialContent: Boolean = false,
+    /**
+     * 审查修复 (2.0 A-01): 强制使用主模型重跑本轮 — toolModel 轮(round>1)若直接产出
+     * 最终答复(无 toolCalls),说明本轮实为"最终回复轮",由 ChatViewModel 以该标志
+     * 递归重跑一轮,保证最终答复由主模型输出。置位后 isToolRound 判定被短路,
+     * 不会再触发二次补轮(防无限递归)。
+     */
+    val forceMainModel: Boolean = false,
 )
 
 /**
@@ -833,6 +843,21 @@ class ToolOrchestrator(
             )
         }
 
+        // 审查修复 (2.0 B-14): subagent_task 省略 parent_session_id 时由执行侧补齐 —
+        // 异步结果必须归属发起会话,否则以空串 key 存入 DeferredResultStore,
+        // 被 consumeUnowned 降级注入"当前活跃会话",可能串台到别的会话。
+        // 执行侧(本处)是唯一确定知道发起会话的位置,不依赖 LLM 自觉传参。
+        val subagentSessionFix = if (tc.name == "subagent_task") {
+            val hasParent = runCatching {
+                AppJson.parseToJsonElement(effectiveArguments)
+                    .jsonObject["parent_session_id"]?.jsonPrimitive?.contentOrNull?.isNotBlank() == true
+            }.getOrDefault(false)
+            if (hasParent) effectiveArguments
+            else mergeToolArguments(effectiveArguments, mapOf("parent_session_id" to params.sessionId))
+        } else {
+            effectiveArguments
+        }
+
         // 执行工具:skill 走 SkillExecutor,本地工具走 ToolRegistry
         val toolResult = withTimeoutOrNull(toolTimeoutMs) {
             val skill = params.skillMap[tc.name]
@@ -853,12 +878,12 @@ class ToolOrchestrator(
                     if (tc.name in BROWSER_TOOL_NAMES) {
                         val sessionBm = browserManagerRegistry.getForSession(params.sessionId)
                         val argsMap = runCatching {
-                            AppJson.decodeFromString(JsonObject.serializer(), effectiveArguments)
+                            AppJson.decodeFromString(JsonObject.serializer(), subagentSessionFix)
                                 .entries.associate { (k, v) -> k to v.toString().trim('"') }
                         }.getOrDefault(emptyMap())
                         BrowserAutomationTool.executeFromArgs(tc.name, argsMap, sessionBm)
                     } else {
-                        toolRegistry.executeFromJson(tc.name, effectiveArguments)
+                        toolRegistry.executeFromJson(tc.name, subagentSessionFix)
                     }
                 }
             }

@@ -161,6 +161,12 @@ class MuseNotificationManager(private val context: Context) {
     }
 
     /**
+     * 审查修复 (2.0 B-34): 暴露前台判定 — 主动消息/每日总结等 HIGH 发声渠道统一使用,
+     * 避免"前台静默"逻辑在各调用方重复实现。
+     */
+    fun isAppForeground(): Boolean = isAppInForeground()
+
+    /**
      * 显示"主动消息"通知(助手像真人一样主动给用户发消息时调用)。
      *
      * v0.44: 通知栏大图标改用助手头像(图片/Emoji/首字母),不再统一用 app 图标。

@@ -170,6 +170,13 @@ class DeepMemoryProcessor(
         // v0.22: 按 summary.assistantId 获取对应 Assistant 的独立 FactStore
         val factStore = factDbProvider.getFactStore(summary.assistantId)
 
+        // 审查修复 (2.0 A-11): 墓碑过滤 — 用户删除的事实不得从 dirty session 摘要
+        // 重新抽回 facts 表(S-04 墓碑此前只作用于 compileFacts/compileToday,
+        // deepMemory 的输入摘要与 LLM 输出均未过滤,已删内容会"复活")。
+        val tombstones = resultOf { factStore.getTombstones() }.getOrNull() ?: emptyList()
+        val effectiveSummary = FactStore.filterTombstonedLines(summaryText, tombstones)
+        val effectiveSnapshot = FactStore.filterTombstonedLines(prevSnapshot, tombstones)
+
         // 构建 LLM 输入
         val isZh = locale.startsWith("zh")
         val hasPrevious = prevSnapshot.isNotBlank()
@@ -181,10 +188,10 @@ class DeepMemoryProcessor(
         val userContent = if (hasPrevious) {
             val prevLabel = if (isZh) "## 上次快照" else "## Previous Snapshot"
             val curLabel = if (isZh) "## 当前摘要" else "## Current Summary"
-            "$timeContextLabel\n\n$timeContextText\n\n$prevLabel\n\n$prevSnapshot\n\n$curLabel\n\n$summaryText"
+            "$timeContextLabel\n\n$timeContextText\n\n$prevLabel\n\n$effectiveSnapshot\n\n$curLabel\n\n$effectiveSummary"
         } else {
             val curLabel = if (isZh) "## 摘要内容" else "## Summary Content"
-            "$timeContextLabel\n\n$timeContextText\n\n$curLabel\n\n$summaryText"
+            "$timeContextLabel\n\n$timeContextText\n\n$curLabel\n\n$effectiveSummary"
         }
 
         // 调 LLM(带重试)
@@ -214,7 +221,20 @@ class DeepMemoryProcessor(
                 // 子助手用 assistantId。此前 addBatch 不传 scope 恒落 "main",
                 // 子助手会话的深层事实串进主助手记忆(查询漏一半数据)。
                 val scope = if (summary.assistantId.isBlank() || summary.assistantId == "default") "main" else summary.assistantId
-                val added = factStore.addBatch(facts, scope = scope)
+                // A-11: LLM 抽取输出按墓碑过滤 — 命中墓碑的事实直接丢弃,不再写回 facts 表
+                val filteredFacts = if (tombstones.isEmpty()) {
+                    facts
+                } else {
+                    facts.filter { f -> tombstones.none { t -> FactStore.matchesTombstone(f.fact, t) } }
+                }
+                if (filteredFacts.isEmpty()) {
+                    // 抽取结果全部命中墓碑:视为无可写事实,标记已处理避免每轮重抽
+                    Logger.d("DeepMemoryProcessor", "fact extraction 全部命中墓碑(session=${summary.sessionId.take(8)}…),跳过写入")
+                    failureCounts.remove(summary.sessionId)
+                    summaryManager.markProcessed(summary.sessionId)
+                    return 0
+                }
+                val added = factStore.addBatch(filteredFacts, scope = scope)
                 // v0.32: 接入 MemoryConfig —— 每个脏 session 处理完后顺手跑一次衰减,
                 // 让 decayPerDay / forgetSpeed / compileThreshold / baseImportance 真正生效。
                 // 单 session 的 fact 增量很小,applyDecay 的开销可忽略;失败也不阻塞主流程。

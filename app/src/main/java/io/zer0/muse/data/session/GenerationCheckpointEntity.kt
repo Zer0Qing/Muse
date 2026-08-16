@@ -63,6 +63,16 @@ interface GenerationCheckpointDao {
     @Query("DELETE FROM generation_checkpoints WHERE sessionId = :sessionId AND createdAt >= :fromCreatedAt")
     suspend fun deleteBySessionAndCreatedAtFrom(sessionId: String, fromCreatedAt: Long)
 
+    /**
+     * 审查修复 (2.0 C-14/C-20/B-01): 按"会话 + 精确 createdAt"删除检查点 —
+     * 同一代生成的所有轮次共享同一 createdAt(launchStream 的 streamStartedAt),
+     * 精确匹配只清理本代生成:
+     * - C-20: 并发 regenerate 的检查点 createdAt 不同,不会被误删;
+     * - C-14: 不依赖 USER 消息 id,无 USER 消息时也能清理全部轮次(不再退化为仅删单条)。
+     */
+    @Query("DELETE FROM generation_checkpoints WHERE sessionId = :sessionId AND createdAt = :createdAt")
+    suspend fun deleteBySessionAndCreatedAt(sessionId: String, createdAt: Long)
+
     @Query("SELECT * FROM generation_checkpoints ORDER BY createdAt ASC")
     suspend fun getAllPending(): List<GenerationCheckpointEntity>
 

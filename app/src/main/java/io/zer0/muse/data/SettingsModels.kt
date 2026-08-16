@@ -309,6 +309,13 @@ data class ProactiveMessageConfig(
      * 成功发送后清零。
      */
     val lastFailedAt: Long = 0,
+    /**
+     * 审查修复 (2.0 B-12): 连续失败次数(0=无失败)。
+     *
+     * 决策/生成失败时递增,成功发送后清零;退避间隔随计数指数增长
+     * (1x/2x/4x/8x/16x baseInterval),杜绝"固定 baseInterval 无限重试"的烧配额循环。
+     */
+    val consecutiveFailures: Int = 0,
 )
 
 /**

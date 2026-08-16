@@ -272,7 +272,44 @@ class ChatStreamCoordinator(
         accessor.updateMessages { newMessages }
     }
 
-    // ── 持久化 ────────────────────────────────────────────────────────
+    /**
+     * 审查修复 (2.0 A-03): 原子追加媒体 — 读-改-合写全部在 updateMessages 的 CAS 变换内完成。
+     *
+     * 与 [updateAssistant] 的区别:updateAssistant 先读 messagesSnapshot 再整体替换,
+     * 同轮并行生图工具(如"生成两张图")各自基于旧快照构造 newMessages,后写者覆盖先写者,
+     * 先完成者的 imageUrls 丢失。本方法把"取已有 imageUrls → 追加 → distinct"移入变换,
+     * CAS 竞争时 StateFlow.update 会用最新值重放变换,保证并行追加互不丢失。
+     *
+     * 注意:本方法不做 mood/think 标签提取 — 媒体追加的 content 均为本地生成的纯文本占位,
+     * 不含模型标签,与 updateAssistant 完整路径对无标签内容的处理等价。
+     */
+    fun appendMediaToAssistant(
+        id: Uuid,
+        content: String? = null,
+        imageUrls: List<String>? = null,
+        videoFileUri: String? = null,
+    ) {
+        accessor.updateMessages { list ->
+            list.map { msg ->
+                if (msg.id != id) {
+                    msg
+                } else {
+                    val mergedContent = when {
+                        content == null -> msg.content
+                        msg.content.isBlank() -> content
+                        msg.content.contains(content) -> msg.content
+                        else -> "${msg.content}\n\n$content"
+                    }
+                    msg.copy(
+                        content = mergedContent,
+                        imageUrls = if (imageUrls != null) (msg.imageUrls + imageUrls).distinct() else msg.imageUrls,
+                        videoFileUri = videoFileUri ?: msg.videoFileUri,
+                    )
+                }
+            }
+        }
+    }
+
 
     /**
      * v1.43: 周期性落盘 — 把当前 assistant 消息的流中进度持久化到数据库,

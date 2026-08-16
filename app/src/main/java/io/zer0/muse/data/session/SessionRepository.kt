@@ -571,6 +571,17 @@ class SessionRepository(
         }
     }
 
+    /**
+     * 审查修复 (2.0 C-14/C-20/B-01): 按"会话 + 精确 createdAt"删除本代生成的全部检查点。
+     * 同一代生成的所有轮次共享同一 createdAt(streamStartedAt),精确匹配只清理本代:
+     * 并发 regenerate 的检查点 createdAt 不同不会被误删;无 USER 消息时也能清全(不退化单条)。
+     */
+    suspend fun deleteGenerationCheckpoints(sessionId: String, createdAt: Long) {
+        withContext(Dispatchers.IO) {
+            database.generationCheckpointDao().deleteBySessionAndCreatedAt(sessionId, createdAt)
+        }
+    }
+
     /** 读取全部未完成生成检查点。 */
     suspend fun getPendingGenerationCheckpoints(): List<GenerationCheckpointEntity> =
         withContext(Dispatchers.IO) { database.generationCheckpointDao().getAllPending() }
@@ -1172,6 +1183,62 @@ class SessionRepository(
     /** v1.0.30: 按 id 获取消息（变体查询用）。 */
     suspend fun getMessageById(messageId: String): MessageEntity? =
         withContext(Dispatchers.IO) { messageDao.getByMessageId(messageId) }
+
+    /**
+     * 审查修复 (2.0 B-02): 按 id 读取消息并转为 UI 消息 — 中断恢复时若内存 builder 无内容
+     * (切会话后停止),回退读取 DB 中本轮消息(流式中周期性落盘已写入部分内容)。
+     */
+    suspend fun getMessageAsUiMessage(messageId: String): UIMessage? =
+        withContext(Dispatchers.IO) { messageDao.getByMessageId(messageId)?.toUIMessage() }
+
+    /**
+     * 审查修复 (2.0 B-04): 把媒体 URL 列表转为可持久化形式 — 长 base64 data URI 经
+     * [MessageImageStore] 落盘为 file:// 路径,DB 只存短路径,避免 MB 级 base64 塞进
+     * messages 行(此前 execGenerateImage/QrCode 的 data URI 直写 imageUrlsJson)。
+     * http(s) 短 URL 原样返回。文件名带内容哈希后缀,同消息并行写入互不覆盖。
+     */
+    suspend fun toPersistableImageUrls(messageId: String, urls: List<String>): List<String> =
+        withContext(Dispatchers.IO) { messageImageStore.toPersistable(messageId, urls) }
+
+    /**
+     * 审查修复 (2.0 A-04): 为已落库的消息附加媒体字段 — 切会话后后台生成仍在跑,
+     * exec* 的媒体无法写入当前 UI 的 _messages(消息属于原会话),本方法直接对 DB
+     * 中该消息(工具轮占位,已由 persistAssistantToolMsg 落库)合并内容/图片/视频,
+     * 用户切回原会话时从 DB 恢复即可看到。内容幂等合并(已含则不重复拼接)。
+     */
+    suspend fun attachMediaToMessage(
+        sessionId: String?,
+        messageId: Uuid,
+        content: String,
+        imageUrls: List<String>? = null,
+        videoFileUri: String? = null,
+    ) {
+        if (sessionId.isNullOrBlank()) return
+        withContext(Dispatchers.IO) {
+            database.withTransaction {
+                val existing = messageDao.getByMessageId(messageId.toString()) ?: return@withTransaction
+                val mergedContent = when {
+                    existing.content.isBlank() -> content
+                    existing.content.contains(content) -> existing.content
+                    else -> existing.content + "\n\n" + content
+                }
+                val updated = existing.copy(
+                    content = mergedContent,
+                    imageUrlsJson = if (imageUrls != null) {
+                        encodeImageUrls((parseImageUrls(existing.imageUrlsJson) + imageUrls).distinct())
+                    } else {
+                        existing.imageUrlsJson
+                    },
+                    videoFileUri = videoFileUri ?: existing.videoFileUri,
+                )
+                messageDao.upsert(updated)
+                resultOf {
+                    syncFtsDelete(updated.id)
+                    syncFtsInsert(updated.id, updated.content)
+                }.onError { _, t -> Logger.w(TAG, "attachMediaToMessage FTS sync failed: ${t?.message ?: ""}") }
+            }
+        }
+    }
 
     /** v1.0.30: 获取同变体组所有消息。 */
     suspend fun getVariants(groupId: String): List<MessageEntity> =

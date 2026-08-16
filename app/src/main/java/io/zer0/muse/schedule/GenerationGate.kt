@@ -1,5 +1,6 @@
 package io.zer0.muse.schedule
 
+import kotlinx.coroutines.runInterruptible
 import java.util.concurrent.Semaphore
 
 /**
@@ -22,9 +23,14 @@ object GenerationGate {
     /**
      * 在信号量许可内执行 [block]。
      * 阻塞等待许可时不持有任何锁,不阻塞其他协程调度。
+     *
+     * 审查修复 (2.0 A-12): acquire 用 [runInterruptible] 包裹 — Java Semaphore.acquire()
+     * 是阻塞调用,协程取消无法中断阻塞线程;调用方(ProactiveMessageRunner)用
+     * withTimeoutOrNull 包裹本方法,限流饱和时原实现会一直卡到许可释放,
+     * 超时/停止均失效。runInterruptible 让取消通过线程中断立即退出等待。
      */
     suspend fun <T> withPermit(block: suspend () -> T): T {
-        semaphore.acquire()
+        runInterruptible { semaphore.acquire() }
         try {
             return block()
         } finally {

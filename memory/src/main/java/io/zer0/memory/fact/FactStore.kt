@@ -469,11 +469,12 @@ class FactStore(
 
     /**
      * v6: 全文搜索。优先 FTS4 MATCH(ngram 预处理),单字/异常时回退 LIKE。
+     * B-06: 结果同样过滤已过期事实(expires_at < now),与 getAll/getByScope 口径一致。
      */
     suspend fun searchFullText(query: String, limit: Int = 20): List<Fact> = withContext(Dispatchers.IO) {
         if (query.isBlank()) return@withContext emptyList()
         ensureFtsIndexConsistent()
-        runFtsOrLikeSearch(query.trim(), limit)
+        runFtsOrLikeSearch(query.trim(), limit).filterNot { it.isExpired() }
     }
 
     /** 先尝试 FTS4 MATCH，单字或异常时回退 LIKE。 */
@@ -497,6 +498,7 @@ class FactStore(
     /**
      * 按标签搜索(精确匹配,OR 逻辑,按匹配数降序)。
      * 使用 json_each 精确匹配标签值,避免 LIKE 子串误匹配。
+     * B-06: 结果过滤已过期事实。
      */
     suspend fun searchByTags(
         queryTags: List<String>,
@@ -506,7 +508,7 @@ class FactStore(
         if (queryTags.isEmpty()) return@withContext emptyList()
         val plan = TagSearchPlan(queryTags, dateRange, limit)
         val rows = dao.tagSearch(SimpleSQLiteQuery(plan.sql, plan.args))
-        plan.refine(rows)
+        plan.refine(rows).filterNot { it.isExpired() }
     }
 
     /**
@@ -525,14 +527,14 @@ class FactStore(
         return t.isBefore(java.time.Instant.now())
     }
 
-    /** 按 session_id 查询。 */
+    /** 按 session_id 查询。B-06: 过滤已过期事实。 */
     suspend fun getBySession(sessionId: String): List<Fact> = withContext(Dispatchers.IO) {
-        dao.getBySession(sessionId).map { it.toDomainFact() }
+        dao.getBySession(sessionId).map { it.toDomainFact() }.filterNot { it.isExpired() }
     }
 
-    /** 按 id 查询。 */
+    /** 按 id 查询。B-06: 已过期事实返回 null(与列表口径一致)。 */
     suspend fun getById(id: Long): Fact? = withContext(Dispatchers.IO) {
-        dao.getById(id)?.toDomainFact()
+        dao.getById(id)?.toDomainFact()?.takeIf { !it.isExpired() }
     }
 
     /** 总数。 */
@@ -621,6 +623,13 @@ class FactStore(
 
     // ─── S-04: 删除墓碑(防已删事实从摘要复活) ───
 
+    /**
+     * B-26: 墓碑读-改-写进程级互斥 — 主 FactStore 与 per-assistant FactStore
+     * (FactDbProvider.getFactStore) 共享同一墓碑文件,仅实例内加锁仍会并发覆盖;
+     * companion 级锁对所有实例生效,并发删除两条不同事实不再互相丢失墓碑。
+     */
+    private val tombstoneLock = TOMBSTONE_LOCK
+
     /** 全部删除墓碑(规范化文本)。墓碑文件不存在/解析失败时返回空列表。 */
     suspend fun getTombstones(): List<String> = withContext(Dispatchers.IO) {
         loadTombstones()
@@ -630,13 +639,16 @@ class FactStore(
         tombstoneCache?.let { return it }
         val file = tombstoneFile ?: return emptyList()
         if (!file.exists()) return emptyList()
-        val list = runCatching {
-            json.decodeFromString(ListSerializer(String.serializer()), file.readText())
-        }.getOrElse {
-            Logger.w("FactStore", "readTombstones failed: ${it.message}")
-            emptyList()
+        val list = synchronized(tombstoneLock) {
+            val loaded = runCatching {
+                json.decodeFromString(ListSerializer(String.serializer()), file.readText())
+            }.getOrElse {
+                Logger.w("FactStore", "readTombstones failed: ${it.message}")
+                emptyList()
+            }
+            tombstoneCache = loaded
+            loaded
         }
-        tombstoneCache = list
         return list
     }
 
@@ -644,13 +656,28 @@ class FactStore(
         val file = tombstoneFile ?: return
         val normalized = normalizeTombstone(content)
         if (normalized.isBlank()) return
-        val current = loadTombstones()
-        if (current.contains(normalized)) return // 幂等:相同事实只记一次
-        writeTombstones(current + normalized)
-        tombstoneCache = current + normalized
+        // B-26: 读-改-写整体持锁,并发删除互不覆盖(锁为进程级,见 tombstoneLock 说明)
+        synchronized(tombstoneLock) {
+            val current = tombstoneCache?.takeIf { it.isNotEmpty() }
+                ?: runCatching {
+                    if (file.exists()) {
+                        json.decodeFromString(ListSerializer(String.serializer()), file.readText())
+                    } else emptyList()
+                }.getOrElse {
+                    Logger.w("FactStore", "readTombstones failed: ${it.message}")
+                    emptyList()
+                }
+            if (current.contains(normalized)) return // 幂等:相同事实只记一次
+            // B-10: 上限裁剪 — 墓碑只增不删会长期膨胀(且每轮 compile 全量加载扫描);
+            // 超过上限时丢弃最旧条目(头部,按删除时间序),文件体积与过滤开销有界。
+            val capped = (current + normalized).takeLast(TOMBSTONE_MAX_ENTRIES)
+            writeTombstonesLocked(capped)
+            tombstoneCache = capped
+        }
     }
 
-    private fun writeTombstones(list: List<String>) {
+    /** 调用方必须已持有 [tombstoneLock]。 */
+    private fun writeTombstonesLocked(list: List<String>) {
         val file = tombstoneFile ?: return
         file.parentFile?.mkdirs()
         val encoded = json.encodeToString(ListSerializer(String.serializer()), list)
@@ -671,7 +698,44 @@ class FactStore(
 
     private companion object {
         private val WHITESPACE_RE = Regex("\\s+")
+
+        /** B-26: 进程级墓碑锁(所有 FactStore 实例共享同一把锁)。 */
+        val TOMBSTONE_LOCK = Any()
+
+        /** B-10: 墓碑条目上限(超出裁剪最旧,文件体积与过滤开销有界)。 */
+        const val TOMBSTONE_MAX_ENTRIES = 1000
     }
+
+    /**
+     * 审查修复 (2.0 B-07): 共享墓碑过滤 — 逐行规范化匹配。
+     *
+     * 编译对象是另一 LLM 通道改写后的摘要,措辞几乎必然与墓碑原文不同,
+     * 纯 contains 匹配常失效。双通道匹配:
+     *  - 通道 1: 空白压缩后的子串匹配(墓碑记录时已压缩);
+     *  - 通道 2: 剥离标点/空白后的子串匹配(捕获 LLM 改写时新增的标点/换行)。
+     * 完整语义归一(近义改写)需要 LLM 判定,超出本方法范围。
+     */
+    fun filterTombstonedLines(text: String, tombstones: List<String>): String {
+        if (tombstones.isEmpty()) return text
+        return text.lines()
+            .filterNot { line ->
+                val normalized = line.trim()
+                normalized.isNotEmpty() && tombstones.any { matchesTombstone(normalized, it) }
+            }
+            .joinToString("\n")
+    }
+
+    /** B-07: 单条文本是否命中某墓碑(双通道匹配,见 [filterTombstonedLines])。 */
+    fun matchesTombstone(text: String, tombstone: String): Boolean {
+        val normalized = text.trim().replace(WHITESPACE_RE, " ")
+        val tomb = tombstone.trim().replace(WHITESPACE_RE, " ")
+        if (normalized.contains(tomb)) return true
+        val stripped = normalized.replace(PUNCT_RE, "")
+        val strippedTomb = tomb.replace(PUNCT_RE, "")
+        return strippedTomb.isNotBlank() && stripped.contains(strippedTomb)
+    }
+
+    private val PUNCT_RE = Regex("[，。！？、；：,.!?;:()（）\\[\\]【】\"'“”‘’\\s]+")
 
     /**
      * v6: 检查 facts_fts 索引一致性,不一致则全量 rebuild。

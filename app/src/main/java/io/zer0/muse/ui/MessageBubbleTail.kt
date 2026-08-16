@@ -344,8 +344,10 @@ fun SmartImage(
  * 审计修复 (S-02): 助手消息视频生成结果卡片。
  *
  * generate_video 成功后 videoFileUri 写入消息并落库,此处渲染:
- * 深色占位 + 播放图标,点击用 ACTION_VIEW 调起系统播放器
- * (http(s) URL 或 data URI 均可);无应用可处理时 Toast 提示。
+ * 深色占位 + 播放图标,点击用 ACTION_VIEW 调起系统播放器;
+ * 审查修复 (2.0 C-01): ACTION_VIEW 对 data: URI 视频基本不可用(多数系统播放器
+ * 不识别 data: scheme),点击时先把 data URI 解码落盘到 cacheDir 再播放文件,
+ * http(s) URL 仍直接调起系统播放器;无应用可处理时 Toast 提示。
  */
 @Composable
 internal fun AssistantVideoCard(videoUri: String, modifier: Modifier = Modifier) {
@@ -358,8 +360,20 @@ internal fun AssistantVideoCard(videoUri: String, modifier: Modifier = Modifier)
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .clickable {
                 runCatching {
+                    // C-01: data URI → 解码落盘 cacheDir 后播放文件;http(s) 直放
+                    val playable = if (videoUri.startsWith("data:")) {
+                        val commaIndex = videoUri.indexOf(',')
+                        val base64 = if (commaIndex > 0) videoUri.substring(commaIndex + 1) else videoUri
+                        val normalized = base64.replace("\n", "").replace("\r", "")
+                        val bytes = android.util.Base64.decode(normalized, android.util.Base64.NO_WRAP)
+                        val file = java.io.File(context.cacheDir, "muse_video_${videoUri.hashCode()}.mp4")
+                        file.writeBytes(bytes)
+                        file.toURI().toString()
+                    } else {
+                        videoUri
+                    }
                     val intent = Intent(Intent.ACTION_VIEW).apply {
-                        setDataAndType(Uri.parse(videoUri), "video/*")
+                        setDataAndType(Uri.parse(playable), "video/*")
                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     }

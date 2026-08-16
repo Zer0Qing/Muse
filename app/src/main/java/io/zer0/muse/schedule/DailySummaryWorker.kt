@@ -108,6 +108,13 @@ class DailySummaryWorker(
             return
         }
 
+        // 审查修复 (2.0 B-34): 前台静默 — 用户正盯着 app 时不弹 HIGH 声音通知
+        // (与主动消息 notifyProactiveMessage 口径一致;此前前台照发,高频打扰用户)
+        if (notificationManager.isAppForeground()) {
+            Logger.d(TAG, "每日总结:应用在前台,跳过通知(内容生成完成,会话内可见)")
+            return
+        }
+
         notificationManager.notifyReminder(
             title = SUMMARY_TITLES.random(),
             message = summary,
@@ -158,18 +165,22 @@ class DailySummaryWorker(
 
         return resultOf {
             withTimeoutOrNull(GEN_TIMEOUT_MS) {
-                chatService.completeText(
-                    messages = listOf(
-                        io.zer0.ai.core.UIMessage(
-                            role = io.zer0.ai.core.MessageRole.USER,
-                            content = sb.toString(),
-                            createdAt = System.currentTimeMillis(),
+                // A-13: 每日总结同样过限流闸 — 与主动消息/群聊共享并发上限,
+                // 避免叠加触发 429(此前完全绕过 B-22 限流)
+                GenerationGate.withPermit {
+                    chatService.completeText(
+                        messages = listOf(
+                            io.zer0.ai.core.UIMessage(
+                                role = io.zer0.ai.core.MessageRole.USER,
+                                content = sb.toString(),
+                                createdAt = System.currentTimeMillis(),
+                            ),
                         ),
-                    ),
-                    temperature = 0.8f,
-                    maxTokens = 200,
-                // v1.0.74 fix: 剥离 <think> 推理标签,防止思考内容混入每日总结推送
-                ).text.let { io.zer0.muse.transformer.stripThinkTags(it) }
+                        temperature = 0.8f,
+                        maxTokens = 200,
+                    // v1.0.74 fix: 剥离 <think> 推理标签,防止思考内容混入每日总结推送
+                    ).text.let { io.zer0.muse.transformer.stripThinkTags(it) }
+                }
             }
         }.onError { msg, t ->
             Logger.w(TAG, "每日总结 LLM 调用失败: ${t?.message ?: msg}")

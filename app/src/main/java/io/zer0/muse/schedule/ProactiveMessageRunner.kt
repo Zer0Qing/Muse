@@ -283,10 +283,13 @@ class ProactiveMessageRunner(
         // A-08: LLM 失败退避 — guaranteedSend 会绕过排期检查(见下方),若决策/生成
         // 阶段失败后不设门槛,每分钟轮询都会重试(断网/服务故障时烧配额)。
         // 失败后至少间隔一个 baseInterval 才允许再次尝试;测试发送(forceSend)不受限。
-        if (!forceSend && config.lastFailedAt > 0 && now - config.lastFailedAt < baseIntervalMs) {
+        // B-12: 退避间隔随连续失败次数指数增长(1x/2x/4x/8x/16x),封顶 16 倍 —
+        // 原实现固定 baseInterval 无限重试,长时间故障下仍周期性烧配额。
+        val backoffMultiplier = 1 shl minOf(config.consecutiveFailures, 4)
+        if (!forceSend && config.lastFailedAt > 0 && now - config.lastFailedAt < baseIntervalMs * backoffMultiplier) {
             Logger.d(
                 TAG,
-                "主动消息失败退避中: 距上次失败 ${(now - config.lastFailedAt) / 60000}min,间隔 ${baseIntervalMs / 60000}min,跳过",
+                "主动消息失败退避中: 距上次失败 ${(now - config.lastFailedAt) / 60000}min,间隔 ${baseIntervalMs * backoffMultiplier / 60000}min(连续失败 ${config.consecutiveFailures} 次),跳过",
             )
             return@withLock
         }
@@ -469,7 +472,10 @@ class ProactiveMessageRunner(
         if (decisionCompletion == null) {
             Logger.w(TAG, "主动消息决策 LLM 调用超时(${LLM_TIMEOUT_MS / 1000}s),跳过")
             // A-08: 记录失败时间,退避一个 interval 再重试(否则 guaranteedSend 每分钟重试)
-            settings.saveProactiveMessageConfig(config.copy(lastFailedAt = now))
+            // B-12: 递增连续失败计数,退避随次数指数增长
+            settings.saveProactiveMessageConfig(
+                config.copy(lastFailedAt = now, consecutiveFailures = config.consecutiveFailures + 1)
+            )
             return@withLock
         }
 
@@ -516,7 +522,10 @@ class ProactiveMessageRunner(
         if (contentCompletion == null) {
             Logger.w(TAG, "主动消息生成 LLM 调用超时(${LLM_TIMEOUT_MS / 1000}s),跳过")
             // A-08: 记录失败时间,退避一个 interval 再重试
-            settings.saveProactiveMessageConfig(config.copy(lastFailedAt = now))
+            // B-12: 递增连续失败计数,退避随次数指数增长
+            settings.saveProactiveMessageConfig(
+                config.copy(lastFailedAt = now, consecutiveFailures = config.consecutiveFailures + 1)
+            )
             return@withLock
         }
 
@@ -536,18 +545,37 @@ class ProactiveMessageRunner(
         }
 
         // 插入会话作为 assistant 消息
-        sessionRepository.appendMessage(
-            sessionId = targetSession.id,
-            message = UIMessage(
-                role = MessageRole.ASSISTANT,
-                content = proactiveContent,
-                createdAt = System.currentTimeMillis(),
-            ),
-        )
+        // B-13: 落库失败不推进排期 — 消息未写入时下轮重试(宁可重试也不丢消息);
+        // 原实现无 try,appendMessage 异常会中断整个巡检协程,排期/日志/计数全部跳过。
+        try {
+            sessionRepository.appendMessage(
+                sessionId = targetSession.id,
+                message = UIMessage(
+                    role = MessageRole.ASSISTANT,
+                    content = proactiveContent,
+                    createdAt = System.currentTimeMillis(),
+                ),
+            )
+        } catch (e: Exception) {
+            Logger.e(TAG, "主动消息落库失败,不推进排期(下轮重试): ${e.message}", e)
+            return@withLock
+        }
         // 更新 lastTriggeredAt(先更新再通知,即使通知失败也不影响下次间隔)
         // v1.0.74 fix: 只有真正发送成功才刷新 lastTriggeredAt(保底 24h 判定依据)
-        // A-08: 发送成功后清零失败退避标记
-        saveProactiveSchedule(config.copy(lastFailedAt = 0), now, baseIntervalMs, targetSession.id, updateLastTriggered = true)
+        // A-08: 发送成功后清零失败退避标记; B-12: 同时清零连续失败计数
+        // B-13: 排期持久化失败重试一次 — 消息已落库而排期未推进会导致下轮重发同一条
+        // (重复骚扰);两次都失败记 ERROR 供定位(DataStore 与 DB 无法跨存储事务)。
+        var scheduleSaved = false
+        repeat(2) {
+            if (scheduleSaved) return@repeat
+            runCatching {
+                saveProactiveSchedule(config.copy(lastFailedAt = 0, consecutiveFailures = 0), now, baseIntervalMs, targetSession.id, updateLastTriggered = true)
+            }.onSuccess { scheduleSaved = true }
+                .onFailure { e -> Logger.w(TAG, "主动消息排期持久化失败(将重试): ${e.message}", e) }
+        }
+        if (!scheduleSaved) {
+            Logger.e(TAG, "主动消息排期持久化失败两次: 消息已落库但排期未推进,存在下轮重复发送风险(消息 id 可对照 patrol log)")
+        }
         // v1.0.74: 巡检日志(记录发了什么,防重复)
         writePatrolLog("sent_message", "主动消息:${decision.scenario} — ${proactiveContent.take(80)}")
         // 问题6.2: 成功发送后递增当日计数并持久化,MAX_DAILY_MESSAGES 校验下次生效
@@ -1173,7 +1201,13 @@ class ProactiveMessageRunner(
         updateLastTriggered: Boolean = false,
     ) {
         val base = if (updateLastTriggered) config.copy(lastTriggeredAt = now) else config
-        val next = computeNextTriggerTime(base, baseIntervalMs)
+        // 审查修复 (2.0 B-11): 跳过路径以 now 为基准推进排期 —
+        // 原实现基于陈旧 lastTriggeredAt 计算:elapsed>interval 且 <24h 时目标时间被
+        // computeNextTriggerTime 钳到 now → nextTriggerAt≈now,每次轮询都重跑 DB 扫描
+        // + 评分(热循环)。以 now 为基准让下次评估落在完整间隔之后,且不推进
+        // lastTriggeredAt(24h 保底时钟不受影响,评分不过线时仍有保底兜底)。
+        val scheduleBase = if (updateLastTriggered) base else base.copy(lastTriggeredAt = now)
+        val next = computeNextTriggerTime(scheduleBase, baseIntervalMs)
         settings.saveProactiveMessageConfig(base.copy(nextTriggerAt = next))
         if (sessionId != null) sessionRepository.updateProactiveNextTriggerAt(sessionId, next)
     }

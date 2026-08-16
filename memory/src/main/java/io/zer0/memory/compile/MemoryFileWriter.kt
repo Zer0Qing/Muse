@@ -108,12 +108,17 @@ class MemoryFileWriter(
     /**
      * C-06: 原子写入 — 先写同目录 .tmp 再 rename 覆盖,
      * 进程被杀/写一半时不会留下截断的目标文件(读路径直接 readText 会读到半截内容)。
+     *
+     * 审查修复 (2.0 C-05): rename 失败回退不再直接 writeText — 先删目标再 rename,
+     * 让回退路径也保持原子语义(直接覆盖写会在回退时重新引入截断窗口)。
      */
     private fun writeAtomically(file: File, content: String) {
         val tmp = File(file.parentFile, file.name + ".tmp")
         tmp.writeText(content)
         if (!tmp.renameTo(file)) {
-            // rename 失败(极少见)回退直接写,保证功能可用
+            // rename 失败(极少见,如目标被占用):先删目标再 rename,仍失败才直接写兜底
+            val targetGone = file.delete() || !file.exists()
+            if (targetGone && tmp.renameTo(file)) return
             file.writeText(content)
         }
     }

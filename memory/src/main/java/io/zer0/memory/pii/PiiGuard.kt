@@ -202,13 +202,24 @@ object PiiGuard {
         return MaskResult(current, map)
     }
 
-    /** S-05: 还原 [mask] 产生的占位符(LLM 输出侧)。无映射时原样返回。 */
+    /**
+     * S-05: 还原 [mask] 产生的占位符(LLM 输出侧)。无映射时原样返回。
+     *
+     * 审查修复 (2.0 B-08): LLM 改写/丢弃原文时占位符会残留(如 [PHONE_1]),
+     * unmask 只做精确替换无法清除,残留的 [PHONE_1] 字面量会被写入记忆/消息;
+     * 末尾扫描并剥离全部 mask 形态的残留占位符。
+     */
     fun unmask(text: String, map: Map<String, String>): String {
         if (map.isEmpty()) return text
         var current = text
         for ((token, original) in map) {
             current = current.replace(token, original)
         }
-        return current
+        return RESIDUAL_TOKEN_RE.replace(current, "")
     }
+
+    /** B-08: mask 生成的占位符形态([LABEL_N])— 还原后仍未消除的即残留,剥离之。 */
+    private val RESIDUAL_TOKEN_RE = Regex(
+        """\[(?:API_KEY|INLINE_SECRET|PRIVATE_KEY|ID_CARD|CREDIT_CARD|SSN|EMAIL|PHONE|IPV4|ADDRESS|NAME|ENGLISH_NAME)_\d+\]"""
+    )
 }

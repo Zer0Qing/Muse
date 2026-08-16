@@ -44,6 +44,7 @@ import io.zer0.muse.vision.VisionBridge
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
@@ -164,9 +165,26 @@ class GroupChatScheduler(
     private val _activeGroupGeneration = MutableStateFlow<ActiveGroupGeneration?>(null)
     val activeGroupGeneration: StateFlow<ActiveGroupGeneration?> = _activeGroupGeneration.asStateFlow()
 
-    /** v1.111: 是否有指定群聊的活跃生成(用于防重入)。v1.113: 改为按 chatId 精确检查。 */
+    // 审查修复 (2.0 A-14): 群聊各功能使用独立生成 key — 轮转/悄悄话/表决/总结/重生成
+    // 此前共用 "group:$chatId",launchGeneration 对同 sessionId 先取消旧 job:
+    // 轮转中发悄悄话/重生成会取消整轮轮转,且轮转取消分支不删账本,
+    // 同进程内不再续跑(恢复只在应用启动时执行),整轮讨论静默中断。
+    // (常量定义在下方已有 companion object 内 — Kotlin 每类仅允许一个 companion)
+
+    private fun groupGenKey(chatId: String, kind: String) = "group:$chatId:$kind"
+
+    /** 审查修复 (2.0 A-14): 停止群聊的全部生成(各功能独立 key,逐一取消)。 */
+    private fun stopAllGroupGenerations(chatId: String) {
+        listOf(GC_KEY_RR, GC_KEY_WHISPER, GC_KEY_VOTE, GC_KEY_SUMMARY, GC_KEY_REGENERATE).forEach { kind ->
+            chatGenerationManager.stop(groupGenKey(chatId, kind))
+        }
+    }
+
+    /** v1.111: 是否有指定群聊的活跃生成(用于防重入)。v1.113: 改为按 chatId 精确检查。
+     *  审查修复 (2.0 A-14): 检查全部功能 key(任一功能进行中都视为活跃)。 */
     fun hasActiveGeneration(chatId: String): Boolean =
-        chatGenerationManager.isStreaming("group:$chatId")
+        listOf(GC_KEY_RR, GC_KEY_WHISPER, GC_KEY_VOTE, GC_KEY_SUMMARY, GC_KEY_REGENERATE)
+            .any { chatGenerationManager.isStreaming(groupGenKey(chatId, it)) }
     // ── B5-02: 群聊生成账本 ─────────────────────────────────────────────
 
     private suspend fun saveLedger(
@@ -211,6 +229,15 @@ class GroupChatScheduler(
 
     companion object {
         private const val TAG = "GroupChatScheduler"
+
+        // 审查修复 (2.0 A-14): 群聊各功能独立生成 key 后缀
+        const val GC_KEY_RR = "rr"
+        const val GC_KEY_WHISPER = "whisper"
+        const val GC_KEY_VOTE = "vote"
+        const val GC_KEY_SUMMARY = "summary"
+        const val GC_KEY_REGENERATE = "regenerate"
+        /** B-16: 群聊 channel 三件套(结果以 USER 消息/退出方式回填,不进 assistant tool_calls)。 */
+        val CHANNEL_TOOL_NAMES = setOf("channel_reply", "channel_pass", "channel_read_context")
 
         /** R-TEST-15: 从账本 JSON 解析轮转成员顺序,供单元测试直接调用。 */
         internal fun parseLedgerMemberIds(memberIdsJson: String?): List<String>? {
@@ -367,7 +394,7 @@ class GroupChatScheduler(
      */
     fun launchRoundRobin(chatId: String, text: String, images: List<String>, fileAttachments: List<FileAttachment> = emptyList()) {
         chatGenerationManager.launchGeneration(
-            sessionId = "group:$chatId",
+            sessionId = groupGenKey(chatId, GC_KEY_RR),
             assistantId = "group",
             sessionTitle = "群聊生成中",
         ) {
@@ -444,6 +471,13 @@ class GroupChatScheduler(
                 }
             } catch (ce: CancellationException) {
                 Logger.i(TAG, "群聊 $chatId 轮转被取消(用户停止/新生成抢占)")
+                // 审查修复 (2.0 A-14): 取消即删除本群账本 — 此前残留账本只会在下次
+                // 应用启动时被 recoverInterruptedGenerations 续跑,把用户已停止的轮转
+                // 在重启后"复活";取消分支用 NonCancellable 保证删除完成。
+                withContext(NonCancellable) {
+                    resultOf { groupChatRepository.deleteGenerationLedgersByChatId(chatId) }
+                        .onError { msg, t -> Logger.w(TAG, "群聊取消清理账本失败: $msg", t) }
+                }
                 throw ce
             } catch (t: Exception) {
                 Logger.e(TAG, "群聊 $chatId 轮转失败", t)
@@ -462,7 +496,8 @@ class GroupChatScheduler(
      */
     fun stop(chatId: String? = null) {
         if (chatId != null) {
-            chatGenerationManager.stop("group:$chatId")
+            // 审查修复 (2.0 A-14): 逐一取消该群聊的全部功能生成(独立 key)
+            stopAllGroupGenerations(chatId)
         } else {
             // 兼容旧调用:无 chatId 时取消所有群聊生成
             chatGenerationManager.stop(null)
@@ -484,7 +519,8 @@ class GroupChatScheduler(
                 .getOrNull().orEmpty()
             if (pending.isEmpty()) return@launch
             for (ledger in pending) {
-                if (chatGenerationManager.isStreaming("group:${ledger.chatId}")) continue
+                // A-14: 轮转 key 检查(原 "group:$chatId" 已被拆分,精确匹配轮转生成)
+                if (chatGenerationManager.isStreaming(groupGenKey(ledger.chatId, GC_KEY_RR))) continue
                 Logger.i(
                     TAG,
                     "恢复群聊账本: chatId=${ledger.chatId} mode=${ledger.mode} round=${ledger.round} index=${ledger.memberIndex}",
@@ -496,7 +532,7 @@ class GroupChatScheduler(
 
     private fun resumeGroupLedger(ledger: GroupChatGenerationLedgerEntity) {
         chatGenerationManager.launchGeneration(
-            sessionId = "group:${ledger.chatId}",
+            sessionId = groupGenKey(ledger.chatId, GC_KEY_RR),
             assistantId = "group",
             sessionTitle = "群聊恢复中",
         ) {
@@ -550,7 +586,7 @@ class GroupChatScheduler(
      */
     fun regenerateAgentMessage(chatId: String, assistantId: String) {
         chatGenerationManager.launchGeneration(
-            sessionId = "group:$chatId",
+            sessionId = groupGenKey(chatId, GC_KEY_REGENERATE),
             assistantId = "group",
             sessionTitle = "重新生成中",
         ) {
@@ -599,7 +635,7 @@ class GroupChatScheduler(
      */
     fun launchVote(chatId: String, topic: String) {
         chatGenerationManager.launchGeneration(
-            sessionId = "group:$chatId",
+            sessionId = groupGenKey(chatId, GC_KEY_VOTE),
             assistantId = "group",
             sessionTitle = "表决中",
         ) {
@@ -677,7 +713,7 @@ class GroupChatScheduler(
      */
     fun launchSummary(chatId: String, summarizerId: String? = null) {
         chatGenerationManager.launchGeneration(
-            sessionId = "group:$chatId",
+            sessionId = groupGenKey(chatId, GC_KEY_SUMMARY),
             assistantId = "group",
             sessionTitle = "总结中",
         ) {
@@ -735,7 +771,7 @@ class GroupChatScheduler(
      */
     fun launchWhisper(chatId: String, targetAssistantId: String, text: String) {
         chatGenerationManager.launchGeneration(
-            sessionId = "group:$chatId",
+            sessionId = groupGenKey(chatId, GC_KEY_WHISPER),
             assistantId = "group",
             sessionTitle = "私信中",
         ) {
@@ -806,27 +842,30 @@ class GroupChatScheduler(
                 activityHub.updateStatus(chatId, assistant.id, assistant.name, AgentActivityStatus.REPLYING)
                 val rawReply = resultOf {
                     withTimeoutOrNull(AGENT_TIMEOUT_MS) {
-                        val builder = StringBuilder()
-                        // v1.x: 悄悄话同样累积流式思考过程,群聊消息可展示深度思考块
-                        val reasoningBuilder = StringBuilder()
-                        chatService.streamChat(
-                            messages = messages,
-                            model = model,
-                            temperature = temperature,
-                            maxTokens = maxTokens,
-                            providerConfig = providerConfig,
-                        ).collect { event ->
-                            when (event) {
-                                is ChatStreamEvent.ContentDelta -> {
-                                    builder.append(event.delta)
-                                    // v1.x: 悄悄话流式输出 — 实时推给 UI
-                                    activityHub.updateStreamingContent(chatId, builder.toString())
+                        // A-13: 悄悄话同样过限流闸(与主动消息/群聊决策轮共享并发上限)
+                        GenerationGate.withPermit {
+                            val builder = StringBuilder()
+                            // v1.x: 悄悄话同样累积流式思考过程,群聊消息可展示深度思考块
+                            val reasoningBuilder = StringBuilder()
+                            chatService.streamChat(
+                                messages = messages,
+                                model = model,
+                                temperature = temperature,
+                                maxTokens = maxTokens,
+                                providerConfig = providerConfig,
+                            ).collect { event ->
+                                when (event) {
+                                    is ChatStreamEvent.ContentDelta -> {
+                                        builder.append(event.delta)
+                                        // v1.x: 悄悄话流式输出 — 实时推给 UI
+                                        activityHub.updateStreamingContent(chatId, builder.toString())
+                                    }
+                                    is ChatStreamEvent.ReasoningDelta -> reasoningBuilder.append(event.delta)
+                                    else -> {}
                                 }
-                                is ChatStreamEvent.ReasoningDelta -> reasoningBuilder.append(event.delta)
-                                else -> {}
                             }
+                            builder.toString().trim() to reasoningBuilder.toString().trim()
                         }
-                        builder.toString().trim() to reasoningBuilder.toString().trim()
                     }
                 }.getOrNull()
 
@@ -932,17 +971,20 @@ class GroupChatScheduler(
         activityHub.updateStatus(chatId, assistant.id, assistant.name, AgentActivityStatus.REPLYING)
         val rawReply = resultOf {
             withTimeoutOrNull(AGENT_TIMEOUT_MS) {
-                val builder = StringBuilder()
-                chatService.streamChat(
-                    messages = messages,
-                    model = model,
-                    temperature = assistant.temperature ?: DEFAULT_TEMPERATURE,
-                    maxTokens = assistant.maxTokens ?: 500,
-                    providerConfig = providerConfig,
-                ).collect { event ->
-                    if (event is ChatStreamEvent.ContentDelta) builder.append(event.delta)
+                // A-13: 表决同样过限流闸(与主动消息/群聊决策轮共享并发上限)
+                GenerationGate.withPermit {
+                    val builder = StringBuilder()
+                    chatService.streamChat(
+                        messages = messages,
+                        model = model,
+                        temperature = assistant.temperature ?: DEFAULT_TEMPERATURE,
+                        maxTokens = assistant.maxTokens ?: 500,
+                        providerConfig = providerConfig,
+                    ).collect { event ->
+                        if (event is ChatStreamEvent.ContentDelta) builder.append(event.delta)
+                    }
+                    builder.toString().trim()
                 }
-                builder.toString().trim()
             }
         }.getOrNull()
 
@@ -993,17 +1035,20 @@ class GroupChatScheduler(
 
         val rawReply = resultOf {
             withTimeoutOrNull(AGENT_TIMEOUT_MS) {
-                val builder = StringBuilder()
-                chatService.streamChat(
-                    messages = messages,
-                    model = model,
-                    temperature = 0.3f,
-                    maxTokens = 1000,
-                    providerConfig = providerConfig,
-                ).collect { event ->
-                    if (event is ChatStreamEvent.ContentDelta) builder.append(event.delta)
+                // A-13: 总结同样过限流闸(与主动消息/群聊决策轮共享并发上限)
+                GenerationGate.withPermit {
+                    val builder = StringBuilder()
+                    chatService.streamChat(
+                        messages = messages,
+                        model = model,
+                        temperature = 0.3f,
+                        maxTokens = 1000,
+                        providerConfig = providerConfig,
+                    ).collect { event ->
+                        if (event is ChatStreamEvent.ContentDelta) builder.append(event.delta)
+                    }
+                    builder.toString().trim()
                 }
-                builder.toString().trim()
             }
         }.getOrNull()
 
@@ -1376,7 +1421,7 @@ class GroupChatScheduler(
             for (memberIndex in roundStartIndex until orderedAssistants.size) {
                 val assistant = orderedAssistants[memberIndex]
                 // 每轮都检查是否被取消(用户停止 / 新消息抢占)
-                if (!chatGenerationManager.isStreaming("group:$chatId")) {
+                if (!chatGenerationManager.isStreaming(groupGenKey(chatId, GC_KEY_RR))) {
                     Logger.i(TAG, "Auto 模式:生成被取消,终止于第 $round 轮")
                     return@withContext allReplies
                 }
@@ -1498,14 +1543,16 @@ class GroupChatScheduler(
 
         for (index in firstIndex until orderedAssistants.size) {
             val assistant = orderedAssistants[index]
-            if (!chatGenerationManager.isStreaming("group:$chatId")) {
+            if (!chatGenerationManager.isStreaming(groupGenKey(chatId, GC_KEY_RR))) {
                 Logger.i(TAG, "辩论模式:生成被取消")
                 return@withContext replies
             }
 
             val role = roles[index]
+            // 审查修复 (2.0 S-01): 兜底同样过可见性过滤, 防止悄悄话(whisperTargetId=local_user)
+            // 以「上一人发言」形式泄给辩论中的其他 agent; 与主 transcript(1891) 过滤口径一致
             val previousReply = replies.lastOrNull()?.body
-                ?: groupChatRepository.getRecentMessages(chatId, DEFAULT_CONTEXT_SIZE)
+                ?: visibleMessagesFor(groupChatRepository.getRecentMessages(chatId, DEFAULT_CONTEXT_SIZE), assistant.id)
                     .lastOrNull { it.senderType == "assistant" }?.body
 
             // B5-02: 标记当前成员处理中
@@ -1646,7 +1693,7 @@ class GroupChatScheduler(
         val firstIndex = startMemberIndex.coerceIn(0, dispatchPlan.size)
         for (index in firstIndex until dispatchPlan.size) {
             val member = dispatchPlan[index]
-            if (!chatGenerationManager.isStreaming("group:$chatId")) {
+            if (!chatGenerationManager.isStreaming(groupGenKey(chatId, GC_KEY_RR))) {
                 Logger.i(TAG, "主持人模式:生成被取消")
                 return@withContext replies
             }
@@ -1726,34 +1773,37 @@ class GroupChatScheduler(
 
         val rawReplyText = resultOf {
             withTimeoutOrNull(AGENT_TIMEOUT_MS) {
-                val builder = StringBuilder()
-                // v1.x: 累积流式思考过程(reasoning_content),让群聊消息也能展示深度思考块
-                val reasoningBuilder = StringBuilder()
-                var streamError: String? = null
-                chatService.streamChat(
-                    messages = messages,
-                    model = model,
-                    temperature = temperature,
-                    maxTokens = maxTokens,
-                    providerConfig = providerConfig,
-                ).collect { event ->
-                    when (event) {
-                        is ChatStreamEvent.ContentDelta -> {
-                            builder.append(event.delta)
-                            // v1.x: 群聊流式输出 — 实时推给 UI
-                            activityHub.updateStreamingContent(chatId, builder.toString())
+                // A-13: 辩论同样过限流闸(与主动消息/群聊决策轮共享并发上限)
+                GenerationGate.withPermit {
+                    val builder = StringBuilder()
+                    // v1.x: 累积流式思考过程(reasoning_content),让群聊消息也能展示深度思考块
+                    val reasoningBuilder = StringBuilder()
+                    var streamError: String? = null
+                    chatService.streamChat(
+                        messages = messages,
+                        model = model,
+                        temperature = temperature,
+                        maxTokens = maxTokens,
+                        providerConfig = providerConfig,
+                    ).collect { event ->
+                        when (event) {
+                            is ChatStreamEvent.ContentDelta -> {
+                                builder.append(event.delta)
+                                // v1.x: 群聊流式输出 — 实时推给 UI
+                                activityHub.updateStreamingContent(chatId, builder.toString())
+                            }
+                            is ChatStreamEvent.ReasoningDelta -> reasoningBuilder.append(event.delta)
+                            is ChatStreamEvent.ImageDelta -> {}
+                            is ChatStreamEvent.ToolCallDelta -> {}
+                            is ChatStreamEvent.Done -> {}
+                            is ChatStreamEvent.Error -> streamError = event.message
+                            is ChatStreamEvent.StreamInterrupted -> streamError = event.message
+                            is ChatStreamEvent.FallbackNotice -> {}
                         }
-                        is ChatStreamEvent.ReasoningDelta -> reasoningBuilder.append(event.delta)
-                        is ChatStreamEvent.ImageDelta -> {}
-                        is ChatStreamEvent.ToolCallDelta -> {}
-                        is ChatStreamEvent.Done -> {}
-                        is ChatStreamEvent.Error -> streamError = event.message
-                        is ChatStreamEvent.StreamInterrupted -> streamError = event.message
-                        is ChatStreamEvent.FallbackNotice -> {}
                     }
+                    if (streamError != null) throw IllegalStateException(streamError)
+                    builder.toString().trim() to reasoningBuilder.toString().trim()
                 }
-                if (streamError != null) throw IllegalStateException(streamError)
-                builder.toString().trim() to reasoningBuilder.toString().trim()
             }
         }.onError { msg, _ ->
             activityHub.updateStatus(chatId, assistant.id, assistant.name, AgentActivityStatus.ERROR)
@@ -1953,20 +2003,23 @@ class GroupChatScheduler(
 
         val hostReply = resultOf {
             withTimeoutOrNull(AGENT_TIMEOUT_MS) {
-                val builder = StringBuilder()
-                chatService.streamChat(
-                    messages = messages,
-                    model = model,
-                    temperature = 0.3f,
-                    maxTokens = 200,
-                    providerConfig = providerConfig,
-                ).collect { event ->
-                    when (event) {
-                        is ChatStreamEvent.ContentDelta -> builder.append(event.delta)
-                        else -> {}
+                // A-13: 主持人派发轮同样过限流闸(与主动消息/群聊决策轮共享并发上限)
+                GenerationGate.withPermit {
+                    val builder = StringBuilder()
+                    chatService.streamChat(
+                        messages = messages,
+                        model = model,
+                        temperature = 0.3f,
+                        maxTokens = 200,
+                        providerConfig = providerConfig,
+                    ).collect { event ->
+                        when (event) {
+                            is ChatStreamEvent.ContentDelta -> builder.append(event.delta)
+                            else -> {}
+                        }
                     }
+                    builder.toString().trim()
                 }
-                builder.toString().trim()
             }
         }.getOrNull()
 
@@ -2214,6 +2267,11 @@ class GroupChatScheduler(
      * @param isRepair v1.97: 是否为决策修复重试(提示 agent 上一轮没有回复)
      * @return [AgentResult] — Pass 表示主动跳过,Reply 表示正常回复,Error 表示流式异常/超时
      */
+    /**
+     * 审查修复 (2.0 B-17): 群聊链路追踪包装 — 取消(用户停止/生成抢占)时关闭链路节点,
+     * 避免主会话 UI 残留「正在执行」。原实现 onDelegationFinished 只在 Reply/Pass/Error
+     * 三态走到,CancellationException 沿 withTimeoutOrNull 直抛,节点永久 RUNNING。
+     */
     private suspend fun invokeAgent(
         chat: GroupChatEntity,
         chatId: String,
@@ -2221,6 +2279,43 @@ class GroupChatScheduler(
         memberNames: List<String>,
         isMentioned: Boolean = false,
         isRepair: Boolean = false,
+    ): AgentResult {
+        // v1.202: 群聊链路追踪 — 在 invokeAgent 入口通知 DelegationChainTracker 开始,
+        // 让主会话 UI 能看到群聊执行过程(此前群聊完全缺席链路追踪)。
+        // parentRequestId=null 表示群聊是顶层委派(非子 agent),与 executeWithWorkflow 中
+        // TeamWorkflowExecutor 内部调用的 onDelegationStarted 区分。
+        // requestId 用 "gc-" 前缀 + chatId + agentId + 时间戳,保证全局唯一且可识别来源。
+        val delegationRequestId = "gc-$chatId-${assistant.id}-${System.currentTimeMillis()}"
+        delegationChainTracker?.onDelegationStarted(
+            requestId = delegationRequestId,
+            parentRequestId = null,
+            task = "群聊回复",
+            targetType = "assistant",
+            targetId = assistant.id,
+            targetName = assistant.name,
+        )
+        return try {
+            invokeAgentInternal(chat, chatId, assistant, memberNames, isMentioned, isRepair, delegationRequestId)
+        } catch (ce: CancellationException) {
+            // B-17: 取消时关闭节点(结果文本为空 + error 说明),再向上抛
+            delegationChainTracker?.onDelegationFinished(
+                requestId = delegationRequestId,
+                success = false,
+                resultText = "",
+                error = "群聊成员发言被取消",
+            )
+            throw ce
+        }
+    }
+
+    private suspend fun invokeAgentInternal(
+        chat: GroupChatEntity,
+        chatId: String,
+        assistant: AssistantEntity,
+        memberNames: List<String>,
+        isMentioned: Boolean = false,
+        isRepair: Boolean = false,
+        delegationRequestId: String,
     ): AgentResult {
         // ActivityHub: 进入 invokeAgent 即标记为 VIEWING(正在看消息),
         // 让 UI 立即显示该 agent 开始处理本轮消息。
@@ -2234,22 +2329,6 @@ class GroupChatScheduler(
         // a. 构造上下文
         val contextSize = assistant.contextMessageSize.takeIf { it > 0 } ?: DEFAULT_CONTEXT_SIZE
         val recentMessages = groupChatRepository.getRecentMessages(chatId, contextSize)
-
-        // v1.202: 群聊链路追踪 — 在 invokeAgent 入口通知 DelegationChainTracker 开始,
-        // 让主会话 UI 能看到群聊执行过程(此前群聊完全缺席链路追踪)。
-        // parentRequestId=null 表示群聊是顶层委派(非子 agent),与 executeWithWorkflow 中
-        // TeamWorkflowExecutor 内部调用的 onDelegationStarted 区分。
-        // requestId 用 "gc-" 前缀 + chatId + agentId + 时间戳,保证全局唯一且可识别来源。
-        val delegationRequestId = "gc-$chatId-${assistant.id}-${System.currentTimeMillis()}"
-        val taskPreview = recentMessages.lastOrNull()?.body?.take(50) ?: ""
-        delegationChainTracker?.onDelegationStarted(
-            requestId = delegationRequestId,
-            parentRequestId = null,
-            task = "群聊回复: $taskPreview",
-            targetType = "assistant",
-            targetId = assistant.id,
-            targetName = assistant.name,
-        )
 
         // b. 构造消息列表(改造 2 Phone Session:system 含身份 guidance,user 为推送式 phone prompt)
         val messages = buildMessages(chat, assistant, memberNames, recentMessages, model, isMentioned, isRepair)
@@ -2387,6 +2466,8 @@ class GroupChatScheduler(
 
             // 处理 tool calls
             var calledReadContext = false
+            // B-16: 常规工具轮是否已把"带 tool_calls 的 assistant 消息"回填 workingMessages
+            var assistantToolMsgAdded = false
             for (tc in toolCalls) {
                 when (tc.name) {
                     "channel_reply" -> {
@@ -2411,6 +2492,24 @@ class GroupChatScheduler(
                     }
                     // 常规工具调用 — 结果只回填当前成员上下文,不进入群聊消息表
                     else -> {
+                        // 审查修复 (2.0 B-16): 常规工具结果必须先跟在"带 tool_calls 的
+                        // assistant 消息"之后 — 此前只 append 裸 TOOL 消息,下一轮请求
+                        // 缺前置 assistant tool_calls,OpenAI 兼容 API 直接 HTTP 400。
+                        // 只回填常规工具调用(channel_* 的结果以 USER 消息/退出方式回填,
+                        // 不能出现在 assistant tool_calls 里,否则同样缺对应 TOOL 结果)。
+                        if (!assistantToolMsgAdded) {
+                            val regularCalls = toolCalls.filter { it.name !in CHANNEL_TOOL_NAMES }
+                            if (regularCalls.isNotEmpty()) {
+                                workingMessages.add(
+                                    UIMessage(
+                                        role = MessageRole.ASSISTANT,
+                                        content = rawText,
+                                        toolCalls = regularCalls,
+                                    ),
+                                )
+                                assistantToolMsgAdded = true
+                            }
+                        }
                         val args = parseToolArgs(tc.arguments)
                         val result = toolExecutors[tc.name]?.invoke(args) ?: "(工具不可用)"
                         workingMessages.add(

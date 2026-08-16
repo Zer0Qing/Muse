@@ -50,6 +50,10 @@ class MessageImageStore(
      * - base64 长度 > [minLengthToPersist]:落盘,返回 "file://{absolutePath}"
      * - 已是 "file://" 前缀:原样返回(已落盘,避免重复写)
      *
+     * 审查修复 (2.0 B-04/A-03): 文件名带内容哈希后缀 — 同轮并行生图工具对同一消息
+     * 并发调用本方法时,不同内容的文件互不覆盖(旧命名 {messageId}_{idx}.bin 路径相同、
+     * 后写者胜,两条 imageUrls 会指向同一文件);同内容重复写入命中同名文件,覆盖无害。
+     *
      * @param messageId 消息 id(用作文件名前缀)
      * @param base64List 原始 base64 列表(可能含 data:image/...;base64, 前缀)
      * @return 可持久化形式列表(路径或 base64)
@@ -63,11 +67,13 @@ class MessageImageStore(
             if (value.length < minLengthToPersist) return@mapIndexed value
             // 长数据,落盘
             runCatching {
-                val file = File(storageDir, "${messageId}_${idx}.bin")
-                if (!storageDir.exists()) storageDir.mkdirs()
                 // 剥离 data:image/...;base64, 前缀后写入
                 val raw = stripDataUriPrefix(value)
-                file.writeBytes(Base64.getDecoder().decode(raw))
+                val file = File(storageDir, "${messageId}_${idx}_${contentHash(raw)}.bin")
+                if (!storageDir.exists()) storageDir.mkdirs()
+                // B-03: 上游可能按 76 字符换行输出 base64,JDK basic 解码遇换行抛异常
+                // (此前 runCatching 降级为把整串 base64 存 DB);改用 MIME 解码器忽略换行
+                file.writeBytes(Base64.getMimeDecoder().decode(raw))
                 FILE_PREFIX + file.absolutePath
             }.getOrElse { e ->
                 Logger.w(TAG, "图片落盘失败,降级为 base64: ${e.message}")
@@ -79,8 +85,11 @@ class MessageImageStore(
     /**
      * 把持久化形式(路径或 base64)转为 UI 用的 base64 列表。
      *
-     * - "file://" 前缀:读文件返回 base64(含 data:image/...;base64, 前缀,兼容 UI 渲染)
+     * - "file://" 前缀:读文件返回纯 base64(不含 data: 前缀;调用方渲染时自行拼前缀,
+     *   见 MessageBubble.displayImageUris 的 "data:image/png;base64,$it" 包装)
      * - 其他:当作 base64 直接返回(向后兼容旧数据)
+     *
+     * 审查修复 (2.0 C-02): 修正文档与实际不符 — 本方法返回的是无前缀纯 base64。
      *
      * 读取失败返回空字符串(不抛异常,避免阻塞消息列表加载)。
      */
@@ -131,6 +140,13 @@ class MessageImageStore(
             return value.substring(commaIdx + 1)
         }
         return value
+    }
+
+    /** base64 内容短哈希(文件名后缀,防同消息并行写入互覆盖;内容相同则文件名相同,覆盖无害)。 */
+    private fun contentHash(raw: String): String {
+        val digest = java.security.MessageDigest.getInstance("SHA-1")
+            .digest(raw.toByteArray(Charsets.UTF_8))
+        return digest.joinToString("") { "%02x".format(it) }.take(8)
     }
 
     private companion object {

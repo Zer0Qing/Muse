@@ -37,7 +37,11 @@ class CronExpression internal constructor(
     /**
      * 计算给定时间戳 [timestamp] 之后(不含)下一次匹配的时间戳(分钟对齐)。
      *
-     * 采用逐分钟遍历法,上限遍历 [MAX_SCAN_DAYS] 天避免死循环;无匹配返回 [Long.MAX_VALUE]。
+     * 采用逐分钟遍历法,上限遍历 [MAX_SCAN_DAYS] 天避免死循环;无匹配返回 [NO_MATCH]。
+     *
+     * 审查修复 (2.0 C-06): 无匹配哨兵改用 [Long.MAX_VALUE] - 1 —
+     * ScheduledTaskRunner 的领取哨兵恰为 [Long.MAX_VALUE](B-12 CLAIM_NEXT_RUN_SENTINEL),
+     * 两值混用会让"cron 无匹配"被误判为"已被领取",任务永不再跑且诊断混淆。
      */
     fun nextRunAfter(timestamp: Long): Long {
         val cal = Calendar.getInstance()
@@ -76,7 +80,7 @@ class CronExpression internal constructor(
             }
             cal.add(Calendar.MINUTE, 1)
         }
-        return Long.MAX_VALUE
+        return NO_MATCH
     }
 
     /**
@@ -181,6 +185,13 @@ class CronExpression internal constructor(
     companion object {
         /** L-004: 逐分钟遍历的上限天数(覆盖闰年 + 冗余,避免死循环)。 */
         private const val MAX_SCAN_DAYS = 366L
+
+        /**
+         * 审查修复 (2.0 C-06): "扫描窗口内无匹配"哨兵 — 与 ScheduledTaskRunner 的
+         * 领取哨兵(CLAIM_NEXT_RUN_SENTINEL = Long.MAX_VALUE)区分开,防止
+         * "cron 无匹配"被误判为"已被领取"(任务永不再跑)。
+         */
+        const val NO_MATCH = Long.MAX_VALUE - 1
 
         /**
          * 解析 Cron 表达式,非法时抛 [IllegalArgumentException]。

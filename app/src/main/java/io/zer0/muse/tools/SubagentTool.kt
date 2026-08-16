@@ -220,6 +220,8 @@ object SubagentTool {
             )
         }
         jobs[taskId] = job
+        // A-15: 登记到结果存储 — abort 时能取消后台任务,防幽灵结果继续跑
+        deferredResultStore.attachJob(taskId, job)
 
         return "Task launched: taskId=$taskId, threadId=$threadId, agent=$agentId. " +
             "Use action=status&task_id=$taskId to check progress, " +
@@ -284,6 +286,8 @@ object SubagentTool {
             )
         }
         jobs[taskId] = job
+        // A-15: 登记到结果存储 — abort 时能取消后台任务
+        deferredResultStore.attachJob(taskId, job)
 
         return "Reply queued: taskId=$taskId, threadId=$threadId. " +
             "Use action=status&task_id=$taskId to check progress."

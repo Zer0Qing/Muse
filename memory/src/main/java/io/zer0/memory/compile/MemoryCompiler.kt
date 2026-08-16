@@ -91,37 +91,41 @@ class MemoryCompiler(
     /**
      * S-04: 过滤命中墓碑的文本行(逐行规范化子串匹配)。
      * 墓碑为空时原样返回(零开销路径)。
+     * 审查修复 (2.0 B-07): 匹配逻辑下沉到 [FactStore.filterTombstonedLines]
+     * (空白压缩 + 标点剥离双通道),本方法保留签名与可见性兼容测试。
      */
-    internal fun filterTombstonedLines(text: String, tombstones: List<String>): String {
-        if (tombstones.isEmpty()) return text
-        return text.lines()
-            .filterNot { line ->
-                val normalized = line.trim()
-                normalized.isNotEmpty() && tombstones.any { normalized.contains(it) }
-            }
-            .joinToString("\n")
-    }
+    internal fun filterTombstonedLines(text: String, tombstones: List<String>): String =
+        FactStore.filterTombstonedLines(text, tombstones)
 
     /** S-04: 从 [FactStore] 加载墓碑列表(未注入时返回空列表)。 */
     private suspend fun loadTombstones(): List<String> =
         runCatching { factStore?.getTombstones() }.getOrNull() ?: emptyList()
 
     /**
-     * S-04: 立即从已编译的 FACTS 段剔除命中墓碑的内容。
+     * S-04: 立即从已编译的各注入段剔除命中墓碑的内容。
      *
      * 用户在记忆页删除事实后调用(FactStore.delete 已记墓碑),无需等待下次
-     * compileFacts 定时任务 — 删除即刻对注入生效。返回是否有内容被剔除。
+     * 定时编译 — 删除即刻对注入生效。返回是否有内容被剔除。
+     *
+     * 审查修复 (2.0 A-05): 覆盖全部注入段 — 此前只清 FACTS 段,而 TODAY/WEEK/
+     * LONGTERM 同样注入 system prompt(week 由 daily 文件零 LLM 装配、longterm
+     * 由 fold 产生,均不过滤墓碑),用户删除的隐私会持续残留。
      */
     suspend fun purgeTombstonedFacts(): Boolean = withContext(Dispatchers.IO) {
         val tombstones = loadTombstones()
         if (tombstones.isEmpty()) return@withContext false
-        val current = readSection(Section.FACTS)
-        val filtered = filterTombstonedLines(current, tombstones)
-        if (filtered == current) return@withContext false
-        // 指纹置 null,保证下次 compileFacts 重新合并(而非 SKIPPED)
-        sectionDao.updateContent(Section.FACTS.key, filtered, null, Instant.now().toString())
-        Logger.i("MemoryCompiler", "purgeTombstonedFacts: 剔除 ${countRemovedLines(current, filtered)} 行")
-        true
+        var removedAny = false
+        for (section in Section.ALL) {
+            val current = readSection(section)
+            val filtered = filterTombstonedLines(current, tombstones)
+            if (filtered != current) {
+                // 指纹置 null,保证下次编译重新合并(而非 SKIPPED)
+                sectionDao.updateContent(section.key, filtered, null, Instant.now().toString())
+                Logger.i("MemoryCompiler", "purgeTombstonedFacts: ${section.key} 剔除 ${countRemovedLines(current, filtered)} 行")
+                removedAny = true
+            }
+        }
+        removedAny
     }
 
     private fun countRemovedLines(before: String, after: String): Int {
@@ -130,12 +134,15 @@ class MemoryCompiler(
         return (beforeLines - afterLines).coerceAtLeast(0)
     }
 
-    /** 读取四块拼装后的 memory.md(注入 system prompt 用)。 */
+    /** 读取四块拼装后的 memory.md(注入 system prompt 用)。
+     *  审查修复 (2.0 A-05): 注入读路径统一按墓碑过滤 — 兜底任何未及时 purge 的段,
+     *  已删内容不会泄漏进 system prompt(双通道匹配见 FactStore.filterTombstonedLines)。 */
     suspend fun readCompiledMemoryMarkdown(locale: String = "zh-CN"): String = withContext(Dispatchers.IO) {
-        val facts = CompiledMemoryState.normalizeSectionBody(readSection(Section.FACTS))
-        val today = CompiledMemoryState.normalizeSectionBody(readSection(Section.TODAY))
-        val week = CompiledMemoryState.normalizeSectionBody(readSection(Section.WEEK))
-        val longterm = CompiledMemoryState.normalizeSectionBody(readSection(Section.LONGTERM))
+        val tombstones = loadTombstones()
+        val facts = CompiledMemoryState.normalizeSectionBody(filterTombstonedLines(readSection(Section.FACTS), tombstones))
+        val today = CompiledMemoryState.normalizeSectionBody(filterTombstonedLines(readSection(Section.TODAY), tombstones))
+        val week = CompiledMemoryState.normalizeSectionBody(filterTombstonedLines(readSection(Section.WEEK), tombstones))
+        val longterm = CompiledMemoryState.normalizeSectionBody(filterTombstonedLines(readSection(Section.LONGTERM), tombstones))
         val md = assembleCompiledMarkdown(facts, today, week, longterm, locale)
         // v6: 同时输出到文件系统,便于调试和备份
         fileWriter?.writeMemoryMd(md, locale)
@@ -242,6 +249,11 @@ class MemoryCompiler(
         model: Model?,
         locale: String = "zh-CN",
         timeZone: String = io.zer0.memory.time.TimeContext.DEFAULT_TIMEZONE,
+        /**
+         * 审查修复 (2.0 B-09): 主助手 id — 兜底路径(无 today 草稿时按 session 摘要编译)
+         * 只取主助手摘要,子助手摘要不得经 daily → week → longterm 链串台进主助手注入。
+         */
+        mainAssistantId: String? = null,
     ): Result = withContext(Dispatchers.IO) {
         if (fileWriter == null) return@withContext Result.SKIPPED
 
@@ -258,12 +270,14 @@ class MemoryCompiler(
         val input = when {
             !yesterdayTodayDraft.isNullOrBlank() -> yesterdayTodayDraft.trim()
             else -> {
-                val sessions = summaryManager.getSummariesInRange(start = dayStart, end = dayEnd)
+                val sessions = summaryManager.getSummariesInRange(start = dayStart, end = dayEnd, mainAssistantId = mainAssistantId)
                 if (sessions.isEmpty()) {
                     fileWriter.deleteDailyMd(logicalDate)
                     return@withContext Result.COMPILED
                 }
-                sessions.joinToString("\n\n---\n\n") { it.summary }
+                // B-09: 兜底路径同样过滤墓碑 — 已删内容不得进入 daily → week → longterm 注入链
+                val tombstones = loadTombstones()
+                sessions.joinToString("\n\n---\n\n") { filterTombstonedLines(it.summary, tombstones) }
             }
         }
 

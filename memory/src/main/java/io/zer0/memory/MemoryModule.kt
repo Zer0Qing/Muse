@@ -57,7 +57,7 @@ val memoryModule: Module = module {
     // ── 核心服务 ──
     single { SessionSummaryManager(get(), get()) }   // dao + llmClient
     // v6: 记忆编译产物同时输出到文件系统(memory.md + daily/)
-    single { io.zer0.memory.compile.MemoryFileWriter(androidContext().filesDir) }
+    // 审查修复 (2.0 C-03): 移除下方重复注册(同 key 单例,后者恒覆盖前者,属死装配)
     single { io.zer0.memory.compile.MemoryFileWriter(androidContext().filesDir) }
     // S-04: MemoryCompiler 透传 FactStore(删除墓碑过滤);FactStore 落盘 filesDir/fact_tombstones.json
     single { MemoryCompiler(get(), get(), get(), get()) }    // sectionDao + llmClient + fileWriter + factStore
