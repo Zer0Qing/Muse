@@ -29,6 +29,7 @@ import compose.icons.TablerIcons
 import compose.icons.tablericons.Download
 import compose.icons.tablericons.PlayerPlay
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.VideoLibrary
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -58,7 +59,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.ui.platform.LocalContext
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
@@ -329,6 +334,60 @@ fun SmartImage(
                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
             ),
         )
+    }
+}
+
+/**
+ * 审计修复 (S-02): 助手消息视频生成结果卡片。
+ *
+ * generate_video 成功后 videoFileUri 写入消息并落库,此处渲染:
+ * 深色占位 + 播放图标,点击用 ACTION_VIEW 调起系统播放器
+ * (http(s) URL 或 data URI 均可);无应用可处理时 Toast 提示。
+ */
+@Composable
+internal fun AssistantVideoCard(videoUri: String, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(160.dp)
+            .clip(MuseShapes.medium)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .clickable {
+                runCatching {
+                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(Uri.parse(videoUri), "video/*")
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(intent)
+                }.onFailure { e ->
+                    MuseToast.show(context.getString(R.string.chat_video_open_failed, e.message ?: ""))
+                }
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.VideoLibrary,
+            contentDescription = stringResource(R.string.chat_generated_video_cd),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(MuseIconSizes.iconEmpty),
+        )
+        // 中央播放图标(scrim 半透明背景提升对比度,与用户视频附件一致)
+        Box(
+            modifier = Modifier
+                .size(56.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.5f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = TablerIcons.PlayerPlay,
+                contentDescription = stringResource(R.string.chat_video_play_cd),
+                tint = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.size(MuseIconSizes.iconLarge),
+            )
+        }
     }
 }
 

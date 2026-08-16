@@ -125,4 +125,42 @@ object PiiGuard {
         }
         return ScrubResult(current, detected)
     }
+
+    /** S-05: 输入侧可逆掩码结果 — [masked] 为占位符文本,[map] 为 占位符 → 原文 映射。 */
+    data class MaskResult(val masked: String, val map: Map<String, String>)
+
+    /**
+     * S-05: 输入侧可逆掩码 — 外发 LLM 前把 PII 替换为占位符(如 [PHONE_1]),
+     * 原文不离开设备;LLM 输出经 [unmask] 还原后再走 [scrub] 落库。
+     *
+     * 与 [scrub] 的区别: scrub 是输出侧硬脱敏(落库/展示),mask 是输入侧临时掩码
+     * (保留可还原性,避免记忆管道把明文 PII 发给 Provider)。
+     */
+    fun mask(text: String): MaskResult {
+        if (text.isEmpty()) return MaskResult(text, emptyMap())
+        var current = text
+        val map = linkedMapOf<String, String>()
+        for (rule in RuleKind.entries) {
+            current = rule.pattern.replace(current) { m ->
+                if (rule.whitelistProtected && m.value in NAME_WHITELIST) {
+                    m.value
+                } else {
+                    val token = "[${rule.label.uppercase()}_${map.size + 1}]"
+                    map[token] = m.value
+                    token
+                }
+            }
+        }
+        return MaskResult(current, map)
+    }
+
+    /** S-05: 还原 [mask] 产生的占位符(LLM 输出侧)。无映射时原样返回。 */
+    fun unmask(text: String, map: Map<String, String>): String {
+        if (map.isEmpty()) return text
+        var current = text
+        for ((token, original) in map) {
+            current = current.replace(token, original)
+        }
+        return current
+    }
 }

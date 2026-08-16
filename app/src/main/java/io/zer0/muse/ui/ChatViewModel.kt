@@ -1244,6 +1244,13 @@ class ChatViewModel(
     // 供 generate_image / generate_video / generate_qr_code 等工具更新消息媒体字段。
     private var toolAssistantId: Uuid? = null
 
+    // 审计修复 (S-01): toolAssistantId 对应的生成会话 id。
+    // exec* 成功写入媒体后需要立即落盘(工具轮消息在工具执行前已被
+    // persistAssistantToolMsg 落盘为无媒体版本,之后不再重写,重启/切页后图片丢失)。
+    // 与 toolAssistantId 同生命周期:runToolLoop 起始赋值、结束清空。
+    @Volatile
+    private var activeToolSessionId: String? = null
+
     // v5: 消息发送队列 — 串行化处理,防止快速连续发送导致竞态
     private data class SendRequest(
         val text: String,
@@ -1973,7 +1980,7 @@ class ChatViewModel(
                 name = "generate_image",
                 description = "根据用户描述生成图片。仅在用户明确要求画图、设计、头像、海报等场景调用。会消耗绘图 API 额度。",
                 parameters = mapOf(
-                    "prompt" to "必填,详细的图片描述,英文或中文均可",
+                    "prompt" to "必填,详细的图片描述。写清主体/风格/构图,英文效果更佳,如 'a cute cat sitting on a sofa, watercolor style';中文亦可",
                     "model" to "可选,绘图模型 ID,如 dall-e-3 / gpt-image-1 / agnes-image-2.1-flash;未指定时使用供应商默认",
                     "size" to "可选,图片尺寸,如 1024x1024 / 1792x1024 / 1024x1792;Agnes 也支持比例如 1:1 / 16:9 / 3:2",
                     "quality" to "可选,图片质量,如 standard / hd",
@@ -1990,7 +1997,8 @@ class ChatViewModel(
         toolRegistry.register(
             ToolRegistry.ToolDef(
                 name = "generate_video",
-                description = "根据用户描述生成短视频。仅在用户明确要求视频、动画等场景调用。会自动选择已配置且支持视频输出的供应商/模型。",
+                // v1.0.75 fix (工具审查 02): 补 prompt 示例与返回说明
+                description = "根据用户描述生成短视频。仅在用户明确要求视频、动画等场景调用。会自动选择已配置且支持视频输出的供应商/模型。返回生成视频的 URL。prompt 写清画面主体/动作/时长,如 'a cat jumping off a sofa, slow motion'。",
                 parameters = mapOf(
                     "prompt" to "必填,视频内容描述,英文或中文均可",
                     "model" to "可选,视频模型 ID;未指定时自动选择第一个支持视频输出的模型",
@@ -4662,6 +4670,7 @@ class ChatViewModel(
         // Phase 2: 工具调用循环下沉到 ToolOrchestrator
         // v1.135: 记录当前助手消息 id,供媒体生成类工具更新消息 UI。
         toolAssistantId = state.currentAssistantId
+        activeToolSessionId = state.sessionId
         val baseHistorySize = conversationHistory.size
         // v1.x: 三钩子接入 — 流式视觉转换(applyVisualTransform)接入说明:
         // 当前流式 UI 更新走 updateAssistant(id, content, ...) 路径,
@@ -5177,6 +5186,7 @@ class ChatViewModel(
         state.firstTokenTime = toolLoopResult.firstTokenTime
         state.currentAssistantId = toolLoopResult.finalAssistantId
         toolAssistantId = null
+        activeToolSessionId = null
 
         if (!toolLoopResult.success) {
             val err = toolLoopResult.error
@@ -5205,14 +5215,26 @@ class ChatViewModel(
 
         // 将 finalAssistantMessage(含 citations + artifacts)写入 UI / DB / branch
         toolLoopResult.finalAssistantMessage?.let { finalAssistant ->
+            // v1.0.75 fix (生图只显示链接根因): finalAssistantMessage 由 GenerationHandler 构造,
+            //   只含 content + toolCalls,不含媒体字段。若直接覆盖同 id 消息,
+            //   execGenerateImage 写入的 imageUrls / videoFileUri / imageBase64List 会丢失,
+            //   导致图片不渲染、模型只能复述 URL。合并保留原消息的媒体字段。
+            val existingMsg = _messages.value.firstOrNull { it.id == finalAssistant.id }
+            val mergedMedia = finalAssistant.copy(
+                imageUrls = if (finalAssistant.imageUrls.isNotEmpty()) finalAssistant.imageUrls
+                    else existingMsg?.imageUrls ?: emptyList(),
+                imageBase64List = if (finalAssistant.imageBase64List.isNotEmpty()) finalAssistant.imageBase64List
+                    else existingMsg?.imageBase64List ?: emptyList(),
+                videoFileUri = finalAssistant.videoFileUri ?: existingMsg?.videoFileUri,
+            )
             val withCitations = when {
                 toolLoopResult.citationUrls.isNotEmpty() && pendingRagCitations.isNotEmpty() ->
-                    finalAssistant.copy(citationUrls = toolLoopResult.citationUrls, ragCitations = pendingRagCitations)
+                    mergedMedia.copy(citationUrls = toolLoopResult.citationUrls, ragCitations = pendingRagCitations)
                 toolLoopResult.citationUrls.isNotEmpty() ->
-                    finalAssistant.copy(citationUrls = toolLoopResult.citationUrls)
+                    mergedMedia.copy(citationUrls = toolLoopResult.citationUrls)
                 pendingRagCitations.isNotEmpty() ->
-                    finalAssistant.copy(ragCitations = pendingRagCitations)
-                else -> finalAssistant
+                    mergedMedia.copy(ragCitations = pendingRagCitations)
+                else -> mergedMedia
             }
             val (replacedContent, artifacts) = ArtifactExtractor.extractArtifacts(
                 sessionId = sessionId,
@@ -5465,8 +5487,14 @@ class ChatViewModel(
             val enabledSkillIds = effectiveSkillIdsJson?.let { json ->
                 runCatching { idListJson.decodeFromString<List<String>>(json) }.getOrNull()
             }
+            // 审计修复 (A-04/A-05/A-06): 与 ChatStreamCoordinator.resolveToolsAndModel
+            // 同一套过滤 — 本地工具同名 skill 与 channel_* 群聊 skill 不进 skillMap,
+            // 定义与执行统一走本地实现,主会话不可冒充 agent 群聊发言。
+            val localToolNames = toolRegistry.listTools().map { it.name }.toSet()
             val skillMap = resultOf { skillRepository.listEnabledByIds(enabledSkillIds) }
-                .getOrNull()?.associateBy { it.id } ?: emptyMap()
+                .getOrNull()
+                ?.filterNot { it.id in localToolNames || it.id.startsWith("channel_") }
+                ?.associateBy { it.id } ?: emptyMap()
 
             // v1.0.4 (P0): 进入"等待首 token"阶段 + 设置工具恢复进度文本,
             // 让 ShimmerBubble 在工具执行期间显示"正在执行 web_search (1/3)…"
@@ -5753,13 +5781,36 @@ class ChatViewModel(
 
     // ── v1.135: 媒体/富内容工具执行函数(注册到 ToolRegistry) ─────────────────
 
-    /** 合并新内容到当前助手消息,避免覆盖 LLM 在工具调用前已输出的说明文本。 */
+    /** 合并新内容到当前助手消息,避免覆盖 LLM 在工具调用前已输出的说明文本。
+     *  A-01: existing 已含 newContent 时保持原样(幂等),不再整体替换 — 并行媒体工具
+     *  先后写入同一消息时,后完成的调用不得抹掉先完成调用的占位文本。 */
     private fun mergeAssistantContent(assistantId: Uuid, newContent: String): String {
         val existing = _messages.value.firstOrNull { it.id == assistantId }?.content?.trim() ?: ""
-        return if (existing.isNotBlank() && !existing.contains(newContent)) {
-            "$existing\n\n$newContent"
-        } else {
-            newContent
+        return when {
+            existing.isBlank() -> newContent
+            existing.contains(newContent) -> existing
+            else -> "$existing\n\n$newContent"
+        }
+    }
+
+    /**
+     * 审计修复 (S-01): 工具执行成功后把含媒体的消息立即落盘。
+     *
+     * 背景: 多轮 Agent Loop 中,工具轮消息 A1 在工具执行前已被
+     * ToolOrchestrator.persistAssistantToolMsg 落盘(无媒体字段),此后没有任何代码
+     * 重新 upsert A1 — 媒体只存在于内存 _messages,重启/切页后图片视频全部丢失。
+     * 收尾合并(L5217)只处理 finalAssistantMessage(A2),对 A1 是 no-op。
+     *
+     * 落盘对象取 _messages 中该 id 的当前消息(含 updateAssistant 写入的媒体),
+     * 用 NonCancellable 包裹保证取消时也能完成写入。
+     */
+    private suspend fun persistToolMessageMedia(sessionId: String?, assistantId: Uuid) {
+        if (sessionId.isNullOrBlank()) return
+        val msg = _messages.value.firstOrNull { it.id == assistantId } ?: return
+        if (msg.imageUrls.isEmpty() && msg.imageBase64List.isEmpty() && msg.videoFileUri == null) return
+        withContext(Dispatchers.IO + NonCancellable) {
+            runCatching { sessionRepository.upsertMessage(sessionId, msg) }
+                .onFailure { Logger.e("ChatVM", "媒体消息落盘失败 | session=$sessionId | id=$assistantId", it) }
         }
     }
 
@@ -5820,13 +5871,22 @@ class ChatViewModel(
                 updateAssistant(assistantId, content = appContext.getString(R.string.err_chat_img_gen_failed_no_result))
                 return "图片生成失败: 未返回结果"
             }
+            // 审计修复 (A-01): 追加合并而非整体替换 — 同一轮并行多个媒体工具
+            // (如"生成两张图")写同一个 toolAssistantId 消息时,后完成的调用不得
+            // 覆盖先完成的图片。_messages.update 是 StateFlow 原子 CAS,并发安全。
+            val existingUrls = _messages.value.firstOrNull { it.id == assistantId }?.imageUrls ?: emptyList()
             updateAssistant(
                 assistantId,
                 content = mergeAssistantContent(assistantId, appContext.getString(R.string.err_chat_img_generated)),
-                imageUrls = urls,
+                imageUrls = (existingUrls + urls).distinct(),
                 isStreaming = false,
             )
-            "图片生成成功: ${urls.joinToString(", ")}"
+            // 审计修复 (S-01): 含媒体的消息立即落盘,否则重启/切页后图片消失
+            persistToolMessageMedia(activeToolSessionId ?: _state.value.currentSessionId, assistantId)
+            // v1.0.75 fix (用户反馈): 返回给模型的字符串不再包含 URL —
+            //   图片已通过 imageUrls 渲染进对话,模型复述 URL 只会造成"聊天页里塞链接"的体验。
+            //   模型只需知道"图片已生成并展示",无需也无法处理具体 URL。
+            "图片已生成并展示在对话中"
         } catch (e: kotlinx.coroutines.CancellationException) {
             updateAssistant(assistantId, content = appContext.getString(R.string.err_chat_img_cancelled))
             throw e
@@ -5938,7 +5998,10 @@ class ChatViewModel(
                 videoFileUri = videoUrl,
                 isStreaming = false,
             )
-            "视频生成成功: $videoUrl"
+            // 审计修复 (S-01): 含媒体的消息立即落盘,否则重启/切页后视频消失
+            persistToolMessageMedia(activeToolSessionId ?: _state.value.currentSessionId, assistantId)
+            // v1.0.75 fix (用户反馈): 与 generate_image 同理,不给模型 URL,避免复述链接
+            "视频已生成并展示在对话中"
         } catch (e: kotlinx.coroutines.CancellationException) {
             updateAssistant(assistantId, content = appContext.getString(R.string.err_chat_video_cancelled))
             throw e
@@ -5974,11 +6037,15 @@ class ChatViewModel(
             bitmap.recycle()
             val base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
             val dataUri = "data:image/png;base64,$base64"
+            // 审计修复 (A-01): 追加合并,避免并行工具调用覆盖已生成的媒体
+            val existingUrls = _messages.value.firstOrNull { it.id == assistantId }?.imageUrls ?: emptyList()
             updateAssistant(
                 assistantId,
                 content = mergeAssistantContent(assistantId, appContext.getString(R.string.err_chat_qr_generated)),
-                imageUrls = listOf(dataUri),
+                imageUrls = (existingUrls + dataUri).distinct(),
             )
+            // 审计修复 (S-01): 含媒体的消息立即落盘,否则重启/切页后二维码消失
+            persistToolMessageMedia(activeToolSessionId ?: _state.value.currentSessionId, assistantId)
             "二维码生成成功"
         } catch (e: Exception) {
             "二维码生成失败: ${e.message ?: "未知错误"}"

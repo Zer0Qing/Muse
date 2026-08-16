@@ -7,6 +7,7 @@
     <string name="chat_model_cd">현재 모델: %1$s, 전환하려면 탭하세요.</string>
     <string name="chat_routing_badge">라우팅</string>
     <string name="chat_video_play_cd">동영상 재생</string>
+    <string name="chat_generated_video_cd">생성된 비디오</string>
     <string name="chat_context_usage_cd">컨텍스트 사용량 %1$s%%, %2$d 총 토큰</string>
     <string name="chat_context_tokens_only_cd">컨텍스트 토큰 수 %1$d, 모델에 컨텍스트 창이 없습니다.</string>
     <string name="chat_context_no_window_detail">%1$d 토큰(모델에 컨텍스트 창이 없음)</string>

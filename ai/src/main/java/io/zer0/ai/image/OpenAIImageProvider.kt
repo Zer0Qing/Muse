@@ -132,8 +132,12 @@ class OpenAIImageProvider(
                     val mime = model?.outputMime ?: "image/png"
                     val images = data.mapNotNull { item ->
                         val obj = item.jsonObject
-                        val b64 = obj["b64_json"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() }
-                        val url = obj["url"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() }
+                        // v1.0.75 fix (生图链路): 过滤 JSON null 字段(JsonNull.content 返回 "null" 字符串,
+                        // takeIf isNotBlank 会放行 → 拼出 base64,null 假图)
+                        val b64 = obj["b64_json"]?.jsonPrimitive?.content
+                            ?.takeIf { it.isNotBlank() && it != "null" }
+                        val url = obj["url"]?.jsonPrimitive?.content
+                            ?.takeIf { it.isNotBlank() && it != "null" }
                         if (b64 == null && url == null) null else GeneratedImage(base64 = b64, url = url)
                     }
                     // 保留 mime 在 base64 字段中,由 ImageService 拼 data URI 时剥离

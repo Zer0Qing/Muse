@@ -1004,6 +1004,8 @@ class SessionRepository(
             citationUrls = parseImageUrls(citationUrlsJson),
             ragCitations = parseRagCitations(ragCitationsJson),
             imageBase64List = messageImageStore.toBase64List(parseImageUrls(imageBase64Json)),
+            // 审计修复 (S-02): 视频生成结果 URL 往返(此前只存内存,重启丢失)
+            videoFileUri = videoFileUri,
             artifactIds = parseImageUrls(artifactIdsJson),
             moodSkin = parsedMoodSkin.first ?: moodSkin,
             mood = mood,
@@ -1045,6 +1047,8 @@ class SessionRepository(
         // DB 只存 "file://xxx" 路径,避免 messages 表行体积膨胀;
         // 短数据(< 1024 字符)仍存 base64,旧数据读取时无 "file://" 前缀直接返回
         imageBase64Json = encodeImageUrls(messageImageStore.toPersistable(id.toString(), imageBase64List)),
+        // 审计修复 (S-02): 视频生成结果 URL 往返
+        videoFileUri = videoFileUri,
         // v1.43: Artifact id 列表
         artifactIdsJson = encodeImageUrls(artifactIds),
         // v1.103: MOOD / reflection 持久化(之前 toEntity 丢弃导致切页后消失)

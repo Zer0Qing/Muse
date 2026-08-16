@@ -186,32 +186,9 @@ internal fun RichInputBar(
         }
         }
         // 格式切换按钮 + 原 InputBar
-        // 把「格式」按钮放在 InputBar 上方的独立 Row,右对齐保持视觉轻量。
-        // formatEnabled=false 时跳过格式按钮(等价于直接调用 InputBar)
-        if (formatEnabled) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = MusePaddings.inputPadding),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                // 格式切换按钮(展开时高亮,提示当前状态)
-                val toggleTint = if (showFormatToolbar) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.onSurfaceVariant
-                MuseTactileButton(
-                    icon = Icons.Default.TextFormat,
-                    onClick = {
-                        MuseHaptics.light(hapticFeedback)
-                        showFormatToolbar = !showFormatToolbar
-                    },
-                    contentDescription = stringResource(R.string.rich_input_format),
-                    tint = toggleTint,
-                    size = MuseIconSizes.touchTarget,
-                    iconSize = MuseIconSizes.iconMedium,
-                )
-            }
-        }
+        // v1.0.75 fix (用户反馈): 移除独立的格式切换按钮(TextFormat "A" 图标)。
+        // 用户反馈该按钮碍眼且影响输入栏状态。格式工具条仍由设置项
+        // richInputEnabled 控制(开启时工具条展开),不再需要切换按钮。
         // 原 InputBar(完全透传所有参数,不破坏既有逻辑)
         InputBar(
             state = MuseInputState(

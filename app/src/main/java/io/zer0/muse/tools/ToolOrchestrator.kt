@@ -349,6 +349,8 @@ class ToolOrchestrator(
         val citationUrls = mutableListOf<String>()
         var hasToolCalls = true
         var finalAssistantMessage: UIMessage? = null
+        // A-07: 非正常退出原因(卡死/连续失败),用于收尾消息文案
+        var abortReason: String? = null
 
         // v1.x: 动态计算最大轮次(按工具循环迭代式设计)
         //  - 有 task_plan: steps*2 + 5(每步平均 2 轮工具调用 + 5 轮缓冲)
@@ -491,6 +493,8 @@ class ToolOrchestrator(
                         if (noProgressRounds >= MAX_NO_PROGRESS_ROUNDS) {
                             Logger.w(TAG, "Agent Loop 连续 $noProgressRounds 轮无进展,判定卡死,提前终止")
                             hasToolCalls = false
+                            // A-07: 记录退出原因,收尾时注入明确文案(否则用户只看到工具卡片无任何回复)
+                            abortReason = "检测到工具调用停滞(连续 $noProgressRounds 轮无进展),已自动停止。如需继续,可以让我重新处理。"
                             // 不把 assistantToolMsg 加入 history,避免遗留无 tool 结果的 assistant 消息
                             break
                         }
@@ -634,6 +638,8 @@ class ToolOrchestrator(
                                     "(round=$round, tool=${tc.name})",
                             )
                             hasToolCalls = false
+                            // A-07: 记录退出原因,收尾时注入明确文案
+                            abortReason = "连续 $consecutiveToolFailures 次工具调用失败,已自动停止。如需继续,可以让我重新处理。"
                             break
                         }
                     }
@@ -681,13 +687,30 @@ class ToolOrchestrator(
 
         // v1.0.74 fix: 轮次耗尽/卡死退出时 finalAssistantMessage 为 null,会话里没有任何
         // 收尾提示,任务卡悬空、用户以为助手坏了。注入一条明确的收尾消息。
-        if (finalAssistantMessage == null && hasToolCalls) {
-            finalAssistantMessage = UIMessage(
-                id = currentAssistantId,
-                role = MessageRole.ASSISTANT,
-                content = "[已达到工具调用轮次上限($maxRounds 轮),自动停止。如需继续,可以让我接着处理。]",
-            )
-            accessor.updateMessages { it + finalAssistantMessage }
+        // A-07: 覆盖全部无收尾退出路径 — 卡死/连续失败早停(hasToolCalls 已置 false
+        // 但 abortReason 非空)同样注入,并按退出原因区分文案。
+        if (finalAssistantMessage == null) {
+            val reasonText = abortReason ?: if (hasToolCalls) {
+                "[已达到工具调用轮次上限($maxRounds 轮),自动停止。如需继续,可以让我接着处理。]"
+            } else {
+                null
+            }
+            if (reasonText != null) {
+                finalAssistantMessage = UIMessage(
+                    id = currentAssistantId,
+                    role = MessageRole.ASSISTANT,
+                    content = reasonText,
+                )
+                // B-04: 替换语义而非追加 — 占位消息已在 UI 中,追加同 id 会渲染两条相同气泡。
+                // 命中既有同 id 消息则原地替换,否则追加新消息。
+                accessor.updateMessages { list ->
+                    if (list.any { it.id == finalAssistantMessage.id }) {
+                        list.map { if (it.id == finalAssistantMessage.id) finalAssistantMessage else it }
+                    } else {
+                        list + finalAssistantMessage
+                    }
+                }
+            }
         }
 
         Logger.i(

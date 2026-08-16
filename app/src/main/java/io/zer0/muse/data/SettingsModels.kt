@@ -301,6 +301,14 @@ data class ProactiveMessageConfig(
      * 测试发送不受此限制(forceSend 直发)。
      */
     val sendProbability: Int = 100,
+    /**
+     * A-08: 最近一次 LLM 调用失败时间戳(0=无失败)。
+     *
+     * 决策/生成阶段 LLM 失败时写入;此后至少间隔一个 baseInterval 才允许再次尝试,
+     * 防止断网/服务故障时 guaranteedSend 每分钟热循环重试烧配额。
+     * 成功发送后清零。
+     */
+    val lastFailedAt: Long = 0,
 )
 
 /**

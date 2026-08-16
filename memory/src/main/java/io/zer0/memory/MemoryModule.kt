@@ -58,8 +58,10 @@ val memoryModule: Module = module {
     single { SessionSummaryManager(get(), get()) }   // dao + llmClient
     // v6: 记忆编译产物同时输出到文件系统(memory.md + daily/)
     single { io.zer0.memory.compile.MemoryFileWriter(androidContext().filesDir) }
-    single { MemoryCompiler(get(), get(), get()) }    // sectionDao + llmClient + fileWriter
-    single { FactStore(get(), get()) }                // factDao + factDb（v1.0.27 P0-1.3: addBatch 事务需要）
+    single { io.zer0.memory.compile.MemoryFileWriter(androidContext().filesDir) }
+    // S-04: MemoryCompiler 透传 FactStore(删除墓碑过滤);FactStore 落盘 filesDir/fact_tombstones.json
+    single { MemoryCompiler(get(), get(), get(), get()) }    // sectionDao + llmClient + fileWriter + factStore
+    single { FactStore(get(), get(), java.io.File(androidContext().filesDir, "fact_tombstones.json")) }
     single { DeepMemoryProcessor(get<io.zer0.memory.fact.FactDbProvider>(), get()) }  // factDbProvider + llmClient
 
     // v1.0.52 P2-2: 记忆空间仓库(Space CRUD + 事实迁移)

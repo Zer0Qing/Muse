@@ -7,6 +7,7 @@ import io.zer0.common.resultOf
 import io.zer0.memory.fact.FactDbProvider
 import io.zer0.memory.fact.FactStore
 import io.zer0.memory.llm.MemoryLlmClient
+import io.zer0.memory.pii.PiiGuard
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -172,7 +173,9 @@ class MemoryAutoSaveScheduler(
         if (history.isEmpty()) return@withContext null
 
         val systemPrompt = MemoryExtractPrompt.buildSystemPrompt(locale, existingFactsPreview)
-        val userContent = buildHistoryText(history, locale)
+        // S-05: 输入侧可逆掩码 — 历史文本中的 PII 以占位符外发,不离开设备
+        val maskedInput = PiiGuard.mask(buildHistoryText(history, locale))
+        val userContent = maskedInput.masked
 
         val raw = try {
             llmClient.callText(
@@ -189,7 +192,8 @@ class MemoryAutoSaveScheduler(
             return@withContext null
         }
 
-        parseAnalysisResult(raw)
+        // S-05: 还原占位符后解析(落库时 FactStore.add 再做硬脱敏)
+        parseAnalysisResult(PiiGuard.unmask(raw, maskedInput.map))
     }
 
     /**

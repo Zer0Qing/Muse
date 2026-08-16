@@ -728,6 +728,9 @@ class MemoryViewModel(
 
     /**
      * 删除单条 Fact(仅 Fact 层支持删除)。
+     *
+     * S-04: 删除后立即调用 [MemoryCompiler.purgeTombstonedFacts],把命中墓碑的内容
+     * 从已编译的 FACTS 段剔除 — 注入链路即刻生效,不等下次定时编译。
      */
     fun deleteFact(factId: String) {
         viewModelScope.launch {
@@ -737,6 +740,13 @@ class MemoryViewModel(
                     // v1.78 (H6): 包装 suspend 调用必须用 resultOf,避免吞 CancellationException
                     resultOf { factStore.delete(id) }
                         .onError { msg, t -> MuseToast.show(getApplication<Application>().getString(R.string.memory_delete_failed, msg)) }
+                        .onSuccess { deleted ->
+                            if (deleted) {
+                                // S-04: 剔除编译产物中已删事实,防止"删除后仍注入/从摘要复活"
+                                resultOf { memoryCompiler.purgeTombstonedFacts() }
+                                    .onError { msg, t -> Logger.w("MemoryVM", "purgeTombstonedFacts 失败: $msg", t) }
+                            }
+                        }
                 }
             }
             loadAll()

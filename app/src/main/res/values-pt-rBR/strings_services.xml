@@ -271,6 +271,7 @@
     <string name="tool_brightness_auto">Auto</string>
     <string name="tool_brightness_manual">Manual</string>
     <string name="tool_brightness_set">Brilho definido como %1$d</string>
+    <string name="tool_brightness_auto_set">Brilho automático ativado</string>
     <string name="tool_brightness_missing">Parâmetro ausente: valor</string>
     <string name="tool_brightness_failed">Falha ao definir o brilho: %1$s</string>
     <string name="tool_volume_info">%1$s volume: %2$d / %3$d</string>
@@ -285,6 +286,8 @@
     <string name="tool_flashlight_on">Lanterna ligada</string>
     <string name="tool_flashlight_off">Lanterna desligada</string>
     <string name="tool_flashlight_status">Lanterna disponível: %1$s</string>
+    <string name="tool_flashlight_state">Estado da lanterna: %1$s</string>
+    <string name="tool_flashlight_state_unknown">Estado da lanterna: desconhecido (não operado nesta sessão)</string>
     <string name="tool_flashlight_unavailable">O dispositivo não suporta lanterna</string>
     <string name="tool_flashlight_no_camera">Nenhuma câmera disponível</string>
     <string name="tool_flashlight_invalid_action">a ação deve estar ligada/desligada/status</string>

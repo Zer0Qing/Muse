@@ -711,7 +711,8 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                     modifier = Modifier
                         .fillMaxWidth()
                         .statusBarsPadding()
-                        .padding(horizontal = MusePaddings.screen, vertical = 8.dp),
+                        // v1.0.75 fix (用户反馈): 8dp → 4dp,三岛更贴近状态栏
+                        .padding(horizontal = MusePaddings.screen, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                 ) {
@@ -720,8 +721,8 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                             Surface(
                                 shape = CircleShape,
                                 color = MaterialTheme.colorScheme.surfaceVariant,
-                                // v1.0.74 fix (前端审计 7): 42dp → 48dp 触摸目标
-                                modifier = Modifier.size(48.dp),
+                                // v1.0.75 fix (用户反馈): 52dp → 40dp,左右按钮缩小,让位给中间标题
+                                modifier = Modifier.size(40.dp),
                             ) {
                                 Box(
                                     modifier = Modifier.fillMaxSize().clickable(onClick = onBack),
@@ -736,7 +737,7 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                                 }
                             }
                         } else {
-                            Spacer(Modifier.width(42.dp))
+                            Spacer(Modifier.width(40.dp))
                         }
 
                         // ── 中岛:标题(独立圆角胶囊,weight 1f 居中) ──
@@ -754,7 +755,8 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                         Surface(
                             shape = CircleShape,
                             color = MaterialTheme.colorScheme.surfaceVariant,
-                            modifier = Modifier.weight(1f).height(42.dp),
+                            // v1.0.75 fix (用户反馈): 44dp → 48dp,中岛加高放大,与缩小后的左右岛(40dp)拉开层级
+                            modifier = Modifier.weight(1f).height(48.dp),
                         ) {
                             Box(
                                 modifier = Modifier
@@ -813,8 +815,8 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                         val modelCd = stringResource(R.string.chat_model_cd, currentModelName)
                         var showTopMenu by remember { mutableStateOf(false) }
                         Box(
-                            // v1.0.74 fix (前端审计 7): 42dp → 48dp 触摸目标
-                            modifier = Modifier.size(48.dp),
+                            // v1.0.75 fix (用户反馈): 52dp → 40dp,左右按钮缩小,让位给中间标题
+                            modifier = Modifier.size(40.dp),
                             contentAlignment = Alignment.Center,
                         ) {
                             Surface(

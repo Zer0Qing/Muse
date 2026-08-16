@@ -42,9 +42,11 @@ object ShellSandboxTool {
 
     fun toolDef(): ToolRegistry.ToolDef = ToolRegistry.ToolDef(
         name = NAME,
-        description = "在应用沙箱内执行白名单 Shell 命令(仅 Agent Mode)。" +
+        // v1.0.75 fix (工具审查 02): 补触发场景与返回格式
+        description = "在应用沙箱内执行白名单 Shell 命令,用于查询设备状态(文件/磁盘/进程)后做决策(仅 Agent Mode)。" +
             "允许的命令:ls/cat/grep/echo/wc/head/tail/find/file/stat/df/du/uname/whoami/date/pwd/tree。" +
-            "工作目录为应用数据目录,禁止命令分隔符(&;|)和重定向(<>),超时 10 秒。",
+            "工作目录为应用数据目录,禁止命令分隔符(&;|)和重定向(<>),超时 10 秒。" +
+            "返回: 成功=命令输出,失败=[错误]原因。",
         parameters = mapOf(
             "command" to "必填,要执行的命令(如 'ls -la /sdcard/Download')",
         ),

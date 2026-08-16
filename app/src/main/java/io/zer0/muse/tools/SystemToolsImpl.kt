@@ -58,12 +58,28 @@ class SystemToolsImpl(private val context: Context) {
     }
 
     /**
+     * A-02: toggle 类工具统一参数解析 — 兼容 action(on/off/status) 与 enabled(true/false)。
+     *
+     * 两者都未提供时返回 "status"(只读查询)。不做"翻转"——Android 10+ 无法程序化
+     * 翻转 WiFi/蓝牙开关,如实返回状态引导,删除工具描述中的"翻转"承诺。
+     */
+    private fun resolveToggleAction(args: Map<String, String>): String {
+        val action = args["action"]?.lowercase()
+        if (action in setOf("on", "off", "status")) return action
+        return when (args["enabled"]?.toBooleanStrictOrNull()) {
+            true -> "on"
+            false -> "off"
+            null -> "status"
+        }
+    }
+
+    /**
      * 开关 WiFi:Android 10+ 无法直接 toggle(WifiManager.setWifiEnabled 已废弃)。
      * action=status 读取当前状态;action=on/off 跳 WiFi 设置页让用户手动操作。
      * 需 ACCESS_WIFI_STATE(读状态,普通权限,无需运行时申请)。
      */
     suspend fun execToggleWifi(args: Map<String, String>): String {
-        val action = args["action"] ?: return context.getString(R.string.tool_error_missing_action)
+        val action = resolveToggleAction(args)
         val wifiManager = context.getSystemService(android.content.Context.WIFI_SERVICE)
             as android.net.wifi.WifiManager
         return when (action) {
@@ -92,7 +108,7 @@ class SystemToolsImpl(private val context: Context) {
      */
     @SuppressLint("MissingPermission")
     suspend fun execToggleBluetooth(args: Map<String, String>): String {
-        val action = args["action"] ?: return context.getString(R.string.tool_error_missing_action)
+        val action = resolveToggleAction(args)
         val bluetoothManager = context.getSystemService(android.content.Context.BLUETOOTH_SERVICE)
             as android.bluetooth.BluetoothManager
         val adapter = bluetoothManager.adapter
@@ -384,8 +400,22 @@ class SystemToolsImpl(private val context: Context) {
             .getOrNull() ?: context.getString(R.string.tool_brightness_failed, "")
     }
 
-    /** 设置系统屏幕亮度。 */
+    /**
+     * A-03: 设置系统屏幕亮度 — 支持 auto=true 启用自动亮度(忽略 value)。
+     * auto 缺省时按 value(0-255)写手动亮度;均未提供时返回参数错误。
+     */
     suspend fun execSetBrightness(args: Map<String, String>): String {
+        if (args["auto"].equals("true", ignoreCase = true)) {
+            return resultOf {
+                android.provider.Settings.System.putInt(
+                    context.contentResolver,
+                    android.provider.Settings.System.SCREEN_BRIGHTNESS_MODE,
+                    android.provider.Settings.System.SCREEN_BRIGHTNESS_MODE_AUTOMATIC,
+                )
+                context.getString(R.string.tool_brightness_auto_set)
+            }.onError { msg, _ -> Logger.w("ToolRegistry", "启用自动亮度失败: $msg") }
+                .getOrNull() ?: context.getString(R.string.tool_brightness_failed, "auto")
+        }
         val value = args["value"]?.toIntOrNull()?.coerceIn(0, 255)
             ?: return context.getString(R.string.tool_brightness_missing)
         return resultOf {
@@ -425,9 +455,9 @@ class SystemToolsImpl(private val context: Context) {
             .getOrNull() ?: context.getString(R.string.tool_installed_apps_failed)
     }
 
-    /** 开关手电筒。 */
+    /** 开关手电筒。A-02: 支持 enabled 参数;status 返回本会话最后已知状态(如实,不再恒"是")。 */
     suspend fun execToggleFlashlight(args: Map<String, String>): String {
-        val action = args["action"]?.lowercase() ?: return context.getString(R.string.tool_flashlight_invalid_action)
+        val action = resolveToggleAction(args)
         return resultOf {
             val cm = context.getSystemService(android.content.Context.CAMERA_SERVICE) as android.hardware.camera2.CameraManager
             val cameraId = cm.cameraIdList.firstOrNull()
@@ -438,17 +468,28 @@ class SystemToolsImpl(private val context: Context) {
             when (action) {
                 "on" -> {
                     cm.setTorchMode(cameraId, true)
+                    lastFlashlightOn = true
                     context.getString(R.string.tool_flashlight_on)
                 }
                 "off" -> {
                     cm.setTorchMode(cameraId, false)
+                    lastFlashlightOn = false
                     context.getString(R.string.tool_flashlight_off)
                 }
-                "status" -> context.getString(R.string.tool_flashlight_status, context.getString(R.string.tool_yes))
+                "status" -> when (lastFlashlightOn) {
+                    true -> context.getString(R.string.tool_flashlight_state, context.getString(R.string.tool_yes))
+                    false -> context.getString(R.string.tool_flashlight_state, context.getString(R.string.tool_no))
+                    null -> context.getString(R.string.tool_flashlight_state_unknown)
+                }
                 else -> context.getString(R.string.tool_flashlight_invalid_action)
             }
         }.onError { msg, _ -> Logger.w("ToolRegistry", "手电筒操作失败: $msg") }
             .getOrNull() ?: context.getString(R.string.tool_flashlight_unavailable)
+    }
+
+    companion object {
+        /** A-02: 本进程内手电筒最后已知状态(null = 本会话尚未操作过,如实报告未知)。 */
+        private var lastFlashlightOn: Boolean? = null
     }
 
     /** 控制设备振动。 */

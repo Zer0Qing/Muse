@@ -365,6 +365,7 @@
     <string name="chat_agent_tab_title">エージェント</string>
     <string name="chat_routing_badge">ルーティング</string>
     <string name="chat_video_play_cd">動画を再生</string>
+    <string name="chat_generated_video_cd">生成されたビデオ</string>
     <!-- 前端修复 (i18n-3.x): 表情包批量删除/清空 i18n(临时复制中文,后续补译) -->
     <string name="settings_sticker_batch_done">完成</string>
     <string name="settings_sticker_batch_delete">批量删除</string>

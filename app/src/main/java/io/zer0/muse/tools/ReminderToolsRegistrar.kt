@@ -29,11 +29,14 @@ class ReminderToolsRegistrar(
         toolRegistry.register(
             ToolRegistry.ToolDef(
                 name = "schedule_reminder",
-                description = "创建一个本地定时提醒,到指定时间会弹出通知。时间支持 ISO 8601 或 yyyy-MM-dd HH:mm。",
+                // v1.0.75 fix (工具审查 02): 与 set_alarm/scheduled_task_create 区分 + 返回说明
+                description = "创建本地定时提醒,到点弹出通知。用户说'提醒我 X 时间做 Y'时调用。" +
+                    "区别于: set_alarm=系统闹钟(响铃), scheduled_task_create=周期 AI 任务(自动执行 prompt)。" +
+                    "time 支持 '2026-08-16 15:30' 或 ISO 8601,必须是未来时间。返回提醒 id,后续可用 cancel_reminder 取消。",
                 parameters = mapOf(
                     "title" to "必填,提醒标题",
                     "message" to "必填,提醒正文",
-                    "time" to "必填,触发时间,如 2026-07-21 15:30 或 2026-07-21T15:30:00",
+                    "time" to "必填,触发时间,如 2026-07-21 15:30 或 2026-07-21T15:30:00,必须是未来时间",
                 ),
                 required = setOf("title", "message", "time"),
                 category = "built-in",

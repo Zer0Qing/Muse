@@ -159,7 +159,7 @@ import kotlinx.serialization.builtins.serializer
         // B5-02: 群聊生成账本(进程被杀后按断点重放)
         GroupChatGenerationLedgerEntity::class,
     ],
-    version = 87,
+    version = 88,
     exportSchema = true,
 )
 @TypeConverters(QuickNoteConverters::class)
@@ -462,6 +462,29 @@ abstract class MuseDb : RoomDatabase() {
                 }
                 if (!hasCapabilities) {
                     db.execSQL("ALTER TABLE assistants ADD COLUMN capabilitiesJson TEXT NOT NULL DEFAULT '[]'")
+                }
+            }
+        }
+
+        /**
+         * 审计修复 (S-02): messages 表补 videoFileUri 列(视频生成结果持久化)。
+         *
+         * 此前 generate_video 的 videoFileUri 只存在于内存 UIMessage,
+         * 重启/切页后视频永久丢失;MessageEntity 新增字段后补迁移。
+         */
+        val MIGRATION_87_88 = object : Migration(87, 88) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                var hasVideoFileUri = false
+                db.query("PRAGMA table_info(messages)").use { cursor ->
+                    while (cursor.moveToNext()) {
+                        if (cursor.getString(1) == "videoFileUri") {
+                            hasVideoFileUri = true
+                            break
+                        }
+                    }
+                }
+                if (!hasVideoFileUri) {
+                    db.execSQL("ALTER TABLE messages ADD COLUMN videoFileUri TEXT DEFAULT NULL")
                 }
             }
         }
@@ -2271,6 +2294,7 @@ abstract class MuseDb : RoomDatabase() {
                         MIGRATION_84_85,
                         MIGRATION_85_86,
                         MIGRATION_86_87,
+                        MIGRATION_87_88,
                     )
                     // 启用外键约束(artifacts 表的 ON DELETE CASCADE 依赖此设置)
                     // onOpen 不在 onCreate 事务内,可以执行此类命令;onCreate 内禁止 PRAGMA

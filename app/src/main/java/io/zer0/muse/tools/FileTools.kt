@@ -43,11 +43,16 @@ object FileTools {
     fun toolDefs(): List<ToolRegistry.ToolDef> = listOf(
         ToolRegistry.ToolDef(
             name = NAME_READ_FILE,
-            description = "读取应用可访问目录下的文本文件(UTF-8)。允许的目录:工作区/下载/工具输出缓存。" +
-                "路径可以是绝对路径或相对工作区路径。大小上限 2MB。",
+            // v1.0.75 fix (工具审查 01): description 与实现对齐 — 实现拒绝绝对路径,
+            // 原描述声称"支持绝对路径"导致模型首次调用必失败(用户反馈"反复试错"根因)。
+            description = "读取应用可访问目录下的文本文件(UTF-8,上限 2MB)。" +
+                "仅支持相对路径,支持三种: 工作区相对路径(如 'notes.txt')、" +
+                "工具输出引用(如 'tool_outputs/xxx.json')、应用私有目录相对路径。" +
+                "绝对路径会被拒绝,请勿传 '/storage/emulated/0/...' 形式。",
             parameters = mapOf(
-                "path" to "必填,文件路径。支持:工作区相对路径(如 'notes.txt')、" +
-                    "工具输出引用(如 'tool_outputs/xxx.json')、绝对路径",
+                "path" to "必填,文件相对路径。支持:工作区相对路径(如 'notes.txt')、" +
+                    "工具输出引用(如 'tool_outputs/xxx.json')、应用私有目录相对路径。" +
+                    "绝对路径会被拒绝。",
             ),
             required = setOf("path"),
             category = "built-in",
@@ -57,6 +62,7 @@ object FileTools {
             name = NAME_CREATE_DOWNLOAD,
             description = "将文本内容写入用户可见的 Download 目录,生成下载文件。" +
                 "适用于:AI 生成的长文/代码/JSON/CSV 等需要用户保存查看的内容。" +
+                "与 save_to_downloads 等价(二选一);本工具支持 subdir 子目录。" +
                 "文件名自动 sanitize(移除特殊字符),同名文件自动追加序号。",
             parameters = mapOf(
                 "filename" to "必填,文件名(如 'report.md'、'data.json')",
@@ -69,9 +75,11 @@ object FileTools {
         ),
         ToolRegistry.ToolDef(
             name = NAME_PARSE_LINK,
-            description = "抓取 URL 页面,提取标题和正文,返回 Markdown 格式。" +
+            // v1.0.75 fix (工具审查 01): 与 web_fetch/http_get 互斥声明
+            description = "抓取 URL 页面,提取标题和正文,返回 Markdown 格式(含标题)。" +
                 "自动脱壳广告/导航/侧边栏,适合阅读新闻/博客/文档。" +
-                "超时 15 秒,响应体上限 1MB。",
+                "超时 15 秒,响应体上限 1MB。" +
+                "想要纯文本用 web_fetch;想要原始响应用 http_get。",
             parameters = mapOf(
                 "url" to "必填,HTTP/HTTPS URL",
             ),

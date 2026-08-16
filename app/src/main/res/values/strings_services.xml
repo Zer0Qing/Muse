@@ -279,6 +279,7 @@
     <string name="tool_brightness_auto">自动</string>
     <string name="tool_brightness_manual">手动</string>
     <string name="tool_brightness_set">亮度已设为 %1$d</string>
+    <string name="tool_brightness_auto_set">已启用自动亮度</string>
     <string name="tool_brightness_missing">缺少参数: value</string>
     <string name="tool_brightness_failed">设置亮度失败: %1$s</string>
     <string name="tool_volume_info">%1$s 音量: %2$d / %3$d</string>
@@ -293,6 +294,8 @@
     <string name="tool_flashlight_on">手电筒已打开</string>
     <string name="tool_flashlight_off">手电筒已关闭</string>
     <string name="tool_flashlight_status">手电筒可用: %1$s</string>
+    <string name="tool_flashlight_state">手电筒状态: %1$s</string>
+    <string name="tool_flashlight_state_unknown">手电筒状态: 未知(本会话尚未操作过)</string>
     <string name="tool_flashlight_unavailable">设备不支持手电筒</string>
     <string name="tool_flashlight_no_camera">无可用相机</string>
     <string name="tool_flashlight_invalid_action">action 必须是 on/off/status</string>

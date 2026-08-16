@@ -776,7 +776,18 @@ class ChatStreamCoordinator(
             // B6-01: 外部插件工具默认并入工具定义,无需逐个助手开启 skill 白名单
             val enabledSkillIdsSet = enabledSkillIds?.toSet().orEmpty()
             val pluginSkills = skillRepository.listEnabled().filter { it.category == "plugin" && it.id !in enabledSkillIdsSet }
-            val enabledSkills = (skillRepository.listEnabledByIds(enabledSkillIds) + pluginSkills).distinctBy { it.id }
+            // 审计修复 (A-04/A-05/A-06): 定义与执行不得分裂 —
+            // ① 与本地工具同名的 skill 从启用列表剔除:去重时定义保留了本地版
+            //   (见下方 distinctBy),执行路由 skillMap 优先,若 skill 仍在 map 里,
+            //   就会"LLM 看到本地定义、实际执行 skill 实现"(generate_image 不渲染图片、
+            //   read_file 双语义、参数集不一致)。
+            // ② channel_* 群聊三件套仅在群聊上下文由 ChannelToolFactory 注入,
+            //   主会话 skillMap 必须剔除,否则主会话 LLM 可用 skill 版以任意 agent
+            //   身份向任意群聊发言(绕过 ChannelToolFactory 的身份绑定防护)。
+            val localToolNames = toolRegistry.listTools().map { it.name }.toSet()
+            val enabledSkills = (skillRepository.listEnabledByIds(enabledSkillIds) + pluginSkills)
+                .distinctBy { it.id }
+                .filterNot { it.id in localToolNames || it.id.startsWith("channel_") }
             // 缓存 skill id → SkillEntity 映射,工具执行时用
             skillMap = enabledSkills.associateBy { it.id }
             // v1.116: 表情包概率控制 — 读取设置缓存,决定本轮是否向 LLM 暴露 sticker 工具。

@@ -51,6 +51,9 @@ val appPromptModule = module {
             // v1.0.52: 透传 sessionRepository,主助手构建 system prompt 时注入 Recent Chats Reference
             // (用 <recent_chats> 标签包裹最近会话标题+预览,提供对话连续性上下文)
             sessionRepository = get(),
+            // 审计修复 (S-03): 透传 pinnedMemoryStore,统一置顶记忆数据源
+            // (此前注入侧读无人写入的 pinned_memories.json,置顶内容永不注入)
+            pinnedMemoryStore = get(),
             // P1-1: 透传 hookRegistry,SystemPromptComposeHook 在 build 末尾调用
             hookRegistry = get(),
         )

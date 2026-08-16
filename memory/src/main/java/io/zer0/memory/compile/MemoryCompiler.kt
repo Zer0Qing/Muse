@@ -5,6 +5,7 @@ package io.zer0.memory.compile
 import io.zer0.ai.core.Model
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
+import io.zer0.memory.fact.FactStore
 import io.zer0.memory.format.RollingSummaryFormat
 import io.zer0.memory.llm.MemoryLlmClient
 import io.zer0.memory.prompt.CompilePrompts
@@ -41,6 +42,13 @@ class MemoryCompiler(
     private val llmClient: MemoryLlmClient,
     /** v6: 文件化输出,为 null 时不写文件(便于测试)。 */
     private val fileWriter: MemoryFileWriter? = null,
+    /**
+     * 审计修复 (S-04): 删除墓碑源(FactStore)。
+     *
+     * 用户删除记忆后,已删事实不得从会话摘要重新编译时"复活"。compileFacts/
+     * compileToday 按 [FactStore.getTombstones] 过滤输入与输出。为 null 时过滤禁用。
+     */
+    private val factStore: FactStore? = null,
 ) {
 
     /** 四块 section key。 */
@@ -76,6 +84,50 @@ class MemoryCompiler(
      */
     suspend fun hasAnyCompiledSection(): Boolean = withContext(Dispatchers.IO) {
         sectionDao.getAll().isNotEmpty()
+    }
+
+    // ─── S-04: 删除墓碑过滤(防已删事实从摘要复活) ───
+
+    /**
+     * S-04: 过滤命中墓碑的文本行(逐行规范化子串匹配)。
+     * 墓碑为空时原样返回(零开销路径)。
+     */
+    internal fun filterTombstonedLines(text: String, tombstones: List<String>): String {
+        if (tombstones.isEmpty()) return text
+        return text.lines()
+            .filterNot { line ->
+                val normalized = line.trim()
+                normalized.isNotEmpty() && tombstones.any { normalized.contains(it) }
+            }
+            .joinToString("\n")
+    }
+
+    /** S-04: 从 [FactStore] 加载墓碑列表(未注入时返回空列表)。 */
+    private suspend fun loadTombstones(): List<String> =
+        runCatching { factStore?.getTombstones() }.getOrNull() ?: emptyList()
+
+    /**
+     * S-04: 立即从已编译的 FACTS 段剔除命中墓碑的内容。
+     *
+     * 用户在记忆页删除事实后调用(FactStore.delete 已记墓碑),无需等待下次
+     * compileFacts 定时任务 — 删除即刻对注入生效。返回是否有内容被剔除。
+     */
+    suspend fun purgeTombstonedFacts(): Boolean = withContext(Dispatchers.IO) {
+        val tombstones = loadTombstones()
+        if (tombstones.isEmpty()) return@withContext false
+        val current = readSection(Section.FACTS)
+        val filtered = filterTombstonedLines(current, tombstones)
+        if (filtered == current) return@withContext false
+        // 指纹置 null,保证下次 compileFacts 重新合并(而非 SKIPPED)
+        sectionDao.updateContent(Section.FACTS.key, filtered, null, Instant.now().toString())
+        Logger.i("MemoryCompiler", "purgeTombstonedFacts: 剔除 ${countRemovedLines(current, filtered)} 行")
+        true
+    }
+
+    private fun countRemovedLines(before: String, after: String): Int {
+        val beforeLines = before.lines().filter { it.isNotBlank() }.size
+        val afterLines = after.lines().filter { it.isNotBlank() }.size
+        return (beforeLines - afterLines).coerceAtLeast(0)
     }
 
     /** 读取四块拼装后的 memory.md(注入 system prompt 用)。 */
@@ -116,14 +168,25 @@ class MemoryCompiler(
         }
 
         // 指纹: sessions 的 (id, updated_at) 拼接 md5
-        val fpKeys = sessions.joinToString("\n") { "${it.sessionId}:${it.updatedAt}" }
+        // S-04: 墓碑并入指纹 — 用户删除事实后指纹变化,强制重编剔除已删内容
+        val tombstones = loadTombstones()
+        val fpKeys = sessions.joinToString("\n") { "${it.sessionId}:${it.updatedAt}" } +
+            "\nT:" + tombstones.joinToString("|")
         val fp = fingerprint(fpKeys)
         val existing = sectionDao.get(Section.TODAY.key)
         if (existing?.fingerprint == fp && existing.content.isNotEmpty()) {
             return@withContext Result.SKIPPED
         }
 
-        val sessionInput = sessions.joinToString("\n\n---\n\n") { it.summary }
+        // S-04: 输入按墓碑过滤,已删事实不出现在 today 候选里
+        val sessionInput = sessions.joinToString("\n\n---\n\n") { filterTombstonedLines(it.summary, tombstones) }
+        if (sessionInput.isBlank()) {
+            val current = readSection(Section.TODAY)
+            if (current.isNotEmpty()) {
+                sectionDao.updateContent(Section.TODAY.key, "", null, Instant.now().toString())
+            }
+            return@withContext Result.COMPILED
+        }
         // v1.0.51: 注入当前 facts,让 LLM 知道哪些事实已记录,避免 today 里重复
         val currentFacts = readSection(Section.FACTS).trim()
         val input = if (currentFacts.isNotBlank()) {
@@ -448,6 +511,15 @@ class MemoryCompiler(
 
         // 从每个摘要提取 facts 段
         // v0.32: 同时按 (updatedAt 年龄 + config) 计算分数,过滤掉低于 compileThreshold 的 session
+        // S-04: 墓碑过滤 — 已删事实从旧产物/摘要候选/LLM 输出三路剔除,防"复活"
+        val tombstones = loadTombstones()
+        val rawPrevFacts = readSection(Section.FACTS).trim()
+        val prevFacts = filterTombstonedLines(rawPrevFacts, tombstones)
+        if (prevFacts != rawPrevFacts) {
+            // 删除即刻生效: 先剔除旧编译产物,无需等待 LLM 重编
+            sectionDao.updateContent(Section.FACTS.key, prevFacts, null, Instant.now().toString())
+        }
+
         val factParts = mutableListOf<String>()
         var skippedByThreshold = 0
         for (s in sessions) {
@@ -461,7 +533,10 @@ class MemoryCompiler(
                     skippedByThreshold++
                     continue
                 }
-                factParts.add(text)
+                // S-04: 摘要事实段内命中墓碑的行剔除;全被剔除则该摘要不进入候选
+                val filtered = filterTombstonedLines(text, tombstones)
+                if (filtered.isBlank()) continue
+                factParts.add(filtered)
             }
         }
         if (skippedByThreshold > 0) {
@@ -469,9 +544,8 @@ class MemoryCompiler(
             Logger.d("MemoryCompiler", "compileFacts: $skippedByThreshold sessions skipped by threshold")
         }
 
-        val prevFacts = readSection(Section.FACTS).trim()
         if (factParts.isEmpty()) {
-            // 没有新事实: 保留旧 facts
+            // 没有新事实: 保留旧 facts(已按墓碑过滤;全部被删时上方已清空)
             return@withContext Result.COMPILED
         }
 
@@ -505,7 +579,9 @@ class MemoryCompiler(
             Logger.w("MemoryCompiler", "compileFacts: LLM 返回空响应,保留旧 facts,返回 FAILED")
             return@withContext Result.FAILED
         }
-        sectionDao.updateContent(Section.FACTS.key, normalized, null, Instant.now().toString())
+        // S-04: LLM 输出再过滤一遍(防 LLM 复述已删事实)
+        val filteredResult = filterTombstonedLines(normalized, tombstones)
+        sectionDao.updateContent(Section.FACTS.key, filteredResult, null, Instant.now().toString())
         Result.COMPILED
     }
 

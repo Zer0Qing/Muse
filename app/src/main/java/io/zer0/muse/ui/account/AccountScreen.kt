@@ -463,12 +463,15 @@ fun AccountCard(
 /** v1.0.74 fix: 把头像 URI 持久化到私有目录(content URI 权限重启后失效,头像变灰)。 */
 private suspend fun persistAvatarUri(context: android.content.Context, uri: String?): String? {
     if (uri.isNullOrBlank()) return uri
-    // 已是本地文件/资源/data URI 直接返回
-    if (uri.startsWith("file://") || uri.startsWith("android.resource://") ||
-        uri.startsWith("data:image/") || uri.startsWith("/")
+    // 已是本地路径/资源/data URI 直接返回(纯文件路径不带 file://,Coil 更稳)
+    if (uri.startsWith("/") || uri.startsWith("android.resource://") ||
+        uri.startsWith("data:image/")
     ) {
         return uri
     }
+    // 兼容旧值: file:// 前缀剥掉
+    val normalized = uri.removePrefix("file://")
+    if (normalized.startsWith("/")) return normalized
     return withContext(kotlinx.coroutines.Dispatchers.IO) {
         runCatching {
             val parsed = android.net.Uri.parse(uri)
@@ -478,7 +481,9 @@ private suspend fun persistAvatarUri(context: android.content.Context, uri: Stri
             dir.mkdirs()
             val target = java.io.File(dir, "avatar.jpg")
             target.outputStream().use { it.write(bytes) }
-            "file://" + target.absolutePath
+            // v1.0.75 fix (用户反馈): 返回纯绝对路径(不带 file:// 前缀),
+            // Coil 的 AsyncImage 对 file:// URI 在某些版本/设备加载不稳定,纯路径更可靠。
+            target.absolutePath
         }.getOrNull()
     }
 }

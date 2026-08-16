@@ -149,8 +149,13 @@ class AgnesImageProvider(
             ?: return emptyList()
         return data.mapNotNull { item ->
             val obj = item.jsonObject
-            val b64 = obj["b64_json"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() }
-            val url = obj["url"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() }
+            // v1.0.75 fix (生图链路): 过滤 JSON null 字段 — b64_json 为 JSON null 时
+            // JsonNull.content 返回字符串 "null",takeIf isNotBlank 会放行,
+            // 导致拼出 "data:image/png;base64,null" 假图(用户反馈"图是空的"根因)。
+            val b64 = obj["b64_json"]?.jsonPrimitive?.content
+                ?.takeIf { it.isNotBlank() && it != "null" }
+            val url = obj["url"]?.jsonPrimitive?.content
+                ?.takeIf { it.isNotBlank() && it != "null" }
             if (b64 == null && url == null) null else GeneratedImage(base64 = b64, url = url)
         }
     }

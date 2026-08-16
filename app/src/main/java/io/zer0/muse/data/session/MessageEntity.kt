@@ -61,6 +61,13 @@ data class MessageEntity(
     @ColumnInfo(defaultValue = "[]") val ragCitationsJson: String = "[]",
     /** Phase 8.6: 本地图片 base64 列表(JSON 数组,无 data: 前缀)。 */
     @ColumnInfo(defaultValue = "[]") val imageBase64Json: String = "[]",
+    /**
+     * 审计修复 (S-02): 视频生成结果 URL(ASSISTANT 消息,generate_video 写入)。
+     *
+     * 此前 videoFileUri 只存在于内存 UIMessage,MessageEntity 无对应列,
+     * 重启/切页后视频永久丢失。v88 迁移补列,toUIMessage/toEntity 往返。
+     */
+    @ColumnInfo(defaultValue = "NULL") val videoFileUri: String? = null,
     /** v1.43: 消息关联的 Artifact id 列表(JSON 数组)。 */
     @ColumnInfo(defaultValue = "[]") val artifactIdsJson: String = "[]",
     /**

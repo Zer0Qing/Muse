@@ -2267,8 +2267,11 @@ class GroupChatScheduler(
             onReply = { content -> replyContent = content },
             onPass = { reason -> passReason = reason },
             contextProvider = { limit ->
+                // 审计修复 (S-06): channel_read_context 同样走悄悄话可见性过滤 —
+                // 此前直读全部最近消息,任意成员调用即可读到发给其他 agent 的私信,
+                // 与"仅目标 AI 可见"的产品承诺相悖。
                 val more = groupChatRepository.getRecentMessages(chatId, limit)
-                formatMessageTranscript(more)
+                formatMessageTranscript(visibleMessagesFor(more, assistant.id))
             },
         )
         // B8-03 方案 B: 群聊暂不支持媒体输出,移除生图/生视频/二维码工具,避免模型白调

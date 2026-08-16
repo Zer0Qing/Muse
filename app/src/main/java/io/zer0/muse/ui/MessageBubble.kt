@@ -817,6 +817,13 @@ internal fun MessageBubble(
                     },
                 )
             }
+            // 审计修复 (S-02): 视频生成结果卡片(generate_video 写入的 videoFileUri)
+            // 此前只存在于内存 UIMessage 且无渲染,重启/切页后视频永久丢失;
+            // 现在随消息落库(v88 迁移)并在此渲染,点击调起系统播放器。
+            val generatedVideoUri = msg.videoFileUri
+            if (!generatedVideoUri.isNullOrBlank()) {
+                AssistantVideoCard(videoUri = generatedVideoUri)
+            }
             // v1.112 (C1): 任务清单与工具调用胶囊拆分布局
             // 展开态:TaskCard 占满宽度垂直堆叠(步骤列表需要空间),ToolCallCard 在下方
             val toolInfo = msg.toolCallInfo

@@ -271,6 +271,7 @@
     <string name="tool_brightness_auto">自動</string>
     <string name="tool_brightness_manual">マニュアル</string>
     <string name="tool_brightness_set">明るさを%1$dに設定</string>
+    <string name="tool_brightness_auto_set">自動輝度を有効にしました</string>
     <string name="tool_brightness_missing">パラメータがありません: 値</string>
     <string name="tool_brightness_failed">明るさを設定できませんでした: %1$s</string>
     <string name="tool_volume_info">%1$s ボリューム: %2$d / %3$d</string>
@@ -285,6 +286,8 @@
     <string name="tool_flashlight_on">懐中電灯が点灯しました</string>
     <string name="tool_flashlight_off">懐中電灯がオフになりました</string>
     <string name="tool_flashlight_status">懐中電灯が利用可能: %1$s</string>
+    <string name="tool_flashlight_state">懐中電灯の状態: %1$s</string>
+    <string name="tool_flashlight_state_unknown">懐中電灯の状態: 不明(このセッションでは未操作)</string>
     <string name="tool_flashlight_unavailable">デバイスは懐中電灯をサポートしていません</string>
     <string name="tool_flashlight_no_camera">使用可能なカメラがありません</string>
     <string name="tool_flashlight_invalid_action">アクションはオン/オフ/ステータスである必要があります</string>

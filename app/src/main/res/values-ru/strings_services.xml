@@ -271,6 +271,7 @@
     <string name="tool_brightness_auto">Авто</string>
     <string name="tool_brightness_manual">Руководство</string>
     <string name="tool_brightness_set">Яркость установлена ​​на %1$d</string>
+    <string name="tool_brightness_auto_set">Автоматическая яркость включена</string>
     <string name="tool_brightness_missing">Отсутствует параметр: значение</string>
     <string name="tool_brightness_failed">Не удалось установить яркость: %1$s</string>
     <string name="tool_volume_info">%1$s громкость: %2$d / %3$d</string>
@@ -285,6 +286,8 @@
     <string name="tool_flashlight_on">Фонарик включен</string>
     <string name="tool_flashlight_off">Фонарик выключен</string>
     <string name="tool_flashlight_status">Доступен фонарик: %1$s</string>
+    <string name="tool_flashlight_state">Состояние фонарика: %1$s</string>
+    <string name="tool_flashlight_state_unknown">Состояние фонарика: неизвестно (в этой сессии не использовался)</string>
     <string name="tool_flashlight_unavailable">Устройство не поддерживает фонарик</string>
     <string name="tool_flashlight_no_camera">Нет доступной камеры</string>
     <string name="tool_flashlight_invalid_action">действие должно быть включено/выключено/статус</string>

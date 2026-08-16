@@ -37,7 +37,9 @@ class QuickNoteToolsRegistrar(
         toolRegistry.register(
             ToolRegistry.ToolDef(
                 name = "quick_note_list",
-                description = "列出快速记录,支持按关键字/标签过滤。",
+                // v1.0.75 fix (工具审查 01): 原 quick_note_search 与此完全重复已删除,
+                // 模型二选一赌博浪费轮次。此工具统一处理列表/过滤/搜索。
+                description = "列出/搜索快速记录。支持按关键字过滤标题正文标签、按标签精确过滤。需要看单条完整内容用 quick_note_get。",
                 parameters = mapOf(
                     "keyword" to "可选,标题/正文/标签过滤关键字",
                     "tag" to "可选,按标签精确过滤",
@@ -49,21 +51,6 @@ class QuickNoteToolsRegistrar(
                 riskLevel = ToolRiskLevel.SAFE,
             ),
         ) { args -> impl.list(args) }
-
-        toolRegistry.register(
-            ToolRegistry.ToolDef(
-                name = "quick_note_search",
-                description = "搜索快速记录(与 quick_note_list 关键字过滤一致)。",
-                parameters = mapOf(
-                    "keyword" to "可选,搜索关键字",
-                    "limit" to "可选,最多返回数量,默认 20",
-                ),
-                required = emptySet(),
-                category = "built-in",
-                parameterTypes = mapOf("limit" to "integer"),
-                riskLevel = ToolRiskLevel.SAFE,
-            ),
-        ) { args -> impl.search(args) }
 
         toolRegistry.register(
             ToolRegistry.ToolDef(

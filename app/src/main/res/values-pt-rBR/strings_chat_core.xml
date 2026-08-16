@@ -7,6 +7,7 @@
     <string name="chat_model_cd">Modelo atual: %1$s, toque para alternar</string>
     <string name="chat_routing_badge">Roteamento</string>
     <string name="chat_video_play_cd">Reproduzir vídeo</string>
+    <string name="chat_generated_video_cd">Vídeo gerado</string>
     <string name="chat_context_usage_cd">Uso de contexto %1$s%%, %2$d total de tokens</string>
     <string name="chat_context_tokens_only_cd">Contagem de tokens de contexto %1$d, o modelo não possui janela de contexto</string>
     <string name="chat_context_no_window_detail">%1$d tokens (o modelo não possui janela de contexto)</string>

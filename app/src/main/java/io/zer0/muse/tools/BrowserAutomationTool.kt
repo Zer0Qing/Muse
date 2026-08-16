@@ -54,7 +54,8 @@ object BrowserAutomationTool {
     fun toolDefs(): List<ToolRegistry.ToolDef> = listOf(
         ToolRegistry.ToolDef(
             name = TOOL_NAVIGATE,
-            description = "浏览器自动化:导航到指定 URL。加载完成后更新当前页状态(URL/标题/HTML)。" +
+            // v1.0.75 fix (工具审查 02): 补时序依赖声明
+            description = "浏览器自动化:导航到指定 URL。必须先调用本工具完成导航,再使用 browser_click/browser_type/browser_extract 操作页面。所有浏览器工具返回 JSON,含 success 与 data/error。" +
                 "URL 可省略 scheme(如 example.com 自动补 https://)。超时 10 秒。",
             parameters = mapOf(
                 "url" to "必填,目标 URL,如 https://example.com 或 example.com",
@@ -88,8 +89,10 @@ object BrowserAutomationTool {
         ),
         ToolRegistry.ToolDef(
             name = TOOL_EXTRACT,
+            // v1.0.75 fix (工具审查 02): 与 parse_link 区分
             description = "浏览器自动化:提取 CSS 选择器命中元素的 textContent。" +
-                "未命中返回空串。可用于抓取商品价格、文章正文、列表项等。",
+                "未命中返回空串。可用于抓取商品价格、文章正文、列表项等。" +
+                "区别于 parse_link: 本工具读浏览器当前已加载页面,parse_link 从 URL 抓取独立页面。",
             parameters = mapOf(
                 "selector" to "必填,CSS 选择器,如 '.price' 或 'article h1'",
             ),

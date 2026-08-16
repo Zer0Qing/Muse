@@ -7,6 +7,7 @@
     <string name="chat_model_cd">Current model: %1$s, tap to switch</string>
     <string name="chat_routing_badge">Routing</string>
     <string name="chat_video_play_cd">Play video</string>
+    <string name="chat_generated_video_cd">Generated video</string>
     <string name="chat_context_usage_cd">Context usage %1$s%%, %2$d tokens total</string>
     <string name="chat_context_tokens_only_cd">Context token count %1$d, model has no context window</string>
     <string name="chat_context_no_window_detail">%1$d tokens (model has no context window)</string>

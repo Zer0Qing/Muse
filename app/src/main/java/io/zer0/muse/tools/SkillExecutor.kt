@@ -587,13 +587,14 @@ class SkillExecutor(
             SkillEntity(
                 id = "web_search",
                 name = "网页搜索",
-                description = "用配置好的搜索引擎(SearXNG/Tavily)搜索网页。返回标题、URL 和摘要。当用户问到需要最新信息的问题时调用此工具。使用时机: 用户问到需要最新/实时信息的问题(价格、版本、政策、行情、天气等),或你知识不确定时。不要使用: 常识性问题或用户已提供足够信息时;搜索结果不全时换关键词重搜,不要编造。",
+                // v1.0.75 fix (工具审查 01): 删冗余 time_period,补 date_range 使用指引
+                description = "用配置好的搜索引擎(SearXNG/Tavily)搜索网页。返回标题、URL 和摘要。当用户问到需要最新信息的问题时调用此工具。使用时机: 用户问到需要最新/实时信息的问题(价格、版本、政策、行情、天气等),或你知识不确定时。需要限定时间时传 date_range(如用户说'最近一周',传 past_week)。不要使用: 常识性问题或用户已提供足够信息时;搜索结果不全时换关键词重搜,不要编造。",
                 parametersJson = buildJsonObject {
                     put("type", "object")
                     put("properties", buildJsonObject {
                         put("query", buildJsonObject {
                             put("type", "string")
-                            put("description", "搜索关键词")
+                            put("description", "必填,搜索关键词。中文用户问题直接用中文关键词,可加关键限定词提高精度")
                         })
                         put("max_results", buildJsonObject {
                             put("type", "integer")
@@ -601,11 +602,7 @@ class SkillExecutor(
                         })
                         put("date_range", buildJsonObject {
                             put("type", "string")
-                            put("description", "可选,时间范围,如 past_day/past_week/past_month/past_year")
-                        })
-                        put("time_period", buildJsonObject {
-                            put("type", "string")
-                            put("description", "可选,同义于 date_range,兼容字段")
+                            put("description", "可选,限定结果时间范围,取值: past_day / past_week / past_month / past_year。用户提到'最近/最新/本周/本月'时填写,无时间要求时不填")
                         })
                     })
                     put("required", kotlinx.serialization.json.JsonArray(listOf(JsonPrimitive("query"))))
@@ -647,7 +644,9 @@ class SkillExecutor(
             SkillEntity(
                 id = "knowledge_search",
                 name = "知识库搜索",
-                description = "在用户的知识库中语义搜索(向量检索 + 标题/内容匹配)。当用户问到可能与已导入文档相关的问题时优先调用此工具。支持 top_k 和 threshold 参数控制返回条数和相似度阈值。用户问 muse app 自身功能(如怎么用深度思考/主动消息怎么设置)时,传 include_internal=true 可检索内置功能文档。",
+                // v1.0.75 fix (工具审查 01): 明确与 web_search 的边界,
+                // 原"可能与已导入文档相关时优先调用"太模糊,模型先试本地再退搜索浪费轮次。
+                description = "在用户主动导入的知识库文档中语义搜索(向量检索 + 标题/内容匹配)。仅当用户知识库中可能有答案时使用(如用户导入过资料、问'我之前存的文档里怎么说的')。通用事实、实时信息、网上能查到的问题一律用 web_search,不要先用本工具试探。用户问 muse app 自身功能(如怎么用深度思考/主动消息怎么设置)时,传 include_internal=true 可检索内置功能文档。",
                 parametersJson = buildJsonObject {
                     put("type", "object")
                     put("properties", buildJsonObject {

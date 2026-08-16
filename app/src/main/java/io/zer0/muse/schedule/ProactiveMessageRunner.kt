@@ -280,6 +280,17 @@ class ProactiveMessageRunner(
         val baseIntervalMs = computeBaseIntervalMs(config)
         val elapsed = now - config.lastTriggeredAt
 
+        // A-08: LLM 失败退避 — guaranteedSend 会绕过排期检查(见下方),若决策/生成
+        // 阶段失败后不设门槛,每分钟轮询都会重试(断网/服务故障时烧配额)。
+        // 失败后至少间隔一个 baseInterval 才允许再次尝试;测试发送(forceSend)不受限。
+        if (!forceSend && config.lastFailedAt > 0 && now - config.lastFailedAt < baseIntervalMs) {
+            Logger.d(
+                TAG,
+                "主动消息失败退避中: 距上次失败 ${(now - config.lastFailedAt) / 60000}min,间隔 ${baseIntervalMs / 60000}min,跳过",
+            )
+            return@withLock
+        }
+
         // v1.0.72 保底机制: 距上次触发超过 24h 且未达每日上限时,
         // 跳过排期/间隔/评分/决策门槛直接发送一条(仍受时间窗口 + 每日上限约束),
         // 防止"评分永不过线导致永远不发"的死局。必须放在排期检查之前,
@@ -437,6 +448,8 @@ class ProactiveMessageRunner(
         }.getOrNull()
         if (decisionCompletion == null) {
             Logger.w(TAG, "主动消息决策 LLM 调用超时(${LLM_TIMEOUT_MS / 1000}s),跳过")
+            // A-08: 记录失败时间,退避一个 interval 再重试(否则 guaranteedSend 每分钟重试)
+            settings.saveProactiveMessageConfig(config.copy(lastFailedAt = now))
             return@withLock
         }
 
@@ -479,6 +492,8 @@ class ProactiveMessageRunner(
         }.getOrNull()
         if (contentCompletion == null) {
             Logger.w(TAG, "主动消息生成 LLM 调用超时(${LLM_TIMEOUT_MS / 1000}s),跳过")
+            // A-08: 记录失败时间,退避一个 interval 再重试
+            settings.saveProactiveMessageConfig(config.copy(lastFailedAt = now))
             return@withLock
         }
 
@@ -508,7 +523,8 @@ class ProactiveMessageRunner(
         )
         // 更新 lastTriggeredAt(先更新再通知,即使通知失败也不影响下次间隔)
         // v1.0.74 fix: 只有真正发送成功才刷新 lastTriggeredAt(保底 24h 判定依据)
-        saveProactiveSchedule(config, now, baseIntervalMs, targetSession.id, updateLastTriggered = true)
+        // A-08: 发送成功后清零失败退避标记
+        saveProactiveSchedule(config.copy(lastFailedAt = 0), now, baseIntervalMs, targetSession.id, updateLastTriggered = true)
         // v1.0.74: 巡检日志(记录发了什么,防重复)
         writePatrolLog("sent_message", "主动消息:${decision.scenario} — ${proactiveContent.take(80)}")
         // 问题6.2: 成功发送后递增当日计数并持久化,MAX_DAILY_MESSAGES 校验下次生效

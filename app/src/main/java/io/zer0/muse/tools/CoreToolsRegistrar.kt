@@ -30,7 +30,7 @@ class CoreToolsRegistrar(
                 description = "获取当前时间。可指定时区(如 Asia/Shanghai、UTC、America/New_York),自动标注 DST 夏令时状态。",
                 parameters = mapOf(
                     "timezone" to "可选,IANA 时区标识(如 Asia/Shanghai/UTC/America/New_York),默认 Asia/Shanghai。传 UTC 可得协调世界时",
-                    "format" to "可选,自定义时间格式,默认 yyyy-MM-dd HH:mm:ss z",
+                    "format" to "可选,自定义时间格式(Java SimpleDateFormat 语法),默认 yyyy-MM-dd HH:mm:ss z。如 'yyyy/MM/dd'、'HH:mm'。",
                 ),
                 required = emptySet(),
                 category = "built-in",
@@ -59,7 +59,7 @@ class CoreToolsRegistrar(
         toolRegistry.register(
             ToolRegistry.ToolDef(
                 name = "calculator",
-                description = "简易计算器,支持加减乘除和括号。输入表达式字符串。",
+                description = "简易计算器,支持加减乘除和括号。返回 '表达式 = 结果' 文本。仅支持四则运算与括号,不支持幂/取模/单位换算。",
                 parameters = mapOf("expression" to "必填,数学表达式,如 1+2*3"),
                 required = setOf("expression"),
                 category = "built-in",

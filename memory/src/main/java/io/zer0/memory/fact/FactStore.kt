@@ -2,6 +2,7 @@ package io.zer0.memory.fact
 
 import androidx.room.withTransaction
 import androidx.sqlite.db.SimpleSQLiteQuery
+import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.memory.pii.PiiGuard
 import kotlinx.coroutines.Dispatchers
@@ -11,6 +12,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
+import java.io.File
 import java.time.Instant
 
 /**
@@ -32,12 +34,24 @@ import java.time.Instant
 class FactStore(
     private val dao: FactDao,
     private val db: FactDb,
+    /**
+     * 审计修复 (S-04): 删除墓碑文件路径(JSON 字符串数组)。
+     *
+     * 背景: 注入链路读 compiled_sections(由 MemoryCompiler.compileFacts 从 30 天会话摘要
+     * LLM 编译),而记忆页"删除事实"只删 facts 表 — 已删事实会从摘要中"复活"并继续注入。
+     * 删除时把事实原文记录为墓碑,compileFacts/compileToday 按墓碑过滤输入与输出,
+     * 已删事实不再复活。为 null 时墓碑禁用(测试环境或未注入时降级)。
+     */
+    private val tombstoneFile: File? = null,
 ) {
 
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
     /** v6: 是否已经做过 FTS 索引一致性检查(避免每次搜索都重复 COUNT)。 */
     private var ftsConsistencyChecked = false
+
+    /** S-04: 墓碑缓存(null = 未加载)。 */
+    private var tombstoneCache: List<String>? = null
 
     /** 元事实数据(业务层结构,与 Entity 分离)。 */
     data class Fact(
@@ -519,8 +533,15 @@ class FactStore(
 
     /** 删除单条。返回是否删除成功。 */
     suspend fun delete(id: Long): Boolean = withContext(Dispatchers.IO) {
+        val target = dao.getById(id)
         dao.deleteFts(id)
-        dao.deleteById(id) > 0
+        val removed = dao.deleteById(id) > 0
+        if (removed && target != null) {
+            // 审计修复 (S-04): 记录删除墓碑 — 已删事实不得从会话摘要重新编译时"复活"。
+            // 规范化后去重存储,只增不删(除非 clearAll)。
+            recordTombstone(target.fact)
+        }
+        removed
     }
 
     /**
@@ -573,6 +594,63 @@ class FactStore(
     suspend fun clearAll(): Unit = withContext(Dispatchers.IO) {
         dao.clearFts()
         dao.deleteAll()
+        // S-04: 用户主动重置全部记忆时,墓碑一并清空(不再需要过滤)。
+        tombstoneFile?.let { runCatching { it.delete() } }
+        tombstoneCache = null
+    }
+
+    // ─── S-04: 删除墓碑(防已删事实从摘要复活) ───
+
+    /** 全部删除墓碑(规范化文本)。墓碑文件不存在/解析失败时返回空列表。 */
+    suspend fun getTombstones(): List<String> = withContext(Dispatchers.IO) {
+        loadTombstones()
+    }
+
+    private fun loadTombstones(): List<String> {
+        tombstoneCache?.let { return it }
+        val file = tombstoneFile ?: return emptyList()
+        if (!file.exists()) return emptyList()
+        val list = runCatching {
+            json.decodeFromString(ListSerializer(String.serializer()), file.readText())
+        }.getOrElse {
+            Logger.w("FactStore", "readTombstones failed: ${it.message}")
+            emptyList()
+        }
+        tombstoneCache = list
+        return list
+    }
+
+    private fun recordTombstone(content: String) {
+        val file = tombstoneFile ?: return
+        val normalized = normalizeTombstone(content)
+        if (normalized.isBlank()) return
+        val current = loadTombstones()
+        if (current.contains(normalized)) return // 幂等:相同事实只记一次
+        writeTombstones(current + normalized)
+        tombstoneCache = current + normalized
+    }
+
+    private fun writeTombstones(list: List<String>) {
+        val file = tombstoneFile ?: return
+        file.parentFile?.mkdirs()
+        val encoded = json.encodeToString(ListSerializer(String.serializer()), list)
+        // 临时文件 + rename 原子替换,避免进程被杀留下半截 JSON
+        val tmp = File(file.parentFile, file.name + ".tmp")
+        runCatching {
+            tmp.writeText(encoded)
+            if (!tmp.renameTo(file)) file.writeText(encoded)
+        }.onFailure { e ->
+            // 墓碑写入失败不阻断删除流程;下次编译时该事实可能复活,但删除本身已生效
+            Logger.w("FactStore", "writeTombstones failed: ${e.message}")
+        }
+    }
+
+    /** 规范化: 去首尾空白 + 压缩连续空白,保证跨措辞微差仍可匹配。 */
+    private fun normalizeTombstone(text: String): String =
+        text.trim().replace(WHITESPACE_RE, " ")
+
+    private companion object {
+        private val WHITESPACE_RE = Regex("\\s+")
     }
 
     /**

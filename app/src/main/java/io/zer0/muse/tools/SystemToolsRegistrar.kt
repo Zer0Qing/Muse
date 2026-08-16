@@ -47,8 +47,10 @@ class SystemToolsRegistrar(
         toolRegistry.register(
             ToolRegistry.ToolDef(
                 name = "toggle_wifi",
-                description = "切换 WiFi 开关。",
-                parameters = mapOf("enabled" to "可选,true/false,默认切换"),
+                // A-02: 与实现对齐 — enabled 直接指定目标状态;不传则只读查询当前状态
+                // (Android 10+ 无法程序化翻转 WiFi,删除"翻转"承诺)
+                description = "开关 WiFi。enabled 传 true 开启 / false 关闭;不传则查询当前状态。开启/关闭需跳系统设置页由用户确认。",
+                parameters = mapOf("enabled" to "可选,true=开启 / false=关闭;不传则查询当前状态(兼容参数 action: on/off/status)"),
                 required = emptySet(),
                 category = "built-in",
                 riskLevel = ToolRiskLevel.NORMAL,
@@ -58,8 +60,9 @@ class SystemToolsRegistrar(
         toolRegistry.register(
             ToolRegistry.ToolDef(
                 name = "toggle_bluetooth",
-                description = "切换蓝牙开关。",
-                parameters = mapOf("enabled" to "可选,true/false,默认切换"),
+                // A-02: 与实现对齐,删除"翻转"承诺
+                description = "开关蓝牙。enabled 传 true 开启 / false 关闭;不传则查询当前状态。Android 10+ 需跳系统设置页由用户确认。",
+                parameters = mapOf("enabled" to "可选,true=开启 / false=关闭;不传则查询当前状态(兼容参数 action: on/off/status)"),
                 required = emptySet(),
                 category = "built-in",
                 riskLevel = ToolRiskLevel.NORMAL,
@@ -212,12 +215,13 @@ class SystemToolsRegistrar(
         toolRegistry.register(
             ToolRegistry.ToolDef(
                 name = "set_brightness",
-                description = "设置屏幕亮度。需要系统设置写入权限。",
+                // A-03: 实现已支持 auto 分支;required 去掉 value(自动模式不需要)
+                description = "设置屏幕亮度。需要系统设置写入权限。auto=true 启用自动亮度(此时忽略 value);否则传 value(0-255)设置手动亮度。",
                 parameters = mapOf(
-                    "value" to "必填,亮度 0-255",
-                    "auto" to "可选,是否自动亮度",
+                    "value" to "可选(自动模式忽略),手动亮度 0-255",
+                    "auto" to "可选,传 true 启用自动亮度(此时 value 忽略)",
                 ),
-                required = setOf("value"),
+                required = emptySet(),
                 category = "built-in",
                 riskLevel = ToolRiskLevel.NORMAL,
             ),
@@ -251,8 +255,9 @@ class SystemToolsRegistrar(
         toolRegistry.register(
             ToolRegistry.ToolDef(
                 name = "toggle_flashlight",
-                description = "开关手电筒。需要相机权限。",
-                parameters = mapOf("enabled" to "可选,true/false,默认切换"),
+                // A-02: 与实现对齐 — enabled 直接指定目标状态;不传则查询本会话最后已知状态
+                description = "开关手电筒(需相机权限)。enabled 传 true 开启 / false 关闭;不传则查询当前状态。",
+                parameters = mapOf("enabled" to "可选,true=开启 / false=关闭;不传则查询状态(兼容参数 action: on/off/status)"),
                 required = emptySet(),
                 category = "built-in",
                 riskLevel = ToolRiskLevel.NORMAL,

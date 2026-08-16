@@ -156,6 +156,9 @@ class SessionSummaryManager(
         if (convText.isBlank()) {
             return@withContext Draft(prevSummary, changed = false, null)
         }
+        // S-05: 输入侧可逆掩码 — 摘要 LLM 调用不得收到明文 PII(手机号/地址/卡号等)。
+        // 外发文本为占位符([PHONE_1] 等),输出侧 unmask 还原后再走 scrub 落库。
+        val maskedConv = PiiGuard.mask(convText)
 
         // 按全量用户轮数计算摘要配额
         val turnCount = messages.count { it.role == io.zer0.ai.core.MessageRole.USER }
@@ -178,7 +181,7 @@ class SessionSummaryManager(
         val budgetLabel = if (isZh) "## 本次摘要预算" else "## This Run's Summary Budget"
         val userContent = listOfNotNull(
             prevSummary.takeIf { it.isNotBlank() }?.let { "$prevLabel\n\n$it" },
-            "$newLabel\n\n$convText",
+            "$newLabel\n\n${maskedConv.masked}",
             "$budgetLabel\n\n$budgetText",
         ).joinToString("\n\n")
 
@@ -228,6 +231,9 @@ class SessionSummaryManager(
             // 修不好就保留旧摘要,不覆盖
             return@withContext Draft(prevSummary, changed = false, null)
         }
+
+        // S-05: 还原掩码占位符(仅本地内存;格式校验/修复阶段用占位符,LLM 不接触原文)
+        newSummary = PiiGuard.unmask(newSummary, maskedConv.map)
 
         // PII 脱敏
         val (scrubbed, detected) = PiiGuard.scrub(newSummary)

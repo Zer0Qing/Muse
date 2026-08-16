@@ -22,15 +22,17 @@ class ScheduledTaskToolsRegistrar(
         toolRegistry.register(
             ToolRegistry.ToolDef(
                 name = "scheduled_task_create",
-                description = "创建一个定时任务。",
+                // v1.0.75 fix (工具审查 01): 补 cron 条件必填说明与示例
+                description = "创建一个定时任务,到点后由 AI 执行 prompt。" +
+                    "如每天 9 点提醒: interval='daily' 或 interval='cron' + cron_expr='0 9 * * *'。",
                 parameters = mapOf(
                     "name" to "必填,任务名称",
                     "prompt" to "必填,任务提示词",
                     "interval" to "可选,once/hourly/daily/weekly/cron,默认 daily",
-                    "cron_expr" to "可选,cron 表达式(interval=cron 时必填)",
+                    "cron_expr" to "可选,interval='cron' 时必填。标准 5 段 cron,如 '0 9 * * *'(每天 9 点)、'0 */2 * * *'(每 2 小时)。非 cron 模式忽略",
                     "assistant_id" to "可选,执行助手,默认 default",
                     "action_type" to "可选,ai_prompt/create_quick_note/call_tool/notify",
-                    "condition_type" to "可选,always/network_available/time_range/contains/quick_note_exists",
+                    "condition_type" to "可选,always/network_available/time_range/contains/quick_note_exists。当前版本仅 'always' 可靠,其余类型请谨慎使用",
                 ),
                 required = setOf("name", "prompt"),
                 category = "built-in",
