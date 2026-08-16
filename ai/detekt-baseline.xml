@@ -61,12 +61,12 @@
     <ID>CyclomaticComplexMethod:ModelRegistry.kt$ModelRegistry$fun enrich(model: Model): Model</ID>
     <ID>CyclomaticComplexMethod:OpenAIImageProvider.kt$OpenAIImageProvider$override suspend fun submit(request: ImageGenRequest): ImageSubmitResult</ID>
     <ID>CyclomaticComplexMethod:OpenAIImageProvider.kt$OpenAIImageProvider$private fun inferImageMime(bytes: ByteArray): String</ID>
+    <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$@OptIn(ExperimentalCoroutinesApi::class) // C-35: channelFlow 不接受 capacity 参数(其内部 channel 恒为 UNLIMITED,恰为所需语义) private fun streamChatCompletions(request: ChatRequest): Flow&lt;ChatStreamEvent&gt;</ID>
     <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$override suspend fun listModels(config: ProviderConfig): List&lt;Model&gt;</ID>
     <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$private fun UIMessage.toOpenAI(model: Model, compat: ProviderCompat? = null): OpenAIMessage</ID>
     <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$private fun buildResponsesRequestBody(request: ChatRequest, stream: Boolean = true): String</ID>
     <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$private fun inferMimeType(base64: String): String</ID>
     <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$private fun injectThinkingFormat( payload: OpenAIRequest, format: ThinkingFormat, level: io.zer0.ai.core.ReasoningLevel, ): String</ID>
-    <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$private fun streamChatCompletions(request: ChatRequest): Flow&lt;ChatStreamEvent&gt;</ID>
     <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$private suspend fun completeTextImpl(request: ChatRequest, keySwitchDepth: Int = 0): ChatCompletion</ID>
     <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$private suspend fun completeTextResponses(request: ChatRequest, keySwitchDepth: Int = 0): ChatCompletion</ID>
     <ID>CyclomaticComplexMethod:ProviderCompat.kt$ProviderCompatRules$private fun ProviderCompat.overrideByHost(host: String): ProviderCompat</ID>
@@ -103,7 +103,9 @@
     <ID>LongParameterList:AnthropicProvider.kt$AnthropicProvider$( model: String, system: List&lt;AnthropicSystemBlock&gt;?, messages: List&lt;AnthropicMessage&gt;, temperature: Float?, maxTokens: Int?, stream: Boolean, reasoningLevel: ReasoningLevel? = null, tools: List&lt;ToolDefinition&gt;? = null, )</ID>
     <ID>LongParameterList:GeminiProvider.kt$GeminiProvider$( system: String?, contents: List&lt;GeminiContent&gt;, temperature: Float?, maxTokens: Int?, reasoningLevel: ReasoningLevel = ReasoningLevel.AUTO, supportsImageOutput: Boolean = false, tools: List&lt;ToolDefinition&gt;? = null, )</ID>
     <ID>LoopWithTooManyJumpStatements:OpenAIProvider.kt$OpenAIProvider$for</ID>
+    <ID>LoopWithTooManyJumpStatements:ProviderHttpSupport.kt$ProviderHttpSupport.Companion$while</ID>
     <ID>LoopWithTooManyJumpStatements:UIMessage.kt$while</ID>
+    <ID>MaxLineLength:AgnesImageProvider.kt$AgnesImageProvider$val (respBody, overLimit) = ProviderHttpSupport.readBodyCappedStreaming(resp, MAX_RESPONSE_BODY_BYTES)</ID>
     <ID>MaxLineLength:AiModule.kt$ChatService$val (provider, request) = buildProviderRequest(effectiveMessages, model, temperature, maxTokens, tools, reasoningLevel, providerConfig, mode)</ID>
     <ID>MaxLineLength:AiModule.kt$ChatService$val (provider, request) = buildProviderRequest(messages, model, temperature, maxTokens, tools, reasoningLevel, providerConfig, mode)</ID>
     <ID>MaxLineLength:AnthropicProvider.kt$AnthropicProvider$Logger.d("AnthropicProvider", "completeText OK: ${text.length} chars, toolCalls=${toolCalls?.size ?: 0}")</ID>
@@ -122,17 +124,19 @@
     <ID>MaxLineLength:GeminiProvider.kt$GeminiProvider$}</ID>
     <ID>MaxLineLength:GeminiProvider.kt$GeminiProvider.&lt;no name provided&gt;$trySend(ChatStreamEvent.Error(e.message ?: ErrorCode.VERTEX_AI_TOKEN_FAILED.toMessage()))</ID>
     <ID>MaxLineLength:GenericOpenAiVideoProvider.kt$GenericOpenAiVideoProvider$errorMessage = "GenericOpenAi poll 异常: ${r.throwable?.message ?: r.throwable?.toString() ?: r.message}"</ID>
+    <ID>MaxLineLength:OpenAIImageProvider.kt$OpenAIImageProvider$val (respBody, overLimit) = ProviderHttpSupport.readBodyCappedStreaming(resp, MAX_RESPONSE_BODY_BYTES.toInt())</ID>
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$"contentChars=${contentCharsSent.get()} | reasoningChars=${reasoningCharsSent.get()} | anyDeltaSent=${anyDeltaSent.get()} | "</ID>
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$"stream-guard(Responses): 拦截空 name tool call (localIndex=$localIndex, args=${acc.args.length} chars),"</ID>
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$"stream-guard: 拦截空 name tool call (localIndex=$localIndex, args=${acc.args.length} chars),"</ID>
-    <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$"stream-guard: 检测到流式过早结束 (chars=$totalChars, reasoning=$reasoningChars, duration=${deltaDuration}ms), 自动回退到非流式请求 | url=$url"</ID>
+    <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$"stream-guard: 检测到流式过早结束 (chars=$totalChars, reasoning=$reasoningChars, duration=${deltaDuration}ms), 自动回退到非流式请求 | url=${sanitizeUrl(url)}"</ID>
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$"stream-guard: 等待期间流式已恢复(content=$currentContent, reasoning=$currentReasoning),放弃回退,继续接收流式"</ID>
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$"stream-guard: 非流式回退成功 (text=${text.length} chars, reasoning=${reasoning.length} chars, toolCalls=${toolCalls.size})"</ID>
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$Logger.d("OpenAIProvider", "completeText OK: text=${text.length} chars, reasoning=${reasoningContent.length} chars, toolCalls=${toolCalls?.size ?: 0}")</ID>
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$Logger.d("OpenAIProvider", "completeTextResponses OK: text=${text.length} chars, reasoning=${reasoningContent.length} chars, toolCalls=${toolCalls?.size ?: 0}")</ID>
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$Logger.i("OpenAIProvider", "completeText 429 限流,已切换到下一个 key,重试 ($keySwitchDepth/$MAX_KEY_SWITCHES)")</ID>
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$Logger.i("OpenAIProvider", "completeTextResponses 429 限流,已切换 key,重试 ($keySwitchDepth/$MAX_KEY_SWITCHES)")</ID>
-    <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$Logger.i("OpenAIProvider", "streamChatResponses: POST $url model=${request.model} msgs=${request.messages.size}")</ID>
+    <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$Logger.i("OpenAIProvider", "streamChat: POST ${sanitizeUrl(url)} model=${request.model} msgs=${request.messages.size}")</ID>
+    <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$Logger.i("OpenAIProvider", "streamChatResponses: POST ${sanitizeUrl(url)} model=${request.model} msgs=${request.messages.size}")</ID>
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$private suspend</ID>
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$return normalized.isEmpty() || normalized == "none" || normalized == "off" || normalized == "disabled" || normalized == "false"</ID>
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$val hasEmptyNameToolCall = toolCallAccMap.values.any { !it.recoveredAsContent &amp;&amp; it.name.isNullOrBlank() &amp;&amp; it.args.isNotEmpty() }</ID>
@@ -140,6 +144,8 @@
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider.&lt;no name provided&gt;$"stream-guard(Responses): 空 name tool call 无 args 增量,跳过 (localIndex=$localIndex, 累积 args=${acc.args.length} chars)"</ID>
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider.&lt;no name provided&gt;$"stream-guard: 空 name tool call 缓冲中 (localIndex=$localIndex, 累积 args=${acc.args.length} chars)"</ID>
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider.&lt;no name provided&gt;$"stream-guard: 空 name tool call 超过 $MAX_EMPTY_NAME_TOOL_CALLS 条,按正文增量恢复 (localIndex=$localIndex)"</ID>
+    <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider.&lt;no name provided&gt;$Logger.i("OpenAIProvider", "streamChat TTFB: ${firstByteAt - requestStartAt}ms | url=${sanitizeUrl(url)}")</ID>
+    <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider.&lt;no name provided&gt;$Logger.i("OpenAIProvider", "streamChatResponses TTFB: ${firstByteAt - requestStartAt}ms | url=${sanitizeUrl(url)}")</ID>
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider.&lt;no name provided&gt;$Logger.w("OpenAIProvider", "streamChat onFailure, retry $attempt/$MAX_RETRIES after ${backoffMs}ms: ${t?.message ?: code}")</ID>
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider.&lt;no name provided&gt;$Logger.w("OpenAIProvider", "streamChatResponses onFailure, retry $attempt/$MAX_RETRIES after ${backoffMs}ms: ${t?.message ?: code}")</ID>
     <ID>MaxLineLength:OpenAIProviderCustomTemplateTest.kt$OpenAIProviderCustomTemplateTest$"data: {\"choices\":[{\"delta\":{\"content\":\"continues from here with enough text to avoid fallback\"}}]}\n\n"</ID>
@@ -154,6 +160,7 @@
     <ID>NestedBlockDepth:AgnesImageProvider.kt$AgnesImageProvider.Companion$suspend fun resolveReferenceImage(ref: String): String</ID>
     <ID>NestedBlockDepth:GenericOpenAiVideoProvider.kt$GenericOpenAiVideoProvider$private fun extractVideoUrl(root: JsonObject): String?</ID>
     <ID>NestedBlockDepth:OpenAIProvider.kt$OpenAIProvider$private fun buildResponsesRequestBody(request: ChatRequest, stream: Boolean = true): String</ID>
+    <ID>NestedBlockDepth:ProviderHttpSupport.kt$ProviderHttpSupport.Companion$fun readBodyCappedStreaming(response: Response, maxBytes: Int): Pair&lt;String, Boolean&gt;</ID>
     <ID>NestedBlockDepth:ProviderPayloadNormalizer.kt$ProviderPayloadNormalizer$private fun stripOrphanToolMessages(messages: List&lt;UIMessage&gt;): List&lt;UIMessage&gt;</ID>
     <ID>NestedBlockDepth:VideoProviderRegistry.kt$VideoProviderRegistry$fun selectFor(config: ProviderConfig): VideoProvider</ID>
     <ID>ReturnCount:AgnesImageProvider.kt$AgnesImageProvider.Companion$fun resolveSize(size: String?): String</ID>
@@ -175,7 +182,6 @@
     <ID>ReturnCount:ModelRegistry.kt$ModelRegistry$fun resolveDefinitions(modelId: String): List&lt;ModelDefinition&gt;</ID>
     <ID>ReturnCount:ModelRegistry.kt$ModelRegistry.TokenSequenceMatcher$override fun score(modelId: String, tokens: List&lt;String&gt;): Int?</ID>
     <ID>ReturnCount:ModelRegistryDsl.kt$OrderedTokenRule$override fun evaluate(modelId: String, tokens: List&lt;String&gt;): Int?</ID>
-    <ID>ReturnCount:OpenAIImageProvider.kt$OpenAIImageProvider$private suspend fun execWithRetry(request: Request): Response</ID>
     <ID>ReturnCount:OpenAIProvider.kt$OpenAIProvider$fun emitDoneWithStreamGuard(finishReason: String?)</ID>
     <ID>ReturnCount:OpenAIProvider.kt$OpenAIProvider$private fun UIMessage.computeReasoningContentForReplay(compat: ProviderCompat?): String?</ID>
     <ID>ReturnCount:OpenAIProvider.kt$OpenAIProvider$private fun mergeCustomBody(body: String): String</ID>
@@ -191,7 +197,6 @@
     <ID>SwallowedException:AgnesImageProvider.kt$AgnesImageProvider$e: IOException</ID>
     <ID>SwallowedException:AgnesImageProvider.kt$AgnesImageProvider$e: IllegalStateException</ID>
     <ID>SwallowedException:GeminiProvider.kt$GeminiProvider$e: Exception</ID>
-    <ID>SwallowedException:OpenAIImageProvider.kt$OpenAIImageProvider$e: SocketTimeoutException</ID>
     <ID>SwallowedException:OpenAIProvider.kt$OpenAIProvider$e: Exception</ID>
     <ID>SwallowedException:ProviderHttpSupport.kt$ProviderHttpSupport.Companion$e: IllegalStateException</ID>
     <ID>SwallowedException:ProviderHttpSupport.kt$ProviderHttpSupport.Companion$e: java.io.IOException</ID>

@@ -11,7 +11,6 @@ import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.webkit.WebViewDatabase
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import kotlinx.coroutines.Dispatchers
