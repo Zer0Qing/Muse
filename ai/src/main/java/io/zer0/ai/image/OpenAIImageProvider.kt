@@ -26,7 +26,6 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import java.io.IOException
-import java.net.SocketTimeoutException
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -362,21 +361,17 @@ class OpenAIImageProvider(
         }
 
     /**
-     * 对超时/429 做有限重试(1 次,迁移自旧 ImageService.execWithRetry)。
-     * 图片生成按次计费,仅对未产生生成的失败(超时/429)重试。
+     * 对 429 做有限重试(1 次,迁移自旧 ImageService.execWithRetry)。
+     * 图片生成按次计费,C-02: 仅对确定未产生收费的失败(429 限流)重试;
+     * SocketTimeoutException(readTimeout)不再重试 — 请求可能已被服务端接收并生成
+     * (响应超时),重试会重复扣费。
      */
     private suspend fun execWithRetry(request: Request): Response {
-        try {
-            val resp = exec(request)
-            if (resp.code != 429) return resp
-            val retryAfter = resp.header("Retry-After")?.toLongOrNull()
-            resp.close()
-            delay(retryAfter?.let { it * 1000L } ?: 1000L)
-            return exec(request)
-        } catch (e: SocketTimeoutException) {
-            // 超时:重试一次
-        }
-        delay(1000L)
+        val resp = exec(request)
+        if (resp.code != 429) return resp
+        val retryAfter = resp.header("Retry-After")?.toLongOrNull()
+        resp.close()
+        delay(retryAfter?.let { it * 1000L } ?: 1000L)
         return exec(request)
     }
 

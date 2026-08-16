@@ -344,7 +344,8 @@ internal fun MessageBubble(
                 ) {
                     Icon(
                         imageVector = if (selected) TablerIcons.Check else TablerIcons.Circle,
-                        contentDescription = stringResource(if (selected) R.string.skill_enabled else R.string.skill_disabled),
+                        // C-21: 多选指示器专用语义(此前复用 skill_enabled/skill_disabled,TalkBack 语义错误)
+                        contentDescription = stringResource(if (selected) R.string.chat_msg_selected else R.string.chat_msg_not_selected),
                         tint = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(2.dp),
                     )

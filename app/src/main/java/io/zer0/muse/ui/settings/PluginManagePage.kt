@@ -103,6 +103,11 @@ fun PluginManagePage(
             }.getOrNull() ?: error("无法读取所选文件")
             val isZip = bytes.size >= 2 && bytes[0] == 'P'.code.toByte() && bytes[1] == 'K'.code.toByte()
             if (isZip) {
+                // C-30 「安装二次确认」提示位: 外部插件包**无签名校验**(见 PluginManager.installFromFile 注记),
+                // 直接安装即执行第三方 JS。建议在此处弹出确认对话框,向用户明示:
+                //   "该第三方插件未经签名校验,将允许其访问本地 JS 沙盒(禁网络/导航)。确认安装?"
+                //   用户确认后才继续下方 pluginManager.installFromFile;取消则 return@withContext 中止导入。
+                // (UI 接线留待后续;当前为最小改动,保持与 Provider 插件一致的即时导入行为。)
                 val tempFile = File(context.cacheDir, "plugin_import_${System.currentTimeMillis()}.muse-plugin")
                 try {
                     tempFile.writeBytes(bytes)

@@ -23,10 +23,12 @@ interface SkillEngine {
      *
      * @param script JS 代码（表达式、语句块或函数调用）
      * @param timeoutMs 超时毫秒数，默认 10 秒
+     * @param scopeKey C-30: 执行归属的插件 id(插件工具传 pluginId),用于 JS 沙盒按插件隔离
+     *   熔断状态;内置/非插件工具不传使用默认全局 scope
      * @return 执行结果：成功时 [SkillEngineResult.Success] 包含 JSON 值和 console 日志；
      *         失败时 [SkillEngineResult.Error] 包含错误信息
      */
-    suspend fun eval(script: String, timeoutMs: Long = DEFAULT_TIMEOUT_MS): SkillEngineResult
+    suspend fun eval(script: String, timeoutMs: Long = DEFAULT_TIMEOUT_MS, scopeKey: String? = null): SkillEngineResult
 
     /**
      * 调用已加载脚本中定义的函数。
@@ -37,6 +39,7 @@ interface SkillEngine {
      * @param functionName 要调用的函数名
      * @param argsJson 参数数组 JSON 字符串（如 `[1,2]`）
      * @param timeoutMs 超时毫秒数
+     * @param scopeKey C-30: 执行归属的插件 id(插件工具传 pluginId),透传给 [eval]
      * @return 执行结果
      */
     suspend fun callFunction(
@@ -44,6 +47,7 @@ interface SkillEngine {
         functionName: String,
         argsJson: String,
         timeoutMs: Long = DEFAULT_TIMEOUT_MS,
+        scopeKey: String? = null,
     ): SkillEngineResult {
         // 默认实现：拼接 IIFE 调用
         val combined = buildString {
@@ -55,7 +59,7 @@ interface SkillEngine {
             append(argsJson)
             append("))")
         }
-        return eval(combined, timeoutMs)
+        return eval(combined, timeoutMs, scopeKey)
     }
 
     /**

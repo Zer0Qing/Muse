@@ -77,9 +77,10 @@ val appModule = module {
         val proxyConfig = settings.proxyConfigCache
         OkHttpClient.Builder()
             .connectTimeout(30, TimeUnit.SECONDS)
-            // v1.114 修复: 思考模�?�?Claude 3.5 thinking)首字延迟可能�?2 分钟,
-            //   readTimeout 120s 会导致思考阶段未输出即超�?改为 300s(5分钟)足够长思�?
-            .readTimeout(120, TimeUnit.SECONDS)
+            // v1.114 修复: 思考模型(如 Claude 3.5 thinking)首字延迟可能超过 2 分钟,
+            //   readTimeout 120s 会导致思考阶段未输出即超时;此处为 300s(5分钟),足够长思考。
+            // C-02: 代码与注释统一(此前注释写 300s 但代码是 120s)。
+            .readTimeout(300, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
             .applyProxy(proxyConfig)
             .build()

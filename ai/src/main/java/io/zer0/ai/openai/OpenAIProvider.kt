@@ -34,12 +34,13 @@ import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.common.toMessage
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.buffer
-import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -175,8 +176,16 @@ class OpenAIProvider(
 
     /**
      * v1.0.7: Chat Completions API 流式(原 streamChat 主体,提取为独立函数便于分支)。
+     *
+     * C-35: 从 callbackFlow 改为 channelFlow(内部 channel 恒为 UNLIMITED,无需也不能传容量参数)。
+     *   callbackFlow 的内部 channel 容量固定为 64,下游 `.buffer(Channel.UNLIMITED)`
+     *   只作用于流转发的下一级 channel,**不改变 callbackFlow 内部 64 容量**;
+     *   OkHttp 回调线程突发投递而 UI 收集慢时,内部 trySend 会失败丢片。
+     *   改用 channelFlow 显式指定无界内部 channel,回调线程 trySend 永不因容量满失败。
      */
-    private fun streamChatCompletions(request: ChatRequest): Flow<ChatStreamEvent> = callbackFlow {
+    @OptIn(ExperimentalCoroutinesApi::class)
+    // C-35: channelFlow 不接受 capacity 参数(其内部 channel 恒为 UNLIMITED,恰为所需语义)
+    private fun streamChatCompletions(request: ChatRequest): Flow<ChatStreamEvent> = channelFlow {
         val body = buildRequestBody(request)
         // M-OAI4: 改用配置项 chatCompletionsPath(支持 Azure 等中转自定义路径)
         val url = baseUrl() + openAIConfig.chatCompletionsPath
@@ -197,7 +206,7 @@ class OpenAIProvider(
         var httpRequest = buildHttpRequest()
 
         // 捕获 ProducerScope,供匿名 listener 内启动重连协程
-        val scope = this@callbackFlow
+        val scope = this@channelFlow
 
         // v1.135 性能诊断:记录各阶段耗时,帮助定位 OpenCode 等中转平台的延迟来源
         val requestStartAt = System.currentTimeMillis()
@@ -795,9 +804,9 @@ class OpenAIProvider(
             request.abortSignal.abort()
             currentEventSource?.cancel()
         }
-        // v1.0.19: 无界 buffer,防止 EventSource 回调突发投递时 trySend 因内部 channel 满
-        //   而丢片(使用无界 buffer)。
-        //   callbackFlow 默认容量有限,UI 卡顿/收集慢时可能丢字。
+        // C-35: 内部 channel 已改为 channelFlow(capacity = UNLIMITED),trySend 不再因容量满丢片。
+        //   下游 `.buffer(Channel.UNLIMITED)` 仅作用于生产者到收集者之间的下一级转发生效,
+        //   无法修复 callbackFlow 内部 64 容量丢片问题(已由上方 channelFlow 显式容量根治)。
     }.flowOn(Dispatchers.IO).buffer(Channel.UNLIMITED)
 
     /**
@@ -1701,8 +1710,14 @@ class OpenAIProvider(
      *  - response.output_item.added:新增 output item(如 function_call 起始,含 id+name)
      *  - response.completed:流结束(response 字段含最终 output 数组)→ Done
      *  - data: [DONE]:OpenAI 通用结束符 → Done
+     *
+     * C-35: 从 callbackFlow 改为 channelFlow(内部 channel 恒为 UNLIMITED,无需也不能传容量参数)。
+     *   callbackFlow 内部 64 容量丢片问题与响应式 callbackFlow 同理(见 streamChatCompletions),
+     *   改为显式无界内部 channel,OkHttp 回调线程 trySend 不再因容量满失败丢片。
      */
-    private fun streamChatResponses(request: ChatRequest): Flow<ChatStreamEvent> = callbackFlow {
+    @OptIn(ExperimentalCoroutinesApi::class)
+    // C-35: channelFlow 不接受 capacity 参数(其内部 channel 恒为 UNLIMITED,恰为所需语义)
+    private fun streamChatResponses(request: ChatRequest): Flow<ChatStreamEvent> = channelFlow {
         val body = buildResponsesRequestBody(request, stream = true)
         val url = baseUrl() + openAIConfig.responsesPath
         Logger.i("OpenAIProvider", "streamChatResponses: POST ${sanitizeUrl(url)} model=${request.model} msgs=${request.messages.size}")
@@ -1718,7 +1733,7 @@ class OpenAIProvider(
             .build()
 
         var httpRequest = buildHttpRequest()
-        val scope = this@callbackFlow
+        val scope = this@channelFlow
         val requestStartAt = System.currentTimeMillis()
         var firstByteAt = 0L
         var firstDeltaAt = 0L
@@ -2016,9 +2031,9 @@ class OpenAIProvider(
             request.abortSignal.abort()
             currentEventSource?.cancel()
         }
-        // v1.0.19: 无界 buffer,防止 EventSource 回调突发投递时 trySend 因内部 channel 满
-        //   而丢片(使用无界 buffer)。
-        //   callbackFlow 默认容量有限,UI 卡顿/收集慢时可能丢字。
+        // C-35: 内部 channel 已改为 channelFlow(capacity = UNLIMITED),trySend 不再因容量满丢片。
+        //   下游 `.buffer(Channel.UNLIMITED)` 仅作用于生产者到收集者之间的下一级转发生效,
+        //   无法修复 callbackFlow 内部 64 容量丢片问题(已由上方 channelFlow 显式容量根治)。
     }.flowOn(Dispatchers.IO).buffer(Channel.UNLIMITED)
 
     /**

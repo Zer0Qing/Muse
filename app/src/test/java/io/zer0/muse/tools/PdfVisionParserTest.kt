@@ -25,7 +25,8 @@ import java.io.File
  * v1.0.52 P2-4: PdfVisionParser + PdfVisionSkill + DefaultVisionOcrClient 单元测试。
  *
  * 覆盖范围:
- *  - [PdfVisionSkill] 参数校验(缺 path / path 含 .. / max_pages 边界)
+ *  - [PdfVisionSkill] 参数校验(缺 path / path 含 ..)
+ *  - [PdfVisionSkill] max_pages 钳制(C-32: resolveMaxPages 纯逻辑,不依赖文件存在性检查)
  *  - [PdfVisionSkill] 路径解析(工作区/filesDir/Download/绝对路径)
  *  - [PdfVisionParser] 早失败路径(文件不存在 / 视觉模型不可用)
  *  - [DefaultVisionOcrClient] 容错逻辑(text/reasoning/空/异常)
@@ -36,6 +37,9 @@ import java.io.File
  *  - 视觉模型真实调用
  *
  * 运行方式: `./gradlew :app:testDebugUnitTest --tests "*PdfVisionParserTest*"`
+ *
+ * C-31 评估:[FakeVisionOcrClient] 仅在本文件使用,全仓库无同名/同职责跨文件复制。
+ * 重复度低,不值得建 testFixtures 基建,保持文件内私有。见深度审计报告 C-31 修正说明。
  */
 class PdfVisionParserTest {
 
@@ -100,33 +104,30 @@ class PdfVisionParserTest {
     }
 
     @Test
-    fun `execute clamps max_pages to hard cap`() = runTest {
-        // 创建一个临时 PDF 文件(非真实 PDF,但能通过文件存在性检查)
-        val fakePdf = File(workspaceRoot, "test.pdf").apply { writeText("fake pdf") }
-        every { mockContext.filesDir } returns tempFolder.newFolder("files")
-        every { mockContext.cacheDir } returns tempFolder.newFolder("cache")
+    fun `resolveMaxPages clamps above hard cap to hard cap`() {
+        // C-32: max_pages 钳制改为纯逻辑测试,不依赖文件存在性检查与 mockk coEvery 顺序。
+        assertEquals("201 应钳制到 200", 200, PdfVisionSkill.resolveMaxPages("201"))
+        assertEquals("远超上限应钳制到 200", 200, PdfVisionSkill.resolveMaxPages("9999"))
+    }
 
-        // mock parser.parse 返回失败(因为不是真 PDF,PdfRenderer 会抛异常)
-        // 但我们只验证 max_pages 不会让 execute 崩溃
-        coEvery {
-            mockParser.parse(any(), any())
-        } returns PdfVisionParser.ParseResult(
-            success = false,
-            text = "",
-            pagesProcessed = 0,
-            pageCount = 0,
-            error = "解析失败(测试 mock)",
-        )
+    @Test
+    fun `resolveMaxPages clamps below 1 to 1`() {
+        assertEquals("0 应钳制到 1", 1, PdfVisionSkill.resolveMaxPages("0"))
+        assertEquals("负数应钳制到 1", 1, PdfVisionSkill.resolveMaxPages("-5"))
+    }
 
-        // max_pages = 201 应被截断到 200,不报参数错误
-        val result = PdfVisionSkill.execute(
-            args = mapOf("path" to "test.pdf", "max_pages" to "201"),
-            parser = mockParser,
-            context = mockContext,
-            workspaceRoot = workspaceRoot,
-        )
-        // 应成功调用 parser(参数校验通过),返回 parser 的失败结果
-        assertTrue("应返回 parser 的失败结果,不是参数错误", result.contains("解析失败(测试 mock)"))
+    @Test
+    fun `resolveMaxPages uses default when missing or invalid`() {
+        assertEquals("缺省用默认值", PdfVisionSkill.DEFAULT_MAX_PAGES, PdfVisionSkill.resolveMaxPages(null))
+        assertEquals("非数字用默认值", PdfVisionSkill.DEFAULT_MAX_PAGES, PdfVisionSkill.resolveMaxPages("abc"))
+        assertEquals("空串用默认值", PdfVisionSkill.DEFAULT_MAX_PAGES, PdfVisionSkill.resolveMaxPages(""))
+    }
+
+    @Test
+    fun `resolveMaxPages keeps in-range value`() {
+        assertEquals("1 边界", 1, PdfVisionSkill.resolveMaxPages("1"))
+        assertEquals("合法值原样保留", 80, PdfVisionSkill.resolveMaxPages("80"))
+        assertEquals("上限边界原样保留", PdfVisionSkill.HARD_MAX_PAGES, PdfVisionSkill.resolveMaxPages("200"))
     }
 
     @Test

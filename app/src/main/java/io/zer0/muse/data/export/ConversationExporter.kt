@@ -35,8 +35,15 @@ enum class ExportFormat {
  *    (调用方负责加载完整消息列表,见 ChatViewModel 中的包装方法)
  *  - Markdown 导出复用现有 [ChatExportCoordinator] 的格式约定(角色加粗 + 空行分隔)
  *  - HTML 生成单文件,内联 CSS(iOS 聊天气泡风格,适配深浅色),图片用 base64 内联,
- *    代码块用 highlight.js CDN(离线时退化为纯 <pre> 标签)
+ *    代码块用纯 <pre><code>(C-28: 移除 highlight.js CDN,详见 exportToHtml)
  *  - PDF 用 [PdfDocument] + [Canvas.drawText],A4 分页,页眉(标题 + 日期)+ 页脚(页码)
+ *
+ * ── C-24 导出文案按 locale ──────────────────────────────────────────────
+ * 角色标签、"导出时间 / 思考过程"、lang 属性等 UI 硬编码中文此前对所有用户输出中文。
+ * 现各导出函数新增 [java.util.Locale] 参数(zh → 中文,其余 → 英文),由调用方传入
+ * 当前 locale;调用方取不到时用 [java.util.Locale.getDefault] 兜底(导出是文件内容而非
+ * UI 资源,按"双语 when 映射 + 注释说明"处理,不引入 strings 资源)。
+ * ────────────────────────────────────────────────────────────────────────
  *
  * 注:本类不持有状态,所有方法均可安全在 IO 线程调用。
  */
@@ -73,60 +80,81 @@ object ConversationExporter {
      *
      * @param messages 完整消息列表(按时间顺序)
      * @param chatTitle 会话标题
+     * @param locale C-24: 导出文案语言(zh → 中文,其余 → 英文)。取不到时由调用方传
+     *  [java.util.Locale.getDefault] 兜底。
      * @return Markdown 字符串
      */
-    fun exportToMarkdown(messages: List<UIMessage>, chatTitle: String): String {
+    fun exportToMarkdown(
+        messages: List<UIMessage>,
+        chatTitle: String,
+        locale: Locale = Locale.getDefault(),
+    ): String {
         val sb = StringBuilder()
         sb.append("# ").append(chatTitle).append("\n\n")
-        sb.append("> 导出时间: ")
-            .append(SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL, Locale.getDefault()).format(Date()))
+        sb.append("> ").append(localized(locale, "导出时间", "Exported at")).append(": ")
+            .append(SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL, locale).format(Date()))
             .append("  \n\n")
 
         messages.forEach { msg ->
-            val role = roleLabel(msg.role)
+            val role = roleLabel(msg.role, locale)
             // 审计修复 (日志分析): 空回复消息(工具失败终止等)导出时标注,不再输出空行。
             // 用户分享对话时看到的"对话是空的"就是这些 content="" 的助手消息堆出来的。
             val content = msg.content.ifBlank {
-                if (!msg.reasoning.isNullOrBlank()) "(无正文,含思考过程)" else "(空回复)"
+                if (!msg.reasoning.isNullOrBlank()) {
+                    localized(locale, "(无正文,含思考过程)", "(No body, includes thinking)")
+                } else {
+                    localized(locale, "(空回复)", "(Empty reply)")
+                }
             }
             sb.append("**").append(role).append("**: ").append(content).append("\n\n")
             // 思考过程(若有)
             if (!msg.reasoning.isNullOrBlank()) {
-                sb.append("### 思考过程\n\n").append(msg.reasoning).append("\n\n")
+                sb.append("### ").append(localized(locale, "思考过程", "Thinking")).append("\n\n")
+                    .append(msg.reasoning).append("\n\n")
             }
         }
         return sb.toString()
     }
 
     /**
-     * 导出为单文件 HTML(内联 CSS + base64 图片 + highlight.js CDN)。
+     * 导出为单文件 HTML(内联 CSS + base64 图片,无任何外链)。
      *
      * 样式特征:
      *  - iOS 聊天气泡风格(用户右对齐蓝色气泡,助手左对齐灰色气泡)
      *  - 通过 @media (prefers-color-scheme) 适配深浅色
-     *  - 代码块用 <pre><code> 包裹,引入 highlight.js CDN(离线时退化为纯等宽字体)
-     *  - 图片以 base64 data URI 内联(便于单文件分享)
+     *  - 代码块用 <pre><code> 包裹纯等宽字体
+     *  - 图片:本地 base64 以 data URI 内联;远程 URL 降级为文本链接(见下)
+     *
+     * C-28(隐私):已移除 highlight.js CDN(<link rel=stylesheet> + <script src> +
+     * 初始化脚本)。原实现引用 cdn.jsdelivr.net,接收方打开 HTML 即外联脚本,泄露
+     * 查看者 IP,且消息里的签名远程图片 <img src> 也会随打开触发外提请。故:
+     *  ① 语法高亮:删除 CDN,代码块保留纯 <pre><code> 等宽样式(可读性达标,零外联);
+     *  ② 远程图片:本导出器为纯函数,拿不到本地文件/cache 字节,无法 base64 内联,
+     *     故把 <img src="..."> 降级为文本链接(<a> + rel="noopener noreferrer"),
+     *     仅在查看者主动点击时才发起请求,不再打开即外联。
      *
      * @param messages 完整消息列表
      * @param chatTitle 会话标题
+     * @param locale C-24: 导出文案语言(zh → 中文,其余 → 英文)。取不到时用
+     *  [java.util.Locale.getDefault] 兜底。
      * @return 完整 HTML 字符串(含 <!DOCTYPE html> 头)
      */
-    fun exportToHtml(messages: List<UIMessage>, chatTitle: String): String {
+    fun exportToHtml(messages: List<UIMessage>, chatTitle: String, locale: Locale = Locale.getDefault()): String {
         val sb = StringBuilder()
-        sb.append("<!DOCTYPE html><html lang=\"zh-CN\"><head><meta charset=\"UTF-8\">")
+        // C-24: lang 属性按 locale 输出(zh → zh-CN,其余 → en),供阅读器/翻译器识别语言。
+        val htmlLang = if (locale.language.lowercase().startsWith("zh")) "zh-CN" else "en"
+        sb.append("<!DOCTYPE html><html lang=\"").append(htmlLang).append("\"><head><meta charset=\"UTF-8\">")
         sb.append("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">")
         sb.append("<title>").append(escapeHtml(chatTitle)).append("</title>")
-        // highlight.js CDN(无网络时退化为浏览器默认等宽字体,不影响阅读)
-        sb.append("<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css\">")
-        sb.append("<script src=\"https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js\"></script>")
+        // C-28: 不再引入 highlight.js CDN(见函数 KDoc),代码块退化为纯 <pre><code> 等宽样式。
         sb.append("<style>").append(CSS).append("</style></head><body>")
 
         // 顶部标题区
         sb.append("<header class=\"chat-header\">")
         sb.append("<h1>").append(escapeHtml(chatTitle)).append("</h1>")
-        sb.append("<p class=\"meta\">导出时间: ")
+        sb.append("<p class=\"meta\">").append(localized(locale, "导出时间", "Exported at")).append(": ")
             .append(escapeHtml(
-                SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL, Locale.getDefault()).format(Date())
+                SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL, locale).format(Date())
             ))
             .append("</p></header>")
 
@@ -137,27 +165,35 @@ object ConversationExporter {
             val bubbleClass = if (isUser) "bubble user" else "bubble assistant"
             sb.append("<div class=\"").append(bubbleClass).append("\">")
             // 角色标签
-            sb.append("<div class=\"role\">").append(escapeHtml(roleLabel(msg.role))).append("</div>")
+            sb.append("<div class=\"role\">").append(escapeHtml(roleLabel(msg.role, locale))).append("</div>")
             // 消息正文(渲染为段落 + 代码块)
             sb.append("<div class=\"content\">").append(renderContentHtml(msg.content)).append("</div>")
-            // 内联图片(USER 上传的本地图片 / ASSISTANT 生成的图片)
+            // 内联图片(USER 上传的本地图片 / ASSISTANT 生成的图片)— base64 data URI,零外联
             if (msg.imageBase64List.isNotEmpty()) {
                 msg.imageBase64List.forEach { b64 ->
                     sb.append("<img class=\"inline-img\" alt=\"image\" src=\"data:image/jpeg;base64,")
                         .append(b64).append("\" />")
                 }
             }
-            // 远程图片 URL(直接引用,不内联)
+            // C-28: 远程图片 URL — 本纯函数拿不到本地/cache 字节,无法 base64 内联,
+            // 降级为文本链接(仅主动点击才请求,不再打开即外联;rel 防 opener 反向定位)。
             if (msg.imageUrls.isNotEmpty()) {
+                sb.append("<div class=\"remote-links\">")
                 msg.imageUrls.forEach { url ->
-                    sb.append("<img class=\"inline-img\" alt=\"image\" src=\"")
-                        .append(escapeAttr(url)).append("\" />")
+                    sb.append("<a class=\"remote-link\" href=\"")
+                        .append(escapeAttr(url))
+                        .append("\" target=\"_blank\" rel=\"noopener noreferrer\">")
+                        .append(escapeHtml(localized(locale, "查看图片", "View image")))
+                        .append("</a>")
                 }
+                sb.append("</div>")
             }
             // 思考过程(折叠)
             val reasoningText = msg.reasoning
             if (!reasoningText.isNullOrBlank()) {
-                sb.append("<details class=\"reasoning\"><summary>思考过程</summary><div class=\"content\">")
+                sb.append("<details class=\"reasoning\"><summary>")
+                    .append(escapeHtml(localized(locale, "思考过程", "Thinking")))
+                    .append("</summary><div class=\"content\">")
                     .append(renderContentHtml(reasoningText))
                     .append("</div></details>")
             }
@@ -165,16 +201,13 @@ object ConversationExporter {
             if (msg.createdAt > 0) {
                 sb.append("<div class=\"time\">")
                     .append(escapeHtml(
-                        SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL, Locale.getDefault()).format(Date(msg.createdAt))
+                        SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL, locale).format(Date(msg.createdAt))
                     ))
                     .append("</div>")
             }
             sb.append("</div>")
         }
         sb.append("</main>")
-
-        // 启动 highlight.js
-        sb.append("<script>if(window.hljs){document.querySelectorAll('pre code').forEach(b=>hljs.highlightElement(b));}</script>")
         sb.append("</body></html>")
         return sb.toString()
     }
@@ -192,9 +225,16 @@ object ConversationExporter {
      * @param context Android Context(用于读取 cacheDir)
      * @param messages 完整消息列表
      * @param chatTitle 会话标题
+     * @param locale C-24: 导出文案语言(zh → 中文,其余 → 英文)。取不到时用
+     *  [java.util.Locale.getDefault] 兜底。
      * @return 已写入的 PDF 文件(位于 cacheDir/export/)
      */
-    fun exportToPdf(context: Context, messages: List<UIMessage>, chatTitle: String): File {
+    fun exportToPdf(
+        context: Context,
+        messages: List<UIMessage>,
+        chatTitle: String,
+        locale: Locale = Locale.getDefault(),
+    ): File {
         val pdf = PdfDocument()
 
         // 共用画笔
@@ -232,7 +272,7 @@ object ConversationExporter {
         }
 
         val contentWidth = PAGE_WIDTH - PAGE_MARGIN * 2
-        val exportTime = SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL, Locale.getDefault()).format(Date())
+        val exportTime = SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL, locale).format(Date())
 
         // 正文区域上下界(留出页眉页脚空间)
         val topY = PAGE_MARGIN + 24f
@@ -253,7 +293,7 @@ object ConversationExporter {
                 pageIndex++
                 page = np; canvas = nc; y = topY
             }
-            canvas.drawText(roleLabel(msg.role), PAGE_MARGIN, y + SIZE_BODY, rolePaint)
+            canvas.drawText(roleLabel(msg.role, locale), PAGE_MARGIN, y + SIZE_BODY, rolePaint)
             y += SIZE_BODY * 1.6f
 
             // 正文:用 StaticLayout 算出换行后的所有行,逐行绘制并按需换页
@@ -284,7 +324,7 @@ object ConversationExporter {
                     pageIndex++
                     page = np; canvas = nc; y = topY
                 }
-                val timeText = SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL, Locale.getDefault())
+                val timeText = SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL, locale)
                     .format(Date(msg.createdAt))
                 canvas.drawText(timeText, PAGE_MARGIN, y + SIZE_META, metaPaint)
                 y += SIZE_META * 1.8f
@@ -335,13 +375,22 @@ object ConversationExporter {
 
     // ===== 私有辅助方法 =====
 
-    /** 获取角色中文标签。 */
-    private fun roleLabel(role: MessageRole): String = when (role) {
-        MessageRole.USER -> "用户"
-        MessageRole.ASSISTANT -> "助手"
-        MessageRole.SYSTEM -> "系统"
-        MessageRole.TOOL -> "工具"
+    /** C-24: 角色标签按 locale 输出(zh → 中文,其余 → 英文)。 */
+    private fun roleLabel(role: MessageRole, locale: Locale): String = when (role) {
+        MessageRole.USER -> localized(locale, "用户", "User")
+        MessageRole.ASSISTANT -> localized(locale, "助手", "Assistant")
+        MessageRole.SYSTEM -> localized(locale, "系统", "System")
+        MessageRole.TOOL -> localized(locale, "工具", "Tool")
     }
+
+    /**
+     * C-24: 导出文案双语映射。中文 locale 输出 [zh],其余 locale 输出 [en]。
+     *
+     * 导出产物是文件内容而非 UI 字符串资源,按双语 when 映射就地处理即可(不引入
+     * strings 资源,避免为文件输出维护一套 Android 资源)。
+     */
+    private fun localized(locale: Locale, zh: String, en: String): String =
+        if (locale.language.lowercase().startsWith("zh")) zh else en
 
     /**
      * 绘制页眉(标题 + 日期 + 分隔线)。
@@ -536,6 +585,18 @@ object ConversationExporter {
             max-width: 100%;
             border-radius: 10px;
             margin: 8px 0 0;
+        }
+        .remote-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 8px;
+        }
+        .remote-link {
+            display: inline-block;
+            font-size: 13px;
+            color: #0a6cff;
+            text-decoration: underline;
         }
         .reasoning {
             margin-top: 8px;

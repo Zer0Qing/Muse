@@ -248,7 +248,17 @@ class SubagentRunner(
         if (!isNew && params.threadId != null) {
             val restored = threadStore.loadMessages(threadId)
             if (restored.isNotEmpty()) {
-                history.addAll(restored)
+                // 审计修复 (C-10): 续接前先清理恢复历史尾部的孤儿 tool_call —
+                // SubagentSessionStore.load 按 token 裁剪可能导致末条 assistant 带 toolCalls
+                // 但后续 TOOL 消息被裁掉,原样发给 LLM 会触发 provider HTTP 400。
+                // 复用主会话 ChatStreamCoordinator.prepareHistory 的孤儿清理语义(见下方函数注释)。
+                val cleaned = dropOrphanToolCalls(restored)
+                // 审计修复 (C-09): 续接时在 history 头部插入本次构建的 SYSTEM prompt —
+                // SYSTEM 消息从不持久化(SubagentRunner 仅 append non-SYSTEM;load 也把 SYSTEM
+                // 单独剥离),导致续接后工作准则/配额说明丢失。与首次启动保持一致,头部注入
+                // 本次的 buildSystemPrompt(含 maxToolCalls / targetPaths 当前值)。
+                history.add(UIMessage(role = MessageRole.SYSTEM, content = systemPrompt))
+                history.addAll(cleaned)
                 // 续接时在历史后追加一条 user 消息(新任务)
                 history.add(UIMessage(role = MessageRole.USER, content = buildUserMessage(params)))
             } else {
@@ -646,4 +656,26 @@ class SubagentRunner(
             }
         }
     }
+
+    /**
+     * 审计修复 (C-10): 清理恢复历史中"孤儿 tool_call"的 assistant 消息。
+     *
+     * 语义与主会话 [io.zer0.muse.ui.chat.ChatStreamCoordinator.prepareHistory]
+     * 的孤儿清理完全一致(引用来源):带 toolCalls 的 ASSISTANT 消息,其后一条消息
+     * 必须是 role=TOOL(该次工具调用的结果回填);若末尾 assistant 带 toolCalls 但
+     * 无对应 TOOL 消息(裁剪 / 中断导致),则视为孤儿消息丢弃,避免原样发给 LLM 触发
+     * provider HTTP 400。
+     *
+     * 与主会话不同的地方:主会话按 index 过滤整条丢弃;此处同样丢弃孤儿条,但保留
+     * 其前续所有消息(含已配对的 tool 链),因为子 agent 恢复历史是自尾部向前裁剪,
+     * 孤儿只可能出现在尾部。
+     */
+    private fun dropOrphanToolCalls(messages: List<UIMessage>): List<UIMessage> =
+        messages.filterIndexed { index, msg ->
+            if (msg.role == MessageRole.ASSISTANT && !msg.toolCalls.isNullOrEmpty()) {
+                messages.getOrNull(index + 1)?.role == MessageRole.TOOL
+            } else {
+                true
+            }
+        }
 }

@@ -12,6 +12,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
@@ -35,8 +36,9 @@ import java.time.Instant
  *  两者互补:DeepMemory 做离线深度提取,AutoSave 做在线实时提取。
  *
  * 触发时机(由 ChatViewModel 调用):
- *  - 每 N 轮对话(默认 10 轮)
- *  - 会话结束时
+ *  - 会话结束/切换时(notifySessionEndForCurrent),调用侧有 30s 同会话去重窗口
+ *  - C-05: 修正注释 — 实际并非"每 N 轮"触发,AUTO_SAVE_TURN_INTERVAL 已不再作为触发条件
+ *    (保留常量仅为兼容引用);分析失败时本调度器自动延迟补跑一次(绕过调用侧去重窗口)。
  *
  * 并发控制:用 [Semaphore] 限制同时进行的分析任务(默认 1,避免 LLM 限流)。
  */
@@ -113,6 +115,28 @@ class MemoryAutoSaveScheduler(
                     )
                 }.onError { msg, t ->
                     Logger.w("MemoryAutoSaveScheduler", "autoSave 失败(session=${sessionId.take(8)}…): $msg", t)
+                    // C-05: 失败后延迟补跑一次 — 调用侧( ChatViewModel)有 30s 同会话去重,
+                    // 失败后立即重试会被去重挡掉,记忆静默丢失;延迟 30s 绕过窗口补跑。
+                    // 注意:本方法参数 scope: String 会遮蔽同名字段,补跑协程须用
+                    // this@MemoryAutoSaveScheduler.scope(CoroutineScope) 显式引用。
+                    this@MemoryAutoSaveScheduler.scope.launch {
+                        delay(30_000)
+                        if (!this@MemoryAutoSaveScheduler.scope.isActive) return@launch
+                        analysisSemaphore.withPermit {
+                            resultOf {
+                                runAutoSave(sessionId, history, assistantId, spaceId, scope, model, locale)
+                            }.onSuccess { retryResult ->
+                                Logger.i(
+                                    "MemoryAutoSaveScheduler",
+                                    "autoSave 补跑成功(session=${sessionId.take(8)}…): " +
+                                        "extracted=${retryResult.extracted}, updated=${retryResult.updated}, " +
+                                        "merged=${retryResult.merged}, links=${retryResult.links}",
+                                )
+                            }.onError { retryMsg, retryT ->
+                                Logger.w("MemoryAutoSaveScheduler", "autoSave 补跑仍失败(session=${sessionId.take(8)}…): $retryMsg", retryT)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -331,9 +355,17 @@ class MemoryAutoSaveScheduler(
                     createdAt = now,
                 )
             }
+            // 审计修复 (C-07): 建链前用最新 facts 集合过滤已删除 id。
+            // 链接解析基于上方 [existing] 快照；快照之后至插入前，本分析的合并步骤（步骤 3）
+            // 或并发删除（UI/decay）可能已删掉 source/target，若直接插入会对已删事实留下孤儿边。
+            // 因此插入前重查一次当前存活 id 集合，拒绝指向已删除事实的边。
             if (linkEntities.isNotEmpty()) {
-                linkDao.insertBatch(linkEntities)
-                links = linkEntities.size
+                val liveIds = factStore.getByScopeAndSpace(scope, spaceId).map { it.id }.toSet()
+                val aliveLinks = linkEntities.filter { it.sourceFactId in liveIds && it.targetFactId in liveIds }
+                if (aliveLinks.isNotEmpty()) {
+                    linkDao.insertBatch(aliveLinks)
+                    links = aliveLinks.size
+                }
             }
         }
 

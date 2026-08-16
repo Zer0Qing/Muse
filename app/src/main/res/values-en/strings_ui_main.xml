@@ -689,4 +689,11 @@
     <string name="settings_screen_entry_chunking">Chunking strategy</string>
     <string name="settings_screen_entry_tool_approval">Tool approval mode</string>
     <string name="settings_screen_entry_collab">Collaborative assistants</string>
+
+    <string name="settings_screen_archived_desc">View and restore archived sessions</string>
+    <!-- v1.x: share settings page (formerly "Security & Sharing"; app lock / search engine removed) -->
+    <string name="settings_screen_share">Share</string>
+    <string name="settings_share_page_title">Share</string>
+    <string name="settings_search_result_count">%1 results found</string>
+    <string name="settings_screen_miniphone_desc">Early version of an experimental feature</string>
 </resources>

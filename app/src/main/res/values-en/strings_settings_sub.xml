@@ -582,4 +582,32 @@
     <string name="settings_agent_test_failed">Test failed:%1$s</string>
     <string name="settings_agent_daily_summary">Daily summary push</string>
     <string name="settings_agent_daily_summary_subtitle">Pushes a summary of today\'s conversations at 7:30 PM (skipped when off, resumes when re-enabled)</string>
+
+    <string name="settings_agent_current_model_hint">Global default (shared by main chat / Agent)</string>
+    <!-- v1.x: keep-alive background guidance -->
+    <string name="settings_agent_keep_alive_title">Keep running in background</string>
+    <string name="settings_agent_keep_alive_subtitle">Prevents proactive messages from being missed if the system cleans the process</string>
+    <string name="keep_alive_dialog_title">%1$s · Keep running in background</string>
+    <string name="keep_alive_dialog_desc">Proactive messages rely on a background process. Chinese ROMs clear background apps by default; after whitelisting per the steps below, you\'ll keep receiving messages even after swiping the app away:</string>
+    <string name="keep_alive_dialog_dismiss">Got it</string>
+    <string name="keep_alive_dialog_open">Go to settings</string>
+    <!-- ChatGPT import steps -->
+    <string name="settings_import_chatgpt_desc">Official ChatGPT export (the zip in your email, or the extracted conversations.json)</string>
+    <string name="settings_import_chatgpt_step1">1. Open ChatGPT → Settings → Profile → Data controls</string>
+    <string name="settings_import_chatgpt_step2">2. Tap "Export data"; OpenAI emails you a zip</string>
+    <string name="settings_import_chatgpt_step3">3. Download the zip to your phone, or extract it and pick conversations.json</string>
+    <string name="settings_import_chatgpt_step4">4. Select the file in Muse and the conversations are imported automatically</string>
+    <!-- App lock (removed) -->
+    <string name="settings_security_lock_section">App lock</string>
+    <string name="settings_security_lock_removed_title">App lock removed</string>
+    <string name="settings_security_lock_removed_desc">For stability reasons, the app PIN lock and biometric unlock have been removed. If you need them, let us know via feedback and we\'ll consider re-adding them.</string>
+    <!-- Media generation models / ASR / Mini Phone -->
+    <string name="settings_provider_media_gen_section">Media generation models</string>
+    <string name="settings_asr_entry_title">Speech recognition engine</string>
+    <string name="settings_asr_entry_subtitle">Select a speech-to-text engine (e.g. Paraformer / Whisper)</string>
+    <string name="settings_miniphone_title">Mini Phone</string>
+    <string name="settings_miniphone_enable_title">Enable Mini Phone</string>
+    <string name="settings_miniphone_enable_subtitle">When enabled, a Mini Phone entry appears in the top-right of the home screen</string>
+    <string name="settings_miniphone_desc_title">What is Mini Phone</string>
+    <string name="settings_miniphone_desc_body">An immersive mini desktop: Moments, AI album, notes, weather, and a model diary. When disabled, the home screen reverts to its original layout.</string>
 </resources>

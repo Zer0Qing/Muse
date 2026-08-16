@@ -450,4 +450,12 @@
     <!-- 前端修复 (i18n-3.x): Shared clear-all texts (stickers / group chat memory) -->
     <string name="settings_common_clear_all">Clear all</string>
     <string name="settings_common_clear">Clear</string>
+
+    <!-- ==================== Chat settings ==================== -->
+    <string name="settings_chat_background_section">Appearance</string>
+    <string name="settings_chat_background_title">Chat background</string>
+    <string name="settings_chat_background_subtitle">Customize the chat / Agent / group chat background</string>
+    <string name="settings_chat_background_choose">Choose</string>
+    <string name="settings_chat_background_saved">Chat background updated</string>
+    <string name="settings_chat_background_failed">Image processing failed, please try another one</string>
 </resources>

@@ -607,4 +607,19 @@
     <string name="quick_notes_share_title">导出快速记录</string>
     <string name="quick_notes_toggle_markdown">Markdown 模式</string>
 
+    <!-- Three-dot menu: group chat search / member provider -->
+    <string name="groupchat_search">Search</string>
+    <string name="groupchat_search_hint">Search group chat messages</string>
+    <string name="groupchat_search_empty">No matching messages found</string>
+    <string name="groupchat_edit_provider">Edit assistant provider</string>
+    <string name="groupchat_edit_provider_title">Select member provider</string>
+    <string name="groupchat_edit_provider_loading">Configuring... this member uses the default model</string>
+    <!-- v1.x: multi-select mode -->
+    <string name="groupchat_select">Select</string>
+    <string name="groupchat_select_all">Select all</string>
+    <string name="groupchat_delete_selected">Delete</string>
+    <string name="groupchat_delete_selected_title">Delete %1$d messages?</string>
+    <string name="groupchat_delete_selected_confirm">The selected messages will be deleted. This action cannot be undone.</string>
+    <string name="groupchat_selected_count">%1$d selected</string>
+    <string name="groupchat_streaming_title">Typing...</string>
 </resources>

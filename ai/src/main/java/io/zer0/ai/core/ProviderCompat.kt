@@ -29,6 +29,7 @@ import io.zer0.common.Logger
  * @param supportsJsonMode 是否支持 response_format={"type":"json_object"}。
  * @param supportsStreamOptions 是否支持 stream_options.include_usage。
  * @param supportsLogprobs 是否支持 logprobs 参数(默认 false,多数 Provider 不常用)。
+ * @param supportsResumeFromText 是否支持流式中断后从已产出文本续传(见字段注释)。
  * @param maxContextWindow Provider 级上下文窗口上限(token),null 表示无统一上限。
  * @param defaultMaxTokens 默认 max_tokens,null 表示用 Provider 默认。
  * @param thinkingFormat v1.0.7: 思考格式(对齐 既有实现 thinkingFormat 9 种)。
@@ -50,6 +51,17 @@ data class ProviderCompat(
     val supportsJsonMode: Boolean = true,
     val supportsStreamOptions: Boolean = true,
     val supportsLogprobs: Boolean = false,
+    /**
+     * C-11: 是否支持流式中断后从已产出文本续传(resumeFromText)。
+     *
+     * resumeFromText 会把未完成的已显示内容作为"末尾 assistant 消息"注入请求,
+     * 让模型从中断处继续。部分 Provider / 后端/模型不能正确对待一个被截断的
+     * assistant 轮次(可能重答、拒绝或把未完成内容当作完整话语),此时应置 false,
+     * 由 ChatService 关闭自动续传(改为让 UI 层 LCP 去重接管,而不是注入部分消息)。
+     *
+     * 保守默认 true(与 既有实现 ProviderCompat 一致,不明确不支持则不关闭)。
+     */
+    val supportsResumeFromText: Boolean = true,
     val maxContextWindow: Int? = null,
     val defaultMaxTokens: Int? = null,
     /**

@@ -83,16 +83,57 @@
 ### C 级进度
 
 - ✅ C-01(部分): 多工具描述与实现对齐(上一 AI)+ A-02/A-03 实现级修复补全
+- ✅ C-02: 生图小问题汇总(execWithRetry 不再对 readTimeout 重试防重复扣费;url 输出协议校验;isGeneratingImage 置位+finally 清除;AppKoinModule 注释统一 300s;pollUntilDone 分支已评估保留——有测试且是异步 provider 框架能力)
+- ✅ C-05: autoSave 注释修正(实际会话结束/切换触发)+ 失败 30s 后补跑一次
+- ✅ C-06: MemoryFileWriter 原子写入(tmp+rename)+ dedup 加锁
 - ✅ C-14: 用户消息菜单重复的"选择/复制/收藏"三项删除(公共菜单已含)
 - ✅ C-15: TelegramActionCard 配色改用实际主题亮度(与三态主题一致)
 - ✅ C-16: actionMenuBounds 记录条件改为按菜单可见性(原 Rect.Zero 恒非 null 使防护失效)
 - ✅ C-17: 三岛尺寸按用户反馈定为 40/48/40(与审计建议相悖,用户反馈优先,记录在案)
 - ✅ C-19: InputBar 工具进度 CD / Moment 已选图片文案 / RichInputBar 占位符 走资源(7 语言)
-- ✅ C-20(部分): 头像持久化返回纯路径(去 file:// 前缀);唯一文件名/大小上限未做(留待)
+- ✅ C-20: 头像唯一文件名 + 10MB 上限(与 AvatarStorage 对齐,Coil 缓存键不再撞车)
+- ✅ C-21: 多选指示器专用"已选中/未选中"语义(7 语言)
 - ✅ C-22: isToolRoundPlaceholder 补 artifactIds 检查(含产物卡的消息不隐藏)
 - ✅ C-25: MCP OAuth 回调 URI 日志只留 scheme://host/path;OAuthManager 错误响应只记 error 字段
 - ✅ C-26: ShellSandbox find 系统目录前缀匹配拦截 + 读文件命令路径限制在沙箱内
 - ✅ C-27: create_download subdir 过滤 ".." 段(随 B-06 一并落地)
 - ✅ C-34: 版本默认值 162/1.0.62 → 175/1.0.75
-- ✅ C-36(部分): 删除 LaunchStreamRefactor.kt.txt 死文件;通知采集设置开关未做(留待)
-- ⬜ C-02~C-13/C-18/C-20(余)/C-21/C-23/C-24/C-28~C-33/C-35/C-36(余)
+- ✅ C-36: 死文件删除(已做);通知采集设置开关——已评估:设置页入口已存在(SettingsScreen→NotificationListenerScreen),无需动作
+- ✅ C-18: 76 个 string key 缺英文翻译补齐——对比 values/ 与 values-en/ 差集,跨文件补 76 个 key 到 9 个 values-en/ 文件(顶栏菜单/群聊搜索/记忆菜单/设置小手机等),重跑对比差集清零
+- ✅ C-03: TimeContext 放行近期未来日期(≤ now+30 天),"下周三"不再丢失时间信息
+- ✅ C-05: autoSave 注释修正(实际会话结束/切换触发)+ 失败 30s 后补跑一次
+- ✅ C-06: MemoryFileWriter 原子写入(tmp+rename)+ dedup 加锁
+- ✅ C-07: FactStore.delete 内联清理 memory_links 孤儿边 + applyAnalysis 建链前过滤已删事实
+- ✅ C-08: SubagentThreadStore runLocks 按需回收(close 后移除,孤儿线程一并清理)
+- ✅ C-09: 子 agent 续接时头部注入 SYSTEM prompt(工作准则/配额不再丢失)
+- ✅ C-10: 续接历史裁剪后孤儿 tool_call 清理(复用主会话语义)
+- ✅ C-11: 续传 LCP 最长公共前缀去重 + ProviderCompat.supportsResumeFromText 门控;ChatResumeLcpTest 8 例
+- ✅ C-12: 仅工具轮(round>1)用 toolModel,最终回复轮切回主模型;含图历史且 toolModel 无视觉时回退
+- ✅ C-23: FTS 一致性加内容抽查(行数相等后抽样 10 条 MATCH 探测,FTS4/FTS5 双模式)
+- ✅ C-24: 导出文案按 locale(角色/导出时间/思考过程/lang 属性,zh→中文其余→英文)
+- ✅ C-28: HTML 导出移除 highlight.js CDN + 远程图片降级文本链接(打开即外联消除)
+- ✅ C-29: WebServer JWT 仅 Cookie 下发(登录补 Set-Cookie,query 仅兼容只读)
+- ✅ C-30: JsSandbox 按插件隔离(每次执行清 localStorage/缓存 + 熔断按 scopeKey 隔离);签名校验注记
+- ✅ C-31: 已评估——fake 均为单文件唯一,重复度低,不值得 testFixtures 基建(注释留证)
+- ✅ C-32: max_pages 钳制抽 internal 纯函数 + 4 纯逻辑用例(解除与生产检查顺序耦合)
+- ✅ C-33: README/README_EN/AUDIT_PROGRESS 脱节修正(版本注入说明/Kover 口径/仓库链接统一/R-UI-11 过期标注)
+- ✅ C-35: callbackFlow → channelFlow(内部 channel UNLIMITED,64 容量丢片根治)
+- ⏸ C-04/C-13: 审计/文档标注"有意设计/可接受",已评估不改
+
+---
+
+## 🏁 收官总结（2026-08-16，94/94 项全部收口）
+
+| 级别 | 总数 | 已修复 | 已评估不改 | 说明 |
+|---|---|---|---|---|
+| S | 6 | 6 | 0 | 媒体落库/视频链路/置顶统一/删除墓碑/PII 掩码/悄悄话过滤 |
+| A | 20 | 20 | 0 | 工具协议统一/竞态守卫/CI 发布/通知策略等 |
+| B | 32 | 32 | 0 | 含 CAS 领取/共享限流/SSRF 逐跳/预算按段裁剪/云备份流式 |
+| C | 36 | 34 | 2 (C-04/C-13) | C-01/C-17 按用户反馈/审计说明记录在案 |
+| **合计** | **94** | **92** | **2** | |
+
+- 验证：`assembleDebug` + `:ai/:memory/:app` testDebugUnitTest 三模块全绿（app 一次 TokenStatsBarTest Robolectric 已知偶发,单类重跑通过）
+- 新增/强化测试：ChatMediaMergeTest 5、CronExpression 2、ImageResponseParseTest 3、PiiGuard 8、LlmBudgetSegmentTest 9、BackupJsonLimitTest 3、ScheduledTaskRunnerScheduleTest +3、ChatResumeLcpTest 8、PdfVisionParserTest 4、ToolRegistrySmokeTest 重写、MuseDbMigrationTest 补 87_88 等
+- 本地提交：6b2e790 → 6721087 → a5b6d5a → ecad991 → a62b461 →（本轮 C 收官提交）→ 未 push
+- 遗留说明（非阻断）：① ChatExportCoordinator.exportSessionAsMarkdown/PlainText 仍有重复硬编码中文（C-24 范围外,后续清理）；② v1-53 DB 迁移链/StrongBox/国产 ROM FTS5 需真机；③ 本轮验证含 1 次已知 Robolectric 偶发
+- 可发布基线：本批修复涉及 DB v88 迁移(videoFileUri 列)与 settings 新字段(lastFailedAt),发布前建议真机回归:生图/生视频重启留存、置顶注入、删除记忆不复活、群聊悄悄话

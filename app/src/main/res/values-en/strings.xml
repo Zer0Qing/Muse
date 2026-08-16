@@ -333,4 +333,9 @@
     <string name="chat_delete_selected_message">Are you sure you want to delete %1$d selected messages? This cannot be undone.</string>
     <string name="settings_agent_night_patrol_title">Late night autonomy</string>
     <string name="settings_agent_night_patrol_subtitle">Outside allowed hours: quietly write diary/night notes, no notifications</string>
+
+    <!-- Shared actions -->
+    <string name="action_clear">Clear</string>
+    <string name="action_select_text">Select text</string>
+    <string name="chat_select_text_hint">Long press the text to select and copy it</string>
 </resources>

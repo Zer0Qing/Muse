@@ -1012,6 +1012,39 @@ internal fun canContinueGeneration(isStreaming: Boolean, lastMessage: UIMessage?
 internal fun resumeFromInterrupted(content: String): String =
     content.removeSuffix("\n\n[已中断]").removeSuffix("[已中断]")
 
+/**
+ * C-11: 计算 [a] 与 [b] 的最长公共前缀长度(按 Unicode 代码单位)。
+ *
+ * 纯函数,供断点续传去重(duplicateRemaining)使用:当 provider 改写/补全返回内容时,
+ * 返回内容与已显示内容前缀并非逐字一致(原精确 startsWith 匹配会整体漏去重,
+ * 导致重复/跳变)。以 LCP 判定重叠量,仅跳过重叠部分,保留改写后的新内容。
+ *
+ * 例:longestCommonPrefix("今天天气很好", "今天天下雨") == 3(跳过"今天天")。
+ */
+internal fun longestCommonPrefix(a: String, b: String): Int {
+    val max = minOf(a.length, b.length)
+    var i = 0
+    while (i < max && a[i] == b[i]) i++
+    return i
+}
+
+/**
+ * C-12: 判定某轮是否可用 [toolModel] 作为请求模型。
+ *
+ * 工具轮(上一轮结果含 toolCalls)默认走 toolModel;但当本轮历史仍含图片、
+ * 而 [toolModel] 不支持视觉输入时,继续把图发给不支持视觉的模型会导致 HTTP 400,
+ * 此时应回退主模型(其视觉能力已在 prepareVisionContext 判定/降级)。
+ * 未配置 toolModel 或历史无图时返回 true,保持默认行为。
+ *
+ * @param history 本轮将要发送的对话历史
+ * @param toolModel 用户配置的工具模型(已增强识别能力)
+ */
+internal fun canUseToolModelForRound(history: List<UIMessage>, toolModel: Model): Boolean {
+    if (toolModel.supportsVisionInput()) return true
+    val hasImages = history.any { it.imageBase64List.isNotEmpty() }
+    return !hasImages
+}
+
 /** R-TEST-06: 重生成仅当非流式、有会话且当前用户变体可选时可用。 */
 internal fun canRegenerate(
     isStreaming: Boolean,
@@ -4706,6 +4739,10 @@ class ChatViewModel(
         val assistant = state.assistant
         val effectiveModel = state.effectiveModel
         val effectiveProviderConfig = state.effectiveProviderConfig
+        // C-12: 工具模型配置(可为 null)—— 仅"工具轮"(上一轮结果含 toolCalls 的续接轮)使用,
+        // 最终回复轮切回主模型 effectiveModel,避免主模型视觉被 toolModel 降级为文本路由。
+        val toolModel = state.toolModel
+        val toolProviderConfig = state.toolProviderConfig
         val tools = state.tools
         val effectiveTemperature = state.effectiveTemperature
         val reasoningLevel = state.reasoningLevel
@@ -4798,10 +4835,20 @@ class ChatViewModel(
                         createdAt = checkpointCreatedAt,
                     )
                 }.onFailure { Logger.w("ChatVM", "generation checkpoint 写入失败: ${it.message}") }
+                // C-12: 本轮模型选择 — 仅"工具轮"(上一轮结果含 toolCalls → round>1)用 toolModel,
+                // 首轮(可能直接出最终回复、需视觉读图)与后续最终回复一律使用主模型,
+                // 避免工具启用并配置 toolModel 后所有轮次被降级成纯文本路由。
+                // 未配置 toolModel(state.toolModel==null)时此分支恒走主模型,默认行为完全不变;
+                // 工具轮若历史含图而 toolModel 无视觉,也回退主模型避免给不支持视觉的模型带图 400。
+                val isToolRound = params.round > 1
+                val usesToolModel = isToolRound && toolModel != null &&
+                    params.history.let { canUseToolModelForRound(it, toolModel) }
+                val roundModel = if (usesToolModel) toolModel else effectiveModel
+                val roundProviderConfig = if (usesToolModel) toolProviderConfig else effectiveProviderConfig
                 val flow = chatService.streamChat(
                     messages = params.history,
-                    model = effectiveModel,
-                    providerConfig = effectiveProviderConfig,
+                    model = roundModel,
+                    providerConfig = roundProviderConfig,
                     tools = tools,
                     temperature = effectiveTemperature,
                     maxTokens = assistant?.maxTokens,
@@ -4822,14 +4869,28 @@ class ChatViewModel(
                 flow.collect { event ->
                     when (event) {
                         is ChatStreamEvent.ContentDelta -> {
-                            // B3-03: 续传去重 — 若当前 delta 是已显示内容的重复前缀,直接跳过
+                            // C-11: 续传去重 — 跳过与"尚未被消费的已显示内容"重叠的最长公共前缀。
+                            //  B3-03 原实现用精确 startsWith 匹配:provider 改写/补全返回内容时,
+                            //  返回前缀与已显示内容非逐字一致,startsWith 整体失败 → duplicateRemaining
+                            //  被置空,整段已显示内容被重复追加(重复/跳变)。C-11 改为逐 delta 计算
+                            //  最长公共前缀,仅跳过重叠部分,把改写后的新内容保留进正文。
+                            var effectiveDelta = event.delta
                             val duplicate = duplicateRemaining
                             if (duplicate != null) {
-                                if (duplicate.startsWith(event.delta)) {
-                                    duplicateRemaining = duplicate.removePrefix(event.delta).takeIf { it.isNotEmpty() }
+                                val lcp = longestCommonPrefix(duplicate, event.delta)
+                                if (lcp == 0) {
+                                    // 与已显示内容无任何重叠 → 已完全进入新内容,本轮起停止去重
+                                    duplicateRemaining = null
+                                } else if (lcp < event.delta.length) {
+                                    // delta 前半段重叠已显示内容、后半段为改写/续写的新内容 → 仅累积后半段;
+                                    // 重叠区分段消费,剩余已显示内容保留给后续 delta 继续比对
+                                    duplicateRemaining = duplicate.substring(lcp).takeIf { it.isNotEmpty() }
+                                    effectiveDelta = event.delta.substring(lcp)
+                                } else {
+                                    // 整个 delta 都落在已显示内容内 → 本次忽略,等待后续 delta
+                                    duplicateRemaining = duplicate.substring(lcp).takeIf { it.isNotEmpty() }
                                     return@collect
                                 }
-                                duplicateRemaining = null
                             }
                             // v1.0.3: 首 token 立即刷新 UI,消除"loading → 大量文字"的视觉断层
                             val isFirstToken = firstTokenTime == 0L
@@ -4847,7 +4908,7 @@ class ChatViewModel(
                                     if (chunkIntervals.size > STREAM_SLIDE_WINDOW) chunkIntervals.removeFirst()
                                 }
                                 lastChunkAt = now
-                                pendingBuilder.append(event.delta)
+                                pendingBuilder.append(effectiveDelta)
                                 if (isFirstToken) {
                                     // 首 token 立即输出全部 pending 内容,不等 50ms,消除 loading→大量文字 的断层
                                     params.builder.append(pendingBuilder)
@@ -4867,7 +4928,7 @@ class ChatViewModel(
                                 }
                             } else {
                                 // 非流式 UI:直接累积到 builder(保持原行为,通知/持久化仍按 builder.length 节流)
-                                params.builder.append(event.delta)
+                                params.builder.append(effectiveDelta)
                             }
                             if (params.builder.length - lastNotifChars >= 100 || now - lastNotifAt >= 500) {
                                 lastNotifChars = params.builder.length
@@ -5943,6 +6004,8 @@ class ChatViewModel(
         val genToken = toolGenerationToken
 
         updateAssistant(assistantId, content = appContext.getString(R.string.err_chat_img_generating), isStreaming = true)
+        // C-02: 置位生成中占位标志(此前从未置 true,ChatScreen 占位卡是死代码)
+        _state.update { it.copy(isGeneratingImage = true) }
         return try {
             val imageGenConfig = settings.imageGenConfigFlow.first()
             val providerConfig = imageGenConfig.providerId.takeIf { it.isNotBlank() }
@@ -6001,6 +6064,9 @@ class ChatViewModel(
             val msg = e.message ?: appContext.getString(R.string.err_chat_unknown)
             updateAssistant(assistantId, content = appContext.getString(R.string.err_chat_img_gen_failed, msg))
             "图片生成失败: $msg"
+        } finally {
+            // C-02: 结束(成功/失败/取消)清除生成中占位
+            _state.update { it.copy(isGeneratingImage = false) }
         }
     }
 

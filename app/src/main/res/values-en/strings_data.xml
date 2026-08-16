@@ -119,4 +119,8 @@
     <string name="mcp_tool_no_description">(no description)</string>
     <string name="mcp_tool_call_timeout">MCP tool call timed out: %1$s</string>
     <string name="mcp_tool_call_failed">MCP tool call failed: %1$s</string>
+
+    <string name="import_error_parse_failed">JSON parsing failed; the file may be corrupted</string>
+    <string name="import_error_chatgpt_parse_failed">Failed to parse ChatGPT export: %1$s</string>
+    <string name="import_error_file_too_large">File too large (%1$d MB). Unzip the file and import the smaller conversations.json separately, or clean up the exported data and try again</string>
 </resources>

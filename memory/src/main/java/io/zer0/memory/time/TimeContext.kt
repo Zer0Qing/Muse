@@ -34,6 +34,14 @@ object TimeContext {
     /** collectLocalDatesInRange 迭代上限（防止无限循环）。 */
     const val COLLECT_MAX_ITERATIONS = 400
 
+    /**
+     * 审计修复 (C-03): 未来日期放行窗口（天）。
+     * 场景："下周三""下周搬家"等基于相对表述的近期未来事件没有落在会话本地日期内，
+     * 原逻辑一律返回 null 导致时间信息丢失；此处放行 [今天, 今天+30 天] 的近期未来日期，
+     * 超窗仍视为 LLM 编造拒绝。
+     */
+    const val FUTURE_DATE_WINDOW_DAYS = 30L
+
     private val isoFormatter: DateTimeFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME
     private val summaryTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.ROOT)
 
@@ -127,7 +135,8 @@ object TimeContext {
     /**
      * 规范化 fact 时间。LLM 抽出的 time 必须满足：
      *  1. 格式 YYYY-MM-DDTHH:MM
-     *  2. 必须在 sourceTimeRange.localDates 内（防 LLM 编造）
+     *  2. 日期必须在 sourceTimeRange.localDates 内，或为近期未来日期（≤ now + [FUTURE_DATE_WINDOW_DAYS] 天）
+     *     —— 后者见 [isAcceptedFactDate]（C-03：放行"下周三"等近期未来，避免时间信息丢失）
      *  3. 跨多日且只有 HH:MM → null（无法定位是哪天）
      */
     fun normalizeFactTimestamp(
@@ -141,7 +150,7 @@ object TimeContext {
         val fullMatch = Regex("""^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})$""").find(v)
         if (fullMatch != null) {
             val (date, time) = fullMatch.destructured
-            return if (date in ctx.localDates) "${date}T$time" else null
+            return if (isAcceptedFactDate(ctx, date)) "${date}T$time" else null
         }
 
         // 仅 HH:MM
@@ -159,10 +168,24 @@ object TimeContext {
         val dateMatch = Regex("""^(\d{4}-\d{2}-\d{2})$""").find(v)
         if (dateMatch != null) {
             val date = dateMatch.groupValues[1]
-            return if (date in ctx.localDates) "${date}T00:00" else null
+            return if (isAcceptedFactDate(ctx, date)) "${date}T00:00" else null
         }
 
         return null
+    }
+
+    /**
+     * 审计修复 (C-03): 判定某日期是否可作为 fact 日期。
+     * 会话本地日期直接放行；否则放行落在 [今天, 今天+FUTURE_DATE_WINDOW_DAYS] 的近期未来
+     * （如"下周三""下周搬家"），这些事件由 LLM 依据相对表述推算、但不落在会话来源日期内，
+     * 原逻辑把它们置 null 丢失时间信息。超出该窗口的日期仍视为 LLM 编造并拒绝。
+     */
+    private fun isAcceptedFactDate(ctx: FactTimeContext, dateStr: String): Boolean {
+        if (dateStr in ctx.localDates) return true
+        val date = runCatching { LocalDate.parse(dateStr) }.getOrNull() ?: return false
+        val today = LocalDate.now(ZoneId.of(DEFAULT_TIMEZONE))
+        val maxFuture = today.plusDays(FUTURE_DATE_WINDOW_DAYS)
+        return date >= today && date <= maxFuture
     }
 
     /** 逻辑日。 */
@@ -190,6 +213,12 @@ object TimeContext {
     /** fact 时间规范化的上下文。 */
     data class FactTimeContext(
         val localDates: List<String>,
+        /**
+         * 摘要文本中扫描到的时间信号（冗余保留）。
+         * C-03 复核：normalizeFactTimestamp 目前不使用该字段——本修复对未来日期走
+         * [isAcceptedFactDate] 的窗口判定，无需再依赖摘要原文信号参与校验；保留该字段
+         * 仅为向后兼容 FactTimeContext 构造签名，若未来需"仅 HH:MM + 摘要日期"消歧可在此扩展。
+         */
         val summaryTimes: List<String>,
     )
 }

@@ -368,6 +368,8 @@
     <string name="chat_video_play_cd">動画を再生</string>
     <string name="chat_generated_video_cd">生成されたビデオ</string>
     <string name="tool_call_progress_cd">ツール呼び出しの進捗 %1$d/%2$d</string>
+    <string name="chat_msg_selected">選択済み</string>
+    <string name="chat_msg_not_selected">未選択</string>
     <string name="moment_images_selected">%1$d 枚選択済み(タップで追加)</string>
     <string name="moment_add_images_hint">画像を追加(最大 %1$d 枚)</string>
     <string name="rich_input_markdown_placeholder">text</string>

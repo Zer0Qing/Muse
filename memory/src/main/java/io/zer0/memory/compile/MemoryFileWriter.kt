@@ -31,6 +31,9 @@ class MemoryFileWriter(
     @Volatile
     private var lastWrittenMemoryMd: String? = null
 
+    // C-06: dedup 用独立锁对象 — lastWrittenMemoryMd 可空,synchronized 需要非空 Any 监视器。
+    private val memoryMdLock = Any()
+
     companion object {
         private const val TAG = "MemoryFileWriter"
 
@@ -52,16 +55,21 @@ class MemoryFileWriter(
      */
     fun writeMemoryMd(content: String, locale: String = "zh-CN") {
         // v1.0.47: 内容未变则跳过 IO,避免短时间多次重复写入相同的小文件
-        if (content == lastWrittenMemoryMd) {
-            Logger.d(TAG, "memory.md unchanged, skip write (${content.length} chars)")
-            return
-        }
-        runCatching {
-            val file = File(memoryDir, "memory.md")
-            file.writeText(content)
-            lastWrittenMemoryMd = content
-        }.onFailure {
-            Logger.w(TAG, "写入 memory.md 失败: ${it.message}", it)
+        // C-06: dedup 加锁 — 读路径(readCompiledMemoryMarkdown)会调用本方法,
+        // 并发读-写同一文件时 lastWrittenMemoryMd 的 check-then-act 需串行化。
+        synchronized(memoryMdLock) {
+            if (content == lastWrittenMemoryMd) {
+                Logger.d(TAG, "memory.md unchanged, skip write (${content.length} chars)")
+                return
+            }
+            runCatching {
+                val file = File(memoryDir, "memory.md")
+                // C-06: 临时文件 + 原子 rename,避免写一半进程被杀留下损坏文件
+                writeAtomically(file, content)
+                lastWrittenMemoryMd = content
+            }.onFailure {
+                Logger.w(TAG, "写入 memory.md 失败: ${it.message}", it)
+            }
         }
         Logger.d(TAG, "memory.md updated (${content.length} chars, locale=$locale)")
     }
@@ -85,14 +93,28 @@ class MemoryFileWriter(
         runCatching {
             val body = content.trim()
             val file = File(dailyDir, "$date.md")
+            // C-06: 临时文件 + 原子 rename
             if (body.isEmpty()) {
-                file.writeText("")
+                writeAtomically(file, "")
             } else {
-                file.writeText("## $date\n\n$body\n")
+                writeAtomically(file, "## $date\n\n$body\n")
             }
             Logger.d(TAG, "daily/$date.md updated (${body.length} chars)")
         }.onFailure {
             Logger.w(TAG, "写入 daily/$date.md 失败: ${it.message}", it)
+        }
+    }
+
+    /**
+     * C-06: 原子写入 — 先写同目录 .tmp 再 rename 覆盖,
+     * 进程被杀/写一半时不会留下截断的目标文件(读路径直接 readText 会读到半截内容)。
+     */
+    private fun writeAtomically(file: File, content: String) {
+        val tmp = File(file.parentFile, file.name + ".tmp")
+        tmp.writeText(content)
+        if (!tmp.renameTo(file)) {
+            // rename 失败(极少见)回退直接写,保证功能可用
+            file.writeText(content)
         }
     }
 

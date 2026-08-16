@@ -54,8 +54,14 @@ internal class StreamRunState(
     // Phase E: resolveToolsAndModel
     var tools: List<ToolDefinition> = emptyList()
     var skillMap: Map<String, SkillEntity> = emptyMap()
+    // C-12: 主模型(可能支持视觉)—— 供视觉辅助判定与最终回复轮使用
     var effectiveModel: Model? = null
     var effectiveProviderConfig: ProviderConfig? = null
+    // C-12: 工具模型(用户配置的轻量 toolModel,可为 null)——
+    //  仅"工具轮"(上一轮结果含 toolCalls 的续接轮)使用,最终回复轮切回主模型,
+    //  避免主模型支持视觉也被 toolModel 降级为纯文本路由。
+    var toolModel: Model? = null
+    var toolProviderConfig: ProviderConfig? = null
     var reasoningLevel: ReasoningLevel = ReasoningLevel.OFF
     var conversationHistory: MutableList<UIMessage> = mutableListOf()
 

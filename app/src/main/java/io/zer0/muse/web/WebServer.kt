@@ -9,6 +9,7 @@ import io.ktor.http.auth.HttpAuthHeader
 import io.ktor.http.auth.parseAuthorizationHeader
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
 import io.ktor.server.auth.authenticate
@@ -59,8 +60,10 @@ import io.zer0.muse.R
  * P2-13:WebServer PIN 安全
  *  - 启动时生成 6 位数字 PIN(随机),用于 Web 端首次访问验证
  *  - Web 端通过 `POST /api/auth/pin-login` 提交 PIN,服务端校验后签发 JWT
- *  - JWT 同时通过 Cookie(`token`)与 query param(`?token=xxx`)下发,Web 端后续请求无需再次输入
- *  - 受保护路由的 JWT 鉴权同时支持 Authorization 头、Cookie、query param 三种来源
+ *  - JWT 仅通过 Cookie(`token`)与登录响应体(Authorization 头)下发,后续请求无需再次输入
+ *  - C-29: 不再经 query param(`?token=`)新发 JWT(query 会进浏览器历史/Referer/访问日志);
+ *    仅为向后兼容保留对旧 `?token=` 的**只读**提取,不作新签发通道
+ *  - 受保护路由的 JWT 鉴权支持 Authorization 头、Cookie 两种来源,query param 仅作兼容读取
  *
  * 路由:
  *  - `GET  /api/health` — 健康检查(无需鉴权)
@@ -206,8 +209,9 @@ class WebServer(
      * JWT 鉴权配置。
      * P2-13: 通过 `authHeader` 自定义 token 提取,支持三种来源:
      *  1. `Authorization: Bearer <token>` 头(原有行为)
-     *  2. `token` Cookie(PIN 登录后由浏览器自动携带)
-     *  3. `token` query param(适合无 Cookie 场景,如内嵌 iframe / 命令行)
+     *  2. `token` Cookie(PIN/密码登录后由浏览器自动携带)
+     *  3. `token` query param —— **C-29: 仅作旧 `?token=` 兼容读取,不再新发。**
+     *     现有登录接口只通过 Set-Cookie / 登录响应体签发 JWT,不会把 token 拼进 URL。
      */
     private fun Application.configureSecurity(jwtSecret: String) {
         val algorithm = Algorithm.HMAC256(jwtSecret)
@@ -215,13 +219,14 @@ class WebServer(
             jwt(AUTH_JWT_NAME) {
                 realm = REALM
                 verifier(JWT.require(algorithm).build())
-                // 自定义 token 提取: Authorization 头 → Cookie → query param
+                // 自定义 token 提取: Authorization 头 → Cookie → query param(兼容旧 ?token=,仅读取)
                 authHeader { call ->
                     val rawAuthHeader = call.request.headers[io.ktor.http.HttpHeaders.Authorization]
                     if (rawAuthHeader != null) {
                         // M6: runCatching 改为 resultOf,避免吞没 CancellationException
                         resultOf { parseAuthorizationHeader(rawAuthHeader) }.getOrNull()
                     } else {
+                        // C-29: Cookie 是主通道;query param 仅作旧客户端兼容读取(服务端不再签发到 query)
                         val token = call.request.cookies[TOKEN_COOKIE_NAME]
                             ?: call.request.queryParameters[TOKEN_QUERY_PARAM]
                         if (token != null) {
@@ -336,6 +341,9 @@ class WebServer(
                 }
                 clearAttempts(clientIp)
                 val token = issueJwt(algorithm)
+                // C-29: 密码登录同样通过 Set-Cookie 下发 JWT,与 PIN 登录一致,避免 token 进 query/URL。
+                //   响应体仍返回 token 供非浏览器客户端(如脚本)取用;Web 端走 httpOnly Cookie。
+                call.appendTokenCookie(token)
                 call.respond(LoginResponse(token = token, expiresIn = TOKEN_TTL_MS / 1000))
             }
 
@@ -360,17 +368,8 @@ class WebServer(
                 }
                 clearAttempts(clientIp)
                 val token = issueJwt(algorithm)
-                // 通过 Cookie 下发 token,Web 端浏览器后续请求自动携带
-                // 当前为 HTTP 服务,Cookie 无法设 secure=true(JWT token 明文传输,仅限局域网信任模型)。
-                // TODO: HTTPS 启用时改为 secure=true
-                call.response.cookies.append(
-                    name = TOKEN_COOKIE_NAME,
-                    value = token,
-                    maxAge = TOKEN_TTL_MS / 1000,
-                    path = "/",
-                    httpOnly = true,
-                    secure = false,
-                )
+                // C-29: token 仅经 Cookie 下发,不进 query/URL;Web 端浏览器后续请求自动携带。
+                call.appendTokenCookie(token)
                 call.respond(LoginResponse(token = token, expiresIn = TOKEN_TTL_MS / 1000))
             }
 
@@ -435,6 +434,22 @@ class WebServer(
             .withIssuedAt(Date())
             .withExpiresAt(Date(System.currentTimeMillis() + TOKEN_TTL_MS))
             .sign(algorithm)
+    }
+
+    /**
+     * C-29: 通过 httpOnly Cookie 下发 JWT(不进 query/URL,避免进浏览器历史/Referer/访问日志)。
+     * 当前为 HTTP 服务,Cookie 无法设 secure=true(JWT 仅限局域网信任模型);
+     * TODO: HTTPS 启用时改为 secure=true。
+     */
+    private fun ApplicationCall.appendTokenCookie(token: String) {
+        response.cookies.append(
+            name = TOKEN_COOKIE_NAME,
+            value = token,
+            maxAge = TOKEN_TTL_MS / 1000,
+            path = "/",
+            httpOnly = true,
+            secure = false,
+        )
     }
 
     // ── DTO 转换 ──────────────────────────────────────────────────────────
@@ -550,9 +565,9 @@ class WebServer(
         private const val TOKEN_TTL_MS = 24L * 60 * 60 * 1000 // 24 小时
 
         // P2-13: Web 端 PIN 安全相关
-        /** PIN 登录后下发的 Cookie 名,Web 端浏览器会自动携带。 */
+        /** PIN/密码登录后下发的 Cookie 名,Web 端浏览器会自动携带。 */
         private const val TOKEN_COOKIE_NAME = "token"
-        /** 备用 query param 名(无 Cookie 场景,如内嵌 iframe / 命令行)。 */
+        /** C-29: 旧 `?token=` 兼容读取的参数名(服务端不再新签发到 query,仅向后兼容旧客户端)。 */
         private const val TOKEN_QUERY_PARAM = "token"
         /** 6 位数字 PIN 校验正则。 */
         private val PIN_REGEX = Regex("^\\d{6}$")

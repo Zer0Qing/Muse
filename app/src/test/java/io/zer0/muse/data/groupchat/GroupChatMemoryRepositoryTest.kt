@@ -36,6 +36,10 @@ internal abstract class TestMuseDb : RoomDatabase() {
  *  - 原有 saveSummary / getByAssistant 回归(回复摘要写入 + prompt 注入读取)
  *
  * 用内存 Room 库,不依赖真实 DB 文件,CI 可稳定运行。
+ *
+ * C-31 评估:[TestMuseDb] 仅在本文件定义,全仓库其他 Room 测试复用生产 MuseDb/FactDb/MemoryDb
+ * (in-memory),无同职责跨文件复制。重复度低,不值得建 testFixtures 基建,保持文件内内部类。
+ * 见深度审计报告 C-31 修正说明。
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])

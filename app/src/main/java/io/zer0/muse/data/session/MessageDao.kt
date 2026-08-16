@@ -187,6 +187,16 @@ interface MessageDao {
     @Query("SELECT id, content FROM messages")
     suspend fun getAllForFtsRebuild(): List<FtsRebuildRow>
 
+    /**
+     * 取最近 [limit] 条消息(id + content,按 createdAt 降序)。FTS 一致性内容抽查用。
+     *
+     * C-23: ensureFtsIndexConsistent 的行数相等但内容可能漂移时,抽样最近消息做
+     * 内容级 MATCH 校验。最近消息是编辑/重生成最常触达的区域,抽样命中率最高;
+     * 有界 limit 避免全量加载(full rebuild 才需要 getAllForFtsRebuild)。
+     */
+    @Query("SELECT id, content FROM messages ORDER BY createdAt DESC LIMIT :limit")
+    suspend fun getFtsSample(limit: Int): List<FtsRebuildRow>
+
     /** Phase 10.3: messages 表行数(ensureFtsIndexConsistent 比较用)。 */
     @Query("SELECT COUNT(*) FROM messages")
     suspend fun countMessages(): Int

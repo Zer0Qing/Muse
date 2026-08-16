@@ -191,7 +191,7 @@ class ChatExportCoordinator(
     }
 
     /**
-     * 导出当前会话为单文件 HTML(内联 CSS + base64 图片 + highlight.js CDN)。
+     * 导出当前会话为单文件 HTML(内联 CSS + base64 图片,无外链;CDN 已移除)。
      *
      * 委托至 [io.zer0.muse.data.export.ConversationExporter.exportToHtml],
      * 消息列表与标题的加载逻辑与 [exportSessionAsMarkdown] 一致。
@@ -200,7 +200,9 @@ class ChatExportCoordinator(
         val state = accessor.snapshot
         val title = resolveTitle(state)
         val messages = loadAllMessages(state)
-        val output = io.zer0.muse.data.export.ConversationExporter.exportToHtml(messages, title)
+        // C-24: HTML 路径无 Context 可取应用 locale,用系统默认 locale 决定导出文案语言。
+        val locale = java.util.Locale.getDefault()
+        val output = io.zer0.muse.data.export.ConversationExporter.exportToHtml(messages, title, locale)
         auditLogger?.log(
             category = "user_action",
             action = "export_session",
@@ -220,7 +222,9 @@ class ChatExportCoordinator(
         val state = accessor.snapshot
         val title = resolveTitle(state)
         val messages = loadAllMessages(state)
-        val output = io.zer0.muse.data.export.ConversationExporter.exportToPdf(context, messages, title)
+        // C-24: 用系统默认 locale 决定 PDF 内角色标签/日期等文案语言。
+        val locale = java.util.Locale.getDefault()
+        val output = io.zer0.muse.data.export.ConversationExporter.exportToPdf(context, messages, title, locale)
         auditLogger?.log(
             category = "user_action",
             action = "export_session",

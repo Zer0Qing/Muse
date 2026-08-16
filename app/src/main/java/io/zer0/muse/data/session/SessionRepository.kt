@@ -77,6 +77,10 @@ class SessionRepository(
         private const val SNIPPET_RADIUS = 30
         /** 搜索片段无匹配时回退取前缀长度。 */
         private const val SNIPPET_FALLBACK_LENGTH = 60
+        /** C-23: FTS 内容一致性抽查条数。 */
+        private const val FTS_SAMPLE_COUNT = 10
+        /** C-23: 内容抽查时每个样本用于构造 MATCH 探测的 token 数量上限。 */
+        private const val FTS_PROBE_TOKEN_LIMIT = 3
     }
 
     /**
@@ -907,12 +911,24 @@ class SessionRepository(
     }
 
     /**
-     * Phase 10.3: 检查 FTS 索引一致性,不一致则全量 rebuild。
+     * Phase 10.3 (C-23 强化): 检查 FTS 索引一致性,不一致则全量 rebuild。
      *
      * 触发场景:
      * - v8→v9 迁移后(messages_fts 空表,需首次全量索引)
      * - 外部修改 messages 表(备份导入后)
      * - 索引损坏(FTS 查询异常后下次启动自愈)
+     *
+     * 判定分两层:
+     * 1. 行数比较:msgCount == ftsCount(messages 与 messages_fts 是否同一基量)。
+     * 2. 内容抽查(C-23):行数相等不代表内容一致 —— 编辑/重生成导致消息内容更新而
+     *    FTS 同步失败时,行数可能不变但索引里仍是旧内容。此时抽样最近
+     *    [FTS_SAMPLE_COUNT] 条消息,用其当前文本构造 MATCH 探测,FTS 能命中该
+     *    messageId 视为一致,否则判为不一致并触发 rebuild。
+     *
+     * messages_fts 两个实现(FTS4 仅 message_id+content_ngram、FTS5 external content
+     * 仅 rowid+content)都不存 updated_at 时间列,messages 表也无 updatedAt,故无法
+     * 直接比 MAX(updatedAt);选抽样内容校验(改动小、启动时 N 次有界 MATCH,不引入
+     * 全量扫描性能问题)。
      *
      * 由 [ChatViewModel] init 在 app 启动时异步调用,IO 线程执行。
      * 万级消息 rebuild 约数百毫秒,不阻塞 UI。
@@ -924,12 +940,85 @@ class SessionRepository(
             Logger.w(TAG, "FTS count check failed: msg=$msgCount fts=$ftsCount")
             return@withContext
         }
-        if (msgCount == ftsCount) {
-            Logger.d(TAG, "FTS index consistent: $ftsCount rows")
+        if (msgCount != ftsCount) {
+            Logger.i(TAG, "FTS index inconsistent (row count): msg=$msgCount fts=$ftsCount, rebuilding...")
+            rebuildFtsIndex()
             return@withContext
         }
-        Logger.i(TAG, "FTS index inconsistent: msg=$msgCount fts=$ftsCount, rebuilding...")
-        rebuildFtsIndex()
+        // C-23: 行数相等后追加内容抽查,捕获"内容更新而 FTS 未同步且行数不变"的漂移。
+        val staleSampleIds = ftsSampleIdsStale()
+        if (staleSampleIds.isEmpty()) {
+            Logger.d(TAG, "FTS index consistent: $ftsCount rows, content spot-check OK")
+        } else {
+            Logger.i(
+                TAG,
+                "FTS content spot-check failed for ${staleSampleIds.size} sample(s) " +
+                    "(e.g. ${staleSampleIds.first()}), rebuilding...",
+            )
+            rebuildFtsIndex()
+        }
+    }
+
+    /**
+     * C-23: 返回内容与 FTS 索引不一致的样本 messageId 列表(空白内容样本不参与判定)。
+     */
+    private suspend fun ftsSampleIdsStale(): List<String> {
+        val samples = resultOf { messageDao.getFtsSample(FTS_SAMPLE_COUNT) }
+            .onError { msg, t ->
+                // 语义上近似"数据库读取瞬时失败",不应据此误判不一致重建全量索引;
+                // 记日志,返回空(本次抽查跳过)。
+                Logger.w(TAG, "FTS sample fetch failed, skipping content check: $msg", t)
+            }
+            .getOrNull() ?: return emptyList()
+        val stale = mutableListOf<String>()
+        for (row in samples) {
+            if (row.content.isNotBlank() && !ftsMatchesMessage(row)) {
+                stale.add(row.id)
+            }
+        }
+        return stale
+    }
+
+    /**
+     * C-23: 判断单个样本在当前 FTS 模式下能否以其文本命中自身。
+     *
+     * 用样本最新内容的 token 子集构造 MATCH 探测,FTS 返回结果里含该 messageId 说明
+     * 索引内容与该消息一致;否则视为索引仍为旧内容(漂移)。
+     */
+    private suspend fun ftsMatchesMessage(sample: FtsRebuildRow): Boolean {
+        val probe = buildFtsContentProbe(sample.content)
+        if (probe.isBlank()) return true
+        return when (val r = resultOf { searchFtsByMode(probe) }) {
+            is io.zer0.common.Result.Success -> r.data.any { it.messageId == sample.id }
+            is io.zer0.common.Result.Error -> {
+                // FTS 查询异常不能证明该样本漂移(且查询错误路径本身已有 LIKE 兜底);
+                // 记日志跳过,不据此误重建,避免一次瞬时错误打爆全量索引。
+                Logger.w(TAG, "FTS probe search failed for ${sample.id}: ${r.message}")
+                true
+            }
+        }
+    }
+
+    /**
+     * C-23: 由样本内容构造 FTS MATCH 探测串(取 [FTS_PROBE_TOKEN_LIMIT] 个不重复 token)。
+     *
+     * 用整段内容的全部 token 做 AND 会对"仅一处 token 变化"的消息产生高灵敏度但高
+     * 假阴性;取少量代表 token 即可稳定命中已同步的索引,同时对旧内容足够不命中。
+     */
+    private fun buildFtsContentProbe(content: String): String {
+        if (MessageFtsRuntime.useFts5) {
+            // FTS5 unicode61 按空白切词原文索引:直接对词做短语包装。
+            val terms = content.trim().split(Regex("\\s+")).filter { it.isNotBlank() }.distinct()
+            return terms.take(FTS_PROBE_TOKEN_LIMIT)
+                .joinToString(" ") { "\"${it.replace("\"", "\"\"")}\"" }
+        }
+        // FTS4 ngram 索引:对当前内容做 2-gram,取前几个不重复 token(token 已含引号转义)。
+        val tokens = MessageFtsManager.toNgram(content)
+            .split(' ')
+            .filter { it.isNotBlank() }
+            .distinct()
+        return tokens.take(FTS_PROBE_TOKEN_LIMIT)
+            .joinToString(" ") { "\"${it.replace("\"", "")}\"" }
     }
 
     /**

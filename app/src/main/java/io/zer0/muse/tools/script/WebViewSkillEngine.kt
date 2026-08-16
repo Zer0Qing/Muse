@@ -21,12 +21,16 @@ class WebViewSkillEngine : SkillEngine {
 
     private val executionMutex = Mutex()
 
-    override suspend fun eval(script: String, timeoutMs: Long): SkillEngineResult {
-        if (JsSandbox.isCircuitBroken) {
+    /**
+     * C-30: [scopeKey] 透传给 [JsSandbox.execute],使插件熔断状态按插件 id 隔离。
+     * 默认值声明在接口 [SkillEngine.eval](Kotlin 禁止 override 重复默认值)。
+     */
+    override suspend fun eval(script: String, timeoutMs: Long, scopeKey: String?): SkillEngineResult {
+        if (JsSandbox.isCircuitBrokenFor(scopeKey)) {
             return SkillEngineResult.Error(message = "JS 沙盒已熔断，请稍后重试")
         }
         return executionMutex.withLock {
-            val result = JsSandbox.execute(script, timeoutMs)
+            val result = JsSandbox.execute(script, timeoutMs, scopeKey)
             result.fold(
                 onSuccess = { jsResult ->
                     if (jsResult.error != null) {

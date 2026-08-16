@@ -9,6 +9,8 @@
     <string name="chat_video_play_cd">동영상 재생</string>
     <string name="chat_generated_video_cd">생성된 비디오</string>
     <string name="tool_call_progress_cd">도구 호출 진행 %1$d/%2$d</string>
+    <string name="chat_msg_selected">선택됨</string>
+    <string name="chat_msg_not_selected">선택 안 됨</string>
     <string name="moment_images_selected">%1$d장 선택됨(탭하여 계속 선택)</string>
     <string name="moment_add_images_hint">이미지 추가(최대 %1$d장)</string>
     <string name="rich_input_markdown_placeholder">text</string>

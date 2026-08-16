@@ -71,6 +71,11 @@ class PluginManager(
     }
 
     suspend fun installFromFile(file: File): Result<InstalledPlugin> = withContext(Dispatchers.IO) {
+        // C-30 注记: 当前安装流程仅做「结构/能力」校验(见 PluginPackageLoader: ZIP 炸弹、路径遍历、
+        // 入口文件存在、id/name/capabilities 合法),**不包含签名校验** —— 插件包格式无 hash/signature 字段,
+        // 安装的 JS 代码是未签名的信任即用(trust-on-first-use)模型,靠 JsSandbox 沙盒(禁用网络/导航)兜底运行时风险。
+        // 若要补真签名校验,需在 manifest 增加签名/hash 字段并在本方法与 PluginPackageLoader 中校验;在此之前,
+        // 已在 UI 导入入口预留「安装二次确认」提示位(见 PluginManagePage.importFromUri)。
         val bytes = runCatching { file.readBytes() }
             .getOrElse { e -> return@withContext Result.failure(e) }
         when (val loaded = PluginPackageLoader.loadFromZip(bytes)) {

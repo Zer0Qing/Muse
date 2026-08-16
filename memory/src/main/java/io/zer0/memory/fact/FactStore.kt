@@ -543,10 +543,16 @@ class FactStore(
         val target = dao.getById(id)
         dao.deleteFts(id)
         val removed = dao.deleteById(id) > 0
-        if (removed && target != null) {
-            // 审计修复 (S-04): 记录删除墓碑 — 已删事实不得从会话摘要重新编译时"复活"。
-            // 规范化后去重存储,只增不删(除非 clearAll)。
-            recordTombstone(target.fact)
+        if (removed) {
+            // 审计修复 (C-07): 同步清理指向该事实的 memory_links 孤儿边 —
+            // memory_links 建表时刻意不加外键级联（避免级联性能损耗，见 FactDb.MIGRATION_9_10），
+            // 事实删除后须在应用层删除以 source/target 指向该 id 的边，避免知识图谱脏边。
+            db.memoryLinkDao().deleteByFactId(id)
+            if (target != null) {
+                // 审计修复 (S-04): 记录删除墓碑 — 已删事实不得从会话摘要重新编译时"复活"。
+                // 规范化后去重存储,只增不删(除非 clearAll)。
+                recordTombstone(target.fact)
+            }
         }
         removed
     }

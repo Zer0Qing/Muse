@@ -40,7 +40,7 @@
 | R-DOC-06 | 已完成 | 构建正常 | 删除 app/build_alt（约 2.3GB）与 .kotlin/sessions |
 | R-DOC-08 | 已完成 | grep `runCatching { playbackJob` 0 命中；`:app:compileDebugKotlin` 通过 | TtsManager 两处 join 改 resultOf；phase3 清单同步 workflow 包已删 |
 | R-UI-10 | 已完成 | grep ThemePreviewCard 0 命中；编译通过 | ThemeSection 死代码 ThemePreviewCard 删除 |
-| R-UI-11 | 已完成 | grep `collectAsState()` 仅剩 MuseToastHost（带注释） | ProviderSection 改 collectAsStateWithLifecycle |
+| R-UI-11 | 已完成（声明已过期） | 复核 `collectAsState(` 当前实际 12 处 / 5 文件（BrowserCapsule ×7、ChatScreen ×2、HomeScreen、GroupChatDetailScreen、MuseToastHost），原"仅剩 MuseToastHost"声明已被推翻 | ProviderSection 改 collectAsStateWithLifecycle；其余 12 处为后续迁移项（含 collectAsState(initial=…) 变体），本行已加"已过期"标注 |
 | R-UI-12 | 已完成（复核） | 5 个文件逐点复核 | 现有交互按钮/行均带语义标签或相邻文本，剩余 null 均为装饰性图标，符合任务书“装饰性保持 null”说明 |
 | R-UI-13 | 已完成 | 编译通过 | SettingsTutorialPage 搜索结果 items 补稳定 key |
 | R-UI-14 | 已完成（含豁免清单） | assembleDebug + 三模块测试全绿 | 已拆 11 个文件；ChatScreen/MuseDb/GroupChatScheduler/ChatViewModel 列入豁免清单（需类级/状态级拆分，随 R-UI-08 下一迭代） |

@@ -29,6 +29,10 @@ import java.util.concurrent.atomic.AtomicInteger
  *
  * 注:RPM 限流逻辑由 [io.zer0.ai.util.SlidingWindowRateLimiterTest] 覆盖
  * (decorator 内部 limiter 用实时时钟,无法注入虚拟时钟,故不在此重复测 RPM 等待)。
+ *
+ * C-31 评估:[FakeProvider] 只在 ai 模块本文件使用,全仓库无同名/同职责的跨文件复制
+ * (VideoGenerationServiceTest 的 FakeVideoProvider 用途不同)。重复度低,不值得建
+ * testFixtures 基建,保持文件内私有。见深度审计报告 C-31 修正说明。
  */
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class RateLimitDecoratorTest {

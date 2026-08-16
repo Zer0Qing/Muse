@@ -33,6 +33,17 @@ object PdfVisionSkill {
     /** 硬上限(用户可显式指定到 200,但不能更高)。 */
     const val HARD_MAX_PAGES = 200
 
+    /**
+     * 解析 max_pages 参数并钳制到合法范围。
+     *
+     * 纯逻辑,供单元测试直接验证,不依赖文件系统或 parser 调用。
+     * (C-32: 把 max_pages 钳制从 execute 抽出,避免测试耦合"文件存在性检查→parser 调用"顺序。)
+     *
+     * @param raw 原始参数值;null/空/非数字用 [DEFAULT_MAX_PAGES];越界钳制到 [1, HARD_MAX_PAGES]。
+     */
+    internal fun resolveMaxPages(raw: String?): Int =
+        raw?.toIntOrNull()?.coerceIn(1, HARD_MAX_PAGES) ?: DEFAULT_MAX_PAGES
+
     fun toolDef() = ToolRegistry.ToolDef(
         name = NAME,
         description = "对 PDF 文件做视觉解析(每页渲染为图片 → 视觉模型 OCR 提取文字)。" +
@@ -69,9 +80,7 @@ object PdfVisionSkill {
 
         if (rawPath.contains("..")) return "[错误] 路径禁止包含 '..'"
 
-        val maxPages = args["max_pages"]?.toIntOrNull()
-            ?.coerceIn(1, HARD_MAX_PAGES)
-            ?: DEFAULT_MAX_PAGES
+        val maxPages = resolveMaxPages(args["max_pages"])
 
         // 解析路径:工作区相对路径 → filesDir → cacheDir → 外部 Download → 绝对路径
         val candidates = listOf(

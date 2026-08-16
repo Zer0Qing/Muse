@@ -259,7 +259,7 @@ Muse 每次回复前会生成一个 `mood` 块，这是 AI 的"内心独白"—�
 | AI 推理 | ONNX Runtime (本地 embedding + rerank) |
 | 文档解析 | PDFBox + ML Kit OCR |
 | Web 服务器 | Ktor (JWT + mDNS) |
-| 代码分析 | CI 执行 detekt + ktlint + lintDebug + Lane 脚本；单测按所有者决策不在 CI 执行 |
+| 代码分析 | CI 执行 detekt + ktlint + lintDebug + Lane 脚本；单测在 CI 经 Kover 覆盖率校验执行（`koverCachedVerifyDebug` 阈值 ai 40 / memory 30 / app 12），无独立 `./gradlew test` 步骤 |
 
 ---
 
@@ -284,9 +284,15 @@ cd Muse
 # 安装到已连接设备
 ./gradlew :app:installDebug
 
-# 正式发布构建
-./gradlew :app:assembleRelease
+# 正式发布构建（需签名与版本注入）
+# 版本号：正式构建硬约束必须显式注入（否则 GradleException），支持
+#  -PversionName=<名称> 与 -PversionCode=<整数>，或环境变量 VERSION_NAME/VERSION_CODE。
+# 签名：必须在 app/ 模块旁提供 keystore.properties（或传 -PstoreFile 等）；缺失即失败，禁止回退 debug 签名。
+./gradlew :app:assembleRelease \
+  -PversionName=1.0.75 \
+  -PversionCode=162
 ```
+> 说明：本地临时验证可加 `-PreleaseSkipVersionCheck=true -PreleaseSkipKeystoreCheck=true` 跳过版本与签名硬约束（对应 CI 静态检查的用法）。
 
 APK 输出路径：`app/build/outputs/apk/release/app-{abi}-release.apk`
 

@@ -11,6 +11,7 @@ import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.webkit.WebViewDatabase
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import kotlinx.coroutines.Dispatchers
@@ -24,6 +25,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 import java.io.ByteArrayInputStream
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.resume
 
 /**
@@ -85,9 +87,22 @@ object JsSandbox {
     /** R-SVC-04: 累计超时配额(进程内),超过后同样熔断。 */
     private const val MAX_TOTAL_TIMED_OUT_MS = 60_000L
 
-    @Volatile private var consecutiveTimeouts = 0
-    @Volatile private var totalTimedOutMs = 0L
-    @Volatile private var circuitBrokenUntil = 0L
+    /**
+     * C-30: 熔断状态按 scopeKey(插件 id)维度隔离,避免一个插件死循环熔断连坐全部 JS 工具。
+     * key == null 代表内置/非插件工具(保留原有全局语义)。
+     * 改用 [ConcurrentHashMap] 支持并发读写(每个周期的状态更新在同一主线程 mutex 内串行,
+     * 但读取 [isCircuitBroken] 可能来自其他线程)。
+     */
+    private class CircuitState(
+        @Volatile var consecutiveTimeouts: Int = 0,
+        @Volatile var totalTimedOutMs: Long = 0L,
+        @Volatile var circuitBrokenUntil: Long = 0L,
+    )
+
+    private val circuitStates = ConcurrentHashMap<String?, CircuitState>()
+
+    /** 获取指定 scopeKey(插件 id)的熔断状态;null scope 表示内置工具,keyed 惰性创建。 */
+    private fun stateFor(scopeKey: String?): CircuitState = circuitStates.getOrPut(scopeKey) { CircuitState() }
 
     /** 日志缓冲区:每次 execute 前清空。synchronized 保护多线程访问。 */
     private val logsLock = Any()
@@ -124,21 +139,29 @@ object JsSandbox {
      *
      * @param code JS 代码(可以是表达式、语句块或函数调用;若为语句块,返回最后一个表达式的值)
      * @param timeoutMs 超时毫秒数,默认 10 秒
+     * @param scopeKey C-30: 执行归属的插件 id(插件工具传 pluginId;内置工具不传使用 null 全局 scope)。
+     *   熔断状态按此隔离,一个插件的死循环超时只熔断自身,不会连坐其他插件/内置工具。
      * @return [Result] 包裹的 [JsResult];Kotlin 侧异常返回 failure(JS 执行错误封装在 JsResult.error 中)
      */
-    suspend fun execute(code: String, timeoutMs: Long = 10000L): Result<JsResult> =
+    suspend fun execute(code: String, timeoutMs: Long = 10000L, scopeKey: String? = null): Result<JsResult> =
         withContext(Dispatchers.Main) {
             // 审计修复 (4.4): execute 加互斥 — 原实现无并发控制,多个工具同时 execute
             // 会并发进入 WebView JS 执行,console 日志缓冲区互相污染、超时销毁与回调交错;
             // 用 Mutex 串行化,同一时刻只允许一个 JS 执行。锁内等待是挂起而非阻塞主线程。
             executionMutex.withLock {
             try {
-                if (System.currentTimeMillis() < circuitBrokenUntil) {
+                // C-30: 熔断状态按 scopeKey 隔离读取
+                val state = stateFor(scopeKey)
+                if (System.currentTimeMillis() < state.circuitBrokenUntil) {
                     return@withContext Result.failure(
-                        IllegalStateException("JS 沙盒已熔断，请稍后重试"),
+                        IllegalStateException("JS 沙盒已熔断，请稍后重试(scope=${scopeKey ?: "default"})"),
                     )
                 }
                 val webView = ensureWebView()
+                // C-30: 每次执行前清理 localStorage / 缓存 / 表单数据,防止跨插件(以及跨执行)残留
+                //   泄漏到下一次执行。WebView 是全局共享单例,无法按插件隔离实例;
+                //   用"执行前清空数据"保证插件 A 写入的 localStorage 不会被插件 B 读到。
+                clearPerExecutionData(webView)
                 // 清空当前日志
                 synchronized(logsLock) { currentLogs.clear() }
 
@@ -183,12 +206,13 @@ object JsSandbox {
                 if (raw == null) {
                     // 超时:JS 仍在 V8 中跑(无法中断),但 Kotlin 侧返回超时错误
                     val logs = synchronized(logsLock) { currentLogs.toList() }
-                    // R-SVC-04: 超时后销毁 WebView 真正终止 JS,并累计熔断状态。
-                    consecutiveTimeouts++
-                    totalTimedOutMs += timeoutMs
-                    if (consecutiveTimeouts >= MAX_CONSECUTIVE_TIMEOUTS || totalTimedOutMs >= MAX_TOTAL_TIMED_OUT_MS) {
-                        circuitBrokenUntil = System.currentTimeMillis() + CIRCUIT_COOLDOWN_MS
-                        Logger.e(TAG, "JS 沙盒超时熔断: consecutive=$consecutiveTimeouts total=$totalTimedOutMs")
+                    // R-SVC-04 + C-30: 超时后销毁 WebView 真正终止 JS,并累计熔断状态。
+                    //   熔断计数按 scopeKey 隔离,避免一个插件死循环连坐其他 JS 工具。
+                    state.consecutiveTimeouts++
+                    state.totalTimedOutMs += timeoutMs
+                    if (state.consecutiveTimeouts >= MAX_CONSECUTIVE_TIMEOUTS || state.totalTimedOutMs >= MAX_TOTAL_TIMED_OUT_MS) {
+                        state.circuitBrokenUntil = System.currentTimeMillis() + CIRCUIT_COOLDOWN_MS
+                        Logger.e(TAG, "JS 沙盒超时熔断(scope=${scopeKey ?: "default"}): consecutive=${state.consecutiveTimeouts} total=${state.totalTimedOutMs}")
                     }
                     destroy()
                     return@withContext Result.success(
@@ -202,7 +226,7 @@ object JsSandbox {
 
                 val logs = synchronized(logsLock) { currentLogs.toList() }
                 val (value, error) = parseRawResult(raw)
-                consecutiveTimeouts = 0
+                state.consecutiveTimeouts = 0
                 Result.success(JsResult(value = value, consoleLogs = logs, error = error))
             } catch (e: Exception) {
                 Logger.e(TAG, "JsSandbox execute 异常: ${e.message}", e)
@@ -211,15 +235,46 @@ object JsSandbox {
             }
         }
 
-    /** R-SVC-04: 当前是否处于熔断期。 */
-    val isCircuitBroken: Boolean get() = System.currentTimeMillis() < circuitBrokenUntil
+    /**
+     * R-SVC-04: 当前是否处于熔断期(内置/默认 scope,null key)。
+     * C-30: 保留对内置工具的全局语义;插件请使用 [isCircuitBrokenFor] 按 id 判断。
+     */
+    val isCircuitBroken: Boolean get() = isCircuitBrokenFor(null)
 
-    /** R-SVC-04: 手动复位熔断(用户重试/插件禁用后可调用)。 */
-    fun resetCircuitBreaker() {
-        circuitBrokenUntil = 0L
-        consecutiveTimeouts = 0
-        totalTimedOutMs = 0L
-        Logger.i(TAG, "JsSandbox 熔断已复位")
+    /** C-30: 指定插件/scope 是否处于熔断期。 */
+    fun isCircuitBrokenFor(scopeKey: String?): Boolean {
+        val state = circuitStates[scopeKey] ?: return false
+        return System.currentTimeMillis() < state.circuitBrokenUntil
+    }
+
+    /**
+     * R-SVC-04: 手动复位熔断(用户重试/插件禁用后可调用)。
+     * C-30: 默认复位内置 scope;插件复位传对应 pluginId。
+     */
+    fun resetCircuitBreaker(scopeKey: String? = null) {
+        val state = stateFor(scopeKey)
+        state.circuitBrokenUntil = 0L
+        state.consecutiveTimeouts = 0
+        state.totalTimedOutMs = 0L
+        Logger.i(TAG, "JsSandbox 熔断已复位(scope=${scopeKey ?: "default"})")
+    }
+
+    /**
+     * C-30: 每次执行前清理共享 WebView 的持久数据(localStorage / 缓存 / 表单数据),
+     * 防止跨插件残留。必须在主线程调用(execute 在 Main 线程串行执行,安全)。
+     */
+    private fun clearPerExecutionData(webView: WebView) {
+        runCatching {
+            webView.clearCache(true)
+            webView.clearFormData()
+            webView.clearHistory()
+            // C-30: localStorage 属 WebStorage 域,清 via deleteAllData
+            // (WebViewDatabase 无 clearLocalStorage API)
+            android.webkit.WebStorage.getInstance().deleteAllData()
+        }.onFailure { e ->
+            // 清理失败不影响 JS 执行本身(沙盒权限仍有限制),记录日志便于排查
+            Logger.w(TAG, "JsSandbox 每次执行数据清理失败: ${e.message}")
+        }
     }
 
     /**

@@ -1,5 +1,7 @@
 package io.zer0.muse.ui.account
 
+import io.zer0.common.Logger
+
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -477,9 +479,15 @@ private suspend fun persistAvatarUri(context: android.content.Context, uri: Stri
             val parsed = android.net.Uri.parse(uri)
             val resolver = context.contentResolver
             val bytes = resolver.openInputStream(parsed)?.use { it.readBytes() } ?: return@runCatching null
+            // C-20: 与 AvatarStorage 对齐 — 大小上限 + 唯一文件名(固定 avatar.jpg 时
+            // Coil 缓存键不变,换头像后可能显示旧头像)
+            if (bytes.size > MAX_AVATAR_BYTES) {
+                Logger.w("AccountScreen", "头像超过 ${MAX_AVATAR_BYTES / 1024 / 1024}MB 上限,已拒绝")
+                return@runCatching null
+            }
             val dir = java.io.File(context.filesDir, "avatar")
             dir.mkdirs()
-            val target = java.io.File(dir, "avatar.jpg")
+            val target = java.io.File(dir, "avatar_${System.currentTimeMillis()}.jpg")
             target.outputStream().use { it.write(bytes) }
             // v1.0.75 fix (用户反馈): 返回纯绝对路径(不带 file:// 前缀),
             // Coil 的 AsyncImage 对 file:// URI 在某些版本/设备加载不稳定,纯路径更可靠。
@@ -487,3 +495,6 @@ private suspend fun persistAvatarUri(context: android.content.Context, uri: Stri
         }.getOrNull()
     }
 }
+
+/** C-20: 头像文件大小上限(与 AvatarStorage 一致)。 */
+private const val MAX_AVATAR_BYTES = 10L * 1024 * 1024

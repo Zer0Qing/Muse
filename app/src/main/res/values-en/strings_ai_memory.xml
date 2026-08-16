@@ -102,4 +102,22 @@
     <string name="memory_timeline_filter_fact">Facts</string>
     <string name="memory_timeline_filter_summary">Summaries</string>
     <string name="memory_timeline_filter_milestone">Milestones</string>
+
+    <!-- v1.0.72: group chat memory (Memory Center "Group Chat" tab) -->
+    <string name="memory_tab_group_chat">Group Chat</string>
+    <string name="memory_delete_group_chat_failed">Failed to delete group chat memory: %1$s</string>
+    <string name="memory_clear_group_chat_failed">Failed to clear group chat memory: %1$s</string>
+    <!-- v1.x: memory dedup -->
+    <string name="memory_dedup_button">Merge duplicate memories</string>
+    <string name="memory_dedup_result">%1$s duplicate memories merged</string>
+    <string name="memory_dedup_failed">Failed to deduplicate memories</string>
+    <string name="memory_compile_done">Memory compilation complete</string>
+    <string name="memory_compile_failed">Memory compilation failed. Check your model configuration and try again</string>
+    <!-- v1.x: memory card three-dot menu -->
+    <string name="memory_menu_cd">More actions</string>
+    <string name="memory_menu_pin">Pin</string>
+    <string name="memory_menu_unpin">Unpin</string>
+    <string name="memory_menu_importance">Set importance</string>
+    <string name="memory_menu_edit">Edit</string>
+    <string name="memory_menu_delete">Delete</string>
 </resources>

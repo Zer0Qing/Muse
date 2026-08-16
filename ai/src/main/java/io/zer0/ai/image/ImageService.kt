@@ -227,7 +227,11 @@ class ImageService(
                     }
                     "data:$mime;base64,$raw"
                 }
-                !img.url.isNullOrBlank() -> img.url
+                !img.url.isNullOrBlank() -> {
+                    // C-02: url 型结果校验协议前缀,防止畸形响应(裸字符串/相对路径)流入渲染层
+                    val url = img.url
+                    if (url.startsWith("http") || url.startsWith("data:image/")) url else null
+                }
                 else -> null
             }
         }

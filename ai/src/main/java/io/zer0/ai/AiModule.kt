@@ -11,6 +11,7 @@ import io.zer0.ai.core.Provider
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.ProviderConfig
 import io.zer0.ai.core.ProviderType
+import io.zer0.ai.core.ProviderCompatRules
 import io.zer0.ai.core.ReasoningLevel
 import io.zer0.ai.core.ToolDefinition
 import io.zer0.ai.core.UIMessage
@@ -92,11 +93,16 @@ class ChatService(
         mode: ChatRequestMode = ChatRequestMode.CHAT,
         resumeFromText: String? = null,
     ): Flow<ChatStreamEvent> {
-        // B3-03: 断点续传 — 把已产出文本作为末尾 assistant 消息注入,让模型从中断处继续而非从头重生成
-        val effectiveMessages = if (resumeFromText.isNullOrBlank()) {
-            messages
-        } else {
+        // C-11 ②: 续传能力与 Provider 能力绑定 — 仅当 Provider 声明 supportsResumeFromText 时,
+        // 才把已产出文本作为"末尾 assistant 消息"注入,让模型从中断处续写。
+        // 不支持续传的 Provider 会误解/重答一段被截断的 assistant 轮次,此时关闭自动续传,
+        // 交由 UI 层 LCP 去重(duplicateRemaining)接管去重,而不是把部分消息发给模型。
+        val effectiveMessages = if (!resumeFromText.isNullOrBlank() &&
+            supportsResumeFromText(providerConfig, model)
+        ) {
             messages + UIMessage(role = MessageRole.ASSISTANT, content = resumeFromText)
+        } else {
+            messages
         }
         val (provider, request) = buildProviderRequest(effectiveMessages, model, temperature, maxTokens, tools, reasoningLevel, providerConfig, mode)
         // B3-01: SSE 建立后 15s 无首事件,自动降级为非流式重试一次
@@ -106,6 +112,19 @@ class ChatService(
             fallback = { provider.completeText(request) },
             abortCheck = { request.abortSignal.aborted },
         )
+    }
+
+    /**
+     * C-11: 查询 [ProviderCompatRules] 判定该 Provider 是否支持 resumeFromText 续传。
+     *
+     * 按 providerType + baseUrl(host) + modelId 三层解析(与请求体参数构造一致的能力矩阵)。
+     * Provider 未声明时保守返回 true,行为与未接入续传门控前一致。
+     */
+    private suspend fun supportsResumeFromText(providerConfig: ProviderConfig?, model: Model?): Boolean {
+        // providerConfig 由调用方显式传入通常直接命中;缺省回退 configStore(与 buildProviderRequest 同源)。
+        // 取不到配置时保守放行续传:不放行会静默跳过续传,比可能重答的危害更隐蔽,故让 Provider 能力矩阵兜底。
+        val config = providerConfig ?: runCatching { configStore.get() }.getOrNull() ?: return true
+        return ProviderCompatRules.resolve(config.type, config.resolvedBaseUrl(), model?.id).supportsResumeFromText
     }
 
     /**

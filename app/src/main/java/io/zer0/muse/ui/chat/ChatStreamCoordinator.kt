@@ -764,7 +764,8 @@ class ChatStreamCoordinator(
      * 3. 概率控制 sticker 工具暴露
      * 4. 按 name 去重(本地工具优先于 Skill)
      * 5. 解析 effectiveModel 与 effectiveProviderConfig(per-assistant 优先,回退全局)
-     * 6. 工具模型路由:tools 非空且有 toolModel 时,用 toolModel 替代主模型
+     * 6. 工具模型路由:C-12 — 仅工具轮使用 toolModel(state.toolModel),主模型
+     *   effectiveModel 固定为主对话模型(可能支持视觉),最终回复轮切回主模型
      * 7. 推理等级降级:effectiveModel 不支持推理时,降到 AUTO/OFF
      * 8. conversationHistory 初始化为 transformedMessages 的可变副本
      */
@@ -910,12 +911,18 @@ class ChatStreamCoordinator(
                     resolvedModel == null ||
                     toolModel.providerId == resolvedModel.providerId
                 )
-            // 工具轮(tools 非空)且有可用 toolModel 时,用 toolModel 替代主模型
-            val rawEffectiveModel = if (tools.isNotEmpty() && toolModelUsable) toolModel else resolvedModel
+            // C-12: 主模型固定为主对话模型(可能支持视觉),不再被 toolModel 整体替换。
+            //  effectiveModel 直接参与视觉辅助判定(prepareVisionContext)与最终回复轮路由,
+            //  避免"工具启用 + 配置 toolModel"后所有轮次都走 toolModel、主模型视觉被降级为文本描述。
+            val rawEffectiveModel = resolvedModel
             // v1.135: 用 ModelRegistry 增强模型能力识别,解决 opencode-go/ 等前缀导致
             // supportsVision / supportsReasoning 误判的问题。ChatService 内部也会再增强一次。
             effectiveModel = rawEffectiveModel?.let { ModelRegistry.enhanceModel(it) }
-            effectiveProviderConfig = if (tools.isNotEmpty() && toolModelUsable) toolProviderConfig else resolvedProviderConfig
+            effectiveProviderConfig = resolvedProviderConfig
+            // C-12: 工具模型仅在"工具轮"使用(上一轮结果含 toolCalls 的续接轮,
+            //  由 streamRound 按 round>1 判定);最终回复轮切回主模型,保留主模型的视觉能力。
+            this.toolModel = if (toolModelUsable) toolModel?.let { ModelRegistry.enhanceModel(it) } else null
+            this.toolProviderConfig = if (toolModelUsable) toolProviderConfig else null
 
             // v1.136: 若当前模型不支持推理,将推理等级降级到 AUTO/OFF。
             // 避免向非推理模型发送 reasoning_effort 导致简单问题过度思考,或对不支持的模型返回 400。

@@ -71,18 +71,33 @@ class SubagentThreadStore(
     /** 旧 API:串行化执行(同 threadId 排队)。 */
     suspend fun <T> runSerialized(threadId: String, block: suspend () -> T): T {
         val mutex = runLocks.computeIfAbsent(threadId) { Mutex() }
-        return mutex.withLock {
-            val entity = dao.getById(threadId)
-            if (entity?.status == "closed") {
-                throw IllegalStateException("Thread $threadId is closed")
+        try {
+            return mutex.withLock {
+                val entity = dao.getById(threadId)
+                if (entity?.status == "closed") {
+                    throw IllegalStateException("Thread $threadId is closed")
+                }
+                block()
             }
-            block()
+        } finally {
+            // 审计修复 (C-08): 锁回收移到持锁块之外 — 线程已关闭时锁不再被合法使用,
+            // 在 finally 里(此时 withLock 已释放锁)按需从 map 移除,防止 runLocks 无界增长。
+            // 之前 close() 在持锁块内直接 runLocks.remove,会与并发 computeIfAbsent 竞争,
+            // 可能为同一 threadId 创建新 Mutex 而打破串行化;现在移除与持锁完全解耦。
+            // compare-and-check: 仅当 map 仍指向本次使用的同一 mutex 时才移除,
+            // 避免误删已被新的 computeIfAbsent 写入的新条目。
+            if (dao.getById(threadId)?.status == "closed") {
+                runLocks.computeIfPresent(threadId) { _, current ->
+                    if (current === mutex) null else current
+                }
+            }
         }
     }
 
     /** 旧 API:清理已关闭线程(内存锁清理;持久化层不动)。 */
     fun cleanupClosed() {
-        // 持久化版下锁本身是弱引用,GC 友好;保留空实现兼容旧 API
+        // 审计修复 (C-08): runLocks 非弱引用(强引用 Map),回收由 runSerialized 的
+        // finally + cleanupOrphanThreads 按需完成;本空实现仅兼容旧 API,不在这里清锁。
     }
 
     // ============ 新 API(供 SubagentRunner / UI / subagent_close 使用)============
@@ -156,8 +171,10 @@ class SubagentThreadStore(
         val entity = dao.getById(threadId) ?: return false
         if (entity.status == "closed") return false
         dao.close(threadId)
-        // v1.0.74: 顺带回收锁(v1.0.74 fix: runLocks 强引用永不回收,配合线程清理避免内存累积)
-        runLocks.remove(threadId)
+        // 审计修复 (C-08): 不再在这里 runLocks.remove —
+        // close 可能被 runSerialized 持锁块内调用(SubagentRunner recordRunAndMaybeClose),
+        // 持锁内移除会与并发 computeIfAbsent 竞争破坏串行化。
+        // 锁的按需回收统一由 runSerialized 的 finally 完成(线程 closed 时移除)。
         return true
     }
 
@@ -179,6 +196,10 @@ class SubagentThreadStore(
         val now = System.currentTimeMillis()
         val orphans = dao.listAllOpen().filter { now - it.updatedAt > staleMs }
         orphans.forEach { dao.close(it.threadId, now) }
+        // 审计修复 (C-08): 孤儿线程(进程被杀/崩溃遗留,从未走到 close)是 runLocks
+        // 无界增长的主要来源 — 它们永不触发 runSerialized 的 finally 回收。
+        // 此处随清理一并把锁条目移除,避免这类永久 open 线程的 Mutex 驻留内存。
+        orphans.forEach { runLocks.remove(it.threadId) }
         if (orphans.isNotEmpty()) {
             Logger.i(TAG, "启动清理 ${orphans.size} 个孤儿子 agent 线程: ${orphans.joinToString { it.threadId.take(12) }}")
         }

@@ -145,7 +145,9 @@ class SkillMediaToolsImpl(
 
         JsSandbox.init(context)
         val argsJson = "[" + argumentsJson.ifBlank { "{}" } + "]"
-        return when (val result = WebViewSkillEngine().callFunction(entryCode, functionName, argsJson)) {
+        // C-30: 传入 pluginId 作为 scopeKey,使熔断状态与 localStorage 按插件隔离,
+        //   一个插件死循环超时不会熔断/影响其他插件与内置 JS 工具。
+        return when (val result = WebViewSkillEngine().callFunction(entryCode, functionName, argsJson, scopeKey = pluginId)) {
             is SkillEngineResult.Success -> {
                 val value = result.valueJson
                 runCatching {
@@ -155,7 +157,7 @@ class SkillMediaToolsImpl(
                 }
             }
             is SkillEngineResult.Error -> {
-                if (JsSandbox.isCircuitBroken) {
+                if (JsSandbox.isCircuitBrokenFor(pluginId)) {
                     resultOf { pluginManager?.setEnabled(pluginId, false) }
                         .onError { msg, _ -> Logger.w("SkillMediaToolsImpl", "自动禁用插件失败: $msg") }
                     "插件已自动禁用: JS 沙盒连续超时，请稍后重试"

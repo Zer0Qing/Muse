@@ -9,6 +9,8 @@
     <string name="chat_video_play_cd">Воспроизвести видео</string>
     <string name="chat_generated_video_cd">Сгенерированное видео</string>
     <string name="tool_call_progress_cd">Прогресс вызова инструмента %1$d/%2$d</string>
+    <string name="chat_msg_selected">Выбрано</string>
+    <string name="chat_msg_not_selected">Не выбрано</string>
     <string name="moment_images_selected">Выбрано %1$d (нажмите, чтобы продолжить)</string>
     <string name="moment_add_images_hint">Добавить изображения (макс. %1$d)</string>
     <string name="rich_input_markdown_placeholder">text</string>
