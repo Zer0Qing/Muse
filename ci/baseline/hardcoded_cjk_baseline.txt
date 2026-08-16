@@ -2,7 +2,7 @@
 # 格式: <file>: <违规数>;新增或上升都会失败,只允许下降
 # 清理存量后运行: py -3 ci/script/check_hardcoded_cjk.py --update-baseline
 #
-# 当前共 554 处,分布 60 个文件
+# 当前共 442 处,分布 53 个文件
 app/src/main/java/io/zer0/muse/ui/AssistantAdvancedPage.kt: 1
 app/src/main/java/io/zer0/muse/ui/ChatScreen.kt: 2
 app/src/main/java/io/zer0/muse/ui/ChatScreenComponents.kt: 1
@@ -11,7 +11,6 @@ app/src/main/java/io/zer0/muse/ui/CoverManagerScreen.kt: 2
 app/src/main/java/io/zer0/muse/ui/GreetingHelper.kt: 43
 app/src/main/java/io/zer0/muse/ui/HtmlPreviewScreen.kt: 2
 app/src/main/java/io/zer0/muse/ui/InputBar.kt: 6
-app/src/main/java/io/zer0/muse/ui/MemorySectionViews.kt: 17
 app/src/main/java/io/zer0/muse/ui/MemoryViewModel.kt: 3
 app/src/main/java/io/zer0/muse/ui/MuseToolSheet.kt: 7
 app/src/main/java/io/zer0/muse/ui/SafeModeScreen.kt: 3
@@ -35,21 +34,15 @@ app/src/main/java/io/zer0/muse/ui/markdown/MarkdownText.kt: 1
 app/src/main/java/io/zer0/muse/ui/memory/MemorySpaceSwitcher.kt: 2
 app/src/main/java/io/zer0/muse/ui/memory/MemorySpaceViewModel.kt: 6
 app/src/main/java/io/zer0/muse/ui/moment/MiniAlbumScreen.kt: 6
-app/src/main/java/io/zer0/muse/ui/moment/MiniDiaryScreen.kt: 10
 app/src/main/java/io/zer0/muse/ui/moment/MiniPhoneScreen.kt: 13
-app/src/main/java/io/zer0/muse/ui/moment/MiniWeatherScreen.kt: 29
-app/src/main/java/io/zer0/muse/ui/moment/MomentCard.kt: 12
-app/src/main/java/io/zer0/muse/ui/moment/MomentComponents.kt: 26
 app/src/main/java/io/zer0/muse/ui/moment/MomentViewModel.kt: 7
 app/src/main/java/io/zer0/muse/ui/moment/MomentsScreen.kt: 2
 app/src/main/java/io/zer0/muse/ui/onboarding/OnboardingScreen.kt: 1
 app/src/main/java/io/zer0/muse/ui/quicknotes/QuickNotesViewModel.kt: 5
 app/src/main/java/io/zer0/muse/ui/settings/BackgroundKeepAlive.kt: 18
-app/src/main/java/io/zer0/muse/ui/settings/BackupSection.kt: 2
 app/src/main/java/io/zer0/muse/ui/settings/CloudBackupPage.kt: 2
 app/src/main/java/io/zer0/muse/ui/settings/MemorySettingsPage.kt: 1
 app/src/main/java/io/zer0/muse/ui/settings/MultiAgentSettingsPage.kt: 13
-app/src/main/java/io/zer0/muse/ui/settings/PermissionWizardScreen.kt: 16
 app/src/main/java/io/zer0/muse/ui/settings/PluginManagePage.kt: 1
 app/src/main/java/io/zer0/muse/ui/settings/ProviderBrandAssets.kt: 1
 app/src/main/java/io/zer0/muse/ui/settings/ProviderEditPage.kt: 5

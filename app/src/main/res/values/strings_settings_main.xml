@@ -197,6 +197,8 @@
     <string name="settings_backup_auto_sync">自动同步</string>
     <string name="settings_backup_auto_sync_subtitle">定时自动上传到云端</string>
     <string name="settings_backup_auto_sync_interval">同步间隔</string>
+    <string name="settings_backup_interval_hours">%1$d 小时</string>
+    <string name="settings_backup_interval_label">间隔小时数 (1-168)</string>
     <string name="settings_backup_upload_now">立即上传到云端</string>
     <string name="settings_backup_upload_subtitle_configured">覆盖云端最新备份</string>
     <string name="settings_backup_upload_subtitle_unconfigured">请先配置云存储</string>

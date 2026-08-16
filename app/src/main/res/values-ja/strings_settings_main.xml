@@ -194,6 +194,8 @@
     <string name="settings_backup_auto_sync">自動同期</string>
     <string name="settings_backup_auto_sync_subtitle">スケジュールに従ってクラウドに自動的にアップロードします</string>
     <string name="settings_backup_auto_sync_interval">同期間隔</string>
+    <string name="settings_backup_interval_hours">%1$d 時間</string>
+    <string name="settings_backup_interval_label">間隔時間 (1-168)</string>
     <string name="settings_backup_upload_now">今すぐクラウドにアップロード</string>
     <string name="settings_backup_upload_subtitle_configured">最新のクラウドバックアップを上書きします</string>
     <string name="settings_backup_upload_subtitle_unconfigured">最初にクラウドストレージを設定してください</string>

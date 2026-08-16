@@ -13,6 +13,88 @@
     <string name="chat_msg_not_selected">선택 안 됨</string>
     <string name="moment_images_selected">%1$d장 선택됨(탭하여 계속 선택)</string>
     <string name="moment_add_images_hint">이미지 추가(최대 %1$d장)</string>
+    <!-- ===== 일기 (MiniDiaryScreen) ===== -->
+    <string name="diary_generate_failed">일기 생성에 실패했습니다. 나중에 다시 시도하세요</string>
+    <string name="diary_title">Muse 일기</string>
+    <string name="diary_date_title">%1$d년 %2$d월 %3$s일</string>
+    <string name="diary_empty_today">오늘의 일기가 아직 없습니다</string>
+    <string name="diary_empty_other_day">이 날의 일기가 없습니다</string>
+    <string name="diary_empty_today_hint">일기 페이지를 열면 오늘의 일기가 자동 생성됩니다</string>
+    <string name="diary_prev_month">지난 달</string>
+    <string name="diary_month_title">%1$d년 %2$d월</string>
+    <string name="diary_next_month">다음 달</string>
+    <string-array name="diary_weekdays_short">
+        <item>일</item>
+        <item>월</item>
+        <item>화</item>
+        <item>수</item>
+        <item>목</item>
+        <item>금</item>
+        <item>토</item>
+    </string-array>
+    <!-- ===== 날씨 (MiniWeatherScreen) ===== -->
+    <string name="weather_title">날씨</string>
+    <string name="weather_search_hint">도시 이름 입력(예: 成都)</string>
+    <string name="weather_search_action">검색</string>
+    <string name="weather_service_unavailable">날씨 서비스를 일시적으로 사용할 수 없습니다</string>
+    <string name="weather_city_not_found">"%1$s" 도시를 찾을 수 없습니다. 다른 이름으로 시도하세요</string>
+    <string name="weather_location_failed">위치를 가져올 수 없습니다. 도시 이름을 입력해 검색하세요</string>
+    <string name="weather_permission_denied">위치 권한이 없습니다. 도시 이름을 입력해 검색하세요</string>
+    <string name="weather_permission_guide">위치 권한을 설정하거나 도시 이름을 입력해 검색하세요</string>
+    <string name="weather_feels_like_wind">체감 %1$d° · 풍속 %2$s km/h</string>
+    <string name="weather_current_location">현재 위치</string>
+    <string name="weather_condition_clear">맑음</string>
+    <string name="weather_condition_partly_cloudy">구름 조금</string>
+    <string name="weather_condition_overcast">흐림</string>
+    <string name="weather_condition_fog">안개</string>
+    <string name="weather_condition_drizzle">이슬비</string>
+    <string name="weather_condition_freezing_drizzle">어는 이슬비</string>
+    <string name="weather_condition_rain">비</string>
+    <string name="weather_condition_snow">눈</string>
+    <string name="weather_condition_sleet">싸락눈</string>
+    <string name="weather_condition_showers">소나기</string>
+    <string name="weather_condition_snow_showers">눈보라</string>
+    <string name="weather_condition_thunderstorm">뇌우</string>
+    <string name="weather_condition_thunderstorm_hail">우박 동반 뇌우</string>
+    <string name="weather_condition_unknown">알 수 없음</string>
+    <string name="weather_day_today">오늘</string>
+    <string name="weather_day_tomorrow">내일</string>
+    <string-array name="weather_weekdays">
+        <item>일요일</item>
+        <item>월요일</item>
+        <item>화요일</item>
+        <item>수요일</item>
+        <item>목요일</item>
+        <item>금요일</item>
+        <item>토요일</item>
+    </string-array>
+    <!-- ===== Moments (MomentCard/MomentComponents) ===== -->
+    <string name="moment_expand_full">전문 보기</string>
+    <string name="moment_like_cd">좋아요</string>
+    <string name="moment_comment_cd">댓글</string>
+    <string name="moment_sender_muse">Muse</string>
+    <string name="moment_sender_me">나</string>
+    <string name="moment_comment_hint">댓글 작성:</string>
+    <string name="moment_delete_title">게시물 삭제</string>
+    <string name="moment_delete_confirm">이 게시물을 삭제할까요?</string>
+    <string name="moment_image_cd">게시물 이미지</string>
+    <string name="moment_image_cd_indexed">게시물 이미지 %1$d</string>
+    <string name="moment_avatar_cd">아바타</string>
+    <string name="moment_cover_cd">모먼트 커버</string>
+    <string name="moment_messages_cd">메시지</string>
+    <string name="moment_publish_cd">게시물 올리기(짧게 눌러 사진, 길게 눌러 텍스트)</string>
+    <string name="moment_empty_feed">아직 게시물이 없습니다</string>
+    <string name="moment_empty_hint">오른쪽 위 +를 눌러 첫 게시물을 작성\nMuse와 어시스턴트들도 일상을 공유합니다</string>
+    <string name="moment_messages_empty">아직 좋아요나 댓글이 없습니다</string>
+    <string name="moment_notification_liked">%1$s 님이 내 게시물에 좋아요를 눌렀습니다</string>
+    <string name="moment_notification_commented">%1$s 님이 내 게시물에 댓글을 달았습니다</string>
+    <string name="moment_profile_title">%1$s 님의 홈</string>
+    <string name="moment_moment_count">게시물 %1$d개</string>
+    <string name="moment_publish_text_only">텍스트만 올리기</string>
+    <string name="moment_publish_feed">게시물 올리기</string>
+    <string name="moment_publish_placeholder">지금 생각나는 것...</string>
+    <string name="moment_pending_image_cd">추가 예정 이미지</string>
+    <string name="moment_publish_confirm">올리기</string>
     <string name="rich_input_markdown_placeholder">text</string>
     <string name="chat_context_usage_cd">컨텍스트 사용량 %1$s%%, %2$d 총 토큰</string>
     <string name="chat_context_tokens_only_cd">컨텍스트 토큰 수 %1$d, 모델에 컨텍스트 창이 없습니다.</string>

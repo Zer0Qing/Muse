@@ -372,6 +372,88 @@
     <string name="chat_msg_not_selected">未選択</string>
     <string name="moment_images_selected">%1$d 枚選択済み(タップで追加)</string>
     <string name="moment_add_images_hint">画像を追加(最大 %1$d 枚)</string>
+    <!-- ===== 日記 (MiniDiaryScreen) ===== -->
+    <string name="diary_generate_failed">日記の生成に失敗しました。後でもう一度お試しください</string>
+    <string name="diary_title">Muse の日記</string>
+    <string name="diary_date_title">%1$d年%2$d月%3$s日</string>
+    <string name="diary_empty_today">今日の日記はまだありません</string>
+    <string name="diary_empty_other_day">この日の日記はありません</string>
+    <string name="diary_empty_today_hint">日記ページを開くと今日の日記が自動生成されます</string>
+    <string name="diary_prev_month">前の月</string>
+    <string name="diary_month_title">%1$d年%2$d月</string>
+    <string name="diary_next_month">次の月</string>
+    <string-array name="diary_weekdays_short">
+        <item>日</item>
+        <item>月</item>
+        <item>火</item>
+        <item>水</item>
+        <item>木</item>
+        <item>金</item>
+        <item>土</item>
+    </string-array>
+    <!-- ===== 天気 (MiniWeatherScreen) ===== -->
+    <string name="weather_title">天気</string>
+    <string name="weather_search_hint">都市名を入力(例: 成都)</string>
+    <string name="weather_search_action">検索</string>
+    <string name="weather_service_unavailable">天気サービスは一時的に利用できません</string>
+    <string name="weather_city_not_found">都市 "%1$s" が見つかりません。別の名前でお試しください</string>
+    <string name="weather_location_failed">位置情報を取得できません。都市名を入力して検索してください</string>
+    <string name="weather_permission_denied">位置情報が許可されていません。都市名を入力して検索してください</string>
+    <string name="weather_permission_guide">位置情報の許可を設定するか、都市名を入力して検索してください</string>
+    <string name="weather_feels_like_wind">体感 %1$d° · 風速 %2$s km/h</string>
+    <string name="weather_current_location">現在地</string>
+    <string name="weather_condition_clear">晴れ</string>
+    <string name="weather_condition_partly_cloudy">晴れ時々くもり</string>
+    <string name="weather_condition_overcast">くもり</string>
+    <string name="weather_condition_fog">霧</string>
+    <string name="weather_condition_drizzle">霧雨</string>
+    <string name="weather_condition_freezing_drizzle">着氷性の霧雨</string>
+    <string name="weather_condition_rain">雨</string>
+    <string name="weather_condition_snow">雪</string>
+    <string name="weather_condition_sleet">霰</string>
+    <string name="weather_condition_showers">にわか雨</string>
+    <string name="weather_condition_snow_showers">にわか雪</string>
+    <string name="weather_condition_thunderstorm">雷雨</string>
+    <string name="weather_condition_thunderstorm_hail">雷雨を伴うひょう</string>
+    <string name="weather_condition_unknown">不明</string>
+    <string name="weather_day_today">今日</string>
+    <string name="weather_day_tomorrow">明日</string>
+    <string-array name="weather_weekdays">
+        <item>日曜</item>
+        <item>月曜</item>
+        <item>火曜</item>
+        <item>水曜</item>
+        <item>木曜</item>
+        <item>金曜</item>
+        <item>土曜</item>
+    </string-array>
+    <!-- ===== Moments (MomentCard/MomentComponents) ===== -->
+    <string name="moment_expand_full">全文を表示</string>
+    <string name="moment_like_cd">いいね</string>
+    <string name="moment_comment_cd">コメント</string>
+    <string name="moment_sender_muse">Muse</string>
+    <string name="moment_sender_me">私</string>
+    <string name="moment_comment_hint">コメントを書く：</string>
+    <string name="moment_delete_title">投稿を削除</string>
+    <string name="moment_delete_confirm">この投稿を削除しますか?</string>
+    <string name="moment_image_cd">投稿画像</string>
+    <string name="moment_image_cd_indexed">投稿画像 %1$d</string>
+    <string name="moment_avatar_cd">アバター</string>
+    <string name="moment_cover_cd">モーメントカバー</string>
+    <string name="moment_messages_cd">メッセージ</string>
+    <string name="moment_publish_cd">投稿する(短押しで画像、長押しでテキスト)</string>
+    <string name="moment_empty_feed">まだ投稿がありません</string>
+    <string name="moment_empty_hint">右上の + をタップして最初の投稿を作成\nMuse やアシスタントたちも生活を共有します</string>
+    <string name="moment_messages_empty">いいねやコメントはまだありません</string>
+    <string name="moment_notification_liked">%1$s があなたの投稿にいいねしました</string>
+    <string name="moment_notification_commented">%1$s があなたの投稿にコメントしました</string>
+    <string name="moment_profile_title">%1$s のホーム</string>
+    <string name="moment_moment_count">%1$d 件の投稿</string>
+    <string name="moment_publish_text_only">テキストのみ投稿</string>
+    <string name="moment_publish_feed">投稿する</string>
+    <string name="moment_publish_placeholder">いま考えていること...</string>
+    <string name="moment_pending_image_cd">追加予定の画像</string>
+    <string name="moment_publish_confirm">投稿</string>
     <string name="rich_input_markdown_placeholder">text</string>
     <!-- 前端修复 (i18n-3.x): 表情包批量删除/清空 i18n(临时复制中文,后续补译) -->
     <string name="settings_sticker_batch_done">完成</string>

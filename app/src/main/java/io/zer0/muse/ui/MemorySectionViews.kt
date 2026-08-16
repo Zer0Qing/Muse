@@ -39,9 +39,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.zer0.muse.R
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.semiLarge
@@ -123,7 +125,7 @@ fun MemorySectionView(
                     }) {
                         Icon(
                             imageVector = Icons.Outlined.Edit,
-                            contentDescription = "编辑",
+                            contentDescription = stringResource(R.string.memory_screen_edit_cd),
                             tint = MaterialTheme.colorScheme.primary,
                         )
                     }
@@ -145,7 +147,7 @@ fun MemorySectionView(
                         .fillMaxWidth()
                         .heightIn(min = 120.dp)
                         .focusRequester(focusRequester),
-                    placeholder = { Text("请输入内容…") },
+                    placeholder = { Text(stringResource(R.string.memory_screen_input_hint)) },
                     shape = MuseShapes.semiLarge,
                 )
                 Spacer(Modifier.size(MusePaddings.contentGap))
@@ -157,18 +159,18 @@ fun MemorySectionView(
                     OutlinedButton(onClick = {
                         draft = content
                         isEditing = false
-                    }) { Text("取消") }
+                    }) { Text(stringResource(R.string.memory_screen_cancel)) }
                     Spacer(Modifier.size(MusePaddings.contentGap))
                     FilledTonalButton(onClick = {
                         onEdit(draft)
                         isEditing = false
-                    }) { Text("保存") }
+                    }) { Text(stringResource(R.string.memory_screen_save)) }
                 }
             } else {
                 // 展示模式:多行 Text,空内容显示占位符
                 if (content.isBlank()) {
                     Text(
-                        text = "暂无内容",
+                        text = stringResource(R.string.memory_screen_empty_content),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.outline,
                     )
@@ -211,7 +213,7 @@ fun MemoryWeekView(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         ) {
             Text(
-                text = "暂无短期记忆",
+                text = stringResource(R.string.memory_screen_empty_short_term),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.padding(MusePaddings.cardInner),
@@ -322,7 +324,7 @@ private fun WeekDayCard(
                     }) {
                         Icon(
                             imageVector = Icons.Outlined.Edit,
-                            contentDescription = "编辑",
+                            contentDescription = stringResource(R.string.memory_screen_edit_cd),
                             tint = MaterialTheme.colorScheme.primary,
                         )
                     }
@@ -342,7 +344,7 @@ private fun WeekDayCard(
                         .fillMaxWidth()
                         .heightIn(min = 100.dp)
                         .focusRequester(focusRequester),
-                    placeholder = { Text("请输入当天内容…") },
+                    placeholder = { Text(stringResource(R.string.memory_screen_input_day_hint)) },
                     shape = MuseShapes.semiLarge,
                 )
                 Spacer(Modifier.size(MusePaddings.contentGap))
@@ -354,17 +356,17 @@ private fun WeekDayCard(
                     OutlinedButton(onClick = {
                         draft = body
                         isEditing = false
-                    }) { Text("取消") }
+                    }) { Text(stringResource(R.string.memory_screen_cancel)) }
                     Spacer(Modifier.size(MusePaddings.contentGap))
                     FilledTonalButton(onClick = {
                         onEditDay(date, draft)
                         isEditing = false
-                    }) { Text("保存") }
+                    }) { Text(stringResource(R.string.memory_screen_save)) }
                 }
             } else {
                 if (body.isBlank()) {
                     Text(
-                        text = "暂无内容",
+                        text = stringResource(R.string.memory_screen_empty_content),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline,
                     )
@@ -428,7 +430,7 @@ fun MemoryHealthCard(
                     )
                     Spacer(Modifier.size(MusePaddings.contentGap))
                     Text(
-                        text = "记忆系统状态",
+                        text = stringResource(R.string.memory_screen_system_status),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface,
@@ -449,7 +451,7 @@ fun MemoryHealthCard(
                 Column(modifier = Modifier.padding(top = MusePaddings.contentGap)) {
                     if (healthMap.isEmpty()) {
                         Text(
-                            text = "暂无状态数据",
+                            text = stringResource(R.string.memory_screen_no_status_data),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.outline,
                         )
@@ -499,7 +501,11 @@ private fun HealthStepRow(
                 )
             }
             Text(
-                text = if (hasError) "失败 ${health.failCount} 次" else "正常",
+                text = if (hasError) {
+                    stringResource(R.string.memory_screen_failed_times, health.failCount)
+                } else {
+                    stringResource(R.string.memory_screen_normal)
+                },
                 style = MaterialTheme.typography.labelSmall,
                 color = if (hasError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline,
             )
@@ -510,7 +516,7 @@ private fun HealthStepRow(
             if (!msg.isNullOrBlank()) {
                 Spacer(Modifier.size(MusePaddings.tightGap))
                 Text(
-                    text = "错误:$msg",
+                    text = stringResource(R.string.memory_screen_error_compact, msg),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.error,
                     maxLines = 2,
@@ -521,7 +527,7 @@ private fun HealthStepRow(
             if (!lastErrorAt.isNullOrBlank()) {
                 Spacer(Modifier.size(MusePaddings.tinyGap))
                 Text(
-                    text = "最近失败:$lastErrorAt",
+                    text = stringResource(R.string.memory_screen_recent_error, lastErrorAt),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.outline,
                 )
@@ -531,7 +537,7 @@ private fun HealthStepRow(
             if (!lastSuccessAt.isNullOrBlank()) {
                 Spacer(Modifier.size(MusePaddings.tinyGap))
                 Text(
-                    text = "最近成功:$lastSuccessAt",
+                    text = stringResource(R.string.memory_screen_recent_success, lastSuccessAt),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.outline,
                 )

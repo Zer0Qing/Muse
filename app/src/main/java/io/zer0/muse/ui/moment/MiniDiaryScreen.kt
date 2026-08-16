@@ -42,7 +42,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringArrayResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.zer0.muse.R
 import io.zer0.muse.ui.theme.MusePaddings
 import kotlinx.coroutines.launch
 
@@ -65,6 +69,7 @@ fun MiniDiaryScreen(
     var diaryContent by remember { mutableStateOf<String?>(null) }
     var loadingDiary by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     val repository: io.zer0.muse.data.diary.DiaryRepository by lazy {
         org.koin.java.KoinJavaComponent.get(io.zer0.muse.data.diary.DiaryRepository::class.java)
@@ -91,7 +96,7 @@ fun MiniDiaryScreen(
                         // 刷新月标记
                         monthDiaries = repository.getByMonth(viewYear, viewMonth)
                     } else {
-                        diaryContent = "日记生成失败,稍后再试"
+                        diaryContent = context.getString(R.string.diary_generate_failed)
                     }
                 } else {
                     diaryContent = null
@@ -121,13 +126,13 @@ fun MiniDiaryScreen(
             IconButton(onClick = onBack) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "返回",
+                    contentDescription = stringResource(R.string.action_back),
                     tint = MaterialTheme.colorScheme.onSurface,
                 )
             }
             Spacer(Modifier.width(8.dp))
             Text(
-                text = "Muse 的日记",
+                text = stringResource(R.string.diary_title),
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onSurface,
             )
@@ -185,7 +190,12 @@ fun MiniDiaryScreen(
                     ) {
                         Column(modifier = Modifier.fillMaxWidth().padding(14.dp)) {
                             Text(
-                                text = "$viewYear 年 $viewMonth 月 ${selectedDate.substring(8)} 日",
+                                text = stringResource(
+                                    R.string.diary_date_title,
+                                    viewYear,
+                                    viewMonth,
+                                    selectedDate.substring(8),
+                                ),
                                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
                                 color = MaterialTheme.colorScheme.primary,
                             )
@@ -208,14 +218,18 @@ fun MiniDiaryScreen(
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
                             Text(
-                                text = if (selectedDate == today.toString()) "今天还没有日记" else "这一天没有日记",
+                                text = if (selectedDate == today.toString()) {
+                                    stringResource(R.string.diary_empty_today)
+                                } else {
+                                    stringResource(R.string.diary_empty_other_day)
+                                },
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.outline,
                             )
                             if (selectedDate == today.toString()) {
                                 Spacer(Modifier.height(6.dp))
                                 Text(
-                                    text = "打开日记页会自动生成今天的日记",
+                                    text = stringResource(R.string.diary_empty_today_hint),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.outline,
                                 )
@@ -258,12 +272,12 @@ private fun DiaryMonthCalendar(
             IconButton(onClick = onPrevMonth, modifier = Modifier.size(32.dp)) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                    contentDescription = "上个月",
+                    contentDescription = stringResource(R.string.diary_prev_month),
                     tint = MaterialTheme.colorScheme.onSurface,
                 )
             }
             Text(
-                text = "$year 年 $month 月",
+                text = stringResource(R.string.diary_month_title, year, month),
                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f),
@@ -272,7 +286,7 @@ private fun DiaryMonthCalendar(
             IconButton(onClick = onNextMonth, modifier = Modifier.size(32.dp)) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = "下个月",
+                    contentDescription = stringResource(R.string.diary_next_month),
                     tint = MaterialTheme.colorScheme.onSurface,
                 )
             }
@@ -282,7 +296,7 @@ private fun DiaryMonthCalendar(
 
         // 周几表头
         Row(modifier = Modifier.fillMaxWidth()) {
-            listOf("日", "一", "二", "三", "四", "五", "六").forEach { wd ->
+            stringArrayResource(R.array.diary_weekdays_short).forEach { wd ->
                 Text(
                     text = wd,
                     style = MaterialTheme.typography.labelSmall,

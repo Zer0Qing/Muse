@@ -1,6 +1,7 @@
 package io.zer0.muse.ui.settings
 
 import android.accessibilityservice.AccessibilityService
+import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -37,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
@@ -70,6 +72,7 @@ fun PermissionWizardScreen(
     val rootAuthorizer: RootAuthorizer = koinInject()
 
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     // 各通道状态
     var a11yEnabled by remember { mutableStateOf(false) }
@@ -203,7 +206,7 @@ fun PermissionWizardScreen(
                         )
                         Spacer(Modifier.width(12.dp))
                         Text(
-                            text = "Sui 后端已检测到(root 用户无需安装 Shizuku APK,Sui 提供 Shizuku 兼容接口)",
+                            text = stringResource(R.string.permission_sui_detected),
                             style = MaterialTheme.typography.bodySmall,
                         )
                     }
@@ -214,12 +217,12 @@ fun PermissionWizardScreen(
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "全局动作 (ui_global_action 的 action_id)",
+                        text = stringResource(R.string.permission_global_action_title),
                         style = MaterialTheme.typography.titleSmall,
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = buildGlobalActionsHelp(),
+                        text = buildGlobalActionsHelp(context),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -270,7 +273,7 @@ private fun ChannelCard(
             }
             Spacer(Modifier.height(8.dp))
             OutlinedButton(onClick = onRefresh) {
-                Text("刷新状态")
+                Text(stringResource(R.string.permission_refresh_status))
             }
         }
     }
@@ -309,28 +312,33 @@ private fun ShizukuChannelCard(
             // 分步状态展示
             StatusLine(
                 done = installed,
-                text = if (installed) "Shizuku APK 已安装" else "Shizuku APK 未安装",
+                text = if (installed) stringResource(R.string.shizuku_apk_installed)
+                    else stringResource(R.string.shizuku_apk_not_installed),
             )
             StatusLine(
                 done = available,
-                text = if (available) "Shizuku 服务已运行" else "Shizuku 服务未运行(需在 Shizuku 应用中启动)",
+                text = if (available) stringResource(R.string.shizuku_service_running)
+                    else stringResource(R.string.shizuku_service_not_running),
             )
             StatusLine(
                 done = authorized,
-                text = if (authorized) "已授权 Muse 使用 Shizuku" else "未授权 Muse 使用 Shizuku",
+                text = if (authorized) stringResource(R.string.shizuku_status_authorized)
+                    else stringResource(R.string.shizuku_status_unauthorized_long),
             )
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (!installed) {
                     Button(onClick = onInstall) { Text(stringResource(R.string.shizuku_install_btn)) }
                 } else if (!available) {
-                    Button(onClick = onStartService) { Text("打开 Shizuku 启动服务") }
+                    Button(onClick = onStartService) {
+                        Text(stringResource(R.string.permission_open_shizuku_service))
+                    }
                 } else if (!authorized) {
                     Button(onClick = onAuthorize) {
                         Text(stringResource(R.string.shizuku_authorize_btn))
                     }
                 }
-                OutlinedButton(onClick = onRefresh) { Text("刷新状态") }
+                OutlinedButton(onClick = onRefresh) { Text(stringResource(R.string.permission_refresh_status)) }
             }
         }
     }
@@ -355,13 +363,5 @@ private fun StatusLine(done: Boolean, text: String) {
     }
 }
 
-private fun buildGlobalActionsHelp(): String = buildString {
-    append("1 = 返回 (BACK)\n")
-    append("2 = 主页 (HOME)\n")
-    append("3 = 最近任务 (RECENTS)\n")
-    append("4 = 通知栏 (NOTIFICATIONS)\n")
-    append("5 = 快捷设置 (QUICK_SETTINGS)\n")
-    append("6 = 电源对话框 (POWER_DIALOG)\n")
-    append("10 = 关闭通知shade (DISMISS_NOTIFICATION_SHADE)\n")
-    append("\n快捷工具: ui_back (action_id=1), ui_home (action_id=2)")
-}
+private fun buildGlobalActionsHelp(context: Context): String =
+    context.getString(R.string.permission_action_id_help)

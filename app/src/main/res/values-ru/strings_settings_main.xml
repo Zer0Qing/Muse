@@ -194,6 +194,8 @@
     <string name="settings_backup_auto_sync">Автосинхронизация</string>
     <string name="settings_backup_auto_sync_subtitle">Автоматическая загрузка в облако по расписанию</string>
     <string name="settings_backup_auto_sync_interval">Интервал синхронизации</string>
+    <string name="settings_backup_interval_hours">%1$d ч.</string>
+    <string name="settings_backup_interval_label">Часы интервала (1-168)</string>
     <string name="settings_backup_upload_now">Загрузите в облако сейчас</string>
     <string name="settings_backup_upload_subtitle_configured">Перезаписать последнюю облачную резервную копию</string>
     <string name="settings_backup_upload_subtitle_unconfigured">Сначала настройте облачное хранилище</string>

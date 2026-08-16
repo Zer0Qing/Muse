@@ -13,6 +13,88 @@
     <string name="chat_msg_not_selected">Не выбрано</string>
     <string name="moment_images_selected">Выбрано %1$d (нажмите, чтобы продолжить)</string>
     <string name="moment_add_images_hint">Добавить изображения (макс. %1$d)</string>
+    <!-- ===== Дневник (MiniDiaryScreen) ===== -->
+    <string name="diary_generate_failed">Не удалось создать дневник, повторите попытку позже</string>
+    <string name="diary_title">Дневник Muse</string>
+    <string name="diary_date_title">%3$s.%2$d.%1$d</string>
+    <string name="diary_empty_today">Сегодня ещё нет дневника</string>
+    <string name="diary_empty_other_day">В этот день нет дневника</string>
+    <string name="diary_empty_today_hint">При открытии страницы дневника дневник за сегодня будет создан автоматически</string>
+    <string name="diary_prev_month">Предыдущий месяц</string>
+    <string name="diary_month_title">%2$d.%1$d</string>
+    <string name="diary_next_month">Следующий месяц</string>
+    <string-array name="diary_weekdays_short">
+        <item>Вс</item>
+        <item>Пн</item>
+        <item>Вт</item>
+        <item>Ср</item>
+        <item>Чт</item>
+        <item>Пт</item>
+        <item>Сб</item>
+    </string-array>
+    <!-- ===== Погода (MiniWeatherScreen) ===== -->
+    <string name="weather_title">Погода</string>
+    <string name="weather_search_hint">Введите название города (например, 成都)</string>
+    <string name="weather_search_action">Поиск</string>
+    <string name="weather_service_unavailable">Сервис погоды временно недоступен</string>
+    <string name="weather_city_not_found">Город "%1$s" не найден, попробуйте другое название</string>
+    <string name="weather_location_failed">Не удалось определить местоположение, введите название города для поиска</string>
+    <string name="weather_permission_denied">Разрешение на геолокацию не выдано, введите название города для поиска</string>
+    <string name="weather_permission_guide">Настройте разрешение на геолокацию или введите название города для поиска</string>
+    <string name="weather_feels_like_wind">Ощущается как %1$d° · Ветер %2$s км/ч</string>
+    <string name="weather_current_location">Текущее местоположение</string>
+    <string name="weather_condition_clear">Ясно</string>
+    <string name="weather_condition_partly_cloudy">Переменная облачность</string>
+    <string name="weather_condition_overcast">Пасмурно</string>
+    <string name="weather_condition_fog">Туман</string>
+    <string name="weather_condition_drizzle">Морось</string>
+    <string name="weather_condition_freezing_drizzle">Ледяная морось</string>
+    <string name="weather_condition_rain">Дождь</string>
+    <string name="weather_condition_snow">Снег</string>
+    <string name="weather_condition_sleet">Крупа</string>
+    <string name="weather_condition_showers">Ливень</string>
+    <string name="weather_condition_snow_showers">Снегопад</string>
+    <string name="weather_condition_thunderstorm">Гроза</string>
+    <string name="weather_condition_thunderstorm_hail">Гроза с градом</string>
+    <string name="weather_condition_unknown">Неизвестно</string>
+    <string name="weather_day_today">Сегодня</string>
+    <string name="weather_day_tomorrow">Завтра</string>
+    <string-array name="weather_weekdays">
+        <item>Вс</item>
+        <item>Пн</item>
+        <item>Вт</item>
+        <item>Ср</item>
+        <item>Чт</item>
+        <item>Пт</item>
+        <item>Сб</item>
+    </string-array>
+    <!-- ===== Moments (MomentCard/MomentComponents) ===== -->
+    <string name="moment_expand_full">Показать полностью</string>
+    <string name="moment_like_cd">Нравится</string>
+    <string name="moment_comment_cd">Комментарий</string>
+    <string name="moment_sender_muse">Muse</string>
+    <string name="moment_sender_me">Я</string>
+    <string name="moment_comment_hint">Оставить комментарий:</string>
+    <string name="moment_delete_title">Удалить запись</string>
+    <string name="moment_delete_confirm">Удалить эту запись?</string>
+    <string name="moment_image_cd">Изображение записи</string>
+    <string name="moment_image_cd_indexed">Изображение записи %1$d</string>
+    <string name="moment_avatar_cd">Аватар</string>
+    <string name="moment_cover_cd">Обложка моментов</string>
+    <string name="moment_messages_cd">Сообщения</string>
+    <string name="moment_publish_cd">Опубликовать (нажмите для фото, удерживайте для текста)</string>
+    <string name="moment_empty_feed">Записей пока нет</string>
+    <string name="moment_empty_hint">Нажмите + в правом верхнем углу, чтобы создать первую запись\nMuse и ассистенты тоже поделятся своей жизнью</string>
+    <string name="moment_messages_empty">Пока нет отметок «Нравится» и комментариев</string>
+    <string name="moment_notification_liked">%1$s понравилась ваша запись</string>
+    <string name="moment_notification_commented">%1$s прокомментировал(а) вашу запись</string>
+    <string name="moment_profile_title">Профиль %1$s</string>
+    <string name="moment_moment_count">%1$d записей</string>
+    <string name="moment_publish_text_only">Только текст</string>
+    <string name="moment_publish_feed">Опубликовать</string>
+    <string name="moment_publish_placeholder">О чём вы думаете...</string>
+    <string name="moment_pending_image_cd">Ожидающее изображение</string>
+    <string name="moment_publish_confirm">Опубликовать</string>
     <string name="rich_input_markdown_placeholder">text</string>
     <string name="chat_context_usage_cd">Использование контекста %1$s%%, всего токенов %2$d</string>
     <string name="chat_context_tokens_only_cd">Количество токенов контекста %1$d, у модели нет окна контекста</string>

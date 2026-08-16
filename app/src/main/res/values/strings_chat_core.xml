@@ -13,6 +13,88 @@
     <string name="chat_msg_not_selected">未选中</string>
     <string name="moment_images_selected">已选 %1$d 张(点击可继续选)</string>
     <string name="moment_add_images_hint">添加图片(最多 %1$d 张)</string>
+    <!-- ===== 日记 (MiniDiaryScreen) ===== -->
+    <string name="diary_generate_failed">日记生成失败,稍后再试</string>
+    <string name="diary_title">Muse 的日记</string>
+    <string name="diary_date_title">%1$d 年 %2$d 月 %3$s 日</string>
+    <string name="diary_empty_today">今天还没有日记</string>
+    <string name="diary_empty_other_day">这一天没有日记</string>
+    <string name="diary_empty_today_hint">打开日记页会自动生成今天的日记</string>
+    <string name="diary_prev_month">上个月</string>
+    <string name="diary_month_title">%1$d 年 %2$d 月</string>
+    <string name="diary_next_month">下个月</string>
+    <string-array name="diary_weekdays_short">
+        <item>日</item>
+        <item>一</item>
+        <item>二</item>
+        <item>三</item>
+        <item>四</item>
+        <item>五</item>
+        <item>六</item>
+    </string-array>
+    <!-- ===== 天气 (MiniWeatherScreen) ===== -->
+    <string name="weather_title">天气</string>
+    <string name="weather_search_hint">输入城市名(如 成都)</string>
+    <string name="weather_search_action">查询</string>
+    <string name="weather_service_unavailable">天气服务暂时不可用</string>
+    <string name="weather_city_not_found">未找到城市 "%1$s",换个名字试试</string>
+    <string name="weather_location_failed">无法获取定位,请输入城市名查询</string>
+    <string name="weather_permission_denied">未授权定位,请输入城市名查询</string>
+    <string name="weather_permission_guide">配置定位权限或手动输入城市名查询</string>
+    <string name="weather_feels_like_wind">体感 %1$d° · 风速 %2$s km/h</string>
+    <string name="weather_current_location">当前位置</string>
+    <string name="weather_condition_clear">晴</string>
+    <string name="weather_condition_partly_cloudy">多云</string>
+    <string name="weather_condition_overcast">阴</string>
+    <string name="weather_condition_fog">雾</string>
+    <string name="weather_condition_drizzle">毛毛雨</string>
+    <string name="weather_condition_freezing_drizzle">冻雨</string>
+    <string name="weather_condition_rain">雨</string>
+    <string name="weather_condition_snow">雪</string>
+    <string name="weather_condition_sleet">霰</string>
+    <string name="weather_condition_showers">阵雨</string>
+    <string name="weather_condition_snow_showers">阵雪</string>
+    <string name="weather_condition_thunderstorm">雷雨</string>
+    <string name="weather_condition_thunderstorm_hail">雷暴冰雹</string>
+    <string name="weather_condition_unknown">未知</string>
+    <string name="weather_day_today">今天</string>
+    <string name="weather_day_tomorrow">明天</string>
+    <string-array name="weather_weekdays">
+        <item>周日</item>
+        <item>周一</item>
+        <item>周二</item>
+        <item>周三</item>
+        <item>周四</item>
+        <item>周五</item>
+        <item>周六</item>
+    </string-array>
+    <!-- ===== 朋友圈动态 (MomentCard/MomentComponents) ===== -->
+    <string name="moment_expand_full">全文</string>
+    <string name="moment_like_cd">赞</string>
+    <string name="moment_comment_cd">评论</string>
+    <string name="moment_sender_muse">Muse</string>
+    <string name="moment_sender_me">我</string>
+    <string name="moment_comment_hint">发表评论：</string>
+    <string name="moment_delete_title">删除动态</string>
+    <string name="moment_delete_confirm">确定删除这条动态?</string>
+    <string name="moment_image_cd">动态配图</string>
+    <string name="moment_image_cd_indexed">动态配图 %1$d</string>
+    <string name="moment_avatar_cd">头像</string>
+    <string name="moment_cover_cd">朋友圈封面</string>
+    <string name="moment_messages_cd">消息</string>
+    <string name="moment_publish_cd">发布动态(短按图文,长按纯文字)</string>
+    <string name="moment_empty_feed">还没有动态</string>
+    <string name="moment_empty_hint">点右上角 + 发第一条朋友圈\nMuse 和助手们也会分享它们的生活</string>
+    <string name="moment_messages_empty">还没有人赞你或评论你</string>
+    <string name="moment_notification_liked">%1$s 赞了你的动态</string>
+    <string name="moment_notification_commented">%1$s 评论了你的动态</string>
+    <string name="moment_profile_title">%1$s 的主页</string>
+    <string name="moment_moment_count">%1$d 条动态</string>
+    <string name="moment_publish_text_only">发纯文字</string>
+    <string name="moment_publish_feed">发朋友圈</string>
+    <string name="moment_publish_placeholder">这一刻的想法...</string>
+    <string name="moment_pending_image_cd">待发布图片</string>
+    <string name="moment_publish_confirm">发布</string>
     <string name="rich_input_markdown_placeholder">text</string>
     <string name="chat_context_usage_cd">上下文占用 %1$s%%,共 %2$d tokens</string>
     <string name="chat_context_tokens_only_cd">上下文 token 数 %1$d,模型未声明上下文窗口</string>

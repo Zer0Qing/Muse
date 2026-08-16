@@ -268,7 +268,7 @@ internal fun BackupSection(
             SettingsItemRow(
                 icon = TablerIcons.CalendarTime,
                 title = stringResource(R.string.settings_backup_auto_sync_interval),
-                subtitle = "${cloudConfig.autoSyncIntervalHours} 小时",
+                subtitle = stringResource(R.string.settings_backup_interval_hours, cloudConfig.autoSyncIntervalHours),
                 onClick = { showIntervalDialog = true },
             )
         }
@@ -399,7 +399,7 @@ internal fun BackupSection(
                 MuseTextField(
                     value = intervalInput,
                     onValueChange = { intervalInput = it.filter { c -> c.isDigit() }.take(3) },
-                    label = { Text("间隔小时数 (1-168)") },
+                    label = { Text(stringResource(R.string.settings_backup_interval_label)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )

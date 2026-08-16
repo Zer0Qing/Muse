@@ -157,6 +157,27 @@
     <string name="memory_screen_failed_times">Сбой %1$d раз</string>
     <string name="memory_screen_last_success">Последний успех: %1$s</string>
     <string name="memory_screen_error">Ошибка: %1$s</string>
+    <!-- Строки, специфичные для MemorySectionViews.kt -->
+    <string name="memory_screen_input_hint">Введите содержание…</string>
+    <string name="memory_screen_empty_content">Пока нет содержимого</string>
+    <string name="memory_screen_empty_short_term">Пока нет краткосрочных воспоминаний</string>
+    <string name="memory_screen_input_day_hint">Введите содержание за день…</string>
+    <string name="memory_screen_system_status">Состояние системы памяти</string>
+    <string name="memory_screen_no_status_data">Пока нет данных о состоянии</string>
+    <string name="memory_screen_error_compact">Ошибка: %1$s</string>
+    <string name="memory_screen_recent_error">Недавний сбой: %1$s</string>
+    <string name="memory_screen_recent_success">Недавний успех: %1$s</string>
+    <!-- ===== Мастер разрешений (PermissionWizardScreen) ===== -->
+    <string name="permission_sui_detected">Бэкенд Sui обнаружен (root-пользователям не нужно устанавливать APK Shizuku; Sui предоставляет совместимый с Shizuku интерфейс)</string>
+    <string name="permission_global_action_title">Глобальные действия (action_id из ui_global_action)</string>
+    <string name="permission_refresh_status">Обновить статус</string>
+    <string name="shizuku_apk_installed">APK Shizuku установлен</string>
+    <string name="shizuku_apk_not_installed">APK Shizuku не установлен</string>
+    <string name="shizuku_service_running">Служба Shizuku запущена</string>
+    <string name="shizuku_service_not_running">Служба Shizuku не запущена (запустите её в приложении Shizuku)</string>
+    <string name="shizuku_status_unauthorized_long">Muse не авторизован для использования Shizuku</string>
+    <string name="permission_open_shizuku_service">Открыть Shizuku, чтобы запустить службу</string>
+    <string name="permission_action_id_help">1 = Назад (BACK)\n2 = Главный экран (HOME)\n3 = Недавние задачи (RECENTS)\n4 = Панель уведомлений (NOTIFICATIONS)\n5 = Быстрые настройки (QUICK_SETTINGS)\n6 = Диалог питания (POWER_DIALOG)\n10 = Закрыть шторку уведомлений (DISMISS_NOTIFICATION_SHADE)\n\nБыстрые инструменты: ui_back (action_id=1), ui_home (action_id=2)</string>
     <string name="memory_screen_ai_understanding">Как AI понимает вас</string>
     <string name="memory_screen_no_summary_hint">Сводки пока нет; она будет создана по мере продолжения чата</string>
     <string name="memory_screen_click_collapse">Нажмите, чтобы свернуть</string>

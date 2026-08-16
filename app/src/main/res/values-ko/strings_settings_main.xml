@@ -194,6 +194,8 @@
     <string name="settings_backup_auto_sync">자동 동기화</string>
     <string name="settings_backup_auto_sync_subtitle">일정에 따라 클라우드에 자동 업로드</string>
     <string name="settings_backup_auto_sync_interval">동기화 간격</string>
+    <string name="settings_backup_interval_hours">%1$d시간</string>
+    <string name="settings_backup_interval_label">간격 시간 (1-168)</string>
     <string name="settings_backup_upload_now">지금 클라우드에 업로드</string>
     <string name="settings_backup_upload_subtitle_configured">최신 클라우드 백업 덮어쓰기</string>
     <string name="settings_backup_upload_subtitle_unconfigured">먼저 클라우드 저장소를 구성하세요.</string>

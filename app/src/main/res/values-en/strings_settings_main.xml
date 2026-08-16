@@ -194,6 +194,8 @@
     <string name="settings_backup_auto_sync">Auto Sync</string>
     <string name="settings_backup_auto_sync_subtitle">Automatically upload to cloud on a schedule</string>
     <string name="settings_backup_auto_sync_interval">Sync Interval</string>
+    <string name="settings_backup_interval_hours">%1$d hours</string>
+    <string name="settings_backup_interval_label">Interval Hours (1-168)</string>
     <string name="settings_backup_upload_now">Upload to Cloud Now</string>
     <string name="settings_backup_upload_subtitle_configured">Overwrite the latest cloud backup</string>
     <string name="settings_backup_upload_subtitle_unconfigured">Please configure cloud storage first</string>

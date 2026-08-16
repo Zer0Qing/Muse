@@ -157,6 +157,27 @@
     <string name="memory_screen_failed_times">Falha %1$d vez(es)</string>
     <string name="memory_screen_last_success">Último sucesso: %1$s</string>
     <string name="memory_screen_error">Erro: %1$s</string>
+    <!-- Strings específicas do MemorySectionViews.kt -->
+    <string name="memory_screen_input_hint">Insira o conteúdo…</string>
+    <string name="memory_screen_empty_content">Nenhum conteúdo ainda</string>
+    <string name="memory_screen_empty_short_term">Nenhuma memória de curto prazo ainda</string>
+    <string name="memory_screen_input_day_hint">Insira o conteúdo do dia…</string>
+    <string name="memory_screen_system_status">Estado do sistema de memória</string>
+    <string name="memory_screen_no_status_data">Nenhum dado de status ainda</string>
+    <string name="memory_screen_error_compact">Erro: %1$s</string>
+    <string name="memory_screen_recent_error">Falha recente: %1$s</string>
+    <string name="memory_screen_recent_success">Sucesso recente: %1$s</string>
+    <!-- ===== Assistente de permissões (PermissionWizardScreen) ===== -->
+    <string name="permission_sui_detected">Backend Sui detectado (usuários root não precisam instalar o APK do Shizuku; o Sui oferece uma interface compatível com Shizuku)</string>
+    <string name="permission_global_action_title">Ações globais (action_id de ui_global_action)</string>
+    <string name="permission_refresh_status">Atualizar status</string>
+    <string name="shizuku_apk_installed">APK do Shizuku instalado</string>
+    <string name="shizuku_apk_not_installed">APK do Shizuku não instalado</string>
+    <string name="shizuku_service_running">Serviço do Shizuku em execução</string>
+    <string name="shizuku_service_not_running">Serviço do Shizuku não está em execução (inicie-o no aplicativo Shizuku)</string>
+    <string name="shizuku_status_unauthorized_long">O Muse não está autorizado a usar o Shizuku</string>
+    <string name="permission_open_shizuku_service">Abrir o Shizuku para iniciar o serviço</string>
+    <string name="permission_action_id_help">1 = Voltar (BACK)\n2 = Início (HOME)\n3 = Tarefas recentes (RECENTS)\n4 = Painel de notificações (NOTIFICATIONS)\n5 = Configurações rápidas (QUICK_SETTINGS)\n6 = Diálogo de energia (POWER_DIALOG)\n10 = Fechar painel de notificações (DISMISS_NOTIFICATION_SHADE)\n\nFerramentas rápidas: ui_back (action_id=1), ui_home (action_id=2)</string>
     <string name="memory_screen_ai_understanding">A compreensão da IA ​​sobre você</string>
     <string name="memory_screen_no_summary_hint">Nenhum resumo ainda;</string>
     <string name="memory_screen_click_collapse">Toque para recolher</string>

@@ -36,8 +36,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.zer0.muse.R
 import io.zer0.muse.data.moment.MomentCommentEntity
 import io.zer0.muse.data.moment.MomentEntity
 import io.zer0.muse.data.moment.images
@@ -71,6 +74,7 @@ fun MomentCard(
     var showDeleteConfirm by rememberSaveable { mutableStateOf(false) }
     var viewerIndex by rememberSaveable { mutableStateOf(-1) }
     val images = moment.images()
+    val context = LocalContext.current
 
     io.zer0.muse.ui.common.surface.MuseIsland(
         modifier = modifier.fillMaxWidth(),
@@ -120,7 +124,11 @@ fun MomentCard(
                 )
                 if (contentText.length > 200) {
                     Text(
-                        text = if (expanded) "收起" else "全文",
+                        text = if (expanded) {
+                            stringResource(R.string.action_collapse)
+                        } else {
+                            stringResource(R.string.moment_expand_full)
+                        },
                         style = MaterialTheme.typography.bodySmall.copy(
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Medium,
@@ -143,7 +151,7 @@ fun MomentCard(
                 // 时间(微信: 正文/图片下方,灰小字)
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    text = momentTimeText(moment.createdAt),
+                    text = momentTimeText(moment.createdAt, context),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.outline,
                 )
@@ -165,7 +173,7 @@ fun MomentCard(
                         // v1.0.74: 汉字换图标(心形)
                         Icon(
                             imageVector = if (moment.likedByUser) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                            contentDescription = "赞",
+                            contentDescription = stringResource(R.string.moment_like_cd),
                             tint = if (moment.likedByUser) {
                                 MaterialTheme.colorScheme.primary
                             } else {
@@ -197,7 +205,7 @@ fun MomentCard(
                         // v1.0.74: 汉字换图标(评论气泡)
                         Icon(
                             imageVector = Icons.AutoMirrored.Outlined.Chat,
-                            contentDescription = "评论",
+                            contentDescription = stringResource(R.string.moment_comment_cd),
                             tint = if (commentsExpanded) {
                                 MaterialTheme.colorScheme.primary
                             } else {
@@ -245,8 +253,13 @@ fun MomentCard(
                         ) {
                             comments.forEach { comment ->
                                 Row {
+                                    val senderLabel = if (comment.sender == "assistant") {
+                                        stringResource(R.string.moment_sender_muse)
+                                    } else {
+                                        stringResource(R.string.moment_sender_me)
+                                    }
                                     Text(
-                                        text = (comment.senderName?.takeIf { it.isNotBlank() } ?: if (comment.sender == "assistant") "Muse" else "我") + ": ",
+                                        text = (comment.senderName?.takeIf { it.isNotBlank() } ?: senderLabel) + ": ",
                                         style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
                                         color = MaterialTheme.colorScheme.onSurface,
                                     )
@@ -267,14 +280,19 @@ fun MomentCard(
                         MuseTextField(
                             value = commentInput,
                             onValueChange = { commentInput = it },
-                            placeholder = { Text("发表评论：", style = MaterialTheme.typography.bodySmall) },
+                            placeholder = {
+                                Text(
+                                    stringResource(R.string.moment_comment_hint),
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            },
                             singleLine = true,
                             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
                             modifier = Modifier.weight(1f),
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            text = "发送",
+                            text = stringResource(R.string.action_send),
                             style = MaterialTheme.typography.bodyMedium.copy(
                                 color = if (commentInput.isNotBlank()) {
                                     MaterialTheme.colorScheme.primary
@@ -311,20 +329,20 @@ fun MomentCard(
     if (showDeleteConfirm) {
         io.zer0.muse.ui.common.feedback.MuseDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = "删除动态",
+            title = stringResource(R.string.moment_delete_title),
             content = {
                 Text(
-                    text = "确定删除这条动态?",
+                    text = stringResource(R.string.moment_delete_confirm),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
-            confirmText = "删除",
+            confirmText = stringResource(R.string.action_delete),
             onConfirm = {
                 showDeleteConfirm = false
                 onDelete?.invoke()
             },
-            dismissText = "取消",
+            dismissText = stringResource(R.string.action_cancel),
             onDismiss = { showDeleteConfirm = false },
         )
     }
@@ -349,7 +367,7 @@ fun MomentImageGrid(
         1 -> {
             io.zer0.muse.ui.SmartImage(
                 model = images[0],
-                contentDescription = "动态配图",
+                contentDescription = stringResource(R.string.moment_image_cd),
                 contentScale = ContentScale.Crop,
                 modifier = modifier
                     .fillMaxWidth()
@@ -386,7 +404,7 @@ fun MomentImageGrid(
                                 ) {
                                     io.zer0.muse.ui.SmartImage(
                                         model = images[idx],
-                                        contentDescription = "动态配图 ${idx + 1}",
+                                        contentDescription = stringResource(R.string.moment_image_cd_indexed, idx + 1),
                                         contentScale = ContentScale.Crop,
                                         modifier = Modifier.fillMaxSize(),
                                     )

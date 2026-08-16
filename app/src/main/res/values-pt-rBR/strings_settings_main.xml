@@ -194,6 +194,8 @@
     <string name="settings_backup_auto_sync">Sincronização automática</string>
     <string name="settings_backup_auto_sync_subtitle">Carregar automaticamente para a nuvem de acordo com uma programação</string>
     <string name="settings_backup_auto_sync_interval">Intervalo de sincronização</string>
+    <string name="settings_backup_interval_hours">%1$d horas</string>
+    <string name="settings_backup_interval_label">Horas de intervalo (1-168)</string>
     <string name="settings_backup_upload_now">Faça upload para a nuvem agora</string>
     <string name="settings_backup_upload_subtitle_configured">Substitua o backup na nuvem mais recente</string>
     <string name="settings_backup_upload_subtitle_unconfigured">Configure primeiro o armazenamento em nuvem</string>

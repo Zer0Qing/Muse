@@ -157,6 +157,27 @@
     <string name="memory_screen_failed_times">%1$d 回失敗しました</string>
     <string name="memory_screen_last_success">最後の成功: %1$s</string>
     <string name="memory_screen_error">エラー: %1$s</string>
+    <!-- MemorySectionViews.kt 専用文字列 -->
+    <string name="memory_screen_input_hint">内容を入力してください…</string>
+    <string name="memory_screen_empty_content">まだ内容がありません</string>
+    <string name="memory_screen_empty_short_term">短期記憶はまだありません</string>
+    <string name="memory_screen_input_day_hint">その日の内容を入力してください…</string>
+    <string name="memory_screen_system_status">メモリシステムの状態</string>
+    <string name="memory_screen_no_status_data">ステータスデータはまだありません</string>
+    <string name="memory_screen_error_compact">エラー: %1$s</string>
+    <string name="memory_screen_recent_error">最近の失敗: %1$s</string>
+    <string name="memory_screen_recent_success">最近の成功: %1$s</string>
+    <!-- ===== 権限ウィザード (PermissionWizardScreen) ===== -->
+    <string name="permission_sui_detected">Sui バックエンドを検出しました(root ユーザーは Shizuku APK をインストールする必要はありません。Sui が Shizuku 互換インターフェースを提供します)</string>
+    <string name="permission_global_action_title">グローバルアクション (ui_global_action の action_id)</string>
+    <string name="permission_refresh_status">状態を更新</string>
+    <string name="shizuku_apk_installed">Shizuku APK がインストールされています</string>
+    <string name="shizuku_apk_not_installed">Shizuku APK がインストールされていません</string>
+    <string name="shizuku_service_running">Shizuku サービスは実行中です</string>
+    <string name="shizuku_service_not_running">Shizuku サービスは実行されていません(Shizuku アプリで起動してください)</string>
+    <string name="shizuku_status_unauthorized_long">Muse は Shizuku の使用を許可されていません</string>
+    <string name="permission_open_shizuku_service">Shizuku を開いてサービスを起動</string>
+    <string name="permission_action_id_help">1 = 戻る (BACK)\n2 = ホーム (HOME)\n3 = 最近のタスク (RECENTS)\n4 = 通知シェード (NOTIFICATIONS)\n5 = クイック設定 (QUICK_SETTINGS)\n6 = 電源ダイアログ (POWER_DIALOG)\n10 = 通知シェードを閉じる (DISMISS_NOTIFICATION_SHADE)\n\nクイックツール: ui_back (action_id=1), ui_home (action_id=2)</string>
     <string name="memory_screen_ai_understanding">AI によるあなたへの理解</string>
     <string name="memory_screen_no_summary_hint">まだ概要はありません。</string>
     <string name="memory_screen_click_collapse">タップして折りたたむ</string>

@@ -192,6 +192,27 @@
     <string name="memory_screen_failed_times">失败 %1$d 次</string>
     <string name="memory_screen_last_success">上次成功: %1$s</string>
     <string name="memory_screen_error">错误: %1$s</string>
+    <!-- MemorySectionViews.kt 专用文案 -->
+    <string name="memory_screen_input_hint">请输入内容…</string>
+    <string name="memory_screen_empty_content">暂无内容</string>
+    <string name="memory_screen_empty_short_term">暂无短期记忆</string>
+    <string name="memory_screen_input_day_hint">请输入当天内容…</string>
+    <string name="memory_screen_system_status">记忆系统状态</string>
+    <string name="memory_screen_no_status_data">暂无状态数据</string>
+    <string name="memory_screen_error_compact">错误:%1$s</string>
+    <string name="memory_screen_recent_error">最近失败:%1$s</string>
+    <string name="memory_screen_recent_success">最近成功:%1$s</string>
+    <!-- ===== 权限向导 (PermissionWizardScreen) ===== -->
+    <string name="permission_sui_detected">Sui 后端已检测到(root 用户无需安装 Shizuku APK,Sui 提供 Shizuku 兼容接口)</string>
+    <string name="permission_global_action_title">全局动作 (ui_global_action 的 action_id)</string>
+    <string name="permission_refresh_status">刷新状态</string>
+    <string name="shizuku_apk_installed">Shizuku APK 已安装</string>
+    <string name="shizuku_apk_not_installed">Shizuku APK 未安装</string>
+    <string name="shizuku_service_running">Shizuku 服务已运行</string>
+    <string name="shizuku_service_not_running">Shizuku 服务未运行(需在 Shizuku 应用中启动)</string>
+    <string name="shizuku_status_unauthorized_long">未授权 Muse 使用 Shizuku</string>
+    <string name="permission_open_shizuku_service">打开 Shizuku 启动服务</string>
+    <string name="permission_action_id_help">1 = 返回 (BACK)\n2 = 主页 (HOME)\n3 = 最近任务 (RECENTS)\n4 = 通知栏 (NOTIFICATIONS)\n5 = 快捷设置 (QUICK_SETTINGS)\n6 = 电源对话框 (POWER_DIALOG)\n10 = 关闭通知shade (DISMISS_NOTIFICATION_SHADE)\n\n快捷工具: ui_back (action_id=1), ui_home (action_id=2)</string>
     <string name="memory_screen_ai_understanding">AI 对你的理解</string>
     <string name="memory_screen_no_summary_hint">暂无摘要,继续对话后会自动生成</string>
     <string name="memory_screen_click_collapse">点击收起</string>

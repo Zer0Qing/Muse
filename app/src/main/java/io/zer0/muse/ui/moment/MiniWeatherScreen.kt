@@ -1,5 +1,6 @@
 package io.zer0.muse.ui.moment
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -37,8 +38,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.zer0.muse.R
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.theme.MusePaddings
 import kotlinx.coroutines.Dispatchers
@@ -77,14 +80,14 @@ fun MiniWeatherScreen(
         error = null
         // 审计修复 (3.3): 复用组合作用域
         scope.launch {
-            val w = withContext(Dispatchers.IO) { fetchWeather(lat, lon) }
+            val w = withContext(Dispatchers.IO) { fetchWeather(lat, lon, context) }
             if (w != null) {
                 current = w.first
                 daily = w.second
                 loading = false
             } else {
                 loading = false
-                error = "天气服务暂时不可用"
+                error = context.getString(R.string.weather_service_unavailable)
             }
         }
     }
@@ -101,7 +104,7 @@ fun MiniWeatherScreen(
                 loadWeather(result.second.first, result.second.second)
             } else {
                 loading = false
-                error = "未找到城市 \"$name\",换个名字试试"
+                error = context.getString(R.string.weather_city_not_found, name)
             }
         }
     }
@@ -117,7 +120,7 @@ fun MiniWeatherScreen(
                 loadWeather(located.second.first, located.second.second)
             } else {
                 loading = false
-                error = "无法获取定位,请输入城市名查询"
+                error = context.getString(R.string.weather_location_failed)
             }
         }
     }
@@ -130,7 +133,7 @@ fun MiniWeatherScreen(
             loadWeatherByLocation()
         } else {
             loading = false
-            error = "未授权定位,请输入城市名查询"
+            error = context.getString(R.string.weather_permission_denied)
         }
     }
 
@@ -158,13 +161,13 @@ fun MiniWeatherScreen(
             IconButton(onClick = onBack) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "返回",
+                    contentDescription = stringResource(R.string.action_back),
                     tint = MaterialTheme.colorScheme.onSurface,
                 )
             }
             Spacer(Modifier.width(8.dp))
             Text(
-                text = "天气",
+                text = stringResource(R.string.weather_title),
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onSurface,
             )
@@ -180,13 +183,13 @@ fun MiniWeatherScreen(
             MuseTextField(
                 value = cityInput,
                 onValueChange = { cityInput = it },
-                placeholder = { Text("输入城市名(如 成都)") },
+                placeholder = { Text(stringResource(R.string.weather_search_hint)) },
                 singleLine = true,
                 modifier = Modifier.weight(1f),
             )
             Spacer(Modifier.width(8.dp))
             Text(
-                text = "查询",
+                text = stringResource(R.string.weather_search_action),
                 style = MaterialTheme.typography.bodyMedium.copy(
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Medium,
@@ -212,7 +215,7 @@ fun MiniWeatherScreen(
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = "配置定位权限或手动输入城市名查询",
+                        text = stringResource(R.string.weather_permission_guide),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline,
                     )
@@ -254,7 +257,11 @@ fun MiniWeatherScreen(
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = "体感 ${current!!.feelsLike.toInt()}° · 风速 ${current!!.windSpeed} km/h",
+                        text = stringResource(
+                            R.string.weather_feels_like_wind,
+                            current!!.feelsLike.toInt(),
+                            current!!.windSpeed,
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline,
                     )
@@ -326,7 +333,7 @@ private suspend fun tryLocate(context: android.content.Context): Pair<String, Pa
         val lat = loc.latitude
         val lon = loc.longitude
         // 反查城市名(Open-Meteo geocoding 反向不支持,用正向搜索最近城市近似,或直接显示"当前位置")
-        val name = reverseGeocode(lat, lon) ?: "当前位置"
+        val name = reverseGeocode(lat, lon) ?: context.getString(R.string.weather_current_location)
         name to (lat to lon)
     } catch (e: Exception) {
         null
@@ -364,72 +371,94 @@ private suspend fun reverseGeocode(lat: Double, lon: Double): String? {
 }
 
 /** Open-Meteo 获取天气。返回 (当前, 7 天)。 */
-private suspend fun fetchWeather(lat: Double, lon: Double): Pair<WeatherNow, List<WeatherDay>>? {
+private suspend fun fetchWeather(lat: Double, lon: Double, context: Context): Pair<WeatherNow, List<WeatherDay>>? {
+    val url = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon" +
+        "&current=temperature_2m,apparent_temperature,wind_speed_10m,weather_code" +
+        "&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=7"
+    val json = httpGet(url) ?: return null
     return try {
-        val url = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon" +
-            "&current=temperature_2m,apparent_temperature,wind_speed_10m,weather_code" +
-            "&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=7"
-        val json = httpGet(url) ?: return null
         val root = io.zer0.common.AppJson.parseToJsonElement(json).jsonObject
         val current = root["current"]?.jsonObject
         val dailyObj = root["daily"]?.jsonObject
-        if (current == null || dailyObj == null) return null
-
-        val now = WeatherNow(
-            temp = current["temperature_2m"]?.jsonPrimitive?.contentOrNull?.toDoubleOrNull() ?: 0.0,
-            feelsLike = current["apparent_temperature"]?.jsonPrimitive?.contentOrNull?.toDoubleOrNull() ?: 0.0,
-            windSpeed = current["wind_speed_10m"]?.jsonPrimitive?.contentOrNull?.toDoubleOrNull() ?: 0.0,
-            desc = weatherCodeText(current["weather_code"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 0),
-        )
-
-        val dates = dailyObj["time"]?.jsonArray?.mapNotNull { it.jsonPrimitive.contentOrNull } ?: emptyList()
-        val codes = dailyObj["weather_code"]?.jsonArray?.mapNotNull { it.jsonPrimitive.contentOrNull?.toIntOrNull() } ?: emptyList()
-        val maxs = dailyObj["temperature_2m_max"]?.jsonArray?.mapNotNull { it.jsonPrimitive.contentOrNull?.toDoubleOrNull() } ?: emptyList()
-        val mins = dailyObj["temperature_2m_min"]?.jsonArray?.mapNotNull { it.jsonPrimitive.contentOrNull?.toDoubleOrNull() } ?: emptyList()
-
-        val days = dates.mapIndexedNotNull { i, d ->
-            if (i >= codes.size) return@mapIndexedNotNull null
-            WeatherDay(
-                date = formatDayLabel(d),
-                min = mins.getOrElse(i) { 0.0 },
-                max = maxs.getOrElse(i) { 0.0 },
-                desc = weatherCodeText(codes[i]),
+        if (current == null || dailyObj == null) {
+            null
+        } else {
+            val now = WeatherNow(
+                temp = current["temperature_2m"]?.jsonPrimitive?.contentOrNull?.toDoubleOrNull() ?: 0.0,
+                feelsLike = current["apparent_temperature"]?.jsonPrimitive?.contentOrNull?.toDoubleOrNull() ?: 0.0,
+                windSpeed = current["wind_speed_10m"]?.jsonPrimitive?.contentOrNull?.toDoubleOrNull() ?: 0.0,
+                desc = weatherCodeText(
+                    current["weather_code"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 0,
+                    context,
+                ),
             )
+
+            val dates = dailyObj["time"]?.jsonArray?.mapNotNull { it.jsonPrimitive.contentOrNull } ?: emptyList()
+            val codes = dailyObj["weather_code"]?.jsonArray?.mapNotNull { it.jsonPrimitive.contentOrNull?.toIntOrNull() } ?: emptyList()
+            val maxs = dailyObj["temperature_2m_max"]?.jsonArray?.mapNotNull { it.jsonPrimitive.contentOrNull?.toDoubleOrNull() } ?: emptyList()
+            val mins = dailyObj["temperature_2m_min"]?.jsonArray?.mapNotNull { it.jsonPrimitive.contentOrNull?.toDoubleOrNull() } ?: emptyList()
+
+            val days = dates.mapIndexedNotNull { i, d ->
+                if (i >= codes.size) return@mapIndexedNotNull null
+                WeatherDay(
+                    date = formatDayLabel(d, context),
+                    min = mins.getOrElse(i) { 0.0 },
+                    max = maxs.getOrElse(i) { 0.0 },
+                    desc = weatherCodeText(codes[i], context),
+                )
+            }
+            now to days
         }
-        now to days
     } catch (e: Exception) {
         null
     }
 }
 
-/** WMO weather code → 中文描述。 */
-private fun weatherCodeText(code: Int): String = when (code) {
-    0 -> "晴"
-    1, 2 -> "多云"
-    3 -> "阴"
-    45, 48 -> "雾"
-    51, 53, 55 -> "毛毛雨"
-    56, 57 -> "冻雨"
-    61, 63, 65 -> "雨"
-    66, 67 -> "冻雨"
-    71, 73, 75 -> "雪"
-    77 -> "霰"
-    80, 81, 82 -> "阵雨"
-    85, 86 -> "阵雪"
-    95 -> "雷雨"
-    96, 99 -> "雷暴冰雹"
-    else -> "未知"
-}
+/** WMO weather code → 天气描述资源 id。 */
+private val weatherCodeStrings: Map<Int, Int> = mapOf(
+    0 to R.string.weather_condition_clear,
+    1 to R.string.weather_condition_partly_cloudy,
+    2 to R.string.weather_condition_partly_cloudy,
+    3 to R.string.weather_condition_overcast,
+    45 to R.string.weather_condition_fog,
+    48 to R.string.weather_condition_fog,
+    51 to R.string.weather_condition_drizzle,
+    53 to R.string.weather_condition_drizzle,
+    55 to R.string.weather_condition_drizzle,
+    56 to R.string.weather_condition_freezing_drizzle,
+    57 to R.string.weather_condition_freezing_drizzle,
+    61 to R.string.weather_condition_rain,
+    63 to R.string.weather_condition_rain,
+    65 to R.string.weather_condition_rain,
+    66 to R.string.weather_condition_freezing_drizzle,
+    67 to R.string.weather_condition_freezing_drizzle,
+    71 to R.string.weather_condition_snow,
+    73 to R.string.weather_condition_snow,
+    75 to R.string.weather_condition_snow,
+    77 to R.string.weather_condition_sleet,
+    80 to R.string.weather_condition_showers,
+    81 to R.string.weather_condition_showers,
+    82 to R.string.weather_condition_showers,
+    85 to R.string.weather_condition_snow_showers,
+    86 to R.string.weather_condition_snow_showers,
+    95 to R.string.weather_condition_thunderstorm,
+    96 to R.string.weather_condition_thunderstorm_hail,
+    99 to R.string.weather_condition_thunderstorm_hail,
+)
+
+/** WMO weather code → 天气描述(按当前语言)。 */
+private fun weatherCodeText(code: Int, context: Context): String =
+    context.getString(weatherCodeStrings[code] ?: R.string.weather_condition_unknown)
 
 /** "2026-08-11" → "周一 08-11" 或 "今天"。 */
-private fun formatDayLabel(date: String): String {
+private fun formatDayLabel(date: String, context: Context): String {
     return try {
         val parsed = java.time.LocalDate.parse(date)
         val today = java.time.LocalDate.now()
-        val weekDays = listOf("周日", "周一", "周二", "周三", "周四", "周五", "周六")
+        val weekDays = context.resources.getStringArray(R.array.weather_weekdays)
         when (parsed) {
-            today -> "今天"
-            today.plusDays(1) -> "明天"
+            today -> context.getString(R.string.weather_day_today)
+            today.plusDays(1) -> context.getString(R.string.weather_day_tomorrow)
             else -> "${weekDays[parsed.dayOfWeek.value % 7]} ${parsed.monthValue}-${parsed.dayOfMonth}"
         }
     } catch (e: Exception) {

@@ -1,5 +1,6 @@
 package io.zer0.muse.ui.moment
 
+import android.content.Context
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -46,6 +47,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -83,7 +85,7 @@ fun MomentAvatar(
         if (!avatarUrl.isNullOrBlank()) {
             io.zer0.muse.ui.SmartImage(
                 model = avatarUrl,
-                contentDescription = "头像",
+                contentDescription = stringResource(R.string.moment_avatar_cd),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
             )
@@ -140,7 +142,7 @@ fun MomentsFeedHeader(
         if (!coverImage.isNullOrBlank()) {
             io.zer0.muse.ui.SmartImage(
                 model = coverImage,
-                contentDescription = "朋友圈封面",
+                contentDescription = stringResource(R.string.moment_cover_cd),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
             )
@@ -155,7 +157,7 @@ fun MomentsFeedHeader(
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "返回",
+                contentDescription = stringResource(R.string.action_back),
                 tint = Color.White,
             )
         }
@@ -174,7 +176,7 @@ fun MomentsFeedHeader(
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Notifications,
-                        contentDescription = "消息",
+                        contentDescription = stringResource(R.string.moment_messages_cd),
                         tint = Color.White,
                     )
                 }
@@ -203,7 +205,7 @@ fun MomentsFeedHeader(
             ) {
                 Icon(
                     imageVector = Icons.Filled.Add,
-                    contentDescription = "发布动态(短按图文,长按纯文字)",
+                    contentDescription = stringResource(R.string.moment_publish_cd),
                     tint = Color.White,
                 )
             }
@@ -284,13 +286,13 @@ fun MomentFeedList(
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = "还没有动态",
+                        text = stringResource(R.string.moment_empty_feed),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = "点右上角 + 发第一条朋友圈\nMuse 和助手们也会分享它们的生活",
+                        text = stringResource(R.string.moment_empty_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline,
                     )
@@ -345,6 +347,7 @@ fun MomentMessagesPage(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
     Column(modifier = modifier.fillMaxSize()) {
         Row(
             modifier = Modifier
@@ -357,13 +360,13 @@ fun MomentMessagesPage(
             IconButton(onClick = onBack) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "返回",
+                    contentDescription = stringResource(R.string.action_back),
                     tint = MaterialTheme.colorScheme.onSurface,
                 )
             }
             Spacer(Modifier.width(8.dp))
             Text(
-                text = "消息",
+                text = stringResource(R.string.moment_messages_cd),
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onSurface,
             )
@@ -371,7 +374,7 @@ fun MomentMessagesPage(
         if (messages.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
-                    text = "还没有人赞你或评论你",
+                    text = stringResource(R.string.moment_messages_empty),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.outline,
                 )
@@ -413,8 +416,8 @@ fun MomentMessagesPage(
                                 }
                                 Text(
                                     text = when (msg.type) {
-                                        "like" -> "${msg.actorName} 赞了你的动态"
-                                        else -> "${msg.actorName} 评论了你的动态"
+                                        "like" -> stringResource(R.string.moment_notification_liked, msg.actorName)
+                                        else -> stringResource(R.string.moment_notification_commented, msg.actorName)
                                     },
                                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                                     color = MaterialTheme.colorScheme.onSurface,
@@ -436,7 +439,7 @@ fun MomentMessagesPage(
                             )
                         }
                         Text(
-                            text = momentTimeText(msg.createdAt),
+                            text = momentTimeText(msg.createdAt, context),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.outline,
                         )
@@ -476,13 +479,13 @@ fun MomentProfilePage(
             IconButton(onClick = onBack) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "返回",
+                    contentDescription = stringResource(R.string.action_back),
                     tint = MaterialTheme.colorScheme.onSurface,
                 )
             }
             Spacer(Modifier.width(8.dp))
             Text(
-                text = "$senderName 的主页",
+                text = stringResource(R.string.moment_profile_title, senderName),
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onSurface,
             )
@@ -508,7 +511,7 @@ fun MomentProfilePage(
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    text = "${moments.size} 条动态",
+                    text = stringResource(R.string.moment_moment_count, moments.size),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.outline,
                 )
@@ -519,7 +522,7 @@ fun MomentProfilePage(
         if (moments.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
-                    text = "还没有动态",
+                    text = stringResource(R.string.moment_empty_feed),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.outline,
                 )
@@ -565,13 +568,17 @@ fun PublishDialog(
 
     io.zer0.muse.ui.common.feedback.MuseDialog(
         onDismissRequest = onDismiss,
-        title = if (textOnly) "发纯文字" else "发朋友圈",
+        title = if (textOnly) {
+            stringResource(R.string.moment_publish_text_only)
+        } else {
+            stringResource(R.string.moment_publish_feed)
+        },
         content = {
             Column {
                 io.zer0.muse.ui.common.form.MuseTextField(
                     value = draft,
                     onValueChange = { draft = it },
-                    placeholder = { Text("这一刻的想法...") },
+                    placeholder = { Text(stringResource(R.string.moment_publish_placeholder)) },
                     minLines = 2,
                     maxLines = 4,
                     modifier = Modifier.fillMaxWidth(),
@@ -590,7 +597,7 @@ fun PublishDialog(
                                 ) {
                                     io.zer0.muse.ui.SmartImage(
                                         model = img,
-                                        contentDescription = "待发布图片",
+                                        contentDescription = stringResource(R.string.moment_pending_image_cd),
                                         contentScale = ContentScale.Crop,
                                         modifier = Modifier.fillMaxSize(),
                                     )
@@ -621,7 +628,7 @@ fun PublishDialog(
                 }
             }
         },
-        confirmText = "发布",
+        confirmText = stringResource(R.string.moment_publish_confirm),
         // v1.0.74 fix: 空内容可点发布却没反应;改为空时禁用主按钮
         onConfirm = if (draft.isNotBlank() || (!textOnly && pickedImages.isNotEmpty())) {
             {
@@ -630,20 +637,20 @@ fun PublishDialog(
         } else {
             null
         },
-        dismissText = "取消",
+        dismissText = stringResource(R.string.action_cancel),
         onDismiss = onDismiss,
     )
 }
 
 /** 时间显示:刚刚/X 分钟前/X 小时前/昨天/X 天前/日期。
  *  v1.0.74 fix: "昨天"按自然日判断(此前 47 小时前的动态也显示"昨天")。 */
-internal fun momentTimeText(timestamp: Long): String {
+internal fun momentTimeText(timestamp: Long, context: Context): String {
     val diff = System.currentTimeMillis() - timestamp
     if (diff < 86_400_000L) {
         return when {
-            diff < 60_000L -> "刚刚"
-            diff < 3_600_000L -> "${diff / 60_000L} 分钟前"
-            else -> "${diff / 3_600_000L} 小时前"
+            diff < 60_000L -> context.getString(R.string.chat_list_time_just_now)
+            diff < 3_600_000L -> context.getString(R.string.chat_list_time_minutes_ago, diff / 60_000L)
+            else -> context.getString(R.string.chat_list_time_hours_ago, diff / 3_600_000L)
         }
     }
     val target = java.util.Calendar.getInstance().apply { timeInMillis = timestamp }
@@ -651,8 +658,8 @@ internal fun momentTimeText(timestamp: Long): String {
     val isYesterday = target.get(java.util.Calendar.YEAR) == now.get(java.util.Calendar.YEAR) &&
         target.get(java.util.Calendar.DAY_OF_YEAR) == now.get(java.util.Calendar.DAY_OF_YEAR) - 1
     return when {
-        isYesterday -> "昨天"
-        diff < 7 * 86_400_000L -> "${diff / 86_400_000L} 天前"
+        isYesterday -> context.getString(R.string.chat_list_time_yesterday)
+        diff < 7 * 86_400_000L -> context.getString(R.string.chat_list_time_days_ago, diff / 86_400_000L)
         else -> {
             val date = java.util.Date(timestamp)
             java.text.SimpleDateFormat("MM-dd HH:mm", java.util.Locale.getDefault()).format(date)

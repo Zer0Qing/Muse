@@ -157,6 +157,27 @@
     <string name="memory_screen_failed_times">%1$d회 실패</string>
     <string name="memory_screen_last_success">이전 성공: %1$s</string>
     <string name="memory_screen_error">오류: %1$s</string>
+    <!-- MemorySectionViews.kt 전용 문자열 -->
+    <string name="memory_screen_input_hint">내용을 입력하세요…</string>
+    <string name="memory_screen_empty_content">아직 내용이 없습니다</string>
+    <string name="memory_screen_empty_short_term">아직 단기 기억이 없습니다</string>
+    <string name="memory_screen_input_day_hint">당일 내용을 입력하세요…</string>
+    <string name="memory_screen_system_status">기억 시스템 상태</string>
+    <string name="memory_screen_no_status_data">아직 상태 데이터가 없습니다</string>
+    <string name="memory_screen_error_compact">오류: %1$s</string>
+    <string name="memory_screen_recent_error">최근 실패: %1$s</string>
+    <string name="memory_screen_recent_success">최근 성공: %1$s</string>
+    <!-- ===== 권한 위저드 (PermissionWizardScreen) ===== -->
+    <string name="permission_sui_detected">Sui 백엔드가 감지되었습니다(root 사용자는 Shizuku APK를 설치할 필요가 없습니다. Sui가 Shizuku 호환 인터페이스를 제공합니다)</string>
+    <string name="permission_global_action_title">전역 동작 (ui_global_action의 action_id)</string>
+    <string name="permission_refresh_status">상태 새로고침</string>
+    <string name="shizuku_apk_installed">Shizuku APK가 설치되었습니다</string>
+    <string name="shizuku_apk_not_installed">Shizuku APK가 설치되지 않았습니다</string>
+    <string name="shizuku_service_running">Shizuku 서비스가 실행 중입니다</string>
+    <string name="shizuku_service_not_running">Shizuku 서비스가 실행 중이 아닙니다(Shizuku 앱에서 시작하세요)</string>
+    <string name="shizuku_status_unauthorized_long">Muse가 Shizuku 사용 권한을 받지 못했습니다</string>
+    <string name="permission_open_shizuku_service">Shizuku를 열어 서비스 시작</string>
+    <string name="permission_action_id_help">1 = 뒤로 (BACK)\n2 = 홈 (HOME)\n3 = 최근 작업 (RECENTS)\n4 = 알림 패널 (NOTIFICATIONS)\n5 = 빠른 설정 (QUICK_SETTINGS)\n6 = 전원 대화상자 (POWER_DIALOG)\n10 = 알림 패널 닫기 (DISMISS_NOTIFICATION_SHADE)\n\n빠른 도구: ui_back (action_id=1), ui_home (action_id=2)</string>
     <string name="memory_screen_ai_understanding">AI가 당신을 어떻게 이해하고 있는지</string>
     <string name="memory_screen_no_summary_hint">아직 요약이 없습니다. 대화를 계속하면 자동 생성됩니다</string>
     <string name="memory_screen_click_collapse">탭하여 접기</string>

@@ -157,6 +157,27 @@
     <string name="memory_screen_failed_times">Failed %1$d time(s)</string>
     <string name="memory_screen_last_success">Last success: %1$s</string>
     <string name="memory_screen_error">Error: %1$s</string>
+    <!-- MemorySectionViews.kt specific strings -->
+    <string name="memory_screen_input_hint">Enter content…</string>
+    <string name="memory_screen_empty_content">No content yet</string>
+    <string name="memory_screen_empty_short_term">No short-term memories yet</string>
+    <string name="memory_screen_input_day_hint">Enter today\'s content…</string>
+    <string name="memory_screen_system_status">Memory System Status</string>
+    <string name="memory_screen_no_status_data">No status data yet</string>
+    <string name="memory_screen_error_compact">Error: %1$s</string>
+    <string name="memory_screen_recent_error">Recent failure: %1$s</string>
+    <string name="memory_screen_recent_success">Recent success: %1$s</string>
+    <!-- ===== Permission wizard (PermissionWizardScreen) ===== -->
+    <string name="permission_sui_detected">Sui backend detected (root users don\'t need to install the Shizuku APK; Sui provides a Shizuku-compatible interface)</string>
+    <string name="permission_global_action_title">Global Actions (ui_global_action action_id)</string>
+    <string name="permission_refresh_status">Refresh status</string>
+    <string name="shizuku_apk_installed">Shizuku APK installed</string>
+    <string name="shizuku_apk_not_installed">Shizuku APK not installed</string>
+    <string name="shizuku_service_running">Shizuku service running</string>
+    <string name="shizuku_service_not_running">Shizuku service not running (start it in the Shizuku app)</string>
+    <string name="shizuku_status_unauthorized_long">Muse is not authorized to use Shizuku</string>
+    <string name="permission_open_shizuku_service">Open Shizuku to start the service</string>
+    <string name="permission_action_id_help">1 = Back (BACK)\n2 = Home (HOME)\n3 = Recent tasks (RECENTS)\n4 = Notifications panel (NOTIFICATIONS)\n5 = Quick settings (QUICK_SETTINGS)\n6 = Power dialog (POWER_DIALOG)\n10 = Close notifications shade (DISMISS_NOTIFICATION_SHADE)\n\nQuick tools: ui_back (action_id=1), ui_home (action_id=2)</string>
     <string name="memory_screen_ai_understanding">AI\'s understanding of you</string>
     <string name="memory_screen_no_summary_hint">No summary yet; it will be generated as you continue chatting</string>
     <string name="memory_screen_click_collapse">Tap to collapse</string>

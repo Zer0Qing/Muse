@@ -13,6 +13,88 @@
     <string name="chat_msg_not_selected">Not selected</string>
     <string name="moment_images_selected">%1$d selected (tap to add more)</string>
     <string name="moment_add_images_hint">Add images (up to %1$d)</string>
+    <!-- ===== Diary (MiniDiaryScreen) ===== -->
+    <string name="diary_generate_failed">Diary generation failed, try again later</string>
+    <string name="diary_title">Muse Diary</string>
+    <string name="diary_date_title">%1$d/%2$d/%3$s</string>
+    <string name="diary_empty_today">No diary for today yet</string>
+    <string name="diary_empty_other_day">No diary for this day</string>
+    <string name="diary_empty_today_hint">Opening the diary page will auto-generate today\'s diary</string>
+    <string name="diary_prev_month">Previous month</string>
+    <string name="diary_month_title">%1$d/%2$d</string>
+    <string name="diary_next_month">Next month</string>
+    <string-array name="diary_weekdays_short">
+        <item>Su</item>
+        <item>Mo</item>
+        <item>Tu</item>
+        <item>We</item>
+        <item>Th</item>
+        <item>Fr</item>
+        <item>Sa</item>
+    </string-array>
+    <!-- ===== Weather (MiniWeatherScreen) ===== -->
+    <string name="weather_title">Weather</string>
+    <string name="weather_search_hint">Enter city name (e.g. Chengdu)</string>
+    <string name="weather_search_action">Search</string>
+    <string name="weather_service_unavailable">Weather service temporarily unavailable</string>
+    <string name="weather_city_not_found">City "%1$s" not found, try another name</string>
+    <string name="weather_location_failed">Unable to get location, enter a city name to search</string>
+    <string name="weather_permission_denied">Location permission not granted, enter a city name to search</string>
+    <string name="weather_permission_guide">Enable location permission or enter a city name to search</string>
+    <string name="weather_feels_like_wind">Feels like %1$d° · Wind %2$s km/h</string>
+    <string name="weather_current_location">Current location</string>
+    <string name="weather_condition_clear">Clear</string>
+    <string name="weather_condition_partly_cloudy">Partly cloudy</string>
+    <string name="weather_condition_overcast">Overcast</string>
+    <string name="weather_condition_fog">Fog</string>
+    <string name="weather_condition_drizzle">Drizzle</string>
+    <string name="weather_condition_freezing_drizzle">Freezing drizzle</string>
+    <string name="weather_condition_rain">Rain</string>
+    <string name="weather_condition_snow">Snow</string>
+    <string name="weather_condition_sleet">Sleet</string>
+    <string name="weather_condition_showers">Showers</string>
+    <string name="weather_condition_snow_showers">Snow showers</string>
+    <string name="weather_condition_thunderstorm">Thunderstorm</string>
+    <string name="weather_condition_thunderstorm_hail">Thunderstorm with hail</string>
+    <string name="weather_condition_unknown">Unknown</string>
+    <string name="weather_day_today">Today</string>
+    <string name="weather_day_tomorrow">Tomorrow</string>
+    <string-array name="weather_weekdays">
+        <item>Sun</item>
+        <item>Mon</item>
+        <item>Tue</item>
+        <item>Wed</item>
+        <item>Thu</item>
+        <item>Fri</item>
+        <item>Sat</item>
+    </string-array>
+    <!-- ===== Moments (MomentCard/MomentComponents) ===== -->
+    <string name="moment_expand_full">Full text</string>
+    <string name="moment_like_cd">Like</string>
+    <string name="moment_comment_cd">Comment</string>
+    <string name="moment_sender_muse">Muse</string>
+    <string name="moment_sender_me">Me</string>
+    <string name="moment_comment_hint">Post a comment:</string>
+    <string name="moment_delete_title">Delete moment</string>
+    <string name="moment_delete_confirm">Delete this moment?</string>
+    <string name="moment_image_cd">Moment image</string>
+    <string name="moment_image_cd_indexed">Moment image %1$d</string>
+    <string name="moment_avatar_cd">Avatar</string>
+    <string name="moment_cover_cd">Moments cover</string>
+    <string name="moment_messages_cd">Messages</string>
+    <string name="moment_publish_cd">Publish moment (tap for media, long-press for text)</string>
+    <string name="moment_empty_feed">No moments yet</string>
+    <string name="moment_empty_hint">Tap + at top right to post your first moment\nMuse and assistants will share their life too</string>
+    <string name="moment_messages_empty">No likes or comments yet</string>
+    <string name="moment_notification_liked">%1$s liked your moment</string>
+    <string name="moment_notification_commented">%1$s commented on your moment</string>
+    <string name="moment_profile_title">%1$s\'s profile</string>
+    <string name="moment_moment_count">%1$d moments</string>
+    <string name="moment_publish_text_only">Post text only</string>
+    <string name="moment_publish_feed">Post moment</string>
+    <string name="moment_publish_placeholder">What are you thinking...</string>
+    <string name="moment_pending_image_cd">Pending image</string>
+    <string name="moment_publish_confirm">Post</string>
     <string name="rich_input_markdown_placeholder">text</string>
     <string name="chat_context_usage_cd">Context usage %1$s%%, %2$d tokens total</string>
     <string name="chat_context_tokens_only_cd">Context token count %1$d, model has no context window</string>
