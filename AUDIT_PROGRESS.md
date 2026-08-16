@@ -168,7 +168,7 @@
 
 ## 第三批检查点 8（2026-08-06 续）
 
-- 新增完成：R-CI-07 debug-only Kover 阈值（ai 40 / memory 30 / app 12，`koverCachedVerifyDebug` 全绿）；R-CI-08 emulator job 改为 workflow_dispatch 手动触发；R-SEC-03 方案 B（默认 127.0.0.1 + CORS 仅本机，设置页局域网开关，WebServerAuthPolicyTest 6/6）；R-SVC-05 方案 B（仅生成任务期间持锁，设置页文案同步）；R-BUILD-02 按 owner 决策关闭。
+- 新增完成：R-CI-07 Kover 阈值（ai 40 / memory 30 / app 12，`koverCachedVerifyDebug` 全绿；注意 verify 规则无变体作用域，对 koverVerify 全变体生效，非 debug-only — 审查修复 2.0 B-31 已更正此措辞）；R-CI-08 emulator job 改为 workflow_dispatch 手动触发；R-SEC-03 方案 B（默认 127.0.0.1 + CORS 仅本机，设置页局域网开关，WebServerAuthPolicyTest 6/6）；R-SVC-05 方案 B（仅生成任务期间持锁，设置页文案同步）；R-BUILD-02 按 owner 决策关闭。
 - 验证：`:app:compileDebugKotlin` / `:app:testDebugUnitTest --tests WebServerAuthPolicyTest` / 三模块 `koverCachedVerifyDebug` / detekt / ktlintCheck 全绿；8 个 Lane 脚本 EXIT=0。
 - 仍待 owner/后续：R-UI-08/R-UI-14 文件拆分、R-TEST-03/04 剩余、R-TEST-06 完整状态机/10 真实路径/14 v1-54/20 其余、R-DB-04/05、R-BUILD-07。
 

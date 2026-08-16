@@ -76,10 +76,6 @@ androidx-compose-material3 = { group = "androidx.compose.material3", name = "mat
 androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
 androidx-compose-runtime = { group = "androidx.compose.runtime", name = "runtime" }
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
-# Phase 6-A2: Google Fonts downloadable fonts(Inter + Noto Serif SC + JetBrains Mono)
-androidx-compose-ui-text-google-fonts = { group = "androidx.compose.ui", name = "ui-text-google-fonts" }
-
-
 
 # Koin(BOM 统一版本)
 koin-bom = { group = "io.insert-koin", name = "koin-bom", version.ref = "koinBom" }

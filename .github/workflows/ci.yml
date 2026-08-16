@@ -127,10 +127,30 @@ jobs:
     - name: Build release APKs
       # A-17: 注入版本号 — build.gradle.kts 硬约束 Release 任务必须显式
       # -PversionName/-PversionCode,否则 GradleException 先于签名检查抛出。
-      # versionName 取自 tag(v1.0.75 → 1.0.75);versionCode 用 CI run_number 递增。
-      run: ./gradlew assembleRelease -PversionName=${GITHUB_REF_NAME#v} -PversionCode=${{ github.run_number }}
+      # versionName 取自 tag(v1.0.75 → 1.0.75)。
+      # C-15: versionCode 改用 git 提交时间戳(秒)— github.run_number 在 workflow 删除重建后
+      # 会重置导致版本回退;提交时间戳单调不减,且与 tag 绑定的 commit 一一对应。
+      run: |
+        VERSION_CODE=$(git log -1 --format=%ct)
+        ./gradlew assembleRelease -PversionName=${GITHUB_REF_NAME#v} -PversionCode=${VERSION_CODE}
     - uses: actions/upload-artifact@v4
       with:
         name: release-apks
         path: app/build/outputs/apk/release/*.apk
         if-no-files-found: error
+    # 审查修复 (2.0 A-16): 把 split APK 发布为 GitHub Release 资产 —
+    # 此前 release job 只产出 Actions 制品,从不建 Release,而应用内
+    # UpdateChecker 从 /releases/latest 拉取 .apk,导致应用内更新恒失败。
+    # 触发条件已限定 refs/tags/,Release 资产即应用内更新的数据源。
+    - name: Publish GitHub Release
+      uses: ncipollo/release-action@v1
+      with:
+        tag: ${{ github.ref_name }}
+        name: "Muse ${{ github.ref_name }}"
+        body: |
+          ${{ github.event.head_commit.message }}
+
+          由 CI 自动发布(commit: ${{ github.sha }})
+        artifacts: "app/build/outputs/apk/release/*.apk"
+        artifactContentType: application/vnd.android.package-archive
+        token: ${{ secrets.GITHUB_TOKEN }}

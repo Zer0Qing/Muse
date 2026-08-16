@@ -61,14 +61,15 @@ import io.zer0.muse.R
  *  - 启动时生成 6 位数字 PIN(随机),用于 Web 端首次访问验证
  *  - Web 端通过 `POST /api/auth/pin-login` 提交 PIN,服务端校验后签发 JWT
  *  - JWT 仅通过 Cookie(`token`)与登录响应体(Authorization 头)下发,后续请求无需再次输入
- *  - C-29: 不再经 query param(`?token=`)新发 JWT(query 会进浏览器历史/Referer/访问日志);
- *    仅为向后兼容保留对旧 `?token=` 的**只读**提取,不作新签发通道
- *  - 受保护路由的 JWT 鉴权支持 Authorization 头、Cookie 两种来源,query param 仅作兼容读取
+ *  - C-29/C-11: 不再经 query param(`?token=`)新发 JWT(query 会进浏览器历史/Referer/访问日志);
+ *    受保护路由的 JWT 鉴权仅读取 Authorization 头与 `token` Cookie,已彻底移除 `?token=` 读取路径
+ *    (服务端 Web UI 完全基于 httpOnly Cookie,`?token=` 残留只会造成 token 泄漏面,已无兼容价值)
  *
  * 路由:
- *  - `GET  /api/health` — 健康检查(无需鉴权)
+ *  - `GET  /api/health` — 健康检查(无需鉴权;LAN 对外时收敛 version/uptime 字段)
  *  - `POST /api/auth/login` — 密码换 JWT(无需鉴权)
  *  - `POST /api/auth/pin-login` — PIN 换 JWT(无需鉴权,设置 Cookie)
+ *  - `POST /api/auth/logout` — 退出登录,过期 `token` Cookie(A-10,无需鉴权)
  *  - `GET  /api/sessions` — 会话列表(JWT 鉴权)
  *  - `GET  /api/sessions/{id}/messages` — 会话消息列表(JWT 鉴权)
  *  - `GET  /api/settings` — 设置摘要(Provider 名称/模型数,密钥脱敏)(JWT 鉴权)
@@ -146,7 +147,7 @@ class WebServer(
                 configureSerialization()
                 configureCors(config.allowLan)
                 configureStatusPages()
-                museRoutes(password, jwtSecret, pin, sessionRepo, settings)
+                museRoutes(password, jwtSecret, pin, sessionRepo, settings, config.allowLan)
             }.also { it.start(wait = false) }
             currentPort = port
             currentPassword = password
@@ -207,11 +208,11 @@ class WebServer(
 
     /**
      * JWT 鉴权配置。
-     * P2-13: 通过 `authHeader` 自定义 token 提取,支持三种来源:
+     * P2-13: 通过 `authHeader` 自定义 token 提取,支持两种来源:
      *  1. `Authorization: Bearer <token>` 头(原有行为)
      *  2. `token` Cookie(PIN/密码登录后由浏览器自动携带)
-     *  3. `token` query param —— **C-29: 仅作旧 `?token=` 兼容读取,不再新发。**
-     *     现有登录接口只通过 Set-Cookie / 登录响应体签发 JWT,不会把 token 拼进 URL。
+     *  C-11: 已移除对 `?token=` query param 的读取 — 服务端 Web UI 完全基于 httpOnly Cookie,
+     *  `?token=` 残留只会让 JWT 进入浏览器历史/访问日志/Referer,不再作任何兼容读取。
      */
     private fun Application.configureSecurity(jwtSecret: String) {
         val algorithm = Algorithm.HMAC256(jwtSecret)
@@ -219,16 +220,15 @@ class WebServer(
             jwt(AUTH_JWT_NAME) {
                 realm = REALM
                 verifier(JWT.require(algorithm).build())
-                // 自定义 token 提取: Authorization 头 → Cookie → query param(兼容旧 ?token=,仅读取)
+                // 自定义 token 提取: Authorization 头 → Cookie(C-11: 不再读取 query param)
                 authHeader { call ->
                     val rawAuthHeader = call.request.headers[io.ktor.http.HttpHeaders.Authorization]
                     if (rawAuthHeader != null) {
                         // M6: runCatching 改为 resultOf,避免吞没 CancellationException
                         resultOf { parseAuthorizationHeader(rawAuthHeader) }.getOrNull()
                     } else {
-                        // C-29: Cookie 是主通道;query param 仅作旧客户端兼容读取(服务端不再签发到 query)
+                        // C-11: Cookie 是唯一替代通道(httpOnly,由浏览器自动携带)
                         val token = call.request.cookies[TOKEN_COOKIE_NAME]
-                            ?: call.request.queryParameters[TOKEN_QUERY_PARAM]
                         if (token != null) {
                             HttpAuthHeader.Single(AuthScheme.Bearer, token)
                         } else {
@@ -304,20 +304,33 @@ class WebServer(
         pin: String,
         sessionRepo: SessionRepository,
         settings: SettingsRepository,
+        allowLan: Boolean,
     ) {
         val algorithm = Algorithm.HMAC256(jwtSecret)
 
         routing {
             // 健康检查(无需鉴权,用于 mDNS 客户端探测)
+            // C-18: 开启局域网访问(bind 0.0.0.0)时收敛返回字段 — 版本号/运行时长属于精确指纹信息,
+            //   同时可能被局域网内第三方探测,仅在本机/非 LAN 调试模式下返回;健康状态本身始终可用。
             get("/api/health") {
                 // M11: 直接引用 this@WebServer.startedAt,避免局部变量在 start() 前捕获到 0
-                call.respond(
+                val health = if (allowLan) {
+                    HealthResponse(status = "ok")
+                } else {
                     HealthResponse(
                         status = "ok",
                         version = BuildConfig.VERSION_NAME,
                         uptime = System.currentTimeMillis() - this@WebServer.startedAt,
                     )
-                )
+                }
+                call.respond(health)
+            }
+
+            // 退出登录: A-10 前端 httpOnly Cookie 无法被 JS 删除,需经服务端过期 Set-Cookie 清理。
+            // 无需鉴权(已登录态下浏览器自动带 Cookie,未登录调用亦幂等返回成功),不参与速率限制。
+            post("/api/auth/logout") {
+                call.expireTokenCookie()
+                call.respond(LogoutResponse(loggedOut = true))
             }
 
             // 登录: 密码换 JWT
@@ -439,6 +452,8 @@ class WebServer(
     /**
      * C-29: 通过 httpOnly Cookie 下发 JWT(不进 query/URL,避免进浏览器历史/Referer/访问日志)。
      * 当前为 HTTP 服务,Cookie 无法设 secure=true(JWT 仅限局域网信任模型);
+     * A-10/C-11: Ktor 3 无独立 sameSite 参数,经 extensions 写入 `SameSite=Lax`,
+     *   缓解 CSRF 场景下 Cookie 被跨站请求携带的风险(登录仅经浏览器同源请求);
      * TODO: HTTPS 启用时改为 secure=true。
      */
     private fun ApplicationCall.appendTokenCookie(token: String) {
@@ -449,6 +464,24 @@ class WebServer(
             path = "/",
             httpOnly = true,
             secure = false,
+            extensions = mapOf("SameSite" to "Lax"),
+        )
+    }
+
+    /**
+     * A-10: 退出登录时过期 `token` Cookie(Set-Cookie: token=; Max-Age=0; Path=/),
+     * 因为该 Cookie httpOnly=true,浏览器 JS 无法读取/删除,必须由服务端下发过期指令。
+     * SameSite 属性在过期 Cookie 上无实际意义,但保持与登录 Cookie 一致以防解析差异。
+     */
+    private fun ApplicationCall.expireTokenCookie() {
+        response.cookies.append(
+            name = TOKEN_COOKIE_NAME,
+            value = "",
+            maxAge = 0L,
+            path = "/",
+            httpOnly = true,
+            secure = false,
+            extensions = mapOf("SameSite" to "Lax"),
         )
     }
 
@@ -495,7 +528,7 @@ class WebServer(
     )
 
     @Serializable
-    data class HealthResponse(val status: String, val version: String, val uptime: Long)
+    data class HealthResponse(val status: String, val version: String? = null, val uptime: Long? = null)
 
     @Serializable
     data class LoginRequest(val password: String)
@@ -506,6 +539,10 @@ class WebServer(
 
     @Serializable
     data class LoginResponse(val token: String, val expiresIn: Long)
+
+    /** A-10: 退出登录响应(前端据此确认 Cookie 已清除)。 */
+    @Serializable
+    data class LogoutResponse(val loggedOut: Boolean)
 
     @Serializable
     data class SessionDto(
@@ -567,8 +604,6 @@ class WebServer(
         // P2-13: Web 端 PIN 安全相关
         /** PIN/密码登录后下发的 Cookie 名,Web 端浏览器会自动携带。 */
         private const val TOKEN_COOKIE_NAME = "token"
-        /** C-29: 旧 `?token=` 兼容读取的参数名(服务端不再新签发到 query,仅向后兼容旧客户端)。 */
-        private const val TOKEN_QUERY_PARAM = "token"
         /** 6 位数字 PIN 校验正则。 */
         private val PIN_REGEX = Regex("^\\d{6}$")
 

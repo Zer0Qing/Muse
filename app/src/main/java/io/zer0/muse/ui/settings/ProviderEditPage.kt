@@ -737,7 +737,9 @@ internal fun ProviderEditPage(
             }
         } else {
             // 过期,尝试自动刷新
-            OAuthManager.refreshTokenIfNeeded(config.id)
+            // B-24: 把持久化的 config.oauthConfig 传入刷新路径 — 内存 providerConfigs 只在
+            // launch* 流程填充,App 重启后为空,必须显式注入 config 才能保证跨重启自动刷新可用。
+            OAuthManager.refreshTokenIfNeeded(config.id, config.oauthConfig)
                 .onSuccess { newToken ->
                     apiKey = newToken
                     MuseToast.show(context.getString(R.string.oauth_token_refreshed))

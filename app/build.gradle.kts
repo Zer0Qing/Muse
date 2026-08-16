@@ -295,7 +295,7 @@ gradle.taskGraph.whenReady {
     if (hasReleaseTask && !skipKeystoreCheck && !keystorePropertiesFile.exists()) {
         throw GradleException("正式构建缺少 keystore.properties：请先配置 release 签名，禁止回退 debug 签名。")
     }
-    // 版本号硬约束：正式构建必须显式注入 versionName/versionCode，避免误用默认 162/1.0.62。
+    // 版本号硬约束：正式构建必须显式注入 versionName/versionCode，避免误用默认 175/1.0.75（C-34 随 tag 更新）。
     // 本地临时验证可传 -PreleaseSkipVersionCheck=true 跳过。
     val skipVersionCheck = project.findProperty("releaseSkipVersionCheck") == "true"
     val hasVersionName = project.hasProperty("versionName") || !System.getenv("VERSION_NAME").isNullOrBlank()
@@ -313,3 +313,6 @@ kover {
         }
     }
 }
+// 审查修复 (2.0 B-31): 上方 verify 规则无变体作用域,对 koverVerify 的全部变体
+// (Debug/Release 等)生效 — 文档 AUDIT_PROGRESS.md 原称"debug-only"与事实不符,
+// 措辞已修正;若未来需要真正 debug-only,需在此按 Kover 变体 API 限定。

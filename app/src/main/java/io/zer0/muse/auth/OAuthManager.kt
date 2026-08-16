@@ -417,9 +417,12 @@ object OAuthManager {
      *  3. 若有 refresh_token,POST refresh_token grant 换新 token;成功后更新 [TokenBundle] 并返回新 access_token
      *  4. 无 refresh_token 或刷新失败,返回 Result.failure(用户需重新登录)
      *
+     * @param providerId 供应商 ID
+     * @param config 调用方持有的 [OAuthConfig](如持久化的 [ProviderConfig.oauthConfig]);非空时优先使用,
+     *   规避 App 重启后内存 [providerConfigs] 缓存为空导致的刷新失败(B-24);为空则退回内存缓存。
      * @return 成功时 Result.success(有效的 access_token);失败时 Result.failure(异常)
      */
-    suspend fun refreshTokenIfNeeded(providerId: String): Result<String> {
+    suspend fun refreshTokenIfNeeded(providerId: String, config: OAuthConfig? = null): Result<String> {
         val store = secureStore ?: run {
             return Result.failure(IllegalStateException("SecureCredentialStore 未初始化"))
         }
@@ -439,11 +442,12 @@ object OAuthManager {
         if (refreshToken.isNullOrBlank()) {
             return Result.failure(IllegalStateException("token 已过期且无 refresh_token"))
         }
-        // 取出 OAuthConfig(必须先 launch* 过一次才会缓存)
-        val config = synchronized(providerConfigs) { providerConfigs[providerId] }
+        // B-24: 优先使用调用方传入的 config(跨 App 重启后持久化配置仍可刷新),
+        // 仅在调用方未传时退回内存缓存(providerConfigs 只在 launch* 流程填充)
+        val oauthConfig = config ?: synchronized(providerConfigs) { providerConfigs[providerId] }
             ?: return Result.failure(IllegalStateException("无缓存的 OAuthConfig,无法刷新"))
         // 调用 refresh_token grant
-        val refreshResult = refreshAccessToken(config, refreshToken)
+        val refreshResult = refreshAccessToken(oauthConfig, refreshToken)
         if (refreshResult == null || refreshResult.access_token.isBlank()) {
             // 刷新失败,清掉本地存储(强制用户重新登录)
             store.deleteOAuthToken(providerId)

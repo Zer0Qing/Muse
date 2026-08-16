@@ -552,10 +552,25 @@ class MuseDbMigrationTest {
     }
 
 
-    /** 1–54 的 schema 快照存在迁移漂移(缺索引/默认值)且 38→39 建 FTS4,Robolectric 无法覆盖,留真机。 */
-    private fun availableSchemaVersions(): List<Int> = emptyList()
+    /**
+     * 审查修复 (2.0 B-27): 早期迁移链加入 Robolectric 覆盖 — schemas/ 目录实际存在
+     * 22..88 的全部快照,此前 availableSchemaVersions 返回空导致 22..54 起点零覆盖
+     * (含消息表/skills/FTS 重建高风险段)。现在按快照存在性启用 22..54;
+     * 1..21 无快照(1→22 为早期整体演进),无法自动覆盖,仍留真机回归。
+     */
+    private fun availableSchemaVersions(): List<Int> =
+        (22..54).filter { schemaExists(it) }
 
     private val imageStorageDir: File get() = File(context.cacheDir, "muse_images_migration_test")
+
+    private fun schemaExists(version: Int): Boolean {
+        val candidates = listOf(
+            File("schemas/io.zer0.muse.data.session.MuseDb/$version.json"),
+            File("app/schemas/io.zer0.muse.data.session.MuseDb/$version.json"),
+            File("../app/schemas/io.zer0.muse.data.session.MuseDb/$version.json"),
+        )
+        return candidates.any { it.exists() }
+    }
 
     /** 用反射收集 MuseDb 已注册迁移,按 fromVersion 排序得到完整升级链。 */
     private fun migrationsFrom(fromVersion: Int): List<androidx.room.migration.Migration> {
