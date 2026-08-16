@@ -56,6 +56,38 @@ class ScheduledTaskRunnerScheduleTest {
     }
 
     @Test
+    fun `cron dom and dow both restricted use OR semantics`() {
+        // B-13: Quartz 规范 — "0 0 1 * 1" = 每月 1 号 或 每周一(OR),
+        // 旧实现 AND 导致只在"既是 1 号又是周一"触发。
+        // 2026-08-06 是周四,下个周一是 08-10;下个 1 号是 09-01 → 期望 08-10。
+        val base = LocalDateTime.of(2026, 8, 6, 0, 0)
+            .atZone(ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli()
+        val next = CronExpression.parse("0 0 1 * 1").nextRunAfter(base)
+        val expected = LocalDateTime.of(2026, 8, 10, 0, 0)
+            .atZone(ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli()
+        assertEquals("dom+dow 双限定应 OR 匹配", expected, next)
+    }
+
+    @Test
+    fun `cron dom restricted only uses AND with wildcard dow`() {
+        // "0 0 1 * *" = 每月 1 号(dow 为 * 不参与 AND/OR 切换)
+        val base = LocalDateTime.of(2026, 8, 6, 0, 0)
+            .atZone(ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli()
+        val next = CronExpression.parse("0 0 1 * *").nextRunAfter(base)
+        val expected = LocalDateTime.of(2026, 9, 1, 0, 0)
+            .atZone(ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli()
+        assertEquals(expected, next)
+    }
+
+    @Test
     fun `allowed window non crossing boundaries`() {
         assertTrue(ProactiveMessageRunner.isInAllowedWindow(9, 9, 18))
         assertTrue(ProactiveMessageRunner.isInAllowedWindow(17, 9, 18))

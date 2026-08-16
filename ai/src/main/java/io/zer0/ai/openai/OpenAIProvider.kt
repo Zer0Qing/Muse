@@ -165,13 +165,23 @@ class OpenAIProvider(
     }
 
     /**
+     * B-28: 日志 URL 脱敏 — 移除 query 参数(部分网关用 ?key= 传密钥,
+     * 完整 URL 进 logcat/文件日志/DebugLogStore 可被 adb 回捞)。与 AnthropicProvider 对齐。
+     */
+    private fun sanitizeUrl(url: String): String {
+        val qIdx = url.indexOf('?')
+        return if (qIdx >= 0) url.substring(0, qIdx) else url
+    }
+
+    /**
      * v1.0.7: Chat Completions API 流式(原 streamChat 主体,提取为独立函数便于分支)。
      */
     private fun streamChatCompletions(request: ChatRequest): Flow<ChatStreamEvent> = callbackFlow {
         val body = buildRequestBody(request)
         // M-OAI4: 改用配置项 chatCompletionsPath(支持 Azure 等中转自定义路径)
         val url = baseUrl() + openAIConfig.chatCompletionsPath
-        Logger.i("OpenAIProvider", "streamChat: POST $url model=${request.model} msgs=${request.messages.size}")
+        // B-28: 日志只记 scheme+host+path,不记 query
+        Logger.i("OpenAIProvider", "streamChat: POST ${sanitizeUrl(url)} model=${request.model} msgs=${request.messages.size}")
 
         // v1.0.1: httpRequest 改为 var,429 切换 key 后重新构造
         fun buildHttpRequest(): Request = Request.Builder()
@@ -327,7 +337,7 @@ class OpenAIProvider(
                 pendingFallback.set(true)
                 Logger.w(
                     "OpenAIProvider",
-                    "stream-guard: 检测到流式过早结束 (chars=$totalChars, reasoning=$reasoningChars, duration=${deltaDuration}ms), 自动回退到非流式请求 | url=$url",
+                    "stream-guard: 检测到流式过早结束 (chars=$totalChars, reasoning=$reasoningChars, duration=${deltaDuration}ms), 自动回退到非流式请求 | url=${sanitizeUrl(url)}",
                 )
                 scope.launch {
                     try {
@@ -455,7 +465,7 @@ class OpenAIProvider(
             currentEventSource = sseFactory.newEventSource(httpRequest, object : EventSourceListener() {
                 override fun onOpen(eventSource: EventSource, response: Response) {
                     firstByteAt = System.currentTimeMillis()
-                    Logger.i("OpenAIProvider", "streamChat TTFB: ${firstByteAt - requestStartAt}ms | url=$url")
+                    Logger.i("OpenAIProvider", "streamChat TTFB: ${firstByteAt - requestStartAt}ms | url=${sanitizeUrl(url)}")
                     if (!response.isSuccessful) {
                         val code = response.code
                         // v1.0.1: 429 限流时尝试切换 key重试(多 key 场景)
@@ -547,7 +557,7 @@ class OpenAIProvider(
                             Logger.i(
                                 "OpenAIProvider",
                                 "streamChat first delta: ${firstDeltaAt - requestStartAt}ms " +
-                                    "(TTFB=${firstByteAt - requestStartAt}ms) | url=$url",
+                                    "(TTFB=${firstByteAt - requestStartAt}ms) | url=${sanitizeUrl(url)}",
                             )
                         }
                         // v1.0.49: 回退等待期间仍正常发送 delta — 商汤"假过早结束"后后续 delta 会延迟到达,
@@ -807,7 +817,7 @@ class OpenAIProvider(
         val body = buildRequestBody(request, stream = false)
         // M-OAI4: 改用配置项 chatCompletionsPath(与 streamChat 一致)
         val url = baseUrl() + openAIConfig.chatCompletionsPath
-        Logger.i("OpenAIProvider", "completeText: POST $url model=${request.model}")
+        Logger.i("OpenAIProvider", "completeText: POST ${sanitizeUrl(url)} model=${request.model}")
         // v1.0.1: 用 effectiveApiKey() 支持多 key 轮换
         // v1.0.18: 走免费模型 fallback(用户未填 key + SiliconFlow 白名单模型 → 用内置 key)
         val httpRequest = Request.Builder()
@@ -948,7 +958,7 @@ class OpenAIProvider(
         val isOllama = isOllamaEndpoint(resolvedBaseUrl)
         // v1.0.8 (7.5): 入口日志 — 记录目标 URL / providerId / 是否 ollama,
         //   方便从日志中追溯 fetchModels 瀑布流走到了哪一层。
-        Logger.i("OpenAIProvider", "listModels: GET $url" + if (isOllama) " (ollama)" else "")
+        Logger.i("OpenAIProvider", "listModels: GET ${sanitizeUrl(url)}" + if (isOllama) " (ollama)" else "")
 
         // v1.0.8 (7.5): 凭证预检 — allowMissingApiKey=false 时 apiKey 为空直接抛错,
         //   避免发无意义的 401 请求浪费一次网络往返。
@@ -1695,7 +1705,7 @@ class OpenAIProvider(
     private fun streamChatResponses(request: ChatRequest): Flow<ChatStreamEvent> = callbackFlow {
         val body = buildResponsesRequestBody(request, stream = true)
         val url = baseUrl() + openAIConfig.responsesPath
-        Logger.i("OpenAIProvider", "streamChatResponses: POST $url model=${request.model} msgs=${request.messages.size}")
+        Logger.i("OpenAIProvider", "streamChatResponses: POST ${sanitizeUrl(url)} model=${request.model} msgs=${request.messages.size}")
 
         fun buildHttpRequest(): Request = Request.Builder()
             .url(url)
@@ -1763,7 +1773,7 @@ class OpenAIProvider(
             currentEventSource = sseFactory.newEventSource(httpRequest, object : EventSourceListener() {
                 override fun onOpen(eventSource: EventSource, response: Response) {
                     firstByteAt = System.currentTimeMillis()
-                    Logger.i("OpenAIProvider", "streamChatResponses TTFB: ${firstByteAt - requestStartAt}ms | url=$url")
+                    Logger.i("OpenAIProvider", "streamChatResponses TTFB: ${firstByteAt - requestStartAt}ms | url=${sanitizeUrl(url)}")
                     if (!response.isSuccessful) {
                         val code = response.code
                         if (code == 429 && !anyDeltaSent.get() && retryCount.get() < MAX_RETRIES &&
@@ -1815,7 +1825,7 @@ class OpenAIProvider(
                         Logger.i(
                             "OpenAIProvider",
                             "streamChatResponses first delta: ${firstDeltaAt - requestStartAt}ms " +
-                                "(TTFB=${firstByteAt - requestStartAt}ms) | url=$url",
+                                "(TTFB=${firstByteAt - requestStartAt}ms) | url=${sanitizeUrl(url)}",
                         )
                     }
 
@@ -2022,7 +2032,7 @@ class OpenAIProvider(
     private suspend fun completeTextResponses(request: ChatRequest, keySwitchDepth: Int = 0): ChatCompletion = withContext(Dispatchers.IO) {
         val body = buildResponsesRequestBody(request, stream = false)
         val url = baseUrl() + openAIConfig.responsesPath
-        Logger.i("OpenAIProvider", "completeTextResponses: POST $url model=${request.model}")
+        Logger.i("OpenAIProvider", "completeTextResponses: POST ${sanitizeUrl(url)} model=${request.model}")
         val httpRequest = Request.Builder()
             .url(url)
             // v1.0.18: 走免费模型 fallback(用户未填 key + SiliconFlow 白名单模型 → 用内置 key)

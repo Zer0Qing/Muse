@@ -149,13 +149,16 @@ class AgnesImageProvider(
             ?: return emptyList()
         return data.mapNotNull { item ->
             val obj = item.jsonObject
-            // v1.0.75 fix (生图链路): 过滤 JSON null 字段 — b64_json 为 JSON null 时
-            // JsonNull.content 返回字符串 "null",takeIf isNotBlank 会放行,
-            // 导致拼出 "data:image/png;base64,null" 假图(用户反馈"图是空的"根因)。
-            val b64 = obj["b64_json"]?.jsonPrimitive?.content
-                ?.takeIf { it.isNotBlank() && it != "null" }
-            val url = obj["url"]?.jsonPrimitive?.content
-                ?.takeIf { it.isNotBlank() && it != "null" }
+            // B-01 (生图链路): 只接受字符串标量 — JSON null / 数字 / 布尔
+            // (JsonPrimitive.content 对非字符串原样返回,如 "123"/"true")一律过滤,
+            // 否则拼出 "data:image/png;base64,123" 假图;字面量 "null" 字符串也过滤。
+            val b64 = (obj["b64_json"] as? JsonPrimitive)
+                ?.takeIf { it.isString }
+                ?.content?.takeIf { it.isNotBlank() && it != "null" }
+            // B-01: url 必须是 http(s) 或 data:image/ 前缀,过滤裸字符串/相对路径
+            val url = (obj["url"] as? JsonPrimitive)
+                ?.takeIf { it.isString }
+                ?.content?.takeIf { it.startsWith("http") || it.startsWith("data:image/") }
             if (b64 == null && url == null) null else GeneratedImage(base64 = b64, url = url)
         }
     }

@@ -72,13 +72,20 @@ class SessionSummaryManager(
         dao.getAll().map { it.toSummaryData() }
     }
 
-    /** 获取指定日期范围内的摘要。 */
+    /**
+     * 获取指定日期范围内的摘要。
+     *
+     * A-19: [mainAssistantId] 非 null 时只返回主助手(及历史遗留无归属行)的摘要 —
+     * 编译管道(today/facts)注入到主助手 prompt,子助手会话摘要不得串台。
+     * 语义: assistant_id == mainAssistantId 或 空/旧数据行 保留,其余排除。
+     */
     suspend fun getSummariesInRange(
         start: Instant,
         end: Instant,
         since: String? = null,
+        mainAssistantId: String? = null,
     ): List<SummaryData> = withContext(Dispatchers.IO) {
-        dao.getInRange(start.toString(), end.toString(), since).map { it.toSummaryData() }
+        dao.getInRange(start.toString(), end.toString(), since, mainAssistantId).map { it.toSummaryData() }
     }
 
     /** 清空所有摘要。 */

@@ -1716,7 +1716,7 @@ class GroupChatScheduler(
         val recentMessages = groupChatRepository.getRecentMessages(chatId, contextSize)
 
         val messages = buildDebateMessages(
-            chat.name, assistant, memberNames, recentMessages, model,
+            chat.name, chatId, assistant, memberNames, recentMessages, model,
             role, speakerIndex, totalSpeakers, previousReply, isRepair,
         )
 
@@ -1821,6 +1821,7 @@ class GroupChatScheduler(
      */
     private suspend fun buildDebateMessages(
         chatName: String,
+        chatId: String,
         assistant: AssistantEntity,
         memberNames: List<String>,
         recentMessages: List<GroupChatMessageEntity>,
@@ -1854,7 +1855,7 @@ class GroupChatScheduler(
                     appendLine()
                     appendLine(longTermMemory)
                 }
-                val groupChatMemory = assembler.buildGroupChatMemorySection(assistant.id)
+                val groupChatMemory = assembler.buildGroupChatMemorySection(assistant.id, chatId)
                 if (groupChatMemory.isNotBlank()) {
                     appendLine()
                     appendLine(groupChatMemory)
@@ -2685,7 +2686,7 @@ class GroupChatScheduler(
                     appendLine()
                     appendLine(longTermMemory)
                 }
-                val groupChatMemory = assembler.buildGroupChatMemorySection(assistant.id)
+                val groupChatMemory = assembler.buildGroupChatMemorySection(assistant.id, chatId)
                 if (groupChatMemory.isNotBlank()) {
                     appendLine()
                     appendLine(groupChatMemory)

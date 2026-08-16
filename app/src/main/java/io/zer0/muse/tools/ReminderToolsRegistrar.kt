@@ -36,7 +36,9 @@ class ReminderToolsRegistrar(
                 parameters = mapOf(
                     "title" to "必填,提醒标题",
                     "message" to "必填,提醒正文",
-                    "time" to "必填,触发时间,如 2026-07-21 15:30 或 2026-07-21T15:30:00,必须是未来时间",
+                    // B-08: 示例必须是实现可解析的格式 — "2026-07-21T15:30:00"(无时区偏移)
+                    // 过不了 Instant.parse;本地时间格式或带 Z/偏移的 ISO 才可解析。
+                    "time" to "必填,触发时间,如 2026-07-21 15:30 或 2026-07-21T15:30:00Z,必须是未来时间",
                 ),
                 required = setOf("title", "message", "time"),
                 category = "built-in",

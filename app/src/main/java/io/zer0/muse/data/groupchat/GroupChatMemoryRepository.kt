@@ -12,8 +12,8 @@ import java.util.UUID
  * 职责:
  *  - 写入群聊记忆([saveSummary])——由 GroupChatScheduler 在 agent 完成回复后调用,
  *    把本轮群聊对话摘要写入独立 fact store,**不**写入助手主记忆系统。
- *  - 读取群聊记忆([getByAssistant])——由 SystemPromptAssembler 注入到 system prompt,
- *    用 `<group_chat_memory>` 标签与主记忆 `<long_term_memory>` 区分。
+ *  - 读取群聊记忆([getByAssistantAndChat])——由 SystemPromptAssembler 按"当前群聊"注入到
+ *    system prompt,用 `<group_chat_memory>` 标签与主记忆 `<long_term_memory>` 区分。
  *  - 清理([cleanupOlderThan])——定期清理过期/陈旧记忆。
  *
  * 与主记忆系统([io.zer0.memory] 模块)的关系:
@@ -58,11 +58,26 @@ class GroupChatMemoryRepository(
 
     /**
      * 取指定助手最近 N 条群聊记忆(按 createdAt 降序)。
-     * 供 SystemPromptAssembler 注入到 system prompt。
+     *
+     * **A-09 修复后仅供兼容**:不限定群聊,会把该助手在**所有**群聊的摘要混回一起,
+     * 是"跨群记忆串台"的读取根因之一。SystemPromptAssembler 的 prompt 注入一律改走
+     * [getByAssistantAndChat](限定当前群聊),本方法不再用于注入。
      */
     suspend fun getByAssistant(assistantId: String, limit: Int = 10): List<GroupChatMemoryEntity> =
         withContext(Dispatchers.IO) {
             resultOf { dao.getByAssistant(assistantId, limit) }
+                .onError { msg, t -> Logger.w(TAG, "读取群聊记忆失败: $msg", t) }
+                .getOrNull() ?: emptyList()
+        }
+
+    /**
+     * 取指定助手在**指定群聊**最近 N 条群聊记忆(按 createdAt 降序)。
+     *
+     * **A-09 修复**:带群聊隔离的注入读取,供 SystemPromptAssembler 只注入当前群聊的记忆。
+     */
+    suspend fun getByAssistantAndChat(assistantId: String, groupChatId: String, limit: Int = 10): List<GroupChatMemoryEntity> =
+        withContext(Dispatchers.IO) {
+            resultOf { dao.getByAssistantAndChat(assistantId, groupChatId, limit) }
                 .onError { msg, t -> Logger.w(TAG, "读取群聊记忆失败: $msg", t) }
                 .getOrNull() ?: emptyList()
         }

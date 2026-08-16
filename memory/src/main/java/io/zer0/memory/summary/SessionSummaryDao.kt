@@ -22,12 +22,17 @@ interface SessionSummaryDao {
         WHERE summary != ''
           AND updated_at >= :startISO AND updated_at <= :endISO
           AND (:since IS NULL OR updated_at > :since)
+          AND (
+            :assistantId IS NULL OR
+            assistant_id = '' OR assistant_id IS NULL OR assistant_id = :assistantId
+          )
         ORDER BY updated_at DESC
     """)
     suspend fun getInRange(
         startISO: String,
         endISO: String,
         since: String?,
+        assistantId: String? = null,
     ): List<SessionSummaryEntity>
 
     /** 获取所有"脏" session(summary !== snapshot)。 */

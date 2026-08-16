@@ -186,8 +186,10 @@ class ChatStreamCoordinator(
         // 后台生成的持久化走 persistCurrentAssistant(msg=...) 直接落盘,不依赖 _state.messages。
         // 切回原会话时从 DB 加载最新内容(含中间落盘),不会丢失数据。
         // v1.0.72: 加日志 — 排查"生成图片/视频后前台不显示"(消息 id 不匹配时静默丢失更新)
+        // B-26: 切会话后后台生成每 50ms 打一条 warning = 日志风暴;持久化走
+        // persistCurrentAssistant(msg=...) 落盘兜底,前台刷新从 DB 加载,这里降级为 debug。
         if (index == -1) {
-            Logger.w(tag, "updateAssistant 未找到消息 id=$id (内容 ${content.take(30)}),图片/视频更新可能丢失")
+            Logger.d(tag, "updateAssistant 未找到消息 id=$id (内容 ${content.take(30)}),图片/视频更新可能丢失")
             return
         }
         val msg = messages[index]
@@ -317,13 +319,30 @@ class ChatStreamCoordinator(
      * 在流式被取消(用户点停止/切会话)或异常中断时调用,确保已接收的内容不随 ViewModel 销毁丢失。
      * 持久化用 [NonCancellable] 包裹,保证协程被取消时仍能完成 DB 写入
      * (否则 suspend 调用在已取消协程中会立即抛 CancellationException,落盘失败)。
+     *
+     * A-12/A-14: 只允许标记"本轮生成的消息" —
+     *  - [partialMsg] 由调用方用流式 builder 构造(优先)
+     *  - 否则仅在 [expectedAssistantId] 命中快照时使用该消息(流式 UI 已写入的部分内容)
+     *  - 两者都拿不到时直接返回,绝不回退到"最后一条非空 assistant 消息"
+     *    (那可能是旧的已完成回复,会被永久追加 [已中断];切会话后还可能跨会话落库)。
      */
-    suspend fun persistInterruptedAssistant(sessionId: String, partialMsg: UIMessage? = null) {
+    suspend fun persistInterruptedAssistant(
+        sessionId: String,
+        partialMsg: UIMessage? = null,
+        expectedAssistantId: Uuid? = null,
+    ) {
         // v1.97: partialMsg 参数用于切页后 _state.messages 已切换到新会话的场景。
         // 生成闭包用 builder 构造 UIMessage 传入,绕过 _state.messages 查找。
-        val partial = partialMsg ?: accessor.messagesSnapshot.lastOrNull {
-            it.role == MessageRole.ASSISTANT && it.content.isNotBlank()
+        val partial = partialMsg ?: expectedAssistantId?.let { id ->
+            accessor.messagesSnapshot.firstOrNull { it.id == id }
         } ?: return
+        // A-14: 本轮没有任何可保留内容(首 token 前被取消)时不写 [已中断] 空消息,
+        // 避免生成占位残留;有媒体时仍保留(图片/视频生成中被打断)。
+        if (partial.content.isBlank() && partial.reasoning.isNullOrBlank() &&
+            partial.imageUrls.isEmpty() && partial.imageBase64List.isEmpty() && partial.videoFileUri == null
+        ) {
+            return
+        }
         val interruptedMsg = partial.copy(content = partial.content + "\n\n[已中断]")
         // v1.0.74 fix: 此前 partialMsg != null(切页/生成闭包场景)一律不更新 UI,
         // 导致用户停止生成后当次会话内看不到 [已中断] 标记、"继续生成"按钮不出现。

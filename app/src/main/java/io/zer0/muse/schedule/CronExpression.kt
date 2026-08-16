@@ -57,11 +57,20 @@ class CronExpression internal constructor(
             val month = cal.get(Calendar.MONTH) + 1 // Calendar.MONTH 为 0-11,转为 1-12
             val dayOfWeek = cal.get(Calendar.DAY_OF_WEEK) - 1 // Calendar 周日=1,转为 0=周日
 
+            // B-13: Quartz 规范 — day-of-month 与 day-of-week 同时受限(非 *)时用 OR 匹配
+            // (如 "0 0 1 * 1" = 每月 1 号 或 每周一);仅一边受限或都为 * 时才用 AND。
+            val domRestricted = dayOfMonthModifier != DayModifier.None || daysOfMonth.size < 31
+            val dowRestricted = dayOfWeekModifier != DayOfWeekModifier.None || daysOfWeek.size < 7
+            val dayMatch = if (domRestricted && dowRestricted) {
+                matchDayOfMonth(cal, dayOfMonth) || matchDayOfWeek(cal, dayOfWeek)
+            } else {
+                matchDayOfMonth(cal, dayOfMonth) && matchDayOfWeek(cal, dayOfWeek)
+            }
+
             if (minute in minutes &&
                 hour in hours &&
                 month in months &&
-                matchDayOfMonth(cal, dayOfMonth) &&
-                matchDayOfWeek(cal, dayOfWeek)
+                dayMatch
             ) {
                 return cal.timeInMillis
             }

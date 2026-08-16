@@ -154,6 +154,15 @@ interface FactDao {
     suspend fun deleteOlderThanWithHit(neverHitCutoffIso: String, hitCutoffIso: String, minImportance: Int, scope: String? = null): Int
 
     /**
+     * B-18: 删除已过期事实(expires_at 非空且早于当前时间)。
+     * 时效性事实(如"明天上午开会")过期后不再驻留、不再注入。
+     *
+     * @return 实际删除的行数
+     */
+    @Query("DELETE FROM facts WHERE expires_at IS NOT NULL AND expires_at != '' AND expires_at < :nowISO AND (:scope IS NULL OR scope = :scope)")
+    suspend fun deleteExpired(nowISO: String, scope: String? = null): Int
+
+    /**
      * 全文搜索(LIKE,兼容所有 ROM)。
      * 在 fact 字段上做子串匹配,v4: 按 importance 降序 + time 降序。
      */

@@ -66,6 +66,27 @@ class ImageResponseParseTest {
     }
 
     @Test
+    fun `agnes filters non-string scalars`() {
+        // B-01: 数字/布尔标量 — JsonPrimitive.content 原样返回 "123"/"true",
+        // 旧逻辑 isNotBlank 放行 → 拼出 data:image/png;base64,123 假图
+        val numberBody = """{"data":[{"b64_json":123}]}"""
+        assertTrue("数字 b64 应被过滤", agnes.parseResponseImages(numberBody).isEmpty())
+        val boolBody = """{"data":[{"url":true}]}"""
+        assertTrue("布尔 url 应被过滤", agnes.parseResponseImages(boolBody).isEmpty())
+    }
+
+    @Test
+    fun `agnes filters invalid url prefixes`() {
+        // B-01: url 必须是 http(s) 或 data:image/ 前缀
+        val bareBody = """{"data":[{"url":"example.com/img.png"}]}"""
+        assertTrue("裸 url 应被过滤", agnes.parseResponseImages(bareBody).isEmpty())
+        val fileBody = """{"data":[{"url":"/sdcard/img.png"}]}"""
+        assertTrue("文件路径 url 应被过滤", agnes.parseResponseImages(fileBody).isEmpty())
+        val dataUriBody = """{"data":[{"url":"data:image/png;base64,aGk="}]}"""
+        assertEquals("data:image/png;base64,aGk=", agnes.parseResponseImages(dataUriBody).single().url)
+    }
+
+    @Test
     fun `agnes skips invalid items but keeps valid ones`() {
         val body = """{"data":[{"b64_json":null},{"url":"https://example.com/a.png"}]}"""
         val images = agnes.parseResponseImages(body)

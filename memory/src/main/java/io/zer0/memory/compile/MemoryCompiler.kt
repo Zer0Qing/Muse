@@ -150,12 +150,18 @@ class MemoryCompiler(
         model: Model?,
         locale: String = "zh-CN",
         timeZone: String = io.zer0.memory.time.TimeContext.DEFAULT_TIMEZONE,
+        /**
+         * A-19: 主助手 id — 非 null 时只编译主助手(及无归属旧数据)的摘要,
+         * 子助手会话摘要不得串台进入主助手注入的"今天"段。
+         */
+        mainAssistantId: String? = null,
     ): Result = withContext(Dispatchers.IO) {
         val zone = io.zer0.memory.time.TimeContext.resolveTimeZone(timeZone)
         val logicalDay = io.zer0.memory.time.TimeContext.logicalDayFor(Instant.now(), zone)
         val sessions = summaryManager.getSummariesInRange(
             start = logicalDay.rangeStart,
             end = Instant.now(),
+            mainAssistantId = mainAssistantId,
         )
 
         if (sessions.isEmpty()) {
@@ -500,6 +506,11 @@ class MemoryCompiler(
         model: Model?,
         locale: String = "zh-CN",
         config: MemoryConfig = MemoryConfig(),
+        /**
+         * A-19: 主助手 id — 非 null 时只编译主助手(及无归属旧数据)的摘要,
+         * 子助手会话摘要不得串台进入主助手注入的"重要事实"段。
+         */
+        mainAssistantId: String? = null,
     ): Result = withContext(Dispatchers.IO) {
         val now = Instant.now()
         // L4: 这里用绝对时间 now-30d 而非逻辑日对齐(与 compileWeek 不同)。
@@ -507,7 +518,7 @@ class MemoryCompiler(
         // 在大窗口下影响可忽略;而 compileWeek 窗口仅 7 天,跨日边界偏差相对更大,
         // 故 compileWeek 用 logicalDay.rangeStart 对齐 04:00 切日。此处无需对齐。
         val thirtyDaysAgo = now.minus(30, ChronoUnit.DAYS)
-        val sessions = summaryManager.getSummariesInRange(start = thirtyDaysAgo, end = now)
+        val sessions = summaryManager.getSummariesInRange(start = thirtyDaysAgo, end = now, mainAssistantId = mainAssistantId)
 
         // 从每个摘要提取 facts 段
         // v0.32: 同时按 (updatedAt 年龄 + config) 计算分数,过滤掉低于 compileThreshold 的 session

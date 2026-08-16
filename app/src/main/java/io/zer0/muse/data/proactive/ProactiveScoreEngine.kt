@@ -35,8 +35,11 @@ class ProactiveScoreEngine {
         private const val OLD_USER_INTERVAL_DAYS = 7
         private const val OLD_USER_THRESHOLD_DAYS = 30 // 使用30天以上算老用户
 
-        // 评分阈值 — 高于此值才发送(v1.0.72: 0.6 → 0.2,配合加权平均公式)
-        private const val SEND_THRESHOLD = 0.2f
+        // 评分阈值 — 高于此值才发送。
+        // B-10: 0.2 → 0.35 — 最小可能评分 = (time=0 + silence=0 + emotion=0.5 + novelty=0.3)/4 = 0.2,
+        // 旧阈值与下界相撞导致 score >= 0.2 数学上恒真,"评分防骚扰"完全空转。
+        // 0.35 保证"刚聊完立刻触发"的静止场景评分(0.2)不过线,防骚扰门槛重新生效。
+        private const val SEND_THRESHOLD = 0.35f
     }
 
     /**

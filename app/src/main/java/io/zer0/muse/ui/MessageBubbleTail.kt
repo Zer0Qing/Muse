@@ -286,7 +286,10 @@ fun SmartImage(
             val bitmapState by produceState<android.graphics.Bitmap?>(initialValue = null, base64Part) {
                 value = withContext(Dispatchers.IO) {
                     runCatching {
-                        val bytes = android.util.Base64.decode(base64Part, android.util.Base64.NO_WRAP)
+                        // B-02: 部分上游按 76 字符换行输出 base64,NO_WRAP 解码遇到换行直接失败
+                        // (显示灰块);解码前剥离换行符,兼容两种格式。
+                        val normalized = base64Part.replace("\n", "").replace("\r", "")
+                        val bytes = android.util.Base64.decode(normalized, android.util.Base64.NO_WRAP)
                         // v1.79 (H-B1): 先探测尺寸再降采样,避免大图解码 OOM
                         val options = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
                         android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)

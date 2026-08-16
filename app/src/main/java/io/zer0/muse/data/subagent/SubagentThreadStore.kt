@@ -87,10 +87,14 @@ class SubagentThreadStore(
 
     // ============ 新 API(供 SubagentRunner / UI / subagent_close 使用)============
 
-    /** 审计修复 (1.1): threadId 安全校验 — 仅接受安全字符集,杜绝路径穿越。
+    /** 审计修复 (1.1) + A-11: threadId 安全校验 — 仅接受安全字符集,杜绝路径穿越。
      * 原实现 LLM 输出的 threadId 直接拼 File(sessionsDir, "$threadId.jsonl"),
-     * 恶意值(如 "../../databases/")可写应用私有目录任意位置。 */
-    private val SAFE_THREAD_ID = Regex("^[a-zA-Z0-9_-]{1,64}$")
+     * 恶意值(如 "../../databases/")可写应用私有目录任意位置。
+     * A-11: 放行 ':' 并把长度上限放宽到 128 — 群聊 whisper 线程的稳定 key 形如
+     * "whisper:<chatId>:<assistantId>"(两个 UUID 约 80+ 字符),此前被拒绝导致每次私信
+     * 都新建随机线程(私聊历史拆散 + 表膨胀)。冒号在 Android 文件系统合法且无法用于
+     * 路径穿越,放行不削弱原安全目标。 */
+    private val SAFE_THREAD_ID = Regex("^[a-zA-Z0-9_:-]{1,128}$")
 
     /** 获取或创建线程。返回 (threadId, 是否新建)。 */
     suspend fun getOrCreate(

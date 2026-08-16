@@ -76,7 +76,10 @@ object SubagentTool {
             "task" to "Required for launch/reply. Task description / prompt.",
             "task_id" to "Required for status/cancel. The task id returned by launch/reply.",
             "thread_id" to "Required for reply/close. The thread id returned by launch.",
-            "parent_session_id" to "Optional. Parent session id for context isolation and result回灌.",
+            // A-10: 强调 parent_session_id 必填 —— 缺省时异步结果无法归属到发起会话,
+            // 会因空串无法被 consumeCompleted 按 session id 匹配而静默丢失(滞留 30 分钟后被清理)。
+            "parent_session_id" to "REQUIRED for launch/reply. Parent session id for context isolation and result回灌. " +
+                "If omitted, the async result cannot be attributed to this session and will be silently lost.",
             "access" to "Optional. Permission tier: read / write (default read, inherits parent session).",
             "label" to "Optional. Display label for the task.",
         ),

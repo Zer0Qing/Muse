@@ -380,6 +380,7 @@
     <string name="slash_command_new_done">已新建会话</string>
     <string name="slash_command_compact_done">正在压缩会话历史...</string>
     <string name="slash_command_reset_done">已重置上下文</string>
+    <string name="slash_command_reset_busy">生成中无法重置,请先停止生成</string>
     <string name="slash_command_pin_done">已切换置顶状态</string>
     <string name="slash_command_archive_done">已归档会话</string>
     <string name="chat_agent_tab_title">Agent</string>

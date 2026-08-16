@@ -363,6 +363,7 @@
     <string name="slash_command_new_done">새 세션이 생성되었습니다.</string>
     <string name="slash_command_compact_done">세션 기록을 압축하는 중...</string>
     <string name="slash_command_reset_done">컨텍스트 재설정</string>
+    <string name="slash_command_reset_busy">생성 중에는 재설정할 수 없습니다. 먼저 중지하세요</string>
     <string name="slash_command_pin_done">핀이 전환됨</string>
     <string name="slash_command_archive_done">세션이 보관되었습니다.</string>
     <string name="chat_agent_tab_title">Agent</string>

@@ -374,6 +374,7 @@
     <string name="slash_command_new_done">New session created</string>
     <string name="slash_command_compact_done">Compressing session history...</string>
     <string name="slash_command_reset_done">Context reset</string>
+    <string name="slash_command_reset_busy">Cannot reset while generating, stop first</string>
     <string name="slash_command_pin_done">Pin toggled</string>
     <string name="slash_command_archive_done">Session archived</string>
     <string name="chat_agent_tab_title">Agent</string>

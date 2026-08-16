@@ -515,7 +515,14 @@ class FactStore(
      * v8: 新增可选 scope 参数,null 表示全部作用域,非 null 仅返回指定作用域的事实。
      */
     suspend fun getAll(scope: String? = null): List<Fact> = withContext(Dispatchers.IO) {
-        dao.getAll(scope).map { it.toDomainFact() }
+        dao.getAll(scope).map { it.toDomainFact() }.filterNot { it.isExpired() }
+    }
+
+    /** B-18: 事实是否已过期(expires_at 存在且早于当前时间)。 */
+    private fun Fact.isExpired(): Boolean {
+        val expiresAt = expiresAt ?: return false
+        val t = runCatching { java.time.Instant.parse(expiresAt) }.getOrNull() ?: return false
+        return t.isBefore(java.time.Instant.now())
     }
 
     /** 按 session_id 查询。 */
@@ -557,10 +564,14 @@ class FactStore(
     suspend fun update(id: Long, content: String, scope: String? = null): Boolean = withContext(Dispatchers.IO) {
         val trimmed = content.trim()
         if (trimmed.isEmpty()) return@withContext false
-        val updated = dao.updateContent(id, trimmed, scope) > 0
+        // B-17: 更新同样走 PII 脱敏 — 调用方含 LLM 输出路径(MemoryAutoSaveScheduler
+        // update 合并去重结果),旧注释"用户手动编辑不走脱敏"的前提不成立;
+        // 与 add 保持一致,敏感信息一律不落明文。
+        val scrubbed = PiiGuard.scrub(trimmed).cleaned
+        val updated = dao.updateContent(id, scrubbed, scope) > 0
         if (updated) {
             // v1.0.51: 用 upsertFts 避免更新已有事实时产生重复 FTS 条目
-            syncFtsRow(id, FactFtsManager.toNgram(trimmed))
+            syncFtsRow(id, FactFtsManager.toNgram(scrubbed))
         }
         updated
     }
@@ -586,7 +597,10 @@ class FactStore(
      * @return 是否更新成功
      */
     suspend fun updateCategoryAndTags(id: Long, category: String? = null, tags: List<String>? = null): Boolean = withContext(Dispatchers.IO) {
-        val tagsJson = tags?.let { json.encodeToString(ListSerializer(String.serializer()), it) }
+        // B-17: tags 逐项 PII 脱敏 — 调用方含 LLM 路径(autoCategorize/AI 记忆管理),
+        // prompt 鼓励用人名做标签,不脱敏会把姓名明文落库。
+        val scrubbedTags = tags?.map { PiiGuard.scrub(it).cleaned }
+        val tagsJson = scrubbedTags?.let { json.encodeToString(ListSerializer(String.serializer()), it) }
         dao.updateCategoryAndTags(id, category, tagsJson) > 0
     }
 
@@ -724,6 +738,8 @@ class FactStore(
             return@withContext 0
         }
         val now = java.time.Instant.now()
+        // B-18: 先清理已过期事实(expires_at < now) — 时效性事实过期后不再驻留/注入
+        dao.deleteExpired(now.toString(), scope)
         if (neverHitCutoff <= 0f || hitCutoff <= 0f) {
             // base 已低于阈值,配置上等同于"立即遗忘全部" —— 但 v4: 关键事实(importance=2)仍保留
             io.zer0.common.Logger.w("FactStore", "applyDecay: cutoff<=0, deleting non-critical facts (config=$config, scope=$scope)")
@@ -751,7 +767,7 @@ class FactStore(
      * 用于 system prompt 注入、子助手记忆检索等场景。
      */
     suspend fun getByScope(scope: String): List<Fact> = withContext(Dispatchers.IO) {
-        dao.getByScope(scope).map { it.toDomainFact() }
+        dao.getByScope(scope).map { it.toDomainFact() }.filterNot { it.isExpired() }
     }
 
     /**
@@ -780,7 +796,7 @@ class FactStore(
      * 用于记忆页 UI 展示、system prompt 注入等场景。
      */
     suspend fun getBySpace(spaceId: String): List<Fact> = withContext(Dispatchers.IO) {
-        dao.getBySpace(spaceId).map { it.toDomainFact() }
+        dao.getBySpace(spaceId).map { it.toDomainFact() }.filterNot { it.isExpired() }
     }
 
     /**
@@ -788,7 +804,7 @@ class FactStore(
      * scope 按 Agent 隔离,space_id 按场景隔离,两者正交。
      */
     suspend fun getByScopeAndSpace(scope: String, spaceId: String): List<Fact> = withContext(Dispatchers.IO) {
-        dao.getByScopeAndSpace(scope, spaceId).map { it.toDomainFact() }
+        dao.getByScopeAndSpace(scope, spaceId).map { it.toDomainFact() }.filterNot { it.isExpired() }
     }
 
     /**

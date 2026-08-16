@@ -314,14 +314,14 @@ class SystemPromptAssembler(
         }
         perfTimer.split("long_term_memory")
 
-        // ── 4.6 群聊记忆摘要(隔离 fact store)──
+        // ── 4.6 群聊记忆摘要(隔离 fact store)—— A-09 修复:单聊不再注入 ──
         // v2.x: 群聊消息摘要独立存储,不写入主记忆系统,避免污染主对话上下文。
-        // forSubagent=true 时跳过,避免递归爆炸。
-        // 仅在 assistantId 非空且仓库注入时生效;无群聊记忆时返回空串跳过。
-        if (memoryEnabled && !forSubagent && !skipMemorySections && assistant?.id != null) {
-            val groupMemory = buildGroupChatMemorySection(assistant.id)
-            if (groupMemory.isNotBlank()) sections.add(groupMemory)
-        }
+        // **A-09 修复**:本方法(buildStaticSnapshot)是**单聊/非群聊上下文**(ChatViewModel、
+        // MuseApp 预热均无群聊 id),若在此注入群聊记忆,会把该助手在所有群聊的摘要
+        // 无差别塞进单聊 prompt,构成"跨群记忆串台"的一个泄漏面。
+        // 审计要求"单聊注入需产品层面确认",默认行为定为**单聊不注入**:
+        // 群聊记忆只应在群聊自身上下文中、按当前群聊 id 注入(见 GroupChatScheduler 调用点)。
+        // 因此这里完全不调用 buildGroupChatMemorySection,不给无聊天维度的注入留退路。
         perfTimer.split("group_chat_memory")
 
         // ── 4.5 经验库 ──
@@ -632,20 +632,28 @@ class SystemPromptAssembler(
     }
 
     /**
-     * v2.x: 4.6 群聊记忆摘要 — 注入该助手关联的群聊消息摘要(独立 fact store)。
+     * v2.x: 4.6 群聊记忆摘要 — 注入当前助手在**当前群聊**内的消息摘要(独立 fact store)。
+     *
+     * **A-09 修复**:本方法带 [chatId] 强隔离——只查询 `assistantId + groupChatId` 双维度,
+     * 只注入"当前群聊"的记忆,杜绝群聊 A 的内容泄漏进群聊 B。
+     * 不再有无聊天维度的调用路径(禁止再退化成只按 assistantId 过滤的注入)。
      *
      * 与长期记忆的区别:长期记忆是"用户是谁"(主记忆系统编译),群聊记忆是
-     * "该助手在群聊中说过什么"(群聊专属 fact store,与主记忆完全隔离)。
+     * "该助手在某个具体群聊中说过什么"(群聊专属 fact store,与主记忆完全隔离)。
      *
      * 用 `<group_chat_memory>` 边界标签包裹,声明为数据而非指令,防止提示词注入。
-     * 仅注入最近 10 条(按 createdAt 降序),避免 prompt 膨胀。
+     * 仅注入当前群聊最近 10 条(按 createdAt 降序),避免 prompt 膨胀。
      *
-     * 仓库未注入或助手无群聊记忆时返回空串。
+     * @param assistantId 当前助手 id
+     * @param chatId 当前群聊 id —— 注入必须锚定到该群聊,取不到(非群聊上下文)
+     *       时调用方**不得**调用本方法;单聊上下文一律不注入群聊记忆(见调用方注释)。
+     * @return 当前群聊记忆 section(可为空);仓库未注入、助手在当前群聊无记忆时返回空串
      */
-    internal suspend fun buildGroupChatMemorySection(assistantId: String): String {
+    internal suspend fun buildGroupChatMemorySection(assistantId: String, chatId: String): String {
         val repo = groupChatMemoryRepository ?: return ""
-        val memories = resultOf { repo.getByAssistant(assistantId, limit = 10) }
-            .onError { _, t -> Logger.w(TAG, "GroupChatMemoryRepository.getByAssistant 失败", t) }
+        // A-09: 只取"当前助手在当前群聊"的记忆,不再是跨群无差别汇总。
+        val memories = resultOf { repo.getByAssistantAndChat(assistantId, chatId, limit = 10) }
+            .onError { _, t -> Logger.w(TAG, "GroupChatMemoryRepository.getByAssistantAndChat 失败", t) }
             .getOrNull() ?: return ""
         if (memories.isEmpty()) return ""
         val lines = memories.joinToString("\n") { m ->

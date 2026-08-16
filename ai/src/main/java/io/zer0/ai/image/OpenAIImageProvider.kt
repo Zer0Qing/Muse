@@ -11,6 +11,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -132,12 +133,16 @@ class OpenAIImageProvider(
                     val mime = model?.outputMime ?: "image/png"
                     val images = data.mapNotNull { item ->
                         val obj = item.jsonObject
-                        // v1.0.75 fix (生图链路): 过滤 JSON null 字段(JsonNull.content 返回 "null" 字符串,
-                        // takeIf isNotBlank 会放行 → 拼出 base64,null 假图)
-                        val b64 = obj["b64_json"]?.jsonPrimitive?.content
-                            ?.takeIf { it.isNotBlank() && it != "null" }
-                        val url = obj["url"]?.jsonPrimitive?.content
-                            ?.takeIf { it.isNotBlank() && it != "null" }
+                        // B-01 (生图链路): 只接受字符串标量 — JSON null / 数字 / 布尔
+                        // (JsonPrimitive.content 对非字符串原样返回,如 "123"/"true")一律过滤,
+                        // 否则拼出 "data:image/png;base64,123" 假图;字面量 "null" 字符串也过滤。
+                        val b64 = (obj["b64_json"] as? JsonPrimitive)
+                            ?.takeIf { it.isString }
+                            ?.content?.takeIf { it.isNotBlank() && it != "null" }
+                        // B-01: url 必须是 http(s) 或 data:image/ 前缀
+                        val url = (obj["url"] as? JsonPrimitive)
+                            ?.takeIf { it.isString }
+                            ?.content?.takeIf { it.startsWith("http") || it.startsWith("data:image/") }
                         if (b64 == null && url == null) null else GeneratedImage(base64 = b64, url = url)
                     }
                     // 保留 mime 在 base64 字段中,由 ImageService 拼 data URI 时剥离

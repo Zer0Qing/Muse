@@ -55,7 +55,8 @@ data class GroupChatMemoryEntity(
  * 群聊记忆 DAO。
  *
  * 查询语义:
- *  - [getByAssistant]:按助手 id 查最近 N 条群聊记忆(供 SystemPromptAssembler 注入)
+ *  - [getByAssistant]:按助手 id 查最近 N 条群聊记忆(仅供兼容；A-09 修复后不再用于 prompt 注入)
+ *  - [getByAssistantAndChat]:按助手 id + 群聊 id 查最近 N 条群聊记忆(供 SystemPromptAssembler 注入)
  *  - [getByGroupChat]:按群聊 id 查全部记忆(供群聊详情页展示)
  *  - [insert]:写入一条新记忆
  *  - [deleteOlderThan]:清理过期/陈旧记忆
@@ -64,10 +65,31 @@ data class GroupChatMemoryEntity(
 interface GroupChatMemoryDao {
     /**
      * 按助手 id 查最近 N 条群聊记忆(按 createdAt 降序)。
-     * 供 [SystemPromptAssembler] 注入到 system prompt。
+     *
+     * **A-09 修复后仅供兼容**(如记忆中心展示),不得再用于 [SystemPromptAssembler] 注入:
+     * 该查询不限定群聊,会把该助手在**所有**群聊的摘要混在一起,
+     * 是"跨群/跨会话记忆串台"的根因之一。prompt 注入请走 [getByAssistantAndChat]。
      */
     @Query("SELECT * FROM group_chat_memories WHERE assistantId = :assistantId ORDER BY createdAt DESC LIMIT :limit")
     suspend fun getByAssistant(assistantId: String, limit: Int = 10): List<GroupChatMemoryEntity>
+
+    /**
+     * 按助手 id + 群聊 id 查最近 N 条群聊记忆(按 createdAt 降序)。
+     *
+     * **A-09 修复**:带群聊隔离的注入读取。仅返回该助手在**当前群聊**内的过往摘要,
+     * 杜绝群聊 A 的内容泄漏进群聊 B 或单聊上下文。
+     *
+     * @param assistantId 当前助手 id
+     * @param groupChatId 当前群聊 id(内存须归属该群聊,不得跨群)
+     * @param limit 返回条数上限
+     * @return 当前助手在当前群聊内的记忆摘要(按 createdAt 降序,最多 [limit] 条)
+     */
+    @Query(
+        "SELECT * FROM group_chat_memories " +
+            "WHERE assistantId = :assistantId AND groupChatId = :groupChatId " +
+            "ORDER BY createdAt DESC LIMIT :limit"
+    )
+    suspend fun getByAssistantAndChat(assistantId: String, groupChatId: String, limit: Int = 10): List<GroupChatMemoryEntity>
 
     /** 按群聊 id 查全部记忆(供群聊详情页展示)。 */
     @Query("SELECT * FROM group_chat_memories WHERE groupChatId = :groupChatId ORDER BY createdAt DESC")

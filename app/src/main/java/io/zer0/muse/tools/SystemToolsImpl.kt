@@ -65,7 +65,7 @@ class SystemToolsImpl(private val context: Context) {
      */
     private fun resolveToggleAction(args: Map<String, String>): String {
         val action = args["action"]?.lowercase()
-        if (action in setOf("on", "off", "status")) return action
+        if (action == "on" || action == "off" || action == "status") return action
         return when (args["enabled"]?.toBooleanStrictOrNull()) {
             true -> "on"
             false -> "off"

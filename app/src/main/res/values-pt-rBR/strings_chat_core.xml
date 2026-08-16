@@ -363,6 +363,7 @@
     <string name="slash_command_new_done">Nova sessão criada</string>
     <string name="slash_command_compact_done">Compactando histórico da sessão...</string>
     <string name="slash_command_reset_done">Redefinição de contexto</string>
+    <string name="slash_command_reset_busy">Não é possível redefinir durante a geração, pare primeiro</string>
     <string name="slash_command_pin_done">Pin alternado</string>
     <string name="slash_command_archive_done">Sessão arquivada</string>
     <string name="chat_agent_tab_title">Agent</string>

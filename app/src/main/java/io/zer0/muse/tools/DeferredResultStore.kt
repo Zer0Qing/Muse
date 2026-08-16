@@ -83,6 +83,20 @@ class DeferredResultStore {
         return result
     }
 
+    /**
+     * A-10: 消费并清除“未归属”的待回灌任务 —— 即存入空串父会话 id 下的结果。
+     *
+     * 业务原因:subagent_task 依赖 LLM 传 parent_session_id 来归属结果,但 LLM 可能省略该参数,
+     * 此时 [defer] 以空串作 key 存入,而 [consumeCompleted] 按真实 session id 精确匹配,
+     * 空串结果永远匹配不上,会被 [cleanupCompleted] 在 30 分钟后清掉,用户看不到结果。
+     *
+     * ChatViewModel 消费当前会话结果后,再调用本方法兜底拉取这些未归属结果,
+     * 注入当前活跃会话(降级行为,须由调用方记录 ERROR 日志说明原因)。
+     */
+    fun consumeUnowned(): List<DeferredTask> {
+        return consumeCompleted("")
+    }
+
     /** 获取任务状态。 */
     fun getTask(taskId: String): DeferredTask? = _tasks.value[taskId]
 

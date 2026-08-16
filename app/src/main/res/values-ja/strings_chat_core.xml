@@ -360,6 +360,7 @@
     <string name="slash_command_new_done">新しいセッションが作成されました</string>
     <string name="slash_command_compact_done">セッション履歴を圧縮しています...</string>
     <string name="slash_command_reset_done">コンテキストのリセット</string>
+    <string name="slash_command_reset_busy">生成中はリセットできません。先に停止してください</string>
     <string name="slash_command_pin_done">ピンの切り替え</string>
     <string name="slash_command_archive_done">セッションがアーカイブされました</string>
     <string name="chat_agent_tab_title">エージェント</string>

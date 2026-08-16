@@ -117,13 +117,18 @@ jobs:
       run: |
         echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
         cat > keystore.properties <<EOF
-        storeFile=keystore.jks
+        # A-17: storeFile 必须用绝对路径 — build.gradle.kts 的 file() 相对 app/ 模块解析,
+        # 相对路径 keystore.jks 会解析到 app/keystore.jks(不存在),CI release 必失败。
+        storeFile=${{ github.workspace }}/keystore.jks
         storePassword=${{ secrets.KEYSTORE_PASSWORD }}
         keyAlias=${{ secrets.KEY_ALIAS }}
         keyPassword=${{ secrets.KEY_PASSWORD }}
         EOF
     - name: Build release APKs
-      run: ./gradlew assembleRelease
+      # A-17: 注入版本号 — build.gradle.kts 硬约束 Release 任务必须显式
+      # -PversionName/-PversionCode,否则 GradleException 先于签名检查抛出。
+      # versionName 取自 tag(v1.0.75 → 1.0.75);versionCode 用 CI run_number 递增。
+      run: ./gradlew assembleRelease -PversionName=${GITHUB_REF_NAME#v} -PversionCode=${{ github.run_number }}
     - uses: actions/upload-artifact@v4
       with:
         name: release-apks

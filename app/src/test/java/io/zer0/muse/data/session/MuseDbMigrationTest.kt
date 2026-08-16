@@ -174,7 +174,7 @@ class MuseDbMigrationTest {
                 MuseDb.MIGRATION_83_84,
                 MuseDb.MIGRATION_84_85,
                 MuseDb.MIGRATION_85_86,
-                MuseDb.MIGRATION_86_87,
+                MuseDb.MIGRATION_86_87, MuseDb.MIGRATION_87_88,
                 )
                 .allowMainThreadQueries()
                 .build()
@@ -271,7 +271,7 @@ class MuseDbMigrationTest {
                 MuseDb.MIGRATION_83_84,
                 MuseDb.MIGRATION_84_85,
                 MuseDb.MIGRATION_85_86,
-                MuseDb.MIGRATION_86_87,
+                MuseDb.MIGRATION_86_87, MuseDb.MIGRATION_87_88,
                 )
                 .allowMainThreadQueries()
                 .build()
@@ -390,7 +390,7 @@ class MuseDbMigrationTest {
                 MuseDb.MIGRATION_83_84,
                 MuseDb.MIGRATION_84_85,
                 MuseDb.MIGRATION_85_86,
-                MuseDb.MIGRATION_86_87,
+                MuseDb.MIGRATION_86_87, MuseDb.MIGRATION_87_88,
                 )
                 .allowMainThreadQueries()
                 .build()
@@ -435,7 +435,7 @@ class MuseDbMigrationTest {
                 MuseDb::class.java,
                 dbFile.absolutePath,
             )
-                .addMigrations(MuseDb.migrate76To77(), MuseDb.MIGRATION_77_78, MuseDb.MIGRATION_78_79, MuseDb.MIGRATION_79_80, MuseDb.MIGRATION_80_81, MuseDb.MIGRATION_81_82, MuseDb.MIGRATION_82_83, MuseDb.MIGRATION_83_84, MuseDb.MIGRATION_84_85, MuseDb.MIGRATION_85_86, MuseDb.MIGRATION_86_87)
+                .addMigrations(MuseDb.migrate76To77(), MuseDb.MIGRATION_77_78, MuseDb.MIGRATION_78_79, MuseDb.MIGRATION_79_80, MuseDb.MIGRATION_80_81, MuseDb.MIGRATION_81_82, MuseDb.MIGRATION_82_83, MuseDb.MIGRATION_83_84, MuseDb.MIGRATION_84_85, MuseDb.MIGRATION_85_86, MuseDb.MIGRATION_86_87, MuseDb.MIGRATION_87_88)
                 .allowMainThreadQueries()
                 .build()
             db.openHelper.writableDatabase.query(
@@ -483,7 +483,7 @@ class MuseDbMigrationTest {
             raw.close()
             // 用新版 MuseDb 打开:应自动跑 80→81 清理索引,校验通过
             val db = Room.databaseBuilder(context, MuseDb::class.java, dbFile.absolutePath)
-                .addMigrations(MuseDb.MIGRATION_79_80, MuseDb.MIGRATION_80_81, MuseDb.MIGRATION_81_82, MuseDb.MIGRATION_82_83, MuseDb.MIGRATION_83_84, MuseDb.MIGRATION_84_85, MuseDb.MIGRATION_85_86, MuseDb.MIGRATION_86_87)
+                .addMigrations(MuseDb.MIGRATION_79_80, MuseDb.MIGRATION_80_81, MuseDb.MIGRATION_81_82, MuseDb.MIGRATION_82_83, MuseDb.MIGRATION_83_84, MuseDb.MIGRATION_84_85, MuseDb.MIGRATION_85_86, MuseDb.MIGRATION_86_87, MuseDb.MIGRATION_87_88)
                 .allowMainThreadQueries()
                 .build()
             db.openHelper.writableDatabase
@@ -532,7 +532,7 @@ class MuseDbMigrationTest {
             raw.close()
 
             val db = Room.databaseBuilder(context, MuseDb::class.java, dbFile.absolutePath)
-                .addMigrations(MuseDb.MIGRATION_79_80, MuseDb.MIGRATION_80_81, MuseDb.MIGRATION_81_82, MuseDb.MIGRATION_82_83, MuseDb.MIGRATION_83_84, MuseDb.MIGRATION_84_85, MuseDb.MIGRATION_85_86, MuseDb.MIGRATION_86_87)
+                .addMigrations(MuseDb.MIGRATION_79_80, MuseDb.MIGRATION_80_81, MuseDb.MIGRATION_81_82, MuseDb.MIGRATION_82_83, MuseDb.MIGRATION_83_84, MuseDb.MIGRATION_84_85, MuseDb.MIGRATION_85_86, MuseDb.MIGRATION_86_87, MuseDb.MIGRATION_87_88)
                 .allowMainThreadQueries()
                 .build()
             db.openHelper.writableDatabase

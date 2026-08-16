@@ -152,8 +152,6 @@ internal fun RichInputBar(
     pasteAsFileThreshold: Int = 2000,
     onAddPastedTextAsDocument: (String) -> Unit = {},
 ) {
-    // 工具条展开状态(配置变更后保留,避免旋转屏 / 切后台后丢失)
-    var showFormatToolbar by rememberSaveable { mutableStateOf(false) }
     // 链接对话框状态
     var showLinkDialog by rememberSaveable { mutableStateOf(false) }
     val hapticFeedback = LocalHapticFeedback.current
@@ -165,10 +163,12 @@ internal fun RichInputBar(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        // 格式工具条(展开时可见,默认隐藏;formatEnabled=false 时完全跳过)
+        // 格式工具条(formatEnabled=false 时完全跳过)
+        // A-15: 此前 visible=showFormatToolbar 恒为 false 且唯一切换按钮已被移除,
+        // 工具条 100% 不可达(死代码)。改为直接由设置项 formatEnabled 控制展开。
         if (formatEnabled) {
             AnimatedVisibility(
-                visible = showFormatToolbar,
+                visible = formatEnabled,
                 enter = expandVertically() + fadeIn(),
                 exit = shrinkVertically() + fadeOut(),
             ) {

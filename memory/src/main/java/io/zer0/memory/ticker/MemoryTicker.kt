@@ -91,6 +91,13 @@ class  MemoryTicker(
         const val DAILY_CHECK_INTERVAL_MS = 60L * 60 * 1000 // 1 小时
         private const val TAG = "MemoryTicker"
 
+        /**
+         * A-19: 主助手 id — 编译管道(today/facts)只纳入主助手摘要。
+         * 与 AssistantRepository.ensureDefaultExists 的固定 id 一致;
+         * 空/旧数据行(assistant_id='')在 DAO 层同样保留,兼容历史数据。
+         */
+        const val MAIN_ASSISTANT_ID = "default"
+
         /** 每日流水线 schema version。步骤结构变化时提升,使旧断点失效并一次性重算。 */
         const val DAILY_STATE_SCHEMA_VERSION = 2
 
@@ -397,7 +404,8 @@ class  MemoryTicker(
         try {
             // v1.0.51: serialize compileToday 调用,避免 notifyTurn/notifySessionEnd 并发写 TODAY section 竞态
             _compileTodayLock.withLock {
-                compiler.compileToday(summaryManager, model, locale, timeZone)
+                // A-19: 只编译主助手摘要,子助手会话摘要不得串台进入"今天"段
+                compiler.compileToday(summaryManager, model, locale, timeZone, mainAssistantId = MAIN_ASSISTANT_ID)
             }
             // assemble 在 muse 是 lazy 的:readCompiledMemoryMarkdown 由 ChatService 实时调用
             // 这里不显式触发文件写,只通知 health
@@ -464,7 +472,8 @@ class  MemoryTicker(
             // Step 1: compileToday(日期切换后刷新 today.md)
             if ("compileToday" !in completed) {
                 try {
-                    compiler.compileToday(summaryManager, model, locale, timeZone)
+                    // A-19: 只编译主助手摘要
+                    compiler.compileToday(summaryManager, model, locale, timeZone, mainAssistantId = MAIN_ASSISTANT_ID)
                     completed = completed + ("compileToday" to Instant.now().toString())
                     writeDailyState(context, completed, null)
                     markSuccess("compileToday")
@@ -509,7 +518,8 @@ class  MemoryTicker(
             // Step 4: compileFacts(独立于 step 0-3)
             if ("compileFacts" !in completed) {
                 try {
-                    compiler.compileFacts(summaryManager, model, locale, getConfig())
+                    // A-19: 只编译主助手摘要
+                    compiler.compileFacts(summaryManager, model, locale, getConfig(), mainAssistantId = MAIN_ASSISTANT_ID)
                     completed = completed + ("compileFacts" to Instant.now().toString())
                     writeDailyState(context, completed, null)
                     markSuccess("compileFacts")
@@ -820,7 +830,8 @@ class  MemoryTicker(
         // 1. 强制重跑 compileFacts(从 30 天摘要提取 fact,忽略指纹缓存外的 checkpoint)
         // v1.78 (H2): 包装 suspend 调用必须用 resultOf,避免吞 CancellationException
         resultOf {
-            compiler.compileFacts(summaryManager, model, locale, getConfig())
+            // A-19: 只编译主助手摘要
+            compiler.compileFacts(summaryManager, model, locale, getConfig(), mainAssistantId = MAIN_ASSISTANT_ID)
         }.onSuccess {
             markSuccess("compileFacts")
             markStepRecovered("compileFacts(force)")

@@ -38,4 +38,39 @@ class PiiGuardTest {
         assertFalse(masked.contains("13800138000"))
         assertEquals(input, PiiGuard.unmask(masked, matches))
     }
+
+    // A-20: BANK_CARD 覆盖 16-19 位数字卡号(与 memory 版 CREDIT_CARD 对齐)。
+
+    @Test
+    fun maskMasksBankCardOfSixteenToNineteenDigits() {
+        val inputs = listOf(
+            "卡号 6222021234567890",       // 16 位
+            "卡号 62220212345678901",      // 17 位
+            "卡号 622202123456789012",     // 18 位
+            "卡号 6222021234567890123",    // 19 位
+        )
+        for (input in inputs) {
+            val card = input.removePrefix("卡号 ").trim()
+            val (masked, matches) = PiiGuard.mask(input)
+            assertFalse(
+                "A-20 未遮蔽 BANK_CARD: input=$input masked=$masked",
+                masked.contains(card),
+            )
+            assertTrue(
+                "A-20 未检测到 BANK_CARD: input=$input matches=${matches.size}",
+                matches.any { it.type == PiiGuard.PiiType.BANK_CARD },
+            )
+            assertEquals("还原应与原文一致 input=$input", input, PiiGuard.unmask(masked, matches))
+        }
+    }
+
+    @Test
+    fun maskMasksSixteenDigitBankCardBoundaryOnly() {
+        // 16 位卡号紧贴在非数字字符间应被遮蔽(边界保护,前后不能再有数字)。
+        val input = "卡 6222021234567890 尾"
+        val (masked, matches) = PiiGuard.mask(input)
+        assertFalse(masked.contains("6222021234567890"))
+        assertTrue(matches.any { it.type == PiiGuard.PiiType.BANK_CARD })
+        assertEquals(input, PiiGuard.unmask(masked, matches))
+    }
 }

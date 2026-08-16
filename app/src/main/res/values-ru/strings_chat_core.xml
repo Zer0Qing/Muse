@@ -363,6 +363,7 @@
     <string name="slash_command_new_done">Новый сеанс создан</string>
     <string name="slash_command_compact_done">Сжатие истории сеансов...</string>
     <string name="slash_command_reset_done">Сброс контекста</string>
+    <string name="slash_command_reset_busy">Сброс невозможен во время генерации, сначала остановите</string>
     <string name="slash_command_pin_done">Пин переключен</string>
     <string name="slash_command_archive_done">Сессия заархивирована</string>
     <string name="chat_agent_tab_title">Agent</string>
