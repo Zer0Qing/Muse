@@ -493,4 +493,8 @@
     <string name="chat_find_prev">Назад</string>
     <string name="chat_find_next">Вперёд</string>
     <string name="chat_find_close">Закрыть поиск</string>
+    <!-- C2: 会话列表即时搜索 -->
+    <string name="chat_list_search_hint">Поиск бесед</string>
+    <string name="chat_list_search_clear">Очистить поиск</string>
+    <string name="chat_list_search_no_result">Нет подходящих бесед</string>
 </resources>

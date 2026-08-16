@@ -58,12 +58,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.IntOffset
@@ -120,6 +122,10 @@ private const val GREETING_NOTIFY_ID = 1010
  *  - 滑动删除(左滑) / 归档(右滑)
  *  - 长按菜单
  */
+// 屏幕级组合函数:问候/输入条/搜索/置顶/文件夹/最近/知识库多分区分支,
+// 各分区已抽成 LazyListScope 扩展(recentSectionItems/searchResultSection 等),
+// 剩余分支为分区固有结构,按 GenerationHandler 先例豁免复杂度检测。
+@Suppress("CyclomaticComplexMethod")
 @Composable
 fun ChatListScreen(
     sessions: List<SessionEntity>,
@@ -237,6 +243,18 @@ fun ChatListScreen(
     }
     val pinned = remember(displayedSessions) { displayedSessions.filter { it.pinned } }
     val recent = remember(displayedSessions) { displayedSessions.filterNot { it.pinned } }
+    // C2: 会话列表即时搜索 — 查询词与过滤结果(标题大小写不敏感子串匹配,空查询不过滤)。
+    // 仅过滤已加载的会话列表(不查 DB),输入即过滤,无防抖。
+    var listSearchQuery by rememberSaveable { mutableStateOf("") }
+    val isListSearching = listSearchQuery.isNotBlank()
+    val filteredSessions = remember(displayedSessions, listSearchQuery) {
+        val q = listSearchQuery.trim()
+        if (q.isEmpty()) {
+            emptyList()
+        } else {
+            displayedSessions.filter { it.title.contains(q, ignoreCase = true) }
+        }
+    }
     // B7-05: 拖拽期间的乐观顺序,收到 DB flow 更新后自动以 sessions 为准
     var pinnedOrder by remember(sessions) { mutableStateOf(pinned.map { it.id }) }
     val orderedPinned = remember(pinned, pinnedOrder) {
@@ -304,51 +322,75 @@ fun ChatListScreen(
                         )
                     }
 
-                    // 已置顶(标题 + 每条会话独立 item,平铺懒加载)
-                    if (pinned.isNotEmpty()) {
-                        pinnedSectionItems(
-                            pinned = orderedPinned,
+                    // C2: 会话列表即时搜索条(输入条下方常驻,输入即过滤)
+                    item(key = "list_search") {
+                        SessionSearchBar(
+                            query = listSearchQuery,
+                            onQueryChange = { listSearchQuery = it },
+                            onClear = { listSearchQuery = "" },
+                            modifier = Modifier.padding(top = MusePaddings.tightGap),
+                        )
+                    }
+
+                    if (isListSearching) {
+                        // 搜索模式:扁平结果列表,隐藏置顶/文件夹/最近/知识库区
+                        searchResultSection(
+                            results = filteredSessions,
                             folders = folders,
                             onSelect = onSelect,
                             onDelete = onDelete,
                             onRenameTo = onRenameTo,
                             onTogglePinned = onTogglePinned,
-                            onReorderPinned = onReorderPinned,
                             onMoveSessionToFolder = onMoveSessionToFolder,
                             onArchive = onArchive,
                         )
-                    }
+                    } else {
+                        // 已置顶(标题 + 每条会话独立 item,平铺懒加载)
+                        if (pinned.isNotEmpty()) {
+                            pinnedSectionItems(
+                                pinned = orderedPinned,
+                                folders = folders,
+                                onSelect = onSelect,
+                                onDelete = onDelete,
+                                onRenameTo = onRenameTo,
+                                onTogglePinned = onTogglePinned,
+                                onReorderPinned = onReorderPinned,
+                                onMoveSessionToFolder = onMoveSessionToFolder,
+                                onArchive = onArchive,
+                            )
+                        }
 
-                    // 文件夹(标题 + 每个文件夹独立 item,平铺懒加载)
-                    if (folders.isNotEmpty()) {
-                        foldersSectionItems(
+                        // 文件夹(标题 + 每个文件夹独立 item,平铺懒加载)
+                        if (folders.isNotEmpty()) {
+                            foldersSectionItems(
+                                folders = folders,
+                                onSelectFolder = { /* 当前无文件夹详情页,可后续扩展 */ },
+                                onRenameFolder = onRenameFolder,
+                                onDeleteFolder = onDeleteFolder,
+                            )
+                        }
+
+                        // 最近(标题 + 每条会话独立 item,平铺懒加载)
+                        recentSectionItems(
+                            recent = recent,
                             folders = folders,
-                            onSelectFolder = { /* 当前无文件夹详情页,可后续扩展 */ },
-                            onRenameFolder = onRenameFolder,
-                            onDeleteFolder = onDeleteFolder,
+                            onSelect = onSelect,
+                            onDelete = onDelete,
+                            onRenameTo = onRenameTo,
+                            onTogglePinned = onTogglePinned,
+                            onMoveSessionToFolder = onMoveSessionToFolder,
+                            onArchive = onArchive,
+                            onCreate = onCreate,
                         )
-                    }
 
-                    // 最近(标题 + 每条会话独立 item,平铺懒加载)
-                    recentSectionItems(
-                        recent = recent,
-                        folders = folders,
-                        onSelect = onSelect,
-                        onDelete = onDelete,
-                        onRenameTo = onRenameTo,
-                        onTogglePinned = onTogglePinned,
-                        onMoveSessionToFolder = onMoveSessionToFolder,
-                        onArchive = onArchive,
-                        onCreate = onCreate,
-                    )
-
-                    // 知识库
-                    item(key = "section_knowledge") {
-                        KnowledgeEntryCard(
-                            docCount = docCount,
-                            onClick = onOpenKnowledgeBase,
-                            modifier = Modifier.padding(top = MusePaddings.sectionGap),
-                        )
+                        // 知识库
+                        item(key = "section_knowledge") {
+                            KnowledgeEntryCard(
+                                docCount = docCount,
+                                onClick = onOpenKnowledgeBase,
+                                modifier = Modifier.padding(top = MusePaddings.sectionGap),
+                            )
+                        }
                     }
                 }
             }
@@ -378,6 +420,69 @@ fun ChatListScreen(
             dismissText = stringResource(R.string.action_cancel),
             onDismiss = { showCreateFolderDialog = false },
         )
+    }
+}
+
+/** C2: 会话列表即时搜索条 — 常驻输入条下方:Search 图标 + 输入框 + 清除按钮(有输入时)。 */
+@Composable
+private fun SessionSearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    onClear: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        shape = RoundedCornerShape(MuseCornerRadius.BUTTON.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.padding(
+                horizontal = MusePaddings.itemGap,
+                vertical = MusePaddings.tinyGap,
+            ),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = TablerIcons.Search,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.width(MusePaddings.tightGap))
+            BasicTextField(
+                value = query,
+                onValueChange = onQueryChange,
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyMedium.copy(
+                    color = MaterialTheme.colorScheme.onSurface,
+                ),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                modifier = Modifier.weight(1f),
+                decorationBox = { innerTextField ->
+                    Box(contentAlignment = Alignment.CenterStart) {
+                        if (query.isEmpty()) {
+                            Text(
+                                text = stringResource(R.string.chat_list_search_hint),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        innerTextField()
+                    }
+                },
+            )
+            if (query.isNotBlank()) {
+                IconButton(onClick = onClear, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        imageVector = TablerIcons.X,
+                        contentDescription = stringResource(R.string.chat_list_search_clear),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -675,6 +780,52 @@ private fun PinnedTaskRow(
  * 前端修复 (性能-1): 最近会话区 — LazyColumn 顶层平铺。
  * 标题单独 item;每条会话独立 items(key=id) item,懒加载渲染。
  */
+/** C2: 搜索模式结果区 — 扁平展示命中会话(标题过滤),无命中显示空状态提示。 */
+private fun LazyListScope.searchResultSection(
+    results: List<SessionEntity>,
+    folders: List<FolderEntity>,
+    onSelect: (String) -> Unit,
+    onDelete: (String) -> Unit,
+    onRenameTo: (SessionEntity, String) -> Unit,
+    onTogglePinned: (String) -> Unit,
+    onMoveSessionToFolder: (String, String?) -> Unit,
+    onArchive: (String) -> Unit,
+) {
+    if (results.isEmpty()) {
+        item(key = "search_no_result") {
+            SectionGroupRow(index = 0, total = 1) {
+                Text(
+                    text = stringResource(R.string.chat_list_search_no_result),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = MusePaddings.contentGap),
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
+    } else {
+        itemsIndexed(results, key = { _, session -> "search_${session.id}" }) { index, session ->
+            SectionGroupRow(index = index, total = results.size) {
+                TaskItem(
+                    session = session,
+                    folders = folders,
+                    onSelect = onSelect,
+                    onDelete = onDelete,
+                    onRenameTo = onRenameTo,
+                    onTogglePinned = onTogglePinned,
+                    onMoveSessionToFolder = onMoveSessionToFolder,
+                    onArchive = onArchive,
+                )
+                if (index != results.lastIndex) {
+                    MuseDivider()
+                }
+            }
+        }
+    }
+}
+
 private fun LazyListScope.recentSectionItems(
     recent: List<SessionEntity>,
     folders: List<FolderEntity>,

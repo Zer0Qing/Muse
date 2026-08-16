@@ -496,4 +496,8 @@
     <string name="chat_find_prev">Previous</string>
     <string name="chat_find_next">Next</string>
     <string name="chat_find_close">Close search</string>
+    <!-- C2: 会话列表即时搜索 -->
+    <string name="chat_list_search_hint">Search conversations</string>
+    <string name="chat_list_search_clear">Clear search</string>
+    <string name="chat_list_search_no_result">No matching conversations</string>
 </resources>

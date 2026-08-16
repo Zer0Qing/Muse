@@ -493,4 +493,8 @@
     <string name="chat_find_prev">Anterior</string>
     <string name="chat_find_next">Siguiente</string>
     <string name="chat_find_close">Cerrar búsqueda</string>
+    <!-- C2: 会话列表即时搜索 -->
+    <string name="chat_list_search_hint">Buscar conversaciones</string>
+    <string name="chat_list_search_clear">Limpiar búsqueda</string>
+    <string name="chat_list_search_no_result">Sin conversaciones coincidentes</string>
 </resources>

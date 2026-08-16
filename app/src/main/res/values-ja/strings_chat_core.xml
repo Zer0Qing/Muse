@@ -493,4 +493,8 @@
     <string name="chat_find_prev">前へ</string>
     <string name="chat_find_next">次へ</string>
     <string name="chat_find_close">検索を閉じる</string>
+    <!-- C2: 会话列表即时搜索 -->
+    <string name="chat_list_search_hint">会話を検索</string>
+    <string name="chat_list_search_clear">検索をクリア</string>
+    <string name="chat_list_search_no_result">一致する会話がありません</string>
 </resources>

@@ -493,4 +493,8 @@
     <string name="chat_find_prev">이전</string>
     <string name="chat_find_next">다음</string>
     <string name="chat_find_close">검색 닫기</string>
+    <!-- C2: 会话列表即时搜索 -->
+    <string name="chat_list_search_hint">대화 검색</string>
+    <string name="chat_list_search_clear">검색 지우기</string>
+    <string name="chat_list_search_no_result">일치하는 대화가 없습니다</string>
 </resources>
