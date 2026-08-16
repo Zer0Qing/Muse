@@ -22,8 +22,10 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.zer0.muse.R
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -98,6 +100,8 @@ fun MuseCapsuleTab(
 
                 val bgColor = lerp(unselectedBg, selectedBg, fraction)
                 val textColor = lerp(unselectedText, selectedText, fraction)
+                // v1.0.75 fix (CI hardcoded-cjk): 选中态文案走资源(Composable 上下文取值,semantics lambda 内复用)
+                val selectedSuffix = stringResource(R.string.settings_selected_suffix)
 
                 Surface(
                     shape = MuseShapes.semiLarge,
@@ -109,9 +113,8 @@ fun MuseCapsuleTab(
                         // v1.0.74 fix (前端审计 3.7): 用 selected 语义替代拼进 contentDescription,
                         // TalkBack 能读"已选中"关系而非字符串拼接。
                         .semantics {
-                            // v1.0.74 fix (前端审计 3.7): 选中态用中文拼接标记传达
-                            // (当前 Compose 版本语义属性受限,RadioButton role 需额外 import,保守处理)
-                            contentDescription = if (selectedIndex == index) "$label(已选中)" else label
+                            // v1.0.75 fix (CI hardcoded-cjk): 选中态文案走资源(Composable 外取值)
+                            contentDescription = if (selectedIndex == index) "$label$selectedSuffix" else label
                         },
                     onClick = { onSelect(index) },
                 ) {
