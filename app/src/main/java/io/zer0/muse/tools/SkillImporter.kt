@@ -75,6 +75,23 @@ object SkillImporter {
     private val ID_REGEX = Regex("^[a-z0-9_-]+$")
 
     /**
+     * B-19: 用户导入 skill 允许的 category 白名单。
+     *
+     * 取值与 install_skill 文档(SkillExecutor)一致:file/http/search/knowledge/system/agent/sticker/custom,
+     * 另兼容既有的 user 分类(SkillManagementToolsImpl 按 "user"/"custom" 过滤用户自有 skill)。
+     *
+     * 安全原因:
+     *  - category="plugin" 由 PluginManager 创建真实插件 skill 时独占设置(PluginManager.kt category="plugin"),
+     *    ChatStreamCoordinator 用 listEnabled().filter { it.category == "plugin" } 把这些 skill
+     *    无条件并入每个会话的工具定义(绕过助手 skillIdsJson 白名单)。
+     *    若允许用户导入 skill 自填 "plugin",即可伪装成插件跳过白名单 → B-19 越权。
+     *  - 因此 plugin 不在导入白名单内,导入时显式拒绝。
+     */
+    private val ALLOWED_CATEGORIES: Set<String> = setOf(
+        "file", "http", "search", "knowledge", "system", "agent", "sticker", "custom", "user",
+    )
+
+    /**
      * 参数类型白名单 — 自定义 skill 的 parametersJson 中每个 property 的 type 必须在此集合内。
      * 禁止 function / null / any 等模糊类型,降低 LLM 生成非法参数的风险。
      */
@@ -184,6 +201,14 @@ object SkillImporter {
         val implementationKotlin = raw["implementationKotlin"]?.jsonPrimitive?.contentOrNull?.trim()
             ?: return Result.Err("缺少 implementationKotlin 字段")
         val category = raw["category"]?.jsonPrimitive?.contentOrNull?.trim()?.ifBlank { "custom" } ?: "custom"
+        // B-19: 导入时做 category 白名单校验。缺省/空回退 "custom"(向后兼容);
+        // 非白名单值一律拒绝,尤其防御 category="plugin" 伪装绕过助手白名单。
+        if (category !in ALLOWED_CATEGORIES) {
+            return Result.Err(
+                "category '$category' 不在允许范围内($ALLOWED_CATEGORIES);" +
+                    "导入的 skill 不能声明为 'plugin'(插件 skill 由插件管理器独占管理)",
+            )
+        }
 
         if (implementationKotlin !in ALLOWED_IMPLEMENTATIONS) {
             return Result.Err(

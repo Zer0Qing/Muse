@@ -10,7 +10,6 @@ import io.zer0.muse.tools.JsSandbox
  *
  * 设计要点：
  *  - 引擎实例不可重入：同一时刻只能执行一个脚本（WebView evaluateJavascript 串行）
- *  - 引擎池 [SkillEnginePool] 管理多实例复用，避免并发等待
  *  - 超时机制由实现层保证（[JsSandbox.execute] 默认 10s）
  *  - 安全限制由实现层保证（禁用 fetch/XHR/WebSocket 等，见 [JsSandbox.INIT_JS]）
  *

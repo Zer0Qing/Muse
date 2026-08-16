@@ -1340,8 +1340,15 @@ class SettingsRepository(
      */
     suspend fun restoreSettingsSnapshot(snapshot: Map<String, String>) {
         if (snapshot.isEmpty()) return
+        // B-22: 恢复侧二次过滤安全键。
+        // 导出侧(exportSettingsSnapshot)已按 SettingsSnapshotPolicy 白名单导出,
+        // 但恢复数据本身可能来自外部伪造/篡改的备份(直接注入任意 DataStore key,
+        // 如覆盖敏感配置)。此处复用同一 SettingsSnapshotPolicy.isSafeKey 白名单做最终防线,
+        // 与导出侧语义保持一致,避免恢复时写入不安全的 key。
+        val safe = snapshot.filterKeys(SettingsSnapshotPolicy::isSafeKey)
+        if (safe.isEmpty()) return
         store.edit { prefs ->
-            for ((rawKey, value) in snapshot) {
+            for ((rawKey, value) in safe) {
                 when {
                     rawKey.startsWith("bool:") -> {
                         val name = rawKey.removePrefix("bool:")

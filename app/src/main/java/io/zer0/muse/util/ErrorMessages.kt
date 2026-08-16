@@ -16,17 +16,31 @@ object ErrorMessages {
         val m = PREFIX_REGEX.find(message) ?: return message
         val key = m.groupValues[1]
         val args = m.groupValues[2].split(",").filter { it.isNotEmpty() }
-        val resolved = resolveKey(context, key, args)
         val rest = message.substring(m.range.last + 1).trimStart()
+        val resolved = resolveKey(context, key, args)
+        // C-13: resolveKey 返回 null 表示无法本地化(见下),此时原样返回原始消息 —
+        // 它仍含 ERR_ 前缀与全部参数,保证错误详情不因本地化失败而静默丢失。
+        if (resolved == null) return message
         return if (rest.isNotEmpty()) "$resolved $rest" else resolved
     }
 
-    private fun resolveKey(context: Context, key: String, args: List<String>): String {
+    /**
+     * 解析单个 key 的本地化字符串。
+     *
+     * @return 本地化结果;若 key 未映射返回 "ERR_$key"(既有行为);
+     *         若带参数 getString 失败(说明该 locale 译文缺少 %1$s/%1$d 格式符)返回 null,
+     *         由 [resolve] 回退到原始消息。
+     */
+    private fun resolveKey(context: Context, key: String, args: List<String>): String? {
         val resId = mapping[key] ?: return "ERR_$key"
         return try {
             context.getString(resId, *args.toTypedArray())
         } catch (e: Exception) {
-            context.getString(resId)
+            // C-13: 非 zh 译文移除格式符后,带参数 getString 抛 NotFoundException。
+            // 原实现回退到无参 getString(resId) 会静默丢弃 %1$s/%1$d 参数细节;
+            // 改为返回 null 回退到原始消息,错误详情不丢失。zh 译文保留格式符,
+            // 此分支不触发,zh 行为不变。
+            null
         }
     }
 

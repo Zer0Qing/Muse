@@ -52,7 +52,6 @@ import kotlinx.serialization.json.put
 import java.io.BufferedWriter
 import java.io.ByteArrayOutputStream
 import java.io.OutputStream
-import java.io.InputStream
 import java.io.OutputStreamWriter
 
 /**
@@ -82,6 +81,15 @@ class BackupService(
     private val settings: SettingsRepository,
     /** v1.0.74: 导入后重建 FTS 索引(直插消息绕过 FTS 同步)。 */
     private val sessionRepository: io.zer0.muse.data.session.SessionRepository,
+    /**
+     * B-23: 单 JSON 备份体量上限(字节)。
+     *
+     * 该上限仅作用于"确实需要全量解析"的路径(单 JSON 备份必须整份 decode 到内存,
+     * 否则恶意/损坏备份会把进程 OOM)。保持向后兼容,默认仍为 64MB;
+     * 若业务确实存在超过该体量的合法单 JSON 备份,允许通过构造参数调大。
+     * NDJSON 路径走流式逐行解析,不消耗该上限(天然防 OOM)。
+     */
+    private val singleJsonMaxBytes: Long = MAX_SINGLE_JSON_BACKUP_BYTES,
 ) {
     private val json = Json { prettyPrint = true; ignoreUnknownKeys = true }
 
@@ -188,21 +196,33 @@ class BackupService(
      */
     private fun readSingleJsonWithLimit(reader: java.io.BufferedReader, firstLine: String): String {
         var cumulative = firstLine.toByteArray(Charsets.UTF_8).size.toLong()
-        check(withinSingleJsonLimit(cumulative, 0L)) {
-            singleJsonTooLargeMessage(cumulative)
+        check(withinConfigurableLimit(cumulative, 0L)) {
+            singleJsonTooLargeConfiguredMessage(cumulative)
         }
         return buildString {
             appendLine(firstLine)
             while (true) {
                 val line = reader.readLine() ?: break
                 cumulative += line.toByteArray(Charsets.UTF_8).size.toLong()
-                check(withinSingleJsonLimit(cumulative, 0L)) {
-                    singleJsonTooLargeMessage(cumulative)
+                check(withinConfigurableLimit(cumulative, 0L)) {
+                    singleJsonTooLargeConfiguredMessage(cumulative)
                 }
                 appendLine(line)
             }
         }
     }
+
+    /**
+     * B-23: 以可配置的 [singleJsonMaxBytes] 为上限判断单 JSON 备份体量是否仍在允许范围内。
+     * [MAX_SINGLE_JSON_BACKUP_BYTES] 是向后兼容的默认上限,构造参数可调大以兼容更大合法备份。
+     */
+    private fun withinConfigurableLimit(cumulativeUtf8Bytes: Long, additionalUtf8Bytes: Long): Boolean =
+        cumulativeUtf8Bytes <= singleJsonMaxBytes - additionalUtf8Bytes
+
+    /** B-23: 生成单 JSON 备份超限错误信息,反映实例配置的实际上限(默认 64MB)。 */
+    private fun singleJsonTooLargeConfiguredMessage(cumulativeUtf8Bytes: Long): String =
+        "单 JSON 备份体量 ${(cumulativeUtf8Bytes + 1024 * 1024 - 1) / (1024 * 1024)}MB 超过上限 " +
+            "${singleJsonMaxBytes / (1024 * 1024)}MB,已拒绝导入"
 
     /**
      * Phase 11.2.2: 流式分片导出(NDJSON 格式)。
@@ -234,33 +254,65 @@ class BackupService(
      * @return 各主要表计数(供调用方打印规模诊断日志)
      */
     private suspend fun writeNdJson(writer: BufferedWriter): NdJsonExportSummary {
-        // Step 1: 拉取所有数据
-        val sessions = db.sessionDao().observeAll().first()
+        // B-32: 全部 MuseDb 表读取包进单一事务,获得一致快照。
+        // 旧实现逐表非事务 getAll + 逐会话 observeBySession,与运行中写库并发时,
+        // 不同表/会话可能读到不同时间点的数据 → 产生 torn 备份。改为在 db.withTransaction
+        // 内一次读出全部 MuseDb 数据,事务提交后再流式写出 NDJSON,不占用事务期间的 IO 时间。
+        // 事务仅覆盖读取(很快),正式写出在事务外逐行流式进行,不影响流式导出防 OOM 的目标;
+        // 事务在 Dispatchers.IO 上执行,不阻塞主线程。
+        // memoryDb/factDb/settings 为独立库,无法并入 MuseDb 事务,仍各自读取。
+        val muse = db.withTransaction {
+            val s = db.sessionDao().observeAll().first()
+            val msgs = s.flatMap { db.messageDao().observeBySession(it.id).first() }
+            ExportedMuseSnapshot(
+                sessions = s,
+                messages = msgs,
+                assistants = db.assistantDao().getAll(),
+                lorebooks = db.lorebookDao().getAll(),
+                skills = db.skillDao().getAll(),
+                artifacts = db.artifactDao().getAll(),
+                quickMessages = db.quickMessageDao().getAll(),
+                promptInjections = db.promptInjectionDao().getAll(),
+                folders = db.folderDao().getAll(),
+                groupChats = db.groupChatDao().getAll(),
+                groupChatMessages = db.groupChatMessageDao().getAll(),
+                scheduledTasks = db.scheduledTaskDao().getAll(),
+                scheduledTaskExecutions = db.scheduledTaskExecutionDao().getAll(),
+                knowledgeDocs = db.knowledgeDocDao().getAll(),
+                knowledgeChunks = db.knowledgeChunkDao().getAll(),
+                experiences = db.experienceDao().getAll(),
+                milestones = db.milestoneDao().getAll(),
+                agentMessages = db.agentMessageDao().getAll(),
+                moments = db.momentDao().getAll(),
+                momentComments = db.momentDao().getAllComments(),
+                momentLikes = db.momentDao().getAllLikes(),
+            )
+        }
+        val sessions = muse.sessions
+        val allMessages = muse.messages
         val sessionSummaries = memoryDb.sessionSummaryDao().getAll()
         val compiledSections = memoryDb.compiledSectionDao().getAll()
         val dailyState = memoryDb.dailyStateDao().get()?.let { listOf(it) } ?: emptyList()
         val facts = factDb.factDao().getAll()
-        // v3: 拉取扩展表
-        val assistants = db.assistantDao().getAll()
-        val lorebooks = db.lorebookDao().getAll()
-        val skills = db.skillDao().getAll()
-        val artifacts = db.artifactDao().getAll()
-        val quickMessages = db.quickMessageDao().getAll()
-        val promptInjections = db.promptInjectionDao().getAll()
-        val folders = db.folderDao().getAll()
-        val groupChats = db.groupChatDao().getAll()
-        val groupChatMessages = db.groupChatMessageDao().getAll()
-        val scheduledTasks = db.scheduledTaskDao().getAll()
-        val scheduledTaskExecutions = db.scheduledTaskExecutionDao().getAll()
-        val knowledgeDocs = db.knowledgeDocDao().getAll()
-        val knowledgeChunks = db.knowledgeChunkDao().getAll()
-        val experiences = db.experienceDao().getAll()
-        val milestones = db.milestoneDao().getAll()
-        val agentMessages = db.agentMessageDao().getAll()
-        // v1.0.74: 朋友圈三表(此前完全不在备份里,换机恢复丢数据)
-        val moments = db.momentDao().getAll()
-        val momentComments = db.momentDao().getAllComments()
-        val momentLikes = db.momentDao().getAllLikes()
+        val assistants = muse.assistants
+        val lorebooks = muse.lorebooks
+        val skills = muse.skills
+        val artifacts = muse.artifacts
+        val quickMessages = muse.quickMessages
+        val promptInjections = muse.promptInjections
+        val folders = muse.folders
+        val groupChats = muse.groupChats
+        val groupChatMessages = muse.groupChatMessages
+        val scheduledTasks = muse.scheduledTasks
+        val scheduledTaskExecutions = muse.scheduledTaskExecutions
+        val knowledgeDocs = muse.knowledgeDocs
+        val knowledgeChunks = muse.knowledgeChunks
+        val experiences = muse.experiences
+        val milestones = muse.milestones
+        val agentMessages = muse.agentMessages
+        val moments = muse.moments
+        val momentComments = muse.momentComments
+        val momentLikes = muse.momentLikes
         val settingsSnapshot = settings.exportSettingsSnapshot()
 
         // Step 2: 写 meta 行
@@ -308,19 +360,16 @@ class BackupService(
             sessionCount++
         }
 
-        // Step 4: 写 messages
+        // Step 4: 写 messages(B-32: 直接写事务快照中的消息列表,不再逐会话重查)
         var messageCount = 0
-        sessions.forEach { session ->
-            val messages = db.messageDao().observeBySession(session.id).first()
-            messages.forEach { msg ->
-                val line = buildJsonObject {
-                    put("type", "message")
-                    put("data", json.encodeToJsonElement(MessageEntity.serializer(), msg))
-                }
-                writer.write(line.toString())
-                writer.newLine()
-                messageCount++
+        allMessages.forEach { msg ->
+            val line = buildJsonObject {
+                put("type", "message")
+                put("data", json.encodeToJsonElement(MessageEntity.serializer(), msg))
             }
+            writer.write(line.toString())
+            writer.newLine()
+            messageCount++
         }
 
         // Step 5: 写 memory 数据
@@ -434,15 +483,35 @@ class BackupService(
         val groupChatMessages: Int,
     )
 
-    /** B4-07: 字符串版流式导入(云端旧路径兼容)。 */
-    private suspend fun applyNdJsonStreaming(text: String): Pair<Int, Int> =
-        applyNdJsonStreaming(text.lineSequence())
+    /**
+     * B-32: [writeNdJson] 在单一 [MuseDb] 事务内读出的一致快照。
+     * 事务提交后据此流式写出 NDJSON;持有实体对象列表(轻量)而不持有序列化巨串,
+     * 兼顾一致快照与流式导出防 OOM 的目标。
+     */
+    private data class ExportedMuseSnapshot(
+        val sessions: List<SessionEntity>,
+        val messages: List<MessageEntity>,
+        val assistants: List<AssistantEntity>,
+        val lorebooks: List<LorebookEntity>,
+        val skills: List<SkillEntity>,
+        val artifacts: List<ArtifactEntity>,
+        val quickMessages: List<QuickMessageEntity>,
+        val promptInjections: List<PromptInjectionEntity>,
+        val folders: List<FolderEntity>,
+        val groupChats: List<GroupChatEntity>,
+        val groupChatMessages: List<GroupChatMessageEntity>,
+        val scheduledTasks: List<ScheduledTaskEntity>,
+        val scheduledTaskExecutions: List<ScheduledTaskExecutionEntity>,
+        val knowledgeDocs: List<KnowledgeDocEntity>,
+        val knowledgeChunks: List<KnowledgeChunkEntity>,
+        val experiences: List<ExperienceEntity>,
+        val milestones: List<MilestoneEntity>,
+        val agentMessages: List<AgentMessageEntity>,
+        val moments: List<MomentEntity>,
+        val momentComments: List<MomentCommentEntity>,
+        val momentLikes: List<MomentLikeEntity>,
+    )
 
-    /** B4-07: 输入流版流式导入,不再整读文本,避免大备份 OOM。 */
-    private suspend fun applyNdJsonStreaming(input: InputStream): Pair<Int, Int> =
-        input.bufferedReader(Charsets.UTF_8).use { reader ->
-            applyNdJsonStreaming(generateSequence { reader.readLine() }.takeWhile { it != null }.map { it!! })
-        }
     /**
      * v1.104: 流式解析 NDJSON 备份并分批插入 DB。
      *
@@ -464,9 +533,21 @@ class BackupService(
                 val obj = json.decodeFromString(JsonObject.serializer(), firstLine)
                 val type = obj["type"]?.let { (it as? JsonPrimitive)?.content }
                 if (type == "meta") {
-                    val total = listOf(
-                        "sessions", "messages", "facts", "assistants", "groupChats", "groupChatMessages", "moments",
-                    ).mapNotNull { obj[it]?.let { v -> (v as? JsonPrimitive)?.contentOrNull?.toIntOrNull() } }
+                    // B-21: 空备份守卫必须统计"所有实际存在的非零类型"。
+                    // 旧实现只统计少数主表(sessions/messages/…),纯扩展表备份
+                    // (如仅 knowledgeDocs/knowledgeChunks/experiences/milestones 有数据)会被误判为空而拒绝。
+                    // 这里枚举 writeNdJson 写出的全部类型计数键,任一类型非零即视为有效备份。
+                    val countKeys = listOf(
+                        "sessions", "sessionSummaries", "dailyStates", "compiledSections",
+                        "facts",
+                        "assistants", "lorebooks", "skills", "artifacts", "quickMessages",
+                        "promptInjections", "folders", "groupChats", "groupChatMessages",
+                        "scheduledTasks", "scheduledTaskExecutions", "knowledgeDocs",
+                        "knowledgeChunks", "experiences", "milestones", "agentMessages",
+                        "moments", "momentComments", "momentLikes",
+                    )
+                    val total = countKeys
+                        .mapNotNull { obj[it]?.let { v -> (v as? JsonPrimitive)?.contentOrNull?.toIntOrNull() } }
                         .sum()
                     if (total == 0) {
                         throw IllegalArgumentException("空备份文件(meta 无任何数据),已拒绝导入")
@@ -485,8 +566,9 @@ class BackupService(
         // 原实现清空是独立事务、插入是分批独立事务,解析中途异常/取消会留下半空库
         // (对话与记忆全丢)。Room 嵌套 withTransaction 会 join 外层事务,
         // 任一分批失败 → 整个事务(含清空)回滚,数据保持导入前状态。
-        // memoryDb / factDb 为独立数据库,各自用事务包裹(仍无法跨库原子,
-        // 但主要数据 MuseDb 受保护; memory/fact 清空失败也会各自回滚)。
+        // C-10: memoryDb / factDb 为独立数据库,无法与 MuseDb 跨库原子,
+        // 故只在 MuseDb 事务成功后再于各自独立事务内统一"清空 + 插入",
+        // 消除在 MuseDb 事务内提前提交 memory/fact 造成的跨库半状态及早前重复 flush。
         var sessionCount = 0
         var messageCount = 0
         try {
@@ -569,27 +651,17 @@ class BackupService(
                     }
                     "summary" -> obj["data"]?.let {
                         summaryBuf.add(json.decodeFromJsonElement(SessionSummaryEntity.serializer(), it))
-                        if (summaryBuf.size >= IMPORT_BATCH) {
-                            flushBatch(summaryBuf) { batch -> memoryDb.withTransaction { batch.forEach { memoryDb.sessionSummaryDao().upsert(it) } } }
-                        }
+                        // C-10: memory/fact 缓冲只在 MuseDb 事务成功后于各自独立事务内统一提交,
+                        // 不再在 MuseDb 事务内循环中提前 flush(旧实现会在 MuseDb 回滚时留下已提交的 memory 半状态)。
                     }
                     "dailyState" -> obj["data"]?.let {
                         dailyBuf.add(json.decodeFromJsonElement(DailyStateEntity.serializer(), it))
-                        if (dailyBuf.size >= IMPORT_BATCH) {
-                            flushBatch(dailyBuf) { batch -> memoryDb.withTransaction { batch.forEach { memoryDb.dailyStateDao().upsert(it) } } }
-                        }
                     }
                     "compiledSection" -> obj["data"]?.let {
                         compiledBuf.add(json.decodeFromJsonElement(CompiledSectionEntity.serializer(), it))
-                        if (compiledBuf.size >= IMPORT_BATCH) {
-                            flushBatch(compiledBuf) { batch -> memoryDb.withTransaction { batch.forEach { memoryDb.compiledSectionDao().upsert(it) } } }
-                        }
                     }
                     "fact" -> obj["data"]?.let {
                         factBuf.add(json.decodeFromJsonElement(FactEntity.serializer(), it))
-                        if (factBuf.size >= IMPORT_BATCH) {
-                            flushBatch(factBuf) { batch -> factDb.withTransaction { factDb.factDao().insertAll(batch.map { it.copy(id = 0) }) } }
-                        }
                     }
                     // v3: 扩展表类型
                     "assistant" -> obj["data"]?.let {
@@ -684,7 +756,8 @@ class BackupService(
             }
         }
 
-        // 3. flush 剩余 buffer
+        // 3. flush 剩余 buffer(C-10: memory/fact 缓冲这里不再 flush,
+        // 统一在 MuseDb 事务成功后的独立事务内一次性 deleteAll + 插入)。
         if (sessionBuf.isNotEmpty()) {
             sessionCount += sessionBuf.size
             flushBatch(sessionBuf) { batch -> db.withTransaction { batch.forEach { db.sessionDao().insert(it) } } }
@@ -693,10 +766,6 @@ class BackupService(
             messageCount += messageBuf.size
             flushBatch(messageBuf) { batch -> db.withTransaction { batch.forEach { db.messageDao().upsert(it) } } }
         }
-        flushBatch(summaryBuf) { batch -> memoryDb.withTransaction { batch.forEach { memoryDb.sessionSummaryDao().upsert(it) } } }
-        flushBatch(dailyBuf) { batch -> memoryDb.withTransaction { batch.forEach { memoryDb.dailyStateDao().upsert(it) } } }
-        flushBatch(compiledBuf) { batch -> memoryDb.withTransaction { batch.forEach { memoryDb.compiledSectionDao().upsert(it) } } }
-        flushBatch(factBuf) { batch -> factDb.withTransaction { factDb.factDao().insertAll(batch.map { it.copy(id = 0) }) } }
         // v3: flush 扩展表
         flushBatch(assistantBuf) { batch -> db.withTransaction { db.assistantDao().insertAll(batch) } }
         flushBatch(lorebookBuf) { batch -> db.withTransaction { db.lorebookDao().insertAll(batch) } }
@@ -720,18 +789,27 @@ class BackupService(
         flushBatch(momentLikeBuf) { batch -> db.withTransaction { batch.forEach { db.momentDao().addLike(it) } } }
             } // 审计 0.5: MuseDb 大事务闭合(失败整体回滚,含清空)
 
-            // memory/fact 独立库各自事务(仍跨库不原子,但各自失败各自回滚)
-            memoryDb.withTransaction {
-                memoryDb.sessionSummaryDao().deleteAll()
-                memoryDb.dailyStateDao().deleteAll()
-                memoryDb.compiledSectionDao().deleteAll()
-                flushBatch(summaryBuf) { batch -> memoryDb.withTransaction { batch.forEach { memoryDb.sessionSummaryDao().upsert(it) } } }
-                flushBatch(dailyBuf) { batch -> memoryDb.withTransaction { batch.forEach { memoryDb.dailyStateDao().upsert(it) } } }
-                flushBatch(compiledBuf) { batch -> memoryDb.withTransaction { batch.forEach { memoryDb.compiledSectionDao().upsert(it) } } }
+            // C-10: memory/fact 依赖独立数据库,无法与 MuseDb 跨库原子。
+            // 只在 MuseDb 事务成功(走到这里)后,各自在单一事务内"先清空旧数据再插入新数据",
+            // 避免旧实现"插入→再清空→缓冲已空无法二次插入"导致的 memory/fact 数据丢失,
+            // 也消除了在 MuseDb 事务内提前 flush 造成的提前提交。
+            // 取舍:memory/fact 记录全部暂存内存后一次性落库,可接受——
+            // 其数据量远小于 messages,且换来了正确的先后顺序与一致的提交边界。
+            if (summaryBuf.isNotEmpty() || dailyBuf.isNotEmpty() || compiledBuf.isNotEmpty()) {
+                memoryDb.withTransaction {
+                    memoryDb.sessionSummaryDao().deleteAll()
+                    memoryDb.dailyStateDao().deleteAll()
+                    memoryDb.compiledSectionDao().deleteAll()
+                    summaryBuf.forEach { memoryDb.sessionSummaryDao().upsert(it) }
+                    dailyBuf.forEach { memoryDb.dailyStateDao().upsert(it) }
+                    compiledBuf.forEach { memoryDb.compiledSectionDao().upsert(it) }
+                }
             }
-            factDb.withTransaction {
-                factDb.factDao().deleteAll()
-                flushBatch(factBuf) { batch -> factDb.withTransaction { factDb.factDao().insertAll(batch.map { it.copy(id = 0) }) } }
+            if (factBuf.isNotEmpty()) {
+                factDb.withTransaction {
+                    factDb.factDao().deleteAll()
+                    factDb.factDao().insertAll(factBuf.map { it.copy(id = 0) })
+                }
             }
 
             // 恢复设置快照
@@ -778,7 +856,7 @@ class BackupService(
         internal fun withinSingleJsonLimit(cumulativeUtf8Bytes: Long, additionalUtf8Bytes: Long): Boolean =
             cumulativeUtf8Bytes <= MAX_SINGLE_JSON_BACKUP_BYTES - additionalUtf8Bytes
 
-        /** B-25: 生成单 JSON 备份超限的明确错误信息(含当前体量字节与上限)。 */
+        /** B-25: 生成单 JSON 备份超限的明确错误信息(含当前体量字节与默认上限 64MB)。 */
         internal fun singleJsonTooLargeMessage(cumulativeUtf8Bytes: Long): String =
             "单 JSON 备份体量 ${(cumulativeUtf8Bytes + 1024 * 1024 - 1) / (1024 * 1024)}MB 超过上限 " +
                 "${MAX_SINGLE_JSON_BACKUP_BYTES / (1024 * 1024)}MB,已拒绝导入"
@@ -875,34 +953,50 @@ class BackupService(
         } else {
             data
         }
-        val text = plaintext.toString(Charsets.UTF_8)
-        val firstLine = text.lineSequence().firstOrNull { it.isNotBlank() } ?: return null
+
+        // B-23: 不再整份 plaintext.toString + lineSequence(会把解密后明文翻倍驻留内存)。
+        // 改用 BufferedReader 逐行流式读取,仅在真正需要全量解析的单 JSON 分支才整读。
+        val rawReader = plaintext.inputStream().bufferedReader(Charsets.UTF_8)
+        val firstLine = generateSequence { rawReader.readLine() }
+            .firstOrNull { !it.isNullOrBlank() }
+            ?: run {
+                rawReader.close()
+                return null
+            }
         val isNdJson = resultOf {
             val obj = json.decodeFromString(JsonObject.serializer(), firstLine)
             obj["type"]?.let { (it as? JsonPrimitive)?.content } == "meta"
         }.getOrNull() ?: false
+
         return if (isNdJson) {
-            resultOf { applyNdJsonStreaming(text) }
-                .onError { msg, t -> Logger.w("BackupService", "云端 NDJSON 流式导入失败", t); null }
-                .getOrNull()
+            // B-23: 首行已消费,继续从 reader 逐行流式导入,避免 NDJSON 整份字符串驻留。
+            rawReader.use { reader ->
+                val rest = generateSequence { reader.readLine() }
+                    .takeWhile { line -> line != null }
+                    .map { line -> line!! }
+                resultOf { applyNdJsonStreaming(sequenceOf(firstLine) + rest) }
+                    .onError { msg, t -> Logger.w("BackupService", "云端 NDJSON 流式导入失败", t); null }
+                    .getOrNull()
+            }
         } else {
-            // B-25: 云端正本已整份驻留内存(下载 + 解密),无法杜绝下载期 OOM;
-            // 这里在 decode 前对解密后明文体量做上限拦截,避免超大单 JSON 解析再翻倍内存。
-            if (!withinSingleJsonLimit(plaintext.size.toLong(), 0L)) {
-                Logger.w("BackupService", "云端单 JSON 备份超限,拒绝恢复: ${singleJsonTooLargeMessage(plaintext.size.toLong())}")
-                return null
+            rawReader.use { reader ->
+                // B-25: 云端正本已整份驻留内存(下载 + 解密),无法杜绝下载期 OOM;
+                // B-23: 单 JSON 路径必须整份 decode 到内存,因此保留体量上限拦截以防解析 OOM,
+                // 上限可经构造参数 [singleJsonMaxBytes] 调大以兼容更大合法备份(向后兼容默认 64MB)。
+                val backup = resultOf {
+                    json.decodeFromString(Backup.serializer(), readSingleJsonWithLimit(reader, firstLine))
+                }.onError { msg, t ->
+                    Logger.w("BackupService", "云端单 JSON 备份读取/解析失败,拒绝恢复: ${t?.message ?: msg}", t)
+                    null
+                }.getOrNull() ?: return null
+                // v1.x 数据安全: 云端备份为空(0 会话 0 消息)时拒绝恢复,
+                // 避免"空备份覆盖本地数据"导致对话全部丢失(用户反馈 WebDAV 恢复后对话全没了)。
+                if (backup.sessions.isEmpty() && backup.messages.isEmpty()) {
+                    Logger.w("BackupService", "云端备份为空(0 会话 0 消息),拒绝恢复以免覆盖本地数据")
+                    return null
+                }
+                applyBackup(backup)
             }
-            val backup = resultOf { json.decodeFromString(Backup.serializer(), text) }
-                .onError { msg, t -> Logger.w("BackupService", "云端备份 JSON 解析失败", t); return null }
-                .getOrNull()
-                ?: return null
-            // v1.x 数据安全: 云端备份为空(0 会话 0 消息)时拒绝恢复,
-            // 避免"空备份覆盖本地数据"导致对话全部丢失(用户反馈 WebDAV 恢复后对话全没了)。
-            if (backup.sessions.isEmpty() && backup.messages.isEmpty()) {
-                Logger.w("BackupService", "云端备份为空(0 会话 0 消息),拒绝恢复以免覆盖本地数据")
-                return null
-            }
-            applyBackup(backup)
         }
     }
 

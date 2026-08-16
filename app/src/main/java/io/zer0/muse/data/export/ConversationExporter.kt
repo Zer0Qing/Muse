@@ -450,7 +450,9 @@ object ConversationExporter {
             }
             val lang = match.groupValues[1]
             val code = match.groupValues[2]
-            val langClass = if (lang.isNotBlank()) " class=\"language-$lang\"" else ""
+            // C-09: lang 注入 HTML 属性,需做属性转义(>,",' 等),防止代码块语言标识被
+            // 用于逃逸属性/闭合 <pre> 标签。虽然正则 `(\w*)` 已限单词字符,仍转义防御。
+            val langClass = if (lang.isNotBlank()) " class=\"language-${escapeHtmlAttr(lang)}\"" else ""
             sb.append("<pre><code$langClass>").append(escapeHtml(code)).append("</code></pre>")
             lastEnd = match.range.last + 1
         }
@@ -476,6 +478,18 @@ object ConversationExporter {
         s.replace("&", "&amp;")
             .replace("<", "&lt;")
             .replace(">", "&gt;")
+
+    /**
+     * C-09: 转义 HTML 双引号属性值(& < > " + ')。
+     * 文本内容用 [escapeHtml] 即可,但注入到 `class="..."` 属性时还须转义引号,
+     * 防止属性值逃逸闭合标签(attribute-context 转义)。
+     */
+    private fun escapeHtmlAttr(s: String): String =
+        s.replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace("\"", "&quot;")
+            .replace("'", "&#39;")
 
     /** 转义 HTML 属性值(额外转义引号)。 */
     private fun escapeAttr(s: String): String =

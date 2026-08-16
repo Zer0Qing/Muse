@@ -248,15 +248,24 @@ class ChatExportCoordinator(
         }
     }
 
-    /** v0.32: 极简 Markdown → HTML 转换(分享模板 html 格式用,不引入额外依赖)。 */
+    /**
+     * v0.32: 极简 Markdown → HTML 转换(分享模板 html 格式用,不引入额外依赖)。
+     *
+     * C-09: 消息正文来自用户/LLM(不可信),原实现把 md 原文直接插入 body,
+     * 可被 `<script>`/`</...>` 注入。这里先对 `& < >` 做 HTML 转义再去掉标记语法,
+     * 既防注入又保留 markdown 渲染效果;`<mood>` 块是内部约定标签,转义后形如
+     * `&lt;mood&gt;`,对应正则匹配转义形态(内容仍按原样进 <pre> 展示)。
+     */
     private fun markdownToHtml(md: String): String {
         val body = md
-            .replace(Regex("""^# (.+)$""", RegexOption.MULTILINE), "<h1>$1</h1>")
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
             .replace(Regex("""^### (.+)$""", RegexOption.MULTILINE), "<h3>$1</h3>")
+            .replace(Regex("""^# (.+)$""", RegexOption.MULTILINE), "<h1>$1</h1>")
             .replace(Regex("""\*\*(.+?)\*\*"""), "<strong>$1</strong>")
             .replace(Regex("""^&gt; (.+)$""", RegexOption.MULTILINE), "<blockquote>$1</blockquote>")
-            .replace(Regex("""^> (.+)$""", RegexOption.MULTILINE), "<blockquote>$1</blockquote>")
-            .replace(Regex("""<mood>\n([\s\S]*?)\n</mood>"""), "<pre><code>mood\n$1\n</code></pre>")
+            .replace(Regex("""&lt;mood&gt;\n([\s\S]*?)\n&lt;/mood&gt;"""), "<pre><code>mood\n$1\n</code></pre>")
             .replace("\n\n", "</p><p>")
         return "<!DOCTYPE html><html><body><p>$body</p></body></html>"
     }

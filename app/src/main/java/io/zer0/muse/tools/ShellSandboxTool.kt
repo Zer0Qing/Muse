@@ -111,7 +111,13 @@ object ShellSandboxTool {
                 .filter { it.isNotBlank() && !it.startsWith("-") }
                 .firstOrNull { arg ->
                     val resolved = if (arg.startsWith("/")) File(arg) else File(workDir, arg)
-                    runCatching { !resolved.canonicalPath.startsWith(workDir.canonicalPath) }.getOrDefault(true)
+                    runCatching {
+                        // C-07: 目录边界用"目标路径 == 沙箱根 或 目标路径以 '沙箱根 + 分隔符' 开头"判断,
+                        // 不能只用 startsWith(沙箱根) — 否则 /data/user2 会被误判为 /data/user 的子路径。
+                        val root = workDir.canonicalPath
+                        val target = resolved.canonicalPath
+                        !(target == root || target.startsWith(root + File.separator))
+                    }.getOrDefault(true)
                 }
             if (badArg != null) {
                 return@withContext "[错误] 路径 '$badArg' 超出沙箱范围(仅允许应用数据目录内)"

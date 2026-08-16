@@ -14,8 +14,7 @@ import kotlinx.coroutines.sync.withLock
  * 共享同一个底层 V8 引擎。互斥锁 [executionMutex] 确保同一时刻只有一个调用方
  * 使用引擎，避免 evaluateJavascript 回调串扰。
  *
- * 若需真正并行执行，应使用 [SkillEnginePool] 管理多个 JsSandbox 实例
- * （当前受单例 WebView 限制，池内多个 engine 仍串行；未来接入 QuickJS 后可并行）。
+ * 当前受单例 WebView 限制，引擎不可并行；未来接入 QuickJS 后可并行。
  */
 class WebViewSkillEngine : SkillEngine {
 

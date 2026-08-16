@@ -5,6 +5,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -26,12 +27,12 @@ class DeferredResultStoreTest {
 
     @Before
     fun setUp() {
-        kotlinx.coroutines.Dispatchers.setMain(dispatcher)
+        Dispatchers.setMain(dispatcher)
     }
 
     @After
     fun tearDown() {
-        kotlinx.coroutines.Dispatchers.resetMain()
+        Dispatchers.resetMain()
     }
 
     // ── A-15: abort 语义 ────────────────────────────────────────────
@@ -124,7 +125,7 @@ class DeferredResultStoreTest {
         // 只有奇数任务(未中止)应回灌
         assertEquals(10, consumed.size)
         assertTrue(consumed.all { it.status == DeferredResultStore.TaskStatus.RESOLVED })
-        assertFalse(consumed.any { it.taskId.toInt() % 2 == 0 })
+        assertFalse(consumed.any { it.taskId.removePrefix("t").toInt() % 2 == 0 })
     }
 
     @Test

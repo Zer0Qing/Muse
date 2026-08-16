@@ -204,6 +204,10 @@ class SkillFileToolsImpl(private val context: Context, private val client: OkHtt
         if (!url.startsWith("http://") && !url.startsWith("https://")) {
             return context.getString(R.string.skill_url_invalid_scheme_err)
         }
+        // A-08: 落地前用 validatePublicUrl 校验主机 + 逐跳重定向防护。
+        // 初始 URL 与重定向目标都由 downloadWithHopGuard 逐跳校验,防公网 URL 30x 跳到内网。
+        // A-08: 主机不合法(内网/回环/DNS 指向内网)直接拒绝,描述与 http_get 的红线一致
+        if (!validatePublicUrl(url)) return "error: URL 指向内网地址,已拒绝下载"
         val path = args["path"] ?: return "error: missing path"
         // H-SE3: 改用 resolveSandboxFile 校验路径,防止路径穿越(如 path="../../databases/main.db")
         val file = resolveSandboxFile(path) ?: return context.getString(R.string.skill_path_violation_err)
@@ -214,8 +218,7 @@ class SkillFileToolsImpl(private val context: Context, private val client: OkHtt
 
         return withTimeoutOrNull(timeoutSec * 1000L) {
             try {
-                val request = Request.Builder().url(url).build()
-                client.newCall(request).execute().use { response ->
+                downloadWithHopGuard(url).use { response ->
                     if (!response.isSuccessful) return@withTimeoutOrNull "error: HTTP ${response.code}"
 
                     response.body.byteStream().use { input ->
@@ -232,6 +235,48 @@ class SkillFileToolsImpl(private val context: Context, private val client: OkHtt
                 context.getString(R.string.skill_download_failed, e.message ?: "")
             }
         } ?: context.getString(R.string.skill_download_timeout, timeoutSec)
+    }
+
+    /**
+     * A-08: 带 SSRF 逐跳防护的下载请求执行。关闭自动跟随重定向(client 默认 followRedirects=true),
+     * 手动跟随 30x,每一跳都重新过 [validatePublicUrl] — 防止初始公网 URL 30x 重定向到内网地址
+     * (与 http_get / web_fetch 的方案一致)。跳数上限防无限重定向环。
+     *
+     * @param url 初始 URL(已通过 scheme + validatePublicUrl 校验)
+     * @return 最终命中的响应;调用方负责 use/close
+     */
+    private fun downloadWithHopGuard(url: String): okhttp3.Response {
+        var redirects = 0
+        var currentUrl = url
+        while (true) {
+            if (!validatePublicUrl(currentUrl)) {
+                throw java.io.IOException("下载目标指向内网地址,已拒绝: $currentUrl")
+            }
+            // 每跳新建 followRedirects=false 的 client,复用共享 client 的连接池与超时配置
+            val hopClient = client.newBuilder().followRedirects(false).build()
+            val resp = hopClient.newCall(Request.Builder().url(currentUrl).get().build()).execute()
+            // location 为局部 val,下方 if 早退后 Kotlin 可智能转为非空
+            val location = resp.header("Location")
+            if (resp.code !in 300..399 || location == null) {
+                return resp
+            }
+            resp.close()
+            redirects++
+            if (redirects > MAX_DOWNLOAD_REDIRECTS) {
+                throw java.io.IOException("重定向次数超过上限($MAX_DOWNLOAD_REDIRECTS),已终止")
+            }
+            // 相对 Location 按当前 URL 解析(java.net.URL 兼容 OkHttp URL 的 resolve 语义)
+            currentUrl = try {
+                java.net.URL(currentUrl).toURI().resolve(location).toString()
+            } catch (e: Exception) {
+                throw java.io.IOException("重定向 Location 无法解析: $location")
+            }
+        }
+    }
+
+    companion object {
+        /** 手动跟随下载重定向的最大跳数(防无限重定向环)。 */
+        private const val MAX_DOWNLOAD_REDIRECTS = 10
     }
 
     /** read_public_file — 通过 SAF 读取用户分享/打开方式传入的文件 URI。 */
@@ -289,7 +334,12 @@ class SkillFileToolsImpl(private val context: Context, private val client: OkHtt
 
     /** save_to_downloads — 保存文本或本地文件到 Download 目录(Android 10+ 用 MediaStore)。 */
     suspend fun execSaveToDownloads(args: Map<String, String>): String {
-        val filename = args["filename"] ?: return "error: missing filename"
+        val filenameArg = args["filename"] ?: return "error: missing filename"
+        // B-20: 文件名 sanitize — 原始 filename 可含 "../" 等路径片段逃逸 Download 目录。
+        // 复用 FileTools.create_download 的同一规则:仅保留字母数字下划线点连字符,
+        // 其余替换为 "_",彻底消除分隔符/相对段导致的路径逃逸。空结果回退带时间戳默认名。
+        val filename = filenameArg.replace(Regex("[^A-Za-z0-9._-]"), "_")
+            .takeIf { it.isNotBlank() } ?: "download_${System.currentTimeMillis()}.txt"
         val mimeType = args["mime_type"] ?: "text/plain"
         // v1.47: 支持 file_path 参数 — 直接从沙盒读取文件转存到 Download,无需先 read_file 再写文本
         val filePath = args["file_path"]?.takeIf { it.isNotBlank() }
