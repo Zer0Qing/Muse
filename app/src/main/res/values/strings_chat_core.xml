@@ -487,4 +487,12 @@
     <string name="msg_info_estimated">估算</string>
     <string name="msg_info_no_data">无生成数据</string>
     <string name="msg_info_unknown">未知</string>
+    <!-- A1: 会话内查找(聊天页就地查找框) -->
+    <string name="chat_find_in_conversation">会话内查找</string>
+    <string name="chat_find_placeholder">搜索当前会话</string>
+    <string name="chat_find_count">第 %1$d / %2$d 条</string>
+    <string name="chat_find_no_match">无匹配</string>
+    <string name="chat_find_prev">上一条</string>
+    <string name="chat_find_next">下一条</string>
+    <string name="chat_find_close">关闭查找</string>
 </resources>

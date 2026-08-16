@@ -485,4 +485,12 @@
     <string name="msg_info_estimated">Оценка</string>
     <string name="msg_info_no_data">Нет данных о генерации</string>
     <string name="msg_info_unknown">Неизвестно</string>
+    <!-- A1: 会话内查找(聊天页就地查找框) -->
+    <string name="chat_find_in_conversation">Поиск в беседе</string>
+    <string name="chat_find_placeholder">Поиск в текущей беседе</string>
+    <string name="chat_find_count">%1$d из %2$d</string>
+    <string name="chat_find_no_match">Нет совпадений</string>
+    <string name="chat_find_prev">Назад</string>
+    <string name="chat_find_next">Вперёд</string>
+    <string name="chat_find_close">Закрыть поиск</string>
 </resources>

@@ -56,6 +56,7 @@ import compose.icons.tablericons.ArrowLeft
 import compose.icons.tablericons.Edit
 import compose.icons.tablericons.GitMerge
 import compose.icons.tablericons.MessageCircle
+import compose.icons.tablericons.Search
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.Check
@@ -276,6 +277,41 @@ fun ChatScreen(
     // Phase 8.5 修复: 用于在 IO 线程读 clipboard(原实现在主线程同步读 primaryClip,
     // 是一次跨进程 IPC,Android 10+ 后台访问受限时可能 ANR)
     val ioScope = rememberCoroutineScope()
+    // ── A1: 会话内查找 — 状态 / 命中计算 / 跳转 ──
+    // 就地查找条开关、查询词、当前命中在命中列表中的索引(切换会话时随 rememberSaveable 重置)
+    var showInChatSearch by rememberSaveable { mutableStateOf(false) }
+    var inChatQuery by rememberSaveable { mutableStateOf("") }
+    var currentMatchIndex by rememberSaveable { mutableStateOf(0) }
+    // 命中列表:当前会话已加载消息中,内容含查询词(忽略大小写)的消息 id;空查询返回空。
+    // 仅覆盖已加载消息(OBSERVE_LIMIT 内),更早历史需先上滑加载更多。
+    val findMatches = remember(messages, inChatQuery) {
+        val q = inChatQuery.trim()
+        if (q.isEmpty()) {
+            emptyList()
+        } else {
+            messages.filter { it.content.isNotBlank() && it.content.contains(q, ignoreCase = true) }
+                .map { it.id.toString() }
+        }
+    }
+    // 跳转:复用 v2.x setTargetMessage 管线(滚动定位 + 文本高亮 + 2.5s 窗口);
+    // 负索引/越界取模回绕,支持上一条/下一条循环跳转。
+    fun jumpToMatch(index: Int) {
+        if (findMatches.isEmpty()) return
+        val size = findMatches.size
+        val safe = ((index % size) + size) % size
+        currentMatchIndex = safe
+        viewModel.setTargetMessage(findMatches[safe], inChatQuery.trim())
+    }
+    // 查询词变化(或流式期间命中数变化)时自动跳到第一条命中;空查询清空高亮状态
+    LaunchedEffect(inChatQuery, findMatches.size) {
+        if (!showInChatSearch) return@LaunchedEffect
+        if (findMatches.isEmpty()) {
+            viewModel.setTargetMessage(null, null)
+        } else {
+            currentMatchIndex = 0
+            viewModel.setTargetMessage(findMatches[0], inChatQuery.trim())
+        }
+    }
     // 阶段 5: 模型切换底部面板展开状态
     val sheetState = remember { ChatSheetState() }
     val knowledgeDao: KnowledgeDocDao = koinInject()
@@ -873,6 +909,16 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                                                 onClick = {
                                                     showTopMenu = false
                                                     viewModel.manualCompress(updateMemoryFirst = true)
+                                                },
+                                            )
+                                            // 会话内查找(A1): 呼出就地查找条(顶栏菜单第三项)
+                                            TopMenuCapsule(
+                                                icon = TablerIcons.Search,
+                                                text = stringResource(R.string.chat_find_in_conversation),
+                                                enabled = messages.isNotEmpty(),
+                                                onClick = {
+                                                    showTopMenu = false
+                                                    showInChatSearch = true
                                                 },
                                             )
                                         }
@@ -1913,6 +1959,27 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                     .padding(end = MusePaddings.screen, bottom = MusePaddings.screen)
                     .navigationBarsPadding(),
             )
+            // A1: 会话内查找条 — 顶层悬浮(消息列表之上、顶栏三岛之下,自带背景 Surface)
+            if (showInChatSearch) {
+                InChatFindBar(
+                    query = inChatQuery,
+                    onQueryChange = { inChatQuery = it },
+                    matchCount = findMatches.size,
+                    currentIndex = if (findMatches.isEmpty()) 0 else currentMatchIndex + 1,
+                    onPrev = { jumpToMatch(currentMatchIndex - 1) },
+                    onNext = { jumpToMatch(currentMatchIndex + 1) },
+                    onClose = {
+                        showInChatSearch = false
+                        inChatQuery = ""
+                        currentMatchIndex = 0
+                        viewModel.setTargetMessage(null, null)
+                    },
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .statusBarsPadding()
+                        .padding(horizontal = MusePaddings.screen, vertical = 4.dp),
+                )
+            }
         } // Box
 
         ChatSheetHost(

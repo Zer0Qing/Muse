@@ -485,4 +485,12 @@
     <string name="msg_info_estimated">Estimado</string>
     <string name="msg_info_no_data">Sem dados de geração</string>
     <string name="msg_info_unknown">Desconhecido</string>
+    <!-- A1: 会话内查找(聊天页就地查找框) -->
+    <string name="chat_find_in_conversation">Buscar na conversa</string>
+    <string name="chat_find_placeholder">Pesquisar nesta conversa</string>
+    <string name="chat_find_count">%1$d de %2$d</string>
+    <string name="chat_find_no_match">Sem correspondências</string>
+    <string name="chat_find_prev">Anterior</string>
+    <string name="chat_find_next">Próxima</string>
+    <string name="chat_find_close">Fechar busca</string>
 </resources>

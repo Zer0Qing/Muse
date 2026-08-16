@@ -488,4 +488,12 @@
     <string name="msg_info_estimated">Estimated</string>
     <string name="msg_info_no_data">No generation data</string>
     <string name="msg_info_unknown">Unknown</string>
+    <!-- A1: 会话内查找(聊天页就地查找框) -->
+    <string name="chat_find_in_conversation">Find in conversation</string>
+    <string name="chat_find_placeholder">Search current conversation</string>
+    <string name="chat_find_count">%1$d / %2$d</string>
+    <string name="chat_find_no_match">No matches</string>
+    <string name="chat_find_prev">Previous</string>
+    <string name="chat_find_next">Next</string>
+    <string name="chat_find_close">Close search</string>
 </resources>
