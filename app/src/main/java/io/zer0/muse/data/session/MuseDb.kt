@@ -159,7 +159,7 @@ import kotlinx.serialization.builtins.serializer
         // B5-02: 群聊生成账本(进程被杀后按断点重放)
         GroupChatGenerationLedgerEntity::class,
     ],
-    version = 88,
+    version = 89,
     exportSchema = true,
 )
 @TypeConverters(QuickNoteConverters::class)
@@ -486,6 +486,101 @@ abstract class MuseDb : RoomDatabase() {
                 if (!hasVideoFileUri) {
                     db.execSQL("ALTER TABLE messages ADD COLUMN videoFileUri TEXT DEFAULT NULL")
                 }
+            }
+        }
+
+        /**
+         * 审查修复 (2.0 B-27): MIGRATION_88_89 — 修正两类历史 schema 漂移。
+         *
+         * 1. index_scheduled_tasks_enabled_next_run_at 只在 21_22 创建,从 v22+ 升级的表
+         *    从未获得该索引(getDueTasks 查询无索引可走),迁移测试 22..54 矩阵暴露。
+         *    无条件重建(IF NOT EXISTS 幂等,经 21_22 升级的 v21 用户不受影响)。
+         * 2. messages.imageUrlsJson 默认值声明漂移: v55(1.0.30) 时代 Entity 给该列补了
+         *    @ColumnInfo(defaultValue="[]"),但 SQLite ALTER 无法改列默认值且当时未重建表 →
+         *    从 <55 升级的表该列一直无 DEFAULT '[]'(迁移测试 "Migration didn't properly
+         *    handle: messages")。运行时无碍(Room 生成的 SQL 总是显式写列),但声明不一致会
+         *    持续触发 MigrationTestHelper 校验失败,并影响未来依赖 schema 一致性的工具。
+         *    仅当该列缺失 DEFAULT '[]' 时重建 messages 表(55+ 起点已一致,直接跳过,
+         *    避免大库无谓复制);重建列定义与当前 Entity 完全一致(含 FK 与 4 个索引)。
+         * MIGRATION_29_30 已同步补 DEFAULT '[]'(未来 <30 升级路径直接一致)。
+         */
+        val MIGRATION_88_89 = object : Migration(88, 89) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // 1. 无条件补齐 scheduled_tasks 索引(幂等)
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_scheduled_tasks_enabled_next_run_at` ON `scheduled_tasks` (`enabled`, `next_run_at`)")
+                // 2. 条件重建 messages(imageUrlsJson 缺 DEFAULT '[]' 时)
+                var imageUrlsDefault = ""
+                db.query("PRAGMA table_info(messages)").use { cursor ->
+                    while (cursor.moveToNext()) {
+                        if (cursor.getString(1) == "imageUrlsJson") {
+                            // SQLite dflt_value 返回 SQL 字面量(带引号,如 '[]')
+                            imageUrlsDefault = cursor.getString(4)?.trim('\'') ?: ""
+                            break
+                        }
+                    }
+                }
+                if (imageUrlsDefault == "[]") return
+                // 重建表: 列定义与 Entity 完全一致(30 列 + FK),随后重建 4 个索引
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `messages_new` (
+                        `id` TEXT NOT NULL,
+                        `sessionId` TEXT NOT NULL,
+                        `role` TEXT NOT NULL,
+                        `content` TEXT NOT NULL,
+                        `reasoning` TEXT,
+                        `thinkingSignature` TEXT DEFAULT NULL,
+                        `thinkingEncryptedContent` TEXT DEFAULT NULL,
+                        `modelId` TEXT,
+                        `createdAt` INTEGER NOT NULL,
+                        `imageUrlsJson` TEXT NOT NULL DEFAULT '[]',
+                        `favorite` INTEGER NOT NULL DEFAULT 0,
+                        `favoriteTag` TEXT DEFAULT NULL,
+                        `citationUrlsJson` TEXT NOT NULL DEFAULT '[]',
+                        `ragCitationsJson` TEXT NOT NULL DEFAULT '[]',
+                        `imageBase64Json` TEXT NOT NULL DEFAULT '[]',
+                        `videoFileUri` TEXT DEFAULT NULL,
+                        `artifactIdsJson` TEXT NOT NULL DEFAULT '[]',
+                        `moodSkin` TEXT DEFAULT NULL,
+                        `mood` TEXT DEFAULT NULL,
+                        `reflection` TEXT DEFAULT NULL,
+                        `contentLength` INTEGER NOT NULL DEFAULT 0,
+                        `deletedAt` INTEGER DEFAULT NULL,
+                        `reaction` TEXT DEFAULT NULL,
+                        `variantGroupId` TEXT DEFAULT NULL,
+                        `variantIndex` INTEGER NOT NULL DEFAULT 0,
+                        `variantCount` INTEGER NOT NULL DEFAULT 1,
+                        `parentGroupId` TEXT DEFAULT NULL,
+                        `attachmentsJson` TEXT NOT NULL DEFAULT '[]',
+                        `toolCallInfoJson` TEXT DEFAULT NULL,
+                        PRIMARY KEY(`id`),
+                        FOREIGN KEY(`sessionId`) REFERENCES `sessions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                db.execSQL("""
+                    INSERT INTO `messages_new` (
+                        `id`,`sessionId`,`role`,`content`,`reasoning`,`thinkingSignature`,
+                        `thinkingEncryptedContent`,`modelId`,`createdAt`,`imageUrlsJson`,
+                        `favorite`,`favoriteTag`,`citationUrlsJson`,`ragCitationsJson`,
+                        `imageBase64Json`,`videoFileUri`,`artifactIdsJson`,`moodSkin`,`mood`,
+                        `reflection`,`contentLength`,`deletedAt`,`reaction`,`variantGroupId`,
+                        `variantIndex`,`variantCount`,`parentGroupId`,`attachmentsJson`,`toolCallInfoJson`
+                    )
+                    SELECT
+                        `id`,`sessionId`,`role`,`content`,`reasoning`,`thinkingSignature`,
+                        `thinkingEncryptedContent`,`modelId`,`createdAt`,`imageUrlsJson`,
+                        `favorite`,`favoriteTag`,`citationUrlsJson`,`ragCitationsJson`,
+                        `imageBase64Json`,`videoFileUri`,`artifactIdsJson`,`moodSkin`,`mood`,
+                        `reflection`,`contentLength`,`deletedAt`,`reaction`,`variantGroupId`,
+                        `variantIndex`,`variantCount`,`parentGroupId`,`attachmentsJson`,`toolCallInfoJson`
+                    FROM `messages`
+                """.trimIndent())
+                db.execSQL("DROP TABLE `messages`")
+                db.execSQL("ALTER TABLE `messages_new` RENAME TO `messages`")
+                // 重建索引(DROP TABLE 会删除所有索引)
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_messages_sessionId` ON `messages` (`sessionId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_messages_role` ON `messages` (`role`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_messages_sessionId_createdAt` ON `messages` (`sessionId`, `createdAt`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_messages_sessionId_createdAt_role` ON `messages` (`sessionId`, `createdAt`, `role`)")
             }
         }
 
@@ -1194,7 +1289,7 @@ abstract class MuseDb : RoomDatabase() {
                         `reasoning` TEXT,
                         `modelId` TEXT,
                         `createdAt` INTEGER NOT NULL,
-                        `imageUrlsJson` TEXT NOT NULL,
+                        `imageUrlsJson` TEXT NOT NULL DEFAULT '[]',
                         `favorite` INTEGER NOT NULL DEFAULT 0,
                         `favoriteTag` TEXT DEFAULT NULL,
                         `citationUrlsJson` TEXT NOT NULL DEFAULT '[]',
@@ -1357,11 +1452,23 @@ abstract class MuseDb : RoomDatabase() {
         /**
          * v1.122: MIGRATION_34_35 — 补齐 sessions 表 parentSessionId + childCount 列。
          * MIGRATION_31_32 漏加了 parentSessionId(分支父会话)和 childCount(分支计数),此处补加。
+         *
+         * 审查修复 (2.0 B-27): 幂等化 — 标准 v34 快照(Entity 已声明两列)不含"31_32 漏加"缺陷,
+         * 从标准 v34 起点升级会重复 ALTER → duplicate column 崩溃(迁移测试 22..54 矩阵暴露);
+         * 真实"漏加设备"(31_32 实际未执行成功)列确实缺失,此处照常补齐。两者兼容。
          */
         val MIGRATION_34_35 = object : Migration(34, 35) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("ALTER TABLE sessions ADD COLUMN parentSessionId TEXT DEFAULT NULL")
-                db.execSQL("ALTER TABLE sessions ADD COLUMN childCount INTEGER NOT NULL DEFAULT 0")
+                val existing = mutableSetOf<String>()
+                db.query("PRAGMA table_info(sessions)").use { cursor ->
+                    while (cursor.moveToNext()) existing.add(cursor.getString(1))
+                }
+                if ("parentSessionId" !in existing) {
+                    db.execSQL("ALTER TABLE sessions ADD COLUMN parentSessionId TEXT DEFAULT NULL")
+                }
+                if ("childCount" !in existing) {
+                    db.execSQL("ALTER TABLE sessions ADD COLUMN childCount INTEGER NOT NULL DEFAULT 0")
+                }
             }
         }
 
@@ -2295,6 +2402,7 @@ abstract class MuseDb : RoomDatabase() {
                         MIGRATION_85_86,
                         MIGRATION_86_87,
                         MIGRATION_87_88,
+                        MIGRATION_88_89,
                     )
                     // 启用外键约束(artifacts 表的 ON DELETE CASCADE 依赖此设置)
                     // onOpen 不在 onCreate 事务内,可以执行此类命令;onCreate 内禁止 PRAGMA
