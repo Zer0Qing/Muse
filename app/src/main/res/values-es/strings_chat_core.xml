@@ -8,6 +8,10 @@
     <string name="chat_routing_badge">Enrutado</string>
     <string name="chat_video_play_cd">Reproducir video</string>
     <string name="chat_generated_video_cd">Vídeo generado</string>
+    <string name="tool_call_progress_cd">Progreso de llamada de herramienta %1$d/%2$d</string>
+    <string name="moment_images_selected">%1$d seleccionadas (toca para continuar)</string>
+    <string name="moment_add_images_hint">Agregar imágenes (máx. %1$d)</string>
+    <string name="rich_input_markdown_placeholder">text</string>
     <string name="chat_context_usage_cd">Uso de contexto %1$s%%, %2$d total de tokens</string>
     <string name="chat_context_tokens_only_cd">Recuento de tokens de contexto %1$d, el modelo no tiene ventana de contexto</string>
     <string name="chat_context_no_window_detail">%1$d tokens (el modelo no tiene ventana de contexto)</string>

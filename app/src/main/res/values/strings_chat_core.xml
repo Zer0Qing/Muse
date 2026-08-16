@@ -8,6 +8,10 @@
     <string name="chat_routing_badge">路由</string>
     <string name="chat_video_play_cd">播放视频</string>
     <string name="chat_generated_video_cd">生成的视频</string>
+    <string name="tool_call_progress_cd">工具调用进度 %1$d/%2$d</string>
+    <string name="moment_images_selected">已选 %1$d 张(点击可继续选)</string>
+    <string name="moment_add_images_hint">添加图片(最多 %1$d 张)</string>
+    <string name="rich_input_markdown_placeholder">text</string>
     <string name="chat_context_usage_cd">上下文占用 %1$s%%,共 %2$d tokens</string>
     <string name="chat_context_tokens_only_cd">上下文 token 数 %1$d,模型未声明上下文窗口</string>
     <string name="chat_context_no_window_detail">%1$d tokens(模型未声明上下文窗口)</string>

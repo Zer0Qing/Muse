@@ -31,6 +31,17 @@ object ShellSandboxTool {
         "df", "du", "uname", "whoami", "date", "pwd", "tree",
     )
 
+    /** C-26: find 禁止扫描的系统目录前缀(前缀匹配,精确匹配可被 /system/bin 绕过)。 */
+    private val SYSTEM_DIR_PREFIXES = listOf(
+        "/system", "/proc", "/sys", "/dev", "/etc", "/bin", "/sbin", "/vendor",
+        "/data", "/storage/emulated", "/sdcard", "/mnt", "/apex", "/product",
+    )
+
+    /** C-26: 路径参数必须落在沙箱(filesDir)内的读文件类命令。 */
+    private val SANDBOX_PATH_COMMANDS = setOf(
+        "ls", "cat", "head", "tail", "file", "stat", "du", "grep", "tree", "wc", "find",
+    )
+
     /** 禁止的字符(防止命令注入)。 */
     private val FORBIDDEN_CHARS = setOf('&', '|', ';', '`', '$', '(', ')', '{', '}', '<', '>')
 
@@ -43,12 +54,13 @@ object ShellSandboxTool {
     fun toolDef(): ToolRegistry.ToolDef = ToolRegistry.ToolDef(
         name = NAME,
         // v1.0.75 fix (工具审查 02): 补触发场景与返回格式
+        // C-26: 示例改为沙箱内路径(/sdcard 等外部路径已被路径限制拦截)
         description = "在应用沙箱内执行白名单 Shell 命令,用于查询设备状态(文件/磁盘/进程)后做决策(仅 Agent Mode)。" +
             "允许的命令:ls/cat/grep/echo/wc/head/tail/find/file/stat/df/du/uname/whoami/date/pwd/tree。" +
-            "工作目录为应用数据目录,禁止命令分隔符(&;|)和重定向(<>),超时 10 秒。" +
+            "工作目录为应用数据目录,路径参数仅允许应用数据目录内;禁止命令分隔符(&;|)和重定向(<>),超时 10 秒。" +
             "返回: 成功=命令输出,失败=[错误]原因。",
         parameters = mapOf(
-            "command" to "必填,要执行的命令(如 'ls -la /sdcard/Download')",
+            "command" to "必填,要执行的命令(如 'ls -la' 或 'cat notes.txt')",
         ),
         required = setOf("command"),
         category = "built-in",
@@ -87,8 +99,23 @@ object ShellSandboxTool {
         }
 
         // 安全检查 3:find 命令限制路径(禁止 / 等系统目录全盘扫描)
-        if (cmdName == "find" && parts.any { it == "/" || it == "/system" || it == "/proc" || it == "/sys" }) {
-            return@withContext "[错误] find 禁止扫描系统目录(/、/system、/proc、/sys)"
+        // C-26: 精确匹配可被 "/system/bin" 绕过,改前缀匹配
+        if (cmdName == "find" && parts.any { arg -> arg == "/" || SYSTEM_DIR_PREFIXES.any { arg.startsWith(it) } }) {
+            return@withContext "[错误] find 禁止扫描系统目录(/、/system、/proc、/sys 等)"
+        }
+
+        // 安全检查 3.5:读文件类命令的路径参数必须解析到沙箱(filesDir)内,
+        // 防止 cat /data/... 或相对路径逃逸越权读取;只读命令不受影响。
+        if (cmdName in SANDBOX_PATH_COMMANDS) {
+            val badArg = parts.drop(1)
+                .filter { it.isNotBlank() && !it.startsWith("-") }
+                .firstOrNull { arg ->
+                    val resolved = if (arg.startsWith("/")) File(arg) else File(workDir, arg)
+                    runCatching { !resolved.canonicalPath.startsWith(workDir.canonicalPath) }.getOrDefault(true)
+                }
+            if (badArg != null) {
+                return@withContext "[错误] 路径 '$badArg' 超出沙箱范围(仅允许应用数据目录内)"
+            }
         }
 
         runCatching {

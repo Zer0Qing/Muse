@@ -8,6 +8,10 @@
     <string name="chat_routing_badge">Routing</string>
     <string name="chat_video_play_cd">Play video</string>
     <string name="chat_generated_video_cd">Generated video</string>
+    <string name="tool_call_progress_cd">Tool call progress %1$d/%2$d</string>
+    <string name="moment_images_selected">%1$d selected (tap to add more)</string>
+    <string name="moment_add_images_hint">Add images (up to %1$d)</string>
+    <string name="rich_input_markdown_placeholder">text</string>
     <string name="chat_context_usage_cd">Context usage %1$s%%, %2$d tokens total</string>
     <string name="chat_context_tokens_only_cd">Context token count %1$d, model has no context window</string>
     <string name="chat_context_no_window_detail">%1$d tokens (model has no context window)</string>

@@ -40,7 +40,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.isSystemInDarkTheme
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import androidx.compose.material.icons.Icons
@@ -90,6 +89,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -311,12 +311,14 @@ internal fun MessageBubble(
 
     // v1.0.74 fix (前端审计 2.5): 仅长按菜单显示时记录位置。
     // 原实现滚动期间每帧 onGloballyPositioned 写 MutableState,气泡(含 MarkdownText)滚动中反复重组。
+    // C-16: actionMenuBounds 初始为 Rect.Zero(非 null),原条件 `actionMenuBounds != null`
+    // 恒为 true → 防护从未生效,每个布局帧都写 state;改为按菜单可见性判断。
     Box(
         modifier = Modifier
             .fillMaxWidth()
             // v1.0.74 fix: 记录气泡窗口位置供长按菜单锚定(仅菜单显示时更新)
             .onGloballyPositioned {
-                if (actionMenuBounds != null) actionMenuBounds = it.boundsInWindow()
+                if (showActionMenu) actionMenuBounds = it.boundsInWindow()
             }
             .then(if (isAnimating) Modifier.animateContentSize() else Modifier),
     ) {
@@ -726,9 +728,11 @@ internal fun MessageBubble(
             // v1.0.54: 空 assistant 消息(content 空 + 无图片/卡片/思考/反思/情绪)不渲染 —
             //   工具轮占位消息 updateAssistant 不更新 toolCalls(恒为 null),无法按工具轮判断;
             //   流式期间保留(ThinkingIndicator 是正常生成反馈),结束后/加载时空消息隐藏。
+            // C-22: 含产物卡(artifactIds)/任务卡(经 taskCardInfo)的消息即使正文为空也不隐藏
             val isToolRoundPlaceholder = !isStreaming &&
                 body.isBlank() &&
                 msg.imageUrls.isEmpty() && msg.imageBase64List.isEmpty() &&
+                msg.artifactIds.isEmpty() &&
                 msg.toolCallInfo == null &&
                 msg.reasoning.isNullOrBlank() &&
                 msg.mood.isNullOrBlank() &&
@@ -1405,16 +1409,8 @@ internal fun MessageBubble(
                                 )
                             }
                             if (isUser) {
-                                // 用户消息保留完整菜单
-                            ActionMenuItem(
-                                icon = TablerIcons.Square,
-                                text = stringResource(R.string.chat_select_messages),
-                                contentDescription = stringResource(R.string.chat_select_messages),
-                                onClick = {
-                                    showActionMenu = false
-                                    onEnterMultiSelect?.invoke()
-                                },
-                            )
+                                // C-14: 用户消息只补用户专属项(编辑/翻译/分享/删除);
+                                // 选择消息/收藏/复制已在公共菜单(上方)渲染,不再重复。
                                 ActionMenuItem(
                                     icon = TablerIcons.Edit,
                                     text = stringResource(R.string.action_edit),
@@ -1430,31 +1426,6 @@ internal fun MessageBubble(
                                         text = stringResource(R.string.chat_translate_action),
                                         contentDescription = stringResource(R.string.chat_translate_action),
                                         onClick = { showLanguageSubmenu = true },
-                                    )
-                                }
-                                if (msg.content.isNotBlank() || msg.reasoning?.isNotBlank() == true) {
-                                    ActionMenuItem(
-                                        icon = if (msg.favorite) Icons.Default.Star
-                                               else Icons.Outlined.StarBorder,
-                                        text = if (msg.favorite) stringResource(R.string.chat_favorite_remove) else stringResource(R.string.chat_favorite_add),
-                                        contentDescription = if (msg.favorite) stringResource(R.string.chat_favorite_remove) else stringResource(R.string.chat_favorite_add),
-                                        onClick = {
-                                            showActionMenu = false
-                                            MuseHaptics.light(hapticFeedback)
-                                            onToggleFavorite()
-                                        },
-                                    )
-                                }
-                                if (msg.content.isNotBlank()) {
-                                    ActionMenuItem(
-                                        icon = TablerIcons.Copy,
-                                        text = stringResource(R.string.action_copy),
-                                        contentDescription = stringResource(R.string.action_copy),
-                                        onClick = {
-                                            showActionMenu = false
-                                            MuseHaptics.light(hapticFeedback)
-                                            onCopyMessage(MoodSkinParser.cleanForExport(msg.content))
-                                        },
                                     )
                                 }
                                 ActionMenuItem(
@@ -1631,7 +1602,10 @@ private fun TelegramActionCard(
     onEdit: () -> Unit,
     onMore: () -> Unit,
 ) {
-    val dark = isSystemInDarkTheme()
+    // C-15: 应用主题为三态(system/light/dark),isSystemInDarkTheme() 只认系统设置,
+    // 与设置页三态不一致(用户在 light 主题下系统为暗色时会得到错误的固定配色)。
+    // 改为按实际生效配色的亮度推断暗色。
+    val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
     // 固定配色(不随主题色)
     val bg = if (dark) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
     val textColor = if (dark) Color(0xFFFFFFFF) else Color(0xFF000000)

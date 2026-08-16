@@ -265,6 +265,16 @@ class McpClient(
      * Phase 10.4: OAuth 启用时,先确保 token 有效(加载/refresh);无 token 或 refresh 失败
      * 转 NEEDS_AUTH 状态(等 UI 调 [startOAuthFlow] 引导用户授权)。
      */
+    /**
+     * C-25: OAuth 回调 URI 日志脱敏 — 只留 scheme://host/path,丢弃 query
+     * (query 含授权 code / state,整条入日志会泄漏授权码)。
+     */
+    private fun sanitizeRedirectUriForLog(uri: String): String =
+        runCatching {
+            val u = java.net.URI(uri)
+            "${u.scheme}://${u.host}${u.rawPath ?: ""}"
+        }.getOrElse { "(unparseable redirect uri)" }
+
     private suspend fun connect() {
         _state.value = McpConnectionState.CONNECTING
         Logger.d(TAG, "[${config.name}] 连接中 transport=${config.transportType} url=${config.url}")
@@ -363,7 +373,8 @@ class McpClient(
         }
         val parsed = McpOAuthFlow.parseRedirectCallback(redirectUri, config.oauthConfig.redirectUri)
         if (parsed == null) {
-            Logger.w(TAG, "[${config.name}] OAuth 回调解析失败: $redirectUri")
+            // C-25: 回调 URI 含 code/state,整条入日志会泄漏授权码 — 只记 scheme://host/path
+            Logger.w(TAG, "[${config.name}] OAuth 回调解析失败: ${sanitizeRedirectUriForLog(redirectUri)}")
             return false
         }
         val (code, state) = parsed

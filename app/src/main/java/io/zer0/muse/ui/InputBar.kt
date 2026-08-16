@@ -289,6 +289,8 @@ internal fun InputBar(
                     else MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
                     label = "toolPillBg",
                 )
+                // C-19: 语义块非组合上下文,资源取值提升到此处
+                val toolProgressCd = stringResource(R.string.tool_call_progress_cd, toolCallCompleted, toolCallTotal)
                 Row(
                     modifier = Modifier
                         .height(MuseIconSizes.controlTouch)
@@ -300,7 +302,7 @@ internal fun InputBar(
                         ) { onShowToolCalls() }
                         .padding(horizontal = MusePaddings.itemGap)
                         .semantics {
-                            contentDescription = "工具调用进度 $toolCallCompleted/$toolCallTotal"
+                            contentDescription = toolProgressCd
                         },
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),

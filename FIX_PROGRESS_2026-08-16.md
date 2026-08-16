@@ -83,7 +83,16 @@
 ### C 级进度
 
 - ✅ C-01(部分): 多工具描述与实现对齐(上一 AI)+ A-02/A-03 实现级修复补全
+- ✅ C-14: 用户消息菜单重复的"选择/复制/收藏"三项删除(公共菜单已含)
+- ✅ C-15: TelegramActionCard 配色改用实际主题亮度(与三态主题一致)
+- ✅ C-16: actionMenuBounds 记录条件改为按菜单可见性(原 Rect.Zero 恒非 null 使防护失效)
 - ✅ C-17: 三岛尺寸按用户反馈定为 40/48/40(与审计建议相悖,用户反馈优先,记录在案)
+- ✅ C-19: InputBar 工具进度 CD / Moment 已选图片文案 / RichInputBar 占位符 走资源(7 语言)
 - ✅ C-20(部分): 头像持久化返回纯路径(去 file:// 前缀);唯一文件名/大小上限未做(留待)
+- ✅ C-22: isToolRoundPlaceholder 补 artifactIds 检查(含产物卡的消息不隐藏)
+- ✅ C-25: MCP OAuth 回调 URI 日志只留 scheme://host/path;OAuthManager 错误响应只记 error 字段
+- ✅ C-26: ShellSandbox find 系统目录前缀匹配拦截 + 读文件命令路径限制在沙箱内
+- ✅ C-27: create_download subdir 过滤 ".." 段(随 B-06 一并落地)
 - ✅ C-34: 版本默认值 162/1.0.62 → 175/1.0.75
-- ⬜ C-02~C-16/C-18/C-19/C-21~C-33/C-35/C-36
+- ✅ C-36(部分): 删除 LaunchStreamRefactor.kt.txt 死文件;通知采集设置开关未做(留待)
+- ⬜ C-02~C-13/C-18/C-20(余)/C-21/C-23/C-24/C-28~C-33/C-35/C-36(余)

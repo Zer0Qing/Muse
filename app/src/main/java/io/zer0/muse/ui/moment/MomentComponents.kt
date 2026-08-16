@@ -46,8 +46,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.zer0.muse.R
 import io.zer0.muse.data.moment.MomentCommentEntity
 import io.zer0.muse.data.moment.MomentEntity
 import io.zer0.muse.data.moment.MomentMessage
@@ -601,12 +603,17 @@ fun PublishDialog(
                         IconButton(onClick = onPickImages) {
                             Icon(
                                 imageVector = Icons.Filled.PhotoLibrary,
-                                contentDescription = "选择图片",
+                                contentDescription = stringResource(R.string.moment_add_images_hint, 9),
                                 tint = MaterialTheme.colorScheme.primary,
                             )
                         }
                         Text(
-                            text = if (pickedImages.isNotEmpty()) "已选 ${pickedImages.size} 张(点击可继续选)" else "添加图片(最多 9 张)",
+                            // C-19: 硬编码中文改资源
+                            text = if (pickedImages.isNotEmpty()) {
+                                stringResource(R.string.moment_images_selected, pickedImages.size)
+                            } else {
+                                stringResource(R.string.moment_add_images_hint, 9)
+                            },
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.outline,
                         )

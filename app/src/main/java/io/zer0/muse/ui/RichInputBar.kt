@@ -155,6 +155,8 @@ internal fun RichInputBar(
     // 链接对话框状态
     var showLinkDialog by rememberSaveable { mutableStateOf(false) }
     val hapticFeedback = LocalHapticFeedback.current
+    // C-19: Markdown 格式占位符走资源(组合上下文取值,供非组合纯函数使用)
+    val markdownPlaceholder = stringResource(R.string.rich_input_markdown_placeholder)
 
     // ── 工具条 + 原 InputBar 垂直堆叠 ──
     // 注:InputBar 自身已含 imePadding/navigationBarsPadding,
@@ -175,7 +177,8 @@ internal fun RichInputBar(
                 FormatToolbarSurface(
                     onFormatClick = { format ->
                         MuseHaptics.light(hapticFeedback)
-                        val newText = applyMarkdownFormat(text, format)
+                        // C-19: 占位符走资源(组合顶层取值,回调内直接使用)
+                        val newText = applyMarkdownFormat(text, format, placeholder = markdownPlaceholder)
                         onTextChanged(newText)
                     },
                 onLinkClick = {
@@ -263,7 +266,7 @@ internal fun RichInputBar(
     if (showLinkDialog) {
         LinkInsertDialog(
             onConfirm = { linkText, url ->
-                val newText = applyMarkdownFormat(text, MarkdownFormat.LINK, linkText, url)
+                val newText = applyMarkdownFormat(text, MarkdownFormat.LINK, linkText, url, placeholder = markdownPlaceholder)
                 onTextChanged(newText)
                 showLinkDialog = false
             },
@@ -455,8 +458,8 @@ private fun applyMarkdownFormat(
     format: MarkdownFormat,
     linkText: String = "",
     url: String = "",
+    placeholder: String = "text",
 ): String {
-    val placeholder = "text"
     return when (format) {
         MarkdownFormat.BOLD -> {
             if (currentText.isNotBlank()) "**$currentText**" else "**$placeholder**"

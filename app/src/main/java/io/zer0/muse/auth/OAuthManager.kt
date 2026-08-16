@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.FormBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -485,7 +487,8 @@ object OAuthManager {
                 httpClient.newCall(request).execute().use { resp ->
                     val body = resp.body?.string().orEmpty()
                     if (!resp.isSuccessful) {
-                        Logger.w(TAG, "refresh_token 失败: HTTP ${resp.code}, body=${body.take(200)}")
+                        // C-25: 响应体原文可能回显敏感参数,只记 HTTP code + 脱敏 error 字段
+                        Logger.w(TAG, "refresh_token 失败: HTTP ${resp.code}${oauthErrorField(body)}")
                         return@use null
                     }
                     io.zer0.common.AppJson.decodeFromString(
@@ -502,6 +505,16 @@ object OAuthManager {
         if (expiresInSeconds <= 0L) return 0L
         return System.currentTimeMillis() + expiresInSeconds * 1000L
     }
+
+    /**
+     * C-25: 从 token 交换错误响应体中提取 error 字段用于日志。
+     * 不记响应体原文 — 原文可能回显 code/redirect_uri 等敏感参数。
+     * 解析失败返回空串(只记 HTTP code)。
+     */
+    private fun oauthErrorField(body: String): String = runCatching {
+        val obj = io.zer0.common.AppJson.parseToJsonElement(body).jsonObject
+        obj["error"]?.jsonPrimitive?.content?.let { ", error=$it" } ?: ""
+    }.getOrDefault("")
 
     // ── 内部工具 ───────────────────────────────────────────────────────
 
@@ -553,7 +566,8 @@ object OAuthManager {
                 httpClient.newCall(request).execute().use { resp ->
                     val body = resp.body?.string().orEmpty()
                     if (!resp.isSuccessful) {
-                        Logger.w(TAG, "token 交换失败: HTTP ${resp.code}, body=${body.take(200)}")
+                        // C-25: 响应体原文可能回显敏感参数,只记 HTTP code + 脱敏 error 字段
+                        Logger.w(TAG, "token 交换失败: HTTP ${resp.code}${oauthErrorField(body)}")
                         return@use null
                     }
                     val token = io.zer0.common.AppJson.decodeFromString(
