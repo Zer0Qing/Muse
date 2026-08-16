@@ -709,4 +709,9 @@
     <string name="settings_screen_entry_chunking">分段策略</string>
     <string name="settings_screen_entry_tool_approval">工具批准模式</string>
     <string name="settings_screen_entry_collab">协作助手</string>
+    <string name="settings_screen_archived_desc">アーカイブした会話の表示と復元</string>
+    <string name="settings_screen_share">共有</string>
+    <string name="settings_share_page_title">共有</string>
+    <string name="settings_search_result_count">%1 件の結果が見つかりました</string>
+    <string name="settings_screen_miniphone_desc">実験機能の初期バージョン</string>
 </resources>

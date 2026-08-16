@@ -709,4 +709,9 @@
     <string name="settings_screen_entry_chunking">分段策略</string>
     <string name="settings_screen_entry_tool_approval">工具批准模式</string>
     <string name="settings_screen_entry_collab">协作助手</string>
+    <string name="settings_screen_archived_desc">보관된 대화 보기 및 복원</string>
+    <string name="settings_screen_share">공유</string>
+    <string name="settings_share_page_title">공유</string>
+    <string name="settings_search_result_count">%1개의 결과를 찾았습니다</string>
+    <string name="settings_screen_miniphone_desc">실험 기능 초기 버전</string>
 </resources>

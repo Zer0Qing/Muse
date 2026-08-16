@@ -276,4 +276,7 @@
     <string name="chat_delete_selected_message">선택한 메시지 %1$d개를 삭제하시겠습니까? 복구할 수 없습니다.</string>
     <string name="settings_agent_night_patrol_title">심야 자율 행동</string>
     <string name="settings_agent_night_patrol_subtitle">허용 시간 외: 조용히 일기/야간 메모 작성, 알림 없음</string>
+    <string name="action_clear">지우기</string>
+    <string name="action_select_text">텍스트 선택</string>
+    <string name="chat_select_text_hint">텍스트를 길게 누르면 선택하여 복사할 수 있습니다</string>
 </resources>

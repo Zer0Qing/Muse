@@ -466,4 +466,8 @@
     <string name="settings_sticker_clear_all_confirm_content">确定删除所有表情包?此操作不可撤销。</string>
     <string name="settings_sticker_cleared_toast">已清空 %1$d 个表情包</string>
     <string name="settings_sticker_import_progress">%1$s… %2$d 个文件</string>
+    <string name="chat_top_menu_cd">Другие действия</string>
+    <string name="chat_select_provider">Выбрать провайдера</string>
+    <string name="chat_update_compress">Сжать контекст</string>
+    <string name="chat_ignore_memory_option">Этот диалог не будет использовать память</string>
 </resources>

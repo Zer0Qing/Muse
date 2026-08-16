@@ -184,4 +184,9 @@
     <string name="speech_next_chunk_cd">下一段</string>
     <string name="speech_previous_chunk_cd">上一段</string>
     <string name="speech_seek_backward_5s_cd">5 minutos</string>
+    <string name="home_miniphone_cd">Mini Phone</string>
+    <string name="browser_viewer_collapse">Recolher</string>
+    <string name="browser_viewer_title">Navegador</string>
+    <string name="browser_viewer_refresh">Atualizar</string>
+    <string name="browser_viewer_close">Fechar o navegador</string>
 </resources>

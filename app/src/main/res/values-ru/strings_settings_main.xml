@@ -451,4 +451,10 @@
     <!-- 前端修复 (i18n-3.x): 公共清空文案(表情包/群聊记忆共用) -->
     <string name="settings_common_clear_all">清空全部</string>
     <string name="settings_common_clear">清空</string>
+    <string name="settings_chat_background_section">Внешний вид</string>
+    <string name="settings_chat_background_title">Фон чата</string>
+    <string name="settings_chat_background_subtitle">Настройте фон чата / Agent / группы</string>
+    <string name="settings_chat_background_choose">Выбрать</string>
+    <string name="settings_chat_background_saved">Фон чата обновлён</string>
+    <string name="settings_chat_background_failed">Не удалось обработать изображение, попробуйте другое</string>
 </resources>

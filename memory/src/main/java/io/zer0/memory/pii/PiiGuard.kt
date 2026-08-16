@@ -222,6 +222,7 @@ object PiiGuard {
 
     /** B-08: mask 生成的占位符形态([LABEL_N])— 还原后仍未消除的即残留,剥离之。 */
     private val RESIDUAL_TOKEN_RE = Regex(
-        """\[(?:API_KEY|INLINE_SECRET|PRIVATE_KEY|ID_CARD|CREDIT_CARD|SSN|EMAIL|PHONE|IPV4|ADDRESS|NAME|ENGLISH_NAME)_\d+\]"""
+        """\[(?:API_KEY|INLINE_SECRET|PRIVATE_KEY|ID_CARD|CREDIT_CARD|SSN|EMAIL|PHONE|""" +
+            """IPV4|ADDRESS|NAME|ENGLISH_NAME)_\d+\]"""
     )
 }

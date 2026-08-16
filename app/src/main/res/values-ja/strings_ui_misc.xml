@@ -184,4 +184,9 @@
     <string name="speech_next_chunk_cd">下段</string>
     <string name="speech_previous_chunk_cd">上一段</string>
     <string name="speech_seek_backward_5s_cd">後退5秒</string>
+    <string name="home_miniphone_cd">ミニフォン</string>
+    <string name="browser_viewer_collapse">折りたたむ</string>
+    <string name="browser_viewer_title">ブラウザ</string>
+    <string name="browser_viewer_refresh">更新</string>
+    <string name="browser_viewer_close">ブラウザを閉じる</string>
 </resources>

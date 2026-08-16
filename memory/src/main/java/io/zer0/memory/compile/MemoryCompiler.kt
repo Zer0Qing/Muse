@@ -121,7 +121,8 @@ class MemoryCompiler(
             if (filtered != current) {
                 // 指纹置 null,保证下次编译重新合并(而非 SKIPPED)
                 sectionDao.updateContent(section.key, filtered, null, Instant.now().toString())
-                Logger.i("MemoryCompiler", "purgeTombstonedFacts: ${section.key} 剔除 ${countRemovedLines(current, filtered)} 行")
+                val removedCount = countRemovedLines(current, filtered)
+                Logger.i("MemoryCompiler", "purgeTombstonedFacts: ${section.key} 剔除 $removedCount 行")
                 removedAny = true
             }
         }
@@ -139,10 +140,18 @@ class MemoryCompiler(
      *  已删内容不会泄漏进 system prompt(双通道匹配见 FactStore.filterTombstonedLines)。 */
     suspend fun readCompiledMemoryMarkdown(locale: String = "zh-CN"): String = withContext(Dispatchers.IO) {
         val tombstones = loadTombstones()
-        val facts = CompiledMemoryState.normalizeSectionBody(filterTombstonedLines(readSection(Section.FACTS), tombstones))
-        val today = CompiledMemoryState.normalizeSectionBody(filterTombstonedLines(readSection(Section.TODAY), tombstones))
-        val week = CompiledMemoryState.normalizeSectionBody(filterTombstonedLines(readSection(Section.WEEK), tombstones))
-        val longterm = CompiledMemoryState.normalizeSectionBody(filterTombstonedLines(readSection(Section.LONGTERM), tombstones))
+        val facts = CompiledMemoryState.normalizeSectionBody(
+            filterTombstonedLines(readSection(Section.FACTS), tombstones),
+        )
+        val today = CompiledMemoryState.normalizeSectionBody(
+            filterTombstonedLines(readSection(Section.TODAY), tombstones),
+        )
+        val week = CompiledMemoryState.normalizeSectionBody(
+            filterTombstonedLines(readSection(Section.WEEK), tombstones),
+        )
+        val longterm = CompiledMemoryState.normalizeSectionBody(
+            filterTombstonedLines(readSection(Section.LONGTERM), tombstones),
+        )
         val md = assembleCompiledMarkdown(facts, today, week, longterm, locale)
         // v6: 同时输出到文件系统,便于调试和备份
         fileWriter?.writeMemoryMd(md, locale)
@@ -242,6 +251,7 @@ class MemoryCompiler(
      * @param logicalDate 要编译的逻辑日(yyyy-MM-dd),一般为昨天
      * @param yesterdayTodayDraft 前一天 Room today 段的最终草稿,可为 null
      */
+    @Suppress("LongParameterList")
     suspend fun compileDaily(
         summaryManager: SessionSummaryManager,
         logicalDate: String,
@@ -270,7 +280,11 @@ class MemoryCompiler(
         val input = when {
             !yesterdayTodayDraft.isNullOrBlank() -> yesterdayTodayDraft.trim()
             else -> {
-                val sessions = summaryManager.getSummariesInRange(start = dayStart, end = dayEnd, mainAssistantId = mainAssistantId)
+                val sessions = summaryManager.getSummariesInRange(
+                    start = dayStart,
+                    end = dayEnd,
+                    mainAssistantId = mainAssistantId,
+                )
                 if (sessions.isEmpty()) {
                     fileWriter.deleteDailyMd(logicalDate)
                     return@withContext Result.COMPILED

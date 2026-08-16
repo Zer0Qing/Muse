@@ -101,4 +101,18 @@
     <string name="memory_timeline_filter_fact">事实</string>
     <string name="memory_timeline_filter_summary">摘要</string>
     <string name="memory_timeline_filter_milestone">里程碑</string>
+    <string name="memory_tab_group_chat">Групповой чат</string>
+    <string name="memory_delete_group_chat_failed">Не удалось удалить память группового чата: %1$s</string>
+    <string name="memory_clear_group_chat_failed">Не удалось очистить память группового чата: %1$s</string>
+    <string name="memory_dedup_button">Объединить повторяющиеся воспоминания</string>
+    <string name="memory_dedup_result">Объединено %1$s повторяющихся воспоминаний</string>
+    <string name="memory_dedup_failed">Не удалось удалить дубликаты памяти</string>
+    <string name="memory_compile_done">Компиляция памяти завершена</string>
+    <string name="memory_compile_failed">Не удалось скомпилировать память. Проверьте настройки модели и повторите попытку</string>
+    <string name="memory_menu_cd">Другие действия</string>
+    <string name="memory_menu_pin">Закрепить</string>
+    <string name="memory_menu_unpin">Открепить</string>
+    <string name="memory_menu_importance">Задать важность</string>
+    <string name="memory_menu_edit">Изменить</string>
+    <string name="memory_menu_delete">Удалить</string>
 </resources>

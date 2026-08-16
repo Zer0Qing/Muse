@@ -709,4 +709,9 @@
     <string name="settings_screen_entry_chunking">分段策略</string>
     <string name="settings_screen_entry_tool_approval">工具批准模式</string>
     <string name="settings_screen_entry_collab">协作助手</string>
+    <string name="settings_screen_archived_desc">Ver e restaurar conversas arquivadas</string>
+    <string name="settings_screen_share">Compartilhar</string>
+    <string name="settings_share_page_title">Compartilhar</string>
+    <string name="settings_search_result_count">%1 resultados encontrados</string>
+    <string name="settings_screen_miniphone_desc">Versão inicial de um recurso experimental</string>
 </resources>

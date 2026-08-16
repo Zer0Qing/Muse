@@ -577,4 +577,27 @@
     <string name="settings_agent_test_failed">测试失败:%1$s</string>
     <string name="settings_agent_daily_summary">每日总结推送</string>
     <string name="settings_agent_daily_summary_subtitle">每天 19:30 推送今日对话小结(开关关闭后自动跳过,重新打开即恢复)</string>
+    <string name="settings_agent_current_model_hint">グローバルデフォルト(メインチャット / Agent 共通)</string>
+    <string name="settings_agent_keep_alive_title">バックグラウンドで実行</string>
+    <string name="settings_agent_keep_alive_subtitle">システムにプロセスを終了されてもプロアクティブメッセージを逃さないようにします</string>
+    <string name="keep_alive_dialog_title">%1$s · バックグラウンドで実行</string>
+    <string name="keep_alive_dialog_desc">プロアクティブメッセージはバックグラウンドプロセスに依存します。中国製 OS は既定でバックグラウンドアプリを終了するため、以下の手順で許可すれば、最近のタスクから消してもメッセージを受け取り続けられます：</string>
+    <string name="keep_alive_dialog_dismiss">わかりました</string>
+    <string name="keep_alive_dialog_open">設定へ</string>
+    <string name="settings_import_chatgpt_desc">ChatGPT 公式エクスポート(メール内の zip または解凍した conversations.json)</string>
+    <string name="settings_import_chatgpt_step1">1. ChatGPT を開く → 設定 → プロフィール → データコントロール</string>
+    <string name="settings_import_chatgpt_step2">2.「データをエクスポート」をタップすると、OpenAI が zip をメールで送信します</string>
+    <string name="settings_import_chatgpt_step3">3. zip を端末にダウンロードするか、解凍して conversations.json を選択</string>
+    <string name="settings_import_chatgpt_step4">4. Muse でそのファイルを選択すると、会話が自動的にインポートされます</string>
+    <string name="settings_security_lock_section">アプリロック</string>
+    <string name="settings_security_lock_removed_title">アプリロックは終了しました</string>
+    <string name="settings_security_lock_removed_desc">安定性のため、アプリの PIN ロックと生体認証によるロック解除は削除されました。必要であればフィードバックでお知らせください。再導入を検討します。</string>
+    <string name="settings_provider_media_gen_section">メディア生成モデル</string>
+    <string name="settings_asr_entry_title">音声認識エンジン</string>
+    <string name="settings_asr_entry_subtitle">音声認識エンジンを選択(Paraformer / Whisper など)</string>
+    <string name="settings_miniphone_title">ミニフォン</string>
+    <string name="settings_miniphone_enable_title">ミニフォンを有効にする</string>
+    <string name="settings_miniphone_enable_subtitle">オンにするとホーム右上にミニフォンの入口が表示されます</string>
+    <string name="settings_miniphone_desc_title">ミニフォンとは</string>
+    <string name="settings_miniphone_desc_body">没入感のあるミニデスクトップ:モーメント、AI アルバム、メモ、天気、モデル日記。オフにするとホームは元のレイアウトに戻ります。</string>
 </resources>

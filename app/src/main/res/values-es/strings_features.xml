@@ -606,4 +606,17 @@
     <string name="quick_notes_reminder_set">设置提醒</string>
     <string name="quick_notes_share_title">导出快速记录</string>
     <string name="quick_notes_toggle_markdown">Markdown 模式</string>
+    <string name="groupchat_search">Buscar</string>
+    <string name="groupchat_edit_provider">Editar proveedor del asistente</string>
+    <string name="groupchat_search_hint">Buscar mensajes del grupo</string>
+    <string name="groupchat_search_empty">No se encontraron mensajes</string>
+    <string name="groupchat_edit_provider_title">Seleccionar proveedor del miembro</string>
+    <string name="groupchat_edit_provider_loading">Configurando... este miembro usa el modelo predeterminado</string>
+    <string name="groupchat_select">Seleccionar</string>
+    <string name="groupchat_select_all">Seleccionar todo</string>
+    <string name="groupchat_delete_selected">Eliminar</string>
+    <string name="groupchat_delete_selected_title">¿Eliminar %1$d mensajes?</string>
+    <string name="groupchat_delete_selected_confirm">Los mensajes seleccionados se eliminarán. Esta acción no se puede deshacer.</string>
+    <string name="groupchat_selected_count">%1$d seleccionados</string>
+    <string name="groupchat_streaming_title">Escribiendo...</string>
 </resources>

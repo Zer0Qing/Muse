@@ -577,4 +577,27 @@
     <string name="settings_agent_test_failed">测试失败:%1$s</string>
     <string name="settings_agent_daily_summary">每日总结推送</string>
     <string name="settings_agent_daily_summary_subtitle">每天 19:30 推送今日对话小结(开关关闭后自动跳过,重新打开即恢复)</string>
+    <string name="settings_agent_current_model_hint">Глобально по умолчанию (общий для основного чата / Agent)</string>
+    <string name="settings_agent_keep_alive_title">Фоновая работа</string>
+    <string name="settings_agent_keep_alive_subtitle">Предотвращает потерю активных сообщений при очистке процесса системой</string>
+    <string name="keep_alive_dialog_title">%1$s · Фоновая работа</string>
+    <string name="keep_alive_dialog_desc">Активные сообщения зависят от фонового процесса. Китайские прошивки по умолчанию очищают фоновые приложения; после добавления в белый список по шагам ниже вы продолжите получать сообщения, даже закрыв приложение из списка недавних:</string>
+    <string name="keep_alive_dialog_dismiss">Понятно</string>
+    <string name="keep_alive_dialog_open">Перейти в настройки</string>
+    <string name="settings_import_chatgpt_desc">Официальный экспорт ChatGPT (zip из письма или извлечённый conversations.json)</string>
+    <string name="settings_import_chatgpt_step1">1. Откройте ChatGPT → Настройки → Профиль → Управление данными</string>
+    <string name="settings_import_chatgpt_step2">2. Нажмите «Экспорт данных» — OpenAI пришлёт zip на почту</string>
+    <string name="settings_import_chatgpt_step3">3. Скачайте zip на телефон или распакуйте и выберите conversations.json</string>
+    <string name="settings_import_chatgpt_step4">4. Выберите файл в Muse — диалоги импортируются автоматически</string>
+    <string name="settings_security_lock_section">Блокировка приложения</string>
+    <string name="settings_security_lock_removed_title">Блокировка приложения отключена</string>
+    <string name="settings_security_lock_removed_desc">Из соображений стабильности PIN-код приложения и биометрическая разблокировка удалены. Если они нужны, сообщите нам через обратную связь — рассмотрим возврат.</string>
+    <string name="settings_provider_media_gen_section">Модели генерации медиа</string>
+    <string name="settings_asr_entry_title">Движок распознавания речи</string>
+    <string name="settings_asr_entry_subtitle">Выберите движок распознавания речи (напр., Paraformer / Whisper)</string>
+    <string name="settings_miniphone_title">Мини-телефон</string>
+    <string name="settings_miniphone_enable_title">Включить мини-телефон</string>
+    <string name="settings_miniphone_enable_subtitle">При включении в правом верхнем углу главного экрана появляется значок мини-телефона</string>
+    <string name="settings_miniphone_desc_title">Что такое мини-телефон</string>
+    <string name="settings_miniphone_desc_body">Иммерсивный мини-рабочий стол: моменты, ИИ-альбом, заметки, погода и дневник модели. При отключении главный экран возвращается к прежнему виду.</string>
 </resources>

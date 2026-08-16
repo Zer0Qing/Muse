@@ -119,4 +119,7 @@
     <string name="mcp_tool_no_description">(설명 없음)</string>
     <string name="mcp_tool_call_timeout">MCP 도구 호출 시간이 초과되었습니다: %1$s</string>
     <string name="mcp_tool_call_failed">MCP 도구 호출 실패: %1$s</string>
+    <string name="import_error_parse_failed">JSON 분석에 실패했습니다. 파일이 손상되었을 수 있습니다</string>
+    <string name="import_error_chatgpt_parse_failed">ChatGPT 내보내기를 분석하지 못했습니다: %1$s</string>
+    <string name="import_error_file_too_large">파일이 너무 큽니다(%1$d MB). ZIP을 압축 해제한 후 더 작은 conversations.json을 별도로 가져오거나 내보낸 데이터를 정리한 후 다시 시도하세요</string>
 </resources>

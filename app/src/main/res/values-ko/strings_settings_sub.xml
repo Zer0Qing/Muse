@@ -577,4 +577,27 @@
     <string name="settings_agent_test_failed">测试失败:%1$s</string>
     <string name="settings_agent_daily_summary">每日总结推送</string>
     <string name="settings_agent_daily_summary_subtitle">每天 19:30 推送今日对话小结(开关关闭后自动跳过,重新打开即恢复)</string>
+    <string name="settings_agent_current_model_hint">전역 기본값(메인 채팅 / Agent 공용)</string>
+    <string name="settings_agent_keep_alive_title">백그라운드 실행 유지</string>
+    <string name="settings_agent_keep_alive_subtitle">시스템이 프로세스를 정리해도 적극 메시지를 놓치지 않도록 합니다</string>
+    <string name="keep_alive_dialog_title">%1$s · 백그라운드 실행 유지</string>
+    <string name="keep_alive_dialog_desc">적극 메시지는 백그라운드 프로세스에 의존합니다. 중국 OS는 기본적으로 백그라운드 앱을 정리하므로, 아래 단계대로 허용하면 최근 작업에서 밀어내도 계속 메시지를 받을 수 있습니다:</string>
+    <string name="keep_alive_dialog_dismiss">알겠습니다</string>
+    <string name="keep_alive_dialog_open">설정으로</string>
+    <string name="settings_import_chatgpt_desc">ChatGPT 공식 내보내기(이메일의 zip 또는 압축 해제한 conversations.json)</string>
+    <string name="settings_import_chatgpt_step1">1. ChatGPT 열기 → 설정 → 프로필 → 데이터 제어</string>
+    <string name="settings_import_chatgpt_step2">2. \'데이터 내보내기\'를 누르면 OpenAI가 zip을 이메일로 보냅니다</string>
+    <string name="settings_import_chatgpt_step3">3. zip을 휴대폰에 다운로드하거나 압축을 풀고 conversations.json을 선택</string>
+    <string name="settings_import_chatgpt_step4">4. Muse에서 해당 파일을 선택하면 대화가 자동으로 가져와집니다</string>
+    <string name="settings_security_lock_section">앱 잠금</string>
+    <string name="settings_security_lock_removed_title">앱 잠금이 제거되었습니다</string>
+    <string name="settings_security_lock_removed_desc">안정성을 위해 앱 PIN 잠금과 생체 인식 잠금 해제가 제거되었습니다. 필요하시면 피드백으로 알려주세요. 재도입을 검토하겠습니다.</string>
+    <string name="settings_provider_media_gen_section">미디어 생성 모델</string>
+    <string name="settings_asr_entry_title">음성 인식 엔진</string>
+    <string name="settings_asr_entry_subtitle">음성-텍스트 엔진 선택(예: Paraformer / Whisper)</string>
+    <string name="settings_miniphone_title">미니폰</string>
+    <string name="settings_miniphone_enable_title">미니폰 사용</string>
+    <string name="settings_miniphone_enable_subtitle">켜면 홈 화면 오른쪽 위에 미니폰 진입점이 표시됩니다</string>
+    <string name="settings_miniphone_desc_title">미니폰이란?</string>
+    <string name="settings_miniphone_desc_body">몰입형 미니 데스크톱: 모먼트, AI 앨범, 메모, 날씨, 모델 일기. 끄면 홈 화면이 원래 레이아웃으로 돌아갑니다.</string>
 </resources>

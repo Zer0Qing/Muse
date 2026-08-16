@@ -451,4 +451,10 @@
     <!-- 前端修复 (i18n-3.x): 公共清空文案(表情包/群聊记忆共用) -->
     <string name="settings_common_clear_all">清空全部</string>
     <string name="settings_common_clear">清空</string>
+    <string name="settings_chat_background_section">모양</string>
+    <string name="settings_chat_background_title">채팅 배경</string>
+    <string name="settings_chat_background_subtitle">채팅 / Agent / 그룹 배경 사용자 지정</string>
+    <string name="settings_chat_background_choose">선택</string>
+    <string name="settings_chat_background_saved">채팅 배경이 업데이트되었습니다</string>
+    <string name="settings_chat_background_failed">이미지 처리에 실패했습니다. 다른 이미지로 시도하세요</string>
 </resources>

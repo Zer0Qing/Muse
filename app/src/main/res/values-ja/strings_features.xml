@@ -606,4 +606,17 @@
     <string name="quick_notes_reminder_set">設置提醒</string>
     <string name="quick_notes_share_title">导出快速记录</string>
     <string name="quick_notes_toggle_markdown">マークダウンモード</string>
+    <string name="groupchat_search">検索</string>
+    <string name="groupchat_edit_provider">アシスタントのプロバイダーを編集</string>
+    <string name="groupchat_search_hint">グループチャットのメッセージを検索</string>
+    <string name="groupchat_search_empty">関連メッセージが見つかりません</string>
+    <string name="groupchat_edit_provider_title">メンバーのプロバイダーを選択</string>
+    <string name="groupchat_edit_provider_loading">設定中...このメンバーはデフォルトモデルを使用します</string>
+    <string name="groupchat_select">選択</string>
+    <string name="groupchat_select_all">すべて選択</string>
+    <string name="groupchat_delete_selected">削除</string>
+    <string name="groupchat_delete_selected_title">%1$d 件のメッセージを削除しますか？</string>
+    <string name="groupchat_delete_selected_confirm">選択したメッセージが削除されます。この操作は取り消せません。</string>
+    <string name="groupchat_selected_count">%1$d 件選択中</string>
+    <string name="groupchat_streaming_title">入力中...</string>
 </resources>

@@ -450,7 +450,15 @@ class  MemoryTicker(
                     if (yesterday != null) {
                         val yesterdayDraft = compiler.readSection(MemoryCompiler.Section.TODAY)
                         // B-09: 兜底路径同样限定主助手,子助手摘要不得进 daily → week → longterm 链
-                        compiler.compileDaily(summaryManager, yesterday, yesterdayDraft, model, locale, timeZone, mainAssistantId = MAIN_ASSISTANT_ID)
+                        compiler.compileDaily(
+                            summaryManager,
+                            yesterday,
+                            yesterdayDraft,
+                            model,
+                            locale,
+                            timeZone,
+                            mainAssistantId = MAIN_ASSISTANT_ID,
+                        )
                         completed = completed + ("compileDaily" to Instant.now().toString())
                         writeDailyState(context, completed, null)
                         markSuccess("compileDaily")

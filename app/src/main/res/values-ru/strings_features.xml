@@ -606,4 +606,17 @@
     <string name="quick_notes_reminder_set">设置提醒</string>
     <string name="quick_notes_share_title">导出快速记录</string>
     <string name="quick_notes_toggle_markdown">Уценка 模式</string>
+    <string name="groupchat_search">Поиск</string>
+    <string name="groupchat_edit_provider">Изменить провайдера ассистента</string>
+    <string name="groupchat_search_hint">Поиск сообщений группового чата</string>
+    <string name="groupchat_search_empty">Сообщения не найдены</string>
+    <string name="groupchat_edit_provider_title">Выбрать провайдера участника</string>
+    <string name="groupchat_edit_provider_loading">Настройка... этот участник использует модель по умолчанию</string>
+    <string name="groupchat_select">Выбрать</string>
+    <string name="groupchat_select_all">Выбрать всё</string>
+    <string name="groupchat_delete_selected">Удалить</string>
+    <string name="groupchat_delete_selected_title">Удалить %1$d сообщений?</string>
+    <string name="groupchat_delete_selected_confirm">Выбранные сообщения будут удалены. Это действие нельзя отменить.</string>
+    <string name="groupchat_selected_count">Выбрано: %1$d</string>
+    <string name="groupchat_streaming_title">Печатает...</string>
 </resources>

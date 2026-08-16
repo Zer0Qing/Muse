@@ -276,4 +276,7 @@
     <string name="chat_delete_selected_message">Вы уверены, что хотите удалить %1$d выбранных сообщений? Это действие нельзя отменить.</string>
     <string name="settings_agent_night_patrol_title">Ночная автономность</string>
     <string name="settings_agent_night_patrol_subtitle">Вне разрешённого времени: тихо писать дневник/ночные заметки, без уведомлений</string>
+    <string name="action_clear">Очистить</string>
+    <string name="action_select_text">Выбрать текст</string>
+    <string name="chat_select_text_hint">Долгое нажатие на текст — выбор и копирование</string>
 </resources>

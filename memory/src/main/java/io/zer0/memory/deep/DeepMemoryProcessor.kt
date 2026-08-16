@@ -157,12 +157,7 @@ class DeepMemoryProcessor(
         config: MemoryConfig = MemoryConfig(),
     ): Int {
         // 连续 daily 失败达上限,标记为已处理不再重试(避免反复浪费 LLM 调用)
-        if ((failureCounts[summary.sessionId] ?: 0) >= MAX_DAILY_FAILURES) {
-            Logger.w("DeepMemoryProcessor", "session=${summary.sessionId.take(8)}… 连续 daily 失败 ${MAX_DAILY_FAILURES} 次,标记为已处理跳过")
-            summaryManager.markProcessed(summary.sessionId)
-            failureCounts.remove(summary.sessionId)
-            return 0
-        }
+        if (maybeSkipExhaustedSession(summary, summaryManager)) return 0
 
         val summaryText = summary.summary
         val prevSnapshot = summary.snapshot
@@ -181,18 +176,13 @@ class DeepMemoryProcessor(
         val isZh = locale.startsWith("zh")
         val hasPrevious = prevSnapshot.isNotBlank()
         val systemPrompt = FactExtractionPrompt.buildSystemPrompt(locale, hasPrevious)
-
-        val timeContextLabel = if (isZh) "## 时间上下文" else "## Time Context"
-        val timeContextText = renderTimeContext(summary, isZh)
-
-        val userContent = if (hasPrevious) {
-            val prevLabel = if (isZh) "## 上次快照" else "## Previous Snapshot"
-            val curLabel = if (isZh) "## 当前摘要" else "## Current Summary"
-            "$timeContextLabel\n\n$timeContextText\n\n$prevLabel\n\n$effectiveSnapshot\n\n$curLabel\n\n$effectiveSummary"
-        } else {
-            val curLabel = if (isZh) "## 摘要内容" else "## Summary Content"
-            "$timeContextLabel\n\n$timeContextText\n\n$curLabel\n\n$effectiveSummary"
-        }
+        val userContent = buildExtractionUserContent(
+            isZh = isZh,
+            hasPrevious = hasPrevious,
+            timeContextText = renderTimeContext(summary, isZh),
+            effectiveSnapshot = effectiveSnapshot,
+            effectiveSummary = effectiveSummary,
+        )
 
         // 调 LLM(带重试)
         var lastError: Exception? = null
@@ -229,7 +219,8 @@ class DeepMemoryProcessor(
                 }
                 if (filteredFacts.isEmpty()) {
                     // 抽取结果全部命中墓碑:视为无可写事实,标记已处理避免每轮重抽
-                    Logger.d("DeepMemoryProcessor", "fact extraction 全部命中墓碑(session=${summary.sessionId.take(8)}…),跳过写入")
+                    val tombstoneSkipMsg = "fact extraction 全部命中墓碑(session=${summary.sessionId.take(8)}…),跳过写入"
+                    Logger.d("DeepMemoryProcessor", tombstoneSkipMsg)
                     failureCounts.remove(summary.sessionId)
                     summaryManager.markProcessed(summary.sessionId)
                     return 0
@@ -270,6 +261,39 @@ class DeepMemoryProcessor(
             lastError,
         )
         throw lastError ?: RuntimeException("fact extraction failed after $MAX_RETRIES retries")
+    }
+
+    /** 构建事实抽取 LLM 输入(按语言/是否有上次快照)。 */
+    private fun buildExtractionUserContent(
+        isZh: Boolean,
+        hasPrevious: Boolean,
+        timeContextText: String,
+        effectiveSnapshot: String,
+        effectiveSummary: String,
+    ): String {
+        val timeContextLabel = if (isZh) "## 时间上下文" else "## Time Context"
+        return if (hasPrevious) {
+            val prevLabel = if (isZh) "## 上次快照" else "## Previous Snapshot"
+            val curLabel = if (isZh) "## 当前摘要" else "## Current Summary"
+            listOf(timeContextLabel, timeContextText, prevLabel, effectiveSnapshot, curLabel, effectiveSummary)
+                .joinToString("\n\n")
+        } else {
+            val curLabel = if (isZh) "## 摘要内容" else "## Summary Content"
+            "$timeContextLabel\n\n$timeContextText\n\n$curLabel\n\n$effectiveSummary"
+        }
+    }
+
+    /** 连续失败达上限的 session 标记已处理跳过,避免反复浪费 LLM 调用。 */
+    private suspend fun maybeSkipExhaustedSession(
+        summary: SessionSummaryManager.SummaryData,
+        summaryManager: SessionSummaryManager,
+    ): Boolean {
+        if ((failureCounts[summary.sessionId] ?: 0) < MAX_DAILY_FAILURES) return false
+        val skipMsg = "session=${summary.sessionId.take(8)}… 连续 daily 失败 ${MAX_DAILY_FAILURES} 次,标记为已处理跳过"
+        Logger.w("DeepMemoryProcessor", skipMsg)
+        summaryManager.markProcessed(summary.sessionId)
+        failureCounts.remove(summary.sessionId)
+        return true
     }
 
     /** 构建 time context 文本(供 LLM 参考)。 */

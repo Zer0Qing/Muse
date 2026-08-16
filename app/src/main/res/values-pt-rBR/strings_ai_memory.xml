@@ -101,4 +101,18 @@
     <string name="memory_timeline_filter_fact">事实</string>
     <string name="memory_timeline_filter_summary">摘要</string>
     <string name="memory_timeline_filter_milestone">里程碑</string>
+    <string name="memory_tab_group_chat">Chat em grupo</string>
+    <string name="memory_delete_group_chat_failed">Falha ao excluir a memória do grupo: %1$s</string>
+    <string name="memory_clear_group_chat_failed">Falha ao limpar a memória do grupo: %1$s</string>
+    <string name="memory_dedup_button">Mesclar memórias duplicadas</string>
+    <string name="memory_dedup_result">%1$s memórias duplicadas mescladas</string>
+    <string name="memory_dedup_failed">Falha ao deduplicar memórias</string>
+    <string name="memory_compile_done">Compilação de memória concluída</string>
+    <string name="memory_compile_failed">Falha na compilação de memória. Verifique a configuração do modelo e tente novamente</string>
+    <string name="memory_menu_cd">Mais ações</string>
+    <string name="memory_menu_pin">Fixar</string>
+    <string name="memory_menu_unpin">Desafixar</string>
+    <string name="memory_menu_importance">Definir importância</string>
+    <string name="memory_menu_edit">Editar</string>
+    <string name="memory_menu_delete">Excluir</string>
 </resources>

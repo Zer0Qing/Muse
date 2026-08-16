@@ -276,4 +276,7 @@
     <string name="chat_delete_selected_message">¿Seguro que quieres eliminar %1$d mensajes seleccionados? Esta acción no se puede deshacer.</string>
     <string name="settings_agent_night_patrol_title">Autonomía nocturna</string>
     <string name="settings_agent_night_patrol_subtitle">Fuera del horario permitido: escribir diario/notas nocturnas en silencio, sin notificaciones</string>
+    <string name="action_clear">Borrar</string>
+    <string name="action_select_text">Seleccionar texto</string>
+    <string name="chat_select_text_hint">Mantén pulsado el texto para seleccionarlo y copiarlo</string>
 </resources>

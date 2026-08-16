@@ -577,4 +577,27 @@
     <string name="settings_agent_test_failed">测试失败:%1$s</string>
     <string name="settings_agent_daily_summary">每日总结推送</string>
     <string name="settings_agent_daily_summary_subtitle">每天 19:30 推送今日对话小结(开关关闭后自动跳过,重新打开即恢复)</string>
+    <string name="settings_agent_current_model_hint">Predeterminado global (compartido por el chat principal / Agent)</string>
+    <string name="settings_agent_keep_alive_title">Mantener en segundo plano</string>
+    <string name="settings_agent_keep_alive_subtitle">Evita perder mensajes proactivos si el sistema cierra el proceso</string>
+    <string name="keep_alive_dialog_title">%1$s · Mantener en segundo plano</string>
+    <string name="keep_alive_dialog_desc">Los mensajes proactivos dependen de un proceso en segundo plano. Los sistemas chinos cierran las apps en segundo plano por defecto; tras permitirla según los pasos siguientes, seguirás recibiendo mensajes aunque deslices la app:</string>
+    <string name="keep_alive_dialog_dismiss">Entendido</string>
+    <string name="keep_alive_dialog_open">Ir a ajustes</string>
+    <string name="settings_import_chatgpt_desc">Exportación oficial de ChatGPT (el zip del correo o el conversations.json extraído)</string>
+    <string name="settings_import_chatgpt_step1">1. Abre ChatGPT → Ajustes → Perfil → Controles de datos</string>
+    <string name="settings_import_chatgpt_step2">2. Toca "Exportar datos"; OpenAI te envía el zip por correo</string>
+    <string name="settings_import_chatgpt_step3">3. Descarga el zip al teléfono, o extráelo y elige conversations.json</string>
+    <string name="settings_import_chatgpt_step4">4. Selecciona el archivo en Muse y las conversaciones se importarán automáticamente</string>
+    <string name="settings_security_lock_section">Bloqueo de la app</string>
+    <string name="settings_security_lock_removed_title">Bloqueo de la app retirado</string>
+    <string name="settings_security_lock_removed_desc">Por razones de estabilidad, el PIN de la app y el desbloqueo biométrico se han eliminado. Si los necesitas, dínoslo a través de los comentarios y consideraremos reintroducirlos.</string>
+    <string name="settings_provider_media_gen_section">Modelos de generación de medios</string>
+    <string name="settings_asr_entry_title">Motor de reconocimiento de voz</string>
+    <string name="settings_asr_entry_subtitle">Selecciona un motor de voz a texto (p. ej. Paraformer / Whisper)</string>
+    <string name="settings_miniphone_title">Mini Phone</string>
+    <string name="settings_miniphone_enable_title">Activar Mini Phone</string>
+    <string name="settings_miniphone_enable_subtitle">Al activarlo, aparece una entrada de Mini Phone en la esquina superior derecha de la pantalla de inicio</string>
+    <string name="settings_miniphone_desc_title">Qué es Mini Phone</string>
+    <string name="settings_miniphone_desc_body">Un escritorio inmersivo en miniatura: Momentos, álbum de IA, notas, clima y diario del modelo. Al desactivarlo, la pantalla de inicio vuelve al diseño original.</string>
 </resources>

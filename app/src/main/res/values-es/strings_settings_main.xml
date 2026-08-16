@@ -451,4 +451,10 @@
     <!-- 前端修复 (i18n-3.x): 公共清空文案(表情包/群聊记忆共用) -->
     <string name="settings_common_clear_all">清空全部</string>
     <string name="settings_common_clear">清空</string>
+    <string name="settings_chat_background_section">Apariencia</string>
+    <string name="settings_chat_background_title">Fondo de chat</string>
+    <string name="settings_chat_background_subtitle">Personaliza el fondo del chat / Agent / grupo</string>
+    <string name="settings_chat_background_choose">Elegir</string>
+    <string name="settings_chat_background_saved">Fondo de chat actualizado</string>
+    <string name="settings_chat_background_failed">Error al procesar la imagen; prueba con otra</string>
 </resources>

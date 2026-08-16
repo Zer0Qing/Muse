@@ -606,4 +606,17 @@
     <string name="quick_notes_reminder_set">设置提醒</string>
     <string name="quick_notes_share_title">导快速记录</string>
     <string name="quick_notes_toggle_markdown">마크다운(Markdown)</string>
+    <string name="groupchat_search">검색</string>
+    <string name="groupchat_edit_provider">어시스턴트 공급자 편집</string>
+    <string name="groupchat_search_hint">그룹 채팅 메시지 검색</string>
+    <string name="groupchat_search_empty">관련 메시지를 찾지 못했습니다</string>
+    <string name="groupchat_edit_provider_title">구성원 공급자 선택</string>
+    <string name="groupchat_edit_provider_loading">구성 중... 이 구성원은 기본 모델을 사용합니다</string>
+    <string name="groupchat_select">선택</string>
+    <string name="groupchat_select_all">전체 선택</string>
+    <string name="groupchat_delete_selected">삭제</string>
+    <string name="groupchat_delete_selected_title">%1$d개의 메시지를 삭제할까요?</string>
+    <string name="groupchat_delete_selected_confirm">선택한 메시지가 삭제됩니다. 이 작업은 취소할 수 없습니다.</string>
+    <string name="groupchat_selected_count">%1$d개 선택됨</string>
+    <string name="groupchat_streaming_title">입력 중...</string>
 </resources>

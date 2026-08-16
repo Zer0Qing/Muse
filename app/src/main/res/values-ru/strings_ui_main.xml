@@ -705,4 +705,9 @@
     <string name="settings_screen_entry_chunking">分段策略</string>
     <string name="settings_screen_entry_tool_approval">工具批准模式</string>
     <string name="settings_screen_entry_collab">协作助手</string>
+    <string name="settings_screen_archived_desc">Просмотр и восстановление архивных диалогов</string>
+    <string name="settings_screen_share">Поделиться</string>
+    <string name="settings_share_page_title">Поделиться</string>
+    <string name="settings_search_result_count">Найдено результатов: %1</string>
+    <string name="settings_screen_miniphone_desc">Ранняя версия экспериментальной функции</string>
 </resources>

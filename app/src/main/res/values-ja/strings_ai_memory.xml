@@ -101,4 +101,18 @@
     <string name="memory_timeline_filter_fact">事实</string>
     <string name="memory_timeline_filter_summary">摘要</string>
     <string name="memory_timeline_filter_milestone">里程碑</string>
+    <string name="memory_tab_group_chat">グループチャット</string>
+    <string name="memory_delete_group_chat_failed">グループチャットの記憶を削除できませんでした: %1$s</string>
+    <string name="memory_clear_group_chat_failed">グループチャットの記憶を消去できませんでした: %1$s</string>
+    <string name="memory_dedup_button">重複した記憶を統合</string>
+    <string name="memory_dedup_result">重複した記憶を %1$s 件統合しました</string>
+    <string name="memory_dedup_failed">記憶の重複除去に失敗しました</string>
+    <string name="memory_compile_done">記憶の編纂が完了しました</string>
+    <string name="memory_compile_failed">記憶の編纂に失敗しました。モデル設定を確認して再試行してください</string>
+    <string name="memory_menu_cd">その他の操作</string>
+    <string name="memory_menu_pin">固定</string>
+    <string name="memory_menu_unpin">固定を解除</string>
+    <string name="memory_menu_importance">重要度を設定</string>
+    <string name="memory_menu_edit">編集</string>
+    <string name="memory_menu_delete">削除</string>
 </resources>

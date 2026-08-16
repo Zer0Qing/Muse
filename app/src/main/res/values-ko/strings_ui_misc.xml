@@ -184,4 +184,9 @@
     <string name="speech_next_chunk_cd">下一段</string>
     <string name="speech_previous_chunk_cd">상일전</string>
     <string name="speech_seek_backward_5s_cd">后退 5 秒</string>
+    <string name="home_miniphone_cd">미니폰</string>
+    <string name="browser_viewer_collapse">접기</string>
+    <string name="browser_viewer_title">브라우저</string>
+    <string name="browser_viewer_refresh">새로고침</string>
+    <string name="browser_viewer_close">브라우저 닫기</string>
 </resources>

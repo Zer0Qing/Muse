@@ -119,4 +119,7 @@
     <string name="mcp_tool_no_description">(説明なし)</string>
     <string name="mcp_tool_call_timeout">MCP ツールの呼び出しがタイムアウトしました: %1$s</string>
     <string name="mcp_tool_call_failed">MCP ツールの呼び出しが失敗しました: %1$s</string>
+    <string name="import_error_parse_failed">JSON の解析に失敗しました。ファイルが破損している可能性があります</string>
+    <string name="import_error_chatgpt_parse_failed">ChatGPT のエクスポートを解析できませんでした: %1$s</string>
+    <string name="import_error_file_too_large">ファイルが大きすぎます(%1$d MB)。ZIP を解凍して小さい conversations.json を個別にインポートするか、エクスポートデータを整理して再試行してください</string>
 </resources>

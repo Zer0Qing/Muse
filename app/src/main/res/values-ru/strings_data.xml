@@ -119,4 +119,7 @@
     <string name="mcp_tool_no_description">(без описания)</string>
     <string name="mcp_tool_call_timeout">Тайм-аут вызова инструмента MCP: %1$s</string>
     <string name="mcp_tool_call_failed">Не удалось вызвать инструмент MCP: %1$s</string>
+    <string name="import_error_parse_failed">Не удалось разобрать JSON; файл может быть повреждён</string>
+    <string name="import_error_chatgpt_parse_failed">Не удалось разобрать экспорт ChatGPT: %1$s</string>
+    <string name="import_error_file_too_large">Файл слишком большой (%1$d МБ). Распакуйте ZIP и импортируйте меньший conversations.json отдельно, либо очистите экспортированные данные и повторите</string>
 </resources>
