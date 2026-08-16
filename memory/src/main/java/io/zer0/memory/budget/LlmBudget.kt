@@ -99,7 +99,9 @@ object LlmBudget {
 
         fun flush() {
             val heading = currentHeading ?: return
-            bodies.add(Segment(heading.trim(), pending.toString().trimEnd('\n')))
+            // B-20: 用 trim('\n') 而非 trimEnd — 标题后的空行分隔符会以"前导 \n"
+            // 进入正文,导致 body 带多余换行、render 时出现三连换行。
+            bodies.add(Segment(heading.trim(), pending.toString().trim('\n')))
             pending.setLength(0)
         }
 

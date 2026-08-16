@@ -107,7 +107,7 @@ class ScheduledTaskRunnerScheduleTest {
     // 领取成功与否由 ScheduledTaskDao.claimTask 的单条原子 UPDATE 影响行数决定:
     //   1 = 本执行者领取成功(WHERE 条件的 next_run_at 仍等于快照);
     //   0 = 已被其他执行者抢先领取(轮询 / Worker / 手动 / 链式并发时的败者)。
-    // 此处单测 claimTaskSucceeded 这一纯判定函数,RSL 覆盖"败者不重复执行"边界的核心逻辑。
+    // 此处单测 claimTaskSucceeded 这一纯判定函数,覆盖"败者不重复执行"边界的核心逻辑。
 
     @Test
     fun `claim succeeds when DAO returns affected row`() {

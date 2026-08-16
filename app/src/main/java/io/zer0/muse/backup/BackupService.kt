@@ -165,10 +165,9 @@ class BackupService(
                 val rest = generateSequence { reader.readLine() }.takeWhile { it != null }.map { it!! }
                 applyNdJsonStreaming(sequenceOf(firstLine) + rest)
             } else {
-                val text = buildString {
-                    appendLine(firstLine)
-                    generateSequence { reader.readLine() }.forEach { appendLine(it) }
-                }
+                // B-25: 单 JSON 备份防 OOM — 逐行读入时累计 UTF-8 体量,超过上限立即抛错,
+                // 而非"整份 buildString 后再解析",避免恶意/损坏备份把进程 OOM。
+                val text = readSingleJsonWithLimit(reader, firstLine)
                 val backup = resultOf { json.decodeFromString(Backup.serializer(), text) }
                     .onError { msg, t -> Logger.w("BackupService", "单 JSON 备份解析失败", t) }
                     .getOrNull()
@@ -176,6 +175,33 @@ class BackupService(
                 applyBackup(backup)
             }
         } ?: error(context.getString(R.string.backup_cannot_read, uri))
+    }
+
+    /**
+     * B-25: 读取单 JSON 备份文本并做体量上限校验。
+     *
+     * 逐行读入时按 UTF-8 字节累计 [第一行 + 后续行],一旦超过 [MAX_SINGLE_JSON_BACKUP_BYTES]
+     * 立即抛 [IllegalArgumentException] 给出明确上限,不再静默读入整份超大文本。
+     *
+     * @param reader 已消费过 [firstLine] 的 reader(首行在格式识别阶段读出)
+     * @param firstLine 已读出的首个非空行(计入体量)
+     */
+    private fun readSingleJsonWithLimit(reader: java.io.BufferedReader, firstLine: String): String {
+        var cumulative = firstLine.toByteArray(Charsets.UTF_8).size.toLong()
+        check(withinSingleJsonLimit(cumulative, 0L)) {
+            singleJsonTooLargeMessage(cumulative)
+        }
+        return buildString {
+            appendLine(firstLine)
+            while (true) {
+                val line = reader.readLine() ?: break
+                cumulative += line.toByteArray(Charsets.UTF_8).size.toLong()
+                check(withinSingleJsonLimit(cumulative, 0L)) {
+                    singleJsonTooLargeMessage(cumulative)
+                }
+                appendLine(line)
+            }
+        }
     }
 
     /**
@@ -739,6 +765,25 @@ class BackupService(
         private const val IMPORT_BATCH = 500
 
         /**
+         * B-25: 单 JSON 备份最大体量上限(字节,64MB)。
+         * 超过即视为恶意/损坏备份,导入时拒绝解析以防 OOM。
+         */
+        internal const val MAX_SINGLE_JSON_BACKUP_BYTES: Long = 64L * 1024 * 1024
+
+        /**
+         * B-25: 判断单 JSON 备份累计体量是否仍在上限内。
+         * 逐行读入时以 [cumulativeUtf8Bytes] 累计已消费字节,追加 [additionalUtf8Bytes] 后判断是否超限。
+         * @return true 未超限;false 已超限(调用方应中止并报错)。
+         */
+        internal fun withinSingleJsonLimit(cumulativeUtf8Bytes: Long, additionalUtf8Bytes: Long): Boolean =
+            cumulativeUtf8Bytes <= MAX_SINGLE_JSON_BACKUP_BYTES - additionalUtf8Bytes
+
+        /** B-25: 生成单 JSON 备份超限的明确错误信息(含当前体量字节与上限)。 */
+        internal fun singleJsonTooLargeMessage(cumulativeUtf8Bytes: Long): String =
+            "单 JSON 备份体量 ${(cumulativeUtf8Bytes + 1024 * 1024 - 1) / (1024 * 1024)}MB 超过上限 " +
+                "${MAX_SINGLE_JSON_BACKUP_BYTES / (1024 * 1024)}MB,已拒绝导入"
+
+        /**
          * 问题7.3: 设备相关设置 key 集合,恢复 settingsSnapshot 时跳过这些 key。
          *
          * - "theme_mode":主题模式可能跟随系统/设备状态,跨设备恢复无意义
@@ -841,6 +886,12 @@ class BackupService(
                 .onError { msg, t -> Logger.w("BackupService", "云端 NDJSON 流式导入失败", t); null }
                 .getOrNull()
         } else {
+            // B-25: 云端正本已整份驻留内存(下载 + 解密),无法杜绝下载期 OOM;
+            // 这里在 decode 前对解密后明文体量做上限拦截,避免超大单 JSON 解析再翻倍内存。
+            if (!withinSingleJsonLimit(plaintext.size.toLong(), 0L)) {
+                Logger.w("BackupService", "云端单 JSON 备份超限,拒绝恢复: ${singleJsonTooLargeMessage(plaintext.size.toLong())}")
+                return null
+            }
             val backup = resultOf { json.decodeFromString(Backup.serializer(), text) }
                 .onError { msg, t -> Logger.w("BackupService", "云端备份 JSON 解析失败", t); return null }
                 .getOrNull()

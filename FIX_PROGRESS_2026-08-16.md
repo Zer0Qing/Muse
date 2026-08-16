@@ -69,8 +69,16 @@
 - ✅ B-28: OpenAIProvider 7 处 URL 日志脱敏(去 query 参数)
 - ✅ B-30: parse_link 手动跟跳转 + 每跳 SSRF 主机校验(上限 5 跳)
 - ✅ B-31: /reset 流式中拒绝时提示独立文案(7 语言)
-- ⏳ B-11/B-12/B-14/B-15/B-16/B-20/B-25/B-29/B-32: 子代理处理中,完成后登记
-- ⬜ 无
+- ✅ B-11: 决策 JSON 截断宽松匹配(shouldSend=true 前缀)+ 固定 reason 文案 decision_parse_failed
+- ✅ B-12: ScheduledTaskRunner 抢占式领取 CAS(claimTask + 哨兵 next_run_at + ABA 防御),跨进程安全;3 纯函数用例
+- ✅ B-14: 目标会话优先 viewed_session_id(前台会话),回退逻辑不变
+- ✅ B-15: 前台不弹 HIGH 声音通知;通知权限被拒记 ERROR 并提示引导,会话内写入不受影响
+- ✅ B-16: USER_EXPLICIT_END(晚安/拜拜)后 24h 保底豁免并重启保底时钟
+- ✅ B-20: LlmBudget 按段优先级裁剪(保 facts+longterm,裁 today/week,超预算记日志);LlmBudgetSegmentTest 9 例
+- ✅ B-25: 云备份复用 NDJSON 流式导出(去掉三份驻留);导入单 JSON 64MB 上限;BackupJsonLimitTest 3 例
+- ✅ B-29: 通知监听敏感包名扩到 IM/邮箱/社交 11 个(QQ/钉钉/Telegram/Slack/Gmail/Outlook/企业微信/微博/抖音等)
+- ✅ B-32: ToolRegistrySmokeTest 改真实运行时 listTools 互验 + skill 可路由护栏(ROUTABLE_SKILL_IMPL)
+- ⬜ 无(B 级 32 项全部完成)
 
 ### C 级进度
 

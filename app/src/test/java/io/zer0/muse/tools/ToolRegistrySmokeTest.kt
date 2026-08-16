@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -75,25 +74,113 @@ class ToolRegistrySmokeTest {
     }
 
     /**
-     * 全部内置工具必须注册(含系统依赖工具),入口可达。
-     * 不执行系统工具,只验证注册完整性。
+     * 全部内置工具静态表完整性 + ToolRegistry 自身运行时注册校验。
+     *
+     * B-32 关键改动:不再"静态表互查"(原实现 registered 直接取 BUILT_IN_TOOL_IDS 同一静态常量)。
+     * 拆成两层:
+     *  1. 运行时层(ToolRegistry(context) 自身 init{} 注册的工具)必须真实出现在 listTools()
+     *     —— 验证 ToolRegistry 的 CodeExecutionTool / BrowserAutomationTool 自注册链路有效,
+     *     且每个运行时 ToolDef 的 name/description 非空。
+     *  2. 静态层:BUILT_IN_TOOL_IDS 声明的全部内置工具必须被分入 SAFE/SYSTEM 分组表,
+     *     防止录入静态表却漏分组(原测试已覆盖,保留)。
+     *
+     * 说明:其余内置工具由各 Registrar 在 App 启动时经 Koin 注入 toolRegistry 注册
+     * (见 ToolRegistrarBootstrapper),裸构造 ToolRegistry(context) 不会触发它们,
+     * 故这里无法对全部静态 id 做运行时包含断言;其注册健康由 App 启动路径覆盖。
      */
     @Test
     fun `all built-in tools are registered and reachable`() = runBlocking {
-        val registered = io.zer0.muse.tools.ToolRegistry.BUILT_IN_TOOL_IDS.toSet()
-        assertTrue("应注册至少 20 个内置工具,实际 ${registered.size}", registered.size >= 20)
+        val staticIds = io.zer0.muse.tools.ToolRegistry.BUILT_IN_TOOL_IDS.toSet()
+        assertTrue("静态表声明应至少 20 个内置工具,实际 ${staticIds.size}", staticIds.size >= 20)
 
-        // 全覆盖:安全工具 + 系统工具 = 全部注册工具
+        // B-32: 从真实 ToolRegistry(context) 读运行时 listTools()(返回实际注册的 ToolDef)
+        val runtimeDefs = registry.listTools()
+        assertTrue("运行时未注册任何工具", runtimeDefs.isNotEmpty())
+        val runtimeNames = runtimeDefs.map { it.name }.toSet()
+
+        // 运行时定义完整性:每个 ToolDef 必须 name/description 非空(定义存在)
+        val malformed = runtimeDefs.filter { it.name.isBlank() || it.description.isBlank() }
+            .map { "name='${it.name}' desc='${it.description}'" }
+        assertTrue("运行时存在 name/description 为空的工具定义:\n$malformed", malformed.isEmpty())
+
+        // ToolRegistry 自身 init{} 注册的工具必须真实出现在运行时 listTools()(非自证)
+        val selfRegistered = SELF_REGISTERED_IN_TOOL_REGISTRY
+        val missingFromRuntime = selfRegistered.filterNot { it in runtimeNames }
+        assertTrue(
+            "ToolRegistry 自身应注册以下工具但 listTools() 未返回(init 逻辑漂移):\n$missingFromRuntime",
+            missingFromRuntime.isEmpty(),
+        )
+
+        // 静态层:安全工具 + 系统工具 = 全部静态内置工具,防止录入静态表却漏分组
         val all = SAFE_EXECUTE_TOOLS + SYSTEM_ONLY_TOOLS
-        val unregistered = all.filterNot { it in registered }
-        assertTrue("以下工具未注册:\n$unregistered", unregistered.isEmpty())
+        val unregistered = all.filterNot { it in staticIds }
+        assertTrue("分组表中出现非内置工具:\n$unregistered", unregistered.isEmpty())
 
         // 防止分组遗漏:BUILT_IN_TOOL_IDS 中既不在安全也不在系统组的 → 分组表过期,必须报错
-        val missingFromGroups = registered.filterNot { it in all }
+        val missingFromGroups = staticIds.filterNot { it in all }
         assertTrue(
             "以下工具不在分组表中(请更新 SAFE_EXECUTE_TOOLS / SYSTEM_ONLY_TOOLS):\n$missingFromGroups",
             missingFromGroups.isEmpty(),
         )
+        // B-32: 运行时额外注册(不在静态表)仅做提示,不视为失败(Registrar/MCP 可动态注册)。
+        val runtimeExtras = runtimeNames - staticIds
+        if (runtimeExtras.isNotEmpty()) {
+            println("[info] 运行时额外注册工具(动态/Registrar/MCP): $runtimeExtras")
+        }
+    }
+
+    /**
+     * B-32: 内置 skill 工具一致性护栏 — "定义存在 + execute 可路由"烟雾覆盖。
+     *
+     * 遍历 [SkillExecutor.BUILT_IN_SKILLS]:
+     *  1. 定义存在:每个内置 skill 必须是有效定义(id/name/description 非空,parametersJson 为合法 JSON)。
+     *  2. execute 可路由:implementationKotlin 必须命中 SkillExecutor.execute 的 when 专属分支
+     *     (即 ∈ [SkillExecutor.ROUTABLE_SKILL_IMPL]),否则会静默落 skill_unknown_impl。
+     *
+     * 排除已下线的 generate_qr(B-07),避免"内置 skill 全集可路由"断言误伤。
+     */
+    @Test
+    fun `all built-in skill tools are defined and routable`() {
+        val skills = io.zer0.muse.tools.SkillExecutor.BUILT_IN_SKILLS
+        // B-07: generate_qr 内置 skill 已下线,从"可路由全集"断言中排除(dispatch 分支仍保留兼容旧数据)
+        val decommissioned = setOf("generate_qr")
+        val definitionsBroken = mutableListOf<String>()
+        val notRoutable = mutableListOf<String>()
+
+        for (skill in skills) {
+            if (skill.id in decommissioned) continue
+            // 1. 定义存在 — 有效 SkillEntity
+            if (skill.id.isBlank() || skill.name.isBlank() || skill.description.isBlank() ||
+                !isValidJsonObject(skill.parametersJson)
+            ) {
+                definitionsBroken += "${skill.id}(name='${skill.name}', desc=${skill.description.length}chars, params=${skill.parametersJson})"
+                continue
+            }
+            // 2. execute 可路由 — implementationKotlin 命中 execute 的 when 专属分支
+            if (skill.implementationKotlin !in SkillExecutor.ROUTABLE_SKILL_IMPL) {
+                notRoutable += "${skill.id} → implementationKotlin='${skill.implementationKotlin}'"
+            }
+        }
+
+        assertTrue(
+            "以下内置 skill 定义缺失/损坏(请检查 SkillExecutor.BUILT_IN_SKILLS):\n${definitionsBroken.joinToString("\n")}",
+            definitionsBroken.isEmpty(),
+        )
+        assertTrue(
+            "以下内置 skill 无法被 SkillExecutor.execute 路由(implementationKotlin 不在 ROUTABLE_SKILL_IMPL," +
+                "会静默走 skill_unknown_impl):\n${notRoutable.joinToString("\n")}",
+            notRoutable.isEmpty(),
+        )
+    }
+
+    /** B-32: 判断字符串是否为合法的 JSON 对象(用于校验 skill 定义存在)。 */
+    private fun isValidJsonObject(json: String): Boolean {
+        return runCatching {
+            io.zer0.common.AppJson.decodeFromString(
+                kotlinx.serialization.json.JsonObject.serializer(),
+                json,
+            )
+        }.isSuccess
     }
 
     /**
@@ -114,6 +201,19 @@ class ToolRegistrySmokeTest {
     companion object {
         /** 安全工具单工具超时(毫秒)。 */
         private const val SAFE_TOOL_TIMEOUT_MS = 5_000L
+
+        /**
+         * B-32: ToolRegistry 自身 init{} 注册的内置工具(与 ToolRegistry.init 一一对应)。
+         *
+         * CodeExecutionTool(execute_javascript)+ BrowserAutomationTool(browser_* 6 件套)。
+         * 其余内置工具由各 Registrar 经 Koin 在 App 启动时注入注册(见本类顶部测试注释)。
+         * 此集合用于"从真实 ToolRegistry(context).listTools() 读运行时注册"互验。
+         */
+        val SELF_REGISTERED_IN_TOOL_REGISTRY: List<String> = listOf(
+            "execute_javascript",
+            "browser_navigate", "browser_click", "browser_type",
+            "browser_extract", "browser_scroll_bottom", "browser_get_html",
+        )
 
         /**
          * 安全工具:纯计算/无系统服务,Robolectric 可真实执行。

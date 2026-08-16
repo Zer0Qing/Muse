@@ -1255,5 +1255,32 @@ class SkillExecutor(
             // (skill 版返回 cacheDir 文件路径,本地版渲染 data URI 到对话)。保留本地版。
             // implementationKotlin="generate_qr" 的 dispatch 仍保留,兼容已导入该 skill 的用户。
         )
+
+        /**
+         * B-32: 内置 skill 可路由实现集合 — 与 [execute] 内 when(implementationKotlin) 的
+         * 专属分支 key 一一对应(plugin: 前缀与未知 else 分支除外)。
+         *
+         * 供一致性护栏测试(见 app/src/test/.../tools/ToolRegistrySmokeTest.kt)遍历
+         * [BUILT_IN_SKILLS] 断言每个内置 skill 都能被 [execute] 路由到对应实现,
+         * 防止"新增内置 skill 却漏写 when 路由分支"或"分支被删"导致静默走 skill_unknown_impl。
+         *
+         * 注意:generate_qr 属已下线实现(B-07),从此集排除;但 dispatch 分支仍保留以兼容旧数据。
+         * 此集合须与 [execute] 的 when 分支保持同步,集合仅用于测试护栏,不驱动路由。
+         */
+        internal val ROUTABLE_SKILL_IMPL: Set<String> = setOf(
+            // 文件
+            "read_file", "write_file", "list_dir", "delete_file", "file_exists",
+            // HTTP/搜索/信息
+            "http_get", "http_post", "web_search", "web_fetch", "knowledge_search", "arxiv_search",
+            // 自我扩展/Agent/群聊
+            "install_skill", "delegate_agent", "task_plan", "update_plan_step",
+            "channel_reply", "channel_pass", "channel_read_context", "agent_phone",
+            // 文件公共目录
+            "file_download", "read_public_file", "save_to_downloads", "list_public_files",
+            // Skill 管理
+            "list_skills", "uninstall_skill", "disable_skill",
+            // 表情包/媒体/翻译/JS
+            "list_stickers", "send_sticker", "generate_image", "translate", "execute_javascript",
+        )
     }
 }

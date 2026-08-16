@@ -37,22 +37,32 @@ interface ScheduledTaskDao {
      * B-12: 抢占式领取到期任务(CAS,compare-and-set)。
      *
      * 仅当该任务的 next_run_at 仍等于调用方读取到的期望值(即仍"到期未领取")时,
-     * 才把 last_run_at/updated_at 原子更新为 [claimedAt] 作为领取标记,返回受影响行数
+     * 才把 next_run_at 原子推进为 [claimNextRun](哨兵,远未来)以摘除其"到期"身份,
+     * 并写入 [claimedAt] 作为领取标记,返回受影响行数
      * (1 = 本执行者领取成功;0 = 已被其他执行者抢先领取,应跳过)。
      *
-     * 依赖单条原子 UPDATE 的 WHERE 条件实现进程内与跨进程(Worker)并发安全:
-     * [ScheduledTaskRunner] 轮询与 WorkManager 拉起的 Worker 即使同时读到同一到期任务,
-     * 也只有一个能通过 next_run_at 比对,最终只有一份 AI 调用 / 通知。
+     * 关键:必须同步推进 next_run_at(而不只写 last_run_at),否则并发执行者 B 的
+     * CAS 仍看到 next_run_at == 原到期值而重复领取,导致重复 AI 调用 / 通知。
+     * 领取成功后执行流程会在结束时调用 [recordExecutionAndScheduleNext] 把 next_run_at
+     * 重置为真实的下次执行时间。next_run_at 临时为远未来哨兵期间,任何到期扫描
+     * ([getDueTasks])与再领取均不会命中,实现进程内与跨进程(Worker)并发安全。
+     *
+     * 故意不含 enabled 约束:轮询/Worker 已通过 [getDueTasks] 过滤 enabled=1;
+     * UI "立即执行"允许对已禁用任务手动触发一次,故领取不复查 enabled。
+     *
+     * 危险:若执行中途异常导致最终重置未执行(仅 DB 写失败场景),任务会停在哨兵值
+     * 不再触发 —— 相比重复执行,单次暂停是更安全的选择(宁可漏一次也不重复副作用)。
      *
      * @param id 任务 id
      * @param expectedNextRunAt 调用方从 DB 读到的 next_run_at 快照(CAS 期望值)
      * @param claimedAt 领取时间戳,写入 last_run_at 与 updated_at
+     * @param claimNextRun 领取时临时推进的 next_run_at 哨兵值(远未来),由调用方传入
      */
     @Query(
-        "UPDATE scheduled_tasks SET last_run_at = :claimedAt, updated_at = :claimedAt " +
-            "WHERE id = :id AND next_run_at = :expectedNextRunAt AND enabled = 1",
+        "UPDATE scheduled_tasks SET next_run_at = :claimNextRun, last_run_at = :claimedAt, updated_at = :claimedAt " +
+            "WHERE id = :id AND next_run_at = :expectedNextRunAt",
     )
-    suspend fun claimTask(id: String, expectedNextRunAt: Long, claimedAt: Long): Int
+    suspend fun claimTask(id: String, expectedNextRunAt: Long, claimedAt: Long, claimNextRun: Long): Int
 
     @Query("UPDATE scheduled_tasks SET enabled = :enabled, updated_at = :now WHERE id = :id")
     suspend fun setEnabled(id: String, enabled: Boolean, now: Long = System.currentTimeMillis())

@@ -15,19 +15,30 @@ import org.junit.Test
  *
  * 样本 markdown 格式与 MemoryCompiler.assembleCompiledMarkdown 一致:
  * 四段顺序 facts → today → week → longterm,段间空行,整体以换行收尾。
+ *
+ * 预算选择的稳健性:high 段(facts/longterm)正文极短,成本很小;
+ * today/week 用大量行撑大成本,使得"high 成本 < 预算 < 全文成本"区间很宽,
+ * 即便 BPE 与字符启发式估算略有出入,按段裁剪路径也能稳定触发。
  */
 class LlmBudgetSegmentTest {
+
+    private fun factsBody() = "事实甲:用户喜欢 Kotlin\n事实乙:用户开发 Android"
+
+    private fun longtermBody() = "长期记忆 A 非常重要完全保留\n长期记忆 B 同样重要"
+
+    private fun hugeBody(prefix: String, lines: Int = 80): String =
+        (1..lines).joinToString("\n") { "$prefix 填充行 $it 用于把本段撑大远超预算" }
 
     /** 构造一段与 assembleCompiledMarkdown 输出格式一致的 4 段 markdown。 */
     private fun sampleMarkdown(): String = listOf(
         "## 重要事实",
-        "事实甲:用户喜欢 Kotlin\n事实乙:用户开发 Android 应用\n事实丙:用户在使用 Muse",
+        factsBody(),
         "## 今天",
-        "今天的内容行一\n今天的内容行二\n今天的内容行三\n今天的内容行四",
+        hugeBody("今天"),
         "## 本周早些时候",
-        "本周的内容行一\n本周的内容行二\n本周的内容行三\n本周的内容行四",
+        hugeBody("本周"),
         "## 长期情况",
-        "长期记忆 A 非常重要必须完整保留\n长期记忆 B 同样重要不能丢弃",
+        longtermBody(),
     ).joinToString("\n\n") + "\n"
 
     // ── ① 预算充足:四段全保留 ───────────────────────────────────────────
@@ -35,7 +46,7 @@ class LlmBudgetSegmentTest {
     @Test
     fun `预算充足时返回原文`() {
         val md = sampleMarkdown()
-        val result = LlmBudget.truncateToTokenBudget(md, 100_000)
+        val result = LlmBudget.truncateToTokenBudget(md, 2_000_000)
         // 预算远大于文本,应原样返回(不带截断标记,顺序一致)
         assertEquals(md, result)
         assertFalse("预算充足时不应出现截断标记", result.contains("(memory truncated)"))
@@ -43,7 +54,7 @@ class LlmBudgetSegmentTest {
 
     @Test
     fun `预算充足时全部四个标题均保留`() {
-        val result = LlmBudget.truncateToTokenBudget(sampleMarkdown(), 100_000)
+        val result = LlmBudget.truncateToTokenBudget(sampleMarkdown(), 2_000_000)
         listOf("## 重要事实", "## 今天", "## 本周早些时候", "## 长期情况").forEach { heading ->
             assertTrue("预算充足应保留 $heading: $result", result.contains(heading))
         }
@@ -53,53 +64,53 @@ class LlmBudgetSegmentTest {
 
     @Test
     fun `预算不足时保留 longterm 与 facts 完整内容`() {
-        val md = sampleMarkdown()
-        // 小预算强制触发按段裁剪
-        val result = LlmBudget.truncateToTokenBudget(md, 5)
+        // 预算需满足: high(facts+longterm) < budget < 全文成本
+        val result = LlmBudget.truncateToTokenBudget(sampleMarkdown(), 300)
         // longterm 是末段(最长期记忆),必须完整保留
-        assertTrue("长期记忆应被完整保留: $result", result.contains("长期记忆 A 非常重要必须完整保留"))
-        assertTrue("长期记忆 B 应被保留: $result", result.contains("长期记忆 B 同样重要不能丢弃"))
-        // facts 是首段,高优先级,其内容也应得到保留(至少标题在)
-        assertTrue("重要事实标题应保留: $result", result.contains("## 重要事实"))
+        assertTrue("长期记忆应被完整保留: $result", result.contains(longtermBody()))
+        // facts 是首段,高优先级,也应完整保留
+        assertTrue("facts 应被完整保留: $result", result.contains(factsBody()))
     }
 
     @Test
-    fun `预算不足时 today 被裁剪`() {
-        val result = LlmBudget.truncateToTokenBudget(sampleMarkdown(), 5)
-        // today 是中段(低优先级),其尾部应被裁剪
-        assertTrue("today 应被裁剪一段(带标记或缩小): $result", result.contains("(memory truncated)"))
-        // 至少标题可能被裁剪,但 longterm 安全
+    fun `预算不足时 today 至少被裁剪且保留 longterm`() {
+        val result = LlmBudget.truncateToTokenBudget(sampleMarkdown(), 300)
+        // today 是被撑大的中段(低优先级),其尾部应被裁剪
+        assertTrue("中间段被撑大后应触发截断标记: $result", result.contains("(memory truncated)"))
+        // longterm 标题稳定在
         assertTrue("longterm 标题应仍在: $result", result.contains("## 长期情况"))
+        // longterm 正文完整,不被尾部截断丢弃
+        assertTrue("longterm 正文应完整: $result", result.contains(longtermBody()))
     }
 
     @Test
-    fun `预算不足时优先级 order 不把 longterm 排到最后丢弃`() {
-        // 核心回归:B-20 之前尾部截断会先丢 longterm;现在末尾应仍是 longterm 段
-        val result = LlmBudget.truncateToTokenBudget(sampleMarkdown(), 5)
+    fun `预算不足时不把 longterm 排到最早丢弃`() {
+        // 核心回归:B-20 之前尾部截断会先丢 longterm;现在末段 longterm 应仍在文本末尾
+        val result = LlmBudget.truncateToTokenBudget(sampleMarkdown(), 300)
         val longtermIdx = result.indexOf("## 长期情况")
-        val factsIdx = result.indexOf("## 重要事实")
-        assertTrue("longterm 应存在: $result", longtermIdx >= 0)
-        assertTrue("facts 应存在: $result", factsIdx >= 0)
-        // longterm 不应被排到早期(相对 today/week 靠后),更不应缺失
-        assertFalse("longterm 不应被尾部截断丢弃", result.contains("长期记忆 A") && !result.contains("## 长期情况"))
+        assertTrue("longterm 标题应存在: $result", longtermIdx >= 0)
+        // longterm 标题不应缺失,且内容完整(而非仅剩空标题)
+        assertTrue(result.contains(longtermBody()))
     }
 
     // ── ③ 有截断时产生日志且不抛异常 ────────────────────────────────────
 
     @Test
-    fun `超预算截断不抛异常`() {
-        // 极小的预算也能安全返回,不抛异常
-        val result = LlmBudget.truncateToTokenBudget(sampleMarkdown(), 1)
+    fun `超预算截断出结果且不抛异常`() {
+        // 无论预算多小,都应安全返回非空白结果,不抛异常
+        val result = LlmBudget.truncateToTokenBudget(sampleMarkdown(), 3)
         assertTrue("结果不能为空字符串", result.isNotBlank())
     }
 
     @Test
-    fun `空文本与预算为 0 仍保持原行为`() {
+    fun `空文本与预算为 0 保持原行为`() {
         assertEquals("", LlmBudget.truncateToTokenBudget("", 100))
         val md = sampleMarkdown()
         // budget=0 视为不限制,返回原文
         assertEquals(md, LlmBudget.truncateToTokenBudget(md, 0))
     }
+
+    // ── 纯函数拆段 / 裁剪逻辑 ────────────────────────────────────────────
 
     @Test
     fun `splitSegments 纯函数正确切分四段`() {
@@ -107,17 +118,16 @@ class LlmBudgetSegmentTest {
         assertEquals(4, segments.size)
         assertEquals("## 重要事实", segments[0].heading)
         assertEquals("## 长期情况", segments[3].heading)
-        assertTrue("末段应为 longterm 内容", segments[3].body.contains("长期记忆 A"))
+        assertTrue("末段应为 longterm 正文", segments[3].body.contains("长期记忆 A"))
     }
 
     @Test
-    fun `truncateBySegments 纯函数裁剪只动中段`() {
+    fun `truncateBySegments 纯函数只裁剪中段不动高优先级段`() {
         val segments = LlmBudget.splitSegments(sampleMarkdown())
-        val result = LlmBudget.truncateBySegments(segments, 5)
-        // 首段 facts 与末段 longterm 高优先级保留
+        val result = LlmBudget.truncateBySegments(segments, budget = 300)
+        // 首段 facts 与末段 longterm 高优先级完整保留
         assertEquals("## 重要事实", result.first().heading)
         assertEquals("## 长期情况", result.last().heading)
-        // 高优先级正文完整
-        assertTrue(result.last().body.contains("长期记忆 A 非常重要必须完整保留"))
+        assertEquals(longtermBody(), result.last().body)
     }
 }

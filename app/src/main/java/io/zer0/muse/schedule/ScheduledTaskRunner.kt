@@ -118,6 +118,13 @@ class ScheduledTaskRunner(
         private const val RETRY_BACKOFF_MAX_MS = 300_000L
         /** v1.0.17: 重试退避步长(毫秒,每次递增 1 分钟)。 */
         private const val RETRY_BACKOFF_STEP_MS = 60_000L
+        /**
+         * B-12: 领取后临时推进的 next_run_at 哨兵值(远未来,≈146 亿年后)。
+         *
+         * 领取(CAS)时把 next_run_at 临时推到该值以摘除"到期"身份,执行期间任何到期扫描/
+         * 再领取都不命中;执行结束 [executeTask] 会用真实的下次执行时间覆盖它。
+         */
+        private const val CLAIM_NEXT_RUN_SENTINEL = Long.MAX_VALUE
     }
 
     fun start() {
@@ -176,7 +183,8 @@ class ScheduledTaskRunner(
      * v1.137: 执行单个自动化任务。
      *
      * 流程:
-     *  0. 抢占式领取 CAS(见 B-12):执行前原子比对 next_run_at,失败即已被人领取,跳过
+     *  0. 抢占式领取 CAS(见 B-12):执行前原子比对 next_run_at(含 ABA 哨兵防御),
+     *     失败即已被人领取/删除,跳过不做任何副作用
      *  1. 评估 condition(条件触发)
      *  2. 按 action_type 执行对应动作(ai_prompt / create_quick_note / call_tool / notify)
      *  3. 成功执行后触发链式任务(next_task_ids)
@@ -185,7 +193,7 @@ class ScheduledTaskRunner(
      * v1.0.17: 新增 [chainDepth] 参数用于链式任务递归深度限制;
      *  执行失败时按指数退避重试(retry_count < max_retries 时递增,达上限后重置)。
      *
-     * v1.0.x B-12: 执行动作前先通过 [ScheduledTaskDao.claimTask] 做抢占式领取,
+     * B-12: 执行动作前先通过 [ScheduledTaskDao.claimTask] 做抢占式领取,
      *  保证轮询 / Worker / 手动"立即执行" / 链式多路不同进程不会重复执行同一到期任务。
      *
      * 任何环节失败都记录一条 failed execution,不抛异常。
@@ -199,11 +207,32 @@ class ScheduledTaskRunner(
 
         val now = System.currentTimeMillis()
         // B-12: 抢占式领取 — 执行动作前先做原子 CAS,防止轮询(tickOnce)与 Worker(tickOnceForWorker)
-        // 并发执行同一到期任务导致重复 AI 调用 / 重复通知。只有 next_run_at 仍等于本快照读取值
-        // (仍到期未领取)才能通过,失败说明已有其他执行者领取,直接跳过不做任何副作用。
-        // 依赖 ScheduledTaskDao.claimTask 的单条原子 UPDATE 实现跨进程安全。
+        // 并发执行同一到期任务导致重复 AI 调用 / 重复通知。CAS 期望值用 DB 当前 next_run_at(而非调用方
+        // 快照),兼容 UI 手动"立即执行"传入的过期实体;领取时把 next_run_at 推进为远未来哨兵摘除"到期"
+        // 身份,后续执行者再按原到期值 CAS 必失败。执行结束由 recordExecutionAndScheduleNext 重置为真实
+        // 下次执行时间。依赖 ScheduledTaskDao.claimTask 的单条原子 UPDATE 实现跨进程安全。
+        val current = try {
+            dao.getById(task.id)
+        } catch (e: Exception) {
+            if (e is kotlin.coroutines.cancellation.CancellationException) throw e
+            Logger.w(TAG, "Task ${task.id} load failed: ${e.message}")
+            null
+        }
+        // 任务已在执行前被删除,无法领取,跳过(同时避免对已删除任务写执行记录)
+        if (current == null) {
+            Logger.w(TAG, "Task ${task.id} not found, skip")
+            return
+        }
+        // B-12(ABA 防御):若当前 next_run_at 已是领取哨兵,说明另一执行者正在执行本任务
+        // (已领取且尚未重置),此时绝不能再按哨兵值 CAS(会命中而重复执行),直接跳过。
+        // 哨兵值不会由正常调度产生(computeNextRun 上限为周级/退避),唯一来源就是领取动作。
+        if (current.nextRunAt == CLAIM_NEXT_RUN_SENTINEL) {
+            Logger.w(TAG, "Task ${task.id} is currently being executed by another executer, skip")
+            return
+        }
+
         val claimedRows = try {
-            dao.claimTask(task.id, task.nextRunAt, now)
+            dao.claimTask(task.id, current.nextRunAt, now, CLAIM_NEXT_RUN_SENTINEL)
         } catch (e: Exception) {
             if (e is kotlin.coroutines.cancellation.CancellationException) throw e
             Logger.w(TAG, "Task ${task.id} claim failed: ${e.message}")
