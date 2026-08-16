@@ -1,10 +1,7 @@
 package io.zer0.muse.ui
 
 import android.net.Uri
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import io.zer0.ai.core.UIMessage
 import io.zer0.ai.image.ImageGenParams
 import io.zer0.muse.asr.ASRStatus

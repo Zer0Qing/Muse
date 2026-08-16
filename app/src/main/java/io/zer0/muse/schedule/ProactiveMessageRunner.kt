@@ -287,9 +287,12 @@ class ProactiveMessageRunner(
         // 原实现固定 baseInterval 无限重试,长时间故障下仍周期性烧配额。
         val backoffMultiplier = 1 shl minOf(config.consecutiveFailures, 4)
         if (!forceSend && config.lastFailedAt > 0 && now - config.lastFailedAt < baseIntervalMs * backoffMultiplier) {
+            val backoffMinutes = baseIntervalMs * backoffMultiplier / 60000
+            val sinceFailureMinutes = (now - config.lastFailedAt) / 60000
             Logger.d(
                 TAG,
-                "主动消息失败退避中: 距上次失败 ${(now - config.lastFailedAt) / 60000}min,间隔 ${baseIntervalMs * backoffMultiplier / 60000}min(连续失败 ${config.consecutiveFailures} 次),跳过",
+                "主动消息失败退避中: 距上次失败 ${sinceFailureMinutes}min," +
+                    "间隔 ${backoffMinutes}min(连续失败 ${config.consecutiveFailures} 次),跳过",
             )
             return@withLock
         }
@@ -568,8 +571,11 @@ class ProactiveMessageRunner(
         var scheduleSaved = false
         repeat(2) {
             if (scheduleSaved) return@repeat
+            val updatedConfig = config.copy(lastFailedAt = 0, consecutiveFailures = 0)
             runCatching {
-                saveProactiveSchedule(config.copy(lastFailedAt = 0, consecutiveFailures = 0), now, baseIntervalMs, targetSession.id, updateLastTriggered = true)
+                saveProactiveSchedule(
+                    updatedConfig, now, baseIntervalMs, targetSession.id, updateLastTriggered = true,
+                )
             }.onSuccess { scheduleSaved = true }
                 .onFailure { e -> Logger.w(TAG, "主动消息排期持久化失败(将重试): ${e.message}", e) }
         }
