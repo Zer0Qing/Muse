@@ -174,6 +174,9 @@ class MuseNotificationManager(private val context: Context) {
      * @param preview 主动消息完整内容
      */
     suspend fun notifyProactiveMessage(assistant: AssistantEntity, preview: String) {
+        // B-15: 前台时不发 HIGH 声音通知——复用 notifyChatCompletedWithPolicy 的既有前台判断模式。
+        // 用户正盯着会话时,消息已在会话内展示,再弹 HIGH 声音通知只会打扰用户。
+        if (isAppInForeground()) return
         val assistantName = assistant.name.ifBlank { "muse" }
         val avatar = loadAssistantAvatar(assistant)
         val builder = NotificationCompat.Builder(context, CHANNEL_PROACTIVE_MESSAGE)
@@ -195,7 +198,15 @@ class MuseNotificationManager(private val context: Context) {
             (proactiveNotifIdSeq.getAndIncrement() and 0x0FFF)
         // M2-1: 改用 resultOf{}
         resultOf { nm.notify(notifId, notif) }
-            .onError { msg, _ -> Logger.w(TAG, "notifyProactiveMessage failed: $msg") }
+            .onError { msg, t ->
+                // B-15: Android 13+ 通知权限被拒时会抛 SecurityException。
+                // 不能像普通失败那样只记 W 静默降级——记 ERROR 日志,便于设置页据此提示用户授权 POST_NOTIFICATIONS。
+                if (t is SecurityException) {
+                    Logger.e(TAG, "notifyProactiveMessage denied (通知权限被拒, Android 13+ 需 POST_NOTIFICATIONS): $msg", t)
+                } else {
+                    Logger.w(TAG, "notifyProactiveMessage failed: $msg")
+                }
+            }
     }
 
     /**

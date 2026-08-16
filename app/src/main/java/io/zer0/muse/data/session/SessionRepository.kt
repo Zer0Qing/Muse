@@ -548,6 +548,18 @@ class SessionRepository(
         }
     }
 
+    /**
+     * B-23: 按用户消息删除本轮全部检查点。
+     * 多轮工具循环每轮写一条检查点(不同 assistantMessageId),收尾只删最后一轮
+     * 会残留中间轮次 — 重启后 recoverInterruptedGenerations 会给已完成轮次追加
+     * [已中断]。按 userMessageId 批量清理覆盖全部轮次。
+     */
+    suspend fun deleteGenerationCheckpointsByUserMessageId(userMessageId: String) {
+        withContext(Dispatchers.IO) {
+            database.generationCheckpointDao().deleteByUserMessageId(userMessageId)
+        }
+    }
+
     /** 截断/重新生成时删除该时间点之后的检查点,避免恢复出已废弃的回复。 */
     suspend fun deleteGenerationCheckpointsBefore(sessionId: String, fromCreatedAt: Long) {
         withContext(Dispatchers.IO) {

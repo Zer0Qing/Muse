@@ -124,7 +124,11 @@ class OpenAIImageProvider(
                     if (declaredLen > MAX_RESPONSE_BODY_BYTES) {
                         error(ErrorCode.IMAGE_RESPONSE_TOO_LARGE.toMessage(declaredLen / 1024 / 1024))
                     }
-                    val respBody = ProviderHttpSupport.readBodySafely(resp)
+                    // B-03: chunked/未声明长度时 contentLength 检查不生效,用流式限长读取兜底
+                    val (respBody, overLimit) = ProviderHttpSupport.readBodyCappedStreaming(resp, MAX_RESPONSE_BODY_BYTES.toInt())
+                    if (overLimit) {
+                        error(ErrorCode.IMAGE_RESPONSE_TOO_LARGE.toMessage(MAX_RESPONSE_BODY_BYTES / 1024 / 1024))
+                    }
                     if (respBody.isBlank()) error(ErrorCode.IMAGE_EMPTY_RESPONSE.toMessage())
                     val root = json.parseToJsonElement(respBody).jsonObject
                     val data = root["data"]?.jsonArray

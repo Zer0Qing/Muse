@@ -1792,7 +1792,12 @@ class GroupChatScheduler(
             reasoning = extractedReasoning,
         )
         // 审计修复 (5.2) 适配: sendMessage 在群聊已被删除时返回 null(消息未落库),本轮跳过。
-        if (msgId == null) return AgentResult.Pass()
+        // B-21: 落库失败不再静默 Pass — 记 ERROR 并返回 Error,让调用方感知发言丢失
+        // (此前 Pass 会被当作"主动跳过",用户永远看不到 agent 的发言也没任何提示)。
+        if (msgId == null) {
+            Logger.e(TAG, "群聊发言落库失败(chatId=$chatId, agent=${assistant.name}),消息丢失")
+            return AgentResult.Error("群聊消息保存失败,发言已丢失")
+        }
         // v1.x: 流式内容已落库,清除 UI 临时输出
         activityHub.clearStreamingContent(chatId)
         scheduleIdleTransition(chatId, assistant)
@@ -2329,29 +2334,32 @@ class GroupChatScheduler(
             var streamError: String? = null
 
             val roundCompleted = withTimeoutOrNull(AGENT_ROUND_TIMEOUT_MS) {
-                chatService.streamChat(
-                    messages = workingMessages,
-                    model = model,
-                    temperature = temperature,
-                    maxTokens = maxTokens,
-                    tools = toolsForThisRound,
-                    providerConfig = providerConfig,
-                ).collect { event ->
-                    when (event) {
-                        is ChatStreamEvent.ContentDelta -> {
-                            builder.append(event.delta)
-                            // v1.x: 群聊流式输出 — 实时推给 UI
-                            activityHub.updateStreamingContent(chatId, builder.toString())
+                // B-22: 与主动消息共享并发限流,避免叠加触发 429 导致发言静默丢失
+                GenerationGate.withPermit {
+                    chatService.streamChat(
+                        messages = workingMessages,
+                        model = model,
+                        temperature = temperature,
+                        maxTokens = maxTokens,
+                        tools = toolsForThisRound,
+                        providerConfig = providerConfig,
+                    ).collect { event ->
+                        when (event) {
+                            is ChatStreamEvent.ContentDelta -> {
+                                builder.append(event.delta)
+                                // v1.x: 群聊流式输出 — 实时推给 UI
+                                activityHub.updateStreamingContent(chatId, builder.toString())
+                            }
+                            is ChatStreamEvent.ReasoningDelta -> reasoningBuilder.append(event.delta)
+                            is ChatStreamEvent.ImageDelta -> { /* 群聊暂不支持图片输出,忽略 */ }
+                            is ChatStreamEvent.ToolCallDelta -> {
+                                toolCallAccumulator.getOrPut(event.index) { mutableListOf() }.add(event)
+                            }
+                            is ChatStreamEvent.Done -> { /* 流结束 */ }
+                            is ChatStreamEvent.Error -> streamError = event.message
+                            is ChatStreamEvent.StreamInterrupted -> streamError = event.message
+                            is ChatStreamEvent.FallbackNotice -> { /* 已自动降级为非流式 */ }
                         }
-                        is ChatStreamEvent.ReasoningDelta -> reasoningBuilder.append(event.delta)
-                        is ChatStreamEvent.ImageDelta -> { /* 群聊暂不支持图片输出,忽略 */ }
-                        is ChatStreamEvent.ToolCallDelta -> {
-                            toolCallAccumulator.getOrPut(event.index) { mutableListOf() }.add(event)
-                        }
-                        is ChatStreamEvent.Done -> { /* 流结束 */ }
-                        is ChatStreamEvent.Error -> streamError = event.message
-                        is ChatStreamEvent.StreamInterrupted -> streamError = event.message
-                        is ChatStreamEvent.FallbackNotice -> { /* 已自动降级为非流式 */ }
                     }
                 }
                 true
@@ -2497,7 +2505,12 @@ class GroupChatScheduler(
             reasoning = extractedReasoning,
         )
         // 审计修复 (5.2) 适配: sendMessage 在群聊已被删除时返回 null(消息未落库),本轮跳过。
-        if (msgId == null) return AgentResult.Pass()
+        // B-21: 落库失败不再静默 Pass — 记 ERROR 并返回 Error,让调用方感知发言丢失
+        // (此前 Pass 会被当作"主动跳过",用户永远看不到 agent 的发言也没任何提示)。
+        if (msgId == null) {
+            Logger.e(TAG, "群聊发言落库失败(chatId=$chatId, agent=${assistant.name}),消息丢失")
+            return AgentResult.Error("群聊消息保存失败,发言已丢失")
+        }
         // v1.x: 流式内容已落库,清除 UI 临时输出
         activityHub.clearStreamingContent(chatId)
 

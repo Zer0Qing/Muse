@@ -102,4 +102,28 @@ class ScheduledTaskRunnerScheduleTest {
         assertEquals(false, ProactiveMessageRunner.isInAllowedWindow(8, 22, 8))
         assertEquals(false, ProactiveMessageRunner.isInAllowedWindow(21, 22, 8))
     }
+
+    // ── B-12: 抢占式领取(CAS)判定 ───────────────────────────────────────
+    // 领取成功与否由 ScheduledTaskDao.claimTask 的单条原子 UPDATE 影响行数决定:
+    //   1 = 本执行者领取成功(WHERE 条件的 next_run_at 仍等于快照);
+    //   0 = 已被其他执行者抢先领取(轮询 / Worker / 手动 / 链式并发时的败者)。
+    // 此处单测 claimTaskSucceeded 这一纯判定函数,RSL 覆盖"败者不重复执行"边界的核心逻辑。
+
+    @Test
+    fun `claim succeeds when DAO returns affected row`() {
+        assertTrue(ScheduledTaskRunner.claimTaskSucceeded(1))
+    }
+
+    @Test
+    fun `claim fails when already claimed by another executer`() {
+        // 0 行影响 = 其他执行者抢先领取(轮询/Worker 并发),败者应跳过,防止重复 AI 调用/通知
+        assertEquals(false, ScheduledTaskRunner.claimTaskSucceeded(0))
+    }
+
+    @Test
+    fun `claim fails on abnormal row count conservative skip`() {
+        // 负数/意外值为 DB 异常或缺省,按失败处理(保守跳过,杜绝重复执行)
+        assertEquals(false, ScheduledTaskRunner.claimTaskSucceeded(-1))
+        assertEquals(false, ScheduledTaskRunner.claimTaskSucceeded(-3))
+    }
 }

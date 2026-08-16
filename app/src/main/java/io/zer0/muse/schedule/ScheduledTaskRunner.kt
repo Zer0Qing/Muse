@@ -102,6 +102,14 @@ class ScheduledTaskRunner(
         }
         private const val POLL_INTERVAL_MS = 60_000L // 每分钟检查一次
         private const val REPLY_SUMMARY_MAX_LEN = 200 // AI 回复摘要最大长度
+
+        /**
+         * B-12: 抢占式领取判定(纯函数,供单元测试直接调用)。
+         *
+         * [dao.claimTask] 返回受影响行数:1 = 本执行者领取成功;0 = 已被其他执行者抢先领取。
+         * 行数 > 0 即判定领取成功;负数/意外值按失败处理(保守跳过,杜绝重复执行)。
+         */
+        internal fun claimTaskSucceeded(rowsAffected: Int): Boolean = rowsAffected > 0
         /** 单次任务 AI 调用超时(毫秒)。 */
         private const val LLM_TIMEOUT_MS = 60_000L
         /** v1.0.17: 链式任务最大递归深度,防止无限循环。 */
@@ -168,6 +176,7 @@ class ScheduledTaskRunner(
      * v1.137: 执行单个自动化任务。
      *
      * 流程:
+     *  0. 抢占式领取 CAS(见 B-12):执行前原子比对 next_run_at,失败即已被人领取,跳过
      *  1. 评估 condition(条件触发)
      *  2. 按 action_type 执行对应动作(ai_prompt / create_quick_note / call_tool / notify)
      *  3. 成功执行后触发链式任务(next_task_ids)
@@ -175,6 +184,9 @@ class ScheduledTaskRunner(
      *
      * v1.0.17: 新增 [chainDepth] 参数用于链式任务递归深度限制;
      *  执行失败时按指数退避重试(retry_count < max_retries 时递增,达上限后重置)。
+     *
+     * v1.0.x B-12: 执行动作前先通过 [ScheduledTaskDao.claimTask] 做抢占式领取,
+     *  保证轮询 / Worker / 手动"立即执行" / 链式多路不同进程不会重复执行同一到期任务。
      *
      * 任何环节失败都记录一条 failed execution,不抛异常。
      */
@@ -186,6 +198,22 @@ class ScheduledTaskRunner(
         }
 
         val now = System.currentTimeMillis()
+        // B-12: 抢占式领取 — 执行动作前先做原子 CAS,防止轮询(tickOnce)与 Worker(tickOnceForWorker)
+        // 并发执行同一到期任务导致重复 AI 调用 / 重复通知。只有 next_run_at 仍等于本快照读取值
+        // (仍到期未领取)才能通过,失败说明已有其他执行者领取,直接跳过不做任何副作用。
+        // 依赖 ScheduledTaskDao.claimTask 的单条原子 UPDATE 实现跨进程安全。
+        val claimedRows = try {
+            dao.claimTask(task.id, task.nextRunAt, now)
+        } catch (e: Exception) {
+            if (e is kotlin.coroutines.cancellation.CancellationException) throw e
+            Logger.w(TAG, "Task ${task.id} claim failed: ${e.message}")
+            0
+        }
+        if (!claimTaskSucceeded(claimedRows)) {
+            Logger.w(TAG, "Task ${task.id} already claimed by another executer, skip")
+            return
+        }
+
         var status = "success"
         var replySummary = ""
         var errorMessage = ""

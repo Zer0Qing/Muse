@@ -300,6 +300,16 @@ class ProactiveMessageRunner(
             (now - config.lastTriggeredAt) > GUARANTEED_INTERVAL_MS &&
             todaySentCount < config.maxDailyMessages
         if (guaranteedSend) {
+            // B-16: 24h 保底发送无视 LLM"不应发送"判断,与 USER_EXPLICIT_END 间隔拉长(1.5x)互相抵消 ——
+            // 用户刚说"晚安/拜拜"时,保底却无视对话结束信号直接打扰。
+            // 这里复用 activityProfile 持久化的最近对话结束类型(与 [computeNextTriggerTime] 同源,
+            // 由 ChatViewModel/本 Runner 更新):若为 USER_EXPLICIT_END 则豁免保底发送,
+            // 并重置 lastTriggeredAt 重启 24h 保底时钟,让自适应调度以 1.5x 间隔延迟下次评估,避免立即打扰。
+            if (activityProfile.getLastConversationEndType() == ConversationEndType.USER_EXPLICIT_END) {
+                Logger.i(TAG, "保底触发豁免: 用户最近明确结束对话(USER_EXPLICIT_END),跳过 24h 保底并重启保底时钟")
+                saveProactiveSchedule(config, now, baseIntervalMs, updateLastTriggered = true)
+                return@withLock
+            }
             Logger.i(TAG, "保底触发: 距上次主动消息 ${(now - config.lastTriggeredAt) / 3_600_000}h,超过 24h,跳过排期/评分/决策直接发送")
         }
 
@@ -344,11 +354,18 @@ class ProactiveMessageRunner(
 
         // 取会话作为"当前会话"
         val sessions = sessionRepository.observeSessions().first()
+        // B-14: 优先前台当前会话(settings.viewed_session_id)作为目标会话,避免后台定时任务
+        // 刷新其他会话 updatedAt 时把主动消息错误写进非当前会话(串会话)。
+        // 仅当 viewed 会话仍存在于 active 会话列表时才优先;否则回退到原启发式。
+        val viewedSessionId = settings.getViewedSessionId()
+        val preferredViewedSession = viewedSessionId?.let { vid -> sessions.firstOrNull { it.id == vid } }
         // v1.95: 仅Agent会话可发主动消息(agentOnly=true时)
         val targetSession = if (config.agentOnly) {
-            sessionRepository.getLatestAgentSession() ?: sessions.firstOrNull()
+            preferredViewedSession?.takeIf { it.isAgentSession }
+                ?: sessionRepository.getLatestAgentSession()
+                ?: sessions.firstOrNull()
         } else {
-            sessions.firstOrNull()
+            preferredViewedSession ?: sessions.firstOrNull()
         } ?: return@withLock
 
         // B8-01: 会话级排期优先 — 会话已删除时根本不会出现在列表,排期随行清理
@@ -436,12 +453,15 @@ class ProactiveMessageRunner(
         val decisionPrompt = buildDecisionPrompt(assistant, patrolContext)
         val decisionCompletion = resultOf {
             withTimeoutOrNull(LLM_TIMEOUT_MS) {
-                chatService.completeText(
-                    messages = decisionPrompt,
-                    // v2.0 5.9: 决策阶段用 temperature × 0.5(决策需要确定性)
-                    temperature = (config.temperature * 0.5f).coerceIn(0f, 2f),
-                    maxTokens = DECISION_MAX_TOKENS,
-                )
+                // B-22: 与群聊生成共享并发限流,避免叠加触发 429
+                GenerationGate.withPermit {
+                    chatService.completeText(
+                        messages = decisionPrompt,
+                        // v2.0 5.9: 决策阶段用 temperature × 0.5(决策需要确定性)
+                        temperature = (config.temperature * 0.5f).coerceIn(0f, 2f),
+                        maxTokens = DECISION_MAX_TOKENS,
+                    )
+                }
             }
         }.onError { msg, t ->
             Logger.w(TAG, "主动消息决策 LLM 调用失败: ${t?.message ?: msg}")
@@ -480,12 +500,15 @@ class ProactiveMessageRunner(
         val contentPrompt = buildContentPrompt(assistant, patrolContext, decision)
         val contentCompletion = resultOf {
             withTimeoutOrNull(LLM_TIMEOUT_MS) {
-                chatService.completeText(
-                    messages = contentPrompt,
-                    // v2.0 5.9: 生成阶段用配置的 temperature
-                    temperature = config.temperature,
-                    maxTokens = CONTENT_MAX_TOKENS,
-                )
+                // B-22: 与群聊生成共享并发限流
+                GenerationGate.withPermit {
+                    chatService.completeText(
+                        messages = contentPrompt,
+                        // v2.0 5.9: 生成阶段用配置的 temperature
+                        temperature = config.temperature,
+                        maxTokens = CONTENT_MAX_TOKENS,
+                    )
+                }
             }
         }.onError { msg, t ->
             Logger.w(TAG, "主动消息生成 LLM 调用失败: ${t?.message ?: msg}")
@@ -1007,9 +1030,23 @@ class ProactiveMessageRunner(
         val start = cleaned.indexOf('{')
         val end = cleaned.lastIndexOf('}')
         val jsonText = if (start >= 0 && end > start) cleaned.substring(start, end + 1) else cleaned
-        return resultOf { decisionJson.decodeFromString<ProactiveDecision>(jsonText) }
+        resultOf { decisionJson.decodeFromString<ProactiveDecision>(jsonText) }
             .onError { msg, t -> Logger.w(TAG, "Parse proactive decision failed: ${t?.message ?: msg}") }
-            .getOrNull() ?: ProactiveDecision(shouldSend = false, reason = "parse_error")
+            .getOrNull()?.let { return it }
+
+        // B-11: LLM 输出超 DECISION_MAX_TOKENS 截断时,JSON 在 reason/scenario 尾部被切,严格解析必失败。
+        // 但 shouldSend 是 JSON 的第一个字段,截断不会影响其值 —— 若原文含 shouldSend=true,
+        // 说明 LLM 本意是发送,宽松接受,避免普通路径漏发(解析失败默认 shouldSend=false 会静默漏发)。
+        val shouldSendTrue = kotlin.text.RegexOption.IGNORE_CASE
+            .let { opt -> """["']?shouldSend["']?\s*[:=]\s*true\b""".toRegex(opt).containsMatchIn(cleaned) }
+        if (shouldSendTrue) {
+            Logger.w(TAG, "Parse proactive decision failed but shouldSend=true detected, lenient accept")
+            return ProactiveDecision(shouldSend = true, reason = DECISION_PARSE_FAILED_REASON)
+        }
+        // B-11: 解析失败也不要直接把 "parse_error" 作为 reason 传给生成阶段 ——
+        // 保底路径会忽略 shouldSend=false 硬发,此时 reason 会拼进 content prompt,
+        // 用固定文案 "decision_parse_failed" 标记,避免脏 reason 污染生成内容。
+        return ProactiveDecision(shouldSend = false, reason = DECISION_PARSE_FAILED_REASON)
     }
 
     fun stop() {
@@ -1029,6 +1066,10 @@ class ProactiveMessageRunner(
         private const val DECISION_MAX_TOKENS = 100
         /** 阶段2 生成正文最大 token(支持故事类 200-500 字)。 */
         private const val CONTENT_MAX_TOKENS = 500
+
+        // B-11: 决策 JSON 解析失败时用固定文案作为 reason,避免 "parse_error" 等脏 reason
+        // 被保底路径(忽略 shouldSend=false)拼进生成阶段的 content prompt。
+        private const val DECISION_PARSE_FAILED_REASON = "decision_parse_failed"
 
         // v2.0 5.1: SharedPreferences key
         private const val KEY_FIRST_LAUNCH = "pref_proactive_first_launch"

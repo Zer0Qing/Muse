@@ -50,6 +50,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import java.io.BufferedWriter
+import java.io.ByteArrayOutputStream
 import java.io.OutputStream
 import java.io.InputStream
 import java.io.OutputStreamWriter
@@ -186,176 +187,196 @@ class BackupService(
      * @return 导出的会话数 + 消息数
      */
     suspend fun exportStreaming(context: Context, uri: Uri): Pair<Int, Int> = withContext(Dispatchers.IO) {
-        var sessionCount = 0
-        var messageCount = 0
-        context.contentResolver.openOutputStream(uri)?.use { os: OutputStream ->
+        val summary = context.contentResolver.openOutputStream(uri)?.use { os: OutputStream ->
             BufferedWriter(OutputStreamWriter(os, Charsets.UTF_8)).use { writer ->
-                // Step 1: 拉取所有数据
-                val sessions = db.sessionDao().observeAll().first()
-                val sessionSummaries = memoryDb.sessionSummaryDao().getAll()
-                val compiledSections = memoryDb.compiledSectionDao().getAll()
-                val dailyState = memoryDb.dailyStateDao().get()?.let { listOf(it) } ?: emptyList()
-                val facts = factDb.factDao().getAll()
-                // v3: 拉取扩展表
-                val assistants = db.assistantDao().getAll()
-                val lorebooks = db.lorebookDao().getAll()
-                val skills = db.skillDao().getAll()
-                val artifacts = db.artifactDao().getAll()
-                val quickMessages = db.quickMessageDao().getAll()
-                val promptInjections = db.promptInjectionDao().getAll()
-                val folders = db.folderDao().getAll()
-                val groupChats = db.groupChatDao().getAll()
-                val groupChatMessages = db.groupChatMessageDao().getAll()
-                val scheduledTasks = db.scheduledTaskDao().getAll()
-                val scheduledTaskExecutions = db.scheduledTaskExecutionDao().getAll()
-                val knowledgeDocs = db.knowledgeDocDao().getAll()
-                val knowledgeChunks = db.knowledgeChunkDao().getAll()
-                val experiences = db.experienceDao().getAll()
-                val milestones = db.milestoneDao().getAll()
-                val agentMessages = db.agentMessageDao().getAll()
-                // v1.0.74: 朋友圈三表(此前完全不在备份里,换机恢复丢数据)
-                val moments = db.momentDao().getAll()
-                val momentComments = db.momentDao().getAllComments()
-                val momentLikes = db.momentDao().getAllLikes()
-                val settingsSnapshot = settings.exportSettingsSnapshot()
-
-                // Step 2: 写 meta 行
-                val meta = buildJsonObject {
-                    put("type", "meta")
-                    put("version", 3)
-                    put("exportedAt", System.currentTimeMillis())
-                    put("sessions", sessions.size)
-                    put("sessionSummaries", sessionSummaries.size)
-                    put("dailyStates", dailyState.size)
-                    put("compiledSections", compiledSections.size)
-                    put("facts", facts.size)
-                    put("assistants", assistants.size)
-                    put("lorebooks", lorebooks.size)
-                    put("skills", skills.size)
-                    put("artifacts", artifacts.size)
-                    put("quickMessages", quickMessages.size)
-                    put("promptInjections", promptInjections.size)
-                    put("folders", folders.size)
-                    put("groupChats", groupChats.size)
-                    put("groupChatMessages", groupChatMessages.size)
-                    put("scheduledTasks", scheduledTasks.size)
-                    put("scheduledTaskExecutions", scheduledTaskExecutions.size)
-                    put("knowledgeDocs", knowledgeDocs.size)
-                    put("knowledgeChunks", knowledgeChunks.size)
-                    put("experiences", experiences.size)
-                    put("milestones", milestones.size)
-                    put("agentMessages", agentMessages.size)
-                    put("moments", moments.size)
-                    put("momentComments", momentComments.size)
-                    put("momentLikes", momentLikes.size)
-                }
-                writer.write(meta.toString())
-                writer.newLine()
-
-                // Step 3: 写 sessions
-                sessions.forEach { session ->
-                    val line = buildJsonObject {
-                        put("type", "session")
-                        put("data", json.encodeToJsonElement(SessionEntity.serializer(), session))
-                    }
-                    writer.write(line.toString())
-                    writer.newLine()
-                    sessionCount++
-                }
-
-                // Step 4: 写 messages
-                sessions.forEach { session ->
-                    val messages = db.messageDao().observeBySession(session.id).first()
-                    messages.forEach { msg ->
-                        val line = buildJsonObject {
-                            put("type", "message")
-                            put("data", json.encodeToJsonElement(MessageEntity.serializer(), msg))
-                        }
-                        writer.write(line.toString())
-                        writer.newLine()
-                        messageCount++
-                    }
-                }
-
-                // Step 5: 写 memory 数据
-                sessionSummaries.forEach { summary ->
-                    val line = buildJsonObject {
-                        put("type", "summary")
-                        put("data", json.encodeToJsonElement(SessionSummaryEntity.serializer(), summary))
-                    }
-                    writer.write(line.toString())
-                    writer.newLine()
-                }
-                dailyState.forEach { ds ->
-                    val line = buildJsonObject {
-                        put("type", "dailyState")
-                        put("data", json.encodeToJsonElement(DailyStateEntity.serializer(), ds))
-                    }
-                    writer.write(line.toString())
-                    writer.newLine()
-                }
-                compiledSections.forEach { cs ->
-                    val line = buildJsonObject {
-                        put("type", "compiledSection")
-                        put("data", json.encodeToJsonElement(CompiledSectionEntity.serializer(), cs))
-                    }
-                    writer.write(line.toString())
-                    writer.newLine()
-                }
-
-                // Step 6: 写 facts
-                facts.forEach { fact ->
-                    val line = buildJsonObject {
-                        put("type", "fact")
-                        put("data", json.encodeToJsonElement(FactEntity.serializer(), fact))
-                    }
-                    writer.write(line.toString())
-                    writer.newLine()
-                }
-
-                // Step 7: 写扩展表(v3)
-                writeTypedLines(writer, "assistant", assistants, AssistantEntity.serializer())
-                writeTypedLines(writer, "lorebook", lorebooks, LorebookEntity.serializer())
-                writeTypedLines(writer, "skill", skills, SkillEntity.serializer())
-                writeTypedLines(writer, "artifact", artifacts, ArtifactEntity.serializer())
-                writeTypedLines(writer, "quickMessage", quickMessages, QuickMessageEntity.serializer())
-                writeTypedLines(writer, "promptInjection", promptInjections, PromptInjectionEntity.serializer())
-                writeTypedLines(writer, "folder", folders, FolderEntity.serializer())
-                writeTypedLines(writer, "groupChat", groupChats, GroupChatEntity.serializer())
-                writeTypedLines(writer, "groupChatMessage", groupChatMessages, GroupChatMessageEntity.serializer())
-                writeTypedLines(writer, "scheduledTask", scheduledTasks, ScheduledTaskEntity.serializer())
-                writeTypedLines(writer, "scheduledTaskExecution", scheduledTaskExecutions, ScheduledTaskExecutionEntity.serializer())
-                writeTypedLines(writer, "knowledgeDoc", knowledgeDocs, KnowledgeDocEntity.serializer())
-                writeTypedLines(writer, "knowledgeChunk", knowledgeChunks, KnowledgeChunkEntity.serializer())
-                writeTypedLines(writer, "experience", experiences, ExperienceEntity.serializer())
-                writeTypedLines(writer, "milestone", milestones, MilestoneEntity.serializer())
-                writeTypedLines(writer, "agentMessage", agentMessages, AgentMessageEntity.serializer())
-                // v1.0.74: 朋友圈三表
-                writeTypedLines(writer, "moment", moments, MomentEntity.serializer())
-                writeTypedLines(writer, "momentComment", momentComments, MomentCommentEntity.serializer())
-                writeTypedLines(writer, "momentLike", momentLikes, MomentLikeEntity.serializer())
-
-                // Step 8: 写设置快照
-                if (settingsSnapshot.isNotEmpty()) {
-                    val line = buildJsonObject {
-                        put("type", "settings")
-                        put("data", json.encodeToJsonElement(
-                            MapSerializer(
-                                String.serializer(),
-                                String.serializer(),
-                            ),
-                            settingsSnapshot,
-                        ))
-                    }
-                    writer.write(line.toString())
-                    writer.newLine()
-                }
-
+                val wrote = writeNdJson(writer)
                 writer.flush()
-                Logger.i("BackupService", "流式导出完成: $sessionCount 会话, $messageCount 消息")
+                Logger.i("BackupService", "流式导出完成: ${wrote.sessions} 会话, ${wrote.messages} 消息")
+                wrote
             }
         } ?: error(context.getString(R.string.backup_cannot_write, uri))
-        sessionCount to messageCount
+        summary.sessions to summary.messages
+    }
+
+    /**
+     * B-25: NDJSON 全量数据拉取 + 逐行写入的公共实现。
+     *
+     * 由 [exportStreaming](本地 SAF 文件)与 [exportToCloud](云端字节流)复用。
+     * 逐条序列化逐行写出,消息按会话分批拉取,不整份 buildBackup + encodeToString,
+     * 避免"Backup 全量对象 + 巨串 + 字节数组"三份内存同时驻留导致的 OOM。
+     *
+     * @return 各主要表计数(供调用方打印规模诊断日志)
+     */
+    private suspend fun writeNdJson(writer: BufferedWriter): NdJsonExportSummary {
+        // Step 1: 拉取所有数据
+        val sessions = db.sessionDao().observeAll().first()
+        val sessionSummaries = memoryDb.sessionSummaryDao().getAll()
+        val compiledSections = memoryDb.compiledSectionDao().getAll()
+        val dailyState = memoryDb.dailyStateDao().get()?.let { listOf(it) } ?: emptyList()
+        val facts = factDb.factDao().getAll()
+        // v3: 拉取扩展表
+        val assistants = db.assistantDao().getAll()
+        val lorebooks = db.lorebookDao().getAll()
+        val skills = db.skillDao().getAll()
+        val artifacts = db.artifactDao().getAll()
+        val quickMessages = db.quickMessageDao().getAll()
+        val promptInjections = db.promptInjectionDao().getAll()
+        val folders = db.folderDao().getAll()
+        val groupChats = db.groupChatDao().getAll()
+        val groupChatMessages = db.groupChatMessageDao().getAll()
+        val scheduledTasks = db.scheduledTaskDao().getAll()
+        val scheduledTaskExecutions = db.scheduledTaskExecutionDao().getAll()
+        val knowledgeDocs = db.knowledgeDocDao().getAll()
+        val knowledgeChunks = db.knowledgeChunkDao().getAll()
+        val experiences = db.experienceDao().getAll()
+        val milestones = db.milestoneDao().getAll()
+        val agentMessages = db.agentMessageDao().getAll()
+        // v1.0.74: 朋友圈三表(此前完全不在备份里,换机恢复丢数据)
+        val moments = db.momentDao().getAll()
+        val momentComments = db.momentDao().getAllComments()
+        val momentLikes = db.momentDao().getAllLikes()
+        val settingsSnapshot = settings.exportSettingsSnapshot()
+
+        // Step 2: 写 meta 行
+        val meta = buildJsonObject {
+            put("type", "meta")
+            put("version", 3)
+            put("exportedAt", System.currentTimeMillis())
+            put("sessions", sessions.size)
+            put("sessionSummaries", sessionSummaries.size)
+            put("dailyStates", dailyState.size)
+            put("compiledSections", compiledSections.size)
+            put("facts", facts.size)
+            put("assistants", assistants.size)
+            put("lorebooks", lorebooks.size)
+            put("skills", skills.size)
+            put("artifacts", artifacts.size)
+            put("quickMessages", quickMessages.size)
+            put("promptInjections", promptInjections.size)
+            put("folders", folders.size)
+            put("groupChats", groupChats.size)
+            put("groupChatMessages", groupChatMessages.size)
+            put("scheduledTasks", scheduledTasks.size)
+            put("scheduledTaskExecutions", scheduledTaskExecutions.size)
+            put("knowledgeDocs", knowledgeDocs.size)
+            put("knowledgeChunks", knowledgeChunks.size)
+            put("experiences", experiences.size)
+            put("milestones", milestones.size)
+            put("agentMessages", agentMessages.size)
+            put("moments", moments.size)
+            put("momentComments", momentComments.size)
+            put("momentLikes", momentLikes.size)
+        }
+        writer.write(meta.toString())
+        writer.newLine()
+
+        // Step 3: 写 sessions
+        var sessionCount = 0
+        sessions.forEach { session ->
+            val line = buildJsonObject {
+                put("type", "session")
+                put("data", json.encodeToJsonElement(SessionEntity.serializer(), session))
+            }
+            writer.write(line.toString())
+            writer.newLine()
+            sessionCount++
+        }
+
+        // Step 4: 写 messages
+        var messageCount = 0
+        sessions.forEach { session ->
+            val messages = db.messageDao().observeBySession(session.id).first()
+            messages.forEach { msg ->
+                val line = buildJsonObject {
+                    put("type", "message")
+                    put("data", json.encodeToJsonElement(MessageEntity.serializer(), msg))
+                }
+                writer.write(line.toString())
+                writer.newLine()
+                messageCount++
+            }
+        }
+
+        // Step 5: 写 memory 数据
+        sessionSummaries.forEach { summary ->
+            val line = buildJsonObject {
+                put("type", "summary")
+                put("data", json.encodeToJsonElement(SessionSummaryEntity.serializer(), summary))
+            }
+            writer.write(line.toString())
+            writer.newLine()
+        }
+        dailyState.forEach { ds ->
+            val line = buildJsonObject {
+                put("type", "dailyState")
+                put("data", json.encodeToJsonElement(DailyStateEntity.serializer(), ds))
+            }
+            writer.write(line.toString())
+            writer.newLine()
+        }
+        compiledSections.forEach { cs ->
+            val line = buildJsonObject {
+                put("type", "compiledSection")
+                put("data", json.encodeToJsonElement(CompiledSectionEntity.serializer(), cs))
+            }
+            writer.write(line.toString())
+            writer.newLine()
+        }
+
+        // Step 6: 写 facts
+        facts.forEach { fact ->
+            val line = buildJsonObject {
+                put("type", "fact")
+                put("data", json.encodeToJsonElement(FactEntity.serializer(), fact))
+            }
+            writer.write(line.toString())
+            writer.newLine()
+        }
+
+        // Step 7: 写扩展表(v3)
+        writeTypedLines(writer, "assistant", assistants, AssistantEntity.serializer())
+        writeTypedLines(writer, "lorebook", lorebooks, LorebookEntity.serializer())
+        writeTypedLines(writer, "skill", skills, SkillEntity.serializer())
+        writeTypedLines(writer, "artifact", artifacts, ArtifactEntity.serializer())
+        writeTypedLines(writer, "quickMessage", quickMessages, QuickMessageEntity.serializer())
+        writeTypedLines(writer, "promptInjection", promptInjections, PromptInjectionEntity.serializer())
+        writeTypedLines(writer, "folder", folders, FolderEntity.serializer())
+        writeTypedLines(writer, "groupChat", groupChats, GroupChatEntity.serializer())
+        writeTypedLines(writer, "groupChatMessage", groupChatMessages, GroupChatMessageEntity.serializer())
+        writeTypedLines(writer, "scheduledTask", scheduledTasks, ScheduledTaskEntity.serializer())
+        writeTypedLines(writer, "scheduledTaskExecution", scheduledTaskExecutions, ScheduledTaskExecutionEntity.serializer())
+        writeTypedLines(writer, "knowledgeDoc", knowledgeDocs, KnowledgeDocEntity.serializer())
+        writeTypedLines(writer, "knowledgeChunk", knowledgeChunks, KnowledgeChunkEntity.serializer())
+        writeTypedLines(writer, "experience", experiences, ExperienceEntity.serializer())
+        writeTypedLines(writer, "milestone", milestones, MilestoneEntity.serializer())
+        writeTypedLines(writer, "agentMessage", agentMessages, AgentMessageEntity.serializer())
+        // v1.0.74: 朋友圈三表
+        writeTypedLines(writer, "moment", moments, MomentEntity.serializer())
+        writeTypedLines(writer, "momentComment", momentComments, MomentCommentEntity.serializer())
+        writeTypedLines(writer, "momentLike", momentLikes, MomentLikeEntity.serializer())
+
+        // Step 8: 写设置快照
+        if (settingsSnapshot.isNotEmpty()) {
+            val line = buildJsonObject {
+                put("type", "settings")
+                put("data", json.encodeToJsonElement(
+                    MapSerializer(
+                        String.serializer(),
+                        String.serializer(),
+                    ),
+                    settingsSnapshot,
+                ))
+            }
+            writer.write(line.toString())
+            writer.newLine()
+        }
+
+        return NdJsonExportSummary(
+            sessions = sessionCount,
+            messages = messageCount,
+            facts = facts.size,
+            groupChatMessages = groupChatMessages.size,
+        )
     }
 
     /**
@@ -376,6 +397,16 @@ class BackupService(
             writer.newLine()
         }
     }
+
+    /**
+     * B-25: [writeNdJson] 的统计结果,供导出方打印规模诊断日志。
+     */
+    private data class NdJsonExportSummary(
+        val sessions: Int,
+        val messages: Int,
+        val facts: Int,
+        val groupChatMessages: Int,
+    )
 
     /** B4-07: 字符串版流式导入(云端旧路径兼容)。 */
     private suspend fun applyNdJsonStreaming(text: String): Pair<Int, Int> =
@@ -730,14 +761,23 @@ class BackupService(
     suspend fun exportToCloud(): Boolean {
         val config = settings.cloudBackupConfigFlow.first()
         if (!config.isConfigured) return false
-        val backup = buildBackup()
+        // B-25: 复用 writeNdJson 流式产物 — 逐条序列化写入字节缓冲,不再 buildBackup + encodeToString
+        // (Backup 全量对象 + 巨串 + 字节数组三份内存驻留)。云端上传 API 需整份字节,
+        // 这里峰值仅一份 NDJSON 字节数组(明文或加密后),大幅降低万级消息的 OOM 风险。
+        val plaintext: ByteArray
+        val writeSummary: NdJsonExportSummary
+        ByteArrayOutputStream().use { baos ->
+            BufferedWriter(OutputStreamWriter(baos, Charsets.UTF_8)).use { writer ->
+                writeSummary = writeNdJson(writer)
+            }
+            plaintext = baos.toByteArray()
+        }
         // v1.x 诊断: 记录导出规模,便于排查"备份不完整/恢复后数据丢失"类问题
         Logger.i(
             "BackupService",
-            "导出云端备份: ${backup.sessions.size} 会话 / ${backup.messages.size} 消息" +
-                " / ${backup.facts.size} 记忆 / ${backup.groupChatMessages.size} 群聊消息",
+            "导出云端备份: ${writeSummary.sessions} 会话 / ${writeSummary.messages} 消息" +
+                " / ${writeSummary.facts} 记忆 / ${writeSummary.groupChatMessages} 群聊消息",
         )
-        val plaintext = json.encodeToString(Backup.serializer(), backup).toByteArray(Charsets.UTF_8)
         val data = if (config.backupPassword.isNotEmpty()) {
             BackupCrypto.encrypt(plaintext, config.backupPassword)
         } else {

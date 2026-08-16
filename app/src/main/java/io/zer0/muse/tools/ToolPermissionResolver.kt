@@ -159,7 +159,14 @@ object ToolPermissionResolver {
         return when (mode) {
             // v1.0.48: TRUSTED = 完全放权,所有风险等级都自动执行,不再对 HIGH 工具弹审批
             //   与 SettingsRepository 中"完全放权,所有工具直接调用,不需批准"的注释语义对齐
-            SessionPermissionMode.TRUSTED -> ToolApprovalState.Auto
+            // B-27: 通信/资金类不可逆副作用工具除外 — TRUSTED 下仍保留审批,
+            //   防止 prompt injection 或模型误判直接发短信/打电话/改通讯录。
+            SessionPermissionMode.TRUSTED ->
+                if (effectiveRisk == ToolRiskLevel.HIGH && toolName in TRUSTED_REQUIRE_APPROVAL_TOOLS) {
+                    ToolApprovalState.Pending
+                } else {
+                    ToolApprovalState.Auto
+                }
             SessionPermissionMode.ASK -> when (effectiveRisk) {
                 ToolRiskLevel.SAFE -> ToolApprovalState.Auto
                 ToolRiskLevel.NORMAL -> ToolApprovalState.Pending
@@ -411,5 +418,18 @@ object ToolPermissionResolver {
         "quick_note_get",
         "resource_get",
         "workspace_list",
+    )
+
+    /**
+     * B-27: 即使 TRUSTED(完全放权)模式也保留审批的 HIGH 风险工具 —
+     * 通信/联系人/日历等不可逆外部副作用,受 prompt injection 影响后果最严重
+     * (发短信/打电话/改通讯录无法撤回)。安全评审建议:这类工具永远需要用户确认。
+     */
+    private val TRUSTED_REQUIRE_APPROVAL_TOOLS: Set<String> = setOf(
+        "send_sms",
+        "make_phone_call",
+        "add_contact",
+        "add_calendar_event",
+        "execute_javascript",
     )
 }

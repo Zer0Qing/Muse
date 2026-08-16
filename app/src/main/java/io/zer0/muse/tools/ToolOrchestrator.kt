@@ -865,26 +865,28 @@ class ToolOrchestrator(
         } ?: "[超时] 工具 ${tc.name} ${toolTimeoutMs / 1000} 秒未响应,已终止"
 
         val isSuccess = taskCardCoordinator.isToolResultSuccess(toolResult)
-        // v1.0.47 P2-1: 结构化失败引导 — 仅拼进给 LLM 的历史消息,避免无效重试循环
-        // v1.x: 展示给用户的 toolDisplay/taskCard 用纯报错文本,不暴露给模型的引导语。
-        val llmResult = if (isSuccess) {
-            toolResult
-        } else {
-            "$toolResult\n\n[工具调用失败引导] 请按以下优先级判断:\n" +
-                "1. 参数/路径错误 → 修正后重试本工具(最多 1 次)\n" +
-                "2. 权限/资源不可用 → 换用其他工具或告知用户限制\n" +
-                "3. 网络超时 → 可重试一次,仍失败则告知用户\n" +
-                "4. 无法解决 → 直接告知用户失败原因和建议,不要硬撑"
-        }
         // v1.x: 超长工具输出走"预览 + 写文件 + 引用"模式,完整内容落盘到
         // filesDir/tool_outputs/,LLM 上下文仅保留 4K 预览 + read_file 引用,
         // 既避免撑爆上下文,又让 LLM 能按需读取完整结果。
         // 审计修复 (4.7): 只截断一次 — 原实现 finalToolResult 与 displayResult 各调一次
         // maybeTruncateToolOutput,同一输出写两份文件(文件名含时间戳);现只落盘一份,
         // 展示与给 LLM 的结果共用同一份截断结果与同一文件路径。
-        val finalToolResult = maybeTruncateToolOutput(tc.id, llmResult)
-        // 展示用:复用 finalToolResult(同一路径文件,避免重复落盘;失败时含 LLM 引导语,对展示无碍)
-        val displayResult = finalToolResult
+        // B-09: 截断在拼引导语之前执行 — 展示用 displayResult 为纯报错文本,
+        // "[工具调用失败引导]"只进 LLM 历史,不泄漏到用户可见的任务卡/工具卡片。
+        val baseResult = maybeTruncateToolOutput(tc.id, toolResult)
+        // v1.0.47 P2-1: 结构化失败引导 — 仅拼进给 LLM 的历史消息,避免无效重试循环
+        val llmResult = if (isSuccess) {
+            baseResult
+        } else {
+            "$baseResult\n\n[工具调用失败引导] 请按以下优先级判断:\n" +
+                "1. 参数/路径错误 → 修正后重试本工具(最多 1 次)\n" +
+                "2. 权限/资源不可用 → 换用其他工具或告知用户限制\n" +
+                "3. 网络超时 → 可重试一次,仍失败则告知用户\n" +
+                "4. 无法解决 → 直接告知用户失败原因和建议,不要硬撑"
+        }
+        val finalToolResult = llmResult
+        // B-09: 展示用纯报错文本,不含 LLM 引导语
+        val displayResult = baseResult
 
         taskCardCoordinator.updateTaskCardStep(taskCardId, idx) { s ->
             s.copy(

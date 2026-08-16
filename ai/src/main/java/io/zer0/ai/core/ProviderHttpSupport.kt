@@ -197,6 +197,41 @@ abstract class ProviderHttpSupport(
         }
 
         /**
+         * B-03: 带大小上限的流式响应体读取 — contentLength 未知(chunked)或未声明时同样生效。
+         *
+         * 逐块累计,超过 [maxBytes] 即中断(丢弃剩余),避免 chunked 响应绕过
+         * contentLength 检查把超大响应整读进内存。
+         *
+         * @return Pair<已读文本(最多 maxBytes), 是否超限>
+         */
+        fun readBodyCappedStreaming(response: Response, maxBytes: Int): Pair<String, Boolean> {
+            val body = response.body ?: return "" to false
+            val sb = StringBuilder()
+            var kept = 0
+            var over = false
+            try {
+                body.byteStream().use { input ->
+                    val buf = ByteArray(8192)
+                    while (true) {
+                        val n = input.read(buf)
+                        if (n < 0) break
+                        if (kept + n > maxBytes) {
+                            val take = maxBytes - kept
+                            if (take > 0) sb.append(String(buf, 0, take, Charsets.UTF_8))
+                            over = true
+                            break
+                        }
+                        sb.append(String(buf, 0, n, Charsets.UTF_8))
+                        kept += n
+                    }
+                }
+            } catch (_: java.io.IOException) {
+                // 读取中断按已读内容返回,由调用方按超限/短响应处理
+            }
+            return sb.toString() to over
+        }
+
+        /**
          * 按 HTTP 状态码返回人类可读的错误分类,用于差异化提示/重试决策。
          * 返回 null 表示无需特殊分类(如 400/404 等业务错误)。
          */

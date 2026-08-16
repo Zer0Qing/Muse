@@ -32,6 +32,15 @@ class MuseNotificationListenerService : NotificationListenerService() {
             // 短信/验证码聚合类
             "com.google.android.apps.messaging", "com.android.mms", "com.miui.securitycenter",
             "com.huawei.hwid", "com.oneplus.security",
+            // B-29: 主流 IM / 邮箱 / 社交——自由文本(private 聊天、群里闲聊)经 PII 遮蔽仍挡不住,
+            // 正文直接不采集,只保留来源包名与时间。
+            // IM/即时通讯
+            "com.tencent.mobileqq", "com.alibaba.android.rimet", "org.telegram.messenger",
+            "com.slack", "com.tencent.tim", "com.immomo.momo", "com.tencent.wework",
+            // 邮箱
+            "com.google.android.gm", "com.microsoft.office.outlook",
+            // 社交/短视频
+            "com.sina.weibo", "com.ss.android.ugc.aweme",
         )
         // L1-2: 最近通知最大保留条数
         private const val MAX_RECENT_NOTIFICATIONS = 50

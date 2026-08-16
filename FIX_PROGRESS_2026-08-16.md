@@ -48,17 +48,29 @@
 
 - ✅ B-01(收尾): b64/url 只接受字符串标量(数字/布尔/null 全过滤) + url 前缀校验(http/data:image/);ImageResponseParseTest +3 例
 - ✅ B-02: SmartImage 解码前剥离换行(兼容 76 字符换行 base64)
+- ✅ B-03: OpenAI/Agnes 图片响应体流式限长读取(chunked/未声明长度同样生效,20MB 上限)
 - ✅ B-04: 收尾消息注入改替换语义(同 id 不重复渲染)
 - ✅ B-05: execGenerateVideo reference_images data URI 不再被逗号拆坏
+- ✅ B-06: create_download 改 MediaStore 写入(API 29+ 不再 EACCES;顺带修 C-27 subdir 穿越过滤)
+- ✅ B-07: generate_qr skill 版下线(保留本地 generate_qr_code + dispatch 兼容)
 - ✅ B-08: schedule_reminder 示例改可解析格式(ISO 需带时区偏移)
+- ✅ B-09: 失败引导语只进 LLM 历史,任务卡/工具卡展示纯报错文本
 - ✅ B-10: 评分阈值 0.2→0.35(最小评分 0.2 不再恒过线,"防骚扰"门槛恢复)
 - ✅ B-13: cron dom+dow 双受限改 OR 语义(Quartz 规范)+ 2 新用例
 - ✅ B-17: FactStore.update 强制 PII 脱敏(LLM 路径);tags 逐项脱敏
 - ✅ B-18: expires_at 过期过滤(getByScope/getBySpace/getByScopeAndSpace/getAll)+ applyDecay 删除过期
+- ✅ B-19: deepMemory scope 口径与 autoSave 对齐(主助手归 "main",子助手用 assistantId)
+- ✅ B-21: 群聊发言落库失败返回 AgentResult.Error + ERROR 日志(不再静默 Pass)
+- ✅ B-22: GenerationGate 共享信号量限流(主动消息决策/生成 + 群聊决策流接入,防叠加 429)
+- ✅ B-23: 检查点按 userMessageId 批量清理(多轮工具循环不再残留中间轮次)
+- ✅ B-24: 流式状态清零加生成序号守卫(快速连发时 gen-1 收尾不清 gen-2 状态)
 - ✅ B-26: 切会话日志风暴降级为 debug(持久化有兜底)
+- ✅ B-27: TRUSTED 模式对 send_sms/打电话/改联系人等不可逆副作用工具保留审批
 - ✅ B-28: OpenAIProvider 7 处 URL 日志脱敏(去 query 参数)
+- ✅ B-30: parse_link 手动跟跳转 + 每跳 SSRF 主机校验(上限 5 跳)
 - ✅ B-31: /reset 流式中拒绝时提示独立文案(7 语言)
-- ⬜ B-03/B-06/B-07/B-09/B-11/B-12/B-14/B-15/B-16/B-19/B-20/B-21/B-22/B-23/B-24/B-25/B-27/B-29/B-30/B-32
+- ⏳ B-11/B-12/B-14/B-15/B-16/B-20/B-25/B-29/B-32: 子代理处理中,完成后登记
+- ⬜ 无
 
 ### C 级进度
 

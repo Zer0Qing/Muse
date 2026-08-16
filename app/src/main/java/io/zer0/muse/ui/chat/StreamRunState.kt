@@ -74,6 +74,13 @@ internal class StreamRunState(
     val builder: StringBuilder = StringBuilder()
     val reasoningBuilder: StringBuilder = StringBuilder()
 
+    /**
+     * B-24: 本代生成的序号 — launchStream 启动时从 ChatViewModel.streamGenerationSerial
+     * 捕获。finalizeResponse/错误路径清零 isStreaming 前校验自己仍是"最新生成",
+     * 防止快速连发时 gen-1 收尾把 gen-2 的流式状态清掉。
+     */
+    var generationSerial: Long = 0L
+
     fun unmaskPii(text: String): String =
         if (piiMatches.isEmpty()) text else PiiGuard.unmask(text, piiMatches)
 }

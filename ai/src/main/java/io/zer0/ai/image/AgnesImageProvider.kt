@@ -4,6 +4,7 @@ import io.zer0.common.ErrorCode
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.common.toMessage
+import io.zer0.ai.core.ProviderHttpSupport
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
@@ -119,7 +120,11 @@ class AgnesImageProvider(
                         Logger.w(TAG, "agnes image HTTP ${resp.code}")
                         error(msg)
                     }
-                    val respBody = readBodySafely(resp)
+                    // B-03: contentLength 未知(chunked)时同样限长 — 流式读取,超限即中断
+                    val (respBody, overLimit) = ProviderHttpSupport.readBodyCappedStreaming(resp, MAX_RESPONSE_BODY_BYTES)
+                    if (overLimit) {
+                        error(ErrorCode.IMAGE_RESPONSE_TOO_LARGE.toMessage(MAX_RESPONSE_BODY_BYTES / 1024 / 1024))
+                    }
                     if (respBody.isBlank()) error(ErrorCode.IMAGE_EMPTY_RESPONSE.toMessage())
                     val images = parseResponseImages(respBody)
                     if (images.isEmpty()) error(ErrorCode.IMAGE_NO_RESULTS.toMessage())
@@ -200,6 +205,9 @@ class AgnesImageProvider(
 
     companion object {
         private const val TAG = "AgnesImageProvider"
+
+        /** B-03: 图片响应体上限 20MB(与 OpenAI 版一致)。 */
+        private const val MAX_RESPONSE_BODY_BYTES = 20 * 1024 * 1024
 
         /** Provider 唯一标识。 */
         const val PROVIDER_ID = "agnes"

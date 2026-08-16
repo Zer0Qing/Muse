@@ -52,6 +52,14 @@ interface GenerationCheckpointDao {
     @Query("DELETE FROM generation_checkpoints WHERE assistantMessageId = :assistantMessageId")
     suspend fun deleteByAssistantMessageId(assistantMessageId: String)
 
+    /**
+     * B-23: 按用户消息删除全部检查点 — 多轮工具循环每轮各写一条检查点,
+     * 收尾时按本轮用户消息批量清理,避免中间轮次检查点残留(重启后被
+     * recoverInterruptedGenerations 误标 [已中断])。
+     */
+    @Query("DELETE FROM generation_checkpoints WHERE userMessageId = :userMessageId")
+    suspend fun deleteByUserMessageId(userMessageId: String)
+
     @Query("DELETE FROM generation_checkpoints WHERE sessionId = :sessionId AND createdAt >= :fromCreatedAt")
     suspend fun deleteBySessionAndCreatedAtFrom(sessionId: String, fromCreatedAt: Long)
 

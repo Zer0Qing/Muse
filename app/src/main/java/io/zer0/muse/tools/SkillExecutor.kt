@@ -1251,28 +1251,9 @@ class SkillExecutor(
                 implementationKotlin = "translate",
                 category = "custom",
             ),
-            SkillEntity(
-                id = "generate_qr",
-                name = "生成二维码",
-                description = "生成任意文本内容的二维码图片,保存到应用缓存目录并返回文件路径。内容可以是文本、URL 或其他字符串。",
-                parametersJson = buildJsonObject {
-                    put("type", "object")
-                    put("properties", buildJsonObject {
-                        put("content", buildJsonObject {
-                            put("type", "string")
-                            put("description", "二维码内容,如 URL/文本/联系方式等")
-                        })
-                        put("size", buildJsonObject {
-                            put("type", "integer")
-                            put("description", "可选,二维码尺寸(像素),100-2000,默认 600")
-                        })
-                    })
-                    put("required", kotlinx.serialization.json.JsonArray(listOf(JsonPrimitive("content"))))
-                }.toString(),
-                requiredJson = """["content"]""",
-                implementationKotlin = "generate_qr",
-                category = "custom",
-            ),
+            // B-07: generate_qr 内置 skill 已下线 — 与本地工具 generate_qr_code 重复且语义冲突
+            // (skill 版返回 cacheDir 文件路径,本地版渲染 data URI 到对话)。保留本地版。
+            // implementationKotlin="generate_qr" 的 dispatch 仍保留,兼容已导入该 skill 的用户。
         )
     }
 }

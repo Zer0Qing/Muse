@@ -39,6 +39,8 @@ object FileTools {
     private const val PARSE_LINK_TIMEOUT_MS = 15_000
     /** parse_link 响应体上限 1MB。 */
     private const val PARSE_LINK_MAX_BYTES = 1024 * 1024
+    /** B-30: parse_link 手动跟跳转上限(每跳都过 SSRF 主机校验)。 */
+    private const val MAX_REDIRECTS = 5
 
     fun toolDefs(): List<ToolRegistry.ToolDef> = listOf(
         ToolRegistry.ToolDef(
@@ -172,25 +174,57 @@ object FileTools {
         val safeFilename = filename.replace(Regex("[^A-Za-z0-9._-]"), "_")
             .takeIf { it.isNotBlank() } ?: "download_${System.currentTimeMillis()}.txt"
 
-        val downloadDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)
-        val targetDir = if (subdir.isNotBlank()) File(downloadDir, subdir) else downloadDir
-        if (!targetDir.exists()) targetDir.mkdirs()
-
-        // 同名文件自动追加序号
-        var target = File(targetDir, safeFilename)
-        var idx = 1
-        val dotIdx = safeFilename.lastIndexOf('.')
-        val baseName = if (dotIdx > 0) safeFilename.substring(0, dotIdx) else safeFilename
-        val ext = if (dotIdx > 0) safeFilename.substring(dotIdx) else ""
-        while (target.exists()) {
-            target = File(targetDir, "$baseName($idx)$ext")
-            idx++
-        }
+        // C-27: subdir 过滤 ".."/"." 段,防止逃逸 Download 目录
+        val safeSubdir = subdir.split("/")
+            .filter { it.isNotBlank() && it != ".." && it != "." }
+            .joinToString("/")
 
         return runCatching {
-            target.writeText(content)
-            Logger.i("FileTools", "create_download 成功: ${target.absolutePath} (${content.length} chars)")
-            "[成功] 文件已保存到 Download 目录\n路径: ${target.absolutePath}\n大小: ${content.length} 字符"
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                // B-06: API 29+ scoped storage 直写公共目录必失败(EACCES),
+                // 改走 MediaStore.Downloads(自动加入系统下载列表,重名自动加序号)。
+                val resolver = context.contentResolver
+                val relativePath = if (safeSubdir.isNotBlank()) {
+                    "${android.os.Environment.DIRECTORY_DOWNLOADS}/$safeSubdir"
+                } else {
+                    android.os.Environment.DIRECTORY_DOWNLOADS
+                }
+                val values = android.content.ContentValues().apply {
+                    put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, safeFilename)
+                    put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "text/plain")
+                    put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, relativePath)
+                }
+                val uri = resolver.insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                    ?: return "[错误] 无法在 Download 目录创建文件"
+                resolver.openOutputStream(uri)?.use { it.write(content.toByteArray()) }
+                    ?: return "[错误] 无法打开输出流"
+                Logger.i("FileTools", "create_download 成功(MediaStore): $safeFilename (${content.length} chars)")
+                "[成功] 文件已保存到 Download 目录\n文件名: $safeFilename" +
+                    (if (safeSubdir.isNotBlank()) "\n子目录: $safeSubdir" else "") +
+                    "\n大小: ${content.length} 字符"
+            } else {
+                // Android 9 以下:直接写公共目录(需 WRITE_EXTERNAL_STORAGE)
+                val hasWritePerm = androidx.core.content.ContextCompat.checkSelfPermission(
+                    context, android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                if (!hasWritePerm) return "[错误] 缺少写存储权限(WRITE_EXTERNAL_STORAGE)"
+                val downloadDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)
+                val targetDir = if (safeSubdir.isNotBlank()) File(downloadDir, safeSubdir) else downloadDir
+                if (!targetDir.exists()) targetDir.mkdirs()
+                // 同名文件自动追加序号
+                var target = File(targetDir, safeFilename)
+                var idx = 1
+                val dotIdx = safeFilename.lastIndexOf('.')
+                val baseName = if (dotIdx > 0) safeFilename.substring(0, dotIdx) else safeFilename
+                val ext = if (dotIdx > 0) safeFilename.substring(dotIdx) else ""
+                while (target.exists()) {
+                    target = File(targetDir, "$baseName($idx)$ext")
+                    idx++
+                }
+                target.writeText(content)
+                Logger.i("FileTools", "create_download 成功: ${target.absolutePath} (${content.length} chars)")
+                "[成功] 文件已保存到 Download 目录\n路径: ${target.absolutePath}\n大小: ${content.length} 字符"
+            }
         }.getOrElse {
             Logger.w("FileTools", "create_download 失败: ${it.message}", it)
             "[错误] 写入失败: ${it.message}"
@@ -217,35 +251,57 @@ object FileTools {
         }
 
         return runCatching {
-            val url = URL(urlStr)
-            val conn = (url.openConnection() as HttpURLConnection).apply {
-                connectTimeout = PARSE_LINK_TIMEOUT_MS
-                readTimeout = PARSE_LINK_TIMEOUT_MS
-                requestMethod = "GET"
-                setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android) Muse/1.0")
-                setRequestProperty("Accept", "text/html,application/xhtml+xml")
-                instanceFollowRedirects = true
-            }
-
-            try {
+            // B-30: 手动跟跳转 — instanceFollowRedirects=true 时 302 可带向内网
+            // (初始 host 校验通过后,重定向目标不再校验)。关闭自动跟随,
+            // 每一跳都重新过 isBlockedSsrHost,最多 MAX_REDIRECTS 次。
+            var currentUrl = urlStr
+            var redirects = 0
+            var conn: HttpURLConnection? = null
+            while (true) {
+                val u = URL(currentUrl)
+                if (isBlockedSsrHost(u.host)) {
+                    return "[错误] 目标地址属于回环/内网/保留地址,已拒绝抓取"
+                }
+                conn?.disconnect()
+                conn = (u.openConnection() as HttpURLConnection).apply {
+                    connectTimeout = PARSE_LINK_TIMEOUT_MS
+                    readTimeout = PARSE_LINK_TIMEOUT_MS
+                    requestMethod = "GET"
+                    setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android) Muse/1.0")
+                    setRequestProperty("Accept", "text/html,application/xhtml+xml")
+                    instanceFollowRedirects = false
+                }
                 val code = conn.responseCode
-                if (code !in 200..299) return "[错误] HTTP $code: ${conn.responseMessage}"
+                if (code in 300..399) {
+                    val location = conn.getHeaderField("Location") ?: return "[错误] HTTP $code: 重定向缺少 Location"
+                    redirects++
+                    if (redirects > MAX_REDIRECTS) return "[错误] 重定向次数超过上限($MAX_REDIRECTS),已终止"
+                    // 相对 Location 按当前 URL 解析
+                    currentUrl = URL(u, location).toExternalForm()
+                    continue
+                }
+                break
+            }
+            val finalConn = conn ?: return "[错误] 抓取失败: 连接未建立"
+            try {
+                val code = finalConn.responseCode
+                if (code !in 200..299) return "[错误] HTTP $code: ${finalConn.responseMessage}"
 
-                val contentType = conn.contentType ?: ""
+                val contentType = finalConn.contentType ?: ""
                 if (!contentType.contains("html", ignoreCase = true)) {
                     // 非 HTML,直接读文本
-                    val raw = conn.inputStream.buffered().use { it.readBytes() }
+                    val raw = finalConn.inputStream.buffered().use { it.readBytes() }
                     val text = String(raw.copyOfLength(PARSE_LINK_MAX_BYTES.coerceAtMost(raw.size)), Charsets.UTF_8)
                     return "[非 HTML 内容: $contentType]\n\n$text"
                 }
 
                 // HTML:用 Jsoup 解析,提取标题+正文(先读字符串再解析,避免 InputStream 重载歧义)
-                val htmlText = conn.inputStream.buffered().use { stream ->
+                val htmlText = finalConn.inputStream.buffered().use { stream ->
                     stream.readBytes().copyOfLength(PARSE_LINK_MAX_BYTES).toString(Charsets.UTF_8)
                 }
-                conn.disconnect()
+                finalConn.disconnect()
 
-                val doc = Jsoup.parse(htmlText, urlStr)
+                val doc = Jsoup.parse(htmlText, currentUrl)
                 val title = doc.title().trim().ifBlank { "(无标题)" }
                 // Jsoup 自动移除 script/style,再选 article 或 body
                 val article = doc.selectFirst("article") ?: doc.body()
@@ -255,10 +311,10 @@ object FileTools {
                     text.substring(0, 8000) + "\n\n...(正文超过 8000 字符,已截断)"
                 } else text
 
-                Logger.i("FileTools", "parse_link 成功: $urlStr (${text.length} chars)")
-                "# $title\n\n来源: $urlStr\n\n$truncated"
+                Logger.i("FileTools", "parse_link 成功: $currentUrl (${text.length} chars)")
+                "# $title\n\n来源: $currentUrl\n\n$truncated"
             } finally {
-                conn.disconnect()
+                finalConn.disconnect()
             }
         }.getOrElse {
             Logger.w("FileTools", "parse_link 失败: ${it.message}", it)

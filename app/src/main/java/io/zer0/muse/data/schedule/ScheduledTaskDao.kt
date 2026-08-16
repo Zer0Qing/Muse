@@ -33,6 +33,27 @@ interface ScheduledTaskDao {
     @Query("DELETE FROM scheduled_tasks WHERE id = :id")
     suspend fun delete(id: String)
 
+    /**
+     * B-12: 抢占式领取到期任务(CAS,compare-and-set)。
+     *
+     * 仅当该任务的 next_run_at 仍等于调用方读取到的期望值(即仍"到期未领取")时,
+     * 才把 last_run_at/updated_at 原子更新为 [claimedAt] 作为领取标记,返回受影响行数
+     * (1 = 本执行者领取成功;0 = 已被其他执行者抢先领取,应跳过)。
+     *
+     * 依赖单条原子 UPDATE 的 WHERE 条件实现进程内与跨进程(Worker)并发安全:
+     * [ScheduledTaskRunner] 轮询与 WorkManager 拉起的 Worker 即使同时读到同一到期任务,
+     * 也只有一个能通过 next_run_at 比对,最终只有一份 AI 调用 / 通知。
+     *
+     * @param id 任务 id
+     * @param expectedNextRunAt 调用方从 DB 读到的 next_run_at 快照(CAS 期望值)
+     * @param claimedAt 领取时间戳,写入 last_run_at 与 updated_at
+     */
+    @Query(
+        "UPDATE scheduled_tasks SET last_run_at = :claimedAt, updated_at = :claimedAt " +
+            "WHERE id = :id AND next_run_at = :expectedNextRunAt AND enabled = 1",
+    )
+    suspend fun claimTask(id: String, expectedNextRunAt: Long, claimedAt: Long): Int
+
     @Query("UPDATE scheduled_tasks SET enabled = :enabled, updated_at = :now WHERE id = :id")
     suspend fun setEnabled(id: String, enabled: Boolean, now: Long = System.currentTimeMillis())
 

@@ -1258,6 +1258,12 @@ class ChatViewModel(
     @Volatile
     private var toolGenerationToken: Long = 0L
 
+    // B-24: 流式生成序号 — 每次 launchStream 自增并写入 StreamRunState.generationSerial。
+    // 收尾/错误路径清零 isStreaming 前校验"自己仍是最新生成",防止快速连发时
+    // gen-1 收尾把 gen-2 的流式状态清掉(UI 表现为"还在生成却显示已停止")。
+    @Volatile
+    private var streamGenerationSerial: Long = 0L
+
     /**
      * A-13: 校验本轮工具生成仍是"当前活跃生成"。
      * @param capturedToken exec* 入口捕获的 [toolGenerationToken]
@@ -1267,6 +1273,20 @@ class ChatViewModel(
         val active = activeToolSessionId ?: return false
         val displayed = if (_state.value.isAgentMode) _state.value.agentSessionId else _state.value.currentSessionId
         return active == displayed
+    }
+
+    /**
+     * B-24: 仅在"自己仍是最新生成"时清零流式状态。
+     *
+     * 快速连发/切会话后,旧生成的收尾(finalizeResponse/错误路径)不得清掉
+     * 新生成的 isStreaming/isWaitingFirstToken — 否则 UI 显示"已停止"但后台仍在生成。
+     *
+     * @return 是否执行了清零
+     */
+    private fun clearStreamingStateIfLatest(state: StreamRunState): Boolean {
+        if (state.generationSerial != streamGenerationSerial) return false
+        _state.update { it.copy(isStreaming = false, isWaitingFirstToken = false, toolProgressMessage = null) }
+        return true
     }
 
     // v5: 消息发送队列 — 串行化处理,防止快速连续发送导致竞态
@@ -4448,6 +4468,8 @@ class ChatViewModel(
             // PII Guard:piiMatches 与 unmaskPii 辅助函数提到 try 块外,让 catch 块也能在
             // 落盘部分回复时还原占位符,避免 [PHONE_001] 等占位符被持久化到数据库。
             val state = StreamRunState(sessionId = sessionId, assistantId = assistantId, isNewBranch = isNewBranch)
+            // B-24: 捕获本代序号,收尾清零 isStreaming 前校验自己仍是最新生成
+            state.generationSerial = ++streamGenerationSerial
             // B7-04: 继续生成时预置已产出内容
             continueFrom?.let { state.builder.append(it.content) }
             try {
@@ -4509,7 +4531,8 @@ class ChatViewModel(
                 val type = classifyErrorType(t.message ?: "", t)
                 val msg = classifyNetworkError(t)
                 addError(type, msg, isRecoverable = type != ChatErrorType.API_KEY)
-                _state.update { it.copy(isStreaming = false, isWaitingFirstToken = false) }
+                // B-24: 仅自己仍是最新生成时才清零
+                clearStreamingStateIfLatest(state)
                 // 通知:错误时取消进度通知
                 runCatching {
                     notificationManager.updateLiveProgress("", 0, false)
@@ -5127,7 +5150,8 @@ class ChatViewModel(
                             addError(ChatErrorType.UNKNOWN, appContext.getString(R.string.err_chat_reply_save_failed, e.message ?: appContext.getString(R.string.err_chat_unknown)))
                         }
                     }
-                    _state.update { it.copy(isStreaming = false, isWaitingFirstToken = false, toolProgressMessage = null) }
+                    // B-24: 仅自己仍是最新生成时才清零(旧生成错误不得清掉新生成的流式状态)
+                    clearStreamingStateIfLatest(state)
                     return StreamRoundResult.Error(type, displayMsg, params.builder.toString(), params.reasoningBuilder.toString())
                 }
 
@@ -5256,7 +5280,8 @@ class ChatViewModel(
         if (!toolLoopResult.success) {
             val err = toolLoopResult.error
             addError(err?.type ?: ChatErrorType.UNKNOWN, err?.message ?: appContext.getString(R.string.err_chat_unknown), isRecoverable = err?.type != ChatErrorType.API_KEY)
-            _state.update { it.copy(isStreaming = false, isWaitingFirstToken = false, toolProgressMessage = null) }
+            // B-24: 仅自己仍是最新生成时才清零
+            clearStreamingStateIfLatest(state)
             return false
         }
 
@@ -5334,7 +5359,8 @@ class ChatViewModel(
         val streamStartedAt = state.streamStartedAt
 
         // v1.80 (M-CVM5): 原子更新,避免读-改-写竞态
-        _state.update { it.copy(isStreaming = false, isWaitingFirstToken = false, toolProgressMessage = null) }
+        // B-24: 仅自己仍是最新生成时才清零(快速连发时 gen-1 收尾不得清掉 gen-2 状态)
+        clearStreamingStateIfLatest(state)
 
         // v1.x: 三钩子接入 — 生成完成后调用 applyOnGenerationFinish。
         // 跑一遍 onGenerationFinish 钩子,如果最终 assistant 消息被改变则写回 _messages.value + DB。
@@ -5430,8 +5456,17 @@ class ChatViewModel(
             )
         }.onFailure { Logger.w("ChatVM", "notifyTurn failed: ${it.message}") }
         // B5-01: 生成正常结束,清理检查点
-        resultOf { sessionRepository.deleteGenerationCheckpoint(state.currentAssistantId.toString()) }
-            .onError { msg, _ -> Logger.w("ChatVM", "generation checkpoint 清理失败: $msg") }
+        // B-23: 多轮工具循环每轮各写一条检查点,按本轮用户消息批量清理全部轮次,
+        // 避免中间轮次残留(重启后被 recoverInterruptedGenerations 误标 [已中断])。
+        val checkpointUserMsgId = state.conversationHistory
+            .lastOrNull { it.role == MessageRole.USER }?.id?.toString()
+        if (!checkpointUserMsgId.isNullOrBlank()) {
+            resultOf { sessionRepository.deleteGenerationCheckpointsByUserMessageId(checkpointUserMsgId) }
+                .onError { msg, _ -> Logger.w("ChatVM", "generation checkpoints 清理失败: $msg") }
+        } else {
+            resultOf { sessionRepository.deleteGenerationCheckpoint(state.currentAssistantId.toString()) }
+                .onError { msg, _ -> Logger.w("ChatVM", "generation checkpoint 清理失败: $msg") }
+        }
         // R-UI-02: 本轮生成结束后清除生成焦点(仅当仍指向本会话)。
         if (resultOf { settings.getGeneratingSessionId() }.getOrNull() == sessionId) {
             resultOf { settings.saveGeneratingSessionId(null) }
