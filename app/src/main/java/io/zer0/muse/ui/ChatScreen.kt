@@ -1146,19 +1146,27 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
         ) {
             // B7-01: 多选操作条
             if (state.selectionMode) {
+                // A4: 选中消息文本 — 批量复制/导出共用同一格式
+                val selectedText = visibleMessages
+                    .filter { it.id.toString() in state.selectedMessageIds }
+                    .joinToString("\n\n") { "${it.role}: ${it.content}" }
                 ChatSelectionBar(
                     count = state.selectedMessageIds.size,
                     onSelectAll = { viewModel.selectAllMessages(visibleMessages.map { it.id.toString() }) },
+                    onCopy = {
+                        if (selectedText.isNotBlank()) {
+                            val cm = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
+                                as android.content.ClipboardManager
+                            cm.setPrimaryClip(android.content.ClipData.newPlainText("muse-selected", selectedText))
+                        }
+                    },
                     // 审计修复 (8.5): 删除前弹确认 — 原实现直删,误触即丢整段对话不可恢复
                     onDelete = { showDeleteConfirm = true },
                     onExport = {
-                        val text = visibleMessages
-                            .filter { it.id.toString() in state.selectedMessageIds }
-                            .joinToString("\n\n") { "${it.role}: ${it.content}" }
-                        if (text.isNotBlank()) {
+                        if (selectedText.isNotBlank()) {
                             val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
                                 type = "text/plain"
-                                putExtra(android.content.Intent.EXTRA_TEXT, text)
+                                putExtra(android.content.Intent.EXTRA_TEXT, selectedText)
                             }
                             context.startActivity(android.content.Intent.createChooser(sendIntent, null))
                         }

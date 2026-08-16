@@ -10,6 +10,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import android.os.Build
 import androidx.core.content.ContextCompat
 import io.zer0.muse.ui.ModelSwitchSheet
+import io.zer0.muse.ui.ChatSelectionBar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -539,43 +540,37 @@ fun GroupChatDetailScreen(
             Column(
                 modifier = Modifier.imePadding(),
             ) {
-                // v1.x: 多选模式批量操作栏
+                // A4: 多选批量操作栏 — 与单聊共用 ChatSelectionBar 统一组件
                 if (state.selectedMessageIds.isNotEmpty()) {
-                    androidx.compose.material3.Surface(
-                        color = MaterialTheme.colorScheme.surface,
-                        tonalElevation = 3.dp,
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = MusePaddings.screen, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                        ) {
-                            Text(
-                                text = stringResource(R.string.groupchat_selected_count, state.selectedMessageIds.size),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                androidx.compose.material3.TextButton(onClick = { viewModel.selectAllVisible() }) {
-                                    Text(stringResource(R.string.groupchat_select_all))
-                                }
-                                androidx.compose.material3.TextButton(
-                                    onClick = { deleteSelectedTarget = true },
-                                    enabled = state.selectedMessageIds.isNotEmpty(),
-                                ) {
-                                    Text(
-                                        stringResource(R.string.groupchat_delete_selected),
-                                        color = MaterialTheme.colorScheme.error,
-                                    )
-                                }
-                                androidx.compose.material3.TextButton(onClick = { viewModel.clearSelection() }) {
-                                    Text(stringResource(R.string.groupchat_cancel))
-                                }
+                    val selectedText = state.currentMessages
+                        .filter { it.id in state.selectedMessageIds }
+                        .joinToString("\n\n") { "${it.senderName}: ${it.body}" }
+                    ChatSelectionBar(
+                        count = state.selectedMessageIds.size,
+                        onSelectAll = { viewModel.selectAllVisible() },
+                        onCopy = {
+                            if (selectedText.isNotBlank()) {
+                                val cm = context.getSystemService(android.content.ClipboardManager::class.java)
+                                cm?.setPrimaryClip(
+                                    android.content.ClipData.newPlainText("muse-selected", selectedText),
+                                )
                             }
-                        }
-                    }
+                        },
+                        onDelete = { deleteSelectedTarget = true },
+                        onExport = {
+                            if (selectedText.isNotBlank()) {
+                                val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(android.content.Intent.EXTRA_TEXT, selectedText)
+                                }
+                                context.startActivity(android.content.Intent.createChooser(sendIntent, null))
+                            }
+                        },
+                        onExit = { viewModel.clearSelection() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = MusePaddings.screen, vertical = 6.dp),
+                    )
                 }
                 // ActivityHub: 输入框上方的紧凑活动状态栏,展示当前轮转中各 agent 的状态 chip。
                 // IDLE 状态被 AgentActivityBar 内部过滤不显示;无活动时整个栏不占空间。

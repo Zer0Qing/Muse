@@ -45,6 +45,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.ui.common.media.AssistantAvatar
@@ -585,11 +586,12 @@ internal fun isSameDay(ts1: Long, ts2: Long): Boolean {
         cal1.get(java.util.Calendar.DAY_OF_YEAR) == cal2.get(java.util.Calendar.DAY_OF_YEAR)
 }
 
-/** B7-01: 消息多选操作条。 */
+/** B7-01: 消息多选操作条 — 单聊/群聊共用统一组件(计划 A4)。 */
 @Composable
 internal fun ChatSelectionBar(
     count: Int,
     onSelectAll: () -> Unit,
+    onCopy: () -> Unit,
     onDelete: () -> Unit,
     onExport: () -> Unit,
     onExit: () -> Unit,
@@ -609,16 +611,24 @@ internal fun ChatSelectionBar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = stringResource(R.string.groupchat_selected_members, count),
+                text = stringResource(R.string.groupchat_selected_count, count),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
             TextButton(onClick = onSelectAll) {
-                Text(stringResource(R.string.settings_provider_select_all))
+                Text(stringResource(R.string.groupchat_select_all))
+            }
+            TextButton(onClick = onCopy) {
+                Text(stringResource(R.string.action_copy))
             }
             TextButton(onClick = onDelete) {
-                Text(stringResource(R.string.chat_delete_message))
+                Text(
+                    stringResource(R.string.action_delete),
+                    color = MaterialTheme.colorScheme.error,
+                )
             }
             TextButton(onClick = onExport) {
                 Text(stringResource(R.string.action_share))
