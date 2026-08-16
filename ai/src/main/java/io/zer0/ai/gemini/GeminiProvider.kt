@@ -27,7 +27,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -118,8 +118,10 @@ class GeminiProvider(
 
     private val sseFactory by lazy { EventSources.createFactory(httpClient) }
 
-    override fun streamChat(request: ChatRequest): Flow<ChatStreamEvent> = callbackFlow {
+    override fun streamChat(request: ChatRequest): Flow<ChatStreamEvent> = channelFlow {
         val scope = this
+        // 审查修复 (2.0 B-25): callbackFlow → channelFlow — 内部 channel 恒 UNLIMITED,
+        // 消除 callbackFlow 固定 64 容量在快速生产/慢消费下的静默丢片(与 OpenAI 同方案)。
         val (system, contents) = splitSystem(request.messages)
         val body = buildRequestBody(
             system = system, contents = contents,
@@ -136,7 +138,7 @@ class GeminiProvider(
         } catch (e: Exception) {
             trySend(ChatStreamEvent.Error(e.message ?: ErrorCode.SERVICE_UNAVAILABLE.toMessage("url_build")))
             close()
-            return@callbackFlow
+            return@channelFlow
         }
 
         // M-GEM13: Vertex AI 服务账号配置无效(VertexAiAuthToken 构造失败)直接发 Error
@@ -148,7 +150,7 @@ class GeminiProvider(
         } catch (e: Exception) {
             trySend(ChatStreamEvent.Error(e.message ?: ErrorCode.VERTEX_AI_TOKEN_FAILED.toMessage()))
             close()
-            return@callbackFlow
+            return@channelFlow
         }
 
         // M-GEM1: finished 标志,onClosed 时据此判断是否异常关闭

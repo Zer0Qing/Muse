@@ -519,4 +519,87 @@ class FactStoreTest {
         // 置顶记忆本身仍保留(即使它与另一条相似)
         assertNotNull(store.getById(pinned))
     }
+
+    // ──────────────────────────────────────────────
+    //  审查修复 (2.0): 删除墓碑(B-07 双通道匹配 / B-10 上限裁剪)
+    // ──────────────────────────────────────────────
+
+    @Test
+    fun `delete records tombstone and matches exact wording`() = runTest {
+        val tombstoneFile = java.io.File(
+            ApplicationProvider.getApplicationContext<android.content.Context>().cacheDir,
+            "tombstone-test-${System.nanoTime()}.json",
+        )
+        val storeWithTombstones = FactStore(dao, db, tombstoneFile)
+        try {
+            val id = storeWithTombstones.add(FactStore.Fact(fact = "用户对青霉素过敏"))
+            storeWithTombstones.delete(id)
+
+            val tombstones = storeWithTombstones.getTombstones()
+            assertEquals("删除后应记录墓碑", 1, tombstones.size)
+            assertTrue(tombstones[0].contains("青霉素过敏"))
+            // 精确措辞命中
+            assertTrue(FactStore.matchesTombstone("用户对青霉素过敏", tombstones[0]))
+        } finally {
+            tombstoneFile.delete()
+        }
+    }
+
+    @Test
+    fun `tombstone matches normalized whitespace and punctuation variants`() = runTest {
+        val tombstoneFile = java.io.File(
+            ApplicationProvider.getApplicationContext<android.content.Context>().cacheDir,
+            "tombstone-test-${System.nanoTime()}.json",
+        )
+        val storeWithTombstones = FactStore(dao, db, tombstoneFile)
+        try {
+            val id = storeWithTombstones.add(FactStore.Fact(fact = "用户喜欢喝美式咖啡"))
+            storeWithTombstones.delete(id)
+            val tombstones = storeWithTombstones.getTombstones()
+
+            // B-07: 编译对象是另一 LLM 通道改写后的摘要,措辞几乎必然不同 —
+            // 空白压缩 + 标点剥离双通道匹配应命中常见改写形态
+            assertTrue(
+                "空白差异应命中",
+                FactStore.matchesTombstone("用户喜欢喝 美式咖啡", tombstones[0]),
+            )
+            assertTrue(
+                "标点差异应命中",
+                FactStore.matchesTombstone("用户喜欢喝美式咖啡。", tombstones[0]),
+            )
+        } finally {
+            tombstoneFile.delete()
+        }
+    }
+
+    @Test
+    fun `tombstone list capped at max entries`() = runTest {
+        val tombstoneFile = java.io.File(
+            ApplicationProvider.getApplicationContext<android.content.Context>().cacheDir,
+            "tombstone-test-${System.nanoTime()}.json",
+        )
+        val storeWithTombstones = FactStore(dao, db, tombstoneFile)
+        try {
+            // B-10: 墓碑只增不删会长期膨胀(且每轮 compile 全量加载扫描) —
+            // 超过上限时丢弃最旧条目,文件体积与过滤开销有界
+            val cap = FactStore.TOMBSTONE_MAX_ENTRIES
+            repeat(cap + 50) { i ->
+                storeWithTombstones.delete(
+                    storeWithTombstones.add(FactStore.Fact(fact = "测试事实编号 $i")),
+                )
+            }
+            val tombstones = storeWithTombstones.getTombstones()
+            assertTrue("墓碑数量不得超过上限", tombstones.size <= cap)
+            assertEquals("应保留最新条目", "测试事实编号 ${cap + 49}", tombstones.last())
+        } finally {
+            tombstoneFile.delete()
+        }
+    }
+
+    @Test
+    fun `filterTombstonedLines drops tombstoned lines and keeps others`() {
+        val text = "用户对青霉素过敏\n用户喜欢跑步\n用户住在北京"
+        val filtered = FactStore.filterTombstonedLines(text, listOf("青霉素过敏"))
+        assertEquals("用户喜欢跑步\n用户住在北京", filtered)
+    }
 }

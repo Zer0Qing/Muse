@@ -171,10 +171,16 @@ class SubagentThreadStore(
         val entity = dao.getById(threadId) ?: return false
         if (entity.status == "closed") return false
         dao.close(threadId)
-        // 审计修复 (C-08): 不再在这里 runLocks.remove —
-        // close 可能被 runSerialized 持锁块内调用(SubagentRunner recordRunAndMaybeClose),
-        // 持锁内移除会与并发 computeIfAbsent 竞争破坏串行化。
-        // 锁的按需回收统一由 runSerialized 的 finally 完成(线程 closed 时移除)。
+        // 审查修复 (2.0 B-15): 无 run 持锁时立即回收锁条目 — 原 C-08 只靠
+        // runSerialized 的 finally 回收:线程关闭后若无后续 runSerialized,锁永不回收。
+        // Mutex.isLocked 判定当前是否有 run 持锁:
+        //  - 无持锁 → 直接移除(线程已 closed,后续 computeIfAbsent 的新锁也会在
+        //    锁内立即抛 "Thread is closed",不破坏串行化);
+        //  - 有持锁(recordRunAndMaybeClose 在持锁块内调用本方法)→ 留给
+        //    runSerialized 的 finally 回收,避免持锁内移除破坏串行化(C-08 原由)。
+        runLocks.computeIfPresent(threadId) { _, current ->
+            if (current.isLocked) current else null
+        }
         return true
     }
 

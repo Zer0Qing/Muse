@@ -207,13 +207,15 @@ object PiiGuard {
      *
      * 审查修复 (2.0 B-08): LLM 改写/丢弃原文时占位符会残留(如 [PHONE_1]),
      * unmask 只做精确替换无法清除,残留的 [PHONE_1] 字面量会被写入记忆/消息;
-     * 末尾扫描并剥离全部 mask 形态的残留占位符。
+     * 末尾统一扫描并剥离全部 mask 形态的残留占位符(空 map 同样执行 —
+     * 无映射时任何 [LABEL_N] 形态都是残留或幻觉,不应落库)。
      */
     fun unmask(text: String, map: Map<String, String>): String {
-        if (map.isEmpty()) return text
         var current = text
-        for ((token, original) in map) {
-            current = current.replace(token, original)
+        if (map.isNotEmpty()) {
+            for ((token, original) in map) {
+                current = current.replace(token, original)
+            }
         }
         return RESIDUAL_TOKEN_RE.replace(current, "")
     }

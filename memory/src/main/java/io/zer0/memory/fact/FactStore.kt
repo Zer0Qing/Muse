@@ -696,7 +696,7 @@ class FactStore(
     private fun normalizeTombstone(text: String): String =
         text.trim().replace(WHITESPACE_RE, " ")
 
-    private companion object {
+    companion object {
         private val WHITESPACE_RE = Regex("\\s+")
 
         /** B-26: 进程级墓碑锁(所有 FactStore 实例共享同一把锁)。 */
@@ -704,38 +704,40 @@ class FactStore(
 
         /** B-10: 墓碑条目上限(超出裁剪最旧,文件体积与过滤开销有界)。 */
         const val TOMBSTONE_MAX_ENTRIES = 1000
-    }
 
-    /**
-     * 审查修复 (2.0 B-07): 共享墓碑过滤 — 逐行规范化匹配。
-     *
-     * 编译对象是另一 LLM 通道改写后的摘要,措辞几乎必然与墓碑原文不同,
-     * 纯 contains 匹配常失效。双通道匹配:
-     *  - 通道 1: 空白压缩后的子串匹配(墓碑记录时已压缩);
-     *  - 通道 2: 剥离标点/空白后的子串匹配(捕获 LLM 改写时新增的标点/换行)。
-     * 完整语义归一(近义改写)需要 LLM 判定,超出本方法范围。
-     */
-    fun filterTombstonedLines(text: String, tombstones: List<String>): String {
-        if (tombstones.isEmpty()) return text
-        return text.lines()
-            .filterNot { line ->
-                val normalized = line.trim()
-                normalized.isNotEmpty() && tombstones.any { matchesTombstone(normalized, it) }
-            }
-            .joinToString("\n")
-    }
+        /** B-07: 标点/空白剥离(第二匹配通道)。 */
+        private val PUNCT_RE = Regex("[，。！？、；：,.!?;:()（）\\[\\]【】\"'“”‘’\\s]+")
 
-    /** B-07: 单条文本是否命中某墓碑(双通道匹配,见 [filterTombstonedLines])。 */
-    fun matchesTombstone(text: String, tombstone: String): Boolean {
-        val normalized = text.trim().replace(WHITESPACE_RE, " ")
-        val tomb = tombstone.trim().replace(WHITESPACE_RE, " ")
-        if (normalized.contains(tomb)) return true
-        val stripped = normalized.replace(PUNCT_RE, "")
-        val strippedTomb = tomb.replace(PUNCT_RE, "")
-        return strippedTomb.isNotBlank() && stripped.contains(strippedTomb)
-    }
+        /**
+         * 审查修复 (2.0 B-07): 共享墓碑过滤 — 逐行规范化匹配。
+         *
+         * 编译对象是另一 LLM 通道改写后的摘要,措辞几乎必然与墓碑原文不同,
+         * 纯 contains 匹配常失效。双通道匹配:
+         *  - 通道 1: 空白压缩后的子串匹配(墓碑记录时已压缩);
+         *  - 通道 2: 剥离标点/空白后的子串匹配(捕获 LLM 改写时新增的标点/换行)。
+         * 完整语义归一(近义改写)需要 LLM 判定,超出本方法范围。
+         * 定义为 companion 成员,供 MemoryCompiler/DeepMemoryProcessor 以类名调用。
+         */
+        fun filterTombstonedLines(text: String, tombstones: List<String>): String {
+            if (tombstones.isEmpty()) return text
+            return text.lines()
+                .filterNot { line ->
+                    val normalized = line.trim()
+                    normalized.isNotEmpty() && tombstones.any { matchesTombstone(normalized, it) }
+                }
+                .joinToString("\n")
+        }
 
-    private val PUNCT_RE = Regex("[，。！？、；：,.!?;:()（）\\[\\]【】\"'“”‘’\\s]+")
+        /** B-07: 单条文本是否命中某墓碑(双通道匹配,见 [filterTombstonedLines])。 */
+        fun matchesTombstone(text: String, tombstone: String): Boolean {
+            val normalized = text.trim().replace(WHITESPACE_RE, " ")
+            val tomb = tombstone.trim().replace(WHITESPACE_RE, " ")
+            if (normalized.contains(tomb)) return true
+            val stripped = normalized.replace(PUNCT_RE, "")
+            val strippedTomb = tomb.replace(PUNCT_RE, "")
+            return strippedTomb.isNotBlank() && stripped.contains(strippedTomb)
+        }
+    }
 
     /**
      * v6: 检查 facts_fts 索引一致性,不一致则全量 rebuild。

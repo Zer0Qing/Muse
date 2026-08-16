@@ -88,6 +88,24 @@ class ScheduledTaskRunnerScheduleTest {
     }
 
     @Test
+    fun `cron impossible expression returns NO_MATCH not claim sentinel`() {
+        // 审查修复 (2.0 C-06): 扫描窗口内无匹配的 cron(如 2 月 30 日)必须返回
+        // CronExpression.NO_MATCH(= Long.MAX_VALUE - 1),不得与 ScheduledTaskRunner
+        // 的领取哨兵(CLAIM_NEXT_RUN_SENTINEL = Long.MAX_VALUE)混用 —
+        // 混用会把"cron 无匹配"误判为"任务已被领取",任务永不再跑。
+        val base = LocalDateTime.of(2026, 1, 1, 0, 0)
+            .atZone(ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli()
+        val next = CronExpression.parse("0 0 30 2 *").nextRunAfter(base)
+        assertEquals("无匹配应返回 NO_MATCH", CronExpression.NO_MATCH, next)
+        assertTrue(
+            "NO_MATCH 必须区别于领取哨兵,否则任务调度被误判为已领取",
+            next != Long.MAX_VALUE,
+        )
+    }
+
+    @Test
     fun `allowed window non crossing boundaries`() {
         assertTrue(ProactiveMessageRunner.isInAllowedWindow(9, 9, 18))
         assertTrue(ProactiveMessageRunner.isInAllowedWindow(17, 9, 18))

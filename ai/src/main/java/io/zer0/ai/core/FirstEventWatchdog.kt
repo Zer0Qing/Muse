@@ -3,7 +3,7 @@ package io.zer0.ai.core
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.launch
 
 /** R-AI-04: 深度推理/超长上下文模型放宽首事件超时,普通模型保持默认。 */
@@ -15,6 +15,11 @@ internal fun Model.firstEventTimeoutMs(defaultMs: Long = 15_000L): Long =
  *
  * SSE 连接建立后若 [timeoutMs] 内没有收到任何有效事件,自动取消上游流,
  * 改用非流式 [fallback] 重试一次,并向 UI 发出 [ChatStreamEvent.FallbackNotice]。
+ *
+ * 审查修复 (2.0 B-25): callbackFlow → channelFlow — callbackFlow 内部 channel 容量
+ * 固定 64,快速生产/慢消费(如 UI 节流 50ms 自适应切片)时 trySend 返回 false 静默丢片,
+ * 且下游 `.buffer(UNLIMITED)` 无法改变其内部容量;channelFlow 内部 channel 恒为
+ * UNLIMITED,与 OpenAIProvider 的 C-35 修复同一方案。
  */
 fun Flow<ChatStreamEvent>.withFirstEventWatchdog(
     timeoutMs: Long = 15_000L,
@@ -22,7 +27,7 @@ fun Flow<ChatStreamEvent>.withFirstEventWatchdog(
     // 审计修复 (7.8): 可选取消检查 — 调用方传入"用户是否已停止"的判断,
     // fallback 触发前检查,避免用户停止后仍发一次计费请求。
     abortCheck: () -> Boolean = { false },
-): Flow<ChatStreamEvent> = callbackFlow {
+): Flow<ChatStreamEvent> = channelFlow {
     var firstEventReceived = false
     var finished = false
 

@@ -27,7 +27,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -88,8 +88,10 @@ class AnthropicProvider(
 
     private val sseFactory by lazy { EventSources.createFactory(httpClient) }
 
-    override fun streamChat(request: ChatRequest): Flow<ChatStreamEvent> = callbackFlow {
+    override fun streamChat(request: ChatRequest): Flow<ChatStreamEvent> = channelFlow {
         val producerScope = this
+        // 审查修复 (2.0 B-25): callbackFlow → channelFlow — 内部 channel 恒 UNLIMITED,
+        // 消除 callbackFlow 固定 64 容量在快速生产/慢消费下的静默丢片(与 OpenAI 同方案)。
         // v1.0.5: Provider 出口兜底 — 先对 UIMessage 列表做通用清理(对齐 既有实现 normalizeProviderPayload)
         val normalizedMessages = ProviderPayloadNormalizer.normalizeMessages(
             request.messages, request.model,

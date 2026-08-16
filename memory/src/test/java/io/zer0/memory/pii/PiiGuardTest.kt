@@ -151,4 +151,42 @@ class PiiGuardTest {
             result.cleaned.contains("[REDACTED]"),
         )
     }
+
+    // ── 审查修复 (2.0 B-08): mask/unmask 占位符残留 ──────────────────────
+
+    @Test
+    fun unmaskRestoresKnownTokens() {
+        val masked = PiiGuard.mask("我的电话是 13800138000,邮箱是 a@b.com")
+        // 规则按 RuleKind.entries 顺序执行,EMAIL 先于 PHONE,故 phone 占位编号为 2;
+        // 断言只校验占位符形态与还原结果,不依赖具体编号
+        assertTrue("masked=${masked.masked}", masked.masked.contains("[PHONE_"))
+        assertTrue("masked=${masked.masked}", masked.masked.contains("[EMAIL_1]"))
+
+        val restored = PiiGuard.unmask(masked.masked, masked.map)
+        assertTrue("restored=$restored", restored.contains("13800138000"))
+        assertTrue("restored=$restored", restored.contains("a@b.com"))
+        assertFalse("restored=$restored", restored.contains("[PHONE_"))
+    }
+
+    @Test
+    fun unmaskStripsResidualTokensWhenLlmDropsOriginal() {
+        // 两种残留场景:
+        // 1) LLM 幻觉出映射中不存在的 token(如 [PHONE_2])→ 剥离;
+        // 2) 映射中的 token 正常还原为原文(不受剥离影响)。
+        val masked = PiiGuard.mask("电话 13800138000")
+        val llmOutput = "用户说他改号了,[PHONE_1]已停用,新号见[PHONE_2]"
+        val restored = PiiGuard.unmask(llmOutput, masked.map)
+        assertTrue("B-08: 映射内 token 正常还原, restored=$restored", restored.contains("13800138000"))
+        assertFalse("B-08: 幻觉残留占位符必须剥离, restored=$restored", restored.contains("[PHONE_2]"))
+        assertFalse("B-08: 还原后不应残留占位符, restored=$restored", restored.contains("[PHONE_1]"))
+    }
+
+    @Test
+    fun unmaskStripsUnexplainedTokensAcrossLabels() {
+        // 无映射(或映射不含某 label)时,任何 mask 形态的占位符都应被剥离。
+        val llmOutput = "联系方式 [EMAIL_2] 和 [ID_CARD_1] 都已失效"
+        val restored = PiiGuard.unmask(llmOutput, emptyMap())
+        assertFalse("B-08: 无映射时残留占位符同样剥离, restored=$restored", restored.contains("[EMAIL_2]"))
+        assertFalse("B-08: 无映射时残留占位符同样剥离, restored=$restored", restored.contains("[ID_CARD_1]"))
+    }
 }
