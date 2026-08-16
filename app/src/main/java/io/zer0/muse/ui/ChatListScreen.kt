@@ -27,6 +27,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -255,6 +257,15 @@ fun ChatListScreen(
             displayedSessions.filter { it.title.contains(q, ignoreCase = true) }
         }
     }
+    // C3: 最近浏览历史(id 列表最近优先;仅展示仍存在的会话,误退可快速找回)
+    var recentBrowseIds by remember { mutableStateOf<List<String>>(emptyList()) }
+    LaunchedEffect(Unit) {
+        settings.recentSessionsFlow.collect { recentBrowseIds = it }
+    }
+    val recentBrowse = remember(recentBrowseIds, displayedSessions) {
+        val byId = displayedSessions.associateBy { it.id }
+        recentBrowseIds.mapNotNull { byId[it] }
+    }
     // B7-05: 拖拽期间的乐观顺序,收到 DB flow 更新后自动以 sessions 为准
     var pinnedOrder by remember(sessions) { mutableStateOf(pinned.map { it.id }) }
     val orderedPinned = remember(pinned, pinnedOrder) {
@@ -345,6 +356,17 @@ fun ChatListScreen(
                             onArchive = onArchive,
                         )
                     } else {
+                        // C3: 最近浏览 — 误退可快速找回(标题 chips 横滑,搜索模式下隐藏)
+                        if (recentBrowse.isNotEmpty()) {
+                            item(key = "recent_browse") {
+                                RecentBrowseRow(
+                                    sessions = recentBrowse,
+                                    onSelect = onSelect,
+                                    modifier = Modifier.padding(top = MusePaddings.sectionGap),
+                                )
+                            }
+                        }
+
                         // 已置顶(标题 + 每条会话独立 item,平铺懒加载)
                         if (pinned.isNotEmpty()) {
                             pinnedSectionItems(
@@ -1587,5 +1609,67 @@ private fun formatTime(timestamp: Long): String {
         diff < dayMillis * 2 -> stringResource(R.string.chat_list_time_yesterday)
         diff < dayMillis * 7 -> stringResource(R.string.chat_list_time_days_ago, diff / dayMillis)
         else -> chatListSdf.format(Date(timestamp))
+    }
+}
+
+/**
+ * C3: 最近浏览横滑 chips 行 — 标题 + 最近查看过的会话(最近优先),
+ * 点击即回到对应会话(误退可快速找回)。搜索模式下由外层隐藏。
+ */
+@Composable
+private fun RecentBrowseRow(
+    sessions: List<SessionEntity>,
+    onSelect: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        Text(
+            text = stringResource(R.string.chat_list_recent_browse),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
+            modifier = Modifier
+                .padding(start = MusePaddings.screen, bottom = 8.dp)
+                .fillMaxWidth(),
+        )
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+            contentPadding = PaddingValues(horizontal = MusePaddings.screen),
+        ) {
+            items(sessions, key = { it.id }) { session ->
+                RecentBrowseChip(session = session, onClick = { onSelect(session.id) })
+            }
+        }
+    }
+}
+
+/** C3: 单个最近浏览 chip(时钟图标 + 会话标题,单行省略)。 */
+@Composable
+private fun RecentBrowseChip(
+    session: SessionEntity,
+    onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(MuseCornerRadius.BUTTON.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = MusePaddings.itemGap, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = TablerIcons.Clock,
+                contentDescription = null,
+                modifier = Modifier.size(14.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.width(MusePaddings.tightGap))
+            Text(
+                text = session.title,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }

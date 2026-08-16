@@ -251,6 +251,8 @@ class SettingsRepository(
     val floorLimiterEnabledFlow: Flow<Boolean> get() = chatSettings.floorLimiterEnabledFlow
     /** P1-4: 楼层式上下文限制楼层数(8/16/32,默认 16)。 */
     val floorLimitFlow: Flow<Int> get() = chatSettings.floorLimitFlow
+    /** C3: 最近浏览会话 id 列表(最近优先,去重置顶,最多 10 条,误退可快速找回)。 */
+    val recentSessionsFlow: Flow<List<String>> get() = chatSettings.recentSessionsFlow
     val memoryEnabledFlow: Flow<Boolean> = store.data.map { prefs -> prefs[KEY_MEMORY_ENABLED] ?: true }
     /** v1.0.51: 存量记忆迁移是否已完成(升级后首次启动补跑历史 session 摘要)。 */
     val memoryBackfillMigrationDoneFlow: Flow<Boolean> = store.data.map { prefs -> prefs[KEY_MEMORY_MIGRATION_V1_0_51_DONE] ?: false }
@@ -1114,6 +1116,8 @@ class SettingsRepository(
     suspend fun saveFloorLimiterEnabled(enabled: Boolean) = chatSettings.saveFloorLimiterEnabled(enabled)
     /** P1-4: 保存楼层式上下文限制楼层数。 */
     suspend fun saveFloorLimit(limit: Int) = chatSettings.saveFloorLimit(limit)
+    /** C3: 记录一次会话浏览(去重置顶,超容量裁剪,供"最近浏览"快速找回)。 */
+    suspend fun recordSessionViewed(sessionId: String) = chatSettings.recordSessionViewed(sessionId)
     /**
      * v1.60-C: 保存应用界面语言(system / zh / en)。
      *

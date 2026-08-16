@@ -338,6 +338,8 @@
     <ID>FunctionNaming:ChatListScreen.kt$@Composable private fun GreetingHeader( memoryCount: Int, facts: List&lt;FactEntity&gt;, /** v1.x: LLM 生成的个性化后缀(非空时优先展示,未生成则回退规则版)。 */ personalizedHint: String? = null, assistantName: String? = null, modifier: Modifier = Modifier, )</ID>
     <ID>FunctionNaming:ChatListScreen.kt$@Composable private fun KnowledgeEntryCard( docCount: Int, onClick: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
     <ID>FunctionNaming:ChatListScreen.kt$@Composable private fun PinnedTaskRow( session: SessionEntity, index: Int, pinnedIds: List&lt;String&gt;, folders: List&lt;FolderEntity&gt;, onSelect: (String) -&gt; Unit, onDelete: (String) -&gt; Unit, onRenameTo: (SessionEntity, String) -&gt; Unit, onTogglePinned: (String) -&gt; Unit, onReorderPinned: (List&lt;String&gt;) -&gt; Unit, onMoveSessionToFolder: (String, String?) -&gt; Unit, onArchive: (String) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:ChatListScreen.kt$@Composable private fun RecentBrowseChip( session: SessionEntity, onClick: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:ChatListScreen.kt$@Composable private fun RecentBrowseRow( sessions: List&lt;SessionEntity&gt;, onSelect: (String) -&gt; Unit, modifier: Modifier = Modifier, )</ID>
     <ID>FunctionNaming:ChatListScreen.kt$@Composable private fun SectionGroupRow( index: Int, total: Int, content: @Composable ColumnScope.() -&gt; Unit, )</ID>
     <ID>FunctionNaming:ChatListScreen.kt$@Composable private fun SessionSearchBar( query: String, onQueryChange: (String) -&gt; Unit, onClear: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
     <ID>FunctionNaming:ChatListScreen.kt$@Composable private fun TaskActionSheet( session: SessionEntity, folders: List&lt;FolderEntity&gt;, onDismiss: () -&gt; Unit, onTogglePinned: () -&gt; Unit, onArchive: () -&gt; Unit, onDelete: () -&gt; Unit, onRename: () -&gt; Unit, onMoveToFolder: (String?) -&gt; Unit, )</ID>
@@ -3215,7 +3217,6 @@
     <ID>UnusedImports:ChatSettingsStore.kt$import androidx.datastore.core.DataStore</ID>
     <ID>UnusedImports:ChatSettingsStore.kt$import androidx.datastore.preferences.core.Preferences</ID>
     <ID>UnusedImports:ChatSettingsStore.kt$import io.zer0.muse.data.ChatPreferences</ID>
-    <ID>UnusedImports:ChatSettingsStore.kt$import kotlinx.serialization.builtins.ListSerializer</ID>
     <ID>UnusedImports:ChatSheets.kt$import android.Manifest</ID>
     <ID>UnusedImports:ChatSheets.kt$import android.content.pm.PackageManager</ID>
     <ID>UnusedImports:ChatSheets.kt$import android.view.KeyEvent</ID>

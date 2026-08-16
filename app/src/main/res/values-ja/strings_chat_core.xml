@@ -497,4 +497,5 @@
     <string name="chat_list_search_hint">会話を検索</string>
     <string name="chat_list_search_clear">検索をクリア</string>
     <string name="chat_list_search_no_result">一致する会話がありません</string>
+    <string name="chat_list_recent_browse">最近見た</string>
 </resources>

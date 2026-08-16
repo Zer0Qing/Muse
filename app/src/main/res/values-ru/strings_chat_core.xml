@@ -497,4 +497,5 @@
     <string name="chat_list_search_hint">Поиск бесед</string>
     <string name="chat_list_search_clear">Очистить поиск</string>
     <string name="chat_list_search_no_result">Нет подходящих бесед</string>
+    <string name="chat_list_recent_browse">Недавние</string>
 </resources>

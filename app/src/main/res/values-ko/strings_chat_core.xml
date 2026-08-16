@@ -497,4 +497,5 @@
     <string name="chat_list_search_hint">대화 검색</string>
     <string name="chat_list_search_clear">검색 지우기</string>
     <string name="chat_list_search_no_result">일치하는 대화가 없습니다</string>
+    <string name="chat_list_recent_browse">최근 본 대화</string>
 </resources>

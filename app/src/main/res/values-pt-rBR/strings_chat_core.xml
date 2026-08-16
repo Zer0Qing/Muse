@@ -497,4 +497,5 @@
     <string name="chat_list_search_hint">Buscar conversas</string>
     <string name="chat_list_search_clear">Limpar busca</string>
     <string name="chat_list_search_no_result">Nenhuma conversa correspondente</string>
+    <string name="chat_list_recent_browse">Recentes</string>
 </resources>

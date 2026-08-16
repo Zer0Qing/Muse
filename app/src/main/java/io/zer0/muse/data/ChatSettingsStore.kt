@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
 
 /**
  * P2-2 拆分：聊天行为设置子仓库。
@@ -41,6 +42,10 @@ class ChatSettingsStore(private val context: Context) {
     val chatPreferencesFlow: Flow<ChatPreferences> = store.data.map { prefs ->
         decodeChatPreferences(prefs[KEY_CHAT_PREFERENCES])
     }
+    /** C3: 最近浏览会话 id 列表(最近优先,去重置顶,最多 [RECENT_SESSIONS_CAP] 条)。 */
+    val recentSessionsFlow: Flow<List<String>> = store.data.map { prefs ->
+        decodeRecentSessions(prefs[KEY_RECENT_SESSIONS])
+    }
 
     suspend fun getChatPreferences(): ChatPreferences = chatPreferencesFlow.first()
 
@@ -68,6 +73,19 @@ class ChatSettingsStore(private val context: Context) {
         store.edit { it[KEY_FLOOR_LIMIT] = limit }
     }
 
+    /**
+     * C3: 记录一次会话浏览 — 去重置顶(同 id 移到最前),超容量裁剪尾部。
+     * 调用点: ChatViewModel.switchSession(会话切换统一漏斗)。
+     */
+    suspend fun recordSessionViewed(sessionId: String) {
+        store.edit { prefs ->
+            val current = decodeRecentSessions(prefs[KEY_RECENT_SESSIONS])
+            val updated = listOf(sessionId) + current.filterNot { it == sessionId }
+            prefs[KEY_RECENT_SESSIONS] =
+                AppJson.encodeToString(ListSerializer(String.serializer()), updated.take(RECENT_SESSIONS_CAP))
+        }
+    }
+
     private fun decodeChatPreferences(value: String?): ChatPreferences {
         if (value.isNullOrBlank()) return ChatPreferences()
         return runCatching {
@@ -75,7 +93,17 @@ class ChatSettingsStore(private val context: Context) {
         }.getOrElse { ChatPreferences() }
     }
 
+    private fun decodeRecentSessions(value: String?): List<String> {
+        if (value.isNullOrBlank()) return emptyList()
+        // 历史数据损坏时回退空列表,不影响主流程(浏览历史属辅助功能)
+        return runCatching {
+            AppJson.decodeFromString(ListSerializer(String.serializer()), value)
+        }.getOrElse { emptyList() }
+    }
+
     private companion object {
+        private const val RECENT_SESSIONS_CAP = 10
+        private val KEY_RECENT_SESSIONS = stringPreferencesKey("recent_sessions_json")
         private val KEY_TOKEN_ESTIMATE_ENABLED = booleanPreferencesKey("token_estimate_enabled")
         private val KEY_PASTE_AS_FILE_ENABLED = booleanPreferencesKey("paste_as_file_enabled")
         private val KEY_PASTE_AS_FILE_THRESHOLD = intPreferencesKey("paste_as_file_threshold")

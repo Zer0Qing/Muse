@@ -499,4 +499,5 @@
     <string name="chat_list_search_hint">搜索会话</string>
     <string name="chat_list_search_clear">清除搜索</string>
     <string name="chat_list_search_no_result">未找到匹配的会话</string>
+    <string name="chat_list_recent_browse">最近浏览</string>
 </resources>

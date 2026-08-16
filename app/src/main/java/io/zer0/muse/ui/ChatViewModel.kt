@@ -3174,6 +3174,8 @@ class ChatViewModel(
             sessionManager.release(currentSession)
         }
         sessionManager.acquire(sessionId)
+        // C3: 记录最近浏览历史(会话列表"最近浏览"横滑快速找回,误退可寻回)
+        viewModelScope.launch { settings.recordSessionViewed(sessionId) }
         // v1.93+: 切换前把当前会话消息快照存入 LRU 缓存,切回时可直接命中避免 DB 查询。
         // v1.0.44: 如果有变体分支则不缓存，强制从 DB 加载完整变体列表
         if (currentSession != null && _conversationTree.value.userNodes.none { it.variants.size > 1 || it.currentVariant?.assistantNodes?.any { a -> a.variants.size > 1 } == true }) {
