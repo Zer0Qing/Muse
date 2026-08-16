@@ -110,4 +110,15 @@ data class MessageEntity(
      * 表现为"已中断"而非"调用"。现在随消息落库,重启后 ToolCallCard 正常显示。
      */
     @ColumnInfo(defaultValue = "NULL") val toolCallInfoJson: String? = null,
+    /**
+     * A5: 消息生成元数据(信息展示用,provider 实测优先,缺失时 UI 本地估算)。
+     * 由 ChatViewModel 生成结束时回填;旧数据/未回填为 NULL。
+     * - [durationMs] 生成总耗时(毫秒,含工具循环)
+     * - [promptTokens]/[completionTokens]/[reasoningTokens]/[cachedTokens] provider 实测用量
+     */
+    @ColumnInfo(defaultValue = "NULL") val durationMs: Long? = null,
+    @ColumnInfo(defaultValue = "NULL") val promptTokens: Int? = null,
+    @ColumnInfo(defaultValue = "NULL") val completionTokens: Int? = null,
+    @ColumnInfo(defaultValue = "NULL") val reasoningTokens: Int? = null,
+    @ColumnInfo(defaultValue = "NULL") val cachedTokens: Int? = null,
 )

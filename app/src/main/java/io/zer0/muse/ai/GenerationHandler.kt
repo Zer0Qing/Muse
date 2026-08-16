@@ -288,6 +288,10 @@ private class GenerationLoop(
         }
     }
 
+    // CyclomaticComplexMethod 豁免:collectStream 是对 ChatStreamEvent 全分支的收集器,
+    // 每个分支都是单行转发,复杂度随事件类型数量线性增长(A5 新增 UsageDelta 后 15>15 越线)。
+    // 拆分反而降低可读性,先例: ToolOrchestrator @Suppress("LongParameterList")。
+    @Suppress("CyclomaticComplexMethod")
     private suspend fun collectStream(
         flow: Flow<ChatStreamEvent>,
         builder: StringBuilder,
@@ -318,6 +322,8 @@ private class GenerationLoop(
                 is ChatStreamEvent.Error -> onError(event.message)
                 is ChatStreamEvent.StreamInterrupted -> onError(event.message)
                 is ChatStreamEvent.FallbackNotice -> { /* 已自动降级为非流式 */ }
+                // A5: token 用量 — 工具循环路径只拼正文/工具调用,用量由 ChatViewModel 消费
+                is ChatStreamEvent.UsageDelta -> { /* 忽略 */ }
             }
         }
     }

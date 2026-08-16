@@ -470,4 +470,19 @@
     <string name="chat_select_provider">공급자 선택</string>
     <string name="chat_update_compress">컨텍스트 압축</string>
     <string name="chat_ignore_memory_option">이 대화는 기억을 참조하지 않습니다</string>
+    <!-- A5: 消息信息弹层(模型/耗时/Token 用量) -->
+    <string name="msg_info_title">메시지 정보</string>
+    <string name="msg_info_model">모델</string>
+    <string name="msg_info_time">시간</string>
+    <string name="msg_info_duration">생성 시간</string>
+    <string name="msg_info_tokens_title">토큰 사용량</string>
+    <string name="msg_info_prompt">입력 (prompt)</string>
+    <string name="msg_info_completion">출력 (completion)</string>
+    <string name="msg_info_reasoning">추론 (reasoning)</string>
+    <string name="msg_info_cached">캐시 적중</string>
+    <string name="msg_info_total">합계</string>
+    <string name="msg_info_measured">실측</string>
+    <string name="msg_info_estimated">추정</string>
+    <string name="msg_info_no_data">생성 데이터 없음</string>
+    <string name="msg_info_unknown">알 수 없음</string>
 </resources>

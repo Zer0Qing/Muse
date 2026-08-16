@@ -1799,6 +1799,8 @@ class GroupChatScheduler(
                             is ChatStreamEvent.Error -> streamError = event.message
                             is ChatStreamEvent.StreamInterrupted -> streamError = event.message
                             is ChatStreamEvent.FallbackNotice -> {}
+                            // A5: 群聊路径不展示 token 用量,忽略
+                            is ChatStreamEvent.UsageDelta -> {}
                         }
                     }
                     if (streamError != null) throw IllegalStateException(streamError)
@@ -2438,6 +2440,8 @@ class GroupChatScheduler(
                             is ChatStreamEvent.Error -> streamError = event.message
                             is ChatStreamEvent.StreamInterrupted -> streamError = event.message
                             is ChatStreamEvent.FallbackNotice -> { /* 已自动降级为非流式 */ }
+                            // A5: 群聊工具轮不展示 token 用量,忽略
+                            is ChatStreamEvent.UsageDelta -> {}
                         }
                     }
                 }

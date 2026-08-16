@@ -75,6 +75,14 @@ internal class StreamRunState(
     var totalToolCallCount: Int = 0
     var firstTokenTime: Long = 0L
 
+    /**
+     * A5: 本轮流式的 provider 实测 token 用量。
+     * streamRound 的 UsageDelta 分支写入(跨轮累积,多轮工具循环中每轮都可能发),
+     * finalizeResponse 持久化时取最后一次非 null(最后一轮 = 最终回复轮)。
+     * provider 未返回 usage 时为 null,UI 回退本地估算。
+     */
+    var usageTokens: io.zer0.ai.core.UsageTokens? = null
+
     // builder/reasoningBuilder:catch 块用(流式过程中 streamRound 使用 params.builder,
     // 此处 builder 保留与原实现一致的行为)
     val builder: StringBuilder = StringBuilder()

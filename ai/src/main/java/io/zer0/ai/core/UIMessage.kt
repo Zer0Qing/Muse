@@ -193,6 +193,22 @@ data class UIMessage(
     val parentGroupId: String? = null,
     /** v1.0.47: 消息附件列表(结构化持久化原始文件元数据,Provider 发送请求时忽略,用 content)。 */
     val attachments: List<AttachmentRef> = emptyList(),
+    /**
+     * A5: 消息生成元数据(信息展示用,Provider 发送请求时忽略)。
+     *
+     * 由 ChatViewModel 在生成结束时回填(provider 实测优先,缺失时 UI 本地估算展示):
+     *  - [durationMs] 本消息生成总耗时(毫秒,含工具循环)
+     *  - [promptTokens] provider 实测输入 token(流式 UsageDelta 末值)
+     *  - [completionTokens] provider 实测输出 token
+     *  - [reasoningTokens] provider 实测推理 token(o1/DeepSeek-R1 等)
+     *  - [cachedTokens] provider 实测 prompt 缓存命中 token(Anthropic/OpenAI/Gemini)
+     * 均为 null 表示无实测/未回填(旧数据或 provider 未返回 usage)。
+     */
+    val durationMs: Long? = null,
+    val promptTokens: Int? = null,
+    val completionTokens: Int? = null,
+    val reasoningTokens: Int? = null,
+    val cachedTokens: Int? = null,
 ) {
     /** 拼出用于显示的纯文本(不含推理过程)。 */
     fun toText(): String = content

@@ -1133,6 +1133,12 @@ class SessionRepository(
                     io.zer0.common.AppJson.decodeFromString(io.zer0.ai.core.ToolCallInfo.serializer(), json)
                 }.getOrNull()
             },
+            // A5: 生成元数据往返(旧数据为 null,UI 回退本地估算)
+            durationMs = durationMs,
+            promptTokens = promptTokens,
+            completionTokens = completionTokens,
+            reasoningTokens = reasoningTokens,
+            cachedTokens = cachedTokens,
         )
     }
 
@@ -1178,6 +1184,12 @@ class SessionRepository(
         toolCallInfoJson = toolCallInfo?.let {
             runCatching { io.zer0.common.AppJson.encodeToString(io.zer0.ai.core.ToolCallInfo.serializer(), it) }.getOrNull()
         },
+        // A5: 生成元数据持久化(provider 实测优先,缺失为 null)
+        durationMs = durationMs,
+        promptTokens = promptTokens,
+        completionTokens = completionTokens,
+        reasoningTokens = reasoningTokens,
+        cachedTokens = cachedTokens,
     )
 
     /** v1.0.30: 按 id 获取消息（变体查询用）。 */

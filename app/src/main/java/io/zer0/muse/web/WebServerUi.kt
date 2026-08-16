@@ -237,7 +237,7 @@ $("btn-refresh").onclick=function(){
 $("btn-settings").onclick=loadSettings;
 $("btn-logout").onclick=function(){
   // A-10: token Cookie 为 httpOnly,JS 无法删除,必须调用服务端 /api/auth/logout 让其下发过期 Set-Cookie。
-  fetch("/api/auth/logout",{method:"POST"}).catch(function(){}).finally(function(){ show("login"); });
+  fetch("/api/auth/logout",{method:"POST"}).catch(function(e){ console.warn("logout request failed", e); }).finally(function(){ show("login"); });
 };
 
 /* ── 初始 ── */

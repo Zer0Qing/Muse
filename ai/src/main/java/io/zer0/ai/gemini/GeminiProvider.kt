@@ -279,6 +279,12 @@ class GeminiProvider(
                             close()
                         }
 
+                    // A5: usageMetadata 是累计值,末 chunk(含 finishReason,可能无 candidates)
+                    // 携带最终计数 — 必须在 candidates 早退前解析,消费方取最后一次非 null
+                    chunk.usageMetadata?.let { usage ->
+                        trySend(ChatStreamEvent.UsageDelta(usage.toUsageTokens()))
+                    }
+
                     val candidate = chunk.candidates.firstOrNull() ?: return
                     // Phase 8.6: 遍历 parts,文本 → ContentDelta,图片 → ImageDelta
                     candidate.content?.parts?.forEach { part ->

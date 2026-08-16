@@ -4557,7 +4557,13 @@ class ChatViewModel(
                 }
                 // A-12/A-14: 传入 expectedAssistantId — persistInterruptedAssistant 只允许标记
                 // 本轮生成消息,绝不回退到旧/已完成消息(此前会误标 [已中断] 到历史回复)。
-                persistInterruptedAssistant(sessionId, partialFromBuilder, expectedAssistantId = state.currentAssistantId)
+                persistInterruptedAssistant(
+                    sessionId,
+                    partialFromBuilder,
+                    expectedAssistantId = state.currentAssistantId,
+                    // A5: 中断消息也补耗时(信息弹层展示;token 流中不完整,不落)
+                    durationMs = System.currentTimeMillis() - state.streamStartedAt,
+                )
                 // 审查修复 (2.0 B-01): 中断路径同样清理本轮检查点 — 此前只在 finalizeResponse
                 // 正常结束删除,每次中断都在 DB 残留检查点,重启后 recoverInterruptedGenerations
                 // 反复扫描/补标 [已中断]。按 (sessionId, streamStartedAt) 精确清理本代全部轮次,
@@ -4595,7 +4601,13 @@ class ChatViewModel(
                     }
                 }
                 // A-12/A-14: 同上,限定本轮生成消息,不误标旧回复
-                persistInterruptedAssistant(sessionId, partialFromBuilder, expectedAssistantId = state.currentAssistantId)
+                persistInterruptedAssistant(
+                    sessionId,
+                    partialFromBuilder,
+                    expectedAssistantId = state.currentAssistantId,
+                    // A5: 异常中断同样补耗时(见取消路径)
+                    durationMs = System.currentTimeMillis() - state.streamStartedAt,
+                )
                 // 审查修复 (2.0 B-01): 异常路径同样清理本轮检查点(同取消路径,见上)
                 withContext(NonCancellable) {
                     runCatching {
@@ -5092,6 +5104,11 @@ class ChatViewModel(
                                     "toolCallDelta | sessionId=$sessionId | round=$round | index=${event.index} | tool=${event.name}",
                                 )
                             }
+                        }
+                        // A5: provider 实测 token 用量 — 每轮可能多次(Anthropic 输入/输出分开发),
+                        // 直接覆盖 state.usageTokens,保证留存最后一次(总量);provider 未返回则保持 null
+                        is ChatStreamEvent.UsageDelta -> {
+                            state.usageTokens = event.usage
                         }
                         is ChatStreamEvent.Done -> {
                             // v1.0.30: 某些模型（如 GLM-4-9B）全流程只发空名 tool_call，
@@ -5590,6 +5607,36 @@ class ChatViewModel(
             }
         }.onError { msg, _ -> Logger.w("ChatVM", "applyOnGenerationFinish failed: $msg") }
 
+        // A5: 生成元数据持久化 — provider 实测 token 用量(流式 UsageDelta 末值)+ 总耗时。
+        // 中断/旧数据无 usage 时保持 null,UI 弹层回退本地估算展示(业务原因见 MessageInfoSheet)。
+        // 失败不阻塞 finalize(仅信息展示字段,丢失可接受)。
+        resultOf {
+            val entity = sessionRepository.getMessageById(state.currentAssistantId.toString()) ?: return@resultOf
+            val usage = state.usageTokens
+            val durationMs = System.currentTimeMillis() - streamStartedAt
+            sessionRepository.upsertMessageEntity(
+                entity.copy(
+                    durationMs = durationMs,
+                    promptTokens = usage?.promptTokens,
+                    completionTokens = usage?.completionTokens,
+                    reasoningTokens = usage?.reasoningTokens,
+                    cachedTokens = usage?.cachedTokens,
+                )
+            )
+            // 同步更新内存消息 — 生成刚结束时打开信息弹层即可读到元数据,无需等重新加载
+            _messages.value = _messages.value.map {
+                if (it.id == state.currentAssistantId) {
+                    it.copy(
+                        durationMs = durationMs,
+                        promptTokens = usage?.promptTokens,
+                        completionTokens = usage?.completionTokens,
+                        reasoningTokens = usage?.reasoningTokens,
+                        cachedTokens = usage?.cachedTokens,
+                    )
+                } else it
+            }
+        }.onError { msg, _ -> Logger.w("ChatVM", "persist A5 message metadata failed: $msg") }
+
         // v0.45: 流式结束后刷新上下文 token 占用(完整回复已写入 messages)
         refreshContextInfo()
 
@@ -6021,7 +6068,8 @@ class ChatViewModel(
         sessionId: String,
         partialMsg: UIMessage? = null,
         expectedAssistantId: Uuid? = null,
-    ) = streamCoordinator.persistInterruptedAssistant(sessionId, partialMsg, expectedAssistantId)
+        durationMs: Long? = null,
+    ) = streamCoordinator.persistInterruptedAssistant(sessionId, partialMsg, expectedAssistantId, durationMs)
 
     /**
      * v1.43: 周期性落盘 — 把当前 assistant 消息的流中进度持久化到数据库,

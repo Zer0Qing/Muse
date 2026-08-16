@@ -82,6 +82,19 @@ sealed class ChatStreamEvent {
      * UI 可据此显示一次性提示。
      */
     data class FallbackNotice(val message: String) : ChatStreamEvent()
+
+    /**
+     * A5: 流式过程中的 token 用量(provider 实测值)。
+     *
+     * 各 Provider 在流式结束前的 usage 事件里解析并发出:
+     *  - OpenAI Responses: response.completed 事件 / usage 字段(需 stream_options.include_usage)
+     *  - Anthropic: message_delta.usage(输出 token) + message_start.message.usage(输入 token)
+     *  - Gemini: 最后一个 SSE chunk 的 usageMetadata
+     *
+     * 可能多次发出(如 Anthropic 输入/输出分两次),消费方应取最后一次(总量)。
+     * provider 未返回 usage 时不发该事件(消费方回退本地估算)。
+     */
+    data class UsageDelta(val usage: UsageTokens) : ChatStreamEvent()
 }
 
 /**
@@ -177,12 +190,18 @@ data class ChatCompletion(
  * v1.0.53 Phase 3: token 用量明细(对齐 OpenAI usage 字段)。
  *
  * Provider 未返回 usage 时为 null,AgentTokenBudget 跳过累加(避免误判耗尽)。
+ *
+ * A5: 新增 [cachedTokens] — prompt 缓存命中 token(Anthropic cache_read + cache_creation,
+ * OpenAI prompt_tokens_details.cached_tokens)。仅用于信息展示,不计入 [total]
+ * (保持既有 budget 语义不变:Anthropic 缓存 token 原本就不参与消耗累加)。
  */
 data class UsageTokens(
     val promptTokens: Int = 0,
     val completionTokens: Int = 0,
     /** 推理 token(部分模型单独计入,如 OpenAI o1 的 completion_tokens_details.reasoning_tokens)。 */
     val reasoningTokens: Int = 0,
+    /** A5: prompt 缓存命中/写入 token(仅展示,不参与 [total])。 */
+    val cachedTokens: Int = 0,
 ) {
     /** 总消耗 = prompt + completion(已含 reasoning,不重复加)。 */
     val total: Int get() = promptTokens + completionTokens

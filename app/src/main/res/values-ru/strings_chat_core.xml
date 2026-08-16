@@ -470,4 +470,19 @@
     <string name="chat_select_provider">Выбрать провайдера</string>
     <string name="chat_update_compress">Сжать контекст</string>
     <string name="chat_ignore_memory_option">Этот диалог не будет использовать память</string>
+    <!-- A5: 消息信息弹层(模型/耗时/Token 用量) -->
+    <string name="msg_info_title">Информация о сообщении</string>
+    <string name="msg_info_model">Модель</string>
+    <string name="msg_info_time">Время</string>
+    <string name="msg_info_duration">Время генерации</string>
+    <string name="msg_info_tokens_title">Использование токенов</string>
+    <string name="msg_info_prompt">Ввод (prompt)</string>
+    <string name="msg_info_completion">Вывод (completion)</string>
+    <string name="msg_info_reasoning">Рассуждения (reasoning)</string>
+    <string name="msg_info_cached">Попадания в кэш</string>
+    <string name="msg_info_total">Итого</string>
+    <string name="msg_info_measured">Измерено</string>
+    <string name="msg_info_estimated">Оценка</string>
+    <string name="msg_info_no_data">Нет данных о генерации</string>
+    <string name="msg_info_unknown">Неизвестно</string>
 </resources>

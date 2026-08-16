@@ -470,4 +470,19 @@
     <string name="chat_select_provider">プロバイダーを選択</string>
     <string name="chat_update_compress">コンテキストを圧縮</string>
     <string name="chat_ignore_memory_option">この会話は記憶を参照しません</string>
+    <!-- A5: 消息信息弹层(模型/耗时/Token 用量) -->
+    <string name="msg_info_title">メッセージ情報</string>
+    <string name="msg_info_model">モデル</string>
+    <string name="msg_info_time">時間</string>
+    <string name="msg_info_duration">生成時間</string>
+    <string name="msg_info_tokens_title">トークン使用量</string>
+    <string name="msg_info_prompt">入力 (prompt)</string>
+    <string name="msg_info_completion">出力 (completion)</string>
+    <string name="msg_info_reasoning">推論 (reasoning)</string>
+    <string name="msg_info_cached">キャッシュヒット</string>
+    <string name="msg_info_total">合計</string>
+    <string name="msg_info_measured">実測</string>
+    <string name="msg_info_estimated">推定</string>
+    <string name="msg_info_no_data">生成データなし</string>
+    <string name="msg_info_unknown">不明</string>
 </resources>

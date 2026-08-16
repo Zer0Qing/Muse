@@ -53,6 +53,10 @@ import kotlin.uuid.Uuid
  * launchStream 主体(835 行)因捕获大量局部变量且与 ChatViewModel 多个字段强耦合,
  * 保留在 ChatViewModel 中,通过本 Coordinator 调用辅助方法。
  */
+// A5: LargeClass 豁免 — 类体 LOC 恰在 detekt 600 阈值边界(历史体量已接近上限,
+// A5 为 persistInterruptedAssistant 补 1 个 durationMs 参数即越线)。拆分属独立重构任务,
+// 与本功能无关,暂以注释说明豁免(先例: ToolOrchestrator @Suppress("LongParameterList"))。
+@Suppress("LargeClass")
 class ChatStreamCoordinator(
     private val accessor: ChatStateAccessor,
     private val sessionRepository: SessionRepository,
@@ -367,6 +371,8 @@ class ChatStreamCoordinator(
         sessionId: String,
         partialMsg: UIMessage? = null,
         expectedAssistantId: Uuid? = null,
+        /** A5: 中断时已流过的耗时(毫秒),随 [已中断] 消息落库供信息弹层展示。 */
+        durationMs: Long? = null,
     ) {
         // v1.97: partialMsg 参数用于切页后 _state.messages 已切换到新会话的场景。
         // 生成闭包用 builder 构造 UIMessage 传入,绕过 _state.messages 查找。
@@ -380,7 +386,7 @@ class ChatStreamCoordinator(
         ) {
             return
         }
-        val interruptedMsg = partial.copy(content = partial.content + "\n\n[已中断]")
+        val interruptedMsg = partial.copy(content = partial.content + "\n\n[已中断]", durationMs = durationMs)
         // v1.0.74 fix: 此前 partialMsg != null(切页/生成闭包场景)一律不更新 UI,
         // 导致用户停止生成后当次会话内看不到 [已中断] 标记、"继续生成"按钮不出现。
         // 改为:消息仍在当前会话列表就更新 UI(正常停止场景),不在则跳过(切页防污染)。

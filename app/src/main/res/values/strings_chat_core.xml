@@ -472,4 +472,19 @@
     <string name="slash_command_pin_done">已切换置顶状态</string>
     <string name="slash_command_archive_done">已归档会话</string>
     <string name="chat_agent_tab_title">Agent</string>
+    <!-- A5: 消息信息弹层(模型/耗时/Token 用量) -->
+    <string name="msg_info_title">消息信息</string>
+    <string name="msg_info_model">模型</string>
+    <string name="msg_info_time">时间</string>
+    <string name="msg_info_duration">生成耗时</string>
+    <string name="msg_info_tokens_title">Token 用量</string>
+    <string name="msg_info_prompt">输入 (prompt)</string>
+    <string name="msg_info_completion">输出 (completion)</string>
+    <string name="msg_info_reasoning">推理 (reasoning)</string>
+    <string name="msg_info_cached">缓存命中</string>
+    <string name="msg_info_total">合计</string>
+    <string name="msg_info_measured">实测</string>
+    <string name="msg_info_estimated">估算</string>
+    <string name="msg_info_no_data">无生成数据</string>
+    <string name="msg_info_unknown">未知</string>
 </resources>

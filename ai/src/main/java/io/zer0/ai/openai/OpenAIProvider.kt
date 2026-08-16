@@ -557,6 +557,12 @@ class OpenAIProvider(
                         AppJson.decodeFromString<OpenAIStreamChunk>(data)
                     }.getOrNull() ?: return
 
+                    // A5: stream_options.include_usage 时末 chunk 仅带 usage(choices 为空数组),
+                    // 必须在 choices 早退前解析,否则 usage chunk 被静默丢弃
+                    chunk.usage?.let { usage ->
+                        trySend(ChatStreamEvent.UsageDelta(usage.toUsageTokens()))
+                    }
+
                     val choice = chunk.choices.firstOrNull() ?: return
                     val delta = choice.delta
                     if (delta != null) {
@@ -1318,7 +1324,23 @@ class OpenAIProvider(
         } else {
             injectThinkingFormat(payload, thinkingFormat, effectiveReasoningLevel)
         }
-        return renderCustomRequestBody(defaultBody, request, effectiveModel, stream)
+        // A5: Chat Completions 流式 usage — 标准 OpenAI 协议(thinkingFormat==null)注入
+        // stream_options.include_usage,使末 chunk 携带 usage(choices 为空数组)。
+        // 厂商扩展协议(thinkingFormat != null,如 DeepSeek/Kimi/Qwen/Zhipu)不注入,
+        // 避免严格中转站对未知字段返回 400;此类端点拿不到流式 usage,上层回退本地估算。
+        val bodyWithUsage = if (stream && thinkingFormat == null) {
+            val element = runCatching { AppJson.parseToJsonElement(defaultBody) }.getOrNull()
+            val obj = (element as? JsonObject)?.toMutableMap()
+            if (obj != null) {
+                obj["stream_options"] = buildJsonObject { put("include_usage", JsonPrimitive(true)) }
+                AppJson.encodeToString(JsonObject.serializer(), JsonObject(obj))
+            } else {
+                defaultBody
+            }
+        } else {
+            defaultBody
+        }
+        return renderCustomRequestBody(bodyWithUsage, request, effectiveModel, stream)
     }
 
     /**
@@ -1950,6 +1972,11 @@ class OpenAIProvider(
                         "response.completed" -> {
                             // 流结束,带最终 response 对象
                             val status = event.response?.status
+                            // A5: 最终 response 携带 usage(实测值) — 在 Done 前发出,
+                            // 消费方(StreamRunState)累积最后非 null 一次
+                            event.response?.usage?.let { usage ->
+                                trySend(ChatStreamEvent.UsageDelta(usage.toUsageTokens()))
+                            }
                             // B5-03: 从最终 output 提取 reasoning 签名/encrypted_content 供落库回放
                             val reasoningItem = event.response?.output?.firstOrNull { it.type == "reasoning" }
                             if (reasoningItem != null &&

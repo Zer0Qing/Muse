@@ -470,4 +470,19 @@
     <string name="chat_select_provider">Selecionar provedor</string>
     <string name="chat_update_compress">Comprimir contexto</string>
     <string name="chat_ignore_memory_option">Esta conversa não usará a memória</string>
+    <!-- A5: 消息信息弹层(模型/耗时/Token 用量) -->
+    <string name="msg_info_title">Informações da mensagem</string>
+    <string name="msg_info_model">Modelo</string>
+    <string name="msg_info_time">Hora</string>
+    <string name="msg_info_duration">Tempo de geração</string>
+    <string name="msg_info_tokens_title">Uso de tokens</string>
+    <string name="msg_info_prompt">Entrada (prompt)</string>
+    <string name="msg_info_completion">Saída (completion)</string>
+    <string name="msg_info_reasoning">Raciocínio (reasoning)</string>
+    <string name="msg_info_cached">Acertos de cache</string>
+    <string name="msg_info_total">Total</string>
+    <string name="msg_info_measured">Medido</string>
+    <string name="msg_info_estimated">Estimado</string>
+    <string name="msg_info_no_data">Sem dados de geração</string>
+    <string name="msg_info_unknown">Desconhecido</string>
 </resources>

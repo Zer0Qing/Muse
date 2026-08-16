@@ -5,6 +5,7 @@ import io.zer0.common.toMessage
 import io.zer0.ai.core.ChatCompletion
 import io.zer0.ai.core.ChatRequest
 import io.zer0.ai.core.ChatStreamEvent
+import io.zer0.ai.core.UsageTokens
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.Model
 import io.zer0.ai.core.ModelContextWindowRegistry
@@ -118,6 +119,8 @@ class AnthropicProvider(
         val signatureAccumulator = StringBuilder()
         // M-ANT1: message_delta 携带的 stop_reason,延迟到 message_stop 时随 Done 一起发(避免重复发 Done)
         var pendingStopReason: String? = null
+        // A5: message_start 的输入 usage — message_delta 到达时合并输出 usage 发 UsageDelta(取最后一次)
+        var inputUsage: AnthropicUsage? = null
         // H-ANT1: 任何 ContentDelta/ReasoningDelta/ToolCallDelta 发出后置 true,重试前检查避免重复发内容
         val anyDeltaSent = AtomicBoolean(false)
         // H-ANT3: 流是否已正常结束(message_stop/error/onFailure 终结路径置 true),onClosed 据此判断异常关闭
@@ -135,6 +138,7 @@ class AnthropicProvider(
             signatureAccumulator.setLength(0)
             blockContext.clear()
             pendingStopReason = null
+            inputUsage = null
             // v1.0.1: 用 effectiveApiKey() 支持多 key 轮换
             val httpRequest = Request.Builder()
                 .url(url)
@@ -224,10 +228,11 @@ class AnthropicProvider(
                     }.getOrNull() ?: return
 
                     when (chunk.type) {
-                        // L-ANT1: message_start 解析 usage
+                        // L-ANT1: message_start 解析 usage — A5: 存输入 usage,message_delta 时合并输出发 UsageDelta
                         "message_start" -> {
                             val usage = chunk.message?.usage
                             if (usage != null) {
+                                inputUsage = usage
                                 Logger.d("AnthropicProvider",
                                     "message_start: input=${usage.input_tokens} output=${usage.output_tokens} " +
                                         "cache_read=${usage.cache_read_input_tokens} cache_creation=${usage.cache_creation_input_tokens}")
@@ -281,10 +286,22 @@ class AnthropicProvider(
                             }
                         }
                         // M-ANT1: message_delta 仅记录 stop_reason,不再立即发 Done(避免与 message_stop 重复发 Done)
+                        // A5: message_delta 携带输出 usage(累积值),与 message_start 的输入 usage 合并发 UsageDelta
                         "message_delta" -> {
                             val stopReason = chunk.delta?.stop_reason
                             if (stopReason != null) {
                                 pendingStopReason = stopReason
+                            }
+                            val deltaUsage = chunk.usage
+                            if (deltaUsage != null) {
+                                trySend(ChatStreamEvent.UsageDelta(
+                                    UsageTokens(
+                                        promptTokens = inputUsage?.input_tokens ?: 0,
+                                        completionTokens = deltaUsage.output_tokens,
+                                        cachedTokens = (inputUsage?.cache_read_input_tokens ?: 0) +
+                                            (inputUsage?.cache_creation_input_tokens ?: 0),
+                                    ),
+                                ))
                             }
                         }
                         // L-ANT6: message_stop 兜底 Done 再 close(M-ANT1: 仅此处发 Done)

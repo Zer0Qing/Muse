@@ -163,6 +163,8 @@ internal data class GeminiUsageMetadata(
     @SerialName("promptTokenCount") val promptTokenCount: Int = 0,
     @SerialName("candidatesTokenCount") val candidatesTokenCount: Int = 0,
     @SerialName("totalTokenCount") val totalTokenCount: Int = 0,
+    /** A5: 上下文缓存命中 token(Gemini 2.5+ 的 usageMetadata.cachedContentTokenCount)。 */
+    @SerialName("cachedContentTokenCount") val cachedContentTokenCount: Int = 0,
 )
 
 /** H-GEM4: 提示级安全反馈。 */
@@ -254,4 +256,5 @@ internal fun GeminiUsageMetadata.toUsageTokens(): io.zer0.ai.core.UsageTokens = 
     promptTokens = promptTokenCount,
     completionTokens = candidatesTokenCount,
     reasoningTokens = 0,  // Gemini 不单独计 reasoning tokens
+    cachedTokens = cachedContentTokenCount,
 )

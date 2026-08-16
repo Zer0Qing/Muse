@@ -260,6 +260,11 @@ internal data class OpenAIToolCallFunction(
 @Serializable
 internal data class OpenAIStreamChunk(
     val choices: List<OpenAIChoice> = emptyList(),
+    /**
+     * A5: 流式 usage — 请求注入 stream_options.include_usage 时,末 chunk 携带 usage
+     * (choices 为空数组)。部分网关不注入也会返回,字段可空兼容两种行为。
+     */
+    val usage: OpenAICompletionUsage? = null,
 )
 
 @Serializable
@@ -320,11 +325,19 @@ internal data class OpenAICompletionUsage(
     @SerialName("completion_tokens") val completionTokens: Int = 0,
     @SerialName("total_tokens") val totalTokens: Int = 0,
     @SerialName("completion_tokens_details") val completionTokensDetails: OpenAICompletionTokensDetails? = null,
+    /** A5: prompt 缓存命中 token(OpenAI 返回 prompt_tokens_details.cached_tokens)。 */
+    @SerialName("prompt_tokens_details") val promptTokensDetails: OpenAICompletionPromptTokensDetails? = null,
 )
 
 @Serializable
 internal data class OpenAICompletionTokensDetails(
     @SerialName("reasoning_tokens") val reasoningTokens: Int = 0,
+)
+
+/** A5: prompt 明细 — cached_tokens(上下文缓存命中数,仅展示,不参与消耗合计)。 */
+@Serializable
+internal data class OpenAICompletionPromptTokensDetails(
+    @SerialName("cached_tokens") val cachedTokens: Int = 0,
 )
 
 @Serializable
@@ -413,6 +426,7 @@ internal fun OpenAICompletionUsage.toUsageTokens(): io.zer0.ai.core.UsageTokens 
     promptTokens = promptTokens,
     completionTokens = completionTokens,
     reasoningTokens = completionTokensDetails?.reasoningTokens ?: 0,
+    cachedTokens = promptTokensDetails?.cachedTokens ?: 0,
 )
 
 /** v1.0.53 Phase 3: Responses API usage -> [io.zer0.ai.core.UsageTokens]。 */

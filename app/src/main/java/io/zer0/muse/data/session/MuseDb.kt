@@ -159,7 +159,7 @@ import kotlinx.serialization.builtins.serializer
         // B5-02: 群聊生成账本(进程被杀后按断点重放)
         GroupChatGenerationLedgerEntity::class,
     ],
-    version = 89,
+    version = 90,
     exportSchema = true,
 )
 @TypeConverters(QuickNoteConverters::class)
@@ -584,6 +584,20 @@ abstract class MuseDb : RoomDatabase() {
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_messages_role` ON `messages` (`role`)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_messages_sessionId_createdAt` ON `messages` (`sessionId`, `createdAt`)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_messages_sessionId_createdAt_role` ON `messages` (`sessionId`, `createdAt`, `role`)")
+            }
+        }
+
+        /**
+         * A5: MIGRATION_89_90 — messages 表补生成元数据列。
+         *
+         * 消息信息弹层(模型/耗时/令牌)需要持久化 provider 实测用量与耗时:
+         * durationMs(生成总耗时)/promptTokens/completionTokens/reasoningTokens/cachedTokens。
+         * 走 ensureMessageColumns 幂等补齐(与 60_61/63_64 等同一助手,已存在的列跳过),
+         * 兼容 88_89 重建表路径(重建后列丢失,此处重新补上)。
+         */
+        val MIGRATION_89_90 = object : Migration(89, 90) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                ensureMessageColumns(db)
             }
         }
 
@@ -2406,6 +2420,7 @@ abstract class MuseDb : RoomDatabase() {
                         MIGRATION_86_87,
                         MIGRATION_87_88,
                         MIGRATION_88_89,
+                        MIGRATION_89_90,
                     )
                     // 启用外键约束(artifacts 表的 ON DELETE CASCADE 依赖此设置)
                     // onOpen 不在 onCreate 事务内,可以执行此类命令;onCreate 内禁止 PRAGMA
@@ -2544,6 +2559,12 @@ private fun ensureMessageColumns(db: androidx.sqlite.db.SupportSQLiteDatabase) {
         "citationUrlsJson TEXT NOT NULL DEFAULT '[]'",
         "imageUrlsJson TEXT NOT NULL DEFAULT '[]'",
         "favoriteTag TEXT DEFAULT NULL",
+        // A5: 生成元数据列(消息信息弹层:模型/耗时/令牌)
+        "durationMs INTEGER DEFAULT NULL",
+        "promptTokens INTEGER DEFAULT NULL",
+        "completionTokens INTEGER DEFAULT NULL",
+        "reasoningTokens INTEGER DEFAULT NULL",
+        "cachedTokens INTEGER DEFAULT NULL",
     )
     columns.forEach { spec ->
         val name = spec.substringBefore(' ')

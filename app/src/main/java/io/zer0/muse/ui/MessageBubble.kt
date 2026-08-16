@@ -113,6 +113,7 @@ import io.zer0.muse.ui.chat.BranchSelector
 import io.zer0.muse.ui.chat.parseQuotedContent
 import io.zer0.muse.ui.chat.buildHighlightedText
 import io.zer0.muse.ui.chat.buildMoodSkinAnnotated
+import io.zer0.muse.ui.chat.MessageInfoSheet
 import io.zer0.muse.ui.common.media.AssistantAvatar
 import io.zer0.muse.ui.common.media.ContextMenuItem
 import io.zer0.muse.ui.common.media.DesktopContextMenu
@@ -255,6 +256,8 @@ internal fun MessageBubble(
     var mediaPreview by remember { mutableStateOf<Pair<List<String>, Int>?>(null) }
     // v1.48: 删除消息确认对话框
     var showDeleteConfirm by rememberSaveable { mutableStateOf(false) }
+    // A5: 消息信息弹层(长按扩展菜单/桌面右键菜单「消息信息」触发)
+    var showInfoSheet by rememberSaveable { mutableStateOf(false) }
     // 末尾 AI 流式时光标显示
     val showStreamingCursor = !isUser && isLastAssistant && isStreaming
     // v1.42: 流式中的最后一条 AI 消息禁用动画,避免每帧测量导致卡顿。
@@ -1385,6 +1388,17 @@ internal fun MessageBubble(
                                     onEnterMultiSelect?.invoke()
                                 },
                             )
+                            // A5: 消息信息弹层(模型/耗时/Token 用量)
+                            ActionMenuItem(
+                                icon = TablerIcons.InfoCircle,
+                                text = stringResource(R.string.msg_info_title),
+                                contentDescription = stringResource(R.string.msg_info_title),
+                                onClick = {
+                                    showActionMenu = false
+                                    showLanguageSubmenu = false
+                                    showInfoSheet = true
+                                },
+                            )
                             if (msg.content.isNotBlank()) {
                                 ActionMenuItem(
                                     icon = TablerIcons.Copy,
@@ -1508,6 +1522,13 @@ internal fun MessageBubble(
                 destructive = true,
             )
         }
+        // A5: 消息信息弹层(模型/时间/耗时/Token 用量)
+        if (showInfoSheet) {
+            MessageInfoSheet(
+                msg = msg,
+                onDismiss = { showInfoSheet = false },
+            )
+        }
         // P2-13: 桌面端右键上下文菜单(仅物理键盘 + Expanded 窗口下弹出)
         // 项:复制 / 重新生成(仅末尾 AI 消息)/ 删除 / 分享
         // 与移动端长按菜单(showActionMenu)功能对齐,但采用桌面右键菜单交互范式
@@ -1517,9 +1538,11 @@ internal fun MessageBubble(
             val regenerateLabel = stringResource(R.string.desktop_context_regenerate)
             val shareLabel = stringResource(R.string.desktop_context_share)
             val deleteLabel = stringResource(R.string.desktop_context_delete)
+            // A5: 消息信息弹层入口(桌面右键菜单)
+            val infoLabel = stringResource(R.string.msg_info_title)
             val contextMenuItems = remember(
                 msg.id, isUser, isLastAssistant,
-                copyLabel, regenerateLabel, shareLabel, deleteLabel,
+                copyLabel, regenerateLabel, shareLabel, deleteLabel, infoLabel,
             ) {
                 buildList {
                     if (msg.content.isNotBlank()) {
@@ -1549,6 +1572,17 @@ internal fun MessageBubble(
                             label = shareLabel,
                             icon = Icons.Outlined.Share,
                             onClick = onShareSession,
+                        )
+                    )
+                    // A5: 消息信息弹层(模型/耗时/Token 用量)
+                    add(
+                        ContextMenuItem(
+                            label = infoLabel,
+                            icon = TablerIcons.InfoCircle,
+                            onClick = {
+                                showDesktopContextMenu = false
+                                showInfoSheet = true
+                            },
                         )
                     )
                     add(
