@@ -38,9 +38,6 @@ class ChatSettingsStore(private val context: Context) {
     val floorLimitFlow: Flow<Int> = store.data.map { prefs ->
         prefs[KEY_FLOOR_LIMIT] ?: 16
     }
-    val richInputEnabledFlow: Flow<Boolean> = store.data.map { prefs ->
-        prefs[KEY_RICH_INPUT_ENABLED] ?: false
-    }
     val chatPreferencesFlow: Flow<ChatPreferences> = store.data.map { prefs ->
         decodeChatPreferences(prefs[KEY_CHAT_PREFERENCES])
     }
@@ -49,10 +46,6 @@ class ChatSettingsStore(private val context: Context) {
 
     suspend fun saveChatPreferences(prefs: ChatPreferences) {
         store.edit { it[KEY_CHAT_PREFERENCES] = AppJson.encodeToString(ChatPreferences.serializer(), prefs) }
-    }
-
-    suspend fun saveRichInputEnabled(enabled: Boolean) {
-        store.edit { it[KEY_RICH_INPUT_ENABLED] = enabled }
     }
 
     suspend fun saveTokenEstimateEnabled(enabled: Boolean) {
@@ -88,7 +81,6 @@ class ChatSettingsStore(private val context: Context) {
         private val KEY_PASTE_AS_FILE_THRESHOLD = intPreferencesKey("paste_as_file_threshold")
         private val KEY_FLOOR_LIMITER_ENABLED = booleanPreferencesKey("floor_limiter_enabled")
         private val KEY_FLOOR_LIMIT = intPreferencesKey("floor_limit")
-        private val KEY_RICH_INPUT_ENABLED = booleanPreferencesKey("rich_input_enabled")
         private val KEY_CHAT_PREFERENCES = stringPreferencesKey("chat_preferences_json")
     }
 }

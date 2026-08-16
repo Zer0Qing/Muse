@@ -120,7 +120,6 @@ fun ChatSettingsPage(
     // v1.0.47 P5-3: Token 估算开关(默认关闭,实验性,避免 BPE 性能开销)
     val tokenEstimateEnabled by settings.tokenEstimateEnabledFlow
         .collectAsStateWithLifecycle(initialValue = false)
-    val richInputEnabled by settings.richInputEnabledFlow.collectAsStateWithLifecycle(initialValue = false)
     val providers by settings.providersFlow.collectAsStateWithLifecycle(initialValue = emptyList())
     val activeProviderId by settings.activeProviderIdFlow.collectAsStateWithLifecycle(initialValue = null)
     val customTitlePrompt by settings.customTitlePromptFlow.collectAsStateWithLifecycle(initialValue = null)
@@ -614,14 +613,7 @@ fun ChatSettingsPage(
                     onCheckedChange = { v -> scope.launch { settings.saveTokenEstimateEnabled(v) } },
                 )
                 SettingsGroupDivider()
-                SettingsSwitchRow(
-                    icon = TablerIcons.Edit,
-                    title = stringResource(R.string.settings_rich_input),
-                    subtitle = stringResource(R.string.settings_rich_input_desc),
-                    checked = richInputEnabled,
-                    onCheckedChange = { v -> scope.launch { settings.saveRichInputEnabled(v) } },
-                )
-                SettingsGroupDivider()
+                // v1.0.75 fix (用户反馈): 富文本格式工具条整条移除,删除对应设置开关
                 // v1.0.62: 压缩模型跟随对话默认模型，不再独立配置（此前独立模型跨 Provider 按 id
                 // 匹配会命中无关渠道的小模型，压缩质量不稳定）
                 SettingsItemRow(

@@ -289,8 +289,7 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
     val sid = state.currentSessionId
     if (sid != null && sid in activeBrowserSessions) browserRegistry.getIfActive(sid) else null
 }
-    // P2-12: 富文本输入开关 — 开启后 ChatScreen 的 InputBar 替换为 RichInputBar(顶部带 Markdown 格式工具条)
-    val richInputEnabled by settings.richInputEnabledFlow.collectAsStateWithLifecycle(initialValue = false)
+    // v1.0.75 fix (用户反馈): Markdown 格式工具条整条移除,不再有富文本开关
 
     // v1.0.4 (P3-4): 性能模式 — 通过 MessagePaginator 对 messages 做内存级分页,
     // LazyColumn 只渲染最近 N 条,上滑到顶时扩展下一页(纯本地内存分页);
@@ -924,8 +923,7 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                 onCycleDeepThinkingLevel = viewModel::cycleDeepThinkingLevel,
                 imageGenParams = state.imageGenParams,
                 onImageGenParamsChange = viewModel::updateImageGenParams,
-                // P2-12: 富文本输入开关 — 开启后显示 Markdown 格式工具条
-                formatEnabled = richInputEnabled,
+                // v1.0.75 fix: 格式工具条已移除,不再传 formatEnabled
                 showExpandButton = state.chatPreferences.showExpandButton,
                 onTextChanged = viewModel::updateInput,
                 // v1.0.47 P5: 硬件键盘上/下箭头遍历输入历史

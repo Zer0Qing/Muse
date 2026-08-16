@@ -25,21 +25,18 @@ class ChatSettingsStoreTest {
         assertEquals(2000, store.pasteAsFileThresholdFlow.first())
         assertEquals(false, store.floorLimiterEnabledFlow.first())
         assertEquals(16, store.floorLimitFlow.first())
-        assertEquals(false, store.richInputEnabledFlow.first())
 
         store.saveTokenEstimateEnabled(true)
         store.savePasteAsFileEnabled(false)
         store.savePasteAsFileThreshold(3000)
         store.saveFloorLimiterEnabled(true)
         store.saveFloorLimit(32)
-        store.saveRichInputEnabled(true)
 
         assertEquals(true, store.tokenEstimateEnabledFlow.first())
         assertEquals(false, store.pasteAsFileEnabledFlow.first())
         assertEquals(3000, store.pasteAsFileThresholdFlow.first())
         assertEquals(true, store.floorLimiterEnabledFlow.first())
         assertEquals(32, store.floorLimitFlow.first())
-        assertEquals(true, store.richInputEnabledFlow.first())
     }
 
     @Test

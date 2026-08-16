@@ -469,9 +469,6 @@ class SettingsRepository(
     // v1.25: 视觉辅助开关(默认关闭)
     val visionEnabledFlow: Flow<Boolean> = store.data.map { prefs -> prefs[KEY_VISION_ENABLED] ?: false }
 
-    // P2-12: 富文本输入开关(默认关闭) — 开启后 ChatScreen 的 InputBar 替换为 RichInputBar,
-    // 在输入框上方显示 Markdown 格式工具条(粗体/斜体/代码/列表等)。
-    val richInputEnabledFlow: Flow<Boolean> get() = chatSettings.richInputEnabledFlow
     // v1.25: 视觉辅助使用的模型 ID
     val visionModelIdFlow: Flow<String?> = store.data.map { prefs -> prefs[KEY_VISION_MODEL_ID] }
     // v1.25: 视觉辅助使用的供应商 ID
@@ -995,8 +992,6 @@ class SettingsRepository(
     // v1.25: 视觉辅助开关
     suspend fun saveVisionEnabled(enabled: Boolean) { store.edit { it[KEY_VISION_ENABLED] = enabled } }
 
-    // P2-12: 富文本输入开关
-    suspend fun saveRichInputEnabled(enabled: Boolean) = chatSettings.saveRichInputEnabled(enabled)
     // v1.25: 视觉辅助模型 ID
     suspend fun saveVisionModelId(modelId: String?) { store.edit { if (modelId != null) it[KEY_VISION_MODEL_ID] = modelId else it.remove(KEY_VISION_MODEL_ID) } }
     // v1.25: 视觉辅助供应商 ID
