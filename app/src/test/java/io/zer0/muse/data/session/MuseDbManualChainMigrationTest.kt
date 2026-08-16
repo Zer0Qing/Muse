@@ -38,6 +38,14 @@ class MuseDbManualChainMigrationTest {
         }
     }
 
+    /**
+     * 逐步执行完整迁移链并断言终态。
+     *
+     * 函数较长/复杂度高是测试场景使然:需要线性复刻 Room 迁移调度
+     * (含 75_76/76_77/88_89 函数迁移与事务包装),并对每个起点版本断言
+     * 列/索引/默认值/数据保留四类终态;拆分反而引入间接层,故整体豁免。
+     */
+    @Suppress("LongMethod", "CyclomaticComplexMethod")
     private fun migrateChainManually(fromVersion: Int) {
         val dbFile = File(context.cacheDir, "manual_chain_$fromVersion.db").apply { if (exists()) delete() }
         val json = org.json.JSONObject(
@@ -57,18 +65,25 @@ class MuseDbManualChainMigrationTest {
                             if (e.has("indices")) {
                                 val idx = e.getJSONArray("indices")
                                 for (j in 0 until idx.length()) {
-                                    db.execSQL(
-                                        idx.getJSONObject(j).getString("createSql")
-                                            .replace("\${TABLE_NAME}", table),
-                                    )
+                                    val indexSql = idx.getJSONObject(j).getString("createSql")
+                                        .replace("\${TABLE_NAME}", table)
+                                    db.execSQL(indexSql)
                                 }
                             }
                         }
                     }
 
-                    override fun onUpgrade(db: androidx.sqlite.db.SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
+                    override fun onUpgrade(
+                        db: androidx.sqlite.db.SupportSQLiteDatabase,
+                        oldVersion: Int,
+                        newVersion: Int,
+                    ) = Unit
 
-                    override fun onDowngrade(db: androidx.sqlite.db.SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
+                    override fun onDowngrade(
+                        db: androidx.sqlite.db.SupportSQLiteDatabase,
+                        oldVersion: Int,
+                        newVersion: Int,
+                    ) = Unit
                 })
                 .build(),
         )
@@ -113,7 +128,11 @@ class MuseDbManualChainMigrationTest {
             .sortedBy { it.first.first }
             .map { it.second }
             .let { chain ->
-                val with75 = if (fromVersion <= 75) chain + MuseDb.migrate75To76(File(context.cacheDir, "muse_images")) else chain
+                val with75 = if (fromVersion <= 75) {
+                    chain + MuseDb.migrate75To76(File(context.cacheDir, "muse_images"))
+                } else {
+                    chain
+                }
                 if (fromVersion <= 76) with75 + MuseDb.migrate76To77() else with75
             }
 
@@ -163,14 +182,16 @@ class MuseDbManualChainMigrationTest {
         db.query("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='messages'").use { c ->
             while (c.moveToNext()) msgIndexes.add(c.getString(0))
         }
-        assertTrue("v$fromVersion 迁移后 messages 应保留 4 个业务索引", msgIndexes.containsAll(
-            listOf(
-                "index_messages_sessionId",
-                "index_messages_role",
-                "index_messages_sessionId_createdAt",
-                "index_messages_sessionId_createdAt_role",
-            ),
-        ))
+        val expectedMsgIndexes = listOf(
+            "index_messages_sessionId",
+            "index_messages_role",
+            "index_messages_sessionId_createdAt",
+            "index_messages_sessionId_createdAt_role",
+        )
+        assertTrue(
+            "v$fromVersion 迁移后 messages 应保留 4 个业务索引",
+            msgIndexes.containsAll(expectedMsgIndexes),
+        )
 
         db.query("SELECT COUNT(*) FROM messages WHERE id='legacy-msg'").use { c ->
             assertTrue("v$fromVersion 迁移后历史消息应保留", c.moveToFirst() && c.getInt(0) == 1)

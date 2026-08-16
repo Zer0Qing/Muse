@@ -92,8 +92,10 @@ class GroupChatMemoryRepositoryTest {
 
     @Test
     fun deleteByIdRemovesSingleMemory() = runBlocking {
-        val m1 = repo.saveSummary("chat1", "assistantA", "要删除的摘要")
-        repo.saveSummary("chat1", "assistantA", "保留的摘要")
+        // B-18: saveSummary 默认 30 分钟窗口内同 (chat, assistant) 去重,第二次调用会
+        // 跳过插入并返回第一条 — 本测试验证删除语义,显式传 dedupWindowMs=0 禁用去重
+        val m1 = repo.saveSummary("chat1", "assistantA", "要删除的摘要", dedupWindowMs = 0)
+        repo.saveSummary("chat1", "assistantA", "保留的摘要", dedupWindowMs = 0)
 
         repo.deleteById(m1.id)
 

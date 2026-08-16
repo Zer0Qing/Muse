@@ -507,7 +507,10 @@ abstract class MuseDb : RoomDatabase() {
         val MIGRATION_88_89 = object : Migration(88, 89) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // 1. 无条件补齐 scheduled_tasks 索引(幂等)
-                db.execSQL("CREATE INDEX IF NOT EXISTS `index_scheduled_tasks_enabled_next_run_at` ON `scheduled_tasks` (`enabled`, `next_run_at`)")
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_scheduled_tasks_enabled_next_run_at` " +
+                        "ON `scheduled_tasks` (`enabled`, `next_run_at`)"
+                )
                 // 2. 条件重建 messages(imageUrlsJson 缺 DEFAULT '[]' 时)
                 var imageUrlsDefault = ""
                 db.query("PRAGMA table_info(messages)").use { cursor ->
