@@ -32,6 +32,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import io.zer0.muse.ui.chat.ToolResultRenderer
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -155,19 +156,33 @@ internal fun ToolCallCard(
                     modifier = Modifier.size(MuseIconSizes.iconTiny),
                 )
             }
-            // 展开内容:入参 + 出参 合并为单段 bodySmall 文本(不再使用两个嵌套 Surface)
+            // 展开内容:入参 + 出参 分开展示;结果按类型专用渲染(diff/JSON 树/表格)
             AnimatedVisibility(visible = expanded) {
                 val paramsLabel = stringResource(R.string.chat_tool_params)
                 val resultLabel = stringResource(R.string.chat_tool_result)
                 val isTruncated = result.length > 500
                 val displayResult = if (isTruncated) result.take(500) + "…" else result
-                val content = "$paramsLabel: ${arguments.ifBlank { "{}" }}\n$resultLabel: $displayResult"
                 Column(modifier = Modifier.padding(top = MusePaddings.contentGap)) {
                     Text(
-                        text = content,
+                        text = "$paramsLabel: ${arguments.ifBlank { "{}" }}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    Text(
+                        text = resultLabel,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    // 截断时保持纯文本(避免渲染半个 JSON/diff 误导);完整结果走专用渲染
+                    if (isTruncated) {
+                        Text(
+                            text = displayResult,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else {
+                        ToolResultRenderer(result = result)
+                    }
                     // 结果文本下方:若检测到沙盒内文件路径,渲染可点击附件芯片
                     if (attachments.isNotEmpty()) {
                         FlowRow(
