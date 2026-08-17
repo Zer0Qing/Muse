@@ -185,6 +185,11 @@ fun ChatListScreen(
     /** v1.x: 问候语个性化提醒生成器(LLM,失败回退规则版) */
     greetingHintGenerator: GreetingHintGenerator = koinInject(),
 ) {
+    // I3: 列表区独立错误边界,会话列表渲染数据构建失败只降级该区域
+    RegionErrorBoundary(
+        regionName = "list",
+        data = { sessions },
+    ) {
     val scope = rememberCoroutineScope()
 
     // v1.69: 文件夹分组 UI — 新建文件夹对话框状态
@@ -443,6 +448,7 @@ fun ChatListScreen(
             onDismiss = { showCreateFolderDialog = false },
         )
     }
+    } // I3: 列表区错误边界收尾
 }
 
 /** C2: 会话列表即时搜索条 — 常驻输入条下方:Search 图标 + 输入框 + 清除按钮(有输入时)。 */

@@ -970,6 +970,11 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                     onClear = viewModel::clearPendingQueue,
                 )
             }
+            // I3: 输入区独立错误边界,输入渲染数据构建失败只降级输入条
+            RegionErrorBoundary(
+                regionName = "input",
+                data = { state.sendQueue },
+            ) {
             RichInputBar(
                 // v1.0.20 (Task 3): input/isStreaming 读派生值,避免其他字段变化触发 bottomBar 重组
                 text = currentInput,
@@ -1151,6 +1156,7 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                 pasteAsFileThreshold = state.pasteAsFileThreshold,
                 onAddPastedTextAsDocument = viewModel::addPastedTextAsDocument,
             )
+            } // I3: 输入区错误边界收尾
             }
         },
         containerColor = if (chatBackground.isNullOrBlank()) {
@@ -1335,6 +1341,11 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                 val lastAssistantId by remember {
                     derivedStateOf { visibleMessages.lastOrNull { it.role == MessageRole.ASSISTANT }?.id }
                 }
+                // I3: 聊天区独立错误边界,消息列表渲染数据构建失败只降级该区域
+                RegionErrorBoundary(
+                    regionName = "chat",
+                    data = { visibleMessages },
+                ) {
                 // P2-1: Box 包裹消息列表,Expanded 模式下居中限宽 720dp
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -1698,6 +1709,7 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                 }
                 }
                 }
+                } // I3: 聊天区错误边界收尾
             }
 
             // v1.0.4 (P3-4): 性能模式指示器 — 仅当开启性能模式且 visibleMessages 未覆盖全部

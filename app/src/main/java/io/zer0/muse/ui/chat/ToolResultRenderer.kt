@@ -253,9 +253,12 @@ private fun DiffView(diffText: String, modifier: Modifier) {
                 else -> null
             }
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(bg),
+                modifier = if (bg != null) {
+                    Modifier.fillMaxWidth().background(bg)
+                } else {
+                    // 普通 diff 行无背景色,按默认样式渲染
+                    Modifier.fillMaxWidth()
+                },
             ) {
                 Text(
                     text = line,

@@ -520,4 +520,5 @@
     <string name="chat_pending_remove_cd">この項目を削除</string>
     <string name="chat_pending_clear">キューを空にする</string>
     <string name="chat_pending_image_only">[画像]</string>
+    <string name="chat_region_error">この領域の読み込みに失敗しました。タップして再試行</string>
 </resources>

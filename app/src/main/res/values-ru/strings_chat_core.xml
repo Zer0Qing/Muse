@@ -520,4 +520,5 @@
     <string name="chat_pending_remove_cd">Удалить этот пункт</string>
     <string name="chat_pending_clear">Очистить очередь</string>
     <string name="chat_pending_image_only">[Изображение]</string>
+    <string name="chat_region_error">Не удалось загрузить этот раздел. Нажмите, чтобы повторить</string>
 </resources>

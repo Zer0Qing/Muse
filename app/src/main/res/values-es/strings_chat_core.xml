@@ -520,4 +520,5 @@
     <string name="chat_pending_remove_cd">Eliminar este elemento</string>
     <string name="chat_pending_clear">Vaciar cola</string>
     <string name="chat_pending_image_only">[Imagen]</string>
+    <string name="chat_region_error">Error al cargar esta sección. Toque para reintentar</string>
 </resources>

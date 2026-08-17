@@ -523,4 +523,5 @@
     <string name="chat_pending_remove_cd">Remove this item</string>
     <string name="chat_pending_clear">Clear queue</string>
     <string name="chat_pending_image_only">[Image]</string>
+    <string name="chat_region_error">This section failed to load. Tap to retry</string>
 </resources>

@@ -522,4 +522,5 @@
     <string name="chat_pending_remove_cd">移除该条</string>
     <string name="chat_pending_clear">清空队列</string>
     <string name="chat_pending_image_only">[图片]</string>
+    <string name="chat_region_error">该区域加载失败,可点击重试</string>
 </resources>

@@ -668,6 +668,8 @@
     <ID>FunctionNaming:RagSettingsPage.kt$@Composable private fun SliderRow( icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, subtitle: String = "", value: Float, valueRange: ClosedFloatingPointRange&lt;Float&gt;, steps: Int, valueText: String, onValueChange: (Float) -&gt; Unit, // M-RAG1: 仅在松手时写 DataStore,避免拖动过程中频繁 IO onValueChangeFinished: () -&gt; Unit = {}, )</ID>
     <ID>FunctionNaming:RecentlyDeletedScreen.kt$@Composable fun RecentlyDeletedScreen( onBack: () -&gt; Unit, sessionRepository: SessionRepository = koinInject(), )</ID>
     <ID>FunctionNaming:RecentlyDeletedScreen.kt$@Composable private fun DeletedSessionCard( session: SessionEntity, dateFormat: SimpleDateFormat, onRestore: () -&gt; Unit, onPermanentDelete: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:RegionErrorBoundary.kt$@Composable internal fun &lt;T&gt; RegionErrorBoundary( regionName: String, modifier: Modifier = Modifier, autoRetryDelayMs: Long = 3_000L, data: () -&gt; T, render: @Composable (T) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:RegionErrorBoundary.kt$@Composable private fun RegionFallback(modifier: Modifier = Modifier, onRetry: () -&gt; Unit)</ID>
     <ID>FunctionNaming:RichContentCard.kt$@Composable internal fun RichContentCard( language: String, content: String, modifier: Modifier = Modifier, onHtmlPreview: (String) -&gt; Unit = {}, showPreviewButton: Boolean = true, )</ID>
     <ID>FunctionNaming:RichContentCard.kt$@Composable private fun ChartCard(json: String)</ID>
     <ID>FunctionNaming:RichContentCard.kt$@Composable private fun HtmlCard(html: String)</ID>
