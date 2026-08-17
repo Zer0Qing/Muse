@@ -15,7 +15,6 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -122,6 +121,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.IntOffset
@@ -286,6 +287,10 @@ fun ChatScreen(
     var showInChatSearch by rememberSaveable { mutableStateOf(false) }
     var inChatQuery by rememberSaveable { mutableStateOf("") }
     var currentMatchIndex by rememberSaveable { mutableStateOf(0) }
+    // ── H10: 手动压缩参数对话框 — 保留条数 / 附加指令状态 ──
+    var showCompressDialog by rememberSaveable { mutableStateOf(false) }
+    var compressKeepText by rememberSaveable { mutableStateOf("") }
+    var compressInstruction by rememberSaveable { mutableStateOf("") }
     // 命中列表:当前会话已加载消息中,内容含查询词(忽略大小写)的消息 id;空查询返回空。
     // 仅覆盖已加载消息(OBSERVE_LIMIT 内),更早历史需先上滑加载更多。
     val findMatches = remember(messages, inChatQuery) {
@@ -905,14 +910,16 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                                                     sheetState.showModelSheet = true
                                                 },
                                             )
-                                            // 压缩上下文(胶囊)
+                                            // 压缩上下文(胶囊) — H10: 点击弹参数对话框(保留条数/附加指令/token 估算)
                                             TopMenuCapsule(
                                                 icon = TablerIcons.GitMerge,
                                                 text = stringResource(R.string.chat_update_compress),
                                                 enabled = !isStreaming && !state.isCompressing && messages.size >= 2,
                                                 onClick = {
                                                     showTopMenu = false
-                                                    viewModel.manualCompress(updateMemoryFirst = true)
+                                                    compressKeepText = ""
+                                                    compressInstruction = ""
+                                                    showCompressDialog = true
                                                 },
                                             )
                                             // 会话内查找(A1): 呼出就地查找条(顶栏菜单第三项)
@@ -1264,6 +1271,23 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                         },
                     )
                 }
+                // H10: 手动压缩参数对话框(保留条数 / 附加指令 / token 估算)
+                if (showCompressDialog) {
+                    CompressContextDialog(
+                        defaultKeepRecent = 10,
+                        totalMessages = messages.size,
+                        estimateTokens = { keep -> messages.takeLast(keep).sumOf { it.content.length / 2 } },
+                        onDismiss = { showCompressDialog = false },
+                        onConfirm = { keep, instruction ->
+                            showCompressDialog = false
+                            viewModel.manualCompress(
+                                updateMemoryFirst = true,
+                                keepRecent = keep,
+                                instruction = instruction.ifBlank { null },
+                            )
+                        },
+                    )
+                }
             }
             // Phase 3 3E: 定时消息横幅
             io.zer0.muse.ui.chat.ScheduledMessageBanner(
@@ -1545,6 +1569,10 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                             // 传 searchHighlightQuery 让 MessageBubble 高亮匹配文本;否则 null
                             highlightText = if (msg.id.toString() == state.highlightedMessageId) state.searchHighlightQuery else null,
                             isTranslating = isTranslating,
+                            // H11: 译文消息携带源消息内容(原文对照折叠),源消息缺失时不传
+                            translationSourceContent = msg.translationSourceId?.let { srcId ->
+                                messages.find { it.id.toString() == srcId }?.content
+                            },
                             // v2.3: debug 模式性能摘要(仅最后一条 assistant 消息)
                             debugInfo = if (isLast && msg.role == MessageRole.ASSISTANT) state.debugInfo else null,
                             onEdit = onEdit,
@@ -2076,4 +2104,55 @@ private fun TopMenuCapsule(
             )
         }
     }
+}
+
+/**
+ * H10: 手动压缩参数对话框 — 保留条数 / 附加指令 / 保留区 token 估算。
+ * 确认后以 (keepRecent, instruction) 回调,由 ChatScreen 转发 manualCompress。
+ */
+@Composable
+private fun CompressContextDialog(
+    defaultKeepRecent: Int,
+    totalMessages: Int,
+    estimateTokens: (Int) -> Int,
+    onDismiss: () -> Unit,
+    onConfirm: (keepRecent: Int, instruction: String) -> Unit,
+) {
+    var keepText by rememberSaveable { mutableStateOf("") }
+    var instructionText by rememberSaveable { mutableStateOf("") }
+    val keep = keepText.toIntOrNull()?.coerceIn(1, (totalMessages - 1).coerceAtLeast(1)) ?: defaultKeepRecent
+    val estimated = estimateTokens(keep)
+    MuseDialog(
+        onDismissRequest = onDismiss,
+        title = stringResource(R.string.chat_compress_dialog_title),
+        content = {
+            Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.itemGap)) {
+                OutlinedTextField(
+                    value = keepText,
+                    onValueChange = { keepText = it.filter { c -> c.isDigit() }.take(3) },
+                    label = { Text(stringResource(R.string.chat_compress_keep_label)) },
+                    placeholder = { Text(stringResource(R.string.chat_compress_keep_placeholder, defaultKeepRecent)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text(
+                    text = stringResource(R.string.chat_compress_token_estimate, estimated),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                OutlinedTextField(
+                    value = instructionText,
+                    onValueChange = { instructionText = it },
+                    label = { Text(stringResource(R.string.chat_compress_instruction_label)) },
+                    placeholder = { Text(stringResource(R.string.chat_compress_instruction_placeholder)) },
+                    minLines = 2,
+                    maxLines = 4,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        },
+        confirmText = stringResource(R.string.chat_compress_confirm),
+        onConfirm = { onConfirm(keep, instructionText.trim()) },
+    )
 }

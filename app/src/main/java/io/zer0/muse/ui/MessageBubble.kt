@@ -4,6 +4,7 @@ import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import android.content.Intent
 import kotlin.math.roundToInt
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -159,6 +160,11 @@ internal fun MessageBubble(
     isStreaming: Boolean,
     isLastAssistant: Boolean,
     isTranslating: Boolean,
+    /**
+     * H11: 翻译保留原文 — 译文消息的源消息文本(调用方从源消息解析传入)。
+     * 非 null 时译文气泡下方显示"查看原文"折叠,展开可对照原文。
+     */
+    translationSourceContent: String? = null,
     // v1.0.53: 是否为会话最后一条消息(快捷菜单/分支切换用)
     isLast: Boolean = false,
     // v1.0.53: 当前消息的分支索引与总数(助手消息多版本切换)
@@ -1494,6 +1500,53 @@ internal fun MessageBubble(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.outline,
                 )
+            }
+        }
+
+        // H11: 翻译保留原文 — 译文气泡下方折叠"查看原文",展开显示源消息内容可对照
+        val sourceContent = translationSourceContent
+        if (sourceContent != null && sourceContent.isNotBlank()) {
+            var showSource by remember { mutableStateOf(false) }
+            Column(modifier = Modifier.padding(top = MusePaddings.tinyGap)) {
+                TextButton(
+                    onClick = { showSource = !showSource },
+                    contentPadding = PaddingValues(horizontal = MusePaddings.tightGap, vertical = 0.dp),
+                    modifier = Modifier.heightIn(min = MuseIconSizes.touchTarget),
+                ) {
+                    Icon(
+                        imageVector = if (showSource) TablerIcons.ChevronUp else TablerIcons.ChevronDown,
+                        contentDescription = null,
+                        modifier = Modifier.size(MuseIconSizes.iconSmall),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.width(MusePaddings.tightGap))
+                    Text(
+                        text = stringResource(
+                            // H11: 展开态显示"收起原文",折叠态显示"查看原文"
+                            if (showSource) {
+                                R.string.chat_translation_hide_source
+                            } else {
+                                R.string.chat_translation_show_source
+                            },
+                        ),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                AnimatedVisibility(visible = showSource) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        shape = MuseShapes.medium,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            text = sourceContent,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(MusePaddings.itemGap),
+                        )
+                    }
+                }
             }
         }
 

@@ -60,9 +60,10 @@ class ConversationCompressor(
      * 压缩对话历史 — 分块并行 + 独立便宜模型。
      *
      * @param toCompress 待压缩的消息列表(调用方已完成 prefix 跳过 / 优先级保留等过滤)
+     * @param instruction 本次压缩附加指令(优先于设置级 customCompressPrompt,用于手动压缩对话框)
      * @return 摘要文本列表(每块对应一条摘要),调用方据此构造摘要消息
      */
-    suspend fun compress(toCompress: List<UIMessage>): List<String> {
+    suspend fun compress(toCompress: List<UIMessage>, instruction: String? = null): List<String> {
         if (toCompress.isEmpty()) return emptyList()
 
         // 分块(每块最多 CHUNK_SIZE 条)
@@ -70,11 +71,14 @@ class ConversationCompressor(
         Logger.i(TAG, "compress: ${toCompress.size} 条消息分为 ${chunks.size} 块并行压缩")
 
         // v1.0.52: 读取用户自定义压缩 prompt(null/空串表示用默认)
-        val customPrompt = resultOf { settingsRepository.customCompressPromptFlow.first() }
-            .getOrNull()
+        // H10: 本次附加指令优先,否则回退设置级自定义 prompt
+        val customPrompt = instruction
             ?.takeIf { it.isNotBlank() }
+            ?: resultOf { settingsRepository.customCompressPromptFlow.first() }
+                .getOrNull()
+                ?.takeIf { it.isNotBlank() }
         if (customPrompt != null) {
-            Logger.i(TAG, "compress: 使用用户自定义压缩 prompt")
+            Logger.i(TAG, "compress: 使用自定义压缩指令")
         }
 
         // 并行压缩每块(v1.0.51: 用 Semaphore 限制并发,避免大量块同时调 LLM 轰炸 API)

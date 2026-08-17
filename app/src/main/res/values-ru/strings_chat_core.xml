@@ -521,4 +521,13 @@
     <string name="chat_pending_clear">Очистить очередь</string>
     <string name="chat_pending_image_only">[Изображение]</string>
     <string name="chat_region_error">Не удалось загрузить этот раздел. Нажмите, чтобы повторить</string>
+    <string name="chat_compress_dialog_title">Сжать контекст</string>
+    <string name="chat_compress_keep_label">Сохранить сообщений</string>
+    <string name="chat_compress_keep_placeholder">По умолчанию %1$d</string>
+    <string name="chat_compress_token_estimate">Сохранить %1$d последних сообщений, ~%2$d токенов</string>
+    <string name="chat_compress_instruction_label">Дополнительные указания (необязательно)</string>
+    <string name="chat_compress_instruction_placeholder">напр.: сохранить детали обсуждения бюджета</string>
+    <string name="chat_compress_confirm">Сжать</string>
+    <string name="chat_translation_show_source">Показать оригинал</string>
+    <string name="chat_translation_hide_source">Скрыть оригинал</string>
 </resources>

@@ -1139,6 +1139,8 @@ class SessionRepository(
             completionTokens = completionTokens,
             reasoningTokens = reasoningTokens,
             cachedTokens = cachedTokens,
+            // H11: 译文消息的源消息 id(原文对照折叠)
+            translationSourceId = translationSourceId,
         )
     }
 
@@ -1190,6 +1192,8 @@ class SessionRepository(
         completionTokens = completionTokens,
         reasoningTokens = reasoningTokens,
         cachedTokens = cachedTokens,
+        // H11: 译文消息的源消息 id(原文对照折叠)
+        translationSourceId = translationSourceId,
     )
 
     /** v1.0.30: 按 id 获取消息（变体查询用）。 */

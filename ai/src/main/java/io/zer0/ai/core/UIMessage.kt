@@ -209,6 +209,12 @@ data class UIMessage(
     val completionTokens: Int? = null,
     val reasoningTokens: Int? = null,
     val cachedTokens: Int? = null,
+    /**
+     * H11: 翻译保留原文 — 译文消息指向被翻译的源消息 id(字符串形式)。
+     * 非 null 时 UI 在译文气泡下方提供"查看原文"折叠,可与原文对照。
+     * 仅对话内即时对照用,provider 发送请求时忽略。
+     */
+    val translationSourceId: String? = null,
 ) {
     /** 拼出用于显示的纯文本(不含推理过程)。 */
     fun toText(): String = content

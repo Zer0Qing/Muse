@@ -121,4 +121,8 @@ data class MessageEntity(
     @ColumnInfo(defaultValue = "NULL") val completionTokens: Int? = null,
     @ColumnInfo(defaultValue = "NULL") val reasoningTokens: Int? = null,
     @ColumnInfo(defaultValue = "NULL") val cachedTokens: Int? = null,
+    /**
+     * H11: 翻译保留原文 — 译文消息指向被翻译的源消息 id(字符串形式),UI 提供原文对照折叠。
+     */
+    @ColumnInfo(defaultValue = "NULL") val translationSourceId: String? = null,
 )

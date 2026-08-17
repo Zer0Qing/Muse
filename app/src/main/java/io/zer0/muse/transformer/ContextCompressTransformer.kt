@@ -53,6 +53,8 @@ class ContextCompressTransformer(
 
         val threshold = (context.extra("compress_threshold") as? Int) ?: DEFAULT_THRESHOLD
         val keepRecent = (context.extra("compress_keep_recent") as? Int) ?: DEFAULT_KEEP_RECENT
+        // H10: 手动压缩附加指令(对话框输入),优先于设置级自定义 prompt,空/缺省时用默认
+        val instruction = context.extra("compress_instruction") as? String
 
         // L-COMP6: threshold < keepRecent 时配置语义失效,告警
         if (threshold < keepRecent) {
@@ -101,10 +103,10 @@ class ContextCompressTransformer(
         val summary = try {
             if (compressor != null) {
                 // 优先走分块并行 + 独立便宜模型(既有实现 ChatService.compressConversation)
-                compressWithCompressor(adjustedToCompress)
+                compressWithCompressor(adjustedToCompress, instruction)
             } else {
                 // 回退:原同步单次 LLM 压缩
-                compressMessages(adjustedToCompress)
+                compressMessages(adjustedToCompress, instruction)
             }
         } catch (e: CancellationException) {
             // H-COMP1: 不吞 CancellationException,直接重抛(协程取消必须传播)
@@ -128,12 +130,16 @@ class ContextCompressTransformer(
     }
 
     /** 调用 LLM 压缩旧消息为摘要。 */
-    private suspend fun compressMessages(oldMessages: List<UIMessage>): String {
+    private suspend fun compressMessages(oldMessages: List<UIMessage>, instruction: String? = null): String {
         val prompt = buildString {
             appendLine("请把下面的对话历史压缩成简洁的摘要,保留关键信息(事实/决策/用户偏好)。")
             appendLine("- 用要点形式,每点一行")
             appendLine("- 不要编造未提及的内容")
             appendLine("- 总长度不超过 800 字")
+            // H10: 手动压缩附加指令(如"重点保留预算讨论"),拼进压缩指令
+            if (!instruction.isNullOrBlank()) {
+                appendLine("- 附加要求: $instruction")
+            }
             appendLine()
             appendLine("对话历史:")
             oldMessages.forEach { msg ->
@@ -182,15 +188,17 @@ class ContextCompressTransformer(
      *   (与 [ContextCompressTransformer] 原"单条 SYSTEM 摘要"语义保持一致,
      *    避免下游 transformer / 持久化逻辑感知分块)
      */
-    private suspend fun compressWithCompressor(oldMessages: List<UIMessage>): String {
-        val summaries = compressor!!.compress(oldMessages)
-        if (summaries.isEmpty()) return "历史对话已压缩(摘要为空)"
-        if (summaries.size == 1) return summaries.first()
-        return buildString {
-            summaries.forEachIndexed { idx, s ->
-                append("[对话摘要 ${idx + 1}/${summaries.size}]\n")
-                append(s)
-                if (idx != summaries.lastIndex) append("\n\n")
+    private suspend fun compressWithCompressor(oldMessages: List<UIMessage>, instruction: String? = null): String {
+        val summaries = compressor!!.compress(oldMessages, instruction)
+        return when {
+            summaries.isEmpty() -> "历史对话已压缩(摘要为空)"
+            summaries.size == 1 -> summaries.first()
+            else -> buildString {
+                summaries.forEachIndexed { idx, s ->
+                    append("[对话摘要 ${idx + 1}/${summaries.size}]\n")
+                    append(s)
+                    if (idx != summaries.lastIndex) append("\n\n")
+                }
             }
         }
     }

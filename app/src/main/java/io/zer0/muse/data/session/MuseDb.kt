@@ -159,7 +159,7 @@ import kotlinx.serialization.builtins.serializer
         // B5-02: 群聊生成账本(进程被杀后按断点重放)
         GroupChatGenerationLedgerEntity::class,
     ],
-    version = 90,
+    version = 91,
     exportSchema = true,
 )
 @TypeConverters(QuickNoteConverters::class)
@@ -596,6 +596,18 @@ abstract class MuseDb : RoomDatabase() {
          * 兼容 88_89 重建表路径(重建后列丢失,此处重新补上)。
          */
         val MIGRATION_89_90 = object : Migration(89, 90) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                ensureMessageColumns(db)
+            }
+        }
+
+        /**
+         * H11: MIGRATION_90_91 — messages 表补翻译源消息列。
+         *
+         * 译文消息(独立 ASSISTANT 消息)通过 translationSourceId 指向被翻译的源消息,
+         * UI 提供"查看原文"折叠对照。走 ensureMessageColumns 幂等补齐。
+         */
+        val MIGRATION_90_91 = object : Migration(90, 91) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 ensureMessageColumns(db)
             }
@@ -2421,6 +2433,7 @@ abstract class MuseDb : RoomDatabase() {
                         MIGRATION_87_88,
                         MIGRATION_88_89,
                         MIGRATION_89_90,
+                        MIGRATION_90_91,
                     )
                     // 启用外键约束(artifacts 表的 ON DELETE CASCADE 依赖此设置)
                     // onOpen 不在 onCreate 事务内,可以执行此类命令;onCreate 内禁止 PRAGMA
@@ -2565,6 +2578,8 @@ private fun ensureMessageColumns(db: androidx.sqlite.db.SupportSQLiteDatabase) {
         "completionTokens INTEGER DEFAULT NULL",
         "reasoningTokens INTEGER DEFAULT NULL",
         "cachedTokens INTEGER DEFAULT NULL",
+        // H11: 译文消息的源消息 id(原文对照折叠)
+        "translationSourceId TEXT DEFAULT NULL",
     )
     columns.forEach { spec ->
         val name = spec.substringBefore(' ')

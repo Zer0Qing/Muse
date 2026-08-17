@@ -521,4 +521,13 @@
     <string name="chat_pending_clear">キューを空にする</string>
     <string name="chat_pending_image_only">[画像]</string>
     <string name="chat_region_error">この領域の読み込みに失敗しました。タップして再試行</string>
+    <string name="chat_compress_dialog_title">コンテキストを圧縮</string>
+    <string name="chat_compress_keep_label">保持するメッセージ数</string>
+    <string name="chat_compress_keep_placeholder">デフォルト %1$d</string>
+    <string name="chat_compress_token_estimate">最近 %1$d 件を保持、約 %2$d tokens</string>
+    <string name="chat_compress_instruction_label">追加指示(任意)</string>
+    <string name="chat_compress_instruction_placeholder">例:予算議論の詳細を保持</string>
+    <string name="chat_compress_confirm">圧縮</string>
+    <string name="chat_translation_show_source">原文を見る</string>
+    <string name="chat_translation_hide_source">原文を隠す</string>
 </resources>

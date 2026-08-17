@@ -524,4 +524,13 @@
     <string name="chat_pending_clear">Clear queue</string>
     <string name="chat_pending_image_only">[Image]</string>
     <string name="chat_region_error">This section failed to load. Tap to retry</string>
+    <string name="chat_compress_dialog_title">Compress Context</string>
+    <string name="chat_compress_keep_label">Messages to keep</string>
+    <string name="chat_compress_keep_placeholder">Default %1$d</string>
+    <string name="chat_compress_token_estimate">Keep %1$d recent messages, about %2$d tokens</string>
+    <string name="chat_compress_instruction_label">Extra instructions (optional)</string>
+    <string name="chat_compress_instruction_placeholder">e.g. keep budget discussion details</string>
+    <string name="chat_compress_confirm">Compress</string>
+    <string name="chat_translation_show_source">View original</string>
+    <string name="chat_translation_hide_source">Hide original</string>
 </resources>

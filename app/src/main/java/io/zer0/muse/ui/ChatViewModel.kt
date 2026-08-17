@@ -2696,15 +2696,17 @@ class ChatViewModel(
      * (DB 保留完整历史用于搜索/导出,内存版本用于 LLM 上下文)。
      * 切换会话后从 DB 重新加载,下次发送时自动压缩器会再次处理。
      */
-    fun manualCompress(updateMemoryFirst: Boolean = true) {
-        val sessionId = _state.value.currentSessionId ?: return
+    fun manualCompress(updateMemoryFirst: Boolean = true, keepRecent: Int? = null, instruction: String? = null) {
+        val sessionId = _state.value.currentSessionId
         val currentMessages = _messages.value
-        // 至少 2 条消息才压缩(否则 toCompress 为空,无意义)
-        if (currentMessages.size < 2) {
-            reportError(appContext.getString(R.string.err_chat_compress_too_few))
+        // 前置校验统一收敛为单出口:无会话/消息过少/流式中/压缩中均直接返回。
+        // 保持原语义:仅"消息过少"提示用户,其余前置状态静默跳过。
+        if (sessionId == null || currentMessages.size < 2 || _state.value.isStreaming || _state.value.isCompressing) {
+            if (sessionId != null && currentMessages.size < 2) {
+                reportError(appContext.getString(R.string.err_chat_compress_too_few))
+            }
             return
         }
-        if (_state.value.isStreaming || _state.value.isCompressing) return
 
         _state.update { it.copy(toolsState = it.toolsState.copy(isCompressing = true)) }
         viewModelScope.launch(AppDispatchers.io) {
@@ -2722,15 +2724,20 @@ class ChatViewModel(
                 }
                 // 2. 压缩历史:用 contextCompressTransformer 直接 transform
                 // threshold=1 强制触发(只要 messages.size > keepRecent 就压缩)
-                // keepRecent 自适应:保留最近 min(MANUAL_COMPRESS_KEEP_RECENT, size-1) 条,确保至少压缩 1 条
-                val keepRecent = minOf(MANUAL_COMPRESS_KEEP_RECENT, currentMessages.size - 1).coerceAtLeast(1)
+                // keepRecent 自适应:未指定时保留最近 min(MANUAL_COMPRESS_KEEP_RECENT, size-1) 条,
+                // 确保至少压缩 1 条;H10 对话框可显式指定保留条数
+                val effectiveKeepRecent = keepRecent
+                    ?.coerceIn(1, currentMessages.size - 1)
+                    ?: minOf(MANUAL_COMPRESS_KEEP_RECENT, currentMessages.size - 1).coerceAtLeast(1)
                 val context = TransformContext(
                     sessionId = sessionId,
                     modelId = _state.value.currentAssistant?.modelId,
                     extras = mapOf(
                         "compress_enabled" to true,
                         "compress_threshold" to 1,  // 强制触发
-                        "compress_keep_recent" to keepRecent,
+                        "compress_keep_recent" to effectiveKeepRecent,
+                        // H10: 本次压缩附加指令(对话框输入),transformer 注入压缩 prompt
+                        "compress_instruction" to instruction,
                     ),
                 )
                 // H-01 修复: transform 是 suspend 函数,改用 resultOf 避免吞没 CancellationException
@@ -2754,7 +2761,12 @@ class ChatViewModel(
                         _messages.value = compressed + newAppended
                         state
                     }
-                    Logger.i("ChatVM", "manualCompress: ${currentMessages.size} → ${compressed.size} 条 (keepRecent=$keepRecent)")
+                    val compressSummary = "manualCompress: ${currentMessages.size} -> ${compressed.size} msgs"
+                    Logger.i(
+                        "ChatVM",
+                        // 日志为内部诊断,不使用中文字面量(避免 CJK 门禁误判)
+                        "$compressSummary (keepRecent=$effectiveKeepRecent)",
+                    )
                     // v1.78 (#33): 压缩成功反馈,让用户知道压缩生效
                     MuseToast.show(appContext.getString(R.string.err_chat_compress_done, currentMessages.size, compressed.size))
                 } else if (updateMemoryFirst) {
@@ -3970,12 +3982,13 @@ class ChatViewModel(
                 val messages = listOf(UIMessage(role = MessageRole.USER, content = prompt))
                 val sessionId = _state.value.currentSessionId ?: return@launch
 
-                // v1.0.4 (P2): 改为流式翻译 — 先插入占位 ASSISTANT 消息,逐 delta 更新内容,
-                // 让用户看到"翻译(X):\n\n…"占位后立即开始流式输出,长文本不再"卡 5-10 秒后整体出现"。
+                // v1.0.4 (P2): 流式翻译 — 先插占位 ASSISTANT 消息逐 delta 更新,用户立即可见
                 // (animateItem() 已提供 fade-in,无需额外动画)
                 val placeholder = UIMessage(
                     role = MessageRole.ASSISTANT,
                     content = appContext.getString(R.string.err_chat_translate_prefix, targetLanguage),
+                    // H11: 译文消息指向被翻译的源消息,UI 提供"查看原文"折叠对照
+                    translationSourceId = target.id.toString(),
                 )
                 _messages.value = _messages.value + placeholder
 

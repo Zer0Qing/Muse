@@ -523,4 +523,13 @@
     <string name="chat_pending_clear">清空队列</string>
     <string name="chat_pending_image_only">[图片]</string>
     <string name="chat_region_error">该区域加载失败,可点击重试</string>
+    <string name="chat_compress_dialog_title">压缩上下文</string>
+    <string name="chat_compress_keep_label">保留条数</string>
+    <string name="chat_compress_keep_placeholder">默认 %1$d 条</string>
+    <string name="chat_compress_token_estimate">将保留最近 %1$d 条,约 %2$d tokens</string>
+    <string name="chat_compress_instruction_label">附加指令(可选)</string>
+    <string name="chat_compress_instruction_placeholder">如:重点保留预算讨论细节</string>
+    <string name="chat_compress_confirm">压缩</string>
+    <string name="chat_translation_show_source">查看原文</string>
+    <string name="chat_translation_hide_source">收起原文</string>
 </resources>

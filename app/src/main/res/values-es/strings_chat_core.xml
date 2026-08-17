@@ -521,4 +521,13 @@
     <string name="chat_pending_clear">Vaciar cola</string>
     <string name="chat_pending_image_only">[Imagen]</string>
     <string name="chat_region_error">Error al cargar esta sección. Toque para reintentar</string>
+    <string name="chat_compress_dialog_title">Comprimir contexto</string>
+    <string name="chat_compress_keep_label">Mensajes a conservar</string>
+    <string name="chat_compress_keep_placeholder">Predeterminado %1$d</string>
+    <string name="chat_compress_token_estimate">Conservar %1$d mensajes recientes, ~%2$d tokens</string>
+    <string name="chat_compress_instruction_label">Instrucciones adicionales (opcional)</string>
+    <string name="chat_compress_instruction_placeholder">ej.: conservar detalles de la discusión de presupuesto</string>
+    <string name="chat_compress_confirm">Comprimir</string>
+    <string name="chat_translation_show_source">Ver original</string>
+    <string name="chat_translation_hide_source">Ocultar original</string>
 </resources>
