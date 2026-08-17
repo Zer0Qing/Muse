@@ -511,4 +511,13 @@
     <string name="chat_list_search_clear">Limpar busca</string>
     <string name="chat_list_search_no_result">Nenhuma conversa correspondente</string>
     <string name="chat_list_recent_browse">Recentes</string>
+
+    <string name="chat_pending_queue_title">Pendentes</string>
+    <string name="chat_pending_count">%1$d itens</string>
+    <string name="chat_pending_enqueue_cd">Adicionar à fila pendente</string>
+    <string name="chat_pending_send_cd">Enviar este item</string>
+    <string name="chat_pending_edit_cd">Editar este item</string>
+    <string name="chat_pending_remove_cd">Remover este item</string>
+    <string name="chat_pending_clear">Limpar fila</string>
+    <string name="chat_pending_image_only">[Imagem]</string>
 </resources>

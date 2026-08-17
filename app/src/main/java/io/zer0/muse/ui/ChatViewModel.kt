@@ -290,6 +290,12 @@ data class ChatToolsState(
 )
 
 
+/** v1.205 B2: 待发送队列条目(入队时快照文本与图片,单独发送时恢复)。 */
+data class PendingMessage(
+    val text: String,
+    val images: List<String> = emptyList(),
+)
+
 data class ChatInputState(
     val input: String = "",
     /** Phase 8.6: 待发送的本地图片 base64 列表(无 data: 前缀)。 */
@@ -313,6 +319,8 @@ data class ChatInputState(
         val inputHistoryIndex: Int? = null,
     /** 功能2: 当前输入是否为从 DataStore 恢复的草稿。 */
         val hasDraft: Boolean = false,
+    /** v1.205 B2: 待发送消息队列(生成期间排队,逐条预览/编辑/删除/单独发送)。 */
+    val sendQueue: List<PendingMessage> = emptyList(),
 )
 
 data class ChatSessionState(
@@ -623,6 +631,7 @@ class ChatUiState(
     val replyingTo: UIMessage? get() = inputState.replyingTo
     val replyQuoteOverride: String? get() = inputState.replyQuoteOverride
     val asrState: ASRState get() = inputState.asrState
+    val sendQueue: List<PendingMessage> get() = inputState.sendQueue
     val sessions: List<SessionEntity> get() = sessionState.sessions
     val currentSessionId: String? get() = sessionState.currentSessionId
     val archivedSessions: List<SessionEntity> get() = sessionState.archivedSessions
@@ -742,6 +751,7 @@ class ChatUiState(
         pendingDocuments: List<io.zer0.muse.ui.chat.PendingDocument> = this.pendingDocuments,
         replyingTo: UIMessage? = this.replyingTo,
         replyQuoteOverride: String? = this.replyQuoteOverride,
+        sendQueue: List<PendingMessage> = this.sendQueue,
         asrState: ASRState = this.asrState,
         sessions: List<SessionEntity> = this.sessions,
         currentSessionId: String? = this.currentSessionId,
@@ -782,6 +792,7 @@ class ChatUiState(
             replyingTo = replyingTo,
             replyQuoteOverride = replyQuoteOverride,
             asrState = asrState,
+            sendQueue = sendQueue,
         ),
         sessionState = sessionState.copy(
             sessions = sessions,
@@ -1186,6 +1197,8 @@ class ChatViewModel(
         private const val STREAM_SLIDE_WINDOW = 10
         /** v1.0.47 P5: 输入历史保留条数(本会话内,内存态,不持久化)。 */
         private const val MAX_INPUT_HISTORY = 50
+        /** v1.205 B2: 待发送队列容量上限(防止含 base64 图片的条目无界堆积)。 */
+        private const val MAX_PENDING_SEND_QUEUE = 8
         // v1.117: 删除 6 个孤儿常量(STREAM_NOTIF_*/STREAM_TOKEN_*/STREAM_PERSIST_*),
         // 实际节流逻辑在 launchStream 内用字面量实现,这些常量从未被引用。
 
@@ -2145,6 +2158,61 @@ class ChatViewModel(
         // v1.0.47 P5: 用户手动编辑输入时退出历史导航,重置 inputHistoryIndex
         // v1.0.72: 草稿功能已砍掉(不再防抖写 DataStore)
         _state.update { it.copy(input = text, hasDraft = false, inputHistoryIndex = null) }
+    }
+
+    /**
+     * v1.205 B2: 把当前输入加入待发送队列(生成期间排队,不打断当前生成)。
+     *
+     * 入队后清空输入框与待发图片;队列满([MAX_PENDING_SEND_QUEUE])时静默忽略。
+     */
+    fun enqueuePendingSend() {
+        val st = _state.value
+        val text = st.input.trim()
+        if (text.isBlank() && st.pendingImages.isEmpty()) return
+        if (st.sendQueue.size >= MAX_PENDING_SEND_QUEUE) return
+        _state.update {
+            it.copy(
+                input = "",
+                pendingImages = emptyList(),
+                sendQueue = it.sendQueue + PendingMessage(text, st.pendingImages),
+            )
+        }
+    }
+
+    /** v1.205 B2: 移除队列中第 [index] 条。 */
+    fun removePendingSend(index: Int) {
+        _state.update { it.copy(sendQueue = it.sendQueue.filterIndexed { i, _ -> i != index }) }
+    }
+
+    /**
+     * v1.205 B2: 单独发送队列中第 [index] 条。
+     *
+     * 先出队再入发送管道,避免重入导致重复发送。
+     */
+    fun sendPendingSend(index: Int) {
+        val st = _state.value
+        val item = st.sendQueue.getOrNull(index) ?: return
+        val sessionId = st.currentSessionId ?: return
+        _state.update { it.copy(sendQueue = it.sendQueue.filterIndexed { i, _ -> i != index }) }
+        enqueueSend(item.text, item.images, sessionId)
+    }
+
+    /** v1.205 B2: 把队列中第 [index] 条回填到输入框(编辑后重新入队/发送),并出队。 */
+    fun editPendingSend(index: Int) {
+        val st = _state.value
+        val item = st.sendQueue.getOrNull(index) ?: return
+        _state.update {
+            it.copy(
+                input = item.text,
+                pendingImages = item.images,
+                sendQueue = it.sendQueue.filterIndexed { i, _ -> i != index },
+            )
+        }
+    }
+
+    /** v1.205 B2: 清空整个待发送队列。 */
+    fun clearPendingQueue() {
+        _state.update { it.copy(sendQueue = emptyList()) }
     }
     /**
      * v1.0.47 P5: 输入框上/下箭头回调,遍历本会话输入历史。

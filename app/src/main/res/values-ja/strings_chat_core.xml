@@ -511,4 +511,13 @@
     <string name="chat_list_search_clear">検索をクリア</string>
     <string name="chat_list_search_no_result">一致する会話がありません</string>
     <string name="chat_list_recent_browse">最近見た</string>
+
+    <string name="chat_pending_queue_title">送信待ち</string>
+    <string name="chat_pending_count">%1$d 件</string>
+    <string name="chat_pending_enqueue_cd">送信待ちに追加</string>
+    <string name="chat_pending_send_cd">この項目を送信</string>
+    <string name="chat_pending_edit_cd">この項目を編集</string>
+    <string name="chat_pending_remove_cd">この項目を削除</string>
+    <string name="chat_pending_clear">キューを空にする</string>
+    <string name="chat_pending_image_only">[画像]</string>
 </resources>

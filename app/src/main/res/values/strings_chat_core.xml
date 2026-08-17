@@ -513,4 +513,13 @@
     <string name="chat_list_search_clear">清除搜索</string>
     <string name="chat_list_search_no_result">未找到匹配的会话</string>
     <string name="chat_list_recent_browse">最近浏览</string>
+
+    <string name="chat_pending_queue_title">待发送</string>
+    <string name="chat_pending_count">%1$d 条</string>
+    <string name="chat_pending_enqueue_cd">加入待发送队列</string>
+    <string name="chat_pending_send_cd">发送该条</string>
+    <string name="chat_pending_edit_cd">编辑该条</string>
+    <string name="chat_pending_remove_cd">移除该条</string>
+    <string name="chat_pending_clear">清空队列</string>
+    <string name="chat_pending_image_only">[图片]</string>
 </resources>

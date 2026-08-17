@@ -149,6 +149,7 @@ import io.zer0.muse.ui.chat.ToolApprovalCard
 import io.zer0.muse.ui.chat.TokenStatsBar
 import io.zer0.muse.ui.chat.buildQuotedContent
 import io.zer0.muse.ui.chat.SlashCommand
+import io.zer0.muse.ui.chat.PendingQueueBar
 import io.zer0.muse.ui.speech.SpeechInput
 import io.zer0.muse.ui.speech.TtsControllerWidget
 import io.zer0.muse.ui.speech.VoiceConversationMode
@@ -959,6 +960,16 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
             val toolCallTotal = activePlan?.totalSteps ?: state.toolCallHistory.size
             val toolCallCompleted = activePlan?.completedSteps
                 ?: state.toolCallHistory.count { it.isSuccess }
+            // B2: 待发送队列条(流式中排队,逐条预览/编辑/删除/单独发送)
+            if (state.sendQueue.isNotEmpty()) {
+                PendingQueueBar(
+                    queue = state.sendQueue,
+                    onSend = viewModel::sendPendingSend,
+                    onEdit = viewModel::editPendingSend,
+                    onRemove = viewModel::removePendingSend,
+                    onClear = viewModel::clearPendingQueue,
+                )
+            }
             RichInputBar(
                 // v1.0.20 (Task 3): input/isStreaming 读派生值,避免其他字段变化触发 bottomBar 重组
                 text = currentInput,
@@ -989,6 +1000,7 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                 },
                 onStop = viewModel::stop,
                 onInterject = viewModel::interject,
+                onEnqueuePending = viewModel::enqueuePendingSend,
                 replyingTo = state.replyingTo?.let { r ->
                     // v1.0.72 fix: 引用块用最新消息对象 — 流式消息内容实时更新,
                     // 引用时捕获的旧对象可能 content 为空(第一条消息引用 UI 为空的根因)

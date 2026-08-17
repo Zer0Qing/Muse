@@ -179,6 +179,7 @@ internal fun InputBar(
     val onSend = callbacks.onSend
     val onStop = callbacks.onStop
     val onInterject = callbacks.onInterject
+    val onEnqueuePending = callbacks.onEnqueuePending
     val onNavigateInputHistory = callbacks.onNavigateInputHistory
     val onPickDocument = callbacks.onPickDocument
     val onToggleDrawMode = callbacks.onToggleDrawMode
@@ -950,42 +951,85 @@ internal fun InputBar(
                         }
                     }
                 } else if (isStreaming) {
-                    // A8 插话:流式中输入非空时,发送按钮位置变为"插话"按钮 — 打断当前生成并重定向。
-                    // 视觉沿用发送按钮(主色圆形+纸飞机),contentDescription 用"插话"区分语义。
-                    val interjectInteractionSource = remember { MutableInteractionSource() }
-                    val interjectPressed by interjectInteractionSource.collectIsPressedAsState()
-                    val interjectScale by animateFloatAsState(
-                        targetValue = if (interjectPressed) 0.9f else 1f,
-                        label = "interjectScale",
-                    )
-                    Box(
-                        modifier = Modifier
-                            .size(MuseIconSizes.touchTarget)
-                            .clickable(
-                                interactionSource = interjectInteractionSource,
-                                indication = null,
-                                enabled = true,
-                                onClick = {
-                                    MuseHaptics.medium(hapticFeedback)
-                                    onInterject()
-                                },
-                            ),
-                        contentAlignment = Alignment.Center,
+                    // A8 + B2: 流式中输入非空时,右侧为「入队」+「插话」双按钮 —
+                    // 入队不打断生成,插话打断当前生成并重定向。
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
                     ) {
+                        // B2 入队按钮:把当前输入加入待发送队列(不打断生成),发送按钮位左侧新增。
+                        val enqueueInteractionSource = remember { MutableInteractionSource() }
+                        val enqueuePressed by enqueueInteractionSource.collectIsPressedAsState()
+                        val enqueueScale by animateFloatAsState(
+                            targetValue = if (enqueuePressed) 0.9f else 1f,
+                            label = "enqueueScale",
+                        )
                         Box(
                             modifier = Modifier
-                                .size(MuseIconSizes.stopButton)
-                                .graphicsLayer { scaleX = interjectScale; scaleY = interjectScale }
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary),
+                                .size(MuseIconSizes.touchTarget)
+                                .clickable(
+                                    interactionSource = enqueueInteractionSource,
+                                    indication = null,
+                                    enabled = true,
+                                    onClick = {
+                                        MuseHaptics.medium(hapticFeedback)
+                                        onEnqueuePending()
+                                    },
+                                ),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Icon(
-                                imageVector = TablerIcons.Send,
-                                contentDescription = stringResource(R.string.chat_interject_cd),
-                                tint = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.size(MuseIconSizes.iconSmall),
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(MuseIconSizes.stopButton)
+                                    .graphicsLayer { scaleX = enqueueScale; scaleY = enqueueScale }
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    imageVector = TablerIcons.Stack2,
+                                    contentDescription = stringResource(R.string.chat_pending_enqueue_cd),
+                                    tint = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.size(MuseIconSizes.iconSmall),
+                                )
+                            }
+                        }
+                        // A8 插话按钮:打断当前生成并重定向(发送按钮位置,主色纸飞机)。
+                        val interjectInteractionSource = remember { MutableInteractionSource() }
+                        val interjectPressed by interjectInteractionSource.collectIsPressedAsState()
+                        val interjectScale by animateFloatAsState(
+                            targetValue = if (interjectPressed) 0.9f else 1f,
+                            label = "interjectScale",
+                        )
+                        Box(
+                            modifier = Modifier
+                                .size(MuseIconSizes.touchTarget)
+                                .clickable(
+                                    interactionSource = interjectInteractionSource,
+                                    indication = null,
+                                    enabled = true,
+                                    onClick = {
+                                        MuseHaptics.medium(hapticFeedback)
+                                        onInterject()
+                                    },
+                                ),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(MuseIconSizes.stopButton)
+                                    .graphicsLayer { scaleX = interjectScale; scaleY = interjectScale }
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    imageVector = TablerIcons.Send,
+                                    contentDescription = stringResource(R.string.chat_interject_cd),
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.size(MuseIconSizes.iconSmall),
+                                )
+                            }
                         }
                     }
                 } else if (text.isBlank() && pendingImages.isEmpty() && pendingVideo == null && showMic) {

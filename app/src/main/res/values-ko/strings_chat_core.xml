@@ -511,4 +511,13 @@
     <string name="chat_list_search_clear">검색 지우기</string>
     <string name="chat_list_search_no_result">일치하는 대화가 없습니다</string>
     <string name="chat_list_recent_browse">최근 본 대화</string>
+
+    <string name="chat_pending_queue_title">대기 중 전송</string>
+    <string name="chat_pending_count">%1$d개</string>
+    <string name="chat_pending_enqueue_cd">대기 큐에 추가</string>
+    <string name="chat_pending_send_cd">이 항목 보내기</string>
+    <string name="chat_pending_edit_cd">이 항목 편집</string>
+    <string name="chat_pending_remove_cd">이 항목 제거</string>
+    <string name="chat_pending_clear">큐 비우기</string>
+    <string name="chat_pending_image_only">[이미지]</string>
 </resources>

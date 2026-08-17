@@ -514,4 +514,13 @@
     <string name="chat_list_search_clear">Clear search</string>
     <string name="chat_list_search_no_result">No matching conversations</string>
     <string name="chat_list_recent_browse">Recent</string>
+
+    <string name="chat_pending_queue_title">Pending sends</string>
+    <string name="chat_pending_count">%1$d items</string>
+    <string name="chat_pending_enqueue_cd">Add to pending queue</string>
+    <string name="chat_pending_send_cd">Send this item</string>
+    <string name="chat_pending_edit_cd">Edit this item</string>
+    <string name="chat_pending_remove_cd">Remove this item</string>
+    <string name="chat_pending_clear">Clear queue</string>
+    <string name="chat_pending_image_only">[Image]</string>
 </resources>

@@ -511,4 +511,13 @@
     <string name="chat_list_search_clear">Очистить поиск</string>
     <string name="chat_list_search_no_result">Нет подходящих бесед</string>
     <string name="chat_list_recent_browse">Недавние</string>
+
+    <string name="chat_pending_queue_title">Ожидают отправки</string>
+    <string name="chat_pending_count">%1$d шт.</string>
+    <string name="chat_pending_enqueue_cd">Добавить в очередь отправки</string>
+    <string name="chat_pending_send_cd">Отправить этот пункт</string>
+    <string name="chat_pending_edit_cd">Редактировать этот пункт</string>
+    <string name="chat_pending_remove_cd">Удалить этот пункт</string>
+    <string name="chat_pending_clear">Очистить очередь</string>
+    <string name="chat_pending_image_only">[Изображение]</string>
 </resources>
