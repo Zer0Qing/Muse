@@ -463,6 +463,7 @@
     <ID>FunctionNaming:LorebookScreen.kt$@Composable private fun LorebookEditPage( initial: LorebookEntity, isNew: Boolean, onBack: () -&gt; Unit, onSave: (LorebookEntity) -&gt; Unit, )</ID>
     <ID>FunctionNaming:MainActivity.kt$@Composable private fun MuseNavGraph( pendingShareResult: ShareIntentHandler.ShareResult = ShareIntentHandler.ShareResult.None, /** v1.7: 由外部传入的 SplashScreen 就绪回调,NavGraph 初始化完成后延迟触发。 */ onSplashReady: () -&gt; Unit = {}, )</ID>
     <ID>FunctionNaming:MainActivity.kt$@Composable private fun PinLockScreen( expectedPin: String, /** v1.104: 注入 SettingsRepository,失败计数持久化到 DataStore,跨冷启动保留。 */ settings: io.zer0.muse.data.SettingsRepository, onUnlocked: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:MainActivity.kt$@Composable private fun RuntimeLocaleProvider( lang: String, content: @Composable () -&gt; Unit, )</ID>
     <ID>FunctionNaming:MarkdownText.kt$@Composable fun MarkdownText( text: String, modifier: Modifier = Modifier, style: TextStyle = MaterialTheme.typography.bodyLarge, color: Color = MaterialTheme.colorScheme.onBackground, citationUrls: List&lt;String&gt; = emptyList(), /** * v1.42: 流式消息标记。 * 为 true 时跳过链接点击检测(pointerInput)与复杂布局优化,降低重组开销。 * * v1.97 (P2): 流式时额外启用两项优化: * 1. 块数超过 [STREAMING_BLOCK_CAP] 时只渲染最后 [STREAMING_BLOCK_CAP] 个块, * 顶部用 "…" 占位(避免超长消息全量组合,Compose 重组成本随块数线性增长)。 * 2. CodeBlock / Formula / Table / RichContentCard 降级为纯文本预览, * 跳过语法高亮 / LaTeX 渲染 / 表格布局 / SVG-HTML 渲染等重布局; * 流式结束后(isStreaming=false)恢复完整渲染。 */ isStreaming: Boolean = false, /** * v1.0.63: 消息多选模式时禁用链接点击检测,让点击整条消息都能进入选择。 */ disableLinks: Boolean = false, /** * v1.0.72: 长按非链接区域时的回调(气泡长按菜单)。 * * MarkdownText 的 pointerInput 会消费所有长按事件(即使非链接区域), * 导致外层气泡的 combinedClickable onLongClick 收不到手势 → 长按消息弹不出菜单。 * 传入此回调后,长按非链接区域会调用它而不是被静默吞掉。 */ onLongPressOutside: (() -&gt; Unit)? = null, /** * HTML/SVG 代码块全屏预览回调。 * 当用户点击 HTML/SVG 代码块右上角的"预览"图标时触发, * 参数为完整 HTML 源码(SVG 已包装为完整 HTML)。 * 由 [MessageBubble] / [ChatScreen] 注入导航逻辑,跳转到 [HtmlPreviewScreen]。 */ onHtmlPreview: (String) -&gt; Unit = {}, /** * v1.0.53: 是否渲染 frontmatter 封面(默认 false;文档详情页传 true)。 * 聊天消息场景不渲染封面,保持现状。 */ renderCover: Boolean = false, /** * v1.0.53: 封面图片解析器(默认按 filesDir 相对路径解析;测试可注入)。 * 返回 null 表示解析失败,降级为纯正文渲染。 */ coverResolver: ((String) -&gt; File?)? = null, )</ID>
     <ID>FunctionNaming:MarkdownText.kt$@Composable private fun CodeBlockView(block: MarkdownBlock.CodeBlock)</ID>
     <ID>FunctionNaming:MarkdownText.kt$@Composable private fun LinkableText( annotatedText: AnnotatedString, style: TextStyle, modifier: Modifier = Modifier, color: Color = Color.Unspecified, /** v1.0.72: 长按非链接区域回调(气泡长按菜单用)。 */ onLongPressOutside: (() -&gt; Unit)? = null, )</ID>
@@ -2852,6 +2853,7 @@
     <ID>SwallowedException:ErrorMessages.kt$ErrorMessages$e: Exception</ID>
     <ID>SwallowedException:KnowledgeScreen.kt$e: java.io.IOException</ID>
     <ID>SwallowedException:MainActivity.kt$MainActivity$e: Exception</ID>
+    <ID>SwallowedException:MainActivity.kt$e: Exception</ID>
     <ID>SwallowedException:McpClient.kt$McpClient$e: Exception</ID>
     <ID>SwallowedException:MemoryViewModel.kt$MemoryViewModel$e: Exception</ID>
     <ID>SwallowedException:MiniWeatherScreen.kt$e: Exception</ID>
@@ -2935,6 +2937,7 @@
     <ID>TooGenericExceptionCaught:KnowledgeScreen.kt$e: Exception</ID>
     <ID>TooGenericExceptionCaught:LinkPreviewCard.kt$e: Exception</ID>
     <ID>TooGenericExceptionCaught:MainActivity.kt$MainActivity$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:MainActivity.kt$e: Exception</ID>
     <ID>TooGenericExceptionCaught:McpClient.kt$McpClient$e: Exception</ID>
     <ID>TooGenericExceptionCaught:MemoryLlmClientImpl.kt$MemoryLlmClientImpl$e: Exception</ID>
     <ID>TooGenericExceptionCaught:MemoryViewModel.kt$MemoryViewModel$e: Exception</ID>
@@ -3574,6 +3577,7 @@
     <ID>UnusedImports:NotifyTool.kt$import android.content.Context</ID>
     <ID>UnusedImports:OnboardingScreen.kt$import androidx.compose.ui.graphics.Brush</ID>
     <ID>UnusedImports:OnboardingScreen.kt$import androidx.compose.ui.graphics.Color</ID>
+    <ID>UnusedImports:OnboardingScreen.kt$import androidx.compose.ui.platform.LocalContext</ID>
     <ID>UnusedImports:OpenAIEmbeddingProvider.kt$import io.zer0.common.Logger</ID>
     <ID>UnusedImports:OpenAIEmbeddingProvider.kt$import kotlinx.serialization.json.JsonObject</ID>
     <ID>UnusedImports:PdfVisionParserTest.kt$import io.zer0.ai.core.ChatRequestMode</ID>
@@ -3961,6 +3965,7 @@
     <ID>UnusedPrivateProperty:SkillExecutor.kt$SkillExecutor$/** v1.???: generate_image 用。 */ private val imageService: io.zer0.ai.image.ImageService? = null</ID>
     <ID>UnusedPrivateProperty:SkillExecutor.kt$SkillExecutor$private val client: OkHttpClient</ID>
     <ID>UnusedPrivateProperty:SkillExecutor.kt$SkillExecutor$private val imageDrawConfigProvider: suspend () -&gt; Pair&lt;io.zer0.ai.core.ProviderConfig?, String?&gt; = { null to null }</ID>
+    <ID>UnusedPrivateProperty:ThemeSection.kt$val context = LocalContext.current</ID>
     <ID>UnusedPrivateProperty:ThirdPartyImporter.kt$ThirdPartyImporter$private const val MAX_FILE_COUNT = 100000 // 10万(兜底防炸弹)</ID>
     <ID>UnusedPrivateProperty:ThirdPartyImporter.kt$ThirdPartyImporter$val contentType = (contentObj["content_type"] as? kotlinx.serialization.json.JsonPrimitive) ?.contentOrNull ?: "text"</ID>
     <ID>UnusedPrivateProperty:ToolOrchestrator.kt$ToolOrchestrator$private val skillRepository: SkillRepository</ID>

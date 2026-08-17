@@ -672,7 +672,6 @@ internal fun LanguageSection(
     settings: SettingsRepository,
 ) {
     val scope = rememberCoroutineScope()
-    val context = LocalContext.current
 
     SectionLabel(stringResource(R.string.settings_theme_language))
     SettingsGroup(
@@ -693,41 +692,20 @@ internal fun LanguageSection(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             maxItemsInEachRow = 3,
         ) {
-            // v1.133: 修复语言切换卡死 + 不生效问题。
-            // 原方案用 recreate() 在协程中触发,旧 Activity 的 Compose 重组未结束就被销毁,
-            // 新 Activity 重建过程中 Compose state 死锁 → UI 卡死(ANR)。
-            // 同时 createConfigurationContext 在部分 ROM 上 locale 不生效 → 重启后看到新选项但实际未切换。
-            //
-            // 新方案:saveLanguage 后用 Intent + finish() 干净重启 Activity,
-            // 让旧 Activity 完整走 onDestroy,新 Activity 走完整 attachBaseContext 流程。
-            // 同时在 wrapWithLanguage 中额外调用 updateConfiguration 兜底,确保 locale 强制生效。
-            val restartActivity: (String) -> Unit = { lang ->
-                scope.launch {
-                    settings.saveLanguage(lang)
-                    val activity = context as? android.app.Activity ?: return@launch
-                    val intent = activity.packageManager.getLaunchIntentForPackage(activity.packageName)
-                    if (intent != null) {
-                        intent.addFlags(
-                            android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
-                                android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
-                        )
-                        activity.startActivity(intent)
-                        activity.finish()
-                        // 跳过重启动画,避免黑屏感知
-                        activity.overridePendingTransition(0, 0)
-                    } else {
-                        // 兜底:无法拿到 launch Intent 时退回 recreate
-                        activity.recreate()
-                    }
-                }
+            // I4: 语言热切换 — 不再重启 Activity。
+            // 原方案(recreate/Intent+finish)重建 Activity 存在 ANR 卡死与 ROM locale 不生效问题;
+            // 现由 MainActivity.RuntimeLocaleProvider 监听 languageFlow,切换仅重组 Compose UI,
+            // 冷启动初始语言仍由 attachBaseContext + wrapWithLanguage 保证。
+            val switchLanguage: (String) -> Unit = { lang ->
+                scope.launch { settings.saveLanguage(lang) }
             }
-            ThemeModeOption(followSystem, language == "system") { restartActivity("system") }
-            ThemeModeOption(zhLabel, language == "zh") { restartActivity("zh") }
-            ThemeModeOption(enLabel, language == "en") { restartActivity("en") }
+            ThemeModeOption(followSystem, language == "system") { switchLanguage("system") }
+            ThemeModeOption(zhLabel, language == "zh") { switchLanguage("zh") }
+            ThemeModeOption(enLabel, language == "en") { switchLanguage("en") }
             // v1.132: 新增日语/韩语/俄语三种语言选项
-            ThemeModeOption(jaLabel, language == "ja") { restartActivity("ja") }
-            ThemeModeOption(koLabel, language == "ko") { restartActivity("ko") }
-            ThemeModeOption(ruLabel, language == "ru") { restartActivity("ru") }
+            ThemeModeOption(jaLabel, language == "ja") { switchLanguage("ja") }
+            ThemeModeOption(koLabel, language == "ko") { switchLanguage("ko") }
+            ThemeModeOption(ruLabel, language == "ru") { switchLanguage("ru") }
         }
         SettingsGroupDivider()
         val langLabel = when (language) {

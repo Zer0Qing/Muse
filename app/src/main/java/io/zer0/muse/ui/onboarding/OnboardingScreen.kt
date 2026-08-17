@@ -1,6 +1,5 @@
 package io.zer0.muse.ui.onboarding
 
-import android.app.Activity
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -116,7 +115,6 @@ fun OnboardingScreen(onComplete: () -> Unit) {
     val settings: SettingsRepository = koinInject()
     val assistantRepo: AssistantRepository = koinInject()
     val presetProviders: PresetProviders = koinInject()
-    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val pagerState = rememberPagerState(pageCount = { 6 })
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -183,10 +181,8 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                     selectedLanguage = selectedLanguage,
                     onLanguageSelected = { lang ->
                         selectedLanguage = lang
-                        scope.launch {
-                            settings.saveLanguage(lang)
-                            (context as? Activity)?.recreate()
-                        }
+                        // I4: 语言热切换 — 保存后由 RuntimeLocaleProvider 即时重组,不重建 Activity
+                        scope.launch { settings.saveLanguage(lang) }
                     },
                     selectedThemeId = selectedThemeId,
                     onThemeSelected = { id ->

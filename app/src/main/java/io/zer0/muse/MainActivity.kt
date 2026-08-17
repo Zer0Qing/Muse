@@ -2,6 +2,7 @@ package io.zer0.muse
 
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
@@ -41,6 +42,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -59,6 +61,7 @@ import androidx.compose.ui.input.key.isCtrlPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -158,16 +161,8 @@ class MainActivity : ComponentActivity() {
         // 历史 DataStore 值会在 SettingsRepository.init 中异步迁移到 SP,首次冷启动可能短暂返回默认值,
         // 但下次启动即正确,可接受(用户感知不到语言切换的差异)。
         val lang = settings.getLanguageSync()
-        val locale = when (lang) {
-            "zh" -> java.util.Locale.SIMPLIFIED_CHINESE
-            "en" -> java.util.Locale.US
-            "ja" -> java.util.Locale.JAPAN
-            "ko" -> java.util.Locale.KOREA
-            "ru" -> java.util.Locale("ru", "RU")
-            "es" -> java.util.Locale("es", "ES")
-            "pt-rBR" -> java.util.Locale("pt", "BR")
-            else -> return base // system 或未知,用系统默认
-        }
+        // I4: 语言解析收敛到 parseAppLocale,system/未知返回 null(跟随系统)。
+        val locale = parseAppLocale(lang) ?: return base
         // v1.133: 复制当前 Configuration 并覆盖 locale,避免修改全局 Configuration。
         // 同时显式设置 layoutDirection,避免某些 RTL/LTR 边界场景。
         val config = android.content.res.Configuration(base.resources.configuration)
@@ -249,44 +244,49 @@ class MainActivity : ComponentActivity() {
         // 不再在 onCreate 里调用 applyLanguage(setApplicationLocales 在 ComponentActivity 上
         // Android 12 及以下 backport 不生效)。
         setContent {
-            // P6-C: 主题模式跟随用户设置(System / Light / Dark)
-            val themeMode by settings.themeModeFlow.collectAsStateWithLifecycle(initialValue = "system")
-            val darkTheme = when (themeMode) {
-                "light" -> false
-                "dark" -> true
-                else -> isSystemInDarkTheme()
-            }
-            // 修复:initialValue 改为 "mono" 与 SettingsRepository.themeIdFlow 默认值一致,
-            // 避免冷启动时首帧渲染 warm_paper 主题、随后切换到 mono 造成主题闪烁。
-            val themeId by settings.themeIdFlow.collectAsStateWithLifecycle(initialValue = AppearanceSettingsStore.DEFAULT_THEME_ID)
-            // 深色模式独立主题
-            val darkThemeId by settings.darkThemeIdFlow.collectAsStateWithLifecycle(initialValue = "")
-            // v1.65: 动态取色开关(Android 12+,代码早已就绪,此前未传参导致永远不可用)
-            val dynamicColor by settings.dynamicColorFlow.collectAsStateWithLifecycle(initialValue = false)
-            val fontSizeScale by settings.fontSizeScaleFlow.collectAsStateWithLifecycle(initialValue = "medium")
-            // v1.97 gap7: 用户自定义主题列表 — 基于种子色生成 ColorScheme,
-            // 在 MuseTheme 中作为动态色与预设主题之间的回退层
-            val customThemes by settings.customThemesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
-            // v1.102: 语言应用由 attachBaseContext + wrapWithLanguage 处理,
-            // ThemeSection 切语言后 saveLanguage + recreate,不再在 Compose 里处理 locale。
-            MuseTheme(
-                darkTheme = darkTheme,
-                themeId = themeId,
-                darkThemeId = darkThemeId,
-                fontSizeScale = fontSizeScale,
-                dynamicColor = dynamicColor,
-                customThemes = customThemes,
-            ) {
-                // v1.56: Compose 渲染异常由 MuseCrashHandler(Thread.UncaughtExceptionHandler)兜底,
-                // logComposeException 方法已就绪,待未来 Compose 版本提供 RuntimeExceptionHandler API 后接入。
-                Box(modifier = Modifier.fillMaxSize()) {
-                    MuseNavGraph(
-                        pendingShareResult = pendingShareResult,
-                        onSplashReady = { splashReady = true },
-                    )
-                    MuseToastHost()
+            // I4: 语言热切换 — 收集语言流,经 RuntimeLocaleProvider 覆盖 Compose 资源,
+            // 切换语言仅重组 UI,不重建 Activity(冷启动初始语言仍由 attachBaseContext 保证)。
+            val language by settings.languageFlow.collectAsStateWithLifecycle(initialValue = "system")
+            RuntimeLocaleProvider(lang = language) {
+                // P6-C: 主题模式跟随用户设置(System / Light / Dark)
+                val themeMode by settings.themeModeFlow.collectAsStateWithLifecycle(initialValue = "system")
+                val darkTheme = when (themeMode) {
+                    "light" -> false
+                    "dark" -> true
+                    else -> isSystemInDarkTheme()
                 }
-            }
+                // 修复:initialValue 改为 "mono" 与 SettingsRepository.themeIdFlow 默认值一致,
+                // 避免冷启动时首帧渲染 warm_paper 主题、随后切换到 mono 造成主题闪烁。
+                val themeId by settings.themeIdFlow.collectAsStateWithLifecycle(initialValue = AppearanceSettingsStore.DEFAULT_THEME_ID)
+                // 深色模式独立主题
+                val darkThemeId by settings.darkThemeIdFlow.collectAsStateWithLifecycle(initialValue = "")
+                // v1.65: 动态取色开关(Android 12+,代码早已就绪,此前未传参导致永远不可用)
+                val dynamicColor by settings.dynamicColorFlow.collectAsStateWithLifecycle(initialValue = false)
+                val fontSizeScale by settings.fontSizeScaleFlow.collectAsStateWithLifecycle(initialValue = "medium")
+                // v1.97 gap7: 用户自定义主题列表 — 基于种子色生成 ColorScheme,
+                // 在 MuseTheme 中作为动态色与预设主题之间的回退层
+                val customThemes by settings.customThemesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+                // I4: 语言热切换后 Compose 资源已由 RuntimeLocaleProvider 覆盖,
+                // 不再需要 recreate;冷启动初始语言仍由 attachBaseContext 保证。
+                MuseTheme(
+                    darkTheme = darkTheme,
+                    themeId = themeId,
+                    darkThemeId = darkThemeId,
+                    fontSizeScale = fontSizeScale,
+                    dynamicColor = dynamicColor,
+                    customThemes = customThemes,
+                ) {
+                    // v1.56: Compose 渲染异常由 MuseCrashHandler(Thread.UncaughtExceptionHandler)兜底,
+                    // logComposeException 方法已就绪,待未来 Compose 版本提供 RuntimeExceptionHandler API 后接入。
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        MuseNavGraph(
+                            pendingShareResult = pendingShareResult,
+                            onSplashReady = { splashReady = true },
+                        )
+                        MuseToastHost()
+                    }
+                }
+            } // RuntimeLocaleProvider
         }
     }
 
@@ -820,4 +820,62 @@ private fun PinLockScreen(
             }
         }
     }
+}
+
+/**
+ * 语言偏好字符串 → Locale(与 values-* 资源目录对应)。
+ * "system" 或未知值返回 null,表示跟随系统默认语言。
+ */
+private fun parseAppLocale(lang: String): java.util.Locale? = when (lang) {
+    "zh" -> java.util.Locale.SIMPLIFIED_CHINESE
+    "en" -> java.util.Locale.US
+    "ja" -> java.util.Locale.JAPAN
+    "ko" -> java.util.Locale.KOREA
+    "ru" -> java.util.Locale("ru", "RU")
+    "es" -> java.util.Locale("es", "ES")
+    "pt-rBR" -> java.util.Locale("pt", "BR")
+    else -> null
+}
+
+/**
+ * I4: 运行时语言热切换 — 覆盖 Compose 的 [LocalContext]/[LocalConfiguration],
+ * 语言变化时仅重组 UI,不重建 Activity。
+ *
+ * 以 Application 级系统配置为基准(attachBaseContext 只包 Activity 基资源,
+ * applicationContext 始终是系统配置),因此无论从哪种语言切回 "system" 都能正确恢复。
+ * stringResource 在 Compose 1.7 直接读 LocalContext.current.resources,故覆盖 LocalContext
+ * 为新 locale 的 ContextWrapper(applicationContext 透传,系统服务/launcher 均不受影响;
+ * 依赖 Activity 身份的 as? Activity 调用点数量有限且均有兜底)。
+ * ROM 兜底: 与 wrapWithLanguage 一致,额外 updateConfiguration 强制刷新 locale。
+ */
+@Composable
+private fun RuntimeLocaleProvider(
+    lang: String,
+    content: @Composable () -> Unit,
+) {
+    val context = LocalContext.current
+    val appContext = context.applicationContext
+    val locale = remember(lang) { parseAppLocale(lang) }
+    val config = remember(lang) {
+        val base = Configuration(appContext.resources.configuration)
+        if (locale != null) {
+            base.setLocale(locale)
+            base.setLayoutDirection(locale)
+        }
+        base
+    }
+    val localizedContext = remember(lang) {
+        val wrapped = appContext.createConfigurationContext(config)
+        try {
+            wrapped.resources.updateConfiguration(config, wrapped.resources.displayMetrics)
+        } catch (e: Exception) {
+            // updateConfiguration 在部分新版本被标记 deprecated 但仍可用,容错忽略
+        }
+        wrapped
+    }
+    CompositionLocalProvider(
+        LocalConfiguration provides config,
+        LocalContext provides localizedContext,
+        content = content,
+    )
 }
