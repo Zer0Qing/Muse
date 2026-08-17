@@ -317,6 +317,17 @@
     <string name="chat_stop_generation_cd">停止生成</string>
     <string name="chat_interject">插话</string>
     <string name="chat_interject_cd">插话:打断当前生成并发送</string>
+    <string name="command_palette_placeholder">搜索会话和消息,或输入 / 查看命令</string>
+    <string name="command_palette_commands">命令</string>
+    <string name="command_palette_sessions">会话</string>
+    <string name="command_palette_messages">消息</string>
+    <string name="command_palette_new_chat">新建对话</string>
+    <string name="command_palette_settings">打开设置</string>
+    <string name="command_palette_full_search">完整搜索</string>
+    <string name="command_palette_no_results">无匹配结果</string>
+    <string name="command_palette_open_session">打开会话</string>
+    <string name="command_palette_clear">清空</string>
+    <string name="command_palette_empty_hint">输入关键词搜索,或输入 / 查看命令</string>
     <string name="chat_recording_start_failed">录音启动失败,请检查权限或模型配置</string>
     <string name="chat_recognizing_cd">识别中</string>
     <string name="chat_recording_cd">录音中</string>

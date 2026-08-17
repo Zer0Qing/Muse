@@ -220,6 +220,17 @@
     <string name="chat_stop_generation_cd">生成を停止する</string>
     <string name="chat_interject">割り込む</string>
     <string name="chat_interject_cd">割り込み:現在の生成を中断して送信</string>
+    <string name="command_palette_placeholder">会話やメッセージを検索、または / でコマンド</string>
+    <string name="command_palette_commands">コマンド</string>
+    <string name="command_palette_sessions">会話</string>
+    <string name="command_palette_messages">メッセージ</string>
+    <string name="command_palette_new_chat">新しい会話</string>
+    <string name="command_palette_settings">設定を開く</string>
+    <string name="command_palette_full_search">完全検索</string>
+    <string name="command_palette_no_results">一致する結果がありません</string>
+    <string name="command_palette_open_session">会話を開く</string>
+    <string name="command_palette_clear">クリア</string>
+    <string name="command_palette_empty_hint">検索キーワードを入力、または / でコマンド</string>
     <string name="chat_recording_start_failed">記録の開始に失敗しました。</string>
     <string name="chat_recognizing_cd">認識する</string>
     <string name="chat_recording_cd">録音</string>

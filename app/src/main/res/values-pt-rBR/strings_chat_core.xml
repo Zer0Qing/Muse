@@ -311,6 +311,17 @@
     <string name="chat_stop_generation_cd">Pare de gerar</string>
     <string name="chat_interject">Interromper</string>
     <string name="chat_interject_cd">Interromper: interromper a geração atual e enviar</string>
+    <string name="command_palette_placeholder">Buscar conversas e mensagens, ou digite / para comandos</string>
+    <string name="command_palette_commands">Comandos</string>
+    <string name="command_palette_sessions">Conversas</string>
+    <string name="command_palette_messages">Mensagens</string>
+    <string name="command_palette_new_chat">Nova conversa</string>
+    <string name="command_palette_settings">Abrir configurações</string>
+    <string name="command_palette_full_search">Busca completa</string>
+    <string name="command_palette_no_results">Nenhum resultado</string>
+    <string name="command_palette_open_session">Abrir conversa</string>
+    <string name="command_palette_clear">Limpar</string>
+    <string name="command_palette_empty_hint">Digite para buscar, ou / para comandos</string>
     <string name="chat_recording_start_failed">Falha ao iniciar a gravação.</string>
     <string name="chat_recognizing_cd">Reconhecendo</string>
     <string name="chat_recording_cd">Gravação</string>

@@ -311,6 +311,17 @@
     <string name="chat_stop_generation_cd">생성 중지</string>
     <string name="chat_interject">끼어들기</string>
     <string name="chat_interject_cd">끼어들기:현재 생성 중단 후 전송</string>
+    <string name="command_palette_placeholder">대화와 메시지 검색, 또는 / 로 명령</string>
+    <string name="command_palette_commands">명령</string>
+    <string name="command_palette_sessions">대화</string>
+    <string name="command_palette_messages">메시지</string>
+    <string name="command_palette_new_chat">새 대화</string>
+    <string name="command_palette_settings">설정 열기</string>
+    <string name="command_palette_full_search">전체 검색</string>
+    <string name="command_palette_no_results">일치하는 결과 없음</string>
+    <string name="command_palette_open_session">대화 열기</string>
+    <string name="command_palette_clear">지우기</string>
+    <string name="command_palette_empty_hint">검색어 입력, 또는 / 로 명령</string>
     <string name="chat_recording_start_failed">녹화를 시작하지 못했습니다.</string>
     <string name="chat_recognizing_cd">인식</string>
     <string name="chat_recording_cd">녹음</string>

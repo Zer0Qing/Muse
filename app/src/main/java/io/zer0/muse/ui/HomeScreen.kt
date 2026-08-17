@@ -142,6 +142,8 @@ fun HomeScreen(
     // v1.137 B3: 区分用户拖拽和点击动画 — 点击时设 clickAnimating=true,
     // isScrollInProgress 结束后清除,使 MuseCapsuleTab 在拖拽时用连续跟踪、点击时用 tween。
     var clickAnimating by remember { mutableStateOf(false) }
+    // C1: 全局命令面板可见性(搜索按钮 / Ctrl+K 唤起)
+    var showCommandPalette by rememberSaveable { mutableStateOf(false) }
     // 审计修复: 本进程内 app_resume 巡检只触发一次
     var resumePatrolTriggered by remember { mutableStateOf(false) }
     LaunchedEffect(pagerState.isScrollInProgress) {
@@ -255,7 +257,8 @@ fun HomeScreen(
                 ) {
                     // v1.0.72: 归档聊天入口已移除 — 移到 设置 → 数据与隐私 → 归档聊天(主页顶栏更简洁)
                     // 全局搜索入口(对话/翻译/快速记录)— 三 Tab 右侧常驻
-                    IconButton(onClick = onOpenSearch) {
+                    // C1: 点击打开全局命令面板(搜索 + 斜杠命令),与独立搜索页并存
+                    IconButton(onClick = { showCommandPalette = true }) {
                         Icon(
                             imageVector = TablerIcons.Search,
                             contentDescription = stringResource(R.string.home_search_cd),
@@ -299,9 +302,9 @@ fun HomeScreen(
                     if (!desktopShortcutsEnabled) return@onKeyEvent false
                     if (event.type != KeyEventType.KeyDown) return@onKeyEvent false
                     when {
-                        // Ctrl+K: 聚焦搜索 / 打开独立搜索页(HomeScreen 无内嵌搜索框)
+                        // Ctrl+K: 打开全局命令面板(搜索 + 斜杠命令)
                         event.key == DesktopShortcuts.FOCUS_SEARCH && event.isCtrlPressed -> {
-                            onOpenSearch()
+                            showCommandPalette = true
                             true
                         }
                         // Ctrl+N: 新建对话(仅在 Tab 0 任务列表响应,与既有 onCreate 一致)
@@ -441,6 +444,19 @@ fun HomeScreen(
                 onDismiss = { showModelSheet = false },
             )
         }
+    }
+    // C1: 全局命令面板(独立 Dialog 窗口,覆盖任意 Tab)
+    if (showCommandPalette) {
+        CommandPalette(
+            onDismiss = { showCommandPalette = false },
+            onNewChat = {
+                viewModel.createNewSession()
+                onOpenChat()
+            },
+            onOpenSettings = onOpenSettings,
+            onOpenSearch = onOpenSearch,
+            onOpenChat = onOpenChat,
+        )
     }
 }
 

@@ -311,6 +311,17 @@
     <string name="chat_stop_generation_cd">Прекратить генерировать</string>
     <string name="chat_interject">Вмешаться</string>
     <string name="chat_interject_cd">Вмешаться: прервать текущую генерацию и отправить</string>
+    <string name="command_palette_placeholder">Поиск бесед и сообщений, или введите / для команд</string>
+    <string name="command_palette_commands">Команды</string>
+    <string name="command_palette_sessions">Беседы</string>
+    <string name="command_palette_messages">Сообщения</string>
+    <string name="command_palette_new_chat">Новая беседа</string>
+    <string name="command_palette_settings">Открыть настройки</string>
+    <string name="command_palette_full_search">Полный поиск</string>
+    <string name="command_palette_no_results">Нет совпадений</string>
+    <string name="command_palette_open_session">Открыть беседу</string>
+    <string name="command_palette_clear">Очистить</string>
+    <string name="command_palette_empty_hint">Введите запрос или / для команд</string>
     <string name="chat_recording_start_failed">Не удалось начать запись.</string>
     <string name="chat_recognizing_cd">Признание</string>
     <string name="chat_recording_cd">Запись</string>

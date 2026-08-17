@@ -311,6 +311,17 @@
     <string name="chat_stop_generation_cd">Stop Generating</string>
     <string name="chat_interject">Interject</string>
     <string name="chat_interject_cd">Interject: interrupt current generation and send</string>
+    <string name="command_palette_placeholder">Search conversations and messages, or type / for commands</string>
+    <string name="command_palette_commands">Commands</string>
+    <string name="command_palette_sessions">Conversations</string>
+    <string name="command_palette_messages">Messages</string>
+    <string name="command_palette_new_chat">New chat</string>
+    <string name="command_palette_settings">Open settings</string>
+    <string name="command_palette_full_search">Full search</string>
+    <string name="command_palette_no_results">No matching results</string>
+    <string name="command_palette_open_session">Open conversation</string>
+    <string name="command_palette_clear">Clear</string>
+    <string name="command_palette_empty_hint">Type to search, or type / for commands</string>
     <string name="chat_recording_start_failed">Failed to start recording. Check permissions or model config.</string>
     <string name="chat_recognizing_cd">Recognizing</string>
     <string name="chat_recording_cd">Recording</string>

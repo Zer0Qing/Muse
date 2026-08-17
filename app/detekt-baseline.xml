@@ -366,6 +366,12 @@
     <ID>FunctionNaming:CloudBackupPage.kt$@Composable private fun S3Fields( draft: CloudBackupConfig, onDraftChange: (CloudBackupConfig) -&gt; Unit, secretVisible: Boolean, onToggleSecret: () -&gt; Unit, )</ID>
     <ID>FunctionNaming:CloudBackupPage.kt$@Composable private fun WebDavFields( draft: CloudBackupConfig, onDraftChange: (CloudBackupConfig) -&gt; Unit, secretVisible: Boolean, onToggleSecret: () -&gt; Unit, )</ID>
     <ID>FunctionNaming:CollapsibleSection.kt$@Composable fun CollapsibleSection( title: String, subtitle: String? = null, icon: ImageVector? = null, defaultExpanded: Boolean = false, // M-SC3: 增加 key 参数 — 当同一页面存在多个 title 相同的分区时, // rememberSaveable(title) 会共享状态导致展开/折叠互相串扰,key 用于区分实例。 key: Any? = null, content: @Composable () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:CommandPalette.kt$@Composable private fun CommandRow( icon: ImageVector, label: String, detail: String, selected: Boolean, onClick: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:CommandPalette.kt$@Composable private fun PaletteEmpty(text: String)</ID>
+    <ID>FunctionNaming:CommandPalette.kt$@Composable private fun PaletteResultList( query: String, isCommandMode: Boolean, visibleCommands: List&lt;CommandEntry&gt;, sessionResults: List&lt;SearchResult&gt;, messageResults: List&lt;SearchResult&gt;, selectedIndex: Int, onSelect: (Int) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:CommandPalette.kt$@Composable private fun PaletteSearchField( query: String, isCommandMode: Boolean, onQueryChange: (String) -&gt; Unit, onClear: () -&gt; Unit, onExecute: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:CommandPalette.kt$@Composable private fun PaletteSectionHeader(title: String)</ID>
+    <ID>FunctionNaming:CommandPalette.kt$@Suppress("CyclomaticComplexMethod") @Composable internal fun CommandPalette( onDismiss: () -&gt; Unit, onNewChat: () -&gt; Unit, onOpenSettings: () -&gt; Unit, onOpenSearch: () -&gt; Unit, onOpenChat: () -&gt; Unit, viewModel: ChatViewModel = koinInject(), )</ID>
     <ID>FunctionNaming:ConfirmDeleteDialog.kt$@Composable fun ConfirmDeleteDialog( title: String, itemName: String, onConfirm: () -&gt; Unit, onDismiss: () -&gt; Unit, )</ID>
     <ID>FunctionNaming:CoverManagerScreen.kt$@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class) @Composable fun CoverManagerScreen( onBack: () -&gt; Unit, onPick: ((String) -&gt; Unit)? = null, )</ID>
     <ID>FunctionNaming:CoverManagerScreen.kt$@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class) @Composable private fun CoverGridItem( cover: CoverItem, repo: CoverLibraryRepository, isSelected: Boolean, onClick: () -&gt; Unit, onLongClick: () -&gt; Unit, )</ID>
@@ -913,6 +919,7 @@
     <ID>LongMethod:ChatViewModel.kt$ChatViewModel$private suspend fun runToolLoop(state: StreamRunState): Boolean</ID>
     <ID>LongMethod:ChatViewModel.kt$ChatViewModel.&lt;no name provided&gt;$override suspend fun streamRound(params: StreamRoundParams): StreamRoundResult</ID>
     <ID>LongMethod:CloudBackupPage.kt$@Composable fun CloudBackupPage( onBack: () -&gt; Unit, )</ID>
+    <ID>LongMethod:CommandPalette.kt$@Suppress("CyclomaticComplexMethod") @Composable internal fun CommandPalette( onDismiss: () -&gt; Unit, onNewChat: () -&gt; Unit, onOpenSettings: () -&gt; Unit, onOpenSearch: () -&gt; Unit, onOpenChat: () -&gt; Unit, viewModel: ChatViewModel = koinInject(), )</ID>
     <ID>LongMethod:ConversationExporter.kt$ConversationExporter$fun exportToPdf( context: Context, messages: List&lt;UIMessage&gt;, chatTitle: String, locale: Locale = Locale.getDefault(), ): File</ID>
     <ID>LongMethod:ConversationTree.kt$ConversationTree.Companion$fun build(messages: List&lt;UIMessage&gt;, previous: ConversationTree? = null): ConversationTree</ID>
     <ID>LongMethod:CoverManagerScreen.kt$@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class) @Composable fun CoverManagerScreen( onBack: () -&gt; Unit, onPick: ((String) -&gt; Unit)? = null, )</ID>
@@ -1130,6 +1137,9 @@
     <ID>LongParameterList:CloudTtsService.kt$CloudTtsService$( text: String, apiKey: String, model: String, voice: String, endpoint: String, cloudConfig: CloudTtsConfig, )</ID>
     <ID>LongParameterList:CloudTtsService.kt$CloudTtsService$( text: String, engine: String, apiKey: String, model: String, voice: String, endpoint: String, outputFile: File, cloudConfig: CloudTtsConfig = CloudTtsConfig(), )</ID>
     <ID>LongParameterList:CollapsibleSection.kt$( title: String, subtitle: String? = null, icon: ImageVector? = null, defaultExpanded: Boolean = false, // M-SC3: 增加 key 参数 — 当同一页面存在多个 title 相同的分区时, // rememberSaveable(title) 会共享状态导致展开/折叠互相串扰,key 用于区分实例。 key: Any? = null, content: @Composable () -&gt; Unit, )</ID>
+    <ID>LongParameterList:CommandPalette.kt$( onDismiss: () -&gt; Unit, onNewChat: () -&gt; Unit, onOpenSettings: () -&gt; Unit, onOpenSearch: () -&gt; Unit, onOpenChat: () -&gt; Unit, viewModel: ChatViewModel = koinInject(), )</ID>
+    <ID>LongParameterList:CommandPalette.kt$( query: String, isCommandMode: Boolean, visibleCommands: List&lt;CommandEntry&gt;, sessionResults: List&lt;SearchResult&gt;, messageResults: List&lt;SearchResult&gt;, selectedIndex: Int, onSelect: (Int) -&gt; Unit, )</ID>
+    <ID>LongParameterList:CommandPalette.kt$( selectedIndex: Int, visibleCommands: List&lt;CommandEntry&gt;, sessionResults: List&lt;SearchResult&gt;, messageResults: List&lt;SearchResult&gt;, query: String, viewModel: ChatViewModel, onOpenChat: () -&gt; Unit, )</ID>
     <ID>LongParameterList:ConversationExporter.kt$ConversationExporter$( pdf: PdfDocument, currentPage: PdfDocument.Page, currentPageIndex: Int, title: String, exportTime: String, titlePaint: Paint, timePaint: Paint, footerPaint: Paint, )</ID>
     <ID>LongParameterList:ConversationTreeSnapshotStoreTest.kt$ConversationTreeSnapshotStoreTest$(content: String, group: String, parent: String, index: Int, count: Int, at: Long)</ID>
     <ID>LongParameterList:ConversationTreeTest.kt$ConversationTreeTest$(content: String, group: String? = null, index: Int = 0, count: Int = 1, parentGroup: String? = null, at: Long = System.currentTimeMillis())</ID>
