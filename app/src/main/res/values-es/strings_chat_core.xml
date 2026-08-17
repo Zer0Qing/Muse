@@ -530,4 +530,6 @@
     <string name="chat_compress_confirm">Comprimir</string>
     <string name="chat_translation_show_source">Ver original</string>
     <string name="chat_translation_hide_source">Ocultar original</string>
+    <string name="settings_chat_gradient_title">Fondo degradado</string>
+    <string name="settings_chat_gradient_subtitle">Degradado lineal de dos colores, se aplica cuando no hay imagen de fondo</string>
 </resources>

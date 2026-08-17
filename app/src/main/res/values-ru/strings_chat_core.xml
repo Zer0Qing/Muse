@@ -530,4 +530,6 @@
     <string name="chat_compress_confirm">Сжать</string>
     <string name="chat_translation_show_source">Показать оригинал</string>
     <string name="chat_translation_hide_source">Скрыть оригинал</string>
+    <string name="settings_chat_gradient_title">Градиентный фон</string>
+    <string name="settings_chat_gradient_subtitle">Линейный градиент из двух цветов, применяется при отсутствии фонового изображения</string>
 </resources>

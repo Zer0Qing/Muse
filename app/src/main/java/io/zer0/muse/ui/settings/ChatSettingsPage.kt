@@ -5,6 +5,7 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.combinedClickable
@@ -49,6 +50,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -58,6 +61,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import io.zer0.muse.R
+import io.zer0.muse.data.ChatGradient
 import io.zer0.muse.data.ChatPreferences
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.sticker.StickerItem
@@ -315,6 +319,87 @@ fun ChatSettingsPage(
                                 color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.Medium,
                             ),
+                        )
+                    }
+                }
+            }
+        }
+        item {
+            // E3: 动态渐变背景 — 双色线性渐变预设(背景图优先,渐变在无背景图时生效)
+            val chatGradient by settings.chatGradientFlow.collectAsStateWithLifecycle(initialValue = null)
+            val gradScope = rememberCoroutineScope()
+            SettingsGroup {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = TablerIcons.Palette,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.settings_chat_gradient_title),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Text(
+                            text = stringResource(R.string.settings_chat_gradient_subtitle),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.outline,
+                        )
+                    }
+                    if (chatGradient != null) {
+                        Text(
+                            text = stringResource(R.string.action_clear),
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Medium,
+                            ),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(14.dp))
+                                .clickable {
+                                    gradScope.launch { settings.saveChatGradient(null) }
+                                }
+                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                        )
+                    }
+                }
+                SettingsGroupDivider()
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    PRESET_CHAT_GRADIENTS.forEach { (start, end) ->
+                        val selected = chatGradient?.startColorArgb == start && chatGradient?.endColorArgb == end
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(
+                                    Brush.linearGradient(
+                                        listOf(Color(start.toInt()), Color(end.toInt())),
+                                    ),
+                                )
+                                .border(
+                                    width = if (selected) 2.dp else 1.dp,
+                                    color = if (selected) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.outlineVariant
+                                    },
+                                    shape = RoundedCornerShape(10.dp),
+                                )
+                                .clickable {
+                                    gradScope.launch { settings.saveChatGradient(ChatGradient(start, end)) }
+                                },
                         )
                     }
                 }
@@ -1286,3 +1371,16 @@ private fun StickerLibrarySection(
         )
     }
 }
+
+/**
+ * E3: 聊天渐变背景预设(双色线性渐变,ARGB Long 色值)。
+ * 仅色块展示,名称不展示(避免引入 6 组 ×7 语言的翻译成本)。
+ */
+private val PRESET_CHAT_GRADIENTS: List<Pair<Long, Long>> = listOf(
+    0xFFE3F2FDL to 0xFF90CAF9L, // 晨蓝
+    0xFF1A2980L to 0xFF26D0CEL, // 深海
+    0xFF0F2027L to 0xFF2C5364L, // 夜航
+    0xFFFCEABBL to 0xFFF8B500L, // 暖金
+    0xFF43C6ACL to 0xFF191654L, // 松石
+    0xFF800000L to 0xFFE8B298L, // 晚霞
+)

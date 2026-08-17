@@ -594,6 +594,27 @@ class SettingsRepository(
         }
     }
 
+    // ── E3: 聊天动态渐变背景(背景图优先;两者皆无时用主题默认背景色) ──
+    /** 聊天渐变背景(双色线性渐变;null = 不使用)。 */
+    val chatGradientFlow: Flow<ChatGradient?> = store.data.map { prefs ->
+        prefs[KEY_CHAT_GRADIENT]?.let { raw ->
+            runCatching { AppJson.decodeFromString(ChatGradient.serializer(), raw) }
+                .onFailure { android.util.Log.w("SettingsRepository", "ChatGradient 解析失败", it) }
+                .getOrNull()
+        }
+    }
+
+    /** E3: 保存/清除聊天渐变背景(null 清除)。 */
+    suspend fun saveChatGradient(gradient: ChatGradient?) {
+        store.edit { prefs ->
+            if (gradient == null) {
+                prefs.remove(KEY_CHAT_GRADIENT)
+            } else {
+                prefs[KEY_CHAT_GRADIENT] = AppJson.encodeToString(ChatGradient.serializer(), gradient)
+            }
+        }
+    }
+
     // ── v1.0.73: 朋友圈封面背景 ──────────────────────────────────────
     /** 朋友圈封面背景图(data URI 或 URL;null = 默认渐变)。 */
     val momentsCoverImageFlow: Flow<String?> = store.data.map { prefs ->
@@ -1484,6 +1505,7 @@ class SettingsRepository(
     private val KEY_MOMENTS_LAST_READ_AT = longPreferencesKey("moments_last_read_at")
     private val KEY_MOMENT_MESSAGES_LAST_READ_AT = longPreferencesKey("moment_messages_last_read_at")
     private val KEY_CHAT_BACKGROUND = stringPreferencesKey("chat_background")
+    private val KEY_CHAT_GRADIENT = stringPreferencesKey("chat_gradient_json")
     private val KEY_MINIPHONE_ENABLED = booleanPreferencesKey("miniphone_enabled")
     private val KEY_NIGHT_PATROL_ENABLED = booleanPreferencesKey("night_patrol_enabled")
         // v1.0.20: 全局默认会话权限模式(TRUSTED / ASK / STRICT,默认 ASK)

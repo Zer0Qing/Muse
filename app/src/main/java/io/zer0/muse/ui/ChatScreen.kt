@@ -733,6 +733,10 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
     val chatBackground by org.koin.compose.koinInject<io.zer0.muse.data.SettingsRepository>()
         .chatBackgroundFlow
         .collectAsState(initial = null)
+    // E3: 动态渐变背景 — 仅在未设置背景图时生效(背景图优先)
+    val chatGradient by org.koin.compose.koinInject<io.zer0.muse.data.SettingsRepository>()
+        .chatGradientFlow
+        .collectAsState(initial = null)
 
     Box(modifier = modifier.fillMaxSize()) {
         // 背景图(自定义聊天背景)
@@ -743,6 +747,23 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                 contentScale = androidx.compose.ui.layout.ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
             )
+        } else {
+            // E3: 双色线性渐变铺底(左上→右下);局部变量取用,delegated property 无法 smart cast
+            val gradient = chatGradient
+            if (gradient != null) {
+                androidx.compose.foundation.layout.Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            androidx.compose.ui.graphics.Brush.linearGradient(
+                                colors = listOf(
+                                    Color(gradient.startColorArgb.toInt()),
+                                    Color(gradient.endColorArgb.toInt()),
+                                ),
+                            ),
+                        ),
+                )
+            }
         }
     Scaffold(
         // v1.0.72 fix: 显式清零内容区 insets — 嵌套在 HomeScreen 时,
