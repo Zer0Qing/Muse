@@ -237,6 +237,8 @@ fun ChatScreen(
     onOpenSkills: () -> Unit = {},
     /** B0-07: 打开提示词模板管理页。 */
     onOpenPromptTemplateManager: () -> Unit = {},
+    /** C4: 双栏嵌入模式(宽屏任务 tab 右栏)时传入栏级布局修饰符。 */
+    modifier: Modifier = Modifier,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val conversationTree by viewModel.conversationTree.collectAsStateWithLifecycle()
@@ -732,7 +734,7 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
         .chatBackgroundFlow
         .collectAsState(initial = null)
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = modifier.fillMaxSize()) {
         // 背景图(自定义聊天背景)
         if (!chatBackground.isNullOrBlank()) {
             io.zer0.muse.ui.SmartImage(

@@ -56,7 +56,9 @@ import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.schedule.ProactiveMessageRunner
 import io.zer0.muse.ui.common.media.DesktopShortcuts
+import io.zer0.muse.ui.common.media.WindowWidthClass
 import io.zer0.muse.ui.common.media.rememberDesktopShortcutsEnabled
+import io.zer0.muse.ui.common.media.rememberWindowWidthClass
 import io.zer0.muse.ui.groupchat.GroupChatListScreen
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -146,6 +148,10 @@ fun HomeScreen(
     var showCommandPalette by rememberSaveable { mutableStateOf(false) }
     // 审计修复: 本进程内 app_resume 巡检只触发一次
     var resumePatrolTriggered by remember { mutableStateOf(false) }
+    // C4: 宽屏自适应双栏 — Expanded(≥840dp) 时任务 tab 会话列表+消息同屏,
+    // 窄屏保持原单栏 + push 详情页交互
+    val widthClass = rememberWindowWidthClass()
+    val isWideTasks = widthClass == WindowWidthClass.Expanded
     LaunchedEffect(pagerState.isScrollInProgress) {
         if (!pagerState.isScrollInProgress) clickAnimating = false
     }
@@ -191,15 +197,17 @@ fun HomeScreen(
     }
 
     // v1.0.16: 新建任务/新会话统一入口 — 被 tab 下方卡片和右下角悬浮胶囊复用
+    // C4: 宽屏双栏时只创建会话(右栏 ChatScreen 跟随 currentSessionId 就地显示),不 push 详情页
     val onCreateNewTask: () -> Unit = {
         viewModel.createNewSession()
-        onOpenChat()
+        if (!isWideTasks) onOpenChat()
     }
 
     Scaffold(
         floatingActionButton = {
             // v1.0.17: 悬浮胶囊仅在"任务"Tab(首页)显示,Agent/群聊页不显示
-            if (pagerState.currentPage == 0) {
+            // C4: 宽屏双栏时隐藏(FAB 会悬浮在右栏输入区上方遮挡;左栏已有新建入口)
+            if (pagerState.currentPage == 0 && !isWideTasks) {
                 HomeQuickActionCapsule(
                     onOpenScheduledTasks = onOpenScheduledTasks,
                     onOpenQuickNotes = onOpenQuickNotes,
@@ -362,55 +370,121 @@ fun HomeScreen(
             when (page) {
                 // Tab 0 "任务": 任务列表(用户日常工作调研)
                 // 点击会话只切换 currentSessionId,不跳转到 Agent Tab
-                0 -> ChatListScreen(
-                    sessions = state.sessions,
-                    folders = state.folders,
-                    currentSessionId = state.currentSessionId,
-                    onSelect = { id ->
-                        // v0.27: 点击任务项 → 切换会话 + push 到聊天详情页
-                        viewModel.switchSession(id)
-                        onOpenChat()
-                    },
-                    onCreate = {
-                        // v0.27: 新任务 → 创建会话 + push 到聊天详情页
-                        viewModel.createNewSession()
-                        onOpenChat()
-                    },
-                    onDelete = viewModel::deleteSession,
-                    onRename = { session ->
-                        viewModel.renameSession(session.id, session.title)
-                    },
-                    // v1.48: 修复会话重命名失效 bug — 旧实现传 session.title(原名),改为传用户输入的 newName
-                    onRenameTo = { session, newName ->
-                        viewModel.renameSession(session.id, newName)
-                    },
-                    onTogglePinned = viewModel::togglePinned,
-                    onReorderPinned = viewModel::reorderPinnedSessions,
-                    onMoveSessionToFolder = viewModel::moveSessionToFolder,
-                    onCreateFolder = viewModel::createFolder,
-                    onRenameFolder = viewModel::renameFolder,
-                    onDeleteFolder = viewModel::deleteFolder,
-                    onToggleFolderExpanded = viewModel::toggleFolderExpanded,
-                    assistants = state.assistants,
-                    currentAssistant = state.currentAssistant,
-                    archivedSessions = state.archivedSessions,
-                    onArchive = { id -> viewModel.setSessionArchived(id, true) },
-                    onUnarchive = { id -> viewModel.setSessionArchived(id, false) },
-                    onOpenScheduledTasks = onOpenScheduledTasks,
-                    onOpenQuickNotes = onOpenQuickNotes,
-                    onOpenQuickTranslate = onOpenQuickTranslate,
-                    onOpenKnowledgeBase = onOpenKnowledgeBase,
-                    onOpenRecentlyDeleted = onOpenRecentlyDeleted,
-                    onOpenAssistants = onOpenAssistants,
-                    onCreateWithText = { text ->
-                        viewModel.sendToNewChat(text)
-                        onOpenChat()
-                    },
-                    isSessionsLoading = state.isSessionsLoading,
-                    sessionsError = state.sessionsError,
-                    onRetryLoadSessions = viewModel::retryLoadSessions,
-                    modifier = Modifier.fillMaxSize(),
-                )
+                // C4: 宽屏(Expanded)双栏 — 左会话列表(400dp)+ 右消息同屏;
+                //     窄屏保持原交互(点击任务 push 独立聊天详情页)
+                0 -> {
+                    if (isWideTasks) {
+                        Row(modifier = Modifier.fillMaxSize()) {
+                            ChatListScreen(
+                                sessions = state.sessions,
+                                folders = state.folders,
+                                currentSessionId = state.currentSessionId,
+                                onSelect = { id ->
+                                    // C4: 宽屏右栏 ChatScreen 跟随 currentSessionId 就地显示,不 push
+                                    viewModel.switchSession(id)
+                                },
+                                onCreate = {
+                                    viewModel.createNewSession()
+                                },
+                                onDelete = viewModel::deleteSession,
+                                onRename = { session ->
+                                    viewModel.renameSession(session.id, session.title)
+                                },
+                                onRenameTo = { session, newName ->
+                                    viewModel.renameSession(session.id, newName)
+                                },
+                                onTogglePinned = viewModel::togglePinned,
+                                onReorderPinned = viewModel::reorderPinnedSessions,
+                                onMoveSessionToFolder = viewModel::moveSessionToFolder,
+                                onCreateFolder = viewModel::createFolder,
+                                onRenameFolder = viewModel::renameFolder,
+                                onDeleteFolder = viewModel::deleteFolder,
+                                onToggleFolderExpanded = viewModel::toggleFolderExpanded,
+                                assistants = state.assistants,
+                                currentAssistant = state.currentAssistant,
+                                archivedSessions = state.archivedSessions,
+                                onArchive = { id -> viewModel.setSessionArchived(id, true) },
+                                onUnarchive = { id -> viewModel.setSessionArchived(id, false) },
+                                onOpenScheduledTasks = onOpenScheduledTasks,
+                                onOpenQuickNotes = onOpenQuickNotes,
+                                onOpenQuickTranslate = onOpenQuickTranslate,
+                                onOpenKnowledgeBase = onOpenKnowledgeBase,
+                                onOpenRecentlyDeleted = onOpenRecentlyDeleted,
+                                onOpenAssistants = onOpenAssistants,
+                                onCreateWithText = { text ->
+                                    viewModel.sendToNewChat(text)
+                                },
+                                isSessionsLoading = state.isSessionsLoading,
+                                sessionsError = state.sessionsError,
+                                onRetryLoadSessions = viewModel::retryLoadSessions,
+                                modifier = Modifier.fillMaxSize().width(400.dp),
+                            )
+                            VerticalDivider(
+                                modifier = Modifier.fillMaxHeight().width(1.dp),
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+                            )
+                            // C4: 右栏消息 — onBack=null 不显示返回按钮,复用共享 ChatViewModel 单例
+                            ChatScreen(
+                                onOpenAssistants = onOpenAssistants,
+                                isAgentMode = false,
+                                onHtmlPreview = onHtmlPreview,
+                                onOpenSkills = onOpenSkills,
+                                onOpenPromptTemplateManager = onOpenPromptTemplateManager,
+                                modifier = Modifier.fillMaxSize().weight(1f),
+                            )
+                        }
+                    } else {
+                        ChatListScreen(
+                            sessions = state.sessions,
+                            folders = state.folders,
+                            currentSessionId = state.currentSessionId,
+                            onSelect = { id ->
+                                // v0.27: 点击任务项 → 切换会话 + push 到聊天详情页
+                                viewModel.switchSession(id)
+                                onOpenChat()
+                            },
+                            onCreate = {
+                                // v0.27: 新任务 → 创建会话 + push 到聊天详情页
+                                viewModel.createNewSession()
+                                onOpenChat()
+                            },
+                            onDelete = viewModel::deleteSession,
+                            onRename = { session ->
+                                viewModel.renameSession(session.id, session.title)
+                            },
+                            // v1.48: 修复会话重命名失效 bug — 旧实现传 session.title(原名),改为传用户输入的 newName
+                            onRenameTo = { session, newName ->
+                                viewModel.renameSession(session.id, newName)
+                            },
+                            onTogglePinned = viewModel::togglePinned,
+                            onReorderPinned = viewModel::reorderPinnedSessions,
+                            onMoveSessionToFolder = viewModel::moveSessionToFolder,
+                            onCreateFolder = viewModel::createFolder,
+                            onRenameFolder = viewModel::renameFolder,
+                            onDeleteFolder = viewModel::deleteFolder,
+                            onToggleFolderExpanded = viewModel::toggleFolderExpanded,
+                            assistants = state.assistants,
+                            currentAssistant = state.currentAssistant,
+                            archivedSessions = state.archivedSessions,
+                            onArchive = { id -> viewModel.setSessionArchived(id, true) },
+                            onUnarchive = { id -> viewModel.setSessionArchived(id, false) },
+                            onOpenScheduledTasks = onOpenScheduledTasks,
+                            onOpenQuickNotes = onOpenQuickNotes,
+                            onOpenQuickTranslate = onOpenQuickTranslate,
+                            onOpenKnowledgeBase = onOpenKnowledgeBase,
+                            onOpenRecentlyDeleted = onOpenRecentlyDeleted,
+                            onOpenAssistants = onOpenAssistants,
+                            onCreateWithText = { text ->
+                                viewModel.sendToNewChat(text)
+                                onOpenChat()
+                            },
+                            isSessionsLoading = state.isSessionsLoading,
+                            sessionsError = state.sessionsError,
+                            onRetryLoadSessions = viewModel::retryLoadSessions,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                }
                 // Tab 1 "Agent": 长效日常聊天搭子
                 // 独立聊天区域,不依赖任务 Tab 的会话选择
                 // M-CS6: 移除多余的 Column 包裹 — ChatScreen 内部已用 fillMaxSize 自撑,Column 仅增加一层无意义嵌套
