@@ -151,6 +151,8 @@ import io.zer0.muse.ui.chat.TokenStatsBar
 import io.zer0.muse.ui.chat.buildQuotedContent
 import io.zer0.muse.ui.chat.SlashCommand
 import io.zer0.muse.ui.chat.PendingQueueBar
+import io.zer0.muse.ui.chat.MessageMapBar
+import io.zer0.muse.ui.chat.MESSAGE_MAP_MIN_MESSAGES
 import io.zer0.muse.ui.speech.SpeechInput
 import io.zer0.muse.ui.speech.TtsControllerWidget
 import io.zer0.muse.ui.speech.VoiceConversationMode
@@ -1815,6 +1817,20 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                         }
                     }
                 }
+            }
+
+            // A6: 长会话消息地图 — 右侧竖条导航(点击/拖动跳转 + 桌面 hover 预览)。
+            // 仅长会话显示(短会话滚动成本低,无导航价值);用 visibleMessages 保证
+            // 性能模式下与分页视图一致。跨会话滚动位置保留由 ViewModel listState 缓存负责。
+            if (messages.size >= MESSAGE_MAP_MIN_MESSAGES && visibleMessages.isNotEmpty()) {
+                MessageMapBar(
+                    messages = visibleMessages,
+                    listState = listState,
+                    messageStartIndex = messageStartIndex,
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(end = MusePaddings.tightGap),
+                )
             }
 
             // 断点续传(工具中断恢复)Banner:检测到本会话有未完成的工具调用时显示
