@@ -536,6 +536,10 @@
     <string name="settings_theme_custom_delete_confirm">이 테마를 삭제하시겠습니까?</string>
     <string name="settings_theme_custom_delete_confirm_msg">이 작업은 취소할 수 없습니다.</string>
     <string name="settings_theme_custom_empty">아직 맞춤 테마가 없습니다.</string>
+    <string name="settings_theme_custom_export">테마 내보내기</string>
+    <string name="settings_theme_custom_import">테마 가져오기</string>
+    <string name="settings_theme_custom_import_success">테마를 가져왔습니다</string>
+    <string name="settings_theme_custom_import_failed">가져오기 실패: 파일 형식이 올바르지 않습니다</string>
     <string name="settings_theme_custom_unnamed">이름 없음</string>
     <string name="settings_theme_custom_color_h">색조</string>
     <string name="settings_theme_custom_color_s">포화</string>

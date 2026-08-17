@@ -536,6 +536,10 @@
     <string name="settings_theme_custom_delete_confirm">このテーマを削除しますか?</string>
     <string name="settings_theme_custom_delete_confirm_msg">これを元に戻すことはできません。</string>
     <string name="settings_theme_custom_empty">カスタムテーマはまだありません。</string>
+    <string name="settings_theme_custom_export">テーマをエクスポート</string>
+    <string name="settings_theme_custom_import">テーマをインポート</string>
+    <string name="settings_theme_custom_import_success">テーマをインポートしました</string>
+    <string name="settings_theme_custom_import_failed">インポート失敗:ファイル形式が不正です</string>
     <string name="settings_theme_custom_unnamed">無題</string>
     <string name="settings_theme_custom_color_h">色相</string>
     <string name="settings_theme_custom_color_s">飽和</string>

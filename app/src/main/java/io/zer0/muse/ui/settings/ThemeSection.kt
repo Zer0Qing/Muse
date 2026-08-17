@@ -31,6 +31,9 @@ import io.zer0.muse.ui.common.form.MuseSlider
 import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.content.Intent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -57,6 +60,7 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.AppearanceSettingsStore
 import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.form.MuseSegmentedControl
 import io.zer0.muse.ui.common.settings.SettingsGroup
@@ -71,6 +75,8 @@ import io.zer0.muse.ui.theme.PresetThemes
 import io.zer0.muse.ui.theme.PresetTheme
 import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.ui.theme.tiny
+import io.zer0.common.AppJson
+import io.zer0.common.Logger
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -181,6 +187,48 @@ internal fun ThemeSection(
     }
 
     // ── v1.97 gap7: 自定义主题区(基于种子色生成 ColorScheme) ──
+    // E1: 主题 JSON 导出/导入 — 分享为文本分享(ACTION_SEND),导入走 SAF 选文件
+    val shareTheme: (CustomTheme) -> Unit = { theme ->
+        val json = AppJson.encodeToString(CustomTheme.serializer(), theme)
+        val sendIntent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_SUBJECT, "Muse Theme: ${theme.name}")
+            putExtra(Intent.EXTRA_TEXT, json)
+        }
+        context.startActivity(
+            Intent.createChooser(sendIntent, context.getString(R.string.settings_theme_custom_export)),
+        )
+    }
+    val importThemeLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        val theme = try {
+            val text = context.contentResolver.openInputStream(uri)
+                ?.bufferedReader()?.use { it.readText() }
+            if (text == null) {
+                MuseToast.show(context.getString(R.string.settings_theme_custom_import_failed))
+                return@rememberLauncherForActivityResult
+            }
+            AppJson.decodeFromString(CustomTheme.serializer(), text)
+        } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+            throw e
+        } catch (e: java.io.IOException) {
+            Logger.w("ThemeSection", "主题导入读取失败: ${e.message}")
+            MuseToast.show(context.getString(R.string.settings_theme_custom_import_failed))
+            return@rememberLauncherForActivityResult
+        } catch (e: kotlinx.serialization.SerializationException) {
+            Logger.w("ThemeSection", "主题导入解析失败: ${e.message}")
+            MuseToast.show(context.getString(R.string.settings_theme_custom_import_failed))
+            return@rememberLauncherForActivityResult
+        }
+        scope.launch {
+            settings.upsertCustomTheme(theme)
+            // 导入后自动切换到该主题,与创建行为一致
+            settings.saveThemeId(theme.id)
+        }
+        MuseToast.show(context.getString(R.string.settings_theme_custom_import_success))
+    }
     CustomThemeSection(
         customThemes = customThemes,
         themeId = themeId,
@@ -195,6 +243,10 @@ internal fun ThemeSection(
             showEditDialog = true
         },
         onDelete = { theme -> deletingTheme = theme },
+        onImport = { importThemeLauncher.launch(
+            arrayOf("application/json", "text/plain", "application/octet-stream"),
+        ) },
+        onExport = shareTheme,
     )
 
     // 编辑/创建弹窗(MuseDialog 替代 ModalBottomSheet — 真机上 ModalBottomSheet 有 scrim 卡死 bug)
@@ -787,6 +839,11 @@ internal fun DefaultHomePageSection(
  *  - 每项 [CustomThemeItemRow] 含 4 色象限色板 + 名称 + 编辑/删除按钮
  */
 @Composable
+@Suppress(
+    "LongParameterList",
+    "LongMethod",
+    // 回调集合(选择/添加/编辑/删除/导入/导出)为屏幕级固有结构;列表区含添加/导入双入口与空态分支
+)
 private fun CustomThemeSection(
     customThemes: List<CustomTheme>,
     themeId: String,
@@ -795,31 +852,60 @@ private fun CustomThemeSection(
     onAdd: () -> Unit,
     onEdit: (CustomTheme) -> Unit,
     onDelete: (CustomTheme) -> Unit,
+    /** E1: 打开 SAF 文件选择器导入主题 JSON。 */
+    onImport: () -> Unit,
+    /** E1: 导出单个主题为 JSON 分享。 */
+    onExport: (CustomTheme) -> Unit,
 ) {
     SectionLabel(stringResource(R.string.settings_theme_custom_section))
     SettingsGroup(
         modifier = Modifier.padding(top = 8.dp),
     ) {
-        // 添加主题按钮行(全宽可点击,左 + 图标,右文字)
+        // 添加/导入主题操作行(全宽可点击,左图标,右文字)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onAdd)
                 .padding(MusePaddings.cardInner),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Icon(
-                imageVector = TablerIcons.Plus,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(MuseIconSizes.iconMedium),
-            )
-            Text(
-                text = stringResource(R.string.settings_theme_custom_add),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.primary,
-            )
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(onClick = onAdd),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Icon(
+                    imageVector = TablerIcons.Plus,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                )
+                Text(
+                    text = stringResource(R.string.settings_theme_custom_add),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(onClick = onImport),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Icon(
+                    imageVector = TablerIcons.FileImport,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                )
+                Text(
+                    text = stringResource(R.string.settings_theme_custom_import),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
         }
         // 空列表提示 / 主题列表
         if (customThemes.isEmpty()) {
@@ -846,6 +932,7 @@ private fun CustomThemeSection(
                     onSelect = { onSelect(theme) },
                     onEdit = { onEdit(theme) },
                     onDelete = { onDelete(theme) },
+                    onExport = { onExport(theme) },
                 )
             }
         }
@@ -860,6 +947,11 @@ private fun CustomThemeSection(
  * 与 既有实现 CustomThemeItem 视觉一致,但用 muse 自己的 [MuseShapes] 圆角令牌。
  */
 @Composable
+@Suppress(
+    "LongParameterList",
+    "LongMethod",
+    // 单行含 4 个回调(选择/编辑/删除/导出)+ 主题与选中态,属屏幕级固有参数集合
+)
 private fun CustomThemeItemRow(
     theme: CustomTheme,
     isSelected: Boolean,
@@ -867,6 +959,8 @@ private fun CustomThemeItemRow(
     onSelect: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    /** E1: 导出该主题 JSON。 */
+    onExport: () -> Unit,
 ) {
     val scheme = remember(theme, isDark) { theme.generateColorScheme(isDark) }
     val unnamedLabel = stringResource(R.string.settings_theme_custom_unnamed)
@@ -934,7 +1028,15 @@ private fun CustomThemeItemRow(
             else MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f),
         )
-        // 编辑 / 删除按钮
+        // 导出 / 编辑 / 删除按钮
+        IconButton(onClick = onExport) {
+            Icon(
+                imageVector = TablerIcons.Share,
+                contentDescription = stringResource(R.string.settings_theme_custom_export),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(MuseIconSizes.iconMedium),
+            )
+        }
         IconButton(onClick = onEdit) {
             Icon(
                 imageVector = TablerIcons.Edit,

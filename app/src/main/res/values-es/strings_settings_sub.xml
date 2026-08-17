@@ -536,6 +536,10 @@
     <string name="settings_theme_custom_delete_confirm">¿Eliminar este tema?</string>
     <string name="settings_theme_custom_delete_confirm_msg">Esto no se puede deshacer.</string>
     <string name="settings_theme_custom_empty">Aún no hay temas personalizados.</string>
+    <string name="settings_theme_custom_export">Exportar tema</string>
+    <string name="settings_theme_custom_import">Importar tema</string>
+    <string name="settings_theme_custom_import_success">Tema importado</string>
+    <string name="settings_theme_custom_import_failed">Error de importación: formato no válido</string>
     <string name="settings_theme_custom_unnamed">Intitulado</string>
     <string name="settings_theme_custom_color_h">Matiz</string>
     <string name="settings_theme_custom_color_s">Saturación</string>
