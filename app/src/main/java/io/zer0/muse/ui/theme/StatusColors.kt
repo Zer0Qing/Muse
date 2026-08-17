@@ -73,6 +73,12 @@ data class MuseCodeColors(
     val comment: Color,
     val number: Color,
     val annotation: Color,
+    /** diff 新增行(+)。语义复用 success 色,浅深主题各取对应档位。 */
+    val diffAdded: Color,
+    /** diff 删除行(-)。语义复用 error 色。 */
+    val diffRemoved: Color,
+    /** diff hunk 头(+++/---/@@)。语义复用 info 色。 */
+    val diffHunk: Color,
 )
 
 /** 浅色主题代码高亮(原 CodeHighlighter light 调色板)。 */
@@ -82,6 +88,9 @@ val LightCodeColors = MuseCodeColors(
     comment = Color(0xFF8A8275),
     number = Color(0xFFB8702C),
     annotation = Color(0xFF9C8A2C),
+    diffAdded = Color(0xFF2E7D32),
+    diffRemoved = Color(0xFFD32F2F),
+    diffHunk = Color(0xFF1976D2),
 )
 
 /** 深色主题代码高亮(原 CodeHighlighter dark 调色板,亮化版)。 */
@@ -91,6 +100,9 @@ val DarkCodeColors = MuseCodeColors(
     comment = Color(0xFFA89F8E),
     number = Color(0xFFD49060),
     annotation = Color(0xFFC8B860),
+    diffAdded = Color(0xFF66BB6A),
+    diffRemoved = Color(0xFFEF5350),
+    diffHunk = Color(0xFF64B5F6),
 )
 
 val LocalCodeColors = compositionLocalOf { LightCodeColors }
