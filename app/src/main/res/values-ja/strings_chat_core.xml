@@ -218,6 +218,8 @@
     <!-- Long-press input bar action menu -->
     <string name="chat_input_action_fullscreen">全画面入力モード</string>
     <string name="chat_stop_generation_cd">生成を停止する</string>
+    <string name="chat_interject">割り込む</string>
+    <string name="chat_interject_cd">割り込み:現在の生成を中断して送信</string>
     <string name="chat_recording_start_failed">記録の開始に失敗しました。</string>
     <string name="chat_recognizing_cd">認識する</string>
     <string name="chat_recording_cd">録音</string>

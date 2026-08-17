@@ -57,6 +57,8 @@ data class InputBarCallbacks(
     val onTextChanged: (String) -> Unit = {},
     val onSend: () -> Unit = {},
     val onStop: () -> Unit = {},
+    /** A8: 流式中输入非空时,发送按钮变为"插话"(打断当前生成并重定向)。 */
+    val onInterject: () -> Unit = {},
     val onNavigateInputHistory: (Int) -> Unit = {},
     val onPickDocument: () -> Unit = {},
     val onToggleDrawMode: () -> Unit = {},

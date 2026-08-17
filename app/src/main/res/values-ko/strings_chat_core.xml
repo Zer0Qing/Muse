@@ -309,6 +309,8 @@
     <!-- Long-press input bar action menu -->
     <string name="chat_input_action_fullscreen">전체 화면 입력 모드</string>
     <string name="chat_stop_generation_cd">생성 중지</string>
+    <string name="chat_interject">끼어들기</string>
+    <string name="chat_interject_cd">끼어들기:현재 생성 중단 후 전송</string>
     <string name="chat_recording_start_failed">녹화를 시작하지 못했습니다.</string>
     <string name="chat_recognizing_cd">인식</string>
     <string name="chat_recording_cd">녹음</string>

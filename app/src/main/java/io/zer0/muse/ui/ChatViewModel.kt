@@ -5770,6 +5770,18 @@ class ChatViewModel(
     }
 
     /**
+     * A8 流式插话:打断当前生成并立即用输入框内容重定向生成。
+     *
+     * stop() 同步清 isStreaming(见上),随后 send() 的 canStartGeneration 检查
+     * (text 非空 && !isStreaming)即可通过;打断前已生成的内容由流式
+     * catch(CancellationException) 块以 [已中断] 标记持久化保留。
+     */
+    fun interject() {
+        stop()
+        send()
+    }
+
+    /**
      * 断点续传:恢复指定会话的未完成工具调用。
      *
      * 触发场景:用户在上次对话中手动停止流式 / App 崩溃 / 进程被杀,

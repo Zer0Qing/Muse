@@ -315,6 +315,8 @@
     <!-- 长按输入栏动作菜单 -->
     <string name="chat_input_action_fullscreen">全屏输入模式</string>
     <string name="chat_stop_generation_cd">停止生成</string>
+    <string name="chat_interject">插话</string>
+    <string name="chat_interject_cd">插话:打断当前生成并发送</string>
     <string name="chat_recording_start_failed">录音启动失败,请检查权限或模型配置</string>
     <string name="chat_recognizing_cd">识别中</string>
     <string name="chat_recording_cd">录音中</string>

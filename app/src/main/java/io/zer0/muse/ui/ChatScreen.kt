@@ -988,6 +988,7 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                     }
                 },
                 onStop = viewModel::stop,
+                onInterject = viewModel::interject,
                 replyingTo = state.replyingTo?.let { r ->
                     // v1.0.72 fix: 引用块用最新消息对象 — 流式消息内容实时更新,
                     // 引用时捕获的旧对象可能 content 为空(第一条消息引用 UI 为空的根因)

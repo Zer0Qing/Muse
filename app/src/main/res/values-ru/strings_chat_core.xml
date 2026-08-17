@@ -309,6 +309,8 @@
     <!-- Long-press input bar action menu -->
     <string name="chat_input_action_fullscreen">Полноэкранный режим ввода</string>
     <string name="chat_stop_generation_cd">Прекратить генерировать</string>
+    <string name="chat_interject">Вмешаться</string>
+    <string name="chat_interject_cd">Вмешаться: прервать текущую генерацию и отправить</string>
     <string name="chat_recording_start_failed">Не удалось начать запись.</string>
     <string name="chat_recognizing_cd">Признание</string>
     <string name="chat_recording_cd">Запись</string>

@@ -178,6 +178,7 @@ internal fun InputBar(
     val onTextChanged = callbacks.onTextChanged
     val onSend = callbacks.onSend
     val onStop = callbacks.onStop
+    val onInterject = callbacks.onInterject
     val onNavigateInputHistory = callbacks.onNavigateInputHistory
     val onPickDocument = callbacks.onPickDocument
     val onToggleDrawMode = callbacks.onToggleDrawMode
@@ -901,8 +902,9 @@ internal fun InputBar(
                         },
                     )
                 }
-                // 右侧: 麦克风(空文本且无待发图片时) / 发送(有文本时) / 停止(流式中)
-                if (isStreaming) {
+                // 右侧: 麦克风(空文本且无待发图片时) / 发送(有文本时) / 停止(流式中) / 插话(流式中输入非空)
+                val canInterject = text.isNotBlank() || pendingImages.isNotEmpty() || pendingVideo != null
+                if (isStreaming && !canInterject) {
                     // 停止生成:红色实心圆形按钮,白色停止图标
                     val stopInteractionSource = remember { MutableInteractionSource() }
                     val isStopPressed by stopInteractionSource.collectIsPressedAsState()
@@ -945,6 +947,45 @@ internal fun InputBar(
                                     modifier = Modifier.size(MuseIconSizes.iconSmall),
                                 )
                             }
+                        }
+                    }
+                } else if (isStreaming) {
+                    // A8 插话:流式中输入非空时,发送按钮位置变为"插话"按钮 — 打断当前生成并重定向。
+                    // 视觉沿用发送按钮(主色圆形+纸飞机),contentDescription 用"插话"区分语义。
+                    val interjectInteractionSource = remember { MutableInteractionSource() }
+                    val interjectPressed by interjectInteractionSource.collectIsPressedAsState()
+                    val interjectScale by animateFloatAsState(
+                        targetValue = if (interjectPressed) 0.9f else 1f,
+                        label = "interjectScale",
+                    )
+                    Box(
+                        modifier = Modifier
+                            .size(MuseIconSizes.touchTarget)
+                            .clickable(
+                                interactionSource = interjectInteractionSource,
+                                indication = null,
+                                enabled = true,
+                                onClick = {
+                                    MuseHaptics.medium(hapticFeedback)
+                                    onInterject()
+                                },
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(MuseIconSizes.stopButton)
+                                .graphicsLayer { scaleX = interjectScale; scaleY = interjectScale }
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = TablerIcons.Send,
+                                contentDescription = stringResource(R.string.chat_interject_cd),
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(MuseIconSizes.iconSmall),
+                            )
                         }
                     }
                 } else if (text.isBlank() && pendingImages.isEmpty() && pendingVideo == null && showMic) {

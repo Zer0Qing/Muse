@@ -309,6 +309,8 @@
     <!-- Long-press input bar action menu -->
     <string name="chat_input_action_fullscreen">Modo de entrada em tela cheia</string>
     <string name="chat_stop_generation_cd">Pare de gerar</string>
+    <string name="chat_interject">Interromper</string>
+    <string name="chat_interject_cd">Interromper: interromper a geração atual e enviar</string>
     <string name="chat_recording_start_failed">Falha ao iniciar a gravação.</string>
     <string name="chat_recognizing_cd">Reconhecendo</string>
     <string name="chat_recording_cd">Gravação</string>

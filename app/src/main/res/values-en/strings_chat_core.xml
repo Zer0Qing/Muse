@@ -309,6 +309,8 @@
     <!-- Long-press input bar action menu -->
     <string name="chat_input_action_fullscreen">Full-screen Input Mode</string>
     <string name="chat_stop_generation_cd">Stop Generating</string>
+    <string name="chat_interject">Interject</string>
+    <string name="chat_interject_cd">Interject: interrupt current generation and send</string>
     <string name="chat_recording_start_failed">Failed to start recording. Check permissions or model config.</string>
     <string name="chat_recognizing_cd">Recognizing</string>
     <string name="chat_recording_cd">Recording</string>
