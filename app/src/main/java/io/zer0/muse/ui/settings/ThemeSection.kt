@@ -31,9 +31,12 @@ import io.zer0.muse.ui.common.form.MuseSlider
 import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import android.content.Intent
+import android.net.Uri
+import java.io.File
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -77,7 +80,9 @@ import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.ui.theme.tiny
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 
 /**
@@ -108,6 +113,20 @@ internal fun ThemeSection(
     val dynamicColorSupported = remember { android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S }
     // v1.97 gap7: 用户自定义主题列表 + 编辑/删除弹窗状态
     val customThemes by settings.customThemesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+    // E2: 自定义正文字体路径(filesDir/fonts/ 下;null=系统默认)
+    val customFontPath by settings.customFontPathFlow.collectAsStateWithLifecycle(initialValue = null)
+    // E2: SAF 打开字体文件(TTF/OTF) → 复制到应用私有目录 → 保存路径
+    val fontImportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            val path = importFontFile(context, uri)
+            if (path != null) {
+                settings.setCustomFontPath(path)
+            } else {
+                MuseToast.show(context.getString(R.string.settings_font_import_failed))
+            }
+        }
+    }
     var editingTheme by remember { mutableStateOf<CustomTheme?>(null) }
     var showEditDialog by remember { mutableStateOf(false) }
     var deletingTheme by remember { mutableStateOf<CustomTheme?>(null) }
@@ -462,6 +481,18 @@ internal fun ThemeSection(
         SettingsGroupDivider()
         FontSizePreview(fontSizeScale)
     }
+
+    // ── E2: 自定义正文字体导入/清除 ──
+    FontSection(
+        customFontPath = customFontPath,
+        onImport = { fontImportLauncher.launch(arrayOf("font/ttf", "font/otf", "application/octet-stream")) },
+        onClear = {
+            scope.launch {
+                // 清除路径后旧文件保留在 filesDir/fonts/,下次导入覆盖同名文件,无需主动删除
+                settings.setCustomFontPath(null)
+            }
+        },
+    )
 }
 
 /**
@@ -1477,6 +1508,81 @@ private fun PresetColorChip(
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurface,
             )
+        }
+    }
+}
+
+/**
+ * E2: 自定义正文字体设置区。
+ *
+ * 导入后立即经 [io.zer0.muse.ui.theme.loadCustomFontFamily] 全局生效
+ * (MainActivity 收集 customFontPathFlow 重建 MuseTheme Typography)。
+ */
+@Composable
+private fun FontSection(
+    customFontPath: String?,
+    onImport: () -> Unit,
+    onClear: () -> Unit,
+) {
+    SectionLabel(stringResource(R.string.settings_font_section_title))
+    SettingsGroup(
+        modifier = Modifier.padding(top = 8.dp),
+    ) {
+        val currentName = customFontPath?.let { File(it).name }
+        SettingsItemRow(
+            icon = TablerIcons.Typography,
+            title = stringResource(R.string.settings_font_body_label),
+            subtitle = if (currentName != null) {
+                currentName
+            } else {
+                stringResource(R.string.settings_font_body_default)
+            },
+        )
+        SettingsGroupDivider()
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(MusePaddings.cardInner),
+            horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+        ) {
+            TextButton(
+                onClick = onImport,
+                modifier = Modifier.weight(1f),
+            ) {
+                Text(stringResource(R.string.settings_font_import))
+            }
+            TextButton(
+                onClick = onClear,
+                enabled = customFontPath != null,
+                modifier = Modifier.weight(1f),
+            ) {
+                Text(stringResource(R.string.settings_font_clear))
+            }
+        }
+    }
+}
+
+/**
+ * E2: 将 SAF 选中的字体文件复制到应用私有目录 filesDir/fonts/custom_body_font.ttf。
+ *
+ * 固定目标文件名,下次导入直接覆盖;失败返回 null(调用方提示用户)。
+ * 复制与目录创建均为磁盘 IO,在 IO 调度器执行避免卡主线程。
+ */
+private suspend fun importFontFile(context: android.content.Context, uri: Uri): String? {
+    return withContext(Dispatchers.IO) {
+        try {
+            val dir = File(context.filesDir, "fonts").apply { mkdirs() }
+            val target = File(dir, "custom_body_font.ttf")
+            val input = context.contentResolver.openInputStream(uri)
+                ?: return@withContext null
+            input.use { source ->
+                target.outputStream().use { sink -> source.copyTo(sink) }
+            }
+            target.absolutePath
+        } catch (e: java.io.IOException) {
+            Logger.w("ThemeSection", "字体文件复制失败: ${e.message}")
+            null
+        } catch (e: SecurityException) {
+            Logger.w("ThemeSection", "字体文件读取被拒绝: ${e.message}")
+            null
         }
     }
 }

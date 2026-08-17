@@ -611,4 +611,10 @@
     <string name="settings_agent_test_failed">测试失败:%1$s</string>
     <string name="settings_agent_daily_summary">每日总结推送</string>
     <string name="settings_agent_daily_summary_subtitle">每天 19:30 推送今日对话小结(开关关闭后自动跳过,重新打开即恢复)</string>
+    <string name="settings_font_section_title">字体</string>
+    <string name="settings_font_body_label">正文字体</string>
+    <string name="settings_font_body_default">系统默认</string>
+    <string name="settings_font_import">导入字体</string>
+    <string name="settings_font_clear">恢复默认</string>
+    <string name="settings_font_import_failed">字体导入失败:文件格式不支持</string>
 </resources>

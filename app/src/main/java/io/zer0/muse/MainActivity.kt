@@ -93,6 +93,7 @@ import io.zer0.muse.ui.navigation.chatNavGraph
 import io.zer0.muse.ui.navigation.settingsNavGraph
 import io.zer0.muse.ui.navigation.toolsNavGraph
 import io.zer0.muse.ui.theme.MuseTheme
+import io.zer0.muse.ui.theme.loadCustomFontFamily
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -266,6 +267,9 @@ class MainActivity : ComponentActivity() {
                 // v1.97 gap7: 用户自定义主题列表 — 基于种子色生成 ColorScheme,
                 // 在 MuseTheme 中作为动态色与预设主题之间的回退层
                 val customThemes by settings.customThemesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+                // E2: 自定义正文字体 — 路径→FontFamily 加载在 remember 中缓存(同步磁盘 IO 避免重复)
+                val customFontPath by settings.customFontPathFlow.collectAsStateWithLifecycle(initialValue = null)
+                val bodyFontFamily by remember(customFontPath) { mutableStateOf(loadCustomFontFamily(customFontPath)) }
                 // I4: 语言热切换后 Compose 资源已由 RuntimeLocaleProvider 覆盖,
                 // 不再需要 recreate;冷启动初始语言仍由 attachBaseContext 保证。
                 MuseTheme(
@@ -275,6 +279,7 @@ class MainActivity : ComponentActivity() {
                     fontSizeScale = fontSizeScale,
                     dynamicColor = dynamicColor,
                     customThemes = customThemes,
+                    bodyFontFamily = bodyFontFamily,
                 ) {
                     // v1.56: Compose 渲染异常由 MuseCrashHandler(Thread.UncaughtExceptionHandler)兜底,
                     // logComposeException 方法已就绪,待未来 Compose 版本提供 RuntimeExceptionHandler API 后接入。

@@ -40,6 +40,8 @@ class AppearanceSettingsStore(private val context: Context) {
     val customThemesFlow: Flow<List<CustomTheme>> = store.data.map { prefs ->
         decodePrefsOrNull(prefs[KEY_CUSTOM_THEMES], ListSerializer(CustomTheme.serializer()), "CustomThemes") ?: emptyList()
     }
+    /** E2: 自定义正文字体文件绝对路径(filesDir/fonts/ 下);null 表示使用系统默认字体。 */
+    val customFontPathFlow: Flow<String?> = store.data.map { prefs -> prefs[KEY_CUSTOM_FONT_PATH] }
 
     suspend fun saveThemeMode(mode: String) { store.edit { it[KEY_THEME_MODE] = mode } }
     suspend fun saveThemeId(id: String) { store.edit { it[KEY_THEME_ID] = id } }
@@ -54,6 +56,11 @@ class AppearanceSettingsStore(private val context: Context) {
     suspend fun saveAsrTipShown(shown: Boolean) { store.edit { it[KEY_ASR_TIP_SHOWN] = shown } }
     suspend fun saveCustomThemes(themes: List<CustomTheme>) {
         store.edit { it[KEY_CUSTOM_THEMES] = AppJson.encodeToString(ListSerializer(CustomTheme.serializer()), themes) }
+    }
+    suspend fun saveCustomFontPath(path: String?) {
+        store.edit { prefs ->
+            if (path == null) prefs.remove(KEY_CUSTOM_FONT_PATH) else prefs[KEY_CUSTOM_FONT_PATH] = path
+        }
     }
 
     suspend fun upsertCustomTheme(theme: CustomTheme) {
@@ -92,5 +99,6 @@ class AppearanceSettingsStore(private val context: Context) {
         private val KEY_ONBOARDING_SHOWN = booleanPreferencesKey("onboarding_shown")
         private val KEY_ASR_TIP_SHOWN = booleanPreferencesKey("asr_tip_shown")
         private val KEY_CUSTOM_THEMES = stringPreferencesKey("custom_themes_json")
+        private val KEY_CUSTOM_FONT_PATH = stringPreferencesKey("custom_font_path")
     }
 }

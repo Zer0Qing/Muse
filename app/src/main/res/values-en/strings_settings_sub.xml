@@ -614,4 +614,10 @@
     <string name="settings_miniphone_enable_subtitle">When enabled, a Mini Phone entry appears in the top-right of the home screen</string>
     <string name="settings_miniphone_desc_title">What is Mini Phone</string>
     <string name="settings_miniphone_desc_body">An immersive mini desktop: Moments, AI album, notes, weather, and a model diary. When disabled, the home screen reverts to its original layout.</string>
+    <string name="settings_font_section_title">Fonts</string>
+    <string name="settings_font_body_label">Body font</string>
+    <string name="settings_font_body_default">System default</string>
+    <string name="settings_font_import">Import font</string>
+    <string name="settings_font_clear">Restore default</string>
+    <string name="settings_font_import_failed">Font import failed: unsupported file format</string>
 </resources>

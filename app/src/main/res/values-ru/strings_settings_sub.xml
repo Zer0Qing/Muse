@@ -604,4 +604,10 @@
     <string name="settings_miniphone_enable_subtitle">При включении в правом верхнем углу главного экрана появляется значок мини-телефона</string>
     <string name="settings_miniphone_desc_title">Что такое мини-телефон</string>
     <string name="settings_miniphone_desc_body">Иммерсивный мини-рабочий стол: моменты, ИИ-альбом, заметки, погода и дневник модели. При отключении главный экран возвращается к прежнему виду.</string>
+    <string name="settings_font_section_title">Шрифты</string>
+    <string name="settings_font_body_label">Шрифт текста</string>
+    <string name="settings_font_body_default">Системный шрифт</string>
+    <string name="settings_font_import">Импортировать шрифт</string>
+    <string name="settings_font_clear">Сбросить по умолчанию</string>
+    <string name="settings_font_import_failed">Не удалось импортировать шрифт: формат не поддерживается</string>
 </resources>

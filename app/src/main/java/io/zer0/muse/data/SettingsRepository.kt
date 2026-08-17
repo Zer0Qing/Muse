@@ -281,6 +281,8 @@ class SettingsRepository(
     val customThemesFlow: Flow<List<CustomTheme>> get() = appearance.customThemesFlow
 
     val fontSizeScaleFlow: Flow<String> get() = appearance.fontSizeScaleFlow
+    /** E2: 自定义正文字体文件路径(filesDir/fonts/ 下);null 表示系统默认。 */
+    val customFontPathFlow: Flow<String?> get() = appearance.customFontPathFlow
     /** v1.95: 启动默认页(0=任务, 1=Agent, 2=群聊)。 */
     val defaultHomePageFlow: Flow<Int> get() = appearance.defaultHomePageFlow
     val onboardingShownFlow: Flow<Boolean> get() = appearance.onboardingShownFlow
@@ -873,6 +875,8 @@ class SettingsRepository(
      */
     suspend fun deleteCustomTheme(id: String) = appearance.deleteCustomTheme(id)
     suspend fun saveFontSizeScale(scale: String) = appearance.saveFontSizeScale(scale)
+    /** E2: 保存/清除自定义正文字体路径(null 清除,恢复系统默认)。 */
+    suspend fun setCustomFontPath(path: String?) = appearance.saveCustomFontPath(path)
     /** v1.95: 保存启动默认页(0=任务, 1=Agent, 2=群聊)。 */
     suspend fun saveDefaultHomePage(page: Int) = appearance.saveDefaultHomePage(page)
     // v1.135: 调用 WebSearchConfig.encrypted() 统一加密 apiKey + apiKeys

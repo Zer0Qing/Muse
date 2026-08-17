@@ -604,4 +604,10 @@
     <string name="settings_miniphone_enable_subtitle">オンにするとホーム右上にミニフォンの入口が表示されます</string>
     <string name="settings_miniphone_desc_title">ミニフォンとは</string>
     <string name="settings_miniphone_desc_body">没入感のあるミニデスクトップ:モーメント、AI アルバム、メモ、天気、モデル日記。オフにするとホームは元のレイアウトに戻ります。</string>
+    <string name="settings_font_section_title">フォント</string>
+    <string name="settings_font_body_label">本文フォント</string>
+    <string name="settings_font_body_default">システム既定</string>
+    <string name="settings_font_import">フォントをインポート</string>
+    <string name="settings_font_clear">既定に戻す</string>
+    <string name="settings_font_import_failed">フォントのインポートに失敗:サポートされていない形式です</string>
 </resources>

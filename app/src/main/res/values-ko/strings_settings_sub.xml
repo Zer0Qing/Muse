@@ -604,4 +604,10 @@
     <string name="settings_miniphone_enable_subtitle">켜면 홈 화면 오른쪽 위에 미니폰 진입점이 표시됩니다</string>
     <string name="settings_miniphone_desc_title">미니폰이란?</string>
     <string name="settings_miniphone_desc_body">몰입형 미니 데스크톱: 모먼트, AI 앨범, 메모, 날씨, 모델 일기. 끄면 홈 화면이 원래 레이아웃으로 돌아갑니다.</string>
+    <string name="settings_font_section_title">글꼴</string>
+    <string name="settings_font_body_label">본문 글꼴</string>
+    <string name="settings_font_body_default">시스템 기본</string>
+    <string name="settings_font_import">글꼴 가져오기</string>
+    <string name="settings_font_clear">기본값 복원</string>
+    <string name="settings_font_import_failed">글꼴 가져오기 실패:지원하지 않는 형식입니다</string>
 </resources>

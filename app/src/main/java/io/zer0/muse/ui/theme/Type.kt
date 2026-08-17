@@ -2,11 +2,13 @@ package io.zer0.muse.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import io.zer0.common.Logger
+import java.io.File
 
 /**
  * Muse 字体规范(对齐前端设计完整方案 §3)。
@@ -133,6 +135,57 @@ val MuseTypography: Typography = Typography(
 
 /** 代码块等宽字体(系统 Monospace,不引入自定义字体)。 */
 val MuseMonoFontFamily: FontFamily = FontFamily.Monospace
+
+/**
+ * E2: 从文件路径加载自定义正文字体(用户经 SAF 导入的 TTF/OTF)。
+ *
+ * 字体文件失效(被删/损坏/非字体)时回退系统默认并记日志——这是用户导入文件的
+ * 业务容错,不让一个坏文件拖垮全局 UI;调用方应在 remember(path) 中缓存结果,
+ * 避免每次重组都 createFromFile(同步磁盘 IO)。
+ *
+ * @param path 字体文件绝对路径;null/空白直接返回系统默认。
+ */
+fun loadCustomFontFamily(path: String?): FontFamily {
+    if (path.isNullOrBlank()) return FontFamily.Default
+    return try {
+        // createFromFile 在此仅作文件有效性校验(无效抛异常),不用于构建——
+        // Compose 1.7 的 Font 无 Typeface 构造,改用 Font(file) 懒加载同一文件
+        android.graphics.Typeface.createFromFile(path)
+        FontFamily(Font(File(path)))
+    } catch (e: java.io.IOException) {
+        // 字体文件不存在或不可读
+        Logger.w("MuseTypography", "自定义字体加载失败,回退系统默认: ${e.message}")
+        FontFamily.Default
+    } catch (e: RuntimeException) {
+        // 字体文件损坏或格式不支持时 Typeface 抛运行时异常
+        Logger.w("MuseTypography", "自定义字体加载失败,回退系统默认: ${e.message}")
+        FontFamily.Default
+    }
+}
+
+/**
+ * E2: 将 Typography 全部样式的字体族替换为指定字体。
+ *
+ * 仅替换 fontFamily,保留字号/行高/字重(字号缩放由 [scaled] 独立负责)。
+ * 代码块不受影响——它们显式使用 [MuseMonoFontFamily],不经过全局 Typography。
+ */
+fun Typography.withFontFamily(family: FontFamily): Typography = copy(
+    displayLarge = displayLarge.copy(fontFamily = family),
+    displayMedium = displayMedium.copy(fontFamily = family),
+    displaySmall = displaySmall.copy(fontFamily = family),
+    headlineLarge = headlineLarge.copy(fontFamily = family),
+    headlineMedium = headlineMedium.copy(fontFamily = family),
+    headlineSmall = headlineSmall.copy(fontFamily = family),
+    titleLarge = titleLarge.copy(fontFamily = family),
+    titleMedium = titleMedium.copy(fontFamily = family),
+    titleSmall = titleSmall.copy(fontFamily = family),
+    bodyLarge = bodyLarge.copy(fontFamily = family),
+    bodyMedium = bodyMedium.copy(fontFamily = family),
+    bodySmall = bodySmall.copy(fontFamily = family),
+    labelLarge = labelLarge.copy(fontFamily = family),
+    labelMedium = labelMedium.copy(fontFamily = family),
+    labelSmall = labelSmall.copy(fontFamily = family),
+)
 
 /**
  * 字号缩放 — 将整个 Typography 的 fontSize / lineHeight 按比例放大或缩小。

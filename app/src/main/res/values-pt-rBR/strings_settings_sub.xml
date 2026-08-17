@@ -604,4 +604,10 @@
     <string name="settings_miniphone_enable_subtitle">Quando ativado, uma entrada do Mini Phone aparece no canto superior direito da tela inicial</string>
     <string name="settings_miniphone_desc_title">O que é o Mini Phone</string>
     <string name="settings_miniphone_desc_body">Uma área de trabalho em miniatura imersiva: Momentos, álbum de IA, notas, clima e diário do modelo. Quando desativado, a tela inicial volta ao layout original.</string>
+    <string name="settings_font_section_title">Fontes</string>
+    <string name="settings_font_body_label">Fonte do texto</string>
+    <string name="settings_font_body_default">Padrão do sistema</string>
+    <string name="settings_font_import">Importar fonte</string>
+    <string name="settings_font_clear">Restaurar padrão</string>
+    <string name="settings_font_import_failed">Falha ao importar fonte: formato não suportado</string>
 </resources>

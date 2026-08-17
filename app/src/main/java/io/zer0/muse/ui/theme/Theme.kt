@@ -24,6 +24,7 @@ import androidx.compose.ui.node.DelegatableNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.font.FontFamily
 import androidx.core.view.WindowCompat
 import androidx.compose.runtime.RememberObserver
 
@@ -75,9 +76,15 @@ private object NoIndicationNodeFactory : IndicationNodeFactory {
  * @param fontSizeScale 字号档位 "small" / "medium" / "large" / "xlarge"
  * @param dynamicColor 是否启用 Material You 动态取色 (默认 false)
  * @param customThemes v1.97 gap7: 用户自定义主题列表(基于种子色生成 ColorScheme)
+ * @param bodyFontFamily E2: 自定义正文字体族(默认系统字体;由调用方按 customFontPath 加载)
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
+@Suppress(
+    "LongParameterList",
+    "CyclomaticComplexMethod",
+    // 主题根组件:主题模式/动态色/自定义主题/字体等参数集合与取色回退分支为屏幕级固有结构
+)
 fun MuseTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     themeId: String = "mono",
@@ -85,6 +92,7 @@ fun MuseTheme(
     fontSizeScale: String = "medium",
     dynamicColor: Boolean = false,
     customThemes: List<CustomTheme> = emptyList(),
+    bodyFontFamily: FontFamily = FontFamily.Default,
     content: @Composable () -> Unit,
 ) {
     // L-1: LocalContext.current 必须在 remember 外读取(remember 的 key 不含 context,
@@ -152,7 +160,11 @@ fun MuseTheme(
     }
 
     // M-TP1: 按 fontSizeScale 缓存缩放后的 Typography,避免每次重组都 copy 整个 Typography。
-    val scaledTypography = remember(fontSizeScale) { MuseTypography.scaled(fontSizeScale) }
+    // E2: bodyFontFamily 变化(导入/清除字体)时一并重建,将自定义字体应用到全部样式。
+    val scaledTypography = remember(fontSizeScale, bodyFontFamily) {
+        val base = MuseTypography.scaled(fontSizeScale)
+        if (bodyFontFamily == FontFamily.Default) base else base.withFontFamily(bodyFontFamily)
+    }
     // L-TH2: MotionScheme.expressive() 缓存为单例,避免每次重组新建。
     val motionScheme = remember { MotionScheme.expressive() }
 
