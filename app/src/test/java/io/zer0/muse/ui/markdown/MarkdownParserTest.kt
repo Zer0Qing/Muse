@@ -219,4 +219,157 @@ class MarkdownParserTest {
         // 只要不含其他类型即可
         assertTrue(blocks.all { it is MarkdownBlock.Blank || it is MarkdownBlock.Paragraph })
     }
+
+    // ── A3: 增量解析器与全量解析语义等价 ────────────────────────────────
+
+    @Test
+    fun `增量解析 逐字符追加 与全量等价`() {
+        val md = buildString {
+            appendLine("# 标题")
+            appendLine()
+            appendLine("段落文本 **加粗**。")
+            appendLine()
+            appendLine("- 甲")
+            appendLine("- 乙")
+            appendLine()
+            appendLine("```kotlin")
+            appendLine("val x = 1")
+            appendLine("```")
+            appendLine()
+            appendLine("| A | B |")
+            appendLine("|---|---|")
+            appendLine("| 1 | 2 |")
+            appendLine()
+            appendLine("\$\$")
+            appendLine("E = mc^2")
+            appendLine("\$\$")
+        }.trimEnd()
+        val parser = IncrementalMarkdownParser()
+        var acc = ""
+        for (ch in md) {
+            acc += ch
+            assertEquals(
+                "逐字符追加不一致, len=${acc.length}",
+                parseMarkdown(acc),
+                parser.parse(acc),
+            )
+        }
+        assertEquals("最终结果与全量等价", parseMarkdown(md), parser.parse(md))
+    }
+
+    @Test
+    fun `增量解析 按行追加 与全量等价 含未闭合中间态`() {
+        val lines = listOf(
+            "前言",
+            "",
+            "# 标题",
+            "",
+            "```kotlin",
+            "fun a() = 1",
+            "fun b() = 2",
+            "```",
+            "",
+            "- item1",
+            "- item2",
+            "",
+            "> 引用",
+            "",
+            "| C1 | C2 |",
+            "|---|---|",
+            "| x | y |",
+            "| z | w |",
+            "",
+            "尾段",
+        )
+        val parser = IncrementalMarkdownParser()
+        var acc = ""
+        for (line in lines) {
+            acc += line + "\n"
+            assertEquals(
+                "按行追加不一致, 行=$line",
+                parseMarkdown(acc),
+                parser.parse(acc),
+            )
+        }
+        assertEquals("最终结果与全量等价", parseMarkdown(acc), parser.parse(acc))
+    }
+
+    @Test
+    fun `增量解析 段落同行内追加 与全量等价`() {
+        // 流式常在段落同一行内追加 token(无新增换行),需重扫最后一块而非直接复用
+        val parser = IncrementalMarkdownParser()
+        var acc = "第一段"
+        assertEquals(parseMarkdown(acc), parser.parse(acc))
+        acc += "继续"
+        assertEquals("段落同行追加不一致", parseMarkdown(acc), parser.parse(acc))
+        acc += "再续"
+        assertEquals(parseMarkdown(acc), parser.parse(acc))
+        // 追加换行后进入新块
+        acc += "\n第二段"
+        assertEquals(parseMarkdown(acc), parser.parse(acc))
+    }
+
+    @Test
+    fun `增量解析 未闭合围栏逐步闭合 与全量等价`() {
+        val parser = IncrementalMarkdownParser()
+        var acc = "开头"
+        acc += "\n```kotlin"
+        assertEquals("未闭合 fence 打开", parseMarkdown(acc), parser.parse(acc))
+        acc += "\nval a = 1"
+        assertEquals("fence 内追加代码行", parseMarkdown(acc), parser.parse(acc))
+        acc += "\nval b = 2"
+        assertEquals("fence 内再追加", parseMarkdown(acc), parser.parse(acc))
+        acc += "\n```"
+        assertEquals("fence 闭合", parseMarkdown(acc), parser.parse(acc))
+        acc += "\n结尾段"
+        assertEquals("闭合后追加段落", parseMarkdown(acc), parser.parse(acc))
+    }
+
+    @Test
+    fun `增量解析 未闭合多行公式逐步闭合 与全量等价`() {
+        val parser = IncrementalMarkdownParser()
+        var acc = "\$\$"
+        assertEquals("公式打开", parseMarkdown(acc), parser.parse(acc))
+        acc += "\nx &= 1 + 2"
+        assertEquals("公式内追加", parseMarkdown(acc), parser.parse(acc))
+        acc += "\n\$\$"
+        assertEquals("公式闭合", parseMarkdown(acc), parser.parse(acc))
+    }
+
+    @Test
+    fun `增量解析 表格逐步追加数据行 与全量等价`() {
+        val parser = IncrementalMarkdownParser()
+        var acc = "| A | B |\n|---|---|"
+        assertEquals("表头+分隔线", parseMarkdown(acc), parser.parse(acc))
+        acc += "\n| 1 | 2 |"
+        assertEquals("追加数据行", parseMarkdown(acc), parser.parse(acc))
+        acc += "\n| 3 | 4 |"
+        assertEquals("再追加数据行", parseMarkdown(acc), parser.parse(acc))
+        acc += "\n表格后段落"
+        assertEquals("表格闭合后", parseMarkdown(acc), parser.parse(acc))
+    }
+
+    @Test
+    fun `增量解析 文本替换回退全量`() {
+        val parser = IncrementalMarkdownParser()
+        parser.parse("旧内容旧内容")
+        // 非纯追加(新文本不以旧文本为前缀)→ 全量解析,结果与直接全量一致
+        val fresh = "# 全新标题\n\n全新内容"
+        assertEquals(parseMarkdown(fresh), parser.parse(fresh))
+    }
+
+    @Test
+    fun `增量解析 头部稳定块保持同一实例`() {
+        // 稳定节点缓存的核心断言:追加尾部时,已闭合头部块实例不变,
+        // Compose 才能跳过这些块的重新组合
+        val parser = IncrementalMarkdownParser()
+        val first = parser.parse("固定头部 # 标题\n\n```kotlin\nval x = 1\n```")
+        assertEquals(3, first.size)  // Paragraph / Blank / CodeBlock
+        val second = parser.parse("固定头部 # 标题\n\n```kotlin\nval x = 1\n```\n\n新增段落")
+        assertEquals(5, second.size)
+        // 头部 3 块(Paragraph/Blank/CodeBlock)应为同一实例
+        assertTrue("Paragraph 应复用实例", first[0] === second[0])
+        assertTrue("Blank 应复用实例", first[1] === second[1])
+        assertTrue("CodeBlock 应复用实例", first[2] === second[2])
+    }
 }

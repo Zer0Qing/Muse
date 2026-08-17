@@ -185,10 +185,16 @@ fun MarkdownText(
     // 用 produceState 在 Dispatchers.Default 解析:text 变化时取消旧协程、重启新协程,
     // value 保留上一次解析结果(流式时视觉上本就有 ~80ms 延迟,滞后一帧可接受)。
     // 非流式(历史消息)保持 remember(text) 同步解析,避免滚动入屏时闪空。
+    //
+    // A3 (v1.x): 流式路径改用 [IncrementalMarkdownParser]——只重扫追加的尾部,
+    // 已稳定的头部块保持同一实例,Compose 重组时跳过这些块的重新组合;
+    // 解析器实例以 remember 持有(无 key),消息完成/编辑后复用同一缓存,
+    // 内容非纯追加时解析器内部自动回退全量。
     val allBlocks: List<MarkdownBlock> = if (isStreaming) {
+        val parser = remember { IncrementalMarkdownParser() }
         val streamed by produceState<List<MarkdownBlock>>(emptyList(), bodyText) {
             delay(50)
-            val parsed = withContext(Dispatchers.Default) { parseMarkdown(bodyText) }
+            val parsed = withContext(Dispatchers.Default) { parser.parse(bodyText) }
             value = parsed
         }
         streamed

@@ -157,6 +157,7 @@ import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.taskcard.AgentPlan
 import io.zer0.muse.ui.taskcard.AgentPlanStepStatus
 import io.zer0.muse.perf.MessagePaginator
@@ -257,6 +258,8 @@ fun ChatScreen(
     val pendingMessageManager: io.zer0.muse.data.schedule.PendingMessageManager = koinInject()
     val pendingMessages by pendingMessageManager.pendingMessagesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
     val pendingScope = rememberCoroutineScope()
+    // A3 (H1): 系统关闭动画(reduced-motion)时消息段级淡入降级为立即显示
+    val reducedMotion = MuseMotion.isReducedMotion()
     // v1.45: 用 ViewModel 中缓存的滚动位置初始化 LazyListState,切页/后台后恢复位置
     val listState = rememberLazyListState(
         initialFirstVisibleItemIndex = state.listFirstVisibleItemIndex,
@@ -1451,9 +1454,16 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                         // v1.58: 从此消息分叉对话
                         val onFork = remember(msg.id) { { viewModel.forkSessionFromMessage(msg.id) } }
                         // 消息项动画:新增/移除/重排时平滑过渡(MuseAnimation 令牌)
+                        // A3 (H1): reduced-motion 时降级为 0 时长(立即显示,不播放淡入)
                         Column(modifier = Modifier.animateItem(
-                            fadeInSpec = tween(MuseAnimation.SLOW_MS, easing = MuseAnimation.EaseOutCubic),
-                            placementSpec = tween(MuseAnimation.NORMAL_MS, easing = MuseAnimation.EaseOutCubic),
+                            fadeInSpec = if (reducedMotion) tween(0) else tween(
+                                MuseAnimation.SLOW_MS,
+                                easing = MuseAnimation.EaseOutCubic,
+                            ),
+                            placementSpec = if (reducedMotion) tween(0) else tween(
+                                MuseAnimation.NORMAL_MS,
+                                easing = MuseAnimation.EaseOutCubic,
+                            ),
                         )) {
                         // 日期分隔线渲染在消息上方
                         if (showDateSeparator) {

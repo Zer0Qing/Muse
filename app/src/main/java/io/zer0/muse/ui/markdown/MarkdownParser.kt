@@ -83,10 +83,40 @@ private fun isTableSeparator(line: String): Boolean {
  * 不支持的语法(表格/脚注/图片)按段落原样输出。
  */
 fun parseMarkdown(text: String): List<MarkdownBlock> {
+    val lines = text.split(MARKDOWN_LINE_SPLIT)
+    return parseMarkdownPass(lines, 0).blocks
+}
+
+/** L10 修复: 换行分割(兼容 Windows \r\n 与旧 Mac \r),全量/增量共用保证行号一致。 */
+internal val MARKDOWN_LINE_SPLIT = Regex("\\r?\\n")
+
+/**
+ * 单遍解析的中间结果。
+ *
+ * @param blocks 从 [startLine] 起解析出的块。
+ * @param blockStartLines 与 [blocks] 一一对应的每块起始行号(相对全文,增量截断用)。
+ * @param openStartLine 文本结束时仍处于"开放"状态的块起始行;无开放块为 -1。
+ *        开放块 = 围栏代码块 / 多行公式 / 表格 —— 流式追加时这些块后续可能继续,
+ *        增量解析必须从该行重新扫描(见 [IncrementalMarkdownParser])。
+ */
+internal data class ParsePassResult(
+    val blocks: List<MarkdownBlock>,
+    val blockStartLines: List<Int>,
+    val openStartLine: Int,
+)
+
+/**
+ * 从 [startLine] 起单遍解析 [lines],返回块列表、逐块起始行与开放块起点。
+ *
+ * A3: 核心循环体供 [parseMarkdown](全量)与 [IncrementalMarkdownParser](增量)共用,
+ * 保证两者语义一致。开放块(围栏/多行公式/表格)在文本末尾仍未闭合时记录起始行,
+ * 增量解析下一帧从该行重扫;其余单行块(段落/标题/列表/引用等)天然稳定,可复用。
+ */
+internal fun parseMarkdownPass(lines: List<String>, startLine: Int): ParsePassResult {
     val blocks = mutableListOf<MarkdownBlock>()
-    // L10 修复: 兼容 Windows 换行(\r\n)与旧 Mac 换行(\r),原先 split("\n") 会把 \r 留在行尾污染代码块
-    val lines = text.split(Regex("\\r?\\n"))
-    var i = 0
+    val blockStartLines = mutableListOf<Int>()
+    var openStartLine = -1
+    var i = startLine
     var orderedIndex = 0
 
     while (i < lines.size) {
@@ -96,6 +126,7 @@ fun parseMarkdown(text: String): List<MarkdownBlock> {
         // ── 围栏代码块 ────────────────────────────────────────────────
         val fenceMatch = FENCE_REGEX.matchEntire(trimmed)
         if (fenceMatch != null) {
+            val fenceStart = i
             val language = fenceMatch.groupValues[1].trim().ifBlank { null }
             val codeLines = mutableListOf<String>()
             i++
@@ -103,9 +134,15 @@ fun parseMarkdown(text: String): List<MarkdownBlock> {
                 codeLines.add(lines[i])
                 i++
             }
+            // foundCloser: while 因遇到闭合 ``` 而退出(i 仍在界内);耗尽退出则未闭合。
+            // 注意不能用 i >= lines.size 判定未闭合——闭合行恰为最后一行时 i 也会越过末尾。
+            val foundCloser = i < lines.size
             // i 指向闭合 ```(若存在),跳过
-            if (i < lines.size) i++
+            if (foundCloser) i++
             blocks.add(MarkdownBlock.CodeBlock(language, codeLines.joinToString("\n")))
+            blockStartLines.add(fenceStart)
+            // 未找到闭合 ``` 时标记开放,流式追加需从 fenceStart 重扫
+            if (!foundCloser) openStartLine = fenceStart
             orderedIndex = 0
             continue
         }
@@ -119,12 +156,14 @@ fun parseMarkdown(text: String): List<MarkdownBlock> {
         val isFormulaBlock = trimmed == "$$" ||
             (trimmed.startsWith("$$") && trimmed.endsWith("$$") && trimmed.length > 4)
         if (isFormulaBlock) {
+            val formulaStart = i
             val afterOpen = trimmed.removePrefix("$$")
             // 同行闭合: $$ E = mc^2 $$
             if (afterOpen.contains("$$")) {
                 val latex = afterOpen.substringBefore("$$").trim()
                 if (latex.isNotEmpty()) {
                     blocks.add(MarkdownBlock.Formula(latex))
+                    blockStartLines.add(formulaStart)
                     orderedIndex = 0
                     i++
                     continue
@@ -151,8 +190,11 @@ fun parseMarkdown(text: String): List<MarkdownBlock> {
             }
             if (formulaLines.isNotEmpty()) {
                 blocks.add(MarkdownBlock.Formula(formulaLines.joinToString("\n").trim()))
+                blockStartLines.add(formulaStart)
             }
             if (!closed && i < lines.size) i++  // 容错:未闭合 $$ 也跳出
+            // 未找到闭合 $$ 时标记开放,流式追加需从 formulaStart 重扫
+            if (!closed) openStartLine = formulaStart
             orderedIndex = 0
             continue
         }
@@ -165,6 +207,7 @@ fun parseMarkdown(text: String): List<MarkdownBlock> {
         // v1.97: 表格识别 — 当前行含 | 且下一行是分隔线行
         val tableHeaders = parseTableRow(line)
         if (tableHeaders != null && i + 1 < lines.size && isTableSeparator(lines[i + 1])) {
+            val tableStart = i
             val rows = mutableListOf<List<String>>()
             i += 2
             while (i < lines.size) {
@@ -177,6 +220,9 @@ fun parseMarkdown(text: String): List<MarkdownBlock> {
                 }
             }
             blocks.add(MarkdownBlock.Table(tableHeaders, rows))
+            blockStartLines.add(tableStart)
+            // 文本结束仍处于表格数据行(可能继续追加)时标记开放
+            if (i >= lines.size) openStartLine = tableStart
             orderedIndex = 0
             continue
         }
@@ -185,11 +231,13 @@ fun parseMarkdown(text: String): List<MarkdownBlock> {
             // ── 空行 ──────────────────────────────────────────────────
             trimmed.isEmpty() -> {
                 blocks.add(MarkdownBlock.Blank)
+                blockStartLines.add(i)
                 orderedIndex = 0
             }
             // ── 水平线 ────────────────────────────────────────────────
             trimmed == "---" || trimmed == "***" || trimmed == "___" -> {
                 blocks.add(MarkdownBlock.Divider)
+                blockStartLines.add(i)
                 orderedIndex = 0
             }
             // ── 标题 # ## ### ─────────────────────────────────────────
@@ -197,6 +245,7 @@ fun parseMarkdown(text: String): List<MarkdownBlock> {
                 val level = headingMatch.groupValues[1].length
                 val content = headingMatch.groupValues[2].trim()
                 blocks.add(MarkdownBlock.Heading(level, content))
+                blockStartLines.add(i)
                 orderedIndex = 0
             }
             // ── 引用 > ────────────────────────────────────────────────
@@ -205,6 +254,7 @@ fun parseMarkdown(text: String): List<MarkdownBlock> {
             trimmed.startsWith(">") -> {
                 val content = trimmed.trimStart { it == '>' }.trim()
                 blocks.add(MarkdownBlock.Quote(content))
+                blockStartLines.add(i)
                 orderedIndex = 0
             }
             // ── 有序列表 1. 2. ────────────────────────────────────────
@@ -213,11 +263,13 @@ fun parseMarkdown(text: String): List<MarkdownBlock> {
                 if (idx == 1) orderedIndex = 1 else orderedIndex = idx
                 val content = orderedListMatch.groupValues[2].trim()
                 blocks.add(MarkdownBlock.ListItem(ordered = true, index = idx, text = content))
+                blockStartLines.add(i)
             }
             // ── 无序列表 - 或 * ───────────────────────────────────────
             unorderedListMatch != null -> {
                 val content = unorderedListMatch.groupValues[1].trim()
                 blocks.add(MarkdownBlock.ListItem(ordered = false, index = 0, text = content))
+                blockStartLines.add(i)
                 orderedIndex = 0
             }
             // ── 段落(默认) ──────────────────────────────────────────
@@ -226,6 +278,7 @@ fun parseMarkdown(text: String): List<MarkdownBlock> {
                 val cleaned = IMAGE_SYNTAX_REGEX.replace(trimmed, "").trim()
                 if (cleaned.isNotEmpty()) {
                     blocks.add(MarkdownBlock.Paragraph(cleaned))
+                    blockStartLines.add(i)
                 }
                 orderedIndex = 0
             }
@@ -233,5 +286,5 @@ fun parseMarkdown(text: String): List<MarkdownBlock> {
         i++
     }
 
-    return blocks
+    return ParsePassResult(blocks, blockStartLines, openStartLine)
 }
