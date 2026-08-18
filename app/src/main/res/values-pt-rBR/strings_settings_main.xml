@@ -457,4 +457,7 @@
     <string name="settings_chat_background_choose">Escolher</string>
     <string name="settings_chat_background_saved">Fundo do chat atualizado</string>
     <string name="settings_chat_background_failed">Falha ao processar a imagem; tente outra</string>
+    <string name="cloud_backup_restore_failed_title">Falha na restauração</string>
+    <string name="cloud_backup_restore_failed_desc">Não foi possível restaurar os dados da nuvem. Verifique a conexão de rede e as configurações de backup na nuvem e tente novamente.</string>
+    <string name="cloud_backup_restore_retry">Tentar novamente</string>
 </resources>

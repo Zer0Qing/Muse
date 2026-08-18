@@ -83,4 +83,12 @@
     <string name="notif_listener_recent_count_connected">최근 알림: %1$d</string>
     <string name="notif_listener_recent_count_disconnected">최근 알림: %1$d · 먼저 시스템 설정에서 액세스 권한을 부여하세요.</string>
     <string name="notif_listener_refresh_cd">새로고침 상태</string>
+    <string name="safe_mode_data_recovery">데이터 복구 안내</string>
+    <string name="safe_mode_data_recovery_title">데이터 복구 안내</string>
+    <string name="safe_mode_data_recovery_desc">이번 크래시는 로컬 데이터에 영향을 주지 않으며 채팅과 설정은 그대로입니다. 클라우드 백업에서 복원하려면:재시작 후 설정 → 데이터 백업 → 클라우드에서 복원.</string>
+    <string name="safe_mode_data_recovery_ok">확인</string>
+    <string name="notif_auto_backup_success_title">자동 백업 성공</string>
+    <string name="notif_auto_backup_success_text">데이터가 클라우드에 백업되었습니다</string>
+    <string name="notif_auto_backup_failed_title">자동 백업 실패</string>
+    <string name="notif_auto_backup_failed_text">자동 백업이 완료되지 않았습니다. 클라우드 설정을 확인하세요</string>
 </resources>

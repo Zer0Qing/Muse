@@ -457,4 +457,7 @@
     <string name="settings_chat_background_choose">선택</string>
     <string name="settings_chat_background_saved">채팅 배경이 업데이트되었습니다</string>
     <string name="settings_chat_background_failed">이미지 처리에 실패했습니다. 다른 이미지로 시도하세요</string>
+    <string name="cloud_backup_restore_failed_title">복원 실패</string>
+    <string name="cloud_backup_restore_failed_desc">클라우드에서 데이터를 복원하지 못했습니다. 네트워크 연결과 클라우드 설정을 확인한 후 다시 시도하세요.</string>
+    <string name="cloud_backup_restore_retry">다시 시도</string>
 </resources>

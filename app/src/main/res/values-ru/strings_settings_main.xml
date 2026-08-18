@@ -457,4 +457,7 @@
     <string name="settings_chat_background_choose">Выбрать</string>
     <string name="settings_chat_background_saved">Фон чата обновлён</string>
     <string name="settings_chat_background_failed">Не удалось обработать изображение, попробуйте другое</string>
+    <string name="cloud_backup_restore_failed_title">Сбой восстановления</string>
+    <string name="cloud_backup_restore_failed_desc">Не удалось восстановить данные из облака. Проверьте сетевое соединение и настройки облачного хранения и повторите попытку.</string>
+    <string name="cloud_backup_restore_retry">Повторить</string>
 </resources>

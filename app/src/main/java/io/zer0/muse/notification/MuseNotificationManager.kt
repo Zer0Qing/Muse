@@ -360,6 +360,25 @@ class MuseNotificationManager(private val context: Context) {
             .onError { msg, _ -> Logger.w(TAG, "notifyReminder failed: $msg") }
     }
 
+    /**
+     * v1.141 F1: 自动备份结果提醒。
+     *
+     * 由 [io.zer0.muse.schedule.CloudBackupScheduler] 在定时自动备份完成后调用:
+     * 成功/失败各发一条通知(失败提醒尤为重要,避免用户长期不知道备份中断)。
+     * 复用 [notifyReminder] 的通用渠道与点击回主界面行为,固定通知 ID 便于覆盖。
+     */
+    fun notifyAutoBackup(succeeded: Boolean) {
+        val title = context.getString(
+            if (succeeded) R.string.notif_auto_backup_success_title
+            else R.string.notif_auto_backup_failed_title
+        )
+        val text = context.getString(
+            if (succeeded) R.string.notif_auto_backup_success_text
+            else R.string.notif_auto_backup_failed_text
+        )
+        notifyReminder(title, text, NOTIF_ID_AUTO_BACKUP)
+    }
+
     /** 取消所有 muse 发出的通知。 */
     fun cancelAll() {
         nm.cancel(NOTIF_ID_CHAT_COMPLETED)
@@ -391,6 +410,7 @@ class MuseNotificationManager(private val context: Context) {
         private const val NOTIF_ID_LIVE_UPDATE = 1002
         private const val NOTIF_ID_WEB_SERVER = 1003
         private const val NOTIF_ID_PROACTIVE_MESSAGE = 1004
+        private const val NOTIF_ID_AUTO_BACKUP = 1005
         // 问题6.4: 主动消息唯一通知 ID 的基址,与上面固定 ID 错开。
         // 最终 ID = BASE or (seq & 0x0FFF),范围 [0x10000000, 0x10000FFF],不会与固定 ID(1001~1004)冲突。
         private const val NOTIF_ID_PROACTIVE_MESSAGE_BASE = 0x1000_0000

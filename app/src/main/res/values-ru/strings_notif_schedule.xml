@@ -83,4 +83,12 @@
     <string name="notif_listener_recent_count_connected">Последние уведомления: %1$d</string>
     <string name="notif_listener_recent_count_disconnected">Недавние уведомления: %1$d · Сначала предоставьте доступ в настройках системы.</string>
     <string name="notif_listener_refresh_cd">Обновить статус</string>
+    <string name="safe_mode_data_recovery">Руководство по восстановлению данных</string>
+    <string name="safe_mode_data_recovery_title">Руководство по восстановлению данных</string>
+    <string name="safe_mode_data_recovery_desc">Этот сбой не влияет на локальные данные; чаты и настройки в порядке. Чтобы восстановить из облачной копии: после перезапуска откройте Настройки → Резервное копирование → Восстановить из облака.</string>
+    <string name="safe_mode_data_recovery_ok">Понятно</string>
+    <string name="notif_auto_backup_success_title">Автоматическое резервное копирование выполнено</string>
+    <string name="notif_auto_backup_success_text">Ваши данные сохранены в облаке</string>
+    <string name="notif_auto_backup_failed_title">Сбой автоматического резервного копирования</string>
+    <string name="notif_auto_backup_failed_text">Резервное копирование не завершено. Проверьте настройки облачного хранения</string>
 </resources>

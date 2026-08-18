@@ -91,4 +91,12 @@
         <item>有个事跟你说</item>
         <item>悄悄告诉你</item>
     </string-array>
+    <string name="safe_mode_data_recovery">数据恢复引导</string>
+    <string name="safe_mode_data_recovery_title">数据恢复引导</string>
+    <string name="safe_mode_data_recovery_desc">本次崩溃不影响本地数据,聊天记录与设置均完好保留。如需从云端备份恢复数据:启动后进入 设置 → 数据备份 → 从云端恢复。</string>
+    <string name="safe_mode_data_recovery_ok">知道了</string>
+    <string name="notif_auto_backup_success_title">自动备份成功</string>
+    <string name="notif_auto_backup_success_text">您的数据已自动备份到云端</string>
+    <string name="notif_auto_backup_failed_title">自动备份失败</string>
+    <string name="notif_auto_backup_failed_text">自动备份未完成,请检查云备份配置</string>
 </resources>

@@ -688,10 +688,10 @@
     <ID>FunctionNaming:SafeAutoFocusEffect.kt$@Composable fun SafeAutoFocusEffect(condition: () -&gt; Boolean, focusRequester: FocusRequester)</ID>
     <ID>FunctionNaming:SafeAutoFocusEffect.kt$@Composable fun SafeAutoFocusEffect(focusRequester: FocusRequester)</ID>
     <ID>FunctionNaming:SafeModeScreen.kt$@Composable fun SafeModeScreen()</ID>
-    <ID>FunctionNaming:SafeModeScreen.kt$@Composable private fun ActionButtons( crashTrace: String?, onContinueNormal: () -&gt; Unit, onViewFullLog: () -&gt; Unit, onClearData: () -&gt; Unit, onCopyInfo: () -&gt; Unit, )</ID>
     <ID>FunctionNaming:SafeModeScreen.kt$@Composable private fun CrashInfoCard( crashTime: String?, crashTrace: String?, )</ID>
     <ID>FunctionNaming:SafeModeScreen.kt$@Composable private fun SafeModeActionButton( icon: ImageVector, label: String, containerColor: Color, contentColor: Color, onClick: () -&gt; Unit, enabled: Boolean = true, )</ID>
     <ID>FunctionNaming:SafeModeScreen.kt$@Composable private fun WarningHeader()</ID>
+    <ID>FunctionNaming:SafeModeScreen.kt$@Suppress("LongParameterList") @Composable private fun ActionButtons( crashTrace: String?, onContinueNormal: () -&gt; Unit, onViewFullLog: () -&gt; Unit, onClearData: () -&gt; Unit, onCopyInfo: () -&gt; Unit, onShowRecoveryGuide: () -&gt; Unit, )</ID>
     <ID>FunctionNaming:ScheduledMessageBanner.kt$@Composable fun ScheduledMessageBanner( pendingMessages: List&lt;PendingMessage&gt;, onCancel: (String) -&gt; Unit = {}, modifier: Modifier = Modifier, )</ID>
     <ID>FunctionNaming:ScheduledTasksScreen.kt$@Composable private fun AssistantSelector( selectedName: String, assistants: List&lt;AssistantEntity&gt;, onSelect: (String) -&gt; Unit, )</ID>
     <ID>FunctionNaming:ScheduledTasksScreen.kt$@Composable private fun AutomationActionSection( actionType: String, onActionTypeChange: (String) -&gt; Unit, noteTitle: String, onNoteTitleChange: (String) -&gt; Unit, noteContent: String, onNoteContentChange: (String) -&gt; Unit, noteTags: String, onNoteTagsChange: (String) -&gt; Unit, toolId: String, onToolIdChange: (String) -&gt; Unit, toolParams: String, onToolParamsChange: (String) -&gt; Unit, notifyTitle: String, onNotifyTitleChange: (String) -&gt; Unit, notifyMessage: String, onNotifyMessageChange: (String) -&gt; Unit, )</ID>

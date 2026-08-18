@@ -457,4 +457,7 @@
     <string name="settings_chat_background_choose">選択</string>
     <string name="settings_chat_background_saved">チャットの背景を更新しました</string>
     <string name="settings_chat_background_failed">画像の処理に失敗しました。別の画像をお試しください</string>
+    <string name="cloud_backup_restore_failed_title">復元失敗</string>
+    <string name="cloud_backup_restore_failed_desc">クラウドからデータを復元できませんでした。ネットワーク接続とクラウド設定を確認して再試行してください。</string>
+    <string name="cloud_backup_restore_retry">再試行</string>
 </resources>

@@ -220,7 +220,7 @@ val appModule = module {
     single { io.zer0.muse.transformer.ConversationCompressor(get(), get()) }
 
     // v1.98: 云备份自动定时上传调度器(�?10 分钟检查是否到�?
-    single { io.zer0.muse.schedule.CloudBackupScheduler(get(), get(), get()) }
+    single { io.zer0.muse.schedule.CloudBackupScheduler(get(), get(), get(), get()) }
 
     // Phase 3 3E: 定时消息管理器
     single { io.zer0.muse.data.schedule.PendingMessageManager(androidContext()) }

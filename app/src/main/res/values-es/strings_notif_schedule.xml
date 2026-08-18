@@ -83,4 +83,12 @@
     <string name="notif_listener_recent_count_connected">Notificaciones recientes: %1$d</string>
     <string name="notif_listener_recent_count_disconnected">Notificaciones recientes: %1$d · Primero conceda acceso en la configuración del sistema</string>
     <string name="notif_listener_refresh_cd">Actualizar estado</string>
+    <string name="safe_mode_data_recovery">Guía de recuperación de datos</string>
+    <string name="safe_mode_data_recovery_title">Guía de recuperación de datos</string>
+    <string name="safe_mode_data_recovery_desc">Este fallo no afecta a tus datos locales; los chats y ajustes están intactos. Para restaurar desde una copia en la nube: tras reiniciar, ve a Ajustes → Copia de seguridad → Restaurar desde la nube.</string>
+    <string name="safe_mode_data_recovery_ok">Entendido</string>
+    <string name="notif_auto_backup_success_title">Copia de seguridad automática completada</string>
+    <string name="notif_auto_backup_success_text">Tus datos se guardaron en la nube</string>
+    <string name="notif_auto_backup_failed_title">Falló la copia de seguridad automática</string>
+    <string name="notif_auto_backup_failed_text">La copia de seguridad no se completó. Revisa la configuración de copia en la nube</string>
 </resources>

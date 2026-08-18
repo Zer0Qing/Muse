@@ -83,4 +83,12 @@
     <string name="notif_listener_recent_count_connected">最近の通知: %1$d</string>
     <string name="notif_listener_recent_count_disconnected">最近の通知: %1$d · 最初にシステム設定でアクセスを許可してください</string>
     <string name="notif_listener_refresh_cd">ステータスの更新</string>
+    <string name="safe_mode_data_recovery">データ復元ガイド</string>
+    <string name="safe_mode_data_recovery_title">データ復元ガイド</string>
+    <string name="safe_mode_data_recovery_desc">このクラッシュはローカルデータに影響しません。チャットと設定は無傷です。クラウドのバックアップから復元するには:再起動後、設定 → データバックアップ → クラウドから復元。</string>
+    <string name="safe_mode_data_recovery_ok">わかりました</string>
+    <string name="notif_auto_backup_success_title">自動バックアップ成功</string>
+    <string name="notif_auto_backup_success_text">データはクラウドにバックアップされました</string>
+    <string name="notif_auto_backup_failed_title">自動バックアップ失敗</string>
+    <string name="notif_auto_backup_failed_text">自動バックアップが完了しませんでした。クラウド設定を確認してください</string>
 </resources>

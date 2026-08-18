@@ -103,6 +103,10 @@ fun CloudBackupPage(
     var restoring by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf<String?>(null) }
 
+    // v1.141 F1: 恢复失败专项 UX — 记录失败的操作类型与目标文件,弹出可重试的失败对话框
+    var restoreFailKind by remember { mutableStateOf<RestoreFailKind?>(null) }
+    var failedRestoreFile by remember { mutableStateOf<String?>(null) }
+
     // 远端备份列表
     var remoteBackups by remember { mutableStateOf<List<RemoteBackup>>(emptyList()) }
     var listLoading by remember { mutableStateOf(false) }
@@ -333,7 +337,8 @@ fun CloudBackupPage(
                             val result = backupService.importFromCloud()
                             restoring = false
                             if (result == null) {
-                                MuseToast.show(context.getString(R.string.cloud_backup_restore_failed))
+                                // v1.141 F1: 失败不再仅 Toast,弹专项对话框(可重试)
+                                restoreFailKind = RestoreFailKind.LATEST
                             } else {
                                 val (s, m) = result
                                 MuseToast.show(context.getString(R.string.cloud_backup_restore_success, s, m))
@@ -450,7 +455,9 @@ fun CloudBackupPage(
                                         val result = backupService.importFromCloudFile(backup.fileName)
                                         restoring = false
                                         if (result == null) {
-                                            MuseToast.show(context.getString(R.string.cloud_backup_restore_failed))
+                                            // v1.141 F1: 失败不再仅 Toast,弹专项对话框(可重试)
+                                            restoreFailKind = RestoreFailKind.FILE
+                                            failedRestoreFile = backup.fileName
                                         } else {
                                             val (s, m) = result
                                             MuseToast.show(context.getString(R.string.cloud_backup_restore_success, s, m))
@@ -569,7 +576,57 @@ fun CloudBackupPage(
             dismissText = null,
         )
     }
+
+    // v1.141 F1: 恢复失败专项 UX — 错误对话框 + 重试入口(重试再失败会再次弹出)
+    val failKind = restoreFailKind
+    if (failKind != null) {
+        MuseDialog(
+            onDismissRequest = { restoreFailKind = null },
+            title = stringResource(R.string.cloud_backup_restore_failed_title),
+            content = {
+                Text(
+                    text = stringResource(R.string.cloud_backup_restore_failed_desc),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+            confirmText = stringResource(R.string.cloud_backup_restore_retry),
+            onConfirm = {
+                val kind = failKind
+                val file = failedRestoreFile
+                restoreFailKind = null
+                failedRestoreFile = null
+                if (kind != null) {
+                    scope.launch {
+                        restoring = true
+                        val result: Pair<Int, Int>? = when (kind) {
+                            RestoreFailKind.LATEST -> backupService.importFromCloud()
+                            RestoreFailKind.FILE -> {
+                                // 文件名不应为空(失败时已记录);防御性为空视为失败重新弹出
+                                if (file == null) null else backupService.importFromCloudFile(file)
+                            }
+                        }
+                        restoring = false
+                        if (result == null) {
+                            restoreFailKind = kind
+                            failedRestoreFile = file
+                        } else {
+                            val (s, m) = result
+                            MuseToast.show(context.getString(R.string.cloud_backup_restore_success, s, m))
+                        }
+                    }
+                }
+            },
+            dismissText = stringResource(R.string.settings_common_cancel),
+            onDismiss = { restoreFailKind = null },
+        )
+    }
 }
+
+/**
+ * 云端恢复失败类型 — 区分"恢复最新备份"与"按版本恢复",供失败对话框按原操作重试。
+ */
+private enum class RestoreFailKind { LATEST, FILE }
 
 /**
  * WebDAV 字段表单(URL / 用户名 / 密码 / 远程目录)。

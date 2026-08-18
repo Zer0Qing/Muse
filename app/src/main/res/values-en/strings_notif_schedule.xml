@@ -83,4 +83,12 @@
     <string name="notif_listener_recent_count_connected">Recent notifications: %1$d</string>
     <string name="notif_listener_recent_count_disconnected">Recent notifications: %1$d · Please grant access in system settings first</string>
     <string name="notif_listener_refresh_cd">Refresh status</string>
+    <string name="safe_mode_data_recovery">Data Recovery Guide</string>
+    <string name="safe_mode_data_recovery_title">Data Recovery Guide</string>
+    <string name="safe_mode_data_recovery_desc">This crash does not affect your local data; chats and settings are intact. To restore from a cloud backup: after restarting, go to Settings → Data Backup → Restore from Cloud.</string>
+    <string name="safe_mode_data_recovery_ok">Got it</string>
+    <string name="notif_auto_backup_success_title">Auto backup succeeded</string>
+    <string name="notif_auto_backup_success_text">Your data was backed up to the cloud</string>
+    <string name="notif_auto_backup_failed_title">Auto backup failed</string>
+    <string name="notif_auto_backup_failed_text">Auto backup did not complete. Check your cloud backup settings</string>
 </resources>

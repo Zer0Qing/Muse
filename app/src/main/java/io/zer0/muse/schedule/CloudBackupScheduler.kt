@@ -7,6 +7,7 @@ import androidx.work.WorkManager
 import io.zer0.common.Logger
 import io.zer0.muse.backup.BackupService
 import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.notification.MuseNotificationManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.isActive
@@ -34,6 +35,7 @@ class CloudBackupScheduler(
     private val backupService: BackupService,
     private val settings: SettingsRepository,
     private val appScope: CoroutineScope,
+    private val notificationManager: MuseNotificationManager,
 ) {
     private var job: Job? = null
 
@@ -126,5 +128,8 @@ class CloudBackupScheduler(
         } else {
             Logger.w(TAG, "Auto backup failed")
         }
+        // v1.141 F1: 备份提醒 — 定时自动备份完成/失败均发系统通知,
+        // 失败提醒让用户及时得知备份中断并检查云配置
+        notificationManager.notifyAutoBackup(ok)
     }
 }

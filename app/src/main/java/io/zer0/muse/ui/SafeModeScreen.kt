@@ -37,7 +37,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,9 +51,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import compose.icons.TablerIcons
+import compose.icons.tablericons.CloudDownload
 import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.crash.MuseCrashHandler
+import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.surface.MuseCardPress
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MusePaddings
@@ -77,6 +83,9 @@ import io.zer0.muse.ui.theme.MuseShapes
 @Composable
 fun SafeModeScreen() {
     val context = LocalContext.current
+
+    // v1.141 F2: 崩溃恢复引导 — 展示数据完好说明与云端备份恢复路径
+    var showRecoveryGuide by remember { mutableStateOf(false) }
 
     // 优先从 SP 读取结构化崩溃信息(v2.0+),为空时回退到崩溃日志文件
     val crashTime = remember { MuseCrashHandler.getCrashTime(context) }
@@ -126,10 +135,30 @@ fun SafeModeScreen() {
                 onViewFullLog = { shareCrashLog(context) },
                 onClearData = { clearApplicationData(context) },
                 onCopyInfo = { copyCrashInfo(context, crashTime, crashTrace) },
+                onShowRecoveryGuide = { showRecoveryGuide = true },
             )
 
             Spacer(Modifier.height(MusePaddings.sectionGap))
         }
+    }
+
+    // v1.141 F2: 崩溃恢复引导对话框(纯文案引导,不依赖 Koin)
+    if (showRecoveryGuide) {
+        MuseDialog(
+            onDismissRequest = { showRecoveryGuide = false },
+            title = stringResource(R.string.safe_mode_data_recovery_title),
+            content = {
+                Text(
+                    text = stringResource(R.string.safe_mode_data_recovery_desc),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+            confirmText = stringResource(R.string.safe_mode_data_recovery_ok),
+            onConfirm = { showRecoveryGuide = false },
+            dismissText = null,
+            onDismiss = { showRecoveryGuide = false },
+        )
     }
 }
 
@@ -234,6 +263,8 @@ private fun CrashInfoCard(
  *
  * 每个按钮:图标 + 标题文字,左对齐,无涟漪按压反馈,对标 iOS 列表项。
  */
+// 6 个回调参数为操作按钮组固有结构(每个按钮一个动作),拆分反损可读性
+@Suppress("LongParameterList")
 @Composable
 private fun ActionButtons(
     crashTrace: String?,
@@ -241,6 +272,7 @@ private fun ActionButtons(
     onViewFullLog: () -> Unit,
     onClearData: () -> Unit,
     onCopyInfo: () -> Unit,
+    onShowRecoveryGuide: () -> Unit,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -253,6 +285,14 @@ private fun ActionButtons(
             containerColor = MaterialTheme.colorScheme.primaryContainer,
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
             onClick = onContinueNormal,
+        )
+        // a2) v1.141 F2: 数据恢复引导 — tertiary 强调色,崩溃后引导恢复路径
+        SafeModeActionButton(
+            icon = TablerIcons.CloudDownload,
+            label = stringResource(R.string.safe_mode_data_recovery),
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+            onClick = onShowRecoveryGuide,
         )
         // b) 查看完整崩溃日志
         SafeModeActionButton(
