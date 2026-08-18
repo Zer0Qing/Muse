@@ -4,6 +4,7 @@ name: CI
 on:
   push:
     branches: [ "main" ]
+    tags: [ "v*" ]
   pull_request:
     branches: [ "main" ]
   schedule:
@@ -127,12 +128,16 @@ jobs:
     - name: Build release APKs
       # A-17: 注入版本号 — build.gradle.kts 硬约束 Release 任务必须显式
       # -PversionName/-PversionCode,否则 GradleException 先于签名检查抛出。
-      # versionName 取自 tag(v1.0.75 → 1.0.75)。
-      # C-15: versionCode 改用 git 提交时间戳(秒)— github.run_number 在 workflow 删除重建后
-      # 会重置导致版本回退;提交时间戳单调不减,且与 tag 绑定的 commit 一一对应。
+      # versionName 取自 tag(v1.0.76 → 1.0.76);versionCode 取 app/build.gradle.kts
+      # 的当前默认值,与本地正式包和发布流程保持一致。
       run: |
-        VERSION_CODE=$(git log -1 --format=%ct)
-        ./gradlew assembleRelease -PversionName=${GITHUB_REF_NAME#v} -PversionCode=${VERSION_CODE}
+        VERSION_NAME="${GITHUB_REF_NAME#v}"
+        VERSION_CODE=$(awk '/^[[:space:]]*\?: [0-9]+$/ { print $2; exit }' app/build.gradle.kts)
+        if [[ -z "${VERSION_CODE}" ]]; then
+          echo "unable to read default versionCode from app/build.gradle.kts" >&2
+          exit 1
+        fi
+        ./gradlew assembleRelease -PversionName="${VERSION_NAME}" -PversionCode="${VERSION_CODE}"
     - uses: actions/upload-artifact@v4
       with:
         name: release-apks
