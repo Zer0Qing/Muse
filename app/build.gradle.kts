@@ -27,16 +27,16 @@ android {
         // 优先级: -PversionCode/-PversionName > 环境变量 > 默认值
         // 本地构建用默认值,CI 通过 ./gradlew assembleRelease -PversionName=1.0.75 注入
         // 空字符串视为未注入(workflow_dispatch 无 tag 时回退默认值)
-        // C-34: 默认值随最新 tag 更新(当前 v1.0.75 / 175)
+        // C-34: 默认值随最新 tag 更新(当前 v1.0.76 / 176)
         versionCode = (project.findProperty("versionCode") as? String)
             ?.takeIf { it.isNotBlank() }
             ?.toIntOrNull()
             ?: System.getenv("VERSION_CODE")?.takeIf { it.isNotBlank() }?.toIntOrNull()
-            ?: 175
+            ?: 176
         versionName = (project.findProperty("versionName") as? String)
             ?.takeIf { it.isNotBlank() }
             ?: System.getenv("VERSION_NAME")?.takeIf { it.isNotBlank() }
-            ?: "1.0.75"
+            ?: "1.0.76"
     }
 
     signingConfigs {
