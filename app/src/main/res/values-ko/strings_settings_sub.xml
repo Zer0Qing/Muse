@@ -56,6 +56,8 @@
     <string name="settings_theme_light">라이트</string>
     <string name="settings_theme_dark">다크</string>
     <string name="settings_theme_current_mode">현재 모드</string>
+    <string name="settings_theme_high_contrast">고대비 테마</string>
+    <string name="settings_theme_high_contrast_desc">전경/배경 대비 강화, 저시력 사용자 지원</string>
     <string name="settings_theme_font_size">글자 크기</string>
     <string name="settings_theme_font_small">소</string>
     <string name="settings_theme_font_medium">중</string>

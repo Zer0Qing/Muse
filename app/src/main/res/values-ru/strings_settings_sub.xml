@@ -56,6 +56,8 @@
     <string name="settings_theme_light">Светлый</string>
     <string name="settings_theme_dark">Тёмный</string>
     <string name="settings_theme_current_mode">Текущий режим</string>
+    <string name="settings_theme_high_contrast">Тема с высокой контрастностью</string>
+    <string name="settings_theme_high_contrast_desc">Повышенный контраст текста и фона для слабовидящих</string>
     <string name="settings_theme_font_size">Размер шрифта</string>
     <string name="settings_theme_font_small">М</string>
     <string name="settings_theme_font_medium">С</string>

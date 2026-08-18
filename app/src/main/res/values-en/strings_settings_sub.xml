@@ -56,6 +56,8 @@
     <string name="settings_theme_light">Light</string>
     <string name="settings_theme_dark">Dark</string>
     <string name="settings_theme_current_mode">Current Mode</string>
+    <string name="settings_theme_high_contrast">High contrast theme</string>
+    <string name="settings_theme_high_contrast_desc">Enhanced foreground/background contrast for low vision</string>
     <string name="settings_theme_font_size">Text Size</string>
     <string name="settings_theme_font_small">S</string>
     <string name="settings_theme_font_medium">M</string>

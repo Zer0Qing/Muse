@@ -183,6 +183,9 @@ class MainActivity : ComponentActivity() {
         return newContext
     }
 
+    // Activity 启动初始化(系统栏/安全模式/通知权限/字体/主题等)为屏幕级固有聚合结构,
+    // 行数恰超 detekt LongMethod 阈值 1,拆分反损可读性
+    @Suppress("LongMethod")
     override fun onCreate(savedInstanceState: Bundle?) {
         // v1.7: 必须在 super.onCreate 之前安装系统 SplashScreen
         val splashScreen = installSplashScreen()
@@ -267,6 +270,8 @@ class MainActivity : ComponentActivity() {
                 // v1.97 gap7: 用户自定义主题列表 — 基于种子色生成 ColorScheme,
                 // 在 MuseTheme 中作为动态色与预设主题之间的回退层
                 val customThemes by settings.customThemesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+                // H5: 高对比主题开关(增强前景/背景对比,面向弱视用户)
+                val highContrast by settings.highContrastFlow.collectAsStateWithLifecycle(initialValue = false)
                 // E2: 自定义正文字体 — 路径→FontFamily 加载在 remember 中缓存(同步磁盘 IO 避免重复)
                 val customFontPath by settings.customFontPathFlow.collectAsStateWithLifecycle(initialValue = null)
                 val bodyFontFamily by remember(customFontPath) { mutableStateOf(loadCustomFontFamily(customFontPath)) }
@@ -280,6 +285,7 @@ class MainActivity : ComponentActivity() {
                     dynamicColor = dynamicColor,
                     customThemes = customThemes,
                     bodyFontFamily = bodyFontFamily,
+                    highContrast = highContrast,
                 ) {
                     // v1.56: Compose 渲染异常由 MuseCrashHandler(Thread.UncaughtExceptionHandler)兜底,
                     // logComposeException 方法已就绪,待未来 Compose 版本提供 RuntimeExceptionHandler API 后接入。

@@ -64,6 +64,8 @@
     <string name="settings_theme_light">浅色</string>
     <string name="settings_theme_dark">深色</string>
     <string name="settings_theme_current_mode">当前模式</string>
+    <string name="settings_theme_high_contrast">高对比主题</string>
+    <string name="settings_theme_high_contrast_desc">增强前景/背景对比,方便弱视用户</string>
     <string name="settings_theme_font_size">文字大小</string>
     <string name="settings_theme_font_small">小</string>
     <string name="settings_theme_font_medium">中</string>

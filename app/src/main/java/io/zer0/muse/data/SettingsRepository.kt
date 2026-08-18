@@ -262,6 +262,8 @@ class SettingsRepository(
      */
     val currentSpaceIdFlow: Flow<String> = store.data.map { prefs -> prefs[KEY_CURRENT_SPACE_ID] ?: "default" }
     val themeModeFlow: Flow<String> get() = appearance.themeModeFlow
+    /** H5: 高对比主题开关(增强前景/背景对比,面向弱视用户)。 */
+    val highContrastFlow: Flow<Boolean> get() = appearance.highContrastFlow
     /** v1.60-C: 应用界面语言(system=跟随系统 / zh=中文 / en=英文 / ja=日语 / ko=韩语 / ru=俄语)。 */
     val languageFlow: Flow<String> get() = appSettings.languageFlow
     val themeIdFlow: Flow<String> get() = appearance.themeIdFlow
@@ -863,6 +865,8 @@ class SettingsRepository(
     /** v1.0.52 P2-2: 保存当前选中的记忆空间 id。 */
     suspend fun saveCurrentSpaceId(spaceId: String) { store.edit { it[KEY_CURRENT_SPACE_ID] = spaceId } }
     suspend fun saveThemeMode(mode: String) = appearance.saveThemeMode(mode)
+    /** H5: 保存高对比主题开关。 */
+    suspend fun saveHighContrast(enabled: Boolean) = appearance.saveHighContrast(enabled)
     suspend fun saveThemeId(id: String) = appearance.saveThemeId(id)
     /** 保存深色模式独立主题 id(空字符串表示跟随亮色主题的暗色版)。 */
     suspend fun saveDarkThemeId(id: String) = appearance.saveDarkThemeId(id)

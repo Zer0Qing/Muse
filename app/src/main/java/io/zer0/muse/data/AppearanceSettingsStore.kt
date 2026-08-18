@@ -42,6 +42,8 @@ class AppearanceSettingsStore(private val context: Context) {
     }
     /** E2: 自定义正文字体文件绝对路径(filesDir/fonts/ 下);null 表示使用系统默认字体。 */
     val customFontPathFlow: Flow<String?> = store.data.map { prefs -> prefs[KEY_CUSTOM_FONT_PATH] }
+    /** H5: 高对比主题开关 — 增强前景/背景对比,面向弱视用户(a11y 策略)。 */
+    val highContrastFlow: Flow<Boolean> = store.data.map { prefs -> prefs[KEY_HIGH_CONTRAST] ?: false }
 
     suspend fun saveThemeMode(mode: String) { store.edit { it[KEY_THEME_MODE] = mode } }
     suspend fun saveThemeId(id: String) { store.edit { it[KEY_THEME_ID] = id } }
@@ -62,6 +64,8 @@ class AppearanceSettingsStore(private val context: Context) {
             if (path == null) prefs.remove(KEY_CUSTOM_FONT_PATH) else prefs[KEY_CUSTOM_FONT_PATH] = path
         }
     }
+    /** H5: 保存高对比主题开关。 */
+    suspend fun saveHighContrast(enabled: Boolean) { store.edit { it[KEY_HIGH_CONTRAST] = enabled } }
 
     suspend fun upsertCustomTheme(theme: CustomTheme) {
         store.edit { prefs ->
@@ -100,5 +104,6 @@ class AppearanceSettingsStore(private val context: Context) {
         private val KEY_ASR_TIP_SHOWN = booleanPreferencesKey("asr_tip_shown")
         private val KEY_CUSTOM_THEMES = stringPreferencesKey("custom_themes_json")
         private val KEY_CUSTOM_FONT_PATH = stringPreferencesKey("custom_font_path")
+        private val KEY_HIGH_CONTRAST = booleanPreferencesKey("high_contrast")
     }
 }

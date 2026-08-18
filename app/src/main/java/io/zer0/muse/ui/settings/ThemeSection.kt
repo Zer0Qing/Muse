@@ -115,6 +115,8 @@ internal fun ThemeSection(
     val customThemes by settings.customThemesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
     // E2: 自定义正文字体路径(filesDir/fonts/ 下;null=系统默认)
     val customFontPath by settings.customFontPathFlow.collectAsStateWithLifecycle(initialValue = null)
+    // H5: 高对比主题开关(增强前景/背景对比,面向弱视用户)
+    val highContrast by settings.highContrastFlow.collectAsStateWithLifecycle(initialValue = false)
     // E2: SAF 打开字体文件(TTF/OTF) → 复制到应用私有目录 → 保存路径
     val fontImportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
@@ -182,6 +184,12 @@ internal fun ThemeSection(
             icon = modeIcon,
             title = stringResource(R.string.settings_theme_current_mode),
             subtitle = modeLabel,
+        )
+        SettingsGroupDivider()
+        // H5: 高对比主题开关 — 前景/背景对比拉满,面向弱视用户
+        HighContrastRow(
+            enabled = highContrast,
+            onToggle = { v -> scope.launch { settings.saveHighContrast(v) } },
         )
     }
 
@@ -538,6 +546,51 @@ private fun DynamicColorRow(
             checked = enabled && supported,
             onCheckedChange = if (supported) { { onToggle(it) } } else null,
             contentDescription = dynamicColorLabel,
+        )
+    }
+}
+
+/**
+ * H5: 高对比主题开关行 — 开启后 MuseTheme 以纯黑/纯白背景/前景渲染(对比度 21:1),
+ * 面向弱视用户;主题 primary 语义色保留。
+ */
+@Composable
+private fun HighContrastRow(
+    enabled: Boolean,
+    onToggle: (Boolean) -> Unit,
+) {
+    val highContrastLabel = stringResource(R.string.settings_theme_high_contrast)
+    val descText = stringResource(R.string.settings_theme_high_contrast_desc)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onToggle(!enabled) }
+            .padding(MusePaddings.cardInner),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Icon(
+            imageVector = TablerIcons.Eye,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.outline,
+            modifier = Modifier.size(MuseIconSizes.iconMedium),
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = highContrastLabel,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = descText,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        MuseSwitch(
+            checked = enabled,
+            onCheckedChange = onToggle,
+            contentDescription = highContrastLabel,
         )
     }
 }

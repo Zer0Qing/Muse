@@ -56,6 +56,8 @@
     <string name="settings_theme_light">ライト</string>
     <string name="settings_theme_dark">ダーク</string>
     <string name="settings_theme_current_mode">現在のモード</string>
+    <string name="settings_theme_high_contrast">ハイコントラストテーマ</string>
+    <string name="settings_theme_high_contrast_desc">前景と背景のコントラストを高め、弱視ユーザーに配慮</string>
     <string name="settings_theme_font_size">文字サイズ</string>
     <string name="settings_theme_font_small">S</string>
     <string name="settings_theme_font_medium">M</string>

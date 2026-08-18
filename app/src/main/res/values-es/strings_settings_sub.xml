@@ -56,6 +56,8 @@
     <string name="settings_theme_light">Luz</string>
     <string name="settings_theme_dark">Oscuro</string>
     <string name="settings_theme_current_mode">Modo actual</string>
+    <string name="settings_theme_high_contrast">Tema de alto contraste</string>
+    <string name="settings_theme_high_contrast_desc">Contraste mejorado entre texto y fondo para baja visión</string>
     <string name="settings_theme_font_size">Tamaño del texto</string>
     <string name="settings_theme_font_small">S</string>
     <string name="settings_theme_font_medium">METRO</string>

@@ -13,10 +13,12 @@ import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.Modifier
@@ -93,6 +95,8 @@ fun MuseTheme(
     dynamicColor: Boolean = false,
     customThemes: List<CustomTheme> = emptyList(),
     bodyFontFamily: FontFamily = FontFamily.Default,
+    /** H5: 高对比主题 — 前景/背景对比拉满(深色=纯黑底纯白字,浅色=纯白底纯黑字),面向弱视用户。 */
+    highContrast: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     // L-1: LocalContext.current 必须在 remember 外读取(remember 的 key 不含 context,
@@ -121,6 +125,8 @@ fun MuseTheme(
             }
         }
     }
+    // H5: 高对比模式在主题色之上覆盖背景/前景对比,保留 primary 等主题色语义
+    val effectiveColorScheme = if (highContrast) colorScheme.toHighContrast(darkTheme) else colorScheme
 
     // v0.52: 预染色状态栏 + 导航栏,避免主题切换闪烁(先白后黑 / 先黑后白)。
     // 用 DisposableEffect(darkTheme) 在 darkTheme 变化时同步重设系统栏外观,
@@ -130,7 +136,7 @@ fun MuseTheme(
     // 切换由上方 remember 自动处理,不影响系统栏外观。
     val view = LocalView.current
     if (!view.isInEditMode) {
-        DisposableEffect(darkTheme, colorScheme) {
+        DisposableEffect(darkTheme, effectiveColorScheme) {
             val window = context.findActivity()?.window
             if (window != null) {
                 // edge-to-edge 由 MainActivity.enableEdgeToEdge 统一负责,L-11 删除此处
@@ -141,8 +147,8 @@ fun MuseTheme(
                 // v1.131: 显式设置系统栏背景色,解决 enableEdgeToEdge 导致的透明状态栏/导航栏问题
                 // (SystemBarStyle.auto 在部分设备上不生效,直接设 window 背景色更稳定)
                 // 用 toArgb() 把 Compose Color 转 Int 色值(API 要求 Int)
-                window.statusBarColor = colorScheme.background.toArgb()
-                window.navigationBarColor = colorScheme.background.toArgb()
+                window.statusBarColor = effectiveColorScheme.background.toArgb()
+                window.navigationBarColor = effectiveColorScheme.background.toArgb()
             }
             onDispose {
                 // L-2: 保持当前外观,不做还原。MuseTheme 包裹整个 App,onDispose 仅在
@@ -169,7 +175,7 @@ fun MuseTheme(
     val motionScheme = remember { MotionScheme.expressive() }
 
     MaterialExpressiveTheme(
-        colorScheme = colorScheme,
+        colorScheme = effectiveColorScheme,
         typography = scaledTypography,
         shapes = MuseShapes,
         motionScheme = motionScheme,
@@ -188,3 +194,29 @@ fun MuseTheme(
         }
     }
 }
+
+/**
+ * H5: 高对比模式 — 把背景/前景/表面相关颜色拉满对比度(纯黑/纯白),保留主题 primary 语义色。
+ * 面向弱视用户:文本与背景对比度达到最大(21:1),secondaryContainer/errorContainer 等
+ * 语义容器色保持不变,避免破坏状态色可辨识度。
+ */
+private fun ColorScheme.toHighContrast(darkTheme: Boolean): ColorScheme =
+    if (darkTheme) {
+        copy(
+            background = Color(0xFF000000),
+            onBackground = Color(0xFFFFFFFF),
+            surface = Color(0xFF000000),
+            onSurface = Color(0xFFFFFFFF),
+            surfaceVariant = Color(0xFF1E1E1E),
+            onSurfaceVariant = Color(0xFFE6E6E6),
+        )
+    } else {
+        copy(
+            background = Color(0xFFFFFFFF),
+            onBackground = Color(0xFF000000),
+            surface = Color(0xFFFFFFFF),
+            onSurface = Color(0xFF000000),
+            surfaceVariant = Color(0xFFE6E6E6),
+            onSurfaceVariant = Color(0xFF1E1E1E),
+        )
+    }
