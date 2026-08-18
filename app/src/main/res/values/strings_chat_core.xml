@@ -534,4 +534,12 @@
     <string name="chat_translation_hide_source">收起原文</string>
     <string name="settings_chat_gradient_title">渐变背景</string>
     <string name="settings_chat_gradient_subtitle">双色线性渐变,未设置背景图时生效</string>
+    <string name="chat_reaction_title">表情回应</string>
+    <string name="chat_reaction_like">喜欢</string>
+    <string name="chat_reaction_love">爱心</string>
+    <string name="chat_reaction_laugh">大笑</string>
+    <string name="chat_reaction_wow">惊讶</string>
+    <string name="chat_reaction_sad">难过</string>
+    <string name="chat_reaction_angry">生气</string>
+    <string name="chat_reaction_clear">清除回应</string>
 </resources>

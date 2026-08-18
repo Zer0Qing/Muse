@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import compose.icons.TablerIcons
 import compose.icons.tablericons.Search
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.MuseTooltip
 import io.zer0.muse.ui.theme.MusePaddings
 
 // A1: 会话内查找条 — 聊天页顶层悬浮条:查询框 + 命中计数 + 上一条/下一条 + 关闭。
@@ -91,24 +92,31 @@ internal fun InChatFindBar(
             )
             Spacer(Modifier.width(MusePaddings.tightGap))
             FindStatusLabel(query = query, matchCount = matchCount, currentIndex = currentIndex)
-            FindNavIconButton(
-                icon = Icons.Filled.KeyboardArrowUp,
-                description = stringResource(R.string.chat_find_prev),
-                enabled = hasMatches,
-                onClick = onPrev,
-            )
-            FindNavIconButton(
-                icon = Icons.Filled.KeyboardArrowDown,
-                description = stringResource(R.string.chat_find_next),
-                enabled = hasMatches,
-                onClick = onNext,
-            )
-            FindNavIconButton(
-                icon = Icons.Filled.Close,
-                description = stringResource(R.string.chat_find_close),
-                enabled = true,
-                onClick = onClose,
-            )
+            // E4 (H8): 纯图标导航按钮加 hover 提示(桌面);移动端无 hover 事件不显示
+            MuseTooltip(text = stringResource(R.string.chat_find_prev)) {
+                FindNavIconButton(
+                    icon = Icons.Filled.KeyboardArrowUp,
+                    description = stringResource(R.string.chat_find_prev),
+                    enabled = hasMatches,
+                    onClick = onPrev,
+                )
+            }
+            MuseTooltip(text = stringResource(R.string.chat_find_next)) {
+                FindNavIconButton(
+                    icon = Icons.Filled.KeyboardArrowDown,
+                    description = stringResource(R.string.chat_find_next),
+                    enabled = hasMatches,
+                    onClick = onNext,
+                )
+            }
+            MuseTooltip(text = stringResource(R.string.chat_find_close)) {
+                FindNavIconButton(
+                    icon = Icons.Filled.Close,
+                    description = stringResource(R.string.chat_find_close),
+                    enabled = true,
+                    onClick = onClose,
+                )
+            }
         }
     }
 }

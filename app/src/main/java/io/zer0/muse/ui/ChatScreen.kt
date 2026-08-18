@@ -1608,6 +1608,8 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                             selected = msg.id.toString() in state.selectedMessageIds,
                             onToggleSelection = { viewModel.toggleMessageSelection(msg.id) },
                             onEnterMultiSelect = { viewModel.setSelectionMode(true) },
+                            // E4 (H8): 表情回应(长按菜单「表情回应」→ 选择面板)
+                            onSetReaction = { reaction -> viewModel.setReaction(msg.id, reaction) },
                             onTranslate = onTranslate,
                             onToggleFavorite = onToggleFavorite,
                             // 阶段 J: 复制消息内容到剪贴板(iOS 风格长按 → 复制)

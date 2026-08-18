@@ -535,4 +535,12 @@
     <string name="chat_translation_hide_source">Hide original</string>
     <string name="settings_chat_gradient_title">Gradient background</string>
     <string name="settings_chat_gradient_subtitle">Two-color linear gradient, applied when no background image is set</string>
+    <string name="chat_reaction_title">React</string>
+    <string name="chat_reaction_like">Like</string>
+    <string name="chat_reaction_love">Love</string>
+    <string name="chat_reaction_laugh">Laugh</string>
+    <string name="chat_reaction_wow">Wow</string>
+    <string name="chat_reaction_sad">Sad</string>
+    <string name="chat_reaction_angry">Angry</string>
+    <string name="chat_reaction_clear">Clear reaction</string>
 </resources>

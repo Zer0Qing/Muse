@@ -532,4 +532,12 @@
     <string name="chat_translation_hide_source">Ocultar original</string>
     <string name="settings_chat_gradient_title">Fondo degradado</string>
     <string name="settings_chat_gradient_subtitle">Degradado lineal de dos colores, se aplica cuando no hay imagen de fondo</string>
+    <string name="chat_reaction_title">Reaccionar</string>
+    <string name="chat_reaction_like">Me gusta</string>
+    <string name="chat_reaction_love">Amor</string>
+    <string name="chat_reaction_laugh">Risa</string>
+    <string name="chat_reaction_wow">Guau</string>
+    <string name="chat_reaction_sad">Triste</string>
+    <string name="chat_reaction_angry">Enojado</string>
+    <string name="chat_reaction_clear">Borrar reacción</string>
 </resources>

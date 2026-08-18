@@ -82,6 +82,7 @@ import io.zer0.muse.data.session.SessionEntity
 import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.museAnimateItem
 import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.common.surface.MuseDivider
 import io.zer0.muse.ui.theme.MuseCornerRadius
@@ -835,19 +836,22 @@ private fun LazyListScope.searchResultSection(
         }
     } else {
         itemsIndexed(results, key = { _, session -> "search_${session.id}" }) { index, session ->
-            SectionGroupRow(index = index, total = results.size) {
-                TaskItem(
-                    session = session,
-                    folders = folders,
-                    onSelect = onSelect,
-                    onDelete = onDelete,
-                    onRenameTo = onRenameTo,
-                    onTogglePinned = onTogglePinned,
-                    onMoveSessionToFolder = onMoveSessionToFolder,
-                    onArchive = onArchive,
-                )
-                if (index != results.lastIndex) {
-                    MuseDivider()
+            // E5 (H4): 搜索结果区列表项入场/位移动画
+            Box(museAnimateItem()) {
+                SectionGroupRow(index = index, total = results.size) {
+                    TaskItem(
+                        session = session,
+                        folders = folders,
+                        onSelect = onSelect,
+                        onDelete = onDelete,
+                        onRenameTo = onRenameTo,
+                        onTogglePinned = onTogglePinned,
+                        onMoveSessionToFolder = onMoveSessionToFolder,
+                        onArchive = onArchive,
+                    )
+                    if (index != results.lastIndex) {
+                        MuseDivider()
+                    }
                 }
             }
         }
@@ -876,19 +880,22 @@ private fun LazyListScope.recentSectionItems(
         }
     } else {
         itemsIndexed(recent, key = { _, session -> "recent_${session.id}" }) { index, session ->
-            SectionGroupRow(index = index, total = recent.size) {
-                TaskItem(
-                    session = session,
-                    folders = folders,
-                    onSelect = onSelect,
-                    onDelete = onDelete,
-                    onRenameTo = onRenameTo,
-                    onTogglePinned = onTogglePinned,
-                    onMoveSessionToFolder = onMoveSessionToFolder,
-                    onArchive = onArchive,
-                )
-                if (index != recent.lastIndex) {
-                    MuseDivider()
+            // E5 (H4): 最近会话区列表项入场/位移动画
+            Box(museAnimateItem()) {
+                SectionGroupRow(index = index, total = recent.size) {
+                    TaskItem(
+                        session = session,
+                        folders = folders,
+                        onSelect = onSelect,
+                        onDelete = onDelete,
+                        onRenameTo = onRenameTo,
+                        onTogglePinned = onTogglePinned,
+                        onMoveSessionToFolder = onMoveSessionToFolder,
+                        onArchive = onArchive,
+                    )
+                    if (index != recent.lastIndex) {
+                        MuseDivider()
+                    }
                 }
             }
         }
@@ -1297,15 +1304,18 @@ private fun LazyListScope.foldersSectionItems(
         TaskSectionTitle { Text(stringResource(R.string.chat_list_section_folders)) }
     }
     itemsIndexed(folders, key = { _, folder -> "folder_${folder.id}" }) { index, folder ->
-        SectionGroupRow(index = index, total = folders.size) {
-            FolderItem(
-                folder = folder,
-                onSelectFolder = onSelectFolder,
-                onRenameFolder = onRenameFolder,
-                onDeleteFolder = onDeleteFolder,
-            )
-            if (index != folders.lastIndex) {
-                MuseDivider()
+        // E5 (H4): 文件夹区列表项入场/位移动画
+        Box(museAnimateItem()) {
+            SectionGroupRow(index = index, total = folders.size) {
+                FolderItem(
+                    folder = folder,
+                    onSelectFolder = onSelectFolder,
+                    onRenameFolder = onRenameFolder,
+                    onDeleteFolder = onDeleteFolder,
+                )
+                if (index != folders.lastIndex) {
+                    MuseDivider()
+                }
             }
         }
     }
@@ -1642,7 +1652,10 @@ private fun RecentBrowseRow(
             contentPadding = PaddingValues(horizontal = MusePaddings.screen),
         ) {
             items(sessions, key = { it.id }) { session ->
-                RecentBrowseChip(session = session, onClick = { onSelect(session.id) })
+                // E5 (H4): 最近浏览 chips 入场动画
+                Box(museAnimateItem()) {
+                    RecentBrowseChip(session = session, onClick = { onSelect(session.id) })
+                }
             }
         }
     }

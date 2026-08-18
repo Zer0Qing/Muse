@@ -532,4 +532,12 @@
     <string name="chat_translation_hide_source">Скрыть оригинал</string>
     <string name="settings_chat_gradient_title">Градиентный фон</string>
     <string name="settings_chat_gradient_subtitle">Линейный градиент из двух цветов, применяется при отсутствии фонового изображения</string>
+    <string name="chat_reaction_title">Реакция</string>
+    <string name="chat_reaction_like">Нравится</string>
+    <string name="chat_reaction_love">Любовь</string>
+    <string name="chat_reaction_laugh">Смех</string>
+    <string name="chat_reaction_wow">Вау</string>
+    <string name="chat_reaction_sad">Грустно</string>
+    <string name="chat_reaction_angry">Злой</string>
+    <string name="chat_reaction_clear">Убрать реакцию</string>
 </resources>

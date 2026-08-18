@@ -532,4 +532,12 @@
     <string name="chat_translation_hide_source">原文を隠す</string>
     <string name="settings_chat_gradient_title">グラデーション背景</string>
     <string name="settings_chat_gradient_subtitle">2色の線形グラデーション。背景画像がない場合に適用されます</string>
+    <string name="chat_reaction_title">リアクション</string>
+    <string name="chat_reaction_like">いいね</string>
+    <string name="chat_reaction_love">大好き</string>
+    <string name="chat_reaction_laugh">笑う</string>
+    <string name="chat_reaction_wow">すごい</string>
+    <string name="chat_reaction_sad">悲しい</string>
+    <string name="chat_reaction_angry">怒り</string>
+    <string name="chat_reaction_clear">リアクションを消す</string>
 </resources>

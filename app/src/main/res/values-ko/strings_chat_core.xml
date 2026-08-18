@@ -532,4 +532,12 @@
     <string name="chat_translation_hide_source">원문 숨기기</string>
     <string name="settings_chat_gradient_title">그라데이션 배경</string>
     <string name="settings_chat_gradient_subtitle">2색 선형 그라데이션, 배경 이미지가 없을 때 적용됩니다</string>
+    <string name="chat_reaction_title">반응</string>
+    <string name="chat_reaction_like">좋아요</string>
+    <string name="chat_reaction_love">사랑해요</string>
+    <string name="chat_reaction_laugh">하하</string>
+    <string name="chat_reaction_wow">와우</string>
+    <string name="chat_reaction_sad">슬퍼요</string>
+    <string name="chat_reaction_angry">화나요</string>
+    <string name="chat_reaction_clear">반응 지우기</string>
 </resources>

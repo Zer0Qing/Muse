@@ -532,4 +532,12 @@
     <string name="chat_translation_hide_source">Ocultar original</string>
     <string name="settings_chat_gradient_title">Fundo degradê</string>
     <string name="settings_chat_gradient_subtitle">Degradê linear de duas cores, aplicado quando não há imagem de fundo</string>
+    <string name="chat_reaction_title">Reagir</string>
+    <string name="chat_reaction_like">Curtir</string>
+    <string name="chat_reaction_love">Amar</string>
+    <string name="chat_reaction_laugh">Rir</string>
+    <string name="chat_reaction_wow">Uau</string>
+    <string name="chat_reaction_sad">Triste</string>
+    <string name="chat_reaction_angry">Com raiva</string>
+    <string name="chat_reaction_clear">Limpar reação</string>
 </resources>

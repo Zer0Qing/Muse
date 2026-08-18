@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import io.zer0.muse.ui.common.media.WindowWidthClass
+import io.zer0.muse.ui.common.museAnimateItem
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -181,21 +182,24 @@ fun GroupChatListScreen(
                     items = state.chats,
                     key = { it.id },
                 ) { chat ->
-                    val memberIds = remember(chat.memberIdsJson) { viewModel.parseMemberIds(chat) }
-                    val members = remember(memberIds, state.assistants) {
-                        memberIds.mapNotNull { id -> state.assistants.find { it.id == id } }
+                    // E5 (H4): 群聊列表项入场/位移动画
+                    Box(museAnimateItem()) {
+                        val memberIds = remember(chat.memberIdsJson) { viewModel.parseMemberIds(chat) }
+                        val members = remember(memberIds, state.assistants) {
+                            memberIds.mapNotNull { id -> state.assistants.find { it.id == id } }
+                        }
+                        GroupChatCard(
+                            chat = chat,
+                            members = members,
+                            memberCount = memberIds.size,
+                            now = timeTicker,
+                            viewModel = viewModel,
+                            onClick = { onOpenChat(chat.id) },
+                            onTogglePin = { viewModel.togglePin(chat.id) },
+                            onDelete = { viewModel.deleteChat(chat.id) },
+                            onClearMemory = { viewModel.clearChatMemory(chat.id) },
+                        )
                     }
-                    GroupChatCard(
-                        chat = chat,
-                        members = members,
-                        memberCount = memberIds.size,
-                        now = timeTicker,
-                        viewModel = viewModel,
-                        onClick = { onOpenChat(chat.id) },
-                        onTogglePin = { viewModel.togglePin(chat.id) },
-                        onDelete = { viewModel.deleteChat(chat.id) },
-                        onClearMemory = { viewModel.clearChatMemory(chat.id) },
-                    )
                 }
                 // v2.2: 底部"新建群聊"按钮(参考图:左侧绿色加号圆圈 + 居中绿色文字)
                 item(key = "create_new") {

@@ -3,7 +3,6 @@ package io.zer0.muse.ui
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import android.content.Intent
-import kotlin.math.roundToInt
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
@@ -51,10 +50,8 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.compose.ui.window.Popup
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.outlined.GroupWork
 import androidx.compose.material.icons.outlined.Language
@@ -95,7 +92,6 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
@@ -115,6 +111,10 @@ import io.zer0.muse.ui.chat.parseQuotedContent
 import io.zer0.muse.ui.chat.buildHighlightedText
 import io.zer0.muse.ui.chat.buildMoodSkinAnnotated
 import io.zer0.muse.ui.chat.MessageInfoSheet
+import io.zer0.muse.ui.chat.MuseReactionSheet
+import io.zer0.muse.ui.chat.reactionIcon
+import io.zer0.muse.ui.chat.reactionLabelRes
+import io.zer0.muse.ui.common.MusePopover
 import io.zer0.muse.ui.common.media.AssistantAvatar
 import io.zer0.muse.ui.common.media.ContextMenuItem
 import io.zer0.muse.ui.common.media.DesktopContextMenu
@@ -182,6 +182,8 @@ internal fun MessageBubble(
     selected: Boolean = false,
     onToggleSelection: (() -> Unit)? = null,
     onEnterMultiSelect: (() -> Unit)? = null,
+    /** E4 (H8): 表情回应 — 传 null 时隐藏回应入口与渲染。 */
+    onSetReaction: ((String?) -> Unit)? = null,
     onTranslate: (String) -> Unit,
     onToggleFavorite: () -> Unit = {},
     // 阶段 J: 复制消息内容到剪贴板
@@ -264,6 +266,8 @@ internal fun MessageBubble(
     var showDeleteConfirm by rememberSaveable { mutableStateOf(false) }
     // A5: 消息信息弹层(长按扩展菜单/桌面右键菜单「消息信息」触发)
     var showInfoSheet by rememberSaveable { mutableStateOf(false) }
+    // E4 (H8): 表情回应选择面板(扩展菜单「表情回应」触发)
+    var showReactionSheet by rememberSaveable { mutableStateOf(false) }
     // 末尾 AI 流式时光标显示
     val showStreamingCursor = !isUser && isLastAssistant && isStreaming
     // v1.42: 流式中的最后一条 AI 消息禁用动画,避免每帧测量导致卡顿。
@@ -1272,23 +1276,15 @@ internal fun MessageBubble(
                 // ── Telegram 风格 Popup 卡片(锚定消息气泡) ──
                 // v1.0.74 fix: 此前无 parent 锚点,菜单永远弹在窗口右上角(离手指很远)。
                 // 改为按气泡窗口位置定位:菜单右缘贴气泡右缘,上缘在气泡上方 8dp。
-                // Popup 的 offset 是像素单位,直接用 boundsInWindow 的像素坐标。
-                val density = LocalDensity.current
-                val menuWidthPx = (220 * density.density).roundToInt()
-                val padPx = (8 * density.density).roundToInt()
-                Popup(
-                    onDismissRequest = {
+                // E4 (H8): 定位逻辑收敛到通用 MusePopover(宽度 220dp、间距 8dp);
+                // 锚点未测量完成(Zero)时组件退化为屏幕左上角偏移,与原退化行为一致。
+                MusePopover(
+                    anchorBounds = actionMenuBounds,
+                    widthDp = 220,
+                    gapDp = 8,
+                    onDismiss = {
                         showActionMenu = false
                         showLanguageSubmenu = false
-                    },
-                    alignment = Alignment.TopStart,
-                    offset = if (actionMenuBounds != androidx.compose.ui.geometry.Rect.Zero) {
-                        IntOffset(
-                            x = (actionMenuBounds.right.toInt() - menuWidthPx).coerceAtLeast(padPx),
-                            y = (actionMenuBounds.top.toInt() - padPx).coerceAtLeast(padPx),
-                        )
-                    } else {
-                        IntOffset(0, 8)
                     },
                 ) {
                     TelegramActionCard(
@@ -1405,6 +1401,19 @@ internal fun MessageBubble(
                                     showInfoSheet = true
                                 },
                             )
+                            // E4 (H8): 表情回应(仅 onSetReaction 提供时显示)
+                            if (onSetReaction != null) {
+                                ActionMenuItem(
+                                    icon = TablerIcons.MoodSmile,
+                                    text = stringResource(R.string.chat_reaction_title),
+                                    contentDescription = stringResource(R.string.chat_reaction_title),
+                                    onClick = {
+                                        showActionMenu = false
+                                        showLanguageSubmenu = false
+                                        showReactionSheet = true
+                                    },
+                                )
+                            }
                             if (msg.content.isNotBlank()) {
                                 ActionMenuItem(
                                     icon = TablerIcons.Copy,
@@ -1575,11 +1584,46 @@ internal fun MessageBubble(
                 destructive = true,
             )
         }
+        // E4 (H8): 表情回应 — 已有回应时气泡尾部显示图标 chip(仅图标,语义见 cd)
+        val reaction = msg.reaction
+        val reactionLabel = reaction?.let { reactionLabelRes(it) }?.let { stringResource(it) }
+        val reactionIconVec = reaction?.let { reactionIcon(it) }
+        if (reaction != null && reactionIconVec != null && reactionLabel != null) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(top = MusePaddings.tinyGap),
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                ) {
+                    Icon(
+                        imageVector = reactionIconVec,
+                        contentDescription = reactionLabel,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .padding(MusePaddings.tightGap)
+                            .size(MuseIconSizes.iconSmall),
+                    )
+                }
+            }
+        }
         // A5: 消息信息弹层(模型/时间/耗时/Token 用量)
         if (showInfoSheet) {
             MessageInfoSheet(
                 msg = msg,
                 onDismiss = { showInfoSheet = false },
+            )
+        }
+        // E4 (H8): 表情回应选择面板
+        if (showReactionSheet && onSetReaction != null) {
+            MuseReactionSheet(
+                current = msg.reaction,
+                onSelect = { reactionValue ->
+                    showReactionSheet = false
+                    onSetReaction(reactionValue)
+                },
+                onDismiss = { showReactionSheet = false },
             )
         }
         // P2-13: 桌面端右键上下文菜单(仅物理键盘 + Expanded 窗口下弹出)

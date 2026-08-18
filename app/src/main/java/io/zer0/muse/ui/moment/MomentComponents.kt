@@ -55,6 +55,7 @@ import io.zer0.muse.R
 import io.zer0.muse.data.moment.MomentCommentEntity
 import io.zer0.muse.data.moment.MomentEntity
 import io.zer0.muse.data.moment.MomentMessage
+import io.zer0.muse.ui.common.museAnimateItem
 import io.zer0.muse.ui.theme.MusePaddings
 
 // ═══════════════ 通用头像 ═══════════════
@@ -308,29 +309,32 @@ fun MomentFeedList(
                 verticalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
             ) {
                 items(moments, key = { it.id }) { moment ->
-                    MomentCard(
-                        moment = moment,
-                        comments = commentsByMoment[moment.id] ?: emptyList(),
-                        onToggleLike = { onToggleLike(moment) },
-                        onAddComment = { text -> onAddComment(moment, text) },
-                        onAvatarClick = { onOpenProfile(moment) },
-                        // v1.0.74 fix: 助手头像此前全部缺失(渐变块认不出谁发的),
-                        // 按 senderId 从 assistants map 取图片头像;
-                        // 旧数据 senderId 为空时按 senderName 匹配兜底
-                        avatarUrl = if (moment.senderType == "assistant") {
-                            val byId = moment.senderId?.let { assistants[it]?.avatarImageUrl?.takeIf { url -> url.isNotBlank() } }
-                            byId ?: assistants.values.firstOrNull { it.name == moment.senderName }
-                                ?.avatarImageUrl?.takeIf { url -> url.isNotBlank() }
-                        } else {
-                            userAvatarUri
-                        },
-                        // v1.0.74: 仅用户自己的动态可长按删除
-                        onDelete = if (moment.senderType == "user") {
-                            { onDelete(moment) }
-                        } else {
-                            null
-                        },
-                    )
+                    // E5 (H4): 动态流列表项入场/位移动画
+                    Box(museAnimateItem()) {
+                        MomentCard(
+                            moment = moment,
+                            comments = commentsByMoment[moment.id] ?: emptyList(),
+                            onToggleLike = { onToggleLike(moment) },
+                            onAddComment = { text -> onAddComment(moment, text) },
+                            onAvatarClick = { onOpenProfile(moment) },
+                            // v1.0.74 fix: 助手头像此前全部缺失(渐变块认不出谁发的),
+                            // 按 senderId 从 assistants map 取图片头像;
+                            // 旧数据 senderId 为空时按 senderName 匹配兜底
+                            avatarUrl = if (moment.senderType == "assistant") {
+                                val byId = moment.senderId?.let { assistants[it]?.avatarImageUrl?.takeIf { url -> url.isNotBlank() } }
+                                byId ?: assistants.values.firstOrNull { it.name == moment.senderName }
+                                    ?.avatarImageUrl?.takeIf { url -> url.isNotBlank() }
+                            } else {
+                                userAvatarUri
+                            },
+                            // v1.0.74: 仅用户自己的动态可长按删除
+                            onDelete = if (moment.senderType == "user") {
+                                { onDelete(moment) }
+                            } else {
+                                null
+                            },
+                        )
+                    }
                 }
             }
         }
