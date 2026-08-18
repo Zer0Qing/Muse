@@ -4,6 +4,12 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,8 +29,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.Icon
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -51,7 +63,7 @@ import io.zer0.muse.ui.common.form.MuseTextField
  *
  * 微信结构: 头像左上 → 右侧竖排(名字 → 正文 → 图片 → 时间) → 底部右侧"赞/评论"文字按钮。
  * 评论: 点击"评论"才展开评论区 + 输入框(不再每卡片常驻)。
- * 保留: 实色岛底色统一 / 9 宫格大图 / 长文本折叠 / 长按删除 / 头像进主页。
+ * 保留: 9 宫格大图 / 长文本折叠 / 长按删除 / 头像进主页。
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -62,6 +74,9 @@ fun MomentCard(
     onAddComment: (String) -> Unit,
     avatarUrl: String? = null,
     onAvatarClick: (() -> Unit)? = null,
+    isFavorite: Boolean = false,
+    onToggleFavorite: () -> Unit = {},
+    onShare: () -> Unit = {},
     // v1.0.74: 删除动态(仅用户动态长按触发;助手动态不提供删除)
     onDelete: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
@@ -71,252 +86,255 @@ fun MomentCard(
     var commentInput by rememberSaveable { mutableStateOf("") }
     var expanded by rememberSaveable { mutableStateOf(false) }
     var commentsExpanded by rememberSaveable { mutableStateOf(false) }
+    var showActions by rememberSaveable { mutableStateOf(false) }
     var showDeleteConfirm by rememberSaveable { mutableStateOf(false) }
     var viewerIndex by rememberSaveable { mutableStateOf(-1) }
     val images = moment.images()
     val context = LocalContext.current
 
-    io.zer0.muse.ui.common.surface.MuseIsland(
-        modifier = modifier.fillMaxWidth(),
-        // 实色岛 — 与 v1.0.72 输入栏大岛同方案,统一底色不透背景
-        backgroundAlpha = 1f,
-    ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .padding(14.dp)
-            .combinedClickable(
-                enabled = onDelete != null,
-                onClick = {},
-                onLongClick = { showDeleteConfirm = true },
-            ),
+            .background(MaterialTheme.colorScheme.background),
     ) {
-        // ── 头部: 头像(左) + 名字/正文/时间(右竖排,微信布局) ──
-        Row(verticalAlignment = Alignment.Top) {
-            MomentAvatar(
-                senderType = moment.senderType,
-                name = moment.senderName,
-                size = 40,
-                avatarUrl = avatarUrl,
-                modifier = if (onAvatarClick != null) {
-                    Modifier.clip(CircleShape).clickable(onClick = onAvatarClick)
-                } else {
-                    Modifier
-                },
-            )
-            Spacer(Modifier.width(10.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                // 名字(微信: 粗体深色)
-                Text(
-                    text = moment.senderName,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-
-                // 正文(长文本折叠)
-                Spacer(Modifier.height(4.dp))
-                val contentText = moment.content
-                val collapsed = contentText.length > 200 && !expanded
-                Text(
-                    text = if (collapsed) contentText.take(200) + "…" else contentText,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                if (contentText.length > 200) {
-                    Text(
-                        text = if (expanded) {
-                            stringResource(R.string.action_collapse)
-                        } else {
-                            stringResource(R.string.moment_expand_full)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp)
+                .animateContentSize(),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .combinedClickable(
+                        enabled = onDelete != null || moment.content.length > 200,
+                        onClick = {
+                            if (moment.content.length > 200) expanded = !expanded
                         },
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Medium,
-                        ),
-                        modifier = Modifier
-                            .padding(top = 4.dp)
-                            .clickable { expanded = !expanded },
+                        onLongClick = {
+                            if (onDelete != null) showDeleteConfirm = true
+                        },
+                    ),
+            ) {
+                Row(verticalAlignment = Alignment.Top) {
+                    MomentAvatar(
+                        senderType = moment.senderType,
+                        name = moment.senderName,
+                        size = 40,
+                        avatarUrl = avatarUrl,
+                        modifier = if (onAvatarClick != null) {
+                            Modifier.clip(CircleShape).clickable(onClick = onAvatarClick)
+                        } else {
+                            Modifier
+                        },
                     )
+                    Spacer(Modifier.width(10.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = moment.senderName,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        val contentText = moment.content
+                        val collapsed = contentText.length > 200 && !expanded
+                        Text(
+                            text = if (collapsed) contentText.take(200) + "…" else contentText,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        if (contentText.length > 200) {
+                            Text(
+                                text = if (expanded) {
+                                    stringResource(R.string.action_collapse)
+                                } else {
+                                    stringResource(R.string.moment_expand_full)
+                                },
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Medium,
+                                ),
+                                modifier = Modifier
+                                    .padding(top = 4.dp)
+                                    .clickable { expanded = !expanded },
+                            )
+                        }
+                        if (images.isNotEmpty()) {
+                            Spacer(Modifier.height(8.dp))
+                            MomentImageGrid(
+                                images = images,
+                                onImageClick = { idx -> viewerIndex = idx },
+                            )
+                        }
+                    }
                 }
+            }
 
-                // 媒体: 9 宫格(点击进全屏查看器)
-                if (images.isNotEmpty()) {
-                    Spacer(Modifier.height(8.dp))
-                    MomentImageGrid(
-                        images = images,
-                        onImageClick = { idx -> viewerIndex = idx },
-                    )
-                }
-
-                // 时间(微信: 正文/图片下方,灰小字)
-                Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Text(
                     text = momentTimeText(moment.createdAt, context),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.outline,
                 )
-
-                // ── 底部操作栏: 右侧"赞" "评论" 文字按钮(微信样式) ──
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    // 赞
-                    Row(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(16.dp))
-                            .clickable(onClick = onToggleLike)
-                            .padding(horizontal = 10.dp, vertical = 5.dp),
-                        verticalAlignment = Alignment.CenterVertically,
+                Spacer(Modifier.weight(1f))
+                Column(horizontalAlignment = Alignment.End) {
+                    AnimatedVisibility(
+                        visible = showActions,
+                        enter = fadeIn() + expandHorizontally(expandFrom = Alignment.End),
+                        exit = fadeOut() + shrinkHorizontally(shrinkTowards = Alignment.End),
                     ) {
-                        // v1.0.74: 汉字换图标(心形)
-                        Icon(
-                            imageVector = if (moment.likedByUser) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                            contentDescription = stringResource(R.string.moment_like_cd),
-                            tint = if (moment.likedByUser) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.outline
-                            },
-                            modifier = Modifier.size(17.dp),
-                        )
-                        if (moment.likes > 0) {
-                            Spacer(Modifier.width(3.dp))
-                            Text(
-                                text = "${moment.likes}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = if (moment.likedByUser) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.outline
-                                },
-                            )
-                        }
-                    }
-                    // 评论
-                    Row(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(16.dp))
-                            .clickable { commentsExpanded = !commentsExpanded }
-                            .padding(horizontal = 10.dp, vertical = 5.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        // v1.0.74: 汉字换图标(评论气泡)
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Outlined.Chat,
-                            contentDescription = stringResource(R.string.moment_comment_cd),
-                            tint = if (commentsExpanded) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.outline
-                            },
-                            modifier = Modifier.size(16.dp),
-                        )
-                        if (comments.isNotEmpty()) {
-                            Spacer(Modifier.width(3.dp))
-                            Text(
-                                text = "${comments.size}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.outline,
-                            )
-                        }
-                    }
-                }
-
-                // ── 评论区(点击"评论"展开,微信交互) ──
-                // v1.0.74: 展开动画(垂直展开 + 淡入),此前直接 if 切换生硬
-                androidx.compose.animation.AnimatedVisibility(
-                    visible = commentsExpanded,
-                    enter = androidx.compose.animation.fadeIn() +
-                        androidx.compose.animation.expandVertically(
-                            animationSpec = androidx.compose.animation.core.tween(
-                                durationMillis = 220,
-                                easing = androidx.compose.animation.core.FastOutSlowInEasing,
-                            ),
-                        ),
-                    exit = androidx.compose.animation.fadeOut() +
-                        androidx.compose.animation.shrinkVertically(
-                            animationSpec = androidx.compose.animation.core.tween(durationMillis = 150),
-                        ),
-                ) {
-                    if (comments.isNotEmpty()) {
-                        Spacer(Modifier.height(6.dp))
-                        // v1.0.74: 微信评论区样式 — 淡灰圆角块、昵称深色粗体(非蓝)、紧凑
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                                .padding(horizontal = 10.dp, vertical = 8.dp),
-                            verticalArrangement = Arrangement.spacedBy(5.dp),
+                        Surface(
+                            color = MaterialTheme.colorScheme.inverseSurface,
+                            shape = RoundedCornerShape(8.dp),
+                            shadowElevation = 6.dp,
                         ) {
-                            comments.forEach { comment ->
-                                Row {
-                                    val senderLabel = if (comment.sender == "assistant") {
-                                        stringResource(R.string.moment_sender_muse)
-                                    } else {
-                                        stringResource(R.string.moment_sender_me)
-                                    }
-                                    Text(
-                                        text = (comment.senderName?.takeIf { it.isNotBlank() } ?: senderLabel) + ": ",
-                                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                    )
-                                    Text(
-                                        text = comment.content,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                }
+                            Row(
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                MomentAction(
+                                    icon = if (moment.likedByUser) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                                    label = stringResource(R.string.moment_like_cd),
+                                    onClick = {
+                                        showActions = false
+                                        onToggleLike()
+                                    },
+                                )
+                                MomentAction(
+                                    icon = Icons.AutoMirrored.Outlined.Chat,
+                                    label = stringResource(R.string.moment_comment_cd),
+                                    onClick = {
+                                        showActions = false
+                                        commentsExpanded = true
+                                    },
+                                )
+                                MomentAction(
+                                    icon = if (isFavorite) Icons.Filled.Star else Icons.Filled.StarBorder,
+                                    label = stringResource(R.string.moment_favorite),
+                                    onClick = {
+                                        showActions = false
+                                        onToggleFavorite()
+                                    },
+                                )
+                                MomentAction(
+                                    icon = Icons.Filled.Share,
+                                    label = stringResource(R.string.action_share),
+                                    onClick = {
+                                        showActions = false
+                                        onShare()
+                                    },
+                                )
                             }
                         }
                     }
-
-                    // 评论输入(展开时显示)
-                    Spacer(Modifier.height(6.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        MuseTextField(
-                            value = commentInput,
-                            onValueChange = { commentInput = it },
-                            placeholder = {
-                                Text(
-                                    stringResource(R.string.moment_comment_hint),
-                                    style = MaterialTheme.typography.bodySmall,
-                                )
-                            },
-                            singleLine = true,
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
-                            modifier = Modifier.weight(1f),
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = stringResource(R.string.action_send),
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                color = if (commentInput.isNotBlank()) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
-                                },
-                                fontWeight = FontWeight.Medium,
-                            ),
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(16.dp))
-                                .clickable(enabled = commentInput.isNotBlank()) {
-                                    onAddComment(commentInput.trim())
-                                    commentInput = ""
-                                }
-                                .padding(horizontal = 10.dp, vertical = 10.dp),
+                    Spacer(Modifier.height(4.dp))
+                    Surface(
+                        onClick = { showActions = !showActions },
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f),
+                        shape = RoundedCornerShape(8.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.MoreHoriz,
+                            contentDescription = stringResource(R.string.moment_more_actions),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
                         )
                     }
                 }
             }
-        }
-    }
-    } // MuseIsland
 
-    // 全屏图片查看器
+            androidx.compose.animation.AnimatedVisibility(
+                visible = commentsExpanded,
+                enter = androidx.compose.animation.fadeIn() +
+                    androidx.compose.animation.expandVertically(
+                        animationSpec = androidx.compose.animation.core.tween(
+                            durationMillis = 220,
+                            easing = androidx.compose.animation.core.FastOutSlowInEasing,
+                        ),
+                    ),
+                exit = androidx.compose.animation.fadeOut() +
+                    androidx.compose.animation.shrinkVertically(
+                        animationSpec = androidx.compose.animation.core.tween(durationMillis = 150),
+                    ),
+            ) {
+                if (comments.isNotEmpty()) {
+                    Spacer(Modifier.height(6.dp))
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(5.dp),
+                    ) {
+                        comments.forEach { comment ->
+                            Row {
+                                val senderLabel = if (comment.sender == "assistant") {
+                                    stringResource(R.string.moment_sender_muse)
+                                } else {
+                                    stringResource(R.string.moment_sender_me)
+                                }
+                                Text(
+                                    text = (comment.senderName?.takeIf { it.isNotBlank() } ?: senderLabel) + ": ",
+                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                                Text(
+                                    text = comment.content,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(6.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    MuseTextField(
+                        value = commentInput,
+                        onValueChange = { commentInput = it },
+                        placeholder = {
+                            Text(
+                                stringResource(R.string.moment_comment_hint),
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        },
+                        singleLine = true,
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                        modifier = Modifier.weight(1f),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(R.string.action_send),
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            color = if (commentInput.isNotBlank()) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
+                            },
+                            fontWeight = FontWeight.Medium,
+                        ),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(16.dp))
+                            .clickable(enabled = commentInput.isNotBlank()) {
+                                onAddComment(commentInput.trim())
+                                commentInput = ""
+                            }
+                            .padding(horizontal = 10.dp, vertical = 10.dp),
+                    )
+                }
+            }
+        }
+        HorizontalDivider(
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
+        )
+    }
+
     if (viewerIndex >= 0 && viewerIndex < images.size) {
         io.zer0.muse.ui.common.media.FullScreenMediaViewer(
             images = images,
@@ -325,7 +343,6 @@ fun MomentCard(
         )
     }
 
-    // 删除确认(仅用户自己的动态,长按触发)
     if (showDeleteConfirm) {
         io.zer0.muse.ui.common.feedback.MuseDialog(
             onDismissRequest = { showDeleteConfirm = false },
@@ -344,6 +361,36 @@ fun MomentCard(
             },
             dismissText = stringResource(R.string.action_cancel),
             onDismiss = { showDeleteConfirm = false },
+        )
+    }
+}
+
+/** 微信朋友圈式深色操作菜单中的单个动作。 */
+@Composable
+private fun MomentAction(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit,
+) {
+    val contentColor = MaterialTheme.colorScheme.inverseOnSurface
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(6.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 9.dp, vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = contentColor,
+            modifier = Modifier.size(16.dp),
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = contentColor,
         )
     }
 }

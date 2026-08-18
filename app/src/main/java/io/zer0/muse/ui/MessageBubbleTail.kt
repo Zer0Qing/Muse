@@ -77,6 +77,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.ui.common.form.MuseSlider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
 
 /**
  * 生成的图片卡片 — 圆角 + 点击预览 + 保存按钮。
@@ -325,8 +326,11 @@ fun SmartImage(
     } else {
         // 普通 URL/Uri:走 Coil AsyncImage
         // v1.0.74 fix: 加载失败无占位会整块空白,补 placeholder/error 灰块
+        val imageModel = remember(model) {
+            if (model is String && model.startsWith("/")) File(model) else model
+        }
         AsyncImage(
-            model = model,
+            model = imageModel,
             contentDescription = contentDescription,
             modifier = modifier,
             contentScale = contentScale,

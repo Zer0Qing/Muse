@@ -87,6 +87,14 @@
     <string name="safe_mode_data_recovery_title">データ復元ガイド</string>
     <string name="safe_mode_data_recovery_desc">このクラッシュはローカルデータに影響しません。チャットと設定は無傷です。クラウドのバックアップから復元するには:再起動後、設定 → データバックアップ → クラウドから復元。</string>
     <string name="safe_mode_data_recovery_ok">わかりました</string>
+    <string name="safe_mode_continue_normal_desc">チャットと設定を保持したまま、Muse をもう一度起動します</string>
+    <string name="safe_mode_view_full_log_desc">問題の調査に役立つ完全なログを表示または共有します</string>
+    <string name="safe_mode_clear_data_restart_desc">チャット、設定、ローカル ファイルを削除します。Muse が通常起動できない場合だけ使用してください</string>
+    <string name="safe_mode_clear_data_confirm_title">すべてのデータを削除しますか？</string>
+    <string name="safe_mode_clear_data_confirm_desc">チャット、設定、アバター、ローカル ファイルを削除します。元に戻せません。Muse が通常起動できない場合だけ使用してください。</string>
+    <string name="safe_mode_clear_data_confirm_action">すべてのデータを削除</string>
+    <string name="safe_mode_copy_crash_info_desc">時刻とスタック トレースをコピーして、問題の報告に使用します</string>
+    <string name="safe_mode_data_recovery_desc_short">保持されるデータとバックアップの復元方法を確認します</string>
     <string name="notif_auto_backup_success_title">自動バックアップ成功</string>
     <string name="notif_auto_backup_success_text">データはクラウドにバックアップされました</string>
     <string name="notif_auto_backup_failed_title">自動バックアップ失敗</string>

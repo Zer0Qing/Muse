@@ -46,12 +46,14 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.mcp.McpConnectionState
+import io.zer0.muse.mcp.McpFeishuAuthConfig
 import io.zer0.muse.mcp.McpPrompt
 import io.zer0.muse.mcp.McpPromptResult
 import io.zer0.muse.mcp.McpRegistry
 import io.zer0.muse.mcp.McpResource
 import io.zer0.muse.mcp.McpResourceContent
 import io.zer0.muse.mcp.McpServerConfig
+import io.zer0.muse.mcp.McpServerTemplates
 import io.zer0.muse.mcp.McpTransportType
 import io.zer0.muse.R
 import kotlinx.coroutines.launch
@@ -370,6 +372,14 @@ private fun McpServerAddDialog(
     var maxReconnectAttempts by remember { mutableStateOf("5") }
     var reconnectBaseMs by remember { mutableStateOf("3000") }
     var requestTimeoutMs by remember { mutableStateOf("30000") }
+    var feishuAppId by remember { mutableStateOf("") }
+    var feishuAppSecret by remember { mutableStateOf("") }
+    var selectedTemplateId by remember { mutableStateOf(McpServerTemplates.CUSTOM_ID) }
+    var templateMenuExpanded by remember { mutableStateOf(false) }
+    val selectedTemplate = remember(selectedTemplateId) {
+        McpServerTemplates.find(selectedTemplateId)
+    }
+    val feishuAutoRefresh = selectedTemplate.id == "feishu_remote"
     // 状态描述字符串(需在 @Composable 上下文中提取,不能在 semantics{} lambda 内调用 stringResource)
     val stateEnabledText = stringResource(R.string.settings_state_enabled)
     val stateDisabledText = stringResource(R.string.settings_state_disabled)
@@ -383,6 +393,70 @@ private fun McpServerAddDialog(
                 addError?.let { err ->
                     InlineError(message = err, onDismiss = { addError = null })
                 }
+                Text(
+                    text = "配置模板",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Box {
+                    TextButton(onClick = { templateMenuExpanded = true }) {
+                        Text(
+                            text = selectedTemplate.displayName,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Icon(
+                            imageVector = if (templateMenuExpanded) {
+                                TablerIcons.ChevronUp
+                            } else {
+                                TablerIcons.ChevronDown
+                            },
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = templateMenuExpanded,
+                        onDismissRequest = { templateMenuExpanded = false },
+                    ) {
+                        (listOf(McpServerTemplates.custom) + McpServerTemplates.all).forEach { template ->
+                            DropdownMenuItem(
+                                text = {
+                                    Column {
+                                        Text(template.displayName)
+                                        Text(
+                                            text = template.summary,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.outline,
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    selectedTemplateId = template.id
+                                    name = if (template.id == McpServerTemplates.CUSTOM_ID) {
+                                        ""
+                                    } else {
+                                        template.displayName
+                                    }
+                                    url = ""
+                                    authToken = ""
+                                    headersText = template.defaultHeaders.entries.joinToString("\n") {
+                                        "${it.key}: ${it.value}"
+                                    }
+                                    feishuAppId = ""
+                                    feishuAppSecret = ""
+                                    transportType = template.transportType
+                                    addError = null
+                                    templateMenuExpanded = false
+                                },
+                            )
+                        }
+                    }
+                }
+                Text(
+                    text = selectedTemplate.summary,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline,
+                )
                 SettingField(
                     label = stringResource(R.string.settings_mcp_display_name),
                     value = name,
@@ -393,7 +467,7 @@ private fun McpServerAddDialog(
                     label = "URL",
                     value = url,
                     onValueChange = { url = it },
-                    placeholder = "https://server.example.com/mcp",
+                    placeholder = selectedTemplate.urlPlaceholder,
                 )
                 Text(stringResource(R.string.settings_mcp_transport_type), style = MaterialTheme.typography.labelMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -427,12 +501,32 @@ private fun McpServerAddDialog(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                SettingField(
-                    label = stringResource(R.string.settings_mcp_bearer_token),
-                    value = authToken,
-                    onValueChange = { authToken = it },
-                    visualTransformation = PasswordVisualTransformation(),
-                )
+                if (feishuAutoRefresh) {
+                    SettingField(
+                        label = "飞书 App ID",
+                        value = feishuAppId,
+                        onValueChange = { feishuAppId = it },
+                        placeholder = "cli_xxxxx",
+                    )
+                    SettingField(
+                        label = "飞书 App Secret",
+                        value = feishuAppSecret,
+                        onValueChange = { feishuAppSecret = it },
+                        visualTransformation = PasswordVisualTransformation(),
+                    )
+                    Text(
+                        text = "Muse 会自动获取并续期 tenant_access_token，不需要每 2 小时手动更换 TAT。",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                } else {
+                    SettingField(
+                        label = stringResource(R.string.settings_mcp_bearer_token),
+                        value = authToken,
+                        onValueChange = { authToken = it },
+                        visualTransformation = PasswordVisualTransformation(),
+                    )
+                }
 
                 // 高级折叠区(headers / 重连参数 / 超时)
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
@@ -505,10 +599,14 @@ private fun McpServerAddDialog(
         },
         confirmText = stringResource(R.string.settings_common_add),
         onConfirm = {
-            if (url.isNotBlank()) {
+            if (url.isBlank()) {
+                addError = context.getString(R.string.settings_mcp_failed, "URL 不能为空")
+            } else if (feishuAutoRefresh && (feishuAppId.isBlank() || feishuAppSecret.isBlank())) {
+                addError = context.getString(R.string.settings_mcp_failed, "飞书模板需要填写 App ID 和 App Secret")
+            } else {
                 val config = McpServerConfig(
                     id = "mcp-" + System.currentTimeMillis(),
-                    name = name.ifBlank { "MCP Server" },
+                    name = name.ifBlank { selectedTemplate.displayName },
                     transportType = transportType,
                     url = url.trim(),
                     authToken = authToken.trim(),
@@ -520,6 +618,11 @@ private fun McpServerAddDialog(
                         ?: 3000L,
                     requestTimeoutMs = requestTimeoutMs.toLongOrNull()?.takeIf { it > 0 }
                         ?: 30_000L,
+                    feishuAuth = McpFeishuAuthConfig(
+                        enabled = feishuAutoRefresh,
+                        appId = feishuAppId.trim(),
+                        appSecret = feishuAppSecret.trim(),
+                    ),
                 )
                 scope.launch {
                     runCatching { onAdd(config) }

@@ -7,6 +7,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
 import androidx.room.Query
+import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
@@ -125,6 +126,10 @@ interface MomentDao {
     /** 全部动态(按时间倒序,最新在前)。 */
     @Query("SELECT * FROM ai_moments ORDER BY createdAt DESC LIMIT :limit")
     suspend fun getAll(limit: Int = 100): List<MomentEntity>
+
+    /** 全部动态实时流(供朋友圈列表随 Room 写入自动刷新)。 */
+    @Query("SELECT * FROM ai_moments ORDER BY createdAt DESC LIMIT :limit")
+    fun observeAll(limit: Int = 100): Flow<List<MomentEntity>>
 
     /** 用户发布的动态(按时间倒序)。 */
     @Query("SELECT * FROM ai_moments WHERE senderType = 'user' ORDER BY createdAt DESC LIMIT :limit")

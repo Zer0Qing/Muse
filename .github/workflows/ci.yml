@@ -147,10 +147,7 @@ jobs:
       with:
         tag: ${{ github.ref_name }}
         name: "Muse ${{ github.ref_name }}"
-        body: |
-          ${{ github.event.head_commit.message }}
-
-          由 CI 自动发布(commit: ${{ github.sha }})
+        bodyFile: "releases/${{ github.ref_name }}/release_body.md"
         artifacts: "app/build/outputs/apk/release/*.apk"
         artifactContentType: application/vnd.android.package-archive
         token: ${{ secrets.GITHUB_TOKEN }}

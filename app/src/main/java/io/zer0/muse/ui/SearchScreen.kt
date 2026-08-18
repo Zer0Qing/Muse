@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -353,13 +353,11 @@ private fun SearchResults(
     }
     // M-SS1: 用 remember 缓存过滤结果,避免每次 recomposition 重复计算(原实现每次都重新 filter)
     val matchedSessions = remember(sessions, query) {
-        sessions.filter {
-            it.title.contains(query, ignoreCase = true) ||
-                it.lastMessagePreview.contains(query, ignoreCase = true)
-        }.take(20)
+        filterSearchSessions(sessions, query)
     }
+    val uniqueMessageResults = remember(messageResults) { uniqueSearchResults(messageResults) }
 
-    val hasAny = matchedSessions.isNotEmpty() || messageResults.isNotEmpty()
+    val hasAny = matchedSessions.isNotEmpty() || uniqueMessageResults.isNotEmpty()
 
     // 搜索中且无结果:居中 loading
     if (!hasAny && isSearching) {
@@ -416,7 +414,10 @@ private fun SearchResults(
         // 会话结果 section
         if (matchedSessions.isNotEmpty()) {
             item(key = "section_sessions") { SectionTitle(stringResource(R.string.search_section_sessions)) }
-            items(matchedSessions, key = { "session_${it.id}" }) { session ->
+            itemsIndexed(
+                matchedSessions,
+                key = { index, session -> "session_${session.id}_$index" },
+            ) { _, session ->
                 Box(modifier = Modifier.animateItem()) {
                 SessionResultRow(
                     title = session.title.ifBlank { stringResource(R.string.search_new_session) },
@@ -428,9 +429,12 @@ private fun SearchResults(
             }
         }
         // 消息内容 section(FTS 结果)
-        if (messageResults.isNotEmpty()) {
+        if (uniqueMessageResults.isNotEmpty()) {
             item(key = "section_messages") { SectionTitle(stringResource(R.string.search_section_messages)) }
-            items(messageResults, key = { "msg_${it.messageId}" }) { result ->
+            itemsIndexed(
+                uniqueMessageResults,
+                key = { index, result -> "msg_${result.messageId}_$index" },
+            ) { _, result ->
                 Box(modifier = Modifier.animateItem()) {
                 MessageSearchResultRow(
                     sessionTitle = result.sessionTitle,
@@ -589,6 +593,7 @@ private fun MessageSearchResults(
         return
     }
 
+    val uniqueMessageResults = remember(messageResults) { uniqueSearchResults(messageResults) }
     LazyColumn(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
@@ -616,7 +621,10 @@ private fun MessageSearchResults(
             }
         }
         item(key = "section_messages_content") { SectionTitle(stringResource(R.string.search_section_message_content)) }
-        items(messageResults, key = { "msg_content_${it.messageId}" }) { result ->
+        itemsIndexed(
+            uniqueMessageResults,
+            key = { index, result -> "msg_content_${result.messageId}_$index" },
+        ) { _, result ->
             // 任务 2:Tab=消息内容结果项 — 优先用原文提取前后 2 句上下文 + 关键词高亮
             MessageSearchResultRow(
                 sessionTitle = result.sessionTitle,
@@ -629,6 +637,23 @@ private fun MessageSearchResults(
         }
     }
 }
+
+internal fun filterSearchSessions(
+    sessions: List<io.zer0.muse.data.session.SessionEntity>,
+    query: String,
+): List<io.zer0.muse.data.session.SessionEntity> =
+    sessions
+        .filter {
+            it.title.contains(query, ignoreCase = true) ||
+                it.lastMessagePreview.contains(query, ignoreCase = true)
+        }
+        .distinctBy { it.id }
+        .take(20)
+
+internal fun uniqueSearchResults(
+    results: List<io.zer0.muse.data.session.SearchResult>,
+): List<io.zer0.muse.data.session.SearchResult> =
+    results.distinctBy { it.messageId }
 
 /**
  * 任务 2:统一的消息搜索结果行(Tab=会话/消息内容 共用)。

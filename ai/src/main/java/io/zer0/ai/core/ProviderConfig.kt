@@ -105,14 +105,14 @@ data class ProviderConfig(
      * 提醒用户明文 HTTP 传输 apiKey 风险(默认值均已是 https,仅自定义 baseUrl 可能违规)。
      */
     fun resolvedBaseUrl(): String {
-        val resolved = baseUrl.trimEnd('/').ifBlank {
+        val resolved = normalizeKnownBaseUrl(baseUrl.trimEnd('/').ifBlank {
             when (type) {
                 ProviderType.OPENAI -> DEFAULT_OPENAI_BASE_URL
                 ProviderType.ANTHROPIC -> DEFAULT_ANTHROPIC_BASE_URL
                 ProviderType.GEMINI -> DEFAULT_GEMINI_BASE_URL
                 ProviderType.OPENAI_RESPONSES -> DEFAULT_OPENAI_RESPONSES_BASE_URL
             }
-        }
+        })
         if (resolved.isNotEmpty() && !resolved.startsWith("https://", ignoreCase = true)) {
             io.zer0.common.Logger.w(
                 "ProviderConfig",
@@ -121,6 +121,21 @@ data class ProviderConfig(
         }
         return resolved
     }
+
+    /**
+     * SiliconFlow documents its OpenAI-compatible API under `/v1`.
+     *
+     * Accepting the host-only form in the settings UI is useful, but every
+     * request path must use the same normalized base URL. Without this,
+     * `/models` may be discovered through the UI fallback while chat requests
+     * are later sent to the host root and fail with HTTP 404.
+     */
+    private fun normalizeKnownBaseUrl(url: String): String =
+        if (url.equals("https://api.siliconflow.cn", ignoreCase = true)) {
+            "$url/v1"
+        } else {
+            url
+        }
 
     /**
      * 取特定配置,specific 为 null 时按 [type] 兜底(向后兼容旧数据)。

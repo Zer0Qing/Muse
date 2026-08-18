@@ -72,6 +72,8 @@
     <string name="moment_expand_full">Full text</string>
     <string name="moment_like_cd">Like</string>
     <string name="moment_comment_cd">Comment</string>
+    <string name="moment_favorite">Favorite</string>
+    <string name="moment_more_actions">More actions for this moment</string>
     <string name="moment_sender_muse">Muse</string>
     <string name="moment_sender_me">Me</string>
     <string name="moment_comment_hint">Post a comment:</string>

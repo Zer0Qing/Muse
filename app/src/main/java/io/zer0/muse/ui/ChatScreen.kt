@@ -47,7 +47,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import compose.icons.TablerIcons
 import compose.icons.tablericons.AlertCircle
@@ -125,9 +124,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.window.Popup
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.ai.core.MessageRole
@@ -141,6 +137,8 @@ import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.media.rememberDesktopShortcutsEnabled
 import io.zer0.muse.ui.common.media.rememberWindowWidthClass
+import io.zer0.muse.ui.common.MuseFloatingActionItem
+import io.zer0.muse.ui.common.MuseFloatingActionMenu
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.artifact.ArtifactEntity
@@ -908,58 +906,45 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                                     )
                                 }
                             }
-                            // 自定义胶囊菜单(Popup 定位,两项竖排圆形胶囊)
+                            // 无遮罩浮动菜单:每个操作独立右对齐弹出。
                             if (showTopMenu) {
-                                Popup(
-                                    onDismissRequest = { showTopMenu = false },
-                                    alignment = Alignment.TopEnd,
-                                    offset = IntOffset(0, 4),
-                                ) {
-                                    Surface(
-                                        color = MaterialTheme.colorScheme.surface,
-                                        shape = RoundedCornerShape(20.dp),
-                                        shadowElevation = 8.dp,
-                                        tonalElevation = 4.dp,
-                                    ) {
-                                        Column(
-                                            modifier = Modifier.padding(6.dp),
-                                            horizontalAlignment = Alignment.End,
-                                        ) {
-                                            // 选择供应商(胶囊)
-                                            TopMenuCapsule(
-                                                icon = Icons.Outlined.AutoAwesome,
-                                                text = stringResource(R.string.chat_select_provider),
-                                                enabled = !isStreaming,
-                                                onClick = {
-                                                    showTopMenu = false
-                                                    sheetState.showModelSheet = true
-                                                },
-                                            )
-                                            // 压缩上下文(胶囊) — H10: 点击弹参数对话框(保留条数/附加指令/token 估算)
-                                            TopMenuCapsule(
-                                                icon = TablerIcons.GitMerge,
-                                                text = stringResource(R.string.chat_update_compress),
-                                                enabled = !isStreaming && !state.isCompressing && messages.size >= 2,
-                                                onClick = {
-                                                    showTopMenu = false
-                                                    compressKeepText = ""
-                                                    compressInstruction = ""
-                                                    showCompressDialog = true
-                                                },
-                                            )
-                                            // 会话内查找(A1): 呼出就地查找条(顶栏菜单第三项)
-                                            TopMenuCapsule(
-                                                icon = TablerIcons.Search,
-                                                text = stringResource(R.string.chat_find_in_conversation),
-                                                enabled = messages.isNotEmpty(),
-                                                onClick = {
-                                                    showTopMenu = false
-                                                    showInChatSearch = true
-                                                },
-                                            )
-                                        }
-                                    }
-                                }
+                                MuseFloatingActionMenu(
+                                    items = listOf(
+                                        MuseFloatingActionItem(
+                                            key = "provider",
+                                            icon = Icons.Outlined.AutoAwesome,
+                                            label = stringResource(R.string.chat_select_provider),
+                                            enabled = !isStreaming,
+                                            onClick = {
+                                                showTopMenu = false
+                                                sheetState.showModelSheet = true
+                                            },
+                                        ),
+                                        MuseFloatingActionItem(
+                                            key = "compress",
+                                            icon = TablerIcons.GitMerge,
+                                            label = stringResource(R.string.chat_update_compress),
+                                            enabled = !isStreaming && !state.isCompressing && messages.size >= 2,
+                                            onClick = {
+                                                showTopMenu = false
+                                                compressKeepText = ""
+                                                compressInstruction = ""
+                                                showCompressDialog = true
+                                            },
+                                        ),
+                                        MuseFloatingActionItem(
+                                            key = "find",
+                                            icon = TablerIcons.Search,
+                                            label = stringResource(R.string.chat_find_in_conversation),
+                                            enabled = messages.isNotEmpty(),
+                                            onClick = {
+                                                showTopMenu = false
+                                                showInChatSearch = true
+                                            },
+                                        ),
+                                    ),
+                                    onDismiss = { showTopMenu = false },
+                                )
                             }
                         }
                     }
@@ -1191,7 +1176,8 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
             } // I3: 输入区错误边界收尾
             }
         },
-        containerColor = if (chatBackground.isNullOrBlank()) {
+        // 背景图/渐变都由外层 Box 绘制; Scaffold 必须透明,否则默认 background 会把渐变盖住。
+        containerColor = if (chatBackground.isNullOrBlank() && chatGradient == null) {
             MaterialTheme.colorScheme.background
         } else {
             androidx.compose.ui.graphics.Color.Transparent
@@ -2081,7 +2067,13 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .statusBarsPadding()
-                        .padding(horizontal = MusePaddings.screen, vertical = 4.dp),
+                        // 顶栏高度约 56dp,查找条固定落在标题岛下方,不再压住三岛。
+                        .padding(
+                            top = 56.dp,
+                            start = MusePaddings.screen,
+                            end = MusePaddings.screen,
+                            bottom = 4.dp,
+                        ),
                 )
             }
         } // Box
@@ -2097,55 +2089,6 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
         } // Scaffold
     } // 背景 Box(v1.0.74 自定义聊天背景)
 } // ChatScreen
-
-/**
- * v1.0.72: 顶栏三点菜单的胶囊选项(圆形胶囊:图标 + 文字)。
- */
-@Composable
-private fun TopMenuCapsule(
-    icon: ImageVector,
-    text: String,
-    enabled: Boolean,
-    onClick: () -> Unit,
-) {
-    Surface(
-        shape = CircleShape,
-        color = if (enabled) {
-            MaterialTheme.colorScheme.surfaceVariant
-        } else {
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
-        },
-        modifier = Modifier
-            .padding(vertical = 3.dp)
-            .clickable(enabled = enabled, onClick = onClick),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = if (enabled) {
-                    MaterialTheme.colorScheme.onSurface
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                },
-                modifier = Modifier.size(18.dp),
-            )
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (enabled) {
-                    MaterialTheme.colorScheme.onSurface
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                },
-            )
-        }
-    }
-}
 
 /**
  * H10: 手动压缩参数对话框 — 保留条数 / 附加指令 / 保留区 token 估算。

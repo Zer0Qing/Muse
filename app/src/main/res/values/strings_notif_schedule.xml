@@ -41,19 +41,26 @@
 
     <!-- ===== main activity ===== -->
     <!-- 安全模式 -->
-    <string name="main_activity_safe_mode_title">muse 已进入安全模式</string>
-    <string name="main_activity_safe_mode_desc">上次运行时崩溃,已为你保存崩溃日志。点击下方按钮清除标记并正常重启。</string>
+    <string name="main_activity_safe_mode_title">Muse 启动遇到问题</string>
+    <string name="main_activity_safe_mode_desc">Muse 上次启动时发生了崩溃,但聊天记录和设置不会被删除。请从下面选择处理方式。</string>
     <string name="main_activity_crash_log_copied">崩溃日志已复制到剪贴板</string>
     <string name="main_activity_copy_crash_log">一键复制报错日志</string>
-    <string name="main_activity_clear_flag_and_exit">清除标记并退出</string>
+    <string name="main_activity_clear_flag_and_exit">退出安全模式</string>
     <string name="main_activity_send_crash_email">发送崩溃日志到邮箱</string>
     <string name="main_activity_send_crash_email_failed">未找到邮件应用,日志已复制到剪贴板</string>
     <!-- v2.0+: SafeModeScreen 新增文案 -->
-    <string name="safe_mode_warning_title">上次启动崩溃</string>
-    <string name="safe_mode_continue_normal">继续正常启动</string>
-    <string name="safe_mode_view_full_log">查看完整崩溃日志</string>
-    <string name="safe_mode_clear_data_restart">清除所有数据并重启</string>
+    <string name="safe_mode_warning_title">Muse 启动遇到问题</string>
+    <string name="safe_mode_continue_normal">直接正常打开 Muse</string>
+    <string name="safe_mode_continue_normal_desc">保留聊天记录和设置,退出安全模式后再次启动</string>
+    <string name="safe_mode_view_full_log">查看崩溃日志</string>
+    <string name="safe_mode_view_full_log_desc">查看或分享完整日志,方便定位问题</string>
+    <string name="safe_mode_clear_data_restart">删除全部数据并重新开始（不可撤销）</string>
+    <string name="safe_mode_clear_data_restart_desc">删除聊天、设置和本地文件,只在 Muse 无法正常启动时使用</string>
+    <string name="safe_mode_clear_data_confirm_title">确定要删除全部数据吗？</string>
+    <string name="safe_mode_clear_data_confirm_desc">这会删除聊天记录、设置、头像和本地文件,而且无法恢复。只有在 Muse 始终无法正常打开时才建议使用。</string>
+    <string name="safe_mode_clear_data_confirm_action">删除全部数据</string>
     <string name="safe_mode_copy_crash_info">复制崩溃信息</string>
+    <string name="safe_mode_copy_crash_info_desc">复制时间和错误堆栈,方便反馈给开发者</string>
     <string name="safe_mode_crash_time_label">崩溃时间</string>
     <string name="safe_mode_stack_trace_label">崩溃堆栈</string>
     <string name="safe_mode_no_crash_log">无崩溃日志记录</string>
@@ -91,7 +98,8 @@
         <item>有个事跟你说</item>
         <item>悄悄告诉你</item>
     </string-array>
-    <string name="safe_mode_data_recovery">数据恢复引导</string>
+    <string name="safe_mode_data_recovery">先看数据恢复说明</string>
+    <string name="safe_mode_data_recovery_desc_short">了解哪些数据会保留,以及如何从备份恢复</string>
     <string name="safe_mode_data_recovery_title">数据恢复引导</string>
     <string name="safe_mode_data_recovery_desc">本次崩溃不影响本地数据,聊天记录与设置均完好保留。如需从云端备份恢复数据:启动后进入 设置 → 数据备份 → 从云端恢复。</string>
     <string name="safe_mode_data_recovery_ok">知道了</string>

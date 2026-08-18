@@ -13,8 +13,10 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.pager.HorizontalPager
@@ -80,6 +82,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
@@ -251,6 +254,9 @@ internal fun MessageBubble(
     var showLanguageSubmenu by rememberSaveable { mutableStateOf(false) }
     // v1.0.74 fix: 记录气泡在窗口中的位置,长按菜单以此锚定(此前无锚点,永远弹在窗口右上角)
     var actionMenuBounds by remember { mutableStateOf(androidx.compose.ui.geometry.Rect.Zero) }
+    // 长按菜单需要使用手指实际按下的位置,而不是整条气泡的固定边界。
+    var actionMenuPressPointLocal by remember { mutableStateOf<Offset?>(null) }
+    var actionMenuPointInWindow by remember { mutableStateOf<Offset?>(null) }
     // v1.0.72: Manus 风格长按菜单 — false=精简面板(引用/分享/复制/选择文本/更多),
     // true=展开完整菜单(委托/分支/翻译/收藏/编辑/删除等)
     var showExtendedMenu by rememberSaveable { mutableStateOf(false) }
@@ -291,31 +297,52 @@ internal fun MessageBubble(
     // M-UI1: 长按菜单/桌面菜单手势统一收口,后续分别附加到用户/助手气泡上,
     // 避免整行 Column 都被点击高亮覆盖。
     val bubbleInteractionSource = remember { MutableInteractionSource() }
-    val bubbleClickModifier = Modifier.combinedClickable(
-        interactionSource = bubbleInteractionSource,
-        indication = null,
-        // v1.0.72: 长按消息任意位置(含文字区域,已去掉 SelectionContainer 拦截)都弹操作菜单;
-        // 点击:多选模式切换选中 / 文本选择模式退出
-        onClick = {
-            if (selectionMode) onToggleSelection?.invoke()
-            else if (textSelectMode) textSelectMode = false
-        },
-        onLongClick = {
-            MuseHaptics.medium(hapticFeedback)
-            if (textSelectMode) {
-                // v1.0.72: 文本选择模式下长按交给 SelectionContainer 激活系统选择手柄,
-                // 不弹操作菜单(否则长按被抢走,永远选不了文字)
-                return@combinedClickable
+    val bubbleClickModifier = Modifier
+        // 旁路观察按下点,不消费事件,保留 combinedClickable 对链接/选择文本的既有行为。
+        .pointerInput(msg.id) {
+            awaitEachGesture {
+                val down = awaitFirstDown(requireUnconsumed = false)
+                actionMenuPressPointLocal = down.position
+                waitForUpOrCancellation()
             }
-            if (selectionMode) {
-                onToggleSelection?.invoke()
-            } else if (desktopShortcutsEnabled) {
-                showDesktopContextMenu = true
-            } else {
-                showActionMenu = true
+        }
+        .combinedClickable(
+            interactionSource = bubbleInteractionSource,
+            indication = null,
+            // v1.0.72: 长按消息任意位置(含文字区域,已去掉 SelectionContainer 拦截)都弹操作菜单;
+            // 点击:多选模式切换选中 / 文本选择模式退出
+            onClick = {
+                if (selectionMode) onToggleSelection?.invoke()
+                else if (textSelectMode) textSelectMode = false
+            },
+            onLongClick = {
+                MuseHaptics.medium(hapticFeedback)
+                if (textSelectMode) {
+                    // v1.0.72: 文本选择模式下长按交给 SelectionContainer 激活系统选择手柄,
+                    // 不弹操作菜单(否则长按被抢走,永远选不了文字)
+                    return@combinedClickable
+                }
+                if (selectionMode) {
+                    onToggleSelection?.invoke()
+                } else if (desktopShortcutsEnabled) {
+                    showDesktopContextMenu = true
+                } else {
+                    // 菜单首次出现时重新从当前气泡坐标换算按压点,避免沿用旧窗口坐标。
+                    actionMenuPointInWindow = null
+                    showActionMenu = true
+                }
+            },
+        )
+        .onGloballyPositioned { coordinates ->
+            if (showActionMenu) {
+                val bounds = coordinates.boundsInWindow()
+                val pointInWindow = actionMenuPressPointLocal?.let(coordinates::localToWindow)
+                if (actionMenuBounds != bounds) actionMenuBounds = bounds
+                if (actionMenuPointInWindow != pointInWindow) {
+                    actionMenuPointInWindow = pointInWindow
+                }
             }
-        },
-    )
+        }
 
     // 按当前布局方向计算绝对对齐,避免 RTL 下用户/助手气泡左右颠倒
     val layoutDirection = LocalLayoutDirection.current
@@ -329,10 +356,6 @@ internal fun MessageBubble(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            // v1.0.74 fix: 记录气泡窗口位置供长按菜单锚定(仅菜单显示时更新)
-            .onGloballyPositioned {
-                if (showActionMenu) actionMenuBounds = it.boundsInWindow()
-            }
             .then(if (isAnimating) Modifier.animateContentSize() else Modifier),
     ) {
     Column(
@@ -1280,12 +1303,12 @@ internal fun MessageBubble(
                 // 锚点未测量完成(Zero)时组件退化为屏幕左上角偏移,与原退化行为一致。
                 MusePopover(
                     anchorBounds = actionMenuBounds,
-                    widthDp = 220,
                     gapDp = 8,
                     onDismiss = {
                         showActionMenu = false
                         showLanguageSubmenu = false
                     },
+                    anchorPointInWindow = actionMenuPointInWindow,
                 ) {
                     TelegramActionCard(
                         isUser = isUser,

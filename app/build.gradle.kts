@@ -1,3 +1,4 @@
+import org.gradle.api.tasks.testing.Test
 import java.io.FileInputStream
 import java.util.Properties
 
@@ -140,6 +141,13 @@ android {
 
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
+}
+
+// 发布全量测试包含大量 Robolectric/Compose 用例;定期重启测试 worker
+// 防止单个 JVM 长时间累积 native/Compose 资源后在尾部用例 OOM。
+tasks.withType<Test>().configureEach {
+    maxHeapSize = "2g"
+    forkEvery = 200
 }
 
 dependencies {

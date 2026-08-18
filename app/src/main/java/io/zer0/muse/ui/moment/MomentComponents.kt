@@ -3,8 +3,8 @@ package io.zer0.muse.ui.moment
 import android.content.Context
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,14 +22,16 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -37,6 +39,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -114,6 +117,7 @@ fun MomentsFeedHeader(
     unreadMessagesCount: Int,
     onBack: () -> Unit,
     onOpenMessages: () -> Unit,
+    onToggleSearch: () -> Unit = {},
     onShortPublish: () -> Unit,
     onLongPublish: () -> Unit,
     onPickCover: () -> Unit,
@@ -126,8 +130,10 @@ fun MomentsFeedHeader(
             .fillMaxWidth()
             // v1.0.74 fix: 背景图覆盖到状态栏后面(edge-to-edge 沉浸),不再 statusBarsPadding 下沉;
             // 内部按钮各自用 statusBarsPadding 避让,背景图全屏铺满顶部。
-            .height(210.dp)
-            .clip(RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp))
+            .height(300.dp)
+            // 微信朋友圈封面是整块沉浸式图片,不再额外套圆角卡片。
+            .clip(RoundedCornerShape(0.dp))
+            .clickable(onClick = onPickCover)
             .background(
                 Brush.linearGradient(
                     listOf(
@@ -137,7 +143,6 @@ fun MomentsFeedHeader(
                     ),
                 ),
             )
-            .combinedClickable(onClick = onPickCover, onLongClick = onPickCover),
     ) {
         // 封面背景图(用户自选)
         if (!coverImage.isNullOrBlank()) {
@@ -146,6 +151,13 @@ fun MomentsFeedHeader(
                 contentDescription = stringResource(R.string.moment_cover_cd),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
+            )
+        }
+        if (!coverImage.isNullOrBlank()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.18f)),
             )
         }
         // 返回
@@ -170,6 +182,16 @@ fun MomentsFeedHeader(
                 .padding(MusePaddings.screen),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            IconButton(
+                onClick = onToggleSearch,
+                modifier = Modifier.background(Color.Black.copy(alpha = 0.25f), CircleShape),
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Search,
+                    contentDescription = "搜索动态",
+                    tint = Color.White,
+                )
+            }
             Box {
                 IconButton(
                     onClick = onOpenMessages,
@@ -199,30 +221,35 @@ fun MomentsFeedHeader(
                     }
                 }
             }
-            // 发布:短按图文,长按纯文字
-            IconButton(
-                onClick = onShortPublish,
-                modifier = Modifier.background(Color.Black.copy(alpha = 0.25f), CircleShape),
+            // 发布:短按图文,长按纯文字,入口采用微信朋友圈的相机图标。
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(Color.Black.copy(alpha = 0.25f))
+                    .combinedClickable(
+                        onClick = onShortPublish,
+                        onLongClick = onLongPublish,
+                    ),
+                contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = Icons.Filled.Add,
+                    imageVector = Icons.Filled.PhotoCamera,
                     contentDescription = stringResource(R.string.moment_publish_cd),
                     tint = Color.White,
                 )
             }
         }
-        // 右下: 换封面胶囊 + 名字 + 头像
-        // v1.0.74 fix: 封面整块可点换图误触率高,改为显式"换封面"胶囊
+        // 右下: 名字 + 大头像,头像压在封面底边上。
         Row(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(horizontal = 20.dp, vertical = 14.dp),
+                .padding(horizontal = 18.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // v1.0.74: 换封面按钮不常驻 — 点击封面即可换图(封面 combinedClickable 已处理),此处只留名字+头像
             Text(
                 text = userName,
-                style = MaterialTheme.typography.titleMedium.copy(
+                style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
                 ),
@@ -232,13 +259,13 @@ fun MomentsFeedHeader(
                 senderType = "user",
                 name = userName,
                 avatarUrl = userAvatarUri,
-                size = 52,
+                size = 76,
                 modifier = Modifier
                     .clip(CircleShape)
                     .background(Color.White.copy(alpha = 0.35f), CircleShape)
                     .padding(3.dp)
                     // v1.0.74: 自己的头像也可点击进自己的主页
-                    .clickable(onClick = onOpenSelfProfile),
+                .clickable(onClick = onOpenSelfProfile),
             )
         }
     }
@@ -254,17 +281,31 @@ fun MomentFeedList(
     commentsByMoment: Map<String, List<MomentCommentEntity>>,
     userAvatarUri: String?,
     assistants: Map<String, io.zer0.muse.data.assistant.AssistantEntity> = emptyMap(),
+    favoriteMomentIds: Set<String> = emptySet(),
     onToggleLike: (MomentEntity) -> Unit,
+    onToggleFavorite: (MomentEntity) -> Unit = {},
+    onShare: (MomentEntity) -> Unit = {},
     onAddComment: (MomentEntity, String) -> Unit,
     onRefresh: () -> Unit,
     onOpenProfile: (MomentEntity) -> Unit,
+    targetMomentId: String? = null,
+    onTargetMomentConsumed: () -> Unit = {},
     // v1.0.74: 加载中(避免首次进入空态闪现)
     isLoading: Boolean = false,
     // v1.0.74: 删除动态(仅用户自己的动态可删)
     onDelete: (MomentEntity) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    var refreshing by remember { mutableStateOf(false) }
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(targetMomentId, moments) {
+        if (targetMomentId == null) return@LaunchedEffect
+        val targetIndex = moments.indexOfFirst { it.id == targetMomentId }
+        if (targetIndex >= 0) {
+            listState.animateScrollToItem(targetIndex)
+        }
+        onTargetMomentConsumed()
+    }
 
     // v1.0.74 fix: 加载中显示转圈,不闪"还没有动态"
     if (isLoading) {
@@ -275,11 +316,9 @@ fun MomentFeedList(
     }
 
     PullToRefreshBox(
-        isRefreshing = refreshing,
+        isRefreshing = isLoading,
         onRefresh = {
-            refreshing = true
             onRefresh()
-            refreshing = false
         },
         modifier = modifier.fillMaxSize(),
     ) {
@@ -301,6 +340,7 @@ fun MomentFeedList(
             }
         } else {
             LazyColumn(
+                state = listState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
                     horizontal = MusePaddings.screen,
@@ -315,6 +355,9 @@ fun MomentFeedList(
                             moment = moment,
                             comments = commentsByMoment[moment.id] ?: emptyList(),
                             onToggleLike = { onToggleLike(moment) },
+                            isFavorite = moment.id in favoriteMomentIds,
+                            onToggleFavorite = { onToggleFavorite(moment) },
+                            onShare = { onShare(moment) },
                             onAddComment = { text -> onAddComment(moment, text) },
                             onAvatarClick = { onOpenProfile(moment) },
                             // v1.0.74 fix: 助手头像此前全部缺失(渐变块认不出谁发的),
@@ -349,6 +392,7 @@ fun MomentMessagesPage(
     messages: List<MomentMessage>,
     userName: String,
     onBack: () -> Unit,
+    onOpenMoment: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -397,6 +441,7 @@ fun MomentMessagesPage(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .clickable { onOpenMoment(msg.momentId) }
                             .padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {

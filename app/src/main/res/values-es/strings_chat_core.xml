@@ -72,6 +72,8 @@
     <string name="moment_expand_full">Ver texto completo</string>
     <string name="moment_like_cd">Me gusta</string>
     <string name="moment_comment_cd">Comentar</string>
+    <string name="moment_favorite">Favorito</string>
+    <string name="moment_more_actions">Más acciones para esta publicación</string>
     <string name="moment_sender_muse">Muse</string>
     <string name="moment_sender_me">Yo</string>
     <string name="moment_comment_hint">Publicar comentario:</string>

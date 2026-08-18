@@ -4,6 +4,7 @@
     <!-- Title and intro -->
     <string name="tools_screen_title">AIツール</string>
     <string name="tools_intro_what">ツールとは、通知の読み取り、計算、コードの実行など、AI が呼び出すことができる機能です。</string>
+    <string name="tool_exec_empty_result">ツール %1$s は完了しましたが、表示できる内容を返しませんでした。</string>
     <string name="tools_intro_manage">アシスタントの詳細ページ→拡張機能→ツールで、アシスタントごとにツールを有効/無効にすることができます。</string>
 
     <!-- Stats -->

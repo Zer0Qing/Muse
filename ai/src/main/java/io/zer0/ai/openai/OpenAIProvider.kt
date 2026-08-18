@@ -188,7 +188,7 @@ class OpenAIProvider(
     private fun streamChatCompletions(request: ChatRequest): Flow<ChatStreamEvent> = channelFlow {
         val body = buildRequestBody(request)
         // M-OAI4: 改用配置项 chatCompletionsPath(支持 Azure 等中转自定义路径)
-        val url = baseUrl() + openAIConfig.chatCompletionsPath
+        val url = baseUrl() + chatCompletionsPath()
         // B-28: 日志只记 scheme+host+path,不记 query
         Logger.i("OpenAIProvider", "streamChat: POST ${sanitizeUrl(url)} model=${request.model} msgs=${request.messages.size}")
 
@@ -831,7 +831,7 @@ class OpenAIProvider(
         if (useResponsesApi) return@withContext completeTextResponses(request, keySwitchDepth)
         val body = buildRequestBody(request, stream = false)
         // M-OAI4: 改用配置项 chatCompletionsPath(与 streamChat 一致)
-        val url = baseUrl() + openAIConfig.chatCompletionsPath
+        val url = baseUrl() + chatCompletionsPath()
         Logger.i("OpenAIProvider", "completeText: POST ${sanitizeUrl(url)} model=${request.model}")
         // v1.0.1: 用 effectiveApiKey() 支持多 key 轮换
         // v1.0.18: 走免费模型 fallback(用户未填 key + SiliconFlow 白名单模型 → 用内置 key)
@@ -924,6 +924,27 @@ class OpenAIProvider(
     }
 
     private fun baseUrl(): String = config.resolvedBaseUrl()
+
+    /**
+     * Resolve the configured Chat Completions path for both OpenAI and Custom
+     * specific configurations.
+     *
+     * Custom providers use [ProviderSpecificConfig.Custom] to carry their
+     * path, so reading only [openAIConfig] silently discarded that setting
+     * and could make a healthy `/models` check followed by a chat HTTP 404.
+     */
+    private fun chatCompletionsPath(): String {
+        val configured = when (val specific = config.specific) {
+            is ProviderSpecificConfig.Custom -> specific.chatCompletionsPath
+            is ProviderSpecificConfig.OpenAI -> specific.chatCompletionsPath
+            else -> ProviderSpecificConfig.OpenAI().chatCompletionsPath
+        }.trim()
+        return when {
+            configured.isBlank() -> "/chat/completions"
+            configured.startsWith("/") -> configured
+            else -> "/$configured"
+        }
+    }
 
     /**
      * 拉取上游模型列表。

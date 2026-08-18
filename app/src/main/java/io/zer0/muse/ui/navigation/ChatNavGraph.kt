@@ -8,8 +8,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -35,6 +37,7 @@ import io.zer0.muse.ui.quicknotes.QuickNotesScreen
 import io.zer0.muse.ui.quicknotes.QuickNotesViewModel
 import org.koin.androidx.compose.koinViewModel
 import androidx.navigation.toRoute
+import kotlinx.coroutines.launch
 
 /**
  * 聊天域 NavGraph — 包含首页、搜索、聊天详情、群聊详情、最近删除、快速记录、
@@ -111,6 +114,13 @@ fun NavGraphBuilder.chatNavGraph(
     ) {
         val momentViewModel: io.zer0.muse.ui.moment.MomentViewModel = org.koin.androidx.compose.koinViewModel()
         val momentState by momentViewModel.state.collectAsStateWithLifecycle()
+        val settings: io.zer0.muse.data.SettingsRepository = org.koin.compose.koinInject()
+        val hiddenMiniPhoneApps by settings.miniPhoneHiddenAppsFlow.collectAsStateWithLifecycle(
+            initialValue = emptySet(),
+        )
+        val miniPhoneAppOrder by settings.miniPhoneAppOrderFlow.collectAsStateWithLifecycle(
+            initialValue = emptyList(),
+        )
         var showMoments by remember { mutableStateOf(false) }
         // v1.0.74 fix: 消息图标直达消息页(此前红点清了却进 feed)
         var initialPage by remember { mutableStateOf("feed") }
@@ -125,6 +135,8 @@ fun NavGraphBuilder.chatNavGraph(
                 // v1.0.74: 小手机主人 = 用户
                 userName = momentState.userName,
                 userAvatarUri = momentState.userAvatarUri,
+                hiddenApps = hiddenMiniPhoneApps,
+                appOrder = miniPhoneAppOrder,
                 onOpenMoments = {
                     momentViewModel.markMomentsRead()
                     initialPage = "feed"
@@ -140,6 +152,7 @@ fun NavGraphBuilder.chatNavGraph(
                 onOpenAlbum = { navController.navigate(MiniAlbumRoute) },
                 onOpenWeather = { navController.navigate(MiniWeatherRoute) },
                 onOpenDiary = { navController.navigate(MiniDiaryRoute) },
+                onOpenSettings = { navController.navigate(SettingsMiniPhoneRoute) },
                 onSetWallpaper = momentViewModel::setWallpaper,
                 onPrepareImage = { uri -> momentViewModel.prepareImageDataUri(uri, context) },
                 onBack = { navController.popBackStack() },
@@ -148,6 +161,7 @@ fun NavGraphBuilder.chatNavGraph(
             io.zer0.muse.ui.moment.MomentsScreen(
                 moments = momentState.moments,
                 commentsByMoment = momentState.comments,
+                favoriteMomentIds = momentState.favoriteMomentIds,
                 messages = momentState.messages,
                 unreadMessagesCount = momentState.unreadMessagesCount,
                 isLoading = momentState.isLoading,
@@ -157,6 +171,7 @@ fun NavGraphBuilder.chatNavGraph(
                 assistants = momentState.assistants,
                 banner = momentState.banner,
                 onToggleLike = momentViewModel::toggleLike,
+                onToggleFavorite = momentViewModel::toggleFavorite,
                 onAddComment = momentViewModel::addComment,
                 onDeleteMoment = momentViewModel::deleteMoment,
                 onPublish = momentViewModel::publish,
@@ -175,13 +190,40 @@ fun NavGraphBuilder.chatNavGraph(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
-        var albumImages by remember { mutableStateOf<List<String>>(emptyList()) }
-        LaunchedEffect(Unit) {
+        val settings: io.zer0.muse.data.SettingsRepository = org.koin.compose.koinInject()
+        val scope = rememberCoroutineScope()
+        val hiddenAlbumImageIds by settings.miniAlbumHiddenImageIdsFlow.collectAsStateWithLifecycle(
+            initialValue = emptySet(),
+        )
+        val favoriteAlbumImageIds by settings.miniAlbumFavoriteImageIdsFlow.collectAsStateWithLifecycle(
+            initialValue = emptySet(),
+        )
+        var albumImages by remember {
+            mutableStateOf<List<io.zer0.muse.data.`import`.MiniAlbumImage>>(emptyList())
+        }
+        var albumReloadKey by remember { mutableIntStateOf(0) }
+        var albumLoading by remember { mutableStateOf(false) }
+        LaunchedEffect(albumReloadKey) {
+            albumLoading = true
             albumImages = io.zer0.muse.data.`import`.MiniDataLoader.loadAiGeneratedImages(context)
+            albumLoading = false
         }
         io.zer0.muse.ui.moment.MiniAlbumScreen(
             images = albumImages,
             onBack = { navController.popBackStack() },
+            isLoading = albumLoading,
+            onRefresh = { albumReloadKey++ },
+            hiddenImageIds = hiddenAlbumImageIds,
+            favoriteImageIds = favoriteAlbumImageIds,
+            onToggleFavorite = { imageId ->
+                scope.launch { settings.toggleMiniAlbumFavoriteImage(imageId) }
+            },
+            onHideImage = { imageId ->
+                scope.launch { settings.hideMiniAlbumImage(imageId) }
+            },
+            onUnhideImage = { imageId ->
+                scope.launch { settings.unhideMiniAlbumImage(imageId) }
+            },
         )
     }
     // v1.0.74: 小手机子页 — 天气(Open-Meteo)

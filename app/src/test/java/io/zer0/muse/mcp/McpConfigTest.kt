@@ -79,4 +79,39 @@ class McpConfigTest {
         val decoded = io.zer0.common.AppJson.decodeFromString(McpServerConfig.serializer(), json)
         assertEquals(config, decoded)
     }
+
+    @Test
+    fun `feishu auth requires both app id and app secret`() {
+        assertFalse(McpFeishuAuthConfig(enabled = true, appId = "id").isConfigured())
+        assertFalse(McpFeishuAuthConfig(enabled = true, appSecret = "secret").isConfigured())
+        assertTrue(
+            McpFeishuAuthConfig(
+                enabled = true,
+                appId = "id",
+                appSecret = "secret",
+            ).isConfigured(),
+        )
+    }
+
+    @Test
+    fun `feishu tenant token response uses expire seconds`() {
+        val token = McpFeishuTenantTokenClient().parseTokenResponse(
+            body = """{"tenant_access_token":"t-test","expire":7200}""",
+            now = 1_000L,
+        )
+
+        assertEquals("t-test", token?.accessToken)
+        assertEquals(7_201_000L, token?.expiresAt)
+    }
+
+    @Test
+    fun `feishu tenant token response without token is rejected`() {
+        assertEquals(
+            null,
+            McpFeishuTenantTokenClient().parseTokenResponse(
+                body = """{"code":999,"msg":"invalid app"}""",
+                now = 1_000L,
+            ),
+        )
+    }
 }

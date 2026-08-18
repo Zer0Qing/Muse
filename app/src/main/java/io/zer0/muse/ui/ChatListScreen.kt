@@ -27,8 +27,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -56,18 +54,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.IntOffset
@@ -204,74 +201,68 @@ fun ChatListScreen(
     var greetingFacts by remember { mutableStateOf<List<FactEntity>>(emptyList()) }
     // v1.x: LLM 生成的个性化问候后缀(当天缓存,无则回退规则版)
     var greetingHint by remember { mutableStateOf<String?>(null) }
+    // v1.x: 每日总结由 Worker 写入 DataStore,生成后首页可实时接收
+    val dailySummary by settings.dailySummaryFlow.collectAsStateWithLifecycle(initialValue = null)
     val context = LocalContext.current
     LaunchedEffect(Unit) {
         // 审计修复 (8.8): 去掉内层 scope.launch — 原实现内层协程属于 rememberCoroutineScope,
         // 不随 LaunchedEffect 取消(离开组合/翻页后仍在跑),且双重启动无意义。
         runCatching { memoryCount = factDao.count() }
         runCatching { docCount = knowledgeDocDao.countUserVisible() }
-        runCatching { greetingFacts = factDao.getAll("main").take(100) }
+        // 必须先拿到局部 facts 再生成,不能在同一协程里读取刚刚 set 的 Compose 状态。
+        val facts = runCatching { factDao.getAll("main").take(100) }.getOrElse {
+            Logger.w("ChatListScreen", "读取问候语记忆失败: ${it.message}")
+            emptyList()
+        }
+        greetingFacts = facts
+        var resolvedGreetingHint: String? = null
         // v1.x: 个性化问候 — 缓存优先(当天),未命中则 LLM 生成,失败回退规则版。
         runCatching {
             val today = java.time.LocalDate.now().toString()
             val cached = settings.getGreetingHintCache()
             if (cached?.startsWith("$today|") == true) {
-                greetingHint = cached.substringAfter("|").takeIf { it.isNotBlank() }
+                resolvedGreetingHint = cached.substringAfter("|").takeIf { it.isNotBlank() }
+                greetingHint = resolvedGreetingHint
             } else {
-                greetingHintGenerator.generate(greetingFacts)?.let { hint ->
+                greetingHintGenerator.generate(facts)?.let { hint ->
+                    resolvedGreetingHint = hint
                     greetingHint = hint
-                        settings.saveGreetingHintCache("$today|$hint")
-                    }
+                    settings.saveGreetingHintCache("$today|$hint")
                 }
-            }.onFailure { e -> Logger.w("ChatListScreen", "问候语生成失败: ${e.message}") }
-            // v1.x: 问候语个性化提醒通知 — 有近期事项且今天未通知过时,发一条通知让用户知道助手在关注他(每天最多一次)。
-            runCatching {
-                val hint = greetingHint ?: GreetingHelper.getMemoryHint(greetingFacts)
-                if (hint != null) {
-                    val today = java.time.LocalDate.now().toString()
-                    val lastNotify = settings.getLastGreetingNotifyDate()
-                    if (lastNotify != today) {
-                        val titles = context.resources.getStringArray(R.array.greeting_notify_titles)
-                        notificationManager.notifyReminder(
-                            title = titles.random(),
-                            message = hint,
-                            notificationId = GREETING_NOTIFY_ID,
-                        )
-                        settings.saveLastGreetingNotifyDate(today)
-                    }
+            }
+        }.onFailure { e -> Logger.w("ChatListScreen", "问候语生成失败: ${e.message}") }
+        // v1.x: 问候语个性化提醒通知 — 有近期事项且今天未通知过时,发一条通知让用户知道助手在关注他(每天最多一次)。
+        runCatching {
+            // 同一 LaunchedEffect 内状态更新尚未回流,使用局部结果保证首次加载也能通知。
+            val hint = resolvedGreetingHint ?: GreetingHelper.getMemoryHint(facts)
+            if (hint != null) {
+                val today = java.time.LocalDate.now().toString()
+                val lastNotify = settings.getLastGreetingNotifyDate()
+                if (lastNotify != today) {
+                    val titles = context.resources.getStringArray(R.array.greeting_notify_titles)
+                    notificationManager.notifyReminder(
+                        title = titles.random(),
+                        message = hint,
+                        notificationId = GREETING_NOTIFY_ID,
+                    )
+                    settings.saveLastGreetingNotifyDate(today)
                 }
-            }.onFailure { e -> Logger.w("ChatListScreen", "问候语提醒通知失败: ${e.message}") }
+            }
+        }.onFailure { e -> Logger.w("ChatListScreen", "问候语提醒通知失败: ${e.message}") }
     }
 
     // v0.36 性能优化:缓存排序结果,避免每次重组都重新计算。
     val displayedSessions by remember(sessions) {
-        mutableStateOf(sessions.sortedWith(
-            compareByDescending<SessionEntity> { it.pinned }.thenByDescending { it.updatedAt }
-        ))
+        mutableStateOf(
+            sessions
+                .distinctBy { it.id }
+                .sortedWith(
+                    compareByDescending<SessionEntity> { it.pinned }.thenByDescending { it.updatedAt },
+                ),
+        )
     }
     val pinned = remember(displayedSessions) { displayedSessions.filter { it.pinned } }
     val recent = remember(displayedSessions) { displayedSessions.filterNot { it.pinned } }
-    // C2: 会话列表即时搜索 — 查询词与过滤结果(标题大小写不敏感子串匹配,空查询不过滤)。
-    // 仅过滤已加载的会话列表(不查 DB),输入即过滤,无防抖。
-    var listSearchQuery by rememberSaveable { mutableStateOf("") }
-    val isListSearching = listSearchQuery.isNotBlank()
-    val filteredSessions = remember(displayedSessions, listSearchQuery) {
-        val q = listSearchQuery.trim()
-        if (q.isEmpty()) {
-            emptyList()
-        } else {
-            displayedSessions.filter { it.title.contains(q, ignoreCase = true) }
-        }
-    }
-    // C3: 最近浏览历史(id 列表最近优先;仅展示仍存在的会话,误退可快速找回)
-    var recentBrowseIds by remember { mutableStateOf<List<String>>(emptyList()) }
-    LaunchedEffect(Unit) {
-        settings.recentSessionsFlow.collect { recentBrowseIds = it }
-    }
-    val recentBrowse = remember(recentBrowseIds, displayedSessions) {
-        val byId = displayedSessions.associateBy { it.id }
-        recentBrowseIds.mapNotNull { byId[it] }
-    }
     // B7-05: 拖拽期间的乐观顺序,收到 DB flow 更新后自动以 sessions 为准
     var pinnedOrder by remember(sessions) { mutableStateOf(pinned.map { it.id }) }
     val orderedPinned = remember(pinned, pinnedOrder) {
@@ -323,6 +314,8 @@ fun ChatListScreen(
                             memoryCount = memoryCount,
                             facts = greetingFacts,
                             personalizedHint = greetingHint,
+                            dailySummaryText = dailySummary?.text,
+                            dailySummaryDate = dailySummary?.date,
                             assistantName = currentAssistant?.name
                         )
                     }
@@ -339,86 +332,51 @@ fun ChatListScreen(
                         )
                     }
 
-                    // C2: 会话列表即时搜索条(输入条下方常驻,输入即过滤)
-                    item(key = "list_search") {
-                        SessionSearchBar(
-                            query = listSearchQuery,
-                            onQueryChange = { listSearchQuery = it },
-                            onClear = { listSearchQuery = "" },
-                            modifier = Modifier.padding(top = MusePaddings.tightGap),
+                    // 已置顶(标题 + 每条会话独立 item,平铺懒加载)
+                    if (pinned.isNotEmpty()) {
+                        pinnedSectionItems(
+                            pinned = orderedPinned,
+                            folders = folders,
+                            onSelect = onSelect,
+                            onDelete = onDelete,
+                            onRenameTo = onRenameTo,
+                            onTogglePinned = onTogglePinned,
+                            onReorderPinned = onReorderPinned,
+                            onMoveSessionToFolder = onMoveSessionToFolder,
+                            onArchive = onArchive,
                         )
                     }
 
-                    if (isListSearching) {
-                        // 搜索模式:扁平结果列表,隐藏置顶/文件夹/最近/知识库区
-                        searchResultSection(
-                            results = filteredSessions,
+                    // 文件夹(标题 + 每个文件夹独立 item,平铺懒加载)
+                    if (folders.isNotEmpty()) {
+                        foldersSectionItems(
                             folders = folders,
-                            onSelect = onSelect,
-                            onDelete = onDelete,
-                            onRenameTo = onRenameTo,
-                            onTogglePinned = onTogglePinned,
-                            onMoveSessionToFolder = onMoveSessionToFolder,
-                            onArchive = onArchive,
+                            onSelectFolder = { /* 当前无文件夹详情页,可后续扩展 */ },
+                            onRenameFolder = onRenameFolder,
+                            onDeleteFolder = onDeleteFolder,
                         )
-                    } else {
-                        // C3: 最近浏览 — 误退可快速找回(标题 chips 横滑,搜索模式下隐藏)
-                        if (recentBrowse.isNotEmpty()) {
-                            item(key = "recent_browse") {
-                                RecentBrowseRow(
-                                    sessions = recentBrowse,
-                                    onSelect = onSelect,
-                                    modifier = Modifier.padding(top = MusePaddings.sectionGap),
-                                )
-                            }
-                        }
+                    }
 
-                        // 已置顶(标题 + 每条会话独立 item,平铺懒加载)
-                        if (pinned.isNotEmpty()) {
-                            pinnedSectionItems(
-                                pinned = orderedPinned,
-                                folders = folders,
-                                onSelect = onSelect,
-                                onDelete = onDelete,
-                                onRenameTo = onRenameTo,
-                                onTogglePinned = onTogglePinned,
-                                onReorderPinned = onReorderPinned,
-                                onMoveSessionToFolder = onMoveSessionToFolder,
-                                onArchive = onArchive,
-                            )
-                        }
+                    // 最近(标题 + 每条会话独立 item,平铺懒加载)
+                    recentSectionItems(
+                        recent = recent,
+                        folders = folders,
+                        onSelect = onSelect,
+                        onDelete = onDelete,
+                        onRenameTo = onRenameTo,
+                        onTogglePinned = onTogglePinned,
+                        onMoveSessionToFolder = onMoveSessionToFolder,
+                        onArchive = onArchive,
+                        onCreate = onCreate,
+                    )
 
-                        // 文件夹(标题 + 每个文件夹独立 item,平铺懒加载)
-                        if (folders.isNotEmpty()) {
-                            foldersSectionItems(
-                                folders = folders,
-                                onSelectFolder = { /* 当前无文件夹详情页,可后续扩展 */ },
-                                onRenameFolder = onRenameFolder,
-                                onDeleteFolder = onDeleteFolder,
-                            )
-                        }
-
-                        // 最近(标题 + 每条会话独立 item,平铺懒加载)
-                        recentSectionItems(
-                            recent = recent,
-                            folders = folders,
-                            onSelect = onSelect,
-                            onDelete = onDelete,
-                            onRenameTo = onRenameTo,
-                            onTogglePinned = onTogglePinned,
-                            onMoveSessionToFolder = onMoveSessionToFolder,
-                            onArchive = onArchive,
-                            onCreate = onCreate,
+                    // 知识库
+                    item(key = "section_knowledge") {
+                        KnowledgeEntryCard(
+                            docCount = docCount,
+                            onClick = onOpenKnowledgeBase,
+                            modifier = Modifier.padding(top = MusePaddings.sectionGap),
                         )
-
-                        // 知识库
-                        item(key = "section_knowledge") {
-                            KnowledgeEntryCard(
-                                docCount = docCount,
-                                onClick = onOpenKnowledgeBase,
-                                modifier = Modifier.padding(top = MusePaddings.sectionGap),
-                            )
-                        }
                     }
                 }
             }
@@ -452,69 +410,6 @@ fun ChatListScreen(
     } // I3: 列表区错误边界收尾
 }
 
-/** C2: 会话列表即时搜索条 — 常驻输入条下方:Search 图标 + 输入框 + 清除按钮(有输入时)。 */
-@Composable
-private fun SessionSearchBar(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    onClear: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        shape = RoundedCornerShape(MuseCornerRadius.BUTTON.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier.padding(
-                horizontal = MusePaddings.itemGap,
-                vertical = MusePaddings.tinyGap,
-            ),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = TablerIcons.Search,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(18.dp),
-            )
-            Spacer(Modifier.width(MusePaddings.tightGap))
-            BasicTextField(
-                value = query,
-                onValueChange = onQueryChange,
-                singleLine = true,
-                textStyle = MaterialTheme.typography.bodyMedium.copy(
-                    color = MaterialTheme.colorScheme.onSurface,
-                ),
-                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                modifier = Modifier.weight(1f),
-                decorationBox = { innerTextField ->
-                    Box(contentAlignment = Alignment.CenterStart) {
-                        if (query.isEmpty()) {
-                            Text(
-                                text = stringResource(R.string.chat_list_search_hint),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        innerTextField()
-                    }
-                },
-            )
-            if (query.isNotBlank()) {
-                IconButton(onClick = onClear, modifier = Modifier.size(32.dp)) {
-                    Icon(
-                        imageVector = TablerIcons.X,
-                        contentDescription = stringResource(R.string.chat_list_search_clear),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(16.dp),
-                    )
-                }
-            }
-        }
-    }
-}
-
 /** 顶部问候标题 + 记忆数量副标题。 */
 @Composable
 private fun GreetingHeader(
@@ -522,6 +417,9 @@ private fun GreetingHeader(
     facts: List<FactEntity>,
     /** v1.x: LLM 生成的个性化后缀(非空时优先展示,未生成则回退规则版)。 */
     personalizedHint: String? = null,
+    /** v1.x: 最近一天内的每日总结,优先于事件记忆提示展示。 */
+    dailySummaryText: String? = null,
+    dailySummaryDate: String? = null,
     assistantName: String? = null,
     modifier: Modifier = Modifier,
 ) {
@@ -531,11 +429,12 @@ private fun GreetingHeader(
             .fillMaxWidth()
             .padding(top = 8.dp, bottom = 4.dp),
     ) {
+        val dailySummaryHint = GreetingHelper.getDailySummaryHint(dailySummaryText, dailySummaryDate)
         Text(
-            text = if (personalizedHint != null) {
-                "${GreetingHelper.getTimeGreeting()}，$personalizedHint"
-            } else {
-                GreetingHelper.buildGreeting(facts)
+            text = when {
+                dailySummaryHint != null -> "${GreetingHelper.getTimeGreeting()}，$dailySummaryHint"
+                personalizedHint != null -> "${GreetingHelper.getTimeGreeting()}，$personalizedHint"
+                else -> GreetingHelper.buildGreeting(facts)
             },
             style = MaterialTheme.typography.headlineMedium.copy(
                 fontWeight = FontWeight.Bold,
@@ -801,59 +700,6 @@ private fun PinnedTaskRow(
                 tint = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.size(18.dp),
             )
-        }
-    }
-}
-
-/**
- * 前端修复 (性能-1): 最近会话区 — LazyColumn 顶层平铺。
- * 标题单独 item;每条会话独立 items(key=id) item,懒加载渲染。
- */
-/** C2: 搜索模式结果区 — 扁平展示命中会话(标题过滤),无命中显示空状态提示。 */
-private fun LazyListScope.searchResultSection(
-    results: List<SessionEntity>,
-    folders: List<FolderEntity>,
-    onSelect: (String) -> Unit,
-    onDelete: (String) -> Unit,
-    onRenameTo: (SessionEntity, String) -> Unit,
-    onTogglePinned: (String) -> Unit,
-    onMoveSessionToFolder: (String, String?) -> Unit,
-    onArchive: (String) -> Unit,
-) {
-    if (results.isEmpty()) {
-        item(key = "search_no_result") {
-            SectionGroupRow(index = 0, total = 1) {
-                Text(
-                    text = stringResource(R.string.chat_list_search_no_result),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = MusePaddings.contentGap),
-                    textAlign = TextAlign.Center,
-                )
-            }
-        }
-    } else {
-        itemsIndexed(results, key = { _, session -> "search_${session.id}" }) { index, session ->
-            // E5 (H4): 搜索结果区列表项入场/位移动画
-            Box(museAnimateItem()) {
-                SectionGroupRow(index = index, total = results.size) {
-                    TaskItem(
-                        session = session,
-                        folders = folders,
-                        onSelect = onSelect,
-                        onDelete = onDelete,
-                        onRenameTo = onRenameTo,
-                        onTogglePinned = onTogglePinned,
-                        onMoveSessionToFolder = onMoveSessionToFolder,
-                        onArchive = onArchive,
-                    )
-                    if (index != results.lastIndex) {
-                        MuseDivider()
-                    }
-                }
-            }
         }
     }
 }
@@ -1625,70 +1471,5 @@ private fun formatTime(timestamp: Long): String {
         diff < dayMillis * 2 -> stringResource(R.string.chat_list_time_yesterday)
         diff < dayMillis * 7 -> stringResource(R.string.chat_list_time_days_ago, diff / dayMillis)
         else -> chatListSdf.format(Date(timestamp))
-    }
-}
-
-/**
- * C3: 最近浏览横滑 chips 行 — 标题 + 最近查看过的会话(最近优先),
- * 点击即回到对应会话(误退可快速找回)。搜索模式下由外层隐藏。
- */
-@Composable
-private fun RecentBrowseRow(
-    sessions: List<SessionEntity>,
-    onSelect: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        Text(
-            text = stringResource(R.string.chat_list_recent_browse),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
-            modifier = Modifier
-                .padding(start = MusePaddings.screen, bottom = 8.dp)
-                .fillMaxWidth(),
-        )
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
-            contentPadding = PaddingValues(horizontal = MusePaddings.screen),
-        ) {
-            items(sessions, key = { it.id }) { session ->
-                // E5 (H4): 最近浏览 chips 入场动画
-                Box(museAnimateItem()) {
-                    RecentBrowseChip(session = session, onClick = { onSelect(session.id) })
-                }
-            }
-        }
-    }
-}
-
-/** C3: 单个最近浏览 chip(时钟图标 + 会话标题,单行省略)。 */
-@Composable
-private fun RecentBrowseChip(
-    session: SessionEntity,
-    onClick: () -> Unit,
-) {
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(MuseCornerRadius.BUTTON.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = MusePaddings.itemGap, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = TablerIcons.Clock,
-                contentDescription = null,
-                modifier = Modifier.size(14.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.width(MusePaddings.tightGap))
-            Text(
-                text = session.title,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
     }
 }

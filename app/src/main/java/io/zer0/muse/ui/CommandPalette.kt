@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -114,8 +114,13 @@ internal fun CommandPalette(
     val visibleCommands = if (isCommandMode) {
         commands.filter { it.command.startsWith(query, ignoreCase = true) || query == "/" }
     } else emptyList()
-    val sessionResults = state.searchResults
-    val messageResults = state.messageResults
+    // 搜索结果可能按消息命中返回同一会话多次,命令面板只展示一次会话入口。
+    val sessionResults = remember(state.searchResults) {
+        state.searchResults.distinctBy { it.sessionId }
+    }
+    val messageResults = remember(state.messageResults) {
+        state.messageResults.distinctBy { it.messageId }
+    }
     val totalItems = visibleCommands.size + sessionResults.size + messageResults.size
 
     // 执行选中条目:统一解析目标后执行(命令 / 会话跳转 / 消息跳转)。
@@ -326,8 +331,10 @@ private fun PaletteResultList(
             item(key = "commands_header") {
                 PaletteSectionHeader(stringResource(R.string.command_palette_commands))
             }
-            items(visibleCommands, key = { it.command }) { entry ->
-                val index = visibleCommands.indexOf(entry)
+            itemsIndexed(
+                visibleCommands,
+                key = { index, entry -> "command_${entry.command}_$index" },
+            ) { index, entry ->
                 CommandRow(
                     icon = entry.icon,
                     label = stringResource(entry.labelRes),
@@ -346,8 +353,10 @@ private fun PaletteResultList(
                 item(key = "sessions_header") {
                     PaletteSectionHeader(stringResource(R.string.command_palette_sessions))
                 }
-                items(sessionResults, key = { "s_${it.sessionId}" }) { session ->
-                    val index = sessionResults.indexOf(session)
+                itemsIndexed(
+                    sessionResults,
+                    key = { index, session -> "s_${session.sessionId}_$index" },
+                ) { index, session ->
                     CommandRow(
                         icon = TablerIcons.Search,
                         label = session.sessionTitle.ifBlank { session.sessionId },
@@ -361,8 +370,10 @@ private fun PaletteResultList(
                 item(key = "messages_header") {
                     PaletteSectionHeader(stringResource(R.string.command_palette_messages))
                 }
-                items(messageResults, key = { "m_${it.messageId}" }) { message ->
-                    val index = messageResults.indexOf(message)
+                itemsIndexed(
+                    messageResults,
+                    key = { index, message -> "m_${message.messageId}_$index" },
+                ) { index, message ->
                     CommandRow(
                         icon = TablerIcons.Search,
                         label = message.sessionTitle.ifBlank { message.sessionId },

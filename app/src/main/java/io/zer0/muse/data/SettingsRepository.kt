@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import io.zer0.ai.core.Model
 import io.zer0.ai.core.ProviderConfig
 import io.zer0.ai.core.ProviderSpecMerger
@@ -44,6 +45,12 @@ import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import java.util.concurrent.atomic.AtomicBoolean
 
+
+/** 最近一次成功生成的每日助手总结,供首页问候语复用。 */
+data class DailySummarySnapshot(
+    val date: String,
+    val text: String,
+)
 
 /**
  * 应用全局配置仓库 — 基于 Jetpack DataStore (Preferences)。
@@ -340,10 +347,10 @@ class SettingsRepository(
             config
         }
     }
-    // H-SR2: McpServerConfig.authToken 是 Bearer token(敏感凭据),读写均走 SecureKeyStore
+    // H-SR2: MCP 静态 token 与飞书 App ID/App Secret 均走 SecureKeyStore。
     val mcpServersFlow: Flow<List<io.zer0.muse.mcp.McpServerConfig>> = store.data.map { prefs ->
         decodePrefsOrNull(prefs[KEY_MCP_SERVERS], ListSerializer(io.zer0.muse.mcp.McpServerConfig.serializer()), "McpServers")
-            ?.map { it.copy(authToken = SecureKeyStore.decrypt(it.authToken)) }
+            ?.map { it.decrypted() }
             ?: emptyList()
     }.catch {
         Logger.w("SettingsRepository", "mcpServersFlow 异常,回退空列表", it)
@@ -549,6 +556,33 @@ class SettingsRepository(
     }
 
     /**
+     * 最近一次成功生成的每日总结。
+     *
+     * Worker 即使因为应用正在前台而跳过通知,也会先写入这里,
+     * 让首页问候语仍然可以展示总结内容。
+     */
+    val dailySummaryFlow: Flow<DailySummarySnapshot?> = store.data.map { prefs ->
+        val date = prefs[KEY_DAILY_SUMMARY_DATE]
+        val text = prefs[KEY_DAILY_SUMMARY_TEXT]?.trim()
+        if (date.isNullOrBlank() || text.isNullOrBlank()) {
+            null
+        } else {
+            DailySummarySnapshot(date = date, text = text)
+        }
+    }
+
+    /** 保存每日总结,单独存日期和正文,避免正文中的分隔符破坏解析。 */
+    suspend fun saveDailySummary(date: String, summary: String) {
+        val cleanDate = date.trim()
+        val cleanSummary = summary.trim().take(200)
+        if (cleanDate.isBlank() || cleanSummary.isBlank()) return
+        store.edit {
+            it[KEY_DAILY_SUMMARY_DATE] = cleanDate
+            it[KEY_DAILY_SUMMARY_TEXT] = cleanSummary
+        }
+    }
+
+    /**
      * v1.0.72: AI 朋友圈每日动态条数(0-10,默认 2;0 = 关闭)。
      * 用户自由选择频率,调度器按条数把一天切段投放。
      */
@@ -581,6 +615,90 @@ class SettingsRepository(
     /** v1.0.74: 保存小手机开关。 */
     suspend fun saveMiniPhoneEnabled(enabled: Boolean) {
         store.edit { it[KEY_MINIPHONE_ENABLED] = enabled }
+    }
+
+    /** 快速记录胶囊总开关(默认开启)。 */
+    val quickCaptureEnabledFlow: Flow<Boolean> = store.data.map { prefs ->
+        prefs[KEY_QUICK_CAPTURE_ENABLED] ?: true
+    }
+
+    /** 保存快速记录胶囊总开关。 */
+    suspend fun saveQuickCaptureEnabled(enabled: Boolean) {
+        store.edit { it[KEY_QUICK_CAPTURE_ENABLED] = enabled }
+    }
+
+    /** 是否启用系统悬浮窗快速记录(默认关闭,需要用户授予悬浮窗权限)。 */
+    val quickCaptureOverlayEnabledFlow: Flow<Boolean> = store.data.map { prefs ->
+        prefs[KEY_QUICK_CAPTURE_OVERLAY_ENABLED] ?: false
+    }
+
+    /** 保存系统悬浮窗快速记录开关。 */
+    suspend fun saveQuickCaptureOverlayEnabled(enabled: Boolean) {
+        store.edit { it[KEY_QUICK_CAPTURE_OVERLAY_ENABLED] = enabled }
+    }
+
+    /** 小手机隐藏的桌面应用 id 集合,空集合表示全部显示。 */
+    val miniPhoneHiddenAppsFlow: Flow<Set<String>> = store.data.map { prefs ->
+        prefs[KEY_MINIPHONE_HIDDEN_APPS] ?: emptySet()
+    }
+
+    /** 保存小手机隐藏的桌面应用 id 集合。 */
+    suspend fun saveMiniPhoneHiddenApps(hiddenApps: Set<String>) {
+        store.edit { it[KEY_MINIPHONE_HIDDEN_APPS] = hiddenApps }
+    }
+
+    /** 小手机桌面应用顺序,空列表表示使用内置默认顺序。 */
+    val miniPhoneAppOrderFlow: Flow<List<String>> = store.data.map { prefs ->
+        prefs[KEY_MINIPHONE_APP_ORDER]
+            ?.split("|")
+            ?.filter { it.isNotBlank() }
+            ?: emptyList()
+    }
+
+    /** 保存小手机桌面应用顺序。 */
+    suspend fun saveMiniPhoneAppOrder(order: List<String>) {
+        store.edit {
+            if (order.isEmpty()) {
+                it.remove(KEY_MINIPHONE_APP_ORDER)
+            } else {
+                it[KEY_MINIPHONE_APP_ORDER] = order.distinct().joinToString("|")
+            }
+        }
+    }
+
+    /** AI 相册中被用户隐藏的图片 id。 */
+    val miniAlbumHiddenImageIdsFlow: Flow<Set<String>> = store.data.map { prefs ->
+        prefs[KEY_MINI_ALBUM_HIDDEN_IMAGE_IDS] ?: emptySet()
+    }
+
+    /** AI 相册中被用户收藏的图片 id。 */
+    val miniAlbumFavoriteImageIdsFlow: Flow<Set<String>> = store.data.map { prefs ->
+        prefs[KEY_MINI_ALBUM_FAVORITE_IMAGE_IDS] ?: emptySet()
+    }
+
+    /** 切换 AI 相册图片收藏状态。 */
+    suspend fun toggleMiniAlbumFavoriteImage(imageId: String) {
+        store.edit { prefs ->
+            val current = prefs[KEY_MINI_ALBUM_FAVORITE_IMAGE_IDS] ?: emptySet()
+            prefs[KEY_MINI_ALBUM_FAVORITE_IMAGE_IDS] =
+                if (imageId in current) current - imageId else current + imageId
+        }
+    }
+
+    /** 隐藏 AI 相册图片,不删除对应聊天消息。 */
+    suspend fun hideMiniAlbumImage(imageId: String) {
+        store.edit { prefs ->
+            val current = prefs[KEY_MINI_ALBUM_HIDDEN_IMAGE_IDS] ?: emptySet()
+            prefs[KEY_MINI_ALBUM_HIDDEN_IMAGE_IDS] = current + imageId
+        }
+    }
+
+    /** 恢复显示 AI 相册图片。 */
+    suspend fun unhideMiniAlbumImage(imageId: String) {
+        store.edit { prefs ->
+            val current = prefs[KEY_MINI_ALBUM_HIDDEN_IMAGE_IDS] ?: emptySet()
+            prefs[KEY_MINI_ALBUM_HIDDEN_IMAGE_IDS] = current - imageId
+        }
     }
 
     // ── v1.0.74: 聊天背景(聊天/Agent/群聊共用) ──────────────────────
@@ -662,6 +780,16 @@ class SettingsRepository(
     /** v1.0.73: 记录消息中心浏览时间。 */
     suspend fun markMomentMessagesRead() {
         store.edit { it[KEY_MOMENT_MESSAGES_LAST_READ_AT] = System.currentTimeMillis() }
+    }
+
+    /** 用户收藏的朋友圈动态 id 集合。 */
+    val momentFavoriteIdsFlow: Flow<Set<String>> = store.data.map { prefs ->
+        prefs[KEY_MOMENT_FAVORITE_IDS] ?: emptySet()
+    }
+
+    /** 保存用户收藏的朋友圈动态 id 集合。 */
+    suspend fun saveMomentFavoriteIds(ids: Set<String>) {
+        store.edit { it[KEY_MOMENT_FAVORITE_IDS] = ids }
     }
 
     // ── v2.0+: 崩溃上报配置(默认全部关闭,隐私优先) ───────────────────────
@@ -928,8 +1056,15 @@ class SettingsRepository(
     /** v1.54: RAG 配置读写。 */
     suspend fun getRagConfig(): RagConfig = ragConfigFlow.first()
     suspend fun saveRagConfig(config: RagConfig) { store.edit { it[KEY_RAG_CONFIG] = AppJson.encodeToString(RagConfig.serializer(), config) } }
-    // H-SR2: McpServerConfig.authToken 是 Bearer token(敏感凭据),写入前加密(空值原样保留)
-    suspend fun saveMcpServers(servers: List<io.zer0.muse.mcp.McpServerConfig>) { store.edit { it[KEY_MCP_SERVERS] = AppJson.encodeToString(ListSerializer(io.zer0.muse.mcp.McpServerConfig.serializer()), servers.map { it.copy(authToken = SecureKeyStore.encrypt(it.authToken)) }) } }
+    // H-SR2: MCP 静态 token 与飞书 App ID/App Secret 写入前加密。
+    suspend fun saveMcpServers(servers: List<io.zer0.muse.mcp.McpServerConfig>) {
+        store.edit {
+            it[KEY_MCP_SERVERS] = AppJson.encodeToString(
+                ListSerializer(io.zer0.muse.mcp.McpServerConfig.serializer()),
+                servers.map { server -> server.encrypted() },
+            )
+        }
+    }
 
     /** v1.58: 保存 Prompt 模板列表(整体替换)。 */
     suspend fun savePromptTemplates(templates: List<PromptTemplate>) {
@@ -1443,6 +1578,8 @@ class SettingsRepository(
         private val KEY_WEB_SERVER_CONFIG = stringPreferencesKey("web_server_config_json")
         private val KEY_ASR_CONFIG = stringPreferencesKey("asr_config_json")
         private val KEY_MCP_SERVERS = stringPreferencesKey("mcp_servers_json")
+        private val KEY_QUICK_CAPTURE_ENABLED = booleanPreferencesKey("quick_capture_enabled")
+        private val KEY_QUICK_CAPTURE_OVERLAY_ENABLED = booleanPreferencesKey("quick_capture_overlay_enabled")
         private val KEY_PROMPT_TEMPLATES = stringPreferencesKey("prompt_templates_json")
         private val KEY_PROVIDER_LEGACY = stringPreferencesKey("provider_config_json")
         private val KEY_ACCOUNT_LOGGED_IN = booleanPreferencesKey("account_logged_in")
@@ -1502,15 +1639,23 @@ class SettingsRepository(
         private val KEY_IGNORED_UPDATE_VERSION = stringPreferencesKey("ignored_update_version")
         // v1.0.72: 每日总结推送开关(默认 true)
         private val KEY_DAILY_SUMMARY_ENABLED = booleanPreferencesKey("daily_summary_enabled")
+        // v1.x: 最近一次每日总结,供首页问候语展示
+        private val KEY_DAILY_SUMMARY_DATE = stringPreferencesKey("daily_summary_date")
+        private val KEY_DAILY_SUMMARY_TEXT = stringPreferencesKey("daily_summary_text")
         // v1.0.72: AI 朋友圈每日动态条数(0-10,默认 2)
         private val KEY_DAILY_MOMENT_COUNT = intPreferencesKey("daily_moment_count")
     private val KEY_MOMENTS_COVER_IMAGE = stringPreferencesKey("moments_cover_image")
     private val KEY_MINIPHONE_WALLPAPER = stringPreferencesKey("miniphone_wallpaper")
     private val KEY_MOMENTS_LAST_READ_AT = longPreferencesKey("moments_last_read_at")
     private val KEY_MOMENT_MESSAGES_LAST_READ_AT = longPreferencesKey("moment_messages_last_read_at")
+        private val KEY_MOMENT_FAVORITE_IDS = stringSetPreferencesKey("moment_favorite_ids")
     private val KEY_CHAT_BACKGROUND = stringPreferencesKey("chat_background")
     private val KEY_CHAT_GRADIENT = stringPreferencesKey("chat_gradient_json")
     private val KEY_MINIPHONE_ENABLED = booleanPreferencesKey("miniphone_enabled")
+        private val KEY_MINIPHONE_HIDDEN_APPS = stringSetPreferencesKey("miniphone_hidden_apps")
+    private val KEY_MINIPHONE_APP_ORDER = stringPreferencesKey("miniphone_app_order")
+        private val KEY_MINI_ALBUM_HIDDEN_IMAGE_IDS = stringSetPreferencesKey("mini_album_hidden_image_ids")
+        private val KEY_MINI_ALBUM_FAVORITE_IMAGE_IDS = stringSetPreferencesKey("mini_album_favorite_image_ids")
     private val KEY_NIGHT_PATROL_ENABLED = booleanPreferencesKey("night_patrol_enabled")
         // v1.0.20: 全局默认会话权限模式(TRUSTED / ASK / STRICT,默认 ASK)
         private val KEY_DEFAULT_SESSION_PERMISSION_MODE = stringPreferencesKey("default_session_permission_mode")

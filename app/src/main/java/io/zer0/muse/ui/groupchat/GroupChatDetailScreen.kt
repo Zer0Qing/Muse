@@ -56,8 +56,6 @@ import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.window.Popup
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import androidx.compose.foundation.verticalScroll
@@ -73,6 +71,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.MuseFloatingActionItem
+import io.zer0.muse.ui.common.MuseFloatingActionMenu
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -498,33 +498,38 @@ fun GroupChatDetailScreen(
                             }
                         }
                         if (showTopMenu) {
-                            Popup(
-                                onDismissRequest = { showTopMenu = false },
-                                alignment = Alignment.TopEnd,
-                                offset = IntOffset(0, 4),
-                            ) {
-                                Surface(
-                                    color = MaterialTheme.colorScheme.surface,
-                                    shape = RoundedCornerShape(20.dp),
-                                    shadowElevation = 8.dp,
-                                    tonalElevation = 4.dp,
-                                ) {
-                                    Column(modifier = Modifier.padding(6.dp)) {
-                                        GroupTopMenuCapsule(Icons.Outlined.Search, stringResource(R.string.groupchat_search)) {
+                            MuseFloatingActionMenu(
+                                items = listOf(
+                                    MuseFloatingActionItem(
+                                        key = "search",
+                                        icon = Icons.Outlined.Search,
+                                        label = stringResource(R.string.groupchat_search),
+                                        onClick = {
                                             showTopMenu = false
                                             showSearchDialog = true
-                                        }
-                                        GroupTopMenuCapsule(TablerIcons.Edit, stringResource(R.string.groupchat_edit_cd)) {
+                                        },
+                                    ),
+                                    MuseFloatingActionItem(
+                                        key = "edit",
+                                        icon = TablerIcons.Edit,
+                                        label = stringResource(R.string.groupchat_edit_cd),
+                                        onClick = {
                                             showTopMenu = false
                                             showEditDialog = true
-                                        }
-                                        GroupTopMenuCapsule(Icons.Outlined.AutoAwesome, stringResource(R.string.groupchat_edit_provider)) {
+                                        },
+                                    ),
+                                    MuseFloatingActionItem(
+                                        key = "provider",
+                                        icon = Icons.Outlined.AutoAwesome,
+                                        label = stringResource(R.string.groupchat_edit_provider),
+                                        onClick = {
                                             showTopMenu = false
                                             showProviderDialog = true
-                                        }
-                                    }
-                                }
-                            }
+                                        },
+                                    ),
+                                ),
+                                onDismiss = { showTopMenu = false },
+                            )
                         }
                     }
             }
@@ -1553,40 +1558,6 @@ fun GroupChatDetailScreen(
     }
 } // Scaffold
 } // 背景 Box(v1.0.74 自定义聊天背景)
-
-/** v1.0.72: 群聊顶栏三点菜单的胶囊选项。 */
-@Composable
-private fun GroupTopMenuCapsule(
-    icon: ImageVector,
-    text: String,
-    onClick: () -> Unit,
-) {
-    Surface(
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        modifier = Modifier
-            .padding(vertical = 3.dp)
-            .clickable(onClick = onClick),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(18.dp),
-            )
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-        }
-    }
-}
 
 /** v1.0.72: 群聊长按菜单行(固定配色:图标底块 + 文字)。 */
 @Composable

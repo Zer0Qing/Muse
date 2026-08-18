@@ -127,6 +127,47 @@ class OpenAIProviderCustomTemplateTest {
     }
 
     @Test
+    fun customChatCompletionsPathIsUsedForChatRequests() = runBlocking {
+        val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+        val requestPaths = CopyOnWriteArrayList<String>()
+        server.createContext("/v1/custom/chat") { exchange ->
+            requestPaths.add(exchange.requestURI.path)
+            respond(
+                exchange,
+                200,
+                """{"choices":[{"message":{"content":"custom path answer"}}]}""",
+                "application/json",
+            )
+        }
+        server.start()
+        try {
+            val provider = OpenAIProvider(
+                ProviderConfig(
+                    id = "custom-path",
+                    displayName = "Custom Path",
+                    type = ProviderType.OPENAI,
+                    baseUrl = "http://127.0.0.1:${server.address.port}/v1",
+                    apiKey = "key",
+                    specific = ProviderSpecificConfig.Custom(
+                        chatCompletionsPath = "/custom/chat",
+                    ),
+                ),
+            )
+            val completion = provider.completeText(
+                ChatRequest(
+                    messages = listOf(UIMessage(role = MessageRole.USER, content = "hi")),
+                    model = Model(id = "custom-model", providerId = "custom-path"),
+                    mode = ChatRequestMode.UTILITY,
+                ),
+            )
+            assertEquals("custom path answer", completion.text)
+            assertEquals(listOf("/v1/custom/chat"), requestPaths)
+        } finally {
+            server.stop(0)
+        }
+    }
+
+    @Test
     fun resumeFromTextAppendsAssistantMessage() = runBlocking {
         val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
         val bodies = CopyOnWriteArrayList<String>()

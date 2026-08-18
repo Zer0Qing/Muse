@@ -72,6 +72,8 @@
     <string name="moment_expand_full">전문 보기</string>
     <string name="moment_like_cd">좋아요</string>
     <string name="moment_comment_cd">댓글</string>
+    <string name="moment_favorite">즐겨찾기</string>
+    <string name="moment_more_actions">이 게시물의 추가 작업</string>
     <string name="moment_sender_muse">Muse</string>
     <string name="moment_sender_me">나</string>
     <string name="moment_comment_hint">댓글 작성:</string>

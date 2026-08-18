@@ -10,6 +10,7 @@ import androidx.biometric.BiometricPrompt
 import androidx.fragment.app.FragmentActivity
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.LocalActivityResultRegistryOwner
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -92,6 +93,9 @@ import io.zer0.muse.ui.navigation.assistantNavGraph
 import io.zer0.muse.ui.navigation.chatNavGraph
 import io.zer0.muse.ui.navigation.settingsNavGraph
 import io.zer0.muse.ui.navigation.toolsNavGraph
+import io.zer0.muse.ui.quicknotes.QuickCaptureEdgeOverlay
+import io.zer0.muse.ui.quicknotes.QuickCaptureOverlayService
+import io.zer0.muse.ui.quicknotes.QuickNotesViewModel
 import io.zer0.muse.ui.theme.MuseTheme
 import io.zer0.muse.ui.theme.loadCustomFontFamily
 import kotlinx.coroutines.delay
@@ -380,6 +384,7 @@ private fun MuseNavGraph(
     val context = LocalContext.current
     val navController = rememberNavController()
     val sharedViewModel: ChatViewModel = koinInject()
+    val quickNotesViewModel: QuickNotesViewModel = koinInject()
     val settings: SettingsRepository = koinInject()
     val scope = rememberCoroutineScope()
 
@@ -400,6 +405,8 @@ private fun MuseNavGraph(
     val onboardingShown by settings.onboardingShownFlow.collectAsStateWithLifecycle(initialValue = true)
     var onboardingCompleted by rememberSaveable { mutableStateOf(false) }
     val showOnboarding = settingsReady && !onboardingShown && !onboardingCompleted
+    val quickCaptureEnabled by settings.quickCaptureEnabledFlow.collectAsStateWithLifecycle(initialValue = true)
+    val quickCaptureOverlayEnabled by settings.quickCaptureOverlayEnabledFlow.collectAsStateWithLifecycle(initialValue = false)
 
     // v1.7: 系统 SplashScreen 由 MainActivity 的 keepOnScreenCondition 控制,
     // 这里只负责在 NavHost 初始化 1.2s 后把条件放开。
@@ -479,8 +486,28 @@ private fun MuseNavGraph(
             }
         }
         // v1.x: 应用锁功能已移除(产品决策),PIN 检查短路,老用户残留 PIN 不再触发锁屏
-        val needPin = false
-        val needBiometric = false
+    val needPin = false
+    val needBiometric = false
+
+    LaunchedEffect(
+        settingsReady,
+        showOnboarding,
+        needPin,
+        quickCaptureEnabled,
+        quickCaptureOverlayEnabled,
+    ) {
+        val shouldRunOverlay = settingsReady &&
+            !showOnboarding &&
+            !needPin &&
+            quickCaptureEnabled &&
+            quickCaptureOverlayEnabled &&
+            android.provider.Settings.canDrawOverlays(context)
+        if (shouldRunOverlay) {
+            QuickCaptureOverlayService.start(context)
+        } else if (!quickCaptureEnabled || !quickCaptureOverlayEnabled || showOnboarding || needPin) {
+            QuickCaptureOverlayService.stop(context)
+        }
+    }
 
         // 功能1: 生物识别弹窗
         if (needBiometric) {
@@ -652,6 +679,17 @@ private fun MuseNavGraph(
                 }
             } // 关闭 else(showOnboarding) 分支
         }
+
+        // 高频入口:在 Muse 内任何页面从右侧边缘左滑,唤起快速记录侧滑面板。
+        // 不申请悬浮窗权限,也不覆盖引导页/PIN 锁,避免与系统手势和安全流程冲突。
+        QuickCaptureEdgeOverlay(
+            enabled = settingsReady &&
+                !showOnboarding &&
+                !needPin &&
+                quickCaptureEnabled &&
+                !quickCaptureOverlayEnabled,
+            viewModel = quickNotesViewModel,
+        )
 
         // v0.33: PIN 锁界面(Splash 后、主界面之上覆盖,直到输入正确 PIN)
         if (needPin) {
@@ -865,6 +903,11 @@ private fun RuntimeLocaleProvider(
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
+    // 覆盖 LocalContext 时显式透传 Activity Result 宿主,否则聊天页的
+    // rememberLauncherForActivityResult 在进入 ChatScreen 时会直接崩溃。
+    val activityResultRegistryOwner = checkNotNull(LocalActivityResultRegistryOwner.current) {
+        "MainActivity requires an ActivityResultRegistryOwner"
+    }
     val appContext = context.applicationContext
     val locale = remember(lang) { parseAppLocale(lang) }
     val config = remember(lang) {
@@ -885,6 +928,7 @@ private fun RuntimeLocaleProvider(
         wrapped
     }
     CompositionLocalProvider(
+        LocalActivityResultRegistryOwner provides activityResultRegistryOwner,
         LocalConfiguration provides config,
         LocalContext provides localizedContext,
         content = content,

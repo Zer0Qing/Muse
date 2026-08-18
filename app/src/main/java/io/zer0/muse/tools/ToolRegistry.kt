@@ -341,8 +341,17 @@ class ToolRegistry(
         }.onError { msg, _ ->
             Logger.w("ToolRegistry", "executeFromJson 参数解析失败: $msg(原始: $argumentsJson)")
         }.getOrNull() ?: return context.getString(R.string.tool_param_parse_failed, argumentsJson)
-        // v1.0.53: execute 返回 ToolOutcome,取 content 保持 String 语义
-        return execute(name, args).content
+        // v1.0.53: execute 返回 ToolOutcome,取 content 保持 String 语义。
+        // 空字符串不能继续向上游传播,否则工具卡片只能显示“执行中”而没有终态。
+        val outcome = execute(name, args)
+        val content = outcome.content.ifBlank {
+            context.getString(R.string.tool_exec_empty_result, name)
+        }
+        return if (outcome.isError && !content.startsWith("Error:", ignoreCase = true)) {
+            "Error: $content"
+        } else {
+            content
+        }
     }
 
     /**

@@ -4,6 +4,7 @@
     <!-- Title and intro -->
     <string name="tools_screen_title">AI Tools</string>
     <string name="tools_intro_what">Tools are capabilities the AI can call, such as reading notifications, calculating, executing code, etc.</string>
+    <string name="tool_exec_empty_result">Tool %1$s completed, but returned no displayable content.</string>
     <string name="tools_intro_manage">In Assistant detail page → Extensions → Tools, you can enable/disable tools per assistant. High-risk tools (e.g. code execution) require user confirmation before invocation.</string>
 
     <!-- Stats -->

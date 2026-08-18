@@ -87,6 +87,14 @@
     <string name="safe_mode_data_recovery_title">데이터 복구 안내</string>
     <string name="safe_mode_data_recovery_desc">이번 크래시는 로컬 데이터에 영향을 주지 않으며 채팅과 설정은 그대로입니다. 클라우드 백업에서 복원하려면:재시작 후 설정 → 데이터 백업 → 클라우드에서 복원.</string>
     <string name="safe_mode_data_recovery_ok">확인</string>
+    <string name="safe_mode_continue_normal_desc">채팅과 설정을 유지하고 Muse를 다시 엽니다</string>
+    <string name="safe_mode_view_full_log_desc">문제 진단을 위해 전체 로그를 보거나 공유합니다</string>
+    <string name="safe_mode_clear_data_restart_desc">채팅, 설정 및 로컬 파일을 삭제합니다. Muse가 정상적으로 열리지 않을 때만 사용하세요</string>
+    <string name="safe_mode_clear_data_confirm_title">모든 데이터를 삭제할까요?</string>
+    <string name="safe_mode_clear_data_confirm_desc">채팅, 설정, 아바타 및 로컬 파일이 삭제되며 되돌릴 수 없습니다. Muse가 계속 정상적으로 열리지 않을 때만 사용하세요.</string>
+    <string name="safe_mode_clear_data_confirm_action">모든 데이터 삭제</string>
+    <string name="safe_mode_copy_crash_info_desc">시간과 스택 추적을 복사하여 오류 보고에 사용합니다</string>
+    <string name="safe_mode_data_recovery_desc_short">보존되는 데이터와 백업 복원 방법을 확인합니다</string>
     <string name="notif_auto_backup_success_title">자동 백업 성공</string>
     <string name="notif_auto_backup_success_text">데이터가 클라우드에 백업되었습니다</string>
     <string name="notif_auto_backup_failed_title">자동 백업 실패</string>

@@ -4,6 +4,7 @@
     <!-- Title and intro -->
     <string name="tools_screen_title">Herramientas de IA</string>
     <string name="tools_intro_what">Las herramientas son capacidades a las que la IA puede recurrir, como leer notificaciones, calcular, ejecutar código, etc.</string>
+    <string name="tool_exec_empty_result">La herramienta %1$s terminó, pero no devolvió contenido visible.</string>
     <string name="tools_intro_manage">En la página de detalles del Asistente → Extensiones → Herramientas, puede habilitar/deshabilitar herramientas por asistente.</string>
 
     <!-- Stats -->

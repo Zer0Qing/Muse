@@ -7,12 +7,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.Serializable
@@ -145,6 +148,20 @@ data class McpPromptMessage(
     val content: JsonElement,
 )
 
+/**
+ * 等待 SSE 首个 endpoint 事件。
+ *
+ * EventSource 失败时监听器会关闭 channel。直接调用 [ReceiveChannel.receive]
+ * 会抛 ClosedReceiveChannelException,而“服务端断开”只是普通连接失败,不能让
+ * MCP 后台协程把整个应用带崩。
+ */
+internal suspend fun awaitSseEndpoint(
+    channel: ReceiveChannel<String>,
+    timeoutMs: Long,
+): String? = withTimeoutOrNull(timeoutMs) {
+    channel.receiveCatching().getOrNull()
+}
+
 @Serializable
 internal data class McpServerInfo(
     val name: String? = null,
@@ -215,6 +232,16 @@ class McpClient(
     @Volatile
     private var oauthToken: McpTokenInfo? = null
 
+    /** 飞书 TAT 内存缓存(短期 token,真实凭证仍保存在 SettingsRepository 的加密 token key 中)。 */
+    @Volatile
+    private var feishuTenantToken: McpTokenInfo? = null
+
+    private val feishuAuthEnabled: Boolean
+        get() = config.feishuAuth.isConfigured() && settings != null
+
+    private val feishuTenantTokenClient = McpFeishuTenantTokenClient()
+    private val feishuRefreshMutex = Mutex()
+
     /** Phase 10.4: 当前 PKCE pair(startOAuthFlow 生成,completeOAuthFlow 消费)。 */
     @Volatile
     private var pendingPkce: McpOAuthFlow.PkcePair? = null
@@ -276,6 +303,19 @@ class McpClient(
         }.getOrElse { "(unparseable redirect uri)" }
 
     private suspend fun connect() {
+        try {
+            connectInternal()
+        } catch (ce: kotlinx.coroutines.CancellationException) {
+            throw ce
+        } catch (e: Exception) {
+            Logger.e(TAG, "[${config.name}] MCP 连接流程异常,已转入重连/失败状态", e)
+            if (!closed && _state.value != McpConnectionState.FAILED) {
+                scheduleReconnect()
+            }
+        }
+    }
+
+    private suspend fun connectInternal() {
         _state.value = McpConnectionState.CONNECTING
         Logger.d(TAG, "[${config.name}] 连接中 transport=${config.transportType} url=${config.url}")
 
@@ -283,6 +323,11 @@ class McpClient(
         if (oauthEnabled && !ensureValidToken()) {
             Logger.w(TAG, "[${config.name}] OAuth token 无效或未授权,转 NEEDS_AUTH")
             _state.value = McpConnectionState.NEEDS_AUTH
+            return
+        }
+        if (config.feishuAuth.enabled && !ensureFeishuTenantToken()) {
+            Logger.w(TAG, "[${config.name}] 飞书 TAT 获取失败,进入重连/失败状态")
+            scheduleReconnect()
             return
         }
 
@@ -337,6 +382,38 @@ class McpClient(
     }
 
     /**
+     * 确保飞书 tenant_access_token 有效。
+     *
+     * 与 MCP OAuth 分开处理:飞书 TAT 没有 refresh_token,过期后用 app_id +
+     * app_secret 重新换取。短期 TAT 持久化到已有加密 token 存储,但永远不写日志。
+     */
+    private suspend fun ensureFeishuTenantToken(forceRefresh: Boolean = false): Boolean {
+        if (!config.feishuAuth.enabled) return true
+        if (!feishuAuthEnabled) {
+            Logger.w(TAG, "[${config.name}] 飞书自动刷新已启用,但 App ID/App Secret 或 SettingsRepository 缺失")
+            return false
+        }
+        return feishuRefreshMutex.withLock {
+            if (feishuTenantToken == null) {
+                feishuTenantToken = settings?.getMcpToken(config.id)
+            }
+            if (!forceRefresh && feishuTenantToken?.isUsableForFeishu() == true) return@withLock true
+
+            val auth = config.feishuAuth
+            val token = feishuTenantTokenClient.fetch(auth.appId, auth.appSecret)
+                ?: return@withLock false
+            feishuTenantToken = token
+            settings?.saveMcpToken(config.id, token)
+            Logger.i(TAG, "[${config.name}] 飞书 TAT 已刷新,有效期至 ${token.expiresAt}")
+            true
+        }
+    }
+
+    /** 飞书 token 剩余不足 30 分钟时刷新,避免多设备频繁换 token 互相失效。 */
+    private fun McpTokenInfo.isUsableForFeishu(now: Long = System.currentTimeMillis()): Boolean =
+        accessToken.isNotBlank() && (expiresAt == 0L || expiresAt > now + FEISHU_REFRESH_MARGIN_MS)
+
+    /**
      * 构造请求头:静态 headers + authToken + OAuth Bearer(OAuth 优先级最高)。
      * OAuth token 由 [ensureValidToken] 预先刷新到 [oauthToken],此方法仅读取。
      */
@@ -344,6 +421,9 @@ class McpClient(
         val headers = config.resolvedHeaders().toMutableMap()
         oauthToken?.takeIf { it.accessToken.isNotBlank() }?.let { token ->
             headers["Authorization"] = "Bearer ${token.accessToken}"
+        }
+        feishuTenantToken?.takeIf { it.accessToken.isNotBlank() }?.let { token ->
+            headers["X-Lark-MCP-TAT"] = token.accessToken
         }
         return headers
     }
@@ -488,7 +568,7 @@ class McpClient(
         eventSource = sseFactory.newEventSource(request, listener)
 
         // 等 endpoint 事件(L-MCP2: 超时提取为常量)
-        val gotEp = withTimeoutOrNull(SSE_ENDPOINT_TIMEOUT_MS) { firstEventChannel.receive() }
+        val gotEp = awaitSseEndpoint(firstEventChannel, SSE_ENDPOINT_TIMEOUT_MS)
         firstEventChannel.close()
         if (gotEp == null || postEndpoint == null) {
             eventSource?.cancel()
@@ -592,10 +672,12 @@ class McpClient(
     /** SSE 传输模式下的 POST 请求(initialize / tools/list / tools/call 等)。 */
     private suspend fun postSseRequest(jsonRpc: String, retryOn401: Boolean = true): JsonObject? {
         val endpoint = postEndpoint ?: return null
+        if (config.feishuAuth.enabled && !ensureFeishuTenantToken()) return null
+        val authHeaders = resolvedAuthHeaders()
         val request = Request.Builder()
             .url(endpoint.toHttpUrl())
             .header("Content-Type", "application/json")
-            .apply { resolvedAuthHeaders().forEach { (k, v) -> header(k, v) } }
+            .apply { authHeaders.forEach { (k, v) -> header(k, v) } }
             .post(jsonRpc.toRequestBody(JSON_MEDIA_TYPE))
             .build()
 
@@ -605,9 +687,14 @@ class McpClient(
             try {
                 client.newCall(request).execute().use { resp ->
                     // M-MCP2: 收到 401 时强制 refresh token 并重试一次
-                    if (resp.code == 401 && retryOn401 && oauthEnabled) {
-                        Logger.w(TAG, "[${config.name}] POST 收到 401,尝试 refresh token 后重试")
-                        if (ensureValidToken(forceRefresh = true)) {
+                    if (resp.code == 401 && retryOn401 && (oauthEnabled || feishuAuthEnabled)) {
+                        Logger.w(TAG, "[${config.name}] POST 收到 401,尝试刷新认证凭证后重试")
+                        val refreshed = if (oauthEnabled) {
+                            ensureValidToken(forceRefresh = true)
+                        } else {
+                            ensureFeishuTenantToken(forceRefresh = true)
+                        }
+                        if (refreshed) {
                             return@withContext postSseRequest(jsonRpc, retryOn401 = false)
                         }
                         return@withContext null
@@ -677,11 +764,13 @@ class McpClient(
      * 解析响应,返回 JsonObject(单次响应)或从 SSE 流聚合最后一个事件。
      */
     private suspend fun postStreamableRequest(jsonRpc: String, retryOn401: Boolean = true): JsonObject? {
+        if (config.feishuAuth.enabled && !ensureFeishuTenantToken()) return null
+        val authHeaders = resolvedAuthHeaders()
         val request = Request.Builder()
             .url(config.url.toHttpUrl())
             .header("Content-Type", "application/json")
             .header("Accept", "application/json, text/event-stream")
-            .apply { resolvedAuthHeaders().forEach { (k, v) -> header(k, v) } }
+            .apply { authHeaders.forEach { (k, v) -> header(k, v) } }
             .post(jsonRpc.toRequestBody(JSON_MEDIA_TYPE))
             .build()
 
@@ -689,9 +778,14 @@ class McpClient(
             try {
                 client.newCall(request).execute().use { resp ->
                     // M-MCP2: 收到 401 时强制 refresh token 并重试一次
-                    if (resp.code == 401 && retryOn401 && oauthEnabled) {
-                        Logger.w(TAG, "[${config.name}] StreamableHTTP 收到 401,尝试 refresh token 后重试")
-                        if (ensureValidToken(forceRefresh = true)) {
+                    if (resp.code == 401 && retryOn401 && (oauthEnabled || feishuAuthEnabled)) {
+                        Logger.w(TAG, "[${config.name}] StreamableHTTP 收到 401,尝试刷新认证凭证后重试")
+                        val refreshed = if (oauthEnabled) {
+                            ensureValidToken(forceRefresh = true)
+                        } else {
+                            ensureFeishuTenantToken(forceRefresh = true)
+                        }
+                        if (refreshed) {
                             return@withContext postStreamableRequest(jsonRpc, retryOn401 = false)
                         }
                         return@withContext null
@@ -1065,7 +1159,7 @@ class McpClient(
                             directResponse
                         } else {
                             // 等 SSE 事件
-                            channel.receive()
+                            channel.receiveCatching().getOrNull()
                         }
                     }
                 } finally {
@@ -1138,6 +1232,7 @@ class McpClient(
         // L-MCP2: 超时/重连魔法数字提取为常量
         const val SSE_ENDPOINT_TIMEOUT_MS = 5_000L
         const val RECONNECT_MAX_DELAY_MS = 30_000L
+        const val FEISHU_REFRESH_MARGIN_MS = 30 * 60 * 1000L
         val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
         val defaultClient = OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)

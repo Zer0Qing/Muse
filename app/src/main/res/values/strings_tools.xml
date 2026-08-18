@@ -5,6 +5,7 @@
     <string name="tools_screen_title">AI 工具</string>
     <string name="tools_intro_what">工具是 AI 可调用的能力,如读取通知、计算、执行代码等</string>
     <string name="tools_intro_manage">在助手详情页 → 扩展 → 工具,可为每个助手单独启用/禁用工具。高风险工具(如代码执行)调用前会要求用户确认。</string>
+    <string name="tool_exec_empty_result">工具 %1$s 已执行完成,但没有返回可显示的内容。</string>
 
     <!-- 统计 -->
     <string name="tools_stats_count">共 %1$d 个工具 · %2$d 个高风险</string>

@@ -22,6 +22,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -65,6 +66,8 @@ class MomentViewModel(
         val unreadMessagesCount: Int = 0,
         /** v1.0.74: 横幅通知文案(UI 显示后清空)。 */
         val banner: String? = null,
+        /** 用户收藏的朋友圈动态 id。 */
+        val favoriteMomentIds: Set<String> = emptySet(),
     )
 
     private val _state = MutableStateFlow(MomentUiState())
@@ -75,6 +78,15 @@ class MomentViewModel(
     }
 
     init {
+        viewModelScope.launch {
+            repository.observeMoments(100).collectLatest { moments ->
+                val comments = repository.getCommentsBatch(moments.map { it.id })
+                _state.value = _state.value.copy(
+                    moments = moments,
+                    comments = comments,
+                )
+            }
+        }
         load()
     }
 
@@ -105,6 +117,7 @@ class MomentViewModel(
             }
             val lastRead = settings.momentsLastReadAtFlow.firstOrNull() ?: 0L
             val msgLastRead = settings.momentMessagesLastReadAtFlow.firstOrNull() ?: 0L
+            val favoriteMomentIds = settings.momentFavoriteIdsFlow.firstOrNull() ?: emptySet()
             _state.value = MomentUiState(
                 moments = moments,
                 comments = commentsMap,
@@ -117,6 +130,7 @@ class MomentViewModel(
                 messages = messages,
                 unreadMomentsCount = moments.count { it.createdAt > lastRead },
                 unreadMessagesCount = messages.count { it.createdAt > msgLastRead },
+                favoriteMomentIds = favoriteMomentIds,
             )
         }
     }
@@ -161,14 +175,19 @@ class MomentViewModel(
 
         // 随机 1-2 个助手点赞
         val likers = assistants.shuffled(Random).take(Random.nextInt(1, 3))
+        val successfulLikerNames = mutableListOf<String>()
         var updated = moment
         likers.forEach { liker ->
+            val beforeLikes = updated.likes
             updated = repository.likeBy(
                 updated,
                 likerType = "assistant",
                 likerId = liker.id,
                 likerName = liker.name,
             )
+            if (updated.likes > beforeLikes) {
+                successfulLikerNames += liker.name
+            }
         }
         if (updated.likes != moment.likes) {
             _state.value = _state.value.copy(
@@ -178,6 +197,7 @@ class MomentViewModel(
 
         // 1 个助手评论(带图时 VLM 看图;刚发动态必回,不选择性跳过)
         val commenter = assistants[Random.nextInt(assistants.size)]
+        var commentSaved = false
         val reply = generator.generateReply(
             momentContent = moment.content,
             userComment = "(看了你的动态)",
@@ -193,13 +213,20 @@ class MomentViewModel(
                 senderId = commenter.id,
                 senderName = commenter.name,
             )
-            updateComments(moment.id, comment)
+            if (comment != null) {
+                updateComments(moment.id, comment)
+                commentSaved = true
+            }
         }
 
         // 横幅通知(延迟一点,让用户先看到动态发出去)
         kotlinx.coroutines.delay(2500)
-        val likeText = if (likers.isNotEmpty()) "${likers.joinToString("、") { it.name }} 赞了你" else ""
-        val commentText = if (!reply.isNullOrBlank()) "${commenter.name} 评论了你" else ""
+        val likeText = if (successfulLikerNames.isNotEmpty()) {
+            "${successfulLikerNames.joinToString("、")} 赞了你"
+        } else {
+            ""
+        }
+        val commentText = if (commentSaved) "${commenter.name} 评论了你" else ""
         val text = listOf(likeText, commentText).filter { it.isNotBlank() }.joinToString(" · ")
         if (text.isNotBlank()) {
             _state.value = _state.value.copy(banner = text)
@@ -209,15 +236,20 @@ class MomentViewModel(
     /** 点赞/取消点赞(用户身份)。 */
     fun toggleLike(moment: MomentEntity) {
         viewModelScope.launch {
-            val (updated, liked) = repository.toggleLike(
-                moment,
-                likerType = "user",
-                likerId = "user",
-                likerName = "我",
-            )
-            _state.value = _state.value.copy(
-                moments = _state.value.moments.map { if (it.id == moment.id) updated else it },
-            )
+            try {
+                val (updated, _) = repository.toggleLike(
+                    moment,
+                    likerType = "user",
+                    likerId = "user",
+                    likerName = "我",
+                )
+                _state.value = _state.value.copy(
+                    moments = _state.value.moments.map { if (it.id == moment.id) updated else it },
+                )
+            } catch (t: Throwable) {
+                if (t is kotlin.coroutines.cancellation.CancellationException) throw t
+                Logger.w(TAG, "用户点赞失败: ${t.message}", t)
+            }
         }
     }
 
@@ -226,6 +258,7 @@ class MomentViewModel(
         viewModelScope.launch {
             // 用户评论入列
             val userComment = repository.insertComment(moment.id, "user", text, senderId = null, senderName = "我")
+                ?: return@launch
             updateComments(moment.id, userComment)
 
             // 随机助手回复(失败不阻塞)
@@ -238,7 +271,9 @@ class MomentViewModel(
                     senderId = reply.second?.id,
                     senderName = reply.second?.name,
                 )
-                updateComments(moment.id, aiComment)
+                if (aiComment != null) {
+                    updateComments(moment.id, aiComment)
+                }
             }
         }
     }
@@ -247,10 +282,27 @@ class MomentViewModel(
     fun deleteMoment(moment: MomentEntity) {
         viewModelScope.launch {
             repository.deleteMoment(moment.id)
+            val favorites = settings.momentFavoriteIdsFlow.firstOrNull() ?: emptySet()
+            if (moment.id in favorites) settings.saveMomentFavoriteIds(favorites - moment.id)
             _state.value = _state.value.copy(
                 moments = _state.value.moments.filterNot { it.id == moment.id },
                 comments = _state.value.comments - moment.id,
             )
+        }
+    }
+
+    /** 收藏/取消收藏动态。 */
+    fun toggleFavorite(momentId: String) {
+        viewModelScope.launch {
+            try {
+                val current = settings.momentFavoriteIdsFlow.firstOrNull() ?: emptySet()
+                val next = if (momentId in current) current - momentId else current + momentId
+                settings.saveMomentFavoriteIds(next)
+                _state.value = _state.value.copy(favoriteMomentIds = next)
+            } catch (t: Throwable) {
+                if (t is kotlin.coroutines.cancellation.CancellationException) throw t
+                Logger.w(TAG, "收藏动态失败: ${t.message}", t)
+            }
         }
     }
 

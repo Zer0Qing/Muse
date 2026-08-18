@@ -87,6 +87,14 @@
     <string name="safe_mode_data_recovery_title">Data Recovery Guide</string>
     <string name="safe_mode_data_recovery_desc">This crash does not affect your local data; chats and settings are intact. To restore from a cloud backup: after restarting, go to Settings → Data Backup → Restore from Cloud.</string>
     <string name="safe_mode_data_recovery_ok">Got it</string>
+    <string name="safe_mode_continue_normal_desc">Keep chats and settings, then try opening Muse again</string>
+    <string name="safe_mode_view_full_log_desc">View or share the full log to help diagnose the problem</string>
+    <string name="safe_mode_clear_data_restart_desc">Deletes chats, settings and local files; use only when Muse cannot open normally</string>
+    <string name="safe_mode_clear_data_confirm_title">Delete all data?</string>
+    <string name="safe_mode_clear_data_confirm_desc">This deletes chats, settings, avatars and local files and cannot be undone. Use only if Muse still cannot open normally.</string>
+    <string name="safe_mode_clear_data_confirm_action">Delete all data</string>
+    <string name="safe_mode_copy_crash_info_desc">Copy the time and stack trace to send with a bug report</string>
+    <string name="safe_mode_data_recovery_desc_short">Learn what will be kept and how to restore a backup</string>
     <string name="notif_auto_backup_success_title">Auto backup succeeded</string>
     <string name="notif_auto_backup_success_text">Your data was backed up to the cloud</string>
     <string name="notif_auto_backup_failed_title">Auto backup failed</string>

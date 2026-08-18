@@ -19,12 +19,12 @@ object MiniDataLoader {
 
     private const val TAG = "MiniDataLoader"
 
-    /** 聚合 AI 生成图片:遍历 assistant 消息的 imageUrls(imageBase64List 转 data URI)。 */
-    suspend fun loadAiGeneratedImages(context: Context): List<String> = withContext(Dispatchers.IO) {
+    /** 聚合 AI 生成图片,并保留图片所在消息的生成时间。 */
+    suspend fun loadAiGeneratedImages(context: Context): List<MiniAlbumImage> = withContext(Dispatchers.IO) {
         resultOf {
             val db: MuseDb = org.koin.java.KoinJavaComponent.get(MuseDb::class.java)
             val msgs = db.messageDao().getAllAssistantWithImages(200)
-            val urls = mutableListOf<String>()
+            val images = mutableListOf<MiniAlbumImage>()
             msgs.forEach { msg ->
                 // imageUrlsJson 反序列化
                 val parsed = runCatching {
@@ -32,17 +32,24 @@ object MiniDataLoader {
                         .jsonArray
                         .mapNotNull { it.jsonPrimitive.contentOrNull }
                 }.getOrDefault(emptyList())
-                urls.addAll(parsed.filter { it.isNotBlank() })
+                parsed.filter { it.isNotBlank() }.forEach { uri ->
+                    images += MiniAlbumImage(uri = uri, createdAt = msg.createdAt)
+                }
                 // base64 图片转 data URI
                 val b64 = runCatching {
                     io.zer0.common.AppJson.parseToJsonElement(msg.imageBase64Json)
                         .jsonArray
                         .mapNotNull { it.jsonPrimitive.contentOrNull }
                 }.getOrDefault(emptyList())
-                b64.filter { it.isNotBlank() }.forEach { urls.add("data:image/jpeg;base64,$it") }
+                b64.filter { it.isNotBlank() }.forEach { value ->
+                    images += MiniAlbumImage(
+                        uri = "data:image/jpeg;base64,$value",
+                        createdAt = msg.createdAt,
+                    )
+                }
             }
             // 去重保序
-            urls.distinct()
+            images.distinctBy { it.uri }
         }.onError { msg, t -> Logger.w(TAG, "加载 AI 图片失败: ${t?.message ?: msg}") }
             .getOrNull() ?: emptyList()
     }
@@ -68,4 +75,13 @@ object MiniDataLoader {
         }.onError { msg, t -> Logger.w(TAG, "加载今日记忆失败: ${t?.message ?: msg}") }
             .getOrNull() ?: emptyList()
     }
+}
+
+/** AI 相册中的一张图片及其来源消息时间。 */
+data class MiniAlbumImage(
+    val uri: String,
+    val createdAt: Long,
+) {
+    /** 本地收藏/隐藏状态使用的稳定 id,不把超长 data URI 直接写入 DataStore。 */
+    val id: String get() = uri.hashCode().toString()
 }

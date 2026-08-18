@@ -87,6 +87,14 @@
     <string name="safe_mode_data_recovery_title">Руководство по восстановлению данных</string>
     <string name="safe_mode_data_recovery_desc">Этот сбой не влияет на локальные данные; чаты и настройки в порядке. Чтобы восстановить из облачной копии: после перезапуска откройте Настройки → Резервное копирование → Восстановить из облака.</string>
     <string name="safe_mode_data_recovery_ok">Понятно</string>
+    <string name="safe_mode_continue_normal_desc">Сохранить чаты и настройки и снова открыть Muse</string>
+    <string name="safe_mode_view_full_log_desc">Просмотреть или отправить полный журнал для диагностики проблемы</string>
+    <string name="safe_mode_clear_data_restart_desc">Удаляет чаты, настройки и локальные файлы; используйте только если Muse не запускается обычным способом</string>
+    <string name="safe_mode_clear_data_confirm_title">Удалить все данные?</string>
+    <string name="safe_mode_clear_data_confirm_desc">Будут удалены чаты, настройки, аватары и локальные файлы. Отменить это нельзя. Используйте только если Muse по-прежнему не запускается обычным способом.</string>
+    <string name="safe_mode_clear_data_confirm_action">Удалить все данные</string>
+    <string name="safe_mode_copy_crash_info_desc">Скопировать время и стек вызовов для отправки в отчёте об ошибке</string>
+    <string name="safe_mode_data_recovery_desc_short">Узнайте, какие данные сохранятся и как восстановить резервную копию</string>
     <string name="notif_auto_backup_success_title">Автоматическое резервное копирование выполнено</string>
     <string name="notif_auto_backup_success_text">Ваши данные сохранены в облаке</string>
     <string name="notif_auto_backup_failed_title">Сбой автоматического резервного копирования</string>

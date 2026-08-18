@@ -1,7 +1,6 @@
 package io.zer0.muse.tools
 
 import io.zer0.memory.pin.PinnedMemoryStore
-import kotlinx.coroutines.runBlocking
 
 /**
  * pin_memory 工具(既有实现 pinned-memory-store.ts 实现)。
@@ -24,14 +23,15 @@ object PinMemoryTool {
         riskLevel = ToolRiskLevel.NORMAL,
     )
 
-    fun execute(args: Map<String, String>, store: PinnedMemoryStore): String {
+    suspend fun execute(args: Map<String, String>, store: PinnedMemoryStore): String {
         val content = args["content"]?.trim()
             ?: return "Error: content parameter is required."
         if (content.isEmpty()) return "Error: content cannot be empty."
-        return runBlocking {
-            val id = store.add(content)
-            if (id.isEmpty()) "Error: failed to pin content."
-            else "Pinned successfully (id: ${id.take(8)}...). The information will remain visible in all future conversations."
+        val id = store.add(content)
+        return if (id.isEmpty()) {
+            "Error: failed to pin content."
+        } else {
+            "Pinned successfully (id: ${id.take(8)}...). The information will remain visible in all future conversations."
         }
     }
 }

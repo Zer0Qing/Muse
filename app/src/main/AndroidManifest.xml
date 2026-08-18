@@ -50,6 +50,9 @@
     <!-- v1.43: 前台服务保活(切后台时保持 AI 生成) -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <!-- 快速记录系统悬浮窗(用户主动授权后使用) -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
     <!-- Phase 5-I: 备份导出/导入(SAF 不需要权限,但读取外部文档需要) -->
@@ -195,6 +198,17 @@
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
+
+        <!-- 快速记录悬浮窗:折叠胶囊 + 紧凑输入卡 -->
+        <service
+            android:name=".ui.quicknotes.QuickCaptureOverlayService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="quick_capture_overlay" />
+        </service>
 
         <!-- P2: 通知监听服务(用户需在系统设置→通知使用权中授权) -->
         <service

@@ -89,6 +89,9 @@ internal const val MAX_TOOL_ROUNDS_HARD_CAP = 25
 /** v1.x: 连续 N 轮 LLM 返回相同 tool_call(同名同参数)时判定卡死,提前终止。 */
 internal const val MAX_NO_PROGRESS_ROUNDS = 2
 
+/** 工具结果落回消息前,清理断点记录允许占用的最长时间。 */
+private const val PENDING_TOOL_CLEANUP_TIMEOUT_MS = 2_000L
+
 /**
  * 单轮 LLM 流式请求的输入参数。
  *
@@ -549,7 +552,23 @@ class ToolOrchestrator(
                     // 并行/串行执行工具调用
                     // v1.0.47 P6-2: 弱工具模型降级为串行执行,避免并行 tool_calls 导致格式错乱
                     val executeToolCall: suspend (Int, ToolCall) -> ToolExecResult = { idx, tc ->
-                        executeSingleToolCall(params, taskCardId, tc, idx, host, taskCardCoordinator)
+                        try {
+                            executeSingleToolCall(params, taskCardId, tc, idx, host, taskCardCoordinator)
+                        } catch (ce: kotlinx.coroutines.CancellationException) {
+                            throw ce
+                        } catch (e: Exception) {
+                            // 工具已经可能完成了外部副作用(例如写入记忆),但回调/清理阶段异常
+                            // 不能让整个工具循环直接消失,否则用户只会看到“执行中”。
+                            Logger.e(TAG, "工具结果回传失败: ${tc.name}", e)
+                            failedToolResult(
+                                taskCardId = taskCardId,
+                                tc = tc,
+                                idx = idx,
+                                host = host,
+                                taskCardCoordinator = taskCardCoordinator,
+                                reason = e.message ?: "未知错误",
+                            )
+                        }
                     }
 
                     val isWeakToolModel = WeakToolUseDetector.isWeakToolModel(params.model)
@@ -792,13 +811,7 @@ class ToolOrchestrator(
                     finishedAt = System.currentTimeMillis(),
                 )
             }
-            try {
-                PendingToolCallStore.remove(tc.id)
-            } catch (ce: kotlin.coroutines.cancellation.CancellationException) {
-                throw ce
-            } catch (e: Exception) {
-                Logger.w("ToolOrchestrator", "PendingToolCallStore.remove(denied) 失败: ${e.message}", e)
-            }
+            cleanupPendingToolCall(tc.id)
             host.onToolFinish(tc.id, tc.name, false, System.currentTimeMillis() - toolStartAt)
             return ToolExecResult(idx, tc, deniedResult, false)
         }
@@ -859,7 +872,7 @@ class ToolOrchestrator(
         }
 
         // 执行工具:skill 走 SkillExecutor,本地工具走 ToolRegistry
-        val toolResult = withTimeoutOrNull(toolTimeoutMs) {
+        val rawToolResult = withTimeoutOrNull(toolTimeoutMs) {
             val skill = params.skillMap[tc.name]
             if (skill != null) {
                 skillExecutor.execute(
@@ -888,6 +901,9 @@ class ToolOrchestrator(
                 }
             }
         } ?: "[超时] 工具 ${tc.name} ${toolTimeoutMs / 1000} 秒未响应,已终止"
+        // 某些只产生外部副作用的工具可能返回空字符串。无论副作用是否已经成功,
+        // 都必须给 UI 和下一轮模型一个明确的终态文本,避免卡片看起来像仍在等待。
+        val toolResult = normalizeToolResult(tc.name, rawToolResult)
 
         val isSuccess = taskCardCoordinator.isToolResultSuccess(toolResult)
         // v1.x: 超长工具输出走"预览 + 写文件 + 引用"模式,完整内容落盘到
@@ -921,13 +937,7 @@ class ToolOrchestrator(
             )
         }
 
-        try {
-            PendingToolCallStore.remove(tc.id)
-        } catch (ce: kotlin.coroutines.cancellation.CancellationException) {
-            throw ce
-        } catch (e: Exception) {
-            Logger.w("ToolOrchestrator", "PendingToolCallStore.remove 失败: ${e.message}", e)
-        }
+        cleanupPendingToolCall(tc.id)
 
         // P1-1: ToolLifecycleHook.onToolExecutionResult
         if (hookRegistry != null) {
@@ -944,6 +954,60 @@ class ToolOrchestrator(
 
         host.onToolFinish(tc.id, tc.name, isSuccess, System.currentTimeMillis() - toolStartAt)
         return ToolExecResult(idx, tc, finalToolResult, isSuccess, displayResult = displayResult)
+    }
+
+    /**
+     * 工具完成后清理断点记录,但不能让文件 IO 卡住聊天结果回填。
+     *
+     * 断点记录是恢复能力的辅助数据;消息结果已经生成后,清理失败应记录日志并让本轮继续结束。
+     */
+    private suspend fun cleanupPendingToolCall(toolCallId: String) {
+        val cleaned = withTimeoutOrNull(PENDING_TOOL_CLEANUP_TIMEOUT_MS) {
+            PendingToolCallStore.remove(toolCallId)
+            true
+        } ?: false
+        if (!cleaned) {
+            Logger.w(TAG, "清理 pending 工具调用超时: $toolCallId")
+        }
+    }
+
+    /** 工具没有返回可显示文本时的统一可见回执。 */
+    private fun normalizeToolResult(toolName: String, result: String): String =
+        if (result.isBlank()) {
+            "工具 $toolName 已执行完成,但没有返回可显示的内容。"
+        } else {
+            result
+        }
+
+    /**
+     * 工具副作用可能已经完成,但结果回传链路仍发生异常时的终态。
+     * 这条路径专门保证 TaskCard、ToolCallCard 和 pending 记录都不再停留在运行中。
+     */
+    private suspend fun failedToolResult(
+        taskCardId: String?,
+        tc: ToolCall,
+        idx: Int,
+        host: ToolLoopHost,
+        taskCardCoordinator: ChatTaskCardCoordinator,
+        reason: String,
+    ): ToolExecResult {
+        val result = "工具 ${tc.name} 执行完成后回传失败: $reason"
+        taskCardCoordinator.updateTaskCardStep(taskCardId, idx) { step ->
+            step.copy(
+                status = TaskStepStatus.FAILED,
+                result = result,
+                finishedAt = System.currentTimeMillis(),
+            )
+        }
+        cleanupPendingToolCall(tc.id)
+        host.onToolFinish(tc.id, tc.name, false, 0L)
+        return ToolExecResult(
+            idx = idx,
+            tc = tc,
+            finalToolResult = result,
+            isSuccess = false,
+            displayResult = result,
+        )
     }
 
     /** P1-1: 解析工具调用 JSON 参数为 Map(供 ToolLifecycleHook 使用)。 */

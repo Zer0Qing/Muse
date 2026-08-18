@@ -87,6 +87,14 @@
     <string name="safe_mode_data_recovery_title">Guía de recuperación de datos</string>
     <string name="safe_mode_data_recovery_desc">Este fallo no afecta a tus datos locales; los chats y ajustes están intactos. Para restaurar desde una copia en la nube: tras reiniciar, ve a Ajustes → Copia de seguridad → Restaurar desde la nube.</string>
     <string name="safe_mode_data_recovery_ok">Entendido</string>
+    <string name="safe_mode_continue_normal_desc">Conserva tus chats y ajustes e intenta abrir Muse de nuevo</string>
+    <string name="safe_mode_view_full_log_desc">Consulta o comparte el registro completo para ayudar a localizar el problema</string>
+    <string name="safe_mode_clear_data_restart_desc">Borra chats, ajustes y archivos locales; úsalo solo si Muse no puede abrirse normalmente</string>
+    <string name="safe_mode_clear_data_confirm_title">¿Eliminar todos los datos?</string>
+    <string name="safe_mode_clear_data_confirm_desc">Esto elimina chats, ajustes, avatares y archivos locales y no se puede deshacer. Úsalo solo si Muse sigue sin abrirse normalmente.</string>
+    <string name="safe_mode_clear_data_confirm_action">Eliminar todos los datos</string>
+    <string name="safe_mode_copy_crash_info_desc">Copia la hora y la traza de error para incluirlas en un informe</string>
+    <string name="safe_mode_data_recovery_desc_short">Consulta qué datos se conservarán y cómo restaurar una copia de seguridad</string>
     <string name="notif_auto_backup_success_title">Copia de seguridad automática completada</string>
     <string name="notif_auto_backup_success_text">Tus datos se guardaron en la nube</string>
     <string name="notif_auto_backup_failed_title">Falló la copia de seguridad automática</string>

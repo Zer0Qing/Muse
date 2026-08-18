@@ -86,6 +86,7 @@ fun SafeModeScreen() {
 
     // v1.141 F2: 崩溃恢复引导 — 展示数据完好说明与云端备份恢复路径
     var showRecoveryGuide by remember { mutableStateOf(false) }
+    var showClearDataConfirm by remember { mutableStateOf(false) }
 
     // 优先从 SP 读取结构化崩溃信息(v2.0+),为空时回退到崩溃日志文件
     val crashTime = remember { MuseCrashHandler.getCrashTime(context) }
@@ -133,7 +134,7 @@ fun SafeModeScreen() {
                     android.os.Process.killProcess(android.os.Process.myPid())
                 },
                 onViewFullLog = { shareCrashLog(context) },
-                onClearData = { clearApplicationData(context) },
+                onClearData = { showClearDataConfirm = true },
                 onCopyInfo = { copyCrashInfo(context, crashTime, crashTrace) },
                 onShowRecoveryGuide = { showRecoveryGuide = true },
             )
@@ -158,6 +159,28 @@ fun SafeModeScreen() {
             onConfirm = { showRecoveryGuide = false },
             dismissText = null,
             onDismiss = { showRecoveryGuide = false },
+        )
+    }
+
+    if (showClearDataConfirm) {
+        MuseDialog(
+            onDismissRequest = { showClearDataConfirm = false },
+            title = stringResource(R.string.safe_mode_clear_data_confirm_title),
+            content = {
+                Text(
+                    text = stringResource(R.string.safe_mode_clear_data_confirm_desc),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+            confirmText = stringResource(R.string.safe_mode_clear_data_confirm_action),
+            onConfirm = {
+                showClearDataConfirm = false
+                clearApplicationData(context)
+            },
+            dismissText = stringResource(R.string.action_cancel),
+            onDismiss = { showClearDataConfirm = false },
+            destructive = true,
         )
     }
 }
@@ -282,6 +305,7 @@ private fun ActionButtons(
         SafeModeActionButton(
             icon = Icons.Filled.Refresh,
             label = stringResource(R.string.safe_mode_continue_normal),
+            description = stringResource(R.string.safe_mode_continue_normal_desc),
             containerColor = MaterialTheme.colorScheme.primaryContainer,
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
             onClick = onContinueNormal,
@@ -290,6 +314,7 @@ private fun ActionButtons(
         SafeModeActionButton(
             icon = TablerIcons.CloudDownload,
             label = stringResource(R.string.safe_mode_data_recovery),
+            description = stringResource(R.string.safe_mode_data_recovery_desc_short),
             containerColor = MaterialTheme.colorScheme.tertiaryContainer,
             contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
             onClick = onShowRecoveryGuide,
@@ -298,6 +323,7 @@ private fun ActionButtons(
         SafeModeActionButton(
             icon = Icons.AutoMirrored.Outlined.Article,
             label = stringResource(R.string.safe_mode_view_full_log),
+            description = stringResource(R.string.safe_mode_view_full_log_desc),
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
             contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             onClick = onViewFullLog,
@@ -307,6 +333,7 @@ private fun ActionButtons(
         SafeModeActionButton(
             icon = Icons.Outlined.CleaningServices,
             label = stringResource(R.string.safe_mode_clear_data_restart),
+            description = stringResource(R.string.safe_mode_clear_data_restart_desc),
             containerColor = MaterialTheme.colorScheme.errorContainer,
             contentColor = MaterialTheme.colorScheme.onErrorContainer,
             onClick = onClearData,
@@ -315,6 +342,7 @@ private fun ActionButtons(
         SafeModeActionButton(
             icon = Icons.Outlined.ContentCopy,
             label = stringResource(R.string.safe_mode_copy_crash_info),
+            description = stringResource(R.string.safe_mode_copy_crash_info_desc),
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
             contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             onClick = onCopyInfo,
@@ -337,6 +365,7 @@ private fun ActionButtons(
 private fun SafeModeActionButton(
     icon: ImageVector,
     label: String,
+    description: String,
     containerColor: Color,
     contentColor: Color,
     onClick: () -> Unit,
@@ -361,12 +390,23 @@ private fun SafeModeActionButton(
                 modifier = Modifier.size(24.dp),
             )
             Spacer(Modifier.width(MusePaddings.iconPadding))
-            Text(
-                text = label,
-                style = MaterialTheme.typography.titleMedium,
-                color = if (enabled) contentColor else contentColor.copy(alpha = 0.5f),
-                modifier = Modifier.weight(1f),
-            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = if (enabled) contentColor else contentColor.copy(alpha = 0.5f),
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (enabled) {
+                        contentColor.copy(alpha = 0.78f)
+                    } else {
+                        contentColor.copy(alpha = 0.4f)
+                    },
+                )
+            }
         }
     }
 }

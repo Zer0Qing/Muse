@@ -24,11 +24,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -47,6 +49,7 @@ import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.theme.MusePaddings
 import kotlinx.coroutines.launch
 
@@ -67,6 +70,8 @@ fun MiniDiaryScreen(
     var selectedDate by rememberSaveable { mutableStateOf(today.toString()) }
     var monthDiaries by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var diaryContent by remember { mutableStateOf<String?>(null) }
+    var editing by rememberSaveable { mutableStateOf(false) }
+    var draft by rememberSaveable { mutableStateOf("") }
     var loadingDiary by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -136,6 +141,24 @@ fun MiniDiaryScreen(
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onSurface,
             )
+            Spacer(Modifier.weight(1f))
+            IconButton(
+                onClick = {
+                    draft = diaryContent.orEmpty()
+                    editing = true
+                },
+                enabled = diaryContent != null && !loadingDiary,
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Edit,
+                    contentDescription = "编辑日记",
+                    tint = if (diaryContent != null && !loadingDiary) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.outline
+                    },
+                )
+            }
         }
 
         Column(
@@ -200,11 +223,43 @@ fun MiniDiaryScreen(
                                 color = MaterialTheme.colorScheme.primary,
                             )
                             Spacer(Modifier.height(8.dp))
-                            Text(
-                                text = diaryContent ?: "",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
+                            if (editing) {
+                                MuseTextField(
+                                    value = draft,
+                                    onValueChange = { draft = it },
+                                    minLines = 6,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End,
+                                ) {
+                                    TextButton(onClick = { editing = false }) {
+                                        Text(stringResource(R.string.action_cancel))
+                                    }
+                                    TextButton(
+                                        onClick = {
+                                            val content = draft.trim()
+                                            if (content.isNotBlank()) {
+                                                scope.launch {
+                                                    repository.save(selectedDate, content)
+                                                    diaryContent = content
+                                                    monthDiaries = repository.getByMonth(viewYear, viewMonth)
+                                                    editing = false
+                                                }
+                                            }
+                                        },
+                                    ) {
+                                        Text(stringResource(R.string.action_save))
+                                    }
+                                }
+                            } else {
+                                Text(
+                                    text = diaryContent ?: "",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                            }
                         }
                     }
                 }

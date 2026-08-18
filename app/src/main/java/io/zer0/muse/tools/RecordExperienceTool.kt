@@ -2,7 +2,6 @@ package io.zer0.muse.tools
 
 import io.zer0.muse.data.experience.ExperienceEntity
 import io.zer0.muse.data.experience.ExperienceRepository
-import kotlinx.coroutines.runBlocking
 import java.util.UUID
 
 
@@ -29,7 +28,7 @@ object RecordExperienceTool {
         riskLevel = ToolRiskLevel.NORMAL,
     )
 
-    fun execute(args: Map<String, String>, repo: ExperienceRepository): String {
+    suspend fun execute(args: Map<String, String>, repo: ExperienceRepository): String {
         val category = args["category"]?.trim()?.replace(Regex("^#+\\s*"), "")
             ?: return "Error: category parameter is required."
         val content = args["content"]?.trim()
@@ -37,24 +36,23 @@ object RecordExperienceTool {
         if (category.isEmpty() || content.isEmpty()) {
             return "Error: category and content cannot be empty."
         }
-        return runBlocking {
-            // 去重检查
-            val existing = repo.getAll()
-            if (existing.any { it.content == content && it.category.equals(category, ignoreCase = true) }) {
-                return@runBlocking "Duplicate: this experience is already recorded."
-            }
-            val title = content.take(50) + if (content.length > 50) "..." else ""
-            val entity = ExperienceEntity(
-                id = UUID.randomUUID().toString(),
-                title = title,
-                content = content,
-                category = category,
-                source = "llm",
-                createdAt = System.currentTimeMillis(),
-                updatedAt = System.currentTimeMillis(),
-            )
-            repo.upsert(entity)
-            "Experience recorded under '$category': $content"
+        // 记忆工具本身已经运行在挂起工具链中,直接调用 Room suspend DAO。
+        // 嵌套 runBlocking 会阻塞执行线程,在工具结果回填前制造“已写入但一直执行中”的假象。
+        val existing = repo.getAll()
+        if (existing.any { it.content == content && it.category.equals(category, ignoreCase = true) }) {
+            return "Duplicate: this experience is already recorded."
         }
+        val title = content.take(50) + if (content.length > 50) "..." else ""
+        val entity = ExperienceEntity(
+            id = UUID.randomUUID().toString(),
+            title = title,
+            content = content,
+            category = category,
+            source = "llm",
+            createdAt = System.currentTimeMillis(),
+            updatedAt = System.currentTimeMillis(),
+        )
+        repo.upsert(entity)
+        return "Experience recorded under '$category': $content"
     }
 }

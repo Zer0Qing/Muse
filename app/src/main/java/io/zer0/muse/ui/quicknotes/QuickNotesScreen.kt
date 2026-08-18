@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -30,6 +32,8 @@ import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.IosShare
 import androidx.compose.material.icons.filled.Lock
@@ -39,10 +43,13 @@ import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -68,10 +75,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
+import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.quicknote.QuickNoteEntity
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseChip
+import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
@@ -83,6 +92,7 @@ import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
 
 /**
  * v1.0.19: 快速记录页面按新设计重写。
@@ -95,11 +105,12 @@ import kotlinx.coroutines.launch
  *  - 卡片列表重新设计:
  *    - 置顶记录:浅绿背景 + AutoAwesome 图标 + 无底部操作按钮
  *    - 普通记录:白色卡片 + 复制/发送/更多 操作
+ *    - 单击卡片可展开/收起正文
  *    - 加密记录显示 Lock 图标 + 占位文案
  *    - 文件夹/提醒使用独立小 chip 展示
  *  - 保留回收站、导入导出、文件夹、提醒、加密、编辑等全部既有能力
  */
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun QuickNotesScreen(
     onBack: () -> Unit,
@@ -110,6 +121,9 @@ fun QuickNotesScreen(
     val clipboard = LocalClipboardManager.current
     val scope = rememberCoroutineScope()
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val settings: SettingsRepository = koinInject()
+    val quickCaptureEnabled by settings.quickCaptureEnabledFlow.collectAsStateWithLifecycle(initialValue = true)
+    val quickCaptureOverlayEnabled by settings.quickCaptureOverlayEnabledFlow.collectAsStateWithLifecycle(initialValue = false)
     val listState = rememberLazyListState()
     // 前端修复 (性能-3): 页面级共享时间 ticker — 单协程每 60s 广播一次
     // 当前时间戳,所有卡片共用;替代原先每张卡片一个 produceState 无限循环。
@@ -131,6 +145,7 @@ fun QuickNotesScreen(
     // 导出/导入菜单 + 文件夹设置 + 提醒设置 弹窗状态
     // 前端修复 (持久化-6): Boolean 弹窗态改 rememberSaveable;实体引用保持 remember
     var showExportMenu by rememberSaveable { mutableStateOf(false) }
+    var showQuickCaptureSettings by rememberSaveable { mutableStateOf(false) }
     var noteForFolder by remember { mutableStateOf<QuickNoteEntity?>(null) }
     var noteForReminder by remember { mutableStateOf<QuickNoteEntity?>(null) }
     val importLauncher = rememberLauncherForActivityResult(
@@ -235,6 +250,14 @@ fun QuickNotesScreen(
                 onBack = onBack,
                 largeTitle = true,
                 actions = {
+                    IconButton(onClick = { showQuickCaptureSettings = true }) {
+                        Icon(
+                            imageVector = Icons.Outlined.Settings,
+                            contentDescription = stringResource(R.string.settings_screen_quick_notes),
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(MuseIconSizes.icon),
+                        )
+                    }
                     // 导出/导入入口
                     IconButton(onClick = { showExportMenu = true }) {
                         Icon(
@@ -370,6 +393,16 @@ fun QuickNotesScreen(
                 }
             }
         }
+    }
+
+    if (showQuickCaptureSettings) {
+        QuickCaptureSettingsSheet(
+            quickCaptureEnabled = quickCaptureEnabled,
+            quickCaptureOverlayEnabled = quickCaptureOverlayEnabled,
+            context = context,
+            settings = settings,
+            onDismiss = { showQuickCaptureSettings = false },
+        )
     }
 
     editingNote?.let { note ->
@@ -527,6 +560,118 @@ fun QuickNotesScreen(
             },
             dismissText = stringResource(R.string.quick_notes_cancel),
             onDismiss = { showClearTrashConfirm = false },
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun QuickCaptureSettingsSheet(
+    quickCaptureEnabled: Boolean,
+    quickCaptureOverlayEnabled: Boolean,
+    context: android.content.Context,
+    settings: SettingsRepository,
+    onDismiss: () -> Unit,
+) {
+    val scope = rememberCoroutineScope()
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.contentGap),
+            verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+        ) {
+            Text(
+                text = "快速记录设置",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold,
+            )
+            QuickCaptureSettingRow(
+                title = "显示侧滑快速记录",
+                description = "在 Muse 内右侧边缘显示快速记录把手",
+                checked = quickCaptureEnabled,
+                onCheckedChange = { enabled ->
+                    scope.launch {
+                        settings.saveQuickCaptureEnabled(enabled)
+                        if (!enabled) {
+                            settings.saveQuickCaptureOverlayEnabled(false)
+                            QuickCaptureOverlayService.stop(context)
+                        }
+                    }
+                },
+            )
+            QuickCaptureSettingRow(
+                title = "开启系统悬浮窗",
+                description = "退出 Muse 后仍可点击悬浮胶囊快速记录",
+                checked = quickCaptureOverlayEnabled,
+                enabled = quickCaptureEnabled,
+                onCheckedChange = { enabled ->
+                    if (!enabled) {
+                        scope.launch { settings.saveQuickCaptureOverlayEnabled(false) }
+                    } else if (
+                        android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M &&
+                        !android.provider.Settings.canDrawOverlays(context)
+                    ) {
+                        runCatching {
+                            context.startActivity(
+                                Intent(
+                                    android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                    Uri.parse("package:${context.packageName}"),
+                                ).apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                },
+                            )
+                        }.onFailure {
+                            MuseToast.show("无法打开悬浮窗权限设置")
+                        }
+                    } else {
+                        scope.launch { settings.saveQuickCaptureOverlayEnabled(true) }
+                    }
+                },
+            )
+            Text(
+                text = "悬浮窗默认关闭。开启后需要系统允许 Muse 显示在其他应用上层。",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.padding(bottom = MusePaddings.sectionGap),
+            )
+        }
+    }
+}
+
+@Composable
+private fun QuickCaptureSettingRow(
+    title: String,
+    description: String,
+    checked: Boolean,
+    enabled: Boolean = true,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (enabled) {
+                    MaterialTheme.colorScheme.onSurface
+                } else {
+                    MaterialTheme.colorScheme.outline
+                },
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.outline,
+            )
+        }
+        MuseSwitch(
+            checked = checked,
+            onCheckedChange = if (enabled) onCheckedChange else null,
+            contentDescription = title,
         )
     }
 }
@@ -693,6 +838,8 @@ private fun QuickNoteCard(
     onMore: () -> Unit,
 ) {
     val isPinned = note.pinned
+    val canExpand = !note.encrypted && note.content.isNotBlank()
+    var expanded by rememberSaveable(note.id) { mutableStateOf(false) }
     val cardBackground = if (isPinned) {
         MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
     } else {
@@ -708,9 +855,13 @@ private fun QuickNoteCard(
     }
 
     Surface(
+        onClick = { if (canExpand) expanded = !expanded },
+        enabled = canExpand,
         shape = MuseShapes.extraLarge,
         color = cardBackground,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize(),
     ) {
         Column(
             modifier = Modifier.padding(MusePaddings.cardInner),
@@ -746,6 +897,20 @@ private fun QuickNoteCard(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
+                if (canExpand) {
+                    Icon(
+                        imageVector = if (expanded) {
+                            Icons.Default.ExpandLess
+                        } else {
+                            Icons.Default.ExpandMore
+                        },
+                        contentDescription = stringResource(
+                            if (expanded) R.string.common_collapse else R.string.common_expand,
+                        ),
+                        tint = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.size(MuseIconSizes.iconSmall),
+                    )
+                }
             }
 
             // 内容区 — 加密时显示占位,Markdown 时用 MarkdownText 渲染
@@ -769,18 +934,36 @@ private fun QuickNoteCard(
             } else if (note.content.isNotBlank()) {
                 Spacer(Modifier.height(MusePaddings.tightGap))
                 if (note.contentType == "markdown") {
-                    MarkdownText(
-                        text = note.content,
-                        modifier = Modifier.fillMaxWidth(),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (isPinned) contentTint else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    if (expanded) {
+                        MarkdownText(
+                            text = note.content,
+                            modifier = Modifier.fillMaxWidth(),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (isPinned) {
+                                contentTint
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                        )
+                    } else {
+                        Text(
+                            text = note.content,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (isPinned) {
+                                contentTint
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 } else {
                     Text(
                         text = note.content,
                         style = MaterialTheme.typography.bodySmall,
                         color = if (isPinned) contentTint else MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 3,
+                        maxLines = if (expanded) Int.MAX_VALUE else 3,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }

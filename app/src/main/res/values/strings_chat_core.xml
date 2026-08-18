@@ -72,6 +72,8 @@
     <string name="moment_expand_full">全文</string>
     <string name="moment_like_cd">赞</string>
     <string name="moment_comment_cd">评论</string>
+    <string name="moment_favorite">收藏</string>
+    <string name="moment_more_actions">朋友圈动态更多操作</string>
     <string name="moment_sender_muse">Muse</string>
     <string name="moment_sender_me">我</string>
     <string name="moment_comment_hint">发表评论：</string>

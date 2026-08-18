@@ -125,7 +125,7 @@ fun MiniWeatherScreen(
         }
     }
 
-    // v1.0.74: 定位权限申请(进入时无权限主动申请,授权后自动定位)
+    // 定位权限由用户主动触发,首次进入优先展示城市搜索。
     val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
     ) { granted ->
@@ -145,8 +145,7 @@ fun MiniWeatherScreen(
         if (hasPermission) {
             loadWeatherByLocation()
         } else {
-            // v1.0.74 fix: 进入时主动申请定位权限
-            permissionLauncher.launch(android.Manifest.permission.ACCESS_COARSE_LOCATION)
+            loading = false
         }
     }
 
@@ -171,6 +170,26 @@ fun MiniWeatherScreen(
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onSurface,
             )
+            Spacer(Modifier.weight(1f))
+            IconButton(
+                onClick = {
+                    val granted = androidx.core.content.ContextCompat.checkSelfPermission(
+                        context,
+                        android.Manifest.permission.ACCESS_COARSE_LOCATION,
+                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                    if (granted) {
+                        loadWeatherByLocation()
+                    } else {
+                        permissionLauncher.launch(android.Manifest.permission.ACCESS_COARSE_LOCATION)
+                    }
+                },
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.LocationOn,
+                    contentDescription = stringResource(R.string.weather_current_location),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
         }
 
         // 城市搜索
@@ -295,6 +314,24 @@ fun MiniWeatherScreen(
                             )
                         }
                     }
+                }
+            }
+            else -> Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = stringResource(R.string.weather_search_hint),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(R.string.weather_permission_guide),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
                 }
             }
         }

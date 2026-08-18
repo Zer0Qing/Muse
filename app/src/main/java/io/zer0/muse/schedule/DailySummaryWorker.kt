@@ -108,10 +108,14 @@ class DailySummaryWorker(
             return
         }
 
+        // 先持久化再判断前台状态:前台不弹通知时,首页仍能在问候语后展示这次总结。
+        val summaryDate = java.time.LocalDate.now().toString()
+        settings.saveDailySummary(summaryDate, summary)
+
         // 审查修复 (2.0 B-34): 前台静默 — 用户正盯着 app 时不弹 HIGH 声音通知
         // (与主动消息 notifyProactiveMessage 口径一致;此前前台照发,高频打扰用户)
         if (notificationManager.isAppForeground()) {
-            Logger.d(TAG, "每日总结:应用在前台,跳过通知(内容生成完成,会话内可见)")
+            Logger.d(TAG, "每日总结:应用在前台,跳过通知(内容已保存,首页问候语可见)")
             return
         }
 
@@ -120,7 +124,7 @@ class DailySummaryWorker(
             message = summary,
             notificationId = NOTIF_ID_DAILY_SUMMARY,
         )
-        Logger.i(TAG, "每日总结已推送: ${summary.take(40)}...")
+        Logger.i(TAG, "每日总结已保存并推送: ${summary.take(40)}...")
     }
 
     /** 调 LLM 生成今日小结(超时 60s,失败返回 null)。 */

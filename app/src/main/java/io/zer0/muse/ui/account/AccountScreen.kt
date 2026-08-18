@@ -2,6 +2,7 @@ package io.zer0.muse.ui.account
 
 import io.zer0.common.Logger
 
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -47,9 +48,10 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.theme.MusePaddings
@@ -58,6 +60,11 @@ import io.zer0.muse.ui.theme.huge
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
+import java.io.File
+import java.io.IOException
+import java.io.InputStream
+import java.io.OutputStream
+import java.util.UUID
 
 /**
  * v2.x: 账户中心 — 本地个人资料编辑页(无登录/注册 UI)。
@@ -192,6 +199,14 @@ fun AccountScreen(
                         // v1.0.74 fix: 头像 content URI 权限重启后失效(变灰色占位),
                         // 保存时拷贝到私有目录存本地路径
                         val persistentUri = persistAvatarUri(context, editAvatarUri)
+                        if (!editAvatarUri.isNullOrBlank() && persistentUri.isNullOrBlank()) {
+                            saving = false
+                            MuseToast.show(
+                                context.getString(R.string.assistant_detail_avatar_save_failed),
+                                3000,
+                            )
+                            return@launch
+                        }
                         settings.saveUserProfile(
                             profile.copy(
                                 userNickName = editName.trim(),
@@ -303,11 +318,19 @@ private fun AvatarPicker(
                 contentAlignment = Alignment.Center,
             ) {
                 if (!avatarUri.isNullOrBlank()) {
-                    AsyncImage(
-                        model = avatarUri,
+                    SubcomposeAsyncImage(
+                        model = remember(avatarUri) { avatarImageModel(avatarUri) },
                         contentDescription = stringResource(R.string.account_avatar),
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize().clip(CircleShape),
+                        error = {
+                            Text(
+                                text = userName.take(1).ifBlank { "M" },
+                                style = MaterialTheme.typography.displaySmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            )
+                        },
                     )
                 } else {
                     Text(
@@ -424,11 +447,21 @@ fun AccountCard(
             ) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     if (!accountState.avatarUri.isNullOrBlank()) {
-                        AsyncImage(
-                            model = accountState.avatarUri,
+                        SubcomposeAsyncImage(
+                            model = remember(accountState.avatarUri) {
+                                avatarImageModel(accountState.avatarUri.orEmpty())
+                            },
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize().clip(CircleShape),
+                            error = {
+                                Text(
+                                    text = accountState.userName.take(1).ifBlank { "M" },
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                )
+                            },
                         )
                     } else {
                         Text(
@@ -474,27 +507,77 @@ private suspend fun persistAvatarUri(context: android.content.Context, uri: Stri
     // 兼容旧值: file:// 前缀剥掉
     val normalized = uri.removePrefix("file://")
     if (normalized.startsWith("/")) return normalized
-    return withContext(kotlinx.coroutines.Dispatchers.IO) {
-        runCatching {
-            val parsed = android.net.Uri.parse(uri)
-            val resolver = context.contentResolver
-            val bytes = resolver.openInputStream(parsed)?.use { it.readBytes() } ?: return@runCatching null
-            // C-20: 与 AvatarStorage 对齐 — 大小上限 + 唯一文件名(固定 avatar.jpg 时
-            // Coil 缓存键不变,换头像后可能显示旧头像)
-            if (bytes.size > MAX_AVATAR_BYTES) {
-                Logger.w("AccountScreen", "头像超过 ${MAX_AVATAR_BYTES / 1024 / 1024}MB 上限,已拒绝")
-                return@runCatching null
-            }
-            val dir = java.io.File(context.filesDir, "avatar")
-            dir.mkdirs()
-            val target = java.io.File(dir, "avatar_${System.currentTimeMillis()}.jpg")
-            target.outputStream().use { it.write(bytes) }
-            // v1.0.75 fix (用户反馈): 返回纯绝对路径(不带 file:// 前缀),
-            // Coil 的 AsyncImage 对 file:// URI 在某些版本/设备加载不稳定,纯路径更可靠。
-            target.absolutePath
-        }.getOrNull()
+    return copyAvatarContentUri(context, Uri.parse(uri))
+}
+
+private suspend fun copyAvatarContentUri(
+    context: android.content.Context,
+    sourceUri: Uri,
+): String? = withContext(kotlinx.coroutines.Dispatchers.IO) {
+    val resolver = context.contentResolver
+    val dir = File(context.filesDir, "avatar")
+    if (!dir.exists() && !dir.mkdirs()) {
+        Logger.e("AccountScreen", "无法创建头像目录: ${dir.absolutePath}")
+        return@withContext null
+    }
+    val extension = when (resolver.getType(sourceUri)?.lowercase()) {
+        "image/png" -> "png"
+        "image/webp" -> "webp"
+        "image/gif" -> "gif"
+        else -> "jpg"
+    }
+    val target = File(dir, "avatar_${UUID.randomUUID()}.$extension")
+    val temp = File(dir, "${target.name}.tmp")
+    try {
+        val input = resolver.openInputStream(sourceUri)
+        if (input == null) {
+            Logger.w("AccountScreen", "无法读取头像 URI: $sourceUri")
+            return@withContext null
+        }
+        val copied = input.use { source ->
+            temp.outputStream().use { output -> copyAvatarStream(source, output) }
+        }
+        if (!copied) {
+            temp.delete()
+            Logger.w("AccountScreen", "头像超过 ${MAX_AVATAR_BYTES / 1024 / 1024}MB 上限,已拒绝")
+            return@withContext null
+        }
+        if (!temp.renameTo(target)) {
+            temp.delete()
+            Logger.e("AccountScreen", "头像文件提交失败: ${target.absolutePath}")
+            return@withContext null
+        }
+        target.absolutePath
+    } catch (e: IOException) {
+        temp.delete()
+        Logger.e("AccountScreen", "头像复制失败", e)
+        null
+    } catch (e: SecurityException) {
+        temp.delete()
+        Logger.e("AccountScreen", "头像读取权限失败", e)
+        null
+    }
+}
+
+private fun copyAvatarStream(input: InputStream, output: OutputStream): Boolean {
+    val buffer = ByteArray(16 * 1024)
+    var total = 0L
+    while (true) {
+        val read = input.read(buffer)
+        if (read < 0) return true
+        total += read
+        if (total > MAX_AVATAR_BYTES) return false
+        output.write(buffer, 0, read)
     }
 }
 
 /** C-20: 头像文件大小上限(与 AvatarStorage 一致)。 */
 private const val MAX_AVATAR_BYTES = 10L * 1024 * 1024
+
+/** 绝对路径交给 Coil 时使用 File,避免不同版本把纯路径误解析为无 scheme URI。 */
+private fun avatarImageModel(uri: String): Any =
+    when {
+        uri.startsWith("/") -> File(uri)
+        uri.startsWith("file://") -> Uri.parse(uri).path?.let(::File) ?: uri
+        else -> uri
+    }

@@ -182,6 +182,30 @@ object GreetingHelper {
         }?.replace("用户", "你")
     }
 
+    /**
+     * 将最近一天内的每日总结压缩成适合跟在时间问候后的短提示。
+     *
+     * 总结可能是在后台生成的,因此只接受今天或昨天的内容,避免用户几天没打开
+     * 应用后仍看到过期事项。正文只做空白归一化和长度控制,不改写总结原意。
+     */
+    fun getDailySummaryHint(
+        summary: String?,
+        summaryDate: String?,
+        today: LocalDate = LocalDate.now(),
+    ): String? {
+        if (summary.isNullOrBlank() || summaryDate.isNullOrBlank()) return null
+        val date = runCatching {
+            LocalDate.parse(summaryDate.substringBefore("T"))
+        }.getOrNull() ?: return null
+        val age = java.time.temporal.ChronoUnit.DAYS.between(date, today)
+        if (age !in 0..1) return null
+        return summary
+            .replace(Regex("\\s+"), " ")
+            .trim()
+            .take(36)
+            .takeIf { it.isNotBlank() }
+    }
+
     /** 保留更紧急（diff 更小）的提示。 */
     private fun betterHint(best: Pair<Int, String>?, diff: Long, hint: String): Pair<Int, String> {
         return if (best == null || diff < best.first) diff.toInt() to hint else best
@@ -205,13 +229,23 @@ object GreetingHelper {
      * 没有时再从节气/节日里随机选一个作为通用信息（避免每次都一样）。
      * 长度控制：后缀只保留一条，整体 ≤ 约 28 字。
      */
-    fun buildGreeting(facts: List<FactEntity>, hour: Int = LocalTime.now().hour, date: LocalDate = LocalDate.now()): String {
+    fun buildGreeting(
+        facts: List<FactEntity>,
+        hour: Int = LocalTime.now().hour,
+        date: LocalDate = LocalDate.now(),
+        dailySummary: String? = null,
+        dailySummaryDate: String? = null,
+    ): String {
         val prefix = getTimeGreeting(hour)
-        // 1. 记忆提示优先（个性化）
+        // 1. 每日总结优先,让晚间生成的事项能在下一次打开首页时接上问候语
+        getDailySummaryHint(dailySummary, dailySummaryDate, date)?.let { hint ->
+            return "$prefix，$hint"
+        }
+        // 2. 记忆提示优先（个性化）
         getMemoryHint(facts, date)?.let { hint ->
             return "$prefix，$hint"
         }
-        // 2. 无记忆提示：节气/节日随机选一（通用信息随机替换）
+        // 3. 无个性化提示：节气/节日随机选一（通用信息随机替换）
         val extras = listOfNotNull(getSolarTerm(date), getFestival(date))
         if (extras.isNotEmpty()) {
             return "$prefix，${extras.random()}"

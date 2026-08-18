@@ -87,6 +87,14 @@
     <string name="safe_mode_data_recovery_title">Guia de recuperação de dados</string>
     <string name="safe_mode_data_recovery_desc">Esta falha não afeta seus dados locais; conversas e configurações estão intactas. Para restaurar de um backup na nuvem: após reiniciar, vá em Configurações → Backup de dados → Restaurar da nuvem.</string>
     <string name="safe_mode_data_recovery_ok">Entendi</string>
+    <string name="safe_mode_continue_normal_desc">Mantenha conversas e configurações e tente abrir o Muse novamente</string>
+    <string name="safe_mode_view_full_log_desc">Veja ou compartilhe o registro completo para ajudar a diagnosticar o problema</string>
+    <string name="safe_mode_clear_data_restart_desc">Exclui conversas, configurações e arquivos locais; use apenas quando o Muse não abrir normalmente</string>
+    <string name="safe_mode_clear_data_confirm_title">Excluir todos os dados?</string>
+    <string name="safe_mode_clear_data_confirm_desc">Isso exclui conversas, configurações, avatares e arquivos locais e não pode ser desfeito. Use apenas se o Muse continuar sem abrir normalmente.</string>
+    <string name="safe_mode_clear_data_confirm_action">Excluir todos os dados</string>
+    <string name="safe_mode_copy_crash_info_desc">Copie o horário e a pilha de erros para enviar em um relatório</string>
+    <string name="safe_mode_data_recovery_desc_short">Veja o que será mantido e como restaurar um backup</string>
     <string name="notif_auto_backup_success_title">Backup automático concluído</string>
     <string name="notif_auto_backup_success_text">Seus dados foram salvos na nuvem</string>
     <string name="notif_auto_backup_failed_title">Falha no backup automático</string>

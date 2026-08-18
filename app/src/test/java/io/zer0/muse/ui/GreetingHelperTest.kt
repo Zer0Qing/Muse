@@ -78,4 +78,33 @@ class GreetingHelperTest {
         val facts = listOf(fact("用户要参加考试", time = far))
         assertNull(GreetingHelper.getMemoryHint(facts, today))
     }
+
+    @Test
+    fun `最近的每日总结会跟在时间问候后`() {
+        val today = LocalDate.of(2026, 8, 10)
+        val greeting = GreetingHelper.buildGreeting(
+            facts = emptyList(),
+            hour = 9,
+            date = today,
+            dailySummary = "今天你完成了接口排查，也记下了明天的会议。",
+            dailySummaryDate = today.toString(),
+        )
+
+        assertTrue("应保留时间问候: $greeting", greeting.startsWith("早上好，"))
+        assertTrue("应带上每日总结事项: $greeting", greeting.contains("完成了接口排查"))
+    }
+
+    @Test
+    fun `超过一天的每日总结不应继续显示`() {
+        val today = LocalDate.of(2026, 8, 10)
+        val greeting = GreetingHelper.buildGreeting(
+            facts = emptyList(),
+            hour = 9,
+            date = today,
+            dailySummary = "这是前天的旧总结",
+            dailySummaryDate = today.minusDays(2).toString(),
+        )
+
+        assertEquals("早上好", greeting)
+    }
 }

@@ -16,27 +16,30 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.EditNote
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -54,7 +57,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.ui.theme.MusePaddings
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * v1.0.74: 小手机沉浸页。
@@ -72,6 +79,8 @@ fun MiniPhoneScreen(
     // v1.0.74: 小手机主人名字/头像(原"Muse 的手机"+ M 头像)
     userName: String = "Muse",
     userAvatarUri: String? = null,
+    hiddenApps: Set<String> = emptySet(),
+    appOrder: List<String> = emptyList(),
     onOpenMoments: () -> Unit,
     onOpenMessages: () -> Unit,
     // v1.0.74: 备忘录复用快速记录 / 相册=AI 生成图 / 天气 / 日记本
@@ -79,6 +88,7 @@ fun MiniPhoneScreen(
     onOpenAlbum: () -> Unit = {},
     onOpenWeather: () -> Unit = {},
     onOpenDiary: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
     onSetWallpaper: (String) -> Unit,
     onPrepareImage: suspend (android.net.Uri) -> String?,
     onBack: () -> Unit,
@@ -87,12 +97,19 @@ fun MiniPhoneScreen(
     // v1.0.74 fix: 入场动画此前 target 恒为 1f 首帧即终值,实际不播放(死代码)。
     // 改为 appeared 翻转后才到 1f,先 0f 起播。
     var appeared by remember { mutableStateOf(false) }
+    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     val appear by animateFloatAsState(
         targetValue = if (appeared) 1f else 0f,
         animationSpec = tween(300, easing = FastOutSlowInEasing),
         label = "miniPhoneAppear",
     )
     LaunchedEffect(Unit) { appeared = true }
+    LaunchedEffect(Unit) {
+        while (true) {
+            now = System.currentTimeMillis()
+            delay(60_000L)
+        }
+    }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -123,10 +140,10 @@ fun MiniPhoneScreen(
             shape = RoundedCornerShape(28.dp),
             color = MaterialTheme.colorScheme.surface,
             modifier = Modifier
+                .widthIn(max = 430.dp)
                 .fillMaxWidth()
-                .padding(horizontal = 36.dp)
-                // v1.0.74 fix: 固定高度缩短(实机比例奇怪),紧凑九宫格为主
-                .height(430.dp)
+                .padding(horizontal = 20.dp)
+                .heightIn(min = 560.dp, max = 700.dp)
                 .shadow(24.dp, RoundedCornerShape(28.dp))
                 .graphicsLayer {
                     scaleX = if (appeared) appear else 0.9f
@@ -143,53 +160,83 @@ fun MiniPhoneScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(18.dp),
+                    .padding(horizontal = 18.dp, vertical = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                // v1.0.74: 头像用用户头像(无则渐变首字),标题用用户名字
-                Box(
-                    modifier = Modifier
-                        .size(64.dp)
-                        .clip(CircleShape)
-                        .background(
-                            brush = Brush.linearGradient(
-                                listOf(
-                                    MaterialTheme.colorScheme.primary,
-                                    MaterialTheme.colorScheme.tertiary,
-                                ),
-                            ),
-                            shape = CircleShape,
-                        ),
-                    contentAlignment = Alignment.Center,
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    if (!userAvatarUri.isNullOrBlank()) {
-                        io.zer0.muse.ui.SmartImage(
-                            model = userAvatarUri,
-                            contentDescription = "头像",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                    } else {
+                    // 头像 + 标题 + 时间 + 桌面操作,保持头部信息在一行内聚合。
+                    Box(
+                        modifier = Modifier
+                            .size(52.dp)
+                            .clip(CircleShape)
+                            .background(
+                                brush = Brush.linearGradient(
+                                    listOf(
+                                        MaterialTheme.colorScheme.primary,
+                                        MaterialTheme.colorScheme.tertiary,
+                                    ),
+                                ),
+                                shape = CircleShape,
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (!userAvatarUri.isNullOrBlank()) {
+                            io.zer0.muse.ui.SmartImage(
+                                model = userAvatarUri,
+                                contentDescription = "头像",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        } else {
+                            Text(
+                                text = userName.take(1),
+                                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                                color = Color.White,
+                            )
+                        }
+                    }
+                    Spacer(Modifier.width(10.dp))
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = userName.take(1),
-                            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                            color = Color.White,
+                            text = "${userName} 的手机",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Text(
+                            text = SimpleDateFormat("HH:mm  ·  MM月dd日", Locale.getDefault())
+                                .format(Date(now)),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.outline,
+                        )
+                        Text(
+                            text = if (momentsCount > 0) {
+                                "已记录 $momentsCount 条生活动态"
+                            } else {
+                                "记录生活的每一个瞬间"
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    IconButton(
+                        onClick = {
+                            wallpaperLauncher.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                            )
+                        },
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.PhotoLibrary,
+                            contentDescription = "更换壁纸",
+                            tint = MaterialTheme.colorScheme.primary,
                         )
                     }
                 }
-                Spacer(Modifier.height(10.dp))
-                Text(
-                    text = "${userName} 的手机",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = if (momentsCount > 0) "已记录 $momentsCount 条生活动态" else "记录生活的每一个瞬间",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
 
-                Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(18.dp))
 
                 // 桌面(壁纸背景)
                 Box(
@@ -205,12 +252,7 @@ fun MiniPhoneScreen(
                                     MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
                                 ),
                             ),
-                        )
-                        .clickable {
-                            wallpaperLauncher.launch(
-                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
-                            )
-                        },
+                        ),
                 ) {
                     // 壁纸
                     if (!wallpaper.isNullOrBlank()) {
@@ -221,71 +263,95 @@ fun MiniPhoneScreen(
                             modifier = Modifier.fillMaxSize(),
                         )
                     }
-                    // 图标网格(2 行 x 3 列)
+                    // 图标网格:只展示已实现且未被用户隐藏的小应用。
                     Column(
                         modifier = Modifier
                             .align(Alignment.Center)
-                            .padding(vertical = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(18.dp),
+                            .padding(vertical = 16.dp, horizontal = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                            MiniAppIcon(
+                        val appEntries = listOf(
+                            MiniPhoneAppEntry(
+                                id = MiniPhoneApps.MOMENTS,
                                 icon = Icons.Filled.Favorite,
                                 label = "朋友圈",
-                                enabled = true,
                                 badgeCount = unreadMoments,
                                 onClick = onOpenMoments,
-                            )
-                            MiniAppIcon(
+                            ),
+                            MiniPhoneAppEntry(
+                                id = MiniPhoneApps.MESSAGES,
                                 icon = Icons.Filled.Notifications,
                                 label = "消息",
-                                enabled = true,
                                 badgeCount = unreadMessages,
                                 onClick = onOpenMessages,
-                            )
-                            MiniAppIcon(
+                            ),
+                            MiniPhoneAppEntry(
+                                id = MiniPhoneApps.ALBUM,
                                 icon = Icons.Filled.PhotoLibrary,
                                 label = "相册",
-                                enabled = false,
-                            )
-                        }
-                        Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                            MiniAppIcon(
-                                icon = Icons.Filled.PhotoLibrary,
-                                label = "相册",
-                                enabled = true,
                                 onClick = onOpenAlbum,
-                            )
-                            MiniAppIcon(
+                            ),
+                            MiniPhoneAppEntry(
+                                id = MiniPhoneApps.QUICK_NOTES,
                                 icon = Icons.Filled.Home,
                                 label = "备忘录",
-                                enabled = true,
                                 onClick = onOpenQuickNotes,
-                            )
-                            MiniAppIcon(
+                            ),
+                            MiniPhoneAppEntry(
+                                id = MiniPhoneApps.WEATHER,
                                 icon = Icons.Filled.WbSunny,
                                 label = "天气",
-                                enabled = true,
                                 onClick = onOpenWeather,
-                            )
-                        }
-                        Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                            MiniAppIcon(
+                            ),
+                            MiniPhoneAppEntry(
+                                id = MiniPhoneApps.DIARY,
                                 icon = Icons.Filled.EditNote,
                                 label = "日记本",
-                                enabled = true,
                                 onClick = onOpenDiary,
-                            )
-                            MiniAppIcon(
+                            ),
+                            MiniPhoneAppEntry(
+                                id = MiniPhoneApps.SETTINGS,
                                 icon = Icons.Filled.Settings,
                                 label = "设置",
-                                enabled = false,
-                            )
-                            MiniAppIcon(
-                                icon = Icons.Filled.Star,
-                                label = "敬请期待",
-                                enabled = false,
-                            )
+                                onClick = onOpenSettings,
+                            ),
+                        ).filterNot { it.id in hiddenApps }
+                            .sortedBy { entry ->
+                                val index = appOrder.indexOf(entry.id)
+                                if (index >= 0) index else Int.MAX_VALUE
+                            }
+
+                        if (appEntries.isEmpty()) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = "桌面暂无启用的 App",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color.White,
+                                )
+                                Spacer(Modifier.height(6.dp))
+                                Text(
+                                    text = "可在小手机设置中恢复",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color.White.copy(alpha = 0.8f),
+                                )
+                            }
+                        } else {
+                            appEntries.chunked(3).forEach { rowEntries ->
+                                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                    rowEntries.forEach { entry ->
+                                        MiniAppIcon(
+                                            icon = entry.icon,
+                                            label = entry.label,
+                                            enabled = true,
+                                            badgeCount = entry.badgeCount,
+                                            onClick = entry.onClick,
+                                        )
+                                    }
+                                    repeat(3 - rowEntries.size) {
+                                        Spacer(Modifier.width(64.dp))
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -293,6 +359,14 @@ fun MiniPhoneScreen(
         }
     }
 }
+
+private data class MiniPhoneAppEntry(
+    val id: String,
+    val icon: ImageVector,
+    val label: String,
+    val badgeCount: Int = 0,
+    val onClick: () -> Unit,
+)
 
 /** v1.0.74: 桌面应用图标(圆形 + 文字;badge 数字红点)。 */
 @Composable

@@ -107,6 +107,28 @@ class ProviderConfigTest {
     }
 
     @Test
+    fun `should normalize SiliconFlow host-only baseUrl to v1 endpoint`() {
+        val cfg = ProviderConfig(
+            id = "siliconflow",
+            displayName = "SiliconFlow",
+            type = ProviderType.OPENAI,
+            baseUrl = "https://api.siliconflow.cn",
+        )
+        assertEquals("https://api.siliconflow.cn/v1", cfg.resolvedBaseUrl())
+    }
+
+    @Test
+    fun `should preserve SiliconFlow v1 baseUrl`() {
+        val cfg = ProviderConfig(
+            id = "siliconflow",
+            displayName = "SiliconFlow",
+            type = ProviderType.OPENAI,
+            baseUrl = "https://api.siliconflow.cn/v1/",
+        )
+        assertEquals("https://api.siliconflow.cn/v1", cfg.resolvedBaseUrl())
+    }
+
+    @Test
     fun `should return explicit baseUrl when set and ignore default`() {
         val cfg = ProviderConfig(
             id = "p1",

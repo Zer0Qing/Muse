@@ -74,6 +74,35 @@ data class McpOAuthConfig(
 )
 
 /**
+ * 飞书 MCP 的应用身份配置。
+ *
+ * 飞书 MCP 使用 tenant_access_token(TAT)作为请求头,该 token 有效期较短,
+ * 不能把它当作永久 Bearer token 保存。Muse 只持久化加密后的 appId/appSecret,
+ * 运行时按需获取并把短期 TAT 缓存到 [McpTokenInfo]。
+ */
+@Serializable
+data class McpFeishuAuthConfig(
+    val enabled: Boolean = false,
+    val appId: String = "",
+    val appSecret: String = "",
+) {
+    /** 是否已填写足够的应用凭证,可以尝试自动换取 TAT。 */
+    fun isConfigured(): Boolean = enabled && appId.isNotBlank() && appSecret.isNotBlank()
+
+    /** 返回加密凭证副本,供 DataStore 持久化。 */
+    suspend fun encrypted(): McpFeishuAuthConfig = copy(
+        appId = SecureKeyStore.encrypt(appId),
+        appSecret = SecureKeyStore.encrypt(appSecret),
+    )
+
+    /** 返回解密凭证副本,供 MCP 请求前使用。 */
+    suspend fun decrypted(): McpFeishuAuthConfig = copy(
+        appId = SecureKeyStore.decrypt(appId),
+        appSecret = SecureKeyStore.decrypt(appSecret),
+    )
+}
+
+/**
  * Phase 10.4 (M3): OAuth token 缓存(持久化到 DataStore)。
  *
  * @param accessToken 访问令牌(请求时带 Bearer)
@@ -154,6 +183,8 @@ data class McpServerConfig(
     val reconnectBaseMs: Long = 1000L,
     val requestTimeoutMs: Long = 30_000L,
     val oauthConfig: McpOAuthConfig = McpOAuthConfig(),
+    /** 飞书 tenant_access_token 自动刷新配置,默认关闭以保持旧 MCP 配置兼容。 */
+    val feishuAuth: McpFeishuAuthConfig = McpFeishuAuthConfig(),
 ) {
     /**
      * 合并 headers 和 authToken,Authorization 优先用 headers 里的。
@@ -176,6 +207,7 @@ data class McpServerConfig(
      */
     suspend fun encrypted(): McpServerConfig = copy(
         authToken = SecureKeyStore.encrypt(authToken),
+        feishuAuth = feishuAuth.encrypted(),
     )
 
     /**
@@ -184,5 +216,6 @@ data class McpServerConfig(
      */
     suspend fun decrypted(): McpServerConfig = copy(
         authToken = SecureKeyStore.decrypt(authToken),
+        feishuAuth = feishuAuth.decrypted(),
     )
 }

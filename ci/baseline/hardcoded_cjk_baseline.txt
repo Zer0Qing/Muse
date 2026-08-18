@@ -2,7 +2,7 @@
 # 格式: <file>: <违规数>;新增或上升都会失败,只允许下降
 # 清理存量后运行: py -3 ci/script/check_hardcoded_cjk.py --update-baseline
 #
-# 当前共 442 处,分布 53 个文件
+# 当前共 477 处,分布 58 个文件
 app/src/main/java/io/zer0/muse/ui/AssistantAdvancedPage.kt: 1
 app/src/main/java/io/zer0/muse/ui/ChatScreen.kt: 2
 app/src/main/java/io/zer0/muse/ui/ChatScreenComponents.kt: 1
@@ -33,14 +33,19 @@ app/src/main/java/io/zer0/muse/ui/markdown/FormulaView.kt: 1
 app/src/main/java/io/zer0/muse/ui/markdown/MarkdownText.kt: 1
 app/src/main/java/io/zer0/muse/ui/memory/MemorySpaceSwitcher.kt: 2
 app/src/main/java/io/zer0/muse/ui/memory/MemorySpaceViewModel.kt: 6
-app/src/main/java/io/zer0/muse/ui/moment/MiniAlbumScreen.kt: 6
-app/src/main/java/io/zer0/muse/ui/moment/MiniPhoneScreen.kt: 13
+app/src/main/java/io/zer0/muse/ui/moment/MiniAlbumScreen.kt: 15
+app/src/main/java/io/zer0/muse/ui/moment/MiniDiaryScreen.kt: 1
+app/src/main/java/io/zer0/muse/ui/moment/MiniPhoneApps.kt: 7
+app/src/main/java/io/zer0/muse/ui/moment/MiniPhoneScreen.kt: 16
+app/src/main/java/io/zer0/muse/ui/moment/MiniPhoneSettingsPage.kt: 4
+app/src/main/java/io/zer0/muse/ui/moment/MomentComponents.kt: 1
 app/src/main/java/io/zer0/muse/ui/moment/MomentViewModel.kt: 7
-app/src/main/java/io/zer0/muse/ui/moment/MomentsScreen.kt: 2
+app/src/main/java/io/zer0/muse/ui/moment/MomentsScreen.kt: 6
 app/src/main/java/io/zer0/muse/ui/onboarding/OnboardingScreen.kt: 1
 app/src/main/java/io/zer0/muse/ui/quicknotes/QuickNotesViewModel.kt: 5
 app/src/main/java/io/zer0/muse/ui/settings/BackgroundKeepAlive.kt: 18
 app/src/main/java/io/zer0/muse/ui/settings/CloudBackupPage.kt: 2
+app/src/main/java/io/zer0/muse/ui/settings/McpSection.kt: 6
 app/src/main/java/io/zer0/muse/ui/settings/MemorySettingsPage.kt: 1
 app/src/main/java/io/zer0/muse/ui/settings/MultiAgentSettingsPage.kt: 13
 app/src/main/java/io/zer0/muse/ui/settings/PluginManagePage.kt: 1

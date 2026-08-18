@@ -5,7 +5,6 @@ import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withContext
 import java.util.UUID
 
@@ -24,9 +23,7 @@ class MomentRepository(
     private val TAG = "MomentRepo"
 
     /** 全部动态(时间倒序)。 */
-    fun observeMoments(limit: Int = 100): Flow<List<MomentEntity>> = flow {
-        emit(dao.getAll(limit))
-    }
+    fun observeMoments(limit: Int = 100): Flow<List<MomentEntity>> = dao.observeAll(limit)
 
     /** 一次性取全部动态。 */
     suspend fun getAll(limit: Int = 100): List<MomentEntity> = withContext(Dispatchers.IO) {
@@ -123,7 +120,7 @@ class MomentRepository(
         content: String,
         senderId: String? = null,
         senderName: String? = null,
-    ): MomentCommentEntity = withContext(Dispatchers.IO) {
+    ): MomentCommentEntity? = withContext(Dispatchers.IO) {
         val comment = MomentCommentEntity(
             id = UUID.randomUUID().toString(),
             momentId = momentId,
@@ -135,7 +132,8 @@ class MomentRepository(
         )
         resultOf { dao.insertComment(comment) }
             .onError { msg, t -> Logger.w(TAG, "插入评论失败: $msg", t) }
-        comment
+            .getOrNull()
+            ?.let { comment }
     }
 
     /** 点赞/取消点赞(按点赞者身份)。返回 (更新后的动态, 是否已点赞)。
@@ -182,22 +180,26 @@ class MomentRepository(
         likerId: String,
         likerName: String,
     ): MomentEntity = withContext(Dispatchers.IO) {
-        val alreadyLiked = resultOf { dao.hasLiked(moment.id, likerType, likerId) }.getOrNull() ?: 0
-        if (alreadyLiked > 0) return@withContext moment
-        val newLikes = moment.likes + 1
         resultOf {
-            dao.addLike(
-                MomentLikeEntity(
-                    momentId = moment.id,
-                    likerType = likerType,
-                    likerId = likerId,
-                    likerName = likerName,
-                    createdAt = System.currentTimeMillis(),
-                ),
-            )
-            dao.setLiked(moment.id, newLikes, moment.likedByUser)
+            db.withTransaction {
+                if (dao.hasLiked(moment.id, likerType, likerId) > 0) {
+                    return@withTransaction moment
+                }
+                dao.addLike(
+                    MomentLikeEntity(
+                        momentId = moment.id,
+                        likerType = likerType,
+                        likerId = likerId,
+                        likerName = likerName,
+                        createdAt = System.currentTimeMillis(),
+                    ),
+                )
+                val dbLikes = dao.countLikes(moment.id)
+                dao.setLiked(moment.id, dbLikes, moment.likedByUser)
+                moment.copy(likes = dbLikes)
+            }
         }.onError { msg, t -> Logger.w(TAG, "助手点赞失败: $msg", t) }
-        moment.copy(likes = newLikes)
+            .getOrNull() ?: moment
     }
 
     /** 删除动态(级联评论 + 点赞记录)。 */

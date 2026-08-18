@@ -1,7 +1,6 @@
 package io.zer0.muse.tools
 
 import io.zer0.memory.fact.FactStore
-import kotlinx.coroutines.runBlocking
 
 /**
  * search_memory tool (既有实现 memory-search.ts port)。
@@ -32,7 +31,7 @@ object SearchMemoryTool {
         riskLevel = ToolRiskLevel.SAFE,
     )
 
-    fun execute(args: Map<String, String>, factStore: FactStore): String {
+    suspend fun execute(args: Map<String, String>, factStore: FactStore): String {
         val query = args["query"]?.trim().orEmpty()
         if (query.isEmpty()) return "Error: query parameter is required."
 
@@ -46,41 +45,37 @@ object SearchMemoryTool {
         val to = args["to"]?.trim()?.takeIf { it.isNotEmpty() }
         val limit = args["limit"]?.toIntOrNull()?.coerceIn(1, 50) ?: 10
 
-        return runBlocking {
-            val facts = if (tags.isNotEmpty()) {
-                factStore.searchByTags(
-                    queryTags = tags,
-                    dateRange = if (from != null || to != null) {
-                        FactStore.DateRange(from = from, to = to)
-                    } else null,
-                    limit = limit,
-                )
-            } else {
-                factStore.searchFullText(query, limit)
-            }
-
-            if (facts.isEmpty()) {
-                return@runBlocking "No matching memories found."
-            }
-
-            buildString {
-                appendLine("Found ${facts.size} memory fact(s):")
-                appendLine()
-                facts.forEachIndexed { index, fact ->
-                    appendLine("${index + 1}. ${fact.fact}")
-                    if (fact.tags.isNotEmpty()) {
-                        appendLine("   Tags: ${fact.tags.joinToString(", ")}")
-                    }
-                    if (fact.category.isNotBlank() && fact.category != "general") {
-                        appendLine("   Category: ${fact.category}")
-                    }
-                    if (fact.confidence < 1.0f) {
-                        appendLine("   Confidence: ${fact.confidence}")
-                    }
-                    fact.time?.let { appendLine("   Time: $it") }
-                    appendLine()
-                }
-            }.trimEnd()
+        val facts = if (tags.isNotEmpty()) {
+            factStore.searchByTags(
+                queryTags = tags,
+                dateRange = if (from != null || to != null) {
+                    FactStore.DateRange(from = from, to = to)
+                } else null,
+                limit = limit,
+            )
+        } else {
+            factStore.searchFullText(query, limit)
         }
+
+        if (facts.isEmpty()) return "No matching memories found."
+
+        return buildString {
+            appendLine("Found ${facts.size} memory fact(s):")
+            appendLine()
+            facts.forEachIndexed { index, fact ->
+                appendLine("${index + 1}. ${fact.fact}")
+                if (fact.tags.isNotEmpty()) {
+                    appendLine("   Tags: ${fact.tags.joinToString(", ")}")
+                }
+                if (fact.category.isNotBlank() && fact.category != "general") {
+                    appendLine("   Category: ${fact.category}")
+                }
+                if (fact.confidence < 1.0f) {
+                    appendLine("   Confidence: ${fact.confidence}")
+                }
+                fact.time?.let { appendLine("   Time: $it") }
+                appendLine()
+            }
+        }.trimEnd()
     }
 }
