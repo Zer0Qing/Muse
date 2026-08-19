@@ -1,12 +1,14 @@
 package io.zer0.muse.tools
 
 import io.zer0.ai.ChatService
+import io.zer0.ai.core.ChatRequestMode
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.Logger
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.assistant.AssistantRepository
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * v1.200: Agent 自动路由。
@@ -206,27 +208,40 @@ class AgentRouter(
         }
 
         val prompt = """
-基于以下用户消息和可用助手/团队列表,判断应该由哪个助手或团队来处理。
-只回复助手/团队的 ID,不要其他内容。
+你是一个轻量路由器。只有当候选助手/团队明显比当前助手更合适时才选择它。
+只输出一个候选 ID;如果没有明显匹配,输出 NONE。不要解释。
 
-用户消息: $task
+用户任务:
+$task
 
 $roster
 
-最合适的助手/团队 ID:
+候选 ID:
 """.trimIndent()
 
         return try {
-            val completion = chatService.completeText(
-                messages = listOf(
-                    UIMessage(role = MessageRole.SYSTEM, content = "你是路由助手,只回复 ID。"),
-                    UIMessage(role = MessageRole.USER, content = prompt),
-                ),
-                model = null,  // 用默认模型
-                temperature = 0f,
-                maxTokens = 50,
-            )
-            val id = completion.text.trim()
+            val completion = withTimeoutOrNull(4_000L) {
+                chatService.completeText(
+                    messages = listOf(
+                        UIMessage(role = MessageRole.SYSTEM, content = "只做轻量分类,只输出候选 ID 或 NONE,不要思考长文。"),
+                        UIMessage(role = MessageRole.USER, content = prompt),
+                    ),
+                    model = null,  // 用默认模型
+                    temperature = 0f,
+                    maxTokens = 16,
+                    reasoningLevel = io.zer0.ai.core.ReasoningLevel.OFF,
+                    mode = ChatRequestMode.UTILITY,
+                )
+            } ?: return route(task, excludeAssistantId)
+            val id = completion.text
+                .trim()
+                .lineSequence()
+                .firstOrNull()
+                ?.trim()
+                ?.removePrefix("`")
+                ?.removeSuffix("`")
+                .orEmpty()
+            if (id.equals("NONE", ignoreCase = true)) return route(task, excludeAssistantId)
             // 匹配助手
             val matchedAssistant = assistants.find { it.id == id }
             if (matchedAssistant != null) {

@@ -1,3 +1,5 @@
+@file:Suppress("FunctionNaming", "LongMethod")
+
 package io.zer0.muse.ui.speech
 
 import android.Manifest
@@ -38,14 +40,11 @@ import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -68,6 +67,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.ui.ChatViewModel
+import io.zer0.muse.ui.common.form.MuseSelectionSheet
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -112,7 +112,6 @@ enum class VoiceConversationState {
  * @param onClose 用户点击关闭按钮(X)时回调,调用方应隐藏本页面并调 [ChatViewModel.stopVoiceConversation]
  * @param viewModel 聊天 ViewModel,提供状态流和控制入口
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VoiceConversationMode(
     onClose: () -> Unit,
@@ -128,7 +127,6 @@ fun VoiceConversationMode(
 
     // 切换语音 Bottom Sheet 状态
     var showVoicePicker by remember { mutableStateOf(false) }
-    val voiceSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     // RECORD_AUDIO 权限申请:进入页面时若未授权则申请,授权后自动开启首轮 LISTENING
     val micPermissionLauncher = rememberLauncherForActivityResult(
@@ -259,9 +257,9 @@ fun VoiceConversationMode(
 
     // 切换语音 Bottom Sheet
     if (showVoicePicker) {
-        ModalBottomSheet(
+        MuseSelectionSheet(
+            title = stringResource(R.string.voice_conversation_pick_voice_title),
             onDismissRequest = { showVoicePicker = false },
-            sheetState = voiceSheetState,
         ) {
             VoicePickerContent(
                 voices = viewModel.getAvailableTtsVoices(),
@@ -549,17 +547,8 @@ private fun VoicePickerContent(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = MusePaddings.screen)
-            .navigationBarsPadding()
             .padding(bottom = MusePaddings.sectionGap),
     ) {
-        Text(
-            text = stringResource(R.string.voice_conversation_pick_voice_title),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(vertical = MusePaddings.contentGap),
-        )
         if (voices.isEmpty()) {
             Text(
                 text = stringResource(R.string.voice_conversation_no_voices),

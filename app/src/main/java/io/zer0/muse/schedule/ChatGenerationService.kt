@@ -52,6 +52,7 @@ class ChatGenerationService : Service() {
             val notification = notificationManager.buildGenerationNotification(
                 getString(R.string.schedule_generating_default_title),
                 0,
+                io.zer0.muse.notification.MuseNotificationTarget.Chat,
             )
             startForegroundCompat(notification)
         } catch (t: Throwable) {
@@ -89,7 +90,15 @@ class ChatGenerationService : Service() {
         val active = chatGenerationManager.activeGeneration.value
         val title = active?.sessionTitle ?: getString(R.string.schedule_generating_default_title)
         try {
-            val notification = notificationManager.buildGenerationNotification(title, 0)
+            val target = active?.sessionId
+                ?.takeIf { it.isNotBlank() }
+                ?.let(io.zer0.muse.notification.MuseNotificationTarget::Session)
+                ?: io.zer0.muse.notification.MuseNotificationTarget.Chat
+            val notification = notificationManager.buildGenerationNotification(
+                title,
+                0,
+                target,
+            )
             startForegroundCompat(notification)
         } catch (t: Throwable) {
             Logger.w("ChatGenService", "更新前台通知失败", t)
@@ -126,7 +135,12 @@ class ChatGenerationService : Service() {
                     stopService()
                     return@collect
                 }
-                notificationManager.updateLiveProgress(gen.sessionTitle, 0, true)
+                notificationManager.updateLiveProgress(
+                    gen.sessionTitle,
+                    0,
+                    true,
+                    io.zer0.muse.notification.MuseNotificationTarget.Session(gen.sessionId),
+                )
             }
         }
     }

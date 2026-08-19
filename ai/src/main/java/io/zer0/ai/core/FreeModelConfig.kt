@@ -19,6 +19,9 @@ package io.zer0.ai.core
  */
 object FreeModelConfig {
 
+    /** 仅此内部供应商允许使用无 Key 的免费额度 fallback。 */
+    const val FREE_PROVIDER_ID = "preset_siliconflow_free"
+
     /**
      * SiliconFlow 免费模型白名单。
      *
@@ -54,21 +57,31 @@ object FreeModelConfig {
     /**
      * 检查指定的 provider + model 是否符合免费模型条件。
      *
+     * @param providerId 仅 [FREE_PROVIDER_ID] 或已迁移的隐藏旧供应商允许使用内置免费额度
      * @param baseUrl 供应商 base url
      * @param modelId 模型 id
      * @param userApiKey 用户配置的 API key(空串表示未配置)
+     * @param hiddenFromSettings 旧版本复制出的免费预置也可通过迁移标记保留能力
      * @return 如果符合条件返回 fallback key,否则返回 null
      */
-    fun resolveApiKey(baseUrl: String, modelId: String, userApiKey: String): String? {
-        // 用户已配置自己的 key,完全跳过 fallback(走用户 key)
-        if (userApiKey.isNotBlank()) return null
-        val host = extractHost(baseUrl) ?: return null
-        if (!host.contains(HOST_MARKER)) return null
-        // host + modelId 双重白名单校验
-        val allowed = FREE_MODEL_IDS.any { it.equals(modelId, ignoreCase = true) }
-        if (!allowed) return null
-        // 占位符视为未注入,返回 null(让调用方走原 apiKey 逻辑)
-        return FALLBACK_API_KEY.takeIf { isFallbackKeyAvailable() }
+    fun resolveApiKey(
+        providerId: String,
+        baseUrl: String,
+        modelId: String,
+        userApiKey: String,
+        hiddenFromSettings: Boolean = false,
+    ): String? {
+        val providerAllowed = providerId == FREE_PROVIDER_ID || hiddenFromSettings
+        val hostAllowed = extractHost(baseUrl)?.contains(HOST_MARKER) == true
+        val modelAllowed = FREE_MODEL_IDS.any { it.equals(modelId, ignoreCase = true) }
+        // 用户已配置自己的 key 时完全跳过 fallback,走用户 key。
+        return FALLBACK_API_KEY.takeIf {
+            providerAllowed &&
+                userApiKey.isBlank() &&
+                hostAllowed &&
+                modelAllowed &&
+                isFallbackKeyAvailable()
+        }
     }
 
     /**
@@ -83,11 +96,15 @@ object FreeModelConfig {
      * 供 [OpenAIProvider.listModels] 在入口处判断:为 true 时直接返回预设的免费模型列表,
      * 不调远程 /models(避免因无 key 而 401 失败)。
      */
-    fun isFreeProvider(baseUrl: String, userApiKey: String): Boolean {
-        if (userApiKey.isNotBlank()) return false
-        val host = extractHost(baseUrl) ?: return false
-        return host.contains(HOST_MARKER)
-    }
+    fun isFreeProvider(
+        providerId: String,
+        baseUrl: String,
+        userApiKey: String,
+        hiddenFromSettings: Boolean = false,
+    ): Boolean =
+        (providerId == FREE_PROVIDER_ID || hiddenFromSettings) &&
+            userApiKey.isBlank() &&
+            extractHost(baseUrl)?.contains(HOST_MARKER) == true
 
     private const val HOST_MARKER = "siliconflow"
 

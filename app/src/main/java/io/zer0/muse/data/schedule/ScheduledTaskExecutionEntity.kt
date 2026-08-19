@@ -14,7 +14,7 @@ import kotlinx.serialization.Serializable
  * - [taskId] 关联的定时任务 id(对应 scheduled_tasks.id)
  * - [executedAt] 执行时间戳
  * - [status] 执行状态: "success" / "failed"
- * - [replySummary] AI 回复摘要(前 200 字),失败时为空串
+ * - [replySummary] AI 回复内容(最多 10,000 字),失败时为空串
  * - [errorMessage] 失败时的错误信息(成功时为空串)
  */
 @Entity(

@@ -3,7 +3,6 @@ package io.zer0.muse.ui.quicknotes
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -27,9 +26,10 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.app.NotificationCompat
+import io.zer0.muse.notification.MuseNotificationManager
+import io.zer0.muse.notification.MuseNotificationTarget
 import androidx.core.content.ContextCompat
 import io.zer0.common.Logger
-import io.zer0.muse.MainActivity
 import io.zer0.muse.R
 import io.zer0.muse.data.quicknote.QuickNoteEntity
 import io.zer0.muse.data.session.MuseDb
@@ -424,12 +424,8 @@ class QuickCaptureOverlayService : Service() {
                 ),
             )
         }
-        val intent = Intent(this, MainActivity::class.java)
-        val pending = PendingIntent.getActivity(
-            this,
-            701,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        val pending = MuseNotificationManager(this).buildMainActivityPendingIntent(
+            MuseNotificationTarget.QuickNotes,
         )
         return NotificationCompat.Builder(this, channelId)
             .setSmallIcon(android.R.drawable.ic_input_add)

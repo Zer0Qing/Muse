@@ -123,4 +123,38 @@ class StreamGuardTest {
         assertTrue(events.any { it is ChatStreamEvent.ContentDelta })
         assertTrue("空 finishReason 后应正常 Done", events.last() is ChatStreamEvent.Done)
     }
+
+    @Test
+    fun `空工具名流断开后应完成非流式回退并回传工具调用`() = runBlocking {
+        val malformedToolChunks = (0..10).map { index ->
+            """{"choices":[{"index":0,"delta":{"tool_calls":[{"index":$index,"id":"call_bad_$index","function":{"name":"","arguments":"{\"chunk\":\"$index-very-long\"}"}}]},"finish_reason":null}]}"""
+        }
+        server.enqueue(
+            sse(
+                *(malformedToolChunks + listOf(
+                    """{"choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}]}""",
+                    """[DONE]""",
+                )).toTypedArray(),
+            ),
+        )
+        server.enqueue(
+            MockResponse()
+                .setHeader("Content-Type", "application/json")
+                .setBody(
+                    """{"choices":[{"index":0,"message":{"role":"assistant","content":"","tool_calls":[{"id":"call_fallback","type":"function","function":{"name":"echo","arguments":"{\"text\":\"ok\"}"}}]},"finish_reason":"tool_calls"}]}""",
+                ),
+        )
+
+        val events = withTimeout(10_000) { provider().streamChat(request()).toList() }
+
+        assertTrue(
+            "非流式回退应把有效工具名回传给上层",
+            events.any { it is ChatStreamEvent.ToolCallDelta && it.name == "echo" },
+        )
+        assertTrue(
+            "非流式回退应把工具参数回传给上层",
+            events.any { it is ChatStreamEvent.ToolCallDelta && it.argumentsDelta?.contains("\"ok\"") == true },
+        )
+        assertTrue("回退完成后 Flow 必须发出 Done", events.last() is ChatStreamEvent.Done)
+    }
 }

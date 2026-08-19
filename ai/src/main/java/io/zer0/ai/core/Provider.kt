@@ -124,6 +124,7 @@ enum class ChatRequestMode {
  * @param maxTokens 输出上限,null 表示走服务端默认
  * @param abortSignal 由调用方持有的取消标志,置 true 后尽快中断流
  * @param tools 可选的工具定义列表(Phase 7 function calling),null 表示不启用工具调用
+ * @param toolChoice 工具选择策略("auto" / "required" / "none"),null 表示由 Provider 默认处理
  * @param reasoningLevel 推理等级(Phase 8.1 M11),null 表示用 [ReasoningLevel.DEFAULT]
  *   各 Provider 根据 [Model.supportsReasoning] 和此字段决定是否发 thinking 字段
  *   v1.0.7: 当 [mode]=[ChatRequestMode.UTILITY] 时,此字段被强制覆盖为 OFF
@@ -137,6 +138,7 @@ data class ChatRequest(
     val maxTokens: Int? = null,
     val abortSignal: AbortSignal = AbortSignal(),
     val tools: List<ToolDefinition>? = null,
+    val toolChoice: String? = null,
     val reasoningLevel: ReasoningLevel = ReasoningLevel.DEFAULT,
     val mode: ChatRequestMode = ChatRequestMode.CHAT,
 )

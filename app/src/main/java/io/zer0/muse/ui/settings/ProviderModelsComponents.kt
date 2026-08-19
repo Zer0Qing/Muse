@@ -45,7 +45,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
@@ -68,9 +67,6 @@ import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
-import io.zer0.muse.ui.theme.tiny
-import io.zer0.muse.data.preset.SiliconFlowFreeModels
-import io.zer0.ai.core.FreeModelConfig
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -84,58 +80,16 @@ import kotlinx.serialization.json.jsonPrimitive
 internal fun ModelsTab(
     config: ProviderConfig,
     modelsState: SnapshotStateList<Model>,
-    apiKey: String,
     isFetching: Boolean,
     onFetch: (Boolean) -> Unit,
     onAddModel: () -> Unit,
-    // P2-5: 透传 baseUrl,用于判定是否展示「一键填入免费模型」按钮
-    baseUrl: String = "",
     // v1.0.8 (7.6): 模型健康检查回调 + 状态透传(从 ProviderEditPage 传入)
     onTestModel: (Model) -> Unit = {},
     modelTestStatuses: Map<String, ModelTestStatus> = emptyMap(),
 ) {
     var editingModel by remember { mutableStateOf<Model?>(null) }
 
-    // P2-5: SiliconFlow 免费模型一键填入
-    //  - 仅当 baseUrl 命中 siliconflow.cn 时展示入口(SiliconFlow 官方 / 自部署兼容域名均可)
-    //  - 点击弹出二次确认(替换会清空当前 modelsState,不可撤销)
-    val isSiliconFlow = baseUrl.contains("siliconflow.cn", ignoreCase = true)
-    var showFillFreeModelsConfirm by rememberSaveable { mutableStateOf(false) }
-
     Column(modifier = Modifier.fillMaxSize()) {
-        // P2-5: 顶部「一键填入免费模型」按钮(仅 SiliconFlow 显示)
-        //  - 用 Surface + clickable + MuseShapes.tiny,不使用 Material3 Button
-        //  - 与 OAuth 登录按钮、测试连接按钮风格保持一致(胶囊 / 圆角小标签)
-        if (isSiliconFlow) {
-            SiliconFlowFreeModelsButton(
-                onClick = { showFillFreeModelsConfirm = true },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.contentGap),
-            )
-            // v1.0.18 / R-SEC-07: 免费模型 fallback 提示 — fallback key 可用时告知免费额度,
-            // 占位符/空 key 时给出可见的不可用提示,避免静默失败。
-            if (apiKey.isBlank() && FreeModelConfig.isFreeProvider(baseUrl, apiKey)) {
-                val freeHint = if (FreeModelConfig.isFallbackKeyAvailable()) {
-                    FreeModelConfig.FREE_PROVIDER_HINT
-                } else {
-                    stringResource(R.string.free_model_service_unavailable)
-                }
-                Text(
-                    text = freeHint,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (FreeModelConfig.isFallbackKeyAvailable()) {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    } else {
-                        MaterialTheme.colorScheme.error
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.tightGap),
-                )
-            }
-        }
-
         if (modelsState.isEmpty()) {
             // P2-5: 用 weight(1f) 让空状态占满按钮下方剩余空间
             //  (Column 中 fillMaxSize 会拿到父级完整高度,而非剩余高度,导致溢出)
@@ -222,72 +176,6 @@ internal fun ModelsTab(
         )
     }
 
-    // P2-5: 一键填入免费模型 — 二次确认弹窗
-    //  - 替换会清空当前 modelsState 后填入 SiliconFlowFreeModels.MODELS,不可撤销
-    //  - 默认 common_confirm / common_cancel 文案,与现有 MuseDialog 一致
-    if (showFillFreeModelsConfirm) {
-        MuseDialog(
-            onDismissRequest = { showFillFreeModelsConfirm = false },
-            title = stringResource(R.string.siliconflow_fill_free_models),
-            content = {
-                Text(
-                    text = stringResource(R.string.siliconflow_fill_free_models_confirm),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-            },
-            confirmText = stringResource(R.string.common_confirm),
-            onConfirm = {
-                modelsState.clear()
-                modelsState.addAll(SiliconFlowFreeModels.MODELS)
-                showFillFreeModelsConfirm = false
-            },
-            dismissText = stringResource(R.string.common_cancel),
-            onDismiss = { showFillFreeModelsConfirm = false },
-        )
-    }
-}
-
-/**
- * P2-5: SiliconFlow「一键填入免费模型」按钮。
- *
- * 设计:
- *  - 用 [Surface] + [Modifier.clickable] + [MuseShapes.tiny],不使用 Material3 Button
- *    (与 OAuth 登录 / 测试连接等行内胶囊按钮风格一致)
- *  - 背景用 primaryContainer,文字/图标用 onPrimaryContainer,确保深浅色主题对比度
- *  - 图标用 [TablerIcons.Wand](魔法棒),呼应"一键填入"的语义
- */
-@Composable
-internal fun SiliconFlowFreeModelsButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        shape = MuseShapes.tiny,
-        color = MaterialTheme.colorScheme.primaryContainer,
-        modifier = modifier.clickable(onClick = onClick),
-    ) {
-        Row(
-            modifier = Modifier.padding(
-                horizontal = MusePaddings.iconPadding,
-                vertical = MusePaddings.contentGap,
-            ),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
-        ) {
-            Icon(
-                imageVector = TablerIcons.Wand,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.size(MuseIconSizes.iconSmall),
-            )
-            Text(
-                text = stringResource(R.string.siliconflow_fill_free_models),
-                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-            )
-        }
-    }
 }
 
 @Composable

@@ -66,12 +66,9 @@ class GreetingHintGenerator(
         val system = UIMessage(
             role = MessageRole.SYSTEM,
             content = buildString {
-                appendLine("你正在给用户发一条日常问候,需要附带一句贴心的提醒。")
-                appendLine("根据下面的近期事项,生成一句简短的提醒,要求:")
-                appendLine("- 15-30 字,一句话说完,不要分段")
-                appendLine("- 用\"你\"称呼用户,自然口语化,像朋友提醒,不要官方腔")
-                appendLine("- 直接使用事项里已有的时间(如\"明天\"),不要重复啰嗦")
-                appendLine("- 直接输出提醒内容,不要加引号、冒号、前缀或解释")
+                appendLine("你正在给用户的问候语补一句近期事项提醒。")
+                appendLine("只依据给出的事项,不要推测;保留事项中的相对时间,不要重复时间词。")
+                appendLine("输出 15-30 字的一句话,用\"你\"称呼用户,自然口语,不要引号、前缀、解释或分段。")
             },
         )
         val user = UIMessage(

@@ -2,7 +2,6 @@ package io.zer0.muse.schedule
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -15,7 +14,6 @@ import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import kotlinx.serialization.json.JsonObject
 import io.zer0.common.resultOf
-import io.zer0.muse.MainActivity
 import io.zer0.muse.R
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.assistant.AssistantRepository
@@ -29,6 +27,8 @@ import io.zer0.muse.data.schedule.ScheduledTaskDao
 import io.zer0.muse.data.schedule.ScheduledTaskEntity
 import io.zer0.muse.data.schedule.ScheduledTaskExecutionEntity
 import io.zer0.muse.data.session.SessionRepository
+import io.zer0.muse.notification.MuseNotificationManager
+import io.zer0.muse.notification.MuseNotificationTarget
 import io.zer0.muse.tools.ToolRegistry
 import io.zer0.muse.tools.ToolRiskLevel
 import io.zer0.muse.util.GlobalCoroutineExceptionHandler
@@ -45,7 +45,7 @@ import java.util.concurrent.atomic.AtomicInteger
  * Phase 17: 定时任务执行器。
  *
  * 在 App 启动时启动,每 60 秒检查一次是否有到期的定时任务。
- * 到期任务会真正执行 prompt(调用 AI + 写入会话),并弹通知(点击跳转到主页)。
+ * 到期任务会真正执行 prompt(调用 AI + 写入会话),并弹通知(点击跳转到对应任务)。
  * 使用协程轮询而非 AlarmManager,避免 Android 后台限制。
  *
  * P1-7: 执行任务后插入一条 execution 记录(success/failed),供 UI 展示执行历史。
@@ -54,7 +54,7 @@ import java.util.concurrent.atomic.AtomicInteger
  *  - 按 task.assistantId 解析助手配置,用其 systemPrompt 作为系统消息
  *  - 调用 [ChatService.completeText](非流式)执行 task.prompt
  *  - 把用户 prompt 和 AI 回复写入一个专用会话(标题用 task.name)
- *  - replySummary 存 AI 回复前 200 字;失败时 errorMessage 记录真实异常
+ *  - replySummary 存 AI 回复正文(最多 10,000 字);失败时 errorMessage 记录真实异常
  *  - 通知内容用 AI 回复摘要
  *  - [executeTask] 对外暴露,供 UI"立即执行"按钮调试调用
  *
@@ -101,7 +101,8 @@ class ScheduledTaskRunner(
             else -> 0L
         }
         private const val POLL_INTERVAL_MS = 60_000L // 每分钟检查一次
-        private const val REPLY_SUMMARY_MAX_LEN = 200 // AI 回复摘要最大长度
+        // 执行历史展开后展示正文;限制上限避免异常工具输出无限膨胀数据库。
+        private const val EXECUTION_DETAIL_MAX_LEN = 10_000
 
         /**
          * B-12: 抢占式领取判定(纯函数,供单元测试直接调用)。
@@ -262,7 +263,7 @@ class ScheduledTaskRunner(
                     config = task.actionConfigJson.toAction().config,
                 )
                 val output = executeAction(task, action)
-                replySummary = output.take(REPLY_SUMMARY_MAX_LEN)
+                replySummary = output.take(EXECUTION_DETAIL_MAX_LEN)
                 // 3. 触发链式任务
                 triggerChainTasks(task, chainDepth)
             }
@@ -270,7 +271,7 @@ class ScheduledTaskRunner(
             if (e is kotlin.coroutines.cancellation.CancellationException) throw e
             Logger.w(TAG, "Task ${task.id} execute failed: ${e.message}")
             status = "failed"
-            errorMessage = (e.message ?: e.javaClass.simpleName).take(REPLY_SUMMARY_MAX_LEN)
+            errorMessage = (e.message ?: e.javaClass.simpleName).take(EXECUTION_DETAIL_MAX_LEN)
         }
 
         // 4. 原子记录执行历史 + 推进下次执行时间
@@ -358,7 +359,7 @@ class ScheduledTaskRunner(
             AutomationConfig.Action.AI_PROMPT -> executeAiPrompt(task)
             AutomationConfig.Action.CREATE_QUICK_NOTE -> executeCreateQuickNote(action)
             AutomationConfig.Action.CALL_TOOL -> executeCallTool(task, action)
-            AutomationConfig.Action.NOTIFY -> executeNotify(action)
+            AutomationConfig.Action.NOTIFY -> executeNotify(task, action)
             else -> executeAiPrompt(task)
         }
     }
@@ -396,7 +397,11 @@ class ScheduledTaskRunner(
             sessionId = sessionId,
             message = UIMessage(role = MessageRole.ASSISTANT, content = reply, createdAt = System.currentTimeMillis()),
         )
-        showNotification(task.name, reply)
+        showNotification(
+            task.name,
+            reply,
+            MuseNotificationTarget.ScheduledTask(task.id),
+        )
         return reply
     }
 
@@ -445,12 +450,12 @@ class ScheduledTaskRunner(
         return registry.executeFromJson(toolId, paramsJson)
     }
 
-    private fun executeNotify(action: AutomationConfig.Action): String {
+    private fun executeNotify(task: ScheduledTaskEntity, action: AutomationConfig.Action): String {
         val cfg = action.config
         val title = cfg["title"]?.toString()?.trim('"')?.takeIf { it.isNotBlank() } ?: "Muse"
         val message = cfg["message"]?.toString()?.trim('"')?.takeIf { it.isNotBlank() }
             ?: throw IllegalArgumentException("notify 缺少 message")
-        showNotification(title, message)
+        showNotification(title, message, MuseNotificationTarget.ScheduledTask(task.id))
         return message
     }
 
@@ -550,7 +555,11 @@ class ScheduledTaskRunner(
                 message = UIMessage(role = MessageRole.USER, content = pm.content, createdAt = now),
             )
             // 弹出通知
-            showNotification("Scheduled Message", pm.content)
+            showNotification(
+                "Scheduled Message",
+                pm.content,
+                MuseNotificationTarget.Session(pm.sessionId),
+            )
             Logger.i(TAG, "Delivered pending message ${pm.id} to session ${pm.sessionId}")
         } catch (e: Exception) {
             Logger.w(TAG, "Failed to deliver pending message ${pm.id}: ${e.message}")
@@ -569,22 +578,22 @@ class ScheduledTaskRunner(
     private val notificationId = AtomicInteger(NOTIFICATION_ID_BASE)
 
     /**
-     * v1.64: 弹出定时任务到期通知 — 点击直达定时任务页。
-     * 用 muse://scheduled-tasks deep link,经 ShareIntentHandler 解析后导航到 SCHEDULED_TASKS 路由。
+     * v1.64: 弹出定时任务到期通知 — 点击直达对应任务并展开执行历史。
+     * 用 muse://scheduled-task/{taskId} deep link,经 ShareIntentHandler 解析后导航到指定任务路由。
      */
-    private fun showNotification(title: String, content: String) {
-        val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            data = android.net.Uri.parse("muse://scheduled-tasks")
-        }
-        val pendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-
+    private fun showNotification(
+        title: String,
+        content: String,
+        target: MuseNotificationTarget,
+    ) {
+        val notificationManager = MuseNotificationManager(context)
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle(title)
             .setContentText(content.take(100))
+            .setStyle(NotificationCompat.BigTextStyle().bigText(content))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setContentIntent(pendingIntent)
+            .setContentIntent(notificationManager.buildMainActivityPendingIntent(target))
             .setAutoCancel(true)
             .build()
 

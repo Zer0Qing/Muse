@@ -13,7 +13,6 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.moment.MomentCommentEntity
 import io.zer0.muse.data.moment.MomentEntity
-import io.zer0.muse.data.moment.images
 import io.zer0.muse.data.moment.MomentGenerator
 import io.zer0.muse.data.moment.MomentMessage
 import io.zer0.muse.data.moment.MomentRepository
@@ -24,6 +23,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.random.Random
@@ -243,9 +243,13 @@ class MomentViewModel(
                     likerId = "user",
                     likerName = "我",
                 )
-                _state.value = _state.value.copy(
-                    moments = _state.value.moments.map { if (it.id == moment.id) updated else it },
-                )
+                _state.update { state ->
+                    state.copy(
+                        moments = state.moments.map { item ->
+                            if (item.id == moment.id) updated else item
+                        },
+                    )
+                }
             } catch (t: Throwable) {
                 if (t is kotlin.coroutines.cancellation.CancellationException) throw t
                 Logger.w(TAG, "用户点赞失败: ${t.message}", t)
@@ -280,14 +284,20 @@ class MomentViewModel(
 
     /** 删除动态。 */
     fun deleteMoment(moment: MomentEntity) {
+        if (moment.senderType != "user" && moment.source != "user") return
         viewModelScope.launch {
-            repository.deleteMoment(moment.id)
+            if (!repository.deleteMoment(moment.id)) {
+                Logger.w(TAG, "用户删除动态失败: ${moment.id}")
+                return@launch
+            }
             val favorites = settings.momentFavoriteIdsFlow.firstOrNull() ?: emptySet()
             if (moment.id in favorites) settings.saveMomentFavoriteIds(favorites - moment.id)
-            _state.value = _state.value.copy(
-                moments = _state.value.moments.filterNot { it.id == moment.id },
-                comments = _state.value.comments - moment.id,
-            )
+            _state.update { state ->
+                state.copy(
+                    moments = state.moments.filterNot { item -> item.id == moment.id },
+                    comments = state.comments - moment.id,
+                )
+            }
         }
     }
 
@@ -298,7 +308,7 @@ class MomentViewModel(
                 val current = settings.momentFavoriteIdsFlow.firstOrNull() ?: emptySet()
                 val next = if (momentId in current) current - momentId else current + momentId
                 settings.saveMomentFavoriteIds(next)
-                _state.value = _state.value.copy(favoriteMomentIds = next)
+                _state.update { it.copy(favoriteMomentIds = next) }
             } catch (t: Throwable) {
                 if (t is kotlin.coroutines.cancellation.CancellationException) throw t
                 Logger.w(TAG, "收藏动态失败: ${t.message}", t)
@@ -307,11 +317,13 @@ class MomentViewModel(
     }
 
     private fun updateComments(momentId: String, comment: MomentCommentEntity) {
-        _state.value = _state.value.copy(
-            comments = _state.value.comments.toMutableMap().apply {
-                put(momentId, (this[momentId] ?: emptyList()) + comment)
-            },
-        )
+        _state.update { state ->
+            state.copy(
+                comments = state.comments.toMutableMap().apply {
+                    put(momentId, (this[momentId] ?: emptyList()) + comment)
+                },
+            )
+        }
     }
 
     /** 随机助手生成评论回复。返回 (文本, 助手)。 */

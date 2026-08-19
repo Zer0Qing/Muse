@@ -246,6 +246,11 @@ class OpenAIProvider(
         //   (finishReason + [DONE] 各触发一次)在回退协程完成前提前 close flow,
         //   导致 completeText 的结果无法通过已关闭的 channel 发送。
         val pendingFallback = AtomicBoolean(false)
+        // 回退判断必须区分"流还可能继续产生事件"和"SSE 已经结束"。
+        // 某些网关会在 finish_reason=tool_calls 后立即 onClosed;此时不能再把已有
+        // contentChars 当成"流已恢复",否则回退协程提前返回,Flow 永远收不到 Done。
+        val streamSourceClosed = AtomicBoolean(false)
+        val consumerClosed = AtomicBoolean(false)
 
         /**
          * v1.0.20: stream-guard — 在 Done 事件前检查累积的 toolCallAccMap,
@@ -367,19 +372,26 @@ class OpenAIProvider(
                         //   不发 Done 不 close — 让 SSE 继续接收后续 delta,直到真正的 finishReason
                         //   或 onClosed 正常结束。重置 streamGuardDone 允许后续 emitDone 重新触发
                         //   (此时 contentChars 已 > 9, shouldFallback=false, 直接 Done+close)。
-                        // v1.0.51: 必须要求 content 增长才认为"流恢复" — 商汤模型可能只发 reasoning
-                        //   不发 content,如果仅 reasoning 增长就放弃回退,后续假 finishReason 到达时
-                        //   content 仍为 0,用户看到空回复。只有 content > 0 才说明模型开始产出可见内容。
+                        // v1.0.51: 必须要求相对回退触发时的基线确实增长才认为"流恢复"。
+                        //   仅检查 content > 0 会把已经收到的首个 delta 误判为新增内容;
+                        //   如果连接其实已经 onClosed,这会让回退协程直接返回并永久挂起上层 Flow。
                         val currentContent = contentCharsSent.get()
                         val currentReasoning = reasoningCharsSent.get()
-                        if (currentContent > 0) {
+                        // 仅新增可见正文才算流式恢复。若只新增 reasoning,某些模型仍可能
+                        // 在 tool_calls 收尾后直接断开,此时继续等待会再次丢失工具调用。
+                        val streamProducedMore = currentContent > totalChars
+                        if (!streamSourceClosed.get() && streamProducedMore) {
                             Logger.i(
                                 "OpenAIProvider",
-                                "stream-guard: 等待期间流式已恢复(content=$currentContent, reasoning=$currentReasoning),放弃回退,继续接收流式",
+                                "stream-guard: 等待期间流式已恢复(content=$currentContent, reasoning=$currentReasoning)," +
+                                    "放弃回退,继续接收流式",
                             )
                             pendingFallback.set(false)
                             streamGuardDone.set(false)
                             return@launch
+                        }
+                        if (streamSourceClosed.get()) {
+                            Logger.d("OpenAIProvider", "stream-guard: SSE 已关闭,继续执行非流式回退")
                         }
                         // v1.0.48: 回退重试 — 商汤 API 偶发 Connection reset,重试 1 次提高成功率
                         var completion: ChatCompletion? = null
@@ -471,6 +483,7 @@ class OpenAIProvider(
         var currentEventSource: EventSource? = null
 
         fun connect() {
+            streamSourceClosed.set(false)
             currentEventSource = sseFactory.newEventSource(httpRequest, object : EventSourceListener() {
                 override fun onOpen(eventSource: EventSource, response: Response) {
                     firstByteAt = System.currentTimeMillis()
@@ -697,6 +710,7 @@ class OpenAIProvider(
                 }
 
                 override fun onClosed(eventSource: EventSource) {
+                    streamSourceClosed.set(true)
                     // v1.0.23: 商汤等 API 可能直接关闭连接,不发 [DONE] 也不发 finishReason
                     //   若尚未触发 stream-guard,在此触发以检测流式过早结束并回退
                     // v1.0.24: 回退进行中时不 close,等回退协程完成
@@ -717,9 +731,15 @@ class OpenAIProvider(
                     t: Throwable?,
                     response: Response?,
                 ) {
+                    streamSourceClosed.set(true)
                     // v1.0.24: 回退进行中时不 close,等回退协程完成
                     if (pendingFallback.get()) {
                         Logger.d("OpenAIProvider", "streamChat onFailure: 回退进行中, 忽略连接错误 t=${t?.message}")
+                        return
+                    }
+                    if (streamGuardDone.get() || consumerClosed.get() || scope.isClosedForSend) {
+                        Logger.d("OpenAIProvider", "streamChat onFailure: 流已完成或消费者已关闭,忽略收尾回调")
+                        close()
                         return
                     }
                     if (request.abortSignal.aborted) {
@@ -807,7 +827,8 @@ class OpenAIProvider(
         connect()
 
         awaitClose {
-            request.abortSignal.abort()
+            // 只释放 HTTP 资源,不要把正常收尾标记成用户主动取消。
+            consumerClosed.set(true)
             currentEventSource?.cancel()
         }
         // C-35: 内部 channel 已改为 channelFlow(capacity = UNLIMITED),trySend 不再因容量满丢片。
@@ -984,7 +1005,13 @@ class OpenAIProvider(
         //   避免因无 apiKey 调远程返回 401 / 403,让用户在 SiliconFlow 供应商页面看到
         //   预填的 GLM-4-9B / Qwen3-8B 即可用。用户填 key 后 isFreeProvider 返回 false,
         //   走原远程拉取逻辑解锁全部模型。
-        if (FreeModelConfig.isFreeProvider(resolvedBaseUrl, config.apiKey)) {
+        if (FreeModelConfig.isFreeProvider(
+                config.id,
+                resolvedBaseUrl,
+                config.apiKey,
+                config.hiddenFromSettings,
+            )
+        ) {
             Logger.i("OpenAIProvider", "listModels: SiliconFlow 免费模型 provider(未填 key),返回预设 ${config.models.size} 个模型")
             return@withContext config.models
         }
@@ -1325,6 +1352,11 @@ class OpenAIProvider(
                 request.tools?.mapNotNull { it.toOpenAISafely() }?.distinctBy { it.function.name }
                     ?.takeIf { it.isNotEmpty() }
             else null,
+            tool_choice = if (compat.supportsToolCalling && payloadToolsPresent(request.tools)) {
+                request.toolChoice
+            } else {
+                null
+            },
             // compat.supportsReasoningEffort=false 时强制不发 reasoning_effort
             //   (如 DeepSeek / Zhipu / Gemini OpenAI 兼容层,各自用 reasoning_content / thinking 字段)
             // v1.0.5: stripDisabledReasoningEffort — 值为 false/none/off 时视为未启用,
@@ -1334,6 +1366,12 @@ class OpenAIProvider(
             reasoning_effort = if (compat.supportsReasoningEffort && compat.thinkingFormat == null)
                 effort?.takeIf { !isDisabledReasoningEffort(it) }
             else null,
+        )
+        Logger.d(
+            "OpenAIProvider",
+            "request contract | stream=$stream | mode=${request.mode} | " +
+                "toolsIn=${request.tools?.size ?: 0} | toolsOut=${payload.tools?.size ?: 0} | " +
+                "compatTools=${compat.supportsToolCalling} | model=$effectiveModel",
         )
         // v1.0.7: thinkingFormat 注入 — 按厂商扩展字段构造思考参数
         // 按 thinkingFormat 9 种格式映射请求体字段。
@@ -1793,6 +1831,7 @@ class OpenAIProvider(
         val toolCallAccMap = mutableMapOf<Int, ToolCallAccState>()
         // v1.0.21: 防止 emitDoneWithStreamGuard 被双重执行
         val streamGuardDone = AtomicBoolean(false)
+        val consumerClosed = AtomicBoolean(false)
 
         /**
          * v1.0.20: stream-guard — 在 Done 事件前检查累积的 toolCallAccMap,
@@ -2029,6 +2068,11 @@ class OpenAIProvider(
                     t: Throwable?,
                     response: Response?,
                 ) {
+                    if (streamGuardDone.get() || consumerClosed.get() || scope.isClosedForSend) {
+                        Logger.d("OpenAIProvider", "streamChatResponses onFailure: 流已完成或消费者已关闭,忽略收尾回调")
+                        close()
+                        return
+                    }
                     if (request.abortSignal.aborted) {
                         Logger.d("OpenAIProvider", "streamChatResponses aborted by user")
                         trySend(ChatStreamEvent.StreamInterrupted("用户已停止生成", t))
@@ -2076,7 +2120,8 @@ class OpenAIProvider(
         connect()
 
         awaitClose {
-            request.abortSignal.abort()
+            // 只释放 HTTP 资源,不要把正常收尾标记成用户主动取消。
+            consumerClosed.set(true)
             currentEventSource?.cancel()
         }
         // C-35: 内部 channel 已改为 channelFlow(capacity = UNLIMITED),trySend 不再因容量满丢片。
@@ -2275,11 +2320,15 @@ class OpenAIProvider(
             temperature = request.temperature,
             tools = request.tools?.mapNotNull { it.toOpenAISafely() }?.distinctBy { it.function.name }
                 ?.takeIf { it.isNotEmpty() },
+            tool_choice = request.toolChoice?.takeIf { !request.tools.isNullOrEmpty() },
             reasoning = reasoning,
             store = store,
         )
         return AppJson.encodeToString(payload)
     }
+
+    private fun payloadToolsPresent(tools: List<ToolDefinition>?): Boolean =
+        !tools.isNullOrEmpty()
 
     /**
      * v1.0.7: UIMessage → ResponsesInputItem。

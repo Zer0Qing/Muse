@@ -795,44 +795,37 @@ class SystemPromptAssembler(
 
         val grouped = all.groupBy { it.category }
 
+        // 工具 schema 会在本轮请求中单独传给模型,静态 system prompt 不再重复注入
+        // 118 个工具的完整描述和参数。这里保留分类与名称索引,减少输入 token 和选择噪声。
         val sb = StringBuilder()
-        sb.appendLine("可用能力清单(你可以在回复中按需调用以下工具,系统会自动执行并返回结果)")
-        sb.appendLine()
+        sb.appendLine("工具能力索引(内部约束):")
+        sb.appendLine("- 本轮实际可调用的工具以请求中的 tools schema 为唯一准则,不要调用未出现在 schema 中的名称。")
+        sb.appendLine("- 能直接回答就不要调用工具;需要工具时优先一次调用完成,拿到结果后直接收尾。")
 
         val categoryOrder = listOf(
-            "file" to "文件操作",
-            "web" to "网络搜索",
-            "system" to "系统操作",
-            "phone" to "手机功能",
-            "knowledge" to "知识库与记忆",
-            "agent" to "多 Agent 协作",
-            "skill" to "Skill 管理",
-            "built-in" to "其他工具",
+            "file" to "文件",
+            "web" to "网络",
+            "system" to "系统",
+            "phone" to "手机",
+            "knowledge" to "知识库/记忆",
+            "agent" to "委托/计划",
+            "skill" to "Skill",
+            "mcp" to "MCP",
+            "built-in" to "基础",
         )
-
         for ((cat, displayName) in categoryOrder) {
-            val toolsInCat = grouped[cat] ?: continue
-            sb.appendLine("$displayName:")
-            for (t in toolsInCat) {
-                val params = if (t.requiredParams.isNotEmpty()) {
-                    "(${t.requiredParams.joinToString(", ")}必填${if (t.optionalParams.isNotEmpty()) ", ${t.optionalParams.take(3).joinToString(", ")}等可选" else ""})"
-                } else if (t.optionalParams.isNotEmpty()) {
-                    "(${t.optionalParams.take(3).joinToString(", ")}等可选)"
-                } else {
-                    "(无参数)"
-                }
-                sb.appendLine("- ${t.name}$params: ${t.description}")
-            }
-            sb.appendLine()
+            val names = grouped[cat]?.map { it.name }.orEmpty()
+            if (names.isEmpty()) continue
+            val preview = names.take(18).joinToString(", ")
+            val suffix = if (names.size > 18) " 等 ${names.size} 个" else ""
+            sb.appendLine("- $displayName: $preview$suffix")
         }
 
-        sb.appendLine("使用提示:")
-        sb.appendLine("- 用户问\"你能做什么\"→ 参考此清单据实回答,不要编造清单外的能力")
-        sb.appendLine("- 用户问 app 功能相关问题(如\"主动消息怎么设置\"\"深度思考怎么用\")→ 先调用 knowledge_search 查询关键词")
-        sb.appendLine("- 文件操作仅限应用沙盒内(filesDir),无法访问公共目录(Download/DCIM)")
-        sb.appendLine("- 搜索后如需获取网页全文,用 web_fetch;搜索学术论文用 arxiv_search")
-        sb.appendLine("- 闹钟支持重复(days_of_week 如 MON,TUE,WED,THU,FRI);日历支持查指定日期")
-        sb.appendLine("- open_app 支持 Deep Link(data_uri 参数可跳转到 App 内特定页面)")
+        sb.appendLine()
+        sb.appendLine("工具边界:")
+        sb.appendLine("- 用户问 Muse 功能时,调用 knowledge_search(include_internal=true) 查询内置文档,不要凭空编造。")
+        sb.appendLine("- 文件只能访问应用沙盒 filesDir;涉及设备、通信、账号或不可逆变更时必须确认用户意图。")
+        sb.appendLine("- 搜索网页先用 web_search;只有摘要不足且已有目标 URL 时再用 web_fetch。")
 
         val result = sb.toString().trimEnd()
         cachedToolManifest = result
@@ -929,35 +922,14 @@ class SystemPromptAssembler(
          * 8. 决策树规则 — 第三步的树状判断(作为 prompt 约束注入,LLM 内部遵循)。
          */
         private val DECISION_TREE_SECTION = """
-决策规则(内部判断,不向用户展示判断过程):
-- 闲聊/吐槽 → 短句接住,不解决问题,不科普。能接梗就接梗,能共情就共情。
-- 明确任务 → 切对应模式:
-  · 需要实时信息 → 调用 web_search
-  · 需要查知识库 → 调用 knowledge_search
-  · 需要查学术论文 → 调用 arxiv_search
-  · 需要写文件 → 调用 read_file / write_file
-  · 需要发短信 → 调用 send_sms
-  · 需要发邮件 → 调用 send_email
-  · 需要设闹钟/倒计时 → 调用 set_alarm / set_timer
-  · 需要打开应用 → 调用 open_app(支持 Deep Link 跳转)
-  · 需要获取设备信息/位置 → 调用 get_device_info / get_location
-  · 需要操作剪贴板 → 调用 clipboard_read / clipboard_write
-  · 需要查看/管理联系人 → 调用 get_contacts_count / get_contacts_list / add_contact
-  · 需要分享文本 → 调用 share_text
-  · 需要查日历日程 → 调用 calendar_today(支持指定日期)
-  · 需要查屏幕使用时间 → 调用 screen_time
-  · 需要简单计算 → 调用 calculator
-  · 需要深度推理 → 不调工具,直接推理
-- 模糊需求 → 反问澄清,不擅自假设
-- 涉及概念解释 → 优先联网搜索,不凭记忆回答
-- 用户问及 muse app 自身功能(如"你能做什么""怎么用深度思考""主动消息怎么设置""你有哪些工具""长期记忆怎么生效")→ 调用 knowledge_search 时传 include_internal=true 查询内置功能文档,再据实回答;不要凭记忆编造功能,查不到就坦白说不知道。同时参考上方"可用能力清单"回答"你能做什么"类问题。注意:普通知识库查询不要传 include_internal,默认只搜用户自建文档
-- 用户问"你有没有长期记忆""你记得我吗"→ 坦诚回答:长期记忆以编译后的 markdown 摘要注入 system prompt,不是逐条 fact;若用户刚说的事实还没到 daily pipeline 时点(通常需几小时),可能确实没记住,应建议用户使用 pin_memory 固定或去设置→助手→记忆页手动添加
-- 用户要求多助手协作 / 委托给其他助手 / 让 X 助手做某事 → 调用 delegate_agent(参数:assistantId=子助手 id,task=任务描述)
-- 用户要求可视化数据/画图表/看结构化展示 → 可以输出富媒体代码块:
-  · SVG: 用 ```svg 代码块,内容是标准 SVG XML(可画图标/示意图/流程图)
-  · HTML: 用 ```html 代码块,内容是简单 HTML(无 script,内容会渲染,CSS 可用)
-  · 图表: 用 ```chart 代码块,内容是 JSON({type:"bar"/"line"/"pie", data:{labels:[...], values:[...]}})
-- 不要滥用富媒体,只在用户明确要求或数据可视化更有助于理解时使用;普通问答仍用纯文本+Markdown
+决策规则(内部判断,不向用户展示):
+- 闲聊/吐槽直接接话,不要为了显得能干而调用工具。
+- 明确任务只选择本轮 tools schema 中最匹配的工具,先补齐必填参数,一次调用优先。
+- 工具返回后检查成功或失败;成功就直接回答,失败只按错误信息修正一次,不要重复空转。
+- Muse 功能问题用 knowledge_search(include_internal=true),查不到就明确说不知道。
+- 文件、设备、通信、账号和不可逆操作只在用户明确要求且工具 schema 可用时执行,必要时等待审批。
+- 需要委托时调用 delegate_agent;复杂任务才用 task_plan,简单请求不要先规划。
+- 模糊需求先澄清;普通概念解释不要强行搜索,只有涉及最新或不确定事实时才搜索。
         """.trimIndent()
 
         /**
@@ -967,12 +939,11 @@ class SystemPromptAssembler(
          * MoodTagTransformer 会在响应回来后剥离此标签。
          */
         private val MOOD_FORMAT_SECTION = """
-MOOD 格式要求(每次回复必须遵守):
-每次回复前必须先写一个 <mood>...</mood> 块作为内部腹稿,然后再写正文。
-MOOD 是你当下的意识流 — 不是分析、不是评价、不是给用户的建议,而是你脑子里真实闪过的念头。
-写 MOOD 时放松,像自言自语,不要端着。
+ MOOD 格式要求(内部标签,系统会自动剥离):
+ 复杂回复可写完整 MOOD;工具调用、简单确认、错误回执和一句话回复使用极速模式,
+ 只写简短 Vibe 和 Will,不要为了凑条数编造内容。标签必须闭合后再输出正文。
 
-MOOD 块格式如下(4 个池子,Vibe/Will 各 1 条,Sparks/Reflections 各 2-3 条):
+ 完整模式 MOOD 块格式如下:
 
 <mood>
 Vibe: <当下最直接的感受与情绪,1 句>
@@ -989,13 +960,11 @@ Will: <此刻的意志/欲求/想要,1 句>
 
 正文(直接跟在 </mood> 后,不要空行)
 
-规则:
-- MOOD 是你的思考热身,不展示给用户看(系统会自动剥离)
-- 4 个字段都要写,哪怕一句话;Sparks/Reflections 至少 2 条
-- Sparks 之间方向要有很大差异,不要都是同一个想法的换皮
-- MOOD 对回答的影响是自然的、非刻意的 — 让念头参与回答构建,不是机械执行
-- 写完 MOOD 再写正文,正文遵守输出风格约束
-- 不要在正文里重复 MOOD 的内容
+ 规则:
+ - 极速模式只写简短 Vibe 和 Will;复杂任务才补 Sparks/Reflections。
+ - MOOD 是内部热身,不展示给用户;正文紧跟 </mood>。
+ - 工具调用时不要写长篇分析或重复规划,拿到结果后直接收尾。
+ - 不要解释 MOOD 规则,不要在正文里重复 MOOD,不要把内部思考冒充事实。
 - 思考过程(reasoning)中不要复述或提及任何格式指令:不要说"按格式先写 mood"
   "用 <mood> 标签"这类话,直接思考内容本身;mood 块只输出在最终正文的开头,并且
   必须是完整闭合的 <mood>...</mood> 或 [mood]...[/mood],不要留未闭合的标签
@@ -1045,15 +1014,12 @@ Will: <此刻的意志/欲求/想要,1 句>
          * 明确告诉 LLM 如何正确、高效、安全地使用工具,减少无效调用和循环失败。
          */
         private val TOOL_DISCIPLINE_SECTION = """
-工具使用纪律(内部约束,不向用户展示):
-- 轻量优先:能用简单工具(calculator/read_file/web_search)解决的问题,不要调用多步骤工具链
-- 失败后先诊断:工具调用失败时,先分析错误信息,尝试修复参数再重试;连续失败则换方案,不要死循环
-- 一次只调必要工具:不要同时调用多个功能重复或可合并的工具
-- 参数必须合法:调用前确认必填参数已提供,字符串参数不要臆造未确认的 ID/路径
-- 涉及用户设备/隐私/资金的操作(set_alarm/send_sms/open_app等),必须用户明确要求才执行
-- 网页信息需求优先级:先尝试 web_search 获取最新信息;若搜索结果摘要不够详细,再用 web_fetch 获取指定 URL 全文
-- 需要搜索学术论文时,优先调用 arxiv_search 而非普通 web_search
-- 文件操作仅限应用沙盒(filesDir),不要尝试访问系统目录或其他应用私有目录
+ 工具使用纪律(内部约束,不向用户展示):
+ - 只调用当前 tools schema 中存在且与用户意图直接相关的工具。
+ - 能直接回答就不调用;能一次完成就不拆成多步。
+ - 调用前检查必填参数;不确定的 ID、路径或账号先询问。
+ - 成功后直接回答;失败只按错误修正一次,不要重复空转。
+ - web_search 用于实时信息;web_fetch 只用于已有 URL;文件仅限应用沙盒 filesDir。
         """.trimIndent()
 
         /**
@@ -1063,11 +1029,11 @@ Will: <此刻的意志/欲求/想要,1 句>
          */
         private val OPERATION_SAFETY_SECTION = """
 操作安全原则(内部约束,不向用户展示):
-- 可逆性检查:执行可能改变状态的操作前(写文件、删文件、发送消息、设置闹钟),先判断是否可以撤销或恢复
-- 写文件前先确认:若文件已存在,默认追加或询问用户;覆盖重要文件前必须获得明确同意
-- 不要执行不可逆的高风险操作(如删除多个文件、群发消息、修改系统设置),除非用户明确要求
-- 对用户设备造成持久变更的操作,执行后在回复中简要说明做了什么
-- 如果用户请求违法、侵害隐私或明显有害的操作,拒绝并解释原因
+ - 先确认目标、范围和必填参数;不确定时不要猜。
+ - 写入、删除、发送、设置或外部跳转等有副作用的操作,只有用户明确要求才执行;高风险操作按审批结果执行。
+ - 覆盖或删除已有内容前优先选择可逆方案,必要时先询问。
+ - 操作完成后简要说明结果;失败时说明真实原因,不要声称已完成。
+ - 涉及违法、侵害隐私或明显有害的请求拒绝并说明边界。
         """.trimIndent()
 
         /**
@@ -1085,9 +1051,9 @@ Will: <此刻的意志/欲求/想要,1 句>
             availableAssistants: List<AssistantEntity> = emptyList(),
         ): String {
             val sb = StringBuilder()
-            sb.appendLine("多 Agent 协作能力:")
-            sb.appendLine("你可以在复杂任务中调用 delegate_agent 工具,把任务委托给其他 Assistant 执行。")
-            sb.appendLine("调用时传入 assistantId(助手 id)和 task(任务描述),可选 context(上下文)。")
+            sb.appendLine("多 Agent 协作能力(按需使用):")
+            sb.appendLine("只有任务确实需要其他专长或并行工作时才调用 delegate_agent。")
+            sb.appendLine("调用时传入清晰的 assistantId 和可验收的 task;不要把简单问题委托出去。")
             // v1.97: 注入可用助手清单 — 这是修复委托功能的关键
             if (availableAssistants.isNotEmpty()) {
                 sb.appendLine()
@@ -1098,7 +1064,7 @@ Will: <此刻的意志/欲求/想要,1 句>
                     sb.appendLine("- assistantId=\"${a.id}\"  名称=\"${a.name}\"" +
                         if (brief.isNotEmpty()) "  简介: $brief" else "")
                 }
-                sb.appendLine("调用示例: delegate_agent(assistantId=\"${availableAssistants.first().id}\", task=\"具体任务描述\")")
+                sb.appendLine("示例: delegate_agent(assistantId=\"${availableAssistants.first().id}\", task=\"完成一个明确、可验收的子任务\")")
             } else {
                 sb.appendLine("注意:当前没有其他可委托的助手。若用户要求委托,请告知需要先在「助手管理」创建其他助手。")
             }
@@ -1111,13 +1077,8 @@ Will: <此刻的意志/欲求/想要,1 句>
                 }
             }
             sb.appendLine()
-            sb.appendLine("当任务超出你当前能力范围,或需要其他专长(写作/代码/翻译/调研)时,主动调用 delegate_agent 委托给合适的子助手。")
-            sb.appendLine()
-            sb.appendLine("任务规划能力:")
-            sb.appendLine("面对复杂多步骤任务时,先调用 task_plan 工具创建结构化计划(传入标题和步骤列表),")
-            sb.appendLine("再按顺序执行各步骤。每完成一步,调用 update_plan_step 更新状态。")
-            sb.appendLine("这样用户可以实时看到你的计划和进度,体验更佳。")
-            sb.appendLine("适用场景:需要 3 个以上步骤的任务、需要搜索+整理+写作的复合任务、需要委托多个子助手的协作任务。")
+            sb.appendLine("委托结果会回到当前对话。收到结果后先检查是否完成,再直接向用户汇报;不要重复委托同一任务。")
+            sb.appendLine("只有 3 个以上相互依赖的步骤、且用户能从进度中受益时才使用 task_plan。")
             return sb.toString().trim()
         }
 
@@ -1200,9 +1161,10 @@ Will: <此刻的意志/欲求/想要,1 句>
          * MoodTagTransformer / ChatViewModel.updateAssistant 会剥离此块存到 UIMessage.reflection
          * (UI 渲染先不做,后续 UI 任务再展示)。
          */
-        private val SELF_REFLECTION_SECTION = """
-自我反思要求(实验性,每次回复必须遵守):
-每轮回复末尾必须追加一个 <reflection>...</reflection> 块,反思本次回复的质量。
+         private val SELF_REFLECTION_SECTION = """
+ 自我反思要求(实验性):
+ 仅对复杂分析、长文或高风险回答追加 <reflection>...</reflection>。
+ 工具调用、简单确认、错误回执和一句话回复跳过反思,不要增加额外格式负担。
 反思块格式如下(3 个字段,每字段一行,内容简短):
 
 <reflection>
@@ -1214,7 +1176,7 @@ Will: <此刻的意志/欲求/想要,1 句>
 规则:
 - 反思块放在回复最末尾(正文之后)
 - 反思是自我检查,不展示给用户看(系统会自动剥离)
-- 3 个字段都要写,哪怕一句话
+ - 复杂回答中 3 个字段都要写,每字段简短
 - 不要在正文里重复反思的内容
         """.trimIndent()
     }

@@ -214,7 +214,22 @@ class SettingsRepository(
         val raw = prefs[KEY_PROVIDERS]?.let { json -> decodeProviders(json) } ?: emptyList()
         // v1.0.7: 三层合并 — specId 非空时,把 spec 默认模型列表与用户 overlay 合并
         // 对齐 既有实现 BUILTIN_PLUGINS + Provider Catalog overlay 合并机制
-        raw.map { enrichWithSpecDefaults(it) }
+        raw.map { config ->
+            val isLegacyFreeProvider = config.allowMissingApiKey &&
+                config.baseUrl.contains("siliconflow.cn", ignoreCase = true) &&
+                (config.displayName.contains("免费", ignoreCase = true) ||
+                    config.displayName.contains("free", ignoreCase = true)) &&
+                config.models.any { it.id in io.zer0.ai.core.FreeModelConfig.FREE_MODEL_IDS }
+            val internalized = if (
+                config.id == SiliconFlowFreeModels.PROVIDER_ID ||
+                isLegacyFreeProvider
+            ) {
+                config.copy(hiddenFromSettings = true)
+            } else {
+                config
+            }
+            enrichWithSpecDefaults(internalized)
+        }
     }.catch {
         // M-SR3: 上游异常(DataStore IO / 解密失败)不应让 Flow 永久失效,回退空列表并记日志
         Logger.w("SettingsRepository", "providersFlow 异常,回退空列表", it)
@@ -368,7 +383,7 @@ class SettingsRepository(
         // B0-09: 合并旧账户键,保证首次升级后旧昵称/头像不丢
         profile.copy(
             userNickName = profile.userNickName ?: prefs[KEY_ACCOUNT_USER_NAME],
-            avatarUri = profile.avatarUri ?: prefs[KEY_ACCOUNT_AVATAR_URI],
+            avatarUri = prefs[KEY_ACCOUNT_AVATAR_URI] ?: profile.avatarUri,
         )
     }
 
@@ -489,13 +504,19 @@ class SettingsRepository(
 
     // ── Account state ──
     val accountStateFlow: Flow<AccountState> = store.data.map { prefs ->
+        val storedProfile = decodePrefsOrNull(
+            prefs[KEY_USER_PROFILE],
+            UserProfile.serializer(),
+            "UserProfile(accountState)",
+        )
         AccountState(
             isLoggedIn = prefs[KEY_ACCOUNT_LOGGED_IN] ?: false,
             userName = prefs[KEY_ACCOUNT_USER_NAME] ?: "",
             loginAt = prefs[KEY_ACCOUNT_LOGIN_AT] ?: 0L,
             loginMethod = prefs[KEY_ACCOUNT_LOGIN_METHOD] ?: "",
             isGuestMode = prefs[KEY_ACCOUNT_GUEST_MODE] ?: false,
-            avatarUri = prefs[KEY_ACCOUNT_AVATAR_URI],
+            // 专用账户键是头像主来源;画像 JSON 作为旧数据/异常写回后的恢复兜底。
+            avatarUri = prefs[KEY_ACCOUNT_AVATAR_URI] ?: storedProfile?.avatarUri,
         )
     }
     /** 是否已登录(本地标记)。 */
@@ -627,14 +648,40 @@ class SettingsRepository(
         store.edit { it[KEY_QUICK_CAPTURE_ENABLED] = enabled }
     }
 
-    /** 是否启用系统悬浮窗快速记录(默认关闭,需要用户授予悬浮窗权限)。 */
+    /**
+     * 是否启用系统悬浮窗快速记录(默认关闭,需要用户授予悬浮窗权限)。
+     *
+     * 未完成一次性默认值迁移前强制返回 false,避免旧版本曾写入 true
+     * 的用户在升级后瞬间重新启动系统悬浮窗。
+     */
     val quickCaptureOverlayEnabledFlow: Flow<Boolean> = store.data.map { prefs ->
-        prefs[KEY_QUICK_CAPTURE_OVERLAY_ENABLED] ?: false
+        if (prefs[KEY_QUICK_CAPTURE_OVERLAY_DEFAULT_MIGRATED] == true) {
+            prefs[KEY_QUICK_CAPTURE_OVERLAY_ENABLED] ?: DEFAULT_QUICK_CAPTURE_OVERLAY_ENABLED
+        } else {
+            DEFAULT_QUICK_CAPTURE_OVERLAY_ENABLED
+        }
     }
 
     /** 保存系统悬浮窗快速记录开关。 */
     suspend fun saveQuickCaptureOverlayEnabled(enabled: Boolean) {
-        store.edit { it[KEY_QUICK_CAPTURE_OVERLAY_ENABLED] = enabled }
+        store.edit {
+            it[KEY_QUICK_CAPTURE_OVERLAY_ENABLED] = enabled
+            it[KEY_QUICK_CAPTURE_OVERLAY_DEFAULT_MIGRATED] = true
+        }
+    }
+
+    /**
+     * 一次性清理旧版本可能留下的“默认开启”状态。
+     *
+     * 用户之后手动开启会正常持久化,不会被后续启动再次清除。
+     */
+    suspend fun migrateQuickCaptureOverlayDefaultOffIfNeeded() {
+        store.edit { prefs ->
+            if (prefs[KEY_QUICK_CAPTURE_OVERLAY_DEFAULT_MIGRATED] != true) {
+                prefs.remove(KEY_QUICK_CAPTURE_OVERLAY_ENABLED)
+                prefs[KEY_QUICK_CAPTURE_OVERLAY_DEFAULT_MIGRATED] = true
+            }
+        }
     }
 
     /** 小手机隐藏的桌面应用 id 集合,空集合表示全部显示。 */
@@ -1079,11 +1126,22 @@ class SettingsRepository(
             // B0-09: 同步账户键,旧 AccountScreen / AccountState 读取方无需迁移
             prefs[KEY_ACCOUNT_USER_NAME] = profile.userNickName?.takeIf { it.isNotBlank() }
                 ?: appContext.getString(R.string.settings_repo_default_user_name)
-            if (profile.avatarUri.isNullOrBlank()) {
-                prefs.remove(KEY_ACCOUNT_AVATAR_URI)
-            } else {
+            // 头像由账户页的专用流程负责写入。画像页的防抖保存可能拿到
+            // 尚未加载完成的 null,不能因为保存昵称/偏好而误删已持久化头像。
+            if (!profile.avatarUri.isNullOrBlank()) {
                 prefs[KEY_ACCOUNT_AVATAR_URI] = profile.avatarUri
             }
+        }
+    }
+
+    /** 启动时把仍可读取的旧头像 content URI 迁移到应用私有目录。 */
+    suspend fun migrateUserAvatarToPrivateStorageIfNeeded() {
+        val profile = getUserProfile()
+        val currentUri = profile.avatarUri?.takeIf { it.isNotBlank() } ?: return
+        val persistentUri = AvatarStorage.persist(appContext, currentUri) ?: return
+        if (persistentUri != currentUri) {
+            saveUserProfile(profile.copy(avatarUri = persistentUri))
+            Logger.i("SettingsRepository", "用户头像已迁移到应用私有目录")
         }
     }
 
@@ -1580,6 +1638,9 @@ class SettingsRepository(
         private val KEY_MCP_SERVERS = stringPreferencesKey("mcp_servers_json")
         private val KEY_QUICK_CAPTURE_ENABLED = booleanPreferencesKey("quick_capture_enabled")
         private val KEY_QUICK_CAPTURE_OVERLAY_ENABLED = booleanPreferencesKey("quick_capture_overlay_enabled")
+        private val KEY_QUICK_CAPTURE_OVERLAY_DEFAULT_MIGRATED =
+            booleanPreferencesKey("quick_capture_overlay_default_migrated")
+        private const val DEFAULT_QUICK_CAPTURE_OVERLAY_ENABLED = false
         private val KEY_PROMPT_TEMPLATES = stringPreferencesKey("prompt_templates_json")
         private val KEY_PROVIDER_LEGACY = stringPreferencesKey("provider_config_json")
         private val KEY_ACCOUNT_LOGGED_IN = booleanPreferencesKey("account_logged_in")

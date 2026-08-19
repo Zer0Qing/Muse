@@ -1,3 +1,5 @@
+@file:Suppress("FunctionNaming", "LongParameterList")
+
 package io.zer0.muse.ui.common.feedback
 
 import androidx.compose.animation.core.animateFloatAsState
@@ -93,6 +95,7 @@ fun MuseDialog(
     content: @Composable () -> Unit,
     confirmText: String = stringResource(R.string.common_confirm),
     onConfirm: (() -> Unit)? = null,
+    confirmEnabled: Boolean = true,
     dismissText: String? = stringResource(R.string.common_cancel),
     onDismiss: (() -> Unit)? = null,
     /** 主按钮是否为危险操作(删除/清除) — true 时背景改用 error 红色。 */
@@ -170,6 +173,7 @@ fun MuseDialog(
                             text = confirmText,
                             backgroundColor = confirmBg,
                             contentColor = MaterialTheme.colorScheme.onPrimary,
+                            enabled = confirmEnabled,
                             onClick = {
                                 onConfirm()
                             },
@@ -201,6 +205,7 @@ private fun MuseDialogButton(
     text: String,
     backgroundColor: Color,
     contentColor: Color,
+    enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -216,7 +221,7 @@ private fun MuseDialogButton(
             // L-DLG3: 48.dp → MuseIconSizes.touchTarget 令牌(满足 MD3 触摸目标红线)。
             .height(MuseIconSizes.touchTarget)
             .background(
-                color = backgroundColor,
+                color = if (enabled) backgroundColor else backgroundColor.copy(alpha = 0.4f),
                 shape = MuseShapes.huge,
             )
             // M-DLG1: 加 role = Role.Button, TalkBack 朗读为"按钮"并注册正确的点击语义动作,
@@ -225,6 +230,7 @@ private fun MuseDialogButton(
                 interactionSource = interactionSource,
                 indication = null,
                 role = Role.Button,
+                enabled = enabled,
                 onClick = onClick,
             )
             .graphicsLayer { scaleX = scale; scaleY = scale },

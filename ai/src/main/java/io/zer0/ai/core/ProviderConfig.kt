@@ -69,6 +69,8 @@ data class ProviderConfig(
     val specific: ProviderSpecificConfig? = null,
     val enabled: Boolean = true,
     val builtIn: Boolean = false,
+    /** 内部运行时供应商仍可被前台使用,但不出现在供应商设置列表。 */
+    val hiddenFromSettings: Boolean = false,
     val balanceApiPath: String = "",
     val balanceResultPath: String = "",
     val category: ProviderCategory = ProviderCategory.OFFICIAL,

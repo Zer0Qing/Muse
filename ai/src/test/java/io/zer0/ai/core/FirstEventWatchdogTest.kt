@@ -40,6 +40,21 @@ class FirstEventWatchdogTest {
     }
 
     @Test
+    fun `empty done triggers non-streaming fallback`() = runTest {
+        val events = flowOf(
+            ChatStreamEvent.Done("stop"),
+        ).withFirstEventWatchdog(timeoutMs = 1_000, fallback = {
+            ChatCompletion(text = "fallback after empty stream", finishReason = "stop")
+        }).toList()
+
+        assertTrue(events.any { it is ChatStreamEvent.FallbackNotice })
+        assertTrue(events.any {
+            it is ChatStreamEvent.ContentDelta && it.delta == "fallback after empty stream"
+        })
+        assertTrue(events.last() is ChatStreamEvent.Done)
+    }
+
+    @Test
     fun `partial event before timeout cancels watchdog`() = runTest {
         val events = flow {
             delay(50)

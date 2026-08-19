@@ -101,6 +101,7 @@ import androidx.compose.ui.platform.LocalContext
 import io.zer0.common.Logger
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.notification.MuseNotificationManager
+import io.zer0.muse.notification.MuseNotificationTarget
 import io.zer0.muse.schedule.GreetingHintGenerator
 
 /** v1.x: 问候语个性化提醒通知 ID(与其它通知 ID 错开)。 */
@@ -244,6 +245,7 @@ fun ChatListScreen(
                         title = titles.random(),
                         message = hint,
                         notificationId = GREETING_NOTIFY_ID,
+                        target = MuseNotificationTarget.Home,
                     )
                     settings.saveLastGreetingNotifyDate(today)
                 }

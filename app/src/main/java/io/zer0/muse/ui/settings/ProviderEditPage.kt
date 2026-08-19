@@ -1046,12 +1046,9 @@ internal fun ProviderEditPage(
                     1 -> ModelsTab(
                         config = config,
                         modelsState = modelsState,
-                        apiKey = apiKey,
                         isFetching = isFetchingModels,
                         onFetch = fetchModels,
                         onAddModel = { showAddModelDialog = true },
-                        // P2-5: 透传 baseUrl 给 ModelsTab,用于判定是否展示「一键填入免费模型」按钮
-                        baseUrl = baseUrl,
                         // v1.0.8 (7.6): 透传模型健康检查回调 + 状态 Map
                         onTestModel = { testModel(it) },
                         modelTestStatuses = modelTestStatuses,

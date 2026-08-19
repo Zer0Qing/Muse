@@ -48,6 +48,30 @@ class ShareIntentHandler(private val context: Context) {
         object OpenChats : ShareResult()
         /** v1.64: 打开定时任务页(来自定时任务通知点击)。 */
         object OpenScheduledTasks : ShareResult()
+        /** 打开指定定时任务并展开最近一次执行记录。 */
+        data class OpenScheduledTask(val taskId: String) : ShareResult()
+        /** 打开快速记录并展开指定笔记。 */
+        data class OpenQuickNote(val noteId: String) : ShareResult()
+        /** 打开聊天详情页(没有具体会话上下文的通知)。 */
+        object OpenChat : ShareResult()
+        /** 打开任务首页。 */
+        object OpenHome : ShareResult()
+        /** 打开设置-数据与备份。 */
+        object OpenSettingsData : ShareResult()
+        /** 打开设置-云备份。 */
+        object OpenCloudBackup : ShareResult()
+        /** 打开设置-外观/关于等通知目标。 */
+        object OpenSettingsAbout : ShareResult()
+        /** 打开设置-助手与 Agent。 */
+        object OpenSettingsAgent : ShareResult()
+        /** 打开设置-模型与服务。 */
+        object OpenSettingsModel : ShareResult()
+        /** 打开记忆中心。 */
+        object OpenMemory : ShareResult()
+        /** 打开知识库管理。 */
+        object OpenKnowledge : ShareResult()
+        /** 打开知识库集合管理。 */
+        object OpenKnowledgeBases : ShareResult()
         /** Launcher 快捷方式:打开翻译页(来自 ACTION_TRANSLATE)。 */
         object OpenTranslate : ShareResult()
         /** Launcher 快捷方式:进入主页并触发语音输入(来自 ACTION_VOICE_INPUT)。 */
@@ -82,7 +106,8 @@ class ShareIntentHandler(private val context: Context) {
         return ShareResult.None
     }
 
-    /** 解析 muse:// deep link。 */
+    /** 解析 muse:// deep link(目标集合有限且显式列出,便于审计每个通知入口)。 */
+    @Suppress("CyclomaticComplexMethod")
     private fun parseDeepLink(uri: Uri): ShareResult {
         val host = uri.host ?: return ShareResult.None
         val segments = uri.pathSegments
@@ -101,6 +126,33 @@ class ShareIntentHandler(private val context: Context) {
             "assistants" -> ShareResult.OpenAssistants
             "settings" -> ShareResult.OpenSettings
             "scheduled-tasks" -> ShareResult.OpenScheduledTasks
+            "scheduled-task" -> {
+                val id = segments.firstOrNull()
+                if (id != null && SESSION_ID_REGEX.matches(id)) {
+                    ShareResult.OpenScheduledTask(id)
+                } else {
+                    ShareResult.None
+                }
+            }
+            "quick-notes" -> ShareResult.OpenQuickNotes
+            "quick-note" -> {
+                val id = segments.firstOrNull()
+                if (id != null && SESSION_ID_REGEX.matches(id)) {
+                    ShareResult.OpenQuickNote(id)
+                } else {
+                    ShareResult.None
+                }
+            }
+            "chat" -> ShareResult.OpenChat
+            "home" -> ShareResult.OpenHome
+            "settings-data" -> ShareResult.OpenSettingsData
+            "cloud-backup" -> ShareResult.OpenCloudBackup
+            "settings-about" -> ShareResult.OpenSettingsAbout
+            "settings-agent" -> ShareResult.OpenSettingsAgent
+            "settings-model" -> ShareResult.OpenSettingsModel
+            "memory" -> ShareResult.OpenMemory
+            "knowledge" -> ShareResult.OpenKnowledge
+            "knowledge-bases" -> ShareResult.OpenKnowledgeBases
             else -> {
                 Logger.w(TAG, "Unknown deep link host: $host")
                 ShareResult.None

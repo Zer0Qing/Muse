@@ -9,6 +9,7 @@ import io.zer0.ai.core.ModelAbility
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.Logger
 import io.zer0.memory.llm.MemoryLlmClient
+import io.zer0.memory.prompt.MemoryPromptContract
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.delay
@@ -60,9 +61,15 @@ class MemoryLlmClientImpl(
         if (resolvedModel == null) {
             throw IllegalStateException(context.getString(R.string.memory_llm_no_model_configured))
         }
+        val effectiveSystemPrompt = MemoryPromptContract.append(systemPrompt)
+        val effectiveUserContent = buildString {
+            appendLine("<memory_input>")
+            appendLine(userContent.trim())
+            append("</memory_input>")
+        }
         val messages = listOf(
-            UIMessage(role = MessageRole.SYSTEM, content = systemPrompt),
-            UIMessage(role = MessageRole.USER, content = userContent),
+            UIMessage(role = MessageRole.SYSTEM, content = effectiveSystemPrompt),
+            UIMessage(role = MessageRole.USER, content = effectiveUserContent),
         )
         // v1.0.50: reasoning buffer — 推理模型 +1024 token,防止思考挤占可见输出
         val effectiveMaxTokens = withReasoningBuffer(maxTokens, resolvedModel)
@@ -81,7 +88,7 @@ class MemoryLlmClientImpl(
                     )
                     // 只接受真实正文;纯 reasoning 思考内容不允许进入记忆链路
                     val raw = resolveMemoryLlmRawText(
-                        systemPrompt = systemPrompt,
+                        systemPrompt = effectiveSystemPrompt,
                         text = completion.text,
                         reasoningContent = completion.reasoningContent,
                     )
@@ -124,7 +131,7 @@ class MemoryLlmClientImpl(
                         }
                         // 流式降级同样只接受真实正文/结构化 JSON,不接收纯思考内容
                         val raw = resolveMemoryLlmRawText(
-                            systemPrompt = systemPrompt,
+                            systemPrompt = effectiveSystemPrompt,
                             text = contentSb.toString(),
                             reasoningContent = reasoningSb.toString(),
                         )

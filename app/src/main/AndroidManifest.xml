@@ -99,7 +99,19 @@
                 <data android:scheme="muse" android:host="new" />
                 <data android:scheme="muse" android:host="assistants" />
                 <data android:scheme="muse" android:host="settings" />
-                <data android:scheme="muse" android:host="scheduled-tasks" />
+                 <data android:scheme="muse" android:host="scheduled-tasks" />
+                 <data android:scheme="muse" android:host="scheduled-task" />
+                 <data android:scheme="muse" android:host="quick-notes" />
+                 <data android:scheme="muse" android:host="quick-note" />
+                 <data android:scheme="muse" android:host="chat" />
+                 <data android:scheme="muse" android:host="settings-data" />
+                 <data android:scheme="muse" android:host="cloud-backup" />
+                 <data android:scheme="muse" android:host="settings-about" />
+                 <data android:scheme="muse" android:host="settings-agent" />
+                 <data android:scheme="muse" android:host="settings-model" />
+                 <data android:scheme="muse" android:host="memory" />
+                 <data android:scheme="muse" android:host="knowledge" />
+                 <data android:scheme="muse" android:host="knowledge-bases" />
             </intent-filter>
             <!-- P1-6: OAuth 回调 io.zer0.muse://oauth/callback 已迁移到 OAuthCallbackActivity -->
             <!-- (原 Phase 10.4 的 pathPrefix="/callback" filter 已移除,避免与 OAuthCallbackActivity 冲突) -->

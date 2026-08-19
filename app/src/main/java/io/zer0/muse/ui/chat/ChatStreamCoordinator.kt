@@ -22,6 +22,7 @@ import io.zer0.muse.data.skill.SkillRepository
 import kotlinx.serialization.json.jsonObject
 import io.zer0.muse.privacy.PiiGuard
 import io.zer0.muse.tools.ToolRegistry
+import io.zer0.muse.tools.ToolExposurePolicy
 import io.zer0.muse.transformer.TransformContext
 import io.zer0.muse.transformer.MoodSkinParser
 import io.zer0.muse.transformer.TransformerPipeline
@@ -487,7 +488,12 @@ class ChatStreamCoordinator(
             sessionTitle = accessor.snapshot.sessions
                 .firstOrNull { it.id == sessionId }?.title ?: appContext.getString(R.string.chat_new_session)
             runCatching {
-                notificationManager.updateLiveProgress(sessionTitle, 0, true)
+                notificationManager.updateLiveProgress(
+                    sessionTitle,
+                    0,
+                    true,
+                    io.zer0.muse.notification.MuseNotificationTarget.Session(sessionId),
+                )
             }.onFailure { Logger.w("ChatVM", "启动进度通知失败: ${it.message}") }
             // v1.133: RAG 检索引用列表,流式结束后附加到 assistant 消息
             pendingRagCitations = emptyList()
@@ -883,7 +889,26 @@ class ChatStreamCoordinator(
             // 和 SkillExecutor.BUILT_IN_SKILLS 中的 Skill,默认助手同时启用两份,
             // 直接拼接会发出重复 tools,DeepSeek/中转站严格校验工具名唯一性会返回 400。
             // 这里按 name 去重,ToolDef(本地工具实现)优先保留,同名 Skill 被丢弃。
-            tools = (localToolDefs + skillToolDefs).distinctBy { it.name }
+            val allToolDefs = (localToolDefs + skillToolDefs).distinctBy { it.name }
+            // 默认助手保存的是“全部内置工具/Skill”的快照,不应被当成窄白名单。
+            // 只有实际集合已经很小时才保持原样;大集合继续按当前意图筛选。
+            val explicitToolSelection = allToolDefs.size <= 16
+            val latestUserText = transformedMessages
+                .lastOrNull { it.role == MessageRole.USER }
+                ?.content
+                .orEmpty()
+            tools = ToolExposurePolicy.select(
+                tools = allToolDefs,
+                userText = latestUserText,
+                explicitSelection = explicitToolSelection,
+            )
+            if (tools.size != allToolDefs.size) {
+                Logger.d(
+                    "ChatVM",
+                    "tool exposure: ${allToolDefs.size} -> ${tools.size} | " +
+                        "explicit=$explicitToolSelection | text=${latestUserText.take(60)}",
+                )
+            }
 
             // v1.52: per-assistant 模型解析 — 助手配置了 modelId 则用助手专属模型,
             // 否则回退到全局 selectedModelId,再否则由 ChatService 兜底(激活 Provider 首个模型)。

@@ -202,15 +202,16 @@ class MomentRepository(
             .getOrNull() ?: moment
     }
 
-    /** 删除动态(级联评论 + 点赞记录)。 */
-    suspend fun deleteMoment(id: String) = withContext(Dispatchers.IO) {
+    /** 删除动态(级联评论 + 点赞记录),返回是否真正删除成功。 */
+    suspend fun deleteMoment(id: String): Boolean = withContext(Dispatchers.IO) {
         resultOf {
             dao.deleteMoment(id)
             dao.deleteComments(id)
             // v1.0.74 fix: 此前漏删点赞记录,表数据持续膨胀、统计语义被破坏
             dao.deleteLikes(id)
+            true
         }.onError { msg, t -> Logger.w(TAG, "删除动态失败: $msg", t) }
-
+            .getOrNull() == true
     }
 
     /** 今天已生成的条数。 */

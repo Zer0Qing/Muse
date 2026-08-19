@@ -104,7 +104,7 @@ class PresetProviders(
         ollama(),
     )
 
-    /** 国产官方厂商(22 个,含 4 个 Coding Plan + 2 个 Token Plan)。 */
+    /** 国产官方厂商(含普通 SiliconFlow、Coding Plan 与 Token Plan)。 */
     val domestic: List<ProviderConfig> = listOf(
         deepseek(),
         qwen(),
@@ -114,8 +114,8 @@ class PresetProviders(
         baichuan(),
         lingyi(),
         stepfun(),
-        // P2-5: SiliconFlow 免费模型兜底(国产开源模型聚合平台)
-        siliconFlowFree(),
+        // 普通 SiliconFlow 供应商;免费模型 fallback 作为内部预置独立保留
+        siliconFlow(),
         // v1.0.6: 新增国产供应商
         hunyuan(),
         baiduCloud(),
@@ -164,12 +164,11 @@ class PresetProviders(
      * 引导页展示的精选供应商。
      * 海外/国产/中转严格按 1:1:1 比例各取 3 个,并追加自定义选项。
      *
-     * v1.0.18: SiliconFlow 免费供应商置顶,用户进入引导页第一眼即可看到免登录选项,
-     * 选模型即用(无需填 API Key)。
+     * SiliconFlow 普通供应商置顶,用户可在配置页填写自己的 API Key。
      */
     val onboardingPresets: List<ProviderConfig> = (
-        // v1.0.18: SiliconFlow 免费供应商置顶,免登录可用
-        listOf(siliconFlowFree()) +
+        // 免费 fallback 仅作为内部运行时能力,引导页展示普通 SiliconFlow
+        listOf(siliconFlow()) +
             overseas.take(3) +
             domestic.take(3) +
             relay.take(3) +
@@ -215,14 +214,24 @@ class PresetProviders(
         )
     }
 
+    /** 内部运行时预置,不参与供应商设置与预设选择器展示。 */
+    private val internalPresets: List<ProviderConfig> = listOf(siliconFlowFree()).map { preset ->
+        preset.copy(
+            specId = preset.id.removePrefix("preset_").ifBlank { null },
+            models = overlayCatalog(preset.models),
+        )
+    }
+
     /** 按 id 查找预置供应商。 */
-    fun byId(id: String): ProviderConfig? = all.firstOrNull { it.id == id }
+    fun byId(id: String): ProviderConfig? =
+        (all + internalPresets).firstOrNull { it.id == id }
 
     /**
      * v1.0.7: 按 specId 查找预置供应商规格(供 ProviderSpecMerger 合并默认模型)。
      * @param specId 内置规格标识(如 "openai"/"deepseek",不含 "preset_" 前缀)
      */
-    fun bySpecId(specId: String): ProviderConfig? = all.firstOrNull { it.specId == specId }
+    fun bySpecId(specId: String): ProviderConfig? =
+        (all + internalPresets).firstOrNull { it.specId == specId }
 
     // ── 模型构造辅助 ──────────────────────────────────────────────
 
@@ -650,8 +659,23 @@ class PresetProviders(
         ),
     )
 
+    /** 普通 SiliconFlow 供应商预设。 */
+    private fun siliconFlow() = ProviderConfig(
+        id = "preset_siliconflow",
+        displayName = context.getString(R.string.preset_siliconflow),
+        type = ProviderType.OPENAI,
+        baseUrl = ENDPOINT_SILICONFLOW,
+        apiKey = "",
+        builtIn = true,
+        category = ProviderCategory.OFFICIAL,
+        models = emptyList(),
+    )
+
     /**
      * P2-5: SiliconFlow 免费模型兜底预设。
+     *
+     * 这是内部运行时供应商,不出现在供应商设置列表;前台仍可通过
+     * [io.zer0.ai.core.FreeModelConfig] 使用免费模型。
      *
      * v1.0.18: 免费模型 fallback 机制 — 用户未填 apiKey 时通过
      * [io.zer0.ai.core.FreeModelConfig] 注入内置 fallback key,
@@ -671,6 +695,7 @@ class PresetProviders(
         baseUrl = ENDPOINT_SILICONFLOW,
         apiKey = "",  // 空,触发 FreeModelConfig 免费模型 fallback 机制
         builtIn = true,
+        hiddenFromSettings = true,
         category = ProviderCategory.OFFICIAL,
         allowMissingApiKey = true,  // v1.0.18: 允许不填 key,由 fallback key 兜底
         models = listOf(

@@ -179,8 +179,10 @@ internal fun ModelSwitchSheet(
                                 )
                                 // v1.0.18: SiliconFlow 免费供应商(未填 key)追加「免费」徽章
                                 if (FreeModelConfig.isFreeProvider(
+                                        provider.id,
                                         provider.baseUrl,
                                         provider.apiKey,
+                                        provider.hiddenFromSettings,
                                     )
                                 ) {
                                     FreeBadge()
@@ -194,8 +196,10 @@ internal fun ModelSwitchSheet(
                 // fallback key 为占位符/空时改为可见的不可用提示。
                 if (activeProvider != null &&
                     FreeModelConfig.isFreeProvider(
+                        activeProvider.id,
                         activeProvider.baseUrl,
                         activeProvider.apiKey,
+                        activeProvider.hiddenFromSettings,
                     )
                 ) {
                     val freeHint = if (FreeModelConfig.isFallbackKeyAvailable()) {

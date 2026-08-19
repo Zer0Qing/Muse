@@ -8,7 +8,7 @@ package io.zer0.memory.prompt
  */
 object FactExtractionPrompt {
 
-    const val TEMPLATE_VERSION = "fact-extraction.v1"
+    const val TEMPLATE_VERSION = "fact-extraction.v2"
     const val CACHE_GROUP = "memory.extract_facts"
 
     fun buildSystemPrompt(

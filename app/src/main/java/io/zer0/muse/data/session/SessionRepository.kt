@@ -89,6 +89,9 @@ class SessionRepository(
      */
     fun observeSessions(): Flow<List<SessionEntity>> = sessionDao.observeTaskSessions()
 
+    /** 按 id 获取会话(通知深链等一次性导航场景使用)。 */
+    suspend fun getSessionById(sessionId: String): SessionEntity? = sessionDao.getById(sessionId)
+
     /** v0.45: 观察已归档会话(按 updatedAt 降序)。归档列表用。 */
     fun observeArchived(): Flow<List<SessionEntity>> = sessionDao.observeArchived()
 

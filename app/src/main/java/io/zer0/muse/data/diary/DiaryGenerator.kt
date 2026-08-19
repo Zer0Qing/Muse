@@ -8,6 +8,7 @@ import io.zer0.common.resultOf
 import io.zer0.memory.fact.FactStore
 import io.zer0.muse.data.moment.MomentEntity
 import io.zer0.muse.data.moment.MomentRepository
+import io.zer0.muse.schedule.GenerationGate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -55,45 +56,51 @@ class DiaryGenerator(
     ): String? {
         val service = chatService ?: return null
 
-        val sb = StringBuilder()
-        sb.appendLine("你是 Muse,一个陪伴用户的 AI 助手。现在要给 $date 写一篇日记。")
-        sb.appendLine("要求:")
-        sb.appendLine("- 第一人称('我'= Muse),像真实的日记,自然有温度,不要官方腔")
-        sb.appendLine("- 150-300 字,记录今天发生了什么、想到了什么、和用户的互动")
-        sb.appendLine("- 基于下面真实的素材,不要编造没发生的事")
-        sb.appendLine("- 结尾可以有一点对明天的期待或自嘲式幽默")
-        sb.appendLine("- 直接输出日记正文,不要标题、不要日期前缀")
-        sb.appendLine()
+        val systemPrompt = """
+你是 Muse。请根据真实素材写一篇 $date 的第一人称短日记。
+规则:
+- 我= Muse;自然、有温度,像写给自己的日记,不要客服腔。
+- 只写素材中确实发生的事;不编造用户感受、行动或对话。
+- 抓 2-4 个重点,写成 80-180 字;素材少就写短。
+- 可用一句轻微的明日期待收尾,没有依据就不要添加。
+- 只输出正文,不要标题、日期前缀、解释、MOOD、反思或 Markdown。
+        """.trimIndent()
+        val userContent = StringBuilder()
+            .appendLine("<diary_material>")
         if (moments.isNotEmpty()) {
-            sb.appendLine("今天发的朋友圈动态:")
-            moments.forEach { m -> sb.appendLine("- (${m.senderName}) $m.content") }
-            sb.appendLine()
+            userContent.appendLine("朋友圈动态:")
+            moments.forEach { m -> userContent.appendLine("- (${m.senderName}) ${m.content}") }
         }
         if (memories.isNotEmpty()) {
-            sb.appendLine("今天的记忆片段:")
-            memories.forEach { sb.appendLine("- $it") }
-            sb.appendLine()
+            userContent.appendLine("记忆片段:")
+            memories.forEach { userContent.appendLine("- $it") }
         }
         if (moments.isEmpty() && memories.isEmpty()) {
-            sb.appendLine("(今天素材很少,可以写一些'平静的一天'、观察和感受)")
-            sb.appendLine()
+            userContent.appendLine("今天没有可用素材,不要编造具体事件。")
         }
-        sb.appendLine("请输出日记:")
+        userContent.appendLine("</diary_material>")
 
         return resultOf {
-            withTimeoutOrNull(30_000L) {
-                service.completeText(
-                    messages = listOf(
-                        UIMessage(
-                            role = MessageRole.USER,
-                            content = sb.toString(),
-                            createdAt = System.currentTimeMillis(),
+            withTimeoutOrNull(20_000L) {
+                GenerationGate.withPermit {
+                    service.completeText(
+                        messages = listOf(
+                            UIMessage(
+                                role = MessageRole.SYSTEM,
+                                content = systemPrompt,
+                                createdAt = System.currentTimeMillis(),
+                            ),
+                            UIMessage(
+                                role = MessageRole.USER,
+                                content = userContent.toString(),
+                                createdAt = System.currentTimeMillis(),
+                            ),
                         ),
-                    ),
-                    temperature = 0.85f,
-                    maxTokens = 400,
-                // v1.0.74 fix: 剥离 <think> 推理标签,防止思考内容混入日记正文
-                ).text.let { io.zer0.muse.transformer.stripThinkTags(it) }
+                        temperature = 0.65f,
+                        maxTokens = 260,
+                    // v1.0.74 fix: 剥离 <think> 推理标签,防止思考内容混入日记正文
+                    ).text.let { io.zer0.muse.transformer.stripThinkTags(it) }
+                }
             }
         }.onError { msg, t ->
             Logger.w(TAG, "LLM 日记调用失败: ${t?.message ?: msg}")

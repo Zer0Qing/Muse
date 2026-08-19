@@ -19,6 +19,7 @@ import io.zer0.muse.data.proactive.ScoreContext
 import io.zer0.muse.data.session.SessionRepository
 import io.zer0.memory.fact.FactStore
 import io.zer0.muse.notification.MuseNotificationManager
+import io.zer0.muse.notification.MuseNotificationTarget
 import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -542,7 +543,11 @@ class ProactiveMessageRunner(
 
         // v1.0.72: 测试模式只生成不落库,通过通知展示内容,避免污染用户会话
         if (forceSend) {
-            notificationManager.notifyProactiveMessage(assistant, proactiveContent)
+            notificationManager.notifyProactiveMessage(
+                assistant,
+                proactiveContent,
+                MuseNotificationTarget.Session(targetSession.id),
+            )
             Logger.i(TAG, "[测试] Proactive message sent via notification, scenario=${decision.scenario}, reason=${decision.reason}")
             return@withLock
         }
@@ -587,7 +592,11 @@ class ProactiveMessageRunner(
         // 问题6.2: 成功发送后递增当日计数并持久化,MAX_DAILY_MESSAGES 校验下次生效
         incrementDailyCount()
         // 弹通知(像微信来消息一样,通知栏用助手头像)
-        notificationManager.notifyProactiveMessage(assistant, proactiveContent)
+        notificationManager.notifyProactiveMessage(
+            assistant,
+            proactiveContent,
+            MuseNotificationTarget.Session(targetSession.id),
+        )
         Logger.i(TAG, "Proactive message sent to session ${targetSession.id}, scenario=${decision.scenario}, reason=${decision.reason}")
     }
 

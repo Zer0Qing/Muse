@@ -145,6 +145,7 @@ fun SettingsModelPage(
     val settings: SettingsRepository = koinInject()
     // v1.48: h13 initialValue 用 null,首次进入显示加载态而非闪空状态
     val providers by settings.providersFlow.collectAsStateWithLifecycle(initialValue = null)
+    val visibleProviders = providers?.filterNot { it.hiddenFromSettings }
     val activeProviderId by settings.activeProviderIdFlow.collectAsStateWithLifecycle(initialValue = null)
     val scope = rememberCoroutineScope()
     var editingConfig by remember { mutableStateOf<io.zer0.ai.core.ProviderConfig?>(null) }
@@ -169,7 +170,7 @@ fun SettingsModelPage(
     //  - 协程并发:async + awaitAll,每个 async 独立更新自己的状态(支持快慢 provider 异步完成)
     //  - 错误分级复用 settings_provider_test_error_* 字符串,保持与单测一致
     val onTestAllProviders: () -> Unit = {
-        val list = providers
+        val list = visibleProviders
         when {
             // 正在检测中或列表未加载完成,忽略重复触发
             isTestingAllProviders || list == null -> Unit
@@ -326,7 +327,7 @@ fun SettingsModelPage(
     }
 
     SettingsSubPageScaffold(title = stringResource(R.string.settings_sub_model_services), onBack = onBack) {
-        val providersList = providers
+        val providersList = visibleProviders
         if (providersList == null) {
             // v1.48: h13 首次加载显示居中加载指示器,避免 providers 列表闪空状态
             item {

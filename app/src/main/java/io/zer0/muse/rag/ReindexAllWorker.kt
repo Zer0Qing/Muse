@@ -2,10 +2,8 @@ package io.zer0.muse.rag
 
 import android.app.Notification
 import android.app.NotificationManager
-import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
-import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
@@ -17,11 +15,11 @@ import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
-import io.zer0.muse.MainActivity
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.knowledge.KnowledgeBaseDao
 import io.zer0.muse.notification.MuseNotificationManager
+import io.zer0.muse.notification.MuseNotificationTarget
 import org.koin.core.context.GlobalContext
 
 /**
@@ -107,11 +105,8 @@ class ReindexAllWorker(
      * 避免新建渠道打扰用户。
      */
     private fun buildForegroundInfo(current: Int, total: Int, context: Context): ForegroundInfo {
-        val contentIntent = PendingIntent.getActivity(
-            context,
-            0,
-            Intent(context, MainActivity::class.java),
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        val contentIntent = MuseNotificationManager(context).buildMainActivityPendingIntent(
+            MuseNotificationTarget.KnowledgeBaseManage,
         )
         val title = context.getString(R.string.kb_reindex_all)
         val content = if (total > 0) {
@@ -147,11 +142,8 @@ class ReindexAllWorker(
      */
     private fun updateProgressNotification(current: Int, total: Int, context: Context) {
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
-        val contentIntent = PendingIntent.getActivity(
-            context,
-            0,
-            Intent(context, MainActivity::class.java),
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        val contentIntent = MuseNotificationManager(context).buildMainActivityPendingIntent(
+            MuseNotificationTarget.KnowledgeBaseManage,
         )
         val title = context.getString(R.string.kb_reindex_all)
         val content = if (total > 0) {

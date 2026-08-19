@@ -31,9 +31,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
 import androidx.compose.foundation.background
@@ -75,6 +79,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Send
@@ -166,7 +174,7 @@ internal fun GroupChatMessageBubble(
     onToggleMoodExpanded: () -> Unit = {},
     onToggleReasoningExpanded: () -> Unit = {},
     // v1.77: 长按弹出操作菜单(复制 / 删除)
-    onLongClick: () -> Unit = {},
+    onLongClick: (Rect, Offset?) -> Unit = { _, _ -> },
     // v1.0.74 fix (前端审计 1.4): 搜索跳转高亮 — 目标消息短暂高亮提示用户定位
     highlighted: Boolean = false,
     // v1.x: 多选模式
@@ -178,6 +186,8 @@ internal fun GroupChatMessageBubble(
 ) {
     val isUser = message.senderType == "user"
     val haptic = LocalHapticFeedback.current
+    var messageBounds by remember { mutableStateOf(Rect.Zero) }
+    var pressPointLocal by remember { mutableStateOf(Offset.Zero) }
     val interactionSource = remember { MutableInteractionSource() }
     // v1.0.74 fix (前端审计 6.1): 气泡最大宽按屏宽 70%,大屏/横屏/大字体下不再过窄
     val maxBubbleWidth = with(androidx.compose.ui.platform.LocalConfiguration.current) {
@@ -185,6 +195,18 @@ internal fun GroupChatMessageBubble(
     }
     // v1.x: 多选模式下点击消息切换选中,长按退出菜单
     val bubbleClick: () -> Unit = { if (selectionMode) onSelectToggle() }
+    val pressTracker = Modifier.pointerInput(message.id) {
+        awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = false)
+            pressPointLocal = down.position
+            waitForUpOrCancellation()
+        }
+    }
+    val pressPointInWindow = pressPointLocal.takeIf {
+        it != Offset.Zero && messageBounds != Rect.Zero
+    }?.let { point ->
+        Offset(messageBounds.left + point.x, messageBounds.top + point.y)
+    }
     if (isUser) {
         // 用户消息:右侧气泡
         Row(
@@ -212,15 +234,20 @@ internal fun GroupChatMessageBubble(
                     border = if (selected) androidx.compose.foundation.BorderStroke(
                         1.5.dp, MaterialTheme.colorScheme.primary,
                     ) else null,
-                    modifier = Modifier.combinedClickable(
-                        interactionSource = interactionSource,
-                        indication = null,
-                        onClick = bubbleClick,
-                        onLongClick = {
-                            MuseHaptics.medium(haptic)
-                            onLongClick()
-                        },
-                    ),
+                    modifier = Modifier
+                        .then(pressTracker)
+                        .onGloballyPositioned { coordinates ->
+                            messageBounds = coordinates.boundsInWindow()
+                        }
+                        .combinedClickable(
+                            interactionSource = interactionSource,
+                            indication = null,
+                            onClick = bubbleClick,
+                            onLongClick = {
+                                MuseHaptics.medium(haptic)
+                                onLongClick(messageBounds, pressPointInWindow)
+                            },
+                        ),
                 ) {
                     Column(modifier = Modifier.padding(MusePaddings.cardInner)) {
                         // v2.x: 悄悄话标记
@@ -287,7 +314,7 @@ internal fun GroupChatMessageBubble(
                             onClick = {},
                             onLongClick = {
                                 MuseHaptics.medium(haptic)
-                                onLongClick()
+                                onLongClick(messageBounds, pressPointInWindow)
                             },
                         ),
                 ) {
@@ -309,7 +336,7 @@ internal fun GroupChatMessageBubble(
                             onClick = {},
                             onLongClick = {
                                 MuseHaptics.medium(haptic)
-                                onLongClick()
+                                onLongClick(messageBounds, pressPointInWindow)
                             },
                         ),
                     contentAlignment = Alignment.Center,
@@ -363,15 +390,20 @@ internal fun GroupChatMessageBubble(
                     border = if (selected) androidx.compose.foundation.BorderStroke(
                         1.5.dp, MaterialTheme.colorScheme.primary,
                     ) else null,
-                    modifier = Modifier.combinedClickable(
-                        interactionSource = interactionSource,
-                        indication = null,
-                        onClick = bubbleClick,
-                        onLongClick = {
-                            MuseHaptics.medium(haptic)
-                            onLongClick()
-                        },
-                    ),
+                    modifier = Modifier
+                        .then(pressTracker)
+                        .onGloballyPositioned { coordinates ->
+                            messageBounds = coordinates.boundsInWindow()
+                        }
+                        .combinedClickable(
+                            interactionSource = interactionSource,
+                            indication = null,
+                            onClick = bubbleClick,
+                            onLongClick = {
+                                MuseHaptics.medium(haptic)
+                                onLongClick(messageBounds, pressPointInWindow)
+                            },
+                        ),
                 ) {
                     Column(modifier = Modifier.padding(MusePaddings.cardInner)) {
                         MarkdownText(

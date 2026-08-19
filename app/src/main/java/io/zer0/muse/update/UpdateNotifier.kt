@@ -8,10 +8,10 @@ import androidx.core.app.NotificationCompat
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
-import io.zer0.muse.MainActivity
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.notification.MuseNotificationManager
+import io.zer0.muse.notification.MuseNotificationTarget
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 
@@ -104,27 +104,16 @@ class UpdateNotifier(
             .setContentTitle(title)
             .setContentText(text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
-            .setContentIntent(buildMainActivityIntent(context))
+            .setContentIntent(
+                MuseNotificationManager(context).buildMainActivityPendingIntent(
+                    MuseNotificationTarget.SettingsAbout,
+                ),
+            )
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
         resultOf { nm.notify(NOTIF_ID_NEW_VERSION, notif) }
             .onError { msg, _ -> Logger.w(TAG, "notify new version failed: $msg") }
-    }
-
-    /**
-     * 构建 MainActivity 的 PendingIntent(点击通知回到应用)。
-     */
-    private fun buildMainActivityIntent(context: Context): android.app.PendingIntent {
-        val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        }
-        val flags = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
-        } else {
-            android.app.PendingIntent.FLAG_UPDATE_CURRENT
-        }
-        return android.app.PendingIntent.getActivity(context, 0, intent, flags)
     }
 
     companion object {

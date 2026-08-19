@@ -123,6 +123,7 @@ class DailySummaryWorker(
             title = SUMMARY_TITLES.random(),
             message = summary,
             notificationId = NOTIF_ID_DAILY_SUMMARY,
+            target = io.zer0.muse.notification.MuseNotificationTarget.Home,
         )
         Logger.i(TAG, "每日总结已保存并推送: ${summary.take(40)}...")
     }
@@ -134,38 +135,34 @@ class DailySummaryWorker(
         facts: List<String>,
     ): String? {
         val hasContent = todayMessages.isNotEmpty() || facts.isNotEmpty()
-        val sb = StringBuilder()
-        if (hasContent) {
-            sb.appendLine("你是用户的日常陪伴助手。现在到了晚上总结时间,请回顾用户今天和你聊的内容,用 2-4 句话写一条自然的今日小结推送。")
-            sb.appendLine("要求:")
-            sb.appendLine("- 口语化,像朋友晚上跟你复盘,不要官方腔、不要'今天您'这类敬语")
-            sb.appendLine("- 挑 2-3 个有意义的点:用户今天关心的事、完成的事、近期安排")
-            sb.appendLine("- 语气温暖自然,可以带一点轻松调侃,长度控制在 80 字以内")
-            sb.appendLine("- 直接输出小结正文,不要任何前缀、标题或引号")
+        val systemPrompt = if (hasContent) {
+            """
+你是用户的陪伴助手。请根据真实素材写一条晚间今日小结。
+规则:口语、像朋友复盘;只挑 2-3 个重点;不编造未发生的事;50-80 字;
+只输出正文,不要标题、前缀、引号、MOOD 或反思。
+            """.trimIndent()
         } else {
             // v1.0.72: 今天无对话也无记忆时的退化模式 — 发一条自然的晚间问候,
             // 不让用户觉得"它又没动静了"。
-            sb.appendLine("你是用户的日常陪伴助手。现在是晚上,用户今天没有和你聊天。请写一条 1-2 句的晚间问候推送。")
-            sb.appendLine("要求:")
-            sb.appendLine("- 口语化,像朋友晚上打招呼,不要官方腔")
-            sb.appendLine("- 自然轻松,可以问一句今天过得怎么样,但不追问具体事(你不知道)")
-            sb.appendLine("- 长度控制在 40 字以内,直接输出正文,不要任何前缀")
+            """
+你是用户的陪伴助手。用户今天没有留下可用素材,请写一句自然的晚间问候。
+不要编造今天发生的事;可以问候或轻轻问一句过得怎么样;40 字以内;只输出正文。
+            """.trimIndent()
         }
-        sb.appendLine()
+        val userContent = StringBuilder("<summary_material>\n")
         if (todayMessages.isNotEmpty()) {
-            sb.appendLine("今天用户说的话(按时间顺序):")
+            userContent.appendLine("今天用户说的话(按时间顺序):")
             todayMessages.forEach { msg ->
                 val text = msg.content.replace('\n', ' ').take(120)
-                sb.appendLine("- $text")
+                userContent.appendLine("- $text")
             }
         }
         if (facts.isNotEmpty()) {
-            sb.appendLine()
-            sb.appendLine("用户近期记忆(可能包含明天的安排,可以提一句):")
-            facts.take(10).forEach { sb.appendLine("- $it") }
+            userContent.appendLine("用户近期事项(只有与今天相关或明确临近的事项才可提):")
+            facts.take(10).forEach { userContent.appendLine("- $it") }
         }
-        sb.appendLine()
-        sb.appendLine("请输出推送正文:")
+        if (!hasContent) userContent.appendLine("没有可用素材。")
+        userContent.appendLine("</summary_material>")
 
         return resultOf {
             withTimeoutOrNull(GEN_TIMEOUT_MS) {
@@ -175,13 +172,18 @@ class DailySummaryWorker(
                     chatService.completeText(
                         messages = listOf(
                             io.zer0.ai.core.UIMessage(
+                                role = io.zer0.ai.core.MessageRole.SYSTEM,
+                                content = systemPrompt,
+                                createdAt = System.currentTimeMillis(),
+                            ),
+                            io.zer0.ai.core.UIMessage(
                                 role = io.zer0.ai.core.MessageRole.USER,
-                                content = sb.toString(),
+                                content = userContent.toString(),
                                 createdAt = System.currentTimeMillis(),
                             ),
                         ),
-                        temperature = 0.8f,
-                        maxTokens = 200,
+                        temperature = 0.6f,
+                        maxTokens = 140,
                     // v1.0.74 fix: 剥离 <think> 推理标签,防止思考内容混入每日总结推送
                     ).text.let { io.zer0.muse.transformer.stripThinkTags(it) }
                 }

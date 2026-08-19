@@ -47,6 +47,7 @@ internal data class ResponsesRequest(
     val max_output_tokens: Int? = null,
     val temperature: Float? = null,
     val tools: List<OpenAITool>? = null,
+    val tool_choice: String? = null,
     val reasoning: ResponsesReasoningConfig? = null,
     val store: Boolean? = null,
 )
@@ -174,7 +175,7 @@ internal data class OpenAIRequest(
     val temperature: Float? = null,
     val max_tokens: Int? = null,
     val stream: Boolean = true,
-    /** Phase 7: 工具定义列表,启用 function calling。 */
+            /** Phase 7: 工具定义列表,启用 function calling。 */
     val tools: List<OpenAITool>? = null,
     /** v1.0.40: 工具选择策略。tools=null 时强制 "none" 防止模型幻觉 tool call。 */
     val tool_choice: String? = null,

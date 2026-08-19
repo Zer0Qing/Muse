@@ -1,3 +1,4 @@
+@file:Suppress("FunctionNaming", "LongMethod", "LongParameterList")
 @file:OptIn(ExperimentalLayoutApi::class)
 
 package io.zer0.muse.ui.schedule
@@ -5,6 +6,7 @@ package io.zer0.muse.ui.schedule
 import android.content.res.Resources
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +22,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -176,6 +179,7 @@ private fun intervalToLabel(interval: String): String = when (interval) {
 @Composable
 fun ScheduledTasksScreen(
     onBack: () -> Unit,
+    initialTaskId: String? = null,
     dao: ScheduledTaskDao = koinInject(),
     executionDao: ScheduledTaskExecutionDao = koinInject(),
     assistantRepository: AssistantRepository = koinInject(),
@@ -183,6 +187,7 @@ fun ScheduledTasksScreen(
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val listState = rememberLazyListState()
     // v1.48: h13 initialValue 用 null,首次进入显示加载态而非闪空状态
     val tasks by dao.observeAll().collectAsStateWithLifecycle(initialValue = null)
     // 助手列表(用于新建/编辑任务时选择执行助手)
@@ -226,15 +231,23 @@ fun ScheduledTasksScreen(
                 )
             }
         } else {
+            LaunchedEffect(initialTaskId, tasksList) {
+                val targetIndex = initialTaskId?.let { id -> tasksList.indexOfFirst { it.id == id } } ?: -1
+                if (targetIndex >= 0) {
+                    listState.scrollToItem(targetIndex)
+                }
+            }
             LazyColumn(
+                state = listState,
                 modifier = Modifier.fillMaxSize().padding(innerPadding).padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 items(tasksList, key = { it.id }) { task ->
                     TaskCard(
                         task = task,
-                        executionDao = executionDao,
-                        runner = runner,
+                            executionDao = executionDao,
+                            runner = runner,
+                            initiallyExpanded = task.id == initialTaskId,
                         onToggle = { enabled -> scope.launch { dao.setEnabled(task.id, enabled) } },
                         onEdit = { taskToEdit = it },
                         onDelete = {
@@ -275,12 +288,13 @@ private fun TaskCard(
     task: ScheduledTaskEntity,
     executionDao: ScheduledTaskExecutionDao,
     runner: ScheduledTaskRunner,
+    initiallyExpanded: Boolean = false,
     onToggle: (Boolean) -> Unit,
     onEdit: (ScheduledTaskEntity) -> Unit,
     onDelete: () -> Unit,
 ) {
     // P1-7: 任务项可展开,展示最近 5 次执行历史
-    var expanded by remember { mutableStateOf(false) }
+    var expanded by rememberSaveable(task.id) { mutableStateOf(initiallyExpanded) }
     var executions by remember { mutableStateOf<List<ScheduledTaskExecutionEntity>>(emptyList()) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     // "立即执行"按钮的执行中状态(调试用,调用 ScheduledTaskRunner.executeTask)
@@ -356,7 +370,10 @@ private fun TaskCard(
 
             // P1-7: 展开时显示最近 5 次执行历史(时间 + 状态图标 + 回复摘要),失败任务红色标记
             if (expanded) {
-                ExecutionHistorySection(executions = executions)
+                ExecutionHistorySection(
+                    executions = executions,
+                    initiallyExpandLatest = initiallyExpanded,
+                )
             }
         }
     }
@@ -379,7 +396,10 @@ private fun TaskCard(
  *  - 回复摘要(成功)或错误信息(失败),失败用红色标记
  */
 @Composable
-private fun ExecutionHistorySection(executions: List<ScheduledTaskExecutionEntity>) {
+private fun ExecutionHistorySection(
+    executions: List<ScheduledTaskExecutionEntity>,
+    initiallyExpandLatest: Boolean = false,
+) {
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
         Text(stringResource(R.string.schedule_execution_history), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.outline)
         Spacer(Modifier.size(4.dp))
@@ -390,15 +410,24 @@ private fun ExecutionHistorySection(executions: List<ScheduledTaskExecutionEntit
                 if (index > 0) {
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 }
-                ExecutionRow(execution = exec)
+                ExecutionRow(
+                    execution = exec,
+                    initiallyExpanded = initiallyExpandLatest && index == 0,
+                )
             }
         }
     }
 }
 
 @Composable
-private fun ExecutionRow(execution: ScheduledTaskExecutionEntity) {
+private fun ExecutionRow(
+    execution: ScheduledTaskExecutionEntity,
+    initiallyExpanded: Boolean = false,
+) {
     val failed = execution.status == "failed"
+    val summary = if (failed) execution.errorMessage else execution.replySummary
+    val canExpand = summary.length > 120
+    var expanded by rememberSaveable(execution.id) { mutableStateOf(initiallyExpanded) }
     // L-SC3 修复: 用 MuseDateFormats.DATE_TIME_FULL_SEC 令牌替代硬编码 "MM-dd HH:mm:ss"
     val fmt = remember { SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL_SEC, Locale.getDefault()) }
     val iconTint = if (failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
@@ -406,6 +435,12 @@ private fun ExecutionRow(execution: ScheduledTaskExecutionEntity) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .animateContentSize()
+            .clickable(
+                enabled = canExpand,
+                role = Role.Button,
+                onClick = { expanded = !expanded },
+            )
             .padding(vertical = 6.dp),
         verticalAlignment = Alignment.Top,
     ) {
@@ -424,17 +459,25 @@ private fun ExecutionRow(execution: ScheduledTaskExecutionEntity) {
                 style = MaterialTheme.typography.labelSmall,
                 color = timeColor,
             )
-            // 回复摘要(成功)或错误信息(失败)
-            val summary = if (failed) execution.errorMessage else execution.replySummary
             if (summary.isNotEmpty()) {
                 Text(
                     text = summary,
                     style = MaterialTheme.typography.bodySmall,
                     color = if (failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
+                    maxLines = if (expanded) Int.MAX_VALUE else 2,
+                    overflow = if (expanded) TextOverflow.Clip else TextOverflow.Ellipsis,
                 )
             }
+        }
+        if (canExpand) {
+            Icon(
+                imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                contentDescription = stringResource(
+                    if (expanded) R.string.schedule_collapse_history else R.string.schedule_expand_history,
+                ),
+                tint = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.size(18.dp),
+            )
         }
     }
 }

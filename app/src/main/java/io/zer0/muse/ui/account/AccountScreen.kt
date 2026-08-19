@@ -1,8 +1,5 @@
 package io.zer0.muse.ui.account
 
-import io.zer0.common.Logger
-
-import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -50,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
 import io.zer0.muse.R
+import io.zer0.muse.data.AvatarStorage
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseTextField
@@ -58,13 +56,7 @@ import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.huge
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
-import java.io.File
-import java.io.IOException
-import java.io.InputStream
-import java.io.OutputStream
-import java.util.UUID
 
 /**
  * v2.x: 账户中心 — 本地个人资料编辑页(无登录/注册 UI)。
@@ -97,20 +89,40 @@ fun AccountScreen(
     var editName by remember(accountState.userName) { mutableStateOf(accountState.userName) }
     var editAvatarUri by remember(accountState.avatarUri) { mutableStateOf(accountState.avatarUri) }
     var saving by remember { mutableStateOf(false) }
+    var avatarSaving by remember { mutableStateOf(false) }
 
     // 头像选择 launcher — Photo Picker,只选图片
     val pickAvatarLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
     ) { uri ->
         if (uri != null) {
-            editAvatarUri = uri.toString()
+            scope.launch {
+                avatarSaving = true
+                try {
+                    val persistentUri = AvatarStorage.persist(context, uri.toString())
+                    if (persistentUri.isNullOrBlank()) {
+                        MuseToast.show(
+                            context.getString(R.string.assistant_detail_avatar_save_failed),
+                            3000,
+                        )
+                    } else {
+                        // 选择完成后立即落盘到账户资料,即使用户随后离开页面或进程被杀,
+                        // 也不会因为还没点底部保存按钮而丢失头像。
+                        val profile = settings.getUserProfile()
+                        settings.saveUserProfile(profile.copy(avatarUri = persistentUri))
+                        editAvatarUri = persistentUri
+                    }
+                } finally {
+                    avatarSaving = false
+                }
+            }
         }
     }
 
     val initialName = accountState.userName
     val initialAvatar = accountState.avatarUri
     val hasChanges = editName.trim() != initialName.trim() || editAvatarUri != initialAvatar
-    val canSave = hasChanges && editName.isNotBlank() && !saving
+    val canSave = hasChanges && editName.isNotBlank() && !saving && !avatarSaving
 
     Scaffold(
         topBar = {
@@ -191,15 +203,16 @@ fun AccountScreen(
             // ── 保存按钮 ──
             SaveButton(
                 enabled = canSave,
-                saving = saving,
+                saving = saving || avatarSaving,
                 onClick = {
                     scope.launch {
                         saving = true
                         val profile = settings.getUserProfile()
                         // v1.0.74 fix: 头像 content URI 权限重启后失效(变灰色占位),
                         // 保存时拷贝到私有目录存本地路径
-                        val persistentUri = persistAvatarUri(context, editAvatarUri)
-                        if (!editAvatarUri.isNullOrBlank() && persistentUri.isNullOrBlank()) {
+                        val persistentUri = AvatarStorage.persist(context, editAvatarUri)
+                        val avatarWasChanged = editAvatarUri != profile.avatarUri
+                        if (avatarWasChanged && !editAvatarUri.isNullOrBlank() && persistentUri.isNullOrBlank()) {
                             saving = false
                             MuseToast.show(
                                 context.getString(R.string.assistant_detail_avatar_save_failed),
@@ -210,7 +223,7 @@ fun AccountScreen(
                         settings.saveUserProfile(
                             profile.copy(
                                 userNickName = editName.trim(),
-                                avatarUri = persistentUri,
+                                avatarUri = persistentUri ?: profile.avatarUri,
                             ),
                         )
                         saving = false
@@ -223,7 +236,6 @@ fun AccountScreen(
         }
     }
 }
-
 // ── 头像选择组件 ──────────────────────────────────────────
 
 /**
@@ -287,7 +299,6 @@ private fun UserProfileEntryCard(
         }
     }
 }
-
 /**
  * 大号头像 + 右下角相机编辑徽标。
  *
@@ -319,7 +330,7 @@ private fun AvatarPicker(
             ) {
                 if (!avatarUri.isNullOrBlank()) {
                     SubcomposeAsyncImage(
-                        model = remember(avatarUri) { avatarImageModel(avatarUri) },
+                        model = remember(avatarUri) { AvatarStorage.imageModel(avatarUri) },
                         contentDescription = stringResource(R.string.account_avatar),
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize().clip(CircleShape),
@@ -362,7 +373,6 @@ private fun AvatarPicker(
         }
     }
 }
-
 // ── 保存按钮 ──────────────────────────────────────────
 
 @Composable
@@ -449,7 +459,7 @@ fun AccountCard(
                     if (!accountState.avatarUri.isNullOrBlank()) {
                         SubcomposeAsyncImage(
                             model = remember(accountState.avatarUri) {
-                                avatarImageModel(accountState.avatarUri.orEmpty())
+                                AvatarStorage.imageModel(accountState.avatarUri.orEmpty())
                             },
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
@@ -494,90 +504,3 @@ fun AccountCard(
         }
     }
 }
-
-/** v1.0.74 fix: 把头像 URI 持久化到私有目录(content URI 权限重启后失效,头像变灰)。 */
-private suspend fun persistAvatarUri(context: android.content.Context, uri: String?): String? {
-    if (uri.isNullOrBlank()) return uri
-    // 已是本地路径/资源/data URI 直接返回(纯文件路径不带 file://,Coil 更稳)
-    if (uri.startsWith("/") || uri.startsWith("android.resource://") ||
-        uri.startsWith("data:image/")
-    ) {
-        return uri
-    }
-    // 兼容旧值: file:// 前缀剥掉
-    val normalized = uri.removePrefix("file://")
-    if (normalized.startsWith("/")) return normalized
-    return copyAvatarContentUri(context, Uri.parse(uri))
-}
-
-private suspend fun copyAvatarContentUri(
-    context: android.content.Context,
-    sourceUri: Uri,
-): String? = withContext(kotlinx.coroutines.Dispatchers.IO) {
-    val resolver = context.contentResolver
-    val dir = File(context.filesDir, "avatar")
-    if (!dir.exists() && !dir.mkdirs()) {
-        Logger.e("AccountScreen", "无法创建头像目录: ${dir.absolutePath}")
-        return@withContext null
-    }
-    val extension = when (resolver.getType(sourceUri)?.lowercase()) {
-        "image/png" -> "png"
-        "image/webp" -> "webp"
-        "image/gif" -> "gif"
-        else -> "jpg"
-    }
-    val target = File(dir, "avatar_${UUID.randomUUID()}.$extension")
-    val temp = File(dir, "${target.name}.tmp")
-    try {
-        val input = resolver.openInputStream(sourceUri)
-        if (input == null) {
-            Logger.w("AccountScreen", "无法读取头像 URI: $sourceUri")
-            return@withContext null
-        }
-        val copied = input.use { source ->
-            temp.outputStream().use { output -> copyAvatarStream(source, output) }
-        }
-        if (!copied) {
-            temp.delete()
-            Logger.w("AccountScreen", "头像超过 ${MAX_AVATAR_BYTES / 1024 / 1024}MB 上限,已拒绝")
-            return@withContext null
-        }
-        if (!temp.renameTo(target)) {
-            temp.delete()
-            Logger.e("AccountScreen", "头像文件提交失败: ${target.absolutePath}")
-            return@withContext null
-        }
-        target.absolutePath
-    } catch (e: IOException) {
-        temp.delete()
-        Logger.e("AccountScreen", "头像复制失败", e)
-        null
-    } catch (e: SecurityException) {
-        temp.delete()
-        Logger.e("AccountScreen", "头像读取权限失败", e)
-        null
-    }
-}
-
-private fun copyAvatarStream(input: InputStream, output: OutputStream): Boolean {
-    val buffer = ByteArray(16 * 1024)
-    var total = 0L
-    while (true) {
-        val read = input.read(buffer)
-        if (read < 0) return true
-        total += read
-        if (total > MAX_AVATAR_BYTES) return false
-        output.write(buffer, 0, read)
-    }
-}
-
-/** C-20: 头像文件大小上限(与 AvatarStorage 一致)。 */
-private const val MAX_AVATAR_BYTES = 10L * 1024 * 1024
-
-/** 绝对路径交给 Coil 时使用 File,避免不同版本把纯路径误解析为无 scheme URI。 */
-private fun avatarImageModel(uri: String): Any =
-    when {
-        uri.startsWith("/") -> File(uri)
-        uri.startsWith("file://") -> Uri.parse(uri).path?.let(::File) ?: uri
-        else -> uri
-    }

@@ -28,10 +28,11 @@ class PromptTemplateLoaderTest {
 
     @Test
     fun `zh locale prefers localized template`() {
-        val generic = loader.render("decision_tree", null)
         val zh = loader.render("decision_tree", "zh")
-        assertTrue("zh 模板应包含本地化内容: $zh", zh.contains("可用能力清单"))
-        assertNotEquals(generic, zh)
+        val en = loader.render("decision_tree", "en")
+        assertTrue("zh 模板应包含中文决策规则: $zh", zh.contains("决策规则"))
+        assertTrue("en 模板应包含英文决策规则: $en", en.contains("Decision rules"))
+        assertNotEquals("zh/en 本地化模板不应相同", zh, en)
     }
 
     @Test

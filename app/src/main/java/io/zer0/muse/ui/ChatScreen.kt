@@ -72,7 +72,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
@@ -133,6 +132,7 @@ import io.zer0.common.resultOf
 import io.zer0.muse.ui.common.media.DesktopShortcuts
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.media.rememberDesktopShortcutsEnabled
@@ -769,8 +769,8 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
         //   状态栏高度留白。状态栏/导航栏 padding 由各层自行处理(topBar/InputBar)。
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
-            // v1.24: Agent Tab 模式下隐藏自带顶部栏,减少双层导航栏的间距感
-            if (!isAgentMode) {
+            // v1.24: 嵌在 Home 的 Agent Tab 隐藏自带顶部栏;独立详情页仍保留返回岛。
+            if (!isAgentMode || onBack != null) {
                 // v1.0.72: Telegram 风格顶栏 — 三个独立"岛"(返回/标题/三点菜单)
                 // v1.0.72 fix: 去掉全宽背景遮罩 — 三岛直接悬浮在消息列表上,
                 //   消息可以滚动到岛后面(与 Telegram 一致),背景透明无遮罩块。
@@ -808,10 +808,20 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                         }
 
                         // ── 中岛:标题(独立圆角胶囊,weight 1f 居中) ──
-                        val currentSession = remember(state.sessions, state.currentSessionId) {
-                            state.sessions.find { it.id == state.currentSessionId }
+                        val currentSession = remember(state.sessions, state.currentSessionId, isAgentMode) {
+                            if (isAgentMode) {
+                                null
+                            } else {
+                                state.sessions.find { it.id == state.currentSessionId }
+                            }
                         }
-                        val sessionTitle = currentSession?.title?.takeIf { it.isNotBlank() } ?: "muse"
+                        // Agent 会话独立于任务会话列表,标题固定使用 Agent 语义,
+                        // 避免详情页沿用初始化阶段普通会话的“新会话/muse”。
+                        val sessionTitle = if (isAgentMode) {
+                            "Agent"
+                        } else {
+                            currentSession?.title?.takeIf { it.isNotBlank() } ?: "muse"
+                        }
                         val sessionCd = stringResource(R.string.chat_session_cd, sessionTitle)
                         val rawModelName = modelName ?: state.providers
                             .firstOrNull { it.id == state.activeProviderId }?.models
@@ -1462,16 +1472,11 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                         val branchInfo by remember(msg.id) {
                             derivedStateOf { conversationTree.branchInfoFor(msg.id) }
                         }
-                        // v1.100: expandedState 用 derivedStateOf 包裹,只有该 msg 对应的
-                        // 展开状态变化时才重组,避免其他消息的折叠操作波及本 item。
-                        val expandedState by remember(msg.id) {
-                            derivedStateOf { state.messageExpandedStates[msg.id.toString()] }
-                        }
-                        // v1.100: taskCard 同样用 derivedStateOf 隔离,只有该 msg 对应的
-                        // taskCard 变化时才重组,避免其他工具调用更新波及本 item。
-                        val taskCard by remember(msg.id) {
-                            derivedStateOf { state.taskCards[msg.id.toString()] }
-                        }
+                        // 工具执行与展开操作会更新 ChatUiState 的 Map。这里直接读取当前快照；
+                        // 不能用 remember(msg.id) 捕获初始 state,否则新建的任务卡/展开状态
+                        // 不会传进已存在的 LazyColumn item,页面看起来像“工具没有调用”。
+                        val expandedState = state.messageExpandedStates[msg.id.toString()]
+                        val taskCard = state.taskCards[msg.id.toString()]
                         // v1.100: isTranslating/isSpeaking 精确到 msg.id,用 derivedStateOf 收窄
                         val isTranslating by remember(msg.id) {
                             derivedStateOf { state.isTranslating && state.translatingMessageId == msg.id }
@@ -2111,7 +2116,7 @@ private fun CompressContextDialog(
         title = stringResource(R.string.chat_compress_dialog_title),
         content = {
             Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.itemGap)) {
-                OutlinedTextField(
+                MuseTextField(
                     value = keepText,
                     onValueChange = { keepText = it.filter { c -> c.isDigit() }.take(3) },
                     label = { Text(stringResource(R.string.chat_compress_keep_label)) },
@@ -2125,7 +2130,7 @@ private fun CompressContextDialog(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                OutlinedTextField(
+                MuseTextField(
                     value = instructionText,
                     onValueChange = { instructionText = it },
                     label = { Text(stringResource(R.string.chat_compress_instruction_label)) },

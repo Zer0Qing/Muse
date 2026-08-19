@@ -173,14 +173,85 @@ fun MomentCard(
             Spacer(Modifier.height(8.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Alignment.Top,
             ) {
-                Text(
-                    text = momentTimeText(moment.createdAt, context),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline,
-                )
-                Spacer(Modifier.weight(1f))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = momentTimeText(moment.createdAt, context),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                    if (moment.likes > 0 || comments.isNotEmpty() || isFavorite) {
+                        Row(
+                            modifier = Modifier.padding(top = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            if (moment.likes > 0) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(3.dp),
+                                ) {
+                                    Icon(
+                                        imageVector = if (moment.likedByUser) {
+                                            Icons.Filled.Favorite
+                                        } else {
+                                            Icons.Filled.FavoriteBorder
+                                        },
+                                        contentDescription = stringResource(R.string.moment_like_cd),
+                                        tint = if (moment.likedByUser) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            MaterialTheme.colorScheme.outline
+                                        },
+                                        modifier = Modifier.size(14.dp),
+                                    )
+                                    Text(
+                                        text = moment.likes.toString(),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.outline,
+                                    )
+                                }
+                            }
+                            if (comments.isNotEmpty()) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(3.dp),
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Outlined.Chat,
+                                        contentDescription = stringResource(R.string.moment_comment_cd),
+                                        tint = MaterialTheme.colorScheme.outline,
+                                        modifier = Modifier.size(14.dp),
+                                    )
+                                    Text(
+                                        text = comments.size.toString(),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.outline,
+                                    )
+                                }
+                            }
+                            if (isFavorite) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(3.dp),
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Star,
+                                        contentDescription = stringResource(R.string.moment_favorite),
+                                        tint = MaterialTheme.colorScheme.tertiary,
+                                        modifier = Modifier.size(14.dp),
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.moment_favorite),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.outline,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
                 Column(horizontalAlignment = Alignment.End) {
                     AnimatedVisibility(
                         visible = showActions,

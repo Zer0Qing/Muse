@@ -574,6 +574,7 @@
     <string name="video_gen_no_provider">No available provider configured. Please add one in the Providers menu with API Key.</string>
 
     <!-- ===== P2-5: SiliconFlow free model fallback (PresetProviders / ProviderEditPage) ===== -->
+    <string name="preset_siliconflow">SiliconFlow</string>
     <string name="preset_siliconflow_free">SiliconFlow Free Models</string>
     <string name="preset_siliconflow_free_desc">Free open-source models from SiliconFlow</string>
     <string name="siliconflow_fill_free_models">Fill Free Models</string>

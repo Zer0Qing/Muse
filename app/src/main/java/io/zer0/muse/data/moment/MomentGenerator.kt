@@ -62,27 +62,26 @@ class MomentGenerator(
 
         val assistantName = assistant?.name?.takeIf { it.isNotBlank() } ?: "Muse"
         val sb = StringBuilder()
-        sb.appendLine("你是 $assistantName,一个陪伴用户的 AI 助手。现在要发一条朋友圈动态。")
+        sb.appendLine("你是 $assistantName,现在要发一条朋友圈动态。")
         if (!assistant?.systemPrompt.isNullOrBlank()) {
             // 注入助手人设(截取前 500 字,避免过长)
             sb.appendLine("你的人设: ${assistant!!.systemPrompt.take(500)}")
         }
         sb.appendLine("要求:")
-        sb.appendLine("- 口语化,像真实的人在朋友圈分享,不要官方腔")
-        sb.appendLine("- 长度 30-80 字")
-        sb.appendLine("- 内容必须基于下面的真实记忆素材,禁止编造用户没说过的事")
-        sb.appendLine("- 可以有一点 AI 视角的幽默(比如提到自己在记笔记),但不要机械感")
-        sb.appendLine("- 不要用 emoji,不要用 #话题标签")
-        sb.appendLine("- 直接输出动态内容,不要任何前缀、引号或说明")
+        sb.appendLine("- 像真实的人分享近况,自然口语,30-80 字")
+        sb.appendLine("- 只依据真实素材,不编造用户没说过的经历、感受或行动")
+        sb.appendLine("- 可以有一点轻松幽默,但不要客服腔、AI 自我介绍、emoji 或 #话题")
+        sb.appendLine("- 只输出动态正文,不要前缀、引号、解释、MOOD 或反思")
         sb.appendLine()
         if (recentFacts.isNotEmpty()) {
-            sb.appendLine("近期记忆素材(从中挑 1-2 个点发动态):")
+            sb.appendLine("<moment_material>")
             recentFacts.forEach { sb.appendLine("- $it") }
+            sb.appendLine("</moment_material>")
         } else {
-            sb.appendLine("(暂无记忆素材,可以发一条轻松的生活分享,比如今天想记录点什么)")
+            sb.appendLine("<moment_material>暂无可用素材,只写一条不包含具体事实的轻松记录。</moment_material>")
         }
         sb.appendLine()
-        sb.appendLine("请输出朋友圈动态:")
+        sb.appendLine("输出动态正文:")
 
         val text = resultOf {
             withTimeoutOrNull(30_000L) {
@@ -143,23 +142,24 @@ class MomentGenerator(
         val recentFacts = facts.take(5).joinToString("; ") { it.fact }
 
         val prompt = buildString {
-            appendLine("你是 $assistantName,一个陪伴用户的 AI 助手。你在朋友圈看到一条动态:")
-            appendLine("\"$momentContent\"")
+            appendLine("<moment_context>")
+            appendLine("动态内容: $momentContent")
             if (images.isNotEmpty()) {
-                appendLine("动态带 ${images.size} 张图片(图片已附在消息中,请先看图再评论):")
+                appendLine("动态带 ${images.size} 张图片,请先看图再评论。")
             }
-            appendLine("有人评论:\"$userComment\"")
-            appendLine("请以 $assistantName 的身份决定要不要回复这条评论:")
+            appendLine("评论内容: $userComment")
+            appendLine("</moment_context>")
+            appendLine("你是 $assistantName,请决定是否回复这条评论。")
             if (allowSkip) {
-                appendLine("- 如果这条评论值得回(有内容、在问你、值得接话),用一句话自然回复(15-40 字,口语化,不要官方腔,可结合图片内容)")
-                appendLine("- 如果只是寒暄/没内容/没什么好回的,直接输出\"不回复\"三个字")
-                appendLine("- 像真实朋友圈那样选择性回复,不要每条都回")
+                appendLine("- 有内容、在问你或值得接话:输出一句 15-40 字的自然回复。")
+                appendLine("- 纯寒暄、无内容或重复信息:只输出“不回复”。")
             } else {
-                appendLine("请以 $assistantName 的身份用一句话自然回复(15-40 字,口语化,不要官方腔,可结合图片内容):")
+                appendLine("必须输出一句 15-40 字的自然回复。")
             }
             if (recentFacts.isNotBlank()) {
-                appendLine("记忆素材: $recentFacts")
+                appendLine("可参考但不可编造的记忆素材: $recentFacts")
             }
+            appendLine("只输出回复或“不回复”,不要解释、MOOD 或反思。")
         }
 
         val raw = resultOf {
@@ -207,11 +207,13 @@ class MomentGenerator(
     ): String? {
         // 1. LLM 写画面描述(15-40 字,适合文生图)
         val prompt = buildString {
-            appendLine("朋友圈动态内容: \"$momentContent\"")
+            appendLine("<moment_material>")
+            appendLine("朋友圈动态内容: $momentContent")
             if (recentFacts.isNotEmpty()) {
                 appendLine("相关记忆素材: ${recentFacts.take(3).joinToString("; ")}")
             }
-            appendLine("请为这条朋友圈配一张图,给出画面描述(15-40 字,只输出描述本身,不要引号):")
+            appendLine("</moment_material>")
+            appendLine("请为这条动态生成 15-40 字画面描述;只输出描述,不要文字元素、引号或解释。")
         }
         val description = resultOf {
             withTimeoutOrNull(20_000L) {

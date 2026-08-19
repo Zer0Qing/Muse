@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.zer0.ai.ChatService
 import io.zer0.ai.ProviderRegistry
+import io.zer0.ai.core.ChatRequestMode
 import io.zer0.ai.core.ChatCompletion
 import io.zer0.ai.core.ChatStreamEvent
 import io.zer0.ai.core.MessageRole
@@ -52,6 +53,7 @@ import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.doc.DocumentParser
 import io.zer0.muse.R
 import io.zer0.muse.notification.MuseNotificationManager
+import io.zer0.muse.notification.MuseNotificationTarget
 import io.zer0.muse.schedule.ChatGenerationManager
 import io.zer0.muse.schedule.ChatGenerationService
 import io.zer0.muse.schedule.ConversationEndType
@@ -72,6 +74,7 @@ import io.zer0.muse.tools.StreamRoundResult
 import io.zer0.muse.tools.ToolLoopParams
 import io.zer0.muse.tools.ToolLoopResult
 import io.zer0.muse.tools.ToolRegistry
+import io.zer0.muse.tools.ToolExposurePolicy
 import io.zer0.muse.tools.ToolRiskLevel
 import io.zer0.muse.chat.PendingToolCallStore
 import io.zer0.muse.data.chat.ConversationTree
@@ -3374,7 +3377,8 @@ class ChatViewModel(
      * Agent Tab 进入时调用:恢复或创建独立的 Agent 会话,不依赖任务的 currentSessionId。
      * 退出 Agent Tab 时(isAgentMode=false)恢复任务会话的消息。
      */
-    fun setAgentMode(enabled: Boolean) {
+    @Suppress("LongMethod")
+    fun setAgentMode(enabled: Boolean, requestedSessionId: String? = null) {
         // v1.92: ChatViewModel 改为 single 后 onCleared 永不调用,
         // 切换 Tab 涉及会话切换,需在此停止 TTS/ASR/生成(与 switchSession 一致),
         // 否则 _messages.value 被覆盖后,生成闭包 update 到错误的消息列表。
@@ -3399,8 +3403,12 @@ class ChatViewModel(
                 //   表现为"Agent 对话不持久,只显示当前聊天的对话"。
                 val preferredAgentId = settings.proactiveMessageConfigFlow.first()
                     .agentId.ifBlank { "default" }
-                val agentSession = sessionRepository
-                    .getRecentAgentByAssistant(preferredAgentId, 1).firstOrNull()
+                val requestedAgentSession = requestedSessionId
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { sessionRepository.getSessionById(it) }
+                    ?.takeIf { it.isAgentSession && it.deletedAt == null }
+                val agentSession = requestedAgentSession
+                    ?: sessionRepository.getRecentAgentByAssistant(preferredAgentId, 1).firstOrNull()
                     ?: sessionRepository.getLatestAgentSession()
                 val sessionId = agentSession?.id
                     ?: sessionRepository.createAgentSession(preferredAgentId)
@@ -3515,6 +3523,32 @@ class ChatViewModel(
                         .onError { msg, _ -> Logger.w("ChatVM", "saveViewedSessionId 失败: $msg") }
                 }
             }
+        }
+    }
+
+    /**
+     * 打开通知指定的会话。
+     *
+     * 普通会话属于任务 Tab;Agent 会话不在任务列表中,必须切换到 Agent Tab
+     * 并使用通知携带的精确会话 id,不能按默认助手重新猜测。
+     */
+    fun openSessionFromNotification(sessionId: String) {
+        viewModelScope.launch {
+            val target = sessionRepository.getSessionById(sessionId)
+            if (target?.isAgentSession == true) {
+                setAgentMode(true, requestedSessionId = sessionId)
+                return@launch
+            }
+            val ready = withTimeoutOrNull(5_000L) {
+                state.first { state ->
+                    state.currentSessionId != null &&
+                        state.sessions.any { it.id == sessionId }
+                }
+            }
+            if (ready == null) {
+                Logger.w("ChatVM", "等待通知目标会话初始化超时,仍尝试打开: $sessionId")
+            }
+            switchSession(sessionId)
         }
     }
 
@@ -4995,14 +5029,60 @@ class ChatViewModel(
                     params.history.let { canUseToolModelForRound(it, toolModel) }
                 val roundModel = if (usesToolModel) toolModel else effectiveModel
                 val roundProviderConfig = if (usesToolModel) toolProviderConfig else effectiveProviderConfig
+                val latestUserText = params.history
+                    .lastOrNull { it.role == MessageRole.USER }
+                    ?.content
+                    .orEmpty()
+                // 工具请求的第一轮只需完成意图判断;工具结果回填后的续接轮只需读取结果并收尾。
+                // 关闭这两类请求的重复深度思考,把用户主动开启的深度思考保留给普通复杂问答。
+                val roundReasoningLevel = when {
+                    params.forceMainModel -> reasoningLevel
+                    params.round > 1 -> ReasoningLevel.OFF
+                    tools.isNotEmpty() && ToolExposurePolicy.isSimpleToolRequest(latestUserText) ->
+                        if (roundModel?.supportsReasoning() == true) {
+                            // 部分推理型中转模型在 OFF 时会直接返回空 Done,
+                            // LOW 仍能快速完成工具选择,同时避免 HIGH 的长思考。
+                            ReasoningLevel.LOW
+                        } else {
+                            ReasoningLevel.OFF
+                        }
+                    else -> reasoningLevel
+                }
+                val configuredMaxTokens = assistant?.maxTokens?.takeIf { it > 0 }
+                val roundMaxTokens = when {
+                    params.forceMainModel -> configuredMaxTokens
+                    params.round > 1 -> configuredMaxTokens?.coerceAtMost(1_024) ?: 1_024
+                    tools.isNotEmpty() && ToolExposurePolicy.isSimpleToolRequest(latestUserText) ->
+                        if (roundModel?.supportsReasoning() == true) {
+                            configuredMaxTokens?.coerceAtMost(1_536) ?: 1_536
+                        } else {
+                            configuredMaxTokens?.coerceAtMost(512) ?: 512
+                        }
+                    else -> configuredMaxTokens
+                }
+                val toolChoice = if (
+                    params.round == 1 &&
+                    !params.forceMainModel &&
+                    ToolExposurePolicy.shouldRequireTool(latestUserText, tools)
+                ) {
+                    "required"
+                } else {
+                    null
+                }
                 val flow = chatService.streamChat(
                     messages = params.history,
                     model = roundModel,
                     providerConfig = roundProviderConfig,
                     tools = tools,
+                    toolChoice = toolChoice,
                     temperature = effectiveTemperature,
-                    maxTokens = assistant?.maxTokens,
-                    reasoningLevel = reasoningLevel,
+                    maxTokens = roundMaxTokens,
+                    reasoningLevel = roundReasoningLevel,
+                    mode = if (roundReasoningLevel == ReasoningLevel.OFF) {
+                        ChatRequestMode.UTILITY
+                    } else {
+                        ChatRequestMode.CHAT
+                    },
                     resumeFromText = params.builder.toString()
                         .takeIf { params.preservePartialContent && it.isNotBlank() },
                 )
@@ -5084,7 +5164,12 @@ class ChatViewModel(
                                 lastNotifChars = params.builder.length
                                 lastNotifAt = now
                                 runCatching {
-                                    notificationManager.updateLiveProgress(sessionTitle, params.builder.length, true)
+                notificationManager.updateLiveProgress(
+                    sessionTitle,
+                    params.builder.length,
+                    true,
+                    MuseNotificationTarget.Session(sessionId),
+                )
                                 }.onFailure { Logger.w("ChatVM", "更新进度通知失败: ${it.message}") }
                             }
                             if (experiments.debugMode && params.builder.length - lastLoggedCharCount >= 100) {
@@ -5760,7 +5845,12 @@ class ChatViewModel(
             val preview = finalText.ifBlank { appContext.getString(R.string.err_chat_reply_generated) }
             // v0.32: 接入通知策略(never / when_unfocused / always)
             val policy = settings.notificationPolicyFlow.first()
-            notificationManager.notifyChatCompletedWithPolicy(policy, sessionTitle, preview)
+            notificationManager.notifyChatCompletedWithPolicy(
+                policy = policy,
+                sessionTitle = sessionTitle,
+                preview = preview,
+                target = MuseNotificationTarget.Session(sessionId),
+            )
         }.onError { msg, t ->
             Logger.w("ChatVM", "流式完成通知失败: $msg", t)
         }

@@ -9,7 +9,7 @@ import io.zer0.memory.format.RollingSummaryFormat
  */
 object RollingSummaryPrompt {
 
-    const val TEMPLATE_VERSION = "rolling-summary.v1"
+    const val TEMPLATE_VERSION = "rolling-summary.v2"
     const val CACHE_GROUP = "memory.rolling_summary"
 
     /**

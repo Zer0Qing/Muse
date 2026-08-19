@@ -17,7 +17,7 @@ package io.zer0.memory.ai
  */
 object MemoryExtractPrompt {
 
-    const val TEMPLATE_VERSION = "memory-extract.v1"
+    const val TEMPLATE_VERSION = "memory-extract.v2"
     const val CACHE_GROUP = "memory.extract_analysis"
 
     /**

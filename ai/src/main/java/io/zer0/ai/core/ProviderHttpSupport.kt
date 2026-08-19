@@ -84,7 +84,13 @@ abstract class ProviderHttpSupport(
         val userKey = effectiveApiKey()
         if (userKey.isNotBlank()) return userKey
         // v1.0.18: 免费模型 fallback(host + modelId 双重白名单校验)
-        return FreeModelConfig.resolveApiKey(config.resolvedBaseUrl(), modelId, userKey) ?: ""
+        return FreeModelConfig.resolveApiKey(
+            providerId = config.id,
+            baseUrl = config.resolvedBaseUrl(),
+            modelId = modelId,
+            userApiKey = userKey,
+            hiddenFromSettings = config.hiddenFromSettings,
+        ) ?: ""
     }
 
     /**

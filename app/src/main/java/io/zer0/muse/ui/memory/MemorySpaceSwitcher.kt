@@ -18,7 +18,6 @@ import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Folder
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -43,6 +42,7 @@ import io.zer0.muse.R
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.form.MuseFormDialog
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
@@ -253,28 +253,19 @@ private fun SpaceCreateDialog(
     onDismiss: () -> Unit,
 ) {
     var name by remember { mutableStateOf("") }
-    AlertDialog(
+    MuseFormDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.memory_space_create_title)) },
-        text = {
+        title = stringResource(R.string.memory_space_create_title),
+        confirmEnabled = name.isNotBlank(),
+        onConfirm = { onConfirm(name.trim()) },
+        onDismiss = onDismiss,
+        content = {
             MuseTextField(
                 value = name,
                 onValueChange = { name = it },
                 label = { Text(stringResource(R.string.memory_space_name_label)) },
                 singleLine = true,
             )
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { if (name.isNotBlank()) onConfirm(name.trim()) },
-            ) {
-                Text(stringResource(R.string.common_confirm))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.common_cancel))
-            }
         },
     )
 }
@@ -286,28 +277,19 @@ private fun SpaceRenameDialog(
     onDismiss: () -> Unit,
 ) {
     var name by remember { mutableStateOf(initialName) }
-    AlertDialog(
+    MuseFormDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.memory_space_rename_title)) },
-        text = {
+        title = stringResource(R.string.memory_space_rename_title),
+        confirmEnabled = name.isNotBlank(),
+        onConfirm = { onConfirm(name.trim()) },
+        onDismiss = onDismiss,
+        content = {
             MuseTextField(
                 value = name,
                 onValueChange = { name = it },
                 label = { Text(stringResource(R.string.memory_space_name_label)) },
                 singleLine = true,
             )
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { if (name.isNotBlank()) onConfirm(name.trim()) },
-            ) {
-                Text(stringResource(R.string.common_confirm))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.common_cancel))
-            }
         },
     )
 }

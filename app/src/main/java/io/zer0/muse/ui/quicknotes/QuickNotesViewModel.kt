@@ -191,6 +191,21 @@ class QuickNotesViewModel(
     }
 
     /**
+     * 通知点击时确保目标记录进入当前列表。
+     *
+     * 快速记录页面默认只展示前 50 条；提醒可能来自更早的记录，
+     * 因此先读取目标确认它仍是有效记录，再放宽本页展示上限，交给页面滚动定位。
+     */
+    fun revealNote(noteId: String) {
+        viewModelScope.launch {
+            val note = dao.getById(noteId)
+            if (note != null && !note.deleted) {
+                _currentLimit.value = MAX_LIMIT
+            }
+        }
+    }
+
+    /**
      * 添加一条快速记录。
      *
      * v1.0.18: 增加 folder / contentType 参数(默认空文件夹 + plain)。
@@ -545,7 +560,7 @@ class QuickNotesViewModel(
         }
         // 先存入 ReminderStore(触发后由 ReminderAlarmReceiver 移除)
         reminderStore.list().firstOrNull { it.id == id }?.let { reminderStore.remove(it.id) }
-        reminderStore.add(title, message, reminderAt)
+        reminderStore.add(title, message, reminderAt, id = id)
         scheduleAlarm(id, title, message, reminderAt)
     }
 
@@ -557,6 +572,8 @@ class QuickNotesViewModel(
                 putExtra(ReminderAlarmReceiver.EXTRA_ID, id)
                 putExtra(ReminderAlarmReceiver.EXTRA_TITLE, title)
                 putExtra(ReminderAlarmReceiver.EXTRA_MESSAGE, message)
+                putExtra(ReminderAlarmReceiver.EXTRA_TARGET_TYPE, ReminderAlarmReceiver.TARGET_QUICK_NOTE)
+                putExtra(ReminderAlarmReceiver.EXTRA_TARGET_ID, id)
             }
             val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE

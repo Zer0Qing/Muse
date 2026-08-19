@@ -7,6 +7,8 @@ import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
@@ -43,7 +45,7 @@ class ProviderRequestBodySnapshotTest {
         parametersJsonSchema = """{"type":"object","properties":{"city":{"type":"string"}}}""",
     )
 
-    private fun request(modelId: String): ChatRequest = ChatRequest(
+    private fun request(modelId: String, toolChoice: String? = null): ChatRequest = ChatRequest(
         messages = listOf(
             UIMessage(role = MessageRole.SYSTEM, content = "system prompt"),
             UIMessage(role = MessageRole.USER, content = "hello"),
@@ -52,6 +54,7 @@ class ProviderRequestBodySnapshotTest {
         temperature = 0.7f,
         maxTokens = 256,
         tools = listOf(tool),
+        toolChoice = toolChoice,
     )
 
     private fun assertJsonEquals(expected: String, actual: String) {
@@ -203,5 +206,29 @@ class ProviderRequestBodySnapshotTest {
             """.trimIndent(),
             actual,
         )
+    }
+
+    @Test
+    fun `OpenAI 请求体在明确工具意图时携带 required tool_choice`() = runTest {
+        server.enqueue(
+            MockResponse().setHeader("Content-Type", "application/json").setBody(
+                """{"choices":[{"message":{"role":"assistant","content":"ok"},"finish_reason":"stop"}]}""",
+            ),
+        )
+        val provider = OpenAIProvider(
+            ProviderConfig(
+                id = "tool-choice-test",
+                displayName = "Tool Choice Test",
+                type = ProviderType.OPENAI,
+                baseUrl = server.url("/v1").toString(),
+                apiKey = "test-key",
+                specific = ProviderSpecificConfig.OpenAI(),
+            ),
+        )
+
+        provider.completeText(request("tool-choice-model", toolChoice = "required"))
+
+        val actual = AppJson.parseToJsonElement(server.takeRequest().body.readUtf8()).jsonObject
+        assertEquals("required", actual["tool_choice"]?.jsonPrimitive?.content)
     }
 }

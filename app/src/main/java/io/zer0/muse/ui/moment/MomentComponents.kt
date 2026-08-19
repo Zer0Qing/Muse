@@ -1,3 +1,5 @@
+@file:Suppress("FunctionNaming", "LongParameterList", "LongMethod")
+
 package io.zer0.muse.ui.moment
 
 import android.content.Context
@@ -371,7 +373,7 @@ fun MomentFeedList(
                                 userAvatarUri
                             },
                             // v1.0.74: 仅用户自己的动态可长按删除
-                            onDelete = if (moment.senderType == "user") {
+                            onDelete = if (moment.senderType == "user" || moment.source == "user") {
                                 { onDelete(moment) }
                             } else {
                                 null
@@ -507,12 +509,16 @@ fun MomentMessagesPage(
 fun MomentProfilePage(
     moments: List<MomentEntity>,
     commentsByMoment: Map<String, List<MomentCommentEntity>>,
+    favoriteMomentIds: Set<String> = emptySet(),
     senderType: String,
     senderName: String,
     avatarUrl: String?,
     onBack: () -> Unit,
     onToggleLike: (MomentEntity) -> Unit,
+    onToggleFavorite: (MomentEntity) -> Unit = {},
     onAddComment: (MomentEntity, String) -> Unit,
+    onShare: (MomentEntity) -> Unit = {},
+    onDelete: (MomentEntity) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
@@ -587,8 +593,16 @@ fun MomentProfilePage(
                         moment = moment,
                         comments = commentsByMoment[moment.id] ?: emptyList(),
                         onToggleLike = { onToggleLike(moment) },
+                        isFavorite = moment.id in favoriteMomentIds,
+                        onToggleFavorite = { onToggleFavorite(moment) },
+                        onShare = { onShare(moment) },
                         onAddComment = { text -> onAddComment(moment, text) },
                         avatarUrl = avatarUrl,
+                        onDelete = if (moment.senderType == "user" || moment.source == "user") {
+                            { onDelete(moment) }
+                        } else {
+                            null
+                        },
                     )
                 }
             }

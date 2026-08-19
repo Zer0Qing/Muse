@@ -1,3 +1,5 @@
+@file:Suppress("FunctionNaming", "LongMethod", "CyclomaticComplexMethod")
+
 package io.zer0.muse
 
 import android.content.Intent
@@ -108,8 +110,19 @@ import io.zer0.muse.ui.navigation.SettingsRoute
 import io.zer0.muse.ui.navigation.AssistantsRoute
 import io.zer0.muse.ui.navigation.HomeRoute
 import io.zer0.muse.ui.navigation.ScheduledTasksRoute
+import io.zer0.muse.ui.navigation.ScheduledTaskRoute
 import io.zer0.muse.ui.navigation.TranslateRoute
 import io.zer0.muse.ui.navigation.QuickNotesRoute
+import io.zer0.muse.ui.navigation.QuickNoteRoute
+import io.zer0.muse.ui.navigation.ChatDetailRoute
+import io.zer0.muse.ui.navigation.SettingsDataRoute
+import io.zer0.muse.ui.navigation.SettingsCloudBackupRoute
+import io.zer0.muse.ui.navigation.SettingsAboutRoute
+import io.zer0.muse.ui.navigation.SettingsAgentRoute
+import io.zer0.muse.ui.navigation.SettingsModelRoute
+import io.zer0.muse.ui.navigation.SettingsMemoryRoute
+import io.zer0.muse.ui.navigation.KnowledgeRoute
+import io.zer0.muse.ui.navigation.KnowledgeBaseManageRoute
 
 /**
  * 应用唯一 Activity。
@@ -296,6 +309,9 @@ class MainActivity : ComponentActivity() {
                     Box(modifier = Modifier.fillMaxSize()) {
                         MuseNavGraph(
                             pendingShareResult = pendingShareResult,
+                            onPendingIntentConsumed = {
+                                pendingShareResult = ShareIntentHandler.ShareResult.None
+                            },
                             onSplashReady = { splashReady = true },
                         )
                         MuseToastHost()
@@ -378,6 +394,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun MuseNavGraph(
     pendingShareResult: ShareIntentHandler.ShareResult = ShareIntentHandler.ShareResult.None,
+    onPendingIntentConsumed: () -> Unit = {},
     /** v1.7: 由外部传入的 SplashScreen 就绪回调,NavGraph 初始化完成后延迟触发。 */
     onSplashReady: () -> Unit = {},
 ) {
@@ -560,20 +577,21 @@ private fun MuseNavGraph(
                 // M5: PIN 锁屏期间不消费 deep link/share intent,解锁后(needPin 变 false)重新触发
                 LaunchedEffect(pendingShareResult, needPin) {
                     if (needPin) return@LaunchedEffect
-                    when (pendingShareResult) {
+                    val result = pendingShareResult
+                    when (result) {
                         is ShareIntentHandler.ShareResult.PrefillText -> {
-                            sharedViewModel.updateInput(pendingShareResult.text)
+                            sharedViewModel.updateInput(result.text)
                             navController.navigate(HomeRoute) {
                                 popUpTo(HomeRoute) { inclusive = false }
                                 launchSingleTop = true
                             }
                         }
                         is ShareIntentHandler.ShareResult.OpenSession -> {
-                            sharedViewModel.switchSession(pendingShareResult.sessionId)
-                            navController.navigate(HomeRoute) {
+                            navController.navigate(ChatDetailRoute) {
                                 popUpTo(HomeRoute) { inclusive = false }
                                 launchSingleTop = true
                             }
+                            sharedViewModel.openSessionFromNotification(result.sessionId)
                         }
                         is ShareIntentHandler.ShareResult.NewSession -> {
                             sharedViewModel.createNewSession()
@@ -599,6 +617,45 @@ private fun MuseNavGraph(
                         is ShareIntentHandler.ShareResult.OpenScheduledTasks -> {
                             navController.navigate(ScheduledTasksRoute)
                         }
+                        is ShareIntentHandler.ShareResult.OpenScheduledTask -> {
+                            navController.navigate(ScheduledTaskRoute(result.taskId))
+                        }
+                        is ShareIntentHandler.ShareResult.OpenQuickNote -> {
+                            navController.navigate(QuickNoteRoute(result.noteId))
+                        }
+                        is ShareIntentHandler.ShareResult.OpenChat -> {
+                            navController.navigate(ChatDetailRoute)
+                        }
+                        is ShareIntentHandler.ShareResult.OpenHome -> {
+                            navController.navigate(HomeRoute) {
+                                popUpTo(HomeRoute) { inclusive = false }
+                                launchSingleTop = true
+                            }
+                        }
+                        is ShareIntentHandler.ShareResult.OpenSettingsData -> {
+                            navController.navigate(SettingsDataRoute)
+                        }
+                        is ShareIntentHandler.ShareResult.OpenCloudBackup -> {
+                            navController.navigate(SettingsCloudBackupRoute)
+                        }
+                        is ShareIntentHandler.ShareResult.OpenSettingsAbout -> {
+                            navController.navigate(SettingsAboutRoute)
+                        }
+                        is ShareIntentHandler.ShareResult.OpenSettingsAgent -> {
+                            navController.navigate(SettingsAgentRoute)
+                        }
+                        is ShareIntentHandler.ShareResult.OpenSettingsModel -> {
+                            navController.navigate(SettingsModelRoute)
+                        }
+                        is ShareIntentHandler.ShareResult.OpenMemory -> {
+                            navController.navigate(SettingsMemoryRoute)
+                        }
+                        is ShareIntentHandler.ShareResult.OpenKnowledge -> {
+                            navController.navigate(KnowledgeRoute)
+                        }
+                        is ShareIntentHandler.ShareResult.OpenKnowledgeBases -> {
+                            navController.navigate(KnowledgeBaseManageRoute)
+                        }
                         // Launcher 快捷方式:打开翻译页
                         is ShareIntentHandler.ShareResult.OpenTranslate -> {
                             navController.navigate(TranslateRoute)
@@ -619,6 +676,10 @@ private fun MuseNavGraph(
                             navController.navigate(QuickNotesRoute)
                         }
                         ShareIntentHandler.ShareResult.None -> Unit
+                    }
+                    // 一次性消费通知/Deep Link 事件，确保连续点击同类通知也能重新导航。
+                    if (result != ShareIntentHandler.ShareResult.None) {
+                        onPendingIntentConsumed()
                     }
                 }
 

@@ -192,10 +192,13 @@ fun MomentsScreen(
         "profile" -> {
             MomentProfilePage(
                 moments = moments.filter {
-                    if (profileSenderType == "user") it.senderType == "user"
+                    if (profileSenderType == "user") {
+                        it.senderType == "user" || it.source == "user"
+                    }
                     else it.senderId == profileSenderId
                 },
                 commentsByMoment = commentsByMoment,
+                favoriteMomentIds = favoriteMomentIds,
                 senderType = profileSenderType,
                 senderName = profileSenderName,
                 avatarUrl = if (profileSenderType == "user") {
@@ -205,7 +208,10 @@ fun MomentsScreen(
                 },
                 onBack = { page = "feed" },
                 onToggleLike = onToggleLike,
+                onToggleFavorite = { moment -> onToggleFavorite(moment.id) },
                 onAddComment = onAddComment,
+                onShare = ::shareMoment,
+                onDelete = onDeleteMoment,
             )
         }
         "publish", "publish_text" -> {

@@ -268,10 +268,10 @@ fun NavGraphBuilder.chatNavGraph(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
+        val state by sharedViewModel.state.collectAsStateWithLifecycle()
         val widthClass = rememberWindowWidthClass()
         if (widthClass == WindowWidthClass.Expanded) {
             // P1-4: Expanded 双列布局 — 左列任务列表(40%) + 右列聊天(60%)
-            val state by sharedViewModel.state.collectAsStateWithLifecycle()
             Row(modifier = Modifier.fillMaxSize()) {
                 // 左列:任务列表(与 HomeScreen Tab 0 同源,共享 sharedViewModel.state)
                 Box(modifier = Modifier.weight(0.4f).fillMaxSize()) {
@@ -314,6 +314,7 @@ fun NavGraphBuilder.chatNavGraph(
                     ChatScreen(
                         onOpenAssistants = { navController.navigate(AssistantsRoute) },
                         onBack = null,
+                        isAgentMode = state.isAgentMode,
                         viewModel = sharedViewModel,
                         onHtmlPreview = { html ->
                             navController.navigate(HtmlPreviewRoute(html))
@@ -329,11 +330,15 @@ fun NavGraphBuilder.chatNavGraph(
                 onBack = {
                     // 退出对话时触发 AI 摘要命名(仅当标题仍为默认值且有至少一轮完整对话)
                     val currentSessionId = sharedViewModel.state.value.currentSessionId
-                    if (currentSessionId != null) {
+                    if (!sharedViewModel.state.value.isAgentMode && currentSessionId != null) {
                         sharedViewModel.autoTitleOnExit(currentSessionId)
+                    }
+                    if (sharedViewModel.state.value.isAgentMode) {
+                        sharedViewModel.setAgentMode(false)
                     }
                     navController.popBackStack()
                 },
+                isAgentMode = state.isAgentMode,
                 // HTML/SVG 代码块全屏预览:URL 编码后跳转 HtmlPreviewScreen
                 onHtmlPreview = { html ->
                     navController.navigate(HtmlPreviewRoute(html))
@@ -379,6 +384,17 @@ fun NavGraphBuilder.chatNavGraph(
             onBack = { navController.popBackStack() },
         )
     }
+    // 通知点击:打开指定定时任务并自动展开最近执行记录。
+    composable<ScheduledTaskRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) { backStackEntry ->
+        val route = backStackEntry.toRoute<ScheduledTaskRoute>()
+        io.zer0.muse.ui.schedule.ScheduledTasksScreen(
+            onBack = { navController.popBackStack() },
+            initialTaskId = route.taskId,
+        )
+    }
     // v1.136: 快速记录(首页大方块入口替代原知识库)
     // v1.0.17: 改用 QuickNotesViewModel(Room 持久化 + 回收站),替代 QuickNoteStore
     composable<QuickNotesRoute>(
@@ -389,6 +405,23 @@ fun NavGraphBuilder.chatNavGraph(
         QuickNotesScreen(
             onBack = { navController.popBackStack() },
             viewModel = quickNotesViewModel,
+            onSendToNewChat = { text ->
+                sharedViewModel.sendToNewChat(text)
+                navController.navigate(ChatDetailRoute)
+            },
+        )
+    }
+    // 通知点击:打开指定快速记录并展开正文。
+    composable<QuickNoteRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) { backStackEntry ->
+        val route = backStackEntry.toRoute<QuickNoteRoute>()
+        val quickNotesViewModel: QuickNotesViewModel = koinViewModel()
+        QuickNotesScreen(
+            onBack = { navController.popBackStack() },
+            viewModel = quickNotesViewModel,
+            initialNoteId = route.noteId,
             onSendToNewChat = { text ->
                 sharedViewModel.sendToNewChat(text)
                 navController.navigate(ChatDetailRoute)

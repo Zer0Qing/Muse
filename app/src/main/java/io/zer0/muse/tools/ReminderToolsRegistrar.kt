@@ -146,6 +146,8 @@ class ReminderToolsRegistrar(
                 putExtra(ReminderAlarmReceiver.EXTRA_ID, id)
                 putExtra(ReminderAlarmReceiver.EXTRA_TITLE, title)
                 putExtra(ReminderAlarmReceiver.EXTRA_MESSAGE, message)
+                putExtra(ReminderAlarmReceiver.EXTRA_TARGET_TYPE, ReminderAlarmReceiver.TARGET_HOME)
+                putExtra(ReminderAlarmReceiver.EXTRA_TARGET_ID, "")
             }
             val flags = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
                 android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE

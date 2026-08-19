@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
@@ -36,7 +38,6 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
-import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -120,13 +121,15 @@ fun MuseDropdown(
         )
 
         if (expanded) {
-            MuseDialog(
+            MuseSelectionSheet(
                 onDismissRequest = { expanded = false },
                 title = label,
+                maxHeightFraction = 0.72f,
                 content = {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .verticalScroll(rememberScrollState())
                             // L-DD4: 360.dp → DropdownListMaxHeight 常量。
                             .heightIn(max = DropdownListMaxHeight),
                         verticalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap),
@@ -171,9 +174,6 @@ fun MuseDropdown(
                         }
                     }
                 },
-                confirmText = stringResource(R.string.common_close),
-                onConfirm = { expanded = false },
-                onDismiss = { expanded = false },
             )
         }
     }

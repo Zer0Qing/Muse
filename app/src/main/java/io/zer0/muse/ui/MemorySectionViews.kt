@@ -26,7 +26,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -38,15 +37,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
-import io.zer0.muse.ui.theme.semiLarge
 import java.time.LocalDate
 
 /**
@@ -140,15 +138,14 @@ fun MemorySectionView(
                 // 立即 requestFocus 会因 modifier 未 attach 崩溃(华为 Android 10 实测)
                 val focusRequester = remember { FocusRequester() }
                 io.zer0.muse.ui.common.focus.SafeAutoFocusEffect(focusRequester)
-                OutlinedTextField(
+                MuseTextField(
                     value = draft,
                     onValueChange = { draft = it },
+                    focusRequester = focusRequester,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 120.dp)
-                        .focusRequester(focusRequester),
+                        .heightIn(min = 120.dp),
                     placeholder = { Text(stringResource(R.string.memory_screen_input_hint)) },
-                    shape = MuseShapes.semiLarge,
                 )
                 Spacer(Modifier.size(MusePaddings.contentGap))
                 Row(
@@ -337,15 +334,14 @@ private fun WeekDayCard(
                 // v1.0.74 fix: 等一帧再请求焦点(同上,防 LazyColumn 时序崩溃)
                 val focusRequester = remember { FocusRequester() }
                 io.zer0.muse.ui.common.focus.SafeAutoFocusEffect(focusRequester)
-                OutlinedTextField(
+                MuseTextField(
                     value = draft,
                     onValueChange = { draft = it },
+                    focusRequester = focusRequester,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 100.dp)
-                        .focusRequester(focusRequester),
+                        .heightIn(min = 100.dp),
                     placeholder = { Text(stringResource(R.string.memory_screen_input_day_hint)) },
-                    shape = MuseShapes.semiLarge,
                 )
                 Spacer(Modifier.size(MusePaddings.contentGap))
                 Row(

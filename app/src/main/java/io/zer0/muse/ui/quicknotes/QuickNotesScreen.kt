@@ -1,3 +1,5 @@
+@file:Suppress("FunctionNaming", "LongMethod", "LongParameterList", "CyclomaticComplexMethod")
+
 package io.zer0.muse.ui.quicknotes
 
 import android.content.Intent
@@ -48,8 +50,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -78,6 +78,7 @@ import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.quicknote.QuickNoteEntity
 import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseSwitch
@@ -110,11 +111,12 @@ import org.koin.compose.koinInject
  *    - 文件夹/提醒使用独立小 chip 展示
  *  - 保留回收站、导入导出、文件夹、提醒、加密、编辑等全部既有能力
  */
-@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun QuickNotesScreen(
     onBack: () -> Unit,
     viewModel: QuickNotesViewModel,
+    initialNoteId: String? = null,
     onSendToNewChat: (String) -> Unit = {},
 ) {
     val context = LocalContext.current
@@ -179,6 +181,15 @@ fun QuickNotesScreen(
     }
     LaunchedEffect(reachedBottom, state.hasMore) {
         if (reachedBottom && state.hasMore) viewModel.loadMore()
+    }
+    LaunchedEffect(initialNoteId) {
+        initialNoteId?.let(viewModel::revealNote)
+    }
+    LaunchedEffect(initialNoteId, state.notes) {
+        val targetIndex = initialNoteId?.let { id -> state.notes.indexOfFirst { it.id == id } } ?: -1
+        if (targetIndex >= 0) {
+            listState.scrollToItem(targetIndex)
+        }
     }
 
     fun saveInput() {
@@ -365,6 +376,7 @@ fun QuickNotesScreen(
                         QuickNoteCard(
                             note = note,
                             now = timeTicker,
+                            initiallyExpanded = note.id == initialNoteId,
                             onCopy = { copyNote(note) },
                             onSendToChat = { sendNoteToChat(note) },
                             onEdit = { editingNote = note },
@@ -564,7 +576,6 @@ fun QuickNotesScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun QuickCaptureSettingsSheet(
     quickCaptureEnabled: Boolean,
@@ -574,7 +585,7 @@ private fun QuickCaptureSettingsSheet(
     onDismiss: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    MuseBottomSheet(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -831,6 +842,7 @@ private fun QuickNoteCard(
     note: QuickNoteEntity,
     /** 前端修复 (性能-3): 页面级共享 ticker 时间戳,用于相对时间刷新。 */
     now: Long,
+    initiallyExpanded: Boolean = false,
     onCopy: () -> Unit,
     onSendToChat: () -> Unit,
     onEdit: () -> Unit,
@@ -839,7 +851,7 @@ private fun QuickNoteCard(
 ) {
     val isPinned = note.pinned
     val canExpand = !note.encrypted && note.content.isNotBlank()
-    var expanded by rememberSaveable(note.id) { mutableStateOf(false) }
+    var expanded by rememberSaveable(note.id) { mutableStateOf(initiallyExpanded) }
     val cardBackground = if (isPinned) {
         MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
     } else {

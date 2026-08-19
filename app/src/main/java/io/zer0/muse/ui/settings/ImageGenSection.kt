@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -22,7 +23,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -35,7 +35,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.ai.core.Model
 import io.zer0.muse.R
@@ -44,6 +43,7 @@ import io.zer0.ai.core.ProviderType
 import io.zer0.muse.data.ImageGenConfig
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.form.MuseChip
+import io.zer0.muse.ui.common.form.MuseSelectionSheet
 import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.theme.MuseShapes
@@ -213,108 +213,70 @@ private fun ImageModelSelectorDialog(
         providers.firstOrNull { it.id == currentProviderId } ?: providers.firstOrNull()
     }
 
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            shape = MuseShapes.extraLarge,
-            color = MaterialTheme.colorScheme.surface,
+    MuseSelectionSheet(
+        title = stringResource(R.string.settings_image_gen_select_model),
+        onDismissRequest = onDismiss,
+    ) {
+        Column(
             modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
+            val provider = currentProvider
+            if (provider == null) {
                 Text(
-                    text = stringResource(R.string.settings_image_gen_select_model),
-                    style = MaterialTheme.typography.titleLarge,
+                    text = stringResource(R.string.settings_image_gen_no_provider),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            } else {
+                Text(
+                    text = stringResource(R.string.settings_image_gen_provider),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    providers.forEach { p ->
+                        MuseChip(
+                            selected = p.id == currentProviderId,
+                            onClick = { currentProviderId = p.id },
+                            label = p.displayName,
+                        )
+                    }
+                }
 
-                val provider = currentProvider
-                if (provider == null) {
+                val models = provider.models.filter { it.supportsImageOutput() }
+                Text(
+                    text = stringResource(R.string.settings_image_gen_model_label),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (models.isEmpty()) {
                     Text(
-                        text = stringResource(R.string.settings_image_gen_no_provider),
+                        text = stringResource(R.string.settings_image_gen_no_model),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else {
-                    Text(
-                        text = stringResource(R.string.settings_image_gen_provider),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 360.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        providers.forEach { p ->
-                            // v1.134 P0-8: FilterChip → 自定义胶囊(Surface + clickable)
-                            MuseChip(
-                                selected = p.id == currentProviderId,
-                                onClick = { currentProviderId = p.id },
-                                label = p.displayName,
+                        items(models, key = { it.id }) { model ->
+                            val selected = model.id == selectedModelId && provider.id == selectedProviderId
+                            ModelGridCard(
+                                model = model,
+                                selected = selected,
+                                onClick = { onSelect(provider.id, model.id) },
                             )
                         }
                     }
-
-                    // v1.25: 统一对所有 Provider 过滤 supportsImageOutput(),不再只过滤 Gemini
-                    val models = provider.models.filter { it.supportsImageOutput() }
-
-                    Text(
-                        text = stringResource(R.string.settings_image_gen_model_label),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    if (models.isEmpty()) {
-                        // v1.48: h14 绘图模型空态改为带图标 TablerIcons.Photo 的居中 Row
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                imageVector = TablerIcons.Photo,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.outline,
-                                modifier = Modifier.size(16.dp),
-                            )
-                            Text(
-                                text = stringResource(R.string.settings_image_gen_no_model),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    } else {
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(2),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
-                        ) {
-                            items(models, key = { it.id }) { model ->
-                                val selected = model.id == selectedModelId && provider.id == selectedProviderId
-                                ModelGridCard(
-                                    model = model,
-                                    selected = selected,
-                                    onClick = { onSelect(provider.id, model.id) },
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // v1.134 P0-2: TextButton → Surface+clickable 胶囊(避免 Material3 默认按钮)
-                Surface(
-                    shape = MuseShapes.medium,
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .align(Alignment.End)
-                        .clickable(role = androidx.compose.ui.semantics.Role.Button) { onDismiss() },
-                ) {
-                    Text(
-                        text = stringResource(R.string.action_cancel),
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    )
                 }
             }
         }

@@ -189,8 +189,16 @@ data class GroupChatDetailRoute(val chatId: String)
 @Serializable
 data object ScheduledTasksRoute
 
+/** 通知点击后打开指定任务并自动展开执行历史。 */
+@Serializable
+data class ScheduledTaskRoute(val taskId: String)
+
 @Serializable
 data object QuickNotesRoute
+
+/** 通知点击后打开指定快速记录并自动展开正文。 */
+@Serializable
+data class QuickNoteRoute(val noteId: String)
 
 @Serializable
 data object AgentDmRoute

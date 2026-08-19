@@ -13,7 +13,6 @@ import io.zer0.muse.ui.ModelSwitchSheet
 import io.zer0.muse.ui.ChatSelectionBar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.heightIn
@@ -48,8 +47,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.outlined.AutoAwesome
@@ -71,6 +70,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.MusePopover
 import io.zer0.muse.ui.common.MuseFloatingActionItem
 import io.zer0.muse.ui.common.MuseFloatingActionMenu
 import androidx.compose.material3.Scaffold
@@ -192,6 +192,8 @@ fun GroupChatDetailScreen(
     var providerTargetAssistantId by remember { mutableStateOf<String?>(null) }
     // v1.77: 消息长按菜单 + 删除确认
     var messageMenuTarget by remember { mutableStateOf<GroupChatMessageEntity?>(null) }
+    var messageMenuBounds by remember { mutableStateOf(Rect.Zero) }
+    var messageMenuPointInWindow by remember { mutableStateOf<Offset?>(null) }
     var deleteMessageTarget by remember { mutableStateOf<GroupChatMessageEntity?>(null) }
     // v1.x: 多选批量删除确认
     var deleteSelectedTarget by remember { mutableStateOf(false) }
@@ -721,14 +723,16 @@ fun GroupChatDetailScreen(
                         onToggleMoodExpanded = { viewModel.toggleMessageMoodExpanded(message.id) },
                         onToggleReasoningExpanded = { viewModel.toggleMessageReasoningExpanded(message.id) },
                         // v1.77: 长按弹出操作菜单
-                        onLongClick = {
-                            MuseHaptics.medium(haptic)
-                            if (state.selectedMessageIds.isNotEmpty()) {
-                                viewModel.toggleMessageSelection(message.id)
-                            } else {
-                                messageMenuTarget = message
-                            }
-                        },
+                         onLongClick = { bounds, pointInWindow ->
+                             MuseHaptics.medium(haptic)
+                             if (state.selectedMessageIds.isNotEmpty()) {
+                                 viewModel.toggleMessageSelection(message.id)
+                             } else {
+                                 messageMenuBounds = bounds
+                                 messageMenuPointInWindow = pointInWindow
+                                 messageMenuTarget = message
+                             }
+                         },
                         // v1.x: 多选模式
                         selectionMode = state.selectedMessageIds.isNotEmpty(),
                         selected = message.id in state.selectedMessageIds,
@@ -1085,39 +1089,26 @@ fun GroupChatDetailScreen(
         }
     }
 
-    // v2.x: 消息长按操作菜单
-    // v1.0.72: 改为固定配色胶囊卡片(与单聊长按菜单统一视觉,不随主题色)
+    // v2.x: 消息长按操作菜单 — 锚定消息气泡,不再用全屏遮罩居中弹窗。
     messageMenuTarget?.let { msg ->
-        Dialog(
-            onDismissRequest = { messageMenuTarget = null },
-            properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnClickOutside = true),
+        MusePopover(
+            anchorBounds = messageMenuBounds,
+            gapDp = 8,
+            anchorPointInWindow = messageMenuPointInWindow,
+            onDismiss = { messageMenuTarget = null },
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.25f))
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = { messageMenuTarget = null },
-                    ),
-                contentAlignment = Alignment.Center,
+            val scheme = MaterialTheme.colorScheme
+            val textColor = scheme.onSurface
+            val iconBlock = scheme.surfaceVariant
+            val divider = scheme.outlineVariant
+            Surface(
+                color = scheme.surface,
+                shape = MuseShapes.extraLarge,
+                shadowElevation = 8.dp,
+                tonalElevation = 0.dp,
+                modifier = Modifier.widthIn(min = 200.dp, max = 260.dp),
             ) {
-                // v1.0.74 fix (前端审计 6.2): 改用 colorScheme 跟随 Muse 主题,
-                // 原 isSystemInDarkTheme + 硬编码 iOS 色在应用内主题与系统主题不一致时配色错配。
-                val scheme = MaterialTheme.colorScheme
-                val bg = scheme.surface
-                val textColor = scheme.onSurface
-                val iconBlock = scheme.surfaceVariant
-                val divider = scheme.outlineVariant
-                Surface(
-                    color = bg,
-                    shape = RoundedCornerShape(22.dp),
-                    shadowElevation = 12.dp,
-                    tonalElevation = 0.dp,
-                    modifier = Modifier.widthIn(min = 200.dp, max = 260.dp),
-                ) {
-                    Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                Column(modifier = Modifier.padding(vertical = 8.dp)) {
                         Text(
                             text = if (msg.senderType == "user") stringResource(R.string.groupchat_my_message) else msg.senderName,
                             style = MaterialTheme.typography.labelMedium,
@@ -1160,7 +1151,6 @@ fun GroupChatDetailScreen(
                             messageMenuTarget = null
                             deleteMessageTarget = msg
                         }
-                    }
                 }
             }
         }

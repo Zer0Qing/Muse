@@ -231,10 +231,15 @@ private fun AddExperienceDialog(
     var category by remember { mutableStateOf("") }
     var content by remember { mutableStateOf("") }
 
-    androidx.compose.material3.AlertDialog(
+    io.zer0.muse.ui.common.form.MuseFormDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.experience_add_title)) },
-        text = {
+        title = stringResource(R.string.experience_add_title),
+        confirmText = stringResource(R.string.experience_add_confirm),
+        confirmEnabled = category.isNotBlank() && content.isNotBlank(),
+        onConfirm = { onConfirm(category, content) },
+        dismissText = stringResource(R.string.experience_add_cancel),
+        onDismiss = onDismiss,
+        content = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 MuseTextField(
                     value = category,
@@ -251,14 +256,6 @@ private fun AddExperienceDialog(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
-        },
-        confirmButton = {
-            androidx.compose.material3.TextButton(
-                onClick = { if (category.isNotBlank() && content.isNotBlank()) onConfirm(category, content) },
-            ) { Text(stringResource(R.string.experience_add_confirm)) }
-        },
-        dismissButton = {
-            androidx.compose.material3.TextButton(onClick = onDismiss) { Text(stringResource(R.string.experience_add_cancel)) }
         },
     )
 }

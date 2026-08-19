@@ -208,6 +208,52 @@ class OpenAIProviderCustomTemplateTest {
         }
     }
 
+    @Test
+    fun emptyStreamingDoneFallsBackToNonStreaming() = runBlocking {
+        val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+        val requestBodies = CopyOnWriteArrayList<String>()
+        server.createContext("/v1/chat/completions") { exchange ->
+            val body = exchange.requestBody.readBytes().toString(StandardCharsets.UTF_8)
+            requestBodies.add(body)
+            if (body.contains("\"stream\":true")) {
+                respond(exchange, 200, "data: [DONE]\n\n", "text/event-stream")
+            } else {
+                respond(
+                    exchange,
+                    200,
+                    """{"choices":[{"message":{"content":"fallback answer"},"finish_reason":"stop"}]}""",
+                    "application/json",
+                )
+            }
+        }
+        server.start()
+        try {
+            val config = ProviderConfig(
+                id = "empty-stream",
+                displayName = "Empty Stream",
+                type = ProviderType.OPENAI,
+                baseUrl = "http://127.0.0.1:${server.address.port}/v1",
+                apiKey = "key",
+            )
+            val service = ChatService(FixedConfigStore(config))
+            val events = withTimeout(10_000) {
+                service.streamChat(
+                    messages = listOf(UIMessage(role = MessageRole.USER, content = "hello")),
+                    model = Model(id = "empty-stream-model", providerId = "empty-stream"),
+                    providerConfig = config,
+                ).toList()
+            }
+
+            assertTrue(events.any { it is ChatStreamEvent.FallbackNotice })
+            assertTrue(events.any {
+                it is ChatStreamEvent.ContentDelta && it.delta == "fallback answer"
+            })
+            assertEquals(2, requestBodies.size)
+        } finally {
+            server.stop(0)
+        }
+    }
+
     private fun respond(exchange: HttpExchange, code: Int, body: String, contentType: String) {
         val bytes = body.toByteArray(StandardCharsets.UTF_8)
         exchange.responseHeaders.add("Content-Type", contentType)

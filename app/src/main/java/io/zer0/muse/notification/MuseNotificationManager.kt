@@ -32,7 +32,7 @@ import io.zer0.muse.ui.theme.presets.WarmPaperTheme
  * 设计:
  *  - 所有渠道 LOW importance(不发声,仅状态栏 + 横幅)
  *  - 渠道在 [MuseApp.onCreate] 通过 [ensureChannels] 一次性创建
- *  - PendingIntent 始终指向 [MainActivity],点击通知回到聊天页
+ *  - PendingIntent 始终指向 [MainActivity],再按通知目标进入对应功能
  *  - 前台时不发 chat_completed 通知(避免干扰),仅后台生成完成才发
  *
  * 权限:
@@ -95,13 +95,17 @@ class MuseNotificationManager(private val context: Context) {
      * @param sessionTitle 会话标题
      * @param preview 预览文本(消息前 50 字)
      */
-    fun notifyChatCompleted(sessionTitle: String, preview: String) {
+    fun notifyChatCompleted(
+        sessionTitle: String,
+        preview: String,
+        target: MuseNotificationTarget = MuseNotificationTarget.Chat,
+    ) {
         val notif = NotificationCompat.Builder(context, CHANNEL_CHAT_COMPLETED)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle(context.getString(R.string.notif_chat_completed_title, sessionTitle))
             .setContentText(preview.take(NOTIF_PREVIEW_MAX_LEN))
             .setStyle(NotificationCompat.BigTextStyle().bigText(preview))
-            .setContentIntent(buildMainActivityIntent())
+            .setContentIntent(buildMainActivityPendingIntent(target))
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
@@ -126,14 +130,15 @@ class MuseNotificationManager(private val context: Context) {
         policy: String,
         sessionTitle: String,
         preview: String,
+        target: MuseNotificationTarget = MuseNotificationTarget.Chat,
     ) {
         when (policy) {
             "never" -> return
-            "always" -> notifyChatCompleted(sessionTitle, preview)
+            "always" -> notifyChatCompleted(sessionTitle, preview, target)
             // when_unfocused 或未知值:默认 when_unfocused 行为(仅应用不在前台时通知)
             else -> {
                 if (!isAppInForeground()) {
-                    notifyChatCompleted(sessionTitle, preview)
+                    notifyChatCompleted(sessionTitle, preview, target)
                 }
             }
         }
@@ -179,7 +184,11 @@ class MuseNotificationManager(private val context: Context) {
      * @param assistant 助手实体(取 name + 头像)
      * @param preview 主动消息完整内容
      */
-    suspend fun notifyProactiveMessage(assistant: AssistantEntity, preview: String) {
+    suspend fun notifyProactiveMessage(
+        assistant: AssistantEntity,
+        preview: String,
+        target: MuseNotificationTarget = MuseNotificationTarget.Chat,
+    ) {
         // B-15: 前台时不发 HIGH 声音通知——复用 notifyChatCompletedWithPolicy 的既有前台判断模式。
         // 用户正盯着会话时,消息已在会话内展示,再弹 HIGH 声音通知只会打扰用户。
         if (isAppInForeground()) return
@@ -190,7 +199,7 @@ class MuseNotificationManager(private val context: Context) {
             .setContentTitle(context.getString(R.string.notif_proactive_message_title, assistantName))
             .setContentText(preview.take(NOTIF_PREVIEW_MAX_LEN))
             .setStyle(NotificationCompat.BigTextStyle().bigText(preview))
-            .setContentIntent(buildMainActivityIntent())
+            .setContentIntent(buildMainActivityPendingIntent(target))
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
         // v0.44: 头像加载成功才设 largeIcon,否则用默认小图标
@@ -289,12 +298,17 @@ class MuseNotificationManager(private val context: Context) {
      * @param currentChars 当前已生成字符数
      * @param isStreaming 是否仍在生成(false 时取消通知)
      */
-    fun updateLiveProgress(sessionTitle: String, currentChars: Int, isStreaming: Boolean) {
+    fun updateLiveProgress(
+        sessionTitle: String,
+        currentChars: Int,
+        isStreaming: Boolean,
+        target: MuseNotificationTarget = MuseNotificationTarget.Chat,
+    ) {
         if (!isStreaming) {
             nm.cancel(NOTIF_ID_LIVE_UPDATE)
             return
         }
-        val notif = buildGenerationNotification(sessionTitle, currentChars)
+        val notif = buildGenerationNotification(sessionTitle, currentChars, target)
         // M2-1: 改用 resultOf{}
         resultOf { nm.notify(NOTIF_ID_LIVE_UPDATE, notif) }
             .onError { msg, _ -> Logger.w(TAG, "updateLiveProgress failed: $msg") }
@@ -305,14 +319,18 @@ class MuseNotificationManager(private val context: Context) {
      *
      * 与 [updateLiveProgress] 共用同一渠道和 ID,保证服务启动与后续更新一致。
      */
-    fun buildGenerationNotification(sessionTitle: String, currentChars: Int) =
+    fun buildGenerationNotification(
+        sessionTitle: String,
+        currentChars: Int,
+        target: MuseNotificationTarget = MuseNotificationTarget.Chat,
+    ) =
         NotificationCompat.Builder(context, CHANNEL_CHAT_LIVE_UPDATE)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle(context.getString(R.string.notif_live_progress_title, sessionTitle))
             .setContentText(context.getString(R.string.notif_live_progress_text, currentChars))
             .setOngoing(true)
             .setProgress(0, 0, true) // 不确定进度条
-            .setContentIntent(buildMainActivityIntent())
+            .setContentIntent(buildMainActivityPendingIntent(target))
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
 
@@ -321,7 +339,11 @@ class MuseNotificationManager(private val context: Context) {
      * @param port 监听端口
      * @param isRunning true 显示"运行中",false 取消通知
      */
-    fun updateWebServerStatus(port: Int, isRunning: Boolean) {
+    fun updateWebServerStatus(
+        port: Int,
+        isRunning: Boolean,
+        target: MuseNotificationTarget = MuseNotificationTarget.SettingsData,
+    ) {
         if (!isRunning) {
             nm.cancel(NOTIF_ID_WEB_SERVER)
             return
@@ -331,7 +353,7 @@ class MuseNotificationManager(private val context: Context) {
             .setContentTitle(context.getString(R.string.notif_web_server_title))
             .setContentText(context.getString(R.string.notif_web_server_text, port))
             .setOngoing(true)
-            .setContentIntent(buildMainActivityIntent())
+            .setContentIntent(buildMainActivityPendingIntent(target))
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
         // M2-1: 改用 resultOf{}
@@ -346,13 +368,18 @@ class MuseNotificationManager(private val context: Context) {
      * @param message 通知正文
      * @param notificationId 通知 id(用提醒 id 的 hashCode,便于取消)
      */
-    fun notifyReminder(title: String, message: String, notificationId: Int) {
+    fun notifyReminder(
+        title: String,
+        message: String,
+        notificationId: Int,
+        target: MuseNotificationTarget = MuseNotificationTarget.Home,
+    ) {
         val notif = NotificationCompat.Builder(context, CHANNEL_PROACTIVE_MESSAGE)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle(title)
             .setContentText(message.take(NOTIF_PREVIEW_MAX_LEN))
             .setStyle(NotificationCompat.BigTextStyle().bigText(message))
-            .setContentIntent(buildMainActivityIntent())
+            .setContentIntent(buildMainActivityPendingIntent(target))
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .build()
@@ -365,7 +392,7 @@ class MuseNotificationManager(private val context: Context) {
      *
      * 由 [io.zer0.muse.schedule.CloudBackupScheduler] 在定时自动备份完成后调用:
      * 成功/失败各发一条通知(失败提醒尤为重要,避免用户长期不知道备份中断)。
-     * 复用 [notifyReminder] 的通用渠道与点击回主界面行为,固定通知 ID 便于覆盖。
+     * 复用 [notifyReminder] 的通用渠道与点击进入云备份页行为,固定通知 ID 便于覆盖。
      */
     fun notifyAutoBackup(succeeded: Boolean) {
         val title = context.getString(
@@ -376,7 +403,7 @@ class MuseNotificationManager(private val context: Context) {
             if (succeeded) R.string.notif_auto_backup_success_text
             else R.string.notif_auto_backup_failed_text
         )
-        notifyReminder(title, text, NOTIF_ID_AUTO_BACKUP)
+        notifyReminder(title, text, NOTIF_ID_AUTO_BACKUP, MuseNotificationTarget.CloudBackup)
     }
 
     /** 取消所有 muse 发出的通知。 */
@@ -387,17 +414,19 @@ class MuseNotificationManager(private val context: Context) {
         nm.cancel(NOTIF_ID_PROACTIVE_MESSAGE)
     }
 
-    /** 构建 MainActivity 的 PendingIntent(点击通知回到聊天页)。 */
-    private fun buildMainActivityIntent(): PendingIntent {
+    /** 构建带受控深链目标的 MainActivity PendingIntent。 */
+    fun buildMainActivityPendingIntent(target: MuseNotificationTarget): PendingIntent {
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            data = target.deepLink
         }
         val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         } else {
             PendingIntent.FLAG_UPDATE_CURRENT
         }
-        return PendingIntent.getActivity(context, 0, intent, flags)
+        val requestCode = target.requestKey.hashCode() and Int.MAX_VALUE
+        return PendingIntent.getActivity(context, requestCode, intent, flags)
     }
 
     companion object {

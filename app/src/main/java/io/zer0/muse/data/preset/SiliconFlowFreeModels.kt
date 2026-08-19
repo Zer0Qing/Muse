@@ -1,5 +1,6 @@
 package io.zer0.muse.data.preset
 
+import io.zer0.ai.core.FreeModelConfig
 import io.zer0.ai.core.Model
 import io.zer0.ai.core.ModelAbility
 
@@ -34,7 +35,7 @@ object SiliconFlowFreeModels {
     const val BASE_URL = "https://api.siliconflow.cn/v1"
 
     /** 预设 Provider 的固定 id(与 PresetProviders.siliconFlowFree 中保持一致)。 */
-    const val PROVIDER_ID = "preset_siliconflow_free"
+    const val PROVIDER_ID = FreeModelConfig.FREE_PROVIDER_ID
 
     /**
      * SiliconFlow 平台当前免费可用的模型列表(不含定价,会随平台策略变动)。

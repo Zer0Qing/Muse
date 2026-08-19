@@ -22,7 +22,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Star
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -36,6 +35,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.form.MuseFormDialog
+import io.zer0.muse.ui.common.feedback.MuseDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -256,10 +257,10 @@ private fun FavoriteGroupSelectDialog(
         ChatViewModel.FAVORITE_GROUP_LEARNING to stringResource(R.string.favorites_group_learning),
         ChatViewModel.FAVORITE_GROUP_CUSTOM to stringResource(R.string.favorites_group_custom),
     )
-    AlertDialog(
+    MuseDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.favorites_group_select_title)) },
-        text = {
+        title = stringResource(R.string.favorites_group_select_title),
+        content = {
             Column {
                 groups.forEach { (group, label) ->
                     TextButton(
@@ -308,11 +309,9 @@ private fun FavoriteGroupSelectDialog(
                 }
             }
         },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.action_cancel))
-            }
-        },
+        onConfirm = null,
+        dismissText = stringResource(R.string.action_cancel),
+        onDismiss = onDismiss,
     )
 }
 
@@ -377,31 +376,24 @@ private fun FavoriteTagEditDialog(
     onDismiss: () -> Unit,
 ) {
     var text by remember { mutableStateOf(currentTag ?: "") }
-    AlertDialog(
+    MuseFormDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.favorites_tag_edit_title)) },
-        text = {
+        title = stringResource(R.string.favorites_tag_edit_title),
+        confirmText = stringResource(R.string.favorites_tag_edit_confirm),
+        confirmEnabled = text.isNotBlank(),
+        onConfirm = { onConfirm(text) },
+        dismissText = stringResource(R.string.favorites_tag_edit_cancel),
+        onDismiss = onDismiss,
+        content = {
             MuseTextField(
                 value = text,
                 onValueChange = { text = it },
                 label = { Text(stringResource(R.string.favorites_tag_edit_hint)) },
                 singleLine = true,
             )
-        },
-        confirmButton = {
-            TextButton(onClick = { onConfirm(text) }) {
-                Text(stringResource(R.string.favorites_tag_edit_confirm))
-            }
-        },
-        dismissButton = {
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                if (!currentTag.isNullOrBlank()) {
-                    TextButton(onClick = { onConfirm(null) }) {
-                        Text(stringResource(R.string.favorites_tag_edit_clear))
-                    }
-                }
-                TextButton(onClick = onDismiss) {
-                    Text(stringResource(R.string.favorites_tag_edit_cancel))
+            if (!currentTag.isNullOrBlank()) {
+                TextButton(onClick = { onConfirm(null) }) {
+                    Text(stringResource(R.string.favorites_tag_edit_clear))
                 }
             }
         },

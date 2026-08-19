@@ -168,6 +168,25 @@ class MuseApp : Application(), ImageLoaderFactory {
         }
         // 强制实例化全部工具注册器，让 100+ 工具在启动后即可用
         toolRegistrarBootstrapper
+        // 快速记录系统悬浮窗默认关闭:清理旧版本可能遗留的默认开启状态。
+        appScope.launch {
+            try {
+                settings.migrateQuickCaptureOverlayDefaultOffIfNeeded()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Logger.w("MuseApp", "快速记录悬浮窗默认值迁移失败: ${e.message}", e)
+            }
+        }
+        appScope.launch {
+            try {
+                settings.migrateUserAvatarToPrivateStorageIfNeeded()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Logger.w("MuseApp", "用户头像私有存储迁移失败: ${e.message}", e)
+            }
+        }
         // ANR 检测 + 性能监控(在 startKoin 之后、服务初始化之前启动)
         // AnrWatcher:独立守护线程检测主线程无响应(5s+),ANR 时采集线程堆栈/内存/Perf 记录写入 crash 目录。
         //   开关 settings.enableAnrDetection(默认 true);自身不阻塞主线程(独立线程 + 弱引用 Handler)。

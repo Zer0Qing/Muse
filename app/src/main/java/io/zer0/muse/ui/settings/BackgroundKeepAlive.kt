@@ -9,26 +9,20 @@ import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import compose.icons.TablerIcons
 import compose.icons.tablericons.Lifebuoy
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.feedback.MuseDialog
 
 /**
  * 后台保持运行引导 — 检测当前 ROM 厂商,给出专属的设置路径。
@@ -161,14 +155,12 @@ fun KeepAliveGuideDialog(
 ) {
     val context = LocalContext.current
     val guide = rememberKeepAliveGuide()
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            shape = RoundedCornerShape(20.dp),
-            color = MaterialTheme.colorScheme.surface,
-            modifier = modifier.fillMaxWidth(),
-        ) {
+    MuseDialog(
+        onDismissRequest = onDismiss,
+        title = context.getString(R.string.keep_alive_dialog_title, guide.brandName),
+        content = {
             Column(
-                modifier = Modifier.padding(20.dp),
+                modifier = modifier,
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -179,16 +171,12 @@ fun KeepAliveGuideDialog(
                         modifier = Modifier.size(22.dp),
                     )
                     Text(
-                        text = context.getString(R.string.keep_alive_dialog_title, guide.brandName),
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        text = context.getString(R.string.keep_alive_dialog_desc),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(start = 8.dp),
                     )
                 }
-                Text(
-                    text = context.getString(R.string.keep_alive_dialog_desc),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     guide.steps.forEachIndexed { index, step ->
                         Text(
@@ -198,29 +186,16 @@ fun KeepAliveGuideDialog(
                         )
                     }
                 }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    OutlinedButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text(context.getString(R.string.keep_alive_dialog_dismiss))
-                    }
-                    Button(
-                        onClick = {
-                            guide.openSystemSettings(context)
-                            onDismiss()
-                        },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text(context.getString(R.string.keep_alive_dialog_open))
-                    }
-                }
             }
-        }
-    }
+        },
+        confirmText = context.getString(R.string.keep_alive_dialog_open),
+        onConfirm = {
+            guide.openSystemSettings(context)
+            onDismiss()
+        },
+        dismissText = context.getString(R.string.keep_alive_dialog_dismiss),
+        onDismiss = onDismiss,
+    )
 }
 
 /** 记住厂商检测结果(进程内只检测一次)。 */

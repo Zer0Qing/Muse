@@ -610,6 +610,7 @@
     <string name="video_gen_no_provider">尚未配置可用供应商,请先到「供应商」菜单添加并填写 API Key</string>
 
     <!-- ===== P2-5: SiliconFlow 免费模型兜底(PresetProviders / ProviderEditPage) ===== -->
+    <string name="preset_siliconflow">硅基流动</string>
     <string name="preset_siliconflow_free">SiliconFlow 免费模型</string>
     <string name="preset_siliconflow_free_desc">SiliconFlow 提供的免费开源模型集合</string>
     <string name="siliconflow_fill_free_models">填入免费模型</string>

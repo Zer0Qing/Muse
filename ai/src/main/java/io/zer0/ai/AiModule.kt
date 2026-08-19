@@ -7,6 +7,8 @@ import io.zer0.ai.core.ChatRequest
 import io.zer0.ai.core.ChatRequestMode
 import io.zer0.ai.core.ChatStreamEvent
 import io.zer0.ai.core.Model
+import io.zer0.ai.core.ModelAbility
+import io.zer0.ai.core.ModelVerification
 import io.zer0.ai.core.Provider
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.ProviderConfig
@@ -70,6 +72,29 @@ object ProviderRegistry {
 }
 
 /**
+ * Decide whether the request should carry tool definitions.
+ *
+ * Provider model-list endpoints frequently omit capability metadata for custom
+ * or relay models. An empty ability set therefore means "unknown", not
+ * "unsupported"; only an explicit known capability set without TOOL should
+ * suppress tools.
+ */
+internal fun shouldSendTools(
+    model: Model,
+    config: ProviderConfig,
+    tools: List<ToolDefinition>?,
+): Boolean = when {
+    tools.isNullOrEmpty() -> false
+    model.abilities.isNotEmpty() -> ModelAbility.TOOL in model.abilities
+    model.verification != ModelVerification.UNVERIFIED -> false
+    else -> ProviderCompatRules.resolve(
+        providerType = config.type,
+        baseUrl = config.resolvedBaseUrl(),
+        modelId = model.id,
+    ).supportsToolCalling
+}
+
+/**
  * 应用层调用 AI 的统一入口。
  *
  * 设计为无状态:每次调用都基于最新 config 重建 Provider。
@@ -88,6 +113,7 @@ class ChatService(
         temperature: Float? = null,
         maxTokens: Int? = null,
         tools: List<ToolDefinition>? = null,
+        toolChoice: String? = null,
         reasoningLevel: ReasoningLevel = ReasoningLevel.DEFAULT,
         providerConfig: ProviderConfig? = null,
         mode: ChatRequestMode = ChatRequestMode.CHAT,
@@ -104,7 +130,17 @@ class ChatService(
         } else {
             messages
         }
-        val (provider, request) = buildProviderRequest(effectiveMessages, model, temperature, maxTokens, tools, reasoningLevel, providerConfig, mode)
+        val (provider, request) = buildProviderRequest(
+            effectiveMessages,
+            model,
+            temperature,
+            maxTokens,
+            tools,
+            toolChoice,
+            reasoningLevel,
+            providerConfig,
+            mode,
+        )
         // B3-01: SSE 建立后 15s 无首事件,自动降级为非流式重试一次
         // 审计修复 (7.8): 用户已停止时不再 fallback(省一次计费请求)
         return provider.streamChat(request).withFirstEventWatchdog(
@@ -140,11 +176,22 @@ class ChatService(
         temperature: Float? = null,
         maxTokens: Int? = null,
         tools: List<ToolDefinition>? = null,
+        toolChoice: String? = null,
         reasoningLevel: ReasoningLevel = ReasoningLevel.DEFAULT,
         providerConfig: ProviderConfig? = null,
         mode: ChatRequestMode = ChatRequestMode.UTILITY,
     ): ChatCompletion {
-        val (provider, request) = buildProviderRequest(messages, model, temperature, maxTokens, tools, reasoningLevel, providerConfig, mode)
+        val (provider, request) = buildProviderRequest(
+            messages,
+            model,
+            temperature,
+            maxTokens,
+            tools,
+            toolChoice,
+            reasoningLevel,
+            providerConfig,
+            mode,
+        )
         return provider.completeText(request)
     }
 
@@ -159,6 +206,7 @@ class ChatService(
         temperature: Float?,
         maxTokens: Int?,
         tools: List<ToolDefinition>?,
+        toolChoice: String?,
         reasoningLevel: ReasoningLevel,
         providerConfig: ProviderConfig? = null,
         mode: ChatRequestMode = ChatRequestMode.CHAT,
@@ -169,8 +217,8 @@ class ChatService(
             ?: error(ErrorCode.NO_MODEL_SELECTED.toMessage())
         // Phase 2C:通过 ModelRegistry 自动适配模型能力
         val enhancedModel = ModelRegistry.enhanceModel(resolvedModel)
-        // 若模型不支持工具调用则剥离工具
-        val effectiveTools = if (enhancedModel.supportsToolCalling()) tools else null
+        // 未声明能力的自定义/中转模型不能当成“不支持工具”;交给 Provider 能力矩阵判断。
+        val effectiveTools = tools.takeIf { shouldSendTools(enhancedModel, config, it) }
         val provider = ProviderRegistry.create(config)
         // v1.0.7: UTILITY 模式强制关思考(对齐 既有实现 buildProviderCompatOptions)
         //  在 ChatService 层统一覆盖 reasoningLevel=OFF,所有 Provider(OpenAI/Anthropic/Gemini)
@@ -186,6 +234,9 @@ class ChatService(
             temperature = temperature,
             maxTokens = maxTokens,
             tools = effectiveTools,
+            toolChoice = toolChoice
+                ?.takeIf { it == "auto" || it == "required" || it == "none" }
+                ?.takeIf { effectiveTools != null },
             reasoningLevel = effectiveReasoningLevel,
             mode = mode,
         )

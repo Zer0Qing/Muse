@@ -1,3 +1,5 @@
+@file:Suppress("FunctionNaming", "LongParameterList")
+
 package io.zer0.muse.ui.common.form
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -23,6 +25,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -80,6 +84,8 @@ fun MuseTextField(
      * 输入栏场景传 Color.Transparent,避免输入框实色块叠在岛背景上形成"白块"。
      */
     containerColor: androidx.compose.ui.graphics.Color? = null,
+    /** 可选的内部输入框焦点请求器,用于页面打开后的安全自动聚焦。 */
+    focusRequester: FocusRequester? = null,
 ) {
     // v1.0.74 fix (前端审计 3.5): interactionSource 改为可空 + 内部 remember 兜底。
     // 原实现默认参数里 remember{...} 在调用方组合上下文求值,循环内多次调用共享同一实例。
@@ -108,7 +114,11 @@ fun MuseTextField(
             // RowScope.weight(1f) 必须作用于 Row 直接子级,挂到输入框本体后 weight
             // 失效,输入框失去宽度约束糊满整个页面(用户实测回归)。
             // focusRequester 挂 Column 不崩(自动聚焦不弹键盘,用户手动点即可)。
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(
+                    if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier,
+                ),
             enabled = enabled,
             readOnly = readOnly,
             label = null,
