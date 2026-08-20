@@ -28,8 +28,8 @@ data class MessageSearchJoin(
 @Dao
 interface MessageDao {
 
-    /** 观察指定会话的全部消息(按 createdAt 升序)。备份导出用,需全量加载。 */
-    @Query("SELECT * FROM messages WHERE sessionId = :sessionId ORDER BY createdAt ASC, rowid ASC")
+    /** 观察指定会话的全部消息(按 seq 单调序列升序)。备份导出用,需全量加载。 */
+    @Query("SELECT * FROM messages WHERE sessionId = :sessionId ORDER BY seq ASC")
     fun observeBySession(sessionId: String): Flow<List<MessageEntity>>
 
     /**
@@ -40,7 +40,7 @@ interface MessageDao {
      * 更早的历史由 [getOlderBySession] 分页加载。limit 由调用方传入
      * (如 [SessionRepository.OBSERVE_LIMIT])。
      */
-    @Query("SELECT * FROM (SELECT *, rowid AS _rid FROM messages WHERE sessionId = :sessionId ORDER BY createdAt DESC, rowid DESC LIMIT :limit) ORDER BY createdAt ASC, _rid ASC")
+    @Query("SELECT * FROM (SELECT *, rowid AS _rid FROM messages WHERE sessionId = :sessionId ORDER BY seq DESC LIMIT :limit) ORDER BY seq ASC")
     fun observeRecentBySession(sessionId: String, limit: Int): Flow<List<MessageEntity>>
 
     /**
@@ -49,7 +49,7 @@ interface MessageDao {
      * 用于初始加载时分页:只取最近 PAGE_SIZE 条,避免一次性加载全部导致卡顿/OOM。
      * 返回顺序为降序(最新在前),调用方需自行 reversed()。
      */
-    @Query("SELECT * FROM messages WHERE sessionId = :sessionId ORDER BY createdAt DESC, rowid DESC LIMIT :limit")
+    @Query("SELECT * FROM messages WHERE sessionId = :sessionId ORDER BY seq DESC LIMIT :limit")
     suspend fun getRecentBySession(sessionId: String, limit: Int): List<MessageEntity>
 
     /**
@@ -58,15 +58,19 @@ interface MessageDao {
      * 用于上滑加载更多:以当前列表最早一条消息的 createdAt 为锚点,取更早的历史。
      * 返回顺序为降序(最新在前),调用方需自行 reversed()。
      */
-    @Query("SELECT * FROM messages WHERE sessionId = :sessionId AND createdAt < :beforeCreatedAt ORDER BY createdAt DESC, rowid DESC LIMIT :limit")
+    @Query("SELECT * FROM messages WHERE sessionId = :sessionId AND createdAt < :beforeCreatedAt ORDER BY seq DESC LIMIT :limit")
     suspend fun getOlderBySession(sessionId: String, beforeCreatedAt: Long, limit: Int): List<MessageEntity>
 
     /** v1.53-A1: 会话消息总数(分页判断 hasMoreHistory 用)。 */
     @Query("SELECT COUNT(*) FROM messages WHERE sessionId = :sessionId")
     suspend fun countBySession(sessionId: String): Int
 
+    /** v92: 会话内最大 seq(新消息分配 seq 用)。 */
+    @Query("SELECT COALESCE(MAX(seq), 0) FROM messages WHERE sessionId = :sessionId")
+    suspend fun getMaxSeq(sessionId: String): Long
+
     /** v1.58: 查询会话中到指定时间戳为止(含)的全部消息(升序),用于对话分叉 Fork。 */
-    @Query("SELECT * FROM messages WHERE sessionId = :sessionId AND createdAt <= :untilCreatedAt ORDER BY createdAt ASC, rowid ASC")
+    @Query("SELECT * FROM messages WHERE sessionId = :sessionId AND createdAt <= :untilCreatedAt ORDER BY seq ASC")
     suspend fun getUpToBySession(sessionId: String, untilCreatedAt: Long): List<MessageEntity>
 
     /** 插入消息(冲突时替换,支持流式更新 assistant 消息)。 */

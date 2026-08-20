@@ -684,6 +684,10 @@ class SessionRepository(
                     if (existing.createdAt != entity.createdAt) {
                         entity = entity.copy(createdAt = existing.createdAt)
                     }
+                    // v92: 同 id 更新保留首次 seq(REPLACE 不改变消息的稳定序号)
+                    if (entity.seq == 0L) {
+                        entity = entity.copy(seq = existing.seq)
+                    }
                     // v1.0.88 (R-2): 变体身份字段兜底 — 工具轮/中断恢复/周期性落盘构建的
                     // UIMessage 常丢 variantGroupId 等字段,REPLACE 覆盖后变体身份丢失,
                     // 重进会话树重建时消息挂错位置(重叠/错位)。新值缺失时用旧行兜底;
@@ -696,6 +700,9 @@ class SessionRepository(
                             parentGroupId = existing.parentGroupId,
                         )
                     }
+                } else if (entity.seq == 0L) {
+                    // v92: 新消息分配会话内单调 seq = max+1(首次插入时固定,后续更新保留)
+                    entity = entity.copy(seq = messageDao.getMaxSeq(sessionId) + 1)
                 }
                 messageDao.upsert(entity)
                 // Phase 10.3: 同步 FTS(删后插,避免重复索引项)

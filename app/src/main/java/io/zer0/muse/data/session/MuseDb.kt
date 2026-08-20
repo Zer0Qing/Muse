@@ -159,7 +159,7 @@ import kotlinx.serialization.builtins.serializer
         // B5-02: 群聊生成账本(进程被杀后按断点重放)
         GroupChatGenerationLedgerEntity::class,
     ],
-    version = 91,
+    version = 92,
     exportSchema = true,
 )
 @TypeConverters(QuickNoteConverters::class)
@@ -610,6 +610,21 @@ abstract class MuseDb : RoomDatabase() {
         val MIGRATION_90_91 = object : Migration(90, 91) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 ensureMessageColumns(db)
+            }
+        }
+
+        /**
+         * v92: MIGRATION_91_92 — messages 表加 seq 单调序列列(消息排序稳定主键)。
+         *
+         * - ADD COLUMN seq INTEGER NOT NULL DEFAULT 0(SQLite O(1) 元数据操作,无重写)
+         * - 回填旧数据 seq = rowid: rowid 是插入顺序的稳定序列,回填后旧消息按原序排列
+         * - 索引 idx_messages_sessionId_seq 加速会话内按 seq 排序
+         */
+        val MIGRATION_91_92 = object : Migration(91, 92) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE messages ADD COLUMN seq INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("UPDATE messages SET seq = rowid WHERE seq = 0")
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_messages_sessionId_seq ON messages(sessionId, seq)")
             }
         }
 
@@ -2434,6 +2449,7 @@ abstract class MuseDb : RoomDatabase() {
                         MIGRATION_88_89,
                         MIGRATION_89_90,
                         MIGRATION_90_91,
+                        MIGRATION_91_92,
                     )
                     // 启用外键约束(artifacts 表的 ON DELETE CASCADE 依赖此设置)
                     // onOpen 不在 onCreate 事务内,可以执行此类命令;onCreate 内禁止 PRAGMA

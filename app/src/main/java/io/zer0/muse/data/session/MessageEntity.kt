@@ -33,6 +33,8 @@ import kotlinx.serialization.Serializable
         Index("role"),
         Index(value = ["sessionId", "createdAt"]),
         Index(value = ["sessionId", "createdAt", "role"]),
+        // v92: seq 单调序列索引 — 会话内消息排序主键,替代可被刷新的 createdAt
+        Index(value = ["sessionId", "seq"]),
     ],
 )
 data class MessageEntity(
@@ -47,6 +49,15 @@ data class MessageEntity(
     @ColumnInfo(defaultValue = "NULL") val thinkingEncryptedContent: String? = null,
     val modelId: String? = null,
     val createdAt: Long,
+    /**
+     * v92: 会话内单调递增序列 — 消息排序的稳定主键。
+     *
+     * 背景: 此前排序依赖 [createdAt],但 createdAt 在流式更新/中断恢复/重发时
+     * 可能被刷新(REPLACE 覆盖整行),导致消息时序错乱(第一句回复跑最后、重叠)。
+     * seq 在首次插入时分配(会话内 max+1),同 id 更新时保留旧值,
+     * 不随 REPLACE 变化,是稳定的排序键。旧数据迁移时按 rowid 回填。
+     */
+    @ColumnInfo(defaultValue = "0") val seq: Long = 0,
     @ColumnInfo(defaultValue = "[]") val imageUrlsJson: String = "[]",
     @ColumnInfo(defaultValue = "0") val favorite: Boolean = false,
     /**
