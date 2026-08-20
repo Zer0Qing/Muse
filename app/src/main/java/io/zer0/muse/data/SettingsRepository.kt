@@ -629,9 +629,11 @@ class SettingsRepository(
     }
 
     // ── v1.0.74: 小手机总开关(控制首页小手机图标显隐) ─────────────────
-    /** 小手机功能开关(默认开启)。 */
+    // v1.0.86: 默认关闭 — 用户反馈"安装应用后小手机默认打开",改为新装不默认启用;
+    // 已手动开启的用户保留选择(其 key 已持久化 true)。
+    /** 小手机功能开关(默认关闭)。 */
     val miniPhoneEnabledFlow: Flow<Boolean> = store.data.map { prefs ->
-        prefs[KEY_MINIPHONE_ENABLED] ?: true
+        prefs[KEY_MINIPHONE_ENABLED] ?: false
     }
 
     /** v1.0.74: 保存小手机开关。 */

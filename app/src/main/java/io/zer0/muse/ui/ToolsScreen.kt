@@ -265,6 +265,9 @@ private fun ToolDetailDialog(
     MuseDialog(
         onDismissRequest = onDismiss,
         title = tool.name,
+        // v1.0.86: 只留"关闭"一个按钮 — 工具详情是只读展示,
+        // "取消"与"关闭"语义重复(脱裤子放屁),去掉默认的取消按钮。
+        dismissText = null,
         content = {
             // v1.0.7 修复崩溃:MuseDialog 的 content 区已自带 verticalScroll(heightIn(max=420dp)),
             // 此处再嵌套 verticalScroll 会导致"Vertically scrollable component was measured
