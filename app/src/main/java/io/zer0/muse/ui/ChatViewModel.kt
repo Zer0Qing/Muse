@@ -86,6 +86,7 @@ import io.zer0.muse.data.chat.rewrite.ConversationRebuildFlagStore
 import io.zer0.muse.data.chat.rewrite.ConversationService
 import io.zer0.muse.data.chat.rewrite.MessageCommit
 import io.zer0.muse.data.chat.rewrite.MessageCommitRequest
+import io.zer0.muse.data.chat.rewrite.buildCommitParts
 import io.zer0.muse.data.chat.rewrite.sha256
 import io.zer0.muse.data.session.ConversationTurnEntity
 import io.zer0.muse.transformer.ContextCompressTransformer
@@ -6117,6 +6118,7 @@ class ChatViewModel(
                             userMessageId = state.conversationHistory.lastOrNull { it.role == MessageRole.USER }?.id?.toString().orEmpty(),
                             assistantMessageId = withArtifacts.id.toString(),
                             message = withArtifacts,
+                            parts = buildCommitParts(withArtifacts, System.currentTimeMillis()),
                         ),
                     )
                     if (commitResult is io.zer0.muse.data.chat.rewrite.MessageCommitResult.Rejected) {

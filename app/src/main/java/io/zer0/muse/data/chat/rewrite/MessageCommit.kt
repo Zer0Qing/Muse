@@ -34,3 +34,31 @@ class MessageCommit(
     suspend fun commit(request: MessageCommitRequest): MessageCommitResult =
         sessionRepository.commitConversationMessage(request)
 }
+
+
+/** 从兼容 UIMessage 字段生成一次提交的基础 parts；旧消息不会被强制回填。 */
+fun buildCommitParts(message: UIMessage, createdAt: Long): List<MessagePartEntity> = buildList {
+    val reasoning = message.reasoning
+    if (!reasoning.isNullOrEmpty()) {
+        add(
+            MessagePartEntity(
+                messageId = message.id.toString(),
+                partIndex = size,
+                kind = "reasoning",
+                text = reasoning,
+                createdAt = createdAt,
+            ),
+        )
+    }
+    if (message.content.isNotEmpty()) {
+        add(
+            MessagePartEntity(
+                messageId = message.id.toString(),
+                partIndex = size,
+                kind = "text",
+                text = message.content,
+                createdAt = createdAt,
+            ),
+        )
+    }
+}
