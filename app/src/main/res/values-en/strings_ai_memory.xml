@@ -105,8 +105,8 @@
 
     <!-- v1.0.72: group chat memory (Memory Center "Group Chat" tab) -->
     <string name="memory_tab_group_chat">Group Chat</string>
-    <string name="memory_tab_graph">Memory Map</string>
-    <string name="memory_graph_preview_title">Memory Map</string>
+    <string name="memory_tab_graph">Constellation</string>
+    <string name="memory_graph_preview_title">Constellation</string>
     <string name="memory_graph_preview_hint">Tap a memory to see what it connects to</string>
     <string name="memory_graph_preview_selected">Focused: %1$s</string>
     <string name="memory_graph_preview_node_muse">Muse</string>

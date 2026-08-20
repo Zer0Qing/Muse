@@ -422,7 +422,7 @@ fun MemoryScreen(
                     return@Column
                 }
 
-                // 记忆星图:接入真实 memory_links 和 facts 数据。
+                // 记忆星座:接入真实 memory_links 和 facts 数据。
                 if (selectedMemoryTab == 5) {
                     val graphViewModel: io.zer0.muse.ui.memory.MemoryGraphViewModel = koinViewModel()
                     val graphState by graphViewModel.state.collectAsStateWithLifecycle()

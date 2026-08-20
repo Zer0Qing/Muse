@@ -43,8 +43,8 @@
     <string name="memory_delete_experience_failed">删除经验失败: %1$s</string>
     <!-- v1.0.72: 群聊记忆(记忆中心"群聊"Tab) -->
     <string name="memory_tab_group_chat">群聊</string>
-    <string name="memory_tab_graph">星图</string>
-    <string name="memory_graph_preview_title">记忆星图</string>
+    <string name="memory_tab_graph">星座</string>
+    <string name="memory_graph_preview_title">记忆星座</string>
     <string name="memory_graph_preview_hint">轻触一个记忆,看看它和什么相连</string>
     <string name="memory_graph_preview_selected">已聚焦：%1$s</string>
     <string name="memory_graph_empty_title">暂无记忆关系数据</string>

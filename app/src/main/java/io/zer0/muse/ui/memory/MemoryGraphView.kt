@@ -45,7 +45,7 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 
 /**
- * 记忆星图视图。
+ * 记忆星座视图。
  *
  * 阶段 2: 接入真实 memory_links 和 facts 数据。
  * 阶段 3: 节点详情、关系详情、来源查看、编辑/删除/确认。

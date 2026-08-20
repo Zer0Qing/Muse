@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * 记忆星图 ViewModel。
+ * 记忆星座 ViewModel。
  *
  * 阶段 2: 从 FactStore 和 MemoryLinkDao 读取真实记忆关系数据。
  * 阶段 3: 支持节点编辑、删除、置顶;关系确认、删除。
