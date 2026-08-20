@@ -388,6 +388,145 @@ class FactStore(
     }
 
     /**
+     * v12 (T3-1): 反思任务 — 合并同实体键下的重复事实(存量整理)。
+     * 对已入库的历史数据做一次全量扫描: 同 entity_key + 占位符感知判定的重复
+     * 合并为一条(保留重要度/置信度更高、文本更完整的一方),置顶事实不参与。
+     *
+     * @return 合并掉的条数
+     */
+    suspend fun mergeSameEntityDuplicates(scope: String = "main", spaceId: String = "default"): Int = withContext(Dispatchers.IO) {
+        val all = dao.getByScopeAndSpace(scope, spaceId).toMutableList()
+        if (all.size < 2) return@withContext 0
+        var merged = 0
+        var i = 0
+        while (i < all.size) {
+            val current = all[i]
+            var j = i + 1
+            while (j < all.size) {
+                val other = all[j]
+                // 同实体键 + 占位符感知判定 + 置顶保护
+                if (other.pinnedAt == null && current.pinnedAt == null &&
+                    other.entityKey != null && current.entityKey != null &&
+                    other.entityKey == current.entityKey &&
+                    isSameEntityFact(current.fact, other.fact)
+                ) {
+                    val keeper = if (other.importance > current.importance) other else current
+                    val mergedEntity = mergeForDedup(keeper, if (keeper.id == current.id) other else current)
+                    dao.insert(mergedEntity.copy(id = keeper.id))
+                    dao.deleteById(if (keeper.id == current.id) other.id else current.id)
+                    dao.deleteFts(if (keeper.id == current.id) other.id else current.id)
+                    syncFtsRow(keeper.id, FactFtsManager.toNgram(mergedEntity.fact))
+                    all.removeAt(j)
+                    if (keeper.id != current.id) all[i] = mergedEntity
+                    merged++
+                    continue
+                }
+                j++
+            }
+            i++
+        }
+        if (merged > 0) {
+            Logger.i("FactStore", "反思合并: $merged 条重复事实(scope=$scope, space=$spaceId)")
+        }
+        merged
+    }
+
+    /**
+     * v12 (T3-1): 反思任务 — 回填历史数据的实体键。
+     * 早期数据 entity_key 为 null(迁移后遗留),按人名规则回填;
+     * 回填后同一实体的不同写法在下一次反思时即可被 [mergeSameEntityDuplicates] 合并。
+     *
+     * @return 回填条数
+     */
+    suspend fun backfillEntityKeys(scope: String = "main", spaceId: String = "default"): Int = withContext(Dispatchers.IO) {
+        val missing = dao.getByScopeAndSpace(scope, spaceId).filter { it.entityKey.isNullOrBlank() }
+        if (missing.isEmpty()) return@withContext 0
+        var updated = 0
+        for (f in missing) {
+            val key = inferEntityKey(f.fact) ?: continue
+            if (dao.updateEntityKey(f.id, key) > 0) updated++
+        }
+        if (updated > 0) {
+            Logger.i("FactStore", "反思回填实体键: $updated 条(scope=$scope, space=$spaceId)")
+        }
+        updated
+    }
+
+    /**
+     * v12 (T3-2): 反思任务 — 矛盾检测(确定性规则版)。
+     * 同实体键下,若两条事实的断言极性相反(喜欢/讨厌、会/不会、早睡/熬夜等关键词对),
+     * 返回矛盾对供上层标记"待确认"(不自动删除)。
+     *
+     * @return 矛盾事实对列表(每对按 id 升序)
+     */
+    suspend fun detectContradictions(scope: String = "main", spaceId: String = "default"): List<Pair<Fact, Fact>> = withContext(Dispatchers.IO) {
+        val byKey = dao.getByScopeAndSpace(scope, spaceId)
+            .filter { !it.entityKey.isNullOrBlank() }
+            .groupBy { it.entityKey!! }
+        if (byKey.isEmpty()) return@withContext emptyList()
+        val result = mutableListOf<Pair<Fact, Fact>>()
+        for ((_, facts) in byKey) {
+            for (i in facts.indices) {
+                for (j in i + 1 until facts.size) {
+                    val a = facts[i].toDomainFact()
+                    val b = facts[j].toDomainFact()
+                    if (isContradictory(a.fact, b.fact)) {
+                        result.add(if (a.id < b.id) a to b else b to a)
+                    }
+                }
+            }
+        }
+        result
+    }
+
+    /**
+     * v12 (T3-2): 关键词级矛盾判定 — 同一实体下相反断言视为矛盾。
+     * 高置信极性词对(喜欢↔讨厌/讨厌↔喜欢、会↔不会、是↔不是、早起↔熬夜等)。
+     */
+    private fun isContradictory(a: String, b: String): Boolean {
+        fun polarity(text: String): Int {
+            var score = 0
+            if (text.contains("喜欢") || text.contains("爱吃") || text.contains("爱喝")) score += 1
+            if (text.contains("讨厌") || text.contains("不喜欢") || text.contains("害怕") || text.contains("抗拒")) score -= 1
+            if (text.contains("会") && !text.contains("不会")) score += 1
+            if (text.contains("不会")) score -= 1
+            if (text.contains("早起") || text.contains("早睡")) score += 1
+            if (text.contains("熬夜") || text.contains("晚睡")) score -= 1
+            return score
+        }
+        val pa = polarity(a)
+        val pb = polarity(b)
+        return pa != 0 && pb != 0 && pa * pb < 0
+    }
+
+    /**
+     * v12 (T3-3): 反思任务 — 记忆晋升路径。
+     * 同一实体的多条事实(重复确认 ≥ [minConfirmations] 条)说明该实体/主题被反复提及,
+     * 重要性提升一级(0→1,1→2),晋升后参与衰减的门槛更高。
+     *
+     * @return 晋升条数
+     */
+    suspend fun promoteRepeatedFacts(scope: String = "main", spaceId: String = "default", minConfirmations: Int = 2): Int = withContext(Dispatchers.IO) {
+        val byKey = dao.getByScopeAndSpace(scope, spaceId)
+            .filter { !it.entityKey.isNullOrBlank() }
+            .groupBy { it.entityKey!! }
+        if (byKey.isEmpty()) return@withContext 0
+        var promoted = 0
+        for ((_, facts) in byKey) {
+            if (facts.size < minConfirmations) continue
+            for (f in facts) {
+                if (f.importance < 2) {
+                    if (dao.updateImportance(f.id, f.importance + 1) > 0) promoted++
+                }
+            }
+        }
+        if (promoted > 0) {
+            Logger.i("FactStore", "反思晋升: $promoted 条事实提升重要度(scope=$scope, space=$spaceId)")
+        }
+        promoted
+    }
+
+    /**
      * v9: 查找数据库中与新事实语义相似的已有事实。
      * 先用原始前缀匹配,再用去主语后的前缀匹配,最后用子串搜索兜底,
      * 确保"对青霉素过敏"和"用户对青霉素过敏"能被识别为同一条。

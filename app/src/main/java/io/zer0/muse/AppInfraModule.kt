@@ -79,6 +79,8 @@ val appInfraModule = module {
             scope = get(),
             getConfig = { settings.memoryConfigCache },
             factStore = get(),
+            // v12 (T3-1): 记忆反思任务 — 每日整理(回填实体键/合并重复/矛盾检测/晋升)
+            reflectionRunner = get(),
         )
     }
     // v1.0.51: 存量记忆迁移 — 升级后首次启动补跑历史 session 的 rollingSummary

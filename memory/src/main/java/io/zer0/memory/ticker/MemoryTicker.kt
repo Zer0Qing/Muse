@@ -68,6 +68,11 @@ class  MemoryTicker(
     /** v1.x: 每日去重用(合并近似重复事实);null 时跳过去重步骤(测试/兼容)。 */
     private val factStore: io.zer0.memory.fact.FactStore? = null,
     /**
+     * v12 (T3-1): 记忆反思任务 — 每日整理(回填实体键/合并重复/矛盾检测/晋升)。
+     * null 时跳过反思步骤(测试/兼容);失败不阻塞主流程。
+     */
+    private val reflectionRunner: io.zer0.memory.reflection.MemoryReflectionRunner? = null,
+    /**
      * v0.32: 记忆系统高级配置(memory.* 配置)。
      *
      * 用 `() -> MemoryConfig` 闭包而非直接 [MemoryConfig] 值,因为该配置由用户在设置页
@@ -580,6 +585,13 @@ class  MemoryTicker(
                 resultOf { fs.dedupPass(scope = "main") }
                     .onError { msg, t -> Logger.w(TAG, "每日记忆去重失败: ${t?.message ?: msg}") }
                     .onSuccess { n -> if (n > 0) Logger.i(TAG, "每日记忆去重: 合并 $n 条重复事实") }
+            }
+
+            // v12 (T3-1): 记忆反思 — 每日整理(回填实体键/合并同实体重复/矛盾检测/晋升)。
+            // 与写入时查重(快路径)互补,清理历史沉淀的重复;失败不影响主流程。
+            reflectionRunner?.let { runner ->
+                resultOf { runner.runReflection(scope = "main", spaceId = "default") }
+                    .onError { msg, t -> Logger.w(TAG, "每日记忆反思失败: ${t?.message ?: msg}") }
             }
 
             if (hasFailed) {

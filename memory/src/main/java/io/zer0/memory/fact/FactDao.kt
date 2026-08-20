@@ -67,6 +67,10 @@ interface FactDao {
     @Query("UPDATE facts SET pinned_at = :pinnedAt WHERE id = :id")
     suspend fun updatePinnedAt(id: Long, pinnedAt: String?): Int
 
+    /** v12: 回填实体键(反思任务对历史 null 数据)。 */
+    @Query("UPDATE facts SET entity_key = :entityKey WHERE id = :id")
+    suspend fun updateEntityKey(id: Long, entityKey: String): Int
+
     /**
      * v10 P2-3: 更新指定 fact 的分类和标签(用于 AI 记忆管理的 updatedEntities/autoCategorize)。
      * category 或 tags 为 null 时保留原值(COALESCE 语义)。

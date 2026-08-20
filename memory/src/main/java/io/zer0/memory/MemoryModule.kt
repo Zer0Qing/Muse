@@ -66,6 +66,9 @@ val memoryModule: Module = module {
     single { FactStore(get(), get(), java.io.File(androidContext().filesDir, "fact_tombstones.json"), get<io.zer0.memory.fact.FactDedupJudge>()) }
     single { DeepMemoryProcessor(get<io.zer0.memory.fact.FactDbProvider>(), get()) }  // factDbProvider + llmClient
 
+    // v12 (T3-1): 记忆反思任务 — 每日整理(回填实体键/合并重复/矛盾检测/晋升)
+    single { io.zer0.memory.reflection.MemoryReflectionRunner(get<FactStore>()) }
+
     // v1.0.52 P2-2: 记忆空间仓库(Space CRUD + 事实迁移)
     single { io.zer0.memory.space.MemorySpaceRepository(get()) }
 
