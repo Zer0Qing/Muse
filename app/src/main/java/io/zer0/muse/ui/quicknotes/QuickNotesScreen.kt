@@ -124,7 +124,7 @@ fun QuickNotesScreen(
     val scope = rememberCoroutineScope()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val settings: SettingsRepository = koinInject()
-    val quickCaptureEnabled by settings.quickCaptureEnabledFlow.collectAsStateWithLifecycle(initialValue = true)
+    val quickCaptureEnabled by settings.quickCaptureEnabledFlow.collectAsStateWithLifecycle(initialValue = false)
     val quickCaptureOverlayEnabled by settings.quickCaptureOverlayEnabledFlow.collectAsStateWithLifecycle(initialValue = false)
     val listState = rememberLazyListState()
     // 前端修复 (性能-3): 页面级共享时间 ticker — 单协程每 60s 广播一次

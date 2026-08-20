@@ -422,7 +422,7 @@ private fun MuseNavGraph(
     val onboardingShown by settings.onboardingShownFlow.collectAsStateWithLifecycle(initialValue = true)
     var onboardingCompleted by rememberSaveable { mutableStateOf(false) }
     val showOnboarding = settingsReady && !onboardingShown && !onboardingCompleted
-    val quickCaptureEnabled by settings.quickCaptureEnabledFlow.collectAsStateWithLifecycle(initialValue = true)
+    val quickCaptureEnabled by settings.quickCaptureEnabledFlow.collectAsStateWithLifecycle(initialValue = false)
     val quickCaptureOverlayEnabled by settings.quickCaptureOverlayEnabledFlow.collectAsStateWithLifecycle(initialValue = false)
 
     // v1.7: 系统 SplashScreen 由 MainActivity 的 keepOnScreenCondition 控制,

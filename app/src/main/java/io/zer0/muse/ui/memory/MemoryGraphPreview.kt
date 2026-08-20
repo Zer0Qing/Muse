@@ -25,20 +25,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.RoundRect
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.statusColors
 import kotlin.math.roundToInt
 
 /**
@@ -78,7 +73,7 @@ fun MemoryGraphPreview(
     var scale by remember { mutableFloatStateOf(1f) }
     var pan by remember { mutableStateOf(Offset.Zero) }
     val colors = MaterialTheme.colorScheme
-    val density = LocalDensity.current
+    val statusColors = MaterialTheme.statusColors
 
     BoxWithConstraints(
         modifier = modifier
@@ -98,18 +93,9 @@ fun MemoryGraphPreview(
             val transform = { point: PreviewNode ->
                 Offset(point.x * w * scale + pan.x + w * (1f - scale) / 2f, point.y * h * scale + pan.y + h * (1f - scale) / 2f)
             }
-            drawRoundRect(
-                color = colors.primary.copy(alpha = 0.055f),
-                topLeft = Offset(w * 0.10f * scale + pan.x + w * (1f - scale) / 2f, h * 0.18f * scale + pan.y + h * (1f - scale) / 2f),
-                size = Size(w * 0.43f * scale, h * 0.48f * scale),
-                cornerRadius = androidx.compose.ui.geometry.CornerRadius(42.dp.toPx()),
-            )
-            drawRoundRect(
-                color = colors.tertiary.copy(alpha = 0.05f),
-                topLeft = Offset(w * 0.52f * scale + pan.x + w * (1f - scale) / 2f, h * 0.36f * scale + pan.y + h * (1f - scale) / 2f),
-                size = Size(w * 0.38f * scale, h * 0.48f * scale),
-                cornerRadius = androidx.compose.ui.geometry.CornerRadius(42.dp.toPx()),
-            )
+            // 视觉原型刻意不绘制主题岛背景:用户反馈其存在感过强,
+            // 让留白、节点和关系线成为主角。未来真实聚类仍可复用数据层,
+            // 但不预设为带底色的大块区域。
             edges.forEach { (a, b) ->
                 val start = transform(nodes[a])
                 val end = transform(nodes[b])
@@ -141,7 +127,7 @@ fun MemoryGraphPreview(
         )
 
         nodes.forEachIndexed { index, node ->
-            val tone = node.tone.color(colors)
+            val tone = node.tone.color(colors, statusColors)
             val isSelected = selectedIndex == index
             Surface(
                 modifier = Modifier
@@ -210,12 +196,15 @@ private enum class NodeTone {
     Success,
     Warning;
 
-    fun color(scheme: androidx.compose.material3.ColorScheme): Color = when (this) {
+    fun color(
+        scheme: androidx.compose.material3.ColorScheme,
+        statusColors: io.zer0.muse.ui.theme.MuseStatusColors,
+    ): Color = when (this) {
         Primary -> scheme.primary
         Secondary -> scheme.secondary
         Tertiary -> scheme.tertiary
         Info -> scheme.primary.copy(alpha = 0.82f)
-        Success -> Color(0xFF5E9870)
-        Warning -> Color(0xFFB98252)
+        Success -> statusColors.success
+        Warning -> statusColors.warning
     }
 }

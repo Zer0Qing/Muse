@@ -639,9 +639,9 @@ class SettingsRepository(
         store.edit { it[KEY_MINIPHONE_ENABLED] = enabled }
     }
 
-    /** 快速记录胶囊总开关(默认开启)。 */
+    /** 快速记录胶囊总开关(默认关闭,用户去设置开启后才显示侧滑把手)。 */
     val quickCaptureEnabledFlow: Flow<Boolean> = store.data.map { prefs ->
-        prefs[KEY_QUICK_CAPTURE_ENABLED] ?: true
+        prefs[KEY_QUICK_CAPTURE_ENABLED] ?: false
     }
 
     /** 保存快速记录胶囊总开关。 */
