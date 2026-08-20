@@ -19,7 +19,8 @@
 | `assembleRelease` with 1.0.79/179 | PASS |
 | APK v2 signature verification | PASS |
 | Release lint vital | PASS, no errors/warnings |
-| detekt/ktlint full gate | BLOCKED: detekt reports 88 app + 36 memory findings |
+| ktlint full gate | PASS |
+| detekt full gate | BLOCKED: detekt reports 88 app + 36 memory findings |
 | Real-device install/upgrade | NOT RUN |
 | Live MCP/provider replay | NOT RUN |
 | Backup import and physical restore | NOT RUN |
