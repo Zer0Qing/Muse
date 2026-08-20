@@ -46,8 +46,20 @@ fun Flow<ChatStreamEvent>.withFirstEventWatchdog(
             completion.reasoningContent?.takeIf { it.isNotBlank() }?.let {
                 trySend(ChatStreamEvent.ReasoningDelta(it))
             }
-            if (completion.text.isNotBlank()) {
+            // v1.0.90 (S-6): 已收到过流式内容时,回退的完整文本不再追加 —
+            // 此前无条件 trySend(ContentDelta(completion.text)),若流式已输出部分内容
+            // (如 GLM-4-9B 等模型流式行为异常,先输出片段),完整文本与之拼接,
+            // 消息变成"片段 + 完整回复"(用户反馈的严重重叠)。
+            // 此时只保留已显示内容,发 FallbackNotice 提示(UI 可提示用户重试)。
+            if (completion.text.isNotBlank() && !meaningfulEventReceived) {
                 trySend(ChatStreamEvent.ContentDelta(completion.text))
+            } else if (completion.text.isNotBlank()) {
+                trySend(
+                    ChatStreamEvent.Error(
+                        "流式已输出内容但未完成,已保留当前内容(可重试生成)",
+                        null,
+                    ),
+                )
             }
             completion.toolCalls?.forEachIndexed { index, tc ->
                 trySend(

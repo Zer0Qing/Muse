@@ -481,7 +481,17 @@ class SessionRepository(
      * 避免嵌套事务的 savepoint 开销。
      */
     private suspend fun appendMessageInternal(sessionId: String, message: UIMessage): String {
-        val entity = message.toEntity(sessionId)
+        var entity = message.toEntity(sessionId)
+        // v1.0.90 (S-5): 用户消息同样分配 seq — 此前 appendMessageInternal 直接 upsert,
+        // entity.seq 恒为 0,导致用户消息 seq=0、assistant seq=1、多会话 seq 冲突
+        // (同一会话两条消息同 seq,排序错乱)。与 upsertMessage 统一分配逻辑。
+        val existing = messageDao.getById(sessionId, entity.id)
+        if (existing != null) {
+            if (entity.seq == 0L) entity = entity.copy(seq = existing.seq)
+            if (existing.createdAt != entity.createdAt) entity = entity.copy(createdAt = existing.createdAt)
+        } else if (entity.seq == 0L) {
+            entity = entity.copy(seq = messageDao.getMaxSeq(sessionId) + 1)
+        }
         messageDao.upsert(entity)
         // Phase 10.3: 同步 FTS 索引(toNgram 预处理中文 2-gram)
         // v1.63: 加前置 deleteFts 防御,避免未来误用 appendMessage 更新已存在 id 时 FTS 重复
