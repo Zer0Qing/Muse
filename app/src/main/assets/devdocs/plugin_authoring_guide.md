@@ -1,128 +1,76 @@
-# Muse 插件创作指导
+<!-- devdoc: 内部开发文档,不向用户展示,LLM 通过 knowledge_search 查询 -->
+# 插件编写完整指南
 
-本文档是 Muse 外部插件（`.muse-plugin`）的创作规范。助手在用户要求“写插件 / 创建插件 / 扩展功能”时，应阅读本文档并使用 `create_plugin` 工具。
+> 触发场景: 用户问"插件怎么写""skillpkg 是什么""能做插件吗""插件和技能什么区别"时,参考本文档据实回答。
+> 本文档基于源码 tools/script/ 模块(SkillPackageLoader/SkillPackageManifest/SkillEngine/WebViewSkillEngine)+ assets/skillpkg_templates/ 的真实实现。
 
-## 1. 插件是什么
+## 一、概述
 
-插件是一个 ZIP 包（扩展名 `.muse-plugin`），结构：
+Muse 的插件(skillpkg)是**JS 技能包**: 一个包含 manifest.json + main.js 的目录,打包后加载进应用,提供新的工具能力。与 install_skill(Kotlin 白名单实现)不同,skillpkg 用 **JS 引擎执行**,能力更灵活(但仍受沙盒限制)。
 
-```text
-my-plugin.muse-plugin
-├── manifest.json   # 必需：插件清单
-└── main.js         # 必需：JS 入口，导出工具函数
+## 二、skillpkg 包结构
+
+```
+my-plugin/
+├── manifest.json   # 包描述(必填)
+└── main.js         # 插件主逻辑(必填)
 ```
 
-安装后插件工具会注册为 `plugin_<pluginId>_<toolName>`，由 SkillExecutor 路由到 JS 函数执行。插件放在 App 外部（`filesDir/plugins/<id>/`），不打包进 APK，用户可自行安装/卸载/启停。
+### manifest.json 字段全解
+| 字段 | 必填 | 说明 |
+|---|---|---|
+| id | ✅ | 插件唯一 id(小写字母/数字/下划线/连字符) |
+| name | ✅ | 显示名 |
+| description | ✅ | 功能描述(给 LLM 看,决定何时调用) |
+| version | 可选 | 版本号 |
+| main | 可选 | 入口文件,默认 main.js |
+| tools | 可选 | 暴露的工具定义(名称/参数/描述) |
 
-## 2. manifest.json 格式
+### main.js 编写规范
+- 使用 JS 引擎支持的 API(见 SkillEngine)
+- 导出工具处理函数,参数从调用上下文获取
+- 返回值(字符串/JSON)回填给 LLM
 
-```json
-{
-  "id": "weather_tip",
-  "name": "天气小贴士",
-  "version": "0.1.0",
-  "description": "根据城市返回一句天气建议",
-  "author": "user",
-  "entry": "main.js",
-  "kind": "tool",
-  "trust": "sandboxed",
-  "capabilities": ["resource.read"],
-  "permissions": [],
-  "activationEvents": ["onStartup"],
-  "enabled": true,
-  "tools": [
-    {
-      "name": "get_weather_tip",
-      "description": "返回指定城市的天气建议。参数 city 为城市名。",
-      "parametersJson": "{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\",\"description\":\"城市名\"}},\"required\":[\"city\"]}",
-      "requiredJson": "[\"city\"]",
-      "functionName": "getWeatherTip"
-    }
-  ]
-}
-```
+## 三、执行模型
 
-字段说明：
+| 引擎 | 说明 |
+|---|---|
+| SkillEngine | 标准 JS 沙盒执行(核心工具链) |
+| WebViewSkillEngine | WebView 内执行(需要 WebView 环境的能力,如 DOM/网络) |
 
-- `id`：唯一标识，只允许小写字母、数字、下划线、连字符，必须声明至少一个 `tools`。
-- `kind`：当前支持 `tool`。
-- `trust`：`sandboxed`（推荐）或 `full-access`（谨慎）。
-- `capabilities` 只允许：`resource.read`、`ui`、`ui.mood`。`network` 与 `resource.write` 不在白名单：当前沙箱会拦截网络请求并关闭文件写访问，声明这两项会被拒绝安装。
-- `tools[].parametersJson` 是 OpenAI 兼容 JSON Schema；`tools[].functionName` 必须与 `main.js` 中的函数名一致。
+安全边界:
+- JS 在沙盒内执行,不能直接访问应用内部 API
+- 受限的能力通过注入的桥接接口提供
+- 恶意代码无法绕过沙盒获取系统权限
 
-## 3. main.js 写法
+## 四、加载/分发/更新
 
-每个工具函数接收**一个参数对象**，返回字符串或 JSON 字符串。引擎以 `fn.apply(null, [args])` 方式调用，因此形参必须是单个对象：
+- 打包: skillpkg 目录 → zip
+- 分发: 分享 zip 文件 / 从仓库安装
+- 加载: 导入后解析 manifest → 注册工具到 ToolRegistry(带插件前缀)
+- 更新: 重新导入覆盖(按 id)
 
-```javascript
-function getWeatherTip(args) {
-  const city = args.city || "未知城市";
-  return "今天" + city + "适合带伞，早晚温差较大。";
-}
-// 注意：不要写 export / module.exports，函数必须是全局可访问的
-```
+## 五、插件与 install_skill 的区别
 
-要点：
+| 维度 | install_skill(Kotlin 白名单) | skillpkg(JS 插件) |
+|---|---|---|
+| 实现 | 复用 8 个内置 Kotlin 实现 | 自写 JS 逻辑 |
+| 灵活性 | 低(仅组合白名单) | 高(可写复杂逻辑) |
+| 安全 | 高(无任意代码) | 中(JS 沙盒) |
+| 适用 | 简单工具(查/读/写/搜) | 复杂插件(流程/计算/多步) |
+| 创建者 | 用户/LLM(对话创建) | 开发者(写代码打包) |
 
-- 函数必须是全局可调用（不要写在模块作用域里用 `export`，当前执行器直接按函数名调用）。
-- 只做纯逻辑；涉及文件/网络/系统能力的操作尽量交给内置工具，插件保持“计算 + 格式化”职责。
-- 参数值都是字符串，需要数字时自行 `parseInt` / `Number`。
-- 失败时返回以“错误：”开头的字符串，让模型能读懂原因。
+## 六、常见问题 Q&A
 
-## 4. 助手如何创建插件（create_plugin）
+1. **"我不会写代码能做插件吗"**: 简单工具用对话让 AI 创建(install_skill)即可;复杂插件需要 JS 基础。
+2. **"插件安全吗"**: JS 在沙盒执行,不能直接访问系统;但插件能发网络请求,导入不明来源插件需谨慎。
+3. **"插件和技能哪个好"**: 简单场景用技能(install_skill 免代码);要自定义逻辑用插件。
+4. **"怎么分享插件"**: 打包 zip 发给别人导入即可。
+5. **"插件能用网络吗"**: 视沙盒桥接能力;HTTP 请求通常通过注入的 fetch/http 接口。
 
-使用内置 `create_plugin` 工具，参数：
+## 七、LLM 调用要点
 
-- `plugin_id`：插件 id（小写字母/数字/下划线/连字符）
-- `name`：插件显示名
-- `description`：插件/工具描述
-- `tool_name`：LLM 调用用的工具名
-- `function_name`：main.js 中的函数名
-- `js_code`：main.js 完整内容（函数形参必须是一个参数对象，例如 function fn(args) { return ... }）
-- 可选：`parameters_json`、`required_json`、`version`、`author`
-
-工具会自动打包 manifest + main.js 并安装，返回安装结果。安装后用户可在“设置 → 插件”查看和管理。
-
-## 5. 最佳实践
-
-- 一个插件只做一个职责，工具描述要写清“何时调用、参数含义、返回内容”。
-- 参数 schema 必须完整，避免模型漏参。
-- 插件内容不要包含 API Key 等敏感信息。
-- 先写小函数并用 `echo` / 简单测试验证，再安装正式版本。
-- 更新插件时用同一 `plugin_id`，安装会覆盖旧版本。
-
-## 6. 示例：待办提醒插件
-
-```javascript
-function summarizeTodos(args) {
-  const text = args.text || "";
-  const lines = text.split("\n").filter((l) => l.trim());
-  return "共 " + lines.length + " 项待办。已完成：" +
-    lines.filter((l) => l.includes("✓") || l.startsWith("[x]")).length +
-    " 项。";
-}
-```
-
-对应 manifest：
-
-```json
-{
-  "id": "todo_summary",
-  "name": "待办总结",
-  "description": "把待办文本统计为完成情况摘要",
-  "entry": "main.js",
-  "kind": "tool",
-  "trust": "sandboxed",
-  "tools": [
-    {
-      "name": "summarize_todos",
-      "description": "统计待办列表的完成情况，参数 text 为逐行待办文本",
-      "parametersJson": "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\"}},\"required\":[\"text\"]}",
-      "requiredJson": "[\"text\"]",
-      "functionName": "summarizeTodos"
-    }
-  ]
-}
-```
-
-调用 `create_plugin` 时，把上面的 `js_code` 与 manifest 字段分别传入即可。
+- 用户要"简单的查/读/写工具" → 用 install_skill 现场创建(免代码)
+- 用户要"复杂自定义插件" → 引导用户到插件开发文档/模板,说明需要 JS
+- 插件注册的工具像普通工具一样调用,参数按 manifest 定义
+- 插件执行失败/报错,如实反馈错误信息,不编造
