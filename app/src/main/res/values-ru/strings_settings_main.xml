@@ -460,4 +460,8 @@
     <string name="cloud_backup_restore_failed_title">Сбой восстановления</string>
     <string name="cloud_backup_restore_failed_desc">Не удалось восстановить данные из облака. Проверьте сетевое соединение и настройки облачного хранения и повторите попытку.</string>
     <string name="cloud_backup_restore_retry">Повторить</string>
+    <string name="settings_backup_log_title">Последние резервные копии</string>
+    <string name="settings_backup_log_empty">Пока нет резервных копий</string>
+    <string name="settings_backup_log_success">Успех</string>
+    <string name="settings_backup_log_failed">Ошибка</string>
 </resources>

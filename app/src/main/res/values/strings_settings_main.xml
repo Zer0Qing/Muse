@@ -462,4 +462,8 @@
     <string name="cloud_backup_restore_failed_title">恢复失败</string>
     <string name="cloud_backup_restore_failed_desc">从云端恢复数据失败。请检查网络连接与云备份配置后重试。</string>
     <string name="cloud_backup_restore_retry">重试</string>
+    <string name="settings_backup_log_title">最近备份记录</string>
+    <string name="settings_backup_log_empty">暂无备份记录</string>
+    <string name="settings_backup_log_success">成功</string>
+    <string name="settings_backup_log_failed">失败</string>
 </resources>

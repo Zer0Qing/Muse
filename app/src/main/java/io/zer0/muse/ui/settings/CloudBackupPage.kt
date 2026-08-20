@@ -301,7 +301,8 @@ fun CloudBackupPage(
                         if (backingUp || restoring) return@SettingsItemRow
                         backingUp = true
                         scope.launch {
-                            val ok = backupService.exportToCloud()
+                            val outcome = backupService.exportToCloud()
+                            val ok = outcome == io.zer0.muse.backup.BackupService.CloudBackupOutcome.SUCCESS
                             backingUp = false
                             MuseToast.show(
                                 context.getString(

@@ -460,4 +460,8 @@
     <string name="cloud_backup_restore_failed_title">Falló la restauración</string>
     <string name="cloud_backup_restore_failed_desc">No se pudo restaurar los datos desde la nube. Revisa la red y la configuración de copia en la nube y vuelve a intentarlo.</string>
     <string name="cloud_backup_restore_retry">Reintentar</string>
+    <string name="settings_backup_log_title">Registro de copias recientes</string>
+    <string name="settings_backup_log_empty">Aún no hay copias</string>
+    <string name="settings_backup_log_success">Correcto</string>
+    <string name="settings_backup_log_failed">Fallo</string>
 </resources>

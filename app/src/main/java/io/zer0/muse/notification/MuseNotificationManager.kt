@@ -388,22 +388,33 @@ class MuseNotificationManager(private val context: Context) {
     }
 
     /**
-     * v1.141 F1: 自动备份结果提醒。
+     * F-04: 自动备份结果提醒(按失败原因分类)。
      *
      * 由 [io.zer0.muse.schedule.CloudBackupScheduler] 在定时自动备份完成后调用:
      * 成功/失败各发一条通知(失败提醒尤为重要,避免用户长期不知道备份中断)。
+     * 失败进一步区分写入失败 / 读回校验失败,正文给出可执行提示;
+     * [io.zer0.muse.backup.BackupService.CloudBackupOutcome.NOT_CONFIGURED] 不发通知(未配置不打扰用户)。
      * 复用 [notifyReminder] 的通用渠道与点击进入云备份页行为,固定通知 ID 便于覆盖。
      */
-    fun notifyAutoBackup(succeeded: Boolean) {
-        val title = context.getString(
-            if (succeeded) R.string.notif_auto_backup_success_title
-            else R.string.notif_auto_backup_failed_title
+    fun notifyAutoBackup(outcome: io.zer0.muse.backup.BackupService.CloudBackupOutcome) {
+        if (outcome == io.zer0.muse.backup.BackupService.CloudBackupOutcome.NOT_CONFIGURED) return
+        val (titleRes, textRes) = when (outcome) {
+            io.zer0.muse.backup.BackupService.CloudBackupOutcome.SUCCESS ->
+                R.string.notif_auto_backup_success_title to R.string.notif_auto_backup_success_text
+            io.zer0.muse.backup.BackupService.CloudBackupOutcome.WRITE_FAILED ->
+                R.string.notif_auto_backup_failed_title to R.string.notif_auto_backup_failed_write_text
+            io.zer0.muse.backup.BackupService.CloudBackupOutcome.VERIFY_FAILED ->
+                R.string.notif_auto_backup_failed_title to R.string.notif_auto_backup_failed_verify_text
+            io.zer0.muse.backup.BackupService.CloudBackupOutcome.NOT_CONFIGURED ->
+                // 不可达(上方已 return),保留分支以满足 when 穷尽
+                return
+        }
+        notifyReminder(
+            context.getString(titleRes),
+            context.getString(textRes),
+            NOTIF_ID_AUTO_BACKUP,
+            MuseNotificationTarget.CloudBackup,
         )
-        val text = context.getString(
-            if (succeeded) R.string.notif_auto_backup_success_text
-            else R.string.notif_auto_backup_failed_text
-        )
-        notifyReminder(title, text, NOTIF_ID_AUTO_BACKUP, MuseNotificationTarget.CloudBackup)
     }
 
     /** 取消所有 muse 发出的通知。 */

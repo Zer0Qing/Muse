@@ -99,4 +99,6 @@
     <string name="notif_auto_backup_success_text">データはクラウドにバックアップされました</string>
     <string name="notif_auto_backup_failed_title">自動バックアップ失敗</string>
     <string name="notif_auto_backup_failed_text">自動バックアップが完了しませんでした。クラウド設定を確認してください</string>
+    <string name="notif_auto_backup_failed_write_text">クラウドへの書き込みに失敗しました。ネットワークとバックアップ設定を確認してください</string>
+    <string name="notif_auto_backup_failed_verify_text">バックアップは書き込まれましたが検証に失敗しました。データが不完全な可能性があります</string>
 </resources>

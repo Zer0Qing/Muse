@@ -107,4 +107,6 @@
     <string name="notif_auto_backup_success_text">您的数据已自动备份到云端</string>
     <string name="notif_auto_backup_failed_title">自动备份失败</string>
     <string name="notif_auto_backup_failed_text">自动备份未完成,请检查云备份配置</string>
+    <string name="notif_auto_backup_failed_write_text">写入云端失败,请检查网络与云备份配置</string>
+    <string name="notif_auto_backup_failed_verify_text">备份写入成功但校验失败,数据可能不完整</string>
 </resources>

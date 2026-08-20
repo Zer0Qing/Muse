@@ -99,4 +99,6 @@
     <string name="notif_auto_backup_success_text">Ваши данные сохранены в облаке</string>
     <string name="notif_auto_backup_failed_title">Сбой автоматического резервного копирования</string>
     <string name="notif_auto_backup_failed_text">Резервное копирование не завершено. Проверьте настройки облачного хранения</string>
+    <string name="notif_auto_backup_failed_write_text">Не удалось записать в облако. Проверьте сеть и настройки резервного копирования.</string>
+    <string name="notif_auto_backup_failed_verify_text">Копия сохранена, но проверка не удалась. Данные могут быть неполными.</string>
 </resources>

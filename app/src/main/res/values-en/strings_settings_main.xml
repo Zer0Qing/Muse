@@ -463,4 +463,8 @@
     <string name="cloud_backup_restore_failed_title">Restore failed</string>
     <string name="cloud_backup_restore_failed_desc">Could not restore data from the cloud. Check your network and cloud backup settings, then retry.</string>
     <string name="cloud_backup_restore_retry">Retry</string>
+    <string name="settings_backup_log_title">Recent backups</string>
+    <string name="settings_backup_log_empty">No backup records yet</string>
+    <string name="settings_backup_log_success">Success</string>
+    <string name="settings_backup_log_failed">Failed</string>
 </resources>

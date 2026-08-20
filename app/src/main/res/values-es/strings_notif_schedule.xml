@@ -99,4 +99,6 @@
     <string name="notif_auto_backup_success_text">Tus datos se guardaron en la nube</string>
     <string name="notif_auto_backup_failed_title">Falló la copia de seguridad automática</string>
     <string name="notif_auto_backup_failed_text">La copia de seguridad no se completó. Revisa la configuración de copia en la nube</string>
+    <string name="notif_auto_backup_failed_write_text">No se pudo escribir en la nube. Revisa la red y la configuración de copia.</string>
+    <string name="notif_auto_backup_failed_verify_text">Copia escrita, pero la verificación falló. Los datos podrían estar incompletos.</string>
 </resources>

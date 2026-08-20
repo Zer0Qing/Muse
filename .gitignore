@@ -53,3 +53,6 @@ build_output*.txt
 
 # 发布 APK 不入库(仅挂 GitHub Release 附件)
 releases/**/*.apk
+
+# F-05: 发布 manifest 为构建产物(每次构建生成,不入库)
+release/

@@ -99,4 +99,6 @@
     <string name="notif_auto_backup_success_text">Your data was backed up to the cloud</string>
     <string name="notif_auto_backup_failed_title">Auto backup failed</string>
     <string name="notif_auto_backup_failed_text">Auto backup did not complete. Check your cloud backup settings</string>
+    <string name="notif_auto_backup_failed_write_text">Failed to write to cloud. Check your network and backup config.</string>
+    <string name="notif_auto_backup_failed_verify_text">Backup written but verification failed. Data may be incomplete.</string>
 </resources>

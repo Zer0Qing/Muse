@@ -512,6 +512,7 @@ fun SettingsDataPage(
                 messageCount = messageCount,
                 backupService = backupService,
                 settings = settings,
+                autoBackupLogDao = koinInject(),
             )
         }
         item { WebServerSection(settings = settings) }

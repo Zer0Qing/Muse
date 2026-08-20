@@ -155,21 +155,38 @@ jobs:
           exit 1
         fi
         ./gradlew assembleRelease -PversionName="${VERSION_NAME}" -PversionCode="${VERSION_CODE}"
+    - name: Generate release manifest
+      # F-05: 发布单一来源 — versionName/versionCode/DB version/APK sha256/
+      # 发布说明引用/生成时间 汇总为 release/manifest.json,随 Release 发布。
+      run: |
+        VERSION_NAME="${GITHUB_REF_NAME#v}"
+        VERSION_CODE=$(awk '/^[[:space:]]*\?: [0-9]+$/ { print $2; exit }' app/build.gradle.kts)
+        APK_FILE=$(ls app/build/outputs/apk/release/*.apk | head -n 1)
+        python3 ci/script/generate_release_manifest.py \
+          --version-name "${VERSION_NAME}" \
+          --version-code "${VERSION_CODE}" \
+          --apk "${APK_FILE}" \
+          --db-file app/src/main/java/io/zer0/muse/data/session/MuseDb.kt \
+          --release-notes "releases/${GITHUB_REF_NAME}/release_body.md" \
+          --out release/manifest.json
     - uses: actions/upload-artifact@v4
       with:
         name: release-apks
-        path: app/build/outputs/apk/release/*.apk
+        path: |
+          app/build/outputs/apk/release/*.apk
+          release/manifest.json
         if-no-files-found: error
     # 审查修复 (2.0 A-16): 把 split APK 发布为 GitHub Release 资产 —
     # 此前 release job 只产出 Actions 制品,从不建 Release,而应用内
     # UpdateChecker 从 /releases/latest 拉取 .apk,导致应用内更新恒失败。
     # 触发条件已限定 refs/tags/,Release 资产即应用内更新的数据源。
+    # F-06: 改用可重入发布脚本(断点续发 + 指数退避 + 远端核对),替换一次性 action。
     - name: Publish GitHub Release
-      uses: ncipollo/release-action@v1
-      with:
-        tag: ${{ github.ref_name }}
-        name: "Muse ${{ github.ref_name }}"
-        bodyFile: "releases/${{ github.ref_name }}/release_body.md"
-        artifacts: "app/build/outputs/apk/release/*.apk"
-        artifactContentType: application/vnd.android.package-archive
-        token: ${{ secrets.GITHUB_TOKEN }}
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        python3 ci/script/publish_release.py \
+          --tag "${{ github.ref_name }}" \
+          --body-file "releases/${{ github.ref_name }}/release_body.md" \
+          --artifacts "app/build/outputs/apk/release/*.apk" \
+          --artifacts "release/manifest.json"

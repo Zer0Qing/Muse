@@ -99,4 +99,6 @@
     <string name="notif_auto_backup_success_text">Seus dados foram salvos na nuvem</string>
     <string name="notif_auto_backup_failed_title">Falha no backup automático</string>
     <string name="notif_auto_backup_failed_text">O backup automático não foi concluído. Verifique as configurações de backup na nuvem</string>
+    <string name="notif_auto_backup_failed_write_text">Falha ao escrever na nuvem. Verifique a rede e a configuração de cópia.</string>
+    <string name="notif_auto_backup_failed_verify_text">Cópia salva, mas a verificação falhou. Os dados podem estar incompletos.</string>
 </resources>

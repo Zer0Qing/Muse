@@ -460,4 +460,8 @@
     <string name="cloud_backup_restore_failed_title">復元失敗</string>
     <string name="cloud_backup_restore_failed_desc">クラウドからデータを復元できませんでした。ネットワーク接続とクラウド設定を確認して再試行してください。</string>
     <string name="cloud_backup_restore_retry">再試行</string>
+    <string name="settings_backup_log_title">最近のバックアップ</string>
+    <string name="settings_backup_log_empty">バックアップ記録はありません</string>
+    <string name="settings_backup_log_success">成功</string>
+    <string name="settings_backup_log_failed">失敗</string>
 </resources>

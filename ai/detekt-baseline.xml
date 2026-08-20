@@ -37,6 +37,7 @@
     <ID>ConstructorParameterNaming:OpenAIDto.kt$ResponsesInputItem$val call_id: String? = null</ID>
     <ID>ConstructorParameterNaming:OpenAIDto.kt$ResponsesInputItem$val encrypted_content: String? = null</ID>
     <ID>ConstructorParameterNaming:OpenAIDto.kt$ResponsesRequest$val max_output_tokens: Int? = null</ID>
+    <ID>ConstructorParameterNaming:OpenAIDto.kt$ResponsesRequest$val tool_choice: String? = null</ID>
     <ID>ConstructorParameterNaming:OpenAIDto.kt$ResponsesStreamEvent$val item_id: String? = null</ID>
     <ID>ConstructorParameterNaming:OpenAIDto.kt$ResponsesStreamEvent$val output_index: Int? = null</ID>
     <ID>ConstructorParameterNaming:OpenAIDto.kt$ResponsesStreamEvent$val summary_index: Int? = null</ID>
@@ -64,6 +65,7 @@
     <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$@OptIn(ExperimentalCoroutinesApi::class) // C-35: channelFlow 不接受 capacity 参数(其内部 channel 恒为 UNLIMITED,恰为所需语义) private fun streamChatCompletions(request: ChatRequest): Flow&lt;ChatStreamEvent&gt;</ID>
     <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$override suspend fun listModels(config: ProviderConfig): List&lt;Model&gt;</ID>
     <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$private fun UIMessage.toOpenAI(model: Model, compat: ProviderCompat? = null): OpenAIMessage</ID>
+    <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$private fun buildRequestBody(request: ChatRequest, stream: Boolean = true): String</ID>
     <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$private fun buildResponsesRequestBody(request: ChatRequest, stream: Boolean = true): String</ID>
     <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$private fun inferMimeType(base64: String): String</ID>
     <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$private fun injectThinkingFormat( payload: OpenAIRequest, format: ThinkingFormat, level: io.zer0.ai.core.ReasoningLevel, ): String</ID>
@@ -97,17 +99,15 @@
     <ID>LongMethod:OpenAIProvider.kt$OpenAIProvider$private suspend fun completeTextImpl(request: ChatRequest, keySwitchDepth: Int = 0): ChatCompletion</ID>
     <ID>LongMethod:OpenAIProvider.kt$OpenAIProvider.&lt;no name provided&gt;$override fun onEvent( eventSource: EventSource, id: String?, type: String?, data: String, )</ID>
     <ID>LongMethod:ProviderCompat.kt$ProviderCompatRules$private fun ProviderCompat.overrideByHost(host: String): ProviderCompat</ID>
-    <ID>LongParameterList:AiModule.kt$ChatService$( messages: List&lt;UIMessage&gt;, model: Model? = null, temperature: Float? = null, maxTokens: Int? = null, tools: List&lt;ToolDefinition&gt;? = null, reasoningLevel: ReasoningLevel = ReasoningLevel.DEFAULT, providerConfig: ProviderConfig? = null, mode: ChatRequestMode = ChatRequestMode.CHAT, resumeFromText: String? = null, )</ID>
-    <ID>LongParameterList:AiModule.kt$ChatService$( messages: List&lt;UIMessage&gt;, model: Model? = null, temperature: Float? = null, maxTokens: Int? = null, tools: List&lt;ToolDefinition&gt;? = null, reasoningLevel: ReasoningLevel = ReasoningLevel.DEFAULT, providerConfig: ProviderConfig? = null, mode: ChatRequestMode = ChatRequestMode.UTILITY, )</ID>
-    <ID>LongParameterList:AiModule.kt$ChatService$( messages: List&lt;UIMessage&gt;, model: Model?, temperature: Float?, maxTokens: Int?, tools: List&lt;ToolDefinition&gt;?, reasoningLevel: ReasoningLevel, providerConfig: ProviderConfig? = null, mode: ChatRequestMode = ChatRequestMode.CHAT, )</ID>
+    <ID>LongParameterList:AiModule.kt$ChatService$( messages: List&lt;UIMessage&gt;, model: Model? = null, temperature: Float? = null, maxTokens: Int? = null, tools: List&lt;ToolDefinition&gt;? = null, toolChoice: String? = null, reasoningLevel: ReasoningLevel = ReasoningLevel.DEFAULT, providerConfig: ProviderConfig? = null, mode: ChatRequestMode = ChatRequestMode.CHAT, resumeFromText: String? = null, )</ID>
+    <ID>LongParameterList:AiModule.kt$ChatService$( messages: List&lt;UIMessage&gt;, model: Model? = null, temperature: Float? = null, maxTokens: Int? = null, tools: List&lt;ToolDefinition&gt;? = null, toolChoice: String? = null, reasoningLevel: ReasoningLevel = ReasoningLevel.DEFAULT, providerConfig: ProviderConfig? = null, mode: ChatRequestMode = ChatRequestMode.UTILITY, )</ID>
+    <ID>LongParameterList:AiModule.kt$ChatService$( messages: List&lt;UIMessage&gt;, model: Model?, temperature: Float?, maxTokens: Int?, tools: List&lt;ToolDefinition&gt;?, toolChoice: String?, reasoningLevel: ReasoningLevel, providerConfig: ProviderConfig? = null, mode: ChatRequestMode = ChatRequestMode.CHAT, )</ID>
     <ID>LongParameterList:AnthropicProvider.kt$AnthropicProvider$( model: String, system: List&lt;AnthropicSystemBlock&gt;?, messages: List&lt;AnthropicMessage&gt;, temperature: Float?, maxTokens: Int?, stream: Boolean, reasoningLevel: ReasoningLevel? = null, tools: List&lt;ToolDefinition&gt;? = null, )</ID>
     <ID>LongParameterList:GeminiProvider.kt$GeminiProvider$( system: String?, contents: List&lt;GeminiContent&gt;, temperature: Float?, maxTokens: Int?, reasoningLevel: ReasoningLevel = ReasoningLevel.AUTO, supportsImageOutput: Boolean = false, tools: List&lt;ToolDefinition&gt;? = null, )</ID>
     <ID>LoopWithTooManyJumpStatements:OpenAIProvider.kt$OpenAIProvider$for</ID>
     <ID>LoopWithTooManyJumpStatements:ProviderHttpSupport.kt$ProviderHttpSupport.Companion$while</ID>
     <ID>LoopWithTooManyJumpStatements:UIMessage.kt$while</ID>
     <ID>MaxLineLength:AgnesImageProvider.kt$AgnesImageProvider$val (respBody, overLimit) = ProviderHttpSupport.readBodyCappedStreaming(resp, MAX_RESPONSE_BODY_BYTES)</ID>
-    <ID>MaxLineLength:AiModule.kt$ChatService$val (provider, request) = buildProviderRequest(effectiveMessages, model, temperature, maxTokens, tools, reasoningLevel, providerConfig, mode)</ID>
-    <ID>MaxLineLength:AiModule.kt$ChatService$val (provider, request) = buildProviderRequest(messages, model, temperature, maxTokens, tools, reasoningLevel, providerConfig, mode)</ID>
     <ID>MaxLineLength:AnthropicProvider.kt$AnthropicProvider$Logger.d("AnthropicProvider", "completeText OK: ${text.length} chars, toolCalls=${toolCalls?.size ?: 0}")</ID>
     <ID>MaxLineLength:AnthropicProvider.kt$AnthropicProvider$Logger.i("AnthropicProvider", "completeText 429 限流,已切换到下一个 key,重试 ($keySwitchDepth/$MAX_KEY_SWITCHES)")</ID>
     <ID>MaxLineLength:AnthropicProvider.kt$AnthropicProvider$Logger.i("AnthropicProvider", "streamChat: POST ${sanitizeUrl(url)} model=${request.model.id} msgs=${request.messages.size}")</ID>
@@ -129,7 +129,6 @@
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$"stream-guard(Responses): 拦截空 name tool call (localIndex=$localIndex, args=${acc.args.length} chars),"</ID>
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$"stream-guard: 拦截空 name tool call (localIndex=$localIndex, args=${acc.args.length} chars),"</ID>
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$"stream-guard: 检测到流式过早结束 (chars=$totalChars, reasoning=$reasoningChars, duration=${deltaDuration}ms), 自动回退到非流式请求 | url=${sanitizeUrl(url)}"</ID>
-    <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$"stream-guard: 等待期间流式已恢复(content=$currentContent, reasoning=$currentReasoning),放弃回退,继续接收流式"</ID>
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$"stream-guard: 非流式回退成功 (text=${text.length} chars, reasoning=${reasoning.length} chars, toolCalls=${toolCalls.size})"</ID>
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$Logger.d("OpenAIProvider", "completeText OK: text=${text.length} chars, reasoning=${reasoningContent.length} chars, toolCalls=${toolCalls?.size ?: 0}")</ID>
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$Logger.d("OpenAIProvider", "completeTextResponses OK: text=${text.length} chars, reasoning=${reasoningContent.length} chars, toolCalls=${toolCalls?.size ?: 0}")</ID>
@@ -154,6 +153,8 @@
     <ID>MaxLineLength:ProviderError.kt$@Deprecated("Provider 应直接抛 ProviderException,用 (throwable as? ProviderException)?.providerError 替代字符串推断", ReplaceWith("(throwable as? ProviderException)?.providerError"))</ID>
     <ID>MaxLineLength:StreamGuardTest.kt$StreamGuardTest$"""{"choices":[{"index":0,"delta":{"role":"assistant","reasoning_content":"这是很长的一段思考过程"},"finish_reason":null}]}"""</ID>
     <ID>MaxLineLength:StreamGuardTest.kt$StreamGuardTest$"""{"choices":[{"index":0,"delta":{"role":"assistant","tool_calls":[{"index":0,"id":"call_1","function":{"name":"","arguments":"{\"city\":\"北京\"}"}}]},"finish_reason":null}]}"""</ID>
+    <ID>MaxLineLength:StreamGuardTest.kt$StreamGuardTest$"""{"choices":[{"index":0,"delta":{"tool_calls":[{"index":$index,"id":"call_bad_$index","function":{"name":"","arguments":"{\"chunk\":\"$index-very-long\"}"}}]},"finish_reason":null}]}"""</ID>
+    <ID>MaxLineLength:StreamGuardTest.kt$StreamGuardTest$"""{"choices":[{"index":0,"message":{"role":"assistant","content":"","tool_calls":[{"id":"call_fallback","type":"function","function":{"name":"echo","arguments":"{\"text\":\"ok\"}"}}]},"finish_reason":"tool_calls"}]}"""</ID>
     <ID>MaxLineLength:VertexAiAuthToken.kt$VertexAiAuthToken$0x06</ID>
     <ID>MaxLineLength:VideoGenerationService.kt$VideoGenerationService$"specId=${providerConfig.specId} host=${VideoProviderRegistry.extractHost(providerConfig.resolvedBaseUrl())}"</ID>
     <ID>MaxLineLength:VideoGenerationService.kt$VideoGenerationService$?:</ID>
@@ -166,8 +167,6 @@
     <ID>ReturnCount:AgnesImageProvider.kt$AgnesImageProvider.Companion$fun resolveSize(size: String?): String</ID>
     <ID>ReturnCount:AnthropicProvider.kt$AnthropicProvider.&lt;no name provided&gt;$override fun onEvent( eventSource: EventSource, id: String?, type: String?, data: String, )</ID>
     <ID>ReturnCount:AnthropicProvider.kt$AnthropicProvider.&lt;no name provided&gt;$override fun onFailure( eventSource: EventSource, t: Throwable?, response: Response?, )</ID>
-    <ID>ReturnCount:FreeModelConfig.kt$FreeModelConfig$fun isFreeProvider(baseUrl: String, userApiKey: String): Boolean</ID>
-    <ID>ReturnCount:FreeModelConfig.kt$FreeModelConfig$fun resolveApiKey(baseUrl: String, modelId: String, userApiKey: String): String?</ID>
     <ID>ReturnCount:GeminiProvider.kt$GeminiProvider$private fun isRetryableError(code: Int?, t: Throwable?): Boolean</ID>
     <ID>ReturnCount:GeminiProvider.kt$GeminiProvider.&lt;no name provided&gt;$override fun onEvent( eventSource: EventSource, id: String?, type: String?, data: String, )</ID>
     <ID>ReturnCount:GeminiProvider.kt$GeminiProvider.&lt;no name provided&gt;$override fun onFailure( eventSource: EventSource, t: Throwable?, response: Response?, )</ID>

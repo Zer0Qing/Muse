@@ -122,14 +122,19 @@ class CloudBackupScheduler(
         }
 
         Logger.i(TAG, "Auto backup due (${elapsed / 3600000}h elapsed, interval=${intervalHours}h), uploading...")
-        val ok = backupService.exportToCloud()
-        if (ok) {
-            Logger.i(TAG, "Auto backup succeeded")
-        } else {
-            Logger.w(TAG, "Auto backup failed")
+        val outcome = backupService.exportToCloud()
+        when (outcome) {
+            io.zer0.muse.backup.BackupService.CloudBackupOutcome.SUCCESS ->
+                Logger.i(TAG, "Auto backup succeeded")
+            io.zer0.muse.backup.BackupService.CloudBackupOutcome.WRITE_FAILED ->
+                Logger.w(TAG, "Auto backup failed: write failed")
+            io.zer0.muse.backup.BackupService.CloudBackupOutcome.VERIFY_FAILED ->
+                Logger.w(TAG, "Auto backup failed: read-back verification failed")
+            io.zer0.muse.backup.BackupService.CloudBackupOutcome.NOT_CONFIGURED ->
+                Logger.d(TAG, "Auto backup skipped: not configured")
         }
-        // v1.141 F1: 备份提醒 — 定时自动备份完成/失败均发系统通知,
-        // 失败提醒让用户及时得知备份中断并检查云配置
-        notificationManager.notifyAutoBackup(ok)
+        // v1.141 F1 + F-04: 备份提醒 — 定时自动备份完成/失败均发系统通知,
+        // 失败按原因(写入/校验)分类提醒,让用户及时得知备份中断并检查云配置
+        notificationManager.notifyAutoBackup(outcome)
     }
 }

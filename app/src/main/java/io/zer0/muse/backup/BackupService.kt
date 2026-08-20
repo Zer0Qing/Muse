@@ -12,6 +12,8 @@ import io.zer0.memory.summary.SessionSummaryEntity
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.session.MuseDb
+import io.zer0.muse.data.stats.AutoBackupLogDao
+import io.zer0.muse.data.stats.AutoBackupLogEntity
 import io.zer0.muse.data.session.SessionEntity
 import io.zer0.muse.data.session.MessageEntity
 import io.zer0.muse.data.assistant.AssistantEntity
@@ -73,12 +75,15 @@ import java.io.OutputStreamWriter
  *  - 大数据量(10000+ 消息)JSON 一次性序列化可能 OOM,留后续分片
  *  - 不含图片二进制(只存 URL,URL 可能失效)
  */
+@Suppress("LongParameterList") // 依赖注入构造: 8 个服务依赖平铺注入,拆分聚合类反而增加间接层(项目惯例,见 ChatViewModel/ToolOrchestrator)
 class BackupService(
     private val db: MuseDb,
     private val memoryDb: MemoryDb,
     private val factDb: FactDb,
     private val cloudBackupService: CloudBackupService,
     private val settings: SettingsRepository,
+    /** F-04: 备份记录持久化(诊断页可见 + 读回校验失败分类记录)。 */
+    private val autoBackupLogDao: AutoBackupLogDao,
     /** v1.0.74: 导入后重建 FTS 索引(直插消息绕过 FTS 同步)。 */
     private val sessionRepository: io.zer0.muse.data.session.SessionRepository,
     /**
@@ -881,9 +886,74 @@ class BackupService(
      * 同时上传带时间戳的归档版本 + muse-backup-latest.json(用于快速恢复)。
      * @return true 成功;false 失败或未配置云备份
      */
-    suspend fun exportToCloud(): Boolean {
+    /**
+     * F-04: 云备份结果分类。区别于布尔值,失败原因决定通知文案与诊断日志:
+     *  - [WRITE_FAILED]: 上传本身失败(网络/远端拒绝/鉴权);
+     *  - [VERIFY_FAILED]: 上传成功但读回校验失败(大小不匹配/读回为空),数据可能不完整;
+     *  - [NOT_CONFIGURED]: 未配置云备份,不打扰用户。
+     */
+    enum class CloudBackupOutcome { SUCCESS, WRITE_FAILED, VERIFY_FAILED, NOT_CONFIGURED }
+
+    /**
+     * F-04: 写入备份记录(auto_backup_log 表,诊断页可见)。
+     * @param status success / write_failed / verify_failed
+     */
+    private suspend fun logCloudBackup(status: String, size: Long, messageCount: Long, error: String) {
+        try {
+            autoBackupLogDao.insert(
+                AutoBackupLogEntity(
+                    backupPath = "cloud",
+                    fileSizeBytes = size,
+                    status = status,
+                    errorMessage = error,
+                    messageCount = messageCount,
+                ),
+            )
+        } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // 日志写入失败不阻断备份主流程,仅记录
+            Logger.w("BackupService", "logCloudBackup failed: ${e.message}")
+        }
+    }
+
+    /**
+     * F-04: 云备份三段式收据 — 写入 + 读回校验 + 记录。
+     *
+     * 历史事故: 上传成功即返回 true, 无任何校验; 云端静默丢字节/半写时用户
+     * 无从得知备份已损坏, 恢复后数据缺失。现流程:
+     *  1. 写出 NDJSON(内存字节,与旧实现一致);
+     *  2. 上传至云端;
+     *  3. 上传成功后 [downloadLatestBackup] 读回并比对字节数(写入后读回校验);
+     *  4. 结果(含失败原因)写入 auto_backup_log, 供备份页诊断展示。
+     */
+    suspend fun exportToCloud(): CloudBackupOutcome {
         val config = settings.cloudBackupConfigFlow.first()
-        if (!config.isConfigured) return false
+        // ReturnCount 约束(阈值 2): 全程仅 1 个 return, 结果统一 when 汇总
+        return when {
+            !config.isConfigured -> CloudBackupOutcome.NOT_CONFIGURED
+            else -> {
+                val write = writeBackupToCloud(config)
+                when {
+                    write == null -> CloudBackupOutcome.WRITE_FAILED
+                    !verifyCloudBackupWrite(config, write) -> CloudBackupOutcome.VERIFY_FAILED
+                    else -> {
+                        settings.saveCloudBackupConfig(config.copy(lastSyncAt = System.currentTimeMillis()))
+                        CloudBackupOutcome.SUCCESS
+                    }
+                }
+            }
+        }
+    }
+
+    /** F-04: 一次云备份写入的规模信息(供读回校验与日志)。 */
+    private data class CloudWrite(val bytes: Long, val messages: Long)
+
+    /**
+     * F-04: 写出 NDJSON(内存字节)并上传云端;失败记录 write_failed 日志。
+     * @return 上传成功时的规模信息;null 表示写入/上传失败
+     */
+    private suspend fun writeBackupToCloud(config: CloudBackupConfig): CloudWrite? {
         // B-25: 复用 writeNdJson 流式产物 — 逐条序列化写入字节缓冲,不再 buildBackup + encodeToString
         // (Backup 全量对象 + 巨串 + 字节数组三份内存驻留)。云端上传 API 需整份字节,
         // 这里峰值仅一份 NDJSON 字节数组(明文或加密后),大幅降低万级消息的 OOM 风险。
@@ -906,11 +976,47 @@ class BackupService(
         } else {
             plaintext
         }
-        val ok = cloudBackupService.uploadBackupWithLatest(config, data)
-        if (ok) {
-            settings.saveCloudBackupConfig(config.copy(lastSyncAt = System.currentTimeMillis()))
+        val uploaded = cloudBackupService.uploadBackupWithLatest(config, data)
+        if (!uploaded) {
+            Logger.w("BackupService", "云备份上传失败(写入阶段)")
+            logCloudBackup(
+                status = "write_failed",
+                size = data.size.toLong(),
+                messageCount = writeSummary.messages.toLong(),
+                error = "upload failed",
+            )
+            return null
         }
-        return ok
+        return CloudWrite(data.size.toLong(), writeSummary.messages.toLong())
+    }
+
+    /**
+     * F-04: 写入后读回校验 — 下载刚上传的备份并比对字节数。
+     * 校验结果(成功或 verify_failed)写入 auto_backup_log。
+     */
+    private suspend fun verifyCloudBackupWrite(config: CloudBackupConfig, write: CloudWrite): Boolean {
+        val readBack = cloudBackupService.downloadLatestBackup(config)
+        val verified = readBack != null && readBack.size.toLong() == write.bytes
+        if (!verified) {
+            Logger.w(
+                "BackupService",
+                "云备份读回校验失败: 上传 ${write.bytes} bytes, 读回 ${readBack?.size ?: -1} bytes",
+            )
+            logCloudBackup(
+                status = "verify_failed",
+                size = write.bytes,
+                messageCount = write.messages,
+                error = "read-back mismatch: uploaded ${write.bytes}, got ${readBack?.size ?: -1}",
+            )
+            return false
+        }
+        logCloudBackup(
+            status = "success",
+            size = write.bytes,
+            messageCount = write.messages,
+            error = "",
+        )
+        return true
     }
 
     /**

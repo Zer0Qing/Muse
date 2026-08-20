@@ -65,12 +65,15 @@ import java.util.Locale
  *  - 本地备份与恢复:导出 + 导入(SAF launcher)
  *  - 云备份(P1 新增):类型选择 + S3/WebDAV 配置 + 自动同步开关 + 立即同步 + 上次同步时间
  */
+@Suppress("LongMethod", "CyclomaticComplexMethod") // 屏幕级设置分组: 使用统计/本地备份/云备份/备份记录四个 SettingsGroup 与多个对话框为固有长结构(项目惯例,见 ChatListScreen)
 @Composable
 internal fun BackupSection(
     sessionCount: Int,
     messageCount: Int,
     backupService: BackupService,
     settings: SettingsRepository,
+    /** F-04: 备份记录持久化(诊断页可见最近备份结果)。 */
+    autoBackupLogDao: io.zer0.muse.data.stats.AutoBackupLogDao,
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -287,7 +290,8 @@ internal fun BackupSection(
                 if (cloudUploading || cloudRestoring) return@SettingsItemRow
                 cloudUploading = true
                 scope.launch {
-                    val ok = backupService.exportToCloud()
+                    val outcome = backupService.exportToCloud()
+                    val ok = outcome == io.zer0.muse.backup.BackupService.CloudBackupOutcome.SUCCESS
                     // 上传成功后刷新云端备份状态
                     if (ok) {
                         checkingCloudBackup = true
@@ -340,6 +344,40 @@ internal fun BackupSection(
                 stringResource(R.string.settings_backup_never_synced)
             },
         )
+    }
+
+    // ── F-04: 最近备份记录(诊断可见,来自 auto_backup_log 表)──
+    SectionLabel(stringResource(R.string.settings_backup_log_title))
+    SettingsGroup {
+        val logs by autoBackupLogDao.observeRecent(10)
+            .collectAsStateWithLifecycle(initialValue = emptyList())
+        if (logs.isEmpty()) {
+            SettingsItemRow(
+                icon = TablerIcons.InfoCircle,
+                title = stringResource(R.string.settings_backup_log_empty),
+            )
+        } else {
+            val logFmt = remember { SimpleDateFormat(MuseDateFormats.DATE_TIME_SHORT, Locale.getDefault()) }
+            logs.forEach { log ->
+                val isSuccess = log.status == "success"
+                SettingsItemRow(
+                    icon = if (isSuccess) TablerIcons.Check else TablerIcons.X,
+                    title = logFmt.format(Date(log.createdAt)) + " · " +
+                        stringResource(
+                            if (isSuccess) R.string.settings_backup_log_success
+                            else R.string.settings_backup_log_failed,
+                        ),
+                    // 成功显示备份体量;失败显示错误摘要(errorMessage 为英文诊断串,
+                    // 缺失时回退失败文案,便于用户理解而非显示空行)
+                    subtitle = if (isSuccess) {
+                        formatBackupSize(log.fileSizeBytes)
+                    } else {
+                        log.errorMessage.takeIf { it.isNotBlank() }
+                            ?: stringResource(R.string.settings_backup_log_failed)
+                    },
+                )
+            }
+        }
     }
 
     // 导出/导入进行中:进度对话框
@@ -629,4 +667,13 @@ private fun CloudBackupConfigDialog(
         dismissText = stringResource(R.string.settings_common_cancel),
         onDismiss = onDismiss,
     )
+}
+
+/**
+ * F-04: 备份体量展示(B/KB/MB,无 CJK 字面量)。
+ */
+private fun formatBackupSize(bytes: Long): String = when {
+    bytes >= 1_048_576L -> String.format(Locale.US, "%.1f MB", bytes / 1_048_576.0)
+    bytes >= 1024L -> String.format(Locale.US, "%.1f KB", bytes / 1024.0)
+    else -> "$bytes B"
 }
