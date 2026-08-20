@@ -102,6 +102,17 @@
     <string name="memory_timeline_filter_summary">摘要</string>
     <string name="memory_timeline_filter_milestone">里程碑</string>
     <string name="memory_tab_group_chat">Chat em grupo</string>
+    <string name="memory_tab_graph">Mapa de memórias</string>
+    <string name="memory_graph_preview_title">Mapa de memórias</string>
+    <string name="memory_graph_preview_hint">Toque em uma memória para ver suas conexões</string>
+    <string name="memory_graph_preview_selected">Em foco: %1$s</string>
+    <string name="memory_graph_preview_node_muse">Muse</string>
+    <string name="memory_graph_preview_node_android">Desenvolvimento Android</string>
+    <string name="memory_graph_preview_node_local_ai">IA local</string>
+    <string name="memory_graph_preview_node_photo">Fotografia</string>
+    <string name="memory_graph_preview_node_camera">Nikon Z50 II</string>
+    <string name="memory_graph_preview_node_goal">Meta de longo prazo</string>
+    <string name="memory_graph_preview_node_writing">Escrita</string>
     <string name="memory_delete_group_chat_failed">Falha ao excluir a memória do grupo: %1$s</string>
     <string name="memory_clear_group_chat_failed">Falha ao limpar a memória do grupo: %1$s</string>
     <string name="memory_dedup_button">Mesclar memórias duplicadas</string>

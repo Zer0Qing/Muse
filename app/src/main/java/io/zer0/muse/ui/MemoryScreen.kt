@@ -70,6 +70,7 @@ import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.common.surface.CardGroup
+import io.zer0.muse.ui.memory.MemoryGraphPreview
 import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
 
@@ -133,7 +134,7 @@ fun MemoryScreen(
     var showExportDialog by rememberSaveable { mutableStateOf(false) }
     // P2-1: 大屏(Expanded)下内容区居中限宽 720dp
     val widthClass = rememberWindowWidthClass()
-    // v1.0.51: 记忆 Tab 切换 — 0=当下 1=短期 2=长期 3=事实 4=群聊(v1.0.72)
+    // v1.0.51: 记忆 Tab 切换 — 0=当下 1=短期 2=长期 3=事实 4=群聊(v1.0.72) 5=星图(Phase 0)
     var selectedMemoryTab by rememberSaveable { mutableStateOf(3) }
     val memoryTabTitles = listOf(
         stringResource(R.string.memory_tab_today),
@@ -141,6 +142,7 @@ fun MemoryScreen(
         stringResource(R.string.memory_tab_longterm),
         stringResource(R.string.memory_tab_facts),
         stringResource(R.string.memory_tab_group_chat),
+        stringResource(R.string.memory_tab_graph),
     )
 
     Scaffold(
@@ -265,7 +267,7 @@ fun MemoryScreen(
                 }
 
                 // v1.0.51: 当下/短期/长期 Tab — 直接展示编译产物,支持编辑
-                if (selectedMemoryTab != 3) {
+                if (selectedMemoryTab != 3 && selectedMemoryTab != 5) {
                     // 立即编译按钮(Tab 0-2 共用)
                     OutlinedButton(
                         onClick = { viewModel.compileNow() },
@@ -417,6 +419,16 @@ fun MemoryScreen(
                             onDismiss = { showClearAllConfirm = false },
                         )
                     }
+                    return@Column
+                }
+
+                // Phase 0: 记忆星图视觉原型。只接假数据,不触碰记忆数据库。
+                if (selectedMemoryTab == 5) {
+                    MemoryGraphPreview(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.contentGap),
+                    )
                     return@Column
                 }
 

@@ -105,6 +105,17 @@
 
     <!-- v1.0.72: group chat memory (Memory Center "Group Chat" tab) -->
     <string name="memory_tab_group_chat">Group Chat</string>
+    <string name="memory_tab_graph">Memory Map</string>
+    <string name="memory_graph_preview_title">Memory Map</string>
+    <string name="memory_graph_preview_hint">Tap a memory to see what it connects to</string>
+    <string name="memory_graph_preview_selected">Focused: %1$s</string>
+    <string name="memory_graph_preview_node_muse">Muse</string>
+    <string name="memory_graph_preview_node_android">Android development</string>
+    <string name="memory_graph_preview_node_local_ai">Local AI</string>
+    <string name="memory_graph_preview_node_photo">Photography</string>
+    <string name="memory_graph_preview_node_camera">Nikon Z50 II</string>
+    <string name="memory_graph_preview_node_goal">Long-term goal</string>
+    <string name="memory_graph_preview_node_writing">Writing</string>
     <string name="memory_delete_group_chat_failed">Failed to delete group chat memory: %1$s</string>
     <string name="memory_clear_group_chat_failed">Failed to clear group chat memory: %1$s</string>
     <!-- v1.x: memory dedup -->

@@ -102,6 +102,17 @@
     <string name="memory_timeline_filter_summary">摘要</string>
     <string name="memory_timeline_filter_milestone">里程碑</string>
     <string name="memory_tab_group_chat">그룹 채팅</string>
+    <string name="memory_tab_graph">기억 지도</string>
+    <string name="memory_graph_preview_title">기억 지도</string>
+    <string name="memory_graph_preview_hint">기억을 눌러 연결된 항목을 확인하세요</string>
+    <string name="memory_graph_preview_selected">집중됨: %1$s</string>
+    <string name="memory_graph_preview_node_muse">Muse</string>
+    <string name="memory_graph_preview_node_android">Android 개발</string>
+    <string name="memory_graph_preview_node_local_ai">로컬 AI</string>
+    <string name="memory_graph_preview_node_photo">사진</string>
+    <string name="memory_graph_preview_node_camera">Nikon Z50 II</string>
+    <string name="memory_graph_preview_node_goal">장기 목표</string>
+    <string name="memory_graph_preview_node_writing">글쓰기</string>
     <string name="memory_delete_group_chat_failed">그룹 채팅 기억을 삭제하지 못했습니다: %1$s</string>
     <string name="memory_clear_group_chat_failed">그룹 채팅 기억을 지우지 못했습니다: %1$s</string>
     <string name="memory_dedup_button">중복 기억 통합</string>
