@@ -34,7 +34,9 @@ import kotlinx.serialization.Serializable
         Index(value = ["sessionId", "createdAt"]),
         Index(value = ["sessionId", "createdAt", "role"]),
         // v92: seq 单调序列索引 — 会话内消息排序主键,替代可被刷新的 createdAt
-        Index(value = ["sessionId", "seq"]),
+        // 注意: name 必须与 MIGRATION_91_92 的 CREATE INDEX 完全一致(idx_messages_sessionId_seq),
+        // 否则真机 Room schema 校验失败(Migration didn't properly handle: messages)。
+        Index(value = ["sessionId", "seq"], name = "idx_messages_sessionId_seq"),
     ],
 )
 data class MessageEntity(

@@ -160,6 +160,15 @@ class MuseDbManualChainMigrationTest {
         assertTrue("v$fromVersion 迁移后应有 videoFileUri 列", "videoFileUri" in msgColumns)
         assertTrue("v$fromVersion 迁移后应有 moodSkin 列", "moodSkin" in msgColumns)
         assertTrue("v$fromVersion 迁移后应有 toolCallInfoJson 列", "toolCallInfoJson" in msgColumns)
+        // v92: seq 列必须存在(迁移 ADD COLUMN + 回填)
+        assertTrue("v$fromVersion 迁移后应有 seq 列", "seq" in msgColumns)
+        // v92: seq 索引名必须与注解一致(idx_messages_sessionId_seq)—
+        // 真机 Room schema 校验索引名,不一致直接崩(Migration didn't properly handle: messages)
+        val messageIndexes = mutableListOf<String>()
+        db.query("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='messages'").use { c ->
+            while (c.moveToNext()) messageIndexes.add(c.getString(0))
+        }
+        assertTrue("v$fromVersion 迁移后应有 idx_messages_sessionId_seq 索引", "idx_messages_sessionId_seq" in messageIndexes)
 
         var imageUrlsDefault = ""
         db.query("PRAGMA table_info(messages)").use { c ->

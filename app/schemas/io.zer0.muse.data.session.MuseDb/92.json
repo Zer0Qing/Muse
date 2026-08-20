@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 92,
-    "identityHash": "6b5bf55d98134b16ce6bd63fddb4da31",
+    "identityHash": "affb5ee352da77da9637cd757140215d",
     "entities": [
       {
         "tableName": "sessions",
@@ -430,14 +430,14 @@
             "createSql": "CREATE INDEX IF NOT EXISTS `index_messages_sessionId_createdAt_role` ON `${TABLE_NAME}` (`sessionId`, `createdAt`, `role`)"
           },
           {
-            "name": "index_messages_sessionId_seq",
+            "name": "idx_messages_sessionId_seq",
             "unique": false,
             "columnNames": [
               "sessionId",
               "seq"
             ],
             "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_messages_sessionId_seq` ON `${TABLE_NAME}` (`sessionId`, `seq`)"
+            "createSql": "CREATE INDEX IF NOT EXISTS `idx_messages_sessionId_seq` ON `${TABLE_NAME}` (`sessionId`, `seq`)"
           }
         ],
         "foreignKeys": [
@@ -3486,7 +3486,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '6b5bf55d98134b16ce6bd63fddb4da31')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'affb5ee352da77da9637cd757140215d')"
     ]
   }
 }
