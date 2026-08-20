@@ -139,6 +139,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.uuid.Uuid
@@ -1133,6 +1136,8 @@ class ChatViewModel(
     // v1.x: 工具配置存储(审批策略持久化) — Koin 注入单例,
     // 消除直接 new 导致的 DataStore 同文件多实例崩溃
     private val toolConfigStore: io.zer0.muse.tools.ToolConfigStore? = null,
+    /** MCP 注册表,用于在首条消息前等待助手绑定的 server 完成 tools/list。 */
+    private val mcpRegistry: io.zer0.muse.mcp.McpRegistry? = null,
 ) : ViewModel(), ChatStateAccessor, io.zer0.muse.tools.ToolApprovalBridge {
     // v1.0.54: autoSave 去重状态(30 秒内同会话只跑一次,防堆积)
     private var lastAutoSaveSessionId: String? = null
@@ -1798,13 +1803,17 @@ class ChatViewModel(
         }
         // v1.43: 监听应用级生成状态。切页后新 ViewModel 创建时,若同一会话仍在后台生成,
         // 自动把 isStreaming 置 true,UI 会显示停止按钮并继续观察消息流。
-        // v1.136 修复:按 isAgentMode 区分当前会话,避免 Agent/任务模式互相干扰。
+        // 使用按 sessionId 的完整快照,避免另一个会话成为“最近任务”后遮蔽当前会话状态。
         viewModelScope.launch {
-            chatGenerationManager.activeGeneration.collect { gen ->
+            chatGenerationManager.activeGenerations.collect { generations ->
                 val state = _state.value
                 val currentSessionId = if (state.isAgentMode) state.agentSessionId else state.currentSessionId
-                if (gen != null && gen.sessionId == currentSessionId && gen.isStreaming) {
-                    _state.update { it.copy(isStreaming = true) }
+                val streaming = currentSessionId != null && currentSessionId in generations
+                _state.update { current ->
+                    if (current.isStreaming == streaming) current else current.copy(
+                        isStreaming = streaming,
+                        isWaitingFirstToken = if (streaming) current.isWaitingFirstToken else false,
+                    )
                 }
             }
         }
@@ -2520,6 +2529,12 @@ class ChatViewModel(
      */
     private fun computeStaticSnapshotKey(assistant: AssistantEntity?, memoryEnabled: Boolean): String {
         val prefs = _state.value.chatPreferences
+        val registeredToolFingerprint = toolRegistry.listTools()
+            .sortedBy { it.name }
+            .joinToString(";") { tool ->
+                "${tool.name}|${tool.description}|${tool.parameters}|${tool.required.sorted()}"
+            }
+            .hashCode()
         // v1.0.47 P3: 会话级 skill 覆盖影响工具列表,加入缓存键(随 currentSessionId 变化失效)
         val state = _state.value
         val effectiveSessionId = if (state.isAgentMode) state.agentSessionId else state.currentSessionId
@@ -2536,6 +2551,10 @@ class ChatViewModel(
             append(assistant?.systemPrompt?.hashCode() ?: 0)
             append("|")
             append(assistant?.toolIdsJson?.hashCode() ?: 0)
+            append("|")
+            append(assistant?.mcpServerIdsJson?.hashCode() ?: 0)
+            append("|")
+            append(registeredToolFingerprint)
             append("|")
             append(assistant?.skillIdsJson?.hashCode() ?: 0)
             append("|")
@@ -3271,10 +3290,9 @@ class ChatViewModel(
         }
         viewModelScope.launch {
             // v1.97: 先读取后台生成状态,既用于恢复 isStreaming,也用于判断缓存是否可用。
-            // 后台正在生成的会话其消息持续变化,需走 DB 加载最新,跳过缓存避免读到过期快照。
-            // chatGenerationManager.activeGeneration 在生成期间 isStreaming=true,结束后自动 false。
-            val activeGen = chatGenerationManager.activeGeneration.value
-            val isBackgroundStreaming = activeGen?.sessionId == sessionId && activeGen.isStreaming
+            // 使用按 sessionId 的查询,不能只看 activeGeneration:多个会话并发生成时,
+            // activeGeneration 只代表最近一个活跃会话,另一个会话仍可能在后台持续写入。
+            val isBackgroundStreaming = chatGenerationManager.isStreaming(sessionId)
             // v1.93+: 优先查内存 LRU 缓存,命中且非后台生成时直接复用,跳过 DB 查询。
             val cached = if (!isBackgroundStreaming) sessionMemoryCache.get(sessionId) else null
             val memoryCacheHit = cached != null
@@ -3287,6 +3305,10 @@ class ChatViewModel(
                 // v1.53-A1: 未命中缓存,分页加载,只取最近 MESSAGE_PAGE_SIZE 条,避免一次性加载全部
                 loadMessagesPaged(sessionId)
             }
+            val backgroundWaitingForOutput = isBackgroundStreaming && (
+                messages.lastOrNull { it.role == MessageRole.ASSISTANT }
+                    ?.let { it.content.isBlank() && it.toolCalls.isNullOrEmpty() } == true
+                )
             // P3: 加载本会话的权限模式(未单独设置时跟随全局默认,修复"完全放权"设置不生效)
             val permissionMode = sessionPermissionStore.getMode(
                 sessionId,
@@ -3313,6 +3335,7 @@ class ChatViewModel(
                     isLoadingMore = false,
                     lastHistoryLoadCount = 0,
                     isStreaming = isBackgroundStreaming,
+                    isWaitingFirstToken = backgroundWaitingForOutput,
                     taskCards = emptyMap(),
                     pendingToolApprovals = emptyList(),
                     toolCallHistory = emptyList(),
@@ -3355,8 +3378,9 @@ class ChatViewModel(
             // P0 对话树: 读取上次分支选择快照,重建时恢复用户/助手变体
             val treeSnapshot = treeSnapshotStore?.load(sessionId)
         rebuildConversationTree(previousOverride = treeSnapshot)
-            // 切换会话取消所有待审批(防止幽灵审批卡片 + requestToolApproval 协程挂起)
-            cancelAllPendingApprovals()
+            // 不取消后台生成的审批等待。生成任务运行在 appScope,切换会话只隐藏当前卡片;
+            // 回到原会话时 restorePendingApprovalsForSession 会重新显示并继续等待用户决定。
+            restorePendingApprovalsForSession(sessionId)
             // 断点续传:检查本会话是否有未完成的工具调用,有则更新 pendingToolCallCount
             // 让 ChatScreen 顶部 Banner 显示"上次有 N 个工具调用未完成"提示用户恢复
             val pendingCount = resultOf { PendingToolCallStore.getForChat(sessionId) }
@@ -3426,11 +3450,17 @@ class ChatViewModel(
                 val assistant = assistantRepository.getById(assistantId)
                     ?: assistantRepository.getById("default")
                 _messages.value = messages
+                val agentBackgroundStreaming = chatGenerationManager.isStreaming(sessionId)
                 _state.update {
                     it.copy(
                         isAgentMode = true,
                         agentSessionId = sessionId,
                         isSwitchingSession = false,
+                        isStreaming = agentBackgroundStreaming,
+                        isWaitingFirstToken = agentBackgroundStreaming && messages
+                            .lastOrNull { msg -> msg.role == MessageRole.ASSISTANT }
+                            ?.let { msg -> msg.content.isBlank() && msg.toolCalls.isNullOrEmpty() }
+                            == true,
                         currentAssistant = assistant,
                         errors = emptyList(),
                         hasMoreHistory = hasMore,
@@ -3504,9 +3534,15 @@ class ChatViewModel(
                     val assistant = assistantRepository.getById(assistantId)
                         ?: assistantRepository.getById("default")
                     _messages.value = messages
+                    val taskBackgroundStreaming = chatGenerationManager.isStreaming(sid)
                     _state.update {
                         it.copy(
                             currentAssistant = assistant,
+                            isStreaming = taskBackgroundStreaming,
+                            isWaitingFirstToken = taskBackgroundStreaming && messages
+                                .lastOrNull { msg -> msg.role == MessageRole.ASSISTANT }
+                                ?.let { msg -> msg.content.isBlank() && msg.toolCalls.isNullOrEmpty() }
+                                == true,
                             hasMoreHistory = hasMore,
                             isLoadingMore = false,
                             lastHistoryLoadCount = 0,
@@ -4468,16 +4504,49 @@ class ChatViewModel(
 
     // 工具审批回调结果存储(toolCallId → Deferred result)
     private val toolApprovalResults = java.util.concurrent.ConcurrentHashMap<String, kotlinx.coroutines.CompletableDeferred<ToolApprovalState>>()
+    /** 待审批调用所属会话,避免切换会话后审批结果串到当前会话。 */
+    private val toolApprovalSessions = java.util.concurrent.ConcurrentHashMap<String, String>()
+    /** 后台等待中的审批记录,回到对应会话时恢复 UI 卡片。 */
+    private val pendingToolApprovalRecords = java.util.concurrent.ConcurrentHashMap<String, PendingToolApproval>()
 
-    /**
-     * 取消所有待审批的工具调用(stop/switchSession 时调用,防止幽灵审批卡片 + 协程挂起)。
-     */
+    /** 取消所有待审批的工具调用(应用级停止或测试清理使用)。 */
     private fun cancelAllPendingApprovals() {
         _state.update { it.copy(pendingToolApprovals = emptyList()) }
-        for ((_, deferred) in toolApprovalResults) {
+        for ((toolCallId, deferred) in toolApprovalResults) {
             deferred.complete(ToolApprovalState.Denied("Generation stopped"))
+            toolApprovalSessions.remove(toolCallId)
+            pendingToolApprovalRecords.remove(toolCallId)
         }
         toolApprovalResults.clear()
+    }
+
+    private fun cancelPendingApprovalsForSession(sessionId: String?) {
+        if (sessionId.isNullOrBlank()) {
+            cancelAllPendingApprovals()
+            return
+        }
+        val ids = toolApprovalSessions
+            .filterValues { it == sessionId }
+            .keys
+            .toList()
+        _state.update { state ->
+            state.copy(
+                pendingToolApprovals = state.pendingToolApprovals.filterNot { it.toolCallId in ids },
+            )
+        }
+        ids.forEach { toolCallId ->
+            toolApprovalResults.remove(toolCallId)?.complete(ToolApprovalState.Denied("Generation stopped"))
+            toolApprovalSessions.remove(toolCallId)
+            pendingToolApprovalRecords.remove(toolCallId)
+        }
+    }
+
+    private fun restorePendingApprovalsForSession(sessionId: String) {
+        val records = pendingToolApprovalRecords
+            .filter { (toolCallId, _) -> toolApprovalSessions[toolCallId] == sessionId }
+            .values
+            .toList()
+        _state.update { it.copy(pendingToolApprovals = records) }
     }
 
     /**
@@ -4490,18 +4559,36 @@ class ChatViewModel(
      * 最终由 [ToolPermissionResolver] 统一解析。
      */
     override suspend fun requestToolApproval(toolName: String, toolCallId: String, argsPreview: String, args: Map<String, Any?>): ToolApprovalState {
+        val sessionId = currentSessionIdForApproval()
+            ?: return ToolApprovalState.Denied("No active chat session")
+        return requestToolApprovalForSession(sessionId, toolName, toolCallId, argsPreview, args)
+    }
+
+    private suspend fun requestToolApprovalForSession(
+        sessionId: String,
+        toolName: String,
+        toolCallId: String,
+        argsPreview: String,
+        args: Map<String, Any?>,
+    ): ToolApprovalState {
         // v1.0.16: 本次开启期间已批准全部工具,直接 Auto 执行,不再弹审批卡片
         if (_state.value.appRunAllowAllTools) {
             return ToolApprovalState.Auto
         }
         // v1.x: 本会话临时允许的工具直接 Auto(会话级缓存,会话切换/结束时自动失效)
-        currentSessionIdForApproval()?.let { sid ->
-            if (sessionPermissionStore.isAllowedThisSession(sid, toolName)) {
-                return ToolApprovalState.Auto
-            }
+        if (sessionPermissionStore.isAllowedThisSession(sessionId, toolName)) {
+            return ToolApprovalState.Auto
         }
         val perToolPolicy = toolConfigStore!!.getPolicy(toolName)
-        val mode = _state.value.sessionPermissionMode
+        val displayedSessionId = currentSessionIdForApproval()
+        val mode = if (displayedSessionId == sessionId) {
+            _state.value.sessionPermissionMode
+        } else {
+            sessionPermissionStore.getMode(
+                sessionId,
+                settings.defaultSessionPermissionModeFlow.first(),
+            )
+        }
         val risk = toolRegistry.getToolRiskLevel(toolName)
         // v1.x: 审批决策调试日志 — 排查"完全放权不生效/始终允许无效"类问题
         Logger.d(
@@ -4529,19 +4616,24 @@ class ChatViewModel(
         // 需要用户审批:添加到待审批列表并等待结果
         val deferred = kotlinx.coroutines.CompletableDeferred<ToolApprovalState>()
         toolApprovalResults[toolCallId] = deferred
-        _state.update {
-            it.copy(
-                pendingToolApprovals = it.pendingToolApprovals + PendingToolApproval(
-                    toolCallId = toolCallId,
-                    toolName = toolName,
-                    argumentsPreview = argsPreview,
-                )
-            )
+        toolApprovalSessions[toolCallId] = sessionId
+        val pending = PendingToolApproval(
+            toolCallId = toolCallId,
+            toolName = toolName,
+            argumentsPreview = argsPreview,
+        )
+        pendingToolApprovalRecords[toolCallId] = pending
+        if (displayedSessionId == sessionId) {
+            _state.update {
+                it.copy(pendingToolApprovals = it.pendingToolApprovals + pending)
+            }
         }
         return try {
             deferred.await()
         } finally {
             toolApprovalResults.remove(toolCallId)
+            toolApprovalSessions.remove(toolCallId)
+            pendingToolApprovalRecords.remove(toolCallId)
         }
     }
 
@@ -4640,6 +4732,19 @@ class ChatViewModel(
             continueFrom?.let { state.builder.append(it.content) }
             try {
                 streamCoordinator.prepareHistory(state)
+                val mcpServerIds = state.assistant
+                    ?.let(assistantRepository::parseMcpServerIds)
+                    ?.toSet()
+                    .orEmpty()
+                if (mcpServerIds.isNotEmpty()) {
+                    val ready = mcpRegistry?.awaitToolsForServers(mcpServerIds) ?: true
+                    if (!ready) {
+                        Logger.w("ChatVM", "MCP tools not ready before stream: $mcpServerIds")
+                    }
+                }
+                // MCP 工具清单必须在构建 system prompt 前就绪,否则首次请求的静态
+                // 工具索引会漏掉刚完成握手的 server。请求 schema 仍是最终准则,但同步
+                // 这里可以让模型同时看到 MCP 能力说明和真实 function schema。
                 buildSystemPromptForStream(state)
                 streamCoordinator.applyTransformers(state)
                 streamCoordinator.resolveToolsAndModel(state)
@@ -4746,8 +4851,8 @@ class ChatViewModel(
                     notificationManager.updateLiveProgress("", 0, false)
                 }.onFailure { Logger.w("ChatVM", "取消进度通知失败: ${it.message}") }
             } finally {
-                // v1.43: 生成结束(正常/异常/取消)都停止前台服务
-                runCatching { ChatGenerationService.stop(appContext) }
+                // 前台服务观察全部 activeGenerations。这里不能无条件 stop:
+                // 另一个会话可能仍在后台生成,服务应继续保活到最后一个任务结束。
                 // v1.0.21: 生成结束后清除内存缓存,避免切回时命中过期快照(缺少最终回复)
                 //   后台生成期间 DB 已写入最新消息,切回时应从 DB 加载而非用旧缓存
                 sessionMemoryCache.remove(sessionId)
@@ -5095,9 +5200,43 @@ class ChatViewModel(
                 // v1.0.17: StreamInterrupted 的原始 throwable,用于判断是否网络错误(IOException)
                 var streamInterruptedThrowable: Throwable? = null
                 val streamToUi = _state.value.chatPreferences.streamResponse
+                val pendingFlushMutex = Mutex()
 
-                flow.collect { event ->
-                    when (event) {
+                suspend fun flushPendingToUi(force: Boolean = false) {
+                    if (!streamToUi) return
+                    pendingFlushMutex.withLock {
+                        if (pendingBuilder.isEmpty()) return@withLock
+                        val now = System.currentTimeMillis()
+                        if (!force && now - lastUiUpdateAt < STREAM_THROTTLE_MS) return@withLock
+                        val sliceLength = if (force) pendingBuilder.length else {
+                            minOf(computeAdaptiveSlice(), pendingBuilder.length)
+                        }
+                        params.builder.append(pendingBuilder.substring(0, sliceLength))
+                        pendingBuilder.delete(0, sliceLength)
+                        updateAssistantWithVisualTransform(
+                            state,
+                            params.currentAssistantId,
+                            unmaskPii(params.builder.toString()),
+                            isStreaming = true,
+                        )
+                        lastUiUpdateChars = params.builder.length
+                        lastUiUpdateAt = now
+                    }
+                }
+
+                coroutineScope {
+                    // 旧逻辑只有收到下一个 token 时才检查 50ms 节流;
+                    // 如果上游短暂停顿,尾部 pendingBuilder 会一直留到 Done 才一次性刷出。
+                    // 独立刷新协程让 UI 按时间稳定更新,不改变网络流和工具执行顺序。
+                    val pendingFlushJob = launch {
+                        while (isActive) {
+                            delay(STREAM_THROTTLE_MS)
+                            flushPendingToUi()
+                        }
+                    }
+                    try {
+                        flow.collect { event ->
+                            when (event) {
                         is ChatStreamEvent.ContentDelta -> {
                             // C-11: 续传去重 — 跳过与"尚未被消费的已显示内容"重叠的最长公共前缀。
                             //  B3-03 原实现用精确 startsWith 匹配:provider 改写/补全返回内容时,
@@ -5138,23 +5277,14 @@ class ChatViewModel(
                                     if (chunkIntervals.size > STREAM_SLIDE_WINDOW) chunkIntervals.removeFirst()
                                 }
                                 lastChunkAt = now
-                                pendingBuilder.append(effectiveDelta)
+                                pendingFlushMutex.withLock {
+                                    pendingBuilder.append(effectiveDelta)
+                                }
                                 if (isFirstToken) {
-                                    // 首 token 立即输出全部 pending 内容,不等 50ms,消除 loading→大量文字 的断层
-                                    params.builder.append(pendingBuilder)
-                                    pendingBuilder.clear()
-                                    updateAssistantWithVisualTransform(state, params.currentAssistantId, unmaskPii(params.builder.toString()), isStreaming = true)
-                                    lastUiUpdateChars = params.builder.length
-                                    lastUiUpdateAt = now
-                                } else if (now - lastUiUpdateAt >= STREAM_THROTTLE_MS && pendingBuilder.isNotEmpty()) {
-                                    // 50ms 固定节流 + 自适应切片(慢速流切片小,快速流切片大)
-                                    val slice = computeAdaptiveSlice()
-                                    val sliceLen = minOf(slice, pendingBuilder.length)
-                                    params.builder.append(pendingBuilder.substring(0, sliceLen))
-                                    pendingBuilder.delete(0, sliceLen)
-                                    updateAssistantWithVisualTransform(state, params.currentAssistantId, unmaskPii(params.builder.toString()), isStreaming = true)
-                                    lastUiUpdateChars = params.builder.length
-                                    lastUiUpdateAt = now
+                                    // 首 token 立即输出,后续由独立刷新协程按 50ms 节奏更新。
+                                    flushPendingToUi(force = true)
+                                } else {
+                                    flushPendingToUi()
                                 }
                             } else {
                                 // 非流式 UI:直接累积到 builder(保持原行为,通知/持久化仍按 builder.length 节流)
@@ -5188,7 +5318,7 @@ class ChatViewModel(
                             if (params.builder.length - lastPersistChars >= 300 || now - lastPersistAt >= 2000) {
                                 lastPersistChars = params.builder.length
                                 lastPersistAt = now
-                                chatGenerationManager.touch()
+                                chatGenerationManager.touch(sessionId)
                                 val persistMsg = _messages.value
                                     .firstOrNull { it.id == params.currentAssistantId }
                                     ?.copy(
@@ -5330,6 +5460,10 @@ class ChatViewModel(
                                 )
                             }
                         }
+                            }
+                        }
+                    } finally {
+                        pendingFlushJob.cancelAndJoin()
                     }
                 }
 
@@ -5584,7 +5718,13 @@ class ChatViewModel(
             }
 
             override suspend fun requestToolApproval(toolName: String, toolCallId: String, argsPreview: String, args: Map<String, Any?>): ToolApprovalState {
-                return this@ChatViewModel.requestToolApproval(toolName, toolCallId, argsPreview, args)
+                return this@ChatViewModel.requestToolApprovalForSession(
+                    sessionId = sessionId,
+                    toolName = toolName,
+                    toolCallId = toolCallId,
+                    argsPreview = argsPreview,
+                    args = args,
+                )
             }
 
             override fun onToolLoopError(type: ChatErrorType, message: String, recoverable: Boolean) {
@@ -5594,12 +5734,14 @@ class ChatViewModel(
             // v1.x: 单个工具开始/结束回调(用于调试日志)
             //  默认空实现已存在于接口,这里覆盖做 debug 日志,便于追踪工具执行耗时与状态。
             override fun onToolStart(toolCallId: String, toolName: String) {
+                chatGenerationManager.touch(sessionId)
                 if (experiments.debugMode) {
                     Logger.d("ChatVM", "onToolStart | tool=$toolName | id=$toolCallId | sessionId=$sessionId")
                 }
             }
 
             override fun onToolFinish(toolCallId: String, toolName: String, success: Boolean, durationMs: Long) {
+                chatGenerationManager.touch(sessionId)
                 if (experiments.debugMode) {
                     Logger.d(
                         "ChatVM",
@@ -5908,7 +6050,7 @@ class ChatViewModel(
                     .onError { msg, _ -> Logger.w("ChatVM", "saveGeneratingSessionId 清理失败: $msg") }
             }
         }
-        runCatching { ChatGenerationService.stop(appContext) }
+        // 前台服务观察全部 activeGenerations;停止当前会话不能关闭其他会话的保活。
         imageJob?.cancel()
         imageJob = null
         translateJob?.cancel()
@@ -5927,7 +6069,7 @@ class ChatViewModel(
             )
         }
         // 取消所有待审批的工具调用(防止 stop 后幽灵审批卡片 + requestToolApproval 协程挂起)
-        cancelAllPendingApprovals()
+        cancelPendingApprovalsForSession(sid)
         // 通知:用户停止时取消进度通知
         runCatching {
             notificationManager.updateLiveProgress("", 0, false)
@@ -6171,9 +6313,14 @@ class ChatViewModel(
      * 同时保持进程前台优先级防止被系统回收)。前台时不显示通知(避免"正在生成"打扰)。
      */
     fun onAppBackground() {
-        val active = chatGenerationManager.activeGeneration.value
-        if (active != null && active.isStreaming) {
-            Logger.i("ChatViewModel", "应用切后台,启动前台服务保活(会话: ${active.sessionTitle})")
+        val activeGenerations = chatGenerationManager.activeGenerations.value
+        if (activeGenerations.isNotEmpty()) {
+            val latest = activeGenerations.values.maxByOrNull { it.lastUpdatedAt }
+            Logger.i(
+                "ChatViewModel",
+                "background keep-alive started | tasks=${activeGenerations.size} | " +
+                    "latestSession=${latest?.sessionTitle ?: "unknown"}",
+            )
             runCatching { ChatGenerationService.start(appContext) }
                 .onFailure { Logger.w("ChatViewModel", "前台服务启动失败,切后台可能被回收", it) }
         }

@@ -62,6 +62,8 @@ data class McpTool(
 data class McpToolCallResult(
     val content: List<JsonElement> = emptyList(),
     val isError: Boolean = false,
+    /** MCP 2025-03-26 可选的结构化工具结果,部分 server 只在这里返回业务数据。 */
+    val structuredContent: JsonElement? = null,
 )
 
 /**
@@ -216,6 +218,29 @@ class McpClient(
     @Volatile
     private var postEndpoint: String? = null
 
+    /**
+     * Streamable HTTP 会话 ID。
+     *
+     * MCP 2025-03-26 允许 server 在 initialize 响应的
+     * `Mcp-Session-Id` 响应头中分配会话,后续 tools/list、tools/call 等请求必须
+     * 原样带回该请求头。没有这个头时,很多 server 会让握手看似成功,但后续请求返回
+     * 404/400,模型最终就拿不到任何 MCP 工具。
+     */
+    @Volatile
+    private var streamableSessionId: String? = null
+
+    /** initialize 协商出的 MCP 协议版本,后续 HTTP 请求按 server 选择的版本发送。 */
+    @Volatile
+    private var negotiatedProtocolVersion: String = PROTOCOL_VERSION
+
+    /** server 终止会话后,下一次请求需要重新 initialize。 */
+    @Volatile
+    private var streamableSessionInvalidated = false
+
+    /** 最近一次传输层失败摘要,只保存状态码/网络类别,不保存响应正文或凭证。 */
+    @Volatile
+    private var lastTransportFailure: String? = null
+
     /** 服务端信息(initialize 响应里返回)。 */
     @Volatile
     private var serverInfo: McpServerInfo? = null
@@ -317,6 +342,10 @@ class McpClient(
 
     private suspend fun connectInternal() {
         _state.value = McpConnectionState.CONNECTING
+        // 每次新建 Streamable HTTP 连接都必须从 initialize 重新取得会话 ID。
+        streamableSessionId = null
+        negotiatedProtocolVersion = PROTOCOL_VERSION
+        streamableSessionInvalidated = false
         Logger.d(TAG, "[${config.name}] 连接中 transport=${config.transportType} url=${config.url}")
 
         // Phase 10.4: OAuth 模式下先校验 token
@@ -677,6 +706,7 @@ class McpClient(
         val request = Request.Builder()
             .url(endpoint.toHttpUrl())
             .header("Content-Type", "application/json")
+            .header("Accept", "application/json, text/event-stream")
             .apply { authHeaders.forEach { (k, v) -> header(k, v) } }
             .post(jsonRpc.toRequestBody(JSON_MEDIA_TYPE))
             .build()
@@ -704,7 +734,10 @@ class McpClient(
                         if (body.isNotBlank() && body.trimStart().startsWith("{")) {
                             runCatching { AppJson.decodeFromString(JsonObject.serializer(), body) }.getOrNull()
                         } else null  // 202 Accepted,等 SSE 事件
-                    } else null
+                    } else {
+                        lastTransportFailure = "MCP HTTP ${resp.code}"
+                        null
+                    }
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
@@ -715,6 +748,7 @@ class McpClient(
                     return@withContext null
                 }
                 Logger.w(TAG, "[${config.name}] POST 请求 IO 异常: ${e.message}")
+                lastTransportFailure = "MCP network request failed"
                 null
             }
         }
@@ -770,6 +804,10 @@ class McpClient(
             .url(config.url.toHttpUrl())
             .header("Content-Type", "application/json")
             .header("Accept", "application/json, text/event-stream")
+            .header("MCP-Protocol-Version", negotiatedProtocolVersion)
+            .apply {
+                streamableSessionId?.let { header("Mcp-Session-Id", it) }
+            }
             .apply { authHeaders.forEach { (k, v) -> header(k, v) } }
             .post(jsonRpc.toRequestBody(JSON_MEDIA_TYPE))
             .build()
@@ -791,8 +829,33 @@ class McpClient(
                         return@withContext null
                     }
                     if (!resp.isSuccessful) {
-                        Logger.w(TAG, "[${config.name}] StreamableHTTP HTTP ${resp.code}")
+                        lastTransportFailure = "MCP HTTP ${resp.code}"
+                        if (
+                            resp.code == 404 &&
+                            streamableSessionId != null
+                        ) {
+                            // 按 MCP 会话规范,404 表示 session 已被 server 终止;下一次
+                            // 请求前清掉旧 ID,由 sendRequest 重新 initialize。
+                            streamableSessionInvalidated = true
+                            streamableSessionId = null
+                        }
+                        val errorBody = resp.body?.string()?.take(500).orEmpty()
+                        Logger.w(
+                            TAG,
+                            "[${config.name}] StreamableHTTP HTTP ${resp.code}" +
+                                errorBody.takeIf { it.isNotBlank() }?.let { ": $it" }.orEmpty(),
+                        )
                         return@use null
+                    }
+                    // initialize 通常是第一个 Streamable HTTP 请求,但规范允许 server
+                    // 在后续响应更新会话 ID,因此每次响应都读取并覆盖本地缓存。
+                    resp.header("Mcp-Session-Id")?.takeIf { it.isNotBlank() }?.let { sessionId ->
+                        streamableSessionId = sessionId
+                        Logger.d(
+                            TAG,
+                            "[${config.name}] StreamableHTTP session established " +
+                                "(length=${sessionId.length})",
+                        )
                     }
                     val contentType = resp.header("Content-Type") ?: ""
                     val body = resp.body.string()
@@ -816,6 +879,7 @@ class McpClient(
                 throw e
             } catch (e: java.io.IOException) {
                 Logger.w(TAG, "[${config.name}] StreamableHTTP 请求 IO 异常: ${e.message}")
+                lastTransportFailure = "MCP network request failed"
                 null
             }
         }
@@ -908,6 +972,7 @@ class McpClient(
         // L-MCP3: 读取 server 返回的 protocolVersion 并记录
         val serverProtocolVersion = (result?.get("protocolVersion") as? JsonPrimitive)?.content
         if (serverProtocolVersion != null) {
+            negotiatedProtocolVersion = serverProtocolVersion
             Logger.i(TAG, "[${config.name}] server protocolVersion=$serverProtocolVersion (client=${PROTOCOL_VERSION})")
         }
         serverInfo = result?.let {
@@ -918,9 +983,12 @@ class McpClient(
             )
         }
 
+        // 仅有一个没有 error 的 JSON-RPC 外壳不代表握手成功;必须确认 result
+        // 存在,否则后续 tools/list 会在“假 CONNECTED”状态下静默变成空工具集。
+        if (response["error"] != null || result == null) return false
         // 发 initialized 通知(无 id)
         sendNotification("notifications/initialized")
-        return response["error"] == null
+        return true
     }
 
     /**
@@ -928,23 +996,34 @@ class McpClient(
      * @return 工具列表;失败返回空列表
      */
     suspend fun listTools(): List<McpTool> = withContext(Dispatchers.IO) {
-        if (_state.value != McpConnectionState.CONNECTED) return@withContext emptyList()
+        listToolsOrNull() ?: emptyList()
+    }
+
+    /**
+     * tools/list 的可空版本。
+     *
+     * 空列表是 MCP server 的合法结果,不能和 HTTP/JSON-RPC 失败混为一谈;
+     * Registry 需要据此决定是否允许聊天继续等待工具注册。
+     */
+    suspend fun listToolsOrNull(): List<McpTool>? = withContext(Dispatchers.IO) {
+        if (_state.value != McpConnectionState.CONNECTED) return@withContext null
         val id = idCounter.getAndIncrement()
         val request = buildJsonObject {
             put("jsonrpc", "2.0")
             put("id", id)
             put("method", "tools/list")
         }
-        val response = sendRequest(id, request) ?: return@withContext emptyList()
+        val response = sendRequest(id, request) ?: return@withContext null
         logJsonRpcError("tools/list", response)
-        val result = response["result"] as? JsonObject ?: return@withContext emptyList()
-        val toolsEl = result["tools"] ?: return@withContext emptyList()
+        if (response["error"] != null) return@withContext null
+        val result = response["result"] as? JsonObject ?: return@withContext null
+        val toolsEl = result["tools"] ?: return@withContext null
         runCatching {
             AppJson.decodeFromString(
                 kotlinx.serialization.builtins.ListSerializer(McpTool.serializer()),
                 AppJson.encodeToString(toolsEl),
             )
-        }.getOrDefault(emptyList())
+        }.getOrNull()
     }
 
     /**
@@ -955,8 +1034,18 @@ class McpClient(
      */
     suspend fun callTool(name: String, arguments: JsonObject): McpToolCallResult = withContext(Dispatchers.IO) {
         if (_state.value != McpConnectionState.CONNECTED) {
-            return@withContext McpToolCallResult(isError = true)
+            lastTransportFailure = "MCP client is not connected"
+            return@withContext McpToolCallResult(
+                isError = true,
+                content = listOf(
+                    buildJsonObject {
+                        put("type", "text")
+                        put("text", lastTransportFailure ?: "MCP client is not connected")
+                    },
+                ),
+            )
         }
+        lastTransportFailure = null
         val id = idCounter.getAndIncrement()
         val request = buildJsonObject {
             put("jsonrpc", "2.0")
@@ -967,9 +1056,36 @@ class McpClient(
                 put("arguments", arguments)
             })
         }
-        val response = sendRequest(id, request) ?: return@withContext McpToolCallResult(isError = true)
+        val response = sendRequest(id, request) ?: return@withContext McpToolCallResult(
+            isError = true,
+            content = listOf(
+                buildJsonObject {
+                    put("type", "text")
+                    put("text", lastTransportFailure ?: "MCP transport request failed")
+                },
+            ),
+        )
         logJsonRpcError("tools/call", response)
-        val result = response["result"] ?: return@withContext McpToolCallResult(isError = true)
+        response["error"]?.let { error ->
+            return@withContext McpToolCallResult(
+                isError = true,
+                content = listOf(
+                    buildJsonObject {
+                        put("type", "text")
+                        put("text", "JSON-RPC error: $error")
+                    },
+                ),
+            )
+        }
+        val result = response["result"] ?: return@withContext McpToolCallResult(
+            isError = true,
+            content = listOf(
+                buildJsonObject {
+                    put("type", "text")
+                    put("text", "MCP response did not contain a result")
+                },
+            ),
+        )
         runCatching {
             AppJson.decodeFromString(McpToolCallResult.serializer(), AppJson.encodeToString(result))
         }.getOrDefault(McpToolCallResult(isError = true))
@@ -1139,11 +1255,15 @@ class McpClient(
      * 发送 JSON-RPC 请求,等待响应(带超时)。
      * SSE 模式:POST 后等 SSE 事件;StreamableHTTP:直接拿响应。
      */
-    private suspend fun sendRequest(id: Long, request: JsonObject): JsonObject? {
+    private suspend fun sendRequest(
+        id: Long,
+        request: JsonObject,
+        allowSessionRecovery: Boolean = true,
+    ): JsonObject? {
         val jsonStr = AppJson.encodeToString(request)
         val timeoutMs = config.requestTimeoutMs
 
-        return when (config.transportType) {
+        val response = when (config.transportType) {
             McpTransportType.STREAMABLE_HTTP -> {
                 withTimeoutOrNull(timeoutMs) { postStreamableRequest(jsonStr) }
             }
@@ -1167,6 +1287,20 @@ class McpClient(
                 }
             }
         }
+
+        if (
+            response == null &&
+            allowSessionRecovery &&
+            config.transportType == McpTransportType.STREAMABLE_HTTP &&
+            streamableSessionInvalidated
+        ) {
+            streamableSessionInvalidated = false
+            Logger.i(TAG, "[${config.name}] MCP session 已失效,重新 initialize 后重试原请求")
+            if (sendInitialize()) {
+                return sendRequest(id, request, allowSessionRecovery = false)
+            }
+        }
+        return response
     }
 
     /** 发送 JSON-RPC 通知(无 id,无响应)。 */
@@ -1224,6 +1358,8 @@ class McpClient(
         eventSource = null
         scope.cancel()
         pendingRequests.clear()
+        streamableSessionId = null
+        negotiatedProtocolVersion = PROTOCOL_VERSION
     }
 
     private companion object {

@@ -163,6 +163,7 @@ class ChatTaskCardCoordinator(
      * 与 ToolRegistry 内的错误返回格式约定一致:工具失败时返回以中文错误描述开头的字符串。
      */
     fun isToolResultSuccess(result: String): Boolean {
+        if (result.trimStart().startsWith("error:", ignoreCase = true)) return false
         val errorPrefixes = listOf(
             "工具不存在", "工具执行异常", "参数解析失败", "skill 执行异常",
             "路径越权", "缺少参数", "文件过大", "文件不存在", "未知 skill",

@@ -1333,6 +1333,16 @@ class OpenAIProvider(
             reasoningLevel = effectiveReasoningLevel,
         )
         val messagesWithPatches = injectSystemPromptPatches(normalizedMessages, promptPatches)
+        // 先完成 schema 清洗再决定 tool_choice。此前这里根据 request.tools 判断,
+        // 但非法/不兼容 schema 可能被 toOpenAISafely() 全部过滤,最终发出
+        // tool_choice=required 且 tools 缺失的请求,导致 MCP 请求直接 400。
+        val openAiTools = if (compat.supportsToolCalling) {
+            request.tools?.mapNotNull { it.toOpenAISafely() }
+                ?.distinctBy { it.function.name }
+                ?.takeIf { it.isNotEmpty() }
+        } else {
+            null
+        }
         val payload = OpenAIRequest(
             model = effectiveModel,
             messages = messagesWithPatches.map { it.toOpenAI(request.model, compat) },
@@ -1348,11 +1358,8 @@ class OpenAIProvider(
             // 防止 DeepSeek 等严格校验工具名唯一性的 API 返回 400。
             // v1.0.5: stripEmptyTools — 空 tools 列表改为 null,避免序列化出
             //  `"tools": []` 被严格中转站拒绝。
-            tools = if (compat.supportsToolCalling)
-                request.tools?.mapNotNull { it.toOpenAISafely() }?.distinctBy { it.function.name }
-                    ?.takeIf { it.isNotEmpty() }
-            else null,
-            tool_choice = if (compat.supportsToolCalling && payloadToolsPresent(request.tools)) {
+            tools = openAiTools,
+            tool_choice = if (compat.supportsToolCalling && !openAiTools.isNullOrEmpty()) {
                 request.toolChoice
             } else {
                 null
@@ -2311,6 +2318,9 @@ class OpenAIProvider(
         val isCodex = openAIConfig.responsesPath.contains("codex")
         val store = if (isCodex) false else null
 
+        val responseTools = request.tools?.mapNotNull { it.toOpenAISafely() }
+            ?.distinctBy { it.function.name }
+            ?.takeIf { it.isNotEmpty() }
         val payload = ResponsesRequest(
             model = effectiveModel,
             input = inputItems,
@@ -2318,17 +2328,13 @@ class OpenAIProvider(
             stream = stream,
             max_output_tokens = request.maxTokens?.takeIf { it > 0 },
             temperature = request.temperature,
-            tools = request.tools?.mapNotNull { it.toOpenAISafely() }?.distinctBy { it.function.name }
-                ?.takeIf { it.isNotEmpty() },
-            tool_choice = request.toolChoice?.takeIf { !request.tools.isNullOrEmpty() },
+            tools = responseTools,
+            tool_choice = request.toolChoice?.takeIf { !responseTools.isNullOrEmpty() },
             reasoning = reasoning,
             store = store,
         )
         return AppJson.encodeToString(payload)
     }
-
-    private fun payloadToolsPresent(tools: List<ToolDefinition>?): Boolean =
-        !tools.isNullOrEmpty()
 
     /**
      * v1.0.7: UIMessage → ResponsesInputItem。

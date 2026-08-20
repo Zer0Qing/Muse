@@ -8,6 +8,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -85,17 +86,22 @@ internal fun MuseFloatingActionMenu(
                         } else {
                             MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
                         }
+                        val shape = RoundedCornerShape(18.dp)
+                        // 禁用态使用不透明容器,避免半透明 Surface 与 Popup 背景叠加时
+                        // 在内容行中露出一条白色高亮带。
+                        val containerColor = if (item.enabled) {
+                            MaterialTheme.colorScheme.surface
+                        } else {
+                            MaterialTheme.colorScheme.surfaceVariant
+                        }
                         Surface(
-                            shape = RoundedCornerShape(18.dp),
-                            color = if (item.enabled) {
-                                MaterialTheme.colorScheme.surface
-                            } else {
-                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
-                            },
-                            shadowElevation = 6.dp,
-                            tonalElevation = 2.dp,
+                            shape = shape,
+                            color = containerColor,
+                            shadowElevation = if (item.enabled) 6.dp else 3.dp,
+                            tonalElevation = 0.dp,
                             modifier = Modifier
                                 .align(Alignment.End)
+                                .clip(shape)
                                 .clickable(enabled = item.enabled, onClick = item.onClick),
                         ) {
                             Row(

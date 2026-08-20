@@ -31,6 +31,7 @@ import io.zer0.muse.notification.MuseNotificationTarget
 import androidx.core.content.ContextCompat
 import io.zer0.common.Logger
 import io.zer0.muse.R
+import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.quicknote.QuickNoteEntity
 import io.zer0.muse.data.session.MuseDb
 import io.zer0.muse.ui.theme.MusePaddings
@@ -40,9 +41,12 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.koin.android.ext.android.inject
 import java.util.UUID
+import kotlin.math.roundToInt
 
 /**
  * 快速记录系统悬浮窗。
@@ -53,12 +57,17 @@ import java.util.UUID
 class QuickCaptureOverlayService : Service() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val settings: SettingsRepository by inject()
     private lateinit var windowManager: WindowManager
     private var overlayView: View? = null
     private var expanded = false
     private var windowParams: WindowManager.LayoutParams? = null
     private var positionX = 0
     private var positionY = 0
+    private var collapsedVerticalPositionFraction = 0.5f
+    private var collapsedPositionReady = false
+    private var collapsedShowRequested = false
+    private var collapsedPositionLoadJob: Job? = null
     private var themeColors: QuickCaptureThemeColors? = null
     private var themeWatchJob: Job? = null
     private var collapsedButton: ImageButton? = null
@@ -92,8 +101,24 @@ class QuickCaptureOverlayService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
-        showCollapsed()
+        requestShowCollapsed()
         return START_NOT_STICKY
+    }
+
+    /** 等待持久化位置加载完成后再创建侧边条,避免先显示中线再跳回用户位置。 */
+    private fun requestShowCollapsed() {
+        collapsedShowRequested = true
+        if (collapsedPositionReady) {
+            showCollapsed()
+            return
+        }
+        if (collapsedPositionLoadJob != null) return
+        collapsedPositionLoadJob = serviceScope.launch {
+            collapsedVerticalPositionFraction = settings.quickCaptureOverlayVerticalPositionFractionFlow.first()
+            collapsedPositionReady = true
+            collapsedPositionLoadJob = null
+            if (collapsedShowRequested) showCollapsed()
+        }
     }
 
     private fun showCollapsed() {
@@ -101,7 +126,8 @@ class QuickCaptureOverlayService : Service() {
         removeOverlay()
         val colors = currentThemeColors()
         // 与应用内侧滑把手保持同一语言:窄竖向胶囊 + Chevron 图标,不再显示单个汉字。
-        val handleWidth = dp(24)
+        // 20dp 足够承载图标和触摸区域,比原来的 24dp 更贴边、更轻量。
+        val handleWidth = dp(20)
         val handleHeight = dp(64)
         val view = ImageButton(this).apply {
             setImageResource(R.drawable.ic_quick_capture_chevron)
@@ -117,7 +143,7 @@ class QuickCaptureOverlayService : Service() {
         collapsedButton = view
         val bounds = screenBounds()
         positionX = bounds.right - handleWidth - dp(2)
-        positionY = bounds.centerY() - handleHeight / 2
+        positionY = collapsedPositionY(bounds, handleHeight)
         val params = baseParams(handleWidth, handleHeight).apply {
             x = positionX
             y = positionY
@@ -125,7 +151,7 @@ class QuickCaptureOverlayService : Service() {
                 WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
         }
         addOverlay(view, params)
-        makeDraggable(view) { showExpanded() }
+        makeDraggable(view, onClick = { showExpanded() }, onDragEnd = ::saveCollapsedPosition)
     }
 
     private fun showExpanded() {
@@ -252,12 +278,16 @@ class QuickCaptureOverlayService : Service() {
                 ),
             )
             withContext(Dispatchers.Main.immediate) {
-                showCollapsed()
+                requestShowCollapsed()
             }
         }
     }
 
-    private fun makeDraggable(view: View, onClick: (() -> Unit)?) {
+    private fun makeDraggable(
+        view: View,
+        onClick: (() -> Unit)?,
+        onDragEnd: (() -> Unit)? = null,
+    ) {
         var downRawX = 0f
         var downRawY = 0f
         var startX = 0
@@ -291,6 +321,8 @@ class QuickCaptureOverlayService : Service() {
                         // 保留无障碍点击语义,同时复用拖动区域的点击回调。
                         touchView.performClick()
                         onClick?.invoke()
+                    } else {
+                        onDragEnd?.invoke()
                     }
                     true
                 }
@@ -352,6 +384,34 @@ class QuickCaptureOverlayService : Service() {
         val height = if (params.height > 0) params.height else dp(260)
         params.x = params.x.coerceIn(dp(8), (bounds.width() - width - dp(8)).coerceAtLeast(dp(8)))
         params.y = params.y.coerceIn(dp(8), (bounds.height() - height - dp(8)).coerceAtLeast(dp(8)))
+    }
+
+    /** 根据归一化位置计算侧边条的 Y 坐标,适配不同屏幕尺寸。 */
+    private fun collapsedPositionY(bounds: Rect, handleHeight: Int): Int {
+        val minY = dp(8)
+        val maxY = (bounds.height() - handleHeight - dp(8)).coerceAtLeast(minY)
+        return minY + ((maxY - minY) * collapsedVerticalPositionFraction.coerceIn(0f, 1f)).roundToInt()
+    }
+
+    /** 拖动结束后持久化侧边条位置,只写一次,不在 MOVE 事件中频繁访问 DataStore。 */
+    private fun saveCollapsedPosition() {
+        if (expanded) return
+        val params = windowParams ?: return
+        val bounds = screenBounds()
+        val minY = dp(8)
+        val maxY = (bounds.height() - params.height - dp(8)).coerceAtLeast(minY)
+        val range = (maxY - minY).coerceAtLeast(1)
+        collapsedVerticalPositionFraction = ((params.y - minY).toFloat() / range).coerceIn(0f, 1f)
+        val fraction = collapsedVerticalPositionFraction
+        serviceScope.launch(Dispatchers.IO) {
+            try {
+                settings.saveQuickCaptureOverlayVerticalPositionFraction(fraction)
+            } catch (ce: kotlinx.coroutines.CancellationException) {
+                throw ce
+            } catch (e: Exception) {
+                Logger.w(TAG, "save quick capture overlay position failed: ${e.message}", e)
+            }
+        }
     }
 
     private fun screenBounds(): Rect {

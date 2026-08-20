@@ -2,11 +2,13 @@ package io.zer0.muse.schedule
 
 import io.zer0.common.Logger
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 /**
@@ -20,7 +22,8 @@ import kotlinx.coroutines.launch
  * v1.113: 重构为按 sessionId 独立管理多个并发生成。
  *  - 旧设计:全局一个 streamJob,单聊和群聊互相 cancel,导致一方生成中断。
  *  - 新设计:用 Map<sessionId, Job> 独立管理每个生成任务,单聊和群聊可同时进行互不干扰。
- *  - [activeGeneration] 仍保持单个(取最新活跃的),供 [ChatGenerationService] 前台服务通知用。
+ *  - [activeGenerations] 按 sessionId 暴露全部活跃任务,供 [ChatGenerationService] 保活。
+ *  - [activeGeneration] 保留为兼容 API,返回最近更新的任务。
  *  - [stop] 只取消指定 sessionId 的生成;[stopAll] 取消全部。
  *  - finally 块只更新自己 sessionId 对应的状态,避免竞态覆盖。
  */
@@ -39,6 +42,10 @@ class ChatGenerationManager(
 
     private val _activeGeneration = MutableStateFlow<ActiveGeneration?>(null)
     val activeGeneration: StateFlow<ActiveGeneration?> = _activeGeneration.asStateFlow()
+
+    /** 所有活跃生成任务的快照, key 为 sessionId。 */
+    private val _activeGenerations = MutableStateFlow<Map<String, ActiveGeneration>>(emptyMap())
+    val activeGenerations: StateFlow<Map<String, ActiveGeneration>> = _activeGenerations.asStateFlow()
 
     // v1.113: 按 sessionId 独立管理 Job,单聊和群聊互不抢占。
     private val streamJobs = mutableMapOf<String, Job>()
@@ -66,24 +73,46 @@ class ChatGenerationManager(
         synchronized(lock) {
             // 取消同一 sessionId 的旧 job(防重入),不影响其他 sessionId
             streamJobs.remove(sessionId)?.cancel()
-            val job = appScope.launch {
-                _activeGeneration.value = ActiveGeneration(
-                    sessionId = sessionId,
-                    assistantId = assistantId,
-                    sessionTitle = sessionTitle,
-                    isStreaming = true,
-                    lastUpdatedAt = System.currentTimeMillis(),
-                )
+            // 先同步写入活跃状态,再启动 appScope 协程。
+            // ON_STOP 可能紧跟在发送动作后发生;如果状态只在 launch 块内部异步写入,
+            // 前台保活服务会错过这次生成,后台进程可能被系统回收。
+            val generation = ActiveGeneration(
+                sessionId = sessionId,
+                assistantId = assistantId,
+                sessionTitle = sessionTitle,
+                isStreaming = true,
+                lastUpdatedAt = System.currentTimeMillis(),
+            )
+            _activeGenerations.value = _activeGenerations.value + (sessionId to generation)
+            _activeGeneration.value = generation
+            // 先登记再启动,避免极短任务在 streamJobs 写入前完成,导致 finally
+            // 无法确认自己是当前任务,留下永远活跃的快照。
+            val job = appScope.launch(start = CoroutineStart.LAZY) {
+                val heartbeatJob = launch {
+                    while (isActive) {
+                        delay(HEARTBEAT_INTERVAL_MS)
+                        touch(sessionId)
+                    }
+                }
                 try {
                     block()
                 } finally {
-                    // v1.113: 只更新自己 sessionId 的状态,避免取消时竞态覆盖其他生成
-                    _activeGeneration.update { current ->
-                        if (current?.sessionId == sessionId) {
-                            current.copy(isStreaming = false, lastUpdatedAt = System.currentTimeMillis())
-                        } else {
-                            // 另一个生成已成为 active,不要覆盖它
-                            current
+                    heartbeatJob.cancel()
+                    // 同一 session 快速重入时,旧 job 的 finally 不能把新 job 标记成已结束。
+                    val isCurrentJob = synchronized(lock) {
+                        streamJobs[sessionId] === coroutineContext[Job]
+                    }
+                    if (isCurrentJob) {
+                        synchronized(lock) {
+                            _activeGenerations.value = _activeGenerations.value - sessionId
+                            // 保留 activeGeneration 的旧兼容语义:最后一个任务结束后,
+                            // 观察者仍会收到一次 isStreaming=false;前台服务观察的是
+                            // activeGenerations,不会因为这个兼容状态误判仍有任务。
+                            val next = _activeGenerations.value.values.maxByOrNull { it.lastUpdatedAt }
+                            _activeGeneration.value = next ?: generation.copy(
+                                isStreaming = false,
+                                lastUpdatedAt = System.currentTimeMillis(),
+                            )
                         }
                     }
                     synchronized(lock) {
@@ -97,6 +126,7 @@ class ChatGenerationManager(
                 }
             }
             streamJobs[sessionId] = job
+            job.start()
             return job
         }
     }
@@ -112,25 +142,35 @@ class ChatGenerationManager(
         synchronized(lock) {
             if (sessionId != null) {
                 streamJobs.remove(sessionId)?.cancel()
+                _activeGenerations.value = _activeGenerations.value - sessionId
                 // 只在当前 active 是该 sessionId 时才清空
-                _activeGeneration.update { current ->
-                    if (current?.sessionId == sessionId) null else current
+                if (_activeGeneration.value?.sessionId == sessionId) {
+                    _activeGeneration.value = _activeGenerations.value.values.maxByOrNull { it.lastUpdatedAt }
                 }
                 Logger.i("ChatGenMgr", "generation stopped: $sessionId")
             } else {
                 // 取消全部
                 streamJobs.values.forEach { it.cancel() }
                 streamJobs.clear()
+                _activeGenerations.value = emptyMap()
                 _activeGeneration.value = null
                 Logger.i("ChatGenMgr", "all generations stopped")
             }
         }
     }
 
-    /** 心跳刷新,避免后台被系统判定为无活跃任务(由流式循环周期性调用)。 */
-    fun touch() {
-        _activeGeneration.update {
-            it?.copy(lastUpdatedAt = System.currentTimeMillis())
+    /**
+     * 刷新指定会话的心跳,避免后台被系统判定为无活跃任务。
+     *
+     * @param sessionId 会话 id;为 null 时兼容旧调用,刷新最近任务。
+     */
+    fun touch(sessionId: String? = null) {
+        synchronized(lock) {
+            val targetId = sessionId ?: _activeGeneration.value?.sessionId ?: return
+            val current = _activeGenerations.value[targetId] ?: return
+            val touched = current.copy(lastUpdatedAt = System.currentTimeMillis())
+            _activeGenerations.value = _activeGenerations.value + (targetId to touched)
+            _activeGeneration.value = _activeGenerations.value.values.maxByOrNull { it.lastUpdatedAt }
         }
     }
 
@@ -138,8 +178,17 @@ class ChatGenerationManager(
      * v1.111: 更新当前生成的会话标题(群聊场景异步获取群聊名后更新通知显示)。
      */
     fun updateSessionTitle(title: String) {
-        _activeGeneration.update {
-            it?.copy(sessionTitle = title, lastUpdatedAt = System.currentTimeMillis())
+        val sessionId = synchronized(lock) { _activeGeneration.value?.sessionId }
+        if (sessionId != null) updateSessionTitle(sessionId, title)
+    }
+
+    /** 更新指定会话的通知标题,避免多会话并发时误改最近任务的标题。 */
+    fun updateSessionTitle(sessionId: String, title: String) {
+        synchronized(lock) {
+            val current = _activeGenerations.value[sessionId] ?: return
+            val updated = current.copy(sessionTitle = title, lastUpdatedAt = System.currentTimeMillis())
+            _activeGenerations.value = _activeGenerations.value + (sessionId to updated)
+            _activeGeneration.value = _activeGenerations.value.values.maxByOrNull { it.lastUpdatedAt }
         }
     }
 
@@ -149,5 +198,10 @@ class ChatGenerationManager(
             val job = streamJobs[sessionId]
             return job != null && job.isActive
         }
+    }
+
+    private companion object {
+        /** 任务没有文本输出时仍定期证明协程存活,避免长工具调用被误判为卡死。 */
+        const val HEARTBEAT_INTERVAL_MS = 30_000L
     }
 }

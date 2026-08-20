@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -681,6 +682,23 @@ class SettingsRepository(
                 prefs.remove(KEY_QUICK_CAPTURE_OVERLAY_ENABLED)
                 prefs[KEY_QUICK_CAPTURE_OVERLAY_DEFAULT_MIGRATED] = true
             }
+        }
+    }
+
+    /**
+     * 系统悬浮窗侧边条的垂直位置,使用 0..1 归一化比例保存。
+     *
+     * 保存比例而不是像素,避免换屏幕分辨率、横竖屏或 MuMu 窗口尺寸后位置跳回中间。
+     */
+    val quickCaptureOverlayVerticalPositionFractionFlow: Flow<Float> = store.data.map { prefs ->
+        (prefs[KEY_QUICK_CAPTURE_OVERLAY_VERTICAL_POSITION] ?: DEFAULT_QUICK_CAPTURE_OVERLAY_VERTICAL_POSITION)
+            .coerceIn(0f, 1f)
+    }
+
+    /** 保存系统悬浮窗侧边条的垂直位置。 */
+    suspend fun saveQuickCaptureOverlayVerticalPositionFraction(position: Float) {
+        store.edit {
+            it[KEY_QUICK_CAPTURE_OVERLAY_VERTICAL_POSITION] = position.coerceIn(0f, 1f)
         }
     }
 
@@ -1640,7 +1658,10 @@ class SettingsRepository(
         private val KEY_QUICK_CAPTURE_OVERLAY_ENABLED = booleanPreferencesKey("quick_capture_overlay_enabled")
         private val KEY_QUICK_CAPTURE_OVERLAY_DEFAULT_MIGRATED =
             booleanPreferencesKey("quick_capture_overlay_default_migrated")
+        private val KEY_QUICK_CAPTURE_OVERLAY_VERTICAL_POSITION =
+            floatPreferencesKey("quick_capture_overlay_vertical_position")
         private const val DEFAULT_QUICK_CAPTURE_OVERLAY_ENABLED = false
+        private const val DEFAULT_QUICK_CAPTURE_OVERLAY_VERTICAL_POSITION = 0.5f
         private val KEY_PROMPT_TEMPLATES = stringPreferencesKey("prompt_templates_json")
         private val KEY_PROVIDER_LEGACY = stringPreferencesKey("provider_config_json")
         private val KEY_ACCOUNT_LOGGED_IN = booleanPreferencesKey("account_logged_in")

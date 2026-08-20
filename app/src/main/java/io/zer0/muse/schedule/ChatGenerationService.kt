@@ -41,6 +41,7 @@ class ChatGenerationService : Service() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var observeJob: Job? = null
+    private var emptyStateStopJob: Job? = null
     // v1.0.15: Wakelock 保活,防止 Doze 模式下 CPU 休眠导致网络挂起
     private var wakeLock: PowerManager.WakeLock? = null
 
@@ -66,7 +67,9 @@ class ChatGenerationService : Service() {
         wakeLock = (getSystemService(Context.POWER_SERVICE) as PowerManager)
             .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Muse:ChatGeneration")
             .also { it.setReferenceCounted(false) }
-        runCatching { wakeLock?.acquire(10 * 60 * 1000L) } // 最长 10 分钟,防止泄漏
+        // 前台服务的生命周期就是生成保活生命周期,不使用 10 分钟超时版本。
+        // 长 MCP/工具任务可能超过 10 分钟;stopService/onDestroy 会明确释放锁。
+        runCatching { wakeLock?.acquire() }
             .onFailure { Logger.w("ChatGenService", "wakelock acquire 失败", it) }
         Logger.i("ChatGenService", "service created & foreground started & wakelock acquired")
     }
@@ -82,12 +85,15 @@ class ChatGenerationService : Service() {
                 startObserve()
             }
         }
-        return START_NOT_STICKY
+        // 服务只负责保活和观察应用级生成管理器;自身被 ROM 回收后应尝试恢复观察,
+        // 让仍存活的 appScope 生成继续保持前台优先级。
+        return START_STICKY
     }
 
     private fun startObserve() {
         // 用最新生成状态更新通知标题
-        val active = chatGenerationManager.activeGeneration.value
+        val active = chatGenerationManager.activeGenerations.value.values
+            .maxByOrNull { it.lastUpdatedAt }
         val title = active?.sessionTitle ?: getString(R.string.schedule_generating_default_title)
         try {
             val target = active?.sessionId
@@ -107,34 +113,36 @@ class ChatGenerationService : Service() {
         // 监听生成状态变化,更新通知内容/进度
         observeJob?.cancel()
         observeJob = serviceScope.launch {
-            chatGenerationManager.activeGeneration.collect { gen ->
-                if (gen == null) {
-                    // v1.52: 不在 null 时立即停止 — 生成可能尚未启动
-                    // (launchGeneration 内部 appScope.launch 异步设值,observeJob 可能先收到 null)。
-                    // 立即停止会导致前台服务自杀、进程失去前台优先级,长任务被系统回收中断。
-                    // 服务由 ACTION_STOP(ChatViewModel finally)或观察到 !isStreaming 时停止。
-                    // P1 审计:启动竞态窗口内(activeGeneration 尚未设值)不停止,
-                    // 由独立协程在心跳超时后检查兜底,避免阻塞 collect。
-                    launch { 
-                        delay(HEARTBEAT_TIMEOUT_MS)
-                        if (chatGenerationManager.activeGeneration.value == null) {
-                            stopService()
+            chatGenerationManager.activeGenerations.collect { generations ->
+                if (generations.isEmpty()) {
+                    // 给“启动服务”和“登记任务”留一个很短的竞态窗口;如果进程重启后
+                    // manager 没有任何任务,则快速退出,不要让 START_STICKY 服务空耗 15 分钟。
+                    if (emptyStateStopJob == null) {
+                        emptyStateStopJob = launch {
+                            delay(EMPTY_STATE_GRACE_MS)
+                            if (chatGenerationManager.activeGenerations.value.isEmpty()) {
+                                stopService()
+                            }
+                        }.also { job ->
+                            job.invokeOnCompletion { emptyStateStopJob = null }
                         }
                     }
                     return@collect
                 }
-                if (!gen.isStreaming) {
-                    // 生成已结束:停止服务
-                    stopService()
+                emptyStateStopJob?.cancel()
+                emptyStateStopJob = null
+                val stale = generations.values.firstOrNull { generation ->
+                    System.currentTimeMillis() - generation.lastUpdatedAt > HEARTBEAT_TIMEOUT_MS
+                }
+                if (stale != null) {
+                    Logger.w("ChatGenService", "生成心跳超时,停止该会话(会话: ${stale.sessionTitle})")
+                    // 多会话并发时只取消失去心跳的任务,不能把其他正常任务的前台保活
+                    // 一起关掉。取消路径会由 ChatViewModel 持久化部分回复/检查点。
+                    chatGenerationManager.stop(stale.sessionId)
                     return@collect
                 }
-                // 流式中:更新通知;若心跳长时间未更新(网络卡死/协程静默挂起),超时兜底停止,
-                // 避免前台服务永久常驻耗尽电池(生成结果由 checkpoint 在下次进入时恢复)。
-                if (System.currentTimeMillis() - gen.lastUpdatedAt > HEARTBEAT_TIMEOUT_MS) {
-                    Logger.w("ChatGenService", "生成心跳超时,停止前台服务(会话: ${gen.sessionTitle})")
-                    stopService()
-                    return@collect
-                }
+                // 多会话并发时通知展示最近更新的任务;保活判定使用完整快照。
+                val gen = generations.values.maxByOrNull { it.lastUpdatedAt } ?: return@collect
                 notificationManager.updateLiveProgress(
                     gen.sessionTitle,
                     0,
@@ -148,6 +156,8 @@ class ChatGenerationService : Service() {
     private fun stopService() {
         observeJob?.cancel()
         observeJob = null
+        emptyStateStopJob?.cancel()
+        emptyStateStopJob = null
         // v1.0.15: 释放 wakelock
         runCatching { wakeLock?.takeIf { it.isHeld }?.release() }
         wakeLock = null
@@ -180,6 +190,7 @@ class ChatGenerationService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         observeJob?.cancel()
+        emptyStateStopJob?.cancel()
         // v1.0.15: 释放 wakelock(防御性:stopService 已释放,这里兜底)
         runCatching { wakeLock?.takeIf { it.isHeld }?.release() }
         wakeLock = null
@@ -191,6 +202,8 @@ class ChatGenerationService : Service() {
         private const val NOTIFICATION_ID = 2001
         /** P1 审计: 生成心跳超时阈值(15 分钟无任何进度则停止保活,避免永久常驻)。 */
         private const val HEARTBEAT_TIMEOUT_MS = 15 * 60 * 1000L
+        /** 服务重启后没有任务时的短暂竞态缓冲,避免 START_STICKY 空转。 */
+        private const val EMPTY_STATE_GRACE_MS = 5_000L
         const val ACTION_START = "io.zer0.muse.action.START_GENERATION"
         const val ACTION_STOP = "io.zer0.muse.action.STOP_GENERATION"
 

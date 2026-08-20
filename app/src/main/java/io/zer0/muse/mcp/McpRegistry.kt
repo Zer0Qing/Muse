@@ -1,23 +1,24 @@
 package io.zer0.muse.mcp
 
 import android.content.Context
+import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.tools.ToolRegistry
+import io.zer0.muse.tools.ToolRiskLevel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
-import java.util.concurrent.Executors
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -56,14 +57,6 @@ class McpRegistry(
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    // v1.113: MCP 工具调用专用线程池,避免 runBlocking 耗尽 Dispatchers.IO 的 64 线程上限。
-    // MCP 工具是远程调用,可能长时间阻塞,若与 LLM/Web 搜索共享 IO 线程池会导致整个应用网络卡死。
-    // 线程数设为 8(足够并发多个 MCP server,又不过多占用系统资源)。
-    private val mcpToolExecutor = Executors.newFixedThreadPool(8) { r ->
-        Thread(r, "mcp-tool-${System.nanoTime()}").apply { isDaemon = true }
-    }
-    private val mcpToolDispatcher = mcpToolExecutor.asCoroutineDispatcher()
-
     /** 当前所有 MCP server 配置(内存 + 持久化)。 */
     private val _servers = MutableStateFlow<List<McpServerConfig>>(emptyList())
     val servers: StateFlow<List<McpServerConfig>> = _servers.asStateFlow()
@@ -74,6 +67,17 @@ class McpRegistry(
 
     /** 活跃的 MCP client 实例(server id → client)。H-REG1: 用 ConcurrentHashMap 保证线程安全。 */
     private val clients = ConcurrentHashMap<String, McpClient>()
+
+    /**
+     * 已完成 tools/list 的 server。
+     *
+     * 不能用“ToolRegistry 中是否存在某个前缀工具”判断就绪:合法的 MCP server
+     * 可以返回空工具列表,否则每条首消息都会白等完整超时。
+     */
+    private val toolsReadyServers = ConcurrentHashMap.newKeySet<String>()
+
+    /** tools/list 明确失败的 server,用于首条消息快速失败而不是等待完整超时。 */
+    private val toolLoadFailedServers = ConcurrentHashMap.newKeySet<String>()
 
     /** M-REG3: 标记 startAll 是否已调用,避免与 init 块重复连接。 */
     private val startAllCalled = AtomicBoolean(false)
@@ -144,7 +148,10 @@ class McpRegistry(
         // M-REG3: 用 AtomicBoolean 保证只调用一次,避免与 init 块重复连接
         if (!startAllCalled.compareAndSet(false, true)) return
         scope.launch {
-            _servers.value.filter { it.enabled && it.url.isNotBlank() }.forEach { connectServer(it) }
+            // 不依赖 init collector 的调度顺序,显式读取一次持久化配置后再连接。
+            val saved = settings.mcpServersFlow.first()
+            _servers.value = saved
+            saved.filter { it.enabled && it.url.isNotBlank() }.forEach { connectServer(it) }
         }
     }
 
@@ -301,7 +308,12 @@ class McpRegistry(
         if (clients.containsKey(config.id)) return  // 已连接
         // Phase 10.4: 传入 settings,使 McpClient 支持 OAuth token 持久化
         val client = McpClient(config, settings = settings)
-        clients[config.id] = client
+        // init collector 与 startAll 可能同时发现同一个 server,用 putIfAbsent 防止双 client
+        // 并行握手、重复注册同名 MCP 工具和重复重连。
+        if (clients.putIfAbsent(config.id, client) != null) {
+            client.close()
+            return
+        }
         updateState(config.id, McpConnectionState.CONNECTING)
 
         // Phase 9.5 (P3-2): 注入 tools/list_changed 回调,server 工具列表变更时自动重新拉取。
@@ -354,6 +366,8 @@ class McpRegistry(
             // 注销该 server 的所有工具(前缀匹配)
             unregisterTools(id)
         }
+        toolsReadyServers.remove(id)
+        toolLoadFailedServers.remove(id)
         // 清理刷新标记,避免下次重连时 compareAndSet 误判
         refreshingTools.remove(id)
         _serversState.update { it - id }
@@ -364,50 +378,59 @@ class McpRegistry(
      * 工具名: `mcp_{serverId}__{originalToolName}`
      */
     private suspend fun registerTools(serverId: String, client: McpClient) {
-        val tools = resultOf { client.listTools() }.getOrNull() ?: emptyList()
-        Logger.i(TAG, "[$serverId] 注册 ${tools.size} 个 MCP 工具")
-        tools.forEach { tool ->
+        toolsReadyServers.remove(serverId)
+        toolLoadFailedServers.remove(serverId)
+        var tools: List<McpTool>? = null
+        for (attempt in 0 until 3) {
+            val toolsResult = resultOf { client.listToolsOrNull() }
+            tools = toolsResult
+                .onError { msg, _ -> Logger.w(TAG, "[$serverId] tools/list 失败(attempt=${attempt + 1}): $msg") }
+                .getOrNull()
+            if (tools != null) break
+            if (attempt < 2) delay(if (attempt == 0) 250L else 1_000L)
+        }
+        val resolvedTools = tools ?: run {
+            toolLoadFailedServers.add(serverId)
+            return
+        }
+        Logger.i(TAG, "[$serverId] 注册 ${resolvedTools.size} 个 MCP 工具")
+        resolvedTools.forEach { tool ->
             val registeredName = "mcp_${serverId}__${tool.name}"
             val description = tool.description ?: context.getString(R.string.mcp_tool_no_description)
             // 从 inputSchema 解析参数名(JSON Schema properties 的 key)
             val params = parseInputSchema(tool.inputSchema)
             val required = parseRequired(tool.inputSchema)
-            toolRegistry.register(
+            val parameterTypes = parseInputSchemaTypes(tool.inputSchema)
+            toolRegistry.registerJson(
                 ToolRegistry.ToolDef(
                     name = registeredName,
-                    description = "[MCP] $description",
+                    description = "[MCP server=$serverId tool=${tool.name}] $description",
                     parameters = params,
                     required = required,
                     category = "mcp",
+                    parameterTypes = parameterTypes,
+                    rawParametersJsonSchema = tool.inputSchema?.toString(),
+                    riskLevel = inferMcpRisk(tool.name),
                 ),
             ) { args ->
-                // 执行:把 args map 转 JsonObject,调 McpClient.callTool
-                val arguments = buildJsonObject {
-                    args.forEach { (k, v) -> put(k, v) }
-                }
-                // v1.134 P0-3: ToolFn 已改为 suspend 签名,此处直接用 withTimeoutOrNull
-                // 协程化调用 MCP 工具,消除 runBlocking 反模式。
-                // 旧方案(v1.113):runBlocking(mcpToolDispatcher) + withTimeoutOrNull,占用专用 8 线程池
-                // 新方案:直接在调用方协程上下文执行,超时用 withTimeoutOrNull 保护
-                // mcpToolDispatcher 仍保留用于其他同步路径(如 listTools 桥接),此处不再需要
+                // 保留 inputSchema 声明的 JSON 类型,避免 boolean/number/array/object 被压成字符串。
+                val arguments = coerceMcpArguments(args, tool.inputSchema)
                 val result = withTimeoutOrNull(120_000L) {
                     client.callTool(tool.name, arguments)
                 }
                 if (result == null) {
-                    context.getString(R.string.mcp_tool_call_timeout, tool.name)
+                    "Error: " + context.getString(R.string.mcp_tool_call_timeout, tool.name)
                 } else if (result.isError) {
-                    context.getString(R.string.mcp_tool_call_failed, tool.name)
+                    "Error: " + context.getString(
+                        R.string.mcp_tool_call_failed,
+                        tool.name,
+                    ) + ": " + formatToolResult(result)
                 } else {
-                    // 把 content 数组里的 text 部分拼接返回
-                    result.content.joinToString("\n") { el ->
-                        val obj = el as? JsonObject
-                        val type = (obj?.get("type") as? JsonPrimitive)?.content
-                        val text = (obj?.get("text") as? JsonPrimitive)?.content
-                        if (type == "text" && text != null) text else el.toString()
-                    }
+                    formatToolResult(result)
                 }
             }
         }
+        toolsReadyServers.add(serverId)
     }
 
     /** 注销指定 server 的所有工具。 */
@@ -482,6 +505,106 @@ class McpRegistry(
         }.getOrDefault(emptySet())
     }
 
+    /**
+     * 等待助手绑定的 MCP server 完成握手并注册工具。
+     *
+     * 应用刚启动时 MCP 连接和用户发送消息可能并发发生;如果只读取一次 ToolRegistry,
+     * 首条消息会在 tools/list 返回前看不到 MCP 工具。超时后仍允许聊天继续,但会记录未就绪状态。
+     */
+    suspend fun awaitToolsForServers(
+        serverIds: Set<String>,
+        timeoutMs: Long = 5_000L,
+    ): Boolean {
+        if (serverIds.isEmpty()) return true
+        startAll()
+        // 未配置、已禁用或空 URL 的 server 不会被 startAll 连接,直接返回失败状态,
+        // 不让每条消息无意义地等待完整 timeout。
+        // 这里不能只读 _servers.value:startAll() 是异步启动,首条消息可能恰好抢在
+        // settings flow collector 之前。直接读取一次持久化快照,消除这个启动竞态。
+        val savedServers = settings.mcpServersFlow.first()
+        _servers.value = savedServers
+        val configuredServerIds = savedServers
+            .asSequence()
+            .filter { it.enabled && it.url.isNotBlank() }
+            .map { it.id }
+            .toSet()
+        if (!serverIds.all { it in configuredServerIds }) return false
+        return withTimeoutOrNull<Boolean>(timeoutMs) {
+            var ready = false
+            var failed = false
+            while (!ready && !failed) {
+                ready = serverIds.all { it in toolsReadyServers }
+                failed = !ready && serverIds.any { id ->
+                    id in toolLoadFailedServers ||
+                        serversState.value[id] in setOf(
+                            McpConnectionState.FAILED,
+                            McpConnectionState.NEEDS_AUTH,
+                        )
+                }
+                if (!ready && !failed) delay(50L)
+            }
+            ready && !failed
+        } ?: false
+    }
+
+    /** 从 inputSchema 解析参数类型,供 ToolRegistry 的 JSON 工具校验和 Provider schema 使用。 */
+    private fun parseInputSchemaTypes(schema: JsonElement?): Map<String, String> {
+        val obj = schema as? JsonObject ?: return emptyMap()
+        val props = obj["properties"] as? JsonObject ?: return emptyMap()
+        return props.mapValues { (_, definition) ->
+            ((definition as? JsonObject)?.get("type") as? JsonPrimitive)?.content ?: "string"
+        }
+    }
+
+    /** MCP 工具不能默认标成 SAFE,否则 ASK 模式会绕过审批执行写入/删除操作。 */
+    private fun inferMcpRisk(toolName: String): ToolRiskLevel {
+        val name = toolName.lowercase()
+        return when {
+            listOf("delete", "destroy", "remove", "send", "publish", "commit", "execute", "run").any { name.contains(it) } ->
+                ToolRiskLevel.HIGH
+            listOf("create", "new", "update", "edit", "write", "add", "move", "rename", "open", "post", "put").any { name.contains(it) } ->
+                ToolRiskLevel.NORMAL
+            else -> ToolRiskLevel.SAFE
+        }
+    }
+
+    /** 把 ToolRegistry 的字符串参数恢复为 MCP inputSchema 声明的 JSON 值。 */
+    private fun coerceMcpArguments(args: JsonObject, schema: JsonElement?): JsonObject {
+        val types = parseInputSchemaTypes(schema)
+        return buildJsonObject {
+            args.forEach { (name, value) ->
+                val raw = (value as? JsonPrimitive)?.content ?: value.toString()
+                val type = types[name]
+                put(name, when (type) {
+                    "integer" -> raw.toLongOrNull()?.let(::JsonPrimitive) ?: JsonPrimitive(raw)
+                    "number" -> raw.toDoubleOrNull()?.let(::JsonPrimitive) ?: JsonPrimitive(raw)
+                    "boolean" -> raw.toBooleanStrictOrNull()?.let(::JsonPrimitive) ?: JsonPrimitive(raw)
+                    "array", "object" -> runCatching { AppJson.parseToJsonElement(raw) }
+                        .getOrElse { JsonPrimitive(raw) }
+                    else -> JsonPrimitive(raw)
+                })
+            }
+        }
+    }
+
+    /** 将 MCP 内容统一转换为可回填给模型的文本,错误结果也保留 server 原因。 */
+    private fun formatToolContent(content: List<JsonElement>): String =
+        content.joinToString("\n") { element ->
+            val obj = element as? JsonObject
+            val type = (obj?.get("type") as? JsonPrimitive)?.content
+            val text = (obj?.get("text") as? JsonPrimitive)?.content
+            if (type == "text" && text != null) text else element.toString()
+        }
+
+    /** MCP server 可能只返回 structuredContent,不能把这种成功结果误报为空。 */
+    private fun formatToolResult(result: McpToolCallResult): String {
+        val parts = buildList {
+            formatToolContent(result.content).takeIf { it.isNotBlank() }?.let(::add)
+            result.structuredContent?.let { add(it.toString()) }
+        }
+        return parts.joinToString("\n").ifBlank { "(MCP server returned no content)" }
+    }
+
     /** 更新单个 server 的连接状态。 */
     private fun updateState(id: String, state: McpConnectionState) {
         _serversState.update { it + (id to state) }
@@ -500,8 +623,7 @@ class McpRegistry(
      */
     fun shutdown() {
         scope.cancel()
-        mcpToolExecutor.shutdown()
-        Logger.i(TAG, "McpRegistry shutdown: scope cancelled, tool executor shut down")
+        Logger.i(TAG, "McpRegistry shutdown: scope cancelled")
     }
 
     private companion object {

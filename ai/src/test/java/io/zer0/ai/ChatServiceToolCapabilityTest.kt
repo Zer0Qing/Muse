@@ -20,6 +20,14 @@ class ChatServiceToolCapabilityTest {
         ),
     )
 
+    private val mcpTools = listOf(
+        ToolDefinition(
+            name = "mcp_feishu_remote__search-doc",
+            description = "Search a Feishu document",
+            parametersJsonSchema = """{"type":"object","properties":{}}""",
+        ),
+    )
+
     @Test
     fun unknownRelayModelKeepsToolsEnabled() {
         val model = Model(
@@ -52,6 +60,39 @@ class ChatServiceToolCapabilityTest {
         )
 
         assertFalse(shouldSendTools(model, config, tools))
+    }
+
+    @Test
+    fun explicitlyBoundMcpToolsAreNotSilentlyDroppedByUnknownModelMetadata() {
+        val model = Model(
+            id = "custom-relay-model",
+            providerId = "relay",
+        )
+        val config = ProviderConfig(
+            id = "relay",
+            displayName = "Relay",
+            type = ProviderType.OPENAI,
+            baseUrl = "https://relay.example.com/v1",
+        )
+
+        assertTrue(shouldSendTools(model, config, mcpTools))
+    }
+
+    @Test
+    fun explicitlyNonToolModelStillDropsMcpTools() {
+        val model = Model(
+            id = "custom-reasoning-relay-model",
+            providerId = "relay",
+            abilities = setOf(ModelAbility.REASONING),
+        )
+        val config = ProviderConfig(
+            id = "relay",
+            displayName = "Relay",
+            type = ProviderType.OPENAI,
+            baseUrl = "https://relay.example.com/v1",
+        )
+
+        assertFalse(shouldSendTools(model, config, mcpTools))
     }
 
     @Test

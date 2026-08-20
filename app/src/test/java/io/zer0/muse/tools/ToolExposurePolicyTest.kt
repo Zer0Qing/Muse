@@ -87,4 +87,32 @@ class ToolExposurePolicyTest {
             ),
         )
     }
+
+    @Test
+    fun `assistant bound MCP tools survive unrelated keyword filtering`() {
+        val mcp = tool("mcp_github__create_issue")
+        val selected = ToolExposurePolicy.select(
+            tools = allTools + mcp + (1..30).map { tool("extra_$it") },
+            userText = "帮我创建一个 issue",
+            alwaysExposeNames = setOf(mcp.name),
+        )
+
+        assertTrue(mcp.name in selected.map { it.name })
+    }
+
+    @Test
+    fun `MCP action can require a tool without explicitly saying MCP`() {
+        assertTrue(
+            ToolExposurePolicy.shouldRequireTool(
+                "帮我创建一个 issue",
+                allTools + tool("mcp_github__create_issue"),
+            ),
+        )
+        assertTrue(
+            ToolExposurePolicy.shouldRequireTool(
+                "帮我查找这个 issue",
+                allTools + tool("mcp_github__search_issues"),
+            ),
+        )
+    }
 }

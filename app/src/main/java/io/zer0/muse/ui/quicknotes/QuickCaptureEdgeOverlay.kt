@@ -258,7 +258,7 @@ private fun QuickCaptureEdgeHandle(
     var dragDistance = 0f
     Box(
         modifier = modifier
-            .widthIn(min = 22.dp, max = 28.dp)
+            .widthIn(min = 20.dp, max = 24.dp)
             .height(92.dp)
             .clip(RoundedCornerShape(topStart = 14.dp, bottomStart = 14.dp))
             .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))

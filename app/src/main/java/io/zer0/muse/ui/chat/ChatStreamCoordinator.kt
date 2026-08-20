@@ -827,7 +827,31 @@ class ChatStreamCoordinator(
                     idListJson.decodeFromString<List<String>>(ast.toolIdsJson)
                 }.onFailure { Logger.w("ChatVM", "toolIdsJson 解析失败: ${it.message}") }.getOrNull()
             }
-            val localToolDefs = toolRegistry.listToolsAsToolDefinitions(enabledToolIds)
+            val registeredToolDefs = toolRegistry.listToolsAsToolDefinitions()
+            // MCP server 是助手级扩展,不属于普通 toolIdsJson。此前只读取 toolIdsJson,
+            // 导致助手页面明明选中了 MCP server,主聊天仍把 mcp_* 工具全部过滤掉。
+            val enabledMcpServerIds = assistant
+                ?.let(assistantRepository::parseMcpServerIds)
+                ?.toSet()
+                .orEmpty()
+            val explicitlyEnabledMcpToolNames = enabledToolIds
+                .orEmpty()
+                .filter { it.startsWith("mcp_") }
+                .toSet()
+            val localToolDefs = registeredToolDefs.filter { def ->
+                if (def.name.startsWith("mcp_")) {
+                    def.name in explicitlyEnabledMcpToolNames
+                } else {
+                    enabledToolIds.isNullOrEmpty() || def.name in enabledToolIds
+                }
+            }
+            val enabledMcpToolDefs = if (enabledMcpServerIds.isEmpty()) {
+                registeredToolDefs.filter { it.name in explicitlyEnabledMcpToolNames }
+            } else {
+                val prefixes = enabledMcpServerIds.map { "mcp_${it}__" }
+                registeredToolDefs
+                    .filter { def -> prefixes.any { prefix -> def.name.startsWith(prefix) } }
+            }
 
             // Phase 8.8: 加载启用的 Skills 并转为 ToolDefinition
             // v1.0.47 P3: 会话级 skill 覆盖 — 优先用 session.skillIdsJson(非"[]"且非空),
@@ -889,7 +913,7 @@ class ChatStreamCoordinator(
             // 和 SkillExecutor.BUILT_IN_SKILLS 中的 Skill,默认助手同时启用两份,
             // 直接拼接会发出重复 tools,DeepSeek/中转站严格校验工具名唯一性会返回 400。
             // 这里按 name 去重,ToolDef(本地工具实现)优先保留,同名 Skill 被丢弃。
-            val allToolDefs = (localToolDefs + skillToolDefs).distinctBy { it.name }
+            val allToolDefs = (localToolDefs + enabledMcpToolDefs + skillToolDefs).distinctBy { it.name }
             // 默认助手保存的是“全部内置工具/Skill”的快照,不应被当成窄白名单。
             // 只有实际集合已经很小时才保持原样;大集合继续按当前意图筛选。
             val explicitToolSelection = allToolDefs.size <= 16
@@ -901,6 +925,7 @@ class ChatStreamCoordinator(
                 tools = allToolDefs,
                 userText = latestUserText,
                 explicitSelection = explicitToolSelection,
+                alwaysExposeNames = enabledMcpToolDefs.map { it.name }.toSet(),
             )
             if (tools.size != allToolDefs.size) {
                 Logger.d(

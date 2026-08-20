@@ -737,7 +737,7 @@ class SystemPromptAssembler(
     /** buildToolManifestSection 的缓存,失效时置 null。 */
     @Volatile
     private var cachedToolManifest: String? = null
-    /** 最近一次缓存时的 generation(toolRegistry 条目数 + skill 条目数),变化时缓存失效。 */
+    /** 最近一次缓存时的工具/Skill 内容指纹,变化时缓存失效。 */
     @Volatile
     private var cachedToolManifestGen: Int = -1
 
@@ -750,18 +750,60 @@ class SystemPromptAssembler(
      *
      * 注意:这只是给 LLM 读的"清单",真正的 function calling schema 由 ChatService 单独传。
      *
-     * 缓存策略:用 (toolRegistry 条目数 + skill 条目数) 作 generation 标记。
-     * 条目数不变时复用缓存,避免每轮对话全量重建。完全精确失效需要事件监听,
-     * 与当前项目架构不匹配(无全局注册变更事件总线),条目数近似已足够。
+     * 缓存策略:用工具/Skill 名称、描述、参数和必填字段的轻量指纹作 generation 标记。
+     * 内容不变时复用缓存,工具列表变化时自动重建,避免 MCP 重连后沿用旧能力索引。
      */
     private suspend fun buildToolManifestSection(assistant: AssistantEntity?): String {
-        val localTools = toolRegistry.listTools()
+        val allLocalTools = toolRegistry.listTools()
+        // MCP 工具按助手绑定的 server 隔离展示。否则 system prompt 会列出其他助手
+        // 的外部工具名称,模型可能据此生成一个不在本轮 schema 中的调用。
+        val localTools = if (assistant == null || assistantRepository == null) {
+            allLocalTools
+        } else {
+            val boundServerIds = assistantRepository.parseMcpServerIds(assistant).toSet()
+            val explicitMcpToolNames = assistantRepository.parseToolIds(assistant)
+                .filter { it.startsWith("mcp_") }
+                .toSet()
+            val prefixes = boundServerIds.map { "mcp_${it}__" }
+            allLocalTools.filter { tool ->
+                !tool.name.startsWith("mcp_") ||
+                    tool.name in explicitMcpToolNames ||
+                    prefixes.any { prefix -> tool.name.startsWith(prefix) }
+            }
+        }
         // H-ASM1: skillRepository.listEnabled() 为 suspend,用 resultOf 正确重抛 CancellationException
         val skills = resultOf { skillRepository.listEnabled() }
             .onError { _, t -> Logger.w(TAG, "skillRepository.listEnabled 失败", t) }
             .getOrNull() ?: emptyList()
 
-        val currentGen = localTools.size + skills.size
+        // 仅比较条目数会漏掉 MCP server 重连后“工具数量不变、schema/名称已变”的情况。
+        // 用名称、描述、参数和必填字段生成轻量指纹,避免静态 system prompt 继续使用旧能力索引。
+        val currentGen = buildString {
+            append(assistant?.id.orEmpty())
+            append('|')
+            append(assistant?.toolIdsJson.orEmpty())
+            append('|')
+            append(assistant?.mcpServerIdsJson.orEmpty())
+            append('|')
+            localTools.sortedBy { it.name }.forEach { tool ->
+                append(tool.name)
+                append('|')
+                append(tool.description)
+                append('|')
+                append(tool.parameters)
+                append('|')
+                append(tool.required.sorted())
+                append(';')
+            }
+            skills.sortedBy { it.id }.forEach { skill ->
+                append(skill.id)
+                append('|')
+                append(skill.description)
+                append('|')
+                append(skill.requiredJson)
+                append(';')
+            }
+        }.hashCode()
         val cached = cachedToolManifest
         if (cached != null && currentGen == cachedToolManifestGen) {
             return cached
@@ -801,6 +843,10 @@ class SystemPromptAssembler(
         sb.appendLine("工具能力索引(内部约束):")
         sb.appendLine("- 本轮实际可调用的工具以请求中的 tools schema 为唯一准则,不要调用未出现在 schema 中的名称。")
         sb.appendLine("- 能直接回答就不要调用工具;需要工具时优先一次调用完成,拿到结果后直接收尾。")
+        if (localTools.any { it.name.startsWith("mcp_") || it.category == "mcp" }) {
+            sb.appendLine("- 已注册的 MCP 工具是真实可执行的外部能力,不是仅供介绍的知识。用户请求涉及对应服务时,直接调用本轮 schema 中最匹配的 MCP 工具,不要声称只能给出操作步骤或要求用户代为执行。")
+            sb.appendLine("- MCP 工具返回结果后,以结果为准继续对话;如果调用失败,如实说明失败原因,不要把工具名或内部协议细节伪装成成功。")
+        }
 
         val categoryOrder = listOf(
             "file" to "文件",

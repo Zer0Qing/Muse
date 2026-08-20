@@ -85,6 +85,14 @@ internal fun shouldSendTools(
     tools: List<ToolDefinition>?,
 ): Boolean = when {
     tools.isNullOrEmpty() -> false
+    // MCP 工具是助手显式绑定的外部能力。只有在模型能力为空、上游没有给出可靠
+    // 能力声明时,才交给 Provider 能力矩阵尝试发送;模型明确声明“仅推理”时仍不能
+    // 强行塞 tools,避免把 MCP 问题变成 API 400。
+    tools.any { it.name.startsWith("mcp_") } && model.abilities.isEmpty() -> ProviderCompatRules.resolve(
+        providerType = config.type,
+        baseUrl = config.resolvedBaseUrl(),
+        modelId = model.id,
+    ).supportsToolCalling
     model.abilities.isNotEmpty() -> ModelAbility.TOOL in model.abilities
     model.verification != ModelVerification.UNVERIFIED -> false
     else -> ProviderCompatRules.resolve(

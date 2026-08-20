@@ -114,4 +114,14 @@ class McpConfigTest {
             ),
         )
     }
+
+    @Test
+    fun `tool call result preserves structured content`() {
+        val result = io.zer0.common.AppJson.decodeFromString(
+            McpToolCallResult.serializer(),
+            """{"content":[],"structuredContent":{"issue":{"number":7}},"isError":false}""",
+        )
+
+        assertEquals("{\"issue\":{\"number\":7}}", result.structuredContent.toString())
+    }
 }

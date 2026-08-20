@@ -107,6 +107,8 @@ class ToolRegistry(
         val parameterTypes: Map<String, String> = emptyMap(),
         /** 工具风险等级,用于会话权限体系。 */
         val riskLevel: ToolRiskLevel = ToolRiskLevel.SAFE,
+        /** 原始 JSON Schema。MCP 工具使用此字段保留嵌套对象、数组、枚举等完整结构。 */
+        val rawParametersJsonSchema: String? = null,
     )
 
     /**
@@ -122,10 +124,14 @@ class ToolRegistry(
     /** v1.0.53: 结构化结果执行函数(返回 [ToolOutcome])。 */
     private typealias ToolOutcomeFn = suspend (Map<String, String>) -> ToolOutcome
 
+    /** MCP/JSON 工具执行函数,保留数字、布尔、数组和对象参数的原始类型。 */
+    internal typealias JsonToolFn = suspend (JsonObject) -> String
+
     // M-TR2: 改用 ConcurrentHashMap,保证 register/unregister/execute 并发安全
     private val tools = ConcurrentHashMap<String, ToolFn>()
     // v1.0.53: 结构化结果工具通道(优先于 [tools] 查找)
     private val outcomeTools = ConcurrentHashMap<String, ToolOutcomeFn>()
+    private val jsonTools = ConcurrentHashMap<String, JsonToolFn>()
     private val toolDefs = ConcurrentHashMap<String, ToolDef>()
 
     // v1.136: 定时提醒、资源库
@@ -157,6 +163,7 @@ class ToolRegistry(
     fun register(def: ToolDef, fn: ToolFn) {
         tools[def.name] = fn
         outcomeTools.remove(def.name)
+        jsonTools.remove(def.name)
         toolDefs[def.name] = def
     }
 
@@ -167,6 +174,20 @@ class ToolRegistry(
     fun registerOutcome(def: ToolDef, fn: ToolOutcomeFn) {
         outcomeTools[def.name] = fn
         tools.remove(def.name)
+        jsonTools.remove(def.name)
+        toolDefs[def.name] = def
+    }
+
+    /**
+     * 注册保留原始 JSON 参数的工具。
+     *
+     * MCP 的 inputSchema 允许 number / boolean / array / object 参数;
+     * 普通 [ToolFn] 为兼容内置工具会把参数压成 String,因此 MCP 工具必须走此通道。
+     */
+    internal fun registerJson(def: ToolDef, fn: JsonToolFn) {
+        jsonTools[def.name] = fn
+        tools.remove(def.name)
+        outcomeTools.remove(def.name)
         toolDefs[def.name] = def
     }
 
@@ -174,6 +195,7 @@ class ToolRegistry(
     fun unregister(name: String) {
         tools.remove(name)
         outcomeTools.remove(name)
+        jsonTools.remove(name)
         toolDefs.remove(name)
     }
 
@@ -249,22 +271,25 @@ class ToolRegistry(
      */
     fun listToolsAsToolDefinitions(enabledToolIds: List<String>? = null): List<ToolDefinition> =
         listTools(enabledToolIds).map { def ->
-            val schema = buildJsonObject {
-                put("type", "object")
-                put("properties", buildJsonObject {
-                    def.parameters.forEach { (name, desc) ->
-                        put(name, buildJsonObject {
-                            put("type", def.parameterTypes[name] ?: "string")
-                            put("description", desc)
-                        })
+            val schema = def.rawParametersJsonSchema
+                ?.takeIf { raw -> runCatching { AppJson.decodeFromString(JsonObject.serializer(), raw) }.isSuccess }
+                ?.let { raw -> AppJson.decodeFromString(JsonObject.serializer(), raw) }
+                ?: buildJsonObject {
+                    put("type", "object")
+                    put("properties", buildJsonObject {
+                        def.parameters.forEach { (name, desc) ->
+                            put(name, buildJsonObject {
+                                put("type", def.parameterTypes[name] ?: "string")
+                                put("description", desc)
+                            })
+                        }
+                    })
+                    if (def.required.isNotEmpty()) {
+                        put("required", kotlinx.serialization.json.JsonArray(
+                            def.required.map { JsonPrimitive(it) }
+                        ))
                     }
-                })
-                if (def.required.isNotEmpty()) {
-                    put("required", kotlinx.serialization.json.JsonArray(
-                        def.required.map { JsonPrimitive(it) }
-                    ))
                 }
-            }
             ToolDefinition(
                 name = def.name,
                 description = def.description,
@@ -289,6 +314,9 @@ class ToolRegistry(
         args: Map<String, String>,
         cancellationToken: () -> Boolean = { false },
     ): ToolOutcome {
+        jsonTools[name]?.let { fn ->
+            return executeJson(name, stringArgsToJson(args), fn, cancellationToken)
+        }
         // v1.0.53: 内容级安全规则(执行前硬边界,不受审批模式影响)
         val content = args.values.joinToString("\n")
         ContentSafetyRules.check(name, content)?.let { rule ->
@@ -335,11 +363,28 @@ class ToolRegistry(
      */
     suspend fun executeFromJson(name: String, argumentsJson: String): String {
         // M-TR1: 改用 resultOf{}(正确重抛 CancellationException)
-        val args = resultOf {
-            val obj = parseArgumentsLenient(argumentsJson)
-            obj.entries.associate { (k, v) -> k to v.toString().trim('"') }
+        val obj = resultOf {
+            parseArgumentsLenient(argumentsJson)
         }.onError { msg, _ ->
             Logger.w("ToolRegistry", "executeFromJson 参数解析失败: $msg(原始: $argumentsJson)")
+        }.getOrNull() ?: return context.getString(R.string.tool_param_parse_failed, argumentsJson)
+
+        jsonTools[name]?.let { fn ->
+            val outcome = executeJson(name, obj, fn)
+            val content = outcome.content.ifBlank {
+                context.getString(R.string.tool_exec_empty_result, name)
+            }
+            return if (outcome.isError && !content.startsWith("Error:", ignoreCase = true)) {
+                "Error: $content"
+            } else {
+                content
+            }
+        }
+
+        val args = resultOf {
+            obj.entries.associate { (k, v) -> k to v.toString().trim('"') }
+        }.onError { msg, _ ->
+            Logger.w("ToolRegistry", "executeFromJson 参数转换失败: $msg(原始: $argumentsJson)")
         }.getOrNull() ?: return context.getString(R.string.tool_param_parse_failed, argumentsJson)
         // v1.0.53: execute 返回 ToolOutcome,取 content 保持 String 语义。
         // 空字符串不能继续向上游传播,否则工具卡片只能显示“执行中”而没有终态。
@@ -352,6 +397,43 @@ class ToolRegistry(
         } else {
             content
         }
+    }
+
+    private suspend fun executeJson(
+        name: String,
+        rawArgs: JsonObject,
+        fn: JsonToolFn,
+        cancellationToken: () -> Boolean = { false },
+    ): ToolOutcome {
+        val stringArgs = rawArgs.entries.associate { (k, v) -> k to v.toString().trim('"') }
+        val content = stringArgs.values.joinToString("\n")
+        ContentSafetyRules.check(name, content)?.let { rule ->
+            Logger.w("ToolRegistry", "内容安全规则命中: ${rule.ruleId} (tool=$name)")
+            return ToolOutcome.error("${rule.reason}(${rule.ruleId})")
+        }
+        if (cancellationToken()) return ToolOutcome.error("工具调用已取消")
+        val def = toolDefs[name]
+        val validation = ToolArgValidator.validate(name, stringArgs, def)
+        if (!validation.valid) {
+            val detail = validation.errors.joinToString("; ")
+            Logger.w("ToolRegistry", "工具参数校验失败: $name -> $detail")
+            return ToolOutcome.error(
+                detail,
+                mapOf("errorType" to ToolArgValidator.ERROR_TYPE, "tool" to name, "errors" to validation.errors),
+            )
+        }
+        return try {
+            ToolOutcome.ok(fn(rawArgs))
+        } catch (ce: kotlinx.coroutines.CancellationException) {
+            throw ce
+        } catch (e: Exception) {
+            Logger.w("ToolRegistry", "JSON 工具 $name 执行异常: ${e.message}")
+            ToolOutcome.error(context.getString(R.string.tool_exec_exception))
+        }
+    }
+
+    private fun stringArgsToJson(args: Map<String, String>): JsonObject = buildJsonObject {
+        args.forEach { (key, value) -> put(key, JsonPrimitive(value)) }
     }
 
     /**

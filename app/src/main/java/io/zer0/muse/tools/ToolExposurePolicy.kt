@@ -90,11 +90,13 @@ object ToolExposurePolicy {
      * @param tools 当前可用工具定义
      * @param userText 用户最新消息
      * @param explicitSelection 是否由助手/会话显式配置工具白名单
+     * @param alwaysExposeNames 助手明确绑定的外部工具,即使本轮文本没有命中能力关键词也保留
      */
     fun select(
         tools: List<ToolDefinition>,
         userText: String,
         explicitSelection: Boolean = false,
+        alwaysExposeNames: Set<String> = emptySet(),
     ): List<ToolDefinition> {
         val distinct = tools.distinctBy { it.name }
         if (explicitSelection || distinct.size <= SMALL_TOOLSET_LIMIT) return distinct
@@ -111,6 +113,7 @@ object ToolExposurePolicy {
             .flatMap { FAMILY_TOOL_NAMES[it].orEmpty() }
             .toMutableSet()
         matchedNames += COMMON_TOOLS
+        matchedNames += alwaysExposeNames
 
         // MCP 工具名由 McpRegistry 统一使用 mcp_{serverId}__{toolName} 前缀。
         if ("mcp" in matchedFamilies) {
@@ -123,7 +126,7 @@ object ToolExposurePolicy {
         } else {
             // 未识别到明确意图时只保留本地无副作用工具,让模型仍能完成计算/时间查询,
             // 同时避免把 100+ 个工具 schema 全量发给模型。
-            distinct.filter { it.name in COMMON_TOOLS }
+            distinct.filter { it.name in COMMON_TOOLS || it.name in alwaysExposeNames }
         }
     }
 
@@ -148,7 +151,11 @@ object ToolExposurePolicy {
         if (tools.isEmpty()) return false
         val normalized = userText.trim().lowercase()
         if (normalized.isBlank()) return false
-        return normalized.containsAny(EXPLICIT_TOOL_KEYWORDS)
+        if (normalized.containsAny(EXPLICIT_TOOL_KEYWORDS)) return true
+        val hasMcpTools = tools.any { it.name.startsWith("mcp_") }
+        return hasMcpTools &&
+            !normalized.containsAny(QUESTION_KEYWORDS) &&
+            normalized.containsAny(MCP_ACTION_KEYWORDS)
     }
 
     private fun String.containsAny(values: Set<String>): Boolean =
@@ -203,5 +210,11 @@ object ToolExposurePolicy {
         "calculate",
         "current time",
         "what time",
+    )
+    private val QUESTION_KEYWORDS = setOf("怎么", "如何", "什么是", "能不能", "是否", "为什么", "how", "what", "why")
+    private val MCP_ACTION_KEYWORDS = setOf(
+        "创建", "新建", "新增", "添加", "建立", "建一个", "查询", "查一下", "查找", "读取", "读一下",
+        "列出", "获取", "更新", "修改", "编辑", "删除", "提交", "同步", "发送", "发布", "写入",
+        "create", "list", "get", "read", "update", "delete", "send", "open", "add", "edit", "publish", "sync",
     )
 }

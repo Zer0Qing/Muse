@@ -60,9 +60,17 @@ object ToolArgValidator {
             val raw = args[param] ?: return@forEach
             if (raw.isBlank()) return@forEach
             when (typeName.lowercase()) {
-                "integer", "int", "number", "long" -> {
+                "integer", "int", "long" -> {
                     val normalized = raw.trim().trim('"')
                     if (normalized.toLongOrNull() == null) {
+                        errors += "参数 $param 应为 $typeName,实际值: $raw"
+                    } else {
+                        coerced[param] = normalized
+                    }
+                }
+                "number", "float", "double" -> {
+                    val normalized = raw.trim().trim('"')
+                    if (normalized.toDoubleOrNull() == null) {
                         errors += "参数 $param 应为 $typeName,实际值: $raw"
                     } else {
                         coerced[param] = normalized
@@ -80,7 +88,7 @@ object ToolArgValidator {
                         }
                     }
                 }
-                "array", "json" -> {
+                "array", "object", "json" -> {
                     // 保持原样（执行器内部解析）；只做空值检查。
                     coerced[param] = raw
                 }

@@ -117,6 +117,9 @@ class MuseApp : Application(), ImageLoaderFactory {
     private val chatGenerationManager: io.zer0.muse.schedule.ChatGenerationManager by inject()
     // 工具注册器启动引导:强制实例化全部 lazy single,让 100+ 工具可用
     private val toolRegistrarBootstrapper: io.zer0.muse.tools.ToolRegistrarBootstrapper by inject()
+    // MCP 注册表必须在应用启动时实例化,否则只打开过 MCP 设置页的进程才会连接 server,
+    // 主聊天页首次进入时看不到动态注册的 mcp_* 工具。
+    private val mcpRegistry: io.zer0.muse.mcp.McpRegistry by inject()
     /** 应用级 scope:启动一次性任务用,独立于 Koin 注册的 IO scope。 */
     // v0.53: 加 GlobalCoroutineExceptionHandler,防止协程内未捕获异常导致应用崩溃(企业级容错)
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO + GlobalCoroutineExceptionHandler)
@@ -168,6 +171,8 @@ class MuseApp : Application(), ImageLoaderFactory {
         }
         // 强制实例化全部工具注册器，让 100+ 工具在启动后即可用
         toolRegistrarBootstrapper
+        // MCP server 连接与工具注册独立于设置页生命周期,后台和主聊天都能直接使用。
+        mcpRegistry.startAll()
         // 快速记录系统悬浮窗默认关闭:清理旧版本可能遗留的默认开启状态。
         appScope.launch {
             try {
@@ -260,6 +265,14 @@ class MuseApp : Application(), ImageLoaderFactory {
                     // v1.0.29: 切后台时如果正在生成,启动前台服务保活。必须同步执行。
                     resultOf { chatViewModel.onAppBackground() }
                         .onError { msg, t -> Logger.w("MuseApp", "chatViewModel.onAppBackground 失败: $msg", t) }
+                    // 统一覆盖群聊独立生成:ChatViewModel 只知道当前单聊会话,
+                    // 但群聊可能在用户离开主页面后仍继续轮转/表决/总结。
+                    val hasBackgroundGeneration = chatGenerationManager.activeGenerations.value.isNotEmpty() ||
+                        groupChatScheduler.activeGroupGeneration.value?.isResponding == true
+                    if (hasBackgroundGeneration) {
+                        runCatching { io.zer0.muse.schedule.ChatGenerationService.start(this@MuseApp) }
+                            .onFailure { Logger.w("MuseApp", "后台生成前台服务启动失败", it) }
+                    }
                     resultOf { chatViewModel.release() }
                         .onError { msg, t -> Logger.w("MuseApp", "chatViewModel.release 失败: $msg", t) }
                     // v1.0.30: memoryTicker.stop 含 30s 超时等待，移入协程
@@ -425,10 +438,10 @@ class MuseApp : Application(), ImageLoaderFactory {
         appScope.launch {
             combine(
                 settings.keepAwakeFlow,
-                chatGenerationManager.activeGeneration,
+                chatGenerationManager.activeGenerations,
                 groupChatScheduler.activeGroupGeneration,
             ) { keepAwake, chat, group ->
-                keepAwake && (chat?.isStreaming == true || group?.isResponding == true)
+                keepAwake && (chat.isNotEmpty() || group?.isResponding == true)
             }.collect { active -> updateWakeLock(active) }
         }
         // 主题定时切换(每 30 秒检查一次)

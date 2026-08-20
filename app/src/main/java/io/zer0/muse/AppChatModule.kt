@@ -63,6 +63,8 @@ val appChatModule = module {
             browserManagerRegistry = get(),
             // v1.x: 工具审批策略存储(与 AppToolModule 单例一致,避免 DataStore 双实例)
             toolConfigStore = get(),
+            // MCP 注册表:首条消息前等待助手绑定的 server 完成 tools/list
+            mcpRegistry = get(),
         )
     }
 }

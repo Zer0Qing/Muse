@@ -404,7 +404,7 @@ class GroupChatScheduler(
                     .getOrNull()?.ifBlank { "我" } ?: "我"
                 val chat = groupChatRepository.getChat(chatId)
                 val chatName = chat?.name ?: "群聊"
-                chatGenerationManager.updateSessionTitle(chatName)
+                chatGenerationManager.updateSessionTitle(groupGenKey(chatId, GC_KEY_RR), chatName)
 
                 _activeGroupGeneration.value = ActiveGroupGeneration(
                     chatId = chatId,
@@ -483,7 +483,7 @@ class GroupChatScheduler(
                 Logger.e(TAG, "群聊 $chatId 轮转失败", t)
             } finally {
                 _activeGroupGeneration.value = null
-                runCatching { ChatGenerationService.stop(appContext) }
+                // ChatGenerationService 观察全部会话任务;群聊结束时不能关闭仍在运行的单聊。
             }
         }
     }
@@ -503,7 +503,7 @@ class GroupChatScheduler(
             chatGenerationManager.stop(null)
         }
         _activeGroupGeneration.value = null
-        runCatching { ChatGenerationService.stop(appContext) }
+        // 服务会在 activeGenerations 为空且宽限期结束后自行停止。
     }
 
     /**
@@ -568,7 +568,7 @@ class GroupChatScheduler(
                     .onError { msg, e -> Logger.w(TAG, "群聊账本清理失败: $msg", e) }
             } finally {
                 _activeGroupGeneration.value = null
-                runCatching { ChatGenerationService.stop(appContext) }
+                // ChatGenerationService 观察全部会话任务,不能在单个群聊操作结束时关闭其他任务的保活。
             }
         }
     }
@@ -619,7 +619,7 @@ class GroupChatScheduler(
                 Logger.e(TAG, "重新生成异常", t)
             } finally {
                 _activeGroupGeneration.value = null
-                runCatching { ChatGenerationService.stop(appContext) }
+                // ChatGenerationService 观察全部会话任务,不能在单个群聊操作结束时关闭其他任务的保活。
             }
         }
     }
@@ -700,7 +700,7 @@ class GroupChatScheduler(
                 Logger.e(TAG, "表决异常", t)
             } finally {
                 _activeGroupGeneration.value = null
-                runCatching { ChatGenerationService.stop(appContext) }
+                // ChatGenerationService 观察全部会话任务,不能在单个群聊操作结束时关闭其他任务的保活。
             }
         }
     }
@@ -757,7 +757,7 @@ class GroupChatScheduler(
                 Logger.e(TAG, "总结异常", t)
             } finally {
                 _activeGroupGeneration.value = null
-                runCatching { ChatGenerationService.stop(appContext) }
+                // ChatGenerationService 观察全部会话任务,不能在单个群聊操作结束时关闭其他任务的保活。
             }
         }
     }
@@ -914,7 +914,7 @@ class GroupChatScheduler(
                 Logger.e(TAG, "悄悄话异常", t)
             } finally {
                 _activeGroupGeneration.value = null
-                runCatching { ChatGenerationService.stop(appContext) }
+                // ChatGenerationService 观察全部会话任务,不能在单个群聊操作结束时关闭其他任务的保活。
             }
         }
     }
