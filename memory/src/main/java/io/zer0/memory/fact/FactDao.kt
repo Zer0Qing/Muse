@@ -75,8 +75,8 @@ interface FactDao {
     suspend fun updateCategoryAndTags(id: Long, category: String? = null, tags: String? = null): Int
 
     /** v5: 全字段更新(用于合并去重后替换内容)。 */
-    @Query("UPDATE facts SET fact = :fact, tags = :tags, time = :time, session_id = :sessionId, created_at = :createdAt, importance = :importance, category = :category, confidence = :confidence, source = :source, expires_at = :expiresAt, last_confirmed_at = :lastConfirmedAt, last_hit_at = :lastHitAt WHERE id = :id")
-    suspend fun updateEntity(id: Long, fact: String, tags: String, time: String?, sessionId: String?, createdAt: String, importance: Int, category: String, confidence: Float, source: String, expiresAt: String?, lastConfirmedAt: String?, lastHitAt: String?)
+    @Query("UPDATE facts SET fact = :fact, tags = :tags, time = :time, session_id = :sessionId, created_at = :createdAt, importance = :importance, category = :category, confidence = :confidence, source = :source, expires_at = :expiresAt, last_confirmed_at = :lastConfirmedAt, last_hit_at = :lastHitAt, entity_key = :entityKey WHERE id = :id")
+    suspend fun updateEntity(id: Long, fact: String, tags: String, time: String?, sessionId: String?, createdAt: String, importance: Int, category: String, confidence: Float, source: String, expiresAt: String?, lastConfirmedAt: String?, lastHitAt: String?, entityKey: String? = null)
 
     /**
      * v5: 查找与给定文本前40字前缀匹配的事实(用于去重)。
@@ -102,6 +102,23 @@ interface FactDao {
         """
     )
     suspend fun findSimilarBySpace(prefix: String, scope: String, spaceId: String): List<FactEntity>
+
+    /**
+     * v12: 按 entity_key + scope + space_id 精确查找(写入时实体级查重)。
+     * 同一实体的不同写法共享同一 entity_key,命中即合并而非新增,
+     * 直接解决"张三/张先生/张三老师"多条重复记忆问题。
+     */
+    @Query(
+        """
+        SELECT * FROM facts
+        WHERE entity_key = :entityKey
+          AND scope = :scope
+          AND space_id = :spaceId
+        ORDER BY (pinned_at IS NOT NULL) DESC, importance DESC, created_at DESC
+        LIMIT 10
+        """
+    )
+    suspend fun findByEntityKey(entityKey: String, scope: String, spaceId: String): List<FactEntity>
 
     @Query("DELETE FROM facts")
     suspend fun deleteAll(): Int
@@ -317,6 +334,7 @@ data class FactTagSearchRow(
     val expiresAt: String? = null,
     val lastConfirmedAt: String? = null,
     val lastHitAt: String? = null,
+    val entityKey: String? = null,
     val matchCount: Int,
 )
 

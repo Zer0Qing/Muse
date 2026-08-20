@@ -65,6 +65,8 @@ val appModule = module {
     single { SettingsRepository(androidContext(), get()) }
     single<ProviderConfigStore> { get<SettingsRepository>() }
     single<MemoryLlmClient> { MemoryLlmClientImpl(get(), get(), androidContext()) }
+    // v12: LLM 事实去重判定器 — 算法层无法确定的同实体模糊候选交给大模型判断
+    single<io.zer0.memory.fact.FactDedupJudge> { io.zer0.muse.data.LlmFactDedupJudge(get()) }
 
     // 应用�?CoroutineScope: memory ticker 等后台任务用
     single<CoroutineScope> { CoroutineScope(SupervisorJob() + Dispatchers.IO) }

@@ -78,15 +78,20 @@ object FactExtractionPrompt {
 
 13. 没有值得提取的新内容时，返回空数组 []。
 
+14. entity_key 是实体归一化键：当事实的主语是具体的人名/称呼（如“张三”“张先生”“我妈”）时，
+    把该实体最规范的名字作为 entity_key（如 entity_key="张三"）；同一实体在不同条目中必须使用
+    完全相同的 entity_key。其余情况填 null。
+
 ## 输出格式
 
 只输出 JSON 数组，不要 markdown 代码块：
 [
-  {"fact": "用户最近在筹备搬家", "tags": ["搬家", "近况"], "time": null, "importance": 0, "category": "event", "confidence": 0.9, "source": "inferred"},
-  {"fact": "下周三要提交论文初稿", "tags": ["学业", "计划"], "time": "2026-08-12T09:00", "importance": 1, "category": "goal", "confidence": 1.0, "source": "user_explicit"}
+  {"fact": "用户最近在筹备搬家", "tags": ["搬家", "近况"], "time": null, "importance": 0, "category": "event", "confidence": 0.9, "source": "inferred", "entity_key": null},
+  {"fact": "下周三要提交论文初稿", "tags": ["学业", "计划"], "time": "2026-08-12T09:00", "importance": 1, "category": "goal", "confidence": 1.0, "source": "user_explicit", "entity_key": null},
+  {"fact": "张先生喜欢喝美式咖啡", "tags": ["咖啡"], "time": null, "importance": 0, "category": "preference", "confidence": 1.0, "source": "user_explicit", "entity_key": "张三"}
 ]
 
-注意：第 2 条示例里用户明确说了"下周三"，time 就填了对应的未来日期。
+注意：第 2 条示例里用户明确说了“下周三”，time 就填了对应的未来日期。
 凡是明确提到未来日期/时间的事件（考试、航班、会议、截止等），time 必须填具体值，不要留 null；
 只有确实没有时间信息时才填 null。time 格式 YYYY-MM-DDTHH:MM。
             """.trimIndent()
@@ -151,12 +156,15 @@ You are a memory fact splitter. $diffInstruction
 
 13. Return an empty array [] when there is nothing new worth extracting.
 
+14. entity_key is the entity normalization key: when a fact's subject is a specific person's name or title (e.g. "Mr. Zhang", "my mom"), set entity_key to the canonical name of that entity (e.g. "Zhang San"); the same entity MUST use exactly the same entity_key across entries. Use null otherwise.
+
 ## Output Format
 
 Output a strict JSON array only, without markdown code fences:
 [
-  {"fact": "The user is preparing to move", "tags": ["moving", "current-state"], "time": null, "importance": 0, "category": "event", "confidence": 0.9, "source": "inferred"},
-  {"fact": "Thesis draft is due next Wednesday", "tags": ["academic", "plan"], "time": null, "importance": 1, "category": "goal", "confidence": 1.0, "source": "user_explicit"}
+  {"fact": "The user is preparing to move", "tags": ["moving", "current-state"], "time": null, "importance": 0, "category": "event", "confidence": 0.9, "source": "inferred", "entity_key": null},
+  {"fact": "Thesis draft is due next Wednesday", "tags": ["academic", "plan"], "time": null, "importance": 1, "category": "goal", "confidence": 1.0, "source": "user_explicit", "entity_key": null},
+  {"fact": "Mr. Zhang prefers American coffee", "tags": ["coffee"], "time": null, "importance": 0, "category": "preference", "confidence": 1.0, "source": "user_explicit", "entity_key": "Zhang San"}
 ]
             """.trimIndent()
     }

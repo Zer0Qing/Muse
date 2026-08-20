@@ -15,6 +15,10 @@ import kotlinx.serialization.Serializable
  *   子助手/团队成员使用各自的 assistantId),用于隔离不同 Agent 的记忆。
  * v9 schema: 新增 space_id 字段(记忆空间,默认 "default" 表示默认空间),
  *   用于多 Space 隔离(类似 Notion 工作区),与 scope 正交。
+ * v12 schema: 新增 entity_key 字段(实体归一化键)。同一实体的不同写法
+ *   (如"张三"/"张先生"/"张三老师")共享同一 entity_key,用于精确去重与
+ *   跨写法合并,解决"同一用户名 3 条重复记忆"问题。历史数据为 null,
+ *   由反思任务在整理时回填。
  *
  * Phase 7: @Serializable 用于备份导出/导入。id 自增主键在导入时清表后重新分配。
  */
@@ -133,4 +137,13 @@ data class FactEntity(
      */
     @ColumnInfo(name = "pinned_at", defaultValue = "NULL")
     val pinnedAt: String? = null,
+
+    /**
+     * v12: 实体归一化键。同一实体不同写法的规范名。
+     *  - 由提取阶段 LLM 给出(如 entity_key="张三",aliases=["张先生","张三老师"])
+     *  - 空/未提取时由 FactStore 从事实文本推断(首个人名/专名或归一化文本)
+     *  - 用于写入时精确查重与反思任务的跨写法合并
+     */
+    @ColumnInfo(name = "entity_key")
+    val entityKey: String? = null,
 )

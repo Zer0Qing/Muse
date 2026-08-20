@@ -420,7 +420,7 @@ class MemoryViewModel(
      */
     private suspend fun llmMergeDuplicates() {
         val scope = _selectedScope.value ?: "main"
-        val groups = resultOf { factStore.findSimilarGroups(scope) }
+        val groups = resultOf { factStore.findSimilarGroups(scope, _selectedSpaceId.value) }
             .onError { msg, t -> Logger.w("MemoryViewModel", "查找重复记忆失败: $msg", t) }
             .getOrNull() ?: return
         if (groups.isEmpty()) return
@@ -496,7 +496,7 @@ class MemoryViewModel(
         _dedupRunning = true
         viewModelScope.launch {
             val merged = withContext(Dispatchers.IO) {
-                resultOf { factStore.dedupPass(scope = _selectedScope.value ?: "main") }
+                resultOf { factStore.dedupPass(scope = _selectedScope.value ?: "main", spaceId = _selectedSpaceId.value) }
                     .onError { msg, t -> Logger.w("MemoryViewModel", "记忆去重失败: ${t?.message ?: msg}") }
                     .getOrNull()
             }

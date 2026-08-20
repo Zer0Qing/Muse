@@ -44,6 +44,7 @@ data class ParsedAnalysis(
  *  - importance → importance(0/1/2,由 Float 映射: <0.4→0, <0.7→1, else 2)
  *  - folderPath → category(如 "preference"/"identity"/"event"...)
  *  - tags → tags
+ *  - entityKey → 实体归一化键(v12,同一实体不同写法的规范名,如"张三")
  */
 @Serializable
 data class ParsedEntity(
@@ -53,6 +54,7 @@ data class ParsedEntity(
     val importance: Float = 0.5f,
     val folderPath: String? = null,
     val tags: List<String> = emptyList(),
+    val entityKey: String? = null,
 )
 
 /**

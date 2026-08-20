@@ -76,6 +76,9 @@ $existingSection
    - importance: 0.0~1.0,<0.4 普通,0.4~0.7 重要,>0.7 关键(医疗/财务/安全)
    - folderPath: 分类(preference/identity/event/relationship/goal/medical/other)
    - tags: 2~5 个有辨识度的关键词
+   - entityKey: 实体归一化键。当事实主语是具体人名/称呼(如"张先生")时,
+     填该实体最规范的名字(如"张三");同一实体在不同条目中必须用完全相同的 entityKey;
+     其余情况填 null。
 
 3. links: 实体间关系(知识图谱边)。
    - sourceTitle / targetTitle 必须与某个 entity 的 title 一致
@@ -111,7 +114,8 @@ $existingSection
 {
   "mainProblem": {"title": "...", "content": "...", "credibility": 0.8, "importance": 0.5, "folderPath": "event", "tags": ["..."]},
   "extractedEntities": [
-    {"title": "对青霉素过敏", "content": "对青霉素过敏", "credibility": 1.0, "importance": 0.9, "folderPath": "medical", "tags": ["医疗","过敏"]}
+    {"title": "对青霉素过敏", "content": "对青霉素过敏", "credibility": 1.0, "importance": 0.9, "folderPath": "medical", "tags": ["医疗","过敏"], "entityKey": null},
+    {"title": "张先生喜欢美式咖啡", "content": "张先生喜欢美式咖啡", "credibility": 1.0, "importance": 0.5, "folderPath": "preference", "tags": ["咖啡"], "entityKey": "张三"}
   ],
   "links": [
     {"sourceTitle": "对青霉素过敏", "targetTitle": "用阿莫西林治疗", "linkType": "contradicts", "weight": 0.9}
@@ -139,6 +143,9 @@ $existingSection
    - importance: 0.0~1.0, <0.4 normal, 0.4~0.7 important, >0.7 critical (medical/financial/safety)
    - folderPath: Category (preference/identity/event/relationship/goal/medical/other)
    - tags: 2-5 distinctive keywords
+   - entityKey: Entity normalization key. When the fact's subject is a specific person's name/title
+     (e.g. "Mr. Zhang"), set it to the canonical name (e.g. "Zhang San"); the same entity MUST use
+     exactly the same entityKey across entries. Use null otherwise.
 
 3. links: Relationships between entities (knowledge graph edges).
    - sourceTitle / targetTitle must match an entity's title
@@ -174,7 +181,8 @@ Strict JSON object, no markdown code fences:
 {
   "mainProblem": {"title": "...", "content": "...", "credibility": 0.8, "importance": 0.5, "folderPath": "event", "tags": ["..."]},
   "extractedEntities": [
-    {"title": "allergic to penicillin", "content": "allergic to penicillin", "credibility": 1.0, "importance": 0.9, "folderPath": "medical", "tags": ["medical","allergy"]}
+    {"title": "allergic to penicillin", "content": "allergic to penicillin", "credibility": 1.0, "importance": 0.9, "folderPath": "medical", "tags": ["medical","allergy"], "entityKey": null},
+    {"title": "Mr. Zhang prefers American coffee", "content": "Mr. Zhang prefers American coffee", "credibility": 1.0, "importance": 0.5, "folderPath": "preference", "tags": ["coffee"], "entityKey": "Zhang San"}
   ],
   "links": [
     {"sourceTitle": "allergic to penicillin", "targetTitle": "treated with amoxicillin", "linkType": "contradicts", "weight": 0.9}

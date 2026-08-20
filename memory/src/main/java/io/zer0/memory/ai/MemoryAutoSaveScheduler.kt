@@ -288,6 +288,8 @@ class MemoryAutoSaveScheduler(
                     category = entity.folderPath?.takeIf { it.isNotBlank() } ?: "general",
                     confidence = entity.credibility.coerceIn(0f, 1f),
                     source = "inferred",
+                    // v12: 提取阶段给出的实体归一化键,写入时按实体键精确去重
+                    entityKey = entity.entityKey,
                 )
             }
             extracted = factStore.addBatch(facts, scope, spaceId)

@@ -15,7 +15,11 @@ import java.util.concurrent.ConcurrentHashMap
  *
  * v1.78: 新增 [release] 方法,助手删除时释放 db 句柄,避免长期使用后 fd 泄漏。
  */
-class FactDbProvider(private val context: Context) {
+class FactDbProvider(
+    private val context: Context,
+    /** v12: LLM 去重判定器,透传给每个 per-assistant FactStore(同实体模糊候选交给大模型判断)。 */
+    private val dedupJudge: FactDedupJudge = NoopFactDedupJudge,
+) {
     private val cache = ConcurrentHashMap<String, FactDb>()
 
     /** 获取指定 assistant 的 FactDb。assistantId 为空时回退到 "default"。 */
@@ -35,7 +39,8 @@ class FactDbProvider(private val context: Context) {
         // tombstoneFile 为 null,DeepMemoryProcessor/autoSave 经此删除的事实不落墓碑,
         // 已删内容会在下次编译时"复活"。共享同一墓碑文件(与主 FactStore 一致),
         // 并发写由 FactStore 进程级墓碑锁串行化。
-        return FactStore(db.factDao(), db, java.io.File(context.filesDir, "fact_tombstones.json"))
+        // v12: 透传 LLM 去重判定器。
+        return FactStore(db.factDao(), db, java.io.File(context.filesDir, "fact_tombstones.json"), dedupJudge)
     }
 
     /**

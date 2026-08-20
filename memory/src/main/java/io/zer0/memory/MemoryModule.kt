@@ -36,7 +36,8 @@ val memoryModule: Module = module {
     }
 
     // v0.22: per-assistant facts.db 提供者(按 assistantId 创建/缓存独立 FactDb)
-    single { io.zer0.memory.fact.FactDbProvider(androidContext()) }
+    // v12: 透传 LLM 去重判定器(同实体模糊候选交给大模型判断)
+    single { io.zer0.memory.fact.FactDbProvider(androidContext(), get<io.zer0.memory.fact.FactDedupJudge>()) }
 
     // v1.78 (M12): 全局 FactDb 复用 FactDbProvider 的 "default" 实例
     // 避免 FactDb.create 与 FactDbProvider 各建一个 Room 实例指向同一 facts.db 文件
@@ -60,8 +61,9 @@ val memoryModule: Module = module {
     // 审查修复 (2.0 C-03): 移除下方重复注册(同 key 单例,后者恒覆盖前者,属死装配)
     single { io.zer0.memory.compile.MemoryFileWriter(androidContext().filesDir) }
     // S-04: MemoryCompiler 透传 FactStore(删除墓碑过滤);FactStore 落盘 filesDir/fact_tombstones.json
+    // v12: 注入 LLM 去重判定器(由 app 模块提供实现,默认 Noop 不调 LLM)
     single { MemoryCompiler(get(), get(), get(), get()) }    // sectionDao + llmClient + fileWriter + factStore
-    single { FactStore(get(), get(), java.io.File(androidContext().filesDir, "fact_tombstones.json")) }
+    single { FactStore(get(), get(), java.io.File(androidContext().filesDir, "fact_tombstones.json"), get<io.zer0.memory.fact.FactDedupJudge>()) }
     single { DeepMemoryProcessor(get<io.zer0.memory.fact.FactDbProvider>(), get()) }  // factDbProvider + llmClient
 
     // v1.0.52 P2-2: 记忆空间仓库(Space CRUD + 事实迁移)

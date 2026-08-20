@@ -43,6 +43,11 @@ class FactStore(
      * 已删事实不再复活。为 null 时墓碑禁用(测试环境或未注入时降级)。
      */
     private val tombstoneFile: File? = null,
+    /**
+     * v12: LLM 去重判定器 — 算法层(字符相似度/实体键)无法确定的模糊候选对交给大模型判断。
+     * 默认 [NoopFactDedupJudge] 不调 LLM,行为与未接入完全一致;app 模块注入真实实现。
+     */
+    private val dedupJudge: FactDedupJudge = NoopFactDedupJudge,
 ) {
 
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
@@ -90,6 +95,11 @@ class FactStore(
         val spaceId: String = "default",
         /** B4-05: 手动置顶时间 ISO 8601,null 表示未置顶。 */
         val pinnedAt: String? = null,
+        /**
+         * v12: 实体归一化键。同一实体的不同写法(如"张三"/"张先生")共享同一键,
+         * 写入时按 entityKey 精确查重,命中即合并而非新增。
+         */
+        val entityKey: String? = null,
         val matchCount: Int? = null,
     )
 
@@ -154,12 +164,14 @@ class FactStore(
      * 单条事实不成簇。返回的每簇 ≥ 2 条,由调用方决定是否交给 LLM 合并。
      *
      * @param scope 记忆作用域(默认 main)
+     * @param spaceId 记忆空间(默认 default,仅在该空间内聚簇)
      * @param maxGroups 最多返回簇数(限制 LLM 调用次数,默认 10)
      * @return 相似簇列表(每簇按 id 升序)
      */
-    suspend fun findSimilarGroups(scope: String = "main", maxGroups: Int = 10): List<List<Fact>> =
+    suspend fun findSimilarGroups(scope: String = "main", spaceId: String = "default", maxGroups: Int = 10): List<List<Fact>> =
         withContext(Dispatchers.IO) {
-            val all = dao.getByScope(scope).map { it.toDomainFact() }
+            // v12: 严格按 scope + space_id 双重过滤,避免跨空间误聚簇
+            val all = dao.getByScopeAndSpace(scope, spaceId).map { it.toDomainFact() }
             if (all.size < 2) return@withContext emptyList()
             val used = mutableSetOf<Long>()
             val groups = mutableListOf<List<Fact>>()
@@ -205,12 +217,86 @@ class FactStore(
      * v9: 为去重比较去除常见主语前缀。
      * 如"用户对青霉素过敏" → "对青霉素过敏";
      * "The user is allergic to penicillin" → "allergic to penicillin"。
+     *
+     * v12: 增强归一化 — 大小写折叠 + 全半角转换 + 去首尾空白 + 压缩内部空白。
+     * 使"Zhang San"/"zhang san"/"张三 "跨写法可判等,支撑实体键去重第二通道。
      */
     private fun normalizeDedupText(text: String): String {
         return text.trim().lowercase()
             .replace(Regex("^(用户|我|他|她|这个用户|the user|i am|he is|she is)\\s*"), "")
             .trim()
+            .normalizeFullWidth()
+            .replace(WHITESPACE_RE, " ")
     }
+
+    /**
+     * v12: 全半角归一 — 全角字母/数字/常用符号转半角,兼容中英文混写重复。
+     * 示例: "ａｂｃ１２３" → "abc123", "张三（同学）" → "张三(同学)"。
+     */
+    private fun String.normalizeFullWidth(): String {
+        val sb = StringBuilder(length)
+        for (ch in this) {
+            val code = ch.code
+            when {
+                // 全角字母/数字(FF01-FF5E) → 半角(0x21-0x7E)
+                code in 0xFF01..0xFF5E -> sb.append((code - 0xFEE0).toChar())
+                // 全角空格
+                code == 0x3000 -> sb.append(' ')
+                else -> sb.append(ch)
+            }
+        }
+        return sb.toString()
+    }
+
+    /**
+     * v12: 从事实文本推断实体键(提取阶段未给出时使用)。
+     * 只认两类高置信信号,避免把普通词当人名造成误合并:
+     *  - PiiGuard 脱敏后的占位符 {{name_N}}(姓氏+称谓已脱敏,占位符即稳定实体键)
+     *  - 英文人名模式(两个大写开头的词,如 "Zhang San")
+     * 中文人名由提取阶段 LLM 显式给出 entity_key(prompt 已要求);
+     * 无法识别时返回 null,由文本相似度通道兜底,宁可漏记不可错记。
+     */
+    private fun inferEntityKey(fact: String): String? {
+        val trimmed = fact.trim()
+        if (trimmed.isBlank()) return null
+        // 已脱敏人名标记直接作为实体键(mask 可逆占位符 [NAME_N] 等,保留实体区分度)
+        val namePlaceholder = namePlaceholderRe.find(trimmed)?.value
+        if (namePlaceholder != null) return namePlaceholder
+        // 英文人名模式: 两个大写开头词(已脱敏场景少,主要覆盖 imported 数据)
+        val enName = enNameRe.find(trimmed)?.value
+        if (enName != null) return enName.lowercase()
+        return null
+    }
+
+    /**
+     * v12: 从事实文本中提取实体键。
+     * 提取阶段已给出 entityKey 时直接使用;否则按人名规则推断;
+     * 推断不出时回退为归一化文本(保证同文重复仍可判等)。
+     */
+    private fun resolveEntityKey(explicit: String?, fact: String): String? {
+        if (!explicit.isNullOrBlank()) return explicit.trim().lowercase()
+        return inferEntityKey(fact)
+    }
+
+    /** v12: 同实体判定公开入口(诊断/测试/反思任务复用)。 */
+    fun debugIsSameEntity(a: String, b: String): Boolean = isSameEntityFact(a, b)
+
+    /** v12: LLM 判定结果缓存(进程内 LRU,同步访问)— 同一事实对只问一次模型,防止重复消费 token。 */
+    private val dedupVerdictCache = object : LinkedHashMap<String, DedupVerdict>(64, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, DedupVerdict>?): Boolean = size > 256
+    }
+
+    private fun dedupCacheKey(entityKey: String, cleaned: String): String = "$entityKey|$cleaned"
+
+    /** v12: PII 占位符形态 — scrub 硬脱敏输出 [REDACTED];mask 可逆占位符 [NAME_1] 等;兼容旧 {{name_0}}。
+     * IGNORE_CASE: normalizeDedupText 已 lowercase,大写占位符需不敏感匹配。 */
+    private val piiPlaceholderRe = Regex("\\[REDACTED\\]|\\[(?:API_KEY|INLINE_SECRET|PRIVATE_KEY|ID_CARD|CREDIT_CARD|SSN|EMAIL|PHONE|IPV4|ADDRESS|NAME|ENGLISH_NAME)_\\d+\\]|\\{\\{name_\\d+\\}\\}", RegexOption.IGNORE_CASE)
+
+    /** v12: 人名专属占位符(mask 可逆 [NAME_N] / 旧 {{name_N}}) — 仅此形态可作为实体键。 */
+    private val namePlaceholderRe = Regex("\\[(?:NAME|ENGLISH_NAME)_\\d+\\]|\\{\\{name_\\d+\\}\\}", RegexOption.IGNORE_CASE)
+
+    /** v12: 大写开头英文人名候选。 */
+    private val enNameRe = Regex("\\b[A-Z][a-z]{1,12}\\s+[A-Z][a-z]{1,12}\\b")
 
     /**
      * v5: 合并两条相似事实,保留最高重要度、最高置信度与最新 created_at;
@@ -232,6 +318,8 @@ class FactStore(
         val mergedLastConfirmedAt = new.lastConfirmedAt ?: existing.lastConfirmedAt
         // v7: 合并视为一次命中,重置衰减时钟
         val mergedLastHitAt = Instant.now().toString()
+        // v12: 合并保留非空实体键(新事实显式携带时优先)
+        val mergedEntityKey = new.entityKey ?: existing.entityKey
         return existing.copy(
             fact = pickMergedWording(existing.fact, new.fact),
             tags = json.encodeToString(ListSerializer(String.serializer()), mergedTags),
@@ -245,6 +333,7 @@ class FactStore(
             expiresAt = mergedExpiresAt,
             lastConfirmedAt = mergedLastConfirmedAt,
             lastHitAt = mergedLastHitAt,
+            entityKey = mergedEntityKey,
         )
     }
 
@@ -252,16 +341,50 @@ class FactStore(
      * v9: 合并两条相似事实的文本。
      * 若语义相同(去主语后相等),保留更短、更原始的表述;
      * 否则保留信息更完整(更长)的版本。
+     *
+     * v12: PII 占位符感知 — 脱敏版(如 [REDACTED]喜欢摄影)虽更长但信息密度低,
+     * 优先保留无占位符的用户原文版本,避免合并后越并越"脱敏"。
      */
     private fun pickMergedWording(existing: String, new: String): String {
         val normExisting = normalizeDedupText(existing)
         val normNew = normalizeDedupText(new)
-        return if (normExisting == normNew) {
+        if (normExisting == normNew) {
             // 仅差主语时保留更短的原始表述
-            if (new.length < existing.length) new else existing
-        } else {
-            if (new.length > existing.length) new else existing
+            return if (new.length < existing.length) new else existing
         }
+        val existingClean = !piiPlaceholderRe.containsMatchIn(normExisting)
+        val newClean = !piiPlaceholderRe.containsMatchIn(normNew)
+        return when {
+            existingClean && !newClean -> existing // 旧版无占位符,保留旧版
+            !existingClean && newClean -> new // 新版无占位符,保留新版
+            else -> if (new.length > existing.length) new else existing // 同态,保留更长
+        }
+    }
+
+    /**
+     * v12: 同实体判定 — 比 [isSimilar] 更宽松,专用于同 entity_key 下的查重。
+     *
+     * 背景: PiiGuard 会把"张先生"脱敏成 {{name_0}},导致同实体的两条事实
+     * (一条原文、一条占位符)的字符相似度被破坏,常规 [isSimilar] 判不相等。
+     * 这里剥离占位符后做子串判定: 短文本是长文本子串即视为同实体同事实。
+     *
+     * 安全性: 只用于同 entityKey 通道(已限定同实体),不会跨实体误合并;
+     * 子串含置最少 4 字,避免"喜欢"级别的过短子串误判。
+     */
+    internal fun isSameEntityFact(a: String, b: String): Boolean {
+        if (isSimilar(a, b)) return true
+        val pa = stripNamePlaceholders(a)
+        val pb = stripNamePlaceholders(b)
+        if (pa.length < 4 || pb.length < 4) return false
+        val short = if (pa.length <= pb.length) pa else pb
+        val long = if (pa.length > pb.length) pa else pb
+        return long.contains(short)
+    }
+
+    /** v12: 剥离 PII 占位符并归一化(用于同实体文本对比)。 */
+    private fun stripNamePlaceholders(text: String): String {
+        val normalized = normalizeDedupText(text)
+        return normalized.replace(piiPlaceholderRe, " ").replace(WHITESPACE_RE, " ").trim()
     }
 
     /**
@@ -271,8 +394,46 @@ class FactStore(
      *
      * v9 改进: 新增 spaceId 过滤,仅在相同 scope + space_id 内查找相似事实,
      * 避免跨空间误合并(如"工作"空间的"喜欢美式咖啡"不应与"生活"空间的"喜欢美式咖啡"合并)。
+     *
+     * v12 改进: 新增 entityKey 参数,优先按实体归一化键精确查找。
+     * 同一实体的不同写法(如"张三"/"张先生"/"张三老师")共享同一 entity_key,
+     * 命中即视为重复,直接解决"同一用户名 3 条重复记忆"问题。
      */
-    private suspend fun findSimilarFact(cleaned: String, scope: String, spaceId: String = "default"): FactEntity? {
+    private suspend fun findSimilarFact(
+        cleaned: String,
+        scope: String,
+        spaceId: String = "default",
+        entityKey: String? = null,
+        excludeId: Long? = null,
+    ): FactEntity? {
+        // 0) v12: 实体键精确查重 — 同 entity_key + 同 scope/space 即视为同一实体,
+        //    用占位符感知的 [isSameEntityFact] 判定文本是否实质同一。
+        //    excludeId: 更新路径排除自身,避免 update 后先匹配到自己。
+        if (!entityKey.isNullOrBlank()) {
+            val sameKey = dao.findByEntityKey(entityKey, scope, spaceId)
+            val hit = sameKey.firstOrNull { it.id != excludeId && isSameEntityFact(it.fact, cleaned) }
+            if (hit != null) return hit
+            // v12: 算法层 miss — 同实体键下有候选但文本判定不相似(如语义等价但
+            //    表述差异大、或 PII 脱敏后写法不同),交给 LLM 判断。只对 top 候选
+            //    问一次并缓存结果,控制 token 消耗;低置信/失败宁可不合并。
+            if (dedupJudge !== NoopFactDedupJudge && sameKey.isNotEmpty()) {
+                val cacheKey = dedupCacheKey(entityKey, cleaned)
+                val cached = synchronized(dedupVerdictCache) { dedupVerdictCache[cacheKey] }
+                val verdict = cached ?: runCatching {
+                    dedupJudge.judge(sameKey[0].fact, cleaned, entityKey, entityKey)
+                }.getOrElse {
+                    DedupVerdict.NOT_SAME
+                }.also { synchronized(dedupVerdictCache) { dedupVerdictCache.put(cacheKey, it) } }
+                if (verdict.highConfidenceSame) {
+                    io.zer0.common.Logger.d(
+                        "FactStore",
+                        "LLM 判定同实体同事实: [${sameKey[0].fact.take(30)}] ≈ [${cleaned.take(30)}] (${verdict.confidence})",
+                    )
+                    return sameKey[0]
+                }
+            }
+        }
+
         // 1) 原始前缀匹配(保持 v5 行为)+ space_id 过滤
         dao.findSimilarBySpace(cleaned.take(40), scope, spaceId)
             .firstOrNull { isSimilar(it.fact, cleaned) }?.let { return it }
@@ -301,8 +462,14 @@ class FactStore(
      *  - 保留重要度/置信度更高、文本更完整的一方
      *  - 同 id REPLACE 更新 + 删除另一方
      */
-    suspend fun dedupPass(scope: String = "main", maxPairs: Int = 300): Int = withContext(Dispatchers.IO) {
-        val all = dao.getByScope(scope).toMutableList()
+    suspend fun dedupPass(scope: String = "main", maxPairs: Int = 300, spaceId: String? = null): Int = withContext(Dispatchers.IO) {
+        // v12: spaceId 非 null 时仅在该空间内去重,避免跨空间误合并;
+        // null 保持旧行为(按 scope 全量)兼容既有调用方。
+        val all = if (spaceId != null) {
+            dao.getByScopeAndSpace(scope, spaceId).toMutableList()
+        } else {
+            dao.getByScope(scope).toMutableList()
+        }
         if (all.size < 2) return@withContext 0
         var merged = 0
         var i = 0
@@ -343,6 +510,8 @@ class FactStore(
             expiresAt = base.expiresAt ?: other.expiresAt,
             lastConfirmedAt = base.lastConfirmedAt ?: other.lastConfirmedAt,
             lastHitAt = Instant.now().toString(),
+            // v12: 合并保留非空实体键
+            entityKey = base.entityKey ?: other.entityKey,
         )
     }
 
@@ -367,17 +536,20 @@ class FactStore(
         if (detected.isNotEmpty()) {
             io.zer0.common.Logger.d("FactStore", "PII detected in fact: $detected")
         }
-        val newEntry = entry.copy(fact = cleaned, scope = scope, spaceId = spaceId)
-        val existingSimilar = findSimilarFact(cleaned, scope, spaceId)
+        // v12: 实体键 — 提取阶段显式给出优先,否则按人名规则推断,再退化 null
+        val entityKey = resolveEntityKey(entry.entityKey, cleaned)
+        val newEntry = entry.copy(fact = cleaned, scope = scope, spaceId = spaceId, entityKey = entityKey)
+        val existingSimilar = findSimilarFact(cleaned, scope, spaceId, entityKey)
         if (existingSimilar != null) {
             val merged = mergeFact(existingSimilar, newEntry)
             dao.updateEntity(
                 merged.id, merged.fact, merged.tags, merged.time, merged.sessionId,
                 merged.createdAt, merged.importance, merged.category, merged.confidence,
                 merged.source, merged.expiresAt, merged.lastConfirmedAt, merged.lastHitAt,
+                merged.entityKey,
             )
             syncFtsRow(merged.id, FactFtsManager.toNgram(merged.fact))
-            io.zer0.common.Logger.d("FactStore", "合并相似事实(scope=$scope, space=$spaceId): ${existingSimilar.fact.take(30)}… ↔ ${cleaned.take(30)}… → id=${existingSimilar.id}")
+            io.zer0.common.Logger.d("FactStore", "合并相似事实(scope=$scope, space=$spaceId, entity=$entityKey): ${existingSimilar.fact.take(30)}… ↔ ${cleaned.take(30)}… → id=${existingSimilar.id}")
             return@withContext existingSimilar.id
         }
         val importance = if (newEntry.importance > 0) newEntry.importance else inferImportanceScore(cleaned)
@@ -401,6 +573,8 @@ class FactStore(
             // v9: 记忆空间,由调用方指定(默认 "default")
             spaceId = spaceId,
             pinnedAt = newEntry.pinnedAt,
+            // v12: 实体归一化键
+            entityKey = entityKey,
         )
         val insertedId = dao.insert(entity)
         dao.insertFts(insertedId, FactFtsManager.toNgram(cleaned))
@@ -429,14 +603,17 @@ class FactStore(
                 if (detected.isNotEmpty()) {
                     io.zer0.common.Logger.d("FactStore", "PII detected in batch fact: $detected")
                 }
-                val newEntry = entry.copy(fact = cleaned, scope = scope, spaceId = spaceId)
-                val existingSimilar = findSimilarFact(cleaned, scope, spaceId)
+                // v12: 实体键 — 提取阶段显式给出优先,否则按人名规则推断
+                val entityKey = resolveEntityKey(entry.entityKey, cleaned)
+                val newEntry = entry.copy(fact = cleaned, scope = scope, spaceId = spaceId, entityKey = entityKey)
+                val existingSimilar = findSimilarFact(cleaned, scope, spaceId, entityKey)
                 if (existingSimilar != null) {
                     val merged = mergeFact(existingSimilar, newEntry)
                     dao.updateEntity(
                         merged.id, merged.fact, merged.tags, merged.time, merged.sessionId,
                         merged.createdAt, merged.importance, merged.category, merged.confidence,
                         merged.source, merged.expiresAt, merged.lastConfirmedAt, merged.lastHitAt,
+                        merged.entityKey,
                     )
                     syncFtsRow(merged.id, FactFtsManager.toNgram(merged.fact))
                 } else {
@@ -457,6 +634,7 @@ class FactStore(
                         scope = scope,
                         spaceId = spaceId,
                         pinnedAt = newEntry.pinnedAt,
+                        entityKey = entityKey,
                     ))
                     dao.insertFts(insertedId, FactFtsManager.toNgram(cleaned))
                     // 新插入的 id 不会有重复 FTS,直接 insertFts 即可(upsertFts 多一次 DELETE 无必要)
@@ -576,10 +754,37 @@ class FactStore(
         // update 合并去重结果),旧注释"用户手动编辑不走脱敏"的前提不成立;
         // 与 add 保持一致,敏感信息一律不落明文。
         val scrubbed = PiiGuard.scrub(trimmed).cleaned
+        val target = dao.getById(id)
         val updated = dao.updateContent(id, scrubbed, scope) > 0
         if (updated) {
             // v1.0.51: 用 upsertFts 避免更新已有事实时产生重复 FTS 条目
             syncFtsRow(id, FactFtsManager.toNgram(scrubbed))
+            // v12: 更新后接入去重检查 — 新内容与同 scope/space 下其他事实重复时,
+            //    自动合并(删除被覆盖方,保留更完整表述),修复"更新路径绕过去重"漏洞。
+            val current = target ?: dao.getById(id)
+            if (current != null) {
+                val mergedEntity = current.copy(fact = scrubbed)
+                // v12: excludeId=自身 — 更新后 findSimilarFact 不应匹配到自己
+                val dup = findSimilarFact(scrubbed, mergedEntity.scope, mergedEntity.spaceId, mergedEntity.entityKey, excludeId = id)
+                if (dup != null && dup.id != id) {
+                    val merged = mergeFact(dup, Fact(
+                        fact = scrubbed,
+                        scope = dup.scope,
+                        spaceId = dup.spaceId,
+                        entityKey = dup.entityKey,
+                    ))
+                    dao.updateEntity(
+                        merged.id, merged.fact, merged.tags, merged.time, merged.sessionId,
+                        merged.createdAt, merged.importance, merged.category, merged.confidence,
+                        merged.source, merged.expiresAt, merged.lastConfirmedAt, merged.lastHitAt,
+                        merged.entityKey,
+                    )
+                    syncFtsRow(merged.id, FactFtsManager.toNgram(merged.fact))
+                    dao.deleteFts(id)
+                    dao.deleteById(id)
+                    io.zer0.common.Logger.d("FactStore", "update 触发去重合并: $id → ${merged.id}")
+                }
+            }
         }
         updated
     }
@@ -936,6 +1141,8 @@ class FactStore(
         spaceId = spaceId,
         // B4-05: 透传置顶时间
         pinnedAt = pinnedAt,
+        // v12: 透传实体归一化键
+        entityKey = entityKey,
     )
 
     private fun FactTagSearchRow.toDomainFact(): Fact = Fact(
@@ -953,6 +1160,7 @@ class FactStore(
         lastConfirmedAt = lastConfirmedAt,
         lastHitAt = lastHitAt,
         matchCount = matchCount,
+        entityKey = entityKey,
     )
 
     private fun decodeTags(raw: String): List<String> = runCatching {
@@ -1012,6 +1220,7 @@ private class TagSearchPlan(
                 expiresAt = row.expiresAt,
                 lastConfirmedAt = row.lastConfirmedAt,
                 lastHitAt = row.lastHitAt,
+                entityKey = row.entityKey,
                 matchCount = matchCount,
             ) else null
         }.sortedWith(

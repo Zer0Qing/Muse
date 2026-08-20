@@ -29,6 +29,9 @@ import java.time.format.DateTimeFormatter
  * v10 schema: 新增 memory_links 表(记忆知识图谱边),存储事实间关系
  *   (causes/explains/part_of/related_to/contradicts),用于 AI 驱动记忆管理
  *   构建用户记忆图谱(P2-3)。
+ * v12 schema: 新增 entity_key 列(实体归一化键),同一实体不同写法共享同一键,
+ *   用于写入时精确查重与跨写法合并(解决同名重复记忆)。历史数据为 NULL,
+ *   由反思任务在整理时回填。
  *
  * FTS4 选型说明:
  *  - 部分国产 ROM(如 OPPO Android 16)的 SQLite 未编译 FTS5 模块,
@@ -38,7 +41,7 @@ import java.time.format.DateTimeFormatter
  */
 @Database(
     entities = [FactEntity::class, FactFtsEntity::class, MemorySpaceEntity::class, MemoryLinkEntity::class],
-    version = 11,
+    version = 12,
     // v1.78 (H4): 开启 schema 导出,未来 v4+ 升级时编写 Migration 替代 destructive
     // 历史 v1→v2→v3 的 destructive migration 已无法补救,从 v3 开始留基线
     exportSchema = true,
@@ -231,6 +234,20 @@ abstract class FactDb : RoomDatabase() {
                 db.execSQL("ALTER TABLE facts ADD COLUMN pinned_at TEXT DEFAULT NULL")
             }
         }
+
+        /**
+         * v11→v12 迁移 — facts 表加 entity_key 列(实体归一化键)。
+         *
+         * - 仅 ADD COLUMN,SQLite O(1) 元数据操作,不重写表,历史数据无损。
+         * - 新列可空,历史数据保持 NULL,由反思任务在整理时按实体名回填。
+         * - 索引 idx_facts_entity_key 加速写入时查重(同实体键候选扫描)。
+         */
+        val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE facts ADD COLUMN entity_key TEXT")
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_facts_entity_key ON facts(entity_key)")
+            }
+        }
         /**
          * R-DB-03: 归档早期 v1/v2 或损坏的 facts 数据库。
          * 归档为 <name>.bak 后由 Room 重建空库,避免打开时崩溃。
@@ -276,7 +293,7 @@ abstract class FactDb : RoomDatabase() {
             } catch (_: Exception) {
                 return // 损坏库交给 archiveLegacyOrCorruptDatabase 处理
             }
-            if (version <= 11) return // 迁移链覆盖范围内(3..11)
+            if (version <= 12) return // 迁移链覆盖范围内(3..12)
             val bak = File(file.parentFile, "$name.pre-destructive.bak")
             runCatching { if (bak.exists()) bak.delete() }
             val renamed = runCatching { file.renameTo(bak) }.getOrDefault(false)
@@ -298,7 +315,7 @@ abstract class FactDb : RoomDatabase() {
                 .addMigrations(
                     MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
                     MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
-                    MIGRATION_10_11,
+                    MIGRATION_10_11, MIGRATION_11_12,
                 )
                 .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {

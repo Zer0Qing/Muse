@@ -7,6 +7,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -149,11 +150,13 @@ class FactDbMigrationTest {
         )
             // v1.0.56: 补全 7→10 迁移链(Room 需要完整路径;此前只注册 7_8,
             //   测试建库后实际要求迁到当前版本 10;v1.0.62 延续到 11)
+            // v12: 延续到 12(实体归一化键列)
             .addMigrations(
                 FactDb.MIGRATION_7_8,
                 FactDb.MIGRATION_8_9,
                 FactDb.MIGRATION_9_10,
                 FactDb.MIGRATION_10_11,
+                FactDb.MIGRATION_11_12,
             )
             .allowMainThreadQueries()
             .build()
@@ -219,11 +222,13 @@ class FactDbMigrationTest {
             dbFile.absolutePath,
         )
             // v1.0.56: 补全 7→10 迁移链(Room 需要完整路径)
+            // v12: 延续到 12(实体归一化键列)
             .addMigrations(
                 FactDb.MIGRATION_7_8,
                 FactDb.MIGRATION_8_9,
                 FactDb.MIGRATION_9_10,
                 FactDb.MIGRATION_10_11,
+                FactDb.MIGRATION_11_12,
             )
             .allowMainThreadQueries()
             .build()
@@ -244,6 +249,179 @@ class FactDbMigrationTest {
             assertEquals("2026-07-28T11:00:00Z", cursor.getString(6))
             assertEquals("2026-07-28T12:00:00Z", cursor.getString(7))
             assertEquals("main", cursor.getString(8)) // 新增字段,默认值
+        }
+
+        db.close()
+    }
+
+    /**
+     * v12: 老用户从 v11 升级 — entity_key 列新增,历史数据完整保留。
+     * 用户安装新版本后记忆数据必须正常: 现有事实不丢、字段不变、新列可空。
+     */
+    @Test
+    fun migrate11To12_addsEntityKeyColumnPreservingData() {
+        val dbFile = newDbFile()
+        val factory = FrameworkSQLiteOpenHelperFactory()
+        // v11 schema: facts + fts + 全部旧列(pinned_at 最后)
+        val V11_CREATE_FACTS = """
+            CREATE TABLE IF NOT EXISTS `facts` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `fact` TEXT NOT NULL,
+                `tags` TEXT NOT NULL DEFAULT '[]',
+                `time` TEXT,
+                `session_id` TEXT,
+                `created_at` TEXT NOT NULL,
+                `importance` INTEGER NOT NULL DEFAULT 0,
+                `category` TEXT NOT NULL DEFAULT 'general',
+                `confidence` REAL NOT NULL DEFAULT 1.0,
+                `source` TEXT NOT NULL DEFAULT 'inferred',
+                `expires_at` TEXT,
+                `last_confirmed_at` TEXT,
+                `last_hit_at` TEXT DEFAULT NULL,
+                `scope` TEXT NOT NULL DEFAULT 'main',
+                `space_id` TEXT NOT NULL DEFAULT 'default',
+                `pinned_at` TEXT DEFAULT NULL
+            )
+        """.trimIndent()
+        val V11_CREATE_FTS = """
+            CREATE VIRTUAL TABLE IF NOT EXISTS `facts_fts` USING FTS4(
+                `fact_id` INTEGER NOT NULL,
+                `content_ngram` TEXT NOT NULL
+            )
+        """.trimIndent()
+        val V11_CREATE_SPACES = """
+            CREATE TABLE IF NOT EXISTS `memory_spaces` (
+                `id` TEXT NOT NULL PRIMARY KEY,
+                `name` TEXT NOT NULL,
+                `icon` TEXT,
+                `description` TEXT NOT NULL DEFAULT '',
+                `created_at` TEXT NOT NULL,
+                `sort_index` INTEGER NOT NULL DEFAULT 0
+            )
+        """.trimIndent()
+        val V11_CREATE_LINKS = """
+            CREATE TABLE IF NOT EXISTS `memory_links` (
+                `id` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                `source_fact_id` INTEGER NOT NULL,
+                `target_fact_id` INTEGER NOT NULL,
+                `source_title` TEXT NOT NULL,
+                `target_title` TEXT NOT NULL,
+                `link_type` TEXT NOT NULL DEFAULT 'related_to',
+                `weight` REAL NOT NULL DEFAULT 0.5,
+                `space_id` TEXT NOT NULL DEFAULT 'default',
+                `scope` TEXT NOT NULL DEFAULT 'main',
+                `created_at` TEXT NOT NULL
+            )
+        """.trimIndent()
+        val helper = factory.create(
+            configuration = androidx.sqlite.db.SupportSQLiteOpenHelper.Configuration.builder(context)
+                .name(dbFile.absolutePath)
+                .callback(object : androidx.sqlite.db.SupportSQLiteOpenHelper.Callback(11) {
+                    override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                        db.execSQL(V11_CREATE_FACTS)
+                        db.execSQL(V11_CREATE_FTS)
+                        db.execSQL(V11_CREATE_SPACES)
+                        db.execSQL(V11_CREATE_LINKS)
+                        // v9 索引
+                        db.execSQL("CREATE INDEX IF NOT EXISTS `index_facts_scope` ON `facts` (`scope`)")
+                        db.execSQL("CREATE INDEX IF NOT EXISTS `index_facts_space_id` ON `facts` (`space_id`)")
+                        db.execSQL("CREATE INDEX IF NOT EXISTS `idx_memory_spaces_sort` ON `memory_spaces` (`sort_index`)")
+                        db.execSQL("CREATE INDEX IF NOT EXISTS `idx_memory_links_source` ON `memory_links` (`source_fact_id`)")
+                        db.execSQL("CREATE INDEX IF NOT EXISTS `idx_memory_links_target` ON `memory_links` (`target_fact_id`)")
+                        db.execSQL("CREATE INDEX IF NOT EXISTS `idx_memory_links_space` ON `memory_links` (`space_id`)")
+                        db.execSQL("CREATE INDEX IF NOT EXISTS `idx_memory_links_scope` ON `memory_links` (`scope`)")
+                    }
+
+                    override fun onUpgrade(
+                        db: androidx.sqlite.db.SupportSQLiteDatabase,
+                        oldVersion: Int,
+                        newVersion: Int,
+                    ) {
+                    }
+                })
+                .build(),
+        ).writableDatabase
+
+        // 模拟老用户已有 2 条记忆(含置顶)与 1 条 FTS 索引
+        helper.execSQL(
+            """
+            INSERT INTO facts (
+                id, fact, tags, time, session_id, created_at,
+                importance, category, confidence, source,
+                expires_at, last_confirmed_at, last_hit_at,
+                scope, space_id, pinned_at
+            ) VALUES (
+                1, '用户喜欢深色模式', '["preference"]', NULL, NULL, '2026-08-01T00:00:00Z',
+                1, 'preference', 0.9, 'user_explicit',
+                NULL, NULL, '2026-08-10T00:00:00Z',
+                'main', 'default', '2026-08-15T00:00:00Z'
+            )
+            """.trimIndent()
+        )
+        helper.execSQL(
+            """
+            INSERT INTO facts (
+                id, fact, tags, time, session_id, created_at,
+                importance, category, confidence, source,
+                expires_at, last_confirmed_at, last_hit_at,
+                scope, space_id, pinned_at
+            ) VALUES (
+                2, '下周三交论文初稿', '["学业","计划"]', '2026-08-26T09:00:00Z', 'sess-x', '2026-08-18T10:00:00Z',
+                1, 'goal', 1.0, 'user_explicit',
+                '2026-08-27T00:00:00Z', NULL, NULL,
+                'main', 'work', NULL
+            )
+            """.trimIndent()
+        )
+        helper.execSQL(
+            "INSERT INTO facts_fts(fact_id, content_ngram) VALUES (1, '用户 喜欢 深色 模式'), (2, '下周 周三 交论 论文 初稿')"
+        )
+        helper.close()
+
+        // 触发 11→12 迁移
+        val db = Room.databaseBuilder(context, FactDb::class.java, dbFile.absolutePath)
+            .addMigrations(FactDb.MIGRATION_11_12)
+            .allowMainThreadQueries()
+            .build()
+        db.openHelper.writableDatabase
+
+        // 1. entity_key 列存在
+        db.openHelper.writableDatabase.query("PRAGMA table_info(facts)").use { cursor ->
+            val columns = mutableListOf<String>()
+            while (cursor.moveToNext()) columns.add(cursor.getString(1))
+            assertTrue("entity_key 列应存在", "entity_key" in columns)
+        }
+
+        // 2. 历史数据完整保留(含 scope/space_id/pinned_at/expires_at/last_hit_at)
+        db.openHelper.writableDatabase.query(
+            """
+            SELECT fact, importance, scope, space_id, pinned_at, expires_at, last_hit_at, entity_key
+            FROM facts WHERE id = 1
+            """.trimIndent()
+        ).use { cursor ->
+            assertTrue("老数据应保留", cursor.moveToFirst())
+            assertEquals("用户喜欢深色模式", cursor.getString(0))
+            assertEquals(1, cursor.getInt(1))
+            assertEquals("main", cursor.getString(2))
+            assertEquals("default", cursor.getString(3))
+            assertEquals("2026-08-15T00:00:00Z", cursor.getString(4))
+            assertNull("expires_at 为 NULL", cursor.getString(5))
+            assertEquals("2026-08-10T00:00:00Z", cursor.getString(6))
+            assertNull("老数据 entity_key 为 NULL(待反思任务回填)", cursor.getString(7))
+        }
+
+        // 3. 第二条(work 空间)同样保留
+        db.openHelper.writableDatabase.query("SELECT space_id, expires_at FROM facts WHERE id = 2").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("work", cursor.getString(0))
+            assertEquals("2026-08-27T00:00:00Z", cursor.getString(1))
+        }
+
+        // 4. 索引 idx_facts_entity_key 已建
+        db.openHelper.writableDatabase.query(
+            "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_facts_entity_key'"
+        ).use { cursor ->
+            assertTrue("idx_facts_entity_key 索引应存在", cursor.moveToFirst())
         }
 
         db.close()
