@@ -26,18 +26,18 @@ android {
         targetSdk = 35
         // v1.0.27 P0-1.1: 版本号支持从 Gradle property 注入,CI 从 git tag 自动提取
         // 优先级: -PversionCode/-PversionName > 环境变量 > 默认值
-        // 本地构建用默认值,CI 通过 ./gradlew assembleRelease -PversionName=1.0.77 注入
+        // 本地构建用默认值,CI 通过 ./gradlew assembleRelease -PversionName=1.0.78 注入
         // 空字符串视为未注入(workflow_dispatch 无 tag 时回退默认值)
-        // C-34: 默认值随最新 tag 更新(当前 v1.0.77 / 177)
+        // C-34: 默认值随最新 tag 更新(当前 v1.0.78 / 178)
         versionCode = (project.findProperty("versionCode") as? String)
             ?.takeIf { it.isNotBlank() }
             ?.toIntOrNull()
             ?: System.getenv("VERSION_CODE")?.takeIf { it.isNotBlank() }?.toIntOrNull()
-            ?: 177
+            ?: 178
         versionName = (project.findProperty("versionName") as? String)
             ?.takeIf { it.isNotBlank() }
             ?: System.getenv("VERSION_NAME")?.takeIf { it.isNotBlank() }
-            ?: "1.0.77"
+            ?: "1.0.78"
     }
 
     signingConfigs {
