@@ -71,6 +71,28 @@ class MemoryAutoSaveScheduler(
     private val analysisSemaphore = Semaphore(MAX_CONCURRENT_ANALYSIS)
 
     /**
+     * v12 (T2-3): 已处理内容指纹缓存(进程内 LRU,同步访问)。
+     * 幂等键 = sessionId + 历史消息指纹(最后 20 条消息的 id+content 哈希)。
+     * 同一会话同一段历史只调一次 LLM 提取,防 AutoSave 与 DeepMemory 对同一内容
+     * 重复提取/双写;失败不更新指纹(保留补跑机会)。
+     */
+    private val processedFingerprints = object : LinkedHashMap<String, String>(64, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String>?): Boolean = size > 256
+    }
+
+    /**
+     * v12 (T2-3): 计算历史消息指纹 — 取最后 [MAX_HISTORY_MESSAGES] 条消息的
+     * (id + content) 哈希。id 相同且内容相同 → 同一段历史,幂等跳过。
+     */
+    internal fun fingerprintHistory(history: List<UIMessage>): String {
+        val window = history.takeLast(MAX_HISTORY_MESSAGES)
+        val joined = window.joinToString("\n") { "${it.role}:${it.id}:${it.content.take(200)}" }
+        return java.security.MessageDigest.getInstance("MD5")
+            .digest(joined.toByteArray())
+            .joinToString("") { "%02x".format(it) }
+    }
+
+    /**
      * 分析结果统计(供调用方/日志观察)。
      */
     data class AnalysisResult(
@@ -102,11 +124,24 @@ class MemoryAutoSaveScheduler(
         locale: String = "zh-CN",
     ) {
         if (history.isEmpty()) return
+        // v12 (T2-3): 幂等指纹 — 同一会话同一段历史已成功处理过则跳过,
+        // 防止同内容重复调 LLM 提取(与 DeepMemory 双写同一内容的场景)。
+        val fpKey = sessionId
+        val fp = fingerprintHistory(history)
+        val alreadyProcessed = synchronized(processedFingerprints) {
+            processedFingerprints[fpKey] == fp
+        }
+        if (alreadyProcessed) {
+            Logger.d("MemoryAutoSaveScheduler", "autoSave 幂等跳过(session=${sessionId.take(8)}…, 内容未变化)")
+            return
+        }
         this.scope.launch {
             analysisSemaphore.withPermit {
                 resultOf {
                     runAutoSave(sessionId, history, assistantId, spaceId, scope, model, locale)
                 }.onSuccess { result ->
+                    // v12 (T2-3): 成功处理后记录指纹,同内容不再重复提取
+                    synchronized(processedFingerprints) { processedFingerprints[fpKey] = fp }
                     Logger.i(
                         "MemoryAutoSaveScheduler",
                         "autoSave 完成(session=${sessionId.take(8)}…): " +

@@ -529,6 +529,18 @@ class  MemoryTicker(
                 try {
                     // A-19: 只编译主助手摘要
                     compiler.compileFacts(summaryManager, model, locale, getConfig(), mainAssistantId = MAIN_ASSISTANT_ID)
+                    // v12 (T2-1): 编译产物与 facts 表对账 — 用户在记忆页编辑/合并事实后,
+                    // 产物同步为 facts 表现值,下次注入不再携带旧表述。失败不影响主流程。
+                    factStore?.let { fs ->
+                        resultOf { fs.getByScopeAndSpace("main", "default") }
+                            .onSuccess { facts ->
+                                if (facts.isNotEmpty()) {
+                                    resultOf { compiler.reconcileFactsSectionWithStore(facts) }
+                                        .onError { msg, t -> Logger.w(TAG, "facts 产物对账失败: ${t?.message ?: msg}") }
+                                }
+                            }
+                            .onError { msg, t -> Logger.w(TAG, "facts 表读取失败(对账跳过): ${t?.message ?: msg}") }
+                    }
                     completed = completed + ("compileFacts" to Instant.now().toString())
                     writeDailyState(context, completed, null)
                     markSuccess("compileFacts")

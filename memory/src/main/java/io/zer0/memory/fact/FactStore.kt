@@ -655,6 +655,25 @@ class FactStore(
         runFtsOrLikeSearch(query.trim(), limit).filterNot { it.isExpired() }
     }
 
+    /**
+     * v12 (T2-2): 运行时相关记忆检索 — 按当前问题召回 top-K 相关事实。
+     * 在 [searchFullText] 基础上增加 scope + space 过滤,防止跨助手/跨空间串记忆;
+     * 用于 system prompt 的 <relevant_memory> 段(按 query 召回,而非全量注入)。
+     */
+    suspend fun searchRelevantFacts(
+        query: String,
+        scope: String = "main",
+        spaceId: String = "default",
+        limit: Int = 8,
+    ): List<Fact> = withContext(Dispatchers.IO) {
+        if (query.isBlank()) return@withContext emptyList()
+        ensureFtsIndexConsistent()
+        val all = runFtsOrLikeSearch(query.trim(), limit * 3)
+            .filterNot { it.isExpired() }
+            .filter { it.scope == scope && it.spaceId == spaceId }
+        all.take(limit)
+    }
+
     /** 先尝试 FTS4 MATCH，单字或异常时回退 LIKE。 */
     private suspend fun runFtsOrLikeSearch(trimmed: String, limit: Int): List<Fact> {
         if (FactFtsManager.shouldFallbackToLike(trimmed)) {

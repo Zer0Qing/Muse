@@ -624,6 +624,99 @@ class MemoryCompiler(
         Result.COMPILED
     }
 
+    /**
+     * v12 (T2-1): facts 编译产物与 facts 表对账 — 用户编辑/合并事实后,产物自动对齐。
+     *
+     * 背景: FACTS section 由会话摘要经 LLM 编译,与 facts 表无稳定对应关系。
+     * 用户在记忆页编辑事实(update)后,产物里仍是旧表述,下次 compileFacts
+     * 时 LLM 可能保留旧版,导致注入内容与用户意图不一致。
+     *
+     * 做法: 逐行扫描产物,按归一化相似度匹配 facts 表条目;命中且文本不同时
+     * 用 facts 表现值替换该行。删除场景已由墓碑覆盖,此处只处理"编辑/合并"对齐。
+     *
+     * @return 实际替换的行数
+     */
+    suspend fun reconcileFactsSectionWithStore(
+        facts: List<io.zer0.memory.fact.FactStore.Fact>,
+    ): Int = withContext(Dispatchers.IO) {
+        val current = readSection(Section.FACTS)
+        if (current.isBlank() || facts.isEmpty()) return@withContext 0
+        val storeLines = facts
+            .map { it.fact.trim() }
+            .filter { it.isNotEmpty() }
+        if (storeLines.isEmpty()) return@withContext 0
+
+        var replaced = 0
+        val newLines = current.lines().map { line ->
+            val trimmed = line.trim()
+            if (trimmed.isEmpty() || trimmed.startsWith("#")) {
+                line
+            } else {
+                // 产物行与 facts 表条目按去主语+归一化比较,命中且不同则替换
+                val match = storeLines.firstOrNull { storeLine ->
+                    normalizedEq(trimmed, storeLine)
+                }
+                if (match != null && match != trimmed) {
+                    replaced++
+                    line.replace(trimmed, match)
+                } else {
+                    line
+                }
+            }
+        }.joinToString("\n")
+
+        if (replaced > 0 && newLines != current) {
+            // 用 @Insert(REPLACE) 而非 updateContent(UPSERT 语法在部分测试 SQLite 版本报错);
+            // REPLACE 对无外键的 compiled_sections 语义一致(冲突时删除重建)。
+            sectionDao.upsert(
+                CompiledSectionEntity(
+                    sectionKey = Section.FACTS.key,
+                    content = newLines,
+                    fingerprint = null,
+                    updatedAt = Instant.now().toString(),
+                )
+            )
+            Logger.i("MemoryCompiler", "facts 产物与事实表对账: 替换 $replaced 行(用户编辑已同步)")
+        }
+        replaced
+    }
+
+    /** v12: 归一化相等比较(去主语 + 大小写 + 全半角 + 空白,用于产物行与 facts 表条目匹配)。 */
+    private fun normalizedEq(a: String, b: String): Boolean {
+        val na = normalizeLine(a)
+        val nb = normalizeLine(b)
+        return na.isNotBlank() && na == nb
+    }
+
+    private fun normalizeLine(text: String): String {
+        return text.trim().lowercase()
+            .replace(Regex("^(用户|我|他|她|这个用户|the user|i am|he is|she is)\\s*"), "")
+            .trim()
+            .toHalfWidth()
+            .replace(whiteSpaceRe, " ")
+            .trim()
+    }
+
+    /**
+     * v12: 全角转半角(字母/数字/常用符号),用于产物行与 facts 表条目跨写法匹配。
+     * 全角空格(U+3000)转为普通空格,由 whiteSpaceRe 统一压缩。
+     */
+    private fun String.toHalfWidth(): String {
+        val sb = StringBuilder(length)
+        for (ch in this) {
+            val code = ch.code
+            when {
+                code in 0xFF01..0xFF5E -> sb.append((code - 0xFEE0).toChar())
+                code == 0x3000 -> sb.append(' ')
+                else -> sb.append(ch)
+            }
+        }
+        return sb.toString()
+    }
+
+    /** v12: 压缩连续空白(产物行匹配用)。 */
+    private val whiteSpaceRe = Regex("\\s+")
+
     /** 清空所有编译产物(记忆重置用)。 */
     suspend fun clearAll() = withContext(Dispatchers.IO) {
         sectionDao.clearAll(Instant.now().toString())

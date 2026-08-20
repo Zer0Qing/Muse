@@ -4980,6 +4980,20 @@ class ChatViewModel(
                     if (isNotEmpty()) append("\n\n---\n\n")
                     append(dynamicSection)
                 }
+                // v12 (T2-2): 相关记忆检索 — 按最后一条用户消息 FTS 召回 top-K 相关事实,
+                // 作为全量长期记忆的补充(仅当记忆开启且非子助手时;检索失败静默跳过)。
+                if (memoryEnabled && !sessionIgnoreMem && assistant?.memoryEnabled == true) {
+                    val lastUserInput = transformedMessages.lastOrNull { it.role == MessageRole.USER }?.content
+                    if (!lastUserInput.isNullOrBlank()) {
+                        val relevant = resultOf { systemPromptAssembler.buildRelevantMemorySection(lastUserInput) }
+                            .onError { msg, _ -> Logger.w("ChatVM", "buildRelevantMemorySection 失败: $msg") }
+                            .getOrNull() ?: ""
+                        if (relevant.isNotBlank()) {
+                            if (isNotEmpty()) append("\n\n---\n\n")
+                            append(relevant)
+                        }
+                    }
+                }
             }
             systemMessages = if (combinedSystemPrompt.isBlank()) emptyList() else listOf(
                 UIMessage(role = MessageRole.SYSTEM, content = combinedSystemPrompt)
