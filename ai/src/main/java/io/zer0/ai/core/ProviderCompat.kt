@@ -405,6 +405,19 @@ object ProviderCompatRules {
                     ReasoningReplayPolicy.REQUIRE_TOOL_CALL,
                 ),
             )
+            // v1.0.7+: 其余 deepseek-* 模型(deepseek-chat/deepseek-v4-flash 等官方+中转站)
+            // 也走 DEEPSEEK 协议。DeepSeek 官方 API 的 thinking 模式要求历史 assistant 消息
+            // 回传 reasoning_content,否则多轮/工具循环返回 400
+            // ("The reasoning_content in the thinking mode must be passed back to the API")。
+            // DEEPSEEK thinkingFormat 不发送任何思考参数,对未知中转站透明,无需 hostKnown 守卫;
+            // 回放仅在历史消息真的带 reasoning 时生效,普通对话不受影响。
+            id.startsWith("deepseek-") -> copy(
+                thinkingFormat = ThinkingFormat.DEEPSEEK,
+                reasoningReplayContract = ReasoningReplayContract(
+                    ReasoningCarrier.REASONING_CONTENT,
+                    ReasoningReplayPolicy.REQUIRE_TOOL_CALL,
+                ),
+            )
             // v1.0.7: Qwen3-Coder 系列走 chat_template_kwargs.enable_thinking
             //   (Qwen3-Coder 模型用 chat_template 协议,enable_thinking 必须嵌在 chat_template_kwargs 内)
             // v1.0.53: 仅已知 host 注入,未知中转站不支持 chat_template_kwargs 字段
