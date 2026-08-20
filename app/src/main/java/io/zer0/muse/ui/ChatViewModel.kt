@@ -231,7 +231,24 @@ enum class ChatErrorType {
  * @param currentAssistant 当前会话绑定的 Assistant(Phase 8.2,影响 systemPrompt/模型/工具/记忆)
  * @param favoriteMessages 跨会话收藏的消息列表(Phase 8.3,收藏面板用)
  */
+/**
+ * F-10: 流式生成阶段状态机(单一状态源)。
+ *
+ *  - [IDLE]: 无生成;
+ *  - [CONNECTING]: 已发送,等待首个 token;
+ *  - [STREAMING]: 正文流式输出中;
+ *  - [TOOLING]: 工具调用执行阶段;
+ *  - [INTERRUPTED]: 被用户停止/会话切换中断,内容保留;
+ *  - [FINISHED]: 正常完成;
+ *  - [FAILED]: 出错终止。
+ *
+ * UI/通知/统计统一从 [ChatStreamState.phase] 派生, 不各自判断分散布尔。
+ */
+enum class ChatStreamPhase { IDLE, CONNECTING, STREAMING, TOOLING, INTERRUPTED, FINISHED, FAILED }
+
 data class ChatStreamState(
+    /** F-10: 生成阶段(单一状态源;isStreaming 等布尔保持兼容派生)。 */
+    val phase: ChatStreamPhase = ChatStreamPhase.IDLE,
     val isStreaming: Boolean = false,
     /**
          * v1.0.3: 流式启动后是否仍在等待首个 token(含 ContentDelta / ReasoningDelta)。
@@ -1353,9 +1370,20 @@ class ChatViewModel(
      *
      * @return 是否执行了清零
      */
-    private fun clearStreamingStateIfLatest(state: StreamRunState): Boolean {
+    private fun clearStreamingStateIfLatest(
+        state: StreamRunState,
+        // F-10: 结束时的最终阶段(正常完成=FINISHED/出错=FAILED/中断=INTERRUPTED)
+        finalPhase: ChatStreamPhase = ChatStreamPhase.IDLE,
+    ): Boolean {
         if (state.generationSerial != streamGenerationSerial) return false
-        _state.update { it.copy(isStreaming = false, isWaitingFirstToken = false, toolProgressMessage = null) }
+        _state.update {
+            it.copy(
+                isStreaming = false,
+                isWaitingFirstToken = false,
+                toolProgressMessage = null,
+                streamState = it.streamState.copy(phase = finalPhase),
+            )
+        }
         return true
     }
 
@@ -1448,6 +1476,8 @@ class ChatViewModel(
                 pendingDocuments = emptyList(),
                 replyingTo = null,
                 replyQuoteOverride = null,
+                // F-10: 发送即进入 CONNECTING(等待首 token)
+                streamState = it.streamState.copy(phase = ChatStreamPhase.CONNECTING),
                 isStreaming = true,
                 // v1.0.3: 进入"等待首 token"阶段,UI 显示 ShimmerBubble
                 isWaitingFirstToken = true,
@@ -4779,6 +4809,8 @@ class ChatViewModel(
                 }
                 // A-12/A-14: 传入 expectedAssistantId — persistInterruptedAssistant 只允许标记
                 // 本轮生成消息,绝不回退到旧/已完成消息(此前会误标 [已中断] 到历史回复)。
+                // F-10: 中断 → INTERRUPTED(内容保留,消息落盘带 [已中断] 标记)
+                _state.update { it.copy(streamState = it.streamState.copy(phase = ChatStreamPhase.INTERRUPTED)) }
                 persistInterruptedAssistant(
                     sessionId,
                     partialFromBuilder,
@@ -4845,7 +4877,8 @@ class ChatViewModel(
                 val msg = classifyNetworkError(t)
                 addError(type, msg, isRecoverable = type != ChatErrorType.API_KEY)
                 // B-24: 仅自己仍是最新生成时才清零
-                clearStreamingStateIfLatest(state)
+                // F-10: 出错终止 → FAILED
+                clearStreamingStateIfLatest(state, ChatStreamPhase.FAILED)
                 // 通知:错误时取消进度通知
                 runCatching {
                     notificationManager.updateLiveProgress("", 0, false)
@@ -5266,7 +5299,13 @@ class ChatViewModel(
                             if (isFirstToken) {
                                 firstTokenTime = System.currentTimeMillis()
                                 // 立即清除"等待首 token"状态,ShimmerBubble 消失,StreamingCursor 接管
-                                _state.update { it.copy(isWaitingFirstToken = false) }
+                                // F-10: 首 token 到达 → STREAMING
+                                _state.update {
+                                    it.copy(
+                                        isWaitingFirstToken = false,
+                                        streamState = it.streamState.copy(phase = ChatStreamPhase.STREAMING),
+                                    )
+                                }
                             }
                             val now = System.currentTimeMillis()
                             if (streamToUi) {
@@ -5389,6 +5428,10 @@ class ChatViewModel(
                             }
                         }
                         is ChatStreamEvent.ToolCallDelta -> {
+                            // F-10: 工具调用阶段开始
+                            _state.update {
+                                it.copy(streamState = it.streamState.copy(phase = ChatStreamPhase.TOOLING))
+                            }
                             val acc = toolCallAccumulator.getOrPut(event.index) {
                                 Triple(null, null, StringBuilder())
                             }
@@ -5586,7 +5629,8 @@ class ChatViewModel(
                         }
                     }
                     // B-24: 仅自己仍是最新生成时才清零(旧生成错误不得清掉新生成的流式状态)
-                    clearStreamingStateIfLatest(state)
+                    // F-10: 流式错误 → FAILED
+                    clearStreamingStateIfLatest(state, ChatStreamPhase.FAILED)
                     // B-02: 出口同步最后已知流式内容 — 中断 catch 块只读 state.builder,
                     // 逐轮 params.builder 是局部对象,不同步则停止时部分回复无法构造
                     state.builder.setLength(0)
@@ -5800,7 +5844,8 @@ class ChatViewModel(
             val err = toolLoopResult.error
             addError(err?.type ?: ChatErrorType.UNKNOWN, err?.message ?: appContext.getString(R.string.err_chat_unknown), isRecoverable = err?.type != ChatErrorType.API_KEY)
             // B-24: 仅自己仍是最新生成时才清零
-            clearStreamingStateIfLatest(state)
+            // F-10: 工具循环失败 → FAILED
+            clearStreamingStateIfLatest(state, ChatStreamPhase.FAILED)
             return false
         }
 
@@ -5879,7 +5924,8 @@ class ChatViewModel(
 
         // v1.80 (M-CVM5): 原子更新,避免读-改-写竞态
         // B-24: 仅自己仍是最新生成时才清零(快速连发时 gen-1 收尾不得清掉 gen-2 状态)
-        clearStreamingStateIfLatest(state)
+        // F-10: 正常完成 → FINISHED
+        clearStreamingStateIfLatest(state, ChatStreamPhase.FINISHED)
 
         // v1.x: 三钩子接入 — 生成完成后调用 applyOnGenerationFinish。
         // 跑一遍 onGenerationFinish 钩子,如果最终 assistant 消息被改变则写回 _messages.value + DB。

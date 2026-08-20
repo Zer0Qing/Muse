@@ -466,4 +466,5 @@
     <string name="settings_backup_log_empty">暂无备份记录</string>
     <string name="settings_backup_log_success">成功</string>
     <string name="settings_backup_log_failed">失败</string>
+    <string name="audit_log_category_agent">Agent 运行</string>
 </resources>

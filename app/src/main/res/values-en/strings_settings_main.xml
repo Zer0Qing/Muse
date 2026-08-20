@@ -467,4 +467,5 @@
     <string name="settings_backup_log_empty">No backup records yet</string>
     <string name="settings_backup_log_success">Success</string>
     <string name="settings_backup_log_failed">Failed</string>
+    <string name="audit_log_category_agent">Agent runs</string>
 </resources>

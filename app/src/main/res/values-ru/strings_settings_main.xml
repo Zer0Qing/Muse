@@ -464,4 +464,5 @@
     <string name="settings_backup_log_empty">Пока нет резервных копий</string>
     <string name="settings_backup_log_success">Успех</string>
     <string name="settings_backup_log_failed">Ошибка</string>
+    <string name="audit_log_category_agent">Запуски агента</string>
 </resources>

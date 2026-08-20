@@ -464,4 +464,5 @@
     <string name="settings_backup_log_empty">백업 기록이 없습니다</string>
     <string name="settings_backup_log_success">성공</string>
     <string name="settings_backup_log_failed">실패</string>
+    <string name="audit_log_category_agent">에이전트 실행</string>
 </resources>

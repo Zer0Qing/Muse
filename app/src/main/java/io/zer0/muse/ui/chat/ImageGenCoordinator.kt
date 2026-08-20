@@ -60,6 +60,12 @@ class ImageGenCoordinator(
     /** 当前图片生成任务(可被新任务取消)。 */
     private var imageJob: Job? = null
 
+    /**
+     * F-09: 当前媒体任务 id(每次生成分配独立 UUID)。
+     * 旧任务被取消后其 finally 不得覆盖新任务状态(isGeneratingImage 竞态守卫)。
+     */
+    private var currentMediaTaskId: String? = null
+
     companion object {
         /** 图片缩放最长边(视觉模型不需要超清,控制 base64 体积)。 */
         private const val IMAGE_SCALE_TARGET = 1024
@@ -243,6 +249,11 @@ class ImageGenCoordinator(
             sessionRepository.appendMessage(sessionId, userMsg)
         }
         imageJob?.cancel()
+        // F-09: 独立媒体任务 id 管理生成生命周期 — 消息只引用结果,
+        // 状态更新(isGeneratingImage)以当前任务为准, 旧任务 finally 不得覆盖新任务
+        val mediaTaskId = kotlin.uuid.Uuid.random().toString()
+        currentMediaTaskId = mediaTaskId
+        Logger.i(tag, "绘图任务开始 mediaTask=$mediaTaskId | prompt=${prompt.take(60)}")
         imageJob = accessor.coroutineScope.launch(AppDispatchers.io) {
             try {
                 val imageGenConfig = settings.imageGenConfigFlow.first()
@@ -256,11 +267,13 @@ class ImageGenCoordinator(
                         it.baseUrl.contains("agnes", ignoreCase = true)
                 }
                 if (!hasImageProvider) {
-                    accessor.update {
-                        it.copy(
-                            errors = listOf(ChatError(type = ChatErrorType.UNKNOWN, message = appContext.getString(R.string.err_image_gen_no_provider))),
-                            isGeneratingImage = false,
-                        )
+                    if (currentMediaTaskId == mediaTaskId) {
+                        accessor.update {
+                            it.copy(
+                                errors = listOf(ChatError(type = ChatErrorType.UNKNOWN, message = appContext.getString(R.string.err_image_gen_no_provider))),
+                                isGeneratingImage = false,
+                            )
+                        }
                     }
                     return@launch
                 }
@@ -282,20 +295,24 @@ class ImageGenCoordinator(
                 }
 
                 if (config == null) {
-                    accessor.update {
-                        it.copy(
-                            errors = listOf(ChatError(type = ChatErrorType.UNKNOWN, message = appContext.getString(R.string.err_image_gen_no_provider))),
-                            isGeneratingImage = false,
-                        )
+                    if (currentMediaTaskId == mediaTaskId) {
+                        accessor.update {
+                            it.copy(
+                                errors = listOf(ChatError(type = ChatErrorType.UNKNOWN, message = appContext.getString(R.string.err_image_gen_no_provider))),
+                                isGeneratingImage = false,
+                            )
+                        }
                     }
                     return@launch
                 }
                 if (model == null) {
-                    accessor.update {
-                        it.copy(
-                            errors = listOf(ChatError(type = ChatErrorType.UNKNOWN, message = appContext.getString(R.string.err_image_gen_no_model))),
-                            isGeneratingImage = false,
-                        )
+                    if (currentMediaTaskId == mediaTaskId) {
+                        accessor.update {
+                            it.copy(
+                                errors = listOf(ChatError(type = ChatErrorType.UNKNOWN, message = appContext.getString(R.string.err_image_gen_no_model))),
+                                isGeneratingImage = false,
+                            )
+                        }
                     }
                     return@launch
                 }
@@ -305,11 +322,13 @@ class ImageGenCoordinator(
                 when (config.type) {
                     ProviderType.GEMINI -> {
                         if (!model.supportsImageOutput()) {
-                            accessor.update {
-                                it.copy(
-                                    errors = listOf(ChatError(type = ChatErrorType.UNKNOWN, message = appContext.getString(R.string.err_image_gen_model_no_output))),
-                                    isGeneratingImage = false,
-                                )
+                            if (currentMediaTaskId == mediaTaskId) {
+                                accessor.update {
+                                    it.copy(
+                                        errors = listOf(ChatError(type = ChatErrorType.UNKNOWN, message = appContext.getString(R.string.err_image_gen_model_no_output))),
+                                        isGeneratingImage = false,
+                                    )
+                                }
                             }
                             return@launch
                         }
@@ -322,17 +341,22 @@ class ImageGenCoordinator(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (t: Exception) {
-                Logger.e(tag, "image gen failed", t)
-                accessor.update {
-                    it.copy(
-                        errors = listOf(ChatError(type = ChatErrorType.UNKNOWN, message = appContext.getString(R.string.err_image_gen_failed, t.message ?: appContext.getString(R.string.err_chat_unknown)))),
-                        isGeneratingImage = false,
-                    )
+                Logger.e(tag, "image gen failed mediaTask=$mediaTaskId", t)
+                if (currentMediaTaskId == mediaTaskId) {
+                    accessor.update {
+                        it.copy(
+                            errors = listOf(ChatError(type = ChatErrorType.UNKNOWN, message = appContext.getString(R.string.err_image_gen_failed, t.message ?: appContext.getString(R.string.err_chat_unknown)))),
+                            isGeneratingImage = false,
+                        )
+                    }
                 }
             } finally {
                 // 9.1 修复: 任何路径下都重置 isGeneratingImage,避免 Gemini 返回空图片列表等
                 // 错误路径早返回时 loading 卡死(成功/失败/取消均会触发 finally)
-                accessor.update { it.copy(isGeneratingImage = false) }
+                // F-09: 仅当前任务可重置 — 旧任务 finally 不得覆盖新任务的 isGeneratingImage
+                if (currentMediaTaskId == mediaTaskId) {
+                    accessor.update { it.copy(isGeneratingImage = false) }
+                }
             }
         }
     }

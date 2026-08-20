@@ -310,6 +310,8 @@ class ToolOrchestrator(
     private val hookRegistry: io.zer0.muse.hook.HookRegistry? = null,
     // P2-4: 审计日志记录器(工具审批放行时记录)。
     private val auditLogger: AuditLogger? = null,
+    // F-08: Agent Run 收据内存账本(每次工具执行写入,含 parentRunId 调用链)。
+    private val agentRunTracker: io.zer0.muse.data.audit.AgentRunTracker? = null,
     // v1.x: 会话级浏览器实例注册表(每个会话独立 WebView)。
     private val browserManagerRegistry: BrowserManagerRegistry = BrowserManagerRegistry(context),
     // R-TEST-10: 工具超时可注入,生产默认 2 分钟
@@ -330,6 +332,15 @@ class ToolOrchestrator(
         )
     }
 
+    /**
+     * F-07: 工具执行状态机。
+     *  - [SUCCESS]: 执行成功;
+     *  - [FAILED]: 执行失败(工具报错/审批拒绝/超时/异常回传);
+     *  - [INTERRUPTED]: 执行被流式中断(用户停止/会话切换),结果不完整;
+     *  - [APPROVAL_PENDING]: 等待用户审批,生成循环挂起。
+     */
+    enum class ToolExecStatus { SUCCESS, FAILED, INTERRUPTED, APPROVAL_PENDING }
+
     private data class ToolExecResult(
         val idx: Int,
         val tc: ToolCall,
@@ -337,6 +348,10 @@ class ToolOrchestrator(
         val isSuccess: Boolean,
         /** v1.x: 展示给用户的结果(失败时不含 LLM 引导语),null 时回退 [finalToolResult]。 */
         val displayResult: String? = null,
+        /** F-07: 执行状态(默认 SUCCESS,失败/中断点显式标注)。 */
+        val status: ToolExecStatus = ToolExecStatus.SUCCESS,
+        /** F-08: 工具执行耗时(ms),供 AgentRunRecord 收据。 */
+        val durationMs: Long = 0L,
     )
 
     /**
@@ -555,6 +570,16 @@ class ToolOrchestrator(
                         try {
                             executeSingleToolCall(params, taskCardId, tc, idx, host, taskCardCoordinator)
                         } catch (ce: kotlinx.coroutines.CancellationException) {
+                            // F-07: 中断标记 — 工具执行被流式中断(用户停止/会话切换)。
+                            // 结果不完整, 记录 INTERRUPTED 状态日志与任务卡步骤, 再向上传播取消。
+                            Logger.w(TAG, "工具 ${tc.name} 被中断(INTERRUPTED) | sessionId=${params.sessionId}")
+                            taskCardCoordinator.updateTaskCardStep(taskCardId, idx) { s ->
+                                s.copy(
+                                    status = TaskStepStatus.FAILED,
+                                    result = "[中断] 工具 ${tc.name} 执行被取消",
+                                    finishedAt = System.currentTimeMillis(),
+                                )
+                            }
                             throw ce
                         } catch (e: Exception) {
                             // 工具已经可能完成了外部副作用(例如写入记忆),但回调/清理阶段异常
@@ -588,6 +613,45 @@ class ToolOrchestrator(
                     // 按顺序回填结果到历史和 UI
                     for (result in execResults) {
                         val (idx, tc, finalToolResult, isSuccess, displayResult) = result
+                        // F-07: 状态日志 — 每工具执行结束记录终态(SUCCESS/FAILED/INTERRUPTED/APPROVAL_PENDING)
+                        Logger.d(
+                            TAG,
+                            "工具执行结束: ${tc.name} status=${result.status} isSuccess=$isSuccess" +
+                                " | sessionId=${params.sessionId}",
+                        )
+                        // F-08: Agent Run 统一收据 — 内存账本 + 审计日志(可选持久化)。
+                        // parentRunId: 本工具若是 delegate_agent/subagent_task 的发起者,
+                        // 其子 agent 内的工具调用会以本 runId 为 parentRunId 形成调用链。
+                        // F-11: exposedToolIds 记录本轮 LLM 可见工具(暴露快照证据,
+                        // 与 calledToolId 对照可判定"工具是否被合理暴露")。
+                        val isDelegationTool = tc.name == "delegate_agent" || tc.name == "subagent_task"
+                        agentRunTracker?.record(
+                            io.zer0.muse.data.audit.AgentRunRecord(
+                                runId = tc.id,
+                                parentRunId = null,
+                                sessionId = params.sessionId,
+                                round = round,
+                                toolName = tc.name,
+                                argumentsSummary = tc.arguments.take(200),
+                                resultSummary = finalToolResult.take(200),
+                                status = result.status.name,
+                                durationMs = result.durationMs,
+                                exposedToolIds = params.tools.joinToString(",") { it.name },
+                            ),
+                        )
+                        auditLogger?.log(
+                            category = "agent_run",
+                            action = if (isDelegationTool) "delegate_tool" else "tool_exec",
+                            target = tc.id,
+                            detail = mapOf(
+                                "sessionId" to params.sessionId,
+                                "round" to round,
+                                "tool" to tc.name,
+                                "status" to result.status.name,
+                                "durationMs" to result.durationMs,
+                                "isSuccess" to isSuccess,
+                            ),
+                        )
                         if (isSuccess) {
                             consecutiveToolFailures = 0
                         } else {
@@ -787,11 +851,13 @@ class ToolOrchestrator(
             if (blocked != null) {
                 val blockResult = """{"error": "Tool blocked by hook", "reason": "${blocked!!.reason}"}"""
                 host.onToolFinish(tc.id, tc.name, false, System.currentTimeMillis() - toolStartAt)
-                return ToolExecResult(idx, tc, blockResult, false)
+                return ToolExecResult(idx, tc, blockResult, false, status = ToolExecStatus.FAILED)
             }
         }
 
         // 工具审批检查(v1.0.53: 传完整 args 供参数化权限判定)
+        // F-07: 审批等待可见化 — 挂起等待用户响应的过程记录 APPROVAL_PENDING 状态日志
+        Logger.d(TAG, "工具 ${tc.name} 等待审批(APPROVAL_PENDING) | sessionId=${params.sessionId}")
         val approvalState = host.requestToolApproval(tc.name, tc.id, tc.arguments.take(200), paramsMap)
 
         // P1-1: ToolLifecycleHook.onToolPermissionChecked
@@ -813,7 +879,7 @@ class ToolOrchestrator(
             }
             cleanupPendingToolCall(tc.id)
             host.onToolFinish(tc.id, tc.name, false, System.currentTimeMillis() - toolStartAt)
-            return ToolExecResult(idx, tc, deniedResult, false)
+            return ToolExecResult(idx, tc, deniedResult, false, status = ToolExecStatus.FAILED)
         }
 
         // P2-4: 审计日志 — 用户审批放行工具
@@ -953,7 +1019,15 @@ class ToolOrchestrator(
         }
 
         host.onToolFinish(tc.id, tc.name, isSuccess, System.currentTimeMillis() - toolStartAt)
-        return ToolExecResult(idx, tc, finalToolResult, isSuccess, displayResult = displayResult)
+        return ToolExecResult(
+            idx,
+            tc,
+            finalToolResult,
+            isSuccess,
+            displayResult = displayResult,
+            status = if (isSuccess) ToolExecStatus.SUCCESS else ToolExecStatus.FAILED,
+            durationMs = System.currentTimeMillis() - toolStartAt,
+        )
     }
 
     /**
@@ -1007,6 +1081,7 @@ class ToolOrchestrator(
             finalToolResult = result,
             isSuccess = false,
             displayResult = result,
+            status = ToolExecStatus.FAILED,
         )
     }
 

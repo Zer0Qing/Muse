@@ -464,4 +464,5 @@
     <string name="settings_backup_log_empty">Aún no hay copias</string>
     <string name="settings_backup_log_success">Correcto</string>
     <string name="settings_backup_log_failed">Fallo</string>
+    <string name="audit_log_category_agent">Ejecuciones de agente</string>
 </resources>

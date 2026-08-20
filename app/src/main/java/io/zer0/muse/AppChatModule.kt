@@ -28,10 +28,15 @@ val appChatModule = module {
             context = androidContext(),
             hookRegistry = get(),
             auditLogger = get(),
+            // F-08: Agent Run 收据内存账本
+            agentRunTracker = get(),
             // v1.x: 会话级浏览器注册表(与 UI 胶囊共享同一实例)
             browserManagerRegistry = get(),
         )
     }
+
+    // F-08: Agent Run 收据内存账本(每次工具执行写入,供调试/审计展示)
+    single { io.zer0.muse.data.audit.AgentRunTracker() }
 
     // P0 对话树选择快照存储(分支选择跨重启恢复)
     single { io.zer0.muse.data.chat.ConversationTreeSnapshotStore(androidContext()) }

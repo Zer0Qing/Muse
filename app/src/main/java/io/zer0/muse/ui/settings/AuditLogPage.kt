@@ -384,6 +384,8 @@ private fun FilterHeader(
             "user_action" to R.string.audit_log_category_user,
             "auth" to R.string.audit_log_category_auth,
             "system" to R.string.audit_log_category_system,
+            // F-08: Agent 运行收据(工具执行状态机记录)
+            "agent_run" to R.string.audit_log_category_agent,
         )
     }
     Column(

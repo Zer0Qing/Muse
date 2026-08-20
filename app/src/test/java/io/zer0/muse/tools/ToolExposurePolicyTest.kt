@@ -115,4 +115,26 @@ class ToolExposurePolicyTest {
             ),
         )
     }
+
+    @Test
+    fun `F11 multi intent message merges all matched families without dropping tools`() {
+        // 一条消息同时含"搜索"(web 族)与"发短信"(phone 族)意图,
+        // select 必须返回并集(web + phone 工具都暴露),不得只保留第一个命中族。
+        val selected = ToolExposurePolicy.select(
+            tools = allTools + (1..30).map { tool("extra_$it") },
+            userText = "先搜索一下今天的新闻,再给张三发条短信",
+        )
+        val names = selected.map { it.name }.toSet()
+
+        // web 族
+        assertTrue("web_search" in names)
+        assertTrue("web_fetch" in names)
+        // phone 族
+        assertTrue("send_sms" in names)
+        // 无副作用公共工具始终保留
+        assertTrue("calculator" in names)
+        // 未命中族(agent/media)不应泄漏
+        assertFalse("delegate_agent" in names)
+        assertFalse("generate_image" in names)
+    }
 }

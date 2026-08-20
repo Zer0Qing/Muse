@@ -464,4 +464,5 @@
     <string name="settings_backup_log_empty">バックアップ記録はありません</string>
     <string name="settings_backup_log_success">成功</string>
     <string name="settings_backup_log_failed">失敗</string>
+    <string name="audit_log_category_agent">エージェント実行</string>
 </resources>
