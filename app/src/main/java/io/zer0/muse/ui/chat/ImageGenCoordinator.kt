@@ -91,9 +91,8 @@ class ImageGenCoordinator(
                             reportError(context.getString(R.string.err_image_gen_ocr_failed))
                             return@launch
                         }
-                        val current = accessor.snapshot.input
-                        val merged = if (current.isBlank()) text else "$current\n\n$text"
-                        accessor.update { it.copy(input = merged) }
+                        // 原子读取最新输入，避免 OCR 完成前用户输入被旧快照覆盖。
+                        accessor.appendInputAtomically(text)
                     } finally {
                         accessor.update { it.copy(isOcrProcessing = false) }
                     }

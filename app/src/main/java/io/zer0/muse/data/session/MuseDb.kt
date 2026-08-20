@@ -158,8 +158,14 @@ import kotlinx.serialization.builtins.serializer
         GenerationCheckpointEntity::class,
         // B5-02: 群聊生成账本(进程被杀后按断点重放)
         GroupChatGenerationLedgerEntity::class,
+        // Overnight rebuild: 对话事件、回合、工具轮、parts 和分支头
+        ConversationEventEntity::class,
+        ConversationTurnEntity::class,
+        ToolRoundEntity::class,
+        MessagePartEntity::class,
+        SessionBranchHeadEntity::class,
     ],
-    version = 92,
+    version = 95,
     exportSchema = true,
 )
 @TypeConverters(QuickNoteConverters::class)
@@ -216,6 +222,12 @@ abstract class MuseDb : RoomDatabase() {
     abstract fun generationCheckpointDao(): GenerationCheckpointDao
     // B5-02: 群聊生成账本 DAO
     abstract fun groupChatGenerationLedgerDao(): io.zer0.muse.data.groupchat.GroupChatGenerationLedgerDao
+    // Overnight rebuild: 对话影子事件与新投影存储
+    abstract fun conversationEventDao(): ConversationEventDao
+    abstract fun conversationTurnDao(): ConversationTurnDao
+    abstract fun toolRoundDao(): ToolRoundDao
+    abstract fun messagePartDao(): MessagePartDao
+    abstract fun sessionBranchHeadDao(): SessionBranchHeadDao
 
     companion object {
         @Volatile
@@ -628,8 +640,115 @@ abstract class MuseDb : RoomDatabase() {
             }
         }
 
+        /** v92→v93: 新建对话事件、回合和工具轮表，不改写旧消息。 */
+        val MIGRATION_92_93 = object : Migration(92, 93) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS conversation_turns (
+                        turnId TEXT NOT NULL PRIMARY KEY,
+                        sessionId TEXT NOT NULL,
+                        inputUserMessageId TEXT NOT NULL,
+                        assistantMessageId TEXT NOT NULL,
+                        phase TEXT NOT NULL,
+                        streamId TEXT DEFAULT NULL,
+                        generationSerial INTEGER NOT NULL DEFAULT 0,
+                        startedAt INTEGER NOT NULL,
+                        finishedAt INTEGER DEFAULT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        FOREIGN KEY(sessionId) REFERENCES sessions(id) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_conversation_turns_session_started ON conversation_turns(sessionId, startedAt)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_conversation_turns_session_phase ON conversation_turns(sessionId, phase)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_conversation_turns_assistant ON conversation_turns(assistantMessageId)")
+
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS conversation_events (
+                        sessionId TEXT NOT NULL,
+                        eventSeq INTEGER NOT NULL,
+                        eventId TEXT NOT NULL,
+                        turnId TEXT NOT NULL,
+                        streamId TEXT DEFAULT NULL,
+                        type TEXT NOT NULL,
+                        payloadJson TEXT NOT NULL,
+                        payloadHash TEXT NOT NULL,
+                        payloadLength INTEGER NOT NULL,
+                        provider TEXT DEFAULT NULL,
+                        modelId TEXT DEFAULT NULL,
+                        sequenceInStream INTEGER NOT NULL DEFAULT 0,
+                        generationSerial INTEGER NOT NULL DEFAULT 0,
+                        createdAt INTEGER NOT NULL,
+                        PRIMARY KEY(sessionId, eventSeq),
+                        FOREIGN KEY(sessionId) REFERENCES sessions(id) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_conversation_events_session_turn_seq ON conversation_events(sessionId, turnId, eventSeq)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_conversation_events_turn_stream ON conversation_events(turnId, streamId)")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS idx_conversation_events_event_id ON conversation_events(eventId)")
+
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS tool_rounds (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        turnId TEXT NOT NULL,
+                        roundIndex INTEGER NOT NULL,
+                        toolCallId TEXT NOT NULL,
+                        toolName TEXT NOT NULL,
+                        argsJson TEXT NOT NULL,
+                        resultJson TEXT DEFAULT NULL,
+                        status TEXT NOT NULL,
+                        startedAt INTEGER NOT NULL,
+                        finishedAt INTEGER DEFAULT NULL,
+                        errorDetail TEXT DEFAULT NULL,
+                        FOREIGN KEY(turnId) REFERENCES conversation_turns(turnId) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_tool_rounds_turn_round ON tool_rounds(turnId, roundIndex)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_tool_rounds_call ON tool_rounds(toolCallId)")
+            }
+        }
+
+        /** v93→v94: 增加兼容提交序和显式父消息引用，建立分支头表。 */
+        val MIGRATION_93_94 = object : Migration(93, 94) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE messages ADD COLUMN commitSeq INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE messages ADD COLUMN parentMessageId TEXT DEFAULT NULL")
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_messages_sessionId_commitSeq ON messages(sessionId, commitSeq)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_messages_parentMessageId ON messages(parentMessageId)")
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS session_branch_heads (
+                        sessionId TEXT NOT NULL PRIMARY KEY,
+                        headMessageId TEXT DEFAULT NULL,
+                        nextCommitSeq INTEGER NOT NULL DEFAULT 1,
+                        projectionVersion INTEGER NOT NULL DEFAULT 0,
+                        updatedAt INTEGER NOT NULL,
+                        FOREIGN KEY(sessionId) REFERENCES sessions(id) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                """.trimIndent())
+            }
+        }
+
+        /** v94→v95: 新建结构化 message parts，不回填既有消息。 */
+        val MIGRATION_94_95 = object : Migration(94, 95) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS message_parts (
+                        messageId TEXT NOT NULL,
+                        partIndex INTEGER NOT NULL,
+                        kind TEXT NOT NULL,
+                        text TEXT NOT NULL,
+                        metadataJson TEXT NOT NULL DEFAULT '{}',
+                        createdAt INTEGER NOT NULL,
+                        PRIMARY KEY(messageId, partIndex),
+                        FOREIGN KEY(messageId) REFERENCES messages(id) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_message_parts_message_index ON message_parts(messageId, partIndex)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_message_parts_kind ON message_parts(kind)")
+            }
+        }
+
         /**
-         * Phase 8.2: v1 → v2 迁移。
+         * Phase 8.2: v1 → v2 迁移.
          * - 新建 assistants 表
          * - sessions 加 assistantId(默认 'default') + pinned(默认 0)字段
          * - 插入默认 Assistant(id='default')
@@ -2450,6 +2569,9 @@ abstract class MuseDb : RoomDatabase() {
                         MIGRATION_89_90,
                         MIGRATION_90_91,
                         MIGRATION_91_92,
+                        MIGRATION_92_93,
+                        MIGRATION_93_94,
+                        MIGRATION_94_95,
                     )
                     // 启用外键约束(artifacts 表的 ON DELETE CASCADE 依赖此设置)
                     // onOpen 不在 onCreate 事务内,可以执行此类命令;onCreate 内禁止 PRAGMA
@@ -2546,8 +2668,7 @@ abstract class MuseDb : RoomDatabase() {
                             }
                         }
                     })
-                    // 降级:防止从更高版本降到当前版本时崩溃(升级时不销毁,避免数据丢失)
-                    .fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true)
+                    // 禁止 destructive migration：降级必须在发布流程中使用备份恢复，不能静默清空用户库。
                     .build()
                     .also { INSTANCE = it }
                     .also {

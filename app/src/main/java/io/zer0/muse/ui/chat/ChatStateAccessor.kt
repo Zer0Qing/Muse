@@ -33,3 +33,16 @@ interface ChatStateAccessor {
     /** 协程作用域(launch 用),由实现方提供 viewModelScope。 */
     val coroutineScope: kotlinx.coroutines.CoroutineScope
 }
+
+
+/**
+ * 原子追加输入文本，避免异步弹窗/OCR/ASR 回调使用旧快照覆盖用户刚输入的内容。
+ */
+fun ChatStateAccessor.appendInputAtomically(insertion: String, separator: String = "\n\n") {
+    if (insertion.isEmpty()) return
+    update { state ->
+        val current = state.input
+        val merged = if (current.isBlank()) insertion else current + separator + insertion
+        state.copy(input = merged)
+    }
+}

@@ -251,8 +251,9 @@ internal fun MessageBubble(
     val isUser = msg.role == MessageRole.USER
     // 阶段 4: 长按菜单状态(主菜单 + 翻译语言子菜单)
     // v1.79 (M-B9): 菜单/子菜单/删除确认状态改用 rememberSaveable,旋转/后台后不丢失
-    var showActionMenu by rememberSaveable { mutableStateOf(false) }
-    var showLanguageSubmenu by rememberSaveable { mutableStateOf(false) }
+    var actionSurface by rememberSaveable { mutableStateOf(MessageActionSurface.Hidden) }
+    val showActionMenu = actionSurface != MessageActionSurface.Hidden
+    val showLanguageSubmenu = actionSurface == MessageActionSurface.TranslationLanguages
     // v1.0.74 fix: 记录气泡在窗口中的位置,长按菜单以此锚定(此前无锚点,永远弹在窗口右上角)
     var actionMenuBounds by remember { mutableStateOf(androidx.compose.ui.geometry.Rect.Zero) }
     // 长按菜单需要使用手指实际按下的位置,而不是整条气泡的固定边界。
@@ -260,7 +261,7 @@ internal fun MessageBubble(
     var actionMenuPointInWindow by remember { mutableStateOf<Offset?>(null) }
     // v1.0.72: Manus 风格长按菜单 — false=精简面板(引用/分享/复制/选择文本/更多),
     // true=展开完整菜单(委托/分支/翻译/收藏/编辑/删除等)
-    var showExtendedMenu by rememberSaveable { mutableStateOf(false) }
+    val showExtendedMenu = actionSurface == MessageActionSurface.Extended
     // v1.0.72: 文本选择模式 — 长按菜单点"选择文本"后进入,支持划选复制;
     // 点击气泡或再次长按退出
     var textSelectMode by rememberSaveable { mutableStateOf(false) }
@@ -330,7 +331,7 @@ internal fun MessageBubble(
                 } else {
                     // 菜单首次出现时重新从当前气泡坐标换算按压点,避免沿用旧窗口坐标。
                     actionMenuPointInWindow = null
-                    showActionMenu = true
+                    actionSurface = MessageActionSurface.Compact
                 }
             },
         )
@@ -1068,7 +1069,7 @@ internal fun MessageBubble(
                             // v1.0.72: 长按非链接区域 → 弹气泡长按菜单(修复长按消息无反应)
                             onLongPressOutside = {
                                 textSelectMode = false
-                                showActionMenu = true
+                                actionSurface = MessageActionSurface.Compact
                             },
                         )
                     }
@@ -1203,9 +1204,9 @@ internal fun MessageBubble(
                         // 会先弹精简长按面板(TelegramActionCard),用户得再点"更多"才看到语言列表,
                         // 表现为"点快捷翻译出现长按菜单"。补 showExtendedMenu=true 跳过精简面板,
                         // 直达完整菜单的语言子菜单。
-                        showActionMenu = true
-                        showExtendedMenu = true
-                        showLanguageSubmenu = true
+                        actionSurface = MessageActionSurface.Compact
+                        actionSurface = MessageActionSurface.Extended
+                        actionSurface = MessageActionSurface.TranslationLanguages
                     },
                     contentDescription = stringResource(R.string.action_translate),
                     tint = MaterialTheme.colorScheme.outline,
@@ -1311,52 +1312,52 @@ internal fun MessageBubble(
                     anchorBounds = actionMenuBounds,
                     gapDp = 8,
                     onDismiss = {
-                        showActionMenu = false
-                        showLanguageSubmenu = false
+                        actionSurface = MessageActionSurface.Hidden
+                        actionSurface = MessageActionSurface.Hidden
                     },
                     anchorPointInWindow = actionMenuPointInWindow,
                 ) {
                     TelegramActionCard(
                         isUser = isUser,
                         onQuote = {
-                            showActionMenu = false
-                            showLanguageSubmenu = false
+                            actionSurface = MessageActionSurface.Hidden
+                            actionSurface = MessageActionSurface.Hidden
                             onQuote()
                         },
                         onCopy = {
-                            showActionMenu = false
-                            showLanguageSubmenu = false
+                            actionSurface = MessageActionSurface.Hidden
+                            actionSurface = MessageActionSurface.Hidden
                             MuseHaptics.light(hapticFeedback)
                             onCopyMessage(MoodSkinParser.cleanForExport(msg.content))
                         },
                         onSelectText = {
                             // v1.0.72: "选择文本"= 进入文本选择模式(长按文字激活系统选择手柄)
-                            showActionMenu = false
-                            showLanguageSubmenu = false
+                            actionSurface = MessageActionSurface.Hidden
+                            actionSurface = MessageActionSurface.Hidden
                             textSelectMode = true
                             MuseToast.show(context.getString(R.string.chat_select_text_hint))
                         },
                         onShare = {
-                            showActionMenu = false
-                            showLanguageSubmenu = false
+                            actionSurface = MessageActionSurface.Hidden
+                            actionSurface = MessageActionSurface.Hidden
                             onShareSession()
                         },
                         onEdit = {
-                            showActionMenu = false
-                            showLanguageSubmenu = false
+                            actionSurface = MessageActionSurface.Hidden
+                            actionSurface = MessageActionSurface.Hidden
                             onEdit()
                         },
                         onMore = {
-                            showExtendedMenu = true
+                            actionSurface = MessageActionSurface.Extended
                         },
                     )
                 }
             } else {
             MuseDialog(
                 onDismissRequest = {
-                    showActionMenu = false
-                    showLanguageSubmenu = false
-                    showExtendedMenu = false
+                    actionSurface = MessageActionSurface.Hidden
+                    actionSurface = MessageActionSurface.Hidden
+                    actionSurface = MessageActionSurface.Hidden
                 },
                 content = {
                     Column(modifier = Modifier.fillMaxWidth()) {
@@ -1366,7 +1367,7 @@ internal fun MessageBubble(
                                 icon = Icons.Default.ArrowDownward,
                                 text = stringResource(R.string.action_back),
                                 contentDescription = stringResource(R.string.action_back),
-                                onClick = { showLanguageSubmenu = false },
+                                onClick = { actionSurface = MessageActionSurface.Hidden },
                             )
                             TranslationLanguages.forEach { lang ->
                                 ActionMenuItem(
@@ -1374,8 +1375,8 @@ internal fun MessageBubble(
                                     text = lang,
                                     contentDescription = stringResource(R.string.chat_translate_to_cd, lang),
                                     onClick = {
-                                        showActionMenu = false
-                                        showLanguageSubmenu = false
+                                        actionSurface = MessageActionSurface.Hidden
+                                        actionSurface = MessageActionSurface.Hidden
                                         onTranslate(lang)
                                     },
                                 )
@@ -1388,7 +1389,7 @@ internal fun MessageBubble(
                                 text = stringResource(R.string.message_action_quote),
                                 contentDescription = stringResource(R.string.message_action_quote),
                                 onClick = {
-                                    showActionMenu = false
+                                    actionSurface = MessageActionSurface.Hidden
                                     onQuote()
                                 },
                             )
@@ -1397,7 +1398,7 @@ internal fun MessageBubble(
                                 text = stringResource(R.string.chat_delegate_action),
                                 contentDescription = stringResource(R.string.chat_delegate_action),
                                 onClick = {
-                                    showActionMenu = false
+                                    actionSurface = MessageActionSurface.Hidden
                                     onDelegate()
                                 },
                             )
@@ -1406,7 +1407,7 @@ internal fun MessageBubble(
                                 text = stringResource(R.string.chat_fork_action),
                                 contentDescription = stringResource(R.string.chat_fork_action),
                                 onClick = {
-                                    showActionMenu = false
+                                    actionSurface = MessageActionSurface.Hidden
                                     onFork()
                                 },
                             )
@@ -1415,7 +1416,7 @@ internal fun MessageBubble(
                                 text = stringResource(R.string.chat_select_messages),
                                 contentDescription = stringResource(R.string.chat_select_messages),
                                 onClick = {
-                                    showActionMenu = false
+                                    actionSurface = MessageActionSurface.Hidden
                                     onEnterMultiSelect?.invoke()
                                 },
                             )
@@ -1425,8 +1426,8 @@ internal fun MessageBubble(
                                 text = stringResource(R.string.msg_info_title),
                                 contentDescription = stringResource(R.string.msg_info_title),
                                 onClick = {
-                                    showActionMenu = false
-                                    showLanguageSubmenu = false
+                                    actionSurface = MessageActionSurface.Hidden
+                                    actionSurface = MessageActionSurface.Hidden
                                     showInfoSheet = true
                                 },
                             )
@@ -1437,8 +1438,8 @@ internal fun MessageBubble(
                                     text = stringResource(R.string.chat_reaction_title),
                                     contentDescription = stringResource(R.string.chat_reaction_title),
                                     onClick = {
-                                        showActionMenu = false
-                                        showLanguageSubmenu = false
+                                        actionSurface = MessageActionSurface.Hidden
+                                        actionSurface = MessageActionSurface.Hidden
                                         showReactionSheet = true
                                     },
                                 )
@@ -1449,7 +1450,7 @@ internal fun MessageBubble(
                                     text = stringResource(R.string.action_copy),
                                     contentDescription = stringResource(R.string.action_copy),
                                     onClick = {
-                                        showActionMenu = false
+                                        actionSurface = MessageActionSurface.Hidden
                                         MuseHaptics.light(hapticFeedback)
                                         onCopyMessage(MoodSkinParser.cleanForExport(msg.content))
                                     },
@@ -1461,7 +1462,7 @@ internal fun MessageBubble(
                                     text = if (msg.favorite) stringResource(R.string.chat_favorite_remove) else stringResource(R.string.chat_favorite_add),
                                     contentDescription = if (msg.favorite) stringResource(R.string.chat_favorite_remove) else stringResource(R.string.chat_favorite_add),
                                     onClick = {
-                                        showActionMenu = false
+                                        actionSurface = MessageActionSurface.Hidden
                                         MuseHaptics.light(hapticFeedback)
                                         onToggleFavorite()
                                     },
@@ -1475,7 +1476,7 @@ internal fun MessageBubble(
                                     text = stringResource(R.string.action_edit),
                                     contentDescription = stringResource(R.string.action_edit),
                                     onClick = {
-                                        showActionMenu = false
+                                        actionSurface = MessageActionSurface.Hidden
                                         onEdit()
                                     },
                                 )
@@ -1484,7 +1485,7 @@ internal fun MessageBubble(
                                         icon = Icons.Outlined.Language,
                                         text = stringResource(R.string.chat_translate_action),
                                         contentDescription = stringResource(R.string.chat_translate_action),
-                                        onClick = { showLanguageSubmenu = true },
+                                        onClick = { actionSurface = MessageActionSurface.TranslationLanguages },
                                     )
                                 }
                                 ActionMenuItem(
@@ -1492,7 +1493,7 @@ internal fun MessageBubble(
                                     text = stringResource(R.string.chat_share_action),
                                     contentDescription = stringResource(R.string.chat_share_action),
                                     onClick = {
-                                        showActionMenu = false
+                                        actionSurface = MessageActionSurface.Hidden
                                         onShareSession()
                                     },
                                 )
@@ -1502,7 +1503,7 @@ internal fun MessageBubble(
                                     contentDescription = stringResource(R.string.chat_delete_message),
                                     tint = MaterialTheme.colorScheme.error,
                                     onClick = {
-                                        showActionMenu = false
+                                        actionSurface = MessageActionSurface.Hidden
                                         showDeleteConfirm = true
                                     },
                                 )
@@ -1513,9 +1514,9 @@ internal fun MessageBubble(
                 onConfirm = null,
                 dismissText = stringResource(R.string.action_close),
                 onDismiss = {
-                    showActionMenu = false
-                    showLanguageSubmenu = false
-                    showExtendedMenu = false
+                    actionSurface = MessageActionSurface.Hidden
+                    actionSurface = MessageActionSurface.Hidden
+                    actionSurface = MessageActionSurface.Hidden
                 },
             )
             }

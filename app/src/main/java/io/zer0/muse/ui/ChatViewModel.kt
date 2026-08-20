@@ -80,6 +80,12 @@ import io.zer0.muse.chat.PendingToolCallStore
 import io.zer0.muse.data.chat.ConversationTree
 import io.zer0.muse.data.chat.ConversationTreeSnapshotStore
 import io.zer0.muse.data.chat.mergeRebuildMessages
+import io.zer0.muse.data.chat.rewrite.ConversationEventDraft
+import io.zer0.muse.data.chat.rewrite.ConversationEventType
+import io.zer0.muse.data.chat.rewrite.ConversationRebuildFlagStore
+import io.zer0.muse.data.chat.rewrite.ConversationService
+import io.zer0.muse.data.chat.rewrite.sha256
+import io.zer0.muse.data.session.ConversationTurnEntity
 import io.zer0.muse.transformer.ContextCompressTransformer
 import io.zer0.muse.transformer.LorebookTransformer
 import io.zer0.muse.transformer.MemoryInjectionTransformer
@@ -1159,6 +1165,24 @@ class ChatViewModel(
     // v1.0.54: autoSave 去重状态(30 秒内同会话只跑一次,防堆积)
     private var lastAutoSaveSessionId: String? = null
     private var lastAutoSaveAt: Long = 0L
+
+    /** 新旧链路适配层；默认仅在显式打开 shadow 开关时写入事件。 */
+    private val conversationService = ConversationService(sessionRepository)
+
+    /**
+     * 记录不影响用户行为的 shadow 事件。
+     * CancellationException 必须继续上抛，避免诊断写入吞掉用户停止生成。
+     */
+    private suspend fun recordConversationShadow(event: ConversationEventDraft) {
+        if (!ConversationRebuildFlagStore.current.shadowEventsEnabled) return
+        try {
+            conversationService.record(event)
+        } catch (ce: kotlinx.coroutines.CancellationException) {
+            throw ce
+        } catch (e: Exception) {
+            Logger.w("ChatVM", "conversation shadow event failed: ${event.type}", e)
+        }
+    }
 
     companion object {
         /** v0.47: 工具调用超时阈值(2 分钟),超时则终止,避免阻塞流式输出。 */
@@ -4893,6 +4917,21 @@ class ChatViewModel(
                         sessionRepository.deleteGenerationCheckpoints(sessionId, state.streamStartedAt)
                     }.onFailure { Logger.w("ChatVM", "中断清理 generation checkpoints 失败: ${it.message}") }
                 }
+                if (ConversationRebuildFlagStore.current.shadowEventsEnabled) {
+                    withContext(NonCancellable) {
+                        recordConversationShadow(
+                            ConversationEventDraft(
+                                sessionId = sessionId,
+                                turnId = state.turnId,
+                                type = ConversationEventType.TURN_INTERRUPTED,
+                                streamId = state.streamId,
+                                generationSerial = state.generationSerial,
+                                payloadJson = "{\"contentLength\":${state.builder.length}}",
+                            ),
+                        )
+                        conversationService.finishTurn(state.turnId, "INTERRUPTED")
+                    }
+                }
                 // A-13: 取消即失效 — 在途工具执行的媒体写入不得落进新生成/新会话
                 toolGenerationToken++
                 toolAssistantId = null
@@ -5207,6 +5246,33 @@ class ChatViewModel(
                 // state.currentAssistantId 定位"本轮生成消息",此前只在 runToolLoop 收尾更新,
                 // 多轮工具循环中段被取消时指向旧轮次,导致 [已中断] 落错消息。
                 state.currentAssistantId = params.currentAssistantId
+                if (!state.shadowTurnStarted && ConversationRebuildFlagStore.current.shadowEventsEnabled) {
+                    state.shadowTurnStarted = true
+                    val now = System.currentTimeMillis()
+                    conversationService.startTurn(
+                        ConversationTurnEntity(
+                            turnId = state.turnId,
+                            sessionId = sessionId,
+                            inputUserMessageId = checkpointUserMessageId,
+                            assistantMessageId = params.currentAssistantId.toString(),
+                            phase = "STREAMING",
+                            streamId = state.streamId,
+                            generationSerial = state.generationSerial,
+                            startedAt = state.streamStartedAt,
+                            updatedAt = now,
+                        ),
+                    )
+                    recordConversationShadow(
+                        ConversationEventDraft(
+                            sessionId = sessionId,
+                            turnId = state.turnId,
+                            type = ConversationEventType.ASSISTANT_STARTED,
+                            streamId = state.streamId,
+                            generationSerial = state.generationSerial,
+                            payloadJson = "{\"assistantMessageId\":\"${params.currentAssistantId}\",\"userMessageId\":\"$checkpointUserMessageId\"}",
+                        ),
+                    )
+                }
                 // 审查修复 (2.0 A-02): 同步工具媒体写入目标 — toolAssistantId 原本只在
                 // runToolLoop 起点赋值一次,第 2 轮起的 exec* 媒体全部落回首轮占位 A0,
                 // 而正文/工具卡片在 A1/A2;这里每轮入口同步,使本轮工具执行(awaitAll
@@ -5867,6 +5933,20 @@ class ChatViewModel(
             //  默认空实现已存在于接口,这里覆盖做 debug 日志,便于追踪工具执行耗时与状态。
             override fun onToolStart(toolCallId: String, toolName: String) {
                 chatGenerationManager.touch(sessionId)
+                if (ConversationRebuildFlagStore.current.shadowEventsEnabled) {
+                    viewModelScope.launch(Dispatchers.IO) {
+                        recordConversationShadow(
+                            ConversationEventDraft(
+                                sessionId = sessionId,
+                                turnId = state.turnId,
+                                type = ConversationEventType.TOOL_CALLED,
+                                streamId = state.streamId,
+                                generationSerial = state.generationSerial,
+                                payloadJson = "{\"toolCallId\":\"$toolCallId\",\"toolName\":\"$toolName\"}",
+                            ),
+                        )
+                    }
+                }
                 if (experiments.debugMode) {
                     Logger.d("ChatVM", "onToolStart | tool=$toolName | id=$toolCallId | sessionId=$sessionId")
                 }
@@ -5874,6 +5954,20 @@ class ChatViewModel(
 
             override fun onToolFinish(toolCallId: String, toolName: String, success: Boolean, durationMs: Long) {
                 chatGenerationManager.touch(sessionId)
+                if (ConversationRebuildFlagStore.current.shadowEventsEnabled) {
+                    viewModelScope.launch(Dispatchers.IO) {
+                        recordConversationShadow(
+                            ConversationEventDraft(
+                                sessionId = sessionId,
+                                turnId = state.turnId,
+                                type = ConversationEventType.TOOL_RESULT,
+                                streamId = state.streamId,
+                                generationSerial = state.generationSerial,
+                                payloadJson = "{\"toolCallId\":\"$toolCallId\",\"toolName\":\"$toolName\",\"success\":$success,\"durationMs\":$durationMs}",
+                            ),
+                        )
+                    }
+                }
                 if (experiments.debugMode) {
                     Logger.d(
                         "ChatVM",
@@ -5932,7 +6026,18 @@ class ChatViewModel(
 
         if (!toolLoopResult.success) {
             val err = toolLoopResult.error
-            addError(err?.type ?: ChatErrorType.UNKNOWN, err?.message ?: appContext.getString(R.string.err_chat_unknown), isRecoverable = err?.type != ChatErrorType.API_KEY)
+            recordConversationShadow(
+                ConversationEventDraft(
+                    sessionId = sessionId,
+                    turnId = state.turnId,
+                    type = ConversationEventType.TURN_FAILED,
+                    streamId = state.streamId,
+                    generationSerial = state.generationSerial,
+                    payloadJson = "{\"round\":${toolLoopResult.round},\"errorType\":\"${err?.type ?: ChatErrorType.UNKNOWN}\"}",
+                ),
+            )
+            val errMessage = err?.message ?: appContext.getString(R.string.err_chat_unknown)
+            addError(err?.type ?: ChatErrorType.UNKNOWN, errMessage, isRecoverable = err?.type != ChatErrorType.API_KEY)
             // B-24: 仅自己仍是最新生成时才清零
             // F-10: 工具循环失败 → FAILED
             clearStreamingStateIfLatest(state, ChatStreamPhase.FAILED)
@@ -6018,6 +6123,20 @@ class ChatViewModel(
         val sessionId = state.sessionId
         val sessionTitle = state.sessionTitle
         val streamStartedAt = state.streamStartedAt
+        if (ConversationRebuildFlagStore.current.shadowEventsEnabled) {
+            val finalMessage = _messages.value.firstOrNull { it.id == state.currentAssistantId }
+            recordConversationShadow(
+                ConversationEventDraft(
+                    sessionId = sessionId,
+                    turnId = state.turnId,
+                    type = ConversationEventType.TURN_FINISHED,
+                    streamId = state.streamId,
+                    generationSerial = state.generationSerial,
+                    payloadJson = "{\"messageId\":\"${state.currentAssistantId}\",\"contentLength\":${finalMessage?.content?.length ?: state.builder.length},\"contentHash\":\"${sha256(finalMessage?.content ?: state.builder.toString())}\"}",
+                ),
+            )
+            conversationService.finishTurn(state.turnId)
+        }
 
         // v1.80 (M-CVM5): 原子更新,避免读-改-写竞态
         // B-24: 仅自己仍是最新生成时才清零(快速连发时 gen-1 收尾不得清掉 gen-2 状态)

@@ -293,12 +293,10 @@ abstract class FactDb : RoomDatabase() {
             }
             if (!legacyOrCorrupt) return
 
-            val bak = File(file.parentFile, "$name.bak")
-            runCatching { if (bak.exists()) bak.delete() }
+            val bak = nextBackupFile(file, "$name.bak")
             val renamed = runCatching { file.renameTo(bak) }.getOrDefault(false)
-            if (!renamed) {
-                // 归档失败时仍删除旧库,避免 Room 打开即崩溃;早期数据已不可用。
-                runCatching { file.delete() }
+            check(renamed) {
+                "无法安全归档旧记忆库，已保留原文件: ${file.absolutePath}"
             }
             listOf(file, File(file.parentFile, "$name-wal"), File(file.parentFile, "$name-shm")).forEach {
                 runCatching { if (it.exists()) it.delete() }
@@ -321,16 +319,29 @@ abstract class FactDb : RoomDatabase() {
                 return // 损坏库交给 archiveLegacyOrCorruptDatabase 处理
             }
             if (version <= 13) return // 迁移链覆盖范围内(3..13)
-            val bak = File(file.parentFile, "$name.pre-destructive.bak")
-            runCatching { if (bak.exists()) bak.delete() }
+            val bak = nextBackupFile(file, "$name.pre-destructive.bak")
             val renamed = runCatching { file.renameTo(bak) }.getOrDefault(false)
-            if (renamed) {
-                listOf(
-                    file,
-                    File(file.parentFile, "$name-wal"),
-                    File(file.parentFile, "$name-shm"),
-                ).forEach { runCatching { if (it.exists()) it.delete() } }
-                MemoryLegacyReset.mark(context, name)
+            check(renamed) {
+                "无法安全归档未知版本记忆库，已保留原文件: ${file.absolutePath}"
+            }
+            listOf(
+                file,
+                File(file.parentFile, "$name-wal"),
+                File(file.parentFile, "$name-shm"),
+            ).forEach { runCatching { if (it.exists()) it.delete() } }
+            MemoryLegacyReset.mark(context, name)
+        }
+
+        /** 为归档选择不覆盖已有备份的目标路径。 */
+        private fun nextBackupFile(file: File, preferredName: String): File {
+            val parent = file.parentFile ?: error("数据库文件缺少父目录: ${file.absolutePath}")
+            val preferred = File(parent, preferredName)
+            if (!preferred.exists()) return preferred
+            var index = 1
+            while (true) {
+                val candidate = File(parent, "$preferredName.$index")
+                if (!candidate.exists()) return candidate
+                index += 1
             }
         }
 
@@ -360,11 +371,7 @@ abstract class FactDb : RoomDatabase() {
                         )
                     }
                 })
-                // v1.78 (M4): 移除 upgrade 的 destructive migration,避免升级时静默清空用户事实;
-                // 仅保留降级保护(从历史更高版本降到当前 v11 时不崩溃)
-                .fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true)
-                // R-DB-03: 早期 v1/v2 或损坏库已在上方归档;未知版本兜底重建,避免崩溃。
-                .fallbackToDestructiveMigration(dropAllTables = true)
+                // 禁止 destructive migration：无法安全迁移时保留原库并交给恢复流程处理。
                 .build()
         }
     }

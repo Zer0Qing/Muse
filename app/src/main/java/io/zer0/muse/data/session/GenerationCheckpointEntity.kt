@@ -76,6 +76,10 @@ interface GenerationCheckpointDao {
     @Query("SELECT * FROM generation_checkpoints ORDER BY createdAt ASC")
     suspend fun getAllPending(): List<GenerationCheckpointEntity>
 
+    /** 软删除会话时同步清理生成检查点，阻止恢复逻辑重新写入。 */
+    @Query("DELETE FROM generation_checkpoints WHERE sessionId = :sessionId")
+    suspend fun deleteBySession(sessionId: String)
+
     @Query(
         "SELECT COUNT(*) FROM messages WHERE sessionId = :sessionId AND role = 'ASSISTANT' AND createdAt > :afterCreatedAt"
     )

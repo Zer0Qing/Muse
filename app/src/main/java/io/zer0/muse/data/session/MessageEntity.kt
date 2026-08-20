@@ -37,6 +37,9 @@ import kotlinx.serialization.Serializable
         // 注意: name 必须与 MIGRATION_91_92 的 CREATE INDEX 完全一致(idx_messages_sessionId_seq),
         // 否则真机 Room schema 校验失败(Migration didn't properly handle: messages)。
         Index(value = ["sessionId", "seq"], name = "idx_messages_sessionId_seq"),
+        // v94: 新提交序；旧 seq 保留用于兼容旧读取路径。
+        Index(value = ["sessionId", "commitSeq"], name = "idx_messages_sessionId_commitSeq"),
+        Index(value = ["parentMessageId"], name = "idx_messages_parentMessageId"),
     ],
 )
 data class MessageEntity(
@@ -60,6 +63,10 @@ data class MessageEntity(
      * 不随 REPLACE 变化,是稳定的排序键。旧数据迁移时按 rowid 回填。
      */
     @ColumnInfo(defaultValue = "0") val seq: Long = 0,
+    /** v94: 新对话链路提交序；旧消息保持 0 或迁移审计回填值。 */
+    @ColumnInfo(defaultValue = "0") val commitSeq: Long = 0,
+    /** v94: 显式父消息引用；旧 parentGroupId 仍保留。 */
+    @ColumnInfo(defaultValue = "NULL") val parentMessageId: String? = null,
     @ColumnInfo(defaultValue = "[]") val imageUrlsJson: String = "[]",
     @ColumnInfo(defaultValue = "0") val favorite: Boolean = false,
     /**

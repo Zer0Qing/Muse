@@ -35,6 +35,7 @@ class ChatAudioCoordinator(
 
     /** v1.91: 录音前输入框文本快照(用于结果拼接与取消时恢复)。 */
     private var asrBaseText = ""
+    private var lastAsrTranscript = ""
 
     /** Phase 8.7: 切换 TTS 朗读(同条消息停止,不同消息开始新朗读)。 */
     fun toggleTts(messageId: Uuid, content: String, reportError: (String) -> Unit) {
@@ -91,9 +92,19 @@ class ChatAudioCoordinator(
         val controller = getOrCreateAsrController() ?: return
         if (controller.state.value.isRecording) return
         asrBaseText = accessor.snapshot.input
+        lastAsrTranscript = ""
         controller.start { transcript ->
-            val spacer = if (asrBaseText.isBlank() || transcript.isBlank()) "" else " "
-            accessor.update { it.copy(input = asrBaseText + spacer + transcript) }
+            accessor.update { state ->
+                val current = state.input
+                val base = if (lastAsrTranscript.isNotEmpty() && current.endsWith(lastAsrTranscript)) {
+                    current.removeSuffix(lastAsrTranscript).trimEnd()
+                } else {
+                    current
+                }
+                val spacer = if (base.isBlank() || transcript.isBlank()) "" else " "
+                lastAsrTranscript = transcript
+                state.copy(input = base + spacer + transcript)
+            }
         }
     }
 
@@ -126,7 +137,17 @@ class ChatAudioCoordinator(
     /** v1.91: 取消流式录音(恢复原始输入框文本)。 */
     fun cancelStreamingAsr() {
         asrController?.stop()
-        accessor.update { it.copy(input = asrBaseText) }
+        accessor.update { state ->
+            val current = state.input
+            val restored = if (lastAsrTranscript.isNotEmpty() && current.endsWith(lastAsrTranscript)) {
+                current.removeSuffix(lastAsrTranscript).trimEnd()
+            } else {
+                // 用户在录音期间继续输入时，保留当前输入，不使用过期快照覆盖。
+                current
+            }
+            lastAsrTranscript = ""
+            state.copy(input = restored.ifBlank { asrBaseText })
+        }
     }
 
     /** v1.91: 释放 ASR Controller(会话切换/ViewModel 销毁时)。 */

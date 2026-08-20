@@ -60,4 +60,8 @@ interface MessageOutboxDao {
 
     @Query("SELECT COUNT(*) FROM message_outbox")
     suspend fun count(): Int
+
+    /** 软删除会话时同步清理残留发送任务，阻止启动恢复再次写入。 */
+    @Query("DELETE FROM message_outbox WHERE sessionId = :sessionId")
+    suspend fun deleteBySession(sessionId: String)
 }

@@ -34,6 +34,10 @@ internal class StreamRunState(
      * 供 AuditLogPage 按 traceId 检索整条调用链。
      */
     val traceId: String = kotlin.uuid.Uuid.random().toString()
+    /** shadow 回合身份，与 provider 的 streamId 分离，旧事件不能跨回合写入。 */
+    val turnId: String = kotlin.uuid.Uuid.random().toString()
+    val streamId: String = kotlin.uuid.Uuid.random().toString()
+    var shadowTurnStarted: Boolean = false
 
     // Phase A: prepareHistory
     var streamStartedAt: Long = 0L

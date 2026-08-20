@@ -24,6 +24,7 @@ import kotlinx.serialization.json.Json
 import kotlin.uuid.Uuid
 import io.zer0.muse.R
 import io.zer0.muse.transformer.MoodSkinParser
+import io.zer0.muse.data.chat.rewrite.ConversationEventDraft
 
 /**
  * 会话仓库:封装 SessionDao + MessageDao,提供领域模型 API。
@@ -117,9 +118,26 @@ class SessionRepository(
 
     // ── v2.0: 软删除 ──
 
-    /** v2.0: 软删除会话。 */
+    /**
+     * v2.0: 软删除会话。
+     *
+     * 软删除必须同时清理 outbox、generation checkpoint 和新链路残留，
+     * 否则应用重启时恢复任务可能再次向已删除会话写入消息。
+     */
     suspend fun softDeleteSession(id: String) {
-        sessionDao.softDelete(id, System.currentTimeMillis())
+        val now = System.currentTimeMillis()
+        withContext(Dispatchers.IO) {
+            database.withTransaction {
+                sessionDao.softDelete(id, now)
+                database.messageOutboxDao().deleteBySession(id)
+                database.generationCheckpointDao().deleteBySession(id)
+                database.conversationEventDao().deleteBySession(id)
+                database.conversationTurnDao().deleteBySession(id)
+                database.toolRoundDao().deleteBySession(id)
+                database.messagePartDao().deleteBySession(id)
+                database.sessionBranchHeadDao().deleteBySession(id)
+            }
+        }
         auditLogger?.log(
             category = "user_action",
             action = "soft_delete_session",
@@ -253,11 +271,50 @@ class SessionRepository(
                     )
                 )
                 sessionDao.incrementChildCount(sourceSessionId)
-                // 复制到锚点为止的全部消息(含锚点),重新生成 id 避免主键冲突
-                // 调 appendMessageInternal 复用 FTS 同步 + 预览更新,且不另开事务(已在事务内)
+                // 复制到锚点为止的全部消息(含锚点),完整重映射消息、父消息和变体组引用。
+                // 不走 UIMessage 转换，避免丢失附件、工具轮、收藏、反应和旧变体字段。
                 val messages = messageDao.getUpToBySession(sourceSessionId, anchor.createdAt)
-                for (msg in messages) {
-                    appendMessageInternal(newId, msg.toUIMessage().copy(id = Uuid.random()))
+                val messageIdMap = messages.associate { it.id to Uuid.random().toString() }
+                val groupIdMap = messages.mapNotNull { it.variantGroupId }.distinct().associateWith { Uuid.random().toString() }
+                val parentGroupIdMap = messages.mapNotNull { it.parentGroupId }.distinct().associateWith { Uuid.random().toString() }
+                val remapped = messages.mapIndexed { index, msg ->
+                    msg.copy(
+                        id = messageIdMap.getValue(msg.id),
+                        sessionId = newId,
+                        seq = index.toLong() + 1,
+                        commitSeq = index.toLong() + 1,
+                        parentMessageId = msg.parentMessageId?.let(messageIdMap::get),
+                        variantGroupId = msg.variantGroupId?.let(groupIdMap::get),
+                        parentGroupId = msg.parentGroupId?.let(parentGroupIdMap::get),
+                        deletedAt = null,
+                    )
+                }
+                remapped.forEach { msg ->
+                    messageDao.upsert(msg)
+                    resultOf {
+                        syncFtsDelete(msg.id)
+                        syncFtsInsert(msg.id, msg.content)
+                    }.onError { _, t ->
+                        Logger.w(TAG, "forkSession FTS 写入失败: ${t?.message ?: ""}", t)
+                    }
+                }
+                sessionDao.setMessageCount(newId, remapped.size)
+                val last = remapped.lastOrNull()
+                if (last != null) {
+                    sessionDao.updatePreviewOnly(
+                        id = newId,
+                        preview = last.content.take(MESSAGE_PREVIEW_LENGTH).ifBlank { "…" },
+                        now = now,
+                    )
+                    database.sessionBranchHeadDao().upsert(
+                        SessionBranchHeadEntity(
+                            sessionId = newId,
+                            headMessageId = last.id,
+                            nextCommitSeq = remapped.size.toLong() + 1,
+                            projectionVersion = 1,
+                            updatedAt = now,
+                        )
+                    )
                 }
                 newId
             }
@@ -519,6 +576,39 @@ class SessionRepository(
     // 解决"用户刚点击发送就退出 App,进程被系统杀死导致消息丢失"的问题。
     // outbox 记录在 enqueueSend 时同步写入,消费端启动 launchStream 后删除;
     // App 启动时扫描残留记录重新投递。
+
+    /**
+     * 追加一条对话影子事件。
+     *
+     * eventSeq 在 session 事务内分配；软删除会话拒绝追加，避免恢复窗口重新写入。
+     */
+    suspend fun recordConversationEvent(event: ConversationEventDraft): Boolean = withContext(Dispatchers.IO) {
+        database.withTransaction {
+            val session = sessionDao.getById(event.sessionId)
+            if (session == null || session.deletedAt != null) return@withTransaction false
+            val eventSeq = database.conversationEventDao().nextEventSeq(event.sessionId)
+            val entity = event.toEntity(eventSeq, Uuid.random().toString())
+            database.conversationEventDao().insert(entity) != -1L
+        }
+    }
+
+    /** 写入或更新新链路的持久化回合状态。 */
+    suspend fun upsertConversationTurn(turn: ConversationTurnEntity) {
+        withContext(Dispatchers.IO) {
+            database.conversationTurnDao().upsert(turn)
+        }
+    }
+
+    /** 幂等完成新链路回合；已完成回合不会被重复 finalize 覆盖。 */
+    suspend fun finishConversationTurn(turnId: String, phase: String = "COMPLETED") {
+        withContext(Dispatchers.IO) {
+            database.conversationTurnDao().finishIfOpen(
+                turnId = turnId,
+                phase = phase,
+                finishedAt = System.currentTimeMillis(),
+            )
+        }
+    }
 
     /** 同步写入 outbox(供 enqueueSend 在主线程 runBlocking 调用,保证落盘)。 */
     suspend fun insertOutbox(entity: MessageOutboxEntity) {
