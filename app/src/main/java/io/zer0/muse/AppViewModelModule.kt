@@ -43,6 +43,15 @@ val appViewModelModule = module {
         )
     }
 
+    // 记忆星图 ViewModel(注入 FactStore + MemoryLinkDao)
+    viewModel {
+        io.zer0.muse.ui.memory.MemoryGraphViewModel(
+            application = androidContext() as Application,
+            factStore = get(),
+            memoryLinkDao = get(),
+        )
+    }
+
     // v1.0.72: 朋友圈 ViewModel
     viewModel {
         io.zer0.muse.ui.moment.MomentViewModel(

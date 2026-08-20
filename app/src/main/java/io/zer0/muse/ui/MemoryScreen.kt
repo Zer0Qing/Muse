@@ -422,9 +422,17 @@ fun MemoryScreen(
                     return@Column
                 }
 
-                // Phase 0: 记忆星图视觉原型。只接假数据,不触碰记忆数据库。
+                // 记忆星图:接入真实 memory_links 和 facts 数据。
                 if (selectedMemoryTab == 5) {
-                    MemoryGraphPreview(
+                    val graphViewModel: io.zer0.muse.ui.memory.MemoryGraphViewModel = koinViewModel()
+                    val graphState by graphViewModel.state.collectAsStateWithLifecycle()
+                    val currentScope = selectedScope ?: "main"
+                    val currentSpace = selectedSpaceId ?: "default"
+                    LaunchedEffect(currentScope, currentSpace) {
+                        graphViewModel.load(currentScope, currentSpace)
+                    }
+                    io.zer0.muse.ui.memory.MemoryGraphView(
+                        state = graphState,
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.contentGap),
