@@ -93,6 +93,9 @@
     <string name="err_chat_fetch_models_not_supported">该供应商不支持 /models 接口</string>
     <string name="err_chat_fetch_models_failed_msg">拉取失败: %1$s</string>
     <string name="err_chat_model_switched_toast">已切换模型,新消息将使用新模型生成(历史消息不变)</string>
+    <string name="err_chat_model_override_assistant">已覆盖助手专属模型,本会话将使用你选择的模型(切会话后恢复)</string>
+    <string name="settings_mcp_connected_tools">(%1$d 个工具)</string>
+    <string name="settings_mcp_connected_no_tools">已连接,但没有可用工具(检查 server 工具列表或助手扩展绑定)</string>
     <string name="err_chat_fork_failed">分叉对话失败: %1$s</string>
     <string name="err_chat_context_restarted_toast">上下文已重启</string>
     <string name="err_chat_translate_empty">翻译结果为空</string>

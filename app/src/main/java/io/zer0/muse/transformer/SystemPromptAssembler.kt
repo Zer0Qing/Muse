@@ -789,20 +789,31 @@ class SystemPromptAssembler(
      */
     private suspend fun buildToolManifestSection(assistant: AssistantEntity?): String {
         val allLocalTools = toolRegistry.listTools()
-        // MCP 工具按助手绑定的 server 隔离展示。否则 system prompt 会列出其他助手
-        // 的外部工具名称,模型可能据此生成一个不在本轮 schema 中的调用。
-        val localTools = if (assistant == null || assistantRepository == null) {
-            allLocalTools
+        // v1.0.79 (B-1): 与 ChatStreamCoordinator.resolveToolsAndModel 的过滤口径完全对齐 —
+        // 此前 manifest 只对 MCP 工具按助手过滤,普通本地工具全量列出,而 tools schema
+        // 按助手 toolIdsJson 白名单过滤,两边口径不一致:模型看到索引里 100+ 工具,
+        // 实际 schema 只有几个,深度思考里会自我发现矛盾并困惑。
+        // 过滤规则(与 resolveToolsAndModel 一致):
+        //  - mcp_ 工具:在 toolIdsJson 显式勾选 或 绑定 server 前缀 → 保留
+        //  - 其他工具:toolIdsJson 为空/未配置 → 全部;否则只在 toolIdsJson 里
+        val boundServerIds = if (assistant == null || assistantRepository == null) {
+            emptySet()
         } else {
-            val boundServerIds = assistantRepository.parseMcpServerIds(assistant).toSet()
-            val explicitMcpToolNames = assistantRepository.parseToolIds(assistant)
-                .filter { it.startsWith("mcp_") }
-                .toSet()
-            val prefixes = boundServerIds.map { "mcp_${it}__" }
-            allLocalTools.filter { tool ->
-                !tool.name.startsWith("mcp_") ||
-                    tool.name in explicitMcpToolNames ||
-                    prefixes.any { prefix -> tool.name.startsWith(prefix) }
+            assistantRepository.parseMcpServerIds(assistant).toSet()
+        }
+        val enabledToolIds = if (assistant == null || assistantRepository == null) {
+            null
+        } else {
+            assistantRepository.parseToolIds(assistant)
+        }
+        val explicitMcpToolNames = enabledToolIds.orEmpty().filter { it.startsWith("mcp_") }.toSet()
+        val mcpPrefixes = boundServerIds.map { "mcp_${it}__" }
+        val localTools = allLocalTools.filter { tool ->
+            if (tool.name.startsWith("mcp_")) {
+                tool.name in explicitMcpToolNames ||
+                    mcpPrefixes.any { prefix -> tool.name.startsWith(prefix) }
+            } else {
+                enabledToolIds.isNullOrEmpty() || tool.name in enabledToolIds
             }
         }
         // H-ASM1: skillRepository.listEnabled() 为 suspend,用 resultOf 正确重抛 CancellationException

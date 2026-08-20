@@ -91,6 +91,9 @@
     <string name="err_chat_fetch_models_not_supported">This provider does not support the /models endpoint</string>
     <string name="err_chat_fetch_models_failed_msg">Fetch failed: %1$s</string>
     <string name="err_chat_model_switched_toast">Model switched; new messages will use the new model (history unchanged)</string>
+    <string name="err_chat_model_override_assistant">Assistant-specific model overridden; this session will use your selected model (resets on session switch)</string>
+    <string name="settings_mcp_connected_tools">(%1$d tools)</string>
+    <string name="settings_mcp_connected_no_tools">Connected, but no tools available (check server tool list or assistant extension binding)</string>
     <string name="err_chat_fork_failed">Failed to fork conversation: %1$s</string>
     <string name="err_chat_context_restarted_toast">Context restarted</string>
     <string name="err_chat_translate_empty">Translation result is empty</string>

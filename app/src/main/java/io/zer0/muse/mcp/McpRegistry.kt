@@ -54,6 +54,13 @@ class McpRegistry(
     private val toolRegistry: ToolRegistry,
     private val settings: io.zer0.muse.data.SettingsRepository,
     private val context: Context,
+    /**
+     * v1.0.79 (C-3): 助手仓库 — 连接成功后自动把 MCP server 绑定到主助手扩展。
+     * 此前新加的 MCP 不会自动配置到助手扩展,主聊天 tools schema 按助手 mcpServerIds
+     * 过滤后看不到 MCP 工具(只能看到本地工具),必须手动去助手页勾选。
+     * 为 null 时跳过自动绑定(测试/兼容)。
+     */
+    private val assistantRepository: io.zer0.muse.data.assistant.AssistantRepository? = null,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -394,6 +401,9 @@ class McpRegistry(
             return
         }
         Logger.i(TAG, "[$serverId] 注册 ${resolvedTools.size} 个 MCP 工具")
+        // v1.0.79 (C-3): 连接+注册成功后,自动把 server 绑定到主助手扩展,
+        // 否则主聊天 tools schema 按助手 mcpServerIds 过滤,看不到新 MCP 的工具。
+        autoBindToDefaultAssistant(serverId)
         resolvedTools.forEach { tool ->
             val registeredName = "mcp_${serverId}__${tool.name}"
             val description = tool.description ?: context.getString(R.string.mcp_tool_no_description)
@@ -419,18 +429,57 @@ class McpRegistry(
                     client.callTool(tool.name, arguments)
                 }
                 if (result == null) {
+                    // v1.0.79 (D-1): 超时不再静默 — 记录日志便于排查,并把失败原因回传给模型
+                    Logger.w(TAG, "[$serverId] 工具 ${tool.name} 调用超时(120s)")
                     "Error: " + context.getString(R.string.mcp_tool_call_timeout, tool.name)
                 } else if (result.isError) {
+                    // v1.0.79 (A-1): 错误详情完整回传 — server 返回的 content/structuredContent
+                    // 都带回,模型拿得到失败原因才能自我纠正。
+                    val detail = formatToolResult(result)
+                    Logger.w(TAG, "[$serverId] 工具 ${tool.name} 调用失败: $detail")
                     "Error: " + context.getString(
                         R.string.mcp_tool_call_failed,
                         tool.name,
-                    ) + ": " + formatToolResult(result)
+                    ) + ": " + detail
                 } else {
                     formatToolResult(result)
                 }
             }
         }
         toolsReadyServers.add(serverId)
+    }
+
+    /**
+     * v1.0.79 (C-3): 把已连接的 MCP server 自动绑定到主助手扩展。
+     *
+     * 背景: 新加的 MCP server 连接成功后不会自动进入助手配置(mcpServerIdsJson),
+     * 而聊天 tools schema 按助手 mcpServerIds 过滤 → 主聊天看不到 MCP 工具。
+     * 此方法在 registerTools 成功后调用,把 serverId 写入主助手扩展列表(幂等)。
+     *
+     * 注意: 只在主助手(默认助手)上自动绑定;子助手/团队助手仍由用户在助手页
+     * 显式勾选,避免自动扩散到不相关的助手。
+     */
+    private suspend fun autoBindToDefaultAssistant(serverId: String) {
+        val repo = assistantRepository ?: return
+        if (serverId.isBlank()) return
+        try {
+            // 主助手 id 固定为 "default"(与 MemoryTicker.MAIN_ASSISTANT_ID 一致)
+            val defaultAssistant = repo.getById("default") ?: run {
+                repo.ensureDefaultExists()
+                repo.getById("default")
+            } ?: return
+            val bound = repo.parseMcpServerIds(defaultAssistant).toMutableSet()
+            if (serverId in bound) return // 已绑定,幂等
+            bound.add(serverId)
+            repo.upsert(
+                defaultAssistant.copy(mcpServerIdsJson = repo.serializeStringList(bound.toList()))
+            )
+            Logger.i(TAG, "[$serverId] 已自动绑定到主助手扩展(mcpServerIds=${bound.size})")
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Logger.w(TAG, "[$serverId] 自动绑定主助手失败(不影响工具注册): ${e.message}")
+        }
     }
 
     /** 注销指定 server 的所有工具。 */

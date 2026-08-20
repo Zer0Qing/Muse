@@ -939,7 +939,10 @@ class ChatStreamCoordinator(
             // 否则回退到全局 selectedModelId,再否则由 ChatService 兜底(激活 Provider 首个模型)。
             // 同时解析模型所属的 ProviderConfig,确保跨 Provider 的助手模型也能正确路由。
             val allProviders = accessor.snapshot.providers
-            val assistantModelId = assistant?.modelId?.takeIf { it.isNotBlank() }
+            // v1.0.79 (F-1): 会话内手动切换的模型优先于助手专属模型
+            val sessionOverride = state.sessionModelOverride?.takeIf { it.isNotBlank() }
+            val assistantModelId = sessionOverride
+                ?: assistant?.modelId?.takeIf { it.isNotBlank() }
             val assistantProviderId = assistant?.providerId?.takeIf { it.isNotBlank() }
             val resolvedModel: Model? = if (assistantModelId != null && assistantProviderId != null) {
                 allProviders.firstOrNull { it.id == assistantProviderId }

@@ -40,6 +40,13 @@ internal class StreamRunState(
     var sessionTitle: String = ""
     var experiments: ExperimentsConfig = ExperimentsConfig()
     var assistant: AssistantEntity? = null
+
+/**
+ * v1.0.79 (F-1): 会话内手动切换的模型 id(覆盖助手专属模型)。
+ * 用户在会话里主动切换模型时写入,模型解析优先于 assistant.modelId;
+ * 仅内存态,切会话/重启后回到助手专属模型。
+ */
+var sessionModelOverride: String? = null
     var requestedReasoningLevel: ReasoningLevel = ReasoningLevel.OFF
     var effectiveTemperature: Float = 0f
     var contextSize: Int = 20

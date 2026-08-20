@@ -91,6 +91,9 @@
     <string name="err_chat_fetch_models_not_supported">Este provedor não oferece suporte ao endpoint /models</string>
     <string name="err_chat_fetch_models_failed_msg">Falha na busca: %1$s</string>
     <string name="err_chat_model_switched_toast">Modelo trocado;</string>
+    <string name="err_chat_model_override_assistant">Modelo específico do assistente substituído; esta sessão usará seu modelo selecionado (restaura ao trocar de sessão)</string>
+    <string name="settings_mcp_connected_tools">(%1$d ferramentas)</string>
+    <string name="settings_mcp_connected_no_tools">Conectado, mas sem ferramentas disponíveis (verifique a lista de ferramentas do servidor ou o vínculo de extensão do assistente)</string>
     <string name="err_chat_fork_failed">Falha ao bifurcar conversa: %1$s</string>
     <string name="err_chat_context_restarted_toast">Contexto reiniciado</string>
     <string name="err_chat_translate_empty">O resultado da tradução está vazio</string>

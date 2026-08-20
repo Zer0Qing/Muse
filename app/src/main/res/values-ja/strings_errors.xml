@@ -91,6 +91,9 @@
     <string name="err_chat_fetch_models_not_supported">このプロバイダーは /models エンドポイントをサポートしていません</string>
     <string name="err_chat_fetch_models_failed_msg">フェッチに失敗しました: %1$s</string>
     <string name="err_chat_model_switched_toast">モデルが切り替わりました。</string>
+    <string name="err_chat_model_override_assistant">アシスタント専用モデルを上書きしました。このセッションでは選択したモデルを使用します(セッション切替で復元)</string>
+    <string name="settings_mcp_connected_tools">(%1$d 個のツール)</string>
+    <string name="settings_mcp_connected_no_tools">接続済みですが利用可能なツールがありません(サーバーのツール一覧またはアシスタント拡張のバインドを確認)</string>
     <string name="err_chat_fork_failed">会話のフォークに失敗しました: %1$s</string>
     <string name="err_chat_context_restarted_toast">コンテキストが再起動されました</string>
     <string name="err_chat_translate_empty">翻訳結果が空です</string>

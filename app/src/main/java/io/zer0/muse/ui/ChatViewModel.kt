@@ -1342,6 +1342,12 @@ class ChatViewModel(
     private var streamGenerationSerial: Long = 0L
 
     /**
+     * v1.0.79 (F-1): 会话内手动切换的模型 id(覆盖助手专属模型)。
+     * 仅内存态: 用户在会话中切换模型时写入,切会话/重启后清除,回到助手专属模型。
+     */
+    private val _sessionModelOverride = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
+
+    /**
      * A-13: 校验本轮工具生成仍是"当前活跃生成"(代际令牌未变)。
      *
      * 审查修复 (2.0 A-04): 原实现把"令牌未变"与"目标会话仍是显示会话"耦合在一起,
@@ -3009,6 +3015,17 @@ class ChatViewModel(
             if (modelId != null && modelId != prevId) {
                 _state.update {
                     it.copy(toast = appContext.getString(R.string.err_chat_model_switched_toast))
+                }
+            }
+            // v1.0.79 (F-1): 会话内手动切换模型 → 覆盖助手专属模型。
+            // 此前助手配置了专属 modelId 时,会话里怎么切模型都不生效(请求仍走专属模型),
+            // 用户无感知地被绕晕。现在手动切换即写入会话级 override,本轮起优先用用户选择;
+            // 仅内存态,切会话/重启后回到助手专属模型。
+            val hasAssistantModel = _state.value.currentAssistant?.modelId?.isNotBlank() == true
+            if (modelId != null && modelId != prevId && hasAssistantModel) {
+                _sessionModelOverride.value = modelId
+                _state.update {
+                    it.copy(toast = appContext.getString(R.string.err_chat_model_override_assistant))
                 }
             }
         }
@@ -4792,6 +4809,8 @@ class ChatViewModel(
             // PII Guard:piiMatches 与 unmaskPii 辅助函数提到 try 块外,让 catch 块也能在
             // 落盘部分回复时还原占位符,避免 [PHONE_001] 等占位符被持久化到数据库。
             val state = StreamRunState(sessionId = sessionId, assistantId = assistantId, isNewBranch = isNewBranch)
+            // v1.0.79 (F-1): 会话内手动切换的模型覆盖助手专属模型
+            state.sessionModelOverride = _sessionModelOverride.value
             // B-24: 捕获本代序号,收尾清零 isStreaming 前校验自己仍是最新生成
             state.generationSerial = ++streamGenerationSerial
             // B7-04: 继续生成时预置已产出内容

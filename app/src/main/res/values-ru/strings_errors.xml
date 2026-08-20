@@ -91,6 +91,9 @@
     <string name="err_chat_fetch_models_not_supported">Этот поставщик не поддерживает конечную точку /models.</string>
     <string name="err_chat_fetch_models_failed_msg">Не удалось получить: %1$s</string>
     <string name="err_chat_model_switched_toast">Модель переключена;</string>
+    <string name="err_chat_model_override_assistant">Модель ассистента переопределена; эта сессия будет использовать выбранную вами модель (восстановится при смене сессии)</string>
+    <string name="settings_mcp_connected_tools">(%1$d инструментов)</string>
+    <string name="settings_mcp_connected_no_tools">Подключено, но доступных инструментов нет (проверьте список инструментов сервера или привязку расширения ассистента)</string>
     <string name="err_chat_fork_failed">Не удалось разветвить беседу: %1$s</string>
     <string name="err_chat_context_restarted_toast">Контекст перезапущен</string>
     <string name="err_chat_translate_empty">Результат перевода пуст</string>

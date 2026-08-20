@@ -17,7 +17,8 @@ import org.koin.dsl.module
 val appInfraModule = module {
 
     // Phase 9.5 (M3): MCP server 注册�?管理多个 McpClient,桥接 ToolRegistry)
-    single { io.zer0.muse.mcp.McpRegistry(get(), get(), androidContext()) }
+    // v1.0.79 (C-3): 注入 AssistantRepository — MCP 连接成功后自动绑定到主助手扩展
+    single { io.zer0.muse.mcp.McpRegistry(get(), get(), androidContext(), get()) }
 
     // Phase 5-I / Phase 7: 备份导出/导入服务(�?memory.db + facts.db)
     // Phase 8.9: 增加云备�?余额查询依赖

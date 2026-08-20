@@ -91,6 +91,9 @@
     <string name="err_chat_fetch_models_not_supported">이 공급자는 /models 엔드포인트를 지원하지 않습니다.</string>
     <string name="err_chat_fetch_models_failed_msg">가져오기 실패: %1$s</string>
     <string name="err_chat_model_switched_toast">모델이 전환되었습니다.</string>
+    <string name="err_chat_model_override_assistant">어시스턴트 전용 모델이 재정의되었습니다. 이 세션에서는 선택한 모델을 사용합니다(세션 전환 시 복원)</string>
+    <string name="settings_mcp_connected_tools">(%1$d개 도구)</string>
+    <string name="settings_mcp_connected_no_tools">연결됨, 사용 가능한 도구 없음(서버 도구 목록 또는 어시스턴트 확장 바인딩 확인)</string>
     <string name="err_chat_fork_failed">대화를 분기하지 못했습니다: %1$s</string>
     <string name="err_chat_context_restarted_toast">컨텍스트가 다시 시작되었습니다.</string>
     <string name="err_chat_translate_empty">번역 결과가 비어 있습니다.</string>

@@ -1086,9 +1086,24 @@ class McpClient(
                 },
             ),
         )
+        val rawResultJson = AppJson.encodeToString(result)
         runCatching {
-            AppJson.decodeFromString(McpToolCallResult.serializer(), AppJson.encodeToString(result))
-        }.getOrDefault(McpToolCallResult(isError = true))
+            AppJson.decodeFromString(McpToolCallResult.serializer(), rawResultJson)
+        }.getOrElse { decodeError ->
+            // v1.0.79 (D-2): 解析失败不再静默丢弃 — 保留原始 result JSON 作为错误详情回传,
+            // 并记录日志。此前 getOrDefault(isError=true 空结果) 会把 server 的错误原因
+            // 全部吞掉,模型拿不到失败原因无法自我纠正。
+            Logger.w(TAG, "[${config.id}] tools/call 结果解析失败: ${decodeError.message}")
+            McpToolCallResult(
+                isError = true,
+                content = listOf(
+                    buildJsonObject {
+                        put("type", "text")
+                        put("text", "MCP server returned malformed result: $rawResultJson")
+                    },
+                ),
+            )
+        }
     }
 
     // ── Phase 11.1.2: resources / prompts ───────────────────────────────────

@@ -91,6 +91,9 @@
     <string name="err_chat_fetch_models_not_supported">Este proveedor no admite el punto final /models</string>
     <string name="err_chat_fetch_models_failed_msg">Error de recuperación: %1$s</string>
     <string name="err_chat_model_switched_toast">Modelo cambiado;</string>
+    <string name="err_chat_model_override_assistant">Modelo específico del asistente anulado; esta sesión usará tu modelo seleccionado (se restaura al cambiar de sesión)</string>
+    <string name="settings_mcp_connected_tools">(%1$d herramientas)</string>
+    <string name="settings_mcp_connected_no_tools">Conectado, pero sin herramientas disponibles (verifique la lista de herramientas del servidor o el enlace de extensión del asistente)</string>
     <string name="err_chat_fork_failed">No se pudo bifurcar la conversación: %1$s</string>
     <string name="err_chat_context_restarted_toast">Contexto reiniciado</string>
     <string name="err_chat_translate_empty">El resultado de la traducción está vacío</string>

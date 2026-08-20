@@ -82,6 +82,8 @@ import org.koin.compose.koinInject
 @Composable
 internal fun McpSection() {
     val mcpRegistry: McpRegistry = koinInject()
+    // v1.0.79 (E-1): 注入 ToolRegistry,用于统计各 server 已注册工具数(连接但 0 工具时提示)
+    val toolRegistry: io.zer0.muse.tools.ToolRegistry = koinInject()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val servers by mcpRegistry.servers.collectAsStateWithLifecycle(initialValue = null)
@@ -134,6 +136,9 @@ internal fun McpSection() {
                         server = server,
                         state = state,
                         mcpRegistry = mcpRegistry,
+                        // v1.0.79 (E-1): 该 server 已注册的工具数(连接成功但 0 工具时警示)
+                        toolCount = toolRegistry.listTools()
+                            .count { it.name.startsWith("mcp_${server.id}__") },
                         onToggleEnabled = { enabled ->
                             scope.launch {
                                 resultOf { mcpRegistry.updateServer(server.copy(enabled = enabled)) }
@@ -193,6 +198,8 @@ private fun McpServerRow(
     server: McpServerConfig,
     state: McpConnectionState,
     mcpRegistry: McpRegistry,
+    /** v1.0.79 (E-1): 该 server 已注册的工具数;CONNECTED 但为 0 时警示。 */
+    toolCount: Int = -1,
     onToggleEnabled: (Boolean) -> Unit,
     onReconnect: () -> Unit,
     onDelete: () -> Unit,
@@ -248,6 +255,20 @@ private fun McpServerRow(
                     else -> MaterialTheme.colorScheme.outline
                 },
             )
+            // v1.0.79 (E-1): 已连接但没有注册任何工具 — 提示用户检查 server 或助手扩展绑定
+            if (state == McpConnectionState.CONNECTED && toolCount == 0) {
+                Text(
+                    text = stringResource(R.string.settings_mcp_connected_no_tools),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            } else if (state == McpConnectionState.CONNECTED && toolCount > 0) {
+                Text(
+                    text = stringResource(R.string.settings_mcp_connected_tools, toolCount),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.outline,
+                )
+            }
         }
         // 阶段 D: 启停开关(独立于连接,允许保留配置但不连接)
         MuseSwitch(
