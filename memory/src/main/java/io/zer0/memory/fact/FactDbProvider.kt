@@ -19,8 +19,6 @@ class FactDbProvider(
     private val context: Context,
     /** v12: LLM 去重判定器,透传给每个 per-assistant FactStore(同实体模糊候选交给大模型判断)。 */
     private val dedupJudge: FactDedupJudge = NoopFactDedupJudge,
-    /** v13 (T4-1): 修订记录 DAO,透传给每个 per-assistant FactStore(关键记忆变更历史)。 */
-    private val revisionDao: FactRevisionDao? = null,
 ) {
     private val cache = ConcurrentHashMap<String, FactDb>()
 
@@ -42,13 +40,14 @@ class FactDbProvider(
         // 已删内容会在下次编译时"复活"。共享同一墓碑文件(与主 FactStore 一致),
         // 并发写由 FactStore 进程级墓碑锁串行化。
         // v12: 透传 LLM 去重判定器。
-        // v13 (T4-1): 透传修订记录 DAO(关键记忆变更历史)。
+        // v13 (T4-1): 修订记录 DAO 从 db 直接取(不注入,避免 Koin 循环依赖:
+        //   FactDbProvider → FactRevisionDao → FactDb → FactDbProvider)。
         return FactStore(
             db.factDao(),
             db,
             java.io.File(context.filesDir, "fact_tombstones.json"),
             dedupJudge,
-            revisionDao,
+            db.factRevisionDao(),
         )
     }
 

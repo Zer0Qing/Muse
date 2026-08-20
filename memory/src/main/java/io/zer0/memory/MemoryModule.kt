@@ -37,7 +37,8 @@ val memoryModule: Module = module {
 
     // v0.22: per-assistant facts.db 提供者(按 assistantId 创建/缓存独立 FactDb)
     // v12: 透传 LLM 去重判定器(同实体模糊候选交给大模型判断)
-    single { io.zer0.memory.fact.FactDbProvider(androidContext(), get<io.zer0.memory.fact.FactDedupJudge>(), get<io.zer0.memory.fact.FactRevisionDao>()) }
+    // 注意: 不注入 FactRevisionDao(内部从 db 取),避免 Koin 循环依赖
+    single { io.zer0.memory.fact.FactDbProvider(androidContext(), get<io.zer0.memory.fact.FactDedupJudge>()) }
 
     // v1.78 (M12): 全局 FactDb 复用 FactDbProvider 的 "default" 实例
     // 避免 FactDb.create 与 FactDbProvider 各建一个 Room 实例指向同一 facts.db 文件
