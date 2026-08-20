@@ -42,4 +42,15 @@ class MessageProjectionTest {
         assertEquals("new", projected.content)
         assertEquals(listOf("m1", "m2"), MessageProjector.order(listOf(deleted, structured, legacy), true).map { it.id })
     }
+    @Test
+    fun conversationProjectionIsRepeatableAndUsesCommitSequenceWhenEnabled() {
+        val first = MessageEntity("m1", "s1", "USER", "first", seq = 1, commitSeq = 8, createdAt = 1)
+        val second = MessageEntity("m2", "s1", "ASSISTANT", "second", seq = 2, commitSeq = 9, createdAt = 2)
+        val projection = ConversationProjector.project(listOf(second, first), emptyList(), useCommitSeq = true, projectionVersion = 3)
+        val repeated = ConversationProjector.project(listOf(first, second), emptyList(), useCommitSeq = true, projectionVersion = 3)
+        assertEquals(listOf("m1", "m2"), projection.messages.map { it.id })
+        assertEquals(projection, repeated)
+        assertEquals(3, projection.projectionVersion)
+    }
+
 }

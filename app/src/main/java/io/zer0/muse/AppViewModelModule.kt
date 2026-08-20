@@ -43,7 +43,7 @@ val appViewModelModule = module {
         )
     }
 
-    // 记忆树 ViewModel(注入 FactStore + MemoryLinkDao)
+    // 记忆星座 ViewModel(注入 FactStore + MemoryLinkDao)
     viewModel {
         io.zer0.muse.ui.memory.MemoryGraphViewModel(
             application = androidContext() as Application,

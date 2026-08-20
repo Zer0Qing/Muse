@@ -37,7 +37,7 @@ import io.zer0.muse.ui.theme.statusColors
 import kotlin.math.roundToInt
 
 /**
- * 记忆树 Phase 0 视觉原型。
+ * 记忆星座 Phase 0 视觉原型。
  *
  * 这里只展示受控的假数据，不接 Room、不生成关系、不改变记忆业务状态。
  * 视觉约束：主题岛 + 纸片节点 + 克制关系线，拒绝真实星空和持续粒子动画。

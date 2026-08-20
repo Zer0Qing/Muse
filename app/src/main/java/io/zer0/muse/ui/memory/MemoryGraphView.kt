@@ -23,17 +23,20 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalDensity
@@ -45,15 +48,10 @@ import io.zer0.muse.ui.theme.statusColors
 import kotlin.math.roundToInt
 
 /**
- * 记忆树视图。
+ * 记忆星座视图。
  *
- * v1.0.90: 从散点星座改为树状布局。
- * - 根节点: 记忆树
- * - 一级枝条: category 主题
- * - 叶片: 单条 fact
- * - 叶片固定 184dp × 60dp,同一层按行列排布,节点尺寸参与布局,保证文字不重叠
- * - 内容区可横向/竖向滚动,记忆多时不会压缩成一团
- * - 关系边仍使用 memory_links 绘制,不改变任何存储数据
+ * 节点采用确定性的黄金角螺旋布局，重要/置顶节点排序在前并靠近核心，
+ * 节点固定尺寸参与布局，关系边与节点标签分离；内容支持缩放、拖动和双向滚动。
  */
 @Composable
 fun MemoryGraphView(
@@ -89,21 +87,30 @@ fun MemoryGraphView(
     val groups = remember(state.nodes) {
         state.nodes.groupBy { it.category.ifBlank { "general" } }.toSortedMap()
     }
-    val laneWidth = 220.dp
-    val leafWidth = 184.dp
-    val leafHeight = 60.dp
-    val rowGap = 14.dp
-    val laneGap = 22.dp
-    val contentWidth = (laneWidth * groups.size + laneGap * (groups.size - 1).coerceAtLeast(0)).coerceAtLeast(360.dp)
-    val maxLeaves = groups.values.maxOfOrNull { it.size } ?: 1
-    val rows = maxLeaves // one leaf per row in each branch; fixed vertical rhythm
-    val contentHeight = (250.dp + (leafHeight + rowGap) * rows).coerceAtLeast(420.dp)
-
+    val nodeWidth = 170.dp
+    val nodeHeight = 68.dp
+    val maxRing = remember(state.nodes) {
+        kotlin.math.ceil(kotlin.math.sqrt(state.nodes.size.coerceAtLeast(1).toDouble())).toInt()
+    }
+    // 半径按 sqrt(n) 增长，画布留足边界避免大规模节点被 clamp 到同一侧。
+    val contentWidth = (500 + maxRing * 380).dp
+    val contentHeight = (500 + maxRing * 380).dp
+    var zoom by remember { mutableFloatStateOf(1f) }
+    var pan by remember { mutableStateOf(Offset.Zero) }
     val horizontal = rememberScrollState()
     val vertical = rememberScrollState()
     val density = LocalDensity.current
-    val nodeCoordinates = remember(state.nodes, groups) {
-        buildTreeCoordinates(groups, laneWidth, laneGap, leafWidth, leafHeight, rowGap)
+    val nodeCoordinates = remember(state.nodes, contentWidth, contentHeight) {
+        buildConstellationCoordinates(state.nodes, contentWidth, contentHeight)
+    }
+    val categoryCoordinates = remember(groups, nodeCoordinates) {
+        groups.keys.mapNotNull { category ->
+            val points = groups[category].orEmpty().mapNotNull { nodeCoordinates[it.factId] }
+            if (points.isEmpty()) null else category to ConstellationPoint(
+                points.map { it.x.value }.average().dp,
+                points.map { it.y.value }.average().dp,
+            )
+        }.toMap()
     }
 
     Box(modifier = modifier.clip(RoundedCornerShape(24.dp)).background(colors.surfaceVariant.copy(alpha = 0.28f))) {
@@ -113,47 +120,56 @@ fun MemoryGraphView(
                 .horizontalScroll(horizontal)
                 .verticalScroll(vertical),
         ) {
-            Box(modifier = Modifier.width(contentWidth).height(contentHeight)) {
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    val root = Offset(with(density) { contentWidth.toPx() / 2f }, with(density) { 58.dp.toPx() })
-                    groups.keys.forEachIndexed { index, category ->
-                        val laneCenter = with(density) { (laneWidth * index + (laneWidth + laneGap) / 2).toPx() }
-                        val branch = Offset(laneCenter, 142.dp.toPx())
-                        drawLine(
-                            color = colors.primary.copy(alpha = 0.35f),
-                            start = root,
-                            end = branch,
-                            strokeWidth = 2.dp.toPx(),
-                        )
-                        groups[category].orEmpty().forEach { node ->
-                            val leaf = nodeCoordinates[node.factId] ?: return@forEach
-                            drawLine(
-                                color = nodeToneColor(node.category, colors, statusColors).copy(alpha = 0.28f),
-                                start = branch,
-                                end = Offset(with(density) { leaf.x.toPx() + leafWidth.toPx() / 2f }, with(density) { leaf.y.toPx() }),
-                                strokeWidth = 1.5.dp.toPx(),
-                            )
+            Box(
+                modifier = Modifier
+                    .width(contentWidth)
+                    .height(contentHeight)
+                    .pointerInput(Unit) {
+                        detectTransformGestures { _, panChange, zoomChange, _ ->
+                            zoom = (zoom * zoomChange).coerceIn(0.55f, 2.4f)
+                            pan += panChange
                         }
                     }
-                    // 关系边以淡色曲线替代主枝,只做辅助,不破坏树的阅读顺序。
+                    .graphicsLayer {
+                        scaleX = zoom
+                        scaleY = zoom
+                        translationX = pan.x
+                        translationY = pan.y
+                    },
+            ) {
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val center = Offset(contentWidth.toPx() / 2f, contentHeight.toPx() / 2f)
                     state.edges.forEach { edge ->
                         val a = nodeCoordinates[edge.sourceFactId] ?: return@forEach
                         val b = nodeCoordinates[edge.targetFactId] ?: return@forEach
                         drawLine(
-                            color = colors.outline.copy(alpha = 0.16f),
-                            start = Offset(with(density) { a.x.toPx() + leafWidth.toPx() }, with(density) { a.y.toPx() + leafHeight.toPx() / 2f }),
-                            end = Offset(with(density) { b.x.toPx() }, with(density) { b.y.toPx() + leafHeight.toPx() / 2f }),
+                            color = colors.outline.copy(alpha = 0.24f),
+                            start = Offset(a.x.toPx() + nodeWidth.toPx() / 2f, a.y.toPx() + nodeHeight.toPx() / 2f),
+                            end = Offset(b.x.toPx() + nodeWidth.toPx() / 2f, b.y.toPx() + nodeHeight.toPx() / 2f),
                             strokeWidth = 1.dp.toPx(),
+                        )
+                    }
+                    state.nodes.forEach { node ->
+                        val point = nodeCoordinates[node.factId] ?: return@forEach
+                        val nodeCenter = Offset(
+                            point.x.toPx() + nodeWidth.toPx() / 2f,
+                            point.y.toPx() + nodeHeight.toPx() / 2f,
+                        )
+                        drawLine(
+                            color = nodeToneColor(node.category, colors, statusColors).copy(alpha = 0.32f),
+                            start = center,
+                            end = nodeCenter,
+                            strokeWidth = if (node.importance >= 2 || node.isPinned) 2.dp.toPx() else 1.dp.toPx(),
                         )
                     }
                 }
 
                 Surface(
                     modifier = Modifier
-                        .offset { IntOffset((contentWidth.toPx() / 2f - 70.dp.toPx()).roundToInt(), 20.dp.roundToPx()) },
+                        .offset { IntOffset((contentWidth.toPx() / 2f - 84.dp.toPx()).roundToInt(), (contentHeight.toPx() / 2f - 32.dp.toPx()).roundToInt()) },
                     shape = RoundedCornerShape(20.dp),
-                    color = colors.primary.copy(alpha = 0.16f),
-                    shadowElevation = 2.dp,
+                    color = colors.primary.copy(alpha = 0.18f),
+                    shadowElevation = 3.dp,
                 ) {
                     Text(
                         text = stringResource(R.string.memory_graph_preview_title),
@@ -163,61 +179,58 @@ fun MemoryGraphView(
                     )
                 }
 
-                groups.entries.forEachIndexed { laneIndex, (category, nodes) ->
-                    val laneX = (laneWidth + laneGap) * laneIndex
+                categoryCoordinates.forEach { (category, point) ->
                     Surface(
-                        modifier = Modifier
-                            .offset(x = laneX + 30.dp, y = 112.dp)
-                            .width(laneWidth - 60.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        color = colors.surface.copy(alpha = 0.9f),
+                        modifier = Modifier.offset(x = point.x, y = point.y),
+                        shape = RoundedCornerShape(12.dp),
+                        color = colors.surface.copy(alpha = 0.82f),
                     ) {
                         Text(
                             text = categoryLabel(category),
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                            style = MaterialTheme.typography.labelLarge,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                            style = MaterialTheme.typography.labelSmall,
                             color = colors.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
-                    nodes.forEach { node ->
-                        val p = nodeCoordinates[node.factId] ?: return@forEach
-                        val tone = nodeToneColor(node.category, colors, statusColors)
-                        Surface(
-                            modifier = Modifier
-                                .offset(x = p.x, y = p.y)
-                                .width(leafWidth)
-                                .height(leafHeight)
-                                .clickable { selectedNode = node },
-                            shape = RoundedCornerShape(16.dp),
-                            color = tone.copy(alpha = if (node.isPinned) 0.24f else 0.12f),
-                            shadowElevation = if (node.isPinned) 3.dp else 1.dp,
+                }
+
+                state.nodes.forEach { node ->
+                    val point = nodeCoordinates[node.factId] ?: return@forEach
+                    val tone = nodeToneColor(node.category, colors, statusColors)
+                    Surface(
+                        modifier = Modifier
+                            .offset(x = point.x, y = point.y)
+                            .width(nodeWidth)
+                            .height(nodeHeight)
+                            .clickable { selectedNode = node },
+                        shape = RoundedCornerShape(16.dp),
+                        color = tone.copy(alpha = if (node.isPinned || node.importance >= 2) 0.28f else 0.12f),
+                        shadowElevation = if (node.isPinned || node.importance >= 2) 3.dp else 1.dp,
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(3.dp),
                         ) {
-                            Column(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                                verticalArrangement = Arrangement.spacedBy(3.dp),
-                            ) {
-                                Text(
-                                    text = node.title,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = colors.onSurface,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                                Text(
-                                    text = if (node.isPinned) stringResource(R.string.memory_graph_node_pinned) else categoryLabel(node.category),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = colors.onSurfaceVariant,
-                                    maxLines = 1,
-                                )
-                            }
+                            Text(
+                                text = node.title,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = colors.onSurface,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                text = if (node.isPinned) stringResource(R.string.memory_graph_node_pinned) else categoryLabel(node.category),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = colors.onSurfaceVariant,
+                                maxLines = 1,
+                            )
                         }
                     }
                 }
             }
         }
-
         selectedNode?.let { node ->
             val related = state.edges.filter { it.sourceFactId == node.factId || it.targetFactId == node.factId }
             Surface(
@@ -247,26 +260,6 @@ fun MemoryGraphView(
     }
 }
 
-private data class TreePoint(val x: Dp, val y: Dp)
-
-private fun buildTreeCoordinates(
-    groups: Map<String, List<MemoryGraphNode>>,
-    laneWidth: Dp,
-    laneGap: Dp,
-    leafWidth: Dp,
-    leafHeight: Dp,
-    rowGap: Dp,
-): Map<Long, TreePoint> {
-    val result = mutableMapOf<Long, TreePoint>()
-    groups.entries.forEachIndexed { laneIndex, (_, nodes) ->
-        val laneLeft = laneWidth * laneIndex + (laneWidth + laneGap) * 0 + 18.dp
-        nodes.forEachIndexed { row, node ->
-            val y = 220.dp + (leafHeight + rowGap) * row
-            result[node.factId] = TreePoint(laneLeft, y)
-        }
-    }
-    return result
-}
 
 enum class NodeAction { EDIT, DELETE, PIN }
 enum class EdgeAction { CONFIRM, DELETE }

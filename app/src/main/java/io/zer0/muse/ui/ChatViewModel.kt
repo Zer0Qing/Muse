@@ -84,6 +84,8 @@ import io.zer0.muse.data.chat.rewrite.ConversationEventDraft
 import io.zer0.muse.data.chat.rewrite.ConversationEventType
 import io.zer0.muse.data.chat.rewrite.ConversationRebuildFlagStore
 import io.zer0.muse.data.chat.rewrite.ConversationService
+import io.zer0.muse.data.chat.rewrite.MessageCommit
+import io.zer0.muse.data.chat.rewrite.MessageCommitRequest
 import io.zer0.muse.data.chat.rewrite.sha256
 import io.zer0.muse.data.session.ConversationTurnEntity
 import io.zer0.muse.transformer.ContextCompressTransformer
@@ -1168,6 +1170,7 @@ class ChatViewModel(
 
     /** 新旧链路适配层；默认仅在显式打开 shadow 开关时写入事件。 */
     private val conversationService = ConversationService(sessionRepository)
+    private val messageCommit = MessageCommit(sessionRepository)
 
     /**
      * 记录不影响用户行为的 shadow 事件。
@@ -6106,7 +6109,22 @@ class ChatViewModel(
                     "reasoning=${withArtifacts.reasoning?.length ?: 0} variant=${withArtifacts.variantGroupId ?: "-"}",
             )
             try {
-                sessionRepository.upsertMessage(sessionId, withArtifacts)
+                if (ConversationRebuildFlagStore.current.useNewConversationService && state.shadowTurnStarted) {
+                    val commitResult = messageCommit.commit(
+                        MessageCommitRequest(
+                            turnId = state.turnId,
+                            sessionId = sessionId,
+                            userMessageId = state.conversationHistory.lastOrNull { it.role == MessageRole.USER }?.id?.toString().orEmpty(),
+                            assistantMessageId = withArtifacts.id.toString(),
+                            message = withArtifacts,
+                        ),
+                    )
+                    if (commitResult is io.zer0.muse.data.chat.rewrite.MessageCommitResult.Rejected) {
+                        throw IllegalStateException("conversation commit rejected")
+                    }
+                } else {
+                    sessionRepository.upsertMessage(sessionId, withArtifacts)
+                }
             } catch (e: Exception) {
                 Logger.e("ChatVM", "upsertMessage failed", e)
                 addError(ChatErrorType.UNKNOWN, appContext.getString(R.string.err_chat_reply_save_failed, e.message ?: appContext.getString(R.string.err_chat_unknown)))

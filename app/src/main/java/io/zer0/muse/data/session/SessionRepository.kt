@@ -25,6 +25,9 @@ import kotlin.uuid.Uuid
 import io.zer0.muse.R
 import io.zer0.muse.transformer.MoodSkinParser
 import io.zer0.muse.data.chat.rewrite.ConversationEventDraft
+import io.zer0.muse.data.chat.rewrite.ConversationEventType
+import io.zer0.muse.data.chat.rewrite.MessageCommitRequest
+import io.zer0.muse.data.chat.rewrite.MessageCommitResult
 
 /**
  * 会话仓库:封装 SessionDao + MessageDao,提供领域模型 API。
@@ -532,6 +535,97 @@ class SessionRepository(
             }
         }
     }
+
+    /**
+     * 新链路一次性提交消息、parts、工具轮、分支头和 turn 完成状态。
+     *
+     * 同一 turn 的第二次提交在事务入口返回 AlreadyCommitted；任何写入异常都会回滚
+     * turn、消息和分支头，避免出现“已完成但正文未落盘”的半提交状态。
+     */
+    suspend fun commitConversationMessage(request: MessageCommitRequest): MessageCommitResult =
+        withContext(Dispatchers.IO) {
+            database.withTransaction {
+                val session = sessionDao.getById(request.sessionId)
+                    ?: return@withTransaction MessageCommitResult.Rejected
+                if (session.deletedAt != null) return@withTransaction MessageCommitResult.Rejected
+                val turn = database.conversationTurnDao().getById(request.turnId)
+                    ?: return@withTransaction MessageCommitResult.Rejected
+                if (turn.finishedAt != null) return@withTransaction MessageCommitResult.AlreadyCommitted
+                val finished = database.conversationTurnDao().finishIfOpen(
+                    turnId = request.turnId,
+                    phase = "COMPLETED",
+                    finishedAt = System.currentTimeMillis(),
+                )
+                if (finished != 1) return@withTransaction MessageCommitResult.AlreadyCommitted
+
+                val existing = messageDao.getById(request.sessionId, request.message.id.toString())
+                val branch = database.sessionBranchHeadDao().get(request.sessionId)
+                val nextCommitSeq = branch?.nextCommitSeq
+                    ?.coerceAtLeast(messageDao.getMaxSeq(request.sessionId) + 1)
+                    ?: (messageDao.getMaxSeq(request.sessionId) + 1)
+                var entity = request.message.toEntity(request.sessionId)
+                entity = if (existing != null) {
+                    entity.copy(
+                        seq = existing.seq,
+                        commitSeq = existing.commitSeq,
+                        createdAt = existing.createdAt,
+                        deletedAt = existing.deletedAt,
+                    )
+                } else {
+                    entity.copy(
+                        seq = if (entity.seq > 0) entity.seq else messageDao.getMaxSeq(request.sessionId) + 1,
+                        commitSeq = if (entity.commitSeq > 0) entity.commitSeq else nextCommitSeq,
+                        parentMessageId = entity.parentMessageId ?: turn.inputUserMessageId,
+                    )
+                }
+                messageDao.upsert(entity)
+                resultOf {
+                    syncFtsDelete(entity.id)
+                    syncFtsInsert(entity.id, entity.content)
+                }.onError { _, t -> Logger.w(TAG, "MessageCommit FTS 写入失败: ${t?.message ?: ""}", t) }
+
+                if (request.parts.isNotEmpty()) {
+                    database.messagePartDao().deleteByMessage(entity.id)
+                    database.messagePartDao().upsertAll(
+                        request.parts.map { it.copy(messageId = entity.id) },
+                    )
+                }
+                if (request.toolRounds.isNotEmpty()) {
+                    database.toolRoundDao().upsertAll(
+                        request.toolRounds.map { it.copy(turnId = request.turnId) },
+                    )
+                }
+                if (existing == null) sessionDao.incrementMessageCount(request.sessionId, 1)
+                updateSessionPreview(request.sessionId, request.message)
+
+                val now = System.currentTimeMillis()
+                val branchHead = SessionBranchHeadEntity(
+                    sessionId = request.sessionId,
+                    headMessageId = entity.id,
+                    nextCommitSeq = entity.commitSeq + 1,
+                    projectionVersion = (branch?.projectionVersion ?: 0) + 1,
+                    updatedAt = now,
+                )
+                database.sessionBranchHeadDao().upsert(branchHead)
+                val event = ConversationEventDraft(
+                    sessionId = request.sessionId,
+                    turnId = request.turnId,
+                    type = ConversationEventType.TURN_FINISHED,
+                    streamId = turn.streamId,
+                    generationSerial = turn.generationSerial,
+                    payloadJson = "{\"messageId\":\"${entity.id}\",\"contentLength\":${entity.content.length},\"contentHash\":\"${io.zer0.muse.data.chat.rewrite.sha256(entity.content)}\"}",
+                )
+                database.conversationEventDao().insert(
+                    event.toEntity(
+                        eventSeq = database.conversationEventDao().nextEventSeq(request.sessionId),
+                        eventId = Uuid.random().toString(),
+                    ),
+                )
+                database.generationCheckpointDao().deleteByAssistantMessageId(request.assistantMessageId)
+                database.generationCheckpointDao().deleteByUserMessageId(request.userMessageId)
+                MessageCommitResult.Committed
+            }
+        }
 
     /**
      * appendMessage 的非事务版本,供已在事务内的调用方(如 [forkSession])复用,

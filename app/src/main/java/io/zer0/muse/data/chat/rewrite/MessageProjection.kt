@@ -71,3 +71,34 @@ object MessageProjector {
         }
     }
 }
+
+
+data class ConversationProjection(
+    val sessionId: String,
+    val projectionVersion: Long,
+    val messages: List<ProjectedMessage>,
+    val contentHash: String,
+)
+
+/** 会话级纯函数投影，供旧 UI 与新 UI 对账。 */
+object ConversationProjector {
+    fun project(
+        messages: List<MessageEntity>,
+        parts: List<MessagePartEntity>,
+        useCommitSeq: Boolean,
+        projectionVersion: Long = 0,
+    ): ConversationProjection {
+        val ordered = MessageProjector.order(messages, useCommitSeq)
+        val partsByMessage = parts.groupBy { it.messageId }
+        val projected = ordered.map { message ->
+            MessageProjector.project(message, partsByMessage[message.id].orEmpty())
+        }
+        val hashInput = projected.joinToString("|") { "${it.id}:${it.role}:${it.content}" }
+        return ConversationProjection(
+            sessionId = messages.firstOrNull()?.sessionId.orEmpty(),
+            projectionVersion = projectionVersion,
+            messages = projected,
+            contentHash = sha256(hashInput),
+        )
+    }
+}

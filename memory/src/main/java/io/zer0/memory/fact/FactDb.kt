@@ -306,7 +306,7 @@ abstract class FactDb : RoomDatabase() {
 
         /**
          * 审计修复 (0.2): 未知/更高版本数据库在 destructive fallback 前归档。
-         * 原实现 fallbackToDestructiveMigration 会静默清空用户事实记忆且无备份;
+         * 原实现的 destructive fallback 会静默清空用户事实记忆且无备份;
          * 这里在 Room 打开前检查版本: 高于迁移链覆盖(高版本降级)或版本异常时,
          * 先重命名 .bak 保留数据,Room 再重建空库,数据可恢复。
          */

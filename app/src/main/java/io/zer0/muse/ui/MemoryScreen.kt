@@ -122,6 +122,15 @@ fun MemoryScreen(
         )
         viewModel.consumeCompileResult()
     }
+    LaunchedEffect(viewModel.organizeResult) {
+        val result = viewModel.organizeResult.value ?: return@LaunchedEffect
+        if (result.startsWith("done:")) {
+            MuseToast.show(context.getString(R.string.memory_organize_stage_complete, result.removePrefix("done:").toIntOrNull() ?: 0))
+        } else {
+            MuseToast.show(context.getString(R.string.memory_organize_stage_failed))
+        }
+        viewModel.consumeOrganizeResult()
+    }
     // v1.0.51: 存量记忆迁移进度(升级后首次启动补跑历史 session 摘要时显示)
     val backfillProgress by viewModel.backfillProgress.collectAsStateWithLifecycle()
     // v8: 作用域筛选状态(从 ViewModel 直接 collect,与 state 同级更新)
@@ -130,6 +139,8 @@ fun MemoryScreen(
     // v1.0.52 P2-2: 记忆空间切换状态(与 Scope 正交:Space 按场景隔离)
     val selectedSpaceId by viewModel.selectedSpaceId.collectAsStateWithLifecycle()
     val availableSpaces by viewModel.availableSpaces.collectAsStateWithLifecycle()
+    val organizeRunning by viewModel.organizeRunning.collectAsStateWithLifecycle()
+    val organizeStage by viewModel.organizeStage.collectAsStateWithLifecycle()
     // Phase 2 2D: Export dialog state (declared before Scaffold for topbar access)
     var showExportDialog by rememberSaveable { mutableStateOf(false) }
     // P2-1: 大屏(Expanded)下内容区居中限宽 720dp
@@ -165,21 +176,6 @@ fun MemoryScreen(
                             imageVector = Icons.Outlined.Share,
                             contentDescription = stringResource(R.string.memory_stats_export_title),
                         )
-                    }
-                    // v1.0.90: 手动整理/合并重复记忆
-                    val dedupRunning by viewModel.dedupState.collectAsStateWithLifecycle()
-                    IconButton(
-                        onClick = { viewModel.dedupNow() },
-                        enabled = !dedupRunning,
-                    ) {
-                        if (dedupRunning) {
-                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                        } else {
-                            Icon(
-                                imageVector = compose.icons.TablerIcons.GitMerge,
-                                contentDescription = stringResource(R.string.memory_dedup_button),
-                            )
-                        }
                     }
                 },
             )
@@ -275,27 +271,33 @@ fun MemoryScreen(
                     }
                 }
 
+                OutlinedButton(
+                    onClick = { viewModel.organizeMemory() },
+                    enabled = !organizeRunning,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = MusePaddings.screen),
+                    shape = MuseShapes.large,
+                ) {
+                    if (organizeRunning) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                    } else {
+                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        when (organizeStage) {
+                            "prepare" -> stringResource(R.string.memory_organize_stage_prepare)
+                            "compile" -> stringResource(R.string.memory_organize_stage_compile)
+                            "dedup" -> stringResource(R.string.memory_organize_stage_dedup)
+                            "complete" -> stringResource(R.string.memory_organize_stage_complete, 0)
+                            else -> stringResource(R.string.memory_organize_action)
+                        },
+                    )
+                }
+
                 // v1.0.51: 当下/短期/长期 Tab — 直接展示编译产物,支持编辑
                 if (selectedMemoryTab != 3 && selectedMemoryTab != 5) {
-                    // 立即编译按钮(Tab 0-2 共用)
-                    val compiling by viewModel.compilingState.collectAsStateWithLifecycle()
-                    OutlinedButton(
-                        onClick = { viewModel.compileNow() },
-                        enabled = !compiling,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = MusePaddings.screen),
-                        shape = MuseShapes.large,
-                    ) {
-                        if (compiling) {
-                            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-                        } else {
-                            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
-                        }
-                        Spacer(Modifier.width(8.dp))
-                        Text(if (compiling) stringResource(R.string.memory_compile_running) else stringResource(R.string.memory_screen_compile_now))
-                    }
-
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(

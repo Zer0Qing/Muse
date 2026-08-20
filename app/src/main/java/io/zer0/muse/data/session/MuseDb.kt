@@ -87,7 +87,7 @@ import kotlinx.serialization.builtins.serializer
  *   - 索引内容由 MessageFtsManager.toNgram 预处理(CJK 2-gram 滑窗 + ASCII 小写词)
  *   - 搜索时 MessageFtsManager.toMatchQuery 转 MATCH 表达式(引号转义 + AND 语义)
  * P1-7: 版本 10 → 11,新增 scheduled_task_executions 表(定时任务执行历史)。
- *   - 迁移链已覆盖标准升级路径;未知版本降级时由 fallbackToDestructiveMigrationOnDowngrade 处理
+ *   - 迁移链已覆盖标准升级路径;未知版本或降级由备份恢复流程处理，不执行 destructive migration
  * v0.45: 版本 11 → 12,sessions 加 archived 字段(归档功能)。
  * v1.43: 版本 15 → 16,新增 artifacts 表 + messages.artifactIdsJson 字段(会话产物)。
  * v1.0.23 hotfix: 版本 41 → 42,修复"假 v41"数据库 integrity check 崩溃(防御性补字段,无 schema 变更)。
@@ -1000,7 +1000,7 @@ abstract class MuseDb : RoomDatabase() {
          * P1-7: v10 → v11 迁移。
          * - 新建 scheduled_task_executions 表(定时任务执行历史)
          *
-         * 注意: 迁移链已覆盖标准升级路径;未知版本降级时由 fallbackToDestructiveMigrationOnDowngrade 处理。
+         * 注意: 迁移链已覆盖标准升级路径;未知版本或降级由备份恢复流程处理，不执行 destructive migration。
          * 此迁移仅用于 v10 → v11 的标准升级路径,DDL 用 execSQL(Room 迁移标准做法)。
          */
         val MIGRATION_10_11 = object : Migration(10, 11) {
@@ -1047,7 +1047,7 @@ abstract class MuseDb : RoomDatabase() {
          * - 新建 group_chat_messages 表(群聊消息)
          *
          * 群聊功能:用户在群聊中发消息后,GroupChatScheduler 串行触发各 Agent 成员轮转发言。
-         * 迁移链已覆盖标准升级路径;未知版本降级时由 fallbackToDestructiveMigrationOnDowngrade 处理。
+         * 迁移链已覆盖标准升级路径;未知版本或降级由备份恢复流程处理，不执行 destructive migration。
          */
         val MIGRATION_13_14 = object : Migration(13, 14) {
             override fun migrate(db: SupportSQLiteDatabase) {

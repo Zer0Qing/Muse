@@ -132,6 +132,12 @@
     <string name="memory_compile_done">记忆编译完成</string>
     <string name="memory_compile_running">正在整理记忆…</string>
     <string name="memory_compile_failed">记忆编译失败，请检查模型配置后重试</string>
+    <string name="memory_organize_action">整理记忆</string>
+    <string name="memory_organize_stage_prepare">准备整理</string>
+    <string name="memory_organize_stage_compile">正在编译摘要</string>
+    <string name="memory_organize_stage_dedup">正在合并重复</string>
+    <string name="memory_organize_stage_complete">整理完成，合并 %1$d 条</string>
+    <string name="memory_organize_stage_failed">整理失败，请重试</string>
     <!-- v1.x: 记忆卡片 ⋮ 菜单 -->
     <string name="memory_menu_cd">更多操作</string>
     <string name="memory_menu_pin">置顶</string>

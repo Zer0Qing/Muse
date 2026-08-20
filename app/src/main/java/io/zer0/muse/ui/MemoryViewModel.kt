@@ -253,6 +253,64 @@ class MemoryViewModel(
     private val _dedupState = MutableStateFlow(false)
     val dedupState: StateFlow<Boolean> = _dedupState.asStateFlow()
 
+    /** 统一“整理记忆”动作的状态，避免用户需要理解多个底层按钮。 */
+    private val _organizeRunning = MutableStateFlow(false)
+    val organizeRunning: StateFlow<Boolean> = _organizeRunning.asStateFlow()
+    private val _organizeStage = MutableStateFlow<String?>(null)
+    val organizeStage: StateFlow<String?> = _organizeStage.asStateFlow()
+    private val _organizeResult = MutableStateFlow<String?>(null)
+    val organizeResult: StateFlow<String?> = _organizeResult.asStateFlow()
+
+    /**
+     * 统一整理记忆：编译摘要后执行去重。
+     * 两个底层动作仍保持独立 API，供旧入口和后台任务兼容；新 UI 只暴露本方法。
+     */
+    fun organizeMemory() {
+        if (_organizeRunning.value) return
+        _organizeRunning.value = true
+        _organizeStage.value = "prepare"
+        viewModelScope.launch {
+            try {
+                _organizeStage.value = "compile"
+                val compileOk = withContext(Dispatchers.IO) {
+                    resultOf { memoryTicker.forceCompileNow() }
+                        .onError { msg, t -> Logger.w("MemoryViewModel", "整理记忆编译失败: ${t?.message ?: msg}") }
+                        .getOrNull() != null
+                }
+                if (!compileOk) {
+                    _organizeResult.value = "failed:compile"
+                    return@launch
+                }
+                _organizeStage.value = "dedup"
+                val merged = withContext(Dispatchers.IO) {
+                    resultOf {
+                        factStore.dedupPass(
+                            scope = _selectedScope.value ?: "main",
+                            spaceId = _selectedSpaceId.value,
+                        )
+                    }
+                        .onError { msg, t -> Logger.w("MemoryViewModel", "整理记忆去重失败: ${t?.message ?: msg}") }
+                        .getOrNull()
+                }
+                if (merged == null) {
+                    _organizeResult.value = "failed:dedup"
+                } else {
+                    _organizeStage.value = "complete"
+                    _organizeResult.value = "done:$merged"
+                    loadAll(silent = true)
+                }
+            } finally {
+                _organizeRunning.value = false
+                if (_organizeStage.value != "complete") _organizeStage.value = null
+            }
+        }
+    }
+
+    fun consumeOrganizeResult() {
+        _organizeResult.value = null
+        if (!_organizeRunning.value) _organizeStage.value = null
+    }
+
     /**
      * v8: 可选的作用域列表(响应式)。
      * 始终包含"全部" + "主助手";其余项来自 [assistantRepository.observeAll]。
