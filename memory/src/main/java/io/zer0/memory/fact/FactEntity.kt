@@ -32,6 +32,10 @@ import kotlinx.serialization.Serializable
         Index(value = ["category"], name = "idx_facts_category"),
         Index(value = ["scope"], name = "index_facts_scope"),
         Index(value = ["space_id"], name = "index_facts_space_id"),
+        // v12 修复: entity_key 索引必须与 MIGRATION_11_12 的 CREATE INDEX 一致。
+        // 此前注解遗漏该索引,而迁移里建了它 → 真机 Room 打开时 schema 校验失败
+        // (Migration didn't properly handle: facts),记忆中心一点开就崩溃。
+        Index(value = ["entity_key"], name = "idx_facts_entity_key"),
     ],
 )
 data class FactEntity(

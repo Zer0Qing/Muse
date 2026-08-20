@@ -1,0 +1,393 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 12,
+    "identityHash": "1757bbe2849481128cbac65027c16333",
+    "entities": [
+      {
+        "tableName": "facts",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `fact` TEXT NOT NULL, `tags` TEXT NOT NULL DEFAULT '[]', `time` TEXT, `session_id` TEXT, `created_at` TEXT NOT NULL, `importance` INTEGER NOT NULL DEFAULT 0, `category` TEXT NOT NULL DEFAULT 'general', `confidence` REAL NOT NULL DEFAULT 1.0, `source` TEXT NOT NULL DEFAULT 'inferred', `expires_at` TEXT, `last_confirmed_at` TEXT, `last_hit_at` TEXT DEFAULT NULL, `scope` TEXT NOT NULL DEFAULT 'main', `space_id` TEXT NOT NULL DEFAULT 'default', `pinned_at` TEXT DEFAULT NULL, `entity_key` TEXT)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fact",
+            "columnName": "fact",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tags",
+            "columnName": "tags",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'[]'"
+          },
+          {
+            "fieldPath": "time",
+            "columnName": "time",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "sessionId",
+            "columnName": "session_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "importance",
+            "columnName": "importance",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "category",
+            "columnName": "category",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'general'"
+          },
+          {
+            "fieldPath": "confidence",
+            "columnName": "confidence",
+            "affinity": "REAL",
+            "notNull": true,
+            "defaultValue": "1.0"
+          },
+          {
+            "fieldPath": "source",
+            "columnName": "source",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'inferred'"
+          },
+          {
+            "fieldPath": "expiresAt",
+            "columnName": "expires_at",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lastConfirmedAt",
+            "columnName": "last_confirmed_at",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lastHitAt",
+            "columnName": "last_hit_at",
+            "affinity": "TEXT",
+            "defaultValue": "NULL"
+          },
+          {
+            "fieldPath": "scope",
+            "columnName": "scope",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'main'"
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "space_id",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'default'"
+          },
+          {
+            "fieldPath": "pinnedAt",
+            "columnName": "pinned_at",
+            "affinity": "TEXT",
+            "defaultValue": "NULL"
+          },
+          {
+            "fieldPath": "entityKey",
+            "columnName": "entity_key",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "idx_facts_time",
+            "unique": false,
+            "columnNames": [
+              "time"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `idx_facts_time` ON `${TABLE_NAME}` (`time`)"
+          },
+          {
+            "name": "idx_facts_session",
+            "unique": false,
+            "columnNames": [
+              "session_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `idx_facts_session` ON `${TABLE_NAME}` (`session_id`)"
+          },
+          {
+            "name": "idx_facts_importance",
+            "unique": false,
+            "columnNames": [
+              "importance"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `idx_facts_importance` ON `${TABLE_NAME}` (`importance`)"
+          },
+          {
+            "name": "idx_facts_category",
+            "unique": false,
+            "columnNames": [
+              "category"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `idx_facts_category` ON `${TABLE_NAME}` (`category`)"
+          },
+          {
+            "name": "index_facts_scope",
+            "unique": false,
+            "columnNames": [
+              "scope"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_facts_scope` ON `${TABLE_NAME}` (`scope`)"
+          },
+          {
+            "name": "index_facts_space_id",
+            "unique": false,
+            "columnNames": [
+              "space_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_facts_space_id` ON `${TABLE_NAME}` (`space_id`)"
+          }
+        ]
+      },
+      {
+        "tableName": "facts_fts",
+        "createSql": "CREATE VIRTUAL TABLE IF NOT EXISTS `${TABLE_NAME}` USING FTS4(`fact_id` INTEGER NOT NULL, `content_ngram` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "fact_id",
+            "columnName": "fact_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "content_ngram",
+            "columnName": "content_ngram",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": []
+        },
+        "ftsVersion": "FTS4",
+        "ftsOptions": {
+          "tokenizer": "simple",
+          "tokenizerArgs": [],
+          "contentTable": "",
+          "languageIdColumnName": "",
+          "matchInfo": "FTS4",
+          "notIndexedColumns": [],
+          "prefixSizes": [],
+          "preferredOrder": "ASC"
+        },
+        "contentSyncTriggers": []
+      },
+      {
+        "tableName": "memory_spaces",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `icon` TEXT, `description` TEXT NOT NULL DEFAULT '', `created_at` TEXT NOT NULL, `sort_index` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "icon",
+            "columnName": "icon",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "description",
+            "columnName": "description",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sortIndex",
+            "columnName": "sort_index",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "idx_memory_spaces_sort",
+            "unique": false,
+            "columnNames": [
+              "sort_index"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `idx_memory_spaces_sort` ON `${TABLE_NAME}` (`sort_index`)"
+          }
+        ]
+      },
+      {
+        "tableName": "memory_links",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `source_fact_id` INTEGER NOT NULL, `target_fact_id` INTEGER NOT NULL, `source_title` TEXT NOT NULL, `target_title` TEXT NOT NULL, `link_type` TEXT NOT NULL DEFAULT 'related_to', `weight` REAL NOT NULL DEFAULT 0.5, `space_id` TEXT NOT NULL DEFAULT 'default', `scope` TEXT NOT NULL DEFAULT 'main', `created_at` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceFactId",
+            "columnName": "source_fact_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "targetFactId",
+            "columnName": "target_fact_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceTitle",
+            "columnName": "source_title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "targetTitle",
+            "columnName": "target_title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "linkType",
+            "columnName": "link_type",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'related_to'"
+          },
+          {
+            "fieldPath": "weight",
+            "columnName": "weight",
+            "affinity": "REAL",
+            "notNull": true,
+            "defaultValue": "0.5"
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "space_id",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'default'"
+          },
+          {
+            "fieldPath": "scope",
+            "columnName": "scope",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'main'"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "idx_memory_links_source",
+            "unique": false,
+            "columnNames": [
+              "source_fact_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `idx_memory_links_source` ON `${TABLE_NAME}` (`source_fact_id`)"
+          },
+          {
+            "name": "idx_memory_links_target",
+            "unique": false,
+            "columnNames": [
+              "target_fact_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `idx_memory_links_target` ON `${TABLE_NAME}` (`target_fact_id`)"
+          },
+          {
+            "name": "idx_memory_links_space",
+            "unique": false,
+            "columnNames": [
+              "space_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `idx_memory_links_space` ON `${TABLE_NAME}` (`space_id`)"
+          },
+          {
+            "name": "idx_memory_links_scope",
+            "unique": false,
+            "columnNames": [
+              "scope"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `idx_memory_links_scope` ON `${TABLE_NAME}` (`scope`)"
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '1757bbe2849481128cbac65027c16333')"
+    ]
+  }
+}
