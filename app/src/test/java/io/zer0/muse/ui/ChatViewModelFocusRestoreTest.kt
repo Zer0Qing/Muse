@@ -130,6 +130,9 @@ class ChatViewModelFocusRestoreTest {
         every { delegationChainTracker.chains } returns MutableStateFlow<Map<String, DelegationChainTracker.ChainNode>>(emptyMap())
         every { delegationPauseManager.activePauses } returns MutableStateFlow<Map<String, DelegationPauseManager.PauseRequest>>(emptyMap())
         every { chatGenerationManager.activeGeneration } returns MutableStateFlow<ChatGenerationManager.ActiveGeneration?>(null)
+        // fcc18f6: ChatViewModel 改为观察 activeGenerations(多会话并发生成),
+        // 测试 stub 须同步提供复数版本, 否则 relaxed mockk 收集时抛 KotlinNothingValueException
+        every { chatGenerationManager.activeGenerations } returns MutableStateFlow(emptyMap())
         every { visionBridge.progressFlow } returns MutableStateFlow(VisionProgress(idle = true, index = 0, total = 0))
         every { deferredResultStore.completedTasks } returns MutableStateFlow(emptyMap())
         every { deferredResultStore.tasks } returns MutableStateFlow(emptyMap())

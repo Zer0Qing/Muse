@@ -53,6 +53,23 @@ jobs:
       # 传 releaseSkipVersionCheck/releaseSkipKeystoreCheck: 静态检查/detekt 等会触发
       # hasReleaseTask 的版本号+keystore 硬约束(本地复现失败);CI 只做 debug 构建,跳过校验。
       run: ./gradlew detekt ktlintCheck lintDebug koverXmlReport :ai:koverCachedVerifyDebug :memory:koverCachedVerifyDebug :app:koverCachedVerifyDebug -PreleaseSkipVersionCheck=true -PreleaseSkipKeystoreCheck=true
+    - name: Unit tests (app/memory/ai)
+      # F-01: 三模块单测接入 PR 主链,失败即 PR 失败;报告由下一 upload 步骤保留。
+      run: ./gradlew :app:testDebugUnitTest :memory:testDebugUnitTest :ai:testDebugUnitTest -PreleaseSkipVersionCheck=true -PreleaseSkipKeystoreCheck=true
+    - name: Upload unit test reports
+      # F-01: 单测失败时也必须保留测试报告(if: always() 保证任何结果都上传)
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: unit-test-reports
+        path: |
+          app/build/reports/tests
+          memory/build/reports/tests
+          ai/build/reports/tests
+        if-no-files-found: ignore
+    - name: Migration coverage check
+      # F-02: 校验 MuseDb version/addMigrations 与迁移测试覆盖一致,任一迁移未覆盖即失败
+      run: python3 ci/script/check_migration_coverage.py
     - name: Build debug APK
       run: ./gradlew assembleDebug -PreleaseSkipVersionCheck=true -PreleaseSkipKeystoreCheck=true
     - uses: actions/upload-artifact@v4
