@@ -1,12 +1,12 @@
 {
   "date": "2026-08-20",
   "branch": "codex/overnight-rebuild-2026-08-20",
-  "codeCommit": "3a6e113",
+  "codeCommit": "e89b847",
   "versionName": "1.0.79",
   "versionCode": 179,
   "MuseDb": 95,
   "FactDb": 13,
-  "apkSha256": "93D20F6BE257C7E17D02E6BBC355ACDEDC95409DF54DE28379190166FECBC56F",
+  "apkSha256": "7765ABFB62A21E47A03874D1D0A900C982BC474828F5E6BAEB882EB928367126",
   "signingCertificateDn": "CN=Muse, OU=OpenSource, O=zer0, L=Shanghai, ST=Shanghai, C=CN",
   "signingCertificateSha256": "e82f4ecde8304b7d78b530336a48e41a42b80c0ebac8af2d2c10448277644ebf",
   "rollbackPlan": "关闭 ConversationRebuildFlagStore 开关；保留旧 messages/content/reasoning/toolCallInfoJson/seq/变体字段；数据库回退使用迁移前 .bak 恢复，不执行降级 destructive migration。",
@@ -26,7 +26,7 @@
     "app-universal-release.apk": {
       "path": "E:\\1Project\\Muse\\1muse\\app\\build\\outputs\\apk\\release\\app-universal-release.apk",
       "bytes": 169276262,
-      "sha256": "93D20F6BE257C7E17D02E6BBC355ACDEDC95409DF54DE28379190166FECBC56F"
+      "sha256": "7765ABFB62A21E47A03874D1D0A900C982BC474828F5E6BAEB882EB928367126"
     }
   },
   "signatureVerification": {
