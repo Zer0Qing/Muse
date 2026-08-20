@@ -150,13 +150,14 @@ class FactDbMigrationTest {
         )
             // v1.0.56: 补全 7→10 迁移链(Room 需要完整路径;此前只注册 7_8,
             //   测试建库后实际要求迁到当前版本 10;v1.0.62 延续到 11)
-            // v12: 延续到 12(实体归一化键列)
+            // v12: 延续到 12(实体归一化键列);v13: 延续到 13(修订记录表)
             .addMigrations(
                 FactDb.MIGRATION_7_8,
                 FactDb.MIGRATION_8_9,
                 FactDb.MIGRATION_9_10,
                 FactDb.MIGRATION_10_11,
                 FactDb.MIGRATION_11_12,
+                FactDb.MIGRATION_12_13,
             )
             .allowMainThreadQueries()
             .build()
@@ -222,13 +223,14 @@ class FactDbMigrationTest {
             dbFile.absolutePath,
         )
             // v1.0.56: 补全 7→10 迁移链(Room 需要完整路径)
-            // v12: 延续到 12(实体归一化键列)
+            // v12: 延续到 12(实体归一化键列);v13: 延续到 13(修订记录表)
             .addMigrations(
                 FactDb.MIGRATION_7_8,
                 FactDb.MIGRATION_8_9,
                 FactDb.MIGRATION_9_10,
                 FactDb.MIGRATION_10_11,
                 FactDb.MIGRATION_11_12,
+                FactDb.MIGRATION_12_13,
             )
             .allowMainThreadQueries()
             .build()
@@ -380,7 +382,7 @@ class FactDbMigrationTest {
 
         // 触发 11→12 迁移
         val db = Room.databaseBuilder(context, FactDb::class.java, dbFile.absolutePath)
-            .addMigrations(FactDb.MIGRATION_11_12)
+            .addMigrations(FactDb.MIGRATION_11_12, FactDb.MIGRATION_12_13)
             .allowMainThreadQueries()
             .build()
         db.openHelper.writableDatabase
@@ -422,6 +424,136 @@ class FactDbMigrationTest {
             "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_facts_entity_key'"
         ).use { cursor ->
             assertTrue("idx_facts_entity_key 索引应存在", cursor.moveToFirst())
+        }
+
+        // 5. v13: fact_revisions 表已建(空表)
+        db.openHelper.writableDatabase.query(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='fact_revisions'"
+        ).use { cursor ->
+            assertTrue("fact_revisions 表应存在", cursor.moveToFirst())
+        }
+
+        db.close()
+    }
+
+    /**
+     * v13: 老用户从 v12 升级 — fact_revisions 表新增,原 facts 数据无损。
+     */
+    @Test
+    fun migrate12To13_addsRevisionsTablePreservingFacts() {
+        val dbFile = newDbFile()
+        val factory = FrameworkSQLiteOpenHelperFactory()
+        // v12 schema: facts(含 entity_key) + fts + spaces + links
+        val V12_CREATE_FACTS = """
+            CREATE TABLE IF NOT EXISTS `facts` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `fact` TEXT NOT NULL,
+                `tags` TEXT NOT NULL DEFAULT '[]',
+                `time` TEXT,
+                `session_id` TEXT,
+                `created_at` TEXT NOT NULL,
+                `importance` INTEGER NOT NULL DEFAULT 0,
+                `category` TEXT NOT NULL DEFAULT 'general',
+                `confidence` REAL NOT NULL DEFAULT 1.0,
+                `source` TEXT NOT NULL DEFAULT 'inferred',
+                `expires_at` TEXT,
+                `last_confirmed_at` TEXT,
+                `last_hit_at` TEXT DEFAULT NULL,
+                `scope` TEXT NOT NULL DEFAULT 'main',
+                `space_id` TEXT NOT NULL DEFAULT 'default',
+                `pinned_at` TEXT DEFAULT NULL,
+                `entity_key` TEXT
+            )
+        """.trimIndent()
+        val V12_CREATE_FTS = """
+            CREATE VIRTUAL TABLE IF NOT EXISTS `facts_fts` USING FTS4(
+                `fact_id` INTEGER NOT NULL,
+                `content_ngram` TEXT NOT NULL
+            )
+        """.trimIndent()
+        val V12_CREATE_SPACES = """
+            CREATE TABLE IF NOT EXISTS `memory_spaces` (
+                `id` TEXT NOT NULL PRIMARY KEY,
+                `name` TEXT NOT NULL,
+                `icon` TEXT,
+                `description` TEXT NOT NULL DEFAULT '',
+                `created_at` TEXT NOT NULL,
+                `sort_index` INTEGER NOT NULL DEFAULT 0
+            )
+        """.trimIndent()
+        val V12_CREATE_LINKS = """
+            CREATE TABLE IF NOT EXISTS `memory_links` (
+                `id` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                `source_fact_id` INTEGER NOT NULL,
+                `target_fact_id` INTEGER NOT NULL,
+                `source_title` TEXT NOT NULL,
+                `target_title` TEXT NOT NULL,
+                `link_type` TEXT NOT NULL DEFAULT 'related_to',
+                `weight` REAL NOT NULL DEFAULT 0.5,
+                `space_id` TEXT NOT NULL DEFAULT 'default',
+                `scope` TEXT NOT NULL DEFAULT 'main',
+                `created_at` TEXT NOT NULL
+            )
+        """.trimIndent()
+        val helper = factory.create(
+            configuration = androidx.sqlite.db.SupportSQLiteOpenHelper.Configuration.builder(context)
+                .name(dbFile.absolutePath)
+                .callback(object : androidx.sqlite.db.SupportSQLiteOpenHelper.Callback(12) {
+                    override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                        db.execSQL(V12_CREATE_FACTS)
+                        db.execSQL(V12_CREATE_FTS)
+                        db.execSQL(V12_CREATE_SPACES)
+                        db.execSQL(V12_CREATE_LINKS)
+                    }
+
+                    override fun onUpgrade(
+                        db: androidx.sqlite.db.SupportSQLiteDatabase,
+                        oldVersion: Int,
+                        newVersion: Int,
+                    ) {
+                    }
+                })
+                .build(),
+        ).writableDatabase
+
+        helper.execSQL(
+            """
+            INSERT INTO facts (
+                id, fact, tags, time, session_id, created_at,
+                importance, category, confidence, source,
+                expires_at, last_confirmed_at, last_hit_at,
+                scope, space_id, pinned_at, entity_key
+            ) VALUES (
+                1, '张三喜欢摄影', '["preference"]', NULL, NULL, '2026-08-01T00:00:00Z',
+                1, 'preference', 0.9, 'user_explicit',
+                NULL, NULL, '2026-08-10T00:00:00Z',
+                'main', 'default', NULL, '张三'
+            )
+            """.trimIndent()
+        )
+        helper.close()
+
+        val db = Room.databaseBuilder(context, FactDb::class.java, dbFile.absolutePath)
+            .addMigrations(FactDb.MIGRATION_12_13)
+            .allowMainThreadQueries()
+            .build()
+        db.openHelper.writableDatabase
+
+        // fact_revisions 表存在
+        db.openHelper.writableDatabase.query(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='fact_revisions'"
+        ).use { cursor ->
+            assertTrue("fact_revisions 表应存在", cursor.moveToFirst())
+        }
+
+        // 原 facts 数据无损(含 entity_key)
+        db.openHelper.writableDatabase.query(
+            "SELECT fact, importance, entity_key FROM facts WHERE id = 1"
+        ).use { cursor ->
+            assertTrue("facts 数据应保留", cursor.moveToFirst())
+            assertEquals("张三喜欢摄影", cursor.getString(0))
+            assertEquals(1, cursor.getInt(1))
+            assertEquals("张三", cursor.getString(2))
         }
 
         db.close()

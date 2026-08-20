@@ -37,7 +37,7 @@ val memoryModule: Module = module {
 
     // v0.22: per-assistant facts.db 提供者(按 assistantId 创建/缓存独立 FactDb)
     // v12: 透传 LLM 去重判定器(同实体模糊候选交给大模型判断)
-    single { io.zer0.memory.fact.FactDbProvider(androidContext(), get<io.zer0.memory.fact.FactDedupJudge>()) }
+    single { io.zer0.memory.fact.FactDbProvider(androidContext(), get<io.zer0.memory.fact.FactDedupJudge>(), get<io.zer0.memory.fact.FactRevisionDao>()) }
 
     // v1.78 (M12): 全局 FactDb 复用 FactDbProvider 的 "default" 实例
     // 避免 FactDb.create 与 FactDbProvider 各建一个 Room 实例指向同一 facts.db 文件
@@ -50,6 +50,8 @@ val memoryModule: Module = module {
     single { get<MemoryDb>().dailyStateDao() }
     single { get<MemoryDb>().compiledSectionDao() }
     single { get<FactDb>().factDao() }
+    // v13 (T4-1): 事实修订记录 DAO
+    single { get<FactDb>().factRevisionDao() }
     // v1.0.52 P2-2: 多 Space 隔离 DAO
     single { get<FactDb>().memorySpaceDao() }
     // v1.0.52 P2-3: 记忆知识图谱边 DAO
@@ -63,7 +65,7 @@ val memoryModule: Module = module {
     // S-04: MemoryCompiler 透传 FactStore(删除墓碑过滤);FactStore 落盘 filesDir/fact_tombstones.json
     // v12: 注入 LLM 去重判定器(由 app 模块提供实现,默认 Noop 不调 LLM)
     single { MemoryCompiler(get(), get(), get(), get()) }    // sectionDao + llmClient + fileWriter + factStore
-    single { FactStore(get(), get(), java.io.File(androidContext().filesDir, "fact_tombstones.json"), get<io.zer0.memory.fact.FactDedupJudge>()) }
+    single { FactStore(get(), get(), java.io.File(androidContext().filesDir, "fact_tombstones.json"), get<io.zer0.memory.fact.FactDedupJudge>(), get()) }
     single { DeepMemoryProcessor(get<io.zer0.memory.fact.FactDbProvider>(), get()) }  // factDbProvider + llmClient
 
     // v12 (T3-1): 记忆反思任务 — 每日整理(回填实体键/合并重复/矛盾检测/晋升)

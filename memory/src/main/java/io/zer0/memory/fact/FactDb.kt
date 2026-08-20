@@ -32,6 +32,7 @@ import java.time.format.DateTimeFormatter
  * v12 schema: 新增 entity_key 列(实体归一化键),同一实体不同写法共享同一键,
  *   用于写入时精确查重与跨写法合并(解决同名重复记忆)。历史数据为 NULL,
  *   由反思任务在整理时回填。
+ * v13 schema: 新增 fact_revisions 表(关键记忆修订记录),支持审计与回滚。
  *
  * FTS4 选型说明:
  *  - 部分国产 ROM(如 OPPO Android 16)的 SQLite 未编译 FTS5 模块,
@@ -40,8 +41,8 @@ import java.time.format.DateTimeFormatter
  *  - 中文检索由应用层 [FactFtsManager.toNgram] 预处理为 2-gram,不依赖内置 tokenizer。
  */
 @Database(
-    entities = [FactEntity::class, FactFtsEntity::class, MemorySpaceEntity::class, MemoryLinkEntity::class],
-    version = 12,
+    entities = [FactEntity::class, FactFtsEntity::class, MemorySpaceEntity::class, MemoryLinkEntity::class, FactRevisionEntity::class],
+    version = 13,
     // v1.78 (H4): 开启 schema 导出,未来 v4+ 升级时编写 Migration 替代 destructive
     // 历史 v1→v2→v3 的 destructive migration 已无法补救,从 v3 开始留基线
     exportSchema = true,
@@ -49,6 +50,9 @@ import java.time.format.DateTimeFormatter
 abstract class FactDb : RoomDatabase() {
 
     abstract fun factDao(): FactDao
+
+    /** v13 (T4-1): 事实修订记录 DAO。 */
+    abstract fun factRevisionDao(): FactRevisionDao
 
     abstract fun memorySpaceDao(): io.zer0.memory.space.MemorySpaceDao
 
@@ -248,6 +252,29 @@ abstract class FactDb : RoomDatabase() {
                 db.execSQL("CREATE INDEX IF NOT EXISTS idx_facts_entity_key ON facts(entity_key)")
             }
         }
+
+        /**
+         * v12→v13 迁移 — 新建 fact_revisions 表(关键记忆修订记录)。
+         * 仅建空表,历史无修订数据。表结构必须与 [FactRevisionEntity] 对齐。
+         */
+        val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS fact_revisions (
+                        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                        fact_id INTEGER NOT NULL,
+                        old_content TEXT NOT NULL,
+                        new_content TEXT NOT NULL,
+                        changed_at TEXT NOT NULL,
+                        reason TEXT NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_fact_revisions_fact_id ON fact_revisions(fact_id)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_fact_revisions_changed_at ON fact_revisions(changed_at)")
+            }
+        }
         /**
          * R-DB-03: 归档早期 v1/v2 或损坏的 facts 数据库。
          * 归档为 <name>.bak 后由 Room 重建空库,避免打开时崩溃。
@@ -293,7 +320,7 @@ abstract class FactDb : RoomDatabase() {
             } catch (_: Exception) {
                 return // 损坏库交给 archiveLegacyOrCorruptDatabase 处理
             }
-            if (version <= 12) return // 迁移链覆盖范围内(3..12)
+            if (version <= 13) return // 迁移链覆盖范围内(3..13)
             val bak = File(file.parentFile, "$name.pre-destructive.bak")
             runCatching { if (bak.exists()) bak.delete() }
             val renamed = runCatching { file.renameTo(bak) }.getOrDefault(false)
@@ -315,7 +342,7 @@ abstract class FactDb : RoomDatabase() {
                 .addMigrations(
                     MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
                     MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
-                    MIGRATION_10_11, MIGRATION_11_12,
+                    MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
                 )
                 .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {

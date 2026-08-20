@@ -48,6 +48,11 @@ class FactStore(
      * 默认 [NoopFactDedupJudge] 不调 LLM,行为与未接入完全一致;app 模块注入真实实现。
      */
     private val dedupJudge: FactDedupJudge = NoopFactDedupJudge,
+    /**
+     * v13 (T4-1): 事实修订记录 DAO — 关键记忆(importance≥1 或实体键合并)的变更历史。
+     * null 时不记录(测试/兼容降级)。
+     */
+    private val revisionDao: FactRevisionDao? = null,
 ) {
 
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
@@ -527,6 +532,58 @@ class FactStore(
     }
 
     /**
+     * v13 (T4-1): 记录修订 — 仅对关键记忆(importance ≥ 1 或实体键非空)写入,防止表膨胀。
+     * revisionDao 为 null 或写入失败时静默降级,不影响主流程。
+     */
+    private suspend fun recordRevisionIfKey(factId: Long, oldContent: String, newContent: String, reason: String) {
+        val dao2 = revisionDao ?: return
+        val current = dao.getById(factId) ?: return
+        if (current.importance < 1 && current.entityKey.isNullOrBlank()) return
+        if (oldContent == newContent) return
+        resultOf {
+            dao2.insert(
+                FactRevisionEntity(
+                    factId = factId,
+                    oldContent = oldContent,
+                    newContent = newContent,
+                    changedAt = Instant.now().toString(),
+                    reason = reason,
+                )
+            )
+        }.onError { msg, t ->
+            Logger.w("FactStore", "记录修订失败(fact=$factId): $msg", t)
+        }
+    }
+
+    /**
+     * v13 (T4-1): 按事实 id 查询修订历史(新→旧)。
+     *
+     * @return 修订记录列表(可为空)
+     */
+    suspend fun getRevisions(factId: Long, limit: Int = 20): List<FactRevisionEntity> = withContext(Dispatchers.IO) {
+        revisionDao?.getByFactId(factId, limit) ?: emptyList()
+    }
+
+    /**
+     * v13 (T4-1): 回滚到指定修订 — 把事实内容恢复为某次修订的旧值。
+     * 用于用户确认"合并错了/更新错了"后的恢复。
+     *
+     * @return 是否回滚成功
+     */
+    suspend fun revertToRevision(factId: Long, revisionId: Long): Boolean = withContext(Dispatchers.IO) {
+        val dao2 = revisionDao ?: return@withContext false
+        val revision = dao2.getByFactId(factId, limit = 50).firstOrNull { it.id == revisionId } ?: return@withContext false
+        val current = dao.getById(factId) ?: return@withContext false
+        // 回滚本身也是一次变更,记录当前值
+        recordRevisionIfKey(factId, current.fact, revision.oldContent, "revert")
+        val ok = dao.updateContent(factId, revision.oldContent, null) > 0
+        if (ok) {
+            syncFtsRow(factId, FactFtsManager.toNgram(revision.oldContent))
+        }
+        ok
+    }
+
+    /**
      * v9: 查找数据库中与新事实语义相似的已有事实。
      * 先用原始前缀匹配,再用去主语后的前缀匹配,最后用子串搜索兜底,
      * 确保"对青霉素过敏"和"用户对青霉素过敏"能被识别为同一条。
@@ -680,6 +737,13 @@ class FactStore(
         val newEntry = entry.copy(fact = cleaned, scope = scope, spaceId = spaceId, entityKey = entityKey)
         val existingSimilar = findSimilarFact(cleaned, scope, spaceId, entityKey)
         if (existingSimilar != null) {
+            // v13 (T4-1): 合并前记录修订(被合并方原文入 revisions,可追溯)
+            recordRevisionIfKey(
+                factId = existingSimilar.id,
+                oldContent = existingSimilar.fact,
+                newContent = cleaned,
+                reason = "merge:add",
+            )
             val merged = mergeFact(existingSimilar, newEntry)
             dao.updateEntity(
                 merged.id, merged.fact, merged.tags, merged.time, merged.sessionId,
@@ -921,6 +985,13 @@ class FactStore(
             //    自动合并(删除被覆盖方,保留更完整表述),修复"更新路径绕过去重"漏洞。
             val current = target ?: dao.getById(id)
             if (current != null) {
+                // v13 (T4-1): update 记录修订(重要性 ≥1 的关键记忆)
+                recordRevisionIfKey(
+                    factId = id,
+                    oldContent = current.fact,
+                    newContent = scrubbed,
+                    reason = "update",
+                )
                 val mergedEntity = current.copy(fact = scrubbed)
                 // v12: excludeId=自身 — 更新后 findSimilarFact 不应匹配到自己
                 val dup = findSimilarFact(scrubbed, mergedEntity.scope, mergedEntity.spaceId, mergedEntity.entityKey, excludeId = id)
