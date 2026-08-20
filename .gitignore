@@ -23,6 +23,8 @@ Thumbs.db
 !/docs/ENGINEERING_DISCIPLINE.md
 !/docs/后台保活与进程恢复.md
 !/docs/回归资产清单.md
+!/docs/rebuild/
+!/docs/rebuild/**
 
 # 贡献/安全/计划文档（项目代码不包含这些）
 CONTRIBUTING.md

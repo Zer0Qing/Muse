@@ -1,0 +1,32 @@
+{
+  "date": "2026-08-20",
+  "initialHead": "6cd909d",
+  "baselineCommit": "a9c0c0b",
+  "branch": "codex/overnight-rebuild-2026-08-20",
+  "workingTreeFilesBeforeBaseline": [
+    "app/src/main/java/io/zer0/muse/AppViewModelModule.kt",
+    "app/src/main/java/io/zer0/muse/ui/memory/MemoryGraphPreview.kt",
+    "app/src/main/java/io/zer0/muse/ui/memory/MemoryGraphViewModel.kt"
+  ],
+  "sourceVersion": {
+    "versionName": "1.0.78",
+    "versionCode": 178,
+    "MuseDb": 92,
+    "FactDb": 13
+  },
+  "testCounts": {
+    "app": 790,
+    "memory": 144,
+    "ai": 215,
+    "common": 30,
+    "accessibility": 3,
+    "core": 1149,
+    "all": 1182
+  },
+  "commands": [
+    ".\\gradlew.bat :app:compileDebugKotlin --no-daemon",
+    ".\\gradlew.bat :app:testDebugUnitTest :memory:testDebugUnitTest :ai:testDebugUnitTest --no-daemon"
+  ],
+  "compile": "PASS",
+  "tests": "PASS"
+}

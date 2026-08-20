@@ -1,0 +1,48 @@
+{
+  "date": "2026-08-20",
+  "branch": "codex/overnight-rebuild-2026-08-20",
+  "codeCommit": "2c5f6b2",
+  "versionName": "1.0.79",
+  "versionCode": 179,
+  "MuseDb": 95,
+  "FactDb": 13,
+  "apkSha256": "ab7b8d8494ecca915c8917736b9e191a4c900b477df5deb373aaa038ead3aae6",
+  "signingCertificateDn": "CN=Muse, OU=OpenSource, O=zer0, L=Shanghai, ST=Shanghai, C=CN",
+  "signingCertificateSha256": "e82f4ecde8304b7d78b530336a48e41a42b80c0ebac8af2d2c10448277644ebf",
+  "rollbackPlan": "关闭 ConversationRebuildFlagStore 开关；保留旧 messages/content/reasoning/toolCallInfoJson/seq/变体字段；数据库回退使用迁移前 .bak 恢复，不执行降级 destructive migration。",
+  "result": "LOCAL_RELEASE_CANDIDATE_BUILT",
+  "buildCommand": ".\\gradlew.bat assembleRelease \"-PversionName=1.0.79\" \"-PversionCode=179\" --no-daemon",
+  "apkArtifacts": {
+    "app-arm64-v8a-release.apk": {
+      "path": "E:\\1Project\\Muse\\1muse\\app\\build\\outputs\\apk\\release\\app-arm64-v8a-release.apk",
+      "bytes": 63869781,
+      "sha256": "ef80fcb513b863126c8ab291fc5d11631a579ece70cbacc3da882f0a4afbde99"
+    },
+    "app-armeabi-v7a-release.apk": {
+      "path": "E:\\1Project\\Muse\\1muse\\app\\build\\outputs\\apk\\release\\app-armeabi-v7a-release.apk",
+      "bytes": 52537867,
+      "sha256": "24fabcdeb9fe9e3a57615ff4f12e5f908ca4ccfd92891d9e3207af716379bee9"
+    },
+    "app-universal-release.apk": {
+      "path": "E:\\1Project\\Muse\\1muse\\app\\build\\outputs\\apk\\release\\app-universal-release.apk",
+      "bytes": 169276262,
+      "sha256": "ab7b8d8494ecca915c8917736b9e191a4c900b477df5deb373aaa038ead3aae6"
+    }
+  },
+  "signatureVerification": {
+    "apksigner": "36.0.0",
+    "scheme": "v2",
+    "verified": true,
+    "certificateDn": "CN=Muse, OU=OpenSource, O=zer0, L=Shanghai, ST=Shanghai, C=CN",
+    "certificateSha256": "e82f4ecde8304b7d78b530336a48e41a42b80c0ebac8af2d2c10448277644ebf"
+  },
+  "publish": "NOT_PERFORMED",
+  "deploy": "NOT_PERFORMED",
+  "deviceInstall": "NOT_PERFORMED",
+  "knownRisks": [
+    "detekt task remains red with 88 app and 36 memory findings, including pre-existing large-method/complexity findings and new long-method/style findings; no formatter was run.",
+    "No live provider/MCP/real-device long-session replay was run in this local session.",
+    "New conversation shadow flags are default-off; new commit path is gated and not enabled for ordinary users.",
+    "Older messages keep commitSeq=0 until an explicitly audited backfill; projection falls back to seq."
+  ]
+}

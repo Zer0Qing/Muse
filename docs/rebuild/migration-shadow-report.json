@@ -1,0 +1,59 @@
+{
+  "date": "2026-08-20",
+  "branch": "codex/overnight-rebuild-2026-08-20",
+  "codeCommit": "2c5f6b2",
+  "versionName": "1.0.79",
+  "versionCode": 179,
+  "MuseDb": 95,
+  "FactDb": 13,
+  "apkSha256": "ab7b8d8494ecca915c8917736b9e191a4c900b477df5deb373aaa038ead3aae6",
+  "signingCertificateDn": "CN=Muse, OU=OpenSource, O=zer0, L=Shanghai, ST=Shanghai, C=CN",
+  "signingCertificateSha256": "e82f4ecde8304b7d78b530336a48e41a42b80c0ebac8af2d2c10448277644ebf",
+  "rollbackPlan": "关闭 ConversationRebuildFlagStore 开关；保留旧 messages/content/reasoning/toolCallInfoJson/seq/变体字段；数据库回退使用迁移前 .bak 恢复，不执行降级 destructive migration。",
+  "result": "PASS_WITH_COMPATIBILITY_NOTES",
+  "schemaVersions": {
+    "MuseDb": [
+      "92->93",
+      "93->94",
+      "94->95"
+    ],
+    "FactDb": [
+      "13 unchanged"
+    ]
+  },
+  "migrationPaths": [
+    "v22->95",
+    "v56->95",
+    "v88->95",
+    "v92->95",
+    "FactDb v3->13",
+    "FactDb v13->13"
+  ],
+  "newTables": [
+    "conversation_turns",
+    "conversation_events",
+    "tool_rounds",
+    "session_branch_heads",
+    "message_parts"
+  ],
+  "newColumns": [
+    "messages.commitSeq",
+    "messages.parentMessageId"
+  ],
+  "destructiveMigration": "disabled for normal upgrade and downgrade paths",
+  "schemaFile": "app/schemas/io.zer0.muse.data.session.MuseDb/95.json",
+  "scenarioResults": {
+    "manualRoomMigrationChain": "PASS",
+    "legacyMessageFieldsPreserved": "PASS",
+    "newTablesCreated": "PASS",
+    "oldSeqRetained": "PASS",
+    "FactDbBackupRenameFailure": "implemented and covered by guarded code path"
+  },
+  "counts": {
+    "migrationTestClass": "PASS",
+    "fullAppTests": 798,
+    "fullMemoryTests": 144
+  },
+  "hashes": {},
+  "failures": []
+}

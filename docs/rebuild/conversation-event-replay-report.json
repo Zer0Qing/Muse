@@ -1,0 +1,32 @@
+{
+  "date": "2026-08-20",
+  "branch": "codex/overnight-rebuild-2026-08-20",
+  "codeCommit": "2c5f6b2",
+  "versionName": "1.0.79",
+  "versionCode": 179,
+  "MuseDb": 95,
+  "FactDb": 13,
+  "apkSha256": "ab7b8d8494ecca915c8917736b9e191a4c900b477df5deb373aaa038ead3aae6",
+  "signingCertificateDn": "CN=Muse, OU=OpenSource, O=zer0, L=Shanghai, ST=Shanghai, C=CN",
+  "signingCertificateSha256": "e82f4ecde8304b7d78b530336a48e41a42b80c0ebac8af2d2c10448277644ebf",
+  "rollbackPlan": "关闭 ConversationRebuildFlagStore 开关；保留旧 messages/content/reasoning/toolCallInfoJson/seq/变体字段；数据库回退使用迁移前 .bak 恢复，不执行降级 destructive migration。",
+  "result": "PASS_UNIT_AND_SHADOW_INTEGRATION",
+  "scenarioResults": {
+    "duplicateDeltaSequence": "PASS",
+    "lateDeltaAfterFinish": "PASS",
+    "streamingPlusFallbackNoAppend": "PASS",
+    "sensitivePayloadRedaction": "PASS",
+    "projectionRepeatability": "PASS",
+    "shadowAssistantStartedAndTurnFinishedHooks": "implemented_default_off",
+    "providerLiveReplay": "NOT_RUN_NO_LIVE_PROVIDER_SESSION"
+  },
+  "counts": {
+    "newConversationRewriteTests": 8,
+    "appTests": 798
+  },
+  "hashes": {
+    "projection": "SHA-256 over ordered id/role/content projection",
+    "eventPayload": "SHA-256 over redacted payload"
+  },
+  "failures": []
+}
