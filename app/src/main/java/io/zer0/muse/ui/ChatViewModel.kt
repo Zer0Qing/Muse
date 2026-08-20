@@ -4196,6 +4196,9 @@ class ChatViewModel(
                     )
                 }
                 sessionRepository.appendMessage(sessionId, finalMsg)
+                // v1.0.88 (S-4): 译文消息落盘后失效缓存 — 否则切走再切回命中旧快照,
+                // 译文消息不显示(缓存缺新消息)。
+                sessionMemoryCache.remove(sessionId)
             } catch (e: kotlinx.coroutines.CancellationException) {
                 // v1.80 (H-CVM1): 协程取消必须重抛,避免破坏 stop()/switchSession() 语义
                 throw e
@@ -5990,6 +5993,13 @@ class ChatViewModel(
                 if (msg.id == withArtifacts.id) withArtifacts else msg
             }
             conversationHistory.add(withArtifacts)
+            // v1.0.88 (S-3): 流式收尾完整性自检日志 — 记录最终 content 长度与角色,
+            // 若用户反馈"消息重叠/错乱"时可从日志快速判断是内容叠加还是排序问题。
+            Logger.i(
+                "ChatVM",
+                "finalize: msg=${withArtifacts.id.toString().take(8)} len=${withArtifacts.content.length} " +
+                    "reasoning=${withArtifacts.reasoning?.length ?: 0} variant=${withArtifacts.variantGroupId ?: "-"}",
+            )
             try {
                 sessionRepository.upsertMessage(sessionId, withArtifacts)
             } catch (e: Exception) {
@@ -7110,7 +7120,12 @@ class ChatViewModel(
      * (FavoritesScreen 点掉非当前会话的收藏)会因 target==null 直接 return,完全失效。
      * 改为:先查 currentSession messages,找不到再查 favoriteMessages(跨会话收藏列表)。
      */
-    fun toggleFavorite(messageId: Uuid) = miscCoordinator.toggleFavorite(messageId)
+    fun toggleFavorite(messageId: Uuid) {
+        // v1.0.88 (S-4): 收藏变更同步失效内存缓存 — 否则会话缓存里消息的
+        // favorite 状态陈旧(气泡收藏图标与收藏面板不一致)。
+        _state.value.currentSessionId?.let { sessionMemoryCache.remove(it) }
+        miscCoordinator.toggleFavorite(messageId)
+    }
 
     /** 功能1: 设置消息表情回应(null = 取消)。 */
     fun setReaction(messageId: Uuid, reaction: String?) {
