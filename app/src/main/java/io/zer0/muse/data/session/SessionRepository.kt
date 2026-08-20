@@ -674,7 +674,15 @@ class SessionRepository(
         // H-SESS1: 跨表(messages + FTS + sessions)用事务包裹,保证流式更新一致性
         withContext(Dispatchers.IO) {
             database.withTransaction {
-                val entity = message.toEntity(sessionId)
+                var entity = message.toEntity(sessionId)
+                // v1.0.85 (T-1): 同 id 更新保留首次 createdAt — REPLACE 语义会覆盖整行,
+                // 若流式/中断恢复/编辑的 UIMessage 用默认 createdAt(当前时间),
+                // 会把消息时序刷到"现在",导致排序错乱(早消息跑到会话末尾)。
+                // 查询旧行,存在且 createdAt 不同时保留旧值,维持原始时序。
+                val existing = messageDao.getById(sessionId, entity.id)
+                if (existing != null && existing.createdAt != entity.createdAt) {
+                    entity = entity.copy(createdAt = existing.createdAt)
+                }
                 messageDao.upsert(entity)
                 // Phase 10.3: 同步 FTS(删后插,避免重复索引项)
                 // v1.97 (P1-2): skipFts=true 时跳过,避免流式周期性落盘反复重建 FTS

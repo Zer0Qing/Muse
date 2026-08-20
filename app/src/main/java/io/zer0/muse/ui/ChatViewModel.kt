@@ -7139,7 +7139,17 @@ class ChatViewModel(
      *
      * 乐观更新 UI,失败时回滚并提示。
      */
-    fun deleteMessage(messageId: Uuid) = miscCoordinator.deleteMessage(messageId)
+    fun deleteMessage(messageId: Uuid) {
+        // v1.0.85 (T-2): 删除消息同步失效会话内存缓存 — 否则切走再切回时命中
+        // 删除前的旧快照,已删消息"复活"(用户反馈:删了重进还在)。
+        val sessionId = if (_state.value.isAgentMode) {
+            _state.value.agentSessionId
+        } else {
+            _state.value.currentSessionId
+        }
+        sessionId?.let { sessionMemoryCache.remove(it) }
+        miscCoordinator.deleteMessage(messageId)
+    }
 
     // ── B7-01: 消息多选批量操作 ──────────────────────────────────────────
 

@@ -151,10 +151,13 @@ data class ConversationTree(
 
         if (variant.assistantNodes.isEmpty()) {
             val groupId = "asg_" + Uuid.random()
+            // v1.0.85 (T-1): 重发新消息的 createdAt 用"用户消息+1ms"而非当前时间 —
+            // 此前用 System.currentTimeMillis(),重发后消息时序跳到末尾,
+            // ConversationTree 把它挂到最后一个用户消息下(第一句回复变最后一句)。
             val newMsg = UIMessage(
                 role = MessageRole.ASSISTANT,
                 content = "",
-                createdAt = System.currentTimeMillis(),
+                createdAt = userMsg.createdAt + 1,
                 variantGroupId = groupId,
                 variantIndex = 0,
                 variantCount = 1,
@@ -173,10 +176,13 @@ data class ConversationTree(
         val last = variant.assistantNodes.last()
         val newIndex = last.variants.size
         val newCount = newIndex + 1
+        // v1.0.85 (T-1): 新变体继承原组第一条消息的 createdAt(保持位置稳定),
+        // 而非当前时间 — 否则重发的回复时序跳到末尾、显示位置错乱。
+        val baseCreatedAt = last.variants.firstOrNull()?.createdAt ?: last.currentVariant?.createdAt ?: userMsg.createdAt
         val newMsg = UIMessage(
             role = MessageRole.ASSISTANT,
             content = "",
-            createdAt = System.currentTimeMillis(),
+            createdAt = baseCreatedAt + newIndex,
             variantGroupId = last.groupId,
             variantIndex = newIndex,
             variantCount = newCount,
