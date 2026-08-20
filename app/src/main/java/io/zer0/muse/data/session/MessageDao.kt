@@ -29,7 +29,7 @@ data class MessageSearchJoin(
 interface MessageDao {
 
     /** 观察指定会话的全部消息(按 createdAt 升序)。备份导出用,需全量加载。 */
-    @Query("SELECT * FROM messages WHERE sessionId = :sessionId ORDER BY createdAt ASC")
+    @Query("SELECT * FROM messages WHERE sessionId = :sessionId ORDER BY createdAt ASC, rowid ASC")
     fun observeBySession(sessionId: String): Flow<List<MessageEntity>>
 
     /**
@@ -40,7 +40,7 @@ interface MessageDao {
      * 更早的历史由 [getOlderBySession] 分页加载。limit 由调用方传入
      * (如 [SessionRepository.OBSERVE_LIMIT])。
      */
-    @Query("SELECT * FROM (SELECT * FROM messages WHERE sessionId = :sessionId ORDER BY createdAt DESC LIMIT :limit) ORDER BY createdAt ASC")
+    @Query("SELECT * FROM (SELECT *, rowid AS _rid FROM messages WHERE sessionId = :sessionId ORDER BY createdAt DESC, rowid DESC LIMIT :limit) ORDER BY createdAt ASC, _rid ASC")
     fun observeRecentBySession(sessionId: String, limit: Int): Flow<List<MessageEntity>>
 
     /**
@@ -49,7 +49,7 @@ interface MessageDao {
      * 用于初始加载时分页:只取最近 PAGE_SIZE 条,避免一次性加载全部导致卡顿/OOM。
      * 返回顺序为降序(最新在前),调用方需自行 reversed()。
      */
-    @Query("SELECT * FROM messages WHERE sessionId = :sessionId ORDER BY createdAt DESC LIMIT :limit")
+    @Query("SELECT * FROM messages WHERE sessionId = :sessionId ORDER BY createdAt DESC, rowid DESC LIMIT :limit")
     suspend fun getRecentBySession(sessionId: String, limit: Int): List<MessageEntity>
 
     /**
@@ -58,7 +58,7 @@ interface MessageDao {
      * 用于上滑加载更多:以当前列表最早一条消息的 createdAt 为锚点,取更早的历史。
      * 返回顺序为降序(最新在前),调用方需自行 reversed()。
      */
-    @Query("SELECT * FROM messages WHERE sessionId = :sessionId AND createdAt < :beforeCreatedAt ORDER BY createdAt DESC LIMIT :limit")
+    @Query("SELECT * FROM messages WHERE sessionId = :sessionId AND createdAt < :beforeCreatedAt ORDER BY createdAt DESC, rowid DESC LIMIT :limit")
     suspend fun getOlderBySession(sessionId: String, beforeCreatedAt: Long, limit: Int): List<MessageEntity>
 
     /** v1.53-A1: 会话消息总数(分页判断 hasMoreHistory 用)。 */
@@ -66,7 +66,7 @@ interface MessageDao {
     suspend fun countBySession(sessionId: String): Int
 
     /** v1.58: 查询会话中到指定时间戳为止(含)的全部消息(升序),用于对话分叉 Fork。 */
-    @Query("SELECT * FROM messages WHERE sessionId = :sessionId AND createdAt <= :untilCreatedAt ORDER BY createdAt ASC")
+    @Query("SELECT * FROM messages WHERE sessionId = :sessionId AND createdAt <= :untilCreatedAt ORDER BY createdAt ASC, rowid ASC")
     suspend fun getUpToBySession(sessionId: String, untilCreatedAt: Long): List<MessageEntity>
 
     /** 插入消息(冲突时替换,支持流式更新 assistant 消息)。 */
@@ -77,7 +77,7 @@ interface MessageDao {
      * v1.0.72: 取指定时间之后(含)的用户消息(升序,限量)。
      * 今日总结 Worker 用:汇总当天用户说了什么,作为 LLM 生成素材。
      */
-    @Query("SELECT * FROM messages WHERE role = 'USER' AND createdAt >= :fromCreatedAt ORDER BY createdAt ASC LIMIT :limit")
+    @Query("SELECT * FROM messages WHERE role = 'USER' AND createdAt >= :fromCreatedAt ORDER BY createdAt ASC, rowid ASC LIMIT :limit")
     suspend fun getUserMessagesSince(fromCreatedAt: Long, limit: Int): List<MessageEntity>
 
     /** 批量插入。 */

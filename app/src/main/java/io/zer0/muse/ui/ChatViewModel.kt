@@ -2880,6 +2880,10 @@ class ChatViewModel(
                     return true
                 }
                 _messages.value = emptyList()
+                // v1.0.85 (T-3): 重置上下文后必须失效缓存 — 否则切走时会把空列表
+                // put 进 sessionMemoryCache,切回命中空缓存导致"会话内容空了"
+                // (DB 数据还在,但缓存被空快照污染)。
+                sessionId?.let { sessionMemoryCache.remove(it) }
                 MuseToast.show(appContext.getString(R.string.slash_command_reset_done))
             }
             SlashCommand.PIN -> {
@@ -3339,8 +3343,12 @@ class ChatViewModel(
         // C3: 记录最近浏览历史(会话列表"最近浏览"横滑快速找回,误退可寻回)
         viewModelScope.launch { settings.recordSessionViewed(sessionId) }
         // v1.93+: 切换前把当前会话消息快照存入 LRU 缓存,切回时可直接命中避免 DB 查询。
-        // v1.0.44: 如果有变体分支则不缓存，强制从 DB 加载完整变体列表
-        if (currentSession != null && _conversationTree.value.userNodes.none { it.variants.size > 1 || it.currentVariant?.assistantNodes?.any { a -> a.variants.size > 1 } == true }) {
+        // v1.0.44: 如果有变体分支则不缓存,强制从 DB 加载完整变体列表
+        // v1.0.85 (T-3): 空消息列表不缓存 — /reset 清空内存后 _messages 为空,
+        // 若缓存空快照,切回时命中空缓存导致"会话内容空了"(DB 数据仍在)。
+        if (currentSession != null && _messages.value.isNotEmpty() &&
+            _conversationTree.value.userNodes.none { it.variants.size > 1 || it.currentVariant?.assistantNodes?.any { a -> a.variants.size > 1 } == true }
+        ) {
             sessionMemoryCache.put(currentSession, _messages.value)
         }
         viewModelScope.launch {
