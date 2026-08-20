@@ -363,6 +363,12 @@ class SessionRepository(
                 val entity = messageDao.getByMessageId(messageId)
                 syncFtsDelete(messageId)
                 messageDao.deleteById(messageId)
+                // v1.0.80 (M-1): 同步删除生成检查点 — 用户删除生成中断残留的消息后,
+                // 若检查点仍在 DB,重启时 recoverInterruptedGenerations 会把该消息
+                // "重建"复活(消息不存在且无更新消息时走重建分支)。删消息即删检查点,
+                // 从源头阻止删除的消息在重启后复活。
+                database.generationCheckpointDao().deleteByAssistantMessageId(messageId)
+                database.generationCheckpointDao().deleteByUserMessageId(messageId)
                 // v1.107 冗余: 递减 sessions.messageCount
                 if (entity != null) {
                     resultOf { sessionDao.incrementMessageCount(entity.sessionId, -1) }
@@ -607,6 +613,13 @@ class SessionRepository(
             for (cp in pending) {
                 try {
                     val existing = messageDao.getByMessageId(cp.assistantMessageId)
+                    // v1.0.80 (M-2): 消息已存在且内容完整(>= 检查点长度)时直接跳过,
+                    // 不再追加 [已中断] 标记。此前只要检查点 pending 就补标,
+                    // 已完成的消息在重启后会被误标 [已中断],造成"重进内容混乱"
+                    // (完整回复 + 多余中断标记)。
+                    if (existing != null && existing.content.length >= cp.content.length) {
+                        continue
+                    }
                     val marker = "[已中断]"
                     val base = when {
                         existing != null && existing.content.length >= cp.content.length -> existing.content
