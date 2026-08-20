@@ -29,6 +29,12 @@ internal class StreamRunState(
     val assistantId: Uuid,
     val isNewBranch: Boolean,
 ) {
+    /**
+     * F-12: 本轮生成的统一链路 id — 贯穿 LLM 请求/工具执行/记忆/错误日志与审计,
+     * 供 AuditLogPage 按 traceId 检索整条调用链。
+     */
+    val traceId: String = kotlin.uuid.Uuid.random().toString()
+
     // Phase A: prepareHistory
     var streamStartedAt: Long = 0L
     var sessionTitle: String = ""

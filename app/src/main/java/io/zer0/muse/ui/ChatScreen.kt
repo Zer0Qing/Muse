@@ -1716,7 +1716,9 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                     // v1.0.4 (P0): OCR 识别 / 工具调用恢复 也复用 ShimmerBubble,统一所有"短暂等待"反馈
                     // v1.0.20 (Task 3): isStreaming/isWaitingFirstToken/visionProgress 读派生值
                     val showShimmer = state.isOcrProcessing ||
-                        (isStreaming && isWaitingFirstToken)
+                        (isStreaming && isWaitingFirstToken) ||
+                        // F-13: 工具执行阶段显示"正在执行 X…"(非阻塞进度,与 F-07 联动)
+                        (isStreaming && state.toolProgressMessage != null)
                     if (showShimmer) {
                         // H-S5: 显式提供稳定 key
                         item(key = "shimmer") {

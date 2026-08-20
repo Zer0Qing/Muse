@@ -542,4 +542,7 @@
     <string name="chat_reaction_sad">悲しい</string>
     <string name="chat_reaction_angry">怒り</string>
     <string name="chat_reaction_clear">リアクションを消す</string>
+    <string name="tool_running">%1$s を実行中…</string>
+    <string name="chat_pending_queue_full">送信待ちキューがいっぱいです(最大 8 件)。先にクリアまたは送信してください</string>
+    <string name="chat_draft_save_failed">下書きの保存に失敗しました。入力内容が失われる可能性があります</string>
 </resources>

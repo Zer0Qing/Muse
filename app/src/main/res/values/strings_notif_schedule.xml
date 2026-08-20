@@ -109,4 +109,8 @@
     <string name="notif_auto_backup_failed_text">自动备份未完成,请检查云备份配置</string>
     <string name="notif_auto_backup_failed_write_text">写入云端失败,请检查网络与云备份配置</string>
     <string name="notif_auto_backup_failed_verify_text">备份写入成功但校验失败,数据可能不完整</string>
+    <string name="notif_permission_status_on">通知权限已开启</string>
+    <string name="notif_permission_status_off">通知权限未开启</string>
+    <string name="notif_permission_guide">开启后 Muse 才能推送消息完成提醒与备份通知</string>
+    <string name="notif_permission_open">去开启</string>
 </resources>

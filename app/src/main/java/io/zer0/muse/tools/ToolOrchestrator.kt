@@ -22,6 +22,7 @@ import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.data.audit.AuditLogger
 import io.zer0.muse.data.skill.SkillEntity
 import io.zer0.muse.data.skill.SkillRepository
+import io.zer0.muse.R
 import io.zer0.muse.ui.ChatErrorType
 import io.zer0.muse.ui.ToolCallRecord
 import io.zer0.muse.ui.chat.ChatStateAccessor
@@ -239,6 +240,8 @@ interface ToolLoopHost {
  */
 data class ToolLoopParams(
     val sessionId: String,
+    /** F-12: 统一链路 id(源自 StreamRunState.traceId),工具执行审计与日志携带。 */
+    val traceId: String = "",
     val initialAssistantId: Uuid,
     val baseHistorySize: Int,
     val maxRounds: Int,
@@ -321,6 +324,13 @@ class ToolOrchestrator(
     private companion object {
         const val TAG = "ToolOrchestrator"
 
+        /**
+         * F-12/B-28: 审计脱敏 — 移除文本中 URL 的 query 部分。
+         * 防止工具参数/结果里的 URL 携带 API key 等敏感参数被写入审计收据。
+         * 仅保留协议+主机+路径;query/fragment 一律丢弃。
+         */
+        private val URL_QUERY_SANITIZER = Regex("""(https?://[^\s"'\]\}]+)(\?[^\s"'\]\}]*)?(#\S*)?""")
+
         /** v1.x: 浏览器工具名(按会话路由到独立 BrowserManager)。 */
         private val BROWSER_TOOL_NAMES = setOf(
             BrowserAutomationTool.TOOL_NAVIGATE,
@@ -331,6 +341,13 @@ class ToolOrchestrator(
             BrowserAutomationTool.TOOL_GET_HTML,
         )
     }
+
+    /**
+     * F-12/B-28: 对文本内所有 URL 去掉 query/fragment(见 [URL_QUERY_SANITIZER])。
+     * 非 URL 文本原样返回。
+     */
+    private fun sanitizeUrlQuery(text: String): String =
+        URL_QUERY_SANITIZER.replace(text) { match -> match.groupValues[1] }
 
     /**
      * F-07: 工具执行状态机。
@@ -451,8 +468,8 @@ class ToolOrchestrator(
                 is StreamRoundResult.Error -> {
                     Logger.w(
                         TAG,
-                        "Agent Loop 因流式错误终止 | sessionId=${params.sessionId} | round=$round" +
-                            " | type=${outcome.type} | msg=${outcome.message}",
+                        "Agent Loop 因流式错误终止 | sessionId=${params.sessionId} | traceId=${params.traceId}" +
+                            " | round=$round | type=${outcome.type} | msg=${outcome.message}",
                     )
                     return ToolLoopResult(
                         finalAssistantId = currentAssistantId,
@@ -567,6 +584,11 @@ class ToolOrchestrator(
                     // 并行/串行执行工具调用
                     // v1.0.47 P6-2: 弱工具模型降级为串行执行,避免并行 tool_calls 导致格式错乱
                     val executeToolCall: suspend (Int, ToolCall) -> ToolExecResult = { idx, tc ->
+                        // F-13: 非阻塞进度 — 当前工具名进 toolProgressMessage(UI 显示),
+                        // 工具阶段结束(execResults 回填后)清除, 与 F-07 状态机联动
+                        accessor.update {
+                            it.copy(toolProgressMessage = context.getString(R.string.tool_running, tc.name))
+                        }
                         try {
                             executeSingleToolCall(params, taskCardId, tc, idx, host, taskCardCoordinator)
                         } catch (ce: kotlinx.coroutines.CancellationException) {
@@ -632,11 +654,13 @@ class ToolOrchestrator(
                                 sessionId = params.sessionId,
                                 round = round,
                                 toolName = tc.name,
-                                argumentsSummary = tc.arguments.take(200),
-                                resultSummary = finalToolResult.take(200),
+                                // F-12/B-28: 参数与结果摘要先脱敏 URL query,审计不记录 key 类敏感参数
+                                argumentsSummary = sanitizeUrlQuery(tc.arguments.take(200)),
+                                resultSummary = sanitizeUrlQuery(finalToolResult.take(200)),
                                 status = result.status.name,
                                 durationMs = result.durationMs,
                                 exposedToolIds = params.tools.joinToString(",") { it.name },
+                                traceId = params.traceId,
                             ),
                         )
                         auditLogger?.log(
@@ -645,6 +669,7 @@ class ToolOrchestrator(
                             target = tc.id,
                             detail = mapOf(
                                 "sessionId" to params.sessionId,
+                                "traceId" to params.traceId,
                                 "round" to round,
                                 "tool" to tc.name,
                                 "status" to result.status.name,
@@ -737,6 +762,8 @@ class ToolOrchestrator(
                         }
                     }
 
+                    // F-13: 工具阶段结束,清除"正在执行"进度(下一轮流式生成不残留)
+                    accessor.update { it.copy(toolProgressMessage = null) }
                     taskCardCoordinator.updateTaskCardPhase(taskCardId, TaskCardPhase.DONE)
 
                     // 同步 Agent 工作流计划到 UI

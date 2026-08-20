@@ -544,4 +544,7 @@
     <string name="chat_reaction_sad">难过</string>
     <string name="chat_reaction_angry">生气</string>
     <string name="chat_reaction_clear">清除回应</string>
+    <string name="tool_running">正在执行 %1$s…</string>
+    <string name="chat_pending_queue_full">待发送队列已满(最多 8 条),请先清空或发送</string>
+    <string name="chat_draft_save_failed">草稿保存失败,输入内容可能丢失</string>
 </resources>

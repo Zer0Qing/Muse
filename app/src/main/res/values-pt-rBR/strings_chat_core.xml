@@ -542,4 +542,7 @@
     <string name="chat_reaction_sad">Triste</string>
     <string name="chat_reaction_angry">Com raiva</string>
     <string name="chat_reaction_clear">Limpar reação</string>
+    <string name="tool_running">Executando %1$s…</string>
+    <string name="chat_pending_queue_full">Fila cheia (máx. 8). Esvazie ou envie primeiro.</string>
+    <string name="chat_draft_save_failed">Falha ao salvar rascunho. Seu texto pode ser perdido.</string>
 </resources>

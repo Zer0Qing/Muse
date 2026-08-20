@@ -101,4 +101,8 @@
     <string name="notif_auto_backup_failed_text">O backup automático não foi concluído. Verifique as configurações de backup na nuvem</string>
     <string name="notif_auto_backup_failed_write_text">Falha ao escrever na nuvem. Verifique a rede e a configuração de cópia.</string>
     <string name="notif_auto_backup_failed_verify_text">Cópia salva, mas a verificação falhou. Os dados podem estar incompletos.</string>
+    <string name="notif_permission_status_on">Permissão de notificação ativada</string>
+    <string name="notif_permission_status_off">Permissão de notificação desativada</string>
+    <string name="notif_permission_guide">Ative para receber notificações de mensagens e cópias</string>
+    <string name="notif_permission_open">Ativar</string>
 </resources>

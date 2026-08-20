@@ -542,4 +542,7 @@
     <string name="chat_reaction_sad">Грустно</string>
     <string name="chat_reaction_angry">Злой</string>
     <string name="chat_reaction_clear">Убрать реакцию</string>
+    <string name="tool_running">Выполняется %1$s…</string>
+    <string name="chat_pending_queue_full">Очередь заполнена (макс. 8). Сначала очистите или отправьте.</string>
+    <string name="chat_draft_save_failed">Не удалось сохранить черновик. Введённый текст может быть потерян.</string>
 </resources>

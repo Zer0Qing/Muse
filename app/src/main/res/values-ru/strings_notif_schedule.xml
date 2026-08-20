@@ -101,4 +101,8 @@
     <string name="notif_auto_backup_failed_text">Резервное копирование не завершено. Проверьте настройки облачного хранения</string>
     <string name="notif_auto_backup_failed_write_text">Не удалось записать в облако. Проверьте сеть и настройки резервного копирования.</string>
     <string name="notif_auto_backup_failed_verify_text">Копия сохранена, но проверка не удалась. Данные могут быть неполными.</string>
+    <string name="notif_permission_status_on">Разрешение на уведомления включено</string>
+    <string name="notif_permission_status_off">Разрешение на уведомления отключено</string>
+    <string name="notif_permission_guide">Включите, чтобы получать уведомления о сообщениях и резервных копиях</string>
+    <string name="notif_permission_open">Включить</string>
 </resources>

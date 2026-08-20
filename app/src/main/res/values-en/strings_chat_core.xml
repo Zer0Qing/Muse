@@ -545,4 +545,7 @@
     <string name="chat_reaction_sad">Sad</string>
     <string name="chat_reaction_angry">Angry</string>
     <string name="chat_reaction_clear">Clear reaction</string>
+    <string name="tool_running">Running %1$s…</string>
+    <string name="chat_pending_queue_full">Pending queue is full (max 8). Clear or send first.</string>
+    <string name="chat_draft_save_failed">Failed to save draft. Your input may be lost.</string>
 </resources>

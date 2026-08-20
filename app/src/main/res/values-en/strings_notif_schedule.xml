@@ -101,4 +101,8 @@
     <string name="notif_auto_backup_failed_text">Auto backup did not complete. Check your cloud backup settings</string>
     <string name="notif_auto_backup_failed_write_text">Failed to write to cloud. Check your network and backup config.</string>
     <string name="notif_auto_backup_failed_verify_text">Backup written but verification failed. Data may be incomplete.</string>
+    <string name="notif_permission_status_on">Notification permission enabled</string>
+    <string name="notif_permission_status_off">Notification permission disabled</string>
+    <string name="notif_permission_guide">Enable to receive message completion and backup notifications</string>
+    <string name="notif_permission_open">Enable</string>
 </resources>

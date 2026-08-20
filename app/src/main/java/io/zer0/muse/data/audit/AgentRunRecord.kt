@@ -24,5 +24,7 @@ data class AgentRunRecord(
     val durationMs: Long,
     /** F-11: 本轮 LLM 可见(暴露)的工具 id 集合(逗号分隔),工具暴露/执行快照证据。 */
     val exposedToolIds: String = "",
+    /** F-12: 统一链路 id(源自 StreamRunState.traceId),按 traceId 检索整条 Agent 调用链。 */
+    val traceId: String = "",
     val timestamp: Long = System.currentTimeMillis(),
 )

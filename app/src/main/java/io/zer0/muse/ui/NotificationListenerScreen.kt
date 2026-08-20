@@ -27,6 +27,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -119,6 +120,63 @@ fun NotificationListenerScreen(
                             refreshTick++
                         },
                     )
+                }
+            }
+        }
+
+        // ── F-15: 通知权限(Android 13+ POST_NOTIFICATIONS)状态与拒绝引导 ──
+        item(key = "notif_permission") {
+            CardGroup(modifier = Modifier.padding(horizontal = 16.dp)) {
+                item {
+                    val notifEnabled = androidx.core.app.NotificationManagerCompat.from(context)
+                        .areNotificationsEnabled()
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(MusePaddings.cardInner),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Icon(
+                            imageVector = if (notifEnabled) Icons.Filled.CheckCircle else Icons.Outlined.Warning,
+                            contentDescription = null,
+                            tint = if (notifEnabled) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.error
+                            },
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(
+                                    if (notifEnabled) R.string.notif_permission_status_on
+                                    else R.string.notif_permission_status_off,
+                                ),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                            if (!notifEnabled) {
+                                Text(
+                                    text = stringResource(R.string.notif_permission_guide),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                        // 未授权时提供"去开启"入口(跳系统应用通知设置)
+                        if (!notifEnabled) {
+                            TextButton(
+                                onClick = {
+                                    runCatching {
+                                        val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                                            .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                                        context.startActivity(intent)
+                                    }
+                                },
+                            ) {
+                                Text(stringResource(R.string.notif_permission_open))
+                            }
+                        }
+                    }
                 }
             }
         }

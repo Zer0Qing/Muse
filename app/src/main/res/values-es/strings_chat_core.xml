@@ -542,4 +542,7 @@
     <string name="chat_reaction_sad">Triste</string>
     <string name="chat_reaction_angry">Enojado</string>
     <string name="chat_reaction_clear">Borrar reacción</string>
+    <string name="tool_running">Ejecutando %1$s…</string>
+    <string name="chat_pending_queue_full">La cola está llena (máx. 8). Vacía o envía primero.</string>
+    <string name="chat_draft_save_failed">No se pudo guardar el borrador. Tu texto podría perderse.</string>
 </resources>

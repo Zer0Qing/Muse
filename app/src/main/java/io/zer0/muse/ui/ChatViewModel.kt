@@ -2211,7 +2211,13 @@ class ChatViewModel(
         val st = _state.value
         val text = st.input.trim()
         if (text.isBlank() && st.pendingImages.isEmpty()) return
-        if (st.sendQueue.size >= MAX_PENDING_SEND_QUEUE) return
+        if (st.sendQueue.size >= MAX_PENDING_SEND_QUEUE) {
+            // F-14: 队列满不再静默 — 一次性 toast 提示,用户可清空队列或直接发送
+            io.zer0.muse.ui.common.feedback.MuseToast.show(
+                appContext.getString(R.string.chat_pending_queue_full),
+            )
+            return
+        }
         _state.update {
             it.copy(
                 input = "",
@@ -3160,7 +3166,14 @@ class ChatViewModel(
         currentSession?.let { sessionManager.release(it) }
         viewModelScope.launch {
             if (currentSession != null && currentInput.isNotBlank()) {
-                settings.saveChatDraft(currentSession, currentInput)
+                // F-14: 草稿写入失败一次性提示(DataStore 异常不静默,防用户输入丢失无感知)
+                io.zer0.common.resultOf { settings.saveChatDraft(currentSession, currentInput) }
+                    .onError { msg, _ ->
+                        Logger.w("ChatVM", "saveChatDraft failed: $msg")
+                        io.zer0.muse.ui.common.feedback.MuseToast.show(
+                            appContext.getString(R.string.chat_draft_save_failed),
+                        )
+                    }
             }
             // v1.0.63: 新任务使用设置里的默认助手
             val currentAssistantId = settings.defaultAssistantIdFlow.first().ifBlank { "default" }
@@ -3315,10 +3328,33 @@ class ChatViewModel(
         }
         viewModelScope.launch {
             if (currentSession != null && currentInput.isNotBlank()) {
-                settings.saveChatDraft(currentSession, currentInput)
+                // F-14: 草稿写入失败一次性提示(DataStore 异常不静默,防用户输入丢失无感知)
+                io.zer0.common.resultOf { settings.saveChatDraft(currentSession, currentInput) }
+                    .onError { msg, _ ->
+                        Logger.w("ChatVM", "saveChatDraft failed: $msg")
+                        io.zer0.muse.ui.common.feedback.MuseToast.show(
+                            appContext.getString(R.string.chat_draft_save_failed),
+                        )
+                    }
             }
         }
         viewModelScope.launch {
+            // F-15: DeepLink 目标校验 — 会话不存在(已删除/通知点击过期深链)时
+            // 回退会话列表(清 currentSessionId),不进入空会话也不报错。
+            val exists = resultOf { sessionRepository.getSessionById(sessionId) }.getOrNull() != null
+            if (!exists) {
+                Logger.w("ChatVM", "switchSession 目标会话不存在,回退会话列表: $sessionId")
+                _state.update {
+                    it.copy(
+                        currentSessionId = null,
+                        isStreaming = false,
+                        isWaitingFirstToken = false,
+                        streamState = it.streamState.copy(phase = ChatStreamPhase.IDLE),
+                    )
+                }
+                _messages.value = emptyList()
+                return@launch
+            }
             // v1.97: 先读取后台生成状态,既用于恢复 isStreaming,也用于判断缓存是否可用。
             // 使用按 sessionId 的查询,不能只看 activeGeneration:多个会话并发生成时,
             // activeGeneration 只代表最近一个活跃会话,另一个会话仍可能在后台持续写入。
@@ -5798,6 +5834,8 @@ class ChatViewModel(
         val toolLoopResult = toolOrchestrator.runLoop(
             params = ToolLoopParams(
                 sessionId = sessionId,
+                // F-12: 统一链路 id(贯穿工具执行审计与日志)
+                traceId = state.traceId,
                 initialAssistantId = state.currentAssistantId,
                 baseHistorySize = baseHistorySize,
                 maxRounds = MAX_TOOL_ROUNDS,
