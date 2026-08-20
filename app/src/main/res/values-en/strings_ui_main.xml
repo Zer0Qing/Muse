@@ -383,7 +383,7 @@
     <string name="skill_import_cd">Import .skill.json</string>
     <string name="skill_intro">Skills are tools that the LLM can call. When enabled, the assistant can invoke them during conversations as needed; when disabled, they are not exposed to the model. Tap the import button in the top right to import a .skill.json file.</string>
     <string name="skill_no_skill_title">No skills yet</string>
-    <string name="skill_no_skill_subtitle">Tap + in the bottom right to import a skill file</string>
+    <string name="skill_no_skill_subtitle">Just tell the AI "create a XX skill for me", or tap + in the bottom right to import a skill file</string>
     <string name="skill_import_result">Import Result</string>
     <string name="skill_got_it">Got it</string>
     <string name="skill_importing">Importing</string>

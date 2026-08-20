@@ -917,6 +917,10 @@ class SystemPromptAssembler(
         sb.appendLine("- 用户问 Muse 功能时,调用 knowledge_search(include_internal=true) 查询内置文档,不要凭空编造。")
         sb.appendLine("- 文件只能访问应用沙盒 filesDir;涉及设备、通信、账号或不可逆变更时必须确认用户意图。")
         sb.appendLine("- 搜索网页先用 web_search;只有摘要不足且已有目标 URL 时再用 web_fetch。")
+        // v1.0.82 (S-1): 技能创建引导 — 用户想自定义工具/技能时,模型应主动用 install_skill 完成,
+        // 不要只给步骤。格式与白名单实现见 knowledge_search 的 skill_system_guide。
+        sb.appendLine("- 用户想自定义工具/技能时,主动提出并直接用 install_skill 帮他创建(格式见 knowledge_search 查 skill_system_guide),不要只给步骤让用户自己做。")
+        sb.appendLine("- 技能实现只能复用白名单基础能力(read_file/write_file/http/web/knowledge),这是安全设计,不要承诺任意代码执行。")
 
         val result = sb.toString().trimEnd()
         cachedToolManifest = result

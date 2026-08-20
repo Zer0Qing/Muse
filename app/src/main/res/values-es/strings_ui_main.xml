@@ -383,7 +383,7 @@
     <string name="skill_import_cd">Importar .skill.json</string>
     <string name="skill_intro">Las habilidades son herramientas a las que el LLM puede recurrir.</string>
     <string name="skill_no_skill_title">Aún no hay habilidades</string>
-    <string name="skill_no_skill_subtitle">Toca + en la parte inferior derecha para importar un archivo de habilidad</string>
+    <string name="skill_no_skill_subtitle">Dile a la IA "crea una habilidad XX para mí", o toca + en la parte inferior derecha para importar un archivo</string>
     <string name="skill_import_result">Importar resultado</string>
     <string name="skill_got_it">Entiendo</string>
     <string name="skill_importing">Importador</string>

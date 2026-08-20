@@ -467,7 +467,7 @@
     <string name="skill_import_cd">导入 .skill.json</string>
     <string name="skill_intro">Skill 是 LLM 可调用的工具。开启后,Assistant 在对话中可按需调用;关闭则不暴露给模型。点击右上角导入按钮可导入 .skill.json。</string>
     <string name="skill_no_skill_title">还没有 Skill</string>
-    <string name="skill_no_skill_subtitle">点右下角 + 导入 Skill 文件</string>
+    <string name="skill_no_skill_subtitle">直接对 AI 说"帮我创建一个 XX 技能",或点右下角 + 导入 Skill 文件</string>
     <string name="skill_import_result">导入结果</string>
     <string name="skill_got_it">知道了</string>
     <string name="skill_importing">正在导入</string>

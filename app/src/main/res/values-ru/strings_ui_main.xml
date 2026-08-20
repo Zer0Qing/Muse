@@ -383,7 +383,7 @@
     <string name="skill_import_cd">Импортировать .skill.json</string>
     <string name="skill_intro">Навыки — это инструменты, которые может вызывать LLM. Если включено, ассистент может вызывать их в разговоре по мере необходимости; если выключено, они не видны модели. Нажмите кнопку импорта в правом верхнем углу, чтобы импортировать файл .skill.json.</string>
     <string name="skill_no_skill_title">Навыков пока нет</string>
-    <string name="skill_no_skill_subtitle">Нажмите + в правом нижнем углу, чтобы импортировать файл навыка</string>
+    <string name="skill_no_skill_subtitle">Скажите ИИ «создай навык XX» или нажмите + в правом нижнем углу, чтобы импортировать файл навыка</string>
     <string name="skill_import_result">Результат импорта</string>
     <string name="skill_got_it">Понятно</string>
     <string name="skill_importing">Импорт</string>

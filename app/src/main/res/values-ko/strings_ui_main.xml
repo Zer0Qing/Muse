@@ -383,7 +383,7 @@
     <string name="skill_import_cd">.skill.json 가져오기</string>
     <string name="skill_intro">스킬은 LLM이 호출할 수 있는 도구입니다. 활성화하면 어시스턴트가 대화 중 필요할 때 호출하며, 비활성화하면 모델에 노출되지 않습니다. 우측 상단 가져오기 버튼으로 .skill.json을 불러올 수 있습니다.</string>
     <string name="skill_no_skill_title">아직 스킬이 없습니다</string>
-    <string name="skill_no_skill_subtitle">우측 하단 + 버튼으로 스킬 파일을 가져오세요</string>
+    <string name="skill_no_skill_subtitle">AI에게 "XX 스킬을 만들어줘"라고 말하거나 오른쪽 하단 +로 스킬 파일을 가져오세요</string>
     <string name="skill_import_result">가져오기 결과</string>
     <string name="skill_got_it">확인</string>
     <string name="skill_importing">가져오는 중</string>

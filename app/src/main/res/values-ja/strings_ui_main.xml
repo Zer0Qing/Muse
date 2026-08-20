@@ -383,7 +383,7 @@
     <string name="skill_import_cd">.skill.json をインポート</string>
     <string name="skill_intro">スキルは、LLM が呼び出すことができるツールです。</string>
     <string name="skill_no_skill_title">スキルがまだありません</string>
-    <string name="skill_no_skill_subtitle">右下の+をタップしてスキルファイルをインポートします</string>
+    <string name="skill_no_skill_subtitle">AIに「〇〇スキルを作って」と伝えるか、右下の+からスキルファイルをインポートします</string>
     <string name="skill_import_result">インポート結果</string>
     <string name="skill_got_it">わかった</string>
     <string name="skill_importing">インポート中</string>
