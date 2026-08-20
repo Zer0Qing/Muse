@@ -122,8 +122,10 @@ class EmailCrashReporter(
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         // 用 createChooser 让用户选择邮件应用,失败时安静降级(不抛异常避免二次崩溃)
+        // 注意: createChooser 返回新 Intent,原始 intent 上的 NEW_TASK 不会自动传递,
+        // 统一走 ShareIntentHelper 在非 Activity context 下补 flag,避免崩溃。
         resultOf {
-            context.startActivity(Intent.createChooser(intent, "选择邮件应用发送崩溃报告"))
+            io.zer0.muse.util.ShareIntentHelper.startChooserSafely(context, intent, "选择邮件应用发送崩溃报告")
         }.onError { msg, t ->
             Logger.w(TAG, "调起邮件应用失败: ${t?.message ?: msg}")
         }

@@ -1,6 +1,7 @@
 package io.zer0.muse.ui
 
 import android.content.Intent
+import io.zer0.muse.util.ShareIntentHelper
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -351,13 +352,13 @@ fun HomeScreen(
                     onViewRelease = { url ->
                         val intent = UpdateNotifier.buildViewReleaseIntent(url)
                         runCatching {
-                            context.startActivity(Intent.createChooser(intent, null))
+                            ShareIntentHelper.startChooserSafely(context, intent)
                         }.onFailure { Logger.w("HomeScreen", "startActivity failed: ${it.message}") }
                     },
                     onDownloadApk = { url ->
                         val intent = UpdateNotifier.buildDownloadApkIntent(url)
                         runCatching {
-                            context.startActivity(Intent.createChooser(intent, null))
+                            ShareIntentHelper.startChooserSafely(context, intent)
                         }.onFailure { Logger.w("HomeScreen", "startActivity failed: ${it.message}") }
                     },
                 )

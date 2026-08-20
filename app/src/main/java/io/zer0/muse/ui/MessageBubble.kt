@@ -1,6 +1,7 @@
 package io.zer0.muse.ui
 
 import androidx.compose.ui.layout.boundsInWindow
+import io.zer0.muse.util.ShareIntentHelper
 import androidx.compose.ui.layout.onGloballyPositioned
 import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
@@ -1216,7 +1217,7 @@ internal fun MessageBubble(
                                 type = "text/plain"
                                 putExtra(Intent.EXTRA_TEXT, msg.content)
                             }
-                            context.startActivity(Intent.createChooser(sendIntent, null))
+                            ShareIntentHelper.startChooserSafely(context, sendIntent)
                         }
                     },
                     contentDescription = stringResource(R.string.action_share),

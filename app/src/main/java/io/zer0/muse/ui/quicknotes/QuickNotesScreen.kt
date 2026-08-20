@@ -3,6 +3,7 @@
 package io.zer0.muse.ui.quicknotes
 
 import android.content.Intent
+import io.zer0.muse.util.ShareIntentHelper
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -229,7 +230,7 @@ fun QuickNotesScreen(
             putExtra(Intent.EXTRA_TITLE, context.getString(R.string.quick_notes_share_title))
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        context.startActivity(Intent.createChooser(intent, context.getString(R.string.quick_notes_export)))
+        ShareIntentHelper.startChooserSafely(context, intent, context.getString(R.string.quick_notes_export))
     }
 
     fun exportMarkdown() {

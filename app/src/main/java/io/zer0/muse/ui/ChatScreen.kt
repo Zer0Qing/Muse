@@ -1,6 +1,7 @@
 package io.zer0.muse.ui
 
 import android.Manifest
+import io.zer0.muse.util.ShareIntentHelper
 import android.content.pm.PackageManager
 import android.view.KeyEvent
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -1264,7 +1265,7 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                                 type = "text/plain"
                                 putExtra(android.content.Intent.EXTRA_TEXT, selectedText)
                             }
-                            context.startActivity(android.content.Intent.createChooser(sendIntent, null))
+                            ShareIntentHelper.startChooserSafely(context, sendIntent)
                         }
                     },
                     onExit = { viewModel.setSelectionMode(false) },

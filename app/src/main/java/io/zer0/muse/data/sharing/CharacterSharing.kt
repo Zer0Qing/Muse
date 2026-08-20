@@ -1,6 +1,7 @@
 package io.zer0.muse.data.sharing
 
 import android.content.Context
+import io.zer0.muse.util.ShareIntentHelper
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -137,7 +138,7 @@ object CharacterSharer {
             putExtra(Intent.EXTRA_STREAM, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        context.startActivity(Intent.createChooser(intent, "Share Character"))
+        ShareIntentHelper.startChooserSafely(context, intent, "Share Character")
     }
 
     /**
@@ -156,7 +157,7 @@ object CharacterSharer {
             putExtra(Intent.EXTRA_STREAM, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        context.startActivity(Intent.createChooser(intent, "Share Character JSON"))
+        ShareIntentHelper.startChooserSafely(context, intent, "Share Character JSON")
     }
 }
 

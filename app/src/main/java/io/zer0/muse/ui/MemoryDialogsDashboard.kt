@@ -5,6 +5,7 @@
 package io.zer0.muse.ui
 
 import kotlinx.serialization.json.JsonArray
+import io.zer0.muse.util.ShareIntentHelper
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import androidx.compose.animation.AnimatedVisibility
@@ -965,6 +966,6 @@ internal object MemoryExportHelpers {
             putExtra(android.content.Intent.EXTRA_TEXT, text)
             putExtra(android.content.Intent.EXTRA_SUBJECT, fileName)
         }
-        context.startActivity(android.content.Intent.createChooser(intent, "Share Memory Export"))
+        ShareIntentHelper.startChooserSafely(context, intent, "Share Memory Export")
     }
 }

@@ -1,6 +1,7 @@
 package io.zer0.muse.ui.settings
 
 import android.content.ClipData
+import io.zer0.muse.util.ShareIntentHelper
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
@@ -895,8 +896,13 @@ private fun sendFeedback(context: Context, versionName: String) {
         putExtra(Intent.EXTRA_TEXT, deviceInfo)
     }
     val chooser = Intent.createChooser(intent, context.getString(R.string.settings_feedback_chooser_title))
+    // 崩溃修复: 非 Activity context 需 NEW_TASK,统一走安全方法
     runCatching {
-        context.startActivity(chooser)
+        io.zer0.muse.util.ShareIntentHelper.startChooserSafely(
+            context,
+            intent,
+            context.getString(R.string.settings_feedback_chooser_title),
+        )
     }.onFailure {
         // 无邮件应用:fallback 到剪贴板
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager

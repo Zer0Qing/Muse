@@ -3,6 +3,7 @@
 package io.zer0.muse.ui.groupchat
 
 import android.content.Intent
+import io.zer0.muse.util.ShareIntentHelper
 import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -570,7 +571,7 @@ fun GroupChatDetailScreen(
                                     type = "text/plain"
                                     putExtra(android.content.Intent.EXTRA_TEXT, selectedText)
                                 }
-                                context.startActivity(android.content.Intent.createChooser(sendIntent, null))
+                                ShareIntentHelper.startChooserSafely(context, sendIntent)
                             }
                         },
                         onExit = { viewModel.clearSelection() },
