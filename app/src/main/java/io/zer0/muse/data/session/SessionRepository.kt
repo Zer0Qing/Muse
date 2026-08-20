@@ -134,11 +134,8 @@ class SessionRepository(
                 sessionDao.softDelete(id, now)
                 database.messageOutboxDao().deleteBySession(id)
                 database.generationCheckpointDao().deleteBySession(id)
-                database.conversationEventDao().deleteBySession(id)
-                database.conversationTurnDao().deleteBySession(id)
-                database.toolRoundDao().deleteBySession(id)
-                database.messagePartDao().deleteBySession(id)
-                database.sessionBranchHeadDao().deleteBySession(id)
+                // 事件、回合、parts 和分支头属于可审计/可恢复数据，软删除时保留；
+                // 恢复入口会再次检查 deletedAt，只有硬删除事务才由 FK 级联清理。
             }
         }
         auditLogger?.log(
@@ -806,6 +803,12 @@ class SessionRepository(
                 }
             for (cp in pending) {
                 try {
+                    val session = sessionDao.getById(cp.sessionId)
+                    if (session == null || session.deletedAt != null) {
+                        // 软删除会话禁止恢复写入；清理残留 checkpoint 但不动历史消息。
+                        database.generationCheckpointDao().deleteByAssistantMessageId(cp.assistantMessageId)
+                        continue
+                    }
                     val existing = messageDao.getByMessageId(cp.assistantMessageId)
                     // v1.0.80 (M-2): 消息已存在且内容完整(>= 检查点长度)时直接跳过,
                     // 不再追加 [已中断] 标记。此前只要检查点 pending 就补标,
