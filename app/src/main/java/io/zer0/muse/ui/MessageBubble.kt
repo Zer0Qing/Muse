@@ -1194,12 +1194,17 @@ internal fun MessageBubble(
                     size = MuseIconSizes.touchTarget,
                     iconSize = MuseIconSizes.iconSmall,
                 )
-                // 翻译(弹语言子菜单)
+                // 翻译(直接弹语言子菜单)
                 MuseTactileButton(
                     icon = Icons.Outlined.Language,
                     onClick = {
                         MuseHaptics.light(hapticFeedback)
+                        // v1.0.88 (R-1): 直接进入语言子菜单 — 此前只设 showActionMenu=true,
+                        // 会先弹精简长按面板(TelegramActionCard),用户得再点"更多"才看到语言列表,
+                        // 表现为"点快捷翻译出现长按菜单"。补 showExtendedMenu=true 跳过精简面板,
+                        // 直达完整菜单的语言子菜单。
                         showActionMenu = true
+                        showExtendedMenu = true
                         showLanguageSubmenu = true
                     },
                     contentDescription = stringResource(R.string.action_translate),

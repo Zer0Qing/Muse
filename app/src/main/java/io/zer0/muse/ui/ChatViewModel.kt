@@ -5799,6 +5799,14 @@ class ChatViewModel(
                         thinkingSignature = finalizedAssistant?.thinkingSignature ?: thinkingSignature,
                         thinkingEncryptedContent = finalizedAssistant?.thinkingEncryptedContent ?: thinkingEncryptedContent,
                         imageBase64List = finalizedAssistant?.imageBase64List ?: emptyList(),
+                        // v1.0.88 (R-2): 变体身份字段必须完整保留 — 此前工具轮构建的
+                        // assistantMessage 丢失 variantGroupId/variantIndex/variantCount/parentGroupId,
+                        // 重试(变体)+工具调用后落盘,重进会话树重建时消息挂错位置,
+                        // 表现为"消息重叠/第一句回复变最后一句"。
+                        variantGroupId = finalizedAssistant?.variantGroupId,
+                        variantIndex = finalizedAssistant?.variantIndex ?: 0,
+                        variantCount = finalizedAssistant?.variantCount ?: 1,
+                        parentGroupId = finalizedAssistant?.parentGroupId,
                         toolCalls = toolCallAccumulator.toSortedMap().map { (idx, triple) ->
                             ToolCall(
                                 id = triple.first ?: "call_${System.currentTimeMillis()}_${idx}",

@@ -680,8 +680,22 @@ class SessionRepository(
                 // 会把消息时序刷到"现在",导致排序错乱(早消息跑到会话末尾)。
                 // 查询旧行,存在且 createdAt 不同时保留旧值,维持原始时序。
                 val existing = messageDao.getById(sessionId, entity.id)
-                if (existing != null && existing.createdAt != entity.createdAt) {
-                    entity = entity.copy(createdAt = existing.createdAt)
+                if (existing != null) {
+                    if (existing.createdAt != entity.createdAt) {
+                        entity = entity.copy(createdAt = existing.createdAt)
+                    }
+                    // v1.0.88 (R-2): 变体身份字段兜底 — 工具轮/中断恢复/周期性落盘构建的
+                    // UIMessage 常丢 variantGroupId 等字段,REPLACE 覆盖后变体身份丢失,
+                    // 重进会话树重建时消息挂错位置(重叠/错位)。新值缺失时用旧行兜底;
+                    // 新变体(variantGroupId 非空)不受影响。
+                    if (entity.variantGroupId == null && existing.variantGroupId != null) {
+                        entity = entity.copy(
+                            variantGroupId = existing.variantGroupId,
+                            variantIndex = existing.variantIndex,
+                            variantCount = existing.variantCount,
+                            parentGroupId = existing.parentGroupId,
+                        )
+                    }
                 }
                 messageDao.upsert(entity)
                 // Phase 10.3: 同步 FTS(删后插,避免重复索引项)
