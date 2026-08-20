@@ -166,12 +166,21 @@ fun MemoryScreen(
                             contentDescription = stringResource(R.string.memory_stats_export_title),
                         )
                     }
-                    // v1.x: 手动合并重复记忆
-                    IconButton(onClick = { viewModel.dedupNow() }) {
-                        Icon(
-                            imageVector = compose.icons.TablerIcons.GitMerge,
-                            contentDescription = stringResource(R.string.memory_dedup_button),
-                        )                    }
+                    // v1.0.90: 手动整理/合并重复记忆
+                    val dedupRunning by viewModel.dedupState.collectAsStateWithLifecycle()
+                    IconButton(
+                        onClick = { viewModel.dedupNow() },
+                        enabled = !dedupRunning,
+                    ) {
+                        if (dedupRunning) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                        } else {
+                            Icon(
+                                imageVector = compose.icons.TablerIcons.GitMerge,
+                                contentDescription = stringResource(R.string.memory_dedup_button),
+                            )
+                        }
+                    }
                 },
             )
         },
@@ -269,16 +278,22 @@ fun MemoryScreen(
                 // v1.0.51: 当下/短期/长期 Tab — 直接展示编译产物,支持编辑
                 if (selectedMemoryTab != 3 && selectedMemoryTab != 5) {
                     // 立即编译按钮(Tab 0-2 共用)
+                    val compiling by viewModel.compilingState.collectAsStateWithLifecycle()
                     OutlinedButton(
                         onClick = { viewModel.compileNow() },
+                        enabled = !compiling,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = MusePaddings.screen),
                         shape = MuseShapes.large,
                     ) {
-                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                        if (compiling) {
+                            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        } else {
+                            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                        }
                         Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.memory_screen_compile_now))
+                        Text(if (compiling) stringResource(R.string.memory_compile_running) else stringResource(R.string.memory_screen_compile_now))
                     }
 
                     LazyColumn(
@@ -422,7 +437,7 @@ fun MemoryScreen(
                     return@Column
                 }
 
-                // 记忆星座:接入真实 memory_links 和 facts 数据。
+                // 记忆树:接入真实 memory_links 和 facts 数据。
                 if (selectedMemoryTab == 5) {
                     val graphViewModel: io.zer0.muse.ui.memory.MemoryGraphViewModel = koinViewModel()
                     val graphState by graphViewModel.state.collectAsStateWithLifecycle()
@@ -613,14 +628,20 @@ fun MemoryScreen(
                                     Spacer(Modifier.width(8.dp))
                                     Text(stringResource(R.string.memory_add_fact))
                                 }
+                                val compiling by viewModel.compilingState.collectAsStateWithLifecycle()
                                 OutlinedButton(
                                     onClick = { viewModel.compileNow() },
+                                    enabled = !compiling,
                                     modifier = Modifier.weight(1f),
                                     shape = MuseShapes.large,
                                 ) {
-                                    Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.memory_screen_compile_now_cd), modifier = Modifier.size(18.dp))
+                                    if (compiling) {
+                                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                                    } else {
+                                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.memory_screen_compile_now_cd), modifier = Modifier.size(18.dp))
+                                    }
                                     Spacer(Modifier.width(8.dp))
-                                    Text(stringResource(R.string.memory_screen_compile_now))
+                                    Text(if (compiling) stringResource(R.string.memory_compile_running) else stringResource(R.string.memory_screen_compile_now))
                                 }
                             }
                         }

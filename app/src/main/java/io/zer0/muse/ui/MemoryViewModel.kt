@@ -245,6 +245,13 @@ class MemoryViewModel(
     private var _dedupRunning = false
     /** v1.x: 立即编译防重入(编译耗 LLM 调用,避免连点重复执行)。 */
     private var _compiling = false
+    /** v1.0.90: 编译进行中状态,供记忆页显示明确反馈。 */
+    private val _compilingState = MutableStateFlow(false)
+    val compilingState: StateFlow<Boolean> = _compilingState.asStateFlow()
+
+    /** v1.0.90: 去重进行中状态,供记忆页禁用按钮并显示反馈。 */
+    private val _dedupState = MutableStateFlow(false)
+    val dedupState: StateFlow<Boolean> = _dedupState.asStateFlow()
 
     /**
      * v8: 可选的作用域列表(响应式)。
@@ -394,6 +401,7 @@ class MemoryViewModel(
     fun compileNow() {
         if (_compiling) return
         _compiling = true
+        _compilingState.value = true
         viewModelScope.launch {
             val success = withContext(Dispatchers.IO) {
                 // v1.78 (H6): 包装 suspend 调用必须用 resultOf,避免吞 CancellationException
@@ -407,6 +415,7 @@ class MemoryViewModel(
                 llmMergeDuplicates()
             }
             _compiling = false
+            _compilingState.value = false
             // v1.x: 编译结果反馈(成功/失败),避免"点了没反应"
             _compileResult.value = if (success) "done" else "failed"
             // 编译完成后静默刷新:不触发 isLoading,避免替换当前视图(时间轴/列表)导致闪屏
@@ -494,6 +503,7 @@ class MemoryViewModel(
     fun dedupNow() {
         if (_dedupRunning) return
         _dedupRunning = true
+        _dedupState.value = true
         viewModelScope.launch {
             val merged = withContext(Dispatchers.IO) {
                 resultOf { factStore.dedupPass(scope = _selectedScope.value ?: "main", spaceId = _selectedSpaceId.value) }
@@ -501,6 +511,7 @@ class MemoryViewModel(
                     .getOrNull()
             }
             _dedupRunning = false
+            _dedupState.value = false
             _dedupResult.value = if (merged != null) "merged:$merged" else "failed"
             loadAll(silent = true)
         }

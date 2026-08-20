@@ -102,8 +102,8 @@
     <string name="memory_timeline_filter_summary">摘要</string>
     <string name="memory_timeline_filter_milestone">里程碑</string>
     <string name="memory_tab_group_chat">Chat em grupo</string>
-    <string name="memory_tab_graph">Constelação de memórias</string>
-    <string name="memory_graph_preview_title">Constelação de memórias</string>
+    <string name="memory_tab_graph">Árvore de memórias</string>
+    <string name="memory_graph_preview_title">Árvore de memórias</string>
     <string name="memory_graph_preview_hint">Toque em uma memória para ver suas conexões</string>
     <string name="memory_graph_preview_selected">Em foco: %1$s</string>
     <string name="memory_graph_preview_node_muse">Muse</string>

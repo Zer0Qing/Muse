@@ -102,8 +102,8 @@
     <string name="memory_timeline_filter_summary">摘要</string>
     <string name="memory_timeline_filter_milestone">里程碑</string>
     <string name="memory_tab_group_chat">グループチャット</string>
-    <string name="memory_tab_graph">記憶の星座</string>
-    <string name="memory_graph_preview_title">記憶の星座</string>
+    <string name="memory_tab_graph">記憶の木</string>
+    <string name="memory_graph_preview_title">記憶の木</string>
     <string name="memory_graph_preview_hint">記憶をタップすると関連項目を表示します</string>
     <string name="memory_graph_preview_selected">フォーカス中: %1$s</string>
     <string name="memory_graph_preview_node_muse">Muse</string>

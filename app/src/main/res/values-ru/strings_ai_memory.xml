@@ -102,8 +102,8 @@
     <string name="memory_timeline_filter_summary">摘要</string>
     <string name="memory_timeline_filter_milestone">里程碑</string>
     <string name="memory_tab_group_chat">Групповой чат</string>
-    <string name="memory_tab_graph">Созвездие памяти</string>
-    <string name="memory_graph_preview_title">Созвездие памяти</string>
+    <string name="memory_tab_graph">Дерево памяти</string>
+    <string name="memory_graph_preview_title">Дерево памяти</string>
     <string name="memory_graph_preview_hint">Нажмите на воспоминание, чтобы увидеть связи</string>
     <string name="memory_graph_preview_selected">В фокусе: %1$s</string>
     <string name="memory_graph_preview_node_muse">Muse</string>
