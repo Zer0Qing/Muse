@@ -61,4 +61,19 @@ fun buildCommitParts(message: UIMessage, createdAt: Long): List<MessagePartEntit
             ),
         )
     }
+    message.toolCallInfo?.let { info ->
+        add(
+            MessagePartEntity(
+                messageId = message.id.toString(),
+                partIndex = size,
+                kind = "tool",
+                text = "",
+                metadataJson = io.zer0.common.AppJson.encodeToString(
+                    io.zer0.ai.core.ToolCallInfo.serializer(),
+                    info,
+                ),
+                createdAt = createdAt,
+            ),
+        )
+    }
 }
