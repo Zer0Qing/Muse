@@ -5463,12 +5463,15 @@ class ChatViewModel(
                             if (streamToUi) {
                                 // v1.0.4: 自适应切片路径 — delta 先累积到 pendingBuilder,
                                 // 50ms 节流触发时按 computeAdaptiveSlice() 取前 N 字符输出,实现平滑流入。
-                                if (lastChunkAt != 0L) {
-                                    chunkIntervals.addLast(now - lastChunkAt)
-                                    if (chunkIntervals.size > STREAM_SLIDE_WINDOW) chunkIntervals.removeFirst()
-                                }
-                                lastChunkAt = now
+                                // chunkIntervals 的读写必须与 computeAdaptiveSlice 同锁：
+                                // pendingFlushJob 协程在 mutex 内遍历它算平均间隔，
+                                // 若这里在锁外 addLast/removeFirst，会触发 ConcurrentModificationException。
                                 pendingFlushMutex.withLock {
+                                    if (lastChunkAt != 0L) {
+                                        chunkIntervals.addLast(now - lastChunkAt)
+                                        if (chunkIntervals.size > STREAM_SLIDE_WINDOW) chunkIntervals.removeFirst()
+                                    }
+                                    lastChunkAt = now
                                     pendingBuilder.append(effectiveDelta)
                                 }
                                 if (isFirstToken) {

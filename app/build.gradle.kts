@@ -106,7 +106,8 @@ android {
             isEnable = true
             reset()
             include("arm64-v8a", "armeabi-v7a")
-            isUniversalApk = true // 同时生成 universal APK(含所有 ABI)
+            // 日常验证用 -PnoUniversal 跳过 169MB 的 universal 包，只打 ABI 分包
+            isUniversalApk = providers.gradleProperty("noUniversal").isPresent.not()
         }
     }
 
