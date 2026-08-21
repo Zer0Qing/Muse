@@ -149,9 +149,15 @@ fun MemoryScreen(
                     onOrganize = viewModel::organizeMemory,
                     onOpenFilter = { showFilter = true },
                 )
-                MemorySegmentedTabs(selected = tab, onSelect = { tab = it })
+                MemoryCapsuleTabs(selected = tab, onSelect = { tab = it })
                 when (tab) {
-                    0 -> MemoryStreamTab(state = state, onOpenFacts = { tab = 1 })
+                    0 -> MemoryStreamTab(
+                        state = state,
+                        onOpenFacts = { tab = 1 },
+                        onEdit = { editItem = it },
+                        onDelete = { viewModel.deleteFact(it.id) },
+                        onPin = { viewModel.toggleFactPinned(it.id) },
+                    )
                     1 -> MemoryFactsTab(
                         state = state,
                         query = query,
@@ -234,28 +240,21 @@ fun MemoryScreen(
 }
 
 @Composable
-private fun MemorySegmentedTabs(
+private fun MemoryCapsuleTabs(
     selected: Int,
     onSelect: (Int) -> Unit,
 ) {
-    SingleChoiceSegmentedButtonRow(
+    val tabs = listOf(
+        stringResource(R.string.memory_center_tab_stream),
+        stringResource(R.string.memory_tab_facts),
+        stringResource(R.string.memory_center_tab_constellation),
+    )
+    io.zer0.muse.ui.common.form.MuseCapsuleTab(
+        tabs = tabs,
+        selectedIndex = selected,
+        onSelect = onSelect,
         modifier = Modifier.fillMaxWidth().padding(horizontal = MusePaddings.screen, vertical = 12.dp),
-    ) {
-        val options = listOf(
-            R.string.memory_center_tab_stream,
-            R.string.memory_tab_facts,
-            R.string.memory_center_tab_constellation,
-        )
-        options.forEachIndexed { index, label ->
-            SegmentedButton(
-                selected = selected == index,
-                onClick = { onSelect(index) },
-                shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
-            ) {
-                Text(stringResource(label), maxLines = 1)
-            }
-        }
-    }
+    )
 }
 
 @Composable
@@ -337,6 +336,9 @@ private fun MemoryOverviewCard(
 private fun MemoryStreamTab(
     state: MemoryUiState,
     onOpenFacts: () -> Unit,
+    onEdit: (MemoryItem) -> Unit,
+    onDelete: (MemoryItem) -> Unit,
+    onPin: (MemoryItem) -> Unit,
 ) {
     val items = state.factItems.sortedByDescending { it.createdAt ?: it.time.orEmpty() }
     if (state.isLoading) {
@@ -366,7 +368,14 @@ private fun MemoryStreamTab(
         contentPadding = PaddingValues(horizontal = MusePaddings.screen, vertical = 4.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        items(items, key = { "stream_${it.id}" }) { item -> MemoryFactRow(item = item) }
+        items(items, key = { "stream_${it.id}" }) { item ->
+            MemoryFactRow(
+                item = item,
+                onEdit = { onEdit(item) },
+                onDelete = { onDelete(item) },
+                onPin = { onPin(item) },
+            )
+        }
     }
 }
 
