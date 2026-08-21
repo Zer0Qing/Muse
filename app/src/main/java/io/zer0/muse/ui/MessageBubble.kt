@@ -261,7 +261,9 @@ internal fun MessageBubble(
     var actionMenuPointInWindow by remember { mutableStateOf<Offset?>(null) }
     // v1.0.72: Manus 风格长按菜单 — false=精简面板(引用/分享/复制/选择文本/更多),
     // true=展开完整菜单(委托/分支/翻译/收藏/编辑/删除等)
-    val showExtendedMenu = actionSurface == MessageActionSurface.Extended
+    // 语言子菜单属于完整菜单层；否则快捷翻译会先落到精简点按菜单。
+    val showExtendedMenu = actionSurface == MessageActionSurface.Extended ||
+        actionSurface == MessageActionSurface.TranslationLanguages
     // v1.0.72: 文本选择模式 — 长按菜单点"选择文本"后进入,支持划选复制;
     // 点击气泡或再次长按退出
     var textSelectMode by rememberSaveable { mutableStateOf(false) }

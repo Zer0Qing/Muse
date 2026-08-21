@@ -82,6 +82,10 @@ object ToolExposurePolicy {
         ),
         "media" to setOf("generate_image", "generate_video", "generate_qr_code"),
         "translate" to setOf("translate"),
+        "mcp" to setOf(
+            "mcp_server_list", "mcp_server_configure", "mcp_server_remove",
+            "mcp_server_bind_assistant", "mcp_server_reconnect",
+        ),
     )
 
     /**
@@ -154,8 +158,18 @@ object ToolExposurePolicy {
      * 只有出现工具/动作意图时才把 OpenAI tool_choice 设为 required。
      * 普通闲聊仍保持模型自由选择,避免为了“有工具”而调用无关工具。
      */
+    /**
+     * 用户明确要求只回答/列清单而不执行工具时，必须在请求层关闭工具。
+     * 这条判断不能交给模型提示词，否则模型仍可能自行发出 tool call。
+     */
+    fun shouldDisableTools(userText: String): Boolean {
+        val normalized = userText.trim().lowercase()
+        if (normalized.isBlank()) return false
+        return normalized.containsAny(NO_TOOL_KEYWORDS)
+    }
+
     fun shouldRequireTool(userText: String, tools: List<ToolDefinition>): Boolean {
-        if (tools.isEmpty()) return false
+        if (tools.isEmpty() || shouldDisableTools(userText)) return false
         val normalized = userText.trim().lowercase()
         if (normalized.isBlank()) return false
         if (normalized.containsAny(EXPLICIT_TOOL_KEYWORDS)) return true
@@ -193,6 +207,13 @@ object ToolExposurePolicy {
         "compare",
         "design",
         "explain",
+    )
+    private val NO_TOOL_KEYWORDS = setOf(
+        "不要调用任何工具", "不要调用工具", "不要使用任何工具", "不要使用工具",
+        "禁止调用工具", "禁止使用工具", "只列清单不要调用", "只列出清单不要调用",
+        "仅列清单", "仅列出清单", "不要执行工具", "不要执行任何工具",
+        "do not call any tools", "don't call any tools", "do not use tools", "without using tools",
+        "no tool calls", "no tools",
     )
     private val EXPLICIT_TOOL_KEYWORDS = setOf(
         "调用",

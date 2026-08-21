@@ -79,6 +79,13 @@ class ToolExposurePolicyTest {
     }
 
     @Test
+    fun `explicit no-tool request disables provider tool calls`() {
+        assertTrue(ToolExposurePolicy.shouldDisableTools("列出所有工具，不要调用任何工具"))
+        assertTrue(ToolExposurePolicy.shouldDisableTools("list all tools, do not call any tools"))
+        assertFalse(ToolExposurePolicy.shouldRequireTool("列出所有工具，不要调用任何工具", allTools))
+    }
+
+    @Test
     fun `explicit action requires tool choice`() {
         assertTrue(
             ToolExposurePolicy.shouldRequireTool(

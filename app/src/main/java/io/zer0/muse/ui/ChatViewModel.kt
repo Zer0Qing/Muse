@@ -5348,20 +5348,20 @@ class ChatViewModel(
                         }
                     else -> configuredMaxTokens
                 }
-                val toolChoice = if (
+                val disableTools = ToolExposurePolicy.shouldDisableTools(latestUserText)
+                val toolChoice = when {
+                    disableTools -> "none"
                     params.round == 1 &&
-                    !params.forceMainModel &&
-                    ToolExposurePolicy.shouldRequireTool(latestUserText, tools)
-                ) {
-                    "required"
-                } else {
-                    null
+                        !params.forceMainModel &&
+                        ToolExposurePolicy.shouldRequireTool(latestUserText, tools) -> "required"
+                    else -> null
                 }
                 val flow = chatService.streamChat(
                     messages = params.history,
                     model = roundModel,
                     providerConfig = roundProviderConfig,
-                    tools = tools,
+                    // “不要调用工具”由请求层硬关闭；不依赖模型遵守提示词。
+                    tools = tools.takeUnless { disableTools } ?: emptyList(),
                     toolChoice = toolChoice,
                     temperature = effectiveTemperature,
                     maxTokens = roundMaxTokens,
