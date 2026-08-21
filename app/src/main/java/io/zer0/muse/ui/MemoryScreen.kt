@@ -167,11 +167,6 @@ fun MemoryScreen(
                         onDelete = viewModel::deleteFact,
                         onPin = { viewModel.toggleFactPinned(it.id) },
                     )
-                    else -> MemoryConstellationTab(
-                        scope = selectedScope,
-                        spaceId = selectedSpace,
-                        factCount = state.factCount,
-                    )
                 }
             }
         }
@@ -244,10 +239,10 @@ private fun MemoryCapsuleTabs(
     selected: Int,
     onSelect: (Int) -> Unit,
 ) {
+    // 记忆星座 UI 暂隐藏，待重新设计后再恢复；代码保留在 MemoryConstellationTab。
     val tabs = listOf(
         stringResource(R.string.memory_center_tab_stream),
         stringResource(R.string.memory_tab_facts),
-        stringResource(R.string.memory_center_tab_constellation),
     )
     io.zer0.muse.ui.common.form.MuseCapsuleTab(
         tabs = tabs,
