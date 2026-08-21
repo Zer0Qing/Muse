@@ -202,7 +202,9 @@ class ChatStreamCoordinator(
 
         // v1.42: 快速路径 — 流式过程中绝大多数 chunk 不含特殊标签,直接按索引更新,避免遍历全列表与正则。
         val hasSpecialTags = content.contains("<mood>", ignoreCase = true) ||
+            content.contains("[mood]", ignoreCase = true) ||
             content.contains("<mod>", ignoreCase = true) ||
+            content.contains("[mod]", ignoreCase = true) ||
             content.contains("<thinking>", ignoreCase = true) ||
             content.contains("<reflection>", ignoreCase = true) ||
             content.contains("<think>", ignoreCase = true) ||
@@ -228,11 +230,10 @@ class ChatStreamCoordinator(
         }
 
         // 完整路径:流式结束或 content 含特殊标签时,执行 mood/reflection/think 提取。
-        val (contentAfterMood, moodContent) = if (content.contains("<mood>", ignoreCase = true)) {
-            extractTagContent(content, "mood")
-        } else {
-            content to InternalMarkupSanitizer.extractMood(content)
-        }
+        val contentAfterMood = content
+        // 无论模型使用 mood 还是 mod、尖括号还是方括号，都先收集到同一个可折叠字段。
+        // 正文稍后由 InternalMarkupSanitizer 统一剥离，避免“标签消失但 mood 也没保存”。
+        val moodContent = InternalMarkupSanitizer.extractMood(content)
         // B6-02: moodfx 独立解析,不与应用自带 <mood> 串台
         val (moodSkinContent, contentAfterMoodSkin) = if (contentAfterMood.contains("<moodfx>", ignoreCase = true)) {
             MoodSkinParser.extract(contentAfterMood)
