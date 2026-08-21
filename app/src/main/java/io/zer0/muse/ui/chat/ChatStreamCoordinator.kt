@@ -839,10 +839,13 @@ class ChatStreamCoordinator(
                 .filter { it.startsWith("mcp_") }
                 .toSet()
             val localToolDefs = registeredToolDefs.filter { def ->
-                if (def.name.startsWith("mcp_")) {
-                    def.name in explicitlyEnabledMcpToolNames
-                } else {
-                    enabledToolIds.isNullOrEmpty() || def.name in enabledToolIds
+                when {
+                    // MCP 自配置工具属于本地能力，必须在未绑定任何外部 server 时也可见，
+                    // 否则助手无法通过 mcp_server_configure 完成首次配置。
+                    def.name.startsWith("mcp_server_") -> true
+                    // 真正的远程 MCP 工具仍由 server 绑定关系或显式工具白名单控制。
+                    def.name.startsWith("mcp_") -> def.name in explicitlyEnabledMcpToolNames
+                    else -> enabledToolIds.isNullOrEmpty() || def.name in enabledToolIds
                 }
             }
             val enabledMcpToolDefs = if (enabledMcpServerIds.isEmpty()) {

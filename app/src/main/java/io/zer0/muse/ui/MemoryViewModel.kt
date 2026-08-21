@@ -284,10 +284,14 @@ class MemoryViewModel(
                 _organizeStage.value = "dedup"
                 val merged = withContext(Dispatchers.IO) {
                     resultOf {
-                        factStore.dedupPass(
-                            scope = _selectedScope.value ?: "main",
-                            spaceId = _selectedSpaceId.value,
-                        )
+                        if (_selectedScope.value == null) {
+                            factStore.dedupPassAllScopes(spaceId = _selectedSpaceId.value)
+                        } else {
+                            factStore.dedupPass(
+                                scope = _selectedScope.value ?: "main",
+                                spaceId = _selectedSpaceId.value,
+                            )
+                        }
                     }
                         .onError { msg, t -> Logger.w("MemoryViewModel", "整理记忆去重失败: ${t?.message ?: msg}") }
                         .getOrNull()

@@ -104,13 +104,7 @@ fun MemoryGraphView(
         buildConstellationCoordinates(state.nodes, contentWidth, contentHeight)
     }
     val categoryCoordinates = remember(groups, nodeCoordinates) {
-        groups.keys.mapNotNull { category ->
-            val points = groups[category].orEmpty().mapNotNull { nodeCoordinates[it.factId] }
-            if (points.isEmpty()) null else category to ConstellationPoint(
-                points.map { it.x.value }.average().dp,
-                points.map { it.y.value }.average().dp,
-            )
-        }.toMap()
+        buildCategoryCoordinates(groups, nodeCoordinates)
     }
 
     Box(modifier = modifier.clip(RoundedCornerShape(24.dp)).background(colors.surfaceVariant.copy(alpha = 0.28f))) {

@@ -7,6 +7,34 @@ import org.junit.Test
 
 class MemoryConstellationLayoutTest {
     @Test
+    fun categoryLabelsAvoidNodeAndEachOther() {
+        val nodes = (1L..80L).map { id ->
+            MemoryGraphNode(
+                factId = id,
+                title = "fact-$id",
+                category = "category-${id % 5}",
+                importance = 0,
+                confidence = 1f,
+                isPinned = false,
+                isExpired = false,
+            )
+        }
+        val coordinates = buildConstellationCoordinates(nodes, 10000.dp, 10000.dp)
+        val groups = nodes.groupBy { it.category }
+        val labels = buildCategoryCoordinates(groups, coordinates).values.toList()
+        fun overlap(ax: Float, ay: Float, aw: Float, ah: Float, bx: Float, by: Float, bw: Float, bh: Float): Boolean =
+            ax < bx + bw && bx < ax + aw && ay < by + bh && by < ay + ah
+        labels.forEachIndexed { i, label ->
+            labels.forEachIndexed { j, other ->
+                if (i < j) assertTrue(!overlap(label.x.value, label.y.value, 120f, 28f, other.x.value, other.y.value, 120f, 28f))
+            }
+            coordinates.values.forEach { node ->
+                assertTrue(!overlap(label.x.value, label.y.value, 120f, 28f, node.x.value, node.y.value, 170f, 68f))
+            }
+        }
+    }
+
+    @Test
     fun layoutIsDeterministicAndKeepsNodeRectanglesSeparated() {
         listOf(40, 100, 500).forEach { count ->
             val nodes = (1L..count.toLong()).map { id ->

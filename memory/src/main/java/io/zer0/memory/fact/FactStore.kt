@@ -674,7 +674,7 @@ class FactStore(
             var j = i + 1
             while (j < all.size && merged < maxPairs) {
                 val other = all[j]
-                if (other.pinnedAt == null && isSimilar(current.fact, other.fact)) {
+                if (current.pinnedAt == null && other.pinnedAt == null && isSimilar(current.fact, other.fact)) {
                     // 合并 other → current(保留重要度更高者为主,否则保留 current)
                     val keeper = if (other.importance > current.importance) other else current
                     val mergedEntity = mergeForDedup(keeper, if (keeper.id == current.id) other else current)
@@ -688,6 +688,24 @@ class FactStore(
                 j++
             }
             i++
+        }
+        merged
+    }
+
+    /**
+     * 在当前空间内按所有记忆作用域分别去重。
+     * 记忆中心默认展示全部 scope，整理入口也必须覆盖全部 scope，不能只处理 main。
+     */
+    suspend fun dedupPassAllScopes(spaceId: String = "default", maxPairs: Int = 300): Int = withContext(Dispatchers.IO) {
+        val scopes = dao.getAll(null)
+            .asSequence()
+            .filter { it.spaceId == spaceId }
+            .map { it.scope }
+            .distinct()
+            .toList()
+        var merged = 0
+        for (scope in scopes) {
+            merged += dedupPass(scope = scope, maxPairs = maxPairs, spaceId = spaceId)
         }
         merged
     }
