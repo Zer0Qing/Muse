@@ -30,9 +30,20 @@ class ToolExposurePolicyTest {
         val selected = ToolExposurePolicy.select(
             tools = allTools + (1..30).map { tool("extra_$it") },
             userText = "帮我想一个标题",
+            applyIntentFilter = true,
         )
 
         assertEquals(setOf("calculator", "echo", "get_current_time"), selected.map { it.name }.toSet())
+    }
+
+    @Test
+    fun `explicit request to test all tools keeps full authorized set`() {
+        val all = allTools + (1..30).map { tool("extra_$it") }
+        val selected = ToolExposurePolicy.select(
+            tools = all,
+            userText = "请测试所有工具并逐个报告结果",
+        )
+        assertEquals("明确测试全部工具时不得裁剪", all.map { it.name }.toSet(), selected.map { it.name }.toSet())
     }
 
     @Test
@@ -40,6 +51,7 @@ class ToolExposurePolicyTest {
         val selected = ToolExposurePolicy.select(
             tools = allTools + (1..30).map { tool("extra_$it") },
             userText = "帮我搜索一下今天的新闻",
+            applyIntentFilter = true,
         )
         val names = selected.map { it.name }.toSet()
 
@@ -123,6 +135,7 @@ class ToolExposurePolicyTest {
         val selected = ToolExposurePolicy.select(
             tools = allTools + (1..30).map { tool("extra_$it") },
             userText = "先搜索一下今天的新闻,再给张三发条短信",
+            applyIntentFilter = true,
         )
         val names = selected.map { it.name }.toSet()
 

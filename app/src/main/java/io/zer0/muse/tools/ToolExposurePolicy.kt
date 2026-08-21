@@ -97,11 +97,18 @@ object ToolExposurePolicy {
         userText: String,
         explicitSelection: Boolean = false,
         alwaysExposeNames: Set<String> = emptySet(),
+        /**
+         * 生产默认 false：当前已授权工具全部进入本轮 schema，避免模型只能看到三个基础工具。
+         * 需要压测意图裁剪时，测试/实验调用方显式传 true；执行权限仍由审批层控制。
+         */
+        applyIntentFilter: Boolean = false,
     ): List<ToolDefinition> {
         val distinct = tools.distinctBy { it.name }
-        if (explicitSelection || distinct.size <= SMALL_TOOLSET_LIMIT) return distinct
+        if (!applyIntentFilter || explicitSelection || distinct.size <= SMALL_TOOLSET_LIMIT) return distinct
 
         val normalized = userText.trim().lowercase()
+        // 用户明确要求查看/测试全部工具时,必须把当前已授权工具全集发给模型。
+        // 工具暴露不等于执行授权,高风险工具仍由 ToolPermissionResolver 审批。
         if (normalized.isBlank() || normalized.containsAny(ALL_TOOLS_KEYWORDS)) {
             return distinct
         }
@@ -165,7 +172,12 @@ object ToolExposurePolicy {
     private const val MIN_SELECTED_TOOLS = 2
     private const val SIMPLE_REQUEST_MAX_CHARS = 120
 
-    private val ALL_TOOLS_KEYWORDS = setOf("你能做什么", "有哪些工具", "工具列表", "全部工具")
+    private val ALL_TOOLS_KEYWORDS = setOf(
+        "你能做什么", "有哪些工具", "工具列表", "全部工具", "所有工具", "可用工具",
+        "测试所有工具", "测试所有的工具", "测试全部工具", "测试全部的工具", "测试当前全部工具", "测试工具", "把所有工具都测试一遍", "逐个测试工具",
+        "列出全部能力", "列出所有能力", "完整工具清单", "完整能力清单", "当前能用的工具",
+        "test all tools", "test every tool", "test tools", "all tools", "list all tools", "available tools",
+    )
     private val COMPLEXITY_KEYWORDS = setOf(
         "为什么",
         "分析",
