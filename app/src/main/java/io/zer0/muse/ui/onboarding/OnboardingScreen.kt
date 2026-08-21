@@ -957,7 +957,7 @@ private fun StepSelectModel(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
         ) {
-            items(filteredModels, key = { it.id }) { model ->
+            items(filteredModels, key = { "${it.providerId}:${it.id}" }) { model ->
                 ModelItem(
                     model = model,
                     selected = selectedModelId == model.id,

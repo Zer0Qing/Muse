@@ -338,7 +338,7 @@
     <string name="settings_search_hint">搜索设置项…</string>
     <string name="settings_search_prompt">输入关键词搜索全部设置项</string>
     <string name="settings_search_no_results">个匹配项</string>
-    <string name="settings_search_result_count">找到 %1 项结果</string>
+    <string name="settings_search_result_count">找到 %1$d 项结果</string>
     <string name="settings_screen_cancel">取消</string>
     <string name="settings_screen_assistant_agent">助手与 Agent</string>
     <string name="settings_screen_ai_models">AI 模型与能力</string>

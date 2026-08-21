@@ -713,6 +713,6 @@
     <string name="settings_screen_archived_desc">Ver y restaurar conversaciones archivadas</string>
     <string name="settings_screen_share">Compartir</string>
     <string name="settings_share_page_title">Compartir</string>
-    <string name="settings_search_result_count">%1 resultados encontrados</string>
+    <string name="settings_search_result_count">%1$d resultados encontrados</string>
     <string name="settings_screen_miniphone_desc">Versión inicial de una función experimental</string>
 </resources>

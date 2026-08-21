@@ -139,7 +139,7 @@ internal fun ModelsTab(
                         }
                     }
                 }
-                items(modelsState.toList(), key = { it.id }) { model ->
+                items(modelsState.toList(), key = { "${it.providerId}:${it.id}" }) { model ->
                     ProviderModelRow(
                         model = model,
                         providerType = config.type,

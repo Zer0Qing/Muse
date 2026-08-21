@@ -268,7 +268,7 @@ private fun VideoModelSelectorDialog(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        items(models, key = { it.id }) { model ->
+                        items(models, key = { "${it.providerId}:${it.id}" }) { model ->
                             val selected = model.id == selectedModelId && provider.id == selectedProviderId
                             VideoModelGridCard(
                                 model = model,
