@@ -125,7 +125,14 @@ fun MemoryScreen(
     LaunchedEffect(viewModel.organizeResult) {
         val result = viewModel.organizeResult.value ?: return@LaunchedEffect
         if (result.startsWith("done:")) {
-            MuseToast.show(context.getString(R.string.memory_organize_stage_complete, result.removePrefix("done:").toIntOrNull() ?: 0))
+            val merged = result.removePrefix("done:").toIntOrNull() ?: 0
+            MuseToast.show(
+                if (merged == 0) {
+                    context.getString(R.string.memory_organize_stage_no_duplicates)
+                } else {
+                    context.getString(R.string.memory_organize_stage_complete, merged)
+                },
+            )
         } else {
             MuseToast.show(context.getString(R.string.memory_organize_stage_failed))
         }
