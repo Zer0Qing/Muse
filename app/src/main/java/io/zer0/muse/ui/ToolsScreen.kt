@@ -41,6 +41,7 @@ import io.zer0.muse.tools.ToolRegistry
 import io.zer0.muse.tools.ToolRiskLevel
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.common.surface.CardGroupScope
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
@@ -141,6 +142,15 @@ fun ToolsScreen(
             }
 
             // ── 按分类分组展示 ─────────────────────────────────────────────
+            if (tools.isEmpty()) {
+                item(key = "tools_empty") {
+                    MuseEmptyState(
+                        title = stringResource(R.string.tools_empty_title),
+                        subtitle = stringResource(R.string.tools_empty_subtitle),
+                        modifier = Modifier.padding(horizontal = MusePaddings.screen),
+                    )
+                }
+            }
             grouped.forEach { (category, toolsInCategory) ->
                 item(key = "group_$category") {
                     CardGroup(

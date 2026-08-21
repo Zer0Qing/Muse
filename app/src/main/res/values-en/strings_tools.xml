@@ -66,4 +66,6 @@
     <string name="tools_settings_policy_always_allow_short">Allow</string>
     <string name="tools_settings_policy_ask_short">Ask</string>
     <string name="tools_settings_policy_always_deny_short">Deny</string>
+    <string name="tools_empty_title">No registered tools</string>
+    <string name="tools_empty_subtitle">Check your plugins or MCP configuration, then reopen this page.</string>
 </resources>
