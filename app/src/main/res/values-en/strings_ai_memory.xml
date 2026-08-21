@@ -154,4 +154,18 @@
     <string name="memory_menu_importance">Set importance</string>
     <string name="memory_menu_edit">Edit</string>
     <string name="memory_menu_delete">Delete</string>
+    <string name="memory_center_fact_count">facts</string>
+    <string name="memory_center_summary_count">%1$d summaries</string>
+    <string name="memory_center_updated">Updated %1$s</string>
+    <string name="memory_center_empty_title">No memories yet</string>
+    <string name="memory_center_empty_subtitle">Keep talking with Muse, or say “remember this” to add a fact.</string>
+    <string name="memory_center_ready_subtitle">These are the facts Muse currently keeps about you.</string>
+    <string name="memory_center_open_facts">Open fact library</string>
+    <string name="memory_center_tab_stream">Memory stream</string>
+    <string name="memory_center_tab_constellation">Memory constellation</string>
+    <string name="memory_center_stream_title">Recently remembered</string>
+    <string name="memory_center_library_title">Fact library</string>
+    <string name="memory_center_constellation_hint">Important facts stay near the center. Facts remain visible even before relationships are organized.</string>
+    <string name="memory_center_constellation_empty">There are no fact nodes to show yet. Add or create a fact, then come back here.</string>
+    <string name="memory_center_filter_empty">There are no facts in this scope or space. Try changing the filters above.</string>
 </resources>

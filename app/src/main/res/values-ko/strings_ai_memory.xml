@@ -149,4 +149,18 @@
     <string name="memory_menu_importance">중요도 설정</string>
     <string name="memory_menu_edit">편집</string>
     <string name="memory_menu_delete">삭제</string>
+    <string name="memory_center_fact_count">개 사실</string>
+    <string name="memory_center_summary_count">요약 %1$d개</string>
+    <string name="memory_center_updated">업데이트 %1$s</string>
+    <string name="memory_center_empty_title">아직 기억이 없습니다</string>
+    <string name="memory_center_empty_subtitle">Muse와 계속 대화하거나 “이걸 기억해”라고 말해 보세요.</string>
+    <string name="memory_center_ready_subtitle">Muse가 현재 보관 중인 당신에 대한 사실입니다.</string>
+    <string name="memory_center_open_facts">사실 보관함 열기</string>
+    <string name="memory_center_tab_stream">기억 흐름</string>
+    <string name="memory_center_tab_constellation">기억 별자리</string>
+    <string name="memory_center_stream_title">최근에 기억한 내용</string>
+    <string name="memory_center_library_title">사실 보관함</string>
+    <string name="memory_center_constellation_hint">중요한 사실은 중심에 가깝게 표시됩니다. 관계를 정리하기 전에도 사실은 보입니다.</string>
+    <string name="memory_center_constellation_empty">표시할 사실 노드가 아직 없습니다. 사실을 추가한 뒤 다시 확인해 주세요.</string>
+    <string name="memory_center_filter_empty">현재 범위나 공간에 사실이 없습니다. 위 필터를 바꿔 보세요.</string>
 </resources>

@@ -138,6 +138,20 @@
     <string name="memory_organize_stage_dedup">正在合并重复</string>
     <string name="memory_organize_stage_complete">整理完成，合并 %1$d 条</string>
     <string name="memory_organize_stage_no_duplicates">整理完成，当前没有发现可合并的重复记忆</string>
+    <string name="memory_center_fact_count">条事实</string>
+    <string name="memory_center_summary_count">%1$d 条摘要</string>
+    <string name="memory_center_updated">最近更新 %1$s</string>
+    <string name="memory_center_empty_title">还没有形成记忆</string>
+    <string name="memory_center_empty_subtitle">继续和 Muse 对话，明确告诉我“记住这件事”，事实会出现在这里。</string>
+    <string name="memory_center_ready_subtitle">这些是 Muse 当前整理出的事实。你可以查看、置顶或整理它们。</string>
+    <string name="memory_center_open_facts">查看事实库</string>
+    <string name="memory_center_tab_stream">记忆流</string>
+    <string name="memory_center_tab_constellation">记忆星座</string>
+    <string name="memory_center_stream_title">最近记住的内容</string>
+    <string name="memory_center_library_title">事实库</string>
+    <string name="memory_center_constellation_hint">重要事实会优先靠近中心。关系还没整理出来时，节点也会单独显示。</string>
+    <string name="memory_center_constellation_empty">目前没有可展示的事实节点。先产生或手动添加一条事实，再回来看看。</string>
+    <string name="memory_center_filter_empty">当前作用域或空间里没有事实节点，试试切换上方筛选条件。</string>
     <string name="memory_organize_stage_failed">整理失败，请重试</string>
     <!-- v1.x: 记忆卡片 ⋮ 菜单 -->
     <string name="memory_menu_cd">更多操作</string>

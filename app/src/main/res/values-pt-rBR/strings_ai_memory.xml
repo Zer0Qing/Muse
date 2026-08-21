@@ -149,4 +149,18 @@
     <string name="memory_menu_importance">Definir importância</string>
     <string name="memory_menu_edit">Editar</string>
     <string name="memory_menu_delete">Excluir</string>
+    <string name="memory_center_fact_count">fatos</string>
+    <string name="memory_center_summary_count">%1$d resumos</string>
+    <string name="memory_center_updated">Atualizado %1$s</string>
+    <string name="memory_center_empty_title">Ainda não há memórias</string>
+    <string name="memory_center_empty_subtitle">Continue conversando com Muse ou diga “lembre disso” para adicionar um fato.</string>
+    <string name="memory_center_ready_subtitle">Estes são os fatos que Muse mantém atualmente sobre você.</string>
+    <string name="memory_center_open_facts">Abrir biblioteca de fatos</string>
+    <string name="memory_center_tab_stream">Fluxo de memória</string>
+    <string name="memory_center_tab_constellation">Constelação</string>
+    <string name="memory_center_stream_title">Lembrado recentemente</string>
+    <string name="memory_center_library_title">Biblioteca de fatos</string>
+    <string name="memory_center_constellation_hint">Fatos importantes ficam perto do centro. Os fatos continuam visíveis antes das relações serem organizadas.</string>
+    <string name="memory_center_constellation_empty">Ainda não há fatos para exibir. Adicione ou crie um fato e volte aqui.</string>
+    <string name="memory_center_filter_empty">Não há fatos neste escopo ou espaço. Tente mudar os filtros acima.</string>
 </resources>

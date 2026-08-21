@@ -149,4 +149,18 @@
     <string name="memory_menu_importance">Задать важность</string>
     <string name="memory_menu_edit">Изменить</string>
     <string name="memory_menu_delete">Удалить</string>
+    <string name="memory_center_fact_count">фактов</string>
+    <string name="memory_center_summary_count">Сводок: %1$d</string>
+    <string name="memory_center_updated">Обновлено %1$s</string>
+    <string name="memory_center_empty_title">Пока нет воспоминаний</string>
+    <string name="memory_center_empty_subtitle">Продолжайте общаться с Muse или скажите «запомни это», чтобы добавить факт.</string>
+    <string name="memory_center_ready_subtitle">Факты, которые Muse сейчас хранит о вас.</string>
+    <string name="memory_center_open_facts">Открыть библиотеку фактов</string>
+    <string name="memory_center_tab_stream">Поток памяти</string>
+    <string name="memory_center_tab_constellation">Созвездие памяти</string>
+    <string name="memory_center_stream_title">Недавно запомнено</string>
+    <string name="memory_center_library_title">Библиотека фактов</string>
+    <string name="memory_center_constellation_hint">Важные факты находятся ближе к центру. Факты видны даже до сортировки связей.</string>
+    <string name="memory_center_constellation_empty">Пока нет узлов фактов. Добавьте факт и вернитесь сюда.</string>
+    <string name="memory_center_filter_empty">В этой области или пространстве нет фактов. Попробуйте изменить фильтры выше.</string>
 </resources>
