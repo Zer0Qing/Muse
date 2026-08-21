@@ -64,6 +64,8 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -72,6 +74,7 @@ import androidx.compose.ui.zIndex
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import io.zer0.muse.R
+import io.zer0.muse.transformer.InternalMarkupSanitizer
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.knowledge.KnowledgeDocDao
 import io.zer0.muse.data.session.FolderEntity
@@ -972,7 +975,7 @@ private fun TaskItem(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                val preview = session.lastMessagePreview
+                val preview = InternalMarkupSanitizer.stripForDisplay(session.lastMessagePreview)
                 Text(
                     text = if (preview.isNotBlank()) preview else formatTaskStatus(session),
                     style = MaterialTheme.typography.bodySmall,
@@ -1408,38 +1411,37 @@ private fun inferTaskStatus(session: SessionEntity, now: Long): TaskStatus {
     val dayMillis = TimeUnit.DAYS.toMillis(1)
     val threeDays = dayMillis * 3
     // 3 天内有更新且消息数 >=2 -> 进行中
-    if ((now - session.updatedAt) < threeDays && session.messageCount >= 2) return TaskStatus.IN_PROGRESS
+    val age = (now - session.updatedAt).coerceAtLeast(0L)
+    if (age < threeDays && session.messageCount >= 2) return TaskStatus.IN_PROGRESS
     // 超过 3 天未更新 -> 已完成
-    if ((now - session.updatedAt) >= threeDays) return TaskStatus.COMPLETED
+    if (age >= threeDays) return TaskStatus.COMPLETED
     // 其余 -> 待确认
     return TaskStatus.PENDING
 }
 
 @Composable
 private fun TaskStatusDot(session: SessionEntity) {
-    // 有未读 → 点亮（error 红）；无未读 → 按任务状态灰显（灭）
-    val hasUnread = (session.messageCount - session.lastReadCount).coerceAtLeast(0) > 0
-    val status = remember(session, System.currentTimeMillis()) {
+    // 状态点只表达会话生命周期，不再把“未读”粗暴染成红色。
+    // 未读数量已经由进入会话后的跳转提示表达，列表红点会让普通新消息看起来像错误。
+    val status = remember(session.id, session.updatedAt, session.messageCount) {
         inferTaskStatus(session, System.currentTimeMillis())
     }
-    TaskStatusDot(status = status, hasUnread = hasUnread)
+    TaskStatusDot(status = status)
 }
 
 @Composable
-private fun TaskStatusDot(status: TaskStatus, hasUnread: Boolean = false) {
-    val color = when {
-        hasUnread -> MaterialTheme.colorScheme.error
-        else -> when (status) {
-            TaskStatus.IN_PROGRESS -> MaterialTheme.colorScheme.primary
-            TaskStatus.PENDING -> MaterialTheme.colorScheme.tertiary
-            TaskStatus.COMPLETED -> MaterialTheme.colorScheme.outline
-        }
+private fun TaskStatusDot(status: TaskStatus) {
+    val (color, description) = when (status) {
+        TaskStatus.IN_PROGRESS -> MaterialTheme.colorScheme.primary to stringResource(R.string.chat_list_status_in_progress)
+        TaskStatus.PENDING -> MaterialTheme.colorScheme.tertiary to stringResource(R.string.chat_list_status_pending)
+        TaskStatus.COMPLETED -> MaterialTheme.colorScheme.outline to stringResource(R.string.chat_list_status_completed)
     }
     Box(
         modifier = Modifier
-            .size(if (hasUnread) 12.dp else 10.dp)
+            .size(10.dp)
             .clip(CircleShape)
-            .background(color),
+            .background(color)
+            .semantics { contentDescription = description },
     )
 }
 

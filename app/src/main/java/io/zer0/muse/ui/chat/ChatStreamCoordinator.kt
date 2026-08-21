@@ -25,6 +25,7 @@ import io.zer0.muse.tools.ToolRegistry
 import io.zer0.muse.tools.ToolExposurePolicy
 import io.zer0.muse.transformer.TransformContext
 import io.zer0.muse.transformer.MoodSkinParser
+import io.zer0.muse.transformer.InternalMarkupSanitizer
 import io.zer0.muse.transformer.TransformerPipeline
 import io.zer0.muse.ui.ChatError
 import io.zer0.muse.ui.ChatErrorType
@@ -201,12 +202,15 @@ class ChatStreamCoordinator(
 
         // v1.42: 快速路径 — 流式过程中绝大多数 chunk 不含特殊标签,直接按索引更新,避免遍历全列表与正则。
         val hasSpecialTags = content.contains("<mood>", ignoreCase = true) ||
+            content.contains("<mod>", ignoreCase = true) ||
+            content.contains("<thinking>", ignoreCase = true) ||
             content.contains("<reflection>", ignoreCase = true) ||
             content.contains("<think>", ignoreCase = true) ||
             content.contains("<moodfx>", ignoreCase = true) ||
             // v1.0.74 fix: reasoning 通道里也可能带 <mood>(模型把腹稿写进思考),
             // 只查 content 会漏掉,导致标签残留到落库。
             (!reasoning.isNullOrBlank() && (reasoning.contains("<mood>", ignoreCase = true) ||
+                reasoning.contains("<mod>", ignoreCase = true) ||
                 reasoning.contains("<moodfx>", ignoreCase = true) ||
                 reasoning.contains("<reflection>", ignoreCase = true) ||
                 reasoning.contains("<think>", ignoreCase = true)))
@@ -227,7 +231,7 @@ class ChatStreamCoordinator(
         val (contentAfterMood, moodContent) = if (content.contains("<mood>", ignoreCase = true)) {
             extractTagContent(content, "mood")
         } else {
-            content to null
+            content to InternalMarkupSanitizer.extractMood(content)
         }
         // B6-02: moodfx 独立解析,不与应用自带 <mood> 串台
         val (moodSkinContent, contentAfterMoodSkin) = if (contentAfterMood.contains("<moodfx>", ignoreCase = true)) {
@@ -240,16 +244,18 @@ class ChatStreamCoordinator(
         } else {
             contentAfterMoodSkin to null
         }
-        val (cleanContent, thinkContent) = extractThinkContent(contentAfterReflection)
+        val (cleanContentRaw, thinkContent) = extractThinkContent(contentAfterReflection)
+        val cleanContent = InternalMarkupSanitizer.stripForDisplay(cleanContentRaw)
         // v1.0.73: mood 兜底 — 模型(尤其深度思考)可能把 <mood> 腹稿写进思考通道
         // (reasoning_content),而正文 content 里没有。此时从 reasoning 里提取 mood,
         // 让 mood 块照常显示;提取后从 reasoning 中剥掉该块(思考里不再重复展示)。
         var effectiveMood = moodContent
         var effectiveReasoningInput = reasoning
-        if (effectiveMood == null && !reasoning.isNullOrBlank() && reasoning.contains("<mood>", ignoreCase = true)) {
-            val (reasoningClean, reasoningMood) = extractTagContent(reasoning, "mood")
-            effectiveMood = reasoningMood
-            effectiveReasoningInput = reasoningClean
+        if (effectiveMood == null && !reasoning.isNullOrBlank() &&
+            (reasoning.contains("<mood>", ignoreCase = true) || reasoning.contains("<mod>", ignoreCase = true))
+        ) {
+            effectiveMood = InternalMarkupSanitizer.extractMood(reasoning)
+            effectiveReasoningInput = InternalMarkupSanitizer.stripContainerTags(reasoning)
         }
         // v1.62 修复:reasoning 重复问题。
         // 旧逻辑把 existingReasoning + newReasoning + thinkContent 三者拼接,
@@ -259,9 +265,9 @@ class ChatStreamCoordinator(
         // reasoning 参数为 null 时,用 thinkContent(content 中 <think> 提取)作为 fallback;
         // 两者都无时保留 msg.reasoning。
         val combinedReasoning = when {
-            !effectiveReasoningInput.isNullOrBlank() -> effectiveReasoningInput
-            !thinkContent.isNullOrBlank() -> thinkContent
-            else -> msg.reasoning
+            !effectiveReasoningInput.isNullOrBlank() -> InternalMarkupSanitizer.stripContainerTags(effectiveReasoningInput)
+            !thinkContent.isNullOrBlank() -> InternalMarkupSanitizer.stripContainerTags(thinkContent)
+            else -> msg.reasoning?.let(InternalMarkupSanitizer::stripContainerTags)
         }
         val updated = msg.copy(
             content = cleanContent,
@@ -419,7 +425,7 @@ class ChatStreamCoordinator(
      * @return Pair<清理后的正文, 提取出的思考内容(null 表示无)>
      */
     private fun extractThinkContent(input: String): Pair<String, String?> {
-        if (!input.contains("<think>", ignoreCase = true)) return input to null
+        if (!input.contains("<think", ignoreCase = true)) return input to null
 
         val sb = StringBuilder()
         var remaining = input
@@ -431,9 +437,13 @@ class ChatStreamCoordinator(
         }
 
         // 处理流式过程中标签尚未闭合的情况
-        val openIdx = remaining.indexOf("<think>", ignoreCase = true)
+        val openIdx = listOf("<think>", "<thinking>")
+            .map { remaining.indexOf(it, ignoreCase = true) }
+            .filter { it >= 0 }
+            .minOrNull() ?: -1
         val partialThink: String? = if (openIdx != -1 && !remaining.contains("</think>", ignoreCase = true)) {
-            val afterTag = remaining.substring(openIdx + "<think>".length)
+            val tagLength = if (remaining.regionMatches(openIdx, "<thinking>", 0, "<thinking>".length, ignoreCase = true)) "<thinking>".length else "<think>".length
+            val afterTag = remaining.substring(openIdx + tagLength)
             remaining = remaining.substring(0, openIdx)
             afterTag.trim().ifBlank { null }
         } else {

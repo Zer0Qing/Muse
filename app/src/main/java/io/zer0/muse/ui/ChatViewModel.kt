@@ -2692,7 +2692,9 @@ class ChatViewModel(
         if (title.isNotBlank() && title != defaultTitle) return
         val messages = _messages.value.filter { it.role == MessageRole.USER || it.role == MessageRole.ASSISTANT }
         if (messages.size < 2) return
-        val preview = messages.take(4).joinToString("\n") { it.content.take(100) }
+        val preview = messages.take(4).joinToString("\n") {
+            io.zer0.muse.transformer.InternalMarkupSanitizer.stripForDisplay(it.content).take(100)
+        }
         if (preview.isBlank()) return
         viewModelScope.launch(AppDispatchers.io) {
             // v1.0.52: 读取用户自定义对话命名 prompt(null/空串表示用默认)

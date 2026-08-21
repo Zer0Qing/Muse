@@ -25,6 +25,7 @@ import kotlinx.serialization.json.Json
 import kotlin.uuid.Uuid
 import io.zer0.muse.R
 import io.zer0.muse.transformer.MoodSkinParser
+import io.zer0.muse.transformer.InternalMarkupSanitizer
 import io.zer0.muse.data.chat.rewrite.ConversationEventDraft
 import io.zer0.muse.data.chat.rewrite.ConversationEventType
 import io.zer0.muse.data.chat.rewrite.MessageCommitRequest
@@ -306,7 +307,7 @@ class SessionRepository(
                 if (last != null) {
                     sessionDao.updatePreviewOnly(
                         id = newId,
-                        preview = last.content.take(MESSAGE_PREVIEW_LENGTH).ifBlank { "…" },
+                        preview = previewText(last.content),
                         now = now,
                     )
                     database.sessionBranchHeadDao().upsert(
@@ -999,7 +1000,7 @@ class SessionRepository(
                 val newLast = messageDao.getLastBySession(sessionId)
                 sessionDao.updatePreview(
                     id = sessionId,
-                    preview = newLast?.content?.take(MESSAGE_PREVIEW_LENGTH) ?: "",
+                    preview = newLast?.let { previewText(it.content) } ?: "",
                     now = System.currentTimeMillis(),
                 )
             }
@@ -1354,7 +1355,7 @@ class SessionRepository(
      * 改由 UI 退出对话时调用 [io.zer0.muse.ui.ChatViewModel.autoTitleOnExit] 触发 AI 摘要命名。
      */
     private suspend fun updateSessionPreview(sessionId: String, message: UIMessage) {
-        val preview = message.content.take(MESSAGE_PREVIEW_LENGTH).ifBlank { "…" }
+        val preview = previewText(message.content)
         sessionDao.updatePreviewOnly(
             id = sessionId,
             preview = preview,
@@ -1384,6 +1385,10 @@ class SessionRepository(
             )
         }
     }
+
+    /** 会话列表/系统提示只显示正文，隐藏 mood、mod、think 等内部块。 */
+    private fun previewText(content: String): String =
+        InternalMarkupSanitizer.stripForDisplay(content).take(MESSAGE_PREVIEW_LENGTH).ifBlank { "…" }
 
     /** MessageEntity → UIMessage。 */
     private fun MessageEntity.toUIMessage(): UIMessage {

@@ -126,6 +126,7 @@ import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.media.rememberDesktopShortcutsEnabled
 import io.zer0.muse.ui.markdown.MarkdownText
 import io.zer0.muse.transformer.MoodSkinParser
+import io.zer0.muse.transformer.InternalMarkupSanitizer
 import io.zer0.muse.ui.taskcard.AgentPlan
 import io.zer0.muse.ui.taskcard.PlanCard
 import io.zer0.muse.ui.theme.MuseAnimation
@@ -295,7 +296,19 @@ internal fun MessageBubble(
     val parsedBody = quoteAndBody.second
     // v1.79 (M-B8): 调用方保证 content 不含引用前缀,此处不再做去重处理
     val quote = msg.quotedContent ?: parsedQuote
-    val body = if (msg.quotedContent != null) msg.content else parsedBody
+    // 最后一道显示层防线：历史消息或异常中转模型可能仍把内部标签留在 content，
+    // 正文气泡绝不能把 think/mod/mood 当普通 Markdown 展示。
+    val body = if (isUser) {
+        if (msg.quotedContent != null) msg.content else parsedBody
+    } else {
+        InternalMarkupSanitizer.stripForDisplay(if (msg.quotedContent != null) msg.content else parsedBody)
+    }
+    // 历史消息可能只有 content 没有 mood 字段，显示层仍把内嵌 mood/mod 恢复成可折叠块。
+    val visibleMood = if (isUser) null else {
+        msg.mood?.takeIf { it.isNotBlank() }
+            ?: InternalMarkupSanitizer.extractMood(msg.content)
+            ?: InternalMarkupSanitizer.extractMood(msg.reasoning.orEmpty())
+    }
     // P2-13: 桌面快捷键总开关(Expanded 窗口 + 物理键盘)— 控制右键菜单是否启用
     val desktopShortcutsEnabled = rememberDesktopShortcutsEnabled()
     // M-UI1: 长按菜单/桌面菜单手势统一收口,后续分别附加到用户/助手气泡上,
@@ -395,7 +408,7 @@ internal fun MessageBubble(
         // v0.30-b: MOOD 块(6 步工作流第 2 步 — AI 内部腹稿,可折叠)
         // v0.31: 受 chatPrefs.showMoodBlock 开关控制,默认展开状态由 chatPrefs.moodExpandedByDefault 决定
         if (chatPrefs.showMoodBlock) {
-            msg.mood?.takeIf { it.isNotBlank() }?.let { mood ->
+            visibleMood?.let { mood ->
                 // v1.45: 优先使用外部受控状态;未控制时用默认值
                 val moodExpanded = isMoodExpanded ?: chatPrefs.moodExpandedByDefault
                 // v1.52: 仅"正在流式的那最后一条 AI 消息"强制展开,避免流式期间所有 AI 消息的 mood 块被锁死无法折叠
