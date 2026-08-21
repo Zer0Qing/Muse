@@ -168,4 +168,10 @@
     <string name="memory_center_constellation_hint">Important facts stay near the center. Facts remain visible even before relationships are organized.</string>
     <string name="memory_center_constellation_empty">There are no fact nodes to show yet. Add or create a fact, then come back here.</string>
     <string name="memory_center_filter_empty">There are no facts in this scope or space. Try changing the filters above.</string>
+    <string name="memory_center_scope_all">All</string>
+    <string name="memory_center_space_default">Default</string>
+    <string name="memory_center_scope_line">%1$s · %2$s</string>
+    <string name="memory_center_filter_title">Filter</string>
+    <string name="memory_center_filter_scope">Scope</string>
+    <string name="memory_center_filter_space">Memory space</string>
 </resources>

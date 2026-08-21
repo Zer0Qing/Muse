@@ -163,4 +163,10 @@
     <string name="memory_center_constellation_hint">重要な事実は中心に近く表示されます。関係を整理する前でも事実は表示されます。</string>
     <string name="memory_center_constellation_empty">表示できる事実がまだありません。事実を追加してから戻ってきてください。</string>
     <string name="memory_center_filter_empty">このスコープまたはスペースには事実がありません。上のフィルターを変更してください。</string>
+    <string name="memory_center_scope_all">すべて</string>
+    <string name="memory_center_space_default">デフォルト</string>
+    <string name="memory_center_scope_line">%1$s · %2$s</string>
+    <string name="memory_center_filter_title">フィルター</string>
+    <string name="memory_center_filter_scope">スコープ</string>
+    <string name="memory_center_filter_space">記憶スペース</string>
 </resources>

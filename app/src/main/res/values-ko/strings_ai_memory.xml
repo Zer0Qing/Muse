@@ -163,4 +163,10 @@
     <string name="memory_center_constellation_hint">중요한 사실은 중심에 가깝게 표시됩니다. 관계를 정리하기 전에도 사실은 보입니다.</string>
     <string name="memory_center_constellation_empty">표시할 사실 노드가 아직 없습니다. 사실을 추가한 뒤 다시 확인해 주세요.</string>
     <string name="memory_center_filter_empty">현재 범위나 공간에 사실이 없습니다. 위 필터를 바꿔 보세요.</string>
+    <string name="memory_center_scope_all">전체</string>
+    <string name="memory_center_space_default">기본</string>
+    <string name="memory_center_scope_line">%1$s · %2$s</string>
+    <string name="memory_center_filter_title">필터</string>
+    <string name="memory_center_filter_scope">범위</string>
+    <string name="memory_center_filter_space">기억 공간</string>
 </resources>

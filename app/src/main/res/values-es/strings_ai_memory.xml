@@ -163,4 +163,10 @@
     <string name="memory_center_constellation_hint">Los hechos importantes se acercan al centro. Los hechos siguen visibles antes de organizar relaciones.</string>
     <string name="memory_center_constellation_empty">Aún no hay hechos para mostrar. Añade o crea uno y vuelve aquí.</string>
     <string name="memory_center_filter_empty">No hay hechos en este ámbito o espacio. Prueba a cambiar los filtros.</string>
+    <string name="memory_center_scope_all">Todo</string>
+    <string name="memory_center_space_default">Predeterminado</string>
+    <string name="memory_center_scope_line">%1$s · %2$s</string>
+    <string name="memory_center_filter_title">Filtrar</string>
+    <string name="memory_center_filter_scope">Ámbito</string>
+    <string name="memory_center_filter_space">Espacio de memoria</string>
 </resources>

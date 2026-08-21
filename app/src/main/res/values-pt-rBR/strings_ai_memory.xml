@@ -163,4 +163,10 @@
     <string name="memory_center_constellation_hint">Fatos importantes ficam perto do centro. Os fatos continuam visíveis antes das relações serem organizadas.</string>
     <string name="memory_center_constellation_empty">Ainda não há fatos para exibir. Adicione ou crie um fato e volte aqui.</string>
     <string name="memory_center_filter_empty">Não há fatos neste escopo ou espaço. Tente mudar os filtros acima.</string>
+    <string name="memory_center_scope_all">Todos</string>
+    <string name="memory_center_space_default">Padrão</string>
+    <string name="memory_center_scope_line">%1$s · %2$s</string>
+    <string name="memory_center_filter_title">Filtrar</string>
+    <string name="memory_center_filter_scope">Escopo</string>
+    <string name="memory_center_filter_space">Espaço de memória</string>
 </resources>

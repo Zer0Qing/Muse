@@ -152,6 +152,12 @@
     <string name="memory_center_constellation_hint">重要事实会优先靠近中心。关系还没整理出来时，节点也会单独显示。</string>
     <string name="memory_center_constellation_empty">目前没有可展示的事实节点。先产生或手动添加一条事实，再回来看看。</string>
     <string name="memory_center_filter_empty">当前作用域或空间里没有事实节点，试试切换上方筛选条件。</string>
+    <string name="memory_center_scope_all">全部</string>
+    <string name="memory_center_space_default">默认</string>
+    <string name="memory_center_scope_line">%1$s · %2$s</string>
+    <string name="memory_center_filter_title">筛选</string>
+    <string name="memory_center_filter_scope">作用域</string>
+    <string name="memory_center_filter_space">记忆空间</string>
     <string name="memory_organize_stage_failed">整理失败，请重试</string>
     <!-- v1.x: 记忆卡片 ⋮ 菜单 -->
     <string name="memory_menu_cd">更多操作</string>

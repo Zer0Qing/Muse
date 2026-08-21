@@ -163,4 +163,10 @@
     <string name="memory_center_constellation_hint">Важные факты находятся ближе к центру. Факты видны даже до сортировки связей.</string>
     <string name="memory_center_constellation_empty">Пока нет узлов фактов. Добавьте факт и вернитесь сюда.</string>
     <string name="memory_center_filter_empty">В этой области или пространстве нет фактов. Попробуйте изменить фильтры выше.</string>
+    <string name="memory_center_scope_all">Все</string>
+    <string name="memory_center_space_default">По умолчанию</string>
+    <string name="memory_center_scope_line">%1$s · %2$s</string>
+    <string name="memory_center_filter_title">Фильтр</string>
+    <string name="memory_center_filter_scope">Область</string>
+    <string name="memory_center_filter_space">Пространство памяти</string>
 </resources>
