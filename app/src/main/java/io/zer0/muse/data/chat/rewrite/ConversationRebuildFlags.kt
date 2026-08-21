@@ -1,6 +1,6 @@
 package io.zer0.muse.data.chat.rewrite
 
-/** 新旧对话链路灰度开关。默认全部关闭，开启后只允许在本地诊断或受控灰度中使用。 */
+/** 新旧对话链路开关。当前提交/事件/parts 主路径默认开启，projection/UI 仍独立保留回滚开关。 */
 data class ConversationRebuildFlags(
     /** 正式切换：新事件链成为默认事实记录路径。 */
     val shadowEventsEnabled: Boolean = true,
@@ -8,8 +8,8 @@ data class ConversationRebuildFlags(
     val useCommitSeq: Boolean = true,
     /** 正式切换：新提交同时写入结构化 message_parts。 */
     val useMessageParts: Boolean = true,
-    /** 当前 projection 仍由旧 UI 兼容读取；完成接线前不伪装开启。 */
-    val useMessageProjection: Boolean = false,
+    /** 新 projection 读路径默认开启；无 parts 的旧消息自动 legacy 派生。 */
+    val useMessageProjection: Boolean = true,
     /** 正式切换：新 ConversationService/MessageCommit 作为主提交路径。 */
     val useNewConversationService: Boolean = true,
     /** 记忆中心星座布局已在当前分支直接接入。 */

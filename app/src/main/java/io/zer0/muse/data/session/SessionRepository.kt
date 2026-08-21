@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
@@ -28,6 +29,8 @@ import io.zer0.muse.data.chat.rewrite.ConversationEventDraft
 import io.zer0.muse.data.chat.rewrite.ConversationEventType
 import io.zer0.muse.data.chat.rewrite.MessageCommitRequest
 import io.zer0.muse.data.chat.rewrite.MessageCommitResult
+import io.zer0.muse.data.chat.rewrite.ConversationProjector
+import io.zer0.muse.data.chat.rewrite.ConversationRebuildFlagStore
 
 /**
  * 会话仓库:封装 SessionDao + MessageDao,提供领域模型 API。
@@ -457,7 +460,7 @@ class SessionRepository(
     fun observeMessages(sessionId: String): Flow<List<UIMessage>> {
         // H-SESS3: 限最近 OBSERVE_LIMIT 条,避免长会话全量加载 OOM;更早历史走分页加载
         return messageDao.observeRecentBySession(sessionId, OBSERVE_LIMIT)
-            .map { entities -> entities.map { it.toUIMessage() } }
+            .mapLatest { entities -> projectMessagesForRead(entities) }
             .distinctUntilChanged()
     }
 
@@ -468,7 +471,7 @@ class SessionRepository(
      * 用于初始加载,避免一次性加载全部消息导致卡顿/OOM。
      */
     suspend fun getRecentMessages(sessionId: String, limit: Int): List<UIMessage> {
-        return messageDao.getRecentBySession(sessionId, limit).reversed().map { it.toUIMessage() }
+        return projectMessagesForRead(messageDao.getRecentBySession(sessionId, limit).reversed())
     }
 
     /**
@@ -478,7 +481,7 @@ class SessionRepository(
      * 返回升序,可直接前置拼接到现有 messages 列表。
      */
     suspend fun getOlderMessages(sessionId: String, beforeCreatedAt: Long, limit: Int): List<UIMessage> {
-        return messageDao.getOlderBySession(sessionId, beforeCreatedAt, limit).reversed().map { it.toUIMessage() }
+        return projectMessagesForRead(messageDao.getOlderBySession(sessionId, beforeCreatedAt, limit).reversed())
     }
 
     /**
@@ -631,16 +634,42 @@ class SessionRepository(
     private suspend fun appendMessageInternal(sessionId: String, message: UIMessage): String {
         var entity = message.toEntity(sessionId)
         // v1.0.90 (S-5): 用户消息同样分配 seq — 此前 appendMessageInternal 直接 upsert,
-        // entity.seq 恒为 0,导致用户消息 seq=0、assistant seq=1、多会话 seq 冲突
-        // (同一会话两条消息同 seq,排序错乱)。与 upsertMessage 统一分配逻辑。
+        // entity.seq 恒为 0,导致用户消息 seq=0、assistant seq=1、多会话 seq 冲突。
+        // 与 upsertMessage 统一分配逻辑。
         val existing = messageDao.getById(sessionId, entity.id)
+        val branchHead = if (ConversationRebuildFlagStore.current.useCommitSeq) {
+            database.sessionBranchHeadDao().get(sessionId)
+        } else {
+            null
+        }
         if (existing != null) {
             if (entity.seq == 0L) entity = entity.copy(seq = existing.seq)
+            if (entity.commitSeq == 0L) entity = entity.copy(commitSeq = existing.commitSeq)
             if (existing.createdAt != entity.createdAt) entity = entity.copy(createdAt = existing.createdAt)
-        } else if (entity.seq == 0L) {
-            entity = entity.copy(seq = messageDao.getMaxSeq(sessionId) + 1)
+        } else {
+            if (entity.seq == 0L) {
+                entity = entity.copy(seq = messageDao.getMaxSeq(sessionId) + 1)
+            }
+            if (ConversationRebuildFlagStore.current.useCommitSeq && entity.commitSeq == 0L) {
+                val next = branchHead?.nextCommitSeq
+                    ?.coerceAtLeast(messageDao.getMaxSeq(sessionId) + 1)
+                    ?: (messageDao.getMaxSeq(sessionId) + 1)
+                entity = entity.copy(commitSeq = next)
+            }
         }
         messageDao.upsert(entity)
+        if (ConversationRebuildFlagStore.current.useCommitSeq && existing == null) {
+            val now = System.currentTimeMillis()
+            database.sessionBranchHeadDao().upsert(
+                SessionBranchHeadEntity(
+                    sessionId = sessionId,
+                    headMessageId = entity.id,
+                    nextCommitSeq = entity.commitSeq + 1,
+                    projectionVersion = (branchHead?.projectionVersion ?: 0) + 1,
+                    updatedAt = now,
+                ),
+            )
+        }
         // Phase 10.3: 同步 FTS 索引(toNgram 预处理中文 2-gram)
         // v1.63: 加前置 deleteFts 防御,避免未来误用 appendMessage 更新已存在 id 时 FTS 重复
         // i18n 示范改造点 4:原硬编码英文 "FTS insert failed: ..." 改为 ErrorMessage。
@@ -1334,6 +1363,27 @@ class SessionRepository(
     }
 
     // ── 转换工具 ──────────────────────────────────────────────────────────
+
+    /** 新 projection 读路径：旧消息无 parts 时从 legacy 字段派生，保持全部旧字段。 */
+    private suspend fun projectMessagesForRead(entities: List<MessageEntity>): List<UIMessage> {
+        if (!ConversationRebuildFlagStore.current.useMessageProjection || entities.isEmpty()) {
+            return entities.map { it.toUIMessage() }
+        }
+        val ids = entities.map { it.id }
+        val parts = database.messagePartDao().getByMessages(ids)
+        val projection = ConversationProjector.project(
+            messages = entities,
+            parts = parts,
+            useCommitSeq = ConversationRebuildFlagStore.current.useCommitSeq,
+        )
+        val byId = entities.associateBy { it.id }
+        return projection.messages.mapNotNull { projected ->
+            byId[projected.id]?.toUIMessage()?.copy(
+                content = projected.content,
+                reasoning = projected.reasoning,
+            )
+        }
+    }
 
     /** MessageEntity → UIMessage。 */
     private fun MessageEntity.toUIMessage(): UIMessage {
