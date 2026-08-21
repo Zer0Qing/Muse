@@ -845,6 +845,9 @@ class SessionRepository(
                     // 已完成的消息在重启后会被误标 [已中断],造成"重进内容混乱"
                     // (完整回复 + 多余中断标记)。
                     if (existing != null && existing.content.length >= cp.content.length) {
+                        // 内容已覆盖检查点：正常完成但删除 checkpoint 失败时，
+                        // 也必须清掉残留，避免每次启动重复扫描同一条记录。
+                        database.generationCheckpointDao().deleteByAssistantMessageId(cp.assistantMessageId)
                         continue
                     }
                     val marker = "[已中断]"
