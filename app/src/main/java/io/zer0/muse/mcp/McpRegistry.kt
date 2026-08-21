@@ -107,6 +107,10 @@ class McpRegistry(
         scope.launch {
             settings.mcpServersFlow.collect { saved ->
                 _servers.value = saved
+                // 启动时清理助手中已不存在的 MCP 绑定，避免 orphan id 持续影响工具就绪判断。
+                runCatching {
+                    assistantRepository?.removeOrphanMcpServerBindings(saved.map { it.id }.toSet())
+                }.onFailure { Logger.w(TAG, "清理孤儿 MCP 绑定失败: ${it.message}", it) }
                 // 自动连接所有启用的 server(尚未连接的)
                 saved.filter { it.enabled && it.url.isNotBlank() }.forEach { cfg ->
                     if (!clients.containsKey(cfg.id)) {
@@ -173,6 +177,9 @@ class McpRegistry(
         val newList = _servers.value.filterNot { it.id == id }
         persist(newList)
         _servers.value = newList
+        runCatching {
+            assistantRepository?.removeMcpServerBinding(id)
+        }.onFailure { Logger.w(TAG, "清理 MCP server 绑定失败(id=$id): ${it.message}", it) }
         disconnectServer(id)
     }
 

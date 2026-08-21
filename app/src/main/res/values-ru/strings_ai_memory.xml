@@ -169,4 +169,12 @@
     <string name="memory_center_filter_title">Фильтр</string>
     <string name="memory_center_filter_scope">Область</string>
     <string name="memory_center_filter_space">Пространство памяти</string>
+    <string name="memory_compile_running">Организация памяти…</string>
+    <string name="memory_organize_action">Организовать память</string>
+    <string name="memory_organize_stage_prepare">Подготовка</string>
+    <string name="memory_organize_stage_compile">Составление сводок</string>
+    <string name="memory_organize_stage_dedup">Объединение дубликатов</string>
+    <string name="memory_organize_stage_complete">Готово, объединено: %1$d</string>
+    <string name="memory_organize_stage_no_duplicates">Готово, дубликатов для объединения не найдено</string>
+    <string name="memory_organize_stage_failed">Не удалось организовать память, попробуйте снова</string>
 </resources>

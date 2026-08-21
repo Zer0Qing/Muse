@@ -169,4 +169,12 @@
     <string name="memory_center_filter_title">Filtrar</string>
     <string name="memory_center_filter_scope">Escopo</string>
     <string name="memory_center_filter_space">Espaço de memória</string>
+    <string name="memory_compile_running">Organizando a memória…</string>
+    <string name="memory_organize_action">Organizar memória</string>
+    <string name="memory_organize_stage_prepare">Preparando</string>
+    <string name="memory_organize_stage_compile">Compilando resumos</string>
+    <string name="memory_organize_stage_dedup">Mesclando duplicados</string>
+    <string name="memory_organize_stage_complete">Organizado, %1$d mesclados</string>
+    <string name="memory_organize_stage_no_duplicates">Organizado, nenhuma memória duplicada encontrada</string>
+    <string name="memory_organize_stage_failed">Falha ao organizar, tente novamente</string>
 </resources>

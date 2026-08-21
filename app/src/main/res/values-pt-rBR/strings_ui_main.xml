@@ -715,4 +715,6 @@
     <string name="settings_share_page_title">Compartilhar</string>
     <string name="settings_search_result_count">%1$d resultados encontrados</string>
     <string name="settings_screen_miniphone_desc">Versão inicial de um recurso experimental</string>
+    <string name="model_diff_clear_add">Limpar modelos novos</string>
+    <string name="model_diff_clear_remove">Limpar modelos removidos</string>
 </resources>

@@ -711,4 +711,6 @@
     <string name="settings_share_page_title">Поделиться</string>
     <string name="settings_search_result_count">Найдено результатов: %1$d</string>
     <string name="settings_screen_miniphone_desc">Ранняя версия экспериментальной функции</string>
+    <string name="model_diff_clear_add">Очистить новые модели</string>
+    <string name="model_diff_clear_remove">Очистить удалённые модели</string>
 </resources>

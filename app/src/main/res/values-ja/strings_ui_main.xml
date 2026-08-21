@@ -715,4 +715,6 @@
     <string name="settings_share_page_title">共有</string>
     <string name="settings_search_result_count">%1$d 件の結果が見つかりました</string>
     <string name="settings_screen_miniphone_desc">実験機能の初期バージョン</string>
+    <string name="model_diff_clear_add">新規モデルを解除</string>
+    <string name="model_diff_clear_remove">削除モデルを解除</string>
 </resources>

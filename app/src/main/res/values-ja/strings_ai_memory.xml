@@ -169,4 +169,12 @@
     <string name="memory_center_filter_title">フィルター</string>
     <string name="memory_center_filter_scope">スコープ</string>
     <string name="memory_center_filter_space">記憶スペース</string>
+    <string name="memory_compile_running">記憶を整理中…</string>
+    <string name="memory_organize_action">記憶を整理</string>
+    <string name="memory_organize_stage_prepare">準備中</string>
+    <string name="memory_organize_stage_compile">要約を作成中</string>
+    <string name="memory_organize_stage_dedup">重複を統合中</string>
+    <string name="memory_organize_stage_complete">整理完了、%1$d 件を統合</string>
+    <string name="memory_organize_stage_no_duplicates">整理完了、統合できる重複記憶はありません</string>
+    <string name="memory_organize_stage_failed">整理に失敗しました。もう一度お試しください</string>
 </resources>

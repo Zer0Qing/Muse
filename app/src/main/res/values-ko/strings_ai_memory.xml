@@ -169,4 +169,12 @@
     <string name="memory_center_filter_title">필터</string>
     <string name="memory_center_filter_scope">범위</string>
     <string name="memory_center_filter_space">기억 공간</string>
+    <string name="memory_compile_running">기억 정리 중…</string>
+    <string name="memory_organize_action">기억 정리</string>
+    <string name="memory_organize_stage_prepare">준비 중</string>
+    <string name="memory_organize_stage_compile">요약 컴파일 중</string>
+    <string name="memory_organize_stage_dedup">중복 병합 중</string>
+    <string name="memory_organize_stage_complete">정리 완료, %1$d개 병합</string>
+    <string name="memory_organize_stage_no_duplicates">정리 완료, 병합할 중복 기억이 없습니다</string>
+    <string name="memory_organize_stage_failed">정리에 실패했습니다. 다시 시도해 주세요</string>
 </resources>

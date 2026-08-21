@@ -718,4 +718,6 @@
     <string name="settings_share_page_title">Share</string>
     <string name="settings_search_result_count">%1$d results found</string>
     <string name="settings_screen_miniphone_desc">Early version of an experimental feature</string>
+    <string name="model_diff_clear_add">Clear new models</string>
+    <string name="model_diff_clear_remove">Clear removed models</string>
 </resources>

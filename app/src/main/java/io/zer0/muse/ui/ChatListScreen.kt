@@ -267,7 +267,10 @@ fun ChatListScreen(
         )
     }
     val pinned = remember(displayedSessions) { displayedSessions.filter { it.pinned } }
-    val recent = remember(displayedSessions) { displayedSessions.filterNot { it.pinned } }
+    val expandedFolderIds = remember(folders) { folders.filter { it.expanded }.map { it.id }.toSet() }
+    val recent = remember(displayedSessions, expandedFolderIds) {
+        displayedSessions.filter { !it.pinned && (it.folderId == null || it.folderId !in expandedFolderIds) }
+    }
     // B7-05: 拖拽期间的乐观顺序,收到 DB flow 更新后自动以 sessions 为准
     var pinnedOrder by remember(sessions) { mutableStateOf(pinned.map { it.id }) }
     val orderedPinned = remember(pinned, pinnedOrder) {
@@ -356,7 +359,14 @@ fun ChatListScreen(
                     if (folders.isNotEmpty()) {
                         foldersSectionItems(
                             folders = folders,
-                            onSelectFolder = { /* 当前无文件夹详情页,可后续扩展 */ },
+                            sessions = displayedSessions,
+                            onSelect = onSelect,
+                            onDelete = onDelete,
+                            onRenameTo = onRenameTo,
+                            onTogglePinned = onTogglePinned,
+                            onMoveSessionToFolder = onMoveSessionToFolder,
+                            onArchive = onArchive,
+                            onSelectFolder = { folder -> onToggleFolderExpanded(folder.id, !folder.expanded) },
                             onRenameFolder = onRenameFolder,
                             onDeleteFolder = onDeleteFolder,
                         )
@@ -1147,6 +1157,13 @@ private fun ActionSheetRow(
  */
 private fun LazyListScope.foldersSectionItems(
     folders: List<FolderEntity>,
+    sessions: List<SessionEntity>,
+    onSelect: (String) -> Unit,
+    onDelete: (String) -> Unit,
+    onRenameTo: (SessionEntity, String) -> Unit,
+    onTogglePinned: (String) -> Unit,
+    onMoveSessionToFolder: (String, String?) -> Unit,
+    onArchive: (String) -> Unit,
     onSelectFolder: (FolderEntity) -> Unit,
     onRenameFolder: (String, String) -> Unit,
     onDeleteFolder: (String) -> Unit,
@@ -1154,25 +1171,38 @@ private fun LazyListScope.foldersSectionItems(
     item(key = "section_folders_title") {
         TaskSectionTitle { Text(stringResource(R.string.chat_list_section_folders)) }
     }
-    itemsIndexed(folders, key = { _, folder -> "folder_${folder.id}" }) { index, folder ->
-        // E5 (H4): 文件夹区列表项入场/位移动画
-        Box(museAnimateItem()) {
-            SectionGroupRow(index = index, total = folders.size) {
-                FolderItem(
-                    folder = folder,
-                    onSelectFolder = onSelectFolder,
-                    onRenameFolder = onRenameFolder,
-                    onDeleteFolder = onDeleteFolder,
-                )
-                if (index != folders.lastIndex) {
-                    MuseDivider()
+    folders.forEach { folder ->
+        item(key = "folder_${folder.id}") {
+            Box(museAnimateItem()) {
+                SectionGroupRow(index = 0, total = 1) {
+                    FolderItem(
+                        folder = folder,
+                        onSelectFolder = onSelectFolder,
+                        onRenameFolder = onRenameFolder,
+                        onDeleteFolder = onDeleteFolder,
+                    )
                 }
+            }
+        }
+        if (folder.expanded) {
+            val folderSessions = sessions.filter { it.folderId == folder.id }
+            itemsIndexed(folderSessions, key = { _, session -> "folder_${folder.id}_session_${session.id}" }) { _, session ->
+                TaskItem(
+                    session = session,
+                    folders = folders,
+                    onSelect = onSelect,
+                    onDelete = onDelete,
+                    onRenameTo = onRenameTo,
+                    onTogglePinned = onTogglePinned,
+                    onMoveSessionToFolder = onMoveSessionToFolder,
+                    onArchive = onArchive,
+                )
             }
         }
     }
 }
 
-/** 单个文件夹项:点击展开(预留) + 长按重命名/删除。 */
+/** 单个文件夹项:点击展开/收起 + 长按重命名/删除。 */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun FolderItem(

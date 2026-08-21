@@ -169,4 +169,12 @@
     <string name="memory_center_filter_title">Filtrar</string>
     <string name="memory_center_filter_scope">Ámbito</string>
     <string name="memory_center_filter_space">Espacio de memoria</string>
+    <string name="memory_compile_running">Organizando la memoria…</string>
+    <string name="memory_organize_action">Organizar memoria</string>
+    <string name="memory_organize_stage_prepare">Preparando</string>
+    <string name="memory_organize_stage_compile">Compilando resúmenes</string>
+    <string name="memory_organize_stage_dedup">Fusionando duplicados</string>
+    <string name="memory_organize_stage_complete">Organizado, fusionados %1$d</string>
+    <string name="memory_organize_stage_no_duplicates">Organizado, no se encontraron recuerdos duplicados</string>
+    <string name="memory_organize_stage_failed">No se pudo organizar, inténtalo de nuevo</string>
 </resources>

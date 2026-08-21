@@ -47,6 +47,27 @@ class AssistantRepository(
         dao.upsert(assistant)
     }
 
+    /** 删除已不存在的 MCP server 绑定，避免 orphan id 和 id 复用后的意外复活。 */
+    suspend fun removeMcpServerBinding(serverId: String) {
+        getAll().forEach { assistant ->
+            val ids = parseMcpServerIds(assistant)
+            if (serverId in ids) {
+                upsert(assistant.copy(mcpServerIdsJson = serializeStringList(ids - serverId)))
+            }
+        }
+    }
+
+    /** 清理助手上指向当前配置不存在的 MCP server id。 */
+    suspend fun removeOrphanMcpServerBindings(validServerIds: Set<String>) {
+        getAll().forEach { assistant ->
+            val ids = parseMcpServerIds(assistant)
+            val filtered = ids.filter { it in validServerIds }
+            if (filtered.size != ids.size) {
+                upsert(assistant.copy(mcpServerIdsJson = serializeStringList(filtered)))
+            }
+        }
+    }
+
     suspend fun delete(id: String) {
         dao.deleteById(id)
     }

@@ -174,4 +174,12 @@
     <string name="memory_center_filter_title">Filter</string>
     <string name="memory_center_filter_scope">Scope</string>
     <string name="memory_center_filter_space">Memory space</string>
+    <string name="memory_compile_running">Organizing memory…</string>
+    <string name="memory_organize_action">Organize memory</string>
+    <string name="memory_organize_stage_prepare">Preparing</string>
+    <string name="memory_organize_stage_compile">Compiling summaries</string>
+    <string name="memory_organize_stage_dedup">Merging duplicates</string>
+    <string name="memory_organize_stage_complete">Organized, merged %1$d</string>
+    <string name="memory_organize_stage_no_duplicates">Organized, no duplicate memories found</string>
+    <string name="memory_organize_stage_failed">Organization failed, try again</string>
 </resources>

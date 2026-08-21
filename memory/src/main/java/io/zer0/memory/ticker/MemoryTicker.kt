@@ -582,7 +582,7 @@ class  MemoryTicker(
             // v1.x: 每日去重 — deepMemory 写入新事实后,全量扫描合并近似重复
             // (此前仅前缀匹配漏掉的存量重复),失败不影响主流程
             factStore?.let { fs ->
-                resultOf { fs.dedupPass(scope = "main") }
+                resultOf { fs.dedupPassAllScopes(spaceId = "default") }
                     .onError { msg, t -> Logger.w(TAG, "每日记忆去重失败: ${t?.message ?: msg}") }
                     .onSuccess { n -> if (n > 0) Logger.i(TAG, "每日记忆去重: 合并 $n 条重复事实") }
             }

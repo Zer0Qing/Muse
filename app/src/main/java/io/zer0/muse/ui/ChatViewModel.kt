@@ -1421,6 +1421,14 @@ class ChatViewModel(
         return true
     }
 
+    /** 发送请求落库失败时移除当前页的乐观 user/assistant 消息。 */
+    private fun rollbackOptimisticSend(req: SendRequest) {
+        if (_state.value.currentSessionId != req.sessionId) return
+        _messages.value = _messages.value.filterNot { message ->
+            message.id == req.userMessage.id || message.id == req.assistantMessageId
+        }
+    }
+
     // v5: 消息发送队列 — 串行化处理,防止快速连续发送导致竞态
     private data class SendRequest(
         val text: String,
@@ -1936,8 +1944,10 @@ class ChatViewModel(
                         } catch (e: kotlin.coroutines.cancellation.CancellationException) {
                             throw e
                         } catch (e: Exception) {
-                            // 单条消息处理失败:回滚乐观更新 + 删除 outbox,继续下一轮
+                            // 单条消息处理失败:回滚乐观更新 + 删除 outbox,继续下一轮。
+                            // 不回滚会出现“当前页看得到、重进后消失”的幽灵消息。
                             Logger.e("ChatVM", "消费发送请求失败(msg=${req.userMessage.content.take(30)}): ${e.message}", e)
+                            rollbackOptimisticSend(req)
                             runCatching { sessionRepository.deleteOutbox(req.outboxId) }
                             _state.update { it.copy(isStreaming = false, isWaitingFirstToken = false) }
                         }
@@ -4290,20 +4300,25 @@ class ChatViewModel(
             )
         }
         sessionMemoryCache.remove(sessionId)
-        viewModelScope.launch(Dispatchers.IO) {
-            runCatching {
-                edit.newUserMessage?.let { sessionRepository.upsertMessage(sessionId, it) }
-                edit.newAssistantPlaceholder?.let { sessionRepository.upsertMessage(sessionId, it) }
-                edit.newUserMessage?.variantGroupId?.let { groupId ->
-                    edit.newUserMessage?.variantCount?.let { count ->
-                        runCatching { sessionRepository.updateVariantCount(groupId, count) }
-                    }
-                }
-            }.onFailure { e -> Logger.e("ChatVM", "applyUserEdit persist failed", e) }
-        }
         edit.newAssistantPlaceholder?.let { placeholder ->
+            // 分支消息必须先落库成功，再启动流，避免 turn commit 先于 parent/user variant 写入。
             viewModelScope.launch {
-                launchStream(placeholder.id, sessionId, isNewBranch = true)
+                val persisted = withContext(Dispatchers.IO) {
+                    runCatching {
+                        edit.newUserMessage?.let { sessionRepository.upsertMessage(sessionId, it) }
+                        sessionRepository.upsertMessage(sessionId, placeholder)
+                        edit.newUserMessage?.variantGroupId?.let { groupId ->
+                            edit.newUserMessage?.variantCount?.let { count ->
+                                sessionRepository.updateVariantCount(groupId, count)
+                            }
+                        }
+                    }.onFailure { e -> Logger.e("ChatVM", "applyUserEdit persist failed", e) }.isSuccess
+                }
+                if (persisted) {
+                    launchStream(placeholder.id, sessionId, isNewBranch = true)
+                } else {
+                    _state.update { it.copy(isStreaming = false, isWaitingFirstToken = false) }
+                }
             }
         }
     }
@@ -4386,15 +4401,21 @@ class ChatViewModel(
         }
         sessionMemoryCache.remove(sessionId)
         _pendingVariantInfo = null
-        viewModelScope.launch(Dispatchers.IO) {
-            runCatching { sessionRepository.upsertMessage(sessionId, newMsg) }
-                .onFailure { e -> Logger.e("ChatVM", "regenerate upsertMessage failed", e) }
-            update.changedGroupId?.let { groupId ->
-                runCatching { sessionRepository.updateVariantCount(groupId, newMsg.variantCount) }
-            }
-        }
+        // 先完成新 assistant variant 的落库，再启动生成，避免分支数据库竞态。
         viewModelScope.launch {
-            launchStream(newMsg.id, sessionId, isNewBranch = true)
+            val persisted = withContext(Dispatchers.IO) {
+                runCatching {
+                    sessionRepository.upsertMessage(sessionId, newMsg)
+                    update.changedGroupId?.let { groupId ->
+                        sessionRepository.updateVariantCount(groupId, newMsg.variantCount)
+                    }
+                }.onFailure { e -> Logger.e("ChatVM", "regenerate upsertMessage failed", e) }.isSuccess
+            }
+            if (persisted) {
+                launchStream(newMsg.id, sessionId, isNewBranch = true)
+            } else {
+                _state.update { it.copy(isStreaming = false, isWaitingFirstToken = false) }
+            }
         }
     }
 
@@ -6073,6 +6094,7 @@ class ChatViewModel(
         }
 
         // 将 finalAssistantMessage(含 citations + artifacts)写入 UI / DB / branch
+        var finalMessagePersistenceFailed = false
         toolLoopResult.finalAssistantMessage?.let { finalAssistant ->
             // v1.0.75 fix (生图只显示链接根因): finalAssistantMessage 由 GenerationHandler 构造,
             //   只含 content + toolCalls,不含媒体字段。若直接覆盖同 id 消息,
@@ -6135,10 +6157,30 @@ class ChatViewModel(
                     sessionRepository.upsertMessage(sessionId, withArtifacts)
                 }
             } catch (e: Exception) {
+                // 提交失败时不能继续走正常 finalize，否则会出现“回合完成但正文未落库”。
+                finalMessagePersistenceFailed = true
                 Logger.e("ChatVM", "upsertMessage failed", e)
                 addError(ChatErrorType.UNKNOWN, appContext.getString(R.string.err_chat_reply_save_failed, e.message ?: appContext.getString(R.string.err_chat_unknown)))
             }
-        rebuildConversationTree()
+            rebuildConversationTree()
+        }
+
+        if (finalMessagePersistenceFailed) {
+            if (ConversationRebuildFlagStore.current.shadowEventsEnabled && state.shadowTurnStarted) {
+                recordConversationShadow(
+                    ConversationEventDraft(
+                        sessionId = sessionId,
+                        turnId = state.turnId,
+                        type = ConversationEventType.TURN_FAILED,
+                        streamId = state.streamId,
+                        generationSerial = state.generationSerial,
+                        payloadJson = "{\"reason\":\"message_persistence_failed\",\"messageId\":\"${state.currentAssistantId}\"}",
+                    ),
+                )
+                conversationService.finishTurn(state.turnId, "FAILED")
+            }
+            clearStreamingStateIfLatest(state, ChatStreamPhase.FAILED)
+            return false
         }
 
         return true
