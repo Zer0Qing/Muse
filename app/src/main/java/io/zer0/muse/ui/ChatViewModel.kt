@@ -6001,6 +6001,7 @@ class ChatViewModel(
                 assistant = assistant,
                 initialBuilderContent = state.builder.toString(),
                 initialReasoningContent = state.reasoningBuilder.toString(),
+                turnId = state.turnId,
             ),
             conversationHistory = conversationHistory,
             host = toolLoopHost,
@@ -6119,6 +6120,7 @@ class ChatViewModel(
                             assistantMessageId = withArtifacts.id.toString(),
                             message = withArtifacts,
                             parts = buildCommitParts(withArtifacts, System.currentTimeMillis()),
+                            toolRounds = toolLoopResult.toolRounds,
                         ),
                     )
                     if (commitResult is io.zer0.muse.data.chat.rewrite.MessageCommitResult.Rejected) {

@@ -19,6 +19,7 @@ import io.zer0.muse.data.ExperimentsConfig
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.session.SessionRepository
+import io.zer0.muse.data.session.ToolRoundEntity
 import io.zer0.muse.data.audit.AuditLogger
 import io.zer0.muse.data.skill.SkillEntity
 import io.zer0.muse.data.skill.SkillRepository
@@ -259,6 +260,8 @@ data class ToolLoopParams(
     val initialBuilderContent: String = "",
     /** B7-04: 首轮预置已产出 reasoning。 */
     val initialReasoningContent: String = "",
+    /** 新链路回合归属；为空时仅保留旧链路行为。 */
+    val turnId: String = "",
 )
 
 /**
@@ -285,6 +288,8 @@ data class ToolLoopResult(
     val error: ToolLoopError? = null,
     /** 工具调用循环正常结束时(无 tool_calls)的最终 assistant 消息;达到轮次上限等异常退出时为 null。 */
     val finalAssistantMessage: UIMessage? = null,
+    /** 本次工具循环的结构化工具轮，随最终消息一次性提交。 */
+    val toolRounds: List<ToolRoundEntity> = emptyList(),
 )
 
 /**
@@ -369,6 +374,8 @@ class ToolOrchestrator(
         val status: ToolExecStatus = ToolExecStatus.SUCCESS,
         /** F-08: 工具执行耗时(ms),供 AgentRunRecord 收据。 */
         val durationMs: Long = 0L,
+        val startedAt: Long = 0L,
+        val finishedAt: Long = 0L,
     )
 
     /**
@@ -392,6 +399,7 @@ class ToolOrchestrator(
         var totalCharCount = 0
         var firstTokenTime = 0L
         val citationUrls = mutableListOf<String>()
+        val toolRounds = mutableListOf<ToolRoundEntity>()
         var hasToolCalls = true
         var finalAssistantMessage: UIMessage? = null
         // A-07: 非正常退出原因(卡死/连续失败),用于收尾消息文案
@@ -485,6 +493,7 @@ class ToolOrchestrator(
                             partialContent = outcome.partialContent,
                             partialReasoning = outcome.partialReasoning,
                         ),
+                        toolRounds = toolRounds.toList(),
                     )
                 }
 
@@ -632,6 +641,26 @@ class ToolOrchestrator(
                         }.sortedBy { it.idx }
                     }
 
+                    // 结构化记录本轮工具调用；UI 消息仍走兼容字段，重进会话时由此表恢复。
+                    if (params.turnId.isNotBlank()) {
+                        val finishedAt = System.currentTimeMillis()
+                        toolRounds += execResults.map { result ->
+                            ToolRoundEntity(
+                                id = "${params.traceId.ifBlank { params.sessionId }}:$round:${result.tc.id}",
+                                turnId = params.turnId,
+                                roundIndex = round,
+                                toolCallId = result.tc.id,
+                                toolName = result.tc.name,
+                                argsJson = result.tc.arguments,
+                                resultJson = result.finalToolResult,
+                                status = result.status.name,
+                                startedAt = stepStartedAt,
+                                finishedAt = finishedAt,
+                                errorDetail = if (result.isSuccess) null else result.displayResult ?: result.finalToolResult,
+                            )
+                        }
+                    }
+
                     // 按顺序回填结果到历史和 UI
                     for (result in execResults) {
                         val (idx, tc, finalToolResult, isSuccess, displayResult) = result
@@ -716,6 +745,12 @@ class ToolOrchestrator(
                             timestamp = System.currentTimeMillis(),
                         )
 
+                        // 工具结果消息不能只放在内存 UI：切出会话、进程重启后仍需显示工具卡片。
+                        // assistant(tool_calls) 已在上方落盘，这里补齐对应的 tool result 展示消息。
+                        // 使用消息自身 id 做幂等 upsert，不影响当前 UI 是否正在展示该会话。
+                        if (tc.name !in silentToolNames || tc.name == "send_sticker") {
+                            persistAssistantToolMsg(params.sessionId, toolDisplay, host)
+                        }
                         val snapshot = accessor.snapshot
                         val isCurrentDisplayedSession = if (snapshot.isAgentMode) {
                             snapshot.agentSessionId == params.sessionId
@@ -847,6 +882,7 @@ class ToolOrchestrator(
             citationUrls = citationUrls.toList(),
             success = true,
             finalAssistantMessage = finalAssistantMessage,
+            toolRounds = toolRounds.toList(),
         )
     }
 
