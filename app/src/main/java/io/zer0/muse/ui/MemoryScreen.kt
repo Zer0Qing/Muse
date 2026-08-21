@@ -54,6 +54,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseBottomSheet
+import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.media.WindowWidthClass
 import io.zer0.muse.ui.common.media.rememberWindowWidthClass
 import io.zer0.muse.ui.common.navigation.MuseTopBar
@@ -149,8 +150,17 @@ fun MemoryScreen(
                     onOrganize = viewModel::organizeMemory,
                     onOpenFilter = { showFilter = true },
                 )
-                MemoryCapsuleTabs(selected = tab, onSelect = { tab = it })
-                when (tab) {
+                val memoryError = state.errorTrace
+                if (memoryError != null) {
+                    MuseErrorStateBox(
+                        message = memoryError.lineSequence().firstOrNull { it.isNotBlank() }?.take(240)
+                            ?: stringResource(R.string.memory_graph_load_failed),
+                        onRetry = { viewModel.loadAll() },
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                } else {
+                    MemoryCapsuleTabs(selected = tab, onSelect = { tab = it })
+                    when (tab) {
                     0 -> MemoryStreamTab(
                         state = state,
                         onOpenFacts = { tab = 1 },
@@ -167,6 +177,7 @@ fun MemoryScreen(
                         onDelete = viewModel::deleteFact,
                         onPin = { viewModel.toggleFactPinned(it.id) },
                     )
+                    }
                 }
             }
         }
