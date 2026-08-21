@@ -54,7 +54,7 @@
     <string name="onboarding_meet_characters">Познакомьтесь с другими персонажами</string>
     <string name="chat_list_days_together">День %d вместе</string>
     <string name="chat_list_just_met_today">Только сегодня встретились</string>
-    <string name="chat_list_day_together">День %д</string>
+    <string name="chat_list_day_together">День %1$d</string>
 
     <!-- Settings sections -->
     <string name="section_about">О</string>
