@@ -34,6 +34,16 @@ interface MemoryLinkDao {
     )
     suspend fun listBySpaceAndScope(spaceId: String, scope: String): List<MemoryLinkEntity>
 
+    /** 查询指定 Space 下所有作用域的关系，用于记忆中心“全部作用域”视图。 */
+    @Query(
+        """
+        SELECT * FROM memory_links
+        WHERE space_id = :spaceId
+        ORDER BY weight DESC, created_at DESC
+        """
+    )
+    suspend fun listBySpace(spaceId: String): List<MemoryLinkEntity>
+
     /**
      * 观察指定 Space + Scope 的关系列表(Flow 形式,UI 实时刷新)。
      */

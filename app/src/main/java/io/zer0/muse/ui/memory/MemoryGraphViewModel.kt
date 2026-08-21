@@ -37,14 +37,19 @@ class MemoryGraphViewModel(
     private val _state = MutableStateFlow(GraphState(isLoading = true))
     val state: StateFlow<GraphState> = _state.asStateFlow()
 
-    fun load(scope: String, spaceId: String) {
+    fun load(scope: String?, spaceId: String) {
         _state.value = _state.value.copy(isLoading = true, error = null)
         viewModelScope.launch {
             try {
-                val facts = withContext(Dispatchers.IO) { factStore.getByScopeAndSpace(scope, spaceId) }
-                val links = withContext(Dispatchers.IO) { memoryLinkDao.listBySpaceAndScope(spaceId, scope) }
+                val facts = withContext(Dispatchers.IO) {
+                    if (scope == null) factStore.getBySpace(spaceId) else factStore.getByScopeAndSpace(scope, spaceId)
+                }
+                val links = withContext(Dispatchers.IO) {
+                    if (scope == null) memoryLinkDao.listBySpace(spaceId) else memoryLinkDao.listBySpaceAndScope(spaceId, scope)
+                }
                 val factIdsInLinks = links.flatMapTo(mutableSetOf()) { setOf(it.sourceFactId, it.targetFactId) }
-                val nodeFacts = facts.filter { it.id in factIdsInLinks || it.importance >= 1 || it.pinnedAt != null }.take(MAX_NODES)
+                // 普通事实也必须可见；关系/重要度/置顶只用于排序优先级。
+                val nodeFacts = selectGraphFacts(facts, factIdsInLinks, MAX_NODES)
                 val nodeIdSet = nodeFacts.map { it.id }.toSet()
                 val nodeEdges = links.filter { it.sourceFactId in nodeIdSet && it.targetFactId in nodeIdSet }.take(MAX_EDGES)
 
@@ -82,7 +87,7 @@ class MemoryGraphViewModel(
     }
 
     // ── 阶段 3: 节点操作 ──
-    fun deleteNode(factId: Long, scope: String, spaceId: String) {
+    fun deleteNode(factId: Long, scope: String?, spaceId: String) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
                 memoryLinkDao.deleteByFactId(factId)
@@ -95,7 +100,7 @@ class MemoryGraphViewModel(
     fun editNode(factId: Long, newContent: String, scope: String?, spaceId: String) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) { factStore.update(factId, newContent, scope) }
-            load(scope ?: "main", spaceId)
+            load(scope, spaceId)
         }
     }
 
@@ -112,7 +117,7 @@ class MemoryGraphViewModel(
     }
 
     // ── 阶段 3: 关系操作 ──
-    fun deleteEdge(edgeId: Long, scope: String, spaceId: String) {
+    fun deleteEdge(edgeId: Long, scope: String?, spaceId: String) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) { memoryLinkDao.deleteById(edgeId) }
             load(scope, spaceId)

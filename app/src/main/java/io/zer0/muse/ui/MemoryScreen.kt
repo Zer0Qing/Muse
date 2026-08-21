@@ -443,8 +443,8 @@ fun MemoryScreen(
                 if (selectedMemoryTab == 5) {
                     val graphViewModel: io.zer0.muse.ui.memory.MemoryGraphViewModel = koinViewModel()
                     val graphState by graphViewModel.state.collectAsStateWithLifecycle()
-                    val currentScope = selectedScope ?: "main"
-                    val currentSpace = selectedSpaceId ?: "default"
+                    val currentScope = selectedScope
+                    val currentSpace = selectedSpaceId
                     LaunchedEffect(currentScope, currentSpace) {
                         graphViewModel.load(currentScope, currentSpace)
                     }
