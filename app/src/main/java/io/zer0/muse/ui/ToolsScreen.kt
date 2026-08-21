@@ -27,6 +27,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -72,8 +73,10 @@ fun ToolsScreen(
     onBack: () -> Unit,
 ) {
     val toolRegistry: ToolRegistry = koinInject()
+    // ToolRegistry 支持 MCP/插件动态注册；订阅 revision，避免页面首次为空后永久不刷新。
+    val registryRevision by toolRegistry.revision.collectAsStateWithLifecycle()
     // listTools() 是同步函数(读 ConcurrentHashMap.values),无需 IO
-    val tools = remember { toolRegistry.listTools().sortedBy { it.name } }
+    val tools = remember(registryRevision) { toolRegistry.listTools().sortedBy { it.name } }
     // 按分类分组
     val grouped = remember(tools) {
         tools.groupBy { it.category }.toSortedMap()

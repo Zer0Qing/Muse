@@ -710,6 +710,18 @@ class FactStore(
         merged
     }
 
+    /** 按数据库中实际存在的 space + scope 组合执行去重，绝不跨空间比较。 */
+    suspend fun dedupPassAllSpaces(maxPairs: Int = 300): Int = withContext(Dispatchers.IO) {
+        val groups = dao.getAll(null)
+            .asSequence()
+            .map { it.scope to it.spaceId }
+            .distinct()
+            .toList()
+        groups.sumOf { (scope, spaceId) ->
+            dedupPass(scope = scope, maxPairs = maxPairs, spaceId = spaceId)
+        }
+    }
+
     /** v1.x: 合并两条相似事实(用于全量去重),保留信息更完整的文本。 */
     private suspend fun mergeForDedup(base: FactEntity, other: FactEntity): FactEntity {
         val mergedTags = (decodeTags(base.tags) + decodeTags(other.tags)).distinct()

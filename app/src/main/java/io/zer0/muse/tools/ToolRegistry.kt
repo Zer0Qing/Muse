@@ -25,6 +25,9 @@ import io.zer0.muse.tools.reminder.ReminderAlarmReceiver
 import io.zer0.muse.transformer.stripThinkTags
 import io.zer0.muse.util.MusePatterns
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -133,6 +136,9 @@ class ToolRegistry(
     private val outcomeTools = ConcurrentHashMap<String, ToolOutcomeFn>()
     private val jsonTools = ConcurrentHashMap<String, JsonToolFn>()
     private val toolDefs = ConcurrentHashMap<String, ToolDef>()
+    private val _revision = MutableStateFlow(0L)
+    /** 动态工具注册/注销版本，供工具页和请求组装器订阅刷新。 */
+    val revision: StateFlow<Long> = _revision.asStateFlow()
 
     // v1.136: 定时提醒、资源库
     // v1.0.17: 快速记录改用 Room(MuseDb.get(context).quickNoteDao()),不再持有 QuickNoteStore
@@ -165,6 +171,7 @@ class ToolRegistry(
         outcomeTools.remove(def.name)
         jsonTools.remove(def.name)
         toolDefs[def.name] = def
+        _revision.value += 1
     }
 
     /**
@@ -176,6 +183,7 @@ class ToolRegistry(
         tools.remove(def.name)
         jsonTools.remove(def.name)
         toolDefs[def.name] = def
+        _revision.value += 1
     }
 
     /**
@@ -189,6 +197,7 @@ class ToolRegistry(
         tools.remove(def.name)
         outcomeTools.remove(def.name)
         toolDefs[def.name] = def
+        _revision.value += 1
     }
 
     /** 注销工具。 */
@@ -197,6 +206,7 @@ class ToolRegistry(
         outcomeTools.remove(name)
         jsonTools.remove(name)
         toolDefs.remove(name)
+        _revision.value += 1
     }
 
     private fun registerBuiltIn(
