@@ -536,6 +536,8 @@
     <string name="model_diff_unchanged">保持一致(%1$d)</string>
     <string name="model_diff_add_all">全部添加新增</string>
     <string name="model_diff_remove_all">全部移除已删除</string>
+    <string name="model_diff_clear_add">清空新增</string>
+    <string name="model_diff_clear_remove">清空已删除</string>
     <string name="model_diff_kept_badge">已删除(保留)</string>
     <string name="model_diff_apply">应用所选变更</string>
     <string name="model_diff_empty_new">无新增模型</string>

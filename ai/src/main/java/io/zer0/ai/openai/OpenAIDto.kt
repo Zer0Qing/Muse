@@ -3,6 +3,19 @@ package io.zer0.ai.openai
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.descriptors.buildClassSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonDecoder
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.encodeToJsonElement
 
 /**
  * OpenAI Chat Completions API 的请求/响应 DTO。
@@ -372,10 +385,41 @@ internal data class OpenAIErrorDetail(
     val code: JsonElement? = null,
 )
 
+/**
+ * 宽容的字符串列表反序列化器。
+ *
+ * 部分上游（火山 coding plan 等）把 capabilities/modalities 返回成
+ * 逗号分隔字符串（"code,chat"）而非 JSON 数组（["code","chat"]），
+ * 也有返回 null 的情况。这里统一兼容：数组、逗号分隔字符串、null。
+ */
+private object FlexibleStringListSerializer : kotlinx.serialization.KSerializer<List<String>?> {
+    private val listSerializer = ListSerializer(String.serializer())
+    override val descriptor: SerialDescriptor = buildClassSerialDescriptor("FlexibleStringList")
+
+    override fun deserialize(decoder: Decoder): List<String>? {
+        val json = decoder as? JsonDecoder
+            ?: return try { listSerializer.deserialize(decoder) } catch (_: Exception) { null }
+        return when (val element = json.decodeJsonElement()) {
+            is JsonNull -> null
+            is JsonArray -> element.mapNotNull { (it as? JsonPrimitive)?.contentOrNull }
+            is JsonPrimitive -> element.content
+                .split(',')
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+                .ifEmpty { null }
+            else -> null
+        }
+    }
+
+    override fun serialize(encoder: Encoder, value: List<String>?) {
+        encoder.encodeSerializableValue(listSerializer, value.orEmpty())
+    }
+}
+
 /** GET /models 响应。data[].id 为模型 id。 */
 @Serializable
 internal data class OpenAIModelsResponse(
-    val data: List<OpenAIModelInfo> = emptyList(),
+    val data: List<OpenAIModelInfo>? = null,
 )
 
 /**
@@ -401,11 +445,13 @@ internal data class OpenAIModelInfo(
     val max_completion_tokens: Int? = null,
     val top_provider: OpenAIModelTopProvider? = null,
     val pricing: OpenAIModelPricing? = null,
+    @Serializable(with = FlexibleStringListSerializer::class)
     val capabilities: List<String>? = null,
     /**
      * v1.0.8: 部分上游(OpenRouter / 部分 OpenAI 兼容中转站)返回的模态声明。
      * 常见值: "text" / "image" / "audio" / "video";与 capabilities 互补。
      */
+    @Serializable(with = FlexibleStringListSerializer::class)
     val modalities: List<String>? = null,
 )
 

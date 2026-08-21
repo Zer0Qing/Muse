@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Refresh
@@ -31,12 +30,15 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -45,6 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -54,7 +57,6 @@ import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.media.WindowWidthClass
 import io.zer0.muse.ui.common.media.rememberWindowWidthClass
 import io.zer0.muse.ui.common.navigation.MuseTopBar
-import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.memory.MemoryGraphView
 import io.zer0.muse.ui.memory.MemoryGraphViewModel
 import io.zer0.muse.ui.theme.MusePaddings
@@ -65,9 +67,8 @@ import org.koin.androidx.compose.koinViewModel
 /**
  * 记忆观测站。
  *
- * 单页纵向滚动，不再用固定 Tab 或筛选胶囊占位。
- * 自上而下：概览 → 记忆流 → 事实库 → 记忆星座。
- * 作用域 / 空间筛选收敛进概览卡右上角的筛选入口。
+ * 顶部概览卡 + 三段紧凑分段切换（记忆流 / 事实库 / 记忆星座），
+ * 内容区只显示当前分段，避免单页无限长列表，也避免横向滚动的筛选胶囊。
  */
 @Composable
 fun MemoryScreen(
@@ -84,6 +85,7 @@ fun MemoryScreen(
     val organizeStage by viewModel.organizeStage.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
     val widthClass = rememberWindowWidthClass()
+    var tab by remember { mutableIntStateOf(0) } // 0=记忆流 1=事实库 2=星座
     var query by remember { mutableStateOf("") }
     var editItem by remember { mutableStateOf<MemoryItem?>(null) }
     var showAddFact by remember { mutableStateOf(false) }
@@ -136,88 +138,34 @@ fun MemoryScreen(
                     .fillMaxSize()
                     .then(if (widthClass == WindowWidthClass.Expanded) Modifier.widthIn(max = 760.dp) else Modifier),
             ) {
-                if (state.isLoading && state.factCount == 0) {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        io.zer0.muse.ui.common.state.MuseLoadingState()
-                    }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(
-                            horizontal = MusePaddings.screen,
-                            vertical = MusePaddings.contentGap,
-                        ),
-                        verticalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
-                    ) {
-                        item {
-                            MemoryOverviewCard(
-                                factCount = state.factCount,
-                                summaryCount = state.summaryCount,
-                                lastUpdated = state.lastUpdatedAt,
-                                organizing = organizing,
-                                stage = organizeStage,
-                                scopeLabel = scopes.firstOrNull { it.id == selectedScope }?.displayName
-                                    ?: stringResource(R.string.memory_center_scope_all),
-                                spaceLabel = spaces.firstOrNull { it.id == selectedSpace }?.name
-                                    ?: stringResource(R.string.memory_center_space_default),
-                                onOrganize = viewModel::organizeMemory,
-                                onOpenFilter = { showFilter = true },
-                            )
-                        }
-
-                        // 记忆流
-                        item { MemorySectionLabel(stringResource(R.string.memory_center_stream_title)) }
-                        if (state.factItems.isEmpty()) {
-                            item { MemoryEmptyCard(stringResource(R.string.memory_center_empty_subtitle)) }
-                        } else {
-                            items(state.factItems.take(20), key = { "stream_${it.id}" }) { item ->
-                                MemoryFactRow(item = item)
-                            }
-                        }
-
-                        // 事实库
-                        item {
-                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                MemorySectionLabel(stringResource(R.string.memory_center_library_title))
-                                MemorySearchBar(
-                                    query = query,
-                                    onQueryChange = { query = it },
-                                    enabled = !state.isLoading,
-                                    modifier = Modifier.fillMaxWidth(),
-                                )
-                            }
-                        }
-                        val libraryItems = if (query.isBlank()) state.factItems else state.searchResults
-                        if (libraryItems.isEmpty()) {
-                            item {
-                                MemoryEmptyCard(
-                                    text = if (query.isBlank()) stringResource(R.string.memory_center_empty_subtitle)
-                                    else stringResource(R.string.memory_screen_empty_content),
-                                    action = stringResource(R.string.memory_add_fact),
-                                    onAction = { showAddFact = true },
-                                )
-                            }
-                        } else {
-                            items(libraryItems, key = { "lib_${it.id}" }) { item ->
-                                MemoryFactRow(
-                                    item = item,
-                                    onEdit = { editItem = item },
-                                    onDelete = { viewModel.deleteFact(item.id) },
-                                    onPin = { viewModel.toggleFactPinned(item.id) },
-                                )
-                            }
-                        }
-
-                        // 记忆星座
-                        item { MemorySectionLabel(stringResource(R.string.memory_center_tab_constellation)) }
-                        item {
-                            MemoryConstellationSection(
-                                scope = selectedScope,
-                                spaceId = selectedSpace,
-                                factCount = state.factCount,
-                            )
-                        }
-                    }
+                MemoryOverviewCard(
+                    factCount = state.factCount,
+                    organizing = organizing,
+                    stage = organizeStage,
+                    scopeLabel = scopes.firstOrNull { it.id == selectedScope }?.displayName
+                        ?: stringResource(R.string.memory_center_scope_all),
+                    spaceLabel = spaces.firstOrNull { it.id == selectedSpace }?.name
+                        ?: stringResource(R.string.memory_center_space_default),
+                    onOrganize = viewModel::organizeMemory,
+                    onOpenFilter = { showFilter = true },
+                )
+                MemorySegmentedTabs(selected = tab, onSelect = { tab = it })
+                when (tab) {
+                    0 -> MemoryStreamTab(state = state, onOpenFacts = { tab = 1 })
+                    1 -> MemoryFactsTab(
+                        state = state,
+                        query = query,
+                        onQuery = { query = it },
+                        onAdd = { showAddFact = true },
+                        onEdit = { editItem = it },
+                        onDelete = viewModel::deleteFact,
+                        onPin = { viewModel.toggleFactPinned(it.id) },
+                    )
+                    else -> MemoryConstellationTab(
+                        scope = selectedScope,
+                        spaceId = selectedSpace,
+                        factCount = state.factCount,
+                    )
                 }
             }
         }
@@ -286,10 +234,33 @@ fun MemoryScreen(
 }
 
 @Composable
+private fun MemorySegmentedTabs(
+    selected: Int,
+    onSelect: (Int) -> Unit,
+) {
+    SingleChoiceSegmentedButtonRow(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = MusePaddings.screen, vertical = 12.dp),
+    ) {
+        val options = listOf(
+            R.string.memory_center_tab_stream,
+            R.string.memory_tab_facts,
+            R.string.memory_center_tab_constellation,
+        )
+        options.forEachIndexed { index, label ->
+            SegmentedButton(
+                selected = selected == index,
+                onClick = { onSelect(index) },
+                shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
+            ) {
+                Text(stringResource(label), maxLines = 1)
+            }
+        }
+    }
+}
+
+@Composable
 private fun MemoryOverviewCard(
     factCount: Int,
-    summaryCount: Int,
-    lastUpdated: String?,
     organizing: Boolean,
     stage: String?,
     scopeLabel: String,
@@ -298,51 +269,48 @@ private fun MemoryOverviewCard(
     onOpenFilter: () -> Unit,
 ) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = MusePaddings.screen, vertical = MusePaddings.contentGap),
         shape = MuseShapes.extraLarge,
         color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.42f),
     ) {
-        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(verticalAlignment = Alignment.Top) {
-                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Row(verticalAlignment = Alignment.Bottom) {
+        Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = factCount.toString(),
+                    style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    text = stringResource(R.string.memory_center_fact_count),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.padding(start = 6.dp),
+                )
+                Spacer(Modifier.weight(1f))
+                Surface(
+                    modifier = Modifier.clip(MuseShapes.medium).clickable(onClick = onOpenFilter),
+                    shape = MuseShapes.medium,
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
                         Text(
-                            text = factCount.toString(),
-                            style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.SemiBold),
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                        Text(
-                            text = stringResource(R.string.memory_center_fact_count),
-                            style = MaterialTheme.typography.bodyMedium,
+                            text = stringResource(R.string.memory_center_scope_line, scopeLabel, spaceLabel),
+                            style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.padding(start = 6.dp, bottom = 6.dp),
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Icon(
+                            imageVector = Icons.Outlined.FilterList,
+                            contentDescription = stringResource(R.string.memory_center_filter_title),
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp),
                         )
                     }
-                    Text(
-                        text = stringResource(R.string.memory_center_scope_line, scopeLabel, spaceLabel),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
-                    )
-                }
-                IconButton(onClick = onOpenFilter) {
-                    Icon(
-                        imageVector = Icons.Outlined.FilterList,
-                        contentDescription = stringResource(R.string.memory_center_filter_title),
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
                 }
             }
-            Text(
-                text = if (factCount == 0) stringResource(R.string.memory_center_empty_subtitle)
-                else stringResource(R.string.memory_center_ready_subtitle),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-            )
-            Text(
-                text = stringResource(R.string.memory_center_summary_count, summaryCount),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
-            )
             OutlinedButton(
                 onClick = onOrganize,
                 enabled = !organizing,
@@ -366,13 +334,156 @@ private fun MemoryOverviewCard(
 }
 
 @Composable
-private fun MemorySectionLabel(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-        color = MaterialTheme.colorScheme.onSurface,
-        modifier = Modifier.padding(top = 4.dp),
-    )
+private fun MemoryStreamTab(
+    state: MemoryUiState,
+    onOpenFacts: () -> Unit,
+) {
+    val items = state.factItems.sortedByDescending { it.createdAt ?: it.time.orEmpty() }
+    if (state.isLoading) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            io.zer0.muse.ui.common.state.MuseLoadingState()
+        }
+        return
+    }
+    if (items.isEmpty()) {
+        Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = stringResource(R.string.memory_center_empty_subtitle),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+                OutlinedButton(onClick = onOpenFacts, shape = MuseShapes.large) {
+                    Text(stringResource(R.string.memory_center_open_facts))
+                }
+            }
+        }
+        return
+    }
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = MusePaddings.screen, vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        items(items, key = { "stream_${it.id}" }) { item -> MemoryFactRow(item = item) }
+    }
+}
+
+@Composable
+private fun MemoryFactsTab(
+    state: MemoryUiState,
+    query: String,
+    onQuery: (String) -> Unit,
+    onAdd: () -> Unit,
+    onEdit: (MemoryItem) -> Unit,
+    onDelete: (String) -> Unit,
+    onPin: (MemoryItem) -> Unit,
+) {
+    val items = if (query.isBlank()) state.factItems else state.searchResults
+    Column(modifier = Modifier.fillMaxSize()) {
+        MemorySearchBar(
+            query = query,
+            onQueryChange = onQuery,
+            enabled = !state.isLoading,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = MusePaddings.screen, vertical = 4.dp),
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = MusePaddings.screen, vertical = 2.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(R.string.memory_center_library_title),
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+            )
+            IconButton(onClick = onAdd) {
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.memory_screen_add_fact_cd))
+            }
+        }
+        if (state.isLoading) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                io.zer0.muse.ui.common.state.MuseLoadingState()
+            }
+        } else if (items.isEmpty()) {
+            Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = if (query.isBlank()) stringResource(R.string.memory_center_empty_subtitle)
+                        else stringResource(R.string.memory_screen_empty_content),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    )
+                    OutlinedButton(onClick = onAdd, shape = MuseShapes.large) {
+                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(stringResource(R.string.memory_add_fact))
+                    }
+                }
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(horizontal = MusePaddings.screen, vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                items(items, key = { "lib_${it.id}" }) { item ->
+                    MemoryFactRow(
+                        item = item,
+                        onEdit = { onEdit(item) },
+                        onDelete = { onDelete(item.id) },
+                        onPin = { onPin(item) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MemoryConstellationTab(
+    scope: String?,
+    spaceId: String,
+    factCount: Int,
+) {
+    val graphViewModel: MemoryGraphViewModel = koinViewModel()
+    val graphState by graphViewModel.state.collectAsStateWithLifecycle()
+    LaunchedEffect(scope, spaceId) { graphViewModel.load(scope, spaceId) }
+    Column(modifier = Modifier.fillMaxSize().padding(horizontal = MusePaddings.screen, vertical = 4.dp)) {
+        Text(
+            text = stringResource(R.string.memory_center_constellation_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 8.dp),
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .clip(MuseShapes.extraLarge),
+        ) {
+            if (graphState.isLoading) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    io.zer0.muse.ui.common.state.MuseLoadingState()
+                }
+            } else if (graphState.nodes.isEmpty()) {
+                Box(Modifier.fillMaxSize().padding(20.dp), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = stringResource(
+                            if (factCount == 0) R.string.memory_center_constellation_empty
+                            else R.string.memory_center_filter_empty,
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            } else {
+                MemoryGraphView(state = graphState, modifier = Modifier.fillMaxSize())
+            }
+        }
+    }
 }
 
 @Composable
@@ -415,39 +526,6 @@ private fun MemoryFactRow(
 }
 
 @Composable
-private fun MemoryEmptyCard(
-    text: String,
-    action: String? = null,
-    onAction: (() -> Unit)? = null,
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MuseShapes.extraLarge,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            )
-            if (action != null && onAction != null) {
-                OutlinedButton(onClick = onAction, shape = MuseShapes.large) {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text(action)
-                }
-            }
-        }
-    }
-}
-
-@Composable
 private fun MemoryFilterRow(
     label: String,
     selected: Boolean,
@@ -475,44 +553,6 @@ private fun MemoryFilterRow(
                     color = MaterialTheme.colorScheme.primary,
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun MemoryConstellationSection(
-    scope: String?,
-    spaceId: String,
-    factCount: Int,
-) {
-    val graphViewModel: MemoryGraphViewModel = koinViewModel()
-    val graphState by graphViewModel.state.collectAsStateWithLifecycle()
-    LaunchedEffect(scope, spaceId) { graphViewModel.load(scope, spaceId) }
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(440.dp)
-            .clip(MuseShapes.extraLarge)
-            .background(MaterialTheme.colorScheme.surface),
-    ) {
-        if (graphState.isLoading) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                io.zer0.muse.ui.common.state.MuseLoadingState()
-            }
-        } else if (graphState.nodes.isEmpty()) {
-            Box(Modifier.fillMaxSize().padding(20.dp), contentAlignment = Alignment.Center) {
-                Text(
-                    text = stringResource(
-                        if (factCount == 0) R.string.memory_center_constellation_empty
-                        else R.string.memory_center_filter_empty,
-                    ),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                )
-            }
-        } else {
-            MemoryGraphView(state = graphState, modifier = Modifier.fillMaxSize())
         }
     }
 }

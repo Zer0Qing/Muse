@@ -129,29 +129,40 @@ fun ModelDiffSheet(
             )
             Spacer(Modifier.size(MusePaddings.contentGap))
 
-            // 顶部批量操作行:「全部添加新增」+「全部移除已删除」
+            // 顶部批量操作行：「全部添加新增」+「全部移除已删除」
             // 任务约束:用 Surface + clickable,不用 Material3 Button
+            // v1.0.79: 按钮切换语义 — 已全选时点击清空,未全选时点击全选(一键反选)
+            val allNewSelected = newModels.isNotEmpty() && newModels.all { addSelected[it.id] == true }
+            val allRemovedSelected = removedModels.isNotEmpty() && removedModels.all { removeSelected[it.id] == true }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
             ) {
                 DiffActionButton(
                     modifier = Modifier.weight(1f),
-                    label = stringResource(R.string.model_diff_add_all),
-                    icon = TablerIcons.Plus,
+                    label = stringResource(
+                        if (allNewSelected) R.string.model_diff_clear_add else R.string.model_diff_add_all,
+                    ),
+                    icon = if (allNewSelected) TablerIcons.Minus else TablerIcons.Plus,
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     enabled = newModels.isNotEmpty(),
-                    onClick = { newModels.forEach { addSelected[it.id] = true } },
+                    onClick = {
+                        newModels.forEach { addSelected[it.id] = !allNewSelected }
+                    },
                 )
                 DiffActionButton(
                     modifier = Modifier.weight(1f),
-                    label = stringResource(R.string.model_diff_remove_all),
-                    icon = TablerIcons.Minus,
+                    label = stringResource(
+                        if (allRemovedSelected) R.string.model_diff_clear_remove else R.string.model_diff_remove_all,
+                    ),
+                    icon = if (allRemovedSelected) TablerIcons.Plus else TablerIcons.Minus,
                     containerColor = MaterialTheme.colorScheme.errorContainer,
                     contentColor = MaterialTheme.colorScheme.onErrorContainer,
                     enabled = removedModels.isNotEmpty(),
-                    onClick = { removedModels.forEach { removeSelected[it.id] = true } },
+                    onClick = {
+                        removedModels.forEach { removeSelected[it.id] = !allRemovedSelected }
+                    },
                 )
             }
             Spacer(Modifier.size(MusePaddings.contentGap))

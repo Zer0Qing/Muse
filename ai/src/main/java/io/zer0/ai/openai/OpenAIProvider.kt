@@ -1072,11 +1072,12 @@ class OpenAIProvider(
                 val raw = resp.body?.string()
                     ?: throw ErrorCode.INVALID_RESPONSE.toProviderException("model_list_empty", resp.code)
                 val parsed = AppJson.decodeFromString<OpenAIModelsResponse>(raw)
+                val models = parsed.data.orEmpty()
                 // v1.0.8 (7.5): 成功日志 — 记录上游返回的模型数量,便于排查"返回 0 个模型"场景
-                Logger.i("OpenAIProvider", "listModels 成功: 上游返回 ${parsed.data.size} 个模型")
+                Logger.i("OpenAIProvider", "listModels 成功: 上游返回 ${models.size} 个模型")
                 // v1.132: 去重 + 过滤 + 排序 + 元信息丰富
                 val seen = HashSet<String>()
-                parsed.data.asSequence()
+                models.asSequence()
                     // 过滤空 id 与伪模型(id == provider id,如 deepseek API 偶发返回 "deepseek")
                     .filter { it.id.isNotBlank() && it.id != config.id }
                     // 按 id 去重,保留首个(防止上游返回重复)

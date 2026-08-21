@@ -22,6 +22,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -40,6 +41,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.onSizeChanged
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseLoadingState
@@ -100,14 +102,36 @@ fun MemoryGraphView(
     val horizontal = rememberScrollState()
     val vertical = rememberScrollState()
     val density = LocalDensity.current
+    var viewportSize by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
     val nodeCoordinates = remember(state.nodes, contentWidth, contentHeight) {
         buildConstellationCoordinates(state.nodes, contentWidth, contentHeight)
+    }
+    // 初始视口定位到节点包围盒中心，避免滑到画布空白角落看不到节点。
+    LaunchedEffect(nodeCoordinates, viewportSize, contentWidth, contentHeight) {
+        if (nodeCoordinates.isEmpty() || viewportSize == androidx.compose.ui.unit.IntSize.Zero) return@LaunchedEffect
+        val minX = nodeCoordinates.values.minOf { it.x.value }
+        val maxX = nodeCoordinates.values.maxOf { it.x.value } + 170f
+        val minY = nodeCoordinates.values.minOf { it.y.value }
+        val maxY = nodeCoordinates.values.maxOf { it.y.value } + 68f
+        val centerX = (minX + maxX) / 2f
+        val centerY = (minY + maxY) / 2f
+        val vwDp = with(density) { viewportSize.width.toDp().value }
+        val vhDp = with(density) { viewportSize.height.toDp().value }
+        val targetX = with(density) { (centerX - vwDp / 2f).coerceAtLeast(0f).dp.toPx() }.toInt()
+        val targetY = with(density) { (centerY - vhDp / 2f).coerceAtLeast(0f).dp.toPx() }.toInt()
+        horizontal.scrollTo(targetX)
+        vertical.scrollTo(targetY)
     }
     val categoryCoordinates = remember(groups, nodeCoordinates) {
         buildCategoryCoordinates(groups, nodeCoordinates)
     }
 
-    Box(modifier = modifier.clip(RoundedCornerShape(24.dp)).background(colors.surfaceVariant.copy(alpha = 0.28f))) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(24.dp))
+            .background(colors.surface)
+            .onSizeChanged { viewportSize = it },
+    ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -162,14 +186,13 @@ fun MemoryGraphView(
                     modifier = Modifier
                         .offset { IntOffset((contentWidth.toPx() / 2f - 84.dp.toPx()).roundToInt(), (contentHeight.toPx() / 2f - 32.dp.toPx()).roundToInt()) },
                     shape = RoundedCornerShape(20.dp),
-                    color = colors.primary.copy(alpha = 0.18f),
-                    shadowElevation = 3.dp,
+                    color = colors.primaryContainer,
                 ) {
                     Text(
                         text = stringResource(R.string.memory_graph_preview_title),
                         modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
                         style = MaterialTheme.typography.titleMedium,
-                        color = colors.primary,
+                        color = colors.onPrimaryContainer,
                     )
                 }
 
@@ -200,8 +223,8 @@ fun MemoryGraphView(
                             .height(nodeHeight)
                             .clickable { selectedNode = node },
                         shape = RoundedCornerShape(16.dp),
-                        color = tone.copy(alpha = if (node.isPinned || node.importance >= 2) 0.28f else 0.12f),
-                        shadowElevation = if (node.isPinned || node.importance >= 2) 3.dp else 1.dp,
+                        color = tone.copy(alpha = if (node.isPinned || node.importance >= 2) 0.92f else 0.88f),
+                        tonalElevation = if (node.isPinned || node.importance >= 2) 3.dp else 1.dp,
                     ) {
                         Column(
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
@@ -230,8 +253,8 @@ fun MemoryGraphView(
             Surface(
                 modifier = Modifier.align(Alignment.BottomCenter).padding(MusePaddings.cardInner),
                 shape = RoundedCornerShape(18.dp),
-                color = colors.surface.copy(alpha = 0.97f),
-                shadowElevation = 5.dp,
+                color = colors.surface,
+                tonalElevation = 4.dp,
             ) {
                 Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                     Text(node.title, style = MaterialTheme.typography.titleSmall, color = colors.onSurface, maxLines = 2, overflow = TextOverflow.Ellipsis)
