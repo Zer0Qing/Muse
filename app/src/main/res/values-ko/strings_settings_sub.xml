@@ -158,6 +158,7 @@
     <string name="settings_about_issues">피드백(GitHub 문제)</string>
     <string name="settings_about_issues_cd">피드백, 브라우저에서 GitHub 문제를 열려면 탭하세요.</string>
     <string name="settings_about_open_url_failed">이 링크를 열 수 있는 앱을 찾을 수 없습니다.</string>
+    <string name="settings_about_url_copied">브라우저를 찾을 수 없습니다. 링크를 클립보드에 복사했습니다.</string>
     <string name="settings_about_show_onboarding_cd">온보딩을 다시 표시하고 탭하여 엽니다.</string>
     <string name="settings_about_show_onboarding">온보딩 다시 표시</string>
     <string name="settings_about_logout_prefix">로그아웃,</string>

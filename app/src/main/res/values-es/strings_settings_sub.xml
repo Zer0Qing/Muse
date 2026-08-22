@@ -158,6 +158,7 @@
     <string name="settings_about_issues">Comentarios (problemas de GitHub)</string>
     <string name="settings_about_issues_cd">Comentarios, toque para abrir Problemas de GitHub en el navegador</string>
     <string name="settings_about_open_url_failed">No se encontró ninguna aplicación para abrir este enlace.</string>
+    <string name="settings_about_url_copied">No se encontró ningún navegador. El enlace se copió al portapapeles.</string>
     <string name="settings_about_show_onboarding_cd">Mostrar incorporación nuevamente, toque para abrir</string>
     <string name="settings_about_show_onboarding">Mostrar incorporación nuevamente</string>
     <string name="settings_about_logout_prefix">Finalizar la sesión,</string>

@@ -195,6 +195,7 @@
     <string name="settings_about_issues">问题反馈(GitHub Issues)</string>
     <string name="settings_about_issues_cd">问题反馈,点击在浏览器打开 GitHub Issues</string>
     <string name="settings_about_open_url_failed">未找到可打开链接的应用</string>
+    <string name="settings_about_url_copied">未找到浏览器，链接已复制到剪贴板</string>
     <string name="settings_about_show_onboarding_cd">重新显示引导,点击进入</string>
     <string name="settings_about_show_onboarding">重新显示引导</string>
     <string name="settings_about_logout_prefix">退出登录,</string>

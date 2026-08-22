@@ -483,6 +483,7 @@
     <string name="settings_sticker_import_progress">%1$s… %2$d 个文件</string>
     <string name="chat_top_menu_cd">Другие действия</string>
     <string name="chat_select_provider">Выбрать провайдера</string>
+    <string name="chat_switch_assistant">Сменить ассистента</string>
     <string name="chat_update_compress">Сжать контекст</string>
     <string name="chat_ignore_memory_option">Этот диалог не будет использовать память</string>
     <!-- A5: 消息信息弹层(模型/耗时/Token 用量) -->

@@ -922,7 +922,18 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                                 MuseFloatingActionMenu(
                                     items = listOf(
                                         MuseFloatingActionItem(
+                                            key = "assistant",
+                                            icon = TablerIcons.MessageCircle,
+                                            label = stringResource(R.string.chat_switch_assistant),
+                                            enabled = !isStreaming,
+                                            onClick = {
+                                                showTopMenu = false
+                                                onOpenAssistants()
+                                            },
+                                        ),
+                                        MuseFloatingActionItem(
                                             key = "provider",
+
                                             icon = Icons.Outlined.AutoAwesome,
                                             label = stringResource(R.string.chat_select_provider),
                                             enabled = !isStreaming,

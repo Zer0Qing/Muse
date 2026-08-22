@@ -440,10 +440,23 @@ class SystemPromptAssembler(
 
     /** 1. 人格定义 — Assistant 的 systemPrompt + messageTemplate。 */
     private fun buildPersonaSection(assistant: AssistantEntity?): String {
-        val sys = assistant?.systemPrompt?.takeIf { it.isNotBlank() } ?: return ""
-        val template = assistant.messageTemplate?.takeIf { it.isNotBlank() }
-        // TemplateTransformer 后续会替换 {{var}},这里原样拼入
-        return if (template != null) "$sys\n\n$template" else sys
+        val current = assistant ?: return ""
+        val sys = current.systemPrompt.trim()
+        val template = current.messageTemplate.takeIf { it.isNotBlank() }
+        val persona = when {
+            sys.isNotBlank() && template != null -> "$sys\n\n$template"
+            sys.isNotBlank() -> sys
+            template != null -> template
+            else -> ""
+        }
+        if (persona.isBlank()) return ""
+        // 当前助手名称/id 是运行时单一真相源，放在人设末尾，压住旧 prompt 中残留的角色名。
+        val identityAnchor = """
+            【当前助手身份锚点】
+            你当前代表的助手是「${current.name}」，assistantId 是「${current.id}」。
+            回复中自称和介绍自己时必须以这个运行时身份为准；不要把旧人设文本、其他助手名称、模型名称当成自己的身份。
+        """.trimIndent()
+        return "$persona\n\n$identityAnchor"
     }
 
     /**

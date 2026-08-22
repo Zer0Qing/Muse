@@ -158,6 +158,7 @@
     <string name="settings_about_issues">Feedback (problemas do GitHub)</string>
     <string name="settings_about_issues_cd">Feedback, toque para abrir problemas do GitHub no navegador</string>
     <string name="settings_about_open_url_failed">Nenhum aplicativo encontrado para abrir este link</string>
+    <string name="settings_about_url_copied">Nenhum navegador encontrado. O link foi copiado para a área de transferência.</string>
     <string name="settings_about_show_onboarding_cd">Mostrar integração novamente, toque para abrir</string>
     <string name="settings_about_show_onboarding">Mostrar integração novamente</string>
     <string name="settings_about_logout_prefix">Sair,</string>

@@ -162,6 +162,7 @@
     <string name="settings_about_issues">Feedback (GitHub Issues)</string>
     <string name="settings_about_issues_cd">Feedback, tap to open GitHub Issues in browser</string>
     <string name="settings_about_open_url_failed">No app found to open this link</string>
+    <string name="settings_about_url_copied">No browser found. The link was copied to the clipboard.</string>
     <string name="settings_about_show_onboarding_cd">Show onboarding again, tap to open</string>
     <string name="settings_about_show_onboarding">Show Onboarding Again</string>
     <string name="settings_about_logout_prefix">Log out, </string>

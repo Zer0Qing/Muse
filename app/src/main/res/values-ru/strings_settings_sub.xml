@@ -158,6 +158,7 @@
     <string name="settings_about_issues">Обратная связь (проблемы с GitHub)</string>
     <string name="settings_about_issues_cd">Обратная связь. Нажмите, чтобы открыть «Проблемы GitHub» в браузере.</string>
     <string name="settings_about_open_url_failed">Не найдено приложение, позволяющее открыть эту ссылку</string>
+    <string name="settings_about_url_copied">Браузер не найден. Ссылка скопирована в буфер обмена.</string>
     <string name="settings_about_show_onboarding_cd">Показать регистрацию еще раз. Нажмите, чтобы открыть.</string>
     <string name="settings_about_show_onboarding">Показать регистрацию еще раз</string>
     <string name="settings_about_logout_prefix">Выйти,</string>

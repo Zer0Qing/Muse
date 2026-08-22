@@ -735,21 +735,21 @@ fun SettingsAboutPage(
             ) {
                 SettingsItemRow(
                     title = stringResource(R.string.settings_about_repo_home),
-                    onClick = { openUrl(context, "https://github.com/5352124/Muse") },
+                    onClick = { openUrl(context, "https://github.com/Zer0Qing/Muse") },
                 ) {
                     ChevronRight()
                 }
                 SettingsGroupDivider()
                 SettingsItemRow(
                     title = stringResource(R.string.settings_about_star),
-                    onClick = { openUrl(context, "https://github.com/5352124/Muse") },
+                    onClick = { openUrl(context, "https://github.com/Zer0Qing/Muse") },
                 ) {
                     ChevronRight()
                 }
                 SettingsGroupDivider()
                 SettingsItemRow(
                     title = stringResource(R.string.settings_about_issues),
-                    onClick = { openUrl(context, "https://github.com/5352124/Muse/issues") },
+                    onClick = { openUrl(context, "https://github.com/Zer0Qing/Muse/issues") },
                 ) {
                     ChevronRight()
                 }
@@ -852,9 +852,20 @@ fun SettingsAboutPage(
  * v1.119: 打开外部 URL — 用 ACTION_VIEW 启动浏览器,失败时 Toast 提示。
  */
 private fun openUrl(context: Context, url: String) {
-    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-    runCatching { context.startActivity(intent) }.onFailure {
-        MuseToast.show(context.getString(R.string.settings_about_open_url_failed))
+    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+        if (context !is android.app.Activity) addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    runCatching {
+        if (intent.resolveActivity(context.packageManager) == null) {
+            error("No activity can handle URL")
+        }
+        context.startActivity(intent)
+    }.onFailure {
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+        clipboard?.setPrimaryClip(
+            ClipData.newPlainText(context.getString(R.string.settings_about_repo_home), url),
+        )
+        MuseToast.show(context.getString(R.string.settings_about_url_copied))
     }
 }
 
@@ -864,10 +875,18 @@ private fun openUrl(context: Context, url: String) {
 private fun openQQGroup(context: Context) {
     val uri = Uri.parse(
         "mqqapi://card/show_pslcard?src_type=internal&version=1&uin=905451314" +
-            "&card_type=group&source=external&jump_from=webui"
+            "&card_type=group&source=external&jump_from=webapi",
     )
-    val intent = Intent(Intent.ACTION_VIEW, uri)
-    runCatching { context.startActivity(intent) }.onFailure {
+    val intent = Intent(Intent.ACTION_VIEW, uri).apply {
+        setPackage("com.tencent.mobileqq")
+        if (context !is android.app.Activity) addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    runCatching {
+        if (intent.resolveActivity(context.packageManager) == null) {
+            error("QQ is not installed")
+        }
+        context.startActivity(intent)
+    }.onFailure {
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
         clipboard?.setPrimaryClip(
             ClipData.newPlainText(

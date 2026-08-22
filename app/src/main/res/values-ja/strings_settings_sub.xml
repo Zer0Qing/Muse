@@ -158,6 +158,7 @@
     <string name="settings_about_issues">フィードバック (GitHub の問題)</string>
     <string name="settings_about_issues_cd">フィードバック、タップしてブラウザで GitHub の問題を開きます</string>
     <string name="settings_about_open_url_failed">このリンクを開くアプリが見つかりませんでした</string>
+    <string name="settings_about_url_copied">ブラウザが見つかりません。リンクをクリップボードにコピーしました。</string>
     <string name="settings_about_show_onboarding_cd">オンボーディングを再度表示します。タップして開きます</string>
     <string name="settings_about_show_onboarding">オンボーディングを再度表示する</string>
     <string name="settings_about_logout_prefix">ログアウト、</string>
