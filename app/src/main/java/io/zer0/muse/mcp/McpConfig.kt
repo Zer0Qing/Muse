@@ -206,15 +206,31 @@ data class McpServerConfig(
      * 空值原样保留(不加密空值)。与 WebServerConfig.encrypted 行为一致。
      */
     suspend fun encrypted(): McpServerConfig = copy(
+        headers = headers.mapValues { (key, value) ->
+            if (isSensitiveHeader(key)) SecureKeyStore.encrypt(value) else value
+        },
         authToken = SecureKeyStore.encrypt(authToken),
         feishuAuth = feishuAuth.encrypted(),
     )
+
+    private fun isSensitiveHeader(key: String): Boolean {
+        val normalized = key.lowercase()
+        return normalized.contains("authorization") ||
+            normalized.contains("api-key") ||
+            normalized.contains("apikey") ||
+            normalized.contains("token") ||
+            normalized.contains("secret") ||
+            normalized.contains("password")
+    }
 
     /**
      * M-05: 返回 authToken 已解密(走 [SecureKeyStore.decrypt])的副本,供从持久化层读出后调用。
      * 旧版明文由 decrypt 透传(兼容)。与 WebServerConfig.decrypted 行为一致。
      */
     suspend fun decrypted(): McpServerConfig = copy(
+        headers = headers.mapValues { (key, value) ->
+            if (isSensitiveHeader(key)) SecureKeyStore.decrypt(value) else value
+        },
         authToken = SecureKeyStore.decrypt(authToken),
         feishuAuth = feishuAuth.decrypted(),
     )

@@ -8,6 +8,7 @@ import io.zer0.memory.llm.MemoryLlmClient
 import io.zer0.memory.summary.CompiledSectionDao
 import io.zer0.memory.summary.CompiledSectionEntity
 import io.zer0.memory.summary.MemoryDb
+import io.zer0.memory.summary.ScopedCompiledSectionEntity
 import io.zer0.ai.core.Model
 import io.zer0.memory.summary.SessionSummaryManager
 import kotlinx.coroutines.test.runTest
@@ -33,6 +34,7 @@ class ReconcileFactsSectionTest {
     private lateinit var factDb: FactDb
     private lateinit var factStore: FactStore
     private lateinit var compiler: MemoryCompiler
+    private lateinit var scopedCompiler: MemoryCompiler
 
     private class NoopLlm : MemoryLlmClient {
         override suspend fun callText(
@@ -62,12 +64,47 @@ class ReconcileFactsSectionTest {
             fileWriter = null,
             factStore = null,
         )
+        scopedCompiler = MemoryCompiler(
+            sectionDao = sectionDao,
+            llmClient = NoopLlm(),
+            fileWriter = null,
+            factStore = null,
+            scopedSectionDao = memoryDb.scopedCompiledSectionDao(),
+            getScope = { "main" },
+            getSpaceId = { "work" },
+        )
     }
 
     @After
     fun tearDown() {
         memoryDb.close()
         factDb.close()
+    }
+
+    @Test
+    fun `scoped compiled sections do not leak between spaces`() = runTest {
+        val scopedDao = memoryDb.scopedCompiledSectionDao()
+        scopedDao.upsert(
+            ScopedCompiledSectionEntity(
+                sectionKey = MemoryCompiler.Section.FACTS.key,
+                scope = "main",
+                spaceId = "work",
+                content = "work-only",
+                updatedAt = java.time.Instant.now().toString(),
+            ),
+        )
+        scopedDao.upsert(
+            ScopedCompiledSectionEntity(
+                sectionKey = MemoryCompiler.Section.FACTS.key,
+                scope = "main",
+                spaceId = "life",
+                content = "life-only",
+                updatedAt = java.time.Instant.now().toString(),
+            ),
+        )
+
+        assertEquals("work-only", scopedCompiler.readSection(MemoryCompiler.Section.FACTS))
+        assertEquals("", scopedCompiler.readSection(MemoryCompiler.Section.TODAY))
     }
 
     @Test
