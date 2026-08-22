@@ -49,6 +49,8 @@ class ChatGenerationManager(
 
     // v1.113: 按 sessionId 独立管理 Job,单聊和群聊互不抢占。
     private val streamJobs = mutableMapOf<String, Job>()
+    /** stop() 后仍在执行 finally 的旧任务，新一代生成必须等待它结束。 */
+    private val terminatingJobs = mutableMapOf<String, Job>()
     private val lock = Any()
 
     /**
@@ -73,7 +75,7 @@ class ChatGenerationManager(
         synchronized(lock) {
             // 取消同一 sessionId 的旧 job(防重入),不影响其他 sessionId。
             // 新任务会在旧 Job 完成 finally 后才进入 block，避免两代流同时写同一会话。
-            val previousJob = streamJobs.remove(sessionId)
+            val previousJob = streamJobs.remove(sessionId) ?: terminatingJobs[sessionId]
             previousJob?.cancel()
             // 先同步写入活跃状态,再启动 appScope 协程。
             // ON_STOP 可能紧跟在发送动作后发生;如果状态只在 launch 块内部异步写入,
@@ -121,8 +123,12 @@ class ChatGenerationManager(
                     synchronized(lock) {
                         // 审计修复 (3.2): 按 Job 身份判断,仅当 map 中登记的仍是当前 job 时才移除。
                         // 防止重入场景下旧 job 被取消后,其 finally 无条件 remove 误删新 job 的登记。
-                        if (streamJobs[sessionId] === coroutineContext[Job]) {
+                        val currentJob = coroutineContext[Job]
+                        if (streamJobs[sessionId] === currentJob) {
                             streamJobs.remove(sessionId)
+                        }
+                        if (terminatingJobs[sessionId] === currentJob) {
+                            terminatingJobs.remove(sessionId)
                         }
                     }
                     Logger.i("ChatGenMgr", "generation finished: $sessionId")
@@ -144,7 +150,10 @@ class ChatGenerationManager(
     fun stop(sessionId: String? = null) {
         synchronized(lock) {
             if (sessionId != null) {
-                streamJobs.remove(sessionId)?.cancel()
+                streamJobs.remove(sessionId)?.let { job ->
+                    terminatingJobs[sessionId] = job
+                    job.cancel()
+                }
                 _activeGenerations.value = _activeGenerations.value - sessionId
                 // 只在当前 active 是该 sessionId 时才清空
                 if (_activeGeneration.value?.sessionId == sessionId) {
@@ -153,7 +162,10 @@ class ChatGenerationManager(
                 Logger.i("ChatGenMgr", "generation stopped: $sessionId")
             } else {
                 // 取消全部
-                streamJobs.values.forEach { it.cancel() }
+                streamJobs.forEach { (id, job) ->
+                    terminatingJobs[id] = job
+                    job.cancel()
+                }
                 streamJobs.clear()
                 _activeGenerations.value = emptyMap()
                 _activeGeneration.value = null
