@@ -77,6 +77,23 @@ class McpRegistry(
     /** 活跃的 MCP client 实例(server id → client)。H-REG1: 用 ConcurrentHashMap 保证线程安全。 */
     private val clients = ConcurrentHashMap<String, McpClient>()
 
+    /** 对外暴露三段式就绪状态，避免 UI/聊天把 connected 当成 tools 已可用。 */
+    data class ServerReadiness(
+        val connected: Boolean,
+        val toolsReady: Boolean,
+        val assistantBound: Boolean,
+    )
+
+    suspend fun readiness(serverId: String, assistantId: String = "default"): ServerReadiness {
+        val connected = clients[serverId]?.state?.value == McpConnectionState.CONNECTED
+        val toolsReady = serverId in toolsReadyServers
+        val repo = assistantRepository
+        val assistantBound = repo?.getById(assistantId)?.let { assistant ->
+            repo.parseMcpServerIds(assistant).contains(serverId)
+        } ?: false
+        return ServerReadiness(connected, toolsReady, assistantBound)
+    }
+
     /**
      * 已完成 tools/list 的 server。
      *
