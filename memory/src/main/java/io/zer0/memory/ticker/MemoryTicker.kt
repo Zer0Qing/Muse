@@ -914,8 +914,12 @@ class  MemoryTicker(
      * 软裁剪到目标 token 数,避免记忆过长挤占对话预算(按 memory.token_budget 配置)。
      * 默认值 2500 token 约等于 10KB 文本,日常记忆量足够;用户调小可压缩 prompt。
      */
-    suspend fun readCompiledMemoryMarkdown(locale: String = "zh-CN"): String {
-        val md = compiler.readCompiledMemoryMarkdown(locale)
+    suspend fun readCompiledMemoryMarkdown(
+        locale: String = "zh-CN",
+        scope: String? = null,
+        spaceId: String? = null,
+    ): String {
+        val md = compiler.readCompiledMemoryMarkdown(locale, scope, spaceId)
         val cfg = getConfig()
         return LlmBudget.truncateToTokenBudget(md, cfg.tokenBudget)
     }

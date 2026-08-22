@@ -33,6 +33,7 @@ import io.zer0.muse.ui.CompactionState
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.util.MusePatterns
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.uuid.Uuid
@@ -751,6 +752,8 @@ class ChatStreamCoordinator(
                     // v0.30-a: 已由 SystemPromptAssembler 接管,关闭 Transformer 管道里的对应职责
                     "memory_enabled" to false,
                     "time_reminder_enabled" to false,
+                    "current_scope" to (assistant?.id?.takeIf { it.isNotBlank() } ?: "main"),
+                    "current_space" to settings.currentSpaceIdFlow.first(),
                     // Phase 8.5
                     "lorebook_entries" to lorebookEntries,
                     "prompt_injections" to modeInjections,

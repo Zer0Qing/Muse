@@ -61,20 +61,24 @@ class MemoryInjectionTransformer(
         // 缺省时回退到 "main",与 FactEntity.scope 默认值一致,保证向后兼容
         val scope = (context.extra("current_scope") as? String)
             ?.takeIf { it.isNotBlank() } ?: "main"
+        val spaceId = (context.extra("current_space") as? String)
+            ?.takeIf { it.isNotBlank() } ?: "default"
 
         // v8: 按 scope 拉取事实列表(失败时记录日志并降级为空列表,不阻塞注入流程)
         // factStore 为 null 时跳过该段(向后兼容,ChatViewModel 未传 factStore 时仅注入全局 compiledMarkdown)
         val facts = if (factStore == null) {
             emptyList()
         } else {
-            resultOf { factStore.getByScope(scope) }
-                .onError { msg, t -> Logger.w("MemoryInjectionTransformer", "getByScope($scope) 失败: $msg", t) }
+            resultOf { factStore.getByScopeAndSpace(scope, spaceId) }
+                .onError { msg, t -> Logger.w("MemoryInjectionTransformer", "getByScopeAndSpace($scope, $spaceId) 失败: $msg", t) }
                 .getOrNull() ?: emptyList()
         }
 
         // 用 resultOf 替代 runCatching:resultOf 会重抛 CancellationException,
         // 避免协程取消被吞掉导致任务无法正常终止
-        val memoryMd = resultOf { memoryTicker.readCompiledMemoryMarkdown() }
+        val memoryMd = resultOf {
+            memoryTicker.readCompiledMemoryMarkdown(scope = scope, spaceId = spaceId)
+        }
             .onError { msg, t -> Logger.w("MemoryInjectionTransformer", "readCompiledMemoryMarkdown 失败: $msg", t) }
             .getOrNull() ?: ""
 

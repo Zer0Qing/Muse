@@ -49,6 +49,10 @@ class MemoryCompiler(
      * compileToday 按 [FactStore.getTombstones] 过滤输入与输出。为 null 时过滤禁用。
      */
     private val factStore: FactStore? = null,
+    /** v3: scoped 编译产物；null 时保留旧测试/兼容路径。 */
+    private val scopedSectionDao: io.zer0.memory.summary.ScopedCompiledSectionDao? = null,
+    private val getScope: suspend () -> String = { "main" },
+    private val getSpaceId: suspend () -> String = { "default" },
 ) {
 
     /** 四块 section key。 */
@@ -72,9 +76,86 @@ class MemoryCompiler(
      */
     enum class Result { COMPILED, SKIPPED, FAILED }
 
+    private suspend fun currentScope(): String = getScope().ifBlank { "main" }
+
+    private suspend fun currentSpaceId(): String = getSpaceId().ifBlank { "default" }
+
+    private suspend fun readStoredSection(key: String): io.zer0.memory.summary.ScopedCompiledSectionEntity? {
+        val scoped = scopedSectionDao
+        return if (scoped != null) {
+            scoped.get(key, currentScope(), currentSpaceId())
+                ?: sectionDao.get(key)?.let { legacy ->
+                    io.zer0.memory.summary.ScopedCompiledSectionEntity(
+                        sectionKey = legacy.sectionKey,
+                        scope = currentScope(),
+                        spaceId = currentSpaceId(),
+                        content = legacy.content,
+                        fingerprint = legacy.fingerprint,
+                        updatedAt = legacy.updatedAt,
+                    )
+                }
+        } else {
+            sectionDao.get(key)?.let { legacy ->
+                io.zer0.memory.summary.ScopedCompiledSectionEntity(
+                    sectionKey = legacy.sectionKey,
+                    content = legacy.content,
+                    fingerprint = legacy.fingerprint,
+                    updatedAt = legacy.updatedAt,
+                )
+            }
+        }
+    }
+
+    private suspend fun updateStoredContent(key: String, content: String, fingerprint: String?, now: String) {
+        val scoped = scopedSectionDao
+        if (scoped != null) {
+            scoped.updateContent(key, currentScope(), currentSpaceId(), content, fingerprint, now)
+        } else {
+            sectionDao.updateContent(key, content, fingerprint, now)
+        }
+    }
+
+    private suspend fun clearStoredAll(now: String) {
+        scopedSectionDao?.clearAll(now) ?: sectionDao.clearAll(now)
+    }
+
+    private suspend fun clearStoredByKey(key: String, now: String) {
+        scopedSectionDao?.clearByKey(key, currentScope(), currentSpaceId(), now)
+            ?: sectionDao.clearByKey(key, now)
+    }
+
+    private suspend fun upsertStored(key: String, content: String, fingerprint: String?, now: String) {
+        val scoped = scopedSectionDao
+        if (scoped != null) {
+            scoped.updateContent(key, currentScope(), currentSpaceId(), content, fingerprint, now)
+        } else {
+            sectionDao.upsert(
+                CompiledSectionEntity(
+                    sectionKey = key,
+                    content = content,
+                    fingerprint = fingerprint,
+                    updatedAt = now,
+                ),
+            )
+        }
+    }
+
     /** 读取某块当前内容。 */
     suspend fun readSection(section: Section): String = withContext(Dispatchers.IO) {
-        sectionDao.get(section.key)?.content ?: ""
+        readStoredSection(section.key)?.content ?: ""
+    }
+
+    /** 按显式 scope + space 读取，供 system prompt 注入避免依赖全局默认槽位。 */
+    suspend fun readSection(section: Section, scope: String, spaceId: String): String = withContext(Dispatchers.IO) {
+        val normalizedScope = scope.ifBlank { "main" }
+        val normalizedSpace = spaceId.ifBlank { "default" }
+        scopedSectionDao?.get(section.key, normalizedScope, normalizedSpace)?.content
+            ?: if (normalizedScope == "main" && normalizedSpace == "default") {
+                sectionDao.get(section.key)?.content
+            } else {
+                null
+            }
+            ?: ""
     }
 
     /**
@@ -83,7 +164,7 @@ class MemoryCompiler(
      * 表初始为空时写入静默丢失,但 daily_state 仍记录完成 → 需重置进度重跑。
      */
     suspend fun hasAnyCompiledSection(): Boolean = withContext(Dispatchers.IO) {
-        sectionDao.getAll().isNotEmpty()
+        scopedSectionDao?.getAll()?.isNotEmpty() == true || sectionDao.getAll().isNotEmpty()
     }
 
     // ─── S-04: 删除墓碑过滤(防已删事实从摘要复活) ───
@@ -120,7 +201,7 @@ class MemoryCompiler(
             val filtered = filterTombstonedLines(current, tombstones)
             if (filtered != current) {
                 // 指纹置 null,保证下次编译重新合并(而非 SKIPPED)
-                sectionDao.updateContent(section.key, filtered, null, Instant.now().toString())
+                updateStoredContent(section.key, filtered, null, Instant.now().toString())
                 val removedCount = countRemovedLines(current, filtered)
                 Logger.i("MemoryCompiler", "purgeTombstonedFacts: ${section.key} 剔除 $removedCount 行")
                 removedAny = true
@@ -138,19 +219,28 @@ class MemoryCompiler(
     /** 读取四块拼装后的 memory.md(注入 system prompt 用)。
      *  审查修复 (2.0 A-05): 注入读路径统一按墓碑过滤 — 兜底任何未及时 purge 的段,
      *  已删内容不会泄漏进 system prompt(双通道匹配见 FactStore.filterTombstonedLines)。 */
-    suspend fun readCompiledMemoryMarkdown(locale: String = "zh-CN"): String = withContext(Dispatchers.IO) {
+    suspend fun readCompiledMemoryMarkdown(
+        locale: String = "zh-CN",
+        scope: String? = null,
+        spaceId: String? = null,
+    ): String = withContext(Dispatchers.IO) {
         val tombstones = loadTombstones()
+        val read: suspend (Section) -> String = if (scope != null && spaceId != null) {
+            { section -> readSection(section, scope, spaceId) }
+        } else {
+            { section -> readSection(section) }
+        }
         val facts = CompiledMemoryState.normalizeSectionBody(
-            filterTombstonedLines(readSection(Section.FACTS), tombstones),
+            filterTombstonedLines(read(Section.FACTS), tombstones),
         )
         val today = CompiledMemoryState.normalizeSectionBody(
-            filterTombstonedLines(readSection(Section.TODAY), tombstones),
+            filterTombstonedLines(read(Section.TODAY), tombstones),
         )
         val week = CompiledMemoryState.normalizeSectionBody(
-            filterTombstonedLines(readSection(Section.WEEK), tombstones),
+            filterTombstonedLines(read(Section.WEEK), tombstones),
         )
         val longterm = CompiledMemoryState.normalizeSectionBody(
-            filterTombstonedLines(readSection(Section.LONGTERM), tombstones),
+            filterTombstonedLines(read(Section.LONGTERM), tombstones),
         )
         val md = assembleCompiledMarkdown(facts, today, week, longterm, locale)
         // v6: 同时输出到文件系统,便于调试和备份
@@ -184,7 +274,7 @@ class MemoryCompiler(
             // 空 sessions: 清空内容,不写指纹
             val current = readSection(Section.TODAY)
             if (current.isNotEmpty()) {
-                sectionDao.updateContent(Section.TODAY.key, "", null, Instant.now().toString())
+                updateStoredContent(Section.TODAY.key, "", null, Instant.now().toString())
             }
             return@withContext Result.COMPILED
         }
@@ -195,7 +285,7 @@ class MemoryCompiler(
         val fpKeys = sessions.joinToString("\n") { "${it.sessionId}:${it.updatedAt}" } +
             "\nT:" + tombstones.joinToString("|")
         val fp = fingerprint(fpKeys)
-        val existing = sectionDao.get(Section.TODAY.key)
+        val existing = readStoredSection(Section.TODAY.key)
         if (existing?.fingerprint == fp && existing.content.isNotEmpty()) {
             return@withContext Result.SKIPPED
         }
@@ -205,7 +295,7 @@ class MemoryCompiler(
         if (sessionInput.isBlank()) {
             val current = readSection(Section.TODAY)
             if (current.isNotEmpty()) {
-                sectionDao.updateContent(Section.TODAY.key, "", null, Instant.now().toString())
+                updateStoredContent(Section.TODAY.key, "", null, Instant.now().toString())
             }
             return@withContext Result.COMPILED
         }
@@ -237,7 +327,7 @@ class MemoryCompiler(
             Logger.w("MemoryCompiler", "compileToday: LLM 返回空响应,保留旧内容,返回 FAILED")
             return@withContext Result.FAILED
         }
-        sectionDao.updateContent(Section.TODAY.key, normalized, fp, Instant.now().toString())
+        updateStoredContent(Section.TODAY.key, normalized, fp, Instant.now().toString())
         Result.COMPILED
     }
 
@@ -344,7 +434,7 @@ class MemoryCompiler(
             // 无文件 writer 时清空 week 段,避免残留旧内容
             val current = readSection(Section.WEEK)
             if (current.isNotEmpty()) {
-                sectionDao.updateContent(Section.WEEK.key, "", null, Instant.now().toString())
+                updateStoredContent(Section.WEEK.key, "", null, Instant.now().toString())
             }
             return@withContext Result.COMPILED
         }
@@ -353,18 +443,18 @@ class MemoryCompiler(
         if (assembled.isEmpty()) {
             val current = readSection(Section.WEEK)
             if (current.isNotEmpty()) {
-                sectionDao.updateContent(Section.WEEK.key, "", null, Instant.now().toString())
+                updateStoredContent(Section.WEEK.key, "", null, Instant.now().toString())
             }
             return@withContext Result.COMPILED
         }
 
         val fp = fingerprint(assembled)
-        val existing = sectionDao.get(Section.WEEK.key)
+        val existing = readStoredSection(Section.WEEK.key)
         if (existing?.fingerprint == fp && existing.content.isNotEmpty()) {
             return@withContext Result.SKIPPED
         }
 
-        sectionDao.updateContent(Section.WEEK.key, assembled, fp, Instant.now().toString())
+        updateStoredContent(Section.WEEK.key, assembled, fp, Instant.now().toString())
         Result.COMPILED
     }
 
@@ -394,14 +484,14 @@ class MemoryCompiler(
         if (sessions.isEmpty()) {
             val current = readSection(Section.WEEK)
             if (current.isNotEmpty()) {
-                sectionDao.updateContent(Section.WEEK.key, "", null, Instant.now().toString())
+                updateStoredContent(Section.WEEK.key, "", null, Instant.now().toString())
             }
             return@withContext Result.COMPILED
         }
 
         val fpKeys = sessions.joinToString("\n") { "${it.sessionId}:${it.updatedAt}" }
         val fp = fingerprint(fpKeys)
-        val existing = sectionDao.get(Section.WEEK.key)
+        val existing = readStoredSection(Section.WEEK.key)
         if (existing?.fingerprint == fp && existing.content.isNotEmpty()) {
             return@withContext Result.SKIPPED
         }
@@ -425,7 +515,7 @@ class MemoryCompiler(
             Logger.w("MemoryCompiler", "compileWeek: LLM 返回空响应,保留旧内容,返回 FAILED")
             return@withContext Result.FAILED
         }
-        sectionDao.updateContent(Section.WEEK.key, normalized, fp, Instant.now().toString())
+        updateStoredContent(Section.WEEK.key, normalized, fp, Instant.now().toString())
         Result.COMPILED
     }
 
@@ -472,7 +562,7 @@ class MemoryCompiler(
         if (trimmed.isBlank()) return@withContext Result.SKIPPED
 
         val fp = fingerprint(trimmed)
-        val existing = sectionDao.get(Section.LONGTERM.key)
+        val existing = readStoredSection(Section.LONGTERM.key)
         if (existing?.fingerprint == fp && existing.content.isNotEmpty()) {
             return@withContext Result.SKIPPED
         }
@@ -514,7 +604,7 @@ class MemoryCompiler(
             Logger.w("MemoryCompiler", "foldIntoLongTerm: LLM 返回空响应,保留旧内容,返回 FAILED")
             return@withContext Result.FAILED
         }
-        sectionDao.updateContent(Section.LONGTERM.key, normalized, fp, Instant.now().toString())
+        updateStoredContent(Section.LONGTERM.key, normalized, fp, Instant.now().toString())
         Result.COMPILED
     }
 
@@ -556,7 +646,7 @@ class MemoryCompiler(
         val prevFacts = filterTombstonedLines(rawPrevFacts, tombstones)
         if (prevFacts != rawPrevFacts) {
             // 删除即刻生效: 先剔除旧编译产物,无需等待 LLM 重编
-            sectionDao.updateContent(Section.FACTS.key, prevFacts, null, Instant.now().toString())
+            updateStoredContent(Section.FACTS.key, prevFacts, null, Instant.now().toString())
         }
 
         val factParts = mutableListOf<String>()
@@ -620,7 +710,7 @@ class MemoryCompiler(
         }
         // S-04: LLM 输出再过滤一遍(防 LLM 复述已删事实)
         val filteredResult = filterTombstonedLines(normalized, tombstones)
-        sectionDao.updateContent(Section.FACTS.key, filteredResult, null, Instant.now().toString())
+        updateStoredContent(Section.FACTS.key, filteredResult, null, Instant.now().toString())
         Result.COMPILED
     }
 
@@ -668,13 +758,11 @@ class MemoryCompiler(
         if (replaced > 0 && newLines != current) {
             // 用 @Insert(REPLACE) 而非 updateContent(UPSERT 语法在部分测试 SQLite 版本报错);
             // REPLACE 对无外键的 compiled_sections 语义一致(冲突时删除重建)。
-            sectionDao.upsert(
-                CompiledSectionEntity(
-                    sectionKey = Section.FACTS.key,
-                    content = newLines,
-                    fingerprint = null,
-                    updatedAt = Instant.now().toString(),
-                )
+            upsertStored(
+                key = Section.FACTS.key,
+                content = newLines,
+                fingerprint = null,
+                now = Instant.now().toString(),
             )
             Logger.i("MemoryCompiler", "facts 产物与事实表对账: 替换 $replaced 行(用户编辑已同步)")
         }
@@ -719,7 +807,7 @@ class MemoryCompiler(
 
     /** 清空所有编译产物(记忆重置用)。 */
     suspend fun clearAll() = withContext(Dispatchers.IO) {
-        sectionDao.clearAll(Instant.now().toString())
+        clearStoredAll(Instant.now().toString())
     }
 
     /**
@@ -727,7 +815,7 @@ class MemoryCompiler(
      * 不删除行,只把 content/fingerprint 清空,保持下次编译可直接 upsert。
      */
     suspend fun clearSection(section: Section) = withContext(Dispatchers.IO) {
-        sectionDao.clearByKey(section.key, Instant.now().toString())
+        clearStoredByKey(section.key, Instant.now().toString())
     }
 
     /**
@@ -735,13 +823,11 @@ class MemoryCompiler(
      * 清空 fingerprint,使下次定时编译能正常重新生成。
      */
     suspend fun writeSection(section: Section, content: String) = withContext(Dispatchers.IO) {
-        sectionDao.upsert(
-            CompiledSectionEntity(
-                sectionKey = section.key,
-                content = content,
-                fingerprint = null,
-                updatedAt = Instant.now().toString(),
-            )
+        upsertStored(
+            key = section.key,
+            content = content,
+            fingerprint = null,
+            now = Instant.now().toString(),
         )
     }
 

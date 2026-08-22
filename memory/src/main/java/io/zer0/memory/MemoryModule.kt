@@ -30,7 +30,10 @@ val memoryModule: Module = module {
     single {
         Room.databaseBuilder(androidContext(), MemoryDb::class.java, "memory.db")
             // v2: session summary 增加 space_id，只做加法迁移，保留旧数据。
-            .addMigrations(io.zer0.memory.summary.MemoryDb.MIGRATION_1_2)
+            .addMigrations(
+                io.zer0.memory.summary.MemoryDb.MIGRATION_1_2,
+                io.zer0.memory.summary.MemoryDb.MIGRATION_2_3,
+            )
             // v1.78 (M4): 移除 upgrade 的 destructive migration,避免升级时静默清空用户数据;
             // 仅保留降级保护(从历史更高版本降到当前 v1 时不崩溃)
             .fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true)
@@ -52,6 +55,7 @@ val memoryModule: Module = module {
     single { get<MemoryDb>().sessionSummaryDao() }
     single { get<MemoryDb>().dailyStateDao() }
     single { get<MemoryDb>().compiledSectionDao() }
+    single { get<MemoryDb>().scopedCompiledSectionDao() }
     single { get<FactDb>().factDao() }
     // v13 (T4-1): 事实修订记录 DAO
     single { get<FactDb>().factRevisionDao() }
@@ -67,7 +71,15 @@ val memoryModule: Module = module {
     single { io.zer0.memory.compile.MemoryFileWriter(androidContext().filesDir) }
     // S-04: MemoryCompiler 透传 FactStore(删除墓碑过滤);FactStore 落盘 filesDir/fact_tombstones.json
     // v12: 注入 LLM 去重判定器(由 app 模块提供实现,默认 Noop 不调 LLM)
-    single { MemoryCompiler(get(), get(), get(), get()) }    // sectionDao + llmClient + fileWriter + factStore
+    single {
+        MemoryCompiler(
+            sectionDao = get(),
+            llmClient = get(),
+            fileWriter = get(),
+            factStore = get(),
+            scopedSectionDao = get(),
+        )
+    }    // legacy sectionDao + llmClient + fileWriter + factStore + scoped DAO
     single { FactStore(get(), get(), java.io.File(androidContext().filesDir, "fact_tombstones.json"), get<io.zer0.memory.fact.FactDedupJudge>(), get()) }
     single { DeepMemoryProcessor(get<io.zer0.memory.fact.FactDbProvider>(), get()) }  // factDbProvider + llmClient
 
