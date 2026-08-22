@@ -172,6 +172,12 @@ internal fun MessageBubble(
     translationSourceContent: String? = null,
     // v1.0.53: 是否为会话最后一条消息(快捷菜单/分支切换用)
     isLast: Boolean = false,
+    /**
+     * 是否为最后一条用户提问。
+     * 与 [isLast] 独立：AI 报错生成失败/空 assistant 消息后，最后一条消息是 assistant，
+     * 但这条 user 仍是最后提问，重roll按钮必须继续显示，用户不用删掉重发。
+     */
+    isLastUserMessage: Boolean = false,
     // v1.0.53: 当前消息的分支索引与总数(助手消息多版本切换)
     branchIndex: Int = 0,
     branchCount: Int = 1,
@@ -1173,7 +1179,7 @@ internal fun MessageBubble(
                     size = MuseIconSizes.touchTarget,
                     iconSize = MuseIconSizes.iconSmall,
                 )
-                if (isLast) {
+                if (isLastUserMessage) {
                     MuseTactileButton(
                         icon = TablerIcons.Refresh,
                         onClick = {

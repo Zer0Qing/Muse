@@ -1480,6 +1480,15 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                         // 都重新计算所有可见 item 的 isLast。只有最后一条消息变化时才重组。
                         // v1.0.4 (P3-4): isLast 基于 visibleMessages,性能模式下指"已渲染列表的最后一条"
                         val isLast by remember { derivedStateOf { msg.id == visibleMessages.lastOrNull()?.id } }
+                        // 最后一条用户提问：控制 user 消息底部的重roll按钮。
+                        // 即使 AI 报错生成了失败的 assistant 消息，只要这条 user 仍是最后提问，
+                        // 重roll就可用，用户不用删掉重发。
+                        val isLastUserMessage by remember(msg.id) {
+                            derivedStateOf {
+                                msg.role == MessageRole.USER &&
+                                    visibleMessages.lastOrNull { it.role == MessageRole.USER }?.id == msg.id
+                            }
+                        }
                         // v1.0.53: 当前消息对应的分支组信息(直接来自 ConversationTree)
                         val branchInfo by remember(msg.id) {
                             derivedStateOf { conversationTree.branchInfoFor(msg.id) }
@@ -1684,6 +1693,7 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                             visionAssisted = if (msg.role == MessageRole.USER) msg.id.toString() in state.visionAssistedMessageIds else false,
                             // v1.0.53: 最后一条标记 + 分支切换数据
                             isLast = isLast,
+                            isLastUserMessage = isLastUserMessage,
                             branchIndex = branchInfo?.selectIndex ?: 0,
                             branchCount = branchInfo?.branchCount ?: 1,
                             onBranchPrevious = {
