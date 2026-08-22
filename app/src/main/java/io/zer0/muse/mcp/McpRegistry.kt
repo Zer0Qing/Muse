@@ -458,12 +458,16 @@ class McpRegistry(
             ) { args ->
                 // 保留 inputSchema 声明的 JSON 类型,避免 boolean/number/array/object 被压成字符串。
                 val arguments = coerceMcpArguments(args, tool.inputSchema)
-                val result = withTimeoutOrNull(120_000L) {
+                val timeoutMs = _servers.value.firstOrNull { it.id == serverId }
+                    ?.requestTimeoutMs
+                    ?.coerceIn(1_000L, 120_000L)
+                    ?: 30_000L
+                val result = withTimeoutOrNull(timeoutMs) {
                     client.callTool(tool.name, arguments)
                 }
                 if (result == null) {
-                    // v1.0.79 (D-1): 超时不再静默 — 记录日志便于排查,并把失败原因回传给模型
-                    Logger.w(TAG, "[$serverId] 工具 ${tool.name} 调用超时(120s)")
+                    // 超时不再静默：使用 server 配置的 requestTimeoutMs 回传失败原因。
+                    Logger.w(TAG, "[$serverId] 工具 ${tool.name} 调用超时(${timeoutMs}ms)")
                     "Error: " + context.getString(R.string.mcp_tool_call_timeout, tool.name)
                 } else if (result.isError) {
                     // v1.0.79 (A-1): 错误详情完整回传 — server 返回的 content/structuredContent
@@ -646,7 +650,10 @@ class McpRegistry(
                 ToolRiskLevel.HIGH
             listOf("create", "new", "update", "edit", "write", "add", "move", "rename", "open", "post", "put").any { name.contains(it) } ->
                 ToolRiskLevel.NORMAL
-            else -> ToolRiskLevel.SAFE
+            // 外部 MCP 的未知工具默认按 NORMAL 处理，不能因为名字没命中关键词就绕过审批。
+            listOf("read", "list", "get", "search", "fetch", "query", "check", "status", "info", "describe").any { name.contains(it) } ->
+                ToolRiskLevel.SAFE
+            else -> ToolRiskLevel.NORMAL
         }
     }
 
