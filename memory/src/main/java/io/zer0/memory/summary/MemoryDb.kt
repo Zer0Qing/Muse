@@ -2,6 +2,8 @@ package io.zer0.memory.summary
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 
 /**
  * Memory 模块的 Room 数据库。
@@ -21,7 +23,7 @@ import androidx.room.RoomDatabase
         DailyStateEntity::class,
         CompiledSectionEntity::class,
     ],
-    version = 1,
+    version = 2,
     // v1.78 (H4): 开启 schema 导出,为未来 version 升级编写 Migration 提供基线
     exportSchema = true,
 )
@@ -29,4 +31,15 @@ abstract class MemoryDb : RoomDatabase() {
     abstract fun sessionSummaryDao(): SessionSummaryDao
     abstract fun dailyStateDao(): DailyStateDao
     abstract fun compiledSectionDao(): CompiledSectionDao
+
+    companion object {
+        /** 仅增加列，旧摘要全部归入 default，不删除任何历史数据。 */
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE session_summaries ADD COLUMN space_id TEXT NOT NULL DEFAULT 'default'",
+                )
+            }
+        }
+    }
 }

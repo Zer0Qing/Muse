@@ -362,6 +362,20 @@ class FactStoreTest {
         assertEquals("main scope 应为空", 0, store.getByScope("main").size)
     }
 
+    @Test
+    fun `applyDecay with scope and space only affects specified space`() = runTest {
+        val oldDate = Instant.now().minus(50, ChronoUnit.DAYS).toString()
+        dao.insert(FactEntity(fact = "work old", tags = "[]", createdAt = oldDate, scope = "main", spaceId = "work"))
+        dao.insert(FactEntity(fact = "life old", tags = "[]", createdAt = oldDate, scope = "main", spaceId = "life"))
+        store.rebuildFtsIndex()
+
+        val deleted = store.applyDecay(MemoryConfig(), scope = "main", spaceId = "work")
+
+        assertEquals(1, deleted)
+        assertEquals(0, store.getByScopeAndSpace("main", "work").size)
+        assertEquals(1, store.getByScopeAndSpace("main", "life").size)
+    }
+
     // ──────────────────────────────────────────────
     //  scope 隔离
     // ──────────────────────────────────────────────

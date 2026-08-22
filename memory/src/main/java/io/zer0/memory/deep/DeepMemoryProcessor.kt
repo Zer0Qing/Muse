@@ -225,12 +225,15 @@ class DeepMemoryProcessor(
                     summaryManager.markProcessed(summary.sessionId)
                     return 0
                 }
-                val added = factStore.addBatch(filteredFacts, scope = scope)
+                // 摘要携带空间归属，深度提取不能再落入 default。
+                val added = factStore.addBatch(filteredFacts, scope = scope, spaceId = summary.spaceId)
                 // v0.32: 接入 MemoryConfig —— 每个脏 session 处理完后顺手跑一次衰减,
                 // 让 decayPerDay / forgetSpeed / compileThreshold / baseImportance 真正生效。
                 // 单 session 的 fact 增量很小,applyDecay 的开销可忽略;失败也不阻塞主流程。
                 // v1.78 (H4): 包装 suspend 调用必须用 resultOf,避免吞 CancellationException
-                resultOf { factStore.applyDecay(config, scope = scope) }.onError { msg, t ->
+                resultOf {
+                    factStore.applyDecay(config, scope = scope, spaceId = summary.spaceId)
+                }.onError { msg, t ->
                     Logger.w("DeepMemoryProcessor", "applyDecay failed for ${summary.sessionId.take(8)}…: $msg", t)
                 }
                 failureCounts.remove(summary.sessionId)

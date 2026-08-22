@@ -43,6 +43,7 @@ class SessionSummaryManager(
         val snapshot: String = "",
         val snapshotAt: String? = null,
         val assistantId: String = "",
+        val spaceId: String = "default",
     )
 
     /** 读取指定 session 的摘要,不存在返回 null。 */
@@ -121,8 +122,9 @@ class SessionSummaryManager(
         locale: String = "zh-CN",
         timeZone: String = TimeContext.DEFAULT_TIMEZONE,
         assistantId: String = "",
+        spaceId: String = "default",
     ): RollingResult = withContext(Dispatchers.IO) {
-        val draft = createRollingSummaryDraft(sessionId, messages, model, locale, timeZone, assistantId)
+        val draft = createRollingSummaryDraft(sessionId, messages, model, locale, timeZone, assistantId, spaceId)
             ?: return@withContext RollingResult(summary = "", changed = false)
         if (draft.changed && draft.data != null) {
             saveSummary(sessionId, draft.data)
@@ -144,6 +146,7 @@ class SessionSummaryManager(
         locale: String = "zh-CN",
         timeZone: String = TimeContext.DEFAULT_TIMEZONE,
         assistantId: String = "",
+        spaceId: String = "default",
     ): Draft? = withContext(Dispatchers.IO) {
         val existing = getSummary(sessionId)
         val prevSummary = existing?.summary ?: ""
@@ -263,6 +266,7 @@ class SessionSummaryManager(
             snapshot = existing?.snapshot ?: "",
             snapshotAt = existing?.snapshotAt,
             assistantId = assistantId,
+            spaceId = spaceId,
         )
         Draft(newSummary, changed = true, data)
     }
@@ -334,6 +338,7 @@ class SessionSummaryManager(
             snapshot = snapshot,
             snapshotAt = snapshotAt,
             assistantId = assistantId,
+            spaceId = spaceId,
         )
     }
 
@@ -351,6 +356,7 @@ class SessionSummaryManager(
             snapshot = snapshot,
             snapshotAt = snapshotAt,
             assistantId = assistantId,
+            spaceId = spaceId,
         )
     }
 }

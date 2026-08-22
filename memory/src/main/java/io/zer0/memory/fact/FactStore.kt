@@ -1326,7 +1326,11 @@ class FactStore(
      *
      * @return 实际删除的 fact 数
      */
-    suspend fun applyDecay(config: io.zer0.memory.ticker.MemoryConfig, scope: String? = null): Int = withContext(Dispatchers.IO) {
+    suspend fun applyDecay(
+        config: io.zer0.memory.ticker.MemoryConfig,
+        scope: String? = null,
+        spaceId: String? = null,
+    ): Int = withContext(Dispatchers.IO) {
         val neverHitCutoff = io.zer0.memory.ticker.MemoryConfig.safeCutoffDays(config, hit = false)
         val hitCutoff = io.zer0.memory.ticker.MemoryConfig.safeCutoffDays(config, hit = true)
         if (neverHitCutoff.isInfinite() || neverHitCutoff.isNaN() || hitCutoff.isInfinite() || hitCutoff.isNaN()) {
@@ -1334,18 +1338,24 @@ class FactStore(
         }
         val now = java.time.Instant.now()
         // B-18: 先清理已过期事实(expires_at < now) — 时效性事实过期后不再驻留/注入
-        dao.deleteExpired(now.toString(), scope)
+        dao.deleteExpired(now.toString(), scope, spaceId)
         if (neverHitCutoff <= 0f || hitCutoff <= 0f) {
             // base 已低于阈值,配置上等同于"立即遗忘全部" —— 但 v4: 关键事实(importance=2)仍保留
             io.zer0.common.Logger.w("FactStore", "applyDecay: cutoff<=0, deleting non-critical facts (config=$config, scope=$scope)")
-            return@withContext dao.deleteOlderThanExceptImportant(now.toString(), 2, scope)
+            return@withContext dao.deleteOlderThanExceptImportant(now.toString(), 2, scope, spaceId)
         }
         val neverHitCutoffInstant = now.minus(neverHitCutoff.toLong(), java.time.temporal.ChronoUnit.DAYS)
         val hitCutoffInstant = now.minus(hitCutoff.toLong(), java.time.temporal.ChronoUnit.DAYS)
         // v4: minImportance=2 表示仅删除 importance < 2 的 fact,关键事实(importance=2)永不衰减
         // v7: 区分命中/未命中事实,分别用不同 cutoff
         // v8: scope 非 null 时仅衰减指定作用域
-        dao.deleteOlderThanWithHit(neverHitCutoffInstant.toString(), hitCutoffInstant.toString(), 2, scope)
+        dao.deleteOlderThanWithHit(
+            neverHitCutoffInstant.toString(),
+            hitCutoffInstant.toString(),
+            2,
+            scope,
+            spaceId,
+        )
     }
 
     // ── v8: 按作用域(scope)查询/观察/衰减 ────────────────────────────────

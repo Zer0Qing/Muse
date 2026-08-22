@@ -49,4 +49,8 @@ data class SessionSummaryEntity(
     /** 所属 Assistant id（v0.22: 用于 per-assistant facts.db 隔离）。空表示未关联。 */
     @ColumnInfo(name = "assistant_id")
     val assistantId: String = "",
+
+    /** v2: 所属记忆空间；旧摘要统一兼容到 default。 */
+    @ColumnInfo(name = "space_id", defaultValue = "default")
+    val spaceId: String = "default",
 )

@@ -29,6 +29,8 @@ val memoryModule: Module = module {
     // ── Room 数据库 ──
     single {
         Room.databaseBuilder(androidContext(), MemoryDb::class.java, "memory.db")
+            // v2: session summary 增加 space_id，只做加法迁移，保留旧数据。
+            .addMigrations(io.zer0.memory.summary.MemoryDb.MIGRATION_1_2)
             // v1.78 (M4): 移除 upgrade 的 destructive migration,避免升级时静默清空用户数据;
             // 仅保留降级保护(从历史更高版本降到当前 v1 时不崩溃)
             .fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true)

@@ -10,6 +10,7 @@ import io.zer0.muse.web.createWebSearchClient
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
+import kotlinx.coroutines.flow.first
 
 /**
  * P2-3 拆域：MCP / 视觉 / 备份 / 通知 / 更新 / Web / 记忆基础设施注册独立模块。
@@ -79,6 +80,7 @@ val appInfraModule = module {
             isMemoryEnabled = { settings.isMemoryEnabled() },
             scope = get(),
             getConfig = { settings.memoryConfigCache },
+            getCurrentSpaceId = { settings.currentSpaceIdFlow.first() },
             factStore = get(),
             // v12 (T3-1): 记忆反思任务 — 每日整理(回填实体键/合并重复/矛盾检测/晋升)
             reflectionRunner = get(),

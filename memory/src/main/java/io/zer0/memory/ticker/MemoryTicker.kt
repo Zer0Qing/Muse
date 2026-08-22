@@ -86,6 +86,8 @@ class  MemoryTicker(
      *    内的 fact 分数计算 / 衰减
      */
     private val getConfig: () -> MemoryConfig = { MemoryConfig() },
+    /** 当前空间快照，供摘要/深度记忆链路保持与会话一致。 */
+    private val getCurrentSpaceId: suspend () -> String = { "default" },
 ) {
 
     /** 当前生效的 [MemoryConfig](每次访问都重新读取闭包,保证拿到用户最新设置)。 */
@@ -372,7 +374,15 @@ class  MemoryTicker(
         try {
             // v1.0.50: 全局并发限制 — 即使快速切多个会话,同时只有 3 个 rollingSummary 在跑
             val result = _rollingSummaryConcurrency.withPermit {
-                summaryManager.rollingSummary(sessionId, messages, model, locale, timeZone, assistantId)
+                summaryManager.rollingSummary(
+                    sessionId,
+                    messages,
+                    model,
+                    locale,
+                    timeZone,
+                    assistantId,
+                    getCurrentSpaceId(),
+                )
             }
             // v1.0.50: 根据 changed 区分日志,避免"LLM 返回空 → changed=false → 误打 updated"掩盖故障
             if (result.changed) {

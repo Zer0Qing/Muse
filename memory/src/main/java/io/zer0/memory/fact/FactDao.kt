@@ -138,8 +138,8 @@ interface FactDao {
      *
      * @return 实际删除的行数
      */
-    @Query("DELETE FROM facts WHERE created_at < :cutoffIso AND (:scope IS NULL OR scope = :scope)")
-    suspend fun deleteOlderThan(cutoffIso: String, scope: String? = null): Int
+    @Query("DELETE FROM facts WHERE created_at < :cutoffIso AND (:scope IS NULL OR scope = :scope) AND (:spaceId IS NULL OR space_id = :spaceId)")
+    suspend fun deleteOlderThan(cutoffIso: String, scope: String? = null, spaceId: String? = null): Int
 
     /**
      * v4: 删除创建时间早于 [cutoffIso] 且 importance < [minImportance] 的 fact。
@@ -149,8 +149,8 @@ interface FactDao {
      *
      * @return 实际删除的行数
      */
-    @Query("DELETE FROM facts WHERE created_at < :cutoffIso AND importance < :minImportance AND (:scope IS NULL OR scope = :scope)")
-    suspend fun deleteOlderThanExceptImportant(cutoffIso: String, minImportance: Int, scope: String? = null): Int
+    @Query("DELETE FROM facts WHERE created_at < :cutoffIso AND importance < :minImportance AND (:scope IS NULL OR scope = :scope) AND (:spaceId IS NULL OR space_id = :spaceId)")
+    suspend fun deleteOlderThanExceptImportant(cutoffIso: String, minImportance: Int, scope: String? = null, spaceId: String? = null): Int
 
     /**
      * v7: 按命中时间衰减删除。
@@ -166,13 +166,14 @@ interface FactDao {
         DELETE FROM facts
         WHERE importance < :minImportance
           AND (:scope IS NULL OR scope = :scope)
+          AND (:spaceId IS NULL OR space_id = :spaceId)
           AND (
             (last_hit_at IS NULL AND created_at < :neverHitCutoffIso)
             OR
             (last_hit_at IS NOT NULL AND last_hit_at < :hitCutoffIso)
           )
     """)
-    suspend fun deleteOlderThanWithHit(neverHitCutoffIso: String, hitCutoffIso: String, minImportance: Int, scope: String? = null): Int
+    suspend fun deleteOlderThanWithHit(neverHitCutoffIso: String, hitCutoffIso: String, minImportance: Int, scope: String? = null, spaceId: String? = null): Int
 
     /**
      * B-18: 删除已过期事实(expires_at 非空且早于当前时间)。
@@ -180,8 +181,8 @@ interface FactDao {
      *
      * @return 实际删除的行数
      */
-    @Query("DELETE FROM facts WHERE expires_at IS NOT NULL AND expires_at != '' AND expires_at < :nowISO AND (:scope IS NULL OR scope = :scope)")
-    suspend fun deleteExpired(nowISO: String, scope: String? = null): Int
+    @Query("DELETE FROM facts WHERE expires_at IS NOT NULL AND expires_at != '' AND expires_at < :nowISO AND (:scope IS NULL OR scope = :scope) AND (:spaceId IS NULL OR space_id = :spaceId)")
+    suspend fun deleteExpired(nowISO: String, scope: String? = null, spaceId: String? = null): Int
 
     /**
      * 全文搜索(LIKE,兼容所有 ROM)。
