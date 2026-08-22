@@ -51,8 +51,7 @@ class MemoryCompiler(
     private val factStore: FactStore? = null,
     /** v3: scoped 编译产物；null 时保留旧测试/兼容路径。 */
     private val scopedSectionDao: io.zer0.memory.summary.ScopedCompiledSectionDao? = null,
-    private val getScope: suspend () -> String = { "main" },
-    private val getSpaceId: suspend () -> String = { "default" },
+    private val compileContext: MemoryCompileContext = MemoryCompileContext(),
 ) {
 
     /** 四块 section key。 */
@@ -76,9 +75,9 @@ class MemoryCompiler(
      */
     enum class Result { COMPILED, SKIPPED, FAILED }
 
-    private suspend fun currentScope(): String = getScope().ifBlank { "main" }
+    private suspend fun currentScope(): String = compileContext.getScope().ifBlank { "main" }
 
-    private suspend fun currentSpaceId(): String = getSpaceId().ifBlank { "default" }
+    private suspend fun currentSpaceId(): String = compileContext.getSpaceId().ifBlank { "default" }
 
     private suspend fun readStoredSection(key: String): io.zer0.memory.summary.ScopedCompiledSectionEntity? {
         val scoped = scopedSectionDao

@@ -32,6 +32,11 @@ class SessionSummaryManager(
 
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
+    data class SummaryOwnership(
+        val assistantId: String = "",
+        val spaceId: String = "default",
+    )
+
     /** 业务层数据结构(与 Entity 分离,屏蔽 snapshot/snapshotAt 等内部字段)。 */
     data class SummaryData(
         val sessionId: String,
@@ -121,10 +126,9 @@ class SessionSummaryManager(
         model: Model?,
         locale: String = "zh-CN",
         timeZone: String = TimeContext.DEFAULT_TIMEZONE,
-        assistantId: String = "",
-        spaceId: String = "default",
+        ownership: SummaryOwnership = SummaryOwnership(),
     ): RollingResult = withContext(Dispatchers.IO) {
-        val draft = createRollingSummaryDraft(sessionId, messages, model, locale, timeZone, assistantId, spaceId)
+        val draft = createRollingSummaryDraft(sessionId, messages, model, locale, timeZone, ownership)
             ?: return@withContext RollingResult(summary = "", changed = false)
         if (draft.changed && draft.data != null) {
             saveSummary(sessionId, draft.data)
@@ -145,8 +149,7 @@ class SessionSummaryManager(
         model: Model?,
         locale: String = "zh-CN",
         timeZone: String = TimeContext.DEFAULT_TIMEZONE,
-        assistantId: String = "",
-        spaceId: String = "default",
+        ownership: SummaryOwnership = SummaryOwnership(),
     ): Draft? = withContext(Dispatchers.IO) {
         val existing = getSummary(sessionId)
         val prevSummary = existing?.summary ?: ""
@@ -265,8 +268,8 @@ class SessionSummaryManager(
             sourceTimeRange = sourceTimeRange ?: existing?.sourceTimeRange,
             snapshot = existing?.snapshot ?: "",
             snapshotAt = existing?.snapshotAt,
-            assistantId = assistantId,
-            spaceId = spaceId,
+            assistantId = ownership.assistantId,
+            spaceId = ownership.spaceId,
         )
         Draft(newSummary, changed = true, data)
     }

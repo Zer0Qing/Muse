@@ -10,7 +10,6 @@ import io.zer0.memory.summary.CompiledSectionEntity
 import io.zer0.memory.summary.MemoryDb
 import io.zer0.memory.summary.ScopedCompiledSectionEntity
 import io.zer0.ai.core.Model
-import io.zer0.memory.summary.SessionSummaryManager
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -70,8 +69,10 @@ class ReconcileFactsSectionTest {
             fileWriter = null,
             factStore = null,
             scopedSectionDao = memoryDb.scopedCompiledSectionDao(),
-            getScope = { "main" },
-            getSpaceId = { "work" },
+            compileContext = MemoryCompileContext(
+                getScope = { "main" },
+                getSpaceId = { "work" },
+            ),
         )
     }
 

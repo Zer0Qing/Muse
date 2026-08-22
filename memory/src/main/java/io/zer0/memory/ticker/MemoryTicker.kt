@@ -85,13 +85,11 @@ class  MemoryTicker(
      *    [MemoryCompiler.compileFacts] 与 [DeepMemoryProcessor.processDirtySessions]
      *    内的 fact 分数计算 / 衰减
      */
-    private val getConfig: () -> MemoryConfig = { MemoryConfig() },
-    /** 当前空间快照，供摘要/深度记忆链路保持与会话一致。 */
-    private val getCurrentSpaceId: suspend () -> String = { "default" },
+    private val runtimeContext: MemoryRuntimeContext = MemoryRuntimeContext(),
 ) {
 
     /** 当前生效的 [MemoryConfig](每次访问都重新读取闭包,保证拿到用户最新设置)。 */
-    val config: MemoryConfig get() = getConfig()
+    val config: MemoryConfig get() = runtimeContext.getConfig()
 
     companion object {
         const val TURNS_PER_SUMMARY = 10
@@ -380,8 +378,10 @@ class  MemoryTicker(
                     model,
                     locale,
                     timeZone,
-                    assistantId,
-                    getCurrentSpaceId(),
+                    SessionSummaryManager.SummaryOwnership(
+                        assistantId = assistantId,
+                        spaceId = runtimeContext.getCurrentSpaceId(),
+                    ),
                 )
             }
             // v1.0.50: 根据 changed 区分日志,避免"LLM 返回空 → changed=false → 误打 updated"掩盖故障
@@ -543,7 +543,7 @@ class  MemoryTicker(
             if ("compileFacts" !in completed) {
                 try {
                     // A-19: 只编译主助手摘要
-                    compiler.compileFacts(summaryManager, model, locale, getConfig(), mainAssistantId = MAIN_ASSISTANT_ID)
+                    compiler.compileFacts(summaryManager, model, locale, runtimeContext.getConfig(), mainAssistantId = MAIN_ASSISTANT_ID)
                     // v12 (T2-1): 编译产物与 facts 表对账 — 用户在记忆页编辑/合并事实后,
                     // 产物同步为 facts 表现值,下次注入不再携带旧表述。失败不影响主流程。
                     factStore?.let { fs ->
@@ -572,7 +572,7 @@ class  MemoryTicker(
             // Step 5: deepMemory(独立,更新 FactStore)
             if ("deepMemory" !in completed) {
                 try {
-                    val result = deepProcessor.processDirtySessions(summaryManager, model, locale, getConfig())
+                    val result = deepProcessor.processDirtySessions(summaryManager, model, locale, runtimeContext.getConfig())
                     completed = completed + ("deepMemory" to Instant.now().toString())
                     if (result.processed > 0) {
                         Logger.i(TAG, "deep-memory: ${result.processed} session, ${result.factsAdded} 条新事实")
@@ -697,7 +697,7 @@ class  MemoryTicker(
                     // processSession 内部会检查 dirty 状态,复用 Semaphore(3) 排队
                     resultOf {
                         deepProcessor.processSession(
-                            sessionId, summaryManager, model, locale, getConfig(),
+                            sessionId, summaryManager, model, locale, runtimeContext.getConfig(),
                         )
                     }.onError { msg, t ->
                         Logger.w(TAG, "notifySessionEnd: processSession 失败: $msg", t)
@@ -874,7 +874,7 @@ class  MemoryTicker(
         // v1.78 (H2): 包装 suspend 调用必须用 resultOf,避免吞 CancellationException
         resultOf {
             // A-19: 只编译主助手摘要
-            compiler.compileFacts(summaryManager, model, locale, getConfig(), mainAssistantId = MAIN_ASSISTANT_ID)
+            compiler.compileFacts(summaryManager, model, locale, runtimeContext.getConfig(), mainAssistantId = MAIN_ASSISTANT_ID)
         }.onSuccess {
             markSuccess("compileFacts")
             markStepRecovered("compileFacts(force)")
@@ -888,7 +888,7 @@ class  MemoryTicker(
         }
         // 2. 强制重跑 deepMemory(处理 dirty sessions,提取深层事实)
         resultOf {
-            val result = deepProcessor.processDirtySessions(summaryManager, model, locale, getConfig())
+            val result = deepProcessor.processDirtySessions(summaryManager, model, locale, runtimeContext.getConfig())
             if (result.processed > 0) {
                 Logger.i(TAG, "forceCompileNow: deep-memory ${result.processed} session, ${result.factsAdded} 新事实")
             }
@@ -920,7 +920,7 @@ class  MemoryTicker(
         spaceId: String? = null,
     ): String {
         val md = compiler.readCompiledMemoryMarkdown(locale, scope, spaceId)
-        val cfg = getConfig()
+        val cfg = runtimeContext.getConfig()
         return LlmBudget.truncateToTokenBudget(md, cfg.tokenBudget)
     }
 }

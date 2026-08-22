@@ -78,6 +78,7 @@ val memoryModule: Module = module {
             fileWriter = get(),
             factStore = get(),
             scopedSectionDao = get(),
+            compileContext = io.zer0.memory.compile.MemoryCompileContext(),
         )
     }    // legacy sectionDao + llmClient + fileWriter + factStore + scoped DAO
     single { FactStore(get(), get(), java.io.File(androidContext().filesDir, "fact_tombstones.json"), get<io.zer0.memory.fact.FactDedupJudge>(), get()) }

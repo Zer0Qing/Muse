@@ -79,8 +79,10 @@ val appInfraModule = module {
             getResetAt = { null },                         // Phase 3: 暂无记忆重置水印
             isMemoryEnabled = { settings.isMemoryEnabled() },
             scope = get(),
-            getConfig = { settings.memoryConfigCache },
-            getCurrentSpaceId = { settings.currentSpaceIdFlow.first() },
+            runtimeContext = io.zer0.memory.ticker.MemoryRuntimeContext(
+                getConfig = { settings.memoryConfigCache },
+                getCurrentSpaceId = { settings.currentSpaceIdFlow.first() },
+            ),
             factStore = get(),
             // v12 (T3-1): 记忆反思任务 — 每日整理(回填实体键/合并重复/矛盾检测/晋升)
             reflectionRunner = get(),

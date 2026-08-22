@@ -338,7 +338,7 @@ class MemoryTickerTest {
             getResetAt = { null },
             isMemoryEnabled = isMemoryEnabled,
             scope = scope,
-            getConfig = { MemoryConfig() },
+            runtimeContext = MemoryRuntimeContext(getConfig = { MemoryConfig() }),
         )
     }
 }
