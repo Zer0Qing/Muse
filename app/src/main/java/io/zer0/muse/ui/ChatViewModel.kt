@@ -2066,32 +2066,43 @@ class ChatViewModel(
                 // 检查用户消息是否已持久化(消费端可能已 appendMessage 但进程在 launchStream 前被杀)
                 val alreadySaved = resultOf { sessionRepository.messageExists(req.sessionId, req.userMessageId) }
                     .getOrNull() ?: false
+                val images = runCatching {
+                    idListJson.decodeFromString<List<String>>(req.imageBase64Json)
+                }.getOrDefault(emptyList())
+                val userMsgId = runCatching { Uuid.parse(req.userMessageId) }.getOrElse {
+                    Logger.w("ChatVM", "outbox userMessageId 非 UUID,回退随机 id: ${req.userMessageId}")
+                    Uuid.random()
+                }
+                val userMessage = UIMessage(
+                    id = userMsgId,
+                    role = MessageRole.USER,
+                    content = req.text,
+                    imageBase64List = images,
+                    createdAt = req.createdAt,
+                )
                 if (!alreadySaved) {
-                    val images = runCatching {
-                        idListJson.decodeFromString<List<String>>(req.imageBase64Json)
-                    }.getOrDefault(emptyList())
                     resultOf {
-                        // P0 修复: 复用 outbox 记录的 userMessageId + createdAt,
-                        //   避免重新 new UIMessage 让 createdAt 取到恢复时刻(远晚于原 assistant 消息),
-                        //   切页重载按 createdAt 排序时 user 消息会掉到 assistant 之下。
-                        //   createdAt 用 outbox 写入时刻(≈ enqueueSend 时刻),早于 assistant 消息的持久化时间。
-                        val userMsgId = runCatching { Uuid.parse(req.userMessageId) }.getOrElse {
-                            Logger.w("ChatVM", "outbox userMessageId 非 UUID,回退随机 id: ${req.userMessageId}")
-                            Uuid.random()
-                        }
-                        sessionRepository.appendMessage(req.sessionId, UIMessage(
-                            id = userMsgId,
-                            role = MessageRole.USER,
-                            content = req.text,
-                            imageBase64List = images,
-                            createdAt = req.createdAt,
-                        ))
+                        // 复用 outbox 的 userMessageId + createdAt，避免恢复后排序漂移。
+                        sessionRepository.appendMessage(req.sessionId, userMessage)
                     }.onError { msg, t ->
                         Logger.w("ChatVM", "outbox 恢复 appendMessage 失败: $msg", t)
                     }
                 }
-                // outbox 完成使命(用户消息已持久化),删除记录
-                resultOf { sessionRepository.deleteOutbox(req.id) }
+                // 用户消息已存在时不能直接删除：进程可能死在 appendMessage 与 launchStream 之间。
+                // 重新投递同一条请求，由消费端启动生成成功后按原 outboxId 删除。
+                val retry = sendChannel.trySend(
+                    SendRequest(
+                        text = req.text,
+                        images = images,
+                        sessionId = req.sessionId,
+                        userMessage = userMessage,
+                        assistantMessageId = runCatching { Uuid.parse(req.assistantMessageId) }.getOrElse { Uuid.random() },
+                        outboxId = req.id,
+                    ),
+                )
+                if (retry.isFailure) {
+                    Logger.w("ChatVM", "outbox 恢复重新入队失败: ${req.id}")
+                }
             }
         }
     }
@@ -2146,8 +2157,9 @@ class ChatViewModel(
                     isWaitingFirstToken = false,
                 )
             }
-            // v1.0.15: 消息未投递,删除 outbox
-            resultOf { sessionRepository.deleteOutbox(req.outboxId) }
+            // 会话切换时不能删除 outbox：它仍是目标会话的待生成请求，
+            // 留给用户切回该会话后的恢复流程，避免跨会话切换造成消息丢失。
+            Logger.i("ChatVM", "跳过当前会话外的 outbox 请求: ${req.outboxId}")
             return
         }
         try {
