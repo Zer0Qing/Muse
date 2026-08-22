@@ -66,4 +66,6 @@
     <string name="tools_settings_policy_always_allow_short">허용하다</string>
     <string name="tools_settings_policy_ask_short">묻다</string>
     <string name="tools_settings_policy_always_deny_short">부인하다</string>
+    <string name="tools_empty_title">등록된 도구가 없습니다</string>
+    <string name="tools_empty_subtitle">플러그인 또는 MCP 설정을 확인한 후 이 페이지를 다시 열어 주세요.</string>
 </resources>

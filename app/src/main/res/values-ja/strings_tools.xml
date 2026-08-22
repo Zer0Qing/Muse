@@ -66,4 +66,6 @@
     <string name="tools_settings_policy_always_allow_short">許可する</string>
     <string name="tools_settings_policy_ask_short">聞く</string>
     <string name="tools_settings_policy_always_deny_short">拒否</string>
+    <string name="tools_empty_title">登録されたツールはありません</string>
+    <string name="tools_empty_subtitle">プラグインまたは MCP の設定を確認して、このページを開き直してください。</string>
 </resources>

@@ -66,4 +66,6 @@
     <string name="tools_settings_policy_always_allow_short">Позволять</string>
     <string name="tools_settings_policy_ask_short">Просить</string>
     <string name="tools_settings_policy_always_deny_short">Отрицать</string>
+    <string name="tools_empty_title">Нет зарегистрированных инструментов</string>
+    <string name="tools_empty_subtitle">Проверьте настройки плагинов или MCP и снова откройте эту страницу.</string>
 </resources>
