@@ -6704,19 +6704,23 @@ class ChatViewModel(
         val history = _messages.value
         if (history.size < 2) return
         val assistantId = _state.value.currentAssistant?.id ?: "default"
-        val spaceId = "default" // v1.0.52: 当前 Space 由 SettingsRepository 持有,此处简化用 default
         val scope = if (assistantId == "default") "main" else assistantId
         val locale = "zh-CN"
-        // model 传 null,MemoryLlmClient 实现侧用 Provider 配置的默认模型
-        scheduler.scheduleAutoSave(
-            sessionId = sessionId,
-            history = history,
-            assistantId = assistantId,
-            spaceId = spaceId,
-            scope = scope,
-            model = null,
-            locale = locale,
-        )
+        // 在排队前捕获当前空间，不能把后台提取永远写入 default；
+        // 之后用户切换空间也不会改变这次 session 的归属。
+        viewModelScope.launch(Dispatchers.IO) {
+            val spaceId = settings.currentSpaceIdFlow.first()
+            // model 传 null,MemoryLlmClient 实现侧用 Provider 配置的默认模型
+            scheduler.scheduleAutoSave(
+                sessionId = sessionId,
+                history = history,
+                assistantId = assistantId,
+                spaceId = spaceId,
+                scope = scope,
+                model = null,
+                locale = locale,
+            )
+        }
     }
 
     /**
