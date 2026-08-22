@@ -309,6 +309,22 @@ internal fun MessageBubble(
     } else {
         InternalMarkupSanitizer.stripForDisplay(if (msg.quotedContent != null) msg.content else parsedBody)
     }
+    // 失败/恢复后的空 assistant 不能渲染成没有内容的白色长条；
+    // 流式期间仍保留空占位，用于显示 ThinkingIndicator/光标。
+    val hasAssistantPayload = body.isNotBlank() ||
+        msg.imageUrls.isNotEmpty() ||
+        msg.imageBase64List.isNotEmpty() ||
+        msg.videoFileUri != null ||
+        msg.artifactIds.isNotEmpty() ||
+        msg.toolCallInfo != null ||
+        msg.reasoning?.isNotBlank() == true ||
+        msg.mood?.isNotBlank() == true ||
+        msg.reflection?.isNotBlank() == true ||
+        msg.ragCitations.isNotEmpty() ||
+        taskCard != null ||
+        artifacts.isNotEmpty()
+    if (!isUser && !isStreaming && !hasAssistantPayload) return
+
     // 历史消息可能只有 content 没有 mood 字段，显示层仍把内嵌 mood/mod 恢复成可折叠块。
     val visibleMood = if (isUser) null else {
         msg.mood?.takeIf { it.isNotBlank() }
