@@ -71,8 +71,10 @@ class ChatGenerationManager(
         block: suspend () -> Unit,
     ): Job {
         synchronized(lock) {
-            // 取消同一 sessionId 的旧 job(防重入),不影响其他 sessionId
-            streamJobs.remove(sessionId)?.cancel()
+            // 取消同一 sessionId 的旧 job(防重入),不影响其他 sessionId。
+            // 新任务会在旧 Job 完成 finally 后才进入 block，避免两代流同时写同一会话。
+            val previousJob = streamJobs.remove(sessionId)
+            previousJob?.cancel()
             // 先同步写入活跃状态,再启动 appScope 协程。
             // ON_STOP 可能紧跟在发送动作后发生;如果状态只在 launch 块内部异步写入,
             // 前台保活服务会错过这次生成,后台进程可能被系统回收。
@@ -88,6 +90,7 @@ class ChatGenerationManager(
             // 先登记再启动,避免极短任务在 streamJobs 写入前完成,导致 finally
             // 无法确认自己是当前任务,留下永远活跃的快照。
             val job = appScope.launch(start = CoroutineStart.LAZY) {
+                previousJob?.join()
                 val heartbeatJob = launch {
                     while (isActive) {
                         delay(HEARTBEAT_INTERVAL_MS)

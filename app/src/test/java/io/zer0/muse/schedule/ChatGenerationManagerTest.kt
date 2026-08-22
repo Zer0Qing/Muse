@@ -55,6 +55,31 @@ class ChatGenerationManagerTest {
     }
 
     @Test
+    fun `same session replacement waits for cancelled generation to finish`() = runTest {
+        val manager = ChatGenerationManager(backgroundScope)
+        val oldFinally = CompletableDeferred<Unit>()
+        val newStarted = CompletableDeferred<Unit>()
+
+        manager.launchGeneration("session-1", "assistant-old", "旧") {
+            try {
+                kotlinx.coroutines.awaitCancellation()
+            } finally {
+                oldFinally.complete(Unit)
+            }
+        }
+        runCurrent()
+
+        manager.launchGeneration("session-1", "assistant-new", "新") {
+            newStarted.complete(Unit)
+        }
+        runCurrent()
+
+        assertTrue(oldFinally.isCompleted)
+        assertTrue(newStarted.isCompleted)
+        assertEquals("assistant-new", manager.activeGeneration.value?.assistantId)
+    }
+
+    @Test
     fun `touch updates only the requested session heartbeat`() = runTest {
         val manager = ChatGenerationManager(backgroundScope)
         val firstGate = CompletableDeferred<Unit>()
