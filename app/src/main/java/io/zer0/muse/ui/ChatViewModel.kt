@@ -1447,6 +1447,9 @@ class ChatViewModel(
 
     // 限制容量为 8,防止含 base64 图片的请求无界堆积导致 OOM
     private val sendChannel = Channel<SendRequest>(capacity = 8)
+    private val outboxRecoveryQueuedIds = java.util.Collections.newSetFromMap(
+        java.util.concurrent.ConcurrentHashMap<String, Boolean>(),
+    )
 
     // v5: 乐观更新 — 用户消息立即显示到 UI,不等待 DB 写入
     private fun enqueueSend(text: String, images: List<String>, sessionId: String) {
@@ -2138,6 +2141,7 @@ class ChatViewModel(
      * 逻辑与原实现完全一致:会话切换跳过 + appendMessage 自动重试 + launchStream。
      */
     private suspend fun consumeSendRequest(req: SendRequest) {
+        outboxRecoveryQueuedIds.remove(req.outboxId)
         val state = _state.value
         val currentSid = if (state.isAgentMode) {
             state.agentSessionId ?: req.sessionId
@@ -3534,6 +3538,40 @@ class ChatViewModel(
                 Logger.i("ChatVM", "switchSession 检测到 $pendingCount 个未完成工具调用,会话=$sessionId")
             } else {
                 _state.update { it.copy(pendingToolCallCount = 0) }
+            }
+            requeueOutboxForSession(sessionId)
+        }
+    }
+
+    /** 切回会话时重新投递仍未启动生成的 outbox 请求。 */
+    private suspend fun requeueOutboxForSession(sessionId: String) {
+        val pending = resultOf { sessionRepository.getPendingOutbox(sessionId) }.getOrNull().orEmpty()
+        for (req in pending) {
+            if (!outboxRecoveryQueuedIds.add(req.id)) continue
+            val images = runCatching {
+                idListJson.decodeFromString<List<String>>(req.imageBase64Json)
+            }.getOrDefault(emptyList())
+            val userId = runCatching { Uuid.parse(req.userMessageId) }.getOrElse { Uuid.random() }
+            val assistantId = runCatching { Uuid.parse(req.assistantMessageId) }.getOrElse { Uuid.random() }
+            val result = sendChannel.trySend(
+                SendRequest(
+                    text = req.text,
+                    images = images,
+                    sessionId = req.sessionId,
+                    userMessage = UIMessage(
+                        id = userId,
+                        role = MessageRole.USER,
+                        content = req.text,
+                        imageBase64List = images,
+                        createdAt = req.createdAt,
+                    ),
+                    assistantMessageId = assistantId,
+                    outboxId = req.id,
+                ),
+            )
+            if (result.isFailure) {
+                outboxRecoveryQueuedIds.remove(req.id)
+                Logger.w("ChatVM", "切回会话时 outbox 入队失败: ${req.id}")
             }
         }
     }

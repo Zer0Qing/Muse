@@ -753,6 +753,11 @@ class SessionRepository(
         return database.messageOutboxDao().getAll()
     }
 
+    /** 读取目标会话待生成请求，切回会话时用于重新投递。 */
+    suspend fun getPendingOutbox(sessionId: String): List<MessageOutboxEntity> {
+        return database.messageOutboxDao().getBySessionId(sessionId)
+    }
+
     /** 检查指定消息 id 是否已持久化到 messages 表(恢复时避免重复 appendMessage)。 */
     suspend fun messageExists(sessionId: String, messageId: String): Boolean {
         return messageDao.getById(sessionId, messageId) != null
