@@ -601,7 +601,9 @@ class ToolOrchestrator(
                             it.copy(toolProgressMessage = context.getString(R.string.tool_running, tc.name))
                         }
                         try {
-                            executeSingleToolCall(params, taskCardId, tc, idx, host, taskCardCoordinator)
+                            val result = executeSingleToolCall(params, taskCardId, tc, idx, host, taskCardCoordinator)
+                            persistToolRoundIncrementally(params, round, stepStartedAt, result)
+                            result
                         } catch (ce: kotlinx.coroutines.CancellationException) {
                             // F-07: 中断标记 — 工具执行被流式中断(用户停止/会话切换)。
                             // 结果不完整, 记录 INTERRUPTED 状态日志与任务卡步骤, 再向上传播取消。
@@ -886,6 +888,33 @@ class ToolOrchestrator(
             finalAssistantMessage = finalAssistantMessage,
             toolRounds = toolRounds.toList(),
         )
+    }
+
+    private suspend fun persistToolRoundIncrementally(
+        params: ToolLoopParams,
+        round: Int,
+        startedAt: Long,
+        result: ToolExecResult,
+    ) {
+        if (params.turnId.isBlank()) return
+        val now = System.currentTimeMillis()
+        val entity = ToolRoundEntity(
+            id = "${params.traceId.ifBlank { params.sessionId }}:$round:${result.tc.id}",
+            turnId = params.turnId,
+            roundIndex = round,
+            toolCallId = result.tc.id,
+            toolName = result.tc.name,
+            argsJson = result.tc.arguments,
+            resultJson = result.finalToolResult,
+            status = result.status.name,
+            startedAt = startedAt,
+            finishedAt = now,
+            errorDetail = if (result.isSuccess) null else result.displayResult ?: result.finalToolResult,
+        )
+        resultOf { sessionRepository.upsertToolRound(entity) }
+            .onError { msg, t ->
+                Logger.w(TAG, "工具轮增量落盘失败: ${result.tc.name}: $msg", t)
+            }
     }
 
     private suspend fun executeSingleToolCall(

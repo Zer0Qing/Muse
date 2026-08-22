@@ -537,6 +537,13 @@ class SessionRepository(
         }
     }
 
+    /** 增量写入单个工具轮结果，供工具执行完成后立即落盘。 */
+    suspend fun upsertToolRound(round: ToolRoundEntity) {
+        withContext(Dispatchers.IO) {
+            database.toolRoundDao().upsert(round)
+        }
+    }
+
     /**
      * 新链路一次性提交消息、parts、工具轮、分支头和 turn 完成状态。
      *
