@@ -6,6 +6,7 @@ import androidx.room.withTransaction
 import io.zer0.memory.fact.FactDb
 import io.zer0.memory.fact.FactEntity
 import io.zer0.memory.summary.CompiledSectionEntity
+import io.zer0.memory.summary.ScopedCompiledSectionEntity
 import io.zer0.memory.summary.DailyStateEntity
 import io.zer0.memory.summary.MemoryDb
 import io.zer0.memory.summary.SessionSummaryEntity
@@ -115,6 +116,7 @@ class BackupService(
         val sessionSummaries: List<SessionSummaryEntity> = emptyList(),
         val dailyStates: List<DailyStateEntity> = emptyList(),
         val compiledSections: List<CompiledSectionEntity> = emptyList(),
+        val scopedCompiledSections: List<ScopedCompiledSectionEntity> = emptyList(),
         val facts: List<FactEntity> = emptyList(),
         // ── v3 新增: MuseDb 扩展表 ──
         val assistants: List<AssistantEntity> = emptyList(),
@@ -297,6 +299,7 @@ class BackupService(
         val allMessages = muse.messages
         val sessionSummaries = memoryDb.sessionSummaryDao().getAll()
         val compiledSections = memoryDb.compiledSectionDao().getAll()
+        val scopedCompiledSections = memoryDb.scopedCompiledSectionDao().getAll()
         val dailyState = memoryDb.dailyStateDao().get()?.let { listOf(it) } ?: emptyList()
         val facts = factDb.factDao().getAll()
         val assistants = muse.assistants
@@ -398,6 +401,14 @@ class BackupService(
             val line = buildJsonObject {
                 put("type", "compiledSection")
                 put("data", json.encodeToJsonElement(CompiledSectionEntity.serializer(), cs))
+            }
+            writer.write(line.toString())
+            writer.newLine()
+        }
+        scopedCompiledSections.forEach { cs ->
+            val line = buildJsonObject {
+                put("type", "scopedCompiledSection")
+                put("data", json.encodeToJsonElement(ScopedCompiledSectionEntity.serializer(), cs))
             }
             writer.write(line.toString())
             writer.newLine()
@@ -543,7 +554,7 @@ class BackupService(
                     // (如仅 knowledgeDocs/knowledgeChunks/experiences/milestones 有数据)会被误判为空而拒绝。
                     // 这里枚举 writeNdJson 写出的全部类型计数键,任一类型非零即视为有效备份。
                     val countKeys = listOf(
-                        "sessions", "sessionSummaries", "dailyStates", "compiledSections",
+                        "sessions", "sessionSummaries", "dailyStates", "compiledSections", "scopedCompiledSections",
                         "facts",
                         "assistants", "lorebooks", "skills", "artifacts", "quickMessages",
                         "promptInjections", "folders", "groupChats", "groupChatMessages",
@@ -583,6 +594,7 @@ class BackupService(
             val summaryBuf = mutableListOf<SessionSummaryEntity>()
             val dailyBuf = mutableListOf<DailyStateEntity>()
             val compiledBuf = mutableListOf<CompiledSectionEntity>()
+            val scopedCompiledBuf = mutableListOf<ScopedCompiledSectionEntity>()
             val factBuf = mutableListOf<FactEntity>()
             // v3: 扩展表 buffer
             val assistantBuf = mutableListOf<AssistantEntity>()
@@ -664,6 +676,9 @@ class BackupService(
                     }
                     "compiledSection" -> obj["data"]?.let {
                         compiledBuf.add(json.decodeFromJsonElement(CompiledSectionEntity.serializer(), it))
+                    }
+                    "scopedCompiledSection" -> obj["data"]?.let {
+                        scopedCompiledBuf.add(json.decodeFromJsonElement(ScopedCompiledSectionEntity.serializer(), it))
                     }
                     "fact" -> obj["data"]?.let {
                         factBuf.add(json.decodeFromJsonElement(FactEntity.serializer(), it))
@@ -800,14 +815,16 @@ class BackupService(
             // 也消除了在 MuseDb 事务内提前 flush 造成的提前提交。
             // 取舍:memory/fact 记录全部暂存内存后一次性落库,可接受——
             // 其数据量远小于 messages,且换来了正确的先后顺序与一致的提交边界。
-            if (summaryBuf.isNotEmpty() || dailyBuf.isNotEmpty() || compiledBuf.isNotEmpty()) {
+            if (summaryBuf.isNotEmpty() || dailyBuf.isNotEmpty() || compiledBuf.isNotEmpty() || scopedCompiledBuf.isNotEmpty()) {
                 memoryDb.withTransaction {
                     memoryDb.sessionSummaryDao().deleteAll()
                     memoryDb.dailyStateDao().deleteAll()
                     memoryDb.compiledSectionDao().deleteAll()
+                    memoryDb.scopedCompiledSectionDao().deleteAll()
                     summaryBuf.forEach { memoryDb.sessionSummaryDao().upsert(it) }
                     dailyBuf.forEach { memoryDb.dailyStateDao().upsert(it) }
                     compiledBuf.forEach { memoryDb.compiledSectionDao().upsert(it) }
+                    scopedCompiledBuf.forEach { memoryDb.scopedCompiledSectionDao().upsert(it) }
                 }
             }
             if (factBuf.isNotEmpty()) {
@@ -1127,6 +1144,7 @@ class BackupService(
         // memory 数据(4 张表)
         val sessionSummaries = memoryDb.sessionSummaryDao().getAll()
         val compiledSections = memoryDb.compiledSectionDao().getAll()
+        val scopedCompiledSections = memoryDb.scopedCompiledSectionDao().getAll()
         val dailyState = memoryDb.dailyStateDao().get()?.let { listOf(it) } ?: emptyList()
         val facts = factDb.factDao().getAll()
         // v3: 扩展表
@@ -1161,6 +1179,7 @@ class BackupService(
             sessionSummaries = sessionSummaries,
             dailyStates = dailyState,
             compiledSections = compiledSections,
+            scopedCompiledSections = scopedCompiledSections,
             facts = facts,
             assistants = assistants,
             lorebooks = lorebooks,
@@ -1297,14 +1316,18 @@ class BackupService(
         }
 
         // 2. 导入 memory 数据(MemoryDb — 3 张表)
-        if (backup.sessionSummaries.isNotEmpty() || backup.dailyStates.isNotEmpty() || backup.compiledSections.isNotEmpty()) {
+        if (backup.sessionSummaries.isNotEmpty() || backup.dailyStates.isNotEmpty() ||
+            backup.compiledSections.isNotEmpty() || backup.scopedCompiledSections.isNotEmpty()
+        ) {
             memoryDb.withTransaction {
                 memoryDb.sessionSummaryDao().deleteAll()
                 memoryDb.dailyStateDao().deleteAll()
                 memoryDb.compiledSectionDao().deleteAll()
+                memoryDb.scopedCompiledSectionDao().deleteAll()
                 backup.sessionSummaries.forEach { memoryDb.sessionSummaryDao().upsert(it) }
                 backup.dailyStates.forEach { memoryDb.dailyStateDao().upsert(it) }
                 backup.compiledSections.forEach { memoryDb.compiledSectionDao().upsert(it) }
+                backup.scopedCompiledSections.forEach { memoryDb.scopedCompiledSectionDao().upsert(it) }
             }
         }
 
