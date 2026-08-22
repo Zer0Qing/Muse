@@ -262,6 +262,8 @@ data class ToolLoopParams(
     val initialReasoningContent: String = "",
     /** 新链路回合归属；为空时仅保留旧链路行为。 */
     val turnId: String = "",
+    /** 由主会话宿主注入，供 search_memory 等隔离敏感工具使用。 */
+    val toolExecutionContext: ToolExecutionContext? = null,
 )
 
 /**
@@ -1025,7 +1027,11 @@ class ToolOrchestrator(
                         }.getOrDefault(emptyMap())
                         BrowserAutomationTool.executeFromArgs(tc.name, argsMap, sessionBm)
                     } else {
-                        toolRegistry.executeFromJson(tc.name, subagentSessionFix)
+                        if (params.toolExecutionContext != null) {
+                            toolRegistry.executeFromJson(tc.name, subagentSessionFix, params.toolExecutionContext)
+                        } else {
+                            toolRegistry.executeFromJson(tc.name, subagentSessionFix)
+                        }
                     }
                 }
             }

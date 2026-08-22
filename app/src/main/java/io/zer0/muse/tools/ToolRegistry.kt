@@ -124,6 +124,9 @@ class ToolRegistry(
      */
     private typealias ToolFn = suspend (Map<String, String>) -> String
 
+    /** 需要宿主会话边界的工具，context 由执行链路注入，模型不能伪造。 */
+    typealias ContextToolFn = suspend (Map<String, String>, ToolExecutionContext) -> String
+
     /** v1.0.53: 结构化结果执行函数(返回 [ToolOutcome])。 */
     private typealias ToolOutcomeFn = suspend (Map<String, String>) -> ToolOutcome
 
@@ -132,6 +135,7 @@ class ToolRegistry(
 
     // M-TR2: 改用 ConcurrentHashMap,保证 register/unregister/execute 并发安全
     private val tools = ConcurrentHashMap<String, ToolFn>()
+    private val contextTools = ConcurrentHashMap<String, ContextToolFn>()
     // v1.0.53: 结构化结果工具通道(优先于 [tools] 查找)
     private val outcomeTools = ConcurrentHashMap<String, ToolOutcomeFn>()
     private val jsonTools = ConcurrentHashMap<String, JsonToolFn>()
@@ -168,6 +172,17 @@ class ToolRegistry(
      */
     fun register(def: ToolDef, fn: ToolFn) {
         tools[def.name] = fn
+        contextTools.remove(def.name)
+        outcomeTools.remove(def.name)
+        jsonTools.remove(def.name)
+        toolDefs[def.name] = def
+        _revision.value += 1
+    }
+
+    /** 注册需要宿主会话 scope/space 边界的工具。 */
+    fun registerWithContext(def: ToolDef, fn: ContextToolFn) {
+        contextTools[def.name] = fn
+        tools.remove(def.name)
         outcomeTools.remove(def.name)
         jsonTools.remove(def.name)
         toolDefs[def.name] = def
@@ -203,6 +218,7 @@ class ToolRegistry(
     /** 注销工具。 */
     fun unregister(name: String) {
         tools.remove(name)
+        contextTools.remove(name)
         outcomeTools.remove(name)
         jsonTools.remove(name)
         toolDefs.remove(name)
@@ -323,6 +339,21 @@ class ToolRegistry(
         name: String,
         args: Map<String, String>,
         cancellationToken: () -> Boolean = { false },
+    ): ToolOutcome = executeInternal(name, args, null, cancellationToken)
+
+    /** 带宿主上下文执行工具；需要隔离边界的工具必须走此入口。 */
+    suspend fun execute(
+        name: String,
+        args: Map<String, String>,
+        executionContext: ToolExecutionContext,
+        cancellationToken: () -> Boolean = { false },
+    ): ToolOutcome = executeInternal(name, args, executionContext, cancellationToken)
+
+    private suspend fun executeInternal(
+        name: String,
+        args: Map<String, String>,
+        executionContext: ToolExecutionContext?,
+        cancellationToken: () -> Boolean,
     ): ToolOutcome {
         jsonTools[name]?.let { fn ->
             return executeJson(name, stringArgsToJson(args), fn, cancellationToken)
@@ -350,6 +381,14 @@ class ToolRegistry(
             )
         }
         val validArgs = validation.coercedArgs
+        contextTools[name]?.let { fn ->
+            val executionContext = executionContext
+                ?: return ToolOutcome.error("工具 $name 需要会话执行上下文")
+            return resultOf { fn(validArgs, executionContext) }
+                .onError { msg, _ -> Logger.w("ToolRegistry", "工具 $name 执行异常: $msg") }
+                .getOrNull()?.let { ToolOutcome.ok(it) }
+                ?: ToolOutcome.error(this.context.getString(R.string.tool_exec_exception))
+        }
         // v1.0.53: 优先结构化通道
         outcomeTools[name]?.let { fn ->
             return resultOf { fn(validArgs) }
@@ -371,7 +410,20 @@ class ToolRegistry(
      * @param argumentsJson LLM 返回的参数 JSON 字符串(如 {"expression":"1+2*3"})
      * @return 执行结果字符串
      */
-    suspend fun executeFromJson(name: String, argumentsJson: String): String {
+    suspend fun executeFromJson(name: String, argumentsJson: String): String =
+        executeFromJsonInternal(name, argumentsJson, null)
+
+    suspend fun executeFromJson(
+        name: String,
+        argumentsJson: String,
+        executionContext: ToolExecutionContext,
+    ): String = executeFromJsonInternal(name, argumentsJson, executionContext)
+
+    private suspend fun executeFromJsonInternal(
+        name: String,
+        argumentsJson: String,
+        executionContext: ToolExecutionContext?,
+    ): String {
         // M-TR1: 改用 resultOf{}(正确重抛 CancellationException)
         val obj = resultOf {
             parseArgumentsLenient(argumentsJson)
@@ -398,7 +450,11 @@ class ToolRegistry(
         }.getOrNull() ?: return context.getString(R.string.tool_param_parse_failed, argumentsJson)
         // v1.0.53: execute 返回 ToolOutcome,取 content 保持 String 语义。
         // 空字符串不能继续向上游传播,否则工具卡片只能显示“执行中”而没有终态。
-        val outcome = execute(name, args)
+        val outcome = if (executionContext != null) {
+            execute(name, args, executionContext)
+        } else {
+            execute(name, args)
+        }
         val content = outcome.content.ifBlank {
             context.getString(R.string.tool_exec_empty_result, name)
         }

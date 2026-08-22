@@ -31,7 +31,20 @@ object SearchMemoryTool {
         riskLevel = ToolRiskLevel.SAFE,
     )
 
-    suspend fun execute(args: Map<String, String>, factStore: FactStore): String {
+    suspend fun execute(args: Map<String, String>, factStore: FactStore): String =
+        executeInternal(args, factStore, null)
+
+    suspend fun execute(
+        args: Map<String, String>,
+        factStore: FactStore,
+        executionContext: ToolExecutionContext,
+    ): String = executeInternal(args, factStore, executionContext)
+
+    private suspend fun executeInternal(
+        args: Map<String, String>,
+        factStore: FactStore,
+        executionContext: ToolExecutionContext?,
+    ): String {
         val query = args["query"]?.trim().orEmpty()
         if (query.isEmpty()) return "Error: query parameter is required."
 
@@ -45,14 +58,26 @@ object SearchMemoryTool {
         val to = args["to"]?.trim()?.takeIf { it.isNotEmpty() }
         val limit = args["limit"]?.toIntOrNull()?.coerceIn(1, 50) ?: 10
 
-        val facts = if (tags.isNotEmpty()) {
-            factStore.searchByTags(
+        val dateRange = if (from != null || to != null) {
+            FactStore.DateRange(from = from, to = to)
+        } else null
+        val facts = if (executionContext != null && tags.isNotEmpty()) {
+            factStore.searchByTagsScoped(
                 queryTags = tags,
-                dateRange = if (from != null || to != null) {
-                    FactStore.DateRange(from = from, to = to)
-                } else null,
+                scope = executionContext.scope,
+                spaceId = executionContext.spaceId,
+                dateRange = dateRange,
                 limit = limit,
             )
+        } else if (executionContext != null) {
+            factStore.searchFullTextScoped(
+                query = query,
+                scope = executionContext.scope,
+                spaceId = executionContext.spaceId,
+                limit = limit,
+            )
+        } else if (tags.isNotEmpty()) {
+            factStore.searchByTags(queryTags = tags, dateRange = dateRange, limit = limit)
         } else {
             factStore.searchFullText(query, limit)
         }

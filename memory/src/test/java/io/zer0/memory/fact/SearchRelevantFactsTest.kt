@@ -65,6 +65,39 @@ class SearchRelevantFactsTest {
     }
 
     @Test
+    fun `scoped full text never returns another space`() = runTest {
+        store.add(FactStore.Fact(fact = "工作空间里的咖啡偏好"), scope = "main", spaceId = "work")
+        store.add(FactStore.Fact(fact = "生活空间里的咖啡偏好"), scope = "main", spaceId = "life")
+        store.add(FactStore.Fact(fact = "其他助手里的咖啡偏好"), scope = "assistant-1", spaceId = "work")
+
+        val hits = store.searchFullTextScoped("咖啡", scope = "main", spaceId = "work", limit = 10)
+
+        assertEquals(1, hits.size)
+        assertEquals("工作空间里的咖啡偏好", hits.single().fact)
+        assertEquals("main", hits.single().scope)
+        assertEquals("work", hits.single().spaceId)
+    }
+
+    @Test
+    fun `scoped tag search never returns another scope or space`() = runTest {
+        store.add(FactStore.Fact(fact = "工作标签事实", tags = listOf("preference")), scope = "main", spaceId = "work")
+        store.add(FactStore.Fact(fact = "生活标签事实", tags = listOf("preference")), scope = "main", spaceId = "life")
+        store.add(FactStore.Fact(fact = "其他助手标签事实", tags = listOf("preference")), scope = "assistant-1", spaceId = "work")
+
+        val hits = store.searchByTagsScoped(
+            queryTags = listOf("preference"),
+            scope = "main",
+            spaceId = "work",
+            limit = 10,
+        )
+
+        assertEquals(1, hits.size)
+        assertEquals("工作标签事实", hits.single().fact)
+        assertEquals("main", hits.single().scope)
+        assertEquals("work", hits.single().spaceId)
+    }
+
+    @Test
     fun `empty query returns empty`() = runTest {
         store.add(FactStore.Fact(fact = "用户喜欢喝美式咖啡"))
         assertTrue(store.searchRelevantFacts("").isEmpty())

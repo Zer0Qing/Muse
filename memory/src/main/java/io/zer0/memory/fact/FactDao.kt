@@ -218,6 +218,18 @@ interface FactDao {
     """)
     suspend fun searchFts(matchQuery: String, limit: Int): List<FactEntity>
 
+    /** 按 scope + space 搜索 FTS，避免先取全局 top-K 再过滤导致漏召回。 */
+    @Query("""
+        SELECT f.* FROM facts_fts
+        JOIN facts f ON facts_fts.fact_id = f.id
+        WHERE content_ngram MATCH :matchQuery
+          AND f.scope = :scope
+          AND f.space_id = :spaceId
+        ORDER BY (f.pinned_at IS NOT NULL) DESC, f.importance DESC, f.time DESC
+        LIMIT :limit
+    """)
+    suspend fun searchFtsBySpace(matchQuery: String, limit: Int, scope: String, spaceId: String): List<FactEntity>
+
     /**
      * 标签 + 日期范围搜索。SQL 由 [FactStore.searchByTags] 动态拼接
      * (因为 tag 数量和日期范围组合是动态的,Room 静态 @Query 难以表达)。
@@ -339,6 +351,10 @@ data class FactTagSearchRow(
     val lastConfirmedAt: String? = null,
     val lastHitAt: String? = null,
     val entityKey: String? = null,
+    @androidx.room.ColumnInfo(name = "scope")
+    val scope: String = "main",
+    @androidx.room.ColumnInfo(name = "space_id")
+    val spaceId: String = "default",
     val matchCount: Int,
 )
 

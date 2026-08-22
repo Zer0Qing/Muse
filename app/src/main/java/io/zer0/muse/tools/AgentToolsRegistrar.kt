@@ -57,8 +57,8 @@ class AgentToolsRegistrar(
         }
 
         // Phase 1 v6：长期记忆搜索
-        toolRegistry.register(SearchMemoryTool.toolDef()) { args ->
-            SearchMemoryTool.execute(args, factStore)
+        toolRegistry.registerWithContext(SearchMemoryTool.toolDef()) { args, executionContext ->
+            SearchMemoryTool.execute(args, factStore, executionContext)
         }
 
         // Phase 4A：待办

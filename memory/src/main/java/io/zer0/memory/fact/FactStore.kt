@@ -888,6 +888,18 @@ class FactStore(
         runFtsOrLikeSearch(query.trim(), limit).filterNot { it.isExpired() }
     }
 
+    /** 按 scope + space 搜索，供会话内 search_memory 使用。 */
+    suspend fun searchFullTextScoped(
+        query: String,
+        scope: String,
+        spaceId: String,
+        limit: Int = 20,
+    ): List<Fact> = withContext(Dispatchers.IO) {
+        if (query.isBlank()) return@withContext emptyList()
+        ensureFtsIndexConsistent()
+        runFtsOrLikeSearchScoped(query.trim(), limit, scope, spaceId).filterNot { it.isExpired() }
+    }
+
     /**
      * v12 (T2-2): 运行时相关记忆检索 — 按当前问题召回 top-K 相关事实。
      * 在 [searchFullText] 基础上增加 scope + space 过滤,防止跨助手/跨空间串记忆;
@@ -905,6 +917,28 @@ class FactStore(
             .filterNot { it.isExpired() }
             .filter { it.scope == scope && it.spaceId == spaceId }
         all.take(limit)
+    }
+
+    private suspend fun runFtsOrLikeSearchScoped(
+        trimmed: String,
+        limit: Int,
+        scope: String,
+        spaceId: String,
+    ): List<Fact> {
+        if (FactFtsManager.shouldFallbackToLike(trimmed)) {
+            return dao.likeSearchBySpace(trimmed, limit, scope, spaceId).map { it.toDomainFact() }
+        }
+        val matchQuery = FactFtsManager.toMatchQuery(trimmed)
+        if (matchQuery.isBlank()) {
+            return dao.likeSearchBySpace(trimmed, limit, scope, spaceId).map { it.toDomainFact() }
+        }
+        val ftsResults = resultOf { dao.searchFtsBySpace(matchQuery, limit, scope, spaceId) }
+            .onError { msg, t -> Logger.w("FactStore", "scoped FTS search failed, fallback to LIKE: $msg", t) }
+            .getOrNull() ?: emptyList()
+        if (ftsResults.isEmpty()) {
+            return dao.likeSearchBySpace(trimmed, limit, scope, spaceId).map { it.toDomainFact() }
+        }
+        return ftsResults.map { it.toDomainFact() }
     }
 
     /** 先尝试 FTS4 MATCH，单字或异常时回退 LIKE。 */
@@ -934,11 +968,36 @@ class FactStore(
         queryTags: List<String>,
         dateRange: DateRange? = null,
         limit: Int = 20,
+    ): List<Fact> = searchByTagsInternal(queryTags, dateRange, limit, null, null)
+
+    /** 按 scope + space 搜索标签，供会话内 search_memory 使用。 */
+    suspend fun searchByTagsScoped(
+        queryTags: List<String>,
+        scope: String,
+        spaceId: String,
+        dateRange: DateRange? = null,
+        limit: Int = 20,
+    ): List<Fact> = searchByTagsInternal(queryTags, dateRange, limit, scope, spaceId)
+
+    private suspend fun searchByTagsInternal(
+        queryTags: List<String>,
+        dateRange: DateRange?,
+        limit: Int,
+        scope: String?,
+        spaceId: String?,
     ): List<Fact> = withContext(Dispatchers.IO) {
         if (queryTags.isEmpty()) return@withContext emptyList()
-        val plan = TagSearchPlan(queryTags, dateRange, limit)
+        val plan = TagSearchPlan(queryTags, dateRange, limit, scope, spaceId)
         val rows = dao.tagSearch(SimpleSQLiteQuery(plan.sql, plan.args))
-        plan.refine(rows).filterNot { it.isExpired() }
+        plan.refine(rows)
+            .map { fact ->
+                if (scope != null && spaceId != null) {
+                    // TagSearchRow 兼容旧 Room 投影时可能没有回填新增列；
+                    // SQL 已经按边界过滤，这里把宿主边界明确写回领域对象。
+                    fact.copy(scope = scope, spaceId = spaceId)
+                } else fact
+            }
+            .filterNot { it.isExpired() }
     }
 
     /**
@@ -1420,6 +1479,8 @@ class FactStore(
         lastHitAt = lastHitAt,
         matchCount = matchCount,
         entityKey = entityKey,
+        scope = scope,
+        spaceId = spaceId,
     )
 
     private fun decodeTags(raw: String): List<String> = runCatching {
@@ -1441,6 +1502,8 @@ private class TagSearchPlan(
     private val queryTags: List<String>,
     private val dateRange: FactStore.DateRange?,
     private val limit: Int,
+    private val scope: String? = null,
+    private val spaceId: String? = null,
 ) {
 
     val sql: String = buildString {
@@ -1448,6 +1511,8 @@ private class TagSearchPlan(
         append("SELECT *, 0 as matchCount FROM facts WHERE (").append(likeClauses).append(")")
         if (dateRange?.from != null) append(" AND time >= ?")
         if (dateRange?.to != null) append(" AND time <= ?")
+        if (scope != null) append(" AND scope = ?")
+        if (spaceId != null) append(" AND space_id = ?")
         append(" ORDER BY importance DESC, time DESC LIMIT ?")
     }
 
@@ -1455,6 +1520,8 @@ private class TagSearchPlan(
         queryTags.forEach { add("%\"$it\"%") }
         dateRange?.from?.let { add(it) }
         dateRange?.to?.let { add(it) }
+        scope?.let { add(it) }
+        spaceId?.let { add(it) }
         add(limit * 2) // 多拉候选,内存过滤后可能丢弃部分
     }.toTypedArray()
 
@@ -1462,7 +1529,7 @@ private class TagSearchPlan(
         val tagSet = queryTags.toSet()
         return rows.mapNotNull { row ->
             val tags = runCatching {
-                kotlinx.serialization.json.Json.decodeFromString<List<String>>(row.tags ?: "[]")
+                kotlinx.serialization.json.Json.decodeFromString<List<String>>(row.tags)
             }.getOrDefault(emptyList())
             val matchCount = tags.count { it in tagSet }
             if (matchCount > 0) FactStore.Fact(

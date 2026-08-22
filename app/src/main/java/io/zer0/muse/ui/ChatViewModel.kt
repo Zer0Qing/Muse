@@ -5207,6 +5207,11 @@ class ChatViewModel(
         val reasoningLevel = state.reasoningLevel
         val conversationHistory = state.conversationHistory
         val unmaskPii: (String) -> String = state::unmaskPii
+        // 工具执行上下文由宿主捕获，模型不能通过参数切换记忆 scope/space。
+        val toolExecutionContext = io.zer0.muse.tools.ToolExecutionContext(
+            scope = assistant?.id?.takeIf { it.isNotBlank() } ?: "main",
+            spaceId = settings.currentSpaceIdFlow.first(),
+        )
 
         // v1.42: 流式过程中 UI/通知/token 更新采用字符+时间双阈值节流,降低重组频率。
         // 这些变量仅在 streamRound 内使用,跨轮共享、重试时重置(与原实现一致)。
@@ -6028,6 +6033,7 @@ class ChatViewModel(
                 initialBuilderContent = state.builder.toString(),
                 initialReasoningContent = state.reasoningBuilder.toString(),
                 turnId = state.turnId,
+                toolExecutionContext = toolExecutionContext,
             ),
             conversationHistory = conversationHistory,
             host = toolLoopHost,
