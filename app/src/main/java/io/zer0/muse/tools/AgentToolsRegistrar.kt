@@ -2,6 +2,7 @@ package io.zer0.muse.tools
 
 import io.zer0.memory.fact.FactStore
 import io.zer0.memory.pin.PinnedMemoryStore
+import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.experience.ExperienceRepository
 import io.zer0.muse.data.subagent.SubagentThreadStore
 import io.zer0.muse.notification.MuseNotificationManager
@@ -27,6 +28,7 @@ class AgentToolsRegistrar(
     private val pinnedMemoryStore: PinnedMemoryStore,
     private val experienceRepository: ExperienceRepository,
     private val factStore: FactStore,
+    private val settings: SettingsRepository,
     private val notificationManager: MuseNotificationManager,
     private val context: Context,
     // v1.202: SubagentTool 所需依赖 — 委派执行 / 线程管理 / 异步结果回灌 / 后台 Scope
@@ -59,6 +61,11 @@ class AgentToolsRegistrar(
         // Phase 1 v6：长期记忆搜索
         toolRegistry.registerWithContext(SearchMemoryTool.toolDef()) { args, executionContext ->
             SearchMemoryTool.execute(args, factStore, executionContext)
+        }
+
+        // 普通聊天里的“许愿”：把当前助手绑定到主动消息调度器。
+        toolRegistry.registerWithContext(ProactiveWishTool.toolDef()) { args, executionContext ->
+            ProactiveWishTool.execute(args, settings, executionContext)
         }
 
         // Phase 4A：待办

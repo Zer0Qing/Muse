@@ -8,4 +8,5 @@ package io.zer0.muse.tools
 data class ToolExecutionContext(
     val scope: String,
     val spaceId: String,
+    val assistantId: String? = null,
 )

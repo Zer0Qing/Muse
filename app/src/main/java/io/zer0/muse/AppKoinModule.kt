@@ -272,6 +272,7 @@ val appModule = module {
             pinnedMemoryStore = get(),
             experienceRepository = get(),
             factStore = get(),
+            settings = get(),
             notificationManager = get(),
             context = androidContext(),
             skillExecutor = get(),

@@ -5261,6 +5261,7 @@ class ChatViewModel(
         val toolExecutionContext = io.zer0.muse.tools.ToolExecutionContext(
             scope = assistant?.id?.takeIf { it.isNotBlank() } ?: "main",
             spaceId = settings.currentSpaceIdFlow.first(),
+            assistantId = assistant?.id,
         )
 
         // v1.42: 流式过程中 UI/通知/token 更新采用字符+时间双阈值节流,降低重组频率。
