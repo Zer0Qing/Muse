@@ -534,20 +534,13 @@
     <string name="audit_log_export_failed">Export failed: cannot get file URI</string>
 
     <!-- ===== P2-8: Video Generation (SettingsScreen entry + VideoGenerationPage) ===== -->
-    <string name="settings_screen_video_gen_cd">Video Generation, Kling API, click to open</string>
-    <string name="settings_screen_video_gen">Video Generation</string>
-    <string name="settings_screen_video_gen_desc">Text/image to video models and API configuration</string>
     <!-- Video generation default params entry (provider/model/duration/resolution) -->
-    <string name="settings_screen_video_gen_config">Video Generation Settings</string>
-    <string name="settings_screen_video_gen_config_desc">Default video provider, model, duration and resolution</string>
 
     <!-- ===== v1.133: 5 standalone sub-page entries split out from SettingsModelPage ===== -->
     <string name="settings_screen_web_search">Web Search</string>
     <string name="settings_screen_web_search_desc">Search engine / API Key / endpoint</string>
     <string name="settings_screen_asr">Speech Recognition</string>
     <string name="settings_screen_asr_desc">Speech-to-text (System / DashScope / Step)</string>
-    <string name="settings_screen_image_gen">Image Generation</string>
-    <string name="settings_screen_image_gen_desc">Text-to-image model and sampling parameters</string>
     <string name="settings_screen_mcp">MCP Servers</string>
     <string name="settings_screen_mcp_desc">Model Context Protocol tool servers</string>
     <string name="settings_screen_assistant_resources">Assistant Resources</string>

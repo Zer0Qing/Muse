@@ -534,20 +534,13 @@
     <string name="audit_log_export_failed">내보내기 실패: 파일 URI를 가져올 수 없습니다.</string>
 
     <!-- ===== P2-8: Video Generation (SettingsScreen entry + VideoGenerationPage) ===== -->
-    <string name="settings_screen_video_gen_cd">동영상 생성, Kling API, 클릭하여 열기</string>
-    <string name="settings_screen_video_gen">동영상 생성</string>
-    <string name="settings_screen_video_gen_desc">Kling API 텍스트/이미지 to 비디오</string>
     <!-- Video generation default params entry (provider/model/duration/resolution) -->
-    <string name="settings_screen_video_gen_config">비디오 생성 설정</string>
-    <string name="settings_screen_video_gen_config_desc">기본 비디오 공급자, 모델, 기간 및 해상도</string>
 
     <!-- ===== v1.133: 5 standalone sub-page entries split out from SettingsModelPage ===== -->
     <string name="settings_screen_web_search">웹 검색</string>
     <string name="settings_screen_web_search_desc">검색 엔진/API 키/엔드포인트</string>
     <string name="settings_screen_asr">음성 인식</string>
     <string name="settings_screen_asr_desc">음성-텍스트(시스템/DashScope/단계)</string>
-    <string name="settings_screen_image_gen">이미지 생성</string>
-    <string name="settings_screen_image_gen_desc">텍스트-이미지 모델 및 샘플링 매개변수</string>
     <string name="settings_screen_mcp">MCP 서버</string>
     <string name="settings_screen_mcp_desc">모델 컨텍스트 프로토콜 도구 서버</string>
     <string name="settings_screen_assistant_resources">어시스턴트 리소스</string>

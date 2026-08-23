@@ -534,20 +534,13 @@
     <string name="audit_log_export_failed">エクスポートに失敗しました: ファイル URI を取得できません</string>
 
     <!-- ===== P2-8: Video Generation (SettingsScreen entry + VideoGenerationPage) ===== -->
-    <string name="settings_screen_video_gen_cd">ビデオ生成、Kling API、クリックして開きます</string>
-    <string name="settings_screen_video_gen">ビデオ生成</string>
-    <string name="settings_screen_video_gen_desc">テキスト/画像からビデオへのモデルと API 構成</string>
     <!-- Video generation default params entry (provider/model/duration/resolution) -->
-    <string name="settings_screen_video_gen_config">ビデオ生成設定</string>
-    <string name="settings_screen_video_gen_config_desc">デフォルトのビデオプロバイダー、モデル、再生時間、解像度</string>
 
     <!-- ===== v1.133: 5 standalone sub-page entries split out from SettingsModelPage ===== -->
     <string name="settings_screen_web_search">ウェブ検索</string>
     <string name="settings_screen_web_search_desc">検索エンジン / API キー / エンドポイント</string>
     <string name="settings_screen_asr">音声認識</string>
     <string name="settings_screen_asr_desc">音声テキスト変換 (システム / DashScope / ステップ)</string>
-    <string name="settings_screen_image_gen">画像生成</string>
-    <string name="settings_screen_image_gen_desc">テキストから画像へのモデルとサンプリング パラメーター</string>
     <string name="settings_screen_mcp">MCPサーバー</string>
     <string name="settings_screen_mcp_desc">モデル コンテキスト プロトコル ツール サーバー</string>
     <string name="settings_screen_assistant_resources">アシスタントのリソース</string>
