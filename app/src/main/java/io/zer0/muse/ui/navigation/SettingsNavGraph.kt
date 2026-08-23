@@ -92,13 +92,10 @@ fun NavGraphBuilder.settingsNavGraph(
             onOpenWorkspace = { navController.navigate(WorkspaceRoute) },
             // v1.0.72: 归档聊天 — 设置-数据与隐私入口(复用 ChatNavGraph 的 ArchivedChatsRoute)
             onOpenArchivedChats = { navController.navigate(io.zer0.muse.ui.navigation.ArchivedChatsRoute) },
-            onOpenVideoGeneration = { navController.navigate(VideoGenerationRoute) },
             onOpenProviderPlugins = { navController.navigate(PluginManageRoute) },
             // v1.133: 从 SettingsModelPage 拆出的 5 个独立二级页
             onOpenWebSearch = { navController.navigate(SettingsWebSearchRoute) },
             onOpenAsr = { navController.navigate(SettingsAsrRoute) },
-            onOpenImageGen = { navController.navigate(SettingsImageGenRoute) },
-            onOpenVideoGenSettings = { navController.navigate(SettingsVideoGenRoute) },
             onOpenMcp = { navController.navigate(SettingsMcpRoute) },
             onOpenAssistantResources = { navController.navigate(SettingsAssistantResourcesRoute) },
             onNavigate = { route -> navController.navigate(route) },

@@ -128,12 +128,9 @@ fun SettingsScreen(
     onOpenAuditLog: () -> Unit = {},
     onOpenWorkspace: () -> Unit = {},
     onOpenArchivedChats: () -> Unit = {},
-    onOpenVideoGeneration: () -> Unit = {},
     onOpenProviderPlugins: () -> Unit = {},
     onOpenWebSearch: () -> Unit = {},
     onOpenAsr: () -> Unit = {},
-    onOpenImageGen: () -> Unit = {},
-    onOpenVideoGenSettings: () -> Unit = {},
     onOpenMcp: () -> Unit = {},
     onOpenAssistantResources: () -> Unit = {},
     onOpenNotificationListener: () -> Unit = {},
@@ -181,10 +178,6 @@ fun SettingsScreen(
     val providerPluginsTitle = stringResource(R.string.provider_plugins_title)
     val musePluginsTitle = stringResource(R.string.muse_plugins_external)
     val pluginManageTitle = stringResource(R.string.muse_plugins_manage)
-    val videoGenTitle = stringResource(R.string.settings_screen_video_gen)
-    val videoGenDesc = stringResource(R.string.settings_screen_video_gen_desc)
-    val videoGenConfigTitle = stringResource(R.string.settings_screen_video_gen_config)
-    val videoGenConfigDesc = stringResource(R.string.settings_screen_video_gen_config_desc)
     val memoryTitle = stringResource(R.string.settings_screen_memory_notification)
     val memoryDesc = stringResource(R.string.settings_screen_memory_notification_desc)
     val ragTitle = stringResource(R.string.settings_screen_rag)
@@ -217,8 +210,6 @@ fun SettingsScreen(
     val webSearchEntryDesc = stringResource(R.string.settings_screen_web_search_desc)
     val asrEntryTitle = stringResource(R.string.settings_screen_asr)
     val asrEntryDesc = stringResource(R.string.settings_screen_asr_desc)
-    val imageGenEntryTitle = stringResource(R.string.settings_screen_image_gen)
-    val imageGenEntryDesc = stringResource(R.string.settings_screen_image_gen_desc)
     val mcpEntryTitle = stringResource(R.string.settings_screen_mcp)
     val mcpEntryDesc = stringResource(R.string.settings_screen_mcp_desc)
     val assistantResourcesTitle = stringResource(R.string.settings_screen_assistant_resources)
@@ -338,11 +329,8 @@ fun SettingsScreen(
                     groupAiModels,
                     TablerIcons.Puzzle,
                 ) { onNavigate(PluginManageRoute) },
-                SettingsEntry(videoGenTitle, listOf("视频", "video", "生成视频", "shipin", "shengchengshipin", "sp", "scsp"), MuseRoutes.VIDEO_GENERATION, groupAiModels, TablerIcons.Video, onOpenVideoGeneration),
-                SettingsEntry(videoGenConfigTitle, listOf("视频配置", "视频生成配置", "video gen settings", "shipinpeizhi", "spsc", "spgenpeizhi", "sppeizhi"), MuseRoutes.SETTINGS_VIDEO_GEN, groupAiModels, TablerIcons.Settings, onOpenVideoGenSettings),
                 SettingsEntry(webSearchEntryTitle, listOf("联网搜索", "搜索", "web search", "网络搜索", "在线搜索", "lianwang", "sousuo", "wangluosousuo", "zaixiansousuo", "lwss", "ss", "wlss", "zxss"), MuseRoutes.SETTINGS_WEB_SEARCH, groupAiModels, TablerIcons.World, onOpenWebSearch),
                 SettingsEntry(asrEntryTitle, listOf("ASR", "asr", "语音识别", "speech", "转文字", "识别语音", "yuyinshibie", "zhuanwenzi", "shibieyuyin", "yysb", "zwz", "sbyy"), MuseRoutes.SETTINGS_ASR, groupAiModels, TablerIcons.Microphone, onOpenAsr),
-                SettingsEntry(imageGenEntryTitle, listOf("图像生成", "画图", "AI画", "image gen", "绘图", "tuxiangshengcheng", "huatu", "AIhua", "huitu", "txsc", "ht", "AIht", "ht"), MuseRoutes.SETTINGS_IMAGE_GEN, groupAiModels, TablerIcons.Photo, onOpenImageGen),
                 SettingsEntry(mcpEntryTitle, listOf("MCP", "mcp", "服务器", "Model Context Protocol", "工具协议", "fuwuqi", "gongjixieyi", "fwq", "gjxy"), MuseRoutes.SETTINGS_MCP, groupAiModels, TablerIcons.Affiliate, onOpenMcp),
 
                 // 记忆与知识库
@@ -593,11 +581,8 @@ fun SettingsScreen(
                             link(taskRoutingTitle, taskRoutingDesc, TablerIcons.Adjustments) { onNavigate(SettingsTaskRoutingRoute) }
                             link(visionTitle, R.string.settings_screen_vision_desc, TablerIcons.Eye, onOpenVisionSettings)
                             link(providerPluginsTitle, TablerIcons.Puzzle, onOpenProviderPlugins)
-                            link(videoGenTitle, R.string.settings_screen_video_gen_desc, TablerIcons.Video, onOpenVideoGeneration)
-                            link(videoGenConfigTitle, R.string.settings_screen_video_gen_config_desc, TablerIcons.Settings, onOpenVideoGenSettings)
                             link(webSearchEntryTitle, R.string.settings_screen_web_search_desc, TablerIcons.World, onOpenWebSearch)
                             link(asrEntryTitle, R.string.settings_screen_asr_desc, TablerIcons.Microphone, onOpenAsr)
-                            link(imageGenEntryTitle, R.string.settings_screen_image_gen_desc, TablerIcons.Photo, onOpenImageGen)
                             link(mcpEntryTitle, R.string.settings_screen_mcp_desc, TablerIcons.Affiliate, onOpenMcp)
                         }
                     }
