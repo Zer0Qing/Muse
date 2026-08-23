@@ -18,6 +18,7 @@ import io.zer0.muse.ui.chat.VideoAttachment
  */
 data class MuseInputState(
     val text: String = "",
+    val assistantName: String = "Muse",
     val isStreaming: Boolean = false,
     val isWaitingFirstToken: Boolean = false,
     val isDrawMode: Boolean = false,

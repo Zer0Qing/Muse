@@ -40,6 +40,7 @@ import io.zer0.muse.ui.theme.MuseShapes
 @Composable
 internal fun MuseExpandedInputEditor(
     text: String,
+    assistantName: String = "Muse",
     onTextChanged: (String) -> Unit,
     onSend: () -> Unit,
     onClose: () -> Unit,
@@ -80,7 +81,9 @@ internal fun MuseExpandedInputEditor(
                 modifier = Modifier.fillMaxWidth().weight(1f),
                 minLines = 10,
                 maxLines = 100,
-                placeholder = { Text(stringResource(R.string.chat_placeholder_send)) },
+                placeholder = {
+                    Text(stringResource(R.string.chat_placeholder_send, assistantName.ifBlank { "Muse" }))
+                },
             )
             Spacer(Modifier.height(MusePaddings.itemGap))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {

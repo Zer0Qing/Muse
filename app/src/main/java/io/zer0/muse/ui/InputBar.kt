@@ -146,6 +146,7 @@ internal fun InputBar(
     val hapticFeedback = LocalHapticFeedback.current
     // B7-07: 从聚合状态/回调中解包,保持函数体原有逻辑不变
     val text = state.text
+    val assistantName = state.assistantName.ifBlank { "Muse" }
     val isStreaming = state.isStreaming
     val isWaitingFirstToken = state.isWaitingFirstToken
     val isDrawMode = state.isDrawMode
@@ -219,6 +220,7 @@ internal fun InputBar(
     if (expanded) {
         MuseExpandedInputEditor(
             text = text,
+            assistantName = assistantName,
             onTextChanged = onTextChanged,
             onSend = onSend,
             onClose = { expanded = false },
@@ -867,6 +869,7 @@ internal fun InputBar(
                 // 避免 onValueChange 触发整个 InputBar(含工具 Sheet/图片预览等)重组。
                 MessageInputField(
                     text = text,
+                    assistantName = assistantName,
                     isStreaming = isStreaming,
                     isDrawMode = isDrawMode,
                     enterToSend = enterToSend,
@@ -1284,6 +1287,7 @@ private fun formatVideoDuration(durationMs: Long): String {
 @Composable
 private fun RowScope.MessageInputField(
     text: String,
+    assistantName: String,
     isStreaming: Boolean,
     isDrawMode: Boolean,
     enterToSend: Boolean,
@@ -1396,7 +1400,11 @@ private fun RowScope.MessageInputField(
             },
         placeholder = {
             Text(
-                if (isDrawMode) stringResource(R.string.chat_placeholder_draw) else stringResource(R.string.chat_placeholder_send),
+                if (isDrawMode) {
+                    stringResource(R.string.chat_placeholder_draw)
+                } else {
+                    stringResource(R.string.chat_placeholder_send, assistantName.ifBlank { "Muse" })
+                },
                 color = MaterialTheme.colorScheme.outline,
                 style = MaterialTheme.typography.bodyLarge,
             )

@@ -297,7 +297,7 @@
 
     <!-- 输入框与按钮 -->
     <string name="chat_placeholder_draw">描述要生成的图片…</string>
-    <string name="chat_placeholder_send">回复 Muse…</string>
+    <string name="chat_placeholder_send">回复 %1$s…</string>
     <string name="chat_expand_input_cd">全屏编辑</string>
     <string name="chat_expand_input_title">编辑消息</string>
     <!-- v1.0.47 P5-3: Token 计数菜单 -->

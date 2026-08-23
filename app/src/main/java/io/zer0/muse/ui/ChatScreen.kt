@@ -1017,6 +1017,7 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
             RichInputBar(
                 // v1.0.20 (Task 3): input/isStreaming 读派生值,避免其他字段变化触发 bottomBar 重组
                 text = currentInput,
+                assistantName = state.currentAssistant?.name?.takeIf { it.isNotBlank() } ?: "Muse",
                 isStreaming = isStreaming,
                 isWaitingFirstToken = isWaitingFirstToken,
                 isDrawMode = state.isDrawMode,

@@ -23,6 +23,7 @@ import io.zer0.muse.ui.chat.VideoAttachment
 @Composable
 internal fun RichInputBar(
     text: String,
+    assistantName: String = "Muse",
     isStreaming: Boolean,
     isWaitingFirstToken: Boolean = false,
     isDrawMode: Boolean,
@@ -91,6 +92,7 @@ internal fun RichInputBar(
     InputBar(
         state = MuseInputState(
             text = text,
+            assistantName = assistantName,
             isStreaming = isStreaming,
             isWaitingFirstToken = isWaitingFirstToken,
             isDrawMode = isDrawMode,

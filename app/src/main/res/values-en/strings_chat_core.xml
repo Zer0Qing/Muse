@@ -290,7 +290,7 @@
 
     <!-- Input field and buttons -->
     <string name="chat_placeholder_draw">Describe an image to generate…</string>
-    <string name="chat_placeholder_send">Reply to Muse…</string>
+    <string name="chat_placeholder_send">Reply to %1$s…</string>
     <string name="chat_expand_input_cd">Full-screen edit</string>
     <string name="chat_expand_input_title">Edit Message</string>
     <!-- v1.0.47 P5-3: Token count menu -->
