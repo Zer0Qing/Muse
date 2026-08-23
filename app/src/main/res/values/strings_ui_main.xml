@@ -244,6 +244,13 @@
     <string name="settings_screen_appearance_group_cd">通用分组</string>
     <string name="settings_screen_appearance">外观与个性化</string>
     <string name="settings_screen_general">通用与外观</string>
+    <string name="settings_screen_group_assistants">我的助手</string>
+    <string name="settings_screen_group_models">模型与能力</string>
+    <string name="settings_screen_group_chat_display">聊天与显示</string>
+    <string name="settings_screen_group_memory">记忆与主动消息</string>
+    <string name="settings_screen_group_data_privacy">数据与隐私</string>
+    <string name="settings_screen_group_tools">工具与连接</string>
+    <string name="settings_screen_group_about">关于与帮助</string>
     <string name="settings_screen_user_profile_cd">个人资料，称呼/画像，点击进入</string>
     <string name="settings_screen_user_profile">个人资料</string>
     <string name="settings_screen_user_profile_desc">称呼 / 助手名字 / 用户画像</string>

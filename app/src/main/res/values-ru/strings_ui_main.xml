@@ -209,6 +209,13 @@
     <string name="settings_screen_appearance_group_cd">Группа «Внешний вид и персонализация»</string>
     <string name="settings_screen_appearance">Внешний вид и персонализация</string>
     <string name="settings_screen_general">Общий &amp; Внешний вид</string>
+    <string name="settings_screen_group_assistants">Мои ассистенты</string>
+    <string name="settings_screen_group_models">Модели и возможности</string>
+    <string name="settings_screen_group_chat_display">Чат и отображение</string>
+    <string name="settings_screen_group_memory">Память и проактивные сообщения</string>
+    <string name="settings_screen_group_data_privacy">Данные и конфиденциальность</string>
+    <string name="settings_screen_group_tools">Инструменты и подключения</string>
+    <string name="settings_screen_group_about">О приложении и помощь</string>
     <string name="settings_screen_user_profile_cd">Профиль, имя/персона, нажмите для входа</string>
     <string name="settings_screen_user_profile">Профиль</string>
     <string name="settings_screen_user_profile_desc">Обращение / Имя ассистента / Персона пользователя</string>

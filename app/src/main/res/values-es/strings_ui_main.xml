@@ -209,6 +209,13 @@
     <string name="settings_screen_appearance_group_cd">grupo general</string>
     <string name="settings_screen_appearance">Apariencia &amp; Personalización</string>
     <string name="settings_screen_general">Aspecto general &amp;</string>
+    <string name="settings_screen_group_assistants">Mis asistentes</string>
+    <string name="settings_screen_group_models">Modelos y capacidades</string>
+    <string name="settings_screen_group_chat_display">Chat y pantalla</string>
+    <string name="settings_screen_group_memory">Memoria y mensajes proactivos</string>
+    <string name="settings_screen_group_data_privacy">Datos y privacidad</string>
+    <string name="settings_screen_group_tools">Herramientas y conexiones</string>
+    <string name="settings_screen_group_about">Acerca de y ayuda</string>
     <string name="settings_screen_user_profile_cd">Perfil, nombre/persona, toque para ingresar</string>
     <string name="settings_screen_user_profile">Perfil</string>
     <string name="settings_screen_user_profile_desc">Nombre / Nombre del asistente / Persona del usuario</string>

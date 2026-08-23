@@ -209,6 +209,13 @@
     <string name="settings_screen_appearance_group_cd">一般グループ</string>
     <string name="settings_screen_appearance">外観&amp; パーソナライゼーション</string>
     <string name="settings_screen_general">一般的な&amp;外観</string>
+    <string name="settings_screen_group_assistants">マイアシスタント</string>
+    <string name="settings_screen_group_models">モデルと機能</string>
+    <string name="settings_screen_group_chat_display">チャットと表示</string>
+    <string name="settings_screen_group_memory">記憶と能動的メッセージ</string>
+    <string name="settings_screen_group_data_privacy">データとプライバシー</string>
+    <string name="settings_screen_group_tools">ツールと接続</string>
+    <string name="settings_screen_group_about">詳細とヘルプ</string>
     <string name="settings_screen_user_profile_cd">プロフィール、名前/ペルソナ、タップして入力します</string>
     <string name="settings_screen_user_profile">プロフィール</string>
     <string name="settings_screen_user_profile_desc">名前 / アシスタント名 / ユーザーペルソナ</string>
