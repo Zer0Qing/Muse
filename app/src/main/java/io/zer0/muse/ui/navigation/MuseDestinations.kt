@@ -43,10 +43,6 @@ data object SettingsWebSearchRoute
 @Serializable
 data object SettingsAsrRoute
 @Serializable
-data object SettingsImageGenRoute
-@Serializable
-data object SettingsVideoGenRoute
-@Serializable
 data object SettingsMcpRoute
 @Serializable
 data object SettingsAssistantResourcesRoute

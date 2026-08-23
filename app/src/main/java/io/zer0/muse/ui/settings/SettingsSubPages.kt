@@ -132,9 +132,9 @@ fun SettingsSubPageScaffold(
  * v1.133: 拆分重构 — 只保留供应商列表。其他原内嵌 section 已拆为独立二级页:
  *  - [SettingsWebSearchPage] 联网搜索
  *  - [SettingsAsrPage] 语音识别 ASR
- *  - [SettingsImageGenPage] 图像生成
  *  - [SettingsMcpPage] MCP 服务器
  *  - [SettingsAssistantResourcesPage] 助手资源(收藏夹/世界书/快捷消息/模式注入/Skills/记忆开关)
+ *  图像生成/视频生成配置已回收入供应商页(ImageGenSection/VideoGenSection)。
  *  用户画像入口已在顶级"通用"分组,无需在此重复。
  */
 @Composable
@@ -447,34 +447,6 @@ fun SettingsAsrPage(
     )
     SettingsSubPageScaffold(title = stringResource(R.string.section_asr), onBack = onBack) {
         item { AsrSection(asrConfig = asrConfig, settings = settings) }
-    }
-}
-
-/**
- * v1.133: 二级页 — 图像生成(从 SettingsModelPage 拆出)。
- */
-@Composable
-fun SettingsImageGenPage(
-    onBack: () -> Unit,
-) {
-    val settings: SettingsRepository = koinInject()
-    val scope = rememberCoroutineScope()
-    SettingsSubPageScaffold(title = stringResource(R.string.settings_image_gen_section), onBack = onBack) {
-        item { ImageGenSection(settings = settings, scope = scope) }
-    }
-}
-
-/**
- * 二级页 — 视频生成(默认供应商/模型/时长/分辨率配置)。
- */
-@Composable
-fun SettingsVideoGenPage(
-    onBack: () -> Unit,
-) {
-    val settings: SettingsRepository = koinInject()
-    val scope = rememberCoroutineScope()
-    SettingsSubPageScaffold(title = stringResource(R.string.settings_video_gen_section), onBack = onBack) {
-        item { VideoGenSection(settings = settings, scope = scope) }
     }
 }
 

@@ -32,11 +32,9 @@ import io.zer0.muse.ui.settings.SettingsAsrPage
 import io.zer0.muse.ui.settings.SettingsAssistantResourcesPage
 import io.zer0.muse.ui.settings.SettingsDataImportPage
 import io.zer0.muse.ui.settings.SettingsDataPage
-import io.zer0.muse.ui.settings.SettingsImageGenPage
 import io.zer0.muse.ui.settings.SettingsMcpPage
 import io.zer0.muse.ui.settings.SettingsModelPage
 import io.zer0.muse.ui.settings.SettingsTutorialPage
-import io.zer0.muse.ui.settings.SettingsVideoGenPage
 import io.zer0.muse.ui.settings.SettingsWebSearchPage
 import io.zer0.muse.ui.settings.ToolsSettingsPage
 import io.zer0.muse.ui.settings.TaskRoutingSettingsPage
@@ -146,24 +144,6 @@ fun NavGraphBuilder.settingsNavGraph(
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         SettingsAsrPage(
-            onBack = { navController.popBackStack() },
-        )
-    }
-    // v1.133: 设置二级页 — 图像生成(从 SettingsModelPage 拆出)
-    composable<SettingsImageGenRoute>(
-        enterTransition = { MuseTransitions.horizontalPushEnter() },
-        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
-    ) {
-        SettingsImageGenPage(
-            onBack = { navController.popBackStack() },
-        )
-    }
-    // 设置二级页 — 视频生成(默认供应商/模型/时长/分辨率配置)
-    composable<SettingsVideoGenRoute>(
-        enterTransition = { MuseTransitions.horizontalPushEnter() },
-        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
-    ) {
-        SettingsVideoGenPage(
             onBack = { navController.popBackStack() },
         )
     }
