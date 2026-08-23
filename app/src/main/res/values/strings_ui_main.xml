@@ -243,7 +243,6 @@
     <string name="settings_screen_back_cd">返回</string>
     <string name="settings_screen_appearance_group_cd">通用分组</string>
     <string name="settings_screen_appearance">外观与个性化</string>
-    <string name="settings_screen_general">通用与外观</string>
     <string name="settings_screen_group_assistants">我的助手</string>
     <string name="settings_screen_group_models">模型与能力</string>
     <string name="settings_screen_group_chat_display">聊天与显示</string>
@@ -265,7 +264,6 @@
     <string name="settings_screen_media_desc">语音 / TTS / 音频输出</string>
     <string name="settings_screen_memory_data_group_cd">记忆与知识库分组</string>
     <string name="settings_screen_memory_data">记忆与数据</string>
-    <string name="settings_screen_memory_knowledge">记忆与知识</string>
     <string name="settings_screen_memory_notification_cd">记忆中心，查看/编辑记忆 · 记忆参数 · 立即编译，点击进入</string>
     <string name="settings_screen_memory_notification">记忆中心</string>
     <string name="settings_screen_memory_notification_desc">当下/短期/长期记忆 · 事实 · 参数</string>
@@ -347,10 +345,7 @@
     <string name="settings_search_no_results">个匹配项</string>
     <string name="settings_search_result_count">找到 %1$d 项结果</string>
     <string name="settings_screen_cancel">取消</string>
-    <string name="settings_screen_assistant_agent">助手与 Agent</string>
-    <string name="settings_screen_ai_models">AI 模型与能力</string>
     <string name="settings_screen_data_backup_group">数据与备份</string>
-    <string name="settings_screen_data_management_group">数据与隐私</string>
 
     <!-- v1.97 gap8: 工具分组(独立翻译页入口) -->
     <string name="settings_screen_tools_group_cd">工具分组</string>

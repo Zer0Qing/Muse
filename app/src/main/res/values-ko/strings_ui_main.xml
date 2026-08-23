@@ -208,7 +208,6 @@
     <string name="settings_screen_back_cd">뒤로</string>
     <string name="settings_screen_appearance_group_cd">외형 및 개인화 그룹</string>
     <string name="settings_screen_appearance">외형 및 개인화</string>
-    <string name="settings_screen_general">일반 &amp; 모양</string>
     <string name="settings_screen_group_assistants">내 어시스턴트</string>
     <string name="settings_screen_group_models">모델 및 기능</string>
     <string name="settings_screen_group_chat_display">채팅 및 표시</string>
@@ -230,7 +229,6 @@
     <string name="settings_screen_media_desc">음성 / TTS / 오디오 출력</string>
     <string name="settings_screen_memory_data_group_cd">기억 및 데이터 그룹</string>
     <string name="settings_screen_memory_data">기억 및 데이터</string>
-    <string name="settings_screen_memory_knowledge">메모리 &amp; 지식</string>
     <string name="settings_screen_memory_notification_cd">기억 및 알림, 기억 파라미터/경험 라이브러리/알림 정책, 탭하여 진입</string>
     <string name="settings_screen_memory_notification">기억 및 알림</string>
     <string name="settings_screen_memory_notification_desc">기억 파라미터 / 경험 라이브러리 / 알림 정책</string>
@@ -306,10 +304,7 @@
     <string name="settings_search_prompt">키워드로 모든 설정 항목 검색</string>
     <string name="settings_search_no_results">개 일치</string>
     <string name="settings_screen_cancel">취소</string>
-    <string name="settings_screen_assistant_agent">어시스턴트와 Agent</string>
-    <string name="settings_screen_ai_models">AI 모델 &amp; 기능</string>
     <string name="settings_screen_data_backup_group">데이터와 백업</string>
-    <string name="settings_screen_data_management_group">데이터 &amp; 개인정보 보호</string>
 
     <!-- v1.97 gap8: Tools group (standalone translate page entry) -->
     <string name="settings_screen_tools_group_cd">도구 그룹</string>

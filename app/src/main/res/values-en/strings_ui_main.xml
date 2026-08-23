@@ -208,7 +208,6 @@
     <string name="settings_screen_back_cd">Back</string>
     <string name="settings_screen_appearance_group_cd">General group</string>
     <string name="settings_screen_appearance">Appearance &amp; Personalization</string>
-    <string name="settings_screen_general">General &amp; Appearance</string>
     <string name="settings_screen_group_assistants">My Assistants</string>
     <string name="settings_screen_group_models">Models &amp; Capabilities</string>
     <string name="settings_screen_group_chat_display">Chat &amp; Display</string>
@@ -230,7 +229,6 @@
     <string name="settings_screen_media_desc">Voice / TTS / Audio Output</string>
     <string name="settings_screen_memory_data_group_cd">Memory &amp; Knowledge Base group</string>
     <string name="settings_screen_memory_data">Memory &amp; Data</string>
-    <string name="settings_screen_memory_knowledge">Memory &amp; Knowledge</string>
     <string name="settings_screen_memory_notification_cd">Memory Center, view/edit memory · memory params · compile now, tap to enter</string>
     <string name="settings_screen_memory_notification">Memory Center</string>
     <string name="settings_screen_memory_notification_desc">Today / Short-term / Long-term · Facts · Params</string>
@@ -306,10 +304,7 @@
     <string name="settings_search_prompt">Type keywords to search all settings</string>
     <string name="settings_search_no_results">matches</string>
     <string name="settings_screen_cancel">Cancel</string>
-    <string name="settings_screen_assistant_agent">Assistant &amp; Agent</string>
-    <string name="settings_screen_ai_models">AI Models &amp; Capabilities</string>
     <string name="settings_screen_data_backup_group">Data &amp; Backup</string>
-    <string name="settings_screen_data_management_group">Data &amp; Privacy</string>
 
     <!-- v1.97 gap8: Tools group (standalone translate page entry) -->
     <string name="settings_screen_tools_group_cd">Tools group</string>

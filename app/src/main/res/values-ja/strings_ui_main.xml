@@ -208,7 +208,6 @@
     <string name="settings_screen_back_cd">戻る</string>
     <string name="settings_screen_appearance_group_cd">一般グループ</string>
     <string name="settings_screen_appearance">外観&amp; パーソナライゼーション</string>
-    <string name="settings_screen_general">一般的な&amp;外観</string>
     <string name="settings_screen_group_assistants">マイアシスタント</string>
     <string name="settings_screen_group_models">モデルと機能</string>
     <string name="settings_screen_group_chat_display">チャットと表示</string>
@@ -230,7 +229,6 @@
     <string name="settings_screen_media_desc">音声 / TTS / オーディオ出力</string>
     <string name="settings_screen_memory_data_group_cd">メモリ &amp; ナレッジベース グループ</string>
     <string name="settings_screen_memory_data">メモリ&amp; データ</string>
-    <string name="settings_screen_memory_knowledge">記憶&amp; 知識</string>
     <string name="settings_screen_memory_notification_cd">メモリセンター、メモリの表示/編集、メモリパラメータ、今すぐコンパイル、タップして入力</string>
     <string name="settings_screen_memory_notification">記憶センター</string>
     <string name="settings_screen_memory_notification_desc">今日 / 短期 / 長期 · 事実 · パラメータ</string>
@@ -306,10 +304,7 @@
     <string name="settings_search_prompt">キーワードを入力してすべての設定を検索します</string>
     <string name="settings_search_no_results">マッチ</string>
     <string name="settings_screen_cancel">キャンセル</string>
-    <string name="settings_screen_assistant_agent">アシスタントと Agent</string>
-    <string name="settings_screen_ai_models">AI モデル &amp; の機能</string>
     <string name="settings_screen_data_backup_group">データとバックアップ</string>
-    <string name="settings_screen_data_management_group">データ&amp; プライバシー</string>
 
     <!-- v1.97 gap8: Tools group (standalone translate page entry) -->
     <string name="settings_screen_tools_group_cd">ツールグループ</string>

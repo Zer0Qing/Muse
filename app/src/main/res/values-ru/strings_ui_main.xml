@@ -208,7 +208,6 @@
     <string name="settings_screen_back_cd">Назад</string>
     <string name="settings_screen_appearance_group_cd">Группа «Внешний вид и персонализация»</string>
     <string name="settings_screen_appearance">Внешний вид и персонализация</string>
-    <string name="settings_screen_general">Общий &amp; Внешний вид</string>
     <string name="settings_screen_group_assistants">Мои ассистенты</string>
     <string name="settings_screen_group_models">Модели и возможности</string>
     <string name="settings_screen_group_chat_display">Чат и отображение</string>
@@ -230,7 +229,6 @@
     <string name="settings_screen_media_desc">Голос / TTS / Аудиовыход</string>
     <string name="settings_screen_memory_data_group_cd">Группа «Память и данные»</string>
     <string name="settings_screen_memory_data">Память и данные</string>
-    <string name="settings_screen_memory_knowledge">Память &amp; Знания</string>
     <string name="settings_screen_memory_notification_cd">Память и уведомления, параметры памяти/библиотека опыта/политика уведомлений, нажмите для входа</string>
     <string name="settings_screen_memory_notification">Память и уведомления</string>
     <string name="settings_screen_memory_notification_desc">Параметры памяти / Библиотека опыта / Политика уведомлений</string>
@@ -306,10 +304,7 @@
     <string name="settings_search_prompt">Введите ключевое слово для поиска по всем настройкам</string>
     <string name="settings_search_no_results">совпадений</string>
     <string name="settings_screen_cancel">Отмена</string>
-    <string name="settings_screen_assistant_agent">Ассистенты и Agent</string>
-    <string name="settings_screen_ai_models">Модели ИИ &amp; Возможности</string>
     <string name="settings_screen_data_backup_group">Данные и резервное копирование</string>
-    <string name="settings_screen_data_management_group">Данные &amp; Конфиденциальность</string>
 
     <!-- v1.97 gap8: Tools group (standalone translate page entry) -->
     <string name="settings_screen_tools_group_cd">Группа «Инструменты»</string>

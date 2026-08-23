@@ -208,7 +208,6 @@
     <string name="settings_screen_back_cd">Voltar</string>
     <string name="settings_screen_appearance_group_cd">Grupo geral</string>
     <string name="settings_screen_appearance">Aparência &amp; Personalização</string>
-    <string name="settings_screen_general">Geral &amp; Aparência</string>
     <string name="settings_screen_group_assistants">Meus assistentes</string>
     <string name="settings_screen_group_models">Modelos e capacidades</string>
     <string name="settings_screen_group_chat_display">Chat e exibição</string>
@@ -230,7 +229,6 @@
     <string name="settings_screen_media_desc">Voz/TTS/Saída de Áudio</string>
     <string name="settings_screen_memory_data_group_cd">Memória &amp; Grupo da base de conhecimento</string>
     <string name="settings_screen_memory_data">Memória &amp; Dados</string>
-    <string name="settings_screen_memory_knowledge">Memória &amp; Conhecimento</string>
     <string name="settings_screen_memory_notification_cd">Memory Center, visualizar/editar memória · parâmetros de memória · compilar agora, toque para entrar</string>
     <string name="settings_screen_memory_notification">Centro de Memória</string>
     <string name="settings_screen_memory_notification_desc">Hoje / Curto prazo / Longo prazo · Fatos · Parâmetros</string>
@@ -306,10 +304,7 @@
     <string name="settings_search_prompt">Digite palavras-chave para pesquisar todas as configurações</string>
     <string name="settings_search_no_results">partidas</string>
     <string name="settings_screen_cancel">Cancelar</string>
-    <string name="settings_screen_assistant_agent">Assistente &amp; Agente</string>
-    <string name="settings_screen_ai_models">Modelos de IA &amp; Capacidades</string>
     <string name="settings_screen_data_backup_group">Dados &amp; Backup</string>
-    <string name="settings_screen_data_management_group">Dados &amp; Privacidade</string>
 
     <!-- v1.97 gap8: Tools group (standalone translate page entry) -->
     <string name="settings_screen_tools_group_cd">Grupo de ferramentas</string>

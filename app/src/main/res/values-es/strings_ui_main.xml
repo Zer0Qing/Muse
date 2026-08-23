@@ -208,7 +208,6 @@
     <string name="settings_screen_back_cd">Atrás</string>
     <string name="settings_screen_appearance_group_cd">grupo general</string>
     <string name="settings_screen_appearance">Apariencia &amp; Personalización</string>
-    <string name="settings_screen_general">Aspecto general &amp;</string>
     <string name="settings_screen_group_assistants">Mis asistentes</string>
     <string name="settings_screen_group_models">Modelos y capacidades</string>
     <string name="settings_screen_group_chat_display">Chat y pantalla</string>
@@ -230,7 +229,6 @@
     <string name="settings_screen_media_desc">Voz / TTS / Salida de audio</string>
     <string name="settings_screen_memory_data_group_cd">Memoria &amp; Grupo de base de conocimientos</string>
     <string name="settings_screen_memory_data">Memoria &amp; Datos</string>
-    <string name="settings_screen_memory_knowledge">Memoria &amp; Conocimiento</string>
     <string name="settings_screen_memory_notification_cd">Centro de memoria, ver/editar memoria · parámetros de memoria · compilar ahora, toque para ingresar</string>
     <string name="settings_screen_memory_notification">Centro de Memoria</string>
     <string name="settings_screen_memory_notification_desc">Hoy / Corto plazo / Largo plazo · Hechos · Parámetros</string>
@@ -306,10 +304,7 @@
     <string name="settings_search_prompt">Escriba palabras clave para buscar todas las configuraciones</string>
     <string name="settings_search_no_results">partidos</string>
     <string name="settings_screen_cancel">Cancelar</string>
-    <string name="settings_screen_assistant_agent">Asistente &amp; Agente</string>
-    <string name="settings_screen_ai_models">Modelos de IA &amp; Capacidades</string>
     <string name="settings_screen_data_backup_group">Datos &amp; Copia de seguridad</string>
-    <string name="settings_screen_data_management_group">Datos &amp; Privacidad</string>
 
     <!-- v1.97 gap8: Tools group (standalone translate page entry) -->
     <string name="settings_screen_tools_group_cd">Grupo de herramientas</string>
