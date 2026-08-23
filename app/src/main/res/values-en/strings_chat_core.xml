@@ -486,6 +486,7 @@
     <string name="chat_top_menu_cd">More actions</string>
     <string name="chat_select_provider">Select provider</string>
     <string name="chat_switch_assistant">Switch assistant</string>
+    <string name="chat_proactive_settings">Proactive chat settings</string>
     <string name="chat_update_compress">Compress context</string>
     <!-- Empty-state guide / conversation memory -->
     <string name="chat_ignore_memory_option">This conversation will not reference memory</string>

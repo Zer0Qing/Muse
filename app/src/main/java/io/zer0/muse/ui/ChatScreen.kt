@@ -220,6 +220,7 @@ private fun Modifier.onVolumeKeyEvent(onScroll: (Float) -> Unit): Modifier = thi
 @Composable
 fun ChatScreen(
     onOpenAssistants: () -> Unit = {},
+    onOpenAgentSettings: () -> Unit = {},
     /** v0.27: 从任务列表 push 进入时传入返回回调;为 null 时(Tab 模式)不显示返回按钮。 */
     onBack: (() -> Unit)? = null,
     /** v1.24: Agent Tab 模式 — 隐藏自带 TopAppBar,由 HomeScreen 统一提供三点菜单。 */
@@ -928,7 +929,19 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                                             enabled = !isStreaming,
                                             onClick = {
                                                 showTopMenu = false
-                                                onOpenAssistants()
+                                                // 复用标题长按的会话级助手切换 Sheet，
+                                                // 不跳助手管理页，也不修改全局默认助手。
+                                                sheetState.showAssistantSwitchSheet = true
+                                            },
+                                        ),
+                                        MuseFloatingActionItem(
+                                            key = "proactive_settings",
+                                            icon = Icons.Outlined.AutoAwesome,
+                                            label = stringResource(R.string.chat_proactive_settings),
+                                            enabled = !isStreaming,
+                                            onClick = {
+                                                showTopMenu = false
+                                                onOpenAgentSettings()
                                             },
                                         ),
                                         MuseFloatingActionItem(

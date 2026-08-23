@@ -484,6 +484,7 @@
     <string name="chat_top_menu_cd">Mais ações</string>
     <string name="chat_select_provider">Selecionar provedor</string>
     <string name="chat_switch_assistant">Trocar assistente</string>
+    <string name="chat_proactive_settings">Configurações do chat proativo</string>
     <string name="chat_update_compress">Comprimir contexto</string>
     <string name="chat_ignore_memory_option">Esta conversa não usará a memória</string>
     <!-- A5: 消息信息弹层(模型/耗时/Token 用量) -->

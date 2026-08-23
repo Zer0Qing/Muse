@@ -107,6 +107,7 @@
     <string name="chat_top_menu_cd">更多操作</string>
     <string name="chat_select_provider">选择供应商</string>
     <string name="chat_switch_assistant">切换助手</string>
+    <string name="chat_proactive_settings">主动聊天设置</string>
     <string name="chat_update_compress">压缩上下文</string>
     <string name="chat_scroll_to_bottom_cd">滚到底</string>
     <string name="chat_export_cd">导出对话</string>

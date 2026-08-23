@@ -484,6 +484,7 @@
     <string name="chat_top_menu_cd">その他の操作</string>
     <string name="chat_select_provider">プロバイダーを選択</string>
     <string name="chat_switch_assistant">アシスタントを切り替え</string>
+    <string name="chat_proactive_settings">能動的なチャット設定</string>
     <string name="chat_update_compress">コンテキストを圧縮</string>
     <string name="chat_ignore_memory_option">この会話は記憶を参照しません</string>
     <!-- A5: 消息信息弹层(模型/耗时/Token 用量) -->
