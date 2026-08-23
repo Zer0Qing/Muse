@@ -220,7 +220,6 @@ private fun Modifier.onVolumeKeyEvent(onScroll: (Float) -> Unit): Modifier = thi
 @Composable
 fun ChatScreen(
     onOpenAssistants: () -> Unit = {},
-    onOpenAgentSettings: () -> Unit = {},
     /** v0.27: 从任务列表 push 进入时传入返回回调;为 null 时(Tab 模式)不显示返回按钮。 */
     onBack: (() -> Unit)? = null,
     /** v1.24: Agent Tab 模式 — 隐藏自带 TopAppBar,由 HomeScreen 统一提供三点菜单。 */
@@ -331,6 +330,9 @@ fun ChatScreen(
     val knowledgeDocs by knowledgeDao.observeAllUser().collectAsStateWithLifecycle(initialValue = emptyList())
     // v1.95: 注入 SettingsRepository 用于读取/保存 ASR 提示状态
     val settings: SettingsRepository = koinInject()
+    val proactiveConfig by settings.proactiveMessageConfigFlow.collectAsStateWithLifecycle(
+        initialValue = io.zer0.muse.data.ProactiveMessageConfig(),
+    )
 // v1.x: 会话级浏览器注册表 — 胶囊观察当前会话的浏览器实例(每个会话独立 WebView)
 val browserRegistry: io.zer0.muse.tools.BrowserManagerRegistry = koinInject()
 val activeBrowserSessions by browserRegistry.activeSessionIds.collectAsState()
@@ -935,13 +937,21 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                                             },
                                         ),
                                         MuseFloatingActionItem(
-                                            key = "proactive_settings",
+                                            key = "proactive_toggle",
                                             icon = Icons.Outlined.AutoAwesome,
-                                            label = stringResource(R.string.chat_proactive_settings),
+                                            label = stringResource(R.string.chat_proactive_toggle),
                                             enabled = !isStreaming,
+                                            checked = proactiveConfig.enabled,
                                             onClick = {
                                                 showTopMenu = false
-                                                onOpenAgentSettings()
+                                                ioScope.launch {
+                                                    settings.saveProactiveMessageConfig(
+                                                        proactiveConfig.copy(
+                                                            enabled = !proactiveConfig.enabled,
+                                                            agentOnly = false,
+                                                        ),
+                                                    )
+                                                }
                                             },
                                         ),
                                         MuseFloatingActionItem(

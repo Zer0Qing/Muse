@@ -96,7 +96,6 @@ private val HomeTabs = listOf(R.string.home_tab_tasks to 0, R.string.home_tab_ag
 fun HomeScreen(
     onOpenSettings: () -> Unit,
     onOpenAssistants: () -> Unit = {},
-    onOpenAgentSettings: () -> Unit = {},
     onOpenScheduledTasks: () -> Unit = {},
     onOpenQuickNotes: () -> Unit = {},
     /** v1.0.27: 打开快速翻译页。 */
@@ -428,7 +427,6 @@ fun HomeScreen(
                             // C4: 右栏消息 — onBack=null 不显示返回按钮,复用共享 ChatViewModel 单例
                             ChatScreen(
                                 onOpenAssistants = onOpenAssistants,
-                                onOpenAgentSettings = onOpenAgentSettings,
                                 isAgentMode = false,
                                 onHtmlPreview = onHtmlPreview,
                                 onOpenSkills = onOpenSkills,
@@ -493,7 +491,6 @@ fun HomeScreen(
                 // M-CS6: 移除多余的 Column 包裹 — ChatScreen 内部已用 fillMaxSize 自撑,Column 仅增加一层无意义嵌套
                 1 -> ChatScreen(
                     onOpenAssistants = onOpenAssistants,
-                    onOpenAgentSettings = onOpenAgentSettings,
                     isAgentMode = true,
                     onHtmlPreview = onHtmlPreview,
                     onOpenSkills = onOpenSkills,

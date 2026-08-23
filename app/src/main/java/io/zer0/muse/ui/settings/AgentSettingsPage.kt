@@ -67,6 +67,9 @@ fun AgentSettingsPage(
     onBack: () -> Unit,
     onOpenMultiAgentSettings: () -> Unit,
     onOpenAgentDm: () -> Unit = {},
+    /** 独立主动消息页复用同一套配置组件时隐藏 Agent/协作区。 */
+    proactiveOnly: Boolean = false,
+    showProactiveSettings: Boolean = false,
 ) {
     val settings: SettingsRepository = koinInject()
     val assistantRepository: AssistantRepository = koinInject()
@@ -131,7 +134,11 @@ fun AgentSettingsPage(
         } ?: toolModelNotSetInheritText
     }
 
-    SettingsSubPageScaffold(title = "Agent", onBack = onBack) {
+    SettingsSubPageScaffold(
+        title = if (proactiveOnly) stringResource(R.string.settings_agent_proactive_title) else "Agent",
+        onBack = onBack,
+    ) {
+        if (!proactiveOnly) {
         // ── Agent 默认助手 ──
         item { SectionLabel(stringResource(R.string.settings_agent_section_assistant)) }
         item {
@@ -211,6 +218,8 @@ fun AgentSettingsPage(
             }
         }
 
+        }
+        if (showProactiveSettings) {
         // ── 主动消息 ──
         item { SectionLabel(stringResource(R.string.settings_agent_proactive_section)) }
         item {
@@ -382,6 +391,7 @@ fun AgentSettingsPage(
                     }
                 }
             }
+        }
         }
     }
 
@@ -988,9 +998,18 @@ fun AgentSettingsPage(
     }
 }
 
-/**
- * 助手选择行:头像 + 名字 + 单选指示。
- */
+/** 独立主动消息设置页：复用 Agent 页的完整主动消息设置，不复制状态逻辑。 */
+@Composable
+fun ProactiveMessageSettingsPage(onBack: () -> Unit) {
+    AgentSettingsPage(
+        onBack = onBack,
+        onOpenMultiAgentSettings = {},
+        proactiveOnly = true,
+        showProactiveSettings = true,
+    )
+}
+
+/** 助手选择行:头像 + 名字 + 单选指示。 */
 @Composable
 private fun AgentPickerRow(
     assistant: AssistantEntity,

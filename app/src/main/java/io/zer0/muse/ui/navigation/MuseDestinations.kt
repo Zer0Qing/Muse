@@ -90,6 +90,7 @@ data object SettingsProxyRoute
 data object SettingsMultiAgentRoute
 @Serializable
 data object SettingsAgentRoute
+ data object SettingsProactiveRoute
 @Serializable
 data object LicensesRoute
 @Serializable

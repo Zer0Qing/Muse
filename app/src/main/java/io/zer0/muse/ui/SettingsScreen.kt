@@ -106,6 +106,7 @@ fun SettingsScreen(
     onOpenModelSettings: () -> Unit = {},
     onOpenMultiAgentSettings: () -> Unit = {},
     onOpenAgentSettings: () -> Unit = {},
+    onOpenProactiveSettings: () -> Unit = {},
     onOpenDataSettings: () -> Unit = {},
     onOpenAppearanceSettings: () -> Unit = {},
     onOpenChatSettings: () -> Unit = {},
@@ -316,7 +317,7 @@ fun SettingsScreen(
                 // 助手与 Agent
                 SettingsEntry(assistantTitle, listOf("助手", "assistant", "角色", "人设", "zhushou", "juese", "renshe", "zs", "js", "rs"), MuseRoutes.ASSISTANTS, groupAssistantAgent, TablerIcons.Atom, onOpenAssistants),
                 SettingsEntry(agentTitle, listOf("Agent", "代理", "智能体", "自主", "daili", "zhinengti", "zizhu", "dl", "znt"), MuseRoutes.SETTINGS_AGENT, groupAssistantAgent, TablerIcons.Users, onOpenAgentSettings),
-                SettingsEntry(entryProactiveTitle, listOf("主动消息", "主动", "推送", "定时发送", "proactive", "zhudongxiaoxi", "zhudong", "tuisong", "dingshifasong", "zdxx", "zd", "ts"), MuseRoutes.SETTINGS_AGENT, groupAssistantAgent, TablerIcons.Bell, onOpenAgentSettings),
+                SettingsEntry(entryProactiveTitle, listOf("主动消息", "主动", "推送", "定时发送", "proactive", "zhudongxiaoxi", "zhudong", "tuisong", "dingshifasong", "zdxx", "zd", "ts"), MuseRoutes.SETTINGS_PROACTIVE, groupAssistantAgent, TablerIcons.Bell, onOpenProactiveSettings),
                 SettingsEntry(entryScheduledTasksTitle, listOf("定时任务", "定时", "计划任务", "scheduled", "task", "cron", "dingshirenwu", "dingshi", "jihuarenwu", "dsrw", "ds", "jhrw"), MuseRoutes.SCHEDULED_TASKS, groupAssistantAgent, Icons.Outlined.Schedule) { onNavigate(ScheduledTasksRoute) },
                 SettingsEntry(assistantResourcesTitle, listOf("助手资源", "收藏夹", "世界书", "快捷消息", "模式注入", "Skills", "技能", "zhushouziyuan", "shoucangjia", "shijieshu", "kuaijiexiaoxi", "moshizhur", "jineng", "zszy", "scj", "sjs", "kjxx", "mszr", "jn"), MuseRoutes.SETTINGS_ASSISTANT_RESOURCES, groupAssistantAgent, TablerIcons.Stars, onOpenAssistantResources),
                 SettingsEntry(notificationListenerTitle, listOf("通知监听", "通知", "NotificationListener", "通知权限", "tongzhijianting", "tongzhi", "tongzhiquanxian", "tzjl", "tz", "tzqx"), MuseRoutes.NOTIFICATION_LISTENER, groupAssistantAgent, TablerIcons.Bell, onOpenNotificationListener),
@@ -407,7 +408,7 @@ fun SettingsScreen(
 
                 SettingsEntry(entryMcpServerTitle, listOf("MCP", "服务器", "ModelContextProtocol", "fuwuqi", "fwq"), MuseRoutes.SETTINGS_MCP, mcpEntryTitle, TablerIcons.Affiliate, onOpenMcp),
                 SettingsEntry(entryToolApprovalTitle, listOf("工具批准", "批准模式", "自动批准", "gongjupizhun", "pizhunmoshi", "zidongpizhun", "gjpz", "pzms", "zdpz"), MuseRoutes.TOOLS, toolsTitle, TablerIcons.Tools, onOpenTools),
-                SettingsEntry(entryProactiveTitle, listOf("主动消息", "推送", "定时", "zhudongxiaoxi", "tuisong", "dingshi", "zdxx", "ts", "ds"), MuseRoutes.SETTINGS_AGENT, agentTitle, TablerIcons.Bell, onOpenAgentSettings),
+                SettingsEntry(entryProactiveTitle, listOf("主动消息", "推送", "定时", "zhudongxiaoxi", "tuisong", "dingshi", "zdxx", "ts", "ds"), MuseRoutes.SETTINGS_PROACTIVE, agentTitle, TablerIcons.Bell, onOpenProactiveSettings),
                 SettingsEntry(entryCollabTitle, listOf("协作", "多助手", "团队", "xiezhuo", "duozhushou", "tuandui", "xz", "dzs", "td"), MuseRoutes.SETTINGS_AGENT, agentTitle, TablerIcons.Users, onOpenAgentSettings),
                 SettingsEntry(entryCloudBackupTitle, listOf("云备份", "备份", "S3", "WebDAV", "yunbeifen", "beifen", "ybf", "bf"), MuseRoutes.SETTINGS_DATA, dataBackupTitle, TablerIcons.Cloud, onOpenDataSettings),
                 SettingsEntry(entryWebServerTitle, listOf("Web服务器", "端口", "PIN", "远程访问", "webfuwuqi", "duankou", "yuanchengfangwen", "webfwq", "dk"), MuseRoutes.SETTINGS_DATA, dataBackupTitle, TablerIcons.World, onOpenDataSettings),

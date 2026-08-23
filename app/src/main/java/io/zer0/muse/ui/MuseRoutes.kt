@@ -98,6 +98,9 @@ object MuseRoutes {
     /** v1.27: 设置二级页 — Agent 配置(Agent 助手选择/协作/主动消息)。 */
     const val SETTINGS_AGENT = "settings_agent"
 
+    /** 独立主动消息设置页。 */
+    const val SETTINGS_PROACTIVE = "settings_proactive"
+
     /** v1.56: 设置二级页 — RAG 知识库检索配置。 */
     const val SETTINGS_RAG = "settings_rag"
 

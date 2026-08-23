@@ -13,6 +13,7 @@ import io.zer0.muse.ui.account.AccountScreen
 import io.zer0.muse.ui.knowledge.KnowledgeBaseManagePage
 import io.zer0.muse.license.LicensesScreen
 import io.zer0.muse.ui.settings.AgentSettingsPage
+import io.zer0.muse.ui.settings.ProactiveMessageSettingsPage
 import io.zer0.muse.ui.settings.AuditLogPage
 import io.zer0.muse.ui.settings.ChatSettingsPage
 import io.zer0.muse.ui.settings.CloudBackupPage
@@ -74,6 +75,7 @@ fun NavGraphBuilder.settingsNavGraph(
             onOpenProxySettings = { navController.navigate(SettingsProxyRoute) },
             onOpenMultiAgentSettings = { navController.navigate(SettingsMultiAgentRoute) },
             onOpenAgentSettings = { navController.navigate(SettingsAgentRoute) },
+            onOpenProactiveSettings = { navController.navigate(SettingsProactiveRoute) },
             onOpenAboutSettings = { navController.navigate(SettingsAboutRoute) },
             onOpenStats = { navController.navigate(StatsRoute) },
             onOpenNotificationListener = { navController.navigate(NotificationListenerRoute) },
@@ -391,6 +393,12 @@ fun NavGraphBuilder.settingsNavGraph(
     }
 
     // v1.27: 设置二级页 — Agent 配置(助手选择/协作/主动消息)
+    composable<SettingsProactiveRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        ProactiveMessageSettingsPage(onBack = { navController.popBackStack() })
+    }
     composable<SettingsAgentRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },

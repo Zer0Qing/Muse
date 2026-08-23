@@ -61,7 +61,6 @@ fun NavGraphBuilder.chatNavGraph(
         HomeScreen(
             onOpenSettings = { navController.navigate(SettingsRoute) },
             onOpenAssistants = { navController.navigate(AssistantsRoute) },
-            onOpenAgentSettings = { navController.navigate(SettingsAgentRoute) },
             onOpenScheduledTasks = { navController.navigate(ScheduledTasksRoute) },
             onOpenQuickNotes = { navController.navigate(QuickNotesRoute) },
             onOpenQuickTranslate = { navController.navigate(TranslateRoute) },
