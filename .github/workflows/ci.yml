@@ -52,10 +52,7 @@ jobs:
     - name: Static checks
       # 传 releaseSkipVersionCheck/releaseSkipKeystoreCheck: 静态检查/detekt 等会触发
       # hasReleaseTask 的版本号+keystore 硬约束(本地复现失败);CI 只做 debug 构建,跳过校验。
-      # R-CI-诊断: 先 clean memory 模块,排除 gradle 构建缓存污染导致迁移测试跑旧产物。
-      run: |
-        ./gradlew :memory:clean
-        ./gradlew detekt ktlintCheck lintDebug koverXmlReport :ai:koverCachedVerifyDebug :memory:koverCachedVerifyDebug :app:koverCachedVerifyDebug -PreleaseSkipVersionCheck=true -PreleaseSkipKeystoreCheck=true
+      run: ./gradlew detekt ktlintCheck lintDebug koverXmlReport :ai:koverCachedVerifyDebug :memory:koverCachedVerifyDebug :app:koverCachedVerifyDebug -PreleaseSkipVersionCheck=true -PreleaseSkipKeystoreCheck=true
     - name: Unit tests (app/memory/ai)
       # F-01: 三模块单测接入 PR 主链,失败即 PR 失败;报告由下一 upload 步骤保留。
       run: ./gradlew :app:testDebugUnitTest :memory:testDebugUnitTest :ai:testDebugUnitTest -PreleaseSkipVersionCheck=true -PreleaseSkipKeystoreCheck=true

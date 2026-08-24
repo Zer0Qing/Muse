@@ -327,6 +327,11 @@ class FactDbMigrationTest {
                         // v9 索引
                         db.execSQL("CREATE INDEX IF NOT EXISTS `index_facts_scope` ON `facts` (`scope`)")
                         db.execSQL("CREATE INDEX IF NOT EXISTS `index_facts_space_id` ON `facts` (`space_id`)")
+                        // v7 索引 — 完整 schema 必须包含,否则迁移后 Room 校验失败
+                        db.execSQL("CREATE INDEX IF NOT EXISTS `idx_facts_time` ON `facts` (`time`)")
+                        db.execSQL("CREATE INDEX IF NOT EXISTS `idx_facts_session` ON `facts` (`session_id`)")
+                        db.execSQL("CREATE INDEX IF NOT EXISTS `idx_facts_importance` ON `facts` (`importance`)")
+                        db.execSQL("CREATE INDEX IF NOT EXISTS `idx_facts_category` ON `facts` (`category`)")
                         db.execSQL("CREATE INDEX IF NOT EXISTS `idx_memory_spaces_sort` ON `memory_spaces` (`sort_index`)")
                         db.execSQL("CREATE INDEX IF NOT EXISTS `idx_memory_links_source` ON `memory_links` (`source_fact_id`)")
                         db.execSQL("CREATE INDEX IF NOT EXISTS `idx_memory_links_target` ON `memory_links` (`target_fact_id`)")
@@ -504,6 +509,19 @@ class FactDbMigrationTest {
                         db.execSQL(V12_CREATE_FTS)
                         db.execSQL(V12_CREATE_SPACES)
                         db.execSQL(V12_CREATE_LINKS)
+                        // v12 schema 完整索引 — 全部 7 个 facts 索引 + 关联表索引,否则迁移后 Room 校验失败
+                        db.execSQL("CREATE INDEX IF NOT EXISTS `idx_facts_time` ON `facts` (`time`)")
+                        db.execSQL("CREATE INDEX IF NOT EXISTS `idx_facts_session` ON `facts` (`session_id`)")
+                        db.execSQL("CREATE INDEX IF NOT EXISTS `idx_facts_importance` ON `facts` (`importance`)")
+                        db.execSQL("CREATE INDEX IF NOT EXISTS `idx_facts_category` ON `facts` (`category`)")
+                        db.execSQL("CREATE INDEX IF NOT EXISTS `index_facts_scope` ON `facts` (`scope`)")
+                        db.execSQL("CREATE INDEX IF NOT EXISTS `index_facts_space_id` ON `facts` (`space_id`)")
+                        db.execSQL("CREATE INDEX IF NOT EXISTS `idx_facts_entity_key` ON `facts` (`entity_key`)")
+                        db.execSQL("CREATE INDEX IF NOT EXISTS `idx_memory_spaces_sort` ON `memory_spaces` (`sort_index`)")
+                        db.execSQL("CREATE INDEX IF NOT EXISTS `idx_memory_links_source` ON `memory_links` (`source_fact_id`)")
+                        db.execSQL("CREATE INDEX IF NOT EXISTS `idx_memory_links_target` ON `memory_links` (`target_fact_id`)")
+                        db.execSQL("CREATE INDEX IF NOT EXISTS `idx_memory_links_space` ON `memory_links` (`space_id`)")
+                        db.execSQL("CREATE INDEX IF NOT EXISTS `idx_memory_links_scope` ON `memory_links` (`scope`)")
                     }
 
                     override fun onUpgrade(
