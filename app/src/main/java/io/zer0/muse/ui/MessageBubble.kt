@@ -813,6 +813,13 @@ internal fun MessageBubble(
                 msg.reasoning.isNullOrBlank() &&
                 msg.mood.isNullOrBlank() &&
                 msg.reflection.isNullOrBlank()
+            // v1.0.80: 纯工具消息(content 空 + 有工具/任务卡片)不包气泡底。
+            // 用户反馈:流式时工具卡片下方露出一圈偏深的气泡底,像先占位的空 UI。
+            // 工具卡片(ToolCallCard/TaskCard)自带 surface + 边框,无需再套一层气泡。
+            val isPureToolBubble = body.isBlank() &&
+                msg.imageUrls.isEmpty() && msg.imageBase64List.isEmpty() &&
+                msg.artifactIds.isEmpty() && msg.videoFileUri.isNullOrBlank() &&
+                (msg.toolCallInfo != null || taskCard != null)
             // v0.48: AI 头像 — 消息分组时连续同角色消息压缩头像(showAvatar=false 时跳过)
             if (showAvatar && !isToolRoundPlaceholder) {
                 Row(
@@ -843,25 +850,25 @@ internal fun MessageBubble(
             // AI 消息:白色卡片,左对齐,18dp 统一圆角,0.5dp 浅边框,无阴影
             if (!isToolRoundPlaceholder) {
             Surface(
-                color = MaterialTheme.colorScheme.surface,
+                color = if (isPureToolBubble) Color.Transparent else MaterialTheme.colorScheme.surface,
                 shape = MuseShapes.large,
-                tonalElevation = MuseElevation.card,
+                tonalElevation = if (isPureToolBubble) 0.dp else MuseElevation.card,
                 shadowElevation = 0.dp,
                 modifier = Modifier
-                    .fillMaxWidth(0.85f)
+                    .fillMaxWidth(if (isPureToolBubble) 1f else 0.85f)
                     .border(
-                        width = 0.5.dp,
+                        width = if (isPureToolBubble) 0.dp else 0.5.dp,
                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                         shape = MuseShapes.large,
                     )
                     .then(bubbleClickModifier),
             ) {
                 Column(
-                    modifier = Modifier.padding(MusePaddings.cardInner),
+                    modifier = Modifier.padding(if (isPureToolBubble) PaddingValues(0.dp) else MusePaddings.cardInner),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     // 流式/思考状态:AI 消息顶部显示"正在思考…"带绿色脉动圆点
-                    if (isLastAssistant && isStreaming) {
+                    if (isLastAssistant && isStreaming && !isPureToolBubble) {
                         ThinkingIndicator()
                     }
             // Phase 5-G / Phase 8.6: 渲染生成的图片(URL 或 base64 data URI)
@@ -1639,6 +1646,21 @@ internal fun MessageBubble(
                 images = images,
                 initialIndex = initialIndex,
                 onDismiss = { mediaPreview = null },
+                onSaveImage = { imageUri ->
+                    scope.launch {
+                        resultOf { saveImageToGallery(context, imageUri) }
+                            .onSuccess { path ->
+                                MuseToast.show(
+                                    context.getString(R.string.chat_image_saved_toast, path),
+                                )
+                            }
+                            .onError { msg, _ ->
+                                MuseToast.show(
+                                    context.getString(R.string.chat_image_save_failed_toast, msg),
+                                )
+                            }
+                    }
+                },
             )
         }
         if (showDeleteConfirm) {

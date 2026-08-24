@@ -80,7 +80,11 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 /**
- * 生成的图片卡片 — 圆角 + 点击预览 + 保存按钮。
+ * 生成的图片卡片 — 圆角 + 点击预览。
+ *
+ * v1.0.80:
+ *  - 放大展示面:ContentScale.Fit 完整显示,不再 Crop 截断 1:1 图,高度上限放宽到 420dp
+ *  - 移除外侧下载按钮:下载入口收进大图预览页(右下角),避免卡片上按钮遮挡画面
  */
 @Composable
 internal fun GeneratedImageCard(
@@ -98,32 +102,12 @@ internal fun GeneratedImageCard(
         SmartImage(
             model = imageUri,
             contentDescription = stringResource(R.string.chat_generated_image_cd),
-            contentScale = ContentScale.Crop,
+            contentScale = ContentScale.Fit,
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(max = 320.dp)
+                .heightIn(min = 120.dp, max = 420.dp)
                 .clip(MuseShapes.medium),
         )
-        IconButton(
-            onClick = {
-                onSave()
-            },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(MusePaddings.contentGap)
-                .size(MuseIconSizes.touchTarget)
-                .background(
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-                    shape = CircleShape,
-                ),
-        ) {
-            Icon(
-                imageVector = TablerIcons.Download,
-                contentDescription = stringResource(R.string.chat_save_image_cd),
-                tint = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(MuseIconSizes.iconMedium),
-            )
-        }
     }
 }
 

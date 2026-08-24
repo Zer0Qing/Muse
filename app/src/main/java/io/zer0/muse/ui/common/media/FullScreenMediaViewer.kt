@@ -4,6 +4,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -39,6 +41,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import compose.icons.TablerIcons
+import compose.icons.tablericons.Download
 import io.zer0.muse.R
 import io.zer0.muse.ui.SmartImage
 import io.zer0.muse.ui.theme.MuseIconSizes
@@ -128,12 +132,15 @@ internal fun ZoomableImage(
  * @param images 图片 URL/data URI 列表
  * @param initialIndex 初始展示页索引
  * @param onDismiss 关闭回调
+ * @param onSaveImage v1.0.80: 右下角下载按钮回调(传入当前页图片 URI);null 时不显示按钮。
+ *   下载入口从消息气泡卡片移入大图预览,避免按钮遮挡画面。
  */
 @Composable
 internal fun FullScreenMediaViewer(
     images: List<String>,
     initialIndex: Int,
     onDismiss: () -> Unit,
+    onSaveImage: ((imageUri: String) -> Unit)? = null,
 ) {
     if (images.isEmpty()) return
     val pagerState = rememberPagerState(
@@ -195,6 +202,30 @@ internal fun FullScreenMediaViewer(
                         contentDescription = stringResource(R.string.action_close),
                         tint = MaterialTheme.colorScheme.onSurface,
                     )
+                }
+            }
+            // v1.0.80: 右下角下载按钮(仅在回调非空时显示)
+            if (onSaveImage != null) {
+                val currentImage = images.getOrNull(pagerState.currentPage)
+                if (currentImage != null) {
+                    IconButton(
+                        onClick = { onSaveImage(currentImage) },
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(MusePaddings.itemGap)
+                            .size(MuseIconSizes.touchTarget)
+                            .background(
+                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
+                                shape = CircleShape,
+                            ),
+                    ) {
+                        Icon(
+                            imageVector = TablerIcons.Download,
+                            contentDescription = stringResource(R.string.chat_save_image_cd),
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    }
                 }
             }
         }
