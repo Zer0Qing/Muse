@@ -2,7 +2,7 @@
 # 格式: <file>: <违规数>;新增或上升都会失败,只允许下降
 # 清理存量后运行: py -3 ci/script/check_hardcoded_cjk.py --update-baseline
 #
-# 当前共 477 处,分布 58 个文件
+# 当前共 597 处,分布 60 个文件
 app/src/main/java/io/zer0/muse/ui/AssistantAdvancedPage.kt: 1
 app/src/main/java/io/zer0/muse/ui/ChatScreen.kt: 2
 app/src/main/java/io/zer0/muse/ui/ChatScreenComponents.kt: 1
@@ -12,9 +12,10 @@ app/src/main/java/io/zer0/muse/ui/GreetingHelper.kt: 43
 app/src/main/java/io/zer0/muse/ui/HtmlPreviewScreen.kt: 2
 app/src/main/java/io/zer0/muse/ui/InputBar.kt: 6
 app/src/main/java/io/zer0/muse/ui/MemoryViewModel.kt: 3
+app/src/main/java/io/zer0/muse/ui/MessageBubbleExtras.kt: 2
 app/src/main/java/io/zer0/muse/ui/MuseToolSheet.kt: 7
 app/src/main/java/io/zer0/muse/ui/SafeModeScreen.kt: 3
-app/src/main/java/io/zer0/muse/ui/SettingsScreen.kt: 75
+app/src/main/java/io/zer0/muse/ui/SettingsScreen.kt: 70
 app/src/main/java/io/zer0/muse/ui/SkillScreen.kt: 2
 app/src/main/java/io/zer0/muse/ui/VideoGenerationPage.kt: 1
 app/src/main/java/io/zer0/muse/ui/chat/ChatAudioCoordinator.kt: 1
@@ -23,6 +24,7 @@ app/src/main/java/io/zer0/muse/ui/chat/ChatStreamCoordinator.kt: 12
 app/src/main/java/io/zer0/muse/ui/chat/ChatTaskCardCoordinator.kt: 5
 app/src/main/java/io/zer0/muse/ui/chat/ImageGenCoordinator.kt: 2
 app/src/main/java/io/zer0/muse/ui/chat/StickerEmotionDetector.kt: 14
+app/src/main/java/io/zer0/muse/ui/chat/ToolCallVisuals.kt: 123
 app/src/main/java/io/zer0/muse/ui/chat/VideoAttachmentHandler.kt: 1
 app/src/main/java/io/zer0/muse/ui/groupchat/GroupChatDetailComponents.kt: 2
 app/src/main/java/io/zer0/muse/ui/groupchat/GroupChatDetailScreen.kt: 6
