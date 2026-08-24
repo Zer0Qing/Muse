@@ -221,9 +221,10 @@ class ProactiveMessageRunner(
      * 调用方:设置页"测试主动消息"按钮。
      */
     suspend fun triggerTestSend() {
-        triggerMutex.withLock {
-            executeProactiveCycle(triggerSource = TRIGGER_SOURCE_TEST, forceSend = true)
-        }
+        // v1.0.80: 去掉外层 triggerMutex.withLock — executeProactiveCycle 内部已加锁,
+        // Mutex 非重入,这里再包一层会导致第二次 withLock 永久挂起(死锁),
+        // 测试按钮卡在"生成中"且日志无任何输出(用户反馈:点了测试没反应)。
+        executeProactiveCycle(triggerSource = TRIGGER_SOURCE_TEST, forceSend = true)
     }
 
     /**

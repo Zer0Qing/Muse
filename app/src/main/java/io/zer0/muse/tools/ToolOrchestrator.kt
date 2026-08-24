@@ -561,11 +561,11 @@ class ToolOrchestrator(
 
                     // v1.0.62: 历史与持久化必须使用清洗后的 toolCalls,
                     // 避免空 name/空 arguments 的非法调用在下一轮请求中触发 400。
-                    val cleanedAssistantToolMsg = if (toolCallList.size == rawToolCallList.size) {
-                        assistantToolMsg
-                    } else {
-                        assistantToolMsg.copy(toolCalls = toolCallList)
-                    }
+                    // v1.0.80: 旧实现仅当数量变化时才用清洗结果 — 若 sanitize 只修复了
+                    // arguments(坏 JSON → "{}")而数量不变,坏 arguments 仍会进入历史回传,
+                    // 下一轮请求触发 400 "Assistant tool call arguments must be valid JSON"。
+                    // 改为始终使用清洗后的 toolCallList。
+                    val cleanedAssistantToolMsg = assistantToolMsg.copy(toolCalls = toolCallList)
 
                     // 把带 tool_calls 的 assistant 消息加入历史并持久化
                     conversationHistory.add(cleanedAssistantToolMsg)

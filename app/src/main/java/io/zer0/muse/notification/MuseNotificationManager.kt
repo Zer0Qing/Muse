@@ -189,9 +189,10 @@ class MuseNotificationManager(private val context: Context) {
         preview: String,
         target: MuseNotificationTarget = MuseNotificationTarget.Chat,
     ) {
-        // B-15: 前台时不发 HIGH 声音通知——复用 notifyChatCompletedWithPolicy 的既有前台判断模式。
-        // 用户正盯着会话时,消息已在会话内展示,再弹 HIGH 声音通知只会打扰用户。
-        if (isAppInForeground()) return
+        // v1.0.80: 主动消息是"助手主动联系用户",即使前台也应走系统通知 —
+        // 用户可能没盯着会话(在看别的页面/别的 app),微信式通知不能被前台判断拦截。
+        // 原 B-15 前台拦截导致:设置页"测试主动消息"时 App 必然前台,通知永远不发,
+        // 用户无法验证(反馈:主动消息有了但通知栏没有)。主动消息有每日上限+评分引擎,不会高频打扰。
         val assistantName = assistant.name.ifBlank { "muse" }
         val avatar = loadAssistantAvatar(assistant)
         val builder = NotificationCompat.Builder(context, CHANNEL_PROACTIVE_MESSAGE)
