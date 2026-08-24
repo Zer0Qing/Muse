@@ -1,5 +1,6 @@
 package io.zer0.muse.ui.navigation
 
+import androidx.compose.runtime.remember
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -438,6 +439,17 @@ fun NavGraphBuilder.settingsNavGraph(
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         ToolsSettingsPage(
+            onBack = { navController.popBackStack() },
+        )
+    }
+    // v1.0.80: UI 自动化权限设置(三层梯度)
+    composable<SettingsAutomationRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        val manager = remember { io.zer0.muse.automation.AutomationInitializer.manager }
+        io.zer0.muse.automation.ui.AutomationSettingsPage(
+            manager = manager,
             onBack = { navController.popBackStack() },
         )
     }

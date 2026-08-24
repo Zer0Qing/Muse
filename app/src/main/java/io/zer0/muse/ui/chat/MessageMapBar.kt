@@ -1,5 +1,7 @@
 package io.zer0.muse.ui.chat
 
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -12,6 +14,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -19,6 +22,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -32,6 +36,7 @@ import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -63,9 +68,32 @@ internal fun MessageMapBar(
     var hoverIndex by remember { mutableStateOf<Int?>(null) }
     var pressedIndex by remember { mutableStateOf<Int?>(null) }
 
+    // v1.0.80: 滚动时浮现、停下缩回 — 原常驻 10dp 竖条用户难以发现触发。
+    // 监听列表滚动状态:滚动中或用户按压 map bar 时展开到 20dp,停止滚动 1s 后缩回 5dp。
+    var expanded by remember { mutableStateOf(false) }
+    LaunchedEffect(listState.isScrollInProgress, pressedIndex) {
+        if (listState.isScrollInProgress || pressedIndex != null) {
+            expanded = true
+        } else {
+            delay(1000)
+            expanded = false
+        }
+    }
+    val barWidthDp by animateDpAsState(
+        targetValue = if (expanded) 20.dp else 5.dp,
+        animationSpec = tween(220),
+        label = "mapbar-width",
+    )
+    val barAlpha by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (expanded) 1f else 0.35f,
+        animationSpec = tween(220),
+        label = "mapbar-alpha",
+    )
+
     BoxWithConstraints(
         modifier = modifier
-            .width(10.dp)
+            .width(barWidthDp)
+            .alpha(barAlpha)
             .fillMaxHeight()
             // A6: 手写指针事件循环(点击/拖动/悬浮统一换算为消息下标)
             .pointerInput(total, messageStartIndex) {

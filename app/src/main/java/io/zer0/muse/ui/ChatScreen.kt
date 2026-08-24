@@ -1580,7 +1580,11 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                         }
                         // B7-06: 消息左右滑快捷操作。
                         // v1.0.72: 取消"右滑编辑"(用户决策,没什么用),仅保留"左滑引用"。
+                        // v1.0.80: 降低左滑引用灵敏度 — 原默认 positionalThreshold=56dp,
+                        //   轻滑十几 dp 就触发引用,非常容易误触。改为总宽度的 35%,
+                        //   用户必须明显向左拖出一段距离才触发,减少看消息/滚动手势的误触。
                         val messageSwipeState = rememberSwipeToDismissBoxState(
+                            positionalThreshold = { distance -> distance * 0.35f },
                             confirmValueChange = { value ->
                                 when (value) {
                                     SwipeToDismissBoxValue.EndToStart -> {

@@ -86,9 +86,10 @@ fun NavGraphBuilder.chatNavGraph(
         )
     }
     // v0.45: 独立全局搜索页(从首页右上角搜索按钮进入,右滑入场)
+    // v1.0.80: 纯 slide 无淡入淡出 — 避免半透明透出深色背景形成“黑色遮罩”
     composable<SearchRoute>(
-        enterTransition = { MuseTransitions.horizontalPushEnter() },
-        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+        enterTransition = { MuseTransitions.horizontalSlideEnter() },
+        popExitTransition = { MuseTransitions.horizontalSlidePopExit() },
     ) {
         SearchScreen(
             onBack = { navController.popBackStack() },

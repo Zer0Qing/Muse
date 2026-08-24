@@ -442,8 +442,8 @@ fun GroupChatDetailScreen(
                     Surface(
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.surfaceVariant,
-                        // v1.0.74 fix (前端审计 7): 42dp → 48dp 触摸目标
-                        modifier = Modifier.size(48.dp),
+                        // v1.0.80: 48dp → 40dp,与单聊顶栏一致
+                        modifier = Modifier.size(40.dp),
                     ) {
                         Box(
                             modifier = Modifier.fillMaxSize().clickable(onClick = onBack),
@@ -461,7 +461,8 @@ fun GroupChatDetailScreen(
                     Surface(
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.surfaceVariant,
-                        modifier = Modifier.weight(1f).height(42.dp),
+                        // v1.0.80: height 42dp → 40dp,与单聊顶栏一致
+                        modifier = Modifier.weight(1f).height(40.dp),
                     ) {
                         Box(
                             modifier = Modifier.fillMaxSize(),
@@ -479,8 +480,8 @@ fun GroupChatDetailScreen(
                     // 右岛:三点菜单
                     var showTopMenu by rememberSaveable { mutableStateOf(false) }
                     Box(
-                        // v1.0.74 fix (前端审计 7): 42dp → 48dp 触摸目标
-                        modifier = Modifier.size(48.dp),
+                        // v1.0.80: 48dp → 40dp,与单聊顶栏一致
+                        modifier = Modifier.size(40.dp),
                         contentAlignment = Alignment.Center,
                     ) {
                         Surface(

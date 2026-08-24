@@ -61,6 +61,8 @@ data object SettingsChatRoute
 @Serializable
 data object ToolsSettingsRoute
 @Serializable
+data object SettingsAutomationRoute
+@Serializable
 data object SettingsMemoryRoute
 @Serializable
 data object SettingsMemoryConfigRoute

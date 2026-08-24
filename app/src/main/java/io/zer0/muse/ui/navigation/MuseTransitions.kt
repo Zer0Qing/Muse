@@ -38,6 +38,14 @@ object MuseTransitions {
         slideInHorizontally(tween(MuseAnimation.NAV_HORIZONTAL_MS), initialOffsetX = { it }) +
             fadeIn(tween(MuseAnimation.NAV_HORIZONTAL_MS))
 
+    /** v1.0.80: 纯 slide 入场(无淡入),避免半透明透出深色背景形成“遮罩”。 */
+    fun horizontalSlideEnter(): EnterTransition =
+        slideInHorizontally(tween(MuseAnimation.NAV_HORIZONTAL_MS), initialOffsetX = { it })
+
+    /** v1.0.80: 纯 slide 退场(无淡出),与 [horizontalSlideEnter] 配对。 */
+    fun horizontalSlidePopExit(): ExitTransition =
+        slideOutHorizontally(tween(MuseAnimation.NAV_HORIZONTAL_MS), targetOffsetX = { it })
+
     /** 标准水平 push 退场(向右滑出 + 淡出)。 */
     fun horizontalPushPopExit(): ExitTransition =
         slideOutHorizontally(tween(MuseAnimation.NAV_HORIZONTAL_MS), targetOffsetX = { it }) +

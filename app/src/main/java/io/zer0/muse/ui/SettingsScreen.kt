@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Bolt
+import androidx.compose.material.icons.outlined.Computer
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Search
 import compose.icons.TablerIcons
@@ -80,13 +81,11 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.withFrameNanos
 import org.koin.compose.koinInject
-import io.zer0.muse.ui.navigation.SettingsPermissionWizardRoute
 import io.zer0.muse.ui.navigation.SettingsTaskRoutingRoute
 import io.zer0.muse.ui.navigation.PluginManageRoute
 import io.zer0.muse.ui.navigation.QuickNotesRoute
 import io.zer0.muse.ui.navigation.SettingsMiniPhoneRoute
 import io.zer0.muse.ui.navigation.ScheduledTasksRoute
-import io.zer0.muse.ui.navigation.MilestonesRoute
 
 /**
  * v2.4 设置页 — iOS / MANUS 风格全量重写。
@@ -218,6 +217,8 @@ fun SettingsScreen(
     val notificationListenerDesc = stringResource(R.string.settings_screen_notification_listener_desc)
     val toolsTitle = stringResource(R.string.settings_screen_tools)
     val toolsDesc = stringResource(R.string.settings_screen_tools_desc)
+    val automationTitle = stringResource(io.zer0.muse.R.string.automation_settings_title)
+    val automationSubtitle = stringResource(io.zer0.muse.R.string.automation_settings_subtitle)
     val quickNotesTitle = stringResource(R.string.settings_screen_quick_notes)
     val miniPhoneTitle = stringResource(R.string.settings_miniphone_title)
     // 前端修复 (i18n-3.x): 搜索索引 SettingsEntry 硬编码 title 统一走资源
@@ -225,14 +226,12 @@ fun SettingsScreen(
     val entryTtsPlaybackTitle = stringResource(R.string.settings_screen_entry_tts_playback)
     val entryProactiveTitle = stringResource(R.string.settings_agent_proactive_title)
     val entryScheduledTasksTitle = stringResource(R.string.schedule_title)
-    val entryPermissionWizardTitle = stringResource(R.string.permission_wizard_entry)
     val entryApiKeyTitle = stringResource(R.string.settings_screen_entry_api_key)
     val entryOcrTitle = stringResource(R.string.settings_screen_entry_ocr)
     val entryKeepAwakeTitle = stringResource(R.string.settings_memory_keep_awake)
     val entryBootStartTitle = stringResource(R.string.settings_agent_boot_section)
     val entryArchivedTitle = stringResource(R.string.settings_screen_entry_archived)
     val entryBiometricTitle = stringResource(R.string.settings_security_biometric_section)
-    val entryMilestoneTitle = stringResource(R.string.milestone_title)
     val entryFontSizeTitle = stringResource(R.string.settings_screen_entry_font_size)
     val entryThemeModeTitle = stringResource(R.string.settings_screen_entry_theme_mode)
     val entryDynamicColorTitle = stringResource(R.string.settings_theme_dynamic_color)
@@ -256,7 +255,6 @@ fun SettingsScreen(
     val entryToolApprovalTitle = stringResource(R.string.settings_screen_entry_tool_approval)
     val entryCollabTitle = stringResource(R.string.settings_screen_entry_collab)
     val entryCloudBackupTitle = stringResource(R.string.settings_backup_cloud_title)
-    val entryWebServerTitle = stringResource(R.string.settings_web_title)
     val searchHint = stringResource(R.string.settings_search_hint)
     val noResults = stringResource(R.string.settings_search_no_results)
 
@@ -314,8 +312,7 @@ fun SettingsScreen(
                 SettingsEntry(assistantResourcesTitle, listOf("助手资源", "收藏夹", "世界书", "快捷消息", "模式注入", "Skills", "技能", "zhushouziyuan", "shoucangjia", "shijieshu", "kuaijiexiaoxi", "moshizhur", "jineng", "zszy", "scj", "sjs", "kjxx", "mszr", "jn"), MuseRoutes.SETTINGS_ASSISTANT_RESOURCES, groupAssistants, TablerIcons.Stars, onOpenAssistantResources),
                 SettingsEntry(notificationListenerTitle, listOf("通知监听", "通知", "NotificationListener", "通知权限", "tongzhijianting", "tongzhi", "tongzhiquanxian", "tzjl", "tz", "tzqx"), MuseRoutes.NOTIFICATION_LISTENER, groupTools, TablerIcons.Bell, onOpenNotificationListener),
                 SettingsEntry(toolsTitle, listOf("工具", "AI工具", "ToolRegistry", "tool", "插件", "gongju", "AIgongju", "chajian", "gj", "AIgj", "cj"), MuseRoutes.TOOLS, groupTools, TablerIcons.Tools, onOpenTools),
-                // P3-3: 权限配置向导(无障碍 / Shizuku / Root 三通道)
-                SettingsEntry(entryPermissionWizardTitle, listOf("权限", "无障碍", "Shizuku", "Root", "UI自动化", "permission", "accessibility", "quanxian", "wuzhangai", "UIzidonghua", "qx", "wza"), MuseRoutes.SETTINGS_PERMISSION_WIZARD, groupTools, TablerIcons.Lock) { onNavigate(SettingsPermissionWizardRoute) },
+                SettingsEntry(automationTitle, listOf("UI自动化", "自动操作", "屏幕读取", "手势", "zidonghua", "zidongcaozuo", "pingmu", "shoushi"), MuseRoutes.SETTINGS_AUTOMATION, groupTools, Icons.Outlined.Computer) { onNavigate(io.zer0.muse.ui.navigation.SettingsAutomationRoute) },
 
                 // AI 模型与能力(从原「助手与 Agent」拆分)
                 SettingsEntry(providerTitle, listOf("供应商", "模型", "provider", "API", "密钥", "gongyingshang", "moxing", "miyao", "gys", "mx", "my", "绘图", "Agnes", "DALL-E", "绘图供应商"), MuseRoutes.SETTINGS_MODEL, groupModels, TablerIcons.Settings, onOpenModelSettings),
@@ -361,7 +358,6 @@ fun SettingsScreen(
                 SettingsEntry(debugLogTitle, listOf("调试", "日志", "debug", "log", "Logger", "tiaoshi", "rizhi", "ts", "rz"), MuseRoutes.DEBUG, groupAbout, TablerIcons.Bug, onOpenDebugLog),
                 SettingsEntry(experimentsTitle, listOf("实验性", "实验", "experimental", "beta", "试验", "shiyanxing", "shiyan", "shiyan", "syx", "sy"), MuseRoutes.SETTINGS_EXPERIMENTS, groupAbout, TablerIcons.Flask, onOpenExperimentsSettings),
                 SettingsEntry(statsTitle, listOf("统计", "使用统计", "stats", "热力图", "数据", "tongji", "shiyongtongji", "relitu", "shuju", "tj", "sytj", "rlt", "sj"), MuseRoutes.STATS, groupAbout, TablerIcons.ChartBar, onOpenStats),
-                SettingsEntry(entryMilestoneTitle, listOf("里程碑", "成就", "纪念日", "milestone", "liangcheng", "chengjiu", "jinianri", "lc", "cj", "jnr"), MuseRoutes.MILESTONES, groupAbout, TablerIcons.Stars) { onNavigate(MilestonesRoute) },
 
                 // 二级设置项
                 SettingsEntry(entryFontSizeTitle, listOf("字号", "字体大小", "字体", "大小", "ziti", "zihao", "ztdx", "zt"), MuseRoutes.SETTINGS_APPEARANCE, appearanceTitle, TablerIcons.ColorSwatch, onOpenAppearanceSettings),
@@ -400,7 +396,6 @@ fun SettingsScreen(
                 SettingsEntry(entryProactiveTitle, listOf("主动消息", "推送", "定时", "zhudongxiaoxi", "tuisong", "dingshi", "zdxx", "ts", "ds"), MuseRoutes.SETTINGS_PROACTIVE, agentTitle, TablerIcons.Bell, onOpenProactiveSettings),
                 SettingsEntry(entryCollabTitle, listOf("协作", "多助手", "团队", "xiezhuo", "duozhushou", "tuandui", "xz", "dzs", "td"), MuseRoutes.SETTINGS_AGENT, agentTitle, TablerIcons.Users, onOpenAgentSettings),
                 SettingsEntry(entryCloudBackupTitle, listOf("云备份", "备份", "S3", "WebDAV", "yunbeifen", "beifen", "ybf", "bf"), MuseRoutes.SETTINGS_DATA, dataBackupTitle, TablerIcons.Cloud, onOpenDataSettings),
-                SettingsEntry(entryWebServerTitle, listOf("Web服务器", "端口", "PIN", "远程访问", "webfuwuqi", "duankou", "yuanchengfangwen", "webfwq", "dk"), MuseRoutes.SETTINGS_DATA, dataBackupTitle, TablerIcons.World, onOpenDataSettings),
             ),
         )
     }
@@ -554,6 +549,13 @@ fun SettingsScreen(
                         )
                     }
 
+                    item(key = "chat_display") {
+                        SettingsCardGroup(title = groupChatDisplay) {
+                            link(chatTitle, R.string.settings_screen_chat_desc, TablerIcons.MessageCircle, onOpenChatSettings)
+                            link(appearanceTitle, R.string.settings_screen_appearance_desc, TablerIcons.ColorSwatch, onOpenAppearanceSettings)
+                        }
+                    }
+
                     item(key = "assistants") {
                         SettingsCardGroup(title = groupAssistants) {
                             link(assistantTitle, R.string.settings_screen_assistant_desc, TablerIcons.Atom, onOpenAssistants)
@@ -574,18 +576,28 @@ fun SettingsScreen(
                         }
                     }
 
-                    item(key = "chat_display") {
-                        SettingsCardGroup(title = groupChatDisplay) {
-                            link(chatTitle, R.string.settings_screen_chat_desc, TablerIcons.MessageCircle, onOpenChatSettings)
-                            link(appearanceTitle, R.string.settings_screen_appearance_desc, TablerIcons.ColorSwatch, onOpenAppearanceSettings)
-                        }
-                    }
-
                     item(key = "memory") {
                         SettingsCardGroup(title = groupMemory) {
                             link(entryProactiveTitle, R.string.settings_agent_proactive_subtitle, TablerIcons.Bell, onOpenProactiveSettings)
                             link(memoryTitle, R.string.settings_screen_memory_notification_desc, TablerIcons.Atom, onOpenMemorySettings)
                             link(ragTitle, R.string.settings_screen_rag_desc, TablerIcons.Book, onOpenRagSettings)
+                        }
+                    }
+
+                    item(key = "tools") {
+                        SettingsCardGroup(title = groupTools) {
+                            link(toolsTitle, R.string.settings_screen_tools_desc, TablerIcons.Tools, onOpenTools)
+                            link(mcpEntryTitle, R.string.settings_screen_mcp_desc, TablerIcons.Affiliate, onOpenMcp)
+                            link(pluginManageTitle, TablerIcons.Puzzle, onOpenProviderPlugins)
+                            link(notificationListenerTitle, R.string.settings_screen_notification_listener_desc, TablerIcons.Bell, onOpenNotificationListener)
+                            link(entryScheduledTasksTitle, Icons.Outlined.Schedule) { onNavigate(ScheduledTasksRoute) }
+                            link(
+                                automationTitle,
+                                automationSubtitle,
+                                Icons.Outlined.Computer,
+                            ) { onNavigate(io.zer0.muse.ui.navigation.SettingsAutomationRoute) }
+                            link(quickNotesTitle, R.string.settings_screen_quick_notes_desc, TablerIcons.Bulb) { onNavigate(QuickNotesRoute) }
+                            link(miniPhoneTitle, R.string.settings_screen_miniphone_desc, TablerIcons.DeviceMobile) { onNavigate(SettingsMiniPhoneRoute) }
                         }
                     }
 
@@ -597,7 +609,6 @@ fun SettingsScreen(
                             link(workspaceTitle, R.string.workspace_desc, TablerIcons.Folder, onOpenWorkspace)
                             // v1.0.72: 归档聊天 — 从设置-数据与隐私进入(原主页顶栏入口已移除)
                             link(entryArchivedTitle, R.string.settings_screen_archived_desc, TablerIcons.Archive, onOpenArchivedChats)
-                            link(entryWebServerTitle, TablerIcons.World, onOpenDataSettings)
                             switch(
                                 piiGuardTitle,
                                 R.string.settings_screen_pii_guard_desc,
@@ -611,25 +622,11 @@ fun SettingsScreen(
                         }
                     }
 
-                    item(key = "tools") {
-                        SettingsCardGroup(title = groupTools) {
-                            link(toolsTitle, R.string.settings_screen_tools_desc, TablerIcons.Tools, onOpenTools)
-                            link(mcpEntryTitle, R.string.settings_screen_mcp_desc, TablerIcons.Affiliate, onOpenMcp)
-                            link(pluginManageTitle, TablerIcons.Puzzle, onOpenProviderPlugins)
-                            link(notificationListenerTitle, R.string.settings_screen_notification_listener_desc, TablerIcons.Bell, onOpenNotificationListener)
-                            link(entryScheduledTasksTitle, Icons.Outlined.Schedule) { onNavigate(ScheduledTasksRoute) }
-                            link(entryPermissionWizardTitle, TablerIcons.Lock) { onNavigate(SettingsPermissionWizardRoute) }
-                            link(quickNotesTitle, R.string.settings_screen_quick_notes_desc, TablerIcons.Bulb) { onNavigate(QuickNotesRoute) }
-                            link(miniPhoneTitle, R.string.settings_screen_miniphone_desc, TablerIcons.DeviceMobile) { onNavigate(SettingsMiniPhoneRoute) }
-                        }
-                    }
-
                     item(key = "about") {
                         SettingsCardGroup(title = groupAbout) {
                             link(tutorialTitle, R.string.settings_screen_tutorial_desc, TablerIcons.School, onOpenTutorial)
                             link(aboutTitle, R.string.settings_screen_about_desc, TablerIcons.InfoCircle, onOpenAboutSettings)
                             checkUpdate(checkingUpdate, onCheck = checkUpdateAction)
-                            link(entryMilestoneTitle, TablerIcons.Stars) { onNavigate(MilestonesRoute) }
                             link(debugLogTitle, R.string.settings_screen_debug_log_desc, TablerIcons.Bug, onOpenDebugLog)
                             link(experimentsTitle, R.string.settings_screen_experiments_desc, TablerIcons.Flask, onOpenExperimentsSettings)
                             link(statsTitle, R.string.settings_screen_stats_desc, TablerIcons.ChartBar, onOpenStats)

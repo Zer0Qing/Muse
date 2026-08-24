@@ -191,6 +191,9 @@ object MuseRoutes {
      */
     const val TOOLS_SETTINGS = "tools_settings"
 
+    /** v1.0.80: UI 自动化权限设置(三层梯度: 无障碍/Shell/Root)。 */
+    const val SETTINGS_AUTOMATION = "settings_automation"
+
     /**
      * v1.30: 构造群聊详情页路由(带 chatId 参数)。
      *
