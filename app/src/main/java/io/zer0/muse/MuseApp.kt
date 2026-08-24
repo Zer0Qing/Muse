@@ -171,6 +171,13 @@ class MuseApp : Application(), ImageLoaderFactory {
         }
         // 强制实例化全部工具注册器，让 100+ 工具在启动后即可用
         toolRegistrarBootstrapper
+        // v1.0.80: 初始化 UI 自动化模块(三层权限: 无障碍/Shell/Root)
+        try {
+            val toolRegistry = org.koin.java.KoinJavaComponent.get<io.zer0.muse.tools.ToolRegistry>(io.zer0.muse.tools.ToolRegistry::class.java)
+            io.zer0.muse.automation.AutomationInitializer.initialize(this, toolRegistry)
+        } catch (e: Exception) {
+            Logger.w("MuseApp", "AutomationInitializer failed: ${e.message}")
+        }
         // MCP server 连接与工具注册独立于设置页生命周期,后台和主聊天都能直接使用。
         mcpRegistry.startAll()
         // 快速记录系统悬浮窗默认关闭:清理旧版本可能遗留的默认开启状态。

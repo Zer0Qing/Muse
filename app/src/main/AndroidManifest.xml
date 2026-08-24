@@ -267,6 +267,20 @@
             android:enabled="true"
             android:exported="true"
             android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
+
+        <!-- v1.0.80: UI 自动化无障碍服务 -->
+        <service
+            android:name=".automation.executors.MuseAccessibilityService"
+            android:exported="false"
+            android:label="@string/automation_permission_a11y"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/muse_accessibility_service" />
+        </service>
     </application>
 
 </manifest>
