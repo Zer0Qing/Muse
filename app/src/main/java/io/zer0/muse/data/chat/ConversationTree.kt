@@ -142,6 +142,75 @@ data class ConversationTree(
         )
     }
 
+    /**
+     * v1.0.80 (T-4): 从树中移除单条消息(删除消息时同步树)。
+     *
+     * 删除消息后若树不更新,切回会话时 rebuildConversationTree 会通过
+     * mergeRebuildMessages 把旧树里的被删消息合并回来,导致已删消息"复活"
+     * (用户反馈:删了重进还在,旧消息突然变最新)。
+     * 此方法把该消息从所有用户变体/助手变体中剔除,并重排 variantIndex/variantCount。
+     */
+    fun removeMessage(messageId: Uuid): ConversationTree {
+        var changed = false
+        val newNodes = userNodes.mapNotNull { user ->
+            val remainingVariants = user.variants.mapNotNull { variant ->
+                if (variant.message.id == messageId) {
+                    changed = true
+                    null
+                } else {
+                    val newAssistantNodes = variant.assistantNodes.mapNotNull { node ->
+                        val remaining = node.variants.filterNot { it.id == messageId }
+                        if (remaining.size != node.variants.size) changed = true
+                        if (remaining.isEmpty()) {
+                            null
+                        } else {
+                            val reindexedAssistants = remaining.mapIndexed { idx, msg ->
+                                if (msg.variantIndex != idx || msg.variantCount != remaining.size) {
+                                    changed = true
+                                    msg.copy(variantIndex = idx, variantCount = remaining.size)
+                                } else {
+                                    msg
+                                }
+                            }
+                            node.copy(
+                                variants = reindexedAssistants,
+                                selectIndex = node.selectIndex.coerceIn(0, reindexedAssistants.lastIndex),
+                            )
+                        }
+                    }
+                    if (newAssistantNodes.size != variant.assistantNodes.size) changed = true
+                    variant.copy(assistantNodes = newAssistantNodes)
+                }
+            }
+            if (remainingVariants.isEmpty()) {
+                changed = true
+                null
+            } else {
+                val reindexed = remainingVariants.mapIndexed { idx, variant ->
+                    if (variant.message.variantIndex != idx || variant.message.variantCount != remainingVariants.size) {
+                        changed = true
+                        variant.copy(
+                            message = variant.message.copy(
+                                variantIndex = idx,
+                                variantCount = remainingVariants.size,
+                            ),
+                        )
+                    } else {
+                        variant
+                    }
+                }
+                user.copy(
+                    variants = reindexed,
+                    selectIndex = user.selectIndex.coerceIn(0, reindexed.lastIndex),
+                )
+            }
+        }
+        if (!changed) return this
+        if (newNodes.isEmpty()) return ConversationTree()
+        val selected = selectedUserIndex.coerceIn(0, newNodes.lastIndex)
+        return copy(userNodes = newNodes, selectedUserIndex = selected)
+    }
+
     /** 重试当前用户版本下的最后一条助手回复，返回新树 + 需持久化的新消息。 */
     fun retryLastAssistant(): TreeUpdate {
         val user = selectedUserNode ?: return TreeUpdate(this, null, null)

@@ -96,6 +96,10 @@ interface MessageDao {
     @Query("DELETE FROM messages WHERE id = :messageId")
     suspend fun deleteById(messageId: String)
 
+    /** v1.0.80 (T-4): 查父消息的所有子消息(删除 user 消息时级联删除其 assistant 回复)。 */
+    @Query("SELECT * FROM messages WHERE parentGroupId = :parentId OR parentMessageId = :parentId")
+    suspend fun getChildrenByParentId(parentId: String): List<MessageEntity>
+
     /** 按 id 删除单条消息(编辑/重生成时截断用)。 */
     @Query("DELETE FROM messages WHERE sessionId = :sessionId AND createdAt >= :fromCreatedAt")
     suspend fun deleteFromCreatedAt(sessionId: String, fromCreatedAt: Long)

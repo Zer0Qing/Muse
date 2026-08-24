@@ -7429,6 +7429,15 @@ class ChatViewModel(
         }
         sessionId?.let { sessionMemoryCache.remove(it) }
         miscCoordinator.deleteMessage(messageId)
+        // v1.0.80 (T-4): 同步对话树 — 删除后若树仍保留被删消息,切回会话时
+        // rebuildConversationTree 会用 mergeRebuildMessages 把旧树消息合并回来,
+        // 再经 healBranchCounts 写回 DB,导致已删消息"复活"且旧消息时序错乱。
+        _conversationTree.value = _conversationTree.value.removeMessage(messageId)
+        val tree = _conversationTree.value
+        val sid = sessionId
+        if (sid != null) {
+            viewModelScope.launch(Dispatchers.IO) { treeSnapshotStore?.save(sid, tree) }
+        }
     }
 
     // ── B7-01: 消息多选批量操作 ──────────────────────────────────────────

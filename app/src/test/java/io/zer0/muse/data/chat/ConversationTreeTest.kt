@@ -354,4 +354,57 @@ class ConversationTreeTest {
         val mergedWithNew = mergeRebuildMessages(tree, tree.displayMessages + u2 + placeholder)
         assertEquals(listOf("提问1", "回答1", "回答2", "提问2", ""), mergedWithNew.map { it.content })
     }
+
+    @Test
+    fun removeMessage_removesAssistantVariantAndReindexes() {
+        val u = user("提问", group = "ug1")
+        val a1 = assistant("回答1", group = "ag1", index = 0, count = 2, parentGroup = u.id.toString(), at = 101)
+        val a2 = assistant("回答2", group = "ag1", index = 1, count = 2, parentGroup = u.id.toString(), at = 102)
+        val tree = ConversationTree.build(listOf(u, a1, a2))
+
+        val removed = tree.removeMessage(a2.id)
+
+        val variants = removed.userNodes.first().currentVariant?.assistantNodes?.first()?.variants.orEmpty()
+        assertEquals(1, variants.size)
+        assertEquals(listOf("回答1"), variants.map { it.content })
+        assertEquals(0, variants[0].variantIndex)
+        assertEquals(1, variants[0].variantCount)
+        assertEquals(listOf("提问", "回答1"), removed.displayMessages.map { it.content })
+    }
+
+    @Test
+    fun removeMessage_removesUserVariantWithItsAssistants() {
+        val u1 = user("提问1", group = "ug1", at = 100)
+        val a1 = assistant("回答1", group = "ag1", parentGroup = u1.id.toString(), at = 101)
+        val u2 = user("提问2", group = "ug2", at = 102)
+        val a2 = assistant("回答2", group = "ag2", parentGroup = u2.id.toString(), at = 103)
+        val tree = ConversationTree.build(listOf(u1, a1, u2, a2))
+
+        val removed = tree.removeMessage(u1.id)
+
+        assertEquals(1, removed.userNodes.size)
+        assertEquals(listOf("提问2", "回答2"), removed.displayMessages.map { it.content })
+    }
+
+    @Test
+    fun removeMessage_removesLastUserNode_returnsEmptyTree() {
+        val u = user("提问", group = "ug1")
+        val a = assistant("回答", group = "ag1", parentGroup = u.id.toString(), at = u.createdAt + 1)
+        val tree = ConversationTree.build(listOf(u, a))
+
+        val removed = tree.removeMessage(u.id)
+
+        assertTrue(removed.userNodes.isEmpty())
+        assertTrue(removed.displayMessages.isEmpty())
+    }
+
+    @Test
+    fun removeMessage_unknownId_returnsSameTree() {
+        val u = user("提问", group = "ug1")
+        val tree = ConversationTree.build(listOf(u))
+
+        val removed = tree.removeMessage(Uuid.random())
+
+        assertEquals(tree, removed)
+    }
 }

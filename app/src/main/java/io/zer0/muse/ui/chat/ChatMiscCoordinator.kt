@@ -348,21 +348,47 @@ class ChatMiscCoordinator(
 
     /** v1.48: 删除单条消息(乐观更新 + 失败回滚)。 */
     fun deleteMessage(messageId: Uuid) {
-        val target = accessor.messagesSnapshot.firstOrNull { it.id == messageId } ?: return
+        if (accessor.messagesSnapshot.none { it.id == messageId }) return
         val idStr = messageId.toString()
-        accessor.updateMessages { messages -> messages.filterNot { it.id == messageId } }
+        // v1.0.80 (T-4): 级联删除 UI 上的子消息(assistant 回复),与 DB 级联删除一致,
+        // 否则删 user 消息后其回复残留在列表,切回会话才消失(闪烁/错位)。
+        val removedIds = collectCascadeIds(messageId)
+        val removedList = accessor.messagesSnapshot.filter { it.id in removedIds }
+        accessor.updateMessages { messages -> messages.filterNot { it.id in removedIds } }
         accessor.coroutineScope.launch {
             resultOf {
                 sessionRepository.deleteMessage(idStr)
             }.onError { msg, t ->
-                val idx = accessor.messagesSnapshot.indexOfFirst { it.createdAt >= target.createdAt }.coerceAtLeast(0)
-                val rolled = accessor.messagesSnapshot.toMutableList().apply { add(idx, target) }
+                // 回滚: 把被删消息按 createdAt 插回原位,不覆盖删除后新 append 的消息。
+                val rolled = accessor.messagesSnapshot.toMutableList()
+                removedList.sortedBy { it.createdAt }.forEach { removedMsg ->
+                    val idx = rolled.indexOfFirst { it.createdAt > removedMsg.createdAt }
+                        .let { if (it < 0) rolled.size else it }
+                    rolled.add(idx, removedMsg)
+                }
                 accessor.updateMessages { rolled }
                 accessor.update { st ->
                     st.copy(errors = listOf(ChatError(type = ChatErrorType.UNKNOWN, message = appContext.getString(R.string.err_chat_misc_delete_msg_failed, t?.message ?: ""))))
                 }
             }
         }
+    }
+
+    /** v1.0.80 (T-4): 收集要级联删除的消息 id(防环 BFS,按 parentGroupId 找子回复)。 */
+    private fun collectCascadeIds(root: Uuid): Set<Uuid> {
+        val result = linkedSetOf<Uuid>()
+        val queue = ArrayDeque<Uuid>()
+        queue.add(root)
+        val snapshot = accessor.messagesSnapshot
+        while (queue.isNotEmpty()) {
+            val id = queue.removeFirst()
+            if (!result.add(id)) continue
+            val idStr = id.toString()
+            snapshot.forEach { msg ->
+                if (msg.parentGroupId == idStr && msg.id !in result) queue.add(msg.id)
+            }
+        }
+        return result
     }
 
     // ── 管理页 CRUD: Lorebook / PromptInjection / QuickMessage ───────────

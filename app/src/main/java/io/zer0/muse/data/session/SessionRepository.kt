@@ -419,35 +419,66 @@ class SessionRepository(
     suspend fun deleteMessage(messageId: String) {
         // H-SESS1: 跨表(FTS + messages)用事务包裹,保证 FTS 与消息同步删除
         withContext(Dispatchers.IO) {
-            database.withTransaction {
-                // v1.107 冗余: 先查出 sessionId,用于维护冗余计数
-                val entity = messageDao.getByMessageId(messageId)
-                syncFtsDelete(messageId)
-                messageDao.deleteById(messageId)
-                // v1.0.80 (M-1): 同步删除生成检查点 — 用户删除生成中断残留的消息后,
-                // 若检查点仍在 DB,重启时 recoverInterruptedGenerations 会把该消息
-                // "重建"复活(消息不存在且无更新消息时走重建分支)。删消息即删检查点,
-                // 从源头阻止删除的消息在重启后复活。
-                database.generationCheckpointDao().deleteByAssistantMessageId(messageId)
-                database.generationCheckpointDao().deleteByUserMessageId(messageId)
-                // v1.107 冗余: 递减 sessions.messageCount
-                if (entity != null) {
-                    resultOf { sessionDao.incrementMessageCount(entity.sessionId, -1) }
-                        .onError { _, t -> Logger.w(TAG, "decrementMessageCount failed: ${t?.message ?: ""}") }
+            // v1.0.80 (T-4): 级联收集要删除的消息 id(防环 BFS)。
+            // 删除 user 消息时其 assistant 子回复(parentGroupId/parentMessageId 指向该 user)
+            // 若不级联删除,切回会话时 build 会把这些孤儿回复兜底挂到最后,
+            // 表现为"旧消息突然变成最新"(用户反馈)。
+            val toDelete = mutableListOf<String>()
+            val visited = mutableSetOf<String>()
+            val queue = ArrayDeque<String>()
+            queue.add(messageId)
+            while (queue.isNotEmpty()) {
+                val id = queue.removeFirst()
+                if (!visited.add(id)) continue
+                toDelete += id
+                messageDao.getChildrenByParentId(id).forEach { child ->
+                    if (child.id !in visited) queue.add(child.id)
                 }
             }
-            // v1.134 P1-2: 清理该消息的图片文件,避免孤儿文件占用存储
+            database.withTransaction {
+                toDelete.forEach { deleteMessageRow(it) }
+            }
+            // v1.134 P1-2: 清理被删消息的图片文件,避免孤儿文件占用存储
             // i18n 示范改造点 3:原硬编码英文 "deleteMessage images cleanup failed: ${...}"
             // 改为 ErrorMessage.StorageError.IO_ERROR.toLogString(),消除裸字符串。
-            resultOf { messageImageStore.deleteByMessageId(messageId) }
-                .onError { _, t ->
-                    Logger.w(
-                        TAG,
-                        "${ErrorMessage.StorageError.IO_ERROR.toLogString()} [messageId=$messageId, scope=images]",
-                        t,
-                    )
-                }
+            toDelete.forEach { id ->
+                resultOf { messageImageStore.deleteByMessageId(id) }
+                    .onError { _, t ->
+                        Logger.w(
+                            TAG,
+                            "${ErrorMessage.StorageError.IO_ERROR.toLogString()} [messageId=$id, scope=images]",
+                            t,
+                        )
+                    }
+            }
         }
+    }
+
+    /** 删除单条消息行(FTS + messages + 检查点 + 冗余计数 + 预览),调用方负责事务。 */
+    private suspend fun deleteMessageRow(messageId: String) {
+        // v1.107 冗余: 先查出 sessionId,用于维护冗余计数
+        val entity = messageDao.getByMessageId(messageId) ?: return
+        syncFtsDelete(messageId)
+        messageDao.deleteById(messageId)
+        // v1.0.80 (M-1): 同步删除生成检查点 — 用户删除生成中断残留的消息后,
+        // 若检查点仍在 DB,重启时 recoverInterruptedGenerations 会把该消息
+        // "重建"复活(消息不存在且无更新消息时走重建分支)。删消息即删检查点,
+        // 从源头阻止删除的消息在重启后复活。
+        database.generationCheckpointDao().deleteByAssistantMessageId(messageId)
+        database.generationCheckpointDao().deleteByUserMessageId(messageId)
+        // v1.107 冗余: 递减 sessions.messageCount
+        resultOf { sessionDao.incrementMessageCount(entity.sessionId, -1) }
+            .onError { _, t -> Logger.w(TAG, "decrementMessageCount failed: ${t?.message ?: ""}") }
+        // v1.0.80 (T-4): 删除后同步会话 preview — 若删的是最后一条消息,
+        // 会话列表预览应回退到新的最后一条,否则仍显示已删消息文本。
+        resultOf {
+            val newLast = messageDao.getLastBySession(entity.sessionId)
+            sessionDao.updatePreview(
+                id = entity.sessionId,
+                preview = newLast?.let { previewText(it.content) } ?: "",
+                now = System.currentTimeMillis(),
+            )
+        }.onError { _, t -> Logger.w(TAG, "updatePreview after delete failed: ${t?.message ?: ""}") }
     }
 
     /** Phase 8.3: 观察跨会话的全部收藏消息(收藏面板用)。 */
