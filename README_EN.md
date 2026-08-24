@@ -9,7 +9,7 @@
 
 <p align="center">
   <b>Not just chat — an AI that truly knows you</b><br>
-  <i>Four-tier memory · Free model switching · Privacy-first · Open source</i>
+  <i>Four-tier memory · Free model switching · System-level UI automation · Privacy-first · Open source</i>
 </p>
 
 <p align="center">
@@ -109,6 +109,20 @@ Conversation --> Fact Extraction --> Rolling Summary --> Compile and Aggregate -
 - **Routine info expires naturally**: ordinary preferences and chit-chat decay automatically as usage frequency drops
 - **Traceable origin**: every memory is tagged with source session and ingestion time
 - **Fully controllable**: adjust importance, delete, and filter memories manually in the memory panel
+
+### System-level UI Automation
+
+Muse can look at your screen and act inside other apps for you, through a three-tier permission ladder:
+
+| Tier | Capability | Barrier |
+|------|------------|---------|
+| Accessibility | Read the screen's widget tree, simulate tap/swipe/long-press, type text, Back/Home/open notifications | Toggle one system setting |
+| Shell (Shizuku/adb) | Screenshot, `input` commands, check the foreground app, silent install | Authorize once |
+| Root | Full system control, access other apps' data, silent permission grants | Requires a rooted device |
+
+- 10 new AI tools: read screen, check foreground app, tap by coordinates/text, swipe, type, launch app, Back, Home, open notifications, query permission status
+- Automatic fallback: when the widget tree is unavailable it falls back to screenshot + Shell, and tells you exactly which tier is missing when it can't capture
+- Settings → Tools & Connections → UI Automation shows all three tiers at a glance, with a "Test screen reading" button
 
 ### Multi-Provider Models
 
@@ -293,8 +307,8 @@ cd Muse
 #   -PversionName=<name> and -PversionCode=<int>, or env VERSION_NAME/VERSION_CODE.
 # Signing: a keystore.properties next to the app/ module is mandatory (no debug-sign fallback).
 ./gradlew :app:assembleRelease \
-  -PversionName=1.0.75 \
-  -PversionCode=162
+  -PversionName=1.0.80 \
+  -PversionCode=180
 ```
 
 APK output: `app/build/outputs/apk/release/app-{abi}-release.apk`

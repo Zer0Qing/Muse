@@ -9,7 +9,7 @@
 
 <p align="center">
   <b>不只是对话，是持续认识你的 AI</b><br>
-  <i>四层记忆 · 多模型自由切换 · 本地优先 · 开源可扩展</i>
+  <i>四层记忆 · 多模型自由切换 · 系统级 UI 自动化 · 本地优先 · 开源可扩展</i>
 </p>
 
 <p align="center">
@@ -104,6 +104,20 @@ Muse 拥有四层记忆架构，从短期对话到长期深度处理逐层递进
 - **日常信息自然过期**：普通偏好和闲聊信息随使用频率降低自动衰减
 - **来源可追溯**：每条记忆标注了来源会话和入库时间
 - **你完全可控**：可在记忆面板手动调整重要程度、删除、筛选
+
+### 系统级 UI 自动化
+
+Muse 不再只停留在对话里——它能看到你的屏幕，并在别的应用里替你操作。走三层权限梯度：
+
+| 层级 | 能力 | 门槛 |
+|------|------|------|
+| 无障碍服务 | 读屏幕控件树、模拟点击/滑动/长按、输入文字、返回/Home/开通知栏 | 系统设置开一个开关 |
+| Shell（Shizuku/adb） | 截屏、input 命令、查前台应用、静默安装 | 授权一次 |
+| Root | 完全系统控制、访问其他应用数据、静默授权 | 需 root 设备 |
+
+- AI 新增 10 个自动化工具：读屏、查前台应用、按坐标/按文字点击、滑动、输入、启动应用、返回、Home、开通知栏、查权限状态
+- 权限自动降级：读不到控件树退回截屏 + Shell，截不到图会明确提示缺哪一层
+- 设置 → 工具与连接 → UI 自动化，三层权限一目了然，带"测试屏幕读取"随时验证
 
 ### 多模型供应商
 
@@ -288,10 +302,10 @@ cd Muse
 # 版本号：正式构建硬约束必须显式注入（否则 GradleException），支持
 #  -PversionName=<名称> 与 -PversionCode=<整数>，或环境变量 VERSION_NAME/VERSION_CODE。
 # 签名：必须在项目根目录提供 keystore.properties（storeFile/storePassword/keyAlias/keyPassword）；
-# 缺失即失败，禁止回退 debug 签名。当前默认版本 175 / 1.0.75（随 tag 更新）。
+# 缺失即失败，禁止回退 debug 签名。当前默认版本 180 / 1.0.80（随 tag 更新）。
 ./gradlew :app:assembleRelease \
-  -PversionName=1.0.75 \
-  -PversionCode=175
+  -PversionName=1.0.80 \
+  -PversionCode=180
 ```
 > 说明：本地临时验证可加 `-PreleaseSkipVersionCheck=true -PreleaseSkipKeystoreCheck=true` 跳过版本与签名硬约束（对应 CI 静态检查的用法）。
 
