@@ -38,10 +38,12 @@ class ExponentialOffsetTest {
     fun `average offset approximates zero(mean interval preserved)`() {
         // 均值 0 的偏移叠加到自适应间隔上,平均间隔保持 = baseInterval
         val offsetMinutes = 30
+        // 固定种子消除 flaky:无种子 Random 在长尾样本下均值会大幅偏离 0
+        val rng = Random(20260824)
         var sum = 0L
-        val samples = 2_000
+        val samples = 5_000
         repeat(samples) {
-            sum += ProactiveMessageRunner.exponentialOffsetMillis(offsetMinutes)
+            sum += ProactiveMessageRunner.exponentialOffsetMillis(offsetMinutes, rng)
         }
         val avg = sum.toDouble() / samples
         // 均值应接近 0(允许 ±5 分钟采样误差)

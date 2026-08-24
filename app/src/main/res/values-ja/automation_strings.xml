@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="automation_settings_title">UI オートメーション</string>
+    <string name="automation_settings_subtitle">画面の読み取りと操作の権限</string>
+    <string name="accessibility_service_description">Muse が画面の内容を読み取り、タップやスワイプなどの操作をシミュレートして、アプリをまたいだタスクを自動化できるようにします。Muse はあなたの確認なしに操作を実行しません。</string>
+    <string name="automation_permission_a11y">アクセシビリティサービス</string>
+    <string name="automation_permission_shell">Shell (Shizuku/adb)</string>
+    <string name="automation_permission_root">Root</string>
+</resources>

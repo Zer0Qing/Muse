@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="automation_settings_title">UI Automation</string>
+    <string name="automation_settings_subtitle">Screen reading and operation permissions</string>
+    <string name="accessibility_service_description">Allows Muse to read screen content and simulate taps, swipes and other gestures to automate tasks across apps. Muse will not perform actions without your confirmation.</string>
+    <string name="automation_permission_a11y">Accessibility Service</string>
+    <string name="automation_permission_shell">Shell (Shizuku/adb)</string>
+    <string name="automation_permission_root">Root</string>
+</resources>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="automation_settings_title">Automação de UI</string>
+    <string name="automation_settings_subtitle">Permissões de leitura e operação de tela</string>
+    <string name="accessibility_service_description">Permite que o Muse leia o conteúdo da tela e simule toques, deslizamentos e outros gestos para automatizar tarefas entre aplicativos. O Muse não executa ações sem a sua confirmação.</string>
+    <string name="automation_permission_a11y">Serviço de Acessibilidade</string>
+    <string name="automation_permission_shell">Shell (Shizuku/adb)</string>
+    <string name="automation_permission_root">Root</string>
+</resources>
