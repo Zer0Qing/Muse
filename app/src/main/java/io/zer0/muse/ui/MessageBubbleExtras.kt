@@ -1,7 +1,7 @@
 @file:Suppress(
     "FunctionNaming",
     "LongMethod",
-    "CyclomaticComplexMethod",
+    "CyclomaticComplexity",
     "UnusedPrivateMember",
     "UnusedPrivateProperty",
 )
@@ -9,9 +9,14 @@
 package io.zer0.muse.ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -22,17 +27,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import io.zer0.muse.ui.chat.ToolResultRenderer
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -42,37 +44,44 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import compose.icons.TablerIcons
-import compose.icons.tablericons.Check
-import compose.icons.tablericons.X
 import io.zer0.ai.core.RagCitation
 import io.zer0.muse.R
+import io.zer0.muse.ui.chat.ToolCallVisuals
+import io.zer0.muse.ui.chat.ToolResultRenderer
 import io.zer0.muse.ui.common.media.AttachmentChip
-import io.zer0.muse.ui.theme.MoodSkinColors
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
+import compose.icons.TablerIcons
+import compose.icons.tablericons.ChevronDown
+import compose.icons.tablericons.ChevronUp
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import org.json.JSONObject
 
 /**
- * v0.47: 工具调用卡片 — 折叠式展示 tool_call 的入参/出参。
+ * v1.0.80: 工具调用卡片（现代化重写）。
  *
- * 显示工具名 + 状态图标(成功/失败),点击展开看入参 JSON 和出参文本。
- * 用于替代原来"调用工具 xxx: 参数: ... 结果: ..."的纯文本 ASSISTANT 消息。
+ * 设计目标：
+ *  - 统一的"过程追踪"语言：发丝边 + surface 底，不用色块填充
+ *  - 每种工具一个语义图标（[ToolCallVisuals]），折叠态一眼知道 AI 在干嘛
+ *  - 折叠态显示一句中文摘要（"搜索了网页 xxx"），不再是裸工具名 + 前 40 字结果
+ *  - 展开态：工具标签 + 参数键值对 + 结果分区（等宽字体仅留给代码/JSON）
+ *  - 失败态用 error 描边 + 红叉；执行中（result 空且未成功）显示旋转进度
  *
  * 结果文本中若包含沙盒内文件路径,会渲染为可点击的附件芯片(见 [AttachmentChip])。
  */
@@ -85,116 +94,148 @@ internal fun ToolCallCard(
     isSuccess: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    // v1.79 (L-B25): expanded 改用 rememberSaveable,旋屏/后台后保持展开状态
     var expanded by rememberSaveable { mutableStateOf(false) }
-    // v1.79 (M-B4): extractFilePaths 含 file.exists() 磁盘 IO,移到 LaunchedEffect + IO 线程
+
+    // isSuccess=false 且 result 空 → 视为执行中（工具刚下发、尚无结果）
+    val isRunning = !isSuccess && result.isBlank()
+    val hasFailed = !isSuccess && result.isNotBlank()
+
+    // v1.79: extractFilePaths 含 file.exists() 磁盘 IO,移到 LaunchedEffect + IO 线程
     var attachments by remember(result) { mutableStateOf(emptyList<Pair<String, Long?>>()) }
     LaunchedEffect(result) {
         attachments = withContext(Dispatchers.IO) { extractFilePaths(result) }
     }
-    // v1.28: 有附件时默认展开,让用户直接看到可下载的文件芯片
+    // 有附件时默认展开,让用户直接看到可下载的文件芯片
     LaunchedEffect(attachments.isNotEmpty()) {
         if (attachments.isNotEmpty()) expanded = true
     }
-    // v1.x: 重构为紧凑可折叠卡片,对齐 mood/reasoning 块的视觉与交互模式
-    // (primary.copy(0.08f) 底色 + bubbleInner 内边距 + 整行可点击头部 + 14dp 图标)
+
+    val icon = remember(toolName) { ToolCallVisuals.iconFor(toolName) }
+    val label = remember(toolName) { ToolCallVisuals.labelFor(toolName) }
+    val summary = remember(toolName, arguments, result, isSuccess) {
+        if (isRunning) {
+            "正在执行…"
+        } else {
+            ToolCallVisuals.summaryFor(toolName, arguments, result, isSuccess)
+        }
+    }
+
+    val accentColor = when {
+        hasFailed -> MaterialTheme.colorScheme.error
+        isRunning -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.primary
+    }
+    // v1.0.80: 卡片底色改用 surfaceVariant(浅灰)/errorContainer(浅红),去掉 1dp 描边。
+    //   白底+描边在圆角抗锯齿下四角颜色发淡像断线,与计划卡片(浅灰底无描边)风格也不统一。
+    val cardBg = when {
+        hasFailed -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
+        else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    }
+    val chipBg = when {
+        hasFailed -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f)
+        isRunning -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+        else -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+    }
+
     Surface(
-        color = if (isSuccess) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
-                else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
+        color = cardBg,
         shape = MuseShapes.medium,
         tonalElevation = MuseElevation.none,
-        modifier = modifier.widthIn(max = 360.dp),
+        modifier = modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(MusePaddings.bubbleInner)) {
-            // 头部:状态图标 + 工具名(+ 折叠摘要) + 展开箭头,整行可点击
+            // ── 头部：图标徽章 + 标签 + 摘要 + 展开箭头 ──
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { expanded = !expanded }
-                    .padding(vertical = MusePaddings.tinyGap),
+                    .padding(vertical = MusePaddings.tightGap),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(
-                    imageVector = if (isSuccess) TablerIcons.Check else TablerIcons.X,
-                    contentDescription = if (isSuccess) {
-                        stringResource(R.string.chat_tool_success_cd)
+                // 图标徽章：圆形浅色底 + 语义图标
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(chipBg),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (isRunning) {
+                        CircularProgressIndicator(
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(16.dp),
+                            color = accentColor,
+                        )
                     } else {
-                        stringResource(R.string.chat_tool_failed_cd)
-                    },
-                    tint = if (isSuccess) MaterialTheme.colorScheme.primary
-                           else MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(MuseIconSizes.iconTiny),
-                )
-                Spacer(Modifier.width(MusePaddings.tightGap))
-                // 折叠时标题显示工具名 + 结果摘要(前 40 字符),展开时只显示工具名
-                val titleText = if (expanded) {
-                    toolName
-                } else {
-                    val cleaned = result.replace("\n", " ").trim()
-                    when {
-                        cleaned.length > 40 -> "$toolName · ${cleaned.take(40)}…"
-                        cleaned.isNotEmpty() -> "$toolName · $cleaned"
-                        else -> toolName
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = accentColor,
+                            modifier = Modifier.size(MuseIconSizes.iconSmall),
+                        )
                     }
                 }
-                Text(
-                    text = titleText,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
+                Spacer(Modifier.width(MusePaddings.contentGap))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = summary,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (hasFailed) MaterialTheme.colorScheme.error
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                // 展开箭头（带旋转动画）
+                val rotation by animateFloatAsState(
+                    targetValue = if (expanded) 180f else 0f,
+                    label = "toolcard-chevron",
                 )
                 Icon(
-                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    imageVector = TablerIcons.ChevronDown,
                     contentDescription = if (expanded) {
                         stringResource(R.string.action_collapse)
                     } else {
                         stringResource(R.string.action_expand)
                     },
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(MuseIconSizes.iconTiny),
+                    modifier = Modifier
+                        .size(MuseIconSizes.iconSmall)
+                        .rotate(rotation),
                 )
             }
-            // 展开内容:入参 + 出参 分开展示;结果按类型专用渲染(diff/JSON 树/表格)
+
+            // ── 展开内容 ──
             AnimatedVisibility(visible = expanded) {
-                val paramsLabel = stringResource(R.string.chat_tool_params)
-                val resultLabel = stringResource(R.string.chat_tool_result)
-                val isTruncated = result.length > 500
-                val displayResult = if (isTruncated) result.take(500) + "…" else result
-                Column(modifier = Modifier.padding(top = MusePaddings.contentGap)) {
-                    Text(
-                        text = "$paramsLabel: ${arguments.ifBlank { "{}" }}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = resultLabel,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    // 截断时保持纯文本(避免渲染半个 JSON/diff 误导);完整结果走专用渲染
-                    if (isTruncated) {
-                        Text(
-                            text = displayResult,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    } else {
-                        ToolResultRenderer(result = result)
+                Column(
+                    modifier = Modifier.padding(top = MusePaddings.contentGap),
+                    verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+                ) {
+                    // 参数：键值对展示（不再裸 {"k":"v"}）
+                    val paramRows = remember(arguments) { parseParamRows(arguments) }
+                    if (paramRows.isNotEmpty()) {
+                        ParamSection(rows = paramRows)
                     }
-                    // 结果文本下方:若检测到沙盒内文件路径,渲染可点击附件芯片
+                    // 结果：带标题的输出框，JSON/diff/表格走专用渲染
+                    if (result.isNotBlank()) {
+                        ResultSection(result = result, hasFailed = hasFailed)
+                    }
+                    // 附件芯片
                     if (attachments.isNotEmpty()) {
                         FlowRow(
-                            modifier = Modifier.padding(top = MusePaddings.contentGap),
                             horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                             verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                         ) {
                             attachments.forEach { (path, size) ->
-                                AttachmentChip(
-                                    filePath = path,
-                                    fileSize = size,
-                                )
+                                AttachmentChip(filePath = path, fileSize = size)
                             }
                         }
                     }
@@ -205,14 +246,113 @@ internal fun ToolCallCard(
 }
 
 /**
+ * 展开态的参数分区：标题 "参数" + 键值对行。
+ *
+ * 值过长时截断到一行；布尔/数字用 primary 色强调，字符串用 onSurfaceVariant。
+ */
+@Composable
+private fun ParamSection(rows: List<Pair<String, String>>) {
+    Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap)) {
+        Text(
+            text = stringResource(R.string.chat_tool_params),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.SemiBold,
+        )
+        rows.forEach { (k, v) ->
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = k,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.width(84.dp),
+                )
+                Text(
+                    text = v,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 展开态的结果分区：标题 "结果" + 浅色输出框。
+ *
+ * 截断（>500 字符）时保持纯文本，避免渲染半个 JSON/diff；完整结果走 [ToolResultRenderer]。
+ */
+@Composable
+private fun ResultSection(result: String, hasFailed: Boolean) {
+    val resultLabel = stringResource(R.string.chat_tool_result)
+    Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap)) {
+        Text(
+            text = resultLabel,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Surface(
+            color = MaterialTheme.colorScheme.surface,
+            shape = MuseShapes.small,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            val isTruncated = result.length > 500
+            val displayResult = if (isTruncated) result.take(500) + "…" else result
+            Column(modifier = Modifier.padding(MusePaddings.contentGap)) {
+                if (isTruncated) {
+                    Text(
+                        text = displayResult,
+                        style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                        color = if (hasFailed) MaterialTheme.colorScheme.error
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    ToolResultRenderer(result = result)
+                }
+            }
+        }
+    }
+}
+
+// ── 参数解析 ────────────────────────────────────────────────────────────
+
+private data class ParamRow(val key: String, val value: String)
+
+/** 把 arguments JSON 解析成键值对行；非 JSON 或空时返回空列表（UI 不显示参数区）。 */
+private fun parseParamRows(arguments: String): List<Pair<String, String>> {
+    val t = arguments.trim()
+    if (t.isEmpty() || !t.startsWith("{")) return emptyList()
+    val obj = runCatching { JSONObject(t) }.getOrNull() ?: return emptyList()
+    val rows = mutableListOf<Pair<String, String>>()
+    val keys = obj.keys().asSequence().toList()
+    for (k in keys) {
+        val v = obj.opt(k)
+        if (v == null || v == JSONObject.NULL) continue
+        val display = when (v) {
+            is String -> v.ifBlank { continue; "" }
+            is Boolean, is Number -> v.toString()
+            is JSONArray -> "[${v.length()} 项]"
+            is JSONObject -> "{…}"
+            else -> v.toString()
+        }
+        if (display.isNotBlank()) rows += k to display
+    }
+    return rows.take(8) // 参数过多时截断展示
+}
+
+// ── 文件路径提取（沿用原逻辑）──────────────────────────────────────────
+
+/**
  * 从工具结果文本中提取沙盒内文件路径。
  *
  * 匹配 /data/.../files/ 或 /data/.../cache/ 等绝对路径下、带扩展名的文件,
  * 只返回磁盘中真实存在的文件,按路径去重。
- *
- * @return 文件路径与对应字节数(读取失败则为 null)的列表
  */
-// v1.79 (L-B10): Regex 提为文件级常量,避免每次调用重建
 private val PATH_PATTERN = Regex("""(/data/[^\s,)]+\.[a-zA-Z0-9]+)""")
 
 private fun extractFilePaths(text: String): List<Pair<String, Long?>> {
@@ -228,16 +368,8 @@ private fun extractFilePaths(text: String): List<Pair<String, Long?>> {
 }
 
 /**
- * v1.95: 从文本中提取表情包绝对路径。
- *
- * send_sticker 工具返回格式为 `已发送表情包。路径:/data/.../files/stickers/猫猫/001.png`,
- * 本函数用正则匹配包含 `/stickers/` 的绝对路径(从路径起始的 `/` 到图片扩展名为止),
- * 供 MessageBubble 把这些路径转为 file:// URI 用 Coil AsyncImage 渲染。
- *
- * @return 去重后的绝对路径列表
+ * v1.95: 表情包路径正则 — 匹配包含 /stickers/ 的绝对路径。
  */
-// v1.95: 表情包路径正则 — 匹配包含 /stickers/ 且以图片扩展名结尾的绝对路径,不区分大小写
-// 从路径起始的 / 开始匹配(如 /data/.../files/stickers/猫猫/001.png),保证 file:// URI 可解析
 internal val STICKER_PATH_PATTERN =
     Regex("""(/[^\s\]]*?/stickers/[^\s\]]+\.(?:png|jpg|jpeg|gif|webp|bmp))""", RegexOption.IGNORE_CASE)
 
@@ -250,21 +382,13 @@ internal fun extractStickerPaths(text: String): List<String> {
 
 /**
  * v1.133: RAG 引用 chip 列表 — 渲染知识库检索引用,点击展开 snippet 预览。
- *
- * 设计:
- *  - 用 FlowRow 横向排列 chip(自动换行,适配窄屏)
- *  - 当前展开项独占一行显示完整 snippet + 元数据(分数/匹配类型)
- *  - chip 形状用 [MuseShapes.pill](iOS 胶囊形),颜色用 surfaceVariant/primaryContainer
- *
- * @param citations 引用列表(与 system prompt 中的 [N] 一一对应)
  */
-@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun RagCitationChips(
     citations: List<RagCitation>,
     modifier: Modifier = Modifier,
 ) {
-    // 当前展开的 citation index,-1 表示全部收起
     var expandedIndex by rememberSaveable { mutableStateOf(-1) }
     Column(modifier = modifier.fillMaxWidth()) {
         FlowRow(
@@ -281,7 +405,6 @@ internal fun RagCitationChips(
                 )
             }
         }
-        // 展开的 snippet 预览(独占一行)
         val expanded = citations.firstOrNull { it.index == expandedIndex }
         if (expanded != null) {
             Surface(
@@ -354,7 +477,7 @@ private fun RagCitationChip(
                 overflow = TextOverflow.Ellipsis,
             )
             Icon(
-                imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                imageVector = if (isExpanded) TablerIcons.ChevronUp else TablerIcons.ChevronDown,
                 contentDescription = null,
                 modifier = Modifier.size(MuseIconSizes.iconTiny),
             )
@@ -363,25 +486,27 @@ private fun RagCitationChip(
 }
 
 // 情绪特效使用固定字号，属装饰性内联样式，不进入正文排版层级
-private fun moodSkinEffectStyle(effect: String): SpanStyle = when (effect) {
-    "glow" -> SpanStyle(color = MoodSkinColors.glow, fontWeight = FontWeight.SemiBold)
-    "big" -> SpanStyle(fontSize = 20.sp, fontWeight = FontWeight.SemiBold) // mood effect
-    "huge" -> SpanStyle(fontSize = 26.sp, fontWeight = FontWeight.Bold) // mood effect
-    "whisper" -> SpanStyle(fontSize = 13.sp, color = MoodSkinColors.whisper) // mood effect
-    "red" -> SpanStyle(color = MoodSkinColors.red, fontWeight = FontWeight.Bold)
-    "shake" -> SpanStyle(color = MoodSkinColors.shake, letterSpacing = 1.sp)
-    "blur" -> SpanStyle(color = MoodSkinColors.blur)
-    "glitch" -> SpanStyle(color = MoodSkinColors.glitch, letterSpacing = 2.sp)
-    else -> SpanStyle()
+private fun moodSkinEffectStyle(effect: String): androidx.compose.ui.text.SpanStyle = when (effect) {
+    "glow" -> androidx.compose.ui.text.SpanStyle(
+        color = io.zer0.muse.ui.theme.MoodSkinColors.glow,
+        fontWeight = FontWeight.SemiBold,
+    )
+    "big" -> androidx.compose.ui.text.SpanStyle(fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+    "huge" -> androidx.compose.ui.text.SpanStyle(fontSize = 26.sp, fontWeight = FontWeight.Bold)
+    "whisper" -> androidx.compose.ui.text.SpanStyle(fontSize = 13.sp, color = io.zer0.muse.ui.theme.MoodSkinColors.whisper)
+    "red" -> androidx.compose.ui.text.SpanStyle(color = io.zer0.muse.ui.theme.MoodSkinColors.red, fontWeight = FontWeight.Bold)
+    "shake" -> androidx.compose.ui.text.SpanStyle(color = io.zer0.muse.ui.theme.MoodSkinColors.shake, letterSpacing = 1.sp)
+    "blur" -> androidx.compose.ui.text.SpanStyle(color = io.zer0.muse.ui.theme.MoodSkinColors.blur)
+    "glitch" -> androidx.compose.ui.text.SpanStyle(color = io.zer0.muse.ui.theme.MoodSkinColors.glitch, letterSpacing = 2.sp)
+    else -> androidx.compose.ui.text.SpanStyle()
 }
+
 @Composable
-private fun buildHighlightedText(text: String, query: String): AnnotatedString {
-    // 审计修复 (2.1): 空 query 时 indexOf("") 恒返回 start,死循环卡死主线程。
-    // 触发路径: 搜索清空关键词后跳转到消息页,searchHighlightQuery 传空串。
-    if (query.isEmpty() || text.isEmpty()) return buildAnnotatedString { append(text) }
+private fun buildHighlightedText(text: String, query: String): androidx.compose.ui.text.AnnotatedString {
+    if (query.isEmpty() || text.isEmpty()) return androidx.compose.ui.text.buildAnnotatedString { append(text) }
     val highlightColor = MaterialTheme.colorScheme.primaryContainer
     val onHighlight = MaterialTheme.colorScheme.onPrimaryContainer
-    return buildAnnotatedString {
+    return androidx.compose.ui.text.buildAnnotatedString {
         var start = 0
         val lowerText = text.lowercase()
         val lowerQuery = query.lowercase()
@@ -392,7 +517,7 @@ private fun buildHighlightedText(text: String, query: String): AnnotatedString {
                 break
             }
             append(text.substring(start, index))
-            withStyle(SpanStyle(background = highlightColor, color = onHighlight)) {
+            withStyle(androidx.compose.ui.text.SpanStyle(background = highlightColor, color = onHighlight)) {
                 append(text.substring(index, index + query.length))
             }
             start = index + query.length
@@ -402,13 +527,6 @@ private fun buildHighlightedText(text: String, query: String): AnnotatedString {
 
 /**
  * v1.98 (T5): 任务待办胶囊 — 长任务(≥2 步工具调用)时,显示在工具调用卡片左边。
- *
- * 显示内容:
- * - 执行中:旋转加载图标 + "当前/总数"(primary 色)
- * - 已完成:Build 图标 + "成功/总数"(primary 色)
- * - 有失败:Build 图标 + "成功/总数"(error 色)
- *
- * 点击展开/折叠完整 TaskCard。竖向胶囊,贴合工具调用卡片左侧。
  */
 @Composable
 private fun TaskProgressBadge(
@@ -422,8 +540,7 @@ private fun TaskProgressBadge(
     val badgeColor = if (hasFailed) MaterialTheme.colorScheme.error
                      else MaterialTheme.colorScheme.primary
     Surface(
-        modifier = modifier
-            .width(36.dp),
+        modifier = modifier.width(36.dp),
         shape = MuseShapes.pill,
         color = badgeColor.copy(alpha = 0.12f),
     ) {

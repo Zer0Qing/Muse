@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,6 +28,7 @@ import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Circle
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
@@ -48,7 +50,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -230,51 +231,98 @@ fun TaskCard(
     // v1.201: 委派链路(可选,非空时在步骤列表下方渲染)
     delegationChain: List<DelegationChainTracker.ChainNode>? = null,
 ) {
-    // 渐变色:primary 月桂绿 → tertiary(适配"深夜台灯"调性,不破坏整体调性)
-    val gradientColors = listOf(
-        MaterialTheme.colorScheme.primary,
-        MaterialTheme.colorScheme.tertiary,
-    )
+    val accent = when (data.phase) {
+        TaskCardPhase.DONE -> if (data.isAllDone) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+        TaskCardPhase.EXECUTING -> MaterialTheme.colorScheme.primary
+        TaskCardPhase.PLANNING -> MaterialTheme.colorScheme.tertiary
+    }
 
     Surface(
         modifier = modifier
             .padding(vertical = 4.dp),
         shape = MuseShapes.medium,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        tonalElevation = 1.dp,
+        color = Color.Transparent,
+        tonalElevation = 0.dp,
     ) {
-        Column(
-            modifier = Modifier.padding(0.dp),
-        ) {
-            // ── 渐变标题栏(可点击切换展开/折叠)──
+        Column(modifier = Modifier.padding(0.dp)) {
+            // ── 标题栏(可点击切换展开/折叠)── 统一为 outline 风格,不再用渐变填充。
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(
-                        brush = Brush.horizontalGradient(gradientColors),
-                        shape = MuseShapes.medium,
-                    )
                     .clickable(onClick = onToggleExpand)
                     .padding(horizontal = 12.dp, vertical = 10.dp),
             ) {
-                // 阶段标签
-                PhaseBadge(data.phase, data.progress)
-                Spacer(Modifier.weight(1f))
+                // 图标徽章:阶段图标 + 浅色圆底
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(
+                            when (data.phase) {
+                                TaskCardPhase.DONE -> if (data.isAllDone) {
+                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                                } else {
+                                    MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
+                                }
+                                TaskCardPhase.EXECUTING ->
+                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                                TaskCardPhase.PLANNING ->
+                                    MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+                            },
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    when (data.phase) {
+                        TaskCardPhase.PLANNING -> Icon(
+                            Icons.Default.Edit,
+                            contentDescription = null,
+                            tint = accent,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        TaskCardPhase.EXECUTING -> CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = accent,
+                        )
+                        TaskCardPhase.DONE -> Icon(
+                            if (data.isAllDone) Icons.Default.CheckCircle else Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = accent,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                }
+                // 阶段标签 + 标题
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = data.phase.label,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = accent,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = data.title,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
                 // 进度数字
                 val successCount = data.steps.count { it.status == TaskStepStatus.SUCCESS }
                 Text(
                     text = "$successCount/${data.steps.size}",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = FontWeight.Medium,
                 )
-                // 展开/折叠箭头(根据状态切换图标)
                 Icon(
                     imageVector = if (data.isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     contentDescription = if (data.isExpanded) "折叠" else "展开",
-                    tint = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp),
                 )
             }
@@ -301,7 +349,9 @@ fun TaskCard(
                 exit = fadeOut() + shrinkVertically(),
             ) {
                 Column(
-                    modifier = Modifier.padding(12.dp),
+                    modifier = Modifier
+                        .padding(horizontal = 12.dp)
+                        .padding(bottom = 10.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     // v1.200: 泳道说明(多个 source 时显示)
