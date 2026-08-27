@@ -118,6 +118,10 @@ data class UIMessage(
     val thinkingEncryptedContent: String? = null,
     val modelId: String? = null,
     val createdAt: Long = System.currentTimeMillis(),
+    /** 数据库会话内稳定顺序；0 表示旧快照/未持久化消息。 */
+    val seq: Long = 0L,
+    /** 新对话链路提交顺序；有值时优先于 seq。 */
+    val commitSeq: Long = 0L,
     val imageUrls: List<String> = emptyList(),
     val toolCalls: List<ToolCall>? = null,
     val toolCallId: String? = null,

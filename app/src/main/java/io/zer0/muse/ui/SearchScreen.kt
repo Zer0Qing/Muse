@@ -1,4 +1,6 @@
 package io.zer0.muse.ui
+
+import io.zer0.muse.ui.common.surface.MusePageScaffold
 import android.content.Context
 import androidx.compose.ui.platform.LocalContext
 
@@ -18,7 +20,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
@@ -27,7 +28,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -128,14 +128,14 @@ fun SearchScreen(
         }
     }
 
-    Scaffold(
+    MusePageScaffold(
+        topBarHandlesInsets = false,
         topBar = {
             // iOS 风格搜索栏:Surface 凹槽 + 搜索图标 + BasicTextField + 取消文字
             Surface(
                 color = MaterialTheme.colorScheme.background,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding(),
+                    .fillMaxWidth(),
             ) {
                 Row(
                     modifier = Modifier

@@ -148,7 +148,7 @@ fun SkillScreen(
         }
     }
 
-    Scaffold(
+    io.zer0.muse.ui.common.surface.MusePageScaffold(
         topBar = {
             MuseTopBar(
                 title = stringResource(R.string.skill_management),

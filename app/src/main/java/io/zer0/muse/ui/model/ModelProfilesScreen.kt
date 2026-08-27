@@ -26,7 +26,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import io.zer0.muse.ui.common.form.MuseSwitch
 import androidx.compose.material3.Text
@@ -83,7 +82,7 @@ fun ModelProfilesScreen(
         }
     }
 
-    Scaffold(
+    io.zer0.muse.ui.common.surface.MusePageScaffold(
         topBar = {
             MuseTopBar(
                 title = stringResource(R.string.model_profile_title), // 前端修复 (i18n-4)
@@ -175,3 +174,4 @@ private fun ModelProfileRow(
         }
     }
 }
+

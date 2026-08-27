@@ -23,14 +23,14 @@ import java.util.Locale
 object Logger {
     private const val DEFAULT_TAG = "Muse"
     private const val LOG_FILE_NAME = "muse.log"
-    private const val MAX_LOG_FILE_BYTES = 100 * 1024L  // 100KB rolling
+    private const val MAX_LOG_FILE_BYTES = 1_000 * 1024L  // 1MB rolling
 
     @Volatile
     var enabled: Boolean = true
 
     /** 文件日志等级:低于此等级的 I/D 日志不写文件(W/E 总是写)。 */
     @Volatile
-    var fileLogLevel: Level = Level.WARN
+    var fileLogLevel: Level = Level.DEBUG
 
     /** 文件日志启用状态(由 [initFileLog] 设置)。 */
     @Volatile

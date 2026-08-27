@@ -30,7 +30,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import io.zer0.muse.ui.common.navigation.MuseTopBar
@@ -103,7 +102,7 @@ fun FavoritesScreen(
         }
     }
 
-    Scaffold(
+    io.zer0.muse.ui.common.surface.MusePageScaffold(
         topBar = {
             MuseTopBar(
                 title = stringResource(R.string.favorites_title, state.favoriteMessages.size),
@@ -519,3 +518,4 @@ private fun FavoriteCard(
         }
     }
 }
+

@@ -22,7 +22,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,6 +38,7 @@ import io.zer0.muse.R
 import io.zer0.muse.data.milestone.MilestoneDao
 import io.zer0.muse.data.milestone.MilestoneEntity
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.surface.MusePageScaffold
 import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.ui.theme.MusePaddings
@@ -64,7 +64,8 @@ fun MilestoneScreen(
     val scope = rememberCoroutineScope()
     val milestones by dao.observeAll().collectAsStateWithLifecycle(initialValue = emptyList())
 
-    Scaffold(
+    MusePageScaffold(
+        topBarHandlesInsets = false,
         topBar = {
             Row(
                 modifier = Modifier

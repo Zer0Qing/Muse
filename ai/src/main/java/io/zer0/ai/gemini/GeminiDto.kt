@@ -108,8 +108,15 @@ internal data class GeminiFunctionResponse(
 /** H-GEM2: 工具定义(Gemini 用单个 tool 包裹 functionDeclarations 数组)。 */
 @Serializable
 internal data class GeminiTool(
-    val functionDeclarations: List<GeminiFunctionDeclaration>,
+    /** Gemini generateContent 的函数工具；原生搜索时为空。 */
+    val functionDeclarations: List<GeminiFunctionDeclaration>? = null,
+    /** Google Search grounding 内置工具。 */
+    @SerialName("google_search")
+    val googleSearch: GeminiGoogleSearch? = null,
 )
+
+@Serializable
+internal class GeminiGoogleSearch
 
 @Serializable
 internal data class GeminiFunctionDeclaration(
@@ -169,6 +176,22 @@ internal data class GeminiUsageMetadata(
 
 /** H-GEM4: 提示级安全反馈。 */
 @Serializable
+internal data class GeminiGroundingMetadata(
+    val groundingChunks: List<GeminiGroundingChunk> = emptyList(),
+)
+
+@Serializable
+internal data class GeminiGroundingChunk(
+    val web: GeminiGroundingWeb? = null,
+)
+
+@Serializable
+internal data class GeminiGroundingWeb(
+    val uri: String? = null,
+    val title: String? = null,
+)
+
+@Serializable
 internal data class GeminiPromptFeedback(
     val blockReason: String? = null,
 )
@@ -176,6 +199,8 @@ internal data class GeminiPromptFeedback(
 @Serializable
 internal data class GeminiCandidate(
     val content: GeminiContent? = null,
+    /** Gemini Grounding with Google Search 返回的引用元数据。 */
+    val groundingMetadata: GeminiGroundingMetadata? = null,
     val finishReason: String? = null,
     /** v1.80 (L-GEM3): 候选级安全评级(可选,用于风控/调试展示)。 */
     val safetyRatings: List<GeminiSafetyRating>? = null,

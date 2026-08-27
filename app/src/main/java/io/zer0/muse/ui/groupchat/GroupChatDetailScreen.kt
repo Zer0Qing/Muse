@@ -32,12 +32,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -73,8 +71,9 @@ import androidx.compose.material3.MaterialTheme
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.MusePopover
 import io.zer0.muse.ui.common.MuseFloatingActionItem
+import io.zer0.muse.ui.common.surface.MusePageScaffold
+import io.zer0.muse.ui.common.surface.museBottomBarInsets
 import io.zer0.muse.ui.common.MuseFloatingActionMenu
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -422,10 +421,8 @@ fun GroupChatDetailScreen(
                 modifier = Modifier.fillMaxSize(),
             )
         }
-    Scaffold(
-        // v1.0.52: 让 Scaffold 统一处理 IME 内边距,避免 bottomBar 内部 GroupChatInputBar
-        // 再应用一次 imePadding 导致双重 padding(发送按钮被推到不可点击位置)
-        contentWindowInsets = WindowInsets(0),
+    MusePageScaffold(
+        // v1.0.52: 顶栏和底部输入区分别负责系统栏 inset，页面内容不重复避让。
         topBar = {
             // v1.0.72: 三岛顶栏(返回 / 群聊名 / 三点菜单),与单聊 Telegram 风格统一
             // v1.0.72 fix: 去掉全宽背景遮罩 — 三岛悬浮在消息列表上(与 Telegram 一致)
@@ -544,10 +541,8 @@ fun GroupChatDetailScreen(
             androidx.compose.ui.graphics.Color.Transparent
         },
         bottomBar = {
-            // v1.0.52: imePadding 提到 Column 层,统一处理键盘内边距,
-            // 避免 GroupChatInputBar 内部 imePadding 导致双重 padding
             Column(
-                modifier = Modifier.imePadding(),
+                modifier = Modifier.museBottomBarInsets(),
             ) {
                 // A4: 多选批量操作栏 — 与单聊共用 ChatSelectionBar 统一组件
                 if (state.selectedMessageIds.isNotEmpty()) {

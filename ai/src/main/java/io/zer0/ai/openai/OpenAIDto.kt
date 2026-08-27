@@ -57,7 +57,7 @@ internal data class ResponsesRequest(
     val stream: Boolean = true,
     val max_output_tokens: Int? = null,
     val temperature: Float? = null,
-    val tools: List<OpenAITool>? = null,
+    val tools: List<ResponsesTool>? = null,
     val tool_choice: String? = null,
     val reasoning: ResponsesReasoningConfig? = null,
     val store: Boolean? = null,
@@ -143,6 +143,14 @@ internal data class ResponsesOutputItem(
 internal data class ResponsesContentBlock(
     val type: String,  // "output_text" | "text" | "refusal" | "input_text" | "input_image"
     val text: String? = null,
+    val annotations: List<ResponsesAnnotation> = emptyList(),
+)
+
+@Serializable
+internal data class ResponsesAnnotation(
+    val type: String? = null,
+    val url: String? = null,
+    val title: String? = null,
 )
 
 @Serializable
@@ -245,6 +253,15 @@ internal data class OpenAIMessage(
 internal data class OpenAITool(
     val type: String = "function",
     val function: OpenAIToolFunction,
+)
+
+/** Responses API 工具：既支持函数工具，也支持 web_search_preview 等内置工具。 */
+@Serializable
+internal data class ResponsesTool(
+    val type: String,
+    val name: String? = null,
+    val description: String? = null,
+    val parameters: JsonElement? = null,
 )
 
 @Serializable

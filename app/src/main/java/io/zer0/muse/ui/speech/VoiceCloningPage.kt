@@ -166,7 +166,7 @@ fun VoiceCloningPage(
             }
     }
 
-    Scaffold(
+    io.zer0.muse.ui.common.surface.MusePageScaffold(
         topBar = {
             MuseTopBar(
                 title = stringResource(R.string.voice_cloning_title),

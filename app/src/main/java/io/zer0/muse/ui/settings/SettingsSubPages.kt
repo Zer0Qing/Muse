@@ -12,18 +12,16 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material3.Text
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import androidx.compose.runtime.Composable
@@ -54,8 +52,6 @@ import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
 import io.zer0.muse.ui.common.settings.SettingsItemRow
 import io.zer0.muse.ui.common.settings.SettingsSwitchRow
-import io.zer0.muse.ui.common.media.WindowWidthClass
-import io.zer0.muse.ui.common.media.rememberWindowWidthClass
 import io.zer0.muse.ui.theme.MusePaddings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -83,9 +79,7 @@ fun SettingsSubPageScaffold(
     onBack: (() -> Unit)? = null,
     content: LazyListScope.() -> Unit,
 ) {
-    // P1-4: 读取窗口宽度分级,Expanded 模式下居中限宽
-    val widthClass = rememberWindowWidthClass()
-    Scaffold(
+    io.zer0.muse.ui.common.surface.MusePageScaffold(
         topBar = {
             MuseTopBar(
                 title = title,
@@ -94,26 +88,22 @@ fun SettingsSubPageScaffold(
             )
         },
         containerColor = MaterialTheme.colorScheme.background,
+        topBarHandlesInsets = true,
     ) { innerPadding ->
         // P1-4: Box 包裹 LazyColumn,Expanded 模式下用 contentAlignment 居中限宽后的列表
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .imePadding()  // v1.48: 键盘弹出时收缩列表,避免底部表单被遮挡(影响 16 个复用页)
+                // 普通设置页只避让键盘和导航栏，不把 system gestures inset 叠加到整个滚动容器。
+                // OPPO 全面屏手势兼容层可能回报异常的横向手势区，导致页面看起来整体缩小。
+                .imePadding()
                 .navigationBarsPadding(),
             contentAlignment = Alignment.TopCenter,
         ) {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .then(
-                        // P1-4: Expanded 模式下 LazyColumn 最大宽度 720dp,Box 的 TopCenter 居中
-                        if (widthClass == WindowWidthClass.Expanded) {
-                            Modifier.widthIn(max = 720.dp)
-                        } else {
-                            Modifier
-                        }
-                    )
+                    // 设置页保持设备窗口的完整宽度；不能用固定 720dp 截断手机窗口。
                     .padding(horizontal = MusePaddings.screen),
                 contentPadding = PaddingValues(
                     top = innerPadding.calculateTopPadding(),

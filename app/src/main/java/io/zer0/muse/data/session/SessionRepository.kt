@@ -32,6 +32,7 @@ import io.zer0.muse.data.chat.rewrite.MessageCommitRequest
 import io.zer0.muse.data.chat.rewrite.MessageCommitResult
 import io.zer0.muse.data.chat.rewrite.ConversationProjector
 import io.zer0.muse.data.chat.rewrite.ConversationRebuildFlagStore
+import io.zer0.muse.data.chat.orderConversationMessages
 
 /**
  * 会话仓库:封装 SessionDao + MessageDao,提供领域模型 API。
@@ -961,6 +962,11 @@ class SessionRepository(
                     if (entity.seq == 0L) {
                         entity = entity.copy(seq = existing.seq)
                     }
+                    // commitSeq 与 seq 一样属于消息身份的一部分；REPLACE 更新时不能清零，
+                    // 否则新链路消息会退回旧排序分支，导致历史消息位置漂移。
+                    if (entity.commitSeq == 0L) {
+                        entity = entity.copy(commitSeq = existing.commitSeq)
+                    }
                     // v1.0.88 (R-2): 变体身份字段兜底 — 工具轮/中断恢复/周期性落盘构建的
                     // UIMessage 常丢 variantGroupId 等字段,REPLACE 覆盖后变体身份丢失,
                     // 重进会话树重建时消息挂错位置(重叠/错位)。新值缺失时用旧行兜底;
@@ -1414,7 +1420,7 @@ class SessionRepository(
     /** 新 projection 读路径：旧消息无 parts 时从 legacy 字段派生，保持全部旧字段。 */
     private suspend fun projectMessagesForRead(entities: List<MessageEntity>): List<UIMessage> {
         if (!ConversationRebuildFlagStore.current.useMessageProjection || entities.isEmpty()) {
-            return entities.map { it.toUIMessage() }
+            return orderConversationMessages(entities.map { it.toUIMessage() })
         }
         val ids = entities.map { it.id }
         val parts = database.messagePartDao().getByMessages(ids)
@@ -1424,12 +1430,12 @@ class SessionRepository(
             useCommitSeq = ConversationRebuildFlagStore.current.useCommitSeq,
         )
         val byId = entities.associateBy { it.id }
-        return projection.messages.mapNotNull { projected ->
+        return orderConversationMessages(projection.messages.mapNotNull { projected ->
             byId[projected.id]?.toUIMessage()?.copy(
                 content = projected.content,
                 reasoning = projected.reasoning,
             )
-        }
+        })
     }
 
     /** 会话列表/系统提示只显示正文，隐藏 mood、mod、think 等内部块。 */
@@ -1453,6 +1459,8 @@ class SessionRepository(
             thinkingEncryptedContent = thinkingEncryptedContent,
             modelId = modelId,
             createdAt = createdAt,
+            seq = seq,
+            commitSeq = commitSeq,
             imageUrls = parseImageUrls(imageUrlsJson),
             favorite = favorite,
             favoriteTag = favoriteTag,
@@ -1498,6 +1506,8 @@ class SessionRepository(
         thinkingEncryptedContent = thinkingEncryptedContent,
         modelId = modelId,
         createdAt = createdAt,
+        seq = 0L,
+        commitSeq = 0L,
         imageUrlsJson = encodeImageUrls(imageUrls),
         favorite = favorite,
         // v1.104 U7: 收藏分组标签往返(默认 NULL,未分组)

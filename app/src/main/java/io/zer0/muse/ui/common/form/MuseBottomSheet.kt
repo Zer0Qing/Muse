@@ -28,18 +28,15 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.ui.theme.MuseElevation
+import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
+import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.ui.theme.MusePaddings
-import io.zer0.muse.ui.theme.MuseShapes
-import io.zer0.muse.ui.theme.huge
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -47,10 +44,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import android.view.WindowManager
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+
+private val BottomSheetSurfaceShape = RoundedCornerShape(
+    topStart = MuseCornerRadius.HUGE.dp,
+    topEnd = MuseCornerRadius.HUGE.dp,
+    bottomEnd = 0.dp,
+    bottomStart = 0.dp,
+)
 
 /**
  * MANUS 风格底部展开面板。
@@ -59,7 +61,7 @@ import androidx.compose.ui.window.DialogProperties
  * scrim 遮罩无法移除、关闭后页面卡死的问题。
  *
  * 行为:
- *  - 点击半透明背景或返回键关闭
+ *  - 点击面板外背景或返回键关闭
  *  - 内容区从底部向上滑入
  *  - 自动处理导航栏 insets
  *
@@ -70,9 +72,10 @@ import androidx.compose.ui.window.DialogProperties
 fun MuseBottomSheet(
     onDismissRequest: () -> Unit,
     maxHeightFraction: Float = 0.85f,
-    // v1.0.72: 内容区左右留白可配置 — 加号菜单传 0.dp(不留白),
-    // 其他 Sheet 保持默认
+    // v1.0.72: 内容区左右留白可配置
     horizontalPadding: androidx.compose.ui.unit.Dp = MusePaddings.itemGap,
+    // 内容区底部冗余可关闭；加号菜单需要只保留实际三段内容。
+    bottomContentSpacing: androidx.compose.ui.unit.Dp = MusePaddings.largeGap,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     // M-BS2: 用 rememberSaveable 持久化进入/退出动画状态,配置变更(旋转/暗色切换)
@@ -106,24 +109,10 @@ fun MuseBottomSheet(
             dismissOnBackPress = true,
         ),
     ) {
-        val localView = LocalView.current
-        // v1.125: 让 scrim 延伸到刘海/挖孔屏状态栏区域,避免异形屏上遮罩漏出状态栏
-        DisposableEffect(localView) {
-            // Compose Dialog 内 View 层级: DialogLayout(extends AbstractComposeView) → DecorView
-            // localView 的 windowAttributes 即 Dialog 的 WindowManager.LayoutParams
-            val attrs = localView.layoutParams as? WindowManager.LayoutParams
-            if (attrs != null && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                attrs.layoutInDisplayCutoutMode =
-                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
-                localView.requestLayout()
-            }
-            onDispose {}
-        }
+        MuseDialogWindowEffect(forceFullScreen = true)
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                // v1.48 (h20): 遮罩用 colorScheme.scrim 替代裸 Color.Black
-                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.4f))
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
@@ -144,7 +133,7 @@ fun MuseBottomSheet(
                 exit = slideOutVertically(animationSpec = tween(SHEET_EXIT_DURATION_MS), targetOffsetY = { it }),
             ) {
                 Surface(
-                    shape = MuseShapes.huge,
+                    shape = BottomSheetSurfaceShape,
                     color = MaterialTheme.colorScheme.surface,
                     tonalElevation = MuseElevation.none,
                     shadowElevation = MuseElevation.none,
@@ -154,10 +143,8 @@ fun MuseBottomSheet(
                         // v1.0.29: maxHeightFraction 可配置,加号菜单用较小值避免面板过高影响观感
                         .heightIn(max = screenHeight * maxHeightFraction)
                         .imePadding()
-                        // v1.97: navigationBarsPadding 移到内部 Column,
-                        // 让 Surface 背景色延伸到小白条区域(沉浸式)
                         // H-BS1: 旧 clickable(enabled=false, onClick={}) 无法消费点击事件,
-                        // 导致点击面板内容穿透到外层 scrim 触发 dismiss。
+                        // 导致点击面板内容穿透到外层背景触发 dismiss。
                         // 改用 pointerInput + detectTapGestures 拦截面板上的手势,不再向下传播,
                         // 且不引入 ripple(indication),保持视觉干净。
                         .pointerInput(Unit) {
@@ -167,9 +154,6 @@ fun MuseBottomSheet(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            // v1.97: 内容避开小白条,Surface 背景色延伸到导航栏区域(沉浸式)
-                            // v1.0.29: 额外避开系统手势提示条(Android 三键/手势导航条),防止
-                            // 底部操作项(如"删除")被小白条遮挡无法点击。
                             .navigationBarsPadding()
                             .systemGesturesPadding(),
                     ) {
@@ -187,7 +171,9 @@ fun MuseBottomSheet(
                         )
                         // v1.0.29: 底部增加额外冗余,让底部菜单整体上抬,
                         // 避免内容紧贴系统导航条/手势条,提升操作舒适度。
-                        Spacer(Modifier.height(MusePaddings.largeGap))
+                        if (bottomContentSpacing > 0.dp) {
+                            Spacer(Modifier.height(bottomContentSpacing))
+                        }
                     }
                 }
             }
@@ -280,20 +266,10 @@ fun MuseDraggableBottomSheet(
             dismissOnBackPress = true,
         ),
     ) {
-        val localView = LocalView.current
-        DisposableEffect(localView) {
-            val attrs = localView.layoutParams as? WindowManager.LayoutParams
-            if (attrs != null && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                attrs.layoutInDisplayCutoutMode =
-                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
-                localView.requestLayout()
-            }
-            onDispose {}
-        }
+        MuseDialogWindowEffect(forceFullScreen = true)
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.4f))
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
@@ -310,7 +286,7 @@ fun MuseDraggableBottomSheet(
                     .coerceIn(screenHeight * 0.2f, expandedHeight)
 
                 Surface(
-                    shape = MuseShapes.huge,
+                    shape = BottomSheetSurfaceShape,
                     color = MaterialTheme.colorScheme.surface,
                     tonalElevation = MuseElevation.none,
                     shadowElevation = MuseElevation.none,

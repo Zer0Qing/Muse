@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
@@ -20,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.surface.museTopBarInsets
 import io.zer0.muse.ui.theme.MusePaddings
 
 /**
@@ -48,7 +48,7 @@ fun MuseTopBar(
             // v1.132: background 必须在 statusBarsPadding 之前,否则背景只画在 padding
             // 之后的内容区域,状态栏区域会透明(二级页状态栏透明确认由该顺序问题导致)
             .background(MaterialTheme.colorScheme.background)
-            .statusBarsPadding(),
+            .museTopBarInsets(),
     ) {
         // 返回按钮 + 标题同行(普通模式)
         Row(

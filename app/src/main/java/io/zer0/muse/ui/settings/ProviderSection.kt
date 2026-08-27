@@ -319,6 +319,7 @@ private fun ProviderRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .heightIn(min = 56.dp)
             .clickable { onEdit() }
             .padding(MusePaddings.cardInner),
         verticalAlignment = Alignment.CenterVertically,
@@ -343,7 +344,7 @@ private fun ProviderRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = config.displayName.ifBlank { config.id },
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.titleMedium,
                 color = if (isActive) MaterialTheme.colorScheme.primary
                 else MaterialTheme.colorScheme.onSurface,
             )

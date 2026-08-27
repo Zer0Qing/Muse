@@ -209,7 +209,7 @@ val appModule = module {
     single { io.zer0.muse.schedule.GroupChatScheduler(get(), get(), get(), get(), get(), androidContext(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
     // v1.43: 应用级聊天生成管理器(切页/后台保持生成不中断)
-    single { io.zer0.muse.schedule.ChatGenerationManager(get()) }
+    single { io.zer0.muse.schedule.ChatGenerationManager(get(), androidContext()) }
 
     // v1.x: 会话级资源管理器(引用计数 + idle 清理),依赖应用级 appScope(Koin 注册的 CoroutineScope)
     single { io.zer0.muse.session.ConversationSessionManager(get()) }
@@ -415,6 +415,7 @@ val appModule = module {
     // P1-3b 拆域: Skill 管理工具实现(被 SkillExecutor 委托调用)
     single { io.zer0.muse.tools.SkillManagementToolsImpl(androidContext(), get()) }
     // P1-3b 拆域: Skill 搜索/HTTP 工具实现(被 SkillExecutor 委托调用)
+    single { io.zer0.muse.web.WebSearchCoordinator(get<WebSearchService>()) }
     single { io.zer0.muse.tools.SkillSearchToolsImpl(
         androidContext(),
         get(named("chat")),
@@ -422,6 +423,13 @@ val appModule = module {
         get(),
         get(),
         { get<io.zer0.muse.data.SettingsRepository>().getRagConfig() },
+        get<io.zer0.muse.web.WebSearchCoordinator>(),
+        { get<io.zer0.muse.data.SettingsRepository>().webSearchConfigFlow.first().let { cfg ->
+            io.zer0.muse.web.WebSearchPolicy(
+                maxSearchesPerTurn = cfg.maxSearchesPerTurn.coerceIn(1, 5),
+                maxResults = cfg.maxResults.coerceIn(1, 10),
+            )
+        } },
     ) }
     // P1-3e 拆域: Skill Agent 工作流/群聊工具实现(被 SkillExecutor 委托调用)
     single {

@@ -395,10 +395,13 @@ data class ConversationTree(
          */
         fun build(messages: List<UIMessage>, previous: ConversationTree? = null): ConversationTree {
             if (messages.isEmpty()) return ConversationTree()
+            // 树重建不能信任调用方当前 List 的插入顺序：它可能来自旧快照合并、
+            // 分页回灌或流式异步更新。统一按持久化顺序先排一次，防止旧消息被挂到最前。
+            val orderedMessages = orderConversationMessages(messages)
 
             val groups = LinkedHashMap<String, MutableList<UIMessage>>()
             val groupOrder = LinkedHashSet<String>()
-            messages.forEach { msg ->
+            orderedMessages.forEach { msg ->
                 val gid = msg.variantGroupId ?: msg.id.toString()
                 groups.getOrPut(gid) { mutableListOf() }.add(msg)
                 groupOrder.add(gid)
@@ -550,12 +553,53 @@ data class ConversationTree(
 
 /** 重建树时合并旧树全部分支与当前扁平显示，保证新消息不丢、旧重试/编辑分支保留。 */
 fun mergeRebuildMessages(tree: ConversationTree, current: List<UIMessage>): List<UIMessage> {
-    val flat = tree.allFlatMessages
-    if (flat.isEmpty()) return current
+    // Snapshot 只保存分支选择。SnapshotStore 为了还原树形结构会构造 createdAt=0、
+    // content 为空、随机 id 的虚拟用户节点；这些节点绝不能混入真实消息，否则会被
+    // 排到列表最前面，表现为“旧消息跑到最前面”。
+    val persistedTreeMessages = tree.allFlatMessages.filter { it.createdAt > 0L }
+    if (persistedTreeMessages.isEmpty()) return orderConversationMessages(current)
     val merged = linkedMapOf<String, UIMessage>()
-    flat.forEach { merged[it.id.toString()] = it }
-    current.forEach { merged[it.id.toString()] = it }
-    return merged.values.toList()
+    // 没有稳定序号的历史数据保留旧树顺序，避免仅凭不可靠 createdAt 重排变体。
+    // 新链路消息一旦带 seq/commitSeq，最终再统一按稳定顺序排序。
+    val source = if (persistedTreeMessages.none { it.commitSeq > 0L || it.seq > 0L } &&
+        current.none { it.commitSeq > 0L || it.seq > 0L }
+    ) {
+        persistedTreeMessages + current
+    } else {
+        current + persistedTreeMessages
+    }
+    source.forEach { message -> merged[message.id.toString()] = message }
+    return orderConversationMessages(merged.values.toList())
+}
+
+/** 会话消息唯一的内存排序规则，必须与 MessageDao/MessageProjector 保持一致。 */
+fun orderConversationMessages(messages: List<UIMessage>): List<UIMessage> {
+    // 旧导入/旧快照可能完全没有 seq。此时 createdAt 也可能不可信，
+    // 不能无条件重排，数据库传入顺序才是唯一可用顺序。
+    if (messages.none { it.commitSeq > 0L || it.seq > 0L }) return messages
+
+    fun UIMessage.stableOrder(): Long? = when {
+        commitSeq > 0L -> commitSeq
+        seq > 0L -> seq
+        else -> null
+    }
+
+    return messages.sortedWith { left, right ->
+        val leftOrder = left.stableOrder()
+        val rightOrder = right.stableOrder()
+        val result = when {
+            leftOrder != null && rightOrder != null -> leftOrder.compareTo(rightOrder)
+            leftOrder == null && rightOrder == null -> 0
+            // 新旧数据混合时，不能把所有 seq=0 的旧消息统一塞到一端；
+            // 用原始 createdAt 把无序旧消息/尚未落库的新消息放回正确时间段。
+            else -> left.createdAt.compareTo(right.createdAt)
+        }
+        if (result != 0) result
+        else {
+            val created = left.createdAt.compareTo(right.createdAt)
+            if (created != 0) created else left.id.toString().compareTo(right.id.toString())
+        }
+    }
 }
 
 private fun restoreSelection(tree: ConversationTree, previous: ConversationTree?): ConversationTree {

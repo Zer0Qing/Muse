@@ -245,7 +245,7 @@ fun SettingsTutorialPage(
         }
     }
 
-    Scaffold(
+    io.zer0.muse.ui.common.surface.MusePageScaffold(
         topBar = {
             MuseTopBar(
                 title = stringResource(R.string.settings_tutorial_title),

@@ -4,6 +4,7 @@ package io.zer0.muse.ui.quicknotes
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import io.zer0.muse.ui.common.surface.clearMuseWindowDim
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -785,12 +786,12 @@ internal fun QuickNoteReminderDialog(
                     now.get(Calendar.HOUR_OF_DAY),
                     now.get(Calendar.MINUTE),
                     true,
-                ).show()
+                ).showWithoutMuseDim()
             },
             now.get(Calendar.YEAR),
             now.get(Calendar.MONTH),
             now.get(Calendar.DAY_OF_MONTH),
-        ).show()
+        ).showWithoutMuseDim()
     }
 
     MuseDialog(
@@ -828,4 +829,11 @@ internal fun QuickNoteReminderDialog(
         dismissText = stringResource(R.string.quick_notes_cancel),
         onDismiss = onDismiss,
     )
+}
+
+/** Native date/time dialogs should follow Muse's no-dim popup treatment. */
+private fun android.app.Dialog.showWithoutMuseDim() {
+    setOnShowListener { clearMuseWindowDim(window) }
+    show()
+    clearMuseWindowDim(window)
 }

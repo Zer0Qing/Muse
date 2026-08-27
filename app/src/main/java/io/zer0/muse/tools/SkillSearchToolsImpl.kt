@@ -10,6 +10,8 @@ import io.zer0.muse.rag.RagConfig
 import io.zer0.muse.rag.RagService
 import io.zer0.muse.web.SearchRateLimitException
 import io.zer0.muse.web.WebSearchService
+import io.zer0.muse.web.WebSearchRequest
+import io.zer0.muse.web.WebSearchPolicy
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -34,6 +36,8 @@ class SkillSearchToolsImpl(
     private val knowledgeDocDao: KnowledgeDocDao?,
     private val ragService: RagService?,
     private val ragConfigProvider: suspend () -> RagConfig = { RagConfig() },
+    private val webSearchCoordinator: io.zer0.muse.web.WebSearchCoordinator? = null,
+    private val webSearchPolicyProvider: suspend () -> WebSearchPolicy = { WebSearchPolicy() },
 ) {
 
     fun validatePublicUrl(url: String): Boolean {
@@ -216,11 +220,29 @@ class SkillSearchToolsImpl(
      * web_search — 用配置好的 WebSearchService(SearXNG/Tavily)搜索。
      * 让 LLM 主动决定何时搜索,而非每次对话都注入。
      */
-    suspend fun execWebSearch(args: Map<String, String>): String {
+    suspend fun execWebSearch(args: Map<String, String>, turnKey: String = "default"): String {
         val service = webSearchService
             ?: return context.getString(R.string.skill_web_search_not_configured)
-        val query = args["query"] ?: return context.getString(R.string.skill_missing_param_query)
+        // v1.0.81: 对齐 Hana web-search，先清理 LLM 偶发生成的畸形引号/不可见字符。
+        val rawQuery = args["query"]?.trim()?.takeIf { it.isNotEmpty() }
+            ?: return context.getString(R.string.skill_missing_param_query)
+        val query = io.zer0.muse.web.WebSearchQueryNormalizer.normalize(rawQuery)
+            .takeIf { it.isNotEmpty() }
+            ?: return context.getString(R.string.skill_missing_param_query)
+        if (rawQuery != query) {
+            Logger.i("SkillExecutor", "web_search query normalized: '$rawQuery' -> '$query'")
+        }
         val maxResults = args["max_results"]?.toIntOrNull()?.coerceIn(1, 10) ?: 5
+        val searchPolicy = webSearchPolicyProvider()
+        val response = webSearchCoordinator?.search(
+            WebSearchRequest(query = query, maxResults = searchPolicy.maxResults, dateRange = args["date_range"]),
+            turnKey = turnKey,
+            policy = searchPolicy,
+        )
+        if (response != null) {
+            return formatCoordinatedSearchResponse(response, maxResults)
+        }
+        // 兼容测试环境/旧注入链：没有 coordinator 时直接调用 service。
         // date_range / time_period: 时间范围(可选,二选一,time_period 兼容同义)
         val dateRange = args["date_range"]?.takeIf { it.isNotBlank() }
         val timePeriod = args["time_period"]?.takeIf { it.isNotBlank() }
@@ -247,9 +269,30 @@ class SkillSearchToolsImpl(
             sb.appendLine("    URL: ${r.url}")
             sb.appendLine("    摘要: ${r.snippet}")
         }
-        // v1.0.52: 追加搜索结果回答引导(采用 既有实现 网页工具纪律)
-        // 让 LLM 综合多网页信息回答,且不说"根据搜索结果"——直接给出答案
-        sb.append(context.getString(R.string.skill_search_result_guidance))
+        // 结果正文只保留搜索事实；回答策略属于模型内部系统提示，不混入用户可见的工具结果。
+        return sb.toString().trimEnd()
+    }
+
+    private fun formatCoordinatedSearchResponse(
+        response: io.zer0.muse.web.WebSearchResponse,
+        maxResults: Int,
+    ): String {
+        if (response.status != io.zer0.muse.web.WebSearchStatus.RESULTS || response.results.isEmpty()) {
+            return when (response.status) {
+                io.zer0.muse.web.WebSearchStatus.BUDGET_EXCEEDED -> "搜索预算已用尽：本轮最多搜索 ${WebSearchPolicy().maxSearchesPerTurn} 次，请基于已有结果回答。"
+                io.zer0.muse.web.WebSearchStatus.DUPLICATE_QUERY -> "这个搜索词本轮已经搜过了，请不要重复搜索。"
+                io.zer0.muse.web.WebSearchStatus.RATE_LIMITED -> "搜索服务被限速了，请稍后再试。"
+                io.zer0.muse.web.WebSearchStatus.FAILED -> "搜索服务失败：${response.attempts.lastOrNull()?.message ?: "网络异常"}"
+                else -> "搜索“${response.normalizedQuery}”没有找到结果。"
+            }
+        }
+        val sb = StringBuilder(context.getString(R.string.skill_search_result_header, response.normalizedQuery, response.results.size))
+        response.results.take(maxResults).forEachIndexed { idx, r ->
+            sb.appendLine("[${idx + 1}] ${r.title}")
+            sb.appendLine("    URL: ${r.url}")
+            sb.appendLine("    摘要: ${r.snippet}")
+        }
+        sb.appendLine("\n搜索来源：${response.provider ?: "未知"}；本轮状态：${response.status}")
         return sb.toString().trimEnd()
     }
 

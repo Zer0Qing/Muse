@@ -114,6 +114,9 @@ import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.speech.TtsManager
 import io.zer0.muse.ui.speech.PlaybackState
 import io.zer0.muse.ui.speech.VoiceConversationState
+import io.zer0.muse.ui.taskcard.AgentPlan
+import io.zer0.muse.ui.taskcard.AgentPlanStep
+import io.zer0.muse.ui.taskcard.AgentPlanStepStatus
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.util.TokenEstimator
 import io.zer0.muse.util.retryOnNetworkError
@@ -157,6 +160,10 @@ import kotlin.uuid.Uuid
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 
 /**
  * v0.49: 聊天错误信息(支持多错误并存)。
@@ -1095,6 +1102,10 @@ internal fun canRegenerate(
     hasSelectedUserVariant: Boolean,
 ): Boolean = !isStreaming && hasSession && hasSelectedUserVariant
 
+private val HISTORICAL_PLAN_ID_PATTERN = Regex(
+    """(?i)(?:planId|plan_id)\s*["'`]?\s*[:=]\s*["'`]?([A-Za-z0-9_-]+)""",
+)
+
 class ChatViewModel(
     private val chatService: ChatService,
     private val settings: SettingsRepository,
@@ -1369,11 +1380,20 @@ class ChatViewModel(
     @Volatile
     private var streamGenerationSerial: Long = 0L
 
-    /**
-     * v1.0.79 (F-1): 会话内手动切换的模型 id(覆盖助手专属模型)。
-     * 仅内存态: 用户在会话中切换模型时写入,切会话/重启后清除,回到助手专属模型。
-     */
-    private val _sessionModelOverride = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
+    /** 全局默认与会话覆盖分开保存；聊天页切换只改当前 session 的覆盖，不反写全局设置。 */
+    @Volatile private var globalSelectedModelId: String? = null
+    @Volatile private var globalActiveProviderId: String? = null
+    @Volatile private var sessionModelOverrides: Map<String, String> = emptyMap()
+    @Volatile private var sessionProviderOverrides: Map<String, String> = emptyMap()
+
+    private fun displayedSessionId(state: ChatUiState = _state.value): String? =
+        if (state.isAgentMode) state.agentSessionId else state.currentSessionId
+
+    private fun selectedModelForSession(sessionId: String?): String? =
+        sessionId?.let(sessionModelOverrides::get) ?: globalSelectedModelId
+
+    private fun activeProviderForSession(sessionId: String?): String? =
+        sessionId?.let(sessionProviderOverrides::get) ?: globalActiveProviderId
 
     /**
      * A-13: 校验本轮工具生成仍是"当前活跃生成"(代际令牌未变)。
@@ -1471,10 +1491,11 @@ class ChatViewModel(
                 "assistant_id" to currentAssistantId(),
             ),
         )
-        // v2.3: 任务模型路由——根据输入内容自动推荐模型
-        val routedModelId = settings.recommendModelForTask(text, _state.value.selectedModelId)
-        if (routedModelId != null && routedModelId != _state.value.selectedModelId) {
-            viewModelScope.launch { settings.saveSelectedModel(routedModelId) }
+        // v2.3: 任务模型路由——推荐结果只写当前会话，不能改变全局默认模型。
+        val routedModelId = settings.recommendModelForTask(text, selectedModelForSession(sessionId))
+        if (routedModelId != null && routedModelId != selectedModelForSession(sessionId)) {
+            sessionModelOverrides = sessionModelOverrides + (sessionId to routedModelId)
+            viewModelScope.launch { settings.saveSessionModelOverride(sessionId, routedModelId) }
             _state.update { it.copy(selectedModelId = routedModelId) }
         }
         // v1.0.47 P5: 记录输入历史(新→旧,去重,截断到 MAX_INPUT_HISTORY)
@@ -1700,12 +1721,34 @@ class ChatViewModel(
         }
         viewModelScope.launch {
             settings.activeProviderIdFlow.collect { id ->
-                _state.update { it.copy(activeProviderId = id) }
+                globalActiveProviderId = id
+                _state.update { state ->
+                    state.copy(activeProviderId = activeProviderForSession(displayedSessionId(state)))
+                }
             }
         }
         viewModelScope.launch {
             settings.selectedModelIdFlow.collect { modelId ->
-                _state.update { it.copy(selectedModelId = modelId) }
+                globalSelectedModelId = modelId
+                _state.update { state ->
+                    state.copy(selectedModelId = selectedModelForSession(displayedSessionId(state)))
+                }
+            }
+        }
+        viewModelScope.launch {
+            settings.sessionModelOverridesFlow.collect { overrides ->
+                sessionModelOverrides = overrides
+                _state.update { state ->
+                    state.copy(selectedModelId = selectedModelForSession(displayedSessionId(state)))
+                }
+            }
+        }
+        viewModelScope.launch {
+            settings.sessionProviderOverridesFlow.collect { overrides ->
+                sessionProviderOverrides = overrides
+                _state.update { state ->
+                    state.copy(activeProviderId = activeProviderForSession(displayedSessionId(state)))
+                }
             }
         }
         // v1.60-A: 收集工具模型 id(工具调用轮次使用)
@@ -1797,7 +1840,8 @@ class ChatViewModel(
                 _state.update {
                     it.copy(
                         webSearchConfig = cfg,
-                        webSearchEnabled = cfg.enabled,
+                        // 本地模式由 web_search 工具处理；原生模式由 Provider 原生工具处理，两者互斥。
+                        webSearchEnabled = cfg.enabled && cfg.mode != io.zer0.muse.web.WebSearchMode.OFF,
                     )
                 }
             }
@@ -3002,10 +3046,20 @@ class ChatViewModel(
      */
     fun setActiveProvider(providerId: String) {
         if (_state.value.isStreaming) return
+        val sessionId = displayedSessionId() ?: return
         viewModelScope.launch {
-            settings.setActiveProvider(providerId)
-            // v1.0.28: 切换 Provider 必须清空旧 selectedModelId,否则跨 Provider 误用旧模型
-            settings.saveSelectedModel(null)
+            // 聊天页选择 Provider 只属于当前会话；新建任务仍从全局默认开始。
+            val defaultModelId = _state.value.providers.firstOrNull { it.id == providerId }
+                ?.models?.firstOrNull()?.id
+            sessionProviderOverrides = sessionProviderOverrides + (sessionId to providerId)
+            if (defaultModelId.isNullOrBlank()) {
+                sessionModelOverrides = sessionModelOverrides - sessionId
+            } else {
+                sessionModelOverrides = sessionModelOverrides + (sessionId to defaultModelId)
+            }
+            settings.saveSessionProviderOverride(sessionId, providerId)
+            settings.saveSessionModelOverride(sessionId, defaultModelId)
+            _state.update { it.copy(activeProviderId = providerId, selectedModelId = defaultModelId) }
             val provider = _state.value.providers.firstOrNull { it.id == providerId }
             if (provider != null && provider.models.isEmpty() && provider.apiKey.isNotBlank()) {
                 refreshModels(providerId)
@@ -3067,26 +3121,35 @@ class ChatViewModel(
      */
     fun setSelectedModel(modelId: String?) {
         if (_state.value.isStreaming) return
+        val sessionId = displayedSessionId() ?: return
         viewModelScope.launch {
             val prevId = _state.value.selectedModelId
-            settings.saveSelectedModel(modelId)
-            // v0.51: 仅在真正切换到不同模型(modelId 非空且与之前不同)时弹 Toast,
-            // 避免用户点已选中的模型或清空选择(modelId=null)时也弹提示。
-            if (modelId != null && modelId != prevId) {
-                _state.update {
-                    it.copy(toast = appContext.getString(R.string.err_chat_model_switched_toast))
-                }
+            // “默认模型”在当前会话中明确落到当前 Provider 的首个模型，避免清除后又拾取全局的跨 Provider id。
+            val resolvedModelId = modelId ?: _state.value.providers
+                .firstOrNull { it.id == _state.value.activeProviderId }
+                ?.models?.firstOrNull()?.id
+            val providerId = _state.value.activeProviderId
+            if (resolvedModelId.isNullOrBlank()) {
+                sessionModelOverrides = sessionModelOverrides - sessionId
+            } else {
+                sessionModelOverrides = sessionModelOverrides + (sessionId to resolvedModelId)
             }
-            // v1.0.79 (F-1): 会话内手动切换模型 → 覆盖助手专属模型。
-            // 此前助手配置了专属 modelId 时,会话里怎么切模型都不生效(请求仍走专属模型),
-            // 用户无感知地被绕晕。现在手动切换即写入会话级 override,本轮起优先用用户选择;
-            // 仅内存态,切会话/重启后回到助手专属模型。
-            val hasAssistantModel = _state.value.currentAssistant?.modelId?.isNotBlank() == true
-            if (modelId != null && modelId != prevId && hasAssistantModel) {
-                _sessionModelOverride.value = modelId
-                _state.update {
-                    it.copy(toast = appContext.getString(R.string.err_chat_model_override_assistant))
-                }
+            if (providerId.isNullOrBlank()) {
+                sessionProviderOverrides = sessionProviderOverrides - sessionId
+            } else {
+                sessionProviderOverrides = sessionProviderOverrides + (sessionId to providerId)
+            }
+            settings.saveSessionModelOverride(sessionId, resolvedModelId)
+            settings.saveSessionProviderOverride(sessionId, providerId)
+            _state.update {
+                it.copy(
+                    selectedModelId = resolvedModelId,
+                    toast = if (resolvedModelId != null && resolvedModelId != prevId) {
+                        appContext.getString(R.string.err_chat_model_switched_toast)
+                    } else {
+                        it.toast
+                    },
+                )
             }
         }
     }
@@ -3194,6 +3257,8 @@ class ChatViewModel(
             _state.update {
                 it.copy(
                     currentSessionId = id,
+                    activeProviderId = globalActiveProviderId,
+                    selectedModelId = globalSelectedModelId,
                     input = "",
                     hasDraft = false,
                     errors = emptyList(),
@@ -3268,6 +3333,8 @@ class ChatViewModel(
             _state.update {
                 it.copy(
                     currentSessionId = id,
+                    activeProviderId = globalActiveProviderId,
+                    selectedModelId = globalSelectedModelId,
                     input = text,
                     hasDraft = false,
                     errors = emptyList(),
@@ -3374,6 +3441,149 @@ class ChatViewModel(
         return messages to (total > messages.size)
     }
 
+    /**
+     * 从已持久化的工具展示消息恢复 Agent 计划。
+     *
+     * 计划本体原先只存在 SkillAgentToolsImpl 的内存缓存中,切换会话或重启进程后
+     * agentPlans 会被清空。task_plan / update_plan_step 的 toolCallInfo 已随消息落库,
+     * 因此在加载历史时按消息顺序重放即可恢复计划卡及步骤状态。
+     */
+    private fun restoreAgentPlans(messages: List<UIMessage>): Map<String, AgentPlan> {
+        if (messages.none { it.toolCallInfo?.toolName == "task_plan" }) return emptyMap()
+
+        val plans = linkedMapOf<String, AgentPlan>()
+        messages.forEach { message ->
+            val toolInfo = message.toolCallInfo ?: return@forEach
+            when (toolInfo.toolName) {
+                "task_plan" -> {
+                    parseHistoricalPlan(message, toolInfo)?.let { plan ->
+                        plans[plan.id] = plan
+                    }
+                }
+                "update_plan_step" -> applyHistoricalPlanUpdate(plans, message, toolInfo)
+            }
+        }
+        return plans
+    }
+
+    private fun parseHistoricalPlan(message: UIMessage, toolInfo: ToolCallInfo): AgentPlan? {
+        val arguments = parseHistoricalToolArguments(toolInfo.arguments) ?: return null
+        val steps = parseHistoricalPlanSteps(arguments["steps"])
+        if (steps.isEmpty()) return null
+
+        val planId = HISTORICAL_PLAN_ID_PATTERN.find(toolInfo.result)
+            ?.groupValues
+            ?.getOrNull(1)
+            ?.takeIf { it.isNotBlank() }
+            ?: "history-plan-${message.id}"
+        val title = historicalJsonText(arguments["title"])
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+            ?: "任务计划"
+
+        return AgentPlan(
+            id = planId,
+            title = title,
+            steps = steps,
+            createdAt = message.createdAt,
+            messageId = message.id.toString(),
+        )
+    }
+
+    private fun applyHistoricalPlanUpdate(
+        plans: MutableMap<String, AgentPlan>,
+        message: UIMessage,
+        toolInfo: ToolCallInfo,
+    ) {
+        val arguments = parseHistoricalToolArguments(toolInfo.arguments) ?: return
+        val planId = historicalJsonText(arguments["planId"])
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+            ?: return
+        val planEntry = plans.entries.firstOrNull { it.key == planId || it.value.id == planId } ?: return
+        val stepIndex = historicalJsonText(arguments["stepIndex"])
+            ?.trim()
+            ?.toIntOrNull()
+            ?: return
+        val status = parseHistoricalPlanStatus(historicalJsonText(arguments["status"])) ?: return
+        if (stepIndex !in planEntry.value.steps.indices) return
+
+        val result = historicalJsonText(arguments["result"]).orEmpty()
+        val updatedSteps = planEntry.value.steps.mapIndexed { index, step ->
+            if (index != stepIndex) {
+                step
+            } else {
+                step.copy(
+                    status = status,
+                    result = result,
+                    startedAt = if (
+                        status == AgentPlanStepStatus.IN_PROGRESS && step.startedAt == 0L
+                    ) {
+                        message.createdAt
+                    } else {
+                        step.startedAt
+                    },
+                    finishedAt = if (
+                        status == AgentPlanStepStatus.DONE ||
+                        status == AgentPlanStepStatus.FAILED ||
+                        status == AgentPlanStepStatus.SKIPPED
+                    ) {
+                        if (step.finishedAt == 0L) message.createdAt else step.finishedAt
+                    } else {
+                        step.finishedAt
+                    },
+                )
+            }
+        }
+        plans[planEntry.key] = planEntry.value.copy(steps = updatedSteps)
+    }
+
+    private fun parseHistoricalToolArguments(arguments: String): JsonObject? =
+        resultOf {
+            io.zer0.common.AppJson.decodeFromString(JsonObject.serializer(), arguments)
+        }.getOrNull()
+
+    private fun parseHistoricalPlanSteps(value: JsonElement?): List<AgentPlanStep> {
+        val array = when (value) {
+            is JsonArray -> value
+            is JsonPrimitive -> resultOf {
+                io.zer0.common.AppJson.decodeFromString(JsonArray.serializer(), value.content)
+            }.getOrNull()
+            else -> null
+        } ?: return emptyList()
+
+        return array.mapIndexedNotNull { index, element ->
+            val obj = element as? JsonObject ?: return@mapIndexedNotNull null
+            AgentPlanStep(
+                id = "step-$index",
+                title = historicalJsonText(obj["title"])
+                    ?.trim()
+                    ?.takeIf { it.isNotBlank() }
+                    ?: "步骤 ${index + 1}",
+                description = historicalJsonText(obj["description"])
+                    ?.trim()
+                    .orEmpty(),
+            )
+        }
+    }
+
+    private fun historicalJsonText(value: JsonElement?): String? = when (value) {
+        null -> null
+        is JsonPrimitive -> value.content
+        else -> io.zer0.common.AppJson.encodeToString(JsonElement.serializer(), value)
+    }
+
+    private fun parseHistoricalPlanStatus(raw: String?): AgentPlanStepStatus? = when (
+        raw?.trim()?.lowercase()
+    ) {
+        "pending", "todo" -> AgentPlanStepStatus.PENDING
+        "in_progress", "in-progress", "running" -> AgentPlanStepStatus.IN_PROGRESS
+        "done", "complete", "completed", "success" -> AgentPlanStepStatus.DONE
+        "failed", "error" -> AgentPlanStepStatus.FAILED
+        "skipped", "skip" -> AgentPlanStepStatus.SKIPPED
+        else -> null
+    }
+
     /** 切换到指定会话。 */
     fun switchSession(sessionId: String) {
         if (_state.value.isStreaming) detachStreaming()
@@ -3456,6 +3666,16 @@ class ChatViewModel(
                 messages.lastOrNull { it.role == MessageRole.ASSISTANT }
                     ?.let { it.content.isBlank() && it.toolCalls.isNullOrEmpty() } == true
                 )
+            fun orderDigest(message: UIMessage): String =
+                "${message.id.toString().take(8)}:s${message.seq}/c${message.commitSeq}/t${message.createdAt}" +
+                    "/p${message.parentGroupId?.take(8) ?: "-"}"
+            Logger.i(
+                "ChatOrder",
+                "load session=$sessionId, source=${if (memoryCacheHit) "cache" else "database"}, " +
+                    "count=${messages.size}, background=$isBackgroundStreaming, waiting=$backgroundWaitingForOutput, " +
+                    "first=${messages.take(3).joinToString(",", transform = ::orderDigest)}, " +
+                    "last=${messages.takeLast(3).joinToString(",", transform = ::orderDigest)}",
+            )
             // P3: 加载本会话的权限模式(未单独设置时跟随全局默认,修复"完全放权"设置不生效)
             val permissionMode = sessionPermissionStore.getMode(
                 sessionId,
@@ -3465,12 +3685,15 @@ class ChatViewModel(
             val assistantId = sessionRepository.getAssistantId(sessionId)
             val assistant = assistantRepository.getById(assistantId)
                 ?: assistantRepository.getById("default")
+            val restoredAgentPlans = restoreAgentPlans(messages)
             // 功能2: 恢复目标会话的输入草稿
             // v1.0.72: 草稿功能已砍掉(定位复杂且会恢复已完成消息,弊大于利)
             _state.update {
                 _messages.value = messages
                 it.copy(
                     currentSessionId = sessionId,
+                    activeProviderId = activeProviderForSession(sessionId),
+                    selectedModelId = selectedModelForSession(sessionId),
                     input = "",
                     hasDraft = false,
                     errors = emptyList(),
@@ -3486,7 +3709,7 @@ class ChatViewModel(
                     taskCards = emptyMap(),
                     pendingToolApprovals = emptyList(),
                     toolCallHistory = emptyList(),
-                    agentPlans = emptyMap(),
+                    agentPlans = restoredAgentPlans,
                     // v1.x: 切换会话时清除挂死的会话列表加载错误(协程取消遗留)
                     sessionsError = null,
                     // v1.0.16: visionAssistedMessageIds 按 messageId(全局唯一)存储,
@@ -3630,6 +3853,7 @@ class ChatViewModel(
                 val assistantId = sessionRepository.getAssistantId(sessionId)
                 val assistant = assistantRepository.getById(assistantId)
                     ?: assistantRepository.getById("default")
+                val restoredAgentPlans = restoreAgentPlans(messages)
                 _messages.value = messages
                 val agentBackgroundStreaming = chatGenerationManager.isStreaming(sessionId)
                 _state.update {
@@ -3654,7 +3878,7 @@ class ChatViewModel(
                         taskCards = emptyMap(),
                         // v1.136: 进入 Agent 模式清空工具调用历史与 Agent 计划
                         toolCallHistory = emptyList(),
-                        agentPlans = emptyMap(),
+                        agentPlans = restoredAgentPlans,
                         // 清空视觉辅助状态,避免跨会话残留
                         visionAssistedMessageIds = emptySet(),
                         visionProgress = null,
@@ -3714,6 +3938,7 @@ class ChatViewModel(
                     val assistantId = sessionRepository.getAssistantId(sid)
                     val assistant = assistantRepository.getById(assistantId)
                         ?: assistantRepository.getById("default")
+                    val restoredAgentPlans = restoreAgentPlans(messages)
                     _messages.value = messages
                     val taskBackgroundStreaming = chatGenerationManager.isStreaming(sid)
                     _state.update {
@@ -3727,6 +3952,7 @@ class ChatViewModel(
                             hasMoreHistory = hasMore,
                             isLoadingMore = false,
                             lastHistoryLoadCount = 0,
+                            agentPlans = restoredAgentPlans,
                             // P3: 恢复任务会话权限模式
                             sessionPermissionMode = permissionMode,
                             // v1.0.16: 切换 Tab/会话后默认滚动到最新消息底部
@@ -3811,12 +4037,14 @@ class ChatViewModel(
             // v1.126: 重新读取最新 _messages.value,防止加载期间流式追加的新消息被覆盖
             val currentMessages = _messages.value
             val merged = older + currentMessages
+            val restoredAgentPlans = restoreAgentPlans(merged)
             _messages.value = merged
             _state.update {
                 it.copy(
                     hasMoreHistory = older.size >= MESSAGE_PAGE_SIZE,
                     isLoadingMore = false,
                     lastHistoryLoadCount = older.size,
+                    agentPlans = restoredAgentPlans,
                 )
             }
         rebuildConversationTree()
@@ -4921,8 +5149,11 @@ class ChatViewModel(
             // PII Guard:piiMatches 与 unmaskPii 辅助函数提到 try 块外,让 catch 块也能在
             // 落盘部分回复时还原占位符,避免 [PHONE_001] 等占位符被持久化到数据库。
             val state = StreamRunState(sessionId = sessionId, assistantId = assistantId, isNewBranch = isNewBranch)
-            // v1.0.79 (F-1): 会话内手动切换的模型覆盖助手专属模型
-            state.sessionModelOverride = _sessionModelOverride.value
+            // 会话选择显式覆盖助手/全局默认；生成任务捕获启动时的配置，期间切页不会串台。
+            state.sessionModelOverride = sessionModelOverrides[sessionId]
+            state.sessionProviderOverride = sessionProviderOverrides[sessionId]
+            state.fallbackModelId = globalSelectedModelId
+            state.fallbackProviderId = globalActiveProviderId
             // B-24: 捕获本代序号,收尾清零 isStreaming 前校验自己仍是最新生成
             state.generationSerial = ++streamGenerationSerial
             // B7-04: 继续生成时预置已产出内容
@@ -5255,6 +5486,18 @@ class ChatViewModel(
         val tools = state.tools
         val effectiveTemperature = state.effectiveTemperature
         val reasoningLevel = state.reasoningLevel
+        val searchConfig = _state.value.webSearchConfig
+        val nativeWebSearchEnabled = searchConfig.enabled &&
+            searchConfig.mode in setOf(
+                io.zer0.muse.web.WebSearchMode.AUTO,
+                io.zer0.muse.web.WebSearchMode.NATIVE,
+            ) && effectiveProviderConfig?.type in setOf(
+                ProviderType.GEMINI,
+                ProviderType.OPENAI_RESPONSES,
+            )
+        val localWebSearchEnabled = searchConfig.enabled &&
+            searchConfig.mode != io.zer0.muse.web.WebSearchMode.OFF &&
+            !nativeWebSearchEnabled
         val conversationHistory = state.conversationHistory
         val unmaskPii: (String) -> String = state::unmaskPii
         // 工具执行上下文由宿主捕获，模型不能通过参数切换记忆 scope/space。
@@ -5435,13 +5678,17 @@ class ChatViewModel(
                         ToolExposurePolicy.shouldRequireTool(latestUserText, tools) -> "required"
                     else -> null
                 }
+                // ToolOrchestrator 原生请求失败后会把这一字段降为 false，
+                // 下一次同轮请求才会真正切到用户 API / Bing HTTP / 百度 HTTP。
+                val nativeSearchForRound = params.nativeWebSearch && params.round == 1
                 val flow = chatService.streamChat(
                     messages = params.history,
                     model = roundModel,
                     providerConfig = roundProviderConfig,
                     // “不要调用工具”由请求层硬关闭；不依赖模型遵守提示词。
-                    tools = tools.takeUnless { disableTools } ?: emptyList(),
+                    tools = tools.takeUnless { disableTools || nativeSearchForRound } ?: emptyList(),
                     toolChoice = toolChoice,
+                    nativeWebSearch = nativeSearchForRound,
                     temperature = effectiveTemperature,
                     maxTokens = roundMaxTokens,
                     reasoningLevel = roundReasoningLevel,
@@ -5454,6 +5701,7 @@ class ChatViewModel(
                         .takeIf { params.preservePartialContent && it.isNotBlank() },
                 )
                 val imageAccumulator = mutableListOf<String>()
+                val citationUrls = linkedSetOf<String>()
                 val toolCallAccumulator = mutableMapOf<Int, Triple<String?, String?, StringBuilder>>()
                 var streamError: String? = null
                 // v1.0.15: StreamInterrupted 标志 — 已收部分内容后网络中断,
@@ -5669,7 +5917,13 @@ class ChatViewModel(
                             }
                             val newId = event.id ?: acc.first
                             val newName = event.name ?: acc.second
-                            event.argumentsDelta?.let { acc.third.append(it) }
+                            // v1.0.81: isSnapshot=true 时参数是完整快照(源头已合并多 JSON 分片),替换而非追加
+                            if (event.isSnapshot) {
+                                acc.third.setLength(0)
+                                acc.third.append(event.argumentsDelta ?: "")
+                            } else {
+                                event.argumentsDelta?.let { acc.third.append(it) }
+                            }
                             toolCallAccumulator[event.index] = Triple(newId, newName, acc.third)
                             if (experiments.debugMode && event.name != null) {
                                 Logger.d(
@@ -5682,6 +5936,9 @@ class ChatViewModel(
                         // 直接覆盖 state.usageTokens,保证留存最后一次(总量);provider 未返回则保持 null
                         is ChatStreamEvent.UsageDelta -> {
                             state.usageTokens = event.usage
+                        }
+                        is ChatStreamEvent.CitationDelta -> {
+                            citationUrls.addAll(event.urls)
                         }
                         is ChatStreamEvent.Done -> {
                             // v1.0.30: 某些模型（如 GLM-4-9B）全流程只发空名 tool_call，
@@ -5954,6 +6211,7 @@ class ChatViewModel(
                         thinkingSignature = finalizedAssistant?.thinkingSignature ?: thinkingSignature,
                         thinkingEncryptedContent = finalizedAssistant?.thinkingEncryptedContent ?: thinkingEncryptedContent,
                         imageBase64List = finalizedAssistant?.imageBase64List ?: emptyList(),
+                        citationUrls = citationUrls.toList(),
                         // v1.0.88 (R-2): 变体身份字段必须完整保留 — 此前工具轮构建的
                         // assistantMessage 丢失 variantGroupId/variantIndex/variantCount/parentGroupId,
                         // 重试(变体)+工具调用后落盘,重进会话树重建时消息挂错位置,
@@ -5980,11 +6238,10 @@ class ChatViewModel(
                         thinkingEncryptedContent = thinkingEncryptedContent,
                         imageBase64List = imageAccumulator.toList(),
                     )
-                    val withCitations = if (pendingRagCitations.isNotEmpty()) {
-                        finalAssistant.copy(ragCitations = pendingRagCitations)
-                    } else {
-                        finalAssistant
-                    }
+                    val withCitations = finalAssistant.copy(
+                        citationUrls = (finalAssistant.citationUrls + citationUrls).distinct(),
+                        ragCitations = if (pendingRagCitations.isNotEmpty()) pendingRagCitations else finalAssistant.ragCitations,
+                    )
                     withCitations
                 }
 
@@ -5998,6 +6255,7 @@ class ChatViewModel(
                     hasToolCalls = hasToolCalls,
                     contentLength = params.builder.length,
                     firstTokenTime = firstTokenTime,
+                    citationUrls = citationUrls.toList(),
                 )
             }
 
@@ -6078,7 +6336,8 @@ class ChatViewModel(
                 temperature = effectiveTemperature,
                 maxTokens = assistant?.maxTokens,
                 reasoningLevel = reasoningLevel,
-                webSearchEnabled = _state.value.webSearchEnabled,
+                webSearchEnabled = localWebSearchEnabled,
+                nativeWebSearch = nativeWebSearchEnabled,
                 experiments = experiments,
                 assistant = assistant,
                 initialBuilderContent = state.builder.toString(),
@@ -6101,7 +6360,7 @@ class ChatViewModel(
         // 工具媒体消息再扫一次,覆盖落盘失败/进程竞争等窗口;NonCancellable 保证
         // 取消路径也能完成(登记者在取消分支走 attachMediaToMessage,此处幂等无害)。
         if (toolMediaMessages.isNotEmpty()) {
-            val sweepSession = activeToolSessionId ?: _state.value.currentSessionId
+            val sweepSession = activeToolSessionId ?: currentSessionIdForApproval()
             toolMediaMessages.forEach { mediaId ->
                 persistToolMessageMedia(sweepSession, mediaId)
             }
@@ -6715,14 +6974,21 @@ class ChatViewModel(
     }
 
     /**
-     * v1.0.29: 应用切回前台时调用。
+     * 应用切回前台时调用。
      *
-     * 停止前台服务通知(不再需要保活通知打扰用户)。生成任务继续在应用级协程中运行。
+     * 仍有生成任务时不能停止前台服务；服务是后台生成的保活身份，
+     * 只会在全部任务结束后由 ChatGenerationService 自行退出。
      */
     fun onAppForeground() {
-        runCatching { ChatGenerationService.stop(appContext) }
-        runCatching { notificationManager.updateLiveProgress("", 0, false) }
-            .onFailure { Logger.w("ChatVM", "取消进度通知失败: ${it.message}") }
+        if (chatGenerationManager.activeGenerations.value.isEmpty()) {
+            runCatching { notificationManager.updateLiveProgress("", 0, false) }
+                .onFailure { Logger.w("ChatVM", "清理进度通知失败: ${it.message}") }
+        } else {
+            Logger.i(
+                "ChatViewModel",
+                "foreground resumed; keep generation service alive, tasks=${chatGenerationManager.activeGenerations.value.size}",
+            )
+        }
     }
 
     /**
@@ -6937,14 +7203,14 @@ class ChatViewModel(
             if (isToolSessionDisplayed()) {
                 streamCoordinator.appendMediaToAssistant(assistantId, generatedContent, imageUrls = persistableUrls)
                 // 审计修复 (S-01): 含媒体的消息立即落盘,否则重启/切页后图片消失
-                persistToolMessageMedia(activeToolSessionId ?: _state.value.currentSessionId, assistantId)
+                persistToolMessageMedia(activeToolSessionId ?: currentSessionIdForApproval(), assistantId)
                 // C-17: 登记本代媒体消息,收尾兜底落盘
                 toolMediaMessages.add(assistantId)
             } else {
                 // 审查修复 (2.0 A-04): 切会话不取消 — 媒体按原会话直接落库,
                 // 切回原会话时从 DB 恢复展示(UI 合并路径对非显示会话无消息可写)
                 sessionRepository.attachMediaToMessage(
-                    sessionId = activeToolSessionId ?: _state.value.currentSessionId,
+                    sessionId = activeToolSessionId ?: currentSessionIdForApproval(),
                     messageId = assistantId,
                     content = generatedContent,
                     imageUrls = persistableUrls,
@@ -7099,13 +7365,13 @@ class ChatViewModel(
             if (isToolSessionDisplayed()) {
                 streamCoordinator.appendMediaToAssistant(assistantId, generatedContent, videoFileUri = videoUrl)
                 // 审计修复 (S-01): 含媒体的消息立即落盘,否则重启/切页后视频消失
-                persistToolMessageMedia(activeToolSessionId ?: _state.value.currentSessionId, assistantId)
+                persistToolMessageMedia(activeToolSessionId ?: currentSessionIdForApproval(), assistantId)
                 // C-17: 登记本代媒体消息,收尾兜底落盘
                 toolMediaMessages.add(assistantId)
             } else {
                 // 审查修复 (2.0 A-04): 切会话不取消 — 视频按原会话直接落库
                 sessionRepository.attachMediaToMessage(
-                    sessionId = activeToolSessionId ?: _state.value.currentSessionId,
+                    sessionId = activeToolSessionId ?: currentSessionIdForApproval(),
                     messageId = assistantId,
                     content = generatedContent,
                     videoFileUri = videoUrl,
@@ -7161,13 +7427,13 @@ class ChatViewModel(
             if (isToolSessionDisplayed()) {
                 streamCoordinator.appendMediaToAssistant(assistantId, generatedContent, imageUrls = persistableUri)
                 // 审计修复 (S-01): 含媒体的消息立即落盘,否则重启/切页后二维码消失
-                persistToolMessageMedia(activeToolSessionId ?: _state.value.currentSessionId, assistantId)
+                persistToolMessageMedia(activeToolSessionId ?: currentSessionIdForApproval(), assistantId)
                 // C-17: 登记本代媒体消息,收尾兜底落盘
                 toolMediaMessages.add(assistantId)
             } else {
                 // 审查修复 (2.0 A-04): 切会话不取消 — 二维码按原会话直接落库
                 sessionRepository.attachMediaToMessage(
-                    sessionId = activeToolSessionId ?: _state.value.currentSessionId,
+                    sessionId = activeToolSessionId ?: currentSessionIdForApproval(),
                     messageId = assistantId,
                     content = generatedContent,
                     imageUrls = persistableUri,
@@ -7265,6 +7531,7 @@ class ChatViewModel(
             )
             val assistant = assistantRepository.getById(targetId)
                 ?: assistantRepository.getById("default")
+            val restoredAgentPlans = restoreAgentPlans(messages)
             _messages.value = messages
             _state.update {
                 it.copy(
@@ -7280,7 +7547,7 @@ class ChatViewModel(
                     replyQuoteOverride = null,
                     taskCards = emptyMap(),
                     toolCallHistory = emptyList(),
-                    agentPlans = emptyMap(),
+                    agentPlans = restoredAgentPlans,
                     visionAssistedMessageIds = emptySet(),
                     visionProgress = null,
                     sessionPermissionMode = permissionMode,
@@ -7519,7 +7786,19 @@ class ChatViewModel(
      */
     fun toggleWebSearch() {
         val cfg = _state.value.webSearchConfig
-        val newCfg = cfg.copy(enabled = !cfg.enabled)
+        val enabling = !cfg.enabled || cfg.mode == io.zer0.muse.web.WebSearchMode.OFF
+        val newCfg = cfg.copy(
+            enabled = enabling,
+            mode = if (enabling) {
+                if (cfg.mode == io.zer0.muse.web.WebSearchMode.OFF) {
+                    io.zer0.muse.web.WebSearchMode.AUTO
+                } else {
+                    cfg.mode
+                }
+            } else {
+                io.zer0.muse.web.WebSearchMode.OFF
+            },
+        )
         _state.update {
             it.copy(
                 webSearchEnabled = newCfg.enabled,

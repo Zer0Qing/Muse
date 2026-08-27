@@ -61,6 +61,7 @@ import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.semiLarge
+import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
 import kotlinx.coroutines.delay
 import org.koin.compose.koinInject
 
@@ -145,12 +146,11 @@ internal fun CommandPalette(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
+        MuseDialogWindowEffect(forceFullScreen = true)
         Box(Modifier.fillMaxSize()) {
-            // 半透明遮罩,点击空白处关闭
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.4f))
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,

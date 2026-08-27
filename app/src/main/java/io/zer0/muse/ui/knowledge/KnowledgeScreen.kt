@@ -49,7 +49,6 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -471,7 +470,7 @@ fun KnowledgeScreen(
         }
     }
 
-    Scaffold(
+    io.zer0.muse.ui.common.surface.MusePageScaffold(
         topBar = {
             MuseTopBar(
                 title = stringResource(R.string.knowledge_title),
@@ -1197,3 +1196,4 @@ private fun formatFileSize(bytes: Long): String {
     return if (unitIdx == 0) "${bytes} ${units[unitIdx]}"
     else "%.1f ${units[unitIdx]}".format(size)
 }
+

@@ -131,6 +131,17 @@ class MuseApp : Application(), ImageLoaderFactory {
         MuseCrashHandler.install(this)
         // Phase 11.3: 文件日志(便于真机验证后回捞,cacheDir 卸载自动清理)
         Logger.initFileLog(this)
+        val displayMetrics = resources.displayMetrics
+        val configuration = resources.configuration
+        Logger.i(
+            "MuseApp",
+            "device=${Build.MANUFACTURER}/${Build.MODEL}, api=${Build.VERSION.SDK_INT}, " +
+                "display=${displayMetrics.widthPixels}x${displayMetrics.heightPixels}, " +
+                "densityDpi=${displayMetrics.densityDpi}, density=${displayMetrics.density}, " +
+                "scaledDensity=${displayMetrics.scaledDensity}, fontScale=${configuration.fontScale}, " +
+                "windowDp=${configuration.screenWidthDp}x${configuration.screenHeightDp}, " +
+                "smallestWidthDp=${configuration.smallestScreenWidthDp}",
+        )
         // 调试日志内存存储 + Logger sink 注册(DebugScreen 通过此 sink 接收所有日志)
         io.zer0.muse.debug.DebugLogStore.init(this)
         Logger.sink = { level, tag, msg, t ->
@@ -272,14 +283,8 @@ class MuseApp : Application(), ImageLoaderFactory {
                     // v1.0.29: 切后台时如果正在生成,启动前台服务保活。必须同步执行。
                     resultOf { chatViewModel.onAppBackground() }
                         .onError { msg, t -> Logger.w("MuseApp", "chatViewModel.onAppBackground 失败: $msg", t) }
-                    // 统一覆盖群聊独立生成:ChatViewModel 只知道当前单聊会话,
-                    // 但群聊可能在用户离开主页面后仍继续轮转/表决/总结。
-                    val hasBackgroundGeneration = chatGenerationManager.activeGenerations.value.isNotEmpty() ||
-                        groupChatScheduler.activeGroupGeneration.value?.isResponding == true
-                    if (hasBackgroundGeneration) {
-                        runCatching { io.zer0.muse.schedule.ChatGenerationService.start(this@MuseApp) }
-                            .onFailure { Logger.w("MuseApp", "后台生成前台服务启动失败", it) }
-                    }
+                    // ChatGenerationManager 在任务登记时立即启动前台服务；这里不再重复启动。
+                    // 这样单聊、群聊以及工具计划都由同一个 activeGenerations 快照保活。
                     resultOf { chatViewModel.release() }
                         .onError { msg, t -> Logger.w("MuseApp", "chatViewModel.release 失败: $msg", t) }
                     // v1.0.30: memoryTicker.stop 含 30s 超时等待，移入协程
@@ -292,7 +297,8 @@ class MuseApp : Application(), ImageLoaderFactory {
                     }
                 }
                 Lifecycle.Event.ON_START -> {
-                    // v1.0.29: 切回前台时停止前台服务通知。必须同步执行。
+                    // 生成任务可能仍在执行，不能因为页面回到前台就停止保活服务。
+                    // ChatGenerationService 会在 activeGenerations 变空后自行退出。
                     resultOf { chatViewModel.onAppForeground() }
                         .onError { msg, t -> Logger.w("MuseApp", "chatViewModel.onAppForeground 失败: $msg", t) }
                     // 回前台时重启 memory ticker

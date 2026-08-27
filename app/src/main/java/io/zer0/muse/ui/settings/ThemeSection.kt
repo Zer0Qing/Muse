@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -519,6 +520,7 @@ private fun DynamicColorRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .heightIn(min = 56.dp)
             .clickable(enabled = supported) { onToggle(!enabled) }
             .padding(MusePaddings.cardInner),
         verticalAlignment = Alignment.CenterVertically,
@@ -528,12 +530,12 @@ private fun DynamicColorRow(
             imageVector = TablerIcons.Palette,
             contentDescription = null,
             tint = if (supported) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
-            modifier = Modifier.size(MuseIconSizes.iconMedium),
+            modifier = Modifier.size(MuseIconSizes.icon),
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = dynamicColorLabel,
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.titleMedium,
                 color = if (supported) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
             )
             Text(
@@ -564,6 +566,7 @@ private fun HighContrastRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .heightIn(min = 56.dp)
             .clickable { onToggle(!enabled) }
             .padding(MusePaddings.cardInner),
         verticalAlignment = Alignment.CenterVertically,
@@ -573,12 +576,12 @@ private fun HighContrastRow(
             imageVector = TablerIcons.Eye,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.outline,
-            modifier = Modifier.size(MuseIconSizes.iconMedium),
+            modifier = Modifier.size(MuseIconSizes.icon),
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = highContrastLabel,
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
@@ -661,6 +664,7 @@ private fun ThemeOptionRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .heightIn(min = 56.dp)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -671,7 +675,7 @@ private fun ThemeOptionRow(
     ) {
         Text(
             text = name,
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.titleMedium,
             color = if (isSelected) MaterialTheme.colorScheme.primary
             else MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f),
@@ -1052,6 +1056,7 @@ private fun CustomThemeItemRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .heightIn(min = 56.dp)
             .clickable(onClick = onSelect)
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -1107,7 +1112,7 @@ private fun CustomThemeItemRow(
         // 主题名称(空名回退"未命名")
         Text(
             text = theme.name.ifEmpty { unnamedLabel },
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.titleMedium,
             color = if (isSelected) MaterialTheme.colorScheme.primary
             else MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f),

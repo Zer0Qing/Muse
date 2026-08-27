@@ -17,6 +17,7 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -24,10 +25,13 @@ import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.node.DelegatableNode
 import androidx.compose.ui.node.DrawModifierNode
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontFamily
 import androidx.core.view.WindowCompat
+import io.zer0.common.Logger
 import androidx.compose.runtime.RememberObserver
 
 /**
@@ -104,6 +108,8 @@ fun MuseTheme(
     // ColorScheme(dynamicColorScheme 会读系统资源,预设主题会查表,均应缓存)。
     // v1.97 gap7: remember key 加入 customThemes,使新增/编辑/删除自定义主题后立即重算。
     val context = LocalContext.current
+    val composeDensity = LocalDensity.current
+    val composeConfiguration = LocalConfiguration.current
     val resolvedThemeId = if (darkTheme && darkThemeId.isNotBlank()) darkThemeId else themeId
     val colorScheme = remember(dynamicColor, darkTheme, resolvedThemeId, customThemes) {
         when {
@@ -135,6 +141,25 @@ fun MuseTheme(
     // 纳入 themeId 会导致切换主题时多余地重设系统栏。themeId 变化引发的 colorScheme
     // 切换由上方 remember 自动处理,不影响系统栏外观。
     val view = LocalView.current
+    LaunchedEffect(
+        composeDensity.density,
+        composeDensity.fontScale,
+        composeConfiguration.screenWidthDp,
+        composeConfiguration.screenHeightDp,
+        composeConfiguration.smallestScreenWidthDp,
+    ) {
+        // 实机“整套 UI 缩小”诊断：同时记录 Compose/Resources/View 三层缩放，
+        // 用于区分系统显示大小、厂商兼容缩放与应用代码缩放。
+        val resourceMetrics = context.resources.displayMetrics
+        Logger.i(
+            "MuseDensity",
+            "composeDensity=${composeDensity.density}, composeFontScale=${composeDensity.fontScale}, " +
+                "resourceDensity=${resourceMetrics.density}, resourceDensityDpi=${resourceMetrics.densityDpi}, " +
+                "windowDp=${composeConfiguration.screenWidthDp}x${composeConfiguration.screenHeightDp}, " +
+                "smallestWidthDp=${composeConfiguration.smallestScreenWidthDp}, " +
+                "view=${view.width}x${view.height}, viewScale=${view.scaleX}x${view.scaleY}",
+        )
+    }
     if (!view.isInEditMode) {
         DisposableEffect(darkTheme, effectiveColorScheme) {
             val window = context.findActivity()?.window

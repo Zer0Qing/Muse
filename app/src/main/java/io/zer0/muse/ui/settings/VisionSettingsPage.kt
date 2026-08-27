@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import compose.icons.TablerIcons
@@ -140,6 +141,7 @@ fun VisionSettingsPage(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .heightIn(min = 56.dp)
                                 .padding(MusePaddings.cardInner),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -184,6 +186,7 @@ fun VisionSettingsPage(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .heightIn(min = 56.dp)
                             .padding(MusePaddings.cardInner),
                     ) {
                         Text(
@@ -311,6 +314,7 @@ private fun VisionModelRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .heightIn(min = 56.dp)
             .clickable(onClick = onClick)
             .padding(MusePaddings.cardInner),
         verticalAlignment = Alignment.CenterVertically,
@@ -325,7 +329,7 @@ private fun VisionModelRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = modelName,
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             // v1.0.1 (P1): 手动选择模式下显示"手动选择"提示

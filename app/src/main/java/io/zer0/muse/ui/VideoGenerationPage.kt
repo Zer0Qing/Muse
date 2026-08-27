@@ -198,7 +198,7 @@ fun VideoGenerationPage(
         }
     }
 
-    Scaffold(
+    io.zer0.muse.ui.common.surface.MusePageScaffold(
         topBar = {
             MuseTopBar(
                 title = stringResource(R.string.video_gen_title),

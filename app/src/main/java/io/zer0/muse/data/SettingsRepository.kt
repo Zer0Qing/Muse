@@ -244,6 +244,23 @@ class SettingsRepository(
             emit(null)
         }
     val selectedModelIdFlow: Flow<String?> = store.data.map { prefs -> prefs[KEY_SELECTED_MODEL] }
+    /** 当前会话的模型覆盖，键为 sessionId；不参与全局默认模型设置。 */
+    private val sessionModelOverrideSerializer = MapSerializer(String.serializer(), String.serializer())
+    val sessionModelOverridesFlow: Flow<Map<String, String>> = store.data.map { prefs ->
+        decodePrefsOrNull(
+            prefs[KEY_SESSION_MODEL_OVERRIDES],
+            sessionModelOverrideSerializer,
+            "SessionModelOverrides",
+        ) ?: emptyMap()
+    }
+    /** 当前会话的 Provider 覆盖，和模型覆盖一起保证聊天页切换不污染全局默认。 */
+    val sessionProviderOverridesFlow: Flow<Map<String, String>> = store.data.map { prefs ->
+        decodePrefsOrNull(
+            prefs[KEY_SESSION_PROVIDER_OVERRIDES],
+            sessionModelOverrideSerializer,
+            "SessionProviderOverrides",
+        ) ?: emptyMap()
+    }
     /** v1.60-A: 工具模型 id(用于工具调用轮次的轻量模型,null 表示沿用主对话模型)。 */
     val toolModelIdFlow: Flow<String?> = store.data.map { prefs -> prefs[KEY_TOOL_MODEL_ID] }
     /**
@@ -319,8 +336,18 @@ class SettingsRepository(
     val stickerSendProbabilityFlow: Flow<Int> = store.data.map { prefs -> prefs[KEY_STICKER_SEND_PROBABILITY] ?: 30 }
     // v1.135: 调用 WebSearchConfig.decrypted() 统一解密 apiKey + apiKeys,并同步旧版单 key 到 apiKeys 映射
     val webSearchConfigFlow: Flow<WebSearchConfig> = store.data.map { prefs ->
-        decodePrefsOrNull(prefs[KEY_WEB_SEARCH_CONFIG], WebSearchConfig.serializer(), "WebSearchConfig")?.decrypted()
-            ?: WebSearchConfig()
+        val config = decodePrefsOrNull(
+            prefs[KEY_WEB_SEARCH_CONFIG],
+            WebSearchConfig.serializer(),
+            "WebSearchConfig",
+        )?.decrypted() ?: WebSearchConfig()
+        // v2 策略迁移：旧版配置没有 policyVersion，可能仍保存旧默认预算 2。
+        // 新默认预算为 5；只迁移无版本的旧配置，之后用户在设置页的选择保持不变。
+        if (config.policyVersion < 1) {
+            config.copy(maxSearchesPerTurn = 5, policyVersion = 1)
+        } else {
+            config
+        }
     }.catch {
         // M-SR3: 解密/解析异常回退默认值,避免 Flow 永久失效
         Logger.w("SettingsRepository", "webSearchConfigFlow 异常,回退默认值", it)
@@ -1337,6 +1364,28 @@ class SettingsRepository(
     }
     suspend fun setActiveProvider(id: String) { store.edit { it[KEY_ACTIVE_PROVIDER_ID] = id } }
     suspend fun saveSelectedModel(modelId: String?) { store.edit { if (modelId != null) it[KEY_SELECTED_MODEL] = modelId else it.remove(KEY_SELECTED_MODEL) } }
+    /** 保存单个会话的模型覆盖；传 null 清除覆盖并回退全局默认模型。 */
+    suspend fun saveSessionModelOverride(sessionId: String, modelId: String?) {
+        saveSessionOverride(KEY_SESSION_MODEL_OVERRIDES, "SessionModelOverrides(save)", sessionId, modelId)
+    }
+    /** 保存单个会话的 Provider 覆盖；传 null 清除覆盖并回退全局默认 Provider。 */
+    suspend fun saveSessionProviderOverride(sessionId: String, providerId: String?) {
+        saveSessionOverride(KEY_SESSION_PROVIDER_OVERRIDES, "SessionProviderOverrides(save)", sessionId, providerId)
+    }
+    private suspend fun saveSessionOverride(
+        key: Preferences.Key<String>,
+        keyName: String,
+        sessionId: String,
+        value: String?,
+    ) {
+        store.edit { prefs ->
+            val overrides = decodePrefsOrNull(prefs[key], sessionModelOverrideSerializer, keyName)
+                ?.toMutableMap() ?: mutableMapOf()
+            if (value.isNullOrBlank()) overrides.remove(sessionId) else overrides[sessionId] = value
+            if (overrides.isEmpty()) prefs.remove(key)
+            else prefs[key] = AppJson.encodeToString(sessionModelOverrideSerializer, overrides)
+        }
+    }
     /** v1.60-A: 保存工具模型 id(null 表示清除,沿用主对话模型)。 */
     suspend fun saveToolModel(modelId: String?) { store.edit { if (modelId != null) it[KEY_TOOL_MODEL_ID] = modelId else it.remove(KEY_TOOL_MODEL_ID) } }
     /**
@@ -1620,6 +1669,8 @@ class SettingsRepository(
         private val KEY_PROVIDERS = stringPreferencesKey("providers_json")
         private val KEY_ACTIVE_PROVIDER_ID = stringPreferencesKey("active_provider_id")
         private val KEY_SELECTED_MODEL = stringPreferencesKey("selected_model_id")
+        private val KEY_SESSION_MODEL_OVERRIDES = stringPreferencesKey("session_model_overrides_json")
+        private val KEY_SESSION_PROVIDER_OVERRIDES = stringPreferencesKey("session_provider_overrides_json")
         private val KEY_TOOL_MODEL_ID = stringPreferencesKey("tool_model_id")
         /** 压缩模型 id(独立便宜模型,供 ConversationCompressor 使用)。 */
         private val KEY_COMPRESS_MODEL_ID = stringPreferencesKey("compress_model_id")

@@ -25,7 +25,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -42,6 +41,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.surface.MusePageScaffold
 import io.zer0.muse.tools.system.AccessibilityProviderInstaller
 import io.zer0.muse.tools.system.AndroidPermissionLevel
 import io.zer0.muse.tools.system.RootAuthorizer
@@ -100,7 +100,7 @@ fun PermissionWizardScreen(
         AndroidPermissionLevel.ROOT to (rootAvailable || suiAvailable),
     )
 
-    Scaffold(
+    MusePageScaffold(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.permission_wizard_title)) },

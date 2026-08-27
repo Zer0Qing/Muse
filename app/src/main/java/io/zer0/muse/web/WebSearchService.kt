@@ -17,6 +17,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.Call
 import okhttp3.Callback
+import okhttp3.Dns
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -111,11 +112,31 @@ interface WebSearchService {
  * @param enabled 是否启用"联网搜索"开关(InputBar 上的开关)
  */
 @Serializable
+enum class WebSearchMode {
+    OFF,
+    /** 自动优先：支持时使用模型原生搜索，否则走本地搜索链。 */
+    AUTO,
+    LOCAL,
+    NATIVE,
+}
+
+@Serializable
 data class WebSearchConfig(
+    /** 搜索模式；默认自动优先模型原生搜索，再回退到本地 API/HTTP 链。 */
+    val mode: WebSearchMode = WebSearchMode.AUTO,
     val providerName: String = "Auto",
     val apiKey: String = "",
     val endpoint: String = "",
+    /** v1 兼容字段：mode=OFF 时同步视为关闭；旧调用方仍可读取 enabled。 */
     val enabled: Boolean = false,
+    /** v2: 单轮搜索预算，防止模型在一次回答里无限重复调用。 */
+    val maxSearchesPerTurn: Int = 5,
+    /** v2: 单次最多返回结果数。 */
+    val maxResults: Int = 5,
+    /** v2: provider 失败后是否继续走免费备用链。 */
+    val fallbackEnabled: Boolean = true,
+    /** 搜索策略配置版本，旧配置缺失时由设置仓库迁移到当前默认值。 */
+    val policyVersion: Int = 0,
     /**
      * v1.135: 多搜索引擎 API key 映射(providerName → key)。
      * 供 [AutoWebSearchService] 构建 provider fallback 链时使用。
@@ -194,6 +215,11 @@ data class WebSearchConfig(
  * 避免长连接 SSE 与短连接 search 互相影响)。
  */
 fun createWebSearchClient(proxyConfig: ProxyConfig = ProxyConfig()): OkHttpClient = OkHttpClient.Builder()
+    // MuMu/部分国内网络的 IPv6 路由经常直接 ECONNREFUSED；优先 IPv4，IPv6 仍保留为备用。
+    .dns(object : Dns {
+        override fun lookup(hostname: String): List<java.net.InetAddress> =
+            Dns.SYSTEM.lookup(hostname).sortedBy { if (it is java.net.Inet4Address) 0 else 1 }
+    })
     .connectTimeout(8, TimeUnit.SECONDS)
     .readTimeout(15, TimeUnit.SECONDS)
     .callTimeout(30, TimeUnit.SECONDS)

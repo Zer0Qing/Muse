@@ -309,8 +309,8 @@ internal fun MessageBubble(
     } else {
         InternalMarkupSanitizer.stripForDisplay(if (msg.quotedContent != null) msg.content else parsedBody)
     }
-    // 失败/恢复后的空 assistant 不能渲染成没有内容的白色长条；
-    // 流式期间仍保留空占位，用于显示 ThinkingIndicator/光标。
+    // 失败/恢复后的空 assistant 不能渲染成没有内容的白色长条。
+    // 流式等待反馈由 ChatScreen 的独立 ShimmerBubble 负责。
     val hasAssistantPayload = body.isNotBlank() ||
         msg.imageUrls.isNotEmpty() ||
         msg.imageBase64List.isNotEmpty() ||
@@ -323,7 +323,7 @@ internal fun MessageBubble(
         msg.ragCitations.isNotEmpty() ||
         taskCard != null ||
         artifacts.isNotEmpty()
-    if (!isUser && !isStreaming && !hasAssistantPayload) return
+    if (!isUser && !hasAssistantPayload) return
 
     // 历史消息可能只有 content 没有 mood 字段，显示层仍把内嵌 mood/mod 恢复成可折叠块。
     val visibleMood = if (isUser) null else {

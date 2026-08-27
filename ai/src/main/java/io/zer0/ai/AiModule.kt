@@ -122,6 +122,7 @@ class ChatService(
         maxTokens: Int? = null,
         tools: List<ToolDefinition>? = null,
         toolChoice: String? = null,
+        nativeWebSearch: Boolean = false,
         reasoningLevel: ReasoningLevel = ReasoningLevel.DEFAULT,
         providerConfig: ProviderConfig? = null,
         mode: ChatRequestMode = ChatRequestMode.CHAT,
@@ -145,6 +146,7 @@ class ChatService(
             maxTokens,
             tools,
             toolChoice,
+            nativeWebSearch,
             reasoningLevel,
             providerConfig,
             mode,
@@ -185,6 +187,7 @@ class ChatService(
         maxTokens: Int? = null,
         tools: List<ToolDefinition>? = null,
         toolChoice: String? = null,
+        nativeWebSearch: Boolean = false,
         reasoningLevel: ReasoningLevel = ReasoningLevel.DEFAULT,
         providerConfig: ProviderConfig? = null,
         mode: ChatRequestMode = ChatRequestMode.UTILITY,
@@ -196,6 +199,7 @@ class ChatService(
             maxTokens,
             tools,
             toolChoice,
+            nativeWebSearch,
             reasoningLevel,
             providerConfig,
             mode,
@@ -215,6 +219,7 @@ class ChatService(
         maxTokens: Int?,
         tools: List<ToolDefinition>?,
         toolChoice: String?,
+        nativeWebSearch: Boolean,
         reasoningLevel: ReasoningLevel,
         providerConfig: ProviderConfig? = null,
         mode: ChatRequestMode = ChatRequestMode.CHAT,
@@ -245,6 +250,12 @@ class ChatService(
             toolChoice = toolChoice
                 ?.takeIf { it == "auto" || it == "required" || it == "none" }
                 ?.takeIf { effectiveTools != null },
+            // 原生搜索仅由明确支持其协议的 Provider 接管；其他类型 fail closed，
+            // 防止把 google_search / web_search_preview 字段误发给兼容层导致 400。
+            nativeWebSearch = nativeWebSearch && config.type in setOf(
+                ProviderType.GEMINI,
+                ProviderType.OPENAI_RESPONSES,
+            ),
             reasoningLevel = effectiveReasoningLevel,
             mode = mode,
         )

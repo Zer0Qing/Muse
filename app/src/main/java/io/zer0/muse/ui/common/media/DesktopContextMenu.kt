@@ -40,6 +40,7 @@ import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
 
 /**
  * P2-13: 桌面端右键菜单项。
@@ -87,6 +88,7 @@ fun DesktopContextMenu(
             decorFitsSystemWindows = false,
         ),
     ) {
+        MuseDialogWindowEffect()
         Surface(
             shape = MuseShapes.medium,
             color = MaterialTheme.colorScheme.surface,

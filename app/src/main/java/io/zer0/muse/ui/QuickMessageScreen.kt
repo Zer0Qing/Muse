@@ -1,5 +1,7 @@
 package io.zer0.muse.ui
 
+import io.zer0.muse.ui.common.surface.museBottomBarInsets
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -8,8 +10,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -31,7 +31,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import io.zer0.muse.ui.common.form.MuseTextField
-import androidx.compose.material3.Scaffold
 import io.zer0.muse.ui.common.form.MuseDropdown
 import io.zer0.muse.ui.common.form.MuseFloatingButton
 import io.zer0.muse.ui.common.form.MuseSwitch
@@ -104,7 +103,7 @@ fun QuickMessageScreen(
         return
     }
 
-    Scaffold(
+    io.zer0.muse.ui.common.surface.MusePageScaffold(
         topBar = {
             MuseTopBar(
                 title = stringResource(R.string.quick_msg_screen_title),
@@ -332,7 +331,7 @@ private fun QuickMessageEditPage(
         )
     }
 
-    Scaffold(
+    io.zer0.muse.ui.common.surface.MusePageScaffold(
         topBar = {
             MuseTopBar(
                 title = if (isNew) newTitleText else editTitleText,
@@ -359,8 +358,7 @@ private fun QuickMessageEditPage(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .imePadding() // v1.48: 键盘遮挡修复
-                .navigationBarsPadding()
+                .museBottomBarInsets()
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp)
                 .verticalScroll(rememberScrollState()),

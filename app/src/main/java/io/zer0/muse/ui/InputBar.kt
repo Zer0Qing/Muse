@@ -1,10 +1,6 @@
 package io.zer0.muse.ui
 
-import android.Manifest
-import android.os.Build
 import android.view.KeyEvent
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
@@ -22,6 +18,8 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -62,7 +60,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.core.content.ContextCompat
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -168,8 +165,6 @@ internal fun InputBar(
     val asrStatus = state.asrStatus
     val recordingAmplitudes = state.recordingAmplitudes
     val showMic = state.showMic
-    val toolCallCompleted = state.toolCallCompleted
-    val toolCallTotal = state.toolCallTotal
     val hasDraft = state.hasDraft
     val autoFocus = state.autoFocus
     val pasteAsFileEnabled = state.pasteAsFileEnabled
@@ -203,7 +198,6 @@ internal fun InputBar(
     val onStartRecording = callbacks.onStartRecording
     val onStopRecording = callbacks.onStopRecording
     val onCancelRecording = callbacks.onCancelRecording
-    val onShowToolCalls = callbacks.onShowToolCalls
     val onOpenVoiceConversation = callbacks.onOpenVoiceConversation
     val onAddPastedTextAsDocument = callbacks.onAddPastedTextAsDocument
     // v1.26: 上滑取消后的"已取消"瞬态提示(1.5s 后自动消失)
@@ -235,98 +229,13 @@ internal fun InputBar(
             .fillMaxWidth()
             // v1.99: 大R角/曲面屏设备横向安全区避让(displayCutout 在非 cutout 设备上返回 0,安全)
             .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
+            // 输入岛只处理导航栏和键盘安全区，不使用 systemGesturesPadding，
+            // 避免手势区被误算成输入岛上方的额外空白。
             .navigationBarsPadding()
             .imePadding()
-            // v1.0.72: 输入栏岛两侧留白(缩小: 24dp → 8dp,保留悬浮感但不遮内容)
-            .padding(horizontal = 8.dp)
-            // v1.0.72: 顶部收窄、底部悬浮间距(缩小到 6dp,高度别太高)
-            .padding(top = MusePaddings.inputVertical, bottom = 6.dp),
+            .padding(horizontal = 8.dp),
         verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
     ) {
-        // v1.0.29: 联网搜索 / 深度思考 已移入加号菜单,
-        // 输入栏上方仅保留语音对话入口和工具进度 pill(有内容时才显示)。
-        if (showMic || toolCallTotal > 0) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            // 语音对话模式入口(仅 ASR API 已配置时显示):点击进入全屏连续对话
-            // 与长按麦克风区分:长按是单次识别填入输入框,语音对话是连续 ASR + AI + TTS 循环
-            if (showMic) {
-                val voiceInteractionSource = remember { MutableInteractionSource() }
-                val isVoicePressed by voiceInteractionSource.collectIsPressedAsState()
-                val voiceBgColor by animateColorAsState(
-                    targetValue = if (isVoicePressed) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    label = "voiceConvBg",
-                )
-                Box(
-                    modifier = Modifier
-                        .size(MuseIconSizes.touchTarget)
-                        .clip(CircleShape)
-                        .background(voiceBgColor)
-                        .clickable(
-                            interactionSource = voiceInteractionSource,
-                            indication = null,
-                        ) {
-                            MuseHaptics.light(hapticFeedback)
-                            onOpenVoiceConversation()
-                        },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.RecordVoiceOver,
-                        contentDescription = stringResource(R.string.voice_conversation_open_cd),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(MuseIconSizes.iconSmall),
-                    )
-                }
-            }
-            // v1.97: 工具/任务进度 pill — 靠右显示 x/y,不用红色 Badge,保持 UI 一致性
-            if (toolCallTotal > 0) {
-                Spacer(Modifier.weight(1f))
-                val toolPillInteractionSource = remember { MutableInteractionSource() }
-                val isToolPillPressed by toolPillInteractionSource.collectIsPressedAsState()
-                val toolPillBgColor by animateColorAsState(
-                    targetValue = if (isToolPillPressed) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                    else MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                    label = "toolPillBg",
-                )
-                // C-19: 语义块非组合上下文,资源取值提升到此处
-                val toolProgressCd = stringResource(R.string.tool_call_progress_cd, toolCallCompleted, toolCallTotal)
-                Row(
-                    modifier = Modifier
-                        .height(MuseIconSizes.controlTouch)
-                        .clip(MuseShapes.pill)
-                        .background(toolPillBgColor)
-                        .clickable(
-                            interactionSource = toolPillInteractionSource,
-                            indication = null,
-                        ) { onShowToolCalls() }
-                        .padding(horizontal = MusePaddings.itemGap)
-                        .semantics {
-                            contentDescription = toolProgressCd
-                        },
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Build,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(MuseIconSizes.iconSmall),
-                    )
-                    Text(
-                        text = "$toolCallCompleted/$toolCallTotal",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Medium,
-                    )
-                }
-            }
-        }
-        }
         // QuickMessages 气泡
         if (quickMessages.isNotEmpty()) {
             Row(
@@ -674,26 +583,7 @@ internal fun InputBar(
             ) {
                 // v0.44: Sheet 状态声明(右侧 Add 按钮触发,Sheet 块留在 Row 内不影响布局)
                 var showToolSheet by remember { mutableStateOf(false) }
-                // v0.53: 工具菜单中最近相册权限与图片列表
                 val context = LocalContext.current
-                val galleryPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    Manifest.permission.READ_MEDIA_IMAGES
-                } else {
-                    Manifest.permission.READ_EXTERNAL_STORAGE
-                }
-                var hasGalleryPermission by remember {
-                    mutableStateOf(
-                        ContextCompat.checkSelfPermission(context, galleryPermission) == android.content.pm.PackageManager.PERMISSION_GRANTED
-                    )
-                }
-                // M-IB1: hasGalleryPermission 仅在首次组合时检查;
-                // 用户从系统设置中修改权限后不会自动更新,需重新进入页面才会刷新。
-                // 工具 Sheet 打开时通过 LaunchedEffect 触发查询会间接刷新(见下文 recentImages 加载)。
-                val galleryPermissionLauncher = rememberLauncherForActivityResult(
-                    contract = ActivityResultContracts.RequestPermission(),
-                ) { granted ->
-                    hasGalleryPermission = granted
-                }
                 // 左侧: + 号按钮 → 底部 Sheet
                 IconButton(
                     onClick = {
@@ -849,9 +739,6 @@ internal fun InputBar(
                      MuseToolSheet(
                          context = context,
                          hapticFeedback = hapticFeedback,
-                         hasGalleryPermission = hasGalleryPermission,
-                         galleryPermission = galleryPermission,
-                         onRequestGalleryPermission = { galleryPermissionLauncher.launch(galleryPermission) },
                          onPickImage = { asOcr ->
                              showToolSheet = false
                              onPickImage(asOcr)
@@ -863,6 +750,24 @@ internal fun InputBar(
                          entries = toolEntries,
                          onDismiss = { showToolSheet = false },
                      )
+                 }
+
+                 // 语音对话入口放回输入岛内部，不再单独占用输入栏上方的一行。
+                 if (showMic) {
+                     IconButton(
+                         onClick = {
+                             MuseHaptics.light(hapticFeedback)
+                             onOpenVoiceConversation()
+                         },
+                         modifier = Modifier.size(MuseIconSizes.touchTarget),
+                     ) {
+                         Icon(
+                             imageVector = Icons.Default.RecordVoiceOver,
+                             contentDescription = stringResource(R.string.voice_conversation_open_cd),
+                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                             modifier = Modifier.size(MuseIconSizes.iconSmall),
+                         )
+                     }
                  }
 
                  // v1.0.47 P5-4: 抽取 MessageInputField 子组件,隔离输入框高频重组,

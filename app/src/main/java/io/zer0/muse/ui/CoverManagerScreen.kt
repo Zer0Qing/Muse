@@ -29,7 +29,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -50,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import io.zer0.muse.R
 import io.zer0.muse.data.cover.CoverItem
+import io.zer0.muse.ui.common.surface.MusePageScaffold
 import io.zer0.muse.data.cover.CoverLibraryRepository
 import io.zer0.muse.ui.common.form.MuseFloatingButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
@@ -112,7 +112,8 @@ fun CoverManagerScreen(
         covers = repo.listCovers()
     }
 
-    Scaffold(
+    MusePageScaffold(
+        topBarHandlesInsets = false,
         topBar = {
             Row(
                 modifier = Modifier

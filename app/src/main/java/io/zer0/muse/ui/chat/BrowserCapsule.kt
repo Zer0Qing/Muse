@@ -42,6 +42,7 @@ import compose.icons.tablericons.Refresh
 import compose.icons.tablericons.X
 import io.zer0.muse.tools.BrowserManager
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
 import io.zer0.muse.ui.common.surface.MuseGlassContainer
 
 /**
@@ -131,6 +132,7 @@ fun BrowserViewerDialog(manager: BrowserManager, onDismiss: () -> Unit) {
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
+        MuseDialogWindowEffect(forceFullScreen = true)
         Box(
             modifier = Modifier
                 .fillMaxSize()

@@ -311,4 +311,28 @@
     <string name="settings_crash_no_webhook">请先配置有效的 Webhook URL</string>
     <string name="settings_crash_no_method">上报方式未配置,已跳过</string>
     <string name="settings_crash_reported_count">已上报 %1$d 条崩溃记录</string>
+
+    <string name="settings_web_search_mode">搜索模式</string>
+    <string name="settings_web_search_mode_desc">优先使用模型自带搜索，其次使用你配置的搜索 API，最后使用 Bing 和百度 HTTP。</string>
+    <string name="settings_web_search_mode_off">关闭</string>
+    <string name="settings_web_search_mode_auto">自动优先模型搜索</string>
+    <string name="settings_web_search_mode_local">本地搜索</string>
+    <string name="settings_web_search_mode_native">模型原生</string>
+    <string name="settings_web_search_native_unavailable">模型原生搜索已接入 Gemini Grounding 与 OpenAI Responses；其他协议会自动忽略原生搜索。</string>
+    <string name="settings_web_search_default_path">默认搜索路径</string>
+    <string name="settings_web_search_default_path_desc">优先模型原生搜索，其次用户 API，最后按 Bing HTTP → 百度 HTTP 尝试</string>
+    <string name="settings_web_search_provider_status_bing">Bing HTTP：中国区入口，免费兜底</string>
+    <string name="settings_web_search_provider_status_jina">百度 HTTP：国内网页抓取兜底，免费</string>
+    <string name="settings_web_search_provider_status_searxng">仅保留用户自己配置的搜索 API</string>
+    <string name="settings_web_search_strategy">搜索策略</string>
+    <string name="settings_web_search_budget">单轮最多搜索</string>
+    <string name="settings_web_search_max_results">每次最多结果</string>
+    <string name="settings_web_search_fallback">失败后自动使用备用搜索</string>
+    <string name="settings_web_search_api_services">API 搜索服务</string>
+    <string name="settings_web_search_api_services_desc">高级用户可配置 Tavily、Brave、Serper、博查等服务；普通用户无需配置</string>
+    <string name="settings_web_search_diagnosis">最近一次搜索诊断</string>
+    <string name="settings_web_search_no_diagnosis">还没有搜索记录</string>
+    <string name="settings_web_search_endpoint_optional">Endpoint（可选）</string>
+    <string name="settings_web_search_provider_not_configured">未配置</string>
 </resources>
+

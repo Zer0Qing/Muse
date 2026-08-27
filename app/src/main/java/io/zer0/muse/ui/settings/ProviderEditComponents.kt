@@ -14,8 +14,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -68,6 +66,7 @@ import io.zer0.muse.R
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.surface.museBottomBarInsets
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
@@ -89,8 +88,7 @@ internal fun ProviderEditBottomBar(
         tonalElevation = 3.dp,
         modifier = Modifier
             .fillMaxWidth()
-            .imePadding() // v1.48: 键盘遮挡修复
-            .navigationBarsPadding(),
+            .museBottomBarInsets(),
     ) {
         Row(
             modifier = Modifier

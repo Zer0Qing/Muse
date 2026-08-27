@@ -73,7 +73,7 @@ fun RecentlyDeletedScreen(
         withContext(Dispatchers.IO) { sessionRepository.purgeOldDeletedSessions() }
     }
 
-    Scaffold(
+    io.zer0.muse.ui.common.surface.MusePageScaffold(
         topBar = {
             MuseTopBar(
                 title = stringResource(R.string.recently_deleted_title),

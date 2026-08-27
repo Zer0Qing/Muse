@@ -54,6 +54,7 @@ import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.huge
 import io.zer0.muse.ui.theme.semiLarge
+import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
 
 /** 弹窗内容区内边距(与 MuseDialog 对齐)。 */
 private val DialogContentPadding = 22.dp
@@ -99,6 +100,7 @@ fun DelegationConfirmDialog(
             decorFitsSystemWindows = false,
         ),
     ) {
+        MuseDialogWindowEffect()
         Surface(
             shape = MuseShapes.huge,
             color = MaterialTheme.colorScheme.surface,

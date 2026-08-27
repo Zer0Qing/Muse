@@ -45,6 +45,7 @@ import compose.icons.TablerIcons
 import compose.icons.tablericons.Download
 import io.zer0.muse.R
 import io.zer0.muse.ui.SmartImage
+import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import kotlinx.coroutines.launch
@@ -154,6 +155,7 @@ internal fun FullScreenMediaViewer(
             dismissOnClickOutside = false,
         ),
     ) {
+        MuseDialogWindowEffect(forceFullScreen = true)
         Box(
             modifier = Modifier
                 .fillMaxSize()

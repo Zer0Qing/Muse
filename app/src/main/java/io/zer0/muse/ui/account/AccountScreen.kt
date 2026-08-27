@@ -25,7 +25,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -124,7 +123,7 @@ fun AccountScreen(
     val hasChanges = editName.trim() != initialName.trim() || editAvatarUri != initialAvatar
     val canSave = hasChanges && editName.isNotBlank() && !saving && !avatarSaving
 
-    Scaffold(
+    io.zer0.muse.ui.common.surface.MusePageScaffold(
         topBar = {
             MuseTopBar(
                 title = stringResource(R.string.account_edit_profile),
@@ -504,3 +503,4 @@ fun AccountCard(
         }
     }
 }
+

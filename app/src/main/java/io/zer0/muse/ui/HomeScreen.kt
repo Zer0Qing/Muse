@@ -58,6 +58,7 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.schedule.ProactiveMessageRunner
 import io.zer0.muse.ui.common.media.DesktopShortcuts
 import io.zer0.muse.ui.common.media.WindowWidthClass
+import io.zer0.muse.ui.common.surface.MusePageScaffold
 import io.zer0.muse.ui.common.media.rememberDesktopShortcutsEnabled
 import io.zer0.muse.ui.common.media.rememberWindowWidthClass
 import io.zer0.muse.ui.groupchat.GroupChatListScreen
@@ -204,7 +205,7 @@ fun HomeScreen(
         if (!isWideTasks) onOpenChat()
     }
 
-    Scaffold(
+    MusePageScaffold(
         floatingActionButton = {
             // v1.0.17: 悬浮胶囊仅在"任务"Tab(首页)显示,Agent/群聊页不显示
             // C4: 宽屏双栏时隐藏(FAB 会悬浮在右栏输入区上方遮挡;左栏已有新建入口)

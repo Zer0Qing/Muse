@@ -28,7 +28,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import io.zer0.muse.ui.common.navigation.MuseTopBar
@@ -99,7 +98,7 @@ fun LicensesScreen(
         dialogLoading = false
     }
 
-    Scaffold(
+    io.zer0.muse.ui.common.surface.MusePageScaffold(
         topBar = {
             MuseTopBar(
                 title = stringResource(R.string.licenses_title),
@@ -119,7 +118,7 @@ fun LicensesScreen(
             ) {
                 CircularProgressIndicator(modifier = Modifier.size(32.dp))
             }
-            return@Scaffold
+            return@MusePageScaffold
         }
         if (m.dependencies.isEmpty()) {
             // 解析失败 / manifest 为空
@@ -134,7 +133,7 @@ fun LicensesScreen(
                     title = "暂无许可数据",
                 )
             }
-            return@Scaffold
+            return@MusePageScaffold
         }
 
         LazyColumn(
@@ -425,3 +424,4 @@ private fun LicenseTextDialog(
         dismissText = null,
     )
 }
+

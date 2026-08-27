@@ -305,12 +305,18 @@ private class GenerationLoop(
                     val idx = event.index
                     val existing = toolCallAccumulator[idx]
                     if (existing != null) {
-                        // 累积参数增量
-                        event.argumentsDelta?.let { existing.third.append(it) }
+                        // v1.0.81: isSnapshot=true 表示参数是完整快照(源头已合并多 JSON 分片),
+                        //   替换而非追加,避免重新拼成 {..}{..} 拼接串。
+                        if (event.isSnapshot) {
+                            toolCallAccumulator[idx] = Triple(existing.first, existing.second, StringBuilder(event.argumentsDelta ?: ""))
+                        } else {
+                            // 累积参数增量
+                            event.argumentsDelta?.let { existing.third.append(it) }
+                        }
                         // 如果当前分片携带 id/name 则更新（首个分片）
                         val newId = event.id ?: existing.first
                         val newName = event.name ?: existing.second
-                        toolCallAccumulator[idx] = Triple(newId, newName, existing.third)
+                        toolCallAccumulator[idx] = Triple(newId, newName, toolCallAccumulator[idx]!!.third)
                     } else {
                         // 该 index 的首个分片
                         toolCallAccumulator[idx] = Triple(event.id, event.name, StringBuilder(event.argumentsDelta ?: ""))
@@ -324,6 +330,7 @@ private class GenerationLoop(
                 is ChatStreamEvent.FallbackNotice -> { /* 已自动降级为非流式 */ }
                 // A5: token 用量 — 工具循环路径只拼正文/工具调用,用量由 ChatViewModel 消费
                 is ChatStreamEvent.UsageDelta -> { /* 忽略 */ }
+                is ChatStreamEvent.CitationDelta -> { /* 原生搜索引用由主聊天路径消费 */ }
             }
         }
     }

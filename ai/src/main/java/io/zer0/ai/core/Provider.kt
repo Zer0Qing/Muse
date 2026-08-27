@@ -45,12 +45,16 @@ sealed class ChatStreamEvent {
      * @param id 工具调用 id(首个 chunk 携带,后续片段为 null)
      * @param name 函数名(首个 chunk 携带,后续片段为 null)
      * @param argumentsDelta 参数 JSON 增量片段
+     * @param isSnapshot v1.0.81: true 表示 argumentsDelta 是完整参数快照(而非增量),
+     *   消费者应替换而非追加。用于模型把 arguments 拆成多个完整 JSON 对象分片、
+     *   提供方已在源头合并的场景(如 DeepSeek V4)。
      */
     data class ToolCallDelta(
         val index: Int,
         val id: String? = null,
         val name: String? = null,
         val argumentsDelta: String? = null,
+        val isSnapshot: Boolean = false,
     ) : ChatStreamEvent()
 
     /** 一轮正常结束,带可选的停止原因。 */
@@ -95,6 +99,9 @@ sealed class ChatStreamEvent {
      * provider 未返回 usage 时不发该事件(消费方回退本地估算)。
      */
     data class UsageDelta(val usage: UsageTokens) : ChatStreamEvent()
+
+    /** Provider 原生搜索返回的引用 URL；顺序与正文引用标记保持稳定。 */
+    data class CitationDelta(val urls: List<String>) : ChatStreamEvent()
 }
 
 /**
@@ -139,6 +146,8 @@ data class ChatRequest(
     val abortSignal: AbortSignal = AbortSignal(),
     val tools: List<ToolDefinition>? = null,
     val toolChoice: String? = null,
+    /** 原生联网搜索：由具体 Provider 使用自己的搜索工具协议实现。 */
+    val nativeWebSearch: Boolean = false,
     val reasoningLevel: ReasoningLevel = ReasoningLevel.DEFAULT,
     val mode: ChatRequestMode = ChatRequestMode.CHAT,
 )
@@ -186,6 +195,8 @@ data class ChatCompletion(
     val thinkingSignature: String? = null,
     /** B5-03: OpenAI Responses reasoning encrypted_content。 */
     val thinkingEncryptedContent: String? = null,
+    /** 原生搜索返回的引用 URL。 */
+    val citationUrls: List<String> = emptyList(),
 )
 
 /**

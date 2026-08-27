@@ -28,7 +28,6 @@ import compose.icons.tablericons.Qrcode
 import androidx.compose.material3.MaterialTheme
 import io.zer0.common.Result
 import io.zer0.common.resultOf
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import io.zer0.muse.ui.common.navigation.MuseTopBar
@@ -834,7 +833,7 @@ internal fun ProviderEditPage(
             destructive = true,
         )
     }
-    Scaffold(
+    io.zer0.muse.ui.common.surface.MusePageScaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             MuseTopBar(

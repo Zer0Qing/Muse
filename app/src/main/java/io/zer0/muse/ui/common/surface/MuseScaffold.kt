@@ -5,12 +5,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import io.zer0.muse.ui.common.surface.museTopBarInsets
 
 /**
  * v1.0.29: Muse 通用 Scaffold,统一处理状态栏 insets。
@@ -36,26 +36,14 @@ fun MuseScaffold(
     containerColor: Color = MaterialTheme.colorScheme.background,
     content: @Composable (PaddingValues) -> Unit,
 ) {
-    Scaffold(
+    MusePageScaffold(
         modifier = modifier,
-        topBar = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(containerColor)
-                    .statusBarsPadding(),
-            ) {
-                topBar()
-            }
-        },
+        topBar = topBar,
         bottomBar = bottomBar,
         snackbarHost = snackbarHost,
         floatingActionButton = floatingActionButton,
         containerColor = containerColor,
-        // 禁用默认 insets,由本组件统一在 topBar 层处理 statusBars,
-        // 避免与 topBar 的 statusBarsPadding 重复计算。
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-    ) { innerPadding ->
-        content(innerPadding)
-    }
+        topBarHandlesInsets = false,
+        content = content,
+    )
 }

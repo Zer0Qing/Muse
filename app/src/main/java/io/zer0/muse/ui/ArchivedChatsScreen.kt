@@ -16,7 +16,6 @@ import androidx.compose.material.icons.outlined.Unarchive
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,7 +46,7 @@ fun ArchivedChatsScreen(
     onUnarchive: (String) -> Unit,
     onOpenSession: (String) -> Unit,
 ) {
-    Scaffold(
+    io.zer0.muse.ui.common.surface.MusePageScaffold(
         topBar = {
             MuseTopBar(
                 title = stringResource(R.string.chat_list_filter_archived),
@@ -67,7 +66,7 @@ fun ArchivedChatsScreen(
                     subtitle = stringResource(R.string.chat_list_empty_archived_sub),
                 )
             }
-            return@Scaffold
+            return@MusePageScaffold
         }
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(innerPadding),
@@ -137,3 +136,4 @@ private fun formatTime(timestamp: Long): String =
         io.zer0.muse.ui.theme.MuseDateFormats.DATE_TIME_SHORT,
         java.util.Locale.getDefault(),
     ).format(java.util.Date(timestamp))
+

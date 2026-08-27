@@ -32,6 +32,75 @@ import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
+/**
+ * 百度网页搜索兜底。
+ *
+ * 国内 Android 网络环境下，Bing/Jina/SearXNG 可能同时被重定向、鉴权或路由阻断；
+ * 百度页面在这类网络里通常仍可访问。这里仅解析公开结果页，不上传用户查询之外的数据。
+ */
+private fun Response.searchDiagnostic(): String {
+    var redirects = 0
+    var previous = priorResponse
+    while (previous != null) {
+        redirects++
+        previous = previous.priorResponse
+    }
+    return "code=$code, finalHost=${request.url.host}, redirects=$redirects, " +
+        "contentType=${header("Content-Type")?.substringBefore(';') ?: "unknown"}, " +
+        "contentLength=${header("Content-Length") ?: "unknown"}"
+}
+
+class BaiduProvider(
+    private val client: OkHttpClient,
+) : WebSearchService {
+    override val name: String = "Baidu"
+
+    override suspend fun search(query: String, maxResults: Int): List<WebSearchResult> =
+        withContext(AppDispatchers.io) {
+            resultOf {
+                val url = "https://www.baidu.com/s?wd=" + java.net.URLEncoder.encode(query, "UTF-8")
+                val request = Request.Builder()
+                    .url(url)
+                    .header("User-Agent", "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/124 Mobile Safari/537.36")
+                    .header("Accept-Language", "zh-CN,zh;q=0.9")
+                    .get()
+                    .build()
+                client.executeAsync(request).use { response ->
+                    if (!response.isSuccessful) {
+                        Logger.w(name, "search failed: ${response.searchDiagnostic()}")
+                        return@use emptyList()
+                    }
+                    parseResults(response.body.string(), maxResults)
+                }
+            }.onError { msg, t -> Logger.w(name, "search error: $msg", t) }
+                .getOrNull()
+                ?: emptyList()
+        }
+
+    private fun parseResults(body: String, maxResults: Int): List<WebSearchResult> {
+        val document = Jsoup.parse(body)
+        return document.select("div.result, div.c-container").asSequence()
+            .mapNotNull { item ->
+                val anchor = item.selectFirst("h3 a, a[data-click]") ?: return@mapNotNull null
+                val title = anchor.text().trim().takeIf { it.isNotBlank() } ?: return@mapNotNull null
+                val href = anchor.absUrl("href").ifBlank { anchor.attr("href") }
+                    .takeIf { it.startsWith("http://") || it.startsWith("https://") }
+                    ?: return@mapNotNull null
+                val snippet = item.selectFirst(".c-span-last, .c-color-text, .c-font-normal, .content-right_8Zs40")
+                    ?.text()?.trim().orEmpty()
+                WebSearchResult(
+                    title = title,
+                    url = href,
+                    snippet = snippet.take(300),
+                    source = name,
+                )
+            }
+            .distinctBy { it.url }
+            .take(maxResults)
+            .toList()
+    }
+}
+
 class SearXNGProvider(
     private val client: OkHttpClient,
     private val endpoint: String = "https://searx.be",
@@ -53,7 +122,7 @@ class SearXNGProvider(
                     // 429/402 限速检测：标记 provider 并抛 SearchRateLimitException（由 onError 重抛到 UI）
                     SearchRateLimiter.assertNotRateLimited(name, resp)
                     if (!resp.isSuccessful) {
-                        Logger.w("SearXNG", "search failed: HTTP ${resp.code}")
+                        Logger.w("SearXNG", "search failed: ${resp.searchDiagnostic()}")
                         return@use emptyList()
                     }
                     val body = resp.body.string()
@@ -131,7 +200,7 @@ class TavilyProvider(
                     // 429/402 限速检测：标记 provider 并抛 SearchRateLimitException（由 onError 重抛到 UI）
                     SearchRateLimiter.assertNotRateLimited(name, resp)
                     if (!resp.isSuccessful) {
-                        Logger.w("Tavily", "search failed: HTTP ${resp.code}")
+                        Logger.w("Tavily", "search failed: ${resp.searchDiagnostic()}")
                         return@use emptyList()
                     }
                     val body = resp.body.string()
@@ -254,41 +323,39 @@ class AutoWebSearchService(
     private fun buildProviderChain(cfg: WebSearchConfig): List<WebSearchService> {
         val chain = mutableListOf<WebSearchService>()
 
-        // 1) 配置了 API key 的商用 provider(按大致质量/稳定性排序)
-        if (!cfg.apiKeys["Tavily"].isNullOrBlank()) {
-            chain.add(TavilyProvider(client, cfg.apiKeys["Tavily"]!!))
+        // 用户配置的搜索 API 优先于免费抓取。apiKeys 是新格式，apiKey 是旧格式；
+        // 旧格式仅在 providerName 指向该 provider 时回退，避免把一个 key 误发给其他供应商。
+        fun keyFor(provider: String): String =
+            cfg.apiKeys[provider].orEmpty().ifBlank {
+                cfg.apiKey.takeIf { cfg.providerName.equals(provider, ignoreCase = true) }.orEmpty()
+            }
+        fun addIfConfigured(provider: String, factory: (String) -> WebSearchService) {
+            keyFor(provider).takeIf { it.isNotBlank() }?.let { chain.add(factory(it)) }
         }
-        if (!cfg.apiKeys["Perplexity"].isNullOrBlank()) {
-            chain.add(PerplexitySearchProvider(client, cfg.apiKeys["Perplexity"]!!))
+        addIfConfigured("Tavily") { TavilyProvider(client, it) }
+        addIfConfigured("Perplexity") { PerplexitySearchProvider(client, it) }
+        addIfConfigured("Brave") { BraveSearchProvider(client, it) }
+        addIfConfigured("Serper") { SerperSearchProvider(client, it) }
+        addIfConfigured("Zhipu") { ZhipuSearchProvider(client, it) }
+        addIfConfigured("Bocha") { BochaSearchProvider(client, it) }
+        addIfConfigured("Metaso") { MetasoSearchProvider(client, it) }
+        addIfConfigured("Exa") { ExaSearchProvider(client, it) }
+        addIfConfigured("Firecrawl") { FirecrawlProvider(client, it) }
+        addIfConfigured("Jina") { JinaProvider(client, it) }
+        // 自托管 SearXNG 属于用户自己的搜索服务，优先于公共免费抓取。
+        if (cfg.endpoint.isNotBlank() && cfg.providerName.equals("SearXNG", ignoreCase = true)) {
+            chain.add(SearXNGProvider(client, cfg.endpoint))
         }
-        if (!cfg.apiKeys["Brave"].isNullOrBlank()) {
-            chain.add(BraveSearchProvider(client, cfg.apiKeys["Brave"]!!))
-        }
-        if (!cfg.apiKeys["Serper"].isNullOrBlank()) {
-            chain.add(SerperSearchProvider(client, cfg.apiKeys["Serper"]!!))
-        }
-        if (!cfg.apiKeys["Zhipu"].isNullOrBlank()) {
-            chain.add(ZhipuSearchProvider(client, cfg.apiKeys["Zhipu"]!!))
-        }
-        if (!cfg.apiKeys["Bocha"].isNullOrBlank()) {
-            chain.add(BochaSearchProvider(client, cfg.apiKeys["Bocha"]!!))
-        }
-        if (!cfg.apiKeys["Metaso"].isNullOrBlank()) {
-            chain.add(MetasoSearchProvider(client, cfg.apiKeys["Metaso"]!!))
-        }
-        if (!cfg.apiKeys["Exa"].isNullOrBlank()) {
-            chain.add(ExaSearchProvider(client, cfg.apiKeys["Exa"]!!))
-        }
-        if (!cfg.apiKeys["Firecrawl"].isNullOrBlank()) {
-            chain.add(FirecrawlProvider(client, cfg.apiKeys["Firecrawl"]!!))
+        if (cfg.providerName.equals("Custom API", ignoreCase = true) && cfg.apiKey.isNotBlank()) {
+            chain.add(TavilyProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://api.tavily.com" }))
         }
 
-        // 2) 免费/免 key provider(fallback)
+        // 最后才走免费 HTTP 抓取。这里不启动 Android WebView，也不使用手机浏览器内核。
         chain.add(BingProvider(client))
-        chain.add(JinaProvider(client, ""))
-        chain.add(SearXNGProvider(client, cfg.endpoint.ifBlank { "https://searx.be" }))
+        chain.add(BaiduProvider(client))
 
-        return chain
+        // 允许高级用户关闭自动 fallback；默认开启，普通用户无需配置即可使用整条免费链。
+        return if (cfg.fallbackEnabled) chain else chain.take(1)
     }
 
     companion object {
@@ -418,7 +485,8 @@ class CompositeWebSearchService(
          * 根据配置构造对应的搜索 Provider(供测试按钮直接调用,绕过限速与 stale config)。
          * 使用 UI 中最新的 WebSearchConfig,直接实例化对应 Provider,不经过 Composite 层。
          */
-        fun buildDelegate(client: OkHttpClient, cfg: WebSearchConfig): WebSearchService = when (cfg.providerName) {
+        fun buildDelegate(client: OkHttpClient, cfg: WebSearchConfig): WebSearchService {
+            return when (cfg.providerName) {
         // v1.135: Auto 多引擎 fallback
         "Auto" -> AutoWebSearchService(client, cfg)
         "Bing" -> BingProvider(client)
@@ -443,9 +511,10 @@ class CompositeWebSearchService(
         "Firecrawl" -> FirecrawlProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://api.firecrawl.dev/v1" })
         // Perplexity AI 搜索 API(sonar-pro 模型 + citations),既有实现 PerplexityService
         "Perplexity" -> PerplexitySearchProvider(client, cfg.apiKey, cfg.endpoint.ifBlank { "https://api.perplexity.ai" })
-        // 默认用 Bing(免费,无需 API key)
+        // 默认用 Bing HTTP(免费,无需 API key)
         else -> BingProvider(client)
     }
+        }
     }
 }
 
@@ -473,165 +542,47 @@ class BingProvider(
 ) : WebSearchService {
     override val name: String = "Bing"
 
+    /** 使用中国区入口的 HTTP HTML 搜索；不启动 Android WebView。 */
     override suspend fun search(query: String, maxResults: Int): List<WebSearchResult> =
         withContext(AppDispatchers.io) {
-            // H-WS1: 用 resultOf 替代 runCatching,避免吞 CancellationException
             resultOf {
-                // v1.131: 加 mkt/setlang/ensearch 参数,避免地区重定向和语言不一致
-                val url = "https://www.bing.com/search?q=" +
-                    java.net.URLEncoder.encode(query, "UTF-8") +
-                    "&mkt=zh-CN&setlang=zh-CN&ensearch=1&FORM=Z9FD1"
-                val req = Request.Builder().url(url)
-                    // v1.131: UA 升级到 Chrome 140,匹配当前 Bing 反爬虫校验
-                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36")
-                    .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
-                    .header("Accept-Language", buildAcceptLanguage())
-                    // L-WS2: 去掉 "sdch"(已被现代浏览器废弃),只保留 "gzip, deflate"
-                    .header("Accept-Encoding", "gzip, deflate")
-                    .header("Accept-Charset", "utf-8")
-                    .header("Connection", "keep-alive")
-                    .header("Upgrade-Insecure-Requests", "1")
-                    .header("Sec-Fetch-Dest", "document")
-                    .header("Sec-Fetch-Mode", "navigate")
-                    .header("Sec-Fetch-Site", "same-origin")
-                    .header("Sec-Fetch-User", "?1")
-                    .header("Referer", "https://www.bing.com/")
-                    // v1.131: 增强 cookie,SRCHLANG 强制中文结果,ULSR=1 避免个性化干扰
-                    .header("Cookie", "SRCHHPGUSR=ULSR=1&SRCHLANG=zh-CN; _SS=mlock=1")
-                    .get().build()
-                // M-WS2: 用 executeAsync(enqueue + suspendCancellableCoroutine)替代阻塞 execute()
-                client.executeAsync(req).use { resp ->
-                    // 429/402 限速检测：标记 provider 并抛 SearchRateLimitException（由 onError 重抛到 UI）
-                    SearchRateLimiter.assertNotRateLimited(name, resp)
-                    if (!resp.isSuccessful) {
-                        Logger.w("Bing", "search failed: HTTP ${resp.code}")
+                val encoded = java.net.URLEncoder.encode(query, "UTF-8")
+                val url = "https://cn.bing.com/search?q=$encoded&mkt=zh-CN&setlang=zh-CN"
+                val request = Request.Builder()
+                    .url(url)
+                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36")
+                    .header("Accept-Language", "zh-CN,zh;q=0.9")
+                    .header("Accept", "text/html,application/xhtml+xml")
+                    .get()
+                    .build()
+                client.executeAsync(request).use { response ->
+                    if (!response.isSuccessful) {
+                        Logger.w(name, "HTTP search failed: ${response.searchDiagnostic()}")
                         return@use emptyList()
                     }
-                    // 手动设置了 Accept-Encoding,OkHttp 不会透明解压,需按 Content-Encoding 解压
-                    val html = decodeBody(resp)
-                    parseBingHtml(html, maxResults)
+                    parseHttpResults(response.body.string(), maxResults)
                 }
-            }.onError { _, t ->
-                // 限速异常向上抛，供 UI 给用户友好提示；其余异常照旧吞掉返回空列表
-                if (t is SearchRateLimitException) throw t
-                Logger.w("Bing", "search error", t)
-            }.getOrNull() ?: emptyList()
+            }.onError { msg, t -> Logger.w(name, "HTTP search error: $msg", t) }
+                .getOrNull()
+                ?: emptyList()
         }
 
-    /** 根据 locale 动态构造 Accept-Language,格式如 zh-CN,zh;q=0.9,en;q=0.8。 */
-    private fun buildAcceptLanguage(): String {
-        val locale = java.util.Locale.getDefault()
-        val lang = locale.language
-        val country = locale.country
-        val primary = if (country.isNotEmpty()) "$lang-$country" else lang
-        return "$primary,$lang;q=0.9,en;q=0.8"
-    }
-
-    /**
-     * 读取并按 Content-Encoding 解压响应体。
-     * 因请求显式带了 Accept-Encoding,OkHttp 不会透明解压,这里自行处理 gzip/deflate。
-     */
-    private fun decodeBody(resp: okhttp3.Response): String {
-        val bytes = resp.body.bytes()
-        val encoding = resp.header("Content-Encoding")?.lowercase()
-        val decompressed = when (encoding) {
-            "gzip" -> runCatching {
-                java.util.zip.GZIPInputStream(java.io.ByteArrayInputStream(bytes)).use { it.readBytes() }
-            }.getOrElse { bytes }
-            "deflate" -> runCatching {
-                java.util.zip.InflaterInputStream(java.io.ByteArrayInputStream(bytes)).use { it.readBytes() }
-            }.getOrElse { bytes }
-            else -> bytes
-        }
-        return String(decompressed, Charsets.UTF_8)
-    }
-
-    /**
-     * 用 Jsoup 从 Bing HTML 提取自然搜索结果。
-     *
-     * 选择器策略(v1.131 多级兜底):
-     *  - 主块: `li.b_algo`(排除 b_algo_default / b_card 等非自然结果)
-     *  - 标题链接: `h2 > a`(主) → `h2 a`(兜底)
-     *  - snippet: `.b_caption p` → `.b_caption .b_paractl` → `.b_lineclamp4` → `.b_focusTextLarge`
-     *
-     * 跳过: 视频/图片/新闻卡片块(b_ans / b_card / b_algo_default)
-     */
-    private fun parseBingHtml(html: String, max: Int): List<WebSearchResult> {
-        val doc = Jsoup.parse(html)
-        val results = mutableListOf<WebSearchResult>()
-        // v1.131: 主选择器 — li.b_algo 自然结果块
-        doc.select("li.b_algo").forEach { block ->
-            if (results.size >= max) return@forEach
-            // 跳过非自然结果(b_algo_default 是 Bing 内部广告/推荐变体)
-            val classes = block.classNames()
-            if (classes.contains("b_algo_default") || classes.contains("b_card")) return@forEach
-            // 标题与链接: h2 > a(主) → h2 a(兜底,某些 Bing 模板 a 不是 h2 直接子元素)
-            val linkEl = block.selectFirst("h2 > a")
-                ?: block.selectFirst("h2 a")
-                ?: return@forEach
-            var rawUrl = linkEl.attr("href").orEmpty()
-            val title = linkEl.text().trim()
-            if (title.isBlank() || rawUrl.isBlank()) return@forEach
-            // 清理 Bing 跟踪跳转链接,还原真实 URL
-            rawUrl = cleanBingUrl(rawUrl)
-            // v1.131: snippet 多级兜底,应对 Bing 多种结果块模板
-            // 既有实现: .b_caption p / .b_algoSlug 为主,其余为兜底
-            val snippet = (
-                block.selectFirst(".b_caption p")?.text()
-                    ?: block.selectFirst(".b_algoSlug")?.text()
-                    ?: block.selectFirst(".b_caption .b_paractl")?.text()
-                    ?: block.selectFirst(".b_lineclamp4")?.text()
-                    ?: block.selectFirst(".b_focusTextLarge")?.text()
-                    ?: block.selectFirst(".b_caption")?.text()
-                )?.trim() ?: ""
-            // 跳过无 snippet 且 URL 是 Bing 内部链接的项(通常是导航/推荐)
-            if (snippet.isBlank() && (rawUrl.contains("bing.com/") || rawUrl.contains("go.microsoft.com"))) {
-                return@forEach
+    private fun parseHttpResults(body: String, maxResults: Int): List<WebSearchResult> {
+        val document = Jsoup.parse(body)
+        return document.select("li.b_algo").asSequence()
+            .mapNotNull { item ->
+                val anchor = item.selectFirst("h2 a") ?: return@mapNotNull null
+                val title = anchor.text().trim().takeIf { it.isNotBlank() } ?: return@mapNotNull null
+                val url = anchor.absUrl("href").takeIf { it.startsWith("http") }
+                    ?: return@mapNotNull null
+                val snippet = item.selectFirst(".b_caption p, .b_lineclamp4, .b_focusTextLarge")
+                    ?.text()?.trim().orEmpty()
+                WebSearchResult(title, url, snippet.take(300), name)
             }
-            results.add(
-                WebSearchResult(
-                    title = title,
-                    url = rawUrl,
-                    snippet = if (snippet.length > 300) snippet.take(300) + "…" else snippet,
-                    source = name,
-                )
-            )
-        }
-        // 兜底:解析为空时告警但不抛异常(Bing HTML 改版可能导致选择器失效)
-        if (results.isEmpty()) {
-            Logger.w("Bing", "Jsoup parse returned no results (HTML may have changed)")
-        }
-        return results
+            .distinctBy { it.url }
+            .take(maxResults)
+            .toList()
     }
-
-    /**
-     * 清理 Bing 跟踪跳转链接,还原真实 URL;非跟踪链接原样返回。
-     *
-     * v1.131: 扩展处理:
-     *  1) /ck/a?...&u=ENCODED_URL&... — 主流跟踪格式
-     *  2) /ck/a?...&u=a1ENCODED_URL&... — 新版加 a1 前缀
-     *  3) /lm/redirect?u=ENCODED — 部分模板
-     *  4) 协议相对 URL(//开头)补 https:
-     */
-    private fun cleanBingUrl(rawUrl: String): String {
-        // Bing 跟踪跳转: https://www.bing.com/ck/a?...&u=ENCODED_URL&...
-        if (rawUrl.contains("/ck/a") || rawUrl.contains("/lm/redirect")) {
-            val uPattern = Regex("""[?&]u=(a1)?([^&]+)""")
-            val match = uPattern.find(rawUrl)
-            if (match != null) {
-                val encoded = match.groupValues[2]
-                return runCatching {
-                    java.net.URLDecoder.decode(encoded, "UTF-8")
-                }.getOrElse { rawUrl }
-            }
-        }
-        return when {
-            rawUrl.startsWith("//") -> "https:$rawUrl"
-            rawUrl.startsWith("/") -> "https://www.bing.com$rawUrl"
-            else -> rawUrl
-        }
-    }
-    // L-WS1: stripHtml 已提取为文件级公共函数
 }
 
 /**
@@ -653,38 +604,34 @@ class JinaProvider(
 
     override suspend fun search(query: String, maxResults: Int): List<WebSearchResult> =
         withContext(AppDispatchers.io) {
-            // H-WS1: 用 resultOf 替代 runCatching,避免吞 CancellationException
-            resultOf {
-                val payload = kotlinx.serialization.json.buildJsonObject {
-                    put("q", kotlinx.serialization.json.JsonPrimitive(query))
-                    put("num", kotlinx.serialization.json.JsonPrimitive(maxResults))
-                }.toString()
-                val reqBuilder = Request.Builder().url("https://s.jina.ai/")
-                    .header("Content-Type", "application/json")
-                    .header("Accept", "application/json")
-                // apiKey 为空时不带 Authorization 头(走免费层速率限制)
-                if (apiKey.isNotBlank()) {
-                    reqBuilder.header("Authorization", "Bearer $apiKey")
-                }
-                val req = reqBuilder
-                    .post(payload.toRequestBody("application/json".toMediaType()))
-                    .build()
-                // M-WS2: 用 executeAsync(enqueue + suspendCancellableCoroutine)替代阻塞 execute()
-                client.executeAsync(req).use { resp ->
-                    // 429/402 限速检测：标记 provider 并抛 SearchRateLimitException（由 onError 重抛到 UI）
-                    SearchRateLimiter.assertNotRateLimited(name, resp)
-                    if (!resp.isSuccessful) {
-                        Logger.w("Jina", "search failed: HTTP ${resp.code}")
-                        return@use emptyList()
+            val endpoints = listOf("https://s.jinaai.cn/", "https://s.jina.ai/")
+            for (endpoint in endpoints) {
+                val result = resultOf {
+                    val payload = kotlinx.serialization.json.buildJsonObject {
+                        put("q", kotlinx.serialization.json.JsonPrimitive(query))
+                        put("num", kotlinx.serialization.json.JsonPrimitive(maxResults))
+                    }.toString()
+                    val reqBuilder = Request.Builder().url(endpoint)
+                        .header("Content-Type", "application/json")
+                        .header("Accept", "application/json")
+                    if (apiKey.isNotBlank()) reqBuilder.header("Authorization", "Bearer $apiKey")
+                    val req = reqBuilder.post(payload.toRequestBody("application/json".toMediaType())).build()
+                    client.executeAsync(req).use { resp ->
+                        SearchRateLimiter.assertNotRateLimited(name, resp)
+                        if (!resp.isSuccessful) {
+                            Logger.w("Jina", "search failed: ${resp.searchDiagnostic()} endpoint=$endpoint")
+                            emptyList()
+                        } else {
+                            parseResults(resp.body.string(), maxResults)
+                        }
                     }
-                    val body = resp.body.string()
-                    parseResults(body, maxResults)
-                }
-            }.onError { _, t ->
-                // 限速异常向上抛，供 UI 给用户友好提示；其余异常照旧吞掉返回空列表
-                if (t is SearchRateLimitException) throw t
-                Logger.w("Jina", "search error", t)
-            }.getOrNull() ?: emptyList()
+                }.onError { _, t ->
+                    if (t is SearchRateLimitException) throw t
+                    Logger.w("Jina", "search error endpoint=$endpoint", t)
+                }.getOrNull().orEmpty()
+                if (result.isNotEmpty()) return@withContext result
+            }
+            emptyList()
         }
 
     private fun parseResults(body: String, max: Int): List<WebSearchResult> {
@@ -744,7 +691,7 @@ class ZhipuSearchProvider(
                     // 429/402 限速检测：标记 provider 并抛 SearchRateLimitException（由 onError 重抛到 UI）
                     SearchRateLimiter.assertNotRateLimited(name, resp)
                     if (!resp.isSuccessful) {
-                        Logger.w("Zhipu", "search failed: HTTP ${resp.code}")
+                        Logger.w("Zhipu", "search failed: ${resp.searchDiagnostic()}")
                         return@use emptyList()
                     }
                     parseResults(resp.body.string(), maxResults)
@@ -806,7 +753,7 @@ class BraveSearchProvider(
                     // 429/402 限速检测：标记 provider 并抛 SearchRateLimitException（由 onError 重抛到 UI）
                     SearchRateLimiter.assertNotRateLimited(name, resp)
                     if (!resp.isSuccessful) {
-                        Logger.w("Brave", "search failed: HTTP ${resp.code}")
+                        Logger.w("Brave", "search failed: ${resp.searchDiagnostic()}")
                         return@use emptyList()
                     }
                     parseResults(resp.body.string(), maxResults)
@@ -873,7 +820,7 @@ class SerperSearchProvider(
                     // 429/402 限速检测：标记 provider 并抛 SearchRateLimitException（由 onError 重抛到 UI）
                     SearchRateLimiter.assertNotRateLimited(name, resp)
                     if (!resp.isSuccessful) {
-                        Logger.w("Serper", "search failed: HTTP ${resp.code}")
+                        Logger.w("Serper", "search failed: ${resp.searchDiagnostic()}")
                         return@use emptyList()
                     }
                     parseResults(resp.body.string(), maxResults)
@@ -940,7 +887,7 @@ class BochaSearchProvider(
                     // 429/402 限速检测：标记 provider 并抛 SearchRateLimitException（由 onError 重抛到 UI）
                     SearchRateLimiter.assertNotRateLimited(name, resp)
                     if (!resp.isSuccessful) {
-                        Logger.w("Bocha", "search failed: HTTP ${resp.code}")
+                        Logger.w("Bocha", "search failed: ${resp.searchDiagnostic()}")
                         return@use emptyList()
                     }
                     parseResults(resp.body.string(), maxResults)
@@ -1009,7 +956,7 @@ class MetasoSearchProvider(
                     // 429/402 限速检测：标记 provider 并抛 SearchRateLimitException（由 onError 重抛到 UI）
                     SearchRateLimiter.assertNotRateLimited(name, resp)
                     if (!resp.isSuccessful) {
-                        Logger.w("Metaso", "search failed: HTTP ${resp.code}")
+                        Logger.w("Metaso", "search failed: ${resp.searchDiagnostic()}")
                         return@use emptyList()
                     }
                     parseResults(resp.body.string(), maxResults)
@@ -1081,7 +1028,7 @@ class ExaSearchProvider(
                     // 429/402 限速检测：标记 provider 并抛 SearchRateLimitException（由 onError 重抛到 UI）
                     SearchRateLimiter.assertNotRateLimited(name, resp)
                     if (!resp.isSuccessful) {
-                        Logger.w("Exa", "search failed: HTTP ${resp.code}")
+                        Logger.w("Exa", "search failed: ${resp.searchDiagnostic()}")
                         return@use emptyList()
                     }
                     parseResults(resp.body.string(), maxResults)
@@ -1232,7 +1179,7 @@ class PerplexitySearchProvider(
                     // 429/402 限速检测：标记 provider 并抛 SearchRateLimitException（由 onError 重抛到 UI）
                     SearchRateLimiter.assertNotRateLimited(name, resp)
                     if (!resp.isSuccessful) {
-                        Logger.w("Perplexity", "search failed: HTTP ${resp.code}")
+                        Logger.w("Perplexity", "search failed: ${resp.searchDiagnostic()}")
                         return@use emptyList()
                     }
                     parseResults(resp.body.string(), maxResults)

@@ -21,7 +21,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import androidx.compose.runtime.Composable
@@ -85,7 +84,7 @@ fun DataManagementScreen(
         }
     }
 
-    Scaffold(
+    io.zer0.muse.ui.common.surface.MusePageScaffold(
         topBar = {
             MuseTopBar(
                 title = stringResource(R.string.data_management_title),
@@ -243,3 +242,4 @@ private fun getDirSize(dir: File): Long {
     }
     return size
 }
+

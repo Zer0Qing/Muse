@@ -123,6 +123,8 @@ data class StreamRoundParams(
      * 注入到 ChatService,重试时作为末尾 assistant 消息让模型从中断处继续,避免从头重生成。
      */
     val preservePartialContent: Boolean = false,
+    /** Provider 原生联网搜索开关；启用时本轮不发送本地 web_search 工具。 */
+    val nativeWebSearch: Boolean = false,
     /**
      * 审查修复 (2.0 A-01): 强制使用主模型重跑本轮 — toolModel 轮(round>1)若直接产出
      * 最终答复(无 toolCalls),说明本轮实为"最终回复轮",由 ChatViewModel 以该标志
@@ -149,6 +151,7 @@ sealed class StreamRoundResult {
         val hasToolCalls: Boolean,
         val contentLength: Int,
         val firstTokenTime: Long,
+        val citationUrls: List<String> = emptyList(),
     ) : StreamRoundResult()
 
     /**
@@ -254,6 +257,8 @@ data class ToolLoopParams(
     val maxTokens: Int?,
     val reasoningLevel: ReasoningLevel,
     val webSearchEnabled: Boolean = false,
+    /** 使用 Provider 原生联网搜索时，关闭本地 web_search 工具，避免两套搜索叠加。 */
+    val nativeWebSearch: Boolean = false,
     val experiments: ExperimentsConfig = ExperimentsConfig(),
     val assistant: AssistantEntity? = null,
     /** B7-04: 首轮预置已产出正文(继续生成时从断点续写)。 */
@@ -403,6 +408,7 @@ class ToolOrchestrator(
         val citationUrls = mutableListOf<String>()
         val toolRounds = mutableListOf<ToolRoundEntity>()
         var hasToolCalls = true
+        var nativeFallbackUsed = false
         var finalAssistantMessage: UIMessage? = null
         // A-07: 非正常退出原因(卡死/连续失败),用于收尾消息文案
         var abortReason: String? = null
@@ -471,11 +477,20 @@ class ToolOrchestrator(
                     builder = builder,
                     reasoningBuilder = reasoningBuilder,
                     preservePartialContent = isFirstRound && params.initialBuilderContent.isNotEmpty(),
+                    nativeWebSearch = params.nativeWebSearch && isFirstRound && !nativeFallbackUsed,
                 )
             )
 
             when (outcome) {
                 is StreamRoundResult.Error -> {
+                    // 原生搜索失败时降级到本地搜索链：其中先尝试用户已配置的 API，
+                    // 最后才是 Bing HTTP 与百度 HTTP。只降级一次，避免重复计费请求。
+                    if (params.nativeWebSearch && !nativeFallbackUsed) {
+                        nativeFallbackUsed = true
+                        round--
+                        Logger.w(TAG, "原生搜索请求失败，降级到用户 API/HTTP 搜索链")
+                        continue
+                    }
                     Logger.w(
                         TAG,
                         "Agent Loop 因流式错误终止 | sessionId=${params.sessionId} | traceId=${params.traceId}" +
@@ -500,6 +515,7 @@ class ToolOrchestrator(
                 }
 
                 is StreamRoundResult.Success -> {
+                    citationUrls.addAll(outcome.citationUrls)
                     totalCharCount += outcome.contentLength
                     if (outcome.firstTokenTime > 0L && firstTokenTime == 0L) {
                         firstTokenTime = outcome.firstTokenTime
@@ -531,9 +547,20 @@ class ToolOrchestrator(
                     // v1.0.48: 过滤后无有效 toolCalls,按"无工具调用"处理本轮
                     if (toolCallList.isEmpty()) {
                         hasToolCalls = false
-                        // 清空无效 toolCalls 后作为本轮最终 assistant 消息(对齐 line 412 的赋值类型)
-                        finalAssistantMessage = assistantToolMsg.copy(toolCalls = emptyList())
-                        Logger.d(TAG, "Agent Loop step $round/$maxRounds 结束(过滤后无有效工具调用)")
+                        // v1.0.81: 不再留 content 为空的气泡(那会显示空 UI 且无任何提示)。
+                        // 工具调用被清洗通常是模型输出了不完整/非法的工具参数(Sanitizer 丢弃),
+                        // 给用户和模型一个明确提示,让本轮可观测、下一轮可重试。
+                        val rawCount = assistantToolMsg.toolCalls?.size ?: 0
+                        val hint = if (rawCount > 0) {
+                            "模型发起了 $rawCount 个工具调用,但参数格式异常未能执行。请重新描述你的需求,我会再试一次。"
+                        } else {
+                            "模型未输出有效的工具调用,本轮无工具可执行。如需搜索或其他工具,请重新描述你的需求。"
+                        }
+                        finalAssistantMessage = assistantToolMsg.copy(
+                            toolCalls = emptyList(),
+                            content = hint,
+                        )
+                        Logger.w(TAG, "Agent Loop step $round/$maxRounds: toolCalls 清洗后为空(raw=$rawCount),注入提示")
                         break
                     }
 
@@ -567,9 +594,19 @@ class ToolOrchestrator(
                     // 改为始终使用清洗后的 toolCallList。
                     val cleanedAssistantToolMsg = assistantToolMsg.copy(toolCalls = toolCallList)
 
-                    // 把带 tool_calls 的 assistant 消息加入历史并持久化
+                    // 带 tool_calls 的 assistant 消息只属于本轮 Provider 协议历史。
+                    // MessageEntity 不保存 toolCalls 字段，若把 content 为空的协议消息落库，
+                    // 重载后只会剩下一条没有任何内容的 assistant 空壳。
                     conversationHistory.add(cleanedAssistantToolMsg)
-                    persistAssistantToolMsg(params.sessionId, cleanedAssistantToolMsg, host)
+                    if (
+                        cleanedAssistantToolMsg.content.isNotBlank() ||
+                        !cleanedAssistantToolMsg.reasoning.isNullOrBlank() ||
+                        cleanedAssistantToolMsg.imageUrls.isNotEmpty() ||
+                        cleanedAssistantToolMsg.imageBase64List.isNotEmpty() ||
+                        cleanedAssistantToolMsg.toolCallInfo != null
+                    ) {
+                        persistAssistantToolMsg(params.sessionId, cleanedAssistantToolMsg, host)
+                    }
 
                     // 断点续传:持久化未完成的工具调用
                     savePendingToolCalls(params.sessionId, toolCallList, host)
@@ -1043,6 +1080,7 @@ class ToolOrchestrator(
                             s.copy(progressText = msg)
                         }
                     },
+                    turnKey = params.turnId.ifBlank { params.traceId.ifBlank { params.sessionId } },
                 )
             } else {
                 withContext(Dispatchers.IO) {

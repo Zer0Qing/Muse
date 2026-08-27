@@ -81,6 +81,10 @@ class ChatStreamCoordinator(
 
     private val tag = "ChatVM"
 
+    // 切会话后旧生成仍会继续落库，但不会再命中当前 UI 消息列表。
+    // 对同一个 detached assistant 限频日志，避免每个流式 chunk 都刷一条 warning/debug。
+    private val missingAssistantLogAt = java.util.concurrent.ConcurrentHashMap<Uuid, Long>()
+
     /**
      * v1.0.27 Phase 4-A.2: 表情包工具名常量,与 ChatViewModel.STICKER_TOOL_IDS 保持一致。
      * sticker 概率控制时,未命中则从 tools 过滤掉这两个工具。
@@ -196,9 +200,20 @@ class ChatStreamCoordinator(
         // B-26: 切会话后后台生成每 50ms 打一条 warning = 日志风暴;持久化走
         // persistCurrentAssistant(msg=...) 落盘兜底,前台刷新从 DB 加载,这里降级为 debug。
         if (index == -1) {
-            Logger.d(tag, "updateAssistant 未找到消息 id=$id (内容 ${content.take(30)}),图片/视频更新可能丢失")
+            val now = System.currentTimeMillis()
+            val previous = missingAssistantLogAt.put(id, now)
+            if (previous == null || now - previous >= 2_000L) {
+                Logger.d(
+                    tag,
+                    "updateAssistant 跳过 detached assistant: id=${id.toString().take(8)}, " +
+                        "displayedSession=${if (accessor.snapshot.isAgentMode) accessor.snapshot.agentSessionId else accessor.snapshot.currentSessionId}, " +
+                        "contentLength=${content.length}, hasImage=${!imageBase64List.isNullOrEmpty() || !imageUrls.isNullOrEmpty()}, " +
+                        "后台生成仍由目标会话落库",
+                )
+            }
             return
         }
+        missingAssistantLogAt.remove(id)
         val msg = messages[index]
 
         // v1.42: 快速路径 — 流式过程中绝大多数 chunk 不含特殊标签,直接按索引更新,避免遍历全列表与正则。
@@ -958,9 +973,18 @@ class ChatStreamCoordinator(
             val allProviders = accessor.snapshot.providers
             // v1.0.79 (F-1): 会话内手动切换的模型优先于助手专属模型
             val sessionOverride = state.sessionModelOverride?.takeIf { it.isNotBlank() }
+            val sessionProviderOverride = state.sessionProviderOverride?.takeIf { it.isNotBlank() }
+            val activeProviderId = sessionProviderOverride
+                ?: assistant?.providerId?.takeIf { it.isNotBlank() }
+                ?: state.fallbackProviderId
+                ?: accessor.snapshot.activeProviderId
             val assistantModelId = sessionOverride
                 ?: assistant?.modelId?.takeIf { it.isNotBlank() }
-            val assistantProviderId = assistant?.providerId?.takeIf { it.isNotBlank() }
+                ?: state.fallbackModelId
+            // 会话手动切换的 Provider 与模型须成对优先，不能继续拿助手或全局 Provider 覆盖它。
+            val assistantProviderId = sessionProviderOverride
+                ?: assistant?.providerId?.takeIf { it.isNotBlank() }
+                ?: state.fallbackProviderId
             val resolvedModel: Model? = if (assistantModelId != null && assistantProviderId != null) {
                 allProviders.firstOrNull { it.id == assistantProviderId }
                     ?.models?.firstOrNull { it.id == assistantModelId }
@@ -971,13 +995,13 @@ class ChatStreamCoordinator(
                 // 命中非激活 provider，导致“切了 Provider 聊天请求仍走旧渠道”。
                 // 激活 Provider 找不到（如助手绑定的是该 Provider 没有的模型）才全局兜底。
                 assistantModelId?.let { aid ->
-                    val inActive = allProviders.firstOrNull { it.id == accessor.snapshot.activeProviderId }
+                    val inActive = allProviders.firstOrNull { it.id == activeProviderId }
                         ?.models?.firstOrNull { it.id == aid }
                     inActive ?: allProviders.flatMap { it.models }.firstOrNull { it.id == aid }
                 }
             } ?: accessor.snapshot.selectedModelId?.let { sid ->
                 // 与上面相同的激活 Provider 优先策略
-                val inActive = allProviders.firstOrNull { it.id == accessor.snapshot.activeProviderId }
+                val inActive = allProviders.firstOrNull { it.id == activeProviderId }
                     ?.models?.firstOrNull { it.id == sid }
                 inActive ?: allProviders.flatMap { it.models }.firstOrNull { it.id == sid }
             }
@@ -987,7 +1011,7 @@ class ChatStreamCoordinator(
             // 在多 provider 场景下会误选 SiliconFlow 免费模型(若 SiliconFlow 排在 allProviders 前面)。
             // 场景:用户切到 OpenCode 但未点选具体模型(让默认选首个),应选 OpenCode 的首个模型,
             // 而非 SiliconFlow 的 GLM-4-9B。
-            ?: allProviders.firstOrNull { it.id == accessor.snapshot.activeProviderId && it.models.isNotEmpty() }?.let { p ->
+            ?: allProviders.firstOrNull { it.id == activeProviderId && it.models.isNotEmpty() }?.let { p ->
                 p.models.firstOrNull()
             }
             // 二级兜底:激活 Provider 无模型(如未拉取/未填 apiKey),才退回首个有模型的 provider
@@ -996,7 +1020,7 @@ class ChatStreamCoordinator(
             }
             val resolvedProviderConfig = resolvedModel?.let { m ->
                 allProviders.firstOrNull { it.id == m.providerId }
-            } ?: allProviders.firstOrNull { it.id == accessor.snapshot.activeProviderId && it.models.isNotEmpty() }
+            } ?: allProviders.firstOrNull { it.id == activeProviderId && it.models.isNotEmpty() }
                 ?: allProviders.firstOrNull { it.models.isNotEmpty() }
 
             // v1.60-A: 工具模型路由 — 工具调用轮次优先使用用户配置的轻量 toolModel

@@ -18,7 +18,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import io.zer0.muse.ui.common.form.MuseTextField
-import androidx.compose.material3.Scaffold
 import io.zer0.muse.ui.common.form.MuseFloatingButton
 import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.navigation.MuseTopBar
@@ -74,7 +73,7 @@ fun ExperiencePanel(
         experiences.map { it.category }.distinct().sorted()
     }
 
-    Scaffold(
+    io.zer0.muse.ui.common.surface.MusePageScaffold(
         topBar = {
             MuseTopBar(
                 title = stringResource(R.string.experience_title),
@@ -259,3 +258,4 @@ private fun AddExperienceDialog(
         },
     )
 }
+

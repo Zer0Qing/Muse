@@ -333,7 +333,7 @@ class OpenAIProvider(
                     // v1.0.22: 跳过已增量恢复的 acc,避免重复发送
                     if (acc.recoveredAsContent) return@forEach
                     if (acc.name.isNullOrBlank() && acc.args.isNotEmpty()) {
-                        val recoveredText = acc.args.toString()
+                        val recoveredText = acc.args.current()
                         Logger.w(
                             "OpenAIProvider",
                             "stream-guard: 拦截空 name tool call (localIndex=$localIndex, args=${acc.args.length} chars)," +
@@ -686,16 +686,25 @@ class OpenAIProvider(
                                     index = localIndex,
                                     id = acc.id,
                                     name = currentName,
-                                    argumentsDelta = acc.args.toString(),
+                                    argumentsDelta = acc.args.current(),
                                 ))
                                 acc.hasEmitted = true
                             } else {
-                                // 后续增量
+                                // 后续增量。
+                                // v1.0.81: 若累积器发生过多 JSON 对象分片合并(模型把 arguments
+                                // 拆成 {"a":1}{"b":2}),不能再发原始增量给下游 append(那会重新拼成
+                                // 拼接串),改发合并后的完整 JSON 快照,下游用快照覆盖而非追加。
+                                val deltaArgs = if (acc.args.hasMergedObjects()) {
+                                    acc.args.current()
+                                } else {
+                                    tc.function?.arguments.orEmpty()
+                                }
                                 trySend(ChatStreamEvent.ToolCallDelta(
                                     index = localIndex,
                                     id = tc.id,
                                     name = tc.function?.name,
-                                    argumentsDelta = tc.function?.arguments.orEmpty(),
+                                    argumentsDelta = deltaArgs,
+                                    isSnapshot = acc.args.hasMergedObjects(),
                                 ))
                             }
                         }
@@ -1346,7 +1355,7 @@ class OpenAIProvider(
         }
         val payload = OpenAIRequest(
             model = effectiveModel,
-            messages = messagesWithPatches.map { it.toOpenAI(request.model, compat) },
+            messages = messagesWithPatches.map { it.toOpenAI(request.model, compat, carriesTools = !openAiTools.isNullOrEmpty()) },
             temperature = request.temperature,
             // v1.0.2 修复 HTTP 400: max_tokens 范围校验,0/负值视为未设置。
             // 部分 OpenAI 兼容中转站严格校验 max_tokens >= 1,直接发 0 会返回 400 invalid_request_error。
@@ -1569,7 +1578,7 @@ class OpenAIProvider(
      *  应已在调用 streamChat 前清空图片(由 VisionBridge.prepare 注入描述后清空)。
      *  此过滤仅用于兜底:历史消息残留图片 / 调用方遗漏清空等异常场景。
      */
-    private fun UIMessage.toOpenAI(model: Model, compat: ProviderCompat? = null): OpenAIMessage = OpenAIMessage(
+    private fun UIMessage.toOpenAI(model: Model, compat: ProviderCompat? = null, carriesTools: Boolean = false): OpenAIMessage = OpenAIMessage(
         role = when (role) {
             MessageRole.SYSTEM -> "system"
             MessageRole.USER -> "user"
@@ -1625,7 +1634,7 @@ class OpenAIProvider(
         toolCalls = toolCalls?.map { it.toOpenAI() },
         toolCallId = toolCallId,
         // v1.0.7: 历史推理回放 — 按 reasoningReplayContract.carrier/policy 决定是否注入 reasoning_content
-        reasoningContent = computeReasoningContentForReplay(compat),
+        reasoningContent = computeReasoningContentForReplay(compat, carriesTools),
     )
 
     /**
@@ -1637,27 +1646,35 @@ class OpenAIProvider(
      * policy 决策:
      *  - [ReasoningReplayPolicy.NONE]:不注入(返回 null)
      *  - [ReasoningReplayPolicy.PRESERVE]:始终注入(若 reasoning 非空)
-     *  - [ReasoningReplayPolicy.REQUIRE_TOOL_CALL]:仅 ASSISTANT + tool_calls 非空时注入
-     *    (对齐 Kimi/DeepSeek fail-closed:这些厂商要求 tool_calls 消息必带 reasoning_content,
-     *     否则返回 400;非 tool_calls 消息则不发,避免污染普通对话)
+     *  - [ReasoningReplayPolicy.REQUIRE_TOOL_CALL]:ASSISTANT 消息且请求带 tools 时注入。
+     *    v1.0.81: 对齐 DeepSeek 官方 thinking mode 协议 — 带 tools 的请求后续所有 assistant
+     *    消息都必须回传 reasoning_content 字段(即使空也传空字符串,不能省略),否则 400。
+     *    无 tools 的普通对话不发,避免污染上下文。
      *
      * 其他 carrier(REASONING_ITEMS / REASONING_DETAILS / THINKING_BLOCKS / THOUGHT_SIGNATURE)
      * 不通过此函数处理 — 它们走 Responses API / OpenRouter / Anthropic / Gemini 各自路径。
      */
-    private fun UIMessage.computeReasoningContentForReplay(compat: ProviderCompat?): String? {
+    private fun UIMessage.computeReasoningContentForReplay(
+        compat: ProviderCompat?,
+        carriesTools: Boolean,
+    ): String? {
         val contract = compat?.reasoningReplayContract ?: return null
         if (contract.carrier != ReasoningCarrier.REASONING_CONTENT) return null
-        val reasoningText = reasoning?.takeIf { it.isNotBlank() } ?: return null
         return when (contract.policy) {
             ReasoningReplayPolicy.NONE -> null
-            ReasoningReplayPolicy.PRESERVE -> reasoningText
+            ReasoningReplayPolicy.PRESERVE -> reasoning?.takeIf { it.isNotBlank() }
             ReasoningReplayPolicy.REQUIRE_TOOL_CALL -> {
-                // v1.x: 放宽为"ASSISTANT 且带 reasoning 即回传"。
-                // 原实现仅对带 tool_calls 的 assistant 注入,但 DeepSeek/Kimi 类中转站要求
-                // thinking 模式下**所有** assistant 消息(含普通回复)回传 reasoning_content,
-                // 否则多轮工具循环的下一轮请求返回 400
-                // ("The reasoning_content in the thinking mode must be passed back to the API")。
-                if (role == MessageRole.ASSISTANT) reasoningText else null
+                if (role != MessageRole.ASSISTANT) return null
+                // v1.0.81: 对齐 DeepSeek 官方 thinking mode 协议 — 当请求带 tools 参数时，
+                // 后续所有请求里的历史 assistant 消息都必须回传 reasoning_content 字段，
+                // 即使那一轮模型没有产出 reasoning / 没有调用工具，否则 API 返回 400：
+                // "The reasoning_content in the thinking mode must be passed back to the API"。
+                // 空 reasoning 时传空字符串而非 null（字段必须存在），无 tools 时保持 null 节省 token。
+                if (carriesTools) {
+                    reasoning.orEmpty()
+                } else {
+                    reasoning?.takeIf { it.isNotBlank() }
+                }
             }
         }
     }
@@ -1858,7 +1875,7 @@ class OpenAIProvider(
                 // v1.0.22: 跳过已增量恢复的 acc,避免重复发送
                 if (acc.recoveredAsContent) return@forEach
                 if (acc.name.isNullOrBlank() && acc.args.isNotEmpty()) {
-                    val recoveredText = acc.args.toString()
+                    val recoveredText = acc.args.current()
                     Logger.w(
                         "OpenAIProvider",
                         "stream-guard(Responses): 拦截空 name tool call (localIndex=$localIndex, args=${acc.args.length} chars)," +
@@ -2005,7 +2022,7 @@ class OpenAIProvider(
                                     index = localIndex,
                                     id = acc.id,
                                     name = currentName,
-                                    argumentsDelta = acc.args.toString(),
+                                    argumentsDelta = acc.args.current(),
                                 ))
                                 acc.hasEmitted = true
                             } else {
@@ -2053,6 +2070,15 @@ class OpenAIProvider(
                                 trySend(ChatStreamEvent.ReasoningDelta(
                                     "", signature = reasoningItem.id, encryptedContent = reasoningItem.encryptedContent,
                                 ))
+                            }
+                            if (request.nativeWebSearch) {
+                                val urls = event.response?.output.orEmpty()
+                                    .flatMap { it.content.orEmpty() }
+                                    .flatMap { it.annotations }
+                                    .mapNotNull { it.url }
+                                    .filter { it.startsWith("https://") || it.startsWith("http://") }
+                                    .distinct()
+                                if (urls.isNotEmpty()) trySend(ChatStreamEvent.CitationDelta(urls))
                             }
                             // v1.0.20: stream-guard — Done 事件时检查累积 toolCallAccMap,
                             //   空 name 的 tool call 恢复为 ContentDelta
@@ -2199,6 +2225,12 @@ class OpenAIProvider(
                     thinkingSignature = reasoningItem?.id,
                     thinkingEncryptedContent = reasoningItem?.encryptedContent,
                     usageTokens = parsed.usage?.toUsageTokens(),
+                    citationUrls = parsed.output.orEmpty()
+                        .flatMap { it.content.orEmpty() }
+                        .flatMap { it.annotations }
+                        .mapNotNull { it.url }
+                        .filter { it.startsWith("https://") || it.startsWith("http://") }
+                        .distinct(),
                 )
             }
         } catch (e: kotlinx.coroutines.CancellationException) {
@@ -2319,9 +2351,21 @@ class OpenAIProvider(
         val isCodex = openAIConfig.responsesPath.contains("codex")
         val store = if (isCodex) false else null
 
-        val responseTools = request.tools?.mapNotNull { it.toOpenAISafely() }
+        val functionTools = request.tools?.mapNotNull { it.toOpenAISafely() }
             ?.distinctBy { it.function.name }
-            ?.takeIf { it.isNotEmpty() }
+        val responseTools = buildList {
+            if (request.nativeWebSearch) add(ResponsesTool(type = "web_search_preview"))
+            functionTools.orEmpty().forEach { tool ->
+                add(
+                    ResponsesTool(
+                        type = "function",
+                        name = tool.function.name,
+                        description = tool.function.description,
+                        parameters = tool.function.parameters,
+                    ),
+                )
+            }
+        }.takeIf { it.isNotEmpty() }
         val payload = ResponsesRequest(
             model = effectiveModel,
             input = inputItems,
@@ -2330,7 +2374,7 @@ class OpenAIProvider(
             max_output_tokens = request.maxTokens?.takeIf { it > 0 },
             temperature = request.temperature,
             tools = responseTools,
-            tool_choice = request.toolChoice?.takeIf { !responseTools.isNullOrEmpty() },
+            tool_choice = request.toolChoice?.takeIf { !functionTools.isNullOrEmpty() },
             reasoning = reasoning,
             store = store,
         )
@@ -2515,8 +2559,8 @@ private class ToolCallAccState {
     var id: String? = null
     /** 函数名(累积首个非空值;Done 时若仍为 null/blank 视为无效 tool call)。 */
     var name: String? = null
-    /** 累积的 arguments 片段。 */
-    val args: StringBuilder = StringBuilder()
+    /** 累积的 arguments（v1.0.81: 智能合并多 JSON 对象分片，杜绝拼接串）。 */
+    val args: ToolCallArgsAccumulator = ToolCallArgsAccumulator()
     /** 是否已向下游发送过 ToolCallDelta(用于 name 来晚时的追赶发送)。 */
     var hasEmitted: Boolean = false
     /**

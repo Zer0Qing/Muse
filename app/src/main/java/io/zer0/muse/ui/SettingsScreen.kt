@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
@@ -32,7 +31,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -69,8 +67,6 @@ import io.zer0.muse.ui.common.form.MuseSettingsIcon
 import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.feedback.MuseToast
-import io.zer0.muse.ui.common.media.WindowWidthClass
-import io.zer0.muse.ui.common.media.rememberWindowWidthClass
 import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
@@ -415,9 +411,7 @@ fun SettingsScreen(
     }
     // endregion
 
-    val widthClass = rememberWindowWidthClass()
-
-    Scaffold(
+    io.zer0.muse.ui.common.surface.MusePageScaffold(
         topBar = {
             if (isSearching) {
                 // v1.0.74 fix: LaunchedEffect 移入 if 块,与 SearchTopBar 同生命周期。
@@ -471,15 +465,7 @@ fun SettingsScreen(
             contentAlignment = Alignment.TopCenter,
         ) {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .then(
-                        if (widthClass == WindowWidthClass.Expanded) {
-                            Modifier.widthIn(max = 720.dp)
-                        } else {
-                            Modifier
-                        }
-                    ),
+                modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
                     top = innerPadding.calculateTopPadding(),
                     bottom = innerPadding.calculateBottomPadding() + MusePaddings.sectionGap,

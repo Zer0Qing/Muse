@@ -1,5 +1,6 @@
 package io.zer0.muse.schedule
 
+import android.content.Context
 import io.zer0.common.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
@@ -29,6 +30,7 @@ import kotlinx.coroutines.launch
  */
 class ChatGenerationManager(
     private val appScope: CoroutineScope,
+    private val appContext: Context? = null,
 ) {
 
     /** 当前活跃的生成会话。null 表示没有正在生成。 */
@@ -136,6 +138,12 @@ class ChatGenerationManager(
             }
             streamJobs[sessionId] = job
             job.start()
+            // 生成一登记就进入前台服务，避免 ON_STOP 与任务启动之间的竞态。
+            // 服务负责保活；回到前台也不能停掉仍在运行的任务。
+            appContext?.let { context ->
+                runCatching { ChatGenerationService.start(context) }
+                    .onFailure { Logger.w("ChatGenMgr", "生成开始时启动前台服务失败", it) }
+            }
             return job
         }
     }

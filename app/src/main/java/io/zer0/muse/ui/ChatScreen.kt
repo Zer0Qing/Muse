@@ -28,7 +28,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -42,6 +41,8 @@ import androidx.compose.foundation.layout.widthIn
 import io.zer0.muse.ui.common.media.WindowWidthClass
 import io.zer0.muse.ui.common.state.MuseLoadingState
 import io.zer0.muse.ui.common.surface.MuseListItem
+import io.zer0.muse.ui.common.surface.MusePageScaffold
+import io.zer0.muse.transformer.InternalMarkupSanitizer
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.items
@@ -73,7 +74,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
@@ -184,6 +184,35 @@ private const val VOLUME_SCROLL_DISTANCE_PX = 200f
 
 /** v1.79 (M-S12): 消息分组时间间隔(5 分钟),超过此间隔显示头像和时间戳。 */
 private const val MESSAGE_GROUP_INTERVAL_MS = 5 * 60 * 1000L
+
+/**
+ * 只让真正有内容或有业务载荷的消息进入聊天列表。
+ *
+ * 流式等待阶段由独立的 ShimmerBubble 表示，空 assistant 占位不能继续作为
+ * 普通气泡渲染；否则全局 isStreaming=true 时，历史空壳也会被画成细长白框。
+ */
+private fun isRenderableChatMessage(message: UIMessage): Boolean {
+    if (message.role == MessageRole.SYSTEM) return false
+    if (message.content.isNotBlank() &&
+        (message.role == MessageRole.USER || InternalMarkupSanitizer.stripForDisplay(message.content).isNotBlank())
+    ) return true
+    return message.reasoning?.isNotBlank() == true ||
+        message.imageUrls.isNotEmpty() ||
+        message.imageBase64List.isNotEmpty() ||
+        !message.videoFileUri.isNullOrBlank() ||
+        // toolCalls 是发给模型的内部协议，不代表用户可见内容；真正的工具 UI
+        // 由 toolCallInfo / taskCard 承载。
+        message.toolCallInfo != null ||
+        message.artifactIds.isNotEmpty() ||
+        message.citationUrls.isNotEmpty() ||
+        message.ragCitations.isNotEmpty() ||
+        message.attachments.isNotEmpty() ||
+        !message.mood.isNullOrBlank() ||
+        !message.reflection.isNullOrBlank()
+}
+
+private fun List<UIMessage>.filterRenderableChatMessages(): List<UIMessage> =
+    filter(::isRenderableChatMessage)
 
 /**
  * Phase 8.10: 拦截音量键上/下键事件,转为滚动操作。
@@ -347,6 +376,10 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
     // 全部展开后再上滑才触发 DB loadMoreHistory。
     // 关闭时 visibleMessages == messages,行为与原有逻辑完全一致。
     val performanceMode = state.chatPreferences.performanceMode
+    // 分页和数量提示只统计真正可渲染的消息，空 assistant / 内部协议壳不应占用配额。
+    val renderableMessageCount by remember(messages) {
+        derivedStateOf { messages.count(::isRenderableChatMessage) }
+    }
     var paginatorPageCount by rememberSaveable { mutableStateOf(1) }
     // B7-03: 会话内未读状态
     // 切换会话 / 关闭性能模式时重置分页计数
@@ -358,7 +391,11 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
     }
     var savedPaginatorScrollOffset by remember { mutableStateOf(0) }
     val visibleMessages by produceState(
-        initialValue = if (isAgentMode && !state.isAgentMode && !state.isSwitchingSession) emptyList() else messages,
+        initialValue = if (isAgentMode && !state.isAgentMode && !state.isSwitchingSession) {
+            emptyList()
+        } else {
+            messages.filterRenderableChatMessages()
+        },
         messages, paginatorPageCount, performanceMode, isAgentMode, state.isAgentMode, state.isSwitchingSession,
     ) {
         // 门禁:Agent Tab 模式下但 ViewModel 还没切换到 Agent 模式时,显示空白。
@@ -368,11 +405,20 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
             value = emptyList()
             return@produceState
         }
+        val renderableMessages = messages.filterRenderableChatMessages()
+        val hiddenShells = messages.size - renderableMessages.size
+        if (hiddenShells > 0) {
+            Logger.d(
+                "ChatRender",
+                "hidden non-renderable messages=$hiddenShells, total=${messages.size}, " +
+                    "session=${state.currentSessionId ?: state.agentSessionId ?: "none"}",
+            )
+        }
         if (!performanceMode) {
-            value = messages
+            value = renderableMessages
             return@produceState
         }
-        val allIds = messages.map { it.id.toString() }
+        val allIds = renderableMessages.map { it.id.toString() }
         if (allIds.isEmpty()) {
             value = emptyList()
             return@produceState
@@ -380,7 +426,7 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
         val pageSize = MessagePaginator.DEFAULT_PAGE_SIZE * paginatorPageCount
         // 取首页(最新 N 条 ID),再反查 UIMessage 保留顺序
         val visibleIds = MessagePaginator.createFlow(allIds, pageSize = pageSize).first()
-        val msgById = messages.associateBy { it.id.toString() }
+        val msgById = renderableMessages.associateBy { it.id.toString() }
         value = visibleIds.mapNotNull { msgById[it] }
     }
 
@@ -429,7 +475,7 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                 listState.firstVisibleItemIndex == 0 &&
                 // v1.0.4 (P3-4): 性能模式下仅当 visibleMessages 已覆盖全部 messages 时才触发 DB 加载,
                 // 否则由 paginatorLoadMoreTrigger 先扩展内存分页
-                (!performanceMode || visibleMessages.size >= messages.size)
+                (!performanceMode || visibleMessages.size >= renderableMessageCount)
         }
     }
     LaunchedEffect(loadMoreTrigger) {
@@ -448,7 +494,7 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
     val paginatorLoadMoreTrigger by remember {
         derivedStateOf {
             performanceMode &&
-                messages.size > visibleMessages.size &&
+                renderableMessageCount > visibleMessages.size &&
                 !state.isStreaming &&
                 listState.firstVisibleItemIndex == 0
         }
@@ -483,7 +529,7 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
             if (performanceMode) {
                 paginatorPageCount++
                 // 等待 visibleMessages 重新计算并覆盖全部 messages
-                val targetSize = messages.size
+                val targetSize = renderableMessageCount
                 withTimeoutOrNull(1000L) {
                     snapshotFlow { visibleMessages.size }
                         .filter { it >= targetSize }
@@ -767,11 +813,8 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                 )
             }
         }
-    Scaffold(
-        // v1.0.72 fix: 显式清零内容区 insets — 嵌套在 HomeScreen 时,
-        //   默认 systemBars insets 会让 Agent 模式(topBar 为空)内容区顶部多出
-        //   状态栏高度留白。状态栏/导航栏 padding 由各层自行处理(topBar/InputBar)。
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+    MusePageScaffold(
+        // v1.0.72 fix: 内容区 inset 由页面顶栏和输入栏分别负责，避免嵌套在 HomeScreen 时重复避让。
         topBar = {
             // v1.24: 嵌在 Home 的 Agent Tab 隐藏自带顶部栏;独立详情页仍保留返回岛。
             if (!isAgentMode || onBack != null) {
@@ -1463,7 +1506,7 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                     verticalArrangement = Arrangement.spacedBy(MusePaddings.messageGap),
                     // v1.0.72: 顶部让位给悬浮三岛(滚动到底时消息在岛下方,
                     //   滚到顶时消息可进入岛后面),底部保留常规间距
-                    contentPadding = PaddingValues(top = innerPadding.calculateTopPadding(), bottom = MusePaddings.screen),
+                    contentPadding = PaddingValues(top = innerPadding.calculateTopPadding(), bottom = 0.dp),
                 ) {
                     // v1.0.47 P6: Agent Mode 提示卡片 — 会话锁定/弱工具降级/Agent Mode 提示。
                     // v1.0.54: 去掉"Agent 模式已锁定会话"提示(用户反馈不需要),仅保留降级/提示。
@@ -1794,45 +1837,22 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                         item(key = "video_placeholder") { VideoGenerationPlaceholder() }
                     }
                     // 工具审批卡片:待审批的工具调用显示审批/拒绝按钮
-                    // v1.202: 后台子 Agent 任务列表卡片(非阻塞委派进度展示)
-                    // 渲染当前会话活跃的子 agent 线程 + 待处理任务,提供取消入口。
-                    // 数据由 ChatViewModel 订阅 SubagentThreadStore + DeferredResultStore 后写入 UiState。
-                    item(key = "subagent_task_list") {
-                        io.zer0.muse.ui.taskcard.SubagentTaskListCard(
-                            activeThreads = state.activeSubagentThreads,
-                            pendingTasks = state.pendingSubagentTasks,
-                            onCancel = { taskId -> viewModel.cancelSubagentTask(taskId) },
-                        )
+                    // v1.202: 只有真的有后台子 Agent 任务时才插入任务卡。
+                    // 空卡片虽然自身 return，但外层 LazyColumn item 仍会参与间距测量，
+                    // 会在工具调用区域下方留下无意义的大白区。
+                    if (state.activeSubagentThreads.isNotEmpty() || state.pendingSubagentTasks.isNotEmpty()) {
+                        item(key = "subagent_task_list") {
+                            io.zer0.muse.ui.taskcard.SubagentTaskListCard(
+                                activeThreads = state.activeSubagentThreads,
+                                pendingTasks = state.pendingSubagentTasks,
+                                onCancel = { taskId -> viewModel.cancelSubagentTask(taskId) },
+                            )
+                        }
                     }
                 }
                 }
                 }
                 } // I3: 聊天区错误边界收尾
-            }
-
-            // v1.0.4 (P3-4): 性能模式指示器 — 仅当开启性能模式且 visibleMessages 未覆盖全部
-            // messages 时显示"已显示 X / Y 条",让用户感知到分页加载的存在。
-            // 滚到顶部会自动扩展 paginatorPageCount,X 增大;全部展开后 X == Y,指示器隐藏。
-            if (performanceMode && visibleMessages.size < messages.size) {
-                Surface(
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    shape = MuseShapes.extraLarge,
-                    tonalElevation = 2.dp,
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = MusePaddings.contentGap),
-                ) {
-                    Text(
-                        text = stringResource(
-                            R.string.chat_performance_indicator,
-                            visibleMessages.size,
-                            messages.size,
-                        ),
-                        style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier.padding(horizontal = MusePaddings.itemGap, vertical = MusePaddings.tinyGap),
-                    )
-                }
             }
 
             // v1.0.29: 滚动到底部按钮 — 改为 GPT 风格小圆形透明按钮,

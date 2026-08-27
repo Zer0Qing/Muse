@@ -55,6 +55,21 @@ class FirstEventWatchdogTest {
     }
 
     @Test
+    fun `fallback preserves native citation urls`() = runTest {
+        val events = emptyFlow<ChatStreamEvent>()
+            .withFirstEventWatchdog(timeoutMs = 100, fallback = {
+                ChatCompletion(
+                    text = "grounded answer",
+                    citationUrls = listOf("https://example.com/source"),
+                )
+            }).toList()
+
+        assertTrue(events.any {
+            it is ChatStreamEvent.CitationDelta && it.urls == listOf("https://example.com/source")
+        })
+    }
+
+    @Test
     fun `partial event before timeout cancels watchdog`() = runTest {
         val events = flow {
             delay(50)

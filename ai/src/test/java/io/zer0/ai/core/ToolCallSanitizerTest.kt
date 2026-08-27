@@ -6,7 +6,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ToolCallSanitizerTest {
-
     @Test
     fun `valid tool call is accepted`() {
         val tc = ToolCall(id = "1", name = "web_search", arguments = """{"query":"hello"}""")
@@ -22,26 +21,34 @@ class ToolCallSanitizerTest {
     }
 
     @Test
-    fun `blank arguments are rejected`() {
+    fun `blank arguments are preserved as empty object`() {
         val tc = ToolCall(id = "1", name = "web_search", arguments = " ")
-        assertFalse(ToolCallSanitizer.isValid(tc))
-        assertTrue(ToolCallSanitizer.sanitize(listOf(tc)).isEmpty())
+        val sanitized = ToolCallSanitizer.sanitize(listOf(tc))
+        assertEquals(1, sanitized.size)
+        assertEquals("{}", sanitized.single().arguments)
     }
 
     @Test
-    fun `mixed list keeps only valid calls`() {
-        val valid = ToolCall(id = "1", name = "web_search", arguments = """{"query":"hello"}""")
-        val bad = ToolCall(id = "2", name = "", arguments = """{"query":"bad"}""")
-        assertEquals(listOf(valid), ToolCallSanitizer.sanitize(listOf(bad, valid)))
+    fun `truncated json is balanced and preserved`() {
+        val tc = ToolCall(id = "1", name = "web_search", arguments = """{"query":"hello""" )
+        val sanitized = ToolCallSanitizer.sanitize(listOf(tc)).single()
+        assertEquals("""{"query":"hello"}""", sanitized.arguments)
     }
 
     @Test
-    fun `invalid json arguments are repaired to empty object`() {
-        val broken = ToolCall(id = "1", name = "speak_text", arguments = """{"text": "你好""")
-        val repaired = ToolCallSanitizer.sanitize(listOf(broken))
-        assertEquals(1, repaired.size)
-        assertEquals("{}", repaired[0].arguments)
-        assertEquals("speak_text", repaired[0].name)
+    fun `concatenated objects are merged`() {
+        val tc = ToolCall(id = "1", name = "web_search", arguments = """{"query":"x"}{"max_results":5}""")
+        val sanitized = ToolCallSanitizer.sanitize(listOf(tc)).single()
+        assertTrue(sanitized.arguments.contains("\"query\""))
+        assertTrue(sanitized.arguments.contains("\"max_results\""))
+        assertTrue(ToolCallSanitizer.isValidJson(sanitized.arguments))
+    }
+
+    @Test
+    fun `unrecoverable arguments remain callable with empty object`() {
+        val tc = ToolCall(id = "1", name = "web_search", arguments = "not json")
+        val sanitized = ToolCallSanitizer.sanitize(listOf(tc)).single()
+        assertEquals("{}", sanitized.arguments)
     }
 
     @Test

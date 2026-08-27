@@ -5,6 +5,8 @@ package io.zer0.muse.ui.common.feedback
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
+import io.zer0.muse.ui.common.surface.museDialogInsets
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -16,8 +18,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
@@ -113,10 +113,11 @@ fun MuseDialog(
         onDismissRequest = onDismissRequest,
         properties = properties,
     ) {
+        MuseDialogWindowEffect()
         Surface(
             shape = MuseShapes.huge,
             color = MaterialTheme.colorScheme.surface,
-            // v0.28: 无 tonalElevation(扁平 + 暖色 surface),阴影由 Dialog 系统层提供
+            // v0.28: 无 tonalElevation/窗口 dim,保持扁平的 surface 弹窗
             tonalElevation = MuseElevation.none,
             shadowElevation = MuseElevation.none,
             // L-DLG3: 340.dp → DialogMaxWidth 令牌。
@@ -125,8 +126,7 @@ fun MuseDialog(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .imePadding() // v1.48: 键盘遮挡修复
-                    .navigationBarsPadding()
+                    .museDialogInsets()
                     // L-DLG3: 22.dp → DialogContentPadding 令牌。
                     .padding(horizontal = DialogContentPadding, vertical = DialogContentPadding),
                 horizontalAlignment = Alignment.CenterHorizontally,

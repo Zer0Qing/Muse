@@ -148,8 +148,9 @@ class SkillExecutor(
         skill: SkillEntity,
         argumentsJson: String,
         onProgress: (String) -> Unit = {},
+        turnKey: String = "default",
     ): String = withContext(Dispatchers.IO) {
-        val args = parseArgs(argumentsJson)
+        val args = ToolArgsParser.parse(argumentsJson, skill.id)
     // H-SE1: 改用 resultOf{}(正确重抛 CancellationException),避免 runCatching 吞协程取消信号
         resultOf {
             when (skill.implementationKotlin) {
@@ -158,7 +159,7 @@ class SkillExecutor(
                 "http_get" -> searchTools?.execHttpGet(args) ?: context.getString(R.string.skill_impl_not_configured)
                 "http_post" -> searchTools?.execHttpPost(args) ?: context.getString(R.string.skill_impl_not_configured)
                 // v0.24: 搜索与信息获取类
-                "web_search" -> { onProgress(context.getString(R.string.skill_progress_searching)); searchTools?.execWebSearch(args) ?: context.getString(R.string.skill_impl_not_configured) }
+                "web_search" -> { onProgress(context.getString(R.string.skill_progress_searching)); searchTools?.execWebSearch(args, turnKey) ?: context.getString(R.string.skill_impl_not_configured) }
                 "web_fetch" -> { onProgress(context.getString(R.string.skill_progress_fetching)); searchTools?.execWebFetch(args) ?: context.getString(R.string.skill_impl_not_configured) }
                 "knowledge_search" -> searchTools?.execKnowledgeSearch(args) ?: context.getString(R.string.skill_impl_not_configured)
                 "arxiv_search" -> searchTools?.execArxivSearch(args) ?: context.getString(R.string.skill_impl_not_configured)
@@ -213,79 +214,7 @@ class SkillExecutor(
     fun getActivePlans(): Map<String, io.zer0.muse.ui.taskcard.AgentPlan> =
         agentTools?.getActivePlans().orEmpty()
 
-    // H-SE1: 改用 resultOf{}(正确重抛 CancellationException)
-    // L-SE13: 对非 JsonPrimitive 的值(对象/数组)用 AppJson 序列化为字符串,而非简单 toString()
-    private fun parseArgs(json: String): Map<String, String> {
-        // 审计修复 (日志分析): 容错处理 tool_calls arguments 双 JSON 拼接。
-        // DeepSeek V4 流式返回同一调用的多段 arguments 增量时,可能被拼接成
-        // {"limit":20}{"query":"..."} 这样的多个独立 JSON(用户实测: 连续 3 次
-        // knowledge_search 全部 parseArgs 失败,工具调用链提前终止,用户看到空回复)。
-        // 处理策略: 先尝试整体解析;失败时按 '}'-'{' 边界拆分成段,取每段分别解析,
-        // 合并所有成功段的字段。
-        val direct = parseJsonObject(json)
-        if (direct != null) return direct
-        // 拼接场景: 按 } 后跟 { 切分
-        val segments = splitConcatenatedJson(json)
-        if (segments.size > 1) {
-            val merged = linkedMapOf<String, String>()
-            for (seg in segments) {
-                parseJsonObject(seg)?.let { merged.putAll(it) }
-            }
-            if (merged.isNotEmpty()) {
-                Logger.w("SkillExecutor", "parseArgs: 检测到拼接 JSON,已按段拆分合并 ${segments.size} 段")
-                return merged
-            }
-        }
-        return emptyMap()
-    }
-
-    /** 解析单个 JSON 对象,失败返回 null。 */
-    private fun parseJsonObject(json: String): Map<String, String>? {
-        val trimmed = json.trim()
-        if (!trimmed.startsWith("{")) return null
-        return resultOf {
-            val obj = AppJson.decodeFromString(JsonObject.serializer(), trimmed)
-            obj.entries.associate { (k, v) ->
-                val strValue = when (v) {
-                    is JsonPrimitive -> v.content
-                    else -> AppJson.encodeToString(JsonElement.serializer(), v)
-                }
-                k to strValue
-            }
-        }.onError { msg, _ ->
-            Logger.w("SkillExecutor", "parseArgs 单段解析失败: $msg")
-        }.getOrNull()
-    }
-
-    /** 把 {"a":1}{"b":2} 这类拼接 JSON 按闭合边界拆分为多段。 */
-    private fun splitConcatenatedJson(json: String): List<String> {
-        val segments = mutableListOf<String>()
-        var depth = 0
-        var start = -1
-        var inString = false
-        var escape = false
-        for (i in json.indices) {
-            val c = json[i]
-            if (inString) {
-                if (escape) escape = false
-                else if (c == '\\') escape = true
-                else if (c == '"') inString = false
-                continue
-            }
-            when (c) {
-                '{' -> { if (depth == 0) start = i; depth++ }
-                '}' -> {
-                    depth--
-                    if (depth == 0 && start >= 0) {
-                        segments.add(json.substring(start, i + 1))
-                        start = -1
-                    }
-                }
-                '"' -> inString = true
-            }
-        }
-        return segments
-    }
+    // v1.0.81: parseArgs 已抽取为 ToolArgsParser（可单测），不再在 SkillExecutor 内联。
 
     // ── 内置 skill 实现 ──────────────────────────────────────────────────────
 

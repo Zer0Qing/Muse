@@ -1,5 +1,6 @@
 package io.zer0.muse.ui
 
+import io.zer0.muse.ui.common.surface.MusePageScaffold
 import io.zer0.muse.ui.common.state.MuseLoadingState
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -39,7 +40,6 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.ProvideTextStyle
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
@@ -278,7 +278,7 @@ fun ChatListScreen(
         pinnedOrder.mapNotNull { byId[it] } + pinned.filterNot { it.id in pinnedOrder }
     }
 
-    Scaffold(
+    MusePageScaffold(
         modifier = modifier,
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
@@ -1027,7 +1027,12 @@ private fun TaskActionSheet(
     onRename: () -> Unit,
     onMoveToFolder: (String?) -> Unit,
 ) {
-    MuseBottomSheet(onDismissRequest = onDismiss) {
+    MuseBottomSheet(
+        onDismissRequest = onDismiss,
+        // 长按菜单内容与面板同宽，避免标题和操作项被额外横向压缩。
+        horizontalPadding = 0.dp,
+        bottomContentSpacing = MusePaddings.itemGap,
+    ) {
         Column(
             modifier = Modifier.verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -1336,7 +1341,12 @@ private fun FolderActionSheet(
     onRename: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    MuseBottomSheet(onDismissRequest = onDismiss) {
+    MuseBottomSheet(
+        onDismissRequest = onDismiss,
+        // 文件夹长按菜单与会话长按菜单保持一致的边缘布局。
+        horizontalPadding = 0.dp,
+        bottomContentSpacing = MusePaddings.itemGap,
+    ) {
         Column(
             modifier = Modifier.verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(4.dp),

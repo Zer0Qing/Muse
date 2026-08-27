@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicInteger
 object DebugLogStore {
 
     /** 内存缓冲区上限,超出淘汰最旧。 */
-    private const val MAX_ENTRIES = 500
+    private const val MAX_ENTRIES = 1500
 
     /** 日志等级常量(与 Logger.Level 对齐,但用字符串避免跨模块依赖)。 */
     const val LEVEL_DEBUG = "DEBUG"

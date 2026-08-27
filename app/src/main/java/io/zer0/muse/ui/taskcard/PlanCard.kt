@@ -60,6 +60,9 @@ fun PlanCard(
     plan: AgentPlan,
     modifier: Modifier = Modifier,
 ) {
+    // 历史数据损坏或参数解析失败时不渲染空计划容器。
+    if (plan.steps.isEmpty()) return
+
     // M-TC3 修复: remember 改为 rememberSaveable,展开/折叠状态在配置变更/进程恢复后保留
     var expanded by rememberSaveable { mutableStateOf(true) }
 

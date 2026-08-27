@@ -19,7 +19,6 @@ import androidx.compose.material.icons.outlined.Extension
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -84,7 +83,7 @@ fun ToolsScreen(
     }
     var detailTarget by remember { mutableStateOf<ToolRegistry.ToolDef?>(null) }
 
-    Scaffold(
+    io.zer0.muse.ui.common.surface.MusePageScaffold(
         topBar = {
             MuseTopBar(
                 title = stringResource(R.string.tools_screen_title),
@@ -528,3 +527,4 @@ private fun CardGroupScope.PluginRow(plugin: PluginManifest) {
         }
     }
 }
+

@@ -28,7 +28,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import io.zer0.muse.ui.common.form.MuseTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -153,7 +152,7 @@ fun AuditLogPage(
         }
     }
 
-    Scaffold(
+    io.zer0.muse.ui.common.surface.MusePageScaffold(
         topBar = {
             MuseTopBar(
                 title = stringResource(R.string.settings_audit_log),
@@ -708,3 +707,4 @@ private fun shareAuditLogsAsJson(context: android.content.Context, logs: List<Au
         MuseToast.show(context.getString(R.string.audit_log_export_failed))
     }
 }
+

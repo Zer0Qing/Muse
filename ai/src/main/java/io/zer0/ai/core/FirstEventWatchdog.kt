@@ -61,6 +61,9 @@ fun Flow<ChatStreamEvent>.withFirstEventWatchdog(
                     ),
                 )
             }
+            if (completion.citationUrls.isNotEmpty()) {
+                trySend(ChatStreamEvent.CitationDelta(completion.citationUrls))
+            }
             completion.toolCalls?.forEachIndexed { index, tc ->
                 trySend(
                     ChatStreamEvent.ToolCallDelta(
@@ -100,6 +103,7 @@ fun Flow<ChatStreamEvent>.withFirstEventWatchdog(
                     }
                     is ChatStreamEvent.ImageDelta,
                     is ChatStreamEvent.ToolCallDelta,
+                    is ChatStreamEvent.CitationDelta,
                     -> {
                         meaningfulEventReceived = true
                         trySend(event)

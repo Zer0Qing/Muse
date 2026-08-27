@@ -51,6 +51,11 @@ internal class StreamRunState(
  * 仅内存态,切会话/重启后回到助手专属模型。
  */
 var sessionModelOverride: String? = null
+    /** 会话级 Provider 覆盖，与 sessionModelOverride 成对解析。 */
+    var sessionProviderOverride: String? = null
+    /** 生成启动时捕获的全局回退配置，防止切页后从新会话 UI 快照取错模型。 */
+    var fallbackModelId: String? = null
+    var fallbackProviderId: String? = null
     var requestedReasoningLevel: ReasoningLevel = ReasoningLevel.OFF
     var effectiveTemperature: Float = 0f
     var contextSize: Int = 20

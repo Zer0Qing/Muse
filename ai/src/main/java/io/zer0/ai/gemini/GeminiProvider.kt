@@ -129,6 +129,7 @@ class GeminiProvider(
             reasoningLevel = request.reasoningLevel,
             supportsImageOutput = request.model.supportsImageOutput(),
             tools = request.tools,
+            nativeWebSearch = request.nativeWebSearch,
         )
         // M-GEM2: buildUrl 可能抛 IllegalStateException(Vertex AI 配置缺失),包裹 try-catch 发 Error
         val url: String = try {
@@ -284,8 +285,14 @@ class GeminiProvider(
                     chunk.usageMetadata?.let { usage ->
                         trySend(ChatStreamEvent.UsageDelta(usage.toUsageTokens()))
                     }
-
                     val candidate = chunk.candidates.firstOrNull() ?: return
+                    if (request.nativeWebSearch) {
+                        val urls = candidate.groundingMetadata?.groundingChunks.orEmpty()
+                            .mapNotNull { it.web?.uri }
+                            .filter { it.startsWith("https://") || it.startsWith("http://") }
+                            .distinct()
+                        if (urls.isNotEmpty()) trySend(ChatStreamEvent.CitationDelta(urls))
+                    }
                     // Phase 8.6: 遍历 parts,文本 → ContentDelta,图片 → ImageDelta
                     candidate.content?.parts?.forEach { part ->
                         if (part.text.isNotEmpty()) {
@@ -440,6 +447,7 @@ class GeminiProvider(
             reasoningLevel = request.reasoningLevel,
             supportsImageOutput = request.model.supportsImageOutput(),
             tools = request.tools,
+            nativeWebSearch = request.nativeWebSearch,
         )
         // M-GEM7: buildUrl/resolveToken 纳入 try-catch,原在 try 块外抛 IllegalStateException 会绕过错误处理
         // M-GEM13: Vertex AI 服务账号配置无效时 resolveToken 抛 RuntimeException
@@ -520,6 +528,10 @@ class GeminiProvider(
                     finishReason = reason,
                     toolCalls = toolCalls,
                     usageTokens = parsed.usageMetadata?.toUsageTokens(),
+                    citationUrls = candidate.groundingMetadata?.groundingChunks.orEmpty()
+                        .mapNotNull { it.web?.uri }
+                        .filter { it.startsWith("https://") || it.startsWith("http://") }
+                        .distinct(),
                 )
             }
         } catch (e: kotlinx.coroutines.CancellationException) {
@@ -771,6 +783,7 @@ class GeminiProvider(
         reasoningLevel: ReasoningLevel = ReasoningLevel.AUTO,
         supportsImageOutput: Boolean = false,
         tools: List<ToolDefinition>? = null,
+        nativeWebSearch: Boolean = false,
     ): String {
         // Phase 8.5 修复: Gemini 2.5 系列支持 thinkingConfig.thinkingBudget。
         // OFF → 不发(让模型用默认);其他等级用 level.budgetTokens 作为预算。
@@ -785,11 +798,14 @@ class GeminiProvider(
         // H-COMPAT1: compat.supportsToolCalling=false 时强制不发 tools
         //   (Gemini 默认 true,留此判断保持集中化派生,便于未来按 modelId 扩展)
         val compat: ProviderCompat = config.resolvedCompat()
-        val geminiTools = if (compat.supportsToolCalling) {
-            tools?.takeIf { it.isNotEmpty() }?.let {
+        val geminiTools = when {
+            // Gemini generateContent 当前不允许 google_search 与普通 function tools 混用。
+            nativeWebSearch -> listOf(GeminiTool(googleSearch = GeminiGoogleSearch()))
+            compat.supportsToolCalling -> tools?.takeIf { it.isNotEmpty() }?.let {
                 listOf(GeminiTool(functionDeclarations = it.map { td -> td.toGeminiDeclaration() }))
             }
-        } else null
+            else -> null
+        }
         val payload = GeminiRequest(
             contents = contents,
             systemInstruction = system?.takeIf { it.isNotBlank() }

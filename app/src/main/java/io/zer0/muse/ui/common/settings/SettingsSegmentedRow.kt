@@ -51,12 +51,12 @@ fun SettingsSegmentedRow(
             imageVector = icon,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.outline,
-            modifier = Modifier.size(MuseIconSizes.iconMedium),
+            modifier = Modifier.size(MuseIconSizes.icon),
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(

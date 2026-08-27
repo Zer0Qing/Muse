@@ -148,7 +148,7 @@ fun TranslateScreen(
         }
     }
 
-    Scaffold(
+    io.zer0.muse.ui.common.surface.MusePageScaffold(
         topBar = { TranslateTopBar(onBack = onBack) },
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->

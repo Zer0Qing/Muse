@@ -22,6 +22,8 @@ import io.zer0.muse.ui.ChatErrorType
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlin.uuid.Uuid
 
@@ -59,6 +61,9 @@ class ImageGenCoordinator(
 
     /** 当前图片生成任务(可被新任务取消)。 */
     private var imageJob: Job? = null
+
+    /** 多选相册图片会并发读取,用锁保证 pendingImages 追加不会互相覆盖。 */
+    private val pendingImageMutex = Mutex()
 
     /**
      * F-09: 当前媒体任务 id(每次生成分配独立 UUID)。
@@ -102,12 +107,15 @@ class ImageGenCoordinator(
                         reportError(context.getString(R.string.err_image_gen_read_failed))
                         return@launch
                     }
-                    val current = accessor.snapshot.pendingImages
-                    if (current.size >= 4) {
-                        reportError(context.getString(R.string.err_image_gen_max_images))
-                        return@launch
+                    pendingImageMutex.withLock {
+                        if (accessor.snapshot.pendingImages.size >= 4) {
+                            reportError(context.getString(R.string.err_image_gen_max_images))
+                        } else {
+                            accessor.update { state ->
+                                state.copy(pendingImages = state.pendingImages + base64)
+                            }
+                        }
                     }
-                    accessor.update { it.copy(pendingImages = current + base64) }
                 }
             } catch (t: Exception) {
                 Logger.e(tag, "pickImage failed", t)
