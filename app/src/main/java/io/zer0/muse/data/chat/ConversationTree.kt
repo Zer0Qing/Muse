@@ -559,15 +559,9 @@ fun mergeRebuildMessages(tree: ConversationTree, current: List<UIMessage>): List
     val persistedTreeMessages = tree.allFlatMessages.filter { it.createdAt > 0L }
     if (persistedTreeMessages.isEmpty()) return orderConversationMessages(current)
     val merged = linkedMapOf<String, UIMessage>()
-    // 没有稳定序号的历史数据保留旧树顺序，避免仅凭不可靠 createdAt 重排变体。
-    // 新链路消息一旦带 seq/commitSeq，最终再统一按稳定顺序排序。
-    val source = if (persistedTreeMessages.none { it.commitSeq > 0L || it.seq > 0L } &&
-        current.none { it.commitSeq > 0L || it.seq > 0L }
-    ) {
-        persistedTreeMessages + current
-    } else {
-        current + persistedTreeMessages
-    }
+    // 旧树只负责补充当前列表缺失的分支；同一 id 的内容必须由当前列表胜出。
+    // 否则流式最终回复会被较早的树快照覆盖，表现为正文闪现后消失。
+    val source = persistedTreeMessages + current
     source.forEach { message -> merged[message.id.toString()] = message }
     return orderConversationMessages(merged.values.toList())
 }

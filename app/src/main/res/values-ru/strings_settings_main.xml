@@ -368,6 +368,8 @@
     <string name="settings_chat_enter_send_subtitle">Enter вставляет новую строку, когда выключено</string>
     <string name="settings_chat_haptic">Тактильная обратная связь</string>
     <string name="settings_chat_haptic_subtitle">Виброотклик при касании/длительном нажатии</string>
+    <string name="settings_chat_predictive_back">Предиктивный возврат</string>
+    <string name="settings_chat_predictive_back_subtitle">Использовать системную анимацию; отключите для мгновенного возврата</string>
     <string name="settings_chat_show_tool_calls">Показать процесс вызова инструмента</string>
     <string name="settings_chat_show_tool_calls_subtitle">Промежуточные сообщения во время вызовов инструментов ИИ</string>
     <string name="settings_chat_24h">24-часовой формат</string>

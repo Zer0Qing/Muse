@@ -22,7 +22,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,9 +44,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
@@ -55,7 +51,6 @@ import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
-import io.zer0.muse.schedule.ProactiveMessageRunner
 import io.zer0.muse.ui.common.media.DesktopShortcuts
 import io.zer0.muse.ui.common.media.WindowWidthClass
 import io.zer0.muse.ui.common.surface.MusePageScaffold
@@ -148,47 +143,12 @@ fun HomeScreen(
     var clickAnimating by remember { mutableStateOf(false) }
     // C1: 全局命令面板可见性(搜索按钮 / Ctrl+K 唤起)
     var showCommandPalette by rememberSaveable { mutableStateOf(false) }
-    // 审计修复: 本进程内 app_resume 巡检只触发一次
-    var resumePatrolTriggered by remember { mutableStateOf(false) }
     // C4: 宽屏自适应双栏 — Expanded(≥840dp) 时任务 tab 会话列表+消息同屏,
     // 窄屏保持原单栏 + push 详情页交互
     val widthClass = rememberWindowWidthClass()
     val isWideTasks = widthClass == WindowWidthClass.Expanded
     LaunchedEffect(pagerState.isScrollInProgress) {
         if (!pagerState.isScrollInProgress) clickAnimating = false
-    }
-
-    // v2.0 5.6: 注入 ProactiveMessageRunner,在 onResume 时触发事件巡检
-    val proactiveRunner: ProactiveMessageRunner = koinInject()
-    val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_RESUME -> {
-                    // 审计修复 (日志分析): 用户打开 App 时触发主动消息巡检。
-                    // 但只在本进程内触发一次(remember 标志),避免用户频繁前后台
-                    // 切换时每次 ON_RESUME 都跑决策 LLM — 日志显示用户频繁切 App 时
-                    // app_resume 巡检被反复触发,叠加其他后台 LLM 任务造成请求风暴。
-                    // 后续巡检交给 60s 轮询 + 24h 保底即可。
-                    if (!resumePatrolTriggered) {
-                        resumePatrolTriggered = true
-                        scope.launch {
-                            try {
-                                proactiveRunner.triggerByEvent(ProactiveMessageRunner.TRIGGER_SOURCE_RESUME)
-                            } catch (e: Exception) {
-                                if (e is kotlin.coroutines.cancellation.CancellationException) throw e
-                                Logger.w("HomeScreen", "onResume 触发主动消息失败: ${e.message}")
-                            }
-                        }
-                    }
-                }
-                else -> {}
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
     }
 
     // v1.28: 进入/离开 Agent Tab 时切换 Agent 模式(独立会话,不依赖任务)

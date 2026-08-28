@@ -307,11 +307,12 @@ cd Muse
 #   -PversionName=<name> and -PversionCode=<int>, or env VERSION_NAME/VERSION_CODE.
 # Signing: a keystore.properties next to the app/ module is mandatory (no debug-sign fallback).
 ./gradlew :app:assembleRelease \
-  -PversionName=1.0.80 \
-  -PversionCode=180
+  -PversionName=1.0.83 \
+  -PversionCode=183
 ```
 
 APK output: `app/build/outputs/apk/release/app-{abi}-release.apk`
+Universal release APK: `app/build/outputs/apk/release/app-universal-release.apk`
 
 ### First Run
 

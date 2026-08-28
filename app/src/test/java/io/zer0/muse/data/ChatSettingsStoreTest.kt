@@ -2,6 +2,7 @@ package io.zer0.muse.data
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import io.zer0.common.AppJson
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -48,6 +49,7 @@ class ChatSettingsStoreTest {
             autoScrollToBottom = false,
             enterToSend = true,
             hapticFeedback = false,
+            predictiveBackEnabled = false,
         )
         store.saveChatPreferences(custom)
 
@@ -56,5 +58,15 @@ class ChatSettingsStoreTest {
         assertEquals(false, loaded.streamResponse)
         assertEquals(true, loaded.enterToSend)
         assertEquals(false, loaded.hapticFeedback)
+        assertEquals(false, loaded.predictiveBackEnabled)
+    }
+
+    @Test
+    fun chatPreferences_legacyJsonUsesPredictiveBackDefault() {
+        val legacyJson = """{"streamResponse":false,"hapticFeedback":true}"""
+
+        val loaded = AppJson.decodeFromString(ChatPreferences.serializer(), legacyJson)
+
+        assertEquals(true, loaded.predictiveBackEnabled)
     }
 }

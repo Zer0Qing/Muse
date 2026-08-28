@@ -647,6 +647,14 @@ fun ChatSettingsPage(
                     checked = prefs.hapticFeedback,
                     onCheckedChange = { v -> update { it.copy(hapticFeedback = v) } },
                 )
+                SettingsGroupDivider()
+                SettingsSwitchRow(
+                    icon = TablerIcons.HandFinger,
+                    title = stringResource(R.string.settings_chat_predictive_back),
+                    subtitle = stringResource(R.string.settings_chat_predictive_back_subtitle),
+                    checked = prefs.predictiveBackEnabled,
+                    onCheckedChange = { v -> update { it.copy(predictiveBackEnabled = v) } },
+                )
             }
         }
 

@@ -507,6 +507,11 @@ class SessionRepository(
         return projectMessagesForRead(messageDao.getRecentBySession(sessionId, limit).reversed())
     }
 
+    /** 计划卡恢复用:读取会话中已持久化的工具展示消息,不受聊天首屏分页限制。 */
+    suspend fun getToolCallMessages(sessionId: String): List<UIMessage> = withContext(Dispatchers.IO) {
+        messageDao.getToolCallMessagesBySession(sessionId).map { it.toUIMessage() }
+    }
+
     /**
      * v1.53-A1: 分页加载 — 取早于 beforeCreatedAt 的 limit 条消息(按 createdAt 升序)。
      *

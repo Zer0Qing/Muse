@@ -368,6 +368,8 @@
     <string name="settings_chat_enter_send_subtitle">Enter는 꺼져 있을 때 개행을 삽입합니다.</string>
     <string name="settings_chat_haptic">햅틱 피드백</string>
     <string name="settings_chat_haptic_subtitle">탭/길게 누르기 시 진동 피드백</string>
+    <string name="settings_chat_predictive_back">예측 뒤로가기</string>
+    <string name="settings_chat_predictive_back_subtitle">시스템 뒤로가기 애니메이션 사용. 끄면 즉시 이동</string>
     <string name="settings_chat_show_tool_calls">도구 호출 프로세스 표시</string>
     <string name="settings_chat_show_tool_calls_subtitle">AI 도구 호출 중 중간 메시지</string>
     <string name="settings_chat_24h">24시간 형식</string>

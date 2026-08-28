@@ -36,5 +36,9 @@ subprojects {
     extensions.configure<io.gitlab.arturbosch.detekt.extensions.DetektExtension> {
         config.setFrom(rootProject.files("detekt.yml"))
         buildUponDefaultConfig = true
+        val baselineFile = project.file("detekt-baseline.xml")
+        if (baselineFile.exists()) {
+            baseline = baselineFile
+        }
     }
 }

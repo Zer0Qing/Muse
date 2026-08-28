@@ -368,6 +368,8 @@
     <string name="settings_chat_enter_send_subtitle">Enter がオフの場合は改行を挿入します</string>
     <string name="settings_chat_haptic">触覚フィードバック</string>
     <string name="settings_chat_haptic_subtitle">タップ/長押し時の振動フィードバック</string>
+    <string name="settings_chat_predictive_back">予測戻る</string>
+    <string name="settings_chat_predictive_back_subtitle">システムの戻るアニメーションを使用。オフで即時に戻る</string>
     <string name="settings_chat_show_tool_calls">ツール呼び出しプロセスを表示</string>
     <string name="settings_chat_show_tool_calls_subtitle">AI ツール呼び出し中の中間メッセージ</string>
     <string name="settings_chat_24h">24時間形式</string>

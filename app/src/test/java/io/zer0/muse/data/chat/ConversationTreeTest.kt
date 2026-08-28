@@ -356,6 +356,32 @@ class ConversationTreeTest {
     }
 
     @Test
+    fun mergeRebuildMessages_currentMessageWinsOverStaleTreeSnapshot() {
+        val userMessage = user("提问", at = 100)
+        val staleAssistant = assistant(
+            content = "旧的中间快照",
+            group = "ag1",
+            parentGroup = userMessage.id.toString(),
+            at = 101,
+        )
+        val preservedBranch = assistant(
+            content = "另一条分支",
+            group = "ag1",
+            index = 1,
+            count = 2,
+            parentGroup = userMessage.id.toString(),
+            at = 102,
+        )
+        val tree = ConversationTree.build(listOf(userMessage, staleAssistant, preservedBranch))
+        val currentAssistant = staleAssistant.copy(content = "最终回复")
+
+        val merged = mergeRebuildMessages(tree, listOf(userMessage, currentAssistant))
+
+        assertEquals("最终回复", merged.first { it.id == staleAssistant.id }.content)
+        assertTrue(merged.any { it.id == preservedBranch.id })
+    }
+
+    @Test
     fun removeMessage_removesAssistantVariantAndReindexes() {
         val u = user("提问", group = "ug1")
         val a1 = assistant("回答1", group = "ag1", index = 0, count = 2, parentGroup = u.id.toString(), at = 101)

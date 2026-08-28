@@ -55,6 +55,7 @@ import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.util.ShareIntentHelper
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -322,9 +323,10 @@ private fun shareCrashZip(context: Context) {
             putExtra(Intent.EXTRA_SUBJECT, "muse crash logs — ${zipFile.name}")
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        context.startActivity(
-            Intent.createChooser(intent, context.getString(R.string.debug_share_crash_zip_chooser))
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+        ShareIntentHelper.startChooserSafely(
+            context,
+            intent,
+            context.getString(R.string.debug_share_crash_zip_chooser),
         )
     }.onFailure {
         MuseToast.show(context.getString(R.string.debug_share_failed_no_uri))
@@ -349,9 +351,10 @@ private fun shareCrashFile(context: Context, file: File) {
             putExtra(Intent.EXTRA_SUBJECT, "muse crash log — ${file.name}")
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        context.startActivity(
-            Intent.createChooser(intent, context.getString(R.string.debug_share_crash_log_chooser))
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+        ShareIntentHelper.startChooserSafely(
+            context,
+            intent,
+            context.getString(R.string.debug_share_crash_log_chooser),
         )
     }.onFailure {
         MuseToast.show(context.getString(R.string.debug_share_failed_no_uri))

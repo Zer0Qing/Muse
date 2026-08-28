@@ -20,7 +20,6 @@ import io.zer0.ai.core.ProviderType
 import io.zer0.ai.core.RagCitation
 import io.zer0.ai.core.ReasoningLevel
 import io.zer0.ai.core.ToolCall
-import io.zer0.ai.core.ToolCallInfo
 import io.zer0.ai.core.UIMessage
 import io.zer0.ai.core.limitContextWithContext
 import io.zer0.ai.core.inferFromMessage
@@ -80,6 +79,7 @@ import io.zer0.muse.chat.PendingToolCallStore
 import io.zer0.muse.data.chat.ConversationTree
 import io.zer0.muse.data.chat.ConversationTreeSnapshotStore
 import io.zer0.muse.data.chat.mergeRebuildMessages
+import io.zer0.muse.data.chat.orderConversationMessages
 import io.zer0.muse.data.chat.rewrite.ConversationEventDraft
 import io.zer0.muse.data.chat.rewrite.ConversationEventType
 import io.zer0.muse.data.chat.rewrite.ConversationRebuildFlagStore
@@ -104,6 +104,8 @@ import io.zer0.muse.ui.chat.ChatDocumentCoordinator
 import io.zer0.muse.ui.chat.ChatExportCoordinator
 import io.zer0.muse.ui.chat.ChatMiscCoordinator
 import io.zer0.muse.ui.chat.ChatStreamCoordinator
+import io.zer0.muse.ui.chat.completionToStreamEvents
+import io.zer0.muse.ui.chat.shouldRetryToolChoiceCompatibility
 import io.zer0.muse.ui.chat.ChatTaskCardCoordinator
 import io.zer0.muse.ui.chat.ImageGenCoordinator
 import io.zer0.muse.ui.chat.buildQuotedContent
@@ -115,8 +117,7 @@ import io.zer0.muse.ui.speech.TtsManager
 import io.zer0.muse.ui.speech.PlaybackState
 import io.zer0.muse.ui.speech.VoiceConversationState
 import io.zer0.muse.ui.taskcard.AgentPlan
-import io.zer0.muse.ui.taskcard.AgentPlanStep
-import io.zer0.muse.ui.taskcard.AgentPlanStepStatus
+import io.zer0.muse.ui.taskcard.restoreAgentPlansFromHistory
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.util.TokenEstimator
 import io.zer0.muse.util.retryOnNetworkError
@@ -139,6 +140,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.conflate
@@ -149,7 +151,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.sync.Mutex
@@ -160,10 +164,6 @@ import kotlin.uuid.Uuid
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
 
 /**
  * v0.49: 聊天错误信息(支持多错误并存)。
@@ -1101,10 +1101,6 @@ internal fun canRegenerate(
     hasSession: Boolean,
     hasSelectedUserVariant: Boolean,
 ): Boolean = !isStreaming && hasSession && hasSelectedUserVariant
-
-private val HISTORICAL_PLAN_ID_PATTERN = Regex(
-    """(?i)(?:planId|plan_id)\s*["'`]?\s*[:=]\s*["'`]?([A-Za-z0-9_-]+)""",
-)
 
 class ChatViewModel(
     private val chatService: ChatService,
@@ -3448,140 +3444,19 @@ class ChatViewModel(
      * agentPlans 会被清空。task_plan / update_plan_step 的 toolCallInfo 已随消息落库,
      * 因此在加载历史时按消息顺序重放即可恢复计划卡及步骤状态。
      */
-    private fun restoreAgentPlans(messages: List<UIMessage>): Map<String, AgentPlan> {
-        if (messages.none { it.toolCallInfo?.toolName == "task_plan" }) return emptyMap()
-
-        val plans = linkedMapOf<String, AgentPlan>()
-        messages.forEach { message ->
-            val toolInfo = message.toolCallInfo ?: return@forEach
-            when (toolInfo.toolName) {
-                "task_plan" -> {
-                    parseHistoricalPlan(message, toolInfo)?.let { plan ->
-                        plans[plan.id] = plan
-                    }
-                }
-                "update_plan_step" -> applyHistoricalPlanUpdate(plans, message, toolInfo)
-            }
-        }
-        return plans
-    }
-
-    private fun parseHistoricalPlan(message: UIMessage, toolInfo: ToolCallInfo): AgentPlan? {
-        val arguments = parseHistoricalToolArguments(toolInfo.arguments) ?: return null
-        val steps = parseHistoricalPlanSteps(arguments["steps"])
-        if (steps.isEmpty()) return null
-
-        val planId = HISTORICAL_PLAN_ID_PATTERN.find(toolInfo.result)
-            ?.groupValues
-            ?.getOrNull(1)
-            ?.takeIf { it.isNotBlank() }
-            ?: "history-plan-${message.id}"
-        val title = historicalJsonText(arguments["title"])
-            ?.trim()
-            ?.takeIf { it.isNotBlank() }
-            ?: "任务计划"
-
-        return AgentPlan(
-            id = planId,
-            title = title,
-            steps = steps,
-            createdAt = message.createdAt,
-            messageId = message.id.toString(),
-        )
-    }
-
-    private fun applyHistoricalPlanUpdate(
-        plans: MutableMap<String, AgentPlan>,
-        message: UIMessage,
-        toolInfo: ToolCallInfo,
-    ) {
-        val arguments = parseHistoricalToolArguments(toolInfo.arguments) ?: return
-        val planId = historicalJsonText(arguments["planId"])
-            ?.trim()
-            ?.takeIf { it.isNotBlank() }
-            ?: return
-        val planEntry = plans.entries.firstOrNull { it.key == planId || it.value.id == planId } ?: return
-        val stepIndex = historicalJsonText(arguments["stepIndex"])
-            ?.trim()
-            ?.toIntOrNull()
-            ?: return
-        val status = parseHistoricalPlanStatus(historicalJsonText(arguments["status"])) ?: return
-        if (stepIndex !in planEntry.value.steps.indices) return
-
-        val result = historicalJsonText(arguments["result"]).orEmpty()
-        val updatedSteps = planEntry.value.steps.mapIndexed { index, step ->
-            if (index != stepIndex) {
-                step
-            } else {
-                step.copy(
-                    status = status,
-                    result = result,
-                    startedAt = if (
-                        status == AgentPlanStepStatus.IN_PROGRESS && step.startedAt == 0L
-                    ) {
-                        message.createdAt
-                    } else {
-                        step.startedAt
-                    },
-                    finishedAt = if (
-                        status == AgentPlanStepStatus.DONE ||
-                        status == AgentPlanStepStatus.FAILED ||
-                        status == AgentPlanStepStatus.SKIPPED
-                    ) {
-                        if (step.finishedAt == 0L) message.createdAt else step.finishedAt
-                    } else {
-                        step.finishedAt
-                    },
-                )
-            }
-        }
-        plans[planEntry.key] = planEntry.value.copy(steps = updatedSteps)
-    }
-
-    private fun parseHistoricalToolArguments(arguments: String): JsonObject? =
-        resultOf {
-            io.zer0.common.AppJson.decodeFromString(JsonObject.serializer(), arguments)
-        }.getOrNull()
-
-    private fun parseHistoricalPlanSteps(value: JsonElement?): List<AgentPlanStep> {
-        val array = when (value) {
-            is JsonArray -> value
-            is JsonPrimitive -> resultOf {
-                io.zer0.common.AppJson.decodeFromString(JsonArray.serializer(), value.content)
-            }.getOrNull()
-            else -> null
-        } ?: return emptyList()
-
-        return array.mapIndexedNotNull { index, element ->
-            val obj = element as? JsonObject ?: return@mapIndexedNotNull null
-            AgentPlanStep(
-                id = "step-$index",
-                title = historicalJsonText(obj["title"])
-                    ?.trim()
-                    ?.takeIf { it.isNotBlank() }
-                    ?: "步骤 ${index + 1}",
-                description = historicalJsonText(obj["description"])
-                    ?.trim()
-                    .orEmpty(),
-            )
-        }
-    }
-
-    private fun historicalJsonText(value: JsonElement?): String? = when (value) {
-        null -> null
-        is JsonPrimitive -> value.content
-        else -> io.zer0.common.AppJson.encodeToString(JsonElement.serializer(), value)
-    }
-
-    private fun parseHistoricalPlanStatus(raw: String?): AgentPlanStepStatus? = when (
-        raw?.trim()?.lowercase()
-    ) {
-        "pending", "todo" -> AgentPlanStepStatus.PENDING
-        "in_progress", "in-progress", "running" -> AgentPlanStepStatus.IN_PROGRESS
-        "done", "complete", "completed", "success" -> AgentPlanStepStatus.DONE
-        "failed", "error" -> AgentPlanStepStatus.FAILED
-        "skipped", "skip" -> AgentPlanStepStatus.SKIPPED
-        else -> null
+    private suspend fun restoreAgentPlansForSession(
+        sessionId: String,
+        visibleMessages: List<UIMessage>,
+    ): Map<String, AgentPlan> {
+        val persistedToolMessages = resultOf {
+            sessionRepository.getToolCallMessages(sessionId)
+        }.getOrNull().orEmpty()
+        val merged = linkedMapOf<String, UIMessage>()
+        // 数据库历史先建立稳定顺序,当前窗口再覆盖同 id 的旧投影内容。
+        persistedToolMessages.forEach { merged[it.id.toString()] = it }
+        visibleMessages.forEach { merged[it.id.toString()] = it }
+        val history = orderConversationMessages(merged.values.toList())
+        return restoreAgentPlansFromHistory(history)
     }
 
     /** 切换到指定会话。 */
@@ -3685,7 +3560,7 @@ class ChatViewModel(
             val assistantId = sessionRepository.getAssistantId(sessionId)
             val assistant = assistantRepository.getById(assistantId)
                 ?: assistantRepository.getById("default")
-            val restoredAgentPlans = restoreAgentPlans(messages)
+            val restoredAgentPlans = restoreAgentPlansForSession(sessionId, messages)
             // 功能2: 恢复目标会话的输入草稿
             // v1.0.72: 草稿功能已砍掉(定位复杂且会恢复已完成消息,弊大于利)
             _state.update {
@@ -3853,7 +3728,7 @@ class ChatViewModel(
                 val assistantId = sessionRepository.getAssistantId(sessionId)
                 val assistant = assistantRepository.getById(assistantId)
                     ?: assistantRepository.getById("default")
-                val restoredAgentPlans = restoreAgentPlans(messages)
+                val restoredAgentPlans = restoreAgentPlansForSession(sessionId, messages)
                 _messages.value = messages
                 val agentBackgroundStreaming = chatGenerationManager.isStreaming(sessionId)
                 _state.update {
@@ -3938,7 +3813,7 @@ class ChatViewModel(
                     val assistantId = sessionRepository.getAssistantId(sid)
                     val assistant = assistantRepository.getById(assistantId)
                         ?: assistantRepository.getById("default")
-                    val restoredAgentPlans = restoreAgentPlans(messages)
+                    val restoredAgentPlans = restoreAgentPlansForSession(sid, messages)
                     _messages.value = messages
                     val taskBackgroundStreaming = chatGenerationManager.isStreaming(sid)
                     _state.update {
@@ -4037,7 +3912,7 @@ class ChatViewModel(
             // v1.126: 重新读取最新 _messages.value,防止加载期间流式追加的新消息被覆盖
             val currentMessages = _messages.value
             val merged = older + currentMessages
-            val restoredAgentPlans = restoreAgentPlans(merged)
+            val restoredAgentPlans = restoreAgentPlansForSession(sessionIdSafe, merged)
             _messages.value = merged
             _state.update {
                 it.copy(
@@ -5681,25 +5556,73 @@ class ChatViewModel(
                 // ToolOrchestrator 原生请求失败后会把这一字段降为 false，
                 // 下一次同轮请求才会真正切到用户 API / Bing HTTP / 百度 HTTP。
                 val nativeSearchForRound = params.nativeWebSearch && params.round == 1
-                val flow = chatService.streamChat(
-                    messages = params.history,
-                    model = roundModel,
-                    providerConfig = roundProviderConfig,
-                    // “不要调用工具”由请求层硬关闭；不依赖模型遵守提示词。
-                    tools = tools.takeUnless { disableTools || nativeSearchForRound } ?: emptyList(),
-                    toolChoice = toolChoice,
-                    nativeWebSearch = nativeSearchForRound,
-                    temperature = effectiveTemperature,
-                    maxTokens = roundMaxTokens,
-                    reasoningLevel = roundReasoningLevel,
-                    mode = if (roundReasoningLevel == ReasoningLevel.OFF) {
-                        ChatRequestMode.UTILITY
+                val streamToUi = _state.value.chatPreferences.streamResponse
+                val defaultRoundMode = if (roundReasoningLevel == ReasoningLevel.OFF) {
+                    ChatRequestMode.UTILITY
+                } else {
+                    ChatRequestMode.CHAT
+                }
+
+                suspend fun requestRoundFlow(
+                    requestedToolChoice: String?,
+                    requestedReasoningLevel: ReasoningLevel,
+                    requestedMode: ChatRequestMode,
+                ): Flow<ChatStreamEvent> {
+                    val requestTools = tools.takeUnless { disableTools || nativeSearchForRound } ?: emptyList()
+                    val resumeText = params.builder.toString()
+                        .takeIf { params.preservePartialContent && it.isNotBlank() }
+                    @Suppress("TooGenericExceptionCaught")
+                    suspend fun completeTextEvents(): List<ChatStreamEvent> = try {
+                        val completion = chatService.completeText(
+                            messages = if (resumeText != null) {
+                                params.history + UIMessage(role = MessageRole.ASSISTANT, content = resumeText)
+                            } else {
+                                params.history
+                            },
+                            model = roundModel,
+                            providerConfig = roundProviderConfig,
+                            tools = requestTools,
+                            toolChoice = requestedToolChoice,
+                            nativeWebSearch = nativeSearchForRound,
+                            temperature = effectiveTemperature,
+                            maxTokens = roundMaxTokens,
+                            reasoningLevel = requestedReasoningLevel,
+                            mode = requestedMode,
+                        )
+                        completionToStreamEvents(completion)
+                    } catch (ce: kotlinx.coroutines.CancellationException) {
+                        throw ce
+                    } catch (error: Exception) {
+                        listOf(
+                            ChatStreamEvent.Error(
+                                message = error.message ?: "非流式请求失败",
+                                throwable = error,
+                            ),
+                        )
+                    }
+                    return if (streamToUi) {
+                        chatService.streamChat(
+                            messages = params.history,
+                            model = roundModel,
+                            providerConfig = roundProviderConfig,
+                            // “不要调用工具”由请求层硬关闭；不依赖模型遵守提示词。
+                            tools = requestTools,
+                            toolChoice = requestedToolChoice,
+                            nativeWebSearch = nativeSearchForRound,
+                            temperature = effectiveTemperature,
+                            maxTokens = roundMaxTokens,
+                            reasoningLevel = requestedReasoningLevel,
+                            mode = requestedMode,
+                            resumeFromText = resumeText,
+                        )
                     } else {
-                        ChatRequestMode.CHAT
-                    },
-                    resumeFromText = params.builder.toString()
-                        .takeIf { params.preservePartialContent && it.isNotBlank() },
-                )
+                        // 关闭流式输出时仍走同一请求参数，但通过 completeText 真正执行一次性请求。
+                        // 中断续传场景补回已显示的 assistant 文本，保持与 streamChat 一致的上下文。
+                        flow {
+                            completeTextEvents().forEach { emit(it) }
+                        }
+                    }
+                }
                 val imageAccumulator = mutableListOf<String>()
                 val citationUrls = linkedSetOf<String>()
                 val toolCallAccumulator = mutableMapOf<Int, Triple<String?, String?, StringBuilder>>()
@@ -5709,7 +5632,6 @@ class ChatViewModel(
                 var streamInterrupted = false
                 // v1.0.17: StreamInterrupted 的原始 throwable,用于判断是否网络错误(IOException)
                 var streamInterruptedThrowable: Throwable? = null
-                val streamToUi = _state.value.chatPreferences.streamResponse
                 val pendingFlushMutex = Mutex()
 
                 suspend fun flushPendingToUi(force: Boolean = false) {
@@ -5734,6 +5656,8 @@ class ChatViewModel(
                     }
                 }
 
+                var compatibilityRetryUsed = false
+                var retryWithoutToolChoice = false
                 coroutineScope {
                     // 旧逻辑只有收到下一个 token 时才检查 50ms 节流;
                     // 如果上游短暂停顿,尾部 pendingBuilder 会一直留到 Done 才一次性刷出。
@@ -5745,7 +5669,47 @@ class ChatViewModel(
                         }
                     }
                     try {
-                        flow.collect { event ->
+                        do {
+                            retryWithoutToolChoice = false
+                            val requestToolChoice = if (compatibilityRetryUsed) null else toolChoice
+                            val requestReasoningLevel = if (compatibilityRetryUsed) {
+                                ReasoningLevel.OFF
+                            } else {
+                                roundReasoningLevel
+                            }
+                            val requestMode = if (compatibilityRetryUsed) {
+                                ChatRequestMode.UTILITY
+                            } else {
+                                defaultRoundMode
+                            }
+                            val flow = requestRoundFlow(
+                                requestedToolChoice = requestToolChoice,
+                                requestedReasoningLevel = requestReasoningLevel,
+                                requestedMode = requestMode,
+                            )
+                            flow.takeWhile { event ->
+                                val hasMeaningfulOutput = params.builder.isNotEmpty() ||
+                                    params.reasoningBuilder.isNotEmpty() ||
+                                    pendingBuilder.isNotEmpty() ||
+                                    imageAccumulator.isNotEmpty() ||
+                                    toolCallAccumulator.isNotEmpty()
+                                val shouldRetry = event is ChatStreamEvent.Error &&
+                                    shouldRetryToolChoiceCompatibility(
+                                        message = event.message,
+                                        toolChoice = requestToolChoice,
+                                        retryUsed = compatibilityRetryUsed,
+                                        hasMeaningfulOutput = hasMeaningfulOutput,
+                                    )
+                                if (shouldRetry) {
+                                    compatibilityRetryUsed = true
+                                    retryWithoutToolChoice = true
+                                    Logger.w(
+                                        "ChatVM",
+                                        "thinking mode 不支持 tool_choice=required,关闭本轮思考后重试一次",
+                                    )
+                                }
+                                !shouldRetry
+                            }.collect { event ->
                             when (event) {
                         is ChatStreamEvent.ContentDelta -> {
                             // C-11: 续传去重 — 跳过与"尚未被消费的已显示内容"重叠的最长公共前缀。
@@ -5994,6 +5958,10 @@ class ChatViewModel(
                         }
                             }
                         }
+                            if (retryWithoutToolChoice) {
+                                Logger.i("ChatVM", "tool_choice 兼容重试已切换为 utility 模式")
+                            }
+                        } while (retryWithoutToolChoice)
                     } finally {
                         pendingFlushJob.cancelAndJoin()
                     }
@@ -6098,9 +6066,7 @@ class ChatViewModel(
                 streamError?.let {
                     val type = classifyErrorType(it)
                     val displayMsg = ErrorMessages.resolve(appContext, it)
-                    // v1.0.15: StreamInterrupted 时已保留部分内容,允许用户手动重试
-                    val recoverable = streamInterrupted || type != ChatErrorType.API_KEY
-                    addError(type, displayMsg, isRecoverable = recoverable)
+                    // 工具循环出口统一负责向 UI 上报错误，避免同一错误出现两张卡片。
                     updateAssistant(
                         params.currentAssistantId,
                         unmaskPii(params.builder.toString()),
@@ -6939,13 +6905,25 @@ class ChatViewModel(
      * 由 MuseApp 的 ProcessLifecycleOwner ON_STOP 观察者显式调用。
      */
     fun release() {
+        releaseInternal(notifySessionEnd = true)
+    }
+
+    /**
+     * 应用切后台时释放语音资源，但不把当前会话当作结束会话通知记忆 LLM。
+     * 进程回到前台后仍可能继续生成，后台生命周期不应重复排队 completeText。
+     */
+    fun releaseForBackground() {
+        releaseInternal(notifySessionEnd = false)
+    }
+
+    private fun releaseInternal(notifySessionEnd: Boolean) {
         // 语音对话模式:取消循环协程并释放 ASR/TTS 资源(避免后台继续录音/朗读)
         stopVoiceConversation()
         // Phase 8.7: ViewModel 销毁时停止 TTS(避免页面退出后继续朗读)
         stopTts()
         // v1.53: 清除 TTS 状态回调,避免单例 TtsManager 持有已销毁 ViewModel 的回调导致内存泄漏
         ttsManager.onStateChange = null
-        notifySessionEndForCurrent()
+        if (notifySessionEnd) notifySessionEndForCurrent()
         // v1.91: 释放流式 ASR Controller(AudioRecord / WebSocket / 协程 scope)
         // v1.105: 委托至 ChatAudioCoordinator
         audioCoordinator.disposeAsr()
@@ -6988,6 +6966,44 @@ class ChatViewModel(
                 "ChatViewModel",
                 "foreground resumed; keep generation service alive, tasks=${chatGenerationManager.activeGenerations.value.size}",
             )
+        }
+        refreshDisplayedSessionFromDatabase()
+    }
+
+    /** 从 Room 刷新当前查看会话，不修改导航焦点，也不取消后台生成。 */
+    private fun refreshDisplayedSessionFromDatabase() {
+        val sessionId = displayedSessionId() ?: return
+        sessionMemoryCache.remove(sessionId)
+        viewModelScope.launch {
+            val loaded = runCatching {
+                withContext(Dispatchers.IO) { loadMessagesPaged(sessionId) }
+            }.onFailure { Logger.w("ChatVM", "前台刷新会话失败: ${it.message}") }.getOrNull() ?: return@launch
+            if (displayedSessionId() != sessionId) return@launch
+            val (messages, hasMore) = loaded
+            val restoredAgentPlans = restoreAgentPlansForSession(sessionId, messages)
+            _messages.value = messages
+            val isBackgroundStreaming = chatGenerationManager.isStreaming(sessionId)
+            _state.update { state ->
+                if (displayedSessionId(state) != sessionId) {
+                    state
+                } else {
+                    state.copy(
+                        hasMoreHistory = hasMore,
+                        isLoadingMore = false,
+                        memoryCacheHit = false,
+                        agentPlans = restoredAgentPlans,
+                        isStreaming = isBackgroundStreaming,
+                        isWaitingFirstToken = isBackgroundStreaming && messages
+                            .lastOrNull { it.role == MessageRole.ASSISTANT }
+                            ?.let { it.content.isBlank() && it.toolCalls.isNullOrEmpty() }
+                            == true,
+                    )
+                }
+            }
+            val treeSnapshot = withContext(Dispatchers.IO) { treeSnapshotStore?.load(sessionId) }
+            if (displayedSessionId() == sessionId) {
+                rebuildConversationTree(previousOverride = treeSnapshot)
+            }
         }
     }
 
@@ -7070,7 +7086,7 @@ class ChatViewModel(
      * 流式结束后最终落盘(直接 upsertMessage)会同步 FTS;中断走 persistInterruptedAssistant 也同步。
      * 若 app 崩溃导致 FTS 漂移,下次启动 ensureFtsIndexConsistent 会自动 rebuild。
      */
-    private fun persistCurrentAssistant(sessionId: String, assistantId: Uuid, msg: UIMessage? = null) =
+    private suspend fun persistCurrentAssistant(sessionId: String, assistantId: Uuid, msg: UIMessage? = null) =
         streamCoordinator.persistCurrentAssistant(sessionId, assistantId, msg, ::addError)
 
     private fun updateAssistant(
@@ -7531,7 +7547,7 @@ class ChatViewModel(
             )
             val assistant = assistantRepository.getById(targetId)
                 ?: assistantRepository.getById("default")
-            val restoredAgentPlans = restoreAgentPlans(messages)
+            val restoredAgentPlans = restoreAgentPlansForSession(sessionId, messages)
             _messages.value = messages
             _state.update {
                 it.copy(

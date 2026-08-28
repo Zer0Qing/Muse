@@ -11,6 +11,8 @@ import android.widget.Toast
 import androidx.biometric.BiometricPrompt
 import androidx.fragment.app.FragmentActivity
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.PredictiveBackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.compose.LocalActivityResultRegistryOwner
 import androidx.activity.enableEdgeToEdge
@@ -80,6 +82,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import io.zer0.common.Logger
 import io.zer0.muse.crash.MuseCrashHandler
+import io.zer0.muse.data.ChatPreferences
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.AppearanceSettingsStore
 import io.zer0.muse.R
@@ -407,6 +410,9 @@ private fun MuseNavGraph(
 
     // v1.7: Provider 列表(原用于判断首次引导,v1.131 引导已移除,保留用于其他用途)
     val providers by settings.providersFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+    val chatPreferences by settings.chatPreferencesFlow.collectAsStateWithLifecycle(
+        initialValue = ChatPreferences(),
+    )
 
     // H2: settings 加载门控 — 等 providersFlow 首次 emit 后再组合 NavHost,
     // 避免首帧空列表导致 NavHost 用错误状态组合。NavHost 仅在首次组合读取 startDestination
@@ -685,6 +691,25 @@ private fun MuseNavGraph(
 
                 // v1.131: 首次启动引导已移除,直接进入主页
                 val startDestination = HomeRoute
+
+                // 统一管理页面导航返回；页面内弹窗/编辑保护的 BackHandler 仍会优先消费返回事件。
+                DisposableEffect(navController) {
+                    navController.enableOnBackPressed(false)
+                    onDispose { navController.enableOnBackPressed(true) }
+                }
+                fun popOrFinish() {
+                    if (!navController.popBackStack()) {
+                        (context as? android.app.Activity)?.finish()
+                    }
+                }
+                if (chatPreferences.predictiveBackEnabled) {
+                    PredictiveBackHandler {
+                        it.collect { }
+                        popOrFinish()
+                    }
+                } else {
+                    BackHandler { popOrFinish() }
+                }
 
                 NavHost(
                     navController = navController,

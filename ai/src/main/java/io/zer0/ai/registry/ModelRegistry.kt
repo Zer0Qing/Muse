@@ -155,6 +155,10 @@ object ModelRegistry {
         tokens("deepseek", "v", "4")
         toolReasoningAbility()
     }
+    private val DEEPSEEK_OCR = defineModel {
+        tokens("deepseek", "ocr")
+        visionInput()
+    }
 
     // ─── Qwen ───
 
@@ -169,6 +173,10 @@ object ModelRegistry {
     private val QWEN_TURBO = defineModel {
         tokens("qwen", "turbo")
         toolAbility()
+    }
+    private val QWEN_3_5 = defineModel {
+        tokens("qwen", "3", "5")
+        visionInput(); toolReasoningAbility()
     }
     private val QWEN_VL = defineModel {
         tokens("qwen", "vl")
@@ -189,7 +197,11 @@ object ModelRegistry {
 
     private val GLM_4 = defineModel {
         tokens("glm", "4")
-        visionInput(); toolAbility()
+        toolAbility()
+    }
+    private val GLM_4_6 = defineModel {
+        tokens("glm", "4", "6")
+        toolReasoningAbility()
     }
     private val GLM_3 = defineModel {
         tokens("glm", "3")
@@ -310,9 +322,9 @@ object ModelRegistry {
         CLAUDE_OPUS, CLAUDE_SONNET,
         GEMINI_2_0_FLASH, GEMINI_2_5_FLASH, GEMINI_2_5_PRO,
         GEMINI_1_5_PRO, GEMINI_1_5_FLASH, GEMINI_PRO, GEMINI_FLASH,
-        DEEPSEEK_V3, DEEPSEEK_CHAT, DEEPSEEK_R1, DEEPSEEK_REASONER, DEEPSEEK_V4,
-        QWEN_MAX, QWEN_PLUS, QWEN_TURBO, QWEN_VL, QWEN2_VL, QWEN_QWQ,
-        GLM_4, GLM_3, GLM_4V, GLM_V,
+        DEEPSEEK_V3, DEEPSEEK_CHAT, DEEPSEEK_R1, DEEPSEEK_REASONER, DEEPSEEK_V4, DEEPSEEK_OCR,
+        QWEN_MAX, QWEN_PLUS, QWEN_TURBO, QWEN_3_5, QWEN_VL, QWEN2_VL, QWEN_QWQ,
+        GLM_4_6, GLM_4, GLM_3, GLM_4V, GLM_V,
         DOUBAO_PRO, DOUBAO_VISION,
         MINIMAX, MINIMAX_M3, MINIMAX_M2_5, MINIMAX_M2_7, MINIMAX_M1,
         GROK, KIMI, KIMI_K2, KIMI_K2_6, KIMI_VISION, YI,

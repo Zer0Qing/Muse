@@ -79,7 +79,7 @@ import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.knowledge.KnowledgeDocDao
 import io.zer0.muse.data.session.FolderEntity
 import io.zer0.muse.data.session.SessionEntity
-import io.zer0.muse.ui.common.form.MuseBottomSheet
+import io.zer0.muse.ui.common.form.MuseBottomPopup
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.museAnimateItem
@@ -1027,11 +1027,11 @@ private fun TaskActionSheet(
     onRename: () -> Unit,
     onMoveToFolder: (String?) -> Unit,
 ) {
-    MuseBottomSheet(
+    MuseBottomPopup(
         onDismissRequest = onDismiss,
         // 长按菜单内容与面板同宽，避免标题和操作项被额外横向压缩。
         horizontalPadding = 0.dp,
-        bottomContentSpacing = MusePaddings.itemGap,
+        bottomContentSpacing = 0.dp,
     ) {
         Column(
             modifier = Modifier.verticalScroll(rememberScrollState()),
@@ -1341,11 +1341,11 @@ private fun FolderActionSheet(
     onRename: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    MuseBottomSheet(
+    MuseBottomPopup(
         onDismissRequest = onDismiss,
         // 文件夹长按菜单与会话长按菜单保持一致的边缘布局。
         horizontalPadding = 0.dp,
-        bottomContentSpacing = MusePaddings.itemGap,
+        bottomContentSpacing = 0.dp,
     ) {
         Column(
             modifier = Modifier.verticalScroll(rememberScrollState()),

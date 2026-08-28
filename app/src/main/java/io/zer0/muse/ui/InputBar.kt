@@ -18,8 +18,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -132,7 +130,7 @@ private val MENTION_HIGHLIGHT_REGEX = Regex("@[\\u4e00-\\u9fa5\\w]+")
  * 功能保留:
  *  - 附件、图片(OCR/视觉)、语音输入、绘图模式、联网搜索
  *  - 快捷消息 chips、模式选择器、待发送图片预览
- *  - 边缘到边缘: navigationBarsPadding + imePadding
+ *  - 边缘到边缘安全区由 Chat 页面 bottom bar 统一处理
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
@@ -229,10 +227,6 @@ internal fun InputBar(
             .fillMaxWidth()
             // v1.99: 大R角/曲面屏设备横向安全区避让(displayCutout 在非 cutout 设备上返回 0,安全)
             .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
-            // 输入岛只处理导航栏和键盘安全区，不使用 systemGesturesPadding，
-            // 避免手势区被误算成输入岛上方的额外空白。
-            .navigationBarsPadding()
-            .imePadding()
             .padding(horizontal = 8.dp),
         verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
     ) {
@@ -581,27 +575,28 @@ internal fun InputBar(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
             ) {
-                // v0.44: Sheet 状态声明(右侧 Add 按钮触发,Sheet 块留在 Row 内不影响布局)
-                var showToolSheet by remember { mutableStateOf(false) }
-                val context = LocalContext.current
-                // 左侧: + 号按钮 → 底部 Sheet
-                IconButton(
-                    onClick = {
-                        MuseHaptics.light(hapticFeedback)
-                        showToolSheet = true
-                    },
-                    enabled = !isStreaming,
-                    modifier = Modifier.size(MuseIconSizes.touchTarget),
-                ) {
-                    Icon(
-                        imageVector = TablerIcons.Plus,
-                        contentDescription = stringResource(R.string.chat_tools_cd),
-                        // v1.79 (L-I7): 禁用态降低 alpha,提供视觉反馈
-                        tint = if (isStreaming) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
-                               else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(MuseIconSizes.iconMedium),
-                    )
-                }
+                // v0.44: Sheet 状态声明(右侧 Add 按钮触发,弹层锚定在按钮自身)
+                Box(modifier = Modifier.size(MuseIconSizes.touchTarget)) {
+                    var showToolSheet by remember { mutableStateOf(false) }
+                    val context = LocalContext.current
+                    // 左侧: + 号按钮 → 锚定 Popup
+                    IconButton(
+                        onClick = {
+                            MuseHaptics.light(hapticFeedback)
+                            showToolSheet = true
+                        },
+                        enabled = !isStreaming,
+                        modifier = Modifier.size(MuseIconSizes.touchTarget),
+                    ) {
+                        Icon(
+                            imageVector = TablerIcons.Plus,
+                            contentDescription = stringResource(R.string.chat_tools_cd),
+                            // v1.79 (L-I7): 禁用态降低 alpha,提供视觉反馈
+                            tint = if (isStreaming) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                                   else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    }
                  if (showToolSheet) {
                      val deepThinkingLabel = stringResource(R.string.chat_deep_thinking_cd)
                      val deepThinkingTitle = if (isDeepThinkingEnabled) {
@@ -750,7 +745,8 @@ internal fun InputBar(
                          entries = toolEntries,
                          onDismiss = { showToolSheet = false },
                      )
-                 }
+                    }
+                }
 
                  // 语音对话入口放回输入岛内部，不再单独占用输入栏上方的一行。
                  if (showMic) {

@@ -52,6 +52,13 @@ interface MessageDao {
     @Query("SELECT * FROM messages WHERE sessionId = :sessionId ORDER BY CASE WHEN commitSeq > 0 THEN commitSeq ELSE seq END DESC, createdAt DESC, id DESC LIMIT :limit")
     suspend fun getRecentBySession(sessionId: String, limit: Int): List<MessageEntity>
 
+    /** 计划历史恢复用:只读取带工具展示信息的消息,避免为恢复计划加载整段长会话。 */
+    @Query(
+        "SELECT * FROM messages WHERE sessionId = :sessionId AND toolCallInfoJson IS NOT NULL " +
+            "ORDER BY CASE WHEN commitSeq > 0 THEN commitSeq ELSE seq END ASC, createdAt ASC, id ASC",
+    )
+    suspend fun getToolCallMessagesBySession(sessionId: String): List<MessageEntity>
+
     /**
      * v1.53-A1: 窗口加载 — 取指定会话 createdAt < beforeCreatedAt 的前 limit 条消息(降序)。
      *

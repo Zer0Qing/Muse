@@ -55,6 +55,7 @@ import org.koin.android.ext.android.inject
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * 应用入口。初始化 Koin,装载全部模块,启动 memory ticker。
@@ -123,6 +124,8 @@ class MuseApp : Application(), ImageLoaderFactory {
     /** 应用级 scope:启动一次性任务用,独立于 Koin 注册的 IO scope。 */
     // v0.53: 加 GlobalCoroutineExceptionHandler,防止协程内未捕获异常导致应用崩溃(企业级容错)
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO + GlobalCoroutineExceptionHandler)
+    /** 同一进程只触发一次 app_resume 巡检，避免 HomeScreen 重组重复调用决策 LLM。 */
+    private val resumePatrolTriggered = AtomicBoolean(false)
     /** v0.32: keepAwake 设置开启时持有的 PARTIAL_WAKE_LOCK,null 表示未持有。 */
     private var wakeLock: PowerManager.WakeLock? = null
 
@@ -285,7 +288,7 @@ class MuseApp : Application(), ImageLoaderFactory {
                         .onError { msg, t -> Logger.w("MuseApp", "chatViewModel.onAppBackground 失败: $msg", t) }
                     // ChatGenerationManager 在任务登记时立即启动前台服务；这里不再重复启动。
                     // 这样单聊、群聊以及工具计划都由同一个 activeGenerations 快照保活。
-                    resultOf { chatViewModel.release() }
+                    resultOf { chatViewModel.releaseForBackground() }
                         .onError { msg, t -> Logger.w("MuseApp", "chatViewModel.release 失败: $msg", t) }
                     // v1.0.30: memoryTicker.stop 含 30s 超时等待，移入协程
                     appScope.launch {
@@ -304,6 +307,15 @@ class MuseApp : Application(), ImageLoaderFactory {
                     // 回前台时重启 memory ticker
                     resultOf { memoryTicker.start() }
                         .onError { msg, t -> Logger.w("MuseApp", "memoryTicker.start 失败: $msg", t) }
+                    if (resumePatrolTriggered.compareAndSet(false, true)) {
+                        appScope.launch {
+                            resultOf {
+                                proactiveMessageRunner.triggerByEvent(
+                                    io.zer0.muse.schedule.ProactiveMessageRunner.TRIGGER_SOURCE_RESUME,
+                                )
+                            }.onError { msg, t -> Logger.w("MuseApp", "app_resume 主动消息巡检失败: $msg", t) }
+                        }
+                    }
                     // v1.0.16: 回前台清理 OkHttp 空闲连接，移入协程
                     appScope.launch {
                         resultOf { io.zer0.ai.core.ProviderHttpSupport.evictIdleConnections() }

@@ -94,7 +94,7 @@ data class UserProfile(
  * 分组:
  *  - 消息显示:showMoodBlock / showReasoning / showTokenEstimate / showModelName / showTimestamp
  *  - 默认展开状态:moodExpandedByDefault / reasoningExpandedByDefault
- *  - 交互行为:streamResponse / autoScrollToBottom / volumeKeyScroll / enterToSend / hapticFeedback
+ *  - 交互行为:streamResponse / autoScrollToBottom / volumeKeyScroll / enterToSend / hapticFeedback / predictiveBackEnabled
  *  - 高级:longMessageThreshold / showToolCallDetails / use24Hour
  */
 @kotlinx.serialization.Serializable
@@ -157,6 +157,8 @@ data class ChatPreferences(
      * 关闭时维持现有行为(直接渲染全部 state.messages)。
      */
     val performanceMode: Boolean = false,
+    /** v1.0.83: 是否使用 Android 预测性返回；关闭后导航立即执行普通 popBackStack。 */
+    val predictiveBackEnabled: Boolean = true,
 )
 
 /**

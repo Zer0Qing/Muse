@@ -42,6 +42,26 @@ class MessageProjectionTest {
         assertEquals("new", projected.content)
         assertEquals(listOf("m1", "m2"), MessageProjector.order(listOf(deleted, structured, legacy), true).map { it.id })
     }
+
+    @Test
+    fun structuredPartsWithoutTextFallBackToLegacyContent() {
+        val message = MessageEntity(
+            id = "m1",
+            sessionId = "s1",
+            role = "ASSISTANT",
+            content = "legacy answer",
+            reasoning = "legacy reasoning",
+            seq = 1,
+            createdAt = 1,
+        )
+        val parts = listOf(MessagePartEntity("m1", 0, "reasoning", "structured thought", createdAt = 1))
+
+        val projected = MessageProjector.project(message, parts)
+
+        assertEquals("legacy answer", projected.content)
+        assertEquals("structured thought", projected.reasoning)
+    }
+
     @Test
     fun conversationProjectionIsRepeatableAndUsesCommitSequenceWhenEnabled() {
         val first = MessageEntity("m1", "s1", "USER", "first", seq = 1, commitSeq = 8, createdAt = 1)

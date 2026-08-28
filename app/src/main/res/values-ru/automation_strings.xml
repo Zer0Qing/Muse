@@ -6,4 +6,5 @@
     <string name="automation_permission_a11y">Служба специальных возможностей</string>
     <string name="automation_permission_shell">Shell (Shizuku/adb)</string>
     <string name="automation_permission_root">Root</string>
+    <string name="automation_settings_unavailable">Не удалось открыть системные настройки. Откройте их вручную, чтобы включить разрешение.</string>
 </resources>

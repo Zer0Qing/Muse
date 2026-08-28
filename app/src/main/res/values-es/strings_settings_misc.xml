@@ -311,4 +311,26 @@
     <string name="settings_crash_no_webhook">Primero configure una URL de webhook válida</string>
     <string name="settings_crash_no_method">Método de informe no configurado, omitido</string>
     <string name="settings_crash_reported_count">Registros de fallos %1$d informados</string>
+    <string name="settings_web_search_mode">Modo de búsqueda</string>
+    <string name="settings_web_search_mode_desc">Prioriza la búsqueda del modelo, luego las API configuradas y después Bing y Baidu HTTP.</string>
+    <string name="settings_web_search_mode_off">Desactivado</string>
+    <string name="settings_web_search_mode_auto">Automático: priorizar búsqueda del modelo</string>
+    <string name="settings_web_search_mode_local">Búsqueda local</string>
+    <string name="settings_web_search_mode_native">Nativa del modelo</string>
+    <string name="settings_web_search_native_unavailable">La búsqueda nativa funciona con Gemini Grounding y OpenAI Responses; otros protocolos la ignoran automáticamente.</string>
+    <string name="settings_web_search_default_path">Ruta de búsqueda predeterminada</string>
+    <string name="settings_web_search_default_path_desc">Prioriza la búsqueda nativa, luego las API del usuario y después Bing HTTP y Baidu HTTP.</string>
+    <string name="settings_web_search_provider_status_bing">Bing HTTP: entrada regional, alternativa gratuita</string>
+    <string name="settings_web_search_provider_status_jina">Baidu HTTP: alternativa web nacional gratuita</string>
+    <string name="settings_web_search_provider_status_searxng">Solo se conservan las API configuradas por el usuario</string>
+    <string name="settings_web_search_strategy">Estrategia de búsqueda</string>
+    <string name="settings_web_search_budget">Búsquedas máximas por turno</string>
+    <string name="settings_web_search_max_results">Resultados máximos por búsqueda</string>
+    <string name="settings_web_search_fallback">Usar búsqueda alternativa tras un fallo</string>
+    <string name="settings_web_search_api_services">Servicios de búsqueda API</string>
+    <string name="settings_web_search_api_services_desc">Los usuarios avanzados pueden configurar Tavily, Brave, Serper, Bocha y otros servicios.</string>
+    <string name="settings_web_search_diagnosis">Último diagnóstico de búsqueda</string>
+    <string name="settings_web_search_no_diagnosis">Aún no hay registros de búsqueda</string>
+    <string name="settings_web_search_endpoint_optional">Endpoint (opcional)</string>
+    <string name="settings_web_search_provider_not_configured">No configurado</string>
 </resources>

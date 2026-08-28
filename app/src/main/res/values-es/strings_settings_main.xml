@@ -368,6 +368,8 @@
     <string name="settings_chat_enter_send_subtitle">Enter inserta una nueva línea cuando está desactivado</string>
     <string name="settings_chat_haptic">Retroalimentación háptica</string>
     <string name="settings_chat_haptic_subtitle">Retroalimentación de vibración al tocar/presionar prolongadamente</string>
+    <string name="settings_chat_predictive_back">Atrás predictivo</string>
+    <string name="settings_chat_predictive_back_subtitle">Usar la animación del sistema; desactivar para volver inmediatamente</string>
     <string name="settings_chat_show_tool_calls">Mostrar proceso de llamada de herramienta</string>
     <string name="settings_chat_show_tool_calls_subtitle">Mensajes intermedios durante las llamadas a herramientas de IA</string>
     <string name="settings_chat_24h">Formato de 24 horas</string>

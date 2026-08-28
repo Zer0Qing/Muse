@@ -368,6 +368,8 @@
     <string name="settings_chat_enter_send_subtitle">Enter inserts a newline when off</string>
     <string name="settings_chat_haptic">Haptic Feedback</string>
     <string name="settings_chat_haptic_subtitle">Vibration feedback on tap/long press</string>
+    <string name="settings_chat_predictive_back">Predictive Back</string>
+    <string name="settings_chat_predictive_back_subtitle">Use the system back animation; turn off for immediate navigation</string>
     <string name="settings_chat_show_tool_calls">Show Tool Call Process</string>
     <string name="settings_chat_show_tool_calls_subtitle">Intermediate messages during AI tool calls</string>
     <string name="settings_chat_24h">24-Hour Format</string>

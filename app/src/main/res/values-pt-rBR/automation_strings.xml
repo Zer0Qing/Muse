@@ -6,4 +6,5 @@
     <string name="automation_permission_a11y">Serviço de Acessibilidade</string>
     <string name="automation_permission_shell">Shell (Shizuku/adb)</string>
     <string name="automation_permission_root">Root</string>
+    <string name="automation_settings_unavailable">Não foi possível abrir as configurações do sistema. Abra-as manualmente para ativar a permissão.</string>
 </resources>

@@ -61,6 +61,7 @@ import io.zer0.muse.ui.common.surface.MuseCardPress
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.util.ShareIntentHelper
 
 /**
  * v2.0+: Safe Mode 极简 UI(上次崩溃后展示)。
@@ -436,9 +437,11 @@ private fun shareCrashLog(context: Context) {
             putExtra(Intent.EXTRA_SUBJECT, "muse crash log — ${logFile.name}")
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        val chooser = Intent.createChooser(shareIntent, context.getString(R.string.safe_mode_view_full_log))
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        context.startActivity(chooser)
+        ShareIntentHelper.startChooserSafely(
+            context,
+            shareIntent,
+            context.getString(R.string.safe_mode_view_full_log),
+        )
     }.onFailure { e ->
         Logger.w("SafeModeScreen", "shareCrashLog failed", e)
         Toast.makeText(context, R.string.safe_mode_share_log_failed, Toast.LENGTH_SHORT).show()

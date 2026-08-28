@@ -311,4 +311,26 @@
     <string name="settings_crash_no_webhook">最初に有効な Webhook URL を構成してください</string>
     <string name="settings_crash_no_method">レポート方法が設定されていないため、スキップされました</string>
     <string name="settings_crash_reported_count">報告された%1$dクラッシュ記録</string>
+    <string name="settings_web_search_mode">検索モード</string>
+    <string name="settings_web_search_mode_desc">モデル内蔵検索、設定済み検索 API、Bing と Baidu HTTP の順に使用します。</string>
+    <string name="settings_web_search_mode_off">オフ</string>
+    <string name="settings_web_search_mode_auto">自動: モデル検索を優先</string>
+    <string name="settings_web_search_mode_local">ローカル検索</string>
+    <string name="settings_web_search_mode_native">モデルネイティブ</string>
+    <string name="settings_web_search_native_unavailable">ネイティブ検索は Gemini Grounding と OpenAI Responses に対応し、その他のプロトコルでは自動的に無視されます。</string>
+    <string name="settings_web_search_default_path">デフォルトの検索経路</string>
+    <string name="settings_web_search_default_path_desc">モデルネイティブ検索、ユーザー API、Bing HTTP、Baidu HTTP の順に使用します。</string>
+    <string name="settings_web_search_provider_status_bing">Bing HTTP: 地域入口、無料フォールバック</string>
+    <string name="settings_web_search_provider_status_jina">Baidu HTTP: 国内向け無料ウェブフォールバック</string>
+    <string name="settings_web_search_provider_status_searxng">ユーザーが設定した検索 API のみ保持</string>
+    <string name="settings_web_search_strategy">検索戦略</string>
+    <string name="settings_web_search_budget">1ターンの最大検索回数</string>
+    <string name="settings_web_search_max_results">検索ごとの最大結果数</string>
+    <string name="settings_web_search_fallback">失敗時に予備検索を使用</string>
+    <string name="settings_web_search_api_services">API検索サービス</string>
+    <string name="settings_web_search_api_services_desc">上級者は Tavily、Brave、Serper、Bocha などを設定できます。</string>
+    <string name="settings_web_search_diagnosis">最新の検索診断</string>
+    <string name="settings_web_search_no_diagnosis">検索記録はまだありません</string>
+    <string name="settings_web_search_endpoint_optional">Endpoint (任意)</string>
+    <string name="settings_web_search_provider_not_configured">未設定</string>
 </resources>

@@ -42,6 +42,7 @@ import io.zer0.muse.ui.common.media.WindowWidthClass
 import io.zer0.muse.ui.common.state.MuseLoadingState
 import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.ui.common.surface.MusePageScaffold
+import io.zer0.muse.ui.common.surface.museBottomBarInsets
 import io.zer0.muse.transformer.InternalMarkupSanitizer
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -1075,12 +1076,14 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                     onClear = viewModel::clearPendingQueue,
                 )
             }
-            // I3: 输入区独立错误边界,输入渲染数据构建失败只降级输入条
-            RegionErrorBoundary(
-                regionName = "input",
-                data = { state.sendQueue },
-            ) {
-            RichInputBar(
+            // 只让输入岛占用底部系统安全区,避免整块 bottomBar 被 inset 撑成白色遮罩。
+            Box(Modifier.fillMaxWidth().museBottomBarInsets()) {
+                // I3: 输入区独立错误边界,输入渲染数据构建失败只降级输入条
+                RegionErrorBoundary(
+                    regionName = "input",
+                    data = { state.sendQueue },
+                ) {
+                RichInputBar(
                 // v1.0.20 (Task 3): input/isStreaming 读派生值,避免其他字段变化触发 bottomBar 重组
                 text = currentInput,
                 assistantName = state.currentAssistant?.name?.takeIf { it.isNotBlank() } ?: "Muse",
@@ -1261,8 +1264,9 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                 pasteAsFileEnabled = state.pasteAsFileEnabled,
                 pasteAsFileThreshold = state.pasteAsFileThreshold,
                 onAddPastedTextAsDocument = viewModel::addPastedTextAsDocument,
-            )
-            } // I3: 输入区错误边界收尾
+                )
+                } // I3: 输入区错误边界收尾
+            }
             }
         },
         // 背景图/渐变都由外层 Box 绘制; Scaffold 必须透明,否则默认 background 会把渐变盖住。
@@ -1461,6 +1465,9 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                         .filter { it.messageId != null }
                         .associateBy { it.messageId!! }
                 }
+                val visibleMessageIds = remember(visibleMessages) {
+                    visibleMessages.mapTo(mutableSetOf()) { it.id.toString() }
+                }
                 // M-UI3: 将最新计划卡关联到最近一条助手消息,随消息一起滚动
                 val lastAssistantId by remember {
                     derivedStateOf { visibleMessages.lastOrNull { it.role == MessageRole.ASSISTANT }?.id }
@@ -1488,8 +1495,6 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                                 Modifier
                             }
                         )
-                        // M-CS4: 横向 padding 替换为 MusePaddings.screen
-                        .padding(horizontal = MusePaddings.screen)
                         // v0.31: 音量键滚动受 chatPrefs.volumeKeyScroll 开关控制
                         .then(
                             if (state.chatPreferences.volumeKeyScroll) {
@@ -1750,7 +1755,14 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                             // 旧计划(无 messageId)回退到 lastAssistantId 兜底,保持向后兼容。
                             agentPlan = if (msg.role == MessageRole.ASSISTANT) {
                                 plansByMessageId[msg.id.toString()]
-                                    ?: if (msg.id == lastAssistantId && latestPlan?.messageId == null) latestPlan else null
+                                    ?: if (
+                                        msg.id == lastAssistantId &&
+                                        latestPlan?.let { it.messageId == null || it.messageId !in visibleMessageIds } == true
+                                    ) {
+                                        latestPlan
+                                    } else {
+                                        null
+                                    }
                             } else null,
                             // HTML/SVG 代码块全屏预览
                             onHtmlPreview = onHtmlPreview,

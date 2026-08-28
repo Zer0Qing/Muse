@@ -35,7 +35,10 @@ object MessageProjector {
         } else {
             buildLegacyParts(message)
         }
+        // 部分旧版本会先写入 reasoning/tool part，再异步补 text part；此时
+        // legacy content 仍是唯一完整正文，不能因为结构化 part 非空就将其投影为空。
         val visibleContent = parts.filter { it.kind == "text" }.joinToString("") { it.text }
+            .ifBlank { message.content }
         val reasoning = parts.filter { it.kind == "reasoning" }.joinToString("") { it.text }.ifBlank { message.reasoning }
         return ProjectedMessage(
             id = message.id,

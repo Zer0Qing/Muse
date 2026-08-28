@@ -10,7 +10,6 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -158,6 +157,21 @@ import kotlinx.coroutines.launch
 // 渲染层统一剥离,避免把 UUID 明文展示给用户(真实产物由 artifactIds 卡片列表展示)。
 private val ARTIFACT_MARKER_RE = Regex("""\[artifact:[0-9a-fA-F-]{36}\]""")
 
+internal enum class MessageBubbleRole {
+    USER,
+    ASSISTANT,
+}
+
+internal data class MessageBubbleLayout(
+    val widthFraction: Float,
+    val hasOpaqueOuterSurface: Boolean,
+)
+
+internal fun messageBubbleLayout(role: MessageBubbleRole): MessageBubbleLayout = when (role) {
+    MessageBubbleRole.USER -> MessageBubbleLayout(widthFraction = 0.78f, hasOpaqueOuterSurface = true)
+    MessageBubbleRole.ASSISTANT -> MessageBubbleLayout(widthFraction = 1f, hasOpaqueOuterSurface = false)
+}
+
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 internal fun MessageBubble(
@@ -256,6 +270,9 @@ internal fun MessageBubble(
     visionAssisted: Boolean = false,
 ) {
     val isUser = msg.role == MessageRole.USER
+    val outerLayout = messageBubbleLayout(
+        if (isUser) MessageBubbleRole.USER else MessageBubbleRole.ASSISTANT,
+    )
     // 阶段 4: 长按菜单状态(主菜单 + 翻译语言子菜单)
     // v1.79 (M-B9): 菜单/子菜单/删除确认状态改用 rememberSaveable,旋转/后台后不丢失
     var actionSurface by rememberSaveable { mutableStateOf(MessageActionSurface.Hidden) }
@@ -824,8 +841,12 @@ internal fun MessageBubble(
             if (showAvatar && !isToolRoundPlaceholder) {
                 Row(
                     modifier = Modifier
-                        .fillMaxWidth(0.85f)
-                        .padding(bottom = MusePaddings.tinyGap),
+                        .fillMaxWidth(outerLayout.widthFraction)
+                        .padding(
+                            start = MusePaddings.screen,
+                            end = MusePaddings.screen,
+                            bottom = MusePaddings.tinyGap,
+                        ),
                     horizontalArrangement = Arrangement.Start,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -849,22 +870,16 @@ internal fun MessageBubble(
             }
             // AI 消息:白色卡片,左对齐,18dp 统一圆角,0.5dp 浅边框,无阴影
             if (!isToolRoundPlaceholder) {
-            Surface(
-                color = if (isPureToolBubble) Color.Transparent else MaterialTheme.colorScheme.surface,
-                shape = MuseShapes.large,
-                tonalElevation = if (isPureToolBubble) 0.dp else MuseElevation.card,
-                shadowElevation = 0.dp,
+            Column(
+                // 助手消息是全宽透明内容层,不再生成两侧白色遮罩。
                 modifier = Modifier
-                    .fillMaxWidth(if (isPureToolBubble) 1f else 0.85f)
-                    .border(
-                        width = if (isPureToolBubble) 0.dp else 0.5.dp,
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                        shape = MuseShapes.large,
-                    )
+                    .fillMaxWidth(outerLayout.widthFraction)
                     .then(bubbleClickModifier),
             ) {
                 Column(
-                    modifier = Modifier.padding(if (isPureToolBubble) PaddingValues(0.dp) else MusePaddings.cardInner),
+                    modifier = Modifier.padding(
+                        if (isPureToolBubble) PaddingValues(0.dp) else MusePaddings.cardInner,
+                    ),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     // 流式/思考状态:AI 消息顶部显示"正在思考…"带绿色脉动圆点

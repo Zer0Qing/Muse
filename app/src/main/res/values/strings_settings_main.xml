@@ -423,6 +423,8 @@
     <string name="settings_chat_enter_send_subtitle">关闭则回车换行</string>
     <string name="settings_chat_haptic">触感反馈</string>
     <string name="settings_chat_haptic_subtitle">点击/长按时震动反馈</string>
+    <string name="settings_chat_predictive_back">预测性返回</string>
+    <string name="settings_chat_predictive_back_subtitle">使用系统返回动画,关闭后立即返回</string>
     <string name="settings_chat_show_tool_calls">显示工具调用过程</string>
     <string name="settings_chat_show_tool_calls_subtitle">AI 调用工具时的中间消息</string>
     <string name="settings_chat_24h">24 小时制</string>

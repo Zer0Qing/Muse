@@ -368,6 +368,8 @@
     <string name="settings_chat_enter_send_subtitle">Enter insere uma nova linha quando desativado</string>
     <string name="settings_chat_haptic">Feedback tátil</string>
     <string name="settings_chat_haptic_subtitle">Feedback de vibração ao tocar/pressionar longamente</string>
+    <string name="settings_chat_predictive_back">Voltar preditivo</string>
+    <string name="settings_chat_predictive_back_subtitle">Usar a animação do sistema; desative para voltar imediatamente</string>
     <string name="settings_chat_show_tool_calls">Mostrar processo de chamada de ferramenta</string>
     <string name="settings_chat_show_tool_calls_subtitle">Mensagens intermediárias durante chamadas de ferramentas de IA</string>
     <string name="settings_chat_24h">Formato 24 horas</string>

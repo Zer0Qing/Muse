@@ -57,4 +57,20 @@ class VisionBridgePureFunctionsTest {
         assertTrue(a.length >= 16)
         assertFalse(a == b)
     }
+
+    @Test
+    fun `reasoning-only vision completion remains usable`() {
+        assertEquals("识别结果", effectiveVisionResponseText("", "识别结果"))
+        assertEquals("正文", effectiveVisionResponseText("正文", "不要覆盖正文"))
+    }
+
+    @Test
+    fun `unsupported vision notice includes provider model and detected capability`() {
+        val notice = visionUnsupportedReason("SiliconFlow", "GLM-4.6", setOf("text"))
+
+        assertTrue(notice.contains("SiliconFlow"))
+        assertTrue(notice.contains("GLM-4.6"))
+        assertTrue(notice.contains("text"))
+        assertTrue(notice.contains("不支持图片输入"))
+    }
 }

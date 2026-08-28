@@ -3,7 +3,6 @@ package io.zer0.muse.ui.common.surface
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.systemGesturesPadding
 import androidx.compose.ui.Modifier
 
 /**
@@ -18,7 +17,6 @@ fun Modifier.museTopBarInsets(): Modifier = statusBarsPadding()
 
 fun Modifier.museBottomBarInsets(): Modifier =
     navigationBarsPadding()
-        .systemGesturesPadding()
         .imePadding()
 
 fun Modifier.museDialogInsets(): Modifier =

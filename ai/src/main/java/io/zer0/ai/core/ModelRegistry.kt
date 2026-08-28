@@ -517,12 +517,16 @@ object ModelRegistry {
         input("text")
         toolReasoningAbility()
     }
+    private val DEEPSEEK_OCR = defineModel {
+        tokens("deepseek", "ocr")
+        visionInput()
+    }
     val DEEPSEEK_V3: Matchable = defineGroup { add(DEEPSEEK_V3_MODEL, DEEPSEEK_CHAT) }
     val DEEPSEEK_R1: Matchable = defineGroup { add(DEEPSEEK_R1_MODEL, DEEPSEEK_REASONER) }
     val DEEPSEEK_SERIES: Matchable = defineGroup {
         add(
             DEEPSEEK_V3_MODEL, DEEPSEEK_CHAT, DEEPSEEK_R1_MODEL, DEEPSEEK_REASONER,
-            DEEPSEEK_V3_1, DEEPSEEK_V3_2, DEEPSEEK_V4_FLASH, DEEPSEEK_V4_PRO,
+            DEEPSEEK_V3_1, DEEPSEEK_V3_2, DEEPSEEK_V4_FLASH, DEEPSEEK_V4_PRO, DEEPSEEK_OCR,
         )
     }
 
@@ -716,7 +720,7 @@ object ModelRegistry {
         CLAUDE_SONNET_4_6, CLAUDE_OPUS_4_6, CLAUDE_OPUS_4_7, CLAUDE_OPUS_4_8,
         // DeepSeek
         DEEPSEEK_V3_MODEL, DEEPSEEK_CHAT, DEEPSEEK_R1_MODEL, DEEPSEEK_REASONER,
-        DEEPSEEK_V3_1, DEEPSEEK_V3_2, DEEPSEEK_V4_FLASH, DEEPSEEK_V4_PRO,
+        DEEPSEEK_V3_1, DEEPSEEK_V3_2, DEEPSEEK_V4_FLASH, DEEPSEEK_V4_PRO, DEEPSEEK_OCR,
         // Qwen
         QWEN_3, QWEN_3_5, QWEN_3_6, QWEN_3_7, _QWEN_MT,
         // 豆包 / Grok / Kimi / Step / Intern / GLM / MiniMax / MiMo
@@ -738,20 +742,36 @@ object ModelRegistry {
      */
     private fun resolveModels(modelId: String): List<ModelDefinition> {
         if (modelId.isBlank()) return emptyList()
+        val normalized = stripAggregatorPrefix(modelId)
+        val candidates = listOf(modelId, normalized).distinct()
         var bestScore: Int? = null
         val matches = mutableListOf<ModelDefinition>()
-        for (model in ALL_MODELS) {
-            val score = model.matchScore(modelId) ?: continue
-            when {
-                bestScore == null || score > bestScore -> {
-                    bestScore = score
-                    matches.clear()
-                    matches.add(model)
+        for (candidate in candidates) {
+            for (model in ALL_MODELS) {
+                val score = model.matchScore(candidate) ?: continue
+                when {
+                    bestScore == null || score > bestScore -> {
+                        bestScore = score
+                        matches.clear()
+                        matches.add(model)
+                    }
+                    score == bestScore && model !in matches -> matches.add(model)
                 }
-                score == bestScore -> matches.add(model)
             }
         }
         return matches
+    }
+
+    /** 去掉常见聚合前缀后再匹配模型能力，保留原始 ID 只用于请求本身。 */
+    private fun stripAggregatorPrefix(modelId: String): String {
+        val raw = modelId.trim().lowercase()
+        val prefixes = listOf(
+            "openrouter/", "opencode-go/", "siliconflow/", "dashscope/",
+            "deepseek-ai/", "zhipu/", "qwen/", "openai/", "anthropic/",
+        )
+        return prefixes.firstOrNull { raw.startsWith(it) }?.let(raw::removePrefix)
+            ?: raw.substringAfterLast('/').takeIf { it.isNotBlank() }
+            ?: raw
     }
 
     /**

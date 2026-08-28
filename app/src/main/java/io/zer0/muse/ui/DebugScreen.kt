@@ -82,6 +82,7 @@ import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.MuseStatusColors
 import io.zer0.muse.ui.theme.statusColors
 import io.zer0.muse.ui.theme.tiny
+import io.zer0.muse.util.ShareIntentHelper
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -272,14 +273,11 @@ fun DebugScreen(
                         type = "text/plain"
                         putExtra(Intent.EXTRA_STREAM, uri)
                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                        // 崩溃修复: context 可能非 Activity(Compose LocalContext 在部分容器内是应用上下文),
-                        // 非 Activity context 启动 Activity 必须带 NEW_TASK,否则 AndroidRuntimeException 崩溃。
-                        if (context !is android.app.Activity) {
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        }
                     }
-                    context.startActivity(
-                        Intent.createChooser(intent, context.getString(R.string.debug_share_log_chooser))
+                    ShareIntentHelper.startChooserSafely(
+                        context,
+                        intent,
+                        context.getString(R.string.debug_share_log_chooser),
                     )
                 }
             }

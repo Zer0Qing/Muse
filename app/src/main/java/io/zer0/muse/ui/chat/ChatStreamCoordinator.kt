@@ -348,7 +348,7 @@ class ChatStreamCoordinator(
      * 流式结束后最终落盘(直接 upsertMessage)会同步 FTS;中断走 persistInterruptedAssistant 也同步。
      * 若 app 崩溃导致 FTS 漂移,下次启动 ensureFtsIndexConsistent 会自动 rebuild。
      */
-    fun persistCurrentAssistant(
+    suspend fun persistCurrentAssistant(
         sessionId: String,
         assistantId: Uuid,
         msg: UIMessage? = null,
@@ -365,15 +365,14 @@ class ChatStreamCoordinator(
             return
         }
         // v1.80 (L-CVM4): 用 NonCancellable 包裹持久化,确保 ViewModel 销毁/协程取消时仍能落盘
-        accessor.coroutineScope.launch {
-            withContext(NonCancellable) {
-                try {
-                    sessionRepository.upsertMessage(sessionId, current, skipFts = true)
-                } catch (e: Exception) {
-                    Logger.e(tag, "persistCurrentAssistant failed", e)
-                    // v1.65: 助手持久化失败给用户反馈
-                    addError(ChatErrorType.UNKNOWN, "助手状态保存失败: ${e.message ?: "未知错误"}")
-                }
+        // 直接挂起等待写入结束，保证最终 upsert 不会被更早的异步快照覆盖。
+        withContext(NonCancellable) {
+            try {
+                sessionRepository.upsertMessage(sessionId, current, skipFts = true)
+            } catch (e: Exception) {
+                Logger.e(tag, "persistCurrentAssistant failed", e)
+                // v1.65: 助手持久化失败给用户反馈
+                addError(ChatErrorType.UNKNOWN, "助手状态保存失败: ${e.message ?: "未知错误"}")
             }
         }
     }
@@ -958,6 +957,7 @@ class ChatStreamCoordinator(
                 userText = latestUserText,
                 explicitSelection = explicitToolSelection,
                 alwaysExposeNames = enabledMcpToolDefs.map { it.name }.toSet(),
+                applyIntentFilter = !explicitToolSelection,
             )
             if (tools.size != allToolDefs.size) {
                 Logger.d(

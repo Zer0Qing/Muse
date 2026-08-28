@@ -311,4 +311,26 @@
     <string name="settings_crash_no_webhook">먼저 유효한 웹훅 URL을 구성하세요.</string>
     <string name="settings_crash_no_method">보고 방법이 구성되지 않았으며 건너뛰었습니다.</string>
     <string name="settings_crash_reported_count">%1$d 충돌 기록이 보고되었습니다.</string>
+    <string name="settings_web_search_mode">검색 모드</string>
+    <string name="settings_web_search_mode_desc">모델 검색, 구성된 검색 API, Bing 및 Baidu HTTP 순으로 사용합니다.</string>
+    <string name="settings_web_search_mode_off">끄기</string>
+    <string name="settings_web_search_mode_auto">자동: 모델 검색 우선</string>
+    <string name="settings_web_search_mode_local">로컬 검색</string>
+    <string name="settings_web_search_mode_native">모델 네이티브</string>
+    <string name="settings_web_search_native_unavailable">네이티브 검색은 Gemini Grounding 및 OpenAI Responses를 지원하며 다른 프로토콜에서는 자동으로 무시됩니다.</string>
+    <string name="settings_web_search_default_path">기본 검색 경로</string>
+    <string name="settings_web_search_default_path_desc">모델 네이티브 검색, 사용자 API, Bing HTTP, Baidu HTTP 순으로 사용합니다.</string>
+    <string name="settings_web_search_provider_status_bing">Bing HTTP: 지역 진입점, 무료 대체 경로</string>
+    <string name="settings_web_search_provider_status_jina">Baidu HTTP: 국내 웹 무료 대체 경로</string>
+    <string name="settings_web_search_provider_status_searxng">사용자가 구성한 검색 API만 유지</string>
+    <string name="settings_web_search_strategy">검색 전략</string>
+    <string name="settings_web_search_budget">턴당 최대 검색 횟수</string>
+    <string name="settings_web_search_max_results">검색당 최대 결과</string>
+    <string name="settings_web_search_fallback">실패 시 대체 검색 사용</string>
+    <string name="settings_web_search_api_services">API 검색 서비스</string>
+    <string name="settings_web_search_api_services_desc">고급 사용자는 Tavily, Brave, Serper, Bocha 등의 서비스를 구성할 수 있습니다.</string>
+    <string name="settings_web_search_diagnosis">최근 검색 진단</string>
+    <string name="settings_web_search_no_diagnosis">아직 검색 기록이 없습니다</string>
+    <string name="settings_web_search_endpoint_optional">Endpoint (선택 사항)</string>
+    <string name="settings_web_search_provider_not_configured">구성되지 않음</string>
 </resources>

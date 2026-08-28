@@ -3,6 +3,7 @@ package io.zer0.muse.util
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import io.zer0.common.Logger
 
 /**
  * 分享/Chooser 启动安全工具。
@@ -24,6 +25,20 @@ object ShareIntentHelper {
      * @param chooserTitle chooser 标题(可空)
      */
     fun startChooserSafely(context: Context, shareIntent: Intent, chooserTitle: String? = null) {
+        runCatching {
+            context.startActivity(buildChooserIntent(context, shareIntent, chooserTitle))
+        }.onFailure { error ->
+            // 没有可处理分享的应用或 URI 授权失败时，分享入口不能再次让应用崩溃。
+            Logger.w("ShareIntentHelper", "无法启动分享 chooser: ${error.message}", error)
+        }
+    }
+
+    /** 构造带正确启动 flag 的 chooser，供调用方和 JVM 回归测试复用。 */
+    internal fun buildChooserIntent(
+        context: Context,
+        shareIntent: Intent,
+        chooserTitle: String? = null,
+    ): Intent {
         // 分享文件需授予读取权限(EXTRA_STREAM 场景)
         if (shareIntent.hasExtra(Intent.EXTRA_STREAM)) {
             shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
@@ -37,6 +52,6 @@ object ShareIntentHelper {
         if (context !is Activity) {
             chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
-        context.startActivity(chooser)
+        return chooser
     }
 }

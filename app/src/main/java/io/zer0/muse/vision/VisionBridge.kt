@@ -41,6 +41,20 @@ import kotlinx.serialization.json.jsonPrimitive
  */
 class VisionAnalysisException(message: String, cause: Throwable? = null) : Exception(message, cause)
 
+/** 正文为空时保留 provider 返回的 reasoning，避免视觉模型结果被误判为空。 */
+internal fun effectiveVisionResponseText(text: String, reasoningContent: String?): String =
+    text.ifBlank { reasoningContent.orEmpty() }
+
+/** 为视觉能力不匹配提供可诊断的供应商、模型和注册表原因。 */
+internal fun visionUnsupportedReason(
+    providerName: String,
+    modelId: String,
+    inputModalities: Set<String>,
+): String {
+    val detected = inputModalities.sorted().joinToString(", ").ifBlank { "unknown" }
+    return "供应商 $providerName 的模型 $modelId 不支持图片输入(已识别能力: $detected, 请更换真正支持视觉输入的模型)"
+}
+
 /**
  * v1.0.4: 视觉辅助 prepare 阶段的结果。
  *
@@ -330,7 +344,13 @@ class VisionBridge(
             "inputModalities=${visionModel.inputModalities}")
 
         if (!visionModel.supportsVisionInput()) {
-            throw VisionAnalysisException("所选视觉模型 ${visionModel.id} 不支持视觉输入(请更换为支持视觉的模型)")
+            throw VisionAnalysisException(
+                visionUnsupportedReason(
+                    providerName = visionProvider.displayName,
+                    modelId = visionModel.id,
+                    inputModalities = visionModel.inputModalities,
+                ),
+            )
         }
 
         // 4. 根据是否支持 grounding 选择提示词路径
@@ -613,7 +633,9 @@ class VisionBridge(
                 tools = null,
             )
             // v1.0.74 fix: 剥离 <think> 推理标签,防止思考内容混入 OCR/看图结果
-            io.zer0.muse.transformer.stripThinkTags(completion.text)
+            io.zer0.muse.transformer.stripThinkTags(
+                effectiveVisionResponseText(completion.text, completion.reasoningContent),
+            )
         } catch (e: UnsupportedOperationException) {
             Logger.w(TAG, "completeText 不支持,降级 streamChat: ${e.message}")
             collectStreamText(userMessage, visionModel, visionProvider)
@@ -629,6 +651,7 @@ class VisionBridge(
         visionProvider: ProviderConfig,
     ): String {
         val builder = StringBuilder()
+        val reasoningBuilder = StringBuilder()
         chatService.streamChat(
             messages = listOf(userMessage),
             model = visionModel,
@@ -637,6 +660,7 @@ class VisionBridge(
         ).collect { event ->
             when (event) {
                 is ChatStreamEvent.ContentDelta -> builder.append(event.delta)
+                is ChatStreamEvent.ReasoningDelta -> reasoningBuilder.append(event.delta)
                 is ChatStreamEvent.Error -> throw ProviderException(
                     providerError = event.providerError ?: ProviderError.Unknown(displayMessage = event.message),
                     cause = event.throwable,
@@ -645,7 +669,9 @@ class VisionBridge(
                 else -> Unit
             }
         }
-        return builder.toString()
+        return io.zer0.muse.transformer.stripThinkTags(
+            effectiveVisionResponseText(builder.toString(), reasoningBuilder.toString()),
+        )
     }
 
     /**

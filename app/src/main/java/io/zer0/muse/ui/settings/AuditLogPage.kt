@@ -58,6 +58,7 @@ import io.zer0.muse.ui.common.media.WindowWidthClass
 import io.zer0.muse.ui.common.media.rememberWindowWidthClass
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseIconSizes
+import io.zer0.muse.util.ShareIntentHelper
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import kotlinx.coroutines.launch
@@ -699,9 +700,10 @@ private fun shareAuditLogsAsJson(context: android.content.Context, logs: List<Au
             )
             addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        context.startActivity(
-            android.content.Intent.createChooser(intent, context.getString(R.string.audit_log_export_chooser))
-                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
+        ShareIntentHelper.startChooserSafely(
+            context,
+            intent,
+            context.getString(R.string.audit_log_export_chooser),
         )
     }.onFailure {
         MuseToast.show(context.getString(R.string.audit_log_export_failed))

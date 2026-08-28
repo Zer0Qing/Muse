@@ -311,4 +311,26 @@
     <string name="settings_crash_no_webhook">Please configure a valid Webhook URL first</string>
     <string name="settings_crash_no_method">Report method not configured, skipped</string>
     <string name="settings_crash_reported_count">Reported %1$d crash records</string>
+    <string name="settings_web_search_mode">Search Mode</string>
+    <string name="settings_web_search_mode_desc">Prefer model-native search, then configured search APIs, then Bing and Baidu HTTP.</string>
+    <string name="settings_web_search_mode_off">Off</string>
+    <string name="settings_web_search_mode_auto">Automatic: prefer model search</string>
+    <string name="settings_web_search_mode_local">Local Search</string>
+    <string name="settings_web_search_mode_native">Model Native</string>
+    <string name="settings_web_search_native_unavailable">Native search is supported by Gemini Grounding and OpenAI Responses; other protocols ignore it automatically.</string>
+    <string name="settings_web_search_default_path">Default Search Path</string>
+    <string name="settings_web_search_default_path_desc">Prefer native model search, then user APIs, then Bing HTTP and Baidu HTTP.</string>
+    <string name="settings_web_search_provider_status_bing">Bing HTTP: regional entry point, free fallback</string>
+    <string name="settings_web_search_provider_status_jina">Baidu HTTP: domestic web fallback, free</string>
+    <string name="settings_web_search_provider_status_searxng">Only user-configured search APIs are retained</string>
+    <string name="settings_web_search_strategy">Search Strategy</string>
+    <string name="settings_web_search_budget">Maximum Searches per Turn</string>
+    <string name="settings_web_search_max_results">Maximum Results per Search</string>
+    <string name="settings_web_search_fallback">Use backup search after failure</string>
+    <string name="settings_web_search_api_services">API Search Services</string>
+    <string name="settings_web_search_api_services_desc">Advanced users can configure Tavily, Brave, Serper, Bocha, and other services.</string>
+    <string name="settings_web_search_diagnosis">Latest Search Diagnosis</string>
+    <string name="settings_web_search_no_diagnosis">No search records yet</string>
+    <string name="settings_web_search_endpoint_optional">Endpoint (optional)</string>
+    <string name="settings_web_search_provider_not_configured">Not configured</string>
 </resources>

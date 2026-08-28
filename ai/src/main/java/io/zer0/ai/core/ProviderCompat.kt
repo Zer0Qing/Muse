@@ -387,7 +387,7 @@ object ProviderCompatRules {
      * 不做版本猜测避免误关)。如后续发现具体版本不支持,可在此处补充。
      */
     private fun ProviderCompat.overrideByModelId(modelId: String, hostKnown: Boolean): ProviderCompat {
-        val id = modelId.lowercase()
+        val id = stripAggregatorPrefix(modelId)
         return when {
             // 早期 o1 推理模型不支持 tool calling(OpenAI 官方文档已声明)
             id == "o1-preview" || id == "o1-mini" -> copy(
@@ -460,6 +460,18 @@ object ProviderCompatRules {
             )
             else -> this
         }
+    }
+
+    /** 去除聚合站/厂商前缀后再识别模型族，原始 ID 仍用于实际请求。 */
+    private fun stripAggregatorPrefix(modelId: String): String {
+        val raw = modelId.trim().lowercase()
+        val prefixes = listOf(
+            "openrouter/", "opencode-go/", "siliconflow/", "dashscope/",
+            "deepseek-ai/", "zhipu/", "qwen/", "openai/", "anthropic/",
+        )
+        return prefixes.firstOrNull { raw.startsWith(it) }?.let(raw::removePrefix)
+            ?: raw.substringAfterLast('/').takeIf { it.isNotBlank() }
+            ?: raw
     }
 
     /**

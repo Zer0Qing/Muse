@@ -311,4 +311,26 @@
     <string name="settings_crash_no_webhook">Сначала настройте действительный URL-адрес веб-перехватчика.</string>
     <string name="settings_crash_no_method">Метод отчета не настроен, пропущен</string>
     <string name="settings_crash_reported_count">Сообщено %1$d записей о сбоях</string>
+    <string name="settings_web_search_mode">Режим поиска</string>
+    <string name="settings_web_search_mode_desc">Сначала поиск модели, затем настроенные API поиска, затем Bing и Baidu HTTP.</string>
+    <string name="settings_web_search_mode_off">Выкл.</string>
+    <string name="settings_web_search_mode_auto">Автоматически: поиск модели в приоритете</string>
+    <string name="settings_web_search_mode_local">Локальный поиск</string>
+    <string name="settings_web_search_mode_native">Нативный поиск модели</string>
+    <string name="settings_web_search_native_unavailable">Нативный поиск поддерживается Gemini Grounding и OpenAI Responses; другие протоколы автоматически его игнорируют.</string>
+    <string name="settings_web_search_default_path">Путь поиска по умолчанию</string>
+    <string name="settings_web_search_default_path_desc">Сначала нативный поиск модели, затем API пользователя, затем Bing HTTP и Baidu HTTP.</string>
+    <string name="settings_web_search_provider_status_bing">Bing HTTP: региональная точка входа, бесплатный резерв</string>
+    <string name="settings_web_search_provider_status_jina">Baidu HTTP: бесплатный резерв для отечественных сайтов</string>
+    <string name="settings_web_search_provider_status_searxng">Сохраняются только настроенные пользователем API поиска</string>
+    <string name="settings_web_search_strategy">Стратегия поиска</string>
+    <string name="settings_web_search_budget">Максимум поисков за ход</string>
+    <string name="settings_web_search_max_results">Максимум результатов за поиск</string>
+    <string name="settings_web_search_fallback">Использовать резервный поиск после ошибки</string>
+    <string name="settings_web_search_api_services">API-сервисы поиска</string>
+    <string name="settings_web_search_api_services_desc">Опытные пользователи могут настроить Tavily, Brave, Serper, Bocha и другие сервисы.</string>
+    <string name="settings_web_search_diagnosis">Последняя диагностика поиска</string>
+    <string name="settings_web_search_no_diagnosis">Записей поиска пока нет</string>
+    <string name="settings_web_search_endpoint_optional">Endpoint (необязательно)</string>
+    <string name="settings_web_search_provider_not_configured">Не настроено</string>
 </resources>

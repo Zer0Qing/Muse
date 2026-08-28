@@ -71,7 +71,7 @@ import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import io.zer0.common.Logger
 import io.zer0.muse.R
-import io.zer0.muse.ui.common.form.MuseBottomSheet
+import io.zer0.muse.ui.common.form.MuseBottomPopup
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
@@ -113,18 +113,16 @@ internal fun MuseToolSheet(
     entries: List<ToolEntry>,
     onDismiss: () -> Unit,
 ) {
-    MuseBottomSheet(
+    MuseBottomPopup(
         onDismissRequest = onDismiss,
-        // 加号面板内容铺到屏幕边缘，避免横向空间不足导致文字被压缩。
-        maxHeightFraction = 0.82f,
-        horizontalPadding = 0.dp,
-        // 在系统导航栏/手势区 inset 之外再留出一点呼吸空间。
-        bottomContentSpacing = MusePaddings.itemGap,
+        maxHeightFraction = 0.78f,
+        horizontalPadding = MusePaddings.screen,
+        bottomContentSpacing = 0.dp,
     ) {
         Text(
-            text = stringResource(R.string.chat_tools_pick_content),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.outline,
+                    text = stringResource(R.string.chat_tools_pick_content),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline,
         )
 
         Spacer(Modifier.height(MusePaddings.contentGap))
@@ -376,8 +374,8 @@ internal fun MuseToolSheet(
                     onLongClick = entry.onLongClick,
                     compact = true,
                     modifier = Modifier
-                    .wrapContentWidth()
-                    .widthIn(min = 82.dp),
+                        .wrapContentWidth()
+                        .widthIn(min = 82.dp),
                 )
             }
         }

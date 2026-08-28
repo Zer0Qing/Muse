@@ -55,8 +55,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import io.zer0.muse.automation.core.AutomationManager
 import io.zer0.muse.automation.executors.MuseAccessibilityService
+import io.zer0.muse.R
+import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.theme.MusePaddings
 import kotlinx.coroutines.launch
 
@@ -129,9 +132,16 @@ fun AutomationSettingsPage(
             enabled = state.accessibilityEnabled,
             levelLabel = "第一层",
             onAction = {
-                val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                context.startActivity(intent)
+                openAutomationSettings(
+                    context = context,
+                    candidates = listOf(
+                        Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS),
+                        appDetailsIntent(context),
+                        Intent(Settings.ACTION_SETTINGS),
+                    ),
+                ) {
+                    MuseToast.show(context.getString(R.string.automation_settings_unavailable))
+                }
             },
         )
 
@@ -143,16 +153,19 @@ fun AutomationSettingsPage(
             enabled = state.shellEnabled,
             levelLabel = "第二层",
             onAction = {
-                // 打开 Shizuku 应用(若已安装)或系统开发者选项
+                // 打开 Shizuku 应用(若已安装),否则按 ROM 能力逐级降级。
                 val shizukuIntent = context.packageManager
                     .getLaunchIntentForPackage("moe.shizuku.privileged.api")
-                if (shizukuIntent != null) {
-                    shizukuIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    context.startActivity(shizukuIntent)
-                } else {
-                    val intent = Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    context.startActivity(intent)
+                openAutomationSettings(
+                    context = context,
+                    candidates = buildList {
+                        shizukuIntent?.let(::add)
+                        add(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS))
+                        add(appDetailsIntent(context))
+                        add(Intent(Settings.ACTION_SETTINGS))
+                    },
+                ) {
+                    MuseToast.show(context.getString(R.string.automation_settings_unavailable))
                 }
             },
         )
@@ -165,12 +178,18 @@ fun AutomationSettingsPage(
             enabled = state.rootEnabled,
             levelLabel = "第三层",
             onAction = {
-                // Root 设备通常通过 Magisk 管理
+                // Root 设备通常通过 Magisk 管理,无 Magisk 时回退到应用设置。
                 val magiskIntent = context.packageManager
                     .getLaunchIntentForPackage("com.topjohnwu.magisk")
-                if (magiskIntent != null) {
-                    magiskIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    context.startActivity(magiskIntent)
+                openAutomationSettings(
+                    context = context,
+                    candidates = buildList {
+                        magiskIntent?.let(::add)
+                        add(appDetailsIntent(context))
+                        add(Intent(Settings.ACTION_SETTINGS))
+                    },
+                ) {
+                    MuseToast.show(context.getString(R.string.automation_settings_unavailable))
                 }
             },
         )
@@ -235,6 +254,11 @@ fun AutomationSettingsPage(
         }
     }
 }
+
+private fun appDetailsIntent(context: android.content.Context): Intent = Intent(
+    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+    "package:${context.packageName}".toUri(),
+)
 
 @Composable
 private fun PermissionCard(

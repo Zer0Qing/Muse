@@ -6,4 +6,5 @@
     <string name="automation_permission_a11y">无障碍服务</string>
     <string name="automation_permission_shell">Shell (Shizuku/adb)</string>
     <string name="automation_permission_root">Root</string>
+    <string name="automation_settings_unavailable">无法打开系统设置,请到系统设置中手动开启权限</string>
 </resources>
