@@ -15,6 +15,8 @@ data class AgentPlan(
     val id: String,
     val title: String,
     val steps: List<AgentPlanStep>,
+    /** 所属会话；旧历史没有该字段时使用 default，恢复时由调用方补齐。 */
+    val sessionId: String = "default",
     val createdAt: Long = System.currentTimeMillis(),
     /**
      * v1.137: 关联创建此计划的助手消息 ID。

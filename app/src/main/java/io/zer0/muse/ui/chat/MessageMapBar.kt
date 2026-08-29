@@ -1,15 +1,17 @@
 package io.zer0.muse.ui.chat
 
-import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -28,32 +30,30 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.lazy.LazyListState
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * A6: 长会话消息地图 — 聊天区右侧竖条导航。
+ * A6: 长会话消息地图 — 聊天区右侧隐藏式导航。
  *
- * 长会话(消息数 ≥ [MESSAGE_MAP_MIN_MESSAGES])时显示,帮助用户快速定位:
- * - 每消息一个 1.5dp 圆角标记,按角色着色(用户/助手/其他)
- * - 当前可见窗口以半透明条高亮
- * - 点击/拖动任意位置 → 滚动到对应消息(拖拽持续滚动)
- * - 桌面 hover 时在条左侧预览该位置消息前 40 字符(触屏无 hover 事件,天然不触发)
+ * 长会话(消息数 ≥ [MESSAGE_MAP_MIN_MESSAGES])时保留右缘透明热区:
+ * - 平时完全不可见,不因普通聊天滚动自动出现
+ * - 手指在最右侧上下拖动时浮出半透明胶囊轨道
+ * - 拖动过程中按纵向位置跳转到对应消息
+ * - 松手后短暂停留,随后自动淡出
+ * - 桌面端也使用同一拖动热区,不改变消息数据和分页逻辑
  *
  * 跨会话滚动位置保留由 ChatViewModel v1.45 的 listState 缓存负责,本组件只管导航。
- * 不新增字符串资源:预览内容为消息原文,无固定文案。
  */
 internal const val MESSAGE_MAP_MIN_MESSAGES = 25
 
-// A6: 指针事件循环(点击/拖动/悬浮三态分发)为固有分支结构,复杂度仅超阈值 2,豁免
 @Suppress("CyclomaticComplexMethod")
 @Composable
 internal fun MessageMapBar(
@@ -64,111 +64,116 @@ internal fun MessageMapBar(
 ) {
     val total = messages.size
     if (total == 0) return
-    val scope = rememberCoroutineScope()
-    var hoverIndex by remember { mutableStateOf<Int?>(null) }
-    var pressedIndex by remember { mutableStateOf<Int?>(null) }
 
-    // v1.0.80: 滚动时浮现、停下缩回 — 原常驻 10dp 竖条用户难以发现触发。
-    // 监听列表滚动状态:滚动中或用户按压 map bar 时展开到 20dp,停止滚动 1s 后缩回 5dp。
-    var expanded by remember { mutableStateOf(false) }
-    LaunchedEffect(listState.isScrollInProgress, pressedIndex) {
-        if (listState.isScrollInProgress || pressedIndex != null) {
-            expanded = true
-        } else {
-            delay(1000)
-            expanded = false
+    val scope = rememberCoroutineScope()
+    var isDragging by remember { mutableStateOf(false) }
+    var showBar by remember { mutableStateOf(false) }
+    var activeIndex by remember { mutableStateOf<Int?>(null) }
+    val scrollJob = remember { mutableStateOf<Job?>(null) }
+
+    // 普通列表滚动不会触发显示;只在右缘拖动结束后负责自动收起。
+    LaunchedEffect(isDragging, showBar) {
+        if (!isDragging && showBar) {
+            delay(900)
+            showBar = false
+            activeIndex = null
         }
     }
-    val barWidthDp by animateDpAsState(
-        targetValue = if (expanded) 20.dp else 5.dp,
-        animationSpec = tween(220),
-        label = "mapbar-width",
-    )
-    val barAlpha by androidx.compose.animation.core.animateFloatAsState(
-        targetValue = if (expanded) 1f else 0.35f,
-        animationSpec = tween(220),
+
+    val barAlpha by animateFloatAsState(
+        targetValue = if (showBar) 1f else 0f,
+        animationSpec = tween(180),
         label = "mapbar-alpha",
     )
 
-    BoxWithConstraints(
+    fun jumpTo(index: Int) {
+        scrollJob.value?.cancel()
+        scrollJob.value = scope.launch {
+            listState.scrollToItem(messageStartIndex + index)
+        }
+    }
+
+    // 热区比视觉轨道更宽,让用户无需精确摸到细条就能唤出导航。
+    Box(
         modifier = modifier
-            .width(barWidthDp)
-            .alpha(barAlpha)
+            .width(36.dp)
             .fillMaxHeight()
-            // A6: 手写指针事件循环(点击/拖动/悬浮统一换算为消息下标)
             .pointerInput(total, messageStartIndex) {
-                awaitPointerEventScope {
-                    while (true) {
-                        val event = awaitPointerEvent()
-                        val position = event.changes.firstOrNull()?.position ?: continue
-                        val idx = ((position.y / size.height) * total)
-                            .toInt()
-                            .coerceIn(0, total - 1)
-                        when (event.type) {
-                            PointerEventType.Move -> hoverIndex = idx
-                            PointerEventType.Press -> {
-                                pressedIndex = idx
-                                hoverIndex = idx
-                                scope.launch { listState.scrollToItem(messageStartIndex + idx) }
-                            }
-                            PointerEventType.Release -> pressedIndex = null
-                            else -> {}
+                detectDragGestures(
+                    onDragStart = { offset ->
+                        isDragging = true
+                        showBar = true
+                        val index = messageIndexForY(offset.y, size.height, total)
+                        activeIndex = index
+                        jumpTo(index)
+                    },
+                    onDrag = { change, _ ->
+                        change.consume()
+                        isDragging = true
+                        showBar = true
+                        val index = messageIndexForY(change.position.y, size.height, total)
+                        if (index != activeIndex) {
+                            activeIndex = index
+                            jumpTo(index)
                         }
-                        // 拖动:按下状态下手部移动持续跳转
-                        val pressed = pressedIndex
-                        if (pressed != null && pressed != idx) {
-                            pressedIndex = idx
-                            hoverIndex = idx
-                            scope.launch { listState.scrollToItem(messageStartIndex + idx) }
-                        }
-                    }
-                }
+                    },
+                    onDragEnd = {
+                        isDragging = false
+                    },
+                    onDragCancel = {
+                        isDragging = false
+                    },
+                )
             },
     ) {
-        val barWidth = constraints.maxWidth.toFloat()
-        val barHeight = constraints.maxHeight.toFloat()
-        // 可见窗口:布局信息取首尾可见项(经消息区起始偏移换算为消息下标)
         val visibleInfo = listState.layoutInfo.visibleItemsInfo
         val first = (visibleInfo.firstOrNull()?.index ?: listState.firstVisibleItemIndex)
             .let { (it - messageStartIndex).coerceIn(0, total - 1) }
         val last = (visibleInfo.lastOrNull()?.index ?: listState.firstVisibleItemIndex)
             .let { (it - messageStartIndex).coerceIn(0, total - 1) }
-        // 主题色在 Composable 上下文读取后传入 Canvas(DrawScope 内不可调 @Composable)
+
         val userColor = MaterialTheme.colorScheme.primaryContainer
         val assistantColor = MaterialTheme.colorScheme.secondary
         val otherColor = MaterialTheme.colorScheme.outlineVariant
-        val windowColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.18f)
-        Canvas(Modifier.fillMaxSize()) {
+        val trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.84f)
+        val windowColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.72f)
+
+        // 轨道只在拖动后显示;透明热区本身没有背景和阴影。
+        Canvas(
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .width(26.dp)
+                .fillMaxHeight()
+                .alpha(barAlpha),
+        ) {
             drawMessageMap(
                 messages = messages,
                 firstVisible = first,
                 lastVisible = last,
                 total = total,
-                barWidth = barWidth,
-                barHeight = barHeight,
+                barWidth = size.width,
+                barHeight = size.height,
                 userColor = userColor,
                 assistantColor = assistantColor,
                 otherColor = otherColor,
+                trackColor = trackColor,
                 windowColor = windowColor,
             )
         }
-        // 3. hover/按压预览:条左侧浮层显示该位置消息前 40 字符
-        val previewMessage = hoverIndex?.let { messages.getOrNull(it) }
-        if (previewMessage != null) {
+
+        val previewMessage = activeIndex?.let { messages.getOrNull(it) }
+        if (showBar && previewMessage != null) {
             MessageMapTooltip(
                 msg = previewMessage,
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
-                    .offset(x = (-16).dp),
+                    .offset(x = (-28).dp),
             )
         }
     }
 }
 
-/** A6: 消息地图绘制 — 可见窗口高亮 + 每消息角色着色标记。
- * 颜色由调用方(Composable 上下文)取好传入,DrawScope 内不可读主题。
- * 参数均为纯数据快照(下标/总数/尺寸/颜色),打包进 data class 会牺牲可读性,保留平铺参数。
- */
+/** 消息地图绘制:胶囊轨道、消息密度标记和当前窗口滑块。 */
 @Suppress("LongParameterList")
 private fun DrawScope.drawMessageMap(
     messages: List<UIMessage>,
@@ -180,36 +185,62 @@ private fun DrawScope.drawMessageMap(
     userColor: Color,
     assistantColor: Color,
     otherColor: Color,
+    trackColor: Color,
     windowColor: Color,
 ) {
-    // 1. 可见窗口高亮(半透明条,置于标记下层)
-    val winY1 = (firstVisible + 0.5f) / total * barHeight
-    val winY2 = (lastVisible + 0.5f) / total * barHeight
+    val trackRadius = CornerRadius(barWidth / 2f)
     drawRoundRect(
-        color = windowColor,
-        topLeft = Offset(0f, winY1),
-        size = Size(barWidth, (winY2 - winY1).coerceAtLeast(1f)),
-        cornerRadius = CornerRadius(2.dp.toPx()),
+        color = trackColor,
+        topLeft = Offset.Zero,
+        size = Size(barWidth, barHeight),
+        cornerRadius = trackRadius,
     )
-    // 2. 每消息标记(1.5dp 圆角线段,按角色着色)
-    val markerH = 1.5.dp.toPx()
-    messages.forEachIndexed { i, msg ->
-        val y = (i + 0.5f) / total * barHeight
-        val color = when (msg.role) {
+    drawRoundRect(
+        color = otherColor.copy(alpha = 0.45f),
+        topLeft = Offset(0.5.dp.toPx(), 0.5.dp.toPx()),
+        size = Size(barWidth - 1.dp.toPx(), barHeight - 1.dp.toPx()),
+        cornerRadius = CornerRadius((barWidth - 1.dp.toPx()) / 2f),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.dp.toPx()),
+    )
+
+    // 每条消息压缩为轨道中央短标记,避免旧版满屏散落的细横线。
+    val markerWidth = 5.dp.toPx().coerceAtMost(barWidth - 8.dp.toPx())
+    val markerHeight = 2.dp.toPx()
+    messages.forEachIndexed { index, message ->
+        val y = (index + 0.5f) / total * barHeight
+        val color = when (message.role) {
             MessageRole.USER -> userColor
             MessageRole.ASSISTANT -> assistantColor
             else -> otherColor
         }
         drawRoundRect(
-            color = color,
-            topLeft = Offset(0f, y - markerH / 2),
-            size = Size(barWidth, markerH),
-            cornerRadius = CornerRadius(markerH / 2),
+            color = color.copy(alpha = 0.86f),
+            topLeft = Offset((barWidth - markerWidth) / 2f, y - markerHeight / 2f),
+            size = Size(markerWidth, markerHeight),
+            cornerRadius = CornerRadius(markerHeight / 2f),
         )
     }
+
+    // 当前可见窗口使用亮色滑块,拖动时能看出当前位置和覆盖范围。
+    val windowY1 = (firstVisible + 0.5f) / total * barHeight
+    val windowY2 = (lastVisible + 0.5f) / total * barHeight
+    drawRoundRect(
+        color = windowColor,
+        topLeft = Offset(1.dp.toPx(), windowY1),
+        size = Size(
+            barWidth - 2.dp.toPx(),
+            (windowY2 - windowY1).coerceAtLeast(10.dp.toPx()),
+        ),
+        cornerRadius = CornerRadius((barWidth - 2.dp.toPx()) / 2f),
+    )
 }
 
-/** A6: 消息地图 hover 预览浮层 — 显示该位置消息前 40 字符(桌面 hover 触发)。 */
+private fun messageIndexForY(y: Float, height: Int, total: Int): Int {
+    if (height <= 0 || total <= 1) return 0
+    return ((y / height) * total).toInt().coerceIn(0, total - 1)
+}
+
+/** A6: 消息地图拖动预览浮层 — 显示该位置消息前 40 字符。 */
 @Composable
 private fun MessageMapTooltip(msg: UIMessage, modifier: Modifier = Modifier) {
     val previewText = msg.content
@@ -217,7 +248,7 @@ private fun MessageMapTooltip(msg: UIMessage, modifier: Modifier = Modifier) {
         .trim()
         .take(40)
     Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.95f),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.96f),
         shape = MuseShapes.medium,
         tonalElevation = 2.dp,
         modifier = modifier.widthIn(max = 220.dp),
@@ -227,7 +258,10 @@ private fun MessageMapTooltip(msg: UIMessage, modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
-            modifier = Modifier.padding(horizontal = MusePaddings.tightGap, vertical = MusePaddings.tinyGap),
+            modifier = Modifier.padding(
+                horizontal = MusePaddings.tightGap,
+                vertical = MusePaddings.tinyGap,
+            ),
         )
     }
 }

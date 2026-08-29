@@ -20,14 +20,17 @@ private val HISTORICAL_PLAN_ID_PATTERN = Regex(
  * 计划消息可能早于聊天首屏分页窗口,所以调用方应传入会话全量历史。
  * 没有有效步骤的记录不会进入结果,避免 UI 恢复成空计划卡。
  */
-internal fun restoreAgentPlansFromHistory(messages: List<UIMessage>): Map<String, AgentPlan> {
+internal fun restoreAgentPlansFromHistory(
+    messages: List<UIMessage>,
+    sessionId: String = "default",
+): Map<String, AgentPlan> {
     if (messages.none { it.toolCallInfo?.toolName == "task_plan" }) return emptyMap()
 
     val plans = linkedMapOf<String, AgentPlan>()
     messages.forEach { message ->
         val toolInfo = message.toolCallInfo ?: return@forEach
         when (toolInfo.toolName) {
-            "task_plan" -> parseHistoricalPlan(message, toolInfo)?.let { plan ->
+            "task_plan" -> parseHistoricalPlan(message, toolInfo, sessionId)?.let { plan ->
                 plans[plan.id] = plan
             }
             "update_plan_step" -> applyHistoricalPlanUpdate(plans, message, toolInfo)
@@ -36,7 +39,11 @@ internal fun restoreAgentPlansFromHistory(messages: List<UIMessage>): Map<String
     return plans
 }
 
-private fun parseHistoricalPlan(message: UIMessage, toolInfo: ToolCallInfo): AgentPlan? {
+private fun parseHistoricalPlan(
+    message: UIMessage,
+    toolInfo: ToolCallInfo,
+    sessionId: String,
+): AgentPlan? {
     val arguments = parseHistoricalToolArguments(toolInfo.arguments) ?: return null
     val steps = parseHistoricalPlanSteps(arguments["steps"])
     if (steps.isEmpty()) return null
@@ -55,6 +62,7 @@ private fun parseHistoricalPlan(message: UIMessage, toolInfo: ToolCallInfo): Age
         id = planId,
         title = title,
         steps = steps,
+        sessionId = sessionId,
         createdAt = message.createdAt,
         messageId = message.id.toString(),
     )

@@ -591,11 +591,11 @@ class SettingsRepository(
     }
 
     /**
-     * v1.0.72: 每日总结推送开关(默认 true)。
-     * 每天固定时间(默认 19:30)推送当天对话要点小结。
+     * v1.0.72: 每日总结推送开关(默认关闭)。
+     * 每天 09:00、12:00、21:00、00:00 生成当天/前一天对话小结;关闭时仍保留首页总结生成。
      */
     val dailySummaryEnabledFlow: Flow<Boolean> = store.data.map { prefs ->
-        // v1.0.74: 默认改为关闭 — 新用户不应被 19:30 通知打扰
+        // v1.0.74: 默认改为关闭 — 新用户不应被定时通知打扰
         prefs[KEY_DAILY_SUMMARY_ENABLED] ?: false
     }
 
@@ -617,6 +617,44 @@ class SettingsRepository(
             null
         } else {
             DailySummarySnapshot(date = date, text = text)
+        }
+    }
+
+    /**
+     * 抢占一个每日总结时点。
+     *
+     * 同一个时点可能同时由 WorkManager 和进程内调度触发，DataStore.edit 的单次事务
+     * 保证只有一个执行者通过。只保留最近 16 个标识，避免长期增长。
+     */
+    suspend fun claimDailySummarySlot(slotKey: String): Boolean {
+        val cleanKey = slotKey.trim()
+        if (cleanKey.isBlank()) return false
+        var claimed = false
+        store.edit { prefs ->
+            val keys = (prefs[KEY_DAILY_SUMMARY_CLAIMED_SLOTS] ?: emptySet()).toMutableSet()
+            if (cleanKey !in keys) {
+                keys += cleanKey
+                if (keys.size > 16) {
+                    val retained = keys.toList().sorted().takeLast(16).toSet()
+                    prefs[KEY_DAILY_SUMMARY_CLAIMED_SLOTS] = retained
+                } else {
+                    prefs[KEY_DAILY_SUMMARY_CLAIMED_SLOTS] = keys
+                }
+                claimed = true
+            }
+        }
+        return claimed
+    }
+
+    /** 生成失败时释放时点占位，让下一次 WorkManager/进程内触发可以重试。 */
+    suspend fun releaseDailySummarySlot(slotKey: String) {
+        val cleanKey = slotKey.trim()
+        if (cleanKey.isBlank()) return
+        store.edit { prefs ->
+            val keys = prefs[KEY_DAILY_SUMMARY_CLAIMED_SLOTS]?.toMutableSet() ?: return@edit
+            if (keys.remove(cleanKey)) {
+                prefs[KEY_DAILY_SUMMARY_CLAIMED_SLOTS] = keys
+            }
         }
     }
 
@@ -1772,11 +1810,13 @@ class SettingsRepository(
         private val KEY_UPDATE_CHECK_ENABLED = booleanPreferencesKey("update_check_enabled")
         // v1.0.72: 用户主动忽略的更新版本号(tagName),该版本不再弹 Banner
         private val KEY_IGNORED_UPDATE_VERSION = stringPreferencesKey("ignored_update_version")
-        // v1.0.72: 每日总结推送开关(默认 true)
+        // v1.0.72: 每日总结推送开关(默认关闭)
         private val KEY_DAILY_SUMMARY_ENABLED = booleanPreferencesKey("daily_summary_enabled")
         // v1.x: 最近一次每日总结,供首页问候语展示
         private val KEY_DAILY_SUMMARY_DATE = stringPreferencesKey("daily_summary_date")
         private val KEY_DAILY_SUMMARY_TEXT = stringPreferencesKey("daily_summary_text")
+        // 每日总结已抢占时点，格式为 yyyy-MM-dd#HHmm；用于进程内与 WorkManager 去重。
+        private val KEY_DAILY_SUMMARY_CLAIMED_SLOTS = stringSetPreferencesKey("daily_summary_claimed_slots")
         // v1.0.72: AI 朋友圈每日动态条数(0-10,默认 2)
         private val KEY_DAILY_MOMENT_COUNT = intPreferencesKey("daily_moment_count")
     private val KEY_MOMENTS_COVER_IMAGE = stringPreferencesKey("moments_cover_image")

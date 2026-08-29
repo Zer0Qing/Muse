@@ -583,7 +583,7 @@
     <string name="settings_agent_test_sent">测试消息已发送,查看通知栏</string>
     <string name="settings_agent_test_failed">测试失败:%1$s</string>
     <string name="settings_agent_daily_summary">每日总结推送</string>
-    <string name="settings_agent_daily_summary_subtitle">每天 19:30 推送今日对话小结(开关关闭后自动跳过,重新打开即恢复)</string>
+    <string name="settings_agent_daily_summary_subtitle">每天 09:00、12:00、21:00 和 00:00 生成对话小结；开关只控制通知推送</string>
     <string name="settings_agent_current_model_hint">Predeterminado global (compartido por el chat principal / Agent)</string>
     <string name="settings_agent_keep_alive_title">Mantener en segundo plano</string>
     <string name="settings_agent_keep_alive_subtitle">Evita perder mensajes proactivos si el sistema cierra el proceso</string>

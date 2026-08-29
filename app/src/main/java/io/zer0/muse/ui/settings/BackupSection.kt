@@ -87,9 +87,11 @@ internal fun BackupSection(
     // 进度反馈状态
     var exporting by remember { mutableStateOf(false) }
     var importing by remember { mutableStateOf(false) }
+    var localBackupDialogVisible by remember { mutableStateOf(false) }
     // v1.48: h16 云端上传/恢复加进度反馈 + 防重复点击
     var cloudUploading by remember { mutableStateOf(false) }
     var cloudRestoring by remember { mutableStateOf(false) }
+    var cloudBackupDialogVisible by remember { mutableStateOf(false) }
 
     // 云端备份状态
     var hasCloudBackup by remember { mutableStateOf(false) }
@@ -120,6 +122,7 @@ internal fun BackupSection(
         uri?.let {
             scope.launch {
                 exporting = true
+                localBackupDialogVisible = true
                 resultOf {
                     val (s, m) = backupService.exportStreaming(context, it)
                     MuseToast.show(context.getString(R.string.settings_backup_export_success, s, m))
@@ -127,6 +130,7 @@ internal fun BackupSection(
                     MuseToast.show(context.getString(R.string.settings_backup_export_failed, t?.message), 3500)
                 }
                 exporting = false
+                localBackupDialogVisible = false
             }
         }
     }
@@ -138,6 +142,7 @@ internal fun BackupSection(
         uri?.let {
             scope.launch {
                 importing = true
+                localBackupDialogVisible = true
                 resultOf {
                     val (s, m) = backupService.import(context, it)
                     MuseToast.show(context.getString(R.string.settings_backup_import_success, s, m))
@@ -145,6 +150,7 @@ internal fun BackupSection(
                     MuseToast.show(context.getString(R.string.settings_backup_import_failed, t?.message), 3500)
                 }
                 importing = false
+                localBackupDialogVisible = false
             }
         }
     }
@@ -289,6 +295,7 @@ internal fun BackupSection(
                 // v1.48: h16 操作中防重复点击
                 if (cloudUploading || cloudRestoring) return@SettingsItemRow
                 cloudUploading = true
+                cloudBackupDialogVisible = true
                 scope.launch {
                     val outcome = backupService.exportToCloud()
                     val ok = outcome == io.zer0.muse.backup.BackupService.CloudBackupOutcome.SUCCESS
@@ -301,6 +308,7 @@ internal fun BackupSection(
                         checkingCloudBackup = false
                     }
                     cloudUploading = false
+                    cloudBackupDialogVisible = false
                     MuseToast.show(if (ok) context.getString(R.string.settings_backup_uploaded) else context.getString(R.string.settings_backup_upload_failed))
                 }
             },
@@ -319,9 +327,11 @@ internal fun BackupSection(
                 // v1.48: h16 操作中防重复点击
                 if (cloudUploading || cloudRestoring) return@SettingsItemRow
                 cloudRestoring = true
+                cloudBackupDialogVisible = true
                 scope.launch {
                     val result = backupService.importFromCloud()
                     cloudRestoring = false
+                    cloudBackupDialogVisible = false
                     if (result == null) {
                         MuseToast.show(context.getString(R.string.settings_backup_restore_failed))
                     } else {
@@ -381,9 +391,10 @@ internal fun BackupSection(
     }
 
     // 导出/导入进行中:进度对话框
-    if (exporting || importing) {
+    if (localBackupDialogVisible) {
         MuseDialog(
-            onDismissRequest = { /* 不可中断 */ },
+            // 返回只关闭进度展示，导出/导入任务继续运行。
+            onDismissRequest = { localBackupDialogVisible = false },
             title = if (exporting) stringResource(R.string.settings_backup_exporting) else stringResource(R.string.settings_backup_importing),
             content = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -398,9 +409,10 @@ internal fun BackupSection(
     }
 
     // v1.48: h16 云端上传/恢复进行中:进度对话框(不可点击外部关闭)
-    if (cloudUploading || cloudRestoring) {
+    if (cloudBackupDialogVisible) {
         MuseDialog(
-            onDismissRequest = { /* 不可中断 */ },
+            // 返回只关闭进度展示，云端任务继续运行。
+            onDismissRequest = { cloudBackupDialogVisible = false },
             title = if (cloudUploading) stringResource(R.string.settings_backup_uploading) else stringResource(R.string.settings_backup_restoring),
             content = {
                 Row(

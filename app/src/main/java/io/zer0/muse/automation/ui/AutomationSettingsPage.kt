@@ -56,6 +56,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import io.zer0.muse.automation.core.AutomationManager
 import io.zer0.muse.automation.executors.MuseAccessibilityService
 import io.zer0.muse.R
@@ -81,10 +84,21 @@ fun AutomationSettingsPage(
     val state by manager.permissionState.collectAsState()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     var testing by remember { mutableStateOf(false) }
     var testResult by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) { manager.refreshPermissions() }
+    // Shizuku/Magisk 在外部页面完成授权后，返回 Muse 必须重新探测，不能沿用旧状态。
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                scope.launch { manager.refreshPermissions() }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     Column(
         modifier = Modifier
@@ -148,8 +162,8 @@ fun AutomationSettingsPage(
         // 第二层:Shell
         PermissionCard(
             icon = Icons.Outlined.Terminal,
-            title = "Shell (Shizuku / adb)",
-            subtitle = "系统级命令、截屏、静默安装。需通过 Shizuku 或 adb 授权。",
+            title = "Shell (Shizuku)",
+            subtitle = "系统级命令、截屏、静默安装。需运行 Shizuku 并授权 Muse。",
             enabled = state.shellEnabled,
             levelLabel = "第二层",
             onAction = {

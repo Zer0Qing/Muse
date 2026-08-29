@@ -273,18 +273,14 @@ fun ChatScreen(
     val conversationTree by viewModel.conversationTree.collectAsStateWithLifecycle()
     // B2-01: 消息列表独立 collect,输入框等高频 state 变化不再带动整个消息列表重组。
     val messages by viewModel.messages.collectAsStateWithLifecycle()
-    // v1.0.20 (Task 3): 高频字段用 derivedStateOf 包裹,收窄重组范围。
-    //  state 是 StateFlow<ChatUiState>,每次 copy(如 input 每次按键、visionProgress 每完成一张图)
-    //  都会发射新对象,导致读取 state 的所有 Composable lambda 重组。
-    //  把低频变化的高频字段派生为独立 State,lambda 只在派生值真正变化时才重组:
-    //   - isStreaming: 流式开始/结束才变(每轮对话 2 次)
-    //   - isWaitingFirstToken: 首 token 前后变(每轮对话 2 次)
-    //   - visionProgress: 每完成一张图变(每轮 N 次,N=图片数)
-    //   - currentInput: 用户每次按键都变(高频,但仅 RichInputBar 关心)
-    val isStreaming by remember { derivedStateOf { state.isStreaming } }
-    val isWaitingFirstToken by remember { derivedStateOf { state.isWaitingFirstToken } }
-    val visionProgress by remember { derivedStateOf { state.visionProgress } }
-    val currentInput by remember { derivedStateOf { state.input } }
+    // v1.0.20 (Task 3): 这些值来自同一个 StateFlow 快照。
+    // 不能用 remember { derivedStateOf { state.xxx } } 捕获当次重组的局部快照；
+    // derivedStateOf 不会观察被捕获的普通值,输入框会一直停在初始空文本。
+    // 直接读取当前快照,保证键盘输入、语音回填和发送按钮条件始终同步。
+    val isStreaming = state.isStreaming
+    val isWaitingFirstToken = state.isWaitingFirstToken
+    val visionProgress = state.visionProgress
+    val currentInput = state.input
     // P2-13: 桌面端快捷键总开关(Expanded 窗口 + 物理键盘)
     val desktopShortcutsEnabled = rememberDesktopShortcutsEnabled()
     // P2-1: 大屏(Expanded)下消息列表居中限宽 720dp
@@ -1104,7 +1100,8 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                 onNavigateInputHistory = viewModel::navigateInputHistory,
                 // v1.97: 斜杠命令拦截 — / 开头的输入走 executeSlashCommand,不发送给 LLM
                 onSend = {
-                    val text = currentInput
+                    // 从 ViewModel 读取点击瞬间的值,不依赖 Composable 闭包可能捕获的旧快照。
+                    val text = viewModel.state.value.input
                     if (SlashCommand.isSlashCommand(text)) {
                         viewModel.executeSlashCommand(text)
                     } else {
@@ -1304,9 +1301,8 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                // v1.0.72 fix: 去掉 top padding — 内容区延伸到顶部三岛后面,
-                //   消息列表可以滚动到悬浮岛后面(Telegram 效果),底部 padding 保留
-                .padding(bottom = innerPadding.calculateBottomPadding())
+                // v1.0.72 fix: 去掉 top/bottom 外层 padding — 悬浮控件延伸到系统栏边界。
+                // 消息列表自身在 contentPadding 中避让输入栏,右侧导航条不再提前结束。
                 // P2-13: 桌面端快捷键 — Ctrl+Shift+C 复制最后一条 AI 回复
                 // 仅在物理键盘 + Expanded 窗口下生效,避免与软键盘 IME Action 冲突
                 .onKeyEvent { event ->
@@ -1509,9 +1505,12 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                         ),
                     // M-CS5: 消息间距用 MusePaddings.messageGap 令牌(iOS 风格呼吸感)
                     verticalArrangement = Arrangement.spacedBy(MusePaddings.messageGap),
-                    // v1.0.72: 顶部让位给悬浮三岛(滚动到底时消息在岛下方,
-                    //   滚到顶时消息可进入岛后面),底部保留常规间距
-                    contentPadding = PaddingValues(top = innerPadding.calculateTopPadding(), bottom = 0.dp),
+                    // v1.0.72: 顶部让位给悬浮三岛;底部避让输入栏。
+                    // 外层 Box 保持全高,让右侧消息地图延伸到输入栏上缘。
+                    contentPadding = PaddingValues(
+                        top = innerPadding.calculateTopPadding(),
+                        bottom = innerPadding.calculateBottomPadding(),
+                    ),
                 ) {
                     // v1.0.47 P6: Agent Mode 提示卡片 — 会话锁定/弱工具降级/Agent Mode 提示。
                     // v1.0.54: 去掉"Agent 模式已锁定会话"提示(用户反馈不需要),仅保留降级/提示。
@@ -1919,20 +1918,6 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                 }
             }
 
-            // A6: 长会话消息地图 — 右侧竖条导航(点击/拖动跳转 + 桌面 hover 预览)。
-            // 仅长会话显示(短会话滚动成本低,无导航价值);用 visibleMessages 保证
-            // 性能模式下与分页视图一致。跨会话滚动位置保留由 ViewModel listState 缓存负责。
-            if (messages.size >= MESSAGE_MAP_MIN_MESSAGES && visibleMessages.isNotEmpty()) {
-                MessageMapBar(
-                    messages = visibleMessages,
-                    listState = listState,
-                    messageStartIndex = messageStartIndex,
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .padding(end = MusePaddings.tightGap),
-                )
-            }
-
             // 断点续传(工具中断恢复)Banner:检测到本会话有未完成的工具调用时显示
             // 用户上次流式被中断(手动停止/进程被杀),tool_calls 队列未执行完毕。
             // 提供两个操作:
@@ -2176,6 +2161,21 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
             onOpenPromptTemplateManager = onOpenPromptTemplateManager,
         )
         } // Scaffold
+
+        // A6: 消息地图放在 Scaffold 外层,才能覆盖输入栏所在区域;
+        // 只消费状态栏与导航栏安全区,底边贴到小白条/三键导航栏上缘,不渗入系统栏。
+        if (messages.size >= MESSAGE_MAP_MIN_MESSAGES && visibleMessages.isNotEmpty()) {
+            MessageMapBar(
+                messages = visibleMessages,
+                listState = listState,
+                messageStartIndex = messageStartIndex,
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
+                    .padding(end = MusePaddings.tightGap),
+            )
+        }
     } // 背景 Box(v1.0.74 自定义聊天背景)
 } // ChatScreen
 

@@ -11,8 +11,6 @@ import android.widget.Toast
 import androidx.biometric.BiometricPrompt
 import androidx.fragment.app.FragmentActivity
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.BackHandler
-import androidx.activity.compose.PredictiveBackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.compose.LocalActivityResultRegistryOwner
 import androidx.activity.enableEdgeToEdge
@@ -692,24 +690,9 @@ private fun MuseNavGraph(
                 // v1.131: 首次启动引导已移除,直接进入主页
                 val startDestination = HomeRoute
 
-                // 统一管理页面导航返回；页面内弹窗/编辑保护的 BackHandler 仍会优先消费返回事件。
-                DisposableEffect(navController) {
-                    navController.enableOnBackPressed(false)
-                    onDispose { navController.enableOnBackPressed(true) }
-                }
-                fun popOrFinish() {
-                    if (!navController.popBackStack()) {
-                        (context as? android.app.Activity)?.finish()
-                    }
-                }
-                if (chatPreferences.predictiveBackEnabled) {
-                    PredictiveBackHandler {
-                        it.collect { }
-                        popOrFinish()
-                    }
-                } else {
-                    BackHandler { popOrFinish() }
-                }
+                // 返回交给 NavHost 自带的 Navigation Compose 回调：
+                // 子页面由导航栈回退，根页面没有可回退栈时交给 Activity 默认行为退出。
+                // 页面级 BackHandler、Dialog 和 Popup 仍按 Compose 的内层优先级先消费。
 
                 NavHost(
                     navController = navController,

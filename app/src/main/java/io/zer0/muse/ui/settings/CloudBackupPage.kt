@@ -101,6 +101,7 @@ fun CloudBackupPage(
     var testing by remember { mutableStateOf(false) }
     var backingUp by remember { mutableStateOf(false) }
     var restoring by remember { mutableStateOf(false) }
+    var cloudBackupDialogVisible by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf<String?>(null) }
 
     // v1.141 F1: 恢复失败专项 UX — 记录失败的操作类型与目标文件,弹出可重试的失败对话框
@@ -300,10 +301,12 @@ fun CloudBackupPage(
                         }
                         if (backingUp || restoring) return@SettingsItemRow
                         backingUp = true
+                        cloudBackupDialogVisible = true
                         scope.launch {
                             val outcome = backupService.exportToCloud()
                             val ok = outcome == io.zer0.muse.backup.BackupService.CloudBackupOutcome.SUCCESS
                             backingUp = false
+                            cloudBackupDialogVisible = false
                             MuseToast.show(
                                 context.getString(
                                     if (ok) R.string.cloud_backup_backup_success
@@ -334,9 +337,11 @@ fun CloudBackupPage(
                         }
                         if (backingUp || restoring) return@SettingsItemRow
                         restoring = true
+                        cloudBackupDialogVisible = true
                         scope.launch {
                             val result = backupService.importFromCloud()
                             restoring = false
+                            cloudBackupDialogVisible = false
                             if (result == null) {
                                 // v1.141 F1: 失败不再仅 Toast,弹专项对话框(可重试)
                                 restoreFailKind = RestoreFailKind.LATEST
@@ -452,9 +457,11 @@ fun CloudBackupPage(
                                 onRestore = {
                                     if (deleting != null || restoring || backingUp) return@RemoteBackupRow
                                     restoring = true
+                                    cloudBackupDialogVisible = true
                                     scope.launch {
                                         val result = backupService.importFromCloudFile(backup.fileName)
                                         restoring = false
+                                        cloudBackupDialogVisible = false
                                         if (result == null) {
                                             // v1.141 F1: 失败不再仅 Toast,弹专项对话框(可重试)
                                             restoreFailKind = RestoreFailKind.FILE
@@ -555,9 +562,10 @@ fun CloudBackupPage(
     }
 
     // 操作进度对话框(测试连接不弹窗,只显示按钮内 spinner)
-    if (backingUp || restoring) {
+    if (cloudBackupDialogVisible) {
         MuseDialog(
-            onDismissRequest = { /* 不可中断 */ },
+            // 返回只关闭进度展示，云端备份/恢复任务继续运行。
+            onDismissRequest = { cloudBackupDialogVisible = false },
             title = if (backingUp) stringResource(R.string.settings_backup_uploading) else stringResource(R.string.settings_backup_restoring),
             content = {
                 Row(
@@ -597,24 +605,24 @@ fun CloudBackupPage(
                 val file = failedRestoreFile
                 restoreFailKind = null
                 failedRestoreFile = null
-                if (kind != null) {
-                    scope.launch {
-                        restoring = true
-                        val result: Pair<Int, Int>? = when (kind) {
-                            RestoreFailKind.LATEST -> backupService.importFromCloud()
-                            RestoreFailKind.FILE -> {
-                                // 文件名不应为空(失败时已记录);防御性为空视为失败重新弹出
-                                if (file == null) null else backupService.importFromCloudFile(file)
-                            }
+                scope.launch {
+                    restoring = true
+                    cloudBackupDialogVisible = true
+                    val result: Pair<Int, Int>? = when (kind) {
+                        RestoreFailKind.LATEST -> backupService.importFromCloud()
+                        RestoreFailKind.FILE -> {
+                            // 文件名不应为空(失败时已记录);防御性为空视为失败重新弹出
+                            if (file == null) null else backupService.importFromCloudFile(file)
                         }
-                        restoring = false
-                        if (result == null) {
-                            restoreFailKind = kind
-                            failedRestoreFile = file
-                        } else {
-                            val (s, m) = result
-                            MuseToast.show(context.getString(R.string.cloud_backup_restore_success, s, m))
-                        }
+                    }
+                    restoring = false
+                    cloudBackupDialogVisible = false
+                    if (result == null) {
+                        restoreFailKind = kind
+                        failedRestoreFile = file
+                    } else {
+                        val (s, m) = result
+                        MuseToast.show(context.getString(R.string.cloud_backup_restore_success, s, m))
                     }
                 }
             },

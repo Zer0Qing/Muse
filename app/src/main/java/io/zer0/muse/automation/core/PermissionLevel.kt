@@ -25,7 +25,16 @@ enum class PermissionLevel {
     ;
 
     /** 该层级是否至少包含 [other] 的能力。 */
-    fun covers(other: PermissionLevel): Boolean = this.ordinal >= other.ordinal
+    fun covers(other: PermissionLevel): Boolean = rank >= other.rank
+
+    /** 显式能力等级，避免枚举声明顺序改变语义。NONE 没有任何能力。 */
+    private val rank: Int
+        get() = when (this) {
+            NONE -> 0
+            ACCESSIBILITY -> 1
+            SHELL -> 2
+            ROOT -> 3
+        }
 
     companion object {
         /** 从可用标志位组合解析。 */

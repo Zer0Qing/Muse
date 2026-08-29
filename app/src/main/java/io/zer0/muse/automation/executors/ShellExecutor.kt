@@ -10,9 +10,6 @@ import io.zer0.muse.automation.core.UiNode
 import io.zer0.common.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.ByteArrayOutputStream
-import java.io.InputStream
-import java.nio.charset.Charset
 
 /**
  * Shell 执行器 —— 第二层 UI 自动化。
@@ -24,21 +21,23 @@ import java.nio.charset.Charset
  * 未授权时所有命令返回失败,但不会崩溃。
  *
  * 注: 纯 `adb shell` 无法直接持久化(App 进程不能继承 adb shell 的 uid)。
- * Shizuku 集成作为后续增强(添加 Shizuku SDK 依赖后,通过 Shizuku.newProcess 执行)。
- * 当前版本通过 [shellAvailable] 检测是否存在可执行的 shell 通道(root 或 Shizuku)。
+ * 当前实现通过 [io.zer0.muse.tools.system.ShizukuAuthorizer] 复用已授权的 Shizuku UserService；
+ * RootExecutor 复用本类的 `su` 原语作为降级通道，普通应用 `sh` 不再被当成第二层权限。
  */
 open class ShellExecutor(
     protected val context: Context,
+    /** 第二层必须显式走 Shizuku；null 仅供 RootExecutor 复用本类的 su 原语。 */
+    protected val shizukuAuthorizer: io.zer0.muse.tools.system.ShizukuAuthorizer? = null,
 ) : AutomationExecutor {
 
     override val level = PermissionLevel.SHELL
 
-    /** Shell 命令前缀:root 设备用 "su",其他用 "sh"。Shizuku 接入后改为 Shizuku 进程。 */
+    /** 仅在 RootExecutor 复用时使用本地 su；第二层不会以普通 sh 冒充授权。 */
     protected open val shellPrefix: List<String> = listOf("sh")
 
     override suspend fun isAvailable(): Boolean = withContext(Dispatchers.IO) {
-        // 探测: 能执行 whoami 并拿到输出即认为 shell 可用
-        val result = exec("whoami")
+        if (shizukuAuthorizer != null) return@withContext shizukuAuthorizer.checkPermission()
+        val result = exec("id")
         result.isSuccess && result.getOrDefault("").isNotBlank()
     }
 
@@ -46,8 +45,14 @@ open class ShellExecutor(
 
     override suspend fun screenshot(): ByteArray? = withContext(Dispatchers.IO) {
         try {
-            // screencap -p 输出 PNG 到 stdout
-            val result = execBinary("screencap -p")
+            // Shizuku AIDL 传输文本，使用 base64 保证 PNG 二进制不被破坏。
+            val result = if (shizukuAuthorizer != null) {
+                exec("screencap -p | base64").mapCatching {
+                    android.util.Base64.decode(it.filterNot(Char::isWhitespace), android.util.Base64.DEFAULT)
+                }
+            } else {
+                execBinary("screencap -p")
+            }
             if (result.isSuccess) result.getOrNull() else null
         } catch (e: Exception) {
             Logger.w(TAG, "screenshot failed: ${e.message}")
@@ -153,8 +158,20 @@ open class ShellExecutor(
 
     /** 执行 shell 命令,返回 stdout 字符串。 */
     suspend fun exec(command: String): Result<String> = withContext(Dispatchers.IO) {
+        if (shizukuAuthorizer != null) {
+            if (!shizukuAuthorizer.checkPermission()) {
+                return@withContext Result.failure(IllegalStateException("Shizuku 未授权"))
+            }
+            val result = shizukuAuthorizer.execute(command)
+            return@withContext if (result.isSuccess) {
+                Result.success(result.stdout)
+            } else {
+                Logger.w(TAG, "Shizuku exec failed (exit=${result.exitCode}): $command -> ${result.stderr.take(200)}")
+                Result.failure(IllegalStateException(result.stderr.ifBlank { "Shizuku 命令执行失败" }))
+            }
+        }
         runCatching {
-            val proc = ProcessBuilder(shellPrefix + command)
+            val proc = ProcessBuilder(shellPrefix + listOf("-c", command))
                 .redirectErrorStream(true)
                 .start()
             val output = proc.inputStream.bufferedReader().use { it.readText() }
@@ -168,7 +185,7 @@ open class ShellExecutor(
 
     private suspend fun execBinary(command: String): Result<ByteArray> = withContext(Dispatchers.IO) {
         runCatching {
-            val proc = ProcessBuilder(shellPrefix + command)
+            val proc = ProcessBuilder(shellPrefix + listOf("-c", command))
                 .redirectErrorStream(false)
                 .start()
             val out = proc.inputStream.readBytes()

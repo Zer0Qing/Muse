@@ -3456,7 +3456,10 @@ class ChatViewModel(
         persistedToolMessages.forEach { merged[it.id.toString()] = it }
         visibleMessages.forEach { merged[it.id.toString()] = it }
         val history = orderConversationMessages(merged.values.toList())
-        return restoreAgentPlansFromHistory(history)
+        val plans = restoreAgentPlansFromHistory(history, sessionId)
+        // UI 投影和工具执行缓存必须同时恢复；恢复只替换当前会话，避免并行会话串计划。
+        skillExecutor.restoreActivePlans(plans, sessionId)
+        return plans
     }
 
     /** 切换到指定会话。 */
@@ -6804,6 +6807,7 @@ class ChatViewModel(
                                 onProgress = { msg ->
                                     _state.update { state -> state.copy(toolProgressMessage = msg) }
                                 },
+                                sessionId = chatId,
                             )
                         } else {
                             withContext(Dispatchers.IO) {

@@ -149,6 +149,7 @@ class SkillExecutor(
         argumentsJson: String,
         onProgress: (String) -> Unit = {},
         turnKey: String = "default",
+        sessionId: String = "default",
     ): String = withContext(Dispatchers.IO) {
         val args = ToolArgsParser.parse(argumentsJson, skill.id)
     // H-SE1: 改用 resultOf{}(正确重抛 CancellationException),避免 runCatching 吞协程取消信号
@@ -168,8 +169,8 @@ class SkillExecutor(
                 // v0.46: 多 Agent 协作(委托子助手执行任务)
                 "delegate_agent" -> { onProgress(context.getString(R.string.skill_progress_delegating)); execDelegateAgent(args) }
                 // v1.55: Agent 工作流(结构化任务计划)
-                "task_plan" -> { onProgress(context.getString(R.string.skill_progress_planning)); agentTools?.execTaskPlan(args) ?: context.getString(R.string.skill_impl_not_configured) }
-                "update_plan_step" -> agentTools?.execUpdatePlanStep(args) ?: context.getString(R.string.skill_impl_not_configured)
+                "task_plan" -> { onProgress(context.getString(R.string.skill_progress_planning)); agentTools?.execTaskPlan(args, sessionId) ?: context.getString(R.string.skill_impl_not_configured) }
+                "update_plan_step" -> agentTools?.execUpdatePlanStep(args, sessionId) ?: context.getString(R.string.skill_impl_not_configured)
                 // v1.30: 群聊工具(多 Agent 群聊中发言/跳过/读取上下文)
                 "channel_reply" -> agentTools?.execChannelReply(args) ?: context.getString(R.string.skill_impl_not_configured)
                 "channel_pass" -> agentTools?.execChannelPass(args) ?: context.getString(R.string.skill_impl_not_configured)
@@ -213,6 +214,17 @@ class SkillExecutor(
     /** v1.55: 供 ChatViewModel 读取活跃计划。 */
     fun getActivePlans(): Map<String, io.zer0.muse.ui.taskcard.AgentPlan> =
         agentTools?.getActivePlans().orEmpty()
+
+    fun getActivePlans(sessionId: String): Map<String, io.zer0.muse.ui.taskcard.AgentPlan> =
+        agentTools?.getActivePlans(sessionId).orEmpty()
+
+    /** 将历史恢复的计划回灌给当前会话的 task_plan/update_plan_step 执行器。 */
+    fun restoreActivePlans(
+        plans: Map<String, io.zer0.muse.ui.taskcard.AgentPlan>,
+        sessionId: String = "default",
+    ) {
+        agentTools?.restoreActivePlans(plans, sessionId)
+    }
 
     // v1.0.81: parseArgs 已抽取为 ToolArgsParser（可单测），不再在 SkillExecutor 内联。
 

@@ -417,7 +417,7 @@ class ToolOrchestrator(
         //  - 有 task_plan: steps*2 + 5(每步平均 2 轮工具调用 + 5 轮缓冲)
         //  - 无 task_plan: DEFAULT_MAX_TOOL_ROUNDS(10)
         //  - 上限 MAX_TOOL_ROUNDS_HARD_CAP(25)兜底,且不超过 params.maxRounds(向后兼容)
-        var maxRounds = computeMaxRounds(conversationHistory, params.maxRounds)
+        var maxRounds = computeMaxRounds(conversationHistory, params.maxRounds, params.sessionId)
         Logger.i(TAG, "Agent Loop 开始 | sessionId=${params.sessionId} | 初始最大轮次: $maxRounds")
 
         // v1.x: 连续无进展早停 — 记录上一轮 tool_call 签名,连续相同则判定卡死
@@ -430,7 +430,7 @@ class ToolOrchestrator(
             Logger.d(TAG, "Agent Loop step $round/$maxRounds 开始 | sessionId=${params.sessionId}")
 
             // v1.x: 每轮动态重算 maxRounds(task_plan 可能在循环内才产生,需要扩大配额)
-            val recomputedMax = computeMaxRounds(conversationHistory, params.maxRounds)
+            val recomputedMax = computeMaxRounds(conversationHistory, params.maxRounds, params.sessionId)
             if (recomputedMax != maxRounds) {
                 Logger.d(TAG, "Agent Loop maxRounds 更新: $maxRounds → $recomputedMax (task_plan 已产生)")
                 maxRounds = recomputedMax
@@ -845,7 +845,7 @@ class ToolOrchestrator(
                     // 同步 Agent 工作流计划到 UI
                     // v1.137: 为计划关联当前助手消息 ID,使计划卡固定在创建它的消息上随消息滚动,
                     // 而不是始终"跳"到最后一条助手消息(用户反馈"列表固定在底部不跟随滚动")。
-                    val latestPlans = skillExecutor.getActivePlans().mapValues { (_, plan) ->
+                    val latestPlans = skillExecutor.getActivePlans(params.sessionId).mapValues { (_, plan) ->
                         if (plan.messageId == null) plan.copy(messageId = currentAssistantId.toString()) else plan
                     }
                     if (latestPlans.isNotEmpty()) {
@@ -1081,6 +1081,7 @@ class ToolOrchestrator(
                         }
                     },
                     turnKey = params.turnId.ifBlank { params.traceId.ifBlank { params.sessionId } },
+                    sessionId = params.sessionId,
                 )
             } else {
                 withContext(Dispatchers.IO) {
@@ -1312,8 +1313,9 @@ class ToolOrchestrator(
     internal fun computeMaxRounds(
         messages: List<UIMessage>,
         hardCap: Int = MAX_TOOL_ROUNDS_HARD_CAP,
+        sessionId: String? = null,
     ): Int {
-        val planSteps = countTaskPlanSteps(messages)
+        val planSteps = countTaskPlanSteps(messages, sessionId)
         val base = if (planSteps > 0) planSteps * 2 + 5 else DEFAULT_MAX_TOOL_ROUNDS
         return minOf(base, MAX_TOOL_ROUNDS_HARD_CAP, hardCap)
     }
@@ -1322,8 +1324,12 @@ class ToolOrchestrator(
      * 统计 task_plan 步骤数:优先用 SkillExecutor 内存中的活跃计划,
      * 回退到从历史消息中解析 task_plan 工具调用的 steps 参数(断点续传/继续会话场景)。
      */
-    internal fun countTaskPlanSteps(messages: List<UIMessage>): Int {
-        val activePlanSteps = skillExecutor.getActivePlans().values.sumOf { it.steps.size }
+    internal fun countTaskPlanSteps(messages: List<UIMessage>, sessionId: String? = null): Int {
+        val activePlanSteps = (if (sessionId == null) {
+            skillExecutor.getActivePlans()
+        } else {
+            skillExecutor.getActivePlans(sessionId)
+        }).values.sumOf { it.steps.size }
         if (activePlanSteps > 0) return activePlanSteps
         return messages.asSequence()
             .filter { it.role == MessageRole.ASSISTANT }

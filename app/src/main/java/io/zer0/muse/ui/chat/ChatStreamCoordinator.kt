@@ -22,7 +22,6 @@ import io.zer0.muse.data.skill.SkillRepository
 import kotlinx.serialization.json.jsonObject
 import io.zer0.muse.privacy.PiiGuard
 import io.zer0.muse.tools.ToolRegistry
-import io.zer0.muse.tools.ToolExposurePolicy
 import io.zer0.muse.transformer.TransformContext
 import io.zer0.muse.transformer.MoodSkinParser
 import io.zer0.muse.transformer.InternalMarkupSanitizer
@@ -848,58 +847,15 @@ class ChatStreamCoordinator(
      */
     internal suspend fun resolveToolsAndModel(state: StreamRunState) {
         with(state) {
-            // Phase 7+8.8: 工具定义 — 按 Assistant.toolIdsJson 过滤本地工具,
-            // 再合并启用的 Skills 作为额外工具(空列表表示全部启用,向后兼容)
-            val enabledToolIds = assistant?.let { ast ->
-                runCatching {
-                    idListJson.decodeFromString<List<String>>(ast.toolIdsJson)
-                }.onFailure { Logger.w("ChatVM", "toolIdsJson 解析失败: ${it.message}") }.getOrNull()
-            }
+            // 主聊天将当前 ToolRegistry 注册的工具全集交给模型；旧 Assistant.toolIdsJson
+            // 只作为设置兼容数据保留，不能继续截断 function schema。
             val registeredToolDefs = toolRegistry.listToolsAsToolDefinitions()
             // MCP server 是助手级扩展,不属于普通 toolIdsJson。此前只读取 toolIdsJson,
             // 导致助手页面明明选中了 MCP server,主聊天仍把 mcp_* 工具全部过滤掉。
-            val enabledMcpServerIds = assistant
-                ?.let(assistantRepository::parseMcpServerIds)
-                ?.toSet()
-                .orEmpty()
-            val explicitlyEnabledMcpToolNames = enabledToolIds
-                .orEmpty()
-                .filter { it.startsWith("mcp_") }
-                .toSet()
-            val localToolDefs = registeredToolDefs.filter { def ->
-                when {
-                    // MCP 自配置工具属于本地能力，必须在未绑定任何外部 server 时也可见，
-                    // 否则助手无法通过 mcp_server_configure 完成首次配置。
-                    def.name.startsWith("mcp_server_") -> true
-                    // 真正的远程 MCP 工具仍由 server 绑定关系或显式工具白名单控制。
-                    def.name.startsWith("mcp_") -> def.name in explicitlyEnabledMcpToolNames
-                    else -> enabledToolIds.isNullOrEmpty() || def.name in enabledToolIds
-                }
-            }
-            val enabledMcpToolDefs = if (enabledMcpServerIds.isEmpty()) {
-                registeredToolDefs.filter { it.name in explicitlyEnabledMcpToolNames }
-            } else {
-                val prefixes = enabledMcpServerIds.map { "mcp_${it}__" }
-                registeredToolDefs
-                    .filter { def -> prefixes.any { prefix -> def.name.startsWith(prefix) } }
-            }
+            // ToolRegistry 已包含本地工具与已注册 MCP 工具，不再按旧白名单二次裁剪。
 
-            // Phase 8.8: 加载启用的 Skills 并转为 ToolDefinition
-            // v1.0.47 P3: 会话级 skill 覆盖 — 优先用 session.skillIdsJson(非"[]"且非空),
-            // 否则回退到 assistant.skillIdsJson(默认行为不变)
-            val sessionSkillIdsJson = accessor.snapshot.sessions
-                .firstOrNull { it.id == sessionId }?.skillIdsJson
-            val effectiveSkillIdsJson = if (!sessionSkillIdsJson.isNullOrEmpty() && sessionSkillIdsJson != "[]") {
-                sessionSkillIdsJson
-            } else {
-                assistant?.skillIdsJson
-            }
-            val enabledSkillIds = effectiveSkillIdsJson?.let { json ->
-                runCatching { idListJson.decodeFromString<List<String>>(json) }.getOrNull()
-            }
-            // B6-01: 外部插件工具默认并入工具定义,无需逐个助手开启 skill 白名单
-            val enabledSkillIdsSet = enabledSkillIds?.toSet().orEmpty()
-            val pluginSkills = skillRepository.listEnabled().filter { it.category == "plugin" && it.id !in enabledSkillIdsSet }
+            // Phase 8.8: 加载全部已启用的 Skills 并转为 ToolDefinition
+            // 用户要求主聊天展示完整工具面，Skills 只受自身 enabled 状态控制。
             // 审计修复 (A-04/A-05/A-06): 定义与执行不得分裂 —
             // ① 与本地工具同名的 skill 从启用列表剔除:去重时定义保留了本地版
             //   (见下方 distinctBy),执行路由 skillMap 优先,若 skill 仍在 map 里,
@@ -909,7 +865,7 @@ class ChatStreamCoordinator(
             //   主会话 skillMap 必须剔除,否则主会话 LLM 可用 skill 版以任意 agent
             //   身份向任意群聊发言(绕过 ChannelToolFactory 的身份绑定防护)。
             val localToolNames = toolRegistry.listTools().map { it.name }.toSet()
-            val enabledSkills = (skillRepository.listEnabledByIds(enabledSkillIds) + pluginSkills)
+            val enabledSkills = skillRepository.listEnabled()
                 .distinctBy { it.id }
                 .filterNot { it.id in localToolNames || it.id.startsWith("channel_") }
             // 缓存 skill id → SkillEntity 映射,工具执行时用
@@ -944,28 +900,11 @@ class ChatStreamCoordinator(
             // 和 SkillExecutor.BUILT_IN_SKILLS 中的 Skill,默认助手同时启用两份,
             // 直接拼接会发出重复 tools,DeepSeek/中转站严格校验工具名唯一性会返回 400。
             // 这里按 name 去重,ToolDef(本地工具实现)优先保留,同名 Skill 被丢弃。
-            val allToolDefs = (localToolDefs + enabledMcpToolDefs + skillToolDefs).distinctBy { it.name }
-            // 默认助手保存的是“全部内置工具/Skill”的快照,不应被当成窄白名单。
-            // 只有实际集合已经很小时才保持原样;大集合继续按当前意图筛选。
-            val explicitToolSelection = allToolDefs.size <= 16
-            val latestUserText = transformedMessages
-                .lastOrNull { it.role == MessageRole.USER }
-                ?.content
-                .orEmpty()
-            tools = ToolExposurePolicy.select(
-                tools = allToolDefs,
-                userText = latestUserText,
-                explicitSelection = explicitToolSelection,
-                alwaysExposeNames = enabledMcpToolDefs.map { it.name }.toSet(),
-                applyIntentFilter = !explicitToolSelection,
-            )
-            if (tools.size != allToolDefs.size) {
-                Logger.d(
-                    "ChatVM",
-                    "tool exposure: ${allToolDefs.size} -> ${tools.size} | " +
-                        "explicit=$explicitToolSelection | text=${latestUserText.take(60)}",
-                )
-            }
+            val allToolDefs = (registeredToolDefs + skillToolDefs).distinctBy { it.name }
+            // 工具 schema 一次性展示全部当前已启用/已授权工具。
+            // 意图裁剪会让部分模型看不到它实际需要的工具，导致模型明明有能力却不发起调用；
+            // 高风险工具仍由 ToolPermissionResolver/审批层拦截，完整展示不等于自动放行。
+            tools = allToolDefs
 
             // v1.52: per-assistant 模型解析 — 助手配置了 modelId 则用助手专属模型,
             // 否则回退到全局 selectedModelId,再否则由 ChatService 兜底(激活 Provider 首个模型)。
@@ -1071,18 +1010,8 @@ class ChatStreamCoordinator(
             // 累积的对话历史(含工具调用结果,每轮可能追加 assistant+tool 消息)
             conversationHistory = transformedMessages.toMutableList()
 
-            // B3-10: 弱工具模型不暴露委派/子代理工具,避免无效轮次与连续失败等待
-            if (io.zer0.muse.tools.WeakToolUseDetector.isWeakToolModel(effectiveModel)) {
-                val delegationToolNames = setOf(
-                    "delegate_agent",
-                    "subagent_run",
-                    "subagent_task",
-                    "task_plan",
-                    "update_plan_step",
-                    "subagent_close",
-                )
-                tools = tools.filterNot { it.name in delegationToolNames }
-            }
+            // 工具 schema 已统一全量展示给当前模型；弱工具模型也不能被额外删掉计划/委派工具，
+            // 否则模型看不到能力就不会调用。实际执行失败仍由工具循环和权限层处理。
         }
     }
 }

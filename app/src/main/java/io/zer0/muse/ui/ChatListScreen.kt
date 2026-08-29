@@ -444,18 +444,38 @@ private fun GreetingHeader(
             .fillMaxWidth()
             .padding(top = 8.dp, bottom = 4.dp),
     ) {
+        val timeGreeting = GreetingHelper.getTimeGreeting()
         val dailySummaryHint = GreetingHelper.getDailySummaryHint(dailySummaryText, dailySummaryDate)
+        val memoryHint = GreetingHelper.getMemoryHint(facts)
         Text(
-            text = when {
-                dailySummaryHint != null -> "${GreetingHelper.getTimeGreeting()}，$dailySummaryHint"
-                personalizedHint != null -> "${GreetingHelper.getTimeGreeting()}，$personalizedHint"
-                else -> GreetingHelper.buildGreeting(facts)
-            },
+            text = timeGreeting,
             style = MaterialTheme.typography.headlineMedium.copy(
                 fontWeight = FontWeight.Bold,
             ),
             color = MaterialTheme.colorScheme.onSurface,
         )
+        // 每日总结和近期提醒各自占一行,不能用 ?: 互斥,否则总结存在时提醒会被吞掉。
+        val reminderHint = personalizedHint ?: memoryHint
+        if (!dailySummaryHint.isNullOrBlank()) {
+            Text(
+                text = dailySummaryHint,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = 2.dp),
+            )
+        }
+        if (!reminderHint.isNullOrBlank() && reminderHint != dailySummaryHint) {
+            Text(
+                text = reminderHint,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = 2.dp),
+            )
+        }
         Spacer(Modifier.height(4.dp))
         Text(
             text = GreetingHelper.getMemoryCountText(memoryCount, name),
@@ -1033,8 +1053,9 @@ private fun TaskActionSheet(
         horizontalPadding = 0.dp,
         bottomContentSpacing = 0.dp,
     ) {
+        // MuseBottomPopup 统一负责唯一的纵向滚动；这里不能再嵌套 verticalScroll，
+        // 否则 Android Compose 会以无限高度测量并直接崩溃。
         Column(
-            modifier = Modifier.verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             // 标题
@@ -1348,7 +1369,6 @@ private fun FolderActionSheet(
         bottomContentSpacing = 0.dp,
     ) {
         Column(
-            modifier = Modifier.verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(

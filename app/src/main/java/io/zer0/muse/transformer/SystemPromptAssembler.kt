@@ -802,33 +802,9 @@ class SystemPromptAssembler(
      */
     private suspend fun buildToolManifestSection(assistant: AssistantEntity?): String {
         val allLocalTools = toolRegistry.listTools()
-        // v1.0.79 (B-1): 与 ChatStreamCoordinator.resolveToolsAndModel 的过滤口径完全对齐 —
-        // 此前 manifest 只对 MCP 工具按助手过滤,普通本地工具全量列出,而 tools schema
-        // 按助手 toolIdsJson 白名单过滤,两边口径不一致:模型看到索引里 100+ 工具,
-        // 实际 schema 只有几个,深度思考里会自我发现矛盾并困惑。
-        // 过滤规则(与 resolveToolsAndModel 一致):
-        //  - mcp_ 工具:在 toolIdsJson 显式勾选 或 绑定 server 前缀 → 保留
-        //  - 其他工具:toolIdsJson 为空/未配置 → 全部;否则只在 toolIdsJson 里
-        val boundServerIds = if (assistant == null || assistantRepository == null) {
-            emptySet()
-        } else {
-            assistantRepository.parseMcpServerIds(assistant).toSet()
-        }
-        val enabledToolIds = if (assistant == null || assistantRepository == null) {
-            null
-        } else {
-            assistantRepository.parseToolIds(assistant)
-        }
-        val explicitMcpToolNames = enabledToolIds.orEmpty().filter { it.startsWith("mcp_") }.toSet()
-        val mcpPrefixes = boundServerIds.map { "mcp_${it}__" }
-        val localTools = allLocalTools.filter { tool ->
-            if (tool.name.startsWith("mcp_")) {
-                tool.name in explicitMcpToolNames ||
-                    mcpPrefixes.any { prefix -> tool.name.startsWith(prefix) }
-            } else {
-                enabledToolIds.isNullOrEmpty() || tool.name in enabledToolIds
-            }
-        }
+        // 主聊天的工具索引与 function schema 同源，展示当前运行时已注册的完整工具面。
+        // 旧 Assistant.toolIdsJson 可能只是历史快照，不能让它继续把 100+ 工具缩成几十个。
+        val localTools = allLocalTools
         // H-ASM1: skillRepository.listEnabled() 为 suspend,用 resultOf 正确重抛 CancellationException
         val skills = resultOf { skillRepository.listEnabled() }
             .onError { _, t -> Logger.w(TAG, "skillRepository.listEnabled 失败", t) }

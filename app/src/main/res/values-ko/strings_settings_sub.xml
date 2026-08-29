@@ -583,7 +583,7 @@
     <string name="settings_agent_test_sent">测试消息已发送,查看通知栏</string>
     <string name="settings_agent_test_failed">测试失败:%1$s</string>
     <string name="settings_agent_daily_summary">每日总结推送</string>
-    <string name="settings_agent_daily_summary_subtitle">每天 19:30 推送今日对话小结(开关关闭后自动跳过,重新打开即恢复)</string>
+    <string name="settings_agent_daily_summary_subtitle">每天 09:00、12:00、21:00 和 00:00 生成对话小结；开关只控制通知推送</string>
     <string name="settings_agent_current_model_hint">전역 기본값(메인 채팅 / Agent 공용)</string>
     <string name="settings_agent_keep_alive_title">백그라운드 실행 유지</string>
     <string name="settings_agent_keep_alive_subtitle">시스템이 프로세스를 정리해도 적극 메시지를 놓치지 않도록 합니다</string>

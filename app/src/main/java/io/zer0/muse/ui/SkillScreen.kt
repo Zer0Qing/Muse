@@ -94,6 +94,7 @@ fun SkillScreen(
     var deleteConfirmTarget by remember { mutableStateOf<SkillEntity?>(null) }
     var importMessage by remember { mutableStateOf<String?>(null) }
     var importing by remember { mutableStateOf(false) }
+    var importDialogVisible by remember { mutableStateOf(false) }
     val builtInIds = remember {
         SkillExecutor.BUILT_IN_SKILLS.map { it.id }.toSet()
     }
@@ -105,6 +106,7 @@ fun SkillScreen(
         if (uri == null) return@rememberLauncherForActivityResult
         scope.launch {
             importing = true
+            importDialogVisible = true
             try {
                 val text = withContext(Dispatchers.IO) {
                     // v1.73: 用 use{} 确保 InputStream/BufferedReader 关闭,避免 FD 泄漏
@@ -144,6 +146,7 @@ fun SkillScreen(
                 importMessage = context.getString(R.string.skill_import_error, e.message?.take(80))
             } finally {
                 importing = false
+                importDialogVisible = false
             }
         }
     }
@@ -268,9 +271,10 @@ fun SkillScreen(
         )
     }
 
-    if (importing) {
+    if (importDialogVisible) {
         MuseDialog(
-            onDismissRequest = { /* 不可中断 */ },
+            // 返回只关闭进度展示，导入任务继续运行并在完成后更新结果。
+            onDismissRequest = { importDialogVisible = false },
             title = stringResource(R.string.skill_importing),
             content = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {

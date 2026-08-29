@@ -26,18 +26,18 @@ android {
         targetSdk = 35
         // v1.0.27 P0-1.1: 版本号支持从 Gradle property 注入,CI 从 git tag 自动提取
         // 优先级: -PversionCode/-PversionName > 环境变量 > 默认值
-        // 本地构建用默认值,CI 通过 ./gradlew assembleRelease -PversionName=1.0.83 注入
+        // 本地构建用默认值,CI 通过 ./gradlew assembleRelease -PversionName=1.0.84 注入
         // 空字符串视为未注入(workflow_dispatch 无 tag 时回退默认值)
-        // v1.0.83: 稳定性修复正式基线(正式构建仍由 CI 显式注入)
+        // v1.0.84: 四时点总结、计划隔离、权限与返回链修复正式基线(正式构建仍由 CI 显式注入)
         versionCode = (project.findProperty("versionCode") as? String)
             ?.takeIf { it.isNotBlank() }
             ?.toIntOrNull()
             ?: System.getenv("VERSION_CODE")?.takeIf { it.isNotBlank() }?.toIntOrNull()
-            ?: 183
+            ?: 184
         versionName = (project.findProperty("versionName") as? String)
             ?.takeIf { it.isNotBlank() }
             ?: System.getenv("VERSION_NAME")?.takeIf { it.isNotBlank() }
-            ?: "1.0.83"
+            ?: "1.0.84"
     }
 
     signingConfigs {
@@ -304,7 +304,7 @@ gradle.taskGraph.whenReady {
     if (hasReleaseTask && !skipKeystoreCheck && !keystorePropertiesFile.exists()) {
         throw GradleException("正式构建缺少 keystore.properties：请先配置 release 签名，禁止回退 debug 签名。")
     }
-    // 版本号硬约束：正式构建必须显式注入 versionName/versionCode，避免误用过期默认版本；当前默认线为 183/1.0.83。
+    // 版本号硬约束：正式构建必须显式注入 versionName/versionCode，避免误用过期默认版本；当前默认线为 184/1.0.84。
     // 本地临时验证可传 -PreleaseSkipVersionCheck=true 跳过。
     val skipVersionCheck = project.findProperty("releaseSkipVersionCheck") == "true"
     val hasVersionName = project.hasProperty("versionName") || !System.getenv("VERSION_NAME").isNullOrBlank()

@@ -151,6 +151,7 @@ fun KnowledgeScreen(
     var importJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     // v1.67-A: 重新索引状态
     var reindexing by remember { mutableStateOf(false) }
+    var reindexDialogVisible by remember { mutableStateOf(false) }
     var reindexProgress by remember { mutableStateOf("") }
     var reindexTarget by remember { mutableStateOf<KnowledgeDocEntity?>(null) }
     // v1.0.53: AI 封面生成状态
@@ -349,6 +350,7 @@ fun KnowledgeScreen(
     fun reindexDoc(doc: KnowledgeDocEntity) {
         reindexTarget = doc
         reindexing = true
+        reindexDialogVisible = true
         reindexProgress = context.getString(R.string.knowledge_reindex_progress)
         scope.launch {
             try {
@@ -383,6 +385,7 @@ fun KnowledgeScreen(
                 MuseToast.show(context.getString(R.string.knowledge_reindex_failed, e.message?.take(80) ?: ""))
             } finally {
                 reindexing = false
+                reindexDialogVisible = false
                 reindexProgress = ""
                 reindexTarget = null
             }
@@ -393,6 +396,7 @@ fun KnowledgeScreen(
     fun repairKnowledgeFts() {
         reindexTarget = null
         reindexing = true
+        reindexDialogVisible = true
         reindexProgress = context.getString(R.string.knowledge_repairing)
         scope.launch {
             try {
@@ -418,6 +422,7 @@ fun KnowledgeScreen(
                 MuseToast.show(context.getString(R.string.knowledge_fts_repair_failed, e.message?.take(80) ?: ""))
             } finally {
                 reindexing = false
+                reindexDialogVisible = false
                 reindexProgress = ""
                 reindexTarget = null
             }
@@ -675,9 +680,10 @@ fun KnowledgeScreen(
     }
 
     // v1.67-A: 重新索引进度弹窗
-    if (reindexing) {
+    if (reindexDialogVisible) {
         MuseDialog(
-            onDismissRequest = { /* 重新索引不可中断,避免半成品状态 */ },
+            // 关闭的只是进度展示，重建任务继续运行，避免返回键被空回调吞掉。
+            onDismissRequest = { reindexDialogVisible = false },
             title = stringResource(R.string.knowledge_reindexing),
             content = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {

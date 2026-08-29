@@ -46,10 +46,32 @@ class SkillAgentToolsImpl(
             },
         )
 
-    /** 供 ChatViewModel 读取活跃计划。 */
-    fun getActivePlans(): Map<String, AgentPlan> = activePlans.toMap()
+    /** 读取全部活跃计划，保留给全局统计等旧调用方。 */
+    fun getActivePlans(): Map<String, AgentPlan> = synchronized(activePlans) { activePlans.toMap() }
 
-    suspend fun execTaskPlan(args: Map<String, String>): String {
+    /** 读取指定会话的活跃计划，避免并行会话串台。 */
+    fun getActivePlans(sessionId: String): Map<String, AgentPlan> =
+        synchronized(activePlans) {
+            activePlans.toMap().filter { (_, plan) -> plan.sessionId == sessionId }
+        }
+
+    /**
+     * 将消息历史重放出的计划回灌执行器缓存。
+     *
+     * 计划展示消息已经落库；回灌这一步让重新进入会话后继续调用 update_plan_step
+     * 时不会因为进程内 activePlans 为空而返回“计划不存在”。
+     */
+    fun restoreActivePlans(plans: Map<String, AgentPlan>, sessionId: String = "default") {
+        // 只替换当前会话的旧投影，保留其他会话正在执行的计划。
+        synchronized(activePlans) {
+            activePlans.entries.removeIf { it.value.sessionId == sessionId }
+            plans.forEach { (id, plan) ->
+                activePlans[id] = if (plan.sessionId == sessionId) plan else plan.copy(sessionId = sessionId)
+            }
+        }
+    }
+
+    suspend fun execTaskPlan(args: Map<String, String>, sessionId: String = "default"): String {
         val title = args["title"]?.trim()
             ?: return context.getString(R.string.skill_missing_param_title)
         if (title.isBlank()) return context.getString(R.string.skill_title_blank)
@@ -84,6 +106,7 @@ class SkillAgentToolsImpl(
             id = planId,
             title = title,
             steps = steps,
+            sessionId = sessionId,
         )
 
         activePlans[planId] = plan
@@ -101,7 +124,7 @@ class SkillAgentToolsImpl(
         return planSummary
     }
 
-    suspend fun execUpdatePlanStep(args: Map<String, String>): String {
+    suspend fun execUpdatePlanStep(args: Map<String, String>, sessionId: String = "default"): String {
         val planId = args["planId"]?.trim()
             ?: return context.getString(R.string.skill_missing_param_plan_id)
         val stepIndex = args["stepIndex"]?.toIntOrNull()
@@ -111,6 +134,7 @@ class SkillAgentToolsImpl(
         val result = args["result"]?.trim() ?: ""
 
         val plan = activePlans[planId]
+            ?.takeIf { it.sessionId == sessionId }
             ?: return context.getString(R.string.skill_plan_not_found, planId)
 
         if (stepIndex < 0 || stepIndex >= plan.steps.size) {

@@ -14,38 +14,33 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupPositionProvider
-import androidx.compose.ui.window.PopupProperties
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
 import io.zer0.muse.ui.theme.MuseCornerRadius
@@ -76,7 +71,7 @@ internal fun calculateBottomSheetHeight(
 ): androidx.compose.ui.unit.Dp =
     ((maxHeight - bottomInset).coerceAtLeast(0.dp) * fraction.coerceIn(0f, 1f)).coerceAtLeast(0.dp)
 
-/** 将弹层底边固定在导航栏/手势区上缘,而不是固定在触发控件附近。 */
+/** 将弹层底边固定在 Popup 窗口底边,键盘避让由调用方传入的 inset 负责。 */
 internal fun calculateBottomPopupPosition(
     windowSize: IntSize,
     popupContentSize: IntSize,
@@ -94,29 +89,17 @@ internal fun calculateBottomPopupPosition(
     return IntOffset(x = x, y = y)
 }
 
-/** Popup 版底部定位器,供输入工具菜单和会话操作菜单共用。 */
-internal class MuseBottomPopupPositionProvider(
-    private val bottomInsetPx: Int,
-    private val gapPx: Int = 0,
-) : PopupPositionProvider {
-    override fun calculatePosition(
-        anchorBounds: IntRect,
-        windowSize: IntSize,
-        layoutDirection: LayoutDirection,
-        popupContentSize: IntSize,
-    ): IntOffset = calculateBottomPopupPosition(
-        windowSize = windowSize,
-        popupContentSize = popupContentSize,
-        bottomInsetPx = bottomInsetPx,
-        gapPx = gapPx,
-    )
-}
-
 /**
- * 不创建全屏 Dialog 的底部操作面板。
+ * 底部操作面板。
  *
- * Popup 窗口只包住实际内容,底边按系统安全区定位,因此不会额外生成一层覆盖整个页面的白色窗口。
+ * 这里故意使用全屏 Dialog 而不是 Popup：Popup 自己拥有独立窗口，
+ * 在 Android 15 的 edge-to-edge 和不同导航模式下，windowSize 与宿主 Insets
+ * 可能不在同一坐标系，菜单就会出现“飞到上面”的现象。
+ *
+ * 面板外框始终贴 Dialog 的物理底边；系统安全区只作为面板内部 padding，
+ * 因此全面屏手势不会被误当成三键导航栏把整个菜单抬高。
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun MuseBottomPopup(
     onDismissRequest: () -> Unit,
@@ -125,51 +108,35 @@ internal fun MuseBottomPopup(
     bottomContentSpacing: androidx.compose.ui.unit.Dp = MusePaddings.largeGap,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val configuration = LocalConfiguration.current
-    val density = LocalDensity.current
-    val bottomInsetPx = maxOf(
-        WindowInsets.safeDrawing.getBottom(density),
-        WindowInsets.ime.getBottom(density),
-    )
-    val popupWidth = configuration.screenWidthDp.coerceAtLeast(1).dp
-    val popupMaxHeight = configuration.screenHeightDp.coerceAtLeast(1).dp *
-        maxHeightFraction.coerceIn(0f, 1f)
-    Popup(
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val popupMaxHeight = LocalConfiguration.current.screenHeightDp.dp *
+        maxHeightFraction.coerceIn(0.1f, 1f)
+
+    // 底部菜单改用 Material3 的 modal sheet 窗口。
+    // 它统一处理 Dialog 的 bottom gravity、导航栏/手势区和 outside/back dismiss，
+    // 避免自定义 Dialog 在不同 ROM 的 edge-to-edge 坐标系中重复计算 inset。
+    ModalBottomSheet(
         onDismissRequest = onDismissRequest,
-        popupPositionProvider = remember(bottomInsetPx) {
-            MuseBottomPopupPositionProvider(bottomInsetPx)
-        },
-        properties = PopupProperties(
-            focusable = true,
-            dismissOnBackPress = true,
-            dismissOnClickOutside = true,
-            clippingEnabled = true,
-        ),
+        sheetState = sheetState,
+        shape = BottomSheetSurfaceShape,
+        containerColor = MaterialTheme.colorScheme.surface,
+        tonalElevation = MuseElevation.none,
+        scrimColor = Color.Transparent,
+        dragHandle = { SheetHandle() },
     ) {
-        Surface(
+        // 高度约束必须放在面板内容上，不能放在 ModalBottomSheet 根节点。
+        // 根节点就是独立 Window；限制它会让 Material3 在一个缩短的 Window
+        // 内做 bottom alignment，面板因此会出现在屏幕中间或“飞到天上”。
+        Column(
             modifier = Modifier
-                .width(popupWidth)
-                .heightIn(max = popupMaxHeight),
-            shape = BottomSheetSurfaceShape,
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = MuseElevation.none,
-            shadowElevation = MuseElevation.none,
+                .fillMaxWidth()
+                .heightIn(max = popupMaxHeight)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = horizontalPadding, vertical = MusePaddings.screen),
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState()),
-            ) {
-                SheetHandle()
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = horizontalPadding, vertical = MusePaddings.screen),
-                    content = content,
-                )
-                if (bottomContentSpacing > 0.dp) {
-                    Spacer(Modifier.height(bottomContentSpacing))
-                }
+            content()
+            if (bottomContentSpacing > 0.dp) {
+                Spacer(Modifier.height(bottomContentSpacing))
             }
         }
     }
@@ -189,6 +156,7 @@ internal fun MuseBottomPopup(
  * @param onDismissRequest 关闭回调
  * @param content 面板内容
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MuseBottomSheet(
     onDismissRequest: () -> Unit,
@@ -199,106 +167,32 @@ fun MuseBottomSheet(
     bottomContentSpacing: androidx.compose.ui.unit.Dp = MusePaddings.largeGap,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    // M-BS2: 用 rememberSaveable 持久化进入/退出动画状态,配置变更(旋转/暗色切换)
-    // 时不再丢失 visible/shouldDismiss 导致面板卡在半退出状态。
-    var visible by rememberSaveable { mutableStateOf(false) }
-    var shouldDismiss by rememberSaveable { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sheetMaxHeight = LocalConfiguration.current.screenHeightDp.dp *
+        maxHeightFraction.coerceIn(0.1f, 1f)
 
-    LaunchedEffect(Unit) {
-        visible = true
-    }
-
-    LaunchedEffect(shouldDismiss) {
-        if (shouldDismiss) {
-            visible = false
-            // M-BS3: 等待退出动画结束,时长与下方 slideOutVertically 的 tween 复用同一常量。
-            kotlinx.coroutines.delay(SHEET_EXIT_DURATION_MS.toLong())
-            onDismissRequest()
-        }
-    }
-
-    val dismiss = {
-        shouldDismiss = true
-    }
-
-    Dialog(
-        onDismissRequest = dismiss,
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false,
-            decorFitsSystemWindows = false,
-            dismissOnClickOutside = true,
-            dismissOnBackPress = true,
-        ),
+    // 与 MuseBottomPopup 共用 Material3 的 modal sheet 窗口。
+    // 系统负责 bottom gravity、导航栏/手势区、返回键和外部点击；这里仅负责
+    // 面板样式、业务最大高度和内容滚动，避免自定义 Dialog 再次参与坐标计算。
+    ModalBottomSheet(
+        onDismissRequest = onDismissRequest,
+        sheetState = sheetState,
+        shape = BottomSheetSurfaceShape,
+        containerColor = MaterialTheme.colorScheme.surface,
+        tonalElevation = MuseElevation.none,
+        scrimColor = Color.Transparent,
+        dragHandle = { SheetHandle() },
     ) {
-        MuseDialogWindowEffect(forceFullScreen = true)
-        Box(
+        Column(
             modifier = Modifier
-                .fillMaxSize()
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = dismiss,
-                ),
-            contentAlignment = Alignment.BottomCenter,
+                .fillMaxWidth()
+                .heightIn(max = sheetMaxHeight)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = horizontalPadding, vertical = MusePaddings.screen),
         ) {
-            // v1.0.27 修复 Bug 2: 长按会话菜单"删除被遮挡"。
-            // 使用 Dialog 实际约束而不是配置屏幕高度，并把导航栏底边从业务高度中扣除。
-            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-                val density = LocalDensity.current
-                val bottomInset = with(density) {
-                    WindowInsets.safeDrawing.getBottom(this).toDp()
-                }
-                val sheetMaxHeight = calculateBottomSheetHeight(maxHeight, maxHeightFraction, bottomInset)
-                AnimatedVisibility(
-                    visible = visible,
-                    // M-BS3: 显式指定 tween 时长,与 delay(SHEET_EXIT_DURATION_MS) 复用同一常量,
-                    // 确保退出动画真正播完后再 dismiss(原先时长不匹配可能提前关闭)。
-                    enter = slideInVertically(animationSpec = tween(SHEET_EXIT_DURATION_MS), initialOffsetY = { it }),
-                    exit = slideOutVertically(animationSpec = tween(SHEET_EXIT_DURATION_MS), targetOffsetY = { it }),
-                ) {
-                Surface(
-                    shape = BottomSheetSurfaceShape,
-                    color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = MuseElevation.none,
-                    shadowElevation = MuseElevation.none,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        // v1.0.29: maxHeightFraction 可配置,加号菜单用较小值避免面板过高影响观感
-                        .heightIn(max = sheetMaxHeight)
-                        .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
-                        .imePadding()
-                        // H-BS1: 旧 clickable(enabled=false, onClick={}) 无法消费点击事件,
-                        // 导致点击面板内容穿透到外层背景触发 dismiss。
-                        // 改用 pointerInput + detectTapGestures 拦截面板上的手势,不再向下传播,
-                        // 且不引入 ripple(indication),保持视觉干净。
-                        .pointerInput(Unit) {
-                            detectTapGestures { /* 拦截,不传播到外层 dismiss */ }
-                        },
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                    ) {
-                        // iOS 风格底部 Sheet 把手 — 36x4dp 灰色圆角条,居中于顶部
-                        SheetHandle()
-                        // 内容区域使用统一 padding
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                // L-BS4: 20.dp → MusePaddings.screen 令牌(16dp)。
-                                // v1.0.29: 左右留空减小为 12dp,使底部面板内容更舒展
-                                // v1.0.72: 留白可配置(加号菜单传 0 不留白)
-                            .padding(horizontal = horizontalPadding, vertical = MusePaddings.screen),
-                            content = content,
-                        )
-                        // v1.0.29: 底部增加额外冗余,让底部菜单整体上抬,
-                        // 避免内容紧贴系统导航条/手势条,提升操作舒适度。
-                        if (bottomContentSpacing > 0.dp) {
-                            Spacer(Modifier.height(bottomContentSpacing))
-                        }
-                    }
-                }
-                }
+            content()
+            if (bottomContentSpacing > 0.dp) {
+                Spacer(Modifier.height(bottomContentSpacing))
             }
         }
     }
@@ -379,12 +273,12 @@ fun MuseDraggableBottomSheet(
         onDismissRequest = dismiss,
         properties = DialogProperties(
             usePlatformDefaultWidth = false,
-            decorFitsSystemWindows = false,
+            decorFitsSystemWindows = true,
             dismissOnClickOutside = true,
             dismissOnBackPress = true,
         ),
     ) {
-        MuseDialogWindowEffect(forceFullScreen = true)
+        MuseDialogWindowEffect(forceFullScreen = true, bottomAligned = true)
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -395,12 +289,9 @@ fun MuseDraggableBottomSheet(
                 ),
             contentAlignment = Alignment.BottomCenter,
         ) {
-            // 使用 Dialog 实际约束计算可拖拽高度，导航栏安全区不参与业务高度。
+            // 平台 bottomAligned Dialog 提供已避让系统栏的真实可用高度。
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-                val bottomInset = with(density) {
-                    WindowInsets.safeDrawing.getBottom(this).toDp()
-                }
-                val screenHeight = (maxHeight - bottomInset).coerceAtLeast(0.dp)
+                val screenHeight = maxHeight.coerceAtLeast(0.dp)
                 // 当前拖拽偏移量 (0 = 初始高度, 正数 = 下拉; 上拉被 coerceAtLeast(0f) 限制)
                 val initialHeight = screenHeight * initialHeightFraction
                 val expandedHeight = screenHeight * expandedHeightFraction
@@ -420,8 +311,6 @@ fun MuseDraggableBottomSheet(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(currentHeight)
-                        .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
-                        .imePadding()
                         .pointerInput(Unit) {
                             detectTapGestures { /* 拦截,不传播 */ }
                         },

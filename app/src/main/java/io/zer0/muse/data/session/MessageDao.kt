@@ -84,10 +84,11 @@ interface MessageDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(message: MessageEntity)
 
-    /**
-     * v1.0.72: 取指定时间之后(含)的用户消息(升序,限量)。
-     * 今日总结 Worker 用:汇总当天用户说了什么,作为 LLM 生成素材。
-     */
+    /** 每日总结用:取指定时间区间内的用户消息(升序,限量)。 */
+    @Query("SELECT * FROM messages WHERE role = 'USER' AND createdAt >= :fromCreatedAt AND createdAt < :toCreatedAt ORDER BY createdAt ASC, rowid ASC LIMIT :limit")
+    suspend fun getUserMessagesBetween(fromCreatedAt: Long, toCreatedAt: Long, limit: Int): List<MessageEntity>
+
+    /** 兼容其他调用方的下界查询。 */
     @Query("SELECT * FROM messages WHERE role = 'USER' AND createdAt >= :fromCreatedAt ORDER BY createdAt ASC, rowid ASC LIMIT :limit")
     suspend fun getUserMessagesSince(fromCreatedAt: Long, limit: Int): List<MessageEntity>
 

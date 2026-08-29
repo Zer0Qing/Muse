@@ -2,13 +2,18 @@
 
 package io.zer0.muse.ui.common.surface
 
+import android.graphics.Color
+import android.graphics.drawable.Drawable
+import android.graphics.drawable.ColorDrawable
 import android.os.Build
+import android.view.Gravity
 import android.view.Window
 import android.view.WindowManager
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.window.DialogWindowProvider
+import androidx.core.view.WindowCompat
 
 /** Configures Muse dialog windows without the platform dim layer. */
 internal fun clearMuseWindowDim(window: Window?) {
@@ -20,6 +25,7 @@ internal fun clearMuseWindowDim(window: Window?) {
 @Composable
 internal fun MuseDialogWindowEffect(
     forceFullScreen: Boolean = false,
+    bottomAligned: Boolean = false,
 ) {
     val localView = LocalView.current
     val dialogWindow = (localView.parent as? DialogWindowProvider)?.window
@@ -37,8 +43,22 @@ internal fun MuseDialogWindowEffect(
             } else {
                 null
             }
+            val originalGravity = dialogWindow.attributes.gravity
+            val originalSoftInputMode = dialogWindow.attributes.softInputMode
+            val originalBackground: Drawable? = dialogWindow.decorView.background
 
             clearMuseWindowDim(dialogWindow)
+            if (bottomAligned) {
+                // Bottom menus use the platform decor boundary as the single source of
+                // truth. In particular, do not read Compose WindowInsets and move the
+                // panel again: on Android 15/16 Dialog insets can already be consumed.
+                WindowCompat.setDecorFitsSystemWindows(dialogWindow, true)
+                dialogWindow.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+                dialogWindow.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+                dialogWindow.attributes = dialogWindow.attributes.apply {
+                    gravity = Gravity.BOTTOM
+                }
+            }
             if (forceFullScreen) {
                 dialogWindow.setLayout(
                     WindowManager.LayoutParams.MATCH_PARENT,
@@ -61,6 +81,13 @@ internal fun MuseDialogWindowEffect(
                 dialogWindow.setDimAmount(originalDimAmount)
                 if (forceFullScreen) {
                     dialogWindow.setLayout(originalWidth, originalHeight)
+                }
+                if (bottomAligned) {
+                    dialogWindow.setBackgroundDrawable(originalBackground)
+                    dialogWindow.setSoftInputMode(originalSoftInputMode)
+                    dialogWindow.attributes = dialogWindow.attributes.apply {
+                        gravity = originalGravity
+                    }
                 }
                 if (originalCutoutMode != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                     dialogWindow.attributes = dialogWindow.attributes.apply {

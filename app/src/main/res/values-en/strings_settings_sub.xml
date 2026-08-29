@@ -588,7 +588,7 @@
     <string name="settings_agent_test_sent">Test message sent, check the notification bar</string>
     <string name="settings_agent_test_failed">Test failed:%1$s</string>
     <string name="settings_agent_daily_summary">Daily summary push</string>
-    <string name="settings_agent_daily_summary_subtitle">Pushes a summary of today\'s conversations at 7:30 PM (skipped when off, resumes when re-enabled)</string>
+    <string name="settings_agent_daily_summary_subtitle">Generates summaries at 9:00 AM, 12:00 PM, 9:00 PM and midnight; the switch only controls notifications</string>
 
     <string name="settings_agent_current_model_hint">Global default (shared by main chat / Agent)</string>
     <!-- v1.x: keep-alive background guidance -->

@@ -512,6 +512,15 @@ class SessionRepository(
         messageDao.getToolCallMessagesBySession(sessionId).map { it.toUIMessage() }
     }
 
+    /** 每日总结用:读取指定本地日历区间内的用户消息。 */
+    suspend fun getUserMessagesBetween(
+        fromCreatedAt: Long,
+        toCreatedAt: Long,
+        limit: Int,
+    ): List<UIMessage> = withContext(Dispatchers.IO) {
+        messageDao.getUserMessagesBetween(fromCreatedAt, toCreatedAt, limit).map { it.toUIMessage() }
+    }
+
     /**
      * v1.53-A1: 分页加载 — 取早于 beforeCreatedAt 的 limit 条消息(按 createdAt 升序)。
      *

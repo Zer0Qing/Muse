@@ -3,6 +3,7 @@ package io.zer0.muse.automation
 import android.content.Context
 import io.zer0.common.Logger
 import io.zer0.muse.automation.core.AutomationManager
+import io.zer0.muse.tools.system.ShizukuAuthorizer
 import io.zer0.muse.automation.tools.AutomationTools
 import io.zer0.muse.tools.ToolRegistry
 import kotlinx.coroutines.Dispatchers
@@ -51,7 +52,14 @@ object AutomationInitializer {
         synchronized(this) {
             if (_manager != null) return
             val appContext = context.applicationContext
-            val mgr = AutomationManager(appContext)
+            // 与主 Shell 路由共用同一 ShizukuAuthorizer，避免“状态检查”和“实际执行”各走一套。
+            val authorizer = runCatching {
+                org.koin.java.KoinJavaComponent.get<ShizukuAuthorizer>(ShizukuAuthorizer::class.java)
+            }.getOrElse { ShizukuAuthorizer(appContext) }
+            val mgr = AutomationManager(
+                context = appContext,
+                shizukuAuthorizer = authorizer,
+            )
             _manager = mgr
 
             // 注册 UI 自动化工具集

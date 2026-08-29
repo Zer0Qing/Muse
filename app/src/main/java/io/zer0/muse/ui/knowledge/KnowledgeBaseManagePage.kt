@@ -88,6 +88,7 @@ fun KnowledgeBaseManagePage(
     var creating by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf<KnowledgeBaseEntity?>(null) }
     var reindexing by remember { mutableStateOf<KnowledgeBaseEntity?>(null) }
+    var reindexDialogVisible by remember { mutableStateOf(false) }
     var reindexProgress by remember { mutableStateOf(0 to 0) }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -156,6 +157,7 @@ fun KnowledgeBaseManagePage(
                                 onDelete = { deleting = kb },
                                 onReindex = {
                                     reindexing = kb
+                                    reindexDialogVisible = true
                                     reindexProgress = 0 to 0
                                     scope.launch {
                                         val config = runCatching { settings.getRagConfig() }
@@ -171,6 +173,7 @@ fun KnowledgeBaseManagePage(
                                         }
                                         val total = reindexProgress.second
                                         reindexing = null
+                                        reindexDialogVisible = false
                                         if (failures.isEmpty()) {
                                             MuseToast.show(
                                                 context.getString(R.string.kb_reindex_done, total),
@@ -295,12 +298,11 @@ fun KnowledgeBaseManagePage(
     }
 
     // 重新索引进度对话框
-    if (reindexing != null) {
+    if (reindexDialogVisible) {
         val (current, total) = reindexProgress
         MuseDialog(
-            onDismissRequest = {
-                // 不允许用户取消(避免半成品索引)
-            },
+            // 关闭进度展示不取消后台重索引；任务完成后仍会更新数据库。
+            onDismissRequest = { reindexDialogVisible = false },
             title = stringResource(R.string.kb_reindex_all),
             content = {
                 Column {
