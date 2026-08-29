@@ -79,4 +79,4 @@
 
 - 本次版本使用本地 release keystore 签名。
 - 当前项目 ABI 配置生成 arm64-v8a、armeabi-v7a 和 universal，没有单独的 armeabi APK。
-- 本版本不创建 GitHub Release，仅推送合并后的 main 分支和 v1.0.84 tag。
+- 本版本通过 GitHub Release 发布，Release body 使用本文件的手写完整更新日志。
