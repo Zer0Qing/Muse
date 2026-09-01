@@ -522,13 +522,13 @@ class SessionRepository(
     }
 
     /**
-     * v1.53-A1: 分页加载 — 取早于 beforeCreatedAt 的 limit 条消息(按 createdAt 升序)。
+     * v1.53-A1: 分页加载 — 取有效序列早于 beforeSeq 的 limit 条消息(升序)。
      *
-     * 用于上滑加载更多:以当前列表最早一条消息的 createdAt 为锚点,取更早的历史。
+     * 用于上滑加载更多:以当前列表最早一条消息的有效序列为锚点,取更早的历史。
      * 返回升序,可直接前置拼接到现有 messages 列表。
      */
-    suspend fun getOlderMessages(sessionId: String, beforeCreatedAt: Long, limit: Int): List<UIMessage> {
-        return projectMessagesForRead(messageDao.getOlderBySession(sessionId, beforeCreatedAt, limit).reversed())
+    suspend fun getOlderMessages(sessionId: String, beforeSeq: Long, limit: Int): List<UIMessage> {
+        return projectMessagesForRead(messageDao.getOlderBySession(sessionId, beforeSeq, limit).reversed())
     }
 
     /**

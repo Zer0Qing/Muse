@@ -4,13 +4,12 @@
 
 package io.zer0.muse.ui
 
+import io.zer0.muse.ui.theme.MuseMotion
 import kotlinx.serialization.json.JsonArray
 import io.zer0.muse.util.ShareIntentHelper
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -444,8 +443,8 @@ internal fun MemoryDashboardCard(state: MemoryUiState) {
                         }
                         AnimatedVisibility(
                             visible = healthExpanded,
-                            enter = expandVertically(),
-                            exit = shrinkVertically(),
+                            enter = MuseMotion.expandEnter(),
+                            exit = MuseMotion.expandExit(),
                         ) {
                             Column(modifier = Modifier.padding(top = 8.dp)) {
                                 state.healthMap.forEach { (step, health) ->

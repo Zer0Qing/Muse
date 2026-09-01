@@ -84,4 +84,19 @@ object AsrClientFactory {
         AsrProviderType.OPENAI_REALTIME -> null
         AsrProviderType.AGNES -> null
     }
+
+    /**
+     * 创建应用内流式录音控制器。
+     *
+     * 旧的 [create] 保留给文件转录等一次性调用方;聊天录音必须走这一入口,
+     * 否则 DashScope/Step/OpenAI 实时 Provider 会因为旧接口不兼容而得到 null。
+     */
+    fun createController(config: AsrConfig): ASRController? = when (config.provider) {
+        AsrProviderType.DASHSCOPE -> DashScopeAsrController(config, sharedClient)
+        AsrProviderType.STEP -> StepAsrController(config)
+        AsrProviderType.OPENAI_WHISPER -> OpenAiWhisperAsrController(config, sharedClient)
+        AsrProviderType.OPENAI_REALTIME -> OpenAiRealtimeAsrController(config, sharedClient)
+        AsrProviderType.AGNES -> OpenAiWhisperAsrController(config, sharedClient)
+        AsrProviderType.SYSTEM, AsrProviderType.DASHSCOPE_FILE -> null
+    }
 }

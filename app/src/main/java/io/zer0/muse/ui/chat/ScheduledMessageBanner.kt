@@ -1,8 +1,7 @@
 package io.zer0.muse.ui.chat
 
+import io.zer0.muse.ui.theme.MuseMotion
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -41,7 +40,7 @@ fun ScheduledMessageBanner(
 ) {
     AnimatedVisibility(
         visible = pendingMessages.isNotEmpty(),
-        enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
+        enter = MuseMotion.verticalSlideFadeEnter(initialOffsetY = { -it }),
         modifier = modifier,
     ) {
         Surface(

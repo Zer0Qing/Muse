@@ -67,7 +67,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
-import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import io.zer0.common.Logger
 import io.zer0.muse.R
@@ -569,6 +568,9 @@ private fun CameraLivePreviewBox(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val currentOnTap by rememberUpdatedState(onTap)
+    // 持有 provider 引用;面板离开组合(onRelease)时解绑,避免相机在加号菜单关闭后
+    // 仍绑定在 RESUMED Activity 上(指示灯常亮/耗电/阻塞其他相机应用)。
+    val cameraProviderHolder = remember { arrayOfNulls<ProcessCameraProvider>(1) }
     AndroidView(
         factory = { ctx ->
             val previewView = PreviewView(ctx).apply {
@@ -580,6 +582,7 @@ private fun CameraLivePreviewBox(
                 providerFuture.addListener({
                     runCatching {
                         val provider = providerFuture.get()
+                        cameraProviderHolder[0] = provider
                         val preview = Preview.Builder().build().also {
                             it.setSurfaceProvider(previewView.surfaceProvider)
                         }
@@ -597,6 +600,10 @@ private fun CameraLivePreviewBox(
                 Logger.w("MuseToolSheet", "相机预览初始化失败", e)
             }
             previewView
+        },
+        onRelease = {
+            cameraProviderHolder[0]?.unbindAll()
+            cameraProviderHolder[0] = null
         },
         modifier = modifier,
     )

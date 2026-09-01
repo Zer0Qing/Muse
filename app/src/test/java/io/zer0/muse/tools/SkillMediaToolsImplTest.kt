@@ -2,7 +2,6 @@ package io.zer0.muse.tools
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import okhttp3.OkHttpClient
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import kotlinx.coroutines.runBlocking

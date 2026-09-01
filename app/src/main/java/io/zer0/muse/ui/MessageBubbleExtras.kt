@@ -9,11 +9,8 @@
 package io.zer0.muse.ui
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -61,6 +58,8 @@ import io.zer0.muse.ui.chat.ToolCallVisuals
 import io.zer0.muse.ui.chat.ToolResultRenderer
 import io.zer0.muse.ui.common.media.AttachmentChip
 import io.zer0.muse.ui.theme.MuseElevation
+import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import compose.icons.TablerIcons
@@ -197,6 +196,7 @@ internal fun ToolCallCard(
                 // 展开箭头（带旋转动画）
                 val rotation by animateFloatAsState(
                     targetValue = if (expanded) 180f else 0f,
+                    animationSpec = MuseMotion.tween(MuseAnimation.FAST_NORMAL_MS),
                     label = "toolcard-chevron",
                 )
                 Icon(
@@ -214,7 +214,11 @@ internal fun ToolCallCard(
             }
 
             // ── 展开内容 ──
-            AnimatedVisibility(visible = expanded) {
+            AnimatedVisibility(
+                visible = expanded,
+                enter = MuseMotion.expandFadeEnter(),
+                exit = MuseMotion.expandFadeExit(),
+            ) {
                 Column(
                     modifier = Modifier.padding(top = MusePaddings.contentGap),
                     verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),

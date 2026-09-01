@@ -2,7 +2,6 @@ package io.zer0.muse.automation.executors
 
 import android.content.Context
 import io.zer0.muse.automation.core.PermissionLevel
-import io.zer0.common.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File

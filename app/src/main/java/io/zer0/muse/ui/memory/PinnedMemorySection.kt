@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.zer0.memory.pin.PinnedMemoryStore
+import io.zer0.muse.ui.theme.MuseMotion
 
 /**
  * 置顶记忆管理区(既有实现 pinned-memory-store.ts 的 UI)。
@@ -34,7 +35,12 @@ fun PinnedMemorySection(
     onRemove: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    AnimatedVisibility(visible = pinnedEntries.isNotEmpty(), modifier = modifier) {
+    AnimatedVisibility(
+        visible = pinnedEntries.isNotEmpty(),
+        modifier = modifier,
+        enter = MuseMotion.expandFadeEnter(),
+        exit = MuseMotion.expandFadeExit(),
+    ) {
         Card(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),

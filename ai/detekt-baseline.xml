@@ -34,6 +34,7 @@
     <ID>ConstructorParameterNaming:OpenAIDto.kt$OpenAIRequest$/** * Phase 8.5 修复: 推理等级(o1/gpt-5 系列的 reasoning_effort 字段)。 * 仅当 reasoningLevel != OFF/AUTO 且 effort 非空时发送,值 "minimal"/"low"/"medium"/"high"。 */ val reasoning_effort: String? = null</ID>
     <ID>ConstructorParameterNaming:OpenAIDto.kt$OpenAIRequest$/** v1.0.40: 工具选择策略。tools=null 时强制 "none" 防止模型幻觉 tool call。 */ val tool_choice: String? = null</ID>
     <ID>ConstructorParameterNaming:OpenAIDto.kt$OpenAIRequest$val max_tokens: Int? = null</ID>
+    <ID>ConstructorParameterNaming:OpenAIDto.kt$OpenAIRequest$val top_p: Float? = null</ID>
     <ID>ConstructorParameterNaming:OpenAIDto.kt$ResponsesInputItem$val call_id: String? = null</ID>
     <ID>ConstructorParameterNaming:OpenAIDto.kt$ResponsesInputItem$val encrypted_content: String? = null</ID>
     <ID>ConstructorParameterNaming:OpenAIDto.kt$ResponsesRequest$val max_output_tokens: Int? = null</ID>
@@ -64,7 +65,7 @@
     <ID>CyclomaticComplexMethod:OpenAIImageProvider.kt$OpenAIImageProvider$private fun inferImageMime(bytes: ByteArray): String</ID>
     <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$@OptIn(ExperimentalCoroutinesApi::class) // C-35: channelFlow 不接受 capacity 参数(其内部 channel 恒为 UNLIMITED,恰为所需语义) private fun streamChatCompletions(request: ChatRequest): Flow&lt;ChatStreamEvent&gt;</ID>
     <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$override suspend fun listModels(config: ProviderConfig): List&lt;Model&gt;</ID>
-    <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$private fun UIMessage.toOpenAI(model: Model, compat: ProviderCompat? = null): OpenAIMessage</ID>
+    <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$private fun UIMessage.toOpenAI(model: Model, compat: ProviderCompat? = null, carriesTools: Boolean = false): OpenAIMessage</ID>
     <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$private fun buildRequestBody(request: ChatRequest, stream: Boolean = true): String</ID>
     <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$private fun buildResponsesRequestBody(request: ChatRequest, stream: Boolean = true): String</ID>
     <ID>CyclomaticComplexMethod:OpenAIProvider.kt$OpenAIProvider$private fun inferMimeType(base64: String): String</ID>
@@ -74,6 +75,8 @@
     <ID>CyclomaticComplexMethod:ProviderCompat.kt$ProviderCompatRules$private fun ProviderCompat.overrideByHost(host: String): ProviderCompat</ID>
     <ID>CyclomaticComplexMethod:ProviderCompat.kt$ProviderCompatRules$private fun ProviderCompat.overrideByModelId(modelId: String, hostKnown: Boolean): ProviderCompat</ID>
     <ID>CyclomaticComplexMethod:ProviderError.kt$@Deprecated("Provider 应直接抛 ProviderException,用 (throwable as? ProviderException)?.providerError 替代字符串推断", ReplaceWith("(throwable as? ProviderException)?.providerError")) fun inferFromMessage(message: String, throwable: Throwable?): ProviderError?</ID>
+    <ID>CyclomaticComplexMethod:ToolCallArgsAccumulator.kt$ToolCallArgsAccumulator$private fun splitTopLevelObjects(text: String): List&lt;String&gt;?</ID>
+    <ID>CyclomaticComplexMethod:ToolCallSanitizer.kt$ToolCallSanitizer$private fun splitTopLevelObjects(text: String): List&lt;String&gt;?</ID>
     <ID>CyclomaticComplexMethod:VideoGenerationService.kt$VideoGenerationService$private suspend fun pollUntilCompletion( provider: VideoProvider, taskId: String, onProgress: ((elapsedSec: Long) -&gt; Unit)?, timeoutMs: Long, ): String</ID>
     <ID>InstanceOfCheckForException:AnthropicProvider.kt$AnthropicProvider$t is RuntimeException</ID>
     <ID>InstanceOfCheckForException:FirstEventWatchdog.kt$t is kotlinx.coroutines.CancellationException</ID>
@@ -96,14 +99,15 @@
     <ID>LongMethod:OpenAIProvider.kt$OpenAIProvider$fun connect()</ID>
     <ID>LongMethod:OpenAIProvider.kt$OpenAIProvider$fun emitDoneWithStreamGuard(finishReason: String?)</ID>
     <ID>LongMethod:OpenAIProvider.kt$OpenAIProvider$override suspend fun listModels(config: ProviderConfig): List&lt;Model&gt;</ID>
+    <ID>LongMethod:OpenAIProvider.kt$OpenAIProvider$private fun buildResponsesRequestBody(request: ChatRequest, stream: Boolean = true): String</ID>
     <ID>LongMethod:OpenAIProvider.kt$OpenAIProvider$private suspend fun completeTextImpl(request: ChatRequest, keySwitchDepth: Int = 0): ChatCompletion</ID>
     <ID>LongMethod:OpenAIProvider.kt$OpenAIProvider.&lt;no name provided&gt;$override fun onEvent( eventSource: EventSource, id: String?, type: String?, data: String, )</ID>
     <ID>LongMethod:ProviderCompat.kt$ProviderCompatRules$private fun ProviderCompat.overrideByHost(host: String): ProviderCompat</ID>
-    <ID>LongParameterList:AiModule.kt$ChatService$( messages: List&lt;UIMessage&gt;, model: Model? = null, temperature: Float? = null, maxTokens: Int? = null, tools: List&lt;ToolDefinition&gt;? = null, toolChoice: String? = null, reasoningLevel: ReasoningLevel = ReasoningLevel.DEFAULT, providerConfig: ProviderConfig? = null, mode: ChatRequestMode = ChatRequestMode.CHAT, resumeFromText: String? = null, )</ID>
-    <ID>LongParameterList:AiModule.kt$ChatService$( messages: List&lt;UIMessage&gt;, model: Model? = null, temperature: Float? = null, maxTokens: Int? = null, tools: List&lt;ToolDefinition&gt;? = null, toolChoice: String? = null, reasoningLevel: ReasoningLevel = ReasoningLevel.DEFAULT, providerConfig: ProviderConfig? = null, mode: ChatRequestMode = ChatRequestMode.UTILITY, )</ID>
-    <ID>LongParameterList:AiModule.kt$ChatService$( messages: List&lt;UIMessage&gt;, model: Model?, temperature: Float?, maxTokens: Int?, tools: List&lt;ToolDefinition&gt;?, toolChoice: String?, reasoningLevel: ReasoningLevel, providerConfig: ProviderConfig? = null, mode: ChatRequestMode = ChatRequestMode.CHAT, )</ID>
+    <ID>LongParameterList:AiModule.kt$ChatService$( messages: List&lt;UIMessage&gt;, model: Model? = null, temperature: Float? = null, maxTokens: Int? = null, tools: List&lt;ToolDefinition&gt;? = null, toolChoice: String? = null, nativeWebSearch: Boolean = false, reasoningLevel: ReasoningLevel = ReasoningLevel.DEFAULT, providerConfig: ProviderConfig? = null, mode: ChatRequestMode = ChatRequestMode.CHAT, resumeFromText: String? = null, topP: Float? = null, )</ID>
+    <ID>LongParameterList:AiModule.kt$ChatService$( messages: List&lt;UIMessage&gt;, model: Model? = null, temperature: Float? = null, maxTokens: Int? = null, tools: List&lt;ToolDefinition&gt;? = null, toolChoice: String? = null, nativeWebSearch: Boolean = false, reasoningLevel: ReasoningLevel = ReasoningLevel.DEFAULT, providerConfig: ProviderConfig? = null, mode: ChatRequestMode = ChatRequestMode.UTILITY, topP: Float? = null, )</ID>
+    <ID>LongParameterList:AiModule.kt$ChatService$( messages: List&lt;UIMessage&gt;, model: Model?, temperature: Float?, maxTokens: Int?, tools: List&lt;ToolDefinition&gt;?, toolChoice: String?, nativeWebSearch: Boolean, reasoningLevel: ReasoningLevel, providerConfig: ProviderConfig? = null, mode: ChatRequestMode = ChatRequestMode.CHAT, topP: Float? = null, )</ID>
     <ID>LongParameterList:AnthropicProvider.kt$AnthropicProvider$( model: String, system: List&lt;AnthropicSystemBlock&gt;?, messages: List&lt;AnthropicMessage&gt;, temperature: Float?, maxTokens: Int?, stream: Boolean, reasoningLevel: ReasoningLevel? = null, tools: List&lt;ToolDefinition&gt;? = null, )</ID>
-    <ID>LongParameterList:GeminiProvider.kt$GeminiProvider$( system: String?, contents: List&lt;GeminiContent&gt;, temperature: Float?, maxTokens: Int?, reasoningLevel: ReasoningLevel = ReasoningLevel.AUTO, supportsImageOutput: Boolean = false, tools: List&lt;ToolDefinition&gt;? = null, )</ID>
+    <ID>LongParameterList:GeminiProvider.kt$GeminiProvider$( system: String?, contents: List&lt;GeminiContent&gt;, temperature: Float?, maxTokens: Int?, reasoningLevel: ReasoningLevel = ReasoningLevel.AUTO, supportsImageOutput: Boolean = false, tools: List&lt;ToolDefinition&gt;? = null, nativeWebSearch: Boolean = false, )</ID>
     <ID>LoopWithTooManyJumpStatements:OpenAIProvider.kt$OpenAIProvider$for</ID>
     <ID>LoopWithTooManyJumpStatements:ProviderHttpSupport.kt$ProviderHttpSupport.Companion$while</ID>
     <ID>LoopWithTooManyJumpStatements:UIMessage.kt$while</ID>
@@ -136,6 +140,8 @@
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$Logger.i("OpenAIProvider", "completeTextResponses 429 限流,已切换 key,重试 ($keySwitchDepth/$MAX_KEY_SWITCHES)")</ID>
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$Logger.i("OpenAIProvider", "streamChat: POST ${sanitizeUrl(url)} model=${request.model} msgs=${request.messages.size}")</ID>
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$Logger.i("OpenAIProvider", "streamChatResponses: POST ${sanitizeUrl(url)} model=${request.model} msgs=${request.messages.size}")</ID>
+    <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$messages = messagesWithPatches.map { it.toOpenAI(request.model, compat, carriesTools = !openAiTools.isNullOrEmpty()) }</ID>
+    <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$private</ID>
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$private suspend</ID>
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$return normalized.isEmpty() || normalized == "none" || normalized == "off" || normalized == "disabled" || normalized == "false"</ID>
     <ID>MaxLineLength:OpenAIProvider.kt$OpenAIProvider$val hasEmptyNameToolCall = toolCallAccMap.values.any { !it.recoveredAsContent &amp;&amp; it.name.isNullOrBlank() &amp;&amp; it.args.isNotEmpty() }</ID>
@@ -155,6 +161,7 @@
     <ID>MaxLineLength:StreamGuardTest.kt$StreamGuardTest$"""{"choices":[{"index":0,"delta":{"role":"assistant","tool_calls":[{"index":0,"id":"call_1","function":{"name":"","arguments":"{\"city\":\"北京\"}"}}]},"finish_reason":null}]}"""</ID>
     <ID>MaxLineLength:StreamGuardTest.kt$StreamGuardTest$"""{"choices":[{"index":0,"delta":{"tool_calls":[{"index":$index,"id":"call_bad_$index","function":{"name":"","arguments":"{\"chunk\":\"$index-very-long\"}"}}]},"finish_reason":null}]}"""</ID>
     <ID>MaxLineLength:StreamGuardTest.kt$StreamGuardTest$"""{"choices":[{"index":0,"message":{"role":"assistant","content":"","tool_calls":[{"id":"call_fallback","type":"function","function":{"name":"echo","arguments":"{\"text\":\"ok\"}"}}]},"finish_reason":"tool_calls"}]}"""</ID>
+    <ID>MaxLineLength:ToolCallSanitizer.kt$ToolCallSanitizer$safeWarn("工具参数已修复: tool=${tc.name}, id=${tc.id}, before=${tc.arguments.take(160)}, after=${repaired.take(160)}")</ID>
     <ID>MaxLineLength:VertexAiAuthToken.kt$VertexAiAuthToken$0x06</ID>
     <ID>MaxLineLength:VideoGenerationService.kt$VideoGenerationService$"specId=${providerConfig.specId} host=${VideoProviderRegistry.extractHost(providerConfig.resolvedBaseUrl())}"</ID>
     <ID>MaxLineLength:VideoGenerationService.kt$VideoGenerationService$?:</ID>
@@ -182,7 +189,7 @@
     <ID>ReturnCount:ModelRegistry.kt$ModelRegistry.TokenSequenceMatcher$override fun score(modelId: String, tokens: List&lt;String&gt;): Int?</ID>
     <ID>ReturnCount:ModelRegistryDsl.kt$OrderedTokenRule$override fun evaluate(modelId: String, tokens: List&lt;String&gt;): Int?</ID>
     <ID>ReturnCount:OpenAIProvider.kt$OpenAIProvider$fun emitDoneWithStreamGuard(finishReason: String?)</ID>
-    <ID>ReturnCount:OpenAIProvider.kt$OpenAIProvider$private fun UIMessage.computeReasoningContentForReplay(compat: ProviderCompat?): String?</ID>
+    <ID>ReturnCount:OpenAIProvider.kt$OpenAIProvider$private fun UIMessage.computeReasoningContentForReplay( compat: ProviderCompat?, carriesTools: Boolean, ): String?</ID>
     <ID>ReturnCount:OpenAIProvider.kt$OpenAIProvider$private fun mergeCustomBody(body: String): String</ID>
     <ID>ReturnCount:OpenAIProvider.kt$OpenAIProvider.&lt;no name provided&gt;$override fun onEvent( eventSource: EventSource, id: String?, type: String?, data: String, )</ID>
     <ID>ReturnCount:OpenAIProvider.kt$OpenAIProvider.&lt;no name provided&gt;$override fun onFailure( eventSource: EventSource, t: Throwable?, response: Response?, )</ID>
@@ -192,6 +199,10 @@
     <ID>ReturnCount:ProviderSpecMerger.kt$ProviderSpecMerger$fun enrichConfig(config: ProviderConfig, spec: ProviderConfig?): ProviderConfig</ID>
     <ID>ReturnCount:ProviderSpecMerger.kt$ProviderSpecMerger$fun mergeModels(specModels: List&lt;Model&gt;, userModels: List&lt;Model&gt;): List&lt;Model&gt;</ID>
     <ID>ReturnCount:ProviderTemplateEngine.kt$ProviderTemplateEngine$fun extractByPath(json: JsonElement, path: String): JsonElement?</ID>
+    <ID>ReturnCount:ToolCallArgsAccumulator.kt$ToolCallArgsAccumulator$fun append(fragment: String?)</ID>
+    <ID>ReturnCount:ToolCallArgsAccumulator.kt$ToolCallArgsAccumulator$private fun splitTopLevelObjects(text: String): List&lt;String&gt;?</ID>
+    <ID>ReturnCount:ToolCallArgsAccumulator.kt$ToolCallArgsAccumulator$private fun tryMergeConcatenatedObjects(raw: String): JsonObject?</ID>
+    <ID>ReturnCount:ToolCallSanitizer.kt$ToolCallSanitizer$internal fun repairArguments(raw: String): String?</ID>
     <ID>ReturnCount:VideoProviderRegistry.kt$VideoProviderRegistry$fun selectFor(config: ProviderConfig): VideoProvider</ID>
     <ID>SwallowedException:AgnesImageProvider.kt$AgnesImageProvider$e: IOException</ID>
     <ID>SwallowedException:AgnesImageProvider.kt$AgnesImageProvider$e: IllegalStateException</ID>
@@ -222,10 +233,6 @@
     <ID>TooManyFunctions:ModelRegistry.kt$ModelRegistry$ModelDefinitionBuilder</ID>
     <ID>TooManyFunctions:ModelRegistryDsl.kt$ModelDefinitionBuilder</ID>
     <ID>TooManyFunctions:OpenAIProvider.kt$OpenAIProvider : ProviderHttpSupport</ID>
-    <ID>UnusedImports:GeminiProvider.kt$import okhttp3.RequestBody</ID>
-    <ID>UnusedImports:ModelRegistry.kt$import io.zer0.ai.core.BuiltInTool</ID>
-    <ID>UnusedImports:OpenAIProvider.kt$import kotlinx.serialization.json.JsonNull</ID>
-    <ID>UnusedImports:SerializationTest.kt$import kotlinx.serialization.json.JsonObject</ID>
     <ID>UnusedParameter:ProviderPayloadNormalizer.kt$ProviderPayloadNormalizer$model: Model</ID>
     <ID>UnusedPrivateProperty:ProviderError.kt$ProviderError.Companion$private const val TAG = "ProviderError"</ID>
   </CurrentIssues>

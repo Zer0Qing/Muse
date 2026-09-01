@@ -13,9 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
-import androidx.navigation.NavType
 import androidx.navigation.compose.composable
-import androidx.navigation.navArgument
 import io.zer0.muse.R
 import io.zer0.muse.ui.AssistantAdvancedPage
 import io.zer0.muse.ui.AssistantBasicPage
@@ -28,7 +26,6 @@ import io.zer0.muse.ui.ChatViewModel
 import io.zer0.muse.ui.FavoritesScreen
 import io.zer0.muse.ui.LorebookScreen
 import io.zer0.muse.ui.MemoryScreen
-import io.zer0.muse.ui.MuseRoutes
 import io.zer0.muse.ui.PromptInjectionScreen
 import io.zer0.muse.ui.QuickMessageScreen
 import io.zer0.muse.ui.SkillScreen

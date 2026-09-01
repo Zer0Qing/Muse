@@ -11,7 +11,6 @@ import io.zer0.memory.prompt.RollingSummaryPrompt
 import io.zer0.memory.time.TimeContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import java.time.Instant
 

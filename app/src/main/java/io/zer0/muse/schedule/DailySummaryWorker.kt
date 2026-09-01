@@ -7,23 +7,15 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
-import io.zer0.ai.ChatService
-import io.zer0.ai.core.UIMessage
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
-import io.zer0.memory.fact.FactStore
 import io.zer0.muse.data.SettingsRepository
-import io.zer0.muse.data.session.SessionRepository
-import io.zer0.muse.notification.MuseNotificationManager
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
 import org.koin.core.context.GlobalContext
 import java.util.concurrent.TimeUnit
 
@@ -73,161 +65,25 @@ class DailySummaryWorker(
         val slotKey = inputData.getString(KEY_SLOT_KEY)
             ?: slotKey(targetDate, slotHour, slotMinute)
 
-        // 同一个时点可能由 WorkManager 和进程内调度同时触发，先抢占再生成，避免重复调用 LLM。
-        val claimed = resultOf { settings.claimDailySummarySlot(slotKey) }.getOrNull() ?: false
-        if (!claimed) {
-            Logger.d(TAG, "每日总结时点已执行,跳过: $slotKey")
-            scheduleNextSlot(applicationContext, slotHour, slotMinute)
-            return Result.success()
-        }
-
-        val generated = resultOf {
-            runGenerate(
-                koin = koin,
-                settings = settings,
-                notificationsEnabled = enabled,
-                summaryDate = summaryDateForTarget(targetDate, slotHour),
-            )
-        }
-            .onError { msg, t -> Logger.w(TAG, "每日总结生成失败: ${t?.message ?: msg}") }
-            .getOrNull() == true
-        if (!generated) {
-            // 只要本次没有成功保存总结，就释放占位，允许后续兜底任务重试。
-            resultOf { settings.releaseDailySummarySlot(slotKey) }
-                .onError { msg, t -> Logger.w(TAG, "释放每日总结时点失败: ${t?.message ?: msg}") }
+        // Worker 与首页前台补偿共用同一个服务；服务内部负责 DataStore 抢占、生成和失败释放。
+        val summaryService = resultOf { koin.get<DailySummaryService>() }
+            .onError { msg, t -> Logger.w(TAG, "DailySummaryService 解析失败: ${t?.message ?: msg}") }
+            .getOrNull()
+        if (summaryService == null) {
+            Logger.w(TAG, "DailySummaryService 未就绪,跳过本次执行: $slotKey")
+        } else {
+            resultOf {
+                summaryService.generateForSlot(
+                    slotKey = slotKey,
+                    summaryDate = summaryDateForTarget(targetDate, slotHour),
+                    notificationsEnabled = enabled,
+                )
+            }.onError { msg, t -> Logger.w(TAG, "每日总结生成失败: ${t?.message ?: msg}") }
         }
 
         // 无论成败都自续期到下一次同一时点
         scheduleNextSlot(applicationContext, slotHour, slotMinute)
         return Result.success()
-    }
-
-    /** 生成今日小结并发送通知。 */
-    private suspend fun runGenerate(
-        koin: org.koin.core.Koin,
-        settings: SettingsRepository,
-        notificationsEnabled: Boolean,
-        summaryDate: java.time.LocalDate,
-    ): Boolean {
-        val sessionRepository = resultOf { koin.get<SessionRepository>() }.getOrNull() ?: return false
-        val chatService = resultOf { koin.get<ChatService>() }.getOrNull() ?: return false
-        val factStore = resultOf { koin.get<FactStore>() }.getOrNull() ?: return false
-        val notificationManager = resultOf { koin.get<MuseNotificationManager>() }.getOrNull() ?: return false
-
-        val zone = java.time.ZoneId.systemDefault()
-        val dayStart = summaryDate.atStartOfDay(zone).toInstant().toEpochMilli()
-        val dayEnd = summaryDate.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
-
-        // 素材1:目标总结日用户发的消息(最多 40 条),00:00 总结前一天。
-        val todayMessages = withContext(Dispatchers.IO) {
-            resultOf { sessionRepository.getUserMessagesBetween(dayStart, dayEnd, 40) }.getOrNull() ?: emptyList()
-        }
-        // 素材2:主记忆近期事项(最近 30 条,含 time 字段指向未来的)
-        val facts = resultOf { factStore.getAll("main") }.getOrNull() ?: emptyList()
-        val todayFacts = facts
-            .sortedByDescending { it.createdAt }
-            .take(30)
-            .mapNotNull { fact ->
-                val timePart = fact.time?.takeIf { it.isNotBlank() }?.let { " (时间:$it)" } ?: ""
-                "${fact.fact}$timePart"
-            }
-
-        // v1.0.72: 无素材不再跳过 — 每日总结固定必发。
-        // 有对话 → 总结今天;无对话但有记忆 → 提醒近期事项;
-        // 都没有 → 温暖问候(保证用户每天固定时间都能收到一条,兑现"固定推送"承诺)。
-        val summary = generateSummary(chatService, todayMessages, todayFacts)
-        if (summary.isNullOrBlank()) {
-            Logger.w(TAG, "每日总结生成结果为空,跳过")
-            return false
-        }
-
-        // 先持久化再判断前台状态:前台不弹通知时,首页仍能在问候语后展示这次总结。
-        settings.saveDailySummary(summaryDate.toString(), summary)
-
-        // 审查修复 (2.0 B-34): 前台静默 — 用户正盯着 app 时不弹 HIGH 声音通知
-        // (与主动消息 notifyProactiveMessage 口径一致;此前前台照发,高频打扰用户)
-        if (notificationManager.isAppForeground()) {
-            Logger.d(TAG, "每日总结:应用在前台,跳过通知(内容已保存,首页问候语可见)")
-            return true
-        }
-
-        if (!notificationsEnabled) {
-            Logger.d(TAG, "每日总结已保存,推送开关关闭,首页问候语可见")
-            return true
-        }
-        notificationManager.notifyReminder(
-            title = SUMMARY_TITLES.random(),
-            message = summary,
-            notificationId = NOTIF_ID_DAILY_SUMMARY,
-            target = io.zer0.muse.notification.MuseNotificationTarget.Home,
-        )
-        Logger.i(TAG, "每日总结已保存并推送: ${summary.take(40)}...")
-        return true
-    }
-
-    /** 调 LLM 生成今日小结(超时 60s,失败返回 null)。 */
-    private suspend fun generateSummary(
-        chatService: ChatService,
-        todayMessages: List<UIMessage>,
-        facts: List<String>,
-    ): String? {
-        val hasContent = todayMessages.isNotEmpty() || facts.isNotEmpty()
-        val systemPrompt = if (hasContent) {
-            """
-你是用户的陪伴助手。请根据真实素材写一条晚间今日小结。
-规则:口语、像朋友复盘;只挑 2-3 个重点;不编造未发生的事;50-80 字;
-只输出正文,不要标题、前缀、引号、MOOD 或反思。
-            """.trimIndent()
-        } else {
-            // v1.0.72: 今天无对话也无记忆时的退化模式 — 发一条自然的晚间问候,
-            // 不让用户觉得"它又没动静了"。
-            """
-你是用户的陪伴助手。用户今天没有留下可用素材,请写一句自然的晚间问候。
-不要编造今天发生的事;可以问候或轻轻问一句过得怎么样;40 字以内;只输出正文。
-            """.trimIndent()
-        }
-        val userContent = StringBuilder("<summary_material>\n")
-        if (todayMessages.isNotEmpty()) {
-            userContent.appendLine("今天用户说的话(按时间顺序):")
-            todayMessages.forEach { msg ->
-                val text = msg.content.replace('\n', ' ').take(120)
-                userContent.appendLine("- $text")
-            }
-        }
-        if (facts.isNotEmpty()) {
-            userContent.appendLine("用户近期事项(只有与今天相关或明确临近的事项才可提):")
-            facts.take(10).forEach { userContent.appendLine("- $it") }
-        }
-        if (!hasContent) userContent.appendLine("没有可用素材。")
-        userContent.appendLine("</summary_material>")
-
-        return resultOf {
-            withTimeoutOrNull(GEN_TIMEOUT_MS) {
-                // A-13: 每日总结同样过限流闸 — 与主动消息/群聊共享并发上限,
-                // 避免叠加触发 429(此前完全绕过 B-22 限流)
-                GenerationGate.withPermit {
-                    chatService.completeText(
-                        messages = listOf(
-                            io.zer0.ai.core.UIMessage(
-                                role = io.zer0.ai.core.MessageRole.SYSTEM,
-                                content = systemPrompt,
-                                createdAt = System.currentTimeMillis(),
-                            ),
-                            io.zer0.ai.core.UIMessage(
-                                role = io.zer0.ai.core.MessageRole.USER,
-                                content = userContent.toString(),
-                                createdAt = System.currentTimeMillis(),
-                            ),
-                        ),
-                        temperature = 0.6f,
-                        maxTokens = 140,
-                    // v1.0.74 fix: 剥离 <think> 推理标签,防止思考内容混入每日总结推送
-                    ).text.let { io.zer0.muse.transformer.stripThinkTags(it) }
-                }
-            }
-        }.onError { msg, t ->
-            Logger.w(TAG, "每日总结 LLM 调用失败: ${t?.message ?: msg}")
-        }.getOrNull()?.takeIf { it.isNotBlank() }
     }
 
     companion object {
@@ -236,18 +92,6 @@ class DailySummaryWorker(
 
         /** 每日总结通知 id(避开问候语 1010 / 主动消息等其他 id)。 */
         const val NOTIF_ID_DAILY_SUMMARY = 1012
-
-        /** 通知标题随机池。 */
-        private val SUMMARY_TITLES = listOf(
-            "今日小结",
-            "今天过得怎么样",
-            "睡前复盘一下",
-            "今天你聊了不少",
-            "今日回顾",
-        )
-
-        /** LLM 生成超时。 */
-        private const val GEN_TIMEOUT_MS = 60_000L
 
         /** 总结时点(24 小时制)。 */
         val SUMMARY_SLOTS: List<Pair<Int, Int>> = listOf(
@@ -363,6 +207,38 @@ class DailySummaryWorker(
                     request,
                 )
             }.onError { msg, t -> Logger.w(TAG, "进程内每日总结触发失败($key): ${t?.message ?: msg}") }
+        }
+
+        /**
+         * 前台打开首页时的补触发。
+         *
+         * WorkManager 在部分 ROM 上可能被省电策略延迟;如果当前日期已经经过一个
+         * 总结时点,补投递最近的时点到期任务。Worker 内部仍由 claimDailySummarySlot
+         * 做幂等抢占,因此不会因为首页重组或多次回到前台而重复调用 LLM。
+         */
+        suspend fun enqueueCatchUpIfDue(
+            context: Context,
+            settings: SettingsRepository,
+            nowMillis: Long = System.currentTimeMillis(),
+        ) {
+            val now = java.util.Calendar.getInstance().apply { timeInMillis = nowMillis }
+            val currentMinutes = now.get(java.util.Calendar.HOUR_OF_DAY) * 60 +
+                now.get(java.util.Calendar.MINUTE)
+            val due = SUMMARY_SLOTS
+                .filter { (hour, minute) -> hour * 60 + minute <= currentMinutes }
+                .maxByOrNull { (hour, minute) -> hour * 60 + minute }
+                ?: return
+            val targetDate = java.time.Instant.ofEpochMilli(nowMillis)
+                .atZone(java.time.ZoneId.systemDefault())
+                .toLocalDate()
+                .toString()
+            val key = slotKey(targetDate, due.first, due.second)
+            if (!settings.isDailySummarySlotCompleted(key)) {
+                Logger.i(TAG, "前台补触发每日总结: $key")
+                enqueueDueSlot(context, due.first, due.second)
+            } else {
+                Logger.d(TAG, "前台补触发跳过已完成时点: $key")
+            }
         }
 
         fun scheduleNextSlot(

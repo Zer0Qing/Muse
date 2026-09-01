@@ -36,11 +36,20 @@ class MessageImageStore(
     private val minLengthToPersist: Int = MIN_LENGTH_TO_PERSIST
 
     /**
-     * R-DB-04: 文件→base64 LRU 缓存(access-order,最多 64 条),
+     * R-DB-04: 文件→base64 LRU 缓存(access-order)。
+     * 同时按条目数(MAX_CACHE_ENTRIES)与总字节数(MAX_CACHE_BYTES)淘汰,
+     * 避免多张 base64 大图滞留数百 MB(审计 J-P2)。
      * 避免消息列表映射时对同一张图片重复磁盘读(N+1)。
      */
-    private val imageCache = object : LinkedHashMap<String, String>(64, 0.75f, true) {
-        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String>?): Boolean = size > 64
+    private var imageCacheBytes = 0L
+    private val imageCache = object : LinkedHashMap<String, String>(MAX_CACHE_ENTRIES, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String>?): Boolean =
+            if (size > MAX_CACHE_ENTRIES || imageCacheBytes > MAX_CACHE_BYTES) {
+                eldest?.let { imageCacheBytes -= it.value.length }
+                true
+            } else {
+                false
+            }
     }
 
     /**
@@ -111,7 +120,13 @@ class MessageImageStore(
                 ""
             }
             if (encoded.isNotEmpty()) {
-                synchronized(imageCache) { imageCache[path] = encoded }
+                synchronized(imageCache) {
+                    // 撤销旧值字节计数(同 path 覆盖时避免重复累计),再计入新值;
+                    // 随后 put 触发 removeEldestEntry 扣减被淘汰的 eldest。
+                    imageCache.remove(path)?.let { imageCacheBytes -= it.length }
+                    imageCacheBytes += encoded.length
+                    imageCache[path] = encoded
+                }
             }
             encoded
         }
@@ -155,5 +170,9 @@ class MessageImageStore(
         private const val MIN_LENGTH_TO_PERSIST = 1024
         /** 文件路径前缀,用于识别已落盘的图片。 */
         private const val FILE_PREFIX = "file://"
+        /** LRU 缓存条目数上限。 */
+        private const val MAX_CACHE_ENTRIES = 64
+        /** LRU 缓存字节上限(约 64MB),防止 base64 大图滞留数百 MB。 */
+        private const val MAX_CACHE_BYTES = 64L * 1024 * 1024
     }
 }

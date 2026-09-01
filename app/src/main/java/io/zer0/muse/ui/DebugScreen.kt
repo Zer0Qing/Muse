@@ -1,11 +1,8 @@
 package io.zer0.muse.ui
 
+import io.zer0.muse.ui.theme.MuseMotion
 import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -637,8 +634,8 @@ private fun LogEntryItem(
             // 展开后:throwable stack trace(若有)
             AnimatedVisibility(
                 visible = expanded && !entry.throwable.isNullOrEmpty(),
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically(),
+                enter = MuseMotion.expandFadeEnter(),
+                exit = MuseMotion.expandFadeExit(),
             ) {
                 Column {
                     Spacer(Modifier.height(MusePaddings.contentGap))

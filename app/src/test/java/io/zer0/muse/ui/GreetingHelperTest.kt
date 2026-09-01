@@ -17,6 +17,20 @@ class GreetingHelperTest {
     )
 
     @Test
+    fun `时间段问候语边界稳定`() {
+        assertEquals("早上好", GreetingHelper.getTimeGreeting(5))
+        assertEquals("早上好", GreetingHelper.getTimeGreeting(10))
+        assertEquals("中午好", GreetingHelper.getTimeGreeting(11))
+        assertEquals("中午好", GreetingHelper.getTimeGreeting(13))
+        assertEquals("下午好", GreetingHelper.getTimeGreeting(14))
+        assertEquals("下午好", GreetingHelper.getTimeGreeting(17))
+        assertEquals("晚上好", GreetingHelper.getTimeGreeting(18))
+        assertEquals("晚上好", GreetingHelper.getTimeGreeting(22))
+        assertEquals("深夜了", GreetingHelper.getTimeGreeting(23))
+        assertEquals("深夜了", GreetingHelper.getTimeGreeting(0))
+    }
+
+    @Test
     fun `记忆有明天考试时问候语优先用考试提醒`() {
         val today = LocalDate.of(2026, 8, 7)
         val tomorrow = today.plusDays(1).toString()
@@ -92,6 +106,30 @@ class GreetingHelperTest {
 
         assertTrue("应保留时间问候: $greeting", greeting.startsWith("早上好，"))
         assertTrue("应带上每日总结事项: $greeting", greeting.contains("完成了接口排查"))
+    }
+
+    @Test
+    fun `每日总结和近期提示遵守首页单行预算`() {
+        val today = LocalDate.of(2026, 8, 10)
+        val summary = GreetingHelper.getDailySummaryHint(
+            "今天我们完成了接口排查并记录了多个待办事项还讨论了后续安排。",
+            today.toString(),
+            today,
+        )
+        assertNotNull(summary)
+        assertTrue(summary!!.length <= GreetingHelper.DAILY_SUMMARY_HINT_MAX_LENGTH)
+
+        val hint = GreetingHelper.getMemoryHint(
+            listOf(
+                fact(
+                    "用户明天要参加英语四级考试并准备相关资料",
+                    time = today.plusDays(1).toString(),
+                ),
+            ),
+            today,
+        )
+        assertNotNull(hint)
+        assertTrue(hint!!.length <= GreetingHelper.PERSONALIZED_HINT_MAX_LENGTH)
     }
 
     @Test

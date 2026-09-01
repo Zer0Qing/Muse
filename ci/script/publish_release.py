@@ -57,15 +57,27 @@ def release_exists(tag: str) -> bool:
 
 
 def fetch_remote_assets(tag: str) -> list[dict]:
-    """返回远端资产 [{name, size, digest?}]。"""
+    """返回远端资产 [{name, size, digest}]。"""
     proc = run(["gh", "release", "view", tag, "--json", "assets"])
     assets = json.loads(proc.stdout).get("assets", [])
-    return [{"name": a["name"], "size": a["size"]} for a in assets]
+    return [
+        {
+            "name": asset["name"],
+            "size": asset["size"],
+            "digest": asset.get("digest") or "",
+        }
+        for asset in assets
+    ]
 
 
 def create_or_reuse_release(tag: str, body_file: Path) -> None:
     if release_exists(tag):
-        print(f"[断点续发] Release {tag} 已存在, 复用(不重建)")
+        # 已存在时也同步正文，避免手动创建的临时 Release 留下过期说明。
+        cmd = ["gh", "release", "edit", tag, "--title", f"Muse {tag}"]
+        if body_file.is_file():
+            cmd += ["--notes-file", str(body_file)]
+        run(cmd)
+        print(f"[断点续发] Release {tag} 已存在, 复用并同步正文")
         return
     cmd = ["gh", "release", "create", tag, "--title", f"Muse {tag}"]
     if body_file.is_file():
@@ -74,10 +86,14 @@ def create_or_reuse_release(tag: str, body_file: Path) -> None:
     print(f"[发布] Release {tag} 已创建")
 
 
-def upload_with_retry(tag: str, asset: Path, remote_names: set[str]) -> None:
-    if asset.name in remote_names:
-        print(f"[断点续发] 资产已存在, 跳过上传: {asset.name}")
-        return
+def upload_with_retry(tag: str, asset: Path, remote_assets: dict[str, dict]) -> None:
+    remote = remote_assets.get(asset.name)
+    if remote is not None:
+        local_digest = f"sha256:{sha256_of(asset)}"
+        if remote["size"] == asset.stat().st_size and remote["digest"] == local_digest:
+            print(f"[断点续发] 资产已存在且摘要一致, 跳过上传: {asset.name}")
+            return
+        print(f"[校正] 远端资产与本地不一致, 重新上传: {asset.name}")
     last_err: Exception | None = None
     for attempt in range(1, MAX_UPLOAD_RETRIES + 1):
         try:
@@ -94,17 +110,27 @@ def upload_with_retry(tag: str, asset: Path, remote_names: set[str]) -> None:
 
 
 def verify_remote(tag: str, local_assets: list[Path]) -> None:
-    """完成后核对远端: 每个本地资产必须出现在远端资产列表且大小一致。"""
-    remote = {a["name"]: a["size"] for a in fetch_remote_assets(tag)}
+    """完成后核对远端: 名称、大小和 GitHub digest 必须全部一致。"""
+    remote = {asset["name"]: asset for asset in fetch_remote_assets(tag)}
     missing = []
     for asset in local_assets:
-        if asset.name not in remote:
+        remote_asset = remote.get(asset.name)
+        if remote_asset is None:
             missing.append(f"{asset.name} (远端缺失)")
-        elif remote[asset.name] != asset.stat().st_size:
-            missing.append(f"{asset.name} (大小不符: 本地 {asset.stat().st_size} vs 远端 {remote[asset.name]})")
+            continue
+        expected_size = asset.stat().st_size
+        expected_digest = f"sha256:{sha256_of(asset)}"
+        if remote_asset["size"] != expected_size:
+            missing.append(
+                f"{asset.name} (大小不符: 本地 {expected_size} vs 远端 {remote_asset['size']})",
+            )
+        if remote_asset["digest"] != expected_digest:
+            missing.append(
+                f"{asset.name} (摘要不符: 本地 {expected_digest} vs 远端 {remote_asset['digest'] or '缺失'})",
+            )
     if missing:
-        raise RuntimeError(f"远端核对失败:\n" + "\n".join(f"  - {m}" for m in missing))
-    print(f"[核对] 远端资产 {len(local_assets)} 项全部存在且大小一致")
+        raise RuntimeError(f"远端核对失败:\n" + "\n".join(f"  - {item}" for item in missing))
+    print(f"[核对] 远端资产 {len(local_assets)} 项名称、大小和 SHA-256 全部一致")
 
 
 def main() -> int:
@@ -125,9 +151,11 @@ def main() -> int:
 
     try:
         create_or_reuse_release(args.tag, args.body_file)
-        remote_names = {a["name"] for a in fetch_remote_assets(args.tag)}
+        remote_assets = {asset["name"]: asset for asset in fetch_remote_assets(args.tag)}
         for asset in local_assets:
-            upload_with_retry(args.tag, asset, remote_names)
+            upload_with_retry(args.tag, asset, remote_assets)
+            # 让同一轮执行中的重复路径也能看到刚上传的资产状态。
+            remote_assets.pop(asset.name, None)
         verify_remote(args.tag, local_assets)
     except RuntimeError as e:
         print(f"FAIL: {e}")

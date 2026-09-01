@@ -3,7 +3,6 @@ package io.zer0.muse.rag
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.data.knowledge.KnowledgeChunkFtsDao
-import io.zer0.muse.data.knowledge.KnowledgeChunkFtsHit
 
 /**
  * v1.133: 混合检索服务 — BM25(FTS4) + 向量余弦 RRF 融合。

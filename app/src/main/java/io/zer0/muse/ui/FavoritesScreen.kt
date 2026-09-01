@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Star
@@ -51,6 +50,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.museAnimateItem
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.markdown.MarkdownText
 import io.zer0.muse.ui.theme.MuseDateFormats
@@ -171,7 +171,7 @@ fun FavoritesScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     items(visibleFavorites, key = { it.id }) { msg ->
-                        Box(modifier = Modifier.animateItem()) {
+                        Box(modifier = museAnimateItem()) {
                         FavoriteCard(
                             message = msg,
                             dateFormat = dateFormat,

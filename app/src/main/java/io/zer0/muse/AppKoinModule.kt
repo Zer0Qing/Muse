@@ -1,47 +1,29 @@
 package io.zer0.muse
 
-import io.zer0.common.resultOf
 import io.zer0.ai.aiModule
 import io.zer0.ai.ProviderConfigStore
 import io.zer0.memory.memoryModule
 import io.zer0.memory.llm.MemoryLlmClient
-import io.zer0.memory.ticker.MemoryTicker
-import io.zer0.muse.backup.BackupService
 import io.zer0.muse.data.MemoryLlmClientImpl
 import io.zer0.muse.data.ProxyConfig
 import io.zer0.muse.data.SettingsRepository
-import io.zer0.muse.data.assistant.AssistantDao
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.audit.AuditLogger
 import io.zer0.muse.data.preset.PresetProviders
-import io.zer0.muse.data.lorebook.LorebookDao
 import io.zer0.muse.data.lorebook.LorebookRepository
-import io.zer0.muse.data.promptinjection.PromptInjectionDao
 import io.zer0.muse.data.promptinjection.PromptInjectionRepository
-import io.zer0.muse.data.quickmsg.QuickMessageDao
 import io.zer0.muse.data.quickmsg.QuickMessageRepository
 import io.zer0.muse.data.session.MuseDb
 import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.doc.DocumentParser
-import io.zer0.muse.tools.SessionPermissionStore
-import io.zer0.muse.tools.ToolConfigStore
-import io.zer0.muse.tools.ToolRegistry
 import io.zer0.muse.ui.ChatViewModel
-import io.zer0.muse.ui.MemoryViewModel
-import io.zer0.muse.ui.groupchat.GroupChatViewModel
-import io.zer0.muse.ui.stats.StatsViewModel
-import io.zer0.muse.web.CompositeWebSearchService
-import io.zer0.muse.web.WebSearchConfig
 import io.zer0.muse.web.WebSearchService
-import io.zer0.muse.web.createWebSearchClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import okhttp3.OkHttpClient
-import android.app.Application
 import org.koin.android.ext.koin.androidContext
-import org.koin.core.module.dsl.viewModel
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import java.net.InetSocketAddress
@@ -197,6 +179,18 @@ val appModule = module {
 
     // v1.x: 问候语个性化提醒生成器(LLM 生成,失败回退规则版)
     single { io.zer0.muse.schedule.GreetingHintGenerator(get()) }
+    // v1.x: 每日总结唯一生成入口：首页前台补偿与 WorkManager 共用同一服务。
+    single {
+        io.zer0.muse.schedule.DailySummaryService(
+            settings = get(),
+            sessionRepository = get(),
+            factStore = get(),
+            chatService = runCatching { get<io.zer0.ai.ChatService>() }.getOrNull(),
+            notificationManager = runCatching {
+                get<io.zer0.muse.notification.MuseNotificationManager>()
+            }.getOrNull(),
+        )
+    }
 
     // v1.30: 群聊调度(用户发消息后串行触发各 Agent 轮转发言)
     // v1.111: 接 appScope/appContext/chatGenerationManager,群聊轮转运行于 appScope,切页/后台不中断
@@ -209,7 +203,7 @@ val appModule = module {
     single { io.zer0.muse.schedule.GroupChatScheduler(get(), get(), get(), get(), get(), androidContext(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
     // v1.43: 应用级聊天生成管理器(切页/后台保持生成不中断)
-    single { io.zer0.muse.schedule.ChatGenerationManager(get(), androidContext()) }
+    single { io.zer0.muse.schedule.ChatGenerationManager(get(), get(), androidContext()) }
 
     // v1.x: 会话级资源管理器(引用计数 + idle 清理),依赖应用级 appScope(Koin 注册的 CoroutineScope)
     single { io.zer0.muse.session.ConversationSessionManager(get()) }

@@ -1,7 +1,6 @@
 package io.zer0.muse.ui
 
 import io.zer0.muse.ui.common.surface.MusePageScaffold
-import io.zer0.muse.ui.common.state.MuseLoadingState
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -29,11 +28,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
@@ -93,16 +90,20 @@ import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
 import io.zer0.memory.fact.FactDao
 import io.zer0.memory.fact.FactEntity
-import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.platform.LocalContext
 import io.zer0.common.Logger
 import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.schedule.DailySummaryService
+import io.zer0.muse.schedule.DailySummaryWorker
 import io.zer0.muse.notification.MuseNotificationManager
 import io.zer0.muse.notification.MuseNotificationTarget
 import io.zer0.muse.schedule.GreetingHintGenerator
@@ -186,6 +187,8 @@ fun ChatListScreen(
     notificationManager: MuseNotificationManager = koinInject(),
     /** v1.x: 问候语个性化提醒生成器(LLM,失败回退规则版) */
     greetingHintGenerator: GreetingHintGenerator = koinInject(),
+    /** v1.x: 首页前台补偿直接复用每日总结服务,不只依赖 WorkManager 延迟执行。 */
+    dailySummaryService: DailySummaryService = koinInject(),
 ) {
     // I3: 列表区独立错误边界,会话列表渲染数据构建失败只降级该区域
     RegionErrorBoundary(
@@ -209,6 +212,20 @@ fun ChatListScreen(
     val dailySummary by settings.dailySummaryFlow.collectAsStateWithLifecycle(initialValue = null)
     val context = LocalContext.current
     LaunchedEffect(Unit) {
+        // 先投递系统兜底,再在前台直接生成当前时段;否则部分 ROM 会把 WorkManager
+        // 延迟很久,用户只看到“早上好/中午好/晚上好”而看不到后面的助手总结。
+        DailySummaryWorker.enqueueCatchUpIfDue(context, settings)
+        withContext(Dispatchers.IO) {
+            try {
+                dailySummaryService.generateCurrentSlotIfDue()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Logger.w("ChatListScreen", "前台每日总结生成失败: ${e.message}", e)
+            }
+        }
+    }
+    LaunchedEffect(Unit) {
         // 审计修复 (8.8): 去掉内层 scope.launch — 原实现内层协程属于 rememberCoroutineScope,
         // 不随 LaunchedEffect 取消(离开组合/翻页后仍在跑),且双重启动无意义。
         runCatching { memoryCount = factDao.count() }
@@ -225,7 +242,10 @@ fun ChatListScreen(
             val today = java.time.LocalDate.now().toString()
             val cached = settings.getGreetingHintCache()
             if (cached?.startsWith("$today|") == true) {
-                resolvedGreetingHint = cached.substringAfter("|").takeIf { it.isNotBlank() }
+                resolvedGreetingHint = GreetingHelper.compactGreetingText(
+                    cached.substringAfter("|"),
+                    GreetingHelper.PERSONALIZED_HINT_MAX_LENGTH,
+                )
                 greetingHint = resolvedGreetingHint
             } else {
                 greetingHintGenerator.generate(facts)?.let { hint ->
@@ -454,14 +474,17 @@ private fun GreetingHeader(
             ),
             color = MaterialTheme.colorScheme.onSurface,
         )
-        // 每日总结和近期提醒各自占一行,不能用 ?: 互斥,否则总结存在时提醒会被吞掉。
-        val reminderHint = personalizedHint ?: memoryHint
+        // 每日总结和近期提醒各占一行,首页问候区最多展示两行,避免长文本撑开布局。
+        val reminderHint = GreetingHelper.compactGreetingText(
+            personalizedHint ?: memoryHint,
+            GreetingHelper.PERSONALIZED_HINT_MAX_LENGTH,
+        )
         if (!dailySummaryHint.isNullOrBlank()) {
             Text(
                 text = dailySummaryHint,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(top = 2.dp),
             )
@@ -471,7 +494,7 @@ private fun GreetingHeader(
                 text = reminderHint,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary,
-                maxLines = 2,
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(top = 2.dp),
             )

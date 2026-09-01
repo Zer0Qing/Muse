@@ -38,6 +38,7 @@ data class MuseInputState(
     val replyQuoteOverride: String? = null,
     val isRecording: Boolean = false,
     val asrStatus: ASRStatus = ASRStatus.Idle,
+    val asrErrorMessage: String? = null,
     val recordingAmplitudes: List<Float> = emptyList(),
     val showMic: Boolean = true,
     val toolCallCompleted: Int = 0,
@@ -85,6 +86,5 @@ data class InputBarCallbacks(
     val onStopRecording: () -> Unit = {},
     val onCancelRecording: () -> Unit = {},
     val onShowToolCalls: () -> Unit = {},
-    val onOpenVoiceConversation: () -> Unit = {},
     val onAddPastedTextAsDocument: (String) -> Unit = {},
 )

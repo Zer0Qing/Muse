@@ -40,6 +40,7 @@ import kotlinx.serialization.Serializable
         // v94: 新提交序；旧 seq 保留用于兼容旧读取路径。
         Index(value = ["sessionId", "commitSeq"], name = "idx_messages_sessionId_commitSeq"),
         Index(value = ["parentMessageId"], name = "idx_messages_parentMessageId"),
+        Index(value = ["parentGroupId"], name = "idx_messages_parentGroupId"),
     ],
 )
 data class MessageEntity(

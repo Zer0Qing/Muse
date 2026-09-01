@@ -1,8 +1,8 @@
 package io.zer0.muse.ui
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.tween
 import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseMotion
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -43,12 +43,14 @@ fun SplashScreen(
 ) {
     val alpha = androidx.compose.runtime.remember { Animatable(1f) }
 
-    // 1.2s 后开始 fade-out(200ms)
-    LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay(1200)
+    // 1.2s 后开始 fade-out(200ms);同时遵循系统动画缩放。
+    val splashDelayMillis = MuseMotion.duration(1200)
+    val fadeSpec = MuseMotion.tween<Float>(MuseAnimation.TACTILE_MS)
+    LaunchedEffect(splashDelayMillis) {
+        kotlinx.coroutines.delay(splashDelayMillis.toLong())
         alpha.animateTo(
             targetValue = 0f,
-            animationSpec = tween(MuseAnimation.TACTILE_MS),
+            animationSpec = fadeSpec,
         )
         onFinished()
     }

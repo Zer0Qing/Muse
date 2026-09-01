@@ -1,7 +1,8 @@
 package io.zer0.muse.ui.common.state
 
+import io.zer0.muse.ui.theme.MuseMotion
+
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
@@ -29,7 +30,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseIconSizes
@@ -69,9 +69,9 @@ fun MuseErrorStateBox(
     AnimatedVisibility(
         visible = visible,
         enter = fadeIn(
-            animationSpec = tween(MuseAnimation.NORMAL_MS, easing = MuseAnimation.EaseOutCubic),
+            animationSpec = MuseMotion.tween(MuseAnimation.NORMAL_MS, easing = MuseAnimation.EaseOutCubic),
         ) + slideInVertically(
-            animationSpec = tween(MuseAnimation.NORMAL_MS, easing = MuseAnimation.EaseOutCubic),
+            animationSpec = MuseMotion.tween(MuseAnimation.NORMAL_MS, easing = MuseAnimation.EaseOutCubic),
             // v1.0.74 fix (前端审计 7): 裸 20px 改高度一半(密度无关)
             initialOffsetY = { it / 2 },
         ),

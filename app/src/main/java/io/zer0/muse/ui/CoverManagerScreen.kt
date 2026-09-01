@@ -128,13 +128,13 @@ fun CoverManagerScreen(
                 )
                 Spacer(Modifier.size(8.dp))
                 Text(
-                    text = "封面库",
+                    text = stringResource(R.string.cover_library_title),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Spacer(Modifier.weight(1f))
                 Text(
-                    text = "${covers.size} 张封面",
+                    text = stringResource(R.string.cover_count, covers.size),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                 )
@@ -166,13 +166,13 @@ fun CoverManagerScreen(
                 )
                 Spacer(Modifier.height(16.dp))
                 Text(
-                    text = "还没有封面",
+                    text = stringResource(R.string.cover_empty_title),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = "点击右下角按钮导入图片,或让 AI 生成封面",
+                    text = stringResource(R.string.cover_empty_hint),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                 )

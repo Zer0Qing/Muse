@@ -5,9 +5,9 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseIconSizes
+import io.zer0.muse.ui.theme.MuseMotion
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -56,17 +55,27 @@ fun VoiceMessageBar(
 ) {
     if (!isRecording) return
 
-    // 录音动画: 脉冲效果
-    val infiniteTransition = rememberInfiniteTransition(label = "recording")
-    val pulseAlpha by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 0.3f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(MuseAnimation.LOOP_SLOW_MS, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "pulse_alpha",
-    )
+    val reducedMotion = MuseMotion.isReducedMotion()
+    // reduced-motion 下仍保留录音状态指示,但不启动无限动画。
+    val recordingTransition = if (reducedMotion) {
+        null
+    } else {
+        rememberInfiniteTransition(label = "recording")
+    }
+    val pulseAlpha = if (recordingTransition == null) {
+        1f
+    } else {
+        val animatedAlpha by recordingTransition.animateFloat(
+            initialValue = 1f,
+            targetValue = 0.3f,
+            animationSpec = infiniteRepeatable(
+                animation = MuseMotion.tween(MuseAnimation.LOOP_SLOW_MS, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+            label = "pulse_alpha",
+        )
+        animatedAlpha
+    }
 
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -102,15 +111,23 @@ fun VoiceMessageBar(
                 horizontalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap),
             ) {
                 repeat(8) { i ->
-                    val barHeight by infiniteTransition.animateFloat(
-                        initialValue = 4f + i * 2f,
-                        targetValue = 12f + i * 3f,
-                        animationSpec = infiniteRepeatable(
-                            animation = tween(300 + i * 50, easing = LinearEasing),
-                            repeatMode = RepeatMode.Reverse,
-                        ),
-                        label = "bar_$i",
-                    )
+                    val barHeight = if (recordingTransition == null) {
+                        8f + i * 1.5f
+                    } else {
+                        val animatedHeight by recordingTransition.animateFloat(
+                            initialValue = 4f + i * 2f,
+                            targetValue = 12f + i * 3f,
+                            animationSpec = infiniteRepeatable(
+                                animation = MuseMotion.tween(
+                                    MuseAnimation.FAST_NORMAL_MS + i * 50,
+                                    easing = LinearEasing,
+                                ),
+                                repeatMode = RepeatMode.Reverse,
+                            ),
+                            label = "bar_$i",
+                        )
+                        animatedHeight
+                    }
                     Box(
                         modifier = Modifier
                             .width(3.dp)

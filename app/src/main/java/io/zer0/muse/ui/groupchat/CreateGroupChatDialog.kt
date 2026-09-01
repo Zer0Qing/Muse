@@ -13,7 +13,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -24,8 +23,6 @@ import io.zer0.muse.R
 import io.zer0.muse.data.AgentTeam
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.ui.common.feedback.MuseDialog
-import io.zer0.muse.ui.theme.MuseShapes
-import io.zer0.muse.ui.theme.semiLarge
 
 /**
  * 新建群聊对话框。

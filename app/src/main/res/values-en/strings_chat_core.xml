@@ -130,6 +130,7 @@
 
     <!-- Errors and permissions -->
     <string name="chat_err_mic_permission">Microphone permission is required for voice input</string>
+    <string name="chat_mic_permission_granted">Microphone permission granted. Long-press the microphone again to record.</string>
     <string name="chat_err_open_file_picker">Cannot open file picker: %1$s</string>
     <string name="chat_err_open_image_picker">Cannot open image picker: %1$s</string>
     <string name="chat_err_no_speech_service">No speech recognition service available. Configure DashScope or Step in Settings → Speech Recognition.</string>
@@ -506,6 +507,13 @@
     <string name="msg_info_estimated">Estimated</string>
     <string name="msg_info_no_data">No generation data</string>
     <string name="msg_info_unknown">Unknown</string>
+    <string name="chat_debug_model_label">Model</string>
+    <string name="chat_debug_duration_label">Duration</string>
+    <string name="chat_debug_ttft_label">TTFT</string>
+    <string name="chat_debug_rate_label">Rate</string>
+    <string name="chat_debug_chars_label">Characters</string>
+    <string name="chat_debug_tool_calls_label">Tool calls</string>
+    <string name="chat_debug_round_label">Rounds</string>
     <!-- A1: 会话内查找(聊天页就地查找框) -->
     <string name="chat_find_in_conversation">Find in conversation</string>
     <string name="chat_find_placeholder">Search current conversation</string>

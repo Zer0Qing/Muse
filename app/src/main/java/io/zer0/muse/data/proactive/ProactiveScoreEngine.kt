@@ -1,7 +1,6 @@
 package io.zer0.muse.data.proactive
 
 import io.zer0.common.Logger
-import kotlinx.serialization.Serializable
 import java.util.Calendar
 import kotlin.math.exp
 import kotlin.math.min

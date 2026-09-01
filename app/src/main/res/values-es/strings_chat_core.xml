@@ -548,4 +548,13 @@
     <string name="tool_running">Ejecutando %1$s…</string>
     <string name="chat_pending_queue_full">La cola está llena (máx. 8). Vacía o envía primero.</string>
     <string name="chat_draft_save_failed">No se pudo guardar el borrador. Tu texto podría perderse.</string>
+    <!-- v1.0.85: release localization -->
+    <string name="chat_mic_permission_granted">Se concedió el permiso del micrófono. Mantén pulsado de nuevo el micrófono para grabar.</string>
+    <string name="chat_debug_model_label">Modelo</string>
+    <string name="chat_debug_duration_label">Duración</string>
+    <string name="chat_debug_ttft_label">TTFT</string>
+    <string name="chat_debug_rate_label">Velocidad</string>
+    <string name="chat_debug_chars_label">Caracteres</string>
+    <string name="chat_debug_tool_calls_label">Llamadas de herramientas</string>
+    <string name="chat_debug_round_label">Ronda</string>
 </resources>

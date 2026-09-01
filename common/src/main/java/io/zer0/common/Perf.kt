@@ -135,6 +135,7 @@ object Perf {
      */
     class Timer internal constructor(private val name: String) {
         private val startTime = System.currentTimeMillis()
+        private var lastSplitTime = startTime
         private val splits = mutableListOf<Pair<String, Long>>()
 
         /**
@@ -144,8 +145,8 @@ object Perf {
         fun split(splitName: String) {
             if (!enabled) return
             val now = System.currentTimeMillis()
-            val lastTime = splits.lastOrNull()?.second ?: startTime
-            splits.add(splitName to (now - lastTime))
+            splits.add(splitName to (now - lastSplitTime))
+            lastSplitTime = now
         }
 
         /**

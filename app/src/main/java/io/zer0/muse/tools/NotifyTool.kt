@@ -1,6 +1,5 @@
 package io.zer0.muse.tools
 
-import android.content.Context
 import io.zer0.muse.notification.MuseNotificationManager
 
 /**

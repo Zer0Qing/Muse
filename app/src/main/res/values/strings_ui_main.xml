@@ -636,6 +636,9 @@
     <string name="workspace_empty">工作区为空</string>
     <string name="workspace_new_file">新建文件</string>
     <string name="workspace_new_folder">新建文件夹</string>
+    <string name="workspace_import_file">从文件管理器导入</string>
+    <string name="workspace_import_success">已导入 %1$d</string>
+    <string name="workspace_import_failed">文件导入失败: %1$s</string>
     <string name="workspace_file_name">文件名称</string>
     <string name="workspace_delete_confirm">确认删除 \"%1$s\"?此操作不可撤销</string>
     <string name="workspace_rename">重命名</string>

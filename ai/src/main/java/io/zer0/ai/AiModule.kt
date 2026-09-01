@@ -127,6 +127,7 @@ class ChatService(
         providerConfig: ProviderConfig? = null,
         mode: ChatRequestMode = ChatRequestMode.CHAT,
         resumeFromText: String? = null,
+        topP: Float? = null,
     ): Flow<ChatStreamEvent> {
         // C-11 ②: 续传能力与 Provider 能力绑定 — 仅当 Provider 声明 supportsResumeFromText 时,
         // 才把已产出文本作为"末尾 assistant 消息"注入,让模型从中断处续写。
@@ -150,6 +151,7 @@ class ChatService(
             reasoningLevel,
             providerConfig,
             mode,
+            topP,
         )
         // B3-01: SSE 建立后 15s 无首事件,自动降级为非流式重试一次
         // 审计修复 (7.8): 用户已停止时不再 fallback(省一次计费请求)
@@ -191,6 +193,7 @@ class ChatService(
         reasoningLevel: ReasoningLevel = ReasoningLevel.DEFAULT,
         providerConfig: ProviderConfig? = null,
         mode: ChatRequestMode = ChatRequestMode.UTILITY,
+        topP: Float? = null,
     ): ChatCompletion {
         val (provider, request) = buildProviderRequest(
             messages,
@@ -203,6 +206,7 @@ class ChatService(
             reasoningLevel,
             providerConfig,
             mode,
+            topP,
         )
         return provider.completeText(request)
     }
@@ -223,6 +227,7 @@ class ChatService(
         reasoningLevel: ReasoningLevel,
         providerConfig: ProviderConfig? = null,
         mode: ChatRequestMode = ChatRequestMode.CHAT,
+        topP: Float? = null,
     ): Pair<Provider, ChatRequest> {
         val config = providerConfig ?: configStore.get()
             ?: error(ErrorCode.NO_PROVIDER_CONFIGURED.toMessage())
@@ -258,6 +263,7 @@ class ChatService(
             ),
             reasoningLevel = effectiveReasoningLevel,
             mode = mode,
+            topP = topP?.coerceIn(0f, 1f),
         )
         return Pair(provider, request)
     }

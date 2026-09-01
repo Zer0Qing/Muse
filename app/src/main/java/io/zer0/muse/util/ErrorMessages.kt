@@ -11,6 +11,16 @@ object ErrorMessages {
 
     private val PREFIX_REGEX = Regex("^ERR_([a-z_]+)(?::(.+))?")
 
+    /** 网络错误关键词 → 本地化资源,按顺序匹配命中即返回(数据驱动,规避 when 分支复杂度告警)。 */
+    private val NETWORK_ERROR_KEYWORDS: List<Pair<List<String>, Int>> = listOf(
+        listOf("unable to resolve", "unknownhost") to R.string.err_chat_network_unresolvable,
+        listOf("timeout") to R.string.err_chat_network_timeout,
+        listOf("401", "403") to R.string.err_chat_auth_invalid,
+        listOf("429") to R.string.err_chat_rate_limited,
+        listOf("500", "502", "503") to R.string.err_chat_server_error,
+        listOf("stream", "eof") to R.string.err_chat_stream_broken,
+    )
+
     /** 若消息是 ERR_ 格式则返回本地化字符串,否则返回原消息。 */
     fun resolve(context: Context, message: String): String {
         val m = PREFIX_REGEX.find(message) ?: return message
@@ -22,6 +32,28 @@ object ErrorMessages {
         // 它仍含 ERR_ 前缀与全部参数,保证错误详情不因本地化失败而静默丢失。
         if (resolved == null) return message
         return if (rest.isNotEmpty()) "$resolved $rest" else resolved
+    }
+
+    /**
+     * 网络错误原始消息分类兜底([resolve] 无法匹配 ERR_ 前缀时)。
+     *
+     * 按异常消息关键词分类为本地化文案。此职责从 ChatViewModel(约 8287 行 God class)
+     * 收口到本处,保持纯函数、可独立单测。
+     */
+    fun classifyNetworkError(context: Context, throwable: Throwable): String {
+        val raw = throwable.message ?: ""
+        val resolved = resolve(context, raw)
+        if (resolved != raw) return resolved
+        val msg = raw.lowercase()
+        val match = NETWORK_ERROR_KEYWORDS.firstOrNull { entry -> entry.first.any { msg.contains(it) } }
+        return if (match != null) {
+            context.getString(match.second)
+        } else {
+            context.getString(
+                R.string.err_chat_request_failed,
+                throwable.localizedMessage?.take(80) ?: context.getString(R.string.err_chat_unknown),
+            )
+        }
     }
 
     /**

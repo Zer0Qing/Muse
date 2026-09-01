@@ -2,31 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!--
-        P3-3: 无障碍服务模块清单。
-        MuseAccessibilityService 通过 BIND_ACCESSIBILITY_SERVICE 系统绑定,
-        权限由系统在「设置 → 无障碍」中授予,无需在主应用声明运行时权限。
+        无障碍服务由 :app 的清单注册,保持稳定组件名并避免 library 合并出第二个
+        “Muse UI 自动化”服务。此模块只提供共享实现和 AIDL 契约。
     -->
-
-    <application>
-        <!--
-            MuseAccessibilityService — UI 自动化能力底座。
-            exported=false: 仅本应用内部 bindService(同 APK,签名一致)。
-            permission=android.permission.BIND_ACCESSIBILITY_SERVICE: 系统强制要求,
-            只有系统服务能绑定(防止恶意应用劫持无障碍服务)。
-            summary: 在系统无障碍设置页显示的简短描述。
-        -->
-        <service
-            android:name=".MuseAccessibilityService"
-            android:exported="false"
-            android:label="Muse UI 自动化"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
-            <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService" />
-            </intent-filter>
-            <meta-data
-                android:name="android.accessibilityservice"
-                android:resource="@xml/accessibility_service_config" />
-        </service>
-    </application>
 
 </manifest>

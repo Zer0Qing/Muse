@@ -2,11 +2,6 @@ package io.zer0.muse.ui.markdown
 
 import io.zer0.common.AppJson
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.int
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 
 /**
  * v1.0.53: 对话数据卡片解析(既有实现 show_card)。

@@ -43,7 +43,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Offset
@@ -58,11 +57,8 @@ import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Group
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -77,7 +73,6 @@ import io.zer0.muse.ui.common.MuseFloatingActionMenu
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -92,33 +87,23 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.OffsetMapping
-import androidx.compose.ui.text.input.TransformedText
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.data.groupchat.GroupChatMessageEntity
-import io.zer0.muse.doc.DocumentParser
-import io.zer0.muse.ui.common.media.FullScreenMediaViewer
 import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.assistantBubble
-import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -898,7 +883,8 @@ fun GroupChatDetailScreen(
         EditGroupChatDialog(
             dialogKey = chatId,
             initialName = chat?.name ?: "",
-            assistants = state.assistants,
+            // 保留历史群聊中已禁用的成员可见,但不允许再新增未授权加入群聊的助手。
+            assistants = state.assistants.filter { it.allowGroupChat || it.id in initialMemberIds },
             initialMemberIds = initialMemberIds,
             initialDiscussionMode = chat?.discussionMode ?: "round_robin",
             initialAutoMaxRounds = chat?.autoMaxRounds ?: 5,
@@ -1144,7 +1130,7 @@ fun GroupChatDetailScreen(
                                 .height(0.5.dp)
                                 .background(divider),
                         )
-                        GroupChatActionRow(TablerIcons.Trash, stringResource(R.string.groupchat_delete), Color(0xFFFF3B30), iconBlock) {
+                        GroupChatActionRow(TablerIcons.Trash, stringResource(R.string.groupchat_delete), MaterialTheme.colorScheme.error, iconBlock) {
                             messageMenuTarget = null
                             deleteMessageTarget = msg
                         }

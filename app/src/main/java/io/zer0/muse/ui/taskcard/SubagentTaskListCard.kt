@@ -1,15 +1,10 @@
 package io.zer0.muse.ui.taskcard
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -56,6 +51,7 @@ import io.zer0.muse.ui.common.media.AssistantAvatar
 import io.zer0.muse.data.subagent.SubagentSessionStore
 import io.zer0.muse.data.subagent.SubagentThreadStore
 import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.tiny
@@ -167,8 +163,8 @@ fun SubagentTaskListCard(
             // ── 展开态:任务明细列表 ──
             AnimatedVisibility(
                 visible = expanded,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically(),
+                enter = MuseMotion.expandFadeEnter(),
+                exit = MuseMotion.expandFadeExit(),
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap)) {
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -485,16 +481,21 @@ private fun StatusIcon(status: DeferredResultStore.TaskStatus) {
     when (status) {
         DeferredResultStore.TaskStatus.PENDING -> {
             // 运行中:用脉冲圆点(与 DelegationChainCard 的 RUNNING 状态视觉一致)
-            val transition = rememberInfiniteTransition(label = "subagentPulse")
-            val alpha by transition.animateFloat(
-                initialValue = 0.3f,
-                targetValue = 1f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(MuseAnimation.LOOP_SLOW_MS),
-                    repeatMode = RepeatMode.Reverse,
-                ),
-                label = "subagentPulseAlpha",
-            )
+            val alpha = if (MuseMotion.isReducedMotion()) {
+                0.65f
+            } else {
+                val transition = rememberInfiniteTransition(label = "subagentPulse")
+                val animatedAlpha by transition.animateFloat(
+                    initialValue = 0.3f,
+                    targetValue = 1f,
+                    animationSpec = infiniteRepeatable(
+                        animation = MuseMotion.tween(MuseAnimation.LOOP_SLOW_MS),
+                        repeatMode = RepeatMode.Reverse,
+                    ),
+                    label = "subagentPulseAlpha",
+                )
+                animatedAlpha
+            }
             androidx.compose.foundation.layout.Box(
                 modifier = Modifier
                     .size(14.dp)

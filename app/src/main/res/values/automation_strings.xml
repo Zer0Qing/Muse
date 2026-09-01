@@ -2,8 +2,8 @@
 <resources>
     <string name="automation_settings_title">UI 自动化</string>
     <string name="automation_settings_subtitle">屏幕读取与操作权限</string>
-    <string name="accessibility_service_description">允许 Muse 读取屏幕内容并模拟点击、滑动等手势,用于实现跨 App 的 AI 任务自动化。Muse 不会在未经你确认的情况下执行操作。</string>
-    <string name="automation_permission_a11y">无障碍服务</string>
+    <string name="accessibility_service_description">允许 Muse 读取任意应用的屏幕内容（含其他应用显示的敏感信息，如验证码、聊天记录等）并模拟点击、滑动等手势，用于跨 App 的 AI 任务自动化。请仅在信任时开启；Muse 不会在未经你确认的情况下执行高风险操作。</string>
+    <string name="automation_permission_a11y">Muse UI 自动化</string>
     <string name="automation_permission_shell">Shell (Shizuku/adb)</string>
     <string name="automation_permission_root">Root</string>
     <string name="automation_settings_unavailable">无法打开系统设置,请到系统设置中手动开启权限</string>

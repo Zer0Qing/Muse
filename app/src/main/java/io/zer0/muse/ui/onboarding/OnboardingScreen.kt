@@ -61,9 +61,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -83,6 +80,8 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.preset.PresetProviders
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.PresetThemes
 import io.zer0.muse.ui.theme.pill
@@ -343,6 +342,7 @@ private fun ProgressDots(
             val isCompleted = index < currentPage
             val size by animateDpAsState(
                 targetValue = if (isCurrent) 10.dp else 6.dp,
+                animationSpec = MuseMotion.tween(MuseAnimation.FAST_NORMAL_MS),
                 label = "dot_size",
             )
             val color = when {
@@ -737,7 +737,11 @@ private fun StepProviderConfig(
         }
 
         // 自定义供应商：baseUrl 输入
-        androidx.compose.animation.AnimatedVisibility(visible = isCustomSelected) {
+        androidx.compose.animation.AnimatedVisibility(
+            visible = isCustomSelected,
+            enter = MuseMotion.expandFadeEnter(),
+            exit = MuseMotion.expandFadeExit(),
+        ) {
             Column {
                 Text(
                     text = stringResource(R.string.onboarding_provider_custom_baseurl_label),

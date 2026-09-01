@@ -13,7 +13,6 @@ import io.zer0.muse.data.knowledge.KnowledgeChunkFtsSelfHealer
 import io.zer0.muse.data.knowledge.KnowledgeDocDao
 import io.zer0.muse.util.TokenEstimator
 import kotlinx.coroutines.sync.withLock
-import kotlinx.serialization.builtins.FloatArraySerializer
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
@@ -853,6 +852,21 @@ class RagService(
         }
         Logger.d("RagService", "@mention 解析: ${mentions.size} 个 mention → ${docIds.size} 个 docId")
         return docIds.toList()
+    }
+
+    /**
+     * 把助手绑定的知识库 id 展开为可检索文档 id。
+     * 空列表明确表示未绑定任何知识库,调用方应继续使用全局检索语义。
+     */
+    suspend fun resolveKnowledgeBaseDocIds(knowledgeBaseIds: List<String>): List<String> {
+        val ids = knowledgeBaseIds.map { it.trim() }.filter { it.isNotBlank() }.distinct()
+        if (ids.isEmpty()) return emptyList()
+        return resultOf { docDao.getByKbIds(ids).map { it.id }.distinct() }
+            .onError { msg, throwable ->
+                Logger.w("RagService", "助手绑定知识库展开失败: ${throwable?.message ?: msg}", throwable)
+            }
+            .getOrNull()
+            ?: emptyList()
     }
 
     /** v1.133: @mention 提取正则(与 ChatViewModel.KNOWLEDGE_MENTION_REGEX 同义,RagService 自用)。 */

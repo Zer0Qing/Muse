@@ -1,7 +1,6 @@
 package io.zer0.muse.hook
 
 import io.zer0.ai.core.MessageRole
-import io.zer0.ai.core.UIMessage
 import io.zer0.common.Logger
 import io.zer0.muse.data.SettingsRepository
 import kotlinx.coroutines.flow.first

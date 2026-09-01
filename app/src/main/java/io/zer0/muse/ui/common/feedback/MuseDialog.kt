@@ -3,8 +3,8 @@
 package io.zer0.muse.ui.common.feedback
 
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
 import io.zer0.muse.ui.common.surface.museDialogInsets
 import androidx.compose.foundation.background
@@ -212,7 +212,7 @@ private fun MuseDialogButton(
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.97f else 1f,
-        animationSpec = tween(MuseAnimation.FAST_MS),
+        animationSpec = MuseMotion.tween(MuseAnimation.FAST_MS),
         label = "dialogBtnScale",
     )
     Box(

@@ -105,4 +105,24 @@
     <string name="notif_permission_status_off">通知権限が無効です</string>
     <string name="notif_permission_guide">有効にするとメッセージ完了通知とバックアップ通知を受信できます</string>
     <string name="notif_permission_open">有効にする</string>
+    <!-- v1.0.85: release localization -->
+    <string name="notif_listener_search_hint">通知を検索</string>
+    <string name="notif_listener_all_apps">すべてのアプリ</string>
+    <string name="notif_listener_show_all">すべて表示</string>
+    <string name="notif_listener_unread_only">未読のみ</string>
+    <string name="notif_listener_mark_all_read">すべて既読にする</string>
+    <string name="notif_listener_export">エクスポート</string>
+    <string name="notif_listener_export_success">通知履歴をエクスポートしました</string>
+    <string name="notif_listener_export_failed">通知履歴のエクスポートに失敗しました: %1$s</string>
+    <string name="notif_listener_export_write_failed">エクスポートファイルに書き込めません</string>
+    <string name="notif_listener_filter_empty">現在のフィルターに一致する通知はありません</string>
+    <string name="notif_listener_no_text">この通知には表示できる本文がありません</string>
+    <string name="notif_listener_unread_label">未読</string>
+    <string name="notif_listener_active_only">アクティブのみ</string>
+    <string name="notif_listener_show_history">履歴を表示</string>
+    <string name="notif_listener_counts">合計 %1$d 件 · アクティブ %2$d 件 · 未読 %3$d 件</string>
+    <string name="notif_listener_active_label">通知バーに表示中</string>
+    <string name="notif_listener_removed_label">削除済み</string>
+    <string name="notif_listener_channel_label">チャンネル: %1$s</string>
+    <string name="notif_listener_category_label">カテゴリ: %1$s</string>
 </resources>

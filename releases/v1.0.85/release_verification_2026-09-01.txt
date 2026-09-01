@@ -1,0 +1,10 @@
+Muse v1.0.85 release verification
+BuiltAt=2026-09-01T21:48:47+08:00
+Expected versionName=1.0.85 versionCode=185
+BuildType=Release
+ReleaseGuards=version and keystore guards were not bypassed
+QualityGates=ci-scripts PASS; lanes PASS; static PASS; unit PASS; debug PASS
+arm64-v8a=Muse_v1.0.85_arm64-v8a.apk bytes=64108989 SHA256=033bd9d2f8a7e46f0d69ca6bee117694e74de2fa8a6e6a5cf0d09d40189364e8
+armeabi-v7a=Muse_v1.0.85_armeabi-v7a.apk bytes=52777075 SHA256=7eb6d8333356af2d06472dabdcfcdb41829b2c753837d753d1f91492ff782414
+universal=Muse_v1.0.85_universal.apk bytes=169515470 SHA256=74e60810ced4cf2b6712a3dd3c432d382a350086f0c65b4093efd6c3d0190a3a
+Signature=v2 verified; one signer; certificate SHA-256=e82f4ecde8304b7d78b530336a48e41a42b80c0ebac8af2d2c10448277644ebf

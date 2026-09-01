@@ -548,4 +548,13 @@
     <string name="tool_running">Executando %1$s…</string>
     <string name="chat_pending_queue_full">Fila cheia (máx. 8). Esvazie ou envie primeiro.</string>
     <string name="chat_draft_save_failed">Falha ao salvar rascunho. Seu texto pode ser perdido.</string>
+    <!-- v1.0.85: release localization -->
+    <string name="chat_mic_permission_granted">A permissão do microfone foi concedida. Pressione o microfone novamente para começar a gravar.</string>
+    <string name="chat_debug_model_label">Modelo</string>
+    <string name="chat_debug_duration_label">Duração</string>
+    <string name="chat_debug_ttft_label">TTFT</string>
+    <string name="chat_debug_rate_label">Velocidade</string>
+    <string name="chat_debug_chars_label">Caracteres</string>
+    <string name="chat_debug_tool_calls_label">Chamadas de ferramentas</string>
+    <string name="chat_debug_round_label">Rodada</string>
 </resources>

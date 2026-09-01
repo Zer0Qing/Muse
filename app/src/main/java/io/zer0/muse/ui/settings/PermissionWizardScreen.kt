@@ -1,10 +1,8 @@
 package io.zer0.muse.ui.settings
 
-import android.accessibilityservice.AccessibilityService
 import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -36,10 +34,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
+import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.surface.MusePageScaffold
 import io.zer0.muse.tools.system.AccessibilityProviderInstaller
@@ -48,6 +49,7 @@ import io.zer0.muse.tools.system.RootAuthorizer
 import io.zer0.muse.tools.system.ShizukuAuthorizer
 import io.zer0.muse.ui.theme.statusColors
 import io.zer0.muse.tools.system.ShizukuInstaller
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
@@ -73,6 +75,7 @@ fun PermissionWizardScreen(
 
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
 
     // 各通道状态
     var a11yEnabled by remember { mutableStateOf(false) }
@@ -83,16 +86,33 @@ fun PermissionWizardScreen(
     var suiAvailable by remember { mutableStateOf(false) }
 
     // 刷新状态
-    fun refresh() {
-        a11yEnabled = a11yInstaller.isEnabled()
-        shizukuInstalled = shizukuInstaller.isInstalled()
-        shizukuAvailable = shizukuAuthorizer.isAvailable()
-        shizukuAuthorized = shizukuAuthorizer.checkPermission()
-        rootAvailable = rootAuthorizer.checkPermission()
-        suiAvailable = shizukuAuthorizer.isSuiBackendAvailable()
+    suspend fun refresh() {
+        try {
+            a11yEnabled = a11yInstaller.isEnabled()
+            shizukuInstalled = shizukuInstaller.isInstalled()
+            shizukuAvailable = shizukuAuthorizer.isAvailable()
+            // 授权位为 true 仍可能无法绑定 UserService；这里展示实际可用状态。
+            shizukuAuthorized = shizukuAuthorizer.checkReady()
+            rootAvailable = rootAuthorizer.checkPermission()
+            suiAvailable = shizukuAuthorizer.isSuiBackendAvailable()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: SecurityException) {
+            Logger.w("PermissionWizard", "刷新权限状态被系统拒绝: ${e.message}", e)
+        } catch (e: IllegalStateException) {
+            Logger.w("PermissionWizard", "刷新权限状态失败: ${e.message}", e)
+        }
     }
 
-    LaunchedEffect(Unit) { refresh() }
+    fun refreshAsync() {
+        scope.launch { refresh() }
+    }
+
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            refresh()
+        }
+    }
 
     val currentLevel = AndroidPermissionLevel.highestOf(
         AndroidPermissionLevel.ACCESSIBILITY to a11yEnabled,
@@ -153,7 +173,7 @@ fun PermissionWizardScreen(
                 onAction = {
                     a11yInstaller.openSettings()
                 },
-                onRefresh = { refresh() },
+                onRefresh = { refreshAsync() },
             )
 
             // 通道 2: Shizuku
@@ -172,7 +192,7 @@ fun PermissionWizardScreen(
                     // 引导用户打开 Shizuku 应用启动服务(无法直接拉起)
                     shizukuInstaller.openDownloadPage()
                 },
-                onRefresh = { refresh() },
+                onRefresh = { refreshAsync() },
             )
 
             // 通道 3: Root
@@ -183,7 +203,7 @@ fun PermissionWizardScreen(
                 disabledText = stringResource(R.string.root_status_unavailable),
                 actionText = "",
                 onAction = {},
-                onRefresh = { refresh() },
+                onRefresh = { refreshAsync() },
             )
 
             // Sui 后端兼容提示

@@ -207,7 +207,17 @@ internal fun BackupSection(
             subtitle = stringResource(R.string.settings_backup_import_subtitle),
             onClick = {
                 runCatching {
-                    importLauncher.launch(arrayOf("application/json"))
+                    // 部分文件管理器会把 .json/.ndjson/.zip 标成 octet-stream 或未知类型;
+                    // 备份服务本身按内容识别格式,选择器不能只过滤 application/json。
+                    importLauncher.launch(
+                        arrayOf(
+                            "application/json",
+                            "application/zip",
+                            "application/octet-stream",
+                            "text/plain",
+                            "*/*",
+                        ),
+                    )
                 }.onFailure {
                     MuseToast.show(context.getString(R.string.settings_backup_import_start_failed, it.message))
                 }

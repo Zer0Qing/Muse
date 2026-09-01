@@ -548,4 +548,13 @@
     <string name="tool_running">%1$s 실행 중…</string>
     <string name="chat_pending_queue_full">대기 큐가 가득 찼습니다(최대 8개). 먼저 비우거나 전송하세요</string>
     <string name="chat_draft_save_failed">임시 저장에 실패했습니다. 입력 내용이 유실될 수 있습니다</string>
+    <!-- v1.0.85: release localization -->
+    <string name="chat_mic_permission_granted">마이크 권한이 허용되었습니다. 마이크를 다시 길게 눌러 녹음을 시작하세요.</string>
+    <string name="chat_debug_model_label">모델</string>
+    <string name="chat_debug_duration_label">소요 시간</string>
+    <string name="chat_debug_ttft_label">TTFT</string>
+    <string name="chat_debug_rate_label">속도</string>
+    <string name="chat_debug_chars_label">문자</string>
+    <string name="chat_debug_tool_calls_label">도구 호출</string>
+    <string name="chat_debug_round_label">라운드</string>
 </resources>

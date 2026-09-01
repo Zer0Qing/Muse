@@ -1,5 +1,7 @@
 package io.zer0.muse.ui
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import android.content.ClipData
 import android.content.Context
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -30,6 +32,7 @@ import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.DriveFileRenameOutline
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.InsertDriveFile
 import androidx.compose.material3.CircularProgressIndicator
@@ -69,9 +72,7 @@ import io.zer0.muse.ui.common.media.rememberWindowWidthClass
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
-import io.zer0.muse.ui.theme.mega
 import io.zer0.muse.ui.theme.pill
-import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.workspace.WorkspaceManager
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -111,6 +112,7 @@ fun WorkspaceScreen(
     // 前端修复 (持久化-1): WorkspaceEntry 为自定义复杂类型,列表无法直接 saveable,保持 remember(重建后由 reload() 重新加载)
     var entries by remember { mutableStateOf<List<WorkspaceManager.WorkspaceEntry>>(emptyList()) }
     var isLoading by rememberSaveable { mutableStateOf(false) }
+    var isImporting by rememberSaveable { mutableStateOf(false) }
     var errorMsg by remember { mutableStateOf<String?>(null) }
 
     // 弹窗状态
@@ -153,6 +155,38 @@ fun WorkspaceScreen(
         }
     }
 
+    val importFilesLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenMultipleDocuments(),
+    ) { uris ->
+        if (uris.isNotEmpty()) {
+            // 文件选择器返回后固定目标目录,避免用户在复制期间切换目录导致文件落错位置。
+            val targetDirectory = currentPath
+            scope.launch {
+                isImporting = true
+                var importedCount = 0
+                val failures = mutableListOf<String>()
+                uris.forEach { uri ->
+                    when (val result = workspaceManager.importFile(uri, targetDirectory)) {
+                        is WorkspaceManager.FileImportResult.Success -> importedCount++
+                        is WorkspaceManager.FileImportResult.Error -> failures += result.message
+                    }
+                }
+                isImporting = false
+                reload()
+                if (failures.isEmpty()) {
+                    MuseToast.show(context.getString(R.string.workspace_import_success, importedCount))
+                } else {
+                    MuseToast.show(
+                        context.getString(
+                            R.string.workspace_import_failed,
+                            failures.first().take(120),
+                        ),
+                    )
+                }
+            }
+        }
+    }
+
     // 审计修复 (3.1): 进入页面 / 切换目录时重新加载。
     // 加载逻辑直接内联进 LaunchedEffect,currentPath 变化时旧协程会被自动取消,
     // 避免先发的 listDir 晚返回后覆盖新目录的加载结果。
@@ -186,6 +220,21 @@ fun WorkspaceScreen(
                 onBack = if (currentPath.isEmpty()) onBack else ({ currentPath = parentPath(currentPath) }),
                 largeTitle = true,
                 actions = {
+                    IconButton(
+                        onClick = {
+                            runCatching {
+                                importFilesLauncher.launch(arrayOf("*/*"))
+                            }.onFailure {
+                                MuseToast.show(context.getString(R.string.workspace_import_failed, it.message))
+                            }
+                        },
+                        enabled = !isImporting,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.FileDownload,
+                            contentDescription = stringResource(R.string.workspace_import_file),
+                        )
+                    }
                     // 子目录下额外提供"返回根目录"快捷按钮
                     if (currentPath.isNotEmpty()) {
                         IconButton(onClick = { currentPath = "" }) {
@@ -214,6 +263,20 @@ fun WorkspaceScreen(
             contentAlignment = Alignment.TopCenter,
         ) {
             when {
+                isImporting -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(top = innerPadding.calculateTopPadding()),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator()
+                            Spacer(Modifier.size(MusePaddings.contentGap))
+                            Text(stringResource(R.string.workspace_import_file))
+                        }
+                    }
+                }
                 isLoading && entries.isEmpty() -> {
                     Box(
                         modifier = Modifier

@@ -1,5 +1,6 @@
 package io.zer0.muse.schedule
 
+import io.zer0.muse.session.ConversationSessionManager
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -11,7 +12,7 @@ class ChatGenerationManagerTest {
 
     @Test
     fun `active generation is registered before background coroutine starts`() = runTest {
-        val manager = ChatGenerationManager(backgroundScope)
+        val manager = ChatGenerationManager(backgroundScope, ConversationSessionManager(backgroundScope))
         val gate = CompletableDeferred<Unit>()
 
         manager.launchGeneration(
@@ -33,7 +34,7 @@ class ChatGenerationManagerTest {
 
     @Test
     fun `all active sessions remain visible while the newest session finishes`() = runTest {
-        val manager = ChatGenerationManager(backgroundScope)
+        val manager = ChatGenerationManager(backgroundScope, ConversationSessionManager(backgroundScope))
         val firstGate = CompletableDeferred<Unit>()
         val secondGate = CompletableDeferred<Unit>()
 
@@ -56,7 +57,7 @@ class ChatGenerationManagerTest {
 
     @Test
     fun `same session replacement waits for cancelled generation to finish`() = runTest {
-        val manager = ChatGenerationManager(backgroundScope)
+        val manager = ChatGenerationManager(backgroundScope, ConversationSessionManager(backgroundScope))
         val oldFinally = CompletableDeferred<Unit>()
         val newStarted = CompletableDeferred<Unit>()
 
@@ -81,7 +82,7 @@ class ChatGenerationManagerTest {
 
     @Test
     fun `touch updates only the requested session heartbeat`() = runTest {
-        val manager = ChatGenerationManager(backgroundScope)
+        val manager = ChatGenerationManager(backgroundScope, ConversationSessionManager(backgroundScope))
         val firstGate = CompletableDeferred<Unit>()
         val secondGate = CompletableDeferred<Unit>()
 

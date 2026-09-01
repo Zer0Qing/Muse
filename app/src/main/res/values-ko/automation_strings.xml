@@ -3,7 +3,7 @@
     <string name="automation_settings_title">UI 자동화</string>
     <string name="automation_settings_subtitle">화면 읽기 및 조작 권한</string>
     <string name="accessibility_service_description">Muse가 화면 내용을 읽고 탭, 스와이프 등 동작을 시뮬레이션하여 앱 간 작업을 자동화할 수 있게 합니다. Muse는 사용자의 확인 없이 작업을 수행하지 않습니다.</string>
-    <string name="automation_permission_a11y">접근성 서비스</string>
+    <string name="automation_permission_a11y">Muse UI 자동화</string>
     <string name="automation_permission_shell">Shell (Shizuku/adb)</string>
     <string name="automation_permission_root">Root</string>
     <string name="automation_settings_unavailable">시스템 설정을 열 수 없습니다. 시스템 설정에서 권한을 직접 활성화하세요.</string>

@@ -11,6 +11,7 @@ import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MotionScheme
+import androidx.compose.material3.LocalRippleConfiguration
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.ColorScheme
@@ -32,7 +33,6 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontFamily
 import androidx.core.view.WindowCompat
 import io.zer0.common.Logger
-import androidx.compose.runtime.RememberObserver
 
 /**
  * v0.52: 从 Context 链中查找 Activity(用于操作 Window)。
@@ -199,23 +199,28 @@ fun MuseTheme(
     // L-TH2: MotionScheme.expressive() 缓存为单例,避免每次重组新建。
     val motionScheme = remember { MotionScheme.expressive() }
 
-    MaterialExpressiveTheme(
-        colorScheme = effectiveColorScheme,
-        typography = scaledTypography,
-        shapes = MuseShapes,
-        motionScheme = motionScheme,
-    ) {
-        // v1.68: 全局禁用默认 ripple 遮罩，避免浅色/深色主题下出现黑色按压阴影。
-        // 需要按压反馈的组件使用 MuseCardPress / MuseTactileButton 等自带颜色渐变组件。
-        // v1.0.52: 同步注入语义状态色与代码高亮色,业务代码不再硬编码裸色。
-        val statusColors = if (darkTheme) DarkStatusColors else LightStatusColors
-        val codeColors = if (darkTheme) DarkCodeColors else LightCodeColors
-        CompositionLocalProvider(
-            LocalIndication provides NoIndicationNodeFactory,
-            LocalStatusColors provides statusColors,
-            LocalCodeColors provides codeColors,
+    MuseMotion.Provide {
+        MaterialExpressiveTheme(
+            colorScheme = effectiveColorScheme,
+            typography = scaledTypography,
+            shapes = MuseShapes,
+            motionScheme = motionScheme,
         ) {
-            content()
+            // v1.68: 全局禁用默认 ripple 遮罩，避免浅色/深色主题下出现黑色按压阴影。
+            // 需要按压反馈的组件使用 MuseCardPress / MuseTactileButton 等自带颜色渐变组件。
+            // v1.0.52: 同步注入语义状态色与代码高亮色,业务代码不再硬编码裸色。
+            val statusColors = if (darkTheme) DarkStatusColors else LightStatusColors
+            val codeColors = if (darkTheme) DarkCodeColors else LightCodeColors
+            CompositionLocalProvider(
+                LocalIndication provides NoIndicationNodeFactory,
+                // Material3 Button/IconButton 等组件使用独立的 ripple Local；同时关闭它，
+                // 避免自绘按压反馈与系统 ripple 叠加后在遮罩里产生白色横条。
+                LocalRippleConfiguration provides null,
+                LocalStatusColors provides statusColors,
+                LocalCodeColors provides codeColors,
+            ) {
+                content()
+            }
         }
     }
 }

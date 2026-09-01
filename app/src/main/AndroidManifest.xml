@@ -227,7 +227,7 @@
             android:name=".notification.MuseNotificationListenerService"
             android:label="Muse 通知监听"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
-            android:exported="false">
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
@@ -236,15 +236,6 @@
         <!-- v1.136: 定时提醒闹钟接收器 -->
         <receiver
             android:name=".tools.reminder.ReminderAlarmReceiver"
-            android:exported="false" />
-
-        <!--
-            P3-3: Shizuku UserService — 以 shell 权限执行命令。
-            通过 Shizuku.bindUserService() 在独立进程中启动,继承 Shizuku 的 shell 权限。
-            exported=false: 仅本应用 + Shizuku 服务可绑定。
-        -->
-        <service
-            android:name=".tools.system.ShellService"
             android:exported="false" />
 
         <!-- 文件附件:用于把沙盒内文件通过 ACTION_VIEW 分享给其它应用打开 -->
@@ -268,10 +259,12 @@
             android:exported="true"
             android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
 
-        <!-- v1.0.80: UI 自动化无障碍服务 -->
+        <!-- v1.0.80: UI 自动化无障碍服务。
+             exported=true 是 AccessibilityManager 由系统绑定该服务的必要条件;
+             BIND_ACCESSIBILITY_SERVICE 仍限制普通应用直接绑定。 -->
         <service
             android:name=".automation.executors.MuseAccessibilityService"
-            android:exported="false"
+            android:exported="true"
             android:label="@string/automation_permission_a11y"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <intent-filter>

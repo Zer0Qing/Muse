@@ -1,7 +1,6 @@
 package io.zer0.muse.ui.common.surface
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -15,14 +14,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseHaptics
+import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MuseShapes
 
 /**
@@ -122,7 +120,7 @@ fun MuseSurface(
 
     val animatedColor by animateColorAsState(
         targetValue = if (isPressed && enablePressedFeedback) pressedColor else color,
-        animationSpec = tween(
+        animationSpec = MuseMotion.tween(
             durationMillis = MuseAnimation.TACTILE_MS,
             easing = MuseAnimation.EaseOutCubic,
         ),

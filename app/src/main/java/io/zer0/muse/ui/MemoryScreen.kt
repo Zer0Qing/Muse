@@ -2,7 +2,6 @@
 
 package io.zer0.muse.ui
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Refresh
@@ -29,9 +29,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -133,49 +130,65 @@ fun MemoryScreen(
             modifier = Modifier.fillMaxSize().padding(padding),
             contentAlignment = Alignment.TopCenter,
         ) {
-            Column(
+            LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .then(if (widthClass == WindowWidthClass.Expanded) Modifier.widthIn(max = 760.dp) else Modifier),
+                contentPadding = PaddingValues(bottom = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                MemoryOverviewCard(
-                    factCount = state.factCount,
-                    organizing = organizing,
-                    stage = organizeStage,
-                    scopeLabel = scopes.firstOrNull { it.id == selectedScope }?.displayName
-                        ?: stringResource(R.string.memory_center_scope_all),
-                    spaceLabel = spaces.firstOrNull { it.id == selectedSpace }?.name
-                        ?: stringResource(R.string.memory_center_space_default),
-                    onOrganize = viewModel::organizeMemory,
-                    onOpenFilter = { showFilter = true },
-                )
+                item(key = "memory_overview") {
+                    MemoryOverviewCard(
+                        factCount = state.factCount,
+                        organizing = organizing,
+                        stage = organizeStage,
+                        scopeLabel = scopes.firstOrNull { it.id == selectedScope }?.displayName
+                            ?: stringResource(R.string.memory_center_scope_all),
+                        spaceLabel = spaces.firstOrNull { it.id == selectedSpace }?.name
+                            ?: stringResource(R.string.memory_center_space_default),
+                        onOrganize = viewModel::organizeMemory,
+                        onOpenFilter = { showFilter = true },
+                    )
+                }
+                item(key = "memory_tabs") {
+                    MemoryCapsuleTabs(selected = tab, onSelect = { tab = it })
+                }
                 val memoryError = state.errorTrace
                 if (memoryError != null) {
-                    MuseErrorStateBox(
-                        message = memoryError.lineSequence().firstOrNull { it.isNotBlank() }?.take(240)
-                            ?: stringResource(R.string.memory_graph_load_failed),
-                        onRetry = { viewModel.loadAll() },
-                        modifier = Modifier.fillMaxSize(),
-                    )
+                    item(key = "memory_error") {
+                        MuseErrorStateBox(
+                            message = memoryError.lineSequence().firstOrNull { it.isNotBlank() }?.take(240)
+                                ?: stringResource(R.string.memory_graph_load_failed),
+                            onRetry = { viewModel.loadAll() },
+                            modifier = Modifier.fillMaxWidth().height(320.dp),
+                        )
+                    }
                 } else {
-                    MemoryCapsuleTabs(selected = tab, onSelect = { tab = it })
                     when (tab) {
-                    0 -> MemoryStreamTab(
-                        state = state,
-                        onOpenFacts = { tab = 1 },
-                        onEdit = { editItem = it },
-                        onDelete = { viewModel.deleteFact(it.id) },
-                        onPin = { viewModel.toggleFactPinned(it.id) },
-                    )
-                    1 -> MemoryFactsTab(
-                        state = state,
-                        query = query,
-                        onQuery = { query = it },
-                        onAdd = { showAddFact = true },
-                        onEdit = { editItem = it },
-                        onDelete = viewModel::deleteFact,
-                        onPin = { viewModel.toggleFactPinned(it.id) },
-                    )
+                        0 -> memoryStreamItems(
+                            state = state,
+                            onOpenFacts = { tab = 1 },
+                            onEdit = { editItem = it },
+                            onDelete = { viewModel.deleteFact(it.id) },
+                            onPin = { viewModel.toggleFactPinned(it.id) },
+                        )
+                        1 -> memoryFactsItems(
+                            state = state,
+                            query = query,
+                            onQuery = { query = it },
+                            onAdd = { showAddFact = true },
+                            onEdit = { editItem = it },
+                            onDelete = viewModel::deleteFact,
+                            onPin = { viewModel.toggleFactPinned(it.id) },
+                        )
+                        else -> item(key = "memory_constellation") {
+                            MemoryConstellationTab(
+                                scope = selectedScope,
+                                spaceId = selectedSpace,
+                                factCount = state.factCount,
+                                modifier = Modifier.fillMaxWidth().height(560.dp),
+                            )
+                        }
                     }
                 }
             }
@@ -337,8 +350,7 @@ private fun MemoryOverviewCard(
     }
 }
 
-@Composable
-private fun MemoryStreamTab(
+private fun LazyListScope.memoryStreamItems(
     state: MemoryUiState,
     onOpenFacts: () -> Unit,
     onEdit: (MemoryItem) -> Unit,
@@ -347,33 +359,33 @@ private fun MemoryStreamTab(
 ) {
     val items = state.factItems.sortedByDescending { it.createdAt ?: it.time.orEmpty() }
     if (state.isLoading) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            io.zer0.muse.ui.common.state.MuseLoadingState()
+        item(key = "memory_stream_loading") {
+            Box(Modifier.fillMaxWidth().height(320.dp), contentAlignment = Alignment.Center) {
+                io.zer0.muse.ui.common.state.MuseLoadingState()
+            }
         }
         return
     }
     if (items.isEmpty()) {
-        Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(
-                    text = stringResource(R.string.memory_center_empty_subtitle),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                )
-                OutlinedButton(onClick = onOpenFacts, shape = MuseShapes.large) {
-                    Text(stringResource(R.string.memory_center_open_facts))
+        item(key = "memory_stream_empty") {
+            Box(Modifier.fillMaxWidth().height(320.dp).padding(24.dp), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = stringResource(R.string.memory_center_empty_subtitle),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    )
+                    OutlinedButton(onClick = onOpenFacts, shape = MuseShapes.large) {
+                        Text(stringResource(R.string.memory_center_open_facts))
+                    }
                 }
             }
         }
         return
     }
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = MusePaddings.screen, vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        items(items, key = { "stream_${it.id}" }) { item ->
+    items(items, key = { "stream_${it.id}" }) { item ->
+        Box(modifier = Modifier.padding(horizontal = MusePaddings.screen)) {
             MemoryFactRow(
                 item = item,
                 onEdit = { onEdit(item) },
@@ -384,8 +396,7 @@ private fun MemoryStreamTab(
     }
 }
 
-@Composable
-private fun MemoryFactsTab(
+private fun LazyListScope.memoryFactsItems(
     state: MemoryUiState,
     query: String,
     onQuery: (String) -> Unit,
@@ -395,13 +406,15 @@ private fun MemoryFactsTab(
     onPin: (MemoryItem) -> Unit,
 ) {
     val items = if (query.isBlank()) state.factItems else state.searchResults
-    Column(modifier = Modifier.fillMaxSize()) {
+    item(key = "memory_fact_search") {
         MemorySearchBar(
             query = query,
             onQueryChange = onQuery,
             enabled = !state.isLoading,
             modifier = Modifier.fillMaxWidth().padding(horizontal = MusePaddings.screen, vertical = 4.dp),
         )
+    }
+    item(key = "memory_fact_header") {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = MusePaddings.screen, vertical = 2.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -415,34 +428,35 @@ private fun MemoryFactsTab(
                 Icon(Icons.Default.Add, contentDescription = stringResource(R.string.memory_screen_add_fact_cd))
             }
         }
+    }
         if (state.isLoading) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            item(key = "memory_facts_loading") {
+                Box(Modifier.fillMaxWidth().height(320.dp), contentAlignment = Alignment.Center) {
                 io.zer0.muse.ui.common.state.MuseLoadingState()
+                }
             }
         } else if (items.isEmpty()) {
-            Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(
-                        text = if (query.isBlank()) stringResource(R.string.memory_center_empty_subtitle)
-                        else stringResource(R.string.memory_screen_empty_content),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                    )
-                    OutlinedButton(onClick = onAdd, shape = MuseShapes.large) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text(stringResource(R.string.memory_add_fact))
+            item(key = "memory_facts_empty") {
+                Box(Modifier.fillMaxWidth().height(320.dp).padding(24.dp), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(
+                            text = if (query.isBlank()) stringResource(R.string.memory_center_empty_subtitle)
+                            else stringResource(R.string.memory_screen_empty_content),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                        )
+                        OutlinedButton(onClick = onAdd, shape = MuseShapes.large) {
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(stringResource(R.string.memory_add_fact))
+                        }
                     }
                 }
             }
         } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = MusePaddings.screen, vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                items(items, key = { "lib_${it.id}" }) { item ->
+            items(items, key = { "lib_${it.id}" }) { item ->
+                Box(modifier = Modifier.padding(horizontal = MusePaddings.screen)) {
                     MemoryFactRow(
                         item = item,
                         onEdit = { onEdit(item) },
@@ -452,7 +466,6 @@ private fun MemoryFactsTab(
                 }
             }
         }
-    }
 }
 
 @Composable
@@ -460,11 +473,12 @@ private fun MemoryConstellationTab(
     scope: String?,
     spaceId: String,
     factCount: Int,
+    modifier: Modifier = Modifier,
 ) {
     val graphViewModel: MemoryGraphViewModel = koinViewModel()
     val graphState by graphViewModel.state.collectAsStateWithLifecycle()
     LaunchedEffect(scope, spaceId) { graphViewModel.load(scope, spaceId) }
-    Column(modifier = Modifier.fillMaxSize().padding(horizontal = MusePaddings.screen, vertical = 4.dp)) {
+    Column(modifier = modifier.padding(horizontal = MusePaddings.screen, vertical = 4.dp)) {
         Text(
             text = stringResource(R.string.memory_center_constellation_hint),
             style = MaterialTheme.typography.bodySmall,

@@ -9,13 +9,6 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -31,8 +24,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -40,40 +31,28 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import io.zer0.muse.ui.common.media.WindowWidthClass
 import io.zer0.muse.ui.common.state.MuseLoadingState
-import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.ui.common.surface.MusePageScaffold
 import io.zer0.muse.ui.common.surface.museBottomBarInsets
+import io.zer0.muse.ui.common.museAnimateItem
 import io.zer0.muse.transformer.InternalMarkupSanitizer
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.verticalScroll
 import compose.icons.TablerIcons
 import compose.icons.tablericons.AlertCircle
 import compose.icons.tablericons.ArrowLeft
-import compose.icons.tablericons.Edit
 import compose.icons.tablericons.GitMerge
 import compose.icons.tablericons.MessageCircle
 import compose.icons.tablericons.Search
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
@@ -103,9 +82,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.isCtrlPressed
 import androidx.compose.ui.input.key.isShiftPressed
@@ -118,13 +94,11 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.ai.core.MessageRole
@@ -135,7 +109,6 @@ import io.zer0.muse.ui.common.media.DesktopShortcuts
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.MuseTextField
-import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.media.rememberDesktopShortcutsEnabled
 import io.zer0.muse.ui.common.media.rememberWindowWidthClass
@@ -145,34 +118,26 @@ import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.artifact.ArtifactEntity
 import io.zer0.muse.data.knowledge.KnowledgeDocDao
-import io.zer0.muse.data.knowledge.KnowledgeDocEntity
 import io.zer0.muse.ui.chat.ToolApprovalCard
 import io.zer0.muse.ui.chat.TokenStatsBar
-import io.zer0.muse.ui.chat.buildQuotedContent
 import io.zer0.muse.ui.chat.SlashCommand
 import io.zer0.muse.ui.chat.PendingQueueBar
 import io.zer0.muse.ui.chat.MessageMapBar
 import io.zer0.muse.ui.chat.MESSAGE_MAP_MIN_MESSAGES
 import io.zer0.muse.ui.speech.SpeechInput
 import io.zer0.muse.ui.speech.TtsControllerWidget
-import io.zer0.muse.ui.speech.VoiceConversationMode
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseIconSizes
-import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseMotion
-import io.zer0.muse.ui.taskcard.AgentPlan
-import io.zer0.muse.ui.taskcard.AgentPlanStepStatus
 import io.zer0.muse.perf.MessagePaginator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
-import io.zer0.muse.tools.BrowserManager
 import io.zer0.muse.ui.chat.BrowserStatusCapsule
 /** P6-B3: 翻译支持的目标语言列表(常用语言,中文名便于 LLM 理解)。 */
 internal val TranslationLanguages = listOf(
@@ -289,8 +254,6 @@ fun ChatScreen(
     val pendingMessageManager: io.zer0.muse.data.schedule.PendingMessageManager = koinInject()
     val pendingMessages by pendingMessageManager.pendingMessagesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
     val pendingScope = rememberCoroutineScope()
-    // A3 (H1): 系统关闭动画(reduced-motion)时消息段级淡入降级为立即显示
-    val reducedMotion = MuseMotion.isReducedMotion()
     // v1.45: 用 ViewModel 中缓存的滚动位置初始化 LazyListState,切页/后台后恢复位置
     val listState = rememberLazyListState(
         initialFirstVisibleItemIndex = state.listFirstVisibleItemIndex,
@@ -431,20 +394,24 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
     // v1.0.74 fix (前端审计 1.1): 消息区在 LazyColumn 的起始全局索引。
     // 消息前后有条件插入的额外 item(agent_mode_hint/load_more/shimmer/subagent_task_list 等),
     // 所有"消息局部索引 ↔ 全局索引"换算必须加这个偏移,否则 isAtBottom/滚动定位全错位。
-    val messageStartIndex by remember { derivedStateOf {
+    val messageStartIndex = run {
         var idx = 0
         val showAgentHint =
             !state.weakToolHint.isNullOrEmpty() || !state.agentModeHint.isNullOrEmpty()
         if (showAgentHint) idx++
         if (state.isLoadingMore) idx++
         idx
-    } }
+    }
 
     // v0.48: 派生状态 — isAtBottom 判断列表是否在底部(用户没往上滚)
     // v1.52: 收紧阈值 — 仅当最后一项的底部在视口内才算"在底部",
     //        避免"部分可见=在底部"导致流式增量把用户拉回底部。
     // v1.0.4 (P3-4): 性能模式下用 visibleMessages(实际渲染列表)判断,而非 messages。
-    val isAtBottom by remember {
+    val isAtBottom by remember(
+        visibleMessages.size,
+        visibleMessages.lastOrNull()?.id,
+        messageStartIndex,
+    ) {
         derivedStateOf {
             if (visibleMessages.isEmpty()) return@derivedStateOf true
             val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull() ?: return@derivedStateOf false
@@ -463,7 +430,15 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
     // 跳过新插入的条数,使 firstVisibleItemIndex 变为 lastHistoryLoadCount(>0),
     // 从而避免在顶部重复触发(用户需再次主动上滑才继续加载)。
     var savedScrollOffset by remember { mutableStateOf(0) }
-    val loadMoreTrigger by remember {
+    val loadMoreTrigger by remember(
+        state.hasMoreHistory,
+        state.isLoadingMore,
+        state.isStreaming,
+        messages.isNotEmpty(),
+        performanceMode,
+        visibleMessages.size,
+        renderableMessageCount,
+    ) {
         derivedStateOf {
             state.hasMoreHistory &&
                 !state.isLoadingMore &&
@@ -488,7 +463,12 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
     }
     // v1.0.4 (P3-4): 性能模式内存分页触发 — 到达顶部且 messages 还有未渲染的更早消息时,
     // 扩展 paginatorPageCount(纯本地内存分页,不查 DB)。扩展后通过 scrollToItem 保持视觉位置不跳。
-    val paginatorLoadMoreTrigger by remember {
+    val paginatorLoadMoreTrigger by remember(
+        performanceMode,
+        renderableMessageCount,
+        visibleMessages.size,
+        state.isStreaming,
+    ) {
         derivedStateOf {
             performanceMode &&
                 renderableMessageCount > visibleMessages.size &&
@@ -707,6 +687,12 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                 ?: modelId
         }
     }
+    val assistantDisplayName = state.currentAssistant?.name?.takeIf { it.isNotBlank() }
+    val displayModelName = if (state.currentAssistant?.useAssistantName == true) {
+        assistantDisplayName ?: modelName
+    } else {
+        modelName
+    }
 
     // v0.51: 观察一次性 toast(模型切换提示等),非空时弹 Toast 并立即清空,避免重组重复弹
     LaunchedEffect(state.toast) {
@@ -729,9 +715,11 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
     }
 
     // SYSTEM 路径:系统语音识别 Intent launcher(无 API Key 时的 fallback)
+    var systemRecording by rememberSaveable { mutableStateOf(false) }
     val speechLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult(),
     ) { result ->
+        systemRecording = false
         val text = SpeechInput.parseResult(result.resultCode, result.data?.extras)
         if (text != null) {
             onSpeechResult(text)
@@ -743,7 +731,8 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
         contract = ActivityResultContracts.RequestPermission(),
     ) { granted ->
         if (granted) {
-            viewModel.startStreamingAsr()
+            // 权限弹窗会打断原本的长按手势,授权成功后要求用户再次长按,避免无意中开启无限录音。
+            MuseToast.show(context.getString(R.string.chat_mic_permission_granted))
         } else {
             viewModel.reportError(context.getString(R.string.chat_err_mic_permission))
         }
@@ -788,7 +777,7 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
         if (!chatBackground.isNullOrBlank()) {
             io.zer0.muse.ui.SmartImage(
                 model = chatBackground,
-                contentDescription = "聊天背景",
+                contentDescription = stringResource(R.string.chat_background_cd),
                 contentScale = androidx.compose.ui.layout.ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
             )
@@ -867,7 +856,7 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                             currentSession?.title?.takeIf { it.isNotBlank() } ?: "muse"
                         }
                         val sessionCd = stringResource(R.string.chat_session_cd, sessionTitle)
-                        val rawModelName = modelName ?: state.providers
+                        val rawModelName = displayModelName ?: state.providers
                             .firstOrNull { it.id == state.activeProviderId }?.models
                             ?.firstOrNull()?.name
                             ?: stringResource(R.string.chat_model_not_configured)
@@ -1187,8 +1176,9 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                 // v1.49: 移除 Vosk 后,两条路径:
                 //  - API 模式(有 apiKey):长按录音 + 松开识别 + 上滑取消
                 //  - SYSTEM 模式(无 apiKey):长按麦克风松开后弹系统语音识别 Intent
-                isRecording = state.asrState.isRecording,
+                isRecording = state.asrState.isRecording || systemRecording,
                 asrStatus = state.asrState.status,
+                asrErrorMessage = state.asrState.errorMessage,
                 recordingAmplitudes = state.asrState.amplitudes,
                 onStartRecording = {
                     if (viewModel.shouldUseApiRecording()) {
@@ -1212,6 +1202,7 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                         } else {
                             // 返回 false:不进入"录音中"状态(系统 Intent 会接管 UI)
                             // 实际 launch 在松手时触发,避免长按期间反复 launch
+                            systemRecording = true
                             true
                         }
                     }
@@ -1220,6 +1211,7 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                     if (viewModel.shouldUseApiRecording()) {
                         viewModel.stopStreamingAsr()
                     } else {
+                        systemRecording = false
                         // v1.95: 仅首次使用提示,后续直接调起系统 Intent
                         ioScope.launch {
                             val shown = settings.asrTipShownFlow.first()
@@ -1238,19 +1230,22 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                     }
                 },
                 onCancelRecording = {
-                    if (viewModel.shouldUseApiRecording()) viewModel.cancelStreamingAsr()
+                    if (viewModel.shouldUseApiRecording()) {
+                        viewModel.cancelStreamingAsr()
+                    } else {
+                        systemRecording = false
+                    }
                     // SYSTEM 路径无取消概念(尚未 launch Intent)
                 },
-                // v1.97: 仅在用户配置了 ASR API 后才显示麦克风 UI
-                showMic = viewModel.shouldUseApiRecording(),
+                // 仅在实时 ASR Provider 已配置 API Key 时显示麦克风;未配置时保留发送按钮,
+                // 避免用户点击一个必然不可用的语音入口。DASHSCOPE_FILE 仍只支持文件转录。
+                showMic = viewModel.shouldUseApiRecording() && state.asrConfig.apiKey.isNotBlank(),
                 // v1.97: 工具/任务进度 pill(优先用 plan 进度,否则用 toolCallHistory)
                 toolCallCompleted = toolCallCompleted,
                 toolCallTotal = toolCallTotal,
                 onShowToolCalls = { sheetState.showToolCallSheet = true },
                 // 功能2: 草稿标记
                 hasDraft = state.hasDraft,
-                // 语音对话模式入口:点击进入全屏连续对话
-                onOpenVoiceConversation = { sheetState.showVoiceConversation = true },
                 // v1.0.29: Agent Tab 不主动呼出输入法
                 autoFocus = !isAgentMode,
                 // v1.0.47 P5-3: Token 估算(默认关闭,设置页开启后输入栏底部显示 Token 统计条)
@@ -1410,7 +1405,7 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
             }
             Crossfade(
                 targetState = chatScreenState,
-                animationSpec = tween(300),
+                animationSpec = MuseMotion.tween(MuseAnimation.NORMAL_MS),
                 label = "chatState",
                 modifier = Modifier.fillMaxSize(),
             ) { screenState ->
@@ -1465,9 +1460,7 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                     visibleMessages.mapTo(mutableSetOf()) { it.id.toString() }
                 }
                 // M-UI3: 将最新计划卡关联到最近一条助手消息,随消息一起滚动
-                val lastAssistantId by remember {
-                    derivedStateOf { visibleMessages.lastOrNull { it.role == MessageRole.ASSISTANT }?.id }
-                }
+                val lastAssistantId = visibleMessages.lastOrNull { it.role == MessageRole.ASSISTANT }?.id
                 // I3: 聊天区独立错误边界,消息列表渲染数据构建失败只降级该区域
                 RegionErrorBoundary(
                     regionName = "chat",
@@ -1550,32 +1543,22 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                         // v1.100: 用 derivedStateOf 收窄 state 读取范围,避免每次 messages 变化
                         // 都重新计算所有可见 item 的 isLast。只有最后一条消息变化时才重组。
                         // v1.0.4 (P3-4): isLast 基于 visibleMessages,性能模式下指"已渲染列表的最后一条"
-                        val isLast by remember { derivedStateOf { msg.id == visibleMessages.lastOrNull()?.id } }
+                        val isLast = msg.id == visibleMessages.lastOrNull()?.id
                         // 最后一条用户提问：控制 user 消息底部的重roll按钮。
                         // 即使 AI 报错生成了失败的 assistant 消息，只要这条 user 仍是最后提问，
                         // 重roll就可用，用户不用删掉重发。
-                        val isLastUserMessage by remember(msg.id) {
-                            derivedStateOf {
-                                msg.role == MessageRole.USER &&
-                                    visibleMessages.lastOrNull { it.role == MessageRole.USER }?.id == msg.id
-                            }
-                        }
+                        val isLastUserMessage = msg.role == MessageRole.USER &&
+                            visibleMessages.lastOrNull { it.role == MessageRole.USER }?.id == msg.id
                         // v1.0.53: 当前消息对应的分支组信息(直接来自 ConversationTree)
-                        val branchInfo by remember(msg.id) {
-                            derivedStateOf { conversationTree.branchInfoFor(msg.id) }
-                        }
+                        val branchInfo = conversationTree.branchInfoFor(msg.id)
                         // 工具执行与展开操作会更新 ChatUiState 的 Map。这里直接读取当前快照；
                         // 不能用 remember(msg.id) 捕获初始 state,否则新建的任务卡/展开状态
                         // 不会传进已存在的 LazyColumn item,页面看起来像“工具没有调用”。
                         val expandedState = state.messageExpandedStates[msg.id.toString()]
                         val taskCard = state.taskCards[msg.id.toString()]
                         // v1.100: isTranslating/isSpeaking 精确到 msg.id,用 derivedStateOf 收窄
-                        val isTranslating by remember(msg.id) {
-                            derivedStateOf { state.isTranslating && state.translatingMessageId == msg.id }
-                        }
-                        val isSpeaking by remember(msg.id) {
-                            derivedStateOf { state.isSpeaking && state.speakingMessageId == msg.id }
-                        }
+                        val isTranslating = state.isTranslating && state.translatingMessageId == msg.id
+                        val isSpeaking = state.isSpeaking && state.speakingMessageId == msg.id
                         // v1.43: 观察该消息关联的产物卡片列表
                         // H-S1: 用 produceState 以 msg.id 为 key,避免重组时反复重建 Flow + 反复查库
                         val artifacts by produceState(initialValue = emptyList<ArtifactEntity>(), msg.id) {
@@ -1609,18 +1592,9 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                         }
                         // v1.58: 从此消息分叉对话
                         val onFork = remember(msg.id) { { viewModel.forkSessionFromMessage(msg.id) } }
-                        // 消息项动画:新增/移除/重排时平滑过渡(MuseAnimation 令牌)
-                        // A3 (H1): reduced-motion 时降级为 0 时长(立即显示,不播放淡入)
-                        Column(modifier = Modifier.animateItem(
-                            fadeInSpec = if (reducedMotion) tween(0) else tween(
-                                MuseAnimation.SLOW_MS,
-                                easing = MuseAnimation.EaseOutCubic,
-                            ),
-                            placementSpec = if (reducedMotion) tween(0) else tween(
-                                MuseAnimation.NORMAL_MS,
-                                easing = MuseAnimation.EaseOutCubic,
-                            ),
-                        )) {
+                        // 消息项动画统一走 museAnimateItem；流式中的最后一条消息不做插入/位移动画，
+                        // 避免内容增量和列表布局动画同时运行造成抖动。
+                        Column(modifier = museAnimateItem(enabled = !(isLast && isStreaming))) {
                         // 日期分隔线渲染在消息上方
                         if (showDateSeparator) {
                             DateSeparator(timestamp = msg.createdAt)
@@ -1733,7 +1707,7 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                             // v1.48: 长按菜单"删除消息"
                             onDeleteMessage = { viewModel.deleteMessage(msg.id) },
                             // v0.29 P0-4: AI 消息底部显示模型名 + token 估算
-                            modelName = modelName,
+                            modelName = displayModelName,
                             // v0.31: 聊天行为偏好传给 MessageBubble
                             chatPrefs = state.chatPreferences,
                             // v0.48: 消息分组参数 + AI 头像来源
@@ -1831,7 +1805,7 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                             val progressText = when {
                                 state.toolProgressMessage != null -> state.toolProgressMessage
                                 vp?.isActive == true ->
-                                    "正在分析图片 ${vp.index}/${vp.total}…"
+                                    stringResource(R.string.chat_analyzing_image, vp.index, vp.total)
                                 state.isOcrProcessing -> stringResource(R.string.ocr_processing_hint)
                                 else -> null
                             }
@@ -1870,8 +1844,8 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
             // 仅在用户主动上滑(userScrolledUp)后显示,位于输入栏上方。
             AnimatedVisibility(
                 visible = userScrolledUp && visibleMessages.isNotEmpty(),
-                enter = fadeIn() + slideInVertically { it / 2 },
-                exit = fadeOut() + slideOutVertically { it / 2 },
+                enter = MuseMotion.verticalSlideFadeEnter(initialOffsetY = { it / 2 }),
+                exit = MuseMotion.verticalSlideFadeExit(targetOffsetY = { it / 2 }),
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = MusePaddings.screen)
@@ -1927,8 +1901,8 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
             AnimatedVisibility(
                 // v1.0.20 (Task 3): isStreaming 读派生值,避免 input 按键触发 Banner 重组
                 visible = state.pendingToolCallCount > 0 && !isStreaming,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically(),
+                enter = MuseMotion.expandFadeEnter(),
+                exit = MuseMotion.expandFadeExit(),
                 modifier = Modifier.align(Alignment.TopCenter).padding(top = topInset),
             ) {
                 val pendingCd = stringResource(R.string.chat_pending_tools_cd)
@@ -1991,8 +1965,8 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
             // (原仅顶部 IconButton 替换为转圈,对话区无反馈,用户不知道压缩是否在运行)
             AnimatedVisibility(
                 visible = state.isCompressing,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically(),
+                enter = MuseMotion.expandFadeEnter(),
+                exit = MuseMotion.expandFadeExit(),
                 modifier = Modifier.align(Alignment.TopCenter).padding(top = topInset),
             ) {
                 Surface(
@@ -2028,8 +2002,8 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
             }
             AnimatedVisibility(
                 visible = runningDelegateCount > 0 && !state.isCompressing,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically(),
+                enter = MuseMotion.expandFadeEnter(),
+                exit = MuseMotion.expandFadeExit(),
                 modifier = Modifier.align(Alignment.TopCenter).padding(top = topInset),
             ) {
                 Surface(
@@ -2063,8 +2037,8 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
             // v1.131: 红色网络离线 banner 从底部移到顶部,避免遮挡输入栏
             AnimatedVisibility(
                 visible = state.errors.isNotEmpty(),
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically(),
+                enter = MuseMotion.expandFadeEnter(),
+                exit = MuseMotion.expandFadeExit(),
                 modifier = Modifier.align(Alignment.TopCenter).padding(top = topInset),
             ) {
                 Box(

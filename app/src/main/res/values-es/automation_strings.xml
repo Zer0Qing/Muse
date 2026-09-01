@@ -3,7 +3,7 @@
     <string name="automation_settings_title">Automatización de UI</string>
     <string name="automation_settings_subtitle">Permisos de lectura y operación de pantalla</string>
     <string name="accessibility_service_description">Permite que Muse lea el contenido de la pantalla y simule toques, deslizamientos y otros gestos para automatizar tareas entre aplicaciones. Muse no ejecutará acciones sin tu confirmación.</string>
-    <string name="automation_permission_a11y">Servicio de Accesibilidad</string>
+    <string name="automation_permission_a11y">Automatización UI de Muse</string>
     <string name="automation_permission_shell">Shell (Shizuku/adb)</string>
     <string name="automation_permission_root">Root</string>
     <string name="automation_settings_unavailable">No se pueden abrir los ajustes del sistema. Ábrelos manualmente para activar el permiso.</string>

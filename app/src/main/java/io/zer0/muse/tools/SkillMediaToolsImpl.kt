@@ -13,7 +13,6 @@ import io.zer0.muse.tools.script.WebViewSkillEngine
 import io.zer0.muse.ui.qrcode.QrCodeGenerator
 import io.zer0.ai.image.ImageService
 import io.zer0.ai.core.ProviderConfig
-import io.zer0.muse.tools.JsSandbox
 
 /**
  * P1-3b 拆域：Skill 媒体/JS/插件工具实现（从 SkillExecutor.kt 迁移）。

@@ -26,11 +26,9 @@ import kotlinx.serialization.json.jsonObject
 
 import kotlinx.serialization.json.jsonPrimitive
 import kotlin.uuid.Uuid
-import java.io.BufferedReader
-import java.io.InputStreamReader
 import java.nio.charset.StandardCharsets
 import io.zer0.muse.R
-import io.zer0.muse.util.readZipEntryWithLimit
+import io.zer0.muse.util.copyZipEntryWithLimit
 import java.util.zip.ZipInputStream
 
 /**
@@ -70,9 +68,6 @@ object ThirdPartyImporter {
      */
     private const val MAX_JSON_IMPORT_BYTES = 200L * 1024 * 1024
 
-    /** UTF-8 BOM 前缀(部分 Windows 编辑器导出的 JSON 会带 BOM,需跳过)。 */
-    private val UTF8_BOM = byteArrayOf(0xEF.toByte(), 0xBB.toByte(), 0xBF.toByte())
-
     /**
      * 自动检测备份格式并导入。
      * @param backupUri SAF URI(backup_*.zip / 既有实现_backup_*.zip / ChatGPT conversations.json)
@@ -89,9 +84,16 @@ object ThirdPartyImporter {
         // 流式复制到缓存文件,避免 readBytes() 把整个文件一次性读进内存导致 OOM。
         val tempFile = java.io.File.createTempFile("import_", ".tmp", context.cacheDir)
         try {
-            context.contentResolver.openInputStream(uri)?.use { input ->
-                tempFile.outputStream().use { output -> input.copyTo(output) }
-            } ?: return@withContext ImportResult(errors = listOf(context.getString(R.string.import_error_read_file_failed)))
+            val input = context.contentResolver.openInputStream(uri)
+                ?: run {
+                    tempFile.delete()
+                    return@withContext ImportResult(
+                        errors = listOf(context.getString(R.string.import_error_read_file_failed)),
+                    )
+                }
+            input.use { source ->
+                tempFile.outputStream().use { output -> source.copyTo(output) }
+            }
         } catch (e: Exception) {
             Logger.w(TAG, "无法读取导入文件", e)
             tempFile.delete()
@@ -112,7 +114,9 @@ object ThirdPartyImporter {
                     ),
                 )
             }
-            val text = tempFile.readBytes().let { decodeUtf8SkipBom(it) }
+            val text = tempFile.inputStream().bufferedReader(StandardCharsets.UTF_8).use { reader ->
+                reader.readText().removePrefix("\uFEFF")
+            }
             tempFile.delete()
             return@withContext importJsonText(
                 ctx, text,
@@ -141,16 +145,23 @@ object ThirdPartyImporter {
                         val name = entry.name.substringAfterLast('/')
                         val keep = name == "settings.json" || name == "chats.json" ||
                             name.endsWith("conversations.json") || name == "conversations.json"
-                        // 单文件兜底限制
-                        val buf = if (keep) readZipEntryWithLimit(zis, MAX_SINGLE_FILE) else null
-                        if (keep && buf != null) {
-                            totalSize += buf.size.toLong()
-                            if (totalSize > MAX_TOTAL_SIZE) {
-                                throw IllegalStateException("解压内容总大小超过限制(${MAX_TOTAL_SIZE / 1024 / 1024 / 1024}GB)")
-                            }
+                        // 单文件兜底限制:流式落盘,避免把大条目整体读入 Android 堆。
+                        if (keep) {
                             val tmp = java.io.File.createTempFile("zip_${name}_", ".tmp", context.cacheDir)
-                            tmp.writeBytes(buf)
-                            extracted[name] = tmp
+                            try {
+                                val entryBytes = tmp.outputStream().buffered().use { output ->
+                                    copyZipEntryWithLimit(zis, output, MAX_SINGLE_FILE, entry.name)
+                                }
+                                totalSize += entryBytes
+                                if (totalSize > MAX_TOTAL_SIZE) {
+                                    throw IllegalStateException("解压内容总大小超过限制(${MAX_TOTAL_SIZE / 1024 / 1024 / 1024}GB)")
+                                }
+                                extracted.remove(name)?.delete()
+                                extracted[name] = tmp
+                            } catch (e: Exception) {
+                                tmp.delete()
+                                throw e
+                            }
                         }
                     }
                     entry = zis.nextEntry
@@ -259,20 +270,6 @@ object ThirdPartyImporter {
                 importRikkaHub(context, text, settings, assistantRepo, sessionRepo)
             else -> ImportResult(errors = listOf(context.getString(R.string.import_error_unknown_format)))
         }
-    }
-
-    /**
-     * M-IMP3: 把字节数组按 UTF-8 解码并跳过开头的 BOM(若有)。
-     */
-    private fun decodeUtf8SkipBom(bytes: ByteArray): String {
-        val src = if (bytes.size >= 3 &&
-            bytes[0] == UTF8_BOM[0] && bytes[1] == UTF8_BOM[1] && bytes[2] == UTF8_BOM[2]
-        ) {
-            bytes.copyOfRange(3, bytes.size)
-        } else {
-            bytes
-        }
-        return BufferedReader(InputStreamReader(src.inputStream(), StandardCharsets.UTF_8)).readText()
     }
 
     // ── 既有实现 导入 ──

@@ -1,6 +1,5 @@
 package io.zer0.ai.registry
 
-import io.zer0.ai.core.BuiltInTool
 import io.zer0.ai.core.KnownModels
 import io.zer0.ai.core.KnownModels.Modality
 import io.zer0.ai.core.Model

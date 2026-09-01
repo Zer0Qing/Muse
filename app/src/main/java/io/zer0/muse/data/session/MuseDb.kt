@@ -165,7 +165,7 @@ import kotlinx.serialization.builtins.serializer
         MessagePartEntity::class,
         SessionBranchHeadEntity::class,
     ],
-    version = 95,
+    version = 96,
     exportSchema = true,
 )
 @TypeConverters(QuickNoteConverters::class)
@@ -744,6 +744,18 @@ abstract class MuseDb : RoomDatabase() {
                 """.trimIndent())
                 db.execSQL("CREATE INDEX IF NOT EXISTS idx_message_parts_message_index ON message_parts(messageId, partIndex)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS idx_message_parts_kind ON message_parts(kind)")
+            }
+        }
+
+        /** v95→v96: sessions/消息级联删除补索引(审计 D-P2,消除全表扫描)。 */
+        val MIGRATION_95_96 = object : Migration(95, 96) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_messages_parentGroupId ON messages(parentGroupId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_sessions_assistantId_updatedAt " +
+                    "ON sessions(assistantId, updatedAt)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_sessions_deletedAt_archived_updatedAt " +
+                    "ON sessions(deletedAt, archived, updatedAt)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_sessions_parentSessionId ON sessions(parentSessionId)")
             }
         }
 
@@ -2572,6 +2584,7 @@ abstract class MuseDb : RoomDatabase() {
                         MIGRATION_92_93,
                         MIGRATION_93_94,
                         MIGRATION_94_95,
+                        MIGRATION_95_96,
                     )
                     // 启用外键约束(artifacts 表的 ON DELETE CASCADE 依赖此设置)
                     // onOpen 不在 onCreate 事务内,可以执行此类命令;onCreate 内禁止 PRAGMA

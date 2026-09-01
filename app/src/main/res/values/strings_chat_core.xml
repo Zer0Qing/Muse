@@ -137,6 +137,7 @@
 
     <!-- 错误与权限提示 -->
     <string name="chat_err_mic_permission">需要麦克风权限才能使用语音输入</string>
+    <string name="chat_mic_permission_granted">麦克风权限已授予,请再次长按麦克风开始录音</string>
     <string name="chat_err_open_file_picker">无法打开文件选择器: %1$s</string>
     <string name="chat_err_open_image_picker">无法打开图片选择器: %1$s</string>
     <string name="chat_err_no_speech_service">设备没有可用的语音识别服务,请在设置→语音识别中配置 DashScope 或 Step</string>
@@ -505,6 +506,13 @@
     <string name="msg_info_estimated">估算</string>
     <string name="msg_info_no_data">无生成数据</string>
     <string name="msg_info_unknown">未知</string>
+    <string name="chat_debug_model_label">模型</string>
+    <string name="chat_debug_duration_label">耗时</string>
+    <string name="chat_debug_ttft_label">TTFT</string>
+    <string name="chat_debug_rate_label">速率</string>
+    <string name="chat_debug_chars_label">字符</string>
+    <string name="chat_debug_tool_calls_label">工具调用</string>
+    <string name="chat_debug_round_label">轮次</string>
     <!-- A1: 会话内查找(聊天页就地查找框) -->
     <string name="chat_find_in_conversation">会话内查找</string>
     <string name="chat_find_placeholder">搜索当前会话</string>

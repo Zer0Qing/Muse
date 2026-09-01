@@ -216,6 +216,11 @@
     <string name="settings_memory_reply_notification_subtitle">When to notify after an AI reply completes</string>
 
     <!-- Data Import -->
+    <string name="settings_import_muse_backup_title">Muse Native Backup</string>
+    <string name="settings_import_muse_backup_desc">Restore a Muse JSON, NDJSON, or ZIP backup. Current local data will be replaced.</string>
+    <string name="settings_import_muse_backup_step1">1. Export a Muse backup from Settings → Backup &amp; Restore</string>
+    <string name="settings_import_muse_backup_step2">2. Select the .json, .ndjson, or .zip file</string>
+    <string name="settings_import_muse_backup_step3">3. Sessions, messages, assistants, memory, and settings will be restored</string>
     <string name="settings_import_page_title">Data Import</string>
     <string name="settings_import_migrate_title">Migrate data from other apps</string>
     <string name="settings_import_migrate_desc">If you previously used RikkaHub or Kelivo, you can import their backup files into Muse. Import includes: provider configuration (API keys, etc.), assistant characters, and conversation history.</string>

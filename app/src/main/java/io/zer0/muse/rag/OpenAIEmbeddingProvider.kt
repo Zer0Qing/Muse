@@ -3,12 +3,10 @@ package io.zer0.muse.rag
 import io.zer0.ai.core.ProviderConfig
 import io.zer0.ai.core.ProviderSpecificConfig
 import io.zer0.common.AppJson
-import io.zer0.common.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull

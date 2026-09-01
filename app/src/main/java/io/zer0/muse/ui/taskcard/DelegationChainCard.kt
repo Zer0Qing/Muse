@@ -4,8 +4,8 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseMotion
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -348,16 +348,21 @@ private fun StatusDot(status: DelegationNodeStatus) {
 
     if (status == DelegationNodeStatus.RUNNING) {
         // 脉冲动画:alpha 0.3f → 1f 来回
-        val transition = rememberInfiniteTransition(label = "delegationPulse")
-        val alpha by transition.animateFloat(
-            initialValue = 0.3f,
-            targetValue = 1f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(MuseAnimation.LOOP_SLOW_MS),
-                repeatMode = RepeatMode.Reverse,
-            ),
-            label = "delegationPulseAlpha",
-        )
+        val alpha = if (MuseMotion.isReducedMotion()) {
+            0.65f
+        } else {
+            val transition = rememberInfiniteTransition(label = "delegationPulse")
+            val animatedAlpha by transition.animateFloat(
+                initialValue = 0.3f,
+                targetValue = 1f,
+                animationSpec = infiniteRepeatable(
+                    animation = MuseMotion.tween(MuseAnimation.LOOP_SLOW_MS),
+                    repeatMode = RepeatMode.Reverse,
+                ),
+                label = "delegationPulseAlpha",
+            )
+            animatedAlpha
+        }
         Box(
             modifier = Modifier
                 .size(12.dp)

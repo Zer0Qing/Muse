@@ -26,6 +26,9 @@ object InternalMarkupSanitizer {
         .replace(Regex("(?i)\\[/?(?:mood|mod|think|thinking|reflection|moodfx)\\]"), "")
         .trim()
 
+    /** 从推理通道移除完整 mood/mod 块,但保留其中其他 think 内容。 */
+    fun stripMoodBlocks(text: String): String = moodBlock.replace(text, "").trim()
+
     /** 返回可以直接展示给用户的正文。 */
     fun stripForDisplay(text: String): String {
         if (text.isBlank()) return ""

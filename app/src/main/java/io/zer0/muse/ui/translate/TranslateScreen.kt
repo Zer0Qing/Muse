@@ -1,13 +1,12 @@
 package io.zer0.muse.ui.translate
 
+import io.zer0.muse.ui.theme.MuseMotion
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -51,7 +50,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -622,8 +620,8 @@ private fun SourceInputCard(
             // OCR 识别中提示
             AnimatedVisibility(
                 visible = ocrRecognizing,
-                enter = fadeIn(),
-                exit = fadeOut(),
+                enter = MuseMotion.fadeEnter(),
+                exit = MuseMotion.fadeExit(),
             ) {
                 Column {
                     LinearProgressIndicator(
@@ -812,8 +810,8 @@ private fun TranslationResultCard(
 ) {
     AnimatedVisibility(
         visible = translatedText.isNotBlank() || translating,
-        enter = fadeIn(),
-        exit = fadeOut(),
+        enter = MuseMotion.fadeEnter(),
+        exit = MuseMotion.fadeExit(),
     ) {
         Surface(
             shape = MuseShapes.extraLarge,

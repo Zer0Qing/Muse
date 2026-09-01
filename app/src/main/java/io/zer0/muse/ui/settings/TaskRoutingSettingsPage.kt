@@ -44,6 +44,7 @@ fun TaskRoutingSettingsPage(
     val activeProviderId by settings.activeProviderIdFlow.collectAsStateWithLifecycle(initialValue = null)
     val scope = rememberCoroutineScope()
     var editingType by remember { mutableStateOf<TaskType?>(null) }
+    var editingProviderId by remember { mutableStateOf<String?>(null) }
     val defaultModelText = stringResource(R.string.settings_task_routing_default_model)
 
     fun update(block: (TaskRoutingConfig) -> TaskRoutingConfig) {
@@ -83,7 +84,14 @@ fun TaskRoutingSettingsPage(
                             providers = providers,
                             defaultText = defaultModelText,
                         ),
-                        onClick = { editingType = type },
+                        onClick = {
+                            editingType = type
+                            editingProviderId = config.providerIdFor(type)
+                                ?: providers.firstOrNull { provider ->
+                                    provider.models.any { it.id == config.modelIdFor(type) }
+                                }?.id
+                                ?: activeProviderId
+                        },
                     ) {
                         ChevronRight()
                     }
@@ -95,19 +103,43 @@ fun TaskRoutingSettingsPage(
     editingType?.let { type ->
         ModelSwitchSheet(
             providers = providers,
-            activeProviderId = activeProviderId,
+            activeProviderId = editingProviderId ?: activeProviderId,
             selectedModelId = config.modelIdFor(type),
-            onPickProvider = { /* 不在此页切换全局激活 Provider，避免副作用 */ },
+            onPickProvider = { providerId -> editingProviderId = providerId },
             onPickModel = { modelId ->
-                if (modelId != null) {
-                    update { it.withModel(type, modelId) }
+                update {
+                    it.withRoute(
+                        type = type,
+                        modelId = modelId,
+                        providerId = editingProviderId.takeIf { modelId != null },
+                    )
                 }
                 editingType = null
+                editingProviderId = null
+            },
+            // 任务路由需要“显式绑定 Provider 首个模型”和“未绑定”可区分；
+            // 普通聊天的 ModelSwitchSheet 仍保留原来的清除绑定语义。
+            onPickDefaultModel = {
+                val providerId = editingProviderId ?: activeProviderId
+                val defaultModelId = providers.firstOrNull { it.id == providerId }
+                    ?.models?.firstOrNull()?.id
+                update {
+                    it.withRoute(
+                        type = type,
+                        modelId = defaultModelId,
+                        providerId = providerId.takeIf { defaultModelId != null },
+                    )
+                }
+                editingType = null
+                editingProviderId = null
             },
             onRefreshModels = { /* 模型列表由 Provider 设置页维护 */ },
             isFetchingModels = false,
             fetchModelsError = null,
-            onDismiss = { editingType = null },
+            onDismiss = {
+                editingType = null
+                editingProviderId = null
+            },
         )
     }
 }
@@ -136,14 +168,25 @@ private fun TaskRoutingConfig.modelIdFor(type: TaskType): String? = when (type) 
     TaskType.ANALYSIS -> analysisModelId
 }
 
-private fun TaskRoutingConfig.withModel(type: TaskType, modelId: String): TaskRoutingConfig =
-    when (type) {
-        TaskType.CHAT -> copy(chatModelId = modelId)
-        TaskType.REASONING -> copy(reasoningModelId = modelId)
-        TaskType.CODE -> copy(codeModelId = modelId)
-        TaskType.CREATIVE -> copy(creativeModelId = modelId)
-        TaskType.ANALYSIS -> copy(analysisModelId = modelId)
-    }
+private fun TaskRoutingConfig.providerIdFor(type: TaskType): String? = when (type) {
+    TaskType.CHAT -> chatProviderId
+    TaskType.REASONING -> reasoningProviderId
+    TaskType.CODE -> codeProviderId
+    TaskType.CREATIVE -> creativeProviderId
+    TaskType.ANALYSIS -> analysisProviderId
+}
+
+private fun TaskRoutingConfig.withRoute(
+    type: TaskType,
+    modelId: String?,
+    providerId: String?,
+): TaskRoutingConfig = when (type) {
+    TaskType.CHAT -> copy(chatModelId = modelId, chatProviderId = providerId)
+    TaskType.REASONING -> copy(reasoningModelId = modelId, reasoningProviderId = providerId)
+    TaskType.CODE -> copy(codeModelId = modelId, codeProviderId = providerId)
+    TaskType.CREATIVE -> copy(creativeModelId = modelId, creativeProviderId = providerId)
+    TaskType.ANALYSIS -> copy(analysisModelId = modelId, analysisProviderId = providerId)
+}
 
 private fun taskTypeModelLabel(
     type: TaskType,
@@ -153,6 +196,14 @@ private fun taskTypeModelLabel(
 ): String {
     val modelId = config.modelIdFor(type)
     if (modelId.isNullOrBlank()) return defaultText
-    val model = providers.flatMap { it.models }.firstOrNull { it.id == modelId }
-    return model?.name?.ifBlank { model.id } ?: modelId
+    val providerId = config.providerIdFor(type)
+    val provider = providers.firstOrNull { it.id == providerId }
+    val model = provider?.models?.firstOrNull { it.id == modelId }
+        ?: providers.flatMap { it.models }.firstOrNull { it.id == modelId }
+    val modelName = model?.name?.ifBlank { model.id } ?: modelId
+    return if (provider != null) {
+        "${provider.displayName.ifBlank { provider.id }} / $modelName"
+    } else {
+        modelName
+    }
 }

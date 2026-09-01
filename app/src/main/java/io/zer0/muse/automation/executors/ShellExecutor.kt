@@ -1,7 +1,6 @@
 package io.zer0.muse.automation.executors
 
 import android.content.Context
-import android.graphics.Bitmap
 import android.os.Build
 import io.zer0.muse.automation.core.AutomationExecutor
 import io.zer0.muse.automation.core.PermissionLevel
@@ -36,7 +35,7 @@ open class ShellExecutor(
     protected open val shellPrefix: List<String> = listOf("sh")
 
     override suspend fun isAvailable(): Boolean = withContext(Dispatchers.IO) {
-        if (shizukuAuthorizer != null) return@withContext shizukuAuthorizer.checkPermission()
+        if (shizukuAuthorizer != null) return@withContext shizukuAuthorizer.checkReady()
         val result = exec("id")
         result.isSuccess && result.getOrDefault("").isNotBlank()
     }
@@ -47,8 +46,21 @@ open class ShellExecutor(
         try {
             // Shizuku AIDL 传输文本，使用 base64 保证 PNG 二进制不被破坏。
             val result = if (shizukuAuthorizer != null) {
-                exec("screencap -p | base64").mapCatching {
-                    android.util.Base64.decode(it.filterNot(Char::isWhitespace), android.util.Base64.DEFAULT)
+                // Binder 回包有体量上限;先 gzip 再 base64，避免 1080p PNG 直接超过事务大小。
+                val compressed = exec("screencap -p | gzip -c | base64").mapCatching { encoded ->
+                    val compressedBytes = android.util.Base64.decode(
+                        encoded.filterNot(Char::isWhitespace),
+                        android.util.Base64.DEFAULT,
+                    )
+                    java.util.zip.GZIPInputStream(compressedBytes.inputStream()).use { it.readBytes() }
+                }
+                if (compressed.isSuccess) {
+                    compressed
+                } else {
+                    // 个别精简 ROM 没有 gzip，保留小图/旧设备的明文回退。
+                    exec("screencap -p | base64").mapCatching {
+                        android.util.Base64.decode(it.filterNot(Char::isWhitespace), android.util.Base64.DEFAULT)
+                    }
                 }
             } else {
                 execBinary("screencap -p")
@@ -77,7 +89,7 @@ open class ShellExecutor(
             nodes = nodes,
             screenWidth = metrics.widthPixels,
             screenHeight = metrics.heightPixels,
-            source = "shell",
+            source = if (shizukuAuthorizer != null) "shizuku" else "root",
         )
     }
 
@@ -105,13 +117,16 @@ open class ShellExecutor(
     ): Boolean = exec("input swipe $x1 $y1 $x2 $y2 $durationMs").isSuccess
 
     override suspend fun inputText(text: String): Boolean = withContext(Dispatchers.IO) {
-        // input text 不支持中文,中文走剪贴板 + KEYCODE_PASTE
-        val escaped = text.replace(" ", "%s").replace("\"", "\\\"")
-        val asciiOk = text.all { it.code < 128 }
-        if (asciiOk) {
+        // input text 不支持中文;且把文本直接拼进 sh -c 存在命令注入风险。
+        // 仅当文本纯 ASCII 且不含 shell 元字符($、反引号、;、&、|、<、>)时才走
+        // input text 快速路径;其余一律走剪贴板 + KEYCODE_PASTE(文本经 ClipData,
+        // 不经过 shell 文本内插,无注入面)。
+        val safeAscii = text.all { it.code < 128 } && !SHELL_META_REGEX.containsMatchIn(text)
+        if (safeAscii) {
+            val escaped = text.replace(" ", "%s").replace("\"", "\\\"")
             exec("input text \"$escaped\"").isSuccess
         } else {
-            // 写剪贴板需要 service call,这里用 base64 + 粘贴
+            // 写剪贴板 + KEYCODE_PASTE
             try {
                 val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                 cm.setPrimaryClip(android.content.ClipData.newPlainText("auto", text))
@@ -128,7 +143,12 @@ open class ShellExecutor(
         exec("input keyevent $keyCode").isSuccess
 
     override suspend fun launchApp(packageName: String): Boolean =
-        exec("monkey -p $packageName -c android.intent.category.LAUNCHER 1").isSuccess
+        if (!PACKAGE_NAME_REGEX.matches(packageName)) {
+            Logger.w(TAG, "launchApp 拒绝非法包名(可能含 shell 元字符): $packageName")
+            false
+        } else {
+            exec("monkey -p $packageName -c android.intent.category.LAUNCHER 1").isSuccess
+        }
 
     override suspend fun openNotifications(): Boolean = withContext(Dispatchers.IO) {
         // 展开通知栏: cmd statusbar expand-notifications (API 24+) 或 service call
@@ -267,5 +287,9 @@ open class ShellExecutor(
 
     companion object {
         private const val TAG = "ShellExec"
+        /** shell 元字符:出现在插值文本中即视为命令注入风险,改用剪贴板路径绕过内插。 */
+        private val SHELL_META_REGEX = Regex("[\$`;&|<>]")
+        /** 合法包名白名单(仅字母数字点下划线),拒绝含 shell 元字符的包名注入。 */
+        private val PACKAGE_NAME_REGEX = Regex("^[a-zA-Z][a-zA-Z0-9_.]*\$")
     }
 }

@@ -24,6 +24,9 @@ object TokenEstimator {
     @Volatile
     private var encoding: Encoding? = null
 
+    /** 视觉图片 token 估算(每张):Gemini ~258、OpenAI high-detail ~1105;取 1000 偏保守。 */
+    private const val IMAGE_TOKEN_ESTIMATE_PER_IMAGE = 1000
+
     private fun getEncoding(): Encoding? {
         if (encoding != null) return encoding
         // v1.80 (L-TE1): 改用 resultOf,正确重抛 CancellationException(runCatching 会吞掉)
@@ -68,6 +71,12 @@ object TokenEstimator {
             // toolCalls 的 arguments 也算入(JSON 字符串)
             msg.toolCalls?.forEach { tc ->
                 total += estimate(tc.arguments)
+            }
+            // 视觉图片(base64 / url)同样占用上下文;此前完全未计,导致视觉对话
+            // 预算系统性偏低 → AUTO_COMPRESS/占用圈失真,含图超长上下文可能撞 400。
+            val imageCount = msg.imageBase64List.size + msg.imageUrls.size
+            if (imageCount > 0) {
+                total += imageCount * IMAGE_TOKEN_ESTIMATE_PER_IMAGE
             }
         }
         // M6: 每条消息约 4 tokens 开销(OpenAI 协议每条消息的固定开销:role 标记 + 分隔符)

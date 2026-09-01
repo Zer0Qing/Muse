@@ -105,4 +105,24 @@
     <string name="notif_permission_status_off">Разрешение на уведомления отключено</string>
     <string name="notif_permission_guide">Включите, чтобы получать уведомления о сообщениях и резервных копиях</string>
     <string name="notif_permission_open">Включить</string>
+    <!-- v1.0.85: release localization -->
+    <string name="notif_listener_search_hint">Поиск уведомлений</string>
+    <string name="notif_listener_all_apps">Все приложения</string>
+    <string name="notif_listener_show_all">Показать все</string>
+    <string name="notif_listener_unread_only">Только непрочитанные</string>
+    <string name="notif_listener_mark_all_read">Отметить все как прочитанные</string>
+    <string name="notif_listener_export">Экспорт</string>
+    <string name="notif_listener_export_success">Уведомления экспортированы</string>
+    <string name="notif_listener_export_failed">Не удалось экспортировать уведомления: %1$s</string>
+    <string name="notif_listener_export_write_failed">Не удалось записать файл экспорта</string>
+    <string name="notif_listener_filter_empty">Нет уведомлений, соответствующих текущему фильтру</string>
+    <string name="notif_listener_no_text">В этом уведомлении нет текста для отображения</string>
+    <string name="notif_listener_unread_label">Непрочитано</string>
+    <string name="notif_listener_active_only">Только активные</string>
+    <string name="notif_listener_show_history">Показать историю</string>
+    <string name="notif_listener_counts">Всего: %1$d · активных: %2$d · непрочитанных: %3$d</string>
+    <string name="notif_listener_active_label">В панели уведомлений</string>
+    <string name="notif_listener_removed_label">Удалено</string>
+    <string name="notif_listener_channel_label">Канал: %1$s</string>
+    <string name="notif_listener_category_label">Категория: %1$s</string>
 </resources>

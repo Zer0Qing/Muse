@@ -12,13 +12,14 @@
 
 package io.zer0.muse.ui.groupchat
 
+import io.zer0.muse.ui.theme.MuseMotion
+
 import android.graphics.Bitmap
 import android.net.Uri
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import android.content.ContentUris
 import android.provider.MediaStore
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -67,7 +68,6 @@ import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -77,7 +77,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
@@ -86,9 +85,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
-import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
@@ -96,7 +93,6 @@ import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.HowToVote
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Summarize
@@ -830,17 +826,22 @@ internal fun AgentActivityChip(activity: AgentActivity) {
     // REPLYING 态呼吸动画:alpha 在 1f↔0.5f 间循环,让 chip 有"正在输出"的视觉反馈
     // v1.0.74 fix (前端审计 6.4): 仅 REPLYING 时创建无限动画,
     // 非 REPLYING 状态不跑动画帧(原实现无条件创建,静止时也每帧驱动)。
-    val pulseAlpha = if (activity.status == AgentActivityStatus.REPLYING) {
+    val pulseAlpha = if (
+        activity.status == AgentActivityStatus.REPLYING &&
+            !io.zer0.muse.ui.theme.MuseMotion.isReducedMotion()
+    ) {
         val infiniteTransition = rememberInfiniteTransition(label = "activity_pulse")
         infiniteTransition.animateFloat(
             initialValue = 1f,
             targetValue = 0.5f,
             animationSpec = infiniteRepeatable(
-                animation = tween(800),
+                animation = MuseMotion.tween(io.zer0.muse.ui.theme.MuseAnimation.LOOP_SLOW_MS),
                 repeatMode = RepeatMode.Reverse,
             ),
             label = "pulse_alpha",
         ).value
+    } else if (activity.status == AgentActivityStatus.REPLYING) {
+        0.75f
     } else {
         1f
     }
@@ -1551,6 +1552,9 @@ private fun CameraLivePreviewBox(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val currentOnTap by rememberUpdatedState(onTap)
+    // 持有 provider 引用;面板离开组合(onRelease)时解绑,避免相机在菜单关闭后仍绑定
+    // 在 RESUMED Activity 上(指示灯常亮/耗电/阻塞其他相机应用)。
+    val cameraProviderHolder = remember { arrayOfNulls<ProcessCameraProvider>(1) }
     AndroidView(
         factory = { ctx ->
             val previewView = PreviewView(ctx).apply {
@@ -1562,6 +1566,7 @@ private fun CameraLivePreviewBox(
                 providerFuture.addListener({
                     runCatching {
                         val provider = providerFuture.get()
+                        cameraProviderHolder[0] = provider
                         val preview = Preview.Builder().build().also {
                             it.setSurfaceProvider(previewView.surfaceProvider)
                         }
@@ -1571,6 +1576,10 @@ private fun CameraLivePreviewBox(
                 }, ContextCompat.getMainExecutor(ctx))
             }.onFailure { e -> Logger.w("GroupChatToolSheet", "相机预览初始化失败", e) }
             previewView
+        },
+        onRelease = {
+            cameraProviderHolder[0]?.unbindAll()
+            cameraProviderHolder[0] = null
         },
         modifier = modifier,
     )

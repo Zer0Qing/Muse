@@ -712,4 +712,8 @@
     <string name="settings_screen_miniphone_desc">실험 기능 초기 버전</string>
     <string name="model_diff_clear_add">새 모델 선택 해제</string>
     <string name="model_diff_clear_remove">삭제 모델 선택 해제</string>
+    <!-- v1.0.85: release localization -->
+    <string name="workspace_import_file">파일 관리자에서 가져오기</string>
+    <string name="workspace_import_success">%1$d개를 가져왔습니다</string>
+    <string name="workspace_import_failed">파일 가져오기 실패: %1$s</string>
 </resources>

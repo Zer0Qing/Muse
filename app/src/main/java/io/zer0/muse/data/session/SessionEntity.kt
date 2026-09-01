@@ -2,6 +2,7 @@ package io.zer0.muse.data.session
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import kotlinx.serialization.Serializable
 
@@ -24,7 +25,15 @@ import kotlinx.serialization.Serializable
  *        Agent Tab 的日常聊天不污染任务列表。
  */
 @Serializable
-@Entity(tableName = "sessions")
+@Entity(
+    tableName = "sessions",
+    // D-AUDIT: 会话列表 / 按助手查询 / 分叉查询的复合索引(此前零索引全表扫描)
+    indices = [
+        Index(value = ["assistantId", "updatedAt"], name = "idx_sessions_assistantId_updatedAt"),
+        Index(value = ["deletedAt", "archived", "updatedAt"], name = "idx_sessions_deletedAt_archived_updatedAt"),
+        Index(value = ["parentSessionId"], name = "idx_sessions_parentSessionId"),
+    ],
+)
 data class SessionEntity(
     @PrimaryKey val id: String,
     val title: String,

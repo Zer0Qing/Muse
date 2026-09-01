@@ -123,7 +123,7 @@ abstract class FactDb : RoomDatabase() {
          */
         val MIGRATION_6_7 = object : Migration(6, 7) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("ALTER TABLE facts ADD COLUMN last_hit_at TEXT")
+                db.execSQL("ALTER TABLE facts ADD COLUMN last_hit_at TEXT DEFAULT NULL")
             }
         }
 

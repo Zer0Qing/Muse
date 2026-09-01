@@ -4,7 +4,6 @@ import android.content.Context
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.Model
 import io.zer0.ai.core.ProviderConfig
-import io.zer0.ai.core.RagCitation
 import io.zer0.ai.core.ReasoningLevel
 import io.zer0.ai.core.ToolCall
 import io.zer0.ai.core.ToolCallSanitizer
@@ -28,7 +27,6 @@ import io.zer0.muse.ui.ChatErrorType
 import io.zer0.muse.ui.ToolCallRecord
 import io.zer0.muse.ui.chat.ChatStateAccessor
 import io.zer0.muse.ui.chat.ChatTaskCardCoordinator
-import io.zer0.muse.ui.taskcard.AgentPlan
 import io.zer0.muse.ui.taskcard.TaskCardData
 import io.zer0.muse.ui.taskcard.TaskCardPhase
 import io.zer0.muse.ui.taskcard.TaskStepStatus
@@ -38,7 +36,6 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -75,21 +72,11 @@ internal const val TOOL_OUTPUTS_DIR = "tool_outputs"
 /** 工具调用循环内 conversationHistory 的工具链部分最大消息条数。 */
 internal const val MAX_TOOL_CHAIN_MESSAGES = 30
 
-/** 连续工具失败早停阈值,避免跑满 maxToolRounds 白耗 API 额度。 */
-internal const val MAX_CONSECUTIVE_TOOL_FAILURES = 3
-
-/** R-TEST-10: 连续失败早停纯逻辑。 */
-internal fun shouldAbortToolLoop(consecutiveFailures: Int): Boolean =
-    consecutiveFailures >= MAX_CONSECUTIVE_TOOL_FAILURES
-
 /** v1.x: 简单任务(无 task_plan)的默认最大轮次。 */
 internal const val DEFAULT_MAX_TOOL_ROUNDS = 10
 
 /** v1.x: 工具调用循环绝对上限(防死循环兜底),即使 task_plan 步骤再多也不超过此值。 */
 internal const val MAX_TOOL_ROUNDS_HARD_CAP = 25
-
-/** v1.x: 连续 N 轮 LLM 返回相同 tool_call(同名同参数)时判定卡死,提前终止。 */
-internal const val MAX_NO_PROGRESS_ROUNDS = 2
 
 /** 工具结果落回消息前,清理断点记录允许占用的最长时间。 */
 private const val PENDING_TOOL_CLEANUP_TIMEOUT_MS = 2_000L
@@ -400,10 +387,7 @@ class ToolOrchestrator(
         taskCardCoordinator: ChatTaskCardCoordinator,
     ): ToolLoopResult {
         var round = 0
-        var consecutiveToolFailures = 0
         var currentAssistantId = params.initialAssistantId
-        var totalToolCallCount = 0
-        var totalCharCount = 0
         var firstTokenTime = 0L
         val citationUrls = mutableListOf<String>()
         val toolRounds = mutableListOf<ToolRoundEntity>()
@@ -413,27 +397,35 @@ class ToolOrchestrator(
         // A-07: 非正常退出原因(卡死/连续失败),用于收尾消息文案
         var abortReason: String? = null
 
-        // v1.x: 动态计算最大轮次(按工具循环迭代式设计)
-        //  - 有 task_plan: steps*2 + 5(每步平均 2 轮工具调用 + 5 轮缓冲)
-        //  - 无 task_plan: DEFAULT_MAX_TOOL_ROUNDS(10)
-        //  - 上限 MAX_TOOL_ROUNDS_HARD_CAP(25)兜底,且不超过 params.maxRounds(向后兼容)
-        var maxRounds = computeMaxRounds(conversationHistory, params.maxRounds, params.sessionId)
-        Logger.i(TAG, "Agent Loop 开始 | sessionId=${params.sessionId} | 初始最大轮次: $maxRounds")
+        // M3.3: 统一预算/停止状态源 — ToolExecutionPolicy 承载轮次上限/总调用数/连续失败/重复指纹/时间预算/输出截断。
+        // 动态最大轮次(task_plan steps*2+5 / 无 task_plan 10 / 上限 25)仍由 computeMaxRounds 计算,
+        // 结果写入 execPolicy.maxRounds,循环内不再维护独立的 maxRounds 局部变量。
+        val execPolicy = ToolExecutionPolicy(
+            initialMaxRounds = computeMaxRounds(conversationHistory, params.maxRounds, params.sessionId),
+        )
+        Logger.i(TAG, "Agent Loop 开始 | sessionId=${params.sessionId} | 初始最大轮次: ${execPolicy.maxRounds}")
 
-        // v1.x: 连续无进展早停 — 记录上一轮 tool_call 签名,连续相同则判定卡死
-        var previousToolCallSignature: String? = null
-        var noProgressRounds = 0
-
-        while (hasToolCalls && round < maxRounds) {
+        while (hasToolCalls && round < execPolicy.maxRounds) {
             round++
             val stepStartedAt = System.currentTimeMillis()
-            Logger.d(TAG, "Agent Loop step $round/$maxRounds 开始 | sessionId=${params.sessionId}")
+            Logger.d(TAG, "Agent Loop step $round/${execPolicy.maxRounds} 开始 | sessionId=${params.sessionId}")
 
-            // v1.x: 每轮动态重算 maxRounds(task_plan 可能在循环内才产生,需要扩大配额)
+            // M3.2: turn 级时间预算(默认关闭;配置后超限即停,与连续失败早停同级的兜底防线)
+            if (execPolicy.isTimeBudgetExhausted()) {
+                abortReason = "工具循环总耗时预算耗尽"
+                Logger.w(
+                    TAG,
+                    "Agent Loop 时间预算耗尽,提前终止 | sessionId=${params.sessionId} | " +
+                        "traceId=${params.traceId} | 已执行调用=${execPolicy.executedCalls}",
+                )
+                break
+            }
+
+            // v1.x: 每轮动态重算最大轮次(task_plan 可能在循环内才产生,需要扩大配额)
             val recomputedMax = computeMaxRounds(conversationHistory, params.maxRounds, params.sessionId)
-            if (recomputedMax != maxRounds) {
-                Logger.d(TAG, "Agent Loop maxRounds 更新: $maxRounds → $recomputedMax (task_plan 已产生)")
-                maxRounds = recomputedMax
+            if (recomputedMax != execPolicy.maxRounds) {
+                Logger.d(TAG, "Agent Loop maxRounds 更新: ${execPolicy.maxRounds} → $recomputedMax (task_plan 已产生)")
+                execPolicy.updateMaxRounds(recomputedMax)
             }
 
             // C1-2: 工具链过长时截断,保留初始上下文 + 最近工具链
@@ -499,8 +491,8 @@ class ToolOrchestrator(
                     return ToolLoopResult(
                         finalAssistantId = currentAssistantId,
                         round = round,
-                        totalToolCallCount = totalToolCallCount,
-                        totalCharCount = totalCharCount,
+                        totalToolCallCount = execPolicy.emittedToolCallCount,
+                        totalCharCount = execPolicy.streamedCharCount,
                         firstTokenTime = firstTokenTime,
                         citationUrls = citationUrls.toList(),
                         success = false,
@@ -516,7 +508,7 @@ class ToolOrchestrator(
 
                 is StreamRoundResult.Success -> {
                     citationUrls.addAll(outcome.citationUrls)
-                    totalCharCount += outcome.contentLength
+                    execPolicy.recordStreamedChars(outcome.contentLength)
                     if (outcome.firstTokenTime > 0L && firstTokenTime == 0L) {
                         firstTokenTime = outcome.firstTokenTime
                     }
@@ -524,7 +516,7 @@ class ToolOrchestrator(
                     if (!outcome.hasToolCalls) {
                         hasToolCalls = false
                         finalAssistantMessage = outcome.assistantMessage
-                        Logger.d(TAG, "Agent Loop step $round/$maxRounds 结束(无工具调用,循环正常结束)")
+                        Logger.d(TAG, "Agent Loop step $round/${execPolicy.maxRounds} 结束(无工具调用,循环正常结束)")
                         break
                     }
 
@@ -542,7 +534,7 @@ class ToolOrchestrator(
                                 " | sessionId=${params.sessionId}",
                         )
                     }
-                    totalToolCallCount += toolCallList.size
+                    execPolicy.recordEmittedToolCalls(toolCallList.size)
 
                     // v1.0.48: 过滤后无有效 toolCalls,按"无工具调用"处理本轮
                     if (toolCallList.isEmpty()) {
@@ -560,31 +552,30 @@ class ToolOrchestrator(
                             toolCalls = emptyList(),
                             content = hint,
                         )
-                        Logger.w(TAG, "Agent Loop step $round/$maxRounds: toolCalls 清洗后为空(raw=$rawCount),注入提示")
+                        Logger.w(
+                            TAG,
+                            "Agent Loop step $round/${execPolicy.maxRounds}: toolCalls 清洗后为空(raw=$rawCount),注入提示",
+                        )
                         break
                     }
 
-                    // v1.x: 连续无进展早停检测 — 在回填前判断,避免卡死时还执行重复工具
+                    // M3.3: 连续无进展早停检测 — 归入 execPolicy 轮级签名重复检测,
+                    // 在回填前判断,避免卡死时还执行重复工具。
                     val currentSignature = toolCallSignature(toolCallList)
-                    if (currentSignature.isNotEmpty() && currentSignature == previousToolCallSignature) {
-                        noProgressRounds++
+                    val progressDecision = execPolicy.checkRoundProgress(currentSignature)
+                    if (!progressDecision.allowed) {
                         Logger.w(
                             TAG,
-                            "Agent Loop 检测到连续相同 tool_call(连续 $noProgressRounds 轮)" +
+                            "Agent Loop 检测到连续相同 tool_call(${progressDecision.detail})" +
                                 " | sessionId=${params.sessionId} | signature=$currentSignature",
                         )
-                        if (noProgressRounds >= MAX_NO_PROGRESS_ROUNDS) {
-                            Logger.w(TAG, "Agent Loop 连续 $noProgressRounds 轮无进展,判定卡死,提前终止")
-                            hasToolCalls = false
-                            // A-07: 记录退出原因,收尾时注入明确文案(否则用户只看到工具卡片无任何回复)
-                            abortReason = "检测到工具调用停滞(连续 $noProgressRounds 轮无进展),已自动停止。如需继续,可以让我重新处理。"
-                            // 不把 assistantToolMsg 加入 history,避免遗留无 tool 结果的 assistant 消息
-                            break
-                        }
-                    } else {
-                        noProgressRounds = 0
+                        Logger.w(TAG, "Agent Loop 连续相同 tool_call 轮次达上限,判定卡死,提前终止")
+                        hasToolCalls = false
+                        // A-07: 记录退出原因,收尾时注入明确文案(否则用户只看到工具卡片无任何回复)
+                        abortReason = "检测到工具调用停滞(连续 ${execPolicy.noProgressRoundsCount} 轮无进展),已自动停止。如需继续,可以让我重新处理。"
+                        // 不把 assistantToolMsg 加入 history,避免遗留无 tool 结果的 assistant 消息
+                        break
                     }
-                    previousToolCallSignature = currentSignature
 
                     // v1.0.62: 历史与持久化必须使用清洗后的 toolCalls,
                     // 避免空 name/空 arguments 的非法调用在下一轮请求中触发 400。
@@ -638,7 +629,9 @@ class ToolOrchestrator(
                             it.copy(toolProgressMessage = context.getString(R.string.tool_running, tc.name))
                         }
                         try {
-                            val result = executeSingleToolCall(params, taskCardId, tc, idx, host, taskCardCoordinator)
+                            val result = executeSingleToolCall(
+                                params, taskCardId, tc, idx, host, taskCardCoordinator, execPolicy,
+                            )
                             persistToolRoundIncrementally(params, round, stepStartedAt, result)
                             result
                         } catch (ce: kotlinx.coroutines.CancellationException) {
@@ -747,12 +740,6 @@ class ToolOrchestrator(
                                 "isSuccess" to isSuccess,
                             ),
                         )
-                        if (isSuccess) {
-                            consecutiveToolFailures = 0
-                        } else {
-                            consecutiveToolFailures++
-                        }
-
                         val toolMsg = UIMessage(
                             role = MessageRole.TOOL,
                             content = finalToolResult,
@@ -824,16 +811,16 @@ class ToolOrchestrator(
                             citationUrls.addAll(extractWebSearchUrls(finalToolResult))
                         }
 
-                        // C1-3: 连续失败早停
-                        if (shouldAbortToolLoop(consecutiveToolFailures)) {
+                        // M3.3: 连续失败早停 — 由 execPolicy(唯一状态源)判定
+                        if (execPolicy.shouldAbortOnConsecutiveFailures()) {
                             Logger.w(
                                 "ToolOrchestrator",
-                                "连续 $consecutiveToolFailures 次工具失败,提前终止工具调用循环 " +
+                                "连续 ${execPolicy.consecutiveFailuresCount} 次工具失败,提前终止工具调用循环 " +
                                     "(round=$round, tool=${tc.name})",
                             )
                             hasToolCalls = false
                             // A-07: 记录退出原因,收尾时注入明确文案
-                            abortReason = "连续 $consecutiveToolFailures 次工具调用失败,已自动停止。如需继续,可以让我重新处理。"
+                            abortReason = "连续 ${execPolicy.consecutiveFailuresCount} 次工具调用失败,已自动停止。如需继续,可以让我重新处理。"
                             break
                         }
                     }
@@ -853,7 +840,7 @@ class ToolOrchestrator(
                     }
 
                     // 创建新的占位 assistant 消息接收下一轮流式回复
-                    if (hasToolCalls && round < maxRounds) {
+                    if (hasToolCalls && round < execPolicy.maxRounds) {
                         val nextAssistant = UIMessage(role = MessageRole.ASSISTANT, content = "")
                         val snapshot = accessor.snapshot
                         val isCurrentDisplayedSession2 = if (snapshot.isAgentMode) {
@@ -874,7 +861,7 @@ class ToolOrchestrator(
                     val failCount = execResults.size - successCount
                     Logger.d(
                         TAG,
-                        "Agent Loop step $round/$maxRounds 结束 | 工具=[$toolNames]" +
+                        "Agent Loop step $round/${execPolicy.maxRounds} 结束 | 工具=[$toolNames]" +
                             " | 成功=$successCount 失败=$failCount | 耗时=${stepElapsedMs}ms",
                     )
                 }
@@ -887,7 +874,7 @@ class ToolOrchestrator(
         // 但 abortReason 非空)同样注入,并按退出原因区分文案。
         if (finalAssistantMessage == null) {
             val reasonText = abortReason ?: if (hasToolCalls) {
-                "[已达到工具调用轮次上限($maxRounds 轮),自动停止。如需继续,可以让我接着处理。]"
+                "[已达到工具调用轮次上限(${execPolicy.maxRounds} 轮),自动停止。如需继续,可以让我接着处理。]"
             } else {
                 null
             }
@@ -911,14 +898,15 @@ class ToolOrchestrator(
 
         Logger.i(
             TAG,
-            "Agent Loop 结束 | sessionId=${params.sessionId} | rounds=$round/$maxRounds" +
-                " | toolCalls=$totalToolCallCount | chars=$totalCharCount | success=true",
+            "Agent Loop 结束 | sessionId=${params.sessionId} | rounds=$round/${execPolicy.maxRounds}" +
+                " | toolCalls=${execPolicy.emittedToolCallCount} | chars=${execPolicy.streamedCharCount}" +
+                " | success=true",
         )
         return ToolLoopResult(
             finalAssistantId = currentAssistantId,
             round = round,
-            totalToolCallCount = totalToolCallCount,
-            totalCharCount = totalCharCount,
+            totalToolCallCount = execPolicy.emittedToolCallCount,
+            totalCharCount = execPolicy.streamedCharCount,
             firstTokenTime = firstTokenTime,
             citationUrls = citationUrls.toList(),
             success = true,
@@ -954,6 +942,9 @@ class ToolOrchestrator(
             }
     }
 
+    // M3.2 接线:函数体量/复杂度为本文件历史遗留(审批、Hook、媒体落库、任务卡多路径汇聚),
+    // 本次仅新增预算放行/落账两小段;整体拆分属独立重构任务(先例:A5 LargeClass 豁免注释)。
+    @Suppress("LongMethod", "CyclomaticComplexMethod", "ReturnCount")
     private suspend fun executeSingleToolCall(
         params: ToolLoopParams,
         taskCardId: String?,
@@ -961,7 +952,34 @@ class ToolOrchestrator(
         idx: Int,
         host: ToolLoopHost,
         taskCardCoordinator: ChatTaskCardCoordinator,
+        execPolicy: ToolExecutionPolicy,
     ): ToolExecResult {
+        // M3.2: 统一预算放行 —— 总调用数/连续失败/重复指纹/时间预算命中时短路,
+        // 不弹审批、不执行真实工具;拦截原因作为合成结果回给模型与任务卡。
+        val policyDecision = execPolicy.beforeExecute(tc.name, tc.arguments)
+        if (!policyDecision.allowed) {
+            Logger.w(
+                TAG,
+                "工具调用被预算拦截 | reason=${policyDecision.reason} | ${policyDecision.detail} | " +
+                    "sessionId=${params.sessionId} | traceId=${params.traceId} | tool=${tc.name}",
+            )
+            val blockedResult = """{"error": "tool_execution_policy_blocked", "reason": "${policyDecision.reason}"}"""
+            taskCardCoordinator.updateTaskCardStep(taskCardId, idx) { s ->
+                s.copy(
+                    status = TaskStepStatus.FAILED,
+                    result = "工具 ${tc.name} 未执行(${policyDecision.reason})",
+                    finishedAt = System.currentTimeMillis(),
+                )
+            }
+            return ToolExecResult(
+                idx = idx,
+                tc = tc,
+                finalToolResult = blockedResult,
+                isSuccess = false,
+                displayResult = "工具 ${tc.name} 未执行(${policyDecision.reason})",
+                status = ToolExecStatus.FAILED,
+            )
+        }
         // v1.x: 通知宿主工具开始执行(含审批等待时间),用于细粒度进度
         val toolStartAt = System.currentTimeMillis()
         host.onToolStart(tc.id, tc.name)
@@ -1156,10 +1174,20 @@ class ToolOrchestrator(
         }
 
         host.onToolFinish(tc.id, tc.name, isSuccess, System.currentTimeMillis() - toolStartAt)
+        // M3.2: 执行落账(计数/失败连击/重复指纹)+ 输出大小上限
+        // (审批拒绝/预算拦截的路径已提前 return,不计入调用数)
+        execPolicy.afterExecute(tc.name, tc.arguments, isSuccess)
+        val (clampedResult, wasTruncated) = execPolicy.clampOutput(finalToolResult)
+        if (wasTruncated) {
+            Logger.w(
+                TAG,
+                "工具结果超限截断 | tool=${tc.name} | 原始长度=${finalToolResult.length} | sessionId=${params.sessionId}",
+            )
+        }
         return ToolExecResult(
             idx,
             tc,
-            finalToolResult,
+            clampedResult,
             isSuccess,
             displayResult = displayResult,
             status = if (isSuccess) ToolExecStatus.SUCCESS else ToolExecStatus.FAILED,

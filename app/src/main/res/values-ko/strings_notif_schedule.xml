@@ -105,4 +105,24 @@
     <string name="notif_permission_status_off">알림 권한이 비활성화되었습니다</string>
     <string name="notif_permission_guide">활성화하면 메시지 완료 및 백업 알림을 받을 수 있습니다</string>
     <string name="notif_permission_open">활성화</string>
+    <!-- v1.0.85: release localization -->
+    <string name="notif_listener_search_hint">알림 검색</string>
+    <string name="notif_listener_all_apps">모든 앱</string>
+    <string name="notif_listener_show_all">모두 표시</string>
+    <string name="notif_listener_unread_only">읽지 않은 항목만</string>
+    <string name="notif_listener_mark_all_read">모두 읽음으로 표시</string>
+    <string name="notif_listener_export">내보내기</string>
+    <string name="notif_listener_export_success">알림 기록을 내보냈습니다</string>
+    <string name="notif_listener_export_failed">알림 기록 내보내기 실패: %1$s</string>
+    <string name="notif_listener_export_write_failed">내보내기 파일에 쓸 수 없습니다</string>
+    <string name="notif_listener_filter_empty">현재 필터와 일치하는 알림이 없습니다</string>
+    <string name="notif_listener_no_text">이 알림에는 표시할 본문이 없습니다</string>
+    <string name="notif_listener_unread_label">읽지 않음</string>
+    <string name="notif_listener_active_only">활성만</string>
+    <string name="notif_listener_show_history">기록 보기</string>
+    <string name="notif_listener_counts">총 %1$d개 · 활성 %2$d개 · 읽지 않음 %3$d개</string>
+    <string name="notif_listener_active_label">알림 창에 표시됨</string>
+    <string name="notif_listener_removed_label">삭제됨</string>
+    <string name="notif_listener_channel_label">채널: %1$s</string>
+    <string name="notif_listener_category_label">카테고리: %1$s</string>
 </resources>

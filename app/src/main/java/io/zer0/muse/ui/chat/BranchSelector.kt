@@ -1,8 +1,7 @@
 package io.zer0.muse.ui.chat
 
+import io.zer0.muse.ui.theme.MuseMotion
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -60,7 +59,7 @@ fun BranchSelector(
 
         AnimatedContent(
             targetState = "${currentIndex + 1}/$totalCount",
-            transitionSpec = { fadeIn() togetherWith fadeOut() },
+            transitionSpec = { MuseMotion.fadeEnter() togetherWith MuseMotion.fadeExit() },
             label = "branch-indicator",
         ) { text ->
             Text(

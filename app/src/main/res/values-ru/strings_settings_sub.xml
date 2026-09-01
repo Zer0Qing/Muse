@@ -613,4 +613,10 @@
     <string name="settings_font_import">Импортировать шрифт</string>
     <string name="settings_font_clear">Сбросить по умолчанию</string>
     <string name="settings_font_import_failed">Не удалось импортировать шрифт: формат не поддерживается</string>
+    <!-- v1.0.85: release localization -->
+    <string name="settings_import_muse_backup_title">Нативная резервная копия Muse</string>
+    <string name="settings_import_muse_backup_desc">Восстановить экспортированный Muse JSON, NDJSON или ZIP; текущие локальные данные будут перезаписаны</string>
+    <string name="settings_import_muse_backup_step1">1. Экспортируйте резервную копию Muse в Настройки → Резервное копирование и восстановление</string>
+    <string name="settings_import_muse_backup_step2">2. Выберите файл .json, .ndjson или .zip</string>
+    <string name="settings_import_muse_backup_step3">3. Импорт восстановит сеансы, сообщения, ассистентов, память и настройки</string>
 </resources>

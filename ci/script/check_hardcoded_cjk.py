@@ -51,23 +51,45 @@ class Violation:
 
 
 def strip_comments(line: str, in_block_comment: bool) -> tuple[str, bool]:
-    """剔除块注释与行注释，返回（剩余代码，是否仍在块注释中）。"""
-    code = line
-    if in_block_comment:
-        if "*/" in code:
-            code = code.split("*/", 1)[1]
-            in_block_comment = False
-        else:
-            return "", True
-    while "/*" in code:
-        before, _, after = code.partition("/*")
-        if "*/" in after:
-            code = before + after.split("*/", 1)[1]
-        else:
-            code = before
+    """剔除块/行注释,并跳过字符串字面量(不把 "text/*" 里的 /* 当块注释,避免吞掉其后代码)。"""
+    out: list[str] = []
+    i = 0
+    n = len(line)
+    while i < n:
+        ch = line[i]
+        if in_block_comment:
+            if ch == "*" and i + 1 < n and line[i + 1] == "/":
+                in_block_comment = False
+                i += 2
+                continue
+            i += 1
+            continue
+        if ch in "\"'":
+            # 字符串字面量:原样 emit,跳过其中的 /* 与 //(含转义)
+            quote = ch
+            out.append(ch)
+            i += 1
+            while i < n:
+                c = line[i]
+                out.append(c)
+                if c == "\\" and i + 1 < n:
+                    out.append(line[i + 1])
+                    i += 2
+                    continue
+                if c == quote:
+                    i += 1
+                    break
+                i += 1
+            continue
+        if ch == "/" and i + 1 < n and line[i + 1] == "*":
             in_block_comment = True
-    code = code.split("//", 1)[0]
-    return code, in_block_comment
+            i += 2
+            continue
+        if ch == "/" and i + 1 < n and line[i + 1] == "/":
+            break  # 行注释,丢弃剩余
+        out.append(ch)
+        i += 1
+    return "".join(out), in_block_comment
 
 
 def scan_file(path: Path) -> list[Violation]:

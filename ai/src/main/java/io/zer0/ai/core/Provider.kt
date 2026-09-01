@@ -150,6 +150,8 @@ data class ChatRequest(
     val nativeWebSearch: Boolean = false,
     val reasoningLevel: ReasoningLevel = ReasoningLevel.DEFAULT,
     val mode: ChatRequestMode = ChatRequestMode.CHAT,
+    /** 采样核概率,由助手级 topP 配置传入; null 时由 Provider/服务端默认。 */
+    val topP: Float? = null,
 )
 
 /**

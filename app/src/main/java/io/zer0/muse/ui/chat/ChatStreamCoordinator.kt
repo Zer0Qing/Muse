@@ -2,11 +2,11 @@ package io.zer0.muse.ui.chat
 
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.Model
-import io.zer0.ai.core.ProviderConfig
 import io.zer0.ai.registry.ModelRegistry
 import io.zer0.ai.core.ReasoningLevel
 import io.zer0.ai.core.ToolDefinition
 import io.zer0.ai.core.UIMessage
+import io.zer0.ai.core.ProviderSpecificConfig
 import io.zer0.ai.core.limitContextWithContext
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
@@ -26,7 +26,6 @@ import io.zer0.muse.transformer.TransformContext
 import io.zer0.muse.transformer.MoodSkinParser
 import io.zer0.muse.transformer.InternalMarkupSanitizer
 import io.zer0.muse.transformer.TransformerPipeline
-import io.zer0.muse.ui.ChatError
 import io.zer0.muse.ui.ChatErrorType
 import io.zer0.muse.ui.CompactionState
 import io.zer0.muse.ui.common.feedback.MuseToast
@@ -77,6 +76,13 @@ class ChatStreamCoordinator(
     // P1-1: Hook 注册表 — 在管道执行后调用 PromptFinalizeHook
     private val hookRegistry: io.zer0.muse.hook.HookRegistry? = null,
 ) {
+
+    /** MOOD/MOD 的两种标签写法，正文与 reasoning 通道共用。 */
+    private fun containsMoodMarker(text: String): Boolean =
+        text.contains("<mood>", ignoreCase = true) ||
+            text.contains("[mood]", ignoreCase = true) ||
+            text.contains("<mod>", ignoreCase = true) ||
+            text.contains("[mod]", ignoreCase = true)
 
     private val tag = "ChatVM"
 
@@ -226,8 +232,7 @@ class ChatStreamCoordinator(
             content.contains("<moodfx>", ignoreCase = true) ||
             // v1.0.74 fix: reasoning 通道里也可能带 <mood>(模型把腹稿写进思考),
             // 只查 content 会漏掉,导致标签残留到落库。
-            (!reasoning.isNullOrBlank() && (reasoning.contains("<mood>", ignoreCase = true) ||
-                reasoning.contains("<mod>", ignoreCase = true) ||
+            (!reasoning.isNullOrBlank() && (containsMoodMarker(reasoning) ||
                 reasoning.contains("<moodfx>", ignoreCase = true) ||
                 reasoning.contains("<reflection>", ignoreCase = true) ||
                 reasoning.contains("<think>", ignoreCase = true)))
@@ -267,11 +272,14 @@ class ChatStreamCoordinator(
         // 让 mood 块照常显示;提取后从 reasoning 中剥掉该块(思考里不再重复展示)。
         var effectiveMood = moodContent
         var effectiveReasoningInput = reasoning
-        if (effectiveMood == null && !reasoning.isNullOrBlank() &&
-            (reasoning.contains("<mood>", ignoreCase = true) || reasoning.contains("<mod>", ignoreCase = true))
+        if (effectiveMood == null && !reasoning.isNullOrBlank() && containsMoodMarker(reasoning)
         ) {
             effectiveMood = InternalMarkupSanitizer.extractMood(reasoning)
-            effectiveReasoningInput = InternalMarkupSanitizer.stripContainerTags(reasoning)
+            // reasoning 里可能同时有 <mood> 和 <think>;只移除 mood 块，不能把
+            // mood 正文当成 reasoning 继续展示。
+            effectiveReasoningInput = InternalMarkupSanitizer.stripContainerTags(
+                InternalMarkupSanitizer.stripMoodBlocks(reasoning),
+            )
         }
         // v1.62 修复:reasoning 重复问题。
         // 旧逻辑把 existingReasoning + newReasoning + thinkContent 三者拼接,
@@ -611,6 +619,28 @@ class ChatStreamCoordinator(
     // ── Phase G: 视觉辅助 ────────────────────────────────────────────
 
     /**
+     * M2.8: 视觉前置检查诊断日志 — 记录能力注册表三态快照(known/visionInput),
+     * 便于排查"上游误标视觉能力 → 中转站 400"类问题。
+     * 独立成函数:prepareVisionContext 复杂度已顶格,新增分支须外移。
+     */
+    private fun visionPreflightDiagnostics(
+        model: Model?,
+        modelSupportsVision: Boolean,
+        historyImageCount: Int,
+    ): String {
+        val snapshot = if (model != null) {
+            io.zer0.ai.registry.ModelCapabilityQuery.snapshot(model.id)
+        } else {
+            null
+        }
+        return "vision preflight: effectiveModel=${model?.id} " +
+            "supportsVision=$modelSupportsVision " +
+            "registryKnown=${snapshot?.known} registryVision=${snapshot?.visionInput} " +
+            "inputModalities=${model?.inputModalities} " +
+            "historyImageCount=$historyImageCount"
+    }
+
+    /**
      * v1.0.27 Phase 4-A.2: 从 ChatViewModel 抽取的视觉辅助逻辑。
      *
      * 当前模型不支持视觉时,通过视觉模型分析图片并注入描述。
@@ -621,14 +651,8 @@ class ChatStreamCoordinator(
         with(state) {
             val historyImageCount = conversationHistory.count { it.role == MessageRole.USER && it.imageBase64List.isNotEmpty() }
             val effectiveModelLocal = effectiveModel
-            val modelSupportsVision = effectiveModelLocal?.supportsVisionInput() ?: false
-            Logger.i(
-                "ChatVM",
-                "视觉辅助[前置检查]: effectiveModel=${effectiveModelLocal?.id} " +
-                    "supportsVisionInput=$modelSupportsVision " +
-                    "inputModalities=${effectiveModelLocal?.inputModalities} " +
-                    "history中图片消息数=$historyImageCount",
-            )
+            val modelSupportsVision = visionBridge.supportsVisionModel(effectiveModelLocal)
+            Logger.i("ChatVM", visionPreflightDiagnostics(effectiveModelLocal, modelSupportsVision, historyImageCount))
             if (effectiveModelLocal != null && !visionBridge.supportsVision(effectiveModelLocal)) {
                 val userImageIndexes = conversationHistory.indices.filter { idx ->
                     conversationHistory[idx].role == MessageRole.USER &&
@@ -675,7 +699,11 @@ class ChatStreamCoordinator(
                         }
                     }
                     conversationHistory[lastIdx] = lastUserMsg.copy(
-                        content = prepareResult.text,
+                        // M4.3: 视觉描述注入受统一 ContextBudget 上限约束(截断可诊断)
+                        content = io.zer0.muse.context.ContextBudget().clampText(
+                            io.zer0.muse.context.ContextSection.VISION_DESCRIPTION,
+                            prepareResult.text,
+                        ),
                         imageBase64List = prepareResult.images,
                     )
                     if (prepareResult.success) {
@@ -738,19 +766,18 @@ class ChatStreamCoordinator(
                 resultOf { lorebookRepository.getByIdsEnabled(lorebookIds) }
                     .getOrNull() ?: emptyList()
             } else emptyList()
-            // Phase 8.5: 预查询当前模式对应的 PromptInjection 条目
+            // Phase 8.5: 预查询当前模式对应的 PromptInjection 条目。
+            // default 也是有效模式：助手显式绑定的注入项不能因为当前模式是 default 就被吞掉。
             val currentMode = accessor.snapshot.currentMode
-            val modeInjections: List<PromptInjectionEntity> = if (currentMode != "default") {
-                val injIds = assistant?.let { parseIdList(it.modeInjectionIdsJson) } ?: emptyList()
-                if (injIds.isNotEmpty()) {
-                    (resultOf { promptInjectionRepository.getByIdsEnabled(injIds) }
-                        .getOrNull() ?: emptyList())
-                        .filter { it.mode == currentMode }
-                } else {
-                    resultOf { promptInjectionRepository.getEnabledByMode(currentMode) }
-                        .getOrNull() ?: emptyList()
-                }
-            } else emptyList()
+            val injIds = assistant?.let { parseIdList(it.modeInjectionIdsJson) } ?: emptyList()
+            val modeInjections: List<PromptInjectionEntity> = if (injIds.isNotEmpty()) {
+                (resultOf { promptInjectionRepository.getByIdsEnabled(injIds) }
+                    .getOrNull() ?: emptyList())
+                    .filter { it.mode == currentMode }
+            } else {
+                resultOf { promptInjectionRepository.getEnabledByMode(currentMode) }
+                    .getOrNull() ?: emptyList()
+            }
             // v1.97: 读取用户画像,把 user_nickname / assistant_name 注入模板变量
             val userProfile = resultOf { settings.getUserProfile() }.getOrNull()
             val assistantName = userProfile?.assistantName
@@ -847,15 +874,24 @@ class ChatStreamCoordinator(
      */
     internal suspend fun resolveToolsAndModel(state: StreamRunState) {
         with(state) {
-            // 主聊天将当前 ToolRegistry 注册的工具全集交给模型；旧 Assistant.toolIdsJson
-            // 只作为设置兼容数据保留，不能继续截断 function schema。
-            val registeredToolDefs = toolRegistry.listToolsAsToolDefinitions()
-            // MCP server 是助手级扩展,不属于普通 toolIdsJson。此前只读取 toolIdsJson,
-            // 导致助手页面明明选中了 MCP server,主聊天仍把 mcp_* 工具全部过滤掉。
-            // ToolRegistry 已包含本地工具与已注册 MCP 工具，不再按旧白名单二次裁剪。
+            // 助手扩展页的工具选择必须真正影响聊天能力;空列表保留旧版语义(全部内置工具),
+            // 这样历史助手和新建助手不会突然失去能力。非空列表才按助手白名单过滤。
+            val configuredToolIds = assistant?.let { parseIdList(it.toolIdsJson).toSet() }.orEmpty()
+            val configuredMcpServerIds = assistant?.let { parseIdList(it.mcpServerIdsJson).toSet() }.orEmpty()
+            val configuredSkillIds = assistant?.let { parseIdList(it.skillIdsJson).toSet() }.orEmpty()
+            val registeredToolDefs = toolRegistry.listToolsAsToolDefinitions().filter { definition ->
+                val selectedByTool = configuredToolIds.isEmpty() || definition.name in configuredToolIds
+                val isMcpTool = definition.name.startsWith("mcp_") &&
+                    definition.name.contains("__")
+                val selectedByMcp = !isMcpTool || configuredMcpServerIds.isEmpty() ||
+                    configuredMcpServerIds.any { serverId ->
+                        definition.name.startsWith("mcp_${serverId}__")
+                    }
+                selectedByTool && selectedByMcp
+            }
 
-            // Phase 8.8: 加载全部已启用的 Skills 并转为 ToolDefinition
-            // 用户要求主聊天展示完整工具面，Skills 只受自身 enabled 状态控制。
+            // Phase 8.8: 加载已启用且被当前助手绑定的 Skills 并转为 ToolDefinition;
+            // 空 skillIdsJson 同样兼容旧助手,表示使用全部全局启用 Skills。
             // 审计修复 (A-04/A-05/A-06): 定义与执行不得分裂 —
             // ① 与本地工具同名的 skill 从启用列表剔除:去重时定义保留了本地版
             //   (见下方 distinctBy),执行路由 skillMap 优先,若 skill 仍在 map 里,
@@ -868,6 +904,7 @@ class ChatStreamCoordinator(
             val enabledSkills = skillRepository.listEnabled()
                 .distinctBy { it.id }
                 .filterNot { it.id in localToolNames || it.id.startsWith("channel_") }
+                .filter { configuredSkillIds.isEmpty() || it.id in configuredSkillIds }
             // 缓存 skill id → SkillEntity 映射,工具执行时用
             skillMap = enabledSkills.associateBy { it.id }
             // v1.116: 表情包概率控制 — 读取设置缓存,决定本轮是否向 LLM 暴露 sticker 工具。
@@ -905,14 +942,31 @@ class ChatStreamCoordinator(
             // 意图裁剪会让部分模型看不到它实际需要的工具，导致模型明明有能力却不发起调用；
             // 高风险工具仍由 ToolPermissionResolver/审批层拦截，完整展示不等于自动放行。
             tools = allToolDefs
+            // M4.3: 工具 schema 总量预算观测 —— 仅记录告警,不静默裁剪:
+            // 静默移除工具会让模型"看不到能力就不会调用"(功能性回退),是否裁剪属
+            // 产品决策,需要显式的意图筛选/全集测试路径配套(M3 已有全集路径)。
+            val schemaTotalChars = allToolDefs.sumOf { it.description.length + it.parametersJsonSchema.length }
+            val schemaBudget = io.zer0.muse.context.ContextBudget
+                .DEFAULT_LIMITS[io.zer0.muse.context.ContextSection.TOOL_SCHEMA]
+            if (schemaBudget != null && schemaTotalChars > schemaBudget) {
+                Logger.w(
+                    "ChatVM",
+                    "tool schema total exceeds budget: $schemaTotalChars/$schemaBudget chars, " +
+                        "toolCount=${allToolDefs.size}(observe-only, not trimmed)",
+                )
+            }
 
             // v1.52: per-assistant 模型解析 — 助手配置了 modelId 则用助手专属模型,
             // 否则回退到全局 selectedModelId,再否则由 ChatService 兜底(激活 Provider 首个模型)。
             // 同时解析模型所属的 ProviderConfig,确保跨 Provider 的助手模型也能正确路由。
             val allProviders = accessor.snapshot.providers
             // v1.0.79 (F-1): 会话内手动切换的模型优先于助手专属模型
-            val sessionOverride = state.sessionModelOverride?.takeIf { it.isNotBlank() }
-            val sessionProviderOverride = state.sessionProviderOverride?.takeIf { it.isNotBlank() }
+            val taskRouteModel = taskRouteSelection?.modelId?.takeIf { it.isNotBlank() }
+            val taskRouteProvider = taskRouteSelection?.providerId?.takeIf { it.isNotBlank() }
+            val sessionOverride = taskRouteModel
+                ?: state.sessionModelOverride?.takeIf { it.isNotBlank() }
+            val sessionProviderOverride = taskRouteProvider
+                ?: state.sessionProviderOverride?.takeIf { it.isNotBlank() }
             val activeProviderId = sessionProviderOverride
                 ?: assistant?.providerId?.takeIf { it.isNotBlank() }
                 ?: state.fallbackProviderId
@@ -961,6 +1015,9 @@ class ChatStreamCoordinator(
                 allProviders.firstOrNull { it.id == m.providerId }
             } ?: allProviders.firstOrNull { it.id == activeProviderId && it.models.isNotEmpty() }
                 ?: allProviders.firstOrNull { it.models.isNotEmpty() }
+            val assistantProviderConfig = resolvedProviderConfig?.let { provider ->
+                applyAssistantRequestOverrides(provider, assistant)
+            }
 
             // v1.60-A: 工具模型路由 — 工具调用轮次优先使用用户配置的轻量 toolModel
             // v1.0.53: per-assistant 优先 — 助手自己配了 toolModelId 时用它,否则回退全局 toolModelId
@@ -994,11 +1051,15 @@ class ChatStreamCoordinator(
             // v1.135: 用 ModelRegistry 增强模型能力识别,解决 opencode-go/ 等前缀导致
             // supportsVision / supportsReasoning 误判的问题。ChatService 内部也会再增强一次。
             effectiveModel = rawEffectiveModel?.let { ModelRegistry.enhanceModel(it) }
-            effectiveProviderConfig = resolvedProviderConfig
+            effectiveProviderConfig = assistantProviderConfig
             // C-12: 工具模型仅在"工具轮"使用(上一轮结果含 toolCalls 的续接轮,
             //  由 streamRound 按 round>1 判定);最终回复轮切回主模型,保留主模型的视觉能力。
             this.toolModel = if (toolModelUsable) toolModel?.let { ModelRegistry.enhanceModel(it) } else null
-            this.toolProviderConfig = if (toolModelUsable) toolProviderConfig else null
+            this.toolProviderConfig = if (toolModelUsable) {
+                toolProviderConfig?.let { provider -> applyAssistantRequestOverrides(provider, assistant) }
+            } else {
+                null
+            }
 
             // v1.136: 若当前模型不支持推理,将推理等级降级到 AUTO/OFF。
             // 避免向非推理模型发送 reasoning_effort 导致简单问题过度思考,或对不支持的模型返回 400。
@@ -1010,9 +1071,38 @@ class ChatStreamCoordinator(
             // 累积的对话历史(含工具调用结果,每轮可能追加 assistant+tool 消息)
             conversationHistory = transformedMessages.toMutableList()
 
-            // 工具 schema 已统一全量展示给当前模型；弱工具模型也不能被额外删掉计划/委派工具，
-            // 否则模型看不到能力就不会调用。实际执行失败仍由工具循环和权限层处理。
+            // 工具 schema 与助手扩展白名单同源;弱工具模型不会再被额外裁剪计划/委派工具。
+            // 实际执行失败仍由工具循环和权限层处理。
         }
+    }
+
+    /** 将助手高级页配置的自定义 headers/body 接入实际 Provider 请求。 */
+    private fun applyAssistantRequestOverrides(
+        provider: io.zer0.ai.core.ProviderConfig,
+        assistant: io.zer0.muse.data.assistant.AssistantEntity?,
+    ): io.zer0.ai.core.ProviderConfig {
+        // Responses API 的 specific 必须保留 OpenAI.useResponseApi 等协议字段;
+        // 助手高级自定义请求目前只对 Chat Completions Provider 生效,避免把 Responses
+        // 配置替换成 Custom 后静默改协议。
+        if (assistant == null || provider.type != io.zer0.ai.core.ProviderType.OPENAI) return provider
+        val headers = assistantRepository.parseCustomHeaders(assistant)
+        val bodies = assistantRepository.parseCustomBodies(assistant)
+        if (headers.isEmpty() && bodies.isEmpty()) return provider
+        val specific = provider.resolvedSpecific()
+        val updatedSpecific = when (specific) {
+            is ProviderSpecificConfig.Custom -> specific.copy(
+                customHeaders = specific.customHeaders + headers,
+                customBody = specific.customBody + bodies,
+            )
+            is ProviderSpecificConfig.OpenAI -> specific.copy(
+                customHeaders = specific.customHeaders + headers,
+                customBody = specific.customBody + bodies,
+            )
+            else -> specific
+        }
+        return provider.copy(
+            specific = updatedSpecific,
+        )
     }
 }
 

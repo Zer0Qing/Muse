@@ -1,8 +1,8 @@
 package io.zer0.muse.ui.taskcard
 
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseMotion
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -363,7 +363,7 @@ private fun DelegationDialogButton(
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.97f else 1f,
-        animationSpec = tween(MuseAnimation.FAST_MS),
+        animationSpec = MuseMotion.tween(MuseAnimation.FAST_MS),
         label = "delegationBtnScale",
     )
     Box(

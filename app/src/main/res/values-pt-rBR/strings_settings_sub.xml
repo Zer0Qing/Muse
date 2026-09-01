@@ -613,4 +613,10 @@
     <string name="settings_font_import">Importar fonte</string>
     <string name="settings_font_clear">Restaurar padrão</string>
     <string name="settings_font_import_failed">Falha ao importar fonte: formato não suportado</string>
+    <!-- v1.0.85: release localization -->
+    <string name="settings_import_muse_backup_title">Backup nativo do Muse</string>
+    <string name="settings_import_muse_backup_desc">Restaura um JSON, NDJSON ou ZIP exportado pelo Muse; os dados locais atuais serão substituídos</string>
+    <string name="settings_import_muse_backup_step1">1. Exporte um backup do Muse em Configurações → Backup e restauração</string>
+    <string name="settings_import_muse_backup_step2">2. Selecione um arquivo .json, .ndjson ou .zip</string>
+    <string name="settings_import_muse_backup_step3">3. A importação restaura sessões, mensagens, assistentes, memória e configurações</string>
 </resources>

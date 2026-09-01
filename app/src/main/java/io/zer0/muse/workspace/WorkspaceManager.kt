@@ -1,10 +1,12 @@
 package io.zer0.muse.workspace
 
 import android.content.Context
+import android.net.Uri
 import io.zer0.common.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.util.UUID
 
 /**
  * P2-7: 工作区目录管理器(简化版 — 不实际运行 proot,仅提供目录与文件管理基础设施)。
@@ -212,6 +214,81 @@ class WorkspaceManager(private val context: Context) {
         }
     }
 
+    /**
+     * 从系统文件管理器选择的 URI 导入一个文件到工作区当前目录。
+     *
+     * 复制采用流式写入和临时文件提交,不会把整个文件读入内存;目标文件名冲突时
+     * 自动追加序号,避免覆盖工作区已有文件。URI 只在本次调用期间读取,不保存外部
+     * URI 权限,因此不会留下不可控的长期授权。
+     *
+     * @param uri SAF 返回的源文件 URI
+     * @param targetDirectory 工作区内目标目录,空串表示根目录
+     * @param displayName 可选目标文件名,为空时从 ContentResolver 查询
+     */
+    suspend fun importFile(
+        uri: Uri,
+        targetDirectory: String,
+        displayName: String? = null,
+    ): FileImportResult = withContext(Dispatchers.IO) {
+        val directory = resolveSafe(
+            targetDirectory,
+            allowRoot = true,
+            mustExist = true,
+            mustBeDirectory = true,
+        ) ?: return@withContext FileImportResult.Error("目标目录非法或不存在: $targetDirectory")
+
+        val rawName = displayName?.trim().takeUnless { it.isNullOrBlank() }
+            ?: queryDisplayName(uri)
+            ?: "imported-file"
+        val safeName = sanitizeImportedName(rawName)
+        var candidate = File(directory, safeName)
+        var suffix = 1
+        while (candidate.exists()) {
+            val dot = safeName.lastIndexOf('.')
+            val stem = if (dot > 0) safeName.substring(0, dot) else safeName
+            val extension = if (dot > 0) safeName.substring(dot) else ""
+            candidate = File(directory, "$stem ($suffix)$extension")
+            suffix++
+        }
+        val targetPath = formatRelativePath(candidate)
+        val verifiedTarget = resolveSafe(
+            targetPath,
+            allowRoot = false,
+            mustExist = false,
+            mustBeDirectory = false,
+        ) ?: return@withContext FileImportResult.Error("目标文件路径非法: $targetPath")
+        val temp = File(directory, ".muse-import-${UUID.randomUUID()}.part")
+        var bytes = 0L
+        try {
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                temp.outputStream().buffered().use { output ->
+                    val buffer = ByteArray(64 * 1024)
+                    while (true) {
+                        val read = input.read(buffer)
+                        if (read < 0) break
+                        if (read == 0) continue
+                        bytes += read
+                        if (bytes > MAX_IMPORT_BYTES) {
+                            return@withContext FileImportResult.Error(
+                                "文件过大,导入上限为 ${MAX_IMPORT_BYTES / (1024 * 1024)}MB",
+                            )
+                        }
+                        output.write(buffer, 0, read)
+                    }
+                }
+            } ?: return@withContext FileImportResult.Error("无法读取所选文件")
+            if (!temp.renameTo(verifiedTarget)) {
+                return@withContext FileImportResult.Error("导入文件写入失败")
+            }
+            FileImportResult.Success(targetPath, bytes)
+        } catch (e: Exception) {
+            Logger.w(TAG, "importFile 失败: ${e.message}", e)
+            FileImportResult.Error("文件导入失败: ${e.message}")
+        } finally {
+            if (temp.exists()) temp.delete()
+        }
+    }
+
     // ── 内部工具方法 ──────────────────────────────────────────────────────────
 
     /**
@@ -254,9 +331,11 @@ class WorkspaceManager(private val context: Context) {
             return null
         }
         val rootCanonical = rootDir.canonicalPath
-        // 严格前缀校验:canonicalPath 必须等于 root 或以 "$root/" 开头
+        // 严格前缀校验:canonicalPath 必须等于 root 或以 "root+分隔符" 开头。
+        // 用 File.separator 而非硬编码 '/' —— Windows JVM(JVM 单测环境)的
+        // canonicalPath 使用反斜杠,硬编码 '/' 会让所有子路径被误判越权。
         val canonicalPath = canonical.canonicalPath
-        if (canonicalPath != rootCanonical && !canonicalPath.startsWith("$rootCanonical/")) {
+        if (canonicalPath != rootCanonical && !canonicalPath.startsWith(rootCanonical + File.separator)) {
             Logger.w(TAG, "越权访问拒绝: $path -> $canonicalPath(根: $rootCanonical)")
             return null
         }
@@ -272,7 +351,33 @@ class WorkspaceManager(private val context: Context) {
         val rootPath = rootDir.canonicalPath
         val filePath = file.canonicalPath
         if (filePath == rootPath) return ""
-        return filePath.removePrefix("$rootPath/").replace(File.separatorChar, '/')
+        // 同 resolveSafe:分隔符用 File.separator,Windows JVM 下 canonicalPath 是反斜杠
+        return filePath.removePrefix(rootPath + File.separator)
+            .replace(File.separatorChar, '/')
+    }
+
+    private fun queryDisplayName(uri: Uri): String? = runCatching {
+        context.contentResolver.query(
+            uri,
+            arrayOf(android.provider.OpenableColumns.DISPLAY_NAME),
+            null,
+            null,
+            null,
+        )?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                val index = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                if (index >= 0) cursor.getString(index) else null
+            } else null
+        }
+    }.onFailure { Logger.w(TAG, "读取导入文件名失败: ${it.message}") }.getOrNull()
+
+    private fun sanitizeImportedName(raw: String): String {
+        val leaf = raw.trim().substringAfterLast('/').substringAfterLast('\\')
+        val cleaned = leaf
+            .replace(Regex("[\\u0000-\\u001F]"), "_")
+            .replace("..", "_")
+            .trim()
+        return cleaned.take(MAX_FILE_NAME_LENGTH).ifBlank { "imported-file" }
     }
 
     // ── 结果类型(便于 UI/工具统一处理)──────────────────────────────────────
@@ -295,6 +400,12 @@ class WorkspaceManager(private val context: Context) {
         data class Error(val message: String) : OpResult()
     }
 
+    /** 文件导入结果。 */
+    sealed class FileImportResult {
+        data class Success(val relativePath: String, val bytes: Long) : FileImportResult()
+        data class Error(val message: String) : FileImportResult()
+    }
+
     companion object {
         private const val TAG = "WorkspaceManager"
 
@@ -303,5 +414,10 @@ class WorkspaceManager(private val context: Context) {
 
         /** 写入文件大小上限:10MB(防止 AI 写入超大内容造成磁盘压力)。 */
         const val MAX_WRITE_BYTES: Long = 10L * 1024 * 1024
+
+        /** 文件管理器导入上限:256MB,采用流式复制不会产生整文件内存峰值。 */
+        const val MAX_IMPORT_BYTES: Long = 256L * 1024 * 1024
+
+        private const val MAX_FILE_NAME_LENGTH = 180
     }
 }

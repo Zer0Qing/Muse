@@ -80,6 +80,48 @@ def is_exempt(path: Path) -> bool:
     return rel.parts[0] in EXEMPT_DIRS
 
 
+def strip_comments(code: str, in_block: bool) -> tuple[str, bool]:
+    """剔除块/行注释,并跳过字符串字面量(不把 "text/*" 里的 /* 当块注释,避免吞掉其后代码)。"""
+    out: list[str] = []
+    i = 0
+    n = len(code)
+    while i < n:
+        ch = code[i]
+        if in_block:
+            if ch == "*" and i + 1 < n and code[i + 1] == "/":
+                in_block = False
+                i += 2
+                continue
+            i += 1
+            continue
+        if ch in "\"'":
+            # 字符串字面量:原样 emit,跳过其中的 /* 与 //(含转义)
+            quote = ch
+            out.append(ch)
+            i += 1
+            while i < n:
+                c = code[i]
+                out.append(c)
+                if c == "\\" and i + 1 < n:
+                    out.append(code[i + 1])
+                    i += 2
+                    continue
+                if c == quote:
+                    i += 1
+                    break
+                i += 1
+            continue
+        if ch == "/" and i + 1 < n and code[i + 1] == "*":
+            in_block = True
+            i += 2
+            continue
+        if ch == "/" and i + 1 < n and code[i + 1] == "/":
+            break  # 行注释,丢弃剩余
+        out.append(ch)
+        i += 1
+    return "".join(out), in_block
+
+
 def scan_file(path: Path) -> list[Violation]:
     violations: list[Violation] = []
     try:
@@ -89,22 +131,7 @@ def scan_file(path: Path) -> list[Violation]:
         return violations
     in_block_comment = False
     for lineno, line in enumerate(lines, 1):
-        # 粗略剔除块注释与行注释,避免注释里的示例代码误报
-        code = line
-        if in_block_comment:
-            if "*/" in code:
-                code = code.split("*/", 1)[1]
-                in_block_comment = False
-            else:
-                continue
-        while "/*" in code:
-            before, _, after = code.partition("/*")
-            if "*/" in after:
-                code = before + after.split("*/", 1)[1]
-            else:
-                code = before
-                in_block_comment = True
-        code = code.split("//", 1)[0]
+        code, in_block_comment = strip_comments(line, in_block_comment)
         if not code.strip():
             continue
         for rule_name, rule in RULES.items():

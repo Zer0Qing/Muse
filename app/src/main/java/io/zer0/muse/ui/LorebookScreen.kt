@@ -60,7 +60,6 @@ import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SwitchRow
 import io.zer0.muse.ui.theme.MuseShapes
-import io.zer0.muse.ui.theme.mega
 import io.zer0.muse.ui.theme.MuseIconSizes
 import org.koin.androidx.compose.koinViewModel
 

@@ -250,6 +250,7 @@
     <string name="err_resource_exhausted">Resource exhausted. Please try again later.</string>
     <string name="err_service_unavailable">Service is temporarily unavailable.</string>
     <string name="err_stream_interrupted">Stream was interrupted. Response may be incomplete.</string>
+    <string name="err_reply_truncated">(Reply truncated due to length limit)</string>
     <string name="err_vertex_ai_config_invalid">Vertex AI configuration is invalid.</string>
     <string name="err_vertex_ai_token_failed">Failed to obtain Vertex AI access token.</string>
 

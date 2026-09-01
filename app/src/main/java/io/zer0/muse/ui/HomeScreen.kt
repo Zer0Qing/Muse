@@ -1,24 +1,15 @@
 package io.zer0.muse.ui
 
-import android.content.Intent
 import io.zer0.muse.util.ShareIntentHelper
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandHorizontally
-import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -31,7 +22,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.isCtrlPressed
 import androidx.compose.ui.input.key.key
@@ -58,8 +48,9 @@ import io.zer0.muse.ui.common.media.rememberDesktopShortcutsEnabled
 import io.zer0.muse.ui.common.media.rememberWindowWidthClass
 import io.zer0.muse.ui.groupchat.GroupChatListScreen
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MuseShapes
-import io.zer0.muse.ui.theme.huge
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.update.UpdateChecker
@@ -141,6 +132,7 @@ fun HomeScreen(
     // v1.137 B3: 区分用户拖拽和点击动画 — 点击时设 clickAnimating=true,
     // isScrollInProgress 结束后清除,使 MuseCapsuleTab 在拖拽时用连续跟踪、点击时用 tween。
     var clickAnimating by remember { mutableStateOf(false) }
+    val reducedMotion = MuseMotion.isReducedMotion()
     // C1: 全局命令面板可见性(搜索按钮 / Ctrl+K 唤起)
     var showCommandPalette by rememberSaveable { mutableStateOf(false) }
     // C4: 宽屏自适应双栏 — Expanded(≥840dp) 时任务 tab 会话列表+消息同屏,
@@ -210,7 +202,13 @@ fun HomeScreen(
                     selectedIndex = pagerState.currentPage,
                     onSelect = { page ->
                         clickAnimating = true
-                        scope.launch { pagerState.animateScrollToPage(page) }
+                        scope.launch {
+                            if (reducedMotion) {
+                                pagerState.scrollToPage(page)
+                            } else {
+                                pagerState.animateScrollToPage(page)
+                            }
+                        }
                     },
                     // v1.137 B3: 拖拽时连续跟踪手指,点击时用 tween 平滑过渡
                     pageOffset = pagerState.currentPageOffsetFraction,
@@ -622,8 +620,8 @@ private fun HomeQuickActionCapsule(
             // v1.136 T8: 收起时仅显示 Plus 按钮;展开时显示全部 4 个按钮(长按 Plus 切换)
             AnimatedVisibility(
                 visible = expanded,
-                enter = expandHorizontally(animationSpec = tween(220)),
-                exit = shrinkHorizontally(animationSpec = tween(220)),
+                enter = MuseMotion.horizontalExpandEnter(durationMillis = MuseAnimation.TACTILE_MS),
+                exit = MuseMotion.horizontalExpandExit(durationMillis = MuseAnimation.TACTILE_MS),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     HomeCapsuleButton(
@@ -675,10 +673,10 @@ private fun HomeCapsuleButton(
         modifier = modifier
             .size(56.dp)
             .background(containerColor)
-            // v1.0.16: 恢复全局 ripple 按压反馈
+            // 自绘胶囊按钮保留触觉/颜色反馈,禁止默认 ripple 遮罩。
             .combinedClickable(
                 interactionSource = interactionSource,
-                indication = LocalIndication.current,
+                indication = null,
                 onClick = onClick,
                 onLongClick = onLongClick,
             ),

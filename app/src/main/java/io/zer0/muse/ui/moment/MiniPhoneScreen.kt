@@ -56,7 +56,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import io.zer0.muse.ui.theme.MusePaddings
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -100,7 +99,10 @@ fun MiniPhoneScreen(
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     val appear by animateFloatAsState(
         targetValue = if (appeared) 1f else 0f,
-        animationSpec = tween(300, easing = FastOutSlowInEasing),
+        animationSpec = io.zer0.muse.ui.theme.MuseMotion.tween(
+            io.zer0.muse.ui.theme.MuseAnimation.SLOW_MS,
+            easing = FastOutSlowInEasing,
+        ),
         label = "miniPhoneAppear",
     )
     LaunchedEffect(Unit) { appeared = true }

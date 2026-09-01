@@ -6,6 +6,12 @@ import java.time.LocalDate
 import java.time.LocalTime
 
 object GreetingHelper {
+    /** 首页问候区个性化提醒的单行字符预算。 */
+    internal const val PERSONALIZED_HINT_MAX_LENGTH = 18
+
+    /** 首页问候区每日总结的单行字符预算。 */
+    internal const val DAILY_SUMMARY_HINT_MAX_LENGTH = 24
+
     // 根据时间返回问候语
     fun getTimeGreeting(hour: Int = LocalTime.now().hour): String {
         return when (hour) {
@@ -131,7 +137,7 @@ object GreetingHelper {
      * 从记忆中提取个性化提示（生日、近期事项）。
      *
      * 优先级：明天 > 后天 > 3 天内。同一优先级取第一条。
-     * 返回的提示已按 UI 长度截断（≤ 24 字）。
+     * 返回的提示已按首页单行预算截断（≤ 18 字）。
      */
     fun getMemoryHint(facts: List<FactEntity>, today: LocalDate = LocalDate.now()): String? {
         if (facts.isEmpty()) return null
@@ -176,17 +182,31 @@ object GreetingHelper {
                 best = betterHint(best, diff, hint)
             }
         }
-        return best?.second?.take(24)?.let {
-            // 纯事件句保留；含记忆原文的截断到 24 字
-            it
-        }?.replace("用户", "你")
+        return best?.second
+            ?.replace("用户", "你")
+            ?.let { compactGreetingText(it, PERSONALIZED_HINT_MAX_LENGTH) }
+    }
+
+    /**
+     * 将模型、缓存或规则文本压缩成首页问候区可用的单行提示。
+     *
+     * 提示词与 maxTokens 只是软约束,旧缓存或异常 Provider 仍可能返回长文本,
+     * 因此展示前必须统一归一化并执行硬长度上限。
+     */
+    internal fun compactGreetingText(text: String?, maxChars: Int): String? {
+        if (text.isNullOrBlank() || maxChars <= 0) return null
+        val normalized = text.replace(Regex("\\s+"), " ").trim()
+        return normalized
+            .take(maxChars)
+            .trimEnd(' ', ',', '，', '.', '。', ';', '；', ':', '：')
+            .takeIf { it.isNotBlank() }
     }
 
     /**
      * 将最近一天内的每日总结压缩成适合跟在时间问候后的短提示。
      *
      * 总结可能是在后台生成的,因此只接受今天或昨天的内容,避免用户几天没打开
-     * 应用后仍看到过期事项。正文只做空白归一化和长度控制,不改写总结原意。
+     * 应用后仍看到过期事项。正文统一压缩到首页单行预算,超长内容不再撑开问候区。
      */
     fun getDailySummaryHint(
         summary: String?,
@@ -199,11 +219,7 @@ object GreetingHelper {
         }.getOrNull() ?: return null
         val age = java.time.temporal.ChronoUnit.DAYS.between(date, today)
         if (age !in 0..1) return null
-        return summary
-            .replace(Regex("\\s+"), " ")
-            .trim()
-            .take(36)
-            .takeIf { it.isNotBlank() }
+        return compactGreetingText(summary, DAILY_SUMMARY_HINT_MAX_LENGTH)
     }
 
     /** 保留更紧急（diff 更小）的提示。 */

@@ -2,6 +2,7 @@ package io.zer0.muse.data.quickmsg
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 
 /**
  * QuickMessage 仓库 — Phase 8.5。
@@ -14,6 +15,28 @@ class QuickMessageRepository(
 
     fun observeForAssistant(assistantId: String): Flow<List<QuickMessageEntity>> =
         dao.observeForAssistant(assistantId).distinctUntilChanged()
+
+    /**
+     * 观察当前助手可用的快捷消息。
+     *
+     * 全局快捷消息始终可用;助手级快捷消息在绑定列表非空时按 id 过滤。
+     * 空绑定列表保留历史语义,继续显示该助手下全部快捷消息,避免老数据升级后突然消失。
+     */
+    fun observeForAssistant(
+        assistantId: String,
+        boundIds: List<String>,
+    ): Flow<List<QuickMessageEntity>> {
+        val ids = boundIds.map(String::trim).filter(String::isNotBlank).toSet()
+        return dao.observeAllEnabled()
+            .map { messages ->
+                messages.filter { message ->
+                    message.scope == "global" ||
+                        (message.scope == "assistant" && message.assistantId == assistantId &&
+                            (ids.isEmpty() || message.id in ids))
+                }
+            }
+            .distinctUntilChanged()
+    }
 
     suspend fun getByIdsEnabled(ids: List<String>): List<QuickMessageEntity> =
         if (ids.isEmpty()) emptyList() else dao.getByIdsEnabled(ids)

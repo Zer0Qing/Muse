@@ -1,7 +1,6 @@
 package io.zer0.muse.data.assistant
 
 import android.content.Context
-import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.ReasoningLevel
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.AppJson

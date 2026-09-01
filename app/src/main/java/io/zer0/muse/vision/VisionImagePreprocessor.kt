@@ -2,9 +2,6 @@ package io.zer0.muse.vision
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.ImageDecoder
-import android.net.Uri
-import android.provider.MediaStore
 import android.util.Base64
 import io.zer0.common.Logger
 import kotlinx.coroutines.Dispatchers

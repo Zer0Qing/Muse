@@ -23,4 +23,12 @@ class InternalMarkupSanitizerTest {
         assertEquals("心情不错\n准备认真回答", InternalMarkupSanitizer.extractMood("<mood>心情不错</mood><mod>准备认真回答</mod>正文"))
         assertNull(InternalMarkupSanitizer.extractMood("只有正文"))
     }
+
+    @Test
+    fun extractsMoodFromBracketTags() {
+        assertEquals(
+            "先稳住\n认真回答",
+            InternalMarkupSanitizer.extractMood("[mood]先稳住[/mood][mod]认真回答[/mod]正文"),
+        )
+    }
 }

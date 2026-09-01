@@ -1,6 +1,8 @@
 package io.zer0.muse.ui.settings
 
 import androidx.compose.animation.animateContentSize
+import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseMotion
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -28,7 +30,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -476,7 +477,7 @@ private fun TutorialChapter(
         Column(
             modifier = Modifier
                 .padding(16.dp)
-                .animateContentSize(),
+                .animateContentSize(animationSpec = MuseMotion.tween(MuseAnimation.NORMAL_MS)),
         ) {
             // 标题行(可点击切换展开/折叠)
             Row(

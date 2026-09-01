@@ -192,6 +192,7 @@ internal data class OpenAIRequest(
     val model: String,
     val messages: List<OpenAIMessage>,
     val temperature: Float? = null,
+    val top_p: Float? = null,
     val max_tokens: Int? = null,
     val stream: Boolean = true,
             /** Phase 7: 工具定义列表,启用 function calling。 */

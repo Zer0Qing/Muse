@@ -22,8 +22,8 @@ class ShizukuInstaller(private val context: Context) {
     companion object {
         private const val TAG = "ShizukuInstaller"
 
-        /** Shizuku APK 包名。 */
-        const val SHIZUKU_PACKAGE = "rikka.shizuku"
+        /** Shizuku APK 包名(不是 SDK 的 Java namespace)。 */
+        const val SHIZUKU_PACKAGE = "moe.shizuku.privileged.api"
 
         /** Shizuku GitHub Releases 页。 */
         const val DOWNLOAD_URL = "https://github.com/RikkaApps/Shizuku/releases"

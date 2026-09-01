@@ -1,17 +1,17 @@
 package io.zer0.muse.ui.chat
 
+import android.content.Context
 import io.zer0.common.resultOf
+import io.zer0.muse.R
 import io.zer0.muse.asr.ASRController
 import io.zer0.muse.asr.ASRState
 import io.zer0.muse.asr.AsrConfig
+import io.zer0.muse.asr.AsrClientFactory
 import io.zer0.muse.asr.AsrProviderType
-import io.zer0.muse.asr.DashScopeAsrController
-import io.zer0.muse.asr.OpenAiRealtimeAsrController
-import io.zer0.muse.asr.OpenAiWhisperAsrController
-import io.zer0.muse.asr.StepAsrController
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.speech.TtsManager
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
 import kotlin.uuid.Uuid
 
 /**
@@ -28,10 +28,13 @@ class ChatAudioCoordinator(
     private val accessor: ChatStateAccessor,
     private val ttsManager: TtsManager,
     private val settings: SettingsRepository,
+    private val context: Context,
 ) {
 
     /** v1.91: 流式 ASR Controller 实例(懒创建,Provider 切换时重建)。 */
     private var asrController: ASRController? = null
+    private var asrControllerConfig: AsrConfig? = null
+    private var asrStateJob: Job? = null
 
     /** v1.91: 录音前输入框文本快照(用于结果拼接与取消时恢复)。 */
     private var asrBaseText = ""
@@ -62,24 +65,39 @@ class ChatAudioCoordinator(
      */
     private fun getOrCreateAsrController(): ASRController? {
         val cfg = accessor.snapshot.asrConfig
-        if (cfg.provider == AsrProviderType.SYSTEM || cfg.provider == AsrProviderType.DASHSCOPE_FILE) return null
-        if (cfg.apiKey.isBlank()) return null
-        val existing = asrController
-        if (existing != null) return existing
-        val controller = when (cfg.provider) {
-            AsrProviderType.DASHSCOPE -> DashScopeAsrController(cfg)
-            AsrProviderType.STEP -> StepAsrController(cfg)
-            // 通用 OpenAI Whisper 兼容端点(含 agnes 等中转站),分段批量非真流式
-            AsrProviderType.OPENAI_WHISPER -> OpenAiWhisperAsrController(cfg)
-            // Agnes 中转站(OpenAI 兼容),复用 Whisper 适配器,baseUrl 不同
-            AsrProviderType.AGNES -> OpenAiWhisperAsrController(cfg)
-            // OpenAI Realtime WebSocket 流式(服务端 VAD + 增量 transcription)
-            AsrProviderType.OPENAI_REALTIME -> OpenAiRealtimeAsrController(cfg)
-            // SYSTEM / DASHSCOPE_FILE 上面已 return null,此处不会到达
-            AsrProviderType.SYSTEM, AsrProviderType.DASHSCOPE_FILE -> return null
+        val supportsStreaming = cfg.provider != AsrProviderType.SYSTEM &&
+            cfg.provider != AsrProviderType.DASHSCOPE_FILE
+        if (!supportsStreaming || cfg.apiKey.isBlank()) {
+            // Provider 切回系统识别或清空 API Key 时,旧 Controller 不能继续占用麦克风/网络。
+            if (asrController != null || asrStateJob != null) {
+                asrStateJob?.cancel()
+                asrStateJob = null
+                asrController?.dispose()
+                asrController = null
+                asrControllerConfig = null
+                accessor.update { it.copy(asrState = ASRState()) }
+            }
+            if (cfg.apiKey.isBlank() && supportsStreaming) {
+                accessor.update {
+                    it.copy(
+                        asrState = ASRState(
+                            status = io.zer0.muse.asr.ASRStatus.Error,
+                            isAvailable = false,
+                            errorMessage = context.getString(R.string.asr_missing_api_key_error),
+                        ),
+                    )
+                }
+            }
+            return null
         }
+        val existing = asrController
+        if (existing != null && asrControllerConfig == cfg) return existing
+        asrStateJob?.cancel()
+        existing?.dispose()
+        val controller = AsrClientFactory.createController(cfg) ?: return null
         asrController = controller
-        accessor.coroutineScope.launch {
+        asrControllerConfig = cfg
+        asrStateJob = accessor.coroutineScope.launch {
             controller.state.collect { state ->
                 accessor.update { it.copy(asrState = state) }
             }
@@ -136,7 +154,13 @@ class ChatAudioCoordinator(
 
     /** v1.91: 取消流式录音(恢复原始输入框文本)。 */
     fun cancelStreamingAsr() {
-        asrController?.stop()
+        // 取消不能走 stop():stop 会 flush 最后一段音频,其异步回调可能在用户上滑取消后
+        // 又把识别文字写回输入框。直接释放当前 Controller,下一次录音按配置重建。
+        asrStateJob?.cancel()
+        asrStateJob = null
+        asrController?.dispose()
+        asrController = null
+        asrControllerConfig = null
         accessor.update { state ->
             val current = state.input
             val restored = if (lastAsrTranscript.isNotEmpty() && current.endsWith(lastAsrTranscript)) {
@@ -146,14 +170,17 @@ class ChatAudioCoordinator(
                 current
             }
             lastAsrTranscript = ""
-            state.copy(input = restored.ifBlank { asrBaseText })
+            state.copy(input = restored.ifBlank { asrBaseText }, asrState = ASRState())
         }
     }
 
     /** v1.91: 释放 ASR Controller(会话切换/ViewModel 销毁时)。 */
     fun disposeAsr() {
+        asrStateJob?.cancel()
+        asrStateJob = null
         asrController?.dispose()
         asrController = null
+        asrControllerConfig = null
         accessor.update { it.copy(asrState = ASRState()) }
     }
 
@@ -166,16 +193,12 @@ class ChatAudioCoordinator(
 
     /**
      * Phase 9.3 (M2): 判断当前是否应走 API 录音路径(而非系统 Intent)。
-     * - true: DashScope/Step/OpenAI Whisper/OpenAI Realtime/Agnes(均走流式 Controller),UI 用长按录音
-     * - false: SYSTEM,UI 用点击触发 Intent
+     * - true: 任意非 SYSTEM / 非文件转录 Provider,即使缺 key 也必须走 API 路径，
+     *   由 getOrCreateAsrController 把“缺少 key”明确展示给用户，而不是悄悄降级到另一套系统识别。
+     * - false: SYSTEM 或 DASHSCOPE_FILE(文件转录不属于输入栏实时录音)。
      */
     fun shouldUseApiRecording(): Boolean {
         val p = accessor.snapshot.asrConfig.provider
-        return (p == AsrProviderType.DASHSCOPE ||
-                p == AsrProviderType.STEP ||
-                p == AsrProviderType.OPENAI_WHISPER ||
-                p == AsrProviderType.OPENAI_REALTIME ||
-                p == AsrProviderType.AGNES)
-            && accessor.snapshot.asrConfig.isConfigured
+        return p != AsrProviderType.SYSTEM && p != AsrProviderType.DASHSCOPE_FILE
     }
 }

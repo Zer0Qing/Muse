@@ -28,6 +28,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 DB_PATH = REPO_ROOT / "app/src/main/java/io/zer0/muse/data/session/MuseDb.kt"
 TEST_MIGRATION = REPO_ROOT / "app/src/test/java/io/zer0/muse/data/session/MuseDbMigrationTest.kt"
 TEST_MANUAL_CHAIN = REPO_ROOT / "app/src/test/java/io/zer0/muse/data/session/MuseDbManualChainMigrationTest.kt"
+FACT_DB_PATH = REPO_ROOT / "memory/src/main/java/io/zer0/memory/fact/FactDb.kt"
 
 STATIC_DECL = re.compile(r"val\s+(MIGRATION_(\d+)_(\d+))\s*=\s*object\s*:\s*Migration")
 DYNAMIC_DECL = re.compile(r"fun\s+(migrate(\d+)To(\d+))\b")
@@ -74,6 +75,49 @@ def extract_add_migrations(text: str) -> list[tuple[int, int]]:
 def fail(msg: str, count: list[int]) -> None:
     count[0] += 1
     print(f"  FAIL: {msg}")
+
+
+def check_extra_db_static_chain(db_path: Path, db_name: str, min_version: int, failures: list[int]) -> None:
+    """对第二个数据库(如 FactDb)做校验 A+B(静态注册一致 + 链完整)。
+
+    从 min_version 起校验链完整性:部分库(如 FactDb v1/v2)是历史遗留版本,
+    由业务层兜底(archiveLegacyOrCorruptDatabase)处理,不在迁移链内,故不判为断链。
+    """
+    print(f"\n===== {db_name} 迁移链校验 =====")
+    if not db_path.is_file():
+        fail(f"{db_name}: 未找到 {db_path}", failures)
+        return
+    db_text = db_path.read_text(encoding="utf-8")
+    version_match = VERSION_RE.search(db_text)
+    if not version_match:
+        fail(f"{db_name}: 无法解析当前 version", failures)
+        return
+    current_version = int(version_match.group(1))
+    declared_static = {
+        (int(a), int(b)): name for name, a, b in STATIC_DECL.findall(db_text)
+    }
+    registered = extract_add_migrations(db_text)
+    registered_set = set(registered)
+    reachable_static = {(f, t) for (f, t) in declared_static if f < current_version}
+    print(f"{db_name} version = {current_version}, 注册迁移数 = {len(registered)} (min 版本 {min_version})")
+
+    missing_decl = sorted(registered_set - set(declared_static))
+    for pair in missing_decl:
+        fail(f"{db_name} addMigrations 引用了未声明迁移 {pair}", failures)
+    unregistered = sorted(reachable_static - registered_set)
+    for pair in unregistered:
+        fail(f"{db_name} 静态迁移 {pair} 已声明但未注册进 addMigrations", failures)
+
+    froms = {f for f, t in registered}
+    missing_from = [v for v in range(min_version, current_version) if v not in froms]
+    for v in missing_from:
+        fail(f"{db_name} 版本 {v} 没有出发迁移(断链)", failures)
+    for f, t in sorted(registered):
+        if not (f < t <= current_version):
+            fail(f"{db_name} 迁移 {f}->{t} 非法: 需满足 from < to <= {current_version}", failures)
+
+    if not missing_decl and not unregistered and not missing_from:
+        print(f"  PASS: {db_name} 静态迁移链完整(无断链)")
 
 
 def main() -> int:
@@ -172,6 +216,8 @@ def main() -> int:
             fail("MuseDbManualChainMigrationTest 缺失 declaredFields 反射枚举", failures)
     else:
         fail("MuseDbManualChainMigrationTest 不存在, 静态迁移失去执行覆盖", failures)
+
+    check_extra_db_static_chain(FACT_DB_PATH, "FactDb", 3, failures)
 
     print()
     if failures[0] == 0:

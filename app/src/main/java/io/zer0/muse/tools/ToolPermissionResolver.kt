@@ -422,8 +422,10 @@ object ToolPermissionResolver {
 
     /**
      * B-27: 即使 TRUSTED(完全放权)模式也保留审批的 HIGH 风险工具 —
-     * 通信/联系人/日历等不可逆外部副作用,受 prompt injection 影响后果最严重
-     * (发短信/打电话/改通讯录无法撤回)。安全评审建议:这类工具永远需要用户确认。
+     * 不可逆外部副作用,受 prompt injection 影响后果最严重。
+     * 原 B-27 覆盖通信/资金类(短信/电话/通讯录/日历/JS);
+     * 补强覆盖文件系统不可逆操作(删除/覆写/移动)与 MCP 连接增删
+     * (注入外部 MCP server 可引入任意工具,随后增大攻击面)。
      */
     private val TRUSTED_REQUIRE_APPROVAL_TOOLS: Set<String> = setOf(
         "send_sms",
@@ -431,5 +433,10 @@ object ToolPermissionResolver {
         "add_contact",
         "add_calendar_event",
         "execute_javascript",
+        "workspace_delete",
+        "workspace_write",
+        "workspace_move",
+        "mcp_server_remove",
+        "mcp_server_configure",
     )
 }

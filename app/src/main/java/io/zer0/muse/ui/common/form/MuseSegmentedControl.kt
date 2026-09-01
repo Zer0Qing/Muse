@@ -1,7 +1,6 @@
 package io.zer0.muse.ui.common.form
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -23,6 +22,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MuseCornerRadius
 
 /**
@@ -71,12 +71,12 @@ fun MuseSegmentedControl(
             val isSelected = index == selectedIndex
             val bgColor by animateColorAsState(
                 targetValue = if (isSelected) selectedBg else containerColor,
-                animationSpec = tween(MuseAnimation.FAST_NORMAL_MS, easing = MuseAnimation.EaseOutCubic),
+                animationSpec = MuseMotion.tween(MuseAnimation.FAST_NORMAL_MS, easing = MuseAnimation.EaseOutCubic),
                 label = "seg_bg_$index",
             )
             val textColor by animateColorAsState(
                 targetValue = if (isSelected) selectedText else unselectedText,
-                animationSpec = tween(MuseAnimation.FAST_NORMAL_MS, easing = MuseAnimation.EaseOutCubic),
+                animationSpec = MuseMotion.tween(MuseAnimation.FAST_NORMAL_MS, easing = MuseAnimation.EaseOutCubic),
                 label = "seg_text_$index",
             )
             val fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal

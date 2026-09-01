@@ -13,23 +13,27 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 /**
- * v1.43: 应用级聊天生成管理器。
+ * v1.43: 应用级聊天生成调度器。
  *
  * 解决切页 / 后台时 AI 生成被 ViewModel 生命周期中断的问题:
  * - 生成任务运行在 [appScope] 而非 [androidx.lifecycle.viewModelScope],不依赖页面生命周期
- * - 维护 [activeGeneration] 状态,供新创建的 [ChatViewModel] 重新绑定
- * - 生成结束后自动清理;用户点"停止"时取消任务
+ * - 维护 [activeGeneration]/[activeGenerations] 只读保活状态,供前台服务与新 ViewModel 绑定
  *
- * v1.113: 重构为按 sessionId 独立管理多个并发生成。
- *  - 旧设计:全局一个 streamJob,单聊和群聊互相 cancel,导致一方生成中断。
- *  - 新设计:用 Map<sessionId, Job> 独立管理每个生成任务,单聊和群聊可同时进行互不干扰。
- *  - [activeGenerations] 按 sessionId 暴露全部活跃任务,供 [ChatGenerationService] 保活。
- *  - [activeGeneration] 保留为兼容 API,返回最近更新的任务。
- *  - [stop] 只取消指定 sessionId 的生成;[stopAll] 取消全部。
- *  - finally 块只更新自己 sessionId 对应的状态,避免竞态覆盖。
+ * v1.x(唯一 Job 账本收口):
+ * - 本类**不再持有/取消任何 Job**。会话级生成 Job 的唯一 owner 是
+ *   [io.zer0.muse.session.ConversationSessionManager] 持有的
+ *   `SessionRuntime.generationJob`。
+ * - [launchGeneration] 只做应用级调度:从 owner 读上一代 Job 做串行化(新 block 等旧
+ *   finally 结束),启动协程后立即通过 owner 的 `setGenerationJob` 登记,替换/取消/完成
+ *   清理全部由 owner 完成。
+ * - 活跃状态([_activeGenerations])仅用于前台服务保活与 [isStreaming] 只读查询,
+ *   按 sessionId 记录"是否有未结束的生成",以 ActiveGeneration 对象身份做清理守护,
+ *   不是 Job 的第二份账本。
+ * - [stop] 只移除保活状态,取消动作委托给 owner `cancelGeneration`。
  */
 class ChatGenerationManager(
     private val appScope: CoroutineScope,
+    private val sessionManager: io.zer0.muse.session.ConversationSessionManager,
     private val appContext: Context? = null,
 ) {
 
@@ -45,28 +49,23 @@ class ChatGenerationManager(
     private val _activeGeneration = MutableStateFlow<ActiveGeneration?>(null)
     val activeGeneration: StateFlow<ActiveGeneration?> = _activeGeneration.asStateFlow()
 
-    /** 所有活跃生成任务的快照, key 为 sessionId。 */
+    /** 所有活跃生成任务的只读快照, key 为 sessionId。 */
     private val _activeGenerations = MutableStateFlow<Map<String, ActiveGeneration>>(emptyMap())
     val activeGenerations: StateFlow<Map<String, ActiveGeneration>> = _activeGenerations.asStateFlow()
 
-    // v1.113: 按 sessionId 独立管理 Job,单聊和群聊互不抢占。
-    private val streamJobs = mutableMapOf<String, Job>()
-    /** stop() 后仍在执行 finally 的旧任务，新一代生成必须等待它结束。 */
-    private val terminatingJobs = mutableMapOf<String, Job>()
     private val lock = Any()
 
     /**
-     * 在应用级协程中启动生成任务。
+     * 在应用级协程中启动生成任务,并登记到唯一 owner 的会话级账本。
      *
-     * v1.113: 同一 sessionId 的旧生成会被取消(防重入),不同 sessionId 的生成互不影响。
-     * v1.x: 返回值改为 [Job],供调用方(如 [io.zer0.muse.session.ConversationSessionManager.setGenerationJob])
-     * 跟踪会话级生成任务,实现引用计数 + idle 清理。
+     * 调度顺序:
+     * 1. 从 owner 读同一 session 上一代 Job(串行化依据),并取消它;
+     * 2. 同步写入活跃保活状态;
+     * 3. 启动块(先 `join` 上一代 finally,避免两代流同时写同一会话);
+     * 4. 通过 `sessionManager.setGenerationJob` 登记新 Job(owner 会取消旧的并注册新的);
+     * 5. 返回 Job(兼容旧调用方,可忽略)。
      *
-     * @param sessionId 当前会话 id(单聊为会话 id,群聊为 "group:$chatId")
-     * @param assistantId 当前占位 assistant 消息 id
-     * @param sessionTitle 会话标题(用于通知/日志)
-     * @param block 实际的流式生成逻辑
-     * @return 生成任务的 [Job],可用于 join/cancel 或注册完成回调
+     * @param sessionId 会话 id(单聊为会话 id,群聊为 "group:$chatId")
      */
     fun launchGeneration(
         sessionId: String,
@@ -75,13 +74,10 @@ class ChatGenerationManager(
         block: suspend () -> Unit,
     ): Job {
         synchronized(lock) {
-            // 取消同一 sessionId 的旧 job(防重入),不影响其他 sessionId。
-            // 新任务会在旧 Job 完成 finally 后才进入 block，避免两代流同时写同一会话。
-            val previousJob = streamJobs.remove(sessionId) ?: terminatingJobs[sessionId]
+            // 从唯一 owner 读上一代 Job。若上一代已正常完成,owner 已清空 → null(无需串行化)。
+            val previousJob = sessionManager.runtime(sessionId)?.generationJob
             previousJob?.cancel()
-            // 先同步写入活跃状态,再启动 appScope 协程。
-            // ON_STOP 可能紧跟在发送动作后发生;如果状态只在 launch 块内部异步写入,
-            // 前台保活服务会错过这次生成,后台进程可能被系统回收。
+
             val generation = ActiveGeneration(
                 sessionId = sessionId,
                 assistantId = assistantId,
@@ -89,10 +85,10 @@ class ChatGenerationManager(
                 isStreaming = true,
                 lastUpdatedAt = System.currentTimeMillis(),
             )
+            // 先同步写入活跃状态。ON_STOP 可能紧跟在发送动作后发生;前台保活服务据此判定。
             _activeGenerations.value = _activeGenerations.value + (sessionId to generation)
             _activeGeneration.value = generation
-            // 先登记再启动,避免极短任务在 streamJobs 写入前完成,导致 finally
-            // 无法确认自己是当前任务,留下永远活跃的快照。
+
             val job = appScope.launch(start = CoroutineStart.LAZY) {
                 previousJob?.join()
                 val heartbeatJob = launch {
@@ -105,16 +101,14 @@ class ChatGenerationManager(
                     block()
                 } finally {
                     heartbeatJob.cancel()
-                    // 同一 session 快速重入时,旧 job 的 finally 不能把新 job 标记成已结束。
-                    val isCurrentJob = synchronized(lock) {
-                        streamJobs[sessionId] === coroutineContext[Job]
+                    // 清理守护用 ActiveGeneration 对象身份(本类不持 Job):
+                    // 同一 session 快速重入时,旧任务的 finally 不得把新任务标记成已结束。
+                    val isCurrentGeneration = synchronized(lock) {
+                        _activeGenerations.value[sessionId] === generation
                     }
-                    if (isCurrentJob) {
+                    if (isCurrentGeneration) {
                         synchronized(lock) {
                             _activeGenerations.value = _activeGenerations.value - sessionId
-                            // 保留 activeGeneration 的旧兼容语义:最后一个任务结束后,
-                            // 观察者仍会收到一次 isStreaming=false;前台服务观察的是
-                            // activeGenerations,不会因为这个兼容状态误判仍有任务。
                             val next = _activeGenerations.value.values.maxByOrNull { it.lastUpdatedAt }
                             _activeGeneration.value = next ?: generation.copy(
                                 isStreaming = false,
@@ -122,24 +116,15 @@ class ChatGenerationManager(
                             )
                         }
                     }
-                    synchronized(lock) {
-                        // 审计修复 (3.2): 按 Job 身份判断,仅当 map 中登记的仍是当前 job 时才移除。
-                        // 防止重入场景下旧 job 被取消后,其 finally 无条件 remove 误删新 job 的登记。
-                        val currentJob = coroutineContext[Job]
-                        if (streamJobs[sessionId] === currentJob) {
-                            streamJobs.remove(sessionId)
-                        }
-                        if (terminatingJobs[sessionId] === currentJob) {
-                            terminatingJobs.remove(sessionId)
-                        }
-                    }
                     Logger.i("ChatGenMgr", "generation finished: $sessionId")
                 }
             }
-            streamJobs[sessionId] = job
+
+            // 唯一 owner 登记:取消上一代(幂等)、登记新 Job、完成时清理 + idle 调度。
+            sessionManager.setGenerationJob(sessionId, job)
             job.start()
-            // 生成一登记就进入前台服务，避免 ON_STOP 与任务启动之间的竞态。
-            // 服务负责保活；回到前台也不能停掉仍在运行的任务。
+
+            // 生成一登记就进入前台服务,避免 ON_STOP 与任务启动之间的竞态。
             appContext?.let { context ->
                 runCatching { ChatGenerationService.start(context) }
                     .onFailure { Logger.w("ChatGenMgr", "生成开始时启动前台服务失败", it) }
@@ -149,44 +134,30 @@ class ChatGenerationManager(
     }
 
     /**
-     * 用户手动停止或页面主动取消指定会话的生成。
-     *
-     * v1.113: 只取消 [sessionId] 对应的生成,不影响其他会话(如群聊生成中用户停止单聊)。
+     * 用户停止指定会话的生成。取消动作委托给会话级唯一 owner。
      *
      * @param sessionId 要停止的会话 id;不传则取消全部(兼容旧调用方)
      */
     fun stop(sessionId: String? = null) {
         synchronized(lock) {
             if (sessionId != null) {
-                streamJobs.remove(sessionId)?.let { job ->
-                    terminatingJobs[sessionId] = job
-                    job.cancel()
-                }
                 _activeGenerations.value = _activeGenerations.value - sessionId
-                // 只在当前 active 是该 sessionId 时才清空
                 if (_activeGeneration.value?.sessionId == sessionId) {
                     _activeGeneration.value = _activeGenerations.value.values.maxByOrNull { it.lastUpdatedAt }
                 }
+                sessionManager.cancelGeneration(sessionId)
                 Logger.i("ChatGenMgr", "generation stopped: $sessionId")
             } else {
-                // 取消全部
-                streamJobs.forEach { (id, job) ->
-                    terminatingJobs[id] = job
-                    job.cancel()
-                }
-                streamJobs.clear()
+                val ids = _activeGenerations.value.keys.toList()
                 _activeGenerations.value = emptyMap()
                 _activeGeneration.value = null
+                ids.forEach { sessionManager.cancelGeneration(it) }
                 Logger.i("ChatGenMgr", "all generations stopped")
             }
         }
     }
 
-    /**
-     * 刷新指定会话的心跳,避免后台被系统判定为无活跃任务。
-     *
-     * @param sessionId 会话 id;为 null 时兼容旧调用,刷新最近任务。
-     */
+    /** 刷新指定会话的心跳;为 null 时兼容旧调用,刷新最近任务。 */
     fun touch(sessionId: String? = null) {
         synchronized(lock) {
             val targetId = sessionId ?: _activeGeneration.value?.sessionId ?: return
@@ -197,15 +168,13 @@ class ChatGenerationManager(
         }
     }
 
-    /**
-     * v1.111: 更新当前生成的会话标题(群聊场景异步获取群聊名后更新通知显示)。
-     */
+    /** 更新最近生成的通知标题(群聊异步获取群聊名后调用)。 */
     fun updateSessionTitle(title: String) {
         val sessionId = synchronized(lock) { _activeGeneration.value?.sessionId }
         if (sessionId != null) updateSessionTitle(sessionId, title)
     }
 
-    /** 更新指定会话的通知标题,避免多会话并发时误改最近任务的标题。 */
+    /** 更新指定会话的通知标题。 */
     fun updateSessionTitle(sessionId: String, title: String) {
         synchronized(lock) {
             val current = _activeGenerations.value[sessionId] ?: return
@@ -215,11 +184,10 @@ class ChatGenerationManager(
         }
     }
 
-    /** v1.113: 检查指定 sessionId 是否有活跃生成。 */
+    /** 只读状态:指定 sessionId 是否有未结束的生成。 */
     fun isStreaming(sessionId: String): Boolean {
         synchronized(lock) {
-            val job = streamJobs[sessionId]
-            return job != null && job.isActive
+            return _activeGenerations.value.containsKey(sessionId)
         }
     }
 

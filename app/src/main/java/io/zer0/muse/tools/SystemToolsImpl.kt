@@ -227,7 +227,10 @@ class SystemToolsImpl(private val context: Context) {
     suspend fun execGetRecentNotifications(args: Map<String, String>): String {
         val limit = args["limit"]?.toIntOrNull()?.takeIf { it > 0 } ?: 20
         val pkg = args["package_name"]?.takeIf { it.isNotBlank() }
-        val records = MuseNotificationListenerService.getRecent(limit, pkg)
+        val query = args["query"]?.takeIf { it.isNotBlank() }
+        val unreadOnly = args["unread_only"]?.trim()?.equals("true", ignoreCase = true) == true
+        val activeOnly = args["active_only"]?.trim()?.equals("true", ignoreCase = true) == true
+        val records = MuseNotificationListenerService.getRecent(limit, pkg, query, unreadOnly, activeOnly)
         return if (records.isEmpty()) {
             if (MuseNotificationListenerService.isConnected()) {
                 context.getString(R.string.tool_no_notifications)
@@ -238,7 +241,9 @@ class SystemToolsImpl(private val context: Context) {
             val fmt = FMT_TIME_MIN.get() ?: SimpleDateFormat("HH:mm", Locale.getDefault())
             records.joinToString("\n") { r ->
                 val time = fmt.format(Date(r.timestamp))
-                "[${r.packageName}] $time ${r.title}: ${r.text}"
+                val source = r.appLabel.takeIf { it.isNotBlank() && it != r.packageName } ?: r.packageName
+                val state = if (r.isActive) "active" else "removed"
+                "[$source] $time ${r.title}: ${r.text} ($state)"
             }
         }
     }

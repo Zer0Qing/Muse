@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -116,9 +115,19 @@ private fun extractTitle(html: String): String? {
  *  - 不再每次调用重建 Regex(META_REGEX/TITLE_REGEX 已提为文件级常量)。
  */
 private suspend fun fetchLinkPreview(url: String): LinkPreviewData = withContext(Dispatchers.IO) {
+    // SSRF 防护:进入即校验原始 URL,拒绝内网/非公网/非 http(s) 目标。
+    if (SsrfGuard.isBlocked(url)) {
+        Logger.w(TAG, "fetchLinkPreview 拒绝内网/非公网地址: $url")
+        return@withContext LinkPreviewData(url = url)
+    }
     withTimeoutOrNull(FETCH_TIMEOUT_MS) {
         resultOf<LinkPreviewData> {
             val finalUrl = followRedirect(url)
+            // 重定向落地地址再次校验(防 302/307 跳转到内网)
+            if (SsrfGuard.isBlocked(finalUrl)) {
+                Logger.w(TAG, "fetchLinkPreview 拒绝重定向到内网: $finalUrl")
+                return@resultOf LinkPreviewData(url = finalUrl)
+            }
             val html = fetchHtml(finalUrl)
             val title = extractMeta(html, "og:title")
                 ?: extractMeta(html, "twitter:title")
@@ -130,13 +139,27 @@ private suspend fun fetchLinkPreview(url: String): LinkPreviewData = withContext
             val imageUrl = extractMeta(html, "og:image")
                 ?: extractMeta(html, "twitter:image")
                 ?: ""
-            LinkPreviewData(url = finalUrl, title = title, description = description, imageUrl = imageUrl)
+            LinkPreviewData(
+                url = finalUrl,
+                title = title,
+                description = description,
+                imageUrl = sanitizeImageUrl(imageUrl),
+            )
         }.getOrNull() ?: LinkPreviewData(url = url)
     } ?: run {
         Logger.w(TAG, "fetchLinkPreview timeout: $url")
         LinkPreviewData(url = url)
     }
 }
+
+/** og:image 会被 Coil 二次抓取,同样拒绝内网/非公网图片地址。 */
+private fun sanitizeImageUrl(imageUrl: String): String =
+    if (imageUrl.isNotBlank() && SsrfGuard.isBlocked(imageUrl)) {
+        Logger.w(TAG, "fetchLinkPreview 拒绝内网图片地址: $imageUrl")
+        ""
+    } else {
+        imageUrl
+    }
 
 /** 仅发起 HEAD 跟随重定向,返回最终落地 URL(失败则回退原 URL)。 */
 private fun followRedirect(url: String): String {

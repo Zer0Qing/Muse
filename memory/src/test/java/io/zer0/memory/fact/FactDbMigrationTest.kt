@@ -577,6 +577,95 @@ class FactDbMigrationTest {
         db.close()
     }
 
+    /**
+     * I-AUDIT: 补 FactDb 3→7 迁移回归(此前仅覆盖 7→8/11→12/12→13)。
+     * v3 只有 6 列(无 importance/category/confidence/source/expires_at/last_hit_at/last_confirmed_at)+ 无 FTS,
+     * 一路迁到当前版本应:新增列齐全、FTS 建表、历史数据无损、默认值正确。
+     */
+    @Test
+    fun migrateFromV3_addsColumnsAndFtsPreservingData() {
+        val dbFile = newDbFile()
+        val factory = FrameworkSQLiteOpenHelperFactory()
+        val v3CreateFacts = """
+            CREATE TABLE IF NOT EXISTS `facts` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `fact` TEXT NOT NULL,
+                `tags` TEXT NOT NULL DEFAULT '[]',
+                `time` TEXT,
+                `session_id` TEXT,
+                `created_at` TEXT NOT NULL
+            )
+        """.trimIndent()
+        val helper = factory.create(
+            configuration = androidx.sqlite.db.SupportSQLiteOpenHelper.Configuration.builder(context)
+                .name(dbFile.absolutePath)
+                .callback(object : androidx.sqlite.db.SupportSQLiteOpenHelper.Callback(3) {
+                    override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                        db.execSQL(v3CreateFacts)
+                        db.execSQL("CREATE INDEX IF NOT EXISTS `idx_facts_time` ON `facts` (`time`)")
+                        db.execSQL("CREATE INDEX IF NOT EXISTS `idx_facts_session` ON `facts` (`session_id`)")
+                    }
+
+                    override fun onUpgrade(
+                        db: androidx.sqlite.db.SupportSQLiteDatabase,
+                        oldVersion: Int,
+                        newVersion: Int,
+                    ) {
+                    }
+                })
+                .build(),
+        ).writableDatabase
+
+        helper.execSQL(
+            "INSERT INTO facts (id, fact, tags, time, session_id, created_at) " +
+                "VALUES (1, '爱吃辣', '[\"偏好\"]', NULL, NULL, '2026-01-01T00:00:00Z')"
+        )
+        helper.close()
+
+        val db = Room.databaseBuilder(context, FactDb::class.java, dbFile.absolutePath)
+            .addMigrations(
+                FactDb.MIGRATION_3_4, FactDb.MIGRATION_4_5, FactDb.MIGRATION_5_6,
+                FactDb.MIGRATION_6_7, FactDb.MIGRATION_7_8, FactDb.MIGRATION_8_9,
+                FactDb.MIGRATION_9_10, FactDb.MIGRATION_10_11, FactDb.MIGRATION_11_12, FactDb.MIGRATION_12_13,
+            )
+            .allowMainThreadQueries()
+            .build()
+
+        // 1. 3→7 新增列齐全
+        db.openHelper.writableDatabase.query("PRAGMA table_info(facts)").use { cursor ->
+            val cols = mutableListOf<String>()
+            while (cursor.moveToNext()) cols.add(cursor.getString(1))
+            assertTrue("importance 列应存在", "importance" in cols)
+            assertTrue("category 列应存在", "category" in cols)
+            assertTrue("confidence 列应存在", "confidence" in cols)
+            assertTrue("source 列应存在", "source" in cols)
+            assertTrue("expires_at 列应存在", "expires_at" in cols)
+            assertTrue("last_confirmed_at 列应存在", "last_confirmed_at" in cols)
+            assertTrue("last_hit_at 列应存在", "last_hit_at" in cols)
+            assertTrue("scope 列应存在", "scope" in cols)
+        }
+
+        // 2. FTS 表已建
+        db.openHelper.writableDatabase.query(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='facts_fts'"
+        ).use { cursor -> assertTrue("facts_fts 表应存在", cursor.moveToFirst()) }
+
+        // 3. 历史数据无损 + 默认值正确
+        db.openHelper.writableDatabase.query(
+            "SELECT fact, importance, category, confidence, source, scope FROM facts WHERE id = 1"
+        ).use { cursor ->
+            assertTrue("v3 存量事实应保留", cursor.moveToFirst())
+            assertEquals("爱吃辣", cursor.getString(0))
+            assertEquals(0, cursor.getInt(1))
+            assertEquals("general", cursor.getString(2))
+            assertEquals(1.0f, cursor.getFloat(3), 0.001f)
+            assertEquals("inferred", cursor.getString(4))
+            assertEquals("main", cursor.getString(5))
+        }
+
+        db.close()
+    }
+
     private companion object {
         const val DB_NAME = "facts_test.db"
     }

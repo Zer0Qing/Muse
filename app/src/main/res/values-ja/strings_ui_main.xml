@@ -712,4 +712,8 @@
     <string name="settings_screen_miniphone_desc">実験機能の初期バージョン</string>
     <string name="model_diff_clear_add">新規モデルを解除</string>
     <string name="model_diff_clear_remove">削除モデルを解除</string>
+    <!-- v1.0.85: release localization -->
+    <string name="workspace_import_file">ファイルマネージャーからインポート</string>
+    <string name="workspace_import_success">%1$d 件をインポートしました</string>
+    <string name="workspace_import_failed">ファイルのインポートに失敗しました: %1$s</string>
 </resources>

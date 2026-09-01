@@ -7,17 +7,11 @@ import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.ToolCall
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.AppJson
-import io.zer0.muse.data.assistant.AssistantRepository
-import io.zer0.muse.data.session.SessionRepository
-import io.zer0.muse.data.skill.SkillRepository
-import io.zer0.muse.ui.chat.ChatStateAccessor
-import io.zer0.muse.ui.chat.ChatTaskCardCoordinator
 import io.zer0.muse.ui.taskcard.AgentPlan
 import io.zer0.muse.ui.taskcard.AgentPlanStep
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -641,13 +635,5 @@ class ToolOrchestratorPureFunctionsTest {
     @Test
     fun `tool timeout constant is 120 seconds`() {
         assertEquals(120_000L, TOOL_TIMEOUT_MS)
-    }
-
-    @Test
-    fun `three consecutive failures abort tool loop`() {
-        assertFalse(shouldAbortToolLoop(0))
-        assertFalse(shouldAbortToolLoop(2))
-        assertTrue(shouldAbortToolLoop(3))
-        assertTrue(shouldAbortToolLoop(4))
     }
 }

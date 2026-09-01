@@ -1,10 +1,7 @@
 package io.zer0.muse.ui
 
+import io.zer0.muse.ui.theme.MuseMotion
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -55,8 +52,8 @@ fun AgentModeHintCard(
         // 1) 会话锁定状态(常驻,不可关闭)
         AnimatedVisibility(
             visible = isSessionLocked,
-            enter = fadeIn() + expandVertically(),
-            exit = fadeOut() + shrinkVertically(),
+            enter = MuseMotion.expandFadeEnter(),
+            exit = MuseMotion.expandFadeExit(),
         ) {
             HintRow(
                 icon = TablerIcons.Lock,
@@ -69,8 +66,8 @@ fun AgentModeHintCard(
         // 2) 弱工具降级提示(可关闭)
         AnimatedVisibility(
             visible = !weakToolHint.isNullOrEmpty(),
-            enter = fadeIn() + expandVertically(),
-            exit = fadeOut() + shrinkVertically(),
+            enter = MuseMotion.expandFadeEnter(),
+            exit = MuseMotion.expandFadeExit(),
         ) {
             HintRow(
                 icon = TablerIcons.AlertTriangle,
@@ -89,8 +86,8 @@ fun AgentModeHintCard(
         // 3) Agent Mode 一般提示(可关闭)
         AnimatedVisibility(
             visible = !agentModeHint.isNullOrEmpty(),
-            enter = fadeIn() + expandVertically(),
-            exit = fadeOut() + shrinkVertically(),
+            enter = MuseMotion.expandFadeEnter(),
+            exit = MuseMotion.expandFadeExit(),
         ) {
             HintRow(
                 icon = TablerIcons.MessageCircle,

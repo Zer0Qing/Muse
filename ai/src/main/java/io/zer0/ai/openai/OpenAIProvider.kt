@@ -46,7 +46,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonArray
@@ -110,6 +109,13 @@ class OpenAIProvider(
     /** B3-05: Custom 供应商专用配置(自定义请求模板 / 响应路径 / headers / body 字段)。 */
     private val customConfig: ProviderSpecificConfig.Custom? by lazy {
         config.specific as? ProviderSpecificConfig.Custom
+    }
+    /** 普通 OpenAI specific 与 Custom specific 都支持附加请求字段。 */
+    private val customHeaders: Map<String, String> by lazy {
+        customConfig?.customHeaders ?: openAIConfig.customHeaders
+    }
+    private val customBody: Map<String, JsonElement> by lazy {
+        customConfig?.customBody ?: openAIConfig.customBody
     }
 
     /**
@@ -199,7 +205,7 @@ class OpenAIProvider(
             .header("Authorization", "Bearer ${resolveEffectiveApiKey(request.model.id)}")
             .header("Content-Type", "application/json")
             .header("Accept", "text/event-stream")
-            .apply { customConfig?.customHeaders?.forEach { (k, v) -> header(k, v) } }
+            .apply { customHeaders.forEach { (k, v) -> header(k, v) } }
             .post(body.toRequestBody(JSON_MEDIA_TYPE))
             .build()
 
@@ -870,7 +876,7 @@ class OpenAIProvider(
             .header("Authorization", "Bearer ${resolveEffectiveApiKey(request.model.id)}")
             .header("Content-Type", "application/json")
             .header("Accept", "application/json")
-            .apply { customConfig?.customHeaders?.forEach { (k, v) -> header(k, v) } }
+            .apply { customHeaders.forEach { (k, v) -> header(k, v) } }
             .post(body.toRequestBody(JSON_MEDIA_TYPE))
             .build()
 
@@ -1274,7 +1280,7 @@ class OpenAIProvider(
 
     /** B3-05: 把 customBody 的顶层字段合并进最终请求 JSON。 */
     private fun mergeCustomBody(body: String): String {
-        val extras = customConfig?.customBody ?: emptyMap()
+        val extras = customBody
         if (extras.isEmpty()) return body
         val element = runCatching { AppJson.parseToJsonElement(body) }.getOrNull()
         val obj = (element as? JsonObject)?.toMutableMap() ?: return body
@@ -1357,6 +1363,7 @@ class OpenAIProvider(
             model = effectiveModel,
             messages = messagesWithPatches.map { it.toOpenAI(request.model, compat, carriesTools = !openAiTools.isNullOrEmpty()) },
             temperature = request.temperature,
+            top_p = request.topP,
             // v1.0.2 修复 HTTP 400: max_tokens 范围校验,0/负值视为未设置。
             // 部分 OpenAI 兼容中转站严格校验 max_tokens >= 1,直接发 0 会返回 400 invalid_request_error。
             // null 会被 kotlinx.serialization 忽略,不写入请求体,让上游用默认值。
@@ -1834,7 +1841,7 @@ class OpenAIProvider(
             .header("Authorization", "Bearer ${resolveEffectiveApiKey(request.model.id)}")
             .header("Content-Type", "application/json")
             .header("Accept", "text/event-stream")
-            .apply { customConfig?.customHeaders?.forEach { (k, v) -> header(k, v) } }
+            .apply { customHeaders.forEach { (k, v) -> header(k, v) } }
             .post(body.toRequestBody(JSON_MEDIA_TYPE))
             .build()
 
@@ -2181,7 +2188,7 @@ class OpenAIProvider(
             .header("Authorization", "Bearer ${resolveEffectiveApiKey(request.model.id)}")
             .header("Content-Type", "application/json")
             .header("Accept", "application/json")
-            .apply { customConfig?.customHeaders?.forEach { (k, v) -> header(k, v) } }
+            .apply { customHeaders.forEach { (k, v) -> header(k, v) } }
             .post(body.toRequestBody(JSON_MEDIA_TYPE))
             .build()
 

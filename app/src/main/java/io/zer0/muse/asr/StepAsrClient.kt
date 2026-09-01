@@ -1,9 +1,7 @@
 package io.zer0.muse.asr
 
 import android.annotation.SuppressLint
-import android.media.AudioFormat
 import android.media.AudioRecord
-import android.media.MediaRecorder
 import android.os.SystemClock
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
@@ -12,6 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -56,7 +55,7 @@ import java.util.concurrent.TimeUnit
  */
 class StepAsrController(
     private val config: AsrConfig,
-    private val baseUrl: String = DEFAULT_BASE_URL,
+    private val baseUrl: String = config.baseUrl.ifBlank { DEFAULT_BASE_URL },
 ) : ASRController {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -108,32 +107,14 @@ class StepAsrController(
     private fun startRecording() {
         // 录音循环在 IO 协程内运行,内部用 isActive 检查取消状态
         recordJob = scope.launch(Dispatchers.IO) {
-            // 检查权限:无 Context,通过 AudioRecord 初始化结果判断(RECORD_AUDIO 缺失时 state != INITIALIZED)
-            val sampleRate = config.sampleRate
-            val minBuf = AudioRecord.getMinBufferSize(
-                sampleRate,
-                AudioFormat.CHANNEL_IN_MONO,
-                AudioFormat.ENCODING_PCM_16BIT,
-            )
-            if (minBuf <= 0) {
-                setError("AudioRecord 缓冲区大小无效: $minBuf")
+            // 检查权限并按多个兼容音源创建录音器。
+            val capture = AsrAudioCapture.create(config.sampleRate, TAG)
+            if (capture == null) {
+                setError("麦克风初始化失败,请检查权限或录音设备")
                 return@launch
             }
-            val bufSize = (minBuf * 2).coerceAtLeast(sampleRate / 10 * 2).coerceAtLeast(4096)
-            val recorder = AudioRecord(
-                MediaRecorder.AudioSource.VOICE_COMMUNICATION,
-                sampleRate,
-                AudioFormat.CHANNEL_IN_MONO,
-                AudioFormat.ENCODING_PCM_16BIT,
-                bufSize * 2,
-            )
-            if (recorder.state != AudioRecord.STATE_INITIALIZED) {
-                Logger.w(TAG, "AudioRecord 初始化失败(可能缺少 RECORD_AUDIO 权限)")
-                recorder.release()
-                // v1.98: 移除 setError 弹窗提示,静默处理(仅记日志)
-                _state.update { it.copy(status = ASRStatus.Error) }
-                return@launch
-            }
+            val recorder = capture.recorder
+            val bufSize = capture.bufferSize
             audioRecord = recorder
 
             try {
@@ -157,12 +138,16 @@ class StepAsrController(
                         if (shouldFlush) {
                             triggerFlush()
                         }
+                    } else if (read == 0) {
+                        delay(10L)
                     } else if (read < 0) {
                         Logger.w(TAG, "AudioRecord.read 错误: $read")
                         setError("AudioRecord 读取错误: $read")
                         break
                     }
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Logger.w(TAG, "录音失败: ${e.message}")
                 setError(e.message ?: "录音失败")
@@ -181,7 +166,9 @@ class StepAsrController(
         flushJob = scope.launch(Dispatchers.IO) {
             resultOf { flushSegment() }
                 .onError { message, throwable ->
-                    Logger.w(TAG, "分段 flush 失败: ${throwable?.message ?: message}")
+                    val error = throwable?.message ?: message
+                    Logger.w(TAG, "分段 flush 失败: $error")
+                    setError("语音识别分段失败: $error")
                 }
         }
     }
@@ -226,38 +213,66 @@ class StepAsrController(
             val multipart = MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
                 .addFormDataPart("file", "audio.wav", wavBody)
-                .addFormDataPart("model", config.model)
+                .addFormDataPart("model", config.model.ifBlank { config.defaultModel() })
                 .apply {
-                    config.language?.let { addFormDataPart("language", it) }
+                    config.language?.takeIf { it.isNotBlank() }?.let { addFormDataPart("language", it) }
                 }
                 .build()
-
             val request = Request.Builder()
-                .url("${baseUrl.trimEnd('/')}/v1/audio/transcriptions")
+                .url(transcriptionEndpoint())
                 .header("Authorization", "Bearer ${config.apiKey}")
                 .post(multipart)
                 .build()
-
-            resultOf {
-                client.newCall(request).execute().use { resp: Response ->
-                    if (!resp.isSuccessful) {
-                        Logger.w(TAG, "Step ASR HTTP ${resp.code}: ${resp.message}")
-                        return@use null
+            var lastError: String? = null
+            for (attempt in 0 until AsrConstants.MAX_HTTP_ATTEMPTS) {
+                try {
+                    val result = client.newCall(request).execute().use { resp: Response ->
+                        if (!resp.isSuccessful) {
+                            lastError = "识别服务 HTTP ${resp.code}: ${resp.message}"
+                            Logger.w(TAG, "Step ASR HTTP ${resp.code}: ${resp.message}")
+                            // 4xx(尤其 401/403/413)重试没有意义;5xx/429 留给下一次短重试。
+                            if (resp.code !in 500..599 && resp.code != 429) {
+                                return@use null
+                            }
+                            null
+                        } else {
+                            parseTranscriptionResponse(resp.body.string())
+                        }
                     }
-                    val body = resp.body.string()
-                    parseTranscriptionResponse(body)
+                    if (!result.isNullOrBlank()) return@withContext result
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: java.io.IOException) {
+                    lastError = e.message ?: "网络连接失败"
+                    Logger.w(TAG, "Step ASR 请求失败(attempt=${attempt + 1}): ${e.message}")
                 }
-            }.onError { message, throwable ->
-                Logger.w(TAG, "Step ASR 请求失败: ${throwable?.message ?: message}")
-            }.getOrNull()
+                if (attempt + 1 < AsrConstants.MAX_HTTP_ATTEMPTS) {
+                    delay(AsrConstants.HTTP_RETRY_BACKOFF_MS * (attempt + 1))
+                }
+            }
+            lastError?.let { setError("语音识别失败: $it") }
+            null
         }
+
+    private fun transcriptionEndpoint(): String {
+        val base = baseUrl.trimEnd('/')
+        return if (base.endsWith("/audio/transcriptions")) {
+            base
+        } else if (base.endsWith("/v1")) {
+            "$base/audio/transcriptions"
+        } else {
+            "$base/v1/audio/transcriptions"
+        }
+    }
 
     /** 解析 OpenAI 兼容 transcription 响应,提取 text 字段。 */
     private fun parseTranscriptionResponse(body: String): String? {
-        return resultOf {
+        val fromJson = resultOf {
             val obj = Json.parseToJsonElement(body) as? JsonObject
             (obj?.get("text") as? JsonPrimitive)?.content
         }.getOrNull()
+        // 部分 Step/中转实现忽略 response_format,直接返回纯文本。
+        return fromJson?.takeIf { it.isNotBlank() } ?: body.takeIf { it.isNotBlank() }
     }
 
     override fun stop() {

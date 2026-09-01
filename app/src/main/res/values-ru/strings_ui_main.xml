@@ -708,4 +708,8 @@
     <string name="settings_screen_miniphone_desc">Ранняя версия экспериментальной функции</string>
     <string name="model_diff_clear_add">Очистить новые модели</string>
     <string name="model_diff_clear_remove">Очистить удалённые модели</string>
+    <!-- v1.0.85: release localization -->
+    <string name="workspace_import_file">Импортировать из файлового менеджера</string>
+    <string name="workspace_import_success">Импортировано: %1$d</string>
+    <string name="workspace_import_failed">Не удалось импортировать файл: %1$s</string>
 </resources>

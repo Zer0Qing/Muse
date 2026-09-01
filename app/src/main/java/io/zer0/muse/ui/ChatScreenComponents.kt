@@ -7,7 +7,6 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -55,6 +54,8 @@ import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseMotion
 
 /**
  * v0.29 P0-1: 空聊天引导 — 轻量居中提示 + 建议 prompt 胶囊。
@@ -200,6 +201,10 @@ internal fun EmptyChatGuide(
  */
 @Composable
 internal fun ShimmerBubble(progressText: String? = null) {
+    if (MuseMotion.isReducedMotion()) {
+        StaticShimmerBubble(progressText)
+        return
+    }
     val shimmerColors = listOf(
         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f),
@@ -210,7 +215,7 @@ internal fun ShimmerBubble(progressText: String? = null) {
         initialValue = 0f,
         targetValue = 1000f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = FastOutSlowInEasing),
+            animation = MuseMotion.tween(MuseAnimation.LOOP_EXTRA_SLOW_MS, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Restart,
         ),
         label = "shimmer",
@@ -220,7 +225,7 @@ internal fun ShimmerBubble(progressText: String? = null) {
         initialValue = 0.5f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(900, easing = FastOutSlowInEasing),
+            animation = MuseMotion.tween(MuseAnimation.LOOP_SLOW_MS + 100, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse,
         ),
         label = "text_alpha",
@@ -251,7 +256,11 @@ internal fun ShimmerBubble(progressText: String? = null) {
                         initialValue = 0.6f,
                         targetValue = 1f,
                         animationSpec = infiniteRepeatable(
-                            animation = tween(600, delayMillis = index * 120, easing = FastOutSlowInEasing),
+                            animation = MuseMotion.tween(
+                                MuseAnimation.LOOP_NORMAL_MS,
+                                delayMillis = index * MuseAnimation.STAGGER_STEP_MS,
+                                easing = FastOutSlowInEasing,
+                            ),
                             repeatMode = RepeatMode.Reverse,
                         ),
                         label = "dot_scale_$index",
@@ -260,7 +269,11 @@ internal fun ShimmerBubble(progressText: String? = null) {
                         initialValue = 0.4f,
                         targetValue = 1f,
                         animationSpec = infiniteRepeatable(
-                            animation = tween(600, delayMillis = index * 120, easing = FastOutSlowInEasing),
+                            animation = MuseMotion.tween(
+                                MuseAnimation.LOOP_NORMAL_MS,
+                                delayMillis = index * MuseAnimation.STAGGER_STEP_MS,
+                                easing = FastOutSlowInEasing,
+                            ),
                             repeatMode = RepeatMode.Reverse,
                         ),
                         label = "dot_alpha_$index",
@@ -302,6 +315,51 @@ internal fun ShimmerBubble(progressText: String? = null) {
     }
 }
 
+/** reduced-motion 下的静态等待反馈,不启动任何无限帧动画。 */
+@Composable
+private fun StaticShimmerBubble(progressText: String?) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(MusePaddings.cardInnerSpaced),
+    ) {
+        Spacer(Modifier.width(32.dp))
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+            ) {
+                repeat(3) {
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary),
+                    )
+                }
+                Spacer(Modifier.width(MusePaddings.tinyGap))
+                Text(
+                    text = progressText ?: stringResource(R.string.chat_loading_thinking),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            repeat(3) { index ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(if (index == 2) 0.6f else 1f)
+                        .height(MusePaddings.itemGap)
+                        .clip(MuseShapes.extraSmall)
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+                )
+            }
+        }
+    }
+}
+
 /**
  * P5-G: 图片生成中占位卡片。
  *
@@ -311,6 +369,13 @@ internal fun ShimmerBubble(progressText: String? = null) {
  */
 @Composable
 internal fun ImageGenerationPlaceholder() {
+    if (MuseMotion.isReducedMotion()) {
+        StaticGenerationPlaceholder(
+            icon = TablerIcons.Photo,
+            text = stringResource(R.string.chat_image_generating),
+        )
+        return
+    }
     val shimmerColors = listOf(
         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f),
@@ -321,7 +386,7 @@ internal fun ImageGenerationPlaceholder() {
         initialValue = 0f,
         targetValue = 1000f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1500, easing = FastOutSlowInEasing),
+            animation = MuseMotion.tween(MuseAnimation.LOOP_EXTRA_SLOW_MS, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Restart,
         ),
         label = "image_shimmer",
@@ -351,7 +416,11 @@ internal fun ImageGenerationPlaceholder() {
                         initialValue = 0.6f,
                         targetValue = 1f,
                         animationSpec = infiniteRepeatable(
-                            animation = tween(600, delayMillis = index * 120, easing = FastOutSlowInEasing),
+                            animation = MuseMotion.tween(
+                                MuseAnimation.LOOP_NORMAL_MS,
+                                delayMillis = index * MuseAnimation.STAGGER_STEP_MS,
+                                easing = FastOutSlowInEasing,
+                            ),
                             repeatMode = RepeatMode.Reverse,
                         ),
                         label = "img_dot_scale_$index",
@@ -360,7 +429,11 @@ internal fun ImageGenerationPlaceholder() {
                         initialValue = 0.4f,
                         targetValue = 1f,
                         animationSpec = infiniteRepeatable(
-                            animation = tween(600, delayMillis = index * 120, easing = FastOutSlowInEasing),
+                            animation = MuseMotion.tween(
+                                MuseAnimation.LOOP_NORMAL_MS,
+                                delayMillis = index * MuseAnimation.STAGGER_STEP_MS,
+                                easing = FastOutSlowInEasing,
+                            ),
                             repeatMode = RepeatMode.Reverse,
                         ),
                         label = "img_dot_alpha_$index",
@@ -410,6 +483,46 @@ internal fun ImageGenerationPlaceholder() {
     }
 }
 
+/** reduced-motion 下的图片/视频生成占位,保持语义但不运行 shimmer。 */
+@Composable
+private fun StaticGenerationPlaceholder(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    text: String,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(MusePaddings.cardInnerSpaced),
+    ) {
+        Spacer(Modifier.width(32.dp))
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(180.dp)
+                .clip(MuseShapes.semiLarge)
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.outline,
+                    modifier = Modifier.size(40.dp),
+                )
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.outline,
+                )
+            }
+        }
+    }
+}
+
 /**
  * v1.0.4 (P1): 视频生成中占位卡片。
  *
@@ -419,6 +532,13 @@ internal fun ImageGenerationPlaceholder() {
  */
 @Composable
 internal fun VideoGenerationPlaceholder() {
+    if (MuseMotion.isReducedMotion()) {
+        StaticGenerationPlaceholder(
+            icon = Icons.Filled.PlayCircle,
+            text = stringResource(R.string.chat_video_generating),
+        )
+        return
+    }
     val shimmerColors = listOf(
         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f),
@@ -429,7 +549,7 @@ internal fun VideoGenerationPlaceholder() {
         initialValue = 0f,
         targetValue = 1000f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1500, easing = FastOutSlowInEasing),
+            animation = MuseMotion.tween(MuseAnimation.LOOP_EXTRA_SLOW_MS, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Restart,
         ),
         label = "video_shimmer",
@@ -487,6 +607,10 @@ internal fun VideoGenerationPlaceholder() {
  */
 @Composable
 internal fun HistoryLoadMorePlaceholder() {
+    if (MuseMotion.isReducedMotion()) {
+        StaticHistoryLoadMorePlaceholder()
+        return
+    }
     val shimmerColors = listOf(
         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f),
@@ -497,7 +621,7 @@ internal fun HistoryLoadMorePlaceholder() {
         initialValue = 0f,
         targetValue = 1000f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = FastOutSlowInEasing),
+            animation = MuseMotion.tween(MuseAnimation.LOOP_EXTRA_SLOW_MS, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Restart,
         ),
         label = "load_more_shimmer",
@@ -531,6 +655,29 @@ internal fun HistoryLoadMorePlaceholder() {
                 .height(6.dp)
                 .clip(MuseShapes.extraSmall)
                 .background(brush),
+        )
+    }
+}
+
+/** reduced-motion 下的历史加载静态提示。 */
+@Composable
+private fun StaticHistoryLoadMorePlaceholder() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(MusePaddings.cardInnerSpaced),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        CircularProgressIndicator(
+            strokeWidth = 2.dp,
+            modifier = Modifier.size(MusePaddings.screen),
+        )
+        Spacer(Modifier.width(MusePaddings.contentGap))
+        Text(
+            text = stringResource(R.string.chat_loading_more_history),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }

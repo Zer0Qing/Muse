@@ -1,9 +1,6 @@
 package io.zer0.muse.tools.system
 
 import android.content.Context
-import android.content.Intent
-import android.net.Uri
-import android.provider.Settings
 import io.zer0.common.Logger
 
 /**

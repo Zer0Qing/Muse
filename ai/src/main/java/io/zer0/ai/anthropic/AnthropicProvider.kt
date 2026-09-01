@@ -492,7 +492,7 @@ class AnthropicProvider(
                 val text = parsed.content
                     .filter { it.type == "text" }
                     .joinToString("\n") { it.text }
-                // M-ANT4: 可选地把 thinking 放入 reasoning(ChatCompletion 无 reasoning 字段,记日志)
+                // M-ANT4: 把 thinking 放入 ChatCompletion.reasoningContent(与 OpenAI 对齐,供续传/展示使用)
                 val thinkingText = parsed.content
                     .filter { it.type == "thinking" }
                     .joinToString("\n") { it.text }
@@ -509,14 +509,15 @@ class AnthropicProvider(
                         ToolCall(id = tcId, name = tcName, arguments = tcArgs)
                     }
                     .takeIf { it.isNotEmpty() }
-                if (text.isBlank() && toolCalls.isNullOrEmpty()) {
-                    Logger.w("AnthropicProvider", "completeText 返回空文本(thinking 可能被吃掉)")
+                if (text.isBlank() && toolCalls.isNullOrEmpty() && thinkingText.isBlank()) {
+                    Logger.w("AnthropicProvider", "completeText 返回空文本(thinking 被吃掉)")
                     throw ErrorCode.INVALID_RESPONSE.toProviderException("empty_text")
                 }
                 Logger.d("AnthropicProvider", "completeText OK: ${text.length} chars, toolCalls=${toolCalls?.size ?: 0}")
                 ChatCompletion(
                     text = text,
                     finishReason = parsed.stop_reason,
+                    reasoningContent = thinkingText.takeIf { it.isNotBlank() },
                     toolCalls = toolCalls,
                     usageTokens = parsed.usage?.toUsageTokens(),
                 )
@@ -649,8 +650,12 @@ class AnthropicProvider(
                             // 原实现全量发送,历史消息携带大量图片时请求体几十 MB,中转站超时。
                             msg.imageBase64List
                                 .filter { it.isNotEmpty() }
-                                .take(4)
+                                .take(MAX_VISION_IMAGES)
                                 .forEach { b64 ->
+                                    if (b64.length > MAX_IMAGE_BASE64_LEN) {
+                                        Logger.w("AnthropicProvider", "drop oversize image (${b64.length} chars)")
+                                        return@forEach
+                                    }
                                     add(buildJsonObject {
                                         put("type", "image")
                                         put("source", buildJsonObject {
@@ -927,5 +932,8 @@ class AnthropicProvider(
         val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
         // completeText 429 切换 key 最大次数,防止无限递归
         const val MAX_KEY_SWITCHES = 3
+        // E-P2: 视觉输入限制,与 OpenAI 对齐(最多 4 张,单张 base64 ≤2MB)
+        const val MAX_VISION_IMAGES = 4
+        const val MAX_IMAGE_BASE64_LEN = 2 * 1024 * 1024
     }
 }

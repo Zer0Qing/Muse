@@ -548,4 +548,13 @@
     <string name="tool_running">%1$s を実行中…</string>
     <string name="chat_pending_queue_full">送信待ちキューがいっぱいです(最大 8 件)。先にクリアまたは送信してください</string>
     <string name="chat_draft_save_failed">下書きの保存に失敗しました。入力内容が失われる可能性があります</string>
+    <!-- v1.0.85: release localization -->
+    <string name="chat_mic_permission_granted">マイクの権限が許可されました。もう一度マイクを長押しして録音を開始してください。</string>
+    <string name="chat_debug_model_label">モデル</string>
+    <string name="chat_debug_duration_label">所要時間</string>
+    <string name="chat_debug_ttft_label">TTFT</string>
+    <string name="chat_debug_rate_label">速度</string>
+    <string name="chat_debug_chars_label">文字数</string>
+    <string name="chat_debug_tool_calls_label">ツール呼び出し</string>
+    <string name="chat_debug_round_label">ラウンド</string>
 </resources>

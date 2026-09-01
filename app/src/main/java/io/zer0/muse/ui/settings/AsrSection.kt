@@ -61,6 +61,20 @@ internal fun AsrSection(
         modifier = Modifier.padding(top = 4.dp),
     )
 
+    // 切换 Provider 时,若仍保留上一个 Provider 的默认模型,请求会带错模型名;
+    // 只有用户明确改过自定义模型时才保留,否则切到目标 Provider 的默认模型。
+    fun configForProvider(provider: AsrProviderType): AsrConfig {
+        val next = asrConfig.copy(provider = provider)
+        val knownDefaults = AsrProviderType.values()
+            .map { candidate -> AsrConfig(provider = candidate).defaultModel() }
+            .filter { it.isNotBlank() }
+            .toSet()
+        val model = asrConfig.model
+            .takeIf { it.isNotBlank() && it !in knownDefaults }
+            ?: next.defaultModel()
+        return next.copy(model = model)
+    }
+
     // Provider 选择(FlowRow 自动换行,7 个胶囊)
     FlowRow(
         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
@@ -69,67 +83,37 @@ internal fun AsrSection(
     ) {
         ThemeModeOption(stringResource(R.string.settings_asr_provider_system), asrConfig.provider == AsrProviderType.SYSTEM) {
             scope.launch {
-                settings.saveAsrConfig(asrConfig.copy(provider = AsrProviderType.SYSTEM))
+                settings.saveAsrConfig(configForProvider(AsrProviderType.SYSTEM))
             }
         }
         ThemeModeOption("DashScope", asrConfig.provider == AsrProviderType.DASHSCOPE) {
             scope.launch {
-                settings.saveAsrConfig(
-                    asrConfig.copy(
-                        provider = AsrProviderType.DASHSCOPE,
-                        model = asrConfig.model.ifBlank { asrConfig.defaultModel() },
-                    )
-                )
+                settings.saveAsrConfig(configForProvider(AsrProviderType.DASHSCOPE))
             }
         }
         ThemeModeOption("Step", asrConfig.provider == AsrProviderType.STEP) {
             scope.launch {
-                settings.saveAsrConfig(
-                    asrConfig.copy(
-                        provider = AsrProviderType.STEP,
-                        model = asrConfig.model.ifBlank { asrConfig.defaultModel() },
-                    )
-                )
+                settings.saveAsrConfig(configForProvider(AsrProviderType.STEP))
             }
         }
         ThemeModeOption(stringResource(R.string.settings_asr_provider_file), asrConfig.provider == AsrProviderType.DASHSCOPE_FILE) {
             scope.launch {
-                settings.saveAsrConfig(
-                    asrConfig.copy(
-                        provider = AsrProviderType.DASHSCOPE_FILE,
-                        model = asrConfig.model.ifBlank { asrConfig.defaultModel() },
-                    )
-                )
+                settings.saveAsrConfig(configForProvider(AsrProviderType.DASHSCOPE_FILE))
             }
         }
         ThemeModeOption(stringResource(R.string.settings_asr_provider_openai_whisper), asrConfig.provider == AsrProviderType.OPENAI_WHISPER) {
             scope.launch {
-                settings.saveAsrConfig(
-                    asrConfig.copy(
-                        provider = AsrProviderType.OPENAI_WHISPER,
-                        model = asrConfig.model.ifBlank { asrConfig.defaultModel() },
-                    )
-                )
+                settings.saveAsrConfig(configForProvider(AsrProviderType.OPENAI_WHISPER))
             }
         }
         ThemeModeOption(stringResource(R.string.settings_asr_provider_openai_realtime), asrConfig.provider == AsrProviderType.OPENAI_REALTIME) {
             scope.launch {
-                settings.saveAsrConfig(
-                    asrConfig.copy(
-                        provider = AsrProviderType.OPENAI_REALTIME,
-                        model = asrConfig.model.ifBlank { asrConfig.defaultModel() },
-                    )
-                )
+                settings.saveAsrConfig(configForProvider(AsrProviderType.OPENAI_REALTIME))
             }
         }
         ThemeModeOption(stringResource(R.string.settings_asr_provider_agnes), asrConfig.provider == AsrProviderType.AGNES) {
             scope.launch {
-                settings.saveAsrConfig(
-                    asrConfig.copy(
-                        provider = AsrProviderType.AGNES,
-                        model = asrConfig.model.ifBlank { asrConfig.defaultModel() },
-                    )
-                )
+                settings.saveAsrConfig(configForProvider(AsrProviderType.AGNES))
             }
         }
     }

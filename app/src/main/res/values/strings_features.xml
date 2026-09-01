@@ -660,4 +660,16 @@
     <string name="multi_agent_llm_review_model">评审模型</string>
     <string name="multi_agent_strategy_llm_review">LLM 综合评审</string>
     <string name="multi_agent_llm_review_desc">使用独立 LLM 调用综合评审多 Agent 结果,质量更高但耗时与 token 消耗增加</string>
+    <string name="quick_notes_settings_title">快速记录设置</string>
+    <string name="quick_capture_swipe_title">显示侧滑快速记录</string>
+    <string name="quick_capture_swipe_desc">在 Muse 内右侧边缘显示快速记录把手</string>
+    <string name="quick_capture_overlay_title">开启系统悬浮窗</string>
+    <string name="quick_capture_overlay_desc">退出 Muse 后仍可点击悬浮胶囊快速记录</string>
+    <string name="quick_capture_overlay_permission_error">无法打开悬浮窗权限设置</string>
+    <string name="quick_capture_overlay_hint">悬浮窗默认关闭。开启后需要系统允许 Muse 显示在其他应用上层。</string>
+    <string name="chat_background_cd">聊天背景</string>
+    <string name="chat_analyzing_image">正在分析图片 %1$d/%2$d…</string>
+    <string name="msg_compressed">已压缩</string>
+    <string name="plugin_summary">%1$s · v%2$s · %3$d 工具</string>
+    <string name="plugin_models_summary">%1$d 个模型 · %2$s</string>
 </resources>

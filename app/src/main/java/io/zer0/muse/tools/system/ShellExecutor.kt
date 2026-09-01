@@ -92,7 +92,7 @@ class ShellExecutor(
      */
     suspend fun execute(command: String): ExecResult {
         // 1. 优先 Shizuku(shell 权限,无需 root)
-        if (shizukuAuthorizer.checkPermission()) {
+        if (shizukuAuthorizer.checkReady()) {
             val r = shizukuAuthorizer.execute(command)
             return ExecResult(Channel.SHIZUKU, r.exitCode, r.stdout, r.stderr)
         }

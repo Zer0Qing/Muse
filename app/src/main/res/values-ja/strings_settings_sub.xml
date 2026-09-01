@@ -613,4 +613,10 @@
     <string name="settings_font_import">フォントをインポート</string>
     <string name="settings_font_clear">既定に戻す</string>
     <string name="settings_font_import_failed">フォントのインポートに失敗:サポートされていない形式です</string>
+    <!-- v1.0.85: release localization -->
+    <string name="settings_import_muse_backup_title">Muse ネイティブバックアップ</string>
+    <string name="settings_import_muse_backup_desc">Muse がエクスポートした JSON、NDJSON、ZIP を復元します。現在のローカルデータは上書きされます</string>
+    <string name="settings_import_muse_backup_step1">1. 設定 → バックアップと復元から Muse のバックアップをエクスポート</string>
+    <string name="settings_import_muse_backup_step2">2. .json、.ndjson、または .zip ファイルを選択</string>
+    <string name="settings_import_muse_backup_step3">3. セッション、メッセージ、アシスタント、メモリ、設定を復元</string>
 </resources>

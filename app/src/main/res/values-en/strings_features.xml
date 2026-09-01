@@ -622,4 +622,16 @@
     <string name="groupchat_delete_selected_confirm">The selected messages will be deleted. This action cannot be undone.</string>
     <string name="groupchat_selected_count">%1$d selected</string>
     <string name="groupchat_streaming_title">Typing...</string>
+    <string name="quick_notes_settings_title">Quick Capture Settings</string>
+    <string name="quick_capture_swipe_title">Show swipe quick capture</string>
+    <string name="quick_capture_swipe_desc">Show the quick capture handle at the right edge inside Muse</string>
+    <string name="quick_capture_overlay_title">Enable system overlay</string>
+    <string name="quick_capture_overlay_desc">Keep the floating capsule available after leaving Muse for quick capture</string>
+    <string name="quick_capture_overlay_permission_error">Unable to open overlay permission settings</string>
+    <string name="quick_capture_overlay_hint">The overlay is off by default. When enabled, the system must allow Muse to display over other apps.</string>
+    <string name="chat_background_cd">Chat background</string>
+    <string name="chat_analyzing_image">Analyzing image %1$d/%2$d…</string>
+    <string name="msg_compressed">Compressed</string>
+    <string name="plugin_summary">%1$s · v%2$s · %3$d tools</string>
+    <string name="plugin_models_summary">%1$d models · %2$s</string>
 </resources>

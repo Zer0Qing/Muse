@@ -1,7 +1,8 @@
 package io.zer0.muse.ui.common.settings
 
+import io.zer0.muse.ui.theme.MuseMotion
+
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -64,7 +65,7 @@ fun SettingsSwitchRow(
     val pressColor = if (isLight) Color.Black.copy(alpha = 0.06f) else Color.White.copy(alpha = 0.08f)
     val rowBgColor by animateColorAsState(
         targetValue = if (isRowPressed) pressColor else Color.Transparent,
-        animationSpec = tween(MuseAnimation.NORMAL_MS, easing = MuseAnimation.EaseOutCubic),
+        animationSpec = MuseMotion.tween(MuseAnimation.NORMAL_MS, easing = MuseAnimation.EaseOutCubic),
         label = "settingsSwitchRowBg",
     )
     Row(

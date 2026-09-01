@@ -2,16 +2,16 @@
 # 格式: <file>: <违规数>;新增或上升都会失败,只允许下降
 # 清理存量后运行: py -3 ci/script/check_hardcoded_cjk.py --update-baseline
 #
-# 当前共 606 处,分布 62 个文件
+# 当前共 602 处,分布 62 个文件
 app/src/main/java/io/zer0/muse/ui/AssistantAdvancedPage.kt: 1
-app/src/main/java/io/zer0/muse/ui/ChatScreen.kt: 2
+app/src/main/java/io/zer0/muse/ui/ChatScreen.kt: 1
 app/src/main/java/io/zer0/muse/ui/ChatScreenComponents.kt: 1
 app/src/main/java/io/zer0/muse/ui/ChatViewModel.kt: 70
-app/src/main/java/io/zer0/muse/ui/CoverManagerScreen.kt: 2
 app/src/main/java/io/zer0/muse/ui/GreetingHelper.kt: 43
 app/src/main/java/io/zer0/muse/ui/HtmlPreviewScreen.kt: 2
 app/src/main/java/io/zer0/muse/ui/InputBar.kt: 6
 app/src/main/java/io/zer0/muse/ui/MemoryViewModel.kt: 3
+app/src/main/java/io/zer0/muse/ui/MessageBubble.kt: 1
 app/src/main/java/io/zer0/muse/ui/MessageBubbleExtras.kt: 2
 app/src/main/java/io/zer0/muse/ui/MuseToolSheet.kt: 5
 app/src/main/java/io/zer0/muse/ui/SafeModeScreen.kt: 3
@@ -20,7 +20,7 @@ app/src/main/java/io/zer0/muse/ui/SkillScreen.kt: 2
 app/src/main/java/io/zer0/muse/ui/VideoGenerationPage.kt: 1
 app/src/main/java/io/zer0/muse/ui/chat/ChatAudioCoordinator.kt: 1
 app/src/main/java/io/zer0/muse/ui/chat/ChatExportCoordinator.kt: 11
-app/src/main/java/io/zer0/muse/ui/chat/ChatStreamCoordinator.kt: 14
+app/src/main/java/io/zer0/muse/ui/chat/ChatStreamCoordinator.kt: 12
 app/src/main/java/io/zer0/muse/ui/chat/ChatTaskCardCoordinator.kt: 5
 app/src/main/java/io/zer0/muse/ui/chat/ImageGenCoordinator.kt: 2
 app/src/main/java/io/zer0/muse/ui/chat/StickerEmotionDetector.kt: 14
@@ -56,12 +56,12 @@ app/src/main/java/io/zer0/muse/ui/settings/ProviderEditPage.kt: 5
 app/src/main/java/io/zer0/muse/ui/settings/SettingsTutorialPage.kt: 2
 app/src/main/java/io/zer0/muse/ui/settings/ThemeSection.kt: 8
 app/src/main/java/io/zer0/muse/ui/settings/VisionSettingsPage.kt: 3
+app/src/main/java/io/zer0/muse/ui/settings/WebSearchSection.kt: 5
 app/src/main/java/io/zer0/muse/ui/speech/CloudTtsService.kt: 11
+app/src/main/java/io/zer0/muse/ui/taskcard/AgentPlanHistory.kt: 2
 app/src/main/java/io/zer0/muse/ui/taskcard/PlanCard.kt: 2
 app/src/main/java/io/zer0/muse/ui/taskcard/TaskCard.kt: 13
 app/src/main/java/io/zer0/muse/ui/theme/MuseDateFormats.kt: 1
 app/src/main/java/io/zer0/muse/ui/translate/TranslateHistoryEntity.kt: 1
 app/src/main/java/io/zer0/muse/ui/translate/TranslateHistorySection.kt: 3
 app/src/main/java/io/zer0/muse/ui/translate/TranslateViewModel.kt: 32
-app/src/main/java/io/zer0/muse/ui/settings/WebSearchSection.kt: 5
-app/src/main/java/io/zer0/muse/ui/taskcard/AgentPlanHistory.kt: 2

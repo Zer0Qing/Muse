@@ -3,7 +3,7 @@
     <string name="automation_settings_title">Автоматизация UI</string>
     <string name="automation_settings_subtitle">Разрешения на чтение и управление экраном</string>
     <string name="accessibility_service_description">Позволяет Muse читать содержимое экрана и имитировать касания, свайпы и другие жесты для автоматизации задач между приложениями. Muse не выполняет действия без вашего подтверждения.</string>
-    <string name="automation_permission_a11y">Служба специальных возможностей</string>
+    <string name="automation_permission_a11y">UI-автоматизация Muse</string>
     <string name="automation_permission_shell">Shell (Shizuku/adb)</string>
     <string name="automation_permission_root">Root</string>
     <string name="automation_settings_unavailable">Не удалось открыть системные настройки. Откройте их вручную, чтобы включить разрешение.</string>

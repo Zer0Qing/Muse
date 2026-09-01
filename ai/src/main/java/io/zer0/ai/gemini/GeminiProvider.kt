@@ -40,7 +40,6 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.Request
-import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import okhttp3.sse.EventSource
@@ -687,14 +686,21 @@ class GeminiProvider(
                         }
                         else -> {
                             // 普通 USER/ASSISTANT:图片在前(若存在)+ 视频(若存在)+ 文本
-                            msg.imageBase64List.forEach { b64 ->
-                                if (b64.isNotEmpty()) {
-                                    add(GeminiPart(inlineData = GeminiInlineData(
-                                        // M-GEM11: mimeType 从 base64 头部 magic bytes 推断
-                                        mimeType = inferMimeType(b64),
-                                        data = b64,
-                                    )))
+                            // E-P2: 与 OpenAI/Anthropic 对齐 — 最多 4 张,单张 base64 ≤2MB
+                            val validImages = msg.imageBase64List.filter { it.isNotEmpty() }
+                            if (validImages.size > MAX_VISION_IMAGES) {
+                                Logger.w("GeminiProvider", "图片数量 ${validImages.size} 超过上限 $MAX_VISION_IMAGES,丢弃多余的")
+                            }
+                            validImages.take(MAX_VISION_IMAGES).forEach { b64 ->
+                                if (b64.length > MAX_IMAGE_BASE64_LEN) {
+                                    Logger.w("GeminiProvider", "图片 base64 长度 ${b64.length} 超过 $MAX_IMAGE_BASE64_LEN,丢弃")
+                                    return@forEach
                                 }
+                                add(GeminiPart(inlineData = GeminiInlineData(
+                                    // M-GEM11: mimeType 从 base64 头部 magic bytes 推断
+                                    mimeType = inferMimeType(b64),
+                                    data = b64,
+                                )))
                             }
                             // V-GEM1: 视频附件(已通过 uploadFile 上传到 Files API,这里仅引用 fileUri)
                             val vUri = msg.videoFileUri
@@ -1052,5 +1058,8 @@ class GeminiProvider(
         const val FILE_POLL_TIMEOUT_MS = 60_000L
         /** V-GEM1: Files API 状态轮询间隔(1s,平衡响应速度与服务端压力)。 */
         const val FILE_POLL_INTERVAL_MS = 1_000L
+        // E-P2: 视觉输入限制,与 OpenAI/Anthropic 对齐(最多 4 张,单张 base64 ≤2MB)
+        const val MAX_VISION_IMAGES = 4
+        const val MAX_IMAGE_BASE64_LEN = 2 * 1024 * 1024
     }
 }

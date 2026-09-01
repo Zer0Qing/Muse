@@ -1,13 +1,9 @@
 package io.zer0.muse.automation.tools
 
-import io.zer0.ai.core.MessageRole
-import io.zer0.ai.core.ToolCallInfo
 import io.zer0.common.Logger
-import io.zer0.common.resultOf
 import io.zer0.muse.automation.core.AutomationManager
 import io.zer0.muse.tools.ToolRegistry
 import io.zer0.muse.tools.ToolRiskLevel
-import kotlinx.coroutines.flow.first
 
 /**
  * UI 自动化工具集 —— 把 [AutomationManager] 的能力注册为 AI 可调用的工具。
@@ -207,7 +203,7 @@ class AutomationTools(
             buildString {
                 appendLine("UI 自动化权限状态:")
                 appendLine("- 无障碍: ${if (state.accessibilityEnabled) "已开启" else "未开启"}")
-                appendLine("- Shell: ${if (state.shellEnabled) "已授权" else "未授权"}")
+                appendLine("- Shell: ${if (state.shellEnabled) "已就绪" else state.shizukuMessage}")
                 appendLine("- Root: ${if (state.rootEnabled) "已获取" else "未获取"}")
                 appendLine("- 最高可用层级: $level")
             }

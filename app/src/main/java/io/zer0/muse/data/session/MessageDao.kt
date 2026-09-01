@@ -60,13 +60,21 @@ interface MessageDao {
     suspend fun getToolCallMessagesBySession(sessionId: String): List<MessageEntity>
 
     /**
-     * v1.53-A1: 窗口加载 — 取指定会话 createdAt < beforeCreatedAt 的前 limit 条消息(降序)。
+     * v1.53-A1: 窗口加载 — 取指定会话 "有效序列" < beforeSeq 的前 limit 条消息(降序)。
      *
-     * 用于上滑加载更多:以当前列表最早一条消息的 createdAt 为锚点,取更早的历史。
+     * 用于上滑加载更多:以当前列表最早一条消息的有效序列(commitSeq>0 取 commitSeq,
+     * 否则取 seq)为锚点,取更早的历史。过滤键与排序键同源(同为
+     * CASE WHEN commitSeq > 0 THEN commitSeq ELSE seq END),避免 createdAt 在
+     * REPLACE(编辑/重生成/中断恢复)时被刷新导致的分页重复/漏消息。
      * 返回顺序为降序(最新在前),调用方需自行 reversed()。
      */
-    @Query("SELECT * FROM messages WHERE sessionId = :sessionId AND createdAt < :beforeCreatedAt ORDER BY CASE WHEN commitSeq > 0 THEN commitSeq ELSE seq END DESC, createdAt DESC, id DESC LIMIT :limit")
-    suspend fun getOlderBySession(sessionId: String, beforeCreatedAt: Long, limit: Int): List<MessageEntity>
+    @Query(
+        "SELECT * FROM messages WHERE sessionId = :sessionId " +
+            "AND (CASE WHEN commitSeq > 0 THEN commitSeq ELSE seq END) < :beforeSeq " +
+            "ORDER BY CASE WHEN commitSeq > 0 THEN commitSeq ELSE seq END DESC, createdAt DESC, id DESC " +
+            "LIMIT :limit",
+    )
+    suspend fun getOlderBySession(sessionId: String, beforeSeq: Long, limit: Int): List<MessageEntity>
 
     /** v1.53-A1: 会话消息总数(分页判断 hasMoreHistory 用)。 */
     @Query("SELECT COUNT(*) FROM messages WHERE sessionId = :sessionId")

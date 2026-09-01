@@ -2,23 +2,17 @@ package io.zer0.muse.automation.executors
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
-import android.app.Instrumentation
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.graphics.Path
-import android.os.Build
-import android.os.SystemClock
 import android.util.DisplayMetrics
-import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
-import androidx.annotation.RequiresApi
 import io.zer0.muse.automation.core.AutomationExecutor
 import io.zer0.muse.automation.core.PermissionLevel
 import io.zer0.muse.automation.core.ScreenInfo
 import io.zer0.muse.automation.core.UiNode
 import io.zer0.common.Logger
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
@@ -40,7 +34,7 @@ class AccessibilityExecutor(
 
     private val service: MuseAccessibilityService? get() = MuseAccessibilityService.instance
 
-    override suspend fun isAvailable(): Boolean = service != null
+    override suspend fun isAvailable(): Boolean = service?.isAccessibilityServiceEnabled() == true
 
     // ── 屏幕读取 ──────────────────────────────────────────────
 

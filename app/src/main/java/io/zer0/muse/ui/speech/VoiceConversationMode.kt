@@ -9,8 +9,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.rememberInfiniteTransition
 import io.zer0.muse.ui.theme.MuseAnimation
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -69,6 +70,7 @@ import io.zer0.muse.R
 import io.zer0.muse.ui.ChatViewModel
 import io.zer0.muse.ui.common.form.MuseSelectionSheet
 import io.zer0.muse.ui.theme.MuseIconSizes
+import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
@@ -291,19 +293,22 @@ private fun VoiceConversationMainButton(
     val onPrimary = MaterialTheme.colorScheme.onPrimary
     val error = MaterialTheme.colorScheme.error
 
-    // 脉冲动画(LISTENING 时主按钮放大缩小,模拟呼吸感)
-    val pulseScale by animateFloatAsState(
-        targetValue = if (state == VoiceConversationState.LISTENING) 1.1f else 1f,
-        animationSpec = if (state == VoiceConversationState.LISTENING) {
-            infiniteRepeatable(
-                animation = tween(MuseAnimation.LOOP_SLOW_MS, easing = FastOutSlowInEasing),
+    // 脉冲动画(LISTENING 时主按钮放大缩小,模拟呼吸感);reduced-motion 下静态展示。
+    val pulseScale = if (state == VoiceConversationState.LISTENING && !MuseMotion.isReducedMotion()) {
+        val transition = rememberInfiniteTransition(label = "voiceMainPulse")
+        val animatedScale by transition.animateFloat(
+            initialValue = 1f,
+            targetValue = 1.1f,
+            animationSpec = infiniteRepeatable(
+                animation = MuseMotion.tween(MuseAnimation.LOOP_SLOW_MS, easing = FastOutSlowInEasing),
                 repeatMode = RepeatMode.Reverse,
-            )
-        } else {
-            tween(MuseAnimation.TACTILE_MS)
-        },
-        label = "voiceMainPulse",
-    )
+            ),
+            label = "voiceMainPulseScale",
+        )
+        animatedScale
+    } else {
+        1f
+    }
 
     // 主按钮背景色:LISTENING 用 error(红,录音中提示),SPEAKING 用 primary,其他用 primary
     val buttonColor = when (state) {
@@ -521,7 +526,7 @@ private fun ListeningWaveform(amplitudes: List<Float>) {
             val fraction = amp.coerceIn(0.05f, 1f)
             val animatedHeight by animateFloatAsState(
                 targetValue = fraction,
-                animationSpec = tween(MuseAnimation.FAST_MS),
+                animationSpec = MuseMotion.tween(MuseAnimation.FAST_MS),
                 label = "voiceWave",
             )
             Box(

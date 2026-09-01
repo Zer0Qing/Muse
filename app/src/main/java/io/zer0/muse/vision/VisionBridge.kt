@@ -200,8 +200,25 @@ class VisionBridge(
 
     /**
      * 检查给定模型是否支持直接图像输入。
+     *
+     * M2.1/M2.8: 判定经 [io.zer0.ai.registry.ModelCapabilityQuery] 三态裁决 —
+     *  - SUPPORTED(注册表确认视觉模型)→ 直接放行;
+     *  - UNSUPPORTED(注册表确证纯文本,如 GLM-4.6)→ 拒绝,即使上游/中转
+     *    误标 supportsVision=true 也不直发图片(调用方走视觉辅助降级);
+     *  - UNKNOWN(未收录模型/私有部署名)→ 保守沿用模型自身声明
+     *    (用户可在视觉设置页手动纳入,注册表不越权覆盖用户配置)。
      */
-    fun supportsVision(model: Model): Boolean = model.supportsVisionInput()
+    fun supportsVision(model: Model): Boolean {
+        val snapshot = io.zer0.ai.registry.ModelCapabilityQuery.snapshot(model.id)
+        return when (snapshot.visionInput) {
+            io.zer0.ai.registry.CapabilitySupport.SUPPORTED -> true
+            io.zer0.ai.registry.CapabilitySupport.UNSUPPORTED -> false
+            io.zer0.ai.registry.CapabilitySupport.UNKNOWN -> model.supportsVisionInput()
+        }
+    }
+
+    /** 空安全便捷判定:模型未解析时返回 false(调用方无需自行判空,避免分支膨胀)。 */
+    fun supportsVisionModel(model: Model?): Boolean = model != null && supportsVision(model)
 
     /**
      * v1.0.4: 视觉辅助 prepare 阶段入口(按 既有实现)。
@@ -797,8 +814,9 @@ class VisionBridge(
             }
 
             val descriptions = results.filterNotNull()
-            if (descriptions.isEmpty() && lastError.get() != null) {
-                throw lastError.get()!!
+            val error = lastError.get()
+            if (descriptions.isEmpty() && error != null) {
+                throw error
             }
             return descriptions
         } finally {

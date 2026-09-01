@@ -1,9 +1,7 @@
 package io.zer0.muse.asr
 
 import android.annotation.SuppressLint
-import android.media.AudioFormat
 import android.media.AudioRecord
-import android.media.MediaRecorder
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import kotlinx.coroutines.CoroutineScope
@@ -215,6 +213,8 @@ class OpenAiRealtimeAsrController(
                 onReconnected()
             }
             true
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Logger.w(TAG, "establishConnection 异常: ${e.message}")
             cleanupConnection()
@@ -359,31 +359,22 @@ class OpenAiRealtimeAsrController(
     /** 启动 AudioRecord 录音线程(循环采集 + base64 上传)。 */
     @SuppressLint("MissingPermission")
     private fun startRecordingInternal() {
-        val sampleRate = config.sampleRate
-        val channelConfig = AudioFormat.CHANNEL_IN_MONO
-        val audioFormat = AudioFormat.ENCODING_PCM_16BIT
-        val minBuf = AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioFormat)
-        if (minBuf <= 0) {
-            Logger.w(TAG, "AudioRecord 缓冲区大小无效: $minBuf")
-            _state.update { it.copy(status = ASRStatus.Error, errorMessage = "AudioRecord 缓冲区无效") }
+        val capture = AsrAudioCapture.create(config.sampleRate, TAG)
+        if (capture == null) {
+            _state.update { it.copy(status = ASRStatus.Error, errorMessage = "麦克风初始化失败,请检查权限或录音设备") }
             return
         }
-        val bufSize = minBuf * 2
-        val record = AudioRecord(
-            MediaRecorder.AudioSource.VOICE_COMMUNICATION,
-            sampleRate,
-            channelConfig,
-            audioFormat,
-            bufSize,
-        )
-        if (record.state != AudioRecord.STATE_INITIALIZED) {
-            Logger.w(TAG, "AudioRecord 初始化失败(可能缺少 RECORD_AUDIO 权限)")
-            record.release()
-            _state.update { it.copy(status = ASRStatus.Error) }
-            return
-        }
+        val record = capture.recorder
         audioRecord = record
-        record.startRecording()
+        try {
+            record.startRecording()
+        } catch (e: IllegalStateException) {
+            Logger.w(TAG, "AudioRecord 启动失败: ${e.message}", e)
+            record.release()
+            audioRecord = null
+            _state.update { it.copy(status = ASRStatus.Error, errorMessage = "录音启动失败") }
+            return
+        }
 
         // 录音线程:循环读 PCM → 计算振幅 → base64 编码 → 发 input_audio_buffer.append
         // 任务 1:Reconnecting 状态下继续循环(保持录音),但把帧缓冲到 [audioBuffer] 而不是发送
@@ -414,6 +405,8 @@ class OpenAiRealtimeAsrController(
                     } else {
                         sendAudioFrame(chunk, read)
                     }
+                } else if (read == 0) {
+                    delay(10L)
                 } else if (read < 0) {
                     Logger.w(TAG, "AudioRecord.read 错误: $read")
                     break
@@ -583,11 +576,23 @@ class OpenAiRealtimeAsrController(
             raw.startsWith("http://") -> "ws://" + raw.removePrefix("http://")
             else -> "wss://$raw"
         }
-        // 拼接 intent=transcription(若已有 query 用 &,否则用 ?)
-        return if (withScheme.contains("?")) {
-            "$withScheme&intent=transcription"
+        // baseUrl 常被填写成 OpenAI Chat Completions 的 https://host/v1;
+        // Realtime 需要在同一 host 下补上 /realtime,不能直接把 query 接在 /v1 后面。
+        val realtimePath = if (withScheme.substringBefore('?').trimEnd('/').endsWith("/realtime")) {
+            withScheme
         } else {
-            "$withScheme?intent=transcription"
+            val baseWithoutQuery = withScheme.substringBefore('?').trimEnd('/')
+            val query = withScheme.substringAfter('?', "").takeIf { it.isNotBlank() }
+            val path = "$baseWithoutQuery/realtime"
+            if (query == null) path else "$path?$query"
+        }
+        // 拼接 intent=transcription(若已有 query 用 &,否则用 ?),避免重复参数。
+        return if (realtimePath.contains("intent=transcription")) {
+            realtimePath
+        } else if (realtimePath.contains("?")) {
+            "$realtimePath&intent=transcription"
+        } else {
+            "$realtimePath?intent=transcription"
         }
     }
 

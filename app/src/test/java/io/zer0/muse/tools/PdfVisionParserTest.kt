@@ -7,11 +7,9 @@ import io.mockk.mockk
 import io.zer0.ai.ChatService
 import io.zer0.ai.ProviderConfigStore
 import io.zer0.ai.core.ChatCompletion
-import io.zer0.ai.core.ChatRequestMode
 import io.zer0.ai.core.Model
 import io.zer0.ai.core.ProviderConfig
 import io.zer0.ai.core.ProviderType
-import io.zer0.ai.core.UIMessage
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

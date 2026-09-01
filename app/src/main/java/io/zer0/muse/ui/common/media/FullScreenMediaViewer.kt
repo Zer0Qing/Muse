@@ -2,7 +2,6 @@ package io.zer0.muse.ui.common.media
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -48,6 +47,8 @@ import io.zer0.muse.ui.SmartImage
 import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseMotion
 import kotlinx.coroutines.launch
 
 /**
@@ -68,6 +69,10 @@ internal fun ZoomableImage(
     var offsetX by rememberSaveable { mutableStateOf(0f) }
     var offsetY by rememberSaveable { mutableStateOf(0f) }
     val scope = rememberCoroutineScope()
+    val doubleTapSpec = MuseMotion.tween<Float>(
+        durationMillis = MuseAnimation.SLOW_MS,
+        easing = FastOutSlowInEasing,
+    )
     Box(
         modifier = modifier
             .clipToBounds()
@@ -93,7 +98,7 @@ internal fun ZoomableImage(
                             val animatable = Animatable(scale)
                             animatable.animateTo(
                                 targetValue = targetScale,
-                                animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+                                animationSpec = doubleTapSpec,
                             ) {
                                 scale = value
                             }

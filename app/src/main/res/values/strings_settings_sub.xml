@@ -249,6 +249,11 @@
     <string name="settings_memory_reply_notification_subtitle">AI 回复完成后何时发通知</string>
 
     <!-- 数据导入 -->
+    <string name="settings_import_muse_backup_title">Muse 原生备份</string>
+    <string name="settings_import_muse_backup_desc">恢复 Muse 导出的 JSON、NDJSON 或 ZIP,会覆盖当前本地数据</string>
+    <string name="settings_import_muse_backup_step1">1. 在设置 → 备份与恢复中导出 Muse 备份</string>
+    <string name="settings_import_muse_backup_step2">2. 选择 .json、.ndjson 或 .zip 文件</string>
+    <string name="settings_import_muse_backup_step3">3. 导入会恢复会话、消息、助手、记忆和设置</string>
     <string name="settings_import_page_title">数据导入</string>
     <string name="settings_import_migrate_title">从其他应用迁移数据</string>
     <string name="settings_import_migrate_desc">如果您之前使用过 RikkaHub 或 Kelivo,可以把它们的备份文件导入到 Muse。导入内容包括:供应商配置(API Key 等)、助手角色、对话记录。</string>

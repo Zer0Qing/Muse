@@ -1,10 +1,7 @@
 package io.zer0.muse.ui.quicknotes
 
+import io.zer0.muse.ui.theme.MuseMotion
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -129,8 +126,8 @@ internal fun QuickCaptureEdgeOverlay(
         AnimatedVisibility(
             visible = expanded,
             modifier = Modifier.align(Alignment.CenterEnd),
-            enter = slideInHorizontally(initialOffsetX = { it }) + fadeIn(),
-            exit = slideOutHorizontally(targetOffsetX = { it }) + fadeOut(),
+            enter = MuseMotion.horizontalSlideFadeEnter(initialOffsetX = { it }),
+            exit = MuseMotion.horizontalSlideFadeExit(targetOffsetX = { it }),
         ) {
             Surface(
                 modifier = Modifier

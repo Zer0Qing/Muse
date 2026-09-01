@@ -5,7 +5,6 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import io.zer0.muse.ui.ChatViewModel
 import io.zer0.muse.ui.DataManagementScreen
-import io.zer0.muse.ui.MuseRoutes
 import io.zer0.muse.ui.NotificationListenerScreen
 import io.zer0.muse.ui.ToolsScreen
 import io.zer0.muse.ui.VideoGenerationPage

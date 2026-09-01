@@ -12,4 +12,8 @@
     <string name="cover_generate_failed">Cover generation failed: %1$s</string>
     <string name="cover_generate_no_provider">No image model configured. Configure one in Settings → Models &amp; Services and try again.</string>
     <string name="cover_applied">Cover applied</string>
+    <string name="cover_library_title">Cover Library</string>
+    <string name="cover_count">%1$d covers</string>
+    <string name="cover_empty_title">No covers yet</string>
+    <string name="cover_empty_hint">Tap the bottom-right button to import an image, or let AI generate a cover</string>
 </resources>

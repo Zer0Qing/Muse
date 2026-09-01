@@ -4,7 +4,6 @@ import io.zer0.muse.ui.common.surface.museBottomBarInsets
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,7 +50,6 @@ import io.zer0.ai.core.ProviderType
 import io.zer0.muse.data.preset.PresetProviders
 import io.zer0.muse.ui.theme.MuseShapes
 import org.koin.compose.koinInject
-import io.zer0.muse.ui.theme.huge
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 

@@ -1,7 +1,6 @@
 package io.zer0.muse.data
 
 import android.content.Context
-import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
@@ -13,7 +12,6 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import io.zer0.ai.core.Model
 import io.zer0.ai.core.ProviderConfig
 import io.zer0.ai.core.ProviderSpecMerger
-import io.zer0.ai.core.ProviderType
 import io.zer0.ai.ProviderConfigStore
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
@@ -646,6 +644,28 @@ class SettingsRepository(
         return claimed
     }
 
+    /** 标记每日总结时点已成功保存，进程重启后可区分“抢占但中途崩溃”和“已完成”。 */
+    suspend fun completeDailySummarySlot(slotKey: String) {
+        val cleanKey = slotKey.trim()
+        if (cleanKey.isBlank()) return
+        store.edit { prefs ->
+            val keys = (prefs[KEY_DAILY_SUMMARY_COMPLETED_SLOTS] ?: emptySet()).toMutableSet()
+            keys += cleanKey
+            prefs[KEY_DAILY_SUMMARY_COMPLETED_SLOTS] =
+                if (keys.size > DAILY_SUMMARY_SLOT_HISTORY_LIMIT) {
+                    keys.toList().sorted().takeLast(DAILY_SUMMARY_SLOT_HISTORY_LIMIT).toSet()
+                }
+                else keys
+        }
+    }
+
+    /** 查询每日总结时点是否已成功保存。 */
+    suspend fun isDailySummarySlotCompleted(slotKey: String): Boolean {
+        val cleanKey = slotKey.trim()
+        if (cleanKey.isBlank()) return false
+        return store.data.first()[KEY_DAILY_SUMMARY_COMPLETED_SLOTS]?.contains(cleanKey) == true
+    }
+
     /** 生成失败时释放时点占位，让下一次 WorkManager/进程内触发可以重试。 */
     suspend fun releaseDailySummarySlot(slotKey: String) {
         val cleanKey = slotKey.trim()
@@ -656,6 +676,13 @@ class SettingsRepository(
                 prefs[KEY_DAILY_SUMMARY_CLAIMED_SLOTS] = keys
             }
         }
+    }
+
+    /** 查询某个每日总结时点是否已经成功抢占,供前台补触发避免反复唤醒 Worker。 */
+    suspend fun isDailySummarySlotClaimed(slotKey: String): Boolean {
+        val cleanKey = slotKey.trim()
+        if (cleanKey.isBlank()) return false
+        return store.data.first()[KEY_DAILY_SUMMARY_CLAIMED_SLOTS]?.contains(cleanKey) == true
     }
 
     /** 保存每日总结,单独存日期和正文,避免正文中的分隔符破坏解析。 */
@@ -1817,6 +1844,9 @@ class SettingsRepository(
         private val KEY_DAILY_SUMMARY_TEXT = stringPreferencesKey("daily_summary_text")
         // 每日总结已抢占时点，格式为 yyyy-MM-dd#HHmm；用于进程内与 WorkManager 去重。
         private val KEY_DAILY_SUMMARY_CLAIMED_SLOTS = stringSetPreferencesKey("daily_summary_claimed_slots")
+        // 已成功保存的时点，与 claimed 分离，进程在生成中途退出后允许前台重试。
+        private val KEY_DAILY_SUMMARY_COMPLETED_SLOTS = stringSetPreferencesKey("daily_summary_completed_slots")
+        private const val DAILY_SUMMARY_SLOT_HISTORY_LIMIT = 16
         // v1.0.72: AI 朋友圈每日动态条数(0-10,默认 2)
         private val KEY_DAILY_MOMENT_COUNT = intPreferencesKey("daily_moment_count")
     private val KEY_MOMENTS_COVER_IMAGE = stringPreferencesKey("moments_cover_image")
@@ -1915,6 +1945,18 @@ class SettingsRepository(
         val codeModelId: String? = null,
         val creativeModelId: String? = null,
         val analysisModelId: String? = null,
+        /** 每种任务类型的模型所属 Provider,避免相同模型 id 跨 Provider 路由错误。 */
+        val chatProviderId: String? = null,
+        val reasoningProviderId: String? = null,
+        val codeProviderId: String? = null,
+        val creativeProviderId: String? = null,
+        val analysisProviderId: String? = null,
+    )
+
+    /** 任务路由最终选择,同时携带模型与 Provider。 */
+    data class TaskRouteSelection(
+        val modelId: String?,
+        val providerId: String?,
     )
 
     suspend fun saveTaskRoutingConfig(config: TaskRoutingConfig) {
@@ -1943,16 +1985,33 @@ class SettingsRepository(
 
     /** 根据任务类型推荐模型 id(路由开启时返回绑定模型,否则 null)。非 suspend,基于内存缓存。 */
     fun recommendModelForTask(input: String, fallbackModelId: String?): String? {
+        return recommendTaskRoute(input, fallbackModelId, null)?.modelId ?: fallbackModelId
+    }
+
+    /**
+     * 根据输入检测任务类型并返回模型 + Provider 选择。
+     * 未配置对应类型时返回 null,调用方继续使用当前会话/全局选择。
+     */
+    fun recommendTaskRoute(
+        input: String,
+        fallbackModelId: String?,
+        fallbackProviderId: String?,
+    ): TaskRouteSelection? {
         val config = taskRoutingConfigCache
         if (!config.enabled) return null
         val type = detectTaskType(input)
-        return when (type) {
-            TaskType.CHAT -> config.chatModelId
-            TaskType.REASONING -> config.reasoningModelId
-            TaskType.CODE -> config.codeModelId
-            TaskType.CREATIVE -> config.creativeModelId
-            TaskType.ANALYSIS -> config.analysisModelId
-        } ?: fallbackModelId
+        val selection = when (type) {
+            TaskType.CHAT -> TaskRouteSelection(config.chatModelId, config.chatProviderId)
+            TaskType.REASONING -> TaskRouteSelection(config.reasoningModelId, config.reasoningProviderId)
+            TaskType.CODE -> TaskRouteSelection(config.codeModelId, config.codeProviderId)
+            TaskType.CREATIVE -> TaskRouteSelection(config.creativeModelId, config.creativeProviderId)
+            TaskType.ANALYSIS -> TaskRouteSelection(config.analysisModelId, config.analysisProviderId)
+        }
+        if (selection.modelId.isNullOrBlank() && selection.providerId.isNullOrBlank()) return null
+        return TaskRouteSelection(
+            modelId = selection.modelId ?: fallbackModelId,
+            providerId = selection.providerId ?: fallbackProviderId,
+        )
     }
 }
 

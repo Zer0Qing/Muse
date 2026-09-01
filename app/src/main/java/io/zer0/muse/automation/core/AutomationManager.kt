@@ -8,6 +8,7 @@ import io.zer0.common.Logger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -44,19 +45,44 @@ class AutomationManager(
      * 探测三层可用性。应在 App 启动时和从设置页返回时调用。
      */
     suspend fun refreshPermissions(): PermissionState = mutex.withLock {
-        val a11y = accessibility.isAvailable()
+        val a11y = probe("accessibility") { accessibility.isAvailable() }
         // 普通 `sh` 始终能在 Android 应用沙盒中启动，不能代表 adb/Shizuku 授权。
-        // 第二层状态只认 Shizuku 服务运行且已授予本应用的真实授权。
-        val sh = shizukuAuthorizer.checkPermission()
-        val rt = root.isAvailable()
+        // 第二层状态必须完成 UserService bind，不能只看 Shizuku 授权位。
+        val shizukuStatus = try {
+            shizukuAuthorizer.diagnose()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Logger.w(TAG, "shizuku diagnostic failed: ${e.message}", e)
+            ShizukuAuthorizer.ShizukuStatus(
+                ShizukuAuthorizer.ShizukuState.USER_SERVICE_UNAVAILABLE,
+                "Shizuku 状态探测失败",
+            )
+        }
+        val rt = probe("root") { root.isAvailable() }
         val state = PermissionState(
             accessibilityEnabled = a11y,
-            shellEnabled = sh,
+            shellEnabled = shizukuStatus.isReady,
             rootEnabled = rt,
+            shizukuState = shizukuStatus.state,
+            shizukuMessage = shizukuStatus.message,
         )
         _permissionState.value = state
-        Logger.i(TAG, "permissions refreshed: a11y=$a11y shell=$sh root=$rt")
+        Logger.i(
+            TAG,
+            "permissions refreshed: a11y=$a11y shell=${shizukuStatus.state} root=$rt",
+        )
         state
+    }
+
+    /** 权限探测属于 UI 状态刷新；单个通道异常时降级为不可用，不得击穿设置页。 */
+    private suspend fun probe(name: String, block: suspend () -> Boolean): Boolean = try {
+        block()
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        Logger.w(TAG, "$name permission probe failed: ${e.message}", e)
+        false
     }
 
     // ── 统一动作接口 ────────────────────────────────────────
@@ -76,7 +102,17 @@ class AutomationManager(
                 Logger.w(TAG, "a11y readScreen failed: ${e.message}")
             }
         }
-        if (shell.isAvailable()) shell.readScreen() else root.readScreen()
+        if (shell.isAvailable()) return@withLock shell.readScreen()
+        if (root.isAvailable()) return@withLock root.readScreen()
+        // 无任何自动化通道时不能伪造“shell 读取成功”;设置页/工具据此展示明确的不可用状态。
+        ScreenInfo(
+            packageName = null,
+            activityName = null,
+            nodes = emptyList(),
+            screenWidth = context.resources.displayMetrics.widthPixels,
+            screenHeight = context.resources.displayMetrics.heightPixels,
+            source = "unavailable",
+        )
     }
 
     /** 当前前台包名。 */
@@ -185,6 +221,8 @@ class AutomationManager(
         val accessibilityEnabled: Boolean = false,
         val shellEnabled: Boolean = false,
         val rootEnabled: Boolean = false,
+        val shizukuState: ShizukuAuthorizer.ShizukuState = ShizukuAuthorizer.ShizukuState.NOT_INSTALLED,
+        val shizukuMessage: String = "未探测",
     ) {
         /** 是否至少有一层可用。 */
         val anyEnabled: Boolean get() = accessibilityEnabled || shellEnabled || rootEnabled

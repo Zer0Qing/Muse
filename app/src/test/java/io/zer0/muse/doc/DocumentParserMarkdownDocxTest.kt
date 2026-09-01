@@ -3,7 +3,6 @@ package io.zer0.muse.doc
 import android.content.Context
 import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
-import io.zer0.common.Result
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

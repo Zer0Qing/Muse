@@ -2,11 +2,6 @@ package io.zer0.muse.ui.common.feedback
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.togetherWith
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,6 +21,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MusePaddings
@@ -92,6 +88,7 @@ object MuseSnackbar {
 @Composable
 fun MuseSnackbarHost(modifier: Modifier = Modifier) {
     val messages = MuseSnackbar.messages
+    val reducedMotion = MuseMotion.isReducedMotion()
 
     Box(
         modifier = modifier
@@ -113,16 +110,17 @@ fun MuseSnackbarHost(modifier: Modifier = Modifier) {
                 targetState = data.id,
                 transitionSpec = {
                     // 进入:从上方滑入;离开:向上滑出(与文档宣称的 300ms 滑出一致)
-                    (slideInVertically(
-                        animationSpec = tween(MuseAnimation.SLOW_MS - 20, easing = MuseAnimation.EaseOutCubic),
+                    MuseMotion.verticalSlideFadeEnter(
+                        durationMillis = if (reducedMotion) 0 else MuseAnimation.SLOW_MS - 20,
+                        fadeDurationMillis = if (reducedMotion) 0 else MuseAnimation.NORMAL_MS,
                         initialOffsetY = { -it },
-                    ) + fadeIn(animationSpec = tween(MuseAnimation.NORMAL_MS)))
-                        .togetherWith(
-                            slideOutVertically(
-                                animationSpec = tween(MuseAnimation.NORMAL_MS, easing = MuseAnimation.EaseInCubic),
-                                targetOffsetY = { -it },
-                            ) + fadeOut(animationSpec = tween(MuseAnimation.NORMAL_MS)),
-                        )
+                    ).togetherWith(
+                        MuseMotion.verticalSlideFadeExit(
+                            durationMillis = if (reducedMotion) 0 else MuseAnimation.NORMAL_MS,
+                            fadeDurationMillis = if (reducedMotion) 0 else MuseAnimation.NORMAL_MS,
+                            targetOffsetY = { -it },
+                        ),
+                    )
                 },
                 label = "snackbar_item",
             ) { _ ->

@@ -1,7 +1,6 @@
 package io.zer0.muse.ui.common.form
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.size
@@ -18,6 +17,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MuseIconSizes
 
 /**
@@ -76,7 +76,10 @@ fun MuseTactileButton(
 
     val animatedTint by animateColorAsState(
         targetValue = if (isPressed) pressedColor else tint,
-        animationSpec = tween(durationMillis = MuseAnimation.TACTILE_MS, easing = MuseAnimation.EaseOutCubic),
+        animationSpec = MuseMotion.tween(
+            durationMillis = MuseAnimation.TACTILE_MS,
+            easing = MuseAnimation.EaseOutCubic,
+        ),
         label = "tactile_tint",
     )
 

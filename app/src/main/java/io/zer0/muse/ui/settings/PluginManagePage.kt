@@ -339,7 +339,7 @@ private fun InstalledPluginRow(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = "${plugin.id} · v${plugin.version} · ${plugin.tools.size} 工具",
+                    text = stringResource(R.string.plugin_summary, plugin.id, plugin.version, plugin.tools.size),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -434,7 +434,7 @@ private fun PluginCard(
                     )
                 }
                 Text(
-                    text = "${plugin.models.size} 个模型 · ${plugin.baseUrl}",
+                    text = stringResource(R.string.plugin_models_summary, plugin.models.size, plugin.baseUrl),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     maxLines = 1,

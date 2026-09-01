@@ -14,5 +14,12 @@ package io.zer0.muse.tools.system;
  *  - stderr: 命令标准错误
  */
 interface IShellService {
-    String execute(String command);
+    String execute(String command) = 2;
+
+    // Shizuku UserService reserved transaction. The implementation must
+    // terminate the privileged process when Shizuku removes the service.
+    void destroy() = 16777114;
+
+    // Optional application-defined transaction used by the demo pattern.
+    void exit() = 1;
 }

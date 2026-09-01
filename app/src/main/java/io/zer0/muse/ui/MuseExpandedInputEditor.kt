@@ -25,7 +25,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import compose.icons.TablerIcons
 import compose.icons.tablericons.ArrowLeft
 import compose.icons.tablericons.Send
@@ -77,7 +76,7 @@ internal fun MuseExpandedInputEditor(
             Spacer(Modifier.height(MusePaddings.itemGap))
             MuseTextField(
                 value = text,
-                onValueChange = { if (it.length <= 50000) onTextChanged(it) },
+                onValueChange = { if (it.length <= INPUT_TEXT_MAX_LENGTH) onTextChanged(it) },
                 modifier = Modifier.fillMaxWidth().weight(1f),
                 minLines = 10,
                 maxLines = 100,

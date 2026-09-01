@@ -2,8 +2,6 @@ package io.zer0.muse.automation.ui
 
 import android.content.Intent
 import android.provider.Settings
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,19 +12,19 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AdminPanelSettings
-import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Computer
-import androidx.compose.material.icons.outlined.ErrorOutline
-import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.Terminal
@@ -48,8 +46,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -57,10 +53,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import io.zer0.muse.automation.core.AutomationManager
-import io.zer0.muse.automation.executors.MuseAccessibilityService
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.theme.MusePaddings
@@ -88,22 +83,19 @@ fun AutomationSettingsPage(
     var testing by remember { mutableStateOf(false) }
     var testResult by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(Unit) { manager.refreshPermissions() }
-    // Shizuku/Magisk 在外部页面完成授权后，返回 Muse 必须重新探测，不能沿用旧状态。
-    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                scope.launch { manager.refreshPermissions() }
-            }
+    // Shizuku/Magisk 在外部页面完成授权后，返回 Muse 必须重新探测；
+    // repeatOnLifecycle 统一首屏和回到前台的刷新，避免 LaunchedEffect + observer 重复触发。
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            manager.refreshPermissions()
         }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     Column(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxSize()
             .statusBarsPadding()
+            .verticalScroll(rememberScrollState())
             .padding(MusePaddings.screen),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -163,7 +155,11 @@ fun AutomationSettingsPage(
         PermissionCard(
             icon = Icons.Outlined.Terminal,
             title = "Shell (Shizuku)",
-            subtitle = "系统级命令、截屏、静默安装。需运行 Shizuku 并授权 Muse。",
+            subtitle = buildString {
+                append("系统级命令、截屏、静默安装。")
+                append(" ")
+                append(state.shizukuMessage)
+            },
             enabled = state.shellEnabled,
             levelLabel = "第二层",
             onAction = {
@@ -219,11 +215,15 @@ fun AutomationSettingsPage(
                     val result = runCatching {
                         manager.refreshPermissions()
                         val screen = manager.readScreen()
-                        buildString {
-                            appendLine("✓ 当前应用: ${screen.packageName ?: "未知"}")
-                            appendLine("✓ 控件数: ${screen.nodes.size}")
-                            appendLine("✓ 分辨率: ${screen.screenWidth}x${screen.screenHeight}")
-                            appendLine("✓ 数据来源: ${screen.source}")
+                        if (screen.source == "unavailable") {
+                            "✗ 当前没有可用的自动化通道,请先开启无障碍、Shizuku 或 Root"
+                        } else {
+                            buildString {
+                                appendLine("✓ 当前应用: ${screen.packageName ?: "未知"}")
+                                appendLine("✓ 控件数: ${screen.nodes.size}")
+                                appendLine("✓ 分辨率: ${screen.screenWidth}x${screen.screenHeight}")
+                                appendLine("✓ 数据来源: ${screen.source}")
+                            }
                         }
                     }
                     testResult = result.getOrElse { "测试失败: ${it.message}" }

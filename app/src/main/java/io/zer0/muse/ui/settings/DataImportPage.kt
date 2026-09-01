@@ -1,5 +1,8 @@
 package io.zer0.muse.ui.settings
 
+import io.zer0.common.resultOf
+import io.zer0.common.Logger
+
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -34,6 +37,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
+import io.zer0.muse.backup.BackupService
 import io.zer0.muse.data.`import`.ImportResult
 import io.zer0.muse.data.`import`.ThirdPartyImporter
 import io.zer0.muse.data.SettingsRepository
@@ -41,13 +45,14 @@ import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.importer.ConfigImporter
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseMotion
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
 /**
- * v1.61-A: 第三方数据导入页。
+ * v1.61-A: 数据迁移与导入页。
  *
- * 引导用户从 既有实现 / 既有实现 备份 ZIP,或 CherryStudio / Chatbox JSON 导入 Provider 配置、助手、会话和消息。
+ * 同时支持 Muse 原生 JSON/NDJSON/ZIP 全量恢复,以及第三方 ZIP/JSON 导入 Provider 配置、助手、会话和消息。
  * 页面结构:
  *  1. 顶部说明卡片
  *  2. 选择来源(既有实现 / 既有实现 / CherryStudio / Chatbox),每个卡片含导出步骤折叠说明
@@ -68,12 +73,14 @@ fun SettingsDataImportPage(
     val assistantRepo: AssistantRepository = koinInject()
     val sessionRepo: SessionRepository = koinInject()
     val configImporter: ConfigImporter = koinInject()
+    val backupService: BackupService = koinInject()
     val scope = rememberCoroutineScope()
 
     var isImporting by remember { mutableStateOf(false) }
     var importResult by remember { mutableStateOf<ImportResult?>(null) }
     // P3-1: CherryStudio / Chatbox JSON 导入结果(与 ThirdPartyImporter.ImportResult 结构不同,独立状态)
     var jsonImportResult by remember { mutableStateOf<ConfigImporter.Result?>(null) }
+    var nativeBackupResult by remember { mutableStateOf<ImportResult?>(null) }
 
     val filePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
@@ -81,13 +88,51 @@ fun SettingsDataImportPage(
         if (uri != null) {
             scope.launch {
                 isImporting = true
-                importResult = ThirdPartyImporter.importFromUri(
-                    context = context,
-                    uri = uri,
-                    settings = settings,
-                    assistantRepo = assistantRepo,
-                    sessionRepo = sessionRepo,
+                val outcome = resultOf {
+                    ThirdPartyImporter.importFromUri(
+                        context = context,
+                        uri = uri,
+                        settings = settings,
+                        assistantRepo = assistantRepo,
+                        sessionRepo = sessionRepo,
+                    )
+                }.onError { message, throwable ->
+                    Logger.w("DataImportPage", "第三方备份导入异常: ${throwable?.message ?: message}", throwable)
+                }.getOrNull()
+                importResult = outcome ?: ImportResult(
+                    errors = listOf(context.getString(R.string.import_error_parse_failed)),
                 )
+                isImporting = false
+            }
+        }
+    }
+
+    // Muse 原生备份 picker:支持 JSON / NDJSON / ZIP,与设置页使用同一 BackupService 入口。
+    val nativeBackupPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri != null) {
+            scope.launch {
+                isImporting = true
+                nativeBackupResult = null
+                val outcome = resultOf { backupService.import(context, uri) }
+                outcome.onSuccess { (sessions, messages) ->
+                    nativeBackupResult = ImportResult(
+                        conversationsImported = sessions,
+                        messagesImported = messages,
+                    )
+                }.onError { message, throwable ->
+                    nativeBackupResult = ImportResult(
+                        errors = listOf(
+                            context.getString(
+                                R.string.settings_backup_import_failed,
+                                throwable?.message ?: message.ifBlank {
+                                    context.getString(R.string.error_generic_unknown)
+                                },
+                            ),
+                        ),
+                    )
+                }
                 isImporting = false
             }
         }
@@ -100,7 +145,11 @@ fun SettingsDataImportPage(
         if (uri != null) {
             scope.launch {
                 isImporting = true
-                jsonImportResult = configImporter.importFromUri(context, uri)
+                val outcome = resultOf { configImporter.importFromUri(context, uri) }
+                    .onError { message, throwable ->
+                        Logger.w("DataImportPage", "配置导入异常: ${throwable?.message ?: message}", throwable)
+                    }.getOrNull()
+                jsonImportResult = outcome
                 isImporting = false
             }
         }
@@ -132,6 +181,31 @@ fun SettingsDataImportPage(
                     )
                 }
             }
+        }
+
+        // ── Muse 原生备份 ──
+        item {
+            ImportSourceCard(
+                title = stringResource(R.string.settings_import_muse_backup_title),
+                description = stringResource(R.string.settings_import_muse_backup_desc),
+                steps = listOf(
+                    stringResource(R.string.settings_import_muse_backup_step1),
+                    stringResource(R.string.settings_import_muse_backup_step2),
+                    stringResource(R.string.settings_import_muse_backup_step3),
+                    stringResource(R.string.settings_import_step_remember),
+                ),
+                onSelect = {
+                    nativeBackupPicker.launch(
+                        arrayOf(
+                            "application/json",
+                            "application/zip",
+                            "application/octet-stream",
+                            "text/plain",
+                            "*/*",
+                        ),
+                    )
+                },
+            )
         }
 
         // ── 第一步:了解如何导出备份 ──
@@ -255,6 +329,12 @@ fun SettingsDataImportPage(
             }
         }
 
+        nativeBackupResult?.let { result ->
+            item {
+                ImportResultCard(result)
+            }
+        }
+
         // P3-1: CherryStudio / Chatbox JSON 导入结果
         jsonImportResult?.let { result ->
             item {
@@ -314,7 +394,11 @@ private fun ImportSourceCard(
                     )
                 }
             }
-            AnimatedVisibility(visible = expanded) {
+            AnimatedVisibility(
+                visible = expanded,
+                enter = MuseMotion.expandFadeEnter(),
+                exit = MuseMotion.expandFadeExit(),
+            ) {
                 Column(modifier = Modifier.padding(top = 12.dp)) {
                     steps.forEach { step ->
                         Text(

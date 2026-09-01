@@ -102,6 +102,9 @@ class SystemToolsRegistrar(
                 parameters = mapOf(
                     "limit" to "可选,返回数量,默认 20",
                     "package_name" to "可选,按包名过滤",
+                    "query" to "可选,按应用包名、应用名称、标题、渠道或正文搜索",
+                    "unread_only" to "可选,true/false,只返回 Muse 中尚未查看的通知",
+                    "active_only" to "可选,true/false,只返回当前仍在系统通知栏中的通知",
                 ),
                 required = emptySet(),
                 category = "built-in",

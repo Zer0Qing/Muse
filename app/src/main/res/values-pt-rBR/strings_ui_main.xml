@@ -712,4 +712,8 @@
     <string name="settings_screen_miniphone_desc">Versão inicial de um recurso experimental</string>
     <string name="model_diff_clear_add">Limpar modelos novos</string>
     <string name="model_diff_clear_remove">Limpar modelos removidos</string>
+    <!-- v1.0.85: release localization -->
+    <string name="workspace_import_file">Importar do gerenciador de arquivos</string>
+    <string name="workspace_import_success">%1$d importados</string>
+    <string name="workspace_import_failed">Falha ao importar o arquivo: %1$s</string>
 </resources>

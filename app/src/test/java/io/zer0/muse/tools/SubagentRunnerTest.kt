@@ -5,12 +5,8 @@ import io.mockk.every
 import io.mockk.mockk
 import io.zer0.ai.ChatService
 import io.zer0.ai.core.ChatCompletion
-import io.zer0.ai.core.ChatRequestMode
-import io.zer0.ai.core.MessageRole
-import io.zer0.ai.core.ReasoningLevel
 import io.zer0.ai.core.ToolCall
 import io.zer0.ai.core.ToolDefinition
-import io.zer0.ai.core.UIMessage
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

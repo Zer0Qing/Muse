@@ -4,12 +4,9 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandHorizontally
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,7 +16,6 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -53,6 +49,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
+import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.data.moment.MomentCommentEntity
 import io.zer0.muse.data.moment.MomentEntity
 import io.zer0.muse.data.moment.images
@@ -101,7 +99,12 @@ fun MomentCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 14.dp)
-                .animateContentSize(),
+                .animateContentSize(
+                    animationSpec = MuseMotion.tween(
+                        durationMillis = MuseAnimation.NORMAL_MS,
+                        easing = MuseAnimation.EaseOutCubic,
+                    ),
+                ),
         ) {
             Column(
                 modifier = Modifier
@@ -255,8 +258,8 @@ fun MomentCard(
                 Column(horizontalAlignment = Alignment.End) {
                     AnimatedVisibility(
                         visible = showActions,
-                        enter = fadeIn() + expandHorizontally(expandFrom = Alignment.End),
-                        exit = fadeOut() + shrinkHorizontally(shrinkTowards = Alignment.End),
+                        enter = MuseMotion.horizontalExpandFadeEnter(expandFrom = Alignment.End),
+                        exit = MuseMotion.horizontalExpandFadeExit(shrinkTowards = Alignment.End),
                     ) {
                         Surface(
                             color = MaterialTheme.colorScheme.inverseSurface,
@@ -304,9 +307,13 @@ fun MomentCard(
                     }
                     Spacer(Modifier.height(4.dp))
                     Surface(
-                        onClick = { showActions = !showActions },
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f),
                         shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.clickable(
+                             interactionSource = remember { MutableInteractionSource() },
+                             indication = null,
+                            onClick = { showActions = !showActions },
+                        ),
                     ) {
                         Icon(
                             imageVector = Icons.Filled.MoreHoriz,
@@ -320,17 +327,14 @@ fun MomentCard(
 
             androidx.compose.animation.AnimatedVisibility(
                 visible = commentsExpanded,
-                enter = androidx.compose.animation.fadeIn() +
-                    androidx.compose.animation.expandVertically(
-                        animationSpec = androidx.compose.animation.core.tween(
-                            durationMillis = 220,
-                            easing = androidx.compose.animation.core.FastOutSlowInEasing,
-                        ),
-                    ),
-                exit = androidx.compose.animation.fadeOut() +
-                    androidx.compose.animation.shrinkVertically(
-                        animationSpec = androidx.compose.animation.core.tween(durationMillis = 150),
-                    ),
+                enter = MuseMotion.expandFadeEnter(
+                    durationMillis = MuseAnimation.NORMAL_MS,
+                    fadeDurationMillis = MuseAnimation.TACTILE_MS,
+                ),
+                exit = MuseMotion.expandFadeExit(
+                    durationMillis = MuseAnimation.NORMAL_MS,
+                    fadeDurationMillis = MuseAnimation.TACTILE_MS,
+                ),
             ) {
                 if (comments.isNotEmpty()) {
                     Spacer(Modifier.height(6.dp))

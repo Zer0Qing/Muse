@@ -712,4 +712,8 @@
     <string name="settings_screen_miniphone_desc">Versión inicial de una función experimental</string>
     <string name="model_diff_clear_add">Limpiar modelos nuevos</string>
     <string name="model_diff_clear_remove">Limpiar modelos eliminados</string>
+    <!-- v1.0.85: release localization -->
+    <string name="workspace_import_file">Importar desde el gestor de archivos</string>
+    <string name="workspace_import_success">Importados %1$d</string>
+    <string name="workspace_import_failed">Error al importar el archivo: %1$s</string>
 </resources>

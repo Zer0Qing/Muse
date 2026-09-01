@@ -3,7 +3,6 @@ package io.zer0.muse.perf
 import io.zer0.common.Logger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.take
 
 /**
  * Phase 6 6B: 消息列表分页 — 50条/页,滚动到顶部加载更多。

@@ -55,7 +55,6 @@ import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
-import io.zer0.muse.ui.theme.semiLarge
 
 /**
  * 阶段 5: 模型切换底部面板 — iOS 风格。
@@ -79,6 +78,7 @@ import io.zer0.muse.ui.theme.semiLarge
  * @param selectedModelId 当前选中模型 id(null 表示回退到 Provider 首个模型)
  * @param onPickProvider 切换激活 Provider(内部会清空 selectedModelId)
  * @param onPickModel 选择模型(传 null 回退到 Provider 首个模型)
+ * @param onPickDefaultModel 可选：把 Provider 首个模型作为显式绑定项；为空时保持旧的“清除绑定”语义
  * @param onRefreshModels 手动刷新当前 Provider 的模型列表(传 provider id)
  * @param isFetchingModels 是否正在拉取模型(显示加载态)
  * @param fetchModelsError 拉取模型错误信息
@@ -92,6 +92,7 @@ internal fun ModelSwitchSheet(
     selectedModelId: String?,
     onPickProvider: (String) -> Unit,
     onPickModel: (String?) -> Unit,
+    onPickDefaultModel: (() -> Unit)? = null,
     onRefreshModels: (String) -> Unit,
     isFetchingModels: Boolean,
     fetchModelsError: String?,
@@ -411,7 +412,10 @@ internal fun ModelSwitchSheet(
                     ModelRow(
                         model = firstModel,
                         isSelected = effectiveModelId == null || effectiveModelId == firstModel.id,
-                        onClick = { onPickModel(null); onDismiss() },
+                        onClick = {
+                            onPickDefaultModel?.invoke() ?: onPickModel(null)
+                            onDismiss()
+                        },
                         isDefaultFallback = true,
                     )
                 }

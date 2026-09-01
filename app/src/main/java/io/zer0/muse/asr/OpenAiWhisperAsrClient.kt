@@ -1,9 +1,7 @@
 package io.zer0.muse.asr
 
 import android.annotation.SuppressLint
-import android.media.AudioFormat
 import android.media.AudioRecord
-import android.media.MediaRecorder
 import android.os.SystemClock
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
@@ -12,6 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -134,30 +133,13 @@ class OpenAiWhisperAsrController(
     @SuppressLint("MissingPermission")
     private fun startRecording() {
         recordJob = scope.launch(Dispatchers.IO) {
-            val sampleRate = config.sampleRate
-            val minBuf = AudioRecord.getMinBufferSize(
-                sampleRate,
-                AudioFormat.CHANNEL_IN_MONO,
-                AudioFormat.ENCODING_PCM_16BIT,
-            )
-            if (minBuf <= 0) {
-                setError("AudioRecord 缓冲区大小无效: $minBuf")
+            val capture = AsrAudioCapture.create(config.sampleRate, TAG)
+            if (capture == null) {
+                setError("麦克风初始化失败,请检查权限或录音设备")
                 return@launch
             }
-            val bufSize = (minBuf * 2).coerceAtLeast(sampleRate / 10 * 2).coerceAtLeast(4096)
-            val recorder = AudioRecord(
-                MediaRecorder.AudioSource.VOICE_COMMUNICATION,
-                sampleRate,
-                AudioFormat.CHANNEL_IN_MONO,
-                AudioFormat.ENCODING_PCM_16BIT,
-                bufSize * 2,
-            )
-            if (recorder.state != AudioRecord.STATE_INITIALIZED) {
-                Logger.w(TAG, "AudioRecord 初始化失败(可能缺少 RECORD_AUDIO 权限)")
-                recorder.release()
-                _state.update { it.copy(status = ASRStatus.Error) }
-                return@launch
-            }
+            val recorder = capture.recorder
+            val bufSize = capture.bufferSize
             audioRecord = recorder
 
             try {
@@ -186,12 +168,16 @@ class OpenAiWhisperAsrController(
                         if (shouldFlush) {
                             triggerFlush()
                         }
+                    } else if (read == 0) {
+                        delay(10L)
                     } else if (read < 0) {
                         Logger.w(TAG, "AudioRecord.read 错误: $read")
                         setError("AudioRecord 读取错误: $read")
                         break
                     }
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Logger.w(TAG, "录音失败: ${e.message}")
                 setError(e.message ?: "录音失败")
@@ -210,7 +196,9 @@ class OpenAiWhisperAsrController(
         flushJob = scope.launch(Dispatchers.IO) {
             resultOf { flushSegment() }
                 .onError { message, throwable ->
-                    Logger.w(TAG, "分段 flush 失败: ${throwable?.message ?: message}")
+                    val error = throwable?.message ?: message
+                    Logger.w(TAG, "分段 flush 失败: $error")
+                    setError("语音识别分段失败: $error")
                 }
         }
     }
@@ -264,34 +252,58 @@ class OpenAiWhisperAsrController(
                 .addFormDataPart("response_format", "json")
                 .apply {
                     config.language?.takeIf { it.isNotBlank() }?.let { addFormDataPart("language", it) }
-                    // 热词通过 prompt 参数传入(Whisper 官方文档:prompt 提升专有名词识别率)
                     if (config.hotwords.isNotEmpty()) {
                         val prompt = config.hotwords.joinToString(", ")
                         if (prompt.isNotBlank()) addFormDataPart("prompt", prompt)
                     }
                 }
                 .build()
-
             val base = config.baseUrl.ifBlank { config.defaultBaseUrl().ifBlank { DEFAULT_BASE_URL } }
             val request = Request.Builder()
-                .url("${base.trimEnd('/')}/audio/transcriptions")
+                .url(transcriptionEndpoint(base))
                 .header("Authorization", "Bearer ${config.apiKey}")
                 .post(multipart)
                 .build()
-
-            resultOf {
-                client.newCall(request).execute().use { resp: Response ->
-                    if (!resp.isSuccessful) {
-                        Logger.w(TAG, "Whisper ASR HTTP ${resp.code}: ${resp.message}")
-                        return@use null
+            var lastError: String? = null
+            for (attempt in 0 until AsrConstants.MAX_HTTP_ATTEMPTS) {
+                try {
+                    val result = client.newCall(request).execute().use { resp: Response ->
+                        if (!resp.isSuccessful) {
+                            lastError = "识别服务 HTTP ${resp.code}: ${resp.message}"
+                            Logger.w(TAG, "Whisper ASR HTTP ${resp.code}: ${resp.message}")
+                            if (resp.code !in 500..599 && resp.code != 429) {
+                                return@use null
+                            }
+                            null
+                        } else {
+                            parseTranscriptionResponse(resp.body.string())
+                        }
                     }
-                    val body = resp.body.string()
-                    parseTranscriptionResponse(body)
+                    if (!result.isNullOrBlank()) return@withContext result
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: java.io.IOException) {
+                    lastError = e.message ?: "网络连接失败"
+                    Logger.w(TAG, "Whisper ASR 请求失败(attempt=${attempt + 1}): ${e.message}")
                 }
-            }.onError { message, throwable ->
-                Logger.w(TAG, "Whisper ASR 请求失败: ${throwable?.message ?: message}")
-            }.getOrNull()
+                if (attempt + 1 < AsrConstants.MAX_HTTP_ATTEMPTS) {
+                    delay(AsrConstants.HTTP_RETRY_BACKOFF_MS * (attempt + 1))
+                }
+            }
+            lastError?.let { setError("语音识别失败: $it") }
+            null
         }
+
+    private fun transcriptionEndpoint(baseUrl: String): String {
+        val base = baseUrl.trimEnd('/')
+        return if (base.endsWith("/audio/transcriptions")) {
+            base
+        } else if (base.endsWith("/v1")) {
+            "$base/audio/transcriptions"
+        } else {
+            "$base/v1/audio/transcriptions"
+        }
+    }
 
     /**
      * 解析 transcription 响应,提取 text 字段。

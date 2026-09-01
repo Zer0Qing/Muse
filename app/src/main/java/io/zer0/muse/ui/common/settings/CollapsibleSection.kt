@@ -2,12 +2,10 @@ package io.zer0.muse.ui.common.settings
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -35,6 +33,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -81,7 +80,7 @@ fun CollapsibleSection(
     // 箭头旋转动画(180° → 0°)
     val rotation by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
-        animationSpec = tween(250),
+        animationSpec = MuseMotion.tween(MuseAnimation.NORMAL_MS),
         label = "section_arrow",
     )
 
@@ -135,8 +134,10 @@ fun CollapsibleSection(
             // 内容区(带过渡动画)
             AnimatedVisibility(
                 visible = expanded,
-                enter = expandVertically(tween(250)) + fadeIn(tween(MuseAnimation.TACTILE_MS)),
-                exit = shrinkVertically(tween(250)) + fadeOut(tween(MuseAnimation.TACTILE_MS)),
+                enter = expandVertically(MuseMotion.tween(MuseAnimation.NORMAL_MS)) +
+                    fadeIn(MuseMotion.tween(MuseAnimation.TACTILE_MS)),
+                exit = shrinkVertically(MuseMotion.tween(MuseAnimation.NORMAL_MS)) +
+                    fadeOut(MuseMotion.tween(MuseAnimation.TACTILE_MS)),
             ) {
                 Column {
                     if (subtitle != null) {

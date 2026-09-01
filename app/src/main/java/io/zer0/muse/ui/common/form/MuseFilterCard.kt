@@ -1,8 +1,8 @@
 package io.zer0.muse.ui.common.form
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseMotion
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
@@ -15,10 +15,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -56,13 +54,13 @@ fun MuseFilterCard(
     val bgColor by animateColorAsState(
         targetValue = if (isActive) MaterialTheme.colorScheme.primary
         else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        animationSpec = tween(MuseAnimation.TACTILE_MS),
+        animationSpec = MuseMotion.tween(MuseAnimation.TACTILE_MS),
         label = "filter_card_bg",
     )
     val contentColor by animateColorAsState(
         targetValue = if (isActive) MaterialTheme.colorScheme.onPrimary
         else MaterialTheme.colorScheme.onSurfaceVariant,
-        animationSpec = tween(MuseAnimation.TACTILE_MS),
+        animationSpec = MuseMotion.tween(MuseAnimation.TACTILE_MS),
         label = "filter_card_content",
     )
 

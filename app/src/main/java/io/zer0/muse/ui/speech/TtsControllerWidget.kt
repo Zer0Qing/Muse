@@ -2,8 +2,8 @@ package io.zer0.muse.ui.speech
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseMotion
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -44,7 +44,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.ui.theme.MuseIconSizes
@@ -82,8 +81,10 @@ fun TtsControllerWidget(
 
     AnimatedVisibility(
         visible = visible,
-        enter = fadeIn(tween(MuseAnimation.TACTILE_MS)) + scaleIn(tween(MuseAnimation.TACTILE_MS), initialScale = 0.7f),
-        exit = fadeOut(tween(MuseAnimation.TACTILE_MS)) + scaleOut(tween(MuseAnimation.TACTILE_MS), targetScale = 0.7f),
+        enter = fadeIn(MuseMotion.tween(MuseAnimation.TACTILE_MS)) +
+            scaleIn(MuseMotion.tween(MuseAnimation.TACTILE_MS), initialScale = 0.7f),
+        exit = fadeOut(MuseMotion.tween(MuseAnimation.TACTILE_MS)) +
+            scaleOut(MuseMotion.tween(MuseAnimation.TACTILE_MS), targetScale = 0.7f),
         modifier = modifier,
     ) {
         Surface(
@@ -129,7 +130,11 @@ fun TtsControllerWidget(
                 }
 
                 // 展开后:分片导航 + 进退 5s + 倍速
-                AnimatedVisibility(visible = expanded) {
+                AnimatedVisibility(
+                    visible = expanded,
+                    enter = MuseMotion.expandFadeEnter(),
+                    exit = MuseMotion.expandFadeExit(),
+                ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(2.dp),
@@ -238,8 +243,20 @@ private fun CircleProgressButton(
     chunkProgress: Float,
     onClick: () -> Unit,
 ) {
-    val animatedAudio by animateFloatAsState(targetValue = audioProgress, label = "audioProgress")
-    val animatedChunk by animateFloatAsState(targetValue = chunkProgress, label = "chunkProgress")
+    val progressSpec = MuseMotion.tween<Float>(
+        durationMillis = MuseAnimation.FAST_NORMAL_MS,
+        easing = MuseAnimation.EaseOutCubic,
+    )
+    val animatedAudio by animateFloatAsState(
+        targetValue = audioProgress,
+        animationSpec = progressSpec,
+        label = "audioProgress",
+    )
+    val animatedChunk by animateFloatAsState(
+        targetValue = chunkProgress,
+        animationSpec = progressSpec,
+        label = "chunkProgress",
+    )
 
     Box(
         modifier = Modifier

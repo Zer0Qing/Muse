@@ -1,47 +1,20 @@
 package io.zer0.muse.tools
 
 import android.content.Context
-import io.zer0.ai.ChatService
-import io.zer0.ai.core.ChatStreamEvent
-import io.zer0.ai.core.ProviderError
-import io.zer0.ai.core.ProviderException
-import io.zer0.ai.core.providerError
-import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.ToolDefinition
-import io.zer0.ai.core.UIMessage
 import io.zer0.common.AppJson
-import android.annotation.SuppressLint
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
-import org.koin.core.context.GlobalContext
 import io.zer0.muse.R
-import io.zer0.muse.data.quicknote.QuickNoteDao
-import io.zer0.muse.data.quicknote.QuickNoteEntity
-import io.zer0.muse.data.schedule.ScheduledTaskDao
-import io.zer0.muse.data.schedule.ScheduledTaskEntity
-import io.zer0.muse.data.session.MuseDb
-import io.zer0.muse.notification.MuseNotificationListenerService
-import io.zer0.muse.tools.reminder.ReminderAlarmReceiver
-import io.zer0.muse.transformer.stripThinkTags
-import io.zer0.muse.util.MusePatterns
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
-import java.util.TimeZone
-import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 /**

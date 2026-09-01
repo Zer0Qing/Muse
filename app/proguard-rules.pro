@@ -130,6 +130,10 @@
 -keep class java.lang.Throwable { *; }
 -keep class * extends java.lang.Throwable { *; }
 
+# Shizuku UserService is instantiated by reflection in a non-Android process.
+# Keep the class, AIDL Stub methods and constructors across release shrinking.
+-keep class io.zer0.muse.tools.system.ShellService { *; }
+
 # ============================================================================
 # 枚举:values() / valueOf 反射
 # ============================================================================

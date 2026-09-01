@@ -1,7 +1,6 @@
 package io.zer0.muse.ui.common.form
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
@@ -18,10 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
@@ -45,6 +41,8 @@ import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
 import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseMotion
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -297,8 +295,14 @@ fun MuseDraggableBottomSheet(
                 val expandedHeight = screenHeight * expandedHeightFraction
                 AnimatedVisibility(
                     visible = visible,
-                    enter = slideInVertically(animationSpec = tween(SHEET_EXIT_DURATION_MS), initialOffsetY = { it }),
-                    exit = slideOutVertically(animationSpec = tween(SHEET_EXIT_DURATION_MS), targetOffsetY = { it }),
+                    enter = slideInVertically(
+                        animationSpec = MuseMotion.tween(MuseAnimation.SLOW_MS),
+                        initialOffsetY = { it },
+                    ),
+                    exit = slideOutVertically(
+                        animationSpec = MuseMotion.tween(MuseAnimation.SLOW_MS),
+                        targetOffsetY = { it },
+                    ),
                 ) {
                     val currentHeight = (initialHeight - with(density) { dragOffset.toDp() })
                         .coerceIn(screenHeight * 0.2f, expandedHeight)

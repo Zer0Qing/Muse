@@ -1,10 +1,7 @@
 package io.zer0.muse.asr
 
-import android.Manifest
 import android.annotation.SuppressLint
-import android.media.AudioFormat
 import android.media.AudioRecord
-import android.media.MediaRecorder
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.asr.AudioAmplitude.appendAmplitude
@@ -164,6 +161,8 @@ class DashScopeAsrController(
             // 已收到 task-started,切 Listening 并启动录音
             _state.update { it.copy(status = ASRStatus.Listening) }
             startRecordingInternal()
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Logger.w(TAG, "connectAndRecord 异常: ${e.message}")
             _state.update { it.copy(status = ASRStatus.Error, errorMessage = e.message ?: "连接异常") }
@@ -174,32 +173,22 @@ class DashScopeAsrController(
     /** 启动 AudioRecord 录音线程(循环采集 + 上传)。 */
     @SuppressLint("MissingPermission")
     private fun startRecordingInternal() {
-        val sampleRate = config.sampleRate
-        val channelConfig = AudioFormat.CHANNEL_IN_MONO
-        val audioFormat = AudioFormat.ENCODING_PCM_16BIT
-        val minBuf = AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioFormat)
-        if (minBuf <= 0) {
-            Logger.w(TAG, "AudioRecord 缓冲区大小无效: $minBuf")
-            _state.update { it.copy(status = ASRStatus.Error, errorMessage = "AudioRecord 缓冲区无效") }
+        val capture = AsrAudioCapture.create(config.sampleRate, TAG)
+        if (capture == null) {
+            _state.update { it.copy(status = ASRStatus.Error, errorMessage = "麦克风初始化失败,请检查权限或录音设备") }
             return
         }
-        val bufSize = minBuf * 2
-        val record = AudioRecord(
-            MediaRecorder.AudioSource.VOICE_COMMUNICATION,
-            sampleRate,
-            channelConfig,
-            audioFormat,
-            bufSize,
-        )
-        if (record.state != AudioRecord.STATE_INITIALIZED) {
-            Logger.w(TAG, "AudioRecord 初始化失败(可能缺少 RECORD_AUDIO 权限)")
-            record.release()
-            // v1.98: 移除 errorMessage 弹窗提示,静默处理(仅记日志)
-            _state.update { it.copy(status = ASRStatus.Error) }
-            return
-        }
+        val record = capture.recorder
         audioRecord = record
-        record.startRecording()
+        try {
+            record.startRecording()
+        } catch (e: IllegalStateException) {
+            Logger.w(TAG, "AudioRecord 启动失败: ${e.message}", e)
+            record.release()
+            audioRecord = null
+            _state.update { it.copy(status = ASRStatus.Error, errorMessage = "录音启动失败") }
+            return
+        }
 
         // 录音线程:循环读 PCM → 计算振幅 → 发 WebSocket(带背压检查)
         recordJob = scope.launch(Dispatchers.IO) {
@@ -231,6 +220,8 @@ class DashScopeAsrController(
                     } else {
                         Logger.d(TAG, "背压超限,丢帧 queueSize=${ws?.queueSize()}")
                     }
+                } else if (read == 0) {
+                    delay(10L)
                 } else if (read < 0) {
                     Logger.w(TAG, "AudioRecord.read 错误: $read")
                     break
@@ -388,7 +379,7 @@ class DashScopeAsrController(
                 put("task_group", "audio")
                 put("task", "asr")
                 put("function", "recognition")
-                put("model", config.model)
+                put("model", config.model.ifBlank { config.defaultModel() })
                 put("input", buildJsonObject {})
                 put("parameters", parameters)
             })

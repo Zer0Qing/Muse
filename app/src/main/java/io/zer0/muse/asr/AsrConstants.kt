@@ -15,4 +15,10 @@ object AsrConstants {
 
     /** 整体识别流程超时(毫秒)— 防止 ASR 卡死。 */
     const val RECOGNIZE_TIMEOUT_MS = 60_000L
+
+    /** 短音频分段 HTTP 失败时的最大尝试次数。 */
+    const val MAX_HTTP_ATTEMPTS = 2
+
+    /** HTTP 重试退避基数(毫秒)。 */
+    const val HTTP_RETRY_BACKOFF_MS = 350L
 }

@@ -12,4 +12,8 @@
     <string name="cover_generate_failed">封面生成失败: %1$s</string>
     <string name="cover_generate_no_provider">未配置绘图模型,请到 设置→模型与服务 中配置后重试</string>
     <string name="cover_applied">封面已应用</string>
+    <string name="cover_library_title">封面库</string>
+    <string name="cover_count">%1$d 张封面</string>
+    <string name="cover_empty_title">还没有封面</string>
+    <string name="cover_empty_hint">点击右下角按钮导入图片,或让 AI 生成封面</string>
 </resources>

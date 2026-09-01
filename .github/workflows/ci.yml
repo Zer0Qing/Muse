@@ -1,6 +1,15 @@
 name: CI
 
-# R-CI-10/11: 保留 push/PR main,增加 schedule 夜间回归与 tag 发布触发。
+# CI 只允许可复现的入口：质量门禁、单测/调试包、tag 正式构建与 Release。
+# 所有 run 步骤使用 PowerShell 7，避免 Windows 本地与 CI shell 语义不一致。
+defaults:
+  run:
+    shell: pwsh
+
+concurrency:
+  group: muse-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 on:
   push:
     branches: [ "main" ]
@@ -13,180 +22,190 @@ on:
 
 jobs:
   build:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Set up JDK 21
-      uses: actions/setup-java@v4
-      with:
-        java-version: '21'
-        distribution: 'temurin'
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.12'
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
-    - name: Grant execute permission for gradlew
-      run: chmod +x ./gradlew
-    - name: Gradle cache
-      uses: gradle/actions/setup-gradle@v4
-    - name: CI script tests
-      run: |
-        python3 ci/test/test_pr_check.py
-        python3 ci/test/test_engineering_discipline.py
-        python3 ci/test/test_hardcoded_cjk.py
-    - name: Lane checks
-      run: |
-        python3 ci/script/pr_check.py --base origin/main --output json
-        python3 ci/script/check_repo_hygiene.py
-        python3 ci/script/check_engineering_discipline.py
-        python3 ci/script/check_hardcoded_cjk.py
-        python3 ci/script/check_localizations.py
-        python3 ci/script/check_design_tokens.py
-        python3 ci/script/check_hardcoded_font_size.py
-        python3 ci/script/check_icon_content_description.py
-        python3 ci/script/check_touch_target.py
-    - name: Static checks
-      # 传 releaseSkipVersionCheck/releaseSkipKeystoreCheck: 静态检查/detekt 等会触发
-      # hasReleaseTask 的版本号+keystore 硬约束(本地复现失败);CI 只做 debug 构建,跳过校验。
-      run: ./gradlew detekt ktlintCheck lintDebug koverXmlReport :ai:koverCachedVerifyDebug :memory:koverCachedVerifyDebug :app:koverCachedVerifyDebug -PreleaseSkipVersionCheck=true -PreleaseSkipKeystoreCheck=true
-    - name: Unit tests (app/memory/ai)
-      # F-01: 三模块单测接入 PR 主链,失败即 PR 失败;报告由下一 upload 步骤保留。
-      run: ./gradlew :app:testDebugUnitTest :memory:testDebugUnitTest :ai:testDebugUnitTest -PreleaseSkipVersionCheck=true -PreleaseSkipKeystoreCheck=true
-    - name: Upload unit test reports
-      # F-01: 单测失败时也必须保留测试报告(if: always() 保证任何结果都上传)
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: unit-test-reports
-        path: |
-          app/build/reports/tests
-          memory/build/reports/tests
-          ai/build/reports/tests
-        if-no-files-found: ignore
-    - name: Migration coverage check
-      # F-02: 校验 MuseDb version/addMigrations 与迁移测试覆盖一致,任一迁移未覆盖即失败
-      run: python3 ci/script/check_migration_coverage.py
-    - name: Build debug APK
-      run: ./gradlew assembleDebug -PreleaseSkipVersionCheck=true -PreleaseSkipKeystoreCheck=true
-    - uses: actions/upload-artifact@v4
-      with:
-        name: debug-apk
-        path: app/build/outputs/apk/debug/*.apk
-        if-no-files-found: error
-    - uses: actions/upload-artifact@v4
-      with:
-        name: reports
-        path: |
-          app/build/reports
-          build/reports/kover
-        if-no-files-found: ignore
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4
+      - name: Grant execute permission for gradlew
+        run: |
+          $path = (Resolve-Path './gradlew').Path
+          [System.IO.File]::SetUnixFileMode(
+            $path,
+            [System.IO.UnixFileMode]::UserRead -bor
+              [System.IO.UnixFileMode]::UserWrite -bor
+              [System.IO.UnixFileMode]::UserExecute -bor
+              [System.IO.UnixFileMode]::GroupRead -bor
+              [System.IO.UnixFileMode]::GroupExecute -bor
+              [System.IO.UnixFileMode]::OtherRead -bor
+              [System.IO.UnixFileMode]::OtherExecute
+          )
+      - name: Gradle cache
+        uses: gradle/actions/setup-gradle@v6
+      - name: CI script tests
+        run: ./ci/run_ci_checks.ps1 -Lane ci-scripts
+      - name: Lane checks
+        run: ./ci/run_ci_checks.ps1 -Lane lanes
+      - name: Static checks
+        # Detekt baseline 由本地 :module:detektBaseline 更新并提交；CI 不自动改仓库。
+        # 这样新增问题会失败，历史问题仍由对应模块 baseline 明确记录。
+        run: ./ci/run_ci_checks.ps1 -Lane static
+      - name: Unit tests (app/memory/ai)
+        run: ./ci/run_ci_checks.ps1 -Lane unit
+      - name: Upload unit test reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: unit-test-reports
+          path: |
+            app/build/reports/tests
+            memory/build/reports/tests
+            ai/build/reports/tests
+          if-no-files-found: ignore
+      - name: Migration coverage check
+        run: python3 ci/script/check_migration_coverage.py
+      - name: Build debug APK
+        run: ./ci/run_ci_checks.ps1 -Lane debug
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+      - name: Upload reports
+        uses: actions/upload-artifact@v7
+        with:
+          name: reports
+          path: |
+            app/build/reports
+            build/reports/kover
+          if-no-files-found: ignore
 
   android-test:
     if: github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up JDK 21
-      uses: actions/setup-java@v4
-      with:
-        java-version: '21'
-        distribution: 'temurin'
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
-    - name: Grant execute permission for gradlew
-      run: chmod +x ./gradlew
-    - name: Instrumented tests
-      uses: reactivecircus/android-emulator-runner@v2
-      with:
-        api-level: 30
-        arch: x86_64
-        disable-animations: true
-        script: ./gradlew :app:connectedDebugAndroidTest
+      - uses: actions/checkout@v7
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4
+      - name: Grant execute permission for gradlew
+        run: |
+          $path = (Resolve-Path './gradlew').Path
+          [System.IO.File]::SetUnixFileMode(
+            $path,
+            [System.IO.UnixFileMode]::UserRead -bor
+              [System.IO.UnixFileMode]::UserWrite -bor
+              [System.IO.UnixFileMode]::UserExecute -bor
+              [System.IO.UnixFileMode]::GroupRead -bor
+              [System.IO.UnixFileMode]::GroupExecute -bor
+              [System.IO.UnixFileMode]::OtherRead -bor
+              [System.IO.UnixFileMode]::OtherExecute
+          )
+      - name: Instrumented tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          arch: x86_64
+          disable-animations: true
+          script: ./gradlew :app:connectedDebugAndroidTest
 
   release:
     if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Set up JDK 21
-      uses: actions/setup-java@v4
-      with:
-        java-version: '21'
-        distribution: 'temurin'
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
-    - name: Grant execute permission for gradlew
-      run: chmod +x ./gradlew
-    - name: Gradle cache
-      uses: gradle/actions/setup-gradle@v4
-    - name: Check keystore secrets
-      run: |
-        if [[ -z "${{ secrets.KEYSTORE_BASE64 }}" || -z "${{ secrets.KEYSTORE_PASSWORD }}" || -z "${{ secrets.KEY_ALIAS }}" || -z "${{ secrets.KEY_PASSWORD }}" ]]; then
-          echo "missing release keystore secrets" >&2
-          exit 1
-        fi
-    - name: Restore signing config
-      run: |
-        echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
-        cat > keystore.properties <<EOF
-        # A-17: storeFile 必须用绝对路径 — build.gradle.kts 的 file() 相对 app/ 模块解析,
-        # 相对路径 keystore.jks 会解析到 app/keystore.jks(不存在),CI release 必失败。
-        storeFile=${{ github.workspace }}/keystore.jks
-        storePassword=${{ secrets.KEYSTORE_PASSWORD }}
-        keyAlias=${{ secrets.KEY_ALIAS }}
-        keyPassword=${{ secrets.KEY_PASSWORD }}
-        EOF
-    - name: Build release APKs
-      # A-17: 注入版本号 — build.gradle.kts 硬约束 Release 任务必须显式
-      # -PversionName/-PversionCode,否则 GradleException 先于签名检查抛出。
-      # versionName 取自 tag(v1.0.76 → 1.0.76);versionCode 取 app/build.gradle.kts
-      # 的当前默认值,与本地正式包和发布流程保持一致。
-      run: |
-        VERSION_NAME="${GITHUB_REF_NAME#v}"
-        VERSION_CODE=$(awk '/^[[:space:]]*\?: [0-9]+$/ { print $2; exit }' app/build.gradle.kts)
-        if [[ -z "${VERSION_CODE}" ]]; then
-          echo "unable to read default versionCode from app/build.gradle.kts" >&2
-          exit 1
-        fi
-        ./gradlew assembleRelease -PversionName="${VERSION_NAME}" -PversionCode="${VERSION_CODE}"
-    - name: Generate release manifest
-      # F-05: 发布单一来源 — versionName/versionCode/DB version/APK sha256/
-      # 发布说明引用/生成时间 汇总为 release/manifest.json,随 Release 发布。
-      run: |
-        VERSION_NAME="${GITHUB_REF_NAME#v}"
-        VERSION_CODE=$(awk '/^[[:space:]]*\?: [0-9]+$/ { print $2; exit }' app/build.gradle.kts)
-        APK_FILE=$(ls app/build/outputs/apk/release/*.apk | head -n 1)
-        python3 ci/script/generate_release_manifest.py \
-          --version-name "${VERSION_NAME}" \
-          --version-code "${VERSION_CODE}" \
-          --apk "${APK_FILE}" \
-          --db-file app/src/main/java/io/zer0/muse/data/session/MuseDb.kt \
-          --release-notes "releases/${GITHUB_REF_NAME}/release_body.md" \
-          --out release/manifest.json
-    - uses: actions/upload-artifact@v4
-      with:
-        name: release-apks
-        path: |
-          app/build/outputs/apk/release/*.apk
-          release/manifest.json
-        if-no-files-found: error
-    # 审查修复 (2.0 A-16): 把 split APK 发布为 GitHub Release 资产 —
-    # 此前 release job 只产出 Actions 制品,从不建 Release,而应用内
-    # UpdateChecker 从 /releases/latest 拉取 .apk,导致应用内更新恒失败。
-    # 触发条件已限定 refs/tags/,Release 资产即应用内更新的数据源。
-    # F-06: 改用可重入发布脚本(断点续发 + 指数退避 + 远端核对),替换一次性 action。
-    - name: Publish GitHub Release
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        python3 ci/script/publish_release.py \
-          --tag "${{ github.ref_name }}" \
-          --body-file "releases/${{ github.ref_name }}/release_body.md" \
-          --artifacts "app/build/outputs/apk/release/*.apk" \
-          --artifacts "release/manifest.json"
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4
+      - name: Grant execute permission for gradlew
+        run: |
+          $path = (Resolve-Path './gradlew').Path
+          [System.IO.File]::SetUnixFileMode(
+            $path,
+            [System.IO.UnixFileMode]::UserRead -bor
+              [System.IO.UnixFileMode]::UserWrite -bor
+              [System.IO.UnixFileMode]::UserExecute -bor
+              [System.IO.UnixFileMode]::GroupRead -bor
+              [System.IO.UnixFileMode]::GroupExecute -bor
+              [System.IO.UnixFileMode]::OtherRead -bor
+              [System.IO.UnixFileMode]::OtherExecute
+          )
+      - name: Gradle cache
+        uses: gradle/actions/setup-gradle@v6
+      - name: Resolve and validate release version
+        id: version
+        run: python3 ci/script/resolve_release_version.py --tag "$env:GITHUB_REF_NAME" --gradle-file app/build.gradle.kts --github-output "$env:GITHUB_OUTPUT"
+      - name: Restore and validate signing config
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: python3 ci/script/validate_release_signing.py --keystore-out ./keystore.jks --properties-out ./keystore.properties
+      - name: Build release APKs
+        run: ./gradlew assembleRelease -PversionName="${{ steps.version.outputs.version_name }}" -PversionCode="${{ steps.version.outputs.version_code }}"
+      - name: Generate release manifest
+        run: |
+          $apk = Get-ChildItem 'app/build/outputs/apk/release/*.apk' | Select-Object -First 1
+          if ($null -eq $apk) { throw 'no release APK was generated' }
+          New-Item -ItemType Directory -Path release -Force | Out-Null
+          python3 ci/script/generate_release_manifest.py `
+            --version-name "${{ steps.version.outputs.version_name }}" `
+            --version-code "${{ steps.version.outputs.version_code }}" `
+            --apk "$($apk.FullName)" `
+            --db-file app/src/main/java/io/zer0/muse/data/session/MuseDb.kt `
+            --release-notes "releases/$env:GITHUB_REF_NAME/release_body.md" `
+            --out release/manifest.json
+      - name: Upload release build artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-apks
+          path: |
+            app/build/outputs/apk/release/*.apk
+            release/manifest.json
+          if-no-files-found: error
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 ci/script/publish_release.py `
+            --tag "$env:GITHUB_REF_NAME" `
+            --body-file "releases/$env:GITHUB_REF_NAME/release_body.md" `
+            --artifacts 'app/build/outputs/apk/release/*.apk' `
+            --artifacts 'release/manifest.json'

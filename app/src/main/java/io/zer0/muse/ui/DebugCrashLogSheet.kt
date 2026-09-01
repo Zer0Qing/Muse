@@ -2,13 +2,10 @@
 
 package io.zer0.muse.ui
 
+import io.zer0.muse.ui.theme.MuseMotion
 import android.content.Context
 import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -263,8 +260,8 @@ private fun CrashLogItem(
             // 展开后:内联预览(等宽字体 + 垂直滚动)
             AnimatedVisibility(
                 visible = expanded,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically(),
+                enter = MuseMotion.expandFadeEnter(),
+                exit = MuseMotion.expandFadeExit(),
             ) {
                 Column {
                     Spacer(Modifier.height(8.dp))

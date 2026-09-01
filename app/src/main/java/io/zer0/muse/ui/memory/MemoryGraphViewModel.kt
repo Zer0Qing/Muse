@@ -4,7 +4,6 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.zer0.memory.ai.MemoryLinkDao
-import io.zer0.memory.ai.MemoryLinkEntity
 import io.zer0.memory.fact.FactStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow

@@ -7,7 +7,6 @@ import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
-import android.widget.Toast
 import androidx.biometric.BiometricPrompt
 import androidx.fragment.app.FragmentActivity
 import androidx.activity.ComponentActivity
@@ -16,11 +15,6 @@ import androidx.activity.compose.LocalActivityResultRegistryOwner
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -83,7 +77,6 @@ import io.zer0.muse.crash.MuseCrashHandler
 import io.zer0.muse.data.ChatPreferences
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.AppearanceSettingsStore
-import io.zer0.muse.R
 import io.zer0.muse.intent.ShareIntentHandler
 import io.zer0.muse.ui.ChatViewModel
 import io.zer0.muse.ui.MuseRoutes
@@ -94,12 +87,14 @@ import io.zer0.muse.ui.common.feedback.MuseToastHost
 import io.zer0.muse.ui.common.media.rememberDesktopShortcutsEnabled
 import io.zer0.muse.ui.navigation.assistantNavGraph
 import io.zer0.muse.ui.navigation.chatNavGraph
+import io.zer0.muse.ui.navigation.MuseTransitions
 import io.zer0.muse.ui.navigation.settingsNavGraph
 import io.zer0.muse.ui.navigation.toolsNavGraph
 import io.zer0.muse.ui.quicknotes.QuickCaptureEdgeOverlay
 import io.zer0.muse.ui.quicknotes.QuickCaptureOverlayService
 import io.zer0.muse.ui.quicknotes.QuickNotesViewModel
 import io.zer0.muse.ui.theme.MuseTheme
+import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.loadCustomFontFamily
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
@@ -434,8 +429,9 @@ private fun MuseNavGraph(
     // v0.33 修复(M6): 同时等待 appPinFlow 首次 emit(置 appPinLoading=false),
     // 避免 PIN 空串初值期间主界面短暂绕过锁屏;loading 期间保持 splash 不退出
     var splashDelayDone by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        delay(1200)
+    val splashDelayMillis = MuseMotion.duration(1200)
+    LaunchedEffect(splashDelayMillis) {
+        delay(splashDelayMillis.toLong())
         splashDelayDone = true
     }
 
@@ -700,33 +696,12 @@ private fun MuseNavGraph(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(MaterialTheme.colorScheme.background),
-                    // v1.40: 统一 iOS push 动画 — 新页右滑入 + 旧页左滑出,返回时反向
-                    // 二级路由会覆盖 enterTransition;这里作为默认保证所有路由都有完整 4 段动画
-                    // Phase 7: 使用 MuseAnimation 令牌统一动画规范
-                    enterTransition = {
-                        slideInHorizontally(
-                            initialOffsetX = { it },
-                            animationSpec = tween(io.zer0.muse.ui.theme.MuseAnimation.SLOW_MS, easing = io.zer0.muse.ui.theme.MuseAnimation.EaseOutCubic),
-                        ) + fadeIn(tween(io.zer0.muse.ui.theme.MuseAnimation.SLOW_MS, easing = io.zer0.muse.ui.theme.MuseAnimation.EaseOutCubic))
-                    },
-                    exitTransition = {
-                        slideOutHorizontally(
-                            targetOffsetX = { -it / 3 },
-                            animationSpec = tween(io.zer0.muse.ui.theme.MuseAnimation.SLOW_MS, easing = io.zer0.muse.ui.theme.MuseAnimation.EaseOutCubic),
-                        ) + fadeOut(tween(io.zer0.muse.ui.theme.MuseAnimation.SLOW_MS, easing = io.zer0.muse.ui.theme.MuseAnimation.EaseOutCubic))
-                    },
-                    popEnterTransition = {
-                        slideInHorizontally(
-                            initialOffsetX = { -it / 3 },
-                            animationSpec = tween(io.zer0.muse.ui.theme.MuseAnimation.SLOW_MS, easing = io.zer0.muse.ui.theme.MuseAnimation.EaseOutCubic),
-                        ) + fadeIn(tween(io.zer0.muse.ui.theme.MuseAnimation.SLOW_MS, easing = io.zer0.muse.ui.theme.MuseAnimation.EaseOutCubic))
-                    },
-                    popExitTransition = {
-                        slideOutHorizontally(
-                            targetOffsetX = { it },
-                            animationSpec = tween(io.zer0.muse.ui.theme.MuseAnimation.SLOW_MS, easing = io.zer0.muse.ui.theme.MuseAnimation.EaseOutCubic),
-                        ) + fadeOut(tween(io.zer0.muse.ui.theme.MuseAnimation.SLOW_MS, easing = io.zer0.muse.ui.theme.MuseAnimation.EaseOutCubic))
-                    },
+                    // 默认过渡与各子 NavGraph 复用同一套 helper，避免根图和二级图的
+                    // 时长/位移/淡入淡出语义漂移。
+                    enterTransition = { MuseTransitions.horizontalPushEnter() },
+                    exitTransition = { MuseTransitions.horizontalPushExit() },
+                    popEnterTransition = { MuseTransitions.horizontalPopEnter() },
+                    popExitTransition = { MuseTransitions.horizontalPushPopExit() },
                 ) {
                     // P0-3: NavGraph 子图抽取 — 66 个 composable 拆分到 4 个域文件
                     chatNavGraph(

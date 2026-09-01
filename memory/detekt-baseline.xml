@@ -174,11 +174,6 @@
     <ID>TooManyFunctions:PinnedMemoryStore.kt$PinnedMemoryStore</ID>
     <ID>TooManyFunctions:RollingSummaryFormat.kt$RollingSummaryFormat</ID>
     <ID>TooManyFunctions:SessionSummaryManager.kt$SessionSummaryManager</ID>
-    <ID>UnusedImports:DeepMemoryProcessor.kt$import java.time.Instant</ID>
-    <ID>UnusedImports:FactStoreTest.kt$import org.junit.Assert.assertNotEquals</ID>
-    <ID>UnusedImports:LlmDedupJudgeIntegrationTest.kt$import org.junit.Assert.assertFalse</ID>
-    <ID>UnusedImports:SessionSummaryManager.kt$import kotlinx.serialization.builtins.ListSerializer</ID>
-    <ID>UnusedImports:TimeContext.kt$import java.time.LocalDateTime</ID>
     <ID>UnusedParameter:CompiledMemoryState.kt$CompiledMemoryState$source: String = ""</ID>
     <ID>UnusedParameter:DeepMemoryProcessor.kt$DeepMemoryProcessor$locale: String</ID>
     <ID>UnusedPrivateProperty:TimeContext.kt$TimeContext$private val isoFormatter: DateTimeFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME</ID>

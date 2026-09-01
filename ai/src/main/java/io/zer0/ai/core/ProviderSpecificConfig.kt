@@ -85,7 +85,20 @@ sealed class ProviderSpecificConfig {
          * 当前仅作为标记字段,具体行为差异由 ProviderCompat / ProviderPayloadNormalizer 消费。
          */
         val codingPlan: Boolean = false,
-    ) : ProviderSpecificConfig()
+        /** 助手级附加 HTTP headers,由 app 层在生成任务中合并。 */
+        val customHeaders: Map<String, String> = emptyMap(),
+        /** 助手级附加请求体字段,由 app 层在生成任务中合并。 */
+        val customBody: Map<String, JsonElement> = emptyMap(),
+    ) : ProviderSpecificConfig() {
+        /** 不把自定义 headers/body 的值写入日志,只保留键名便于诊断。 */
+        override fun toString(): String =
+            "OpenAI(chatCompletionsPath=$chatCompletionsPath, useResponseApi=$useResponseApi, " +
+                "responsesPath=$responsesPath, includeHistoryReasoning=$includeHistoryReasoning, " +
+                "embeddingsPath=$embeddingsPath, imagesPath=$imagesPath, imageModel=$imageModel, " +
+                "videoGenerationsPath=$videoGenerationsPath, stripModelPrefix=$stripModelPrefix, " +
+                "codingPlan=$codingPlan, customHeaderKeys=${customHeaders.keys}, " +
+                "customBodyKeys=${customBody.keys})"
+    }
 
     /**
      * Anthropic Claude Provider 特定配置。
@@ -195,7 +208,13 @@ sealed class ProviderSpecificConfig {
         val requestTemplate: String = "",
         val responsePath: String = "",
         val streamResponsePath: String = "",
-    ) : ProviderSpecificConfig()
+    ) : ProviderSpecificConfig() {
+        /** 不把自定义 headers/body 的值写入日志,只保留键名便于诊断。 */
+        override fun toString(): String =
+            "Custom(chatCompletionsPath=$chatCompletionsPath, requestTemplateLength=${requestTemplate.length}, " +
+                "responsePath=$responsePath, streamResponsePath=$streamResponsePath, " +
+                "customHeaderKeys=${customHeaders.keys}, customBodyKeys=${customBody.keys})"
+    }
 
     companion object {
         /** 按 [ProviderType] 取默认特定配置。 */

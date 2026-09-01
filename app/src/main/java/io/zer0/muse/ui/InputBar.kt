@@ -6,13 +6,13 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.tween
 import io.zer0.muse.ui.theme.MuseAnimation
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitLongPressOrCancellation
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -30,7 +30,6 @@ import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Psychology
-import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.outlined.GroupWork
 import androidx.compose.material.icons.outlined.VideoLibrary
 import androidx.compose.material3.*
@@ -39,7 +38,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -50,7 +48,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.ui.input.pointer.pointerInput
@@ -80,17 +77,13 @@ import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShadow
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.huge
 import io.zer0.muse.ui.theme.pill
-import io.zer0.muse.ui.SmartImage
-import io.zer0.common.Logger
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /** L-IB1: 输入框字符上限,防止超长文本拖慢渲染或超出模型上下文窗口。 */
-private const val INPUT_TEXT_MAX_LENGTH = 5000
+internal const val INPUT_TEXT_MAX_LENGTH = 5000
 
 /**
  * v1.0.47 P5-2: 从新旧文本中提取被插入(粘贴)的片段。
@@ -139,6 +132,7 @@ internal fun InputBar(
     callbacks: InputBarCallbacks = InputBarCallbacks(),
 ) {
     val hapticFeedback = LocalHapticFeedback.current
+    val reducedMotion = MuseMotion.isReducedMotion()
     // B7-07: 从聚合状态/回调中解包,保持函数体原有逻辑不变
     val text = state.text
     val assistantName = state.assistantName.ifBlank { "Muse" }
@@ -161,6 +155,7 @@ internal fun InputBar(
     val replyQuoteOverride = state.replyQuoteOverride
     val isRecording = state.isRecording
     val asrStatus = state.asrStatus
+    val asrErrorMessage = state.asrErrorMessage
     val recordingAmplitudes = state.recordingAmplitudes
     val showMic = state.showMic
     val hasDraft = state.hasDraft
@@ -196,7 +191,6 @@ internal fun InputBar(
     val onStartRecording = callbacks.onStartRecording
     val onStopRecording = callbacks.onStopRecording
     val onCancelRecording = callbacks.onCancelRecording
-    val onOpenVoiceConversation = callbacks.onOpenVoiceConversation
     val onAddPastedTextAsDocument = callbacks.onAddPastedTextAsDocument
     // v1.26: 上滑取消后的"已取消"瞬态提示(1.5s 后自动消失)
     var showCancelledHint by remember { mutableStateOf(false) }
@@ -268,20 +262,25 @@ internal fun InputBar(
                                 .fillMaxSize()
                                 .clip(MuseShapes.medium),
                         )
-                        // v1.135: 移除按钮改为 iOS 风格小圆点,避免 48dp 大圆覆盖整张照片。
-                        // 视觉尺寸 20dp,实际触摸目标 32dp(可点击区域略大于视觉,保证易点)。
+                        // v1.135: 移除按钮改为 iOS 风格小圆点,视觉 20dp。
+                        // 触摸目标扩大到 48dp(透明可点区域),满足无障碍 48dp 红线,
+                        // 与同文件视频移除按钮一致。
                         val removeInteractionSource = remember { MutableInteractionSource() }
                         val isRemovePressed by removeInteractionSource.collectIsPressedAsState()
                         val removeBgColor by animateColorAsState(
                             targetValue = if (isRemovePressed) MaterialTheme.colorScheme.error.copy(alpha = 0.9f)
                             else MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                            animationSpec = MuseMotion.tween(
+                                MuseAnimation.TACTILE_MS,
+                                easing = MuseAnimation.EaseOutCubic,
+                            ),
                             label = "removeImgBg",
                         )
                         Box(
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
                                 .offset(x = MusePaddings.labelVerticalGap, y = (-MusePaddings.labelVerticalGap))
-                                .size(MuseIconSizes.controlTouch)
+                                .size(MuseIconSizes.touchTarget)
                                 .clickable(
                                     interactionSource = removeInteractionSource,
                                     indication = null,
@@ -429,6 +428,7 @@ internal fun InputBar(
                     val removeVideoBgColor by animateColorAsState(
                         targetValue = if (isRemoveVideoPressed) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
                         else MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+                        animationSpec = MuseMotion.tween(MuseAnimation.TACTILE_MS, easing = MuseAnimation.EaseOutCubic),
                         label = "removeVideoBg",
                     )
                     Box(
@@ -748,24 +748,6 @@ internal fun InputBar(
                     }
                 }
 
-                 // 语音对话入口放回输入岛内部，不再单独占用输入栏上方的一行。
-                 if (showMic) {
-                     IconButton(
-                         onClick = {
-                             MuseHaptics.light(hapticFeedback)
-                             onOpenVoiceConversation()
-                         },
-                         modifier = Modifier.size(MuseIconSizes.touchTarget),
-                     ) {
-                         Icon(
-                             imageVector = Icons.Default.RecordVoiceOver,
-                             contentDescription = stringResource(R.string.voice_conversation_open_cd),
-                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                             modifier = Modifier.size(MuseIconSizes.iconSmall),
-                         )
-                     }
-                 }
-
                  // v1.0.47 P5-4: 抽取 MessageInputField 子组件,隔离输入框高频重组,
                 // 避免 onValueChange 触发整个 InputBar(含工具 Sheet/图片预览等)重组。
                 MessageInputField(
@@ -815,6 +797,7 @@ internal fun InputBar(
                     val isStopPressed by stopInteractionSource.collectIsPressedAsState()
                     val stopScale by animateFloatAsState(
                         targetValue = if (isStopPressed) 0.9f else 1f,
+                        animationSpec = MuseMotion.tween(MuseAnimation.FAST_MS),
                         label = "stopScale",
                     )
                     Box(
@@ -866,6 +849,7 @@ internal fun InputBar(
                         val enqueuePressed by enqueueInteractionSource.collectIsPressedAsState()
                         val enqueueScale by animateFloatAsState(
                             targetValue = if (enqueuePressed) 0.9f else 1f,
+                            animationSpec = MuseMotion.tween(MuseAnimation.FAST_MS),
                             label = "enqueueScale",
                         )
                         Box(
@@ -903,6 +887,7 @@ internal fun InputBar(
                         val interjectPressed by interjectInteractionSource.collectIsPressedAsState()
                         val interjectScale by animateFloatAsState(
                             targetValue = if (interjectPressed) 0.9f else 1f,
+                            animationSpec = MuseMotion.tween(MuseAnimation.FAST_MS),
                             label = "interjectScale",
                         )
                         Box(
@@ -941,11 +926,11 @@ internal fun InputBar(
                     //   由 ChatScreen 在 onStartRecording/onStopRecording/onCancelRecording 回调里
                     //   决定使用哪个识别器;InputBar 只负责手势交互)
                     val pulseScale by animateFloatAsState(
-                        targetValue = if (isRecording) 1.25f else 1f,
-                        animationSpec = if (isRecording) infiniteRepeatable(
-                            animation = tween(MuseAnimation.LOOP_NORMAL_MS, easing = FastOutSlowInEasing),
+                        targetValue = if (isRecording && !reducedMotion) 1.25f else 1f,
+                        animationSpec = if (isRecording && !reducedMotion) infiniteRepeatable(
+                            animation = MuseMotion.tween(MuseAnimation.LOOP_NORMAL_MS, easing = FastOutSlowInEasing),
                             repeatMode = RepeatMode.Reverse,
-                        ) else tween(MuseAnimation.TACTILE_MS),
+                        ) else MuseMotion.tween(MuseAnimation.TACTILE_MS),
                         label = "micPulse",
                     )
                     // v1.79 (H-I2): 用 rememberUpdatedState 包装回调,
@@ -962,6 +947,9 @@ internal fun InputBar(
                                 val slideThresholdPx = MuseIconSizes.touchTarget.toPx()
                                 awaitPointerEventScope {
                                     val down = awaitFirstDown()
+                                    // 必须真正长按后才开始录音;短按不再误触发系统 ASR 或上传空音频。
+                                    val longPress = awaitLongPressOrCancellation(down.id)
+                                    if (longPress == null) return@awaitPointerEventScope
                                     // 长按开始录音;若模型未就绪/权限未授予,
                                     // onStartRecording 返回 false,直接退出不进入手势循环
                                     val started = currentOnStart()
@@ -1040,6 +1028,7 @@ internal fun InputBar(
                     val sendPressed by sendInteractionSource.collectIsPressedAsState()
                     val sendScale by animateFloatAsState(
                         targetValue = if (sendPressed) 0.9f else 1f,
+                        animationSpec = MuseMotion.tween(MuseAnimation.FAST_MS),
                         label = "sendScale",
                     )
                     val canSend = text.isNotBlank() || pendingImages.isNotEmpty() || pendingVideo != null
@@ -1083,7 +1072,9 @@ internal fun InputBar(
         // 录音/识别/取消状态提示条
         // v1.91: Stopping(收尾中)显示 loading;isRecording 含 Connecting/Listening/Stopping/Reconnecting,
         // 但 Stopping/Reconnecting 优先匹配到 LoadingDots,Listening/Connecting 才走波形分支
-        if (isRecording || asrStatus == ASRStatus.Stopping || showCancelledHint) {
+        if (isRecording || asrStatus == ASRStatus.Stopping ||
+            (asrStatus == ASRStatus.Error && !asrErrorMessage.isNullOrBlank()) || showCancelledHint
+        ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1098,6 +1089,11 @@ internal fun InputBar(
                     // v1.0.4 (P2): Connecting 阶段尚未开始录音,显示"正在连接识别服务…"而不是空白波形
                     // (isRecording 包含 Connecting,必须先短路匹配 Connecting 才能落到正确的分支)
                     asrStatus == ASRStatus.Connecting -> LoadingDots(text = stringResource(R.string.voice_connecting))
+                    asrStatus == ASRStatus.Error -> Text(
+                        text = asrErrorMessage ?: stringResource(R.string.chat_recording_start_failed),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
                     isRecording -> {
                         RecordingWaveform(amplitudes = recordingAmplitudes)
                         Spacer(modifier = Modifier.width(MusePaddings.contentGap))

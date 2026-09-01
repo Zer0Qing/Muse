@@ -5,7 +5,6 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,6 +25,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.tiny
 
 /**
@@ -36,12 +37,20 @@ import io.zer0.muse.ui.theme.tiny
  */
 @Composable
 fun MuseShimmerBrush(): Brush {
+    if (MuseMotion.isReducedMotion()) {
+        return Brush.linearGradient(
+            colors = listOf(
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+            ),
+        )
+    }
     val transition = rememberInfiniteTransition(label = "muse_shimmer")
     val translate by transition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1200, easing = LinearEasing),
+            animation = MuseMotion.tween(durationMillis = MuseAnimation.LOOP_EXTRA_SLOW_MS, easing = LinearEasing),
             repeatMode = RepeatMode.Restart,
         ),
         label = "muse_shimmer_translate",

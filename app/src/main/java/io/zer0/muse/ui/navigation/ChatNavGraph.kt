@@ -1,8 +1,6 @@
 package io.zer0.muse.ui.navigation
 
 import android.content.Context
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,16 +16,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
-import androidx.navigation.NavType
 import androidx.navigation.compose.composable
-import androidx.navigation.navArgument
 import io.zer0.muse.ui.ChatListScreen
 import io.zer0.muse.ui.ArchivedChatsScreen
 import io.zer0.muse.ui.ChatScreen
 import io.zer0.muse.ui.ChatViewModel
 import io.zer0.muse.ui.HomeScreen
 import io.zer0.muse.ui.HtmlPreviewScreen
-import io.zer0.muse.ui.MuseRoutes
 import io.zer0.muse.ui.RecentlyDeletedScreen
 import io.zer0.muse.ui.SearchScreen
 import io.zer0.muse.ui.settings.PromptTemplateManagerPage
@@ -53,10 +48,10 @@ fun NavGraphBuilder.chatNavGraph(
 ) {
     // v0.22: 首页 — 顶部 Tab 导航(垂直过渡,HOME 专属)
     composable<HomeRoute>(
-        enterTransition = { MuseTransitions.horizontalPushEnter() },
-        exitTransition = { MuseTransitions.horizontalPushExit() },
-        popEnterTransition = { MuseTransitions.horizontalPopEnter() },
-        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+        enterTransition = { MuseTransitions.verticalPushEnter() },
+        exitTransition = { MuseTransitions.verticalPushExit() },
+        popEnterTransition = { MuseTransitions.verticalPopEnter() },
+        popExitTransition = { MuseTransitions.verticalPushPopExit() },
     ) {
         HomeScreen(
             onOpenSettings = { navController.navigate(SettingsRoute) },
@@ -110,8 +105,8 @@ fun NavGraphBuilder.chatNavGraph(
     }
     // v1.0.72: 小手机 + AI 朋友圈沉浸页
     composable<MiniPhoneRoute>(
-        enterTransition = { fadeIn() },
-        popExitTransition = { fadeOut() },
+        enterTransition = { MuseTransitions.fadeEnter() },
+        popExitTransition = { MuseTransitions.fadeExit() },
     ) {
         val momentViewModel: io.zer0.muse.ui.moment.MomentViewModel = org.koin.androidx.compose.koinViewModel()
         val momentState by momentViewModel.state.collectAsStateWithLifecycle()

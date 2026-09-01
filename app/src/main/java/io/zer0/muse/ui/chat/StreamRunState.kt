@@ -53,6 +53,8 @@ internal class StreamRunState(
 var sessionModelOverride: String? = null
     /** 会话级 Provider 覆盖，与 sessionModelOverride 成对解析。 */
     var sessionProviderOverride: String? = null
+    /** 当前请求的自动任务路由;只对本轮生效,不污染会话级手动选择。 */
+    var taskRouteSelection: io.zer0.muse.data.SettingsRepository.TaskRouteSelection? = null
     /** 生成启动时捕获的全局回退配置，防止切页后从新会话 UI 快照取错模型。 */
     var fallbackModelId: String? = null
     var fallbackProviderId: String? = null

@@ -1,50 +1,23 @@
 package io.zer0.muse.tools
 
-import android.content.ContentValues
 import android.content.Context
-import android.net.Uri
-import android.os.Build
-import android.os.Environment
-import android.provider.MediaStore
 import io.zer0.ai.ChatService
 import io.zer0.ai.core.MessageRole
-import io.zer0.ai.core.ToolDefinition
 import io.zer0.ai.core.UIMessage
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.groupchat.GroupChatRepository
 import io.zer0.muse.data.skill.SkillEntity
 import io.zer0.muse.data.plugin.PluginManager
-import io.zer0.muse.tools.script.SkillEngineResult
-import io.zer0.muse.tools.script.WebViewSkillEngine
 import io.zer0.muse.R
-import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
-import io.zer0.muse.web.SearchRateLimitException
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
-import kotlinx.serialization.SerializationException
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonNull
-import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
-import okhttp3.MediaType.Companion.toMediaType
-import org.jsoup.Jsoup
-import java.io.File
-import java.util.concurrent.TimeUnit
 
 /**
  * Phase 8.8: Skill 执行器(Kotlin 直实现,不用 QuickJS)。

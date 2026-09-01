@@ -7,7 +7,6 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.zer0.ai.ChatService
-import io.zer0.ai.core.MessageRole
 import io.zer0.ai.image.ImageService
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.artifact.ArtifactRepository

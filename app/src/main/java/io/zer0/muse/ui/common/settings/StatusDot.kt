@@ -1,7 +1,9 @@
 package io.zer0.muse.ui.common.settings
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
@@ -16,6 +18,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseMotion
 
 /**
  * 状态指示小圆点 — 用于 MCP server / Provider 连接状态。
@@ -32,14 +35,24 @@ fun StatusDot(
     pulse: Boolean = false,
     contentDescription: String? = null,
 ) {
-    val alpha by animateFloatAsState(
-        targetValue = if (pulse) 0.3f else 1f,
-        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
-            animation = tween(MuseAnimation.LOOP_SLOW_MS),
-            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse,
-        ),
-        label = "status_dot_pulse",
-    )
+    val reducedMotion = MuseMotion.isReducedMotion()
+    val alpha = if (!pulse) {
+        1f
+    } else if (reducedMotion) {
+        0.65f
+    } else {
+        val transition = rememberInfiniteTransition(label = "status_dot_pulse")
+        val animatedAlpha by transition.animateFloat(
+            initialValue = 0.35f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = androidx.compose.animation.core.tween(MuseAnimation.LOOP_SLOW_MS),
+                repeatMode = RepeatMode.Reverse,
+            ),
+            label = "status_dot_alpha",
+        )
+        animatedAlpha
+    }
     Box(
         modifier = Modifier
             .size(size)

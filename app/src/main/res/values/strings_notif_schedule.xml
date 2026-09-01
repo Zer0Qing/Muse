@@ -81,8 +81,8 @@
     <string name="notif_listener_feature_title">功能说明</string>
     <string name="notif_listener_feature_desc">授权后,Muse 可感知其他 App 的通知作为事件源,供 AI 在聊天中查询。例如你可以问:\"今天微信有什么通知?\"\"未读消息里有没有重要的\"</string>
     <string name="notif_listener_privacy_title">隐私边界</string>
-    <string name="notif_listener_privacy_desc">• 通知内容仅存储在本地(最多 50 条,超出自动丢弃最旧)\n• 系统 UI、Muse 自身通知已过滤,不会被采集\n• 不上报任何通知数据到服务器\n• 可随时在此页\"清空记录\"或到系统设置撤销授权</string>
-    <string name="notif_listener_recent_header">最近通知(%1$d/50)</string>
+    <string name="notif_listener_privacy_desc">• 通知内容仅存储在本地(最多 200 条,超出自动丢弃最旧)\n• 系统 UI、Muse 自身通知已过滤,不会被采集\n• 不上报任何通知数据到服务器\n• 可随时在此页\"清空记录\"或到系统设置撤销授权</string>
+    <string name="notif_listener_recent_header">最近通知(%1$d/200)</string>
     <string name="notif_listener_empty_connected">暂无通知记录\n授权后新通知会自动出现在这里</string>
     <string name="notif_listener_empty_disconnected">尚未授权\n请先点击上方\"授权设置\"</string>
     <string name="notif_listener_authorized">已授权</string>
@@ -90,6 +90,25 @@
     <string name="notif_listener_recent_count_connected">最近通知: %1$d 条</string>
     <string name="notif_listener_recent_count_disconnected">最近通知: %1$d 条 · 请先到系统设置授权</string>
     <string name="notif_listener_refresh_cd">刷新状态</string>
+    <string name="notif_listener_search_hint">搜索通知</string>
+    <string name="notif_listener_all_apps">全部应用</string>
+    <string name="notif_listener_show_all">显示全部</string>
+    <string name="notif_listener_unread_only">仅看未读</string>
+    <string name="notif_listener_mark_all_read">全部已读</string>
+    <string name="notif_listener_export">导出</string>
+    <string name="notif_listener_export_success">通知记录已导出</string>
+    <string name="notif_listener_export_failed">通知记录导出失败: %1$s</string>
+    <string name="notif_listener_export_write_failed">无法写入导出文件</string>
+    <string name="notif_listener_filter_empty">没有符合当前筛选条件的通知</string>
+    <string name="notif_listener_no_text">该通知没有可显示的正文</string>
+    <string name="notif_listener_unread_label">未读</string>
+    <string name="notif_listener_active_only">仅看通知栏中</string>
+    <string name="notif_listener_show_history">显示历史记录</string>
+    <string name="notif_listener_counts">共 %1$d 条 · 活跃 %2$d 条 · 未读 %3$d 条</string>
+    <string name="notif_listener_active_label">通知栏中</string>
+    <string name="notif_listener_removed_label">已移除</string>
+    <string name="notif_listener_channel_label">渠道: %1$s</string>
+    <string name="notif_listener_category_label">类别: %1$s</string>
     <!-- v1.x: 问候语个性化提醒(记忆里有近期事项时,每天最多一次) -->
     <string-array name="greeting_notify_titles">
         <item>注意哦</item>

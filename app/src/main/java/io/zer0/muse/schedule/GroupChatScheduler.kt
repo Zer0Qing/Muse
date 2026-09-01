@@ -36,7 +36,6 @@ import io.zer0.muse.tools.SkillExecutor
 import io.zer0.muse.tools.ToolRegistry
 import io.zer0.muse.tools.channel.ChannelToolFactory
 import io.zer0.muse.tools.channel.GroupChatToolPolicy
-import io.zer0.muse.tools.channel.toToolDefinition
 import io.zer0.muse.transformer.SystemPromptAssembler
 import io.zer0.muse.ui.groupchat.AgentActivityStatus
 import io.zer0.muse.ui.groupchat.GroupChatActivityHub
@@ -2902,7 +2901,9 @@ class GroupChatScheduler(
 
         val finalUserContent: String
         val finalImages: List<String>
-        if (model != null && model.supportsVisionInput()) {
+        // M2.1: 视觉判定统一走 VisionBridge(内部经 ModelCapabilityQuery 三态裁决),
+        // 与主聊天路径一致,避免群聊/单聊对同一模型得出不同能力结论。
+        if (model != null && visionBridge.supportsVision(model)) {
             // 模型支持视觉:直接传图片(保持现有逻辑)
             finalUserContent = userContent
             finalImages = latestUserImages

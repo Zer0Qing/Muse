@@ -40,11 +40,12 @@ import java.util.concurrent.TimeUnit
  *  - setTextOnNode 按路径遍历树定位节点
  *
  * 安全:
- *  - exported=false:仅本应用可绑定(同 APK 签名)
+ *  - 主 App 清单以 exported=true 注册该服务,让 Android 系统能够绑定;
+ *    BIND_ACCESSIBILITY_SERVICE 仍阻止普通应用直接绑定。
  *  - 系统要求 BIND_ACCESSIBILITY_SERVICE 权限才能绑定
  *  - 所有操作仅响应客户端主动调用,不后台监控(事件仅用于更新当前 Activity 名)
  */
-class MuseAccessibilityService : AccessibilityService() {
+open class MuseAccessibilityService : AccessibilityService() {
 
     companion object {
         private const val TAG = "MuseA11yService"

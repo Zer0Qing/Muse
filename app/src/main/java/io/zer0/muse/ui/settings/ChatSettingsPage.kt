@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -32,7 +31,6 @@ import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import io.zer0.muse.ui.common.form.MuseChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import io.zer0.muse.ui.common.form.MuseSlider
 import io.zer0.muse.ui.common.form.MuseTextField
@@ -68,7 +66,6 @@ import io.zer0.muse.data.sticker.StickerItem
 import io.zer0.muse.data.sticker.StickerLibraryRepository
 import io.zer0.muse.tools.SessionPermissionMode
 import io.zer0.muse.ui.common.media.FullScreenMediaViewer
-import io.zer0.muse.ui.ModelSwitchSheet
 import io.zer0.muse.ui.common.settings.ChevronRight
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
@@ -82,7 +79,6 @@ import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
-import io.zer0.muse.ui.theme.semiLarge
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch

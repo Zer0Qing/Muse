@@ -1,6 +1,5 @@
 package io.zer0.muse.ui.common
 
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -14,18 +13,19 @@ import io.zer0.muse.ui.theme.MuseMotion
 //   items(list) { item -> Box(museAnimateItem()) { ItemView(...) } }
 // 注:MuseMotion.isReducedMotion() 为 @Composable(读取系统设置),故本原语也须 @Composable。
 @Composable
-internal fun LazyItemScope.museAnimateItem(): Modifier {
+internal fun LazyItemScope.museAnimateItem(enabled: Boolean = true): Modifier {
     val reducedMotion = MuseMotion.isReducedMotion()
+    val animate = enabled && !reducedMotion
     return Modifier.animateItem(
-        fadeInSpec = if (reducedMotion) {
-            tween(0)
+        fadeInSpec = if (!animate) {
+            MuseMotion.tween(0)
         } else {
-            tween(MuseAnimation.SLOW_MS, easing = MuseAnimation.EaseOutCubic)
+            MuseMotion.tween(MuseAnimation.SLOW_MS, easing = MuseAnimation.EaseOutCubic)
         },
-        placementSpec = if (reducedMotion) {
-            tween(0)
+        placementSpec = if (!animate) {
+            MuseMotion.tween(0)
         } else {
-            tween(MuseAnimation.NORMAL_MS, easing = MuseAnimation.EaseOutCubic)
+            MuseMotion.tween(MuseAnimation.NORMAL_MS, easing = MuseAnimation.EaseOutCubic)
         },
     )
 }

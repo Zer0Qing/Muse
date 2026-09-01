@@ -598,6 +598,9 @@
     <string name="workspace_empty">Workspace is empty</string>
     <string name="workspace_new_file">New File</string>
     <string name="workspace_new_folder">New Folder</string>
+    <string name="workspace_import_file">Import from file manager</string>
+    <string name="workspace_import_success">Imported %1$d</string>
+    <string name="workspace_import_failed">File import failed: %1$s</string>
     <string name="workspace_file_name">File name</string>
     <string name="workspace_delete_confirm">Confirm deleting \"%1$s\"? This action cannot be undone</string>
     <string name="workspace_rename">Rename</string>

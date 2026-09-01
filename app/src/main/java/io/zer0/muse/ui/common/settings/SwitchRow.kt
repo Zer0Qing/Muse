@@ -22,6 +22,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.form.MuseSwitch
+import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseMotion
 
 /**
  * 设置项开关行(iOS 风格设置开关)。
@@ -43,6 +45,7 @@ fun SwitchRow(
     val rowBgColor by animateColorAsState(
         targetValue = if (isRowPressed) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
         else Color.Transparent,
+        animationSpec = MuseMotion.tween(MuseAnimation.FAST_NORMAL_MS, easing = MuseAnimation.EaseOutCubic),
         label = "switchRowBg",
     )
     Row(

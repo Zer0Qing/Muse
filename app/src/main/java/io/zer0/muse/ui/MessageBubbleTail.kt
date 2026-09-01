@@ -9,7 +9,6 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.Image
@@ -26,7 +25,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import compose.icons.TablerIcons
-import compose.icons.tablericons.Download
 import compose.icons.tablericons.PlayerPlay
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.VideoLibrary
@@ -68,6 +66,8 @@ import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.ui.theme.tiny
@@ -161,6 +161,7 @@ internal fun ActionMenuItem(
  */
 @Composable
 internal fun LoadingDots(text: String = stringResource(R.string.chat_loading_thinking)) {
+    val reducedMotion = MuseMotion.isReducedMotion()
     Column(
         modifier = Modifier.padding(MusePaddings.cardInner),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -169,27 +170,44 @@ internal fun LoadingDots(text: String = stringResource(R.string.chat_loading_thi
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // v1.79 (L-B15): 三个圆点共享一个 InfiniteTransition,减少动画开销
-            val infiniteTransition = rememberInfiniteTransition(label = "dots")
+            // v1.79 (L-B15): 三个圆点共享一个 InfiniteTransition,减少动画开销。
+            // reduced-motion 下不启动无限动画,避免 0ms 无限循环占用主线程。
+            val infiniteTransition = if (reducedMotion) null else rememberInfiniteTransition(label = "dots")
             repeat(3) { index ->
-                val scale by infiniteTransition.animateFloat(
-                    initialValue = 0.6f,
-                    targetValue = 1f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(600, delayMillis = index * 120, easing = FastOutSlowInEasing),
-                        repeatMode = RepeatMode.Reverse,
-                    ),
-                    label = "dot$index",
-                )
-                val alpha by infiniteTransition.animateFloat(
-                    initialValue = 0.4f,
-                    targetValue = 1f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(600, delayMillis = index * 120, easing = FastOutSlowInEasing),
-                        repeatMode = RepeatMode.Reverse,
-                    ),
-                    label = "dotAlpha$index",
-                )
+                val scale by if (infiniteTransition == null) {
+                    androidx.compose.runtime.remember { androidx.compose.runtime.mutableFloatStateOf(1f) }
+                } else {
+                    infiniteTransition.animateFloat(
+                        initialValue = 0.6f,
+                        targetValue = 1f,
+                        animationSpec = infiniteRepeatable(
+                            animation = MuseMotion.tween(
+                                MuseAnimation.LOOP_NORMAL_MS,
+                                delayMillis = index * MuseAnimation.STAGGER_STEP_MS,
+                                easing = FastOutSlowInEasing,
+                            ),
+                            repeatMode = RepeatMode.Reverse,
+                        ),
+                        label = "dot$index",
+                    )
+                }
+                val alpha by if (infiniteTransition == null) {
+                    androidx.compose.runtime.remember { androidx.compose.runtime.mutableFloatStateOf(1f) }
+                } else {
+                    infiniteTransition.animateFloat(
+                        initialValue = 0.4f,
+                        targetValue = 1f,
+                        animationSpec = infiniteRepeatable(
+                            animation = MuseMotion.tween(
+                                MuseAnimation.LOOP_NORMAL_MS,
+                                delayMillis = index * MuseAnimation.STAGGER_STEP_MS,
+                                easing = FastOutSlowInEasing,
+                            ),
+                            repeatMode = RepeatMode.Reverse,
+                        ),
+                        label = "dotAlpha$index",
+                    )
+                }
                 Box(
                     modifier = Modifier
                         .size(MusePaddings.contentGap)
@@ -220,25 +238,35 @@ internal fun LoadingDots(text: String = stringResource(R.string.chat_loading_thi
  */
 @Composable
 internal fun ShimmerPlaceholder(modifier: Modifier = Modifier) {
-    val transition = rememberInfiniteTransition(label = "shimmer")
-    val translateAnim by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1200, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "shimmerTranslate",
-    )
-    val brush = Brush.linearGradient(
-        colors = listOf(
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-        ),
-        start = Offset(translateAnim * -300f, 0f),
-        end = Offset(translateAnim * 300f, 0f),
-    )
+    val reducedMotion = MuseMotion.isReducedMotion()
+    val brush = if (reducedMotion) {
+        Brush.linearGradient(
+            colors = listOf(
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+            ),
+        )
+    } else {
+        val transition = rememberInfiniteTransition(label = "shimmer")
+        val translateAnim by transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = MuseMotion.tween(durationMillis = MuseAnimation.LOOP_EXTRA_SLOW_MS, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart,
+            ),
+            label = "shimmerTranslate",
+        )
+        Brush.linearGradient(
+            colors = listOf(
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+            ),
+            start = Offset(translateAnim * -300f, 0f),
+            end = Offset(translateAnim * 300f, 0f),
+        )
+    }
     Box(
         modifier = modifier
             .fillMaxWidth(0.6f)
@@ -415,16 +443,21 @@ internal fun StreamingCursor(
     color: Color,
     modifier: Modifier = Modifier,
 ) {
-    val transition = rememberInfiniteTransition(label = "streaming_cursor")
-    val alpha by transition.animateFloat(
-        initialValue = 1f,
-        targetValue = 0.2f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 530, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "cursor_alpha",
-    )
+    val alpha = if (MuseMotion.isReducedMotion()) {
+        1f
+    } else {
+        val transition = rememberInfiniteTransition(label = "streaming_cursor")
+        val animatedAlpha by transition.animateFloat(
+            initialValue = 1f,
+            targetValue = 0.2f,
+            animationSpec = infiniteRepeatable(
+                animation = MuseMotion.tween(durationMillis = MuseAnimation.LOOP_NORMAL_MS, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+            label = "cursor_alpha",
+        )
+        animatedAlpha
+    }
     Box(
         modifier = modifier
             .size(width = 2.5.dp, height = 18.dp)
@@ -438,16 +471,21 @@ internal fun StreamingCursor(
  */
 @Composable
 internal fun ThinkingIndicator() {
-    val transition = rememberInfiniteTransition(label = "thinking_dot")
-    val alpha by transition.animateFloat(
-        initialValue = 1f,
-        targetValue = 0.35f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 900, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "thinking_alpha",
-    )
+    val alpha = if (MuseMotion.isReducedMotion()) {
+        1f
+    } else {
+        val transition = rememberInfiniteTransition(label = "thinking_dot")
+        val animatedAlpha by transition.animateFloat(
+            initialValue = 1f,
+            targetValue = 0.35f,
+            animationSpec = infiniteRepeatable(
+                animation = MuseMotion.tween(durationMillis = MuseAnimation.LOOP_SLOW_MS + 100, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+            label = "thinking_alpha",
+        )
+        animatedAlpha
+    }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -551,7 +589,7 @@ internal fun TtsAudioPlayer(
 internal fun WaveformBars(
     isActive: Boolean,
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "waveform")
+    val reducedMotion = MuseMotion.isReducedMotion()
     val voicePlayingCd = stringResource(R.string.chat_voice_playing_cd)
     val voiceReadyCd = stringResource(R.string.chat_voice_ready_cd)
     Row(
@@ -563,21 +601,30 @@ internal fun WaveformBars(
         },
     ) {
         val heights = listOf(MusePaddings.itemGap, 18.dp, 14.dp, 20.dp)
+        val infiniteTransition = if (isActive && !reducedMotion) {
+            rememberInfiniteTransition(label = "waveform")
+        } else {
+            null
+        }
         heights.forEachIndexed { index, maxHeight ->
-            val scale by infiniteTransition.animateFloat(
-                initialValue = 0.4f,
-                targetValue = 1f,
-                animationSpec = infiniteRepeatable(
-                    animation = keyframes {
-                        durationMillis = 600
-                        0.4f at 0
-                        1f at (150 + index * 50)
-                        0.4f at 600
-                    },
-                    repeatMode = RepeatMode.Restart,
-                ),
-                label = "bar$index",
-            )
+            val scale by if (infiniteTransition == null) {
+                androidx.compose.runtime.remember { androidx.compose.runtime.mutableFloatStateOf(1f) }
+            } else {
+                infiniteTransition.animateFloat(
+                    initialValue = 0.4f,
+                    targetValue = 1f,
+                    animationSpec = infiniteRepeatable(
+                        animation = keyframes {
+                            durationMillis = MuseAnimation.LOOP_NORMAL_MS
+                            0.4f at 0
+                            1f at (150 + index * 50)
+                            0.4f at MuseAnimation.LOOP_NORMAL_MS
+                        },
+                        repeatMode = RepeatMode.Restart,
+                    ),
+                    label = "bar$index",
+                )
+            }
             val currentHeight = if (isActive) maxHeight * scale else maxHeight * 0.4f
             Box(
                 modifier = Modifier

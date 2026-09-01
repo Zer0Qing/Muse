@@ -33,7 +33,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -53,6 +52,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.museAnimateItem
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -418,7 +418,7 @@ private fun SearchResults(
                 matchedSessions,
                 key = { index, session -> "session_${session.id}_$index" },
             ) { _, session ->
-                Box(modifier = Modifier.animateItem()) {
+                Box(modifier = museAnimateItem()) {
                 SessionResultRow(
                     title = session.title.ifBlank { stringResource(R.string.search_new_session) },
                     preview = session.lastMessagePreview,
@@ -435,7 +435,7 @@ private fun SearchResults(
                 uniqueMessageResults,
                 key = { index, result -> "msg_${result.messageId}_$index" },
             ) { _, result ->
-                Box(modifier = Modifier.animateItem()) {
+                Box(modifier = museAnimateItem()) {
                 MessageSearchResultRow(
                     sessionTitle = result.sessionTitle,
                     content = result.content,

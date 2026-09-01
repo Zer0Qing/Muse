@@ -6,21 +6,16 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,18 +25,15 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.foundation.verticalScroll
 import compose.icons.TablerIcons
 import compose.icons.tablericons.*
 import androidx.compose.material.icons.Icons
@@ -52,9 +44,6 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
-import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.outlined.GroupWork
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.automirrored.outlined.CallSplit
@@ -63,7 +52,6 @@ import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -78,7 +66,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -86,12 +73,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -99,11 +84,9 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import io.zer0.muse.R
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
@@ -128,13 +111,13 @@ import io.zer0.muse.transformer.MoodSkinParser
 import io.zer0.muse.transformer.InternalMarkupSanitizer
 import io.zer0.muse.ui.taskcard.AgentPlan
 import io.zer0.muse.ui.taskcard.PlanCard
-import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MuseIconSizes
-import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.tiny
 import androidx.compose.material.icons.outlined.VideoLibrary
 import io.zer0.muse.ui.common.media.FullScreenMediaViewer
@@ -274,8 +257,11 @@ internal fun MessageBubble(
         if (isUser) MessageBubbleRole.USER else MessageBubbleRole.ASSISTANT,
     )
     // 阶段 4: 长按菜单状态(主菜单 + 翻译语言子菜单)
-    // v1.79 (M-B9): 菜单/子菜单/删除确认状态改用 rememberSaveable,旋转/后台后不丢失
-    var actionSurface by rememberSaveable { mutableStateOf(MessageActionSurface.Hidden) }
+    // B-AUDIT: 长按菜单/删除确认/信息/表情回应等"瞬时交互状态"改回 remember —
+    // rememberSaveable 会被 LazyColumn 的 SaveableStateHolder 按 item 保存/复原,
+    // 导致滚离屏幕销毁后再滚回时,已关闭的菜单/对话框"复活"重新弹出。
+    // 这类瞬时显隐不应跨旋转/后台/滚动恢复。
+    var actionSurface by remember { mutableStateOf(MessageActionSurface.Hidden) }
     val showActionMenu = actionSurface != MessageActionSurface.Hidden
     val showLanguageSubmenu = actionSurface == MessageActionSurface.TranslationLanguages
     // v1.0.74 fix: 记录气泡在窗口中的位置,长按菜单以此锚定(此前无锚点,永远弹在窗口右上角)
@@ -290,18 +276,18 @@ internal fun MessageBubble(
         actionSurface == MessageActionSurface.TranslationLanguages
     // v1.0.72: 文本选择模式 — 长按菜单点"选择文本"后进入,支持划选复制;
     // 点击气泡或再次长按退出
-    var textSelectMode by rememberSaveable { mutableStateOf(false) }
+    var textSelectMode by remember { mutableStateOf(false) }
     // P2-13: 桌面端右键上下文菜单(仅 Expanded 窗口 + 物理键盘场景显示)
-    var showDesktopContextMenu by rememberSaveable { mutableStateOf(false) }
+    var showDesktopContextMenu by remember { mutableStateOf(false) }
     // v1.60-B: 全屏媒体查看器状态 — 图片列表 + 初始索引
     // mediaPreview 为 Pair 类型,自定义 Saver 过于复杂,保持 remember
     var mediaPreview by remember { mutableStateOf<Pair<List<String>, Int>?>(null) }
     // v1.48: 删除消息确认对话框
-    var showDeleteConfirm by rememberSaveable { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
     // A5: 消息信息弹层(长按扩展菜单/桌面右键菜单「消息信息」触发)
-    var showInfoSheet by rememberSaveable { mutableStateOf(false) }
+    var showInfoSheet by remember { mutableStateOf(false) }
     // E4 (H8): 表情回应选择面板(扩展菜单「表情回应」触发)
-    var showReactionSheet by rememberSaveable { mutableStateOf(false) }
+    var showReactionSheet by remember { mutableStateOf(false) }
     // 末尾 AI 流式时光标显示
     val showStreamingCursor = !isUser && isLastAssistant && isStreaming
     // v1.42: 流式中的最后一条 AI 消息禁用动画,避免每帧测量导致卡顿。
@@ -412,7 +398,15 @@ internal fun MessageBubble(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .then(if (isAnimating) Modifier.animateContentSize() else Modifier),
+            .then(
+                            if (isAnimating) {
+                                Modifier.animateContentSize(
+                                    animationSpec = MuseMotion.tween(MuseAnimation.NORMAL_MS),
+                                )
+                            } else {
+                                Modifier
+                            },
+                        ),
     ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -1012,7 +1006,7 @@ internal fun MessageBubble(
                         modifier = Modifier.size(14.dp),
                     )
                     Text(
-                        text = "已压缩",
+                        text = stringResource(R.string.msg_compressed),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.outline,
                     )
@@ -1572,11 +1566,7 @@ internal fun MessageBubble(
                 },
                 onConfirm = null,
                 dismissText = stringResource(R.string.action_close),
-                onDismiss = {
-                    actionSurface = MessageActionSurface.Hidden
-                    actionSurface = MessageActionSurface.Hidden
-                    actionSurface = MessageActionSurface.Hidden
-                },
+                onDismiss = { actionSurface = MessageActionSurface.Hidden },
             )
             }
         }
@@ -1631,7 +1621,11 @@ internal fun MessageBubble(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                AnimatedVisibility(visible = showSource) {
+                AnimatedVisibility(
+                    visible = showSource,
+                    enter = MuseMotion.expandFadeEnter(),
+                    exit = MuseMotion.expandFadeExit(),
+                ) {
                     Surface(
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                         shape = MuseShapes.medium,
@@ -1851,12 +1845,12 @@ private fun TelegramActionCard(
     // 进场动画:scale 0.92 → 1 + fade
     val scale by androidx.compose.animation.core.animateFloatAsState(
         targetValue = 1f,
-        animationSpec = tween(160, easing = FastOutSlowInEasing),
+        animationSpec = MuseMotion.tween(MuseAnimation.FAST_NORMAL_MS, easing = FastOutSlowInEasing),
         label = "menuScale",
     )
     val alpha by androidx.compose.animation.core.animateFloatAsState(
         targetValue = 1f,
-        animationSpec = tween(140),
+        animationSpec = MuseMotion.tween(MuseAnimation.FAST_MS),
         label = "menuAlpha",
     )
     Surface(
@@ -1908,7 +1902,7 @@ private fun FixedColorActionRow(
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by androidx.compose.animation.core.animateFloatAsState(
         targetValue = if (isPressed) 0.95f else 1f,
-        animationSpec = tween(100),
+        animationSpec = MuseMotion.tween(MuseAnimation.FAST_MS),
         label = "rowScale",
     )
     Row(

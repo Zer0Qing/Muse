@@ -3,11 +3,8 @@ package io.zer0.muse.ui.navigation
 import androidx.compose.runtime.remember
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
-import androidx.navigation.NavType
 import androidx.navigation.compose.composable
-import androidx.navigation.navArgument
 import io.zer0.muse.ui.DebugScreen
-import io.zer0.muse.ui.MuseRoutes
 import io.zer0.muse.ui.SettingsScreen
 import io.zer0.muse.ui.WorkspaceScreen
 import io.zer0.muse.ui.account.AccountScreen
@@ -42,7 +39,6 @@ import io.zer0.muse.ui.settings.TaskRoutingSettingsPage
 import io.zer0.muse.ui.settings.UserProfileEditPage
 import io.zer0.muse.ui.settings.PermissionWizardScreen
 import io.zer0.muse.ui.settings.VisionSettingsPage
-import androidx.navigation.toRoute
 
 /**
  * 设置域 NavGraph — 包含设置主页 + 31 个二级/三级设置页(账户/模型/外观/代理/多 Agent/

@@ -1,6 +1,5 @@
 package io.zer0.muse.data.session
 
-import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Entity
 import androidx.room.ForeignKey

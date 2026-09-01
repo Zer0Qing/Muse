@@ -8,6 +8,8 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateContentSize
+import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseMotion
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -594,13 +596,13 @@ private fun QuickCaptureSettingsSheet(
             verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
         ) {
             Text(
-                text = "快速记录设置",
+                text = stringResource(R.string.quick_notes_settings_title),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
             )
             QuickCaptureSettingRow(
-                title = "显示侧滑快速记录",
-                description = "在 Muse 内右侧边缘显示快速记录把手",
+                title = stringResource(R.string.quick_capture_swipe_title),
+                description = stringResource(R.string.quick_capture_swipe_desc),
                 checked = quickCaptureEnabled,
                 onCheckedChange = { enabled ->
                     scope.launch {
@@ -613,8 +615,8 @@ private fun QuickCaptureSettingsSheet(
                 },
             )
             QuickCaptureSettingRow(
-                title = "开启系统悬浮窗",
-                description = "退出 Muse 后仍可点击悬浮胶囊快速记录",
+                title = stringResource(R.string.quick_capture_overlay_title),
+                description = stringResource(R.string.quick_capture_overlay_desc),
                 checked = quickCaptureOverlayEnabled,
                 enabled = quickCaptureEnabled,
                 onCheckedChange = { enabled ->
@@ -634,7 +636,7 @@ private fun QuickCaptureSettingsSheet(
                                 },
                             )
                         }.onFailure {
-                            MuseToast.show("无法打开悬浮窗权限设置")
+                            MuseToast.show(context.getString(R.string.quick_capture_overlay_permission_error))
                         }
                     } else {
                         scope.launch { settings.saveQuickCaptureOverlayEnabled(true) }
@@ -642,7 +644,7 @@ private fun QuickCaptureSettingsSheet(
                 },
             )
             Text(
-                text = "悬浮窗默认关闭。开启后需要系统允许 Muse 显示在其他应用上层。",
+                text = stringResource(R.string.quick_capture_overlay_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.padding(bottom = MusePaddings.sectionGap),
@@ -873,7 +875,7 @@ private fun QuickNoteCard(
         color = cardBackground,
         modifier = Modifier
             .fillMaxWidth()
-            .animateContentSize(),
+            .animateContentSize(animationSpec = MuseMotion.tween(MuseAnimation.NORMAL_MS)),
     ) {
         Column(
             modifier = Modifier.padding(MusePaddings.cardInner),

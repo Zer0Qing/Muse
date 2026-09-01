@@ -105,4 +105,24 @@
     <string name="notif_permission_status_off">Permiso de notificaciones desactivado</string>
     <string name="notif_permission_guide">Actívalo para recibir notificaciones de mensajes y copias</string>
     <string name="notif_permission_open">Activar</string>
+    <!-- v1.0.85: release localization -->
+    <string name="notif_listener_search_hint">Buscar notificaciones</string>
+    <string name="notif_listener_all_apps">Todas las aplicaciones</string>
+    <string name="notif_listener_show_all">Mostrar todo</string>
+    <string name="notif_listener_unread_only">Solo no leídas</string>
+    <string name="notif_listener_mark_all_read">Marcar todo como leído</string>
+    <string name="notif_listener_export">Exportar</string>
+    <string name="notif_listener_export_success">Notificaciones exportadas</string>
+    <string name="notif_listener_export_failed">No se pudieron exportar las notificaciones: %1$s</string>
+    <string name="notif_listener_export_write_failed">No se pudo escribir el archivo exportado</string>
+    <string name="notif_listener_filter_empty">No hay notificaciones que coincidan con el filtro actual</string>
+    <string name="notif_listener_no_text">Esta notificación no tiene texto para mostrar</string>
+    <string name="notif_listener_unread_label">No leída</string>
+    <string name="notif_listener_active_only">Solo activas</string>
+    <string name="notif_listener_show_history">Mostrar historial</string>
+    <string name="notif_listener_counts">%1$d en total · %2$d activas · %3$d no leídas</string>
+    <string name="notif_listener_active_label">En la bandeja</string>
+    <string name="notif_listener_removed_label">Eliminada</string>
+    <string name="notif_listener_channel_label">Canal: %1$s</string>
+    <string name="notif_listener_category_label">Categoría: %1$s</string>
 </resources>

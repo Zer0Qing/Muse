@@ -216,6 +216,7 @@
     <string name="err_overloaded">服务过载,请稍后重试</string>
     <string name="err_not_found">资源不存在</string>
     <string name="err_stream_interrupted">流式连接中断</string>
+    <string name="err_reply_truncated">（回复因长度限制被截断）</string>
     <string name="err_network_error">网络连接中断,请检查网络</string>
     <string name="err_image_response_too_large">图片生成响应过大(%1$sMB),上限 20MB</string>
     <string name="err_image_empty_response">图片生成返回空响应</string>

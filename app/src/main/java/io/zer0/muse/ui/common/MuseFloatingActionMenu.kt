@@ -3,7 +3,6 @@
 package io.zer0.muse.ui.common
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInHorizontally
@@ -33,6 +32,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import compose.icons.TablerIcons
 import compose.icons.tablericons.Check
+import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseMotion
 
 /** 右上角浮动菜单中的独立操作项。 */
 internal data class MuseFloatingActionItem(
@@ -62,6 +63,10 @@ internal fun MuseFloatingActionMenu(
     belowAnchorDp: Dp = 56.dp,
 ) {
     val density = LocalDensity.current
+    val reducedMotion = MuseMotion.isReducedMotion()
+    val staggerDelay = if (reducedMotion) 0 else MuseAnimation.STAGGER_STEP_MS / 4
+    val fadeDuration = if (reducedMotion) 0 else MuseAnimation.FAST_NORMAL_MS
+    val moveDuration = if (reducedMotion) 0 else MuseAnimation.FAST_NORMAL_MS
     val resolvedOffset = offset ?: with(density) {
         IntOffset(0, belowAnchorDp.roundToPx())
     }
@@ -86,14 +91,14 @@ internal fun MuseFloatingActionMenu(
                     key(item.key) {
                         AnimatedVisibility(
                             visible = true,
-                            enter = fadeIn(tween(120, delayMillis = index * 30)) +
+                            enter = fadeIn(MuseMotion.tween(fadeDuration, delayMillis = index * staggerDelay)) +
                                 scaleIn(
-                                    animationSpec = tween(160, delayMillis = index * 30),
+                                    animationSpec = MuseMotion.tween(moveDuration, delayMillis = index * staggerDelay),
                                     initialScale = 0.92f,
                                     transformOrigin = TransformOrigin(1f, 0f),
                                 ) +
                                 slideInHorizontally(
-                                    animationSpec = tween(160, delayMillis = index * 30),
+                                    animationSpec = MuseMotion.tween(moveDuration, delayMillis = index * staggerDelay),
                                     initialOffsetX = { it / 4 },
                                 ),
                         ) {

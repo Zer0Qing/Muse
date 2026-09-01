@@ -23,7 +23,6 @@ import io.zer0.memory.ticker.MemoryTicker
 import io.zer0.muse.boot.BootReceiver
 import io.zer0.muse.crash.MuseCrashHandler
 import io.zer0.muse.data.SettingsRepository
-import io.zer0.muse.data.ThemeScheduleConfig
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.knowledge.KnowledgeDocDao
 import io.zer0.muse.data.knowledge.KnowledgeDocEntity
@@ -36,7 +35,6 @@ import io.zer0.muse.ui.ChatViewModel
 import io.zer0.muse.ui.speech.TtsManager
 import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import io.zer0.muse.web.CompositeWebSearchService
-import io.zer0.muse.web.WebSearchConfig
 import io.zer0.muse.web.WebSearchService
 import io.zer0.muse.web.WebServer
 import androidx.work.Constraints
@@ -225,6 +223,9 @@ class MuseApp : Application(), ImageLoaderFactory {
         io.zer0.muse.auth.OAuthManager.init(io.zer0.muse.auth.SecureCredentialStore(this))
         // Phase 8.10: 创建通知渠道(幂等,Android 8.0+ 必需)
         notificationManager.ensureChannels()
+        // 通知监听服务可能尚未被系统绑定;先恢复本地通知历史,让通知工具和设置页
+        // 在冷启动后也能读取到上一轮已采集的数据。
+        io.zer0.muse.notification.MuseNotificationListenerService.initialize(this)
         // 启动 memory ticker(每小时 daily check,主触发仍是 ChatViewModel.notifyTurn)
         memoryTicker.start()
         // v1.0.51: 存量记忆迁移 — 升级后首次启动补跑历史 session 的 rollingSummary
