@@ -53,6 +53,8 @@ val appPromptModule = module {
             sessionRepository = get(),
             // v12 (T2-2): 透传 factStore,主助手构建 system prompt 时按当前问题 FTS 召回相关记忆
             factStore = get(),
+            // v1.0.86: 相关记忆按当前 Assistant 选择独立 facts.db
+            factDbProvider = get(),
             // 审计修复 (S-03): 透传 pinnedMemoryStore,统一置顶记忆数据源
             // (此前注入侧读无人写入的 pinned_memories.json,置顶内容永不注入)
             pinnedMemoryStore = get(),

@@ -33,6 +33,20 @@ class ChatGenerationManagerTest {
     }
 
     @Test
+    fun `generation remains removable after heartbeat replaces display snapshot`() = runTest {
+        val manager = ChatGenerationManager(backgroundScope, ConversationSessionManager(backgroundScope))
+        val gate = CompletableDeferred<Unit>()
+
+        manager.launchGeneration("session-1", "assistant-1", "测试") { gate.await() }
+        manager.touch("session-1")
+        assertTrue(manager.activeGenerations.value.containsKey("session-1"))
+
+        gate.complete(Unit)
+        runCurrent()
+        assertTrue(manager.activeGenerations.value.isEmpty())
+    }
+
+    @Test
     fun `all active sessions remain visible while the newest session finishes`() = runTest {
         val manager = ChatGenerationManager(backgroundScope, ConversationSessionManager(backgroundScope))
         val firstGate = CompletableDeferred<Unit>()

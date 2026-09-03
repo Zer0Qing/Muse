@@ -138,6 +138,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.flow
@@ -2472,8 +2473,8 @@ class ChatViewModel(
         // 拆分为静态快照 + 动态时间,静态部分在同一会话内复用。
         val assistant = _state.value.currentAssistant
             ?: assistantRepository.getById("default")
-        val memoryEnabled = (assistant?.memoryEnabled ?: true) &&
-            (assistant?.useGlobalMemory ?: true)
+        val memoryEnabled = assistant?.memoryEnabled ?: true
+        val useGlobalMemory = assistant?.useGlobalMemory ?: true
         val timeReminderEnabled = assistant?.enableTimeReminder ?: true
         val effectiveMemoryEnabled = memoryEnabled && settings.isMemoryEnabled()
         // v1.0.72: 本会话不参考记忆标志
@@ -2481,16 +2482,22 @@ class ChatViewModel(
         val effSessionId = if (state.isAgentMode) state.agentSessionId else state.currentSessionId
         val sessionIgnoreMemory = state.sessions
             .firstOrNull { it.id == effSessionId }?.ignoreMemory ?: false
+        val memoryScope = assistant?.id?.takeIf { it.isNotBlank() && it != "default" } ?: "main"
+        val memorySpaceId = settings.currentSpaceIdFlow.firstOrNull().orEmpty().ifBlank { "default" }
         // 2.1 重建并缓存静态快照
         val staticSnapshot = resultOf {
             systemPromptAssembler.buildStaticSnapshot(
                 assistant = assistant,
                 memoryEnabled = effectiveMemoryEnabled,
                 ignoreMemory = sessionIgnoreMemory,
+                useGlobalMemory = useGlobalMemory,
+                memoryScope = memoryScope,
+                memorySpaceId = memorySpaceId,
             )
         }.getOrNull() ?: ""
         cachedStaticSystemPrompt = staticSnapshot
-        cachedStaticSnapshotKey = computeStaticSnapshotKey(assistant, effectiveMemoryEnabled)
+        cachedStaticSnapshotKey = computeStaticSnapshotKey(assistant, effectiveMemoryEnabled) +
+            "|global=$useGlobalMemory|scope=$memoryScope|space=$memorySpaceId"
         // 2.2 组合完整 system prompt(静态快照 + 当前时间)
         val dynamicSection = if (timeReminderEnabled) systemPromptAssembler.buildDynamicSection() else ""
         cachedSystemPrompt = buildString {
@@ -3785,8 +3792,8 @@ class ChatViewModel(
         val unmaskPii: (String) -> String = state::unmaskPii
         // 工具执行上下文由宿主捕获，模型不能通过参数切换记忆 scope/space。
         val toolExecutionContext = io.zer0.muse.tools.ToolExecutionContext(
-            scope = assistant?.id?.takeIf { it.isNotBlank() } ?: "main",
-            spaceId = settings.currentSpaceIdFlow.first(),
+            scope = assistant?.id?.takeIf { it.isNotBlank() && it != "default" } ?: "main",
+            spaceId = settings.currentSpaceIdFlow.firstOrNull().orEmpty().ifBlank { "default" },
             assistantId = assistant?.id,
         )
 
@@ -5286,7 +5293,7 @@ class ChatViewModel(
         // 在排队前捕获当前空间，不能把后台提取永远写入 default；
         // 之后用户切换空间也不会改变这次 session 的归属。
         viewModelScope.launch(Dispatchers.IO) {
-            val spaceId = settings.currentSpaceIdFlow.first()
+            val spaceId = settings.currentSpaceIdFlow.firstOrNull().orEmpty().ifBlank { "default" }
             // model 传 null,MemoryLlmClient 实现侧用 Provider 配置的默认模型
             scheduler.scheduleAutoSave(
                 sessionId = sessionId,

@@ -48,8 +48,10 @@ data class ParsedAnalysis(
  */
 @Serializable
 data class ParsedEntity(
-    val title: String,
-    val content: String,
+    // LLM 有时会把可选字段显式输出为 null；给非空字段默认值，配合
+    // MemoryAutoSaveScheduler 的 coerceInputValues 让单条坏字段不拖垮整次提取。
+    val title: String = "",
+    val content: String = "",
     val credibility: Float = 0.5f,
     val importance: Float = 0.5f,
     val folderPath: String? = null,
@@ -71,8 +73,8 @@ data class ParsedEntity(
  */
 @Serializable
 data class ParsedLink(
-    val sourceTitle: String,
-    val targetTitle: String,
+    val sourceTitle: String = "",
+    val targetTitle: String = "",
     val linkType: String = "related_to",
     val weight: Float = 0.5f,
 )
@@ -85,8 +87,8 @@ data class ParsedLink(
  */
 @Serializable
 data class ParsedUpdate(
-    val matchTitle: String,
-    val newContent: String,
+    val matchTitle: String = "",
+    val newContent: String = "",
     val newImportance: Float? = null,
     val newFolderPath: String? = null,
     val newTags: List<String>? = null,
@@ -100,7 +102,7 @@ data class ParsedUpdate(
  */
 @Serializable
 data class ParsedMerge(
-    val sourceTitles: List<String>,
-    val mergedTitle: String,
-    val mergedContent: String,
+    val sourceTitles: List<String> = emptyList(),
+    val mergedTitle: String = "",
+    val mergedContent: String = "",
 )

@@ -67,7 +67,13 @@ class MemoryAutoSaveScheduler(
         const val AUTO_SAVE_TURN_INTERVAL = 10
     }
 
-    private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
+    // 模型常把可选字段显式写成 null。coerceInputValues 会把 null 恢复为
+    // Kotlin 属性默认值，避免 mainProblem.title=null 让整份分析结果解析失败。
+    private val json = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+        coerceInputValues = true
+    }
     private val analysisSemaphore = Semaphore(MAX_CONCURRENT_ANALYSIS)
 
     /**
@@ -314,7 +320,9 @@ class MemoryAutoSaveScheduler(
 
         // 1. 提取新实体 → 写入 facts(自动去重合并)
         if (analysis.extractedEntities.isNotEmpty()) {
-            val facts = analysis.extractedEntities.map { entity ->
+            val facts = analysis.extractedEntities
+                .filter { it.content.isNotBlank() }
+                .map { entity ->
                 FactStore.Fact(
                     fact = entity.content,
                     tags = entity.tags,
@@ -327,13 +335,14 @@ class MemoryAutoSaveScheduler(
                     entityKey = entity.entityKey,
                 )
             }
-            extracted = factStore.addBatch(facts, scope, spaceId)
+            extracted = if (facts.isEmpty()) 0 else factStore.addBatch(facts, scope, spaceId)
         }
 
         // 2. 更新已有事实(按 matchTitle 模糊匹配)
         if (analysis.updatedEntities.isNotEmpty()) {
             val existing = factStore.getByScopeAndSpace(scope, spaceId)
             for (update in analysis.updatedEntities) {
+                if (update.matchTitle.isBlank() || update.newContent.isBlank()) continue
                 val target = findFactByTitle(existing, update.matchTitle) ?: continue
                 factStore.update(target.id, update.newContent)
                 if (update.newImportance != null) {
@@ -350,6 +359,7 @@ class MemoryAutoSaveScheduler(
         if (analysis.mergedEntities.isNotEmpty()) {
             val existing = factStore.getByScopeAndSpace(scope, spaceId)
             for (merge in analysis.mergedEntities) {
+                if (merge.mergedContent.isBlank() || merge.sourceTitles.isEmpty()) continue
                 val sources = merge.sourceTitles.mapNotNull { title ->
                     findFactByTitle(existing, title)
                 }
@@ -378,6 +388,7 @@ class MemoryAutoSaveScheduler(
             val existing = factStore.getByScopeAndSpace(scope, spaceId)
             val now = Instant.now().toString()
             val linkEntities = analysis.links.mapNotNull { link ->
+                if (link.sourceTitle.isBlank() || link.targetTitle.isBlank()) return@mapNotNull null
                 val source = findFactByTitle(existing, link.sourceTitle) ?: return@mapNotNull null
                 val target = findFactByTitle(existing, link.targetTitle) ?: return@mapNotNull null
                 MemoryLinkEntity(

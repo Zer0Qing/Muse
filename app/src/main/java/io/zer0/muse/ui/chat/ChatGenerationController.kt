@@ -33,6 +33,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -452,8 +453,8 @@ internal class ChatGenerationController(
     suspend fun buildSystemPromptForStream(state: StreamRunState) {
         with(state) {
             // useGlobalMemory 是助手级开关;关闭时不能继续把全局画像/长期记忆注入当前对话。
-            val memoryEnabled = (assistant?.memoryEnabled ?: true) &&
-                (assistant?.useGlobalMemory ?: true)
+            val memoryEnabled = assistant?.memoryEnabled ?: true
+            val useGlobalMemory = assistant?.useGlobalMemory ?: true
             val timeReminderEnabled = assistant?.enableTimeReminder ?: true
             val effectiveMemoryEnabled = memoryEnabled && deps.settings.isMemoryEnabled()
             // v1.0.72: 本会话不参考记忆标志
@@ -464,8 +465,12 @@ internal class ChatGenerationController(
             }
             val sessionIgnoreMem = accessor.snapshot.sessions
                 .firstOrNull { it.id == effSid }?.ignoreMemory ?: false
-            // 复用静态 system prompt 快照,只追加动态"当前时间"。
-            val currentKey = computeStaticSnapshotKey(assistant, effectiveMemoryEnabled)
+            val memoryScope = assistant?.id?.takeIf { it.isNotBlank() && it != "default" } ?: "main"
+            val memorySpaceId = deps.settings.currentSpaceIdFlow.firstOrNull().orEmpty().ifBlank { "default" }
+            // 复用静态 system prompt 快照,只追加动态"当前时间"。作用域/空间也属于快照身份,
+            // 否则切换 Assistant 或 Space 后会复用上一份记忆 prompt。
+            val currentKey = computeStaticSnapshotKey(assistant, effectiveMemoryEnabled) +
+                "|global=$useGlobalMemory|scope=$memoryScope|space=$memorySpaceId"
             val staticSnapshot = if (currentKey == deps.systemPromptCache.cachedStaticSnapshotKey &&
                 deps.systemPromptCache.cachedStaticSystemPrompt.isNotBlank()
             ) {
@@ -476,6 +481,9 @@ internal class ChatGenerationController(
                         assistant = assistant,
                         memoryEnabled = effectiveMemoryEnabled,
                         ignoreMemory = sessionIgnoreMem,
+                        useGlobalMemory = useGlobalMemory,
+                        memoryScope = memoryScope,
+                        memorySpaceId = memorySpaceId,
                     )
                 }.getOrNull() ?: ""
                 deps.systemPromptCache.cachedStaticSystemPrompt = rebuilt
@@ -490,12 +498,20 @@ internal class ChatGenerationController(
                     append(dynamicSection)
                 }
                 // 相关记忆检索(仅当记忆开启且非子助手;检索失败静默跳过)。
-                if (memoryEnabled && !sessionIgnoreMem && assistant?.memoryEnabled == true) {
+                if (memoryEnabled && !sessionIgnoreMem) {
                     // buildSystemPrompt 在 applyTransformers 之前执行,此时 transformedMessages
                     // 仍为空;使用本轮已准备好的 rawHistory,否则相关记忆永远不会注入。
                     val lastUserInput = rawHistory.lastOrNull { it.role == MessageRole.USER }?.content
                     if (!lastUserInput.isNullOrBlank()) {
-                        val relevant = resultOf { deps.systemPromptAssembler.buildRelevantMemorySection(lastUserInput) }
+                        val relevant = resultOf {
+                            deps.systemPromptAssembler.buildRelevantMemorySection(
+                                currentUserInput = lastUserInput,
+                                store = null,
+                                scope = memoryScope,
+                                spaceId = memorySpaceId,
+                                assistantId = assistant?.id,
+                            )
+                        }
                             .onError { msg, _ -> Logger.w("ChatVM", "buildRelevantMemorySection 失败: $msg") }
                             .getOrNull() ?: ""
                         if (relevant.isNotBlank()) {
@@ -693,6 +709,8 @@ internal class ChatGenerationController(
             resultOf { settings.saveGeneratingSessionId(sessionId) }
                 .onError { msg, _ -> Logger.w("ChatVM", "saveGeneratingSessionId 失败: $msg") }
         }
+        // 在调度器等待旧代 finally 之前就分配新代身份，旧代收尾从此刻起不能清零新代 UI。
+        val generationSerial = ++deps.generationState.streamGenerationSerial
         chatGenerationManager.launchGeneration(
             sessionId = sessionId,
             assistantId = assistantId.toString(),
@@ -706,8 +724,8 @@ internal class ChatGenerationController(
             state.taskRouteSelection = taskRouteSelection
             state.fallbackModelId = deps.generationState.globalSelectedModelId
             state.fallbackProviderId = deps.generationState.globalActiveProviderId
-            // B-24: 捕获本代序号,收尾清零 isStreaming 前校验自己仍是最新生成
-            state.generationSerial = ++deps.generationState.streamGenerationSerial
+            // B-24: 使用入口处已分配的本代序号；避免等待旧代 finally 时产生竞态。
+            state.generationSerial = generationSerial
             // M1.1: 开启会话运行时 turn 检查点(NOT_STARTED -> GENERATING)。
             sessionManager.beginTurn(sessionId, state.turnId)
             // B7-04: 继续生成时预置已产出内容

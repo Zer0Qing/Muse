@@ -913,10 +913,12 @@ class FactStore(
     ): List<Fact> = withContext(Dispatchers.IO) {
         if (query.isBlank()) return@withContext emptyList()
         ensureFtsIndexConsistent()
-        val all = runFtsOrLikeSearch(query.trim(), limit * 3)
+        // 必须在 SQL/FTS 查询阶段就按 scope + space 过滤。
+        // 先全库取 limit*3 再在内存过滤会被其他助手/空间的高相关结果占满，
+        // 造成当前作用域明明有事实却返回空或不完整结果。
+        runFtsOrLikeSearchScoped(query.trim(), limit, scope, spaceId)
             .filterNot { it.isExpired() }
-            .filter { it.scope == scope && it.spaceId == spaceId }
-        all.take(limit)
+            .take(limit)
     }
 
     private suspend fun runFtsOrLikeSearchScoped(

@@ -65,6 +65,27 @@ class SearchRelevantFactsTest {
     }
 
     @Test
+    fun `relevant search filters scope before applying result limit`() = runTest {
+        repeat(30) { index ->
+            store.add(
+                FactStore.Fact(fact = "其他助手的咖啡事实 $index"),
+                scope = "assistant-$index",
+                spaceId = "default",
+            )
+        }
+        store.add(
+            FactStore.Fact(fact = "当前助手的咖啡偏好"),
+            scope = "main",
+            spaceId = "default",
+        )
+
+        val hits = store.searchRelevantFacts("咖啡", scope = "main", spaceId = "default", limit = 1)
+
+        assertEquals(1, hits.size)
+        assertEquals("当前助手的咖啡偏好", hits.single().fact)
+    }
+
+    @Test
     fun `scoped full text never returns another space`() = runTest {
         store.add(FactStore.Fact(fact = "工作空间里的咖啡偏好"), scope = "main", spaceId = "work")
         store.add(FactStore.Fact(fact = "生活空间里的咖啡偏好"), scope = "main", spaceId = "life")

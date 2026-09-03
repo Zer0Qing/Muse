@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * v1.43: 应用级聊天生成调度器。
@@ -42,6 +43,8 @@ class ChatGenerationManager(
         val sessionId: String,
         val assistantId: String,
         val sessionTitle: String,
+        /** 稳定的代际身份；显示字段 copy() 更新时不能改变它。 */
+        val generationId: Long = 0L,
         val isStreaming: Boolean = true,
         val lastUpdatedAt: Long = System.currentTimeMillis(),
     )
@@ -54,6 +57,7 @@ class ChatGenerationManager(
     val activeGenerations: StateFlow<Map<String, ActiveGeneration>> = _activeGenerations.asStateFlow()
 
     private val lock = Any()
+    private val nextGenerationId = AtomicLong(0L)
 
     /**
      * 在应用级协程中启动生成任务,并登记到唯一 owner 的会话级账本。
@@ -82,6 +86,7 @@ class ChatGenerationManager(
                 sessionId = sessionId,
                 assistantId = assistantId,
                 sessionTitle = sessionTitle,
+                generationId = nextGenerationId.incrementAndGet(),
                 isStreaming = true,
                 lastUpdatedAt = System.currentTimeMillis(),
             )
@@ -101,13 +106,11 @@ class ChatGenerationManager(
                     block()
                 } finally {
                     heartbeatJob.cancel()
-                    // 清理守护用 ActiveGeneration 对象身份(本类不持 Job):
-                    // 同一 session 快速重入时,旧任务的 finally 不得把新任务标记成已结束。
-                    val isCurrentGeneration = synchronized(lock) {
-                        _activeGenerations.value[sessionId] === generation
-                    }
-                    if (isCurrentGeneration) {
-                        synchronized(lock) {
+                    // touch()/updateSessionTitle() 会用 copy() 更新显示字段，不能用对象身份判断。
+                    // 只比较不可变的 generationId，才能保证旧代 finally 不会清掉新代，
+                    // 同时保证正常完成后活跃 map 一定能被移除。
+                    synchronized(lock) {
+                        if (_activeGenerations.value[sessionId]?.generationId == generation.generationId) {
                             _activeGenerations.value = _activeGenerations.value - sessionId
                             val next = _activeGenerations.value.values.maxByOrNull { it.lastUpdatedAt }
                             _activeGeneration.value = next ?: generation.copy(

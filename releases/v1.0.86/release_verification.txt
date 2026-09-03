@@ -1,0 +1,15 @@
+Muse v1.0.86 release verification
+BuiltAt=2026-09-03T10:10:02+08:00
+Expected versionName=1.0.86 versionCode=186
+BuildType=Release
+ReleaseGuards=version and keystore guards were not bypassed
+QualityGates=release preflight PASS; Python discipline/hardcoded-CJK/localization checks PASS; app and memory unit tests PASS; debug APK PASS
+ReleaseBuild=:app:assembleRelease PASS
+APKManifest=aapt2 dump badging reported versionCode='186' versionName='1.0.86', minSdkVersion='26', targetSdkVersion='35' for all APKs
+arm64-v8a=app-arm64-v8a-release.apk bytes=64108989 SHA256=484e29be166af9e01492b5e10d88a665fdf336cc86d5c79efc87189a038cc579
+armeabi-v7a=app-armeabi-v7a-release.apk bytes=52777075 SHA256=84c21b3fd6cd1aca39890cdc87cff59d7cf02fc6f7ad37e871cc71299d5bcac5
+universal=app-universal-release.apk bytes=169515470 SHA256=359590d78d1332e97d1a9779f9972e0fc151457b280a27a1d549b2bad007c55f
+Signature=apksigner verify passed for all APKs; v2 scheme true; one signer per APK
+DBVersion=96; no new migration introduced
+Manifest=release/manifest.json generated from universal APK
+KnownLimit=Android device/emulator acceptance not executed; real Provider/RAG Cloud configuration not validated

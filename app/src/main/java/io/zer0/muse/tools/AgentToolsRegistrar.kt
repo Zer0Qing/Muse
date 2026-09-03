@@ -1,5 +1,6 @@
 package io.zer0.muse.tools
 
+import io.zer0.memory.fact.FactDbProvider
 import io.zer0.memory.fact.FactStore
 import io.zer0.memory.pin.PinnedMemoryStore
 import io.zer0.muse.data.SettingsRepository
@@ -28,6 +29,8 @@ class AgentToolsRegistrar(
     private val pinnedMemoryStore: PinnedMemoryStore,
     private val experienceRepository: ExperienceRepository,
     private val factStore: FactStore,
+    /** 按执行上下文的 assistantId 选择对应 facts.db；为空时回退主 facts.db。 */
+    private val factDbProvider: FactDbProvider? = null,
     private val settings: SettingsRepository,
     private val notificationManager: MuseNotificationManager,
     private val context: Context,
@@ -60,7 +63,8 @@ class AgentToolsRegistrar(
 
         // Phase 1 v6：长期记忆搜索
         toolRegistry.registerWithContext(SearchMemoryTool.toolDef()) { args, executionContext ->
-            SearchMemoryTool.execute(args, factStore, executionContext)
+            val scopedStore = factDbProvider?.getFactStore(executionContext.assistantId ?: "default") ?: factStore
+            SearchMemoryTool.execute(args, scopedStore, executionContext)
         }
 
         // 普通聊天里的“许愿”：把当前助手绑定到主动消息调度器。

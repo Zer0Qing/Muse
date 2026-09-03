@@ -302,10 +302,10 @@ cd Muse
 # 版本号：正式构建硬约束必须显式注入（否则 GradleException），支持
 #  -PversionName=<名称> 与 -PversionCode=<整数>，或环境变量 VERSION_NAME/VERSION_CODE。
 # 签名：必须在项目根目录提供 keystore.properties（storeFile/storePassword/keyAlias/keyPassword）；
-# 缺失即失败，禁止回退 debug 签名。当前默认版本 183 / 1.0.83（随 tag 更新）。
+# 缺失即失败，禁止回退 debug 签名。当前默认版本 186 / 1.0.86（随 tag 更新）。
 ./gradlew :app:assembleRelease \
-  -PversionName=1.0.83 \
-  -PversionCode=183
+  -PversionName=1.0.86 \
+  -PversionCode=186
 ```
 > 说明：本地临时验证可加 `-PreleaseSkipVersionCheck=true -PreleaseSkipKeystoreCheck=true` 跳过版本与签名硬约束（对应 CI 静态检查的用法）。
 
