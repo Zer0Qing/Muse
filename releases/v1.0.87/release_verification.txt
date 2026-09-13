@@ -1,0 +1,17 @@
+Muse v1.0.87 release verification
+BuiltAt=2026-09-13T17:01:52+08:00
+SourceCommit=7e1d6cd
+Expected versionName=1.0.87 versionCode=187
+BuildType=Release
+ReleaseGuards=version and keystore guards were not bypassed
+QualityGates=Web typecheck/test/security/build PASS; Android static/unit/debug lanes PASS; release preflight PASS
+ReleaseBuild=:app:assembleRelease -PversionName=1.0.87 -PversionCode=187 PASS
+APKManifest=aapt2 dump badging reported versionCode='187' versionName='1.0.87', minSdkVersion='26', targetSdkVersion='35' for all APKs
+arm64-v8a=app-arm64-v8a-release.apk bytes=64805991 SHA256=134f8964490297173654384236fbdd2488c669dccdbfa26d6683770ab86c18d1
+armeabi-v7a=app-armeabi-v7a-release.apk bytes=53474077 SHA256=a91a314f5b1da2f93b10d62b9dfcb2db48d0749b5f1f428acace38545b754240
+universal=app-universal-release.apk bytes=170212472 SHA256=b5b9930ae08cfb8b646b1bcb4de495db2742ba9e264ddc00b415edeec414f3b2
+Signature=apksigner verify passed for all APKs; v2 scheme true; one signer per APK; certificate SHA256=e82f4ecde8304b7d78b530336a48e41a42b80c0ebac8af2d2c10448277644ebf
+DBVersion=96; no new migration introduced
+Manifest=release/manifest.json generated and validated against all three APKs
+Emulator=Android 15 x86_64 emulator-5554; Release APK installed and MainActivity launched; no crash buffer entries
+KnownLimit=Real Provider long stream, LAN Host, background/lock/process-reclaim matrix and multi-client concurrency remain outside local emulator verification
