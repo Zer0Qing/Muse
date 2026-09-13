@@ -114,6 +114,10 @@ class MuseApp : Application(), ImageLoaderFactory {
     // B5-02: 启动时恢复被强杀中断的群聊生成账本
     private val groupChatScheduler: io.zer0.muse.schedule.GroupChatScheduler by inject()
     private val chatGenerationManager: io.zer0.muse.schedule.ChatGenerationManager by inject()
+    /** 备份恢复账本；启动时检查上次是否停在跨存储恢复中间。 */
+    private val restoreJournal: io.zer0.muse.backup.RestoreJournal by inject()
+    /** 恢复服务；启动时优先回滚未完成的跨存储恢复。 */
+    private val backupService: io.zer0.muse.backup.BackupService by inject()
     // 工具注册器启动引导:强制实例化全部 lazy single,让 100+ 工具可用
     private val toolRegistrarBootstrapper: io.zer0.muse.tools.ToolRegistrarBootstrapper by inject()
     // MCP 注册表必须在应用启动时实例化,否则只打开过 MCP 设置页的进程才会连接 server,
@@ -180,6 +184,16 @@ class MuseApp : Application(), ImageLoaderFactory {
             }
             MuseCrashHandler.markSafeMode(this)
             return
+        }
+        restoreJournal.incompleteEntry()?.let { entry ->
+            Logger.w(
+                "MuseApp",
+                "检测到未完成的备份恢复: restoreId=${entry.restoreId}, phase=${entry.phase}, " +
+                    "completedStores=${entry.completedStores}",
+            )
+            appScope.launch {
+                backupService.recoverIncompleteRestore()
+            }
         }
         // 强制实例化全部工具注册器，让 100+ 工具在启动后即可用
         toolRegistrarBootstrapper
@@ -382,9 +396,15 @@ class MuseApp : Application(), ImageLoaderFactory {
         appScope.launch {
             resultOf {
                 if (settings.webServerConfigFlow.first().enabled) {
-                    webServer.start()
+                    val started = webServer.start()
+                    if (!started) {
+                        Logger.w(
+                            "MuseApp",
+                            "WebServer 启动未完成: ${webServer.lastError.value ?: "unknown error"}",
+                        )
+                    }
                 }
-            }.onError { msg, t -> Logger.w("MuseApp", "WebServer 启动失败", t) }
+            }.onError { msg, t -> Logger.w("MuseApp", "WebServer 启动失败: $msg", t) }
         }
         // v0.23: 启动定时任务轮询(后台协程,每 60s 检查到期任务并通知)
         // 真正崩溃已在 v0.22 修复(SettingsRepository init 块顺序),可安全恢复 Runner

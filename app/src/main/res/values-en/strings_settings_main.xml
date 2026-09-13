@@ -289,11 +289,11 @@
     <string name="settings_web_address_pin">Address: %1$s    PIN: %2$s</string>
     <string name="settings_web_pin_hint">The PIN is only for first-time web access verification; the browser saves the token after login</string>
     <string name="settings_web_enable">Enable Web Server</string>
-    <string name="settings_web_enable_subtitle">Takes effect on next app launch</string>
+    <string name="settings_web_enable_subtitle">Starts or stops the service immediately</string>
     <string name="settings_web_allow_lan">Allow LAN access</string>
     <string name="settings_web_allow_lan_subtitle">Localhost only by default; enable to allow devices on the same Wi-Fi to connect via IP</string>
     <string name="settings_web_port">Port</string>
-    <string name="settings_web_port_subtitle">%1$d (restart app to apply)</string>
+    <string name="settings_web_port_subtitle">%1$d (applied immediately)</string>
     <string name="settings_web_password">Login Password</string>
     <string name="settings_web_password_not_set">Not set</string>
     <string name="settings_web_regenerate_password">Regenerate Password</string>
@@ -304,18 +304,22 @@
     <string name="settings_web_copy_pin">Copy PIN</string>
     <string name="settings_web_pin_copied">PIN copied: %1$s</string>
     <string name="settings_web_regenerate_pin">Regenerate PIN</string>
-    <string name="settings_web_regenerate_pin_subtitle">Generate a 6-digit PIN (old PIN invalidated; restart app to apply)</string>
-    <string name="settings_web_new_pin">New PIN: %1$s (restart app to apply)</string>
+    <string name="settings_web_regenerate_pin_subtitle">Generate a 6-digit PIN (old PIN invalidated immediately)</string>
+    <string name="settings_web_new_pin">New PIN: %1$s (effective immediately)</string>
     <string name="settings_web_access_address">Access Address</string>
     <string name="settings_web_no_lan">Not connected to LAN (unavailable even when enabled)</string>
+    <string name="settings_web_not_running">Service is not running; the address is unavailable</string>
     <string name="settings_web_copy_address">Copy Address</string>
     <string name="settings_web_address_copied">Copied: %1$s</string>
     <string name="settings_web_edit_port">Edit Port</string>
     <string name="settings_web_port_number">Port Number (1024-65535)</string>
-    <string name="settings_web_port_hint">Avoid common ports like 8080/3000. Restart app to apply.</string>
+    <string name="settings_web_port_hint">Avoid common ports like 8080/3000. Saving restarts the Web service immediately.</string>
     <string name="settings_web_port_invalid">Invalid port (1024-65535)</string>
-    <string name="settings_web_port_updated">Port updated, restart app to apply</string>
+    <string name="settings_web_port_updated">Port updated and Web service reapplied</string>
     <string name="settings_web_failed">Failed: %1$s</string>
+    <string name="settings_web_status_running">Service running on port %1$d</string>
+    <string name="settings_web_status_stopped">Service is not running</string>
+    <string name="settings_web_status_failed">Service failed to start: %1$s</string>
 
     <!-- ==================== Chat Settings ==================== -->
     <string name="settings_chat_title">Chat</string>

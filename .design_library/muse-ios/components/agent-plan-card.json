@@ -1,0 +1,67 @@
+{
+  "slug": "agent-plan-card",
+  "schemaVersion": 2,
+  "name": "Agent Plan Card",
+  "category": "Content",
+  "sourceKind": "from-scratch",
+  "confidence": "medium",
+  "semanticTypeCandidates": [
+    {"candidate": "task-timeline", "evidence": "Multi-step agent plan with progress tracking"},
+    {"candidate": "stepper", "evidence": "Sequential steps with current active and completed states"}
+  ],
+  "variantDimensions": [
+    {"name": "status", "values": ["planning", "executing", "paused", "completed", "failed"]},
+    {"name": "stepState", "values": ["pending", "active", "completed", "failed", "skipped"]},
+    {"name": "layout", "values": ["inline", "standalone"]}
+  ],
+  "representativeVariants": [
+    {
+      "name": "Executing Plan",
+      "whySelected": "Active multi-step agent plan",
+      "traits": {"status": "executing", "radius": "20px card", "bg": "accent-soft 5pct", "border": "1px accent-17pct", "padding": "16px", "header": "brain icon + Agent 计划 + progress text", "stepCount": "3 of 5"},
+      "childrenDigest": "Header with progress + vertical timeline of steps with status indicators"
+    },
+    {
+      "name": "Completed Plan",
+      "whySelected": "All steps finished successfully",
+      "traits": {"status": "completed", "radius": "20px", "bg": "success-5pct", "border": "1px success-25pct", "icon": "checkmark-circle", "label": "计划完成", "textColor": "success"},
+      "childrenDigest": "Success header + completed step list with results"
+    },
+    {
+      "name": "Paused Plan",
+      "whySelected": "User paused execution",
+      "traits": {"status": "paused", "radius": "20px", "bg": "warning-5pct", "border": "1px warning-25pct", "icon": "pause-circle", "label": "已暂停", "actions": "resume button"},
+      "childrenDigest": "Paused header + step list with current step highlighted + resume action"
+    },
+    {
+      "name": "Step Failed",
+      "whySelected": "A step failed during execution",
+      "traits": {"status": "failed", "radius": "20px", "bg": "danger-7pct", "border": "1px danger-35pct", "icon": "error indicator", "label": "步骤失败", "textColor": "danger", "actions": "retry skip buttons"},
+      "childrenDigest": "Error header + failed step with error message + retry skip actions"
+    }
+  ],
+  "anatomy": [
+    "Header: agent icon + plan title + overall progress indicator",
+    "Step timeline: vertical list of steps with connector lines",
+    "Step item: status icon + step name + optional description + optional result",
+    "Step status indicators: pending circle, active spinner, completed checkmark, failed x",
+    "Connector line: vertical, colored by step status",
+    "Action area: pause resume retry skip buttons"
+  ],
+  "structurePatterns": [
+    "Inline within message flow",
+    "Vertical timeline with connecting lines between steps",
+    "Current step has accent highlight and spinner",
+    "Completed steps have success checkmark and muted text",
+    "Failed steps have danger indicator and error text",
+    "Collapsible: header always visible, steps collapsible"
+  ],
+  "usageHints": {
+    "priorityHint": "medium",
+    "touchTarget": "44pt min for action buttons",
+    "iosAdaptation": "iOS custom cell with timeline view; Android LazyColumn with Canvas connector lines; Web CSS timeline with flexbox"
+  },
+  "doNotInvent": ["Specific agent plan templates", "Step dependency logic"],
+  "unknowns": ["Exact step description format"],
+  "keyInsightSeed": "Vertical timeline stepper with per-step status tracking and connector lines"
+}

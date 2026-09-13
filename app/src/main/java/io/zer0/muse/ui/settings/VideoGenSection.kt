@@ -1,3 +1,5 @@
+@file:Suppress("FunctionNaming")
+
 package io.zer0.muse.ui.settings
 
 import androidx.compose.foundation.background
@@ -5,13 +7,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items as lazyItems
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -55,7 +58,6 @@ import org.koin.compose.koinInject
  * 用户可在此设置默认视频供应商、模型、时长和分辨率。
  * ChatViewModel.execGenerateVideo 在 LLM 未显式指定时优先使用此配置。
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun VideoGenSection(
     settings: SettingsRepository = koinInject(),
@@ -191,7 +193,6 @@ private fun VideoModelSelectorCard(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun VideoModelSelectorDialog(
     providers: List<ProviderConfig>,
@@ -233,11 +234,11 @@ private fun VideoModelSelectorDialog(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                FlowRow(
+                LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(horizontal = 2.dp),
                 ) {
-                    providers.forEach { p ->
+                    lazyItems(providers, key = { it.id }) { p ->
                         MuseChip(
                             selected = p.id == currentProviderId,
                             onClick = { currentProviderId = p.id },
@@ -314,38 +315,6 @@ private fun VideoModelGridCard(
                     contentDescription = stringResource(R.string.settings_video_gen_selected),
                     tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(18.dp),
-                )
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun LabeledChipGroup(
-    label: String,
-    options: List<Pair<String, String>>,
-    selected: String,
-    onSelect: (String) -> Unit,
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            options.forEach { (value, display) ->
-                MuseChip(
-                    selected = selected == value,
-                    onClick = { onSelect(value) },
-                    label = display,
                 )
             }
         }

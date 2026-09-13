@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import java.util.concurrent.atomic.AtomicLong
+import java.util.UUID
 
 /**
  * v1.43: 应用级聊天生成调度器。
@@ -43,8 +43,10 @@ class ChatGenerationManager(
         val sessionId: String,
         val assistantId: String,
         val sessionTitle: String,
-        /** 稳定的代际身份；显示字段 copy() 更新时不能改变它。 */
-        val generationId: Long = 0L,
+        /** 稳定的代际身份；与 StreamRunState/执行资源共用同一个字符串 ID。 */
+        val generationId: String,
+        /** 本轮对话 turn 身份；旧后台调用可为空。 */
+        val turnId: String? = null,
         val isStreaming: Boolean = true,
         val lastUpdatedAt: Long = System.currentTimeMillis(),
     )
@@ -57,8 +59,6 @@ class ChatGenerationManager(
     val activeGenerations: StateFlow<Map<String, ActiveGeneration>> = _activeGenerations.asStateFlow()
 
     private val lock = Any()
-    private val nextGenerationId = AtomicLong(0L)
-
     /**
      * 在应用级协程中启动生成任务,并登记到唯一 owner 的会话级账本。
      *
@@ -71,10 +71,48 @@ class ChatGenerationManager(
      *
      * @param sessionId 会话 id(单聊为会话 id,群聊为 "group:$chatId")
      */
+    /** 兼容旧调用方：由 manager 为未接入统一身份的后台生成分配代际。 */
     fun launchGeneration(
         sessionId: String,
         assistantId: String,
         sessionTitle: String,
+        block: suspend () -> Unit,
+    ): Job = launchGeneration(
+        sessionId = sessionId,
+        assistantId = assistantId,
+        sessionTitle = sessionTitle,
+        generationId = UUID.randomUUID().toString(),
+        block = block,
+    )
+
+    /**
+     * 启动带显式统一代际身份的生成。
+     *
+     * 保留五参数重载，兼容已有调用方；需要 turn 身份时使用下方扩展重载。
+     */
+    fun launchGeneration(
+        sessionId: String,
+        assistantId: String,
+        sessionTitle: String,
+        generationId: String,
+        block: suspend () -> Unit,
+    ): Job = launchGeneration(
+        sessionId = sessionId,
+        assistantId = assistantId,
+        sessionTitle = sessionTitle,
+        generationId = generationId,
+        turnId = null,
+        block = block,
+    )
+
+    /** 带 generationId 与 turnId 的 Host/原生统一生成入口。 */
+    @Suppress("LongParameterList")
+    fun launchGeneration(
+        sessionId: String,
+        assistantId: String,
+        sessionTitle: String,
+        generationId: String,
+        turnId: String?,
         block: suspend () -> Unit,
     ): Job {
         synchronized(lock) {
@@ -86,7 +124,8 @@ class ChatGenerationManager(
                 sessionId = sessionId,
                 assistantId = assistantId,
                 sessionTitle = sessionTitle,
-                generationId = nextGenerationId.incrementAndGet(),
+                generationId = generationId,
+                turnId = turnId,
                 isStreaming = true,
                 lastUpdatedAt = System.currentTimeMillis(),
             )
@@ -182,6 +221,17 @@ class ChatGenerationManager(
         synchronized(lock) {
             val current = _activeGenerations.value[sessionId] ?: return
             val updated = current.copy(sessionTitle = title, lastUpdatedAt = System.currentTimeMillis())
+            _activeGenerations.value = _activeGenerations.value + (sessionId to updated)
+            _activeGeneration.value = _activeGenerations.value.values.maxByOrNull { it.lastUpdatedAt }
+        }
+    }
+
+    /** 将已登记生成补充关联 turn 身份，保持旧五参数调用方兼容。 */
+    fun setTurnId(sessionId: String, generationId: String, turnId: String) {
+        synchronized(lock) {
+            val current = _activeGenerations.value[sessionId] ?: return
+            if (current.generationId != generationId) return
+            val updated = current.copy(turnId = turnId, lastUpdatedAt = System.currentTimeMillis())
             _activeGenerations.value = _activeGenerations.value + (sessionId to updated)
             _activeGeneration.value = _activeGenerations.value.values.maxByOrNull { it.lastUpdatedAt }
         }

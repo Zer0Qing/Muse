@@ -19,6 +19,9 @@ import io.zer0.muse.schedule.ChatGenerationManager
 import io.zer0.muse.schedule.ConversationEndType
 import io.zer0.muse.schedule.UserActivityProfile
 import io.zer0.muse.session.ConversationSessionManager
+import io.zer0.muse.session.ExecutionKind
+import io.zer0.muse.session.ExecutionState
+import io.zer0.muse.session.SessionExecutionRegistry
 import io.zer0.muse.session.TurnPhase
 import io.zer0.muse.ui.ChatErrorType
 import io.zer0.muse.ui.ChatStreamPhase
@@ -59,12 +62,14 @@ internal class ChatGenerationController(
     private val notificationManager: MuseNotificationManager,
     private val onCancelAncillaryJobs: () -> Unit,
     private val onCancelPendingApprovals: (String?) -> Unit,
+    private val executionRegistry: SessionExecutionRegistry? = null,
 ) {
 
     /** 用户点"停止"。 */
     fun stop() {
         // 只停止单聊的生成,不影响群聊
         val sid = accessor.snapshot.currentSessionId ?: accessor.snapshot.agentSessionId
+        sid?.let { executionRegistry?.requestCancelForSession(it, "user_stop") }
         chatGenerationManager.stop(sid)
         // 记录运行时取消标志,区分"用户停止"与异常失败;Job 与 chatGenerationManager 持有同一实例,重复 cancel 幂等。
         sid?.let { sessionManager.cancelGeneration(it) }
@@ -711,13 +716,22 @@ internal class ChatGenerationController(
         }
         // 在调度器等待旧代 finally 之前就分配新代身份，旧代收尾从此刻起不能清零新代 UI。
         val generationSerial = ++deps.generationState.streamGenerationSerial
+        // 先创建流状态，再把同一 generationId 交给调度器；活跃状态、LLM、工具和审批因此共享代际身份。
+        val state = StreamRunState(sessionId = sessionId, assistantId = assistantId, isNewBranch = isNewBranch)
         chatGenerationManager.launchGeneration(
             sessionId = sessionId,
             assistantId = assistantId.toString(),
             sessionTitle = accessor.snapshot.sessions.firstOrNull { it.id == sessionId }?.title
                 ?: deps.appContext.getString(R.string.chat_new_session),
+            generationId = state.generationIdentity.generationId,
         ) {
-            val state = StreamRunState(sessionId = sessionId, assistantId = assistantId, isNewBranch = isNewBranch)
+            val generationJob = kotlin.coroutines.coroutineContext[kotlinx.coroutines.Job]
+            val generationExecutionId = executionRegistry?.register(
+                identity = state.generationIdentity,
+                kind = ExecutionKind.LLM,
+                cancel = { generationJob?.cancel() },
+            )
+            generationExecutionId?.let { id -> executionRegistry?.start(id) }
             // 会话选择显式覆盖助手/全局默认；生成任务捕获启动时的配置，期间切页不会串台。
             state.sessionModelOverride = deps.generationState.sessionModelOverrides[sessionId]
             state.sessionProviderOverride = deps.generationState.sessionProviderOverrides[sessionId]
@@ -728,6 +742,11 @@ internal class ChatGenerationController(
             state.generationSerial = generationSerial
             // M1.1: 开启会话运行时 turn 检查点(NOT_STARTED -> GENERATING)。
             sessionManager.beginTurn(sessionId, state.turnId)
+            chatGenerationManager.setTurnId(
+                sessionId = sessionId,
+                generationId = state.generationIdentity.generationId,
+                turnId = state.generationIdentity.turnId,
+            )
             // B7-04: 继续生成时预置已产出内容
             continueFrom?.let { state.builder.append(it.content) }
             try {
@@ -755,6 +774,7 @@ internal class ChatGenerationController(
                     sessionManager.runtime(sessionId)?.markFinished(TurnPhase.FAILED, state.turnId)
                 }
             } catch (ce: kotlinx.coroutines.CancellationException) {
+                generationExecutionId?.let { executionRegistry?.markCancelled(it) }
                 val partialFromBuilder = if (state.builder.isNotEmpty()) {
                     UIMessage(
                         id = state.currentAssistantId,
@@ -802,6 +822,7 @@ internal class ChatGenerationController(
                 deps.generationState.activeToolSessionId = null
                 throw ce
             } catch (t: Exception) {
+                generationExecutionId?.let { executionRegistry?.fail(it) }
                 Logger.e("ChatVM", "stream failed", t)
                 val partialFromBuilder = if (state.builder.isNotEmpty()) {
                     UIMessage(
@@ -840,6 +861,10 @@ internal class ChatGenerationController(
                     notificationManager.updateLiveProgress("", 0, false)
                 }.onFailure { Logger.w("ChatVM", "取消进度通知失败: ${it.message}") }
             } finally {
+                val executionState = generationExecutionId?.let { executionRegistry?.state(it) }
+                if (generationExecutionId != null && executionState == ExecutionState.RUNNING) {
+                    executionRegistry?.finish(generationExecutionId)
+                }
                 deps.sessionMemoryCache.remove(sessionId)
                 deps.milestoneChecker?.checkAndTrigger(sessionId, accessor.snapshot.currentAssistant?.id ?: "default")
             }

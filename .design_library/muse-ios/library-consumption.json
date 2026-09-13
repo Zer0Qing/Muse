@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "tokenSource": "css.json",
+  "componentIndex": "components/index.json",
+  "recommendedReadOrder": ["SKILL.md", "css.json", "components/index.json", "preview/component-message-bubble.html", "ui_kits/app/index.html"],
+  "coreComponents": ["message-bubble", "input-bar", "navigation-bar", "conversation-list", "settings-page"],
+  "supportComponents": ["thinking-card", "tool-call-card", "approval-card", "agent-plan-card", "media-card"]
+}

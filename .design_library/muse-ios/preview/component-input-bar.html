@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="../colors_and_type.css">
+<title>Input Bar</title>
+<style>
+body{margin:0;padding:12px;background:var(--bg);font-family:var(--font-body);color:var(--color-on-surface);}
+.row{display:flex;gap:var(--space-2);align-items:center;margin-bottom:var(--space-3);}
+.label{font-size:var(--font-size-label);color:var(--color-muted-foreground);letter-spacing:0.04em;width:64px;flex-shrink:0;}
+.divider{border:none;border-top:1px solid var(--divider);margin:var(--space-2) 0;}
+/* @component-css-start */
+.inputbar{display:flex;align-items:flex-end;gap:var(--space-2);width:100%;background:var(--glass-bg);backdrop-filter:blur(var(--glass-blur)) saturate(var(--glass-saturation));-webkit-backdrop-filter:blur(var(--glass-blur)) saturate(var(--glass-saturation));border:1px solid var(--hairline);border-radius:var(--radius-bubble);padding:var(--space-2) var(--space-3);min-height:49px;box-shadow:var(--shadow-2);box-sizing:border-box;}
+.inputbar textarea{flex:1;min-width:0;min-height:28px;max-height:132px;border:none;background:transparent;resize:none;outline:none;font-family:var(--font-body);font-size:var(--font-size-body-m);line-height:var(--line-height-body);color:var(--color-on-surface);padding:var(--space-1) 0;}
+.inputbar textarea::placeholder{color:var(--ink-tertiary);}
+.ib-btn{display:inline-flex;align-items:center;justify-content:center;border:none;border-radius:var(--radius-pill);font-family:var(--font-body);font-size:var(--font-size-caption);font-weight:var(--font-weight-semibold);cursor:pointer;transition:filter var(--duration-fast) var(--ease-out),background var(--duration-fast);white-space:nowrap;flex-shrink:0;}
+.ib-tool{min-width:44px;height:44px;padding:0 var(--space-2);background:var(--surface-container);color:var(--color-on-surface);}
+.ib-tool:hover{background:var(--surface-container-high);}
+.ib-send{min-width:70px;height:38px;padding:0 var(--space-3);background:var(--primary);color:var(--primary-foreground);}
+.ib-send:hover{filter:brightness(0.92);}
+.ib-stop{min-width:70px;height:38px;padding:0 var(--space-3);background:var(--danger);color:var(--ink-on-danger);}
+.ib-stop:hover{filter:brightness(0.92);}
+/* @component-css-end */
+</style>
+</head>
+<body>
+<div class="row">
+  <span class="label">默认</span>
+  <div class="inputbar" data-evidence-sample="default-text-mode">
+    <button type="button" class="ib-btn ib-tool">工具调用</button>
+    <textarea placeholder="对话"></textarea>
+    <button type="button" class="ib-btn ib-send">发送</button>
+  </div>
+</div>
+<hr class="divider">
+<div class="row">
+  <span class="label">生成中</span>
+  <div class="inputbar" data-evidence-sample="streaming-stop">
+    <button type="button" class="ib-btn ib-tool">工具调用</button>
+    <textarea placeholder="对话"></textarea>
+    <button type="button" class="ib-btn ib-stop">停止生成</button>
+  </div>
+</div>
+</body>
+</html>

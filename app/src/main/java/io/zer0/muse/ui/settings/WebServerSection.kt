@@ -43,6 +43,7 @@ import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.settings.SettingsGroupDivider
 import io.zer0.muse.ui.common.settings.SettingsItemRow
 import io.zer0.muse.ui.common.settings.SettingsSwitchRow
+import io.zer0.muse.web.WebServer
 import io.zer0.muse.web.WebServerConfig
 import io.zer0.muse.ui.theme.MuseShapes
 import kotlinx.coroutines.launch
@@ -58,27 +59,32 @@ import kotlinx.coroutines.launch
  *  - 明显提示"同一 Wi-Fi 下他人可通过 IP + PIN 访问"
  *
  * 后端 WebServerConfig + WebServer 服务在 MuseApp 启动时自动启动,
- * 但前端完全无入口,服务"暗跑"。此 section 让用户可控:
- *  - 启停开关(关闭后下次启动 App 不再启动 WebServer)
+ * 设置页保存后也会立即应用配置并显示真实运行状态。此 section 让用户可控:
+ *  - 启停开关(保存后立即启动或停止 WebServer)
  *  - 端口配置(默认 8765)
  *  - 密码(用于 JWT 登录,可重新生成)
  *  - PIN(用于 Web 端首次访问验证,可重新生成)
  *  - 访问地址(动态 IP + 复制按钮)
  */
+@Suppress("LongMethod", "CyclomaticComplexMethod", "FunctionNaming")
 @Composable
 internal fun WebServerSection(
     settings: SettingsRepository,
+    webServer: WebServer,
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val config by settings.webServerConfigFlow.collectAsStateWithLifecycle(
         initialValue = WebServerConfig()
     )
+    val isRunning by webServer.isRunning.collectAsStateWithLifecycle(initialValue = false)
+    val lastError by webServer.lastError.collectAsStateWithLifecycle(initialValue = null)
     var showPortDialog by remember { mutableStateOf(false) }
     var portInput by remember { mutableStateOf(config.port.toString()) }
     // 动态获取局域网 IP
     val localIp = remember { NetworkUtils.getLocalIpAddress() }
     val accessUrl = buildAccessUrl(config.allowLan, localIp, config.port)
+    val runningAccessUrl = if (isRunning) accessUrl else null
 
     SectionLabel(stringResource(R.string.settings_web_title))
     Text(
@@ -87,9 +93,19 @@ internal fun WebServerSection(
         color = MaterialTheme.colorScheme.outline,
         modifier = Modifier.padding(top = 4.dp),
     )
+    Text(
+        text = when {
+            isRunning -> stringResource(R.string.settings_web_status_running, config.port)
+            lastError != null -> stringResource(R.string.settings_web_status_failed, lastError.orEmpty())
+            else -> stringResource(R.string.settings_web_status_stopped)
+        },
+        style = MaterialTheme.typography.bodySmall,
+        color = if (isRunning) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+        modifier = Modifier.padding(top = 4.dp),
+    )
 
     // P2-13: 明显提示 — 同一 Wi-Fi 下他人可通过 IP + PIN 访问
-    if (accessUrl != null && config.pin.isNotBlank() && config.allowLan) {
+    if (runningAccessUrl != null && config.pin.isNotBlank() && config.allowLan) {
         Surface(
             modifier = Modifier
                 .padding(top = 8.dp)
@@ -117,7 +133,7 @@ internal fun WebServerSection(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = stringResource(R.string.settings_web_address_pin, accessUrl, config.pin),
+                        text = stringResource(R.string.settings_web_address_pin, runningAccessUrl, config.pin),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                     )
@@ -142,7 +158,7 @@ internal fun WebServerSection(
             checked = config.enabled,
             onCheckedChange = { enabled ->
                 scope.launch {
-                    resultOf { settings.saveWebServerConfig(config.copy(enabled = enabled)) }
+                    resultOf { webServer.saveAndApplyConfig(config.copy(enabled = enabled)) }
                         .onError { _, t ->
                             MuseToast.show(context.getString(R.string.settings_web_failed, t?.message))
                         }
@@ -150,7 +166,7 @@ internal fun WebServerSection(
             },
         )
         SettingsGroupDivider()
-        lanAccessSwitch(config = config, settings = settings)
+        lanAccessSwitch(config = config, webServer = webServer)
         // 端口
         SettingsItemRow(
             icon = TablerIcons.Globe,
@@ -177,7 +193,7 @@ internal fun WebServerSection(
             onClick = {
                 val newPassword = WebServerConfig.generateRandomPassword()
                 scope.launch {
-                    resultOf { settings.saveWebServerConfig(config.copy(password = newPassword)) }
+                    resultOf { webServer.saveAndApplyConfig(config.copy(password = newPassword)) }
                         .onSuccess {
                             MuseToast.show(context.getString(R.string.settings_web_new_password, newPassword), 3500)
                         }
@@ -218,7 +234,7 @@ internal fun WebServerSection(
             onClick = {
                 val newPin = WebServerConfig.generateRandomPin()
                 scope.launch {
-                    resultOf { settings.saveWebServerConfig(config.copy(pin = newPin)) }
+                    resultOf { webServer.saveAndApplyConfig(config.copy(pin = newPin)) }
                         .onSuccess {
                             MuseToast.show(context.getString(R.string.settings_web_new_pin, newPin), 3500)
                         }
@@ -233,13 +249,17 @@ internal fun WebServerSection(
         SettingsItemRow(
             icon = TablerIcons.Wifi,
             title = stringResource(R.string.settings_web_access_address),
-            subtitle = accessUrl ?: stringResource(R.string.settings_web_no_lan),
+            subtitle = when {
+                runningAccessUrl != null -> runningAccessUrl
+                lastError != null -> stringResource(R.string.settings_web_status_failed, lastError.orEmpty())
+                else -> stringResource(R.string.settings_web_not_running)
+            },
         ) {
-            if (accessUrl != null) {
+            if (runningAccessUrl != null) {
                 IconButton(onClick = {
                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                    clipboard.setPrimaryClip(ClipData.newPlainText("Muse WebServer", accessUrl))
-                    MuseToast.show(context.getString(R.string.settings_web_address_copied, accessUrl))
+                    clipboard.setPrimaryClip(ClipData.newPlainText("Muse WebServer", runningAccessUrl))
+                    MuseToast.show(context.getString(R.string.settings_web_address_copied, runningAccessUrl))
                 }) {
                     Icon(
                         imageVector = TablerIcons.Copy,
@@ -282,7 +302,7 @@ internal fun WebServerSection(
                     return@MuseDialog
                 }
                 scope.launch {
-                    resultOf { settings.saveWebServerConfig(config.copy(port = port)) }
+                    resultOf { webServer.saveAndApplyConfig(config.copy(port = port)) }
                         .onSuccess {
                             showPortDialog = false
                             MuseToast.show(context.getString(R.string.settings_web_port_updated))
@@ -306,7 +326,7 @@ private fun buildAccessUrl(allowLan: Boolean, localIp: String?, port: Int): Stri
 @Composable
 private fun lanAccessSwitch(
     config: WebServerConfig,
-    settings: SettingsRepository,
+    webServer: WebServer,
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -317,7 +337,7 @@ private fun lanAccessSwitch(
         checked = config.allowLan,
         onCheckedChange = { allowLan ->
             scope.launch {
-                resultOf { settings.saveWebServerConfig(config.copy(allowLan = allowLan)) }
+                resultOf { webServer.saveAndApplyConfig(config.copy(allowLan = allowLan)) }
                     .onError { _, t ->
                         MuseToast.show(context.getString(R.string.settings_web_failed, t?.message))
                     }

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+body { margin: 0; padding: 12px; background: var(--color-background); font-family: var(--font-body); color: var(--color-on-surface); }
+.row { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 12px; }
+.label { width: 92px; flex-shrink: 0; font-size: var(--font-size-label); font-weight: var(--font-weight-medium); color: var(--color-on-surface-variant); text-transform: uppercase; letter-spacing: 0.02em; padding-top: 14px; }
+.divider { border: none; border-top: 1px solid var(--color-border); margin: 12px 0; }
+/* @component-css-start */
+.plan-card { flex: 1; min-width: 0; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-4); box-shadow: var(--shadow-2); }
+.plan-card.executing { border-color: var(--primary-200); background: var(--color-primary-container); }
+.plan-card.completed { border-color: var(--success-200); background: var(--success-50); }
+.plan-header { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-3); }
+.plan-icon { width: 20px; height: 20px; border-radius: var(--radius-full); flex-shrink: 0; }
+.plan-card.executing .plan-icon { background: var(--color-primary); }
+.plan-card.completed .plan-icon { background: var(--color-success); }
+.plan-title { font-size: var(--font-size-body-l); font-weight: var(--font-weight-semibold); flex: 1; min-width: 0; }
+.plan-progress { font-size: var(--font-size-caption); color: var(--color-on-surface-variant); font-weight: var(--font-weight-medium); white-space: nowrap; }
+.plan-status { font-size: var(--font-size-caption); font-weight: var(--font-weight-medium); color: var(--color-success); white-space: nowrap; }
+.timeline { list-style: none; margin: 0; padding: 0; }
+.step { position: relative; padding-left: 28px; padding-bottom: var(--space-3); }
+.step:last-child { padding-bottom: 0; }
+.step::before { content: ""; position: absolute; left: 7px; top: 20px; bottom: 0; width: 2px; background: var(--color-border); }
+.step:last-child::before { display: none; }
+.step.completed::before { background: var(--success-300); }
+.step-dot { position: absolute; left: 0; top: 2px; width: 16px; height: 16px; border-radius: var(--radius-full); border: 2px solid var(--neutral-400); background: var(--color-surface); box-sizing: border-box; }
+.step.completed .step-dot { border-color: var(--color-success); background: var(--color-success); }
+.step.completed .step-dot::after { content: ""; position: absolute; left: 3px; top: 1px; width: 4px; height: 8px; border: solid var(--color-surface); border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.step.active .step-dot { border-color: var(--color-primary); background: var(--color-primary); }
+.step.active .step-dot::after { content: ""; position: absolute; left: 4px; top: 4px; width: 4px; height: 4px; border-radius: var(--radius-full); background: var(--color-surface); }
+.step.pending .step-dot { border-color: var(--neutral-300); background: var(--color-surface); }
+.step-name { font-size: var(--font-size-body-m); color: var(--color-on-surface); }
+.step.completed .step-name { color: var(--color-on-surface-variant); }
+.step.active .step-name { font-weight: var(--font-weight-semibold); color: var(--color-primary); }
+.plan-action { display: inline-flex; align-items: center; font-size: var(--font-size-caption); font-weight: var(--font-weight-medium); color: var(--color-primary); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); border: 1px solid var(--primary-200); margin-top: var(--space-3); white-space: nowrap; text-decoration: none; transition: background var(--duration-fast); }
+.plan-action:hover { background: var(--color-primary-container); }
+/* @component-css-end */
+</style>
+</head>
+<body>
+<div class="row">
+  <span class="label">执行中</span>
+  <div class="plan-card executing">
+    <div class="plan-header">
+      <span class="plan-icon"></span>
+      <span class="plan-title">Agent 计划</span>
+      <span class="plan-progress">3/5</span>
+    </div>
+    <ol class="timeline">
+      <li class="step completed"><span class="step-dot"></span><span class="step-name">对话</span></li>
+      <li class="step completed"><span class="step-dot"></span><span class="step-name">分析需求</span></li>
+      <li class="step active"><span class="step-dot"></span><span class="step-name">工具调用</span></li>
+      <li class="step pending"><span class="step-dot"></span><span class="step-name">生成结果</span></li>
+      <li class="step pending"><span class="step-dot"></span><span class="step-name">输出回复</span></li>
+    </ol>
+    <a href="#" class="plan-action">暂停</a>
+  </div>
+</div>
+<hr class="divider">
+<div class="row">
+  <span class="label">已完成</span>
+  <div class="plan-card completed">
+    <div class="plan-header">
+      <span class="plan-icon"></span>
+      <span class="plan-title">Agent 计划</span>
+      <span class="plan-status">计划完成</span>
+    </div>
+    <ol class="timeline">
+      <li class="step completed"><span class="step-dot"></span><span class="step-name">对话</span></li>
+      <li class="step completed"><span class="step-dot"></span><span class="step-name">工具调用</span></li>
+      <li class="step completed"><span class="step-dot"></span><span class="step-name">生成结果</span></li>
+    </ol>
+  </div>
+</div>
+</body>
+</html>

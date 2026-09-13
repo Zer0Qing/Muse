@@ -37,6 +37,14 @@ internal class StreamRunState(
     /** shadow 回合身份，与 provider 的 streamId 分离，旧事件不能跨回合写入。 */
     val turnId: String = kotlin.uuid.Uuid.random().toString()
     val streamId: String = kotlin.uuid.Uuid.random().toString()
+    /** 跨生成、LLM 流和工具执行共享的代际身份。traceId 作为本次生成的唯一 generationId。 */
+    val generationIdentity: io.zer0.muse.session.GenerationIdentity
+        get() = io.zer0.muse.session.GenerationIdentity(
+            sessionId = sessionId,
+            turnId = turnId,
+            generationId = traceId,
+            streamId = streamId,
+        )
     var shadowTurnStarted: Boolean = false
 
     // Phase A: prepareHistory

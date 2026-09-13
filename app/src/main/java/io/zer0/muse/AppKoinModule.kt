@@ -44,7 +44,7 @@ import java.util.concurrent.TimeUnit
  * [ChatViewModel] �?viewModel DSL 注册,UI �?koinViewModel() 取�?
  */
 val appModule = module {
-    single { SettingsRepository(androidContext(), get()) }
+    single { SettingsRepository(androidContext(), get(), get()) }
     single<ProviderConfigStore> { get<SettingsRepository>() }
     single<MemoryLlmClient> { MemoryLlmClientImpl(get(), get(), androidContext()) }
     // v12: LLM 事实去重判定器 — 算法层无法确定的同实体模糊候选交给大模型判断
@@ -207,6 +207,8 @@ val appModule = module {
 
     // v1.x: 会话级资源管理器(引用计数 + idle 清理),依赖应用级 appScope(Koin 注册的 CoroutineScope)
     single { io.zer0.muse.session.ConversationSessionManager(get()) }
+    // v1.x: 统一登记 LLM/工具/审批/浏览器/子 Agent 等执行资源，供取消和 late-result fencing 使用。
+    single { io.zer0.muse.session.SessionExecutionRegistry() }
 
     // v1.0.15: 网络状态监听器(StreamInterrupted 自动重连 + UI 网络状态显示依赖)
     single { io.zer0.muse.network.NetworkMonitor(androidContext()) }

@@ -28,6 +28,37 @@ class PluginManagerTest {
     private val context: Context get() = ApplicationProvider.getApplicationContext()
 
     @Test
+    fun corruptedRegistryIsQuarantinedInsteadOfAccepted() = runBlocking {
+        val registry = File(context.filesDir, "plugin_registry.json")
+        registry.parentFile?.mkdirs()
+        registry.writeText("{not-json")
+
+        val manager = PluginManager(context, mockk(relaxed = true))
+
+        assertTrue(manager.list().isEmpty())
+        assertFalse(registry.exists())
+        assertTrue(
+            registry.parentFile?.listFiles()?.any { it.name.startsWith("plugin_registry.json.corrupt-") } == true,
+        )
+    }
+
+    @Test
+    fun install_rejectsOversizedPackageBeforeReadingIntoMemory() = runBlocking {
+        val file = File(context.cacheDir, "oversized_${System.nanoTime()}.muse-plugin")
+        java.io.RandomAccessFile(file, "rw").use { output ->
+            output.setLength(PluginManager.MAX_PLUGIN_PACKAGE_BYTES + 1)
+        }
+
+        val manager = PluginManager(context, mockk(relaxed = true))
+        val result = manager.installFromFile(file)
+
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull()?.message?.contains("超过限制") == true)
+        file.delete()
+        Unit
+    }
+
+    @Test
     fun install_registersSkillAndPersistsPlugin() = runBlocking {
         val skillRepo = mockk<SkillRepository>(relaxed = true)
         val manager = PluginManager(context, skillRepo)
@@ -61,6 +92,18 @@ class PluginManagerTest {
     }
 
     @Test
+    fun installedEntryRejectsContentTampering() = runBlocking {
+        val skillRepo = mockk<SkillRepository>(relaxed = true)
+        val manager = PluginManager(context, skillRepo)
+        val result = manager.installFromFile(zip())
+        assertTrue(result.isSuccess)
+
+        File(context.filesDir, "plugins/test-plugin/main.js").writeText("function hello(){ return 'tampered'; }")
+
+        assertEquals(null, manager.loadEntryCode("test-plugin"))
+    }
+
+    @Test
     fun uninstall_removesDirAndSkill() = runBlocking {
         val skillRepo = mockk<SkillRepository>(relaxed = true)
         val manager = PluginManager(context, skillRepo)
@@ -72,6 +115,29 @@ class PluginManagerTest {
         assertTrue(manager.list().isEmpty())
         assertFalse(File(context.filesDir, "plugins/test-plugin").exists())
         coVerify { skillRepo.delete("plugin_test-plugin_hello") }
+    }
+
+    @Test
+    fun install_rejectsExternalFullAccessTrustClaim() = runBlocking {
+        val skillRepo = mockk<SkillRepository>(relaxed = true)
+        val manager = PluginManager(context, skillRepo)
+        val result = manager.installFromFile(
+            zip(
+                manifest = """
+                    {
+                      "id": "untrusted-full-access",
+                      "name": "Untrusted",
+                      "version": "1.0.0",
+                      "trust": "full-access",
+                      "tools": [{"name": "hello", "description": "x", "parametersJson": "{}", "requiredJson": "[]", "functionName": "hello"}]
+                    }
+                """.trimIndent(),
+            ),
+        )
+
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull()?.message?.contains("sandboxed") == true)
+        assertTrue(manager.list().none { it.id == "untrusted-full-access" })
     }
 
     @Test
@@ -106,8 +172,6 @@ class PluginManagerTest {
     }
 
     @Test
-    fun install_pluginWithJsEntry_keepsEntryCode() = runBlocking {
-    @Test
     fun install_rejectsNetworkAndResourceWriteCapabilities() = runBlocking {
         val skillRepo = mockk<SkillRepository>(relaxed = true)
         val manager = PluginManager(context, skillRepo)
@@ -130,6 +194,9 @@ class PluginManagerTest {
             assertTrue(manager.list().isEmpty())
         }
     }
+
+    @Test
+    fun install_pluginWithJsEntry_keepsEntryCode() = runBlocking {
         val skillRepo = mockk<SkillRepository>(relaxed = true)
         val manager = PluginManager(context, skillRepo)
         val zip = zip(

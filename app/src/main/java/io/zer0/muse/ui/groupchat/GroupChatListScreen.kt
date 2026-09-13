@@ -49,6 +49,7 @@ import io.zer0.muse.R
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.groupchat.GroupChatEntity
 import io.zer0.muse.data.groupchat.GroupChatMessageEntity
+import io.zer0.muse.ui.RegionErrorBoundary
 import io.zer0.muse.ui.common.media.AssistantAvatar
 import io.zer0.muse.ui.common.settings.ChevronRight
 import io.zer0.muse.ui.common.surface.MuseCardPress
@@ -96,6 +97,11 @@ fun GroupChatListScreen(
         }
     }
 
+    // I3: 群聊列表数据异常时只降级当前 Tab,不影响首页其它区域。
+    RegionErrorBoundary(
+        regionName = "groupChat",
+        data = { state.chats },
+    ) {
     // P2-1: Box 包裹,Expanded 模式下居中限宽
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -238,6 +244,7 @@ fun GroupChatListScreen(
                 }
             }
         }
+    }
     }
     }
 

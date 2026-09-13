@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="../colors_and_type.css">
+<title>Tool Call Card</title>
+<style>
+/* Page scaffold — NOT extracted */
+body{margin:0;padding:12px;background:var(--color-background);font-family:var(--font-family-base);color:var(--color-on-surface)}
+.row{display:flex;gap:8px;align-items:flex-start;margin-bottom:8px}
+.label{font-size:var(--type-label);color:var(--color-muted-foreground);text-transform:uppercase;letter-spacing:.04em;min-width:92px;flex-shrink:0;padding-top:6px}
+.divider{border:none;border-top:1px solid var(--color-border);margin:8px 0}
+/* @component-css-start */
+.tool-card{background:var(--color-surface-container);border:1px solid var(--color-border);border-radius:var(--radius-md);padding:11px 10px;flex:1;min-width:0;box-sizing:border-box}
+.tool-card.danger{background:var(--color-error-container);border-color:var(--color-danger)}
+.tc-header{display:flex;align-items:center;gap:8px}
+.tc-icon{width:20px;height:20px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;border-radius:var(--radius-full)}
+.tc-icon.active{color:var(--color-primary)}
+.tc-icon.ok{background:var(--color-success);color:var(--color-on-primary)}
+.tc-icon.err{background:var(--color-danger);color:var(--color-on-primary)}
+.tc-icon.warn{background:var(--color-warning);color:var(--color-on-primary)}
+.tc-name{font-size:var(--type-body-md);font-weight:var(--font-weight-semibold);flex:1;min-width:0}
+.tc-status{font-size:var(--type-label);color:var(--color-muted-foreground);white-space:nowrap}
+.tc-status.ok{color:var(--color-success)}
+.tc-status.err{color:var(--color-danger)}
+.tc-status.warn{color:var(--color-warning)}
+.tc-params{font-family:var(--font-mono);font-size:var(--type-label);color:var(--color-on-surface-variant);background:var(--color-surface);border-radius:var(--radius-sm);padding:8px;margin-top:8px;white-space:pre-wrap;word-break:break-all}
+.tc-result{font-family:var(--font-mono);font-size:var(--type-label);border-left:2px solid var(--color-accent);background:var(--color-surface);padding:8px 10px;border-radius:0 var(--radius-sm) var(--radius-sm) 0;margin-top:8px;white-space:pre-wrap;word-break:break-all}
+.tc-err{color:var(--color-danger);font-size:var(--type-body-md);margin-top:6px}
+.tc-actions{display:flex;gap:8px;margin-top:8px}
+.tc-btn{border:none;border-radius:var(--radius-md);padding:6px 16px;font-size:var(--type-label);font-weight:var(--font-weight-semibold);cursor:pointer;transition:background .15s,filter .15s;white-space:nowrap;min-width:var(--size-button-sm)}
+.tc-btn.primary{background:var(--color-primary);color:var(--color-on-primary)}
+.tc-btn.primary:hover{filter:brightness(.92)}
+.tc-btn.danger{background:var(--color-danger);color:var(--color-on-primary)}
+.tc-btn.danger:hover{filter:brightness(.92)}
+.tc-btn.ghost{background:transparent;color:var(--color-on-surface);border:1px solid var(--color-border)}
+.tc-btn.ghost:hover{background:var(--color-surface-container-high)}
+.spin{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* @component-css-end */
+</style>
+</head>
+<body>
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></symbol>
+<symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 3L2 20h20L12 3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 10v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17.5" r="1" fill="currentColor"/></symbol>
+<symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.5 4.5l2 2M17.5 17.5l2 2M19.5 4.5l-2 2M6.5 17.5l-2 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+</svg>
+<div class="row"><span class="label">执行中</span><div class="tool-card" data-evidence-sample="Executing"><div class="tc-header"><span class="tc-icon active"><svg width="16" height="16" class="spin"><use href="#i-gear"/></svg></span><span class="tc-name">工具调用</span><span class="tc-status">执行中</span></div><div class="tc-params">target: "审批"
+type: "对话"</div></div></div>
+<div class="row"><span class="label">已完成</span><div class="tool-card" data-evidence-sample="Success with Result"><div class="tc-header"><span class="tc-icon ok"><svg width="14" height="14"><use href="#i-check"/></svg></span><span class="tc-name">工具调用</span><span class="tc-status ok">成功</span></div><div class="tc-result">{"status":"ok","result":"审批已通过"}</div></div></div>
+<hr class="divider">
+<div class="row"><span class="label">错误</span><div class="tool-card danger" data-evidence-sample="Error"><div class="tc-header"><span class="tc-icon err"><svg width="14" height="14"><use href="#i-x"/></svg></span><span class="tc-name">工具调用</span><span class="tc-status err">失败</span></div><div class="tc-err">连接超时，请重试</div><div class="tc-actions"><button class="tc-btn ghost" type="button">重试</button></div></div></div>
+<div class="row"><span class="label">审批</span><div class="tool-card danger" data-evidence-sample="Approval Required"><div class="tc-header"><span class="tc-icon warn"><svg width="14" height="14"><use href="#i-warn"/></svg></span><span class="tc-name">工具调用</span><span class="tc-status warn">需审批</span></div><div class="tc-params">action: "delete_record"
+target: "对话历史"</div><div class="tc-actions"><button class="tc-btn primary" type="button">批准</button><button class="tc-btn danger" type="button">拒绝</button></div></div></div>
+</body>
+</html>

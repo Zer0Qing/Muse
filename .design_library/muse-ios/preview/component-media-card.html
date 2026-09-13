@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<title>Media Card</title>
+<style>
+/* Page scaffold — NOT extracted */
+body{margin:0;padding:var(--space-3);background:var(--bg);font-family:var(--font-body);color:var(--fg)}
+.row{display:flex;gap:var(--space-2);align-items:center;margin-bottom:var(--space-2)}
+.label{font-size:var(--font-size-label);font-weight:var(--font-weight-medium);color:var(--muted);min-width:92px}
+.divider{border:none;border-top:1px solid var(--divider);margin:var(--space-3) 0}
+
+/* @component-css-start */
+.mc{width:100%;background:var(--surface);border-radius:var(--radius-card);overflow:hidden;box-shadow:var(--shadow-2);border:1px solid var(--hairline)}
+.mc-media{position:relative;aspect-ratio:16/9;background:var(--surface-container);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.mc-img{width:100%;height:100%;background:linear-gradient(135deg,var(--primary-200),var(--primary-400))}
+.mc-shimmer{position:absolute;inset:0;background:linear-gradient(90deg,var(--surface-container),var(--surface-container-high) 50%,var(--surface-container));background-size:200% 100%;animation:mc-sh 1.5s ease-in-out infinite}
+@keyframes mc-sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.mc-gen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-2)}
+.mc-gen-txt{font-size:var(--font-size-caption);font-weight:var(--font-weight-medium);color:var(--muted)}
+.mc-prog{width:60%;height:4px;background:var(--surface-container-high);border-radius:var(--radius-pill);overflow:hidden}
+.mc-prog-fill{height:100%;width:65%;border-radius:var(--radius-pill);background:var(--color-primary)}
+.mc-fill-40{width:40%}
+.mc-pct{font-size:var(--font-size-label);color:var(--ink-tertiary)}
+.mc-est{font-size:var(--font-size-label);color:var(--ink-tertiary)}
+.mc-play{width:var(--size-touch-target);height:var(--size-touch-target);border-radius:50%;background:var(--ink);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0.85;transition:opacity var(--duration-fast)}
+.mc-play:hover{opacity:1}
+.mc-play::after{content:"";border-style:solid;border-width:8px 0 8px 12px;border-color:transparent transparent transparent var(--surface);margin-left:3px}
+.mc-video-bg{background:var(--ink)}
+.mc-timeline{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3)}
+.mc-timeline-bar{flex:1;height:3px;background:var(--surface-container-high);border-radius:var(--radius-pill);overflow:hidden;min-width:0}
+.mc-timeline-fill{height:100%;width:40%;background:var(--color-primary);border-radius:var(--radius-pill)}
+.mc-time{font-size:var(--font-size-label);color:var(--muted);white-space:nowrap}
+.mc-caption{padding:var(--space-2) var(--space-3);font-size:var(--font-size-caption);color:var(--fg)}
+.mc-actions{display:flex;gap:var(--space-3);padding:var(--space-2) var(--space-3);border-top:1px solid var(--hairline)}
+.mc-actions a{font-size:var(--font-size-label);color:var(--color-primary);text-decoration:none;white-space:nowrap;transition:opacity var(--duration-fast)}
+.mc-actions a:hover{opacity:0.7}
+/* @component-css-end */
+</style>
+</head>
+<body>
+<div class="row"><span class="label">图像 · 生成中</span></div>
+<div class="row"><div class="mc" data-evidence-sample="image-generating"><div class="mc-media"><div class="mc-shimmer"></div><div class="mc-gen"><span class="mc-gen-txt">生成中</span><div class="mc-prog"><div class="mc-prog-fill"></div></div><span class="mc-pct">65%</span></div></div></div></div>
+<div class="row"><span class="label">图像 · 已就绪</span></div>
+<div class="row"><div class="mc" data-evidence-sample="image-ready"><div class="mc-media"><div class="mc-img"></div></div><div class="mc-caption">对话</div><div class="mc-actions"><a href="#">保存</a><a href="#">分享</a><a href="#">重新生成</a></div></div></div>
+<hr class="divider">
+<div class="row"><span class="label">视频 · 生成中</span></div>
+<div class="row"><div class="mc" data-evidence-sample="video-generating"><div class="mc-media"><div class="mc-shimmer"></div><div class="mc-gen"><span class="mc-gen-txt">生成中</span><div class="mc-prog"><div class="mc-prog-fill mc-fill-40"></div></div><span class="mc-est">预计 2 分钟</span></div></div></div></div>
+<div class="row"><span class="label">视频 · 已就绪</span></div>
+<div class="row"><div class="mc" data-evidence-sample="video-ready"><div class="mc-media mc-video-bg"><button class="mc-play"></button></div><div class="mc-timeline"><span class="mc-time">0:05</span><div class="mc-timeline-bar"><div class="mc-timeline-fill"></div></div><span class="mc-time">0:12</span></div></div></div>
+</body>
+</html>

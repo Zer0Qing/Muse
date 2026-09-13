@@ -33,6 +33,7 @@ import java.util.concurrent.atomic.AtomicInteger
  *  - token 预算:[tokenBudget] 控制注入 token 数,与 webSearch 共享预算池
  *  - 引用返回:[buildInjectionContextWithCitations] 返回 [RagInjection](含 citations)
  */
+@Suppress("LongParameterList", "LargeClass")
 class RagService(
     private val chunkDao: KnowledgeChunkDao,
     private val docDao: KnowledgeDocDao,
@@ -54,6 +55,13 @@ class RagService(
      * v1.133 改进:返回 Pair<title, snippet> 列表,snippet 取首个 chunk(替代原 content.take(500))。
      */
     private val keywordSearchFallback: (suspend (String, Int) -> List<Pair<String, String>>)? = null,
+    /**
+     * 作用域感知的关键词兜底；scopeDocIds 为 null 时可由调用方选择全局兜底，
+     * 非 null 时必须只返回指定文档，避免向量无结果时跨知识库泄漏。
+     */
+    private val scopedKeywordSearchFallback: (
+        suspend (String, Int, List<String>?) -> List<Pair<String, String>>
+    )? = null,
     /**
      * v1.55: HNSW 索引持久化文件路径(null = 不持久化,仅内存,App 重启后丢失)。
      *
@@ -577,13 +585,16 @@ class RagService(
         if (results.isEmpty()) return results
         val docIds = results.map { it.docId }.filter { it.isNotEmpty() }.distinct()
         if (docIds.isEmpty()) return results
-        val isInternalMap = resultOf { docDao.getByIds(docIds) }
-            .onError { msg, e -> Logger.w("RagService", "isInternal 批量查询失败: $msg", e) }
+        val docs = resultOf { docDao.getByIds(docIds) }
+            .onError { msg, e -> Logger.w("RagService", "文档元数据批量查询失败: $msg", e) }
             .getOrNull()
-            ?.associate { it.id to it.isInternal }
-            ?: return results  // 查询失败保持默认 false
-        if (isInternalMap.isEmpty()) return results
-        return results.map { r -> r.copy(isInternal = isInternalMap[r.docId] ?: false) }
+            ?: return emptyList()  // 元数据无法确认时拒绝注入，避免内部/幽灵文档漏出
+        if (docs.isEmpty()) return emptyList()
+        val isInternalMap = docs.associate { it.id to it.isInternal }
+        // chunk/HNSW/FTS 中残留但文档实体已删除的记录不得继续进入上下文。
+        return results
+            .filter { it.docId in isInternalMap }
+            .map { r -> r.copy(isInternal = isInternalMap[r.docId] == true) }
     }
 
     /**
@@ -616,7 +627,10 @@ class RagService(
         // 1. 检索(扩大候选池到 topK×5 供 Rerank 用)
         val activeRerankProvider = resolveRerankProvider(ragConfig)
         val candidateK = if (ragConfig.rerankEnabled && activeRerankProvider != null) ragConfig.topK * 5 else ragConfig.topK
+        // 内部文档只允许显式的 knowledge_search include_internal 路径使用，
+        // 不得进入自动 system-prompt RAG 注入。
         var results = retrieve(query, candidateK, ragConfig.threshold, ragConfig, scopeDocIds)
+            .filterNot { it.isInternal }
 
         // v1.133: 缓存 docId → isInternal 映射(retrieve 已回填过),rerank 后需重新回填
         // (Rerank 路径会丢弃原 SearchResult 重建,rerank 结果不带 isInternal)
@@ -698,8 +712,14 @@ class RagService(
         }
 
         // 4. 向量检索无结果 → 关键词兜底(LIKE 子串匹配)
-        val fallback = keywordSearchFallback ?: return RagInjection("", emptyList(), System.currentTimeMillis() - start)
-        val fallbackResults = resultOf { fallback(query, ragConfig.topK) }
+        val fallback = scopedKeywordSearchFallback ?: if (scopeDocIds == null) {
+            keywordSearchFallback?.let { legacy ->
+                { text: String, limit: Int, _: List<String>? -> legacy(text, limit) }
+            }
+        } else {
+            null
+        } ?: return RagInjection("", emptyList(), System.currentTimeMillis() - start)
+        val fallbackResults = resultOf { fallback(query, ragConfig.topK, scopeDocIds) }
             .onError { msg, e -> Logger.w("RagService", "关键词兜底失败: $msg", e) }
             .getOrNull() ?: emptyList()
         if (fallbackResults.isEmpty()) return RagInjection("", emptyList(), System.currentTimeMillis() - start)
@@ -739,12 +759,23 @@ class RagService(
 
     /** 删除文档的全部分块索引(含 FTS + HNSW)。 */
     suspend fun deleteDocIndex(docId: String) {
-        // v1.55: 先从 HNSW 索引移除该 doc 的全部 chunk(基于 chunkMetaCache 过滤)
-        removeDocChunksFromVectorIndex(docId)
+        require(docId.isNotBlank()) { "docId must not be blank" }
+        // 先加载磁盘索引，确保删除也覆盖尚未进入内存的旧 HNSW 条目。
+        ensureVectorIndexLoaded()
+        // FTS 清理失败必须上抛：继续删除 chunk 会留下不可诊断的幽灵 FTS 命中。
+        withFtsSelfHeal { ftsDao.deleteByDoc(docId) }
         chunkDao.deleteByDoc(docId)
-        resultOf { withFtsSelfHeal { ftsDao.deleteByDoc(docId) } }
-            .onError { msg, e -> Logger.w("RagService", "FTS 清理失败: $msg", e) }
+        // HNSW 是派生索引；删除后立即落盘，避免进程重启从旧索引复活已删除文档。
+        removeDocChunksFromVectorIndex(docId)
+        saveVectorIndex()
         vectorSearch.invalidateCache()
+        invalidateTitlesCache()
+    }
+
+    /** 删除文档实体及其全部派生索引；UI/导入取消统一走此入口。 */
+    suspend fun deleteDocument(docId: String) {
+        deleteDocIndex(docId)
+        docDao.delete(docId)
         invalidateTitlesCache()
     }
 

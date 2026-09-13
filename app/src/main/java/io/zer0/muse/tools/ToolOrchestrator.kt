@@ -31,6 +31,8 @@ import io.zer0.muse.ui.taskcard.TaskCardData
 import io.zer0.muse.ui.taskcard.TaskCardPhase
 import io.zer0.muse.ui.taskcard.TaskStepStatus
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -45,6 +47,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import java.io.File
+import kotlin.coroutines.coroutineContext
 import kotlin.uuid.Uuid
 
 /** 工具调用超时阈值(2 分钟),超时则终止,避免阻塞流式输出。 */
@@ -254,6 +257,8 @@ data class ToolLoopParams(
     val initialReasoningContent: String = "",
     /** 新链路回合归属；为空时仅保留旧链路行为。 */
     val turnId: String = "",
+    /** 当前生成的统一身份；旧调用方为空时由编排器生成兼容身份。 */
+    val generationIdentity: io.zer0.muse.session.GenerationIdentity? = null,
     /** 由主会话宿主注入，供 search_memory 等隔离敏感工具使用。 */
     val toolExecutionContext: ToolExecutionContext? = null,
 )
@@ -318,6 +323,8 @@ class ToolOrchestrator(
     private val browserManagerRegistry: BrowserManagerRegistry = BrowserManagerRegistry(context),
     // R-TEST-10: 工具超时可注入,生产默认 2 分钟
     private val toolTimeoutMs: Long = TOOL_TIMEOUT_MS,
+    // v1.x: 统一登记工具执行资源，供按 session 取消和 late-result 诊断使用。
+    private val executionRegistry: io.zer0.muse.session.SessionExecutionRegistry? = null,
 ) {
 
     private companion object {
@@ -402,6 +409,12 @@ class ToolOrchestrator(
         // 结果写入 execPolicy.maxRounds,循环内不再维护独立的 maxRounds 局部变量。
         val execPolicy = ToolExecutionPolicy(
             initialMaxRounds = computeMaxRounds(conversationHistory, params.maxRounds, params.sessionId),
+        )
+        val executionIdentity = params.generationIdentity ?: io.zer0.muse.session.GenerationIdentity(
+            sessionId = params.sessionId,
+            turnId = params.turnId.ifBlank { "turn-${params.traceId.ifBlank { currentAssistantId.toString() }}" },
+            generationId = params.traceId.ifBlank { "generation-${currentAssistantId}" },
+            streamId = "stream-${params.traceId.ifBlank { currentAssistantId.toString() }}",
         )
         Logger.i(TAG, "Agent Loop 开始 | sessionId=${params.sessionId} | 初始最大轮次: ${execPolicy.maxRounds}")
 
@@ -600,7 +613,7 @@ class ToolOrchestrator(
                     }
 
                     // 断点续传:持久化未完成的工具调用
-                    savePendingToolCalls(params.sessionId, toolCallList, host)
+                    savePendingToolCalls(params.sessionId, toolCallList, executionIdentity, host)
 
                     // 构建任务卡并切换到 EXECUTING
                     // v1.0.53: send_sticker 不纳入任务卡(表情包是趣味交互,不展示执行计划),
@@ -623,6 +636,13 @@ class ToolOrchestrator(
                     // 并行/串行执行工具调用
                     // v1.0.47 P6-2: 弱工具模型降级为串行执行,避免并行 tool_calls 导致格式错乱
                     val executeToolCall: suspend (Int, ToolCall) -> ToolExecResult = { idx, tc ->
+                        val executionJob = coroutineContext[Job]
+                        val executionId = executionRegistry?.register(
+                            identity = executionIdentity,
+                            kind = io.zer0.muse.session.ExecutionKind.TOOL,
+                            cancel = { executionJob?.cancel() },
+                        )
+                        executionId?.let { id -> executionRegistry?.start(id) }
                         // F-13: 非阻塞进度 — 当前工具名进 toolProgressMessage(UI 显示),
                         // 工具阶段结束(execResults 回填后)清除, 与 F-07 状态机联动
                         accessor.update {
@@ -633,8 +653,24 @@ class ToolOrchestrator(
                                 params, taskCardId, tc, idx, host, taskCardCoordinator, execPolicy,
                             )
                             persistToolRoundIncrementally(params, round, stepStartedAt, result)
+                            executionId?.let { id -> executionRegistry?.finish(id) }
                             result
                         } catch (ce: kotlinx.coroutines.CancellationException) {
+                            executionId?.let { id -> executionRegistry?.markCancelled(id) }
+                            // 取消时协程上下文已不可挂起；在 NonCancellable 中把磁盘断点明确
+                            // 标为 ABORTED，避免重启后将已取消/可能部分副作用的调用误当成可执行任务。
+                            withContext(NonCancellable) {
+                                runCatching {
+                                    PendingToolCallStore.updateState(
+                                        tc.id,
+                                        PendingToolCallStore.ABORTED,
+                                        "generation_cancelled",
+                                    )
+                                }.onFailure { error ->
+                                    Logger.w(TAG, "取消工具后写入 ABORTED 失败: ${tc.id}", error)
+                                }
+                            }
+
                             // F-07: 中断标记 — 工具执行被流式中断(用户停止/会话切换)。
                             // 结果不完整, 记录 INTERRUPTED 状态日志与任务卡步骤, 再向上传播取消。
                             Logger.w(TAG, "工具 ${tc.name} 被中断(INTERRUPTED) | sessionId=${params.sessionId}")
@@ -647,6 +683,7 @@ class ToolOrchestrator(
                             }
                             throw ce
                         } catch (e: Exception) {
+                            executionId?.let { id -> executionRegistry?.fail(id) }
                             // 工具已经可能完成了外部副作用(例如写入记忆),但回调/清理阶段异常
                             // 不能让整个工具循环直接消失,否则用户只会看到“执行中”。
                             Logger.e(TAG, "工具结果回传失败: ${tc.name}", e)
@@ -1007,7 +1044,9 @@ class ToolOrchestrator(
         // 工具审批检查(v1.0.53: 传完整 args 供参数化权限判定)
         // F-07: 审批等待可见化 — 挂起等待用户响应的过程记录 APPROVAL_PENDING 状态日志
         Logger.d(TAG, "工具 ${tc.name} 等待审批(APPROVAL_PENDING) | sessionId=${params.sessionId}")
+        PendingToolCallStore.updateState(tc.id, PendingToolCallStore.APPROVAL_PENDING)
         val approvalState = host.requestToolApproval(tc.name, tc.id, tc.arguments.take(200), paramsMap)
+        PendingToolCallStore.updateState(tc.id, PendingToolCallStore.EXECUTING)
 
         // P1-1: ToolLifecycleHook.onToolPermissionChecked
         if (hookRegistry != null) {
@@ -1026,6 +1065,11 @@ class ToolOrchestrator(
                     finishedAt = System.currentTimeMillis(),
                 )
             }
+            PendingToolCallStore.updateState(
+                tc.id,
+                PendingToolCallStore.ABORTED,
+                "user_denied",
+            )
             cleanupPendingToolCall(tc.id)
             host.onToolFinish(tc.id, tc.name, false, System.currentTimeMillis() - toolStartAt)
             return ToolExecResult(idx, tc, deniedResult, false, status = ToolExecStatus.FAILED)
@@ -1308,6 +1352,7 @@ class ToolOrchestrator(
     private suspend fun savePendingToolCalls(
         sessionId: String,
         toolCalls: List<ToolCall>,
+        identity: io.zer0.muse.session.GenerationIdentity,
         host: ToolLoopHost,
     ) {
         if (toolCalls.isEmpty()) return
@@ -1319,6 +1364,8 @@ class ToolOrchestrator(
                 toolName = tc.name,
                 arguments = tc.arguments,
                 createdAt = now,
+                generationId = identity.generationId,
+                turnId = identity.turnId,
             )
         }
         try {

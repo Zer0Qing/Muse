@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="../colors_and_type.css">
+<title>Approval Card</title>
+<style>
+body{margin:0;padding:12px;background:var(--bg);font-family:var(--font-body);color:var(--fg);font-size:var(--font-size-body-m)}
+.row{display:flex;gap:8px;margin-bottom:8px;align-items:flex-start}
+.label{font-size:var(--font-size-label);color:var(--muted);text-transform:uppercase;letter-spacing:.04em;width:92px;flex-shrink:0;padding-top:6px}
+.divider{border:none;border-top:1px solid var(--divider);margin:8px 0}
+/* @component-css-start */
+.acard{flex:1;min-width:0;border-radius:var(--radius-card);padding:var(--space-4);border:1px solid;overflow:hidden}
+.acard.low{background:var(--primary-50);border-color:var(--primary-200)}
+.acard.high{background:var(--danger-50);border-color:var(--danger-200)}
+.acard.ok{background:var(--success-50);border-color:var(--success-200)}
+.acard.no{background:var(--neutral-100);border-color:var(--neutral-200)}
+.ahd{display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-2)}
+.aico{width:20px;height:20px;flex-shrink:0}
+.atitle{font-size:var(--font-size-body-l);font-weight:var(--font-weight-semibold);white-space:nowrap}
+.low .atitle{color:var(--primary)}
+.high .atitle{color:var(--danger)}
+.ok .atitle{color:var(--success-600)}
+.no .atitle{color:var(--muted)}
+.atool{font-size:var(--font-size-caption);color:var(--muted);margin-left:auto;white-space:nowrap}
+.adesc{font-size:var(--font-size-caption);color:var(--color-on-surface-variant);margin-bottom:var(--space-2);word-break:keep-all}
+.aparam{font-family:var(--font-mono);font-size:var(--font-size-label);background:var(--hairline);border-radius:var(--radius-small);padding:var(--space-2);margin-bottom:var(--space-3);white-space:pre;overflow-x:auto}
+.acts{display:flex;gap:var(--space-2)}
+.abtn{flex:1;min-width:var(--size-button-md);height:var(--size-button-md);border:none;border-radius:var(--radius-button);font-size:var(--font-size-body-m);font-weight:var(--font-weight-medium);cursor:pointer;white-space:nowrap;transition:background .15s,border-color .15s}
+.abtn.approve{background:var(--primary);color:var(--primary-foreground)}
+.abtn.approve:hover{background:var(--primary-600)}
+.abtn.reject{background:transparent;border:1px solid var(--neutral-300);color:var(--fg)}
+.abtn.reject:hover{border-color:var(--neutral-500)}
+.ats{font-size:var(--font-size-label);color:var(--muted);margin-top:var(--space-1)}
+/* @component-css-end */
+</style>
+</head>
+<body>
+<div class="row"><span class="label">低风险</span><div class="acard low" data-evidence-sample="Pending Low Risk"><div class="ahd"><img class="aico" src="https://cdn.jsdelivr.net/npm/lucide-static@1.8.0/icons/shield-check.svg" alt="shield"><span class="atitle">请求批准</span><span class="atool">工具调用</span></div><div class="adesc">执行数据查询操作</div><div class="aparam">{"query":"SELECT *","limit":10}</div><div class="acts"><button class="abtn approve">批准</button><button class="abtn reject">拒绝</button></div></div></div>
+<div class="row"><span class="label">高风险</span><div class="acard high" data-evidence-sample="Pending High Risk"><div class="ahd"><img class="aico" src="https://cdn.jsdelivr.net/npm/lucide-static@1.8.0/icons/alert-triangle.svg" alt="warning"><span class="atitle">高风险操作</span><span class="atool">工具调用</span></div><div class="adesc">删除指定资源，此操作不可撤销</div><div class="aparam">{"target":"/api/v2","force":true}</div><div class="acts"><button class="abtn approve">批准</button><button class="abtn reject">拒绝</button></div></div></div>
+<hr class="divider">
+<div class="row"><span class="label">已批准</span><div class="acard ok" data-evidence-sample="Approved"><div class="ahd"><img class="aico" src="https://cdn.jsdelivr.net/npm/lucide-static@1.8.0/icons/check-circle.svg" alt="approved"><span class="atitle">已批准</span><span class="atool">工具调用</span></div><div class="ats">2026-09-07 14:32</div></div></div>
+<div class="row"><span class="label">已拒绝</span><div class="acard no" data-evidence-sample="Rejected"><div class="ahd"><img class="aico" src="https://cdn.jsdelivr.net/npm/lucide-static@1.8.0/icons/x-circle.svg" alt="rejected"><span class="atitle">已拒绝</span><span class="atool">工具调用</span></div><div class="ats">2026-09-07 14:35</div></div></div>
+</body>
+</html>

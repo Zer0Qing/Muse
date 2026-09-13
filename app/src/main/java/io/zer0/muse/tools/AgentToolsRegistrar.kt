@@ -24,6 +24,8 @@ import kotlinx.coroutines.CoroutineScope
  *  - subagent_task（Phase 5A / v1.202: launch+reply+close 三件套）
  *  - subagent_run（v1.0.52 P2-1: 同步阻塞式独立子 agent,完整工具循环 + XML 协议）
  */
+// 该注册器聚合多个工具域依赖，拆分需同步调整工具注册生命周期，暂保留局部豁免。
+@Suppress("LongParameterList")
 class AgentToolsRegistrar(
     private val toolRegistry: ToolRegistry,
     private val pinnedMemoryStore: PinnedMemoryStore,

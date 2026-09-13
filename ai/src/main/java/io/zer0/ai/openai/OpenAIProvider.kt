@@ -2064,6 +2064,10 @@ class OpenAIProvider(
                         "response.completed" -> {
                             // 流结束,带最终 response 对象
                             val status = event.response?.status
+                            // Responses API 用 status=incomplete + incomplete_details.reason 表示
+                            // 输出达到上限；向上层透传具体原因，否则 UI 只能看到 incomplete，
+                            // 无法提示用户“回复因长度限制被截断”。
+                            val finishReason = event.response?.incompleteDetails?.reason ?: status
                             // A5: 最终 response 携带 usage(实测值) — 在 Done 前发出,
                             // 消费方(StreamRunState)累积最后非 null 一次
                             event.response?.usage?.let { usage ->
@@ -2089,7 +2093,7 @@ class OpenAIProvider(
                             }
                             // v1.0.20: stream-guard — Done 事件时检查累积 toolCallAccMap,
                             //   空 name 的 tool call 恢复为 ContentDelta
-                            emitDoneWithStreamGuard(status)
+                            emitDoneWithStreamGuard(finishReason)
                         }
                     }
                 }
@@ -2226,7 +2230,8 @@ class OpenAIProvider(
                 Logger.d("OpenAIProvider", "completeTextResponses OK: text=${text.length} chars, reasoning=${reasoningContent.length} chars, toolCalls=${toolCalls?.size ?: 0}")
                 ChatCompletion(
                     text = text,
-                    finishReason = parsed.status,
+                    // Responses API 的 incomplete 只是外层状态，具体截断原因在 details 中。
+                    finishReason = parsed.incompleteDetails?.reason ?: parsed.status,
                     toolCalls = toolCalls,
                     reasoningContent = reasoningContent.takeIf { it.isNotBlank() },
                     thinkingSignature = reasoningItem?.id,

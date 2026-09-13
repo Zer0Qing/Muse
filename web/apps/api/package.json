@@ -1,0 +1,17 @@
+{
+  "name": "@muse/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch --experimental-strip-types src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test test/*.test.js",
+    "check:security": "node scripts/check-security.mjs",
+    "db:migrate": "node scripts/migrate.mjs"
+  },
+  "dependencies": { "@muse/contracts": "0.1.0", "@muse/core": "0.1.0", "@muse/provider": "0.1.0", "@muse/database": "0.1.0", "@muse/rag": "0.1.0", "@muse/files": "0.1.0", "@muse/mcp": "0.1.0", "@muse/agents": "0.1.0", "@muse/tools": "0.1.0", "@muse/storage": "0.1.0", "@muse/jobs": "0.1.0", "redis": "^4.7.0", "pg": "^8.13.1" },
+  "devDependencies": { "@types/pg": "^8.11.10", "typescript": "^5.7.3" }
+}

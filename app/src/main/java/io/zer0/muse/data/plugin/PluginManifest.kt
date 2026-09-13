@@ -23,7 +23,7 @@ data class PluginManifest(
     val entry: String = "main.js",
     /** 插件类型: tool / ui-skin / provider。 */
     val kind: String = "tool",
-    /** 信任级别: full-access / sandboxed。 */
+    /** 信任级别: 内置插件可使用 full-access；外部 ZIP 必须为 sandboxed。 */
     val trust: String = "sandboxed",
     /** 是否在 UI 隐藏。 */
     val hidden: Boolean = false,

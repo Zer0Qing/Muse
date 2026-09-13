@@ -89,6 +89,11 @@ a{color:var(--ink)}
 .badge{font-size:11px;color:var(--dim);flex-shrink:0}
 .badge.on{color:var(--ok)}
 .loading{color:var(--dim);text-align:center;padding:40px 0;font-size:13px}
+#composer{display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+#message-input{flex:1;min-width:0;resize:vertical;min-height:42px;padding:9px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit}
+#send-btn{flex:0 0 auto;padding:8px 14px;border:1px solid var(--ink);border-radius:7px;background:var(--ink);color:var(--bg);font:inherit;cursor:pointer}
+#send-btn.stop{background:var(--err);border-color:var(--err);color:#fff}
+.host-state{color:var(--ok);font-size:11px;margin-left:6px}
 .hide{display:none!important}
 </style>
 </head>
@@ -110,12 +115,17 @@ a{color:var(--ink)}
     <div class="top">
       <span class="logo">Muse</span>
       <span class="sp"></span>
+      <button id="btn-new">新对话</button>
       <button id="btn-refresh">刷新</button>
       <button id="btn-settings">设置</button>
       <button id="btn-logout">退出</button>
     </div>
     <div id="page-sessions"></div>
     <div id="page-messages" class="hide"></div>
+    <div id="composer" class="hide">
+      <textarea id="message-input" rows="2" placeholder="写点什么…"></textarea>
+      <button id="send-btn">发送</button>
+    </div>
     <div id="page-settings" class="hide"></div>
   </div>
 
@@ -125,6 +135,7 @@ a{color:var(--ink)}
 "use strict";
 var $=function(id){return document.getElementById(id)};
 var state={view:"login",session:null};
+var hostMode=true;
 
 /* ── 视图切换 ── */
 function show(v){
@@ -134,6 +145,7 @@ function show(v){
   $("page-sessions").classList.toggle("hide",v!=="sessions");
   $("page-messages").classList.toggle("hide",v!=="messages");
   $("page-settings").classList.toggle("hide",v!=="settings");
+  $("composer").classList.toggle("hide",v!=="messages");
 }
 function fmtTime(ms){
   try{var d=new Date(ms);var p=function(n){return n<10?"0"+n:""+n};
@@ -158,6 +170,62 @@ function api(path){
   });
 }
 
+/* ── Host Mode：手机 Muse 是唯一运行时，网页只展示快照并发送命令 ── */
+var hostSocket=null;
+var hostState={sessions:[],sessionId:null,messages:[],isStreaming:false};
+function hostSend(command){
+  if(!hostSocket||hostSocket.readyState!==WebSocket.OPEN){throw new Error("Host 尚未连接")}
+  hostSocket.send(JSON.stringify(command));
+}
+function renderHostMessages(){
+  var h="<button class='back' onclick='window.__backList()'>← 返回</button>";
+  if(!hostState.messages.length) h+='<div class="empty">暂无消息</div>';
+  hostState.messages.forEach(function(m){
+    var isUser=m.role==="USER"||m.role==="user";
+    h+="<div class='msg "+(isUser?"user":"ai")+"'>"+
+      "<div class='av'>"+(isUser?"我":m.role==="tool"?"T":"M")+"</div><div class='body'>";
+    if(m.reasoning) h+="<div class='rs'>"+esc(m.reasoning)+"</div>";
+    h+="<div class='b'>"+inlineMd(m.content||"")+"</div>";
+    h+="<div class='meta'>"+(m.modelId?esc(m.modelId)+" · ":"")+fmtTime(m.createdAt)+"</div></div></div>";
+  });
+  $("page-messages").innerHTML=h;
+  $("composer").classList.remove("hide");
+  $("send-btn").textContent=hostState.isStreaming?"停止":"发送";
+  $("send-btn").classList.toggle("stop",hostState.isStreaming);
+  $("send-btn").disabled=!hostState.isStreaming&&!$("message-input").value.trim();
+}
+function renderHostSessions(){
+  var list=hostState.sessions;
+  if(!list.length){$("page-sessions").innerHTML='<div class="empty">暂无会话</div>';return}
+  var h="<div class='list'>";
+  list.forEach(function(s){
+    h+="<button class='item' onclick='window.__hostOpenSession(\""+esc(s.id)+"\")'>"+
+      "<div class='t'>"+esc(s.title||"未命名")+(s.pinned?"<span class='pin'>置顶</span>":"")+"</div>"+
+      "<div class='m'>"+fmtTime(s.updatedAt)+"</div></button>";
+  });
+  h+="</div>";
+  $("page-sessions").innerHTML=h;
+}
+function connectHost(){
+  var scheme=location.protocol==="https:"?"wss:":"ws:";
+  hostSocket=new WebSocket(scheme+"//"+location.host+"/ws");
+  hostSocket.onopen=function(){hostSend({type:"hello",requestId:crypto.randomUUID()});loadHostSessions()};
+  hostSocket.onmessage=function(event){
+    var data;
+    try{data=JSON.parse(event.data)}catch(e){return}
+    if(data.type==="error"){console.warn("Host command failed",data.error);return}
+    if(data.type!=="state.snapshot")return;
+    hostState.sessions=data.sessions||[];hostState.sessionId=data.sessionId||null;hostState.messages=data.messages||[];hostState.isStreaming=data.isStreaming===true;
+    if(state.view==="messages") renderHostMessages(); else renderHostSessions();
+  };
+  hostSocket.onclose=function(){if(state.view!=="login"){console.warn("Host WebSocket closed");setTimeout(function(){if(document.visibilityState!=="hidden")connectHost()},1500)}};
+  hostSocket.onerror=function(){console.warn("Host WebSocket error")};
+}
+function loadHostSessions(){show("sessions");renderHostSessions()}
+window.__hostOpenSession=function(id){hostState.sessionId=id;show("messages");hostSend({type:"session.select",sessionId:id,requestId:crypto.randomUUID()});renderHostMessages()};
+function loadHost(){connectHost()}
+window.__backList=function(){show("sessions");renderHostSessions()};
+
 /* ── 登录 ── */
 function doLogin(){
   var pin=$("pin").value.trim();
@@ -168,7 +236,7 @@ function doLogin(){
       if(!r.ok){return r.json().then(function(j){throw new Error(j.message||"PIN 错误")})}
       return r.json();
     })
-    .then(function(){ $("pin").value=""; loadSessions(); })
+    .then(function(){ $("pin").value=""; loadHost(); })
     .catch(function(e){ $("login-err").textContent=e.message||"连接失败"; })
     .finally(function(){ $("login-btn").disabled=false; });
 }
@@ -210,7 +278,7 @@ window.__openSession=function(id){
     $("page-messages").innerHTML=h;
   }).catch(function(e){$("page-messages").innerHTML='<button class="back" onclick="window.__backList()">← 返回</button><div class="empty">加载失败：'+esc(e.message)+'</div>'});
 };
-window.__backList=function(){loadSessions()};
+window.__backList=function(){show("sessions");renderHostSessions()};
 
 /* ── 设置 ── */
 function loadSettings(){
@@ -229,19 +297,25 @@ function loadSettings(){
 }
 
 /* ── 顶栏按钮 ── */
-$("btn-refresh").onclick=function(){
-  if(state.view==="sessions")loadSessions();
-  else if(state.view==="messages"&&state.session)window.__openSession(state.session);
-  else if(state.view==="settings")loadSettings();
-};
+$("btn-new").onclick=function(){if(hostSocket)hostSend({type:"session.new",requestId:crypto.randomUUID()})};
+$("btn-refresh").onclick=function(){if(hostMode){hostSend({type:"state.sync",requestId:crypto.randomUUID()});return} if(state.view==="sessions")loadSessions();else if(state.view==="messages"&&state.session)window.__openSession(state.session);else if(state.view==="settings")loadSettings()};
 $("btn-settings").onclick=loadSettings;
+$("message-input").addEventListener("input",function(){if(!hostState.isStreaming)$("send-btn").disabled=!this.value.trim()});
+$("message-input").addEventListener("keydown",function(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();$("send-btn").click()}});
+$("send-btn").onclick=function(){
+  if(!hostSocket)return;
+  if(hostState.isStreaming){hostSend({type:"chat.stop",sessionId:hostState.sessionId,requestId:crypto.randomUUID()});return}
+  var text=$("message-input").value.trim();if(!text)return;
+  $("message-input").value="";$("send-btn").disabled=true;
+  hostSend({type:"chat.send",sessionId:hostState.sessionId,text:text,requestId:crypto.randomUUID()});
+};
 $("btn-logout").onclick=function(){
   // A-10: token Cookie 为 httpOnly,JS 无法删除,必须调用服务端 /api/auth/logout 让其下发过期 Set-Cookie。
   fetch("/api/auth/logout",{method:"POST"}).catch(function(e){ console.warn("logout request failed", e); }).finally(function(){ show("login"); });
 };
 
 /* ── 初始 ── */
-api("/api/sessions").then(function(){loadSessions()}).catch(function(){show("login")});
+api("/api/sessions").then(function(){loadHost()}).catch(function(){show("login")});
 })();
 </script>
 </body>

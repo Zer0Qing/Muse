@@ -41,6 +41,17 @@ jobs:
           python-version: '3.12'
       - name: Setup Android SDK
         uses: android-actions/setup-android@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Build Web Host UI assets
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
       - name: Grant execute permission for gradlew
         run: |
           $path = (Resolve-Path './gradlew').Path
@@ -153,6 +164,17 @@ jobs:
           python-version: '3.12'
       - name: Setup Android SDK
         uses: android-actions/setup-android@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Build Web Host UI assets
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
       - name: Grant execute permission for gradlew
         run: |
           $path = (Resolve-Path './gradlew').Path
@@ -180,18 +202,30 @@ jobs:
         run: python3 ci/script/validate_release_signing.py --keystore-out ./keystore.jks --properties-out ./keystore.properties
       - name: Build release APKs
         run: ./gradlew assembleRelease -PversionName="${{ steps.version.outputs.version_name }}" -PversionCode="${{ steps.version.outputs.version_code }}"
+      - name: Verify release APK signatures
+        run: python3 ci/script/validate_release_apks.py --apk 'app/build/outputs/apk/release/*.apk'
       - name: Generate release manifest
         run: |
-          $apk = Get-ChildItem 'app/build/outputs/apk/release/*.apk' | Select-Object -First 1
-          if ($null -eq $apk) { throw 'no release APK was generated' }
+          $apks = @(Get-ChildItem 'app/build/outputs/apk/release/*.apk' | Sort-Object Name)
+          if ($apks.Count -eq 0) { throw 'no release APK was generated' }
+          $apkArgs = @()
+          foreach ($apk in $apks) { $apkArgs += @('--apk', $apk.FullName) }
           New-Item -ItemType Directory -Path release -Force | Out-Null
           python3 ci/script/generate_release_manifest.py `
             --version-name "${{ steps.version.outputs.version_name }}" `
             --version-code "${{ steps.version.outputs.version_code }}" `
-            --apk "$($apk.FullName)" `
+            $apkArgs `
             --db-file app/src/main/java/io/zer0/muse/data/session/MuseDb.kt `
             --release-notes "releases/$env:GITHUB_REF_NAME/release_body.md" `
+            --commit-sha "$env:GITHUB_SHA" `
+            --source-ref "$env:GITHUB_REF_NAME" `
             --out release/manifest.json
+          python3 ci/script/validate_release_manifest.py `
+            --manifest release/manifest.json `
+            $apkArgs `
+            --db-file app/src/main/java/io/zer0/muse/data/session/MuseDb.kt `
+            --tag "$env:GITHUB_REF_NAME" `
+            --commit-sha "$env:GITHUB_SHA"
       - name: Upload release build artifacts
         uses: actions/upload-artifact@v7
         with:

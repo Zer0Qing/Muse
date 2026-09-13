@@ -120,6 +120,14 @@ internal data class ResponsesResult(
     @SerialName("output_text")
     val outputText: String? = null,
     val usage: ResponsesUsage? = null,
+    /** Responses API 在 status=incomplete 时给出的具体原因。 */
+    @SerialName("incomplete_details")
+    val incompleteDetails: ResponsesIncompleteDetails? = null,
+)
+
+@Serializable
+internal data class ResponsesIncompleteDetails(
+    val reason: String? = null,
 )
 
 @Serializable

@@ -1,0 +1,66 @@
+{
+  "slug": "input-bar",
+  "schemaVersion": 2,
+  "name": "Input Bar",
+  "category": "Input",
+  "sourceKind": "from-scratch",
+  "confidence": "medium",
+  "semanticTypeCandidates": [
+    {"candidate": "chat-composer", "evidence": "Multi-line text plus send button plus tool access"},
+    {"candidate": "voice-input", "evidence": "Voice mode with waveform indicator"}
+  ],
+  "variantDimensions": [
+    {"name": "mode", "values": ["text", "voice", "attachment-preview"]},
+    {"name": "state", "values": ["default", "focused", "disabled", "recording"]},
+    {"name": "expansion", "values": ["collapsed", "expanded-tools", "attachment-preview"]}
+  ],
+  "representativeVariants": [
+    {
+      "name": "Default Text Mode",
+      "whySelected": "Primary input state",
+      "traits": {"mode": "text", "state": "default", "radius": "18px bubble radius", "bg": "surface-raised frosted glass", "border": "hairline", "padding": "7px outer 9px inner", "height": "49px min 180px max", "sendButton": "38px height 70px min width"},
+      "childrenDigest": "Textarea send button plus button for tools"
+    },
+    {
+      "name": "Focused with Tools",
+      "whySelected": "User actively typing",
+      "traits": {"mode": "text", "state": "focused", "radius": "18px", "bg": "surface-raised", "border": "accent-tinted", "boxShadow": "focus ring 3px accent-soft", "actions": "plus button reveals tool sheet"},
+      "childrenDigest": "Textarea expanded tool access row"
+    },
+    {
+      "name": "Attachment Preview",
+      "whySelected": "Files queued for send",
+      "traits": {"mode": "attachment-preview", "state": "default", "radius": "18px", "previewThumbs": "72px inline", "removeButtons": "small circle", "maxInlineWidth": "120px per thumb"},
+      "childrenDigest": "Thumbnail row textarea send button"
+    },
+    {
+      "name": "Voice Recording",
+      "whySelected": "Voice input mode",
+      "traits": {"mode": "voice", "state": "recording", "radius": "pill", "bg": "danger-tinted", "waveform": "animated bars", "cancelButton": "slide to cancel"},
+      "childrenDigest": "Waveform visualizer cancel hint send button"
+    }
+  ],
+  "anatomy": [
+    "Container rounded rect frosted glass bg",
+    "Textarea flexible height transparent bg",
+    "Send button primary accent right side",
+    "Tool access button plus icon left side",
+    "Attachment preview chips optional above textarea",
+    "Voice button optional replaces send in voice mode",
+    "Provider model selector optional above container"
+  ],
+  "structurePatterns": [
+    "Floating above content with gradient fade",
+    "Max width 960px centered",
+    "Safe area bottom padding",
+    "Stop button replaces send during streaming"
+  ],
+  "usageHints": {
+    "priorityHint": "core",
+    "touchTarget": "44pt min for all buttons",
+    "iosAdaptation": "iOS frosted glass native via UIBarAppearance Android Modifier blur render effect API 31+"
+  },
+  "doNotInvent": ["Specific tool list contents", "Provider list specifics"],
+  "unknowns": ["Exact tool sheet layout"],
+  "keyInsightSeed": "Frosted glass floating composer with expandable tools"
+}

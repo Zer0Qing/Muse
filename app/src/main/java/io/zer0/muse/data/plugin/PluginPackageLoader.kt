@@ -50,12 +50,12 @@ object PluginPackageLoader {
                 var entry = zis.nextEntry
                 while (entry != null) {
                     val name = entry.name
+                    if (!isSafeRelativePath(name)) {
+                        return Result.Err("非法路径: $name")
+                    }
                     if (entry.isDirectory) {
                         entry = zis.nextEntry
                         continue
-                    }
-                    if (name.contains("..") || name.startsWith("/")) {
-                        return Result.Err("非法路径: $name")
                     }
                     if (!name.endsWith(".js") && !name.endsWith(".json") && !name.endsWith(".md")) {
                         entry = zis.nextEntry
@@ -97,6 +97,13 @@ object PluginPackageLoader {
         if (manifest.tools.isEmpty()) {
             return Result.Err("manifest.json 未声明任何工具")
         }
+        // 外部包没有作者签名和内置信任根，不能通过清单自报 full-access。
+        if (manifest.trust != "sandboxed") {
+            return Result.Err("外部插件必须使用 sandboxed 信任级别")
+        }
+        if (!isSafeRelativePath(manifest.entry) || !manifest.entry.lowercase().endsWith(".js")) {
+            return Result.Err("manifest.json 的入口文件路径非法: ${manifest.entry}")
+        }
 
         val entryCode = allFiles.remove(manifest.entry)
             ?: return Result.Err("缺少入口文件: ${manifest.entry}")
@@ -109,6 +116,16 @@ object PluginPackageLoader {
                 extraFiles = allFiles.toMap(),
             ),
         )
+    }
+
+    private fun isSafeRelativePath(path: String): Boolean {
+        val normalized = path.trimEnd('/')
+        return normalized.isNotBlank() &&
+            !normalized.startsWith("/") &&
+            !normalized.startsWith("\\") &&
+            !normalized.contains("..") &&
+            !normalized.contains('\\') &&
+            normalized.split('/').none { it.isBlank() || it == "." }
     }
 
     private val PLUGIN_ID_REGEX = Regex("^[a-z0-9][a-z0-9_-]*$")

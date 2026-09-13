@@ -1,6 +1,7 @@
 package io.zer0.muse.data.experience
 
 import android.content.Context
+import io.zer0.muse.data.AtomicFileStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -31,7 +32,7 @@ class ExperienceStore(private val context: Context) {
         val dir = experienceDir
         val docs = listExperienceDocuments(dir)
         if (docs.isEmpty()) {
-            indexPath.writeText("")
+            AtomicFileStore.writeText(indexPath, "")
             return@withContext
         }
 
@@ -48,7 +49,7 @@ class ExperienceStore(private val context: Context) {
             "# ${doc.title} (${entries.size} entries)\n$desc\n-> experience/${doc.file}"
         }
 
-        indexPath.writeText(blocks.joinToString("\n\n") + "\n")
+        AtomicFileStore.writeText(indexPath, blocks.joinToString("\n\n") + "\n")
     }
 
     /** 向分类文件记录条目并重建索引。 */
@@ -79,7 +80,7 @@ class ExperienceStore(private val context: Context) {
         }
 
         val header = "<!-- experience-title: $safeCategory -->\n"
-        file.writeText(header + updated)
+        AtomicFileStore.writeText(file, header + updated)
         rebuildIndex()
         RecordResult(true, category = safeCategory)
     }

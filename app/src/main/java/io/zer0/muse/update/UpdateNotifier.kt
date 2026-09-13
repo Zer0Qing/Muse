@@ -159,9 +159,13 @@ class UpdateNotifier(
         /**
          * 构造用于打开浏览器下载 APK 的 [Intent](ACTION_VIEW)。
          */
-        fun buildDownloadApkIntent(downloadUrl: String): Intent =
-            Intent(Intent.ACTION_VIEW, Uri.parse(downloadUrl))
+        fun buildDownloadApkIntent(downloadUrl: String): Intent {
+            require(UpdateChecker.isTrustedDownloadUrl(downloadUrl)) {
+                "APK 下载地址必须是 GitHub 官方 HTTPS 资产地址"
+            }
+            return Intent(Intent.ACTION_VIEW, Uri.parse(downloadUrl))
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
     }
 }
 

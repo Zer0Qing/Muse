@@ -2,6 +2,7 @@ package io.zer0.muse.update
 
 import io.zer0.common.AppJson
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -70,8 +71,9 @@ class UpdateCheckerVersionTest {
             apkAssets = listOf(
                 UpdateChecker.ApkAsset(
                     name = "Muse_v1.0.72_arm64-v8a.apk",
-                    downloadUrl = "https://example.com/muse.apk",
+                    downloadUrl = "https://objects.githubusercontent.com/muse.apk",
                     size = 42_000_000L,
+                    sha256 = "a".repeat(64),
                 ),
             ),
         )
@@ -83,9 +85,37 @@ class UpdateCheckerVersionTest {
         assertEquals(1, decoded.apkAssets.size)
         assertEquals("Muse_v1.0.72_arm64-v8a.apk", decoded.apkAssets[0].name)
         assertEquals(42_000_000L, decoded.apkAssets[0].size)
+        assertEquals("a".repeat(64), decoded.apkAssets[0].sha256)
+    }
+
+    @Test
+    fun `download asset accepts only trusted https github hosts`() {
+        val trusted = UpdateChecker.ApkAsset(
+            name = "Muse.apk",
+            downloadUrl = "https://objects.githubusercontent.com/releases/Muse.apk",
+            size = 1L,
+            sha256 = "b".repeat(64),
+        )
+        val wrongScheme = trusted.copy(downloadUrl = "http://objects.githubusercontent.com/releases/Muse.apk")
+        val wrongHost = trusted.copy(downloadUrl = "https://example.com/releases/Muse.apk")
+        val wrongExtension = trusted.copy(downloadUrl = "https://objects.githubusercontent.com/releases/Muse.zip")
+        val wrongHash = trusted.copy(sha256 = "not-a-sha256")
+
+        assertTrue(UpdateChecker.isTrustedApkAsset(trusted))
+        assertTrue(!UpdateChecker.isTrustedApkAsset(wrongScheme))
+        assertTrue(!UpdateChecker.isTrustedApkAsset(wrongHost))
+        assertTrue(!UpdateChecker.isTrustedApkAsset(wrongExtension))
+        assertTrue(!UpdateChecker.isTrustedApkAsset(wrongHash))
     }
 
     // ── Banner 显示判定(升级到同版本后不再提示) ──
+
+    @Test
+    fun `download intent rejects untrusted asset url`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            UpdateNotifier.buildDownloadApkIntent("https://example.com/malicious.apk")
+        }
+    }
 
     @Test
     fun `banner should not show when current equals cached latest`() {

@@ -46,6 +46,18 @@ class AssistantRepository(
         dao.upsert(assistant)
     }
 
+    /**
+     * 删除 Provider 后清理 Assistant 的显式 provider/model 绑定，避免请求继续引用已删除配置。
+     */
+    suspend fun removeProviderBinding(providerId: String) {
+        require(providerId.isNotBlank()) { "providerId must not be blank" }
+        val assistants = getAll()
+        clearProviderBindings(assistants, providerId)
+            .zip(assistants)
+            .filter { (updated, original) -> updated != original }
+            .forEach { (updated, _) -> upsert(updated) }
+    }
+
     /** 删除已不存在的 MCP server 绑定，避免 orphan id 和 id 复用后的意外复活。 */
     suspend fun removeMcpServerBinding(serverId: String) {
         getAll().forEach { assistant ->

@@ -2,6 +2,7 @@ package io.zer0.ai
 
 import io.zer0.common.ErrorCode
 import io.zer0.common.toMessage
+import io.zer0.common.Logger
 import io.zer0.ai.core.ChatCompletion
 import io.zer0.ai.core.ChatRequest
 import io.zer0.ai.core.ChatRequestMode
@@ -9,6 +10,7 @@ import io.zer0.ai.core.ChatStreamEvent
 import io.zer0.ai.core.Model
 import io.zer0.ai.core.ModelAbility
 import io.zer0.ai.core.ModelVerification
+import io.zer0.ai.core.ModelOutputPolicy
 import io.zer0.ai.core.Provider
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.ProviderConfig
@@ -237,6 +239,14 @@ class ChatService(
         val enhancedModel = ModelRegistry.enhanceModel(resolvedModel)
         // 未声明能力的自定义/中转模型不能当成“不支持工具”;交给 Provider 能力矩阵判断。
         val effectiveTools = tools.takeIf { shouldSendTools(enhancedModel, config, it) }
+        val effectiveMaxTokens = ModelOutputPolicy.resolve(maxTokens, enhancedModel)
+        if (ModelOutputPolicy.wasClamped(maxTokens, enhancedModel)) {
+            Logger.w(
+                "ChatService",
+                "输出预算已按模型能力收紧: provider=${config.id}, model=${enhancedModel.id}, " +
+                    "requested=$maxTokens, modelLimit=${enhancedModel.maxOutputTokens}, effective=$effectiveMaxTokens",
+            )
+        }
         val provider = ProviderRegistry.create(config)
         // v1.0.7: UTILITY 模式强制关思考(对齐 既有实现 buildProviderCompatOptions)
         //  在 ChatService 层统一覆盖 reasoningLevel=OFF,所有 Provider(OpenAI/Anthropic/Gemini)
@@ -250,7 +260,7 @@ class ChatService(
             messages = messages,
             model = enhancedModel,
             temperature = temperature,
-            maxTokens = maxTokens,
+            maxTokens = effectiveMaxTokens,
             tools = effectiveTools,
             toolChoice = toolChoice
                 ?.takeIf { it == "auto" || it == "required" || it == "none" }

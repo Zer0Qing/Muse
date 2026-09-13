@@ -1,0 +1,14 @@
+{
+  "components": [
+    {"slug":"message-bubble","name":"Message Bubble","category":"Content","sourceKind":"from-scratch","confidence":"medium","variantCount":4,"priorityHint":"core","keyInsightSeed":"Asymmetric tail radius distinguishes user vs AI"},
+    {"slug":"input-bar","name":"Input Bar","category":"Input","sourceKind":"from-scratch","confidence":"medium","variantCount":4,"priorityHint":"core","keyInsightSeed":"Frosted glass floating composer with expandable tools"},
+    {"slug":"conversation-list","name":"Conversation List","category":"Navigation","sourceKind":"from-scratch","confidence":"medium","variantCount":3,"priorityHint":"high","keyInsightSeed":"iOS large title grouped list with swipe actions"},
+    {"slug":"thinking-card","name":"Thinking Card","category":"Content","sourceKind":"from-scratch","confidence":"medium","variantCount":4,"priorityHint":"medium","keyInsightSeed":"Collapsible reasoning with streaming shimmer"},
+    {"slug":"tool-call-card","name":"Tool Call Card","category":"Content","sourceKind":"from-scratch","confidence":"medium","variantCount":5,"priorityHint":"medium","keyInsightSeed":"Status-driven card with parameter and result sections"},
+    {"slug":"navigation-bar","name":"Navigation Bar","category":"Navigation","sourceKind":"from-scratch","confidence":"medium","variantCount":3,"priorityHint":"core","keyInsightSeed":"Frosted glass tab bar with large title top nav"},
+    {"slug":"approval-card","name":"Approval Card","category":"Content","sourceKind":"from-scratch","confidence":"medium","variantCount":4,"priorityHint":"medium","keyInsightSeed":"Risk-level-driven approval card with color-coded urgency"},
+    {"slug":"agent-plan-card","name":"Agent Plan Card","category":"Content","sourceKind":"from-scratch","confidence":"medium","variantCount":4,"priorityHint":"medium","keyInsightSeed":"Vertical timeline stepper with per-step status tracking"},
+    {"slug":"media-card","name":"Media Card","category":"Content","sourceKind":"from-scratch","confidence":"medium","variantCount":4,"priorityHint":"medium","keyInsightSeed":"Unified image video card with generating shimmer and ready states"},
+    {"slug":"settings-page","name":"Settings Page","category":"Navigation","sourceKind":"from-scratch","confidence":"medium","variantCount":4,"priorityHint":"core","keyInsightSeed":"iOS grouped table view settings with profile header and sectioned rows"}
+  ]
+}

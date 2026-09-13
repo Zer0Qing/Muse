@@ -7,7 +7,7 @@ import java.security.SecureRandom
 /**
  * Phase 8.11: 嵌入式 Web 服务器配置。
  *
- * - [enabled]: 是否在 App 启动时自动启动 Web 服务器
+ * - [enabled]: 是否启动 Web 服务器；设置页保存配置时会立即应用，进程冷启动时也会自动恢复
  * - [port]: 监听端口(默认 8765,避免与常见服务冲突)
  * - [password]: 登录密码(空字符串表示首次启动时生成随机密码)
  * - [pin]: 6 位数字 PIN,Web 端首次访问需输入(空字符串表示首次启动时生成)

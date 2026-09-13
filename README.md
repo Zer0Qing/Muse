@@ -241,7 +241,7 @@ Muse 每次回复前会生成一个 `mood` 块，这是 AI 的"内心独白"—�
 - 嵌入式 Web 服务器：Ktor + JWT + mDNS，局域网 API 访问
 - 配置导入：从 CherryStudio / Chatbox 一键迁移
 - 备份与恢复：本地文件 + S3 / WebDAV 云同步
-- 全文搜索：Room FTS5，对话历史即时检索
+- 全文搜索：Room/SQLite FTS5，兼容环境下回退 FTS4，对话历史即时检索
 - 表情包库：导入 zip 压缩包自动分类，概率自动发送
 - Markdown 富文本渲染：代码高亮（20+ 语言）、KaTeX 数学公式、Mermaid 流程图
 
@@ -255,6 +255,8 @@ Muse 每次回复前会生成一个 `mood` 块，这是 AI 的"内心独白"—�
 - 所有对话/记忆/知识库存储在本地 Room 数据库，无遥测、无分析、无数据收集
 - 联网功能默认关闭，按需开启
 - 崩溃日志仅存储在本地，安全模式下可手动导出
+- 外部插件默认运行在 sandboxed 边界内；作者签名信任根和在线更新回滚链仍在建设中
+- 应用更新入口限制为 GitHub 官方 HTTPS 资产；当前不会在应用内自动下载、验签或安装 APK
 
 ---
 
@@ -311,6 +313,7 @@ cd Muse
 
 APK 输出路径：`app/build/outputs/apk/release/app-{abi}-release.apk`
 通用正式包：`app/build/outputs/apk/release/app-universal-release.apk`
+发布前应对全部 ABI APK 执行 `python3 ci/script/validate_release_apks.py --apk 'app/build/outputs/apk/release/*.apk'`；CI 的 tag 流程会自动执行签名校验、全量 manifest 对账和远端资产校验。
 
 ### 首次使用
 
@@ -321,7 +324,7 @@ APK 输出路径：`app/build/outputs/apk/release/app-{abi}-release.apk`
 3. **你的名字** —— 设置你的称呼与助手名字
 4. **配置供应商** —— 选择预置供应商并填入 API Key，支持测试连接
 5. **选择模型** —— 从拉取到的模型列表中选择默认模型
-6. **完成** —— 开始使用，从现在起 Muse 会记住一切
+6. **完成** —— 开始使用；记忆是否记录、注入和保留由助手及全局隐私设置决定
 
 ---
 
@@ -368,6 +371,10 @@ Muse 由独立开发者维护，免费开源。如果你喜欢这个项目，欢
 ## 已知限制
 
 - 极早期版本（facts.db v1/v2）的记忆数据库没有迁移路径。升级到支持 v3+ 的版本时，会将该文件归档为 `.bak` 并重建空库，记忆页会提示“早期记忆数据不兼容，已重置并保留备份文件”。
+- 跨 MuseDb、MemoryDb、FactDb 和 DataStore 的恢复通过 staging、恢复点和恢复账本提供崩溃后回滚与诊断，但仍不具备跨存储 ACID 事务语义。
+- 外部插件目前只有包内容 SHA-256 完整性检测，尚无作者签名、密钥轮换和 catalog 信任根；不要把未验证插件当作可信代码运行。
+- 应用更新检查目前只拉取 Release 元数据并打开受限下载入口，尚未实现应用内 APK 下载后的 hash/signer 校验与自动安装回滚。
+- RAG 的 JVM/静态测试已覆盖作用域、文档过滤和删除逻辑；真实 embedding、Room/HNSW 联合场景及 Android 设备验收仍需单独执行。
 - 免费模型 fallback key 由构建时通过 `FREE_MODEL_KEY` 注入（`-P` / `local.properties` / 环境变量），未注入时界面会提示“免费额度服务不可用”；`KeyRoulette` 对 401 旧 key 使用硬黑名单，旧 key 在服务端轮换后应同步拉黑。
 
 ---

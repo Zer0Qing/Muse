@@ -61,6 +61,7 @@ import org.koin.compose.koinInject
 import androidx.compose.runtime.mutableStateMapOf
 import io.zer0.ai.ProviderRegistry
 import io.zer0.common.Result
+import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.common.resultOf
 
 /**
@@ -133,6 +134,7 @@ fun SettingsModelPage(
     onOpenAsr: () -> Unit = {},
 ) {
     val settings: SettingsRepository = koinInject()
+    val assistantRepository: AssistantRepository = koinInject()
     // v1.48: h13 initialValue 用 null,首次进入显示加载态而非闪空状态
     val providers by settings.providersFlow.collectAsStateWithLifecycle(initialValue = null)
     val visibleProviders = providers?.filterNot { it.hiddenFromSettings }
@@ -277,6 +279,7 @@ fun SettingsModelPage(
             onDelete = {
                 scope.launch {
                     settings.deleteProvider(config.id)
+                    assistantRepository.removeProviderBinding(config.id)
                     editingConfig = null
                 }
             },
@@ -339,7 +342,12 @@ fun SettingsModelPage(
                     isNewProvider = false
                     isFromPreset = false
                 },
-                onDelete = { id -> scope.launch { settings.deleteProvider(id) } },
+                onDelete = {
+                    id -> scope.launch {
+                        settings.deleteProvider(id)
+                        assistantRepository.removeProviderBinding(id)
+                    }
+                },
                 onAddProvider = { showPresetPicker = true },
                 // v1.97: 扫描二维码导入 Provider
                 onScanQr = { showQrScanDialog = true },
@@ -477,7 +485,12 @@ fun SettingsDataPage(
                 autoBackupLogDao = koinInject(),
             )
         }
-        item { WebServerSection(settings = settings) }
+        item {
+            WebServerSection(
+                settings = settings,
+                webServer = koinInject(),
+            )
+        }
     }
 }
 

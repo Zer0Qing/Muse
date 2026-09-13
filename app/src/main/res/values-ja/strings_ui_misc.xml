@@ -119,6 +119,10 @@
     <!-- v1.0.18: Free model badge/hint (aligns with FreeModelConfig) -->
     <string name="model_switch_free_badge">無料</string>
     <string name="model_switch_free_provider_hint">ログイン不要ですぐに使える</string>
+    <string name="model_switch_context_limit">コンテキスト %1$s</string>
+    <string name="model_switch_output_limit">出力上限 %1$s tokens</string>
+    <string name="model_switch_metadata_unverified">能力情報未検証</string>
+    <string name="model_switch_metadata_suspicious">能力情報に注意</string>
 
     <!-- ===== ui/HomeScreen home ===== -->
     <string name="home_tab_tasks">タスク</string>

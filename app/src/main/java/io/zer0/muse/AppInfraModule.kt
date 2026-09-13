@@ -30,7 +30,10 @@ val appInfraModule = module {
     // v1.25: 视觉辅助桥接器(让纯文本模型通过视觉模型"看到"图片)
     single { io.zer0.muse.vision.VisionBridge(get(), get(), get()) }
 
-    single { BackupService(get(), get(), get(), get(), get(), get(), get()) }
+    /** 跨 MuseDb/MemoryDb/FactDb/DataStore 恢复阶段账本。 */
+    single { io.zer0.muse.backup.RestoreJournal(androidContext()) }
+    single { io.zer0.muse.backup.RestoreStagingStore(androidContext()) }
+    single { BackupService(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
     // Phase 8.9: 云备份服务(S3/WebDAV 派发)
     // v1.0.4 (P3-8): 移除 BalanceService Koin 注册 — 该类从未被业务代码调用,
@@ -50,7 +53,7 @@ val appInfraModule = module {
     // Phase 8.11: mDNS 服务发现(NSD 局域网服务注册)
     single { io.zer0.muse.web.MdnsService(androidContext()) }
     // Phase 8.11: 嵌入�?Web 服务�?Ktor CIO + JWT + mDNS)
-    single { io.zer0.muse.web.WebServer(get(), get(), get(), get(), androidContext()) }
+    single { io.zer0.muse.web.WebServer(get(), get(), get(), get(), androidContext(), get(), get()) }
 
     // Phase 8.4: Web 搜索服务(独立 OkHttpClient,避免�?SSE 长连接互相影�?
     // Phase 8.5 修复:�?qualifier 区分;config 改为懒加�?避免主线�?runBlocking

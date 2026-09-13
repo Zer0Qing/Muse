@@ -142,6 +142,7 @@ data class ChatRequest(
     val messages: List<UIMessage>,
     val model: Model,
     val temperature: Float? = null,
+    /** 已按 [ModelOutputPolicy.resolve] 约束到模型能力范围的输出上限。 */
     val maxTokens: Int? = null,
     val abortSignal: AbortSignal = AbortSignal(),
     val tools: List<ToolDefinition>? = null,

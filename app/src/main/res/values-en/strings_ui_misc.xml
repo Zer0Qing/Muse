@@ -119,6 +119,10 @@
     <!-- v1.0.18: Free model badge/hint (aligns with FreeModelConfig) -->
     <string name="model_switch_free_badge">Free</string>
     <string name="model_switch_free_provider_hint">No login required, ready to use</string>
+    <string name="model_switch_context_limit">Context %1$s</string>
+    <string name="model_switch_output_limit">Output limit %1$s tokens</string>
+    <string name="model_switch_metadata_unverified">Capabilities unverified</string>
+    <string name="model_switch_metadata_suspicious">Capabilities suspicious</string>
 
     <!-- ===== ui/HomeScreen home ===== -->
     <string name="home_tab_tasks">Tasks</string>

@@ -1,0 +1,31 @@
+name: Muse Web CI
+
+on:
+  push:
+    branches: [main]
+    paths: ["web/**"]
+  pull_request:
+    branches: [main]
+    paths: ["web/**"]
+
+permissions:
+  contents: read
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm run test
+      - run: npm run check:security
+      - run: npm run build

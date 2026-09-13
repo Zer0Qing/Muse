@@ -256,7 +256,7 @@ private class GenerationLoop(
                 // 需要用户审批
                 val argsPreview = tc.arguments.take(200)
                 approvalCallback?.invoke(tc.name, argsPreview)
-                    ?: ToolApprovalState.Auto // 无回调时回退为自动
+                    ?: ToolApprovalState.Denied("审批通道未就绪，已阻止工具执行")
             }
             else -> storedState
         }

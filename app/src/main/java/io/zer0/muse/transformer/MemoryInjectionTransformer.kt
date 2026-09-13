@@ -70,22 +70,16 @@ class MemoryInjectionTransformer(
         val facts = if (factStore == null) {
             emptyList()
         } else {
-            resultOf {
-                if (explicitSpaceId != null) factStore.getByScopeAndSpace(scope, spaceId)
-                else factStore.getByScope(scope)
-            }
+            // 即使调用方未显式传入空间，也必须使用默认空间的双重过滤，不能退回 getByScope。
+            resultOf { factStore.getByScopeAndSpace(scope, spaceId) }
                 .onError { msg, t -> Logger.w("MemoryInjectionTransformer", "读取作用域记忆($scope, $spaceId) 失败: $msg", t) }
                 .getOrNull() ?: emptyList()
         }
 
         // 用 resultOf 替代 runCatching:resultOf 会重抛 CancellationException,
-        // 避免协程取消被吞掉导致任务无法正常终止
+        // 避免协程取消被吞掉导致任务无法正常终止；scope/space 始终显式传递。
         val memoryMd = resultOf {
-            if (explicitSpaceId != null) {
-                memoryTicker.readCompiledMemoryMarkdown(scope = scope, spaceId = spaceId)
-            } else {
-                memoryTicker.readCompiledMemoryMarkdown()
-            }
+            memoryTicker.readCompiledMemoryMarkdown(scope = scope, spaceId = spaceId)
         }
             .onError { msg, t -> Logger.w("MemoryInjectionTransformer", "readCompiledMemoryMarkdown 失败: $msg", t) }
             .getOrNull() ?: ""

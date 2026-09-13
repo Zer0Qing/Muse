@@ -7,16 +7,16 @@ import android.app.TimePickerDialog
 import io.zer0.muse.ui.common.surface.clearMuseWindowDim
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
@@ -579,12 +579,11 @@ internal fun deriveTitle(text: String, tags: List<String>): String {
 // ── 快速记录增强组件 ───────────────────────────────────────────────────────
 
 /**
- * 文件夹筛选条 — FlowRow 胶囊,与标签筛选风格一致。
+ * 文件夹筛选条 — 有界横向滚动胶囊,避免筛选项把历史记录推出可视区域。
  * - "全部"(selectedFolder=null): 显示所有文件夹
  * - "未分类"(selectedFolder=""): folder 为空的记录
  * - 具体文件夹名: 该文件夹下的记录
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun QuickNoteFolderFilterRow(
     folders: List<String>,
@@ -592,22 +591,28 @@ internal fun QuickNoteFolderFilterRow(
     onFolderSelected: (String?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    FlowRow(
-        modifier = modifier.fillMaxWidth(),
+    LazyRow(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp, max = 56.dp),
         horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
-        verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+        contentPadding = PaddingValues(horizontal = 2.dp),
     ) {
-        FolderChip(
-            label = stringResource(R.string.quick_notes_folder_all),
-            selected = selectedFolder == null,
-            onClick = { onFolderSelected(null) },
-        )
-        FolderChip(
-            label = stringResource(R.string.quick_notes_folder_uncategorized),
-            selected = selectedFolder == "",
-            onClick = { onFolderSelected("") },
-        )
-        folders.forEach { folder ->
+        item(key = "all") {
+            FolderChip(
+                label = stringResource(R.string.quick_notes_folder_all),
+                selected = selectedFolder == null,
+                onClick = { onFolderSelected(null) },
+            )
+        }
+        item(key = "uncategorized") {
+            FolderChip(
+                label = stringResource(R.string.quick_notes_folder_uncategorized),
+                selected = selectedFolder == "",
+                onClick = { onFolderSelected("") },
+            )
+        }
+        items(folders, key = { it }) { folder ->
             FolderChip(
                 label = folder,
                 selected = selectedFolder == folder,

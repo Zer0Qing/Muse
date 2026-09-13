@@ -2,6 +2,8 @@ package io.zer0.muse.data.preset
 
 import android.content.Context
 import io.zer0.common.AppJson
+import io.zer0.ai.core.Model
+import io.zer0.ai.core.VisionCapabilities
 import io.zer0.common.Logger
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
@@ -37,8 +39,13 @@ class ModelCatalogStore(
         val contextWindow: Int? = null,
         val maxOutputTokens: Int? = null,
         val supportsVision: Boolean? = null,
+        val supportsStreaming: Boolean? = null,
+        val supportsVideo: Boolean? = null,
         val supportsTools: Boolean? = null,
         val supportsReasoning: Boolean? = null,
+        val inputModalities: Set<String>? = null,
+        val outputModalities: Set<String>? = null,
+        val visionCapabilities: VisionCapabilities? = null,
         val updatedAt: Long = 0L,
         val userEdited: Boolean = false,
         val builtInRemoved: Boolean = false,
@@ -120,12 +127,44 @@ class ModelCatalogStore(
         entries(providerId).firstOrNull { it.modelId.equals(modelId, ignoreCase = true) }
 
     /**
+     * 将目录条目投影到运行时模型列表。
+     *
+     * 现有 Provider 模型会应用目录元数据；目录中的用户新增模型也会进入列表。
+     * 这样“模型目录里维护了”与“模型选择器/请求实际使用了”保持同一份数据。
+     */
+    fun mergeIntoModels(
+        providerId: String,
+        models: List<Model>,
+        runtimeProviderId: String = providerId,
+    ): List<Model> {
+        val catalogEntries = entries(providerId)
+            .associateBy { keyOf(providerId, it.modelId) }
+        val result = LinkedHashMap<String, Model>()
+        for (model in models) {
+            val entry = catalogEntries[keyOf(providerId, model.id)]
+            if (entry?.builtInRemoved == true) continue
+            // 保留运行时 Provider 身份（例如 preset_openai），只用目录 providerId 做匹配。
+            result[model.id.trim().lowercase()] = model.applyCatalogEntry(entry)
+        }
+        for (entry in catalogEntries.values) {
+            val key = entry.modelId.trim().lowercase()
+            if (entry.builtInRemoved || result.containsKey(key)) continue
+            result[key] = entry.toModel(runtimeProviderId)
+        }
+        return result.values.toList()
+    }
+
+    /**
      * 保存用户对某个模型的字段修改。
      *
      * 只写入用户显式修改的字段；内置其他字段继续回退。
      */
     @Synchronized
     fun saveUserOverride(providerId: String, modelId: String, patch: ModelCatalogEntry): ModelCatalogEntry {
+        require(providerId.isNotBlank()) { "providerId must not be blank" }
+        require(modelId.isNotBlank()) { "modelId must not be blank" }
+        requirePositiveOrNull(patch.contextWindow, "contextWindow")
+        requirePositiveOrNull(patch.maxOutputTokens, "maxOutputTokens")
         val current = find(providerId, modelId)
         val base = current ?: ModelCatalogEntry(providerId = providerId, modelId = modelId)
         val merged = base.copy(
@@ -135,15 +174,20 @@ class ModelCatalogStore(
             contextWindow = patch.contextWindow ?: base.contextWindow,
             maxOutputTokens = patch.maxOutputTokens ?: base.maxOutputTokens,
             supportsVision = patch.supportsVision ?: base.supportsVision,
+            supportsStreaming = patch.supportsStreaming ?: base.supportsStreaming,
+            supportsVideo = patch.supportsVideo ?: base.supportsVideo,
             supportsTools = patch.supportsTools ?: base.supportsTools,
             supportsReasoning = patch.supportsReasoning ?: base.supportsReasoning,
+            inputModalities = patch.inputModalities ?: base.inputModalities,
+            outputModalities = patch.outputModalities ?: base.outputModalities,
+            visionCapabilities = patch.visionCapabilities ?: base.visionCapabilities,
             updatedAt = System.currentTimeMillis(),
             userEdited = true,
             builtInRemoved = false,
         )
         val overrides = loadUserOverrides()
         val newList = overrides.filterNot {
-            it.providerId == providerId && it.modelId == modelId
+            keyOf(it.providerId, it.modelId) == keyOf(providerId, modelId)
         } + merged
         persistUserOverrides(UserOverrides(items = newList, updatedAt = System.currentTimeMillis()))
         return merged
@@ -161,7 +205,7 @@ class ModelCatalogStore(
             builtInRemoved = true,
         )
         val newList = overrides.filterNot {
-            it.providerId == providerId && it.modelId == modelId
+            keyOf(it.providerId, it.modelId) == keyOf(providerId, modelId)
         } + removed
         persistUserOverrides(UserOverrides(items = newList, updatedAt = System.currentTimeMillis()))
     }
@@ -171,7 +215,7 @@ class ModelCatalogStore(
     fun resetModel(providerId: String, modelId: String) {
         val overrides = loadUserOverrides()
         val newList = overrides.filterNot {
-            it.providerId == providerId && it.modelId == modelId
+            keyOf(it.providerId, it.modelId) == keyOf(providerId, modelId)
         }
         persistUserOverrides(UserOverrides(items = newList, updatedAt = System.currentTimeMillis()))
     }
@@ -197,12 +241,15 @@ class ModelCatalogStore(
 
     /** 导入目录 JSON（仅更新用户覆盖；内置仍由代码提供）。 */
     @Synchronized
+    @Suppress("CyclomaticComplexMethod")
     fun importJson(json: String): Boolean {
         return runCatching {
             val imported = AppJson.decodeFromString<List<ModelCatalogEntry>>(json)
             val overrides = loadUserOverrides()
             val existing = overrides.filterNot { existingEntry ->
-                imported.any { it.providerId == existingEntry.providerId && it.modelId == existingEntry.modelId }
+                imported.any {
+                    keyOf(it.providerId, it.modelId) == keyOf(existingEntry.providerId, existingEntry.modelId)
+                }
             }
             persistUserOverrides(
                 UserOverrides(
@@ -255,14 +302,61 @@ class ModelCatalogStore(
         return result.values.toList()
     }
 
+    @Suppress("CyclomaticComplexMethod")
+    private fun Model.applyCatalogEntry(entry: ModelCatalogEntry?): Model {
+        if (entry == null) return this
+        val mergedAbilities = abilities.toMutableSet().apply {
+            if (entry.supportsTools == true) add(io.zer0.ai.core.ModelAbility.TOOL)
+            if (entry.supportsTools == false) remove(io.zer0.ai.core.ModelAbility.TOOL)
+            if (entry.supportsReasoning == true) add(io.zer0.ai.core.ModelAbility.REASONING)
+            if (entry.supportsReasoning == false) remove(io.zer0.ai.core.ModelAbility.REASONING)
+        }
+        return copy(
+            name = entry.displayName ?: name,
+            contextWindow = entry.contextWindow ?: contextWindow,
+            maxOutputTokens = entry.maxOutputTokens ?: maxOutputTokens,
+            supportsVision = entry.supportsVision ?: supportsVision,
+            supportsStreaming = entry.supportsStreaming ?: supportsStreaming,
+            supportsVideo = entry.supportsVideo ?: supportsVideo,
+            inputModalities = entry.inputModalities ?: inputModalities,
+            outputModalities = entry.outputModalities ?: outputModalities,
+            visionCapabilities = entry.visionCapabilities ?: visionCapabilities,
+            abilities = mergedAbilities,
+        )
+    }
+
+    private fun ModelCatalogEntry.toModel(providerId: String): Model = Model(
+        id = modelId,
+        name = displayName ?: modelId,
+        providerId = providerId,
+        contextWindow = contextWindow,
+        maxOutputTokens = maxOutputTokens,
+        supportsVision = supportsVision ?: false,
+        supportsStreaming = supportsStreaming ?: true,
+        supportsVideo = supportsVideo ?: false,
+        inputModalities = inputModalities ?: setOf("text"),
+        outputModalities = outputModalities ?: setOf("text"),
+        visionCapabilities = visionCapabilities,
+        abilities = buildSet {
+            if (supportsTools == true) add(io.zer0.ai.core.ModelAbility.TOOL)
+            if (supportsReasoning == true) add(io.zer0.ai.core.ModelAbility.REASONING)
+        },
+    )
+
+    @Suppress("CyclomaticComplexMethod")
     private fun ModelCatalogEntry.mergeUser(user: ModelCatalogEntry): ModelCatalogEntry =
         copy(
             displayName = user.displayName ?: displayName,
             contextWindow = user.contextWindow ?: contextWindow,
             maxOutputTokens = user.maxOutputTokens ?: maxOutputTokens,
             supportsVision = user.supportsVision ?: supportsVision,
+            supportsStreaming = user.supportsStreaming ?: supportsStreaming,
+            supportsVideo = user.supportsVideo ?: supportsVideo,
             supportsTools = user.supportsTools ?: supportsTools,
             supportsReasoning = user.supportsReasoning ?: supportsReasoning,
+            inputModalities = user.inputModalities ?: inputModalities,
+            outputModalities = user.outputModalities ?: outputModalities,
+            visionCapabilities = user.visionCapabilities ?: visionCapabilities,
             updatedAt = user.updatedAt.let { if (it > 0) it else updatedAt },
             userEdited = user.userEdited || userEdited,
             builtInRemoved = user.builtInRemoved || builtInRemoved,
@@ -293,7 +387,11 @@ class ModelCatalogStore(
     }
 
     private fun keyOf(providerId: String, modelId: String) =
-        "${providerId.lowercase()}\u0000${modelId.lowercase()}"
+        "${providerId.trim().lowercase()}\u0000${modelId.trim().lowercase()}"
+
+    private fun requirePositiveOrNull(value: Int?, field: String) {
+        require(value == null || value > 0) { "$field must be positive when provided" }
+    }
 
     companion object {
         private const val TAG = "ModelCatalogStore"

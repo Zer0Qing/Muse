@@ -157,7 +157,7 @@ fun SettingsScreen(
     val translateDesc = stringResource(R.string.settings_screen_translate_desc)
     val assistantTitle = stringResource(R.string.settings_screen_assistant)
     val assistantDesc = stringResource(R.string.settings_screen_assistant_desc)
-    val agentTitle = "Agent"
+    val agentTitle = stringResource(R.string.chat_agent_tab_title)
     val agentDesc = stringResource(R.string.settings_screen_agent_desc)
     val providerTitle = stringResource(R.string.settings_screen_provider)
     val providerDesc = stringResource(R.string.settings_screen_provider_desc)

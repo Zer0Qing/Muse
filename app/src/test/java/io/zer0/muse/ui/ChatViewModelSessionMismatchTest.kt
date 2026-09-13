@@ -287,7 +287,7 @@ class ChatViewModelSessionMismatchTest {
         // launchGeneration 是 launchStream 的入口;mismatch 时不应调用
         // 注:launchGeneration 非 suspend,用 verify 而非 coVerify
         verify(exactly = 0) {
-            chatGenerationManager.launchGeneration(any(), any(), any(), any())
+            chatGenerationManager.launchGeneration(any(), any(), any(), any(), any())
         }
     }
 
@@ -311,6 +311,7 @@ class ChatViewModelSessionMismatchTest {
                 sessionId = "session-A",
                 assistantId = any(),
                 sessionTitle = any(),
+                generationId = any(),
                 block = any(),
             )
         }

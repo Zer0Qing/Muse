@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -24,6 +23,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items as lazyItems
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -1150,19 +1151,24 @@ private fun StickerLibrarySection(
             }
         }
 
-        // 分类胶囊标签(仅当有表情包时才显示)
+        // 分类胶囊标签(仅当有表情包时才显示)。
+        // 分类数量来自导入内容，必须有界；否则会把下方预览网格推出可视区域。
         if (stickers.isNotEmpty()) {
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
+            LazyRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp, max = 56.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(horizontal = 2.dp),
             ) {
-                MuseChip(
-                    selected = selectedCategory.isBlank(),
-                    onClick = { selectedCategory = "" },
-                    label = stringResource(R.string.settings_sticker_category_all),
-                )
-                categories.forEach { cat ->
+                item(key = "all") {
+                    MuseChip(
+                        selected = selectedCategory.isBlank(),
+                        onClick = { selectedCategory = "" },
+                        label = stringResource(R.string.settings_sticker_category_all),
+                    )
+                }
+                lazyItems(categories, key = { it }) { cat ->
                     MuseChip(
                         selected = selectedCategory == cat,
                         onClick = { selectedCategory = cat },

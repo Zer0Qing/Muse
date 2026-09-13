@@ -1,11 +1,14 @@
+@file:Suppress("FunctionNaming", "LongMethod")
+
 package io.zer0.muse.ui.groupchat
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseTextField
 import androidx.compose.material3.MaterialTheme
@@ -39,7 +42,6 @@ import io.zer0.muse.ui.common.feedback.MuseDialog
  * @param onDismiss 关闭对话框
  * @param onConfirm 确认创建回调(name, memberIds, teamId)
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CreateGroupChatDialog(
     assistants: List<AssistantEntity>,
@@ -99,12 +101,12 @@ fun CreateGroupChatDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
-                FlowRow(
+                LazyRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    contentPadding = PaddingValues(horizontal = 2.dp),
                 ) {
-                    assistants.forEach { assistant ->
+                    items(assistants, key = { it.id }) { assistant ->
                         val selected = assistant.id in selectedMemberIds
                         MuseChip(
                             selected = selected,
@@ -141,17 +143,19 @@ fun CreateGroupChatDialog(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.height(8.dp))
-                FlowRow(
+                LazyRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    contentPadding = PaddingValues(horizontal = 2.dp),
                 ) {
+                    item(key = "no_team") {
                     MuseChip(
                         selected = selectedTeamId == null,
                         onClick = { selectedTeamId = null },
                         label = stringResource(R.string.groupchat_no_team),
                     )
-                    teams.forEach { team ->
+                    }
+                    items(teams, key = { it.id }) { team ->
                         val selected = selectedTeamId == team.id
                         MuseChip(
                             selected = selected,

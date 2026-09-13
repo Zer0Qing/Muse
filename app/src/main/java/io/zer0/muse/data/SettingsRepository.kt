@@ -12,6 +12,7 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import io.zer0.ai.core.Model
 import io.zer0.ai.core.ProviderConfig
 import io.zer0.ai.core.ProviderSpecMerger
+import io.zer0.ai.registry.ModelRegistry
 import io.zer0.ai.ProviderConfigStore
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
@@ -19,6 +20,7 @@ import io.zer0.common.resultOf
 import io.zer0.muse.asr.AsrConfig
 import io.zer0.muse.backup.CloudBackupConfig
 import io.zer0.muse.data.audit.AuditLogger
+import io.zer0.muse.data.preset.ModelCatalogStore
 import io.zer0.muse.data.preset.PresetProviders
 import io.zer0.muse.data.preset.SiliconFlowFreeModels
 import io.zer0.muse.rag.RagConfig
@@ -72,6 +74,8 @@ class SettingsRepository(
     private val appContext: Context,
     /** P2-4: 审计日志记录器,用于记录关键用户操作(如删除 Provider)。 */
     private val auditLogger: AuditLogger,
+    /** 模型能力目录；可选以保持纯数据层测试和旧调用方兼容。 */
+    private val modelCatalogStore: ModelCatalogStore? = null,
 ) : ProviderConfigStore {
     /** P2-2: 外观/主题子仓库(共用 muse_settings DataStore)。 */
     val appearance = AppearanceSettingsStore(appContext)
@@ -227,7 +231,16 @@ class SettingsRepository(
             } else {
                 config
             }
-            enrichWithSpecDefaults(internalized)
+            val enriched = enrichWithSpecDefaults(internalized)
+            // 与 Hana 的 models.json projection 对齐：用户模型目录先合并进 Provider，
+            // 再由统一能力注册表增强，保证设置页、模型选择器和实际请求看到同一份元数据。
+            val catalogProviderId = enriched.specId ?: enriched.id.removePrefix("preset_")
+            val projectedModels = modelCatalogStore?.mergeIntoModels(
+                providerId = catalogProviderId,
+                models = enriched.models,
+                runtimeProviderId = enriched.id,
+            ) ?: enriched.models
+            enriched.copy(models = projectedModels.map(ModelRegistry::enhanceModel))
         }
     }.catch {
         // M-SR3: 上游异常(DataStore IO / 解密失败)不应让 Flow 永久失效,回退空列表并记日志
@@ -1417,7 +1430,70 @@ class SettingsRepository(
         )
     }
     suspend fun deleteProvider(id: String) {
-        store.edit { prefs -> val list = decodePrefsOrNull(prefs[KEY_PROVIDERS], ListSerializer(ProviderConfig.serializer()), "Providers(delete)") ?: emptyList(); prefs[KEY_PROVIDERS] = encodeProviders(list.filter { it.id != id }) }
+        require(id.isNotBlank()) { "provider id must not be blank" }
+        store.edit { prefs ->
+            val providers = decodePrefsOrNull(
+                prefs[KEY_PROVIDERS],
+                ListSerializer(ProviderConfig.serializer()),
+                "Providers(delete)",
+            ) ?: emptyList()
+            val result = cleanupProviderReferences(
+                providers = providers,
+                deletedProviderId = id,
+                activeProviderId = prefs[KEY_ACTIVE_PROVIDER_ID],
+                selectedModelId = prefs[KEY_SELECTED_MODEL],
+                toolModelId = prefs[KEY_TOOL_MODEL_ID],
+                compressModelId = prefs[KEY_COMPRESS_MODEL_ID],
+                visionModelId = prefs[KEY_VISION_MODEL_ID],
+                visionProviderId = prefs[KEY_VISION_PROVIDER_ID],
+                sessionModelOverrides = decodePrefsOrNull(
+                    prefs[KEY_SESSION_MODEL_OVERRIDES],
+                    sessionModelOverrideSerializer,
+                    "SessionModelOverrides(deleteProvider)",
+                ) ?: emptyMap(),
+                sessionProviderOverrides = decodePrefsOrNull(
+                    prefs[KEY_SESSION_PROVIDER_OVERRIDES],
+                    sessionModelOverrideSerializer,
+                    "SessionProviderOverrides(deleteProvider)",
+                ) ?: emptyMap(),
+                imageGenConfig = decodePrefsOrNull(
+                    prefs[KEY_IMAGE_GEN_CONFIG],
+                    ImageGenConfig.serializer(),
+                    "ImageGenConfig(deleteProvider)",
+                ) ?: ImageGenConfig(),
+                videoGenConfig = decodePrefsOrNull(
+                    prefs[KEY_VIDEO_GEN_CONFIG],
+                    VideoGenConfig.serializer(),
+                    "VideoGenConfig(deleteProvider)",
+                ) ?: VideoGenConfig(),
+                taskRoutingConfig = decodePrefsOrNull(
+                    prefs[KEY_TASK_ROUTING_CONFIG],
+                    TaskRoutingConfig.serializer(),
+                    "TaskRoutingConfig(deleteProvider)",
+                ) ?: TaskRoutingConfig(),
+            )
+            prefs[KEY_PROVIDERS] = encodeProviders(result.providers)
+            writeNullablePreference(prefs, KEY_ACTIVE_PROVIDER_ID, result.activeProviderId)
+            writeNullablePreference(prefs, KEY_SELECTED_MODEL, result.selectedModelId)
+            writeNullablePreference(prefs, KEY_TOOL_MODEL_ID, result.toolModelId)
+            writeNullablePreference(prefs, KEY_COMPRESS_MODEL_ID, result.compressModelId)
+            writeNullablePreference(prefs, KEY_VISION_MODEL_ID, result.visionModelId)
+            writeNullablePreference(prefs, KEY_VISION_PROVIDER_ID, result.visionProviderId)
+            writeMapPreference(prefs, KEY_SESSION_MODEL_OVERRIDES, result.sessionModelOverrides)
+            writeMapPreference(prefs, KEY_SESSION_PROVIDER_OVERRIDES, result.sessionProviderOverrides)
+            prefs[KEY_IMAGE_GEN_CONFIG] = AppJson.encodeToString(
+                ImageGenConfig.serializer(),
+                result.imageGenConfig,
+            )
+            prefs[KEY_VIDEO_GEN_CONFIG] = AppJson.encodeToString(
+                VideoGenConfig.serializer(),
+                result.videoGenConfig,
+            )
+            prefs[KEY_TASK_ROUTING_CONFIG] = AppJson.encodeToString(
+                TaskRoutingConfig.serializer(),
+                result.taskRoutingConfig,
+            )
+        }
         // v1.132: 失效模型列表缓存
         io.zer0.ai.core.ModelListCache.invalidate(id)
         // P2-4: 审计日志 — 用户删除 Provider(fire-and-forget,失败不影响业务)
@@ -1437,6 +1513,23 @@ class SettingsRepository(
     suspend fun saveSessionProviderOverride(sessionId: String, providerId: String?) {
         saveSessionOverride(KEY_SESSION_PROVIDER_OVERRIDES, "SessionProviderOverrides(save)", sessionId, providerId)
     }
+    private fun writeNullablePreference(
+        prefs: androidx.datastore.preferences.core.MutablePreferences,
+        key: Preferences.Key<String>,
+        value: String?,
+    ) {
+        if (value.isNullOrBlank()) prefs.remove(key) else prefs[key] = value
+    }
+
+    private fun writeMapPreference(
+        prefs: androidx.datastore.preferences.core.MutablePreferences,
+        key: Preferences.Key<String>,
+        value: Map<String, String>,
+    ) {
+        if (value.isEmpty()) prefs.remove(key)
+        else prefs[key] = AppJson.encodeToString(sessionModelOverrideSerializer, value)
+    }
+
     private suspend fun saveSessionOverride(
         key: Preferences.Key<String>,
         keyName: String,

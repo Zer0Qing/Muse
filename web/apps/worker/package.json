@@ -1,0 +1,9 @@
+{
+  "name": "@muse/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "dev": "node --watch --experimental-strip-types src/worker.ts", "build": "tsc -p tsconfig.json", "typecheck": "tsc -p tsconfig.json --noEmit", "test": "npm run build && node --test test/*.test.js" },
+  "dependencies": { "@muse/jobs": "0.1.0", "@muse/database": "0.1.0", "redis": "^4.7.0", "pg": "^8.13.1" },
+  "devDependencies": { "typescript": "^5.7.3" }
+}

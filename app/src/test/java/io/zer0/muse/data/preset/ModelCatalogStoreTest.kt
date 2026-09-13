@@ -48,6 +48,56 @@ class ModelCatalogStoreTest {
     }
 
     @Test
+    fun userOverride_mergesExtendedCapabilityMetadata() {
+        val store = ModelCatalogStore(context)
+        store.saveUserOverride(
+            "OPENAI",
+            "GPT-4O",
+            ModelCatalogStore.ModelCatalogEntry(
+                providerId = "OPENAI",
+                modelId = "GPT-4O",
+                supportsStreaming = false,
+                supportsVideo = true,
+                inputModalities = setOf("text", "image"),
+                outputModalities = setOf("text", "video"),
+                visionCapabilities = io.zer0.ai.core.VisionCapabilities(grounding = true, outputFormat = "muse-box"),
+            ),
+        )
+
+        val merged = store.find("openai", "gpt-4o")
+        assertNotNull(merged)
+        assertEquals(false, merged?.supportsStreaming)
+        assertEquals(true, merged?.supportsVideo)
+        assertEquals(setOf("text", "image"), merged?.inputModalities)
+        assertEquals(setOf("text", "video"), merged?.outputModalities)
+        assertTrue(merged?.visionCapabilities?.grounding == true)
+    }
+
+    @Test
+    fun mergeIntoModels_projectsNewCatalogModelWithRuntimeProviderIdentity() {
+        val store = ModelCatalogStore(context)
+        store.addUserModel("openai", "my-runtime-model", "Runtime Model")
+
+        val projected = store.mergeIntoModels(
+            providerId = "openai",
+            models = listOf(
+                io.zer0.ai.core.Model(
+                    id = "existing",
+                    name = "Existing",
+                    providerId = "preset_openai",
+                ),
+            ),
+            runtimeProviderId = "preset_openai",
+        )
+
+        val added = projected.firstOrNull { it.id == "my-runtime-model" }
+        assertNotNull(added)
+        assertEquals("preset_openai", projected.first { it.id == "existing" }.providerId)
+        assertEquals("preset_openai", added?.providerId)
+        assertEquals("Runtime Model", added?.name)
+    }
+
+    @Test
     fun removeModel_hidesBuiltinButKeepsCatalogData() {
         val store = ModelCatalogStore(context)
         store.removeModel("openai", "gpt-4o")

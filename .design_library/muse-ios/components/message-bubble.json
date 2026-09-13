@@ -1,0 +1,66 @@
+{
+  "slug": "message-bubble",
+  "schemaVersion": 2,
+  "name": "Message Bubble",
+  "category": "Content",
+  "sourceKind": "from-scratch",
+  "confidence": "medium",
+  "semanticTypeCandidates": [
+    {"candidate": "user-bubble", "evidence": "Right-aligned brand accent asymmetric tail bottom-right"},
+    {"candidate": "assistant-bubble", "evidence": "Left-aligned surface color asymmetric tail bottom-left"},
+    {"candidate": "system-bubble", "evidence": "Centered muted surface no tail"}
+  ],
+  "variantDimensions": [
+    {"name": "role", "values": ["user", "assistant", "system"]},
+    {"name": "state", "values": ["default", "streaming", "error", "selected"]},
+    {"name": "density", "values": ["compact", "comfortable"]}
+  ],
+  "representativeVariants": [
+    {
+      "name": "User Default",
+      "whySelected": "Primary use case user sends message",
+      "traits": {"role": "user", "state": "default", "radius": "20px primary 6px tail", "bg": "accent-soft or primary", "textColor": "ink", "maxWidth": "75pct", "padding": "12h 8v"},
+      "childrenDigest": "Text content with optional inline code markdown"
+    },
+    {
+      "name": "Assistant Default",
+      "whySelected": "Primary AI reply bubble",
+      "traits": {"role": "assistant", "state": "default", "radius": "20px primary 6px tail opposite", "bg": "ai-bubble surface", "textColor": "ink", "maxWidth": "85pct", "padding": "12h 8v", "fontFamily": "serif for AI reply literati feel"},
+      "childrenDigest": "Rich content text code blocks markdown citations images"
+    },
+    {
+      "name": "Assistant Streaming",
+      "whySelected": "Real-time token generation state",
+      "traits": {"role": "assistant", "state": "streaming", "radius": "same", "bg": "ai-bubble", "textColor": "ink", "cursor": "blinking caret", "actions": "stop button visible"},
+      "childrenDigest": "Partial text with animated cursor indicator"
+    },
+    {
+      "name": "Error State",
+      "whySelected": "Failed generation recovery",
+      "traits": {"role": "assistant", "state": "error", "radius": "same", "bg": "danger-container", "textColor": "danger", "icon": "error indicator", "actions": "retry button"},
+      "childrenDigest": "Error message with retry action"
+    }
+  ],
+  "anatomy": [
+    "Avatar optional left for assistant",
+    "Bubble body rounded rect with asymmetric tail",
+    "Timestamp caption below bubble",
+    "Status indicator streaming cursor error icon sent check",
+    "Action row copy regenerate share revealed on long press"
+  ],
+  "structurePatterns": [
+    "Right-aligned for user left-aligned for assistant",
+    "Max width 75-85pct of screen",
+    "Stacked vertically with 20px gap iOS breathing space",
+    "Tail corner uses 6px radius other corners 20px"
+  ],
+  "usageHints": {
+    "priorityHint": "core",
+    "touchTarget": "44pt min for action buttons",
+    "a11y": "VoiceOver reads role content state",
+    "iosAdaptation": "Android no tail needed Material 3 uses pill shape iOS asymmetric tail is signature"
+  },
+  "doNotInvent": ["Exact avatar image", "Specific markdown rendering details", "Emoji picker integration"],
+  "unknowns": ["Exact avatar sizes per context", "Rich content rendering specifics"],
+  "keyInsightSeed": "Asymmetric tail radius distinguishes user vs AI"
+}

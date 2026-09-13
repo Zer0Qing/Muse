@@ -546,6 +546,11 @@ object ModelRegistry {
             ) suspicious = true
             // 异常4: 上游声明 maxOutputTokens=0(明显错误)
             if (model.maxOutputTokens != null && model.maxOutputTokens <= 0) suspicious = true
+            // 异常5: 输出上限不可能大于上下文窗口；只标记可疑，不静默改写用户目录。
+            val hasInvalidOutputLimit = newContextWindow?.let { window ->
+                window > 0 && newMaxOutputTokens?.let { limit -> limit > window } == true
+            } == true
+            if (hasInvalidOutputLimit) suspicious = true
 
             if (suspicious) ModelVerification.SUSPICIOUS else ModelVerification.VERIFIED
         }

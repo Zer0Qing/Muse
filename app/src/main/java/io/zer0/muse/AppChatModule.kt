@@ -32,6 +32,8 @@ val appChatModule = module {
             agentRunTracker = get(),
             // v1.x: 会话级浏览器注册表(与 UI 胶囊共享同一实例)
             browserManagerRegistry = get(),
+            // 统一生成/工具执行资源注册表
+            executionRegistry = get(),
         )
     }
 
@@ -70,6 +72,8 @@ val appChatModule = module {
             toolConfigStore = get(),
             // MCP 注册表:首条消息前等待助手绑定的 server 完成 tools/list
             mcpRegistry = get(),
+            // 统一生成/工具执行资源注册表
+            executionRegistry = get(),
         )
     }
 }

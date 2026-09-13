@@ -308,6 +308,7 @@
     <string name="settings_web_new_pin">新しいPIN: %1$s (適用するにはアプリを再起動してください)</string>
     <string name="settings_web_access_address">アクセスアドレス</string>
     <string name="settings_web_no_lan">LANに接続されていない（有効でも利用不可）</string>
+    <string name="settings_web_not_running">サービスが起動していません。アドレスは利用できません</string>
     <string name="settings_web_copy_address">アドレスをコピー</string>
     <string name="settings_web_address_copied">コピーしました: %1$s</string>
     <string name="settings_web_edit_port">ポートの編集</string>
@@ -316,6 +317,9 @@
     <string name="settings_web_port_invalid">無効なポート (1024-65535)</string>
     <string name="settings_web_port_updated">ポートが更新されました。適用するにはアプリを再起動してください</string>
     <string name="settings_web_failed">失敗しました: %1$s</string>
+    <string name="settings_web_status_running">サービスはポート %1$d で実行中</string>
+    <string name="settings_web_status_stopped">サービスは起動していません</string>
+    <string name="settings_web_status_failed">サービスの起動に失敗しました: %1$s</string>
 
     <!-- ==================== Chat Settings ==================== -->
     <string name="settings_chat_title">チャット</string>

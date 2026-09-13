@@ -26,8 +26,8 @@
 1. Fork 本仓库并创建您的分支
 2. 遵循现有代码风格（Kotlin 官方风格）
 3. 新功能请包含单元测试
-4. 确保 `./gradlew ktlintCheck` 通过
-5. 确保 `./gradlew :app:testDebugUnitTest` 全部通过
+4. 确保 `./ci/run_ci_checks.ps1 -Lane static` 通过（detekt、ktlint、lint 和覆盖率门禁）
+5. 确保 `./ci/run_ci_checks.ps1 -Lane unit` 全部通过
 6. 更新相关文档（docs/ 目录,若仓库有对应文档）
 7. 提交 PR 到 main 分支
 
@@ -38,10 +38,11 @@
 - Gradle 9.4.1 (wrapper 已包含)
 
 ### 测试
-- 纯 JVM 测试：`./gradlew :app:testDebugUnitTest`
-- Lint 检查：`./gradlew ktlintCheck`
-- 构建 Debug APK：`./gradlew assembleDebug`
-- 构建 Release APK：`./gradlew assembleRelease`
+- CI 脚本与工程规则：`./ci/run_ci_checks.ps1 -Lane ci-scripts` 与 `./ci/run_ci_checks.ps1 -Lane lanes`
+- 静态检查：`./ci/run_ci_checks.ps1 -Lane static`
+- 模块单元测试：`./ci/run_ci_checks.ps1 -Lane unit`
+- 构建 Debug APK：`./ci/run_ci_checks.ps1 -Lane debug`
+- 构建 Release APK：需显式提供 release 签名和版本参数，见 `README.md` 与 CI 的 tag 流程
 
 ## 代码规范
 

@@ -1,0 +1,64 @@
+{
+  "slug": "approval-card",
+  "schemaVersion": 2,
+  "name": "Approval Card",
+  "category": "Content",
+  "sourceKind": "from-scratch",
+  "confidence": "medium",
+  "semanticTypeCandidates": [
+    {"candidate": "approval-request", "evidence": "Tool needs user permission with approve reject actions"},
+    {"candidate": "confirmation-dialog", "evidence": "Inline confirmation with risk description"}
+  ],
+  "variantDimensions": [
+    {"name": "status", "values": ["pending", "approved", "rejected", "expired"]},
+    {"name": "risk", "values": ["low", "medium", "high"]},
+    {"name": "content", "values": ["parameters-only", "with-description"]}
+  ],
+  "representativeVariants": [
+    {
+      "name": "Pending Low Risk",
+      "whySelected": "Standard approval request",
+      "traits": {"status": "pending", "risk": "low", "radius": "20px card", "bg": "accent-soft 5pct alpha", "border": "1px accent-17pct", "padding": "16px", "icon": "shield-check", "label": "请求批准", "actions": "approve reject buttons side by side"},
+      "childrenDigest": "Header icon + approval label + tool description + params preview + action buttons"
+    },
+    {
+      "name": "Pending High Risk",
+      "whySelected": "Dangerous operation needs explicit consent",
+      "traits": {"status": "pending", "risk": "high", "radius": "20px card", "bg": "danger-7pct", "border": "1px danger-35pct", "padding": "16px", "icon": "warning-triangle", "label": "高风险操作", "textColor": "danger", "actions": "approve reject buttons with risk warning"},
+      "childrenDigest": "Warning icon + risk label + detailed description + params + approve reject with confirmation"
+    },
+    {
+      "name": "Approved",
+      "whySelected": "User approved the request",
+      "traits": {"status": "approved", "radius": "20px", "bg": "success-5pct", "border": "1px success-25pct", "icon": "checkmark-circle", "label": "已批准", "textColor": "success"},
+      "childrenDigest": "Success header + approved timestamp"
+    },
+    {
+      "name": "Rejected",
+      "whySelected": "User rejected the request",
+      "traits": {"status": "rejected", "radius": "20px", "bg": "neutral-3pct", "border": "1px neutral-15pct", "icon": "x-circle", "label": "已拒绝", "textColor": "ink-muted"},
+      "childrenDigest": "Rejected header + rejected timestamp"
+    }
+  ],
+  "anatomy": [
+    "Header: status icon + risk label + tool name",
+    "Description section: what the tool will do",
+    "Parameters section: collapsible pre-formatted block",
+    "Risk indicator: color-coded border and background",
+    "Action buttons: approve (primary) and reject (secondary)"
+  ],
+  "structurePatterns": [
+    "Inline within message flow",
+    "Risk level drives color: accent for low, warning for medium, danger for high",
+    "Approved/rejected states collapse to compact header",
+    "Parameters section uses mono font, max-height 150px scrollable"
+  ],
+  "usageHints": {
+    "priorityHint": "medium",
+    "touchTarget": "48pt min for approve reject buttons",
+    "iosAdaptation": "iOS custom cell with action buttons; Android Card with ButtonRow; Web details summary with button group"
+  },
+  "doNotInvent": ["Specific tool names requiring approval", "Risk classification algorithm"],
+  "unknowns": ["Exact risk levels per tool type"],
+  "keyInsightSeed": "Risk-level-driven approval card with color-coded urgency"
+}

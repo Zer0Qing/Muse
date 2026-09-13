@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Message Bubble · Muse iOS</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+body{margin:0;padding:var(--space-3);background:var(--color-background);font-family:var(--font-body);color:var(--color-on-surface)}
+.row{display:flex;gap:var(--space-3);align-items:flex-start;margin-bottom:var(--space-2)}
+.label{font-size:var(--font-size-label);color:var(--color-on-surface-variant);text-transform:uppercase;letter-spacing:.04em;width:92px;flex-shrink:0;padding-top:6px}
+.thread{display:flex;flex-direction:column;gap:var(--space-5);flex:1;min-width:0;align-items:flex-start}
+.divider{border:none;border-top:1px solid var(--color-border);margin:var(--space-3) 0}
+/* @component-css-start */
+.msg{display:flex;flex-direction:column;gap:var(--space-1);max-width:85%;align-items:flex-start}
+.msg.end{align-self:flex-end;align-items:flex-end;max-width:var(--size-bubble-max)}
+.bubble{padding:var(--space-2) var(--space-3);font-size:var(--font-size-body-m);line-height:var(--line-height-body);border-radius:var(--radius-card);word-break:break-word;overflow-wrap:break-word}
+.bubble-user{background:var(--color-primary);color:var(--color-on-primary);border-bottom-right-radius:6px}
+.bubble-ai{background:var(--ai-bubble);color:var(--color-on-surface);font-family:var(--font-serif);border-bottom-left-radius:6px}
+.bubble-error{background:var(--color-error-container);color:var(--color-error);border-bottom-left-radius:6px}
+.caret{display:inline-block;width:2px;height:1em;background:var(--color-primary);margin-left:2px;vertical-align:text-bottom;animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+.meta{font-size:var(--font-size-caption);color:var(--color-on-surface-variant)}
+.action{display:inline-flex;align-items:center;gap:var(--space-1);margin-top:var(--space-1);min-width:44px;min-height:32px;padding:var(--space-1) var(--space-3);border:1px solid var(--color-border);border-radius:var(--radius-pill);background:transparent;color:var(--color-primary);font-size:var(--font-size-caption);font-family:var(--font-body);cursor:pointer;transition:background .15s}
+.action:hover{background:var(--color-primary-container)}
+/* @component-css-end */
+</style>
+</head>
+<body>
+<div class="row"><span class="label">对话</span>
+ <div class="thread">
+  <div class="msg end">
+   <div class="bubble bubble-user">帮我写一首关于秋天的短诗</div>
+   <span class="meta">14:02 · 已送达</span>
+  </div>
+  <div class="msg">
+   <div class="bubble bubble-ai">月落桂子香，风清露华浓。山空人语静，一叶报秋容。</div>
+   <span class="meta">14:03 · Muse</span>
+  </div>
+ </div>
+</div>
+<hr class="divider">
+<div class="row"><span class="label">状态</span>
+ <div class="thread">
+  <div class="msg">
+   <div class="bubble bubble-ai">思考中<span class="caret"></span></div>
+   <button type="button" class="action">停止生成</button>
+  </div>
+  <div class="msg">
+   <div class="bubble bubble-error">生成失败，请稍后重试</div>
+   <button type="button" class="action">重试</button>
+  </div>
+ </div>
+</div>
+</body>
+</html>

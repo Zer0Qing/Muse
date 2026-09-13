@@ -1,0 +1,12 @@
+FROM node:22-alpine AS build
+WORKDIR /workspace
+COPY . .
+RUN npm ci --ignore-scripts --no-audit --no-fund
+RUN npm run build:contracts && npm run build:core && npm run build:provider && npm run build:jobs && npm run build:storage && npm run build:memory && npm run build:rag && npm run build:files && npm run build:tools && npm run build:mcp && npm run build:agents && npm run build:database && npm --workspace @muse/api run build
+FROM node:22-alpine
+WORKDIR /app
+COPY --from=build /workspace/node_modules ./node_modules
+COPY --from=build /workspace/apps/api/dist ./apps/api/dist
+COPY --from=build /workspace/packages ./packages
+COPY --from=build /workspace/apps/api/package.json ./apps/api/package.json
+CMD ["node", "apps/api/dist/server.js"]

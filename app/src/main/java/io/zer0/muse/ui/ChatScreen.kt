@@ -924,9 +924,12 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                         // v1.0.72: 菜单项改为圆形胶囊样式(自定义 Popup,替代原生 DropdownMenu)
                         val modelCd = stringResource(R.string.chat_model_cd, currentModelName)
                         var showTopMenu by remember { mutableStateOf(false) }
+                        LaunchedEffect(isStreaming) {
+                            showTopMenu = false
+                        }
                         Box(
-                            // v1.0.75 fix (用户反馈): 52dp → 40dp,左右按钮缩小,让位给中间标题
-                            modifier = Modifier.size(40.dp),
+                            // 顶部操作按钮使用 48dp 触控区域,让位由内部图标尺寸完成
+                            modifier = Modifier.size(MuseIconSizes.touchTarget),
                             contentAlignment = Alignment.Center,
                         ) {
                             Surface(
@@ -1284,7 +1287,10 @@ val currentBrowserManager = remember(activeBrowserSessions, state.currentSession
                             as android.content.ClipboardManager
                     }
                     clipboard.setPrimaryClip(
-                        android.content.ClipData.newPlainText("Muse Reply", lastAssistant.content)
+                        android.content.ClipData.newPlainText(
+                            context.getString(R.string.app_name),
+                            lastAssistant.content,
+                        ),
                     )
                     MuseToast.show(context.getString(R.string.chat_copied_toast))
                 }

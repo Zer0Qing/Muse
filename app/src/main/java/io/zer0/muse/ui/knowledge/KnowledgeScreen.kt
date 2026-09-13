@@ -324,7 +324,7 @@ fun KnowledgeScreen(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 // v1.67-B: 用户取消导入,清理半成品文档 + 已生成的分块
                 createdDocId?.let { id ->
-                    resultOf { dao.deleteDocWithChunks(id) }
+                    resultOf { ragService.deleteDocument(id) }
                 }
                 MuseToast.show(context.getString(R.string.knowledge_import_cancelled))
                 throw e
@@ -614,7 +614,7 @@ fun KnowledgeScreen(
                                     onClick = { detailTarget = doc },
                                     onDelete = {
                                         scope.launch {
-                                            dao.deleteDocWithChunks(doc.id)
+                                            ragService.deleteDocument(doc.id)
                                         }
                                         MuseToast.show(context.getString(R.string.knowledge_deleted))
                                     },

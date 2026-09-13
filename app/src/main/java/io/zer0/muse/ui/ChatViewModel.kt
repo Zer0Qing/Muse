@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import io.zer0.ai.ChatService
 import io.zer0.ai.core.ChatRequestMode
 import io.zer0.ai.core.ChatStreamEvent
+import io.zer0.ai.core.ChatStopReason
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.Model
 import io.zer0.ai.core.ModelContextWindowRegistry
@@ -1089,6 +1090,8 @@ internal fun canRegenerate(
     hasSelectedUserVariant: Boolean,
 ): Boolean = !isStreaming && hasSession && hasSelectedUserVariant
 
+// 渐进式拆分阶段仍需平铺注入依赖；保持 Koin 参数顺序稳定，避免大范围行为变更。
+@Suppress("LongParameterList")
 class ChatViewModel(
     private val chatService: ChatService,
     private val settings: SettingsRepository,
@@ -1158,6 +1161,8 @@ class ChatViewModel(
     private val toolConfigStore: io.zer0.muse.tools.ToolConfigStore? = null,
     /** MCP 注册表,用于在首条消息前等待助手绑定的 server 完成 tools/list。 */
     private val mcpRegistry: io.zer0.muse.mcp.McpRegistry? = null,
+    /** 统一生成/工具执行资源注册表,用于按 session 取消和 late-result 诊断。 */
+    private val executionRegistry: io.zer0.muse.session.SessionExecutionRegistry? = null,
 ) : ViewModel(), ChatStateAccessor, io.zer0.muse.tools.ToolApprovalBridge {
     // v1.0.54: autoSave 去重状态(30 秒内同会话只跑一次,防堆积)
     private var lastAutoSaveSessionId: String? = null
@@ -1634,6 +1639,7 @@ class ChatViewModel(
             translateJob?.cancel(); translateJob = null
         },
         onCancelPendingApprovals = { sid -> cancelPendingApprovalsForSession(sid) },
+        executionRegistry = executionRegistry,
     )
     // v1.134 P1-5: 任务卡 Coordinator(任务卡阶段/步骤/展开/重试/工具结果判定)
     private val taskCardCoordinator = ChatTaskCardCoordinator(
@@ -3533,6 +3539,10 @@ class ChatViewModel(
         _state.update { it.copy(pendingToolApprovals = emptyList()) }
         for ((toolCallId, deferred) in toolApprovalResults) {
             deferred.complete(ToolApprovalState.Denied("Generation stopped"))
+            viewModelScope.launch {
+                resultOf { PendingToolCallStore.updateState(toolCallId, "ABORTED", "generation_stopped") }
+                    .onError { msg, _ -> Logger.w("ChatVM", "审批取消状态落盘失败: $msg") }
+            }
             toolApprovalSessions.remove(toolCallId)
             pendingToolApprovalRecords.remove(toolCallId)
         }
@@ -3555,6 +3565,10 @@ class ChatViewModel(
         }
         ids.forEach { toolCallId ->
             toolApprovalResults.remove(toolCallId)?.complete(ToolApprovalState.Denied("Generation stopped"))
+            viewModelScope.launch {
+                resultOf { PendingToolCallStore.updateState(toolCallId, "ABORTED", "generation_stopped") }
+                    .onError { msg, _ -> Logger.w("ChatVM", "审批取消状态落盘失败: $msg") }
+            }
             toolApprovalSessions.remove(toolCallId)
             pendingToolApprovalRecords.remove(toolCallId)
         }
@@ -4346,7 +4360,7 @@ class ChatViewModel(
                             }
                             // E-AUDIT: finishReason=length/max_tokens 表示被长度限制截断,
                             // 追加提示让用户知道回复不完整(而非误以为模型自然结束)。
-                            if (event.finishReason == "length" || event.finishReason == "max_tokens") {
+                            if (ChatStopReason.isLengthLimited(event.finishReason)) {
                                 params.builder.append("\n\n").append(appContext.getString(R.string.err_reply_truncated))
                             }
                             if (experiments.debugMode) {
@@ -4738,6 +4752,7 @@ class ChatViewModel(
                 initialBuilderContent = state.builder.toString(),
                 initialReasoningContent = state.reasoningBuilder.toString(),
                 turnId = state.turnId,
+                generationIdentity = state.generationIdentity,
                 toolExecutionContext = toolExecutionContext,
             ),
             conversationHistory = conversationHistory,
@@ -4986,6 +5001,24 @@ class ChatViewModel(
                 }.getOrNull() ?: emptyList()
             if (pendings.isEmpty()) {
                 _state.update { it.copy(pendingToolCallCount = 0) }
+                return@launch
+            }
+            // 审批等待不能在重启后伪造 Deferred 或自动放行；要求用户显式丢弃，
+            // 或由后续专门的“重新请求审批”流程重新创建当前代的审批上下文。
+            val approvalPending = pendings.filter {
+                it.executionState == PendingToolCallStore.APPROVAL_PENDING
+            }
+            if (approvalPending.isNotEmpty()) {
+                _state.update { it.copy(pendingToolCallCount = pendings.size) }
+                addError(
+                    ChatErrorType.TOOL_ERROR,
+                    "有 ${approvalPending.size} 个工具调用在进程终止前等待审批，已阻止自动恢复；请丢弃后重新发起请求。",
+                    true,
+                )
+                Logger.w(
+                    "ChatVM",
+                    "拒绝自动恢复审批挂起工具: count=${approvalPending.size}, sessionId=$chatId",
+                )
                 return@launch
             }
             // 加载启用的 skill 列表,构建 id → SkillEntity 映射(与 launchStream 内的逻辑一致)

@@ -4,6 +4,7 @@ import android.content.Context
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
+import io.zer0.muse.data.AtomicFileStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -30,6 +31,7 @@ import java.io.File
  *
  * 实现说明:既有实现 项目的 finishInterruptedPendingTools。
  */
+@Suppress("TooManyFunctions")
 object PendingToolCallStore {
 
     private const val TAG = "PendingToolCallStore"
@@ -51,6 +53,13 @@ object PendingToolCallStore {
         val arguments: String,
         /** 创建时间戳(毫秒),用于排查与超时清理。 */
         val createdAt: Long,
+        /** 执行阶段: EXECUTING / APPROVAL_PENDING / ABORTED。旧记录缺省视为 EXECUTING。 */
+        val executionState: String = EXECUTING,
+        /** 生成代际身份；旧记录为空时仍可按 chatId 兼容恢复。 */
+        val generationId: String? = null,
+        val turnId: String? = null,
+        /** 取消来源或中断原因，不保存异常堆栈和用户敏感内容。 */
+        val abortReason: String? = null,
     )
 
     /** 持久化文件路径(惰性初始化,首次访问时确定 Context)。 */
@@ -62,10 +71,13 @@ object PendingToolCallStore {
      * 不调用也能用 — 首次 [loadAll] 会用 applicationContext 兜底。
      */
     fun init(context: Context) {
-        if (fileRef == null) {
+        val target = File(context.applicationContext.filesDir, FILE_NAME)
+        // 测试/多进程环境可能先后提供不同的 applicationContext；路径变化时必须重新绑定，
+        // 否则读写会落到旧 filesDir，损坏文件隔离和恢复状态都会失真。
+        if (fileRef?.absolutePath != target.absolutePath) {
             synchronized(this) {
-                if (fileRef == null) {
-                    fileRef = File(context.applicationContext.filesDir, FILE_NAME)
+                if (fileRef?.absolutePath != target.absolutePath) {
+                    fileRef = target
                 }
             }
         }
@@ -86,7 +98,8 @@ object PendingToolCallStore {
             if (text.isBlank()) emptyList()
             else AppJson.decodeFromString(ListSerializer(PendingToolCall.serializer()), text)
         }.onError { msg, t ->
-            Logger.w(TAG, "loadAll 解析失败: $msg(文件可能损坏,将被覆盖)", t)
+            AtomicFileStore.quarantine(f, "pending_tool_calls_parse")
+            Logger.w(TAG, "loadAll 解析失败: $msg(文件已隔离，待处理调用不会被静默丢弃)", t)
         }.getOrNull() ?: emptyList()
     }
 
@@ -94,19 +107,12 @@ object PendingToolCallStore {
     private suspend fun saveAllInternal(list: List<PendingToolCall>) = withContext(Dispatchers.IO) {
         val f = file() ?: return@withContext
         resultOf {
-            f.parentFile?.mkdirs()
-            val tmp = File(f.parentFile, "$FILE_NAME.tmp")
             val text = AppJson.encodeToString(
                 ListSerializer(PendingToolCall.serializer()),
                 list,
             )
-            tmp.writeText(text)
-            // 原子 rename(File.renameTo 在同分区下原子,跨分区降级为复制+删除,仍可靠)
-            if (!tmp.renameTo(f)) {
-                // 降级:rename 失败时直接覆盖写(Android 单分区 filesDir 内一般不会走到)
-                f.writeText(text)
-                tmp.delete()
-            }
+            // 审批/断点状态同样需要 fsync + 原子替换，避免停止或进程被杀时写半个 JSON。
+            AtomicFileStore.writeText(f, text)
         }.onError { msg, t ->
             Logger.e(TAG, "saveAllInternal 写入失败: $msg", t)
         }
@@ -144,6 +150,26 @@ object PendingToolCallStore {
         loadAll().filter { it.chatId == chatId }.sortedBy { it.createdAt }
     }
 
+    /** 更新指定工具调用的持久化阶段；未知调用返回 false。 */
+    suspend fun updateState(
+        toolCallId: String,
+        executionState: String,
+        abortReason: String? = null,
+    ): Boolean = mutex.withLock {
+        val current = loadAll()
+        var changed = false
+        val updated = current.map { pending ->
+            if (pending.toolCallId != toolCallId) return@map pending
+            changed = true
+            pending.copy(
+                executionState = executionState,
+                abortReason = abortReason?.take(MAX_REASON_LENGTH),
+            )
+        }
+        if (changed) saveAllInternal(updated)
+        changed
+    }
+
     /**
      * 删除指定 toolCallId 的 pending 记录。
      * 在工具执行完成(拿到结果并回填到对话历史)后调用。
@@ -175,4 +201,9 @@ object PendingToolCallStore {
     suspend fun getAllPending(): Map<String, List<PendingToolCall>> = mutex.withLock {
         loadAll().groupBy { it.chatId }
     }
+
+    const val EXECUTING = "EXECUTING"
+    const val APPROVAL_PENDING = "APPROVAL_PENDING"
+    const val ABORTED = "ABORTED"
+    private const val MAX_REASON_LENGTH = 256
 }

@@ -33,12 +33,32 @@ class ChatGenerationManagerTest {
     }
 
     @Test
+    fun `manager preserves caller generation identity`() = runTest {
+        val manager = ChatGenerationManager(backgroundScope, ConversationSessionManager(backgroundScope))
+        val gate = CompletableDeferred<Unit>()
+
+        manager.launchGeneration(
+            sessionId = "session-1",
+            assistantId = "assistant-1",
+            sessionTitle = "统一代际",
+            generationId = "trace-generation-1",
+        ) { gate.await() }
+
+        assertEquals("trace-generation-1", manager.activeGeneration.value?.generationId)
+        gate.complete(Unit)
+        runCurrent()
+    }
+
+    @Test
     fun `generation remains removable after heartbeat replaces display snapshot`() = runTest {
         val manager = ChatGenerationManager(backgroundScope, ConversationSessionManager(backgroundScope))
         val gate = CompletableDeferred<Unit>()
 
         manager.launchGeneration("session-1", "assistant-1", "测试") { gate.await() }
         manager.touch("session-1")
+        val generationId = manager.activeGenerations.value.getValue("session-1").generationId
+        manager.updateSessionTitle("session-1", "展示快照")
+        assertEquals(generationId, manager.activeGenerations.value.getValue("session-1").generationId)
         assertTrue(manager.activeGenerations.value.containsKey("session-1"))
 
         gate.complete(Unit)

@@ -188,6 +188,7 @@ class PresetProviders(
      * contextWindow / maxOutputTokens / vision / tools / reasoning。
      * 目录中用户手动改过的字段永远优先。
      */
+    @Suppress("CyclomaticComplexMethod")
     private fun overlayCatalog(models: List<Model>): List<Model> {
         val catalog = modelCatalog ?: return models
         return models.map { model ->
@@ -197,6 +198,11 @@ class PresetProviders(
                 contextWindow = entry.contextWindow ?: model.contextWindow,
                 maxOutputTokens = entry.maxOutputTokens ?: model.maxOutputTokens,
                 supportsVision = entry.supportsVision ?: model.supportsVision,
+                supportsStreaming = entry.supportsStreaming ?: model.supportsStreaming,
+                supportsVideo = entry.supportsVideo ?: model.supportsVideo,
+                inputModalities = entry.inputModalities ?: model.inputModalities,
+                outputModalities = entry.outputModalities ?: model.outputModalities,
+                visionCapabilities = entry.visionCapabilities ?: model.visionCapabilities,
                 abilities = (model.abilities.toMutableSet().apply {
                     if (entry.supportsTools == true) add(ModelAbility.TOOL)
                     if (entry.supportsTools == false) remove(ModelAbility.TOOL)

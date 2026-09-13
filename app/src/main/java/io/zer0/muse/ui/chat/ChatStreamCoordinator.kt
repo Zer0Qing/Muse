@@ -978,6 +978,21 @@ class ChatStreamCoordinator(
             val assistantProviderId = sessionProviderOverride
                 ?: assistant?.providerId?.takeIf { it.isNotBlank() }
                 ?: state.fallbackProviderId
+            val requestedProviderMissing = assistantProviderId != null &&
+                allProviders.none { it.id == assistantProviderId }
+            val requestedModelMissing = assistantModelId != null && assistantProviderId != null &&
+                allProviders.firstOrNull { it.id == assistantProviderId }
+                    ?.models?.none { it.id == assistantModelId } == true
+            if (requestedProviderMissing || requestedModelMissing) {
+                Logger.w(
+                    "ChatVM",
+                    "requested model binding unavailable; applying fallback: " +
+                        "provider=${assistantProviderId ?: "-"}, model=${assistantModelId ?: "-"}, " +
+                        "providerMissing=$requestedProviderMissing, " +
+                        "modelMissing=$requestedModelMissing, " +
+                        "sessionId=${state.sessionId}, assistantId=${assistant?.id ?: "-"}",
+                )
+            }
             val resolvedModel: Model? = if (assistantModelId != null && assistantProviderId != null) {
                 allProviders.firstOrNull { it.id == assistantProviderId }
                     ?.models?.firstOrNull { it.id == assistantModelId }

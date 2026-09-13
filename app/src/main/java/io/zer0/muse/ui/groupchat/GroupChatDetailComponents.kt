@@ -58,10 +58,12 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.displayCutout
@@ -542,12 +544,12 @@ internal fun MessageImageGrid(
         }.getOrNull() ?: emptyList()
     }
     if (images.isEmpty()) return
-    FlowRow(
+    LazyRow(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        contentPadding = PaddingValues(horizontal = 2.dp),
     ) {
-        images.forEach { image ->
+        items(images, key = { it }) { image ->
             SmartImage(
                 model = image,
                 contentDescription = stringResource(R.string.groupchat_image),
@@ -1130,12 +1132,12 @@ internal fun PendingImagesRow(
     onRemove: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    FlowRow(
-        modifier = modifier,
+    LazyRow(
+        modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(horizontal = 2.dp),
     ) {
-        images.forEach { image ->
+        items(images, key = { it }) { image ->
             Box(modifier = Modifier.size(64.dp)) {
                 io.zer0.muse.ui.SmartImage(
                     model = image,
@@ -1321,12 +1323,12 @@ internal fun EditGroupChatDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
-                FlowRow(
+                LazyRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    contentPadding = PaddingValues(horizontal = 2.dp),
                 ) {
-                    assistants.forEach { assistant ->
+                    items(assistants, key = { it.id }) { assistant ->
                         val selected = assistant.id in selectedMemberIds
                         MuseChip(
                             selected = selected,
@@ -1370,12 +1372,12 @@ internal fun EditGroupChatDialog(
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(8.dp))
-            FlowRow(
+            LazyRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                contentPadding = PaddingValues(horizontal = 2.dp),
             ) {
-                modeOptions.forEach { (mode, labelRes) ->
+                items(modeOptions, key = { it.first }) { (mode, labelRes) ->
                     MuseChip(
                         selected = discussionMode == mode,
                         onClick = { discussionMode = mode },
@@ -1430,19 +1432,21 @@ internal fun EditGroupChatDialog(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.height(8.dp))
-                FlowRow(
+                LazyRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    contentPadding = PaddingValues(horizontal = 2.dp),
                 ) {
                     // "不选"选项
+                    item(key = "no_host") {
                     MuseChip(
                         selected = hostId.isBlank(),
                         onClick = { hostId = "" },
                         label = stringResource(R.string.groupchat_mode_no_host),
                     )
+                    }
                     // 只能选已选成员做主持人
-                    assistants.filter { it.id in selectedMemberIds }.forEach { assistant ->
+                    items(assistants.filter { it.id in selectedMemberIds }, key = { it.id }) { assistant ->
                         MuseChip(
                             selected = hostId == assistant.id,
                             onClick = { hostId = assistant.id },

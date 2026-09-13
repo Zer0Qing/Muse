@@ -1,0 +1,67 @@
+{
+  "slug": "media-card",
+  "schemaVersion": 2,
+  "name": "Media Card",
+  "category": "Content",
+  "sourceKind": "from-scratch",
+  "confidence": "medium",
+  "semanticTypeCandidates": [
+    {"candidate": "image-display", "evidence": "Generated image with metadata and actions"},
+    {"candidate": "video-player", "evidence": "Video with play controls and timeline"},
+    {"candidate": "gallery-grid", "evidence": "Multiple media items in grid layout"}
+  ],
+  "variantDimensions": [
+    {"name": "type", "values": ["image", "video", "gallery"]},
+    {"name": "state", "values": ["generating", "ready", "error"]},
+    {"name": "size", "values": ["thumbnail", "standard", "fullwidth"]}
+  ],
+  "representativeVariants": [
+    {
+      "name": "Image Generating",
+      "whySelected": "AI image generation in progress",
+      "traits": {"type": "image", "state": "generating", "radius": "20px card", "bg": "surface-raised", "aspectRatio": "1:1 or 16:9", "shimmer": "animated gradient sweep", "label": "生成中…", "progress": "optional percentage"},
+      "childrenDigest": "Shimmer placeholder + generating label + progress indicator"
+    },
+    {
+      "name": "Image Ready",
+      "whySelected": "Completed image display",
+      "traits": {"type": "image", "state": "ready", "radius": "20px", "bg": "surface-raised", "border": "1px hairline", "image": "full display", "overlay": "metadata on tap", "actions": "save share regenerate on long press"},
+      "childrenDigest": "Image + optional caption + action overlay"
+    },
+    {
+      "name": "Video Player",
+      "whySelected": "Video content with controls",
+      "traits": {"type": "video", "state": "ready", "radius": "20px", "bg": "#000000", "playButton": "centered 44pt", "timeline": "bottom progress bar", "duration": "timestamp label", "fullscreen": "pinch to expand"},
+      "childrenDigest": "Video frame + play pause button + timeline scrubber + duration"
+    },
+    {
+      "name": "Video Generating",
+      "whySelected": "AI video generation in progress",
+      "traits": {"type": "video", "state": "generating", "radius": "20px", "bg": "surface-raised", "shimmer": "animated gradient", "label": "视频生成中…", "progress": "percentage with estimated time"},
+      "childrenDigest": "Shimmer placeholder + progress bar + estimated time"
+    }
+  ],
+  "anatomy": [
+    "Container: rounded rect with image video content",
+    "Media display: image or video frame filling container",
+    "Loading state: shimmer animation with progress label",
+    "Action overlay: save share regenerate buttons revealed on interaction",
+    "Metadata: prompt text generation params timestamp",
+    "Error state: broken image icon + retry button"
+  ],
+  "structurePatterns": [
+    "Inline within message flow",
+    "Max width 85pct of screen for single media",
+    "Gallery: 2-column grid with 4px gap",
+    "Aspect ratio preserved: 1:1 for square images, 16:9 for video",
+    "Tap to expand fullscreen, long press for actions"
+  ],
+  "usageHints": {
+    "priorityHint": "medium",
+    "touchTarget": "44pt min for play button and action buttons",
+    "iosAdaptation": "iOS UIImageView + AVPlayer; Android Coil/Glide + ExoPlayer; Web img + video tag"
+  },
+  "doNotInvent": ["Specific AI model names", "Image generation parameters"],
+  "unknowns": ["Exact video player controls per platform"],
+  "keyInsightSeed": "Unified image video card with generating shimmer and ready states"
+}

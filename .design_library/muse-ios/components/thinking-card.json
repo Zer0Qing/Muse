@@ -1,0 +1,55 @@
+{
+  "slug": "thinking-card",
+  "schemaVersion": 2,
+  "name": "Thinking Card",
+  "category": "Content",
+  "sourceKind": "from-scratch",
+  "confidence": "medium",
+  "semanticTypeCandidates": [
+    {"candidate": "collapsible-reasoning", "evidence": "Expandable card showing AI thought process"},
+    {"candidate": "streaming-status", "evidence": "Animated indicator during active thinking"}
+  ],
+  "variantDimensions": [
+    {"name": "state", "values": ["collapsed", "expanded", "streaming", "complete"]},
+    {"name": "position", "values": ["inline", "standalone"]}
+  ],
+  "representativeVariants": [
+    {
+      "name": "Collapsed",
+      "whySelected": "Default compact state",
+      "traits": {"state": "collapsed", "radius": "12px button", "bg": "accent-soft 5pct alpha", "textColor": "ink-soft", "padding": "9h 11v", "fontSize": "12px", "icon": "brain sparkle icon", "label": "thinking label", "chevron": "expand indicator"},
+      "childrenDigest": "Icon label chevron"
+    },
+    {
+      "name": "Expanded Complete",
+      "whySelected": "Show full reasoning after done",
+      "traits": {"state": "expanded", "radius": "12px", "bg": "accent-soft", "borderLeft": "2px accent-30pct", "padding": "9h 11v", "fontFamily": "ui not serif", "fontSize": "12px", "lineHeight": "1.5"},
+      "childrenDigest": "Full reasoning text in monospace-ish style"
+    },
+    {
+      "name": "Streaming",
+      "whySelected": "Active thinking animation",
+      "traits": {"state": "streaming", "radius": "12px", "bg": "accent-soft", "shimmer": "animated gradient sweep", "label": "thinking label", "cursor": "blinking"},
+      "childrenDigest": "Partial reasoning text with shimmer overlay"
+    }
+  ],
+  "anatomy": [
+    "Header icon label expand chevron",
+    "Content reasoning text mono-ish muted",
+    "Status streaming shimmer or complete check",
+    "Border left accent stripe 2px"
+  ],
+  "structurePatterns": [
+    "Inline within message flow",
+    "Collapsible with height animation",
+    "Left accent stripe indicates AI reasoning",
+    "Muted typography distinguishes from main reply"
+  ],
+  "usageHints": {
+    "priorityHint": "medium",
+    "iosAdaptation": "iOS expandable UITableViewCell Android AnimatedVisibility with Card Web details summary or custom"
+  },
+  "doNotInvent": ["Exact reasoning text format", "Model-specific thinking markers"],
+  "unknowns": ["Reasoning level display variants"],
+  "keyInsightSeed": "Collapsible reasoning with streaming shimmer"
+}

@@ -14,7 +14,22 @@ plugins {
     alias(libs.plugins.kover)
 }
 
+val museWebAssetsDir = layout.buildDirectory.dir("generated/museWebAssets").get().asFile
+val syncMuseWebAssets =
+    tasks.register<Copy>("syncMuseWebAssets") {
+        val webDist = rootProject.file("web/apps/client/dist")
+        from(webDist)
+        into(File(museWebAssetsDir, "muse-web"))
+        onlyIf { webDist.isDirectory }
+    }
+
+tasks.named("preBuild") {
+    dependsOn(syncMuseWebAssets)
+}
+
 android {
+
+    sourceSets.getByName("main").assets.srcDir(museWebAssetsDir)
 
     namespace = "io.zer0.muse"
     compileSdk = 35
@@ -26,29 +41,30 @@ android {
         targetSdk = 35
         // v1.0.27 P0-1.1: 版本号支持从 Gradle property 注入,CI 从 git tag 自动提取
         // 优先级: -PversionCode/-PversionName > 环境变量 > 默认值
-        // 本地构建用默认值,CI 通过 ./gradlew assembleRelease -PversionName=1.0.86 注入
+        // 本地构建用默认值,CI 通过 ./gradlew assembleRelease -PversionName=1.0.87 注入
         // 空字符串视为未注入(workflow_dispatch 无 tag 时回退默认值)
-        // v1.0.86: 生成生命周期收口、记忆作用域隔离与自动保存解析容错正式基线(正式构建仍由 CI 显式注入)
+        // v1.0.87: Host/Web 远程界面、动态布局滚动边界与生成/记忆稳定性正式基线(正式构建仍由 CI 显式注入)
         versionCode = (project.findProperty("versionCode") as? String)
             ?.takeIf { it.isNotBlank() }
             ?.toIntOrNull()
             ?: System.getenv("VERSION_CODE")?.takeIf { it.isNotBlank() }?.toIntOrNull()
-            ?: 186
+            ?: 187
         versionName = (project.findProperty("versionName") as? String)
             ?.takeIf { it.isNotBlank() }
             ?: System.getenv("VERSION_NAME")?.takeIf { it.isNotBlank() }
-            ?: "1.0.86"
+            ?: "1.0.87"
     }
 
     signingConfigs {
         create("release") {
-            // v1.89: 支持通过 keystore.properties 指定独立 release 签名(安全改进 H-1)
+            // v1.89: 通过 keystore.properties 指定独立 release 签名(安全改进 H-1)。
             // 正式发布时在项目根目录创建 keystore.properties 文件,内容:
             //   storeFile=路径
             //   storePassword=密码
             //   keyAlias=别名
             //   keyPassword=密码
-            // 未提供时回退到 debug keystore(仅供开发调试)
+            // 缺失时不再回退到 debug keystore；真正执行 Release 任务时由下方 taskGraph
+            // guard 给出明确错误。这样普通 debug/静态检查仍可运行，但不会生成伪装成正式包的 debug 签名 APK。
             if (keystorePropertiesFile.exists()) {
                 val props = Properties()
                 props.load(FileInputStream(keystorePropertiesFile))
@@ -56,12 +72,6 @@ android {
                 storePassword = props["storePassword"] as String
                 keyAlias = props["keyAlias"] as String
                 keyPassword = props["keyPassword"] as String
-            } else {
-                // 回退: debug keystore(仅开发调试,正式发布须创建 keystore.properties)
-                storeFile = signingConfigs.getByName("debug").storeFile
-                storePassword = signingConfigs.getByName("debug").storePassword
-                keyAlias = signingConfigs.getByName("debug").keyAlias
-                keyPassword = signingConfigs.getByName("debug").keyPassword
             }
         }
     }
@@ -266,6 +276,7 @@ dependencies {
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.ktor.server.cors)
     implementation(libs.ktor.server.status.pages)
+    implementation(libs.ktor.server.websockets)
     implementation(libs.auth0.java.jwt)
 
     // 测试
@@ -304,7 +315,7 @@ gradle.taskGraph.whenReady {
     if (hasReleaseTask && !skipKeystoreCheck && !keystorePropertiesFile.exists()) {
         throw GradleException("正式构建缺少 keystore.properties：请先配置 release 签名，禁止回退 debug 签名。")
     }
-    // 版本号硬约束：正式构建必须显式注入 versionName/versionCode，避免误用过期默认版本；当前默认线为 186/1.0.86。
+    // 版本号硬约束：正式构建必须显式注入 versionName/versionCode，避免误用过期默认版本；当前默认线为 187/1.0.87。
     // 本地临时验证可传 -PreleaseSkipVersionCheck=true 跳过。
     val skipVersionCheck = project.findProperty("releaseSkipVersionCheck") == "true"
     val hasVersionName = project.hasProperty("versionName") || !System.getenv("VERSION_NAME").isNullOrBlank()

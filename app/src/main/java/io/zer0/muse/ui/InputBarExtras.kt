@@ -1,3 +1,5 @@
+@file:Suppress("FunctionNaming", "LongMethod", "CyclomaticComplexMethod")
+
 package io.zer0.muse.ui
 
 import io.zer0.muse.ui.theme.MuseMotion
@@ -14,8 +16,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,6 +25,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -42,6 +45,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import compose.icons.TablerIcons
 import compose.icons.tablericons.X
 import io.zer0.ai.image.ImageGenParams
@@ -91,7 +95,6 @@ internal fun RecordingWaveform(amplitudes: List<Float>) {
 /**
  * v0.35: 绘图模式参数面板 — 尺寸/质量/风格 + 参考图临时覆盖。
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun ImageGenParamsPanel(
     params: ImageGenParams,
@@ -156,15 +159,15 @@ internal fun ImageGenParamsPanel(
         // 尺寸
         val sizes = model?.supportedSizes
         if (!sizes.isNullOrEmpty()) {
-            FlowRow(
+            LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
-                verticalArrangement = Arrangement.spacedBy(MusePaddings.labelVerticalGap),
+                contentPadding = PaddingValues(horizontal = 2.dp),
             ) {
-                sizes.map { it to it }.forEach { (value, label) ->
+                items(sizes, key = { it }) { value ->
                     MuseChip(
                         selected = params.size == value,
                         onClick = { onParamsChange(params.copy(size = value)) },
-                        label = label,
+                        label = value,
                     )
                 }
             }
@@ -173,11 +176,11 @@ internal fun ImageGenParamsPanel(
         // 质量
         val qualities = model?.supportedQualities
         if (!qualities.isNullOrEmpty()) {
-            FlowRow(
+            LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
-                verticalArrangement = Arrangement.spacedBy(MusePaddings.labelVerticalGap),
+                contentPadding = PaddingValues(horizontal = 2.dp),
             ) {
-                qualities.forEach { value ->
+                items(qualities, key = { it }) { value ->
                     val label = when (value) {
                         "standard" -> stringResource(R.string.chat_quality_standard)
                         "hd" -> stringResource(R.string.chat_quality_hd)
@@ -199,11 +202,11 @@ internal fun ImageGenParamsPanel(
         // 风格
         val styles = model?.supportedStyles
         if (!styles.isNullOrEmpty()) {
-            FlowRow(
+            LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
-                verticalArrangement = Arrangement.spacedBy(MusePaddings.labelVerticalGap),
+                contentPadding = PaddingValues(horizontal = 2.dp),
             ) {
-                styles.forEach { value ->
+                items(styles, key = { it }) { value ->
                     val label = when (value) {
                         "vivid" -> stringResource(R.string.chat_style_vivid)
                         "natural" -> stringResource(R.string.chat_style_natural)

@@ -1,0 +1,61 @@
+{
+  "slug": "tool-call-card",
+  "schemaVersion": 2,
+  "name": "Tool Call Card",
+  "category": "Content",
+  "sourceKind": "from-scratch",
+  "confidence": "medium",
+  "semanticTypeCandidates": [
+    {"candidate": "tool-invocation", "evidence": "Shows tool name parameters result status"},
+    {"candidate": "approval-request", "evidence": "Pending state with approve reject actions"}
+  ],
+  "variantDimensions": [
+    {"name": "status", "values": ["pending", "executing", "success", "error", "approval-required"]},
+    {"name": "content", "values": ["parameters-only", "with-result", "error-message"]}
+  ],
+  "representativeVariants": [
+    {
+      "name": "Executing",
+      "whySelected": "Active tool call in progress",
+      "traits": {"status": "executing", "radius": "12px", "bg": "accent-soft", "border": "1px accent-17pct", "padding": "10h 11v", "icon": "gear spinner", "label": "tool name", "sublabel": "executing", "spinner": "animated"},
+      "childrenDigest": "Icon tool name status optional params preview"
+    },
+    {
+      "name": "Success with Result",
+      "whySelected": "Completed tool call showing output",
+      "traits": {"status": "success", "radius": "12px", "bg": "accent-soft", "border": "1px accent-17pct", "padding": "10h 11v", "icon": "checkmark", "resultBorderLeft": "2px accent-28pct", "resultBg": "surface-raised-72pct", "fontSize": "12px result"},
+      "childrenDigest": "Tool header collapsible params result section"
+    },
+    {
+      "name": "Error",
+      "whySelected": "Failed tool call",
+      "traits": {"status": "error", "radius": "12px", "bg": "danger-7pct", "border": "1px danger-35pct", "icon": "error indicator", "textColor": "danger", "retryButton": "available"},
+      "childrenDigest": "Error header error message retry action"
+    },
+    {
+      "name": "Approval Required",
+      "whySelected": "Tool needs user permission",
+      "traits": {"status": "approval-required", "radius": "12px", "bg": "danger-7pct", "border": "1px danger-35pct", "padding": "14px", "label": "approval warning", "params": "pre-formatted block", "maxHeight": "150px params", "actions": "approve reject buttons"},
+      "childrenDigest": "Approval warning params preview approve reject actions"
+    }
+  ],
+  "anatomy": [
+    "Header tool icon name status badge",
+    "Parameters section collapsible mono font",
+    "Result section collapsible mono font left accent border",
+    "Action buttons approve reject for pending retry for error"
+  ],
+  "structurePatterns": [
+    "Inline within message flow",
+    "Collapsible sections for params and results",
+    "Status drives color accent for active success-green for done danger-red for error",
+    "Left border accent indicates tool section"
+  ],
+  "usageHints": {
+    "priorityHint": "medium",
+    "iosAdaptation": "iOS custom cell with expandable sections Android Card with AnimatedVisibility Web details summary chain"
+  },
+  "doNotInvent": ["Specific tool names", "Parameter schemas"],
+  "unknowns": ["Exact parameter formatting per tool type"],
+  "keyInsightSeed": "Status-driven card with parameter and result sections"
+}

@@ -1,3 +1,5 @@
+@file:Suppress("TooGenericExceptionCaught", "ThrowsCount")
+
 package io.zer0.muse.backup
 
 import android.content.Context
@@ -55,6 +57,8 @@ import java.io.BufferedInputStream
 import java.io.ByteArrayOutputStream
 import java.io.OutputStream
 import java.io.OutputStreamWriter
+import java.security.MessageDigest
+import java.util.UUID
 import java.util.zip.ZipInputStream
 
 /**
@@ -76,7 +80,11 @@ import java.util.zip.ZipInputStream
  *  - 大数据量(10000+ 消息)JSON 一次性序列化可能 OOM,留后续分片
  *  - 不含图片二进制(只存 URL,URL 可能失效)
  */
-@Suppress("LongParameterList") // 依赖注入构造: 8 个服务依赖平铺注入,拆分聚合类反而增加间接层(项目惯例,见 ChatViewModel/ToolOrchestrator)
+@Suppress(
+    "LongParameterList",
+    "TooGenericExceptionCaught",
+    "ThrowsCount",
+) // 依赖注入构造与跨存储恢复需要保留显式边界，避免大范围行为变更。
 class BackupService(
     private val db: MuseDb,
     private val memoryDb: MemoryDb,
@@ -87,6 +95,10 @@ class BackupService(
     private val autoBackupLogDao: AutoBackupLogDao,
     /** v1.0.74: 导入后重建 FTS 索引(直插消息绕过 FTS 同步)。 */
     private val sessionRepository: io.zer0.muse.data.session.SessionRepository,
+    /** 跨数据库恢复阶段账本；不保存备份正文或敏感设置值。 */
+    private val restoreJournal: RestoreJournal,
+    /** 跨进程保留目标备份与导入前恢复点。 */
+    private val restoreStagingStore: RestoreStagingStore,
     /**
      * B-23: 单 JSON 备份体量上限(字节)。
      *
@@ -394,9 +406,11 @@ class BackupService(
             put("version", 3)
             put("exportedAt", System.currentTimeMillis())
             put("sessions", sessions.size)
+            put("messages", allMessages.size)
             put("sessionSummaries", sessionSummaries.size)
             put("dailyStates", dailyState.size)
             put("compiledSections", compiledSections.size)
+            put("scopedCompiledSections", scopedCompiledSections.size)
             put("facts", facts.size)
             put("assistants", assistants.size)
             put("lorebooks", lorebooks.size)
@@ -417,6 +431,8 @@ class BackupService(
             put("moments", moments.size)
             put("momentComments", momentComments.size)
             put("momentLikes", momentLikes.size)
+            // settings 是一条可选记录，用 0/1 表示是否实际写出。
+            put("settings", if (settingsSnapshot.isEmpty()) 0 else 1)
         }
         writer.write(meta.toString())
         writer.newLine()
@@ -609,30 +625,55 @@ class BackupService(
         // 误选空/损坏文件会先清空全部表。先读 meta 行校验再决定是否继续。
         val lineIter = lines.iterator()
         val firstLine = if (lineIter.hasNext()) lineIter.next() else null
+        val typeToMetaKey = mapOf(
+            "session" to "sessions",
+            "message" to "messages",
+            "summary" to "sessionSummaries",
+            "dailyState" to "dailyStates",
+            "compiledSection" to "compiledSections",
+            "scopedCompiledSection" to "scopedCompiledSections",
+            "fact" to "facts",
+            "assistant" to "assistants",
+            "lorebook" to "lorebooks",
+            "skill" to "skills",
+            "artifact" to "artifacts",
+            "quickMessage" to "quickMessages",
+            "promptInjection" to "promptInjections",
+            "folder" to "folders",
+            "groupChat" to "groupChats",
+            "groupChatMessage" to "groupChatMessages",
+            "scheduledTask" to "scheduledTasks",
+            "scheduledTaskExecution" to "scheduledTaskExecutions",
+            "knowledgeDoc" to "knowledgeDocs",
+            "knowledgeChunk" to "knowledgeChunks",
+            "experience" to "experiences",
+            "milestone" to "milestones",
+            "agentMessage" to "agentMessages",
+            "moment" to "moments",
+            "momentComment" to "momentComments",
+            "momentLike" to "momentLikes",
+            "settings" to "settings",
+        )
+        val expectedCounts = mutableMapOf<String, Int>()
+        val actualCounts = mutableMapOf<String, Int>()
         if (!firstLine.isNullOrBlank()) {
             resultOf {
                 val obj = json.decodeFromString(JsonObject.serializer(), firstLine)
                 val type = obj["type"]?.let { (it as? JsonPrimitive)?.content }
-                if (type == "meta") {
-                    // B-21: 空备份守卫必须统计"所有实际存在的非零类型"。
-                    // 旧实现只统计少数主表(sessions/messages/…),纯扩展表备份
-                    // (如仅 knowledgeDocs/knowledgeChunks/experiences/milestones 有数据)会被误判为空而拒绝。
-                    // 这里枚举 writeNdJson 写出的全部类型计数键,任一类型非零即视为有效备份。
-                    val countKeys = listOf(
-                        "sessions", "sessionSummaries", "dailyStates", "compiledSections", "scopedCompiledSections",
-                        "facts",
-                        "assistants", "lorebooks", "skills", "artifacts", "quickMessages",
-                        "promptInjections", "folders", "groupChats", "groupChatMessages",
-                        "scheduledTasks", "scheduledTaskExecutions", "knowledgeDocs",
-                        "knowledgeChunks", "experiences", "milestones", "agentMessages",
-                        "moments", "momentComments", "momentLikes",
-                    )
-                    val total = countKeys
-                        .mapNotNull { obj[it]?.let { v -> (v as? JsonPrimitive)?.contentOrNull?.toIntOrNull() } }
-                        .sum()
-                    if (total == 0) {
-                        throw IllegalArgumentException("空备份文件(meta 无任何数据),已拒绝导入")
+                require(type == "meta") { "NDJSON 备份缺少 meta 首行,已拒绝导入" }
+                // B-21/B-34: meta 既用于空备份守卫，也用于完整性对账。
+                // 当前生成器声明所有类型计数；旧版本缺失的计数字段保留兼容，
+                // 但只对实际声明的字段做严格校验。
+                typeToMetaKey.values.distinct().forEach { key ->
+                    obj[key]?.let { value ->
+                        val count = (value as? JsonPrimitive)?.contentOrNull?.toIntOrNull()
+                            ?: error("备份 meta 计数非法: $key")
+                        require(count >= 0) { "备份 meta 计数不能为负数: $key" }
+                        expectedCounts[key] = count
                     }
+                }
+                if (expectedCounts.isEmpty() || expectedCounts.values.sum() == 0) {
+                    throw IllegalArgumentException("空备份文件(meta 无任何数据),已拒绝导入")
                 }
             }.onError { msg, t ->
                 // meta 解析失败或空备份:抛给调用方,不清空任何表
@@ -722,6 +763,11 @@ class BackupService(
                 ?: return@forEachIndexed
             val type = obj["type"]?.let { (it as? JsonPrimitive)?.content }
                 ?: return@forEachIndexed
+            if (type != "meta" && type in typeToMetaKey) {
+                require(obj["data"] != null) { "备份记录缺少 data: $type" }
+                val key = typeToMetaKey.getValue(type)
+                actualCounts[key] = (actualCounts[key] ?: 0) + 1
+            }
             when (type) {
                     "meta" -> { /* version/exportedAt 元信息,流式插入不需要 */ }
                     "session" -> obj["data"]?.let {
@@ -842,6 +888,14 @@ class BackupService(
                             it,
                         )
                     }
+            }
+        }
+
+        // B-34: 在 MuseDb 事务提交前核对 meta 声明计数，截断或丢行的备份整体回滚。
+        expectedCounts.forEach { (key, expected) ->
+            val actual = actualCounts[key] ?: 0
+            check(actual == expected) {
+                "备份记录数不一致: $key 声明 $expected, 实际 $actual"
             }
         }
 
@@ -1029,8 +1083,8 @@ class BackupService(
         }
     }
 
-    /** F-04: 一次云备份写入的规模信息(供读回校验与日志)。 */
-    private data class CloudWrite(val bytes: Long, val messages: Long)
+    /** F-04: 一次云备份写入的规模信息(供读回校验与日志)。摘要针对上传密文。 */
+    private data class CloudWrite(val bytes: Long, val messages: Long, val sha256: String)
 
     /**
      * F-04: 写出 NDJSON(内存字节)并上传云端;失败记录 write_failed 日志。
@@ -1070,7 +1124,11 @@ class BackupService(
             )
             return null
         }
-        return CloudWrite(data.size.toLong(), writeSummary.messages.toLong())
+        return CloudWrite(
+            bytes = data.size.toLong(),
+            messages = writeSummary.messages.toLong(),
+            sha256 = sha256Hex(data),
+        )
     }
 
     /**
@@ -1079,17 +1137,22 @@ class BackupService(
      */
     private suspend fun verifyCloudBackupWrite(config: CloudBackupConfig, write: CloudWrite): Boolean {
         val readBack = cloudBackupService.downloadLatestBackup(config)
-        val verified = readBack != null && readBack.size.toLong() == write.bytes
+        val readBackHash = readBack?.let(::sha256Hex)
+        val verified = readBack != null &&
+            readBack.size.toLong() == write.bytes &&
+            readBackHash == write.sha256
         if (!verified) {
             Logger.w(
                 "BackupService",
-                "云备份读回校验失败: 上传 ${write.bytes} bytes, 读回 ${readBack?.size ?: -1} bytes",
+                "云备份读回校验失败: 上传 ${write.bytes} bytes/hash=${write.sha256}, " +
+                    "读回 ${readBack?.size ?: -1} bytes/hash=${readBackHash ?: "-"}",
             )
             logCloudBackup(
                 status = "verify_failed",
                 size = write.bytes,
                 messageCount = write.messages,
-                error = "read-back mismatch: uploaded ${write.bytes}, got ${readBack?.size ?: -1}",
+                error = "read-back mismatch: uploaded ${write.bytes}/${write.sha256}, " +
+                    "got ${readBack?.size ?: -1}/${readBackHash ?: "-"}",
             )
             return false
         }
@@ -1284,27 +1347,153 @@ class BackupService(
      *
      * @return 导入的会话数 + 消息数
      */
+    @Suppress("TooGenericExceptionCaught", "ThrowsCount")
     private suspend fun applyBackup(backup: Backup): Pair<Int, Int> {
         require(backup.hasAnyData()) { "空备份文件,已拒绝导入" }
         // 问题7.2: 版本迁移(v1/v2 → v3),Backup data class 字段都有默认值,补 version 即可
         val migrated = migrateBackup(backup)
-
-        // 问题7.1: 导入前先快照当前数据作为回滚点(内存中,失败时用其恢复)
-        val preImportSnapshot = resultOf { buildBackup() }
-            .onError { msg, t -> Logger.w("BackupService", "导入前快照失败,无回滚安全网: ${t?.message ?: msg}") }
-            .getOrNull()
-
+        val journalEntry = restoreJournal.begin(
+            restoreId = "restore-${UUID.randomUUID()}",
+            sourceHash = backupHash(migrated),
+            backupVersion = migrated.version,
+        )
+        var currentJournal = journalEntry
         return try {
-            applyBackupInternal(migrated)
-        } catch (e: Exception) {
-            // 问题7.1: 导入中途失败,尝试用导入前快照回滚,避免数据全丢
-            Logger.w("BackupService", "applyBackup 失败,尝试回滚到导入前状态: ${e.message}", e)
-            if (preImportSnapshot != null) {
-                resultOf { applyBackupInternal(preImportSnapshot) }
-                    .onError { msg, t -> Logger.w("BackupService", "回滚失败,数据可能仍处于不一致状态: $msg", t) }
+            currentJournal = restoreJournal.advance(currentJournal, RestoreJournal.Phase.STAGING)
+            // 先持久化目标与导入前恢复点；这样跨库提交中途进程被杀后仍能回滚。
+            val preImportSnapshot = buildBackup()
+            restoreStagingStore.writeTarget(currentJournal, migrated)
+            restoreStagingStore.writeRecoveryPoint(currentJournal, preImportSnapshot)
+            currentJournal = restoreJournal.advance(currentJournal, RestoreJournal.Phase.VALIDATING)
+            currentJournal = restoreJournal.advance(currentJournal, RestoreJournal.Phase.COMMITTING)
+            val result = applyBackupInternal(migrated)
+            currentJournal = restoreJournal.advance(
+                currentJournal,
+                RestoreJournal.Phase.REBUILDING,
+                completedStores = setOf(
+                    RestoreJournal.Store.MUSE_DB,
+                    RestoreJournal.Store.MEMORY_DB,
+                    RestoreJournal.Store.FACT_DB,
+                    RestoreJournal.Store.SETTINGS,
+                ),
+            )
+            try {
+                sessionRepository.rebuildFtsIndex()
+            } catch (error: Exception) {
+                Logger.w("BackupService", "恢复后 FTS 重建失败，保留恢复账本: ${error.message}", error)
+                throw error
             }
+            currentJournal = restoreJournal.advance(
+                currentJournal,
+                RestoreJournal.Phase.REBUILDING,
+                completedStores = currentJournal.completedStores + RestoreJournal.Store.FTS,
+            )
+            restoreJournal.complete(currentJournal)
+            restoreStagingStore.cleanup(currentJournal)
+            result
+        } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+            val rolledBack = rollbackAfterRestoreFailure(currentJournal, e)
+            if (!rolledBack) restoreJournal.fail(currentJournal, e)
+            throw e
+        } catch (e: Exception) {
+            val rolledBack = rollbackAfterRestoreFailure(currentJournal, e)
+            if (!rolledBack) restoreJournal.fail(currentJournal, e)
             throw e
         }
+    }
+
+    /**
+     * 对恢复失败统一执行持久化 recovery point 回滚。
+     *
+     * 该路径覆盖目标 DB 写入失败和 FTS 重建失败；回滚本身使用 NonCancellable，
+     * 避免用户停止或进程内取消把恢复点再次留在半提交状态。回滚失败时保留账本
+     * 与副本，供下一次启动继续诊断/处理。
+     */
+    @Suppress("TooGenericExceptionCaught")
+    private suspend fun rollbackAfterRestoreFailure(
+        entry: RestoreJournal.Entry,
+        originalError: Throwable,
+    ): Boolean = withContext(kotlinx.coroutines.NonCancellable) {
+        val recovery = restoreStagingStore.readRecoveryPoint(entry)
+        if (recovery == null) {
+            Logger.e("BackupService", "恢复失败且找不到持久化 recovery point: ${originalError.message}", originalError)
+            return@withContext false
+        }
+        try {
+            Logger.w("BackupService", "恢复失败,回滚到持久化 recovery point: ${originalError.message}", originalError)
+            var rollbackJournal = restoreJournal.advance(entry, RestoreJournal.Phase.ROLLING_BACK)
+            applyBackupInternal(recovery)
+            sessionRepository.rebuildFtsIndex()
+            rollbackJournal = restoreJournal.advance(
+                rollbackJournal,
+                RestoreJournal.Phase.ROLLING_BACK,
+                completedStores = setOf(
+                    RestoreJournal.Store.MUSE_DB,
+                    RestoreJournal.Store.MEMORY_DB,
+                    RestoreJournal.Store.FACT_DB,
+                    RestoreJournal.Store.SETTINGS,
+                    RestoreJournal.Store.FTS,
+                ),
+            )
+            restoreJournal.complete(rollbackJournal)
+            restoreStagingStore.cleanup(rollbackJournal)
+            true
+        } catch (rollbackError: Exception) {
+            Logger.e("BackupService", "恢复点回滚失败,保留账本和副本: ${rollbackError.message}", rollbackError)
+            false
+        }
+    }
+
+    /**
+     * 启动时恢复上次被进程终止的跨存储导入。
+     *
+     * 当前协议选择安全优先：任何未完成恢复都回滚到持久化 recovery point，
+     * 而不是继续提交可能已经部分写入的 target。这样不会把半套数据误当成新状态。
+     * @return 是否发现并处理了一条未完成恢复账本
+     */
+    @Suppress("TooGenericExceptionCaught")
+    suspend fun recoverIncompleteRestore(): Boolean = withContext(Dispatchers.IO) {
+        val entry = restoreJournal.incompleteEntry() ?: return@withContext false
+        var current = entry
+        try {
+            val recovery = restoreStagingStore.readRecoveryPoint(entry)
+                ?: error("恢复账本存在，但找不到持久化 recovery point")
+            current = restoreJournal.advance(current, RestoreJournal.Phase.ROLLING_BACK)
+            applyBackupInternal(recovery)
+            sessionRepository.rebuildFtsIndex()
+            current = restoreJournal.advance(
+                current,
+                RestoreJournal.Phase.REBUILDING,
+                completedStores = setOf(
+                    RestoreJournal.Store.MUSE_DB,
+                    RestoreJournal.Store.MEMORY_DB,
+                    RestoreJournal.Store.FACT_DB,
+                    RestoreJournal.Store.SETTINGS,
+                    RestoreJournal.Store.FTS,
+                ),
+            )
+            restoreJournal.complete(current)
+            restoreStagingStore.cleanup(current)
+            Logger.w("BackupService", "启动恢复检查已回滚未完成恢复: phase=${entry.phase}")
+            true
+        } catch (error: Exception) {
+            restoreJournal.fail(current, error)
+            Logger.e("BackupService", "启动恢复检查失败，保留恢复副本供诊断: ${error.message}", error)
+            false
+        }
+    }
+
+    /** 计算字节摘要；云端校验针对上传密文，避免泄露或混淆明文内容。 */
+    private fun sha256Hex(bytes: ByteArray): String = MessageDigest.getInstance("SHA-256")
+        .digest(bytes)
+        .joinToString("") { byte -> "%02x".format(byte) }
+
+    /** 仅保存备份内容摘要，避免恢复账本持有用户数据或敏感设置。 */
+    private fun backupHash(backup: Backup): String {
+        val encoded = json.encodeToString(Backup.serializer(), backup)
+        return MessageDigest.getInstance("SHA-256")
+            .digest(encoded.toByteArray(Charsets.UTF_8))
+            .joinToString("") { byte -> "%02x".format(byte) }
     }
 
     /**

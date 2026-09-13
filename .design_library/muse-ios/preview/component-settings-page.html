@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Settings Page — Muse iOS</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+/* Page scaffold — NOT extracted */
+body{margin:0;padding:12px;background:var(--color-background);font-family:var(--font-body);color:var(--color-on-surface)}
+.row{display:flex;align-items:center;margin-bottom:8px}
+.divider{border:none;border-top:1px solid var(--divider);margin:var(--space-4) 0}
+/* @component-css-start */
+.section-header{font-size:var(--font-size-caption);color:var(--color-muted-foreground);padding:0 var(--space-4) var(--space-2)}
+.profile-card{display:flex;align-items:center;gap:var(--space-3);width:100%;padding:var(--space-4);background:var(--color-surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-1)}
+.avatar{width:48px;height:48px;border-radius:var(--radius-full);background:var(--color-primary-container);flex-shrink:0}
+.profile-name{font-size:17px;font-weight:var(--font-weight-semibold);color:var(--color-on-surface)}
+.profile-sub{font-size:var(--font-size-body-m);color:var(--color-muted-foreground)}
+.settings-group{width:100%;background:var(--color-surface);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-1)}
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:11px var(--space-3);min-height:44px;border-bottom:1px solid var(--hairline)}
+.settings-row:last-child{border-bottom:none}
+.settings-row:hover{background:var(--color-surface-container-low)}
+.settings-label{font-size:var(--font-size-body-l);color:var(--color-on-surface);white-space:nowrap}
+.settings-value{font-size:var(--font-size-body-m);color:var(--color-muted-foreground)}
+.chevron{width:8px;height:14px;flex-shrink:0;color:var(--color-muted-foreground)}
+.ios-switch{width:51px;height:31px;border-radius:var(--radius-full);background:var(--color-surface-container-high);position:relative;flex-shrink:0;transition:background var(--duration-fast) var(--ease-out)}
+.ios-switch.on{background:var(--color-primary)}
+.ios-switch::after{content:'';position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:var(--radius-full);background:var(--color-surface);box-shadow:var(--shadow-2);transition:transform var(--duration-fast) var(--ease-out)}
+.ios-switch.on::after{transform:translateX(20px)}
+/* @component-css-end */
+</style>
+</head>
+<body>
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg"><symbol id="ic-chev" viewBox="0 0 8 14"><path d="M1 1l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2"/></symbol></svg>
+<div class="row"><div class="profile-card"><div class="avatar"></div><div><div class="profile-name">缪斯</div><div class="profile-sub">月桂绿 · 标准版</div></div></div></div>
+<div class="row"><span class="section-header">通用</span></div>
+<div class="row"><div class="settings-group"><div class="settings-row"><span class="settings-label">记忆</span><div class="ios-switch on"></div></div><div class="settings-row"><span class="settings-label">知识库</span><span class="settings-value">已启用</span><svg class="chevron"><use href="#ic-chev"/></svg></div><div class="settings-row"><span class="settings-label">对话</span><div class="ios-switch"></div></div></div></div>
+<hr class="divider">
+<div class="row"><span class="section-header">关于</span></div>
+<div class="row"><div class="settings-group"><div class="settings-row"><span class="settings-label">版本</span><span class="settings-value">1.0.0</span></div><div class="settings-row"><span class="settings-label">设置</span><svg class="chevron"><use href="#ic-chev"/></svg></div></div></div>
+</body>
+</html>

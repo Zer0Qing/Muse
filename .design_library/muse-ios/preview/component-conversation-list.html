@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="../colors_and_type.css">
+<title>Conversation List</title>
+<style>
+/* Page scaffold — NOT extracted */
+body{margin:0;padding:12px;background:var(--bg);font-family:var(--font-body);color:var(--fg)}
+.row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.label{font-size:var(--font-size-label);font-weight:var(--font-weight-medium);color:var(--muted);letter-spacing:.04em;width:92px;flex-shrink:0}
+.divider{border:none;border-top:1px solid var(--divider);margin:12px 0}
+/* @component-css-start */
+.conv-list{width:100%;display:flex;flex-direction:column;gap:4px}
+.conv-item{display:flex;align-items:center;gap:10px;padding:11px 10px;border-radius:10px;background:transparent;cursor:pointer;transition:background .15s}
+.conv-item:hover{background:var(--surface-container-low)}
+.conv-item.selected{background:var(--surface-container);box-shadow:var(--shadow-2)}
+.conv-item.selected:hover{background:var(--surface-container-high)}
+.conv-item.selected .conv-title{font-weight:650;color:var(--primary)}
+.conv-avatar{width:36px;height:36px;border-radius:var(--radius-full);background:var(--primary-100);color:var(--primary-900);display:flex;align-items:center;justify-content:center;font-size:var(--font-size-label);font-weight:var(--font-weight-medium);flex-shrink:0}
+.conv-content{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.conv-title-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.conv-title{font-size:var(--font-size-caption);font-weight:var(--font-weight-medium);color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.conv-time{font-size:var(--font-size-label);color:var(--ink-tertiary);white-space:nowrap;flex-shrink:0}
+.conv-preview{font-size:var(--font-size-label);color:var(--ink-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.conv-badge{min-width:18px;height:18px;border-radius:var(--radius-full);background:var(--danger);color:var(--ink-on-danger);font-size:var(--font-size-tab);font-weight:var(--font-weight-medium);display:flex;align-items:center;justify-content:center;padding:0 5px;flex-shrink:0}
+.empty-state{width:100%;min-height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;border-radius:10px}
+.empty-title{font-family:var(--font-serif);font-size:23px;color:var(--ink-secondary)}
+.empty-body{font-size:var(--font-size-caption);color:var(--ink-tertiary)}
+.empty-cta{display:inline-flex;align-items:center;gap:6px;padding:10px 24px;border-radius:var(--radius-button);background:var(--primary);color:var(--primary-foreground);font-size:var(--font-size-body-m);font-weight:var(--font-weight-medium);text-decoration:none;white-space:nowrap;transition:background .15s}
+.empty-cta:hover{background:var(--primary-600)}
+/* @component-css-end */
+</style>
+</head>
+<body>
+<div class="row"><span class="label">默认</span></div>
+<div class="row">
+<div class="conv-list" data-evidence-sample="Default Session Item">
+<div class="conv-item" aria-selected="false">
+<div class="conv-avatar">写</div>
+<div class="conv-content">
+<div class="conv-title-row"><span class="conv-title">写作助手</span><span class="conv-time">14:32</span></div>
+<span class="conv-preview">帮我把这段文字润色一下</span>
+</div>
+<div class="conv-badge">3</div>
+</div>
+<div class="conv-item selected" aria-selected="true" data-evidence-sample="Selected Active">
+<div class="conv-avatar">知</div>
+<div class="conv-content">
+<div class="conv-title-row"><span class="conv-title">知识库问答</span><span class="conv-time">13:05</span></div>
+<span class="conv-preview">这段代码的优化方案是什么</span>
+</div>
+</div>
+<div class="conv-item" aria-selected="false">
+<div class="conv-avatar">阅</div>
+<div class="conv-content">
+<div class="conv-title-row"><span class="conv-title">阅读笔记</span><span class="conv-time">昨天</span></div>
+<span class="conv-preview">总结一下今天读的章节</span>
+</div>
+</div>
+</div>
+</div>
+<hr class="divider">
+<div class="row"><span class="label">空状态</span></div>
+<div class="row">
+<div class="empty-state" data-evidence-sample="Empty State">
+<div class="empty-title">开始对话</div>
+<div class="empty-body">没有会话记录</div>
+<a class="empty-cta" href="#">新建会话</a>
+</div>
+</div>
+</body>
+</html>

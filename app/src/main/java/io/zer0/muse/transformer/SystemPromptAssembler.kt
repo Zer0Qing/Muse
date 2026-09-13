@@ -50,6 +50,7 @@ import java.time.format.DateTimeFormatter
  * @param toolRegistry 本地工具注册表
  * @param skillRepository Skill 仓库
  */
+@Suppress("LongParameterList", "LongMethod", "CyclomaticComplexMethod", "ComplexCondition", "ReturnCount")
 class SystemPromptAssembler(
     private val promptLoader: PromptTemplateLoader,
     private val context: Context,
@@ -331,7 +332,10 @@ class SystemPromptAssembler(
         // v1.0.72: ignoreMemory=true 时同样跳过
         if (memoryEnabled && !forSubagent && !skipMemorySections) {
             if (useGlobalMemory) {
-                val memory = buildLongTermMemorySection()
+                val memory = buildLongTermMemorySection(
+                    scope = resolvedMemoryScope,
+                    spaceId = resolvedMemorySpaceId,
+                )
                 if (memory.isNotBlank()) sections.add(memory)
             }
             // v12 (T2-2): 相关记忆检索 — 按当前问题 FTS 召回 top-K 相关事实,
@@ -674,10 +678,19 @@ class SystemPromptAssembler(
     }
 
     /** 5. 长期记忆摘要 — MemoryCompiler 编译后的 markdown。 */
-    internal suspend fun buildLongTermMemorySection(): String {
+    internal suspend fun buildLongTermMemorySection(
+        scope: String? = null,
+        spaceId: String? = null,
+    ): String {
         // H-ASM1: memoryTicker.readCompiledMemoryMarkdown() 为 suspend,用 resultOf 正确重抛 CancellationException
         // M-ASM3: 用 <long_term_memory> 边界标签包裹,声明标签内为数据而非指令,防止提示词注入
-        val md = resultOf { memoryTicker.readCompiledMemoryMarkdown() }
+        val md = resultOf {
+            if (scope != null && spaceId != null) {
+                memoryTicker.readCompiledMemoryMarkdown(scope = scope, spaceId = spaceId)
+            } else {
+                memoryTicker.readCompiledMemoryMarkdown()
+            }
+        }
             .onError { _, t -> Logger.w(TAG, "readCompiledMemoryMarkdown 失败", t) }
             .getOrNull() ?: return ""
         if (md.isBlank()) return ""

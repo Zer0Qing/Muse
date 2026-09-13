@@ -554,8 +554,8 @@ private fun UpdateAvailableBanner(
                 onClick = { onViewRelease(release.htmlUrl) },
                 content = { Text(viewDetailText) },
             )
-            // 无 APK 资源时禁用下载按钮(空列表/无 url)
-            val firstApk = release.apkAssets.firstOrNull()
+            // 仅显示 GitHub 官方 HTTPS APK 资产；缓存中的旧数据也必须重新过一遍信任校验。
+            val firstApk = release.apkAssets.firstOrNull(UpdateChecker::isTrustedApkAsset)
             TextButton(
                 onClick = { firstApk?.let { onDownloadApk(it.downloadUrl) } },
                 enabled = firstApk != null,

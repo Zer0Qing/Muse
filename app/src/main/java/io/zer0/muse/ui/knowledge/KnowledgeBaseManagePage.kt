@@ -284,7 +284,7 @@ fun KnowledgeBaseManagePage(
                     scope.launch {
                         withContext(Dispatchers.IO) {
                             docDao.getByKbIds(listOf(kb.id)).forEach { doc ->
-                                docDao.deleteDocWithChunks(doc.id)
+                                ragService.deleteDocument(doc.id)
                             }
                             kbDao.delete(kb.id)
                         }

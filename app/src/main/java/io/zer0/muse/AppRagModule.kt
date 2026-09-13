@@ -74,6 +74,27 @@ val appRagModule = module {
                     doc.title to (firstChunkContent.ifBlank { doc.content.take(500) })
                 }
             },
+            // 作用域检索的关键词兜底必须沿用 docIds，不能在向量失败后扩大到全库。
+            scopedKeywordSearchFallback = { query, topK, docIds ->
+                val docDao = get<io.zer0.muse.data.knowledge.KnowledgeDocDao>()
+                val chunkDao = get<io.zer0.muse.data.knowledge.KnowledgeChunkDao>()
+                val docs = if (docIds == null) {
+                    docDao.search(query).first()
+                } else {
+                    docDao.getByIds(docIds).filter { doc ->
+                        !doc.isInternal && (
+                            doc.title.contains(query, ignoreCase = true) ||
+                                doc.content.contains(query, ignoreCase = true)
+                            )
+                    }
+                }
+                docs.take(topK).map { doc ->
+                    val firstChunkContent = resultOf {
+                        chunkDao.getByDoc(doc.id).firstOrNull()?.content ?: ""
+                    }.getOrNull() ?: ""
+                    doc.title to (firstChunkContent.ifBlank { doc.content.take(500) })
+                }
+            },
             // v1.0.12: HNSW 索引持久化文件路径 — 启用 RAG 向量索引落盘
             // 文件位置:filesDir/rag/hnsw_index.bin;App 重启后 MuseApp.onCreate 异步加载,
             // 避免每次启动都从 DB 全量重建索引。indexFile 默认 null(不持久化,仅内存),

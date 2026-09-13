@@ -71,17 +71,17 @@ def fetch_remote_assets(tag: str) -> list[dict]:
 
 
 def create_or_reuse_release(tag: str, body_file: Path) -> None:
+    if not body_file.is_file():
+        raise RuntimeError(f"发布说明不存在: {body_file}")
     if release_exists(tag):
         # 已存在时也同步正文，避免手动创建的临时 Release 留下过期说明。
         cmd = ["gh", "release", "edit", tag, "--title", f"Muse {tag}"]
-        if body_file.is_file():
-            cmd += ["--notes-file", str(body_file)]
+        cmd += ["--notes-file", str(body_file)]
         run(cmd)
         print(f"[断点续发] Release {tag} 已存在, 复用并同步正文")
         return
     cmd = ["gh", "release", "create", tag, "--title", f"Muse {tag}"]
-    if body_file.is_file():
-        cmd += ["--notes-file", str(body_file)]
+    cmd += ["--notes-file", str(body_file)]
     run(cmd)
     print(f"[发布] Release {tag} 已创建")
 

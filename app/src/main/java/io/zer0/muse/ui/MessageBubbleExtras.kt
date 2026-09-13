@@ -1,4 +1,6 @@
 @file:Suppress(
+    "LongMethod",
+    "CyclomaticComplexMethod",
     "FunctionNaming",
     "LongMethod",
     "CyclomaticComplexity",
@@ -15,8 +17,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,6 +25,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
@@ -84,7 +87,6 @@ import org.json.JSONObject
  *
  * 结果文本中若包含沙盒内文件路径,会渲染为可点击的附件芯片(见 [AttachmentChip])。
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun ToolCallCard(
     toolName: String,
@@ -234,11 +236,12 @@ internal fun ToolCallCard(
                     }
                     // 附件芯片
                     if (attachments.isNotEmpty()) {
-                        FlowRow(
+                        LazyRow(
+                            modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
-                            verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+                            contentPadding = PaddingValues(horizontal = 2.dp),
                         ) {
-                            attachments.forEach { (path, size) ->
+                            items(attachments, key = { it.first }) { (path, size) ->
                                 AttachmentChip(filePath = path, fileSize = size)
                             }
                         }
@@ -387,7 +390,6 @@ internal fun extractStickerPaths(text: String): List<String> {
 /**
  * v1.133: RAG 引用 chip 列表 — 渲染知识库检索引用,点击展开 snippet 预览。
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun RagCitationChips(
     citations: List<RagCitation>,
@@ -395,11 +397,12 @@ internal fun RagCitationChips(
 ) {
     var expandedIndex by rememberSaveable { mutableStateOf(-1) }
     Column(modifier = modifier.fillMaxWidth()) {
-        FlowRow(
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
-            verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+            contentPadding = PaddingValues(horizontal = 2.dp),
         ) {
-            citations.forEach { citation ->
+            items(citations, key = { it.index }) { citation ->
                 RagCitationChip(
                     citation = citation,
                     isExpanded = expandedIndex == citation.index,

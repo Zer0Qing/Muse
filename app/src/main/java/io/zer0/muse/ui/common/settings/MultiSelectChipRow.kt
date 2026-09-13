@@ -3,6 +3,7 @@ package io.zer0.muse.ui.common.settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -11,6 +12,8 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -109,7 +112,7 @@ fun <T> MultiSelectChipRow(
 }
 
 /**
- * chip 横向自动换行布局(基于 FlowRow)。
+ * chip 横向滚动布局(基于 LazyRow)。数量来自用户资源时不会把后续设置内容顶出屏幕。
  */
 @Composable
 private fun <T> ChipFlowRow(
@@ -119,13 +122,12 @@ private fun <T> ChipFlowRow(
     onClick: (T) -> Unit,
     showRemoveIcon: Boolean,
 ) {
-    @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
-    androidx.compose.foundation.layout.FlowRow(
+    LazyRow(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(MusePaddings.labelVerticalGap),
-        verticalArrangement = Arrangement.spacedBy(MusePaddings.labelVerticalGap),
+        contentPadding = PaddingValues(horizontal = 2.dp),
     ) {
-        items.forEach { item ->
+        items(items, key = { item -> itemLabel(item) }) { item ->
             val label = itemLabel(item)
             val selected = isSelected(item)
             if (selected && showRemoveIcon) {

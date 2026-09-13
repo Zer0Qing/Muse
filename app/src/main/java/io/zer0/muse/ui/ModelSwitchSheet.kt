@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import io.zer0.ai.core.BuiltInTool
 import io.zer0.ai.core.FreeModelConfig
 import io.zer0.ai.core.Model
+import io.zer0.ai.core.ModelVerification
 import io.zer0.ai.core.ProviderConfig
 import io.zer0.ai.core.ProviderType
 import io.zer0.muse.R
@@ -589,20 +590,47 @@ private fun ModelRow(
                     }
                 }
             }
-            // v0.47: 显示上下文窗口大小(如 "128K context")
+            // v0.47/v1.0.87: 显示模型能力目录中的上下文窗口与输出上限。
+            // 这些是模型元数据上限，不代表每次请求一定会分配同样预算。
             val ctxWindow = model.contextWindow
-            if (ctxWindow != null && ctxWindow > 0) {
-                val contextText = if (ctxWindow >= 1000) {
-                    "${ctxWindow / 1000}K"
-                } else {
-                    ctxWindow.toString()
+            val outputLimit = model.maxOutputTokens
+            val hasContextLimit = ctxWindow?.let { it > 0 } == true
+            val hasOutputLimit = outputLimit?.let { it > 0 } == true
+            if (hasContextLimit || hasOutputLimit) {
+                Row(
+                    modifier = Modifier.padding(top = 2.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    if (ctxWindow != null && ctxWindow > 0) {
+                        Text(
+                            text = stringResource(R.string.model_switch_context_limit, formatTokenCount(ctxWindow)),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.outline,
+                        )
+                    }
+                    if (outputLimit != null && outputLimit > 0) {
+                        Text(
+                            text = stringResource(R.string.model_switch_output_limit, formatTokenCount(outputLimit)),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.outline,
+                        )
+                    }
                 }
-                Text(
-                    text = "$contextText context",
+            }
+            when (model.verification) {
+                ModelVerification.UNVERIFIED -> Text(
+                    text = stringResource(R.string.model_switch_metadata_unverified),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.outline,
                     modifier = Modifier.padding(top = 2.dp),
                 )
+                ModelVerification.SUSPICIOUS -> Text(
+                    text = stringResource(R.string.model_switch_metadata_suspicious),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+                ModelVerification.VERIFIED -> Unit
             }
         }
         // 选中态:primary 月桂绿 Check
@@ -615,6 +643,13 @@ private fun ModelRow(
             )
         }
     }
+}
+
+/** 将 token 数压缩成设置页可读的 K/M 文本。 */
+private fun formatTokenCount(tokens: Int): String = when {
+    tokens >= 1_000_000 -> "${tokens / 1_000_000}M"
+    tokens >= 1_000 -> "${tokens / 1_000}K"
+    else -> tokens.toString()
 }
 
 /**

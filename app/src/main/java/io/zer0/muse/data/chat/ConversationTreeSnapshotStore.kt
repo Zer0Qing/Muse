@@ -3,6 +3,7 @@ package io.zer0.muse.data.chat
 import android.content.Context
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
+import io.zer0.muse.data.AtomicFileStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -53,7 +54,10 @@ class ConversationTreeSnapshotStore(private val context: Context) {
                     )
                 },
             )
-            File(dir, fileName(sessionId)).writeText(AppJson.encodeToString(TreeSnapshot.serializer(), snapshot))
+            AtomicFileStore.writeText(
+                File(dir, fileName(sessionId)),
+                AppJson.encodeToString(TreeSnapshot.serializer(), snapshot),
+            )
         }.onFailure { e ->
             Logger.w("TreeSnapshotStore", "保存对话树选择快照失败: ${e.message}", e)
         }
@@ -67,6 +71,7 @@ class ConversationTreeSnapshotStore(private val context: Context) {
             snapshot.toTree()
         }.onFailure { e ->
             Logger.w("TreeSnapshotStore", "读取对话树选择快照失败: ${e.message}", e)
+            AtomicFileStore.quarantine(file, "snapshot_parse")
         }.getOrNull()
     }
 

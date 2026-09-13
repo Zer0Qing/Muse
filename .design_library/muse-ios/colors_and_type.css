@@ -1,0 +1,314 @@
+/* @group-priority: primary, success, info, danger, accent */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&display=swap');
+
+/* =========================================================================
+   Muse iOS — Design Library Tokens
+   Brand: Muse Laurel Green (月桂绿) · iOS Design Language
+   ========================================================================= */
+
+:root {
+  /* primary */
+  --primary-50: #E6F2EC; /* AI-generated */
+  --primary-100: #D4EBDD; /* AI-generated */
+  --primary-200: #A8DBC4; /* AI-generated */
+  --primary-300: #7CC4A4; /* AI-generated */
+  --primary-400: #4A9F70; /* AI-generated */
+  --primary-500: #2A7A55; /* @primary */ /* AI-generated */
+  --primary-600: #216447; /* AI-generated */
+  --primary-700: #1A4F37; /* AI-generated */
+  --primary-800: #143F2C; /* AI-generated */
+  --primary-900: #0F3D2A; /* AI-generated */
+  --primary: var(--primary-500); /* AI-generated */
+  --primary-foreground: #FFFFFF; /* AI-generated */
+  --primary-container: var(--primary-100); /* AI-generated */
+  --on-primary-container: var(--primary-900); /* AI-generated */
+
+  /* neutral */
+  --neutral-50: #FAFAF8; /* AI-generated */
+  --neutral-100: #F2F2F0; /* AI-generated */
+  --neutral-200: #E8E8E4; /* AI-generated */
+  --neutral-300: #D1D1D6; /* AI-generated */
+  --neutral-400: #C7C7CC; /* AI-generated */
+  --neutral-500: #8E8E93; /* @primary */ /* AI-generated */
+  --neutral-600: #636366; /* AI-generated */
+  --neutral-700: #48484A; /* AI-generated */
+  --neutral-800: #2C2C2E; /* AI-generated */
+  --neutral-900: #1A1A1A; /* AI-generated */
+
+  /* text */
+  --ink: #1A1A1A; /* @primary */ /* AI-generated */
+  --ink-secondary: #8E8E93; /* AI-generated */
+  --ink-tertiary: #AEAEB2; /* AI-generated */
+  --ink-on-brand: #FFFFFF; /* AI-generated */
+  --ink-on-danger: #FFFFFF; /* AI-generated */
+  --fg: var(--ink); /* AI-generated */
+  --muted: var(--ink-secondary); /* AI-generated */
+
+  /* surface */
+  --bg: #FAFAF8; /* @primary */ /* AI-generated */
+  --bg-elevated: #FFFFFF; /* AI-generated */
+  --surface: #FFFFFF; /* AI-generated */
+  --surface-container: #F0F0EC; /* AI-generated */
+  --surface-container-low: #F2F2F0; /* AI-generated */
+  --surface-container-high: #E8E8E4; /* AI-generated */
+  --ai-bubble: #F0F0EC; /* AI-generated */
+  --divider: #E8E8E4; /* AI-generated */
+  --rule: var(--divider); /* AI-generated */
+  --hairline: rgba(0,0,0,0.06); /* AI-generated */
+
+  /* success */
+  --success-50: #E8F5EC; /* AI-generated */
+  --success-100: #C7E8CF; /* AI-generated */
+  --success-200: #9DD4AE; /* AI-generated */
+  --success-300: #7DB88F; /* AI-generated */
+  --success-400: #5CA876; /* AI-generated */
+  --success-500: #3E9C5E; /* @primary */ /* AI-generated */
+  --success-600: #2F8A4D; /* AI-generated */
+  --success-700: #246E3D; /* AI-generated */
+  --success-800: #1B5530; /* AI-generated */
+  --success-900: #143F24; /* AI-generated */
+
+  /* warning */
+  --warning-50: #FDF3E0; /* AI-generated */
+  --warning-100: #FAE3B4; /* AI-generated */
+  --warning-200: #F5D086; /* AI-generated */
+  --warning-300: #FFB74D; /* AI-generated */
+  --warning-400: #FFA726; /* AI-generated */
+  --warning-500: #FF9500; /* @primary */ /* AI-generated */
+  --warning-600: #E68600; /* AI-generated */
+  --warning-700: #B36600; /* AI-generated */
+  --warning-800: #8A4F00; /* AI-generated */
+  --warning-900: #5C3400; /* AI-generated */
+
+  /* danger */
+  --danger-50: #F8DCD8; /* AI-generated */
+  --danger-100: #F2C5BE; /* AI-generated */
+  --danger-200: #ECAEAA; /* AI-generated */
+  --danger-300: #E27A6E; /* AI-generated */
+  --danger-400: #DE5C4E; /* AI-generated */
+  --danger-500: #D94034; /* @primary */ /* AI-generated */
+  --danger-600: #C0332A; /* AI-generated */
+  --danger-700: #9E2A22; /* AI-generated */
+  --danger-800: #7A1F1A; /* AI-generated */
+  --danger-900: #5C1714; /* AI-generated */
+  --danger: var(--danger-500); /* AI-generated */
+  --danger-container: var(--danger-50); /* AI-generated */
+  --on-danger-container: var(--danger-900); /* AI-generated */
+
+  /* info */
+  --info-50: #E0EFFF; /* AI-generated */
+  --info-100: #B3D9FF; /* AI-generated */
+  --info-200: #80BFFF; /* AI-generated */
+  --info-300: #4DA3FF; /* AI-generated */
+  --info-400: #1A8CFF; /* AI-generated */
+  --info-500: #007AFF; /* @primary */ /* AI-generated */
+  --info-600: #0066D6; /* AI-generated */
+  --info-700: #0052AD; /* AI-generated */
+  --info-800: #003D80; /* AI-generated */
+  --info-900: #002952; /* AI-generated */
+
+  /* accent */
+  --accent-coral: #FF6B6B; /* AI-generated */
+  --accent-lavender: #9B8EC4; /* AI-generated */
+  --accent-amber: #E8A838; /* AI-generated */
+  --accent-sage: #7DB88F; /* AI-generated */
+  --accent-mist: #C7C7CC; /* AI-generated */
+  --accent-gold: #F5C842; /* @primary */ /* AI-generated */
+  --accent: var(--accent-gold); /* AI-generated */
+  --accent-foreground: #1A1A1A; /* AI-generated */
+  --accent-foreground-muted: #636366; /* AI-generated */
+
+  /* === Typography === */
+  --font-display: -apple-system, 'SF Pro Display', system-ui, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-heading: -apple-system, 'SF Pro Display', system-ui, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-body: -apple-system, 'SF Pro Text', system-ui, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'SF Mono', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-serif: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+
+  --font-size-display-xl: 34px;
+  --font-size-display-l: 28px;
+  --font-size-title-l: 20px;
+  --font-size-body-l: 16px;
+  --font-size-body-m: 14px;
+  --font-size-caption: 13px;
+  --font-size-label: 12px;
+  --font-size-tab: 11px;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-display: 1.2;
+  --line-height-title: 1.3;
+  --line-height-body: 1.6;
+  --line-height-caption: 1.6;
+
+  /* === Spacing === */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 48px;
+  --space-9: 64px;
+
+  /* === Sizing === */
+  --size-button-sm: 32px;
+  --size-button-md: 40px;
+  --size-button-lg: 48px;
+  --size-input: 44px;
+  --size-touch-target: 48px;
+  --size-icon-sm: 16px;
+  --size-icon-md: 20px;
+  --size-icon-lg: 24px;
+  --size-avatar-sm: 32px;
+  --size-avatar-md: 40px;
+  --size-avatar-lg: 48px;
+  --size-tabbar: 56px;
+  --size-navbar: 44px;
+  --size-bubble-max: 75%;
+
+  /* === Radius === */
+  --radius-tiny: 4px;
+  --radius-small: 8px;
+  --radius-button: 12px;
+  --radius-bubble: 18px;
+  --radius-card: 20px;
+  --radius-sheet: 24px;
+  --radius-mega: 28px;
+  --radius-pill: 9999px;
+
+  /* === Shadows === */
+  --shadow-1: 0 0.5px 0 rgba(0,0,0,0.04); /* Hairline border */
+  --shadow-2: 0 1px 3px rgba(0,0,0,0.06); /* Card subtle */
+  --shadow-3: 0 2px 8px rgba(0,0,0,0.08); /* Card elevated */
+  --shadow-4: 0 8px 24px rgba(0,0,0,0.10); /* Modal/Sheet */
+  --shadow-5: 0 16px 48px rgba(0,0,0,0.14); /* Ambient depth */
+
+  /* === Glass === */
+  --glass-bg: rgba(252,250,248,0.72);
+  --glass-blur: 20px;
+  --glass-saturation: 180%;
+
+  /* === Motion === */
+  --duration-fast: 150ms;
+  --duration-default: 300ms;
+  --duration-slow: 500ms;
+  --ease-spring: cubic-bezier(0.22, 0.68, 0, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* ============================================
+     SEMANTIC ALIAS LAYER
+     Maps generic names → brand-prefixed tokens
+     ============================================ */
+  --color-background: var(--bg);
+  --color-foreground: var(--fg);
+  --color-surface: var(--surface);
+  --color-surface-container: var(--surface-container);
+  --color-surface-container-low: var(--surface-container-low);
+  --color-surface-container-high: var(--surface-container-high);
+  --color-card: var(--surface);
+  --color-on-surface: var(--fg);
+  --color-on-surface-variant: var(--muted);
+  --color-muted-foreground: var(--muted);
+  --color-primary: var(--primary);
+  --color-on-primary: var(--primary-foreground);
+  --color-primary-container: var(--primary-container);
+  --color-on-primary-container: var(--on-primary-container);
+  --color-error: var(--danger);
+  --color-error-container: var(--danger-container);
+  --color-on-error: var(--ink-on-danger);
+  --color-on-error-container: var(--on-danger-container);
+  --color-outline: var(--rule);
+  --color-border: var(--rule);
+  --color-success: var(--success-600);
+  --color-warning: var(--warning-600);
+  --color-danger: var(--danger-600);
+  --color-info: var(--info-600);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--accent-foreground);
+  --radius-sm: var(--radius-small);
+  --radius-md: var(--radius-button);
+  --radius-lg: var(--radius-card);
+  --radius-xl: var(--radius-sheet);
+  --radius-full: var(--radius-pill);
+  --muse-radius-sm: var(--radius-small);
+  --muse-radius-md: var(--radius-button);
+  --muse-radius-lg: var(--radius-card);
+  --muse-radius-xl: var(--radius-sheet);
+  --muse-radius-full: var(--radius-pill);
+  --type-display: var(--font-size-display-xl);
+  --type-heading: var(--font-size-title-l);
+  --type-body-lg: var(--font-size-body-l);
+  --type-body-md: var(--font-size-body-m);
+  --type-caption: var(--font-size-caption);
+  --type-label: var(--font-size-label);
+  --font-family-base: var(--font-body);
+}
+
+.dark {
+  /* primary */
+  --primary-500: #4A9F70; /* @primary */ /* AI-generated */
+  --primary: var(--primary-500); /* AI-generated */
+  --primary-container: #1F4D38; /* AI-generated */
+  --on-primary-container: #A8DBC4; /* AI-generated */
+
+  /* neutral */
+  --neutral-50: #1C1C1E; /* AI-generated */
+  --neutral-100: #2C2C2E; /* AI-generated */
+  --neutral-900: #E8E8E8; /* AI-generated */
+
+  /* text */
+  --ink: #E8E8E8; /* @primary */ /* AI-generated */
+  --ink-secondary: #98989F; /* AI-generated */
+  --ink-tertiary: #636366; /* AI-generated */
+
+  /* surface */
+  --bg: #000000; /* @primary */ /* AI-generated */
+  --bg-elevated: #1C1C1E; /* AI-generated */
+  --surface: #1C1C1E; /* AI-generated */
+  --surface-container: #2C2C2E; /* AI-generated */
+  --surface-container-low: #1C1C1E; /* AI-generated */
+  --surface-container-high: #2C2C2E; /* AI-generated */
+  --ai-bubble: #1C1C1E; /* AI-generated */
+  --divider: #2C2C2E; /* AI-generated */
+  --rule: var(--divider); /* AI-generated */
+  --hairline: rgba(255,255,255,0.08); /* AI-generated */
+
+  /* danger */
+  --danger-container: #3D1818; /* AI-generated */
+
+  /* accent (desaturated) */
+  --accent-coral: #E86B6B; /* AI-generated */
+  --accent-lavender: #8E82B4; /* AI-generated */
+  --accent-sage: #6FA882; /* AI-generated */
+
+  /* === Glass === */
+  --glass-bg: rgba(28,28,30,0.72);
+
+  /* === Shadows (dark) === */
+  --shadow-1: 0 0.5px 0 rgba(255,255,255,0.04); /* Hairline border */
+  --shadow-2: 0 1px 3px rgba(0,0,0,0.20); /* Card subtle */
+  --shadow-3: 0 2px 8px rgba(0,0,0,0.30); /* Card elevated */
+  --shadow-4: 0 8px 24px rgba(0,0,0,0.40); /* Modal/Sheet */
+  --shadow-5: 0 16px 48px rgba(0,0,0,0.50); /* Ambient depth */
+
+  --color-background: var(--bg);
+  --color-foreground: var(--fg);
+  --color-surface: var(--surface);
+  --color-on-surface: var(--fg);
+}
+
+/* === Typography Classes === */
+.muse-display { font-family: var(--font-display); font-size: 2.125rem; font-weight: var(--font-weight-bold); line-height: var(--line-height-display); letter-spacing: -0.02em; }
+.muse-title-l { font-family: var(--font-heading); font-size: 1.25rem; font-weight: var(--font-weight-semibold); line-height: var(--line-height-title); }
+.muse-body-l  { font-family: var(--font-body); font-size: 1rem; font-weight: var(--font-weight-regular); line-height: var(--line-height-body); }
+.muse-body-m  { font-family: var(--font-body); font-size: 0.875rem; font-weight: var(--font-weight-regular); line-height: var(--line-height-body); }
+.muse-caption { font-family: var(--font-body); font-size: 0.8125rem; font-weight: var(--font-weight-regular); line-height: var(--line-height-caption); }
+.muse-label   { font-family: var(--font-body); font-size: 0.75rem; font-weight: var(--font-weight-medium); line-height: var(--line-height-caption); letter-spacing: 0.02em; }
+.muse-tab     { font-family: var(--font-body); font-size: 0.6875rem; font-weight: var(--font-weight-medium); line-height: var(--line-height-caption); letter-spacing: 0.02em; }
+.muse-serif   { font-family: var(--font-serif); font-size: 1.125rem; font-weight: var(--font-weight-regular); line-height: var(--line-height-body); }
+.muse-mono    { font-family: var(--font-mono); font-size: 0.8125rem; font-weight: var(--font-weight-regular); line-height: var(--line-height-caption); }

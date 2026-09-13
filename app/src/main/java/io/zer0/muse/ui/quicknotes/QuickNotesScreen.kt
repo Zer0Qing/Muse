@@ -14,8 +14,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,10 +21,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -113,7 +113,6 @@ import org.koin.compose.koinInject
  *    - 文件夹/提醒使用独立小 chip 展示
  *  - 保留回收站、导入导出、文件夹、提醒、加密、编辑等全部既有能力
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun QuickNotesScreen(
     onBack: () -> Unit,
@@ -298,7 +297,8 @@ fun QuickNotesScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = MusePaddings.screen),
+                .padding(horizontal = MusePaddings.screen)
+                .navigationBarsPadding(),
         ) {
             Spacer(Modifier.height(MusePaddings.contentGap))
             QuickNoteSearchField(
@@ -371,7 +371,9 @@ fun QuickNotesScreen(
                 Spacer(Modifier.height(MusePaddings.contentGap))
                 LazyColumn(
                     state = listState,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
                 ) {
                     items(state.notes, key = { it.id }) { note ->
@@ -816,7 +818,6 @@ private fun SendButton(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun QuickNoteTagFilterRow(
     tags: List<String>,
@@ -824,12 +825,14 @@ private fun QuickNoteTagFilterRow(
     onTagSelected: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    FlowRow(
-        modifier = modifier.fillMaxWidth(),
+    LazyRow(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp, max = 56.dp),
         horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
-        verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+        contentPadding = PaddingValues(horizontal = 2.dp),
     ) {
-        tags.forEach { tag ->
+        items(tags, key = { it }) { tag ->
             MuseChip(
                 selected = tag == selectedTag,
                 onClick = { onTagSelected(tag) },

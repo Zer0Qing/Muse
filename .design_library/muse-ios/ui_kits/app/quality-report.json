@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "screensGenerated": 3,
+  "coreComponentsUsed": ["message-bubble", "input-bar", "navigation-bar", "conversation-list", "settings-page"],
+  "supportComponentsUsed": ["thinking-card", "tool-call-card", "approval-card", "agent-plan-card", "media-card"],
+  "previewClassReuseRate": 0.75,
+  "hasProductContext": true,
+  "inventedComponents": [],
+  "renderedFromEvidence": [],
+  "warnings": []
+}

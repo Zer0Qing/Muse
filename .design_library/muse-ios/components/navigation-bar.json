@@ -1,0 +1,56 @@
+{
+  "slug": "navigation-bar",
+  "schemaVersion": 2,
+  "name": "Navigation Bar",
+  "category": "Navigation",
+  "sourceKind": "from-scratch",
+  "confidence": "medium",
+  "semanticTypeCandidates": [
+    {"candidate": "tab-bar", "evidence": "Bottom bar with 5 tabs max iOS style"},
+    {"candidate": "large-title-nav", "evidence": "Top bar with 34pt Bold title that collapses on scroll"},
+    {"candidate": "inline-nav", "evidence": "Compact top bar for secondary screens"}
+  ],
+  "variantDimensions": [
+    {"name": "position", "values": ["bottom-tab", "top-large-title", "top-inline"]},
+    {"name": "state", "values": ["default", "scrolled", "search-active"]}
+  ],
+  "representativeVariants": [
+    {
+      "name": "Bottom Tab Bar",
+      "whySelected": "Primary navigation for app sections",
+      "traits": {"position": "bottom-tab", "height": "56px plus safe area", "bg": "frosted glass 72pct opacity 20px blur 180pct saturation", "items": "max 5 tabs", "iconSize": "24px", "labelSize": "11px Medium", "activeColor": "accent-strong", "inactiveColor": "ink-muted", "separator": "hairline top border"},
+      "childrenDigest": "Tab items icon label active state highlighted"
+    },
+    {
+      "name": "Large Title Top Nav",
+      "whySelected": "iOS signature large title pattern",
+      "traits": {"position": "top-large-title", "titleSize": "34px Bold", "titleColor": "ink", "leadingButton": "back chevron or menu", "trailingButton": "action icon", "bg": "frosted glass or transparent", "collapseBehavior": "title shrinks to 17px on scroll", "searchBar": "appears below title animates to compact"},
+      "childrenDigest": "Large title optional subtitle leading trailing actions"
+    },
+    {
+      "name": "Inline Top Nav",
+      "whySelected": "Secondary screens no large title",
+      "traits": {"position": "top-inline", "titleSize": "17px SemiBold", "height": "44px", "bg": "frosted glass", "leadingButton": "back chevron", "trailingButton": "action"},
+      "childrenDigest": "Centered or leading-aligned title actions"
+    }
+  ],
+  "anatomy": [
+    "Tab bar frosted glass container tab items active indicator",
+    "Large title nav large title text leading trailing buttons search bar",
+    "Inline nav title bar back button action button",
+    "Safe area insets top and bottom"
+  ],
+  "structurePatterns": [
+    "Tab bar fixed bottom 56px height plus safe area",
+    "Large title sticky top collapses on scroll to inline",
+    "Frosted glass throughout for iOS material feel",
+    "44pt minimum touch target for all buttons"
+  ],
+  "usageHints": {
+    "priorityHint": "core",
+    "iosAdaptation": "iOS UITabBarController UINavigationBarController native Android BottomNavigation TopAppBar from Compose Web position sticky backdrop-filter"
+  },
+  "doNotInvent": ["Exact tab items list", "Screen-specific trailing actions"],
+  "unknowns": ["Exact large title collapse animation curve per platform"],
+  "keyInsightSeed": "Frosted glass tab bar with large title top nav"
+}

@@ -308,6 +308,7 @@
     <string name="settings_web_new_pin">Nuevo PIN: %1$s (reinicie la aplicación para aplicar)</string>
     <string name="settings_web_access_address">Dirección de acceso</string>
     <string name="settings_web_no_lan">No conectado a LAN (no disponible incluso cuando está habilitado)</string>
+    <string name="settings_web_not_running">El servicio no está activo; la dirección no está disponible</string>
     <string name="settings_web_copy_address">Copiar dirección</string>
     <string name="settings_web_address_copied">Copiado: %1$s</string>
     <string name="settings_web_edit_port">Editar puerto</string>
@@ -316,6 +317,9 @@
     <string name="settings_web_port_invalid">Puerto no válido (1024-65535)</string>
     <string name="settings_web_port_updated">Puerto actualizado, reinicie la aplicación para aplicar</string>
     <string name="settings_web_failed">Error: %1$s</string>
+    <string name="settings_web_status_running">Servicio activo en el puerto %1$d</string>
+    <string name="settings_web_status_stopped">El servicio no está activo</string>
+    <string name="settings_web_status_failed">Error al iniciar el servicio: %1$s</string>
 
     <!-- ==================== Chat Settings ==================== -->
     <string name="settings_chat_title">Charlar</string>

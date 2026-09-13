@@ -338,11 +338,11 @@
     <string name="settings_web_address_pin">地址:%1$s    PIN:%2$s</string>
     <string name="settings_web_pin_hint">PIN 仅用于 Web 端首次访问验证,登录后浏览器自动保存令牌</string>
     <string name="settings_web_enable">启用 Web 服务器</string>
-    <string name="settings_web_enable_subtitle">下次启动 App 时生效</string>
+    <string name="settings_web_enable_subtitle">保存后立即启动或停止服务</string>
     <string name="settings_web_allow_lan">启用局域网访问</string>
     <string name="settings_web_allow_lan_subtitle">默认仅本机访问；开启后同一 Wi-Fi 设备可通过 IP 访问</string>
     <string name="settings_web_port">端口</string>
-    <string name="settings_web_port_subtitle">%1$d(修改需重启 App)</string>
+    <string name="settings_web_port_subtitle">%1$d(保存后立即应用)</string>
     <string name="settings_web_password">登录密码</string>
     <string name="settings_web_password_not_set">未设置</string>
     <string name="settings_web_regenerate_password">重新生成密码</string>
@@ -353,18 +353,22 @@
     <string name="settings_web_copy_pin">复制 PIN</string>
     <string name="settings_web_pin_copied">已复制 PIN: %1$s</string>
     <string name="settings_web_regenerate_pin">重新生成 PIN</string>
-    <string name="settings_web_regenerate_pin_subtitle">生成 6 位数字 PIN(原 PIN 失效,需重启 App 生效)</string>
-    <string name="settings_web_new_pin">新 PIN: %1$s(重启 App 后生效)</string>
+    <string name="settings_web_regenerate_pin_subtitle">生成 6 位数字 PIN(原 PIN 立即失效)</string>
+    <string name="settings_web_new_pin">新 PIN: %1$s(立即生效)</string>
     <string name="settings_web_access_address">访问地址</string>
     <string name="settings_web_no_lan">未连接到局域网(启用后无法访问)</string>
+    <string name="settings_web_not_running">服务未运行，当前地址不可访问</string>
     <string name="settings_web_copy_address">复制地址</string>
     <string name="settings_web_address_copied">已复制: %1$s</string>
     <string name="settings_web_edit_port">修改端口</string>
     <string name="settings_web_port_number">端口号(1024-65535)</string>
-    <string name="settings_web_port_hint">避开 8080/3000 等常见端口。修改后需重启 App 生效。</string>
+    <string name="settings_web_port_hint">避开 8080/3000 等常见端口。保存后会立即重启 Web 服务。</string>
     <string name="settings_web_port_invalid">端口无效(1024-65535)</string>
-    <string name="settings_web_port_updated">端口已更新,重启 App 后生效</string>
+    <string name="settings_web_port_updated">端口已更新,Web 服务已重新应用</string>
     <string name="settings_web_failed">失败: %1$s</string>
+    <string name="settings_web_status_running">服务运行中，端口 %1$d</string>
+    <string name="settings_web_status_stopped">服务未运行</string>
+    <string name="settings_web_status_failed">服务启动失败：%1$s</string>
 
     <!-- ==================== Chat 设置 ==================== -->
     <string name="settings_chat_title">聊天</string>

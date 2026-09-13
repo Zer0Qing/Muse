@@ -1,0 +1,58 @@
+{
+  "slug": "conversation-list",
+  "schemaVersion": 2,
+  "name": "Conversation List",
+  "category": "Navigation",
+  "sourceKind": "from-scratch",
+  "confidence": "medium",
+  "semanticTypeCandidates": [
+    {"candidate": "session-list", "evidence": "Chat sessions with avatar title preview timestamp"},
+    {"candidate": "grouped-list", "evidence": "iOS grouped table view style with section headers"}
+  ],
+  "variantDimensions": [
+    {"name": "state", "values": ["default", "selected", "active"]},
+    {"name": "layout", "values": ["plain", "grouped", "search-results"]},
+    {"name": "content", "values": ["empty", "populated"]}
+  ],
+  "representativeVariants": [
+    {
+      "name": "Default Session Item",
+      "whySelected": "Primary list item",
+      "traits": {"state": "default", "radius": "10px medium", "padding": "10h 11v", "bg": "transparent", "textColor": "ink-soft", "fontSize": "13px title 12px preview", "maxLines": "1 title 1 preview"},
+      "childrenDigest": "Avatar title last-message preview timestamp"
+    },
+    {
+      "name": "Selected Active",
+      "whySelected": "Currently open conversation",
+      "traits": {"state": "selected", "radius": "10px", "bg": "surface-raised", "textColor": "accent-strong", "boxShadow": "shadow-sm", "fontWeight": "650"},
+      "childrenDigest": "Same as default but highlighted"
+    },
+    {
+      "name": "Empty State",
+      "whySelected": "No conversations yet",
+      "traits": {"layout": "centered", "minHeight": "48vh", "textColor": "ink-muted", "titleSize": "23px serif", "bodySize": "13px"},
+      "childrenDigest": "Illustration greeting new chat CTA"
+    }
+  ],
+  "anatomy": [
+    "Large title header 34pt Bold iOS style",
+    "Search bar pill frosted glass",
+    "Section header grouped style",
+    "List item avatar 32-40px title preview timestamp unread badge",
+    "Swipe actions delete pin mute",
+    "Bottom safe area"
+  ],
+  "structurePatterns": [
+    "Vertical scroll list 4px gap between items",
+    "Large title collapses to inline on scroll",
+    "Search bar animates to compact on scroll",
+    "Swipe-to-delete with confirmation"
+  ],
+  "usageHints": {
+    "priorityHint": "high",
+    "iosAdaptation": "iOS ListHeader with Section Android LazyColumn with stickyHeader Web custom scroll IntersectionObserver"
+  },
+  "doNotInvent": ["Exact avatar generation algorithm", "Pin mute specific behaviors"],
+  "unknowns": ["Exact swipe action set per platform"],
+  "keyInsightSeed": "iOS large title grouped list with swipe actions"
+}

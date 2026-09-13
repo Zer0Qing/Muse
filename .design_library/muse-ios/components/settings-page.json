@@ -1,0 +1,70 @@
+{
+  "slug": "settings-page",
+  "schemaVersion": 2,
+  "name": "Settings Page",
+  "category": "Navigation",
+  "sourceKind": "from-scratch",
+  "confidence": "medium",
+  "semanticTypeCandidates": [
+    {"candidate": "grouped-settings", "evidence": "iOS grouped table view style settings with sections"},
+    {"candidate": "profile-header", "evidence": "User profile card at top of settings"}
+  ],
+  "variantDimensions": [
+    {"name": "rowType", "values": ["toggle", "navigation", "action", "display", "slider"]},
+    {"name": "section", "values": ["profile", "general", "ai-model", "privacy", "about"]},
+    {"name": "state", "values": ["default", "disabled", "loading"]}
+  ],
+  "representativeVariants": [
+    {
+      "name": "Profile Header",
+      "whySelected": "Top of settings page",
+      "traits": {"section": "profile", "radius": "20px card", "bg": "accent-soft 5pct", "padding": "16px", "avatar": "48px circle", "name": "17px SemiBold", "subtitle": "14px muted", "actions": "edit profile button"},
+      "childrenDigest": "Avatar + user name + model info + edit button"
+    },
+    {
+      "name": "Toggle Row",
+      "whySelected": "Boolean setting with switch",
+      "traits": {"rowType": "toggle", "radius": "0 within grouped card", "bg": "surface-raised", "padding": "12h 11v", "label": "16px Regular", "control": "iOS switch 51x31px", "activeColor": "accent-strong"},
+      "childrenDigest": "Label + optional description + iOS-style switch"
+    },
+    {
+      "name": "Navigation Row",
+      "whySelected": "Setting that opens sub-page",
+      "traits": {"rowType": "navigation", "radius": "0 within grouped card", "bg": "surface-raised", "padding": "12h 11v", "label": "16px Regular", "value": "14px muted trailing", "chevron": "right chevron 12px muted"},
+      "childrenDigest": "Label + current value + right chevron"
+    },
+    {
+      "name": "Section Header",
+      "whySelected": "Group label above settings group",
+      "traits": {"section": "general", "padding": "0 16px 6px", "fontSize": "13px Regular", "textColor": "ink-muted", "textTransform": "uppercase none (CN)", "bg": "transparent"},
+      "childrenDigest": "Section title text"
+    }
+  ],
+  "anatomy": [
+    "Large title: 设置 34px Bold",
+    "Profile card: avatar + name + model + edit",
+    "Grouped sections: section header + rounded card containing rows",
+    "Toggle row: label + iOS switch",
+    "Navigation row: label + value + chevron",
+    "Action row: label with accent or danger color",
+    "Slider row: label + value + iOS-style slider",
+    "Section footer: small description text below group",
+    "About section: version build number app info"
+  ],
+  "structurePatterns": [
+    "iOS grouped table view style",
+    "Sections separated by 24px vertical gap",
+    "Rows within group have no gap, card has 20px radius",
+    "Top and bottom rows of group have slightly inset corners",
+    "Section headers are 13px muted, left-aligned",
+    "Section footers are 12px muted, left-aligned"
+  ],
+  "usageHints": {
+    "priorityHint": "core",
+    "touchTarget": "44pt min row height",
+    "iosAdaptation": "iOS Form with Section; Android LazyColumn with grouped Card; Web custom grouped list"
+  },
+  "doNotInvent": ["Exact setting items list", "Model configuration specifics"],
+  "unknowns": ["Exact sub-page layouts per setting category"],
+  "keyInsightSeed": "iOS grouped table view settings with profile header and sectioned rows"
+}

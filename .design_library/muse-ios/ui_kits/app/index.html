@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Muse iOS · 对话 / 记忆 / 设置</title>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+<link rel="stylesheet" href="../../colors_and_type.css">
+<link rel="stylesheet" href="../../components.css">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface-container-high);font-family:var(--font-body);-webkit-font-smoothing:antialiased;color:var(--ink)}
+.uikit-shell{width:100%;max-width:1184px;margin:0 auto;overflow:hidden;display:flex;justify-content:center;padding:24px 0}
+.uikit-truncate{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:640px){.uikit-shell{padding:0}}
+.phone-frame{width:412px;height:780px;border-radius:40px;border:8px solid var(--neutral-900);overflow:hidden;position:relative;box-shadow:var(--shadow-5)}
+.phone-inner{border-radius:inherit;width:100%;height:100%;display:flex;flex-direction:column;background:var(--bg)}
+.status-bar{display:flex;align-items:center;justify-content:space-between;height:44px;padding:0 var(--space-4);flex-shrink:0;font-size:15px;font-weight:var(--font-weight-semibold);color:var(--ink)}
+.status-bar-right{display:flex;align-items:center;gap:6px}
+.nav-sticky{position:sticky;top:0;z-index:10}
+.scroll-area{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.chat-content{display:flex;flex-direction:column;gap:var(--space-5);padding:var(--space-3) var(--space-4) var(--space-6)}
+.mem-content{display:flex;flex-direction:column;gap:var(--space-4);padding:var(--space-3) var(--space-4) var(--space-6)}
+.set-content{display:flex;flex-direction:column;gap:var(--space-4);padding:var(--space-3) var(--space-4) var(--space-6)}
+.empty-wrap{min-height:320px;display:flex;align-items:center;justify-content:center;padding:var(--space-6)}
+.home-indicator{height:5px;width:134px;background:var(--ink);border-radius:var(--radius-pill);margin:6px auto 8px;flex-shrink:0;opacity:0.85}
+.profile-info{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.profile-edit{display:inline-flex;align-items:center;gap:4px;font-size:var(--font-size-caption);color:var(--color-primary);background:transparent;border:none;cursor:pointer;flex-shrink:0;font-weight:var(--font-weight-medium);padding:6px 8px;border-radius:var(--radius-sm)}
+.profile-edit:hover{background:var(--color-primary-container)}
+.avatar-initial{display:flex;align-items:center;justify-content:center;width:100%;height:100%;color:var(--on-primary-container);font-size:20px;font-weight:var(--font-weight-semibold)}
+.row-value{display:flex;align-items:center;gap:var(--space-1)}
+.action-row .settings-label{color:var(--color-primary)}
+.slider-wrap{display:flex;align-items:center;gap:var(--space-2);flex-shrink:0}
+.ios-slider{width:130px;height:30px;display:flex;align-items:center}
+.ios-slider-track{position:relative;width:100%;height:4px;background:var(--color-surface-container-high);border-radius:var(--radius-pill)}
+.ios-slider-fill{position:absolute;left:0;top:0;height:100%;width:70%;background:var(--color-primary);border-radius:var(--radius-pill)}
+.ios-slider-thumb{position:absolute;left:70%;top:50%;transform:translate(-50%,-50%);width:28px;height:28px;border-radius:50%;background:var(--color-surface);box-shadow:var(--shadow-2)}
+[data-lucide]{flex-shrink:0}
+</style>
+</head>
+<body>
+<div class="uikit-shell" data-layout-guard="uikit-v1">
+  <div class="phone-frame">
+    <div class="phone-inner" id="root"></div>
+  </div>
+</div>
+
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+function StatusBar() {
+  return (
+    <div className="status-bar">
+      <span>9:41</span>
+      <div className="status-bar-right">
+        <i data-lucide="signal" width="17" height="17"></i>
+        <i data-lucide="wifi" width="17" height="17"></i>
+        <i data-lucide="battery-full" width="25" height="17"></i>
+      </div>
+    </div>
+  );
+}
+
+function LargeTitle({ title }) {
+  return (
+    <div className="nav-sticky">
+      <div data-component="navigation-bar" className="navbar navbar-large">
+        <h1 className="nav-title-large">{title}</h1>
+      </div>
+    </div>
+  );
+}
+
+function TabBar({ active, onTab }) {
+  const tabs = [
+    { icon: 'message-circle', label: '对话' },
+    { icon: 'layers', label: '记忆' },
+    { icon: 'book-open', label: '知识库' },
+    { icon: 'settings', label: '设置' }
+  ];
+  return (
+    <div data-component="navigation-bar" className="tabbar">
+      {tabs.map((t, i) => (
+        <button key={i} className={'tab-item' + (active === i ? ' active' : '')} onClick={() => onTab(i)}>
+          <i data-lucide={t.icon} className="tab-icon" width="24" height="24"></i>
+          <span className="tab-label">{t.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function HomeIndicator() {
+  return <div className="home-indicator"></div>;
+}
+
+function ChatView() {
+  return (
+    <div className="scroll-area">
+      <LargeTitle title="对话" />
+      <div className="chat-content">
+        <div data-component="conversation-list" className="conv-list">
+          <div className="conv-item selected">
+            <div className="conv-avatar">缪</div>
+            <div className="conv-content">
+              <div className="conv-title-row">
+                <span className="conv-title uikit-truncate">与缪斯聊聊</span>
+                <span className="conv-time">刚刚</span>
+              </div>
+              <span className="conv-preview uikit-truncate">今天读到了一段很有意思的话…</span>
+            </div>
+          </div>
+        </div>
+
+        <div data-component="message-bubble" className="msg end">
+          <div className="bubble bubble-user">帮我总结一下今天的读书笔记</div>
+        </div>
+
+        <div data-component="thinking-card" className="tc tc--collapsed">
+          <i data-lucide="brain" width="14" height="14" style={{ color: 'var(--muted)' }}></i>
+          <span className="tc__label">思考中…</span>
+          <i data-lucide="chevron-down" width="14" height="14" style={{ color: 'var(--ink-tertiary)' }}></i>
+        </div>
+
+        <div data-component="message-bubble" className="msg">
+          <div className="bubble bubble-ai">今天你读到了王国维的《人间词话》，其中『境界』一说颇为精妙。所谓境界，不仅是景物描绘，更是词人真感情的流露…</div>
+        </div>
+
+        <div data-component="tool-call-card" className="tool-card">
+          <div className="tc-header">
+            <span className="tc-icon ok"><i data-lucide="check" width="12" height="12"></i></span>
+            <span className="tc-name">web_search</span>
+            <span className="tc-status ok">成功</span>
+          </div>
+          <div className="tc-result">找到 3 条相关结果</div>
+        </div>
+
+        <div data-component="approval-card" className="acard low">
+          <div className="ahd">
+            <i data-lucide="shield-check" className="aico" width="20" height="20" style={{ color: 'var(--primary)' }}></i>
+            <span className="atitle">请求批准</span>
+            <span className="atool">工具调用</span>
+          </div>
+          <div className="adesc">即将执行 web_search，搜索「人间词话 境界」</div>
+          <div className="acts">
+            <button className="abtn approve">批准</button>
+            <button className="abtn reject">拒绝</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MemoryView() {
+  const steps = [
+    { name: '搜索资料', state: 'completed' },
+    { name: '分析内容', state: 'completed' },
+    { name: '生成摘要', state: 'completed' },
+    { name: '整理要点', state: 'active' },
+    { name: '输出结果', state: 'pending' }
+  ];
+  return (
+    <div className="scroll-area">
+      <LargeTitle title="记忆" />
+      <div className="mem-content">
+        <div data-component="agent-plan-card" className="plan-card executing">
+          <div className="plan-header">
+            <i data-lucide="brain" width="20" height="20" style={{ color: 'var(--primary)' }}></i>
+            <span className="plan-title">Agent 计划</span>
+            <span className="plan-progress">3/5</span>
+          </div>
+          <ul className="timeline">
+            {steps.map((s, i) => (
+              <li key={i} className={'step ' + s.state}>
+                <span className="step-dot"></span>
+                <span className="step-name">{s.name}</span>
+              </li>
+            ))}
+          </ul>
+          <a className="plan-action" href="#" onClick={(e) => e.preventDefault()}>
+            <i data-lucide="pause" width="14" height="14"></i>暂停
+          </a>
+        </div>
+
+        <div data-component="media-card" className="mc">
+          <div className="mc-media">
+            <div className="mc-shimmer"></div>
+            <div className="mc-gen">
+              <i data-lucide="image" width="24" height="24" style={{ color: 'var(--muted)' }}></i>
+              <span className="mc-gen-txt">生成中…</span>
+              <div className="mc-prog"><div className="mc-prog-fill"></div></div>
+              <span className="mc-pct">65%</span>
+            </div>
+          </div>
+        </div>
+
+        <div data-component="media-card" className="mc">
+          <div className="mc-media">
+            <div className="mc-img"></div>
+          </div>
+          <div className="mc-caption">王国维《人间词话》意境图</div>
+          <div className="mc-actions">
+            <a href="#" onClick={(e) => e.preventDefault()}>保存</a>
+            <a href="#" onClick={(e) => e.preventDefault()}>分享</a>
+          </div>
+        </div>
+
+        <div data-component="media-card" className="mc">
+          <div className="mc-media mc-video-bg">
+            <button className="mc-play" aria-label="播放"></button>
+          </div>
+          <div className="mc-timeline">
+            <span className="mc-time">0:00</span>
+            <div className="mc-timeline-bar"><div className="mc-timeline-fill"></div></div>
+            <span className="mc-time">0:12</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function KnowledgeView() {
+  return (
+    <div className="scroll-area">
+      <LargeTitle title="知识库" />
+      <div className="empty-wrap">
+        <div data-component="conversation-list" className="empty-state">
+          <div className="empty-title">尚无收藏</div>
+          <div className="empty-body">将对话中的要点保存到知识库，随时回顾</div>
+          <a className="empty-cta" href="#" onClick={(e) => e.preventDefault()}>新建知识</a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SettingsView() {
+  const [dark, setDark] = useState(false);
+  const [stream, setStream] = useState(true);
+  return (
+    <div className="scroll-area">
+      <LargeTitle title="设置" />
+      <div className="set-content">
+        <div data-component="settings-page" className="profile-card">
+          <div className="avatar"><span className="avatar-initial">缪</span></div>
+          <div className="profile-info">
+            <div className="profile-name">缪斯</div>
+            <div className="profile-sub">GPT-4 · 陪伴模式</div>
+          </div>
+          <button className="profile-edit"><i data-lucide="edit" width="14" height="14"></i>编辑</button>
+        </div>
+
+        <div className="section-header">通用</div>
+        <div data-component="settings-page" className="settings-group">
+          <div className="settings-row">
+            <span className="settings-label">深色模式</span>
+            <button className={'ios-switch' + (dark ? ' on' : '')} onClick={() => setDark(!dark)} aria-label="深色模式"></button>
+          </div>
+          <div className="settings-row">
+            <span className="settings-label">语言</span>
+            <div className="row-value">
+              <span className="settings-value">简体中文</span>
+              <i data-lucide="chevron-right" className="chevron" width="9" height="14"></i>
+            </div>
+          </div>
+          <div className="settings-row">
+            <span className="settings-label">字体大小</span>
+            <div className="row-value">
+              <span className="settings-value">标准</span>
+              <i data-lucide="chevron-right" className="chevron" width="9" height="14"></i>
+            </div>
+          </div>
+        </div>
+
+        <div className="section-header">AI 模型</div>
+        <div data-component="settings-page" className="settings-group">
+          <div className="settings-row">
+            <span className="settings-label">模型</span>
+            <div className="row-value">
+              <span className="settings-value">GPT-4</span>
+              <i data-lucide="chevron-right" className="chevron" width="9" height="14"></i>
+            </div>
+          </div>
+          <div className="settings-row">
+            <span className="settings-label">流式输出</span>
+            <button className={'ios-switch' + (stream ? ' on' : '')} onClick={() => setStream(!stream)} aria-label="流式输出"></button>
+          </div>
+          <div className="settings-row">
+            <span className="settings-label">温度</span>
+            <div className="slider-wrap">
+              <div className="ios-slider">
+                <div className="ios-slider-track">
+                  <div className="ios-slider-fill"></div>
+                  <div className="ios-slider-thumb"></div>
+                </div>
+              </div>
+              <span className="settings-value">0.7</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="section-header">关于</div>
+        <div data-component="settings-page" className="settings-group">
+          <div className="settings-row">
+            <span className="settings-label">版本</span>
+            <div className="row-value">
+              <span className="settings-value">1.0.0</span>
+              <i data-lucide="chevron-right" className="chevron" width="9" height="14"></i>
+            </div>
+          </div>
+          <div className="settings-row action-row">
+            <span className="settings-label">检查更新</span>
+            <i data-lucide="chevron-right" className="chevron" width="9" height="14"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [view, setView] = useState(0);
+  useEffect(() => {
+    if (window.lucide) lucide.createIcons();
+  }, [view]);
+  return (
+    <React.Fragment>
+      <StatusBar />
+      {view === 0 ? <ChatView /> : view === 1 ? <MemoryView /> : view === 2 ? <KnowledgeView /> : <SettingsView />}
+      {view === 0 && (
+        <div data-component="input-bar" className="inputbar">
+          <button className="ib-btn ib-tool" aria-label="工具"><i data-lucide="plus" width="20" height="20"></i></button>
+          <textarea placeholder="对话" rows="1"></textarea>
+          <button className="ib-btn ib-send">发送</button>
+        </div>
+      )}
+      <TabBar active={view} onTab={setView} />
+      <HomeIndicator />
+    </React.Fragment>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+<script>lucide.createIcons();</script>
+</body>
+</html>

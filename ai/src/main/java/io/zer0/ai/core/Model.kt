@@ -58,6 +58,9 @@ data class Model(
      */
     val verification: ModelVerification = ModelVerification.UNVERIFIED,
 ) {
+    /** Provider 与模型的稳定联合引用，避免同名模型跨 Provider 串路由。 */
+    fun reference(): ModelReference = ModelReference.of(this)
+
     /**
      * 便捷判断:是否支持工具调用。
      * v1.80 (M-CORE6): 空集(未声明)改为保守 false,避免向不支持的模型发送 tools 字段导致 400。

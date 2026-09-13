@@ -1,0 +1,77 @@
+{
+  "data": [
+    {
+      "id": "page-conversation",
+      "type": "page",
+      "title": "会话列表",
+      "version": 1,
+      "createdAt": 1788780529,
+      "canvasData": {
+        "x": 0,
+        "y": 0,
+        "group": 0,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 375,
+          "sourceHash": "fnv1a-bc81c437",
+          "measuredAt": 1788797486487
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/conversation.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-chat",
+      "type": "page",
+      "title": "聊天",
+      "version": 1,
+      "createdAt": 1788780529,
+      "canvasData": {
+        "x": 169,
+        "y": 0,
+        "group": 0,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 375,
+          "sourceHash": "fnv1a-e85b7ee3",
+          "measuredAt": 1788797486487
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/chat.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-settings",
+      "type": "page",
+      "title": "设置",
+      "version": 1,
+      "createdAt": 1788780529,
+      "canvasData": {
+        "x": 338,
+        "y": 0,
+        "group": 0,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 375,
+          "sourceHash": "fnv1a-e5052970",
+          "measuredAt": 1788797486487
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/settings.html",
+        "interactions": []
+      }
+    }
+  ],
+  "config": {
+    "autoLayout": true,
+    "deviceType": "mobile"
+  }
+}

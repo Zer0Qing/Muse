@@ -2,8 +2,10 @@
 
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
+import io.zer0.memory.fact.FactStore
 import io.zer0.memory.ticker.MemoryTicker
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -45,7 +47,7 @@ class MemoryInjectionTransformerTest {
 
     @Test
     fun `memory markdown injected at head when enabled`() = runTest {
-        coEvery { memoryTicker.readCompiledMemoryMarkdown() } returns "用户喜欢编程和音乐。"
+        coEvery { memoryTicker.readCompiledMemoryMarkdown(scope = "main", spaceId = "default") } returns "用户喜欢编程和音乐。"
 
         val transformer = MemoryInjectionTransformer(memoryTicker)
         val messages = listOf(
@@ -62,8 +64,28 @@ class MemoryInjectionTransformerTest {
     }
 
     @Test
+    fun `default space is enforced when fact store is present`() = runTest {
+        val factStore = mockk<FactStore>()
+        coEvery { factStore.getByScopeAndSpace("main", "default") } returns listOf(
+            FactStore.Fact(fact = "默认空间事实", scope = "main", spaceId = "default"),
+        )
+        coEvery { memoryTicker.readCompiledMemoryMarkdown(scope = "main", spaceId = "default") } returns ""
+
+        val transformer = MemoryInjectionTransformer(memoryTicker, factStore)
+        val messages = listOf(UIMessage(role = MessageRole.USER, content = "你好"))
+        val result = transformer.transform(
+            messages,
+            TransformContext(extras = mapOf("memory_enabled" to true, "current_scope" to "main")),
+        )
+
+        assertTrue(result.first().content.contains("默认空间事实"))
+        coVerify(exactly = 1) { factStore.getByScopeAndSpace("main", "default") }
+        coVerify(exactly = 0) { factStore.getByScope("main") }
+    }
+
+    @Test
     fun `empty memory markdown returns original`() = runTest {
-        coEvery { memoryTicker.readCompiledMemoryMarkdown() } returns ""
+        coEvery { memoryTicker.readCompiledMemoryMarkdown(scope = "main", spaceId = "default") } returns ""
 
         val transformer = MemoryInjectionTransformer(memoryTicker)
         val messages = listOf(
@@ -77,7 +99,7 @@ class MemoryInjectionTransformerTest {
 
     @Test
     fun `injected message has disclaimer`() = runTest {
-        coEvery { memoryTicker.readCompiledMemoryMarkdown() } returns "一些长期记忆"
+        coEvery { memoryTicker.readCompiledMemoryMarkdown(scope = "main", spaceId = "default") } returns "一些长期记忆"
 
         val transformer = MemoryInjectionTransformer(memoryTicker)
         val messages = listOf(

@@ -19,6 +19,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import java.io.IOException
+import java.net.URI
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -50,12 +51,14 @@ class UpdateChecker(
      * @param name 文件名(如 "muse-v1.133.apk")
      * @param downloadUrl 浏览器下载直链(browser_download_url)
      * @param size 文件字节数
+     * @param sha256 GitHub Release 资产摘要(缺失时兼容旧 Release)
      */
     @Serializable
     data class ApkAsset(
         val name: String,
         val downloadUrl: String,
         val size: Long,
+        val sha256: String? = null,
     )
 
     /**
@@ -101,41 +104,57 @@ class UpdateChecker(
                 if (bodyText.isBlank()) {
                     return@use Result.Error("response is empty")
                 }
-                val json = AppJson.parseToJsonElement(bodyText).jsonObject
-                val tagName = json["tag_name"]?.jsonPrimitive?.contentOrNull
-                    ?: return@use Result.Error("failed to parse tag_name")
-                val releaseName = json["name"]?.jsonPrimitive?.contentOrNull.orEmpty()
-                val releaseBody = json["body"]?.jsonPrimitive?.contentOrNull.orEmpty()
-                val htmlUrl = json["html_url"]?.jsonPrimitive?.contentOrNull.orEmpty()
-                // published_at 形如 "2025-01-01T00:00:00Z",GitHub API 返回 ISO8601 字符串
-                val publishedAt = parseIso8601ToMillis(
-                    json["published_at"]?.jsonPrimitive?.contentOrNull.orEmpty(),
-                )
-                val assets = json["assets"]?.jsonArray
-                    ?.mapNotNull { it.jsonObject }
-                    ?.mapNotNull { obj ->
-                        val name = obj["name"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
-                        val url = obj["browser_download_url"]?.jsonPrimitive?.contentOrNull
-                            ?: return@mapNotNull null
-                        val size = obj["size"]?.jsonPrimitive?.longOrNull ?: 0L
-                        ApkAsset(name = name, downloadUrl = url, size = size)
-                    }
-                    ?.filter { it.name.endsWith(".apk", ignoreCase = true) }
-                    ?: emptyList()
-                Result.Success(
-                    ReleaseInfo(
-                        tagName = tagName,
-                        name = releaseName,
-                        body = releaseBody,
-                        htmlUrl = htmlUrl,
-                        publishedAt = publishedAt,
-                        apkAssets = assets,
-                    ),
-                )
+                parseReleaseInfo(bodyText)
             }
         }.onError { msg, t ->
             Logger.e(TAG, "检查更新失败: ${t?.message ?: msg}", t)
         }.getOrNull() ?: Result.Error("network error")
+    }
+
+    private fun parseReleaseInfo(bodyText: String): Result<ReleaseInfo> {
+        val json = AppJson.parseToJsonElement(bodyText).jsonObject
+        val tagName = json["tag_name"]?.jsonPrimitive?.contentOrNull
+            ?: return Result.Error("failed to parse tag_name")
+        val assets = json["assets"]?.jsonArray
+            ?.mapNotNull { it.jsonObject }
+            ?.mapNotNull(::parseApkAsset)
+            .orEmpty()
+        return Result.Success(
+            ReleaseInfo(
+                tagName = tagName,
+                name = json["name"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                body = json["body"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                htmlUrl = json["html_url"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                publishedAt = parseIso8601ToMillis(
+                    json["published_at"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                ),
+                apkAssets = assets,
+            ),
+        )
+    }
+
+    private fun parseApkAsset(obj: kotlinx.serialization.json.JsonObject): ApkAsset? {
+        val name = obj["name"]?.jsonPrimitive?.contentOrNull
+        val url = obj["browser_download_url"]?.jsonPrimitive?.contentOrNull
+        val digest = obj["digest"]?.jsonPrimitive?.contentOrNull
+        val sha256 = digest?.let { raw ->
+            raw.takeIf { it.startsWith("sha256:", ignoreCase = true) || ':' !in it }
+                ?.let { value -> if (':' in value) value.substringAfter(':') else value }
+        }
+        val validName = name?.takeIf { it.endsWith(".apk", ignoreCase = true) }
+        val validUrl = url?.takeIf(::isTrustedDownloadUrl)
+        // 缺少 digest 兼容旧 Release；只要上游提供 digest，就必须是合法 SHA-256。
+        val validDigest = digest == null || (sha256 != null && SHA256_REGEX.matches(sha256))
+        return if (validName != null && validUrl != null && validDigest) {
+            ApkAsset(
+                name = validName,
+                downloadUrl = validUrl,
+                size = obj["size"]?.jsonPrimitive?.longOrNull ?: 0L,
+                sha256 = sha256?.lowercase(),
+            )
+        } else {
+            null
+        }
     }
 
     /**
@@ -177,6 +196,28 @@ class UpdateChecker(
         private const val TAG = "UpdateChecker"
         /** User-Agent(GitHub API 强制要求,否则 403)。 */
         private const val USER_AGENT = "muse-android"
+        private val SHA256_REGEX = Regex("^[0-9a-fA-F]{64}$")
+        private val TRUSTED_DOWNLOAD_HOSTS = setOf(
+            "github.com",
+            "objects.githubusercontent.com",
+            "github-releases.githubusercontent.com",
+        )
+
+        /** 仅允许 GitHub 官方 HTTPS 资产地址，避免缓存/上游数据把下载入口变成任意跳转。 */
+        fun isTrustedDownloadUrl(url: String): Boolean = runCatching {
+            val parsed = URI(url)
+            parsed.scheme.equals("https", ignoreCase = true) &&
+                parsed.userInfo == null &&
+                parsed.port in setOf(-1, 443) &&
+                parsed.host?.lowercase() in TRUSTED_DOWNLOAD_HOSTS &&
+                parsed.path.endsWith(".apk", ignoreCase = true)
+        }.getOrDefault(false)
+
+        /** 检查 Release 资产是否可作为 APK 下载入口。缺失 sha256 仅表示旧 Release 无摘要。 */
+        fun isTrustedApkAsset(asset: ApkAsset): Boolean =
+            asset.name.endsWith(".apk", ignoreCase = true) &&
+                isTrustedDownloadUrl(asset.downloadUrl) &&
+                (asset.sha256 == null || SHA256_REGEX.matches(asset.sha256))
         /** 默认 GitHub 仓库(owner/name)。 */
         /** v1.0.55: 修正为实际仓库 Zer0Qing/Muse(原误写 zer0/muse,404 后一直显示已是最新)。 */
         const val DEFAULT_REPO = "Zer0Qing/Muse"

@@ -3,6 +3,7 @@ package io.zer0.muse.web
 import android.content.Context
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
+import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.auth.AuthScheme
 import io.ktor.http.auth.HttpAuthHeader
@@ -24,9 +25,12 @@ import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
+import io.ktor.server.response.respondBytes
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
+import io.ktor.server.websocket.WebSockets
+import io.ktor.server.websocket.webSocket
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
@@ -40,6 +44,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.Serializable
@@ -85,17 +91,25 @@ import io.zer0.muse.R
  *  - 密码为空时自动生成 8 位随机密码并持久化(首次启用时)
  *  - PIN 为空时自动生成 6 位随机 PIN 并持久化(首次启用时)
  */
+@Suppress("LongParameterList")
 class WebServer(
     private val settings: SettingsRepository,
     private val sessionRepo: SessionRepository,
     private val notificationManager: MuseNotificationManager,
     private val mdnsService: MdnsService,
     private val context: Context,
+    chatViewModel: io.zer0.muse.ui.ChatViewModel,
+    generationManager: io.zer0.muse.schedule.ChatGenerationManager,
 ) {
+    private val hostWebSocketGateway = HostWebSocketGateway(chatViewModel, generationManager)
     @Volatile
     private var server: EmbeddedServer<*, *>? = null
+    private val lifecycleMutex = Mutex()
     private val _isRunning = MutableStateFlow(false)
     val isRunning: StateFlow<Boolean> = _isRunning
+    private val _lastError = MutableStateFlow<String?>(null)
+    /** 最近一次启动失败的可诊断原因；成功启动后清除。 */
+    val lastError: StateFlow<String?> = _lastError
 
     @Volatile
     private var currentPort: Int = 0
@@ -112,11 +126,43 @@ class WebServer(
      * 启动 Web 服务器。
      * @return true 启动成功,false 启动失败(端口占用 / 配置异常)
      */
+    @Suppress("TooGenericExceptionCaught")
     suspend fun start(): Boolean = withContext(Dispatchers.IO) {
+        try {
+            lifecycleMutex.withLock {
+                startLocked()
+            }
+        } catch (t: kotlin.coroutines.cancellation.CancellationException) {
+            throw t
+        } catch (t: Exception) {
+            // 启动边界必须把端口占用、配置解码和引擎初始化错误统一落到可见状态，不能让 fire-and-forget 协程静默失败。
+            recordStartFailure(t.message ?: "配置或引擎初始化失败", t)
+            false
+        }
+    }
+
+    /**
+     * 保存配置并立即应用。
+     *
+     * 设置页原先只写入 DataStore，服务必须等到下次真正创建 Application 进程才会读取，
+     * 容易出现“页面显示了地址，但 127.0.0.1 仍无法访问”的假运行状态。
+     */
+    suspend fun saveAndApplyConfig(config: WebServerConfig): Boolean {
+        settings.saveWebServerConfig(config)
+        stop()
+        if (!config.enabled) return true
+        check(start()) {
+            "WebServer 启动失败: ${lastError.value ?: "未知错误"}"
+        }
+        return true
+    }
+
+    private suspend fun startLocked(): Boolean {
         if (server != null) {
             Logger.w(TAG, "WebServer 已在运行中,跳过重复启动")
-            return@withContext true
+            return true
         }
+        _lastError.value = null
         val config = settings.webServerConfigFlow.first()
         val port = config.port.coerceIn(MIN_PORT, MAX_PORT)
         var password = config.password
@@ -141,14 +187,17 @@ class WebServer(
         // M11: startedAt 在 it.start() 之前赋值,避免 museRoutes 捕获到 0 导致 uptime 计算错误
         startedAt = System.currentTimeMillis()
         // M4: runCatching 改为 resultOf;M14: withContext(Dispatchers.IO) 保证配置读取不在主线程
-        resultOf {
-            server = embeddedServer(CIO, port = port, host = WebServer.bindHost(config.allowLan)) {
+        return resultOf {
+            val candidate = embeddedServer(CIO, port = port, host = WebServer.bindHost(config.allowLan)) {
                 configureSecurity(jwtSecret)
+                install(WebSockets)
                 configureSerialization()
                 configureCors(config.allowLan)
                 configureStatusPages()
                 museRoutes(password, jwtSecret, pin, sessionRepo, settings, config.allowLan)
-            }.also { it.start(wait = false) }
+            }
+            candidate.start(wait = false)
+            server = candidate
             currentPort = port
             currentPassword = password
             currentPin = pin
@@ -159,14 +208,29 @@ class WebServer(
             Logger.i(TAG, "WebServer 已启动: ${WebServer.bindHost(config.allowLan)}:$port")
             true
         }.onError { msg, t ->
-            Logger.e(TAG, "WebServer 启动失败: $msg", t)
-            server = null
-            startedAt = 0L
+            recordStartFailure(t?.message?.takeIf { it.isNotBlank() } ?: msg, t)
         }.getOrNull() ?: false
     }
 
+    private fun recordStartFailure(detail: String, throwable: Throwable?) {
+        _lastError.value = detail
+        Logger.e(TAG, "WebServer 启动失败: $detail", throwable)
+        server = null
+        _isRunning.value = false
+        currentPort = 0
+        currentPassword = ""
+        currentPin = ""
+        startedAt = 0L
+    }
+
     /** 停止 Web 服务器(幂等,未运行时无操作)。M13: 改为 suspend,阻塞的 it.stop() 切到 IO 线程。 */
-    suspend fun stop() {
+    suspend fun stop() = withContext(Dispatchers.IO) {
+        lifecycleMutex.withLock {
+            stopLocked()
+        }
+    }
+
+    private suspend fun stopLocked() {
         server?.let {
             // M5: runCatching 改为 resultOf;M13: it.stop() 是阻塞操作,用 withContext(Dispatchers.IO) 包裹
             resultOf { withContext(Dispatchers.IO) { it.stop(GRACE_PERIOD_MS, TIMEOUT_PERIOD_MS) } }
@@ -194,6 +258,7 @@ class WebServer(
             passwordMasked = maskSecret(currentPassword),
             pinMasked = maskSecret(currentPin),
             startedAt = startedAt,
+            lastError = _lastError.value,
         )
     }
 
@@ -298,6 +363,7 @@ class WebServer(
      * P2-13: 新增 `POST /api/auth/pin-login`,接受 6 位 PIN,校验通过后签发 JWT,
      * 并通过 Cookie 下发,Web 端后续请求无需再带 PIN。
      */
+    @Suppress("CyclomaticComplexMethod", "LongMethod")
     private fun Application.museRoutes(
         password: String,
         jwtSecret: String,
@@ -386,9 +452,14 @@ class WebServer(
                 call.respond(LoginResponse(token = token, expiresIn = TOKEN_TTL_MS / 1000))
             }
 
-            // 以下路由需要 JWT 鉴权
+            // Host Mode：浏览器只负责展示，Android ChatViewModel 负责生成、工具、记忆和持久化。
+            // WebSocket 握手复用 JWT Cookie/Authorization 鉴权，不开放未认证的实时通道。
             authenticate(AUTH_JWT_NAME) {
+                webSocket("/ws") {
+                    hostWebSocketGateway.serve(this)
+                }
 
+                // 以下 REST 路由需要 JWT 鉴权
                 // 会话列表
                 get("/api/sessions") {
                     // M12: Flow.first() 加超时,避免长时间阻塞请求
@@ -430,17 +501,54 @@ class WebServer(
                 //   强行实现易引入新 bug。如需 Web 发消息,建议后续单独设计 WebSocket 通道。
             }
 
-            // 根路径: 完整 Web UI(PIN 登录 → 会话列表 → 消息只读浏览)
-            // P2-13: 单页内嵌 HTML/CSS/JS,无外部依赖;鉴权走 Cookie(httpOnly)
+            // React Host UI 优先；APK 未带 Web 构建产物时回退到内嵌诊断页面。
+            get("/assets/{path...}") {
+                val path = call.parameters.getAll("path")?.joinToString("/").orEmpty()
+                if (!servePackagedAsset(call, "muse-web/assets/$path")) {
+                    call.respond(HttpStatusCode.NotFound)
+                }
+            }
+            get("/sw.js") {
+                if (!servePackagedAsset(call, "muse-web/sw.js")) call.respond(HttpStatusCode.NotFound)
+            }
+            get("/manifest.webmanifest") {
+                if (!servePackagedAsset(call, "muse-web/manifest.webmanifest")) call.respond(HttpStatusCode.NotFound)
+            }
+            get("/icon.svg") {
+                if (!servePackagedAsset(call, "muse-web/icon.svg")) call.respond(HttpStatusCode.NotFound)
+            }
             get("/") {
                 // L1: 添加 Referrer-Policy 头,防止 JWT query param 通过 Referer 头泄露到第三方
                 call.response.headers.append("Referrer-Policy", "no-referrer")
-                call.respondText(WebServerUi.INDEX_HTML, io.ktor.http.ContentType.Text.Html)
+                if (!servePackagedAsset(call, "muse-web/index.html")) {
+                    call.respondText(WebServerUi.INDEX_HTML, ContentType.Text.Html)
+                }
             }
         }
     }
 
     /** 签发 24h 有效期的 JWT,与密码登录共用同一签名密钥(password → HMAC-SHA256)。 */
+    @Suppress("ReturnCount")
+    private suspend fun servePackagedAsset(
+        call: ApplicationCall,
+        assetPath: String,
+    ): Boolean {
+        if (assetPath.contains("..") || assetPath.startsWith("/") || assetPath.contains("\\")) return false
+        val bytes = resultOf { context.assets.open(assetPath).use { it.readBytes() } }.getOrNull() ?: return false
+        val contentType = when {
+            assetPath.endsWith(".html", ignoreCase = true) -> ContentType.Text.Html
+            assetPath.endsWith(".js", ignoreCase = true) -> ContentType.Application.JavaScript
+            assetPath.endsWith(".css", ignoreCase = true) -> ContentType.Text.CSS
+            assetPath.endsWith(".json", ignoreCase = true) -> ContentType.Application.Json
+            assetPath.endsWith(".svg", ignoreCase = true) -> ContentType.Image.SVG
+            assetPath.endsWith(".png", ignoreCase = true) -> ContentType.Image.PNG
+            assetPath.endsWith(".webmanifest", ignoreCase = true) -> ContentType.parse("application/manifest+json")
+            else -> ContentType.Application.OctetStream
+        }
+        call.respondBytes(bytes, contentType)
+        return true
+    }
+
     private fun issueJwt(algorithm: Algorithm): String {
         return JWT.create()
             .withSubject(CLAIM_SUB_VALUE)
@@ -525,6 +633,7 @@ class WebServer(
         val passwordMasked: String,
         val pinMasked: String,
         val startedAt: Long,
+        val lastError: String? = null,
     )
 
     @Serializable
